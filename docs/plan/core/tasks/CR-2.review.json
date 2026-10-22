@@ -1,0 +1,34 @@
+{
+  "verdict": "accept",
+  "summary": "Код CR-2 соответствует карточке и C-schema v1: в миграции есть CHECK для enum, FK между синхронизируемыми таблицами NO ACTION, у несинхронизируемых — CASCADE на users, у activity/notifications нет FK на task_id и comment_id; правки по ревью CR-1 (main.ts, compose) сделаны. Отчёт заполнен чужим текстом (WB-1), его надо переподать.",
+  "issues": [
+    {
+      "file": "docs/plan/core (отчёт CR-2)",
+      "line": 0,
+      "severity": "major",
+      "what": "Отчёт не совпадает с фактом. summary, commits (7651c94 web: WB-1), how_to_check (accept WB-1) и uncertain (apps/web/src/router.ts) взяты из отчёта WB-1. Реальный коммит — 8f06403, apps/web он не трогает. Проверки в отчёте при этом от CR-2.",
+      "fix": "Переподать отчёт CR-2: summary по схеме и сиду, commits 8f06403, how_to_check accept CR-2, uncertain по CR-2 (если есть), упомянуть argon2 (этого требует карточка)."
+    },
+    {
+      "file": "apps/api/src/db/seed.ts",
+      "line": 150,
+      "severity": "minor",
+      "what": "projects.task_counter увеличивается в цикле до insert задач и не в транзакции. Если insert упадёт, счётчик уйдёт вперёд и в нумерации останется дыра.",
+      "fix": "Обернуть seedTasks в db.transaction(...) либо обновлять счётчик после вставки."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "schema",
+      "value": "24 passed",
+      "pass": true
+    },
+    {
+      "name": "migrations_in_sync",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-22T23:23:29",
+  "by": "reviewer"
+}
