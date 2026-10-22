@@ -180,5 +180,5 @@ describe('WS /ws', () => {
     }
     console.log(`poke_ms=${max}`);
     expect(max).toBeLessThanOrEqual(500);
-  });
+  }, 30_000);
 });

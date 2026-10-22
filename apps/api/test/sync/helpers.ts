@@ -28,6 +28,15 @@ export const dbUrl = (() => {
   await migrate(m).finally(() => m.$client.end());
 }
 afterAll(async () => {
+  // без force: сначала даём тестам закрыть свои пулы (force шлёт им FATAL 57P01)
+  for (let i = 0; i < 20; i++) {
+    try {
+      await admin.query(`drop database if exists ${name}`);
+      return await admin.end();
+    } catch {
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
   await admin.query(`drop database if exists ${name} with (force)`);
   await admin.end();
 }, 60_000);
