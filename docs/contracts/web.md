@@ -3,9 +3,9 @@ type: contract
 status: active
 module: web
 updated: 2026-10-22
-summary: Контракты web — C-ui (токены, компоненты, i18n, маршруты, точки расширения) и C-client (клиент синхронизации)
+summary: Контракты web — C-ui (оформление, компоненты, маршруты, расширения), C-client (синхронизация), C-tasks (общий слой задач)
 related: ["docs/plan/web.md", "docs/contracts/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 1}]
+contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 1}, {"id": "C-tasks", "version": 1}]
 ---
 
 # Контракты модуля web
@@ -19,7 +19,7 @@ contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 1}]
 ### Файлы
 | Путь | Что |
 |---|---|
-| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 1, 'C-client': 1 } as const;` |
+| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 1, 'C-client': 1, 'C-tasks': 1 } as const;` |
 | `apps/web/src/ui/tokens.css` | токены: блок `@theme { … }` — светлая тема, блок `.dark { … }` — тёмная (те же имена) |
 | `apps/web/src/ui/index.ts` | экспорт компонентов и `useBreakpoint`, `useTheme` |
 | `apps/web/src/i18n/{index,ru,en}.ts` | vue-i18n, словари |
@@ -167,3 +167,33 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 - `reset` (C-sync) → очистка таблиц сущностей, bootstrap, затем rebase очереди.
 - Очередь живёт в IndexedDB и переживает перезагрузку; push пачками ≤ 100, повтор при сети/`5xx` с паузой 1–30 с.
 - Клиентский `Tx` над Dexie проходит набор `txContractSuite` (`packages/shared/test/tx-contract.ts`).
+
+## C-tasks v1
+
+Общий слой задач для видов — `apps/web/src/tasks/index.ts` (владелец WB-2a; потребители WB-4…WB-10). Читает только реплику (C-client), пишет только через `mutate` доменных мутаторов (C-mutators); сеть не ждёт. Контрактный тест — `apps/web/src/__contract__/tasks.contract.test.ts`.
+
+### Типы
+- `TaskView = Row<'tasks'> & { key: string; assigneeIds: string[]; labelIds: string[] }`; `key` = `${project.key}-${number}`, при `number = null` — `${project.key}-…` (номер ещё не выдан сервером).
+- `GroupBy = 'status' | 'assignee' | 'priority' | 'label'`; `SortBy = 'rank' | 'priority' | 'dueDate' | 'createdAt' | 'updatedAt' | 'title'`; `TaskGroup = { key: string; label: string; color?: string; tasks: TaskView[] }`.
+- Аргументы запросов — `MaybeRefOrGetter` (vue), результат — `Readonly<Ref<…>>` из `useQuery`; `undefined` — ещё не прочитано.
+
+### Экспорты
+| Имя | Сигнатура | Поведение |
+|---|---|---|
+| `useSpaces` | `() => Ref<(Row<'spaces'> & { projects: Row<'projects'>[] })[]>` | по `rank`; архивные проекты не входят |
+| `useProject` | `(id) => Ref<Row<'projects'> \| undefined>` | |
+| `useStatuses` | `(spaceId) => Ref<Row<'statuses'>[]>` | по `rank` |
+| `useMembers` | `(spaceId) => Ref<Row<'users'>[]>` | пользователи из `spaceMembers`, без деактивированных, по `name` |
+| `useLabels` | `(spaceId) => Ref<Row<'labels'>[]>` | по `name` |
+| `useProjectTasks` | `(projectId) => Ref<TaskView[]>` | все задачи проекта (с подзадачами), индекс `projectId`; 10 000 задач ≤ 100 мс |
+| `useTask` | `(idOrKey) => Ref<TaskView \| undefined>` | uuid или ключ `PLN-123` |
+| `groupTasks` | `(tasks, by: GroupBy, ctx: {statuses, members, labels}) => TaskGroup[]` | чистая; статусы — в порядке `rank`, приоритет 1→4, затем 0; «без исполнителя»/«без метки» — последней группой; задача с несколькими исполнителями/метками — в каждой своей группе |
+| `sortTasks` | `(tasks, by: SortBy, dir: 'asc' \| 'desc') => TaskView[]` | чистая, стабильная; `null` — в конце при любом `dir` |
+| `createTask` | `(a: {projectId, statusId, title, after?: string \| null, before?: string \| null, parentId?, priority?, dueDate?, assigneeIds?, labelIds?}) => Promise<string>` | `after`/`before` — `rank` соседей; без них — в конец; id и `rank` считает сам; возвращает id |
+| `updateTask` | `(id, patch: {title?, description?, statusId?, priority?, dueDate?, startDate?, projectId?, parentId?, fields?}) => Promise<void>` | `task.update` |
+| `moveTask` | `(id, to: {statusId?: string; after: string \| null; before: string \| null}) => Promise<void>` | новый `rank` между соседями (+ статус) одной мутацией |
+| `setAssignees` | `(taskId, userIds: string[]) => Promise<void>` | разница → `task.assign`/`task.unassign` |
+| `setLabels` | `(taskId, labelIds: string[]) => Promise<void>` | разница → `task.addLabel`/`task.removeLabel` |
+| `deleteTask` | `(id) => Promise<void>` | `task.delete` |
+| `StatusPicker`, `AssigneePicker`, `PriorityPicker`, `DueDatePicker`, `LabelPicker` | SFC: `v-model` (статус — id; исполнители, метки — `string[]`; приоритет — `0..4`; срок — `'YYYY-MM-DD' \| null`), `spaceId` (кроме приоритета и срока), `compact?: boolean` (только иконка — для строк и карточек) | на `ui/Popover` + поиск по вводу, клавиатура; `update:modelValue` — вызывающий сам вызывает `updateTask`/`setAssignees`/`setLabels` |
+| `StatusIcon`, `PriorityIcon` | SFC: `status: Row<'statuses'>` / `priority: number` | иконка по категории статуса и его `color`; приоритет — токены `--color-priority-*` |
