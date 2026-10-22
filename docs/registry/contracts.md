@@ -12,4 +12,4 @@ generated: true
 
 Файл собран `docs index` — руками не править.
 
-- core: C-schema v2, C-sync v1, C-mutators v1, C-modules v1, C-http v2 — [docs/contracts/core.md](../contracts/core.md)
+- core: C-schema v2, C-sync v1, C-mutators v1, C-modules v1, C-http v3 — [docs/contracts/core.md](../contracts/core.md)

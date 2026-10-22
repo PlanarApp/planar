@@ -5,7 +5,7 @@ module: core
 updated: 2026-10-22
 summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 related: ["docs/plan/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-schema", "version": 2}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 1}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 2}]
+contracts: [{"id": "C-schema", "version": 2}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 1}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 3}]
 ---
 
 # Контракты модуля core
@@ -521,7 +521,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v2
+## C-http v3
 
 ### Пути и окружение
 - `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11). В dev Vite проксирует их на api, в prod — Caddy.
@@ -568,7 +568,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 | `GET /api/auth/me` | → `{user}` \| `401` | CR-3 |
 | `GET /api/users` | → `{users: user[]}` (instance_admin) | CR-3 |
 | `POST /api/users` | `{login, name, password, role, email?}` → `201 {user}` (instance_admin) | CR-3 |
-| `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool}` → `{user}`; себя — только name, email, password | CR-3 |
+| `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool, avatarFile?: string\|null}` → `{user}`; `avatarFile` — sha256 из `POST /files`, загруженного этим пользователем (`file_uploads`), иначе `400 invalid_request`; себя — только name, email, password, avatarFile | CR-3 |
 | `GET /api/tasks/:id/activity` | → `{rows: activity[]}` по `createdAt`, права — видимость задачи | CR-4 |
 | `POST /files` | multipart, одно поле `file` → `201 {sha256, size, mime, width, height}`; > `MAX_UPLOAD_MB` → `413` | CR-6 |
 | `GET /files/:sha256` | → поток; `?name=` для `Content-Disposition`; доступ: файл приложен в пространстве пользователя, или это аватар пользователя, или есть `file_uploads(sha256, userId)`; иначе `404` | CR-6 |

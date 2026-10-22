@@ -98,3 +98,5 @@
 {"t": "2026-10-22T23:51:05", "by": "coordinator", "task": "CR-4", "ev": "edited", "note": "contract:C-schema", "diff": {"contract": ["null", "null"]}}
 {"t": "2026-10-22T23:51:36", "by": "coordinator", "task": "CR-2a", "ev": "checked", "note": "6/6 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; schema=ok:26; migrations_in_sync=ok:exit 0; test=ok:exit 0"}
 {"t": "2026-10-22T23:51:49", "by": "coordinator", "task": "CR-2a", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-22T23:52:13", "by": "coordinator", "task": "CR-2a", "ev": "checked", "commits": ["c01e320"], "note": "5/6 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; schema=ok:26; migrations_in_sync=ok:exit 0; test=FAIL:exit 1 · [ELIFECYCLE] Test fa…"}
+{"t": "2026-10-22T23:52:13", "by": "coordinator", "task": "CR-2a", "ev": "merged"}
