@@ -1,1 +1,2 @@
 {"t": "2026-10-22T22:59:12", "by": "user", "text": "Vue3+Vite SPA PWA; sync вариант B; вход только логин/пароль; один workspace; API-токены и MCP — ярус A", "why": "выбор пользователя 2026-10-22", "kind": "decision"}
+{"t": "2026-10-22T23:03:06", "by": "coordinator", "text": "Тестовая зависимость fake-indexeddb (devDependency apps/web) для тестов Dexie в WB-2 под Vitest/happy-dom — разрешить? Альтернатива из §2: Vitest browser mode + Playwright (тяжелее, медленнее)", "why": "roadmap §8: новая зависимость вне §2 — шлюз", "kind": "question", "id": "Q1"}

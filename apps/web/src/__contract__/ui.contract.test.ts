@@ -11,7 +11,9 @@ const doc = readFileSync(new URL('../../../../docs/contracts/web.md', import.met
 const css = readFileSync(new URL('../ui/tokens.css', import.meta.url), 'utf8');
 
 const section = (title: string): string => {
-  const m = doc.match(new RegExp(`^### ${title}[^\\n]*\\n([\\s\\S]*?)(?=^### |^## |(?![\\s\\S]))`, 'm'));
+  const m = doc.match(
+    new RegExp(`^### ${title}[^\\n]*\\n([\\s\\S]*?)(?=^### |^## |(?![\\s\\S]))`, 'm'),
+  );
   if (!m) throw new Error(`нет раздела «${title}» в контракте`);
   return m[1];
 };
@@ -21,7 +23,8 @@ const block = (selector: RegExp): string => {
   if (!m) throw new Error(`нет блока ${selector} в tokens.css`);
   return m[1];
 };
-const declared = (text: string): Set<string> => new Set([...text.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
+const declared = (text: string): Set<string> =>
+  new Set([...text.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
 
 describe('C-ui: версия', () => {
   it('UI_CONTRACT_VERSIONS совпадает с заголовками ## C-… vN', () => {
@@ -54,7 +57,17 @@ describe('C-ui: токены', () => {
 describe('C-ui: компоненты', () => {
   const names = tableNames(section('Базовые компоненты'), /^\| `(\w+)` \|/gm);
   it('список из контракта', () => {
-    expect(names).toEqual(['Button', 'Input', 'Select', 'Popover', 'Dialog', 'Menu', 'Avatar', 'Badge', 'Tooltip']);
+    expect(names).toEqual([
+      'Button',
+      'Input',
+      'Select',
+      'Popover',
+      'Dialog',
+      'Menu',
+      'Avatar',
+      'Badge',
+      'Tooltip',
+    ]);
   });
   it.each([...names, 'useBreakpoint', 'useTheme'])('экспорт %s', (n) => {
     expect((ui as Record<string, unknown>)[n], `ui/index.ts не экспортирует ${n}`).toBeDefined();
@@ -74,7 +87,12 @@ describe('C-ui: точки расширения', () => {
   });
   it('маршрут вне /m/<id>/ → Error', () => {
     expect(() =>
-      registerModules([{ id: 'bad', routes: [{ path: '/other', component: () => Promise.resolve({ default: {} }) }] }]),
+      registerModules([
+        {
+          id: 'bad',
+          routes: [{ path: '/other', component: () => Promise.resolve({ default: {} }) }],
+        },
+      ]),
     ).toThrow();
   });
 });
