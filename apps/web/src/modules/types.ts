@@ -1,0 +1,71 @@
+import type { Component } from 'vue';
+import type { RouteLocationNormalizedLoaded, RouteRecordRaw } from 'vue-router';
+import type { FrontendModuleManifest } from '@planar/shared';
+
+export const EXTENSION_KINDS = [
+  'routes',
+  'views',
+  'taskPanels',
+  'commands',
+  'fieldTypes',
+  'settings',
+] as const;
+export type ExtensionKind = (typeof EXTENSION_KINDS)[number];
+
+/** Строка — ключ словаря web, объект — готовый текст модуля. */
+export type LocalizedText = string | { ru: string; en: string };
+
+// P — тип пропсов компонента (документирующий параметр)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export type Lazy<P> = () => Promise<{ default: Component }>;
+
+export interface ViewDef {
+  id: string;
+  label: LocalizedText;
+  icon: Component;
+  component: Lazy<{ projectId: string; viewId?: string }>;
+}
+export interface TaskPanelDef {
+  id: string;
+  label: LocalizedText;
+  icon?: Component;
+  order?: number;
+  component: Lazy<{ taskId: string }>;
+}
+export interface CommandCtx {
+  route: RouteLocationNormalizedLoaded;
+  selectedTaskIds: string[];
+  projectId?: string;
+}
+export interface CommandDef {
+  id: string;
+  label: LocalizedText;
+  icon?: Component;
+  shortcut?: string;
+  group?: LocalizedText;
+  when?: (ctx: CommandCtx) => boolean;
+  run: (ctx: CommandCtx) => void | Promise<void>;
+}
+export interface FieldTypeDef {
+  id: string;
+  label: LocalizedText;
+  cell: Lazy<{ value: unknown }>;
+  editor: Lazy<{ value: unknown; 'onUpdate:value': (v: unknown) => void }>;
+}
+export interface SettingsPageDef {
+  id: string;
+  label: LocalizedText;
+  icon?: Component;
+  component: Lazy<object>;
+}
+
+export interface WebModuleManifest extends FrontendModuleManifest {
+  routes?: RouteRecordRaw[];
+  views?: ViewDef[];
+  taskPanels?: TaskPanelDef[];
+  commands?: CommandDef[];
+  fieldTypes?: FieldTypeDef[];
+  settings?: SettingsPageDef[];
+}
+
+export const defineWebModule = (m: WebModuleManifest): WebModuleManifest => m;
