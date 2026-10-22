@@ -11,7 +11,7 @@ x-node: &node
     - nm_web:/app/apps/web/node_modules
     - nm_shared:/app/packages/shared/node_modules
     - pnpm_store:/pnpm-store
-  environment:
+  environment: &node-env
     npm_config_store_dir: /pnpm-store
     CI: 'true'
 
@@ -41,7 +41,7 @@ services:
     <<: *node
     command: sh -c "corepack enable && pnpm --filter @planar/api dev"
     environment:
-      npm_config_store_dir: /pnpm-store
+      <<: *node-env
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/planar
       PORT: '3000'
       PUBLIC_URL: http://localhost:5173
@@ -60,7 +60,7 @@ services:
     <<: *node
     command: sh -c "corepack enable && pnpm --filter @planar/web dev"
     environment:
-      npm_config_store_dir: /pnpm-store
+      <<: *node-env
       API_PROXY_TARGET: http://api:3000
     ports:
       - '5173:5173'

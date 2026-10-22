@@ -28,7 +28,7 @@ case "$cmd" in
   up) "${DEV[@]}" up -d --build ;;
   down) "${DEV[@]}" down ;;
   reset) "${DEV[@]}" down -v && "${DEV[@]}" up -d --build ;;
-  seed) echo "seed: заглушка до CR-2 ($*)" ;;
+  seed) "${DEV[@]}" exec -T api pnpm --filter @planar/api seed "$@" ;;
   logs) "${DEV[@]}" logs -f "$@" ;;
   testdb) testdb ;;
   test) testdb && pnpm test "$@" ;;
