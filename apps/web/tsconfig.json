@@ -5,7 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "lib": ["ES2023", "DOM"],
-    "customConditions": ["source"],
+    "paths": { "@planar/shared": ["../../packages/shared/src/index.ts"] },
     "jsx": "preserve"
   },
   "include": ["src", "*.ts"]
