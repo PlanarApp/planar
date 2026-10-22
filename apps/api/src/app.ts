@@ -1,12 +1,19 @@
 import 'reflect-metadata';
+import type { Type } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
+import { HttpErrorFilter } from './auth/errors.js';
 import { createDb } from './db/index.js';
 import { ErrorFilter } from './error.filter.js';
 
 export interface AppOptions {
   databaseUrl: string;
+  /** origin для проверки Origin и cookie */
+  publicUrl: string;
+  cookieSecure?: boolean;
+  /** только тесты: дополнительные контроллеры */
+  extraControllers?: Type[];
   /** опции pino Fastify; false — без логов (тесты) */
   logger?: boolean | { level: string };
 }
@@ -15,11 +22,15 @@ export interface AppOptions {
 export async function createApp(opts: AppOptions): Promise<NestFastifyApplication> {
   const db = createDb(opts.databaseUrl);
   const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule.register(db),
+    AppModule.register(
+      db,
+      { publicUrl: opts.publicUrl, cookieSecure: opts.cookieSecure ?? false },
+      opts.extraControllers,
+    ),
     new FastifyAdapter({ logger: opts.logger ?? false, bodyLimit: 1024 * 1024 }),
     { logger: false },
   );
-  app.useGlobalFilters(new ErrorFilter());
+  app.useGlobalFilters(new ErrorFilter(), new HttpErrorFilter());
   app.enableShutdownHooks();
   const close = app.close.bind(app);
   app.close = async () => {

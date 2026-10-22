@@ -5,7 +5,7 @@ module: core
 updated: 2026-10-22
 summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 related: ["docs/plan/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-schema", "version": 1}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 1}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 2}]
+contracts: [{"id": "C-schema", "version": 2}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 1}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 3}]
 ---
 
 # Контракты модуля core
@@ -21,7 +21,7 @@ contracts: [{"id": "C-schema", "version": 1}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v1
+## C-schema v2
 
 ### Общие правила
 - БД — snake_case, TS и провод — camelCase (Drizzle `casing: 'snake_case'`). Имя поля на проводе = имя свойства Drizzle; колонка = snake_case от него (`spaceId` → `space_id`).
@@ -255,7 +255,7 @@ scope: space · write: member · bootstrap: yes · indexes: taskId, commentId
 | `uploadedBy` | uuid | |
 | `createdAt` | ts | |
 
-Сервер: `put` разрешён, только если `files` содержит `fileSha256` и файл загрузил `ctx.userId` или он уже приложен в этом пространстве; иначе `forbidden`.
+Сервер: `put` разрешён, только если есть строка `file_uploads(fileSha256, ctx.userId)` или файл уже приложен в этом пространстве; иначе `forbidden`.
 
 #### activity
 scope: space · write: server · bootstrap: no · indexes: taskId
@@ -325,6 +325,8 @@ scope: global · write: instance_admin · bootstrap: yes · indexes: —
 | `push_subscriptions` | `id uuid pk`, `user_id uuid`, `endpoint text unique`, `p256dh text`, `auth text`, `user_agent text?`, `created_at` |
 | `client_mutations` | `client_id uuid pk`, `user_id uuid`, `last_mutation_id bigint not null`, `updated_at` |
 | `changes` | `seq bigserial pk`, `space_id uuid?`, `user_id uuid?`, `entity text`, `id text`, `op text check (put,del)`, `data jsonb?`, `created_at`; индексы `(space_id, seq)`, `(user_id, seq)` |
+| `file_uploads` | `sha256 text`, `user_id uuid`, `created_at`; первичный ключ (sha256, user_id) — кто загружал файл (дубли контента — одна строка files) |
+| `login_attempts` | `key text pk` (ip и login через «\|»), `attempts int`, `window_started_at timestamptz` — окно 1 мин для лимита входа |
 | `api_tokens` | `id uuid pk`, `user_id uuid`, `name text`, `token_sha256 text unique`, `prefix text`, `scope text check (read,write)`, `expires_at?`, `last_used_at?`, `revoked_at?`, `created_at` |
 
 Миграции — drizzle-kit, каталог `apps/api/drizzle/`, схема — `apps/api/src/db/schema.ts` (+ схемы модулей `modules/*/api/schema.ts`, таблицы с префиксом `<moduleId>_`).
@@ -519,11 +521,11 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v2
+## C-http v3
 
 ### Пути и окружение
 - `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11). В dev Vite проксирует их на api, в prod — Caddy.
-- Env api: `DATABASE_URL`, `PORT` (3000), `PUBLIC_URL` (origin для проверки, напр. `http://localhost:5173`), `COOKIE_SECURE` (`true` в prod), `DATA_DIR` (`./data`, файлы — `$DATA_DIR/files/<sha256>`), `MAX_UPLOAD_MB` (50), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `LOG_LEVEL`.
+- Env api: `DATABASE_URL`, `PORT` (3000), `PUBLIC_URL` (origin для проверки, напр. `http://localhost:5173`), `COOKIE_SECURE` (`true` в prod), `DATA_DIR` (`./data`, файлы — `$DATA_DIR/files/<ab>/<cd>/<sha256>`, ab и cd — первые 4 hex-символа), `MAX_UPLOAD_MB` (50), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `LOG_LEVEL`.
 - JSON-тело ≤ 1 МБ, кроме загрузки файлов.
 
 ### Ошибки
@@ -566,10 +568,10 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 | `GET /api/auth/me` | → `{user}` \| `401` | CR-3 |
 | `GET /api/users` | → `{users: user[]}` (instance_admin) | CR-3 |
 | `POST /api/users` | `{login, name, password, role, email?}` → `201 {user}` (instance_admin) | CR-3 |
-| `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool}` → `{user}`; себя — только name, email, password | CR-3 |
+| `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool, avatarFile?: string\|null}` → `{user}`; `avatarFile` — sha256 из `POST /files`, загруженного этим пользователем (`file_uploads`), иначе `400 invalid_request`; себя — только name, email, password, avatarFile | CR-3 |
 | `GET /api/tasks/:id/activity` | → `{rows: activity[]}` по `createdAt`, права — видимость задачи | CR-4 |
 | `POST /files` | multipart, одно поле `file` → `201 {sha256, size, mime, width, height}`; > `MAX_UPLOAD_MB` → `413` | CR-6 |
-| `GET /files/:sha256` | → поток; `?name=` для `Content-Disposition`; доступ: файл приложен в пространстве пользователя, или это аватар, или его загрузил он сам; иначе `404` | CR-6 |
+| `GET /files/:sha256` | → поток; `?name=` для `Content-Disposition`; доступ: файл приложен в пространстве пользователя, или это аватар пользователя, или есть `file_uploads(sha256, userId)`; иначе `404` | CR-6 |
 | `GET /files/:sha256/preview?w=256\|1024` | → `image/webp`; не картинка → `404` | CR-6 |
 
 `user` в ответах — строка `users` (C-schema), без `password_hash`. Пароль — от 8 символов, argon2id.

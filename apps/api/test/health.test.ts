@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
+import { ORIGIN } from './auth.js';
 import { testDbUrl } from './db.js';
 
 async function get(databaseUrl: string) {
-  const app = await createApp({ databaseUrl });
+  const app = await createApp({ databaseUrl, publicUrl: ORIGIN });
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
   const res = await app
@@ -28,7 +29,7 @@ describe('GET /api/health', () => {
   });
 
   it('неизвестный путь → формат C-http', async () => {
-    const app = await createApp({ databaseUrl: testDbUrl() });
+    const app = await createApp({ databaseUrl: testDbUrl(), publicUrl: ORIGIN });
     await app.init();
     const res = await app.getHttpAdapter().getInstance().inject({ method: 'GET', url: '/nope' });
     await app.close();

@@ -7,6 +7,20 @@ const setup = async () => {
   return { tx, s, t: await seedTask(tx, s) };
 };
 
+describe('отсутствующая задача', () => {
+  it('unassign → not_found', async () => {
+    expect(await code(run(mem(), 'task.unassign', { taskId: id(), userId: U1 }))).toBe('not_found');
+  });
+  it('unwatch → not_found', async () => {
+    expect(await code(run(mem(), 'task.unwatch', { taskId: id() }))).toBe('not_found');
+  });
+  it('removeLabel → not_found', async () => {
+    expect(await code(run(mem(), 'task.removeLabel', { taskId: id(), labelId: id() }))).toBe(
+      'not_found',
+    );
+  });
+});
+
 describe('task.create', () => {
   it('значения по умолчанию, spaceId из проекта', async () => {
     const { tx, s, t } = await setup();

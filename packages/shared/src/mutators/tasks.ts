@@ -149,6 +149,7 @@ export const taskMutators = [
     name: 'task.unassign',
     args: z.object({ taskId: uuid, userId: uuid }),
     async run(tx, a) {
+      await need(tx, 'tasks', a.taskId);
       for (const x of await link(tx, 'taskAssignees', a.taskId))
         if (x.userId === a.userId) await tx.del('taskAssignees', x.id);
     },
@@ -172,6 +173,7 @@ export const taskMutators = [
     name: 'task.unwatch',
     args: z.object({ taskId: uuid }),
     async run(tx, a, ctx) {
+      await need(tx, 'tasks', a.taskId);
       for (const x of await link(tx, 'taskWatchers', a.taskId))
         if (x.userId === ctx.userId) await tx.del('taskWatchers', x.id);
     },
@@ -192,6 +194,7 @@ export const taskMutators = [
     name: 'task.removeLabel',
     args: z.object({ taskId: uuid, labelId: uuid }),
     async run(tx, a) {
+      await need(tx, 'tasks', a.taskId);
       for (const x of await tx.scan('taskLabels', { index: 'taskId', eq: a.taskId }))
         if (x.labelId === a.labelId) await tx.del('taskLabels', x.id);
     },

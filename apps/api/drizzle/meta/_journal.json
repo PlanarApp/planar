@@ -8,6 +8,13 @@
       "when": 1792710501631,
       "tag": "0000_fearless_killer_shrike",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792712654807,
+      "tag": "0001_narrow_epoch",
+      "breakpoints": true
     }
   ]
 }
