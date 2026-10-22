@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { entitySchemas, uuidv7, type MutatorDef } from '../shared';
+import { entitySchemas, uuidv7, type MutatorDef } from '@planar/shared';
 import { createClient } from '../client';
 import { PlanarDB } from '../db';
 import { FakeServer, FakeWebSocket } from './fake-server';

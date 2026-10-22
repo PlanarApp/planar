@@ -9,7 +9,7 @@ import {
   type EntityName,
   type MutatorDef,
   type Tx,
-} from '../shared';
+} from '@planar/shared';
 
 type Rows = Map<string, Map<string, Record<string, unknown>>>;
 interface Change {

@@ -10,7 +10,7 @@ import {
   wsServerSchema,
   type MutatorCtx,
   type MutatorDef,
-} from './shared';
+} from '@planar/shared';
 import { PlanarDB, type QueueItem, type Undo } from './db';
 import { DexieTx, applyUndo } from './dexie-tx';
 

@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { ENTITIES } from './shared';
+import { ENTITIES } from '@planar/shared';
 
 export interface QueueItem {
   id?: number;

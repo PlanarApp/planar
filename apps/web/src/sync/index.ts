@@ -1,5 +1,5 @@
 import { generateKeyBetween } from 'fractional-indexing';
-import { uuidv7 } from './shared';
+import { uuidv7 } from '@planar/shared';
 import { createClient } from './client';
 import { PlanarDB } from './db';
 

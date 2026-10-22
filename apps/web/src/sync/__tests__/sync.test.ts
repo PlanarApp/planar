@@ -2,7 +2,7 @@
 import 'fake-indexeddb/auto';
 import { effectScope, nextTick, watch } from 'vue';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { uuidv7 } from '../shared';
+import { uuidv7 } from '@planar/shared';
 import { useQuery } from '../query';
 import { FakeServer, FakeWebSocket } from './fake-server';
 import { NOW, SPACE, label, labels, setup, stopAll, testMutators } from './helpers';

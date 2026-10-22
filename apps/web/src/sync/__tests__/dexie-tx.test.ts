@@ -1,6 +1,6 @@
 // @vitest-environment node
 import 'fake-indexeddb/auto';
-import { uuidv7 } from '../shared';
+import { uuidv7 } from '@planar/shared';
 import { txContractSuite } from '../../../../../packages/shared/test/tx-contract';
 import { PlanarDB } from '../db';
 import { DexieTx } from '../dexie-tx';

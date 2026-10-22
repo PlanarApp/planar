@@ -6,7 +6,7 @@ import {
   type EntityName,
   type Row,
   type Tx,
-} from './shared';
+} from '@planar/shared';
 import type { PlanarDB, Undo } from './db';
 
 function check<E extends EntityName>(entity: E, row: unknown): Row<E> {
