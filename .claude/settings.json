@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.dpcli/dpcli *)"
+    ]
+  },
+  "enabledPlugins": {
+    "ponytail@ponytail": true
+  }
+}
