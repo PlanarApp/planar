@@ -1,0 +1,77 @@
+name: planar-dev
+
+x-node: &node
+  image: node:24
+  working_dir: /app
+  volumes:
+    - .:/app
+    # node_modules в томах: не мешают хостовым и не зависят от его платформы (новый пакет workspace → добавить том)
+    - nm_root:/app/node_modules
+    - nm_api:/app/apps/api/node_modules
+    - nm_web:/app/apps/web/node_modules
+    - nm_shared:/app/packages/shared/node_modules
+    - pnpm_store:/pnpm-store
+  environment:
+    npm_config_store_dir: /pnpm-store
+    CI: 'true'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: planar
+    ports:
+      - '${DEV_PG_PORT:-55433}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d planar -h localhost']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # одноразовая установка зависимостей: api и web ждут её завершения (нет гонки двух pnpm install)
+  deps:
+    <<: *node
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile"
+    restart: 'no'
+
+  api:
+    <<: *node
+    command: sh -c "corepack enable && pnpm --filter @planar/api dev"
+    environment:
+      npm_config_store_dir: /pnpm-store
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/planar
+      PORT: '3000'
+      PUBLIC_URL: http://localhost:5173
+      COOKIE_SECURE: 'false'
+      DATA_DIR: /app/data
+      LOG_LEVEL: info
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      deps:
+        condition: service_completed_successfully
+
+  web:
+    <<: *node
+    command: sh -c "corepack enable && pnpm --filter @planar/web dev"
+    environment:
+      npm_config_store_dir: /pnpm-store
+      API_PROXY_TARGET: http://api:3000
+    ports:
+      - '5173:5173'
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  nm_root:
+  nm_api:
+  nm_web:
+  nm_shared:
+  pnpm_store:
