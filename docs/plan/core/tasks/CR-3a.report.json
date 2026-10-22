@@ -1,0 +1,52 @@
+{
+  "status": "done",
+  "summary": "Сессии (sha256, 30 дн., продление <15 дн. с переустановкой cookie), глобальный AuthGuard + @Public, проверка Origin, authenticateRaw, GET /api/auth/me, тестовые помощники. createApp теперь требует publicUrl.",
+  "commits": [
+    "4f6b66d CR-3a: сессии, AuthGuard, Origin, /me"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit=0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit=0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit=0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit=0",
+      "pass": true
+    },
+    {
+      "name": "auth_guard",
+      "value": "10 passed",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-3a",
+  "uncertain": [
+    {
+      "where": "apps/api/src/auth/errors.ts",
+      "why": "error.filter.ts вне скоупа, а код origin_mismatch выводится не из статуса; добавлен HttpError+HttpErrorFilter, зарегистрирован после ErrorFilter",
+      "checked": "тест: ответ содержит code origin_mismatch; лучше слить фильтры при случае"
+    },
+    {
+      "where": "apps/api/src/auth/auth.ts",
+      "why": "в AuthCtx добавлено необязательное поле renewedToken (для Set-Cookie при продлении); AppOptions.extraControllers — тестовый хук",
+      "checked": "сигнатуры из карточки не менялись"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-22T23:32:10",
+  "by": "executor"
+}
