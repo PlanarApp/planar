@@ -149,7 +149,7 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 ### Экспорты
 | Имя | Сигнатура | Поведение |
 |---|---|---|
-| `db` | `PlanarDB` (Dexie) | таблица на каждую сущность `ENTITIES` и сущности модулей, имя = имя сущности C-schema, ключ `id`, индексы = `meta.indexes`; служебные `_meta` (`clientId`, `cursor`, `lastMutationId`), `_queue` (`{id: number, name, args, createdAt}`) |
+| `db` | `PlanarDB` (Dexie) | таблица на каждую сущность `ENTITIES` и сущности модулей, имя = имя сущности C-schema, ключ `id`, индексы = `meta.indexes`; служебные `_meta` (`clientId`, `cursor`, `lastMutationId`), `_queue` (`{id: number, name, args, createdAt}` + внутренние поля клиента; потребители `_meta` и `_queue` не читают) |
 | `startSync` | `(opts: {userId: string; baseUrl?: string; fetch?: typeof fetch; WebSocket?: typeof WebSocket}) => Promise<void>` | тёплый старт: реплика есть — промис сразу после открытия базы, затем pull; нет — bootstrap; дальше WS |
 | `stopSync` | `() => Promise<void>` | закрывает WS, таймеры; база остаётся |
 | `useQuery` | `<T>(fn: () => T \| Promise<T>) => Readonly<Ref<T \| undefined>>` | liveQuery → ref; пересчёт при изменении прочитанных таблиц; отписка при уничтожении scope; `fn` читает `db` |
