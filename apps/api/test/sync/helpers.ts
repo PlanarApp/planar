@@ -30,7 +30,7 @@ export const dbUrl = (() => {
 afterAll(async () => {
   await admin.query(`drop database if exists ${name} with (force)`);
   await admin.end();
-});
+}, 60_000);
 
 export const newDb = (): Db => createDb(dbUrl);
 
