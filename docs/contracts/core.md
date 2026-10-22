@@ -5,7 +5,7 @@ module: core
 updated: 2026-10-22
 summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 related: ["docs/plan/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-schema", "version": 1}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 1}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 1}]
+contracts: [{"id": "C-schema", "version": 1}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 1}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 2}]
 ---
 
 # Контракты модуля core
@@ -519,7 +519,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v1
+## C-http v2
 
 ### Пути и окружение
 - `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11). В dev Vite проксирует их на api, в prod — Caddy.
@@ -559,6 +559,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 | метод и путь | вход → выход | задача |
 |---|---|---|
 | `GET /api/health` | → `200 {ok: true, db: 'up'}` \| `503 {ok: false, db: 'down'}` | CR-1 |
+| `GET /api/setup` | → `200 {needed: boolean}` — `true`, пока нет ни одного пользователя; без авторизации | CR-3 |
 | `POST /api/setup` | `{login, name, password}` → `201 {user}`; пользователи уже есть → `409 conflict` | CR-3 |
 | `POST /api/auth/login` | `{login, password}` → `200 {user}` + cookie; `401 invalid_credentials`; > 10 попыток/мин на IP+login → `429` | CR-3 |
 | `POST /api/auth/logout` | → `204`, cookie сброшен | CR-3 |
