@@ -1,0 +1,123 @@
+{
+  "status": "done",
+  "summary": "Клиент синхронизации apps/web/src/sync: Dexie-реплика, bootstrap/pull/push, rebase через журнал отката, WS с backoff, useQuery, оптимистичный mutate; DexieTx проходит txContractSuite; фейк-сервер C-sync. Добавлена devDependency fake-indexeddb (решение Q1). vitest.config.ts: alias @planar/shared.",
+  "commits": [
+    "0af7c3b web: WB-2 alias @planar/shared в vitest.config вместо shared.ts",
+    "1e3c28c web: WB-2 клиент синхронизации (Dexie, bootstrap/pull/push, rebase, WS, useQuery, mutate)"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "98.8",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "63",
+      "pass": true
+    },
+    {
+      "name": "tx-contract",
+      "value": "12",
+      "pass": true
+    },
+    {
+      "name": "optimistic",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "confirm",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "rollback",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "offline-queue",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "rebase",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "reset",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "ws-reconnect",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "bootstrap-10k",
+      "value": "1026-1245",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "mutate-ms",
+      "value": "54-69 (fake-indexeddb)",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-2",
+  "uncertain": [
+    {
+      "where": "apps/web/src/sync/__tests__/sync.test.ts sync:perf",
+      "why": "замер на fake-indexeddb, не браузер; mutate ~54-69 мс >50 мс бюджета roadmap",
+      "checked": "put в tasks с 4 индексами в fake-indexeddb сам стоит 35-55 мс (проверено голым Dexie); настоящий замер — Playwright/CR-9"
+    },
+    {
+      "where": "apps/web/src/sync/client.ts startSync",
+      "why": "лидерство вкладок через navigator.locks не проверено в реальных вкладках",
+      "checked": "только в node (locks в одном процессе), последовательный stop/start"
+    },
+    {
+      "where": "apps/web/src/sync/client.ts applyServer",
+      "why": "мутация, не применимая поверх серверного состояния при rebase, выбрасывается из очереди с onMutationError и не уходит на сервер",
+      "checked": "логика прочитана, отдельного теста нет"
+    }
+  ],
+  "dp_feedback": "Вывод console.log прошедших тестов vitest 5 скрывает — приёмка по num: не находит число; пришлось писать process.stdout.write. Стоит отметить в шаблоне карточки. Вывод dpcli task show обрезает дополнения по ширине.",
+  "extra": {
+    "bootstrap10k_ms": "1026-1245",
+    "mutate_ms": "54-69",
+    "tabs": "лидер через navigator.locks, остальные пишут в _queue; liveQuery Dexie видит изменения других вкладок"
+  },
+  "t": "2026-10-22T23:35:17",
+  "by": "executor"
+}
