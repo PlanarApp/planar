@@ -31,8 +31,8 @@ async function refresh(): Promise<void> {
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
     // офлайн/5xx: остаёмся с последним известным пользователем
-    if (e.status === 401) ((user.value = null), store(null));
-    else user.value = known();
+    user.value = e.status === 401 ? null : known();
+    if (e.status === 401) store(null);
   } finally {
     ready.value = true;
   }
