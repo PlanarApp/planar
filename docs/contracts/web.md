@@ -5,7 +5,7 @@ module: web
 updated: 2026-10-22
 summary: Контракты web — C-ui (оформление, компоненты, маршруты, расширения), C-client (синхронизация), C-tasks (общий слой задач)
 related: ["docs/plan/web.md", "docs/contracts/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 1}, {"id": "C-tasks", "version": 1}]
+contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 2}, {"id": "C-tasks", "version": 1}]
 ---
 
 # Контракты модуля web
@@ -19,7 +19,7 @@ contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 1}, {"id
 ### Файлы
 | Путь | Что |
 |---|---|
-| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 1, 'C-client': 1, 'C-tasks': 1 } as const;` |
+| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 1, 'C-client': 2, 'C-tasks': 1 } as const;` |
 | `apps/web/src/ui/tokens.css` | токены: блок `@theme { … }` — светлая тема, блок `.dark { … }` — тёмная (те же имена) |
 | `apps/web/src/ui/index.ts` | экспорт компонентов и `useBreakpoint`, `useTheme` |
 | `apps/web/src/i18n/{index,ru,en}.ts` | vue-i18n, словари |
@@ -142,16 +142,17 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 - `useExtensions(kind)` → `ComputedRef<элементы[]>` только включённых модулей (`settings.enabled_modules`; до WB-10 — все зарегистрированные), `taskPanels` — по `order`, затем по ключу.
 - Модули подключаются лениво: `import.meta.glob('../../../../modules/*/web/index.ts')` из `apps/web/src/modules/registry.ts` (WB-10); в начальный чанк не входят.
 
-## C-client v1
+## C-client v2
 
 Клиент синхронизации — `apps/web/src/sync/index.ts` (владелец WB-2; потребители — WB-3…WB-10, модули). Протокол с сервером — C-sync (core), мутаторы — C-mutators. Контрактный тест — `apps/web/src/__contract__/client.contract.test.ts` (экспорты ниже).
 
 ### Экспорты
 | Имя | Сигнатура | Поведение |
 |---|---|---|
-| `db` | `PlanarDB` (Dexie) | таблица на каждую сущность `ENTITIES` и сущности модулей, имя = имя сущности C-schema, ключ `id`, индексы = `meta.indexes`; служебные `_meta` (`clientId`, `cursor`, `lastMutationId`), `_queue` (`{id: number, name, args, createdAt}` + внутренние поля клиента; потребители `_meta` и `_queue` не читают) |
-| `startSync` | `(opts: {userId: string; baseUrl?: string; fetch?: typeof fetch; WebSocket?: typeof WebSocket}) => Promise<void>` | тёплый старт: реплика есть — промис сразу после открытия базы, затем pull; нет — bootstrap; дальше WS |
+| `db` | `PlanarDB` (Dexie) | таблица на каждую сущность `ENTITIES` и сущности модулей, имя = имя сущности C-schema, ключ `id`, индексы = `meta.indexes`; служебные `_meta` (`clientId`, `userId`, `cursor`, `lastMutationId`), `_queue` (`{id: number, name, args, createdAt}` + внутренние поля клиента; потребители `_meta` и `_queue` не читают) |
+| `startSync` | `(opts: {userId: string; baseUrl?: string; fetch?: typeof fetch; WebSocket?: typeof WebSocket}) => Promise<void>` | тёплый старт: реплика есть — промис сразу после открытия базы, затем pull; нет — bootstrap; дальше WS. `_meta.userId` ≠ `opts.userId` → сначала `clearLocal()` (реплика другого пользователя не показывается) |
 | `stopSync` | `() => Promise<void>` | закрывает WS, таймеры; база остаётся |
+| `clearLocal` | `() => Promise<void>` | `stopSync`, затем очистка всех таблиц сущностей, `_queue` и `_meta` (новый `clientId`); вызывается при выходе |
 | `useQuery` | `<T>(fn: () => T \| Promise<T>) => Readonly<Ref<T \| undefined>>` | liveQuery → ref; пересчёт при изменении прочитанных таблиц; отписка при уничтожении scope; `fn` читает `db` |
 | `mutate` | `(name: string, args: unknown) => Promise<void>` | неизвестное имя → `MutatorError('invalid_args')`; args по zod мутатора (ошибка → `invalid_args`, в очередь не попадает); применяет `run` к реплике в одной транзакции Dexie с записью в `_queue`; промис — после локального применения, не после сервера |
 | `registerMutators` | `(defs: MutatorDef[]) => void` | дубликат имени → `Error` |

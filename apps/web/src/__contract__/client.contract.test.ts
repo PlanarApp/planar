@@ -17,6 +17,7 @@ describe('C-client: экспорты', () => {
       'db',
       'startSync',
       'stopSync',
+      'clearLocal',
       'useQuery',
       'mutate',
       'registerMutators',
