@@ -78,3 +78,6 @@
 {"t": "2026-10-22T23:42:07", "by": "coordinator", "task": "CR-5a", "ev": "accepted", "commits": ["3b37c1a"], "note": "3/3 lint=ok:exit 0; shared_tests=ok:140; deterministic=ok:clean"}
 {"t": "2026-10-22T23:42:07", "by": "coordinator", "task": "CR-5a", "ev": "merged"}
 {"t": "2026-10-22T23:42:18", "by": "coordinator", "task": "CR-3a", "ev": "accepted", "note": "по ревью; minor 1–2 — в CR-3b"}
+{"t": "2026-10-22T23:42:41", "by": "coordinator", "task": "CR-3a", "ev": "accepted", "commits": ["ed0b4a0"], "note": "5/5 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; auth_guard=ok:10; test=ok:exit 0"}
+{"t": "2026-10-22T23:42:41", "by": "coordinator", "task": "CR-3a", "ev": "merged"}
+{"t": "2026-10-22T23:42:42", "by": "coordinator", "task": "CR-4", "ev": "note", "note": "CR-3a слита в feature/core: .dpcli/dpcli task sync CR-4, затем HTTP/WS слой. Помощники — apps/api/test/auth.ts; createApp принимает extraControllers (только тесты).", "addendum": true}
