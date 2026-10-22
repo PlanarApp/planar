@@ -67,8 +67,7 @@ const chg = (q: Parameters<Parameters<typeof inTx>[0]>[0], id: string) =>
     .where(sql`${schema.changes.id} = ${id}`);
 
 describe('ServerTx: права', () => {
-  const roles = ['admin', 'member', 'guest'] as const;
-  async function setup(role: (typeof roles)[number] | null) {
+  async function setup(role: 'admin' | 'member' | 'guest' | null) {
     const owner = await mkUser(db);
     const user = await mkUser(db, 'member');
     const spaceId = await mkSpace(db, owner, role ? { [user]: role } : {});
