@@ -5,8 +5,7 @@ import pg from 'pg';
 import { MutatorError, uuidv7, type Row } from '@planar/shared';
 import * as schema from '../../src/db/schema.js';
 import { ServerTx } from '../../src/sync/server-tx.js';
-import { testDbUrl } from '../db.js';
-import { NOW, key, mkSpace, mkUser, newDb } from './helpers.js';
+import { dbUrl, NOW, key, mkSpace, mkUser, newDb } from './helpers.js';
 
 const db = newDb();
 afterAll(() => db.$client.end());
@@ -15,7 +14,7 @@ afterAll(() => db.$client.end());
 async function inTx<T>(
   fn: (q: ReturnType<typeof drizzle<typeof schema>>) => Promise<T>,
 ): Promise<T> {
-  const client = new pg.Client({ connectionString: testDbUrl() });
+  const client = new pg.Client({ connectionString: dbUrl });
   await client.connect();
   try {
     await client.query('BEGIN');
@@ -620,7 +619,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
   it('pg_notify planar_changes после finish с номером последней записи', async () => {
     const owner = await mkUser(db);
     const spaceId = await mkSpace(db, owner, {});
-    const listener = new pg.Client({ connectionString: testDbUrl() });
+    const listener = new pg.Client({ connectionString: dbUrl });
     await listener.connect();
     await listener.query('LISTEN planar_changes');
     const got: string[] = [];

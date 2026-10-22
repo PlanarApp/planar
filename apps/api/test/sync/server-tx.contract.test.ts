@@ -5,8 +5,7 @@ import { uuidv7 } from '@planar/shared';
 import { txContractSuite } from '../../../../packages/shared/test/tx-contract.js';
 import * as schema from '../../src/db/schema.js';
 import { ServerTx } from '../../src/sync/server-tx.js';
-import { testDbUrl } from '../db.js';
-import { mkUser, newDb } from './helpers.js';
+import { dbUrl, mkUser, newDb } from './helpers.js';
 
 const clients: pg.Client[] = [];
 const adminDb = newDb();
@@ -17,7 +16,7 @@ afterAll(async () => {
 });
 
 txContractSuite('ServerTx', async () => {
-  const client = new pg.Client({ connectionString: testDbUrl() });
+  const client = new pg.Client({ connectionString: dbUrl });
   await client.connect();
   clients.push(client);
   await client.query('BEGIN');

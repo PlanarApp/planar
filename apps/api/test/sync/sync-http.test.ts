@@ -2,14 +2,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { contractSchemas, uuidv7 } from '@planar/shared';
 import { createApp } from '../../src/app.js';
 import { ORIGIN, createUser, loginCookie } from '../auth.js';
-import { testDbUrl } from '../db.js';
-import { mkSpace, newDb } from './helpers.js';
+import { dbUrl, mkSpace, newDb } from './helpers.js';
 
 const db = newDb();
 let app: Awaited<ReturnType<typeof createApp>>;
 
 beforeAll(async () => {
-  app = await createApp({ databaseUrl: testDbUrl(), publicUrl: ORIGIN });
+  app = await createApp({ databaseUrl: dbUrl, publicUrl: ORIGIN });
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 });

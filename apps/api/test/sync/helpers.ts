@@ -4,11 +4,35 @@ import { createDb, type Db } from '../../src/db/index.js';
 import * as schema from '../../src/db/schema.js';
 import { PullService } from '../../src/sync/pull.service.js';
 import { PushService } from '../../src/sync/push.service.js';
-import { testDbUrl } from '../db.js';
+import { randomBytes } from 'node:crypto';
+import pg from 'pg';
+import { afterAll, inject } from 'vitest';
+import { createDb as _c, migrate } from '../../src/db/index.js';
 
 export const NOW = '2026-10-22T10:00:00.000Z';
 
-export const newDb = (): Db => createDb(testDbUrl());
+// Своя база на файл: тесты sync создают пользователей и задачи, что ломает подсчёты других файлов (seed.test).
+const adminUrl = new URL(inject('dbUrl'));
+const name = `planar_t_${randomBytes(6).toString('hex')}`;
+adminUrl.pathname = '/postgres';
+const admin = new pg.Client({ connectionString: adminUrl.toString() });
+await admin.connect();
+await admin.query(`create database ${name}`);
+export const dbUrl = (() => {
+  const u = new URL(adminUrl);
+  u.pathname = `/${name}`;
+  return u.toString();
+})();
+{
+  const m = _c(dbUrl);
+  await migrate(m).finally(() => m.$client.end());
+}
+afterAll(async () => {
+  await admin.query(`drop database if exists ${name} with (force)`);
+  await admin.end();
+});
+
+export const newDb = (): Db => createDb(dbUrl);
 
 let n = 0;
 /** Пользователь напрямую в БД (до появления test/auth.ts из CR-3a). */
