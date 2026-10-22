@@ -45,3 +45,5 @@
 {"t": "2026-10-22T23:23:29", "by": "reviewer", "task": "CR-2", "ev": "reviewed", "note": "Код CR-2 соответствует карточке и C-schema v1: в миграции есть CHECK для enum, FK между синхронизируемыми таблицами NO ACTION, у несинхронизируемых — CASCADE н…", "verdict": "accept", "issues": {"major": 1, "minor": 1}, "review": "docs/plan/core/tasks/CR-2.review.json"}
 {"t": "2026-10-22T23:24:00", "by": "coordinator", "task": "CR-2", "ev": "accepted", "note": "по ревью; отчёт CR-2 содержит текст WB-1 (коммит 7651c94) — фактический коммит 8f06403, работа проверена accept 9/9 и ревью"}
 {"t": "2026-10-22T23:24:00", "by": "coordinator", "task": "CR-5", "ev": "accepted", "note": "по ревью; minor — в CR-5a"}
+{"t": "2026-10-22T23:25:18", "by": "coordinator", "task": "CR-2", "ev": "accepted", "commits": ["68c367e"], "note": "9/9 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; schema=ok:24; test=ok:exit 0; migrations_in_sync=ok:exit 0; no_db_url=ok:rc=1; dev_seed=ok:seed-ok; seed_bench=ok:4468"}
+{"t": "2026-10-22T23:25:18", "by": "coordinator", "task": "CR-2", "ev": "merged"}
