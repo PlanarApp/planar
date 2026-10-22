@@ -1,3 +1,4 @@
+// @vitest-environment node
 // Контрактный тест web (C-ui): сверяет код с docs/contracts/web.md.
 // Правит только координатор модуля web.
 import { readFileSync } from 'node:fs';
