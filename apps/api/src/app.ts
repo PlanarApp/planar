@@ -3,7 +3,6 @@ import type { Type } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
-import { HttpErrorFilter } from './auth/errors.js';
 import { createDb } from './db/index.js';
 import { ErrorFilter } from './error.filter.js';
 
@@ -30,7 +29,7 @@ export async function createApp(opts: AppOptions): Promise<NestFastifyApplicatio
     new FastifyAdapter({ logger: opts.logger ?? false, bodyLimit: 1024 * 1024 }),
     { logger: false },
   );
-  app.useGlobalFilters(new ErrorFilter(), new HttpErrorFilter());
+  app.useGlobalFilters(new ErrorFilter());
   app.enableShutdownHooks();
   const close = app.close.bind(app);
   app.close = async () => {
