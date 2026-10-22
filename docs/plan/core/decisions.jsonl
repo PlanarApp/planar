@@ -1,3 +1,4 @@
 {"t": "2026-10-22T22:30:37", "by": "user", "text": "Стек: Vue3+Vite SPA PWA; sync вариант B; Postgres 18 без Redis; Drizzle; вход только логин/пароль; один workspace", "why": "выбор пользователя 2026-10-22", "kind": "decision"}
 {"t": "2026-10-22T22:30:37", "by": "user", "text": "API-токены пользователя и MCP-сервер — ярус A; проект называется Planar; срок 24 ч, до 8 исполнителей", "why": "запрос пользователя 2026-10-22", "kind": "decision"}
 {"t": "2026-10-22T23:20:46", "by": "main", "text": "C-http: добавить GET /api/setup → {needed:boolean} (есть ли пользователи), версия +1, сделать в CR-3; потребитель — WB-3", "why": "запрос web Q2", "kind": "decision"}
+{"t": "2026-10-22T23:45:54", "by": "main", "text": "C-http: avatarFile?: string|null в PATCH /api/users/:id (id файла из /files), версия +1; потребитель — WB-3", "why": "запрос web Q3", "kind": "decision"}
