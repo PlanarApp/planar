@@ -1,3 +1,4 @@
+import { useAuth } from './auth/useAuth';
 import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router';
 
 const screen = (name: string) => () => import(`./screens/${name}Screen.vue`);
@@ -17,4 +18,17 @@ export const router = createRouter({
     { path: '/settings/:section?', name: 'settings', component: screen('Settings') },
     { path: '/m/:moduleId/:rest(.*)*', name: 'module', component: screen('Module') },
   ],
+});
+
+router.beforeEach(async (to) => {
+  const { user, ready, refresh, setupNeeded } = useAuth();
+  if (!ready.value) await refresh();
+  const bare = to.meta.layout === 'none';
+  if (!user.value) {
+    if (to.name === 'setup') return (await setupNeeded()) ? true : '/login';
+    if (bare) return true;
+    return (await setupNeeded()) ? '/setup' : { path: '/login', query: { redirect: to.fullPath } };
+  }
+  if (to.name === 'login' || to.name === 'setup') return '/';
+  return true;
 });
