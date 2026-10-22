@@ -16,8 +16,15 @@ generated: true
 
 ## Планы (plan)
 
-- [docs/roadmap.md](roadmap.md) — Роадмап planar: MVP + v1(часть) за 24 ч параллельной работы — модули, задачи, волны, контракты, приёмка [idea]
+- [docs/plan/core.md](plan/core.md) — План модуля core: каркас, БД, синхронизация, мутаторы, авторизация, файлы, уведомления, модули, API-токены, MCP
+- [docs/roadmap.md](roadmap.md) — Роадмап Planar: MVP + v1(часть) + API-токены и MCP за 24 ч параллельной работы — модули, задачи, волны, контракты, приёмка
+
+## Контракты стыков (contract)
+
+- [docs/contracts/core.md](contracts/core.md) — Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 
 ## Реестры (registry)
 
+- [docs/registry/contracts.md](registry/contracts.md) — Контракты стыков по модулям: id и версии из заголовков.
 - [docs/registry/findings.md](registry/findings.md) — Реестр выводов: что мы знаем, по модулям (пишется вручную).
+- [docs/registry/research.md](registry/research.md) — Исследования: вывод, данные, где применено.
