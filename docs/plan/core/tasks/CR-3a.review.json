@@ -1,0 +1,36 @@
+{
+  "verdict": "accept",
+  "summary": "Интерфейс из карточки соблюдён (AuthCtx, authenticateRaw, getAuth, AuthGuard/APP_GUARD, @Public, sessions.*), поведение по C-http «Сессия и Origin» совпадает: sha256 hex, 30 дн., продление <15 дн., last_seen раз в минуту, истёкшая/деактивированный → 401 с удалением. Правки в скоупе, пороги тестов не ослаблены. Замечания мелкие.",
+  "issues": [
+    {
+      "file": "apps/api/src/auth/errors.ts",
+      "line": 17,
+      "severity": "minor",
+      "what": "Второй глобальный фильтр HttpErrorFilter рядом с catch-all ErrorFilter: работает только из-за того, что Nest берёт позже зарегистрированный фильтр первым (app.ts, порядок в useGlobalFilters). Перестановка аргументов молча вернёт 'forbidden' вместо 'origin_mismatch'. details не поддерживается.",
+      "fix": "Через координатора слить в error.filter.ts: если err instanceof HttpError — брать err.code, иначе byStatus. До слияния порядок не трогать."
+    },
+    {
+      "file": "apps/api/src/auth/auth.ts",
+      "line": 21,
+      "severity": "minor",
+      "what": "AuthCtx.renewedToken несёт сырой токен сессии в контекст, который дальше уходит в мутаторы/WS (CR-4, CR-6) и может попасть в логи.",
+      "fix": "Хранить флаг продления отдельно (например, возвращать токен guard'у через req, не через AuthCtx) или вырезать поле из req.auth после установки cookie."
+    },
+    {
+      "file": "apps/api/src/app.ts",
+      "line": 16,
+      "severity": "minor",
+      "what": "AppOptions.extraControllers (только для тестов) в продовом интерфейсе createApp — расширение без координатора, хотя аддитивное.",
+      "fix": "Оставить, но зафиксировать у координатора как часть тестового интерфейса для CR-3b/CR-4."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "auth_guard",
+      "value": "10 passed (>=9), scope 13 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-22T23:41:54",
+  "by": "reviewer"
+}

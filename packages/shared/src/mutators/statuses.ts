@@ -23,8 +23,14 @@ export const statusMutators = [
       rank: rank.optional(),
     }),
     async run(tx, a, ctx) {
-      await need(tx, 'statuses', a.id);
+      const st = await need(tx, 'statuses', a.id);
       await tx.patch('statuses', a.id, changes('statuses', a, ctx));
+      if (a.category && a.category !== st.category)
+        for (const t of await tx.scan('tasks', { index: 'statusId', eq: st.id }))
+          await tx.patch('tasks', t.id, {
+            completedAt: completedAt(a.category, t.completedAt, ctx),
+            updatedAt: ctx.now,
+          });
     },
   }),
   defineMutator({

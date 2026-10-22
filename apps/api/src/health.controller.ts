@@ -1,8 +1,10 @@
 import { Controller, Get, Inject, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
+import { Public } from './auth/public.js';
 import type { Db } from './db/index.js';
 import { DB } from './tokens.js';
 
+@Public()
 @Controller('api/health')
 export class HealthController {
   constructor(@Inject(DB) private readonly db: Db) {}
