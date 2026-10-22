@@ -72,3 +72,25 @@ export const docServerTables: DocServerTable[] = (() => {
 })();
 
 export const snake = (s: string) => s.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase());
+
+export interface DocMutator {
+  name: string;
+  args: { name: string; optional: boolean }[];
+}
+
+/** Таблица «Мутаторы домена v1»: `| \`имя\` | \`args\` | правила |` */
+export const docMutators: DocMutator[] = (() => {
+  const sec = /^### Мутаторы домена[^\n]*\n([\s\S]*?)(?=^#{2,3} |^Вспомогательное)/m.exec(
+    contractDoc,
+  );
+  if (!sec) return [];
+  return [...sec[1].matchAll(/^\| `([\w.]+)` \| `([^`]*)` \|/gm)].map((r) => ({
+    name: r[1],
+    args: r[2]
+      .replace(/\{[^}]*\}/g, '')
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((t) => ({ name: t.split(/[?:\s]/)[0], optional: /^\w+\?/.test(t) })),
+  }));
+})();

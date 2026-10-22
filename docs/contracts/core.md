@@ -463,7 +463,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 - Набор тестов семантики `Tx` — `txContractSuite(name, setup)` из `packages/shared/test/tx-contract.ts`: обе реализации обязаны его проходить (MemoryTx — `packages/shared/test/memory-tx.test.ts`, CR-5; серверный — CR-4).
 
 ### Мутаторы домена v1 (CR-5; web вызывает по имени)
-Все id и `rank` — в args. `?` — необязательный аргумент.
+Все id и `rank` — в args. `?` — необязательный аргумент (`.optional()`; `null` допустим там, где поле строки nullable). Экспорт — `domainMutators: MutatorDef[]` из `@planar/shared`; `args` — `z.object`. Сверка с таблицей — `packages/shared/test/check-mutators.ts`.
 
 | имя | args | правила |
 |---|---|---|
