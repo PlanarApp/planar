@@ -10,6 +10,8 @@ const migrationDb = createDb(databaseUrl);
 await migrate(migrationDb).finally(() => migrationDb.$client.end());
 const app = await createApp({
   databaseUrl,
+  publicUrl: process.env.PUBLIC_URL ?? 'http://localhost:5173',
+  cookieSecure: process.env.COOKIE_SECURE === 'true',
   logger: { level: process.env.LOG_LEVEL ?? 'info' },
 });
 await app.listen(Number(process.env.PORT ?? 3000), '0.0.0.0');
