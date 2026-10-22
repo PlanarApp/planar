@@ -23,7 +23,7 @@ generated: true
 ## Контракты стыков (contract)
 
 - [docs/contracts/core.md](contracts/core.md) — Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
-- [docs/contracts/web.md](contracts/web.md) — Контракт web C-ui — токены, шрифты, брейкпоинт, базовые компоненты, иконки, i18n, маршруты, точки расширения фронта (C-modules, сторона web)
+- [docs/contracts/web.md](contracts/web.md) — Контракты web — C-ui (токены, компоненты, i18n, маршруты, точки расширения) и C-client (клиент синхронизации)
 
 ## Реестры (registry)
 

@@ -13,4 +13,4 @@ generated: true
 Файл собран `docs index` — руками не править.
 
 - core: C-schema v1, C-sync v1, C-mutators v1, C-modules v1, C-http v1 — [docs/contracts/core.md](../contracts/core.md)
-- web: C-ui v1 — [docs/contracts/web.md](../contracts/web.md)
+- web: C-ui v1, C-client v1 — [docs/contracts/web.md](../contracts/web.md)

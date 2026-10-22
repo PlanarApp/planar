@@ -1,0 +1,92 @@
+{
+  "id": "WB-1",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Каркас приложения: раскладки, C-ui, тема, i18n, PWA",
+  "goal": "apps/web — рабочая оболочка Planar по C-ui: токены и 9 базовых компонентов, маршруты-заглушки, раскладка desktop (боковая + верхняя панель) и mobile (нижняя навигация), тема system/light/dark, i18n ru/en, PWA (manifest, SW, установка, офлайн-оболочка), реестр точек расширения и скрипты проверки размера и PWA. Контрактный тест C-ui зелёный без его правки.",
+  "plan_ref": "WB-1 Каркас приложения",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-modules",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-1",
+  "branch": "web/WB-1",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/",
+    "apps/web/index.html",
+    "apps/web/vite.config.ts",
+    "apps/web/public/",
+    "apps/web/scripts/",
+    "apps/web/package.json",
+    "apps/web/tsconfig.json"
+  ],
+  "dont_touch": [
+    "apps/web/src/__contract__/ — контрактный тест координатора; расхождение — «WB-1 contract: …»",
+    "apps/web/src/sync/ — WB-2",
+    "apps/web/package.json: только поле exports, зависимости не добавлять (нужна новая — WB-1 blocked)",
+    "pnpm-lock.yaml, packages/, apps/api/, modules/, корневые конфиги — core",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "pwa",
+      "cmd": "node apps/web/scripts/pwa-check.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__",
+      "expect": "num:Tests\\s+(\\d+) passed >=48"
+    },
+    {
+      "name": "layout",
+      "cmd": "pnpm --filter web exec vitest run src/layout",
+      "expect": "num:Tests\\s+(\\d+) passed >=4"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-22T23:08:18",
+  "edited": "2026-10-22T23:14:56"
+}

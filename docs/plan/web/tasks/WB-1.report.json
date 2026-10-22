@@ -1,0 +1,67 @@
+{
+  "status": "done",
+  "summary": "Каркас apps/web готов: C-ui токены и 9 компонентов, раскладки, тема, i18n, маршруты, реестр модулей, PWA, size/pwa-check. accept --dry 9/9 PASS.",
+  "commits": [
+    "7651c94 web: WB-1 tsconfig paths"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "98.8",
+      "pass": true
+    },
+    {
+      "name": "pwa",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "48",
+      "pass": true
+    },
+    {
+      "name": "layout",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-1",
+  "uncertain": [
+    {
+      "where": "apps/web/src/router.ts",
+      "why": "memory history при отсутствии window, чтобы реестр импортировался в node-окружении",
+      "checked": "contract 48 passed"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-22T23:15:55",
+  "by": "executor"
+}

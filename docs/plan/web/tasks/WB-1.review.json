@@ -1,0 +1,39 @@
+{
+  "verdict": "accept",
+  "summary": "Каркас соответствует C-ui v1: токены (имена, две темы, контраст fg/fg-muted ≥ 4.5:1), 9 компонентов, маршруты и имена, типы точек расширения, exports. Правки в скоупе, контрактный тест не тронут. Перезапуск contract/size/pwa совпал с отчётом. Замечания мелкие.",
+  "issues": [
+    {
+      "file": "apps/web/src/ui/Dialog.vue",
+      "line": 19,
+      "severity": "minor",
+      "what": "Использованы цвета из палитры Tailwind в обход токенов: bg-black/40 у оверлея, text-white у фолбэка Avatar (Avatar.vue:29). Контракт запрещает цвета не из токенов.",
+      "fix": "Взять токен (например bg-fg/40, text-accent-fg) или завести токен через координатора; можно сделать в следующей задаче по UI."
+    },
+    {
+      "file": "apps/web/src/modules/registry.ts",
+      "line": 14,
+      "severity": "minor",
+      "what": "Не проверяется повторная регистрация того же moduleId: если у модуля есть только routes, второй вызов registerModules снова вызовет router.addRoute с теми же путями и не бросит ошибку.",
+      "fix": "Бросать Error при повторе m.id (в пачке или среди уже зарегистрированных) — до WB-10."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "contract",
+      "value": "48",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "98.8",
+      "pass": true
+    },
+    {
+      "name": "pwa",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-22T23:17:56",
+  "by": "reviewer"
+}
