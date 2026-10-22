@@ -70,7 +70,7 @@ export function createClient(db: PlanarDB) {
   let wsStable: ReturnType<typeof setTimeout> | undefined;
 
   const setStatus = (s: SyncStatus) => (syncState.value = { ...syncState.value, status: s });
-  const meta = async (key: 'clientId' | 'cursor' | 'lastMutationId') =>
+  const meta = async (key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId') =>
     (await db._meta.get(key))?.value;
 
   function registerMutators(defs: MutatorDef[]) {
@@ -296,6 +296,9 @@ export function createClient(db: PlanarDB) {
     opts = o;
     const g = ++gen;
     await db.open();
+    const owner = (await meta('userId')) as string | undefined;
+    if (owner !== undefined && owner !== o.userId) await wipe(); // реплика другого пользователя
+    await db._meta.put({ key: 'userId', value: o.userId });
     const id = (await meta('clientId')) as string | undefined;
     clientId = id ?? uuidv7();
     if (!id) await db._meta.put({ key: 'clientId', value: clientId });
@@ -367,7 +370,25 @@ export function createClient(db: PlanarDB) {
     await running;
   }
 
+  /** очистка реплики, очереди и _meta; новый clientId */
+  async function wipe(): Promise<void> {
+    await db.open();
+    await db.transaction('rw', db.tables, async () => {
+      for (const t of db.tables) await t.clear();
+      await db._meta.put({ key: 'clientId', value: uuidv7() });
+    });
+    cursor = undefined;
+    pushedUpTo = 0;
+    syncState.value = { status: 'idle', pending: 0 };
+  }
+
+  async function clearLocal(): Promise<void> {
+    await stopSync();
+    await wipe();
+  }
+
   return {
+    clearLocal,
     registerMutators,
     mutate,
     startSync,

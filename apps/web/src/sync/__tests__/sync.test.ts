@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { useQuery } from '../query';
 import { FakeServer, FakeWebSocket } from './fake-server';
-import { NOW, SPACE, label, labels, setup, stopAll, testMutators } from './helpers';
+import { NOW, SPACE, USER, label, labels, setup, stopAll, testMutators } from './helpers';
 
 const until = async (f: () => boolean | Promise<boolean>, ms = 2000) => {
   const t = Date.now();
@@ -213,7 +213,7 @@ describe('sync', () => {
     const c2 = s.mk();
     const t0 = performance.now();
     await c2.startSync({
-      userId: uuidv7(),
+      userId: USER,
       baseUrl: 'http://test',
       fetch: ((_u: unknown, init: RequestInit) =>
         new Promise((_, rej) =>

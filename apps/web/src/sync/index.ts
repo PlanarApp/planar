@@ -9,6 +9,7 @@ const client = createClient(db);
 export const {
   startSync,
   stopSync,
+  clearLocal,
   mutate,
   registerMutators,
   syncState,

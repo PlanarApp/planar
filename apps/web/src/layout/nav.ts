@@ -1,4 +1,5 @@
-import { ref, type Ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
+import { useSpaces } from '../tasks';
 
 export interface NavSpace {
   id: string;
@@ -11,10 +12,14 @@ export interface NavFavorite {
   to: string;
 }
 
-// Данных реплики ещё нет: заполнят WB-4/WB-10.
-const spaces = ref<NavSpace[]>([]);
-const favorites = ref<NavFavorite[]>([]);
-
-export function useNavData(): { spaces: Ref<NavSpace[]>; favorites: Ref<NavFavorite[]> } {
-  return { spaces, favorites };
+export function useNavData(): { spaces: Readonly<Ref<NavSpace[]>>; favorites: Ref<NavFavorite[]> } {
+  const src = useSpaces();
+  const spaces = computed<NavSpace[]>(() =>
+    (src.value ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      projects: s.projects.map((p) => ({ id: p.id, name: p.name, prefix: p.key })),
+    })),
+  );
+  return { spaces, favorites: ref([]) }; // сущности «избранное» пока нет
 }
