@@ -1,0 +1,9 @@
+{
+  "module": "web",
+  "plan": "docs/plan/web.md",
+  "contracts": "docs/contracts/web.md",
+  "branch": "feature/web",
+  "copy": "~/planar-web",
+  "created": "2026-10-22T22:59:11",
+  "code": "WB"
+}
