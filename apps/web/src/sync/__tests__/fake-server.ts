@@ -48,6 +48,11 @@ export class FakeServer {
     }
   }
 
+  remove(entity: string, id: string) {
+    this.rows.get(entity)?.delete(id);
+    this.log.push({ seq: ++this.seq, entity, id, op: 'del' });
+  }
+
   private tx(rows: Rows, out: Change[]): Tx {
     const t = (e: string) => rows.get(e) ?? rows.set(e, new Map()).get(e)!;
     const chk = (e: string, r: unknown) => {

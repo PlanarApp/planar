@@ -66,6 +66,8 @@ export function createClient(db: PlanarDB) {
   let onlineHandler: (() => void) | null = null;
   let running: Promise<void> | null = null;
   let again = false;
+  let abort = new AbortController();
+  let wsStable: ReturnType<typeof setTimeout> | undefined;
 
   const setStatus = (s: SyncStatus) => (syncState.value = { ...syncState.value, status: s });
   const meta = async (key: 'clientId' | 'cursor' | 'lastMutationId') =>
@@ -106,8 +108,7 @@ export function createClient(db: PlanarDB) {
     cursor?: number;
     lastMutationId?: number;
     drop?: Set<number>;
-  }): Promise<MutationErrorInfo[]> {
-    const failed: MutationErrorInfo[] = [];
+  }): Promise<void> {
     await db.transaction('rw', db.tables, async () => {
       const queue = await db._queue.orderBy('id').toArray();
       if (p.bootstrap) {
@@ -135,16 +136,10 @@ export function createClient(db: PlanarDB) {
           if (!def) throw new MutatorError('invalid_args', `неизвестный мутатор: ${q.name}`);
           await def.run(new DexieTx(db, undo), def.args.parse(q.args), ctx(q.createdAt));
           await db._queue.update(q.id!, { undo });
-        } catch (e) {
-          // мутация не применима поверх серверного состояния: возвращаем её частичные записи и выбрасываем
+        } catch {
+          // не применима к реплике: пропускаем локальный эффект, но оставляем в очереди — судит сервер
           await applyUndo(db, undo);
-          await db._queue.delete(q.id!);
-          failed.push({
-            id: q.id!,
-            name: q.name,
-            code: e instanceof MutatorError ? e.code : 'internal',
-            message: (e as Error).message,
-          });
+          await db._queue.update(q.id!, { undo: [] });
         }
       }
       if (p.cursor !== undefined) await db._meta.put({ key: 'cursor', value: p.cursor });
@@ -153,7 +148,6 @@ export function createClient(db: PlanarDB) {
     });
     if (p.cursor !== undefined) cursor = p.cursor;
     await refreshPending();
-    return failed;
   }
 
   const emitErrors = (list: MutationErrorInfo[]) => {
@@ -162,7 +156,8 @@ export function createClient(db: PlanarDB) {
 
   async function http(path: string, init?: RequestInit): Promise<unknown> {
     const f = opts!.fetch ?? globalThis.fetch.bind(globalThis);
-    const res = await f((opts!.baseUrl ?? '') + path, init);
+    const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]);
+    const res = await f((opts!.baseUrl ?? '') + path, { ...init, signal });
     if (!res.ok) throw new HttpError(res.status);
     return res.json();
   }
@@ -170,17 +165,13 @@ export function createClient(db: PlanarDB) {
   async function bootstrap() {
     setStatus('bootstrapping');
     const r = syncBootstrapSchema.parse(await http(`/sync/bootstrap?clientId=${clientId}`));
-    emitErrors(
-      await applyServer({ bootstrap: r.data, cursor: r.cursor, lastMutationId: r.lastMutationId }),
-    );
+    await applyServer({ bootstrap: r.data, cursor: r.cursor, lastMutationId: r.lastMutationId });
   }
 
   async function pull() {
     const r = syncPullSchema.parse(await http(`/sync/pull?cursor=${cursor}&clientId=${clientId}`));
     if (r.reset) return bootstrap();
-    emitErrors(
-      await applyServer({ changes: r.changes, cursor: r.cursor, lastMutationId: r.lastMutationId }),
-    );
+    await applyServer({ changes: r.changes, cursor: r.cursor, lastMutationId: r.lastMutationId });
   }
 
   /** true — что-то отправлено */
@@ -203,7 +194,7 @@ export function createClient(db: PlanarDB) {
     for (const x of r.results) if (!x.ok) rejected.set(x.id, x);
     if (rejected.size) {
       const byId = new Map<number, QueueItem>(items.map((q) => [q.id!, q]));
-      const failed = await applyServer({ drop: new Set(rejected.keys()) });
+      await applyServer({ drop: new Set(rejected.keys()) });
       emitErrors([
         ...[...rejected].map(([id, x]) => ({
           id,
@@ -211,7 +202,6 @@ export function createClient(db: PlanarDB) {
           code: x.code,
           message: x.message,
         })),
-        ...failed,
       ]);
     }
     return true;
@@ -233,7 +223,11 @@ export function createClient(db: PlanarDB) {
         authCbs.forEach((cb) => cb());
         return;
       }
-      const net = e instanceof TypeError || (e instanceof HttpError && e.status >= 500);
+      // таймаут/обрыв fetch (AbortError, TimeoutError) — как сетевая ошибка
+      const net =
+        e instanceof TypeError ||
+        (e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError')) ||
+        (e instanceof HttpError && e.status >= 500);
       setStatus(net ? 'offline' : 'error');
       const g = gen;
       retryTimer = setTimeout(() => g === gen && void kick(), BACKOFF(failures++));
@@ -264,7 +258,8 @@ export function createClient(db: PlanarDB) {
     const s = new WS(base.replace(/^http/, 'ws') + '/ws');
     ws = s;
     s.onopen = () => {
-      wsFailures = 0;
+      // устойчивое соединение — открыто ≥ 5 с или пришёл poke; иначе пауза растёт
+      wsStable = setTimeout(() => (wsFailures = 0), 5000);
       s.send(JSON.stringify({ t: 'hello', cursor: cursor ?? 0 }));
     };
     s.onmessage = (ev) => {
@@ -274,9 +269,11 @@ export function createClient(db: PlanarDB) {
       } catch {
         return;
       }
+      if (m.success) wsFailures = 0;
       if (m.success && m.data.seq > (cursor ?? 0)) void kick();
     };
     s.onclose = (ev) => {
+      clearTimeout(wsStable);
       if (g !== gen) return;
       ws = null;
       if (ev.code === 4401) return authCbs.forEach((cb) => cb());
@@ -287,7 +284,9 @@ export function createClient(db: PlanarDB) {
   async function lead(g: number) {
     if (g !== gen) return;
     leading = true;
-    await kick();
+    // тёплый старт не ждёт сеть; холодный — ждёт bootstrap
+    if (cursor === undefined) await kick();
+    else void kick();
     if (g !== gen) return;
     connectWs();
   }
@@ -349,6 +348,9 @@ export function createClient(db: PlanarDB) {
     leading = false;
     clearTimeout(retryTimer);
     clearTimeout(wsTimer);
+    clearTimeout(wsStable);
+    abort.abort();
+    abort = new AbortController();
     if (ws) {
       ws.onclose = null;
       ws.close();

@@ -173,10 +173,64 @@ describe('sync', () => {
       w()[2].poke(s.server.seq);
       await vi.advanceTimersByTimeAsync(10);
       expect(s.server.pulls).toBe(pulls + 1);
+      // сервер принимает и сразу закрывает: пауза растёт (poke сбросил счётчик → 1 с, затем 2, 4)
+      w()[2].drop();
+      for (const d of [1000, 2000, 4000]) {
+        const n = w().length;
+        await vi.advanceTimersByTimeAsync(d - 1);
+        expect(w()).toHaveLength(n);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(w()).toHaveLength(n + 1);
+        w()[n].open();
+        w()[n].drop();
+      }
       await c.stopSync();
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('sync:warm-start — зависший fetch не задерживает startSync с готовой репликой', async () => {
+    const s = setup();
+    s.server.seed('labels', [label('a')]);
+    const c1 = s.mk();
+    await s.start(c1);
+    await c1.stopSync();
+    const c2 = s.mk();
+    const t0 = performance.now();
+    await c2.startSync({
+      userId: uuidv7(),
+      baseUrl: 'http://test',
+      fetch: ((_u: unknown, init: RequestInit) =>
+        new Promise((_, rej) =>
+          init.signal?.addEventListener('abort', () => rej(new DOMException('x', 'AbortError'))),
+        )) as unknown as typeof fetch,
+    });
+    expect(performance.now() - t0).toBeLessThan(100);
+    expect(await labels(s.db)).toHaveLength(1);
+    await c2.stopSync();
+  });
+
+  it('sync:rebase-inapplicable — неприменимая локально мутация остаётся в очереди, судит сервер', async () => {
+    const s = setup();
+    const l = label('orig');
+    s.server.seed('labels', [l]);
+    const c = s.mk();
+    const errs: { code: string }[] = [];
+    c.onMutationError((e) => errs.push(e));
+    await s.start(c);
+    s.server.blockPush = true;
+    await c.mutate('test.label.rename', { id: l.id, name: 'local' });
+    await c.syncNow();
+    s.server.remove('labels', l.id);
+    await c.syncNow(); // pull: строки нет, rename неприменим
+    expect(await labels(s.db)).toHaveLength(0);
+    expect(await s.db._queue.count()).toBe(1);
+    expect(errs).toHaveLength(0);
+    s.server.blockPush = false;
+    await c.syncNow(); // сервер отклоняет not_found
+    expect(await s.db._queue.count()).toBe(0);
+    expect(errs).toMatchObject([{ code: 'not_found' }]);
   });
 
   it('401 → onUnauthorized', async () => {
