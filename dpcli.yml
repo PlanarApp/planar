@@ -34,10 +34,13 @@ checks:
   # Шаблон команды для проверок вида {tests: …}; {filter} — фильтр тестов из карточки.
   # Не задан — проверка tests недоступна. Пример: "python3 -m pytest -q -k {filter}"
   # tests: "python3 -m pytest -q -k {filter}"
+  tests: 'pnpm exec vitest run -t "{filter}"'
   # Регэксп итога прогона тестов для проверок {tests: …}: группы (?P<total>…) и (?P<failed>…),
   # по желанию (?P<skipped>…); берётся последнее совпадение. Нет совпадения — судим по коду выхода.
   # По умолчанию — «N тестов, M упало[, K пропущено]». Регэксп — в одинарных кавычках (без экранирования \\).
-  # tests_summary: '(?P<total>\d+) tests, (?P<failed>\d+) failed'
+  # vitest: «Tests  1 failed | 33 passed | 2 skipped (36)». total = passed (при failed > 0 всё равно FAIL);
+  # прогон без выполненных тестов («37 skipped (37)») даёт total = 0 → FAIL.
+  tests_summary: '^\s*Tests\s+(?:(?P<failed>\d+) failed)?(?:\s*\|\s*)?(?:(?P<total>\d+) passed)?(?:\s*\|\s*)?(?:(?P<skipped>\d+) skipped)?\s*\(\d+\)'
   # Куда пишутся логи проверок: <log_dir>/<ID>/.
   log_dir: build/dpcli
 

@@ -1,0 +1,11 @@
+node_modules
+dist
+data
+build
+pnpm-lock.yaml
+docs
+.claude
+.dpcli
+packages/shared/test/contract.test.ts
+CLAUDE.md
+dpcli.yml
