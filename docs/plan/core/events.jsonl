@@ -75,3 +75,6 @@
 {"t": "2026-10-22T23:41:54", "by": "reviewer", "task": "CR-3a", "ev": "reviewed", "note": "Интерфейс из карточки соблюдён (AuthCtx, authenticateRaw, getAuth, AuthGuard/APP_GUARD, @Public, sessions.*), поведение по C-http «Сессия и Origin» совпадает: …", "verdict": "accept", "issues": {"minor": 3}, "review": "docs/plan/core/tasks/CR-3a.review.json"}
 {"t": "2026-10-22T23:42:02", "by": "coordinator", "task": "CR-3a", "ev": "note", "note": "accept: первый прогон test FAIL (4 с), повтор PASS — возможна нестабильность при параллельных прогонах на planar-testdb"}
 {"t": "2026-10-22T23:42:02", "by": "coordinator", "task": "CR-5a", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-22T23:42:07", "by": "coordinator", "task": "CR-5a", "ev": "accepted", "commits": ["3b37c1a"], "note": "3/3 lint=ok:exit 0; shared_tests=ok:140; deterministic=ok:clean"}
+{"t": "2026-10-22T23:42:07", "by": "coordinator", "task": "CR-5a", "ev": "merged"}
+{"t": "2026-10-22T23:42:18", "by": "coordinator", "task": "CR-3a", "ev": "accepted", "note": "по ревью; minor 1–2 — в CR-3b"}
