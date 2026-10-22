@@ -1,0 +1,72 @@
+{
+  "status": "done",
+  "summary": "Каркас apps/web готов: C-ui токены и 9 компонентов, раскладки, тема, i18n, маршруты, реестр модулей, PWA, size/pwa-check. accept --dry 9/9 PASS.",
+  "commits": [
+    "7651c94 web: WB-1 tsconfig paths"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "schema",
+      "value": "24 passed",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "migrations_in_sync",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "no_db_url",
+      "value": "rc=1",
+      "pass": true
+    },
+    {
+      "name": "seed_bench",
+      "value": "seed_ms=5733",
+      "pass": true
+    },
+    {
+      "name": "dev_seed",
+      "value": "seed-ok",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "вне scope: pnpm-workspace.yaml",
+      "pass": false
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-1",
+  "uncertain": [
+    {
+      "where": "apps/web/src/router.ts",
+      "why": "memory history при отсутствии window, чтобы реестр импортировался в node-окружении",
+      "checked": "contract 48 passed"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-22T23:16:42",
+  "by": "executor"
+}
