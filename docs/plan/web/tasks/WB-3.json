@@ -119,9 +119,15 @@
       "name": "test",
       "cmd": "pnpm --filter web test",
       "expect": "exit=0"
+    },
+    {
+      "name": "offline",
+      "cmd": "pnpm --filter web exec vitest run src/auth -t auth:offline",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-22T23:34:34"
+  "created": "2026-10-22T23:34:34",
+  "edited": "2026-10-22T23:43:48"
 }

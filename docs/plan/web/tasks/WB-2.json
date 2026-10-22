@@ -116,11 +116,6 @@
       "expect": "num:Tests\\s+(\\d+) passed >=1"
     },
     {
-      "name": "ws-reconnect",
-      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:ws-reconnect",
-      "expect": "num:Tests\\s+(\\d+) passed >=1"
-    },
-    {
       "name": "bootstrap-10k",
       "cmd": "pnpm --filter web exec vitest run src/sync -t sync:perf",
       "expect": "num:perf bootstrap10k_ms=([\\d.]+) <=2000"
@@ -134,10 +129,25 @@
       "name": "mutate-ms",
       "cmd": "pnpm --filter web exec vitest run src/sync -t sync:perf",
       "expect": "num:perf mutate_ms=([\\d.]+) <=100"
+    },
+    {
+      "name": "warm-start",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:warm-start",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "rebase-inapplicable",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:rebase-inapplicable",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "ws-reconnect",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:ws-reconnect",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
     }
   ],
   "report_extra": [],
   "notes": "",
   "created": "2026-10-22T23:21:31",
-  "edited": "2026-10-22T23:33:07"
+  "edited": "2026-10-22T23:44:03"
 }
