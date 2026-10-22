@@ -173,8 +173,22 @@ describe('sync', () => {
       w()[2].poke(s.server.seq);
       await vi.advanceTimersByTimeAsync(10);
       expect(s.server.pulls).toBe(pulls + 1);
-      // сервер принимает и сразу закрывает: пауза растёт (poke сбросил счётчик → 1 с, затем 2, 4)
-      w()[2].drop();
+      await c.stopSync();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('sync:ws-reconnect — сервер принимает и сразу закрывает: пауза растёт', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    try {
+      FakeWebSocket.reset();
+      const s = setup();
+      const c = s.mk();
+      await s.start(c, true);
+      const w = () => FakeWebSocket.instances;
+      w()[0].open();
+      w()[0].drop();
       for (const d of [1000, 2000, 4000]) {
         const n = w().length;
         await vi.advanceTimersByTimeAsync(d - 1);
