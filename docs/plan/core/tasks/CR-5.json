@@ -1,0 +1,87 @@
+{
+  "id": "CR-5",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "Мутаторы домена и MemoryTx",
+  "goal": "Общие мутаторы домена по таблице «Мутаторы домена v1» (packages/shared/src/mutators, без Node API) и MemoryTx (@planar/shared/testing), проходящий txContractSuite; юнит-тесты каждого мутатора на MemoryTx.",
+  "plan_ref": "CR-5 Мутаторы домена",
+  "contracts": [
+    {
+      "name": "C-mutators",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-5",
+  "branch": "core/CR-5",
+  "base": "feature/core",
+  "scope": [
+    "packages/shared/src/mutators/",
+    "packages/shared/src/testing/",
+    "packages/shared/src/index.ts",
+    "packages/shared/package.json",
+    "packages/shared/test/memory-tx.test.ts",
+    "packages/shared/test/mutators/",
+    "pnpm-lock.yaml"
+  ],
+  "dont_touch": [
+    "packages/shared/test/contract.test.ts, contract-doc.ts, tx-contract.ts, check-mutators.ts — файлы координатора; расхождение — «CR-5 contract: …»",
+    "packages/shared/src/contract/ — код контрактов; нужна правка — «CR-5 contract: …»",
+    "apps/ — параллельно CR-2 (apps/api)",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "tx_contract",
+      "cmd": "pnpm exec vitest run packages/shared/test/memory-tx.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=12",
+      "timeout": 300
+    },
+    {
+      "name": "mutators_contract",
+      "cmd": "pnpm exec tsx packages/shared/test/check-mutators.ts",
+      "expect": "re:^mutators-ok 38$",
+      "timeout": 120
+    },
+    {
+      "name": "shared_tests",
+      "cmd": "pnpm exec vitest run --project shared",
+      "expect": "num:Tests\\s+(\\d+) passed >=130",
+      "timeout": 300
+    },
+    {
+      "name": "no_node_api",
+      "cmd": "grep -rnE \"from '(node:|fs|path|crypto|os)'|require\\(|process\\.|Buffer\\b\" packages/shared/src || echo clean",
+      "expect": "re:^clean$",
+      "timeout": 60
+    },
+    {
+      "name": "deterministic",
+      "cmd": "grep -rnE 'Date\\.now|new Date\\(\\)|Math\\.random|uuidv7\\(' packages/shared/src/mutators || echo clean",
+      "expect": "re:^clean$",
+      "timeout": 60
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-22T23:05:56"
+}

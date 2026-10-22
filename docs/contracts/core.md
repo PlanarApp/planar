@@ -459,11 +459,11 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 - Update-мутаторы: поле отсутствует — не меняется, `null` — обнулить. Изменения по полям: при конфликте побеждает последняя запись на сервере.
 - Удаление родителя — мутатор сначала удаляет дочерние строки (см. FK в C-schema).
 - **Серверный `Tx`** (CR-4, `apps/api/src/sync/server-tx.ts`): поверх транзакции Drizzle, строки в формате провода. На каждую запись — проверка прав по `write` сущности (для `patch`/`del` и замены — по существующей строке, для `put` — и по новой); запрет → `MutatorError('forbidden')`. Затем строка в `changes`, для `tasks`/`taskAssignees`/`taskLabels`/`comments` — `activity` (C-schema). Нарушение уникальности (23505) → `conflict`, FK (23503) → `invalid_args`. Чтение (`get`/`scan`) прав не проверяет: мутаторы — доверенный код. Серверный код (CR-3, CR-7) пишет через тот же `Tx` с `ctx.userId` системы и обходом прав (`asSystem`), чтобы попасть в `changes`.
-- **`MemoryTx`** (CR-5, `packages/shared/src/testing/memory-tx.ts`) — та же семантика без прав, `changes`, `activity`; нужен web для тестов и как образец для Dexie.
-- Набор тестов семантики `Tx` — `packages/shared/test/tx-contract.ts` (координатор, до CR-5): обе реализации обязаны его проходить.
+- **`MemoryTx`** (CR-5, `packages/shared/src/testing/memory-tx.ts`, экспорт `@planar/shared/testing`) — `new MemoryTx()`, та же семантика без прав, `changes`, `activity`; `get`/`scan` возвращают копии. Нужен web для тестов и как образец для Dexie.
+- Набор тестов семантики `Tx` — `txContractSuite(name, setup)` из `packages/shared/test/tx-contract.ts`: обе реализации обязаны его проходить (MemoryTx — `packages/shared/test/memory-tx.test.ts`, CR-5; серверный — CR-4).
 
 ### Мутаторы домена v1 (CR-5; web вызывает по имени)
-Все id и `rank` — в args. `?` — необязательный аргумент.
+Все id и `rank` — в args. `?` — необязательный аргумент (`.optional()`; `null` допустим там, где поле строки nullable). Экспорт — `domainMutators: MutatorDef[]` из `@planar/shared`; `args` — `z.object`. Сверка с таблицей — `packages/shared/test/check-mutators.ts`.
 
 | имя | args | правила |
 |---|---|---|
