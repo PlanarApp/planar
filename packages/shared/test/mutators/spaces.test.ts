@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { code, ctx, id, mem, run, seedSpace, seedTask, T1, U1, U2 } from './helpers';
+import { code, ctx, id, mem, run, seedSpace, seedTask, T0, T1, U1, U2 } from './helpers';
 
 describe('space/member', () => {
   it('space.create: пространство, admin и 5 статусов', async () => {
@@ -169,6 +169,17 @@ describe('project/status/label', () => {
       color: '#0ff',
     });
     expect(await code(run(tx, 'status.update', { id: id(), name: 'x' }))).toBe('not_found');
+  });
+
+  it('status.update: смена category пересчитывает completedAt задач', async () => {
+    const tx = mem();
+    const s = await seedSpace(tx);
+    const t = await seedTask(tx, s);
+    const st = s.statusIds[1];
+    await run(tx, 'status.update', { id: st, category: 'done' });
+    expect(await tx.get('tasks', t)).toMatchObject({ completedAt: T0 });
+    await run(tx, 'status.update', { id: st, category: 'todo' });
+    expect(await tx.get('tasks', t)).toMatchObject({ completedAt: null });
   });
 
   it('status.delete: задачи уходят в replaceWith, completedAt по категории', async () => {
