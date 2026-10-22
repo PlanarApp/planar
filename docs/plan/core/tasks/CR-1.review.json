@@ -1,0 +1,39 @@
+{
+  "verdict": "accept",
+  "summary": "Каркас соответствует карточке и дополнениям: скоуп чист, contract.test.ts не тронут, C-http формат ошибок держится в том числе для ошибок Fastify (битый JSON → 400 invalid_request, >1 МБ → 413 payload_too_large, проверено inject). dpcli tests_summary корректно даёт FAIL на прогоне без выполненных тестов. Два мелких замечания на будущее.",
+  "issues": [
+    {
+      "file": "apps/api/src/main.ts",
+      "line": 3,
+      "severity": "minor",
+      "what": "При старте migrate() не вызывается, а DATABASE_URL ?? '' молча переходит на умолчания pg. С появлением таблиц (CR-2) dev/prod поднимутся без схемы; без env ошибка будет неочевидной.",
+      "fix": "В CR-2 (или здесь): вызывать migrate(db) в main.ts до listen; при пустом DATABASE_URL падать с понятной ошибкой."
+    },
+    {
+      "file": "compose.dev.yml",
+      "line": 42,
+      "severity": "minor",
+      "what": "environment у api/web целиком заменяет environment из якоря x-node (merge в YAML неглубокий): CI='true' в api/web пропадает, npm_config_store_dir продублирован руками.",
+      "fix": "Вынести общие переменные в отдельный якорь (x-env) и мержить его в environment каждого сервиса."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "accept --only contract --dry",
+      "value": "34 passed",
+      "pass": true
+    },
+    {
+      "name": "accept --only test --dry",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "C-http: битый JSON / тело >1 МБ / неизвестный путь (inject)",
+      "value": "400 invalid_request / 413 payload_too_large / 404 not_found",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-22T22:56:05",
+  "by": "reviewer"
+}
