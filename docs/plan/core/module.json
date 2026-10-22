@@ -1,0 +1,9 @@
+{
+  "module": "core",
+  "plan": "docs/plan/core.md",
+  "contracts": "docs/contracts/core.md",
+  "branch": "feature/core",
+  "copy": "~/planar-core",
+  "created": "2026-10-22T22:28:49",
+  "code": "CR"
+}
