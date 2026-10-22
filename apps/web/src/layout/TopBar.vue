@@ -2,14 +2,16 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Download, Languages, Monitor, Moon, Settings, Sun, User } from 'lucide-vue-next';
+import { Download, Languages, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-vue-next';
 import { Avatar, Button, Menu, useTheme, type MenuItem } from '../ui';
 import { setLocale } from '../i18n';
+import { useAuth } from '../auth/useAuth';
 
 const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { theme } = useTheme();
+const { logout } = useAuth();
 
 interface InstallEvent extends Event {
   prompt: () => Promise<void>;
@@ -64,6 +66,16 @@ const items = (): MenuItem[] => [
     label: `${t('topbar.language')}: ${locale.value === 'ru' ? 'English' : 'Русский'}`,
     icon: Languages,
     onSelect: () => setLocale(locale.value === 'ru' ? 'en' : 'ru'),
+  },
+  { separator: true },
+  {
+    id: 'logout',
+    label: t('auth.signOut'),
+    icon: LogOut,
+    onSelect: async () => {
+      await logout();
+      await router.push('/login');
+    },
   },
 ];
 </script>
