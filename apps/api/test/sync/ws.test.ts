@@ -1,3 +1,4 @@
+import { writeSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
@@ -178,7 +179,8 @@ describe('WS /ws', () => {
       }
       max = Math.round(Math.max(...samples));
     }
-    console.log(`poke_ms=${max}`);
+    // мимо перехвата vitest: приёмка читает эту строку из лога
+    writeSync(1, `poke_ms=${max}\n`);
     expect(max).toBeLessThanOrEqual(500);
   }, 30_000);
 });
