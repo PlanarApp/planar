@@ -14,3 +14,5 @@
 {"t": "2026-10-22T22:54:10", "by": "coordinator", "task": "CR-1", "ev": "checked", "note": "7/7 lint=ok:exit 0; build=ok:exit 0; testdb=ok:true 5432/tcp=55432; test=ok:exit 0; contract=ok:34; compose=ok:compose-ok; dev_up=ok:\"db\":\"up\"} {\"ok\":true,\"db\":\"u…"}
 {"t": "2026-10-22T22:56:05", "by": "reviewer", "task": "CR-1", "ev": "reviewed", "note": "Каркас соответствует карточке и дополнениям: скоуп чист, contract.test.ts не тронут, C-http формат ошибок держится в том числе для ошибок Fastify (битый JSON →…", "verdict": "accept", "issues": {"minor": 2}, "review": "docs/plan/core/tasks/CR-1.review.json"}
 {"t": "2026-10-22T22:56:33", "by": "coordinator", "task": "CR-1", "ev": "accepted", "note": "по ревью"}
+{"t": "2026-10-22T22:58:20", "by": "coordinator", "task": "CR-1", "ev": "accepted", "commits": ["014a1ae"], "note": "7/7 lint=ok:exit 0; build=ok:exit 0; testdb=ok:true 5432/tcp=55432; test=ok:exit 0; contract=ok:34; compose=ok:compose-ok; dev_up=ok:\"db\":\"up\"} {\"ok\":true,\"db\":\"u…"}
+{"t": "2026-10-22T22:58:21", "by": "coordinator", "task": "CR-1", "ev": "merged"}
