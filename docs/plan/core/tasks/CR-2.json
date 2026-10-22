@@ -26,7 +26,8 @@
     "dev.sh",
     "compose.dev.yml",
     ".env.example",
-    "pnpm-lock.yaml"
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
   ],
   "dont_touch": [
     "apps/api/test/contract.schema.test.ts — контрактный тест координатора; расхождение — «CR-2 contract: …»",
@@ -80,19 +81,19 @@
       "timeout": 60
     },
     {
-      "name": "seed_bench",
-      "cmd": "pnpm --filter @planar/api seed --bench --tasks 10000",
-      "expect": "num:seed_ms=(\\d+) <=60000",
-      "timeout": 600
-    },
-    {
       "name": "dev_seed",
       "cmd": "./dev.sh up && ./dev.sh seed && ./dev.sh seed --tasks 200 && echo seed-ok; rc=$?; ./dev.sh down; exit $rc",
       "expect": "re:^seed-ok$",
       "timeout": 900
+    },
+    {
+      "name": "seed_bench",
+      "cmd": "pnpm --filter @planar/api seed --bench --tasks 10000",
+      "expect": "num:seed_ms=(\\d+) <=15000"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-22T23:04:07"
+  "created": "2026-10-22T23:04:07",
+  "edited": "2026-10-22T23:17:06"
 }
