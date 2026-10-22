@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { sql } from 'drizzle-orm';
 import { ServerTx } from '../../src/sync/server-tx.js';
 import { ChangeNotifier } from '../../src/sync/notify.js';
 import { NOW, mkSpace, mkUser, newDb } from './helpers.js';
@@ -69,16 +70,19 @@ describe('ChangeNotifier', () => {
     expect(b).toEqual([]);
   });
 
-  it('пачка быстрых коммитов склеивается: последний seq', async () => {
-    const { db, n, write } = await setup();
+  it('пачка уведомлений склеивается: одна рассылка с наибольшим seq', async () => {
+    const { db, n } = await setup();
     const got: number[] = [];
     n.subscribe((s) => got.push(s));
     await new Promise((r) => setTimeout(r, 200));
-    got.length = 0;
-    await Promise.all([write(1), write(1), write(1)]);
-    await new Promise((r) => setTimeout(r, 200));
-    const [{ m }] = (await db.$client.query('select max(seq)::int m from changes')).rows;
-    expect(got.length).toBeLessThanOrEqual(2);
-    expect(got.at(-1)).toBeLessThanOrEqual(m);
+    const big = 1e12;
+    await db.transaction(async (tx) => {
+      for (const v of [1, 3, 2])
+        await tx.execute(sql`select pg_notify('planar_changes', ${String(big + v)})`);
+    });
+    await new Promise((r) => setTimeout(r, 300));
+    expect(got).toContain(big + 3);
+    expect(got).not.toContain(big + 1);
+    expect(got).not.toContain(big + 2);
   });
 });
