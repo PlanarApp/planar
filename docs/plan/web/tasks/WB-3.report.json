@@ -1,8 +1,8 @@
 {
   "status": "done",
-  "summary": "Клиент api/ApiError, useAuth, охрана маршрутов, экраны Setup/Login/Profile, UsersSettings (админ), выход в TopBar; тесты на моке fetch.",
+  "summary": "Клиент api/ApiError, useAuth, охрана маршрутов, экраны Setup/Login/Profile, UsersSettings, выход в TopBar; доработка: офлайн-вход через localStorage planar.user, setupNeeded при сети=false.",
   "commits": [
-    "9e48fe3 web: WB-3 вход, настройка, профиль, пользователи"
+    "e635208 web: WB-3 офлайн-вход"
   ],
   "checks": [
     {
@@ -74,26 +74,26 @@
       "name": "test",
       "value": "PASS",
       "pass": true
+    },
+    {
+      "name": "offline",
+      "value": "PASS",
+      "pass": true
     }
   ],
   "not_done": [
-    "аватар: только показ по имени, загрузка ждёт шлюз Q3"
+    "аватар: только показ по имени (шлюз Q3)"
   ],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept WB-3",
   "uncertain": [
     {
       "where": "apps/web/src/screens/settings/UsersSettings.vue",
-      "why": "владельца не блокируем и роль не меняем (в UI), в контракте это не оговорено; роли в создании: admin/member/guest",
-      "checked": "только тестами на моке"
-    },
-    {
-      "where": "apps/web/src/router.ts",
-      "why": "setupNeeded() при сетевой ошибке бросает исключение из guard",
-      "checked": "не обрабатывал"
+      "why": "роли при создании: admin/member/guest",
+      "checked": "только моки"
     }
   ],
-  "dp_feedback": "task show обрезает карточку; полный текст дополнений только с --full. plan с несколькими словами в разделе падает без кавычек.",
-  "t": "2026-10-22T23:40:08",
+  "dp_feedback": "Общий /tmp для r.json у параллельных агентов затирается; task show обрезает дополнения.",
+  "t": "2026-10-22T23:47:26",
   "by": "executor"
 }

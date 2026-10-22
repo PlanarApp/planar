@@ -1,48 +1,29 @@
 {
-  "verdict": "rework",
-  "summary": "Клиент в целом по C-client: экспорты, rebase через журнал отката, push пачками ≤100, backoff, DexieTx; скоуп и зависимости чистые, перезапуск bootstrap-10k (1152 мс) и rollback совпадает с отчётом, подгонки под тест не видно. Возврат из-за одного места: тёплый старт ждёт сеть, а контракт требует вернуться сразу.",
-  "issues": [
-    {
-      "file": "apps/web/src/sync/client.ts",
-      "line": 300,
-      "severity": "major",
-      "what": "C-client startSync: «реплика есть — промис сразу после открытия базы, затем pull». Сейчас startSync -> lead(g) -> await kick() -> cycle() -> pull()+push, и это с locks и без них. При тёплом старте промис ждёт сетевой круг. fetch без таймаута на зависшей сети (lie-fi) держит startSync бесконечно, и офлайн-первый старт UI (WB-3/WB-4) блокируется.",
-      "fix": "Если cursor !== undefined, не ждать kick: в lead делать `void kick()` (или ждать только при cursor === undefined), WS подключать сразу. Добавить тест: тёплый старт при fetch, который не отвечает, -> startSync резолвится, реплика читается."
-    },
-    {
-      "file": "apps/web/src/sync/client.ts",
-      "line": 128,
-      "severity": "minor",
-      "what": "Если при rebase повтор мутации падает, мутация выбрасывается из очереди и вызывается onMutationError, даже когда она уже ушла на сервер (id ≤ pushedUpTo) и сервер может её принять. Тогда пользователь видит ложную ошибку. Тестов на ветку нет (в отчёте отмечено как uncertain).",
-      "fix": "Выбрасывать только неотправленные (id > pushedUpTo), отправленные оставлять до решения сервера; либо описать поведение в отчёте и добавить тест 'sync:rebase — неприменимая мутация'."
-    },
-    {
-      "file": "apps/web/src/sync/db.ts",
-      "line": 10,
-      "severity": "minor",
-      "what": "В _queue добавлено поле undo, которого нет в формате контракта ({id, name, args, createdAt}). Это расширение, обратно совместимое, но мимо координатора.",
-      "fix": "Попросить координатора дописать в C-client поле undo (служебное), или хранить журнал отката в отдельной таблице."
-    },
-    {
-      "file": "apps/web/src/sync/client.ts",
-      "line": 271,
-      "severity": "minor",
-      "what": "wsFailures обнуляется в onopen. Если сервер принимает соединение и сразу закрывает (не 4401), переподключение идёт каждую 1 с без роста паузы.",
-      "fix": "Обнулять wsFailures после первого валидного сообщения сервера (poke) или после N секунд жизни соединения."
-    }
-  ],
+  "verdict": "accept",
+  "summary": "Все 4 замечания прошлого ревью закрыты по уточнениям координатора: тёплый старт не ждёт kick (холодный ждёт bootstrap), fetch с AbortSignal.timeout 15 с + abort при stopSync, неприменимая при rebase мутация остаётся в очереди (undo: []) и судится сервером, wsFailures обнуляется через 5 с открытого соединения или по валидному сообщению. Новые тесты warm-start/rebase-inapplicable/ws-reconnect проверяют заявленное, подгонки нет; дифф доработки только в src/sync.",
+  "issues": [],
   "rerun": [
     {
-      "name": "bootstrap-10k",
-      "value": "1152.3",
+      "name": "warm-start",
+      "value": "PASS",
       "pass": true
     },
     {
-      "name": "rollback",
+      "name": "rebase-inapplicable",
       "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "ws-reconnect",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "mutate-ms",
+      "value": "69.1 (fake-indexeddb)",
       "pass": true
     }
   ],
-  "t": "2026-10-22T23:43:41",
+  "t": "2026-10-22T23:48:49",
   "by": "reviewer"
 }

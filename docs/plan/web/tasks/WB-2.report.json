@@ -1,9 +1,10 @@
 {
   "status": "done",
-  "summary": "Клиент синхронизации apps/web/src/sync: Dexie-реплика, bootstrap/pull/push, rebase через журнал отката, WS с backoff, useQuery, оптимистичный mutate; DexieTx проходит txContractSuite; фейк-сервер C-sync. Добавлена devDependency fake-indexeddb (решение Q1). vitest.config.ts: alias @planar/shared.",
+  "summary": "Клиент синхронизации apps/web/src/sync: Dexie-реплика, bootstrap/pull/push, rebase через журнал отката, WS с backoff, useQuery, оптимистичный mutate; DexieTx проходит txContractSuite; фейк-сервер C-sync. Добавлена devDependency fake-indexeddb (решение Q1). vitest.config.ts: alias @planar/shared. Доработка по ревью: тёплый старт не ждёт сеть, fetch с таймаутом 15 с и abort при stopSync, неприменимая при rebase мутация остаётся в очереди (судит сервер), счётчик WS-неудач сбрасывается после устойчивого соединения.",
   "commits": [
-    "0af7c3b web: WB-2 alias @planar/shared в vitest.config вместо shared.ts",
-    "1e3c28c web: WB-2 клиент синхронизации (Dexie, bootstrap/pull/push, rebase, WS, useQuery, mutate)"
+    "ec5a605 web: WB-2 тест роста паузы WS отдельно",
+    "186c021 web: WB-2 доработка по ревью: тёплый старт без ожидания сети, таймаут fetch, неприменимая мутация остаётся в очереди, устойчивость WS",
+    "0af7c3b web: WB-2 alias @planar/shared в vitest.config вместо shared.ts"
   ],
   "checks": [
     {
@@ -63,7 +64,7 @@
     },
     {
       "name": "rebase",
-      "value": "PASS",
+      "value": "3",
       "pass": true
     },
     {
@@ -73,12 +74,12 @@
     },
     {
       "name": "ws-reconnect",
-      "value": "PASS",
+      "value": "2",
       "pass": true
     },
     {
       "name": "bootstrap-10k",
-      "value": "1026-1245",
+      "value": "~1030-1250",
       "pass": true
     },
     {
@@ -88,7 +89,17 @@
     },
     {
       "name": "mutate-ms",
-      "value": "54-69 (fake-indexeddb)",
+      "value": "~66-74 (fake-indexeddb)",
+      "pass": true
+    },
+    {
+      "name": "warm-start",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "rebase-inapplicable",
+      "value": "PASS",
       "pass": true
     }
   ],
@@ -105,11 +116,6 @@
       "where": "apps/web/src/sync/client.ts startSync",
       "why": "лидерство вкладок через navigator.locks не проверено в реальных вкладках",
       "checked": "только в node (locks в одном процессе), последовательный stop/start"
-    },
-    {
-      "where": "apps/web/src/sync/client.ts applyServer",
-      "why": "мутация, не применимая поверх серверного состояния при rebase, выбрасывается из очереди с onMutationError и не уходит на сервер",
-      "checked": "логика прочитана, отдельного теста нет"
     }
   ],
   "dp_feedback": "Вывод console.log прошедших тестов vitest 5 скрывает — приёмка по num: не находит число; пришлось писать process.stdout.write. Стоит отметить в шаблоне карточки. Вывод dpcli task show обрезает дополнения по ширине.",
@@ -118,6 +124,6 @@
     "mutate_ms": "54-69",
     "tabs": "лидер через navigator.locks, остальные пишут в _queue; liveQuery Dexie видит изменения других вкладок"
   },
-  "t": "2026-10-22T23:35:17",
+  "t": "2026-10-22T23:46:58",
   "by": "executor"
 }
