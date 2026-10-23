@@ -20,14 +20,12 @@ it('воркер pg-boss доставляет push после коммита м�
     { push: new PushService(db, queue), pull: new PullService(db) },
     w.admin.userId,
   );
-  await db
-    .insert(schema.pushSubscriptions)
-    .values({
-      userId: w.member.userId,
-      endpoint: 'https://push.example/w',
-      p256dh: 'k',
-      auth: 'a',
-    });
+  await db.insert(schema.pushSubscriptions).values({
+    userId: w.member.userId,
+    endpoint: 'https://push.example/w',
+    p256dh: 'k',
+    auth: 'a',
+  });
   const t = {
     id: uuidv7(),
     projectId: w.projectId,
