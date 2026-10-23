@@ -1,0 +1,95 @@
+{
+  "id": "CR-5b",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "Реакции на комментарии: commentReactions и reaction.toggle",
+  "goal": "Сущность commentReactions (C-schema v3) в коде контрактов, БД и миграции; мутатор reaction.toggle и удаление реакций в comment.delete/task.delete (C-mutators v2); контрактные тесты зелёные.",
+  "plan_ref": "CR-5 Мутаторы домена",
+  "contracts": [
+    {
+      "name": "C-schema",
+      "version": "3",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "2",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-5b",
+  "branch": "core/CR-5b",
+  "base": "feature/core",
+  "scope": [
+    "packages/shared/src/contract/entities.ts",
+    "packages/shared/src/contract/versions.ts",
+    "packages/shared/src/mutators/",
+    "packages/shared/test/mutators/",
+    "apps/api/src/db/schema.ts",
+    "apps/api/drizzle/",
+    "docs/contracts/core.md",
+    "apps/api/test/contract.schema.test.ts",
+    "packages/shared/test/contract-doc.ts",
+    "packages/shared/test/contract.mutators.test.ts",
+    "packages/shared/test/check-mutators.ts"
+  ],
+  "dont_touch": [
+    "apps/api/src/sync/",
+    "apps/api/src/auth/",
+    "packages/shared/test/tx-contract.ts"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0",
+      "timeout": 300
+    },
+    {
+      "name": "shared_tests",
+      "cmd": "pnpm exec vitest run --project shared",
+      "expect": "num:Tests\\s+(\\d+) passed >=146",
+      "timeout": 300
+    },
+    {
+      "name": "mutators_contract",
+      "cmd": "pnpm exec tsx packages/shared/test/check-mutators.ts",
+      "expect": "re:^mutators-ok 39$",
+      "timeout": 120
+    },
+    {
+      "name": "schema",
+      "cmd": "pnpm exec vitest run apps/api/test/contract.schema.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=27",
+      "timeout": 300
+    },
+    {
+      "name": "migrations_in_sync",
+      "cmd": "cd apps/api && pnpm exec drizzle-kit generate 2>&1; git status --porcelain drizzle",
+      "expect": "!re:^\\s*(\\?\\?|M|A) ",
+      "timeout": 120
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0",
+      "timeout": 900
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T00:30:46",
+  "edited": "2026-10-23T00:49:43"
+}

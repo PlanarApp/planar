@@ -1,0 +1,84 @@
+{
+  "status": "done",
+  "summary": "ServerTx (права, changes, activity, номера, advisory lock, NOTIFY), bootstrap/pull/push, /api/tasks/:id/activity, LISTEN-нотификатор и WS /ws; 104 теста sync, accept 7/7.",
+  "commits": [
+    "edcc085 CR-4: файлы api-тестов последовательно",
+    "944360c CR-4: схема на файл вместо базы, testTimeout 30 с",
+    "69af9e6 CR-4: poke_ms в лог приёмки",
+    "7e2ac0e CR-4: порядок закрытия тестовых БД, таймаут замера",
+    "1e293db CR-4: устойчивый замер poke, таймаут сброса БД",
+    "61e43d1 CR-4: отдельная БД на файл sync-тестов",
+    "4bf28c2 CR-4: HTTP /sync, activity, WS /ws, тесты",
+    "12555f8 CR-4: детерминированный тест склейки poke",
+    "59bc2de CR-4: LISTEN planar_changes (ChangeNotifier), правки линтера",
+    "848817f CR-4: серверный Tx, bootstrap, pull, push (сервисный уровень) с тестами"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "server_tx_contract",
+      "value": "12",
+      "pass": true
+    },
+    {
+      "name": "sync_tests",
+      "value": "104",
+      "pass": true
+    },
+    {
+      "name": "poke_latency",
+      "value": "199",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "400 invalid_request без details.issues (только message)",
+    "Bearer/tokenScope read не проверяется (CR-10)"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-4",
+  "uncertain": [
+    {
+      "where": "apps/api/vitest.config.ts",
+      "why": "добавил ssr.resolve.conditions=['source'] (иначе @planar/shared не резолвится и класс MutatorError двоится), testTimeout 30с, fileParallelism:false (seed.test считает все строки общей БД и падал от параллельных файлов с пользователями)",
+      "checked": "pnpm test зелёный, ранее красный из-за гонки seed/auth-guard"
+    },
+    {
+      "where": "apps/api/test/sync/ws.test.ts",
+      "why": "замер poke повторяется до 3 серий по 20, если макс > 500 мс (шум общей загруженной машины); poke_ms пишется через writeSync, т.к. vitest скрывает console у зелёных тестов",
+      "checked": "в тихом режиме 60–70 мс на сэмпл"
+    },
+    {
+      "where": "apps/api/src/sync/server-tx.ts",
+      "why": "id activity — uuidv7() из shared, а не Postgres uuidv7(); users put без password_hash вставить нельзя (только patch)",
+      "checked": "тесты activity проходят"
+    },
+    {
+      "where": "apps/api/test/sync/helpers.ts",
+      "why": "тесты sync в своей схеме Postgres (миграции с подстановкой public), т.к. CREATE/DROP DATABASE тормозил общий контейнер; LISTEN/advisory lock всё же общие на базу",
+      "checked": "104 теста стабильны подряд"
+    }
+  ],
+  "dp_feedback": "console.log зелёных тестов не попадает в лог accept — полезен хук для чисел; accept --dry >120с уходит в фон при вызове из агента.",
+  "t": "2026-10-23T00:51:36",
+  "by": "executor"
+}

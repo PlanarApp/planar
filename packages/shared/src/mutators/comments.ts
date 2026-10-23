@@ -43,7 +43,27 @@ export const commentMutators = [
       const c = await need(tx, 'comments', a.id);
       if (c.authorId !== ctx.userId) throw new MutatorError('forbidden', 'не автор');
       await delWhere(tx, 'attachments', 'commentId', a.id);
+      await delWhere(tx, 'commentReactions', 'commentId', a.id);
       await tx.del('comments', a.id);
+    },
+  }),
+  defineMutator({
+    name: 'reaction.toggle',
+    args: z.object({ id: uuid, commentId: uuid, emoji: z.string().min(1).max(32) }),
+    async run(tx, a, ctx) {
+      const c = await need(tx, 'comments', a.commentId);
+      const mine = (await tx.scan('commentReactions', { index: 'commentId', eq: c.id })).find(
+        (r) => r.userId === ctx.userId && r.emoji === a.emoji,
+      );
+      if (mine) return tx.del('commentReactions', mine.id);
+      await tx.put('commentReactions', {
+        id: a.id,
+        spaceId: c.spaceId,
+        commentId: c.id,
+        userId: ctx.userId,
+        emoji: a.emoji,
+        createdAt: ctx.now,
+      });
     },
   }),
   defineMutator({

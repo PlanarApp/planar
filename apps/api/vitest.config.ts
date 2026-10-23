@@ -5,10 +5,10 @@ export default defineProject({
   ssr: { resolve: { conditions: ['source'] } },
   test: {
     name: 'api',
-    testTimeout: 30_000,
-    // seed.test считает все строки общей БД; параллельные файлы с пользователями ему мешают
-    fileParallelism: false,
     include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
+    testTimeout: 30_000, // seed хэширует argon2: под нагрузкой >5 с
+    hookTimeout: 30_000,
+    setupFiles: ['./test/file-db.ts'],
     globalSetup: ['./test/global-setup.ts'],
   },
 });

@@ -35,9 +35,12 @@ async function deleteTask(tx: Tx, id: string) {
     'taskLabels',
     'checklistItems',
     'attachments',
-    'comments',
   ] as const)
     await delWhere(tx, e, 'taskId', id);
+  for (const c of await tx.scan('comments', { index: 'taskId', eq: id })) {
+    await delWhere(tx, 'commentReactions', 'commentId', c.id);
+    await tx.del('comments', c.id);
+  }
   await tx.del('tasks', id);
 }
 
