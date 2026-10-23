@@ -152,7 +152,7 @@ describe('docs', () => {
     ]);
     expect(rs.filter((r) => r?.ok)).toHaveLength(1);
     expect(rs.filter((r) => !r?.ok)).toEqual([expect.objectContaining({ code: 'conflict' })]);
-    expect(await rows(w.admin, 'docsLocks')).toHaveLength(1);
+    expect((await rows(w.admin, 'docsLocks')).filter((r) => r.id === p)).toHaveLength(1);
   });
 
   it('повтор push с тем же id мутации не дублирует строки', async () => {

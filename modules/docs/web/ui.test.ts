@@ -7,8 +7,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { uuidv7, domainMutators } from '@planar/shared';
-import { db, registerMutators, startSync, stopSync, mutate } from '@planar/web/sync';
-import { moduleMutators } from '@planar/web/modules/shared';
+import { db, moduleMutators, registerMutators, startSync, stopSync, mutate } from '@planar/web/sync';
 import { i18n } from '@planar/web/i18n';
 import { web } from './index';
 import { slashItems } from './slash';
@@ -28,7 +27,8 @@ vi.mock('@planar/web/auth/useAuth', async () => {
 });
 (globalThis as unknown as { __ME: string }).__ME = ME;
 const router = { push: vi.fn(), replace: vi.fn() };
-vi.mock('vue-router', () => ({
+vi.mock('vue-router', async (orig) => ({
+  ...(await orig<object>()),
   useRouter: () => router,
   useRoute: () => ({ params: {} }),
   RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
