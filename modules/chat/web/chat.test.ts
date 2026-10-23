@@ -348,6 +348,51 @@ describe('лента', () => {
     ...extra,
   });
 
+  it('messageId: догружает историю до сообщения и подсвечивает; нет — «не найдено»', async () => {
+    const target = msg(10);
+    const page = (from: number, to: number) => ({
+      messages: Array.from({ length: to - from + 1 }, (_, i) =>
+        from + i === 10 ? target : msg(from + i),
+      ),
+      reactions: [],
+    });
+    stubSizes();
+    h_.api.mockResolvedValueOnce(page(51, 100)).mockResolvedValueOnce(page(1, 50));
+    const w = mount(ChannelView, {
+      props: props({ channel: chan(CH, { lastSeq: 100 }), messageId: target.id }),
+      attachTo: document.body,
+    });
+    await vi.waitFor(() => expect(w.find('[data-highlight]').exists()).toBe(true));
+    expect(h_.api).toHaveBeenCalledTimes(2);
+    expect(w.find('[data-highlight]').attributes('data-testid')).toBe(`chat-msg-${target.id}`);
+    w.unmount();
+
+    h_.api.mockReset();
+    h_.api.mockResolvedValue({ messages: [], reactions: [] });
+    const w2 = mount(ChannelView, {
+      props: props({ messageId: 'нет-такого' }),
+      attachTo: document.body,
+    });
+    await vi.waitFor(() => expect(w2.find('[data-testid=chat-not-found]').exists()).toBe(true));
+  });
+
+  it('ensure: сообщение из реплики находится без догрузки; ≤ 20 страниц', async () => {
+    const m = msg(500);
+    await db.table('chatMessages').put(m);
+    h_.api.mockReset();
+    h_.api.mockImplementation(async () => ({
+      messages: Array.from({ length: 50 }, () => msg(900)),
+      reactions: [],
+    }));
+    let feed!: ReturnType<typeof useFeed>;
+    mount(defineComponent({ setup: () => ((feed = useFeed(CH)), () => h('div')) }));
+    await vi.waitFor(() => expect(feed.ready.value).toBe(true));
+    expect(await feed.ensure(m.id)).toBe(true);
+    expect(h_.api).not.toHaveBeenCalled();
+    expect(await feed.ensure('нет')).toBe(false);
+    expect(h_.api.mock.calls.length).toBeLessThanOrEqual(20);
+  });
+
   it('REST-страница и реплика сливаются без дублей', async () => {
     const shared = msg(2);
     h_.api.mockResolvedValue({ messages: [msg(1), shared], reactions: [] });

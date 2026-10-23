@@ -16,6 +16,7 @@ const router = useRouter();
 const { isMobile } = useBreakpoint();
 const { d, meId, users, readOf } = useChatData();
 const channelId = computed(() => route.params.channelId as string | undefined);
+const messageId = computed(() => route.params.messageId as string | undefined);
 const rootId = computed(() => route.params.rootId as string | undefined);
 const channel = computed(() => d.value?.channels.find((c) => c.id === channelId.value));
 
@@ -70,6 +71,7 @@ const showFeed = computed(() => !(isMobile.value && rootId.value));
           :me="meId"
           :read-seq="readOf.get(channel.id)?.lastReadSeq ?? 0"
           :members="members"
+          :message-id="messageId"
         />
       </div>
       <ThreadPanel

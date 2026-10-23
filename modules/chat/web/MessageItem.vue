@@ -23,6 +23,7 @@ const props = defineProps<{
   me: string;
   members: { id: string; name: string }[];
   inThread?: boolean;
+  highlight?: boolean;
 }>();
 const tx = useTexts();
 const m = computed(() => props.message);
@@ -78,6 +79,8 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
   <article
     :data-testid="`chat-msg-${m.id}`"
     class="group flex gap-2 px-3 py-1.5 hover:bg-bg-muted/50"
+    :class="highlight && 'bg-accent/10'"
+    :data-highlight="highlight || undefined"
     tabindex="0"
     @pointerenter.once="armed = true"
     @focusin.once="armed = true"
