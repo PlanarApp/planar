@@ -5,7 +5,7 @@ module: web
 updated: 2026-10-22
 summary: Контракты web — C-ui, C-client (синхронизация), C-tasks (слой задач), C-views (экран проекта и стык видов)
 related: ["docs/plan/web.md", "docs/contracts/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 2}, {"id": "C-tasks", "version": 1}, {"id": "C-views", "version": 1}]
+contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 2}, {"id": "C-tasks", "version": 2}, {"id": "C-views", "version": 1}]
 ---
 
 # Контракты модуля web
@@ -19,7 +19,7 @@ contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 2}, {"id
 ### Файлы
 | Путь | Что |
 |---|---|
-| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 1, 'C-client': 2, 'C-tasks': 1, 'C-views': 1 } as const;` |
+| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 1, 'C-client': 2, 'C-tasks': 2, 'C-views': 1 } as const;` |
 | `apps/web/src/ui/tokens.css` | токены: блок `@theme { … }` — светлая тема, блок `.dark { … }` — тёмная (те же имена) |
 | `apps/web/src/ui/index.ts` | экспорт компонентов и `useBreakpoint`, `useTheme` |
 | `apps/web/src/i18n/{index,ru,en}.ts` | vue-i18n, словари |
@@ -169,7 +169,7 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 - Очередь живёт в IndexedDB и переживает перезагрузку; push пачками ≤ 100, повтор при сети/`5xx` с паузой 1–30 с.
 - Клиентский `Tx` над Dexie проходит набор `txContractSuite` (`packages/shared/test/tx-contract.ts`).
 
-## C-tasks v1
+## C-tasks v2
 
 Общий слой задач для видов — `apps/web/src/tasks/index.ts` (владелец WB-2a; потребители WB-4…WB-10). Читает только реплику (C-client), пишет только через `mutate` доменных мутаторов (C-mutators); сеть не ждёт. Контрактный тест — `apps/web/src/__contract__/tasks.contract.test.ts`.
 
@@ -182,12 +182,12 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 | Имя | Сигнатура | Поведение |
 |---|---|---|
 | `useSpaces` | `() => Ref<(Row<'spaces'> & { projects: Row<'projects'>[] })[]>` | по `rank`; архивные проекты не входят |
-| `useProject` | `(id) => Ref<Row<'projects'> \| undefined>` | |
+| `useProject` | `(id) => Ref<Row<'projects'> \| null \| undefined>` | `undefined` — ещё читается, `null` — нет в реплике |
 | `useStatuses` | `(spaceId) => Ref<Row<'statuses'>[]>` | по `rank` |
 | `useMembers` | `(spaceId) => Ref<Row<'users'>[]>` | пользователи из `spaceMembers`, без деактивированных, по `name` |
 | `useLabels` | `(spaceId) => Ref<Row<'labels'>[]>` | по `name` |
 | `useProjectTasks` | `(projectId) => Ref<TaskView[]>` | все задачи проекта (с подзадачами), индекс `projectId`; 10 000 задач ≤ 100 мс |
-| `useTask` | `(idOrKey) => Ref<TaskView \| undefined>` | uuid или ключ `PLN-123` |
+| `useTask` | `(idOrKey) => Ref<TaskView \| null \| undefined>` | uuid или ключ `PLN-123`; `undefined` — ещё читается, `null` — нет в реплике |
 | `groupTasks` | `(tasks, by: GroupBy, ctx: {statuses, members, labels}) => TaskGroup[]` | чистая; статусы — в порядке `rank`, приоритет 1→4, затем 0; «без исполнителя»/«без метки» — последней группой; задача с несколькими исполнителями/метками — в каждой своей группе |
 | `sortTasks` | `(tasks, by: SortBy, dir: 'asc' \| 'desc') => TaskView[]` | чистая, стабильная; `null` — в конце при любом `dir` |
 | `createTask` | `(a: {projectId, statusId, title, after?: string \| null, before?: string \| null, parentId?, priority?, dueDate?, assigneeIds?, labelIds?}) => Promise<string>` | `after`/`before` — `rank` соседей; без них — в конец; id и `rank` считает сам; возвращает id |
