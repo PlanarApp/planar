@@ -242,10 +242,10 @@ describe('wk5: циклы', () => {
 });
 
 describe('wk5: автоматизации', () => {
-  const rules = moduleTables().get('automationsRules');
-  it.skipIf(!rules)('wk5: правила проекта на чтение; невидимый проект 404', async () => {
+  const rules = moduleTables().get('automationsRules')!;
+  it('wk5: правила проекта на чтение; невидимый проект 404', async () => {
     const id = uuidv7();
-    await db.insert(rules!).values({
+    await db.insert(rules).values({
       id,
       spaceId: w.spaceId,
       projectId: w.projectId,
