@@ -1,17 +1,9 @@
 import { and, eq, getTableColumns, sql } from 'drizzle-orm';
 import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
-import {
-  ENTITIES,
-  MutatorError,
-  entitySchemas,
-  uuidv7,
-  type EntityName,
-  type Row,
-  type Tx,
-} from '@planar/shared';
+import { MutatorError, uuidv7, type EntityName, type Row, type Tx } from '@planar/shared';
 import * as schema from '../db/schema.js';
-import { tableOf, toWire } from './rows.js';
+import { metaOf, schemaOf, tableOf, toWire } from './rows.js';
 
 /** Drizzle-транзакция (или соединение внутри ручного BEGIN). */
 export type Q = PgDatabase<NodePgQueryResultHKT, typeof schema>;
@@ -115,7 +107,7 @@ export class ServerTx implements Tx {
     entity: E,
     opts?: { index: string; eq: unknown },
   ): Promise<Row<E>[]> {
-    if (opts && !(ENTITIES[entity].indexes as string[]).includes(opts.index))
+    if (opts && !metaOf(entity).indexes.includes(opts.index))
       throw new Error(`scan: ${entity} не индексирован по ${opts.index}`);
     const t = tableOf(entity);
     const rows = await this.exec(() =>
@@ -136,7 +128,7 @@ export class ServerTx implements Tx {
   }
 
   private parse(entity: EntityName, row: unknown): Wire {
-    const r = entitySchemas[entity].safeParse(row);
+    const r = schemaOf(entity).safeParse(row);
     if (!r.success) throw new MutatorError('invalid_args', `${entity}: ${r.error.message}`);
     return r.data as Wire;
   }
@@ -197,8 +189,8 @@ export class ServerTx implements Tx {
     }
     let spaceId: string | null = null;
     let userId: string | null = resetUser ?? null;
-    if (row && entity in ENTITIES) {
-      const scope = ENTITIES[entity as EntityName].scope;
+    if (row && entity !== '_reset') {
+      const scope = metaOf(entity).scope;
       const byUser = scope === 'user' || (scope === 'space|user' && row.userId != null);
       if (byUser) userId = row.userId as string;
       else if (scope !== 'global') spaceId = (entity === 'spaces' ? row.id : row.spaceId) as string;
@@ -285,7 +277,7 @@ export class ServerTx implements Tx {
   /** Права по ENTITIES[e].write для старой и новой строки (C-schema «Видимость и права»). */
   private async authorize(entity: EntityName, old: Wire | undefined, next: Wire | undefined) {
     if (this.opts.system) return;
-    const w = ENTITIES[entity].write;
+    const w = metaOf(entity).write;
     const forbidden = (m: string) => new MutatorError('forbidden', `${entity}: ${m}`);
     if (w === 'server') throw forbidden('запись только сервером');
     if (w === 'instance_admin') {
