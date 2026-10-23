@@ -65,6 +65,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
     try {
       ctx = await authenticateRaw(this.db, req.headers, 'UPGRADE', {
         publicUrl: this.auth.publicUrl,
+        allowToken: false, // Bearer на /ws не разбираем: last_used_at не трогаем
       });
     } catch (e) {
       const status = e instanceof HttpError ? e.getStatus() : 500;
