@@ -1,0 +1,83 @@
+{
+  "id": "WK-8",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "e2e фазы 2: таймер и неделя, закрытие спринта, автоматизация → webhook, импорт; бюджеты §7",
+  "goal": "UI-сценарии Playwright против dev-стека: таймер и неделя «Мои часы»; закрытие спринта переносит незакрытые задачи; правило автоматизации срабатывает и шлёт webhook на тестовый приёмник с верной подписью; импорт эталонного файла; бюджеты docs/roadmap.md §7 не ухудшились (замер e2e/web/perf/run.sh).",
+  "plan_ref": "5. Задачи — WK-8 e2e",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "6",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-8",
+  "branch": "work/WK-8",
+  "base": "feature/work",
+  "scope": [
+    "e2e/web/work.spec.ts",
+    "e2e/web/work-helpers.ts",
+    "e2e/web/helpers.ts",
+    "compose.dev.yml",
+    "e2e/fixtures/import",
+    "build",
+    "e2e/web/perf/measure.spec.ts"
+  ],
+  "dont_touch": [
+    "apps/, packages/, modules/ — код приложения; найденный дефект — «WK-8 blocked: <что сломано>» с шагами, не чинить самому",
+    "e2e/web/perf/run.sh, measure.spec.ts, существующие *.spec.ts — не ослаблять; compose.dev.yml — только env WEBHOOKS_ALLOW_HOSTS (передача из окружения, по умолчанию пусто) и extra_hosts host.docker.internal:host-gateway у api",
+    "docs/contracts/; зависимости, pnpm-lock.yaml; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "measure",
+      "cmd": "bash e2e/web/perf/run.sh > build/wk8-measure.txt 2>&1; rc=$?; git checkout -- e2e/web/perf/profile 2>/dev/null; cat build/wk8-measure.txt; exit $rc",
+      "expect": "exit=0"
+    },
+    {
+      "name": "cold",
+      "cmd": "cat build/wk8-measure.txt",
+      "expect": "num:cold_bootstrap_ms=([\\d.]+) <=2000"
+    },
+    {
+      "name": "warm",
+      "cmd": "cat build/wk8-measure.txt",
+      "expect": "num:warm_start_ms=([\\d.]+) <=400"
+    },
+    {
+      "name": "mutate",
+      "cmd": "cat build/wk8-measure.txt",
+      "expect": "num:mutate_ms_p95=([\\d.]+) <=50"
+    },
+    {
+      "name": "switch",
+      "cmd": "cat build/wk8-measure.txt",
+      "expect": "num:project_switch_ms_p95=([\\d.]+) <=100"
+    },
+    {
+      "name": "realtime",
+      "cmd": "cat build/wk8-measure.txt",
+      "expect": "num:realtime_ms_p95=([\\d.]+) <=500"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint e2e/web/work.spec.ts e2e/web/work-helpers.ts && pnpm exec prettier --check e2e/web compose.dev.yml '!e2e/web/perf/profile/**'",
+      "expect": "exit=0"
+    },
+    {
+      "name": "e2e-ui",
+      "cmd": "export WEBHOOKS_ALLOW_HOSTS=host.docker.internal COMPOSE_PROJECT_NAME=planar-e2e-wk8 API_PORT=3288 WEB_PORT=5388 DEV_PG_PORT=55588; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$API_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5388 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
+      "expect": "num:(\\d+) passed >=9"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T19:14:16",
+  "edited": "2026-10-23T19:50:07"
+}
