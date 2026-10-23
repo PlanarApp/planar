@@ -191,11 +191,9 @@ describe('task:attachments', () => {
   });
   it('drop из редактора описания не создаёт вложение', async () => {
     w = await open();
-    await w
-      .find('.ProseMirror')
-      .trigger('drop', {
-        dataTransfer: { files: [new File(['a'], 'c.txt', { type: 'text/plain' })] },
-      });
+    await w.find('.ProseMirror').trigger('drop', {
+      dataTransfer: { files: [new File(['a'], 'c.txt', { type: 'text/plain' })] },
+    });
     await flushPromises();
     expect(await queued('attachment.create')).toHaveLength(0);
   });
