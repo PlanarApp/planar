@@ -1,0 +1,119 @@
+{
+  "id": "WB-4",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Вид «Список»",
+  "goal": "src/views/list/View.vue по C-views: виртуализированный список задач проекта с группами (status/assignee/priority/label) и сортировкой из ViewOptions, инлайн-правка полей, быстрое создание внизу группы, множественный выбор и массовые действия, клавиатура j/k, Enter, x.",
+  "plan_ref": "WB-4 Вид «Список»",
+  "contracts": [
+    {
+      "name": "C-views",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-tasks",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-4",
+  "branch": "web/WB-4",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/views/list/",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts"
+  ],
+  "dont_touch": [
+    "контрактные тесты в apps/web/src/__contract__ не править",
+    "src/screens/, src/views/index.ts, options.ts, selection.ts, open.ts — каркас WB-4a как есть; не хватает — «<ID> contract: …»",
+    "src/tasks/, src/sync/, src/ui/ — контракты C-tasks, C-client, C-ui как есть",
+    "src/task/ — WB-6",
+    "в package.json и pnpm-lock.yaml — ничего (TanStack Virtual, vue-draggable-plus уже стоят)",
+    "packages/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__",
+      "expect": "num:Tests\\s+(\\d+) passed >=98"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "groups",
+      "cmd": "pnpm --filter web exec vitest run src/views/list -t list:groups",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "inline",
+      "cmd": "pnpm --filter web exec vitest run src/views/list -t list:inline",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "quick-create",
+      "cmd": "pnpm --filter web exec vitest run src/views/list -t list:create",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    },
+    {
+      "name": "selection",
+      "cmd": "pnpm --filter web exec vitest run src/views/list -t list:select",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "bulk",
+      "cmd": "pnpm --filter web exec vitest run src/views/list -t list:bulk",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    },
+    {
+      "name": "keyboard",
+      "cmd": "pnpm --filter web exec vitest run src/views/list -t list:keys",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "virtual",
+      "cmd": "pnpm --filter web exec vitest run src/views/list -t list:virtual",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T00:48:56"
+}

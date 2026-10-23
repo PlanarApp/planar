@@ -1,0 +1,94 @@
+{
+  "status": "done",
+  "summary": "Вид «Доска»: колонки по groupBy (пустые колонки для приоритета/исполнителя/метки добавлены), перетаскивание (vue-draggable-plus) через чистую planMove/applyMove, сворачивание в localStorage, виртуализация >50 карточек, быстрое добавление, mobile scroll-snap.",
+  "commits": [
+    "c30faf2 web: WB-5 вид «Доска»"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "174.7 KB",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "98",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "columns",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "move",
+      "value": "5",
+      "pass": true
+    },
+    {
+      "name": "collapse",
+      "value": "1",
+      "pass": true
+    },
+    {
+      "name": "quick-add",
+      "value": "1",
+      "pass": true
+    },
+    {
+      "name": "virtual",
+      "value": "1",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Плавность DnD в Chromium не замерена; перенос с клавиатуры не сделан"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-5",
+  "uncertain": [
+    {
+      "where": "apps/web/src/views/board/Column.vue:onEnd",
+      "why": "Sortable двигает DOM сам, я возвращаю узел на место и пишу в реплику; реальное DnD в браузере не проверено (happy-dom не умеет)",
+      "checked": "planMove/applyMove покрыты тестами на реплике; DOM-часть только прочитана"
+    },
+    {
+      "where": "apps/web/src/views/board/Column.vue:useVirtualizer",
+      "why": "при высоте 0 принудительно 600px (иначе happy-dom не рисует ничего); при перетаскивании в виртуализированной колонке доступны только отрисованные карточки, данных не теряется",
+      "checked": "тест board:virtual (5000 → <100 в DOM)"
+    },
+    {
+      "where": "apps/web/src/views/board/plan.ts:boardColumns",
+      "why": "groupTasks отбрасывает пустые группы, на доску добавил их сам (приоритет 1..0, все участники, метки, «без …»), иначе нельзя перетащить в пустую колонку",
+      "checked": "тесты board:columns, board:move"
+    }
+  ],
+  "dp_feedback": "plan web <раздел> не принимает ID с пробелами в названии без кавычек; в остальном всё необходимое было.",
+  "t": "2026-10-23T00:55:51",
+  "by": "executor"
+}

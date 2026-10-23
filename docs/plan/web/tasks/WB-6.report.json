@@ -1,6 +1,6 @@
 {
   "status": "done",
-  "summary": "TaskPanel.vue (mode panel|page, событие close) + TaskDetail/Subtasks/Checklist/Attachments/Feed/CommentItem, Editor на TipTap (Markdown input rules, Mention по useMembers, Image через /files), вкладки taskPanels, i18n ru/en. Реакции не делал.",
+  "summary": "TaskPanel.vue (mode panel|page, событие close) + TaskDetail/Subtasks/Checklist/Attachments/Feed/CommentItem, Editor на TipTap (Markdown input rules, Mention по useMembers, Image через /files), вкладки taskPanels, i18n ru/en. Реакции не делал. Доработка по ревью: drop из редактора не создаёт вложение, clipboard .catch, таймер not-found убран (useTask даёт null).",
   "commits": [
     "861d37a web: WB-6 карточка задачи"
   ],
@@ -27,12 +27,12 @@
     },
     {
       "name": "size",
-      "value": "171.4",
+      "value": "178.1",
       "pass": true
     },
     {
       "name": "contract",
-      "value": "91",
+      "value": "98",
       "pass": true
     },
     {
@@ -67,7 +67,7 @@
     },
     {
       "name": "attachments",
-      "value": "2",
+      "value": "3",
       "pass": true
     },
     {
@@ -98,11 +98,6 @@
       "checked": "сделал uploadFile в src/task/files.ts поверх api('POST','/files',FormData); при появлении api/files.ts заменить импорт (Editor.vue, Attachments.vue)"
     },
     {
-      "where": "apps/web/src/task/TaskPanel.vue",
-      "why": "useTask в коде всё ещё возвращает undefined и для 'нет в реплике' (контракт v2 говорит null)",
-      "checked": "null — сразу 'не найдена', undefined — через 1.5 с; после правки useTask таймер можно убрать (помечен shortcut)"
-    },
-    {
       "where": "apps/web/src/task/TaskDetail.vue",
       "why": "Tooltip не использован (в тестах нет TooltipProvider), Esc-подсказка в title; Esc закрывает панель только вне input/редактора/списка",
       "checked": "тесты fields/description"
@@ -119,6 +114,6 @@
     }
   ],
   "dp_feedback": "task show обрезает дополнения многоточием, пришлось читать с --full-подобным обходом; 'dpcli plan web WB-6 Карточка задачи' с тремя аргументами не работает (нужен один).",
-  "t": "2026-10-23T00:43:03",
+  "t": "2026-10-23T00:51:40",
   "by": "executor"
 }

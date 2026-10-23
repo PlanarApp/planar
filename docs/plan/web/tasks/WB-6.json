@@ -117,11 +117,6 @@
       "expect": "num:Tests\\s+(\\d+) passed >=2"
     },
     {
-      "name": "attachments",
-      "cmd": "pnpm --filter web exec vitest run src/task -t task:attachments",
-      "expect": "num:Tests\\s+(\\d+) passed >=2"
-    },
-    {
       "name": "watch",
       "cmd": "pnpm --filter web exec vitest run src/task -t task:watch",
       "expect": "num:Tests\\s+(\\d+) passed >=2"
@@ -135,9 +130,15 @@
       "name": "test",
       "cmd": "pnpm --filter web test",
       "expect": "exit=0"
+    },
+    {
+      "name": "attachments",
+      "cmd": "pnpm --filter web exec vitest run src/task -t task:attachments",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-23T00:27:37"
+  "created": "2026-10-23T00:27:37",
+  "edited": "2026-10-23T00:48:32"
 }

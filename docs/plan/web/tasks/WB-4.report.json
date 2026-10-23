@@ -1,0 +1,99 @@
+{
+  "status": "done",
+  "summary": "Вид «Список»: виртуализация, группы с сворачиванием, сортировка внутри групп, инлайн-правка, быстрое создание, выбор Cmd/Shift, массовая панель, клавиатура j/k/Enter/x/F2/Esc.",
+  "commits": [
+    "2938801 web: вид «Список»"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "groups",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "inline",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "quick-create",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "selection",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "bulk",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "keyboard",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "virtual",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "177.3 KB",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Замер плавности и переключения проекта в Chromium — отдельная задача"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-4",
+  "uncertain": [
+    {
+      "where": "apps/web/src/views/list/Row.vue",
+      "why": "каждая строка создаёт свои liveQuery в пикерах (статусы/участники), на окне ~30 строк; на мобильном не проверял вручную",
+      "checked": "только тесты happy-dom (clientHeight замокан), реальный браузер не запускал"
+    },
+    {
+      "where": "apps/web/src/views/list/View.vue",
+      "why": "клавиши списка работают только при фокусе на самом гриде (target===currentTarget); клик по строке фокусирует грид",
+      "checked": "тест keys"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T00:59:42",
+  "by": "executor"
+}
