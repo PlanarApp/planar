@@ -95,7 +95,12 @@ const viewComponent = computed(() => {
       }}</Button>
       <SavedTabs :space-id="spaceId" :project-id="projectId" :active-id="viewId" />
     </nav>
-    <OptionsBar v-model:options="options" v-model:filter="filter" :space-id="spaceId">
+    <OptionsBar
+      v-model:options="options"
+      v-model:filter="filter"
+      :space-id="spaceId"
+      :project-id="projectId"
+    >
       <template v-if="dirty">
         <Button
           v-if="editable"

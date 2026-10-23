@@ -120,7 +120,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
           </button>
           <SavedTabs :space-id="spaceId" :project-id="projectId" />
         </nav>
-        <OptionsBar v-model:options="options" v-model:filter="draftFilter" :space-id="spaceId">
+        <OptionsBar
+          v-model:options="options"
+          v-model:filter="draftFilter"
+          :space-id="spaceId"
+          :project-id="projectId"
+        >
           <Button :icon="BookmarkPlus" data-testid="save-as-view" @click="saveOpen = true">
             {{ t('views.saved.save') }}
           </Button>
