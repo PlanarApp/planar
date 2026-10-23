@@ -13,3 +13,5 @@
 {"t": "2026-10-23T11:49:18", "by": "executor", "task": "CL-3", "ev": "reported", "commits": ["adf70d9"], "note": "done: Модуль modules/docs: 3 сущности, 9 мутаторов, миграция 0007, регистрация в API, тесты.", "dp_feedback": "scope не учитывал modules.test.ts, пришлось ждать расширения."}
 {"t": "2026-10-23T11:51:58", "by": "coordinator", "task": "CL-3", "ev": "checked", "note": "5/5 collab contract=ok:15/15 (пропуск 507); docs-tests=ok:9/9; api-all=ok:336/336; build=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-23T11:52:12", "by": "coordinator", "task": "CL-3", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-23T11:56:41", "by": "coordinator", "task": "CL-3", "ev": "accepted", "commits": ["fdbab4d"], "note": "5/5 collab contract=ok:15/15 (пропуск 507); docs-tests=ok:9/9; api-all=ok:336/336; build=ok:exit 0; lint=ok:exit 0"}
+{"t": "2026-10-23T11:56:41", "by": "coordinator", "task": "CL-3", "ev": "merged"}
