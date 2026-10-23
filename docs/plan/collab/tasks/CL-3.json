@@ -1,0 +1,84 @@
+{
+  "id": "CL-3",
+  "module": "collab",
+  "type": "dp-engineer",
+  "title": "Документы: сервер (modules/docs)",
+  "goal": "Модуль modules/docs: сущности docsPages, docsTaskLinks, docsLocks и 9 мутаторов строго по docs/contracts/collab.md (DC-schema v1, DC-mutators v1), таблицы и миграция, регистрация в API; интеграционные тесты прав, перемещения без циклов, архива с поддеревом, связей и блокировок.",
+  "plan_ref": "§5 CL-3",
+  "contracts": [
+    {
+      "name": "DC-schema",
+      "version": "1",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "DC-mutators",
+      "version": "1",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-modules",
+      "version": "2",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "6",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "3",
+      "ref": "docs/contracts/collab.md"
+    }
+  ],
+  "copy": "~/planar-collab-CL-3",
+  "branch": "collab/CL-3",
+  "base": "feature/collab",
+  "scope": [
+    "modules/docs",
+    "apps/api/src/modules/installed.ts",
+    "apps/api/package.json",
+    "apps/api/drizzle",
+    "pnpm-lock.yaml",
+    "apps/api/test/modules/docs.test.ts"
+  ],
+  "dont_touch": [
+    "packages/shared",
+    "apps/api/src/sync",
+    "apps/api/src/db",
+    "apps/web",
+    "docs/contracts",
+    "apps/api/test/modules/collab.contract.test.ts",
+    "modules/hello"
+  ],
+  "accept": [
+    {
+      "name": "collab contract",
+      "tests": "collab contract"
+    },
+    {
+      "name": "docs-tests",
+      "cmd": "pnpm exec vitest run --project api test/modules/docs.test.ts",
+      "expect": "tests"
+    },
+    {
+      "name": "api-all",
+      "cmd": "pnpm exec vitest run --project api",
+      "expect": "tests"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint modules/docs apps/api/src/modules apps/api/test/modules && pnpm exec prettier --check modules/docs apps/api/test/modules apps/api/src/modules",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T11:38:45"
+}
