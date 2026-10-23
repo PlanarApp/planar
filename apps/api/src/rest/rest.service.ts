@@ -1,18 +1,41 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { and, asc, desc, eq, getTableColumns, inArray, sql, type SQL } from 'drizzle-orm';
-import type { PgTable } from 'drizzle-orm/pg-core';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNull,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
+import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 import { generateKeyBetween } from 'fractional-indexing';
 import { z } from 'zod';
 import { textToDoc, uuidv7, type HttpErrorCode, type V1Task } from '@planar/shared';
 import { HttpError } from '../auth/errors.js';
 import type { Db } from '../db/index.js';
 import * as s from '../db/schema.js';
+import { enabledModules } from '../modules/enabled.js';
+import { moduleTables } from '../modules/installed.js';
 import { PushQueue } from '../push/push.js';
 import { executeMutations, Reject } from '../sync/mutate.js';
 import { DB } from '../tokens.js';
 import { toWire } from '../sync/rows.js';
 import { toV1Tasks } from './v1-tasks.js';
-import { commentBody, createTaskBody, listQuery, patchTaskBody, tasksQuery } from './schemas.js';
+import {
+  commentBody,
+  createTaskBody,
+  linkBody,
+  listQuery,
+  patchTaskBody,
+  tasksQuery,
+  timeEntriesQuery,
+  timeLogBody,
+  timerStartBody,
+} from './schemas.js';
 
 type Wire = Record<string, unknown>;
 type Mut = { name: string; args: unknown };
@@ -337,5 +360,202 @@ export class RestService {
     );
     const [row] = await this.db.select().from(s.comments).where(eq(s.comments.id, id));
     return { data: toWire('comments', row!) };
+  }
+
+  private async visibleProject(userId: string, id: string) {
+    const [p] = z.uuid().safeParse(id).success
+      ? await this.db
+          .select({ id: s.projects.id })
+          .from(s.projects)
+          .where(
+            and(eq(s.projects.id, id), inArray(s.projects.spaceId, await this.mySpaces(userId))),
+          )
+      : [];
+    if (!p) throw NOT_FOUND('Проект');
+    return p.id;
+  }
+
+  // --- связи задач (ядро) ---
+
+  async links(userId: string, ref: string) {
+    const t = await this.findTask(userId, ref);
+    const rows = (await this.db
+      .select()
+      .from(s.taskLinks)
+      .where(or(eq(s.taskLinks.taskId, t.id as string), eq(s.taskLinks.targetId, t.id as string)))
+      .orderBy(asc(s.taskLinks.createdAt), asc(s.taskLinks.id))) as Wire[];
+    return { data: rows.map((r) => toWire('taskLinks', r)) };
+  }
+
+  async createLink(userId: string, ref: string, raw: unknown, tokenId?: string) {
+    const b = parse(linkBody, raw);
+    const t = await this.findTask(userId, ref);
+    const o = await this.findTask(userId, b.target);
+    const id = uuidv7();
+    await this.run(
+      userId,
+      [{ name: 'link.create', args: { id, taskId: t.id, targetId: o.id, kind: b.kind } }],
+      tokenId,
+    );
+    const [row] = await this.db.select().from(s.taskLinks).where(eq(s.taskLinks.id, id));
+    return { data: toWire('taskLinks', row!) };
+  }
+
+  async deleteLink(userId: string, id: string, tokenId?: string) {
+    const [row] = z.uuid().safeParse(id).success
+      ? await this.db
+          .select({ id: s.taskLinks.id })
+          .from(s.taskLinks)
+          .where(
+            and(eq(s.taskLinks.id, id), inArray(s.taskLinks.spaceId, await this.mySpaces(userId))),
+          )
+      : [];
+    if (!row) throw NOT_FOUND('Связь');
+    await this.run(userId, [{ name: 'link.delete', args: { id } }], tokenId);
+  }
+
+  // --- время (модуль time) ---
+
+  /** Таблица модуля и её колонки (типы модулей ядру неизвестны). */
+  private async mod(moduleId: string, entity: string) {
+    const t = moduleTables().get(entity);
+    if (!t || !(await enabledModules(this.db)).has(moduleId))
+      throw new HttpError(404, 'module_disabled', `Модуль ${moduleId} выключен`);
+    return { t, c: getTableColumns(t) as Record<string, PgColumn> };
+  }
+
+  private async entry(id: string) {
+    const { t, c } = await this.mod('time', 'timeEntries');
+    const [row] = await this.db.select().from(t).where(eq(c.id!, id));
+    return toWire('timeEntries', row as Wire);
+  }
+
+  /** идущий таймер пользователя или null */
+  private async running(userId: string) {
+    const { t, c } = await this.mod('time', 'timeEntries');
+    const [row] = await this.db
+      .select()
+      .from(t)
+      .where(and(eq(c.userId!, userId), isNull(c.endedAt!)));
+    return row ? toWire('timeEntries', row as Wire) : null;
+  }
+
+  async timeEntries(userId: string, query: unknown) {
+    const q = parse(timeEntriesQuery, query);
+    const { t, c } = await this.mod('time', 'timeEntries');
+    const where: (SQL | undefined)[] = [
+      inArray(c.spaceId!, await this.mySpaces(userId)),
+      q.taskId ? eq(c.taskId!, q.taskId) : undefined,
+      q.userId ? eq(c.userId!, q.userId === 'me' ? userId : q.userId) : undefined,
+      q.from ? sql`${c.startedAt!} >= ${q.from}::timestamptz` : undefined,
+      q.to ? sql`${c.startedAt!} <= ${q.to}::timestamptz` : undefined,
+    ];
+    const p = await this.page(t, where, q, 'updatedAt', 'desc');
+    return { data: p.items.map((r) => toWire('timeEntries', r)), nextCursor: p.nextCursor };
+  }
+
+  async logTime(userId: string, raw: unknown, tokenId?: string) {
+    const b = parse(timeLogBody, raw);
+    await this.mod('time', 'timeEntries');
+    const t = await this.findTask(userId, b.task);
+    const id = uuidv7();
+    await this.run(
+      userId,
+      [
+        {
+          name: 'time.log',
+          args: {
+            id,
+            taskId: t.id,
+            startedAt: b.startedAt,
+            durationSec: b.durationSec,
+            note: b.note,
+          },
+        },
+      ],
+      tokenId,
+    );
+    return { data: await this.entry(id) };
+  }
+
+  async timer(userId: string) {
+    return { data: await this.running(userId) };
+  }
+
+  async startTimer(userId: string, raw: unknown, tokenId?: string) {
+    const b = parse(timerStartBody, raw);
+    await this.mod('time', 'timeEntries');
+    const t = await this.findTask(userId, b.task);
+    const id = uuidv7();
+    await this.run(userId, [{ name: 'time.start', args: { id, taskId: t.id } }], tokenId);
+    return { data: await this.entry(id) };
+  }
+
+  async stopTimer(userId: string, tokenId?: string) {
+    const cur = await this.running(userId);
+    if (!cur) return { data: null };
+    await this.run(userId, [{ name: 'time.stop', args: { id: cur.id } }], tokenId);
+    return { data: await this.entry(cur.id as string) };
+  }
+
+  // --- циклы (модуль sprints) ---
+
+  async cycles(userId: string, projectId: string) {
+    const pid = await this.visibleProject(userId, projectId);
+    const { t, c } = await this.mod('sprints', 'sprintsCycles');
+    const rows = await this.db
+      .select()
+      .from(t)
+      .where(eq(c.projectId!, pid))
+      .orderBy(desc(c.number!));
+    return { data: (rows as Wire[]).map((r) => toWire('sprintsCycles', r)) };
+  }
+
+  /** текущий: не закрыт, startDate ≤ сегодня ≤ endDate; «сегодня» — в часовом поясе проекта (UTC без настроек) */
+  async currentCycle(userId: string, projectId: string) {
+    const pid = await this.visibleProject(userId, projectId);
+    const { t, c } = await this.mod('sprints', 'sprintsCycles');
+    const st = await this.mod('sprints', 'sprintsSettings');
+    const [cfg] = (await this.db.select().from(st.t).where(eq(st.c.projectId!, pid))) as Wire[];
+    const today = new Date().toLocaleDateString('en-CA', {
+      timeZone: (cfg?.timezone as string | undefined) ?? 'UTC',
+    });
+    const [row] = await this.db
+      .select()
+      .from(t)
+      .where(
+        and(
+          eq(c.projectId!, pid),
+          isNull(c.closedAt!),
+          sql`${c.startDate!} <= ${today}::date and ${c.endDate!} >= ${today}::date`,
+        ),
+      );
+    return { data: row ? toWire('sprintsCycles', row as Wire) : null };
+  }
+
+  /** MCP current_sprint: задачи цикла (до 200) */
+  async cycleTasks(userId: string, cycleId: string) {
+    const rows = (await this.db
+      .select()
+      .from(s.tasks)
+      .where(
+        and(eq(s.tasks.cycleId, cycleId), inArray(s.tasks.spaceId, await this.mySpaces(userId))),
+      )
+      .orderBy(asc(s.tasks.rank), asc(s.tasks.id))
+      .limit(200)) as Wire[];
+    return this.enrich(rows);
+  }
+
+  // --- автоматизации (модуль automations, чтение) ---
+
+  async automations(userId: string, projectId: string) {
+    const pid = await this.visibleProject(userId, projectId);
+    const { t, c } = await this.mod('automations', 'automationsRules');
+    const rows = await this.db
+      .select()
+      .from(t)
+      .where(eq(c.projectId!, pid))
+      .orderBy(asc(c.createdAt!), asc(c.id!));
+    return { data: (rows as Wire[]).map((r) => toWire('automationsRules', r)) };
   }
 }

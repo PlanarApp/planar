@@ -94,19 +94,24 @@ const mk = async (c: Client, title: string, extra = {}) => {
 };
 
 describe('MCP /mcp', () => {
-  it('initialize и tools/list: 9 инструментов со схемами', async () => {
+  it('initialize и tools/list: 14 инструментов со схемами', async () => {
     const c = await connect(write.secret);
     const { tools } = await c.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
       [
         'add_comment',
         'create_task',
+        'current_sprint',
         'get_task',
         'list_fields',
         'list_projects',
         'list_spaces',
+        'link_tasks',
+        'log_time',
         'my_tasks',
         'search_tasks',
+        'start_timer',
+        'stop_timer',
         'update_task',
       ].sort(),
     );
@@ -329,5 +334,87 @@ describe('MCP: пользовательские поля', () => {
       fields: { [id]: 1 },
     });
     expect([err, e.code]).toEqual([true, 'forbidden']);
+  });
+});
+
+describe('MCP: связи, время, спринт', () => {
+  beforeAll(async () => {
+    await db
+      .insert(schema.settings)
+      .values({ id: 'enabled_modules', value: ['time', 'sprints'] })
+      .onConflictDoUpdate({ target: schema.settings.id, set: { value: ['time', 'sprints'] } });
+  });
+
+  it('wk5: link_tasks создаёт связь, повтор → conflict; read-токен → forbidden', async () => {
+    const c = await connect(write.secret);
+    const a = await mk(c, 'L1');
+    const b = await mk(c, 'L2');
+    const [e1, l] = await call(c, 'link_tasks', { task: a.key, target: b.key, kind: 'blocks' });
+    expect(e1, JSON.stringify(l)).toBe(false);
+    expect(l).toMatchObject({ taskId: a.id, targetId: b.id, kind: 'blocks' });
+    const [e2, d] = await call(c, 'link_tasks', { task: b.id, target: a.id, kind: 'relates' });
+    expect([e2, d.code]).toEqual([true, 'conflict']);
+    const r = await connect(read.secret);
+    expect(await call(r, 'link_tasks', { task: a.id, target: b.id, kind: 'relates' })).toEqual([
+      true,
+      { code: 'forbidden', message: expect.any(String) },
+    ]);
+    await Promise.all([c.close(), r.close()]);
+  });
+
+  it('wk5: log_time — минуты, дата, начало 09:00 UTC; чужая задача → not_found', async () => {
+    const c = await connect(write.secret);
+    const t = await mk(c, 'LT');
+    const [e, en] = await call(c, 'log_time', { task: t.key, minutes: 90, date: '2026-09-01' });
+    expect(e, JSON.stringify(en)).toBe(false);
+    expect(en).toMatchObject({
+      startedAt: '2026-09-01T09:00:00.000Z',
+      durationSec: 5400,
+      source: 'manual',
+    });
+    const [, today] = await call(c, 'log_time', { task: t.id, minutes: 1 });
+    expect(today.startedAt).toBe(`${new Date().toISOString().slice(0, 10)}T09:00:00.000Z`);
+    const o = await connect(outsider.secret);
+    const [e2, d] = await call(o, 'log_time', { task: t.id, minutes: 5 });
+    expect([e2, d.code]).toEqual([true, 'not_found']);
+    await Promise.all([c.close(), o.close()]);
+  });
+
+  it('wk5: start_timer / stop_timer', async () => {
+    const c = await connect(write.secret);
+    const t = await mk(c, 'TM');
+    const [, none] = await call(c, 'stop_timer');
+    expect(none).toBeNull();
+    const [e, s] = await call(c, 'start_timer', { task: t.key });
+    expect(e, JSON.stringify(s)).toBe(false);
+    expect(s).toMatchObject({ taskId: t.id, endedAt: null });
+    const [, st] = await call(c, 'stop_timer');
+    expect(st).toMatchObject({ id: s.id });
+    expect(st.endedAt).not.toBeNull();
+    const r = await connect(read.secret);
+    expect((await call(r, 'start_timer', { task: t.id }))[1].code).toBe('forbidden');
+    await Promise.all([c.close(), r.close()]);
+  });
+
+  it('wk5: current_sprint — null без цикла; с циклом — цикл и его задачи', async () => {
+    const c = await connect(write.secret);
+    expect(await call(c, 'current_sprint', { projectId: w.projectId })).toEqual([false, null]);
+    const t = await mk(c, 'SP');
+    const id = uuidv7();
+    const day = (d: number) => new Date(Date.now() + d * 86400_000).toISOString().slice(0, 10);
+    await w.member.ok('sprints.create', {
+      id,
+      projectId: w.projectId,
+      startDate: day(-1),
+      endDate: day(5),
+    });
+    await w.member.ok('sprints.setTask', { taskId: t.id, cycleId: id });
+    const [e, d] = await call(c, 'current_sprint', { projectId: w.projectId });
+    expect(e, JSON.stringify(d)).toBe(false);
+    expect(d.cycle.id).toBe(id);
+    expect(d.tasks.map((x: { key: string }) => x.key)).toEqual([t.key]);
+    const o = await connect(outsider.secret);
+    expect((await call(o, 'current_sprint', { projectId: w.projectId }))[1].code).toBe('not_found');
+    await Promise.all([c.close(), o.close()]);
   });
 });

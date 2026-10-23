@@ -40,6 +40,23 @@ export const patchTaskBody = z.object({
   parentId: uuid.nullable().optional(),
   fields: z.record(uuid, z.unknown()).optional(),
 });
+export const linkBody = z.object({
+  target: z.string().min(1).describe('id или ключ целевой задачи'),
+  kind: entitySchemas.taskLinks.shape.kind,
+});
+export const timeEntriesQuery = listQuery.extend({
+  taskId: uuid.optional(),
+  userId: z.union([uuid, z.literal('me')]).optional(),
+  from: z.iso.datetime({ offset: true }).optional(),
+  to: z.iso.datetime({ offset: true }).optional(),
+});
+export const timeLogBody = z.object({
+  task: z.string().min(1),
+  startedAt: z.iso.datetime(),
+  durationSec: z.number().int().min(1).max(86400),
+  note: z.string().max(1000).nullable().optional(),
+});
+export const timerStartBody = z.object({ task: z.string().min(1) });
 export const commentBody = z.object({ text: z.string().min(1) });
 
 export const {
