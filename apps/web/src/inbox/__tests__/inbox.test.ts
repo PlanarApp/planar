@@ -290,15 +290,13 @@ describe('inbox:push', () => {
     expect(w.find('button').exists()).toBe(false);
   });
   it('polish: inbox:push iPadOS (MacIntel + тач) считается iOS', () => {
-    const spies = [
-      vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (Macintosh) Safari'),
-      vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel'),
-      vi.spyOn(navigator, 'maxTouchPoints', 'get').mockReturnValue(5),
-    ];
+    const ua = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (Macintosh)');
+    const pf = vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
+    const touch = vi.spyOn(navigator, 'maxTouchPoints', 'get').mockReturnValue(5);
     expect(push.needsInstall()).toBe(true);
-    spies[2].mockReturnValue(0);
+    touch.mockReturnValue(0);
     expect(push.needsInstall()).toBe(false);
-    spies.forEach((x) => x.mockRestore());
+    [ua, pf, touch].forEach((x) => x.mockRestore());
   });
 });
 
