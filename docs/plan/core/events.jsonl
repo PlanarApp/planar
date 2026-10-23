@@ -236,3 +236,4 @@
 {"t": "2026-10-23T03:19:20", "by": "coordinator", "task": "CR-8b", "ev": "accepted", "note": "по отчёту"}
 {"t": "2026-10-23T03:19:21", "by": "coordinator", "task": "CR-3b", "ev": "merged"}
 {"t": "2026-10-23T03:19:27", "by": "coordinator", "task": "CR-8b", "ev": "merged"}
+{"t": "2026-10-23T03:19:28", "by": "coordinator", "task": "CR-9", "ev": "note", "note": "В feature/core слиты CR-3b (login/logout/setup/users) и CR-8b (dev-запуск api с modules/* без обхода): .dpcli/dpcli task sync CR-9, обход e2e/tsconfig.dev.json + TSX_TSCONFIG_PATH убрать, если api поднимается без него; прогнать accept CR-9 --dry, report с числами замеров.", "addendum": true}
