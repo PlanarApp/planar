@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
-import { api as importApi, rankAt, succRank } from '@planar/module-import/api';
+import { api as importApi } from '@planar/module-import/api';
 import { parseCsv } from '../../../../modules/import/api/csv.js';
 import { parseDate, parsePriority } from '../../../../modules/import/api/parse.js';
 import { createApp } from '../../src/app.js';
@@ -211,13 +211,6 @@ describe('wk6: разбор', () => {
       parsePriority('2'),
       parsePriority('??'),
     ]).toEqual([1, 3, 4, 2, null]);
-  });
-
-  it('wk6: ранги — допустимые ключи fractional-indexing, возрастают', () => {
-    const r = Array.from({ length: 5000 }, (_, i) => rankAt(i));
-    expect(r.slice(0, 3)).toEqual(['a0', 'a1', 'a2']);
-    expect(r[62]).toBe('b00');
-    expect([...r].sort()).toEqual(r);
   });
 });
 
@@ -542,13 +535,6 @@ describe('wk6: импорт', () => {
   });
 
   it('wk6: ранги новых задач — после существующих задач статуса', async () => {
-    expect([
-      succRank(null),
-      succRank('a0'),
-      succRank('a5V'),
-      succRank('az'),
-      succRank('b0z'),
-    ]).toEqual(['a0', 'a1', 'a6', 'b00', 'b10']);
     const p = await project();
     const a = taskArgs(w, { projectId: p, statusId: w.statusIds[4], rank: 'a5' });
     await w.admin.ok('task.create', a);

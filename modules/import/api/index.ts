@@ -1,5 +1,6 @@
 import { Controller, Get, HttpCode, Inject, Module, Param, Post, Req } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
+import { generateKeyBetween } from 'fractional-indexing';
 import { CORE, HttpError, type CoreServices, type JobApi } from '@planar/server-kit';
 import { uuidv7, type BackendModuleManifest } from '@planar/shared';
 import {
@@ -136,6 +137,8 @@ class ImportController {
         mapping,
       })
       .returning();
+    // сразу в очередь; import.sweep остаётся страховкой
+    await this.core.enqueue('import.run', { jobId: row!.id }, { singletonKey: row!.id });
     return { data: publicJob(row!) };
   }
 
@@ -160,47 +163,6 @@ class ImportModule {}
 
 const BATCH = 100;
 const LABEL_COLOR = '#6b7280';
-const DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-
-/**
- * Ключ fractional-indexing «a0, a1, …, aZ, b00, …» по номеру: возрастает с номером и остаётся допустимым для клиента.
- * Для чек-листа (внутри новой задачи).
- */
-export function rankAt(i: number): string {
-  for (let len = 1, base = 0; ; len++) {
-    const span = 62 ** len;
-    if (i < base + span) {
-      let n = i - base;
-      let s = '';
-      for (let k = 0; k < len; k++, n = Math.floor(n / 62)) s = DIGITS[n % 62] + s;
-      return String.fromCharCode(96 + len) + s;
-    }
-    base += span;
-  }
-}
-
-/**
- * Ключ сразу после `last` (как generateKeyBetween(last, null) для целой части ключа fractional-indexing).
- * shortcut: головы A–Z и переполнение z не разбираются — тогда `last` + 'V' (допустимый ключ, больше last).
- */
-export function succRank(last: string | null): string {
-  if (!last) return 'a0';
-  const head = last.charCodeAt(0) - 97;
-  if (head < 0 || head > 24) return last + 'V';
-  const n = head + 2;
-  const ip = last.slice(0, n).split('');
-  for (let k = n - 1; k >= 1; k--) {
-    const d = DIGITS.indexOf(ip[k]!);
-    if (d < 61) {
-      ip[k] = DIGITS[d + 1]!;
-      return ip.join('');
-    }
-    ip[k] = '0';
-  }
-  // перенос в голову: aZ → b00
-  return String.fromCharCode(last.charCodeAt(0) + 1) + '0'.repeat(n);
-}
-
 const docOf = (text: string) => ({
   type: 'doc',
   content: text
@@ -326,7 +288,7 @@ async function runImport(jobId: string, api: JobApi) {
         );
         lastRank.set(statusId, r[0]?.m ?? null);
       }
-      const k = succRank(lastRank.get(statusId)!);
+      const k = generateKeyBetween(lastRank.get(statusId)!, null);
       lastRank.set(statusId, k);
       return k;
     };
@@ -440,11 +402,13 @@ async function runImport(jobId: string, api: JobApi) {
           },
         },
       ];
-      (it.checklist ?? []).forEach((c, k) => {
+      let ck: string | null = null;
+      (it.checklist ?? []).forEach((c) => {
         const cid = uuidv7();
+        ck = generateKeyBetween(ck, null);
         muts.push({
           name: 'checklist.add',
-          args: { id: cid, taskId: id, text: c.text.slice(0, 500) || '-', rank: rankAt(k) },
+          args: { id: cid, taskId: id, text: c.text.slice(0, 500) || '-', rank: ck },
         });
         if (c.done) muts.push({ name: 'checklist.update', args: { id: cid, done: true } });
       });
@@ -557,7 +521,7 @@ const jobs = [
     },
   },
   {
-    // модуль не умеет ставить задачу из контроллера (нет enqueue в CoreServices) — подбирает pending раз в минуту
+    // страховка: подбирает pending, если постановка из контроллера не удалась
     queue: 'import.sweep',
     cron: '* * * * *',
     async handler(_: unknown, api: JobApi) {

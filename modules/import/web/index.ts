@@ -1,5 +1,5 @@
 import { defineComponent, h } from 'vue';
-import { defineWebModule } from '@planar/web/modules';
+import { defineWebModule, useRouter } from '@planar/web/modules';
 
 // Иконка без зависимости от lucide: стрелка в лоток
 const Upload = defineComponent({
@@ -38,8 +38,12 @@ export const web = defineWebModule({
       id: 'import:open',
       label: { ru: 'Импорт задач', en: 'Import tasks' },
       icon: Upload,
-      // shortcut: CommandCtx не даёт router — переход полной загрузкой; заменить на ctx.navigate, когда ядро его добавит
-      run: () => window.location.assign('/m/import/'),
+      // shortcut: вне setup inject даёт undefined — тогда полная загрузка
+      run: () => {
+        const router = useRouter();
+        if (router) void router.push('/m/import/');
+        else window.location.assign('/m/import/');
+      },
     },
   ],
 });
