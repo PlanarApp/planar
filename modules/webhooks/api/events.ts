@@ -116,7 +116,7 @@ export async function afterMutation(
         taskId,
         authorId: c.authorId,
         text: plain(c.body),
-        createdAt: c.createdAt,
+        createdAt: new Date(c.createdAt as string).toISOString(),
       },
       actorId,
     });

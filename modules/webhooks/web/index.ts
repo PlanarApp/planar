@@ -23,6 +23,7 @@ export const web = defineWebModule({
       id: 'webhooks',
       label: { ru: 'Вебхуки', en: 'Webhooks' },
       icon: Bell,
+      adminOnly: true,
       component: () => import('./WebhooksSettings.vue'),
     },
   ],

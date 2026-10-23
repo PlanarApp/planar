@@ -59,6 +59,8 @@ export interface SettingsPageDef {
   label: LocalizedText;
   icon?: Component;
   component: Lazy<object>;
+  /** скрыт от не-админов инстанса (сервер всё равно проверяет права) */
+  adminOnly?: boolean;
 }
 
 export type NavItemDef = { id: string; order?: number } & (

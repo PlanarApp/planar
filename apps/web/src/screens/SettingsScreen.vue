@@ -2,6 +2,8 @@
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useExtensions } from '../modules/registry';
+import type { LocalizedText } from '../modules/types';
 import { useAuth } from '../auth/useAuth';
 import { onMutationError } from '../sync';
 import { useSpaces } from '../tasks';
@@ -20,14 +22,30 @@ const SECTIONS = {
 } as const;
 type Id = keyof typeof SECTIONS;
 
-const { t } = useI18n();
+const { t, te, locale } = useI18n();
 const route = useRoute();
 const { isAdmin } = useAuth();
-const ids = computed(() =>
+const builtin = computed(() =>
   (Object.keys(SECTIONS) as Id[]).filter((s) => isAdmin.value || !('admin' in SECTIONS[s])),
 );
+// страницы включённых модулей (section = <moduleId>:<id>) — после встроенных
+const modPages = useExtensions('settings');
+const pages = computed(() => modPages.value.filter((p) => isAdmin.value || !p.adminOnly));
+const label = (l: LocalizedText) =>
+  typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
+const items = computed(() => [
+  ...builtin.value.map((s) => ({ key: s as string, label: t(`settings.${s}`) })),
+  ...pages.value.map((p) => ({ key: p.key, label: label(p.label) })),
+]);
 const param = computed(() => route.params.section as string | undefined);
-const active = computed<Id>(() => ids.value.find((s) => s === param.value) ?? 'spaces');
+const page = computed(() => pages.value.find((p) => p.key === param.value));
+const active = computed<string>(() =>
+  page.value ? page.value.key : (builtin.value.find((s) => s === param.value) ?? 'spaces'),
+);
+const modComp = computed(
+  () => page.value && defineAsyncComponent(() => page.value!.component().then((m) => m.default)),
+);
+const sec = computed(() => (page.value ? undefined : SECTIONS[active.value as Id]));
 
 const spaces = useSpaces();
 const spaceId = ref('');
@@ -52,13 +70,13 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
     <nav :class="[param ? 'hidden md:flex' : 'flex', 'flex-col gap-1 md:w-48']">
       <h1 class="mb-2 text-xl font-semibold">{{ t('screens.settings') }}</h1>
       <RouterLink
-        v-for="s in ids"
-        :key="s"
-        :to="`/settings/${s}`"
-        :data-testid="`nav-${s}`"
+        v-for="s in items"
+        :key="s.key"
+        :to="`/settings/${s.key}`"
+        :data-testid="`nav-${s.key}`"
         class="rounded-md px-2 py-2 text-sm hover:bg-bg-muted"
-        :class="{ 'bg-bg-muted font-medium': s === active }"
-        >{{ t(`settings.${s}`) }}</RouterLink
+        :class="{ 'bg-bg-muted font-medium': s.key === active }"
+        >{{ s.label }}</RouterLink
       >
     </nav>
     <div :class="[param ? 'flex' : 'hidden md:flex', 'min-w-0 flex-1 flex-col gap-3']">
@@ -67,12 +85,12 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
       }}</RouterLink>
       <p v-if="serverError" role="alert" class="text-sm text-danger">{{ serverError }}</p>
       <Select
-        v-if="'space' in SECTIONS[active]"
+        v-if="sec && 'space' in sec"
         v-model="spaceId"
         :label="t('settings.space')"
         :options="spaceOptions"
       />
-      <component :is="SECTIONS[active].c" :space-id="spaceId" />
+      <component :is="modComp ?? sec!.c" :space-id="spaceId" />
     </div>
   </div>
 </template>
