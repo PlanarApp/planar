@@ -283,7 +283,15 @@ const send = defineMutator({
     attachments: z.array(attachment).max(10).optional(),
   }),
   async run(tx, a, ctx) {
-    const { c, v } = await visible(tx, a.channelId, ctx.userId);
+    // CL-2b: каждое обращение к IndexedDB ≈ 1 мс на клиенте — читаем канал и свою chatReads вместе,
+    // viewers на клиенте нужны только ради mentions (сервер пересчитывает и проверяет доступ сам)
+    const [c, mine] = await Promise.all([
+      channel(tx, a.channelId),
+      myRead(tx, a.channelId, ctx.userId),
+    ]);
+    const mentioned = extractMentions(a.body);
+    const v = ctx.server || mentioned.length ? await viewers(tx, c) : undefined;
+    if (v && !v.has(ctx.userId)) throw new MutatorError('forbidden', 'нет доступа к каналу');
     if (c.archivedAt) throw new MutatorError('conflict', 'канал в архиве');
     checkBody(a.body);
     let root: Message | undefined;
@@ -301,7 +309,7 @@ const send = defineMutator({
       seq,
       authorId: ctx.userId,
       body: a.body,
-      mentions: mentionsOf(a.body, v),
+      mentions: v ? mentioned.filter((u) => v.has(u)) : [],
       attachments: a.attachments ?? [],
       replyCount: 0,
       lastReplyAt: null,
@@ -310,23 +318,34 @@ const send = defineMutator({
       createdAt: ctx.now,
       updatedAt: ctx.now,
     };
-    await ctx_(tx).put('chatMessages', row);
+    // записи независимы: на клиенте идут разом (IndexedDB конвейеризует запросы одной транзакции),
+    // на сервере — по порядку: от него зависит порядок строк changes
+    const writes: Promise<void>[] = [];
+    const w = (p: () => Promise<void>) => (ctx.server ? p() : void writes.push(p()));
+    await w(() => ctx_(tx).put('chatMessages', row));
     if (root)
-      await ctx_(tx).patch('chatMessages', root.id, {
-        replyCount: root.replyCount + 1,
-        lastReplyAt: ctx.now,
-        updatedAt: ctx.now,
-      });
+      await w(() =>
+        ctx_(tx).patch('chatMessages', root.id, {
+          replyCount: root.replyCount + 1,
+          lastReplyAt: ctx.now,
+          updatedAt: ctx.now,
+        }),
+      );
     else {
-      await ctx_(tx).patch('chatChannels', c.id, {
-        lastSeq: seq,
-        lastMessageAt: ctx.now,
-        updatedAt: ctx.now,
-      });
-      const mine = await myRead(tx, c.id, ctx.userId);
+      // put по уже прочитанной строке — без повторного get, который делает patch
+      await w(() =>
+        ctx_(tx).put('chatChannels', {
+          ...c,
+          lastSeq: seq,
+          lastMessageAt: ctx.now,
+          updatedAt: ctx.now,
+        }),
+      );
       if (mine) {
         if (mine.lastReadSeq < seq!)
-          await ctx_(tx).patch('chatReads', mine.id, { lastReadSeq: seq, updatedAt: ctx.now });
+          await w(() =>
+            ctx_(tx).put('chatReads', { ...mine, lastReadSeq: seq, updatedAt: ctx.now }),
+          );
       } else {
         const r: Read = {
           id: a.readId,
@@ -336,9 +355,10 @@ const send = defineMutator({
           muted: false,
           updatedAt: ctx.now,
         };
-        await ctx_(tx).put('chatReads', r);
+        await w(() => ctx_(tx).put('chatReads', r));
       }
     }
+    await Promise.all(writes);
   },
 });
 

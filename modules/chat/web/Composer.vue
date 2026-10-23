@@ -82,10 +82,8 @@ async function send() {
   const id = newId();
   const doc = plain(body.value ?? { type: 'doc', content: [] });
   const attachments = plain(atts.value);
-  body.value = null;
-  atts.value = [];
-  editor.value?.clear();
-  await mutate('chat.message.send', {
+  // запись в IndexedDB стартует до очистки редактора: они идут параллельно
+  const sending = mutate('chat.message.send', {
     id,
     channelId: props.channelId,
     body: doc,
@@ -93,6 +91,10 @@ async function send() {
     ...(props.parentId ? { parentId: props.parentId } : {}),
     attachments,
   }).catch((e: Error) => (error.value = tx('sendFailed', { m: e.message })));
+  body.value = null;
+  atts.value = [];
+  editor.value?.clear();
+  await sending;
   emit('sent', id);
 }
 

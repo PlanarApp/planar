@@ -64,3 +64,16 @@ export const taskRefs = (body: unknown): string[] => [
 
 /** Реактивный прокси не клонируется в IndexedDB — в аргументы мутаторов только простые данные. */
 export const plain = <T>(v: T): T => JSON.parse(JSON.stringify(v));
+
+export const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('');
+export const hue = (name: string) =>
+  [...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 0);
+
+// toLocaleTimeString на каждую строку создаёт Intl-форматтер заново (~0.3 мс); общий — в разы дешевле
+export const hhmm = new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit' });

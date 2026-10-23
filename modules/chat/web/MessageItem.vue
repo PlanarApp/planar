@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { RouterLink } from 'vue-router';
-import { MessageSquare, Pencil, SmilePlus, Trash2 } from 'lucide-vue-next';
-import { Avatar, Button, Editor, mutate, newId } from '@planar/web/modules';
+import { useRouter } from 'vue-router';
+import { Button, Editor, mutate, newId } from '@planar/web/modules';
 import RichBody from './RichBody';
 import TaskCard from './TaskCard.vue';
-import { plain, taskRefs, type Message, type Reaction, type UserRow } from './model';
+import {
+  hhmm,
+  hue,
+  initials,
+  plain,
+  taskRefs,
+  type Message,
+  type Reaction,
+  type UserRow,
+} from './model';
 import { useTexts } from './text';
 
 const props = defineProps<{
@@ -19,14 +27,22 @@ const props = defineProps<{
 const tx = useTexts();
 const m = computed(() => props.message);
 const author = computed(() => props.users.get(m.value.authorId)?.name ?? tx('unknown'));
+// лента монтирует десятки строк за кадр: без Avatar/RouterLink/иконок-компонентов (CL-2b)
+const router = useRouter();
+const threadUrl = computed(() => `/m/chat/c/${m.value.channelId}/t/${m.value.id}`);
+function go(e: MouseEvent) {
+  if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  void router.push((e.currentTarget as HTMLAnchorElement).getAttribute('href')!);
+}
 const mine = computed(() => m.value.authorId === props.me && !m.value.deletedAt);
-const time = computed(() =>
-  new Date(m.value.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-);
+const time = computed(() => hhmm.format(new Date(m.value.createdAt)));
 const refs = computed(() => taskRefs(m.value.body).slice(0, 3));
 const isImage = (mime: string) => mime.startsWith('image/');
 
 const EMOJI = ['👍', '❤️', '😄', '🎉'];
+// панель действий (иконки, кнопки) монтируется при наведении/фокусе: на быстрой прокрутке это треть стоимости строки
+const armed = ref(false);
 const picking = ref(false);
 const grouped = computed(() => {
   const g = new Map<string, Reaction[]>();
@@ -62,8 +78,16 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
   <article
     :data-testid="`chat-msg-${m.id}`"
     class="group flex gap-2 px-3 py-1.5 hover:bg-bg-muted/50"
+    tabindex="0"
+    @pointerenter.once="armed = true"
+    @focusin.once="armed = true"
   >
-    <Avatar :name="author" size="lg" />
+    <span
+      :title="author"
+      class="inline-flex size-8 shrink-0 select-none items-center justify-center rounded-full text-[13px] font-medium text-white"
+      :style="{ background: `hsl(${hue(author)} 45% 40%)` }"
+      >{{ initials(author) }}</span
+    >
     <div class="min-w-0 flex-1">
       <header class="flex items-baseline gap-2 text-sm">
         <span class="font-medium">{{ author }}</span>
@@ -100,7 +124,10 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
           </li>
         </ul>
       </template>
-      <div v-if="!m.deletedAt" class="mt-1 flex flex-wrap items-center gap-1">
+      <div
+        v-if="!m.deletedAt && (grouped.length || (!inThread && m.replyCount > 0))"
+        class="mt-1 flex flex-wrap items-center gap-1"
+      >
         <button
           v-for="g in grouped"
           :key="g.emoji"
@@ -114,17 +141,18 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
         >
           {{ g.emoji }} {{ g.n }}
         </button>
-        <RouterLink
+        <a
           v-if="!inThread && m.replyCount > 0"
-          :to="`/m/chat/c/${m.channelId}/t/${m.id}`"
+          :href="threadUrl"
           data-testid="chat-replies"
           class="text-xs text-accent hover:underline"
-          >{{ tx('replies', { n: m.replyCount }) }}</RouterLink
+          @click="go"
+          >{{ tx('replies', { n: m.replyCount }) }}</a
         >
       </div>
     </div>
     <div
-      v-if="!m.deletedAt"
+      v-if="armed && !m.deletedAt"
       class="flex h-6 items-center gap-0.5 opacity-0 focus-within:opacity-100 group-hover:opacity-100"
     >
       <template v-if="picking">
@@ -133,21 +161,82 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
         </button>
       </template>
       <button v-else type="button" :aria-label="tx('react')" class="p-1" @click="picking = true">
-        <SmilePlus :size="14" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M22 11v1a10 10 0 1 1-9-10" />
+          <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+          <line x1="9" x2="9.01" y1="9" y2="9" />
+          <line x1="15" x2="15.01" y1="9" y2="9" />
+          <path d="M16 5h6" />
+          <path d="M19 2v6" />
+        </svg>
       </button>
-      <RouterLink
-        v-if="!inThread"
-        :to="`/m/chat/c/${m.channelId}/t/${m.id}`"
-        :aria-label="tx('reply')"
-        class="p-1"
-        ><MessageSquare :size="14"
-      /></RouterLink>
+      <a v-if="!inThread" :href="threadUrl" :aria-label="tx('reply')" class="p-1" @click="go"
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path
+            d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"
+          /></svg
+      ></a>
       <template v-if="mine">
         <button type="button" :aria-label="tx('edit')" class="p-1" @click="startEdit">
-          <Pencil :size="14" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+            />
+            <path d="m15 5 4 4" />
+          </svg>
         </button>
         <button type="button" :aria-label="tx('delete')" class="p-1" @click="remove">
-          <Trash2 :size="14" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+            <path d="M3 6h18" />
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
         </button>
       </template>
     </div>

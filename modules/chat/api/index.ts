@@ -147,6 +147,9 @@ async function notify(
     if (!created && m.editedAt === before.editedAt) continue;
     const ch = await sys.get<Chan>('chatChannels', m.channelId);
     if (!ch) continue;
+    const fresh = created ? m.mentions : m.mentions.filter((u) => !before.mentions.includes(u));
+    // обычное сообщение канала без упоминаний никого не уведомляет — без сканов участников и muted
+    if (!fresh.length && !(created && (ch.kind === 'dm' || m.parentId))) continue;
     const seeing = new Set(
       (ch.spaceId
         ? await sys.scan<{ userId: string }>('spaceMembers', { index: 'spaceId', eq: ch.spaceId })
@@ -168,10 +171,7 @@ async function notify(
       for (const u of users)
         if (u !== m.authorId && seeing.has(u) && !muted.has(u) && !kinds.has(u)) kinds.set(u, kind);
     };
-    add(
-      created ? m.mentions : m.mentions.filter((u) => !before.mentions.includes(u)),
-      'chat_mention',
-    );
+    add(fresh, 'chat_mention');
     if (created) {
       if (ch.kind === 'dm') add(seeing, 'chat_dm');
       else if (m.parentId) {
