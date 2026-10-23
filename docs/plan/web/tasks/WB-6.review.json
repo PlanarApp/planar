@@ -1,41 +1,41 @@
 {
-  "verdict": "rework",
-  "summary": "Скоуп, контракты (C-views пропсы/close, мутаторы core.md, POST /files C-http) соблюдены, подгонки под тесты нет, size и comments перезапущены — совпадают с отчётом. Один функциональный баг: картинка, брошенная в описание, загружается дважды и становится ещё и вложением.",
+  "verdict": "accept",
+  "summary": "Все три замечания прошлого ревью исправлены (drop из .ProseMirror игнорируется на <article>, таймер not-found убран — null по C-tasks v2, clipboard через .catch). Скоуп в границах, attachments и lint перезапущены — совпадают с отчётом. Остались мелочи по тесту и отчёту.",
   "issues": [
     {
+      "file": "apps/web/src/task/__tests__/social.test.ts",
+      "line": 192,
+      "severity": "minor",
+      "what": "Новый тест бросает в редактор text/plain, а не картинку. Он проверяет только, что attachment не создаётся. Что drop картинки создаёт узел image и uploadFile вызывается один раз, не проверено, хотя дополнение карточки это требовало.",
+      "fix": "Бросить image/png с моком upload, проверить узел image в JSON и ровно один вызов POST /files"
+    },
+    {
       "file": "apps/web/src/task/TaskDetail.vue",
-      "line": 130,
-      "severity": "major",
-      "what": "Drop картинки в редактор описания: Editor.handleDrop вызывает insertFiles (ProseMirror только preventDefault, без stopPropagation), событие всплывает до <article @drop.prevent=onDrop> → attachments.addFiles тех же файлов. Итог: два uploadFile и лишняя строка attachment.create, которая синхронизируется всем.",
-      "fix": "В onDrop не обрабатывать drop из редактора: например, пропускать если (e.target as HTMLElement).closest('.ProseMirror') и файлы — картинки (или в Editor handleDrop делать e.stopPropagation()); добавить тест в task:attachments/task:description."
+      "line": 129,
+      "severity": "minor",
+      "what": "Файл не-картинку, брошенный на область описания, теряется молча: Editor.handleDrop его не берёт (только image/*), а панель пропускает всё, что пришло из .ProseMirror.",
+      "fix": "Пропускать на <article> только события с e.defaultPrevented (их уже обработал редактор), вместо любого target внутри .ProseMirror"
     },
     {
       "file": "apps/web/src/task/TaskPanel.vue",
-      "line": 15,
+      "line": 1,
       "severity": "minor",
-      "what": "Таймер 1.5 с ставится один раз при монтировании и не сбрасывается при смене taskKey: переход на подзадачу в режиме panel (?task=…, тот же экземпляр) после 1.5 с на время чтения useTask покажет «Задача не найдена». Корень — useTask не отдаёт null (C-tasks v2 объявлен в contract.ts, а код src/tasks/queries.ts:156 всё ещё return undefined) — это вопрос координатору, не WB-6.",
-      "fix": "Сбрасывать waited/таймер в watch(() => props.taskKey); координатору — довести useTask до null по C-tasks v2, тогда таймер убрать."
-    },
-    {
-      "file": "apps/web/src/task/TaskDetail.vue",
-      "line": 98,
-      "severity": "minor",
-      "what": "try/catch вокруг void navigator.clipboard.writeText(...) не ловит отклонённый промис — unhandled rejection при запрете буфера.",
-      "fix": "navigator.clipboard?.writeText(...).catch(() => {})."
+      "what": "Отчёт ≠ факт: в отчёте указан только коммит 861d37a, а доработка лежит в 74b00cc и 9695ca3",
+      "fix": "В следующих отчётах указывать все коммиты задачи"
     }
   ],
   "rerun": [
     {
-      "name": "comments",
-      "value": "pass (accept --only comments --dry)",
+      "name": "attachments",
+      "value": "3",
       "pass": true
     },
     {
-      "name": "size",
-      "value": "171.4 KB",
+      "name": "lint",
+      "value": "exit 0",
       "pass": true
     }
   ],
-  "t": "2026-10-23T00:47:11",
+  "t": "2026-10-23T01:13:39",
   "by": "reviewer"
 }
