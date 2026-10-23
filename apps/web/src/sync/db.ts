@@ -26,10 +26,14 @@ export interface MetaRow {
 }
 
 /** Схема Dexie: таблица на сущность (индексы из meta.indexes) + служебные; extra — сущности модулей. */
-export function buildSchema(extra: Record<string, string[]> = {}): Record<string, string> {
+export function buildSchema(
+  extra: Record<string, string[]> = {},
+  skip: string[] = [],
+): Record<string, string> {
   const stores: Record<string, string> = { _meta: 'key', _queue: '++id' };
   const entities: Record<string, { indexes: string[] }> = { ...ENTITIES };
   for (const [n, indexes] of Object.entries(extra)) entities[n] = { indexes };
+  for (const n of skip) delete entities[n];
   for (const [n, m] of Object.entries(entities)) stores[n] = ['id', ...m.indexes].join(',');
   return stores;
 }
@@ -39,7 +43,9 @@ export class PlanarDB extends Dexie {
   _queue!: Table<QueueItem, number>;
   constructor(name = 'planar', extra: Record<string, string[]> = {}) {
     super(name);
-    this.version(1).stores(buildSchema(extra));
+    // v1 — реплика до fieldDefs/taskLinks; v2 добавляет их (Dexie мигрирует без потери данных)
+    this.version(1).stores(buildSchema(extra, ['fieldDefs', 'taskLinks']));
+    this.version(2).stores(buildSchema(extra));
   }
   /** таблицы сущностей (без служебных) */
   entityTables(): Table[] {
