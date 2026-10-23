@@ -25,6 +25,10 @@ generated: true
 - [docs/contracts/core.md](contracts/core.md) — Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 - [docs/contracts/web.md](contracts/web.md) — Контракты web — C-ui, C-client (синхронизация), C-tasks (слой задач), C-views (экран проекта и стык видов)
 
+## Справка (reference)
+
+- [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Мутаторы домена C-mutators v2 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
+
 ## Реестры (registry)
 
 - [docs/registry/contracts.md](registry/contracts.md) — Контракты стыков по модулям: id и версии из заголовков.

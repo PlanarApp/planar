@@ -1,0 +1,36 @@
+{
+  "verdict": "rework",
+  "summary": "ServerTx, bootstrap/pull/push, WS по контрактам в целом корректны, скоуп соблюдён (24 файла), server_tx_contract перезапущен — 12 PASS. Блокер: правило put attachments реализовано по старой C-schema v1 (files.created_by), а не по v2 (file_uploads).",
+  "issues": [
+    {
+      "file": "apps/api/src/sync/server-tx.ts",
+      "line": 316,
+      "severity": "blocker",
+      "what": "checkFile проверяет files.createdBy === ctx.userId, а C-schema v2/v3 (#### attachments) требует строку file_uploads(fileSha256, ctx.userId) или файл, уже приложенный в пространстве. Сценарий: A загрузил файл первым (files.createdBy=A), B загрузил тот же контент (дедуп, есть file_uploads(sha,B)), B прикладывает его в своём пространстве — получает forbidden. Обратно: пользователь, указанный в createdBy, проходит даже без file_uploads. Записка координатора 10-22 23:51 об этом прямо.",
+      "fix": "Заменить проверку files.createdBy на select из schema.fileUploads по (sha256, userId); тест в server-tx.test.ts:268 переписать на вставку file_uploads (плюс кейс: файл создан другим пользователем, но есть file_uploads текущего — ok)."
+    },
+    {
+      "file": "apps/api/test/sync/ws.test.ts",
+      "line": 171,
+      "severity": "minor",
+      "what": "Замер poke повторяется до 5 серий по 20 и печатается лучшая серия — по сути шлюз ≤500 мс ослаблен до «хотя бы одна серия из пяти». В отчёте раскрыто (нагрузка машины), но в отчёте упомянуто и «до 3», и «до 5».",
+      "fix": "Оставить, если координатор согласен; иначе печатать максимум всех серий. Привести отчёт в соответствие коду."
+    },
+    {
+      "file": "apps/api/src/sync/server-tx.ts",
+      "line": 271,
+      "severity": "minor",
+      "what": "id activity — uuidv7() из @planar/shared, а не Postgres uuidv7(), как в карточке (C-schema). Функционально эквивалентно, но расходится с текстом карточки; раскрыто в uncertain.",
+      "fix": "Согласовать с координатором или использовать default БД."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "server_tx_contract",
+      "value": "12",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T01:12:18",
+  "by": "reviewer"
+}

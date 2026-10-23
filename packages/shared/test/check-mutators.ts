@@ -1,4 +1,4 @@
-// Проверка CR-5: реестр domainMutators = таблица «Мутаторы домена v1» (имена, аргументы, необязательность).
+// Проверка CR-5: реестр domainMutators = таблица «Мутаторы домена» (имена, аргументы, необязательность).
 // Запуск: pnpm exec tsx packages/shared/test/check-mutators.ts → «mutators-ok» или список расхождений.
 // Правит только координатор модуля core.
 import * as shared from '../src/index.js';

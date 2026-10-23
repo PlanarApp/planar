@@ -7,13 +7,14 @@ const ADMIN_URL = process.env.TESTDB_URL ?? 'postgres://postgres:postgres@localh
 
 declare module 'vitest' {
   export interface ProvidedContext {
-    dbUrl: string;
+    dbTemplate: string;
+    dbAdminUrl: string;
   }
 }
 
-/** Создаёт базу planar_t_<random> в planar-testdb, мигрирует, удаляет в teardown. */
+/** Шаблонная база planar_tpl_<random>: мигрирует; файлы тестов копируют её (file-db.ts). */
 export default async function setup(project: TestProject) {
-  const name = `planar_t_${randomBytes(6).toString('hex')}`;
+  const name = `planar_tpl_${randomBytes(6).toString('hex')}`;
   const admin = new pg.Client({ connectionString: ADMIN_URL });
   try {
     await admin.connect();
@@ -29,9 +30,17 @@ export default async function setup(project: TestProject) {
   } finally {
     await db.$client.end();
   }
-  project.provide('dbUrl', url.toString());
+  project.provide('dbTemplate', name);
+  project.provide('dbAdminUrl', ADMIN_URL);
   return async () => {
-    await admin.query(`drop database if exists ${name} with (force)`);
+    const { rows } = await admin.query<{ datname: string }>(
+      `select datname from pg_database where datname like $1`,
+      [`${name}\\_%`],
+    );
+    await admin.query('set statement_timeout = 8000');
+    await admin.query('select pg_advisory_lock(7240001)').catch(() => {});
+    for (const { datname } of [...rows, { datname: name }])
+      await admin.query(`drop database if exists ${datname} with (force)`).catch(() => {});
     await admin.end();
   };
 }
