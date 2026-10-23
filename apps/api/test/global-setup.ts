@@ -21,6 +21,14 @@ export default async function setup(project: TestProject) {
   } catch (e) {
     throw new Error(`Нет тестовой базы (${(e as Error).message}): запусти ./dev.sh testdb`);
   }
+  // осиротевшие базы прошлых прогонов: свои префиксы, без соединений, старше часа
+  const { rows: old } = await admin.query<{ datname: string }>(
+    `select datname from pg_database d where datname ~ '^planar_t(pl)?_' and not exists
+       (select 1 from pg_stat_activity a where a.datname = d.datname)
+       and (pg_stat_file('base/' || d.oid || '/PG_VERSION')).modification < now() - interval '1 hour'`,
+  );
+  for (const { datname } of old)
+    await admin.query(`drop database if exists ${datname} with (force)`).catch(() => {});
   await admin.query(`create database ${name}`);
   const url = new URL(ADMIN_URL);
   url.pathname = `/${name}`;

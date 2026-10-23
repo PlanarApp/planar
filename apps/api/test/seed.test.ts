@@ -21,4 +21,13 @@ describe('seed', () => {
       .then((r) => r.rows[0]);
     expect([u!.n, t!.n, nums!.ok]).toEqual([3, 50, true]);
   });
+
+  it('--tasks не падает, если в пространствах нет меток', async () => {
+    await db.delete(s.taskLabels);
+    await db.delete(s.labels);
+    const [before] = await db.select({ n: count() }).from(s.tasks);
+    await seed(db, 10);
+    const [after] = await db.select({ n: count() }).from(s.tasks);
+    expect(after!.n - before!.n).toBe(10);
+  });
 });

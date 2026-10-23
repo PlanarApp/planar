@@ -34,6 +34,13 @@ export class PushService {
   constructor(@Inject(DB) private db: Db) {}
 
   async push(userId: string, req: SyncPushRequest): Promise<SyncPushResponse> {
+    // владелец clientId проверяется и при пустой пачке (в one() — под блокировкой строки)
+    const [owner] = await this.db
+      .select({ userId: clientMutations.userId })
+      .from(clientMutations)
+      .where(eq(clientMutations.clientId, req.clientId));
+    if (owner && owner.userId !== userId)
+      throw new ForbiddenException('clientId принадлежит другому пользователю');
     const results: Result[] = [];
     for (const m of req.mutations) results.push(await this.one(userId, req.clientId, m));
     return { results };
