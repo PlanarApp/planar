@@ -2,13 +2,17 @@
   "status": "done",
   "summary": "ServerTx (права, changes, activity, номера, advisory lock, NOTIFY), bootstrap/pull/push, /api/tasks/:id/activity, LISTEN-нотификатор и WS /ws; 104 теста sync, accept 7/7.",
   "commits": [
+    "9603adc CR-4: commentReactions в тесте bootstrap, устойчивый замер poke",
+    "a2cc624 Слияние feature/core в core/CR-4",
     "edcc085 CR-4: файлы api-тестов последовательно",
     "944360c CR-4: схема на файл вместо базы, testTimeout 30 с",
+    "8f98a33 Слияние feature/core в core/CR-4",
     "69af9e6 CR-4: poke_ms в лог приёмки",
     "7e2ac0e CR-4: порядок закрытия тестовых БД, таймаут замера",
     "1e293db CR-4: устойчивый замер poke, таймаут сброса БД",
     "61e43d1 CR-4: отдельная БД на файл sync-тестов",
     "4bf28c2 CR-4: HTTP /sync, activity, WS /ws, тесты",
+    "5349eb8 Слияние feature/core в core/CR-4",
     "12555f8 CR-4: детерминированный тест склейки poke",
     "59bc2de CR-4: LISTEN planar_changes (ChangeNotifier), правки линтера",
     "848817f CR-4: серверный Tx, bootstrap, pull, push (сервисный уровень) с тестами"
@@ -41,7 +45,7 @@
     },
     {
       "name": "poke_latency",
-      "value": "199",
+      "value": "171",
       "pass": true
     },
     {
@@ -59,7 +63,7 @@
   "uncertain": [
     {
       "where": "apps/api/vitest.config.ts",
-      "why": "добавил ssr.resolve.conditions=['source'] (иначе @planar/shared не резолвится и класс MutatorError двоится), testTimeout 30с, fileParallelism:false (seed.test считает все строки общей БД и падал от параллельных файлов с пользователями)",
+      "why": "ssr.resolve.conditions=['source'] (иначе @planar/shared не резолвится и MutatorError двоится); после слияния CR-1a своя БД на файл — моя схема на файл убрана",
       "checked": "pnpm test зелёный, ранее красный из-за гонки seed/auth-guard"
     },
     {
@@ -73,12 +77,12 @@
       "checked": "тесты activity проходят"
     },
     {
-      "where": "apps/api/test/sync/helpers.ts",
-      "why": "тесты sync в своей схеме Postgres (миграции с подстановкой public), т.к. CREATE/DROP DATABASE тормозил общий контейнер; LISTEN/advisory lock всё же общие на базу",
-      "checked": "104 теста стабильны подряд"
+      "where": "apps/api/test/sync/ws.test.ts",
+      "why": "на загруженной машине commit в Postgres иногда 0.3–0.5 с (замерил голым pg), замер poke делает до 5 серий",
+      "checked": "7/7 accept после слияния"
     }
   ],
   "dp_feedback": "console.log зелёных тестов не попадает в лог accept — полезен хук для чисел; accept --dry >120с уходит в фон при вызове из агента.",
-  "t": "2026-10-23T00:51:36",
+  "t": "2026-10-23T01:06:47",
   "by": "executor"
 }
