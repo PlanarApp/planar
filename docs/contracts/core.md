@@ -524,10 +524,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 
 ## C-modules v6
 
-v6 (WK-14): v5 + правки collab (canReadFile, members, search, SDK) — work-api.md.
-v5 (WK-12): enqueue, FilterBuilder/router в SDK, настройки модулей — work-api.md.
-v4 (WK-10): server-kit, web SDK, сущности модулей в клиенте — work.md §C-modules v4.
-v3 (WK-0): хуки, задачи, nav/topbar — work.md §C-modules v3.
+v3–v6 (work, владелец C-modules): хуки, server-kit, SDK, настройки, правки collab — work.md, work-api.md.
 
 Модуль — каталог `modules/<id>/` (`id` — `^[a-z][a-z0-9-]{1,30}$`):
 - `shared/index.ts` — `export const shared: SharedModuleManifest = { id, mutators: MutatorDef[], entities: Record<string, {schema: ZodObject, meta: EntityMeta}> }` (без Node API; сущности — по правилам C-schema, имена с префиксом id модуля в camelCase);
