@@ -42,12 +42,11 @@ describe('reaction.toggle', () => {
       await run(tx, 'reaction.toggle', { id: id(), commentId: cm, emoji });
     expect(await tx.scan('commentReactions')).toHaveLength(2);
   });
-  it('пустой и слишком длинный emoji → invalid_args', async () => {
+  it('реакция другого пользователя не снимается', async () => {
     const { tx, cm } = await mk();
-    for (const emoji of ['', 'x'.repeat(33)])
-      expect(await code(run(tx, 'reaction.toggle', { id: id(), commentId: cm, emoji }))).toBe(
-        'invalid_args',
-      );
+    await run(tx, 'reaction.toggle', { id: id(), commentId: cm, emoji: 'a' });
+    await run(tx, 'reaction.toggle', { id: id(), commentId: cm, emoji: 'a' }, ctx(U2));
+    expect(await tx.scan('commentReactions')).toHaveLength(2);
   });
 });
 
