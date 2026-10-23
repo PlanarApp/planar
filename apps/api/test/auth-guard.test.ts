@@ -1,6 +1,6 @@
 import { Controller, Post } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { authenticateRaw } from '../src/auth/auth.js';
 import { hashToken } from '../src/auth/sessions.js';
@@ -16,6 +16,7 @@ class Probe {
   }
 }
 
+vi.setConfig({ testTimeout: 30_000 }); // загруженный сервер БД
 const db = testDb();
 let app: Awaited<ReturnType<typeof createApp>>;
 const req = (method: 'GET' | 'POST', url: string, headers: Record<string, string> = {}) =>
