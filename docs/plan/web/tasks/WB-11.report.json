@@ -1,0 +1,63 @@
+{
+  "status": "done",
+  "summary": "Профиль: раскрываемый раздел API-токенов (выпуск, однократный секрет с копированием, список, отзыв с подтверждением) и инструкция MCP (URL /mcp, пример конфига).",
+  "commits": [
+    "5ca081d WB-11 профиль — API-токены и MCP"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "136.8",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "tokens",
+      "value": "7",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept WB-11",
+  "uncertain": [
+    {
+      "where": "apps/web/src/screens/profile/TokensSection.vue",
+      "why": "список грузится при первом раскрытии details, а не при монтировании: иначе ломается существующий auth:avatar (проверяет fetch.calls[0]), он вне скоупа",
+      "checked": "тест tokens: профиль не грузит список до раскрытия; полный test PASS"
+    },
+    {
+      "where": "TokensSection.vue mcpConfig",
+      "why": "формат конфига клиента в контракте не задан",
+      "checked": "сверен только с разделом MCP контракта"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T09:59:57",
+  "by": "executor"
+}

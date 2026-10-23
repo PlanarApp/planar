@@ -1,0 +1,40 @@
+{
+  "status": "done",
+  "summary": "eslint/prettier в e2e/web/perf/profile: 58 ошибок → 0 (any → unknown/Ev, Window-augment, unused import убран). testIgnore profile/** в perf-конфиге. results/ снят с git, перенесён в build/artifacts/WB-17/results; RES и скрипты (lib.ts, stages.py, effects.py, full.sh) переведены на этот путь.",
+  "commits": [
+    "96213f1 WB-19: lint e2e/web/perf/profile; профилировщик исключён из замера; results — в build/artifacts"
+  ],
+  "checks": [
+    {
+      "name": "e2e-lint",
+      "value": "eslint e2e exit 0; prettier --check e2e exit 0",
+      "pass": true
+    },
+    {
+      "name": "perf-ignores-profile",
+      "value": "playwright --list: 1 test (measure.spec.ts), profile/ 0 строк",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Логика профилировщиков не менялась. Типы в lib.ts/stages.spec.ts не проверены строгим tsc (проект его не запускает для e2e; tsc --strict даёт шум по node-типам и PerformanceLongAnimationFrameTiming)"
+  ],
+  "questions": [
+    "Каталог results/ не в .gitignore: новые прогоны создадут untracked-файлы в profile/ только если пишут в старый путь (сейчас пишут в build/). Добавить .gitignore в profile/?"
+  ],
+  "how_to_check": ".dpcli/dpcli accept WB-19",
+  "uncertain": [
+    {
+      "where": "e2e/web/perf/profile/lib.ts:131",
+      "why": "PerformanceLongAnimationFrameTiming может отсутствовать в lib.dom текущего TS; в рантайме не влияет",
+      "checked": "eslint/prettier зелёные; playwright --list грузит конфиг"
+    }
+  ],
+  "dp_feedback": "",
+  "extra": {
+    "moved_result_dirs": 16,
+    "untracked_results_removed": 102
+  },
+  "t": "2026-10-23T10:04:34",
+  "by": "executor"
+}
