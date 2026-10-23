@@ -61,14 +61,10 @@ export interface SettingsPageDef {
   component: Lazy<object>;
 }
 
-export interface NavItemDef {
-  id: string;
-  label: LocalizedText;
-  icon: Component;
-  /** /m/<moduleId>/… */
-  to: string;
-  order?: number;
-}
+export type NavItemDef = { id: string; order?: number } & (
+  | { label: LocalizedText; icon: Component; /** /m/<moduleId>/… */ to: string }
+  | { section: Lazy<object> }
+);
 export interface TopbarItemDef {
   id: string;
   component: Lazy<object>;

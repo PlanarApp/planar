@@ -46,8 +46,9 @@ export function registerModules(all: WebModuleManifest[]): void {
         throw new Error(`Маршрут ${r.path} модуля ${m.id} вне /m/${m.id}/`);
     }
     for (const n of m.nav ?? []) {
-      if (!n.to.startsWith(`/m/${m.id}/`))
-        throw new Error(`Пункт nav ${n.to} модуля ${m.id} вне /m/${m.id}/`);
+      if ('section' in n) continue;
+      if (!n.to?.startsWith(`/m/${m.id}/`))
+        throw new Error(`Пункт nav ${m.id}:${n.id} без section и с to вне /m/${m.id}/`);
     }
   }
   registered.value = [...registered.value, ...manifests];

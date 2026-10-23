@@ -55,6 +55,23 @@ describe('wk0: модули nav/topbar', () => {
     expect(w.findAll('a[href^="/m/navok/"]')).toHaveLength(0);
   });
 
+  it('wk0: nav-секция рисуется компонентом, без to и section — Error', async () => {
+    const Sec = defineComponent({ render: () => h('section', 'Каналы') });
+    registerModules([
+      {
+        id: 'navsec',
+        nav: [
+          { id: 's', section: () => Promise.resolve({ __esModule: true, default: Sec } as never) },
+        ],
+      },
+    ]);
+    await setEnabledModules(['navsec']);
+    const w = mount(Sidebar, { global: { plugins: plugins() } });
+    await flushPromises();
+    expect(w.text()).toContain('Каналы');
+    expect(() => registerModules([{ id: 'navnone', nav: [{ id: 'x' } as never] }])).toThrow();
+  });
+
   it('wk0: TopBar показывает topbar-компонент модуля', async () => {
     const Comp = defineComponent({ render: () => h('b', 'T') });
     registerModules([

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onScopeDispose, watch } from 'vue';
+import { defineAsyncComponent, onScopeDispose, watch, type Component } from 'vue';
 import { Inbox, ListChecks, Settings, Star } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import Badge from '../ui/Badge.vue';
@@ -11,6 +11,14 @@ import { useNavData } from './nav';
 
 const { t, te, locale } = useI18n();
 const navItems = useExtensions('nav');
+// секция — свой компонент; ошибка загрузки не ломает панель
+const sections = new Map<string, Component>();
+const section = (key: string, load: () => Promise<{ default: Component }>) => {
+  let c = sections.get(key);
+  if (!c)
+    sections.set(key, (c = defineAsyncComponent({ loader: load, errorComponent: () => null })));
+  return c;
+};
 const navLabel = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 const unread = useUnread();
@@ -47,15 +55,16 @@ const link =
       <RouterLink to="/my" :class="link" active-class="bg-accent-subtle">
         <ListChecks :size="16" />{{ t('sidebar.my') }}
       </RouterLink>
-      <RouterLink
-        v-for="n in navItems"
-        :key="n.key"
-        :to="n.to"
-        :class="link"
-        active-class="bg-accent-subtle"
-      >
-        <component :is="n.icon" :size="16" />{{ navLabel(n.label) }}
-      </RouterLink>
+      <template v-for="n in navItems" :key="n.key">
+        <component
+          :is="section(n.key, n.section)"
+          v-if="'section' in n"
+          data-testid="nav-section"
+        />
+        <RouterLink v-else :to="n.to" :class="link" active-class="bg-accent-subtle">
+          <component :is="n.icon" :size="16" />{{ navLabel(n.label) }}
+        </RouterLink>
+      </template>
     </nav>
     <section>
       <h2 class="mb-1 flex items-center gap-1 px-2 text-xs font-medium text-fg-muted">
