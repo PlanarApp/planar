@@ -40,3 +40,5 @@
 {"t": "2026-10-23T13:11:58", "by": "coordinator", "task": "CL-1a", "ev": "checked", "note": "8/8 shared-all=ok:194/194; api-all=ok:exit 0; web-all=ok:446/446; cl1a-api=ok:13; build=ok:exit 0; lint=ok:exit 0; cl1a-web=ok:9; size=ok:144.5"}
 {"t": "2026-10-23T13:15:14", "by": "reviewer", "task": "CL-1a", "ev": "reviewed", "note": "Контракты X-core п.1–5 и версии (C-schema 8, C-sync 2, C-modules 4, C-http 10) реализованы по карточке; скоуп соблюдён, тесты утечки (bootstrap/pull/typing/fil…", "verdict": "accept", "issues": {"minor": 3}, "review": "docs/plan/collab/tasks/CL-1a.review.json"}
 {"t": "2026-10-23T13:15:40", "by": "coordinator", "task": "CL-1a", "ev": "accepted", "note": "по ревью"}
+{"t": "2026-10-23T13:19:28", "by": "coordinator", "task": "CL-1a", "ev": "checked", "commits": ["ec91917"], "note": "7/8 shared-all=ok:194/194; api-all=FAIL:exit 1 · ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯…; web-all=ok:446/446; cl1a-api=ok:13; build=ok:exit 0; lint=ok:exit 0; cl1a-web=ok:9; size=ok:144.5"}
+{"t": "2026-10-23T13:19:28", "by": "coordinator", "task": "CL-1a", "ev": "merged"}
