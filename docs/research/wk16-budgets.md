@@ -1,6 +1,6 @@
 ---
 type: research
-status: done
+status: closed
 module: work
 updated: 2026-10-23
 summary: A/B 5×5 main против feature/work — бюджеты §7 не ухудшились за шумом; switch +8 % не доказано, хост у порогов
