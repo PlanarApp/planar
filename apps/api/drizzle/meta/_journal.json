@@ -71,13 +71,6 @@
       "when": 1792762205009,
       "tag": "0009_overconfident_skullbuster",
       "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1792769713411,
-      "tag": "0010_strong_wallop",
-      "breakpoints": true
     }
   ]
 }
