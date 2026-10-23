@@ -1,8 +1,9 @@
 {
   "status": "done",
-  "summary": "MCP /mcp (SDK 1.32.1, zod 4, stateless, Bearer-only, 8 инструментов, ошибки сервиса и прав — isError {code,message}); tokenId прокинут в REST и MCP (activity.viaTokenId); searchTasks в RestService; docs/guides/mcp.md.",
+  "summary": "MCP /mcp (SDK 1.32.1, zod 4, stateless, только Bearer-токен, 8 инструментов, ошибки прав и сервиса — isError {code,message}); tokenId в REST и MCP (activity.viaTokenId); searchTasks в RestService; docs/guides/mcp.md. Ревью: /mcp требует ctx.via==='token'; тело комментариев — текст.",
   "commits": [
-    "b95a08e MCP-сервер /mcp, viaTokenId, гайд"
+    "b92d270 core: /mcp только по токену, текст комментариев (ревью CR-11)",
+    "b95a08e core: MCP-сервер /mcp по API-токену, viaTokenId в REST (CR-11)"
   ],
   "checks": [
     {
@@ -22,7 +23,7 @@
     },
     {
       "name": "mcp_tests",
-      "value": "13",
+      "value": "14",
       "pass": true
     },
     {
@@ -42,21 +43,16 @@
   "uncertain": [
     {
       "where": "apps/api/test/mcp/bridge.mjs",
-      "why": "vitest запускает node с --conditions source: зависимость SDK eventsource-parser грузится из src/*.ts и падает; клиент SDK вынесен в дочерний node-процесс (vitest.config.ts вне скоупа)",
-      "checked": "13 тестов проходят, клиент — Client + StreamableHTTPClientTransport"
+      "why": "vitest запускает node с --conditions source: eventsource-parser грузится из src/*.ts и падает; клиент SDK вынесен в дочерний node-процесс (vitest.config.ts вне скоупа)",
+      "checked": "14 тестов проходят, Client + StreamableHTTPClientTransport"
     },
     {
       "where": "apps/api/src/mcp/mcp.controller.ts",
-      "why": "enableJsonResponse: true — ответы JSON, не SSE; стриминга нет (stateless, не нужен)",
+      "why": "enableJsonResponse: true — ответы JSON, не SSE",
       "checked": "initialize/tools/list/callTool клиентом SDK"
-    },
-    {
-      "where": "apps/api/src/rest/rest.service.ts searchTasks",
-      "why": "ключ ищется как key||'-'||number подзапросом, без индекса",
-      "checked": "тест по заголовку и ключу, спецсимволы %_ экранируются"
     }
   ],
-  "dp_feedback": "Нет способа сообщить, что нужна правка вне скоупа (vitest.config) без contract; docs index трогает лишний registry/contracts.md — пришлось откатывать.",
-  "t": "2026-10-23T06:36:23",
+  "dp_feedback": "Общий /tmp/claude-0/r.json затёрт соседним исполнителем (отчёт ушёл чужой) — report стоит принимать только свой ID в файле; docs index трогает лишний registry/contracts.md.",
+  "t": "2026-10-23T06:46:22",
   "by": "executor"
 }
