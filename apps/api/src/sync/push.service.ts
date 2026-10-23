@@ -38,7 +38,7 @@ export class PushService {
     @Optional() @Inject(PushQueue) private queue?: PushQueue,
   ) {}
 
-  async push(userId: string, req: SyncPushRequest): Promise<SyncPushResponse> {
+  async push(userId: string, req: SyncPushRequest, tokenId?: string): Promise<SyncPushResponse> {
     // владелец clientId проверяется и при пустой пачке (в one() — под блокировкой строки)
     const [owner] = await this.db
       .select({ userId: clientMutations.userId })
@@ -47,7 +47,7 @@ export class PushService {
     if (owner && owner.userId !== userId)
       throw new ForbiddenException('clientId принадлежит другому пользователю');
     const results: Result[] = [];
-    for (const m of req.mutations) results.push(await this.one(userId, req.clientId, m));
+    for (const m of req.mutations) results.push(await this.one(userId, req.clientId, m, tokenId));
     return { results };
   }
 
@@ -55,6 +55,7 @@ export class PushService {
     userId: string,
     clientId: string,
     m: SyncPushRequest['mutations'][number],
+    tokenId?: string,
   ): Promise<Result> {
     const notified: string[] = [];
     try {
@@ -76,7 +77,7 @@ export class PushService {
         if (!def) throw new Reject('unknown_mutator', `нет мутатора ${m.name}`);
         const args = def.args.safeParse(m.args);
         if (!args.success) throw new Reject('invalid_args', args.error.message);
-        const stx = new ServerTx(tx, { userId });
+        const stx = new ServerTx(tx, { userId, tokenId });
         const now = new Date().toISOString();
         try {
           await def.run(stx, args.data, { userId, now, server: true });

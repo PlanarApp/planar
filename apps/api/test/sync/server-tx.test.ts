@@ -163,6 +163,7 @@ describe('ServerTx: права', () => {
       actorId: user,
       kind: 'created',
       changes: {},
+      viaTokenId: null,
       createdAt: NOW,
     };
     await inTx(async (q) => {

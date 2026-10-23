@@ -1,0 +1,1 @@
+ALTER TABLE "activity" ADD COLUMN "via_token_id" uuid;
