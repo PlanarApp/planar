@@ -1,0 +1,19 @@
+import { FileText } from 'lucide-vue-next';
+import { defineWebModule } from '@planar/web/modules';
+import { pageSearch } from './search';
+import { label } from './text';
+
+export const web = defineWebModule({
+  id: 'docs',
+  routes: [{ path: '/m/docs/:pageId?', component: () => import('./PageScreen.vue') }],
+  nav: [{ id: 'tree', order: 10, section: () => import('./TreeSection.vue') }],
+  taskPanels: [
+    {
+      id: 'pages',
+      label: label('docs'),
+      icon: FileText,
+      component: () => import('./TaskPanel.vue'),
+    },
+  ],
+  search: [pageSearch],
+});
