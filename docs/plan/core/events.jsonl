@@ -259,3 +259,6 @@
 {"t": "2026-10-23T05:30:42", "by": "executor", "task": "CR-7", "ev": "reported", "commits": ["CR-7:", "CR-7:", "CR-7:", "CR-7:", "CR-7:", "CR-7:", "CR-7:", "CR-7:", "CR-7:", "CR-7:"], "note": "done: Хук notificationsHook в транзакции мутации создаёт notifications и taskWatchers (ServerTx.asSystem); pg-boss очередь pu…", "dp_feedback": "Общий scratchpad: r.json перезаписал другой агент; отчёт стоит писать в файл с ID задачи."}
 {"t": "2026-10-23T05:32:25", "by": "coordinator", "task": "CR-1b", "ev": "checked", "note": "4/4 lint=ok:exit 0; testdb=ok:exit 0; stable=ok:stable-ok; no_leak=ok:0"}
 {"t": "2026-10-23T05:33:00", "by": "coordinator", "task": "CR-7", "ev": "accepted", "note": "по ревью; minor (повторный subscribe с другого аккаунта переназначает) — решено оставить"}
+{"t": "2026-10-23T05:33:01", "by": "coordinator", "task": "CR-7", "ev": "merged"}
+{"t": "2026-10-23T05:33:02", "by": "coordinator", "task": "CR-1b", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-23T05:35:18", "by": "coordinator", "task": "CR-1b", "ev": "checked", "note": "1/4 stable=ok:stable-ok"}
