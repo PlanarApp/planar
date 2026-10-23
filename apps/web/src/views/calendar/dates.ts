@@ -22,17 +22,18 @@ export const addMonths = (s: string, n: number): string => {
   const d = parse(s);
   return fmt(new Date(d.getFullYear(), d.getMonth() + n, 1));
 };
-const monday = (s: string) => addDays(s, -((parse(s).getDay() + 6) % 7));
+/** Начало недели: ws 1 — понедельник, 0 — воскресенье. */
+const weekFirst = (s: string, ws: 0 | 1) => addDays(s, -((parse(s).getDay() + 7 - ws) % 7));
 
-export const weekDays = (anchor: string): string[] => {
-  const m = monday(anchor);
+export const weekDays = (anchor: string, ws: 0 | 1 = 1): string[] => {
+  const m = weekFirst(anchor, ws);
   return Array.from({ length: 7 }, (_, i) => addDays(m, i));
 };
-export const monthDays = (anchor: string): string[] => {
+export const monthDays = (anchor: string, ws: 0 | 1 = 1): string[] => {
   const d = parse(anchor);
   const first = fmt(new Date(d.getFullYear(), d.getMonth(), 1));
   const last = fmt(new Date(d.getFullYear(), d.getMonth() + 1, 0));
-  const start = monday(first);
+  const start = weekFirst(first, ws);
   return Array.from({ length: Math.ceil((diffDays(start, last) + 1) / 7) * 7 }, (_, i) =>
     addDays(start, i),
   );

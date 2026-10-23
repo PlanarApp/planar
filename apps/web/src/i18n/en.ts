@@ -134,6 +134,12 @@ export default {
       settings: 'Settings',
     },
   },
+  profile: {
+    weekStart: 'Week starts on',
+    weekAuto: 'Auto (by language)',
+    weekMon: 'Monday',
+    weekSun: 'Sunday',
+  },
   calendar: {
     prev: 'Previous',
     next: 'Next',

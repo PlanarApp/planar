@@ -7,11 +7,25 @@ import { uploadFile } from '../api/files';
 import { useAuth, type User } from '../auth/useAuth';
 import { errText } from '../auth/errText';
 import TokensSection from './profile/TokensSection.vue';
+import { setWeekStart } from '../i18n/week';
 import { setLocale, type Locale } from '../i18n';
 
 const { t, locale } = useI18n();
 const { user } = useAuth();
 const { theme } = useTheme();
+const weekPref = ref(readPref());
+function readPref(): string {
+  try {
+    return localStorage.getItem('planar.weekStart') ?? 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+function onWeek(v: string | null) {
+  if (!v) return;
+  weekPref.value = v;
+  setWeekStart(v === 'auto' ? v : (Number(v) as 0 | 1));
+}
 const f = reactive({ name: user.value?.name ?? '', email: user.value?.email ?? '', password: '' });
 const msg = ref('');
 const err = reactive({ profile: '', password: '', avatar: '' });
@@ -121,6 +135,16 @@ const themes = () => [
           { value: 'en', label: 'English' },
         ]"
         @update:model-value="(v) => setLocale(v as Locale)"
+      />
+      <Select
+        :model-value="weekPref"
+        :label="t('profile.weekStart')"
+        :options="[
+          { value: 'auto', label: t('profile.weekAuto') },
+          { value: '1', label: t('profile.weekMon') },
+          { value: '0', label: t('profile.weekSun') },
+        ]"
+        @update:model-value="onWeek"
       />
     </div>
     <TokensSection />
