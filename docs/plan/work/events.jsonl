@@ -133,3 +133,8 @@
 {"t": "2026-10-23T17:01:59", "by": "coordinator", "task": "WK-11", "ev": "checked", "note": "5/5 install=ok:exit 0; build=ok:exit 0; wk11=ok:3; sprints=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-23T17:02:00", "by": "coordinator", "task": "WK-11", "ev": "accepted", "note": "по отчёту; тест гонки 3 клиента + cron ×5"}
 {"t": "2026-10-23T17:02:00", "by": "coordinator", "task": "WK-13", "ev": "merged"}
+{"t": "2026-10-23T17:02:01", "by": "coordinator", "task": "WK-11", "ev": "merged"}
+{"t": "2026-10-23T17:08:33", "by": "executor", "task": "WK-4", "ev": "reported", "commits": ["8c47531"], "note": "done: Вебхуки: /api/webhooks/* (admin, sessionOnly), доставка с повторами 60·2^(n-1) с, HMAC, SSRF-защита, afterMutation→enqu…", "dp_feedback": "Имена job в кэше общие между копиями (чужой лог t2): нужен префикс по ID задачи. Параллельные accept перезапускают общую planar-testdb и роняют друг друга."}
+{"t": "2026-10-23T17:12:08", "by": "coordinator", "task": "WK-6", "ev": "checked", "note": "12/12 install=ok:exit 0; build=ok:exit 0; typecheck-web=ok:exit 0; size=ok:145.8; test-all=ok:exit 0; test-web=ok:exit 0; wk6-api=ok:18; wk6-web=ok:3; contract-work=ok:9; migrations-linear=ok:0; lint=ok:exit 0; fixtures=ok:5"}
+{"t": "2026-10-23T17:12:26", "by": "reviewer", "task": "WK-4", "ev": "reviewed", "note": "Контракт §Модуль webhooks выполнен: таблицы и миграция 0010 линейны, REST под /api/webhooks с requireInstanceAdmin sessionOnly, подпись совпадает с эталоном, г…", "verdict": "accept", "issues": {"minor": 3}, "review": "docs/plan/work/tasks/WK-4.review.json"}
+{"t": "2026-10-23T17:12:58", "by": "coordinator", "task": "WK-4", "ev": "accepted", "note": "по ревью (accept --dry 11/11 на 8c47531); minor 1 → WK-12, 2 → контракт поправлен, 3 → WK-12"}
