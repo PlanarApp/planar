@@ -30,5 +30,14 @@ router.beforeEach(async (to) => {
     return (await setupNeeded()) ? '/setup' : { path: '/login', query: { redirect: to.fullPath } };
   }
   if (to.name === 'login' || to.name === 'setup') return '/';
+  if (to.name === 'module') {
+    // маршруты модуля добавляются лениво — дождаться и повторить навигацию
+    const { ensureModule } = await import('./modules/registry');
+    if (
+      (await ensureModule(String(to.params.moduleId))) &&
+      router.resolve(to.fullPath).name !== 'module'
+    )
+      return { path: to.fullPath, replace: true };
+  }
   return true;
 });
