@@ -65,11 +65,6 @@
       "expect": "tests"
     },
     {
-      "name": "sdk-only",
-      "cmd": "! grep -rnE \"@planar/web/(?!modules)|apps/web\" -P modules/chat/web --include=*.ts --include=*.vue",
-      "expect": "exit=0"
-    },
-    {
       "name": "size",
       "cmd": "pnpm --filter @planar/web build >/dev/null && node apps/web/scripts/size.mjs",
       "expect": "num:initial gzip ([\\d.]+) KB <=152"
@@ -83,9 +78,15 @@
       "name": "lint",
       "cmd": "pnpm lint",
       "expect": "exit=0"
+    },
+    {
+      "name": "sdk-only",
+      "cmd": "grep -rnP '@planar/web/(?!modules)|apps/web' modules/chat/web --include=*.ts --include=*.vue; test $? -eq 1",
+      "expect": "exit=0"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-23T17:04:41"
+  "created": "2026-10-23T17:04:41",
+  "edited": "2026-10-23T17:04:52"
 }
