@@ -39,7 +39,7 @@ export default defineConfig({
   ],
   resolve: {
     conditions: ['source'],
-    // vue-i18n весит ~50 КБ gzip в начальном бандле (WB-13); тесты берут настоящий vue-i18n.
+    // vue-i18n весит ~50 КБ gzip в начальном бандле (WB-13); vitest.config.ts — тот же alias, прод и тесты на одной реализации.
     alias: { 'vue-i18n': fileURLToPath(new URL('./src/i18n/lite.ts', import.meta.url)) },
   },
   server: {
