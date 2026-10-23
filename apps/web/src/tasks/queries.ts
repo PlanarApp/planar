@@ -1,8 +1,11 @@
 import { liveQuery, type Subscription } from 'dexie';
-import { getCurrentScope, onScopeDispose, readonly, shallowRef, toValue, watch } from 'vue';
+import { getCurrentScope, onScopeDispose, shallowRef, toValue, watch, type WatchHandle } from 'vue';
 import type { MaybeRefOrGetter, Ref } from 'vue';
 import type { Row } from '@planar/shared';
 import { db, useQuery } from '../sync';
+import { readLinks } from './projection';
+
+export { prefetchIdle, prefetchProject, useProjectTasks } from './projection';
 
 export type TaskView = Row<'tasks'> & { key: string; assigneeIds: string[]; labelIds: string[] };
 
@@ -27,7 +30,7 @@ function useLive<A, T>(arg: () => A, fn: (a: A) => T | Promise<T>): Readonly<Ref
     { immediate: true, flush: 'sync' },
   );
   if (getCurrentScope()) onScopeDispose(() => sub?.unsubscribe());
-  return readonly(r) as Readonly<Ref<T | undefined>>;
+  return r; // без readonly(): он оборачивает каждый элемент в Proxy
 }
 
 const group = (rows: { taskId: string }[], val: (r: never) => string) => {
@@ -43,16 +46,9 @@ const group = (rows: { taskId: string }[], val: (r: never) => string) => {
 async function views(tasks: Row<'tasks'>[], projectKey: Map<string, string>): Promise<TaskView[]> {
   const ids = tasks.map((t) => t.id);
   // одним запросом на все задачи, не по задаче в цикле
-  const links = <R extends { taskId: string }>(table: string): Promise<R[]> => {
-    const t = db.table<R>(table);
-    if (ids.length <= 500) return t.where('taskId').anyOf(ids).toArray();
-    // shortcut: на тысячах задач 10 000 точечных запросов по индексу медленнее скана таблицы
-    const set = new Set(ids);
-    return t.filter((r) => set.has(r.taskId)).toArray();
-  };
   const [as, ls] = await Promise.all([
-    links<Row<'taskAssignees'>>('taskAssignees'),
-    links<Row<'taskLabels'>>('taskLabels'),
+    readLinks<Row<'taskAssignees'>>('taskAssignees', ids),
+    readLinks<Row<'taskLabels'>>('taskLabels', ids),
   ]);
   const am = group(as, (r: Row<'taskAssignees'>) => r.userId);
   const lm = group(ls, (r: Row<'taskLabels'>) => r.labelId);
@@ -83,8 +79,54 @@ export const useProject = (id: MaybeRefOrGetter<string>) =>
     async (i) => (await db.table<Row<'projects'>>('projects').get(i)) ?? null,
   );
 
+/**
+ * Справочники пространства (статусы, метки, участники): один liveQuery на (вид, spaceId) на всех подписчиков,
+ * а не по запросу на каждый пикер в каждой строке.
+ */
+const shared = new Map<string, { r: Ref<unknown>; sub: Subscription; n: number }>();
+function useShared<T>(kind: string, arg: () => string, fn: (a: string) => Promise<T>) {
+  const out = shallowRef<T>();
+  let key = '';
+  let follow: WatchHandle | undefined;
+  const release = () => {
+    follow?.stop();
+    const x = shared.get(key);
+    if (x && --x.n === 0) {
+      x.sub.unsubscribe();
+      shared.delete(key);
+    }
+  };
+  const stop = watch(
+    arg,
+    (a) => {
+      if (key) release();
+      key = kind + a;
+      let x = shared.get(key);
+      if (!x) {
+        const r = shallowRef<T>();
+        const sub = liveQuery(() => fn(a)).subscribe({
+          next: (v) => (r.value = v),
+          error: () => {},
+        });
+        shared.set(key, (x = { r, sub, n: 0 }));
+      }
+      x.n++;
+      out.value = x.r.value as T;
+      follow = watch(x.r, (v) => (out.value = v as T), { flush: 'sync' });
+    },
+    { immediate: true, flush: 'sync' },
+  );
+  if (getCurrentScope())
+    onScopeDispose(() => {
+      stop();
+      release();
+    });
+  return out as Readonly<Ref<T | undefined>>;
+}
+
 export const useStatuses = (spaceId: MaybeRefOrGetter<string>) =>
-  useLive(
+  useShared(
+    'st',
     () => toValue(spaceId),
     async (s) =>
       (await db.table<Row<'statuses'>>('statuses').where('spaceId').equals(s).toArray()).sort(
@@ -93,7 +135,8 @@ export const useStatuses = (spaceId: MaybeRefOrGetter<string>) =>
   );
 
 export const useLabels = (spaceId: MaybeRefOrGetter<string>) =>
-  useLive(
+  useShared(
+    'lb',
     () => toValue(spaceId),
     async (s) =>
       (await db.table<Row<'labels'>>('labels').where('spaceId').equals(s).toArray()).sort(
@@ -102,7 +145,8 @@ export const useLabels = (spaceId: MaybeRefOrGetter<string>) =>
   );
 
 export const useMembers = (spaceId: MaybeRefOrGetter<string>) =>
-  useLive(
+  useShared(
+    'mb',
     () => toValue(spaceId),
     async (s) => {
       const ms = await db
@@ -114,18 +158,6 @@ export const useMembers = (spaceId: MaybeRefOrGetter<string>) =>
       return us
         .filter((u): u is Row<'users'> => !!u && !u.deactivatedAt)
         .sort((a, b) => a.name.localeCompare(b.name));
-    },
-  );
-
-export const useProjectTasks = (projectId: MaybeRefOrGetter<string>) =>
-  useLive(
-    () => toValue(projectId),
-    async (pid) => {
-      const [project, tasks] = await Promise.all([
-        db.table<Row<'projects'>>('projects').get(pid),
-        db.table<Row<'tasks'>>('tasks').where('projectId').equals(pid).toArray(),
-      ]);
-      return views(tasks, new Map(project ? [[pid, project.key]] : []));
     },
   );
 

@@ -15,7 +15,10 @@ export const {
   syncState,
   onMutationError,
   onUnauthorized,
+  onReplicaChange,
+  replicaState,
 } = client;
 export { useQuery } from './query';
 export const newId = (): string => uuidv7();
 export const rankBetween = (a: string | null, b: string | null): string => generateKeyBetween(a, b);
+export type { ReplicaChange } from './db';
