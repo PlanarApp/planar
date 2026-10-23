@@ -101,6 +101,8 @@ describe('notification/view/settings', () => {
     spaceId,
     kind: 'assigned' as const,
     taskId,
+    url: null,
+    body: null,
     commentId: null,
     actorId: U2,
     readAt: null,

@@ -12,6 +12,8 @@ import { getAuth } from '../auth/auth.js';
 import { HttpError } from '../auth/errors.js';
 import type { Db } from '../db/index.js';
 import { attachments, fileUploads, files, spaceMembers, users } from '../db/schema.js';
+import { enabledModules } from '../modules/enabled.js';
+import { installed } from '../modules/installed.js';
 import { DB } from '../tokens.js';
 
 export const FILES_OPTS = Symbol('FILES_OPTS');
@@ -126,8 +128,19 @@ export class FilesController {
   /** Строка files, если файл существует и пользователь вправе его видеть; иначе 404. */
   private async accessible(sha: string, userId: string) {
     if (!SHA.test(sha)) throw notFound();
-    const [row] = await this.db
-      .select()
+    const [row] = await this.db.select().from(files).where(eq(files.sha256, sha));
+    if (!row) throw notFound();
+    if (await this.builtinAccess(sha, userId)) return row;
+    // модули (collab X-core п. 4): true любого включённого — отдать
+    const on = await enabledModules(this.db);
+    for (const m of installed)
+      if (on.has(m.api.id) && (await m.api.canReadFile?.(this.db, userId, sha))) return row;
+    throw notFound();
+  }
+
+  private async builtinAccess(sha: string, userId: string): Promise<boolean> {
+    const [ok] = await this.db
+      .select({ x: files.sha256 })
       .from(files)
       .where(
         and(
@@ -150,8 +163,7 @@ export class FilesController {
           ),
         ),
       );
-    if (!row) throw notFound();
-    return row;
+    return !!ok;
   }
 
   @Get(':sha256')

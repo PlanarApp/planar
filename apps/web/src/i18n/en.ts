@@ -65,6 +65,9 @@ export default {
       mentioned: '{who} mentioned you in {key}',
       commented: '{who} commented on {key}',
       status_changed: '{who} changed the status of {key}',
+      chat_mention: '{who} mentioned you in chat',
+      chat_dm: 'Direct message from {who}',
+      chat_reply: '{who} replied in a thread',
     },
     myEmpty: 'No assigned tasks',
     my: {

@@ -8,6 +8,7 @@ import {
   syncPushResponseSchema,
   uuidv7,
   wsServerSchema,
+  wsTypingServerSchema,
   type MutatorCtx,
   type MutatorDef,
 } from '@planar/shared';
@@ -19,6 +20,11 @@ export interface StartOpts {
   baseUrl?: string;
   fetch?: typeof fetch;
   WebSocket?: typeof WebSocket;
+}
+export interface TypingEvent {
+  entity: string;
+  id: string;
+  userId: string;
 }
 export type SyncStatus = 'idle' | 'bootstrapping' | 'online' | 'offline' | 'error';
 export interface MutationErrorInfo {
@@ -106,6 +112,7 @@ export function createClient(db: PlanarDB) {
   const errorCbs = new Set<(e: MutationErrorInfo) => void>();
   const authCbs = new Set<() => void>();
   const replicaCbs = new Set<(b: ReplicaChange[]) => void>();
+  const typingCbs = new Set<(e: TypingEvent) => void>();
   const replicaState = ref<ReplicaState>('empty');
   // другие вкладки: те же пачки; db.name — чтобы клиенты разных баз (тесты) не слышали друг друга
   const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(CHANNEL);
@@ -387,7 +394,14 @@ export function createClient(db: PlanarDB) {
     s.onmessage = (ev) => {
       let m;
       try {
-        m = wsServerSchema.safeParse(JSON.parse(String(ev.data)));
+        const json = JSON.parse(String(ev.data));
+        const ty = wsTypingServerSchema.safeParse(json);
+        if (ty.success) {
+          const { entity, id, userId } = ty.data;
+          for (const cb of [...typingCbs]) cb({ entity, id, userId });
+          return;
+        }
+        m = wsServerSchema.safeParse(json);
       } catch {
         return;
       }
@@ -525,6 +539,18 @@ export function createClient(db: PlanarDB) {
     onReplicaChange(cb: (batch: ReplicaChange[]) => void) {
       replicaCbs.add(cb);
       return () => void replicaCbs.delete(cb);
+    },
+    /** «Печатает…» (C-sync v2): WS не открыт — ничего. */
+    sendTyping(entity: string, id: string): void {
+      try {
+        ws?.send(JSON.stringify({ t: 'typing', entity, id }));
+      } catch {
+        // соединение ещё открывается/закрыто — эфемерное сообщение не нужно
+      }
+    },
+    onTyping(cb: (e: TypingEvent) => void) {
+      typingCbs.add(cb);
+      return () => void typingCbs.delete(cb);
     },
     onMutationError(cb: (e: MutationErrorInfo) => void) {
       errorCbs.add(cb);

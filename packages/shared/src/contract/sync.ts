@@ -56,6 +56,13 @@ export const syncPushResponseSchema = z.object({
 
 export const wsServerSchema = z.object({ t: z.literal('poke'), seq: int });
 export const wsClientSchema = z.object({ t: z.literal('hello'), cursor: int });
+/** «Печатает…» (C-sync v2): клиент → сервер и сервер → клиенты. */
+export const wsTypingClientSchema = z.object({
+  t: z.literal('typing'),
+  entity: z.string().min(1),
+  id: z.string().min(1),
+});
+export const wsTypingServerSchema = wsTypingClientSchema.extend({ userId: z.string() });
 
 export type SyncBootstrap = z.infer<typeof syncBootstrapSchema>;
 export type SyncPull = z.infer<typeof syncPullSchema>;

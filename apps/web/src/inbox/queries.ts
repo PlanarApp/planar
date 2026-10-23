@@ -13,7 +13,9 @@ export const useNotifications = () =>
   useQuery(async (): Promise<InboxItem[]> => {
     const ns = await db.table<Row<'notifications'>>('notifications').toArray();
     const [tasks, users] = await Promise.all([
-      db.table<Row<'tasks'>>('tasks').bulkGet([...new Set(ns.map((n) => n.taskId))]),
+      db
+        .table<Row<'tasks'>>('tasks')
+        .bulkGet([...new Set(ns.flatMap((n) => (n.taskId ? [n.taskId] : [])))]),
       db.table<Row<'users'>>('users').bulkGet([...new Set(ns.map((n) => n.actorId))]),
     ]);
     const projects = await db
@@ -25,12 +27,13 @@ export const useNotifications = () =>
     return ns
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
       .map((n) => {
-        const t = task.get(n.taskId);
+        const t = n.taskId ? task.get(n.taskId) : undefined;
         return {
           ...n,
           actorName: user.get(n.actorId) ?? '?',
           taskKey: t ? `${proj.get(t.projectId) ?? '?'}-${t.number ?? '…'}` : null,
-          taskTitle: t?.title ?? '',
+          // уведомление без задачи (chat_*): вместо названия — body
+          taskTitle: t?.title ?? (n.taskId ? '' : (n.body ?? '')),
         };
       });
   });

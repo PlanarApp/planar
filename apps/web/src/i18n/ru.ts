@@ -65,6 +65,9 @@ export default {
       mentioned: '{who} упомянул(а) вас в {key}',
       commented: '{who} прокомментировал(а) {key}',
       status_changed: '{who} изменил(а) статус {key}',
+      chat_mention: '{who} упомянул(а) вас в чате',
+      chat_dm: 'Личное сообщение от {who}',
+      chat_reply: '{who} ответил(а) в треде',
     },
     myEmpty: 'Нет назначенных задач',
     my: {

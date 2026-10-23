@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import type { RouteLocationNormalizedLoaded, RouteRecordRaw } from 'vue-router';
+import type { RouteLocationNormalizedLoaded, RouteLocationRaw, RouteRecordRaw } from 'vue-router';
 import type { FrontendModuleManifest } from '@planar/shared';
 
 export const EXTENSION_KINDS = [
@@ -11,6 +11,7 @@ export const EXTENSION_KINDS = [
   'settings',
   'nav',
   'topbar',
+  'search',
 ] as const;
 export type ExtensionKind = (typeof EXTENSION_KINDS)[number];
 
@@ -71,6 +72,20 @@ export interface TopbarItemDef {
   order?: number;
 }
 
+export interface SearchHit {
+  id: string;
+  title: string;
+  subtitle?: string;
+  icon?: Component;
+  to: RouteLocationRaw;
+}
+/** Поиск Cmd+K по данным модуля (локальная реплика); палитра ждёт не дольше своего debounce. */
+export interface SearchProviderDef {
+  id: string;
+  label: LocalizedText;
+  search(q: string, limit: number): Promise<SearchHit[]>;
+}
+
 export interface WebModuleManifest extends FrontendModuleManifest {
   routes?: RouteRecordRaw[];
   views?: ViewDef[];
@@ -80,6 +95,7 @@ export interface WebModuleManifest extends FrontendModuleManifest {
   settings?: SettingsPageDef[];
   nav?: NavItemDef[];
   topbar?: TopbarItemDef[];
+  search?: SearchProviderDef[];
 }
 
 export const defineWebModule = (m: WebModuleManifest): WebModuleManifest => m;

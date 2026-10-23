@@ -53,6 +53,8 @@ describe('видимость', () => {
       spaceId: w.spaceId,
       kind: 'assigned' as const,
       taskId: uuidv7(),
+      url: null,
+      body: null,
       commentId: null,
       actorId: w.admin.userId,
       readAt: null,

@@ -376,9 +376,11 @@ export const notifications = pgTable(
   {
     id: id(),
     userId: userRef().notNull(),
-    spaceId: spaceId(),
+    spaceId: uuid().references(() => spaces.id),
     kind: text().notNull(),
-    taskId: uuid().notNull(),
+    taskId: uuid(),
+    url: text(),
+    body: text(),
     commentId: uuid(),
     actorId: userRef().notNull(),
     readAt: ts(),
@@ -389,7 +391,15 @@ export const notifications = pgTable(
     index().on(t.userId, t.createdAt),
     check(
       'notifications_kind_check',
-      inList(t.kind, ['assigned', 'mentioned', 'commented', 'status_changed']),
+      inList(t.kind, [
+        'assigned',
+        'mentioned',
+        'commented',
+        'status_changed',
+        'chat_mention',
+        'chat_dm',
+        'chat_reply',
+      ]),
     ),
   ],
 );
