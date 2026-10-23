@@ -1,0 +1,45 @@
+{
+ "counts": {
+  "big": 3334,
+  "other": 3333,
+  "total": 10000
+ },
+ "tasks": {
+  "rows": 10000,
+  "avg_json_bytes": 501,
+  "getAll_ms": 173.8
+ },
+ "taskAssignees": {
+  "rows": 10000,
+  "avg_json_bytes": 230,
+  "getAll_ms": 138.4
+ },
+ "taskLabels": {
+  "rows": 3334,
+  "avg_json_bytes": 231,
+  "getAll_ms": 47.3
+ },
+ "statuses": {
+  "rows": 10,
+  "avg_json_bytes": 241,
+  "getAll_ms": 0.8
+ },
+ "users": {
+  "rows": 3,
+  "avg_json_bytes": 222,
+  "getAll_ms": 0.6
+ },
+ "tasks_by_project_index_ms": 61.6,
+ "assignees_cursor_ms": 262.9,
+ "three_tables_parallel_ms": 297.8,
+ "put_2000_tasks_ms": 193.7,
+ "put_2000_tasks_cached_clone_ms": 193.7,
+ "write_10000_tasks_with_indexes_ms": 858,
+ "write_10000_tasks_no_indexes_ms": 557,
+ "task_indexes": [
+  "parentId",
+  "projectId",
+  "spaceId",
+  "statusId"
+ ]
+}

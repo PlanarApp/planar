@@ -1,0 +1,13 @@
+diff --git a/apps/web/src/views/list/View.vue b/apps/web/src/views/list/View.vue
+index 92f4a8d..7ae597e 100644
+--- a/apps/web/src/views/list/View.vue
++++ b/apps/web/src/views/list/View.vue
+@@ -82,7 +82,7 @@ const virt = useVirtualizer(
+     count: items.value.length,
+     getScrollElement: () => scroller.value ?? null,
+     estimateSize: () => rowH.value,
+-    overscan: 8,
++    overscan: 3, // P13: было 8
+     getItemKey: (i: number) => items.value[i]?.id ?? i,
+   })),
+ );

@@ -1,0 +1,11744 @@
+{
+ "counts": {
+  "big": 3334,
+  "other": 3333,
+  "total": 10000
+ },
+ "p95": 787.9000000953674,
+ "ms": [
+  787.9000000953674,
+  665.3000001907349,
+  680.4000000953674,
+  750.7999997138977,
+  634.7999997138977,
+  707.5999999046326,
+  658,
+  661,
+  697,
+  638.5
+ ],
+ "runs": [
+  {
+   "to": "other",
+   "ms": 787.9000000953674,
+   "ev": [
+    {
+     "k": "click",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 21.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 41.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 41.6,
+     "ops": {},
+     "t1": 44.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 41.9,
+     "ops": {},
+     "t1": 44.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 42.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 133
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 42.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 133.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 42.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 133.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 42.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 133.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 43,
+     "ops": {
+      "get": 1
+     },
+     "t1": 133.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 43.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 133.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 44.9,
+     "ops": {},
+     "t1": 133.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 45.6,
+     "ops": {},
+     "t1": 133.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 46,
+     "ops": {},
+     "t1": 133.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 46.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 135
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 46.5,
+     "ops": {},
+     "t1": 133.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 132.2,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 831.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 132.7,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 340.6
+    },
+    {
+     "k": "dom",
+     "t": 787.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 801.2,
+     "ops": {},
+     "t1": 831.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 801.6,
+     "ops": {},
+     "t1": 831.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 801.8,
+     "ops": {},
+     "t1": 831.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 801.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 845.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 802.1,
+     "ops": {},
+     "t1": 832
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 802.4,
+     "ops": {},
+     "t1": 832
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 802.6,
+     "ops": {},
+     "t1": 832.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 802.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 845.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 803,
+     "ops": {},
+     "t1": 832.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 803.2,
+     "ops": {},
+     "t1": 832.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 803.5,
+     "ops": {},
+     "t1": 832.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 803.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 846.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 803.8,
+     "ops": {},
+     "t1": 832.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 804.1,
+     "ops": {},
+     "t1": 832.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 804.4,
+     "ops": {},
+     "t1": 832.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 804.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 846.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 804.8,
+     "ops": {},
+     "t1": 833
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 805,
+     "ops": {},
+     "t1": 833
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 805.2,
+     "ops": {},
+     "t1": 833.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 805.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 847
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 805.6,
+     "ops": {},
+     "t1": 833.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 805.8,
+     "ops": {},
+     "t1": 833.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 806.1,
+     "ops": {},
+     "t1": 833.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 806.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 847.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 806.4,
+     "ops": {},
+     "t1": 833.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 806.7,
+     "ops": {},
+     "t1": 833.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 807,
+     "ops": {},
+     "t1": 833.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 807.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 847.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 807.4,
+     "ops": {},
+     "t1": 833.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 807.7,
+     "ops": {},
+     "t1": 833.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 807.9,
+     "ops": {},
+     "t1": 834
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 808,
+     "ops": {
+      "get": 3
+     },
+     "t1": 848.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 808.2,
+     "ops": {},
+     "t1": 834.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 808.5,
+     "ops": {},
+     "t1": 834.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 808.7,
+     "ops": {},
+     "t1": 834.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 808.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 848.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 809.1,
+     "ops": {},
+     "t1": 834.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 809.3,
+     "ops": {},
+     "t1": 834.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 809.6,
+     "ops": {},
+     "t1": 834.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 809.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 849.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 809.9,
+     "ops": {},
+     "t1": 834.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 810.2,
+     "ops": {},
+     "t1": 834.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 810.4,
+     "ops": {},
+     "t1": 834.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 810.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 849.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 810.7,
+     "ops": {},
+     "t1": 835
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 811,
+     "ops": {},
+     "t1": 835.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 811.3,
+     "ops": {},
+     "t1": 835.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 811.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 850.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 811.8,
+     "ops": {},
+     "t1": 835.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 812.2,
+     "ops": {},
+     "t1": 835.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 812.5,
+     "ops": {},
+     "t1": 835.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 812.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 850.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 813.1,
+     "ops": {},
+     "t1": 835.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 813.2,
+     "ops": {},
+     "t1": 835.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 813.5,
+     "ops": {},
+     "t1": 835.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 813.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 850.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 813.9,
+     "ops": {},
+     "t1": 835.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 814.1,
+     "ops": {},
+     "t1": 835.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 814.3,
+     "ops": {},
+     "t1": 836.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 814.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 851.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 814.7,
+     "ops": {},
+     "t1": 836.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 814.9,
+     "ops": {},
+     "t1": 836.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 815.2,
+     "ops": {},
+     "t1": 836.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 815.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 851.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 815.5,
+     "ops": {},
+     "t1": 836.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 815.8,
+     "ops": {},
+     "t1": 836.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 816,
+     "ops": {},
+     "t1": 836.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 816.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 852.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 816.4,
+     "ops": {},
+     "t1": 836.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 816.7,
+     "ops": {},
+     "t1": 836.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 816.9,
+     "ops": {},
+     "t1": 837
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 817,
+     "ops": {
+      "get": 3
+     },
+     "t1": 852.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 817.3,
+     "ops": {},
+     "t1": 837.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 817.6,
+     "ops": {},
+     "t1": 837.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 817.8,
+     "ops": {},
+     "t1": 837.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 817.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 852.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 818.2,
+     "ops": {},
+     "t1": 837.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 818.4,
+     "ops": {},
+     "t1": 837.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 818.7,
+     "ops": {},
+     "t1": 837.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 818.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 853.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 819,
+     "ops": {},
+     "t1": 837.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 819.3,
+     "ops": {},
+     "t1": 837.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 819.6,
+     "ops": {},
+     "t1": 837.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 819.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 853.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 819.9,
+     "ops": {},
+     "t1": 838
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 820.2,
+     "ops": {},
+     "t1": 838
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 820.5,
+     "ops": {},
+     "t1": 838.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 820.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 854.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 820.9,
+     "ops": {},
+     "t1": 838.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 821.1,
+     "ops": {},
+     "t1": 838.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 821.4,
+     "ops": {},
+     "t1": 844.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 821.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 859.9
+    },
+    {
+     "k": "loaf",
+     "t0": 635.2,
+     "dur": 163,
+     "block": 112.9,
+     "rs": 7343.799999713898,
+     "sl": 7353.5,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       153.1,
+       "useAuth-CjcvDAXH.js",
+       7191
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "to": "big",
+   "ms": 665.3000001907349,
+   "ev": [
+    {
+     "k": "click",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 17.6,
+     "ops": {
+      "get": 1
+     },
+     "t1": 36.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 37.9,
+     "ops": {},
+     "t1": 54.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 38.2,
+     "ops": {},
+     "t1": 54.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 38.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 56.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 38.6,
+     "ops": {},
+     "t1": 54.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 39,
+     "ops": {},
+     "t1": 54.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 39.1,
+     "ops": {},
+     "t1": 54.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 39.5,
+     "ops": {},
+     "t1": 54.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 39.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 57.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 40,
+     "ops": {},
+     "t1": 55.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 55.1,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 706.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 55.4,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 286.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 56.3,
+     "ops": {},
+     "t1": 59.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 56.5,
+     "ops": {},
+     "t1": 60
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 56.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 63.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 57,
+     "ops": {},
+     "t1": 60.1
+    },
+    {
+     "k": "dom",
+     "t": 665.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 677,
+     "ops": {},
+     "t1": 706.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 677.3,
+     "ops": {},
+     "t1": 706.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 677.7,
+     "ops": {},
+     "t1": 706.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 677.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 719.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 678,
+     "ops": {},
+     "t1": 706.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 678.2,
+     "ops": {},
+     "t1": 706.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 678.4,
+     "ops": {},
+     "t1": 706.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 678.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 720.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 678.8,
+     "ops": {},
+     "t1": 706.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 679.1,
+     "ops": {},
+     "t1": 706.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 679.3,
+     "ops": {},
+     "t1": 706.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 679.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 720.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 679.7,
+     "ops": {},
+     "t1": 707.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 679.9,
+     "ops": {},
+     "t1": 707.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 680.1,
+     "ops": {},
+     "t1": 707.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 680.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 721.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 680.5,
+     "ops": {},
+     "t1": 707.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 680.8,
+     "ops": {},
+     "t1": 707.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 681,
+     "ops": {},
+     "t1": 707.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 681,
+     "ops": {
+      "get": 3
+     },
+     "t1": 721.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 681.3,
+     "ops": {},
+     "t1": 707.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 681.6,
+     "ops": {},
+     "t1": 707.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 681.9,
+     "ops": {},
+     "t1": 707.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 682,
+     "ops": {
+      "get": 3
+     },
+     "t1": 723.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 682.2,
+     "ops": {},
+     "t1": 707.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 682.5,
+     "ops": {},
+     "t1": 707.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 682.7,
+     "ops": {},
+     "t1": 708.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 682.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 723.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 683,
+     "ops": {},
+     "t1": 708.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 683.2,
+     "ops": {},
+     "t1": 708.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 683.5,
+     "ops": {},
+     "t1": 708.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 683.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 723.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 683.8,
+     "ops": {},
+     "t1": 708.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 684.1,
+     "ops": {},
+     "t1": 708.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 684.4,
+     "ops": {},
+     "t1": 708.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 684.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 724.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 684.8,
+     "ops": {},
+     "t1": 708.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 685,
+     "ops": {},
+     "t1": 708.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 685.2,
+     "ops": {},
+     "t1": 708.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 685.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 724.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 685.6,
+     "ops": {},
+     "t1": 709
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 685.9,
+     "ops": {},
+     "t1": 709.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 686.1,
+     "ops": {},
+     "t1": 709.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 686.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 725
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 686.5,
+     "ops": {},
+     "t1": 709.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 686.7,
+     "ops": {},
+     "t1": 709.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 687,
+     "ops": {},
+     "t1": 709.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 687.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 725.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 687.3,
+     "ops": {},
+     "t1": 709.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 687.5,
+     "ops": {},
+     "t1": 709.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 687.7,
+     "ops": {},
+     "t1": 709.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 687.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 725.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 688.2,
+     "ops": {},
+     "t1": 709.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 688.4,
+     "ops": {},
+     "t1": 709.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 688.6,
+     "ops": {},
+     "t1": 710
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 688.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 726.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 688.9,
+     "ops": {},
+     "t1": 710.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 689.2,
+     "ops": {},
+     "t1": 710.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 689.3,
+     "ops": {},
+     "t1": 710.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 689.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 726.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 689.7,
+     "ops": {},
+     "t1": 710.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 690,
+     "ops": {},
+     "t1": 710.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 690.3,
+     "ops": {},
+     "t1": 710.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 690.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 727
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 690.7,
+     "ops": {},
+     "t1": 710.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 690.9,
+     "ops": {},
+     "t1": 710.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 691.1,
+     "ops": {},
+     "t1": 710.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 691.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 727.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 691.5,
+     "ops": {},
+     "t1": 711
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 691.7,
+     "ops": {},
+     "t1": 711
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 691.9,
+     "ops": {},
+     "t1": 711.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 692.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 728
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 692.3,
+     "ops": {},
+     "t1": 711.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 692.5,
+     "ops": {},
+     "t1": 711.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 692.7,
+     "ops": {},
+     "t1": 711.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 692.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 728.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 693.1,
+     "ops": {},
+     "t1": 711.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 693.3,
+     "ops": {},
+     "t1": 711.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 693.5,
+     "ops": {},
+     "t1": 711.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 693.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 729
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 693.9,
+     "ops": {},
+     "t1": 711.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 694.1,
+     "ops": {},
+     "t1": 711.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 694.3,
+     "ops": {},
+     "t1": 712.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 694.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 729.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 694.6,
+     "ops": {},
+     "t1": 712.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 694.9,
+     "ops": {},
+     "t1": 712.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 695.1,
+     "ops": {},
+     "t1": 712.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 695.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 729.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 695.5,
+     "ops": {},
+     "t1": 712.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 695.7,
+     "ops": {},
+     "t1": 712.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 696,
+     "ops": {},
+     "t1": 719.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 696.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 730.5
+    },
+    {
+     "k": "loaf",
+     "t0": 546.3,
+     "dur": 127.69999980926514,
+     "block": 77.6,
+     "rs": 9534.599999904633,
+     "sl": 9542.89999961853,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       119.2,
+       "useAuth-CjcvDAXH.js",
+       9415
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "to": "other",
+   "ms": 680.4000000953674,
+   "ev": [
+    {
+     "k": "click",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 15.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 32.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 34.4,
+     "ops": {},
+     "t1": 50.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 34.7,
+     "ops": {},
+     "t1": 50.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 34.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 52.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 35.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 52.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 35.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 52.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 35.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 52.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 35.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 53.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 35.9,
+     "ops": {},
+     "t1": 52.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 50.9,
+     "ops": {},
+     "t1": 52.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 51.6,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 723.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 52,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 258.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 52.7,
+     "ops": {},
+     "t1": 56
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 53,
+     "ops": {},
+     "t1": 56.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 53.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 59.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 53.3,
+     "ops": {},
+     "t1": 56.3
+    },
+    {
+     "k": "dom",
+     "t": 680.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 693,
+     "ops": {},
+     "t1": 723.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 693.3,
+     "ops": {},
+     "t1": 723.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 693.6,
+     "ops": {},
+     "t1": 723.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 693.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 731.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 694,
+     "ops": {},
+     "t1": 723.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 694.3,
+     "ops": {},
+     "t1": 723.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 694.5,
+     "ops": {},
+     "t1": 723.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 694.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 731.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 694.9,
+     "ops": {},
+     "t1": 723.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 695.2,
+     "ops": {},
+     "t1": 723.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 695.4,
+     "ops": {},
+     "t1": 724.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 695.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 731.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 695.8,
+     "ops": {},
+     "t1": 724.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 696.1,
+     "ops": {},
+     "t1": 724.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 696.3,
+     "ops": {},
+     "t1": 724.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 696.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 732.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 696.7,
+     "ops": {},
+     "t1": 724.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 697,
+     "ops": {},
+     "t1": 724.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 697.2,
+     "ops": {},
+     "t1": 724.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 697.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 732.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 697.6,
+     "ops": {},
+     "t1": 724.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 697.8,
+     "ops": {},
+     "t1": 724.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 698.1,
+     "ops": {},
+     "t1": 725
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 698.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 733
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 698.5,
+     "ops": {},
+     "t1": 725.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 698.7,
+     "ops": {},
+     "t1": 725.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 698.9,
+     "ops": {},
+     "t1": 725.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 699.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 733.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 699.3,
+     "ops": {},
+     "t1": 725.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 699.6,
+     "ops": {},
+     "t1": 725.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 699.8,
+     "ops": {},
+     "t1": 725.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 700,
+     "ops": {
+      "get": 3
+     },
+     "t1": 733.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 700.2,
+     "ops": {},
+     "t1": 725.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 700.5,
+     "ops": {},
+     "t1": 725.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 700.7,
+     "ops": {},
+     "t1": 725.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 700.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 734.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 701.1,
+     "ops": {},
+     "t1": 726.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 701.3,
+     "ops": {},
+     "t1": 726.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 701.6,
+     "ops": {},
+     "t1": 726.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 701.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 734.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 702,
+     "ops": {},
+     "t1": 726.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 702.3,
+     "ops": {},
+     "t1": 726.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 702.5,
+     "ops": {},
+     "t1": 726.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 702.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 735
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 702.9,
+     "ops": {},
+     "t1": 726.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 703.2,
+     "ops": {},
+     "t1": 726.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 703.4,
+     "ops": {},
+     "t1": 726.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 703.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 735.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 703.9,
+     "ops": {},
+     "t1": 727
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 704,
+     "ops": {},
+     "t1": 727
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 704.3,
+     "ops": {},
+     "t1": 727.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 704.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 735.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 704.7,
+     "ops": {},
+     "t1": 727.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 705,
+     "ops": {},
+     "t1": 727.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 705.3,
+     "ops": {},
+     "t1": 727.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 705.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 736.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 705.6,
+     "ops": {},
+     "t1": 727.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 705.9,
+     "ops": {},
+     "t1": 727.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 706.2,
+     "ops": {},
+     "t1": 727.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 706.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 737
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 706.5,
+     "ops": {},
+     "t1": 727.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 706.8,
+     "ops": {},
+     "t1": 727.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 707,
+     "ops": {},
+     "t1": 728
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 707.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 737.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 707.4,
+     "ops": {},
+     "t1": 728.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 707.7,
+     "ops": {},
+     "t1": 728.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 707.9,
+     "ops": {},
+     "t1": 728.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 708.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 737.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 708.3,
+     "ops": {},
+     "t1": 728.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 708.6,
+     "ops": {},
+     "t1": 728.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 708.8,
+     "ops": {},
+     "t1": 728.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 709,
+     "ops": {
+      "get": 3
+     },
+     "t1": 737.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 709.2,
+     "ops": {},
+     "t1": 728.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 709.5,
+     "ops": {},
+     "t1": 728.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 709.7,
+     "ops": {},
+     "t1": 728.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 709.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 738.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 710.1,
+     "ops": {},
+     "t1": 729
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 710.4,
+     "ops": {},
+     "t1": 729
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 710.6,
+     "ops": {},
+     "t1": 729.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 710.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 738.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 711,
+     "ops": {},
+     "t1": 729.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 711.3,
+     "ops": {},
+     "t1": 729.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 711.5,
+     "ops": {},
+     "t1": 729.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 711.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 739.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 711.9,
+     "ops": {},
+     "t1": 729.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 712.1,
+     "ops": {},
+     "t1": 729.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 712.4,
+     "ops": {},
+     "t1": 729.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 712.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 747.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 712.8,
+     "ops": {},
+     "t1": 729.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 713,
+     "ops": {},
+     "t1": 729.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 713.3,
+     "ops": {},
+     "t1": 730.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 713.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 747.5
+    },
+    {
+     "k": "loaf",
+     "t0": 547.1,
+     "dur": 143,
+     "block": 93,
+     "rs": 11735.599999904633,
+     "sl": 11744.699999809265,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       133.8,
+       "useAuth-CjcvDAXH.js",
+       11602
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "to": "big",
+   "ms": 750.7999997138977,
+   "ev": [
+    {
+     "k": "click",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 16.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 33.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 34.9,
+     "ops": {},
+     "t1": 51
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 35.2,
+     "ops": {},
+     "t1": 51.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 35.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 52.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 35.6,
+     "ops": {},
+     "t1": 51.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 35.9,
+     "ops": {},
+     "t1": 51.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 36,
+     "ops": {},
+     "t1": 51.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 36.2,
+     "ops": {},
+     "t1": 51.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 36.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 53.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 36.5,
+     "ops": {},
+     "t1": 52.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 51.8,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 794.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 52.2,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 281.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 52.9,
+     "ops": {},
+     "t1": 56
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 53.2,
+     "ops": {},
+     "t1": 56.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 53.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 59.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 53.6,
+     "ops": {},
+     "t1": 56.3
+    },
+    {
+     "k": "dom",
+     "t": 750.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 762.7,
+     "ops": {},
+     "t1": 794.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 763,
+     "ops": {},
+     "t1": 794.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 763.3,
+     "ops": {},
+     "t1": 794.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 763.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 808
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 763.7,
+     "ops": {},
+     "t1": 794.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 764.1,
+     "ops": {},
+     "t1": 794.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 764.6,
+     "ops": {},
+     "t1": 795
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 764.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 808.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 765,
+     "ops": {},
+     "t1": 795.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 765.2,
+     "ops": {},
+     "t1": 795.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 765.5,
+     "ops": {},
+     "t1": 795.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 765.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 808.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 766,
+     "ops": {},
+     "t1": 795.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 766.3,
+     "ops": {},
+     "t1": 795.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 766.5,
+     "ops": {},
+     "t1": 795.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 766.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 809.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 767,
+     "ops": {},
+     "t1": 795.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 767.3,
+     "ops": {},
+     "t1": 795.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 767.5,
+     "ops": {},
+     "t1": 796
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 767.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 809.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 767.9,
+     "ops": {},
+     "t1": 796.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 768.1,
+     "ops": {},
+     "t1": 796.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 768.4,
+     "ops": {},
+     "t1": 796.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 768.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 810.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 768.9,
+     "ops": {},
+     "t1": 796.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 769.1,
+     "ops": {},
+     "t1": 796.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 769.3,
+     "ops": {},
+     "t1": 796.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 769.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 810.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 769.9,
+     "ops": {},
+     "t1": 796.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 770.2,
+     "ops": {},
+     "t1": 796.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 770.5,
+     "ops": {},
+     "t1": 797
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 770.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 811.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 771.1,
+     "ops": {},
+     "t1": 797.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 771.3,
+     "ops": {},
+     "t1": 797.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 771.6,
+     "ops": {},
+     "t1": 797.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 771.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 811.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 772.1,
+     "ops": {},
+     "t1": 797.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 772.4,
+     "ops": {},
+     "t1": 797.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 772.6,
+     "ops": {},
+     "t1": 797.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 772.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 812.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 773.4,
+     "ops": {},
+     "t1": 797.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 773.9,
+     "ops": {},
+     "t1": 797.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 774.2,
+     "ops": {},
+     "t1": 797.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 774.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 812.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 774.6,
+     "ops": {},
+     "t1": 797.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 774.8,
+     "ops": {},
+     "t1": 797.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 775,
+     "ops": {},
+     "t1": 798
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 775.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 812.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 775.6,
+     "ops": {},
+     "t1": 798.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 776,
+     "ops": {},
+     "t1": 798.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 776.2,
+     "ops": {},
+     "t1": 798.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 776.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 813.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 776.6,
+     "ops": {},
+     "t1": 798.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 776.9,
+     "ops": {},
+     "t1": 798.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 777.1,
+     "ops": {},
+     "t1": 798.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 777.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 813.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 777.6,
+     "ops": {},
+     "t1": 798.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 777.7,
+     "ops": {},
+     "t1": 798.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 777.9,
+     "ops": {},
+     "t1": 798.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 778.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 814.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 778.3,
+     "ops": {},
+     "t1": 799.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 778.5,
+     "ops": {},
+     "t1": 799.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 778.7,
+     "ops": {},
+     "t1": 799.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 778.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 814.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 779.1,
+     "ops": {},
+     "t1": 799.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 779.3,
+     "ops": {},
+     "t1": 799.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 779.5,
+     "ops": {},
+     "t1": 799.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 779.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 814.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 779.9,
+     "ops": {},
+     "t1": 799.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 780.2,
+     "ops": {},
+     "t1": 799.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 780.4,
+     "ops": {},
+     "t1": 799.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 780.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 815.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 780.8,
+     "ops": {},
+     "t1": 800
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 781,
+     "ops": {},
+     "t1": 800
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 781.2,
+     "ops": {},
+     "t1": 800.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 781.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 815.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 781.5,
+     "ops": {},
+     "t1": 800.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 781.8,
+     "ops": {},
+     "t1": 800.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 782,
+     "ops": {},
+     "t1": 800.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 782,
+     "ops": {
+      "get": 3
+     },
+     "t1": 816
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 782.3,
+     "ops": {},
+     "t1": 800.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 782.6,
+     "ops": {},
+     "t1": 800.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 783,
+     "ops": {},
+     "t1": 800.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 783.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 816.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 783.3,
+     "ops": {},
+     "t1": 801.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 783.5,
+     "ops": {},
+     "t1": 801.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 783.7,
+     "ops": {},
+     "t1": 801.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 783.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 816.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 784.5,
+     "ops": {},
+     "t1": 801.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 784.7,
+     "ops": {},
+     "t1": 801.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 784.9,
+     "ops": {},
+     "t1": 807.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 785.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 822.2
+    },
+    {
+     "k": "loaf",
+     "t0": 626.6,
+     "dur": 133,
+     "block": 83,
+     "rs": 14008.299999713898,
+     "sl": 14008.299999713898,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       124.6,
+       "useAuth-CjcvDAXH.js",
+       13884
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "to": "other",
+   "ms": 634.7999997138977,
+   "ev": [
+    {
+     "k": "click",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 22.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 39
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 40.6,
+     "ops": {},
+     "t1": 56
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 40.9,
+     "ops": {},
+     "t1": 56.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 41.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 58.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 41.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 58.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 41.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 58.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 41.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 58.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 41.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 59.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 42.1,
+     "ops": {},
+     "t1": 58.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 56.5,
+     "ops": {},
+     "t1": 58.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 57.4,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 672.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 57.6,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 252
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 58.5,
+     "ops": {},
+     "t1": 61.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 58.7,
+     "ops": {},
+     "t1": 61.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 58.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 65.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 59.1,
+     "ops": {},
+     "t1": 62
+    },
+    {
+     "k": "dom",
+     "t": 634.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 646.6,
+     "ops": {},
+     "t1": 672.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 646.9,
+     "ops": {},
+     "t1": 672.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 647.1,
+     "ops": {},
+     "t1": 672.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 647.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 685.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 647.4,
+     "ops": {},
+     "t1": 673.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 647.7,
+     "ops": {},
+     "t1": 673.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 647.9,
+     "ops": {},
+     "t1": 673.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 648,
+     "ops": {
+      "get": 3
+     },
+     "t1": 685.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 648.2,
+     "ops": {},
+     "t1": 673.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 648.4,
+     "ops": {},
+     "t1": 673.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 648.5,
+     "ops": {},
+     "t1": 673.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 648.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 685.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 649,
+     "ops": {},
+     "t1": 673.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 649.2,
+     "ops": {},
+     "t1": 673.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 649.4,
+     "ops": {},
+     "t1": 673.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 649.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 686.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 649.7,
+     "ops": {},
+     "t1": 673.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 649.9,
+     "ops": {},
+     "t1": 673.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 650.1,
+     "ops": {},
+     "t1": 674.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 650.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 686.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 650.5,
+     "ops": {},
+     "t1": 674.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 650.6,
+     "ops": {},
+     "t1": 674.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 650.9,
+     "ops": {},
+     "t1": 674.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 651.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 686.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 651.2,
+     "ops": {},
+     "t1": 674.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 651.5,
+     "ops": {},
+     "t1": 674.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 651.6,
+     "ops": {},
+     "t1": 674.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 651.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 687.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 652,
+     "ops": {},
+     "t1": 674.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 652.1,
+     "ops": {},
+     "t1": 674.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 652.5,
+     "ops": {},
+     "t1": 675
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 652.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 687.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 652.9,
+     "ops": {},
+     "t1": 675
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 653.2,
+     "ops": {},
+     "t1": 675.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 653.4,
+     "ops": {},
+     "t1": 675.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 653.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 688
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 653.8,
+     "ops": {},
+     "t1": 675.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 654,
+     "ops": {},
+     "t1": 675.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 654.2,
+     "ops": {},
+     "t1": 675.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 654.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 688.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 654.5,
+     "ops": {},
+     "t1": 675.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 654.7,
+     "ops": {},
+     "t1": 675.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 654.8,
+     "ops": {},
+     "t1": 675.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 655,
+     "ops": {
+      "get": 3
+     },
+     "t1": 688.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 655.3,
+     "ops": {},
+     "t1": 675.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 655.4,
+     "ops": {},
+     "t1": 675.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 655.7,
+     "ops": {},
+     "t1": 676
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 655.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 689
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 655.9,
+     "ops": {},
+     "t1": 676.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 656.1,
+     "ops": {},
+     "t1": 676.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 656.4,
+     "ops": {},
+     "t1": 676.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 656.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 689.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 656.8,
+     "ops": {},
+     "t1": 676.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 657.1,
+     "ops": {},
+     "t1": 676.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 657.4,
+     "ops": {},
+     "t1": 676.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 657.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 689.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 657.7,
+     "ops": {},
+     "t1": 676.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 657.9,
+     "ops": {},
+     "t1": 676.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 658.1,
+     "ops": {},
+     "t1": 676.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 658.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 690.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 658.5,
+     "ops": {},
+     "t1": 676.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 658.6,
+     "ops": {},
+     "t1": 676.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 658.8,
+     "ops": {},
+     "t1": 677
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 658.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 690.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 659.2,
+     "ops": {},
+     "t1": 677.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 659.4,
+     "ops": {},
+     "t1": 677.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 659.5,
+     "ops": {},
+     "t1": 677.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 659.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 690.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 659.9,
+     "ops": {},
+     "t1": 677.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 660.1,
+     "ops": {},
+     "t1": 677.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 660.3,
+     "ops": {},
+     "t1": 677.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 660.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 691.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 660.7,
+     "ops": {},
+     "t1": 677.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 660.8,
+     "ops": {},
+     "t1": 677.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 661,
+     "ops": {},
+     "t1": 677.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 661.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 691.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 661.4,
+     "ops": {},
+     "t1": 678
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 661.6,
+     "ops": {},
+     "t1": 678
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 661.8,
+     "ops": {},
+     "t1": 678.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 661.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 691.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 662.1,
+     "ops": {},
+     "t1": 678.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 662.3,
+     "ops": {},
+     "t1": 678.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 662.5,
+     "ops": {},
+     "t1": 678.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 662.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 692.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 662.9,
+     "ops": {},
+     "t1": 678.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 663.1,
+     "ops": {},
+     "t1": 678.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 663.3,
+     "ops": {},
+     "t1": 678.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 663.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 692.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 663.6,
+     "ops": {},
+     "t1": 678.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 663.8,
+     "ops": {},
+     "t1": 678.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 664,
+     "ops": {},
+     "t1": 684.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 664.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 697.5
+    },
+    {
+     "k": "loaf",
+     "t0": 519.9,
+     "dur": 124,
+     "block": 73.8,
+     "rs": 16164.299999713898,
+     "sl": 16173,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       115.1,
+       "useAuth-CjcvDAXH.js",
+       16049
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "to": "big",
+   "ms": 707.5999999046326,
+   "ev": [
+    {
+     "k": "click",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 15.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 30.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 31.7,
+     "ops": {},
+     "t1": 47.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 32,
+     "ops": {},
+     "t1": 47.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 32.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 49.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 32.4,
+     "ops": {},
+     "t1": 48
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 32.5,
+     "ops": {},
+     "t1": 48
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 32.6,
+     "ops": {},
+     "t1": 48.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 32.9,
+     "ops": {},
+     "t1": 48.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 33.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 50.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 33.3,
+     "ops": {},
+     "t1": 48.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 48.5,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 746.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 48.8,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 275.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 49.5,
+     "ops": {},
+     "t1": 52.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 49.6,
+     "ops": {},
+     "t1": 52.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 49.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 55.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 50.1,
+     "ops": {},
+     "t1": 53
+    },
+    {
+     "k": "dom",
+     "t": 707.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 718.6,
+     "ops": {},
+     "t1": 746.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 718.9,
+     "ops": {},
+     "t1": 746.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 719.2,
+     "ops": {},
+     "t1": 746.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 719.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 753.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 719.6,
+     "ops": {},
+     "t1": 746.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 719.8,
+     "ops": {},
+     "t1": 746.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 720.3,
+     "ops": {},
+     "t1": 747.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 720.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 754
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 721,
+     "ops": {},
+     "t1": 747.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 721.4,
+     "ops": {},
+     "t1": 747.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 721.7,
+     "ops": {},
+     "t1": 747.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 721.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 754.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 721.9,
+     "ops": {},
+     "t1": 747.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 722.2,
+     "ops": {},
+     "t1": 747.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 722.4,
+     "ops": {},
+     "t1": 747.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 722.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 754.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 722.7,
+     "ops": {},
+     "t1": 747.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 722.9,
+     "ops": {},
+     "t1": 747.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 723.1,
+     "ops": {},
+     "t1": 747.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 723.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 755.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 723.4,
+     "ops": {},
+     "t1": 748
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 723.7,
+     "ops": {},
+     "t1": 748.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 724,
+     "ops": {},
+     "t1": 748.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 724.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 755.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 724.3,
+     "ops": {},
+     "t1": 748.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 724.5,
+     "ops": {},
+     "t1": 748.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 724.8,
+     "ops": {},
+     "t1": 748.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 724.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 755.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 725.1,
+     "ops": {},
+     "t1": 748.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 725.3,
+     "ops": {},
+     "t1": 748.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 725.5,
+     "ops": {},
+     "t1": 748.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 725.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 756.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 725.9,
+     "ops": {},
+     "t1": 748.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 726.1,
+     "ops": {},
+     "t1": 748.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 726.4,
+     "ops": {},
+     "t1": 749
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 726.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 756.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 726.7,
+     "ops": {},
+     "t1": 749.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 727,
+     "ops": {},
+     "t1": 749.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 727.1,
+     "ops": {},
+     "t1": 749.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 727.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 757.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 727.5,
+     "ops": {},
+     "t1": 749.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 727.7,
+     "ops": {},
+     "t1": 749.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 728.3,
+     "ops": {},
+     "t1": 749.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 728.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 757.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 728.9,
+     "ops": {},
+     "t1": 749.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 729.1,
+     "ops": {},
+     "t1": 749.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 729.3,
+     "ops": {},
+     "t1": 749.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 729.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 758
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 729.7,
+     "ops": {},
+     "t1": 750
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 730,
+     "ops": {},
+     "t1": 750.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 730.1,
+     "ops": {},
+     "t1": 750.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 730.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 758.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 730.5,
+     "ops": {},
+     "t1": 750.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 730.6,
+     "ops": {},
+     "t1": 750.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 730.9,
+     "ops": {},
+     "t1": 750.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 731,
+     "ops": {
+      "get": 3
+     },
+     "t1": 758.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 731.2,
+     "ops": {},
+     "t1": 750.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 731.3,
+     "ops": {},
+     "t1": 750.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 731.6,
+     "ops": {},
+     "t1": 750.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 731.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 759.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 731.8,
+     "ops": {},
+     "t1": 750.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 732.1,
+     "ops": {},
+     "t1": 750.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 732.2,
+     "ops": {},
+     "t1": 751
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 732.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 759.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 732.6,
+     "ops": {},
+     "t1": 751.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 732.8,
+     "ops": {},
+     "t1": 751.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 733,
+     "ops": {},
+     "t1": 751.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 733.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 759.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 733.5,
+     "ops": {},
+     "t1": 751.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 733.7,
+     "ops": {},
+     "t1": 751.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 733.8,
+     "ops": {},
+     "t1": 751.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 733.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 760.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 734.2,
+     "ops": {},
+     "t1": 751.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 734.3,
+     "ops": {},
+     "t1": 751.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 734.5,
+     "ops": {},
+     "t1": 751.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 734.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 760.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 734.9,
+     "ops": {},
+     "t1": 752
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 735.1,
+     "ops": {},
+     "t1": 752
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 735.3,
+     "ops": {},
+     "t1": 752.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 735.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 760.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 735.5,
+     "ops": {},
+     "t1": 752.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 735.7,
+     "ops": {},
+     "t1": 752.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 735.9,
+     "ops": {},
+     "t1": 752.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 736.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 761.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 736.2,
+     "ops": {},
+     "t1": 752.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 736.5,
+     "ops": {},
+     "t1": 752.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 736.7,
+     "ops": {},
+     "t1": 752.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 736.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 761.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 736.9,
+     "ops": {},
+     "t1": 753
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 737.1,
+     "ops": {},
+     "t1": 753
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 737.4,
+     "ops": {},
+     "t1": 753
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 737.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 768.7
+    },
+    {
+     "k": "loaf",
+     "t0": 596.7,
+     "dur": 119.2999997138977,
+     "block": 69.3,
+     "rs": 18405.299999713898,
+     "sl": 18405.299999713898,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       111.1,
+       "useAuth-CjcvDAXH.js",
+       18294
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "to": "other",
+   "ms": 658,
+   "ev": [
+    {
+     "k": "click",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 20.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 37.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 38.9,
+     "ops": {},
+     "t1": 54.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 39.1,
+     "ops": {},
+     "t1": 54.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 39.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 56.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 39.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 56.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 39.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 56.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 39.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 56.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 40.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 57.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 40.2,
+     "ops": {},
+     "t1": 56.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 55,
+     "ops": {},
+     "t1": 56.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 55.7,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 694.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 56,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 255.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 56.7,
+     "ops": {},
+     "t1": 59.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 56.9,
+     "ops": {},
+     "t1": 60
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 57.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 63.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 57.3,
+     "ops": {},
+     "t1": 60.1
+    },
+    {
+     "k": "dom",
+     "t": 658
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 669.4,
+     "ops": {},
+     "t1": 694.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 669.8,
+     "ops": {},
+     "t1": 694.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 670,
+     "ops": {},
+     "t1": 694.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 670.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 707.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 670.3,
+     "ops": {},
+     "t1": 694.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 670.6,
+     "ops": {},
+     "t1": 695
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 670.7,
+     "ops": {},
+     "t1": 695.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 670.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 707.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 671.1,
+     "ops": {},
+     "t1": 695.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 671.4,
+     "ops": {},
+     "t1": 695.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 671.5,
+     "ops": {},
+     "t1": 695.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 671.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 708
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 671.8,
+     "ops": {},
+     "t1": 695.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 672.1,
+     "ops": {},
+     "t1": 695.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 672.2,
+     "ops": {},
+     "t1": 695.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 672.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 708.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 672.6,
+     "ops": {},
+     "t1": 696
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 672.8,
+     "ops": {},
+     "t1": 696
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 673,
+     "ops": {},
+     "t1": 696.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 673.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 708.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 673.4,
+     "ops": {},
+     "t1": 696.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 673.5,
+     "ops": {},
+     "t1": 696.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 673.7,
+     "ops": {},
+     "t1": 696.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 673.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 709.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 674,
+     "ops": {},
+     "t1": 696.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 674.2,
+     "ops": {},
+     "t1": 696.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 674.4,
+     "ops": {},
+     "t1": 696.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 674.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 709.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 674.7,
+     "ops": {},
+     "t1": 696.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 674.9,
+     "ops": {},
+     "t1": 696.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 675.1,
+     "ops": {},
+     "t1": 697
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 675.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 710.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 675.4,
+     "ops": {},
+     "t1": 697.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 675.7,
+     "ops": {},
+     "t1": 697.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 675.9,
+     "ops": {},
+     "t1": 697.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 676,
+     "ops": {
+      "get": 3
+     },
+     "t1": 711.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 676.2,
+     "ops": {},
+     "t1": 697.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 676.4,
+     "ops": {},
+     "t1": 697.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 676.6,
+     "ops": {},
+     "t1": 697.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 676.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 711.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 676.9,
+     "ops": {},
+     "t1": 697.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 677.2,
+     "ops": {},
+     "t1": 697.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 677.3,
+     "ops": {},
+     "t1": 697.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 677.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 711.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 677.6,
+     "ops": {},
+     "t1": 697.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 677.8,
+     "ops": {},
+     "t1": 698
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 678,
+     "ops": {},
+     "t1": 698
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 678.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 712.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 678.3,
+     "ops": {},
+     "t1": 698.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 678.6,
+     "ops": {},
+     "t1": 698.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 678.7,
+     "ops": {},
+     "t1": 698.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 678.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 712.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 679,
+     "ops": {},
+     "t1": 698.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 679.2,
+     "ops": {},
+     "t1": 698.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 679.4,
+     "ops": {},
+     "t1": 698.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 679.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 712.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 679.7,
+     "ops": {},
+     "t1": 698.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 680,
+     "ops": {},
+     "t1": 698.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 680.1,
+     "ops": {},
+     "t1": 698.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 680.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 713.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 680.4,
+     "ops": {},
+     "t1": 698.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 680.5,
+     "ops": {},
+     "t1": 699
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 680.7,
+     "ops": {},
+     "t1": 699.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 680.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 713.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 681.1,
+     "ops": {},
+     "t1": 699.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 681.3,
+     "ops": {},
+     "t1": 699.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 681.5,
+     "ops": {},
+     "t1": 699.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 681.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 713.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 681.9,
+     "ops": {},
+     "t1": 699.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 682.1,
+     "ops": {},
+     "t1": 699.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 682.2,
+     "ops": {},
+     "t1": 699.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 682.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 714.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 682.5,
+     "ops": {},
+     "t1": 699.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 682.8,
+     "ops": {},
+     "t1": 699.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 682.9,
+     "ops": {},
+     "t1": 699.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 683.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 714.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 683.3,
+     "ops": {},
+     "t1": 700.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 683.4,
+     "ops": {},
+     "t1": 700.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 683.6,
+     "ops": {},
+     "t1": 700.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 683.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 715.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 684,
+     "ops": {},
+     "t1": 700.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 684.2,
+     "ops": {},
+     "t1": 700.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 684.4,
+     "ops": {},
+     "t1": 700.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 684.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 715.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 684.7,
+     "ops": {},
+     "t1": 700.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 684.9,
+     "ops": {},
+     "t1": 700.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 685.1,
+     "ops": {},
+     "t1": 700.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 685.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 715.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 685.4,
+     "ops": {},
+     "t1": 700.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 685.7,
+     "ops": {},
+     "t1": 700.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 686,
+     "ops": {},
+     "t1": 706.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 686.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 720.9
+    },
+    {
+     "k": "loaf",
+     "t0": 535.9,
+     "dur": 131,
+     "block": 81,
+     "rs": 20587.39999961853,
+     "sl": 20595.89999961853,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       122.5,
+       "useAuth-CjcvDAXH.js",
+       20465
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "to": "big",
+   "ms": 661,
+   "ev": [
+    {
+     "k": "click",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 15.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 31.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 32.4,
+     "ops": {},
+     "t1": 49
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 32.7,
+     "ops": {},
+     "t1": 49
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 32.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 50.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 33.1,
+     "ops": {},
+     "t1": 49.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 33.4,
+     "ops": {},
+     "t1": 49.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 33.5,
+     "ops": {},
+     "t1": 49.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 33.7,
+     "ops": {},
+     "t1": 49.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 33.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 51.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 34.1,
+     "ops": {},
+     "t1": 50.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 49.7,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 699.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 50,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 289.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 50.7,
+     "ops": {},
+     "t1": 53.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 51,
+     "ops": {},
+     "t1": 54
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 51.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 57.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 51.3,
+     "ops": {},
+     "t1": 54.2
+    },
+    {
+     "k": "dom",
+     "t": 661
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 672.3,
+     "ops": {},
+     "t1": 699.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 672.7,
+     "ops": {},
+     "t1": 699.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 672.8,
+     "ops": {},
+     "t1": 700.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 673.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 707.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 673.2,
+     "ops": {},
+     "t1": 700.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 673.5,
+     "ops": {},
+     "t1": 700.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 673.7,
+     "ops": {},
+     "t1": 700.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 673.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 708.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 674.1,
+     "ops": {},
+     "t1": 700.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 674.3,
+     "ops": {},
+     "t1": 700.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 674.5,
+     "ops": {},
+     "t1": 700.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 674.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 708.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 674.8,
+     "ops": {},
+     "t1": 700.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 675.1,
+     "ops": {},
+     "t1": 700.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 675.4,
+     "ops": {},
+     "t1": 701
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 675.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 708.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 675.9,
+     "ops": {},
+     "t1": 701.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 676,
+     "ops": {},
+     "t1": 701.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 676.3,
+     "ops": {},
+     "t1": 701.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 676.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 709
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 676.6,
+     "ops": {},
+     "t1": 701.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 676.9,
+     "ops": {},
+     "t1": 701.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 677.1,
+     "ops": {},
+     "t1": 701.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 677.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 709.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 677.4,
+     "ops": {},
+     "t1": 701.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 677.6,
+     "ops": {},
+     "t1": 701.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 677.9,
+     "ops": {},
+     "t1": 701.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 678.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 709.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 678.2,
+     "ops": {},
+     "t1": 702
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 678.5,
+     "ops": {},
+     "t1": 702.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 678.7,
+     "ops": {},
+     "t1": 702.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 678.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 710.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 679.1,
+     "ops": {},
+     "t1": 702.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 679.4,
+     "ops": {},
+     "t1": 702.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 679.5,
+     "ops": {},
+     "t1": 702.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 679.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 710.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 679.9,
+     "ops": {},
+     "t1": 702.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 680.1,
+     "ops": {},
+     "t1": 702.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 680.3,
+     "ops": {},
+     "t1": 702.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 680.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 710.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 680.7,
+     "ops": {},
+     "t1": 703
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 681,
+     "ops": {},
+     "t1": 703
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 681.1,
+     "ops": {},
+     "t1": 703.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 681.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 711.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 681.5,
+     "ops": {},
+     "t1": 703.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 681.7,
+     "ops": {},
+     "t1": 703.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 682,
+     "ops": {},
+     "t1": 703.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 682.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 711.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 682.4,
+     "ops": {},
+     "t1": 703.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 682.7,
+     "ops": {},
+     "t1": 703.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 682.9,
+     "ops": {},
+     "t1": 703.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 683,
+     "ops": {
+      "get": 3
+     },
+     "t1": 711.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 683.2,
+     "ops": {},
+     "t1": 703.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 683.4,
+     "ops": {},
+     "t1": 703.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 683.7,
+     "ops": {},
+     "t1": 704.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 683.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 712.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 684.1,
+     "ops": {},
+     "t1": 704.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 684.3,
+     "ops": {},
+     "t1": 704.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 684.5,
+     "ops": {},
+     "t1": 704.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 684.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 712.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 684.8,
+     "ops": {},
+     "t1": 704.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 685.1,
+     "ops": {},
+     "t1": 704.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 685.4,
+     "ops": {},
+     "t1": 704.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 685.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 713.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 685.8,
+     "ops": {},
+     "t1": 704.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 685.9,
+     "ops": {},
+     "t1": 704.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 686.2,
+     "ops": {},
+     "t1": 705
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 686.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 713.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 686.5,
+     "ops": {},
+     "t1": 705.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 686.8,
+     "ops": {},
+     "t1": 705.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 687,
+     "ops": {},
+     "t1": 705.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 687.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 713.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 687.4,
+     "ops": {},
+     "t1": 705.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 687.7,
+     "ops": {},
+     "t1": 705.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 687.9,
+     "ops": {},
+     "t1": 705.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 688,
+     "ops": {
+      "get": 3
+     },
+     "t1": 714.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 688.2,
+     "ops": {},
+     "t1": 705.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 688.4,
+     "ops": {},
+     "t1": 705.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 688.7,
+     "ops": {},
+     "t1": 705.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 688.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 714.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 689.1,
+     "ops": {},
+     "t1": 706.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 689.3,
+     "ops": {},
+     "t1": 706.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 689.6,
+     "ops": {},
+     "t1": 706.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 689.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 714.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 689.9,
+     "ops": {},
+     "t1": 706.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 690.2,
+     "ops": {},
+     "t1": 706.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 690.4,
+     "ops": {},
+     "t1": 706.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 690.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 715.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 690.8,
+     "ops": {},
+     "t1": 706.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 691,
+     "ops": {},
+     "t1": 706.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 691.2,
+     "ops": {},
+     "t1": 706.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 691.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 715.7
+    },
+    {
+     "k": "loaf",
+     "t0": 549.3,
+     "dur": 120.30000019073486,
+     "block": 70.2,
+     "rs": 22770.5,
+     "sl": 22778.699999809265,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       111.9,
+       "useAuth-CjcvDAXH.js",
+       22659
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "to": "other",
+   "ms": 697,
+   "ev": [
+    {
+     "k": "click",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 15.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 29.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 31.1,
+     "ops": {},
+     "t1": 46.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 31.3,
+     "ops": {},
+     "t1": 46.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 31.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 47.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 31.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 47.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 31.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 47.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 32.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 47.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 32.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 48.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 32.4,
+     "ops": {},
+     "t1": 47.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 46.6,
+     "ops": {},
+     "t1": 47.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 47.1,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 748.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 47.3,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 294.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 48,
+     "ops": {},
+     "t1": 50.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 48.2,
+     "ops": {},
+     "t1": 51
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 48.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 54.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 48.5,
+     "ops": {},
+     "t1": 51.1
+    },
+    {
+     "k": "dom",
+     "t": 697
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 710.4,
+     "ops": {},
+     "t1": 748.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 711,
+     "ops": {},
+     "t1": 748.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 711.3,
+     "ops": {},
+     "t1": 748.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 711.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 765.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 711.7,
+     "ops": {},
+     "t1": 748.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 712,
+     "ops": {},
+     "t1": 748.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 712.2,
+     "ops": {},
+     "t1": 749.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 712.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 765.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 712.9,
+     "ops": {},
+     "t1": 749.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 713.3,
+     "ops": {},
+     "t1": 749.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 713.6,
+     "ops": {},
+     "t1": 749.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 714,
+     "ops": {
+      "get": 3
+     },
+     "t1": 765.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 714.3,
+     "ops": {},
+     "t1": 749.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 714.6,
+     "ops": {},
+     "t1": 749.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 714.9,
+     "ops": {},
+     "t1": 749.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 715.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 766.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 715.6,
+     "ops": {},
+     "t1": 749.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 715.9,
+     "ops": {},
+     "t1": 749.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 716.4,
+     "ops": {},
+     "t1": 750
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 716.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 766.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 716.9,
+     "ops": {},
+     "t1": 750.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 717.3,
+     "ops": {},
+     "t1": 750.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 717.7,
+     "ops": {},
+     "t1": 750.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 717.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 767.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 718.2,
+     "ops": {},
+     "t1": 750.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 718.5,
+     "ops": {},
+     "t1": 750.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 718.9,
+     "ops": {},
+     "t1": 750.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 719.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 767.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 719.4,
+     "ops": {},
+     "t1": 750.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 719.8,
+     "ops": {},
+     "t1": 750.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 720.1,
+     "ops": {},
+     "t1": 751.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 720.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 768.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 721.1,
+     "ops": {},
+     "t1": 751.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 721.5,
+     "ops": {},
+     "t1": 751.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 721.7,
+     "ops": {},
+     "t1": 751.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 721.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 768.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 722.5,
+     "ops": {},
+     "t1": 751.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 722.8,
+     "ops": {},
+     "t1": 751.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 723.1,
+     "ops": {},
+     "t1": 751.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 723.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 769.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 723.6,
+     "ops": {},
+     "t1": 751.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 724,
+     "ops": {},
+     "t1": 752
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 724.8,
+     "ops": {},
+     "t1": 752.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 725.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 769.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 725.6,
+     "ops": {},
+     "t1": 752.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 725.9,
+     "ops": {},
+     "t1": 752.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 726.1,
+     "ops": {},
+     "t1": 752.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 726.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 770.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 726.5,
+     "ops": {},
+     "t1": 753
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 726.8,
+     "ops": {},
+     "t1": 753.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 727,
+     "ops": {},
+     "t1": 753.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 727.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 770.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 727.4,
+     "ops": {},
+     "t1": 753.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 727.5,
+     "ops": {},
+     "t1": 753.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 727.8,
+     "ops": {},
+     "t1": 753.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 728,
+     "ops": {
+      "get": 3
+     },
+     "t1": 771.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 728.4,
+     "ops": {},
+     "t1": 753.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 728.6,
+     "ops": {},
+     "t1": 753.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 728.8,
+     "ops": {},
+     "t1": 754.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 729,
+     "ops": {
+      "get": 3
+     },
+     "t1": 772
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 729.3,
+     "ops": {},
+     "t1": 754.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 729.6,
+     "ops": {},
+     "t1": 754.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 729.9,
+     "ops": {},
+     "t1": 754.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 730,
+     "ops": {
+      "get": 3
+     },
+     "t1": 772.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 730.4,
+     "ops": {},
+     "t1": 754.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 730.6,
+     "ops": {},
+     "t1": 754.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 730.9,
+     "ops": {},
+     "t1": 754.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 731.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 772.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 731.5,
+     "ops": {},
+     "t1": 754.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 731.7,
+     "ops": {},
+     "t1": 754.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 731.8,
+     "ops": {},
+     "t1": 755
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 732.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 773.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 732.4,
+     "ops": {},
+     "t1": 755.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 732.5,
+     "ops": {},
+     "t1": 755.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 732.7,
+     "ops": {},
+     "t1": 755.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 732.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 773.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 733.1,
+     "ops": {},
+     "t1": 755.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 733.3,
+     "ops": {},
+     "t1": 755.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 733.5,
+     "ops": {},
+     "t1": 755.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 733.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 774
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 733.9,
+     "ops": {},
+     "t1": 755.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 734.1,
+     "ops": {},
+     "t1": 755.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 734.3,
+     "ops": {},
+     "t1": 755.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 734.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 774.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 734.7,
+     "ops": {},
+     "t1": 756.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 735,
+     "ops": {},
+     "t1": 756.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 735.2,
+     "ops": {},
+     "t1": 756.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 735.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 774.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 735.7,
+     "ops": {},
+     "t1": 756.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 735.9,
+     "ops": {},
+     "t1": 756.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 736.4,
+     "ops": {},
+     "t1": 764.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 736.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 782.2
+    },
+    {
+     "k": "loaf",
+     "t0": 575.5,
+     "dur": 131.7000002861023,
+     "block": 81.6,
+     "rs": 24989.799999713898,
+     "sl": 24989.89999961853,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       121.7,
+       "useAuth-CjcvDAXH.js",
+       24868
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "to": "big",
+   "ms": 638.5,
+   "ev": [
+    {
+     "k": "click",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 15.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 30.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 32,
+     "ops": {},
+     "t1": 48
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 32.2,
+     "ops": {},
+     "t1": 48
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 32.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 49.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 32.6,
+     "ops": {},
+     "t1": 48.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 32.9,
+     "ops": {},
+     "t1": 48.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 32.9,
+     "ops": {},
+     "t1": 48.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 33.1,
+     "ops": {},
+     "t1": 48.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 33.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 50.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 33.5,
+     "ops": {},
+     "t1": 49.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 48.8,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 676.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 49.1,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 278.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 49.8,
+     "ops": {},
+     "t1": 52.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 50,
+     "ops": {},
+     "t1": 52.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 50.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 56.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 50.4,
+     "ops": {},
+     "t1": 52.9
+    },
+    {
+     "k": "dom",
+     "t": 638.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 650.6,
+     "ops": {},
+     "t1": 676.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 650.9,
+     "ops": {},
+     "t1": 676.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 651.1,
+     "ops": {},
+     "t1": 676.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 651.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 688.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 651.5,
+     "ops": {},
+     "t1": 676.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 651.7,
+     "ops": {},
+     "t1": 676.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 651.9,
+     "ops": {},
+     "t1": 676.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 652,
+     "ops": {
+      "get": 3
+     },
+     "t1": 688.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 652.2,
+     "ops": {},
+     "t1": 676.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 652.4,
+     "ops": {},
+     "t1": 676.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 652.6,
+     "ops": {},
+     "t1": 677
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 652.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 689.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 652.9,
+     "ops": {},
+     "t1": 677.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 653.1,
+     "ops": {},
+     "t1": 677.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 653.3,
+     "ops": {},
+     "t1": 677.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 653.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 689.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 653.7,
+     "ops": {},
+     "t1": 677.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 653.8,
+     "ops": {},
+     "t1": 677.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 654.1,
+     "ops": {},
+     "t1": 677.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 654.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 689.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 654.4,
+     "ops": {},
+     "t1": 677.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 654.6,
+     "ops": {},
+     "t1": 677.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 654.7,
+     "ops": {},
+     "t1": 677.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 655,
+     "ops": {
+      "get": 3
+     },
+     "t1": 690.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 655.1,
+     "ops": {},
+     "t1": 677.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 655.3,
+     "ops": {},
+     "t1": 678
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 655.5,
+     "ops": {},
+     "t1": 678.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 655.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 690.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 655.8,
+     "ops": {},
+     "t1": 678.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 656,
+     "ops": {},
+     "t1": 678.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 656.2,
+     "ops": {},
+     "t1": 678.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 656.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 690.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 656.6,
+     "ops": {},
+     "t1": 678.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 656.8,
+     "ops": {},
+     "t1": 678.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 656.9,
+     "ops": {},
+     "t1": 678.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 657.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 691.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 657.3,
+     "ops": {},
+     "t1": 678.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 657.4,
+     "ops": {},
+     "t1": 678.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 657.7,
+     "ops": {},
+     "t1": 679
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 657.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 691.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 658,
+     "ops": {},
+     "t1": 679
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 658.2,
+     "ops": {},
+     "t1": 679.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 658.4,
+     "ops": {},
+     "t1": 679.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 658.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 692
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 658.6,
+     "ops": {},
+     "t1": 679.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 658.8,
+     "ops": {},
+     "t1": 679.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 659.1,
+     "ops": {},
+     "t1": 679.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 659.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 692.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 659.5,
+     "ops": {},
+     "t1": 679.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 659.6,
+     "ops": {},
+     "t1": 679.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 659.8,
+     "ops": {},
+     "t1": 679.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 660,
+     "ops": {
+      "get": 3
+     },
+     "t1": 692.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 660.1,
+     "ops": {},
+     "t1": 679.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 660.3,
+     "ops": {},
+     "t1": 679.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 660.5,
+     "ops": {},
+     "t1": 680
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 660.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 693.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 660.9,
+     "ops": {},
+     "t1": 680.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 661.5,
+     "ops": {},
+     "t1": 680.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 661.7,
+     "ops": {},
+     "t1": 680.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 661.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 693.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 662,
+     "ops": {},
+     "t1": 680.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 662.2,
+     "ops": {},
+     "t1": 680.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 662.4,
+     "ops": {},
+     "t1": 680.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 662.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 693.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 662.7,
+     "ops": {},
+     "t1": 680.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 662.9,
+     "ops": {},
+     "t1": 680.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 663.1,
+     "ops": {},
+     "t1": 680.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 663.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 694
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 663.4,
+     "ops": {},
+     "t1": 681
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 663.7,
+     "ops": {},
+     "t1": 681.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 663.8,
+     "ops": {},
+     "t1": 681.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 663.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 694.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 664.2,
+     "ops": {},
+     "t1": 681.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 664.4,
+     "ops": {},
+     "t1": 681.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 664.6,
+     "ops": {},
+     "t1": 681.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 664.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 694.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 664.9,
+     "ops": {},
+     "t1": 681.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 665.1,
+     "ops": {},
+     "t1": 681.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 665.3,
+     "ops": {},
+     "t1": 681.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 665.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 695.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 665.7,
+     "ops": {},
+     "t1": 681.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 665.8,
+     "ops": {},
+     "t1": 681.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 666,
+     "ops": {},
+     "t1": 682
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 666.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 695.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 666.4,
+     "ops": {},
+     "t1": 682.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 666.6,
+     "ops": {},
+     "t1": 682.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 666.8,
+     "ops": {},
+     "t1": 682.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 666.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 695.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 667.1,
+     "ops": {},
+     "t1": 682.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 667.3,
+     "ops": {},
+     "t1": 682.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 667.5,
+     "ops": {},
+     "t1": 687.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 667.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 700.8
+    },
+    {
+     "k": "loaf",
+     "t0": 537.5,
+     "dur": 110.40000009536743,
+     "block": 60.4,
+     "rs": 27148.39999961853,
+     "sl": 27157.299999713898,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       101.4,
+       "useAuth-CjcvDAXH.js",
+       27047
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

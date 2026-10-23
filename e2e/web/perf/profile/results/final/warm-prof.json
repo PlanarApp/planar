@@ -1,0 +1,3779 @@
+{
+ "counts": {
+  "big": 3334,
+  "other": 3333,
+  "total": 10000
+ },
+ "median": 403.2000002861023,
+ "ms": [
+  424.69999980926514,
+  394,
+  393.80000019073486,
+  403.2000002861023,
+  514.5999999046326
+ ],
+ "runs": [
+  {
+   "ms": 424.69999980926514,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 68.3,
+     "m": "GET",
+     "tH": 89.6,
+     "tJ0": 89.6,
+     "t1": 104.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 84.1,
+     "ops": {},
+     "t1": 153.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 85.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 153.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 86.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 322.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 86.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 322.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 86.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 322.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 86.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 322.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 86.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 322.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 87.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 322.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 87.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 322.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 87.6,
+     "ops": {},
+     "t1": 321.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 105.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 344.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 132.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 344.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 132.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 344.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 321.5,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 349.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 345,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 350.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 345.1,
+     "ops": {},
+     "t1": 350
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 349.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 355.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 350.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 358.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 355.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 360.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 357.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 360.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 357.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 360.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 357.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 360.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 358,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 361.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 359.4,
+     "ops": {},
+     "t1": 360.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 359.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 362.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 360.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 424.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 360.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 425
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 361.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 433.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 361.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 433.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 361.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 449.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 362.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 462.2
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1598&clientId=01a167dc-a252-70fb-9258-1743f547193b",
+     "t0": 363.4,
+     "m": "GET",
+     "tH": 449.4,
+     "tJ0": 449.4,
+     "t1": 467.9
+    },
+    {
+     "k": "firstRow",
+     "t": 424.7
+    },
+    {
+     "k": "wsopen",
+     "t": 449.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 468.4,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 471.8
+    },
+    {
+     "k": "loaf",
+     "t0": 358.7,
+     "dur": 86.40000009536743,
+     "block": 22.4,
+     "rs": 434,
+     "sl": 434,
+     "sc": [
+      [
+       "TimerHandler:setTimeout",
+       "",
+       61.1,
+       "useAuth-DVMlYtPI.js",
+       364
+      ],
+      [
+       "TimerHandler:setTimeout",
+       "",
+       8.2,
+       "useAuth-DVMlYtPI.js",
+       425
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 472.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 472.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 819,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1026
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 819.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 1026
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 819.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1266.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 819.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1266.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 820.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1266.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 820.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 1266.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 820.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1266.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 820.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1266.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 820.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1266.8
+    }
+   ],
+   "nav": {
+    "resp": 5,
+    "dcl": 68.7999997138977,
+    "load": 70.2999997138977
+   },
+   "fcp": 96,
+   "res": [
+    [
+     "/assets/index-D0Fcdn53.js",
+     23,
+     28,
+     0,
+     81206
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     24,
+     29,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     24,
+     29,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     24,
+     29,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-DVMlYtPI.js",
+     24,
+     29,
+     0,
+     223052
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     24,
+     29,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     24,
+     29,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-BaULeBs9.js",
+     66,
+     68,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     67,
+     68,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     68,
+     70,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     69,
+     75,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-BuJSnTVw.js",
+     106,
+     112,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-CteiS-Pn.js",
+     106,
+     113,
+     0,
+     21501
+    ],
+    [
+     "/assets/Avatar-B1g5Na42.js",
+     106,
+     114,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     107,
+     114,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-BGKCLiSa.js",
+     107,
+     114,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-BSzW8sYH.js",
+     107,
+     114,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-BKkthIGB.js",
+     107,
+     115,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     107,
+     115,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-CfwrqzKe.js",
+     108,
+     115,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-DrOscefq.js",
+     108,
+     115,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-CAa1koiM.js",
+     108,
+     115,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-D-8HbZZJ.js",
+     108,
+     115,
+     0,
+     2018
+    ],
+    [
+     "/assets/x-DADQMGp6.js",
+     108,
+     115,
+     0,
+     182
+    ],
+    [
+     "/assets/View-C8QBxBzw.js",
+     330,
+     332,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-CO8NnaWl.js",
+     331,
+     332,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=1598&clientId=01a167dc-a252-70fb-9258-1743f547193b",
+     364,
+     385,
+     347,
+     47
+    ]
+   ]
+  },
+  {
+   "ms": 394,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 60.1,
+     "m": "GET",
+     "tH": 69.1,
+     "tJ0": 69.1,
+     "t1": 70
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 64.9,
+     "ops": {},
+     "t1": 128.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 66.6,
+     "ops": {
+      "get": 1
+     },
+     "t1": 128.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 66.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 294.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 67.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 294.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 67.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 294.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 67.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 294.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 67.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 294.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 67.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 295.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 67.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 295.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 68,
+     "ops": {},
+     "t1": 293.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 70.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 318.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 104.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 318.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 105.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 318.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 293.7,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 322.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 318.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 323
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 318.8,
+     "ops": {},
+     "t1": 322.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 322.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 328.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 322.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 330.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 328.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 331.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 328.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 331.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 328.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 332
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 329.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 332.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 329.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 332.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 330.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 333.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 331,
+     "ops": {},
+     "t1": 332.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 331.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 334.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 332.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 394.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 332.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 394.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 333,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 402.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 333.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 417.5
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1598&clientId=01a167dc-a252-70fb-9258-1743f547193b",
+     "t0": 333.6,
+     "m": "GET",
+     "tH": 417.4,
+     "tJ0": 417.4,
+     "t1": 435.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 334.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 430.3
+    },
+    {
+     "k": "firstRow",
+     "t": 394
+    },
+    {
+     "k": "wsopen",
+     "t": 403.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 435.9,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 443.8
+    },
+    {
+     "k": "loaf",
+     "t0": 330,
+     "dur": 83.59999990463257,
+     "block": 19.4,
+     "rs": 403.3999996185303,
+     "sl": 403.5,
+     "sc": [
+      [
+       "TimerHandler:setTimeout",
+       "",
+       59.1,
+       "useAuth-DVMlYtPI.js",
+       335
+      ],
+      [
+       "TimerHandler:setTimeout",
+       "",
+       8.5,
+       "useAuth-DVMlYtPI.js",
+       394
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 444.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 444.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 791.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1023.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 792.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 1023.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 792.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1283.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 792.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1283.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 792.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1283.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 792.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 1283.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 792.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1283.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 792.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1283.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 792.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1283.5
+    }
+   ],
+   "nav": {
+    "resp": 3.8999996185302734,
+    "dcl": 60.5,
+    "load": 62.5
+   },
+   "fcp": 72,
+   "res": [
+    [
+     "/assets/index-D0Fcdn53.js",
+     21,
+     25,
+     0,
+     81206
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     21,
+     25,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     21,
+     26,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     21,
+     26,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-DVMlYtPI.js",
+     21,
+     26,
+     0,
+     223052
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     21,
+     26,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     22,
+     26,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-BaULeBs9.js",
+     58,
+     60,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     59,
+     61,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     60,
+     61,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     60,
+     67,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-BuJSnTVw.js",
+     71,
+     76,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-CteiS-Pn.js",
+     71,
+     77,
+     0,
+     21501
+    ],
+    [
+     "/assets/Avatar-B1g5Na42.js",
+     71,
+     78,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     72,
+     78,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-BGKCLiSa.js",
+     72,
+     78,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-BSzW8sYH.js",
+     72,
+     78,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-BKkthIGB.js",
+     72,
+     78,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     72,
+     79,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-CfwrqzKe.js",
+     72,
+     79,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-DrOscefq.js",
+     73,
+     79,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-CAa1koiM.js",
+     73,
+     79,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-D-8HbZZJ.js",
+     73,
+     79,
+     0,
+     2018
+    ],
+    [
+     "/assets/x-DADQMGp6.js",
+     73,
+     79,
+     0,
+     182
+    ],
+    [
+     "/assets/View-C8QBxBzw.js",
+     304,
+     306,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-CO8NnaWl.js",
+     304,
+     306,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=1598&clientId=01a167dc-a252-70fb-9258-1743f547193b",
+     334,
+     344,
+     347,
+     47
+    ]
+   ]
+  },
+  {
+   "ms": 393.80000019073486,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 61.6,
+     "m": "GET",
+     "tH": 69.9,
+     "tJ0": 69.9,
+     "t1": 70.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 65.9,
+     "ops": {},
+     "t1": 134.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 67.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 134.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 67.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 299.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 67.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 299.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 67.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 299.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 67.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 299.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 68.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 299.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 68.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 299.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 68.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 299.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 68.8,
+     "ops": {},
+     "t1": 298.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 71,
+     "ops": {
+      "get": 1
+     },
+     "t1": 321.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 104.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 321.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 105,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 321.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 299,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 326
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 321.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 327
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 322.2,
+     "ops": {},
+     "t1": 326.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 326.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 333.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 326.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 334
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 332.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 335.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 332.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 335.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 332.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 335.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 332.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 335.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 332.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 336.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 334.5,
+     "ops": {},
+     "t1": 335.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 334.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 394.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 335.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 394.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 335.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 402.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 336.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 416.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 336.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 416.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 336.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 417.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 337.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 431.5
+    },
+    {
+     "k": "firstRow",
+     "t": 393.8
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1598&clientId=01a167dc-a252-70fb-9258-1743f547193b",
+     "t0": 394.3,
+     "m": "GET",
+     "tH": 431.1,
+     "tJ0": 431.1,
+     "t1": 436.8
+    },
+    {
+     "k": "wsopen",
+     "t": 416.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 437.6,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 447.8
+    },
+    {
+     "k": "loaf",
+     "t0": 333.7,
+     "dur": 79.2999997138977,
+     "block": 15.9,
+     "rs": 403.2000002861023,
+     "sl": 403.30000019073486,
+     "sc": [
+      [
+       "TimerHandler:setTimeout",
+       "",
+       56.1,
+       "useAuth-DVMlYtPI.js",
+       338
+      ],
+      [
+       "TimerHandler:setTimeout",
+       "",
+       8,
+       "useAuth-DVMlYtPI.js",
+       395
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 448.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 449.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 796.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 859.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 797.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 859.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 797.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1225.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 797.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1225.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 797.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1225.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 797.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 1225.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 797.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1225.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 798,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1225.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 798.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1225.2
+    }
+   ],
+   "nav": {
+    "resp": 3.8000001907348633,
+    "dcl": 62,
+    "load": 63.5
+   },
+   "fcp": 72,
+   "res": [
+    [
+     "/assets/index-D0Fcdn53.js",
+     21,
+     25,
+     0,
+     81206
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     22,
+     25,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     22,
+     25,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     22,
+     25,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-DVMlYtPI.js",
+     22,
+     26,
+     0,
+     223052
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     22,
+     25,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     22,
+     26,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-BaULeBs9.js",
+     60,
+     62,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     60,
+     62,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     62,
+     63,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     62,
+     68,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-BuJSnTVw.js",
+     71,
+     77,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-CteiS-Pn.js",
+     72,
+     79,
+     0,
+     21501
+    ],
+    [
+     "/assets/Avatar-B1g5Na42.js",
+     72,
+     79,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     72,
+     79,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-BGKCLiSa.js",
+     72,
+     79,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-BSzW8sYH.js",
+     73,
+     79,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-BKkthIGB.js",
+     73,
+     79,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     73,
+     79,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-CfwrqzKe.js",
+     73,
+     79,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-DrOscefq.js",
+     73,
+     79,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-CAa1koiM.js",
+     74,
+     79,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-D-8HbZZJ.js",
+     74,
+     79,
+     0,
+     2018
+    ],
+    [
+     "/assets/x-DADQMGp6.js",
+     74,
+     79,
+     0,
+     182
+    ],
+    [
+     "/assets/View-C8QBxBzw.js",
+     307,
+     310,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-CO8NnaWl.js",
+     308,
+     310,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=1598&clientId=01a167dc-a252-70fb-9258-1743f547193b",
+     395,
+     405,
+     347,
+     47
+    ]
+   ]
+  },
+  {
+   "ms": 403.2000002861023,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 62.1,
+     "m": "GET",
+     "tH": 70.6,
+     "tJ0": 70.6,
+     "t1": 71.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 66.5,
+     "ops": {},
+     "t1": 134.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 68,
+     "ops": {
+      "get": 1
+     },
+     "t1": 134.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 68.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 68.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 68.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 68.6,
+     "ops": {
+      "get": 1
+     },
+     "t1": 304.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 68.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 69,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 69.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 69.3,
+     "ops": {},
+     "t1": 303.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 71.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 327.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 104.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 327.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 105,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 327.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 303.9,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 332.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 327.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 333
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 327.7,
+     "ops": {},
+     "t1": 332.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 332.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 338.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 332.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 339.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 338.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 340.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 338.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 341
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 338.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 341.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 339,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 341.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 339.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 342.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 340.2,
+     "ops": {},
+     "t1": 341.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 340.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 342.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 341.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 403.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 341.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 403.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 341.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 411.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 342,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 411.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 342.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 425
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 343.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 437.7
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1598&clientId=01a167dc-a252-70fb-9258-1743f547193b",
+     "t0": 343.8,
+     "m": "GET",
+     "tH": 424.7,
+     "tJ0": 424.7,
+     "t1": 442.8
+    },
+    {
+     "k": "firstRow",
+     "t": 403.2
+    },
+    {
+     "k": "wsopen",
+     "t": 425.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 443.4,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 450.8
+    },
+    {
+     "k": "loaf",
+     "t0": 332.4,
+     "dur": 88.90000009536743,
+     "block": 18.9,
+     "rs": 411.59999990463257,
+     "sl": 411.80000019073486,
+     "sc": [
+      [
+       "TimerHandler:setTimeout",
+       "",
+       59.2,
+       "useAuth-DVMlYtPI.js",
+       344
+      ],
+      [
+       "TimerHandler:setTimeout",
+       "",
+       7.6,
+       "useAuth-DVMlYtPI.js",
+       404
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 451.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 451.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 801.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 984.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 802.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 984.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 802.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1219.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 802.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1219.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 802.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1219.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 802.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 1219.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 802.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1219.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 803.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1219.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 803.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1219.7
+    }
+   ],
+   "nav": {
+    "resp": 3.700000286102295,
+    "dcl": 62.5,
+    "load": 64
+   },
+   "fcp": 72,
+   "res": [
+    [
+     "/assets/index-D0Fcdn53.js",
+     21,
+     25,
+     0,
+     81206
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     21,
+     26,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     21,
+     26,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     22,
+     26,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-DVMlYtPI.js",
+     22,
+     26,
+     0,
+     223052
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     22,
+     26,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     22,
+     26,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-BaULeBs9.js",
+     61,
+     62,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     61,
+     63,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     62,
+     64,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     62,
+     69,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-BuJSnTVw.js",
+     72,
+     77,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-CteiS-Pn.js",
+     72,
+     78,
+     0,
+     21501
+    ],
+    [
+     "/assets/Avatar-B1g5Na42.js",
+     73,
+     79,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     73,
+     79,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-BGKCLiSa.js",
+     73,
+     79,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-BSzW8sYH.js",
+     73,
+     79,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-BKkthIGB.js",
+     73,
+     80,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     74,
+     79,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-CfwrqzKe.js",
+     74,
+     79,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-DrOscefq.js",
+     74,
+     80,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-CAa1koiM.js",
+     74,
+     80,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-D-8HbZZJ.js",
+     74,
+     80,
+     0,
+     2018
+    ],
+    [
+     "/assets/x-DADQMGp6.js",
+     74,
+     80,
+     0,
+     182
+    ],
+    [
+     "/assets/View-C8QBxBzw.js",
+     312,
+     314,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-CO8NnaWl.js",
+     313,
+     314,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=1598&clientId=01a167dc-a252-70fb-9258-1743f547193b",
+     344,
+     352,
+     347,
+     47
+    ]
+   ]
+  },
+  {
+   "ms": 514.5999999046326,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 180.6,
+     "m": "GET",
+     "tH": 190.1,
+     "tJ0": 190.1,
+     "t1": 191.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 185.1,
+     "ops": {},
+     "t1": 251.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 186.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 251.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 187,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 414.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 187.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 414.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 187.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 414.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 187.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 414.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 187.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 414.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 188.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 414.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 188.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 414.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 188.5,
+     "ops": {},
+     "t1": 413.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 191.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 438
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 232.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 438.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 232.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 438.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 413.6,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 442.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 438.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 443.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 439,
+     "ops": {},
+     "t1": 443.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 443.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 450.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 443.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 451
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 449.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 452.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 449.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 452.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 450,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 452.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 450.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 452.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 450.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 454.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 451.6,
+     "ops": {},
+     "t1": 452.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 451.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 454.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 452.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 456.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 453.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 514.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 453.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 514.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 454,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 523.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 454.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 523.7
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1598&clientId=01a167dc-a252-70fb-9258-1743f547193b",
+     "t0": 454.7,
+     "m": "GET",
+     "tH": 538.1,
+     "tJ0": 538.1,
+     "t1": 558
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 455.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 552.3
+    },
+    {
+     "k": "firstRow",
+     "t": 514.6
+    },
+    {
+     "k": "wsopen",
+     "t": 537.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 558.5,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 568.8
+    },
+    {
+     "k": "loaf",
+     "t0": 443.4,
+     "dur": 90.80000019073486,
+     "block": 18.9,
+     "rs": 523.6999998092651,
+     "sl": 523.7999997138977,
+     "sc": [
+      [
+       "import.then",
+       "",
+       5.2,
+       "views-CAa1koiM.js",
+       444
+      ],
+      [
+       "TimerHandler:setTimeout",
+       "",
+       58.3,
+       "useAuth-DVMlYtPI.js",
+       457
+      ],
+      [
+       "TimerHandler:setTimeout",
+       "",
+       8.4,
+       "useAuth-DVMlYtPI.js",
+       515
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 569.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 570.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 911.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 974
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 912,
+     "ops": {
+      "get": 1
+     },
+     "t1": 974.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 912.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1342.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 912.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1343
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 912.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1343
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 912.6,
+     "ops": {
+      "get": 1
+     },
+     "t1": 1343.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 912.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1343.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 912.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1343.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 912.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 1343.2
+    }
+   ],
+   "nav": {
+    "resp": 5,
+    "dcl": 181.09999990463257,
+    "load": 182.69999980926514
+   },
+   "fcp": 192,
+   "res": [
+    [
+     "/assets/index-D0Fcdn53.js",
+     138,
+     141,
+     0,
+     81206
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     139,
+     142,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     139,
+     142,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     139,
+     142,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-DVMlYtPI.js",
+     139,
+     143,
+     0,
+     223052
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     139,
+     142,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     140,
+     143,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-BaULeBs9.js",
+     178,
+     180,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     179,
+     180,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     180,
+     182,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     181,
+     187,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-BuJSnTVw.js",
+     193,
+     195,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-CteiS-Pn.js",
+     193,
+     196,
+     0,
+     21501
+    ],
+    [
+     "/assets/Avatar-B1g5Na42.js",
+     193,
+     198,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     194,
+     198,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-BGKCLiSa.js",
+     194,
+     200,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-BSzW8sYH.js",
+     194,
+     201,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-BKkthIGB.js",
+     194,
+     201,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     195,
+     201,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-CfwrqzKe.js",
+     195,
+     201,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-DrOscefq.js",
+     195,
+     201,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-CAa1koiM.js",
+     195,
+     201,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-D-8HbZZJ.js",
+     196,
+     201,
+     0,
+     2018
+    ],
+    [
+     "/assets/x-DADQMGp6.js",
+     196,
+     201,
+     0,
+     182
+    ],
+    [
+     "/assets/View-C8QBxBzw.js",
+     423,
+     425,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-CO8NnaWl.js",
+     424,
+     425,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=1598&clientId=01a167dc-a252-70fb-9258-1743f547193b",
+     455,
+     463,
+     347,
+     47
+    ]
+   ]
+  }
+ ]
+}

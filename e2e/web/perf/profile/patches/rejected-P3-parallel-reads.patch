@@ -1,0 +1,46 @@
+--- a/apps/web/src/tasks/queries.ts	2026-10-23 07:16:31.593529030 +0000
++++ b/apps/web/src/tasks/queries.ts	2026-10-23 07:16:31.599528946 +0000
+@@ -54,6 +54,15 @@
+     links<Row<'taskAssignees'>>('taskAssignees'),
+     links<Row<'taskLabels'>>('taskLabels'),
+   ]);
++  return build(tasks, projectKey, as, ls);
++}
++
++function build(
++  tasks: Row<'tasks'>[],
++  projectKey: Map<string, string>,
++  as: Row<'taskAssignees'>[],
++  ls: Row<'taskLabels'>[],
++): TaskView[] {
+   const am = group(as, (r: Row<'taskAssignees'>) => r.userId);
+   const lm = group(ls, (r: Row<'taskLabels'>) => r.labelId);
+   return tasks.map((t) => ({
+@@ -121,9 +130,26 @@
+   useLive(
+     () => toValue(projectId),
+     async (pid) => {
++      const tasksT = db.table<Row<'tasks'>>('tasks').where('projectId').equals(pid);
++      // P3: проект большой — задачи и обе таблицы связей читаем параллельно (раньше последовательно: задачи → связи)
++      if ((await tasksT.count()) > 500) {
++        const [project, tasks, as, ls] = await Promise.all([
++          db.table<Row<'projects'>>('projects').get(pid),
++          tasksT.toArray(),
++          db.table<Row<'taskAssignees'>>('taskAssignees').toArray(),
++          db.table<Row<'taskLabels'>>('taskLabels').toArray(),
++        ]);
++        const ids = new Set(tasks.map((t) => t.id));
++        return build(
++          tasks,
++          new Map(project ? [[pid, project.key]] : []),
++          as.filter((r) => ids.has(r.taskId)),
++          ls.filter((r) => ids.has(r.taskId)),
++        );
++      }
+       const [project, tasks] = await Promise.all([
+         db.table<Row<'projects'>>('projects').get(pid),
+-        db.table<Row<'tasks'>>('tasks').where('projectId').equals(pid).toArray(),
++        tasksT.toArray(),
+       ]);
+       return views(tasks, new Map(project ? [[pid, project.key]] : []));
+     },

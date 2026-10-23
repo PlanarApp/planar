@@ -1,0 +1,156 @@
+diff --git a/apps/web/src/main.ts b/apps/web/src/main.ts
+--- a/apps/web/src/main.ts
++++ b/apps/web/src/main.ts
+@@ -4,12 +4,15 @@
+ import { i18n } from './i18n';
+ import { router } from './router';
+ import { initModules } from './modules/registry';
++import { preloadProject } from './tasks/queries';
+ import { initSession } from './session';
+ import './styles.css';
+ 
+ const LogoutDialog = defineAsyncComponent(() => import('./sync/LogoutDialog.vue'));
+ const { logoutPrompt } = useAuth();
+ 
++const open = /^\/p\/([0-9a-f-]{36})/.exec(location.pathname);
++if (open) preloadProject(open[1]!); // P9
+ initSession(router);
+ initModules();
+ createApp({ render: () => [h(App), logoutPrompt.open.value && h(LogoutDialog)] })
+diff --git a/apps/web/src/sync/client.ts b/apps/web/src/sync/client.ts
+--- a/apps/web/src/sync/client.ts
++++ b/apps/web/src/sync/client.ts
+@@ -384,6 +384,7 @@
+       for (const t of db.tables) await t.clear();
+       await db._meta.put({ key: 'clientId', value: uuidv7() });
+     });
++    emitChanges([{ reset: true }]);
+     cursor = undefined;
+     pushedUpTo = 0;
+     syncState.value = { status: 'idle', pending: 0 };
+diff --git a/apps/web/src/tasks/index.ts b/apps/web/src/tasks/index.ts
+--- a/apps/web/src/tasks/index.ts
++++ b/apps/web/src/tasks/index.ts
+@@ -5,6 +5,7 @@
+   useMembers,
+   useLabels,
+   useProjectTasks,
++  preloadProject,
+   useTask,
+ } from './queries';
+ export type { TaskView } from './queries';
+diff --git a/apps/web/src/tasks/queries.ts b/apps/web/src/tasks/queries.ts
+--- a/apps/web/src/tasks/queries.ts
++++ b/apps/web/src/tasks/queries.ts
+@@ -118,44 +118,84 @@
+   );
+ 
+ /**
+- * P6: задачи проекта в памяти. Один раз читаем из IndexedDB, дальше патчим по событиям записи реплики
+- * (sync: DexieTx / applyServer), без повторного чтения таблиц. `reset` (bootstrap) — перечитать.
+- * shortcut: изменения из других вкладок не видны (нужна пересылка событий через BroadcastChannel).
++ * P6 + P7: задачи проектов в памяти. Проект читается из IndexedDB один раз, дальше патчится по событиям записи
++ * реплики (sync: DexieTx / applyServer); остывшие проекты (до 3) остаются в памяти — возврат в проект без чтения (P7).
++ * `reset` (bootstrap/wipe) — перечитать. shortcut: изменения из других вкладок не видны (нужна пересылка событий
++ * через BroadcastChannel или контрольный liveQuery по версии таблицы).
+  */
++interface Entry {
++  pid: string;
++  state?: ProjectState;
++  arr?: TaskView[]; // снимок для подписчиков; undefined — устарел
++  queue: RowChange[]; // события, пришедшие во время чтения
++  loading?: Promise<void>;
++  subs: Set<(a: TaskView[]) => void>;
++}
++const entries = new Map<string, Entry>();
++const KEEP = 3;
++let bus: (() => void) | undefined;
++
++const snapshot = (e: Entry) => (e.arr ??= [...e.state!.tasks.values()]);
++function reload(e: Entry) {
++  e.state = e.arr = undefined;
++  e.queue = [];
++  e.loading = loadState(e.pid).then((st) => {
++    if (entries.get(e.pid) !== e) return;
++    e.loading = undefined;
++    e.state = st;
++    const q = e.queue;
++    e.queue = [];
++    if (!applyChanges(st, q)) return reload(e);
++    e.subs.forEach((f) => f(snapshot(e)));
++  });
++}
++function onChanges(cs: RowChange[]) {
++  for (const e of entries.values()) {
++    if (e.loading) e.queue.push(...cs);
++    else if (e.state) {
++      if (!applyChanges(e.state, cs)) reload(e);
++      else {
++        e.arr = undefined;
++        if (e.subs.size) e.subs.forEach((f) => f(snapshot(e)));
++      }
++    }
++  }
++}
++function acquire(pid: string): Entry {
++  bus ??= onRowChanges(onChanges);
++  let e = entries.get(pid);
++  if (e) entries.delete(pid); // обновить порядок LRU
++  else {
++    e = { pid, queue: [], subs: new Set() };
++    entries.set(pid, e);
++    reload(e);
++  }
++  entries.set(pid, e);
++  for (const [k, x] of entries) {
++    if (entries.size <= KEEP) break;
++    if (!x.subs.size) entries.delete(k);
++  }
++  return e;
++}
++/** P9: начать чтение проекта до старта приложения (параллельно загрузке скриптов и /api/auth/me) */
++export const preloadProject = (pid: string): void => void acquire(pid);
++
+ export function useProjectTasks(projectId: MaybeRefOrGetter<string>): Readonly<Ref<TaskView[] | undefined>> {
+   const r = shallowRef<TaskView[]>();
+   let off: (() => void) | undefined;
+-  let gen = 0;
+   watch(
+     () => toValue(projectId),
+     (pid) => {
+       off?.();
+-      r.value = undefined;
+-      const g = ++gen;
+-      let state: ProjectState | undefined;
+-      let queue: RowChange[] | undefined = []; // события, пришедшие во время чтения
+-      const publish = () => (r.value = [...state!.tasks.values()]);
+-      const load = async () => {
+-        queue = [];
+-        state = undefined;
+-        const st = await loadState(pid);
+-        if (g !== gen) return;
+-        state = st;
+-        const pending = queue;
+-        queue = undefined;
+-        if (!applyChanges(state, pending)) return void load();
+-        publish();
+-      };
+-      off = onRowChanges((c) => {
+-        if (queue) return void queue.push(...c);
+-        if (!applyChanges(state!, c)) return void load();
+-        publish();
+-      });
+-      void load();
++      const e = acquire(pid);
++      const f = (a: TaskView[]) => (r.value = a);
++      e.subs.add(f);
++      off = () => e.subs.delete(f);
++      r.value = e.state ? snapshot(e) : undefined;
+     },
+     { immediate: true, flush: 'sync' },
+   );
+-  if (getCurrentScope()) onScopeDispose(() => (off?.(), gen++));
++  if (getCurrentScope()) onScopeDispose(() => off?.());
+   return readonly(r) as Readonly<Ref<TaskView[] | undefined>>;
+ }
+ 

@@ -1,0 +1,8027 @@
+{
+ "counts": {
+  "big": 3334,
+  "other": 3333,
+  "total": 10000
+ },
+ "median": 849.8000001907349,
+ "ms": [
+  893.8000001907349,
+  849.8000001907349,
+  823.8000001907349,
+  824.3000001907349,
+  871
+ ],
+ "runs": [
+  {
+   "ms": 893.8000001907349,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 62.3,
+     "m": "GET",
+     "tH": 83.1,
+     "tJ0": 83.1,
+     "t1": 99.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 79.9,
+     "ops": {},
+     "t1": 98.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 81.6,
+     "ops": {
+      "get": 1
+     },
+     "t1": 98.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 81.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 99.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 82.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 99.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 82.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 102.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 82.6,
+     "ops": {},
+     "t1": 98.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 99.6,
+     "ops": {
+      "get": 1
+     },
+     "t1": 109.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 103.5,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 115.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 115.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 125.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 120.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 125.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 124.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 147.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 124.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 148.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 124.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 151.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 147.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 153.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 148.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 153.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 148.5,
+     "ops": {},
+     "t1": 152.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 151.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 155.6
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1418&clientId=01a167d5-e9c6-7cef-9de0-e5e6aa6819e0",
+     "t0": 152.1,
+     "m": "GET",
+     "tH": 162.7,
+     "tJ0": 162.7,
+     "t1": 163
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 157.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 246.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 157.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 246.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 157.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 246.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 158.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 246.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 158.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 246.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 158.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 248.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 160,
+     "ops": {},
+     "t1": 246.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 160.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 251.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 160.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 252.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 160.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 252.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 164,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 253.7
+    },
+    {
+     "k": "wsopen",
+     "t": 169.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 245.6,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 935.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 246.1,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 490.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 247.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 256.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 254.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 256.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 255.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 256.5
+    },
+    {
+     "k": "firstRow",
+     "t": 893.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 906.3,
+     "ops": {},
+     "t1": 936
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 906.6,
+     "ops": {},
+     "t1": 936
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 906.9,
+     "ops": {},
+     "t1": 936.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 907.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 948.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 907.3,
+     "ops": {},
+     "t1": 936.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 907.7,
+     "ops": {},
+     "t1": 936.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 907.9,
+     "ops": {},
+     "t1": 936.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 908.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 949.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 908.3,
+     "ops": {},
+     "t1": 936.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 908.5,
+     "ops": {},
+     "t1": 936.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 908.8,
+     "ops": {},
+     "t1": 936.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 909,
+     "ops": {
+      "get": 3
+     },
+     "t1": 949.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 909.2,
+     "ops": {},
+     "t1": 936.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 909.5,
+     "ops": {},
+     "t1": 937.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 909.7,
+     "ops": {},
+     "t1": 937.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 909.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 950.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 910.1,
+     "ops": {},
+     "t1": 937.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 910.3,
+     "ops": {},
+     "t1": 937.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 910.5,
+     "ops": {},
+     "t1": 937.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 910.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 950.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 910.9,
+     "ops": {},
+     "t1": 937.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 911.1,
+     "ops": {},
+     "t1": 937.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 911.4,
+     "ops": {},
+     "t1": 937.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 911.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 951
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 911.7,
+     "ops": {},
+     "t1": 937.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 911.9,
+     "ops": {},
+     "t1": 937.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 912.2,
+     "ops": {},
+     "t1": 938
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 912.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 951.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 912.5,
+     "ops": {},
+     "t1": 938
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 912.8,
+     "ops": {},
+     "t1": 938.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 913,
+     "ops": {},
+     "t1": 938.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 913.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 951.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 913.4,
+     "ops": {},
+     "t1": 938.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 913.6,
+     "ops": {},
+     "t1": 938.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 913.9,
+     "ops": {},
+     "t1": 938.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 914,
+     "ops": {
+      "get": 3
+     },
+     "t1": 952.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 914.3,
+     "ops": {},
+     "t1": 938.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 914.5,
+     "ops": {},
+     "t1": 938.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 914.7,
+     "ops": {},
+     "t1": 938.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 914.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 952.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 915,
+     "ops": {},
+     "t1": 938.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 915.3,
+     "ops": {},
+     "t1": 938.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 915.5,
+     "ops": {},
+     "t1": 939.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 915.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 953.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 915.9,
+     "ops": {},
+     "t1": 939.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 916.1,
+     "ops": {},
+     "t1": 939.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 916.3,
+     "ops": {},
+     "t1": 939.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 916.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 953.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 916.7,
+     "ops": {},
+     "t1": 939.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 916.9,
+     "ops": {},
+     "t1": 939.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 917.1,
+     "ops": {},
+     "t1": 939.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 917.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 953.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 917.5,
+     "ops": {},
+     "t1": 939.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 917.7,
+     "ops": {},
+     "t1": 939.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 917.9,
+     "ops": {},
+     "t1": 939.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 918.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 954.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 918.4,
+     "ops": {},
+     "t1": 940
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 918.6,
+     "ops": {},
+     "t1": 940
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 918.8,
+     "ops": {},
+     "t1": 940.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 919,
+     "ops": {
+      "get": 3
+     },
+     "t1": 954.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 919.1,
+     "ops": {},
+     "t1": 940.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 919.4,
+     "ops": {},
+     "t1": 940.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 919.6,
+     "ops": {},
+     "t1": 940.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 919.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 955.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 920,
+     "ops": {},
+     "t1": 940.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 920.2,
+     "ops": {},
+     "t1": 940.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 920.4,
+     "ops": {},
+     "t1": 940.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 920.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 955.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 920.8,
+     "ops": {},
+     "t1": 940.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 921,
+     "ops": {},
+     "t1": 940.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 921.2,
+     "ops": {},
+     "t1": 941
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 921.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 956
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 921.6,
+     "ops": {},
+     "t1": 941.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 921.9,
+     "ops": {},
+     "t1": 941.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 922.1,
+     "ops": {},
+     "t1": 941.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 922.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 956.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 922.4,
+     "ops": {},
+     "t1": 941.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 922.7,
+     "ops": {},
+     "t1": 941.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 923,
+     "ops": {},
+     "t1": 941.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 923.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 956.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 923.2,
+     "ops": {},
+     "t1": 941.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 923.5,
+     "ops": {},
+     "t1": 941.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 923.8,
+     "ops": {},
+     "t1": 941.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 923.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 957.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 924.2,
+     "ops": {},
+     "t1": 941.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 924.4,
+     "ops": {},
+     "t1": 942
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 924.7,
+     "ops": {},
+     "t1": 942
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 924.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 957.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 924.9,
+     "ops": {},
+     "t1": 942.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 925.2,
+     "ops": {},
+     "t1": 942.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 925.4,
+     "ops": {},
+     "t1": 948.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 925.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 962.6
+    },
+    {
+     "k": "loaf",
+     "t0": 758.8,
+     "dur": 144.2999997138977,
+     "block": 85.9,
+     "rs": 894.1999998092651,
+     "sl": 894.3000001907349,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       127,
+       "useAuth-CjcvDAXH.js",
+       767
+      ]
+     ]
+    }
+   ],
+   "nav": {
+    "resp": 4.900000095367432,
+    "dcl": 62.90000009536743,
+    "load": 64.30000019073486
+   },
+   "fcp": 72,
+   "res": [
+    [
+     "/assets/index-DhgrPmFT.js",
+     21,
+     25,
+     0,
+     78465
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     22,
+     27,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     22,
+     27,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     22,
+     27,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-CjcvDAXH.js",
+     22,
+     27,
+     0,
+     222016
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     22,
+     27,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     22,
+     27,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-BRMSSzk5.js",
+     61,
+     63,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     61,
+     63,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     62,
+     64,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     63,
+     70,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-titTicMP.js",
+     100,
+     104,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-BtaDAzAT.js",
+     100,
+     105,
+     0,
+     20626
+    ],
+    [
+     "/assets/Avatar-DFEHf425.js",
+     101,
+     107,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     101,
+     107,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-DuyQqcq1.js",
+     101,
+     107,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-BiNhKyIz.js",
+     101,
+     107,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-DE_nZt0f.js",
+     101,
+     107,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     101,
+     108,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-B4ie7BJ9.js",
+     102,
+     108,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-CgMkDyLl.js",
+     102,
+     108,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-Yvy2XkhY.js",
+     102,
+     108,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-CJY3tIuS.js",
+     102,
+     108,
+     0,
+     2018
+    ],
+    [
+     "/assets/x--4FrYI85.js",
+     103,
+     108,
+     0,
+     182
+    ],
+    [
+     "/assets/View-19Q52e1l.js",
+     134,
+     135,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-CKlzd2Lz.js",
+     134,
+     135,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=1418&clientId=01a167d5-e9c6-7cef-9de0-e5e6aa6819e0",
+     152,
+     163,
+     347,
+     47
+    ]
+   ]
+  },
+  {
+   "ms": 849.8000001907349,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 62.2,
+     "m": "GET",
+     "tH": 72.2,
+     "tJ0": 72.2,
+     "t1": 86.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 66.5,
+     "ops": {},
+     "t1": 72.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 68.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 72.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 68.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 72.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 68.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 74.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 68.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 74.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 68.9,
+     "ops": {},
+     "t1": 72.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 87.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 98
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 90.8,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 101.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 102.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 108.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 106.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 131.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 108.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 131.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 108.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 135.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 108.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 135.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 131.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 137.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 132.1,
+     "ops": {},
+     "t1": 136.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 135.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 137.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 136.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 140
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1418&clientId=01a167d5-e9c6-7cef-9de0-e5e6aa6819e0",
+     "t0": 136.7,
+     "m": "GET",
+     "tH": 151.6,
+     "tJ0": 151.6,
+     "t1": 152
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 140.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 220.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 141,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 220.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 141.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 220.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 141.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 220.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 141.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 220.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 141.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 221.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 142.6,
+     "ops": {},
+     "t1": 220.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 143.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 224.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 143.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 225
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 143.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 228.1
+    },
+    {
+     "k": "wsopen",
+     "t": 145.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 152.5,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 229.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 219.2,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 890.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 219.7,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 470.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 220.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 231.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 230,
+     "ops": {
+      "count": 1
+     },
+     "t1": 232
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 230.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 232.1
+    },
+    {
+     "k": "firstRow",
+     "t": 849.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 862,
+     "ops": {},
+     "t1": 890.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 862.4,
+     "ops": {},
+     "t1": 890.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 862.6,
+     "ops": {},
+     "t1": 891.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 862.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 903.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 863.1,
+     "ops": {},
+     "t1": 891.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 863.3,
+     "ops": {},
+     "t1": 891.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 863.5,
+     "ops": {},
+     "t1": 891.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 863.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 903.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 864,
+     "ops": {},
+     "t1": 891.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 864.2,
+     "ops": {},
+     "t1": 891.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 864.5,
+     "ops": {},
+     "t1": 891.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 864.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 904.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 864.9,
+     "ops": {},
+     "t1": 891.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 865.1,
+     "ops": {},
+     "t1": 891.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 865.3,
+     "ops": {},
+     "t1": 892
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 865.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 904.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 865.6,
+     "ops": {},
+     "t1": 892.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 865.9,
+     "ops": {},
+     "t1": 892.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 866.2,
+     "ops": {},
+     "t1": 892.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 866.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 905.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 866.5,
+     "ops": {},
+     "t1": 892.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 866.7,
+     "ops": {},
+     "t1": 892.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 866.9,
+     "ops": {},
+     "t1": 892.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 867.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 905.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 867.2,
+     "ops": {},
+     "t1": 892.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 867.5,
+     "ops": {},
+     "t1": 892.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 867.7,
+     "ops": {},
+     "t1": 892.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 867.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 905.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 868,
+     "ops": {},
+     "t1": 892.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 868.3,
+     "ops": {},
+     "t1": 893
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 868.5,
+     "ops": {},
+     "t1": 893.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 868.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 906.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 868.9,
+     "ops": {},
+     "t1": 893.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 869.1,
+     "ops": {},
+     "t1": 893.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 869.4,
+     "ops": {},
+     "t1": 893.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 869.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 906.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 869.8,
+     "ops": {},
+     "t1": 893.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 870,
+     "ops": {},
+     "t1": 893.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 870.3,
+     "ops": {},
+     "t1": 893.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 870.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 907
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 870.6,
+     "ops": {},
+     "t1": 893.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 870.8,
+     "ops": {},
+     "t1": 893.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 871,
+     "ops": {},
+     "t1": 894.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 871.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 907.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 871.4,
+     "ops": {},
+     "t1": 894.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 871.6,
+     "ops": {},
+     "t1": 894.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 871.8,
+     "ops": {},
+     "t1": 894.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 872,
+     "ops": {
+      "get": 3
+     },
+     "t1": 907.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 872.2,
+     "ops": {},
+     "t1": 894.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 872.3,
+     "ops": {},
+     "t1": 894.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 872.5,
+     "ops": {},
+     "t1": 894.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 872.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 908.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 872.9,
+     "ops": {},
+     "t1": 894.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 873.1,
+     "ops": {},
+     "t1": 894.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 873.4,
+     "ops": {},
+     "t1": 894.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 873.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 908.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 873.7,
+     "ops": {},
+     "t1": 894.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 873.9,
+     "ops": {},
+     "t1": 894.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 874,
+     "ops": {},
+     "t1": 894.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 874.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 909
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 874.4,
+     "ops": {},
+     "t1": 895.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 874.6,
+     "ops": {},
+     "t1": 895.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 874.8,
+     "ops": {},
+     "t1": 895.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 875,
+     "ops": {
+      "get": 3
+     },
+     "t1": 909.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 875.2,
+     "ops": {},
+     "t1": 895.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 875.4,
+     "ops": {},
+     "t1": 895.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 875.7,
+     "ops": {},
+     "t1": 895.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 875.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 909.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 876,
+     "ops": {},
+     "t1": 895.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 876.3,
+     "ops": {},
+     "t1": 895.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 876.4,
+     "ops": {},
+     "t1": 895.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 876.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 910.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 876.8,
+     "ops": {},
+     "t1": 896
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 877,
+     "ops": {},
+     "t1": 896
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 877.3,
+     "ops": {},
+     "t1": 896.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 877.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 910.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 877.6,
+     "ops": {},
+     "t1": 896.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 877.9,
+     "ops": {},
+     "t1": 896.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 878.1,
+     "ops": {},
+     "t1": 896.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 878.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 911
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 878.5,
+     "ops": {},
+     "t1": 896.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 878.7,
+     "ops": {},
+     "t1": 896.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 878.8,
+     "ops": {},
+     "t1": 896.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 879,
+     "ops": {
+      "get": 3
+     },
+     "t1": 911.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 879.1,
+     "ops": {},
+     "t1": 896.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 879.4,
+     "ops": {},
+     "t1": 896.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 879.6,
+     "ops": {},
+     "t1": 897
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 879.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 911.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 880,
+     "ops": {},
+     "t1": 897.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 880.1,
+     "ops": {},
+     "t1": 897.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 880.3,
+     "ops": {},
+     "t1": 902.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 880.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 917
+    },
+    {
+     "k": "loaf",
+     "t0": 721.4,
+     "dur": 137.5,
+     "block": 81.2,
+     "rs": 850.3000001907349,
+     "sl": 850.4000000953674,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       122.6,
+       "useAuth-CjcvDAXH.js",
+       728
+      ]
+     ]
+    }
+   ],
+   "nav": {
+    "resp": 4,
+    "dcl": 62.60000038146973,
+    "load": 63.90000009536743
+   },
+   "fcp": 80,
+   "res": [
+    [
+     "/assets/index-DhgrPmFT.js",
+     20,
+     24,
+     0,
+     78465
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     20,
+     25,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     20,
+     25,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     21,
+     25,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-CjcvDAXH.js",
+     21,
+     25,
+     0,
+     222016
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     21,
+     25,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     21,
+     25,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-BRMSSzk5.js",
+     61,
+     63,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     61,
+     63,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     62,
+     64,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     62,
+     69,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-titTicMP.js",
+     88,
+     92,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-BtaDAzAT.js",
+     88,
+     94,
+     0,
+     20626
+    ],
+    [
+     "/assets/Avatar-DFEHf425.js",
+     88,
+     96,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     88,
+     97,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-DuyQqcq1.js",
+     88,
+     97,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-BiNhKyIz.js",
+     89,
+     97,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-DE_nZt0f.js",
+     89,
+     97,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     89,
+     97,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-B4ie7BJ9.js",
+     89,
+     97,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-CgMkDyLl.js",
+     90,
+     97,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-Yvy2XkhY.js",
+     90,
+     97,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-CJY3tIuS.js",
+     90,
+     97,
+     0,
+     2018
+    ],
+    [
+     "/assets/x--4FrYI85.js",
+     90,
+     97,
+     0,
+     182
+    ],
+    [
+     "/assets/View-19Q52e1l.js",
+     117,
+     119,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-CKlzd2Lz.js",
+     117,
+     119,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=1418&clientId=01a167d5-e9c6-7cef-9de0-e5e6aa6819e0",
+     137,
+     151,
+     347,
+     47
+    ]
+   ]
+  },
+  {
+   "ms": 823.8000001907349,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 60,
+     "m": "GET",
+     "tH": 68.2,
+     "tJ0": 68.3,
+     "t1": 71.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 64.9,
+     "ops": {},
+     "t1": 71.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 66.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 71.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 66.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 71.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 67,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 71.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 67.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 86.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 67.4,
+     "ops": {},
+     "t1": 71.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 71.6,
+     "ops": {
+      "get": 1
+     },
+     "t1": 97.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 91.4,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 98.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 99.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 126.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 104.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 130.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 104.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 130.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 104.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 131.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 126.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 131.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 127.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 132.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 127.4,
+     "ops": {},
+     "t1": 131.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 131.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 136.6
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1418&clientId=01a167d5-e9c6-7cef-9de0-e5e6aa6819e0",
+     "t0": 131.9,
+     "m": "GET",
+     "tH": 142.7,
+     "tJ0": 142.7,
+     "t1": 143.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 132.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 136.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 135.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 215.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 135.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 215.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 135.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 215.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 136,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 215.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 136.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 215.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 136.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 216.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 137.1,
+     "ops": {},
+     "t1": 215.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 137.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 219.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 137.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 220.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 138.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 220.3
+    },
+    {
+     "k": "wsopen",
+     "t": 139
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 143.6,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 229.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 214.7,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 866.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 215,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 450.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 216.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 236
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 229.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 236.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 234.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 236.4
+    },
+    {
+     "k": "firstRow",
+     "t": 823.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 835.8,
+     "ops": {},
+     "t1": 866.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 836.1,
+     "ops": {},
+     "t1": 866.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 836.5,
+     "ops": {},
+     "t1": 867
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 836.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 879.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 837.1,
+     "ops": {},
+     "t1": 867
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 837.3,
+     "ops": {},
+     "t1": 867.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 837.6,
+     "ops": {},
+     "t1": 867.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 837.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 880.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 838,
+     "ops": {},
+     "t1": 867.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 838.3,
+     "ops": {},
+     "t1": 867.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 838.6,
+     "ops": {},
+     "t1": 867.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 838.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 880.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 838.9,
+     "ops": {},
+     "t1": 867.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 839.2,
+     "ops": {},
+     "t1": 867.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 839.5,
+     "ops": {},
+     "t1": 867.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 839.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 881
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 839.8,
+     "ops": {},
+     "t1": 868.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 840.1,
+     "ops": {},
+     "t1": 868.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 840.4,
+     "ops": {},
+     "t1": 868.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 840.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 881.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 840.8,
+     "ops": {},
+     "t1": 868.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 841,
+     "ops": {},
+     "t1": 868.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 841.3,
+     "ops": {},
+     "t1": 868.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 841.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 881.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 841.7,
+     "ops": {},
+     "t1": 868.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 841.9,
+     "ops": {},
+     "t1": 868.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 842.1,
+     "ops": {},
+     "t1": 868.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 842.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 882.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 842.5,
+     "ops": {},
+     "t1": 869
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 842.8,
+     "ops": {},
+     "t1": 869
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 843.1,
+     "ops": {},
+     "t1": 869.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 843.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 882.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 843.4,
+     "ops": {},
+     "t1": 869.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 843.7,
+     "ops": {},
+     "t1": 869.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 844,
+     "ops": {},
+     "t1": 869.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 844.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 883
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 844.4,
+     "ops": {},
+     "t1": 869.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 844.7,
+     "ops": {},
+     "t1": 869.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 844.9,
+     "ops": {},
+     "t1": 869.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 845,
+     "ops": {
+      "get": 3
+     },
+     "t1": 883.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 845.3,
+     "ops": {},
+     "t1": 869.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 845.6,
+     "ops": {},
+     "t1": 869.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 845.8,
+     "ops": {},
+     "t1": 870
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 845.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 883.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 846.1,
+     "ops": {},
+     "t1": 870.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 846.4,
+     "ops": {},
+     "t1": 870.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 846.7,
+     "ops": {},
+     "t1": 870.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 846.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 884.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 847,
+     "ops": {},
+     "t1": 870.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 847.3,
+     "ops": {},
+     "t1": 870.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 847.5,
+     "ops": {},
+     "t1": 870.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 847.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 884.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 847.9,
+     "ops": {},
+     "t1": 870.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 848.2,
+     "ops": {},
+     "t1": 870.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 848.4,
+     "ops": {},
+     "t1": 870.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 848.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 884.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 848.8,
+     "ops": {},
+     "t1": 871
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 849.1,
+     "ops": {},
+     "t1": 871
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 849.3,
+     "ops": {},
+     "t1": 871.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 849.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 885.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 849.7,
+     "ops": {},
+     "t1": 871.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 850,
+     "ops": {},
+     "t1": 871.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 850.2,
+     "ops": {},
+     "t1": 871.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 850.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 886
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 850.6,
+     "ops": {},
+     "t1": 871.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 850.9,
+     "ops": {},
+     "t1": 871.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 851.1,
+     "ops": {},
+     "t1": 871.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 851.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 886
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 851.5,
+     "ops": {},
+     "t1": 871.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 851.7,
+     "ops": {},
+     "t1": 871.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 852,
+     "ops": {},
+     "t1": 872
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 852.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 886.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 852.5,
+     "ops": {},
+     "t1": 872.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 852.7,
+     "ops": {},
+     "t1": 872.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 853,
+     "ops": {},
+     "t1": 872.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 853.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 886.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 853.4,
+     "ops": {},
+     "t1": 872.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 853.7,
+     "ops": {},
+     "t1": 872.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 853.9,
+     "ops": {},
+     "t1": 872.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 854.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 887.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 854.4,
+     "ops": {},
+     "t1": 872.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 854.6,
+     "ops": {},
+     "t1": 872.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 854.8,
+     "ops": {},
+     "t1": 872.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 855,
+     "ops": {
+      "get": 3
+     },
+     "t1": 887.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 855.1,
+     "ops": {},
+     "t1": 873.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 855.5,
+     "ops": {},
+     "t1": 873.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 855.6,
+     "ops": {},
+     "t1": 873.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 855.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 888
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 856,
+     "ops": {},
+     "t1": 873.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 856.3,
+     "ops": {},
+     "t1": 873.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 856.6,
+     "ops": {},
+     "t1": 879.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 856.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 888.6
+    },
+    {
+     "k": "loaf",
+     "t0": 696.6,
+     "dur": 136.19999980926514,
+     "block": 83.7,
+     "rs": 824.3000001907349,
+     "sl": 824.3000001907349,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       125.1,
+       "useAuth-CjcvDAXH.js",
+       699
+      ]
+     ]
+    }
+   ],
+   "nav": {
+    "resp": 4.100000381469727,
+    "dcl": 60.40000009536743,
+    "load": 61.80000019073486
+   },
+   "fcp": 72,
+   "res": [
+    [
+     "/assets/index-DhgrPmFT.js",
+     21,
+     24,
+     0,
+     78465
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     21,
+     24,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     21,
+     25,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     21,
+     25,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-CjcvDAXH.js",
+     21,
+     25,
+     0,
+     222016
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     21,
+     25,
+     0,
+     22358
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     21,
+     25,
+     0,
+     916
+    ],
+    [
+     "/assets/Menu-BRMSSzk5.js",
+     59,
+     60,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     59,
+     61,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     60,
+     61,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     60,
+     67,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-titTicMP.js",
+     72,
+     75,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-BtaDAzAT.js",
+     72,
+     77,
+     0,
+     20626
+    ],
+    [
+     "/assets/Avatar-DFEHf425.js",
+     73,
+     78,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     73,
+     79,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-DuyQqcq1.js",
+     73,
+     79,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-BiNhKyIz.js",
+     73,
+     79,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-DE_nZt0f.js",
+     73,
+     79,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     73,
+     79,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-B4ie7BJ9.js",
+     74,
+     79,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-CgMkDyLl.js",
+     74,
+     79,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-Yvy2XkhY.js",
+     74,
+     79,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-CJY3tIuS.js",
+     74,
+     79,
+     0,
+     2018
+    ],
+    [
+     "/assets/x--4FrYI85.js",
+     74,
+     79,
+     0,
+     182
+    ],
+    [
+     "/assets/View-19Q52e1l.js",
+     112,
+     114,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-CKlzd2Lz.js",
+     113,
+     114,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=1418&clientId=01a167d5-e9c6-7cef-9de0-e5e6aa6819e0",
+     132,
+     143,
+     347,
+     47
+    ]
+   ]
+  },
+  {
+   "ms": 824.3000001907349,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 61,
+     "m": "GET",
+     "tH": 70.9,
+     "tJ0": 70.9,
+     "t1": 86
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 66.8,
+     "ops": {},
+     "t1": 73.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 69,
+     "ops": {
+      "get": 1
+     },
+     "t1": 85.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 69.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 86
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 69.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 86
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 69.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 89.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 70,
+     "ops": {},
+     "t1": 74
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 86.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 100.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 92.2,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 103.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 104,
+     "ops": {
+      "get": 1
+     },
+     "t1": 109.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 108.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 132.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 109.1,
+     "ops": {
+      "get": 1
+     },
+     "t1": 132.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 109.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 137.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 109.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 137.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 133.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 138.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 133.3,
+     "ops": {},
+     "t1": 137.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 137.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 142
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1418&clientId=01a167d5-e9c6-7cef-9de0-e5e6aa6819e0",
+     "t0": 138,
+     "m": "GET",
+     "tH": 154.1,
+     "tJ0": 154.1,
+     "t1": 154.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 138.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 144.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 142.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 224.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 142.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 224.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 142.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 224.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 143.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 224.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 143.6,
+     "ops": {
+      "get": 1
+     },
+     "t1": 224.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 143.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 225.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 144.9,
+     "ops": {},
+     "t1": 224.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 146,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 228.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 146.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 229.4
+    },
+    {
+     "k": "wsopen",
+     "t": 146.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 146.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 229.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 155.1,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 234
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 223.7,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 865.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 224.2,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 449.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 225.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 235.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 234.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 236
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 235.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 236.2
+    },
+    {
+     "k": "firstRow",
+     "t": 824.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 836.5,
+     "ops": {},
+     "t1": 865.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 836.9,
+     "ops": {},
+     "t1": 865.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 837.1,
+     "ops": {},
+     "t1": 865.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 837.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 877.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 837.4,
+     "ops": {},
+     "t1": 865.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 837.7,
+     "ops": {},
+     "t1": 865.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 837.9,
+     "ops": {},
+     "t1": 866
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 838.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 878.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 838.3,
+     "ops": {},
+     "t1": 866.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 838.6,
+     "ops": {},
+     "t1": 866.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 838.8,
+     "ops": {},
+     "t1": 866.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 839,
+     "ops": {
+      "get": 3
+     },
+     "t1": 878.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 839.2,
+     "ops": {},
+     "t1": 866.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 839.4,
+     "ops": {},
+     "t1": 866.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 839.6,
+     "ops": {},
+     "t1": 866.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 839.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 879
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 840,
+     "ops": {},
+     "t1": 866.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 840.2,
+     "ops": {},
+     "t1": 866.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 840.4,
+     "ops": {},
+     "t1": 866.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 840.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 879.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 840.8,
+     "ops": {},
+     "t1": 867
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 841.1,
+     "ops": {},
+     "t1": 867
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 841.2,
+     "ops": {},
+     "t1": 867.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 841.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 879.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 841.6,
+     "ops": {},
+     "t1": 867.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 841.8,
+     "ops": {},
+     "t1": 867.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 842,
+     "ops": {},
+     "t1": 867.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 842.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 880.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 842.5,
+     "ops": {},
+     "t1": 867.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 842.7,
+     "ops": {},
+     "t1": 867.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 842.9,
+     "ops": {},
+     "t1": 867.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 843.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 880.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 843.3,
+     "ops": {},
+     "t1": 867.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 843.5,
+     "ops": {},
+     "t1": 867.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 843.7,
+     "ops": {},
+     "t1": 867.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 843.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 881
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 844.1,
+     "ops": {},
+     "t1": 868.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 844.3,
+     "ops": {},
+     "t1": 868.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 844.5,
+     "ops": {},
+     "t1": 868.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 844.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 881.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 844.9,
+     "ops": {},
+     "t1": 868.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 845.1,
+     "ops": {},
+     "t1": 868.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 845.2,
+     "ops": {},
+     "t1": 868.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 845.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 881.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 845.7,
+     "ops": {},
+     "t1": 868.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 845.9,
+     "ops": {},
+     "t1": 868.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 846.1,
+     "ops": {},
+     "t1": 868.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 846.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 882.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 846.5,
+     "ops": {},
+     "t1": 868.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 846.7,
+     "ops": {},
+     "t1": 869
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 846.9,
+     "ops": {},
+     "t1": 869.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 847.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 882.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 847.3,
+     "ops": {},
+     "t1": 869.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 847.5,
+     "ops": {},
+     "t1": 869.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 847.7,
+     "ops": {},
+     "t1": 869.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 847.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 883.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 848.1,
+     "ops": {},
+     "t1": 869.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 848.3,
+     "ops": {},
+     "t1": 869.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 848.5,
+     "ops": {},
+     "t1": 869.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 848.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 883.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 848.9,
+     "ops": {},
+     "t1": 869.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 849.1,
+     "ops": {},
+     "t1": 869.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 849.3,
+     "ops": {},
+     "t1": 869.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 849.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 883.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 849.6,
+     "ops": {},
+     "t1": 869.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 849.9,
+     "ops": {},
+     "t1": 869.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 850.1,
+     "ops": {},
+     "t1": 870.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 850.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 884.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 850.4,
+     "ops": {},
+     "t1": 870.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 850.7,
+     "ops": {},
+     "t1": 870.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 850.9,
+     "ops": {},
+     "t1": 870.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 851.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 884.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 851.3,
+     "ops": {},
+     "t1": 870.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 851.6,
+     "ops": {},
+     "t1": 870.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 851.8,
+     "ops": {},
+     "t1": 870.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 852,
+     "ops": {
+      "get": 3
+     },
+     "t1": 885.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 852.2,
+     "ops": {},
+     "t1": 870.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 852.4,
+     "ops": {},
+     "t1": 870.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 852.6,
+     "ops": {},
+     "t1": 870.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 852.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 885.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 853,
+     "ops": {},
+     "t1": 871
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 853.2,
+     "ops": {},
+     "t1": 871.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 853.4,
+     "ops": {},
+     "t1": 871.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 853.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 885.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 853.8,
+     "ops": {},
+     "t1": 871.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 854,
+     "ops": {},
+     "t1": 871.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 854.2,
+     "ops": {},
+     "t1": 871.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 854.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 886.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 854.7,
+     "ops": {},
+     "t1": 871.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 854.8,
+     "ops": {},
+     "t1": 871.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 855.1,
+     "ops": {},
+     "t1": 877.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 855.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 891.2
+    },
+    {
+     "k": "loaf",
+     "t0": 696.4,
+     "dur": 137,
+     "block": 83.5,
+     "rs": 824.6000003814697,
+     "sl": 824.8000001907349,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       124.7,
+       "useAuth-CjcvDAXH.js",
+       700
+      ]
+     ]
+    }
+   ],
+   "nav": {
+    "resp": 4.400000095367432,
+    "dcl": 61.40000009536743,
+    "load": 62.700000286102295
+   },
+   "fcp": 72,
+   "res": [
+    [
+     "/assets/index-DhgrPmFT.js",
+     21,
+     25,
+     0,
+     78465
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     22,
+     25,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     22,
+     26,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     22,
+     26,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-CjcvDAXH.js",
+     22,
+     26,
+     0,
+     222016
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     22,
+     26,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     22,
+     26,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-BRMSSzk5.js",
+     59,
+     61,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     60,
+     61,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     61,
+     62,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     61,
+     69,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-titTicMP.js",
+     87,
+     90,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-BtaDAzAT.js",
+     87,
+     92,
+     0,
+     20626
+    ],
+    [
+     "/assets/Avatar-DFEHf425.js",
+     87,
+     93,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     87,
+     93,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-DuyQqcq1.js",
+     88,
+     94,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-BiNhKyIz.js",
+     88,
+     94,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-DE_nZt0f.js",
+     88,
+     94,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     88,
+     94,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-B4ie7BJ9.js",
+     89,
+     94,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-CgMkDyLl.js",
+     89,
+     94,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-Yvy2XkhY.js",
+     89,
+     94,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-CJY3tIuS.js",
+     89,
+     94,
+     0,
+     2018
+    ],
+    [
+     "/assets/x--4FrYI85.js",
+     89,
+     94,
+     0,
+     182
+    ],
+    [
+     "/assets/View-19Q52e1l.js",
+     118,
+     120,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-CKlzd2Lz.js",
+     118,
+     120,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=1418&clientId=01a167d5-e9c6-7cef-9de0-e5e6aa6819e0",
+     138,
+     151,
+     347,
+     47
+    ]
+   ]
+  },
+  {
+   "ms": 871,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 53.1,
+     "m": "GET",
+     "tH": 63.1,
+     "tJ0": 63.1,
+     "t1": 66.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 58.9,
+     "ops": {},
+     "t1": 65.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 60.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 66
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 61.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 66
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 61.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 82.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 61.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 82.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 61.9,
+     "ops": {},
+     "t1": 65.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 66.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 93.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 87.3,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 98.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 99.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 129.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 100.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 129.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 100.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 130
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 101,
+     "ops": {
+      "get": 1
+     },
+     "t1": 130.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 125.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 131.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 125.6,
+     "ops": {},
+     "t1": 130.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 129.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 133.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 131,
+     "ops": {
+      "count": 1
+     },
+     "t1": 136.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 134,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 218.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 134.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 218.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 134.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 218.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 135,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 218.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 135.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 218.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 135.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 218.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 135.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 219.7
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1418&clientId=01a167d5-e9c6-7cef-9de0-e5e6aa6819e0",
+     "t0": 135.8,
+     "m": "GET",
+     "tH": 146.9,
+     "tJ0": 146.9,
+     "t1": 147.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 137,
+     "ops": {},
+     "t1": 218.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 138.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 222.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 138.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 223.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 139,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 223.3
+    },
+    {
+     "k": "wsopen",
+     "t": 142.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 147.6,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 227.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 217.6,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 918
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 218.1,
+     "ops": {
+      "openCursor": 1
+     },
+     "t1": 462.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 219.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 230.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 228.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 230.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 229,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 230.5
+    },
+    {
+     "k": "firstRow",
+     "t": 871
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 883.3,
+     "ops": {},
+     "t1": 918.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 883.6,
+     "ops": {},
+     "t1": 918.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 883.8,
+     "ops": {},
+     "t1": 918.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 884,
+     "ops": {
+      "get": 3
+     },
+     "t1": 926
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 884.4,
+     "ops": {},
+     "t1": 918.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 884.8,
+     "ops": {},
+     "t1": 918.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 885.1,
+     "ops": {},
+     "t1": 919.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 885.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 926.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 885.6,
+     "ops": {},
+     "t1": 919.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 885.9,
+     "ops": {},
+     "t1": 919.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 886.2,
+     "ops": {},
+     "t1": 919.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 886.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 926.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 886.7,
+     "ops": {},
+     "t1": 919.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 887.1,
+     "ops": {},
+     "t1": 919.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 887.3,
+     "ops": {},
+     "t1": 919.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 887.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 927.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 887.7,
+     "ops": {},
+     "t1": 919.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 887.9,
+     "ops": {},
+     "t1": 919.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 888.2,
+     "ops": {},
+     "t1": 919.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 888.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 928.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 888.6,
+     "ops": {},
+     "t1": 920.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 888.8,
+     "ops": {},
+     "t1": 920.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 889.1,
+     "ops": {},
+     "t1": 920.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 889.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 928.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 889.5,
+     "ops": {},
+     "t1": 920.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 889.6,
+     "ops": {},
+     "t1": 920.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 889.9,
+     "ops": {},
+     "t1": 920.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 890.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 934.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 890.5,
+     "ops": {},
+     "t1": 920.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 890.7,
+     "ops": {},
+     "t1": 920.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 891,
+     "ops": {},
+     "t1": 920.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 891.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 935.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 891.4,
+     "ops": {},
+     "t1": 921.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 891.7,
+     "ops": {},
+     "t1": 921.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 891.9,
+     "ops": {},
+     "t1": 921.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 892.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 935.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 892.2,
+     "ops": {},
+     "t1": 921.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 892.6,
+     "ops": {},
+     "t1": 921.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 892.9,
+     "ops": {},
+     "t1": 921.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 893.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 936.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 893.3,
+     "ops": {},
+     "t1": 921.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 893.6,
+     "ops": {},
+     "t1": 921.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 893.8,
+     "ops": {},
+     "t1": 921.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 894,
+     "ops": {
+      "get": 3
+     },
+     "t1": 936.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 894.2,
+     "ops": {},
+     "t1": 922
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 894.4,
+     "ops": {},
+     "t1": 922
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 894.7,
+     "ops": {},
+     "t1": 922.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 894.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 937
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 895.1,
+     "ops": {},
+     "t1": 922.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 895.5,
+     "ops": {},
+     "t1": 922.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 895.7,
+     "ops": {},
+     "t1": 922.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 895.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 937.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 896,
+     "ops": {},
+     "t1": 922.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 896.3,
+     "ops": {},
+     "t1": 922.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 896.5,
+     "ops": {},
+     "t1": 922.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 896.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 937.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 897,
+     "ops": {},
+     "t1": 922.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 897.1,
+     "ops": {},
+     "t1": 922.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 897.3,
+     "ops": {},
+     "t1": 923
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 897.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 938.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 897.8,
+     "ops": {},
+     "t1": 923.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 898,
+     "ops": {},
+     "t1": 923.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 898.3,
+     "ops": {},
+     "t1": 923.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 898.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 939.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 898.6,
+     "ops": {},
+     "t1": 923.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 898.9,
+     "ops": {},
+     "t1": 923.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 899.3,
+     "ops": {},
+     "t1": 923.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 899.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 939.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 899.8,
+     "ops": {},
+     "t1": 923.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 900.3,
+     "ops": {},
+     "t1": 923.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 900.7,
+     "ops": {},
+     "t1": 924
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 900.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 939.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 901.2,
+     "ops": {},
+     "t1": 924
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 901.6,
+     "ops": {},
+     "t1": 924.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 902,
+     "ops": {},
+     "t1": 924.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 902.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 940
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 902.7,
+     "ops": {},
+     "t1": 924.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 903,
+     "ops": {},
+     "t1": 924.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 903.3,
+     "ops": {},
+     "t1": 924.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 903.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 940.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 904,
+     "ops": {},
+     "t1": 924.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 904.3,
+     "ops": {},
+     "t1": 924.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 904.7,
+     "ops": {},
+     "t1": 924.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 905,
+     "ops": {
+      "get": 3
+     },
+     "t1": 940.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 905.3,
+     "ops": {},
+     "t1": 924.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 905.6,
+     "ops": {},
+     "t1": 924.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 905.8,
+     "ops": {},
+     "t1": 925
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 906,
+     "ops": {
+      "get": 3
+     },
+     "t1": 941.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 906.3,
+     "ops": {},
+     "t1": 925.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 906.5,
+     "ops": {},
+     "t1": 925.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 906.8,
+     "ops": {},
+     "t1": 925.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 907,
+     "ops": {
+      "get": 3
+     },
+     "t1": 941.8
+    },
+    {
+     "k": "loaf",
+     "t0": 720.7,
+     "dur": 159.30000019073486,
+     "block": 93.9,
+     "rs": 871.4000000953674,
+     "sl": 871.5,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "n",
+       135.2,
+       "useAuth-CjcvDAXH.js",
+       736
+      ]
+     ]
+    }
+   ],
+   "nav": {
+    "resp": 4,
+    "dcl": 53.40000009536743,
+    "load": 55.299999713897705
+   },
+   "fcp": 64,
+   "res": [
+    [
+     "/assets/index-DhgrPmFT.js",
+     11,
+     15,
+     0,
+     78465
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     11,
+     15,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     11,
+     16,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     12,
+     15,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-CjcvDAXH.js",
+     12,
+     16,
+     0,
+     222016
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     12,
+     16,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     12,
+     16,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-BRMSSzk5.js",
+     52,
+     53,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     52,
+     54,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     53,
+     55,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     53,
+     60,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-titTicMP.js",
+     67,
+     71,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-BtaDAzAT.js",
+     67,
+     72,
+     0,
+     20626
+    ],
+    [
+     "/assets/Avatar-DFEHf425.js",
+     68,
+     74,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     68,
+     74,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-DuyQqcq1.js",
+     68,
+     74,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-BiNhKyIz.js",
+     68,
+     74,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-DE_nZt0f.js",
+     68,
+     74,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     68,
+     74,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-B4ie7BJ9.js",
+     69,
+     74,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-CgMkDyLl.js",
+     69,
+     74,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-Yvy2XkhY.js",
+     69,
+     74,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-CJY3tIuS.js",
+     69,
+     74,
+     0,
+     2018
+    ],
+    [
+     "/assets/x--4FrYI85.js",
+     69,
+     74,
+     0,
+     182
+    ],
+    [
+     "/assets/View-19Q52e1l.js",
+     109,
+     111,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-CKlzd2Lz.js",
+     110,
+     112,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=1418&clientId=01a167d5-e9c6-7cef-9de0-e5e6aa6819e0",
+     136,
+     147,
+     347,
+     47
+    ]
+   ]
+  }
+ ]
+}

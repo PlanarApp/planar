@@ -1,0 +1,165 @@
+{
+ "total_ms": 4894,
+ "idle_ms": 2439,
+ "busy_ms": 2455,
+ "by_category": [
+  [
+   "native/?",
+   906.5
+  ],
+  [
+   "(program)",
+   744.3
+  ],
+  [
+   "dexie",
+   331.7
+  ],
+  [
+   "@vue/runtime-core",
+   116
+  ],
+  [
+   "zod",
+   88
+  ],
+  [
+   "@vue/reactivity",
+   55.4
+  ],
+  [
+   "(garbage collector)",
+   46.2
+  ],
+  [
+   "app:src/tasks",
+   33.8
+  ],
+  [
+   "reka-ui",
+   31.4
+  ],
+  [
+   "@vue/runtime-dom",
+   27.9
+  ],
+  [
+   "@vue/shared",
+   13
+  ],
+  [
+   "index-DhgrPmFT.js",
+   8.7
+  ],
+  [
+   "vue-router",
+   7.6
+  ],
+  [
+   "@tanstack/virtual-core",
+   7.6
+  ]
+ ],
+ "top_functions": [
+  [
+   "(program)",
+   744.3
+  ],
+  [
+   "put",
+   636.8
+  ],
+  [
+   "proto.<computed>",
+   233.4
+  ],
+  [
+   "(anon) @dexie:dexie.js:2248",
+   72.6
+  ],
+  [
+   "(anon) @dexie:dexie.js:3357",
+   57
+  ],
+  [
+   "e._zod.parse @zod:schemas.js:1723",
+   56.2
+  ],
+  [
+   "(garbage collector)",
+   46.2
+  ],
+  [
+   "n @dexie:dexie.js:2059",
+   38.7
+  ],
+  [
+   "n @dexie:dexie.js:3499",
+   22.2
+  ],
+  [
+   "(anon) @dexie:dexie.js:3423",
+   21.5
+  ],
+  [
+   "switchToZone @dexie:dexie.js:1095",
+   15.4
+  ],
+  [
+   "y.onsuccess @dexie:dexie.js:3553",
+   12
+  ],
+  [
+   "e._zod.parse @zod:schemas.js:856",
+   11.2
+  ],
+  [
+   "(anon) @app:src/tasks:queries.ts:116",
+   11
+  ],
+  [
+   "useForwardExpose @reka-ui:useForwardExpose.js:5",
+   10.9
+  ],
+  [
+   "callWithErrorHandling @@vue/runtime-core:runtime-core.esm-bundler.js:197",
+   8.6
+  ],
+  [
+   "renderFnWithContext @@vue/runtime-core:runtime-core.esm-bundler.js:726",
+   7.6
+  ],
+  [
+   "snapShot @dexie:dexie.js:1123",
+   7.6
+  ],
+  [
+   "addRange @dexie:dexie.js:4294",
+   7.4
+  ],
+  [
+   "createBaseVNode @@vue/runtime-core:runtime-core.esm-bundler.js:7889",
+   6.7
+  ],
+  [
+   "insertBefore",
+   6.6
+  ],
+  [
+   "initProps @@vue/runtime-core:runtime-core.esm-bundler.js:5015",
+   6.5
+  ],
+  [
+   "(anon) @index-DhgrPmFT.js",
+   6.5
+  ],
+  [
+   "createReactiveObject @@vue/reactivity:reactivity.esm-bundler.js:1460",
+   6.5
+  ],
+  [
+   "toRaw @@vue/reactivity:reactivity.esm-bundler.js:1512",
+   6.3
+  ]
+ ]
+}

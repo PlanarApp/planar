@@ -1,0 +1,89 @@
+diff --git a/apps/web/src/tasks/queries.ts b/apps/web/src/tasks/queries.ts
+--- a/apps/web/src/tasks/queries.ts
++++ b/apps/web/src/tasks/queries.ts
+@@ -83,8 +83,42 @@
+     async (i) => (await db.table<Row<'projects'>>('projects').get(i)) ?? null,
+   );
+ 
++/**
++ * P4: справочники пространства (статусы, метки, участники) — один liveQuery на (вид, spaceId) на всех подписчиков.
++ * Раньше каждый пикер в каждой строке создавал свой: 27 строк × 4 пикера ≈ 100 подписок на каждый вход в проект.
++ */
++const shared = new Map<string, { r: Ref<unknown>; sub: Subscription; n: number }>();
++function useShared<T>(kind: string, arg: () => string, fn: (a: string) => Promise<T>) {
++  const out = shallowRef<T>();
++  let key = '';
++  const release = () => {
++    const x = shared.get(key);
++    if (x && --x.n === 0) (x.sub.unsubscribe(), shared.delete(key));
++  };
++  watch(
++    arg,
++    (a) => {
++      release();
++      key = kind + a;
++      let x = shared.get(key);
++      if (!x) {
++        const r = shallowRef<T>();
++        x = { r, sub: liveQuery(() => fn(a)).subscribe({ next: (v) => (r.value = v), error: () => {} }), n: 0 };
++        shared.set(key, x);
++      }
++      x.n++;
++      out.value = x.r.value as T;
++      watch(x.r, (v) => (out.value = v as T), { flush: 'sync' });
++    },
++    { immediate: true, flush: 'sync' },
++  );
++  if (getCurrentScope()) onScopeDispose(release);
++  return out as Readonly<Ref<T | undefined>>;
++}
++
+ export const useStatuses = (spaceId: MaybeRefOrGetter<string>) =>
+-  useLive(
++  useShared(
++    'st',
+     () => toValue(spaceId),
+     async (s) =>
+       (await db.table<Row<'statuses'>>('statuses').where('spaceId').equals(s).toArray()).sort(
+@@ -93,7 +127,8 @@
+   );
+ 
+ export const useLabels = (spaceId: MaybeRefOrGetter<string>) =>
+-  useLive(
++  useShared(
++    'lb',
+     () => toValue(spaceId),
+     async (s) =>
+       (await db.table<Row<'labels'>>('labels').where('spaceId').equals(s).toArray()).sort(
+@@ -102,20 +137,17 @@
+   );
+ 
+ export const useMembers = (spaceId: MaybeRefOrGetter<string>) =>
+-  useLive(
+-    () => toValue(spaceId),
+-    async (s) => {
+-      const ms = await db
+-        .table<Row<'spaceMembers'>>('spaceMembers')
+-        .where('spaceId')
+-        .equals(s)
+-        .toArray();
+-      const us = await db.table<Row<'users'>>('users').bulkGet(ms.map((m) => m.userId));
+-      return us
+-        .filter((u): u is Row<'users'> => !!u && !u.deactivatedAt)
+-        .sort((a, b) => a.name.localeCompare(b.name));
+-    },
+-  );
++  useShared('mb', () => toValue(spaceId), async (s) => {
++    const ms = await db
++      .table<Row<'spaceMembers'>>('spaceMembers')
++      .where('spaceId')
++      .equals(s)
++      .toArray();
++    const us = await db.table<Row<'users'>>('users').bulkGet(ms.map((m) => m.userId));
++    return us
++      .filter((u): u is Row<'users'> => !!u && !u.deactivatedAt)
++      .sort((a, b) => a.name.localeCompare(b.name));
++  });
+ 
+ /**
+  * P6 + P7: задачи проектов в памяти. Проект читается из IndexedDB один раз, дальше патчится по событиям записи

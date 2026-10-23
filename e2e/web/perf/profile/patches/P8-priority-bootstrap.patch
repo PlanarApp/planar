@@ -1,0 +1,56 @@
+diff --git a/apps/web/src/sync/client.ts b/apps/web/src/sync/client.ts
+--- a/apps/web/src/sync/client.ts
++++ b/apps/web/src/sync/client.ts
+@@ -113,14 +113,27 @@
+     drop?: Set<number>;
+   }): Promise<void> {
+     const changes: RowChange[] = [];
++    // P8: bootstrap пишет сначала открытый проект (по URL), остальные задачи и связи — следом отдельными транзакциями
++    const hot = p.bootstrap && /^\/p\/([0-9a-f-]{36})/.exec(globalThis.location?.pathname ?? '')?.[1];
++    const deferred: [string, Record<string, unknown>[]][] = [];
++    const hotIds = new Set(
++      hot ? (p.bootstrap!.tasks ?? []).filter((t) => t.projectId === hot).map((t) => t.id as string) : [],
++    );
+     await db.transaction('rw', db.tables, async () => {
+       changes.length = 0;
++      deferred.length = 0;
+       const queue = await db._queue.orderBy('id').toArray();
+       if (p.bootstrap) {
+         changes.push({ reset: true });
+         for (const t of db.entityTables()) {
+           await t.clear();
+-          const rows = p.bootstrap[t.name] ?? [];
++          let rows = p.bootstrap[t.name] ?? [];
++          if (hot && (t.name === 'tasks' || t.name === 'taskAssignees' || t.name === 'taskLabels')) {
++            const isHot = (r: Record<string, unknown>) =>
++              hotIds.has((t.name === 'tasks' ? r.id : r.taskId) as string);
++            deferred.push([t.name, rows.filter((r) => !isHot(r))]);
++            rows = rows.filter(isHot);
++          }
+           for (let i = 0; i < rows.length; i += 2000) await t.bulkPut(rows.slice(i, i + 2000));
+         }
+       } else {
+@@ -149,11 +162,22 @@
+           await db._queue.update(q.id!, { undo: [] });
+         }
+       }
+-      if (p.cursor !== undefined) await db._meta.put({ key: 'cursor', value: p.cursor });
++      // курсор — только когда реплика целиком на месте: оборвавшийся bootstrap повторится
++      if (p.cursor !== undefined && !deferred.length)
++        await db._meta.put({ key: 'cursor', value: p.cursor });
+       if (p.lastMutationId !== undefined)
+         await db._meta.put({ key: 'lastMutationId', value: p.lastMutationId });
+     });
+     emitChanges(changes);
++    for (const [name, rows] of deferred)
++      for (let i = 0; i < rows.length; i += 1000) {
++        await db.table(name).bulkPut(rows.slice(i, i + 1000));
++        await new Promise((r) => setTimeout(r)); // отдать поток отрисовке между пачками
++      }
++    if (deferred.length && p.cursor !== undefined) {
++      await db._meta.put({ key: 'cursor', value: p.cursor });
++      emitChanges([{ reset: true }]);
++    }
+     if (p.cursor !== undefined) cursor = p.cursor;
+     await refreshPending();
+   }

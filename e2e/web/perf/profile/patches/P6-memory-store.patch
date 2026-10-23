@@ -1,0 +1,277 @@
+diff --git a/apps/web/src/sync/client.ts b/apps/web/src/sync/client.ts
+--- a/apps/web/src/sync/client.ts
++++ b/apps/web/src/sync/client.ts
+@@ -12,7 +12,7 @@
+   type MutatorDef,
+ } from '@planar/shared';
+ import { PlanarDB, type QueueItem, type Undo } from './db';
+-import { DexieTx, applyUndo } from './dexie-tx';
++import { DexieTx, applyUndo, emitChanges, type RowChange } from './dexie-tx';
+ 
+ export interface StartOpts {
+   userId: string;
+@@ -86,10 +86,13 @@
+     if (!opts) throw new Error('sync не запущен: вызовите startSync');
+     const createdAt = new Date().toISOString();
+     const undo: Undo[] = [];
++    const changes: RowChange[] = [];
+     await db.transaction('rw', db.tables, async () => {
+-      await def.run(new DexieTx(db, undo), parsed.data, ctx(createdAt));
++      changes.length = 0; // повтор транзакции Dexie
++      await def.run(new DexieTx(db, undo, changes), parsed.data, ctx(createdAt));
+       await db._queue.add({ name, args, createdAt, undo });
+     });
++    emitChanges(changes);
+     // pending и отправку подхватывает подписка на _queue из startSync (в том числе из других вкладок)
+   }
+ 
+@@ -109,20 +112,24 @@
+     lastMutationId?: number;
+     drop?: Set<number>;
+   }): Promise<void> {
++    const changes: RowChange[] = [];
+     await db.transaction('rw', db.tables, async () => {
++      changes.length = 0;
+       const queue = await db._queue.orderBy('id').toArray();
+       if (p.bootstrap) {
++        changes.push({ reset: true });
+         for (const t of db.entityTables()) {
+           await t.clear();
+           const rows = p.bootstrap[t.name] ?? [];
+           for (let i = 0; i < rows.length; i += 2000) await t.bulkPut(rows.slice(i, i + 2000));
+         }
+       } else {
+-        for (const q of queue.slice().reverse()) await applyUndo(db, q.undo ?? []);
++        for (const q of queue.slice().reverse()) await applyUndo(db, q.undo ?? [], changes);
+         for (const c of p.changes ?? []) {
+           if (!db.tables.some((t) => t.name === c.entity)) continue;
+           if (c.op === 'put') await db.table(c.entity).put(c.data);
+           else await db.table(c.entity).delete(c.id);
++          changes.push({ entity: c.entity, id: c.id, row: c.op === 'put' ? (c.data ?? null) : null });
+         }
+       }
+       for (const q of queue) {
+@@ -134,11 +141,11 @@
+         try {
+           const def = registry.get(q.name);
+           if (!def) throw new MutatorError('invalid_args', `неизвестный мутатор: ${q.name}`);
+-          await def.run(new DexieTx(db, undo), def.args.parse(q.args), ctx(q.createdAt));
++          await def.run(new DexieTx(db, undo, changes), def.args.parse(q.args), ctx(q.createdAt));
+           await db._queue.update(q.id!, { undo });
+         } catch {
+           // не применима к реплике: пропускаем локальный эффект, но оставляем в очереди — судит сервер
+-          await applyUndo(db, undo);
++          await applyUndo(db, undo, changes);
+           await db._queue.update(q.id!, { undo: [] });
+         }
+       }
+@@ -146,6 +153,7 @@
+       if (p.lastMutationId !== undefined)
+         await db._meta.put({ key: 'lastMutationId', value: p.lastMutationId });
+     });
++    emitChanges(changes);
+     if (p.cursor !== undefined) cursor = p.cursor;
+     await refreshPending();
+   }
+diff --git a/apps/web/src/sync/dexie-tx.ts b/apps/web/src/sync/dexie-tx.ts
+--- a/apps/web/src/sync/dexie-tx.ts
++++ b/apps/web/src/sync/dexie-tx.ts
+@@ -15,12 +15,21 @@
+   return r.data as Row<E>;
+ }
+ 
++/** P6: построчные изменения реплики (после коммита) — для проекций в памяти; `reset` — реплика заменена целиком. */
++export type RowChange = { entity: string; id: string; row: Record<string, unknown> | null } | { reset: true };
++const subs = new Set<(c: RowChange[]) => void>();
++export const onRowChanges = (cb: (c: RowChange[]) => void): (() => void) => (subs.add(cb), () => void subs.delete(cb));
++export const emitChanges = (c: RowChange[]): void => {
++  if (c.length) for (const cb of [...subs]) cb(c);
++};
++
+ /** Tx над Dexie; вызывать внутри транзакции db.transaction(). С undo — запоминает прообразы строк. */
+ export class DexieTx implements Tx {
+   private seen = new Set<string>();
+   constructor(
+     private db: PlanarDB,
+     private undo?: Undo[],
++    private changes?: RowChange[],
+   ) {}
+ 
+   private table(entity: string): Table {
+@@ -41,6 +50,7 @@
+     const data = check(entity, row);
+     await this.note(entity, data.id as string);
+     await this.table(entity).put(data);
++    this.changes?.push({ entity, id: data.id as string, row: data });
+   }
+ 
+   async patch<E extends EntityName>(
+@@ -54,11 +64,13 @@
+     const data = check(entity, { ...cur, ...defined });
+     await this.note(entity, id);
+     await this.table(entity).put(data);
++    this.changes?.push({ entity, id, row: data });
+   }
+ 
+   async del<E extends EntityName>(entity: E, id: string): Promise<void> {
+     await this.note(entity, id);
+     await this.table(entity).delete(id);
++    this.changes?.push({ entity, id, row: null });
+   }
+ 
+   async scan<E extends EntityName>(
+@@ -81,10 +93,11 @@
+ }
+ 
+ /** Откат записей по прообразам (в обратном порядке). */
+-export async function applyUndo(db: PlanarDB, undo: Undo[]): Promise<void> {
++export async function applyUndo(db: PlanarDB, undo: Undo[], changes?: RowChange[]): Promise<void> {
+   for (let i = undo.length - 1; i >= 0; i--) {
+     const u = undo[i];
+     if (u.row) await db.table(u.entity).put(u.row);
+     else await db.table(u.entity).delete(u.id);
++    changes?.push({ entity: u.entity, id: u.id, row: u.row });
+   }
+ }
+diff --git a/apps/web/src/sync/index.ts b/apps/web/src/sync/index.ts
+--- a/apps/web/src/sync/index.ts
++++ b/apps/web/src/sync/index.ts
+@@ -17,5 +17,6 @@
+   onUnauthorized,
+ } = client;
+ export { useQuery } from './query';
++export { onRowChanges, type RowChange } from './dexie-tx';
+ export const newId = (): string => uuidv7();
+ export const rankBetween = (a: string | null, b: string | null): string => generateKeyBetween(a, b);
+diff --git a/apps/web/src/tasks/queries.ts b/apps/web/src/tasks/queries.ts
+--- a/apps/web/src/tasks/queries.ts
++++ b/apps/web/src/tasks/queries.ts
+@@ -2,7 +2,7 @@
+ import { getCurrentScope, onScopeDispose, readonly, shallowRef, toValue, watch } from 'vue';
+ import type { MaybeRefOrGetter, Ref } from 'vue';
+ import type { Row } from '@planar/shared';
+-import { db, useQuery } from '../sync';
++import { db, onRowChanges, useQuery, type RowChange } from '../sync';
+ 
+ export type TaskView = Row<'tasks'> & { key: string; assigneeIds: string[]; labelIds: string[] };
+ 
+@@ -117,17 +117,111 @@
+     },
+   );
+ 
+-export const useProjectTasks = (projectId: MaybeRefOrGetter<string>) =>
+-  useLive(
++/**
++ * P6: задачи проекта в памяти. Один раз читаем из IndexedDB, дальше патчим по событиям записи реплики
++ * (sync: DexieTx / applyServer), без повторного чтения таблиц. `reset` (bootstrap) — перечитать.
++ * shortcut: изменения из других вкладок не видны (нужна пересылка событий через BroadcastChannel).
++ */
++export function useProjectTasks(projectId: MaybeRefOrGetter<string>): Readonly<Ref<TaskView[] | undefined>> {
++  const r = shallowRef<TaskView[]>();
++  let off: (() => void) | undefined;
++  let gen = 0;
++  watch(
+     () => toValue(projectId),
+-    async (pid) => {
+-      const [project, tasks] = await Promise.all([
+-        db.table<Row<'projects'>>('projects').get(pid),
+-        db.table<Row<'tasks'>>('tasks').where('projectId').equals(pid).toArray(),
+-      ]);
+-      return views(tasks, new Map(project ? [[pid, project.key]] : []));
++    (pid) => {
++      off?.();
++      r.value = undefined;
++      const g = ++gen;
++      let state: ProjectState | undefined;
++      let queue: RowChange[] | undefined = []; // события, пришедшие во время чтения
++      const publish = () => (r.value = [...state!.tasks.values()]);
++      const load = async () => {
++        queue = [];
++        state = undefined;
++        const st = await loadState(pid);
++        if (g !== gen) return;
++        state = st;
++        const pending = queue;
++        queue = undefined;
++        if (!applyChanges(state, pending)) return void load();
++        publish();
++      };
++      off = onRowChanges((c) => {
++        if (queue) return void queue.push(...c);
++        if (!applyChanges(state!, c)) return void load();
++        publish();
++      });
++      void load();
+     },
++    { immediate: true, flush: 'sync' },
+   );
++  if (getCurrentScope()) onScopeDispose(() => (off?.(), gen++));
++  return readonly(r) as Readonly<Ref<TaskView[] | undefined>>;
++}
++
++interface ProjectState {
++  pid: string;
++  key: string;
++  tasks: Map<string, TaskView>;
++  a: Map<string, { t: string; v: string }>; // строки taskAssignees проекта: id → задача, пользователь
++  l: Map<string, { t: string; v: string }>;
++}
++
++async function loadState(pid: string): Promise<ProjectState> {
++  const [project, tasks, as, ls] = await Promise.all([
++    db.table<Row<'projects'>>('projects').get(pid),
++    db.table<Row<'tasks'>>('tasks').where('projectId').equals(pid).toArray(),
++    db.table<Row<'taskAssignees'>>('taskAssignees').toArray(),
++    db.table<Row<'taskLabels'>>('taskLabels').toArray(),
++  ]);
++  const ids = new Set(tasks.map((t) => t.id));
++  const st: ProjectState = { pid, key: project?.key ?? '?', tasks: new Map(), a: new Map(), l: new Map() };
++  const am = new Map<string, string[]>();
++  const lm = new Map<string, string[]>();
++  for (const x of as)
++    if (ids.has(x.taskId)) {
++      st.a.set(x.id, { t: x.taskId, v: x.userId });
++      (am.get(x.taskId) ?? am.set(x.taskId, []).get(x.taskId)!).push(x.userId);
++    }
++  for (const x of ls)
++    if (ids.has(x.taskId)) {
++      st.l.set(x.id, { t: x.taskId, v: x.labelId });
++      (lm.get(x.taskId) ?? lm.set(x.taskId, []).get(x.taskId)!).push(x.labelId);
++    }
++  for (const t of tasks)
++    st.tasks.set(t.id, { ...t, key: `${st.key}-${t.number ?? '…'}`, assigneeIds: am.get(t.id) ?? [], labelIds: lm.get(t.id) ?? [] });
++  return st;
++}
++
++/** false — событие требует перечитать проект (reset, смена самого проекта) */
++function applyChanges(st: ProjectState, cs: RowChange[]): boolean {
++  const link = (m: Map<string, { t: string; v: string }>, c: { id: string; row: Record<string, any> | null }, f: 'assigneeIds' | 'labelIds', val: string) => {
++    const old = m.get(c.id);
++    if (old) {
++      m.delete(c.id);
++      const t = st.tasks.get(old.t);
++      if (t) st.tasks.set(t.id, { ...t, [f]: t[f].filter((x) => x !== old.v) });
++    }
++    const t = c.row && st.tasks.get(c.row.taskId);
++    if (c.row && t) {
++      m.set(c.id, { t: t.id, v: c.row[val] });
++      st.tasks.set(t.id, { ...t, [f]: [...t[f], c.row[val]] });
++    }
++  };
++  for (const c of cs) {
++    if ('reset' in c) return false;
++    if (c.entity === 'projects' && c.id === st.pid) return false;
++    if (c.entity === 'tasks') {
++      const old = st.tasks.get(c.id);
++      if (c.row && c.row.projectId === st.pid) {
++        const row = c.row as Row<'tasks'>;
++        st.tasks.set(c.id, { ...row, key: `${st.key}-${row.number ?? '…'}`, assigneeIds: old?.assigneeIds ?? [], labelIds: old?.labelIds ?? [] });
++      } else if (old) st.tasks.delete(c.id);
++    } else if (c.entity === 'taskAssignees') link(st.a, c, 'assigneeIds', 'userId');
++    else if (c.entity === 'taskLabels') link(st.l, c, 'labelIds', 'labelId');
++  }
++  return true;
++}
+ 
+ export const useTask = (idOrKey: MaybeRefOrGetter<string>) =>
+   useLive(

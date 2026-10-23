@@ -1,0 +1,165 @@
+{
+ "total_ms": 29584,
+ "idle_ms": 25100,
+ "busy_ms": 4483,
+ "by_category": [
+  [
+   "(program)",
+   2216.5
+  ],
+  [
+   "dexie",
+   1334.8
+  ],
+  [
+   "native/?",
+   491.8
+  ],
+  [
+   "app:src/tasks",
+   155.4
+  ],
+  [
+   "(garbage collector)",
+   94.4
+  ],
+  [
+   "@vue/reactivity",
+   80.8
+  ],
+  [
+   "@vue/runtime-core",
+   48.2
+  ],
+  [
+   "app:src/views",
+   26.6
+  ],
+  [
+   "@tanstack/virtual-core",
+   12.9
+  ],
+  [
+   "@vue/runtime-dom",
+   5.7
+  ],
+  [
+   "reka-ui",
+   5.4
+  ],
+  [
+   "@vue/shared",
+   4.4
+  ],
+  [
+   "zod",
+   3.2
+  ],
+  [
+   "View-19Q52e1l.js",
+   2.1
+  ]
+ ],
+ "top_functions": [
+  [
+   "(program)",
+   2216.5
+  ],
+  [
+   "(anon) @dexie:dexie.js:2248",
+   751.8
+  ],
+  [
+   "continue",
+   372.6
+  ],
+  [
+   "y.onsuccess @dexie:dexie.js:3553",
+   112.7
+  ],
+  [
+   "(garbage collector)",
+   94.4
+  ],
+  [
+   "switchToZone @dexie:dexie.js:1095",
+   84.4
+  ],
+  [
+   "n @dexie:dexie.js:3499",
+   77.9
+  ],
+  [
+   "get result",
+   77
+  ],
+  [
+   "(anon) @app:src/tasks:queries.ts:51",
+   66.4
+  ],
+  [
+   "get @@vue/reactivity:reactivity.esm-bundler.js:1025",
+   49.6
+  ],
+  [
+   "addRange @dexie:dexie.js:4294",
+   46.9
+  ],
+  [
+   "snapShot @dexie:dexie.js:1123",
+   41.2
+  ],
+  [
+   "innerDeepClone @dexie:dexie.js:259",
+   39
+  ],
+  [
+   "n @dexie:dexie.js:2059",
+   36.8
+  ],
+  [
+   "cmp @dexie:dexie.js:1275",
+   29.3
+  ],
+  [
+   "(anon) @dexie:dexie.js:2058",
+   25.9
+  ],
+  [
+   "rebalance @dexie:dexie.js:4401",
+   23.8
+  ],
+  [
+   "val @app:src/tasks:sort.ts:6",
+   22.6
+  ],
+  [
+   "createReactiveObject @@vue/reactivity:reactivity.esm-bundler.js:1460",
+   20.5
+  ],
+  [
+   "(anon) @app:src/tasks:queries.ts:59",
+   15
+  ],
+  [
+   "(anon) @dexie:dexie.js:993",
+   14
+  ],
+  [
+   "computed @app:src/views:View.vue:48",
+   12.5
+  ],
+  [
+   "transaction",
+   10.8
+  ],
+  [
+   "H.getMeasurements.f.key @@tanstack/virtual-core:index.js:725",
+   10.8
+  ],
+  [
+   "(anon)",
+   9.9
+  ]
+ ]
+}
