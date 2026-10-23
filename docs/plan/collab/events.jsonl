@@ -154,3 +154,6 @@
 {"t": "2026-10-23T19:12:58", "by": "coordinator", "task": "CL-5", "ev": "checked", "note": "2/2 e2e=ok:6; lint=ok:exit 0"}
 {"t": "2026-10-23T19:22:54", "by": "executor", "task": "CL-7m", "ev": "reported", "commits": ["38084fb", "prettier"], "note": "done: feature/work влит (C-modules v6 из work, collab v5 убран); миграции work без изменений, миграция collab пересоздана как…"}
 {"t": "2026-10-23T19:23:53", "by": "coordinator", "task": "CL-5", "ev": "accepted", "note": "по отчёту; находки: дефект глубокой ссылки (Q4), длинные кадры прокрутки 10k, рост стоимости send — отдельные задачи"}
+{"t": "2026-10-23T19:23:53", "by": "coordinator", "task": "CL-5", "ev": "merged", "note": "53eab6b"}
+{"t": "2026-10-23T19:28:40", "by": "coordinator", "task": "CL-7m", "ev": "checked", "note": "9/9 collab contract=ok:34/34 (пропуск 700); shared-all=ok:194/194; api-all=ok:exit 0; web-all=ok:542/542; size=ok:151.1; build=ok:exit 0; lint=ok:exit 0; merged=ok:yes; collab-web=ok:47"}
+{"t": "2026-10-23T19:29:13", "by": "coordinator", "task": "CL-7m", "ev": "accepted", "note": "по отчёту: слияние, 9/9"}
