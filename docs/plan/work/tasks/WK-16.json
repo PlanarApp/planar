@@ -1,0 +1,41 @@
+{
+  "id": "WK-16",
+  "module": "work",
+  "type": "dp-researcher",
+  "title": "Бюджеты §7: A/B-замер main против feature/work, причина ухудшения",
+  "goal": "Чередуя прогоны e2e/web/perf/run.sh на main (фаза 1) и feature/work (фаза 2) на одном хосте (по 5, ABAB…), получить медианы cold, warm, mutate, switch, realtime и ответить, ухудшился ли каждый показатель за пределами шума; при ухудшении — найти причину профилем (что добавилось на тёплом старте/переходе/реалтайме) и предложить правку с ожидаемым выигрышем, без правки кода приложения.",
+  "plan_ref": "2. Решения пользователя — бюджеты §7 не ухудшаются; WK-8 (замеры у порогов)",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "7",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-16",
+  "branch": "work/WK-16",
+  "base": "feature/work",
+  "scope": [
+    "build/artifacts/WK-16",
+    "docs/research/wk16-budgets.md"
+  ],
+  "dont_touch": [
+    "apps/, packages/, modules/, e2e/ — только читать и запускать; прототип правки — патчем в build/artifacts/WK-16/*.patch",
+    "main — только git worktree add в каталог вне репозитория (например ~/planar-work-WK-16-main) для прогонов, без коммитов; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "table",
+      "cmd": "test -s build/artifacts/WK-16/ab.tsv && wc -l < build/artifacts/WK-16/ab.tsv",
+      "expect": "num:^(\\d+) >=11"
+    },
+    {
+      "name": "doc",
+      "cmd": "grep -cE '^\\| (cold|warm|mutate|switch|realtime)' docs/research/wk16-budgets.md",
+      "expect": "num:^(\\d+) >=5"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T20:15:39"
+}

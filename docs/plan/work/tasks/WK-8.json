@@ -31,36 +31,6 @@
   ],
   "accept": [
     {
-      "name": "measure",
-      "cmd": "bash e2e/web/perf/run.sh > build/wk8-measure.txt 2>&1; rc=$?; git checkout -- e2e/web/perf/profile 2>/dev/null; cat build/wk8-measure.txt; exit $rc",
-      "expect": "exit=0"
-    },
-    {
-      "name": "cold",
-      "cmd": "cat build/wk8-measure.txt",
-      "expect": "num:cold_bootstrap_ms=([\\d.]+) <=2000"
-    },
-    {
-      "name": "warm",
-      "cmd": "cat build/wk8-measure.txt",
-      "expect": "num:warm_start_ms=([\\d.]+) <=400"
-    },
-    {
-      "name": "mutate",
-      "cmd": "cat build/wk8-measure.txt",
-      "expect": "num:mutate_ms_p95=([\\d.]+) <=50"
-    },
-    {
-      "name": "switch",
-      "cmd": "cat build/wk8-measure.txt",
-      "expect": "num:project_switch_ms_p95=([\\d.]+) <=100"
-    },
-    {
-      "name": "realtime",
-      "cmd": "cat build/wk8-measure.txt",
-      "expect": "num:realtime_ms_p95=([\\d.]+) <=500"
-    },
-    {
       "name": "size",
       "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
       "expect": "num:initial gzip ([\\d.]+) KB <=200"
@@ -79,5 +49,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-23T19:14:16",
-  "edited": "2026-10-23T19:50:07"
+  "edited": "2026-10-23T20:15:22"
 }

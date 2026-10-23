@@ -1,0 +1,76 @@
+{
+  "status": "partial",
+  "summary": "5 новых e2e в work.spec.ts (таймер/неделя, спринт, automation→webhook, импорт, настройки автоматизаций), e2e-ui PASS (27). Бюджеты по замеру нестабильны: switch и realtime в accept-прогоне выше порога.",
+  "commits": [
+    "6ce1756 e2e фазы 2",
+    "647618a селектор measure.spec под FT-4b",
+    "72dd22a импорт: прямой URL, короткий таймаут"
+  ],
+  "checks": [
+    {
+      "name": "e2e-ui",
+      "value": "27 passed",
+      "pass": true
+    },
+    {
+      "name": "cold",
+      "value": "1670.5",
+      "pass": true
+    },
+    {
+      "name": "warm",
+      "value": "399.5",
+      "pass": true
+    },
+    {
+      "name": "mutate",
+      "value": "21.6",
+      "pass": true
+    },
+    {
+      "name": "switch",
+      "value": "101.6",
+      "pass": false
+    },
+    {
+      "name": "realtime",
+      "value": "543",
+      "pass": false
+    },
+    {
+      "name": "size",
+      "value": "147.9",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "switch (<=100) и realtime (<=500) в accept-прогоне выше порога на шум хоста; решение по бюджетам за координатором"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WK-8",
+  "uncertain": [
+    {
+      "where": "e2e/web/perf/run.sh",
+      "why": "замер шумный",
+      "checked": "7 прогонов (cold/warm/mutate/switch/realtime): 1) 1712.3/415.2/37.6/171.4/424; 2) 3564.3/416.2/22.7/88.7/521; 3) 1756.5/398.3/22.3/87.6/431; 4) 1729.0/402.2/22.8/96.1/476; 5) 1738.6/402.7/24.6/113.7/629; 6) 1749.7/390.5/23.3/84.6/523; accept-прогон 1670.5/399.5/21.6/101.6/543. Ничего не подгонял."
+    },
+    {
+      "where": "e2e/web/work.spec.ts (webhook)",
+      "why": "зависит от host.docker.internal на хосте",
+      "checked": "проходит в accept; подпись проверена эталоном из контракта"
+    },
+    {
+      "where": "e2e/web/work.spec.ts (спринт)",
+      "why": "цикл на сегодня UTC вместо endDate в прошлом (иначе не «текущий», кнопки нет); возможен сбой около полуночи UTC",
+      "checked": "перенос todo в новый цикл и остаток done проверены"
+    }
+  ],
+  "dp_feedback": "Замер бюджетов шумный: нужен критерий по медиане нескольких прогонов, а не один. Журнал accept не показывает разброс.",
+  "t": "2026-10-23T20:14:56",
+  "by": "executor"
+}
