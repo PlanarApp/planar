@@ -136,18 +136,26 @@ describe('task.create', () => {
 
 describe('task.update', () => {
   it('пишет только переданные поля + updatedAt; null обнуляет', async () => {
-    const { tx, t } = await setup();
+    const { tx, s, t } = await setup();
+    const fid = id();
+    await run(tx, 'field.create', {
+      id: fid,
+      projectId: s.projectId,
+      name: 'n',
+      type: 'number',
+      rank: 'a',
+    });
     await run(
       tx,
       'task.update',
-      { id: t, title: 'N', dueDate: '2026-11-01', fields: { a: 1 } },
+      { id: t, title: 'N', dueDate: '2026-11-01', fields: { [fid]: 1 } },
       ctx(U1, T1),
     );
     await run(tx, 'task.update', { id: t, dueDate: null, description: null });
     expect(await tx.get('tasks', t)).toMatchObject({
       title: 'N',
       dueDate: null,
-      fields: { a: 1 },
+      fields: { [fid]: 1 },
       priority: 0,
     });
     expect(await code(run(tx, 'task.update', { id: id(), title: 'x' }))).toBe('not_found');

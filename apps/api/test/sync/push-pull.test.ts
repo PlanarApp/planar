@@ -196,6 +196,8 @@ describe('push → pull', () => {
         'taskWatchers',
         'labels',
         'taskLabels',
+        'fieldDefs',
+        'taskLinks',
         'checklistItems',
         'comments',
         'commentReactions',
