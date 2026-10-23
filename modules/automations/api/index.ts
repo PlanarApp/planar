@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Module, Param, Query, Req } from '@nestjs/common';
+import { Controller, Get, Inject, Injectable, Module, Param, Query, Req } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { generateKeyBetween } from 'fractional-indexing';
 import {
@@ -7,6 +7,7 @@ import {
   type CoreServices,
   type JobApi,
   type JobDef,
+  type Q,
   type ModuleHookApi,
 } from '@planar/server-kit';
 import {
@@ -21,7 +22,11 @@ import {
   type FilterTask,
   type MutationWrite,
 } from '@planar/shared';
+import { enqueueWebhookEvent } from '@planar/module-webhooks/api';
 import { shared, type Action, type Rule, type Trigger } from '../shared/index.js';
+
+// CoreServices выдаёт Nest (AutomationsBoot); задача pg-boss — не провайдер
+let core: CoreServices | undefined;
 
 const MAX_DEPTH = 3;
 const RUN_QUEUE = 'automations.run';
@@ -244,6 +249,8 @@ async function toMutations(api: JobApi, rule: Rule, task: FilterTask, statuses: 
       case 'move_to_project':
         upd({ projectId: a.projectId, ...(a.statusId && { statusId: a.statusId }) });
         break;
+      case 'send_webhook':
+        break; // выполняется в транзакции действий (run)
       case 'create_subtask': {
         const first = (c: string) => statuses.find((s) => s.category === c);
         const [last] = await rows(
@@ -268,6 +275,28 @@ async function toMutations(api: JobApi, rule: Rule, task: FilterTask, statuses: 
   return muts;
 }
 
+async function sendWebhooks(api: JobApi, q: Q, subs: string[], d: RunData) {
+  const [t] = (await q.execute(sql`select row_to_json(t) as r from tasks t where id = ${d.taskId}`))
+    .rows as { r: Row }[];
+  if (!t) throw new Error('задача удалена');
+  const row = Object.fromEntries(
+    Object.entries(t.r).map(([k, v]) => [
+      k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase()),
+      v,
+    ]),
+  );
+  const [task] = await core!.toV1Tasks(q, [row]);
+  for (const id of subs) {
+    const [s] = (await q.execute(sql`select active from webhooks_subscriptions where id = ${id}`))
+      .rows as { active: boolean }[];
+    if (!s?.active) throw new Error(`вебхук ${id}: подписка неактивна или не найдена`);
+    await enqueueWebhookEvent({ q, enqueue: api.enqueue } as never, id, 'automation.fired', {
+      ruleId: d.ruleId,
+      task,
+    });
+  }
+}
+
 async function run(d: RunData, api: JobApi) {
   const [r] = await rows(
     api,
@@ -284,7 +313,14 @@ async function run(d: RunData, api: JobApi) {
     api,
     sql`select id, project_id as "projectId", type from field_defs where project_id = ${task.projectId}`,
   );
+  const cycles = await rows(
+    api,
+    sql`select id, project_id as "projectId", start_date::text as "startDate",
+        end_date::text as "endDate", closed_at::text as "closedAt"
+        from sprints_cycles where project_id = ${task.projectId}`,
+  );
   const ctx: FilterCtx = {
+    cycles: cycles as never,
     statuses: statuses as never,
     fieldDefs: fieldDefs as never,
     userId: api.systemUserId,
@@ -294,9 +330,14 @@ async function run(d: RunData, api: JobApi) {
     return void (await record(api, d, 'skipped'));
   try {
     const muts = await toMutations(api, rule, task, statuses);
+    const hooks = (rule.actions as Action[]).flatMap((a) =>
+      a.type === 'send_webhook' ? [a.subscriptionId] : [],
+    );
     await api.execute(api.systemUserId, muts, {
       system: true,
       origin: { ruleId: d.ruleId, depth: d.depth },
+      // вебхуки — в той же транзакции; неактивная/несуществующая подписка откатывает всё
+      prepare: hooks.length ? (q) => sendWebhooks(api, q, hooks, d) : undefined,
     });
   } catch (e) {
     return void (await record(api, d, 'error', e instanceof Error ? e.message : String(e)));
@@ -382,7 +423,14 @@ class AutomationsController {
   }
 }
 
-@Module({ controllers: [AutomationsController] })
+@Injectable()
+class AutomationsBoot {
+  constructor(@Inject(CORE) c: CoreServices) {
+    core = c;
+  }
+}
+
+@Module({ controllers: [AutomationsController], providers: [AutomationsBoot] })
 class AutomationsModule {}
 
 export const api: BackendModuleManifest = {
