@@ -1,0 +1,88 @@
+{
+  "id": "WK-12",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "C-modules v5: CoreServices.enqueue, FilterBuilder/router/useCycles в SDK, страницы настроек модулей",
+  "goal": "Ядро по docs/contracts/work-api.md §C-modules v5: CoreServices.enqueue; SDK += FilterBuilder, useRouter, useCycles; /settings/:section показывает страницы settings включённых модулей (adminOnly скрывает от не-админов); webhooks переходит на enqueue для ping/повтора и приводит comment.createdAt к ISO.",
+  "plan_ref": "docs/contracts/work-api.md §C-modules v5; ревью WK-3, WK-4",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "5",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-12",
+  "branch": "work/WK-12",
+  "base": "feature/work",
+  "scope": [
+    "packages/server-kit",
+    "packages/shared/src/contract",
+    "apps/api/src",
+    "apps/api/test/wk12",
+    "apps/web/src",
+    "modules/webhooks",
+    "apps/api/test/webhooks",
+    "docs/contracts/core.md"
+  ],
+  "dont_touch": [
+    "docs/contracts/ кроме одной правки core.md: заголовок «## C-modules v4» → «## C-modules v5» и строка под ним «v5 (WK-12): enqueue, FilterBuilder/router в SDK, настройки модулей — work-api.md.» (над строкой v4) — так contract-core совпадёт с CONTRACT_VERSIONS 5",
+    "modules/automations, modules/import (параллельные доработки WK-3, WK-6), остальные modules/* — не трогать",
+    "зависимости, pnpm-lock.yaml; apps/api/test/work-contract.test.ts; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk12-api",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api -t wk12:",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "wk12-web",
+      "cmd": "pnpm --filter web exec vitest run -t wk12:",
+      "expect": "num:Tests\\s+(\\d+) passed >=4"
+    },
+    {
+      "name": "contract-core",
+      "cmd": "pnpm exec vitest run --project shared test/contract.test.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint packages apps modules/webhooks && pnpm exec prettier --check packages apps/web apps/api/src apps/api/test modules/webhooks",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T17:25:53"
+}
