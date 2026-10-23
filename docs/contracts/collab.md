@@ -3,7 +3,7 @@ type: reference
 status: active
 module: collab
 updated: 2026-10-23
-summary: Контракты collab — документы (DC-schema, DC-mutators), чат (CH-*), правки ядра для чата (X-core, после шлюза и WK-0)
+summary: Контракты collab — документы (DC-*), чат (CH-schema, CH-mutators, CH-api, CH-web), правки ядра для чата (X-core)
 related: ["docs/plan/collab.md", "docs/contracts/core.md", "docs/contracts/core-mutators.md", "docs/contracts/web.md"]
 ---
 
@@ -86,24 +86,114 @@ scope: space · write: member · bootstrap: yes · indexes: —
 - Поиск Cmd+K — по `docsPages.title` и `text` локальной реплики (точка поиска — X-core, после шлюза).
 - Изображения — `POST /files`, узел `image` с `src: '/files/<sha256>'`; чтение файла другими участниками — X-core `canReadFile`.
 
-## CH — чат (проект, ждёт шлюза C-sync)
+## CH-schema v1
 
-Модуль `chat` (`modules/chat`). Каналы пространства (`spaceId` задан) видны всем участникам пространства. Личные диалоги — `spaceId = null`, видны только участникам диалога (`chatMembers`), 2–8 человек. Видимость диалогов требует X-core «C-sync v2».
+Модуль `chat` (`modules/chat`, пакет `@planar/module-chat`), таблицы `chat_<snake>`. Каналы пространства (`spaceId` задан) видны всем участникам пространства. Личные диалоги — `spaceId = null`, 2–8 участников (`chatMembers`), видны только им: scope `space|members` (C-sync v2, §X-core п. 1), у всех сущностей с этим scope `meta.members = {entity: 'chatMembers', key: 'channelId', container: 'chatChannels', via}` — `via: 'id'` у `chatChannels`, `'channelId'` у остальных. FK внутри модуля — без каскада; на `users` и `spaces` FK нет.
 
-Сущности (точные таблицы — после шлюза):
-- `chatChannels` — `space|members` через `id`: `id, spaceId?, kind enum(channel,dm), name text? (канал 1–80, у диалога null), topic text?, createdBy, lastSeq int (номер последнего сообщения верхнего уровня), lastMessageAt ts?, archivedAt ts?, createdAt, updatedAt`.
-- `chatMembers` — только диалоги, `space|members` через `channelId`: `id, channelId, userId, createdAt`; уникально (channelId, userId).
-- `chatMessages` — `space|members` через `channelId`, **bootstrap: no** (история — REST, новое — pull): `id, spaceId?, channelId, parentId uuid? (корень треда, один уровень), seq int? (у верхнего уровня = lastSeq+1 канала, у ответов null), authorId, body doc, mentions uuid[], attachments json ({fileSha256,name,mime,size,width?,height?}[]), replyCount int, lastReplyAt ts?, editedAt ts?, deletedAt ts? (мягкое удаление: body пуст, mentions и attachments пусты), createdAt, updatedAt`; indexes `channelId, parentId`.
-- `chatReactions` — `space|members` через `channelId`, bootstrap: no: `id, spaceId?, channelId, messageId, userId, emoji, createdAt`; уникально (messageId, userId, emoji).
-- `chatReads` — `scope: user`, write self: `id, userId, channelId, lastReadSeq int, muted bool, updatedAt`; уникально (userId, channelId). Непрочитано = `chatChannels.lastSeq − lastReadSeq`.
+#### chatChannels
+scope: space|members · write: guest · bootstrap: yes · indexes: spaceId
 
-Мутаторы: `chat.channel.create|update`, `chat.dm.create {id, members:{id,userId}[2..8] вкл. себя}`, `chat.dm.addMember`, `chat.dm.leave`, `chat.message.send {id, channelId, parentId?, body, attachments?, readId}`, `chat.message.update`, `chat.message.delete`, `chat.reaction.toggle`, `chat.read`, `chat.mute`.
+| поле | тип | примечание |
+|---|---|---|
+| `id` | uuid | |
+| `spaceId` | uuid? | null — личный диалог |
+| `kind` | enum(channel,dm) | `dm` ⇔ `spaceId = null` |
+| `name` | text? | канал — 1–80 символов; у диалога null (UI — имена участников) |
+| `topic` | text? | ≤ 250 |
+| `createdBy` | uuid | |
+| `lastSeq` | int | номер последнего сообщения верхнего уровня; 0 — нет |
+| `lastMessageAt` | ts? | |
+| `archivedAt` | ts? | |
+| `createdAt` | ts | |
+| `updatedAt` | ts | |
 
-REST (`/api/chat/`, видимость как у канала, иначе `404`):
-- `GET /api/chat/channels/:id/messages?before=<seq>&limit=<1..100, 50>` → `{messages, reactions}` — верхний уровень с `seq < before` (без `before` — последние), по возрастанию `seq`;
-- `GET /api/chat/messages/:id/thread` → `{root, replies, reactions}`, ответы по `createdAt`.
+#### chatMembers
+scope: space|members · write: guest · bootstrap: yes · indexes: channelId, userId
 
-Уведомления — хук `afterMutation` из WK-0 (`docs/contracts/work.md` §C-modules v3): строки `notifications` через `api.sys`, push — `api.enqueue('push.notification', {notificationId})` на каждое (очередь ядра, `apps/api/src/push/push.ts`): `chat_mention` (новые упомянутые; видят канал), `chat_dm` (каждому участнику диалога, кроме автора, упомянутых и `muted`), `chat_reply` (автору корня и прежним ответившим, кроме автора и упомянутых; в диалогах — только `chat_dm`). `url` — `/m/chat/c/<channelId>/<messageId>`, для ответа — `/m/chat/c/<channelId>/t/<rootId>`.
+| поле | тип | примечание |
+|---|---|---|
+| `id` | uuid | уникально (channelId, userId); только диалоги |
+| `channelId` | uuid | |
+| `userId` | uuid | |
+| `addedBy` | uuid | |
+| `createdAt` | ts | |
+
+#### chatMessages
+scope: space|members · write: guest · bootstrap: no · indexes: channelId, parentId
+
+| поле | тип | примечание |
+|---|---|---|
+| `id` | uuid | |
+| `spaceId` | uuid? | = канала |
+| `channelId` | uuid | |
+| `parentId` | uuid? | корень треда (сообщение верхнего уровня того же канала); один уровень |
+| `seq` | int? | верхний уровень — `lastSeq + 1` канала; у ответов null |
+| `authorId` | uuid | = ctx.userId |
+| `body` | doc | TipTap JSON, как `comments.body`; ≤ 64 КБ в JSON |
+| `mentions` | uuid[] | id из узлов mention, без повторов, по порядку; только те, кто видит канал |
+| `attachments` | json | `{fileSha256, name, mime, size, width?, height?}[]`, ≤ 10; `fileSha256` — hex 64 |
+| `replyCount` | int | у корня — число ответов |
+| `lastReplyAt` | ts? | |
+| `editedAt` | ts? | |
+| `deletedAt` | ts? | мягкое удаление: `body` пустой doc, `mentions` и `attachments` пусты |
+| `createdAt` | ts | |
+| `updatedAt` | ts | |
+
+#### chatReactions
+scope: space|members · write: guest · bootstrap: no · indexes: messageId
+
+| поле | тип | примечание |
+|---|---|---|
+| `id` | uuid | уникально (messageId, userId, emoji) |
+| `spaceId` | uuid? | = канала |
+| `channelId` | uuid | |
+| `messageId` | uuid | |
+| `userId` | uuid | = ctx.userId |
+| `emoji` | text | 1–32 символа |
+| `createdAt` | ts | |
+
+#### chatReads
+scope: user · write: self · bootstrap: yes · indexes: channelId
+
+| поле | тип | примечание |
+|---|---|---|
+| `id` | uuid | уникально (userId, channelId) |
+| `userId` | uuid | |
+| `channelId` | uuid | |
+| `lastReadSeq` | int | непрочитано = `chatChannels.lastSeq − lastReadSeq` (нет строки — 0) |
+| `muted` | bool | без push и счётчика в боковой панели |
+| `updatedAt` | ts | |
+
+## CH-mutators v1
+
+Экспорт — `shared.mutators` из `modules/chat/shared/index.ts`. Все id — в args. «Видит канал»: канал пространства — участник `spaceMembers`; диалог — строка `chatMembers`.
+
+| имя | args | правила |
+|---|---|---|
+| `chat.channel.create` | `id, spaceId, name, topic?` | роль в пространстве ≥ member, иначе `forbidden`; `name` после trim 1–80, иначе `invalid_args`; `kind = channel`, `lastSeq = 0` |
+| `chat.channel.update` | `id, name?, topic?, archivedAt?` | только `kind = channel` (иначе `invalid_args`); создатель или admin пространства, иначе `forbidden` |
+| `chat.dm.create` | `id, members: {id, userId}[]` | 2–8 строк, `userId` без повторов, среди них ctx.userId, у каждого есть строка `users` без `deactivatedAt` — иначе `invalid_args`; `spaceId = null`, `kind = dm`, `name = null`; сначала контейнер, затем участники (`addedBy = ctx.userId`). Повторный диалог с тем же составом UI не создаёт (открывает существующий) |
+| `chat.dm.addMember` | `id, channelId, userId` | только диалог; уже участник — ничего; станет > 8 → `conflict` |
+| `chat.dm.leave` | `channelId` | удаляет свою строку `chatMembers`; нет — ничего |
+| `chat.message.send` | `id, channelId, body, readId, parentId?, attachments?` | канал архивный → `conflict`; `parentId` — сообщение верхнего уровня того же канала, иначе `invalid_args`; верхний уровень: `seq = lastSeq + 1`, у канала `lastSeq`, `lastMessageAt`; ответ: `seq = null`, у корня `replyCount + 1`, `lastReplyAt`; `mentions` из `body` (кто не видит канал — отбрасывается); своя `chatReads` (`id = readId`, если строки нет): `lastReadSeq = max(текущее, seq)` для верхнего уровня |
+| `chat.message.update` | `id, body` | только автор (`forbidden`); удалённое → `conflict`; `editedAt = ctx.now`, `mentions` пересчитать |
+| `chat.message.delete` | `id` | только автор; мягкое удаление (`deletedAt`); удаляет реакции сообщения; `replyCount` корня не меняется |
+| `chat.reaction.toggle` | `id, messageId, emoji` | есть (messageId, ctx.userId, emoji) — удалить, иначе создать; удалённое сообщение → `conflict` |
+| `chat.read` | `id, channelId, lastReadSeq` | своя `chatReads` (`id` — если строки нет): `lastReadSeq = min(max(текущее, args), lastSeq канала)` |
+| `chat.mute` | `id, channelId, muted` | своя `chatReads` (`id` — если строки нет) |
+
+## CH-api v1
+
+REST под `/api/chat/` (сессия или Bearer), канал не виден → `404 not_found`; строки — в формате провода.
+- `GET /api/chat/channels/:id/messages?before=<seq>&limit=<1..100, по умолчанию 50>` → `{messages, reactions}`: верхний уровень с `seq < before` (без `before` — последние), по возрастанию `seq`; `reactions` — к этим сообщениям.
+- `GET /api/chat/messages/:id/thread` → `{root, replies, reactions}`: ответы по `createdAt`.
+- `canReadFile` — §X-core п. 4.
+- Уведомления — хук `afterMutation` (`docs/contracts/work.md` §C-modules v3): строки `notifications` через `api.sys` (`taskId = null`, `spaceId` канала, `url`, `body` = «Имя автора: текст», ≤ 140), push — `api.enqueue('push.notification', {notificationId})` на каждое (очередь ядра `apps/api/src/push/push.ts`). Получатель видит канал, не автор, у него нет `muted`, по одному уведомлению на сообщение в порядке приоритета: `chat_mention` (новые упомянутые, при создании и правке) → `chat_dm` (участникам диалога) → `chat_reply` (автору корня и прежним авторам ответов треда, кроме диалогов). `url` — `/m/chat/c/<channelId>/<messageId>`; ответ — `/m/chat/c/<channelId>/t/<rootId>`.
+- WS «печатает…» — `sendTyping('chatChannels', channelId)` (§X-core п. 2).
+
+## CH-web v1 (CL-2)
+- Маршруты: `/m/chat/` — список (mobile) или последний канал, `/m/chat/c/:channelId/:messageId?`, `/m/chat/c/:channelId/t/:rootId` (тред: панель справа на desktop, экран на mobile).
+- Боковая панель — `nav` с `section` (WK-0): каналы пространств и диалоги, счётчики непрочитанных (`lastSeq − lastReadSeq`, без `muted`). На mobile `nav` не показывается — вход через `topbar` (иконка чата со счётчиком).
 
 ## X-core — правки ядра от collab (проект, шлюз)
 

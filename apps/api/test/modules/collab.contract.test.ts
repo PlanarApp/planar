@@ -29,6 +29,7 @@ const entities = [
 const mutators = [...doc.matchAll(/^\| `([\w.]+)` \| `([^`]*)` \|/gm)].map((r) => ({
   name: r[1],
   args: r[2]
+    .replace(/\{[^}]*\}/g, '')
     .split(',')
     .map((t) => t.trim())
     .filter(Boolean)
