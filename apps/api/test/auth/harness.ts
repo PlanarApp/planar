@@ -4,12 +4,12 @@ import pg from 'pg';
 import { afterAll, beforeAll, vi } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { ORIGIN } from '../auth.js';
-import { createDb, migrate, type Db } from '../../src/db/index.js';
-import { testDbUrl } from '../db.js';
+import { migrate, type Db } from '../../src/db/index.js';
+import { createTestDb, dropDb, testDbUrl } from '../db.js';
 
 export let db: Db;
 // argon2 под нагрузкой CI медленный
-vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 90_000 });
 let app: Awaited<ReturnType<typeof createApp>>;
 
 /** Приложение на базе файла; req(method, url, {cookie?, body?}) — с верным Origin. */
@@ -28,22 +28,14 @@ export function useApp({ ownDb = true, extraControllers = [] as Type[] } = {}) {
       await admin.query(`create database ${name}`);
       base.pathname = `/${name}`;
       url = base.toString();
-      const m = createDb(url);
+      const m = createTestDb(url);
       await migrate(m).finally(() => m.$client.end());
       drop = async () => {
-        // бэкенды закрытых пулов уходят асинхронно: ждём, иначе их убьёт drop
-        for (let i = 0; i < 50; i++) {
-          const r = await admin.query('select 1 from pg_stat_activity where datname = $1', [name]);
-          if (r.rowCount === 0) break;
-          await new Promise((r) => setTimeout(r, 100));
-        }
-        // на загруженном сервере drop ждёт все бэкенды минутами: не держим тесты дольше 15 с (сервер доведёт сам)
-        const dropping = admin.query(`drop database ${name} with (force)`).catch(() => {});
-        void dropping.finally(() => admin.end().catch(() => {}));
-        await Promise.race([dropping, new Promise((r) => setTimeout(r, 15_000))]);
+        await dropDb(admin, name);
+        await admin.end().catch(() => {});
       };
     }
-    db = createDb(url);
+    db = createTestDb(url);
     app = await createApp({ databaseUrl: url, publicUrl: ORIGIN, extraControllers });
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
@@ -53,7 +45,7 @@ export function useApp({ ownDb = true, extraControllers = [] as Type[] } = {}) {
     await db.$client.end();
     await drop?.();
     // drop database ждёт все бэкенды сервера — на загруженном сервере долго
-  }, 60_000);
+  }, 90_000);
 }
 
 export const req = (

@@ -138,6 +138,7 @@ async function seedTasks(db: Db, n: number) {
     const st = statuses.filter((x) => x.spaceId === p.spaceId);
     const us = members.filter((x) => x.spaceId === p.spaceId);
     const lb = labels.filter((x) => x.spaceId === p.spaceId);
+    if (!st.length || !us.length) continue; // без статусов/участников задачу не создать
     const ids: string[] = [];
     for (let i = 0; i < count; i++) {
       const id = uuidv7();
@@ -158,7 +159,7 @@ async function seedTasks(db: Db, n: number) {
         completedAt: done ? new Date().toISOString() : null,
       });
       assignees.push({ spaceId: p.spaceId, taskId: id, userId: us[i % us.length]!.userId });
-      if (i % 3 === 0)
+      if (i % 3 === 0 && lb.length)
         taskLabels.push({ spaceId: p.spaceId, taskId: id, labelId: lb[i % lb.length]!.id });
     }
     await db
