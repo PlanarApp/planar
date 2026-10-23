@@ -284,6 +284,7 @@ const date = (v: string) => v.slice(0, 10);
                   :data-col="c.id"
                   :style="{ width: `${c.width}px` }"
                   class="min-w-0 shrink-0 truncate px-2"
+                  :class="{ 'self-stretch': isFieldCol(c.id) }"
                 >
                   <template v-if="c.id === 'title'">
                     <input
@@ -362,7 +363,7 @@ const date = (v: string) => v.slice(0, 10);
                     <span
                       v-else-if="defOf(c.id)"
                       tabindex="0"
-                      class="flex outline-none focus-visible:ring-2 ring-focus"
+                      class="flex h-full w-full items-center outline-none focus-visible:ring-2 ring-focus"
                       @dblclick="editCell = `${task.id}|${c.id}`"
                       @keydown.enter.prevent="editCell = `${task.id}|${c.id}`"
                     >
