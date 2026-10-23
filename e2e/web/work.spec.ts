@@ -116,12 +116,9 @@ test('автоматизация: смена статуса → webhook с ве�
 test('импорт: jira.csv по заготовке, прогресс до конца, задачи видны в проекте', async ({
   browser,
 }) => {
-  test.setTimeout(150_000); // задачу import.run подбирает cron import.sweep (раз в минуту)
   const f = await fixture([]);
   const page = await loginAs(browser, 'admin');
-  // прямой заход на /m/<модуль>/ показывает заглушку «Модуль» (маршрут модуля регистрируется позже) — идём через меню
-  await page.getByTestId('sidebar').getByRole('link', { name: 'Импорт' }).click();
-  await expect(page).toHaveURL(/\/m\/import\//);
+  await page.goto('/m/import/');
   await page
     .locator('input[type=file]')
     .setInputFiles(path.resolve(import.meta.dirname, '../fixtures/import/jira.csv'));
@@ -130,7 +127,7 @@ test('импорт: jira.csv по заготовке, прогресс до ко
   await page.locator('.import-project').selectOption(f.projectId);
   await page.locator('.import-start').click();
   await expect(page.locator('.import-status-line')).toContainText('8 / 8', {
-    timeout: 100_000,
+    timeout: 30_000,
   });
   await expect(page.locator('progress')).toHaveAttribute('value', '8');
   await page.goto(`/p/${f.projectId}`);
