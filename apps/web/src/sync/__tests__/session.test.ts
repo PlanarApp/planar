@@ -10,11 +10,11 @@ const sync = vi.hoisted(() => ({
   onUnauthorized: vi.fn(),
   syncState: { value: { status: 'online', pending: 0 } },
 }));
-vi.mock('../sync', () => sync);
+vi.mock('..', () => sync);
 
-import { json, mkUser, mockFetch, resetAuth } from '../auth/__tests__/helpers';
-import { useAuth } from '../auth/useAuth';
-import { initSession } from '../session';
+import { json, mkUser, mockFetch, resetAuth } from '../../auth/__tests__/helpers';
+import { useAuth } from '../../auth/useAuth';
+import { initSession } from '../../session';
 
 const router = createRouter({
   history: createMemoryHistory(),
