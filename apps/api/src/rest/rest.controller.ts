@@ -29,11 +29,11 @@ export class RestController {
   }
   @Post('tasks')
   createTask(@Req() req: object, @Body() b: unknown) {
-    return this.rest.createTask(getAuth(req).userId, b);
+    return this.rest.createTask(getAuth(req).userId, b, getAuth(req).tokenId);
   }
   @Patch('tasks/:task')
   patchTask(@Req() req: object, @Param('task') t: string, @Body() b: unknown) {
-    return this.rest.patchTask(getAuth(req).userId, t, b);
+    return this.rest.patchTask(getAuth(req).userId, t, b, getAuth(req).tokenId);
   }
   @Get('tasks/:task/comments')
   comments(@Req() req: object, @Param('task') t: string, @Query() q: unknown) {
@@ -41,6 +41,6 @@ export class RestController {
   }
   @Post('tasks/:task/comments')
   createComment(@Req() req: object, @Param('task') t: string, @Body() b: unknown) {
-    return this.rest.createComment(getAuth(req).userId, t, b);
+    return this.rest.createComment(getAuth(req).userId, t, b, getAuth(req).tokenId);
   }
 }

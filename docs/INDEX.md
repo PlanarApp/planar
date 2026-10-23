@@ -14,6 +14,10 @@ generated: true
 - найти — `.dpcli/dpcli docs find <слова>` (путь — summary), выводы — `.dpcli/dpcli docs findings <слова>` ([реестр выводов](registry/findings.md)), журналы модулей — `.dpcli/dpcli search`;
 - читать — `.dpcli/dpcli docs section <путь>` (оглавление), затем `.dpcli/dpcli docs section <путь> <номер|заголовок>`.
 
+## Описания систем (guide)
+
+- [docs/guides/mcp.md](guides/mcp.md) — Подключение ИИ-клиента к Planar по MCP: токен, URL /mcp, конфигурация, инструменты, права read/write
+
 ## Планы (plan)
 
 - [docs/plan/core.md](plan/core.md) — План модуля core: каркас, БД, синхронизация, мутаторы, авторизация, файлы, уведомления, модули, API-токены, MCP

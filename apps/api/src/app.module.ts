@@ -18,6 +18,7 @@ import { HealthController } from './health.controller.js';
 import { PUSH_OPTS, type PushOpts } from './push/push.js';
 import { ModuleGuard, ModulesController } from './modules/module.guard.js';
 import { installed } from './modules/installed.js';
+import { McpController } from './mcp/mcp.controller.js';
 import { restControllers, restProviders } from './rest/index.js';
 import { syncControllers, syncProviders } from './sync/sync.module.js';
 import { DB } from './tokens.js';
@@ -51,6 +52,7 @@ export class AppModule implements OnApplicationShutdown {
         ModulesController,
         ...syncControllers,
         ...restControllers,
+        McpController,
         ...extraControllers,
       ],
       providers: [

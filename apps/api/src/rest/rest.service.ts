@@ -127,6 +127,39 @@ export class RestService {
     return { data: await this.enrich(p.items), nextCursor: p.nextCursor };
   }
 
+  /** MCP search_tasks / my_tasks: поиск по title и ключу без учёта регистра */
+  async searchTasks(
+    userId: string,
+    q: {
+      query?: string;
+      projectId?: string;
+      statusId?: string;
+      assigneeId?: string;
+      includeDone?: boolean;
+      limit?: number;
+    },
+  ) {
+    const my = await this.mySpaces(userId);
+    const like = q.query ? `%${q.query.replace(/[\\%_]/g, '\\$&')}%` : null;
+    const who = q.assigneeId === 'me' ? userId : q.assigneeId;
+    const where: (SQL | undefined)[] = [
+      inArray(s.tasks.spaceId, my),
+      q.projectId ? eq(s.tasks.projectId, q.projectId) : undefined,
+      q.statusId ? eq(s.tasks.statusId, q.statusId) : undefined,
+      who
+        ? sql`exists (select 1 from ${s.taskAssignees} a where a.task_id = ${s.tasks.id} and a.user_id = ${who})`
+        : undefined,
+      q.includeDone === false
+        ? sql`not exists (select 1 from ${s.statuses} st where st.id = ${s.tasks.statusId} and st.category in ('done','cancelled'))`
+        : undefined,
+      like
+        ? sql`(${s.tasks.title} ilike ${like} or (select p.key || '-' || ${s.tasks.number} from ${s.projects} p where p.id = ${s.tasks.projectId}) ilike ${like})`
+        : undefined,
+    ];
+    const p = await this.page(s.tasks, where, { limit: q.limit ?? 20 }, 'updatedAt', 'desc');
+    return this.enrich(p.items);
+  }
+
   /** строки tasks → V1Task (key, assigneeIds, labelIds) */
   private async enrich(rows: Wire[]): Promise<V1Task[]> {
     if (!rows.length) return [];
@@ -190,9 +223,9 @@ export class RestService {
     return textToDoc(text, users);
   }
 
-  private async run(userId: string, muts: Mut[]) {
+  private async run(userId: string, muts: Mut[], tokenId?: string) {
     try {
-      await executeMutations(this.db, userId, muts, this.queue);
+      await executeMutations(this.db, userId, muts, this.queue, tokenId);
     } catch (err) {
       if (!(err instanceof Reject)) throw err;
       const [status, code] = HTTP[err.code] ?? [500, 'internal'];
@@ -200,7 +233,7 @@ export class RestService {
     }
   }
 
-  async createTask(userId: string, raw: unknown) {
+  async createTask(userId: string, raw: unknown, tokenId?: string) {
     const b = parse(createTaskBody, raw);
     const my = await this.mySpaces(userId);
     const [project] = await this.db
@@ -227,28 +260,32 @@ export class RestService {
       .orderBy(desc(s.tasks.rank))
       .limit(1);
     const id = uuidv7();
-    await this.run(userId, [
-      {
-        name: 'task.create',
-        args: {
-          id,
-          projectId: b.projectId,
-          statusId,
-          title: b.title,
-          rank: generateKeyBetween(last?.rank ?? null, null),
-          parentId: b.parentId,
-          description: b.description === undefined ? undefined : await this.toDoc(b.description),
-          priority: b.priority,
-          dueDate: b.dueDate,
-          assignees: b.assigneeIds?.map((u) => ({ id: uuidv7(), userId: u })),
-          labels: b.labelIds?.map((l) => ({ id: uuidv7(), labelId: l })),
+    await this.run(
+      userId,
+      [
+        {
+          name: 'task.create',
+          args: {
+            id,
+            projectId: b.projectId,
+            statusId,
+            title: b.title,
+            rank: generateKeyBetween(last?.rank ?? null, null),
+            parentId: b.parentId,
+            description: b.description === undefined ? undefined : await this.toDoc(b.description),
+            priority: b.priority,
+            dueDate: b.dueDate,
+            assignees: b.assigneeIds?.map((u) => ({ id: uuidv7(), userId: u })),
+            labels: b.labelIds?.map((l) => ({ id: uuidv7(), labelId: l })),
+          },
         },
-      },
-    ]);
+      ],
+      tokenId,
+    );
     return this.task(userId, id);
   }
 
-  async patchTask(userId: string, ref: string, raw: unknown) {
+  async patchTask(userId: string, ref: string, raw: unknown, tokenId?: string) {
     const b = parse(patchTaskBody, raw);
     const t = await this.findTask(userId, ref);
     const id = t.id as string;
@@ -278,7 +315,7 @@ export class RestService {
         if (!cur.labelIds.includes(l))
           muts.push({ name: 'task.addLabel', args: { id: uuidv7(), taskId: id, labelId: l } });
     }
-    await this.run(userId, muts);
+    await this.run(userId, muts, tokenId);
     return this.task(userId, id);
   }
 
@@ -295,13 +332,15 @@ export class RestService {
     return { data: p.items.map((r) => toWire('comments', r)), nextCursor: p.nextCursor };
   }
 
-  async createComment(userId: string, ref: string, raw: unknown) {
+  async createComment(userId: string, ref: string, raw: unknown, tokenId?: string) {
     const b = parse(commentBody, raw);
     const t = await this.findTask(userId, ref);
     const id = uuidv7();
-    await this.run(userId, [
-      { name: 'comment.create', args: { id, taskId: t.id, body: await this.toDoc(b.text) } },
-    ]);
+    await this.run(
+      userId,
+      [{ name: 'comment.create', args: { id, taskId: t.id, body: await this.toDoc(b.text) } }],
+      tokenId,
+    );
     const [row] = await this.db.select().from(s.comments).where(eq(s.comments.id, id));
     return { data: toWire('comments', row!) };
   }
