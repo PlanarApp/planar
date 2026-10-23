@@ -72,16 +72,9 @@
       "name": "Trello card 1",
       "desc": "Описание\nвторая строка",
       "idList": "l1",
-      "idLabels": [
-        "lb1",
-        "lb2"
-      ],
-      "idMembers": [
-        "m1"
-      ],
-      "idChecklists": [
-        "cl1"
-      ],
+      "idLabels": ["lb1", "lb2"],
+      "idMembers": ["m1"],
+      "idChecklists": ["cl1"],
       "due": "2025-11-20T12:00:00.000Z",
       "start": null,
       "closed": false,
@@ -93,9 +86,7 @@
       "desc": "",
       "idList": "l2",
       "idLabels": [],
-      "idMembers": [
-        "m2"
-      ],
+      "idMembers": ["m2"],
       "idChecklists": [],
       "due": null,
       "start": null,
@@ -107,9 +98,7 @@
       "name": "Trello card 3",
       "desc": "x",
       "idList": "l3",
-      "idLabels": [
-        "lb1"
-      ],
+      "idLabels": ["lb1"],
       "idMembers": [],
       "idChecklists": [],
       "due": null,
