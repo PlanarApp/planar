@@ -1,0 +1,96 @@
+{
+  "status": "done",
+  "summary": "Модуль sprints: сущности sprintsSettings/sprintsCycles, 6 мутаторов, миграция 0008, cron sprints.close-due + задача sprints.close-cycle (singletonKey, блокировка строки цикла for update), вид «Спринт» (прогресс, burn-up, закрыть, настройки), поле в панели задачи, правило «Спринт» в конструкторе фильтра, i18n.",
+  "commits": [
+    "613f352 work: WK-2 модуль sprints"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "143",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "wk2-api",
+      "value": "14",
+      "pass": true
+    },
+    {
+      "name": "wk2-web",
+      "value": "8",
+      "pass": true
+    },
+    {
+      "name": "contract-work",
+      "value": "5",
+      "pass": true
+    },
+    {
+      "name": "migrations-linear",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Клиент ядра не создаёт Dexie-таблицы сущностей модулей и не регистрирует их мутаторы: в браузере вид/панель без таблиц sprintsCycles/sprintsSettings покажут пусто. Мутаторы модуль регистрирует сам (data.ts run), таблицы — нет (apps/web/src/sync вне скоупа)."
+  ],
+  "questions": [
+    "WK-2 contract: PlanarDB('planar') без extra из модулей (buildSchema(extra) есть, но db создаётся без них) — нужна сборка Dexie-схемы из shared.entities включённых модулей; то же нужно WK-1."
+  ],
+  "how_to_check": ".dpcli/dpcli accept WK-2",
+  "uncertain": [
+    {
+      "where": "modules/sprints/api/index.ts:lockedClose",
+      "why": "блокировка берёт приватное поле ServerTx.q через приведение типа",
+      "checked": "тест параллельного close x3 — один новый цикл, перенос один раз; зависит от имени поля q"
+    },
+    {
+      "where": "apps/api/test/sprints/sprints.test.ts (cron)",
+      "why": "cron/воркер pg-boss не поднимался, handler вызывается напрямую с подменённым enqueue",
+      "checked": "due по поясам (Kiritimati vs Pago_Pago), повтор close-cycle, расписание */10 в манифесте"
+    },
+    {
+      "where": "modules/sprints/web/data.ts",
+      "why": "модуль импортирует web через относительные пути ../../../apps/web/src (нет зависимостей и alias)",
+      "checked": "тесты web, vue-tsc apps/web (модули им не типизируются)"
+    },
+    {
+      "where": "apps/web/src/command/__tests__/ui.test.ts",
+      "why": "не мой: cmd:palette таймаут при полном прогоне test-web падал дважды, затем прошёл",
+      "checked": "одиночный прогон и повторный полный — зелёные"
+    }
+  ],
+  "dp_feedback": "accept --dry запускает test-web параллельно с тяжёлым test-all — флейки по таймаутам; web-модули вне typecheck-web.",
+  "t": "2026-10-23T13:13:20",
+  "by": "executor"
+}

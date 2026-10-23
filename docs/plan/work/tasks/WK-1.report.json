@@ -1,0 +1,101 @@
+{
+  "status": "done",
+  "summary": "Модуль time: сущности timeEntries/timeEstimates, мутаторы time.* (start/stop/log/update/delete/setEstimate), частичный уникальный индекс, хук удаления задачи, миграция 0008; web: панель задачи, таймер в верхней панели, страница «Мои часы» /m/time/week.",
+  "commits": [
+    "8b2886b 11a2532 "
+  ],
+  "checks": [
+    {
+      "name": "wk1-api",
+      "value": "14",
+      "pass": true
+    },
+    {
+      "name": "wk1-web",
+      "value": "9",
+      "pass": true
+    },
+    {
+      "name": "accept --dry",
+      "value": "11/11",
+      "pass": true
+    },
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "142.7",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract-work",
+      "value": "5",
+      "pass": true
+    },
+    {
+      "name": "migrations-linear",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Модульные таблицы Dexie и мутаторы time.* в реальном web-клиенте не подключены: это ядро (apps/web/src/sync/index.ts: new PlanarDB('planar') без extra, session.ts регистрирует только domainMutators). Без этого UI в приложении не увидит timeEntries и не вызовет time.start."
+  ],
+  "questions": [
+    "Нужна точка расширения в ядре web: PlanarDB extra из shared.entities включённых модулей + registerMutators(shared.mutators) модулей (WK-1 contract)."
+  ],
+  "how_to_check": ".dpcli/dpcli accept WK-1",
+  "uncertain": [
+    {
+      "where": "modules/time/web/data.ts",
+      "why": "компоненты импортируют ядро относительными путями ../../../apps/web/src/* (у @planar/web экспортируется только ./modules); в тестах data.ts подменён моком, реальный Dexie с таблицами модуля не проверялся",
+      "checked": "vue-tsc и сборка проходят; логика покрыта тестами lib.ts и компонентов с моком"
+    },
+    {
+      "where": "modules/time/web/lib.ts planCell",
+      "why": "правка ячейки вниз снимает только с ручных записей (с последней); записи таймера уменьшить нельзя, кроме 0 (удаляет все завершённые записи ячейки)",
+      "checked": "юнит-тест planCell"
+    },
+    {
+      "where": "modules/time/web/*.vue",
+      "why": "стили через scoped CSS и токены, т.к. tailwind не сканирует modules/; визуально не проверялось",
+      "checked": "только сборка и тесты"
+    },
+    {
+      "where": "modules/time/api/index.ts",
+      "why": "тип api хука описан локально (нет зависимости на @planar/api в package.json модуля)",
+      "checked": "хук проверен тестом удаления задачи с подзадачей"
+    }
+  ],
+  "dp_feedback": "Дополнения карточки в task show обрезаются (…), полный текст только в --full; в карточке стоило бы сказать про это сразу. plan work по заголовку из карточки не находится.",
+  "t": "2026-10-23T13:10:58",
+  "by": "executor"
+}
