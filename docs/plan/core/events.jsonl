@@ -171,3 +171,5 @@
 {"t": "2026-10-23T01:50:56", "by": "coordinator", "task": "CR-4", "ev": "checked", "note": "7/7 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; server_tx_contract=ok:12; sync_tests=ok:104; test=ok:exit 0; poke_latency=ok:93"}
 {"t": "2026-10-23T01:54:09", "by": "reviewer", "task": "CR-4", "ev": "reviewed", "note": "Повторное ревью: блокер закрыт — checkFile проверяет file_uploads(sha256, userId) или файл, уже приложенный в пространстве (C-schema v3, стр. 270), тесты покры…", "verdict": "accept", "issues": {"minor": 2}, "review": "docs/plan/core/tasks/CR-4.review.json"}
 {"t": "2026-10-23T01:54:29", "by": "coordinator", "task": "CR-4", "ev": "accepted", "note": "по ревью (второе); minor: asSystem в checkFile — в CR-7; poke под нагрузкой машины мигает — бюджет замерит CR-9"}
+{"t": "2026-10-23T01:54:30", "by": "coordinator", "task": "CR-4", "ev": "merged"}
+{"t": "2026-10-23T01:54:44", "by": "coordinator", "task": "CR-3b", "ev": "note", "note": "CR-4 слита в feature/core: .dpcli/dpcli task sync CR-3b, затем перевести users.repo.ts на ServerTx (apps/api/src/sync/server-tx.ts, asSystem) и тест changes для users.", "addendum": true}
