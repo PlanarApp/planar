@@ -76,10 +76,11 @@ function parseOrThrow(...a: Parameters<typeof parseSource>) {
   }
 }
 
-const publicJob = (r: typeof importJobs.$inferSelect) => {
-  const { source: _s, mapping: _m, ...job } = r;
-  return job;
-};
+const publicJob = (r: typeof importJobs.$inferSelect) => ({
+  ...r,
+  source: undefined,
+  mapping: undefined,
+});
 
 @Controller('api/import')
 class ImportController {
@@ -270,10 +271,9 @@ async function runImport(jobId: string, api: JobApi) {
 
     // родители раньше детей; цикл или неизвестный родитель — без родителя
     const byExt = new Map<string, number>();
-    items.forEach(
-      (it, i) =>
-        it.externalId && !it.skip && !byExt.has(it.externalId) && byExt.set(it.externalId, i),
-    );
+    items.forEach((it, i) => {
+      if (it.externalId && !it.skip && !byExt.has(it.externalId)) byExt.set(it.externalId, i);
+    });
     const order: number[] = [];
     const state: number[] = []; // 1 — в пути, 2 — размещена
     const place = (i: number) => {
@@ -296,7 +296,6 @@ async function runImport(jobId: string, api: JobApi) {
     const taskOf = new Map(known);
     const fresh = new Set<string>(); // externalId, созданные этим запуском
     let seq = 0;
-    const attach: { ext: string; taskId: string }[] = [];
 
     const buildRow = async (
       it: Item,
@@ -312,8 +311,9 @@ async function runImport(jobId: string, api: JobApi) {
       const assigneeIds: string[] = [];
       for (const a of it.assignees ?? []) {
         const id = users.get(a.toLowerCase());
-        if (id) !assigneeIds.includes(id) && assigneeIds.push(id);
-        else notes.push(`исполнитель «${a}» не найден`);
+        if (id) {
+          if (!assigneeIds.includes(id)) assigneeIds.push(id);
+        } else notes.push(`исполнитель «${a}» не найден`);
       }
       const labelIds = [
         ...new Set((it.labels ?? []).map((n) => labels.get(n.slice(0, 100).toLowerCase())!)),
@@ -449,7 +449,7 @@ async function runImport(jobId: string, api: JobApi) {
         rows.push(r);
         src.push(it);
       }
-      const apply = (rs: typeof rows, ss: Item[]) =>
+      const apply = (rs: typeof rows) =>
         api.execute(
           job!.userId,
           rs.flatMap((r) => r.muts),
@@ -463,13 +463,13 @@ async function runImport(jobId: string, api: JobApi) {
         for (const n of r.notes) warnings.push({ row: it.row, message: n });
       };
       try {
-        await apply(rows, src);
+        await apply(rows);
         rows.forEach((r, k) => ok(r, src[k]!));
       } catch {
         // пачка откатилась целиком: по одной строке, чтобы найти виновную
         for (let k = 0; k < rows.length; k++) {
           try {
-            await apply([rows[k]!], [src[k]!]);
+            await apply([rows[k]!]);
             ok(rows[k]!, src[k]!);
           } catch (e) {
             skipped.push({ row: src[k]!.row, reason: msg(e) });

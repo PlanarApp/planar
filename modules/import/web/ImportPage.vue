@@ -48,7 +48,7 @@ async function guard(fn: () => Promise<void>) {
 const toPreview = () =>
   guard(async () => {
     pv.value = await previewFile(file.value!, format.value, preset.value);
-    map.value = { ...pv.value.mapping } as Record<string, string>;
+    map.value = { ...pv.value.mapping } as unknown as Record<string, string>;
     chosen.value = {};
     step.value = 2;
   });

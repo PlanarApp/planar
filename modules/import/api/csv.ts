@@ -7,13 +7,18 @@ export function parseCsv(text: string): string[][] {
   let cell = '';
   let quoted = false;
   let any = false; // в текущей записи что-то было (отличает пустую строку от конца файла)
-  const endCell = () => (row.push(cell), (cell = ''));
+  const endCell = () => {
+    row.push(cell);
+    cell = '';
+  };
   for (let i = 0; i < text.length; i++) {
     const c = text[i]!;
     if (quoted) {
       if (c !== '"') cell += c;
-      else if (text[i + 1] === '"') ((cell += '"'), i++);
-      else quoted = false;
+      else if (text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else quoted = false;
       continue;
     }
     any = true;
@@ -27,7 +32,10 @@ export function parseCsv(text: string): string[][] {
       any = false;
     } else cell += c;
   }
-  if (any || cell !== '' || row.length) (endCell(), rows.push(row));
+  if (any || cell !== '' || row.length) {
+    endCell();
+    rows.push(row);
+  }
   // полностью пустые строки (в т.ч. хвост файла) не данные
   return rows.filter((r) => r.length > 1 || r[0] !== '');
 }
