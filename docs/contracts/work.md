@@ -323,7 +323,7 @@ REST — только `users.role` ∈ {owner, admin}, иначе 403; Bearer �
 
 ### Доставка
 - Заголовки: `Content-Type: application/json`, `User-Agent: Planar-Webhooks/1`, `X-Planar-Event`, `X-Planar-Delivery`, `X-Planar-Signature: sha256=<hex HMAC-SHA256(secret, тело)>` (ключ — строка `secret` целиком, UTF-8).
-- Задача pg-boss `webhooks.deliver {deliveryId}`. Успех — ответ 2xx за ≤ 10 с (соединение + ответ); иначе попытка неудачна. 3xx — неудача, редиректы не выполняются. Тело ответа читается не больше 64 КБ и отбрасывается.
+- Задача pg-boss `webhooks.deliver {deliveryId}`. Успех — ответ 2xx за ≤ 10 с (соединение + ответ); иначе попытка неудачна. 3xx — неудача, редиректы не выполняются. Тело ответа не читается: после статуса соединение закрывается.
 - Повторы: после неудачной попытки n (1–10) следующая через `60·2^(n−1)` с (1, 2, 4 … 512 мин; 11 попыток за ≈ 17,1 ч ≤ 24 ч); после 11-й — `failed`. `next_attempt_at` — время следующей попытки; повтор — новая задача с `startAfter`.
 - **SSRF:** перед каждой попыткой — DNS-резолв, все адреса проверяются; запрещены `0.0.0.0/8`, `10/8`, `100.64/10`, `127/8`, `169.254/16`, `172.16/12`, `192.168/16`, `224/4` и выше, `::`, `::1`, `fc00::/7`, `fe80::/10`, `ff00::/8`, IPv4-mapped (`::ffff:`) от запрещённых. Соединение — на проверенный адрес (`node:http`/`node:https` `request` со своим `lookup`, отдающим проверенный адрес; без повторного резолва; SNI и `Host` — исходное имя). Запрещённый адрес → `failed` сразу, `last_error = 'blocked_address'`, без повторов. Исключения — env `WEBHOOKS_ALLOW_HOSTS` (через запятую: имена хостов или CIDR), только для dev и e2e.
 - Web: страница настроек `webhooks:settings` (только админ): подписки, секрет показывается один раз, журнал доставок, «Повторить», «Проверить» (ping).
@@ -357,21 +357,5 @@ const ok = header.length === expected.length && timingSafeEqual(Buffer.from(head
 - Эталоны — `e2e/fixtures/import/` (`clickup.csv`, `jira.csv`, `linear.csv`, `trello.json`, `README.md` с источником формата для каждого).
 - Web: маршрут `/m/import/` (мастер: файл → формат и заготовка → сопоставление и предпросмотр → прогресс и отчёт), команда `import:open`.
 
-## REST и MCP (WK-5)
-Дополнение `docs/contracts/core-api-v1.md` (форма ответов, пагинация, ошибки, права токена — как там). Пути модулей при выключенном модуле → `404 module_disabled`.
-
-| метод и путь | вход → выход |
-|---|---|
-| `GET /api/v1/tasks/:task/links` | → `{data: link[]}`; `link` — строка `taskLinks` |
-| `POST /api/v1/tasks/:task/links` | `{target (id или key), kind}` → `201 {data: link}` (`link.create`) |
-| `DELETE /api/v1/links/:id` | → `204` |
-| `GET /api/v1/time-entries?taskId=&userId=&from=&to=` | → список `timeEntries` (`userId=me`; `from`/`to` — ts по `startedAt`) |
-| `POST /api/v1/time-entries` | `{task, startedAt, durationSec, note?}` → `201` запись (`time.log`) |
-| `GET /api/v1/timer` | → `{data: timeEntry \| null}` — идущий таймер пользователя |
-| `POST /api/v1/timer/start` | `{task}` → `201 {data: timeEntry}` |
-| `POST /api/v1/timer/stop` | → `{data: timeEntry \| null}` |
-| `GET /api/v1/projects/:id/cycles` | → `{data: cycle[]}` по `number` убыв., без пагинации |
-| `GET /api/v1/projects/:id/cycles/current` | → `{data: cycle \| null}` |
-| `GET /api/v1/projects/:id/automations` | → `{data: rule[]}` (чтение) |
-
-MCP — новые инструменты: `link_tasks {task, target, kind}`, `log_time {task, minutes, date?: YYYY-MM-DD, note?}` (начало — 09:00 UTC даты, по умолчанию сегодня), `start_timer {task}`, `stop_timer {}`, `current_sprint {projectId}` → цикл и его задачи (компактно). Запись (`link_tasks`, `log_time`, `start_timer`, `stop_timer`) — нужен `write`.
+## REST и MCP (WK-5), C-modules v5
+Вынесены в docs/contracts/work-api.md (размер документа).

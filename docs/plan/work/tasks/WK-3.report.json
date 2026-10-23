@@ -1,0 +1,63 @@
+{
+  "status": "partial",
+  "summary": "modules/automations: правила (create/update/delete), 6 триггеров включая cron task.due, условия matchFilter, 9 действий (без send_webhook), воркер automations.run с защитой от циклов, журнал запусков + REST, конструктор в настройках, миграция 0010.",
+  "commits": [
+    "2220645 WK-3: типы fieldRef, vue-tsc",
+    "ec5a151 WK-3: тест skipped",
+    "dd2edac WK-3: modules/automations — правила, триггеры, действия, воркер, журнал, конструктор"
+  ],
+  "checks": [
+    {
+      "name": "wk3-api",
+      "value": "24 passed",
+      "pass": true
+    },
+    {
+      "name": "wk3-web",
+      "value": "7 passed",
+      "pass": true
+    },
+    {
+      "name": "install/build/size/test-web/contract-work/migrations-linear/lint",
+      "value": "PASS в accept --dry (size 146.9 KB)",
+      "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "vue-tsc --noEmit чисто после правки (в dry был FAIL до правки)",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "не подтверждён: диск хоста 100% (8 МБ свободно), контейнер planar-testdb упал (No space left on device)",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "Повторный accept --dry целиком: тест-БД не поднимается из-за переполненного диска хоста"
+  ],
+  "questions": [
+    "Освободить диск хоста (docker build cache ~9 ГБ) и перезапустить accept WK-3"
+  ],
+  "how_to_check": ".dpcli/dpcli accept WK-3",
+  "uncertain": [
+    {
+      "where": "modules/automations/api/index.ts:run",
+      "why": "действия применяются без перечитывания задачи между ними; create_subtask ранг = max(sibling)+'V'",
+      "checked": "тесты wk3: на цепочки, откат при ошибке, подзадачу"
+    },
+    {
+      "where": "modules/automations/web/RulesPage.vue",
+      "why": "SettingsScreen ядра не рендерит settings модулей (жёсткий список секций), страница объявлена в manifest.settings, но в UI не откроется до правки ядра; FilterBuilder ядра не экспортирован SDK — свой упрощённый ConditionsEditor",
+      "checked": "компонент смонтирован в unit-тестах; контракт на правку SettingsScreen не заводил"
+    },
+    {
+      "where": "modules/automations/api/index.ts:run",
+      "why": "условие cycle (спринты) не вычисляется — циклы в FilterCtx не передаются",
+      "checked": "matchFilter пропускает такие правила"
+    }
+  ],
+  "dp_feedback": "accept test-all падает без внятной причины при полном диске/упавшем testdb (charCodeAt вместо ошибки подключения); не хватает проверки свободного места перед прогоном. dpcli task sync пишет 'feature/work уже влит' — ок.",
+  "t": "2026-10-23T16:04:07",
+  "by": "executor"
+}
