@@ -9,6 +9,7 @@ import {
   useProjectTasks,
   useStatuses,
 } from '../../tasks';
+import { useBlockedIds } from '../../links';
 import { useBreakpoint } from '../../ui';
 import { openTask } from '..';
 import type { ViewProps } from '..';
@@ -26,6 +27,7 @@ const tasks = useProjectTasks(() => props.projectId);
 const statuses = useStatuses(spaceId);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId);
+const blocked = useBlockedIds(() => props.projectId);
 const passes = useTaskFilter(() => props.filter, statuses);
 
 const columns = computed(() =>
@@ -98,6 +100,7 @@ function add(key: string, title: string) {
       :collapsed="collapsed.has(g.key)"
       :mobile="isMobile"
       :fields="options.fields"
+      :blocked="blocked"
       @toggle="toggle(g.key)"
       @open="openTask"
       @add="add(g.key, $event)"

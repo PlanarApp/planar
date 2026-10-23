@@ -217,6 +217,22 @@ export default {
     module: 'Module',
     notFound: 'Page not found',
   },
+  links: {
+    title: 'Links',
+    blocked: 'Blocked',
+    add: 'Add link',
+    search: 'Find a task by title or key',
+    remove: 'Remove link',
+    conflict: 'These tasks are already linked',
+    failed: 'Could not create the link',
+    side: {
+      blocks: 'Blocks',
+      blockedBy: 'Blocked by',
+      relates: 'Related',
+      duplicates: 'Duplicates',
+      duplicatedBy: 'Duplicated by',
+    },
+  },
   settings: {
     spaces: 'Spaces',
     members: 'Members',
