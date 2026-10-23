@@ -1,0 +1,108 @@
+{
+  "status": "done",
+  "summary": "Модуль import: парсер CSV (RFC 4180) и Trello JSON, preview/jobs/GET в api/import, фоновый import.run пачками по 100, идемпотентность по import_items, web-мастер /m/import/, эталоны в e2e/fixtures/import. Доработка: миграция пересоздана после sync (0011), ранги новых задач идут после последней задачи статуса (succRank), тест добавлен.",
+  "commits": [
+    "73a10b0 WK-6: тест succRank",
+    "690a84d WK-6: миграция import после sync",
+    "b30fc5f Слияние feature/work в work/WK-6",
+    "e36df38 WK-6: ранги после существующих; откат 0010 перед sync",
+    "2843b05 Слияние work/WK-4: WK-4: модуль webhooks (подписки, подпись, доставка, SSRF, настройки)",
+    "7de1b16 work: журнал dpcli",
+    "52ba182 work: webhooks — тело ответа не читается (по ревью WK-4)"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "145.8",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "wk6-api",
+      "value": "19",
+      "pass": true
+    },
+    {
+      "name": "wk6-web",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "contract-work",
+      "value": "9",
+      "pass": true
+    },
+    {
+      "name": "migrations-linear",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "fixtures",
+      "value": "5",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Старт задания до минуты через cron import.sweep — по указанию координатора ждёт CoreServices.enqueue (WK-12)"
+  ],
+  "questions": [
+    "CommandCtx.navigate для команды import:open (сейчас location.assign)"
+  ],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept WK-6",
+  "uncertain": [
+    {
+      "where": "modules/import/api/schema.ts",
+      "why": "служебные колонки import_jobs.source и mapping сверх контракта; наружу не отдаются",
+      "checked": "тест wk6: GET/POST без них"
+    },
+    {
+      "where": "e2e/fixtures/import/*",
+      "why": "эталоны составлены вручную без сверки с реальными выгрузками (указано в README)",
+      "checked": "парсер и тесты покрывают колонки и форматы дат"
+    },
+    {
+      "where": "modules/import/api/parse.ts:parseDate",
+      "why": "MM/DD/YYYY трактуется как американский, время и пояс отбрасываются",
+      "checked": "тест разбора дат"
+    },
+    {
+      "where": "succRank",
+      "why": "головы A-Z и переполнение z не разбираются полноценно, дают last+'V'",
+      "checked": "юнит-тест, ключи допустимы"
+    }
+  ],
+  "dp_feedback": "job start принимает команду только аргументами; /tmp общий между агентами — файл отчёта в /tmp перезаписал другой агент (лучше подсказать путь в scratchpad).",
+  "t": "2026-10-23T17:25:54",
+  "by": "executor"
+}

@@ -1,0 +1,70 @@
+import 'fake-indexeddb/auto';
+import { flushPromises, mount } from '@vue/test-utils';
+import { defineComponent, h } from 'vue';
+import { createMemoryHistory, createRouter } from 'vue-router';
+import { describe, expect, it } from 'vitest';
+import { useAuth, type User } from '../../../auth/useAuth';
+import { registerModules, setEnabledModules } from '../../../modules/registry';
+import * as sdk from '../../../modules/sdk';
+import SettingsScreen from '../../SettingsScreen.vue';
+import { i18n, setup, wait } from './setup';
+
+setup();
+const page = defineComponent({ render: () => h('p', { 'data-testid': 'mod-page' }, 'hello') });
+registerModules([
+  {
+    id: 'wk12m',
+    settings: [
+      { id: 'open', label: 'Открытая', component: async () => ({ default: page }) },
+      {
+        id: 'adm',
+        label: 'Админская',
+        adminOnly: true,
+        component: async () => ({ default: page }),
+      },
+    ],
+  },
+]);
+
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [{ path: '/settings/:section?', component: SettingsScreen }],
+});
+
+async function open(path: string, role: string) {
+  useAuth().user.value = { id: 'u', role } as User;
+  await router.push(path);
+  document.body.innerHTML = '';
+  const w = mount(SettingsScreen, { global: { plugins: [i18n, router] }, attachTo: document.body });
+  await flushPromises();
+  await wait();
+  return w;
+}
+
+describe('wk12:', () => {
+  it('wk12: страница модуля открывается по /settings/<id>:<page>', async () => {
+    await setEnabledModules(['wk12m']);
+    const w = await open('/settings/wk12m:open', 'member');
+    expect(w.find('[data-testid=nav-wk12m\\:open]').exists()).toBe(true);
+    expect(w.find('[data-testid=mod-page]').text()).toBe('hello');
+  });
+  it('wk12: adminOnly скрыта у member, видна админу', async () => {
+    await setEnabledModules(['wk12m']);
+    const m = await open('/settings/wk12m:adm', 'member');
+    expect(m.find('[data-testid=nav-wk12m\\:adm]').exists()).toBe(false);
+    expect(m.find('[data-testid=mod-page]').exists()).toBe(false);
+    const a = await open('/settings/wk12m:adm', 'admin');
+    expect(a.find('[data-testid=nav-wk12m\\:adm]').exists()).toBe(true);
+    expect(a.find('[data-testid=mod-page]').exists()).toBe(true);
+  });
+  it('wk12: выключенный модуль — пункта нет', async () => {
+    await setEnabledModules([]);
+    const w = await open('/settings/spaces', 'admin');
+    expect(w.find('[data-testid=nav-wk12m\\:open]').exists()).toBe(false);
+  });
+  it('wk12: SDK экспортирует FilterBuilder/useRouter/useCycles', () => {
+    expect(sdk.FilterBuilder).toBeTruthy();
+    expect(typeof sdk.useRouter).toBe('function');
+    expect(typeof sdk.useCycles).toBe('function');
+  });
+});

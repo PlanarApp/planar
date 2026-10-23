@@ -46,9 +46,18 @@ export function validateInstalled(list: InstalledModule[]): InstalledModule[] {
     const id = m.api.id;
     if (!ID_RE.test(id)) throw new Error(`module "${id}": id не соответствует ${ID_RE}`);
     if (RESERVED.includes(id)) throw new Error(`module "${id}": id совпадает с маршрутом ядра`);
-    for (const e of Object.keys(m.api.entities))
+    for (const [e, ent] of Object.entries(m.api.entities)) {
       if (!m.tables[e])
         throw new Error(`module "${id}": нет таблицы для сущности "${e}" в api/schema.ts`);
+      const mb = ent.meta.members as Record<string, unknown> | undefined;
+      if (
+        mb &&
+        !(['entity', 'key', 'container', 'via'] as const).every(
+          (k) => typeof mb[k] === 'string' && mb[k],
+        )
+      )
+        throw new Error(`module "${id}": неверная форма meta.members сущности "${e}"`);
+    }
   }
   return list;
 }

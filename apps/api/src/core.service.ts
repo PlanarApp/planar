@@ -1,5 +1,12 @@
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
-import { CORE, HttpError, type AuthCtx, type CoreServices } from '@planar/server-kit';
+import {
+  Inject,
+  Injectable,
+  Optional,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
+import { CORE, HttpError, type AuthCtx, type CoreServices, type JobOpts } from '@planar/server-kit';
+import { JobsService } from './jobs/jobs.js';
 import { getAuth } from './auth/auth.js';
 import type { Db } from './db/index.js';
 import { toV1Tasks } from './rest/v1-tasks.js';
@@ -10,13 +17,27 @@ export { CORE };
 
 /** Услуги ядра модулям (C-modules v4): провайдер `CORE`. */
 @Injectable()
-export class CoreService implements CoreServices, OnModuleInit {
+export class CoreService implements CoreServices, OnModuleInit, OnModuleDestroy {
   private sysId?: string;
-  constructor(@Inject(DB) readonly db: Db) {}
+  constructor(
+    @Inject(DB) readonly db: Db,
+    @Optional() private jobs?: JobsService,
+  ) {}
 
-  /** БД недоступна — старт не падает; systemUserId подтянется при первом обращении к БД */
+  retryMs = 2000;
+  private timer?: NodeJS.Timeout;
+
+  /** БД недоступна — старт не падает; повторяем с интервалом, пока systemUserId не станет доступен */
   async onModuleInit() {
-    this.sysId = await ensureSystemUser(this.db).catch(() => undefined);
+    try {
+      this.sysId = await ensureSystemUser(this.db);
+    } catch {
+      this.timer = setTimeout(() => void this.onModuleInit(), this.retryMs).unref();
+    }
+  }
+
+  onModuleDestroy() {
+    clearTimeout(this.timer);
   }
 
   auth(req: object): AuthCtx {
@@ -40,6 +61,10 @@ export class CoreService implements CoreServices, OnModuleInit {
 
   toV1Tasks(q: Parameters<CoreServices['toV1Tasks']>[0], rows: Record<string, unknown>[]) {
     return toV1Tasks(q as Db, rows) as Promise<Record<string, unknown>[]>;
+  }
+
+  enqueue(queue: string, data: object, opts?: JobOpts) {
+    return this.jobs?.enqueue(queue, data, opts) ?? Promise.resolve();
   }
 
   systemUserId(): string {

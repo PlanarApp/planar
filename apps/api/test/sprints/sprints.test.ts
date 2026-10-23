@@ -1,12 +1,22 @@
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { CoreService } from '../../src/core.service.js';
 import { uuidv7 } from '@planar/shared';
 import { todayIn } from '@planar/module-sprints/shared';
 import * as schema from '../../src/db/schema.js';
 import type { JobApi } from '../../src/modules/hooks.js';
 import { installed } from '../../src/modules/installed.js';
 import { PushQueue } from '../../src/push/push.js';
-import { dbUrl, key, newDb, taskArgs, world, type World } from '../sync/helpers.js';
+import {
+  TestClient,
+  dbUrl,
+  key,
+  newDb,
+  services,
+  taskArgs,
+  world,
+  type World,
+} from '../sync/helpers.js';
 
 const db = newDb();
 const queue = new PushQueue(db, { boss: false, databaseUrl: dbUrl });
@@ -291,5 +301,66 @@ describe('wk2: cron', () => {
     const c = await mk(p, d, d);
     await job('sprints.close-cycle').handler({ cycleId: c }, api);
     expect((await cycle(c))!.closed_at).toBeNull();
+  });
+});
+
+describe('wk11: гонки и системный пользователь', () => {
+  it('wk11: close с 3 клиентов + cron — перенос ровно один раз', async () => {
+    const job = (
+      installed.find((m) => m.api.id === 'sprints')!.api.jobs as {
+        queue: string;
+        handler(d: unknown, api: JobApi): Promise<void>;
+      }[]
+    ).find((j) => j.queue === 'sprints.close-cycle')!;
+    const api = await queue.jobs.api();
+    for (let i = 0; i < 5; i++) {
+      const p = await project();
+      await cfg(p, { timezone: 'Pacific/Kiritimati' });
+      const d = todayIn('Pacific/Pago_Pago');
+      const c = await mk(p, d, d);
+      const ts = [await task(p, TODO, c), await task(p, BACKLOG, c), await task(p, DONE, c)];
+      const clients = [w.admin, w.member, new TestClient(services(db), w.admin.userId)];
+      const rs = await Promise.all([
+        ...clients.map((cl) => cl.push('sprints.close', { id: c, nextId: uuidv7() })),
+        job.handler({ cycleId: c }, api).catch(() => undefined), // conflict → ретрай pg-boss
+      ]);
+      for (const r of rs.slice(0, 3))
+        expect(r).toSatisfy((x: { ok: boolean; code?: string }) => x.ok || x.code === 'conflict');
+      const all = await cycles(p);
+      expect(all).toHaveLength(2);
+      const next = all.find((x) => x.id !== c)!;
+      expect(all.find((x) => x.id === c)!.closed_at).not.toBeNull();
+      expect(await taskCycle(ts[0]!)).toBe(next.id);
+      expect(await taskCycle(ts[1]!)).toBe(next.id);
+      expect(await taskCycle(ts[2]!)).toBe(c);
+    }
+  }, 120_000);
+
+  const flakyCore = () => {
+    const st = { down: true };
+    const flaky = new Proxy(db, {
+      get: (t, k, r) =>
+        k === 'transaction' && st.down
+          ? () => Promise.reject(new Error('db down'))
+          : Reflect.get(t, k, r),
+    });
+    const core = new CoreService(flaky);
+    core.retryMs = 10;
+    return { st, core };
+  };
+
+  it('wk11: старт при недоступной БД не падает, systemUserId пока бросает', async () => {
+    const { core } = flakyCore();
+    await core.onModuleInit();
+    expect(() => core.systemUserId()).toThrow();
+    core.onModuleDestroy();
+  });
+
+  it('wk11: после восстановления БД systemUserId доступен без перезапуска', async () => {
+    const { st, core } = flakyCore();
+    await core.onModuleInit();
+    st.down = false;
+    await expect.poll(() => core.systemUserId(), { timeout: 30_000 }).toBeTypeOf('string');
+    core.onModuleDestroy();
   });
 });

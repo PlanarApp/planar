@@ -60,6 +60,8 @@ export interface SettingsPageDef {
   label: LocalizedText;
   icon?: Component;
   component: Lazy<object>;
+  /** скрыт от не-админов инстанса (сервер всё равно проверяет права) */
+  adminOnly?: boolean;
 }
 
 export type NavItemDef = { id: string; order?: number } & (
@@ -85,6 +87,7 @@ export interface SearchProviderDef {
   label: LocalizedText;
   search(q: string, limit: number): Promise<SearchHit[]>;
 }
+export type SearchDef = SearchProviderDef;
 
 export interface WebModuleManifest extends FrontendModuleManifest {
   routes?: RouteRecordRaw[];
