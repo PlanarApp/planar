@@ -19,12 +19,15 @@ import {
   useStatuses,
   type TaskView,
 } from '../../tasks';
+import { FieldCell, FieldEditor, setTaskField, useFieldDefs } from '../../fields';
 import { Button, Popover } from '../../ui';
 import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import {
   COLUMN_IDS,
+  FIELD_PREFIX,
   clampWidth,
+  isFieldCol,
   loadLayout,
   moveColumn,
   newColumn,
@@ -43,6 +46,9 @@ const project = useProject(() => props.projectId);
 const spaceId = computed(() => project.value?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
 const all = useProjectTasks(() => props.projectId);
+const defs = useFieldDefs(() => props.projectId);
+const defOf = (id: string) => defs.value?.find((d) => `${FIELD_PREFIX}${d.id}` === id);
+const colName = (id: ColumnId) => (isFieldCol(id) ? (defOf(id)?.name ?? '') : t(`table.col.${id}`));
 const passes = useTaskFilter(() => props.filter, statuses);
 
 // группировка в таблице не применяется
@@ -61,7 +67,20 @@ watch(
   (p) => (cols.value = loadLayout(p).columns),
 );
 const total = computed(() => CHECK_W + cols.value.reduce((s, c) => s + c.width, 0));
-const hidden = computed(() => COLUMN_IDS.filter((id) => !cols.value.some((c) => c.id === id)));
+// колонка удалённого поля выпадает из раскладки, когда определения загружены
+watch(defs, (ds) => {
+  if (!ds) return;
+  const kept = cols.value.filter((c) => !isFieldCol(c.id) || defOf(c.id));
+  if (kept.length !== cols.value.length && kept.length) {
+    cols.value = kept;
+    save();
+  }
+});
+const allIds = computed<ColumnId[]>(() => [
+  ...COLUMN_IDS,
+  ...(defs.value ?? []).map((d) => `${FIELD_PREFIX}${d.id}` as const),
+]);
+const hidden = computed(() => allIds.value.filter((id) => !cols.value.some((c) => c.id === id)));
 function toggleCol(id: ColumnId, on: boolean) {
   if (on) cols.value = [...cols.value, newColumn(id)];
   else if (cols.value.length > 1) cols.value = cols.value.filter((c) => c.id !== id);
@@ -132,6 +151,15 @@ function onCheck(task: TaskView, e: MouseEvent) {
 const each = (f: (x: TaskView) => Promise<unknown>) =>
   Promise.all((all.value ?? []).filter((x) => sel.selected.value.has(x.id)).map(f));
 
+// --- поля: правка ячейки и массовая
+const editCell = ref<string | null>(null); // `${taskId}|${columnId}`
+function saveCell(task: TaskView, id: string, v: unknown) {
+  editCell.value = null;
+  void setTaskField(task.id, id.slice(FIELD_PREFIX.length), v);
+}
+const bulkId = ref('');
+const bulkDef = computed(() => (defs.value ?? []).find((d) => d.id === bulkId.value));
+
 const date = (v: string) => v.slice(0, 10);
 </script>
 
@@ -143,7 +171,7 @@ const date = (v: string) => v.slice(0, 10);
           <Button size="sm">{{ t('table.columns') }}</Button>
         </template>
         <ul class="flex flex-col gap-1 text-sm">
-          <li v-for="id in COLUMN_IDS" :key="id">
+          <li v-for="id in allIds" :key="id">
             <label class="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -151,7 +179,7 @@ const date = (v: string) => v.slice(0, 10);
                 :disabled="!hidden.includes(id) && cols.length === 1"
                 @change="toggleCol(id, ($event.target as HTMLInputElement).checked)"
               />
-              {{ t(`table.col.${id}`) }}
+              {{ colName(id) }}
             </label>
           </li>
         </ul>
@@ -185,12 +213,12 @@ const date = (v: string) => v.slice(0, 10);
             :style="{ width: `${c.width}px` }"
             class="relative flex shrink-0 items-center gap-1 px-2"
           >
-            <span class="truncate">{{ t(`table.col.${c.id}`) }}</span>
+            <span class="truncate">{{ colName(c.id) }}</span>
             <Popover align="start">
               <template #trigger>
                 <button
                   type="button"
-                  :aria-label="t('table.columnMenu', { name: t(`table.col.${c.id}`) })"
+                  :aria-label="t('table.columnMenu', { name: colName(c.id) })"
                   class="no-drag ml-auto inline-flex size-6 items-center justify-center rounded-md outline-none hover:bg-bg-subtle focus-visible:ring-2 ring-focus"
                 >
                   <MoreHorizontal :size="14" aria-hidden="true" />
@@ -319,6 +347,28 @@ const date = (v: string) => v.slice(0, 10);
                     :model-value="task.labelIds"
                     @update:model-value="setLabels(task.id, $event)"
                   />
+                  <template v-else-if="isFieldCol(c.id)">
+                    <div
+                      v-if="defOf(c.id) && editCell === `${task.id}|${c.id}`"
+                      @keydown.esc.stop.prevent="editCell = null"
+                    >
+                      <FieldEditor
+                        :def="defOf(c.id)!"
+                        :value="task.fields?.[defOf(c.id)!.id]"
+                        :space-id="spaceId"
+                        @update:value="saveCell(task, c.id, $event)"
+                      />
+                    </div>
+                    <span
+                      v-else-if="defOf(c.id)"
+                      tabindex="0"
+                      class="flex outline-none focus-visible:ring-2 ring-focus"
+                      @dblclick="editCell = `${task.id}|${c.id}`"
+                      @keydown.enter.prevent="editCell = `${task.id}|${c.id}`"
+                    >
+                      <FieldCell :def="defOf(c.id)!" :value="task.fields?.[defOf(c.id)!.id]" />
+                    </span>
+                  </template>
                   <span v-else class="text-fg-muted">{{
                     date(c.id === 'createdAt' ? task.createdAt : task.updatedAt)
                   }}</span>
@@ -348,6 +398,24 @@ const date = (v: string) => v.slice(0, 10);
         "
       />
       <DueDatePicker @update:model-value="each((x) => updateTask(x.id, { dueDate: $event }))" />
+      <template v-if="defs?.length">
+        <select
+          v-model="bulkId"
+          :aria-label="t('table.bulkField')"
+          data-bulk-field
+          class="h-8 rounded-md border border-border-strong bg-bg px-2 text-sm"
+        >
+          <option value="">{{ t('table.bulkField') }}</option>
+          <option v-for="d in defs" :key="d.id" :value="d.id">{{ d.name }}</option>
+        </select>
+        <FieldEditor
+          v-if="bulkDef"
+          :key="bulkDef.id"
+          :def="bulkDef"
+          :space-id="spaceId"
+          @update:value="each((x) => setTaskField(x.id, bulkDef!.id, $event))"
+        />
+      </template>
       <Button size="sm" @click="sel.clear()">{{ t('table.clear') }}</Button>
     </div>
   </div>

@@ -7,7 +7,18 @@ import ru from '../../../i18n/ru';
 import type { ViewOptions } from '../..';
 import { clampWidth, defaultLayout, loadLayout, moveColumn, saveLayout } from '../columns';
 
-const h$ = vi.hoisted(() => ({ tasks: undefined as never, updateTask: vi.fn(async () => {}) }));
+const h$ = vi.hoisted(() => ({
+  tasks: undefined as never,
+  defs: undefined as never,
+  updateTask: vi.fn(async () => {}),
+  setField: vi.fn(async () => {}),
+}));
+vi.mock('../../../fields', async (orig) => {
+  const real = await orig<typeof import('../../../fields')>();
+  const { ref: r } = await import('vue');
+  h$.defs = r([]) as never;
+  return { ...real, useFieldDefs: () => h$.defs, setTaskField: h$.setField };
+});
 vi.mock('../../../router', () => ({ router: { currentRoute: { value: {} }, push: vi.fn() } }));
 vi.mock('../../../tasks', async (orig) => {
   const real = await orig<typeof import('../../../tasks')>();
@@ -26,6 +37,7 @@ vi.mock('../../../tasks', async (orig) => {
     useProjectTasks: () => h$.tasks,
     useProject: () => r({ spaceId: 's' }),
     useStatuses: () => r([]),
+    useMembers: () => r([]),
     updateTask: h$.updateTask,
     setAssignees: vi.fn(),
     setLabels: vi.fn(),
@@ -77,6 +89,28 @@ const show = async (o: Partial<ViewOptions> = {}, pid = 'p1') => {
   });
   await flushPromises();
 };
+const def = (id: string, type: string, extra: Record<string, unknown> = {}) => ({
+  id,
+  name: `F-${id}`,
+  type,
+  options: {},
+  projectId: 'p1',
+  spaceId: 's',
+  rank: id,
+  ...extra,
+});
+const setDefs = (d: unknown[]) => ((h$.defs as { value: unknown }).value = d);
+const colsMenu = async () => {
+  await w
+    .findAll('button')
+    .find((b) => b.text() === 'Колонки')!
+    .trigger('click');
+  await flushPromises();
+};
+const menuBox = (name: string) =>
+  [...document.body.querySelectorAll('label')]
+    .find((l) => l.textContent!.trim() === name)!
+    .querySelector('input')!;
 const rows = () => w.findAll('[role=row][data-task]');
 
 beforeEach(() => {
@@ -84,6 +118,8 @@ beforeEach(() => {
   localStorage.clear();
   useSelection().clear();
   h$.updateTask.mockClear();
+  h$.setField.mockClear();
+  (h$.defs as { value: unknown }).value = [];
   (h$.tasks as { value: unknown }).value = [mk(1), mk(2), mk(3), mk(4, { parentId: 'id1' })];
 });
 
@@ -214,5 +250,102 @@ describe('table', () => {
     expect(rows().length).toBeGreaterThan(0);
     expect(rows().length).toBeLessThanOrEqual(100);
     expect(ms).toBeLessThan(3000);
+  });
+
+  describe('fields', () => {
+    const money = def('m1', 'money', { options: { currency: 'RUB' } });
+    const sel1 = def('s1', 'select', { options: { choices: [{ id: 'c1', label: 'Красный' }] } });
+    const txt = def('t1', 'text');
+    const stored = (cols: unknown) =>
+      localStorage.setItem('planar.table.p1', JSON.stringify({ columns: cols }));
+
+    it('table-fields: колонки полей в меню «Колонки» и сохраняются в раскладке', async () => {
+      setDefs([money, txt]);
+      await show();
+      expect(w.find('[data-col="field:m1"]').exists()).toBe(false);
+      await colsMenu();
+      const box = menuBox('F-m1');
+      box.checked = true;
+      box.dispatchEvent(new Event('change'));
+      await flushPromises();
+      expect(w.find('[role=columnheader][data-col="field:m1"]').text()).toContain('F-m1');
+      expect(JSON.parse(localStorage.getItem('planar.table.p1')!).columns.at(-1).id).toBe(
+        'field:m1',
+      );
+      expect(loadLayout('p1').columns.at(-1)!.id).toBe('field:m1');
+    });
+    it('table-fields: раскладка с field-колонкой читается, пустой id отбрасывается', () => {
+      stored([
+        { id: 'field:abc', width: 200 },
+        { id: 'field:', width: 100 },
+        { id: 'title', width: 100 },
+      ]);
+      expect(loadLayout('p1').columns).toEqual([
+        { id: 'field:abc', width: 200 },
+        { id: 'title', width: 100 },
+      ]);
+    });
+    it('table-fields: ячейка показывает formatFieldValue (деньги, select)', async () => {
+      setDefs([money, sel1]);
+      stored([
+        { id: 'title', width: 200 },
+        { id: 'field:m1', width: 200 },
+        { id: 'field:s1', width: 200 },
+      ]);
+      (h$.tasks as { value: unknown }).value = [mk(1, { fields: { m1: 150000, s1: 'c1' } })];
+      await show();
+      const cell = (c: string) => w.get(`[data-task="PLN-1"] [data-col="${c}"]`).text();
+      expect(cell('field:m1').replace(/\s/g, ' ')).toMatch(/1 500,00/);
+      expect(cell('field:s1')).toBe('Красный');
+    });
+    it('table-fields: правка ячейки вызывает setTaskField(task, field, value)', async () => {
+      setDefs([txt]);
+      stored([
+        { id: 'title', width: 200 },
+        { id: 'field:t1', width: 200 },
+      ]);
+      await show();
+      await w.get('[data-task="PLN-2"] [data-col="field:t1"] span').trigger('dblclick');
+      const i = w.get('[data-task="PLN-2"] [data-col="field:t1"] input');
+      await i.setValue('привет');
+      await i.trigger('keydown.enter');
+      await flushPromises();
+      expect(h$.setField).toHaveBeenCalledWith('id2', 't1', 'привет');
+      expect(w.find('[data-testid=field-editor]').exists()).toBe(false);
+    });
+    it('table-fields: Esc отменяет правку ячейки', async () => {
+      setDefs([txt]);
+      stored([{ id: 'field:t1', width: 200 }]);
+      await show();
+      await w.get('[data-task="PLN-1"] [data-col="field:t1"] span').trigger('dblclick');
+      await w.get('[data-testid=field-editor]').trigger('keydown.esc');
+      expect(w.find('[data-testid=field-editor]').exists()).toBe(false);
+      expect(h$.setField).not.toHaveBeenCalled();
+    });
+    it('table-fields: массовая правка поля для 3 выделенных - 3 мутации', async () => {
+      setDefs([txt]);
+      await show();
+      useSelection().set(['id1', 'id2', 'id3']);
+      await flushPromises();
+      await w.get('[data-bulk-field]').setValue('t1');
+      const i = w.get('[role=toolbar] input[type=text], [role=toolbar] input:not([type])');
+      await i.setValue('X');
+      await flushPromises();
+      expect(h$.setField).toHaveBeenCalledTimes(3);
+      expect(h$.setField).toHaveBeenCalledWith('id3', 't1', 'X');
+    });
+    it('table-fields: колонка удалённого поля пропадает', async () => {
+      setDefs([txt]);
+      stored([
+        { id: 'title', width: 200 },
+        { id: 'field:t1', width: 200 },
+      ]);
+      await show();
+      expect(w.find('[data-col="field:t1"]').exists()).toBe(true);
+      setDefs([]);
+      await flushPromises();
+      expect(w.find('[data-col="field:t1"]').exists()).toBe(false);
+      expect(JSON.parse(localStorage.getItem('planar.table.p1')!).columns).toHaveLength(1);
+    });
   });
 });
