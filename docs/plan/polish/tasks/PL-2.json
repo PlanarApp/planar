@@ -1,0 +1,88 @@
+{
+  "id": "PL-2",
+  "module": "polish",
+  "type": "dp-engineer",
+  "title": "Мелкие недочёты автоматизаций, webhooks и e2e",
+  "goal": "send_webhook отправляет задачу после всех действий правила; подписка webhook выбирается из списка; e2e спринта не зависит от времени суток; e2e глубокой ссылки на модуль work.",
+  "plan_ref": "3. Задачи",
+  "contracts": [],
+  "copy": "~/planar-polish-PL-2",
+  "branch": "polish/PL-2",
+  "base": "feature/polish",
+  "scope": [
+    "modules/automations/",
+    "modules/webhooks/",
+    "e2e/web/work.spec.ts",
+    "e2e/web/work-helpers.ts"
+  ],
+  "dont_touch": [
+    "apps/web/src/ — зона PL-1",
+    "packages/, apps/api/src/ — ядро; нужна правка — «PL-2 contract: …»",
+    "контракты docs/contracts/ — только если меняется поведение; тогда «PL-2 contract: …»"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "pl2",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run -t pl2:",
+      "expect": "num:(\\d+) passed >=3"
+    },
+    {
+      "name": "e2e-work",
+      "cmd": "export WEBHOOKS_ALLOW_HOSTS=host.docker.internal COMPOSE_PROJECT_NAME=planar-e2e-pl2 API_PORT=3292 WEB_PORT=5392 DEV_PG_PORT=55592; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$API_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5392 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts web/work.spec.ts; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
+      "expect": "num:(\\d+) passed >=10",
+      "timeout": 2400
+    },
+    {
+      "name": "e2e-sprint-midnight",
+      "cmd": "export TZ=Pacific/Kiritimati; COMPOSE_PROJECT_NAME=planar-e2e-pl2 API_PORT=3292 WEB_PORT=5392 DEV_PG_PORT=55592; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$API_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5392 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts web/work.spec.ts -g 'спринт|sprint'; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
+      "expect": "num:(\\d+) passed >=1",
+      "timeout": 2400
+    }
+  ],
+  "report_extra": [],
+  "notes": [
+    "Тесты новой логики — с префиксом 'pl2:' в названии (vitest -t pl2:).",
+    "1) send_webhook: modules/automations/api/index.ts — тело webhook собирается после применения всех действий правила (тест: правило «статус → назначить + webhook» шлёт задачу с новым исполнителем).",
+    "2) Выбор подписки: modules/automations/web/RulesPage.vue — Select из подписок webhooks (данные — через SDK/данные модуля webhooks), показывать имя и URL; пустой список — подсказка со ссылкой на настройки webhooks.",
+    "3) e2e спринта: цикл создавать по часовому поясу проекта с запасом (начало вчера, конец через 7 дней), без зависимости от UTC-полуночи.",
+    "4) e2e глубокой ссылки: новый тест в e2e/web/work.spec.ts — холодная загрузка страницы спринта по прямому URL рисует экран модуля, а не заглушку «Модуль».",
+    "Порты 3000/3300/5173 заняты — только свои (в проверках 3292/5392/55592).",
+    "Отчёт — только build/dpcli/PL-2.report.json в своей копии."
+  ],
+  "created": "2026-10-23T22:33:20"
+}
