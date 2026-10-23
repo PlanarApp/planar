@@ -5,39 +5,40 @@ import * as schema from '../../src/db/schema.js';
 import { PullService } from '../../src/sync/pull.service.js';
 import { PushService } from '../../src/sync/push.service.js';
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { afterAll, inject } from 'vitest';
-import { createDb as _c, migrate } from '../../src/db/index.js';
 
 export const NOW = '2026-10-22T10:00:00.000Z';
 
-// Своя база на файл: тесты sync создают пользователей и задачи, что ломает подсчёты других файлов (seed.test).
-const adminUrl = new URL(inject('dbUrl'));
-const name = `planar_t_${randomBytes(6).toString('hex')}`;
-adminUrl.pathname = '/postgres';
-const admin = new pg.Client({ connectionString: adminUrl.toString() });
+// Своя схема на файл: тесты sync создают пользователей и задачи, что ломает подсчёты других файлов (seed.test).
+// Схема, а не база: CREATE/DROP DATABASE на общем Postgres делают checkpoint и тормозят все параллельные файлы.
+const schemaName = `t_${randomBytes(6).toString('hex')}`;
+const base = new URL(inject('dbUrl'));
+const admin = new pg.Client({ connectionString: base.toString() });
 await admin.connect();
-await admin.query(`create database ${name}`);
-export const dbUrl = (() => {
-  const u = new URL(adminUrl);
-  u.pathname = `/${name}`;
-  return u.toString();
-})();
+await admin.query(`create schema ${schemaName}`);
 {
-  const m = _c(dbUrl);
-  await migrate(m).finally(() => m.$client.end());
-}
-afterAll(async () => {
-  // без force: сначала даём тестам закрыть свои пулы (force шлёт им FATAL 57P01)
-  for (let i = 0; i < 20; i++) {
-    try {
-      await admin.query(`drop database if exists ${name}`);
-      return await admin.end();
-    } catch {
-      await new Promise((r) => setTimeout(r, 250));
-    }
+  // миграции с подстановкой "public" → своя схема (в них FK на "public"."…")
+  const dir = fileURLToPath(new URL('../../drizzle', import.meta.url));
+  const journal = JSON.parse(readFileSync(`${dir}/meta/_journal.json`, 'utf8')) as {
+    entries: { tag: string }[];
+  };
+  await admin.query(`set search_path to ${schemaName}`);
+  for (const { tag } of journal.entries) {
+    const sql = readFileSync(`${dir}/${tag}.sql`, 'utf8').replaceAll(
+      '"public".',
+      `"${schemaName}".`,
+    );
+    for (const stmt of sql.split('--> statement-breakpoint')) await admin.query(stmt);
   }
-  await admin.query(`drop database if exists ${name} with (force)`);
+}
+const url = new URL(base);
+url.searchParams.set('options', `-c search_path=${schemaName}`);
+export const dbUrl = url.toString();
+afterAll(async () => {
+  await admin.query(`drop schema if exists ${schemaName} cascade`);
   await admin.end();
 }, 60_000);
 

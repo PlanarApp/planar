@@ -5,6 +5,7 @@ export default defineProject({
   ssr: { resolve: { conditions: ['source'] } },
   test: {
     name: 'api',
+    testTimeout: 30_000,
     include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
     globalSetup: ['./test/global-setup.ts'],
   },
