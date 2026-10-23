@@ -9,6 +9,7 @@ import type { Row } from '@planar/shared';
 import type { TaskGroup } from '../../tasks';
 import { PriorityIcon } from '../../tasks';
 import { Avatar, Badge, Button, Input } from '../../ui';
+import type { TaskField } from '../options';
 
 const VIRTUAL_FROM = 50;
 const CARD = 96; // высота карточки с зазором, px
@@ -19,6 +20,7 @@ const props = defineProps<{
   labels: Row<'labels'>[];
   collapsed: boolean;
   mobile: boolean;
+  fields: TaskField[];
 }>();
 const emit = defineEmits<{
   toggle: [];
@@ -155,18 +157,20 @@ function due(d: string) {
           @keydown.enter.self="emit('open', x.key)"
         >
           <div class="flex items-center gap-1.5 text-xs text-fg-muted">
-            <PriorityIcon :priority="x.priority" />
+            <PriorityIcon v-if="fields.includes('priority')" :priority="x.priority" />
             <span>{{ x.key }}</span>
-            <span v-if="x.dueDate" class="ml-auto">{{ due(x.dueDate) }}</span>
+            <span v-if="x.dueDate && fields.includes('dueDate')" class="ml-auto">{{
+              due(x.dueDate)
+            }}</span>
           </div>
           <p class="line-clamp-2 text-fg">{{ x.title }}</p>
           <div class="mt-auto flex items-center gap-1 overflow-hidden">
-            <template v-for="l in x.labelIds" :key="l">
+            <template v-for="l in fields.includes('labels') ? x.labelIds : []" :key="l">
               <Badge v-if="label(l)" :color="label(l)!.color ?? undefined">{{
                 label(l)!.name
               }}</Badge>
             </template>
-            <span class="ml-auto flex shrink-0 -space-x-1">
+            <span v-if="fields.includes('assignee')" class="ml-auto flex shrink-0 -space-x-1">
               <Avatar v-for="a in x.assigneeIds.slice(0, 3)" :key="a" :name="name(a)" size="xs" />
             </span>
           </div>

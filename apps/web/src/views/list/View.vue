@@ -23,6 +23,7 @@ import {
 } from '../../tasks';
 import { Button, Dialog, Input, useBreakpoint } from '../../ui';
 import { openTask, useSelection, type ViewProps } from '..';
+import { useTaskFilter } from '../saved/useFilter';
 import Row from './Row.vue';
 
 const props = defineProps<ViewProps>();
@@ -36,6 +37,7 @@ const statuses = useStatuses(spaceId);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId);
 const all = useProjectTasks(() => props.projectId);
+const passes = useTaskFilter(() => props.filter, statuses);
 
 type Item =
   | { id: string; kind: 'group'; group: TaskGroup }
@@ -45,7 +47,7 @@ type Item =
 const collapsed = ref(new Set<string>());
 const groups = computed(() => {
   const o = props.options;
-  const tasks = (all.value ?? []).filter((x) => o.showSubtasks || !x.parentId);
+  const tasks = (all.value ?? []).filter((x) => (o.showSubtasks || !x.parentId) && passes.value(x));
   const ctx = {
     statuses: statuses.value ?? [],
     members: members.value ?? [],
@@ -258,6 +260,7 @@ watch(
               :selected="sel.selected.value.has(it.task.id)"
               :focused="focusedId === it.id"
               :editing="editing === it.id"
+              :fields="options.fields"
               @click="onRowClick(it, $event)"
               @toggle="sel.toggle(it.task.id)"
               @edit="editing = it.id"

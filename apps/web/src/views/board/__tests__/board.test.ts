@@ -1,3 +1,4 @@
+import type { ViewOptions } from '../..';
 import 'fake-indexeddb/auto';
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -25,6 +26,7 @@ const options = (groupBy: GroupBy = 'status') => ({
   sortBy: 'rank' as const,
   sortDir: 'asc' as const,
   showSubtasks: false,
+  fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'] as ViewOptions['fields'],
 });
 
 beforeAll(() => registerMutators(domainMutators));

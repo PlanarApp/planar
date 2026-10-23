@@ -5,7 +5,7 @@ module: web
 updated: 2026-10-22
 summary: Контракты web — C-ui, C-client (синхронизация), C-tasks (слой задач), C-views (экран проекта и стык видов)
 related: ["docs/plan/web.md", "docs/contracts/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 2}, {"id": "C-tasks", "version": 2}, {"id": "C-views", "version": 1}]
+contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 2}, {"id": "C-tasks", "version": 2}, {"id": "C-views", "version": 2}]
 ---
 
 # Контракты модуля web
@@ -19,7 +19,7 @@ contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 2}, {"id
 ### Файлы
 | Путь | Что |
 |---|---|
-| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 1, 'C-client': 2, 'C-tasks': 2, 'C-views': 1 } as const;` |
+| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 1, 'C-client': 2, 'C-tasks': 2, 'C-views': 2 } as const;` |
 | `apps/web/src/ui/tokens.css` | токены: блок `@theme { … }` — светлая тема, блок `.dark { … }` — тёмная (те же имена) |
 | `apps/web/src/ui/index.ts` | экспорт компонентов и `useBreakpoint`, `useTheme` |
 | `apps/web/src/i18n/{index,ru,en}.ts` | vue-i18n, словари |
@@ -199,7 +199,7 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 | `StatusPicker`, `AssigneePicker`, `PriorityPicker`, `DueDatePicker`, `LabelPicker` | SFC: `v-model` (статус — id; исполнители, метки — `string[]`; приоритет — `0..4`; срок — `'YYYY-MM-DD' \| null`), `spaceId` (кроме приоритета и срока), `compact?: boolean` (только иконка — для строк и карточек) | на `ui/Popover` + поиск по вводу, клавиатура; `update:modelValue` — вызывающий сам вызывает `updateTask`/`setAssignees`/`setLabels` |
 | `StatusIcon`, `PriorityIcon` | SFC: `status: Row<'statuses'>` / `priority: number` | иконка по категории статуса и его `color`; приоритет — токены `--color-priority-*` |
 
-## C-views v1
+## C-views v2
 
 Экран проекта и стык видов — `apps/web/src/views/` (каркас — WB-4a; виды — WB-4 «Список», WB-5 «Доска»; панель задачи — WB-6; потребители — WB-7, WB-8, модули). Контрактный тест — `apps/web/src/__contract__/views.contract.test.ts`.
 
@@ -211,9 +211,16 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 ### Экспорты `apps/web/src/views/index.ts`
 | Имя | Сигнатура | Поведение |
 |---|---|---|
-| `ViewProps` | тип `{ projectId: string; options: ViewOptions }` | пропсы каждого `View.vue` и вида модуля |
-| `ViewOptions` | тип `{ groupBy: GroupBy; sortBy: SortBy; sortDir: 'asc' \| 'desc'; showSubtasks: boolean }` | `GroupBy`, `SortBy` — C-tasks |
-| `useViewOptions` | `(projectId: MaybeRefOrGetter<string>, view: MaybeRefOrGetter<string>) => Ref<ViewOptions>` | по умолчанию `{groupBy: 'status', sortBy: 'rank', sortDir: 'asc', showSubtasks: false}`; хранится в `localStorage['planar.view.<projectId>.<view>']` (try/catch) |
+| `ViewProps` | тип `{ projectId: string; options: ViewOptions; filter?: Filter \| null }` | пропсы каждого `View.vue` и вида модуля; вид показывает только задачи, где `matchFilter` = true |
+| `ViewOptions` | тип `{ groupBy: GroupBy; sortBy: SortBy; sortDir: 'asc' \| 'desc'; showSubtasks: boolean; fields: TaskField[] }` | `GroupBy`, `SortBy` — C-tasks; `fields` — видимые поля строки списка (доска — карточки) |
+| `TaskField` | тип `'status' \| 'assignee' \| 'priority' \| 'dueDate' \| 'labels' \| 'project'` | |
+| `Filter` | тип `{ op: 'and' \| 'or'; rules: FilterRule[] }` | один уровень; пустой `rules` — все задачи; хранится в `savedViews.filter` как есть |
+| `FilterRule` | тип `{ field: 'status' \| 'statusCategory' \| 'assignee' \| 'priority' \| 'label' \| 'dueDate' \| 'title' \| 'createdBy'; operator: 'in' \| 'notIn' \| 'isEmpty' \| 'isNotEmpty' \| 'before' \| 'after' \| 'contains'; value?: string[] \| number[] \| string }` | `in`/`notIn` — массив id (приоритет — числа, `statusCategory` — категории); `before`/`after` — `YYYY-MM-DD` или `today`, `today+N`, `today-N`; `contains` — подстрока без регистра; значение `'me'` в `assignee`/`createdBy` — текущий пользователь |
+| `useViewOptions` | `(projectId: MaybeRefOrGetter<string>, view: MaybeRefOrGetter<string>) => Ref<ViewOptions>` | по умолчанию `{groupBy: 'status', sortBy: 'rank', sortDir: 'asc', showSubtasks: false, fields: ['status', 'assignee', 'priority', 'dueDate', 'labels']}`; хранится в `localStorage['planar.view.<projectId>.<view>']` (try/catch) |
 | `useSelection` | `() => { selected: Readonly<Ref<ReadonlySet<string>>>; set(ids: string[]): void; toggle(id: string): void; range(ids: string[], toId: string): void; clear(): void; anchor: Readonly<Ref<string \| null>> }` | одно состояние на приложение; `range` — от `anchor` до `toId` по порядку `ids` (Shift); смена проекта — `clear()` |
 | `openTask` | `(key: string) => void` | desktop — `?task=<key>` на текущем маршруте проекта, mobile или вне проекта — `/t/<key>` |
 | `closeTask` | `() => void` | убирает `?task` |
+| `matchFilter` | `(task: TaskView, filter: Filter \| null \| undefined, ctx: { statuses: Row<'statuses'>[]; userId: string; today: string }) => boolean` | чистая; `null`/пустые `rules` → true; `and` — все правила, `or` — хотя бы одно; `isEmpty` у `assignee`/`label` — нет связей, у `dueDate` — `null` |
+
+### Сохранённый вид (`savedViews`)
+`layout` — id вида (`list`, `board`, `<moduleId>:<id>`), `filter` — `Filter`, `config` — `ViewOptions`; неизвестные поля `config` игнорируются, отсутствующие — по умолчанию. Личный — `view.create` с `personal: true`; общий — `personal: false` (видят все участники пространства). Экран `/p/:projectId/v/:viewId` показывает вид `layout` с `options = config` и `filter`; правка опций на нём меняет черновик, «Сохранить» — `view.update`.

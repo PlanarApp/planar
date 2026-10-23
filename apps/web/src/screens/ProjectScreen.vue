@@ -4,14 +4,15 @@ import {
   defineAsyncComponent,
   onBeforeUnmount,
   onMounted,
+  ref,
   watch,
   type Component,
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { ArrowDownUp, ListTree } from 'lucide-vue-next';
+import { BookmarkPlus } from 'lucide-vue-next';
 import { useProject } from '../tasks';
-import { Button, Select, useBreakpoint } from '../ui';
+import { Button, useBreakpoint } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import {
@@ -22,6 +23,12 @@ import {
   viewLoaders,
   useViewOptions,
 } from '../views';
+import type { Filter } from '../views';
+import OptionsBar from '../views/saved/OptionsBar.vue';
+import SaveViewDialog from '../views/saved/SaveViewDialog.vue';
+import SavedTabs from '../views/saved/SavedTabs.vue';
+import { saveView } from '../views/saved/ops';
+import { useCanShare } from '../views/saved/queries';
 
 const { t, te, locale } = useI18n();
 const route = useRoute();
@@ -36,6 +43,24 @@ const active = computed(
   () => tabs.value.find((v) => v.key === (route.params.view || 'list')) ?? tabs.value[0],
 );
 const options = useViewOptions(projectId, () => active.value?.key ?? 'list');
+
+// черновик фильтра текущего вида: сбрасывается при уходе со вкладки или из проекта
+const draftFilter = ref<Filter | null>(null);
+watch([projectId, () => active.value?.key], () => (draftFilter.value = null));
+const spaceId = computed(() => project.value?.spaceId ?? '');
+const canShare = useCanShare(spaceId);
+const saveOpen = ref(false);
+async function onSave(name: string, personal: boolean) {
+  const id = await saveView({
+    spaceId: spaceId.value,
+    personal,
+    name,
+    layout: active.value?.key ?? 'list',
+    filter: draftFilter.value,
+    config: options.value,
+  });
+  void router.push(`/p/${projectId.value}/v/${id}`);
+}
 
 const text = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
@@ -64,13 +89,6 @@ const onKey = (e: KeyboardEvent) => {
 };
 onMounted(() => window.addEventListener('keydown', onKey));
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
-
-const groups = ['status', 'assignee', 'priority', 'label'] as const;
-const sorts = ['rank', 'priority', 'dueDate', 'createdAt', 'updatedAt', 'title'] as const;
-const groupOptions = computed(() =>
-  groups.map((v) => ({ value: v, label: t(`views.group.${v}`) })),
-);
-const sortOptions = computed(() => sorts.map((v) => ({ value: v, label: t(`views.sort.${v}`) })));
 </script>
 
 <template>
@@ -100,31 +118,21 @@ const sortOptions = computed(() => sorts.map((v) => ({ value: v, label: t(`views
             <component :is="v.icon" v-if="v.icon" :size="16" />
             {{ text(v.label) }}
           </button>
+          <SavedTabs :space-id="spaceId" :project-id="projectId" />
         </nav>
-        <div class="flex flex-wrap items-center gap-2 px-4 py-2" data-testid="view-options">
-          <Select v-model="options.groupBy" :label="t('views.groupBy')" :options="groupOptions" />
-          <Select v-model="options.sortBy" :label="t('views.sortBy')" :options="sortOptions" />
-          <Button
-            :icon="ArrowDownUp"
-            :aria-label="t('views.sortDir')"
-            :aria-pressed="options.sortDir === 'desc'"
-            @click="options.sortDir = options.sortDir === 'asc' ? 'desc' : 'asc'"
-          />
-          <Button
-            :icon="ListTree"
-            :variant="options.showSubtasks ? 'primary' : 'secondary'"
-            :aria-pressed="options.showSubtasks"
-            @click="options.showSubtasks = !options.showSubtasks"
-          >
-            {{ t('views.subtasks') }}
+        <OptionsBar v-model:options="options" v-model:filter="draftFilter" :space-id="spaceId">
+          <Button :icon="BookmarkPlus" data-testid="save-as-view" @click="saveOpen = true">
+            {{ t('views.saved.save') }}
           </Button>
-        </div>
+        </OptionsBar>
+        <SaveViewDialog v-model:open="saveOpen" :can-share="canShare" @submit="onSave" />
         <div class="min-h-0 flex-1">
           <component
             :is="viewComponent"
             :key="active.key"
             :project-id="projectId"
             :options="options"
+            :filter="draftFilter"
             v-bind="active.ext ? { viewId: active.key } : {}"
           />
         </div>
