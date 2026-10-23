@@ -71,6 +71,13 @@
       "when": 1792758784653,
       "tag": "0009_same_supernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792762091916,
+      "tag": "0010_stormy_revanche",
+      "breakpoints": true
     }
   ]
 }
