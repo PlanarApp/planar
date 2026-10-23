@@ -1,0 +1,29 @@
+{
+  "verdict": "accept",
+  "summary": "Модуль по CH-schema/CH-mutators/CH-api v1: meta.members, 11 мутаторов, REST, afterMutation, canReadFile совпадают с контрактом. Правки только в scope, server-tx.ts не тронут: append уже пишет data = null для del, это закреплено тестом. Утечки диалога покрыты тестами (bootstrap, pull, WS, /files, REST). Одно major: гонка seq.",
+  "issues": [
+    {
+      "file": "modules/chat/shared/index.ts",
+      "line": 295,
+      "severity": "major",
+      "what": "seq = lastSeq + 1 читается до pg_advisory_xact_lock: ServerTx берёт блокировку только при первой записи (server-tx.ts:216). Два одновременных send в один канал от разных пользователей получат одинаковый seq. Второй упрётся в уникальный индекс chat_messages(channel_id, seq), получит 23505 и conflict, и мутация будет отвергнута, то есть сообщение потеряется. Для чата это обычная ситуация, а не крайний случай. Вопрос к координатору: допустимо ли это по CH-mutators?",
+      "fix": "Решение координатора: брать блокировку до чтения (например, ServerTx лочит в начале мутации) или повторять мутацию при conflict по этому индексу. Правка в ядре или контракте, не в этом модуле; в рамках CL-1b можно принять как известное ограничение."
+    },
+    {
+      "file": "modules/chat/api/index.ts",
+      "line": 34,
+      "severity": "minor",
+      "what": "REST отдаёт строки через свою функцию wire(), а не через toWire из apps/api/src/sync/rows.ts, как сказано в дополнении. Обоснование есть: цикл зависимостей workspace. Сейчас результат совпадает, но при новом ts-поле в сущности формат REST и формата провода может разойтись.",
+      "fix": "Брать список ts-полей из схемы (поля z.iso.datetime) или передавать toWire в chatApi(DB, toWire) так же, как DB."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "chat-tests (accept --only --dry)",
+      "value": "25 passed, scope 13 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T15:20:49",
+  "by": "reviewer"
+}
