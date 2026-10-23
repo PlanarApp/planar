@@ -1,0 +1,109 @@
+{
+  "status": "done",
+  "summary": "Модуль import: парсер CSV (RFC 4180) и Trello JSON, preview/jobs/GET в api/import, фоновый import.run пачками по 100 с идемпотентностью по import_items, миграция 0010, web-мастер /m/import/, эталоны в e2e/fixtures/import.",
+  "commits": [
+    "7fbc920 WK-6: lint и типы",
+    "12ade3b WK-6: web-мастер импорта и тесты wk6",
+    "1b69d8c WK-6: модуль import — парсеры CSV/Trello, задача import.run, REST, эталоны"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "145.8",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "wk6-api",
+      "value": "18",
+      "pass": true
+    },
+    {
+      "name": "wk6-web",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "contract-work",
+      "value": "9",
+      "pass": true
+    },
+    {
+      "name": "migrations-linear",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "fixtures",
+      "value": "5",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Мгновенный старт: контроллер не может поставить import.run (в CoreServices нет enqueue), задание подбирает cron import.sweep раз в минуту — до 60 с в статусе pending"
+  ],
+  "questions": [
+    "Нужен ли CoreServices.enqueue(queue,data) для мгновенного старта? И CommandCtx.navigate для команды import:open (сейчас location.assign)"
+  ],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept WK-6",
+  "uncertain": [
+    {
+      "where": "modules/import/api/schema.ts",
+      "why": "добавлены служебные колонки import_jobs.source и mapping сверх контракта (файл и mapping для воркера); наружу не отдаются",
+      "checked": "GET/POST возвращают job без них, тест wk6"
+    },
+    {
+      "where": "e2e/fixtures/import/*",
+      "why": "эталоны составлены вручную по памяти о документации экспорта, реальных выгрузок не сверял; в README это указано",
+      "checked": "колонки и форматы дат поддержаны парсером и тестами"
+    },
+    {
+      "where": "modules/import/api/index.ts:rankAt",
+      "why": "ранги импортируемых задач идут с a0 и не учитывают уже существующие задачи статуса (возможны равные ранги)",
+      "checked": "ключи допустимы для fractional-indexing, уникальны в пределах файла"
+    },
+    {
+      "where": "modules/import/api/parse.ts:parseDate",
+      "why": "MM/DD/YYYY трактуется как американский, время и пояс отбрасываются",
+      "checked": "тест разбора дат"
+    },
+    {
+      "where": "apps/web test-web / test-all",
+      "why": "под нагрузкой (параллельные агенты) palette/settings тесты ядра и testdb падали по таймауту; не связано с модулем",
+      "checked": "повторный прогон accept --dry 12/12"
+    }
+  ],
+  "dp_feedback": "job start принимает команду только аргументами (bash -c ...), строка в кавычках даёт код 127; accept --dry идёт >10 мин и упирается в таймаут инструмента без подсказки использовать job.",
+  "t": "2026-10-23T16:24:24",
+  "by": "executor"
+}

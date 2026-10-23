@@ -1,0 +1,60 @@
+{
+  "id": "WK-11",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "Мелкие правки по ревью: закрытие спринта с разных клиентов, повтор системного пользователя",
+  "goal": "Постоянный тест: параллельный ручной sprints.close одного цикла с разных клиентов и из cron — перенос ровно один раз; systemUserId() не ломается навсегда, если при старте БД была недоступна (повторная попытка ensureSystemUser).",
+  "plan_ref": "ревью WK-10 (.dpcli/dpcli review WK-10 --show), замечания 1 и 2",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "4",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-11",
+  "branch": "work/WK-11",
+  "base": "feature/work",
+  "scope": [
+    "apps/api/test/sprints",
+    "apps/api/src/core.service.ts",
+    "apps/api/src/users",
+    "apps/api/test/wk10",
+    "modules/sprints/api",
+    "modules/sprints/shared"
+  ],
+  "dont_touch": [
+    "контракты docs/contracts/ — координатор; поведение sprints.close по контракту не менять (повтор — ничего; ошибка conflict второму клиенту допустима, но задачи не задваиваются)",
+    "остальной apps/api/src, apps/web, packages/; зависимости; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk11",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api -t wk11:",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "sprints",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api test/sprints",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/api modules/sprints && pnpm exec prettier --check apps/api/src apps/api/test modules/sprints",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T15:29:45"
+}
