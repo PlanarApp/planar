@@ -1,0 +1,47 @@
+{
+  "status": "done",
+  "summary": "globalSetup готовит шаблон planar_tpl_<random> (provide dbTemplate/dbAdminUrl); setupFiles file-db.ts создаёт для каждого файла копию CREATE DATABASE ... TEMPLATE и дропает в afterAll; testDb()/testDbUrl() прежние, пулы testDb() закрываются в afterAll. Добавлены testTimeout/hookTimeout 30 с.",
+  "commits": [
+    "8db2db7 api tests: своя база на каждый файл тестов"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "stable",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-1a",
+  "uncertain": [
+    {
+      "where": "apps/api/test/file-db.ts:20",
+      "why": "drop with (force) при открытых чужих пулах даёт uncaught 57P01; параллельные DROP DATABASE (в т.ч. из других копий на общем сервере 55432) взаимно виснут",
+      "checked": "drop делается только если в pg_stat_activity нет соединений к базе, под advisory-локом и statement_timeout 7 с; иначе базу добивает teardown по префиксу шаблона. Утечка соединения: health.test после app.close оставляет idle-соединение (select 1) — src не трогал"
+    },
+    {
+      "where": "apps/api/vitest.config.ts",
+      "why": "testTimeout 30 с: seed.test (argon2) падал по 5 с под нагрузкой от соседних прогонов",
+      "checked": "stable x3 и pnpm test зелёные"
+    }
+  ],
+  "dp_feedback": "Общий сервер testdb между копиями: старые прогоны (shared-база, drop force) других задач взаимно виснут на DROP DATABASE; не используйте общий /tmp/<имя>.txt для логов - файлы затирались между агентами.",
+  "t": "2026-10-23T00:27:27",
+  "by": "executor"
+}
