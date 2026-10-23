@@ -22,7 +22,7 @@ related: ["docs/contracts/core.md"]
 | `member.remove` | `id` | последний admin → `conflict` |
 | `project.create` | `id, spaceId, name, key, rank, description?, color?, icon?, leadId?` | |
 | `project.update` | `id, name?, key?, description?, color?, icon?, leadId?, rank?, archivedAt?` | |
-| `project.delete` | `id` | есть задачи → `conflict` |
+| `project.delete` | `id` | есть задачи → `conflict`; удаляет `fieldDefs` проекта |
 | `status.create` | `id, spaceId, name, category, color, rank` | |
 | `status.update` | `id, name?, category?, color?, rank?` | |
 | `status.delete` | `id, replaceWith` | задачи переходят в `replaceWith` (того же пространства); последний статус → `conflict` |

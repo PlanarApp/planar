@@ -1,0 +1,89 @@
+{
+  "id": "FT-3",
+  "module": "features",
+  "type": "dp-engineer",
+  "title": "Вид «Календарь»: месяц и неделя, перетаскивание дат, без даты, mobile",
+  "goal": "Встроенный вид calendar показывает задачи проекта по startDate/dueDate в режимах месяц и неделя, перетаскивание меняет даты одной мутацией, задачи без дат — в боковой колонке, на mobile — список по дням; границы дня верны в любом часовом поясе.",
+  "plan_ref": "5. Задачи",
+  "contracts": [
+    {
+      "name": "C-views",
+      "version": "2",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-tasks",
+      "version": "2",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "F-views",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    }
+  ],
+  "copy": "~/planar-features-FT-3",
+  "branch": "features/FT-3",
+  "base": "feature/features",
+  "scope": [
+    "apps/web/src/views/calendar/",
+    "apps/web/src/views/index.ts",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "build/dpcli/FT-3.report.json"
+  ],
+  "dont_touch": [
+    "apps/web/src/sync/, apps/web/src/tasks/, apps/web/src/views/list/, e2e/web/perf/ — WB-18 модуля web",
+    "apps/web/src/views/table/ — FT-2a; apps/web/src/screens/ProjectScreen.vue — вкладки находит glob, правка не нужна",
+    "apps/web/src/__contract__/, apps/web/src/contract.ts — контрактные тесты",
+    "packages/, apps/api/ — core",
+    "package.json, pnpm-lock.yaml — без новых зависимостей",
+    "docs/, .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "tz_east",
+      "cmd": "TZ=Pacific/Kiritimati pnpm --filter web exec vitest run src/views/calendar -t 'calendar:'",
+      "expect": "num:Tests\\s+(\\d+) passed >=8"
+    },
+    {
+      "name": "tz_west",
+      "cmd": "TZ=America/Los_Angeles pnpm --filter web exec vitest run src/views/calendar -t 'calendar:'",
+      "expect": "num:Tests\\s+(\\d+) passed >=8"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T09:00:56",
+  "edited": "2026-10-23T09:09:25"
+}
