@@ -75,3 +75,4 @@
 {"t": "2026-10-23T13:23:56", "by": "coordinator", "task": "WK-7a", "ev": "accepted", "note": "по отчёту"}
 {"t": "2026-10-23T13:27:31", "by": "reviewer", "task": "WK-2", "ev": "reviewed", "note": "Мутаторы sprints.* и cron соответствуют таблице C-modules v3 / §Модуль sprints; скоуп соблюдён; wk2-api 14 и wk2-web 8 перезапущены — PASS. Блокеров нет; замеч…", "verdict": "accept", "issues": {"major": 3, "minor": 2}, "review": "docs/plan/work/tasks/WK-2.review.json"}
 {"t": "2026-10-23T13:28:52", "by": "reviewer", "task": "WK-1", "ev": "reviewed", "note": "Сервер и миграция соответствуют контракту C-modules v3 §Модуль time (поля, индексы, частичный уникальный индекс, 23505 → conflict, хук удаления задачи), правок…", "verdict": "rework", "issues": {"blocker": 1, "major": 1, "minor": 1}, "review": "docs/plan/work/tasks/WK-1.review.json"}
+{"t": "2026-10-23T13:29:22", "by": "coordinator", "task": "WK-2", "ev": "accepted", "note": "по ревью; major 1–3 → WK-10"}
