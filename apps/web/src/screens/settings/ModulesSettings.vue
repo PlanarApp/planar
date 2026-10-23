@@ -18,14 +18,9 @@ onMounted(() =>
       (server.value = (await api<{ modules: typeof server.value }>('GET', '/api/modules')).modules),
   ),
 );
-// включённые: из реплики, пока настройки нет — ответ сервера
+// включённые — только по реплике; нет строки = ничего не включено (ответ сервера справочный)
 const enabled = computed(
-  () =>
-    new Set(
-      Array.isArray(setting.value?.value)
-        ? (setting.value.value as string[])
-        : server.value.filter((m) => m.enabled).map((m) => m.id),
-    ),
+  () => new Set(Array.isArray(setting.value?.value) ? (setting.value.value as string[]) : []),
 );
 function toggle(id: string, on: boolean) {
   const next = new Set(enabled.value);

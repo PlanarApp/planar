@@ -188,22 +188,24 @@ describe('settings:labels', () => {
 });
 
 describe('settings:modules', () => {
-  const serve = () =>
-    vi.spyOn(http, 'api').mockResolvedValue({
+  const serve = async () => {
+    await db.table('settings').put({ id: 'enabled_modules', value: ['alpha'], updatedAt: 'x' });
+    return vi.spyOn(http, 'api').mockResolvedValue({
       modules: [
         { id: 'alpha', enabled: true },
         { id: 'beta', enabled: false },
       ],
     });
+  };
   it('показывает список с сервера', async () => {
-    serve();
+    await serve();
     useAuth().user.value = { id: ids.ann, role: 'admin' } as User;
     const w = await show(ModulesSettings, {});
     expect(w.findAll('[data-testid=module-row]')).toHaveLength(2);
     expect((w.findAll('input')[0].element as HTMLInputElement).checked).toBe(true);
   });
   it('переключатель пишет settings.set', async () => {
-    serve();
+    await serve();
     useAuth().user.value = { id: ids.ann, role: 'admin' } as User;
     const w = await show(ModulesSettings, {});
     await w.findAll('input')[1].setValue(true);
@@ -214,7 +216,7 @@ describe('settings:modules', () => {
     ]);
   });
   it('не админ: переключатели заблокированы', async () => {
-    serve();
+    await serve();
     const w = await show(ModulesSettings, {});
     expect(w.findAll('input').every((i) => (i.element as HTMLInputElement).disabled)).toBe(true);
   });

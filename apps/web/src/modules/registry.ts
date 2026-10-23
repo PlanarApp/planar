@@ -13,7 +13,8 @@ const registered = shallowRef<WebModuleManifest[]>([]);
 
 /** null — ещё не известно (показываем все зарегистрированные) */
 const enabled = shallowRef<string[] | null>(null);
-const loaders = import.meta.glob<{ default: WebModuleManifest }>(
+type Loaders = Record<string, () => Promise<{ web: WebModuleManifest }>>;
+let loaders: Loaders = import.meta.glob<{ web: WebModuleManifest }>(
   '../../../../modules/*/web/index.ts',
 );
 
@@ -42,13 +43,24 @@ export function registerModules(all: WebModuleManifest[]): void {
 }
 
 /** Включённые модули (settings.enabled_modules): подгружает фронт ещё не зарегистрированных. */
+/** Только для тестов: подменить glob-загрузчики. */
+export const setModuleLoaders = (l: Loaders): void => void (loaders = l);
+
 export async function setEnabledModules(ids: string[]): Promise<void> {
   enabled.value = ids;
   const todo = Object.entries(loaders).filter(([path]) => {
     const id = path.split('/').at(-3)!;
     return ids.includes(id) && !registered.value.some((m) => m.id === id);
   });
-  registerModules((await Promise.all(todo.map(([, load]) => load()))).map((m) => m.default));
+  const loaded = await Promise.all(
+    todo.map(([path, load]) =>
+      load().then(
+        (m) => m.web,
+        (e) => void console.warn(`Модуль ${path} не загрузился`, e),
+      ),
+    ),
+  );
+  registerModules(loaded.filter((m): m is WebModuleManifest => !!m));
 }
 
 /** Следит за settings.enabled_modules в реплике; вызывать из main.ts один раз. */

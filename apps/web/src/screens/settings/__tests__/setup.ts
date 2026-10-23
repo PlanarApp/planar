@@ -36,7 +36,7 @@ export function setup() {
 export async function show(comp: object, props: Record<string, unknown> = { spaceId: ids.space }) {
   const w = mount(comp, { props, global: { plugins: [i18n] }, attachTo: document.body });
   await flushPromises();
-  await new Promise((r) => setTimeout(r, 20));
+  await new Promise((r) => setTimeout(r, 120));
   await flushPromises();
   return w;
 }
