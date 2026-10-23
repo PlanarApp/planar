@@ -1,0 +1,41 @@
+{
+  "status": "done",
+  "summary": "Ячейка поля в Таблице растянута на всю высоту (self-stretch у gridcell, h-full w-full у обёртки); e2e колонки поля теперь использует dblclick вместо focus+Enter.",
+  "commits": [
+    "15a5cde FT-2c: пустая ячейка поля доступна мышью"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "e2e",
+      "value": "17",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept FT-2c",
+  "uncertain": [],
+  "dp_feedback": "",
+  "t": "2026-10-23T10:25:36",
+  "by": "executor"
+}
