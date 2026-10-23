@@ -72,7 +72,9 @@ contracts: [{"id": "F-fields", "version": 1}, {"id": "F-links", "version": 1}, {
 | `unlinkTasks` | `(id: string) => Promise<void>` | `link.delete` |
 | `BlockedIcon` | SFC без пропсов | иконка `lucide` `Ban` (или `OctagonX`) размера иконок строки, с `aria-label` из i18n `links.blocked` |
 
-## F-filter v1 (расширение C-views `FilterRule`)
+## F-filter v2 (расширение C-views `FilterRule`)
+
+v2 (work, WK-0): `matchFilter` в `@planar/shared`, правило `cycle`, `ctx.cycles` — docs/contracts/work.md §F-filter v2.
 - `FilterRule.field` дополнительно — `` `field:${fieldId}` ``; `value` дополнительно — `number`.
 - Операторы по типу поля: `text`, `url` — `contains`, `isEmpty`, `isNotEmpty`; `number`, `money` — `gte`, `lte` (`value: number`; у `money` — в минимальных единицах), `isEmpty`, `isNotEmpty`; `date` — `before`, `after` (`YYYY-MM-DD`, `today±N` как у `dueDate`), `isEmpty`, `isNotEmpty`; `select` — `in`, `notIn` (id вариантов), `isEmpty`, `isNotEmpty`; `user` — `in`, `notIn` (uuid или `'me'`), `isEmpty`, `isNotEmpty`.
 - `isEmpty` — ключа нет в `fields`. Правило по полю без определения (удалено) — пропускается (считается выполненным). Операторы `gte`/`lte` допустимы только для `field:` правил.

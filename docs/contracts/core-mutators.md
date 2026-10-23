@@ -29,8 +29,8 @@ related: ["docs/contracts/core.md"]
 | `label.create` | `id, spaceId, name, color` | |
 | `label.update` | `id, name?, color?` | |
 | `label.delete` | `id` | удаляет `taskLabels` метки |
-| `task.create` | `id, projectId, statusId, title, rank, parentId?, description?, priority?, dueDate?, startDate?, assignees?: {id, userId}[], labels?: {id, labelId}[]` | `spaceId` — из проекта; `number = null`; `priority` по умолчанию 0; `fields = {}` |
-| `task.update` | `id, title?, description?, statusId?, priority?, rank?, dueDate?, startDate?, projectId?, parentId?, fields?` | `completedAt` по категории статуса; `projectId` другого пространства → `invalid_args`; `parentId` — не сама задача и не её потомок; `fields` — полная замена, каждый ключ — поле проекта задачи, значение по типу (features.md §F-fields), иначе `invalid_args`; смена `projectId` без `fields` → `fields = {}` |
+| `task.create` | `id, projectId, statusId, title, rank, parentId?, description?, priority?, dueDate?, startDate?, assignees?: {id, userId}[], labels?: {id, labelId}[]` | `spaceId` — из проекта; `number = null`; `priority` по умолчанию 0; `fields = {}`; `cycleId = null` |
+| `task.update` | `id, title?, description?, statusId?, priority?, rank?, dueDate?, startDate?, projectId?, parentId?, fields?` | `completedAt` по категории статуса; `projectId` другого пространства → `invalid_args`; `parentId` — не сама задача и не её потомок; `fields` — полная замена, каждый ключ — поле проекта задачи, значение по типу (features.md §F-fields), иначе `invalid_args`; смена `projectId` без `fields` → `fields = {}`; смена `projectId` → `cycleId = null`; `cycleId` не принимает (work.md §C-schema v7) |
 | `task.delete` | `id` | рекурсивно подзадачи; затем исполнители, наблюдатели, метки, чек-лист, вложения, реакции, комментарии; связи `taskLinks` с taskId или targetId = задача (у каждой удаляемой подзадачи тоже) |
 | `task.assign` | `id, taskId, userId` | уже назначен — ничего |
 | `task.unassign` | `taskId, userId` | |

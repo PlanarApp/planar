@@ -21,8 +21,9 @@ contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v6
+## C-schema v7
 
+v7 (WK-0): `tasks.cycleId` (work.md).
 v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 
 ### Общие правила
@@ -141,7 +142,7 @@ scope: space · write: admin · bootstrap: yes · indexes: spaceId
 | `updatedAt` | ts | |
 
 #### tasks
-scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, parentId, statusId
+scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, parentId, statusId, cycleId
 
 | поле | тип | примечание |
 |---|---|---|
@@ -160,6 +161,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, 
 | `createdBy` | uuid | |
 | `completedAt` | ts? | ставит мутатор при переходе в категорию done/cancelled, снимает при выходе |
 | `fields` | obj | `{<fieldDefs.id>: значение}` — поля проекта задачи, без `null`; формат — features.md §F-fields; по умолчанию `{}` |
+| `cycleId` | uuid? | цикл sprints, без FK (work.md) |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
@@ -520,7 +522,9 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Мутаторы домена v2
 Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
-## C-modules v2
+## C-modules v3
+
+v3 (WK-0): хуки, задачи, nav/topbar — work.md §C-modules v3.
 
 Модуль — каталог `modules/<id>/` (`id` — `^[a-z][a-z0-9-]{1,30}$`):
 - `shared/index.ts` — `export const shared: SharedModuleManifest = { id, mutators: MutatorDef[], entities: Record<string, {schema: ZodObject, meta: EntityMeta}> }` (без Node API; сущности — по правилам C-schema, имена с префиксом id модуля в camelCase);
@@ -533,8 +537,9 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v8
+## C-http v9
 
+v9 (WK-0): `cycleId` в REST v1; пути WK-5 — work.md.
 v8 (FT): поля в REST v1 и MCP (core-api-v1.md).
 
 ### Пути и окружение
