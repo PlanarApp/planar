@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { createApp } from '../../src/app.js';
 import * as schema from '../../src/db/schema.js';
@@ -30,6 +30,8 @@ beforeAll(async () => {
   const svc = { push: app.get(PushService), pull: app.get(PullService) };
   for (const c of ['admin', 'member', 'guest', 'outsider'] as const)
     w[c] = new TestClient(svc, w[c].userId);
+}, 60_000);
+beforeEach(async () => {
   P = uuidv7();
   await w.admin.ok('project.create', {
     id: P,
@@ -38,7 +40,7 @@ beforeAll(async () => {
     key: key(),
     rank: 'a0',
   });
-}, 60_000);
+});
 afterAll(async () => {
   await app.close();
   await db.$client.end();
