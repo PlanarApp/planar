@@ -16,13 +16,16 @@ generated: true
 
 ## Описания систем (guide)
 
+- [docs/deploy.md](deploy.md) — Prod-стек compose.yml (postgres, api, Caddy) и смоук ./dev.sh prod-smoke
 - [docs/guides/mcp.md](guides/mcp.md) — Подключение ИИ-клиента к Planar по MCP: токен, URL /mcp, конфигурация, инструменты, права read/write
 
 ## Планы (plan)
 
+- [docs/plan/collab.md](plan/collab.md) — План модуля collab: чат (каналы, треды, личные сообщения, push) и документы (дерево страниц на TipTap, связь с задачами)
 - [docs/plan/core.md](plan/core.md) — План модуля core: каркас, БД, синхронизация, мутаторы, авторизация, файлы, уведомления, модули, API-токены, MCP
 - [docs/plan/features.md](plan/features.md) — План модуля features: ярус A v1 — пользовательские поля, Таблица, Календарь, связи задач
 - [docs/plan/web.md](plan/web.md) — План модуля web: PWA на Vue 3, клиент синхронизации, Список, Доска, карточка задачи, Cmd+K, виды, Inbox, настройки, токены
+- [docs/plan/work.md](plan/work.md) — План модуля work: учёт времени, спринты, автоматизации, webhooks, связи в REST/MCP, импорт, хвосты фазы 1
 - [docs/roadmap.md](roadmap.md) — Роадмап Planar: MVP + v1(часть) + API-токены и MCP за 24 ч параллельной работы — модули, задачи, волны, контракты, приёмка
 
 ## Контракты стыков (contract)
@@ -31,10 +34,17 @@ generated: true
 - [docs/contracts/features.md](contracts/features.md) — Контракты features — пользовательские поля, связи задач, фильтры по полям, виды «Таблица» и «Календарь»
 - [docs/contracts/web.md](contracts/web.md) — Контракты web — C-ui, C-client (синхронизация), C-tasks (слой задач), C-views (экран проекта и стык видов)
 
+## Исследования (research)
+
+- [docs/research/wk16-budgets.md](research/wk16-budgets.md) — A/B 5×5 main против feature/work — бюджеты §7 не ухудшились за шумом; switch +8 % не доказано, хост у порогов [closed]
+
 ## Справка (reference)
 
+- [docs/contracts/collab.md](contracts/collab.md) — Контракты collab — документы (DC-schema, DC-mutators), чат (CH-*), правки ядра для чата (X-core, после шлюза и WK-0)
 - [docs/contracts/core-api-v1.md](contracts/core-api-v1.md) — API-токены, Bearer, REST /api/v1 и MCP /mcp — часть C-http v8 (docs/contracts/core.md); примеры проверяет контрактный тест
 - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Мутаторы домена C-mutators v3 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
+- [docs/contracts/work-api.md](contracts/work-api.md) — Контракты work, часть 2 — C-modules v5 и v6 (enqueue, SDK, настройки модулей, правки collab), REST v1 и MCP (WK-5)
+- [docs/contracts/work.md](contracts/work.md) — Контракты work — C-modules v3, C-schema v7, F-filter v2, модули time, sprints, automations, webhooks, import, REST/MCP
 
 ## Реестры (registry)
 

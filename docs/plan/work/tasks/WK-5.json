@@ -1,0 +1,69 @@
+{
+  "id": "WK-5",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "REST v1 и MCP: связи, время, таймер, спринты, автоматизации (чтение)",
+  "goal": "REST /api/v1 и OpenAPI дополнены путями docs/contracts/work-api.md §REST и MCP (связи задач, записи времени и таймер, циклы и текущий цикл, правила автоматизаций на чтение); MCP — инструменты link_tasks, log_time, start_timer, stop_timer, current_sprint; права — как у токена, выключенный модуль — 404 module_disabled.",
+  "plan_ref": "5. Задачи — WK-5 REST и MCP",
+  "contracts": [
+    {
+      "name": "C-http",
+      "version": "9",
+      "ref": "docs/contracts/work.md"
+    },
+    {
+      "name": "C-modules",
+      "version": "5",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-5",
+  "branch": "work/WK-5",
+  "base": "feature/work",
+  "scope": [
+    "apps/api/src/rest",
+    "apps/api/src/mcp",
+    "apps/api/test/rest",
+    "apps/api/test/mcp",
+    "apps/api/test/wk5"
+  ],
+  "dont_touch": [
+    "modules/* — модули не менять: REST читает их таблицы через moduleTables() (apps/api/src/modules/installed.ts) и пишет их мутаторами по имени (time.log, time.start, time.stop, link.create …) через executeMutations",
+    "остальной apps/api/src, packages/, apps/web; docs/contracts/ — координатор; зависимости; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk5",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api -t wk5:",
+      "expect": "num:Tests\\s+(\\d+) passed >=16"
+    },
+    {
+      "name": "contract-core",
+      "cmd": "pnpm exec vitest run --project shared test/contract.test.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/api && pnpm exec prettier --check apps/api/src apps/api/test",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T18:02:52"
+}

@@ -124,6 +124,8 @@ const viewComponent = computed(() => {
         :project-id="projectId"
         :options="options"
         :filter="filter"
+        saved
+        @update:options="options = $event"
         v-bind="tab?.ext ? { viewId: tab.key } : {}"
       />
     </div>

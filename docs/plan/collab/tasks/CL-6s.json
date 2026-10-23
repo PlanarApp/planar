@@ -1,0 +1,54 @@
+{
+  "id": "CL-6s",
+  "module": "collab",
+  "type": "dp-mechanic",
+  "title": "SDK модулей: Editor, uploadFile, api, typing, onMutationError",
+  "goal": "apps/web/src/modules/sdk.ts реэкспортирует Editor, uploadFile, api и ApiError, sendTyping, onTyping, onMutationError по docs/contracts/collab.md §X-core п. 6; тест на наличие экспортов.",
+  "plan_ref": "Q3; collab.md §X-core п. 6",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "5",
+      "ref": "docs/contracts/collab.md"
+    }
+  ],
+  "copy": "~/planar-collab-CL-6s",
+  "branch": "collab/CL-6s",
+  "base": "feature/collab",
+  "scope": [
+    "apps/web/src/modules/sdk.ts",
+    "apps/web/src/modules/__tests__/cl6s.test.ts"
+  ],
+  "dont_touch": [
+    "apps/web/src/sync",
+    "apps/web/src/task",
+    "apps/web/src/api",
+    "modules",
+    "docs/contracts"
+  ],
+  "accept": [
+    {
+      "name": "cl6s",
+      "cmd": "pnpm --filter @planar/web exec vitest run src/modules/__tests__/cl6s.test.ts",
+      "expect": "num:(\\d+) passed >=1"
+    },
+    {
+      "name": "web-all",
+      "cmd": "pnpm --filter @planar/web exec vitest run",
+      "expect": "tests"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter @planar/web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=152"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T16:55:31"
+}

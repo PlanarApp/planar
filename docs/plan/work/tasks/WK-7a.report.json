@@ -1,0 +1,52 @@
+{
+  "status": "done",
+  "summary": "dates.ts: параметр ws (0|1, по умолчанию 1); View.vue берёт useWeekStart, заголовки дней по тому же старту; в профиле Select Авто/Пн/Вс (setWeekStart).",
+  "commits": [
+    "cd18ba1 WK-7a: первый день недели в календаре по локали и профилю"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "142.9",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "wk7a",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WK-7a",
+  "uncertain": [
+    {
+      "where": "apps/web/src/screens/ProfileScreen.vue",
+      "why": "текущее значение Select читается из localStorage один раз, а не реактивно из week.ts (pref не экспортирован)",
+      "checked": "типы и lint; UI вручную не открывал"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T12:54:17",
+  "by": "executor"
+}

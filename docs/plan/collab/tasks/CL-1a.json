@@ -1,0 +1,127 @@
+{
+  "id": "CL-1a",
+  "module": "collab",
+  "type": "dp-engineer",
+  "title": "Ядро для чата: C-sync v2 space|members, typing, уведомления, canReadFile, search",
+  "goal": "Ядро даёт модулям видимость space|members (строка changes на участника, догрузка/снятие при смене участников, bootstrap и права записи по членству), WS typing, уведомления без задачи (url/body, push, Inbox), canReadFile модулей для GET /files и web-точку search в Cmd+K — ровно по docs/contracts/collab.md §X-core и новым версиям core.md/web.md; плюс canReadFile модуля docs. Тесты на утечку обязательны.",
+  "plan_ref": "§3 Контракты; Q1 (ответ 2026-10-23)",
+  "contracts": [
+    {
+      "name": "C-sync",
+      "version": "2",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "8",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-modules",
+      "version": "4",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-http",
+      "version": "10",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "2",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-client",
+      "version": "4",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "X-core",
+      "version": "1",
+      "ref": "docs/contracts/collab.md"
+    }
+  ],
+  "copy": "~/planar-collab-CL-1a",
+  "branch": "collab/CL-1a",
+  "base": "feature/collab",
+  "scope": [
+    "packages/shared/src",
+    "packages/shared/test",
+    "apps/api/src/sync",
+    "apps/api/src/db/schema.ts",
+    "apps/api/drizzle",
+    "apps/api/src/notifications",
+    "apps/api/src/push",
+    "apps/api/src/files",
+    "apps/api/src/modules",
+    "apps/api/test/cl1a",
+    "modules/docs/api/index.ts",
+    "apps/web/src/sync",
+    "apps/web/src/modules",
+    "apps/web/src/command",
+    "apps/web/src/inbox",
+    "apps/web/src/i18n",
+    "apps/web/src/__contract__",
+    "apps/web/src/session.ts",
+    "apps/api/test/sync/server-tx.test.ts",
+    "apps/api/test/sync/visibility.test.ts",
+    "apps/web/src/contract.ts",
+    "apps/web/src/screens/InboxScreen.vue"
+  ],
+  "dont_touch": [
+    "docs/contracts",
+    "modules/chat",
+    "modules/hello",
+    "modules/docs/shared",
+    "apps/api/test/modules/collab.contract.test.ts",
+    "apps/web/src/layout",
+    "packages/shared/src/mutators"
+  ],
+  "accept": [
+    {
+      "name": "shared-all",
+      "cmd": "pnpm exec vitest run --project shared",
+      "expect": "tests"
+    },
+    {
+      "name": "api-all",
+      "cmd": "pnpm exec vitest run --project api",
+      "expect": "tests"
+    },
+    {
+      "name": "web-all",
+      "cmd": "pnpm --filter @planar/web exec vitest run",
+      "expect": "tests"
+    },
+    {
+      "name": "cl1a-api",
+      "cmd": "pnpm exec vitest run --project api -t cl1a:",
+      "expect": "num:(\\d+) passed >=12"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "cl1a-web",
+      "cmd": "pnpm --filter @planar/web exec vitest run -t cl1a:",
+      "expect": "num:(\\d+) passed >=5"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter @planar/web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T12:29:41",
+  "edited": "2026-10-23T12:59:41"
+}

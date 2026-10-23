@@ -65,6 +65,9 @@ export default {
       mentioned: '{who} упомянул(а) вас в {key}',
       commented: '{who} прокомментировал(а) {key}',
       status_changed: '{who} изменил(а) статус {key}',
+      chat_mention: '{who} упомянул(а) вас в чате',
+      chat_dm: 'Личное сообщение от {who}',
+      chat_reply: '{who} ответил(а) в треде',
     },
     myEmpty: 'Нет назначенных задач',
     my: {
@@ -134,6 +137,12 @@ export default {
       settings: 'Настройки',
     },
   },
+  profile: {
+    weekStart: 'Начало недели',
+    weekAuto: 'Авто (по языку)',
+    weekMon: 'Понедельник',
+    weekSun: 'Воскресенье',
+  },
   calendar: {
     prev: 'Назад',
     next: 'Вперёд',
@@ -180,6 +189,7 @@ export default {
       operator: 'Оператор',
       value: 'Значение',
       me: 'Я',
+      cycleCurrent: 'Текущий',
       date: 'Дата: 2026-12-31, today, today+7',
       fields: {
         status: 'Статус',
@@ -190,6 +200,7 @@ export default {
         dueDate: 'Срок',
         title: 'Название',
         createdBy: 'Автор',
+        cycle: 'Спринт',
       },
       ops: {
         in: 'любой из',

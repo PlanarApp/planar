@@ -10,6 +10,11 @@ describe('settings:modules registry', () => {
     setModuleLoaders({});
   });
 
+  it('cl1a: дубликат ключа search-провайдера → Error', () => {
+    const p = { id: 's', label: 'x', search: async () => [] };
+    expect(() => registerModules([{ id: 'cl1a-dup', search: [p, p] }])).toThrow();
+  });
+
   it('выключенный модуль не попадает в useExtensions, повторная регистрация не дублирует', async () => {
     registerModules([{ id: 'mod-a', commands: [cmd('c')] }]);
     registerModules([{ id: 'mod-a', commands: [cmd('c')] }]);
@@ -32,5 +37,10 @@ describe('settings:modules registry', () => {
     await setEnabledModules(['mod-a', 'mod-c', 'mod-d']);
     expect(useExtensions('commands').value.map((c) => c.key)).toContain('mod-c:c');
     expect(warn).toHaveBeenCalled();
+  });
+
+  it('cl1a: дубликат ключа search-провайдера → Error', () => {
+    const p = { id: 's', label: 'x', search: async () => [] };
+    expect(() => registerModules([{ id: 'cl1a-dup', search: [p, p] }])).toThrow();
   });
 });

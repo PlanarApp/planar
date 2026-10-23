@@ -32,7 +32,15 @@ export const pushPayloadSchema = z.object({
   // только путь приложения: '/x', не '//host' и не '/\\host' (иначе SW откроет чужой сайт)
   url: z.string().regex(/^\/(?![/\\])/),
   tag: z.uuid(),
-  kind: z.enum(['assigned', 'mentioned', 'commented', 'status_changed']),
+  kind: z.enum([
+    'assigned',
+    'mentioned',
+    'commented',
+    'status_changed',
+    'chat_mention',
+    'chat_dm',
+    'chat_reply',
+  ]),
 });
 
 export type PushPayload = z.infer<typeof pushPayloadSchema>;

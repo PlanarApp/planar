@@ -24,7 +24,16 @@ export function registerModules(all: WebModuleManifest[]): void {
   // проверка целиком до изменения состояния
   const keys = new Set<string>();
   for (const m of [...registered.value, ...manifests]) {
-    for (const kind of ['views', 'taskPanels', 'commands', 'fieldTypes', 'settings'] as const) {
+    for (const kind of [
+      'views',
+      'taskPanels',
+      'commands',
+      'fieldTypes',
+      'settings',
+      'nav',
+      'topbar',
+      'search',
+    ] as const) {
       for (const it of m[kind] ?? []) {
         const key = `${m.id}:${it.id}`;
         if (keys.has(`${kind}/${key}`)) throw new Error(`Дубликат элемента модуля: ${key}`);
@@ -37,6 +46,11 @@ export function registerModules(all: WebModuleManifest[]): void {
       if (!r.path.startsWith(`/m/${m.id}/`))
         throw new Error(`Маршрут ${r.path} модуля ${m.id} вне /m/${m.id}/`);
     }
+    for (const n of m.nav ?? []) {
+      if ('section' in n) continue;
+      if (!n.to?.startsWith(`/m/${m.id}/`))
+        throw new Error(`Пункт nav ${m.id}:${n.id} без section и с to вне /m/${m.id}/`);
+    }
   }
   registered.value = [...registered.value, ...manifests];
   for (const m of manifests) for (const r of m.routes ?? []) router.addRoute(r);
@@ -45,6 +59,21 @@ export function registerModules(all: WebModuleManifest[]): void {
 /** Включённые модули (settings.enabled_modules): подгружает фронт ещё не зарегистрированных. */
 /** Только для тестов: подменить glob-загрузчики. */
 export const setModuleLoaders = (l: Loaders): void => void (loaders = l);
+
+/** Лениво грузит только модуль `id` (прямой заход на /m/<id>/…); false — выключен или не найден. */
+export async function ensureModule(id: string): Promise<boolean> {
+  if (enabled.value && !enabled.value.includes(id)) return false;
+  if (registered.value.some((m) => m.id === id)) return true;
+  const load = Object.entries(loaders).find(([path]) => path.split('/').at(-3) === id)?.[1];
+  if (!load) return false;
+  try {
+    registerModules([(await load()).web]);
+    return true;
+  } catch (e) {
+    console.warn(`Модуль ${id} не загрузился`, e);
+    return false;
+  }
+}
 
 export async function setEnabledModules(ids: string[]): Promise<void> {
   enabled.value = ids;
@@ -82,7 +111,7 @@ export function useExtensions<K extends ExtensionKind>(kind: K): ComputedRef<Ext
           key: `${m.id}:${it.id}`,
         })),
       ) as unknown as Extension<K>[];
-    if (kind === 'taskPanels')
+    if (kind === 'taskPanels' || kind === 'nav' || kind === 'topbar')
       out.sort(
         (a, b) =>
           ((a as { order?: number }).order ?? 0) - ((b as { order?: number }).order ?? 0) ||

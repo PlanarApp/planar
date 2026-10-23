@@ -1,0 +1,120 @@
+{
+  "id": "WK-0",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "Общие правки ядра для модулей: C-modules v3, C-schema v7, F-filter v2",
+  "goal": "Ядро даёт модулям серверный хук afterMutation (точка сохранения, pg-boss в той же транзакции), фоновые задачи и cron модулей, выполнение мутаций от системного пользователя «Автоматизация», web-точки nav/topbar и useWeekStart; tasks.cycleId; matchFilter в @planar/shared с правилом cycle — ровно по docs/contracts/work.md.",
+  "plan_ref": "Q1 (решение 2026-10-23); docs/contracts/work.md §C-modules v3, §C-schema v7, §F-filter v2, §Неделя",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "3",
+      "ref": "docs/contracts/work.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "7",
+      "ref": "docs/contracts/work.md"
+    },
+    {
+      "name": "F-filter",
+      "version": "2",
+      "ref": "docs/contracts/work.md"
+    },
+    {
+      "name": "C-http",
+      "version": "9",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-0",
+  "branch": "work/WK-0",
+  "base": "feature/work",
+  "scope": [
+    "packages/shared/src",
+    "packages/shared/test",
+    "apps/api/src",
+    "apps/api/test",
+    "apps/api/drizzle",
+    "apps/api/package.json",
+    "apps/web/src/modules",
+    "apps/web/src/layout",
+    "apps/web/src/views/filter.ts",
+    "apps/web/src/views/saved",
+    "apps/web/src/views/__tests__",
+    "apps/web/src/i18n",
+    "apps/web/src/sync",
+    "apps/web/src/__contract__",
+    "apps/web/src/contract.ts",
+    "apps/web/src/tasks/__tests__/data.ts"
+  ],
+  "dont_touch": [
+    "docs/contracts/ — координатор; расхождение с контрактом — «WK-0 contract: …»",
+    "apps/api/test/work-contract.test.ts, packages/shared/test/contract-doc.ts — координатор",
+    "apps/web/src/views/table/, apps/web/src/views/calendar/ — параллельная задача WK-7",
+    "modules/ — модули work делают WK-1…WK-6 (hello не ломать)",
+    "package.json, pnpm-lock.yaml — новых зависимостей нет (pg-boss, undici уже есть или не нужны)",
+    ".claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-core",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk0-api",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run -t wk0:",
+      "expect": "num:Tests\\s+(\\d+) passed >=10"
+    },
+    {
+      "name": "wk0-web",
+      "cmd": "pnpm --filter web exec vitest run -t wk0:",
+      "expect": "num:Tests\\s+(\\d+) passed >=5"
+    },
+    {
+      "name": "contract-core",
+      "cmd": "pnpm exec vitest run --project shared test/contract.test.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract-work",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api test/work-contract.test.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint packages apps && pnpm exec prettier --check packages apps",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T11:41:06",
+  "edited": "2026-10-23T12:04:55"
+}

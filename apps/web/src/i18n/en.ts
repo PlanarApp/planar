@@ -65,6 +65,9 @@ export default {
       mentioned: '{who} mentioned you in {key}',
       commented: '{who} commented on {key}',
       status_changed: '{who} changed the status of {key}',
+      chat_mention: '{who} mentioned you in chat',
+      chat_dm: 'Direct message from {who}',
+      chat_reply: '{who} replied in a thread',
     },
     myEmpty: 'No assigned tasks',
     my: {
@@ -134,6 +137,12 @@ export default {
       settings: 'Settings',
     },
   },
+  profile: {
+    weekStart: 'Week starts on',
+    weekAuto: 'Auto (by language)',
+    weekMon: 'Monday',
+    weekSun: 'Sunday',
+  },
   calendar: {
     prev: 'Previous',
     next: 'Next',
@@ -180,6 +189,7 @@ export default {
       operator: 'Operator',
       value: 'Value',
       me: 'Me',
+      cycleCurrent: 'Current',
       date: 'Date: 2026-12-31, today, today+7',
       fields: {
         status: 'Status',
@@ -190,6 +200,7 @@ export default {
         dueDate: 'Due date',
         title: 'Title',
         createdBy: 'Author',
+        cycle: 'Sprint',
       },
       ops: {
         in: 'is any of',

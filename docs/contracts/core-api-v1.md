@@ -52,7 +52,7 @@ related: ["docs/contracts/core.md", "docs/contracts/core-mutators.md"]
 | `POST /api/v1/tasks/:task/comments` | `{text}` → `201` комментарий; `text` — через `textToDoc` (`@login` → упоминание) |
 
 ```json example=api.v1.task
-{"data": {"id": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d", "spaceId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7b", "projectId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6b02", "number": 12, "parentId": null, "statusId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6b03", "title": "Починить вход", "description": null, "priority": 2, "rank": "a0", "dueDate": null, "startDate": null, "createdBy": "0192b3c4-0000-7000-8000-000000000001", "completedAt": null, "fields": {}, "createdAt": "2026-10-23T06:00:00.000Z", "updatedAt": "2026-10-23T06:00:00.000Z", "key": "PLN-12", "assigneeIds": [], "labelIds": []}}
+{"data": {"id": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d", "spaceId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7b", "projectId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6b02", "number": 12, "parentId": null, "statusId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6b03", "title": "Починить вход", "description": null, "priority": 2, "rank": "a0", "dueDate": null, "startDate": null, "createdBy": "0192b3c4-0000-7000-8000-000000000001", "completedAt": null, "fields": {}, "cycleId": null, "createdAt": "2026-10-23T06:00:00.000Z", "updatedAt": "2026-10-23T06:00:00.000Z", "key": "PLN-12", "assigneeIds": [], "labelIds": []}}
 ```
 
 ```json bad=api.v1.task
@@ -65,3 +65,26 @@ related: ["docs/contracts/core.md", "docs/contracts/core-mutators.md"]
   - чтение: `list_spaces {}`, `list_projects {spaceId?}`, `search_tasks {query?, projectId?, statusId?, assigneeId?, limit?}` (поиск по `title` и `key`, без учёта регистра), `get_task {task}` (id или key, с комментариями), `my_tasks {includeDone?: bool}` (назначенные мне; по умолчанию без done/cancelled), `list_fields {projectId}` (определения полей проекта, как REST `GET /api/v1/projects/:id/fields`);
   - запись (нужен `write`): `create_task` (как `POST /api/v1/tasks`), `update_task {task, …, fields?}` (как `PATCH`, включая `fields`), `add_comment {task, text}`.
 - Ошибки прав и данных — результат инструмента с `isError: true` и текстом `{code, message}` (коды C-http), не HTTP 500. `read`-токен на запись → `isError`, `code: 'forbidden'`.
+
+## Web Push (часть C-http, перенесено из core.md)
+Тело push-сообщения (CR-7 → service worker web) — JSON: `title` (по kind, напр. «Вас назначили»), `body` (заголовок задачи), `url` — путь в приложении `/t/<KEY>-<number>` (начинается с `/`, но не с `//` и не с `/\`), `tag` — id уведомления (SW заменяет показ с тем же tag), `kind` — как `notifications.kind`. Данных других пространств в теле нет.
+
+```json example=push.payload
+{"title": "Вас назначили", "body": "Починить вход", "url": "/t/PLN-12", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
+```
+
+```json example=push.payload
+{"title": "Личное сообщение", "body": "Анна: созвонимся в 15:00?", "url": "/m/chat/c/0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a91/0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a92", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a93", "kind": "chat_dm"}
+```
+
+```json bad=push.payload
+{"title": "Вас назначили", "body": "x", "url": "https://evil.example/t/1", "tag": "n1", "kind": "assigned"}
+```
+
+```json bad=push.payload
+{"title": "Вас назначили", "body": "x", "url": "//evil.example/t/1", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
+```
+
+```json bad=push.payload
+{"title": "Вас назначили", "body": "x", "url": "/\\evil.example/t/1", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
+```

@@ -59,26 +59,30 @@ export const defaultLayout = (): Layout => ({ columns: DEFAULT_IDS.map(newColumn
 
 const storageKey = (projectId: string) => `planar.table.${projectId}`;
 
-/** Раскладка из localStorage; битый JSON, неизвестные id и повторы пропускаются. */
+/** Раскладка из произвольных данных; неизвестные id и повторы пропускаются, ширина зажимается. */
+export function parseColumns(cols: unknown): ColumnState[] | undefined {
+  if (!Array.isArray(cols)) return undefined;
+  const seen = new Set<string>();
+  const columns: ColumnState[] = [];
+  for (const c of cols) {
+    const id = c?.id as ColumnId;
+    if (!(COLUMN_IDS.includes(id as SystemColumnId) || isFieldCol(String(id))) || seen.has(id))
+      continue;
+    seen.add(id);
+    columns.push({
+      id,
+      width: typeof c.width === 'number' ? clampWidth(c.width) : newColumn(id).width,
+    });
+  }
+  return columns.length ? columns : undefined;
+}
+
+/** Раскладка из localStorage (запасной вариант); битый JSON — по умолчанию. */
 export function loadLayout(projectId: string): Layout {
   try {
     const raw = localStorage.getItem(storageKey(projectId));
-    const cols: unknown = raw && JSON.parse(raw)?.columns;
-    if (Array.isArray(cols)) {
-      const seen = new Set<string>();
-      const columns: ColumnState[] = [];
-      for (const c of cols) {
-        const id = c?.id as ColumnId;
-        if (!(COLUMN_IDS.includes(id as SystemColumnId) || isFieldCol(String(id))) || seen.has(id))
-          continue;
-        seen.add(id);
-        columns.push({
-          id,
-          width: typeof c.width === 'number' ? clampWidth(c.width) : newColumn(id).width,
-        });
-      }
-      if (columns.length) return { columns };
-    }
+    const columns = parseColumns(raw && JSON.parse(raw)?.columns);
+    if (columns) return { columns };
   } catch {
     // нет хранилища или битый JSON — раскладка по умолчанию
   }

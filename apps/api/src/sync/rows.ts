@@ -21,6 +21,12 @@ export const schemaOf = (e: string): z.ZodObject =>
 export const metaOf = (e: string): EntityMeta =>
   (ENTITIES as Record<string, EntityMeta>)[e] ?? modEntities[e]!.meta;
 
+/** Мета всех сущностей: ядро и установленные модули (включены или нет). */
+export const allMetas = (): Record<string, EntityMeta> => ({
+  ...(ENTITIES as Record<string, EntityMeta>),
+  ...Object.fromEntries(Object.entries(modEntities).map(([k, v]) => [k, v.meta])),
+});
+
 export const entityNames = Object.keys(entitySchemas) as EntityName[];
 
 /** timestamptz строкой из pg ("2026-10-22 10:00:00.123+00") → ISO UTC. */

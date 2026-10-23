@@ -1,0 +1,41 @@
+{
+  "status": "done",
+  "summary": "A/B 5x5 чередуя на одном хосте: ни один из cold/warm/mutate/switch/realtime не ухудшился за шумом (p>=0.12, n=5). Медианы main->work: cold 1713->1691, warm 425->397, mutate 22.1->23.8, switch 95.5->103.5 (+8%, диапазоны перекрыты), realtime p95 423->444. Причина не искалась: ухудшения не подтверждено; патч не нужен.",
+  "commits": [
+    "7e65fad WK-16: A/B бюджетов"
+  ],
+  "checks": [
+    {
+      "name": "table",
+      "value": "11 строк",
+      "pass": true
+    },
+    {
+      "name": "doc",
+      "value": "5",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "профиль и патч не делались: нет подтверждённой регрессии"
+  ],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept WK-16",
+  "uncertain": [
+    {
+      "where": "docs/research/wk16-budgets.md",
+      "why": "n=5: мощность низкая; switch (103.5 > бюджета 100 в 3 из 5 прогонов B, 1 из 5 в A) и realtime p95 (выброс 692 в B1) у порога",
+      "checked": "перестановочный критерий; перекрытие диапазонов; нужно >=15 прогонов для решения"
+    }
+  ],
+  "dp_feedback": "job wait/Monitor дают много служебных уведомлений при ожидании; пусто по существу",
+  "extra": {
+    "switch_ms_A": 95.5,
+    "switch_ms_B": 103.5,
+    "realtime_p95_A": 423,
+    "realtime_p95_B": 444
+  },
+  "t": "2026-10-23T20:42:34",
+  "by": "executor"
+}

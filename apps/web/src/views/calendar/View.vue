@@ -6,6 +6,7 @@ import type { TaskView } from '../../tasks';
 import { useBreakpoint } from '../../ui';
 import { openTask } from '..';
 import type { ViewProps } from '..';
+import { useWeekStart } from '../../i18n/week';
 import { localToday } from '../filter';
 import { useTaskFilter } from '../saved/useFilter';
 import { addDays, addMonths, layout, monthDays, parse, range, shift, weekDays } from './dates';
@@ -44,17 +45,18 @@ function setMode(m: 'month' | 'week') {
   }
 }
 
+const ws = useWeekStart();
 const anchor = ref(localToday());
 const today = computed(() => localToday());
 const days = computed(() =>
-  mode.value === 'week' ? weekDays(anchor.value) : monthDays(anchor.value),
+  mode.value === 'week' ? weekDays(anchor.value, ws.value) : monthDays(anchor.value, ws.value),
 );
 const month = computed(() => parse(anchor.value).getMonth());
 const byDay = computed(() => layout(tasks.value, days.value));
 const undated = computed(() => tasks.value.filter((x) => !range(x)));
 // mobile: список по дням текущего месяца, только дни с задачами
 const mobileDays = computed(() => {
-  const m = monthDays(anchor.value).filter((d) => parse(d).getMonth() === month.value);
+  const m = monthDays(anchor.value, ws.value).filter((d) => parse(d).getMonth() === month.value);
   return [...layout(tasks.value, m)].filter(([, l]) => l.length);
 });
 
@@ -168,7 +170,7 @@ async function drop(to: string) {
         data-test="grid"
       >
         <div
-          v-for="d in weekDays(anchor)"
+          v-for="d in weekDays(anchor, ws)"
           :key="d"
           class="bg-white px-1 text-xs opacity-70 dark:bg-neutral-900"
         >

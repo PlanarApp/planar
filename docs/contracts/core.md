@@ -21,8 +21,11 @@ contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v6
+## C-schema v8
 
+v8 (CL-1a): `notifications` для чата; scope `space|members`.
+
+v7 (WK-0): `tasks.cycleId` (work.md).
 v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 
 ### Общие правила
@@ -54,7 +57,7 @@ v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 Суффикс `?` — `.nullable()` (ключ есть, значение может быть `null`).
 
 ### Видимость и права (строка под заголовком сущности)
-- `scope` — кто видит строку (bootstrap, pull): `space` — участники пространства `spaceId` (у `spaces` — `id`); `user` — только `userId`; `global` — все вошедшие; `space|user` — `user`, если `userId` не null, иначе `space`.
+- `scope` — кто видит строку (bootstrap, pull): `space` — участники пространства `spaceId` (у `spaces` — `id`); `user` — только `userId`; `global` — все вошедшие; `space|user` — `user`, если `userId` не null, иначе `space`. `space|members` (C-sync v2) — `space`, если `spaceId` задан, иначе участники контейнера по `meta.members` (`docs/contracts/collab.md` §X-core п. 1).
 - `write` — минимальная роль для записи через серверный `Tx`: `guest` < `member` < `admin` — роль в `spaceMembers` этого пространства; `self` — `row.userId = ctx.userId`; `instance_admin` — `users.role` ∈ {owner, admin}; `server` — только серверный код, мутаторам запрещено; `member|self` — по `scope` строки.
 - Создание пространства (`put` в `spaces` новой строки) разрешено любому с `users.role` ≠ guest; в той же транзакции он может создать себе `spaceMembers` с ролью admin.
 - `bootstrap` — входит ли сущность в `GET /sync/bootstrap` (`no` — только через pull и свой REST).
@@ -141,7 +144,7 @@ scope: space · write: admin · bootstrap: yes · indexes: spaceId
 | `updatedAt` | ts | |
 
 #### tasks
-scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, parentId, statusId
+scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, parentId, statusId, cycleId
 
 | поле | тип | примечание |
 |---|---|---|
@@ -160,6 +163,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, 
 | `createdBy` | uuid | |
 | `completedAt` | ts? | ставит мутатор при переходе в категорию done/cancelled, снимает при выходе |
 | `fields` | obj | `{<fieldDefs.id>: значение}` — поля проекта задачи, без `null`; формат — features.md §F-fields; по умолчанию `{}` |
+| `cycleId` | uuid? | цикл sprints, без FK (work.md) |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
@@ -322,9 +326,11 @@ scope: user · write: self · bootstrap: yes · indexes: taskId
 |---|---|---|
 | `id` | uuid | |
 | `userId` | uuid | получатель |
-| `spaceId` | uuid | для группировки; на видимость не влияет |
-| `kind` | enum(assigned,mentioned,commented,status_changed) | |
-| `taskId` | uuid | без FK |
+| `spaceId` | uuid? | для группировки; на видимость не влияет; null — личный диалог чата |
+| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply) | `chat_*` создаёт модуль chat (collab.md §CH) |
+| `taskId` | uuid? | без FK; null — у `chat_*` |
+| `url` | text? | путь в приложении для уведомлений без задачи (правила `url` из «Web Push») |
+| `body` | text? | ≤ 140 символов, «Имя: текст»; для уведомлений без задачи |
 | `commentId` | uuid? | без FK |
 | `actorId` | uuid | |
 | `readAt` | ts? | |
@@ -382,14 +388,16 @@ scope: global · write: instance_admin · bootstrap: yes · indexes: —
 
 Миграции — drizzle-kit, каталог `apps/api/drizzle/`, схема — `apps/api/src/db/schema.ts` (+ схемы модулей `modules/*/api/schema.ts`, таблицы с префиксом `<moduleId>_`).
 
-## C-sync v1
+## C-sync v2
+
+v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core п. 1–2.
 
 Транспорт — JSON поверх HTTP, авторизация — сессия (C-http) или Bearer. Ошибки уровня запроса — формат C-http (`401 unauthenticated`, `400 invalid_request`, `413 payload_too_large`, `500 internal`).
 
 ### Журнал `changes`
 - Каждая запись серверного `Tx` добавляет строку: `put` — с полной строкой в `data` (провод, camelCase), `del` — `data = null`. `patch` тоже даёт `put` с полной строкой.
 - Колонки видимости по `scope`: `space` → `space_id = row.spaceId` (у `spaces` — `row.id`), `user_id = null`; `user` → `space_id = null`, `user_id = row.userId`; `global` → обе null.
-- **Порядок.** Транзакция, пишущая в `changes`, первой записью берёт `pg_advisory_xact_lock(7311)`; так порядок `seq` совпадает с порядком коммитов и pull не пропускает строки.
+- **Порядок.** Транзакция, пишущая в `changes`, первой записью берёт `pg_advisory_xact_lock(7311)`; так порядок `seq` совпадает с порядком коммитов и pull не пропускает строки. v2: серверный `Tx` мутации берёт его до первого `get`/`scan` (мутации сериализуются: чтение-затем-запись — `docs.lock`, `lastSeq` чата — без гонок).
 - В той же транзакции — `SELECT pg_notify('planar_changes', '<max seq>')`: только номер.
 - **Сброс.** Добавление или удаление участника пространства → строка `entity = '_reset'`, `op = 'put'`, `id = <userId>`, `user_id = <userId>`. Смена `settings.enabled_modules` → `_reset` с обеими колонками null (для всех).
 
@@ -520,7 +528,10 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Мутаторы домена v2
 Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
-## C-modules v2
+## C-modules v7
+
+v7: перечень SDK (sendTyping/onTyping с C-sync v2) — work-api.md.
+v3–v6 (work, владелец C-modules): хуки, server-kit, SDK, настройки, правки collab — work.md, work-api.md.
 
 Модуль — каталог `modules/<id>/` (`id` — `^[a-z][a-z0-9-]{1,30}$`):
 - `shared/index.ts` — `export const shared: SharedModuleManifest = { id, mutators: MutatorDef[], entities: Record<string, {schema: ZodObject, meta: EntityMeta}> }` (без Node API; сущности — по правилам C-schema, имена с префиксом id модуля в camelCase);
@@ -533,8 +544,11 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v8
+## C-http v10
 
+v10 (CL-1a): `GET /files` и push без задачи — collab.md §X-core п. 3–4.
+
+v9 (WK-0): `cycleId` в REST v1; пути WK-5 — work.md.
 v8 (FT): поля в REST v1 и MCP (core-api-v1.md).
 
 ### Пути и окружение
@@ -595,20 +609,5 @@ v8 (FT): поля в REST v1 и MCP (core-api-v1.md).
 `user` в ответах — строка `users` (C-schema), без `password_hash`. Пароль — от 8 символов, argon2id.
 
 ### Web Push
-Тело push-сообщения (CR-7 → service worker web) — JSON: `title` (по kind, напр. «Вас назначили»), `body` (заголовок задачи), `url` — путь в приложении `/t/<KEY>-<number>` (начинается с `/`, но не с `//` и не с `/\`), `tag` — id уведомления (SW заменяет показ с тем же tag), `kind` — как `notifications.kind`. Данных других пространств в теле нет.
+Формат тела push — `docs/contracts/core-api-v1.md` §Web Push (часть C-http).
 
-```json example=push.payload
-{"title": "Вас назначили", "body": "Починить вход", "url": "/t/PLN-12", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
-```
-
-```json bad=push.payload
-{"title": "Вас назначили", "body": "x", "url": "https://evil.example/t/1", "tag": "n1", "kind": "assigned"}
-```
-
-```json bad=push.payload
-{"title": "Вас назначили", "body": "x", "url": "//evil.example/t/1", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
-```
-
-```json bad=push.payload
-{"title": "Вас назначили", "body": "x", "url": "/\\evil.example/t/1", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
-```

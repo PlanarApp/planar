@@ -115,8 +115,7 @@ describe('settings:projects', () => {
     await w.findAll('[data-testid=project-delete]')[i].trigger('click');
     await flushPromises();
     (document.body.querySelector('[data-testid=confirm]') as HTMLElement).click();
-    await wait();
-    expect(w.find('[role=alert]').text()).toContain('есть задачи');
+    await vi.waitFor(() => expect(w.find('[role=alert]').text()).toContain('есть задачи'));
   });
 });
 

@@ -28,10 +28,10 @@ describe('dexie-v2', () => {
     await db.delete();
   });
 
-  it('dexie-v2: новая база имеет версию 2 с fieldDefs и taskLinks', async () => {
+  it('dexie-v2: новая база имеет версию 3 с fieldDefs и taskLinks', async () => {
     const db = new PlanarDB('v2n-' + uuidv7());
     await db.open();
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(3);
     expect(db.tables.map((t) => t.name)).toEqual(
       expect.arrayContaining(['fieldDefs', 'taskLinks']),
     );

@@ -1,0 +1,27 @@
+Task ID,Task Name,Task Content,Status,Date Created,Date Created Text,Due Date,Due Date Text,Start Date,Start Date Text,Parent ID,Attachments,Assignees,Tags,Priority,List Name,Folder Name,Space Name
+cu1,ClickUp task 1,Описание 1,in progress,1764547200000,12/01/2025 12:00:00 PM UTC,1767268800000,01/01/2026,,,,,[alice@example.com],"[bug, Frontend]",High,Sprint,Dev,Team
+cu2,ClickUp task 2,"Строка 1
+Строка ""2"" с кавычками, и запятой",complete,1764547200000,12/01/2025 12:00:00 PM UTC,1767355200000,01/02/2026,,,,,[bsmith],[ops],Normal,Sprint,Dev,Team
+cu3,ClickUp task 3,Описание 3,review,1764547200000,12/01/2025 12:00:00 PM UTC,,,,,,,[nobody@example.com],"[bug, Frontend]",Low,Sprint,Dev,Team
+cu4,ClickUp task 4,Описание 4,to do,1764547200000,12/01/2025 12:00:00 PM UTC,1767528000000,01/04/2026,,,,,[bsmith],[ops],Urgent,Sprint,Dev,Team
+cu5,ClickUp task 5,Описание 5,in progress,1764547200000,12/01/2025 12:00:00 PM UTC,1767614400000,01/05/2026,,,,,[alice@example.com],"[bug, Frontend]",High,Sprint,Dev,Team
+cu6,ClickUp task 6,Описание 6,complete,1764547200000,12/01/2025 12:00:00 PM UTC,,,,,,,[bsmith],[ops],Normal,Sprint,Dev,Team
+cu7,,Описание 7,review,1764547200000,12/01/2025 12:00:00 PM UTC,1767787200000,01/07/2026,,,,,[alice@example.com],"[bug, Frontend]",Low,Sprint,Dev,Team
+cu8,ClickUp task 8,Описание 8,to do,1764547200000,12/01/2025 12:00:00 PM UTC,1767873600000,01/08/2026,,,,,[bsmith],[ops],Urgent,Sprint,Dev,Team
+cu9,ClickUp task 9,Описание 9,in progress,1764547200000,12/01/2025 12:00:00 PM UTC,,,,,cu8,,[alice@example.com],"[bug, Frontend]",High,Sprint,Dev,Team
+cu10,ClickUp task 10,Описание 10,complete,1764547200000,12/01/2025 12:00:00 PM UTC,1768046400000,01/10/2026,,,cu8,,[bsmith],[ops],Normal,Sprint,Dev,Team
+cu11,ClickUp task 11,Описание 11,review,1764547200000,12/01/2025 12:00:00 PM UTC,1768132800000,01/11/2026,,,,,[alice@example.com],"[bug, Frontend]",Low,Sprint,Dev,Team
+cu12,ClickUp task 12,Описание 12,to do,1764547200000,12/01/2025 12:00:00 PM UTC,,,,,,,[bsmith],[ops],Urgent,Sprint,Dev,Team
+cu13,ClickUp task 13,Описание 13,in progress,1764547200000,12/01/2025 12:00:00 PM UTC,1768305600000,01/13/2026,,,,,[alice@example.com],"[bug, Frontend]",High,Sprint,Dev,Team
+cu14,ClickUp task 14,Описание 14,complete,1764547200000,12/01/2025 12:00:00 PM UTC,1768392000000,01/14/2026,,,,,[bsmith],[ops],Normal,Sprint,Dev,Team
+cu15,ClickUp task 15,Описание 15,review,1764547200000,12/01/2025 12:00:00 PM UTC,,,,,,,[alice@example.com],"[bug, Frontend]",Low,Sprint,Dev,Team
+cu16,ClickUp task 16,Описание 16,to do,1764547200000,12/01/2025 12:00:00 PM UTC,1768564800000,01/16/2026,,,,,[bsmith],[ops],Urgent,Sprint,Dev,Team
+cu17,ClickUp task 17,Описание 17,in progress,1764547200000,12/01/2025 12:00:00 PM UTC,1768651200000,01/17/2026,,,,,[alice@example.com],"[bug, Frontend]",High,Sprint,Dev,Team
+cu18,ClickUp task 18,Описание 18,complete,1764547200000,12/01/2025 12:00:00 PM UTC,,,,,,,[bsmith],[ops],Normal,Sprint,Dev,Team
+cu19,ClickUp task 19,Описание 19,review,1764547200000,12/01/2025 12:00:00 PM UTC,1768824000000,01/19/2026,,,,,[alice@example.com],"[bug, Frontend]",Low,Sprint,Dev,Team
+cu20,ClickUp task 20,Описание 20,to do,1764547200000,12/01/2025 12:00:00 PM UTC,1768910400000,01/20/2026,,,,,[bsmith],[ops],Urgent,Sprint,Dev,Team
+cu21,ClickUp task 21,Описание 21,in progress,1764547200000,12/01/2025 12:00:00 PM UTC,,,,,,,[alice@example.com],"[bug, Frontend]",High,Sprint,Dev,Team
+cu22,ClickUp task 22,Описание 22,complete,1764547200000,12/01/2025 12:00:00 PM UTC,1769083200000,01/22/2026,,,,,[bsmith],[ops],Normal,Sprint,Dev,Team
+cu23,ClickUp task 23,Описание 23,review,1764547200000,12/01/2025 12:00:00 PM UTC,1769169600000,01/23/2026,,,,,[alice@example.com],"[bug, Frontend]",Low,Sprint,Dev,Team
+cu24,ClickUp task 24,Описание 24,to do,1764547200000,12/01/2025 12:00:00 PM UTC,,,,,,,[bsmith],[ops],Urgent,Sprint,Dev,Team
+cu25,ClickUp task 25,Описание 25,in progress,1764547200000,12/01/2025 12:00:00 PM UTC,1769342400000,01/25/2026,,,,,[alice@example.com],"[bug, Frontend]",High,Sprint,Dev,Team

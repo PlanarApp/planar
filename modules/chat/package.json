@@ -1,0 +1,42 @@
+{
+  "name": "@planar/module-chat",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./shared": {
+      "source": "./shared/index.ts",
+      "types": "./dist/shared/index.d.ts",
+      "default": "./dist/shared/index.js"
+    },
+    "./api": {
+      "source": "./api/index.ts",
+      "types": "./dist/api/index.d.ts",
+      "default": "./dist/api/index.js"
+    },
+    "./api/schema": {
+      "source": "./api/schema.ts",
+      "types": "./dist/api/schema.d.ts",
+      "default": "./dist/api/schema.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.2.7",
+    "@planar/server-kit": "workspace:*",
+    "@planar/shared": "workspace:*",
+    "@planar/web": "workspace:*",
+    "@tanstack/vue-virtual": "^3.13.47",
+    "drizzle-orm": "^0.45.4",
+    "lucide-vue-next": "^1.0.0",
+    "vue": "~3.5.44",
+    "vue-router": "^5.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@vue/test-utils": "^2.5.1",
+    "fake-indexeddb": "^6.2.6"
+  }
+}

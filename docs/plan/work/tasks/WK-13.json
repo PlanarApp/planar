@@ -1,0 +1,50 @@
+{
+  "id": "WK-13",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "Тестовые базы planar_t_* не удаляются при падении/обрыве прогона",
+  "goal": "Найти, почему в planar-testdb копились сотни баз planar_t_* (≈300 за день), и починить: база прогона удаляется и при падении тестов, таймауте, SIGINT/SIGTERM vitest; осиротевшие базы старше 1 ч убираются в начале следующего прогона.",
+  "plan_ref": "решение Q2 (main): тестовые базы удаляются в конце прогона",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "4",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-13",
+  "branch": "work/WK-13",
+  "base": "feature/work",
+  "scope": [
+    "apps/api/test/file-db.ts",
+    "apps/api/test/global-setup.ts",
+    "apps/api/test/db.ts",
+    "dev.sh",
+    "apps/api/test/wk13"
+  ],
+  "dont_touch": [
+    "тесты и код приложения; правила изоляции прогонов (своя база на прогон) не менять",
+    "не удалять базы, к которым есть подключения (идут чужие прогоны); docs/contracts/; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk13",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api -t wk13:",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/api/test && pnpm exec prettier --check apps/api/test",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T16:33:10",
+  "edited": "2026-10-23T16:49:21"
+}

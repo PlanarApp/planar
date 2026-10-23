@@ -54,7 +54,7 @@ describe('модули', () => {
 
   it('GET /api/modules: hello выключен', async () => {
     const r = await get('/api/modules');
-    expect(r.json()).toEqual({ modules: [{ id: 'hello', enabled: false }] });
+    expect(r.json().modules).toContainEqual({ id: 'hello', enabled: false });
   });
 
   it('GET /api/modules без входа → 401', async () => {
@@ -74,8 +74,9 @@ describe('модули', () => {
     await ia.ok('settings.set', { id: 'enabled_modules', value: ['hello'] });
 
     expect((await get('/api/hello/ping')).json()).toEqual({ ok: true });
-    expect((await get('/api/modules')).json()).toEqual({
-      modules: [{ id: 'hello', enabled: true }],
+    expect((await get('/api/modules')).json().modules).toContainEqual({
+      id: 'hello',
+      enabled: true,
     });
 
     const n = note(w.spaceId);

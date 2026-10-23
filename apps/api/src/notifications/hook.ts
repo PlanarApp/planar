@@ -65,6 +65,8 @@ export async function notificationsHook(
       spaceId,
       kind,
       taskId,
+      url: null,
+      body: null,
       commentId,
       actorId: actor,
       readAt: null,

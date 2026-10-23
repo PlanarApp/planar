@@ -92,6 +92,7 @@ export const taskMutators = [
         createdBy: ctx.userId,
         completedAt: completedAt(status.category, null, ctx),
         fields: {},
+        cycleId: null,
         createdAt: ctx.now,
         updatedAt: ctx.now,
       });
@@ -129,6 +130,7 @@ export const taskMutators = [
         if (p.spaceId !== t.spaceId) throw bad('projectId другого пространства');
         if (a.projectId !== t.projectId) {
           patch.number = null;
+          patch.cycleId = null;
           if (!a.fields) patch.fields = {};
         }
       }

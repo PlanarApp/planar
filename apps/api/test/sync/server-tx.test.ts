@@ -181,6 +181,8 @@ describe('ServerTx: права', () => {
       spaceId,
       kind: 'assigned',
       taskId: uuidv7(),
+      url: null,
+      body: null,
       commentId: null,
       actorId: user,
       readAt: null,
@@ -300,6 +302,7 @@ describe('ServerTx: права', () => {
         createdBy: user,
         completedAt: null,
         fields: {},
+        cycleId: null,
         createdAt: NOW,
         updatedAt: NOW,
       };
@@ -389,6 +392,8 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         spaceId,
         kind: 'mentioned',
         taskId: uuidv7(),
+        url: null,
+        body: null,
         commentId: null,
         actorId: owner,
         readAt: null,
@@ -478,6 +483,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         createdBy: owner,
         completedAt: null,
         fields: {},
+        cycleId: null,
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -525,6 +531,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         createdBy: owner,
         completedAt: null,
         fields: {},
+        cycleId: null,
         createdAt: NOW,
         updatedAt: NOW,
       };
@@ -578,6 +585,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         createdBy: owner,
         completedAt: null,
         fields: {},
+        cycleId: null,
         createdAt: NOW,
         updatedAt: NOW,
       };

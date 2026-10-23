@@ -1,0 +1,89 @@
+{
+  "id": "WK-6b",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "import: ранги через fractional-indexing, мгновенный старт, переход через router",
+  "goal": "Импорт ставит задачу import.run сразу (CoreServices.enqueue) без минутной задержки, ранги задач — generateKeyBetween после последней задачи статуса, команда import:open переходит через useRouter из SDK.",
+  "plan_ref": "5. Задачи — WK-6; приёмка WK-6 (uncertain rankAt, мгновенный старт)",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "5",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-6b",
+  "branch": "work/WK-6b",
+  "base": "feature/work",
+  "scope": [
+    "modules/import",
+    "apps/api/test/import",
+    "apps/web/src/modules/__tests__/import",
+    "pnpm-lock.yaml"
+  ],
+  "dont_touch": [
+    "остальные modules/*; apps/api/src, apps/web/src, packages/ — ядро; docs/contracts/ — координатор",
+    "зависимости — только \"fractional-indexing\": \"^4.0.0\" в modules/import/package.json (как в apps/api); .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk6b-api",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api -t wk6b:",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "wk6b-web",
+      "cmd": "pnpm --filter web exec vitest run -t wk6b:",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "contract-work",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api test/work-contract.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "migrations-linear",
+      "cmd": "ls apps/api/drizzle/*.sql | sed 's#.*/##' | cut -c1-4 | sort | uniq -d | wc -l",
+      "expect": "num:^(\\d+) <=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint modules/import apps/api/test apps/web/src && pnpm exec prettier --check modules/import apps/api/test apps/web/src",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T18:29:36",
+  "edited": "2026-10-23T18:29:37"
+}

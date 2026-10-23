@@ -79,6 +79,7 @@ export const entitySchemas = {
     createdBy: uuid,
     completedAt: ts.nullable(),
     fields: z.record(z.string(), z.unknown()),
+    cycleId: uuid.nullable(),
     createdAt: ts,
     updatedAt: ts,
   }),
@@ -196,9 +197,19 @@ export const entitySchemas = {
   notifications: z.object({
     id: uuid,
     userId: uuid,
-    spaceId: uuid,
-    kind: z.enum(['assigned', 'mentioned', 'commented', 'status_changed']),
-    taskId: uuid,
+    spaceId: uuid.nullable(),
+    kind: z.enum([
+      'assigned',
+      'mentioned',
+      'commented',
+      'status_changed',
+      'chat_mention',
+      'chat_dm',
+      'chat_reply',
+    ]),
+    taskId: uuid.nullable(),
+    url: z.string().nullable(),
+    body: z.string().max(140).nullable(),
     commentId: uuid.nullable(),
     actorId: uuid,
     readAt: ts.nullable(),
@@ -229,6 +240,8 @@ export interface EntityMeta {
   write: string;
   bootstrap: boolean;
   indexes: string[];
+  /** scope 'space|members' (C-sync v2): участники контейнера строки без spaceId */
+  members?: { entity: string; key: string; container: string; via: string };
 }
 
 export const ENTITIES = {
@@ -241,7 +254,7 @@ export const ENTITIES = {
     scope: 'space',
     write: 'member',
     bootstrap: true,
-    indexes: ['spaceId', 'projectId', 'parentId', 'statusId'],
+    indexes: ['spaceId', 'projectId', 'parentId', 'statusId', 'cycleId'],
   },
   taskAssignees: {
     scope: 'space',

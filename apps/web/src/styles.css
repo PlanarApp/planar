@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './ui/tokens.css';
+@source '../../../modules/*/web';
 @custom-variant dark (&:where(.dark, .dark *));
 
 html,

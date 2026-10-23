@@ -63,6 +63,16 @@ export class PullService {
         else if (meta.scope === 'user') where = eq(c.userId, userId);
         else if (meta.scope === 'space|user')
           where = or(eq(c.userId, userId), and(isNull(c.userId), inArray(c.spaceId, my)));
+        else if (meta.scope === 'space|members' && meta.members) {
+          const { entity, key, via } = meta.members;
+          const mt = tableOf(entity as EntityName);
+          const mc = getTableColumns(mt);
+          const mine = inArray(
+            c[via],
+            tx.select({ k: mc[key] }).from(mt).where(eq(mc.userId, userId)),
+          );
+          where = c.spaceId ? or(inArray(c.spaceId, my), and(isNull(c.spaceId), mine)) : mine;
+        }
         const q = tx.select().from(t).where(where);
         const rows = await (name === 'notifications'
           ? q.orderBy(desc(c.createdAt)).limit(NOTIFICATIONS_LIMIT)

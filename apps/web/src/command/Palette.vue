@@ -7,15 +7,21 @@ import { useSelection, openTask } from '../views';
 import { useExtensions } from '../modules/registry';
 import { buildCommands, type Cmd } from './commands';
 import { useSearch, type Hit } from './search';
+import { useProviderGroups } from './providers';
+import type { LocalizedText } from '../modules/types';
 import { ui } from './hotkeys';
 
-const { t, locale } = useI18n();
+const { t, te, locale } = useI18n();
 const router = useRouter();
 const selection = useSelection();
 const ext = useExtensions('commands');
+const searchExt = useExtensions('search');
 const search = useSearch();
 
 const query = ref('');
+const label = (l: LocalizedText) =>
+  typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
+const providerGroups = useProviderGroups(query, () => searchExt.value, label);
 const active = ref(0);
 const cmds = ref<Cmd[]>([]);
 const confirming = ref<Cmd | null>(null);
@@ -66,6 +72,14 @@ const items = computed<Item[]>(() => {
       group: gT,
       run: () => openTask(h.ref),
     })),
+    ...providerGroups.value.flatMap((g) =>
+      g.hits.map((h) => ({
+        id: `${g.key}:${h.id}`,
+        label: h.subtitle ? `${h.title}  ${h.subtitle}` : h.title,
+        group: g.label,
+        run: () => void router.push(h.to),
+      })),
+    ),
   ];
 });
 

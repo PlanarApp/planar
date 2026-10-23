@@ -50,6 +50,55 @@
       "when": 1792746194430,
       "tag": "0006_lowly_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792755894464,
+      "tag": "0007_sweet_marrow",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792760035577,
+      "tag": "0008_narrow_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792762205009,
+      "tag": "0009_overconfident_skullbuster",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792769763393,
+      "tag": "0010_webhooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792775680799,
+      "tag": "0011_sudden_the_hunter",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792777931938,
+      "tag": "0012_breezy_living_mummy",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792782829752,
+      "tag": "0013_worried_wolverine",
+      "breakpoints": true
     }
   ]
 }

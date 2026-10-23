@@ -51,7 +51,7 @@ export class PushService {
           throw new ForbiddenException('clientId принадлежит другому пользователю');
         if (m.id <= cm.lastMutationId) return { id: m.id, ok: true as const };
 
-        await runMutation(tx, userId, m, notified, tokenId);
+        await runMutation(tx, userId, m, notified, tokenId, { jobs: this.queue?.jobs });
         await tx
           .update(clientMutations)
           .set({ lastMutationId: m.id, updatedAt: sql`now()` })

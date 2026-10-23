@@ -1,9 +1,10 @@
 import { Body, Controller, Get, Inject, Post } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
+import { ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { DB } from '../tokens.js';
+import { SYSTEM_LOGIN } from '../users/system.js';
 import { insertUser } from '../users/users.repo.js';
 import { loginSchema, passwordSchema } from '../users/users.controller.js';
 import { publicUser } from './auth.controller.js';
@@ -22,10 +23,18 @@ const setupSchema = z.object({
 export class SetupController {
   constructor(@Inject(DB) private readonly db: Db) {}
 
+  /** системный пользователь «Автоматизация» не считается */
+  private async hasUsers(q: Pick<Db, 'select'>) {
+    return (
+      (await q.select({ id: users.id }).from(users).where(ne(users.login, SYSTEM_LOGIN)).limit(1))
+        .length > 0
+    );
+  }
+
   @Public()
   @Get()
   async needed() {
-    return { needed: (await this.db.select({ id: users.id }).from(users).limit(1)).length === 0 };
+    return { needed: !(await this.hasUsers(this.db)) };
   }
 
   @Public()
@@ -35,7 +44,7 @@ export class SetupController {
     const passwordHash = await hashPassword(password);
     const row = await this.db.transaction(async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext('planar:setup'))`);
-      if ((await tx.select({ id: users.id }).from(users).limit(1)).length > 0) {
+      if (await this.hasUsers(tx)) {
         throw new HttpError(409, 'conflict', 'Настройка уже выполнена');
       }
       return insertUser(tx, { ...v, role: 'owner', passwordHash });
