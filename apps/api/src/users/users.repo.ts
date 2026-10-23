@@ -2,11 +2,12 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
 import { fileUploads, users } from '../db/schema.js';
 import { HttpError } from '../auth/errors.js';
+import { ServerTx, type Q } from '../sync/server-tx.js';
+import { toWire } from '../sync/rows.js';
 
-// Все записи users — здесь: после слияния CR-4 переводятся на ServerTx (asSystem).
+// Все записи users — здесь, через ServerTx.asSystem: строка попадает в changes (без password_hash).
 
 export type UserRow = typeof users.$inferSelect;
-type Writer = Pick<Db, 'insert' | 'update'>;
 
 export const listUsers = (db: Db) => db.select().from(users).orderBy(asc(users.createdAt));
 
@@ -25,11 +26,13 @@ export const hasFileUpload = async (db: Db, sha256: string, userId: string) =>
   ).length > 0;
 
 export async function insertUser(
-  db: Writer,
+  q: Q,
   v: { login: string; name: string; role: string; passwordHash: string; email?: string | null },
 ): Promise<UserRow> {
   try {
-    return (await db.insert(users).values(v).returning())[0]!;
+    const row = (await q.insert(users).values(v).returning())[0]!;
+    await publish(q, row.id, row);
+    return row;
   } catch (e) {
     const code = e as { code?: string; cause?: { code?: string } };
     if ((code.cause?.code ?? code.code) === '23505') {
@@ -40,17 +43,27 @@ export async function insertUser(
 }
 
 export async function updateUser(
-  db: Writer,
+  q: Q,
+  actorId: string,
   id: string,
   set: Partial<
     Pick<UserRow, 'name' | 'email' | 'role' | 'avatarFile' | 'deactivatedAt' | 'passwordHash'>
   >,
 ): Promise<UserRow> {
-  return (
-    await db
+  const row = (
+    await q
       .update(users)
       .set({ ...set, updatedAt: sql`now()` })
       .where(eq(users.id, id))
       .returning()
   )[0]!;
+  await publish(q, actorId, row);
+  return row;
+}
+
+/** Запись строки провода в changes; вызывать внутри транзакции. */
+async function publish(q: Q, actorId: string, row: UserRow) {
+  const tx = ServerTx.asSystem(q, { userId: actorId });
+  await tx.put('users', toWire('users', row) as never, { passwordHash: row.passwordHash });
+  await tx.finish();
 }
