@@ -8,6 +8,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   Post,
   Req,
   Res,
@@ -15,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyReply } from 'fastify';
-import { PgBoss } from 'pg-boss';
+import type { PgBoss } from 'pg-boss';
 import webpush from 'web-push';
 import { z } from 'zod';
 import type { PushPayload } from '@planar/shared';
@@ -23,10 +24,11 @@ import { BadRequestException } from '@nestjs/common';
 import { getAuth } from '../auth/auth.js';
 import type { Db } from '../db/index.js';
 import { notifications, projects, pushSubscriptions, tasks } from '../db/schema.js';
+import { JobsService, PUSH_OPTS } from '../jobs/jobs.js';
 import { DB } from '../tokens.js';
 
 export const QUEUE = 'push.notification';
-export const PUSH_OPTS = Symbol('PUSH_OPTS');
+export { PUSH_OPTS };
 
 export interface PushSub {
   endpoint: string;
@@ -78,7 +80,9 @@ export class PushQueue implements OnApplicationShutdown {
   constructor(
     @Inject(DB) private db: Db,
     @Inject(PUSH_OPTS) private opts: PushOpts,
+    @Optional() @Inject(JobsService) readonly jobs: JobsService = new JobsService(db, opts),
   ) {
+    jobs.push = this;
     const v = opts.vapid;
     this.sender =
       opts.sender ??
@@ -99,9 +103,8 @@ export class PushQueue implements OnApplicationShutdown {
   /** Старт pg-boss (ленивый, один раз). */
   private start(): Promise<void> {
     return (this.ready ??= (async () => {
-      const boss = new PgBoss({ connectionString: this.opts.databaseUrl, max: 2 });
-      boss.on('error', (e) => this.log.error(e));
-      await boss.start();
+      const boss = await this.jobs.start();
+      if (!boss) return;
       await boss.createQueue(QUEUE);
       if (this.opts.worker !== false)
         await boss.work<{ notificationId: string }>(
@@ -172,7 +175,7 @@ export class PushQueue implements OnApplicationShutdown {
 
   async onApplicationShutdown() {
     await this.ready?.catch(() => {});
-    await this.boss?.stop({ graceful: true, timeout: 5000 });
+    await this.jobs.onApplicationShutdown(); // без Nest (тесты) его никто не остановит; повтор безопасен
   }
 }
 

@@ -40,6 +40,7 @@ const task = (p: { id: string }, n: number) => ({
   createdBy: uuidv7(),
   completedAt: null,
   fields: {},
+  cycleId: null,
   createdAt: NOW,
   updatedAt: NOW,
 });

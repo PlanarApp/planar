@@ -5,9 +5,14 @@ import { useI18n } from 'vue-i18n';
 import Badge from '../ui/Badge.vue';
 import { useUnread } from '../inbox/queries';
 import { prefetchIdle, prefetchProject } from '../tasks/queries';
+import { useExtensions } from '../modules/registry';
+import type { LocalizedText } from '../modules/types';
 import { useNavData } from './nav';
 
-const { t } = useI18n();
+const { t, te, locale } = useI18n();
+const navItems = useExtensions('nav');
+const navLabel = (l: LocalizedText) =>
+  typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 const unread = useUnread();
 const { spaces, favorites } = useNavData();
 // проекты строятся в памяти заранее: по наведению/фокусу на ссылку и один раз в простое после появления списка
@@ -41,6 +46,15 @@ const link =
       </RouterLink>
       <RouterLink to="/my" :class="link" active-class="bg-accent-subtle">
         <ListChecks :size="16" />{{ t('sidebar.my') }}
+      </RouterLink>
+      <RouterLink
+        v-for="n in navItems"
+        :key="n.key"
+        :to="n.to"
+        :class="link"
+        active-class="bg-accent-subtle"
+      >
+        <component :is="n.icon" :size="16" />{{ navLabel(n.label) }}
       </RouterLink>
     </nav>
     <section>

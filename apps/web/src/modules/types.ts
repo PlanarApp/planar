@@ -9,6 +9,8 @@ export const EXTENSION_KINDS = [
   'commands',
   'fieldTypes',
   'settings',
+  'nav',
+  'topbar',
 ] as const;
 export type ExtensionKind = (typeof EXTENSION_KINDS)[number];
 
@@ -59,6 +61,20 @@ export interface SettingsPageDef {
   component: Lazy<object>;
 }
 
+export interface NavItemDef {
+  id: string;
+  label: LocalizedText;
+  icon: Component;
+  /** /m/<moduleId>/… */
+  to: string;
+  order?: number;
+}
+export interface TopbarItemDef {
+  id: string;
+  component: Lazy<object>;
+  order?: number;
+}
+
 export interface WebModuleManifest extends FrontendModuleManifest {
   routes?: RouteRecordRaw[];
   views?: ViewDef[];
@@ -66,6 +82,8 @@ export interface WebModuleManifest extends FrontendModuleManifest {
   commands?: CommandDef[];
   fieldTypes?: FieldTypeDef[];
   settings?: SettingsPageDef[];
+  nav?: NavItemDef[];
+  topbar?: TopbarItemDef[];
 }
 
 export const defineWebModule = (m: WebModuleManifest): WebModuleManifest => m;

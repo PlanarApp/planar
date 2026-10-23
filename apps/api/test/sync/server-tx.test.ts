@@ -300,6 +300,7 @@ describe('ServerTx: права', () => {
         createdBy: user,
         completedAt: null,
         fields: {},
+        cycleId: null,
         createdAt: NOW,
         updatedAt: NOW,
       };
@@ -478,6 +479,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         createdBy: owner,
         completedAt: null,
         fields: {},
+        cycleId: null,
         createdAt: NOW,
         updatedAt: NOW,
       });
@@ -525,6 +527,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         createdBy: owner,
         completedAt: null,
         fields: {},
+        cycleId: null,
         createdAt: NOW,
         updatedAt: NOW,
       };
@@ -578,6 +581,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         createdBy: owner,
         completedAt: null,
         fields: {},
+        cycleId: null,
         createdAt: NOW,
         updatedAt: NOW,
       };
