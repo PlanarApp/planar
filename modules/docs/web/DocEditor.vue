@@ -10,8 +10,7 @@ import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import Suggestion from '@tiptap/suggestion';
 import { PluginKey } from '@tiptap/pm/state';
-import { uploadFile } from '@planar/web/api/files';
-import { useSearch } from '@planar/web/command/search';
+import { uploadFile, useSearch } from '@planar/web/modules';
 import { suggestRender, type SugState } from './suggest';
 import { filterSlash, type SlashItem } from './slash';
 import { useTexts } from './text';

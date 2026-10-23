@@ -4,6 +4,7 @@ import { useAuth, type User } from '../auth/useAuth';
 
 export * from './types';
 export { db, mutate, newId, rankBetween, useQuery } from '../sync';
+export { useSearch } from '../command/search';
 export {
   useTask,
   useProjectTasks,

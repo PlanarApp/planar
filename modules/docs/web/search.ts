@@ -1,5 +1,5 @@
 import { FileText } from 'lucide-vue-next';
-import { db } from '@planar/web/sync';
+import { db } from '@planar/web/modules';
 import { searchPages, type PageRow } from './model';
 import { label } from './text';
 

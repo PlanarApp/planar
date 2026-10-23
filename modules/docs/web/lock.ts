@@ -1,6 +1,6 @@
 import { computed, onScopeDispose, ref, watch } from 'vue';
 import { liveQuery } from 'dexie';
-import { db, mutate, onMutationError } from '@planar/web/sync';
+import { db, mutate, onMutationError } from '@planar/web/modules';
 import { LOCK_RENEW_MS, lockedBy, type LockRow } from './model';
 
 /**

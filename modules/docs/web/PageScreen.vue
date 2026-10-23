@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { db } from '@planar/web/sync';
+import { db } from '@planar/web/modules';
 import PageView from './PageView.vue';
 import { useTexts } from './text';
 

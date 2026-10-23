@@ -1,5 +1,5 @@
 import type { Row } from '@planar/shared';
-import { db, mutate, newId, rankBetween } from '@planar/web/sync';
+import { db, mutate, newId, rankBetween } from '@planar/web/modules';
 import type { PageRow } from './model';
 
 export const link = (pageId: string, taskId: string) =>

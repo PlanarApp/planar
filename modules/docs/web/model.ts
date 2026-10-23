@@ -1,4 +1,4 @@
-import { rankBetween } from '@planar/web/sync';
+import { rankBetween } from '@planar/web/modules';
 
 export interface PageRow {
   id: string;
