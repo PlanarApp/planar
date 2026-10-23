@@ -76,10 +76,13 @@ export interface JobDef<D = Record<string, unknown>> {
 ### Web
 `EXTENSION_KINDS` += `'nav'`, `'topbar'` (`FrontendModuleManifest` в shared — те же поля `nav?`, `topbar?`):
 ```ts
-interface NavItemDef { id: string; label: LocalizedText; icon: Component; to: string /* /m/<moduleId>/… */; order?: number }
+type NavItemDef = { id: string; order?: number } & (
+  | { label: LocalizedText; icon: Component; to: string /* /m/<moduleId>/… */ }   // ссылка
+  | { section: Lazy<{}> }                                                         // секция: свой компонент (список каналов, дерево документов)
+);
 interface TopbarItemDef { id: string; component: Lazy<{}>; order?: number }
 ```
-- `nav` — пункты в `Sidebar.vue` после встроенных («Inbox», «Мои задачи»), по `order`, затем по ключу; на mobile — в `BottomNav.vue` в меню «Ещё» (если его нет — не показываются). `to` вне `/m/<moduleId>/` → `registerModules` бросает `Error`.
+- `nav` — элементы в `Sidebar.vue` после встроенных («Inbox», «Мои задачи»), по `order`, затем по ключу: ссылка — пункт меню, `section` — компонент целиком (лениво, `defineAsyncComponent`; сам рисует заголовок и содержимое; ошибка загрузки секции не ломает боковую панель). На mobile элементы `nav` не показываются. `to` вне `/m/<moduleId>/`, или ни `to`, ни `section` → `registerModules` бросает `Error`.
 - `topbar` — компоненты в `TopBar.vue` слева от меню пользователя, по `order`; desktop и mobile.
 
 ### Неделя (WK-0, потребители WK-1, WK-7)
