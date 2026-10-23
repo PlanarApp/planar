@@ -282,6 +282,7 @@ export default {
     description: 'Описание',
     descriptionPlaceholder: "Описание… (Markdown, {'@'} — упомянуть)",
     mention: 'Упоминание',
+    addReaction: 'Добавить реакцию',
     tooLarge: 'Файл больше допустимого размера',
     uploadFailed: 'Не удалось загрузить файл',
     subtasks: 'Подзадачи',

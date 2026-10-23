@@ -10,13 +10,14 @@ import { useLabels, useMembers, type TaskView } from '../tasks';
 import { Button } from '../ui';
 import CommentItem from './CommentItem.vue';
 import Editor from './editor/Editor.vue';
-import { useComments, useUsers } from './queries';
+import { useComments, useReactions, useUsers } from './queries';
 
 const props = defineProps<{ task: TaskView }>();
 const { t, te } = useI18n();
 const { user } = useAuth();
 const comments = useComments(props.task.id);
 const users = useUsers();
+const reactions = useReactions(props.task.id);
 const members = useMembers(() => props.task.spaceId);
 const labels = useLabels(() => props.task.spaceId);
 const draft = shallowRef<JSONContent | null>(null); // shallow: в IndexedDB нельзя класть reactive-прокси
@@ -95,6 +96,12 @@ async function send() {
             : null
         "
         :mine="e.comment.authorId === user?.id"
+        :reactions="(reactions ?? []).filter((r) => r.commentId === e.comment.id)"
+        :user-id="user?.id"
+        :names="Object.fromEntries((users ?? []).map((u) => [u.id, u.name]))"
+        @react="
+          (emoji) => mutate('reaction.toggle', { id: newId(), commentId: e.comment.id, emoji })
+        "
         :members="(members ?? []).map((m) => ({ id: m.id, name: m.name }))"
         @save="(body) => mutate('comment.update', { id: e.comment.id, body })"
         @remove="mutate('comment.delete', { id: e.comment.id })"
