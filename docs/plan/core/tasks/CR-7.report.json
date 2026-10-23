@@ -1,0 +1,73 @@
+{
+  "status": "done",
+  "summary": "Хук notificationsHook в PushService (в транзакции мутации, после run) создаёт notifications и taskWatchers через ServerTx.asSystem; pg-boss очередь push.notification, send после COMMIT, воркер с PushSender (web-push), 404/410 удаляют подписку; эндпоинты vapid/subscribe; dev.sh vapid; миграция 0003 (kind + status_changed).",
+  "commits": [
+    "CR-7: уведомления, автоподписка и push через pg-boss",
+    "CR-7: prettier для миграции и теста"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "notifications_tests",
+      "value": "19",
+      "pass": true
+    },
+    {
+      "name": "migrations_in_sync",
+      "value": "чисто",
+      "pass": true
+    },
+    {
+      "name": "vapid_gen",
+      "value": "2",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-7",
+  "uncertain": [
+    {
+      "where": "apps/api/src/push/push.ts",
+      "why": "url в payload — /tasks/<id>, маршрут веба в контрактах не найден",
+      "checked": "только тест payload"
+    },
+    {
+      "where": "apps/api/src/push/push.ts",
+      "why": "WebPushSender с реальным web-push и pg-boss на prod-базе не гонялся; в тестах отправитель — мок",
+      "checked": "воркер pg-boss end-to-end на тестовой базе (worker.test.ts)"
+    },
+    {
+      "where": "apps/api/src/push/push.ts subscribe",
+      "why": "повтор endpoint с другого аккаунта переназначает подписку текущему пользователю (200), контракт молчит",
+      "checked": "решено ради уникальности endpoint"
+    },
+    {
+      "where": "apps/api/src/app.ts",
+      "why": "в createApp pg-boss по умолчанию выключен (boss:false), main.ts включает; сбой enqueue только логируется, мутацию не откатывает",
+      "checked": "по коду"
+    }
+  ],
+  "dp_feedback": "task show CR-7 из брифа с хвостом «и push» в plan падает: аргумент раздела надо давать как 'CR-7'.",
+  "t": "2026-10-23T02:09:51",
+  "by": "executor"
+}
