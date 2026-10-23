@@ -23,6 +23,34 @@ it('reaction.toggle: создаёт, снимает, comment.delete чистит
   expect(await tx.scan('commentReactions')).toEqual([]);
 });
 
+describe('reaction.toggle', () => {
+  const mk = async () => {
+    const { tx, t } = await setup();
+    const cm = id();
+    await run(tx, 'comment.create', { id: cm, taskId: t, body: { type: 'doc' } });
+    return { tx, cm };
+  };
+  it('spaceId из комментария', async () => {
+    const { tx, cm } = await mk();
+    await run(tx, 'reaction.toggle', { id: id(), commentId: cm, emoji: 'a' });
+    const [r] = await tx.scan('commentReactions');
+    expect(r!.spaceId).toBe((await tx.get('comments', cm))!.spaceId);
+  });
+  it('разные эмодзи сосуществуют', async () => {
+    const { tx, cm } = await mk();
+    for (const emoji of ['a', 'b'])
+      await run(tx, 'reaction.toggle', { id: id(), commentId: cm, emoji });
+    expect(await tx.scan('commentReactions')).toHaveLength(2);
+  });
+  it('пустой и слишком длинный emoji → invalid_args', async () => {
+    const { tx, cm } = await mk();
+    for (const emoji of ['', 'x'.repeat(33)])
+      expect(await code(run(tx, 'reaction.toggle', { id: id(), commentId: cm, emoji }))).toBe(
+        'invalid_args',
+      );
+  });
+});
+
 describe('отсутствующая задача', () => {
   it('unassign → not_found', async () => {
     expect(await code(run(mem(), 'task.unassign', { taskId: id(), userId: U1 }))).toBe('not_found');
