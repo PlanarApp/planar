@@ -14,4 +14,4 @@ generated: true
 
 - core: C-schema v6, C-sync v1, C-mutators v3, C-modules v2, C-http v8 — [docs/contracts/core.md](../contracts/core.md)
 - features: F-fields v1, F-links v1, F-filter v1, F-views v1 — [docs/contracts/features.md](../contracts/features.md)
-- web: C-ui v1, C-client v2, C-tasks v2, C-views v2 — [docs/contracts/web.md](../contracts/web.md)
+- web: C-ui v1, C-client v3, C-tasks v3, C-views v2 — [docs/contracts/web.md](../contracts/web.md)
