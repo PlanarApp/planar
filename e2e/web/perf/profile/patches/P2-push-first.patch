@@ -1,0 +1,18 @@
+diff --git a/apps/web/src/sync/client.ts b/apps/web/src/sync/client.ts
+index 063d1e8..da065d3 100644
+--- a/apps/web/src/sync/client.ts
++++ b/apps/web/src/sync/client.ts
+@@ -211,10 +211,9 @@ export function createClient(db: PlanarDB) {
+     clearTimeout(retryTimer);
+     try {
+       if (cursor === undefined) await bootstrap();
+-      else await pull();
+-      let sent = false;
+-      while (await push()) sent = true;
+-      if (sent) await pull();
++      // P2: сначала push (C-sync: push не зависит от курсора), затем один pull; раньше pull шёл и до, и после push
++      while (await push());
++      await pull();
+       failures = 0;
+       setStatus('online');
+     } catch (e) {

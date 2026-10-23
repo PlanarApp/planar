@@ -1,0 +1,165 @@
+{
+ "total_ms": 22119,
+ "idle_ms": 15657,
+ "busy_ms": 6462,
+ "by_category": [
+  [
+   "(program)",
+   2495.6
+  ],
+  [
+   "dexie",
+   1403.2
+  ],
+  [
+   "native/?",
+   741.5
+  ],
+  [
+   "@vue/runtime-core",
+   650
+  ],
+  [
+   "@vue/reactivity",
+   319.3
+  ],
+  [
+   "(garbage collector)",
+   260.9
+  ],
+  [
+   "reka-ui",
+   167.9
+  ],
+  [
+   "app:src/tasks",
+   149.8
+  ],
+  [
+   "@vue/runtime-dom",
+   80.8
+  ],
+  [
+   "@vue/shared",
+   75.7
+  ],
+  [
+   "app:src/views",
+   26.7
+  ],
+  [
+   "@tanstack/virtual-core",
+   23.8
+  ],
+  [
+   "app:src/i18n",
+   15.2
+  ],
+  [
+   "tasks-BtaDAzAT.js",
+   14
+  ]
+ ],
+ "top_functions": [
+  [
+   "(program)",
+   2495.6
+  ],
+  [
+   "(anon) @dexie:dexie.js:2248",
+   743.4
+  ],
+  [
+   "continue",
+   405.4
+  ],
+  [
+   "(garbage collector)",
+   260.9
+  ],
+  [
+   "n @dexie:dexie.js:3499",
+   106.2
+  ],
+  [
+   "switchToZone @dexie:dexie.js:1095",
+   92.1
+  ],
+  [
+   "get @@vue/reactivity:reactivity.esm-bundler.js:1025",
+   80.7
+  ],
+  [
+   "(anon) @app:src/tasks:queries.ts:51",
+   62.8
+  ],
+  [
+   "snapShot @dexie:dexie.js:1123",
+   61.5
+  ],
+  [
+   "createReactiveObject @@vue/reactivity:reactivity.esm-bundler.js:1460",
+   60.5
+  ],
+  [
+   "useForwardExpose @reka-ui:useForwardExpose.js:5",
+   52
+  ],
+  [
+   "get result",
+   47.1
+  ],
+  [
+   "addRange @dexie:dexie.js:4294",
+   46.4
+  ],
+  [
+   "insertBefore",
+   44.7
+  ],
+  [
+   "(anon) @dexie:dexie.js:2058",
+   44.5
+  ],
+  [
+   "innerDeepClone @dexie:dexie.js:259",
+   40.9
+  ],
+  [
+   "mergeProps @@vue/runtime-core:runtime-core.esm-bundler.js:8167",
+   36.8
+  ],
+  [
+   "n @dexie:dexie.js:2059",
+   35.1
+  ],
+  [
+   "transaction",
+   34.3
+  ],
+  [
+   "(anon)",
+   33.7
+  ],
+  [
+   "unsubscribe @dexie:dexie.js:6293",
+   32.5
+  ],
+  [
+   "removeChild",
+   32.4
+  ],
+  [
+   "initProps @@vue/runtime-core:runtime-core.esm-bundler.js:5015",
+   32.4
+  ],
+  [
+   "guardReactiveProps @@vue/runtime-core:runtime-core.esm-bundler.js:8021",
+   28.2
+  ],
+  [
+   "setupStatefulComponent @@vue/runtime-core:runtime-core.esm-bundler.js:8357",
+   27.9
+  ]
+ ]
+}

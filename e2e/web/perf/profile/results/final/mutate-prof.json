@@ -1,0 +1,5063 @@
+{
+ "p95": 21.59999990463257,
+ "median": 20.299999713897705,
+ "ms": [
+  21.299999713897705,
+  19.199999809265137,
+  21.59999990463257,
+  18.90000009536743,
+  19.5,
+  17.700000286102295,
+  11.400000095367432,
+  16.800000190734863,
+  21.199999809265137,
+  20.700000286102295,
+  20.299999713897705,
+  20.5,
+  17.700000286102295,
+  20.300000190734863,
+  21.09999990463257,
+  22.199999809265137,
+  19.399999618530273,
+  20.300000190734863,
+  19.700000286102295,
+  20.799999713897705
+ ],
+ "runs": [
+  {
+   "ms": 21.299999713897705,
+   "t0": 5213.800000190735,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 4.5,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 13.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 13.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 24.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 14.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 24.7
+    },
+    {
+     "k": "dom",
+     "t": 21.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 23.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 25.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 24,
+     "ops": {},
+     "t1": 24.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 24.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 25.6
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 24.9,
+     "m": "POST",
+     "tH": 5260.199999809265,
+     "tJ0": 5260.199999809265,
+     "t1": 47.6
+    },
+    {
+     "k": "ws",
+     "t": 46.8,
+     "d": "{\"t\":\"poke\",\"seq\":1560}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 48.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 49.6
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1558&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 49,
+     "m": "GET",
+     "tH": 5270.900000095367,
+     "tJ0": 5270.900000095367,
+     "t1": 57.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 58.5,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 62.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 62.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 73.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 63.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 73.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 63.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 74.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 72.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 74.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 72.6,
+     "ops": {},
+     "t1": 73.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 73,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 74.4
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1560&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 73.6,
+     "m": "GET",
+     "tH": 5296.5,
+     "tJ0": 5296.5,
+     "t1": 83
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 83.2,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 84.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 84.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 85.3
+    }
+   ]
+  },
+  {
+   "ms": 19.199999809265137,
+   "t0": 6787.800000190735,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.5,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 11.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 11.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 20.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 12.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 20.4
+    },
+    {
+     "k": "dom",
+     "t": 19.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 19.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 21.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 19.9,
+     "ops": {},
+     "t1": 20.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 21.3
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 20.6,
+     "m": "POST",
+     "tH": 6826.400000095367,
+     "tJ0": 6826.400000095367,
+     "t1": 39.2
+    },
+    {
+     "k": "ws",
+     "t": 38.7,
+     "d": "{\"t\":\"poke\",\"seq\":1562}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 39.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 40.3
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1560&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 39.8,
+     "m": "GET",
+     "tH": 6836.300000190735,
+     "tJ0": 6836.300000190735,
+     "t1": 48.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 49.1,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 51.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 57.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 58.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 57.6,
+     "ops": {},
+     "t1": 58.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 58,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 59.2
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1562&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 58.4,
+     "m": "GET",
+     "tH": 6854.5,
+     "tJ0": 6854.5,
+     "t1": 67
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 67.2,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 68.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 68.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 68.9
+    }
+   ]
+  },
+  {
+   "ms": 21.59999990463257,
+   "t0": 8350.099999904633,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.2,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 15.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 15.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 22.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 16.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 22.8
+    },
+    {
+     "k": "dom",
+     "t": 21.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 22,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 23.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 22.2,
+     "ops": {},
+     "t1": 22.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 22.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 23.7
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 23.2,
+     "m": "POST",
+     "tH": 8533.699999809265,
+     "tJ0": 8533.699999809265,
+     "t1": 184.2
+    },
+    {
+     "k": "ws",
+     "t": 183.8,
+     "d": "{\"t\":\"poke\",\"seq\":1564}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 184.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 185.6
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1562&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 185.1,
+     "m": "GET",
+     "tH": 8544,
+     "tJ0": 8544,
+     "t1": 194.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 194.5,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 197.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 198.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 204.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 198.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 204.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 198.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 204.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 203.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 204.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 203.8,
+     "ops": {},
+     "t1": 204.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 204,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 204.9
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1564&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 204.4,
+     "m": "GET",
+     "tH": 8563.5,
+     "tJ0": 8563.5,
+     "t1": 213.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 213.8,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 215.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 215.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 215.9
+    }
+   ]
+  },
+  {
+   "ms": 18.90000009536743,
+   "t0": 9918.199999809265,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.2,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 13.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 14.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 19.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 14.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 20.1
+    },
+    {
+     "k": "dom",
+     "t": 18.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 19.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 20.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 19.5,
+     "ops": {},
+     "t1": 20
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 19.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 20.9
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 20.2,
+     "m": "POST",
+     "tH": 9955.900000095367,
+     "tJ0": 9955.900000095367,
+     "t1": 38.1
+    },
+    {
+     "k": "ws",
+     "t": 38,
+     "d": "{\"t\":\"poke\",\"seq\":1566}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 38.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 39.1
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1564&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 38.6,
+     "m": "GET",
+     "tH": 9964.900000095367,
+     "tJ0": 9964.900000095367,
+     "t1": 47.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 47.2,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 49.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 50,
+     "ops": {
+      "count": 1
+     },
+     "t1": 56.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 50.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 56.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 50.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 56.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 56.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55.8,
+     "ops": {},
+     "t1": 56.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 56,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 56.9
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1566&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 56.5,
+     "m": "GET",
+     "tH": 9983.599999904633,
+     "tJ0": 9983.599999904633,
+     "t1": 65.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 65.9,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 67.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 67.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 68.3
+    }
+   ]
+  },
+  {
+   "ms": 19.5,
+   "t0": 11484.800000190735,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.4,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 14.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 14.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 20.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 15,
+     "ops": {
+      "count": 1
+     },
+     "t1": 20.5
+    },
+    {
+     "k": "dom",
+     "t": 19.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 19.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 21.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20,
+     "ops": {},
+     "t1": 20.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 21.3
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 20.6,
+     "m": "POST",
+     "tH": 11523.199999809265,
+     "tJ0": 11523.199999809265,
+     "t1": 39
+    },
+    {
+     "k": "ws",
+     "t": 38.6,
+     "d": "{\"t\":\"poke\",\"seq\":1568}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 39.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 40
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1566&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 39.6,
+     "m": "GET",
+     "tH": 11532.300000190735,
+     "tJ0": 11532.400000095367,
+     "t1": 47.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 48.3,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 50.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 51.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 57.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 51.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 57.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 51.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 57.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 56.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 58
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 56.9,
+     "ops": {},
+     "t1": 57.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 57.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 58.1
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1568&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 57.6,
+     "m": "GET",
+     "tH": 11551.599999904633,
+     "tJ0": 11551.599999904633,
+     "t1": 67.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 67.3,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 68.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 68.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 69.1
+    }
+   ]
+  },
+  {
+   "ms": 17.700000286102295,
+   "t0": 13053.199999809265,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.5,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 12.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 12.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 18.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 13.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 18.9
+    },
+    {
+     "k": "dom",
+     "t": 17.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 17.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 19.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 18.2,
+     "ops": {},
+     "t1": 18.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 18.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 19.8
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 19.3,
+     "m": "POST",
+     "tH": 13091.699999809265,
+     "tJ0": 13091.800000190735,
+     "t1": 39
+    },
+    {
+     "k": "ws",
+     "t": 38.9,
+     "d": "{\"t\":\"poke\",\"seq\":1570}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 39.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 40.1
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1568&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 39.6,
+     "m": "GET",
+     "tH": 13101.699999809265,
+     "tJ0": 13101.699999809265,
+     "t1": 48.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 49,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 52.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 53.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 59.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 58,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 59.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 58.3,
+     "ops": {},
+     "t1": 58.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 58.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 59.4
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1570&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 59,
+     "m": "GET",
+     "tH": 13121.699999809265,
+     "tJ0": 13121.699999809265,
+     "t1": 68.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 69,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 70.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 70.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 70.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 173.6,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 316
+    }
+   ]
+  },
+  {
+   "ms": 11.400000095367432,
+   "t0": 14625.699999809265,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.4,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 6.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 6.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 12.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 6.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 12.4
+    },
+    {
+     "k": "dom",
+     "t": 11.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 11.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 13.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 11.9,
+     "ops": {},
+     "t1": 12.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 12.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 13.2
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 12.7,
+     "m": "POST",
+     "tH": 14656.300000190735,
+     "tJ0": 14656.300000190735,
+     "t1": 31
+    },
+    {
+     "k": "ws",
+     "t": 30.7,
+     "d": "{\"t\":\"poke\",\"seq\":1572}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 31.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 32
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1570&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 31.5,
+     "m": "GET",
+     "tH": 14666.599999904633,
+     "tJ0": 14666.599999904633,
+     "t1": 41.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 41.5,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 44.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 45,
+     "ops": {
+      "count": 1
+     },
+     "t1": 52.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 45.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 52.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 45.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 52.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 51.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 52.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 51.7,
+     "ops": {},
+     "t1": 52.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 52.9
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1572&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 52.4,
+     "m": "GET",
+     "tH": 14687.099999904633,
+     "tJ0": 14687.099999904633,
+     "t1": 61.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 62.1,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 63.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 63.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 64
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 168.7,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 311.5
+    }
+   ]
+  },
+  {
+   "ms": 16.800000190734863,
+   "t0": 16190.199999809265,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.8,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 9.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 9.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 17.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 9.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 18
+    },
+    {
+     "k": "dom",
+     "t": 16.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 17.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 18.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 17.4,
+     "ops": {},
+     "t1": 18
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 17.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 18.8
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 18.2,
+     "m": "POST",
+     "tH": 16439,
+     "tJ0": 16439.099999904633,
+     "t1": 249.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 165.3,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 308.7
+    },
+    {
+     "k": "ws",
+     "t": 249.2,
+     "d": "{\"t\":\"poke\",\"seq\":1574}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 249.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 343.1
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1572&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 308.2,
+     "m": "GET",
+     "tH": 16533.099999904633,
+     "tJ0": 16533.099999904633,
+     "t1": 343.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 343.6,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 346.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 346.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 352.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 347.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 352.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 347.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 353.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 352.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 353.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 352.3,
+     "ops": {},
+     "t1": 352.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 352.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 353.3
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1574&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 352.9,
+     "m": "GET",
+     "tH": 16552.099999904633,
+     "tJ0": 16552.099999904633,
+     "t1": 362.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 362.3,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 363.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 363.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 364.1
+    }
+   ]
+  },
+  {
+   "ms": 21.199999809265137,
+   "t0": 17749.5,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.4,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 16.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 16.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 22.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 16.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 22.4
+    },
+    {
+     "k": "dom",
+     "t": 21.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 23.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.9,
+     "ops": {},
+     "t1": 22.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 22.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 23.2
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 22.6,
+     "m": "POST",
+     "tH": 17790.900000095367,
+     "tJ0": 17790.900000095367,
+     "t1": 41.9
+    },
+    {
+     "k": "ws",
+     "t": 41.8,
+     "d": "{\"t\":\"poke\",\"seq\":1576}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 42,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 42.9
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1574&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 42.6,
+     "m": "GET",
+     "tH": 17800.800000190735,
+     "tJ0": 17800.800000190735,
+     "t1": 51.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 51.7,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 54.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 54.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 60.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 54.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 60.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 60.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 59.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 60.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 59.8,
+     "ops": {},
+     "t1": 60.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 60.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 60.9
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1576&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 60.6,
+     "m": "GET",
+     "tH": 17819,
+     "tJ0": 17819,
+     "t1": 69.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 70,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 71.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 71.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 71.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 174.5,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 320.4
+    }
+   ]
+  },
+  {
+   "ms": 20.700000286102295,
+   "t0": 19316.199999809265,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.1,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 15.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 16,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 16.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.7
+    },
+    {
+     "k": "dom",
+     "t": 20.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.1,
+     "ops": {},
+     "t1": 21.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.4
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 21.9,
+     "m": "POST",
+     "tH": 19357.599999904633,
+     "tJ0": 19357.599999904633,
+     "t1": 41.9
+    },
+    {
+     "k": "ws",
+     "t": 41.6,
+     "d": "{\"t\":\"poke\",\"seq\":1578}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 42.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 42.8
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1576&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 42.4,
+     "m": "GET",
+     "tH": 19367.900000095367,
+     "tJ0": 19367.900000095367,
+     "t1": 51.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 52,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 54.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 54.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 60.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 60.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 61.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 59.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 61.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 60.2,
+     "ops": {},
+     "t1": 60.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 60.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 61.3
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1578&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 60.8,
+     "m": "GET",
+     "tH": 19385.599999904633,
+     "tJ0": 19385.699999809265,
+     "t1": 69.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 69.9,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 70.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 71,
+     "ops": {
+      "count": 1
+     },
+     "t1": 71.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 174.5,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 322.2
+    }
+   ]
+  },
+  {
+   "ms": 20.299999713897705,
+   "t0": 20884.400000095367,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.3,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 14.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 15,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 15.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.4
+    },
+    {
+     "k": "dom",
+     "t": 20.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.8,
+     "ops": {},
+     "t1": 21.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.1
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 21.4,
+     "m": "POST",
+     "tH": 20924.800000190735,
+     "tJ0": 20924.800000190735,
+     "t1": 40.9
+    },
+    {
+     "k": "ws",
+     "t": 40.7,
+     "d": "{\"t\":\"poke\",\"seq\":1580}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 41,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 41.6
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1578&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 41.3,
+     "m": "GET",
+     "tH": 20933.5,
+     "tJ0": 20933.5,
+     "t1": 49.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 49.7,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 52.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 53.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 53.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 59
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 57.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 59.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 58.1,
+     "ops": {},
+     "t1": 58.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 58.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 59.1
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1580&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 58.7,
+     "m": "GET",
+     "tH": 20950.900000095367,
+     "tJ0": 20950.900000095367,
+     "t1": 66.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 66.9,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 68.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 68.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 68.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 175.7,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 338.6
+    }
+   ]
+  },
+  {
+   "ms": 20.5,
+   "t0": 22450.099999904633,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.1,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 15.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 15.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 16.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.8
+    },
+    {
+     "k": "dom",
+     "t": 20.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21,
+     "ops": {},
+     "t1": 21.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.8
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 22,
+     "m": "POST",
+     "tH": 22490.699999809265,
+     "tJ0": 22490.699999809265,
+     "t1": 41.1
+    },
+    {
+     "k": "ws",
+     "t": 40.7,
+     "d": "{\"t\":\"poke\",\"seq\":1582}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 41.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 42
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1580&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 41.7,
+     "m": "GET",
+     "tH": 22499.5,
+     "tJ0": 22499.5,
+     "t1": 49.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 49.8,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 52.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 53.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 59
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 57.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 59
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 58,
+     "ops": {},
+     "t1": 58.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 58.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 59.1
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1582&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 58.6,
+     "m": "GET",
+     "tH": 22517.199999809265,
+     "tJ0": 22517.199999809265,
+     "t1": 67.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 67.5,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 68.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 68.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 69.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 181,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 329.2
+    }
+   ]
+  },
+  {
+   "ms": 17.700000286102295,
+   "t0": 24020.199999809265,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.1,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 11.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 11.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 19.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 11.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 19.2
+    },
+    {
+     "k": "dom",
+     "t": 17.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 18,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 20.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 18.4,
+     "ops": {},
+     "t1": 19.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 18.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 20.2
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 19.3,
+     "m": "POST",
+     "tH": 24057,
+     "tJ0": 24057,
+     "t1": 37.2
+    },
+    {
+     "k": "ws",
+     "t": 37.1,
+     "d": "{\"t\":\"poke\",\"seq\":1584}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 37.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 38
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1582&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 37.6,
+     "m": "GET",
+     "tH": 24066.5,
+     "tJ0": 24066.5,
+     "t1": 46.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 46.9,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 49.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 49.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 56
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 50.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 56.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 50.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 56.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 56.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55.3,
+     "ops": {},
+     "t1": 56.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 56.8
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1584&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 56.3,
+     "m": "GET",
+     "tH": 24084.800000190735,
+     "tJ0": 24084.800000190735,
+     "t1": 64.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 65,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 66.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 66.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 67
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 177.2,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 330.2
+    }
+   ]
+  },
+  {
+   "ms": 20.300000190734863,
+   "t0": 25601.199999809265,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.4,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 14.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 14.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 15.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.7
+    },
+    {
+     "k": "dom",
+     "t": 20.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.9,
+     "ops": {},
+     "t1": 21.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.5
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 21.9,
+     "m": "POST",
+     "tH": 25640.900000095367,
+     "tJ0": 25640.900000095367,
+     "t1": 40.1
+    },
+    {
+     "k": "ws",
+     "t": 40,
+     "d": "{\"t\":\"poke\",\"seq\":1586}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 40.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 41
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1584&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 40.7,
+     "m": "GET",
+     "tH": 25650.099999904633,
+     "tJ0": 25650.099999904633,
+     "t1": 49.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 49.4,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 52.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 53.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 58.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 57.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 58.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 57.6,
+     "ops": {},
+     "t1": 58.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 57.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 58.7
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1586&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 58.3,
+     "m": "GET",
+     "tH": 25668,
+     "tJ0": 25668,
+     "t1": 67.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 67.2,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 68.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 68.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 68.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 153.6,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 298
+    }
+   ]
+  },
+  {
+   "ms": 21.09999990463257,
+   "t0": 27164.800000190735,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.2,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 16.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 16.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 22
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 17,
+     "ops": {
+      "count": 1
+     },
+     "t1": 22.1
+    },
+    {
+     "k": "dom",
+     "t": 21.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.5,
+     "ops": {},
+     "t1": 22.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.9
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 22.2,
+     "m": "POST",
+     "tH": 27204.599999904633,
+     "tJ0": 27204.599999904633,
+     "t1": 40.2
+    },
+    {
+     "k": "ws",
+     "t": 39.9,
+     "d": "{\"t\":\"poke\",\"seq\":1588}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 40.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 40.9
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1586&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 40.7,
+     "m": "GET",
+     "tH": 27213.400000095367,
+     "tJ0": 27213.400000095367,
+     "t1": 48.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 49,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 51.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52,
+     "ops": {
+      "count": 1
+     },
+     "t1": 57.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 57.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 52.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 57.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 56.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 57.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 56.9,
+     "ops": {},
+     "t1": 57.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 57.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 57.9
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1588&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 57.5,
+     "m": "GET",
+     "tH": 27230,
+     "tJ0": 27230,
+     "t1": 65.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 65.6,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 66.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 66.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 67.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 157.1,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 304.7
+    }
+   ]
+  },
+  {
+   "ms": 22.199999809265137,
+   "t0": 28731.400000095367,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.2,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 17.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 17.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 23.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 18.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 23.1
+    },
+    {
+     "k": "dom",
+     "t": 22.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 22.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 23.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 22.6,
+     "ops": {},
+     "t1": 23.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 23,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 23.8
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 23.3,
+     "m": "POST",
+     "tH": 28773.400000095367,
+     "tJ0": 28773.400000095367,
+     "t1": 42.3
+    },
+    {
+     "k": "ws",
+     "t": 42.2,
+     "d": "{\"t\":\"poke\",\"seq\":1590}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 42.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 43.2
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1588&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 42.8,
+     "m": "GET",
+     "tH": 28782.300000190735,
+     "tJ0": 28782.300000190735,
+     "t1": 51.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 51.4,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 54.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 54.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 60.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 54.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 60.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 61.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 60,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 61.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 60.2,
+     "ops": {},
+     "t1": 60.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 60.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 61.3
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1590&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 60.8,
+     "m": "GET",
+     "tH": 28800.5,
+     "tJ0": 28800.5,
+     "t1": 69.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 69.5,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 70.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 70.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 71.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 158.7,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 307.2
+    }
+   ]
+  },
+  {
+   "ms": 19.399999618530273,
+   "t0": 30301.300000190735,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.3,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 13.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 14,
+     "ops": {
+      "count": 1
+     },
+     "t1": 20.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 14.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 20.5
+    },
+    {
+     "k": "dom",
+     "t": 19.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 19.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 21.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20,
+     "ops": {},
+     "t1": 20.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 21.4
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 20.6,
+     "m": "POST",
+     "tH": 30339.900000095367,
+     "tJ0": 30339.900000095367,
+     "t1": 39.1
+    },
+    {
+     "k": "ws",
+     "t": 39,
+     "d": "{\"t\":\"poke\",\"seq\":1592}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 39.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 40
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1590&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 39.5,
+     "m": "GET",
+     "tH": 30348.699999809265,
+     "tJ0": 30348.800000190735,
+     "t1": 47.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 47.9,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 50.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 51.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 57
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 51.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 57
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 51.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 57.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 56.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 57.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 56.5,
+     "ops": {},
+     "t1": 57
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 56.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 57.6
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1592&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 57.1,
+     "m": "GET",
+     "tH": 30366.400000095367,
+     "tJ0": 30366.400000095367,
+     "t1": 65.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 65.5,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 66.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 67,
+     "ops": {
+      "count": 1
+     },
+     "t1": 67.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 153.9,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 298.3
+    }
+   ]
+  },
+  {
+   "ms": 20.300000190734863,
+   "t0": 31866.099999904633,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.2,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 15.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 15.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 16,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.2
+    },
+    {
+     "k": "dom",
+     "t": 20.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 21.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.7,
+     "ops": {},
+     "t1": 21.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 21.4,
+     "m": "POST",
+     "tH": 31943.599999904633,
+     "tJ0": 31943.699999809265,
+     "t1": 78
+    },
+    {
+     "k": "ws",
+     "t": 77.8,
+     "d": "{\"t\":\"poke\",\"seq\":1594}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 78.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 78.8
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1592&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 78.5,
+     "m": "GET",
+     "tH": 31952.800000190735,
+     "tJ0": 31952.800000190735,
+     "t1": 87
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 87.1,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 90
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 90.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 95.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 90.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 95.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 90.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 96.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 94.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 96.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 95.1,
+     "ops": {},
+     "t1": 95.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 95.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 96.1
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1594&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 95.7,
+     "m": "GET",
+     "tH": 31969.900000095367,
+     "tJ0": 31969.900000095367,
+     "t1": 104.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 104.2,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 105.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 105.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 105.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 158.5,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 304.9
+    }
+   ]
+  },
+  {
+   "ms": 19.700000286102295,
+   "t0": 33432.699999809265,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.1,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 15.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 15.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 20.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 15.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 20.8
+    },
+    {
+     "k": "dom",
+     "t": 19.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 21.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.2,
+     "ops": {},
+     "t1": 20.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 20.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 21.6
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 21,
+     "m": "POST",
+     "tH": 33473.90000009537,
+     "tJ0": 33473.90000009537,
+     "t1": 41.7
+    },
+    {
+     "k": "ws",
+     "t": 41.4,
+     "d": "{\"t\":\"poke\",\"seq\":1596}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 41.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 42.6
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1594&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 42.1,
+     "m": "GET",
+     "tH": 33482.90000009537,
+     "tJ0": 33482.90000009537,
+     "t1": 50.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 50.6,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 53.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 53.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 59.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 53.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 59.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 54.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 59.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 58.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 59.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 58.7,
+     "ops": {},
+     "t1": 59.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 59,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 59.9
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1596&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 59.5,
+     "m": "GET",
+     "tH": 33501.199999809265,
+     "tJ0": 33501.199999809265,
+     "t1": 68.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 69,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 70.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 70.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 70.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 174.9,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 325.6
+    }
+   ]
+  },
+  {
+   "ms": 20.799999713897705,
+   "t0": 35001.40000009537,
+   "ev": [
+    {
+     "k": "enter",
+     "t": 0
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 1.3,
+     "ops": {
+      "get": 3,
+      "put": 1,
+      "add": 1
+     },
+     "bytes": 0,
+     "t1": 14
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 14.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 14.8,
+     "ops": {
+      "count": 1
+     },
+     "t1": 21.9
+    },
+    {
+     "k": "dom",
+     "t": 20.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.3,
+     "ops": {},
+     "t1": 22
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 21.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 22.7
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/push",
+     "t0": 22,
+     "m": "POST",
+     "tH": 35043.300000190735,
+     "tJ0": 35043.40000009537,
+     "t1": 42.4
+    },
+    {
+     "k": "ws",
+     "t": 42.1,
+     "d": "{\"t\":\"poke\",\"seq\":1598}"
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 42.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 43.5
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1596&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 43,
+     "m": "GET",
+     "tH": 35052.59999990463,
+     "tJ0": 35052.59999990463,
+     "t1": 51.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 51.8,
+     "ops": {
+      "getAll": 1,
+      "put": 5,
+      "delete": 1
+     },
+     "bytes": 0,
+     "t1": 54.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55,
+     "ops": {
+      "count": 1
+     },
+     "t1": 61
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 61.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 55.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 61.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 60.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 61.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 60.5,
+     "ops": {},
+     "t1": 61.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 60.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 61.6
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=1598&clientId=01a167db-e5e7-7f87-88e3-f4058968f47e",
+     "t0": 61.2,
+     "m": "GET",
+     "tH": 35070.800000190735,
+     "tJ0": 35070.800000190735,
+     "t1": 69.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 69.9,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 70.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 71.2,
+     "ops": {
+      "count": 1
+     },
+     "t1": 71.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 2,
+     "s": "tasks,_queue",
+     "t0": 169.4,
+     "ops": {
+      "getAll": 1,
+      "count": 1
+     },
+     "t1": 319.8
+    }
+   ]
+  }
+ ]
+}

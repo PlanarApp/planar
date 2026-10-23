@@ -1,0 +1,165 @@
+{
+ "total_ms": 43375,
+ "idle_ms": 15904,
+ "busy_ms": 27471,
+ "by_category": [
+  [
+   "(program)",
+   13614.9
+  ],
+  [
+   "dexie",
+   7911.2
+  ],
+  [
+   "native/?",
+   3626.2
+  ],
+  [
+   "app:src/tasks",
+   862.1
+  ],
+  [
+   "(garbage collector)",
+   481.1
+  ],
+  [
+   "@vue/reactivity",
+   465.2
+  ],
+  [
+   "@vue/runtime-core",
+   198.1
+  ],
+  [
+   "app:src/views",
+   145.2
+  ],
+  [
+   "@tanstack/virtual-core",
+   51.2
+  ],
+  [
+   "@vue/runtime-dom",
+   29
+  ],
+  [
+   "reka-ui",
+   20.6
+  ],
+  [
+   "@vue/shared",
+   19.5
+  ],
+  [
+   "zod",
+   13
+  ],
+  [
+   "app:src/i18n",
+   12.5
+  ]
+ ],
+ "top_functions": [
+  [
+   "(program)",
+   13614.9
+  ],
+  [
+   "(anon) @dexie:dexie.js:2248",
+   4514.5
+  ],
+  [
+   "continue",
+   2263
+  ],
+  [
+   "get result",
+   629
+  ],
+  [
+   "n @dexie:dexie.js:3499",
+   596
+  ],
+  [
+   "y.onsuccess @dexie:dexie.js:3553",
+   530.2
+  ],
+  [
+   "switchToZone @dexie:dexie.js:1095",
+   486.5
+  ],
+  [
+   "(garbage collector)",
+   481.1
+  ],
+  [
+   "g.oncomplete",
+   451.7
+  ],
+  [
+   "(anon) @app:src/tasks:queries.ts:51",
+   416.9
+  ],
+  [
+   "get @@vue/reactivity:reactivity.esm-bundler.js:1025",
+   277
+  ],
+  [
+   "addRange @dexie:dexie.js:4294",
+   257.8
+  ],
+  [
+   "snapShot @dexie:dexie.js:1123",
+   231.6
+  ],
+  [
+   "n @dexie:dexie.js:2059",
+   214.3
+  ],
+  [
+   "innerDeepClone @dexie:dexie.js:259",
+   209.5
+  ],
+  [
+   "(anon) @dexie:dexie.js:2058",
+   198.3
+  ],
+  [
+   "rebalance @dexie:dexie.js:4401",
+   133.3
+  ],
+  [
+   "cmp @dexie:dexie.js:1275",
+   129.1
+  ],
+  [
+   "val @app:src/tasks:sort.ts:6",
+   122.3
+  ],
+  [
+   "createReactiveObject @@vue/reactivity:reactivity.esm-bundler.js:1460",
+   95
+  ],
+  [
+   "(anon) @dexie:dexie.js:993",
+   79
+  ],
+  [
+   "computeDepth @dexie:dexie.js:4418",
+   72.5
+  ],
+  [
+   "(anon) @app:src/tasks:queries.ts:59",
+   67
+  ],
+  [
+   "r @app:src/tasks:queries.ts:46",
+   60.6
+  ],
+  [
+   "(anon)",
+   59.8
+  ]
+ ]
+}

@@ -1,0 +1,16 @@
+diff --git a/apps/web/src/tasks/queries.ts b/apps/web/src/tasks/queries.ts
+index 218c3e2..cdf75c5 100644
+--- a/apps/web/src/tasks/queries.ts
++++ b/apps/web/src/tasks/queries.ts
+@@ -46,9 +46,9 @@ async function views(tasks: Row<'tasks'>[], projectKey: Map<string, string>): Pr
+   const links = <R extends { taskId: string }>(table: string): Promise<R[]> => {
+     const t = db.table<R>(table);
+     if (ids.length <= 500) return t.where('taskId').anyOf(ids).toArray();
+-    // shortcut: на тысячах задач 10 000 точечных запросов по индексу медленнее скана таблицы
++    // P1: getAll всей таблицы одним запросом + фильтр в JS; cursor-скан (filter().toArray()) в 10 раз медленнее
+     const set = new Set(ids);
+-    return t.filter((r) => set.has(r.taskId)).toArray();
++    return t.toArray().then((rows) => rows.filter((r) => set.has(r.taskId)));
+   };
+   const [as, ls] = await Promise.all([
+     links<Row<'taskAssignees'>>('taskAssignees'),

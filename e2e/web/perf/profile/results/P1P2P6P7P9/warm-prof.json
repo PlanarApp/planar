@@ -1,0 +1,8044 @@
+{
+ "counts": {
+  "big": 3334,
+  "other": 3333,
+  "total": 10000
+ },
+ "median": 489.09999990463257,
+ "ms": [
+  533,
+  466,
+  488.09999990463257,
+  489.09999990463257,
+  578.1999998092651
+ ],
+ "runs": [
+  {
+   "ms": 533,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 64.6,
+     "m": "GET",
+     "tH": 85.4,
+     "tJ0": 85.4,
+     "t1": 99.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 80.3,
+     "ops": {},
+     "t1": 152.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 81.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 152.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 82.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 343.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 82.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 343.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 82.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 345.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 82.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 345.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 82.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 345.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 83.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 345.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 83.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 345.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 83.4,
+     "ops": {},
+     "t1": 342.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 99.6,
+     "ops": {
+      "get": 1
+     },
+     "t1": 373.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 128.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 373.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 128.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 373.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 342.5,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 378
+    },
+    {
+     "k": "loaf",
+     "t0": 254,
+     "dur": 50.09999990463257,
+     "block": 0,
+     "rs": 304,
+     "sl": 304.09999990463257,
+     "sc": [
+      [
+       "IDBRequest.onsuccess",
+       "",
+       34.3,
+       "useAuth-DI4-LY1B.js",
+       270
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 374.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 379.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 374.5,
+     "ops": {},
+     "t1": 379
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 378.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 389.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 379.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 392.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 389.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 394.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 390.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 394.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 391.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 394.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 391.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 394.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 391.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 395.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 393.5,
+     "ops": {},
+     "t1": 394.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 394,
+     "ops": {
+      "count": 1
+     },
+     "t1": 546.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 394.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 547.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 395.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 564.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 395.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 595.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 395.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 595.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 396.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 596.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 397.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 619.6
+    },
+    {
+     "k": "firstRow",
+     "t": 533
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=744&clientId=01a167bb-929e-746a-9e7c-dbc87ff5a48e",
+     "t0": 546.8,
+     "m": "GET",
+     "tH": 596.2,
+     "tJ0": 596.2,
+     "t1": 642.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 565.1,
+     "ops": {},
+     "t1": 619.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 565.6,
+     "ops": {},
+     "t1": 619.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 566,
+     "ops": {},
+     "t1": 619.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 566.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 633
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 566.4,
+     "ops": {},
+     "t1": 620
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 566.7,
+     "ops": {},
+     "t1": 620.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 567.1,
+     "ops": {},
+     "t1": 620.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 567.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 633
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 567.5,
+     "ops": {},
+     "t1": 620.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 567.7,
+     "ops": {},
+     "t1": 620.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 568,
+     "ops": {},
+     "t1": 620.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 568.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 633.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 568.4,
+     "ops": {},
+     "t1": 620.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 568.8,
+     "ops": {},
+     "t1": 620.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 569,
+     "ops": {},
+     "t1": 620.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 569.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 633.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 569.4,
+     "ops": {},
+     "t1": 621
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 569.7,
+     "ops": {},
+     "t1": 621
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 569.9,
+     "ops": {},
+     "t1": 621.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 570.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 634.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 570.4,
+     "ops": {},
+     "t1": 621.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 570.7,
+     "ops": {},
+     "t1": 621.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 571,
+     "ops": {},
+     "t1": 621.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 571.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 634.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 571.4,
+     "ops": {},
+     "t1": 621.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 571.7,
+     "ops": {},
+     "t1": 621.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 572,
+     "ops": {},
+     "t1": 621.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 572.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 635.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 572.3,
+     "ops": {},
+     "t1": 621.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 572.6,
+     "ops": {},
+     "t1": 621.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 572.9,
+     "ops": {},
+     "t1": 622
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 573,
+     "ops": {
+      "get": 3
+     },
+     "t1": 635.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 581.8,
+     "ops": {},
+     "t1": 622.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 582.2,
+     "ops": {},
+     "t1": 622.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 582.5,
+     "ops": {},
+     "t1": 622.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 582.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 636
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 583,
+     "ops": {},
+     "t1": 622.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 583.3,
+     "ops": {},
+     "t1": 622.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 583.5,
+     "ops": {},
+     "t1": 622.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 583.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 636.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 583.8,
+     "ops": {},
+     "t1": 622.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 584.1,
+     "ops": {},
+     "t1": 622.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 584.3,
+     "ops": {},
+     "t1": 622.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 584.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 636.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 584.7,
+     "ops": {},
+     "t1": 622.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 585,
+     "ops": {},
+     "t1": 622.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 585.2,
+     "ops": {},
+     "t1": 623
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 585.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 637.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 585.5,
+     "ops": {},
+     "t1": 623.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 585.7,
+     "ops": {},
+     "t1": 623.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 586,
+     "ops": {},
+     "t1": 623.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 586.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 637.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 586.4,
+     "ops": {},
+     "t1": 623.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 586.6,
+     "ops": {},
+     "t1": 623.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 586.9,
+     "ops": {},
+     "t1": 623.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 587.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 638.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 587.4,
+     "ops": {},
+     "t1": 623.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 587.7,
+     "ops": {},
+     "t1": 623.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 587.8,
+     "ops": {},
+     "t1": 623.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 588,
+     "ops": {
+      "get": 3
+     },
+     "t1": 638.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 588.2,
+     "ops": {},
+     "t1": 624
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 588.5,
+     "ops": {},
+     "t1": 624
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 588.7,
+     "ops": {},
+     "t1": 624.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 588.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 639
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 589,
+     "ops": {},
+     "t1": 624.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 589.2,
+     "ops": {},
+     "t1": 624.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 589.4,
+     "ops": {},
+     "t1": 624.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 589.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 639.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 589.9,
+     "ops": {},
+     "t1": 624.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 590.1,
+     "ops": {},
+     "t1": 624.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 590.3,
+     "ops": {},
+     "t1": 624.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 590.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 639.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 590.6,
+     "ops": {},
+     "t1": 624.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 591,
+     "ops": {},
+     "t1": 624.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 591.1,
+     "ops": {},
+     "t1": 624.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 591.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 640.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 591.6,
+     "ops": {},
+     "t1": 625.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 591.8,
+     "ops": {},
+     "t1": 625.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 592.1,
+     "ops": {},
+     "t1": 625.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 592.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 640.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 592.4,
+     "ops": {},
+     "t1": 625.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 592.7,
+     "ops": {},
+     "t1": 625.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 592.9,
+     "ops": {},
+     "t1": 625.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 593.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 641.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 593.3,
+     "ops": {},
+     "t1": 625.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 593.6,
+     "ops": {},
+     "t1": 625.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 593.9,
+     "ops": {},
+     "t1": 625.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 594.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 641.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 594.3,
+     "ops": {},
+     "t1": 625.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 594.7,
+     "ops": {},
+     "t1": 626
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 594.8,
+     "ops": {},
+     "t1": 626.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 595.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 647.6
+    },
+    {
+     "k": "wsopen",
+     "t": 609.8
+    },
+    {
+     "k": "loaf",
+     "t0": 392.7,
+     "dur": 151.09999990463257,
+     "block": 96.2,
+     "rs": 533.3999996185303,
+     "sl": 533.5,
+     "sc": [
+      [
+       "TimerHandler:setTimeout",
+       "",
+       135.9,
+       "useAuth-DI4-LY1B.js",
+       398
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 642.6,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 649.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 650.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 651.9
+    }
+   ],
+   "nav": {
+    "resp": 4.599999904632568,
+    "dcl": 65.09999990463257,
+    "load": 66.5
+   },
+   "fcp": 92,
+   "res": [
+    [
+     "/assets/index-D4OPBcj3.js",
+     23,
+     28,
+     0,
+     80679
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     23,
+     28,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     23,
+     28,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     23,
+     28,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-DI4-LY1B.js",
+     23,
+     28,
+     0,
+     222466
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     23,
+     28,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     23,
+     28,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-CJfs7yrk.js",
+     63,
+     64,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     63,
+     65,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     65,
+     66,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     65,
+     71,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-1LEQxKyp.js",
+     100,
+     103,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-B0HslK4d.js",
+     100,
+     105,
+     0,
+     20626
+    ],
+    [
+     "/assets/Avatar-BhLTwxJ_.js",
+     101,
+     106,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     101,
+     107,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-DYSqoIno.js",
+     101,
+     107,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-B8Y73Upe.js",
+     101,
+     107,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-dedTMcDg.js",
+     102,
+     107,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     102,
+     107,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-C2LRPJWS.js",
+     102,
+     107,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-BtAt2J_P.js",
+     102,
+     107,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-4OkUNe0s.js",
+     102,
+     107,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-BH6r-aVF.js",
+     102,
+     107,
+     0,
+     2018
+    ],
+    [
+     "/assets/x-Ck37A6tV.js",
+     103,
+     107,
+     0,
+     182
+    ],
+    [
+     "/assets/View-BAYQV_Sm.js",
+     357,
+     359,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-BCA474g1.js",
+     357,
+     359,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=744&clientId=01a167bb-929e-746a-9e7c-dbc87ff5a48e",
+     547,
+     558,
+     346,
+     46
+    ]
+   ]
+  },
+  {
+   "ms": 466,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 51.8,
+     "m": "GET",
+     "tH": 61.4,
+     "tJ0": 61.4,
+     "t1": 62.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 56.1,
+     "ops": {},
+     "t1": 135
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 57.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 135
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 57.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 302.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 58.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 302.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 58.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 302.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 58.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 302.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 58.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 303
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 59.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 59.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 59.7,
+     "ops": {},
+     "t1": 302
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 63.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 326.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 106.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 326.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 107.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 326.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 302.1,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 330.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 327,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 331.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 327.2,
+     "ops": {},
+     "t1": 330.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 330.6,
+     "ops": {
+      "get": 1
+     },
+     "t1": 340.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 331.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 342.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 340.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 344.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 341,
+     "ops": {
+      "get": 1
+     },
+     "t1": 344.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 341.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 344.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 341.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 344.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 341.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 345
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 343.4,
+     "ops": {},
+     "t1": 344.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 343.7,
+     "ops": {
+      "count": 1
+     },
+     "t1": 478.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 344.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 478.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 344.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 496.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 344.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 516.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 345.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 516.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 345.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 516.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 346.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 538.3
+    },
+    {
+     "k": "firstRow",
+     "t": 466
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=744&clientId=01a167bb-929e-746a-9e7c-dbc87ff5a48e",
+     "t0": 478.2,
+     "m": "GET",
+     "tH": 516.8,
+     "tJ0": 516.8,
+     "t1": 560.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 497.1,
+     "ops": {},
+     "t1": 538.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 497.3,
+     "ops": {},
+     "t1": 538.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 497.5,
+     "ops": {},
+     "t1": 538.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 497.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 550.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 498,
+     "ops": {},
+     "t1": 538.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 498.3,
+     "ops": {},
+     "t1": 538.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 498.5,
+     "ops": {},
+     "t1": 538.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 498.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 551.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 498.8,
+     "ops": {},
+     "t1": 538.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 499.1,
+     "ops": {},
+     "t1": 539
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 499.3,
+     "ops": {},
+     "t1": 539.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 499.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 552.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 499.7,
+     "ops": {},
+     "t1": 539.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 500,
+     "ops": {},
+     "t1": 539.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 500.2,
+     "ops": {},
+     "t1": 539.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 500.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 552.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 500.6,
+     "ops": {},
+     "t1": 539.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 500.9,
+     "ops": {},
+     "t1": 539.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 501.2,
+     "ops": {},
+     "t1": 539.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 501.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 552.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 501.5,
+     "ops": {},
+     "t1": 539.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 501.8,
+     "ops": {},
+     "t1": 540
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 502.1,
+     "ops": {},
+     "t1": 540.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 502.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 553.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 502.4,
+     "ops": {},
+     "t1": 540.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 502.7,
+     "ops": {},
+     "t1": 540.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 502.9,
+     "ops": {},
+     "t1": 540.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 503.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 553.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 503.3,
+     "ops": {},
+     "t1": 540.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 503.5,
+     "ops": {},
+     "t1": 540.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 503.7,
+     "ops": {},
+     "t1": 540.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 503.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 554.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 504.1,
+     "ops": {},
+     "t1": 540.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 504.3,
+     "ops": {},
+     "t1": 540.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 504.5,
+     "ops": {},
+     "t1": 540.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 504.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 554.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 504.9,
+     "ops": {},
+     "t1": 540.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 505.1,
+     "ops": {},
+     "t1": 541.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 505.3,
+     "ops": {},
+     "t1": 541.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 505.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 555.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 505.7,
+     "ops": {},
+     "t1": 541.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 505.9,
+     "ops": {},
+     "t1": 541.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 506.1,
+     "ops": {},
+     "t1": 541.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 506.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 555.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 506.5,
+     "ops": {},
+     "t1": 541.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 506.7,
+     "ops": {},
+     "t1": 541.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 507,
+     "ops": {},
+     "t1": 541.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 507.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 556.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 507.3,
+     "ops": {},
+     "t1": 541.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 507.6,
+     "ops": {},
+     "t1": 541.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 507.8,
+     "ops": {},
+     "t1": 541.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 507.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 556.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 508.2,
+     "ops": {},
+     "t1": 542.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 508.4,
+     "ops": {},
+     "t1": 542.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 508.7,
+     "ops": {},
+     "t1": 542.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 508.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 557.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 509.1,
+     "ops": {},
+     "t1": 542.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 509.3,
+     "ops": {},
+     "t1": 542.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 509.4,
+     "ops": {},
+     "t1": 542.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 509.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 557.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 509.9,
+     "ops": {},
+     "t1": 542.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 510.1,
+     "ops": {},
+     "t1": 542.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 510.3,
+     "ops": {},
+     "t1": 542.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 510.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 557.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 510.7,
+     "ops": {},
+     "t1": 542.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 510.9,
+     "ops": {},
+     "t1": 542.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 511.1,
+     "ops": {},
+     "t1": 543.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 511.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 558.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 511.4,
+     "ops": {},
+     "t1": 543.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 511.7,
+     "ops": {},
+     "t1": 543.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 511.9,
+     "ops": {},
+     "t1": 543.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 512.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 558.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 512.2,
+     "ops": {},
+     "t1": 543.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 512.5,
+     "ops": {},
+     "t1": 543.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 512.7,
+     "ops": {},
+     "t1": 543.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 512.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 559
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 513,
+     "ops": {},
+     "t1": 543.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 513.3,
+     "ops": {},
+     "t1": 543.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 513.5,
+     "ops": {},
+     "t1": 543.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 513.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 559.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 513.8,
+     "ops": {},
+     "t1": 543.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 514,
+     "ops": {},
+     "t1": 543.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 514.2,
+     "ops": {},
+     "t1": 544.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 514.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 559.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 514.6,
+     "ops": {},
+     "t1": 544.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 514.8,
+     "ops": {},
+     "t1": 544.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 515.1,
+     "ops": {},
+     "t1": 544.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 515.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 560.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 515.5,
+     "ops": {},
+     "t1": 544.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 515.7,
+     "ops": {},
+     "t1": 544.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 515.9,
+     "ops": {},
+     "t1": 544.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 516,
+     "ops": {
+      "get": 3
+     },
+     "t1": 566
+    },
+    {
+     "k": "wsopen",
+     "t": 528.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 561.1,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 572.6
+    },
+    {
+     "k": "loaf",
+     "t0": 342.6,
+     "dur": 132.2000002861023,
+     "block": 78.1,
+     "rs": 466.40000009536743,
+     "sl": 466.59999990463257,
+     "sc": [
+      [
+       "TimerHandler:setTimeout",
+       "",
+       119.6,
+       "useAuth-DI4-LY1B.js",
+       347
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 573.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 573.8
+    }
+   ],
+   "nav": {
+    "resp": 4.199999809265137,
+    "dcl": 52.19999980926514,
+    "load": 53.59999990463257
+   },
+   "fcp": 64,
+   "res": [
+    [
+     "/assets/index-D4OPBcj3.js",
+     10,
+     14,
+     0,
+     80679
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     11,
+     15,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     11,
+     15,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     11,
+     15,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-DI4-LY1B.js",
+     11,
+     15,
+     0,
+     222466
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     11,
+     15,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     11,
+     15,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-CJfs7yrk.js",
+     50,
+     52,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     50,
+     53,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     52,
+     53,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     52,
+     60,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-1LEQxKyp.js",
+     64,
+     67,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-B0HslK4d.js",
+     64,
+     68,
+     0,
+     20626
+    ],
+    [
+     "/assets/Avatar-BhLTwxJ_.js",
+     64,
+     70,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     65,
+     71,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-DYSqoIno.js",
+     65,
+     72,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-B8Y73Upe.js",
+     65,
+     72,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-dedTMcDg.js",
+     66,
+     72,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     66,
+     72,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-C2LRPJWS.js",
+     66,
+     72,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-BtAt2J_P.js",
+     66,
+     72,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-4OkUNe0s.js",
+     67,
+     72,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-BH6r-aVF.js",
+     67,
+     72,
+     0,
+     2018
+    ],
+    [
+     "/assets/x-Ck37A6tV.js",
+     67,
+     72,
+     0,
+     182
+    ],
+    [
+     "/assets/View-BAYQV_Sm.js",
+     312,
+     314,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-BCA474g1.js",
+     313,
+     314,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=744&clientId=01a167bb-929e-746a-9e7c-dbc87ff5a48e",
+     478,
+     489,
+     346,
+     46
+    ]
+   ]
+  },
+  {
+   "ms": 488.09999990463257,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 60.5,
+     "m": "GET",
+     "tH": 70.1,
+     "tJ0": 70.1,
+     "t1": 70.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 64.5,
+     "ops": {},
+     "t1": 136.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 67,
+     "ops": {
+      "get": 1
+     },
+     "t1": 136.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 67.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 67.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 67.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 67.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 304.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 68,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 68.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 68.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 304.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 68.9,
+     "ops": {},
+     "t1": 303.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 71.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 328.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 103.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 328.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 103.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 328.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 303.8,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 333.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 332.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 334.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 332.4,
+     "ops": {},
+     "t1": 334
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 333.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 344.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 334.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 346.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 344.1,
+     "ops": {
+      "count": 1
+     },
+     "t1": 347.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 344.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 348.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 344.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 348.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 345.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 348.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 345.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 348.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 346.6,
+     "ops": {
+      "count": 1
+     },
+     "t1": 349.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 347.3,
+     "ops": {},
+     "t1": 348.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 347.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 351.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 348.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 500.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 349,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 500.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 349.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 517
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 349.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 537.7
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=744&clientId=01a167bb-929e-746a-9e7c-dbc87ff5a48e",
+     "t0": 350,
+     "m": "GET",
+     "tH": 518.8,
+     "tJ0": 518.8,
+     "t1": 571.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 350.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 559.4
+    },
+    {
+     "k": "firstRow",
+     "t": 488.1
+    },
+    {
+     "k": "wsopen",
+     "t": 517.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 517.7,
+     "ops": {},
+     "t1": 559.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 518.1,
+     "ops": {},
+     "t1": 559.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 518.3,
+     "ops": {},
+     "t1": 559.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 518.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 573
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 519,
+     "ops": {},
+     "t1": 559.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 519.2,
+     "ops": {},
+     "t1": 559.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 519.5,
+     "ops": {},
+     "t1": 560
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 519.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 573.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 519.8,
+     "ops": {},
+     "t1": 560.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 520,
+     "ops": {},
+     "t1": 560.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 520.3,
+     "ops": {},
+     "t1": 560.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 520.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 574
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 520.7,
+     "ops": {},
+     "t1": 560.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 521,
+     "ops": {},
+     "t1": 560.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 521.2,
+     "ops": {},
+     "t1": 560.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 521.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 574.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 521.6,
+     "ops": {},
+     "t1": 560.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 521.9,
+     "ops": {},
+     "t1": 560.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 522.1,
+     "ops": {},
+     "t1": 560.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 522.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 575
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 522.5,
+     "ops": {},
+     "t1": 561.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 522.7,
+     "ops": {},
+     "t1": 561.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 523,
+     "ops": {},
+     "t1": 561.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 523.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 575.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 523.3,
+     "ops": {},
+     "t1": 561.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 523.5,
+     "ops": {},
+     "t1": 561.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 523.8,
+     "ops": {},
+     "t1": 561.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 524,
+     "ops": {
+      "get": 3
+     },
+     "t1": 576.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 524.2,
+     "ops": {},
+     "t1": 561.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 524.4,
+     "ops": {},
+     "t1": 561.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 524.6,
+     "ops": {},
+     "t1": 561.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 524.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 576.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 524.9,
+     "ops": {},
+     "t1": 561.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 525.2,
+     "ops": {},
+     "t1": 562
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 525.4,
+     "ops": {},
+     "t1": 562.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 525.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 577
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 525.8,
+     "ops": {},
+     "t1": 562.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 526,
+     "ops": {},
+     "t1": 562.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 526.2,
+     "ops": {},
+     "t1": 562.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 526.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 577.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 526.6,
+     "ops": {},
+     "t1": 562.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 526.9,
+     "ops": {},
+     "t1": 562.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 527.1,
+     "ops": {},
+     "t1": 562.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 527.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 577.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 527.4,
+     "ops": {},
+     "t1": 562.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 527.7,
+     "ops": {},
+     "t1": 562.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 527.9,
+     "ops": {},
+     "t1": 563
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 528,
+     "ops": {
+      "get": 3
+     },
+     "t1": 578.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 528.2,
+     "ops": {},
+     "t1": 563.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 528.5,
+     "ops": {},
+     "t1": 563.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 528.7,
+     "ops": {},
+     "t1": 563.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 528.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 578.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 529.1,
+     "ops": {},
+     "t1": 563.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 529.3,
+     "ops": {},
+     "t1": 563.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 529.5,
+     "ops": {},
+     "t1": 563.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 529.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 579
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 530.1,
+     "ops": {},
+     "t1": 563.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 530.3,
+     "ops": {},
+     "t1": 563.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 530.5,
+     "ops": {},
+     "t1": 563.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 530.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 579.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 530.8,
+     "ops": {},
+     "t1": 564
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 531.1,
+     "ops": {},
+     "t1": 564
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 531.3,
+     "ops": {},
+     "t1": 564
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 531.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 579.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 531.7,
+     "ops": {},
+     "t1": 564.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 531.9,
+     "ops": {},
+     "t1": 564.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 532.2,
+     "ops": {},
+     "t1": 564.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 532.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 580.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 532.5,
+     "ops": {},
+     "t1": 564.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 532.7,
+     "ops": {},
+     "t1": 564.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 533,
+     "ops": {},
+     "t1": 564.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 533.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 580.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 533.4,
+     "ops": {},
+     "t1": 564.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 533.6,
+     "ops": {},
+     "t1": 564.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 533.9,
+     "ops": {},
+     "t1": 564.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 534,
+     "ops": {
+      "get": 3
+     },
+     "t1": 580.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 534.2,
+     "ops": {},
+     "t1": 565.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 534.4,
+     "ops": {},
+     "t1": 565.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 534.6,
+     "ops": {},
+     "t1": 565.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 534.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 581.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 535,
+     "ops": {},
+     "t1": 565.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 535.3,
+     "ops": {},
+     "t1": 565.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 535.5,
+     "ops": {},
+     "t1": 565.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 535.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 581.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 535.9,
+     "ops": {},
+     "t1": 565.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 536.1,
+     "ops": {},
+     "t1": 565.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 536.3,
+     "ops": {},
+     "t1": 565.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 536.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 582
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 536.7,
+     "ops": {},
+     "t1": 565.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 536.9,
+     "ops": {},
+     "t1": 565.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 537.2,
+     "ops": {},
+     "t1": 566
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 537.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 582.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 572.3,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 588.8
+    },
+    {
+     "k": "loaf",
+     "t0": 346.2,
+     "dur": 150.89999961853027,
+     "block": 95.7,
+     "rs": 488.5,
+     "sl": 488.7000002861023,
+     "sc": [
+      [
+       "TimerHandler:setTimeout",
+       "",
+       137.1,
+       "useAuth-DI4-LY1B.js",
+       351
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 590,
+     "ops": {
+      "count": 1
+     },
+     "t1": 591
+    }
+   ],
+   "nav": {
+    "resp": 4.300000190734863,
+    "dcl": 60.90000009536743,
+    "load": 62.200000286102295
+   },
+   "fcp": 72,
+   "res": [
+    [
+     "/assets/index-D4OPBcj3.js",
+     21,
+     24,
+     0,
+     80679
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     21,
+     24,
+     0,
+     726
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     21,
+     25,
+     0,
+     715
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     21,
+     25,
+     0,
+     114718
+    ],
+    [
+     "/assets/useAuth-DI4-LY1B.js",
+     21,
+     26,
+     0,
+     222466
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     22,
+     25,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     22,
+     25,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-CJfs7yrk.js",
+     59,
+     61,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     59,
+     61,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     60,
+     62,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     61,
+     67,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-1LEQxKyp.js",
+     72,
+     78,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-B0HslK4d.js",
+     72,
+     80,
+     0,
+     20626
+    ],
+    [
+     "/assets/Avatar-BhLTwxJ_.js",
+     72,
+     81,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     72,
+     81,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-DYSqoIno.js",
+     73,
+     81,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-B8Y73Upe.js",
+     73,
+     81,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-dedTMcDg.js",
+     73,
+     81,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     73,
+     81,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-C2LRPJWS.js",
+     73,
+     81,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-BtAt2J_P.js",
+     74,
+     81,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-4OkUNe0s.js",
+     74,
+     81,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-BH6r-aVF.js",
+     74,
+     81,
+     0,
+     2018
+    ],
+    [
+     "/assets/x-Ck37A6tV.js",
+     74,
+     81,
+     0,
+     182
+    ],
+    [
+     "/assets/View-BAYQV_Sm.js",
+     313,
+     315,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-BCA474g1.js",
+     314,
+     316,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=744&clientId=01a167bb-929e-746a-9e7c-dbc87ff5a48e",
+     350,
+     372,
+     346,
+     46
+    ]
+   ]
+  },
+  {
+   "ms": 489.09999990463257,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 51.1,
+     "m": "GET",
+     "tH": 60.6,
+     "tJ0": 60.6,
+     "t1": 61.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 55.4,
+     "ops": {},
+     "t1": 129.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 56.8,
+     "ops": {
+      "get": 1
+     },
+     "t1": 129.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 57,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 316.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 57.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 316.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 57.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 316.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 57.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 317
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 57.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 317
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 58.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 317
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 58.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 317.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 58.7,
+     "ops": {},
+     "t1": 315.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 61.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 341.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 99.4,
+     "ops": {
+      "get": 1
+     },
+     "t1": 341.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 99.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 341.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 316.1,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 346.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 341.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 347.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 342.1,
+     "ops": {},
+     "t1": 347.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 346.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 359
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 347.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 359.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 356.9,
+     "ops": {
+      "count": 1
+     },
+     "t1": 360.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 357.2,
+     "ops": {
+      "get": 1
+     },
+     "t1": 360.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 357.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 360.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 357.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 360.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 358.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 361.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 359.7,
+     "ops": {},
+     "t1": 360.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 360,
+     "ops": {
+      "count": 1
+     },
+     "t1": 362.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 360.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 501.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 361.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 501.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 361.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 515.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 361.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 515.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 362.1,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 536
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 363.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 558.2
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=744&clientId=01a167bb-929e-746a-9e7c-dbc87ff5a48e",
+     "t0": 363.7,
+     "m": "GET",
+     "tH": 515.7,
+     "tJ0": 515.7,
+     "t1": 565.4
+    },
+    {
+     "k": "firstRow",
+     "t": 489.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 516,
+     "ops": {},
+     "t1": 558.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 516.3,
+     "ops": {},
+     "t1": 558.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 516.5,
+     "ops": {},
+     "t1": 558.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 516.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 572.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 516.9,
+     "ops": {},
+     "t1": 558.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 517.2,
+     "ops": {},
+     "t1": 558.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 517.4,
+     "ops": {},
+     "t1": 558.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 517.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 572.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 517.8,
+     "ops": {},
+     "t1": 559
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 518.1,
+     "ops": {},
+     "t1": 559
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 518.3,
+     "ops": {},
+     "t1": 559.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 518.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 573
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 518.7,
+     "ops": {},
+     "t1": 559.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 518.9,
+     "ops": {},
+     "t1": 559.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 519.2,
+     "ops": {},
+     "t1": 559.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 519.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 573.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 519.6,
+     "ops": {},
+     "t1": 559.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 519.8,
+     "ops": {},
+     "t1": 559.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 520.1,
+     "ops": {},
+     "t1": 560
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 520.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 573.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 520.5,
+     "ops": {},
+     "t1": 560
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 520.7,
+     "ops": {},
+     "t1": 560
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 521,
+     "ops": {},
+     "t1": 560.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 521.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 574.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 521.3,
+     "ops": {},
+     "t1": 560.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 521.6,
+     "ops": {},
+     "t1": 560.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 521.9,
+     "ops": {},
+     "t1": 560.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 522,
+     "ops": {
+      "get": 3
+     },
+     "t1": 574.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 522.2,
+     "ops": {},
+     "t1": 560.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 522.5,
+     "ops": {},
+     "t1": 560.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 522.7,
+     "ops": {},
+     "t1": 560.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 522.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 575.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 523,
+     "ops": {},
+     "t1": 560.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 523.3,
+     "ops": {},
+     "t1": 560.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 523.5,
+     "ops": {},
+     "t1": 561.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 523.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 575.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 523.9,
+     "ops": {},
+     "t1": 561.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 524.2,
+     "ops": {},
+     "t1": 561.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 524.4,
+     "ops": {},
+     "t1": 561.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 524.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 575.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 524.7,
+     "ops": {},
+     "t1": 561.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 525,
+     "ops": {},
+     "t1": 561.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 525.2,
+     "ops": {},
+     "t1": 561.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 525.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 576.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 525.6,
+     "ops": {},
+     "t1": 561.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 525.8,
+     "ops": {},
+     "t1": 561.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 526,
+     "ops": {},
+     "t1": 562.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 526.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 576.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 526.5,
+     "ops": {},
+     "t1": 562.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 526.7,
+     "ops": {},
+     "t1": 562.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 526.9,
+     "ops": {},
+     "t1": 562.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 527.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 577.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 527.3,
+     "ops": {},
+     "t1": 562.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 527.5,
+     "ops": {},
+     "t1": 562.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 527.8,
+     "ops": {},
+     "t1": 562.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 528,
+     "ops": {
+      "get": 3
+     },
+     "t1": 577.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 528.1,
+     "ops": {},
+     "t1": 562.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 528.4,
+     "ops": {},
+     "t1": 562.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 528.7,
+     "ops": {},
+     "t1": 562.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 528.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 577.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 529.1,
+     "ops": {},
+     "t1": 562.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 529.3,
+     "ops": {},
+     "t1": 563
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 529.5,
+     "ops": {},
+     "t1": 563.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 529.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 578.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 529.9,
+     "ops": {},
+     "t1": 563.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 530.2,
+     "ops": {},
+     "t1": 563.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 530.4,
+     "ops": {},
+     "t1": 563.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 530.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 578.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 530.7,
+     "ops": {},
+     "t1": 563.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 531,
+     "ops": {},
+     "t1": 563.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 531.2,
+     "ops": {},
+     "t1": 563.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 531.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 579.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 531.6,
+     "ops": {},
+     "t1": 563.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 531.9,
+     "ops": {},
+     "t1": 563.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 532,
+     "ops": {},
+     "t1": 564
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 532.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 579.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 532.4,
+     "ops": {},
+     "t1": 564.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 532.7,
+     "ops": {},
+     "t1": 564.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 532.9,
+     "ops": {},
+     "t1": 564.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 533.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 579.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 533.2,
+     "ops": {},
+     "t1": 564.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 533.4,
+     "ops": {},
+     "t1": 564.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 533.7,
+     "ops": {},
+     "t1": 564.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 533.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 580.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 534.1,
+     "ops": {},
+     "t1": 564.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 534.3,
+     "ops": {},
+     "t1": 564.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 534.5,
+     "ops": {},
+     "t1": 564.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 534.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 580.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 534.9,
+     "ops": {},
+     "t1": 564.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 535.2,
+     "ops": {},
+     "t1": 565
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 535.4,
+     "ops": {},
+     "t1": 565.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 535.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 585.7
+    },
+    {
+     "k": "wsopen",
+     "t": 536.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 565.9,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 592.7
+    },
+    {
+     "k": "loaf",
+     "t0": 358.9,
+     "dur": 139.2999997138977,
+     "block": 84.2,
+     "rs": 489.5,
+     "sl": 489.69999980926514,
+     "sc": [
+      [
+       "TimerHandler:setTimeout",
+       "",
+       125.4,
+       "useAuth-DI4-LY1B.js",
+       364
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 593.5,
+     "ops": {
+      "count": 1
+     },
+     "t1": 594
+    }
+   ],
+   "nav": {
+    "resp": 3.9000000953674316,
+    "dcl": 51.59999990463257,
+    "load": 53.59999990463257
+   },
+   "fcp": 68,
+   "res": [
+    [
+     "/assets/index-D4OPBcj3.js",
+     8,
+     12,
+     0,
+     80679
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     9,
+     13,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     9,
+     14,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     9,
+     14,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-DI4-LY1B.js",
+     9,
+     14,
+     0,
+     222466
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     9,
+     14,
+     0,
+     916
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     9,
+     14,
+     0,
+     22358
+    ],
+    [
+     "/assets/Menu-CJfs7yrk.js",
+     49,
+     51,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     49,
+     51,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     51,
+     52,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     52,
+     59,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-1LEQxKyp.js",
+     62,
+     66,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-B0HslK4d.js",
+     63,
+     67,
+     0,
+     20626
+    ],
+    [
+     "/assets/Avatar-BhLTwxJ_.js",
+     63,
+     69,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     63,
+     70,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-DYSqoIno.js",
+     63,
+     71,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-B8Y73Upe.js",
+     64,
+     71,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-dedTMcDg.js",
+     64,
+     71,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     64,
+     71,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-C2LRPJWS.js",
+     64,
+     71,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-BtAt2J_P.js",
+     65,
+     71,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-4OkUNe0s.js",
+     65,
+     71,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-BH6r-aVF.js",
+     65,
+     71,
+     0,
+     2018
+    ],
+    [
+     "/assets/x-Ck37A6tV.js",
+     65,
+     71,
+     0,
+     182
+    ],
+    [
+     "/assets/View-BAYQV_Sm.js",
+     325,
+     328,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-BCA474g1.js",
+     326,
+     328,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=744&clientId=01a167bb-929e-746a-9e7c-dbc87ff5a48e",
+     364,
+     373,
+     346,
+     46
+    ]
+   ]
+  },
+  {
+   "ms": 578.1999998092651,
+   "ev": [
+    {
+     "k": "fetch",
+     "url": "/api/auth/me",
+     "t0": 142.1,
+     "m": "GET",
+     "tH": 150.6,
+     "tJ0": 150.7,
+     "t1": 151.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 20,
+     "s": "_meta,_queue,activity",
+     "t0": 146.2,
+     "ops": {},
+     "t1": 225.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 148,
+     "ops": {
+      "get": 1
+     },
+     "t1": 225.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "tasks",
+     "t0": 148.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 379.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskAssignees",
+     "t0": 148.4,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 379.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "taskLabels",
+     "t0": 148.5,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 379.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "settings",
+     "t0": 148.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 379.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 148.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 379.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaces",
+     "t0": 149.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 379.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 149.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 379.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "notifications",
+     "t0": 149.4,
+     "ops": {},
+     "t1": 378.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 151.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 406.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 191.5,
+     "ops": {
+      "get": 1
+     },
+     "t1": 406.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 191.8,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 406.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 1,
+     "s": "_meta",
+     "t0": 378.8,
+     "ops": {
+      "put": 1
+     },
+     "bytes": 0,
+     "t1": 411.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "savedViews",
+     "t0": 406.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 412.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 407.2,
+     "ops": {},
+     "t1": 412.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 411.7,
+     "ops": {
+      "get": 1
+     },
+     "t1": 425.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_meta",
+     "t0": 412.3,
+     "ops": {
+      "get": 1
+     },
+     "t1": 425.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 423.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 427.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "projects",
+     "t0": 423.9,
+     "ops": {
+      "get": 1
+     },
+     "t1": 427.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 424.2,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 427.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 424.7,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 427.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 424.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 428.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 426.7,
+     "ops": {},
+     "t1": 427.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 427.3,
+     "ops": {
+      "count": 1
+     },
+     "t1": 590.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 428,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 591.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 428.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 605.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 428.6,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 627.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 428.9,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 627.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 429.3,
+     "ops": {
+      "getAll": 1
+     },
+     "t1": 628.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 430.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 649.9
+    },
+    {
+     "k": "firstRow",
+     "t": 578.2
+    },
+    {
+     "k": "fetch",
+     "url": "/sync/pull?cursor=744&clientId=01a167bb-929e-746a-9e7c-dbc87ff5a48e",
+     "t0": 590.7,
+     "m": "GET",
+     "tH": 628.3,
+     "tJ0": 628.3,
+     "t1": 673.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 606.2,
+     "ops": {},
+     "t1": 650.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 606.5,
+     "ops": {},
+     "t1": 650.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 606.7,
+     "ops": {},
+     "t1": 650.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 607,
+     "ops": {
+      "get": 3
+     },
+     "t1": 664.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 607.3,
+     "ops": {},
+     "t1": 650.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 607.5,
+     "ops": {},
+     "t1": 650.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 607.8,
+     "ops": {},
+     "t1": 650.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 608,
+     "ops": {
+      "get": 3
+     },
+     "t1": 664.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 608.2,
+     "ops": {},
+     "t1": 650.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 608.4,
+     "ops": {},
+     "t1": 650.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 608.7,
+     "ops": {},
+     "t1": 651.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 608.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 665.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 609.1,
+     "ops": {},
+     "t1": 651.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 609.4,
+     "ops": {},
+     "t1": 651.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 609.7,
+     "ops": {},
+     "t1": 651.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 609.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 665.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 610.2,
+     "ops": {},
+     "t1": 651.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 610.5,
+     "ops": {},
+     "t1": 651.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 610.7,
+     "ops": {},
+     "t1": 651.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 610.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 666
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 611.1,
+     "ops": {},
+     "t1": 651.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 611.3,
+     "ops": {},
+     "t1": 651.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 611.8,
+     "ops": {},
+     "t1": 652.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 611.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 666.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 612.1,
+     "ops": {},
+     "t1": 652.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 612.4,
+     "ops": {},
+     "t1": 652.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 612.6,
+     "ops": {},
+     "t1": 652.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 612.8,
+     "ops": {
+      "get": 3
+     },
+     "t1": 666.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 613.1,
+     "ops": {},
+     "t1": 652.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 613.3,
+     "ops": {},
+     "t1": 652.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 613.5,
+     "ops": {},
+     "t1": 652.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 613.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 667.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 614,
+     "ops": {},
+     "t1": 652.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 614.3,
+     "ops": {},
+     "t1": 652.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 614.4,
+     "ops": {},
+     "t1": 653
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 614.7,
+     "ops": {
+      "get": 3
+     },
+     "t1": 667.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 614.9,
+     "ops": {},
+     "t1": 653.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 615.1,
+     "ops": {},
+     "t1": 653.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 615.4,
+     "ops": {},
+     "t1": 653.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 615.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 668.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 615.8,
+     "ops": {},
+     "t1": 653.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 616.1,
+     "ops": {},
+     "t1": 653.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 616.3,
+     "ops": {},
+     "t1": 653.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 616.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 668.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 616.7,
+     "ops": {},
+     "t1": 653.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 616.9,
+     "ops": {},
+     "t1": 653.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 617.2,
+     "ops": {},
+     "t1": 654
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 617.4,
+     "ops": {
+      "get": 3
+     },
+     "t1": 668.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 617.5,
+     "ops": {},
+     "t1": 654.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 617.8,
+     "ops": {},
+     "t1": 654.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 618,
+     "ops": {},
+     "t1": 654.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 618.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 669.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 618.5,
+     "ops": {},
+     "t1": 654.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 618.8,
+     "ops": {},
+     "t1": 654.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 619.1,
+     "ops": {},
+     "t1": 654.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 619.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 669.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 619.6,
+     "ops": {},
+     "t1": 654.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 619.8,
+     "ops": {},
+     "t1": 654.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 620.1,
+     "ops": {},
+     "t1": 655
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 620.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 670.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 620.4,
+     "ops": {},
+     "t1": 655.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 620.7,
+     "ops": {},
+     "t1": 655.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 620.9,
+     "ops": {},
+     "t1": 655.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 621.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 670.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 621.3,
+     "ops": {},
+     "t1": 655.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 621.5,
+     "ops": {},
+     "t1": 655.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 621.8,
+     "ops": {},
+     "t1": 655.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 621.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 671.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 622.2,
+     "ops": {},
+     "t1": 655.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 622.4,
+     "ops": {},
+     "t1": 655.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 622.7,
+     "ops": {},
+     "t1": 655.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 622.9,
+     "ops": {
+      "get": 3
+     },
+     "t1": 671.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 623,
+     "ops": {},
+     "t1": 656
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 623.3,
+     "ops": {},
+     "t1": 656
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 623.5,
+     "ops": {},
+     "t1": 656.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 623.6,
+     "ops": {
+      "get": 3
+     },
+     "t1": 671.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 623.9,
+     "ops": {},
+     "t1": 656.2
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 624.1,
+     "ops": {},
+     "t1": 656.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 624.3,
+     "ops": {},
+     "t1": 656.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 624.5,
+     "ops": {
+      "get": 3
+     },
+     "t1": 672.5
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 624.8,
+     "ops": {},
+     "t1": 656.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 624.9,
+     "ops": {},
+     "t1": 656.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 625.2,
+     "ops": {},
+     "t1": 656.7
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 625.3,
+     "ops": {
+      "get": 3
+     },
+     "t1": 672.6
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 625.6,
+     "ops": {},
+     "t1": 656.8
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 625.8,
+     "ops": {},
+     "t1": 656.9
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 626.1,
+     "ops": {},
+     "t1": 657.1
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 626.2,
+     "ops": {
+      "get": 3
+     },
+     "t1": 673
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "statuses",
+     "t0": 626.4,
+     "ops": {},
+     "t1": 657.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "labels",
+     "t0": 626.7,
+     "ops": {},
+     "t1": 657.3
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "spaceMembers",
+     "t0": 627,
+     "ops": {},
+     "t1": 657.4
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "users",
+     "t0": 627.1,
+     "ops": {
+      "get": 3
+     },
+     "t1": 678.9
+    },
+    {
+     "k": "wsopen",
+     "t": 628
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readwrite",
+     "n": 20,
+     "s": "_meta,_queue,users",
+     "t0": 673.9,
+     "ops": {
+      "getAll": 1,
+      "put": 2
+     },
+     "bytes": 0,
+     "t1": 681.7
+    },
+    {
+     "k": "loaf",
+     "t0": 425.9,
+     "dur": 161.40000009536743,
+     "block": 106.5,
+     "rs": 578.6999998092651,
+     "sl": 578.6999998092651,
+     "sc": [
+      [
+       "TimerHandler:setTimeout",
+       "",
+       147.8,
+       "useAuth-DI4-LY1B.js",
+       431
+      ]
+     ]
+    },
+    {
+     "k": "tx",
+     "db": "planar",
+     "mode": "readonly",
+     "n": 1,
+     "s": "_queue",
+     "t0": 682.4,
+     "ops": {
+      "count": 1
+     },
+     "t1": 683.3
+    }
+   ],
+   "nav": {
+    "resp": 4,
+    "dcl": 142.5,
+    "load": 143.90000009536743
+   },
+   "fcp": 152,
+   "res": [
+    [
+     "/assets/index-D4OPBcj3.js",
+     101,
+     105,
+     0,
+     80679
+    ],
+    [
+     "/assets/rolldown-runtime-XKyaHtl9.js",
+     101,
+     106,
+     0,
+     726
+    ],
+    [
+     "/assets/vue-CVLSNEx8.js",
+     101,
+     107,
+     0,
+     114718
+    ],
+    [
+     "/assets/http-BRPO_vDz.js",
+     102,
+     107,
+     0,
+     715
+    ],
+    [
+     "/assets/useAuth-DI4-LY1B.js",
+     102,
+     107,
+     0,
+     222466
+    ],
+    [
+     "/assets/index-ck_lIRAC.css",
+     102,
+     107,
+     0,
+     22358
+    ],
+    [
+     "/assets/useApi-CUWMwLLw-DHQoLYDD.js",
+     102,
+     107,
+     0,
+     916
+    ],
+    [
+     "/assets/Menu-CJfs7yrk.js",
+     140,
+     142,
+     0,
+     69893
+    ],
+    [
+     "/assets/Primitive-DVnSjC-h.js",
+     140,
+     142,
+     0,
+     856
+    ],
+    [
+     "/assets/workbox-window.prod.es5-Bd17z0YL.js",
+     142,
+     144,
+     0,
+     5714
+    ],
+    [
+     "/api/auth/me",
+     142,
+     149,
+     530,
+     230
+    ],
+    [
+     "/assets/ProjectScreen-1LEQxKyp.js",
+     152,
+     155,
+     0,
+     4022
+    ],
+    [
+     "/assets/tasks-B0HslK4d.js",
+     153,
+     156,
+     0,
+     20626
+    ],
+    [
+     "/assets/Avatar-BhLTwxJ_.js",
+     153,
+     160,
+     0,
+     3491
+    ],
+    [
+     "/assets/Input-CJg8k9U-.js",
+     153,
+     161,
+     0,
+     1186
+    ],
+    [
+     "/assets/ui-DYSqoIno.js",
+     153,
+     160,
+     0,
+     28
+    ],
+    [
+     "/assets/SavedTabs-B8Y73Upe.js",
+     154,
+     161,
+     0,
+     14530
+    ],
+    [
+     "/assets/Select-dedTMcDg.js",
+     154,
+     162,
+     0,
+     27779
+    ],
+    [
+     "/assets/VisuallyHidden-BrhGMR4G.js",
+     154,
+     161,
+     0,
+     896
+    ],
+    [
+     "/assets/chevron-down-C2LRPJWS.js",
+     154,
+     162,
+     0,
+     167
+    ],
+    [
+     "/assets/Dialog-BtAt2J_P.js",
+     154,
+     163,
+     0,
+     8906
+    ],
+    [
+     "/assets/views-4OkUNe0s.js",
+     155,
+     163,
+     0,
+     2960
+    ],
+    [
+     "/assets/filter-BH6r-aVF.js",
+     155,
+     163,
+     0,
+     2018
+    ],
+    [
+     "/assets/x-Ck37A6tV.js",
+     155,
+     162,
+     0,
+     182
+    ],
+    [
+     "/assets/View-BAYQV_Sm.js",
+     389,
+     391,
+     0,
+     12082
+    ],
+    [
+     "/assets/useFilter-BCA474g1.js",
+     390,
+     392,
+     0,
+     32019
+    ],
+    [
+     "/sync/pull?cursor=744&clientId=01a167bb-929e-746a-9e7c-dbc87ff5a48e",
+     591,
+     601,
+     346,
+     46
+    ]
+   ]
+  }
+ ]
+}

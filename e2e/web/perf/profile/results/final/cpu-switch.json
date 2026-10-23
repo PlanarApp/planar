@@ -1,0 +1,165 @@
+{
+ "total_ms": 15970,
+ "idle_ms": 14617,
+ "busy_ms": 1352,
+ "by_category": [
+  [
+   "@vue/runtime-core",
+   323.4
+  ],
+  [
+   "(program)",
+   257.3
+  ],
+  [
+   "@vue/reactivity",
+   156.9
+  ],
+  [
+   "native/?",
+   125.7
+  ],
+  [
+   "@vue/runtime-dom",
+   78.7
+  ],
+  [
+   "reka-ui",
+   76.6
+  ],
+  [
+   "(garbage collector)",
+   69.7
+  ],
+  [
+   "app:src/tasks",
+   63.6
+  ],
+  [
+   "app:src/views",
+   60.1
+  ],
+  [
+   "@tanstack/virtual-core",
+   49.8
+  ],
+  [
+   "dexie",
+   35.7
+  ],
+  [
+   "@vue/shared",
+   15
+  ],
+  [
+   "app:src/i18n",
+   12.9
+  ],
+  [
+   "tasks-CteiS-Pn.js",
+   5.4
+  ]
+ ],
+ "top_functions": [
+  [
+   "(program)",
+   257.3
+  ],
+  [
+   "(garbage collector)",
+   69.7
+  ],
+  [
+   "get @@vue/reactivity:reactivity.esm-bundler.js:1025",
+   40.9
+  ],
+  [
+   "H.getMeasurements.f.key @@tanstack/virtual-core:index.js:725",
+   35.7
+  ],
+  [
+   "bucket @app:src/tasks:group.ts:22",
+   32.4
+  ],
+  [
+   "useForwardExpose @reka-ui:useForwardExpose.js:5",
+   26.9
+  ],
+  [
+   "(anon) @app:src/views:View.vue:50",
+   24.5
+  ],
+  [
+   "insertBefore",
+   23.7
+  ],
+  [
+   "removeChild",
+   17.7
+  ],
+  [
+   "initProps @@vue/runtime-core:runtime-core.esm-bundler.js:5015",
+   17.3
+  ],
+  [
+   "setAttribute",
+   17.3
+  ],
+  [
+   "renderComponentRoot @@vue/runtime-core:runtime-core.esm-bundler.js:4712",
+   16.2
+  ],
+  [
+   "(anon) @app:src/views:View.vue:67",
+   15.1
+  ],
+  [
+   "addEventListener",
+   14
+  ],
+  [
+   "get value @@vue/reactivity:reactivity.esm-bundler.js:1769",
+   14
+  ],
+  [
+   "patch @@vue/runtime-core:runtime-core.esm-bundler.js:5619",
+   14
+  ],
+  [
+   "guardReactiveProps @@vue/runtime-core:runtime-core.esm-bundler.js:8021",
+   13.4
+  ],
+  [
+   "setFullProps @@vue/runtime-core:runtime-core.esm-bundler.js:5137",
+   13
+  ],
+  [
+   "applyOptions @@vue/runtime-core:runtime-core.esm-bundler.js:3883",
+   11.9
+  ],
+  [
+   "sortTasks @app:src/tasks:sort.ts:9",
+   11.8
+  ],
+  [
+   "(anon) @app:src/tasks:sort.ts:11",
+   11.8
+  ],
+  [
+   "O @@tanstack/virtual-core:index.js:6",
+   10.9
+  ],
+  [
+   "watch @@vue/reactivity:reactivity.esm-bundler.js:1852",
+   10.8
+  ],
+  [
+   "patchClass @@vue/runtime-dom:runtime-dom.esm-bundler.js:372",
+   10.8
+  ],
+  [
+   "doWatch @@vue/runtime-core:runtime-core.esm-bundler.js:883",
+   10.8
+  ]
+ ]
+}

@@ -1,0 +1,44 @@
+diff --git a/apps/web/src/sync/query.ts b/apps/web/src/sync/query.ts
+--- a/apps/web/src/sync/query.ts
++++ b/apps/web/src/sync/query.ts
+@@ -1,10 +1,10 @@
+ import { liveQuery } from 'dexie';
+-import { getCurrentScope, onScopeDispose, readonly, shallowRef, type Ref } from 'vue';
++import { getCurrentScope, onScopeDispose, shallowRef, type Ref } from 'vue';
+ 
+ /** Реактивный запрос к реплике: пересчитывается при изменении прочитанных таблиц. */
+ export function useQuery<T>(fn: () => T | Promise<T>): Readonly<Ref<T | undefined>> {
+   const r = shallowRef<T>();
+   const sub = liveQuery(fn).subscribe({ next: (v) => (r.value = v), error: () => {} });
+   if (getCurrentScope()) onScopeDispose(() => sub.unsubscribe());
+-  return readonly(r) as Readonly<Ref<T | undefined>>;
++  return r as Readonly<Ref<T | undefined>>; // P10: readonly() оборачивает каждый элемент в proxy
+ }
+diff --git a/apps/web/src/tasks/queries.ts b/apps/web/src/tasks/queries.ts
+--- a/apps/web/src/tasks/queries.ts
++++ b/apps/web/src/tasks/queries.ts
+@@ -1,5 +1,5 @@
+ import { liveQuery, type Subscription } from 'dexie';
+-import { getCurrentScope, onScopeDispose, readonly, shallowRef, toValue, watch } from 'vue';
++import { getCurrentScope, onScopeDispose, shallowRef, toValue, watch } from 'vue';
+ import type { MaybeRefOrGetter, Ref } from 'vue';
+ import type { Row } from '@planar/shared';
+ import { db, onRowChanges, useQuery, type RowChange } from '../sync';
+@@ -27,7 +27,7 @@
+     { immediate: true, flush: 'sync' },
+   );
+   if (getCurrentScope()) onScopeDispose(() => sub?.unsubscribe());
+-  return readonly(r) as Readonly<Ref<T | undefined>>;
++  return r as Readonly<Ref<T | undefined>>; // P10: readonly() оборачивает каждый элемент в proxy
+ }
+ 
+ const group = (rows: { taskId: string }[], val: (r: never) => string) => {
+@@ -196,7 +196,7 @@
+     { immediate: true, flush: 'sync' },
+   );
+   if (getCurrentScope()) onScopeDispose(() => off?.());
+-  return readonly(r) as Readonly<Ref<TaskView[] | undefined>>;
++  return r as Readonly<Ref<TaskView[] | undefined>>; // P10
+ }
+ 
+ interface ProjectState {
