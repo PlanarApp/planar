@@ -1,0 +1,119 @@
+{
+  "status": "done",
+  "summary": "TaskPanel.vue (mode panel|page, событие close) + TaskDetail/Subtasks/Checklist/Attachments/Feed/CommentItem, Editor на TipTap (Markdown input rules, Mention по useMembers, Image через /files), вкладки taskPanels, i18n ru/en. Реакции не делал. Доработка по ревью: drop из редактора не создаёт вложение, clipboard .catch, таймер not-found убран (useTask даёт null).",
+  "commits": [
+    "861d37a web: WB-6 карточка задачи"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "178.1",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "98",
+      "pass": true
+    },
+    {
+      "name": "fields",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "description",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "subtasks",
+      "value": "2",
+      "pass": true
+    },
+    {
+      "name": "checklist",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "comments",
+      "value": "5",
+      "pass": true
+    },
+    {
+      "name": "feed",
+      "value": "2",
+      "pass": true
+    },
+    {
+      "name": "attachments",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "watch",
+      "value": "2",
+      "pass": true
+    },
+    {
+      "name": "extensions",
+      "value": "1",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Реакции — по карточке в другой задаче"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-6",
+  "uncertain": [
+    {
+      "where": "apps/web/src/task/files.ts",
+      "why": "карточка называет src/api/files.ts uploadFile, файла в репозитории нет, src/api/ нельзя трогать",
+      "checked": "сделал uploadFile в src/task/files.ts поверх api('POST','/files',FormData); при появлении api/files.ts заменить импорт (Editor.vue, Attachments.vue)"
+    },
+    {
+      "where": "apps/web/src/task/TaskDetail.vue",
+      "why": "Tooltip не использован (в тестах нет TooltipProvider), Esc-подсказка в title; Esc закрывает панель только вне input/редактора/списка",
+      "checked": "тесты fields/description"
+    },
+    {
+      "where": "apps/web/src/task/editor/Editor.vue",
+      "why": "подсказка @ и вставка картинки из буфера/drag проверены командами и vm.insertFiles, не реальным DOM-событием; Ctrl/Cmd+Enter проверен keydown",
+      "checked": "task:description, task:comments"
+    },
+    {
+      "where": "apps/web/src/task/Feed.vue",
+      "why": "имена авторов/активности берутся из всей таблицы users; удаление комментария без подтверждения",
+      "checked": "task:comments, task:feed"
+    }
+  ],
+  "dp_feedback": "task show обрезает дополнения многоточием, пришлось читать с --full-подобным обходом; 'dpcli plan web WB-6 Карточка задачи' с тремя аргументами не работает (нужен один).",
+  "t": "2026-10-23T00:51:40",
+  "by": "executor"
+}

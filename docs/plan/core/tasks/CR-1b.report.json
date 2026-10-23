@@ -1,0 +1,42 @@
+{
+  "status": "done",
+  "summary": "Общий createTestDb (пул max 4, connect timeout 20 с) и dropDb в харнессах, hookTimeout 90 с, maxWorkers 4; push с пустой пачкой и чужим clientId даёт 403; seed --tasks без меток/статусов не падает. Тесты на оба случая.",
+  "commits": [
+    "0425108 core: CR-1b устойчивость тестов под нагрузкой, мелкие исправления CR-9"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "stable",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "no_leak",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-1b",
+  "uncertain": [
+    {
+      "where": "apps/api/test/db.ts:dropDb",
+      "why": "под высокой нагрузкой drop может не успеть и остаться до teardown",
+      "checked": "statement_timeout 25 с; 3 полных прогона pnpm test зелёные, no_leak <=0"
+    }
+  ],
+  "dp_feedback": "task show обрезает дополнения координатора; полный текст не получить.",
+  "t": "2026-10-23T05:26:14",
+  "by": "executor"
+}

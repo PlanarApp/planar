@@ -1,0 +1,74 @@
+{
+  "id": "WB-16",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Дефекты из e2e: вкладки видов из glob, двойной клик по названию",
+  "goal": "Экран проекта находит встроенные виды по настоящим ключам import.meta.glob (сейчас «Нет доступных видов» в браузере); двойной клик по названию в списке включает инлайн-правку, а не открывает панель.",
+  "plan_ref": "WB-4 Вид «Список»",
+  "contracts": [
+    {
+      "name": "C-views",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-16",
+  "branch": "web/WB-16",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/views/index.ts",
+    "apps/web/src/views/open.ts",
+    "apps/web/src/views/__tests__/",
+    "apps/web/src/views/list/"
+  ],
+  "dont_touch": [
+    "контрактные тесты в apps/web/src/__contract__ не править",
+    "e2e/ — WB-14, WB-15",
+    "в package.json и pnpm-lock.yaml — ничего",
+    "packages/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "real-glob",
+      "cmd": "pnpm --filter web exec vitest run src/views -t views:real-glob",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "dblclick",
+      "cmd": "pnpm --filter web exec vitest run src/views -t list:dblclick",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T05:32:47",
+  "edited": "2026-10-23T05:32:58"
+}

@@ -1,0 +1,63 @@
+{
+  "status": "done",
+  "summary": "Колонки field:<id> в таблице (меню, раскладка, заголовок def.name), FieldCell, правка ячейки через FieldEditor/setTaskField (dblclick/Enter, Esc), массовая правка в панели выделения; колонка удалённого поля выпадает.",
+  "commits": [
+    "bb989a9 FT-2b: колонки пользовательских полей в таблице, инлайн- и массовая правка"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "table_fields",
+      "value": "7",
+      "pass": true
+    },
+    {
+      "name": "table_10k",
+      "value": "1",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept FT-2b",
+  "uncertain": [
+    {
+      "where": "views/table/View.vue editCell",
+      "why": "редактор ячейки закрывается только по commit/Esc, не по потере фокуса",
+      "checked": "юнит-тесты; вручную в браузере не смотрел"
+    },
+    {
+      "where": "views/table/View.vue watch(defs)",
+      "why": "выпадение колонок удалённых полей — по загрузке определений; пустая раскладка не чистится",
+      "checked": "тест удаления"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T09:55:30",
+  "by": "executor"
+}

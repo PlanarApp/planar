@@ -1,0 +1,19 @@
+{
+  "verdict": "accept",
+  "summary": "Оба замечания прошлого ревью закрыты: viewLoaders подменяется в тесте, тесты проверяют клик по вкладке → /p/<id>/board, :view и ViewProps; C-tasks v2 (null/undefined) реализован в queries.ts с тестом tasks:query, «Проект не найден» только при null. Экспорты и поведение по C-views v1, скоуп соблюдён.",
+  "issues": [],
+  "rerun": [
+    {
+      "name": "project-screen",
+      "value": "7",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "98",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T00:46:43",
+  "by": "reviewer"
+}

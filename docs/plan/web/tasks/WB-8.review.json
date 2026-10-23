@@ -1,0 +1,34 @@
+{
+  "verdict": "accept",
+  "summary": "C-views v2 соблюдён: файлы контракта исполнитель не менял (дифф 1827d4c..web/WB-8 по __contract__, contract.ts, docs/contracts пуст), matchFilter совпадает с контрактом, dueDate по C-schema в формате ISO date, поэтому строковое сравнение корректно. Скоуп в границах. Пороги не ослаблены, saved и apply перезапущены и проходят. Есть два мелких замечания.",
+  "issues": [
+    {
+      "file": "apps/web/src/views/options.ts",
+      "line": 31,
+      "severity": "minor",
+      "what": "optionsFrom берёт значения config без проверки типов: если в savedViews.config придёт fields не массивом (например, строкой или числом), то [...o.fields] упадёт или даст мусор, и экран /v/:id не откроется",
+      "fix": "если fields не массив, брать DEFAULT_OPTIONS.fields (Array.isArray), можно отдельной задачей"
+    },
+    {
+      "file": "apps/web/src/screens/SavedViewScreen.vue",
+      "line": 64,
+      "severity": "minor",
+      "what": "editable считает любой личный вид своим (userId !== null), но не сверяет его с user.id; useSavedView находит вид по id без проверки владельца",
+      "fix": "сравнивать userId === user.id; если чужие личные виды не синхронизируются и права проверяет сервер, замечание можно снять"
+    }
+  ],
+  "rerun": [
+    {
+      "name": "saved",
+      "value": "5",
+      "pass": true
+    },
+    {
+      "name": "apply",
+      "value": "2",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T01:54:31",
+  "by": "reviewer"
+}

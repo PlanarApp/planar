@@ -1,0 +1,65 @@
+{
+  "id": "FT-2c",
+  "module": "features",
+  "type": "dp-engineer",
+  "title": "Таблица: пустая ячейка поля доступна мышью",
+  "goal": "Пустая ячейка колонки пользовательского поля в Таблице занимает всю ячейку и открывает редактор по двойному клику мышью; e2e-сценарий колонки поля использует dblclick.",
+  "plan_ref": "5. Задачи",
+  "contracts": [
+    {
+      "name": "F-views",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "F-fields",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    }
+  ],
+  "copy": "~/planar-features-FT-2c",
+  "branch": "features/FT-2c",
+  "base": "feature/features",
+  "scope": [
+    "apps/web/src/views/table/",
+    "e2e/web/features.spec.ts",
+    "build/dpcli/FT-2c.report.json"
+  ],
+  "dont_touch": [
+    "apps/web/src/sync/, apps/web/src/tasks/, apps/web/src/views/list/, e2e/web/perf/ — WB-18",
+    "apps/web/src/fields/ — только если без этого никак, тогда FieldCell.vue минимально",
+    "packages/, apps/api/",
+    "package.json, pnpm-lock.yaml",
+    "docs/, .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web e2e/web/features.spec.ts && pnpm exec prettier --check apps/web e2e/web/features.spec.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "e2e",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-ft9 API_PORT=3219 WEB_PORT=5319 DEV_PG_PORT=55519; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5319 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts features.spec.ts; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
+      "expect": "num:(\\d+) passed >=17"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T10:19:15"
+}

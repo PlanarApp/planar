@@ -1,0 +1,116 @@
+{
+  "id": "CR-1",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "Каркас монорепо, compose, dev.sh, health, код контрактов",
+  "goal": "pnpm-монорепо Planar (apps/api на Nest+Fastify с GET /api/health, заглушка apps/web, packages/shared с кодом контрактов, modules/), dev/prod compose, dev.sh и тестовая обвязка Vitest на реальном Postgres; контрактный тест packages/shared/test/contract.test.ts зелёный без его правки.",
+  "plan_ref": "CR-1 Каркас",
+  "contracts": [
+    {
+      "name": "C-schema",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-sync",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-modules",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-http",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-1",
+  "branch": "core/CR-1",
+  "base": "feature/core",
+  "scope": [
+    "package.json",
+    "pnpm-workspace.yaml",
+    "pnpm-lock.yaml",
+    ".npmrc",
+    ".nvmrc",
+    "tsconfig.base.json",
+    "tsconfig.json",
+    "eslint.config.js",
+    ".prettierrc.json",
+    ".prettierignore",
+    "vitest.config.ts",
+    "compose.dev.yml",
+    "compose.yml",
+    "deploy/",
+    "dev.sh",
+    ".env.example",
+    ".gitignore",
+    ".dockerignore",
+    "dpcli.yml",
+    "apps/api/",
+    "apps/web/",
+    "packages/shared/",
+    "modules/"
+  ],
+  "dont_touch": [
+    "packages/shared/test/contract.test.ts — контрактный тест координатора; расхождение — сообщение «CR-1 contract: …»",
+    "docs/ — контракты и журнал ведёт координатор",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb && ./dev.sh testdb && docker inspect -f '{{.State.Running}} {{range $p, $b := .NetworkSettings.Ports}}{{$p}}={{(index $b 0).HostPort}}{{end}}' planar-testdb",
+      "expect": "re:^true 5432/tcp=55432$",
+      "timeout": 300
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm exec vitest run packages/shared/test/contract.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=34",
+      "timeout": 300
+    },
+    {
+      "name": "compose",
+      "cmd": "docker compose -f compose.dev.yml config -q && docker compose -f compose.yml config -q && echo compose-ok",
+      "expect": "re:^compose-ok$",
+      "timeout": 120
+    },
+    {
+      "name": "dev_up",
+      "cmd": "./dev.sh up && curl -sf --retry 150 --retry-delay 2 --retry-all-errors http://localhost:3000/api/health && echo && curl -sf --retry 30 --retry-delay 2 --retry-all-errors http://localhost:5173/api/health; rc=$?; ./dev.sh down; exit $rc",
+      "expect": "re:\"db\":\"up\"[\\s\\S]*\"db\":\"up\"",
+      "timeout": 900
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-22T22:41:39"
+}

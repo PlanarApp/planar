@@ -1,0 +1,88 @@
+{
+  "status": "done",
+  "summary": "Inbox (группы по дням, read/удалить/отложить локально, фильтр, прочитать все), MyScreen по срокам, колокольчик и бейджи, push-переключатель + push-sw.js + iOS-подсказка.",
+  "commits": [
+    "9c2aa06 WB-9 Inbox, Мои задачи, колокольчик, push"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "181.3",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "98",
+      "pass": true
+    },
+    {
+      "name": "pwa",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "inbox",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "my",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "bell",
+      "value": "2",
+      "pass": true
+    },
+    {
+      "name": "push",
+      "value": "4",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept WB-9",
+  "uncertain": [
+    {
+      "where": "apps/web/public/push-sw.js",
+      "why": "формат push (Q5) не подтверждён core; в браузере с реальным push не проверялось",
+      "checked": "только моки в inbox:push"
+    },
+    {
+      "where": "apps/web/src/inbox/snooze.ts",
+      "why": "отложенные скрываются без таймера: появляются снова после смены данных/перезагрузки, не ровно в момент",
+      "checked": "тест на прошедшее время"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T01:29:16",
+  "by": "executor"
+}

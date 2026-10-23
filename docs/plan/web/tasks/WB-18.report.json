@@ -1,0 +1,139 @@
+{
+  "status": "partial",
+  "summary": "Бюджеты §7 выполнены на прод-сборке во всех 3 прогонах (cold 1612-1639, warm 363-385, mutate p95 21-23, switch p95 77-93, realtime p95 121-331 мс, прокрутка p95 16,8 и 0 долгих кадров). Внедрены P1, P2, P4, P6+P7, P8, P9, P10, P11 (LazyPopover в пикерах и DueDatePicker), prefetch по наведению/фокусу и в простое, гонка в measure.spec.ts. accept --dry: 18 из 19 PASS, FAIL только lint из-за файлов e2e/web/perf/profile (WB-17), вне скоупа.",
+  "commits": [
+    "005a197 оптимизация клиента до бюджетов §7 (проекция, push→pull, приоритетный bootstrap, prefetch)",
+    "см. git log d8d10d8..HEAD: LazyPopover/справочники/параллельное чтение связей и правки тестов"
+  ],
+  "checks": [
+    {
+      "name": "cold_bootstrap_ms (3 прогона)",
+      "value": "1638.6 / 1611.5 / 1624.6 (<=2000)",
+      "pass": true
+    },
+    {
+      "name": "warm_start_ms (3 прогона)",
+      "value": "385.2 / 362.5 / 362.7 (<=400)",
+      "pass": true
+    },
+    {
+      "name": "mutate_ms_p95 (3 прогона)",
+      "value": "22.7 / 21.3 / 23.4 (<=50)",
+      "pass": true
+    },
+    {
+      "name": "project_switch_ms_p95 (3 прогона)",
+      "value": "92.9 / 76.9 / 79.7 (<=100)",
+      "pass": true
+    },
+    {
+      "name": "scroll_frame_ms_p95 / long_frames",
+      "value": "16.8 / 0 (все 3 прогона)",
+      "pass": true
+    },
+    {
+      "name": "realtime_ms_p95 (3 прогона)",
+      "value": "331 / 223 / 121 (<=500); медиана 66-72",
+      "pass": true
+    },
+    {
+      "name": "size initial gzip",
+      "value": "138.7 KB (<=200)",
+      "pass": true
+    },
+    {
+      "name": "test (vitest web)",
+      "value": "340 passed",
+      "pass": true
+    },
+    {
+      "name": "sync (src/sync)",
+      "value": "36 passed (>=30)",
+      "pass": true
+    },
+    {
+      "name": "perf:projection",
+      "value": "6 (>=4)",
+      "pass": true
+    },
+    {
+      "name": "perf:partial",
+      "value": "4 (>=3)",
+      "pass": true
+    },
+    {
+      "name": "e2e-ui",
+      "value": "5 passed (>=5)",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "105 (>=103)",
+      "pass": true
+    },
+    {
+      "name": "typecheck/build/install/scope",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "FAIL: 58 ошибок eslint и prettier --check в e2e/web/perf/profile/* (WB-17), мои файлы apps/web и measure.spec.ts чисты",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "lint-проверка карточки не проходит: eslint/prettier ругаются на e2e/web/perf/profile/*.ts, *.spec.ts, summary.md (из WB-17, до этой задачи). Править их нельзя (вне scope) - нужно расширить scope карточки или добавить игнор в конфиг.",
+    "Сужение rw-транзакций mutate/applyServer до нужных таблиц не делал: мутатор заранее не объявляет таблицы, 'просто' не получилось.",
+    "P9 (prefetchProject из URL в main.ts) включён: initial gzip 138.7 КБ, бюджет size не нарушен."
+  ],
+  "questions": [
+    "e2e/web/perf/run.sh запускает и profile/*.spec.ts, они перезаписывают e2e/web/perf/profile/results/base/*.json (отслеживаемые файлы) - accept scope падает, пока не сделать git checkout этих файлов. Исправить run.sh/конфиг (testIgnore: profile) - решение координатора."
+  ],
+  "how_to_check": ".dpcli/dpcli accept WB-18 --dry (после git checkout e2e/web/perf/profile/results); числа замеров: build/wb18-measure-{1,2,3}.txt",
+  "uncertain": [
+    {
+      "where": "apps/web/src/tasks/projection.ts (patch/onChanges)",
+      "why": "Проекция патчится событиями onReplicaChange; порядок событий конкурирующих транзакций формально не доказан (событие шлётся после await транзакции). Кросс-вкладочность - BroadcastChannel planar-replica, без гарантии порядка между вкладками.",
+      "checked": "perf:projection: сравнение с полным чтением после серии мутаций (перенос задач между проектами, связи), applyServer+rebase через FakeServer, удаление, LRU; мутационная проверка (отключение пересборки по связям роняет 3 теста); 12/12 прогонов зелёные."
+    },
+    {
+      "where": "apps/web/src/sync/client.ts applyServer (bootstrap)",
+      "why": "Приоритетный bootstrap: открытый проект определяется по location (/p/:id, /t/:key|uuid); при непустой очереди пишем всё одной транзакцией (shortcut, чтобы rebase не гонялся с фоновой записью). Остальные задачи пишутся пачками по 1000, события пачек - только своей вкладке, другим вкладкам в конце один reset. Курсор - после complete; stopSync между пачками оставляет курсор пустым - bootstrap повторится.",
+      "checked": "sync/__tests__/partial.test.ts (partial->complete, курсор только после complete, прерванный bootstrap, без открытого проекта); cold 1612-1639 мс на 10 000 задач."
+    },
+    {
+      "where": "apps/web/src/tasks/projection.ts reload (SMALL=20000, доля 1/20)",
+      "why": "Ветвление чтения связей: реплика <=20 000 задач - таблицы связей читаются целиком параллельно с задачами (общий индекс); больше - по доле проекта (>=1/20 - общий индекс, иначе anyOf по задачам проекта со своим индексом, а появившаяся задача перечитывает проект). Пороги выбраны по замерам WB-17 (getAll быстрее 10 000 точечных запросов), на реплике >20 000 задач не мерено.",
+      "checked": "тест с 20 601 задачей и 30 000 связей: таблица связей целиком не читается, перенесённая задача получает свои связи."
+    },
+    {
+      "where": "apps/web/src/tasks/fields/LazyPopover.vue",
+      "why": "Popover монтируется при наведении мыши, клавиатурном фокусе (:focus-visible) или клике; при замене кнопки фокус возвращается на новый триггер. Реальный Tab/Enter/Space в браузере не прогонялся - в happy-dom Enter/Space не порождают click, тест эмулирует click и focus.",
+      "checked": "pickers.test.ts: ленивое монтирование, сохранение фокуса, открытие кликом с фокусом в окне, DueDatePicker; e2e-ui 5 passed."
+    },
+    {
+      "where": "apps/web/src/tasks/__tests__/data.ts (мост BroadcastChannel)",
+      "why": "Тесты views/board/list/apply пишут в db напрямую, минуя клиент. Чтобы не править их (board.test, views/__tests__ вне scope), data.ts оборачивает put/bulkPut/delete таблиц и сообщает о записях как 'другая вкладка' через planar-replica; reset() сбрасывает проекции и справочники.",
+      "checked": "340 тестов зелёные 3 прогона подряд."
+    },
+    {
+      "where": "e2e/web/perf/measure.spec.ts",
+      "why": "Слушатели правки ставятся и подтверждаются отдельным page.evaluate до Enter (методика та же, пороги не менялись). Для mutate и realtime.",
+      "checked": "3 полных прогона run.sh, зависаний нет (раньше 2 из 3 на быстрой правке)."
+    },
+    {
+      "where": "realtime p95",
+      "why": "Выбросы 200-331 мс в одном из 10 замеров - серверная задержка push (по WB-17), не клиент; медиана 66-72 мс.",
+      "checked": "3 прогона: p95 331 / 223 / 121."
+    }
+  ],
+  "dp_feedback": "1) dpcli job start принимает команду аргументами, а не одной строкой (строка с пробелами -> код 127); перенаправление - через bash -c. 2) accept lint/scope: run.sh запускает profile/*.spec.ts, они переписывают отслеживаемые results/base/*.json и ломают scope; нужен testIgnore или результаты вне git. 3) В карточку не попал полный текст дополнений (task show обрезает до ~200 символов): полный текст - только в task show --full.",
+  "extra": {
+    "measure_runs": "build/wb18-measure-1.txt, -2.txt, -3.txt",
+    "before_after": "cold 3546->1612-1639, warm 859->363-385, mutate p95 865->21-23, switch p95 774->77-93, realtime p95 2112->121-331",
+    "files_new": "apps/web/src/tasks/projection.ts, dictionaries.ts, fields/LazyPopover.vue, __tests__/projection.test.ts, sync/__tests__/partial.test.ts"
+  },
+  "t": "2026-10-23T09:53:20",
+  "by": "executor"
+}

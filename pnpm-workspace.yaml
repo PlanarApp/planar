@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+  - modules/*
+  - e2e
+allowBuilds:
+  argon2: true
+  sharp: true
+  esbuild: true

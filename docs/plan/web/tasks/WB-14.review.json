@@ -1,0 +1,43 @@
+{
+  "verdict": "accept",
+  "summary": "Дифф только в e2e/web (3 файла, в скоупе), apps/ и общие помощники не тронуты. 5 сценариев покрывают карточку; после слияния CR-7 (7061d1f) e2e-ui даёт 5 passed, ревьюер повторил прогон. Отчёт исполнителя устарел и частично взят из WB-16.",
+  "issues": [
+    {
+      "file": "docs/plan/web (отчёт WB-14)",
+      "line": 0,
+      "severity": "major",
+      "what": "Отчёт не совпадает с фактом: commits=«82d914d WB-16» (коммит задачи 9cad69f + слияния), how_to_check=«accept WB-16», uncertain про apps/web/src/views/list/View.vue (файл WB-16, вне скоупа WB-14). e2e-ui указан 4/5 FAIL, а после слияния CR-7 проверка даёт 5 passed.",
+      "fix": "Координатору учесть факт по accept (7061d1f, 5/5); исполнителю в следующий раз заполнять отчёт по своей задаче."
+    },
+    {
+      "file": "e2e/web/ui.spec.ts",
+      "line": 98,
+      "severity": "minor",
+      "what": "Офлайн-сценарий не проверяет индикатор/очередь из карточки, а 3 правки делаются в 3 разных задачах, не подряд в одной. Слияние очереди для одной задачи не покрыто.",
+      "fix": "По желанию: проверить индикатор офлайна и добавить 2 правки подряд одной задачи."
+    },
+    {
+      "file": "e2e/web/ui.spec.ts",
+      "line": 12,
+      "severity": "minor",
+      "what": "Селекторы getByTestId(sidebar/comment/comment-send/inbox-item) и data-col/data-id/data-task — существующие атрибуты приложения (не добавлены), но в карточке были роли и подписи.",
+      "fix": "Допустимо; при случае заменить на getByRole/getByLabel."
+    },
+    {
+      "file": "e2e/web/playwright.config.ts",
+      "line": 5,
+      "severity": "minor",
+      "what": "Конфиг отходит от карточки: нет testIgnore 'perf/**' (testMatch '*.spec.ts' в корне его по сути заменяет), нет trace on-first-retry, нет явного project chromium. Контексты из loginAs не закрываются.",
+      "fix": "Добавить trace: 'on-first-retry', а в loginAs закрывать контексты или полагаться на завершение воркера."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "e2e-ui",
+      "value": "5 passed (154 с), scope ok",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T06:20:36",
+  "by": "reviewer"
+}

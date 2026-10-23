@@ -1,0 +1,76 @@
+{
+  "status": "done",
+  "summary": "Хук notificationsHook в транзакции мутации создаёт notifications и taskWatchers (ServerTx.asSystem); pg-boss очередь push.notification, send после COMMIT, воркер с PushSender (web-push), 404/410 удаляют подписку; эндпоинты vapid/subscribe; dev.sh vapid; миграция 0003. Payload по C-http v5 (pushPayloadSchema: url /t/KEY-N, tag, kind), тест проверяет схему. Слит feature/core: миграция перегенерирована как 0004, lockfile пересобран, app.module объединён. Слит feature/core (CR-3b extra в ServerTx + мои writes/обход system). Тяжёлый старт pg-boss вынесен в beforeAll (90 с); start() сбрасывает кеш при ошибке (minor ревью 1). Слит feature/core (dev.sh: vapid + e2e/measure).",
+  "commits": [
+    "CR-7: уведомления, автоподписка и push через pg-boss",
+    "CR-7: тело Web Push по C-http v5",
+    "CR-7: пул pg-boss 2 соединения",
+    "CR-7: таймаут воркер-теста",
+    "CR-7: слияние feature/core, миграция 0004",
+    "CR-7: lockfile после слияния",
+    "CR-7: слияние feature/core (server-tx)",
+    "CR-7: старт pg-boss в beforeAll",
+    "CR-7: сброс кеша старта pg-boss при ошибке",
+    "CR-7: слияние feature/core (dev.sh)"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "notifications_tests",
+      "value": "19",
+      "pass": true
+    },
+    {
+      "name": "migrations_in_sync",
+      "value": "чисто",
+      "pass": true
+    },
+    {
+      "name": "vapid_gen",
+      "value": "2",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-7",
+  "uncertain": [
+    {
+      "where": "apps/api/src/push/push.ts",
+      "why": "реальный web-push и pg-boss на prod-базе не гонялись; в тестах отправитель мок",
+      "checked": "воркер pg-boss end-to-end на тестовой базе (worker.test.ts)"
+    },
+    {
+      "where": "apps/api/src/push/push.ts subscribe",
+      "why": "повтор endpoint с другого аккаунта переназначает подписку текущему (200), контракт молчит",
+      "checked": "решено ради уникальности endpoint"
+    },
+    {
+      "where": "pnpm test",
+      "why": "под нагрузкой (общий testdb) полный прогон падал по 53300/таймаутам; pg-boss ограничен max:2",
+      "checked": "повторный accept --dry PASS 7/7"
+    }
+  ],
+  "dp_feedback": "Общий scratchpad: r.json перезаписал другой агент; отчёт стоит писать в файл с ID задачи.",
+  "t": "2026-10-23T05:30:42",
+  "by": "executor"
+}

@@ -1,0 +1,47 @@
+import { createHash, randomBytes } from 'node:crypto';
+import { and, eq, ne } from 'drizzle-orm';
+import type { Db } from '../db/index.js';
+import { sessions } from '../db/schema.js';
+
+export const SESSION_COOKIE = 'planar_sid';
+export const SESSION_DAYS = 30;
+const MAX_AGE = SESSION_DAYS * 86400;
+
+export const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
+export const sessionExpiry = () => new Date(Date.now() + MAX_AGE * 1000).toISOString();
+
+export async function createSession(db: Db, userId: string, userAgent?: string): Promise<string> {
+  const token = randomBytes(32).toString('base64url');
+  await db
+    .insert(sessions)
+    .values({ id: hashToken(token), userId, expiresAt: sessionExpiry(), userAgent });
+  return token;
+}
+
+export async function deleteSession(db: Db, token: string): Promise<void> {
+  await db.delete(sessions).where(eq(sessions.id, hashToken(token)));
+}
+
+export async function deleteUserSessions(db: Db, userId: string): Promise<void> {
+  await db.delete(sessions).where(eq(sessions.userId, userId));
+}
+
+const base = (secure: boolean) => `Path=/; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
+
+export const sessionCookie = (token: string, { secure }: { secure: boolean }) =>
+  `${SESSION_COOKIE}=${token}; ${base(secure)}; Max-Age=${MAX_AGE}`;
+
+export const clearSessionCookie = ({ secure }: { secure: boolean }) =>
+  `${SESSION_COOKIE}=; ${base(secure)}; Max-Age=0`;
+
+/** Все сессии пользователя, кроме той, что с токеном keepToken. */
+export async function deleteOtherSessions(db: Db, userId: string, keepToken: string | null) {
+  await db
+    .delete(sessions)
+    .where(
+      and(
+        eq(sessions.userId, userId),
+        keepToken ? ne(sessions.id, hashToken(keepToken)) : undefined,
+      ),
+    );
+}

@@ -1,0 +1,59 @@
+diff --git a/apps/web/src/tasks/fields/OptionPicker.vue b/apps/web/src/tasks/fields/OptionPicker.vue
+--- a/apps/web/src/tasks/fields/OptionPicker.vue
++++ b/apps/web/src/tasks/fields/OptionPicker.vue
+@@ -1,5 +1,5 @@
+ <script setup lang="ts">
+-import { computed, ref, watch, type Component } from 'vue';
++import { computed, nextTick, ref, watch, type Component } from 'vue';
+ import { useI18n } from 'vue-i18n';
+ import { Input, Popover } from '../../ui';
+ 
+@@ -25,6 +25,19 @@
+ const { t } = useI18n();
+ 
+ const open = ref(false);
++// P11: Popover (reka-ui) монтируется при первом наведении/фокусе/клике; до этого — лёгкая кнопка с той же разметкой
++const armed = ref(false);
++const plain = ref<HTMLButtonElement>();
++async function arm(e: Event) {
++  const focus = e.type !== 'pointerenter' && document.activeElement === plain.value;
++  armed.value = true;
++  if (e.type === 'click') open.value = true;
++  if (focus) {
++    await nextTick();
++    (document.activeElement as HTMLElement | null)?.blur?.();
++    document.querySelector<HTMLElement>(`[aria-label="${props.title}"]:focus-within, [data-armed-focus]`)?.focus();
++  }
++}
+ const q = ref('');
+ const active = ref(0);
+ const shown = computed(() => {
+@@ -52,7 +65,27 @@
+ </script>
+ 
+ <template>
+-  <Popover v-model:open="open" align="start">
++  <button
++    v-if="!armed"
++    ref="plain"
++    type="button"
++    :aria-label="title"
++    class="inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
++    @pointerenter="arm"
++    @focus="arm"
++    @click="arm"
++  >
++    <component
++      :is="o.icon"
++      v-for="o in compact ? chosen.slice(0, 1) : chosen"
++      :key="o.id"
++      v-bind="o.iconProps"
++    />
++    <span v-if="!compact" class="truncate">{{
++      chosen.length ? chosen.map((o) => o.label).join(', ') : (empty ?? '—')
++    }}</span>
++  </button>
++  <Popover v-else v-model:open="open" align="start">
+     <template #trigger>
+       <button
+         type="button"

@@ -1,0 +1,84 @@
+{
+  "id": "CR-3b",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "Вход, выход, setup, управление пользователями, лимит входа",
+  "goal": "Эндпоинты авторизации и пользователей C-http v3 (setup GET/POST, login, logout, users GET/POST/PATCH с avatarFile) на argon2id, лимит попыток входа в таблице login_attempts, роли owner/admin/member/guest; правки пользователей попадают в changes через серверный Tx.",
+  "plan_ref": "CR-3 Авторизация",
+  "contracts": [
+    {
+      "name": "C-http",
+      "version": "3",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "2",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-sync",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-3b",
+  "branch": "core/CR-3b",
+  "base": "feature/core",
+  "scope": [
+    "apps/api/src/auth/",
+    "apps/api/src/users/",
+    "apps/api/src/error.filter.ts",
+    "apps/api/src/app.module.ts",
+    "apps/api/src/app.ts",
+    "apps/api/test/auth/",
+    "apps/api/test/auth.ts",
+    "apps/api/test/auth-guard.test.ts",
+    "apps/api/package.json",
+    "pnpm-lock.yaml",
+    "apps/api/src/sync/server-tx.ts"
+  ],
+  "dont_touch": [
+    "apps/api/src/db/",
+    "apps/api/test/contract.schema.test.ts",
+    "packages/",
+    "apps/web/",
+    "docs/"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0",
+      "timeout": 300
+    },
+    {
+      "name": "auth_tests",
+      "cmd": "pnpm exec vitest run apps/api/test/auth",
+      "expect": "num:Tests\\s+(\\d+) passed >=22",
+      "timeout": 300
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0",
+      "timeout": 900
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-22T23:54:30",
+  "edited": "2026-10-23T02:11:20"
+}

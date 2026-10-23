@@ -1,0 +1,99 @@
+{
+  "id": "CR-2",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "Схема Drizzle, миграции, сид",
+  "goal": "Таблицы БД ровно по C-schema v1 (Drizzle + миграция drizzle-kit), контрактный тест схемы apps/api/test/contract.schema.test.ts зелёный без его правки; сид dev-данных (admin/admin, 2 пространства, проекты, статусы, метки, --tasks N) с замером на 10 000 задач; api применяет миграции при старте и не стартует без DATABASE_URL.",
+  "plan_ref": "CR-2 Схема",
+  "contracts": [
+    {
+      "name": "C-schema",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-2",
+  "branch": "core/CR-2",
+  "base": "feature/core",
+  "scope": [
+    "apps/api/src/db/",
+    "apps/api/drizzle/",
+    "apps/api/drizzle.config.ts",
+    "apps/api/src/main.ts",
+    "apps/api/src/app.ts",
+    "apps/api/package.json",
+    "apps/api/test/",
+    "dev.sh",
+    "compose.dev.yml",
+    ".env.example",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
+  ],
+  "dont_touch": [
+    "apps/api/test/contract.schema.test.ts — контрактный тест координатора; расхождение — «CR-2 contract: …»",
+    "packages/shared/ — параллельно CR-5",
+    "apps/web/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0",
+      "timeout": 300
+    },
+    {
+      "name": "schema",
+      "cmd": "pnpm exec vitest run apps/api/test/contract.schema.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=24",
+      "timeout": 300
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "migrations_in_sync",
+      "cmd": "cd apps/api && pnpm exec drizzle-kit generate 2>&1; git status --porcelain drizzle",
+      "expect": "!re:^\\s*(\\?\\?|M|A) ",
+      "timeout": 120
+    },
+    {
+      "name": "no_db_url",
+      "cmd": "env -u DATABASE_URL node apps/api/dist/main.js >/dev/null 2>&1; echo rc=$?",
+      "expect": "re:^rc=[1-9]",
+      "timeout": 60
+    },
+    {
+      "name": "dev_seed",
+      "cmd": "./dev.sh up && ./dev.sh seed && ./dev.sh seed --tasks 200 && echo seed-ok; rc=$?; ./dev.sh down; exit $rc",
+      "expect": "re:^seed-ok$",
+      "timeout": 900
+    },
+    {
+      "name": "seed_bench",
+      "cmd": "pnpm --filter @planar/api seed --bench --tasks 10000",
+      "expect": "num:seed_ms=(\\d+) <=15000"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-22T23:04:07",
+  "edited": "2026-10-22T23:17:06"
+}

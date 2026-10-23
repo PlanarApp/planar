@@ -1,0 +1,153 @@
+{
+  "id": "WB-2",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Клиент синхронизации: Dexie, bootstrap/pull/push, rebase, WS, useQuery, mutate",
+  "goal": "apps/web/src/sync — клиент по C-client v1 поверх C-sync: реплика Dexie, bootstrap и pull по курсору, push-очередь в IndexedDB, rebase, WS с переподключением, useQuery и оптимистичный mutate; Dexie-Tx проходит txContractSuite; тесты против фейкового сервера по C-sync, замеры на 10 000 задач в бюджете.",
+  "plan_ref": "WB-2 Клиент синхронизации",
+  "contracts": [
+    {
+      "name": "C-client",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-sync",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-2",
+  "branch": "web/WB-2",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/sync/",
+    "apps/web/src/__contract__/client.contract.test.ts",
+    "apps/web/package.json",
+    "pnpm-lock.yaml",
+    "apps/web/vitest.config.ts"
+  ],
+  "dont_touch": [
+    "контрактные тесты координатора в apps/web/src/__contract__ не править (client.contract.test.ts уже в ветке); расхождение — «WB-2 contract: …»",
+    "в package.json и pnpm-lock.yaml — только devDependency fake-indexeddb, больше ничего",
+    "apps/web/src/main.ts, router.ts, layout/, ui/, screens/ — подключение клиента к экранам делают WB-3/WB-4",
+    "packages/",
+    "apps/api/",
+    "modules/",
+    "корневые конфиги (vitest.config.ts, tsconfig*.json в корне) — core",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__",
+      "expect": "num:Tests\\s+(\\d+) passed >=63"
+    },
+    {
+      "name": "tx-contract",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t tx-contract",
+      "expect": "num:Tests\\s+(\\d+) passed >=9"
+    },
+    {
+      "name": "optimistic",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:optimistic",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "confirm",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:confirm",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "rollback",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:rollback",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "offline-queue",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:offline-queue",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "rebase",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:rebase",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "reset",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:reset",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "bootstrap-10k",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:perf",
+      "expect": "num:perf bootstrap10k_ms=([\\d.]+) <=2000"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "mutate-ms",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:perf",
+      "expect": "num:perf mutate_ms=([\\d.]+) <=100"
+    },
+    {
+      "name": "warm-start",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:warm-start",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "rebase-inapplicable",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:rebase-inapplicable",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "ws-reconnect",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t sync:ws-reconnect",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-22T23:21:31",
+  "edited": "2026-10-22T23:44:03"
+}

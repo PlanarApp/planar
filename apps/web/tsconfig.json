@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM"],
+    "paths": { "@planar/shared": ["../../packages/shared/src/index.ts"] },
+    "jsx": "preserve"
+  },
+  "include": ["src", "*.ts"]
+}

@@ -1,0 +1,90 @@
+import { computed, watch } from 'vue';
+import type { Row } from '@planar/shared';
+import { db, useQuery } from '../sync';
+
+export interface Hit {
+  id: string;
+  /** PLN-12; пока номер не назначен — id */
+  ref: string;
+  title: string;
+}
+interface Entry extends Hit {
+  updatedAt: string;
+  key: string;
+  t: string;
+  /** название + ключ + описание */
+  all: string;
+}
+
+const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е');
+const words = (q: string) => norm(q).split(/\s+/).filter(Boolean);
+
+/** Текст всех text-узлов TipTap JSON. */
+export function docText(n: unknown): string {
+  if (!n || typeof n !== 'object') return typeof n === 'string' ? n : '';
+  const o = n as { text?: unknown; content?: unknown[] };
+  return (typeof o.text === 'string' ? o.text + ' ' : '') + (o.content ?? []).map(docText).join('');
+}
+
+const LIMIT = 50;
+
+export function createIndex() {
+  const entries = new Map<string, Entry>();
+  return {
+    /** Обновляет только изменившиеся (id + updatedAt) задачи, убирает исчезнувшие. */
+    update(tasks: Row<'tasks'>[], projectKey: Map<string, string>) {
+      const seen = new Set<string>();
+      for (const t of tasks) {
+        seen.add(t.id);
+        if (entries.get(t.id)?.updatedAt === t.updatedAt) continue;
+        const pk = projectKey.get(t.projectId);
+        const ref = pk && t.number != null ? `${pk}-${t.number}` : t.id;
+        const title = norm(t.title);
+        const key = pk && t.number != null ? norm(ref) : '';
+        entries.set(t.id, {
+          id: t.id,
+          ref,
+          title: t.title,
+          updatedAt: t.updatedAt,
+          key,
+          t: title,
+          all: `${title}\n${key}\n${norm(docText(t.description))}`,
+        });
+      }
+      for (const id of entries.keys()) if (!seen.has(id)) entries.delete(id);
+    },
+    /** Все слова — подстроки; точный ключ > начало названия > название > описание. */
+    search(q: string): Hit[] {
+      const ws = words(q);
+      if (!ws.length) return [];
+      const nq = ws.join(' ');
+      const b: Entry[][] = [[], [], [], []];
+      for (const e of entries.values()) {
+        if (!ws.every((w) => e.all.includes(w))) continue;
+        b[
+          e.key === nq ? 0 : e.t.startsWith(nq) ? 1 : ws.every((w) => e.t.includes(w)) ? 2 : 3
+        ].push(e);
+      }
+      return b
+        .flat()
+        .slice(0, LIMIT)
+        .map(({ id, ref, title }) => ({ id, ref, title }));
+    },
+  };
+}
+
+/** Индекс по всей реплике: подписка на db.tasks, поиск — синхронный. */
+export function useSearch() {
+  const index = createIndex();
+  const data = useQuery(async () => {
+    const [tasks, projects] = await Promise.all([
+      db.table<Row<'tasks'>>('tasks').toArray(),
+      db.table<Row<'projects'>>('projects').toArray(),
+    ]);
+    return { tasks, keys: new Map(projects.map((p) => [p.id, p.key])) };
+  });
+  const ready = computed(() => data.value !== undefined);
+  watch(data, (d) => d && index.update(d.tasks, d.keys), { immediate: true, flush: 'sync' });
+  // чтение data.value делает результаты реактивными: палитра пересчитывается при изменении реплики
+  return { ready, search: (q: string) => (void data.value, index.search(q)) };
+}

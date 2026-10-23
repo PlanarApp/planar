@@ -1,0 +1,23 @@
+diff --git a/apps/web/src/tasks/queries.ts b/apps/web/src/tasks/queries.ts
+--- a/apps/web/src/tasks/queries.ts
++++ b/apps/web/src/tasks/queries.ts
+@@ -179,8 +179,19 @@
+     e.queue = [];
+     if (!applyChanges(st, q)) return reload(e);
+     e.subs.forEach((f) => f(snapshot(e)));
++    prefetchSiblings();
+   });
+ }
++/** P12: после первого проекта в простое дочитываем остальные (до KEEP) — первый переход в них без чтения IndexedDB. */
++let prefetched = false;
++function prefetchSiblings() {
++  if (prefetched) return;
++  prefetched = true;
++  setTimeout(async () => {
++    const ps = await db.table<Row<'projects'>>('projects').toArray();
++    for (const p of ps.filter((x) => !x.archivedAt).slice(0, KEEP)) acquire(p.id);
++  }, 500);
++}
+ function onChanges(cs: RowChange[]) {
+   for (const e of entries.values()) {
+     if (e.loading) e.queue.push(...cs);

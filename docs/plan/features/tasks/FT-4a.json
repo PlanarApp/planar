@@ -1,0 +1,95 @@
+{
+  "id": "FT-4a",
+  "module": "features",
+  "type": "dp-engineer",
+  "title": "Связи задач в интерфейсе: блок в карточке, поиск задачи, иконка «заблокирована» на Доске",
+  "goal": "В карточке задачи есть блок «Связи» (4 вида, обратная сторона вычисляется) с поиском задачи для связи и удалением; на Доске заблокированные задачи помечены иконкой; экспорты apps/web/src/links/index.ts по F-links.",
+  "plan_ref": "5. Задачи",
+  "contracts": [
+    {
+      "name": "F-links",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-tasks",
+      "version": "2",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-views",
+      "version": "2",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "3",
+      "ref": "docs/contracts/features.md"
+    }
+  ],
+  "copy": "~/planar-features-FT-4a",
+  "branch": "features/FT-4a",
+  "base": "feature/features",
+  "scope": [
+    "apps/web/src/links/",
+    "apps/web/src/task/TaskDetail.vue",
+    "apps/web/src/views/board/",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "build/dpcli/FT-4a.report.json"
+  ],
+  "dont_touch": [
+    "apps/web/src/sync/, apps/web/src/tasks/, apps/web/src/views/list/, e2e/web/perf/ — WB-18 модуля web",
+    "apps/web/src/__contract__/, apps/web/src/contract.ts — контрактные тесты, правит координатор",
+    "packages/, apps/api/ — core (FT-1a уже в ветке)",
+    "package.json, pnpm-lock.yaml — без новых зависимостей",
+    "docs/, .claude/, CLAUDE.md",
+    "apps/web/src/fields/, views/filter.ts, views/saved/ — FT-1b; views/list/ — иконка в Списке после WB-18 (FT-4b)"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web exec vitest run --exclude src/__contract__/fields.contract.test.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/links.contract.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=6"
+    },
+    {
+      "name": "links_ui",
+      "cmd": "pnpm --filter web exec vitest run src/links src/views/board -t 'links-ui:'",
+      "expect": "num:Tests\\s+(\\d+) passed >=7"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "n=$(pnpm --filter web exec vue-tsc --noEmit 2>&1 | grep 'error TS' | grep -v 'fields.contract.test.ts' | wc -l); echo tsc_errors=$n; test $n -eq 0",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T09:29:07",
+  "edited": "2026-10-23T09:29:08"
+}

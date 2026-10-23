@@ -1,0 +1,68 @@
+{
+  "status": "done",
+  "summary": "38 мутаторов домена, extractMentions/textToDoc и MemoryTx (@planar/shared/testing); все проверки accept --dry PASS.",
+  "commits": [
+    "5329c8e CR-5: мутаторы домена (38) и MemoryTx с тестами"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "no_node_api",
+      "value": "clean",
+      "pass": true
+    },
+    {
+      "name": "deterministic",
+      "value": "clean",
+      "pass": true
+    },
+    {
+      "name": "tx_contract",
+      "value": "16",
+      "pass": true
+    },
+    {
+      "name": "mutators_contract",
+      "value": "mutators-ok 38",
+      "pass": true
+    },
+    {
+      "name": "shared_tests",
+      "value": "135",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept CR-5",
+  "uncertain": [
+    {
+      "where": "packages/shared/src/mutators/tasks.ts",
+      "why": "task.assign/addLabel/watch при повторе — молча ничего (уникальность и так на сервере); status.delete: единственный статус → conflict проверяется до replaceWith",
+      "checked": "тесты на оба пути"
+    },
+    {
+      "where": "packages/shared/src/mutators/misc.ts",
+      "why": "notification.read/delete: отсутствующий id пропускается, чужой → forbidden на весь вызов; в таблице не оговорено",
+      "checked": "тест"
+    },
+    {
+      "where": "packages/shared/src/mutators/statuses.ts",
+      "why": "status.delete пересчитывает completedAt задач по категории нового статуса (в таблице не сказано)",
+      "checked": "тест"
+    }
+  ],
+  "dp_feedback": "task show обрезает дополнения до 200 символов; полный текст только через --full — стоит сказать в подсказке. plan с аргументом-разделом из нескольких слов не принимается.",
+  "t": "2026-10-22T23:11:04",
+  "by": "executor"
+}

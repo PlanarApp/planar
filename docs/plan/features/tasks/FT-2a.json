@@ -1,0 +1,89 @@
+{
+  "id": "FT-2a",
+  "module": "features",
+  "type": "dp-engineer",
+  "title": "Вид «Таблица»: каркас с системными колонками, ширина и порядок, инлайн- и массовая правка, виртуализация",
+  "goal": "Встроенный вид table показывает задачи проекта виртуализированной таблицей с системными колонками; ширина, порядок и видимость колонок сохраняются; ячейки правятся инлайн и массово для выделенных строк только через мутаторы C-tasks; 10 000 задач не подвешивают вид.",
+  "plan_ref": "5. Задачи",
+  "contracts": [
+    {
+      "name": "C-views",
+      "version": "2",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-tasks",
+      "version": "2",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "F-views",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    }
+  ],
+  "copy": "~/planar-features-FT-2a",
+  "branch": "features/FT-2a",
+  "base": "feature/features",
+  "scope": [
+    "apps/web/src/views/table/",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "build/dpcli/FT-2a.report.json"
+  ],
+  "dont_touch": [
+    "apps/web/src/sync/, apps/web/src/tasks/, apps/web/src/views/list/, e2e/web/perf/ — WB-18 модуля web",
+    "apps/web/src/views/index.ts — иконку и порядок вкладки table добавляет FT-3; apps/web/src/views/calendar/ — FT-3",
+    "колонки пользовательских полей — FT-2b (после FT-1b)",
+    "apps/web/src/__contract__/, apps/web/src/contract.ts — контрактные тесты",
+    "packages/, apps/api/ — core",
+    "package.json, pnpm-lock.yaml — без новых зависимостей",
+    "docs/, .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "table_tests",
+      "cmd": "pnpm --filter web exec vitest run src/views/table -t 'table:'",
+      "expect": "num:Tests\\s+(\\d+) passed >=8"
+    },
+    {
+      "name": "table_10k",
+      "cmd": "pnpm --filter web exec vitest run src/views/table -t 'table:10k'",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T09:01:25",
+  "edited": "2026-10-23T09:09:25"
+}

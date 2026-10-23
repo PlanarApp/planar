@@ -1,0 +1,51 @@
+{
+  "status": "done",
+  "summary": "Список: useBlockedIds один раз в View.vue, булев проп blocked в Row.vue, BlockedIcon рядом с названием. 2 unit-теста links-ui и e2e.",
+  "commits": [
+    "8b2cd99 FT-4b иконка заблокирована в Списке"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "list_blocked",
+      "value": "2",
+      "pass": true
+    },
+    {
+      "name": "e2e",
+      "value": "23",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept FT-4b",
+  "uncertain": [],
+  "dp_feedback": "",
+  "t": "2026-10-23T10:41:19",
+  "by": "executor"
+}

@@ -1,0 +1,47 @@
+{
+  "status": "done",
+  "summary": "Доработка по ревью: details 400 = массив issues (проходит contractSchemas['http.error']); смена пароля сбрасывает сессии (себе — кроме текущей, чужому — все), тесты добавлены.",
+  "commits": [
+    "CR-3b: details=issues, сброс сессий при смене пароля"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "auth_tests",
+      "value": "33",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-3b",
+  "uncertain": [
+    {
+      "where": "apps/api/test/auth/harness.ts",
+      "why": "каждый файл на своей БД, drop не ждём дольше 15 с — на перегруженном сервере могут оставаться базы",
+      "checked": "прогоны accept при высокой нагрузке"
+    }
+  ],
+  "dp_feedback": "job-имена общие между агентами; sync/ws.test флакает под нагрузкой (один раз упал, отдельно проходит).",
+  "t": "2026-10-23T03:12:11",
+  "by": "executor"
+}

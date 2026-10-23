@@ -1,0 +1,80 @@
+{
+  "status": "done",
+  "summary": "Rework 2: guard решает по req.routeOptions.url (percent-encoding не обходит), WS /ws отклоняет Bearer, слит feature/core; tokenId через runMutation/executeMutations (для REST CR-10b).",
+  "commits": [
+    "daed4a1 core: CR-10a API-токены, Bearer-авторизация, activity.v",
+    "be96629 core: CR-10a guard по шаблону маршрута, WS без токена, слияние feature/core"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "tokens_tests",
+      "value": "17",
+      "pass": true
+    },
+    {
+      "name": "schema",
+      "value": "70",
+      "pass": true
+    },
+    {
+      "name": "migrations_in_sync",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "вне scope: sync.controller.ts, test/sync/server-tx.test.ts",
+      "pass": false
+    }
+  ],
+  "not_done": [],
+  "questions": [
+    "Правки вне scope: sync/mutate.ts (tokenId в runMutation/executeMutations, после слияния CR-10b), sync/ws.ts (отказ токену). Принять?"
+  ],
+  "how_to_check": ".dpcli/dpcli accept CR-10a",
+  "uncertain": [
+    {
+      "where": "apps/api/src/sync/sync.controller.ts:50",
+      "why": "вне scope, но без неё tokenId не дойдёт до PushService",
+      "checked": "правка 2 строки: getAuth(req).tokenId третьим аргументом push"
+    },
+    {
+      "where": "apps/api/test/sync/server-tx.test.ts:166",
+      "why": "вне scope; контракт v5 сделал viaTokenId обязательным в Row<activity>, тест падал",
+      "checked": "добавлено viaTokenId: null, pnpm test зелёный"
+    },
+    {
+      "where": "apps/api/src/tokens/tokens.controller.ts:revoke",
+      "why": "повторный DELETE уже отозванного даёт 404 (не идемпотентно)",
+      "checked": "осознанно, по карточке: чужой/нет -> 404"
+    },
+    {
+      "where": "apps/api/src/sync/mutate.ts:31",
+      "why": "вне scope; без tokenId REST CR-10b не пометит activity.viaTokenId",
+      "checked": "необязательный параметр, push и тесты зелёные"
+    }
+  ],
+  "dp_feedback": "scope-проверка не даёт предупредить заранее о файлах, которые ломает смена контракта; карточке стоило включить sync.controller.ts и тесты, использующие Row<activity>.",
+  "t": "2026-10-23T06:21:21",
+  "by": "executor"
+}

@@ -1,0 +1,83 @@
+{
+  "id": "WB-3b",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Аватар в профиле; выход без лишнего перехода",
+  "goal": "В профиле можно загрузить и убрать аватар (POST /files → PATCH /api/users/<self> avatarFile по C-http v3), Avatar показывает картинку; отмена выхода в TopBar не уводит со страницы.",
+  "plan_ref": "WB-3 Вход и пользователи",
+  "contracts": [
+    {
+      "name": "C-http",
+      "version": "3",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-3b",
+  "branch": "web/WB-3b",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/screens/ProfileScreen.vue",
+    "apps/web/src/api/",
+    "apps/web/src/auth/",
+    "apps/web/src/layout/TopBar.vue",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts"
+  ],
+  "dont_touch": [
+    "контрактные тесты в apps/web/src/__contract__ не править",
+    "src/ui/ — C-ui как есть",
+    "src/sync/, src/tasks/, src/session.ts — WB-2a",
+    "в package.json и pnpm-lock.yaml — ничего",
+    "packages/",
+    "apps/api/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "avatar",
+      "cmd": "pnpm --filter web exec vitest run src -t auth:avatar",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "logout-cancel",
+      "cmd": "pnpm --filter web exec vitest run src -t auth:logout",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T00:08:23",
+  "edited": "2026-10-23T00:10:00"
+}

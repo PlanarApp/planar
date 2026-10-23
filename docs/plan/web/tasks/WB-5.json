@@ -1,0 +1,110 @@
+{
+  "id": "WB-5",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Вид «Доска»",
+  "goal": "src/views/board/View.vue по C-views: колонки по groupBy, перетаскивание карточек между колонками и внутри (rank через moveTask), сворачивание колонок, виртуализация длинных колонок, быстрое добавление; на mobile — горизонтальный свайп колонок.",
+  "plan_ref": "WB-5 Вид «Доска»",
+  "contracts": [
+    {
+      "name": "C-views",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-tasks",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-5",
+  "branch": "web/WB-5",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/views/board/",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts"
+  ],
+  "dont_touch": [
+    "контрактные тесты в apps/web/src/__contract__ не править",
+    "src/screens/, src/views/index.ts, options.ts, selection.ts, open.ts — каркас WB-4a как есть; не хватает — «<ID> contract: …»",
+    "src/tasks/, src/sync/, src/ui/ — контракты C-tasks, C-client, C-ui как есть",
+    "src/task/ — WB-6",
+    "в package.json и pnpm-lock.yaml — ничего (TanStack Virtual, vue-draggable-plus уже стоят)",
+    "packages/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__",
+      "expect": "num:Tests\\s+(\\d+) passed >=98"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "columns",
+      "cmd": "pnpm --filter web exec vitest run src/views/board -t board:columns",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "collapse",
+      "cmd": "pnpm --filter web exec vitest run src/views/board -t board:collapse",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "quick-add",
+      "cmd": "pnpm --filter web exec vitest run src/views/board -t board:create",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "virtual",
+      "cmd": "pnpm --filter web exec vitest run src/views/board -t board:virtual",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "move",
+      "cmd": "pnpm --filter web exec vitest run src/views/board -t board:move",
+      "expect": "num:Tests\\s+(\\d+) passed >=6"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T00:48:57",
+  "edited": "2026-10-23T01:14:28"
+}

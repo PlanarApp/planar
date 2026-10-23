@@ -1,0 +1,100 @@
+{
+  "id": "CR-4",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "Сервер синхронизации: серверный Tx, bootstrap, pull, push, WS",
+  "goal": "Сервер синхронизации по C-sync v1 и серверный Tx по C-mutators v1 (права, changes, activity, номера задач, advisory lock, NOTIFY), WS /ws с poke; серверный Tx проходит txContractSuite, доменные мутаторы проверены интеграционно через push.",
+  "plan_ref": "CR-4 Сервер синхронизации",
+  "contracts": [
+    {
+      "name": "C-sync",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "2",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "3",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-http",
+      "version": "2",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-4",
+  "branch": "core/CR-4",
+  "base": "feature/core",
+  "scope": [
+    "apps/api/src/sync/",
+    "apps/api/src/app.module.ts",
+    "apps/api/src/app.ts",
+    "apps/api/src/main.ts",
+    "apps/api/test/sync/",
+    "apps/api/package.json",
+    "pnpm-lock.yaml",
+    "apps/api/vitest.config.ts"
+  ],
+  "dont_touch": [
+    "apps/api/src/auth/ — CR-3a/CR-3b; нужна правка — «CR-4 contract: …»",
+    "apps/api/src/db/schema.ts — схема C-schema",
+    "apps/api/test/contract.schema.test.ts",
+    "packages/shared/ — нужна правка — «CR-4 contract: …»",
+    "apps/web/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0",
+      "timeout": 300
+    },
+    {
+      "name": "server_tx_contract",
+      "cmd": "pnpm exec vitest run apps/api/test/sync/server-tx.contract.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=12",
+      "timeout": 300
+    },
+    {
+      "name": "sync_tests",
+      "cmd": "pnpm exec vitest run apps/api/test/sync",
+      "expect": "num:Tests\\s+(\\d+) passed >=45",
+      "timeout": 600
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0",
+      "timeout": 900
+    },
+    {
+      "name": "poke_latency",
+      "cmd": "PLANAR_LATENCY=1 pnpm exec vitest run apps/api/test/sync/ws.test.ts",
+      "expect": "num:poke_ms=(\\d+) <=500"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-22T23:28:57",
+  "edited": "2026-10-23T01:43:24"
+}

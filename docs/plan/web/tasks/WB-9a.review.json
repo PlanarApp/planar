@@ -1,0 +1,34 @@
+{
+  "verdict": "accept",
+  "summary": "push-sw.js проверяет поля по правилам pushPayloadSchema (C-http v5 «Web Push»), сообщения не по схеме не показывает, клик открывает только свой origin. Примеры в тестах совпадают с example/bad=push.payload из core.md. Правки в границах скоупа. push-format перезапущен: 4 passed.",
+  "issues": [
+    {
+      "file": "apps/web/public/push-sw.js",
+      "line": 14,
+      "severity": "minor",
+      "what": "valid() пропускает url вида '/\\evil.example/x': startsWith('/') верно, '//' нет, а new URL разбирает его как https://evil.example/x. Уведомление показывается, но клик уводит на корень благодаря проверке origin, так что открытого редиректа нет.",
+      "fix": "По желанию: отвергать и '/\\' (или проверять new URL(url, origin).origin === origin уже в valid()). Блокером не считаю."
+    },
+    {
+      "file": "packages/shared/src/contract/http.ts",
+      "line": 32,
+      "severity": "minor",
+      "what": "pushPayloadSchema.url = z.string().startsWith('/') пропускает '//host' и '/\\host'. SW строже схемы, и тест сверки обходит это особым случаем c !== protoRel. Это вопрос к контракту, исполнитель сделал по карточке.",
+      "fix": "Координатору: ужесточить схему (refine: не '//' и не '/\\') через C-http, после чего убрать исключение из теста."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "push-format",
+      "value": "4 passed",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "2 файла в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T02:35:44",
+  "by": "reviewer"
+}

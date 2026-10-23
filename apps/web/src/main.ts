@@ -1,0 +1,21 @@
+import { createApp, defineAsyncComponent, h } from 'vue';
+import { useAuth } from './auth/useAuth';
+import App from './App.vue';
+import { i18n } from './i18n';
+import { router } from './router';
+import { initModules } from './modules/registry';
+import { prefetchProject } from './tasks/queries';
+import { initSession } from './session';
+import './styles.css';
+
+const LogoutDialog = defineAsyncComponent(() => import('./sync/LogoutDialog.vue'));
+const { logoutPrompt } = useAuth();
+
+const open = /^\/p\/([0-9a-f-]{36})/.exec(location.pathname);
+if (open) prefetchProject(open[1]!);
+initSession(router);
+initModules();
+createApp({ render: () => [h(App), logoutPrompt.open.value && h(LogoutDialog)] })
+  .use(router)
+  .use(i18n)
+  .mount('#app');

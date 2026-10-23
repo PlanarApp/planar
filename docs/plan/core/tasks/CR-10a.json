@@ -1,0 +1,96 @@
+{
+  "id": "CR-10a",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "API-токены и Bearer-авторизация",
+  "goal": "Пользователь выпускает, видит и отзывает API-токены (plnr_…, в БД только sha256); Bearer даёт тот же ctx.userId с ограничением read/write; запись через токен помечается в activity.viaTokenId (C-schema v5).",
+  "plan_ref": "CR-10 API-токены и REST",
+  "contracts": [
+    {
+      "name": "C-http",
+      "version": "7",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "5",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-10a",
+  "branch": "core/CR-10a",
+  "base": "feature/core",
+  "scope": [
+    "apps/api/src/tokens/",
+    "apps/api/src/auth/",
+    "apps/api/src/sync/server-tx.ts",
+    "apps/api/src/sync/push.service.ts",
+    "apps/api/src/db/schema.ts",
+    "apps/api/drizzle/",
+    "apps/api/src/app.module.ts",
+    "apps/api/test/tokens/",
+    "apps/api/test/auth.ts",
+    "packages/shared/src/contract/entities.ts",
+    "packages/shared/src/contract/versions.ts",
+    "docs/contracts/core.md",
+    "apps/api/src/sync/sync.controller.ts",
+    "apps/api/test/sync/server-tx.test.ts",
+    "apps/api/src/sync/mutate.ts",
+    "apps/api/src/sync/ws.ts"
+  ],
+  "dont_touch": [
+    "apps/api/src/rest/ — параллельно CR-10b",
+    "apps/api/test/contract.schema.test.ts",
+    "packages/shared/test/",
+    "packages/shared/src/mutators/",
+    "apps/web/"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0",
+      "timeout": 300
+    },
+    {
+      "name": "tokens_tests",
+      "cmd": "pnpm exec vitest run apps/api/test/tokens",
+      "expect": "num:Tests\\s+(\\d+) passed >=14",
+      "timeout": 600
+    },
+    {
+      "name": "schema",
+      "cmd": "pnpm exec vitest run apps/api/test/contract.schema.test.ts packages/shared/test/contract.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=70",
+      "timeout": 300
+    },
+    {
+      "name": "migrations_in_sync",
+      "cmd": "cd apps/api && pnpm exec drizzle-kit generate 2>&1; git status --porcelain drizzle",
+      "expect": "!re:^\\s*(\\?\\?|M|A) ",
+      "timeout": 120
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0",
+      "timeout": 1200
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T05:54:04",
+  "edited": "2026-10-23T06:26:25"
+}

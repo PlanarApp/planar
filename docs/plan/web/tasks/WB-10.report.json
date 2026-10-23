@@ -1,0 +1,87 @@
+{
+  "status": "done",
+  "summary": "Доработка: загрузчик модулей берёт экспорт web, ошибка загрузки — console.warn; нет строки enabled_modules = ничего не включено в registry и ModulesSettings; добавлен тест с подставным glob.",
+  "commits": [
+    "7763c4e web: настройки — загрузчик модулей берёт web, нет строки enabled_modules = ничего не включено (WB-10)"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "181.8 KB",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "98",
+      "pass": true
+    },
+    {
+      "name": "spaces",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "members",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "projects",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "statuses",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "labels",
+      "value": "2",
+      "pass": true
+    },
+    {
+      "name": "modules",
+      "value": "5",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-10",
+  "uncertain": [
+    {
+      "where": "apps/web/src/screens/settings/__tests__/setup.ts",
+      "why": "тесты зависят от таймаутов ожидания live-запросов; один из прогонов под нагрузкой падал",
+      "checked": "поднял ожидание до 120 мс, затем 13/13 PASS"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T01:55:25",
+  "by": "executor"
+}

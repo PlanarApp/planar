@@ -1,0 +1,72 @@
+{
+  "status": "done",
+  "summary": "fieldDefs/taskLinks, fields.ts, мутаторы, миграция 0006, тесты; accept --dry PASS. Доработка по ревью: invalid_args в link.create/setField, project.delete чистит fieldDefs, guest link.create.",
+  "commits": [
+    "13d34ea FT-1a: fieldDefs, taskLinks, мутаторы, миграция 0006"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "mutators_doc",
+      "value": "mutators-ok 45",
+      "pass": true
+    },
+    {
+      "name": "fields_tests",
+      "value": "17",
+      "pass": true
+    },
+    {
+      "name": "links_tests",
+      "value": "7",
+      "pass": true
+    },
+    {
+      "name": "server_tests",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept FT-1a",
+  "uncertain": [
+    {
+      "where": "apps/web/src/sync/db.ts",
+      "why": "Dexie version(1): новые таблицы могут не открыться у существующей реплики",
+      "checked": "не трогал (WB-18)"
+    },
+    {
+      "where": "packages/shared/src/mutators/fields.ts",
+      "why": "task.setField.value объявлен z.json() (z.unknown() даёт optional и валит check-mutators)",
+      "checked": "check-mutators ok"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T09:22:57",
+  "by": "executor"
+}

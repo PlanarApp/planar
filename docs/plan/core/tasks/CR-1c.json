@@ -1,0 +1,65 @@
+{
+  "id": "CR-1c",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "dev.sh: seed после миграций, воспроизводимый --tasks",
+  "goal": "./dev.sh seed ждёт готовности api (миграции применены, /api/health 200) и не даёт 502; seed --tasks N доводит число задач сида до N (повтор не копит задачи); ./dev.sh reset — документированная очистка томов.",
+  "plan_ref": "CR-2 Схема",
+  "contracts": [
+    {
+      "name": "C-schema",
+      "version": "4",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-1c",
+  "branch": "core/CR-1c",
+  "base": "feature/core",
+  "scope": [
+    "dev.sh",
+    "apps/api/src/db/seed.ts",
+    "apps/api/test/seed.test.ts"
+  ],
+  "dont_touch": [
+    "compose.dev.yml",
+    "e2e/",
+    "apps/api/src/sync/",
+    "packages/",
+    "docs/"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0",
+      "timeout": 300
+    },
+    {
+      "name": "seed_tests",
+      "cmd": "pnpm exec vitest run apps/api/test/seed.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=3",
+      "timeout": 300
+    },
+    {
+      "name": "dev_seed_twice",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-cr1c API_PORT=3170 WEB_PORT=5270 DEV_PG_PORT=55470; docker compose -f compose.dev.yml down -v >/dev/null 2>&1; ./dev.sh up && ./dev.sh seed --tasks 300 && ./dev.sh seed --tasks 300 && echo tasks=$(docker compose -f compose.dev.yml exec -T postgres psql -U postgres -d planar -tAc 'select count(*) from tasks'); rc=$?; docker compose -f compose.dev.yml down -v >/dev/null 2>&1; exit $rc",
+      "expect": "re:^tasks=\\s*300\\s*$",
+      "timeout": 1500
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0",
+      "timeout": 1200
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T05:42:49"
+}

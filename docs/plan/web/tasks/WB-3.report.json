@@ -1,0 +1,99 @@
+{
+  "status": "done",
+  "summary": "Клиент api/ApiError, useAuth, охрана маршрутов, экраны Setup/Login/Profile, UsersSettings, выход в TopBar; доработка: офлайн-вход через localStorage planar.user, setupNeeded при сети=false.",
+  "commits": [
+    "e635208 web: WB-3 офлайн-вход"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "http-error",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "guard-login",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "guard-setup",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "login",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "setup",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "profile",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "admin-users",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "offline",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "аватар: только показ по имени (шлюз Q3)"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-3",
+  "uncertain": [
+    {
+      "where": "apps/web/src/screens/settings/UsersSettings.vue",
+      "why": "роли при создании: admin/member/guest",
+      "checked": "только моки"
+    }
+  ],
+  "dp_feedback": "Общий /tmp для r.json у параллельных агентов затирается; task show обрезает дополнения.",
+  "t": "2026-10-22T23:47:26",
+  "by": "executor"
+}

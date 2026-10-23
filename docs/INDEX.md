@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-10-22"
+updated: "2026-10-23"
 summary: "Точка входа: документы docs/ по типам, строка на документ."
 related: []
 generated: true
@@ -14,10 +14,30 @@ generated: true
 - найти — `.dpcli/dpcli docs find <слова>` (путь — summary), выводы — `.dpcli/dpcli docs findings <слова>` ([реестр выводов](registry/findings.md)), журналы модулей — `.dpcli/dpcli search`;
 - читать — `.dpcli/dpcli docs section <путь>` (оглавление), затем `.dpcli/dpcli docs section <путь> <номер|заголовок>`.
 
+## Описания систем (guide)
+
+- [docs/guides/mcp.md](guides/mcp.md) — Подключение ИИ-клиента к Planar по MCP: токен, URL /mcp, конфигурация, инструменты, права read/write
+
 ## Планы (plan)
 
-- [docs/roadmap.md](roadmap.md) — Роадмап planar: MVP + v1(часть) за 24 ч параллельной работы — модули, задачи, волны, контракты, приёмка [idea]
+- [docs/plan/core.md](plan/core.md) — План модуля core: каркас, БД, синхронизация, мутаторы, авторизация, файлы, уведомления, модули, API-токены, MCP
+- [docs/plan/features.md](plan/features.md) — План модуля features: ярус A v1 — пользовательские поля, Таблица, Календарь, связи задач
+- [docs/plan/web.md](plan/web.md) — План модуля web: PWA на Vue 3, клиент синхронизации, Список, Доска, карточка задачи, Cmd+K, виды, Inbox, настройки, токены
+- [docs/roadmap.md](roadmap.md) — Роадмап Planar: MVP + v1(часть) + API-токены и MCP за 24 ч параллельной работы — модули, задачи, волны, контракты, приёмка
+
+## Контракты стыков (contract)
+
+- [docs/contracts/core.md](contracts/core.md) — Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
+- [docs/contracts/features.md](contracts/features.md) — Контракты features — пользовательские поля, связи задач, фильтры по полям, виды «Таблица» и «Календарь»
+- [docs/contracts/web.md](contracts/web.md) — Контракты web — C-ui, C-client (синхронизация), C-tasks (слой задач), C-views (экран проекта и стык видов)
+
+## Справка (reference)
+
+- [docs/contracts/core-api-v1.md](contracts/core-api-v1.md) — API-токены, Bearer, REST /api/v1 и MCP /mcp — часть C-http v8 (docs/contracts/core.md); примеры проверяет контрактный тест
+- [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Мутаторы домена C-mutators v3 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
 
 ## Реестры (registry)
 
+- [docs/registry/contracts.md](registry/contracts.md) — Контракты стыков по модулям: id и версии из заголовков.
 - [docs/registry/findings.md](registry/findings.md) — Реестр выводов: что мы знаем, по модулям (пишется вручную).
+- [docs/registry/research.md](registry/research.md) — Исследования: вывод, данные, где применено.

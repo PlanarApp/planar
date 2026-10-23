@@ -1,0 +1,64 @@
+{
+  "id": "CR-1b",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "Устойчивость тестов под нагрузкой и мелкие исправления по CR-9",
+  "goal": "Тестовые базы не утекают в planar-testdb, полный pnpm test устойчив под нагрузкой хоста; push с пустой пачкой и чужим clientId → 403; seed --tasks работает при пространстве без меток.",
+  "plan_ref": "4. Правила среды (для всех карточек)",
+  "contracts": [
+    {
+      "name": "C-sync",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-1b",
+  "branch": "core/CR-1b",
+  "base": "feature/core",
+  "scope": [
+    "apps/api/test/db.ts",
+    "apps/api/test/global-setup.ts",
+    "apps/api/test/file-db.ts",
+    "apps/api/test/auth/harness.ts",
+    "apps/api/vitest.config.ts",
+    "apps/api/src/sync/push.service.ts",
+    "apps/api/test/sync/push-pull.test.ts",
+    "apps/api/src/db/seed.ts",
+    "apps/api/test/seed.test.ts"
+  ],
+  "dont_touch": [
+    "apps/api/src/sync/server-tx.ts",
+    "packages/",
+    "e2e/",
+    "docs/"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0",
+      "timeout": 300
+    },
+    {
+      "name": "stable",
+      "cmd": "for i in 1 2; do pnpm test || exit 1; done; echo stable-ok",
+      "expect": "re:^stable-ok$",
+      "timeout": 1800
+    },
+    {
+      "name": "no_leak",
+      "cmd": "before=$(docker exec planar-testdb psql -U postgres -tAc \"select count(*) from pg_database where datname ~ '^planar_t'\"); pnpm exec vitest run --project api >/dev/null 2>&1; sleep 5; after=$(docker exec planar-testdb psql -U postgres -tAc \"select count(*) from pg_database where datname ~ '^planar_t'\"); echo leaked=$((after-before))",
+      "expect": "num:leaked=(-?\\d+) <=0",
+      "timeout": 900
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T04:10:12"
+}

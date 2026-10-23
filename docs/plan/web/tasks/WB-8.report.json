@@ -1,0 +1,88 @@
+{
+  "status": "done",
+  "summary": "Фильтры (matchFilter, конструктор), поля списка/доски, сохранённые личные и общие виды, экран /p/:id/v/:viewId с черновиком.",
+  "commits": [
+    "9f6c8bb web: WB-8 правки типов и lint",
+    "531ec34 web: WB-8 сохранённые виды — фильтры, конструктор, личные и общие виды"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "179.6 KB",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "102",
+      "pass": true
+    },
+    {
+      "name": "filter",
+      "value": "6",
+      "pass": true
+    },
+    {
+      "name": "builder",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "saved",
+      "value": "5",
+      "pass": true
+    },
+    {
+      "name": "apply",
+      "value": "2",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-8",
+  "uncertain": [
+    {
+      "where": "views/saved/FilterBuilder.vue",
+      "why": "статус/категория/приоритет — чекбоксы (нужен множественный выбор), поле и оператор — нативные select",
+      "checked": "тесты views:builder"
+    },
+    {
+      "where": "views/options.ts",
+      "why": "поле project есть в чекбоксах Поля, но вид его не показывает",
+      "checked": "нет"
+    },
+    {
+      "where": "screens/SavedViewScreen.vue",
+      "why": "нет полной панели вкладок, только К проекту и сохранённые виды; правка общего вида — роль не guest",
+      "checked": "views:saved; в браузере не проверял"
+    }
+  ],
+  "dp_feedback": "task show усекает дополнения; plan с названием раздела не принимается; scope лучше проверять заранее по затрагиваемым файлам.",
+  "t": "2026-10-23T01:49:45",
+  "by": "executor"
+}
