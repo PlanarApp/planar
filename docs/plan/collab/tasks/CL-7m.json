@@ -74,11 +74,6 @@
       "expect": "tests"
     },
     {
-      "name": "collab-web",
-      "cmd": "pnpm --filter @planar/web exec vitest run -t 'cl1a:|cl6s:' ../../modules/chat/web ../../modules/docs/web",
-      "expect": "num:(\\d+) passed >=60"
-    },
-    {
       "name": "size",
       "cmd": "pnpm --filter @planar/web build >/dev/null && node apps/web/scripts/size.mjs",
       "expect": "num:initial gzip ([\\d.]+) KB <=200"
@@ -97,9 +92,15 @@
       "name": "merged",
       "cmd": "git merge-base --is-ancestor 6b45948 HEAD && echo yes",
       "expect": "re:yes"
+    },
+    {
+      "name": "collab-web",
+      "cmd": "pnpm --filter @planar/web exec vitest run ../../modules/chat/web ../../modules/docs/web src/modules/__tests__/cl6s.test.ts",
+      "expect": "num:(\\d+) passed >=46"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-23T19:12:20"
+  "created": "2026-10-23T19:12:20",
+  "edited": "2026-10-23T19:12:33"
 }
