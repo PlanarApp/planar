@@ -144,6 +144,17 @@ describe('docs', () => {
     await w.admin.ok('docs.lock', { pageId: p });
   });
 
+  it('lock: два параллельных docs.lock разных пользователей — ровно один ok, второй conflict', async () => {
+    const p = await mk();
+    const rs = await Promise.all([
+      w.member.push('docs.lock', { pageId: p }),
+      w.admin.push('docs.lock', { pageId: p }),
+    ]);
+    expect(rs.filter((r) => r?.ok)).toHaveLength(1);
+    expect(rs.filter((r) => !r?.ok)).toEqual([expect.objectContaining({ code: 'conflict' })]);
+    expect(await rows(w.admin, 'docsLocks')).toHaveLength(1);
+  });
+
   it('повтор push с тем же id мутации не дублирует строки', async () => {
     const svc = services(db);
     const clientId = uuidv7();

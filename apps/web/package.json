@@ -42,6 +42,7 @@
     "vue-tsc": "^3.3.13"
   },
   "exports": {
-    "./modules": "./src/modules/types.ts"
+    "./modules": "./src/modules/types.ts",
+    "./*": "./src/*"
   }
 }
