@@ -1,0 +1,34 @@
+{
+  "verdict": "accept",
+  "summary": "Повторное ревью: блокер закрыт — checkFile проверяет file_uploads(sha256, userId) или файл, уже приложенный в пространстве (C-schema v3, стр. 270), тесты покрывают случаи «загрузил другой», «второй загрузивший» и «уже приложен». Замер poke идёт одной серией из 20 после 3 прогревочных; порог действует только при PLANAR_LATENCY=1, как велел координатор. Скоуп в порядке (24 файла).",
+  "issues": [
+    {
+      "file": "apps/api/src/sync/server-tx.ts",
+      "line": 316,
+      "severity": "minor",
+      "what": "Из checkFile убран `if (this.opts.system) return;`: asSystem теперь тоже требует file_uploads для put attachments. По C-mutators asSystem — обход прав. Сейчас вызовов нет, но импорт или серверный код CR-7 получит forbidden.",
+      "fix": "Вернуть обход для system (или согласовать с координатором, что серверный код обязан писать file_uploads)."
+    },
+    {
+      "file": "apps/api/test/sync/ws.test.ts",
+      "line": 182,
+      "severity": "minor",
+      "what": "poke_latency нестабилен под нагрузкой машины (load avg 14–24): перезапуск через accept --only poke_latency --dry дал FAIL 786, три прогона вручную — 238, 94, 364. Это не дефект кода, но шлюз может мигать.",
+      "fix": "Ничего в CR-4; бюджет на живом стеке замерит CR-9, как решил координатор."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "server_tx_contract",
+      "value": "12",
+      "pass": true
+    },
+    {
+      "name": "poke_latency",
+      "value": "786 (accept --dry), затем 238/94/364 вручную",
+      "pass": false
+    }
+  ],
+  "t": "2026-10-23T01:54:09",
+  "by": "reviewer"
+}

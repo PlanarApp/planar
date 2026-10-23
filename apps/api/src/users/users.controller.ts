@@ -54,7 +54,8 @@ export class UsersController {
   async create(@Req() req: object, @Body() body: unknown) {
     if (!isAdmin(getAuth(req).role)) throw forbidden();
     const { password, ...v } = parseBody(createSchema, body);
-    const row = await insertUser(this.db, { ...v, passwordHash: await hashPassword(password) });
+    const passwordHash = await hashPassword(password);
+    const row = await this.db.transaction((q) => insertUser(q, { ...v, passwordHash }));
     return { user: publicUser(row) };
   }
 
@@ -78,16 +79,19 @@ export class UsersController {
     if (p.avatarFile && !(await hasFileUpload(this.db, p.avatarFile, id))) {
       throw new HttpError(400, 'invalid_request', 'avatarFile не загружен этим пользователем');
     }
-    const row = await updateUser(this.db, id, {
-      ...(p.name !== undefined && { name: p.name }),
-      ...(p.email !== undefined && { email: p.email }),
-      ...(p.role !== undefined && { role: p.role }),
-      ...(p.avatarFile !== undefined && { avatarFile: p.avatarFile }),
-      ...(p.deactivated !== undefined && {
-        deactivatedAt: p.deactivated ? new Date().toISOString() : null,
+    const passwordHash = p.password !== undefined ? await hashPassword(p.password) : undefined;
+    const row = await this.db.transaction((q) =>
+      updateUser(q, actor.userId, id, {
+        ...(p.name !== undefined && { name: p.name }),
+        ...(p.email !== undefined && { email: p.email }),
+        ...(p.role !== undefined && { role: p.role }),
+        ...(p.avatarFile !== undefined && { avatarFile: p.avatarFile }),
+        ...(p.deactivated !== undefined && {
+          deactivatedAt: p.deactivated ? new Date().toISOString() : null,
+        }),
+        ...(passwordHash && { passwordHash }),
       }),
-      ...(p.password !== undefined && { passwordHash: await hashPassword(p.password) }),
-    });
+    );
     if (p.deactivated) await deleteUserSessions(this.db, id);
     return { user: publicUser(row) };
   }

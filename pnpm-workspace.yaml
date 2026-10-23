@@ -4,4 +4,5 @@ packages:
   - modules/*
 allowBuilds:
   argon2: true
+  sharp: true
   esbuild: true
