@@ -7,8 +7,9 @@ import StarterKit from '@tiptap/starter-kit';
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { uuidv7, domainMutators } from '@planar/shared';
-import { db, moduleMutators, registerMutators, startSync, stopSync, mutate } from '@planar/web/sync';
-import { i18n } from '@planar/web/i18n';
+import { db, mutate, i18n } from '@planar/web/modules';
+// внутренности синка нужны только тесту, в SDK их нет
+import { moduleMutators, registerMutators, startSync, stopSync } from '../../../apps/web/src/sync';
 import { web } from './index';
 import { slashItems } from './slash';
 import { moveArgs, type PageRow } from './model';
@@ -21,9 +22,9 @@ const ME = uuidv7();
 const OTHER = uuidv7();
 const SPACE = uuidv7();
 const NOW = '2026-10-23T10:00:00.000Z';
-vi.mock('@planar/web/auth/useAuth', async () => {
+vi.mock('@planar/web/modules', async (orig) => {
   const { ref } = await import('vue');
-  return { useAuth: () => ({ user: ref({ id: globalThis.__ME }) }) };
+  return { ...(await orig<object>()), useSession: () => ref({ id: globalThis.__ME }) };
 });
 (globalThis as unknown as { __ME: string }).__ME = ME;
 const router = { push: vi.fn(), replace: vi.fn() };

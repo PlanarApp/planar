@@ -11,6 +11,7 @@ describe('cl6s', () => {
       'sendTyping',
       'onTyping',
       'onMutationError',
+      'useSearch',
     ])
       expect(sdk, k).toHaveProperty(k);
   });

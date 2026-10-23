@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ChevronRight, FileText, Plus } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import { db, mutate, newId, rankBetween, useQuery } from '@planar/web/sync';
+import { db, mutate, newId, rankBetween, useQuery } from '@planar/web/modules';
 import { buildTree, moveArgs, type DropZone, type PageRow, type TreeNode } from './model';
 import { useTexts } from './text';
 

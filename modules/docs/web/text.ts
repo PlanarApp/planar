@@ -1,4 +1,4 @@
-import { i18n } from '@planar/web/i18n';
+import { i18n } from '@planar/web/modules';
 
 const S = {
   docs: { ru: 'Документы', en: 'Documents' },
