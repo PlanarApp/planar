@@ -1,0 +1,62 @@
+{
+  "id": "PL-3",
+  "module": "polish",
+  "type": "dp-engineer",
+  "title": "vue-tsc зелёный: 11 ошибок типов в modules/docs и modules/chat",
+  "goal": "`pnpm --filter web exec vue-tsc --noEmit` проходит без ошибок на main; типы сущностей модулей в SDK типизированы, без any-заглушек.",
+  "plan_ref": "3. Задачи",
+  "contracts": [],
+  "copy": "~/planar-polish-PL-3",
+  "branch": "polish/PL-3",
+  "base": "feature/polish",
+  "scope": [
+    "modules/docs/web/",
+    "modules/chat/web/",
+    "apps/web/src/modules/sdk.ts",
+    "apps/web/src/modules/types.ts"
+  ],
+  "dont_touch": [
+    "apps/web/src/sync/ — зона PL-1",
+    "packages/ — зона PL-1"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "no-ts-ignore",
+      "cmd": "git diff feature/polish...HEAD | grep -cE '^\\+.*(@ts-ignore|@ts-expect-error|as any)' || true",
+      "expect": "num:^(\\d+) <=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": [
+    "Ошибки на main (aefe6be): chat.test.ts ×3, DocEditor.vue ×2 (типы tiptap — расширения table/list), PageView.vue ×3 ('body' на '{}'), TaskPanel.vue ×2 ('docsTaskLinks' не входит в союз сущностей ядра — нужен типизированный доступ к сущностям модуля через SDK), ui.test.ts ×1 (globalThis индекс).",
+    "Решение — типами, а не заглушками: SDK useQuery/таблицы принимают имена сущностей модуля с их типом (дженерик или карта сущностей модуля из его shared-манифеста). @ts-ignore, @ts-expect-error и `as any` не добавлять (есть проверка).",
+    "Если правка SDK меняет его публичный интерфейс — «PL-3 contract: …» главной (владелец C-modules — work, модуль закрыт; правку контракта сделает главная).",
+    "Отчёт — только build/dpcli/PL-3.report.json в своей копии."
+  ],
+  "created": "2026-10-23T23:16:01"
+}
