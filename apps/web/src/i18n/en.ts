@@ -78,6 +78,15 @@ export default {
       settings: 'Settings',
     },
   },
+  calendar: {
+    prev: 'Previous',
+    next: 'Next',
+    today: 'Today',
+    month: 'Month',
+    week: 'Week',
+    undated: 'No date',
+    empty: 'No tasks with dates',
+  },
   pwa: {
     update: 'A new version is available',
     reload: 'Update',
@@ -86,6 +95,8 @@ export default {
   views: {
     list: 'List',
     board: 'Board',
+    table: 'Table',
+    calendar: 'Calendar',
     empty: 'No views available',
     projectNotFound: 'Project not found',
     taskUnavailable: 'Task panel is unavailable',

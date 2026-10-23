@@ -78,6 +78,15 @@ export default {
       settings: 'Настройки',
     },
   },
+  calendar: {
+    prev: 'Назад',
+    next: 'Вперёд',
+    today: 'Сегодня',
+    month: 'Месяц',
+    week: 'Неделя',
+    undated: 'Без даты',
+    empty: 'Нет задач с датами',
+  },
   pwa: {
     update: 'Доступна новая версия',
     reload: 'Обновить',
@@ -86,6 +95,8 @@ export default {
   views: {
     list: 'Список',
     board: 'Доска',
+    table: 'Таблица',
+    calendar: 'Календарь',
     empty: 'Нет доступных видов',
     projectNotFound: 'Проект не найден',
     taskUnavailable: 'Панель задачи недоступна',
