@@ -81,7 +81,7 @@ describe('C-ui: точки расширения', () => {
     expect(m).not.toBeNull();
     const fromDoc = [...m![1].matchAll(/'(\w+)'/g)].map((x) => x[1]);
     // work.md §C-modules v3 (WK-0): += nav, topbar; web.md обновит координатор
-    expect([...EXTENSION_KINDS]).toEqual([...fromDoc, 'nav', 'topbar']);
+    expect([...EXTENSION_KINDS]).toEqual([...fromDoc, 'nav', 'topbar', 'search']);
   });
   it('дубликат ключа элемента → Error', () => {
     const cmd = { id: 'a', label: 'x', run: () => {} };

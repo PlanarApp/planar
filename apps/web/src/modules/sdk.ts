@@ -23,6 +23,11 @@ export { useI18n } from 'vue-i18n';
 export { i18n } from '../i18n';
 export { useWeekStart } from '../i18n/week';
 export { useRouter } from 'vue-router';
+export { useSearch } from '../command/search';
+export { default as Editor } from '../task/editor/Editor.vue';
+export { uploadFile, type Uploaded } from '../api/files';
+export { api, ApiError } from '../api/http';
+export { onMutationError } from '../sync';
 export { default as FilterBuilder } from '../views/saved/FilterBuilder.vue';
 export { localToday, matchFilter } from '../views/filter';
 
