@@ -33,12 +33,13 @@ export async function runMutation(
   userId: string,
   m: { name: string; args: unknown },
   notified: string[],
+  tokenId?: string,
 ): Promise<void> {
   const def = await findMutator(tx, m.name);
   if (!def) throw new Reject('unknown_mutator', `нет мутатора ${m.name}`);
   const args = def.args.safeParse(m.args);
   if (!args.success) throw new Reject('invalid_args', args.error.message);
-  const stx = new ServerTx(tx, { userId });
+  const stx = new ServerTx(tx, { userId, tokenId });
   const now = new Date().toISOString();
   try {
     await def.run(stx, args.data, { userId, now, server: true });
@@ -60,10 +61,11 @@ export async function executeMutations(
   userId: string,
   muts: { name: string; args: unknown }[],
   queue?: PushQueue,
+  tokenId?: string,
 ): Promise<void> {
   const notified: string[] = [];
   await db.transaction(async (tx) => {
-    for (const m of muts) await runMutation(tx, userId, m, notified);
+    for (const m of muts) await runMutation(tx, userId, m, notified, tokenId);
   });
   await queue?.enqueue(notified);
 }

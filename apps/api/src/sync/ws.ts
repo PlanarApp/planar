@@ -72,7 +72,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
       return;
     }
     this.wss.handleUpgrade(req, socket, head, (ws) => {
-      if (!ctx) return ws.close(4401, 'unauthenticated');
+      if (!ctx || ctx.via === 'token') return ws.close(4401, 'unauthenticated');
       this.alive.add(ws);
       ws.on('pong', () => this.alive.add(ws));
       ws.on('error', () => {});

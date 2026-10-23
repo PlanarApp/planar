@@ -299,6 +299,7 @@ export const activity = pgTable(
     actorId: userRef().notNull(),
     kind: text().notNull(),
     changes: obj().notNull(),
+    viaTokenId: uuid(),
     createdAt: createdAt(),
   },
   (t) => [

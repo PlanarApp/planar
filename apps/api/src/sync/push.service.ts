@@ -16,7 +16,7 @@ export class PushService {
     @Optional() @Inject(PushQueue) private queue?: PushQueue,
   ) {}
 
-  async push(userId: string, req: SyncPushRequest): Promise<SyncPushResponse> {
+  async push(userId: string, req: SyncPushRequest, tokenId?: string): Promise<SyncPushResponse> {
     // владелец clientId проверяется и при пустой пачке (в one() — под блокировкой строки)
     const [owner] = await this.db
       .select({ userId: clientMutations.userId })
@@ -25,7 +25,7 @@ export class PushService {
     if (owner && owner.userId !== userId)
       throw new ForbiddenException('clientId принадлежит другому пользователю');
     const results: Result[] = [];
-    for (const m of req.mutations) results.push(await this.one(userId, req.clientId, m));
+    for (const m of req.mutations) results.push(await this.one(userId, req.clientId, m, tokenId));
     return { results };
   }
 
@@ -33,6 +33,7 @@ export class PushService {
     userId: string,
     clientId: string,
     m: SyncPushRequest['mutations'][number],
+    tokenId?: string,
   ): Promise<Result> {
     const notified: string[] = [];
     try {
@@ -50,7 +51,7 @@ export class PushService {
           throw new ForbiddenException('clientId принадлежит другому пользователю');
         if (m.id <= cm.lastMutationId) return { id: m.id, ok: true as const };
 
-        await runMutation(tx, userId, m, notified);
+        await runMutation(tx, userId, m, notified, tokenId);
         await tx
           .update(clientMutations)
           .set({ lastMutationId: m.id, updatedAt: sql`now()` })

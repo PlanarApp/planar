@@ -5,7 +5,7 @@ module: core
 updated: 2026-10-22
 summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 related: ["docs/plan/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-schema", "version": 4}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 7}]
+contracts: [{"id": "C-schema", "version": 5}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 7}]
 ---
 
 # Контракты модуля core
@@ -21,7 +21,7 @@ contracts: [{"id": "C-schema", "version": 4}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v4
+## C-schema v5
 
 ### Общие правила
 - БД — snake_case, TS и провод — camelCase (Drizzle `casing: 'snake_case'`). Имя поля на проводе = имя свойства Drizzle; колонка = snake_case от него (`spaceId` → `space_id`).
@@ -278,6 +278,7 @@ scope: space · write: server · bootstrap: no · indexes: taskId
 | `spaceId` | uuid | |
 | `taskId` | uuid | без FK |
 | `actorId` | uuid | |
+| `viaTokenId` | uuid? | id API-токена, если запись сделана через токен (CR-10), иначе null |
 | `kind` | enum(created,updated,deleted,assignee_added,assignee_removed,label_added,label_removed,commented) | |
 | `changes` | obj | `updated`: `{<поле>: [старое, новое]}` без `updatedAt`, `rank`; `assignee_*`: `{userId}`; `label_*`: `{labelId}`; `commented`: `{commentId}`; иначе `{}` |
 | `createdAt` | ts | |

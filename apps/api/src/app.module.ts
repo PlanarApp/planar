@@ -9,6 +9,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AUTH_OPTS, type AuthOpts } from './auth/auth.js';
 import { AuthController } from './auth/auth.controller.js';
 import { SetupController } from './auth/setup.controller.js';
+import { TokensController } from './tokens/tokens.controller.js';
 import { UsersController } from './users/users.controller.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import type { Db } from './db/index.js';
@@ -45,6 +46,7 @@ export class AppModule implements OnApplicationShutdown {
         AuthController,
         SetupController,
         UsersController,
+        TokensController,
         FilesController,
         ModulesController,
         ...syncControllers,

@@ -10,6 +10,8 @@ export type Q = PgDatabase<NodePgQueryResultHKT, typeof schema>;
 
 export interface ServerTxCtx {
   userId: string;
+  /** id API-токена, если запись идёт через Bearer (activity.viaTokenId) */
+  tokenId?: string;
   /** ISO ts для activity; по умолчанию — текущее время */
   now?: string;
 }
@@ -263,6 +265,7 @@ export class ServerTx implements Tx {
         actorId: this.ctx.userId,
         kind,
         changes,
+        viaTokenId: this.ctx.tokenId ?? null,
         createdAt: this.ctx.now ?? new Date().toISOString(),
       }),
     );
