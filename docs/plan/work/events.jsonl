@@ -132,3 +132,4 @@
 {"t": "2026-10-23T16:59:05", "by": "coordinator", "task": "WK-13", "ev": "accepted", "note": "по отчёту; проверка leak снята (общий контейнер)"}
 {"t": "2026-10-23T17:01:59", "by": "coordinator", "task": "WK-11", "ev": "checked", "note": "5/5 install=ok:exit 0; build=ok:exit 0; wk11=ok:3; sprints=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-23T17:02:00", "by": "coordinator", "task": "WK-11", "ev": "accepted", "note": "по отчёту; тест гонки 3 клиента + cron ×5"}
+{"t": "2026-10-23T17:02:00", "by": "coordinator", "task": "WK-13", "ev": "merged"}
