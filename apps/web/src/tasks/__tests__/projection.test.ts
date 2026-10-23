@@ -24,6 +24,9 @@ afterEach(() => vi.restoreAllMocks());
 
 const byId = (a: TaskView[]) => [...a].sort((x, y) => (x.id < y.id ? -1 : 1));
 const tick = () => new Promise((r) => setTimeout(r, 30));
+/** проекция совпала с полным чтением (событие приходит чуть позже коммита) */
+const sameAsFull = (r: { value: TaskView[] | undefined }, pid: string) =>
+  vi.waitFor(async () => expect(byId(r.value!)).toEqual(await fullRead(pid)), { timeout: 3000 });
 
 /** эталон: полное чтение проекта из IndexedDB, как до проекции */
 async function fullRead(pid: string): Promise<TaskView[]> {
@@ -108,14 +111,12 @@ describe('tasks:projection', () => {
     await updateTask(c, { projectId: other.id }); // уехала в другой проект
     await updateTask(d, { title: 'd2' });
     await deleteTask(b);
-    await tick();
+    await sameAsFull(r, ids.project);
     const got = byId(r.value!);
-    expect(got).toEqual(await fullRead(ids.project));
     expect(got.map((t) => t.title).sort()).toEqual(['a2', 'd2']);
     // задача вернулась из другого проекта — связи подтягиваются из реплики
     await updateTask(c, { projectId: ids.project });
-    await tick();
-    expect(byId(r.value!)).toEqual(await fullRead(ids.project));
+    await sameAsFull(r, ids.project);
     expect(r.value!.find((t) => t.id === c)!.labelIds).toEqual([ids.bug]);
     stop();
   });
@@ -153,12 +154,18 @@ describe('tasks:projection', () => {
     await stopSync();
     await startSync({ userId: ids.ann, fetch }); // push → pull → rebase
     await until(async () => (await db._queue.count()) === 0);
-    await tick();
-    const got = byId(r.value!);
-    expect(got).toEqual(await fullRead(ids.project));
-    expect(got.find((t) => t.id === t1.id)).toMatchObject({ title: 'local' });
-    expect(got.find((t) => t.id === t1.id)!.assigneeIds.sort()).toEqual([ids.ann, ids.bob].sort());
-    expect(got.find((t) => t.id === t2.id)!.assigneeIds).toEqual([ids.bob]);
+    await vi.waitFor(
+      () => {
+        const got = byId(r.value!);
+        expect(got.find((t) => t.id === t1.id)).toMatchObject({ title: 'local' });
+        expect([...got.find((t) => t.id === t1.id)!.assigneeIds].sort()).toEqual(
+          [ids.ann, ids.bob].sort(),
+        );
+        expect(got.find((t) => t.id === t2.id)!.assigneeIds).toEqual([ids.bob]);
+      },
+      { timeout: 3000 },
+    );
+    await sameAsFull(r, ids.project);
     stop();
   });
 
