@@ -8,6 +8,7 @@ import { ChevronsLeft, Plus } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
 import type { TaskGroup } from '../../tasks';
 import { PriorityIcon } from '../../tasks';
+import { BlockedIcon } from '../../links';
 import { Avatar, Badge, Button, Input } from '../../ui';
 import type { TaskField } from '../options';
 
@@ -21,6 +22,7 @@ const props = defineProps<{
   collapsed: boolean;
   mobile: boolean;
   fields: TaskField[];
+  blocked: ReadonlySet<string>;
 }>();
 const emit = defineEmits<{
   toggle: [];
@@ -159,6 +161,7 @@ function due(d: string) {
           <div class="flex items-center gap-1.5 text-xs text-fg-muted">
             <PriorityIcon v-if="fields.includes('priority')" :priority="x.priority" />
             <span>{{ x.key }}</span>
+            <BlockedIcon v-if="blocked.has(x.id)" />
             <span v-if="x.dueDate && fields.includes('dueDate')" class="ml-auto">{{
               due(x.dueDate)
             }}</span>

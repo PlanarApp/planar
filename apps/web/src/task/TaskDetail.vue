@@ -29,6 +29,7 @@ import Editor from './editor/Editor.vue';
 import Feed from './Feed.vue';
 import { useUsers, useWatchers } from './queries';
 import Subtasks from './Subtasks.vue';
+import LinksBlock from '../links/LinksBlock.vue';
 
 const props = defineProps<{ task: TaskView; mode: 'panel' | 'page' }>();
 const emit = defineEmits<{ close: [] }>();
@@ -263,6 +264,7 @@ const panelComponent = computed(() => {
       <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
       <Checklist :task-id="task.id" />
       <Attachments ref="attachments" :task-id="task.id" />
+      <LinksBlock :task="task" />
       <Feed :task="task" />
 
       <section v-if="panels.length" :aria-label="t('task.extensions')">

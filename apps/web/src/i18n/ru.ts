@@ -217,6 +217,22 @@ export default {
     module: 'Модуль',
     notFound: 'Страница не найдена',
   },
+  links: {
+    title: 'Связи',
+    blocked: 'Заблокирована',
+    add: 'Добавить связь',
+    search: 'Найти задачу по названию или ключу',
+    remove: 'Удалить связь',
+    conflict: 'Эти задачи уже связаны',
+    failed: 'Не удалось создать связь',
+    side: {
+      blocks: 'Блокирует',
+      blockedBy: 'Заблокирована',
+      relates: 'Связана',
+      duplicates: 'Дубликат',
+      duplicatedBy: 'Дублируется',
+    },
+  },
   settings: {
     spaces: 'Пространства',
     members: 'Участники',
