@@ -78,7 +78,7 @@ export interface DocMutator {
   args: { name: string; optional: boolean }[];
 }
 
-/** Таблица «Мутаторы домена v1»: `| \`имя\` | \`args\` | правила |` */
+/** Таблица «Мутаторы домена»: `| \`имя\` | \`args\` | правила |` */
 export const docMutators: DocMutator[] = (() => {
   const sec = /^### Мутаторы домена[^\n]*\n([\s\S]*?)(?=^#{2,3} |^Вспомогательное)/m.exec(
     contractDoc,

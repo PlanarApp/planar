@@ -5,7 +5,7 @@ module: core
 updated: 2026-10-22
 summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 related: ["docs/plan/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-schema", "version": 2}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 1}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 3}]
+contracts: [{"id": "C-schema", "version": 3}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 3}]
 ---
 
 # Контракты модуля core
@@ -21,7 +21,7 @@ contracts: [{"id": "C-schema", "version": 2}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v2
+## C-schema v3
 
 ### Общие правила
 - БД — snake_case, TS и провод — camelCase (Drizzle `casing: 'snake_case'`). Имя поля на проводе = имя свойства Drizzle; колонка = snake_case от него (`spaceId` → `space_id`).
@@ -237,6 +237,18 @@ scope: space · write: guest · bootstrap: yes · indexes: taskId
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
+#### commentReactions
+scope: space · write: guest · bootstrap: yes · indexes: commentId
+
+| поле | тип | примечание |
+|---|---|---|
+| `id` | uuid | уникально (commentId, userId, emoji) |
+| `spaceId` | uuid | |
+| `commentId` | uuid | |
+| `userId` | uuid | = ctx.userId; мутатор ставит и снимает только свои |
+| `emoji` | text | 1–32 символа (один эмодзи или короткий код) |
+| `createdAt` | ts | |
+
 #### attachments
 scope: space · write: member · bootstrap: yes · indexes: taskId, commentId
 
@@ -425,7 +437,7 @@ scope: global · write: instance_admin · bootstrap: yes · indexes: —
 ### Клиент (для web)
 Применяет `changes` по `seq`; `reset` → bootstrap. После pull отбрасывает из очереди мутации с `id ≤ lastMutationId`, остальные заново применяет поверх серверного состояния (rebase). Повтор push при сетевой ошибке и `5xx` — с ростом паузы 1–30 с; `401` — на вход.
 
-## C-mutators v1
+## C-mutators v2
 
 Код — `packages/shared/src/contract/mutator.ts` (типы и регистрация), домен — `packages/shared/src/mutators/` (CR-5). Без Node API: тот же код идёт в браузер.
 
@@ -464,7 +476,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 - **`MemoryTx`** (CR-5, `packages/shared/src/testing/memory-tx.ts`, экспорт `@planar/shared/testing`) — `new MemoryTx()`, та же семантика без прав, `changes`, `activity`; `get`/`scan` возвращают копии. Нужен web для тестов и как образец для Dexie.
 - Набор тестов семантики `Tx` — `txContractSuite(name, setup)` из `packages/shared/test/tx-contract.ts`: обе реализации обязаны его проходить (MemoryTx — `packages/shared/test/memory-tx.test.ts`, CR-5; серверный — CR-4).
 
-### Мутаторы домена v1 (CR-5; web вызывает по имени)
+### Мутаторы домена v2 (CR-5; web вызывает по имени)
 Все id и `rank` — в args. `?` — необязательный аргумент (`.optional()`; `null` допустим там, где поле строки nullable). Экспорт — `domainMutators: MutatorDef[]` из `@planar/shared`; `args` — `z.object`. Сверка с таблицей — `packages/shared/test/check-mutators.ts`.
 
 | имя | args | правила |
@@ -486,7 +498,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 | `label.delete` | `id` | удаляет `taskLabels` метки |
 | `task.create` | `id, projectId, statusId, title, rank, parentId?, description?, priority?, dueDate?, startDate?, assignees?: {id, userId}[], labels?: {id, labelId}[]` | `spaceId` — из проекта; `number = null`; `priority` по умолчанию 0; `fields = {}` |
 | `task.update` | `id, title?, description?, statusId?, priority?, rank?, dueDate?, startDate?, projectId?, parentId?, fields?` | `completedAt` по категории статуса; `projectId` другого пространства → `invalid_args`; `parentId` — не сама задача и не её потомок |
-| `task.delete` | `id` | рекурсивно подзадачи; затем исполнители, наблюдатели, метки, чек-лист, вложения, комментарии |
+| `task.delete` | `id` | рекурсивно подзадачи; затем исполнители, наблюдатели, метки, чек-лист, вложения, реакции, комментарии |
 | `task.assign` | `id, taskId, userId` | уже назначен — ничего |
 | `task.unassign` | `taskId, userId` | |
 | `task.watch` | `id, taskId` | userId = ctx.userId |
@@ -498,7 +510,8 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 | `checklist.delete` | `id` | |
 | `comment.create` | `id, taskId, body` | `authorId = ctx.userId`, `mentions` из `body` |
 | `comment.update` | `id, body` | только автор; `editedAt = ctx.now` |
-| `comment.delete` | `id` | только автор; удаляет вложения комментария |
+| `comment.delete` | `id` | только автор; удаляет вложения и реакции комментария |
+| `reaction.toggle` | `id, commentId, emoji` | есть реакция (commentId, ctx.userId, emoji) — удалить, иначе создать с `id`; `spaceId` — из комментария |
 | `attachment.create` | `id, taskId, commentId?, fileSha256, name, mime, size, width?, height?` | `uploadedBy = ctx.userId` |
 | `attachment.delete` | `id` | |
 | `notification.read` | `ids: uuid[]` | `readAt = ctx.now`, только свои |

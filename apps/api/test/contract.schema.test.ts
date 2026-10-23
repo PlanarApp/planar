@@ -85,9 +85,9 @@ describe('contract schema', () => {
         ).toBe(true);
       }
       for (const f of e.fields) {
-        const pair = /уникально \((\w+), (\w+)\)/.exec(f.note);
-        const want = pair
-          ? [snake(pair[1]), snake(pair[2])]
+        const tuple = /уникально \(([\w, ]+)\)/.exec(f.note);
+        const want = tuple
+          ? tuple[1].split(',').map((c) => snake(c.trim()))
           : /уникален/.test(f.note)
             ? [snake(f.name)]
             : null;
