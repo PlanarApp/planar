@@ -1,0 +1,78 @@
+{
+  "status": "partial",
+  "summary": "measure.spec.ts + конфиг готовы, тест проходит и печатает все ключи. Бюджеты §7 не выполнены ни по одному из шести числовых (кроме них — только long-frames=1 вместо 0); приложение не правил.",
+  "commits": [
+    "2dbfbda WB-15: замеры — правки по 5 видимым строкам, целый счётчик долгих кадров",
+    "886e97b WB-15: замеры бюджетов §7 в Chromium"
+  ],
+  "checks": [
+    {
+      "name": "cold_bootstrap_ms",
+      "value": "4379 (3961-4563 по прогонам), порог 2000",
+      "pass": false
+    },
+    {
+      "name": "warm_start_ms",
+      "value": "1177 (1123-1417), порог 400",
+      "pass": false
+    },
+    {
+      "name": "mutate_ms_p95",
+      "value": "916 (916-1016), порог 50",
+      "pass": false
+    },
+    {
+      "name": "project_switch_ms_p95",
+      "value": "838 (838-904), порог 100",
+      "pass": false
+    },
+    {
+      "name": "scroll_frame_ms_p95",
+      "value": "33.3, порог 20",
+      "pass": false
+    },
+    {
+      "name": "scroll_long_frames",
+      "value": "1 (кадров >50 мс), порог 0",
+      "pass": false
+    },
+    {
+      "name": "realtime_ms_p95",
+      "value": "4074 (2154-4074), медиана 1.8-2.2 с, порог 500",
+      "pass": false
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "бюджеты §7 не выполнены; оптимизация приложения вне скоупа, решение за координатором"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-15",
+  "uncertain": [
+    {
+      "where": "e2e/web/perf/measure.spec.ts",
+      "why": "headless Chromium в Docker на общей машине (соседние стеки wb14 и др.) — абсолютные числа шумные; проект PLN 3334 задач (10000 на 3 проекта сидом), а не 10000 в одном",
+      "checked": "3 прогона дали один порядок величин: cold 3.9-4.6 с, mutate ~0.8-1 с, realtime 2-4 с"
+    },
+    {
+      "where": "measure.spec.ts editTitle",
+      "why": "правки идут по 5 верхним строкам по кругу (20 правок): при правке строк ниже окна (PLN-76) тест зависал — строка не обновлялась после dblclick/fill/Enter; возможно дефект приложения (виртуализация списка / состояние редактирования), не разбирал",
+      "checked": "первые 15 строк с шагом 5 в списке правились стабильно; между правками пауза 1 с"
+    },
+    {
+      "where": "scroll_long_frames",
+      "why": "1 кадр >50 мс за 5 с прокрутки",
+      "checked": "scroll_frames_n 242-272 за 5 с"
+    }
+  ],
+  "dp_feedback": "Проверки cold/warm/... в accept читают build/wb15-measure.txt до шага measure, поэтому в --dry показывают числа прошлого прогона. Нужен порядок: measure первым.",
+  "extra": {
+    "методика": "как в карточке: cold медиана 3 (новый контекст, MutationObserver первой строки от navigationStart), warm медиана 5 (reload), mutate 20 правок dblclick+fill+Enter (keydown -> смена текста строки), switch 10 кликов по ссылкам сайдбара PLN/OPS, scroll 5 с wheel 100px/16мс + rAF, realtime 10 правок admin->alice, Date.now()"
+  },
+  "t": "2026-10-23T06:11:57",
+  "by": "executor"
+}
