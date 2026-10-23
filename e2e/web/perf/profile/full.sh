@@ -6,5 +6,5 @@ bash e2e/web/perf/profile/rebuild.sh || exit 1
 bash e2e/web/perf/profile/runall.sh mutate stages idb-micro
 PROF=1 bash e2e/web/perf/profile/runall.sh mutate stages
 for n in mutate cold warm switch realtime; do
-  node e2e/web/perf/profile/analyze.mjs build/wb17-raw/$LABEL/$n.cpuprofile > e2e/web/perf/profile/results/$LABEL/cpu-$n.json
+  node e2e/web/perf/profile/analyze.mjs build/wb17-raw/$LABEL/$n.cpuprofile > build/artifacts/WB-17/results/$LABEL/cpu-$n.json
 done

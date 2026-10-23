@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""python3 stages.py <label>... — медианные стадии по results/<label>/{mutate,switch,warm,cold,realtime}.json (markdown)."""
+"""python3 stages.py <label>... — медианные стадии по build/artifacts/WB-17/results/<label>/{mutate,switch,warm,cold,realtime}.json (markdown)."""
 import json, statistics, sys, os
-R = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'results')
+R = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', '..', 'build', 'artifacts', 'WB-17', 'results')
 READ = ('tasks', 'taskAssignees', 'taskLabels')
 med = lambda a: round(statistics.median(a), 0) if a else 0
 load = lambda l, n: json.load(open(f'{R}/{l}/{n}.json'))
