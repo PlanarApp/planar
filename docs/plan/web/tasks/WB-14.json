@@ -1,0 +1,56 @@
+{
+  "id": "WB-14",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "E2E UI-сценарии web в Chromium",
+  "goal": "e2e/web — сценарии Playwright в Chromium против dev-стека: вход, создание задачи, перетаскивание на доске, комментарий с @упоминанием доходит до второго пользователя, офлайн-правка доходит после восстановления сети.",
+  "plan_ref": "6. Волны",
+  "contracts": [
+    {
+      "name": "C-sync",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-http",
+      "version": "5",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-views",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-14",
+  "branch": "web/WB-14",
+  "base": "feature/web",
+  "scope": [
+    "e2e/web/"
+  ],
+  "dont_touch": [
+    "apps/ — код приложения не менять; найден дефект — в отчёт/«<ID> blocked: дефект …» с шагами, тест не подгонять",
+    "e2e/tests/, e2e/lib.ts, e2e/measure.ts, e2e/playwright.config.ts, e2e/package.json — CR-9 (core); общие помощники — копировать в e2e/web/, не менять",
+    "compose*.yml, dev.sh, package.json, pnpm-lock.yaml — core",
+    "packages/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm exec eslint e2e/web && pnpm exec prettier --check e2e/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "e2e-ui",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-wb14 API_PORT=3214 WEB_PORT=5314 DEV_PG_PORT=55514; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5314 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
+      "expect": "num:(\\d+) passed >=5"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T04:11:37",
+  "edited": "2026-10-23T05:31:06"
+}

@@ -37,7 +37,7 @@ export function buildViewTabs(
   const rank = (id: string) => (ORDER.includes(id) ? ORDER.indexOf(id) : ORDER.length);
   const builtin = Object.entries(glob)
     .flatMap(([path, load]) => {
-      const id = /views\/([^/]+)\/View\.vue$/.exec(path)?.[1];
+      const id = /(?:^|\/)([^/]+)\/View\.vue$/.exec(path)?.[1];
       return id ? [{ id, load: load as ViewTab['load'] }] : [];
     })
     .sort((a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id))

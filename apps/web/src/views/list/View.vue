@@ -136,8 +136,17 @@ function onRowClick(it: Extract<Item, { kind: 'task' }>, e: MouseEvent) {
   focusedId.value = it.id;
   if (e.metaKey || e.ctrlKey) sel.toggle(it.task.id);
   else if (e.shiftKey) sel.range(taskIds.value, it.task.id);
-  else openTask(it.task.key);
+  else {
+    // двойной клик по названию = правка: открытие откладываем, dblclick его отменяет
+    clearTimeout(openTimer);
+    openTimer = setTimeout(() => openTask(it.task.key), 250);
+  }
 }
+function startEdit(id: string) {
+  clearTimeout(openTimer);
+  editing.value = id;
+}
+let openTimer: ReturnType<typeof setTimeout> | undefined;
 
 // --- быстрое создание
 const creating = ref<string | null>(null);
@@ -279,7 +288,7 @@ watch(
               :fields="options.fields"
               @click="onRowClick(it, $event)"
               @toggle="sel.toggle(it.task.id)"
-              @edit="editing = it.id"
+              @edit="startEdit(it.id)"
               @done="
                 editing = null;
                 scroller?.focus();
