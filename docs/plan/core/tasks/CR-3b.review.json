@@ -1,0 +1,34 @@
+{
+  "verdict": "rework",
+  "summary": "Эндпоинты, роли, лимит входа, argon2id, перенос фильтра и renewedToken, ServerTx.put(extra) — по карточке, auth_tests 32 подтверждены. Одно расхождение с C-http: формат details у invalid_request.",
+  "issues": [
+    {
+      "file": "apps/api/src/auth/validate.ts",
+      "line": 8,
+      "severity": "blocker",
+      "what": "Ответ 400 отдаёт details = {issues: [...]}, а C-http v3 («Ошибки», example=http.error) требует, чтобы details был самим массивом issues из zod. Тест setup-login.test.ts:72 закрепляет неверный формат (details.issues). Это первая реализация формата ошибок, web будет разбирать именно его.",
+      "fix": "Передавать в HttpError r.error.issues напрямую (details: [...]), тест исправить на Array.isArray(r.json().details). Если нужен объект, это смена контракта через координатора."
+    },
+    {
+      "file": "apps/api/src/users/users.controller.ts",
+      "line": 95,
+      "severity": "minor",
+      "what": "При смене пароля (в том числе админом) остальные сессии пользователя не сбрасываются. Карточка этого не требует, исполнитель сам отметил это в uncertain.",
+      "fix": "Решение за координатором: либо deleteUserSessions при смене пароля чужим, либо отдельная задача."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "auth_tests",
+      "value": "32",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "20 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T02:55:40",
+  "by": "reviewer"
+}
