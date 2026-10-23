@@ -1,0 +1,47 @@
+{
+  "status": "done",
+  "summary": "dev.sh seed ждёт /api/health на API_PORT (до ~5 мин); seed --tasks N доводит общее число задач до N; reset прокомментирован.",
+  "commits": [
+    "7dea699 CR-1c"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "seed_tests",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "dev_seed_twice",
+      "value": "tasks=300",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-1c",
+  "uncertain": [
+    {
+      "where": "карточка, дополнение (2)",
+      "why": "текст дополнения обрезан в task show после '(2) seed --tasks N сейчас…'",
+      "checked": "принял семантику 'довести до N' из цели карточки и приёмки (300 дважды = 300)"
+    }
+  ],
+  "dp_feedback": "task show обрезает дополнения координатора.",
+  "t": "2026-10-23T05:47:17",
+  "by": "executor"
+}
