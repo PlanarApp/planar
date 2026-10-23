@@ -4,13 +4,20 @@ import {
   MutatorError,
   entitySchemas,
   type EntityName,
+  type ModuleEntity,
   type Row,
   type Tx,
 } from '@planar/shared';
 import type { PlanarDB, ReplicaChange, Undo } from './db';
 
+const moduleEntities = new Map<string, ModuleEntity>();
+/** Сущности установленных модулей: Tx клиента проверяет и сканирует их так же, как сущности ядра. */
+export const registerModuleEntities = (e: Record<string, ModuleEntity>): void =>
+  void Object.entries(e).forEach(([n, v]) => moduleEntities.set(n, v));
+
 function check<E extends EntityName>(entity: E, row: unknown): Row<E> {
-  const r = entitySchemas[entity].safeParse(row);
+  const schema = moduleEntities.get(entity)?.schema ?? entitySchemas[entity];
+  const r = schema.safeParse(row);
   if (!r.success) throw new MutatorError('invalid_args', `${entity}: ${r.error.message}`);
   return r.data as Row<E>;
 }
@@ -72,7 +79,9 @@ export class DexieTx implements Tx {
   ): Promise<Row<E>[]> {
     const t = this.table(entity);
     if (!opts) return t.toArray();
-    const meta = (ENTITIES as Record<string, { indexes: string[] }>)[entity];
+    const meta =
+      moduleEntities.get(entity)?.meta ??
+      (ENTITIES as Record<string, { indexes: string[] }>)[entity];
     if (!meta?.indexes.includes(opts.index)) {
       throw new Error(`scan: индекс ${opts.index} не объявлен у ${entity}`);
     }
