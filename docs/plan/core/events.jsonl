@@ -131,3 +131,4 @@
 {"t": "2026-10-23T00:40:43", "by": "executor", "task": "CR-5b", "ev": "reported", "commits": ["7a4421f"], "note": "partial: commentReactions (entities, versions v3/v2, schema.ts, миграция 0002) и reaction.toggle; comment.delete/task.delete чис…", "dp_feedback": "scope-проверка падает на файлах, закоммиченных координатором в ветку задачи"}
 {"t": "2026-10-23T00:43:35", "by": "coordinator", "task": "CR-1a", "ev": "checked", "note": "4/4 lint=ok:exit 0; testdb=ok:exit 0; stable=ok:stable-ok; test=ok:exit 0"}
 {"t": "2026-10-23T00:44:32", "by": "coordinator", "task": "CR-6", "ev": "checked", "note": "4/5 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; files_tests=ok:21; test=FAIL:exit 1 · [ELIFECYCLE] Test fa…"}
+{"t": "2026-10-23T00:44:44", "by": "coordinator", "task": "CR-1a", "ev": "accepted", "note": "по отчёту"}
