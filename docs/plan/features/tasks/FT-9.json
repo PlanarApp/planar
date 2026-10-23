@@ -1,0 +1,54 @@
+{
+  "id": "FT-9",
+  "module": "features",
+  "type": "dp-engineer",
+  "title": "e2e: Календарь, Таблица, пользовательские поля, связи",
+  "goal": "В e2e/web/features.spec.ts — по сценарию на каждый вид и функцию модуля (Календарь, Таблица, поля, связи), проходят в Chromium против dev-стека; найденные дефекты описаны в отчёте, не исправлены.",
+  "plan_ref": "6. Волны",
+  "contracts": [
+    {
+      "name": "F-views",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "F-fields",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "F-links",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    }
+  ],
+  "copy": "~/planar-features-FT-9",
+  "branch": "features/FT-9",
+  "base": "feature/features",
+  "scope": [
+    "e2e/web/features.spec.ts",
+    "e2e/web/features-helpers.ts",
+    "build/dpcli/FT-9.report.json"
+  ],
+  "dont_touch": [
+    "e2e/web/ui.spec.ts, e2e/web/helpers.ts, e2e/web/perf/, e2e/web/playwright.config.ts — модуль web (только импорт helpers)",
+    "apps/, packages/ — код не правим; дефект — в отчёт (not_done/uncertain) с шагами",
+    "package.json, pnpm-lock.yaml",
+    "docs/, .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm exec eslint e2e/web/features.spec.ts e2e/web/features-helpers.ts && pnpm exec prettier --check e2e/web/features.spec.ts e2e/web/features-helpers.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "e2e",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-ft9 API_PORT=3219 WEB_PORT=5319 DEV_PG_PORT=55519; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5319 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts features.spec.ts; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
+      "expect": "num:(\\d+) passed >=4"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T09:49:57"
+}

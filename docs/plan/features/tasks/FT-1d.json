@@ -1,0 +1,80 @@
+{
+  "id": "FT-1d",
+  "module": "features",
+  "type": "dp-engineer",
+  "title": "Поля: двойная запись по Enter, поля только своего проекта в фильтре, без мигания при загрузке",
+  "goal": "FieldEditor пишет значение один раз; конструктор фильтра на экранах проекта и сохранённого вида показывает только поля этого проекта; пока определения полей не загружены, фильтр с field:-правилами не показывает лишних задач.",
+  "plan_ref": "5. Задачи",
+  "contracts": [
+    {
+      "name": "F-fields",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "F-filter",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-views",
+      "version": "2",
+      "ref": "docs/contracts/features.md"
+    }
+  ],
+  "copy": "~/planar-features-FT-1d",
+  "branch": "features/FT-1d",
+  "base": "feature/features",
+  "scope": [
+    "apps/web/src/fields/FieldEditor.vue",
+    "apps/web/src/fields/__tests__/",
+    "apps/web/src/views/saved/",
+    "apps/web/src/views/__tests__/",
+    "apps/web/src/screens/ProjectScreen.vue",
+    "apps/web/src/screens/SavedViewScreen.vue",
+    "build/dpcli/FT-1d.report.json"
+  ],
+  "dont_touch": [
+    "apps/web/src/sync/, apps/web/src/tasks/, apps/web/src/views/list/, e2e/web/perf/ — WB-18 модуля web",
+    "apps/web/src/__contract__/, apps/web/src/contract.ts — контрактные тесты",
+    "packages/, apps/api/ — core",
+    "package.json, pnpm-lock.yaml — без новых зависимостей",
+    "docs/, .claude/, CLAUDE.md",
+    "apps/web/src/views/table/ — FT-2b"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "fixes",
+      "cmd": "pnpm --filter web exec vitest run src/fields src/views -t 'fields-fix:'",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T09:49:21"
+}
