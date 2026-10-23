@@ -30,7 +30,9 @@ case "$cmd" in
   reset) "${DEV[@]}" down -v && "${DEV[@]}" up -d --build ;;
   seed) "${DEV[@]}" exec -T api pnpm --filter @planar/api seed "$@" ;;
   logs) "${DEV[@]}" logs -f "$@" ;;
+  e2e) E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e test "$@" ;;
+  measure) E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e measure "$@" ;;
   testdb) testdb ;;
   test) testdb && pnpm test "$@" ;;
-  *) echo "usage: ./dev.sh up|down|reset|seed|logs|test|testdb" >&2; exit 2 ;;
+  *) echo "usage: ./dev.sh up|down|reset|seed|logs|e2e|measure|test|testdb" >&2; exit 2 ;;
 esac

@@ -1,4 +1,4 @@
-name: planar-dev
+name: ${COMPOSE_PROJECT_NAME:-planar-dev}
 
 x-node: &node
   image: node:24
@@ -10,6 +10,7 @@ x-node: &node
     - nm_api:/app/apps/api/node_modules
     - nm_web:/app/apps/web/node_modules
     - nm_shared:/app/packages/shared/node_modules
+    - nm_e2e:/app/e2e/node_modules
     - pnpm_store:/pnpm-store
   environment: &node-env
     npm_config_store_dir: /pnpm-store
@@ -29,7 +30,7 @@ services:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d planar -h localhost']
       interval: 2s
       timeout: 3s
-      retries: 30
+      retries: 150
 
   # одноразовая установка зависимостей: api и web ждут её завершения (нет гонки двух pnpm install)
   deps:
@@ -44,12 +45,14 @@ services:
       <<: *node-env
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/planar
       PORT: '3000'
-      PUBLIC_URL: http://localhost:5173
+      PUBLIC_URL: http://localhost:${WEB_PORT:-5173}
       COOKIE_SECURE: 'false'
       DATA_DIR: /app/data
       LOG_LEVEL: info
+      # tsx применяет tsconfig только к файлам из include; модули лежат вне apps/api (иначе декораторы модулей не собираются)
+      TSX_TSCONFIG_PATH: /app/e2e/tsconfig.dev.json
     ports:
-      - '3000:3000'
+      - '${API_PORT:-3000}:3000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,7 +66,7 @@ services:
       <<: *node-env
       API_PROXY_TARGET: http://api:3000
     ports:
-      - '5173:5173'
+      - '${WEB_PORT:-5173}:5173'
     depends_on:
       deps:
         condition: service_completed_successfully
@@ -74,4 +77,5 @@ volumes:
   nm_api:
   nm_web:
   nm_shared:
+  nm_e2e:
   pnpm_store:
