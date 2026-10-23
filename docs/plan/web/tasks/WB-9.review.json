@@ -1,0 +1,34 @@
+{
+  "verdict": "accept",
+  "summary": "Все 14 файлов в рамках scope; C-http v4 (vapid/subscribe/DELETE с {endpoint}) и формат push выдержаны, формат описан в одном месте (push.ts + push-sw.js), importScripts добавлен без других правок PWA. Тесты проверяют поведение, пороги не занижены. Замечания мелкие.",
+  "issues": [
+    {
+      "file": "apps/web/src/inbox/push.ts",
+      "line": 12,
+      "severity": "minor",
+      "what": "needsInstall смотрит только на /iPhone|iPad|iPod/ в UA, а Safari на iPadOS 13+ сообщает UA Macintosh. На iPad в браузере подсказка не появится, и переключатель покажется там, где push не работает",
+      "fix": "добавить условие /Macintosh/.test(ua) && navigator.maxTouchPoints > 1"
+    },
+    {
+      "file": "apps/web/src/inbox/snooze.ts",
+      "line": 24,
+      "severity": "minor",
+      "what": "isSnoozed берёт текущее время, но computed пересчитываются только при изменении snoozed или данных, поэтому отложенное уведомление вернётся не в срок. Исполнитель указал это в uncertain, комментария shortcut об этом ограничении в коде нет (есть только про синхронизацию)",
+      "fix": "дописать ограничение в shortcut-комментарий; при желании пересчитывать по таймеру до ближайшего срока"
+    }
+  ],
+  "rerun": [
+    {
+      "name": "push",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "inbox",
+      "value": "4",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T01:49:21",
+  "by": "reviewer"
+}

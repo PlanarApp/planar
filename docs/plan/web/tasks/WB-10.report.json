@@ -1,0 +1,99 @@
+{
+  "status": "done",
+  "summary": "Экран настроек с разделами spaces/members/projects/statuses/labels/modules/users; статусы с drag-and-drop (rank между соседями); модули через import.meta.glob + settings.enabled_modules, useExtensions только включённые, повторная регистрация без дублей.",
+  "commits": [
+    "e2d801b web: настройки — пространства, участники, проекты, статусы, метки, модули (WB-10)"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "181.7 KB",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "98",
+      "pass": true
+    },
+    {
+      "name": "spaces",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "members",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "projects",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "statuses",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "labels",
+      "value": "2",
+      "pass": true
+    },
+    {
+      "name": "modules",
+      "value": "4",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "приватность пространства: поля нет в мутаторах C-mutators v2"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-10",
+  "uncertain": [
+    {
+      "where": "apps/web/src/screens/settings/StatusesSettings.vue",
+      "why": "реальный drag в браузере не проверен; тест вызывает move() напрямую, e.data.id из vue-draggable-plus",
+      "checked": "vue-tsc, тест rank между соседями"
+    },
+    {
+      "where": "apps/web/src/screens/SettingsScreen.vue",
+      "why": "UsersSettings подключён eagerly: lazy ломал тест WB-3 (одного flushPromises мало)",
+      "checked": "auth тесты проходят"
+    },
+    {
+      "where": "apps/web/src/modules/registry.ts",
+      "why": "glob модулей не проверен на реальном модуле (modules/ пуст)",
+      "checked": "тест registry с registerModules"
+    }
+  ],
+  "dp_feedback": "accept --dry дольше 120 с — упирается в таймаут foreground; ожидание вывода в фоне неудобно.",
+  "t": "2026-10-23T01:37:34",
+  "by": "executor"
+}

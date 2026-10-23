@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { TooltipProvider } from 'reka-ui';
+import CommandHost from './command/CommandHost.vue';
 import AppShell from './layout/AppShell.vue';
 import { Button, useTheme } from './ui';
 
@@ -18,6 +19,7 @@ const { needRefresh, updateServiceWorker } = useRegisterSW();
   <TooltipProvider>
     <RouterView v-if="bare" />
     <AppShell v-else />
+    <CommandHost v-if="!bare" />
     <div
       v-if="needRefresh"
       role="status"

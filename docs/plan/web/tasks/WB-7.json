@@ -1,0 +1,106 @@
+{
+  "id": "WB-7",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Cmd+K, горячие клавиши, локальный поиск",
+  "goal": "Палитра команд (Cmd/Ctrl+K): переходы, создание задачи, действия над выделенными, команды модулей; глобальные горячие клавиши со шпаргалкой «?»; поиск по реплике по названию, ключу и описанию ≤ 50 мс на 10 000 задач.",
+  "plan_ref": "WB-7 Cmd+K, клавиатура, поиск",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-tasks",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-views",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-7",
+  "branch": "web/WB-7",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/command/",
+    "apps/web/src/App.vue",
+    "apps/web/src/layout/TopBar.vue",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts"
+  ],
+  "dont_touch": [
+    "контрактные тесты в apps/web/src/__contract__ не править",
+    "src/tasks/, src/sync/, src/ui/ — контракты C-tasks, C-client, C-ui как есть; не хватает — «<ID> contract: …»",
+    "в package.json и pnpm-lock.yaml — ничего",
+    "packages/",
+    "apps/api/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md",
+    "src/views/, src/screens/, src/task/ — клавиши видов (j/k/x) остаются в видах"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__",
+      "expect": "num:Tests\\s+(\\d+) passed >=98"
+    },
+    {
+      "name": "palette",
+      "cmd": "pnpm --filter web exec vitest run src/command -t cmd:palette",
+      "expect": "num:Tests\\s+(\\d+) passed >=4"
+    },
+    {
+      "name": "hotkeys",
+      "cmd": "pnpm --filter web exec vitest run src/command -t cmd:hotkeys",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "search",
+      "cmd": "pnpm --filter web exec vitest run src/command -t cmd:search",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "search-ms",
+      "cmd": "pnpm --filter web exec vitest run src/command -t cmd:perf",
+      "expect": "num:perf search10k_ms=([\\d.]+) <=50"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T01:23:41"
+}

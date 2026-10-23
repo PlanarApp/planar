@@ -1,0 +1,34 @@
+{
+  "verdict": "rework",
+  "summary": "Разделы, права, rank между соседями и дедупликация регистрации сделаны верно, скоуп соблюдён. Есть блокер: загрузчик модулей берёт `default`, а по C-modules модуль экспортирует `web`. Первый же настоящий модуль уронит регистрацию.",
+  "issues": [
+    {
+      "file": "apps/web/src/modules/registry.ts",
+      "line": 51,
+      "severity": "blocker",
+      "what": "C-modules v1: модуль пишет `export const web = defineWebModule({...})` в modules/<id>/web/index.ts. registry задаёт glob<{default: WebModuleManifest}> и делает `.map((m) => m.default)`, поэтому для модуля по контракту получится undefined. Дальше registerModules падает на `m.id` (TypeError), а ошибка проглатывается через `void` в liveQuery.next. Тест этого не ловит: он вызывает registerModules напрямую, а modules/ пуст (в отчёте это записано как «не уверен»).",
+      "fix": "Загружать `m.web` (glob<{ web: WebModuleManifest }>), как велит контракт. Добавить тест setEnabledModules с подменённым loaders или с фикстурным модулем, экспортирующим `web`, и проверить, что модуль регистрируется и попадает в useExtensions."
+    },
+    {
+      "file": "apps/web/src/modules/registry.ts",
+      "line": 57,
+      "severity": "major",
+      "what": "Без строки settings.enabled_modules registry считает, что включено [] (ни один модуль не грузится). ModulesSettings в том же случае показывает включёнными модули с enabled=true из GET /api/modules. Экран говорит «включён», а фронт модуля не подключён. Кроме того, сбой загрузки (load() или registerModules) уходит в необработанный reject.",
+      "fix": "Взять одно правило для отсутствующей строки в обоих местах (по core.md правда — settings.enabled_modules, значит в UI тоже []), либо явно брать список с сервера в обоих местах. Ошибку загрузки модуля ловить, например через console.error, чтобы не терялись остальные модули."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "modules",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "statuses",
+      "value": "3",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T01:49:41",
+  "by": "reviewer"
+}

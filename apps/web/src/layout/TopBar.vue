@@ -8,12 +8,14 @@ import {
   Languages,
   LogOut,
   Monitor,
+  Search,
   Moon,
   Settings,
   Sun,
   User,
 } from 'lucide-vue-next';
 import { Avatar, Button, Menu, useTheme, type MenuItem } from '../ui';
+import { ui } from '../command/hotkeys';
 import { setLocale } from '../i18n';
 import { useAuth } from '../auth/useAuth';
 import { useUnread } from '../inbox/queries';
@@ -23,6 +25,7 @@ const route = useRoute();
 const router = useRouter();
 const { theme } = useTheme();
 const { logout, user } = useAuth();
+const mac = /Mac/i.test(navigator.platform);
 const notice = ref('');
 const unread = useUnread();
 
@@ -100,6 +103,15 @@ const items = (): MenuItem[] => [
       {{ route.name ? t(`screens.${String(route.name)}`) : t('app.name') }}
     </h1>
     <span v-if="notice" role="alert" class="text-sm text-fg-muted">{{ notice }}</span>
+    <button
+      type="button"
+      :aria-label="t('cmd.open')"
+      class="flex size-11 items-center justify-center gap-2 rounded-md border-border text-fg-muted outline-none focus-visible:ring-2 ring-focus md:h-8 md:w-auto md:border md:px-2 md:text-sm"
+      @click="ui.palette = true"
+    >
+      <Search class="size-4" aria-hidden="true" />
+      <kbd class="hidden md:inline">{{ mac ? '⌘K' : 'Ctrl K' }}</kbd>
+    </button>
     <Button v-if="installEvent" size="sm" :icon="Download" @click="install">
       {{ t('topbar.install') }}
     </Button>

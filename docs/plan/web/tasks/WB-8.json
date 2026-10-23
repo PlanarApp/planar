@@ -1,0 +1,120 @@
+{
+  "id": "WB-8",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Сохранённые виды: фильтры, личные и общие виды",
+  "goal": "Конструктор фильтров (поле, оператор, значение; И/ИЛИ на одном уровне), видимые поля списка, сохранение вида (личный/общий) в savedViews и экран /p/:projectId/v/:viewId; виды «Список» и «Доска» применяют filter и fields по C-views v2.",
+  "plan_ref": "WB-8 Сохранённые виды",
+  "contracts": [
+    {
+      "name": "C-views",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-tasks",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-8",
+  "branch": "web/WB-8",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/views/filter.ts",
+    "apps/web/src/views/saved/",
+    "apps/web/src/views/index.ts",
+    "apps/web/src/views/options.ts",
+    "apps/web/src/views/list/",
+    "apps/web/src/views/board/View.vue",
+    "apps/web/src/views/__tests__/",
+    "apps/web/src/screens/ProjectScreen.vue",
+    "apps/web/src/screens/SavedViewScreen.vue",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "apps/web/src/__contract__/views.contract.test.ts",
+    "apps/web/src/contract.ts",
+    "docs/contracts/web.md",
+    "apps/web/src/views/board/"
+  ],
+  "dont_touch": [
+    "контрактные тесты в apps/web/src/__contract__, src/contract.ts, docs/contracts/web.md — координатор (C-views v2 уже в ветке)",
+    "src/tasks/, src/sync/, src/ui/ — контракты как есть",
+    "в package.json и pnpm-lock.yaml — ничего",
+    "packages/",
+    "apps/api/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__",
+      "expect": "num:Tests\\s+(\\d+) passed >=102"
+    },
+    {
+      "name": "filter",
+      "cmd": "pnpm --filter web exec vitest run src/views -t views:filter",
+      "expect": "num:Tests\\s+(\\d+) passed >=6"
+    },
+    {
+      "name": "builder",
+      "cmd": "pnpm --filter web exec vitest run src/views -t views:builder",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "saved",
+      "cmd": "pnpm --filter web exec vitest run src/views -t views:saved",
+      "expect": "num:Tests\\s+(\\d+) passed >=4"
+    },
+    {
+      "name": "apply",
+      "cmd": "pnpm --filter web exec vitest run src/views -t views:apply",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T01:38:07",
+  "edited": "2026-10-23T01:48:13"
+}
