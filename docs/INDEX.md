@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-10-22"
+updated: "2026-10-23"
 summary: "Точка входа: документы docs/ по типам, строка на документ."
 related: []
 generated: true
@@ -23,7 +23,7 @@ generated: true
 ## Контракты стыков (contract)
 
 - [docs/contracts/core.md](contracts/core.md) — Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
-- [docs/contracts/web.md](contracts/web.md) — Контракты web — C-ui (оформление, компоненты, маршруты, расширения), C-client (синхронизация), C-tasks (общий слой задач)
+- [docs/contracts/web.md](contracts/web.md) — Контракты web — C-ui, C-client (синхронизация), C-tasks (слой задач), C-views (экран проекта и стык видов)
 
 ## Реестры (registry)
 
