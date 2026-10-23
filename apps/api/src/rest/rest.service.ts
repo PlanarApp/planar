@@ -9,8 +9,9 @@ import type { Db } from '../db/index.js';
 import * as s from '../db/schema.js';
 import { PushQueue } from '../push/push.js';
 import { executeMutations, Reject } from '../sync/mutate.js';
-import { toWire } from '../sync/rows.js';
 import { DB } from '../tokens.js';
+import { toWire } from '../sync/rows.js';
+import { toV1Tasks } from './v1-tasks.js';
 import { commentBody, createTaskBody, listQuery, patchTaskBody, tasksQuery } from './schemas.js';
 
 type Wire = Record<string, unknown>;
@@ -177,33 +178,8 @@ export class RestService {
   }
 
   /** строки tasks → V1Task (key, assigneeIds, labelIds) */
-  private async enrich(rows: Wire[]): Promise<V1Task[]> {
-    if (!rows.length) return [];
-    const ids = rows.map((r) => r.id as string);
-    const projects = await this.db
-      .select({ id: s.projects.id, key: s.projects.key })
-      .from(s.projects)
-      .where(inArray(s.projects.id, [...new Set(rows.map((r) => r.projectId as string))]));
-    const as = await this.db
-      .select({ t: s.taskAssignees.taskId, u: s.taskAssignees.userId })
-      .from(s.taskAssignees)
-      .where(inArray(s.taskAssignees.taskId, ids))
-      .orderBy(asc(s.taskAssignees.createdAt), asc(s.taskAssignees.id));
-    const ls = await this.db
-      .select({ t: s.taskLabels.taskId, l: s.taskLabels.labelId })
-      .from(s.taskLabels)
-      .where(inArray(s.taskLabels.taskId, ids))
-      .orderBy(asc(s.taskLabels.createdAt), asc(s.taskLabels.id));
-    const key = new Map(projects.map((p) => [p.id, p.key]));
-    return rows.map((r) => {
-      const n = r.number as number | null;
-      return {
-        ...toWire('tasks', r),
-        key: n == null ? null : `${key.get(r.projectId as string)}-${n}`,
-        assigneeIds: as.filter((x) => x.t === r.id).map((x) => x.u),
-        labelIds: ls.filter((x) => x.t === r.id).map((x) => x.l),
-      } as V1Task;
-    });
+  private enrich(rows: Wire[]): Promise<V1Task[]> {
+    return toV1Tasks(this.db, rows);
   }
 
   /** :task — uuid или ключ ABC-123; невидимая → 404. Возвращает строку БД. */

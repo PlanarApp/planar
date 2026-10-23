@@ -7,6 +7,7 @@ import {
   type Type,
 } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { CORE, CoreService } from './core.service.js';
 import { AUTH_OPTS, type AuthOpts } from './auth/auth.js';
 import { AuthController } from './auth/auth.controller.js';
 import { SetupController } from './auth/setup.controller.js';
@@ -50,7 +51,7 @@ export class AppModule implements OnApplicationShutdown {
     return {
       module: AppModule,
       global: true, // DB и JobsService доступны модулям без импорта
-      exports: [DB, JobsService],
+      exports: [DB, JobsService, CORE],
       imports: installed.map((m) => m.api.nestModule as Type),
       controllers: [
         HealthController,
@@ -73,6 +74,8 @@ export class AppModule implements OnApplicationShutdown {
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_GUARD, useClass: ModuleGuard },
         JobsService,
+        CoreService,
+        { provide: CORE, useExisting: CoreService },
         ...syncProviders,
         ...restProviders,
       ],

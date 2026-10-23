@@ -136,10 +136,12 @@ export async function executeMutations(
   muts: { name: string; args: unknown }[],
   queue?: PushQueue,
   tokenId?: string,
-  opts?: Pick<RunOpts, 'system' | 'origin'>,
+  opts?: Pick<RunOpts, 'system' | 'origin'> & { prepare?: (q: Q) => Promise<boolean | void> },
 ): Promise<void> {
   const notified: string[] = [];
   await db.transaction(async (tx) => {
+    // блокировки и проверки в той же транзакции; false — мутации пропускаются
+    if ((await opts?.prepare?.(tx)) === false) return;
     for (const m of muts)
       await runMutation(tx, userId, m, notified, tokenId, { ...opts, jobs: queue?.jobs });
   });

@@ -8,5 +8,5 @@
     "paths": { "@planar/shared": ["../../packages/shared/src/index.ts"] },
     "jsx": "preserve"
   },
-  "include": ["src", "*.ts"]
+  "include": ["src", "*.ts", "../../modules/*/web"]
 }

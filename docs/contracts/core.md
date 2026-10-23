@@ -528,10 +528,10 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Мутаторы домена v2
 Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
-## C-modules v4
+## C-modules v5
 
-v4 (CL-1a): `canReadFile?`, `EntityMeta.members?`, web `search` — collab.md §X-core п. 1, 4, 5; v3 — work.md.
-
+v5 (CL-1a): `canReadFile?`, `EntityMeta.members?`, web `search` — collab.md §X-core п. 1, 4, 5.
+v4 (WK-10): server-kit, web SDK, сущности модулей в клиенте — work.md §C-modules v4.
 v3 (WK-0): хуки, задачи, nav/topbar — work.md §C-modules v3.
 
 Модуль — каталог `modules/<id>/` (`id` — `^[a-z][a-z0-9-]{1,30}$`):

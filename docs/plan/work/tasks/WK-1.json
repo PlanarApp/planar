@@ -1,0 +1,101 @@
+{
+  "id": "WK-1",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "Модуль time: учёт времени, таймер, неделя «Мои часы»",
+  "goal": "Модуль time по docs/contracts/work.md §Модуль time: записи времени и оценки, один таймер на пользователя (решает сервер, длительность считает сервер), ручные записи, сумма на задаче с подзадачами, оценка против факта; кнопка таймера в карточке и верхней панели, неделя «Мои часы» с правкой ячеек.",
+  "plan_ref": "5. Задачи — WK-1 Учёт времени",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "3",
+      "ref": "docs/contracts/work.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "3",
+      "ref": "docs/contracts/work.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-1",
+  "branch": "work/WK-1",
+  "base": "feature/work",
+  "scope": [
+    "modules/time",
+    "apps/api/drizzle",
+    "apps/api/test/time",
+    "apps/web/src/modules/__tests__/time"
+  ],
+  "dont_touch": [
+    "apps/api/src, apps/web/src (кроме тестов модуля), packages/ — ядро; нужна точка расширения — «WK-1 contract: …»",
+    "другие modules/* (sprints, webhooks … — параллельные задачи), modules/time/package.json — зависимости не добавлять",
+    "docs/contracts/, apps/api/test/work-contract.test.ts — координатор",
+    "pnpm-lock.yaml, package.json, apps/*/package.json; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk1-api",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api -t wk1:",
+      "expect": "num:Tests\\s+(\\d+) passed >=12"
+    },
+    {
+      "name": "wk1-web",
+      "cmd": "pnpm --filter web exec vitest run -t wk1:",
+      "expect": "num:Tests\\s+(\\d+) passed >=5"
+    },
+    {
+      "name": "contract-work",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api test/work-contract.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=5"
+    },
+    {
+      "name": "migrations-linear",
+      "cmd": "ls apps/api/drizzle/*.sql | sed 's#.*/##' | cut -c1-4 | sort | uniq -d | wc -l",
+      "expect": "num:^(\\d+) <=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint modules/time apps/api/test apps/web/src && pnpm exec prettier --check modules/time apps/api/test apps/web/src",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T12:48:11",
+  "edited": "2026-10-23T12:48:11"
+}
