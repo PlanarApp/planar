@@ -23,3 +23,7 @@ export { localToday, matchFilter } from '../views/filter';
 
 /** Текущий пользователь (null — не вошёл). */
 export const useSession = (): Readonly<Ref<User | null>> => useAuth().user;
+export { default as Editor } from '../task/editor/Editor.vue';
+export { uploadFile, type Uploaded } from '../api/files';
+export { api, ApiError } from '../api/http';
+export { sendTyping, onTyping, onMutationError } from '../sync';
