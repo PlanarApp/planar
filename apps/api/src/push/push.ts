@@ -99,7 +99,7 @@ export class PushQueue implements OnApplicationShutdown {
   /** Старт pg-boss (ленивый, один раз). */
   private start(): Promise<void> {
     return (this.ready ??= (async () => {
-      const boss = new PgBoss(this.opts.databaseUrl);
+      const boss = new PgBoss({ connectionString: this.opts.databaseUrl, max: 2 });
       boss.on('error', (e) => this.log.error(e));
       await boss.start();
       await boss.createQueue(QUEUE);
