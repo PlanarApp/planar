@@ -1,6 +1,6 @@
 {
   "status": "done",
-  "summary": "fieldDefs/taskLinks, fields.ts, мутаторы, миграция 0006, тесты; accept --dry PASS.",
+  "summary": "fieldDefs/taskLinks, fields.ts, мутаторы, миграция 0006, тесты; accept --dry PASS. Доработка по ревью: invalid_args в link.create/setField, project.delete чистит fieldDefs, guest link.create.",
   "commits": [
     "13d34ea FT-1a: fieldDefs, taskLinks, мутаторы, миграция 0006"
   ],
@@ -32,7 +32,7 @@
     },
     {
       "name": "fields_tests",
-      "value": "16",
+      "value": "17",
       "pass": true
     },
     {
@@ -67,6 +67,6 @@
     }
   ],
   "dp_feedback": "",
-  "t": "2026-10-23T09:16:16",
+  "t": "2026-10-23T09:22:57",
   "by": "executor"
 }
