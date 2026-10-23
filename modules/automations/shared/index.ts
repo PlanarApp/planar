@@ -213,9 +213,16 @@ export const del = defineMutator({
   },
 });
 
+/** Маркер конца действий правила: afterMutation ставит доставку webhook в той же транзакции. */
+export const fire = defineMutator({
+  name: 'automations.fire',
+  args: z.object({ ruleId: uuid }),
+  async run() {},
+});
+
 export const shared: SharedModuleManifest = {
   id: 'automations',
-  mutators: [create, update, del],
+  mutators: [create, update, del, fire],
   entities: {
     automationsRules: {
       schema: automationsRules,

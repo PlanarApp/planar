@@ -98,7 +98,21 @@ function eventsOf(writes: MutationWrite[]): Event[] {
   return out;
 }
 
+/** ruleId → задача текущего запуска: нужна маркеру automations.fire (запуски одного правила идут последовательно). */
+const firing = new Map<string, RunData>();
+
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
+  if (ctx.mutator === 'automations.fire') {
+    const d = ctx.origin && firing.get(ctx.origin.ruleId);
+    if (!d) return;
+    const [r] = (
+      await api.q.execute(sql`select actions from automations_rules where id = ${d.ruleId}`)
+    ).rows as { actions: Action[] }[];
+    const subs = (r?.actions ?? []).flatMap((a) =>
+      a.type === 'send_webhook' ? [a.subscriptionId] : [],
+    );
+    return sendWebhooks(api, api.q, subs, d);
+  }
   const depth = (ctx.origin?.depth ?? 0) + 1;
   if (depth > MAX_DEPTH) return;
   const projects = new Map<string, string | null>();
@@ -283,7 +297,12 @@ async function checkWebhooks(q: Q, subs: string[]) {
   }
 }
 
-async function sendWebhooks(api: JobApi, q: Q, subs: string[], d: RunData) {
+async function sendWebhooks(
+  api: Pick<ModuleHookApi, 'enqueue'>,
+  q: Q,
+  subs: string[],
+  d: Pick<RunData, 'ruleId' | 'taskId'>,
+) {
   const [t] = (await q.execute(sql`select row_to_json(t) as r from tasks t where id = ${d.taskId}`))
     .rows as { r: Row }[];
   if (!t) throw new Error('задача удалена');
@@ -338,16 +357,20 @@ async function run(d: RunData, api: JobApi) {
     const hooks = (rule.actions as Action[]).flatMap((a) =>
       a.type === 'send_webhook' ? [a.subscriptionId] : [],
     );
+    if (hooks.length) {
+      muts.push({ name: 'automations.fire', args: { ruleId: d.ruleId } });
+      firing.set(d.ruleId, d);
+    }
     await api.execute(api.systemUserId, muts, {
       system: true,
       origin: { ruleId: d.ruleId, depth: d.depth },
       // неактивная/несуществующая подписка откатывает всё до действий
       prepare: hooks.length ? (q) => checkWebhooks(q, hooks) : undefined,
     });
-    // задача уходит в вебхук после применения всех действий правила
-    if (hooks.length) await sendWebhooks(api, api.db as never, hooks, d);
   } catch (e) {
     return void (await record(api, d, 'error', e instanceof Error ? e.message : String(e)));
+  } finally {
+    firing.delete(d.ruleId);
   }
   await record(api, d, 'ok');
 }
