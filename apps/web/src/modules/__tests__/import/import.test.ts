@@ -1,6 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
+const push = vi.hoisted(() => vi.fn());
+vi.mock('vue-router', async (orig) => ({
+  ...(await orig<typeof import('vue-router')>()),
+  useRouter: () => ({ push }),
+}));
+
 vi.mock('../../../../../../modules/import/web/data', async () => {
   const { ref } = await import('vue');
   const job = {
@@ -52,6 +58,11 @@ describe('wk6: web импорта', () => {
     expect(web.routes?.[0]?.path).toBe('/m/import/');
     expect(web.nav?.[0]).toMatchObject({ to: '/m/import/' });
     expect(web.commands?.map((c) => c.id)).toEqual(['import:open']);
+  });
+
+  it('wk6b: import:open переходит через router.push', () => {
+    void web.commands![0]!.run({ route: {} as never, selectedTaskIds: [] });
+    expect(push).toHaveBeenCalledWith('/m/import/');
   });
 
   it('wk6: lib — значения статусов, mapping без пустых полей, подсказка статуса, заготовки формата', () => {
