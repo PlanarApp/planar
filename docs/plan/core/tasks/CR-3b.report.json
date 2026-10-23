@@ -1,8 +1,8 @@
 {
   "status": "done",
-  "summary": "setup/login/logout/users на argon2id, лимит входа в login_attempts, роли; замечания ревью CR-3a исправлены. Записи users идут через ServerTx.asSystem (put с extra passwordHash), в changes без password_hash.",
+  "summary": "Доработка по ревью: details 400 = массив issues (проходит contractSchemas['http.error']); смена пароля сбрасывает сессии (себе — кроме текущей, чужому — все), тесты добавлены.",
   "commits": [
-    "ab13906 CR-3b: ServerTx.put с extra, users пишутся через ServerTx"
+    "CR-3b: details=issues, сброс сессий при смене пароля"
   ],
   "checks": [
     {
@@ -22,7 +22,7 @@
     },
     {
       "name": "auth_tests",
-      "value": "32",
+      "value": "33",
       "pass": true
     },
     {
@@ -37,21 +37,11 @@
   "uncertain": [
     {
       "where": "apps/api/test/auth/harness.ts",
-      "why": "каждый файл auth-тестов создаёт свою БД (общая БД ломает seed.test и setup); drop базы не ждём дольше 15 с, на перегруженном сервере БД могут оставаться",
-      "checked": "прогоны accept при load 11-18; до этого падали из-за too many clients и долгого drop"
-    },
-    {
-      "where": "apps/api/src/app.module.ts",
-      "why": "пул закрывается в onApplicationShutdown вместо подмены app.close (подмена не срабатывала)",
-      "checked": "тест подключения закрывается, ошибок нет"
-    },
-    {
-      "where": "apps/api/src/users/users.controller.ts",
-      "why": "смена пароля не сбрасывает чужие сессии",
-      "checked": "в карточке не требуется"
+      "why": "каждый файл на своей БД, drop не ждём дольше 15 с — на перегруженном сервере могут оставаться базы",
+      "checked": "прогоны accept при высокой нагрузке"
     }
   ],
-  "dp_feedback": "job-имена общие между агентами (acc перехвачен чужой задачей); task show обрезает дополнения без --full; тестовая БД общая — seed.test считает всех пользователей.",
-  "t": "2026-10-23T02:50:23",
+  "dp_feedback": "job-имена общие между агентами; sync/ws.test флакает под нагрузкой (один раз упал, отдельно проходит).",
+  "t": "2026-10-23T03:12:11",
   "by": "executor"
 }

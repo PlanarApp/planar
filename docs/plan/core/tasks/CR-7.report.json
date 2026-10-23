@@ -1,11 +1,13 @@
 {
   "status": "done",
-  "summary": "Хук notificationsHook в транзакции мутации создаёт notifications и taskWatchers (ServerTx.asSystem); pg-boss очередь push.notification, send после COMMIT, воркер с PushSender (web-push), 404/410 удаляют подписку; эндпоинты vapid/subscribe; dev.sh vapid; миграция 0003. Payload по C-http v5 (pushPayloadSchema: url /t/KEY-N, tag, kind), тест проверяет схему.",
+  "summary": "Хук notificationsHook в транзакции мутации создаёт notifications и taskWatchers (ServerTx.asSystem); pg-boss очередь push.notification, send после COMMIT, воркер с PushSender (web-push), 404/410 удаляют подписку; эндпоинты vapid/subscribe; dev.sh vapid; миграция 0003. Payload по C-http v5 (pushPayloadSchema: url /t/KEY-N, tag, kind), тест проверяет схему. Слит feature/core: миграция перегенерирована как 0004, lockfile пересобран, app.module объединён.",
   "commits": [
     "CR-7: уведомления, автоподписка и push через pg-boss",
     "CR-7: тело Web Push по C-http v5",
     "CR-7: пул pg-boss 2 соединения",
-    "CR-7: таймаут воркер-теста"
+    "CR-7: таймаут воркер-теста",
+    "CR-7: слияние feature/core, миграция 0004",
+    "CR-7: lockfile после слияния"
   ],
   "checks": [
     {
@@ -65,6 +67,6 @@
     }
   ],
   "dp_feedback": "Общий scratchpad: r.json перезаписал другой агент; отчёт стоит писать в файл с ID задачи.",
-  "t": "2026-10-23T02:36:42",
+  "t": "2026-10-23T03:09:17",
   "by": "executor"
 }
