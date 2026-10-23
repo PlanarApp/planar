@@ -112,7 +112,10 @@ export class PushQueue implements OnApplicationShutdown {
           },
         );
       this.boss = boss;
-    })());
+    })().catch((e) => {
+      this.ready = undefined; // следующий enqueue попробует снова
+      throw e;
+    }));
   }
 
   async onModuleInit() {
