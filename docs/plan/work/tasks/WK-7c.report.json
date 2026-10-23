@@ -1,0 +1,44 @@
+{
+  "status": "done",
+  "summary": "./dev.sh prod-smoke: сборка web, compose.yml (postgres, api, caddy) в изолированном проекте, сид с хоста через временный порт postgres (deploy/compose.smoke.yml), e2e/prod (4 теста через Caddy), down -v по trap. docs/deploy.md.",
+  "commits": [
+    "a1bcb95 prod-smoke",
+    "511be43 trap fix"
+  ],
+  "checks": [
+    {
+      "name": "smoke-count",
+      "value": "4 passed",
+      "pass": true
+    },
+    {
+      "name": "cleanup",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "dev-intact",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept WK-7c",
+  "uncertain": [
+    {
+      "where": "dev.sh:prodsmoke",
+      "why": "сид идёт с хоста (нужны pnpm и сеть), т.к. в prod-образе нет tsx",
+      "checked": "полный прогон и accept --dry PASS, стек гасится"
+    }
+  ],
+  "dp_feedback": "accept гонит проверки параллельно: cleanup может увидеть живой стек от smoke; в этот раз порядок совпал.",
+  "t": "2026-10-23T12:15:39",
+  "by": "executor"
+}

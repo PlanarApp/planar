@@ -1,0 +1,60 @@
+{
+  "id": "WK-7c",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "Prod-стек compose.yml с Caddy: health, вход, e2e-смоук (./dev.sh prod-smoke)",
+  "goal": "Команда ./dev.sh prod-smoke собирает web и api, поднимает compose.yml целиком (postgres, api, caddy) в изолированном проекте compose, проверяет health и вход через Caddy и прогоняет e2e-смоук против prod-сборки, затем всё гасит.",
+  "plan_ref": "5. Задачи — WK-7 Хвосты фазы 1 (третий пункт)",
+  "contracts": [
+    {
+      "name": "C-http",
+      "version": "9",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-7c",
+  "branch": "work/WK-7c",
+  "base": "feature/work",
+  "scope": [
+    "dev.sh",
+    "compose.yml",
+    "deploy",
+    "apps/api/Dockerfile",
+    "e2e/prod",
+    "e2e/package.json",
+    "docs/deploy.md",
+    "docs/INDEX.md"
+  ],
+  "dont_touch": [
+    "apps/, packages/, modules/ — код приложения; падение из-за кода — «WK-7c blocked: …» с причиной",
+    "compose.dev.yml и существующие команды dev.sh (up, test, testdb, e2e …) — поведение не менять",
+    "e2e/web/, e2e/tests/ — существующие сценарии не ослаблять",
+    "pnpm-lock.yaml, корневой package.json; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "smoke-count",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-prod-wk7c HTTP_PORT=8717 HTTPS_PORT=8743; ./dev.sh prod-smoke 2>&1 | tail -40",
+      "expect": "num:(\\d+) passed >=3"
+    },
+    {
+      "name": "cleanup",
+      "cmd": "docker ps -a --filter label=com.docker.compose.project=planar-prod-wk7c -q | wc -l",
+      "expect": "num:^(\\d+) <=0"
+    },
+    {
+      "name": "dev-intact",
+      "cmd": "bash -n dev.sh && grep -c 'prod-smoke' dev.sh",
+      "expect": "num:^(\\d+) >=1"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec prettier --check e2e compose.yml",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T12:06:27",
+  "edited": "2026-10-23T12:06:36"
+}

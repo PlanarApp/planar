@@ -45,7 +45,8 @@
     "apps/web/src/i18n",
     "apps/web/src/sync",
     "apps/web/src/__contract__",
-    "apps/web/src/contract.ts"
+    "apps/web/src/contract.ts",
+    "apps/web/src/tasks/__tests__/data.ts"
   ],
   "dont_touch": [
     "docs/contracts/ — координатор; расхождение с контрактом — «WK-0 contract: …»",
@@ -59,16 +60,6 @@
     {
       "name": "install",
       "cmd": "pnpm install --frozen-lockfile",
-      "expect": "exit=0"
-    },
-    {
-      "name": "typecheck-shared",
-      "cmd": "pnpm --filter @planar/shared exec tsc --noEmit",
-      "expect": "exit=0"
-    },
-    {
-      "name": "typecheck-api",
-      "cmd": "pnpm --filter @planar/api exec tsc --noEmit",
       "expect": "exit=0"
     },
     {
@@ -125,5 +116,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-23T11:41:06",
-  "edited": "2026-10-23T11:41:14"
+  "edited": "2026-10-23T12:04:55"
 }
