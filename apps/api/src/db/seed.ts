@@ -1,4 +1,4 @@
-// Сид dev-данных: tsx --conditions=source src/db/seed.ts [--tasks N] [--bench]
+// Сид dev-данных: tsx --conditions=source src/db/seed.ts [--tasks N: довести число задач до N] [--bench]
 import { randomBytes } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import argon2 from 'argon2';
@@ -108,8 +108,12 @@ async function seedBase(db: Db) {
   ]);
 }
 
-/** Добавляет n задач по всем проектам; пишет напрямую в таблицы, без changes. */
-async function seedTasks(db: Db, n: number) {
+/** Доводит общее число задач до target (повтор не копит); пишет напрямую в таблицы, без changes. */
+async function seedTasks(db: Db, target: number) {
+  const [{ total }] = (await db.execute(sql`select count(*)::int as total from tasks`)).rows as {
+    total: number;
+  }[];
+  const n = target - total;
   if (n <= 0) return;
   const [admin] = await db
     .select({ id: s.users.id })
