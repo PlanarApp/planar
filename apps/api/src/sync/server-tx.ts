@@ -1,4 +1,4 @@
-import { eq, getTableColumns, sql } from 'drizzle-orm';
+import { and, eq, getTableColumns, sql } from 'drizzle-orm';
 import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import {
@@ -312,28 +312,32 @@ export class ServerTx implements Tx {
     }
   }
 
-  /** attachments: файл есть в files и загружен ctx.userId либо уже приложен в этом пространстве. */
+  /** attachments: у ctx.userId есть file_uploads на файл либо файл уже приложен в этом пространстве. */
   private async checkFile(row: Wire): Promise<void> {
-    if (this.opts.system) return;
-    const [f] = await this.exec(() =>
+    const [u] = await this.exec(() =>
       this.q
-        .select()
-        .from(schema.files)
-        .where(eq(schema.files.sha256, row.fileSha256 as string)),
+        .select({ sha: schema.fileUploads.sha256 })
+        .from(schema.fileUploads)
+        .where(
+          and(
+            eq(schema.fileUploads.sha256, row.fileSha256 as string),
+            eq(schema.fileUploads.userId, this.ctx.userId),
+          ),
+        ),
     );
-    let ok = f?.createdBy === this.ctx.userId;
-    if (f && !ok) {
-      const [a] = await this.exec(() =>
-        this.q
-          .select({ id: schema.attachments.id })
-          .from(schema.attachments)
-          .where(
-            sql`${schema.attachments.fileSha256} = ${row.fileSha256} and ${schema.attachments.spaceId} = ${row.spaceId}`,
-          )
-          .limit(1),
-      );
-      ok = !!a;
-    }
-    if (!ok) throw new MutatorError('forbidden', 'файл не загружен этим пользователем');
+    if (u) return;
+    const [a] = await this.exec(() =>
+      this.q
+        .select({ id: schema.attachments.id })
+        .from(schema.attachments)
+        .where(
+          and(
+            eq(schema.attachments.fileSha256, row.fileSha256 as string),
+            eq(schema.attachments.spaceId, row.spaceId as string),
+          ),
+        )
+        .limit(1),
+    );
+    if (!a) throw new MutatorError('forbidden', 'файл не загружен этим пользователем');
   }
 }

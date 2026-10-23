@@ -163,24 +163,22 @@ describe('WS /ws', () => {
     const c = connect({ cookie: p.cb, origin: ORIGIN });
     await c.opened;
     await new Promise((r) => setTimeout(r, 200));
-    // прогрев: первый push холодный (пул, JIT)
-    await push(p, 'label.create', label(p.spaceId));
-    await c.next();
-    // 20 замеров; на общей занятой машине всплеск от соседних процессов — не дефект, поэтому до 5 серий
-    let max = Infinity;
-    for (let attempt = 0; attempt < 5 && max > 500; attempt++) {
-      const samples: number[] = [];
-      for (let i = 0; i < 20; i++) {
-        c.msgs.length = 0;
-        const t0 = performance.now();
-        await push(p, 'label.create', label(p.spaceId));
-        await c.next();
-        samples.push(performance.now() - t0);
-      }
-      max = Math.round(Math.max(...samples));
+    // 3 прогревочных push не считаются (пул, JIT), затем одна серия из 20 замеров
+    for (let i = 0; i < 3; i++) {
+      await push(p, 'label.create', label(p.spaceId));
+      await c.next();
     }
+    const samples: number[] = [];
+    for (let i = 0; i < 20; i++) {
+      c.msgs.length = 0;
+      const t0 = performance.now();
+      await push(p, 'label.create', label(p.spaceId));
+      await c.next();
+      samples.push(performance.now() - t0);
+    }
+    const max = Math.round(Math.max(...samples));
     // мимо перехвата vitest: приёмка читает эту строку из лога
     writeSync(1, `poke_ms=${max}\n`);
     expect(max).toBeLessThanOrEqual(500);
-  }, 120_000);
+  }, 30_000);
 });

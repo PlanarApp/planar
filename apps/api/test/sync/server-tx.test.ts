@@ -265,8 +265,9 @@ describe('ServerTx: права', () => {
     });
   });
 
-  it('attachments: файл должен быть в files и загружен пользователем', async () => {
+  it('attachments: нужен file_uploads пользователя или файл уже приложен в пространстве', async () => {
     const { user, spaceId } = await setup('member');
+    const other = await mkUser(db);
     const taskRow = async (q: Parameters<Parameters<typeof inTx>[0]>[0]) => {
       const sys = ServerTx.asSystem(q, { userId: user });
       const st = {
@@ -325,9 +326,40 @@ describe('ServerTx: права', () => {
       expect(await code(tx.put('attachments', att))).toBe('forbidden');
       await q
         .insert(schema.files)
-        .values({ sha256: sha, size: 5_000_000_000, mime: 'x/y', createdBy: user });
+        .values({ sha256: sha, size: 5_000_000_000, mime: 'x/y', createdBy: other });
+      // файл загрузил другой пользователь (files.created_by не в счёт)
+      expect(await code(tx.put('attachments', att))).toBe('forbidden');
+      await q.insert(schema.fileUploads).values({ sha256: sha, userId: user });
       expect(await code(tx.put('attachments', att))).toBe('ok');
       expect((await tx.get('attachments', att.id))!.size).toBe(5_000_000_000);
+      // второй загрузивший тот же файл
+      await q.insert(schema.fileUploads).values({ sha256: sha, userId: other });
+      const tx2 = new ServerTx(q, { userId: other });
+      await ServerTx.asSystem(q, { userId: user }).put('spaceMembers', {
+        id: uuidv7(),
+        spaceId,
+        userId: other,
+        role: 'member',
+        createdAt: NOW,
+        updatedAt: NOW,
+      });
+      expect(await code(tx2.put('attachments', { ...att, id: uuidv7(), uploadedBy: other }))).toBe(
+        'ok',
+      );
+      // без загрузки, но файл уже приложен в этом пространстве
+      const third = await mkUser(db);
+      await ServerTx.asSystem(q, { userId: user }).put('spaceMembers', {
+        id: uuidv7(),
+        spaceId,
+        userId: third,
+        role: 'member',
+        createdAt: NOW,
+        updatedAt: NOW,
+      });
+      const tx3 = new ServerTx(q, { userId: third });
+      expect(await code(tx3.put('attachments', { ...att, id: uuidv7(), uploadedBy: third }))).toBe(
+        'ok',
+      );
     });
   });
 });
