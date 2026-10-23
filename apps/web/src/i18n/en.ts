@@ -90,6 +90,12 @@ export default {
     unblock: 'Unblock',
     blocked: 'Blocked',
   },
+  board: {
+    collapse: 'Collapse column',
+    expand: 'Expand column',
+    add: 'Add task',
+    newTitle: 'Task title',
+  },
   tasks: {
     priority: { 0: 'No priority', 1: 'Urgent', 2: 'High', 3: 'Medium', 4: 'Low' },
     priorityTitle: 'Priority',
