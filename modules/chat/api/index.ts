@@ -1,24 +1,11 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Inject,
-  Module,
-  NotFoundException,
-  Param,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Inject, Module, Param, Query, Req } from '@nestjs/common';
 import { and, asc, desc, eq, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm';
-import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
-import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { uuidv7, type BackendModuleManifest } from '@planar/shared';
+import { CORE, HttpError, type CoreServices, type ModuleHookApi, type Q } from '@planar/server-kit';
 import { z } from 'zod';
 import { shared } from '../shared/index.js';
 import { chatMessages, chatReactions } from './schema.js';
 
-type Db = PgDatabase<NodePgQueryResultHKT>;
-type Q = { execute(q: SQL): Promise<{ rows: unknown[] }> };
 type Wire = Record<string, unknown>;
 
 /** Видит ли userId канал: участник пространства или участник диалога. */
@@ -48,84 +35,81 @@ const query = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
-/** DB — токен провайдера ядра (apps/api/src/tokens.ts); модуль не импортирует apps/api (цикл сборки). */
-function build(DB: symbol) {
-  @Controller('api/chat')
-  class ChatController {
-    constructor(@Inject(DB) private readonly db: Db) {}
+@Controller('api/chat')
+class ChatController {
+  constructor(@Inject(CORE) private readonly core: CoreServices) {}
 
-    private async channelFor(req: object, channelId: string) {
-      const userId = (req as { auth?: { userId: string } }).auth?.userId;
-      if (!userId || !z.uuid().safeParse(channelId).success)
-        throw new NotFoundException('не найдено');
-      if (!(await this.db.execute(canSee(channelId, userId))).rows.length)
-        throw new NotFoundException('канал не найден');
-    }
-
-    private async reactionsOf(ids: string[]) {
-      if (!ids.length) return [];
-      const rs = await this.db
-        .select()
-        .from(chatReactions)
-        .where(inArray(chatReactions.messageId, ids));
-      return rs.map(wire);
-    }
-
-    @Get('channels/:id/messages')
-    async history(@Req() req: object, @Param('id') id: string, @Query() q: unknown) {
-      const p = query.safeParse(q);
-      if (!p.success) throw new BadRequestException('before/limit некорректны');
-      await this.channelFor(req, id);
-      const rows = await this.db
-        .select()
-        .from(chatMessages)
-        .where(
-          and(
-            eq(chatMessages.channelId, id),
-            isNull(chatMessages.parentId),
-            p.data.before === undefined ? undefined : lt(chatMessages.seq, p.data.before),
-          ),
-        )
-        .orderBy(desc(chatMessages.seq))
-        .limit(p.data.limit);
-      rows.reverse();
-      return { messages: rows.map(wire), reactions: await this.reactionsOf(rows.map((r) => r.id)) };
-    }
-
-    @Get('messages/:id/thread')
-    async thread(@Req() req: object, @Param('id') id: string) {
-      if (!z.uuid().safeParse(id).success) throw new NotFoundException('сообщение не найдено');
-      const [root] = await this.db.select().from(chatMessages).where(eq(chatMessages.id, id));
-      if (!root || root.parentId) throw new NotFoundException('сообщение не найдено');
-      await this.channelFor(req, root.channelId);
-      const replies = await this.db
-        .select()
-        .from(chatMessages)
-        .where(eq(chatMessages.parentId, id))
-        .orderBy(asc(chatMessages.createdAt));
-      return {
-        root: wire(root),
-        replies: replies.map(wire),
-        reactions: await this.reactionsOf([root.id, ...replies.map((r) => r.id)]),
-      };
-    }
+  private get db() {
+    return this.core.db;
   }
 
-  @Module({ controllers: [ChatController] })
-  class ChatModule {}
-  return ChatModule;
+  private async channelFor(req: object, channelId: string) {
+    const { userId } = this.core.auth(req);
+    if (!z.uuid().safeParse(channelId).success) throw new HttpError(404, 'not_found', 'не найдено');
+    if (!(await this.db.execute(canSee(channelId, userId))).rows.length)
+      throw new HttpError(404, 'not_found', 'канал не найден');
+  }
+
+  private async reactionsOf(ids: string[]) {
+    if (!ids.length) return [];
+    const rs = await this.db
+      .select()
+      .from(chatReactions)
+      .where(inArray(chatReactions.messageId, ids));
+    return rs.map(wire);
+  }
+
+  @Get('channels/:id/messages')
+  async history(@Req() req: object, @Param('id') id: string, @Query() q: unknown) {
+    const p = query.safeParse(q);
+    if (!p.success) throw new HttpError(400, 'invalid_request', 'before/limit некорректны');
+    await this.channelFor(req, id);
+    const rows = await this.db
+      .select()
+      .from(chatMessages)
+      .where(
+        and(
+          eq(chatMessages.channelId, id),
+          isNull(chatMessages.parentId),
+          p.data.before === undefined ? undefined : lt(chatMessages.seq, p.data.before),
+        ),
+      )
+      .orderBy(desc(chatMessages.seq))
+      .limit(p.data.limit);
+    rows.reverse();
+    return { messages: rows.map(wire), reactions: await this.reactionsOf(rows.map((r) => r.id)) };
+  }
+
+  @Get('messages/:id/thread')
+  async thread(@Req() req: object, @Param('id') id: string) {
+    if (!z.uuid().safeParse(id).success)
+      throw new HttpError(404, 'not_found', 'сообщение не найдено');
+    const [root] = await this.db.select().from(chatMessages).where(eq(chatMessages.id, id));
+    if (!root || root.parentId) throw new HttpError(404, 'not_found', 'сообщение не найдено');
+    await this.channelFor(req, root.channelId);
+    const replies = await this.db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.parentId, id))
+      .orderBy(asc(chatMessages.createdAt));
+    return {
+      root: wire(root),
+      replies: replies.map(wire),
+      reactions: await this.reactionsOf([root.id, ...replies.map((r) => r.id)]),
+    };
+  }
 }
+
+@Module({ controllers: [ChatController] })
+class ChatModule {}
 
 // ---- хук уведомлений ----
 
+// Tx kit типизирован сущностями ядра; сущности чата — по имени строкой
 interface Stx {
   get<T>(e: string, id: string): Promise<T | undefined>;
   put(e: string, row: unknown): Promise<void>;
   scan<T>(e: string, opts: { index: string; eq: unknown }): Promise<T[]>;
-}
-interface HookApi {
-  sys: Stx;
-  enqueue(queue: string, data: object): Promise<void>;
 }
 type Msg = {
   id: string;
@@ -150,9 +134,9 @@ function plain(n: unknown): string {
 async function notify(
   writes: { entity: string; op: string; before: Wire | null; after: Wire | null }[],
   ctx: { userId: string; now: string },
-  api: HookApi,
+  api: ModuleHookApi,
 ) {
-  const { sys } = api;
+  const sys = api.sys as unknown as Stx;
   for (const w of writes) {
     if (w.entity !== 'chatMessages' || w.op !== 'put' || !w.after) continue;
     const m = w.after as unknown as Msg;
@@ -223,24 +207,21 @@ async function notify(
   }
 }
 
-/** DB — Nest-токен БД ядра: installed.ts передаёт его, чтобы модуль не зависел от apps/api. */
-export function chatApi(DB: symbol): BackendModuleManifest {
-  return {
-    id: shared.id,
-    nestModule: build(DB),
-    mutators: shared.mutators,
-    entities: shared.entities,
-    afterMutation: notify as BackendModuleManifest['afterMutation'],
-    // файл во вложении сообщения видимого канала, загруженный автором этого сообщения
-    async canReadFile(q, userId, sha256) {
-      const r = await (q as Q).execute(sql`
+export const api: BackendModuleManifest = {
+  id: shared.id,
+  nestModule: ChatModule,
+  mutators: shared.mutators,
+  entities: shared.entities,
+  afterMutation: notify as BackendModuleManifest['afterMutation'],
+  // файл во вложении сообщения видимого канала, загруженный автором этого сообщения
+  async canReadFile(q, userId, sha256) {
+    const r = await (q as Q).execute(sql`
         select 1 from chat_messages m
         where m.attachments @> ${JSON.stringify([{ fileSha256: sha256 }])}::jsonb
           and exists (${canSee(sql`m.channel_id`, userId)})
           and exists (
             select 1 from file_uploads fu where fu.sha256 = ${sha256} and fu.user_id = m.author_id)
         limit 1`);
-      return r.rows.length > 0;
-    },
-  };
-}
+    return r.rows.length > 0;
+  },
+};

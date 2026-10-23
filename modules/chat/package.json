@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.2.7",
+    "@planar/server-kit": "workspace:*",
     "@planar/shared": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "zod": "^4.6.7"
