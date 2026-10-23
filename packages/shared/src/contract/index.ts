@@ -1,4 +1,4 @@
-import { httpErrorSchema } from './http.js';
+import { httpErrorSchema, pushPayloadSchema } from './http.js';
 import {
   syncBootstrapSchema,
   syncPullSchema,
@@ -24,4 +24,5 @@ export const contractSchemas = {
   'ws.server': wsServerSchema,
   'ws.client': wsClientSchema,
   'http.error': httpErrorSchema,
+  'push.payload': pushPayloadSchema,
 } as const;
