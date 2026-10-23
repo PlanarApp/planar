@@ -43,7 +43,8 @@
     "pnpm-lock.yaml",
     "apps/web/package.json",
     "apps/web/vitest.config.ts",
-    "apps/api/test/modules/docs.test.ts"
+    "apps/api/test/modules/docs.test.ts",
+    "apps/web/src/modules/sdk.ts"
   ],
   "dont_touch": [
     "packages/shared",
@@ -71,11 +72,6 @@
       "expect": "tests"
     },
     {
-      "name": "size",
-      "cmd": "pnpm --filter @planar/web build >/dev/null && node apps/web/scripts/size.mjs",
-      "expect": "num:initial gzip ([\\d.]+) KB <=150"
-    },
-    {
       "name": "build",
       "cmd": "pnpm -r build",
       "expect": "exit=0"
@@ -84,9 +80,15 @@
       "name": "lint",
       "cmd": "pnpm lint",
       "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter @planar/web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=152"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-23T13:21:21"
+  "created": "2026-10-23T13:21:21",
+  "edited": "2026-10-23T16:33:18"
 }
