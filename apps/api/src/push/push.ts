@@ -18,10 +18,11 @@ import type { FastifyReply } from 'fastify';
 import { PgBoss } from 'pg-boss';
 import webpush from 'web-push';
 import { z } from 'zod';
+import type { PushPayload } from '@planar/shared';
 import { BadRequestException } from '@nestjs/common';
 import { getAuth } from '../auth/auth.js';
 import type { Db } from '../db/index.js';
-import { notifications, pushSubscriptions, tasks } from '../db/schema.js';
+import { notifications, projects, pushSubscriptions, tasks } from '../db/schema.js';
 import { DB } from '../tokens.js';
 
 export const QUEUE = 'push.notification';
@@ -31,12 +32,6 @@ export interface PushSub {
   endpoint: string;
   p256dh: string;
   auth: string;
-}
-export interface PushPayload {
-  title: string;
-  body: string;
-  taskId: string;
-  url: string;
 }
 /** Отправка Web Push; при ответе push-сервиса бросает ошибку со statusCode. */
 export interface PushSender {
@@ -144,14 +139,17 @@ export class PushQueue implements OnApplicationShutdown {
       .where(eq(notifications.id, notificationId));
     if (!n) return;
     const [t] = await this.db
-      .select({ title: tasks.title })
+      .select({ title: tasks.title, number: tasks.number, key: projects.key })
       .from(tasks)
+      .innerJoin(projects, eq(projects.id, tasks.projectId))
       .where(eq(tasks.id, n.taskId));
+    if (!t) return; // задача удалена: открывать нечего
     const payload: PushPayload = {
       title: TITLES[n.kind] ?? 'Уведомление',
-      body: t?.title ?? '',
-      taskId: n.taskId,
-      url: `/tasks/${n.taskId}`,
+      body: t.title,
+      url: `/t/${t.key}-${t.number}`,
+      tag: n.id,
+      kind: n.kind as PushPayload['kind'],
     };
     const subs = await this.db
       .select()

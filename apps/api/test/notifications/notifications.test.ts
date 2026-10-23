@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { uuidv7 } from '@planar/shared';
+import { pushPayloadSchema, uuidv7 } from '@planar/shared';
 import * as schema from '../../src/db/schema.js';
 import { PushQueue, QUEUE, type PushSender } from '../../src/push/push.js';
 import { PullService } from '../../src/sync/pull.service.js';
@@ -220,9 +220,11 @@ describe('push', () => {
     sender.send.mockClear();
     await queue.deliver(n.id);
     expect(sender.send).toHaveBeenCalledTimes(1);
+    expect(pushPayloadSchema.safeParse(sender.send.mock.calls[0][1]).success).toBe(true);
+    expect(sender.send.mock.calls[0][1].url).toMatch(/^\/t\/[A-Z0-9]+-\d+$/);
     expect(sender.send).toHaveBeenCalledWith(
       expect.objectContaining({ endpoint: 'https://push.example/m' }),
-      expect.objectContaining({ taskId: t.id, body: 'Заголовок' }),
+      expect.objectContaining({ body: 'Заголовок', tag: n.id, kind: 'assigned' }),
     );
   });
 

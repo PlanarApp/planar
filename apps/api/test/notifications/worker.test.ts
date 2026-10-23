@@ -38,6 +38,6 @@ it('воркер pg-boss доставляет push после коммита м�
   await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1), { timeout: 15_000 });
   expect(send.mock.calls[0]).toMatchObject([
     { endpoint: 'https://push.example/w' },
-    { taskId: t.id },
+    { kind: 'assigned' },
   ]);
 });
