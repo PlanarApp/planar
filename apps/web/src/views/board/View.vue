@@ -58,9 +58,8 @@ function toggle(key: string) {
   }
 }
 
-async function move(id: string, to: string, beforeId: string | null) {
-  const from = columns.value.find((c) => c.tasks.some((x) => x.id === id))?.key;
-  const plan = from && planMove(columns.value, props.options.groupBy, id, from, to, beforeId);
+async function move(id: string, from: string, to: string, beforeId: string | null) {
+  const plan = planMove(columns.value, props.options.groupBy, id, from, to, beforeId);
   if (plan) await applyMove(plan);
 }
 

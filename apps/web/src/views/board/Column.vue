@@ -24,7 +24,7 @@ const emit = defineEmits<{
   toggle: [];
   open: [key: string];
   add: [title: string];
-  move: [id: string, to: string, beforeId: string | null];
+  move: [id: string, from: string, to: string, beforeId: string | null];
 }>();
 const { t } = useI18n();
 
@@ -56,7 +56,11 @@ const name = (id: string) => props.members.find((u) => u.id === id)?.name ?? '?'
 const label = (id: string) => props.labels.find((l) => l.id === id);
 
 let anchor: ChildNode | null = null;
-const onStart = (e: { item: HTMLElement }) => (anchor = e.item.nextSibling);
+let startBefore: string | null = null;
+const onStart = (e: { item: HTMLElement }) => {
+  anchor = e.item.nextSibling;
+  startBefore = dataId(nextCard(e.item.nextElementSibling));
+};
 const dataId = (n: Element | null) => n?.getAttribute('data-id') ?? null;
 const nextCard = (el: Element | null) => {
   while (el && !el.hasAttribute('data-id')) el = el.nextElementSibling;
@@ -68,7 +72,9 @@ function onEnd(e: { item: HTMLElement; from: HTMLElement; to: HTMLElement }) {
   const id = dataId(e.item)!;
   e.item.remove();
   e.from.insertBefore(e.item, anchor);
-  emit('move', id, e.to.dataset.col!, beforeId);
+  const from = e.from.dataset.col!;
+  if (from === e.to.dataset.col && beforeId === startBefore) return; // бросили на то же место
+  emit('move', id, from, e.to.dataset.col!, beforeId);
 }
 
 const adding = ref(false);

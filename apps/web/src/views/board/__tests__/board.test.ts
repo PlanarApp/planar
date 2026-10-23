@@ -165,6 +165,37 @@ describe('board:move', () => {
   });
 });
 
+describe('board:move многозначные', () => {
+  const multi = async (by: 'assignee' | 'label') => {
+    const a = by === 'assignee' ? ids.ann : ids.bug;
+    const b = by === 'assignee' ? ids.bob : 'l-b';
+    const c = by === 'assignee' ? 'u-c' : 'l-c';
+    const t = task(1);
+    const view = { ...t, key: 'PLN-1', assigneeIds: [] as string[], labelIds: [] as string[] };
+    view[by === 'assignee' ? 'assigneeIds' : 'labelIds'] = [a, b];
+    const base = await ctx();
+    const cols = boardColumns([view], by, {
+      ...base,
+      members: [a, b, c].map((id) => ({ id, name: id })) as never,
+      labels: [a, b, c].map((id) => ({ id, name: id, color: null })) as never,
+    });
+    return { cols, t, a, b, c, field: by === 'assignee' ? 'assign' : 'labels' } as const;
+  };
+  it('board:move перестановка во второй колонке не меняет связи', async () => {
+    const { cols, t, b, field } = await multi('assignee');
+    expect(planMove(cols, 'assignee', t.id, b, b, null)![field]).toBeUndefined();
+  });
+  it('board:move из A в C снимает A и добавляет C, B остаётся', async () => {
+    const { cols, t, a, b, c } = await multi('assignee');
+    expect(planMove(cols, 'assignee', t.id, a, c, null)!.assign).toEqual([b, c]);
+  });
+  it('board:move то же для меток', async () => {
+    const { cols, t, a, b, c } = await multi('label');
+    expect(planMove(cols, 'label', t.id, b, c, null)!.labels).toEqual([a, c]);
+    expect(planMove(cols, 'label', t.id, b, b, null)!.labels).toBeUndefined();
+  });
+});
+
 describe('board:collapse', () => {
   it('board:collapse состояние сохраняется в localStorage и восстанавливается', async () => {
     await db.table('tasks').put(task(1));
