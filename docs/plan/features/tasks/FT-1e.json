@@ -1,0 +1,85 @@
+{
+  "id": "FT-1e",
+  "module": "features",
+  "type": "dp-engineer",
+  "title": "Dexie: версия схемы 2 под fieldDefs и taskLinks",
+  "goal": "apps/web/src/sync/db.ts объявляет версию схемы 2 с таблицами fieldDefs и taskLinks; существующая реплика v1 с данными открывается в v2 без потери данных и без предупреждения Dexie SchemaDiff.",
+  "plan_ref": "5. Задачи",
+  "contracts": [
+    {
+      "name": "C-client",
+      "version": "3",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "6",
+      "ref": "docs/contracts/features.md"
+    }
+  ],
+  "copy": "~/planar-features-FT-1e",
+  "branch": "features/FT-1e",
+  "base": "feature/features",
+  "scope": [
+    "apps/web/src/sync/db.ts",
+    "apps/web/src/sync/__tests__/",
+    "build/dpcli/FT-1e.report.json"
+  ],
+  "dont_touch": [
+    "остальные файлы apps/web/src/sync/ — клиент синхронизации (C-client v3) не меняется",
+    "apps/web/src/__contract__/, apps/web/src/contract.ts",
+    "packages/, apps/api/",
+    "package.json, pnpm-lock.yaml",
+    "docs/, .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "dexie_v2",
+      "cmd": "pnpm --filter web exec vitest run src/sync -t 'dexie-v2:'",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0"
+    },
+    {
+      "name": "core_test",
+      "cmd": "pnpm test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "e2e",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-ft9 API_PORT=3300 WEB_PORT=5319 DEV_PG_PORT=55519; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5319 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts features.spec.ts ui.spec.ts; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
+      "expect": "num:(\\d+) passed >=22"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T10:51:12"
+}
