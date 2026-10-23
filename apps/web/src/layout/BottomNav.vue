@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Folder, Inbox, ListChecks, MoreHorizontal } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import { Badge } from '../ui';
+import Badge from '../ui/Badge.vue';
 import { useUnread } from '../inbox/queries';
 
 const { t } = useI18n();

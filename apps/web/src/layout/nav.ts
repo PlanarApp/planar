@@ -1,5 +1,5 @@
 import { computed, ref, type Ref } from 'vue';
-import { useSpaces } from '../tasks';
+import { useSpaces } from '../tasks/queries';
 
 export interface NavSpace {
   id: string;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
@@ -14,7 +14,11 @@ import {
   Sun,
   User,
 } from 'lucide-vue-next';
-import { Avatar, Button, Menu, useTheme, type MenuItem } from '../ui';
+// reka (Avatar/Menu) — вне начального бандла
+const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
+import Button from '../ui/Button.vue';
+import type { MenuItem } from '../ui/Menu.vue';
+import { useTheme } from '../ui/useTheme';
 import { ui } from '../command/hotkeys';
 import { setLocale } from '../i18n';
 import { useAuth } from '../auth/useAuth';
@@ -44,6 +48,7 @@ const install = async () => {
   installEvent.value = null;
 };
 
+const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
 const items = (): MenuItem[] => [
   {
     id: 'profile',
