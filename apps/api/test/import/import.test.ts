@@ -546,8 +546,8 @@ describe('wk6: импорт', () => {
       succRank(null),
       succRank('a0'),
       succRank('a5V'),
-      succRank('aZ'),
-      succRank('b0Z'),
+      succRank('az'),
+      succRank('b0z'),
     ]).toEqual(['a0', 'a1', 'a6', 'b00', 'b10']);
     const p = await project();
     const a = taskArgs(w, { projectId: p, statusId: w.statusIds[4], rank: 'a5' });
