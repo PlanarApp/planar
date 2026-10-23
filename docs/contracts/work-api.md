@@ -9,6 +9,18 @@ related: ["docs/contracts/work.md", "docs/contracts/core-api-v1.md", "docs/contr
 
 # Контракты модуля work, часть 2
 
+## C-modules v7 (поправка SDK по contract collab)
+v7 = v6 + полный перечень значений SDK `@planar/web/modules` (сверка с collab.md §X-core п. 6; при слиянии ветки нельзя терять ни одно имя). Контрактный тест — `apps/web/src/__contract__/sdk.contract.test.ts` (блок `sdk-exports` ниже).
+- Обязательные (есть всегда):
+```text sdk-exports=required
+defineWebModule mutate newId rankBetween useQuery db useTask useProjectTasks useSpaces useProject useStatuses useMembers useLabels openTask useI18n i18n useWeekStart useRouter useSearch Editor uploadFile api ApiError onMutationError FilterBuilder localToday matchFilter useSession useCycles
+```
+- Вместе с клиентом синхронизации (C-sync v2, collab): если `apps/web/src/sync` экспортирует имя — SDK обязан его реэкспортировать:
+```text sdk-exports=with-sync
+sendTyping onTyping
+```
+Сверка остального §X-core с v6: п. 1 — в C-modules только тип `members` (поведение — C-sync v2 collab), п. 2–3 — C-sync v2 и C-schema (collab), п. 4–5 — в v6, п. 6 — этот перечень.
+
 ## C-modules v6 (WK-14)
 v6 = v5 (ниже) + правки ядра от collab (docs/contracts/collab.md §X-core в feature/collab, п. 1 — только тип, п. 4–6). Владелец C-modules — work; collab присылает правки главной строкой «contract: …», work вносит их следующей версией.
 - `EntityMeta.members?: { entity: string; key: string; container: string; via: string }` — только тип и проверка формы при загрузке модулей; поведение видимости `space|members` — C-sync v2 (collab).
