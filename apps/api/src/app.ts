@@ -31,10 +31,5 @@ export async function createApp(opts: AppOptions): Promise<NestFastifyApplicatio
   );
   app.useGlobalFilters(new ErrorFilter());
   app.enableShutdownHooks();
-  const close = app.close.bind(app);
-  app.close = async () => {
-    await close();
-    await db.$client.end();
-  };
   return app;
 }

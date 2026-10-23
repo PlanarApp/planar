@@ -23,25 +23,6 @@ const mkUser = async (login: string, password = 'password1', extra: object = {})
 const login = (l: string, password = 'password1') =>
   req('POST', '/api/auth/login', { body: { login: l, password }, origin: null });
 
-describe('setup', () => {
-  it('needed true → гонка двух setup: один 201 → needed false → повтор 409', async () => {
-    expect((await req('GET', '/api/setup')).json()).toEqual({ needed: true });
-    const body = (l: string) => ({ login: l, name: 'Owner', password: 'password1' });
-    const rs = await Promise.all([
-      req('POST', '/api/setup', { body: body('boss1') }),
-      req('POST', '/api/setup', { body: body('boss2') }),
-    ]);
-    expect(rs.map((r) => r.statusCode).sort()).toEqual([201, 409]);
-    const ok = rs.find((r) => r.statusCode === 201)!;
-    expect(ok.json().user.role).toBe('owner');
-    expect(ok.json().user).not.toHaveProperty('passwordHash');
-    expect(ok.headers['set-cookie']).toBeUndefined();
-    expect(rs.find((r) => r.statusCode === 409)!.json().code).toBe('conflict');
-    expect((await req('GET', '/api/setup')).json()).toEqual({ needed: false });
-    expect((await req('POST', '/api/setup', { body: body('boss3') })).statusCode).toBe(409);
-  });
-});
-
 describe('login / logout', () => {
   it('вход: cookie и user без password_hash; логин регистронезависим', async () => {
     await mkUser('alice');

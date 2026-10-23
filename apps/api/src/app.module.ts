@@ -1,4 +1,10 @@
-import { Module, type DynamicModule, type Type } from '@nestjs/common';
+import {
+  Inject,
+  Module,
+  type DynamicModule,
+  type OnApplicationShutdown,
+  type Type,
+} from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { AUTH_OPTS, type AuthOpts } from './auth/auth.js';
 import { AuthController } from './auth/auth.controller.js';
@@ -10,7 +16,14 @@ import { HealthController } from './health.controller.js';
 import { DB } from './tokens.js';
 
 @Module({})
-export class AppModule {
+export class AppModule implements OnApplicationShutdown {
+  constructor(@Inject(DB) private readonly db: Db) {}
+
+  /** app.close() закрывает пул (и в тестах, и по SIGTERM) */
+  async onApplicationShutdown() {
+    await this.db.$client.end();
+  }
+
   static register(db: Db, auth: AuthOpts, extraControllers: Type[] = []): DynamicModule {
     return {
       module: AppModule,
