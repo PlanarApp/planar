@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import type { TestProject } from 'vitest/node';
@@ -40,6 +41,28 @@ export default async function setup(project: TestProject) {
   }
   project.provide('dbTemplate', name);
   project.provide('dbAdminUrl', ADMIN_URL);
+  // страховка на падение/SIGINT/SIGTERM/SIGKILL: отдельный процесс дожидается выхода vitest и добивает базы
+  const watcher = `
+    const pg = require('pg'); const [pid, url, name] = process.argv.slice(1);
+    const alive = () => { try { process.kill(+pid, 0); return true; } catch { return false; } };
+    (async () => {
+      while (alive()) await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 1000));
+      for (let i = 0; i < 5; i++) {
+        const c = new pg.Client({ connectionString: url });
+        try {
+          await c.connect();
+          const { rows } = await c.query('select datname from pg_database where datname = $1 or datname like $2', [name, name + '\\\\_%']);
+          for (const { datname } of rows) await c.query('drop database if exists ' + datname + ' with (force)');
+          return;
+        } catch { await new Promise((r) => setTimeout(r, 2000)); } finally { await c.end().catch(() => {}); }
+      }
+    })();`;
+  spawn(process.execPath, ['-e', watcher, String(process.pid), ADMIN_URL, name], {
+    cwd: import.meta.dirname,
+    detached: true,
+    stdio: 'ignore',
+  }).unref();
   return async () => {
     const { rows } = await admin.query<{ datname: string }>(
       `select datname from pg_database where datname like $1`,

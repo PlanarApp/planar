@@ -1,0 +1,44 @@
+{
+  "status": "partial",
+  "summary": "Причина: при SIGINT/SIGTERM/падении vitest выходит до teardown globalSetup, базы файлов и шаблона остаются. Добавлен отдельный detached-процесс (из global-setup), который ждёт выхода vitest и дропает базы прогона с force; dropDb повторяет попытки при таймауте.",
+  "commits": [
+    "04d3154 WK-13: страховочный процесс очистки, повтор drop"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "wk13",
+      "value": "2 passed",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "leak",
+      "value": "шумит 1..44",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "leak-проверка приёмки нестабильна: контейнер planar-testdb общий, параллельные прогоны соседей создают базы без соединений в момент замера"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WK-13",
+  "uncertain": [
+    {
+      "where": "apps/api/test/global-setup.ts",
+      "why": "leak в приёмке считает базы чужих прогонов (в т.ч. старый формат planar_t_ без кода фикса)",
+      "checked": "отдельно проверил свой прогон с SIGINT: все базы planar_tpl_<id>* исчезли через ~30 с, процесса-стража не осталось"
+    }
+  ],
+  "dp_feedback": "accept leak на общем контейнере зависит от соседей; нужен замер по префиксу своего прогона.",
+  "t": "2026-10-23T16:48:53",
+  "by": "executor"
+}

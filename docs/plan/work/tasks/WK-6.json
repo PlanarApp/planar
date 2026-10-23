@@ -1,0 +1,102 @@
+{
+  "id": "WK-6",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "Модуль import: CSV (ClickUp, Jira, Linear, свой) и Trello JSON",
+  "goal": "Модуль import по docs/contracts/work.md §Модуль import: предпросмотр 20 строк, сопоставление колонок с заготовками, фоновый импорт pg-boss с прогрессом, статусы/исполнители/метки/сроки/описание/подзадачи, идемпотентность по внешнему ID, отчёт о пропущенных строках; эталонные файлы в e2e/fixtures/import/ с источником формата.",
+  "plan_ref": "5. Задачи — WK-6 Импорт",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "4",
+      "ref": "docs/contracts/work.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "3",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-6",
+  "branch": "work/WK-6",
+  "base": "feature/work",
+  "scope": [
+    "modules/import",
+    "apps/api/drizzle",
+    "apps/api/test/import",
+    "apps/web/src/modules/__tests__/import",
+    "e2e/fixtures/import"
+  ],
+  "dont_touch": [
+    "apps/api/src, apps/web/src (кроме тестов модуля), packages/ — ядро: только '@planar/server-kit' и '@planar/web/modules'; нужна точка расширения — «WK-6 contract: …»",
+    "другие modules/*; зависимости не добавлять — CSV разбирать своим парсером (RFC 4180: кавычки, \"\" внутри, переводы строк в кавычках, BOM, ; или , как разделитель), multipart — как в apps/api/src/files (fastify multipart уже зарегистрирован)",
+    "docs/contracts/, apps/api/test/work-contract.test.ts — координатор",
+    "pnpm-lock.yaml, package.json, apps/*/package.json; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk6-api",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api -t wk6:",
+      "expect": "num:Tests\\s+(\\d+) passed >=14"
+    },
+    {
+      "name": "wk6-web",
+      "cmd": "pnpm --filter web exec vitest run -t wk6:",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "contract-work",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api test/work-contract.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "migrations-linear",
+      "cmd": "ls apps/api/drizzle/*.sql | sed 's#.*/##' | cut -c1-4 | sort | uniq -d | wc -l",
+      "expect": "num:^(\\d+) <=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint modules/import apps/api/test apps/web/src && pnpm exec prettier --check modules/import apps/api/test apps/web/src",
+      "expect": "exit=0"
+    },
+    {
+      "name": "fixtures",
+      "cmd": "ls e2e/fixtures/import/{clickup.csv,jira.csv,linear.csv,trello.json,README.md} | wc -l",
+      "expect": "num:^(\\d+) >=5"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T15:29:28",
+  "edited": "2026-10-23T15:29:30"
+}

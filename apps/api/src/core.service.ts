@@ -1,4 +1,4 @@
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { CORE, HttpError, type AuthCtx, type CoreServices } from '@planar/server-kit';
 import { getAuth } from './auth/auth.js';
 import type { Db } from './db/index.js';
@@ -10,13 +10,24 @@ export { CORE };
 
 /** Услуги ядра модулям (C-modules v4): провайдер `CORE`. */
 @Injectable()
-export class CoreService implements CoreServices, OnModuleInit {
+export class CoreService implements CoreServices, OnModuleInit, OnModuleDestroy {
   private sysId?: string;
   constructor(@Inject(DB) readonly db: Db) {}
 
-  /** БД недоступна — старт не падает; systemUserId подтянется при первом обращении к БД */
+  retryMs = 2000;
+  private timer?: NodeJS.Timeout;
+
+  /** БД недоступна — старт не падает; повторяем с интервалом, пока systemUserId не станет доступен */
   async onModuleInit() {
-    this.sysId = await ensureSystemUser(this.db).catch(() => undefined);
+    try {
+      this.sysId = await ensureSystemUser(this.db);
+    } catch {
+      this.timer = setTimeout(() => void this.onModuleInit(), this.retryMs).unref();
+    }
+  }
+
+  onModuleDestroy() {
+    clearTimeout(this.timer);
   }
 
   auth(req: object): AuthCtx {
