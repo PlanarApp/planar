@@ -22,6 +22,21 @@ testdb() {
   return 1
 }
 
+# VAPID-ключи для Web Push: дописывает в ./.env, если их там нет (без внешних пакетов)
+vapid() {
+  touch .env
+  grep -qE '^VAPID_PUBLIC_KEY=.+' .env && grep -qE '^VAPID_PRIVATE_KEY=.+' .env && return 0
+  # неполную пару убираем, чтобы ключи были парными
+  sed -i '/^VAPID_\(PUBLIC_KEY\|PRIVATE_KEY\|SUBJECT\)=/d' .env
+  node -e "
+    const {privateKey}=require('crypto').generateKeyPairSync('ec',{namedCurve:'prime256v1'});
+    const j=privateKey.export({format:'jwk'});
+    const b=(s)=>Buffer.from(s,'base64url');
+    const pub=Buffer.concat([Buffer.from([4]),b(j.x),b(j.y)]).toString('base64url');
+    console.log('VAPID_PUBLIC_KEY='+pub+'\nVAPID_PRIVATE_KEY='+j.d+'\nVAPID_SUBJECT=mailto:admin@localhost');
+  " >> .env
+}
+
 # api стартует после up -d: ждём ответ через прокси web
 waitapi() {
   for _ in $(seq 1 120); do
@@ -35,7 +50,8 @@ waitapi() {
 cmd="${1:-}"
 [ $# -gt 0 ] && shift
 case "$cmd" in
-  up) "${DEV[@]}" up -d --build ;;
+  vapid) vapid ;;
+  up) vapid; "${DEV[@]}" up -d --build ;;
   down) "${DEV[@]}" down ;;
   reset) "${DEV[@]}" down -v && "${DEV[@]}" up -d --build ;;
   seed) "${DEV[@]}" exec -T api pnpm --filter @planar/api seed "$@" ;;
@@ -44,5 +60,5 @@ case "$cmd" in
   measure) waitapi && E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e measure "$@" ;;
   testdb) testdb ;;
   test) testdb && pnpm test "$@" ;;
-  *) echo "usage: ./dev.sh up|down|reset|seed|logs|e2e|measure|test|testdb" >&2; exit 2 ;;
+  *) echo "usage: ./dev.sh up|down|reset|seed|logs|e2e|measure|test|testdb|vapid" >&2; exit 2 ;;
 esac
