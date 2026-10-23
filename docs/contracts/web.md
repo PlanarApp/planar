@@ -18,6 +18,8 @@ contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 3}, {"id
 
 v2 (collab, CL-1a): точка расширения `search` (`EXTENSION_KINDS` += `search`) — `docs/contracts/collab.md` §X-core п. 5; Inbox показывает уведомления без задачи по `body` и ведёт на `url`.
 
+Модули (`modules/<id>/web/`) импортируют web только как `@planar/web/<путь от src>` (`exports["./*"] = "./src/*"` в `apps/web/package.json`): `ui`, `sync`, `i18n`, `modules`, `task/editor/Editor.vue`, `tasks`; зависимость `"@planar/web": "workspace:*"`. Тесты модулей — `modules/*/web/**/*.test.ts`, их запускает проект web (`apps/web/vitest.config.ts`).
+
 ### Файлы
 | Путь | Что |
 |---|---|
