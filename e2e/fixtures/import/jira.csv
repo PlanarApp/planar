@@ -1,0 +1,9 @@
+Summary,Issue key,Issue id,Issue Type,Status,Priority,Assignee,Reporter,Created,Updated,Due date,Labels,Labels,Description,Parent id,Custom field (Start date)
+Jira issue 1,PRJ-1,10001,Task,In Progress,High,alice@example.com,alice@example.com,14/Oct/25 10:30 AM,15/Oct/25 09:00 AM,11/Nov/25 12:00 AM,backend,urgent,Jira description 1,,
+Jira issue 2,PRJ-2,10002,Task,Done,Medium,bsmith,alice@example.com,14/Oct/25 10:30 AM,15/Oct/25 09:00 AM,,,urgent,Jira description 2,,
+Jira issue 3,PRJ-3,10003,Task,To Do,Low,alice@example.com,alice@example.com,14/Oct/25 10:30 AM,15/Oct/25 09:00 AM,13/Nov/25 12:00 AM,backend,,Jira description 3,,
+Jira issue 4,PRJ-4,10004,Task,In Progress,Lowest,bsmith,alice@example.com,14/Oct/25 10:30 AM,15/Oct/25 09:00 AM,,,urgent,Jira description 4,,01/Nov/25 12:00 AM
+Jira issue 5,PRJ-5,10005,Task,Done,Highest,alice@example.com,alice@example.com,14/Oct/25 10:30 AM,15/Oct/25 09:00 AM,15/Nov/25 12:00 AM,backend,urgent,Jira description 5,,
+Jira issue 6,PRJ-6,10006,Sub-task,To Do,High,bsmith,alice@example.com,14/Oct/25 10:30 AM,15/Oct/25 09:00 AM,,,,Jira description 6,10001,
+Jira issue 7,PRJ-7,10007,Sub-task,In Progress,Medium,alice@example.com,alice@example.com,14/Oct/25 10:30 AM,15/Oct/25 09:00 AM,17/Nov/25 12:00 AM,backend,urgent,Jira description 7,10001,
+Jira issue 8,PRJ-8,10008,Sub-task,Done,Low,bsmith,alice@example.com,14/Oct/25 10:30 AM,15/Oct/25 09:00 AM,,,urgent,Jira description 8,10001,

@@ -1,0 +1,9 @@
+ID,Team,Title,Description,Status,Estimate,Priority,Project,Creator,Assignee,Labels,Cycle Number,Cycle Name,Cycle Start,Cycle End,Created At,Updated At,Started At,Triaged At,Completed At,Canceled At,Archived At,Due Date,Parent issue,Initiatives,Project Milestone ID
+ENG-1,Engineering,Linear issue 1,Linear **markdown** 1,Todo,,Urgent,,alice@example.com,alice@example.com,"Bug,Improvement",,,,,2025-10-14T10:30:00.000Z,2025-10-15T09:00:00.000Z,,,,,,2025-11-11,,,
+ENG-2,Engineering,Linear issue 2,Linear **markdown** 2,In Progress,,High,,alice@example.com,bsmith,Feature,,,,,2025-10-14T10:30:00.000Z,2025-10-15T09:00:00.000Z,,,,,,,,,
+ENG-3,Engineering,Linear issue 3,Linear **markdown** 3,Done,,Medium,,alice@example.com,alice@example.com,"Bug,Improvement",,,,,2025-10-14T10:30:00.000Z,2025-10-15T09:00:00.000Z,,,,,,2025-11-13,,,
+ENG-4,Engineering,Linear issue 4,Linear **markdown** 4,Canceled,,Low,,alice@example.com,bsmith,Feature,,,,,2025-10-14T10:30:00.000Z,2025-10-15T09:00:00.000Z,,,,,,,,,
+ENG-5,Engineering,Linear issue 5,Linear **markdown** 5,Backlog,,No priority,,alice@example.com,alice@example.com,"Bug,Improvement",,,,,2025-10-14T10:30:00.000Z,2025-10-15T09:00:00.000Z,,,,,,2025-11-15,,,
+ENG-6,Engineering,Linear issue 6,Linear **markdown** 6,Todo,,Urgent,,alice@example.com,bsmith,Feature,,,,,2025-10-14T10:30:00.000Z,2025-10-15T09:00:00.000Z,,,,,,,,,
+ENG-7,Engineering,Linear issue 7,Linear **markdown** 7,In Progress,,High,,alice@example.com,alice@example.com,"Bug,Improvement",,,,,2025-10-14T10:30:00.000Z,2025-10-15T09:00:00.000Z,,,,,,2025-11-17,,,
+ENG-8,Engineering,Linear issue 8,Linear **markdown** 8,Done,,Medium,,alice@example.com,bsmith,Feature,,,,,2025-10-14T10:30:00.000Z,2025-10-15T09:00:00.000Z,,,,,,,ENG-1,,
