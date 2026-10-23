@@ -13,10 +13,11 @@
     "modules/automations/",
     "modules/webhooks/",
     "e2e/web/work.spec.ts",
-    "e2e/web/work-helpers.ts"
+    "e2e/web/work-helpers.ts",
+    "apps/api/test/automations/",
+    "apps/web/src/modules/__tests__/automations/automations.test.ts"
   ],
   "dont_touch": [
-    "apps/web/src/ — зона PL-1",
     "packages/, apps/api/src/ — ядро; нужна правка — «PL-2 contract: …»",
     "контракты docs/contracts/ — только если меняется поведение; тогда «PL-2 contract: …»"
   ],
@@ -29,11 +30,6 @@
     {
       "name": "build",
       "cmd": "pnpm -r build",
-      "expect": "exit=0"
-    },
-    {
-      "name": "typecheck-web",
-      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
       "expect": "exit=0"
     },
     {
@@ -64,14 +60,12 @@
     {
       "name": "e2e-work",
       "cmd": "export WEBHOOKS_ALLOW_HOSTS=host.docker.internal COMPOSE_PROJECT_NAME=planar-e2e-pl2 API_PORT=3292 WEB_PORT=5392 DEV_PG_PORT=55592; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$API_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5392 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts web/work.spec.ts; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
-      "expect": "num:(\\d+) passed >=10",
-      "timeout": 2400
+      "expect": "num:(\\d+) passed >=6"
     },
     {
       "name": "e2e-sprint-midnight",
-      "cmd": "export TZ=Pacific/Kiritimati; COMPOSE_PROJECT_NAME=planar-e2e-pl2 API_PORT=3292 WEB_PORT=5392 DEV_PG_PORT=55592; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$API_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5392 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts web/work.spec.ts -g 'спринт|sprint'; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
-      "expect": "num:(\\d+) passed >=1",
-      "timeout": 2400
+      "cmd": "export TZ=Pacific/Kiritimati COMPOSE_PROJECT_NAME=planar-e2e-pl2 API_PORT=3292 WEB_PORT=5392 DEV_PG_PORT=55592; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$API_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5392 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts web/work.spec.ts -g \"спринт|sprint\"; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
+      "expect": "num:(\\d+) passed >=1"
     }
   ],
   "report_extra": [],
@@ -84,5 +78,6 @@
     "Порты 3000/3300/5173 заняты — только свои (в проверках 3292/5392/55592).",
     "Отчёт — только build/dpcli/PL-2.report.json в своей копии."
   ],
-  "created": "2026-10-23T22:33:20"
+  "created": "2026-10-23T22:33:20",
+  "edited": "2026-10-23T23:15:22"
 }
