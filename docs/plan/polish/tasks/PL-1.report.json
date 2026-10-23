@@ -1,49 +1,49 @@
 {
   "status": "partial",
-  "summary": "Модули docs,chat на критическом пути тёплого старта не стоят измеримого времени: A/B (6 пар с модулями, 5 без) даёт ≈420 мс в обоих случаях и для базы, и для прототипа отложенной регистрации модулей. Прототип откатан; код не менялся. Превышение 400 — ядро (zod/shared в чанке входа ≈84 мс, чтение связей), вне скоупа.",
+  "summary": "Попытка 2: прототип (ленивые zod-схемы packages/shared + публикация проекции без связей, связи после первого кадра) измерен A/B на одном стеке: выигрыша нет (≈403 vs 402 мс; с задержкой связей хуже на ~50). Код откатан, прототип — build/artifacts/PL-1/attempt2-prototype.patch. CPU-профиль: до первой строки главный поток занят нативной десериализацией IndexedDB и монтированием Vue (zod ≈5 мс, код приложения ≈40 мс).",
   "commits": [],
   "checks": [
     {
-      "name": "perf warm (repeat.sh, 10 прогонов, прототип, load avg≈19)",
-      "value": "437,1 (418,9…464,1)",
+      "name": "shared vitest с ленивыми схемами",
+      "value": "194 passed",
+      "pass": true
+    },
+    {
+      "name": "A/B warm без rAF-задержки (6 пар)",
+      "value": "база 403 / прототип 402",
       "pass": false
     },
     {
-      "name": "A/B warm с модулями, база vs прототип",
-      "value": "420 vs 422",
+      "name": "A/B warm с rAF-задержкой связей (6 пар)",
+      "value": "база 406 / прототип 473",
       "pass": false
     },
     {
-      "name": "A/B warm без модулей, база vs прототип",
-      "value": "422 vs 411",
-      "pass": false
-    },
-    {
-      "name": "switch/realtime при полном замере",
-      "value": "110,1 / 656 (нагрузка машины 19; ранее 91 / 430)",
+      "name": "perf warm ≤400",
+      "value": "не достигнут; база на этой машине ≈ 405–420 при load 8…17",
       "pass": false
     }
   ],
   "not_done": [
-    "warm ≤ 400 не достигнут; причина не в модулях, выигрыш требует правки core (packages/shared, схема Dexie) — это шлюз по плану (попытка 1)."
+    "warm ≤ 400 с запасом не достигнут: лень zod/связей даёт ≤7 мс при шуме ±30 мс.",
+    "shared-манифесты модулей (modules/*/shared, ≈45% стоимости zod) не отложены: вне скоупа и нужны синхронно тестам moduleMutators/moduleIndexes."
   ],
   "questions": [
-    "Разрешить контракт/правку core: лениво строить zod-схемы shared и схему Dexie до первой строки, не читать taskAssignees/taskLabels до первого кадра? Или пересмотреть бюджет/условия замера (машина занята чужими процессами, load 6…20 из 24)?"
+    "Нужны рычаги другого класса: (а) читать проект окном — составной индекс [projectId+rank] в Dexie и постраничная проекция; (б) монтировать оболочку (reka Select/Menu, секции sidebar) после первой строки. Оба меняют схему Dexie/структуру экранов. Делать (попытка 3) или принять warm≈405–420 и пересмотреть бюджет/условия замера?"
   ],
   "images": [],
-  "how_to_check": "build/artifacts/PL-1/breakdown.md; .dpcli/dpcli accept PL-1 --dry (perf FAIL ожидаем)",
+  "how_to_check": "build/artifacts/PL-1/breakdown.md (раздел «Попытка 2»); git apply build/artifacts/PL-1/attempt2-prototype.patch для воспроизведения",
   "uncertain": [
     {
       "where": "build/artifacts/PL-1/breakdown.md",
-      "why": "замеры сняты при загрузке машины 6…20, шум ±30 мс сравним с искомым эффектом",
-      "checked": "A/B двух сборок на одном стеке попарно вперемешку; профиль CPU warm; таймлайн транзакций до firstRow"
+      "why": "машина занята чужими процессами (load 8…17), шум пар ±30 мс; различия <10 мс не выявляются",
+      "checked": "попарное A/B двух сборок на одном стеке, порядок чередуется; CPU-профиль окна 140…440 мс"
     }
   ],
-  "dp_feedback": "stack.sh жёстко ставит COMPOSE_PROJECT_NAME/порты wb15 и игнорирует export из accept; замер на общей машине без контроля нагрузки ненадёжен; dpcli lock cpu без -- возвращает управление сразу как job.",
+  "dp_feedback": "stack.sh игнорирует COMPOSE_PROJECT_NAME из приёмки; нет готового A/B-инструмента двух сборок на одном стеке (написал свой в build/pl1-ab.sh); dpcli lock cpu без -- возвращает управление сразу.",
   "extra": {
-    "breakdown": "build/artifacts/PL-1/breakdown.md",
-    "summary_prototype": "build/artifacts/PL-1/summary-gate-load19.txt"
+    "patch": "build/artifacts/PL-1/attempt2-prototype.patch"
   },
-  "t": "2026-10-23T23:06:22",
+  "t": "2026-10-23T23:29:30",
   "by": "executor"
 }
