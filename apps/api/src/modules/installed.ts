@@ -10,7 +10,38 @@ export interface InstalledModule {
 }
 
 /** Явный реестр: добавление модуля = строка здесь + зависимость в package.json (C-modules). */
-export const installed: InstalledModule[] = [{ api: hello, tables: helloTables }];
+const ID_RE = /^[a-z][a-z0-9-]{1,30}$/;
+/** Префиксы маршрутов ядра: модуль с таким id выключал бы их через guard. */
+const RESERVED = [
+  'auth',
+  'setup',
+  'users',
+  'sync',
+  'files',
+  'push',
+  'modules',
+  'tasks',
+  'health',
+  'v1',
+  'mcp',
+];
+
+/** Проверка при загрузке: id по C-modules, не маршрут ядра, у каждой сущности есть таблица. */
+export function validateInstalled(list: InstalledModule[]): InstalledModule[] {
+  for (const m of list) {
+    const id = m.api.id;
+    if (!ID_RE.test(id)) throw new Error(`module "${id}": id не соответствует ${ID_RE}`);
+    if (RESERVED.includes(id)) throw new Error(`module "${id}": id совпадает с маршрутом ядра`);
+    for (const e of Object.keys(m.api.entities))
+      if (!m.tables[e])
+        throw new Error(`module "${id}": нет таблицы для сущности "${e}" в api/schema.ts`);
+  }
+  return list;
+}
+
+export const installed: InstalledModule[] = validateInstalled([
+  { api: hello, tables: helloTables },
+]);
 
 export const moduleTables = (): Map<string, PgTable> =>
   new Map(

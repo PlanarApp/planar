@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
+import { installed, validateInstalled } from '../../src/modules/installed.js';
 import { createApp } from '../../src/app.js';
 import { ORIGIN, loginCookie } from '../auth.js';
 import { testDbUrl } from '../db.js';
@@ -136,5 +137,19 @@ describe('модули', () => {
     expect((await get('/api/modules')).json().modules[0].enabled).toBe(false);
     await ia.ok('settings.set', { id: 'enabled_modules', value: 'hello' });
     expect((await get('/api/hello/ping')).statusCode).toBe(404);
+  });
+});
+
+describe('реестр: валидация', () => {
+  const m = installed[0]!;
+  const withId = (id: string) => [{ ...m, api: { ...m.api, id } }];
+  it.each(['Bad', 'a', '1x', 'x_y'])('отвергает id %s', (id) => {
+    expect(() => validateInstalled(withId(id))).toThrow(/id/);
+  });
+  it.each(['auth', 'sync', 'files', 'modules'])('отвергает зарезервированный %s', (id) => {
+    expect(() => validateInstalled(withId(id))).toThrow(/маршрут/);
+  });
+  it('отвергает сущность без таблицы', () => {
+    expect(() => validateInstalled([{ ...m, tables: {} }])).toThrow(/таблиц/);
   });
 });
