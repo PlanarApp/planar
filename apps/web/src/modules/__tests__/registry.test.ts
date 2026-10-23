@@ -1,10 +1,15 @@
 import 'fake-indexeddb/auto';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { registerModules, setEnabledModules, setModuleLoaders, useExtensions } from '../registry';
 
 const cmd = (id: string) => ({ id, label: 'x', run: () => {} });
 
 describe('settings:modules registry', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    setModuleLoaders({});
+  });
+
   it('выключенный модуль не попадает в useExtensions, повторная регистрация не дублирует', async () => {
     registerModules([{ id: 'mod-a', commands: [cmd('c')] }]);
     registerModules([{ id: 'mod-a', commands: [cmd('c')] }]);

@@ -85,5 +85,6 @@ export function useSearch() {
   });
   const ready = computed(() => data.value !== undefined);
   watch(data, (d) => d && index.update(d.tasks, d.keys), { immediate: true, flush: 'sync' });
-  return { ready, search: index.search };
+  // чтение data.value делает результаты реактивными: палитра пересчитывается при изменении реплики
+  return { ready, search: (q: string) => (void data.value, index.search(q)) };
 }

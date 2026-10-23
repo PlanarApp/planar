@@ -106,8 +106,15 @@ function moveFocus(d: 1 | -1) {
   virt.value.scrollToIndex(i);
 }
 function onKey(e: KeyboardEvent) {
-  // клавиши списка — только когда фокус на самом списке, а не в поле ввода или пикере
-  if (e.target !== e.currentTarget || e.ctrlKey || e.metaKey || e.altKey) return;
+  // клавиши списка — когда фокус на самом списке или на кнопке/чекбоксе строки (после пикера
+  // фокус возвращается на его кнопку); в полях ввода — нет
+  const t = e.target as HTMLElement;
+  const onRowControl =
+    t !== e.currentTarget &&
+    !!t.closest('[role=row]') &&
+    (t.tagName === 'BUTTON' || (t as HTMLInputElement).type === 'checkbox') &&
+    ['j', 'k', 'x'].includes(e.key);
+  if ((t !== e.currentTarget && !onRowControl) || e.ctrlKey || e.metaKey || e.altKey) return;
   const task = focusedTask.value;
   const handlers: Record<string, () => void> = {
     j: () => moveFocus(1),
@@ -171,6 +178,15 @@ async function removeSelected() {
   await each((x) => deleteTask(x.id));
   sel.clear();
 }
+
+// первая задача в пустом проекте: поле ввода остаётся для следующей
+watch(empty, async (e, was) => {
+  if (was && !e && creating.value === '') {
+    creating.value = groups.value[0]?.key ?? null;
+    await nextTick();
+    scroller.value?.querySelector<HTMLInputElement>('[data-create] input')?.focus();
+  }
+});
 
 watch(
   () => props.projectId,

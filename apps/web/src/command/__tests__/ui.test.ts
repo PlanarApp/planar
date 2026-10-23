@@ -99,7 +99,36 @@ describe('cmd:palette', () => {
   });
 });
 
+describe('cmd:live', () => {
+  it('polish: cmd:live результаты «Задачи» обновляются при изменении реплики', async () => {
+    key('k', { ctrlKey: true });
+    await ready('Мои задачи');
+    await typeIn('найди');
+    await ready('PLN-7');
+    await db.table('tasks').put(task(8, { title: 'Найди ещё' }));
+    await ready('PLN-8');
+    await db
+      .table('tasks')
+      .filter((t) => t.number === 7)
+      .delete();
+    await until(() => !body().includes('PLN-7') || undefined);
+  });
+});
+
 describe('cmd:hotkeys', () => {
+  it('polish: cmd:hotkeys работают по e.code на русской раскладке', async () => {
+    key('Б', { code: 'Slash', shiftKey: true, key: '?' });
+    await ready('Горячие клавиши');
+    ui.cheat = false;
+    key('п', { code: 'KeyG' });
+    key('ш', { code: 'KeyI' });
+    await flushPromises();
+    expect(
+      (router.current as { currentRoute: { value: { path: string } } }).currentRoute.value.path,
+    ).toBe('/inbox');
+    key('л', { code: 'KeyK', metaKey: true });
+    await ready('Мои задачи');
+  });
   it('не срабатывает в поле ввода', async () => {
     const input = document.createElement('input');
     document.body.append(input);

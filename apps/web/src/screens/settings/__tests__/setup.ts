@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { flushPromises, mount } from '@vue/test-utils';
-import { beforeAll, beforeEach } from 'vitest';
+import { afterEach, beforeAll, beforeEach, expect, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import { domainMutators } from '@planar/shared';
 import en from '../../../i18n/en';
@@ -20,6 +20,7 @@ export const i18n = createI18n({
 /** Реплика из tasks/__tests__/data; ann — admin пространства. */
 export function setup() {
   beforeAll(() => registerMutators(domainMutators));
+  afterEach(() => vi.restoreAllMocks());
   beforeEach(async () => {
     await stopSync();
     await reset();
@@ -36,8 +37,15 @@ export function setup() {
 export async function show(comp: object, props: Record<string, unknown> = { spaceId: ids.space }) {
   const w = mount(comp, { props, global: { plugins: [i18n] }, attachTo: document.body });
   await flushPromises();
-  await new Promise((r) => setTimeout(r, 120));
-  await flushPromises();
+  // экран подгружает данные из реплики асинхронно: ждём, пока разметка перестанет меняться
+  let prev = '';
+  await vi.waitFor(async () => {
+    await flushPromises();
+    const cur = w.html();
+    const stable = cur !== '' && cur === prev;
+    prev = cur;
+    expect(stable).toBe(true);
+  });
   return w;
 }
 export const wait = async () => {
