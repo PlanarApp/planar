@@ -1,7 +1,9 @@
 import type { MutatorDef } from '../contract/index.js';
 import { checklistMutators } from './checklist.js';
 import { commentMutators } from './comments.js';
+import { fieldMutators } from './fields.js';
 import { labelMutators } from './labels.js';
+import { linkMutators } from './links.js';
 import { memberMutators } from './members.js';
 import { miscMutators } from './misc.js';
 import { projectMutators } from './projects.js';
@@ -18,6 +20,8 @@ export const domainMutators = [
   ...statusMutators,
   ...labelMutators,
   ...taskMutators,
+  ...fieldMutators,
+  ...linkMutators,
   ...checklistMutators,
   ...commentMutators,
   ...miscMutators,

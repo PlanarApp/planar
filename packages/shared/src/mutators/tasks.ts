@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { defineMutator, type Row, type Tx } from '../contract/index.js';
+import { checkFields } from './fields.js';
 import {
   bad,
   changes,
@@ -41,6 +42,7 @@ async function deleteTask(tx: Tx, id: string) {
     await delWhere(tx, 'commentReactions', 'commentId', c.id);
     await tx.del('comments', c.id);
   }
+  for (const i of ['taskId', 'targetId']) await delWhere(tx, 'taskLinks', i, id);
   await tx.del('tasks', id);
 }
 
@@ -125,8 +127,12 @@ export const taskMutators = [
       if (a.projectId) {
         const p = await need(tx, 'projects', a.projectId);
         if (p.spaceId !== t.spaceId) throw bad('projectId другого пространства');
-        if (a.projectId !== t.projectId) patch.number = null;
+        if (a.projectId !== t.projectId) {
+          patch.number = null;
+          if (!a.fields) patch.fields = {};
+        }
       }
+      if (a.fields) await checkFields(tx, a.projectId ?? t.projectId, a.fields);
       if (a.parentId) await checkParent(tx, t.id, t.spaceId, a.parentId);
       await tx.patch('tasks', a.id, patch);
     },

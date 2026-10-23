@@ -222,6 +222,55 @@ export const taskLabels = pgTable(
   (t) => [uniqueIndex().on(t.taskId, t.labelId), index().on(t.labelId)],
 );
 
+export const fieldDefs = pgTable(
+  'field_defs',
+  {
+    id: id(),
+    spaceId: spaceId(),
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id),
+    name: text().notNull(),
+    type: text().notNull(),
+    options: obj().notNull(),
+    rank: rank().notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index().on(t.spaceId),
+    index().on(t.projectId),
+    check(
+      'field_defs_type_check',
+      inList(t.type, ['text', 'number', 'date', 'select', 'user', 'url', 'money']),
+    ),
+  ],
+);
+
+export const taskLinks = pgTable(
+  'task_links',
+  {
+    id: id(),
+    spaceId: spaceId(),
+    taskId: taskRef(),
+    targetId: taskRef(),
+    kind: text().notNull(),
+    createdBy: userRef().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    // одна строка на пару в любом направлении
+    uniqueIndex('task_links_pair_uq').on(
+      sql`least(${t.taskId}, ${t.targetId})`,
+      sql`greatest(${t.taskId}, ${t.targetId})`,
+    ),
+    index().on(t.taskId),
+    index().on(t.targetId),
+    check('task_links_kind_check', inList(t.kind, ['blocks', 'relates', 'duplicates'])),
+    check('task_links_self_check', sql`${t.taskId} <> ${t.targetId}`),
+  ],
+);
+
 export const checklistItems = pgTable(
   'checklist_items',
   {

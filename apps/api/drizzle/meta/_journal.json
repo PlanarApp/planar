@@ -43,6 +43,13 @@
       "when": 1792734953119,
       "tag": "0005_ambiguous_shen",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792746194430,
+      "tag": "0006_lowly_whizzer",
+      "breakpoints": true
     }
   ]
 }
