@@ -24,7 +24,7 @@ const SPACE = uuidv7();
 const NOW = '2026-10-23T10:00:00.000Z';
 vi.mock('@planar/web/modules', async (orig) => {
   const { ref } = await import('vue');
-  return { ...(await orig<object>()), useSession: () => ref({ id: globalThis.__ME }) };
+  return { ...(await orig<object>()), useSession: () => ref({ id: (globalThis as Record<string, unknown>).__ME }) };
 });
 (globalThis as unknown as { __ME: string }).__ME = ME;
 const router = { push: vi.fn(), replace: vi.fn() };

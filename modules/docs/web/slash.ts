@@ -5,10 +5,10 @@ import { label, type TextKey } from './text';
 export interface SlashItem {
   id: string;
   title: TextKey;
-  run(editor: Editor, api: { pickImage(): void }): void;
+  run(editor: Pick<Editor, 'chain'>, api: { pickImage(): void }): void;
 }
 
-const c = (e: Editor) => e.chain().focus();
+const c = (e: Pick<Editor, 'chain'>) => e.chain().focus();
 
 export const slashItems: SlashItem[] = [
   { id: 'h1', title: 'h1', run: (e) => void c(e).toggleHeading({ level: 1 }).run() },
