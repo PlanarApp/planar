@@ -164,6 +164,12 @@ describe('task:feed', () => {
 });
 
 describe('task:attachments', () => {
+  // jsdom не считает координаты — вызываем обработчик drop редактора напрямую
+  const dropOnEditor = (...files: File[]) => {
+    const view = w.findAllComponents(Editor)[0].vm.editor!.view;
+    const ev = { dataTransfer: { files }, preventDefault() {} } as unknown as DragEvent;
+    view.someProp('handleDrop', (f) => f(view, ev, null as never, false));
+  };
   const up = { sha256: 'cd'.repeat(32), size: 3, mime: 'image/png', width: 2, height: 2 };
   const upload = (m: string, p: string) =>
     m === 'POST' && p === '/files' ? ([201, up] as [number, unknown]) : undefined;
@@ -189,13 +195,35 @@ describe('task:attachments', () => {
     await until(() => w.find(`a[href="/files/${up.sha256}?name=a%20b.png"]`).exists());
     expect(w.find(`img[src="/files/${up.sha256}/preview?w=256"]`).exists()).toBe(true);
   });
-  it('drop из редактора описания не создаёт вложение', async () => {
+  it('drop картинки в редактор: узел image, один uploadFile, без вложения', async () => {
+    const f = stubFetch(upload);
     w = await open();
-    await w.find('.ProseMirror').trigger('drop', {
-      dataTransfer: { files: [new File(['a'], 'c.txt', { type: 'text/plain' })] },
-    });
-    await flushPromises();
+    dropOnEditor(new File(['a'], 'c.png', { type: 'image/png' }));
+    await eventually(async () =>
+      JSON.stringify(w.findAllComponents(Editor)[0].vm.editor!.getJSON()).includes(up.sha256),
+    );
+    expect(f.mock.calls.filter((c) => c[0] === '/files')).toHaveLength(1);
     expect(await queued('attachment.create')).toHaveLength(0);
+  });
+  it('drop не-картинки в редактор: вложение задачи', async () => {
+    stubFetch(upload);
+    w = await open();
+    dropOnEditor(new File(['a'], 'c.txt', { type: 'text/plain' }));
+    await eventually(async () => (await db.table('attachments').toArray()).length === 1);
+    expect((await db.table('attachments').toArray())[0]).toMatchObject({ name: 'c.txt' });
+  });
+  it('drop картинки и файла вместе: и image, и вложение', async () => {
+    stubFetch(upload);
+    w = await open();
+    dropOnEditor(
+      new File(['a'], 'c.png', { type: 'image/png' }),
+      new File(['a'], 'c.txt', { type: 'text/plain' }),
+    );
+    await eventually(async () => (await db.table('attachments').toArray()).length === 1);
+    await eventually(async () =>
+      JSON.stringify(w.findAllComponents(Editor)[0].vm.editor!.getJSON()).includes(up.sha256),
+    );
+    expect(await db.table('attachments').count()).toBe(1);
   });
   it('перетаскивание файла на панель; 413 — сообщение', async () => {
     stubFetch(upload);

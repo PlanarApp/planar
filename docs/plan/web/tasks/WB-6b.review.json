@@ -1,0 +1,34 @@
+{
+  "verdict": "accept",
+  "summary": "Реакции по C-schema v4 / reaction.toggle {id, commentId, emoji} без смены контрактов; uploadFile единый в src/api/files.ts (ApiError из http.ts), дубль в ProfileScreen убран; drop в описание: картинки -> image, прочее -> emit attach -> Attachments.addFiles, двойного вложения нет (onDrop панели пропускает .ProseMirror). Скоуп в границах, пороги не ослаблены.",
+  "issues": [
+    {
+      "file": "apps/web/src/task/editor/Editor.vue",
+      "line": 123,
+      "severity": "minor",
+      "what": "В редакторе комментария (image=false) handleDrop возвращает false, а onDrop панели пропускает .ProseMirror, поэтому файл, брошенный в комментарий, молча теряется. Задача касалась только описания, поведение осталось прежним.",
+      "fix": "При желании отдельной задачей: в комментарии тоже отдавать файлы через attach или показывать подсказку."
+    },
+    {
+      "file": "apps/web/src/task/__tests__/social.test.ts",
+      "line": 168,
+      "severity": "minor",
+      "what": "Тесты drop в редактор вызывают handleDrop через view.someProp и не проходят путь DOM-события (в jsdom нет координат). Защиту от двойного вложения через onDrop панели они не проверяют; я проверил её по коду.",
+      "fix": "Не требуется; e2e при появлении."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "reactions",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "attachments",
+      "value": "5",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T02:35:59",
+  "by": "reviewer"
+}

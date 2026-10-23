@@ -1,0 +1,78 @@
+{
+  "status": "done",
+  "summary": "Начальный gzip 186.1 -> 136.8 КБ. Доработка: alias vue-i18n -> lite.ts добавлен в vitest.config.ts (тесты идут на lite), тест-сторож src/i18n/__tests__/syntax.test.ts (ловит '|', '@:', {n, plural}, %{} в ru/en), i18n-lite = 4 теста.",
+  "commits": [
+    "61a50d5 push-sw: формат C-http v5 и безопасный переход",
+    "b97660c web: WB-13 vitest на lite-i18n, тест-сторож"
+  ],
+  "checks": [
+    {
+      "name": "push-format",
+      "value": "4 passed",
+      "pass": true
+    },
+    {
+      "name": "accept --dry",
+      "value": "7/7",
+      "pass": true
+    },
+    {
+      "name": "i18n-lite",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "pwa",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "102",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "136.8",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "PASS в последнем accept; ранее флак settings.test",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-9a",
+  "uncertain": [
+    {
+      "where": "apps/web/src/screens/settings/__tests__/settings.test.ts:37",
+      "why": "test 'удаление пространства с проектами' флакает в полном прогоне (фикс. wait 30 мс), падает и без lite; в изолированном прогоне 17/17 x6. В рабочей копии появились чужие незакоммиченные правки (src/command, inbox, views, screens/settings/__tests__/setup.ts — там уже waitFor вместо задержки), они ломали typecheck/scope, я их отложил в git stash (stash@{0}) и не коммитил",
+      "checked": "accept --dry без чужих правок: все PASS кроме этого теста"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T02:32:29",
+  "by": "executor"
+}

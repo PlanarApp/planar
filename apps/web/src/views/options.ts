@@ -33,7 +33,10 @@ export const optionsFrom = (config: Record<string, unknown> | undefined): ViewOp
     ...DEFAULT_OPTIONS,
     ...Object.fromEntries(Object.entries(config ?? {}).filter(([k]) => k in DEFAULT_OPTIONS)),
   };
-  return { ...o, fields: [...o.fields] };
+  const fields = Array.isArray(o.fields)
+    ? o.fields.filter((f): f is TaskField => TASK_FIELDS.includes(f as TaskField))
+    : DEFAULT_OPTIONS.fields;
+  return { ...o, fields: [...fields] };
 };
 
 const load = (key: string): ViewOptions => {

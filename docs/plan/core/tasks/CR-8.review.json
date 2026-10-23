@@ -1,0 +1,41 @@
+{
+  "verdict": "accept",
+  "summary": "C-modules v1 выполнен: реестр installed.ts, guard 404 module_disabled, unknown_mutator, фильтр bootstrap/pull, _reset при смене enabled_modules (уже был в CR-4, сохранён), GET /api/modules. Контракты shared не тронуты, скоуп в границах. modules_tests и migrations_in_sync перезапущены — PASS.",
+  "issues": [
+    {
+      "file": "apps/api/src/modules/installed.ts",
+      "line": 16,
+      "severity": "minor",
+      "what": "moduleTables() молча кладёт undefined, если в api/schema.ts нет экспорта с именем сущности; tableOf(...)! упадёт позже и непонятно где",
+      "fix": "при загрузке проверять, что для каждой сущности модуля есть таблица (throw с именем модуля и сущности)"
+    },
+    {
+      "file": "apps/api/src/modules/module.guard.ts",
+      "line": 23,
+      "severity": "minor",
+      "what": "маршрут модуля определяется префиксом /api/<id>/; id модуля не проверяется ни по регэкспу C-modules, ни на конфликт с префиксами ядра (auth, sync, files, modules) — модуль с таким id выключал бы маршруты ядра",
+      "fix": "при загрузке реестра проверять id по ^[a-z][a-z0-9-]{1,30}$ и на отсутствие пересечения с префиксами ядра"
+    },
+    {
+      "file": "apps/api/Dockerfile",
+      "line": 6,
+      "severity": "minor",
+      "what": "в отчёте помечено «не проверял»; по коду COPY . . и --filter @planar/api... соберут @planar/module-hello (modules/* в pnpm-workspace), сборка образа не прогонялась",
+      "fix": "прогнать docker build на шлюзе модуля"
+    }
+  ],
+  "rerun": [
+    {
+      "name": "modules_tests",
+      "value": "12",
+      "pass": true
+    },
+    {
+      "name": "migrations_in_sync",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T02:16:59",
+  "by": "reviewer"
+}

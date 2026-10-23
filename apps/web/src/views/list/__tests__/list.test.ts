@@ -295,6 +295,34 @@ describe('list:keys', () => {
   });
 });
 
+describe('list:polish', () => {
+  it('polish: list пустой проект — после первой задачи поле остаётся для следующей', async () => {
+    await show({}, '[data-create], button');
+    await w.get('button').trigger('click');
+    const input = w.get('[data-create] input');
+    await input.setValue('first');
+    // справочники подгружаются отдельно: повторяем Enter, пока задача не создана
+    await poll(async () => {
+      await input.trigger('keydown', { key: 'Enter' });
+      return (await db.table('tasks').count()) > 0;
+    });
+    await until(() => rows().length === 1);
+    expect(document.activeElement).toBe(w.get('[role=grid] [data-create] input').element);
+  });
+  it('polish: list после клика по чекбоксу и кнопке строки j/k/x работают', async () => {
+    await db.table('tasks').bulkPut([1, 2].map((n) => task(n, { rank: rank(n) })));
+    await show();
+    const grid = w.get('[role=grid]');
+    const cb = row('PLN-1').get('input[type=checkbox]');
+    await cb.setValue(true);
+    expect(document.activeElement).toBe(grid.element);
+    useSelection().clear();
+    await row('PLN-1').get('button').trigger('keydown', { key: 'j' });
+    await row('PLN-1').get('button').trigger('keydown', { key: 'x' });
+    expect(useSelection().selected.value.size).toBe(1);
+  });
+});
+
 describe('list:virtual', () => {
   it('list:virtual 10 000 задач — в DOM меньше 200 строк', async () => {
     await db

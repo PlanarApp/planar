@@ -8,7 +8,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Mention from '@tiptap/extension-mention';
 import Image from '@tiptap/extension-image';
 import { ApiError } from '../../api/http';
-import { uploadFile } from '../files';
+import { uploadFile } from '../../api/files';
 
 type Item = { id: string; label: string };
 const props = withDefaults(
@@ -26,6 +26,7 @@ const emit = defineEmits<{
   'update:modelValue': [v: JSONContent | null];
   blur: [];
   submit: [];
+  attach: [files: File[]]; // не-картинки, брошенные в редактор
 }>();
 const { t } = useI18n();
 const error = ref('');
@@ -120,9 +121,12 @@ const editor = useEditor({
       return files.length > 0;
     },
     handleDrop: (_v, e) => {
-      const files = imagesOf(e.dataTransfer?.files);
-      if (files.length) void insertFiles(files);
-      return files.length > 0;
+      const all = props.image ? [...(e.dataTransfer?.files ?? [])] : [];
+      const imgs = all.filter((f) => f.type.startsWith('image/'));
+      const rest = all.filter((f) => !f.type.startsWith('image/'));
+      if (imgs.length) void insertFiles(imgs);
+      if (rest.length) emit('attach', rest);
+      return all.length > 0;
     },
   },
   onUpdate: ({ editor: ed }) => emit('update:modelValue', ed.isEmpty ? null : ed.getJSON()),

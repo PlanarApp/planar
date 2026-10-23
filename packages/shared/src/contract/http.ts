@@ -24,3 +24,14 @@ export const httpErrorSchema = z.object({
 });
 
 export type HttpError = z.infer<typeof httpErrorSchema>;
+
+/** Тело Web Push (C-http «Web Push»): отправляет CR-7, разбирает service worker web. */
+export const pushPayloadSchema = z.object({
+  title: z.string().min(1),
+  body: z.string(),
+  url: z.string().startsWith('/'),
+  tag: z.uuid(),
+  kind: z.enum(['assigned', 'mentioned', 'commented', 'status_changed']),
+});
+
+export type PushPayload = z.infer<typeof pushPayloadSchema>;

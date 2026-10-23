@@ -1,4 +1,4 @@
-import { api } from '../api/http';
+import { api } from './http';
 
 export interface Uploaded {
   sha256: string;

@@ -282,6 +282,7 @@ export default {
     description: 'Description',
     descriptionPlaceholder: "Description… (Markdown, {'@'} to mention)",
     mention: 'Mention',
+    addReaction: 'Add reaction',
     tooLarge: 'File is larger than allowed',
     uploadFailed: 'Could not upload the file',
     subtasks: 'Subtasks',

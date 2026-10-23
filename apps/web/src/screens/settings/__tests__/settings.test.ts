@@ -39,8 +39,7 @@ describe('settings:spaces', () => {
     await w.find('[data-testid=space-row] button').trigger('click');
     await flushPromises();
     (document.body.querySelector('[data-testid=confirm]') as HTMLElement).click();
-    await wait();
-    expect(w.find('[role=alert]').text()).toContain('есть проекты');
+    await vi.waitFor(() => expect(w.find('[role=alert]').text()).toContain('есть проекты'));
     expect(await db.table('spaces').get(ids.space)).toBeTruthy();
   });
 });

@@ -35,10 +35,10 @@
     "apps/api/test/auth.ts",
     "apps/api/test/auth-guard.test.ts",
     "apps/api/package.json",
-    "pnpm-lock.yaml"
+    "pnpm-lock.yaml",
+    "apps/api/src/sync/server-tx.ts"
   ],
   "dont_touch": [
-    "apps/api/src/sync/ — CR-4; нужна правка — «CR-3b contract: …»",
     "apps/api/src/db/",
     "apps/api/test/contract.schema.test.ts",
     "packages/",
@@ -79,5 +79,6 @@
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-22T23:54:30"
+  "created": "2026-10-22T23:54:30",
+  "edited": "2026-10-23T02:11:20"
 }

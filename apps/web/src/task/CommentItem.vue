@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
 import { Avatar, Button } from '../ui';
+import Reactions from './Reactions.vue';
 import Editor from './editor/Editor.vue';
 
 const props = defineProps<{
@@ -12,8 +13,11 @@ const props = defineProps<{
   avatar?: string | null;
   mine: boolean;
   members: { id: string; name: string }[];
+  reactions: Row<'commentReactions'>[];
+  userId?: string;
+  names: Record<string, string>;
 }>();
-const emit = defineEmits<{ save: [body: JSONContent]; remove: [] }>();
+const emit = defineEmits<{ save: [body: JSONContent]; remove: []; react: [emoji: string] }>();
 const { t } = useI18n();
 const editing = ref(false);
 const draft = shallowRef<JSONContent | null>(null); // shallow: в IndexedDB нельзя класть reactive-прокси
@@ -53,6 +57,12 @@ function save() {
           :members="members"
           :label="t('task.comment')"
           :editable="false"
+        />
+        <Reactions
+          :rows="reactions"
+          :user-id="userId"
+          :names="names"
+          @toggle="(emoji) => emit('react', emoji)"
         />
         <div v-if="mine" class="mt-1 flex gap-2">
           <Button size="sm" variant="ghost" data-testid="comment-edit" @click="start">
