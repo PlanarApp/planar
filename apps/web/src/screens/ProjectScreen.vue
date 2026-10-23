@@ -24,6 +24,7 @@ import {
   useViewOptions,
 } from '../views';
 import type { Filter } from '../views';
+import { loadLayout } from '../views/table/columns';
 import OptionsBar from '../views/saved/OptionsBar.vue';
 import SaveViewDialog from '../views/saved/SaveViewDialog.vue';
 import SavedTabs from '../views/saved/SavedTabs.vue';
@@ -57,7 +58,10 @@ async function onSave(name: string, personal: boolean) {
     name,
     layout: active.value?.key ?? 'list',
     filter: draftFilter.value,
-    config: options.value,
+    config:
+      active.value?.key === 'table'
+        ? { ...options.value, columns: loadLayout(projectId.value).columns }
+        : options.value,
   });
   void router.push(`/p/${projectId.value}/v/${id}`);
 }

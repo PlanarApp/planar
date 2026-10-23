@@ -72,13 +72,17 @@ contracts: [{"id": "F-fields", "version": 1}, {"id": "F-links", "version": 1}, {
 | `unlinkTasks` | `(id: string) => Promise<void>` | `link.delete` |
 | `BlockedIcon` | SFC без пропсов | иконка `lucide` `Ban` (или `OctagonX`) размера иконок строки, с `aria-label` из i18n `links.blocked` |
 
-## F-filter v1 (расширение C-views `FilterRule`)
+## F-filter v2 (расширение C-views `FilterRule`)
+
+v2 (work, WK-0): `matchFilter` в `@planar/shared`, правило `cycle`, `ctx.cycles` — docs/contracts/work.md §F-filter v2.
 - `FilterRule.field` дополнительно — `` `field:${fieldId}` ``; `value` дополнительно — `number`.
 - Операторы по типу поля: `text`, `url` — `contains`, `isEmpty`, `isNotEmpty`; `number`, `money` — `gte`, `lte` (`value: number`; у `money` — в минимальных единицах), `isEmpty`, `isNotEmpty`; `date` — `before`, `after` (`YYYY-MM-DD`, `today±N` как у `dueDate`), `isEmpty`, `isNotEmpty`; `select` — `in`, `notIn` (id вариантов), `isEmpty`, `isNotEmpty`; `user` — `in`, `notIn` (uuid или `'me'`), `isEmpty`, `isNotEmpty`.
 - `isEmpty` — ключа нет в `fields`. Правило по полю без определения (удалено) — пропускается (считается выполненным). Операторы `gte`/`lte` допустимы только для `field:` правил.
 - `matchFilter` (`apps/web/src/views/filter.ts`) получает в `ctx` необязательное `fieldDefs?: Row<'fieldDefs'>[]`; без него все `field:` правила пропускаются. Сигнатура остальных аргументов не меняется.
 
-## F-views v1
+## F-views v2
+
+v2 (work, WK-7): раскладка Таблицы в `savedViews.config.columns`, первый день недели Календаря — work.md §F-views v2.
 - Встроенные виды `table` (FT-2) и `calendar` (FT-3) — `apps/web/src/views/table/View.vue`, `apps/web/src/views/calendar/View.vue`, пропсы `ViewProps` (C-views); показывают только задачи, где `matchFilter` = true. Вкладки находит существующий glob; иконки и порядок — `BUILTIN`/`ORDER` в `apps/web/src/views/index.ts`: `table: Table2`, `calendar: CalendarDays`, `ORDER = ['list', 'board', 'table', 'calendar']`; подписи — i18n `views.table` («Таблица»/«Table»), `views.calendar` («Календарь»/«Calendar»). Их правит FT-3 за оба вида.
 - `savedViews.layout` — `table` или `calendar`, как любой встроенный вид.
 - Таблица: колонки — системные `title`, `key`, `status`, `assignee`, `priority`, `dueDate`, `startDate`, `labels`, `createdAt`, `updatedAt` и `field:<fieldId>`; раскладка `{columns: {id: string; width: number}[]}` (порядок = порядок массива, ширина в px 60–800) — `localStorage['planar.table.<projectId>']` (try/catch, неизвестные id пропускаются). Правка — только мутаторами: системные поля через `updateTask`/`setAssignees`/`setLabels` (C-tasks), пользовательские — `setTaskField`.

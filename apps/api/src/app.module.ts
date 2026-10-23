@@ -1,5 +1,6 @@
 import {
   Inject,
+  Logger,
   Module,
   type DynamicModule,
   type OnApplicationShutdown,
@@ -15,7 +16,9 @@ import { AuthGuard } from './auth/auth.guard.js';
 import type { Db } from './db/index.js';
 import { FILES_OPTS, FilesController, type FilesOpts } from './files/files.controller.js';
 import { HealthController } from './health.controller.js';
-import { PUSH_OPTS, type PushOpts } from './push/push.js';
+import { JobsService, PUSH_OPTS } from './jobs/jobs.js';
+import type { PushOpts } from './push/push.js';
+import { ensureSystemUser } from './users/system.js';
 import { ModuleGuard, ModulesController } from './modules/module.guard.js';
 import { installed } from './modules/installed.js';
 import { McpController } from './mcp/mcp.controller.js';
@@ -26,6 +29,11 @@ import { DB } from './tokens.js';
 @Module({})
 export class AppModule implements OnApplicationShutdown {
   constructor(@Inject(DB) private readonly db: Db) {}
+
+  async onModuleInit() {
+    // БД недоступна — приложение всё равно стартует (health вернёт 503), пользователь появится при следующем старте
+    await ensureSystemUser(this.db).catch((e) => new Logger('app').error(e));
+  }
 
   /** app.close() закрывает пул (и в тестах, и по SIGTERM) */
   async onApplicationShutdown() {
@@ -41,6 +49,8 @@ export class AppModule implements OnApplicationShutdown {
   ): DynamicModule {
     return {
       module: AppModule,
+      global: true, // DB и JobsService доступны модулям без импорта
+      exports: [DB, JobsService],
       imports: installed.map((m) => m.api.nestModule as Type),
       controllers: [
         HealthController,
@@ -62,6 +72,7 @@ export class AppModule implements OnApplicationShutdown {
         { provide: PUSH_OPTS, useValue: push },
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_GUARD, useClass: ModuleGuard },
+        JobsService,
         ...syncProviders,
         ...restProviders,
       ],

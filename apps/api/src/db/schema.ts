@@ -155,6 +155,7 @@ export const tasks = pgTable(
     createdBy: userRef().notNull(),
     completedAt: ts(),
     fields: obj().notNull().default({}),
+    cycleId: uuid(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -163,6 +164,7 @@ export const tasks = pgTable(
     index().on(t.spaceId),
     index().on(t.parentId),
     index().on(t.statusId),
+    index().on(t.cycleId),
   ],
 );
 

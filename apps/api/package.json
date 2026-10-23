@@ -37,5 +37,12 @@
     "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.2",
     "drizzle-kit": "^0.31.11"
+  },
+  "exports": {
+    "./modules": {
+      "source": "./src/modules/hooks.ts",
+      "types": "./dist/modules/hooks.d.ts",
+      "default": "./dist/modules/hooks.js"
+    }
   }
 }

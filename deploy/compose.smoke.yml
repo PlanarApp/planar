@@ -1,0 +1,5 @@
+# Только для ./dev.sh prod-smoke: порт БД наружу (случайный, localhost) для сида с хоста.
+services:
+  postgres:
+    ports:
+      - '127.0.0.1::5432'

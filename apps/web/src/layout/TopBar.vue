@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue';
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
@@ -23,6 +23,7 @@ import { ui } from '../command/hotkeys';
 import { setLocale } from '../i18n';
 import { useAuth } from '../auth/useAuth';
 import { useUnread } from '../inbox/queries';
+import { useExtensions } from '../modules/registry';
 
 const { t, locale } = useI18n();
 const route = useRoute();
@@ -46,6 +47,15 @@ onBeforeUnmount(() => window.removeEventListener('beforeinstallprompt', onPrompt
 const install = async () => {
   await installEvent.value?.prompt();
   installEvent.value = null;
+};
+
+const topbarItems = useExtensions('topbar');
+// defineAsyncComponent на каждый элемент один раз
+const topbarComps = new Map<string, Component>();
+const topbarComp = (key: string, load: () => Promise<{ default: Component }>) => {
+  let c = topbarComps.get(key);
+  if (!c) topbarComps.set(key, (c = defineAsyncComponent(load)));
+  return c;
 };
 
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
@@ -108,6 +118,12 @@ const items = (): MenuItem[] => [
       {{ route.name ? t(`screens.${String(route.name)}`) : t('app.name') }}
     </h1>
     <span v-if="notice" role="alert" class="text-sm text-fg-muted">{{ notice }}</span>
+    <component
+      :is="topbarComp(i.key, i.component)"
+      v-for="i in topbarItems"
+      :key="i.key"
+      data-testid="topbar-item"
+    />
     <button
       type="button"
       :aria-label="t('cmd.open')"
