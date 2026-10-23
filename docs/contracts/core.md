@@ -5,7 +5,7 @@ module: core
 updated: 2026-10-22
 summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 related: ["docs/plan/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-schema", "version": 3}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 3}]
+contracts: [{"id": "C-schema", "version": 4}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 4}]
 ---
 
 # Контракты модуля core
@@ -21,7 +21,7 @@ contracts: [{"id": "C-schema", "version": 3}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v3
+## C-schema v4
 
 ### Общие правила
 - БД — snake_case, TS и провод — camelCase (Drizzle `casing: 'snake_case'`). Имя поля на проводе = имя свойства Drizzle; колонка = snake_case от него (`spaceId` → `space_id`).
@@ -292,7 +292,7 @@ scope: user · write: self · bootstrap: yes · indexes: taskId
 | `id` | uuid | |
 | `userId` | uuid | получатель |
 | `spaceId` | uuid | для группировки; на видимость не влияет |
-| `kind` | enum(assigned,mentioned,commented) | |
+| `kind` | enum(assigned,mentioned,commented,status_changed) | |
 | `taskId` | uuid | без FK |
 | `commentId` | uuid? | без FK |
 | `actorId` | uuid | |
@@ -300,6 +300,14 @@ scope: user · write: self · bootstrap: yes · indexes: taskId
 | `createdAt` | ts | |
 
 Создаёт сервер (CR-7) через серверный `Tx` от имени системы; пользователь мутаторами только читает (`readAt`) и удаляет свои. В bootstrap — последние 200 по `createdAt`.
+
+Триггеры (серверный хук в транзакции мутации, после `run`; автор действия себя не уведомляет; получатель должен быть участником пространства):
+- `assigned` — новому исполнителю (`taskAssignees` put);
+- `mentioned` — каждому из `comments.mentions` (создание и правка — только новым упомянутым);
+- `commented` — наблюдателям задачи при новом комментарии, кроме упомянутых в нём;
+- `status_changed` — наблюдателям при смене `tasks.statusId`.
+
+Автоподписка (тот же хук, `taskWatchers` от имени системы): автор задачи, назначенный исполнитель, автор комментария. Push — задача pg-boss на каждое уведомление после коммита.
 
 #### savedViews
 scope: space|user · write: member|self · bootstrap: yes · indexes: spaceId
@@ -476,52 +484,8 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 - **`MemoryTx`** (CR-5, `packages/shared/src/testing/memory-tx.ts`, экспорт `@planar/shared/testing`) — `new MemoryTx()`, та же семантика без прав, `changes`, `activity`; `get`/`scan` возвращают копии. Нужен web для тестов и как образец для Dexie.
 - Набор тестов семантики `Tx` — `txContractSuite(name, setup)` из `packages/shared/test/tx-contract.ts`: обе реализации обязаны его проходить (MemoryTx — `packages/shared/test/memory-tx.test.ts`, CR-5; серверный — CR-4).
 
-### Мутаторы домена v2 (CR-5; web вызывает по имени)
-Все id и `rank` — в args. `?` — необязательный аргумент (`.optional()`; `null` допустим там, где поле строки nullable). Экспорт — `domainMutators: MutatorDef[]` из `@planar/shared`; `args` — `z.object`. Сверка с таблицей — `packages/shared/test/check-mutators.ts`.
-
-| имя | args | правила |
-|---|---|---|
-| `space.create` | `id, name, rank, memberId, statusIds: uuid[5]` | создаёт пространство, участника (ctx.userId, admin) и 5 статусов по категориям: Backlog, Todo, In Progress, Done, Cancelled |
-| `space.update` | `id, name?, description?, color?, icon?, rank?` | |
-| `space.delete` | `id` | есть проекты → `conflict`; удаляет статусы, метки, виды, участников |
-| `member.add` | `id, spaceId, userId, role` | |
-| `member.update` | `id, role` | последний admin → `conflict` |
-| `member.remove` | `id` | последний admin → `conflict` |
-| `project.create` | `id, spaceId, name, key, rank, description?, color?, icon?, leadId?` | |
-| `project.update` | `id, name?, key?, description?, color?, icon?, leadId?, rank?, archivedAt?` | |
-| `project.delete` | `id` | есть задачи → `conflict` |
-| `status.create` | `id, spaceId, name, category, color, rank` | |
-| `status.update` | `id, name?, category?, color?, rank?` | |
-| `status.delete` | `id, replaceWith` | задачи переходят в `replaceWith` (того же пространства); последний статус → `conflict` |
-| `label.create` | `id, spaceId, name, color` | |
-| `label.update` | `id, name?, color?` | |
-| `label.delete` | `id` | удаляет `taskLabels` метки |
-| `task.create` | `id, projectId, statusId, title, rank, parentId?, description?, priority?, dueDate?, startDate?, assignees?: {id, userId}[], labels?: {id, labelId}[]` | `spaceId` — из проекта; `number = null`; `priority` по умолчанию 0; `fields = {}` |
-| `task.update` | `id, title?, description?, statusId?, priority?, rank?, dueDate?, startDate?, projectId?, parentId?, fields?` | `completedAt` по категории статуса; `projectId` другого пространства → `invalid_args`; `parentId` — не сама задача и не её потомок |
-| `task.delete` | `id` | рекурсивно подзадачи; затем исполнители, наблюдатели, метки, чек-лист, вложения, реакции, комментарии |
-| `task.assign` | `id, taskId, userId` | уже назначен — ничего |
-| `task.unassign` | `taskId, userId` | |
-| `task.watch` | `id, taskId` | userId = ctx.userId |
-| `task.unwatch` | `taskId` | только себя |
-| `task.addLabel` | `id, taskId, labelId` | метка того же пространства |
-| `task.removeLabel` | `taskId, labelId` | |
-| `checklist.add` | `id, taskId, text, rank` | |
-| `checklist.update` | `id, text?, done?, rank?` | |
-| `checklist.delete` | `id` | |
-| `comment.create` | `id, taskId, body` | `authorId = ctx.userId`, `mentions` из `body` |
-| `comment.update` | `id, body` | только автор; `editedAt = ctx.now` |
-| `comment.delete` | `id` | только автор; удаляет вложения и реакции комментария |
-| `reaction.toggle` | `id, commentId, emoji` | есть реакция (commentId, ctx.userId, emoji) — удалить, иначе создать с `id`; `spaceId` — из комментария |
-| `attachment.create` | `id, taskId, commentId?, fileSha256, name, mime, size, width?, height?` | `uploadedBy = ctx.userId` |
-| `attachment.delete` | `id` | |
-| `notification.read` | `ids: uuid[]` | `readAt = ctx.now`, только свои |
-| `notification.delete` | `ids: uuid[]` | только свои |
-| `view.create` | `id, spaceId, personal: bool, name, layout, filter, config, rank` | `personal` → `userId = ctx.userId` |
-| `view.update` | `id, name?, layout?, filter?, config?, rank?` | |
-| `view.delete` | `id` | |
-| `settings.set` | `id, value` | |
-
-Вспомогательное (shared): `extractMentions(doc): string[]`, `textToDoc(text, users): doc` (абзацы, `@login` → mention; для REST и MCP).
+### Мутаторы домена v2
+Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
 ## C-modules v1
 
@@ -534,7 +498,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v3
+## C-http v4
 
 ### Пути и окружение
 - `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11). В dev Vite проксирует их на api, в prod — Caddy.
@@ -582,6 +546,10 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 | `GET /api/users` | → `{users: user[]}` (instance_admin) | CR-3 |
 | `POST /api/users` | `{login, name, password, role, email?}` → `201 {user}` (instance_admin) | CR-3 |
 | `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool, avatarFile?: string\|null}` → `{user}`; `avatarFile` — sha256 из `POST /files`, загруженного этим пользователем (`file_uploads`), иначе `400 invalid_request`; себя — только name, email, password, avatarFile | CR-3 |
+| `GET /api/push/vapid` | → `{publicKey}` (VAPID, base64url) | CR-7 |
+| `POST /api/push/subscribe` | `{endpoint, keys: {p256dh, auth}}` → `201`; повтор того же endpoint — обновление, `200` | CR-7 |
+| `DELETE /api/push/subscribe` | `{endpoint}` → `204` (только свои) | CR-7 |
+| `GET /api/modules` | → `{modules: [{id, enabled}]}` — все загруженные модули; включение — мутатор `settings.set` `enabled_modules` | CR-8 |
 | `GET /api/tasks/:id/activity` | → `{rows: activity[]}` по `createdAt`, права — видимость задачи | CR-4 |
 | `POST /files` | multipart, одно поле `file` → `201 {sha256, size, mime, width, height}`; > `MAX_UPLOAD_MB` → `413` | CR-6 |
 | `GET /files/:sha256` | → поток; `?name=` для `Content-Disposition`; доступ: файл приложен в пространстве пользователя, или это аватар пользователя, или есть `file_uploads(sha256, userId)`; иначе `404` | CR-6 |

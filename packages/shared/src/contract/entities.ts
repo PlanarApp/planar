@@ -176,7 +176,7 @@ export const entitySchemas = {
     id: uuid,
     userId: uuid,
     spaceId: uuid,
-    kind: z.enum(['assigned', 'mentioned', 'commented']),
+    kind: z.enum(['assigned', 'mentioned', 'commented', 'status_changed']),
     taskId: uuid,
     commentId: uuid.nullable(),
     actorId: uuid,

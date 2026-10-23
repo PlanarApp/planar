@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-10-22"
+updated: "2026-10-23"
 summary: "Точка входа: документы docs/ по типам, строка на документ."
 related: []
 generated: true
@@ -22,6 +22,10 @@ generated: true
 ## Контракты стыков (contract)
 
 - [docs/contracts/core.md](contracts/core.md) — Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
+
+## Справка (reference)
+
+- [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Мутаторы домена C-mutators v2 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
 
 ## Реестры (registry)
 
