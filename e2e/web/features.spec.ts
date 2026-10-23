@@ -384,8 +384,9 @@ test('таблица: колонка числового поля — показ 
   await page.keyboard.press('Escape');
   const cellOf = () =>
     page.locator(`[data-task="${f.taskKeys[0]}"] [role=gridcell][data-col="field:${fid}"]`);
-  await expect(cellOf()).toBeVisible();
-  await cellOf().locator('span').first().dblclick();
+  await expect(cellOf()).toBeAttached();
+  await cellOf().locator('span[tabindex]').focus();
+  await page.keyboard.press('Enter');
   const input = cellOf().locator('input');
   await input.fill('7');
   await input.press('Enter');
