@@ -23,7 +23,7 @@ contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"
 
 ## C-schema v8
 
-v8 (collab, CL-1a): `notifications` для чата (`spaceId?`, `taskId?`, `url`, `body`, kind `chat_*`); scope `space|members` («Видимость и права»).
+v8 (CL-1a): `notifications` для чата; scope `space|members`.
 
 v7 (WK-0): `tasks.cycleId` (work.md).
 v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
@@ -390,7 +390,7 @@ scope: global · write: instance_admin · bootstrap: yes · indexes: —
 
 ## C-sync v2
 
-v2 (collab, CL-1a): видимость `space|members` — строка `changes` на каждого участника; WS `typing`. Подробно — `docs/contracts/collab.md` §X-core п. 1–2 (часть этого контракта).
+v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core п. 1–2.
 
 Транспорт — JSON поверх HTTP, авторизация — сессия (C-http) или Bearer. Ошибки уровня запроса — формат C-http (`401 unauthenticated`, `400 invalid_request`, `413 payload_too_large`, `500 internal`).
 
@@ -530,7 +530,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 
 ## C-modules v4
 
-v4 (collab, CL-1a): `BackendModuleManifest.canReadFile?`, `EntityMeta.members?`, web-точка `search` — `docs/contracts/collab.md` §X-core п. 1, 4, 5. v3 — `docs/contracts/work.md` §C-modules v3.
+v4 (CL-1a): `canReadFile?`, `EntityMeta.members?`, web `search` — collab.md §X-core п. 1, 4, 5; v3 — work.md.
 
 v3 (WK-0): хуки, задачи, nav/topbar — work.md §C-modules v3.
 
@@ -547,7 +547,7 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 
 ## C-http v10
 
-v10 (collab, CL-1a): `GET /files/:sha256` — ещё и по `canReadFile` модулей; push для уведомлений без задачи — `url` и `body` из уведомления (`docs/contracts/collab.md` §X-core п. 3–4).
+v10 (CL-1a): `GET /files` и push без задачи — collab.md §X-core п. 3–4.
 
 v9 (WK-0): `cycleId` в REST v1; пути WK-5 — work.md.
 v8 (FT): поля в REST v1 и MCP (core-api-v1.md).
@@ -610,24 +610,5 @@ v8 (FT): поля в REST v1 и MCP (core-api-v1.md).
 `user` в ответах — строка `users` (C-schema), без `password_hash`. Пароль — от 8 символов, argon2id.
 
 ### Web Push
-Тело push-сообщения (CR-7 → service worker web) — JSON: `title` (по kind, напр. «Вас назначили»), `body` (заголовок задачи), `url` — путь в приложении `/t/<KEY>-<number>` (начинается с `/`, но не с `//` и не с `/\`), `tag` — id уведомления (SW заменяет показ с тем же tag), `kind` — как `notifications.kind`. Данных других пространств в теле нет.
+Формат тела push — `docs/contracts/core-api-v1.md` §Web Push (часть C-http).
 
-```json example=push.payload
-{"title": "Вас назначили", "body": "Починить вход", "url": "/t/PLN-12", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
-```
-
-```json example=push.payload
-{"title": "Личное сообщение", "body": "Анна: созвонимся в 15:00?", "url": "/m/chat/c/0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a91/0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a92", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a93", "kind": "chat_dm"}
-```
-
-```json bad=push.payload
-{"title": "Вас назначили", "body": "x", "url": "https://evil.example/t/1", "tag": "n1", "kind": "assigned"}
-```
-
-```json bad=push.payload
-{"title": "Вас назначили", "body": "x", "url": "//evil.example/t/1", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
-```
-
-```json bad=push.payload
-{"title": "Вас назначили", "body": "x", "url": "/\\evil.example/t/1", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
-```
