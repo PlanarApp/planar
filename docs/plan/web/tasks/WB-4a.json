@@ -1,0 +1,96 @@
+{
+  "id": "WB-4a",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Экран проекта: каркас видов, опции, выделение, открытие задачи",
+  "goal": "ProjectScreen и TaskScreen по C-views v1: шапка проекта, вкладки видов из import.meta.glob и модулей, панель опций (группировка, сортировка, подзадачи), useViewOptions, useSelection, openTask/closeTask и место для TaskPanel — чтобы WB-4, WB-5, WB-6 шли параллельно.",
+  "plan_ref": "WB-4 Вид «Список»",
+  "contracts": [
+    {
+      "name": "C-views",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-tasks",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-4a",
+  "branch": "web/WB-4a",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/views/index.ts",
+    "apps/web/src/views/options.ts",
+    "apps/web/src/views/selection.ts",
+    "apps/web/src/views/open.ts",
+    "apps/web/src/views/__tests__/",
+    "apps/web/src/screens/ProjectScreen.vue",
+    "apps/web/src/screens/TaskScreen.vue",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "apps/web/src/__contract__/views.contract.test.ts"
+  ],
+  "dont_touch": [
+    "контрактные тесты в apps/web/src/__contract__ не править (views.contract.test.ts уже в ветке)",
+    "apps/web/src/views/list/, apps/web/src/views/board/, apps/web/src/task/ — WB-4, WB-5, WB-6; файлов там не создавать",
+    "src/tasks/, src/sync/, src/ui/ — контракты C-tasks, C-client, C-ui как есть",
+    "в package.json и pnpm-lock.yaml — ничего",
+    "packages/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "project-screen",
+      "cmd": "pnpm --filter web exec vitest run src -t views:project",
+      "expect": "num:Tests\\s+(\\d+) passed >=4"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__",
+      "expect": "num:Tests\\s+(\\d+) passed >=98"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T00:18:09",
+  "edited": "2026-10-23T00:18:32"
+}
