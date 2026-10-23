@@ -15,7 +15,7 @@ export interface Undo {
   row: Record<string, unknown> | null;
 }
 export interface MetaRow {
-  key: 'clientId' | 'cursor' | 'lastMutationId';
+  key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId';
   value: string | number;
 }
 

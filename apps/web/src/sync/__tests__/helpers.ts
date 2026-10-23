@@ -6,6 +6,7 @@ import { FakeServer, FakeWebSocket } from './fake-server';
 
 export const NOW = '2026-10-22T10:00:00.000Z';
 export const SPACE = uuidv7();
+export const USER = uuidv7(); // один пользователь на все запуски: смена userId чистит реплику
 
 export const testMutators: MutatorDef[] = [
   {
@@ -56,7 +57,7 @@ export function setup(server = new FakeServer(testMutators), dbName = 'db-' + uu
   };
   const start = (c: ReturnType<typeof mk>, ws = false) =>
     c.startSync({
-      userId: uuidv7(),
+      userId: USER,
       baseUrl: 'http://test',
       fetch: server.fetch as typeof fetch,
       WebSocket: ws ? (FakeWebSocket as unknown as typeof WebSocket) : undefined,

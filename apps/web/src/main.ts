@@ -1,7 +1,13 @@
-import { createApp } from 'vue';
+import { createApp, h } from 'vue';
 import App from './App.vue';
 import { i18n } from './i18n';
 import { router } from './router';
+import { initSession } from './session';
+import LogoutDialog from './sync/LogoutDialog.vue';
 import './styles.css';
 
-createApp(App).use(router).use(i18n).mount('#app');
+initSession(router);
+createApp({ render: () => [h(App), h(LogoutDialog)] })
+  .use(router)
+  .use(i18n)
+  .mount('#app');

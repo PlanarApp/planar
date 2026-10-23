@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import type { Row } from '@planar/shared';
 import { api, ApiError } from '../api/http';
+import { clearLocal, syncState } from '../sync';
 
 export type User = Row<'users'>;
 
@@ -43,8 +44,34 @@ async function login(login: string, password: string): Promise<void> {
   store(user.value);
 }
 
+// подтверждение выхода при неотправленных изменениях (диалог — sync/LogoutDialog.vue)
+const promptOpen = ref(false);
+let promptResolve: ((ok: boolean) => void) | null = null;
+const logoutPrompt = {
+  open: promptOpen,
+  answer(ok: boolean) {
+    promptOpen.value = false;
+    promptResolve?.(ok);
+    promptResolve = null;
+  },
+};
+const confirmLoss = () =>
+  new Promise<boolean>((resolve) => {
+    promptResolve?.(false);
+    promptResolve = resolve;
+    promptOpen.value = true;
+  });
+
 async function logout(): Promise<void> {
+  if (syncState.value.pending > 0 && !(await confirmLoss())) return;
   await api('POST', '/api/auth/logout');
+  user.value = null;
+  store(null);
+  await clearLocal();
+}
+
+/** сессия истекла (401): локально выходим, реплика и очередь остаются */
+function expire(): void {
   user.value = null;
   store(null);
 }
@@ -66,5 +93,5 @@ async function setupNeeded(): Promise<boolean> {
 const isAdmin = computed(() => user.value?.role === 'owner' || user.value?.role === 'admin');
 
 export function useAuth() {
-  return { user, ready, isAdmin, refresh, login, logout, setup, setupNeeded };
+  return { user, ready, isAdmin, refresh, login, logout, logoutPrompt, expire, setup, setupNeeded };
 }

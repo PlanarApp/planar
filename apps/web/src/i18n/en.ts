@@ -67,4 +67,23 @@ export default {
     unblock: 'Unblock',
     blocked: 'Blocked',
   },
+  tasks: {
+    priority: { 0: 'No priority', 1: 'Urgent', 2: 'High', 3: 'Medium', 4: 'Low' },
+    priorityTitle: 'Priority',
+    status: 'Status',
+    assignee: 'Assignee',
+    labels: 'Labels',
+    dueDate: 'Due date',
+    noDate: 'No due date',
+    noAssignee: 'No assignee',
+    noLabel: 'No label',
+    search: 'Search',
+    noResults: 'Nothing found',
+    clear: 'Clear',
+  },
+  logoutPending: {
+    title: 'Sign out?',
+    text: 'You have unsent changes, they will be lost',
+    confirm: 'Sign out and discard',
+  },
 };
