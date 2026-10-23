@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useBreakpoint } from '../ui';
+import { useBreakpoint } from '../ui/useBreakpoint';
 import BottomNav from './BottomNav.vue';
 import Sidebar from './Sidebar.vue';
 import TopBar from './TopBar.vue';

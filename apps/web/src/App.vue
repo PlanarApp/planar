@@ -6,7 +6,8 @@ import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { TooltipProvider } from 'reka-ui';
 import CommandHost from './command/CommandHost.vue';
 import AppShell from './layout/AppShell.vue';
-import { Button, useTheme } from './ui';
+import Button from './ui/Button.vue';
+import { useTheme } from './ui/useTheme';
 
 useTheme();
 const route = useRoute();

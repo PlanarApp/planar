@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { VitePWA } from 'vite-plugin-pwa';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
 const target = process.env.API_PROXY_TARGET ?? 'http://localhost:3000';
@@ -36,7 +37,11 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: { conditions: ['source'] },
+  resolve: {
+    conditions: ['source'],
+    // vue-i18n весит ~50 КБ gzip в начальном бандле (WB-13); тесты берут настоящий vue-i18n.
+    alias: { 'vue-i18n': fileURLToPath(new URL('./src/i18n/lite.ts', import.meta.url)) },
+  },
   server: {
     port: 5173,
     proxy: {
