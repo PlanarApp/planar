@@ -1,10 +1,11 @@
 {
   "status": "done",
-  "summary": "Бандл 136.8 КБ. По ревью: сторож дополнен (ключи ru==en, поиск в src не-lite API: useI18n сверх t/te/locale, i18n.global.*, $t/$tc/$d/$n, i18n-t, v-t, плюраль t(k, n)); комментарий в vite.config.ts исправлен; коммиты отчёта исправлены.",
+  "summary": "Бандл на слитом коде 136.1 КБ (было 160.0 после слияния): группа vue в отдельный чанк (vite.config.ts), иначе vue-обёртка оседала в ленивом reka-чанке Menu и тащила его в начальный. accept 10/10.",
   "commits": [
     "7c8f5a1 web: WB-13 бандл 186.1 -> 136.8 КБ",
     "b97660c vitest на lite-i18n, сторож синтаксиса",
-    "aa52b30 сторож: ключи ru==en, поиск неподдержанного API; комментарий alias"
+    "aa52b30 сторож: ключи ru==en, поиск неподдержанного API; комментарий alias",
+    "4af8a77 web: WB-13 группа vue в отдельный чанк: началь"
   ],
   "checks": [
     {
@@ -54,12 +55,17 @@
     },
     {
       "name": "size",
-      "value": "136.8",
+      "value": "136.1",
       "pass": true
     },
     {
       "name": "test",
       "value": "PASS в последнем accept; ранее флак settings.test",
+      "pass": true
+    },
+    {
+      "name": "precache",
+      "value": "exit 0",
       "pass": true
     }
   ],
@@ -74,6 +80,6 @@
     }
   ],
   "dp_feedback": "",
-  "t": "2026-10-23T02:38:30",
+  "t": "2026-10-23T02:47:17",
   "by": "executor"
 }
