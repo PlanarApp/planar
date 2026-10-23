@@ -231,3 +231,4 @@
 {"t": "2026-10-23T20:42:34", "by": "executor", "task": "WK-16", "ev": "reported", "commits": ["7e65fad"], "note": "done: A/B 5x5 чередуя на одном хосте: ни один из cold/warm/mutate/switch/realtime не ухудшился за шумом (p>=0.12, n=5). Медиа…", "dp_feedback": "job wait/Monitor дают много служебных уведомлений при ожидании; пусто по существу"}
 {"t": "2026-10-23T20:43:10", "by": "coordinator", "task": "WK-16", "ev": "checked", "note": "2/2 table=ok:11; doc=ok:5"}
 {"t": "2026-10-23T20:43:10", "by": "coordinator", "task": "WK-16", "ev": "accepted", "note": "по отчёту: ухудшения за шумом нет (n=5); switch +8% не доказано"}
+{"t": "2026-10-23T20:43:11", "by": "coordinator", "task": "WK-16", "ev": "merged"}
