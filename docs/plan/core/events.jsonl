@@ -143,3 +143,5 @@
 {"t": "2026-10-23T00:51:58", "by": "coordinator", "task": "CR-5b", "ev": "checked", "note": "8/8 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; shared_tests=ok:146; mutators_contract=ok:mutators-ok 39; schema=ok:27; migrations_in_sync=ok:exit 0; test=ok:exit 0"}
 {"t": "2026-10-23T00:52:15", "by": "coordinator", "task": "CR-5b", "ev": "accepted", "note": "по отчёту"}
 {"t": "2026-10-23T00:52:15", "by": "coordinator", "task": "CR-6", "ev": "accepted", "note": "по ревью; minor (MAX_UPLOAD_MB пустой → 0, catch превью → 404) — в доработки"}
+{"t": "2026-10-23T00:53:17", "by": "coordinator", "task": "CR-5b", "ev": "accepted", "commits": ["3c0423a"], "note": "8/8 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; shared_tests=ok:146; mutators_contract=ok:mutators-ok 39; schema=ok:27; migrations_in_sync=ok:exit 0; test=ok:exit 0"}
+{"t": "2026-10-23T00:53:17", "by": "coordinator", "task": "CR-5b", "ev": "merged"}
