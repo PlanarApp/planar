@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "customConditions": ["source"],
+    "types": ["node"]
+  },
+  "include": ["shared", "api"]
+}
