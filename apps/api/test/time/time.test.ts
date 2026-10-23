@@ -3,7 +3,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { timeEntries, timeEstimates } from '@planar/module-time/api/schema';
 import * as schema from '../../src/db/schema.js';
-import { newDb, TestClient, services, taskArgs, world, type World } from '../sync/helpers.js';
+import {
+  mkUser,
+  newDb,
+  TestClient,
+  services,
+  taskArgs,
+  world,
+  type World,
+} from '../sync/helpers.js';
 
 const db = newDb();
 let w: World;
@@ -57,15 +65,39 @@ describe('wk1: time', () => {
     await w.member.ok('time.stop', { id: b.id });
   });
 
-  it('wk1: два параллельных start одного пользователя — один идущий, второй conflict', async () => {
-    const other = new TestClient(services(db), w.member.userId);
-    const [a, b] = await Promise.all([start(w.member), start(other)]);
-    const oks = [a.r, b.r].filter((r) => r.ok);
-    expect(oks).toHaveLength(1);
-    expect([a.r, b.r].find((r) => !r.ok)).toMatchObject({ code: 'conflict' });
-    const running = (await entries(w.member.userId)).filter((e) => !e.endedAt);
-    expect(running).toHaveLength(1);
-    await w.member.ok('time.stop', { id: running[0].id });
+  it('wk1: гонка двух start — второй читает до коммита первого и получает conflict', async () => {
+    const user = await mkUser(db, 'member');
+    await w.admin.ok('member.add', {
+      id: uuidv7(),
+      spaceId: w.spaceId,
+      userId: user,
+      role: 'member',
+    });
+    const c = new TestClient(services(db), user);
+    // «первая транзакция»: идущая запись вставлена, но не закоммитирована
+    const raw = await db.$client.connect();
+    const first = uuidv7();
+    await raw.query('begin');
+    await raw.query(
+      `insert into time_entries (id, space_id, task_id, user_id, started_at, source, created_at, updated_at)
+       values ($1, $2, $3, $4, now(), 'timer', now(), now())`,
+      [first, w.spaceId, taskId, user],
+    );
+    // вторая не видит её (read committed), вставляет и встаёт на ожидании уникального индекса
+    const second = start(c);
+    for (let i = 0; i < 100; i++) {
+      const r = await db.$client.query(
+        "select 1 from pg_stat_activity where wait_event_type = 'Lock' and datname = current_database()",
+      );
+      if (r.rowCount) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    await raw.query('commit');
+    raw.release();
+    expect((await second).r).toMatchObject({ ok: false, code: 'conflict' });
+    const rows = await entries(user);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe(first);
   });
 
   it('wk1: stop считает durationSec по серверному времени', async () => {
