@@ -1,0 +1,32 @@
+{
+  "status": "done",
+  "summary": "В e2e/web/playwright.config.ts добавлен testIgnore: ['perf/**']. Список UI-тестов: 5 (perf исключён), lint и prettier зелёные.",
+  "commits": [
+    "ec2f367 e2e web: UI-конфиг не запускает perf (testIgnore perf/**) — WB-20"
+  ],
+  "checks": [
+    {
+      "name": "list",
+      "value": "perf/ отсутствует в --list",
+      "pass": true
+    },
+    {
+      "name": "list-ui",
+      "value": "Total: 5 tests in 1 file",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "eslint + prettier exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept WB-20 --dry",
+  "uncertain": [],
+  "dp_feedback": "Копия в задаче указана как ~/planar-web-WB-20, фактически /root/planar-web-WB-20; путь совпал по симлинку home, но стоит писать абсолютный.",
+  "t": "2026-10-23T10:42:21",
+  "by": "main"
+}
