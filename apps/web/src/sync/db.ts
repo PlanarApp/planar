@@ -14,6 +14,12 @@ export interface Undo {
   id: string;
   row: Record<string, unknown> | null;
 }
+/** Изменённая строка реплики; `entity: '*'` — реплика заменена целиком (сбросить всё). */
+export interface ReplicaChange {
+  entity: string;
+  id: string;
+  row: Record<string, unknown> | null;
+}
 export interface MetaRow {
   key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId';
   value: string | number;

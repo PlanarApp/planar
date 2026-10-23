@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import en from '../../i18n/en';
 import ru from '../../i18n/ru';
-import { AssigneePicker, PriorityPicker, StatusPicker } from '../index';
+import { AssigneePicker, DueDatePicker, PriorityPicker, StatusPicker } from '../index';
 import { ids, reset } from './data';
 
 beforeEach(reset);
@@ -51,6 +51,38 @@ describe('tasks:pickers', () => {
     );
     await key('Enter');
     expect(w.emitted('update:modelValue')?.[0]).toEqual([[ids.ann]]);
+    w.unmount();
+  });
+  it('PriorityPicker: Popover монтируется лениво; фокус с клавиатуры сохраняется, клик открывает', async () => {
+    const w = mount(PriorityPicker, { ...opts, props: { modelValue: 0 } });
+    expect(document.body.querySelector('[aria-expanded]')).toBeNull(); // лёгкая кнопка без reka-ui
+    const plain = w.find('button').element;
+    expect(plain.getAttribute('aria-label')).toBeTruthy();
+    plain.focus();
+    plain.dispatchEvent(new FocusEvent('focus')); // клавиатурный фокус (в happy-dom :focus-visible не вычисляется)
+    await flushPromises();
+    const trigger = w.find('button').element;
+    expect(trigger.getAttribute('aria-expanded')).toBe('false'); // триггер Popover
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger.getAttribute('aria-label')).toBe(plain.getAttribute('aria-label'));
+    await w.find('button').trigger('click'); // Enter и Space на кнопке — это click
+    await flushPromises();
+    const list = document.body.querySelector('[role="listbox"]')!;
+    expect(list).not.toBeNull();
+    expect(list.parentElement!.contains(document.activeElement)).toBe(true); // фокус в окне выбора
+    w.unmount();
+  });
+  it('PriorityPicker: клик без наведения и фокуса открывает окно сразу', async () => {
+    const w = mount(PriorityPicker, { ...opts, props: { modelValue: 0 } });
+    await open(w);
+    expect(document.body.querySelector('[role="listbox"]')).not.toBeNull();
+    w.unmount();
+  });
+  it('DueDatePicker: ленивый Popover, клик открывает поле даты', async () => {
+    const w = mount(DueDatePicker, { ...opts, props: { modelValue: null } });
+    expect(document.body.querySelector('[aria-expanded]')).toBeNull();
+    await open(w);
+    expect(document.body.querySelector('input[type="date"]')).not.toBeNull();
     w.unmount();
   });
 });

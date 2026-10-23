@@ -5,7 +5,7 @@ module: web
 updated: 2026-10-22
 summary: Контракты web — C-ui, C-client (синхронизация), C-tasks (слой задач), C-views (экран проекта и стык видов)
 related: ["docs/plan/web.md", "docs/contracts/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 2}, {"id": "C-tasks", "version": 2}, {"id": "C-views", "version": 2}]
+contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 3}, {"id": "C-tasks", "version": 3}, {"id": "C-views", "version": 2}]
 ---
 
 # Контракты модуля web
@@ -19,7 +19,7 @@ contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 2}, {"id
 ### Файлы
 | Путь | Что |
 |---|---|
-| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 1, 'C-client': 2, 'C-tasks': 2, 'C-views': 2 } as const;` |
+| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 1, 'C-client': 3, 'C-tasks': 3, 'C-views': 2 } as const;` |
 | `apps/web/src/ui/tokens.css` | токены: блок `@theme { … }` — светлая тема, блок `.dark { … }` — тёмная (те же имена) |
 | `apps/web/src/ui/index.ts` | экспорт компонентов и `useBreakpoint`, `useTheme` |
 | `apps/web/src/i18n/{index,ru,en}.ts` | vue-i18n, словари |
@@ -142,7 +142,7 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 - `useExtensions(kind)` → `ComputedRef<элементы[]>` только включённых модулей (`settings.enabled_modules`; до WB-10 — все зарегистрированные), `taskPanels` — по `order`, затем по ключу.
 - Модули подключаются лениво: `import.meta.glob('../../../../modules/*/web/index.ts')` из `apps/web/src/modules/registry.ts` (WB-10); в начальный чанк не входят.
 
-## C-client v2
+## C-client v3
 
 Клиент синхронизации — `apps/web/src/sync/index.ts` (владелец WB-2; потребители — WB-3…WB-10, модули). Протокол с сервером — C-sync (core), мутаторы — C-mutators. Контрактный тест — `apps/web/src/__contract__/client.contract.test.ts` (экспорты ниже).
 
@@ -153,12 +153,14 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 | `startSync` | `(opts: {userId: string; baseUrl?: string; fetch?: typeof fetch; WebSocket?: typeof WebSocket}) => Promise<void>` | тёплый старт: реплика есть — промис сразу после открытия базы, затем pull; нет — bootstrap; дальше WS. `_meta.userId` ≠ `opts.userId` → сначала `clearLocal()` (реплика другого пользователя не показывается) |
 | `stopSync` | `() => Promise<void>` | закрывает WS, таймеры; база остаётся |
 | `clearLocal` | `() => Promise<void>` | `stopSync`, затем очистка всех таблиц сущностей, `_queue` и `_meta` (новый `clientId`); вызывается при выходе |
-| `useQuery` | `<T>(fn: () => T \| Promise<T>) => Readonly<Ref<T \| undefined>>` | liveQuery → ref; пересчёт при изменении прочитанных таблиц; отписка при уничтожении scope; `fn` читает `db` |
+| `useQuery` | `<T>(fn: () => T \| Promise<T>) => Readonly<Ref<T \| undefined>>` | liveQuery → `shallowRef` (значение не оборачивается в глубокий readonly-Proxy; результат не мутировать); пересчёт при изменении прочитанных таблиц; отписка при уничтожении scope; `fn` читает `db` |
 | `mutate` | `(name: string, args: unknown) => Promise<void>` | неизвестное имя → `MutatorError('invalid_args')`; args по zod мутатора (ошибка → `invalid_args`, в очередь не попадает); применяет `run` к реплике в одной транзакции Dexie с записью в `_queue`; промис — после локального применения, не после сервера |
 | `registerMutators` | `(defs: MutatorDef[]) => void` | дубликат имени → `Error` |
 | `syncState` | `Readonly<Ref<{status: 'idle'\|'bootstrapping'\|'online'\|'offline'\|'error'; pending: number}>>` | `pending` — длина `_queue` |
 | `onMutationError` | `(cb: (e: {id: number; name: string; code: string; message: string}) => void) => () => void` | отклонённая сервером мутация (уже откатана rebase) |
 | `onUnauthorized` | `(cb: () => void) => () => void` | `401` или WS-закрытие 4401; переход на вход делает вызывающий |
+| `onReplicaChange` | `(cb: (batch: { entity: string; id: string; row: Record<string, unknown> \| null }[]) => void) => () => void` | после каждой закоммиченной записи клиента в реплику (mutate, applyServer, rebase, bootstrap) — изменённые строки транзакции, `row: null` — удалена; порядок — порядок коммитов; в других вкладках — те же пачки через BroadcastChannel `planar-replica` (исключение: фоновые пачки bootstrap в другие вкладки не идут — по его завершении им приходит сброс `*`); `reset`/`clearLocal` — пачка `[{entity: '*', id: '*', row: null}]` (сбросить всё) |
+| `replicaState` | `Readonly<Ref<'empty' \| 'partial' \| 'complete'>>` | `partial` — bootstrap записал открытый проект, остальное пишется фоном; курсор сохраняется только при `complete`; прерванный bootstrap начинается заново |
 | `newId` | `() => string` | `uuidv7()` из `@planar/shared` |
 | `rankBetween` | `(a: string \| null, b: string \| null) => string` | `generateKeyBetween` из `fractional-indexing` |
 
@@ -168,8 +170,11 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 - `reset` (C-sync) → очистка таблиц сущностей, bootstrap, затем rebase очереди.
 - Очередь живёт в IndexedDB и переживает перезагрузку; push пачками ≤ 100, повтор при сети/`5xx` с паузой 1–30 с.
 - Клиентский `Tx` над Dexie проходит набор `txContractSuite` (`packages/shared/test/tx-contract.ts`).
+- Все записи в таблицы сущностей реплики идут только через клиент синхронизации (иначе `onReplicaChange` не узнает о них).
+- Цикл синхронизации: сначала push очереди, затем pull (push не зависит от курсора, C-sync).
+- Bootstrap при пустой реплике: сначала строки открытого проекта (по маршруту `/p/:projectId` или `/t/:key`) и все сущности, кроме `tasks`/`taskAssignees`/`taskLabels`/`checklistItems`/`comments`/`attachments`/`commentReactions` других проектов, одной транзакцией → `replicaState = 'partial'`; остальное — пачками ≤ 1000 строк отдельными транзакциями с отдачей потока → `complete`, затем курсор.
 
-## C-tasks v2
+## C-tasks v3
 
 Общий слой задач для видов — `apps/web/src/tasks/index.ts` (владелец WB-2a; потребители WB-4…WB-10). Читает только реплику (C-client), пишет только через `mutate` доменных мутаторов (C-mutators); сеть не ждёт. Контрактный тест — `apps/web/src/__contract__/tasks.contract.test.ts`.
 
@@ -186,7 +191,8 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 | `useStatuses` | `(spaceId) => Ref<Row<'statuses'>[]>` | по `rank` |
 | `useMembers` | `(spaceId) => Ref<Row<'users'>[]>` | пользователи из `spaceMembers`, без деактивированных, по `name` |
 | `useLabels` | `(spaceId) => Ref<Row<'labels'>[]>` | по `name` |
-| `useProjectTasks` | `(projectId) => Ref<TaskView[]>` | все задачи проекта (с подзадачами), индекс `projectId`; 10 000 задач ≤ 100 мс |
+| `useProjectTasks` | `(projectId) => Ref<TaskView[]>` | все задачи проекта (с подзадачами); проекция в памяти: IndexedDB читается один раз на проект, дальше патчится по `onReplicaChange` (без перечитывания); в памяти — до 3 последних проектов (LRU); при `replicaState = 'partial'` для непрочитанного проекта — дочитывает по завершении |
+| `prefetchProject` | `(projectId: string) => void` | заранее строит проекцию проекта (наведение на ссылку проекта, простой после первого проекта); повторный вызов — ничего |
 | `useTask` | `(idOrKey) => Ref<TaskView \| null \| undefined>` | uuid или ключ `PLN-123`; `undefined` — ещё читается, `null` — нет в реплике |
 | `groupTasks` | `(tasks, by: GroupBy, ctx: {statuses, members, labels}) => TaskGroup[]` | чистая; статусы — в порядке `rank`, приоритет 1→4, затем 0; «без исполнителя»/«без метки» — последней группой; задача с несколькими исполнителями/метками — в каждой своей группе |
 | `sortTasks` | `(tasks, by: SortBy, dir: 'asc' \| 'desc') => TaskView[]` | чистая, стабильная; `null` — в конце при любом `dir` |

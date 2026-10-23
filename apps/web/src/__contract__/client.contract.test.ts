@@ -24,6 +24,8 @@ describe('C-client: экспорты', () => {
       'syncState',
       'onMutationError',
       'onUnauthorized',
+      'onReplicaChange',
+      'replicaState',
       'newId',
       'rankBetween',
     ]);

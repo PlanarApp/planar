@@ -7,7 +7,7 @@ import {
   type Row,
   type Tx,
 } from '@planar/shared';
-import type { PlanarDB, Undo } from './db';
+import type { PlanarDB, ReplicaChange, Undo } from './db';
 
 function check<E extends EntityName>(entity: E, row: unknown): Row<E> {
   const r = entitySchemas[entity].safeParse(row);
@@ -21,6 +21,8 @@ export class DexieTx implements Tx {
   constructor(
     private db: PlanarDB,
     private undo?: Undo[],
+    /** сюда пишутся изменённые строки (для onReplicaChange) */
+    private changes?: ReplicaChange[],
   ) {}
 
   private table(entity: string): Table {
@@ -41,6 +43,7 @@ export class DexieTx implements Tx {
     const data = check(entity, row);
     await this.note(entity, data.id as string);
     await this.table(entity).put(data);
+    this.changes?.push({ entity, id: data.id as string, row: data });
   }
 
   async patch<E extends EntityName>(
@@ -54,11 +57,13 @@ export class DexieTx implements Tx {
     const data = check(entity, { ...cur, ...defined });
     await this.note(entity, id);
     await this.table(entity).put(data);
+    this.changes?.push({ entity, id, row: data });
   }
 
   async del<E extends EntityName>(entity: E, id: string): Promise<void> {
     await this.note(entity, id);
     await this.table(entity).delete(id);
+    this.changes?.push({ entity, id, row: null });
   }
 
   async scan<E extends EntityName>(
@@ -81,10 +86,15 @@ export class DexieTx implements Tx {
 }
 
 /** Откат записей по прообразам (в обратном порядке). */
-export async function applyUndo(db: PlanarDB, undo: Undo[]): Promise<void> {
+export async function applyUndo(
+  db: PlanarDB,
+  undo: Undo[],
+  changes?: ReplicaChange[],
+): Promise<void> {
   for (let i = undo.length - 1; i >= 0; i--) {
     const u = undo[i];
     if (u.row) await db.table(u.entity).put(u.row);
     else await db.table(u.entity).delete(u.id);
+    changes?.push({ entity: u.entity, id: u.id, row: u.row });
   }
 }

@@ -110,12 +110,12 @@ describe('sync', () => {
     s.server.seed('labels', [l]);
     const c = s.mk();
     await s.start(c);
-    s.server.mode = 'offline';
-    await c.mutate('test.label.rename', { id: l.id, name: 'local' });
-    await c.syncNow(); // фоновый цикл завершён (сеть недоступна)
     s.server.seed('labels', [{ ...other }, { ...l, name: 'remote' }]);
-    s.server.mode = 'ok';
-    s.server.blockPush = true;
+    // цикл push → pull: правка появляется после push (очередь пуста), до ответа pull; её push блокируем
+    s.server.beforePull = async () => {
+      s.server.blockPush = true;
+      await c.mutate('test.label.rename', { id: l.id, name: 'local' });
+    };
     await c.syncNow();
     const got = Object.fromEntries((await labels(s.db)).map((x) => [x.id, x.name]));
     expect(got[l.id]).toBe('local');
@@ -131,15 +131,13 @@ describe('sync', () => {
     const c = s.mk();
     await s.start(c);
     expect(s.server.bootstraps).toBe(1);
-    s.server.mode = 'offline';
-    await c.mutate('test.label.put', args('mine'));
-    await c.syncNow();
-    s.server.mode = 'ok';
     s.server.rows.get('labels')!.delete(a.id); // на сервере строки больше нет
     s.server.log = [];
     s.server.resetNext = true;
-    s.server.mode = 'ok';
-    s.server.blockPush = true;
+    s.server.beforePull = async () => {
+      s.server.blockPush = true;
+      await c.mutate('test.label.put', args('mine'));
+    };
     await c.syncNow();
     expect(s.server.bootstraps).toBe(2);
     expect((await labels(s.db)).map((x) => x.name)).toEqual(['mine']);
@@ -233,11 +231,12 @@ describe('sync', () => {
     const errs: { code: string }[] = [];
     c.onMutationError((e) => errs.push(e));
     await s.start(c);
-    s.server.blockPush = true;
-    await c.mutate('test.label.rename', { id: l.id, name: 'local' });
-    await c.syncNow();
-    s.server.remove('labels', l.id);
-    await c.syncNow(); // pull: строки нет, rename неприменим
+    s.server.beforePull = async () => {
+      s.server.blockPush = true;
+      s.server.remove('labels', l.id);
+      await c.mutate('test.label.rename', { id: l.id, name: 'local' });
+    };
+    await c.syncNow(); // push (пусто) → pull: строки нет, rename неприменим
     expect(await labels(s.db)).toHaveLength(0);
     expect(await s.db._queue.count()).toBe(1);
     expect(errs).toHaveLength(0);

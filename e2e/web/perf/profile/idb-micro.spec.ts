@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
 import { Client } from '../../../lib';
-import { ctxFor, firstRow, projects, save } from './lib';
+import { ctxFor, projects, save } from './lib';
 
 // Нижняя граница: чистый IndexedDB без Dexie/Vue — сколько стоит прочитать/записать данные §7 в Chromium.
 test('idb-micro', async ({ browser }) => {
@@ -27,12 +27,13 @@ test('idb-micro', async ({ browser }) => {
       }
       return +med(t).toFixed(1);
     };
-    const req = <T>(r: IDBRequest<T>) => new Promise<T>((res) => ((r.onsuccess = () => res(r.result)), void 0));
+    const req = <T>(r: IDBRequest<T>) =>
+      new Promise<T>((res) => ((r.onsuccess = () => res(r.result)), void 0));
     const done = (tx: IDBTransaction) => new Promise<void>((res) => (tx.oncomplete = () => res()));
     const out: Record<string, unknown> = {};
     for (const t of ['tasks', 'taskAssignees', 'taskLabels', 'statuses', 'users']) {
       const n = await req(db.transaction(t).objectStore(t).count());
-      const rows: any[] = await req(db.transaction(t).objectStore(t).getAll());
+      const rows: Record<string, unknown>[] = await req(db.transaction(t).objectStore(t).getAll());
       out[t] = {
         rows: n,
         avg_json_bytes: rows.length ? Math.round(JSON.stringify(rows).length / rows.length) : 0,
@@ -58,12 +59,17 @@ test('idb-micro', async ({ browser }) => {
     }, 3);
     out.three_tables_parallel_ms = await timeIt(async () => {
       const tx = db.transaction(['tasks', 'taskAssignees', 'taskLabels']);
-      await Promise.all(['tasks', 'taskAssignees', 'taskLabels'].map((t) => req(tx.objectStore(t).getAll())));
+      await Promise.all(
+        ['tasks', 'taskAssignees', 'taskLabels'].map((t) => req(tx.objectStore(t).getAll())),
+      );
       await done(tx);
     });
     // запись: put 2000 строк tasks одной транзакцией (копии с новыми id), затем удаление
-    const sample: any[] = await req(db.transaction('tasks').objectStore('tasks').getAll());
-    const copy = (n: number, tag: string) => sample.slice(0, n).map((x, i) => ({ ...x, id: `${tag}-${i}` }));
+    const sample: Record<string, unknown>[] = await req(
+      db.transaction('tasks').objectStore('tasks').getAll(),
+    );
+    const copy = (n: number, tag: string) =>
+      sample.slice(0, n).map((x, i) => ({ ...x, id: `${tag}-${i}` }));
     out.put_2000_tasks_ms = await timeIt(async () => {
       const tx = db.transaction('tasks', 'readwrite');
       const st = tx.objectStore('tasks');
@@ -80,7 +86,9 @@ test('idb-micro', async ({ browser }) => {
       const ix = db.transaction('tasks').objectStore('tasks').index(n);
       return [n, ix.keyPath, ix.multiEntry] as const;
     });
-    const all: any[] = await req(db.transaction('tasks').objectStore('tasks').getAll());
+    const all: Record<string, unknown>[] = await req(
+      db.transaction('tasks').objectStore('tasks').getAll(),
+    );
     const writeTest = async (name: string, withIdx: boolean) => {
       await new Promise((res) => {
         const d = indexedDB.deleteDatabase(name);
@@ -90,7 +98,8 @@ test('idb-micro', async ({ browser }) => {
         const q = indexedDB.open(name, 1);
         q.onupgradeneeded = () => {
           const st = q.result.createObjectStore('tasks', { keyPath: 'id' });
-          if (withIdx) for (const [n, kp, me] of idxDefs) st.createIndex(n, kp as string, { multiEntry: me });
+          if (withIdx)
+            for (const [n, kp, me] of idxDefs) st.createIndex(n, kp as string, { multiEntry: me });
         };
         q.onsuccess = () => res(q.result);
       });

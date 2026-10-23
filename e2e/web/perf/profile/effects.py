@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Сводка по меткам results/<label>/: mutate med/p95, cold, warm, switch p95, realtime med/p95 (мс)."""
+"""Сводка по меткам build/artifacts/WB-17/results/<label>/: mutate med/p95, cold, warm, switch p95, realtime med/p95 (мс)."""
 import json, os
-R = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'results')
+R = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', '..', 'build', 'artifacts', 'WB-17', 'results')
 rows = [('base2', 'базовая сборка (feature/web)'), ('P1', '+P1 связи getAll'), ('P1P2', '+P2 push перед pull'),
         ('P1P2P3', '(отвергнуто) P3 параллельные чтения'), ('P1P2P6', '+P6 проекция задач в памяти (mutate — из отдельного прогона, JSON не сохранён)'),
         ('P1P2P6P7P9', '+P7 keep-alive, +P9 preload (поверх P6)'),

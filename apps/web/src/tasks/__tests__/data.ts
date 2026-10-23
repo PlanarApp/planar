@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { uuidv7 } from '@planar/shared';
 import { db } from '../../sync';
+import { resetProjections } from '../projection';
 
 export const T = '2026-10-22T10:00:00.000Z';
 export const id = uuidv7;
@@ -14,8 +15,40 @@ export const ids = {
   bug: id(),
 };
 
+// Тесты пишут в реплику напрямую, минуя sync-клиент. Клиент сообщает о своих записях через
+// onReplicaChange (в том числе из «другой вкладки» — BroadcastChannel), поэтому прямые записи
+// тестов объявляем так же, как это сделала бы другая вкладка.
+const channel = new BroadcastChannel('planar-replica');
+(channel as unknown as { unref?: () => void }).unref?.();
+const announce = (batch: { entity: string; id: string; row: unknown }[]) =>
+  channel.postMessage({ db: db.name, batch });
+let bridged = false;
+function bridge() {
+  if (bridged) return;
+  bridged = true;
+  type Fn = (...a: unknown[]) => Promise<unknown>;
+  for (const t of db.entityTables()) {
+    const wrap = (
+      name: 'put' | 'bulkPut' | 'delete',
+      rows: (a: unknown[]) => { id: string; row: unknown }[],
+    ) => {
+      const orig = (t[name] as unknown as Fn).bind(t);
+      (t as unknown as Record<string, Fn>)[name] = async (...a) => {
+        const r = await orig(...a);
+        announce(rows(a).map((x) => ({ entity: t.name, ...x })));
+        return r;
+      };
+    };
+    wrap('put', ([row]) => [{ id: (row as { id: string }).id, row }]);
+    wrap('bulkPut', ([rows]) => (rows as { id: string }[]).map((row) => ({ id: row.id, row })));
+    wrap('delete', ([key]) => [{ id: key as string, row: null }]);
+  }
+}
+
 export async function reset() {
   await db.open();
+  bridge();
+  resetProjections();
   await Promise.all(db.tables.map((t) => t.clear()));
   await db.table('spaces').put({
     id: ids.space,
@@ -110,6 +143,7 @@ export async function reset() {
     createdAt: T,
     updatedAt: T,
   });
+  announce([{ entity: '*', id: '*', row: null }]); // таблицы очищены напрямую: проекции перечитать
 }
 
 export const task = (n: number, over: Record<string, unknown> = {}) => ({

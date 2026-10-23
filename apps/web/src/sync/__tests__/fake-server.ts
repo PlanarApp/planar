@@ -31,6 +31,8 @@ export class FakeServer {
   resetNext = false;
   /** push падает сетевой ошибкой, pull/bootstrap работают */
   blockPush = false;
+  /** один раз перед ответом на pull (цикл: push → pull) — локальная правка «между push и pull» */
+  beforePull: (() => Promise<void>) | null = null;
   pushes = 0;
   pulls = 0;
   bootstraps = 0;
@@ -142,6 +144,9 @@ export class FakeServer {
     }
     if (url.pathname === '/sync/pull') {
       this.pulls++;
+      const hook = this.beforePull;
+      this.beforePull = null;
+      await hook?.();
       const cursor = Number(url.searchParams.get('cursor'));
       const reset = this.resetNext || cursor > this.seq;
       this.resetNext = false;
