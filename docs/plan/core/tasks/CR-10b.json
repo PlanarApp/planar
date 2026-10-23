@@ -1,0 +1,78 @@
+{
+  "id": "CR-10b",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "REST /api/v1 поверх мутаторов и OpenAPI",
+  "goal": "REST /api/v1 (spaces, projects, tasks с фильтрами и курсором, comments) по docs/contracts/core-api-v1.md: чтение — с проверкой видимости, запись — через доменные мутаторы и серверный Tx с хуком уведомлений; GET /api/v1/openapi.json из zod-схем.",
+  "plan_ref": "CR-10 API-токены и REST",
+  "contracts": [
+    {
+      "name": "C-http",
+      "version": "7",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "2",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "4",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-10b",
+  "branch": "core/CR-10b",
+  "base": "feature/core",
+  "scope": [
+    "apps/api/src/rest/",
+    "apps/api/src/sync/mutate.ts",
+    "apps/api/src/sync/push.service.ts",
+    "apps/api/src/app.module.ts",
+    "apps/api/test/rest/"
+  ],
+  "dont_touch": [
+    "apps/api/src/auth/ — CR-10a",
+    "apps/api/src/tokens/ — CR-10a",
+    "apps/api/src/sync/server-tx.ts — CR-10a",
+    "apps/api/src/db/",
+    "packages/",
+    "docs/"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0",
+      "timeout": 300
+    },
+    {
+      "name": "rest_tests",
+      "cmd": "pnpm exec vitest run apps/api/test/rest",
+      "expect": "num:Tests\\s+(\\d+) passed >=20",
+      "timeout": 600
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0",
+      "timeout": 1200
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T05:54:46"
+}

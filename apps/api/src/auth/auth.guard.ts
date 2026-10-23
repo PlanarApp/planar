@@ -33,8 +33,8 @@ export class AuthGuard implements CanActivate {
     });
     if (!ctx) throw new HttpError(401, 'unauthenticated', 'Требуется вход');
     if (ctx.via === 'token') {
-      const path = req.url.split('?')[0]!;
-      if (path === '/api/tokens' || path.startsWith('/api/tokens/'))
+      const route = req.routeOptions.url ?? '';
+      if (route === '/api/tokens' || route.startsWith('/api/tokens/'))
         throw new HttpError(403, 'forbidden', 'Токенами управляют только из сессии');
       if (ctx.tokenScope === 'read' && req.method !== 'GET' && req.method !== 'HEAD')
         throw new HttpError(403, 'forbidden', 'Токен только для чтения');

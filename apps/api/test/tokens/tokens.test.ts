@@ -162,6 +162,13 @@ describe('Bearer-авторизация', () => {
     expect(r.json().code).toBe('forbidden');
   });
 
+  it('Bearer к закодированному /api/%74okens → 403', async () => {
+    const { cookie } = await owner();
+    const { secret } = await issue(cookie);
+    for (const url of ['/api/%74okens', '/api/%74okens?x=1'])
+      expect((await req('GET', url, { bearer: secret })).statusCode, url).toBe(403);
+  });
+
   it('POST с Bearer без Origin — не origin_mismatch', async () => {
     const { cookie } = await owner();
     const { secret } = await issue(cookie);
