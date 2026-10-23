@@ -37,8 +37,10 @@ export function useApp({ ownDb = true, extraControllers = [] as Type[] } = {}) {
           if (r.rowCount === 0) break;
           await new Promise((r) => setTimeout(r, 100));
         }
-        await admin.query(`drop database ${name} with (force)`);
-        await admin.end();
+        // на загруженном сервере drop ждёт все бэкенды минутами: не держим тесты дольше 15 с (сервер доведёт сам)
+        const dropping = admin.query(`drop database ${name} with (force)`).catch(() => {});
+        void dropping.finally(() => admin.end().catch(() => {}));
+        await Promise.race([dropping, new Promise((r) => setTimeout(r, 15_000))]);
       };
     }
     db = createDb(url);
@@ -51,7 +53,7 @@ export function useApp({ ownDb = true, extraControllers = [] as Type[] } = {}) {
     await db.$client.end();
     await drop?.();
     // drop database ждёт все бэкенды сервера — на загруженном сервере долго
-  }, 120_000);
+  }, 60_000);
 }
 
 export const req = (
