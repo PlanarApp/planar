@@ -24,7 +24,9 @@
     "apps/api/package.json",
     "pnpm-lock.yaml",
     "docs/guides/mcp.md",
-    "docs/INDEX.md"
+    "docs/INDEX.md",
+    "apps/api/src/rest/",
+    "apps/api/test/rest/"
   ],
   "dont_touch": [
     "apps/api/src/auth/",
@@ -74,5 +76,6 @@
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-23T06:28:08"
+  "created": "2026-10-23T06:28:08",
+  "edited": "2026-10-23T06:28:21"
 }
