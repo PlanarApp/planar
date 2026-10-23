@@ -70,7 +70,7 @@ describe('ChangeNotifier', () => {
     expect(b).toEqual([]);
   });
 
-  it('пачка уведомлений склеивается: одна рассылка с наибольшим seq', async () => {
+  it('пачка уведомлений склеивается: ≤ 2 рассылки, последняя с наибольшим seq', async () => {
     const { db, n } = await setup();
     const got: number[] = [];
     n.subscribe((s) => got.push(s));
@@ -81,8 +81,10 @@ describe('ChangeNotifier', () => {
         await tx.execute(sql`select pg_notify('planar_changes', ${String(big + v)})`);
     });
     await new Promise((r) => setTimeout(r, 300));
-    expect(got).toContain(big + 3);
-    expect(got).not.toContain(big + 1);
-    expect(got).not.toContain(big + 2);
+    // первое уходит сразу, остальные склеены: не больше двух рассылок, последняя — наибольший seq
+    const mine = got.filter((x) => x > big);
+    expect(mine.at(-1)).toBe(big + 3);
+    expect(mine.length).toBeLessThanOrEqual(2);
+    expect(mine).not.toContain(big + 2);
   });
 });

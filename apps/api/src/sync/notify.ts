@@ -64,14 +64,23 @@ export class ChangeNotifier implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** Первое уведомление уходит сразу, пачка в течение следующих 50 мс склеивается в одну рассылку. */
   private push(seq: number) {
     if (!seq) return;
-    this.pending = Math.max(this.pending, seq);
-    this.flushTimer ??= setTimeout(() => {
+    if (this.flushTimer) {
+      this.pending = Math.max(this.pending, seq);
+      return;
+    }
+    this.emit(seq);
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = undefined;
       const s = this.pending;
       this.pending = 0;
-      this.flushTimer = undefined;
-      for (const cb of this.subs) cb(s);
+      if (s) this.emit(s);
     }, COALESCE_MS);
+  }
+
+  private emit(seq: number) {
+    for (const cb of this.subs) cb(seq);
   }
 }
