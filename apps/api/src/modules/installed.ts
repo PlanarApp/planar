@@ -1,9 +1,12 @@
 import type { BackendModuleManifest } from '@planar/shared';
 import type { PgTable } from 'drizzle-orm/pg-core';
+import { chatApi } from '@planar/module-chat/api';
+import * as chatTables from '@planar/module-chat/api/schema';
 import { api as docs } from '@planar/module-docs/api';
 import * as docsTables from '@planar/module-docs/api/schema';
 import { api as hello } from '@planar/module-hello/api';
 import * as helloTables from '@planar/module-hello/api/schema';
+import { DB } from '../tokens.js';
 
 export interface InstalledModule {
   api: BackendModuleManifest;
@@ -44,6 +47,7 @@ export function validateInstalled(list: InstalledModule[]): InstalledModule[] {
 export const installed: InstalledModule[] = validateInstalled([
   { api: hello, tables: helloTables },
   { api: docs, tables: docsTables },
+  { api: chatApi(DB), tables: chatTables },
 ]);
 
 export const moduleTables = (): Map<string, PgTable> =>
