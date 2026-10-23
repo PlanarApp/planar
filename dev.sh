@@ -22,6 +22,16 @@ testdb() {
   return 1
 }
 
+# api стартует после up -d: ждём ответ через прокси web
+waitapi() {
+  for _ in $(seq 1 120); do
+    curl -sf "http://localhost:${WEB_PORT:-5173}/api/health" >/dev/null && return 0
+    sleep 2
+  done
+  echo "api не отвечает" >&2
+  return 1
+}
+
 cmd="${1:-}"
 [ $# -gt 0 ] && shift
 case "$cmd" in
@@ -30,7 +40,9 @@ case "$cmd" in
   reset) "${DEV[@]}" down -v && "${DEV[@]}" up -d --build ;;
   seed) "${DEV[@]}" exec -T api pnpm --filter @planar/api seed "$@" ;;
   logs) "${DEV[@]}" logs -f "$@" ;;
+  e2e) waitapi && E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e test "$@" ;;
+  measure) waitapi && E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e measure "$@" ;;
   testdb) testdb ;;
   test) testdb && pnpm test "$@" ;;
-  *) echo "usage: ./dev.sh up|down|reset|seed|logs|test|testdb" >&2; exit 2 ;;
+  *) echo "usage: ./dev.sh up|down|reset|seed|logs|e2e|measure|test|testdb" >&2; exit 2 ;;
 esac
