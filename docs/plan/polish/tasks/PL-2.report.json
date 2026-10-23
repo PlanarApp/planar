@@ -1,0 +1,54 @@
+{
+  "status": "partial",
+  "summary": "send_webhook уходит после всех действий (проверка подписки в prepare, отправка после execute); подписка в конструкторе — select (имя — URL), пустой список — ссылка на /settings/webhooks; e2e спринта с запасом (вчера..+7); e2e глубокой ссылки /p/<id>/sprints:sprint.",
+  "commits": [
+    "ce298d2 PL-2: send_webhook после действий правила, выбор подписки списком, e2e спринта и глубокой ссылки"
+  ],
+  "checks": [
+    {
+      "name": "pl2",
+      "value": "3 passed",
+      "pass": true
+    },
+    {
+      "name": "build/size/test-all/test-web/lint",
+      "value": "PASS, size 151.4",
+      "pass": true
+    },
+    {
+      "name": "e2e-work",
+      "value": "6 passed из 6 (порог >=10 недостижим)",
+      "pass": false
+    },
+    {
+      "name": "e2e-sprint-midnight",
+      "value": "2 passed при ручном export переменных",
+      "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "11 ошибок modules/docs/chat, те же на базе",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "scope FAIL: тесты вне scope (apps/api/test/automations/automations.test.ts; apps/web/.../automations.test.ts из dont_touch) - иначе pl2 и test-web не получить"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PL-2 --dry",
+  "uncertain": [
+    {
+      "where": "modules/automations/api/index.ts run()",
+      "why": "prepare выполняется до мутаций, поэтому вебхук отправляется отдельной операцией после commit: не атомарно, сбой отправки после действий даст run=error при применённых действиях",
+      "checked": "неактивная подписка проверяется в prepare и откатывает всё (тест pl2); атомарность требует хука после мутаций в ядре (контракт)"
+    },
+    {
+      "where": "modules/automations/web/RulesPage.vue",
+      "why": "список подписок GET /api/webhooks/subscriptions только для admin, иначе подсказка",
+      "checked": "web-тест обновлён (fetch-стаб)"
+    }
+  ],
+  "dp_feedback": "Команды карточки e2e-sprint-midnight: переменные без export не доходят до dev.sh (порт 3000 занят); порог e2e-work >=10 при 6 тестах в файле; typecheck-web падает на базе без tiptap.",
+  "t": "2026-10-23T23:14:15",
+  "by": "executor"
+}

@@ -1,0 +1,49 @@
+{
+  "status": "partial",
+  "summary": "Модули docs,chat на критическом пути тёплого старта не стоят измеримого времени: A/B (6 пар с модулями, 5 без) даёт ≈420 мс в обоих случаях и для базы, и для прототипа отложенной регистрации модулей. Прототип откатан; код не менялся. Превышение 400 — ядро (zod/shared в чанке входа ≈84 мс, чтение связей), вне скоупа.",
+  "commits": [],
+  "checks": [
+    {
+      "name": "perf warm (repeat.sh, 10 прогонов, прототип, load avg≈19)",
+      "value": "437,1 (418,9…464,1)",
+      "pass": false
+    },
+    {
+      "name": "A/B warm с модулями, база vs прототип",
+      "value": "420 vs 422",
+      "pass": false
+    },
+    {
+      "name": "A/B warm без модулей, база vs прототип",
+      "value": "422 vs 411",
+      "pass": false
+    },
+    {
+      "name": "switch/realtime при полном замере",
+      "value": "110,1 / 656 (нагрузка машины 19; ранее 91 / 430)",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "warm ≤ 400 не достигнут; причина не в модулях, выигрыш требует правки core (packages/shared, схема Dexie) — это шлюз по плану (попытка 1)."
+  ],
+  "questions": [
+    "Разрешить контракт/правку core: лениво строить zod-схемы shared и схему Dexie до первой строки, не читать taskAssignees/taskLabels до первого кадра? Или пересмотреть бюджет/условия замера (машина занята чужими процессами, load 6…20 из 24)?"
+  ],
+  "images": [],
+  "how_to_check": "build/artifacts/PL-1/breakdown.md; .dpcli/dpcli accept PL-1 --dry (perf FAIL ожидаем)",
+  "uncertain": [
+    {
+      "where": "build/artifacts/PL-1/breakdown.md",
+      "why": "замеры сняты при загрузке машины 6…20, шум ±30 мс сравним с искомым эффектом",
+      "checked": "A/B двух сборок на одном стеке попарно вперемешку; профиль CPU warm; таймлайн транзакций до firstRow"
+    }
+  ],
+  "dp_feedback": "stack.sh жёстко ставит COMPOSE_PROJECT_NAME/порты wb15 и игнорирует export из accept; замер на общей машине без контроля нагрузки ненадёжен; dpcli lock cpu без -- возвращает управление сразу как job.",
+  "extra": {
+    "breakdown": "build/artifacts/PL-1/breakdown.md",
+    "summary_prototype": "build/artifacts/PL-1/summary-gate-load19.txt"
+  },
+  "t": "2026-10-23T23:06:22",
+  "by": "executor"
+}
