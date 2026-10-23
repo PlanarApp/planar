@@ -67,3 +67,5 @@
 {"t": "2026-10-23T15:18:18", "by": "coordinator", "task": "CL-1b", "ev": "checked", "note": "6/6 collab contract=ok:34/34 (пропуск 570); chat-tests=ok:25; api-all=ok:exit 0; shared-all=ok:194/194; build=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-23T15:20:49", "by": "reviewer", "task": "CL-1b", "ev": "reviewed", "note": "Модуль по CH-schema/CH-mutators/CH-api v1: meta.members, 11 мутаторов, REST, afterMutation, canReadFile совпадают с контрактом. Правки только в scope, server-t…", "verdict": "accept", "issues": {"major": 1, "minor": 1}, "review": "docs/plan/collab/tasks/CL-1b.review.json"}
 {"t": "2026-10-23T15:21:04", "by": "coordinator", "task": "CL-1b", "ev": "accepted", "note": "по ревью; major (гонка seq) — CL-1c, minor (wire) — CL-6"}
+{"t": "2026-10-23T15:28:05", "by": "coordinator", "task": "CL-1b", "ev": "accepted", "commits": ["283a33b"], "note": "6/6 collab contract=ok:34/34 (пропуск 570); chat-tests=ok:25; api-all=ok:exit 0; shared-all=ok:194/194; build=ok:exit 0; lint=ok:exit 0"}
+{"t": "2026-10-23T15:28:05", "by": "coordinator", "task": "CL-1b", "ev": "merged"}
