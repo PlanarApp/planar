@@ -98,20 +98,19 @@ function eventsOf(writes: MutationWrite[]): Event[] {
   return out;
 }
 
-/** ruleId → задача текущего запуска: нужна маркеру automations.fire (запуски одного правила идут последовательно). */
-const firing = new Map<string, RunData>();
+/** Запуск правила: хук вызывается после каждой мутации; после последней ставим доставку (в той же транзакции). */
+const firing = new Map<string, { d: RunData; left: number }>();
 
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
-  if (ctx.mutator === 'automations.fire') {
-    const d = ctx.origin && firing.get(ctx.origin.ruleId);
-    if (!d) return;
+  const f = ctx.origin && firing.get(ctx.origin.ruleId);
+  if (f && --f.left === 0) {
     const [r] = (
-      await api.q.execute(sql`select actions from automations_rules where id = ${d.ruleId}`)
+      await api.q.execute(sql`select actions from automations_rules where id = ${f.d.ruleId}`)
     ).rows as { actions: Action[] }[];
     const subs = (r?.actions ?? []).flatMap((a) =>
       a.type === 'send_webhook' ? [a.subscriptionId] : [],
     );
-    return sendWebhooks(api, api.q, subs, d);
+    await sendWebhooks(api, api.q, subs, f.d);
   }
   const depth = (ctx.origin?.depth ?? 0) + 1;
   if (depth > MAX_DEPTH) return;
@@ -357,16 +356,15 @@ async function run(d: RunData, api: JobApi) {
     const hooks = (rule.actions as Action[]).flatMap((a) =>
       a.type === 'send_webhook' ? [a.subscriptionId] : [],
     );
-    if (hooks.length) {
-      muts.push({ name: 'automations.fire', args: { ruleId: d.ruleId } });
-      firing.set(d.ruleId, d);
-    }
+    // без мутаций хук не вызовется: состояние задачи не меняется, шлём после execute
+    if (hooks.length && muts.length) firing.set(d.ruleId, { d, left: muts.length });
     await api.execute(api.systemUserId, muts, {
       system: true,
       origin: { ruleId: d.ruleId, depth: d.depth },
       // неактивная/несуществующая подписка откатывает всё до действий
       prepare: hooks.length ? (q) => checkWebhooks(q, hooks) : undefined,
     });
+    if (hooks.length && !muts.length) await sendWebhooks(api, api.db as never, hooks, d);
   } catch (e) {
     return void (await record(api, d, 'error', e instanceof Error ? e.message : String(e)));
   } finally {
