@@ -1,0 +1,57 @@
+{
+  "status": "done",
+  "summary": "Разбор ключа glob принимает './list/View.vue'; клик по названию откладывает openTask на 250 мс, dblclick отменяет его и включает правку.",
+  "commits": [
+    "82d914d WB-16"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "ok",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "ok",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "ok",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "ok",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "ok",
+      "pass": true
+    },
+    {
+      "name": "real-glob",
+      "value": "ok",
+      "pass": true
+    },
+    {
+      "name": "dblclick",
+      "value": "ok",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-16",
+  "uncertain": [
+    {
+      "where": "apps/web/src/views/list/View.vue:onRowClick",
+      "why": "открытие панели по клику теперь с задержкой 250 мс",
+      "checked": "тесты list:select/list:dblclick; реальный браузер не проверял"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T05:37:52",
+  "by": "executor"
+}
