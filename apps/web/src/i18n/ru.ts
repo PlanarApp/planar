@@ -134,6 +134,12 @@ export default {
       settings: 'Настройки',
     },
   },
+  profile: {
+    weekStart: 'Начало недели',
+    weekAuto: 'Авто (по языку)',
+    weekMon: 'Понедельник',
+    weekSun: 'Воскресенье',
+  },
   calendar: {
     prev: 'Назад',
     next: 'Вперёд',
