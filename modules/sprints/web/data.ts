@@ -2,21 +2,14 @@ import { effectScope, getCurrentScope, onScopeDispose, shallowRef, toValue, watc
 import type { EffectScope } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
 import type { Row } from '@planar/shared';
-import { i18n } from '../../../apps/web/src/i18n';
-import { db, mutate, registerMutators, useQuery } from '../../../apps/web/src/sync';
-import { shared, todayIn, type Cycle, type Settings } from '../shared/index.js';
+import { db, i18n, mutate, useQuery } from '@planar/web/modules';
+import { todayIn, type Cycle, type Settings } from '../shared/index.js';
 
 export const hasTables = () => db.tables.some((t) => t.name === 'sprintsCycles');
 
-/** Мутаторы модуля регистрируются в клиенте при первом использовании (повторная регистрация — Error). */
-export function run(name: string, args: Record<string, unknown>): Promise<void> {
-  try {
-    registerMutators(shared.mutators);
-  } catch {
-    /* уже зарегистрированы */
-  }
-  return mutate(name, args);
-}
+/** Мутаторы модуля регистрирует клиент синхронизации (session.ts). */
+export const run = (name: string, args: Record<string, unknown>): Promise<void> =>
+  mutate(name, args);
 
 export const browserTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 

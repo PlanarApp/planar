@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useQuery } from '../../../apps/web/src/sync';
-import { db } from '../../../apps/web/src/sync';
+import { db, useQuery } from '@planar/web/modules';
 import type { Row } from '@planar/shared';
 import type { Cycle } from '../shared/index.js';
 import { hasTables, run, text } from './data';

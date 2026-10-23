@@ -7,6 +7,7 @@ const sync = vi.hoisted(() => ({
   stopSync: vi.fn(async () => {}),
   clearLocal: vi.fn(async () => {}),
   registerMutators: vi.fn(),
+  moduleMutators: [],
   onUnauthorized: vi.fn(),
   syncState: { value: { status: 'online', pending: 0 } },
 }));

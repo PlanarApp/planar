@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useStatuses } from '../../../apps/web/src/tasks';
-import { newId } from '../../../apps/web/src/sync';
-import { Button, Input } from '../../../apps/web/src/ui';
+import { Button, Input, newId, useStatuses } from '@planar/web/modules';
 import { addDays, todayIn } from '../shared/index.js';
 import { burnup } from './burnup';
 import { browserTz, currentCycle, run, text, useSprintData } from './data';

@@ -22,6 +22,7 @@
     "@planar/module-sprints": "workspace:*",
     "@planar/module-time": "workspace:*",
     "@planar/module-webhooks": "workspace:*",
+    "@planar/server-kit": "workspace:*",
     "@planar/shared": "workspace:*",
     "argon2": "^0.45.1",
     "drizzle-orm": "^0.45.4",
