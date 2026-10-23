@@ -1,0 +1,34 @@
+{
+  "verdict": "rework",
+  "summary": "Токены, Bearer, viaTokenId и миграция сделаны по карточке, контракты не тронуты, файлы вне scope координатор уже добавил. Но запрет /api/tokens для Bearer обходится percent-encoding: guard сравнивает сырой req.url, а Fastify декодирует путь при маршрутизации.",
+  "issues": [
+    {
+      "file": "apps/api/src/auth/auth.guard.ts",
+      "line": 36,
+      "severity": "blocker",
+      "what": "Проверка пути идёт по сырому req.url. Проверил на fastify.inject: GET /api/%74okens попадает в маршрут /api/tokens, а guard его не узнаёт. Write-токен через POST /api/%74okens выпускает новый бессрочный токен (так утёкший токен живёт сколько угодно), DELETE /api/%74okens/:id отзывает чужие сессионные токены владельца, read-токен через GET видит список. Нарушено правило карточки «/api/tokens* с via 'token' → 403».",
+      "fix": "Проверять шаблон маршрута, а не URL: req.routeOptions.url (у Fastify это '/api/tokens' и '/api/tokens/:id'). Или метаданные на TokensController (например @SessionOnly) и чтение их через reflector. Добавить тест: Bearer → POST /api/%74okens → 403."
+    },
+    {
+      "file": "apps/api/src/sync/ws.ts",
+      "line": 66,
+      "severity": "minor",
+      "what": "ws.ts вызывает authenticateRaw, поэтому /ws теперь пускает и по Bearer, а в карточке сказано «WS /ws по токену не нужен (только cookie)». Read-scope тут не проверяется: guard для upgrade не вызывается.",
+      "fix": "Либо в ws.ts отклонять ctx.via === 'token', либо координатор явно разрешает WS по токену."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "tokens_tests",
+      "value": "16 passed",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "16 файлов в границах (после правки scope координатором)",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T06:15:09",
+  "by": "reviewer"
+}
