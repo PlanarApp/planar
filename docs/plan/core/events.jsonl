@@ -326,3 +326,5 @@
 {"t": "2026-10-23T06:51:29", "by": "coordinator", "task": "CR-11", "ev": "accepted", "note": "по ревью (второе); в журнале CR-11 в 06:46 — чужой отчёт (общий /tmp/claude-0/r.json перезаписан соседним исполнителем), верный — b92d270,b95a08e"}
 {"t": "2026-10-23T06:51:29", "by": "coordinator", "task": "CR-10c", "ev": "accepted", "note": "по отчёту"}
 {"t": "2026-10-23T06:51:30", "by": "coordinator", "task": "CR-11", "ev": "merged"}
+{"t": "2026-10-23T06:51:31", "by": "coordinator", "task": "CR-10c", "ev": "merged"}
+{"t": "2026-10-23T06:51:31", "by": "coordinator", "task": null, "ev": "note", "note": "dpcli: исполнители пишут отчёт в общий /tmp/claude-0/r.json — параллельные исполнители перезаписывают друг друга (CR-2 получил текст WB-1, CR-11 — чужой perf-отчёт); шаблон report должен предлагать путь с ID задачи (напр. build/dpcli/<ID>/r.json)."}
