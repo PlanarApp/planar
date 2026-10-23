@@ -52,6 +52,9 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       LOG_LEVEL: info
+      WEBHOOKS_ALLOW_HOSTS: ${WEBHOOKS_ALLOW_HOSTS:-}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     ports:
       - '${API_PORT:-3000}:3000'
     depends_on:
