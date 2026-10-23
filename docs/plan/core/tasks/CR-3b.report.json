@@ -1,0 +1,57 @@
+{
+  "status": "done",
+  "summary": "setup/login/logout/users на argon2id, лимит входа в login_attempts, роли; замечания ревью CR-3a исправлены. Записи users идут через ServerTx.asSystem (put с extra passwordHash), в changes без password_hash.",
+  "commits": [
+    "ab13906 CR-3b: ServerTx.put с extra, users пишутся через ServerTx"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "auth_tests",
+      "value": "32",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-3b",
+  "uncertain": [
+    {
+      "where": "apps/api/test/auth/harness.ts",
+      "why": "каждый файл auth-тестов создаёт свою БД (общая БД ломает seed.test и setup); drop базы не ждём дольше 15 с, на перегруженном сервере БД могут оставаться",
+      "checked": "прогоны accept при load 11-18; до этого падали из-за too many clients и долгого drop"
+    },
+    {
+      "where": "apps/api/src/app.module.ts",
+      "why": "пул закрывается в onApplicationShutdown вместо подмены app.close (подмена не срабатывала)",
+      "checked": "тест подключения закрывается, ошибок нет"
+    },
+    {
+      "where": "apps/api/src/users/users.controller.ts",
+      "why": "смена пароля не сбрасывает чужие сессии",
+      "checked": "в карточке не требуется"
+    }
+  ],
+  "dp_feedback": "job-имена общие между агентами (acc перехвачен чужой задачей); task show обрезает дополнения без --full; тестовая БД общая — seed.test считает всех пользователей.",
+  "t": "2026-10-23T02:50:23",
+  "by": "executor"
+}

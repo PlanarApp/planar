@@ -210,3 +210,6 @@
 {"t": "2026-10-23T02:41:12", "by": "coordinator", "task": "CR-9", "ev": "started"}
 {"t": "2026-10-23T02:41:12", "by": "coordinator", "task": "CR-8a", "ev": "started"}
 {"t": "2026-10-23T02:46:05", "by": "coordinator", "task": "CR-7", "ev": "checked", "note": "6/7 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; notifications_tests=ok:19; migrations_in_sync=ok:exit 0; vapid_gen=ok:2; test=FAIL:exit 1 · [ELIFECYCLE] Test fa…"}
+{"t": "2026-10-23T02:50:16", "by": "executor", "task": "CR-3b", "ev": "checked", "note": "5/5 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; auth_tests=ok:32; test=ok:exit 0"}
+{"t": "2026-10-23T02:50:18", "by": "coordinator", "task": "CR-8a", "ev": "checked", "note": "6/6 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; modules_tests=ok:21; image=ok:image-ok; test=ok:exit 0"}
+{"t": "2026-10-23T02:50:23", "by": "executor", "task": "CR-3b", "ev": "reported", "commits": ["ab13906"], "note": "done: setup/login/logout/users на argon2id, лимит входа в login_attempts, роли; замечания ревью CR-3a исправлены. Записи user…", "dp_feedback": "job-имена общие между агентами (acc перехвачен чужой задачей); task show обрезает дополнения без --full; тестовая БД общая — seed.test считает всех пользователей."}
