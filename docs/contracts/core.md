@@ -230,7 +230,7 @@ scope: space · write: member · bootstrap: yes · indexes: taskId, targetId
 
 | поле | тип | примечание |
 |---|---|---|
-| `id` | uuid | одна строка на пару: уникально (least, greatest) от (taskId, targetId) → `conflict` |
+| `id` | uuid | одна строка на пару: уникальный индекс по least/greatest от taskId, targetId → `conflict` |
 | `spaceId` | uuid | обе задачи — этого пространства |
 | `taskId` | uuid | `blocks`: taskId блокирует targetId; `duplicates`: taskId — дубликат |
 | `targetId` | uuid | ≠ `taskId` |
