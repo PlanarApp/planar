@@ -423,6 +423,9 @@ importers:
       '@nestjs/common':
         specifier: ^11.2.7
         version: 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@planar/server-kit':
+        specifier: workspace:*
+        version: link:../../packages/server-kit
       '@planar/shared':
         specifier: workspace:*
         version: link:../../packages/shared
