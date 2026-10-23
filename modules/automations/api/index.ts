@@ -247,7 +247,7 @@ async function toMutations(api: JobApi, rule: Rule, task: FilterTask, statuses: 
         const first = (c: string) => statuses.find((s) => s.category === c);
         const [last] = await rows(
           api,
-          sql`select max(rank) as r from tasks where parent_id = ${task.id}`,
+          sql`select max(rank collate "C") as r from tasks where parent_id = ${task.id}`,
         );
         muts.push({
           name: 'task.create',
@@ -339,6 +339,11 @@ async function due(data: { now?: string }, api: JobApi) {
         });
     }
   }
+}
+
+/** Раз в сутки: журнал запусков хранится 30 дней. */
+async function cleanup(data: { now?: string }, api: JobApi) {
+  const now = data.now ? new Date(data.now) : new Date();
   await api.db.execute(
     sql`delete from automations_runs where created_at < ${now.toISOString()}::timestamptz - interval '30 days'`,
   );
@@ -347,6 +352,7 @@ async function due(data: { now?: string }, api: JobApi) {
 const jobs = [
   { queue: RUN_QUEUE, retryLimit: 0, handler: run },
   { queue: 'automations.due', cron: '0 * * * *', handler: due },
+  { queue: 'automations.cleanup', cron: '0 3 * * *', handler: cleanup },
 ] as unknown as JobDef[];
 
 @Controller('api/automations')

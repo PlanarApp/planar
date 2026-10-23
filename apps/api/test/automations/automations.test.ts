@@ -555,7 +555,8 @@ describe('wk3: выполнение и защита', () => {
       );
     await mk(31);
     await mk(5);
-    await handler('automations.due').handler({}, api);
+    expect(handler('automations.cleanup').cron).toBe('0 3 * * *');
+    await handler('automations.cleanup').handler({}, api);
     expect(await runsOf(r.id)).toHaveLength(1);
   });
 });
