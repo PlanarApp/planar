@@ -13,6 +13,11 @@ let sha: string;
 let bobCursor = 0;
 let aliceCursor = 0;
 
+// ключи проектов уникальны, а база между прогонами живёт: берём случайные
+const key = () =>
+  Array.from({ length: 5 }, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join(
+    '',
+  );
 const ids = (d: Data, e: string) => (d[e] ?? []).map((r) => r.id);
 
 test.beforeAll(async () => {
@@ -50,7 +55,7 @@ test('admin создаёт приватное пространство, прое
     }),
     // метка нужна сиду --tasks: он раскладывает задачи по всем проектам, в т.ч. оставшимся от e2e
     admin.mut('label.create', { id: uuidv7(), spaceId, name: 'e2e', color: '#3b82f6' }),
-    admin.mut('project.create', { id: projectId, spaceId, name: 'E2E', key: 'E2E', rank: r2 }),
+    admin.mut('project.create', { id: projectId, spaceId, name: 'E2E', key: key(), rank: r2 }),
     admin.mut('task.create', {
       id: taskId,
       projectId,
@@ -138,7 +143,7 @@ test('офлайн-очередь: 30 задач с повтором пачек 
   const pid = uuidv7();
   const rk = ranks(32);
   const queue = [
-    c.mut('project.create', { id: pid, spaceId, name: 'Queue', key: 'QUE', rank: rk[0] }),
+    c.mut('project.create', { id: pid, spaceId, name: 'Queue', key: key(), rank: rk[0] }),
     ...Array.from({ length: 30 }, (_, i) =>
       c.mut('task.create', {
         id: uuidv7(),
