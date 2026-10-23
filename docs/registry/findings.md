@@ -20,3 +20,9 @@ related: []
 ## features
 
 - Ярус A v1 (поля 7 типов, связи, Таблица, Календарь) уложился в расширение core: C-schema v6, C-mutators v3, C-http v8 без правки C-client/C-tasks; Dexie version(1) принимает новые таблицы сам (SchemaDiff), Таблица на 10 000 задач — ≤ 100 строк в DOM, начальный JS 141 КБ gzip, e2e 22/22 — docs/contracts/features.md
+
+## work
+
+- Модули фазы 2 (time, sprints, automations, webhooks, import) встали на расширения ядра C-modules v3→v7 (хук afterMutation с точкой сохранения, pg-boss в транзакции, server-kit без цикла сборки api↔модули, web SDK, сущности модулей в Dexie); импорт ядра относительными путями и через @planar/api ломал сборку — docs/contracts/work.md#C-modules v4
+- Бюджеты §7 после фазы 2 не ухудшились за шумом: A/B 5×5 main→work медианы cold 1713→1691, warm 425→397, mutate 22,1→23,8, switch 95,5→103,5 (+8 %, диапазоны перекрыты), realtime p95 423→444 мс; хост сам у порогов — docs/research/wk16-budgets.md#Вывод
+- Webhooks: SSRF-проверка после DNS-резолва и соединение на проверенный адрес через node:http(s) lookup, повторы 60·2^(n−1) с (11 попыток ≈17 ч), подпись сверяется эталоном контракта — docs/contracts/work.md#Модуль webhooks (WK-4)
