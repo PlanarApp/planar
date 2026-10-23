@@ -186,6 +186,7 @@ export default {
       operator: 'Operator',
       value: 'Value',
       me: 'Me',
+      cycleCurrent: 'Current',
       date: 'Date: 2026-12-31, today, today+7',
       fields: {
         status: 'Status',
@@ -196,6 +197,7 @@ export default {
         dueDate: 'Due date',
         title: 'Title',
         createdBy: 'Author',
+        cycle: 'Sprint',
       },
       ops: {
         in: 'is any of',
