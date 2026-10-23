@@ -49,12 +49,9 @@ describe('views:builder', () => {
     expect(state.value.rules[0]).toEqual({ field: 'status', operator: 'notIn' });
     await w.get('[data-role=field]').setValue('dueDate');
     // операторы поля — только допустимые, первый выбран
-    expect(w.findAll('[data-role=operator] option').map((o) => o.element.value)).toEqual([
-      'before',
-      'after',
-      'isEmpty',
-      'isNotEmpty',
-    ]);
+    expect(
+      w.findAll('[data-role=operator] option').map((o) => (o.element as HTMLOptionElement).value),
+    ).toEqual(['before', 'after', 'isEmpty', 'isNotEmpty']);
     expect(state.value.rules[0]).toEqual({ field: 'dueDate', operator: 'before' });
   });
   it('views:builder переключатель И/ИЛИ и значение без редактора для isEmpty', async () => {

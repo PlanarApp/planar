@@ -162,14 +162,14 @@ describe('views:saved', () => {
     const w = mountScreen(SavedViewScreen);
     await until(() => w.find('[data-testid=view]').exists());
     const el = w.get('[data-testid=view]');
-    expect(JSON.parse(el.attributes('data-options'))).toEqual({
+    expect(JSON.parse(el.attributes('data-options')!)).toEqual({
       groupBy: 'priority',
       sortBy: 'rank',
       sortDir: 'desc',
       showSubtasks: false,
       fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
     });
-    expect(JSON.parse(el.attributes('data-filter'))).toEqual(v.filter);
+    expect(JSON.parse(el.attributes('data-filter')!)).toEqual(v.filter);
   });
 
   it('views:saved правки — черновик; «Сохранить» → view.update, «Сбросить» возвращает', async () => {
@@ -179,7 +179,7 @@ describe('views:saved', () => {
     const w = mountScreen(SavedViewScreen);
     await until(() => w.find('[data-testid=view]').exists());
     expect(w.find('[data-testid=saved-save]').exists()).toBe(false);
-    const dir = () => JSON.parse(w.get('[data-testid=view]').attributes('data-options')).sortDir;
+    const dir = () => JSON.parse(w.get('[data-testid=view]').attributes('data-options')!).sortDir;
     await w.get('[aria-label="Порядок сортировки"]').trigger('click');
     expect(dir()).toBe('asc');
     expect((await rows())[0].config.sortDir).toBe('desc'); // в реплике пока старое

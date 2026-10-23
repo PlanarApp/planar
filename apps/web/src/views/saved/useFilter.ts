@@ -12,7 +12,7 @@ export function useTaskFilter(
   const { user } = useAuth();
   return computed(() => {
     const f = toValue(filter);
-    if (!f?.rules.length) return (_: TaskView) => true;
+    if (!f?.rules.length) return () => true;
     const ctx = {
       statuses: toValue(statuses) ?? [],
       userId: user.value?.id ?? '',
