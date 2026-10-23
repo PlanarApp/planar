@@ -1,0 +1,62 @@
+{
+  "status": "done",
+  "summary": "MCP /mcp (SDK 1.32.1, zod 4, stateless, Bearer-only, 8 инструментов, ошибки сервиса и прав — isError {code,message}); tokenId прокинут в REST и MCP (activity.viaTokenId); searchTasks в RestService; docs/guides/mcp.md.",
+  "commits": [
+    "b95a08e MCP-сервер /mcp, viaTokenId, гайд"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "mcp_tests",
+      "value": "13",
+      "pass": true
+    },
+    {
+      "name": "guide",
+      "value": "ошибок 0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-11",
+  "uncertain": [
+    {
+      "where": "apps/api/test/mcp/bridge.mjs",
+      "why": "vitest запускает node с --conditions source: зависимость SDK eventsource-parser грузится из src/*.ts и падает; клиент SDK вынесен в дочерний node-процесс (vitest.config.ts вне скоупа)",
+      "checked": "13 тестов проходят, клиент — Client + StreamableHTTPClientTransport"
+    },
+    {
+      "where": "apps/api/src/mcp/mcp.controller.ts",
+      "why": "enableJsonResponse: true — ответы JSON, не SSE; стриминга нет (stateless, не нужен)",
+      "checked": "initialize/tools/list/callTool клиентом SDK"
+    },
+    {
+      "where": "apps/api/src/rest/rest.service.ts searchTasks",
+      "why": "ключ ищется как key||'-'||number подзапросом, без индекса",
+      "checked": "тест по заголовку и ключу, спецсимволы %_ экранируются"
+    }
+  ],
+  "dp_feedback": "Нет способа сообщить, что нужна правка вне скоупа (vitest.config) без contract; docs index трогает лишний registry/contracts.md — пришлось откатывать.",
+  "t": "2026-10-23T06:36:23",
+  "by": "executor"
+}

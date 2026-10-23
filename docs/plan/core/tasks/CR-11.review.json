@@ -1,0 +1,34 @@
+{
+  "verdict": "accept",
+  "summary": "MCP /mcp по контракту C-http v7 (core-api-v1 «MCP»): stateless, 8 инструментов, isError {code,message}, tokenId прокинут в REST и MCP. Скоуп соблюдён, mcp_tests перезапущен — 13 PASS. Одна дыра в «только Bearer»: её легко закрыть, но она не blocker.",
+  "issues": [
+    {
+      "file": "apps/api/src/mcp/mcp.controller.ts",
+      "line": 24,
+      "severity": "major",
+      "what": "Bearer-only обходится: контроллер проверяет /^Bearer /i, а authenticateRaw ловит только 'Bearer plnr_…'. С заголовком 'Authorization: Bearer x', cookie сессии и верным Origin запрос проходит по cookie (via='session', tokenScope отсутствует, read-ограничения нет). Контракт: «Вход — только Bearer-токен». Тест 116 этот случай не покрывает.",
+      "fix": "После authenticateRaw требовать ctx?.via === 'token', иначе 401. Либо не передавать cookie: authenticateRaw(db, {authorization: req.headers.authorization}, …). Добавить тест: cookie + 'Bearer x' → 401."
+    },
+    {
+      "file": "apps/api/src/mcp/tools.ts",
+      "line": 86,
+      "severity": "minor",
+      "what": "get_task отдаёт comments[].body, а add_comment — body целиком как ProseMirror-документ. Контракт требует компактный JSON без документов целиком; описание задачи уже переводится в текст.",
+      "fix": "Переводить body комментариев в текст через docToText, как description."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "mcp_tests",
+      "value": "13",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "11 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T06:41:24",
+  "by": "reviewer"
+}
