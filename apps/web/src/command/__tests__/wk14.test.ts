@@ -25,7 +25,8 @@ vi.mock('../../router', async () => {
 
 const { registerModules, setEnabledModules } = await import('../../modules/registry');
 const { ui } = await import('../hotkeys');
-const { queryProviders, useProviderGroups, PROVIDER_DEBOUNCE_MS } = await import('../providers');
+const { queryProviders, useProviderGroups, PROVIDER_DEBOUNCE_MS, PROVIDER_TIMEOUT_MS } =
+  await import('../providers');
 const CommandHost = (await import('../CommandHost.vue')).default;
 
 const calls: [string, number][] = [];
@@ -94,6 +95,24 @@ describe('wk14: поиск модулей в палитре', () => {
     const empty = { key: 'c:s', id: 's', label: 'Пусто', search: async () => [] };
     const g = await queryProviders([ok, bad, empty], 'q', (l) => String(l));
     expect(g.map((x) => [x.label, x.hits.length])).toEqual([['Док', 5]]);
+  });
+
+  it('wk14: queryProviders — зависший провайдер по таймауту скрывается, остальные отвечают', async () => {
+    vi.useFakeTimers();
+    try {
+      const hang = {
+        key: 'h:s',
+        id: 's',
+        label: 'Висит',
+        search: () => new Promise<never>(() => {}),
+      };
+      const ok = { key: 'o:s', id: 's', label: 'Ок', search: async () => [hit(1)] };
+      const p = queryProviders([hang, ok], 'q', String);
+      await vi.advanceTimersByTimeAsync(PROVIDER_TIMEOUT_MS + 1);
+      expect((await p).map((g) => g.label)).toEqual(['Ок']);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('wk14: debounce 150 мс — один запрос на последний ввод', async () => {

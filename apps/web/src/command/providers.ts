@@ -8,6 +8,7 @@ export interface ProviderGroup {
 }
 export const PROVIDER_LIMIT = 5;
 export const PROVIDER_DEBOUNCE_MS = 150;
+export const PROVIDER_TIMEOUT_MS = 2000;
 
 type Provider = SearchProviderDef & { key: string };
 
@@ -20,7 +21,14 @@ export async function queryProviders(
   const out = await Promise.all(
     providers.map(async (p): Promise<ProviderGroup | null> => {
       try {
-        const hits = (await p.search(q, PROVIDER_LIMIT)).slice(0, PROVIDER_LIMIT);
+        const hits = (
+          await Promise.race([
+            p.search(q, PROVIDER_LIMIT),
+            new Promise<never>((_, rej) =>
+              setTimeout(() => rej(new Error('timeout')), PROVIDER_TIMEOUT_MS),
+            ),
+          ])
+        ).slice(0, PROVIDER_LIMIT);
         return hits.length ? { key: p.key, label: label(p.label), hits } : null;
       } catch {
         return null;
