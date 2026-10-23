@@ -1,0 +1,62 @@
+{
+  "status": "done",
+  "summary": "push-sw.js вручную проверяет title/body/url/tag(uuid)/kind, не по схеме не показывает (console.warn); клик открывает только URL своего origin, иначе корень. Тесты inbox:push-format (4).",
+  "commits": [
+    "61a50d5 push-sw: формат C-http v5 и безопасный переход"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "pwa",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "push-format",
+      "value": "4 passed",
+      "pass": true
+    },
+    {
+      "name": "accept --dry",
+      "value": "7/7",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-9a",
+  "uncertain": [
+    {
+      "where": "apps/web/public/push-sw.js valid()",
+      "why": "SW строже схемы: отвергает url '//host', схема его пропускает",
+      "checked": "по карточке; тест сверки со схемой учитывает это отличие. Предложить координатору усилить схему"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T02:31:34",
+  "by": "executor"
+}
