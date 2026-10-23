@@ -63,7 +63,8 @@ prodsmoke() {
   export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-planar-prod-smoke}"
   export HTTP_PORT="${HTTP_PORT:-8080}" HTTPS_PORT="${HTTPS_PORT:-8443}"
   export PUBLIC_URL="http://localhost:$HTTP_PORT" COOKIE_SECURE=false SITE_ADDRESS=:80
-  local P=(docker compose -f compose.yml -f deploy/compose.smoke.yml) rc=0
+  P=(docker compose -f compose.yml -f deploy/compose.smoke.yml)
+  local rc=0
   trap '"${P[@]}" down -v --remove-orphans >/dev/null 2>&1 || true' EXIT
   pnpm install --frozen-lockfile && pnpm --filter @planar/web build || return 1
   "${P[@]}" up -d --build || return 1
