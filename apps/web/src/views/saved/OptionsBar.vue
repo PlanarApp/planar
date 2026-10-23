@@ -7,7 +7,7 @@ import type { Filter } from '../filter';
 import { TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
 import FilterBuilder from './FilterBuilder.vue';
 
-defineProps<{ spaceId: string }>();
+defineProps<{ spaceId: string; projectId?: string }>();
 const options = defineModel<ViewOptions>('options', { required: true });
 const filter = defineModel<Filter | null>('filter', { default: null });
 const { t } = useI18n();
@@ -70,6 +70,7 @@ const toggleField = (f: TaskField) =>
       <FilterBuilder
         :model-value="filter ?? { op: 'and', rules: [] }"
         :space-id="spaceId"
+        :project-id="projectId"
         @update:model-value="filter = $event"
       />
     </div>
