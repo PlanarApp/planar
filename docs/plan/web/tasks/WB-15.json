@@ -34,6 +34,11 @@
   ],
   "accept": [
     {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm exec eslint e2e/web/perf && pnpm exec prettier --check e2e/web/perf",
+      "expect": "exit=0"
+    },
+    {
       "name": "cold",
       "cmd": "cat build/wb15-measure.txt",
       "expect": "num:cold_bootstrap_ms=([\\d.]+) <=2000"
@@ -69,18 +74,13 @@
       "expect": "num:realtime_ms_p95=([\\d.]+) <=500"
     },
     {
-      "name": "lint",
-      "cmd": "pnpm install --frozen-lockfile && pnpm exec eslint e2e/web/perf && pnpm exec prettier --check e2e/web/perf",
-      "expect": "exit=0"
-    },
-    {
       "name": "measure",
-      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-wb15 API_PORT=3215 WEB_PORT=5315 DEV_PG_PORT=55515; mkdir -p build; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed --tasks 10000 && E2E_BASE_URL=http://localhost:5315 pnpm --filter @planar/e2e exec playwright test -c web/perf/playwright.config.ts > build/wb15-measure.txt 2>&1; rc=$?; docker compose -f compose.dev.yml down -v; cat build/wb15-measure.txt; exit $rc",
+      "cmd": "bash e2e/web/perf/run.sh > build/wb15-measure.txt 2>&1; rc=$?; cat build/wb15-measure.txt; exit $rc",
       "expect": "exit=0"
     }
   ],
   "report_extra": [],
   "notes": "",
   "created": "2026-10-23T04:11:38",
-  "edited": "2026-10-23T05:31:14"
+  "edited": "2026-10-23T06:37:33"
 }
