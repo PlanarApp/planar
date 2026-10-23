@@ -191,4 +191,21 @@ describe('views:saved', () => {
     await until(async () => (await rows())[0].config.sortDir === 'asc');
     await until(() => !w.find('[data-testid=saved-save]').exists());
   });
+
+  it('polish: views:saved чужой личный вид не правится', async () => {
+    const v = savedRow({ userId: ids.bob });
+    await db.table('savedViews').put(v);
+    await r.push(`/p/${ids.project}/v/${v.id}`);
+    const w = mountScreen(SavedViewScreen);
+    await until(() => w.find('[data-testid=view]').exists());
+    await w.get('[aria-label="Порядок сортировки"]').trigger('click');
+    await until(() => w.find('[data-testid=saved-reset]').exists());
+    expect(w.find('[data-testid=saved-save]').exists()).toBe(false);
+  });
+
+  it('polish: views:saved optionsFrom — fields не массив или с неизвестными значениями', async () => {
+    const { optionsFrom, DEFAULT_OPTIONS } = await import('../options');
+    expect(optionsFrom({ fields: 'status' }).fields).toEqual(DEFAULT_OPTIONS.fields);
+    expect(optionsFrom({ fields: ['status', 'bogus', 3] }).fields).toEqual(['status']);
+  });
 });

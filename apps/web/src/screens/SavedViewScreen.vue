@@ -3,6 +3,7 @@ import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Check, RotateCcw } from 'lucide-vue-next';
+import { useAuth } from '../auth/useAuth';
 import { useProject } from '../tasks';
 import { Button } from '../ui';
 import { useExtensions } from '../modules/registry';
@@ -23,6 +24,7 @@ const project = useProject(projectId);
 const spaceId = computed(() => project.value?.spaceId ?? '');
 const saved = useSavedView(viewId);
 const canShare = useCanShare(spaceId);
+const { user } = useAuth();
 const extViews = useExtensions('views');
 
 const plain = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
@@ -57,7 +59,11 @@ const dirty = computed(() => {
     JSON.stringify(d.filter) !== JSON.stringify(filter.value)
   );
 });
-const editable = computed(() => !!saved.value && (saved.value.userId !== null || canShare.value));
+const editable = computed(
+  () =>
+    !!saved.value &&
+    (saved.value.userId === null ? canShare.value : saved.value.userId === user.value?.id),
+);
 const save = () =>
   updateView(viewId.value, { config: options.value, filter: filter.value ?? emptyFilter() });
 

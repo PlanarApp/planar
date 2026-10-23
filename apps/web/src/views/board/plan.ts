@@ -70,6 +70,11 @@ export function planMove(
   if (!task || !target) return null;
   const at = beforeId === null ? -1 : target.findIndex((t) => t.id === beforeId);
   const i = at < 0 ? target.length : at;
+  // бросили на прежнее место — мутации нет
+  if (from === to) {
+    const col = columns.find((c) => c.key === from)!.tasks;
+    if (beforeId === id || i === col.findIndex((t) => t.id === id)) return null;
+  }
   const plan: MovePlan = {
     id,
     after: target[i - 1]?.rank ?? null,

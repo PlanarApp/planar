@@ -78,7 +78,7 @@ function save() {
           'size-4 focus-visible:opacity-100 group-hover:opacity-100',
           selected ? 'opacity-100' : 'opacity-0',
         ]"
-        @change="emit('toggle')"
+        @change="(emit('toggle'), emit('done'))"
       />
     </div>
     <div role="gridcell" class="w-16 shrink-0 truncate text-xs text-fg-subtle">{{ task.key }}</div>
