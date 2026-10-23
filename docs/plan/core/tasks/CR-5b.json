@@ -27,7 +27,11 @@
     "packages/shared/test/mutators/",
     "apps/api/src/db/schema.ts",
     "apps/api/drizzle/",
-    "docs/contracts/core.md,apps/api/test/contract.schema.test.ts,packages/shared/test/contract-doc.ts,packages/shared/test/contract.mutators.test.ts,packages/shared/test/check-mutators.ts"
+    "docs/contracts/core.md",
+    "apps/api/test/contract.schema.test.ts",
+    "packages/shared/test/contract-doc.ts",
+    "packages/shared/test/contract.mutators.test.ts",
+    "packages/shared/test/check-mutators.ts"
   ],
   "dont_touch": [
     "apps/api/src/sync/",
@@ -87,5 +91,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-23T00:30:46",
-  "edited": "2026-10-23T00:31:08"
+  "edited": "2026-10-23T00:49:43"
 }
