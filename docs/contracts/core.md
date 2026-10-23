@@ -5,7 +5,7 @@ module: core
 updated: 2026-10-22
 summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 related: ["docs/plan/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-schema", "version": 4}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 6}]
+contracts: [{"id": "C-schema", "version": 4}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 7}]
 ---
 
 # Контракты модуля core
@@ -500,7 +500,7 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v6
+## C-http v7
 
 ### Пути и окружение
 - `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11). В dev Vite проксирует их на api, в prod — Caddy.
@@ -533,7 +533,7 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 ### Сессия и Origin
 - Cookie `planar_sid`: случайные 32 байта, base64url; `HttpOnly; SameSite=Lax; Path=/`, `Secure` при `COOKIE_SECURE=true`. В БД — только sha256 hex (`sessions.id`). Срок 30 дней, продлевается, когда осталось < 15.
 - Небезопасные методы (POST, PUT, PATCH, DELETE) с cookie-авторизацией и upgrade `/ws`: заголовок `Origin` обязан совпасть с origin `PUBLIC_URL`, иначе `403 origin_mismatch` (нет заголовка — тоже отказ).
-- `Authorization: Bearer plnr_<…>` (CR-10) даёт тот же `ctx.userId`; Origin не проверяется. Токен `read` — только GET и `/sync/bootstrap`, `/sync/pull`; иначе `403 forbidden`.
+- `Authorization: Bearer plnr_<…>` (CR-10) даёт тот же `ctx.userId`; Origin не проверяется. Токен `read` — только GET и `/sync/bootstrap`, `/sync/pull`; иначе `403 forbidden`. Токены, REST `/api/v1` и MCP `/mcp` — `docs/contracts/core-api-v1.md` (часть C-http).
 - Деактивированный пользователь — `401 unauthenticated` (сессии удаляются).
 
 ### Эндпоинты core

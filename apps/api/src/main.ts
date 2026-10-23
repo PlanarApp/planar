@@ -22,6 +22,14 @@ const app = await createApp({
   cookieSecure: process.env.COOKIE_SECURE === 'true',
   dataDir: process.env.DATA_DIR,
   maxUploadMb: maxUploadMb,
+  push: {
+    boss: true,
+    vapid: {
+      publicKey: process.env.VAPID_PUBLIC_KEY,
+      privateKey: process.env.VAPID_PRIVATE_KEY,
+      subject: process.env.VAPID_SUBJECT,
+    },
+  },
   logger: { level: process.env.LOG_LEVEL ?? 'info' },
 });
 await app.listen(Number(process.env.PORT ?? 3000), '0.0.0.0');
