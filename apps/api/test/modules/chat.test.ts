@@ -503,8 +503,6 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
   });
 });
 
-describe('chat: уведомления и push', () => {
-  const body = (c: R) => c.body as string;
 
   it('упоминание → chat_mention; автор и упомянутый-автор без уведомления; push в очереди', async () => {
     const ch = await mkChannel();
