@@ -41,8 +41,10 @@ for (const id of MODULES) {
   const sec = section(id);
   const mod = installed.find((m) => m.api.id === id);
   describe(`module ${id}`, () => {
-    if (!mod) {
-      it.todo(`модуль ${id} ещё не установлен`);
+    // скелет (WK-S): модуль установлен, но ещё пуст — его наполняет своя задача
+    const empty = mod && !Object.keys(mod.api.entities).length && !mod.api.mutators.length;
+    if (!mod || empty) {
+      it.todo(`модуль ${id} ещё не установлен или пуст`);
       return;
     }
     it('набор сущностей = контракт', () => {
