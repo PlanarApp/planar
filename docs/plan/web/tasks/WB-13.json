@@ -1,0 +1,90 @@
+{
+  "id": "WB-13",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Бюджет начального бандла: запас до ≤ 150 КБ",
+  "goal": "Сократить начальный JS (сейчас 186.1 КБ gzip при лимите 200) до ≤ 150 КБ без новых зависимостей и без потери функций: замер по чанкам до/после, решения обоснованы числами.",
+  "plan_ref": "4. Правила среды",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-client",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-13",
+  "branch": "web/WB-13",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/vite.config.ts",
+    "apps/web/src/main.ts",
+    "apps/web/src/App.vue",
+    "apps/web/src/i18n/",
+    "apps/web/src/router.ts",
+    "apps/web/src/session.ts",
+    "apps/web/src/layout/",
+    "apps/web/scripts/"
+  ],
+  "dont_touch": [
+    "контрактные тесты в apps/web/src/__contract__ не править",
+    "src/tasks/, src/sync/, src/ui/ — контракты как есть",
+    "в package.json и pnpm-lock.yaml — ничего",
+    "packages/",
+    "apps/api/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md",
+    "apps/web/scripts/size.mjs — порядок подсчёта начальных чанков не менять (только при явной ошибке подсчёта — «WB-13 contract: …»)",
+    "src/views/, src/task/, src/command/, src/inbox/, src/screens/ — WB-6b и WB-12 идут параллельно"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__",
+      "expect": "num:Tests\\s+(\\d+) passed >=102"
+    },
+    {
+      "name": "pwa",
+      "cmd": "node apps/web/scripts/pwa-check.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=150"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T02:05:01"
+}

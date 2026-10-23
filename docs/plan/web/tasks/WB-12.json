@@ -1,0 +1,90 @@
+{
+  "id": "WB-12",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Полировка по замечаниям ревью волн 3–4",
+  "goal": "Исправить накопленные мелкие замечания ревью WB-4, WB-5, WB-7, WB-8, WB-9, WB-10 — каждое с тестом.",
+  "plan_ref": "6. Волны",
+  "contracts": [
+    {
+      "name": "C-views",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-12",
+  "branch": "web/WB-12",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/views/list/",
+    "apps/web/src/views/board/",
+    "apps/web/src/views/options.ts",
+    "apps/web/src/views/__tests__/",
+    "apps/web/src/screens/SavedViewScreen.vue",
+    "apps/web/src/command/",
+    "apps/web/src/inbox/",
+    "apps/web/src/screens/settings/__tests__/",
+    "apps/web/src/modules/__tests__/"
+  ],
+  "dont_touch": [
+    "контрактные тесты в apps/web/src/__contract__ не править",
+    "src/tasks/, src/sync/, src/ui/ — контракты как есть",
+    "в package.json и pnpm-lock.yaml — ничего",
+    "packages/",
+    "apps/api/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md",
+    "src/task/, src/api/, ProfileScreen — WB-6b"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__",
+      "expect": "num:Tests\\s+(\\d+) passed >=102"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "polish",
+      "cmd": "pnpm --filter web exec vitest run src -t polish:",
+      "expect": "num:Tests\\s+(\\d+) passed >=9"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T02:04:38"
+}
