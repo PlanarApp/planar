@@ -43,9 +43,11 @@ async function editTitle(page: Page, key: string, title: string): Promise<number
   await row.locator('span.truncate.block').dblclick();
   const input = row.getByRole('textbox');
   await input.fill(title);
-  const done = page.evaluate(
-    ([k, t]) =>
-      new Promise<number>((res) => {
+  // слушатели ставятся и подтверждаются до Enter: иначе быстрая правка обгоняет page.evaluate
+  await page.evaluate(
+    ([k, t]) => {
+      const w = window as unknown as { __done: Promise<number> };
+      w.__done = new Promise<number>((res) => {
         let t0 = 0;
         document.addEventListener('keydown', (e) => e.key === 'Enter' && (t0 = performance.now()), {
           capture: true,
@@ -59,11 +61,12 @@ async function editTitle(page: Page, key: string, title: string): Promise<number
           }
         });
         mo.observe(document, { childList: true, subtree: true, characterData: true });
-      }),
+      });
+    },
     [key, title] as const,
   );
   await page.keyboard.press('Enter');
-  return done;
+  return page.evaluate(() => (window as unknown as { __done: Promise<number> }).__done);
 }
 
 test('бюджеты §7', async ({ browser }) => {
@@ -189,29 +192,34 @@ test('бюджеты §7', async ({ browser }) => {
   const rt: number[] = [];
   for (const [i, k] of rk.entries()) {
     const title = `rt ${i} ${Date.now()}`;
-    const seen = b.evaluate(
-      ([k, t]) =>
-        new Promise<number>((res) => {
+    // слушатели у A и B готовы до Enter
+    await b.evaluate(
+      ([k, t]) => {
+        const w = window as unknown as { __seen: Promise<number> };
+        w.__seen = new Promise<number>((res) => {
           const ok = () =>
             document.querySelector(`[data-task="${k}"] span.truncate.block`)?.textContent === t;
           const mo = new MutationObserver(() => ok() && (mo.disconnect(), res(Date.now())));
           mo.observe(document, { childList: true, subtree: true, characterData: true });
-        }),
+        });
+      },
       [k, title] as const,
     );
-    const sent = a.evaluate(
-      () =>
-        new Promise<number>((res) =>
-          document.addEventListener('keydown', (e) => e.key === 'Enter' && res(Date.now()), {
-            capture: true,
-            once: true,
-          }),
-        ),
-    );
+    await a.evaluate(() => {
+      const w = window as unknown as { __sent: Promise<number> };
+      w.__sent = new Promise<number>((res) =>
+        document.addEventListener('keydown', (e) => e.key === 'Enter' && res(Date.now()), {
+          capture: true,
+          once: true,
+        }),
+      );
+    });
     const row = a.locator(`[data-task="${k}"]`);
     await row.locator('span.truncate.block').dblclick();
     await row.getByRole('textbox').fill(title);
     await a.keyboard.press('Enter');
+    const seen = b.evaluate(() => (window as unknown as { __seen: Promise<number> }).__seen);
+    const sent = a.evaluate(() => (window as unknown as { __sent: Promise<number> }).__sent);
     rt.push((await seen) - (await sent));
   }
   out('realtime_ms_p95', p95(rt));

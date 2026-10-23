@@ -5,6 +5,7 @@ export {
   useMembers,
   useLabels,
   useProjectTasks,
+  prefetchProject,
   useTask,
 } from './queries';
 export type { TaskView } from './queries';

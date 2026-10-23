@@ -11,7 +11,7 @@ import {
   type MutatorCtx,
   type MutatorDef,
 } from '@planar/shared';
-import { PlanarDB, type QueueItem, type Undo } from './db';
+import { PlanarDB, type QueueItem, type ReplicaChange, type Undo } from './db';
 import { DexieTx, applyUndo } from './dexie-tx';
 
 export interface StartOpts {
@@ -41,6 +41,63 @@ class HttpError extends Error {
   }
 }
 const LOCK = 'planar-sync-leader';
+const CHANNEL = 'planar-replica';
+const RESET: ReplicaChange = { entity: '*', id: '*', row: null };
+export type ReplicaState = 'empty' | 'partial' | 'complete';
+/** Таблицы, которые bootstrap пишет вторым этапом (строки не открытого проекта), с полем связи. */
+const DEFERRED: Record<string, 'id' | 'taskId'> = {
+  tasks: 'id',
+  taskAssignees: 'taskId',
+  taskLabels: 'taskId',
+  checklistItems: 'taskId',
+  comments: 'taskId',
+  attachments: 'taskId',
+  commentReactions: 'taskId', // фактически commentId — см. splitBootstrap
+};
+const BATCH = 1000;
+
+type Rows = Record<string, unknown>[];
+
+/** Проект, открытый по адресу: /p/:projectId или /t/:key (PLN-12 или uuid задачи). */
+function openProject(data: Record<string, Rows>): string | undefined {
+  const path = globalThis.location?.pathname ?? '';
+  const p = /^\/p\/([^/]+)/.exec(path)?.[1];
+  if (p) return data.projects?.some((x) => x.id === p) ? p : undefined;
+  const t = /^\/t\/([^/]+)/.exec(path)?.[1];
+  if (!t) return undefined;
+  const k = /^(.+)-\d+$/.exec(decodeURIComponent(t))?.[1];
+  const byKey = k && data.projects?.find((x) => x.key === k)?.id;
+  return (byKey || data.tasks?.find((x) => x.id === t)?.projectId || undefined) as
+    string | undefined;
+}
+
+/** Строки открытого проекта + остальные пачки; без открытого проекта — undefined (пишем всё сразу). */
+function splitBootstrap(data: Record<string, Rows>) {
+  const pid = openProject(data);
+  if (!pid) return undefined;
+  const hotTasks = new Set<string>();
+  for (const t of data.tasks ?? []) if (t.projectId === pid) hotTasks.add(t.id as string);
+  const hotComments = new Set<string>();
+  for (const c of data.comments ?? [])
+    if (hotTasks.has(c.taskId as string)) hotComments.add(c.id as string);
+  const hot: Record<string, Rows> = {};
+  const rest: [string, Rows][] = [];
+  for (const [name, rows] of Object.entries(data)) {
+    const key = DEFERRED[name];
+    if (!key) {
+      hot[name] = rows;
+      continue;
+    }
+    const isHot =
+      name === 'commentReactions'
+        ? (r: Record<string, unknown>) => hotComments.has(r.commentId as string)
+        : (r: Record<string, unknown>) => hotTasks.has(r[key] as string);
+    hot[name] = rows.filter(isHot);
+    const other = rows.filter((r) => !isHot(r));
+    if (other.length) rest.push([name, other]);
+  }
+  return { hot, rest };
+}
 const BACKOFF = (n: number) => Math.min(30_000, 1000 * 2 ** n);
 
 export function createClient(db: PlanarDB) {
@@ -48,6 +105,28 @@ export function createClient(db: PlanarDB) {
   const syncState = ref({ status: 'idle' as SyncStatus, pending: 0 });
   const errorCbs = new Set<(e: MutationErrorInfo) => void>();
   const authCbs = new Set<() => void>();
+  const replicaCbs = new Set<(b: ReplicaChange[]) => void>();
+  const replicaState = ref<ReplicaState>('empty');
+  // другие вкладки: те же пачки; db.name — чтобы клиенты разных баз (тесты) не слышали друг друга
+  const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(CHANNEL);
+  (channel as { unref?: () => void } | null)?.unref?.();
+  const fire = (b: ReplicaChange[]) => {
+    for (const cb of [...replicaCbs])
+      try {
+        cb(b);
+      } catch (e) {
+        console.error(e);
+      }
+  };
+  channel?.addEventListener('message', (ev: MessageEvent) => {
+    if (ev.data?.db === db.name && Array.isArray(ev.data.batch)) fire(ev.data.batch);
+  });
+  /** после коммита: подписчикам этой вкладки и (если не local) остальным вкладкам */
+  const emit = (b: ReplicaChange[], local = false) => {
+    if (!b.length) return;
+    fire(b);
+    if (!local) channel?.postMessage({ db: db.name, batch: b });
+  };
 
   let opts: StartOpts | null = null;
   let gen = 0; // номер запуска: отсекает хвосты прошлых startSync
@@ -86,10 +165,13 @@ export function createClient(db: PlanarDB) {
     if (!opts) throw new Error('sync не запущен: вызовите startSync');
     const createdAt = new Date().toISOString();
     const undo: Undo[] = [];
+    const changes: ReplicaChange[] = [];
     await db.transaction('rw', db.tables, async () => {
-      await def.run(new DexieTx(db, undo), parsed.data, ctx(createdAt));
+      changes.length = 0;
+      await def.run(new DexieTx(db, undo, changes), parsed.data, ctx(createdAt));
       await db._queue.add({ name, args, createdAt, undo });
     });
+    emit(changes);
     // pending и отправку подхватывает подписка на _queue из startSync (в том числе из других вкладок)
   }
 
@@ -109,20 +191,35 @@ export function createClient(db: PlanarDB) {
     lastMutationId?: number;
     drop?: Set<number>;
   }): Promise<void> {
+    const g = gen;
+    const changes: ReplicaChange[] = [];
+    let rest: [string, Rows][] = [];
     await db.transaction('rw', db.tables, async () => {
+      changes.length = 0;
+      rest = [];
       const queue = await db._queue.orderBy('id').toArray();
       if (p.bootstrap) {
+        changes.push(RESET);
+        // shortcut: с неподтверждённой очередью пишем всё сразу — rebase не должен гоняться с фоновой записью
+        const split = queue.length ? undefined : splitBootstrap(p.bootstrap);
+        const data = split?.hot ?? p.bootstrap;
+        rest = split?.rest ?? [];
         for (const t of db.entityTables()) {
           await t.clear();
-          const rows = p.bootstrap[t.name] ?? [];
+          const rows = data[t.name] ?? [];
           for (let i = 0; i < rows.length; i += 2000) await t.bulkPut(rows.slice(i, i + 2000));
         }
       } else {
-        for (const q of queue.slice().reverse()) await applyUndo(db, q.undo ?? []);
+        for (const q of queue.slice().reverse()) await applyUndo(db, q.undo ?? [], changes);
         for (const c of p.changes ?? []) {
           if (!db.tables.some((t) => t.name === c.entity)) continue;
           if (c.op === 'put') await db.table(c.entity).put(c.data);
           else await db.table(c.entity).delete(c.id);
+          changes.push({
+            entity: c.entity,
+            id: c.id,
+            row: c.op === 'put' ? (c.data ?? null) : null,
+          });
         }
       }
       for (const q of queue) {
@@ -134,18 +231,40 @@ export function createClient(db: PlanarDB) {
         try {
           const def = registry.get(q.name);
           if (!def) throw new MutatorError('invalid_args', `неизвестный мутатор: ${q.name}`);
-          await def.run(new DexieTx(db, undo), def.args.parse(q.args), ctx(q.createdAt));
+          await def.run(new DexieTx(db, undo, changes), def.args.parse(q.args), ctx(q.createdAt));
           await db._queue.update(q.id!, { undo });
         } catch {
           // не применима к реплике: пропускаем локальный эффект, но оставляем в очереди — судит сервер
-          await applyUndo(db, undo);
+          await applyUndo(db, undo, changes);
           await db._queue.update(q.id!, { undo: [] });
         }
       }
-      if (p.cursor !== undefined) await db._meta.put({ key: 'cursor', value: p.cursor });
+      // курсор — только когда реплика целиком на месте: оборвавшийся bootstrap начнётся заново
+      if (p.cursor !== undefined && !rest.length)
+        await db._meta.put({ key: 'cursor', value: p.cursor });
       if (p.lastMutationId !== undefined)
         await db._meta.put({ key: 'lastMutationId', value: p.lastMutationId });
     });
+    if (p.bootstrap) replicaState.value = rest.length ? 'partial' : 'complete';
+    emit(changes);
+    if (rest.length) {
+      // остальные задачи — пачками, отдавая поток отрисовке; события только этой вкладке (в других — один reset в конце)
+      for (const [name, rows] of rest)
+        for (let i = 0; i < rows.length; i += BATCH) {
+          if (g !== gen) return; // остановлено: курсор не записан — bootstrap повторится
+          const part = rows.slice(i, i + BATCH);
+          await db.table(name).bulkPut(part);
+          emit(
+            part.map((row) => ({ entity: name, id: row.id as string, row })),
+            true,
+          );
+          await new Promise((r) => setTimeout(r));
+        }
+      if (g !== gen) return;
+      await db._meta.put({ key: 'cursor', value: p.cursor! });
+      replicaState.value = 'complete';
+      channel?.postMessage({ db: db.name, batch: [RESET] });
+    }
     if (p.cursor !== undefined) cursor = p.cursor;
     await refreshPending();
   }
@@ -209,12 +328,15 @@ export function createClient(db: PlanarDB) {
 
   async function cycle() {
     clearTimeout(retryTimer);
+    const g = gen;
     try {
-      if (cursor === undefined) await bootstrap();
-      else await pull();
+      // сначала push (C-sync: push не зависит от курсора), затем один pull
+      const boot = cursor === undefined;
+      if (boot) await bootstrap();
+      if (g !== gen) return;
       let sent = false;
       while (await push()) sent = true;
-      if (sent) await pull();
+      if (!boot || sent) await pull();
       failures = 0;
       setStatus('online');
     } catch (e) {
@@ -303,6 +425,7 @@ export function createClient(db: PlanarDB) {
     clientId = id ?? uuidv7();
     if (!id) await db._meta.put({ key: 'clientId', value: clientId });
     cursor = (await meta('cursor')) as number | undefined;
+    replicaState.value = cursor === undefined ? 'empty' : 'complete';
     pushedUpTo = 0;
     failures = wsFailures = 0;
     setStatus('idle');
@@ -379,7 +502,9 @@ export function createClient(db: PlanarDB) {
     });
     cursor = undefined;
     pushedUpTo = 0;
+    replicaState.value = 'empty';
     syncState.value = { status: 'idle', pending: 0 };
+    emit([RESET]);
   }
 
   async function clearLocal(): Promise<void> {
@@ -396,6 +521,11 @@ export function createClient(db: PlanarDB) {
     syncState: syncState as Readonly<Ref<{ status: SyncStatus; pending: number }>>,
     /** один цикл pull+push сейчас (для тестов) */
     syncNow: () => kick(),
+    replicaState: replicaState as Readonly<Ref<ReplicaState>>,
+    onReplicaChange(cb: (batch: ReplicaChange[]) => void) {
+      replicaCbs.add(cb);
+      return () => void replicaCbs.delete(cb);
+    },
     onMutationError(cb: (e: MutationErrorInfo) => void) {
       errorCbs.add(cb);
       return () => void errorCbs.delete(cb);

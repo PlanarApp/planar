@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch, type Component } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Input, Popover } from '../../ui';
+import { Input } from '../../ui';
+import LazyPopover from './LazyPopover.vue';
 
 export interface Option {
   id: string;
@@ -52,9 +53,10 @@ function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <Popover v-model:open="open" align="start">
-    <template #trigger>
+  <LazyPopover v-model:open="open" align="start">
+    <template #trigger="{ attrs }">
       <button
+        v-bind="attrs"
         type="button"
         :aria-label="title"
         class="inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
@@ -99,5 +101,5 @@ function onKey(e: KeyboardEvent) {
         </li>
       </ul>
     </div>
-  </Popover>
+  </LazyPopover>
 </template>
