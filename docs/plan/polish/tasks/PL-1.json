@@ -12,13 +12,15 @@
   "scope": [
     "apps/web/src/",
     "e2e/web/perf/",
-    "build/artifacts/PL-1/"
+    "build/artifacts/PL-1/",
+    "packages/shared/",
+    "docs/contracts/"
   ],
   "dont_touch": [
     "modules/ — только если причина там; тогда «PL-1 contract: …»",
-    "packages/, apps/api/ — core",
     "e2e/web/*.spec.ts — сценарии не ослаблять",
-    "пороги в e2e/web/perf/measure.spec.ts не менять"
+    "пороги в e2e/web/perf/measure.spec.ts не менять",
+    "apps/api/ — сервер не трогать"
   ],
   "accept": [
     {
@@ -90,5 +92,6 @@
     "Замер долгий (~40–60 мин на 10 прогонов): запускай в фоне (run_in_background или .dpcli/dpcli job), под `.dpcli/dpcli lock cpu pl1 --`.",
     "Отчёт — только build/dpcli/PL-1.report.json в своей копии."
   ],
-  "created": "2026-10-23T22:33:20"
+  "created": "2026-10-23T22:33:20",
+  "edited": "2026-10-23T23:06:59"
 }
