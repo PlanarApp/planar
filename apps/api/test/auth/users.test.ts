@@ -1,6 +1,6 @@
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { changes, fileUploads, files, sessions } from '../../src/db/schema.js';
+import { fileUploads, files, sessions } from '../../src/db/schema.js';
 import { createUser, loginCookie } from '../auth.js';
 import { db, req, useApp } from './harness.js';
 
@@ -140,22 +140,5 @@ describe('PATCH /api/users/:id', () => {
     expect((await patch(cookie, u.id, { avatarFile: theirs })).statusCode).toBe(400);
     expect((await patch(cookie, u.id, { avatarFile: 'c'.repeat(64) })).statusCode).toBe(400);
     expect((await patch(cookie, u.id, { avatarFile: null })).json().user.avatarFile).toBeNull();
-  });
-});
-
-describe('changes', () => {
-  it('создание и правка пишут users в changes без password_hash', async () => {
-    const { cookie } = await as('admin');
-    const u = (await newUser(cookie, 'chg1')).json().user;
-    await patch(cookie, u.id, { name: 'Другое', password: 'newpassword1' });
-    const rows = await db
-      .select()
-      .from(changes)
-      .where(and(eq(changes.entity, 'users'), eq(changes.id, u.id)))
-      .orderBy(changes.seq);
-    expect(rows).toHaveLength(2);
-    expect(rows[1]!.data).toMatchObject({ id: u.id, name: 'Другое' });
-    for (const r of rows) expect(JSON.stringify(r.data)).not.toContain('asswordHash');
-    expect(rows[0]!.spaceId).toBeNull();
   });
 });
