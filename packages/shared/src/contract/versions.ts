@@ -1,6 +1,6 @@
 // Версии контрактов = заголовки `## C-… vN` в docs/contracts/core.md (сверяет contract.test.ts).
 export const CONTRACT_VERSIONS = {
-  'C-schema': 4,
+  'C-schema': 5,
   'C-sync': 1,
   'C-mutators': 2,
   'C-modules': 2,

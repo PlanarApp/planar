@@ -1,0 +1,47 @@
+{
+  "status": "done",
+  "summary": "Добавлен guard.test.ts: матрица обхода /api/tokens (GET/POST/DELETE, 4 варианта пути, read/write), /sync/push read (4 варианта), WS Bearer -> 4401 без last_used_at. Для этого authenticateRaw получил opts.allowToken, ws.ts передаёт false.",
+  "commits": [
+    "5a33366 CR-10c: тесты обхода guard"
+  ],
+  "checks": [
+    {
+      "name": "tokens_tests",
+      "value": "26 passed",
+      "pass": true
+    },
+    {
+      "name": "accept --dry",
+      "value": "4/4",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit=0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit=0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit=0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-10c",
+  "uncertain": [
+    {
+      "where": "apps/api/test/tokens/guard.test.ts",
+      "why": "матрица допускает любой >=400 (403 или 404)",
+      "checked": "ревью-проба показала 403/404"
+    }
+  ],
+  "dp_feedback": "plan с названием раздела из пробелов без кавычек не парсится; нужно в кавычках",
+  "t": "2026-10-23T06:46:24",
+  "by": "executor"
+}

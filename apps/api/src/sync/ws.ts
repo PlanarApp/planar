@@ -65,6 +65,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
     try {
       ctx = await authenticateRaw(this.db, req.headers, 'UPGRADE', {
         publicUrl: this.auth.publicUrl,
+        allowToken: false, // Bearer на /ws не разбираем: last_used_at не трогаем
       });
     } catch (e) {
       const status = e instanceof HttpError ? e.getStatus() : 500;
@@ -72,7 +73,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
       return;
     }
     this.wss.handleUpgrade(req, socket, head, (ws) => {
-      if (!ctx) return ws.close(4401, 'unauthenticated');
+      if (!ctx || ctx.via === 'token') return ws.close(4401, 'unauthenticated');
       this.alive.add(ws);
       ws.on('pong', () => this.alive.add(ws));
       ws.on('error', () => {});

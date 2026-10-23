@@ -170,6 +170,7 @@ export const entitySchemas = {
       'commented',
     ]),
     changes: z.record(z.string(), z.unknown()),
+    viaTokenId: uuid.nullable(),
     createdAt: ts,
   }),
   notifications: z.object({

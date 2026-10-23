@@ -48,6 +48,7 @@ export class SyncController {
   @Post('push')
   @HttpCode(200)
   pushMutations(@Req() req: object, @Body() body: unknown) {
-    return this.push.push(getAuth(req).userId, parse(syncPushRequestSchema, body));
+    const a = getAuth(req);
+    return this.push.push(a.userId, parse(syncPushRequestSchema, body), a.tokenId);
   }
 }

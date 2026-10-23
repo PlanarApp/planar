@@ -1,7 +1,7 @@
 import type { IncomingHttpHeaders } from 'node:http';
-import { and, eq, lt, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
-import { sessions, users } from '../db/schema.js';
+import { apiTokens, sessions, users } from '../db/schema.js';
 import { HttpError } from './errors.js';
 import {
   SESSION_COOKIE,
@@ -16,6 +16,7 @@ export type AuthCtx = {
   role: 'owner' | 'admin' | 'member' | 'guest';
   via: 'session' | 'token';
   tokenScope?: 'read' | 'write';
+  tokenId?: string;
 };
 
 export const AUTH_OPTS = Symbol('AUTH_OPTS');
@@ -32,17 +33,56 @@ export function readCookie(header: string | undefined, name: string): string | n
   return null;
 }
 
-/** Контекст по cookie planar_sid (Bearer — CR-10, пока null); null — не авторизован. */
+/** Authorization: Bearer plnr_… → контекст токена; null — нет/отозван/истёк/владелец деактивирован. */
+async function authenticateBearer(db: Db, secret: string): Promise<AuthCtx | null> {
+  const [row] = await db
+    .select({ t: apiTokens, role: users.role })
+    .from(apiTokens)
+    .innerJoin(users, eq(users.id, apiTokens.userId))
+    .where(
+      and(
+        eq(apiTokens.tokenSha256, hashToken(secret)),
+        isNull(apiTokens.revokedAt),
+        isNull(users.deactivatedAt),
+        or(isNull(apiTokens.expiresAt), gt(apiTokens.expiresAt, sql`now()`)),
+      ),
+    );
+  if (!row) return null;
+  // не чаще раза в минуту
+  await db
+    .update(apiTokens)
+    .set({ lastUsedAt: sql`now()` })
+    .where(
+      and(
+        eq(apiTokens.id, row.t.id),
+        or(
+          isNull(apiTokens.lastUsedAt),
+          lt(apiTokens.lastUsedAt, sql`now() - interval '1 minute'`),
+        ),
+      ),
+    );
+  return {
+    userId: row.t.userId,
+    role: row.role as AuthCtx['role'],
+    via: 'token',
+    tokenScope: row.t.scope as 'read' | 'write',
+    tokenId: row.t.id,
+  };
+}
+
+/** Контекст по Bearer-токену или cookie planar_sid; null — не авторизован. */
 export async function authenticateRaw(
   db: Db,
   headers: IncomingHttpHeaders,
   method: string,
-  opts: { publicUrl: string },
+  opts: { publicUrl: string; allowToken?: boolean },
   /** сессию продлили — вызывающий переустанавливает cookie (токен не входит в AuthCtx) */
   onRenew?: (token: string) => void,
 ): Promise<AuthCtx | null> {
+  const bearer = /^Bearer (plnr_\S+)$/i.exec(headers.authorization ?? '');
+  if (bearer) return opts.allowToken === false ? null : authenticateBearer(db, bearer[1]!); // Origin для Bearer не проверяется
   const token = readCookie(headers.cookie, SESSION_COOKIE);
-  if (!token) return null; // shortcut: Bearer plnr_… не разбираем, делает CR-10
+  if (!token) return null;
   if (UNSAFE.has(method) && headers.origin !== new URL(opts.publicUrl).origin) {
     throw new HttpError(403, 'origin_mismatch', 'Origin не совпадает с PUBLIC_URL');
   }
