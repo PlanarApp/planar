@@ -15,3 +15,4 @@
 {"t": "2026-10-23T11:52:12", "by": "coordinator", "task": "CL-3", "ev": "accepted", "note": "по отчёту"}
 {"t": "2026-10-23T11:56:41", "by": "coordinator", "task": "CL-3", "ev": "accepted", "commits": ["fdbab4d"], "note": "5/5 collab contract=ok:15/15 (пропуск 507); docs-tests=ok:9/9; api-all=ok:336/336; build=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-23T11:56:41", "by": "coordinator", "task": "CL-3", "ev": "merged"}
+{"t": "2026-10-23T11:57:09", "by": "coordinator", "task": null, "ev": "note", "note": "dpcli: merge без --into по умолчанию льёт в main — координатору модуля легко ошибиться; лучше по умолчанию брать feature/<модуль> или требовать --into"}
