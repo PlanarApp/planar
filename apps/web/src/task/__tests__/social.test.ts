@@ -189,6 +189,16 @@ describe('task:attachments', () => {
     await until(() => w.find(`a[href="/files/${up.sha256}?name=a%20b.png"]`).exists());
     expect(w.find(`img[src="/files/${up.sha256}/preview?w=256"]`).exists()).toBe(true);
   });
+  it('drop из редактора описания не создаёт вложение', async () => {
+    w = await open();
+    await w
+      .find('.ProseMirror')
+      .trigger('drop', {
+        dataTransfer: { files: [new File(['a'], 'c.txt', { type: 'text/plain' })] },
+      });
+    await flushPromises();
+    expect(await queued('attachment.create')).toHaveLength(0);
+  });
   it('перетаскивание файла на панель; 413 — сообщение', async () => {
     stubFetch(upload);
     w = await open();

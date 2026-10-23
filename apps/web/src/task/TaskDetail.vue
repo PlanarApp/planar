@@ -98,11 +98,7 @@ const menu = computed(() => [
     label: t('task.copyLink'),
     icon: Link,
     onSelect: () => {
-      try {
-        void navigator.clipboard.writeText(`${location.origin}/t/${props.task.key}`);
-      } catch {
-        /* буфер недоступен */
-      }
+      navigator.clipboard?.writeText(`${location.origin}/t/${props.task.key}`).catch(() => {}); // буфер может быть запрещён
     },
   },
   {
@@ -130,6 +126,7 @@ function open(key: string) {
 // --- вложения: перетаскивание на панель
 const attachments = ref<InstanceType<typeof Attachments>>();
 const onDrop = (e: DragEvent) => {
+  if ((e.target as HTMLElement).closest?.('.ProseMirror')) return; // картинка в описании — не вложение
   const files = [...(e.dataTransfer?.files ?? [])];
   if (files.length) void attachments.value?.addFiles(files);
 };
