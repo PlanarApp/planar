@@ -523,8 +523,8 @@ describe('wk3: выполнение и защита', () => {
     await w.admin.ok('automations.delete', { id: gone.id });
     await w.admin.ok('task.delete', { id: t2 });
     await drain();
-    expect(statuses(await runsOf(r.id))).toEqual(['skipped']);
-    expect(statuses(await runsOf(gone.id))).toEqual(['skipped']);
+    expect(statuses(await runsOf(r.id))).toEqual(['skipped', 'skipped']); // t и удалённая t2
+    expect(statuses(await runsOf(gone.id))).toEqual(['skipped', 'skipped']);
     const r3 = await rule({ type: 'task.created' });
     const t3 = await task();
     await w.admin.ok('task.delete', { id: t3 });
