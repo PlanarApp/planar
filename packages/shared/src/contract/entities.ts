@@ -132,6 +132,14 @@ export const entitySchemas = {
     createdAt: ts,
     updatedAt: ts,
   }),
+  commentReactions: z.object({
+    id: uuid,
+    spaceId: uuid,
+    commentId: uuid,
+    userId: uuid,
+    emoji: z.string().min(1).max(32),
+    createdAt: ts,
+  }),
   attachments: z.object({
     id: uuid,
     spaceId: uuid,
@@ -225,6 +233,7 @@ export const ENTITIES = {
   taskLabels: { scope: 'space', write: 'member', bootstrap: true, indexes: ['taskId', 'labelId'] },
   checklistItems: { scope: 'space', write: 'member', bootstrap: true, indexes: ['taskId'] },
   comments: { scope: 'space', write: 'guest', bootstrap: true, indexes: ['taskId'] },
+  commentReactions: { scope: 'space', write: 'guest', bootstrap: true, indexes: ['commentId'] },
   attachments: {
     scope: 'space',
     write: 'member',
