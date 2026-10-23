@@ -1,0 +1,79 @@
+{
+  "status": "done",
+  "summary": "Начальный gzip 186.1 -> 136.8 КБ. (1) vue-i18n (50.7) заменён в сборке alias-ом на src/i18n/lite.ts (+33 КБ runtime-core остаётся, сам lite ~0.4); (2) layout/App/nav.ts импортируют ui-файлы напрямую вместо барреля ../ui и ../tasks (тянули Popover/Input/pickers и reka в index); (3) TopBar: Menu и Avatar (reka) через defineAsyncComponent; LogoutDialog в main.ts лениво и только при logoutPrompt.open.",
+  "commits": [
+    "7c8f5a1 web: WB-13 начальный бандл 186.1 -> 136.8 КБ"
+  ],
+  "checks": [
+    {
+      "name": "size",
+      "value": "136.8 (было 186.1)",
+      "pass": true
+    },
+    {
+      "name": "по шагам",
+      "value": "alias i18n 168.4; +прямые импорты/ленивый Logout/Menu/Avatar 166-167; +nav.ts не через баррель tasks 136.8; Menu/Avatar статически вместо async = 160.2",
+      "pass": true
+    },
+    {
+      "name": "accept --dry",
+      "value": "PASS 8/8, contract 102",
+      "pass": true
+    },
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "102",
+      "pass": true
+    },
+    {
+      "name": "pwa",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "useAuth-чанк 64 КБ (zod + dexie + shared через src/sync) не тронут: нужен контракт/правка вне скоупа"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-13",
+  "uncertain": [
+    {
+      "where": "apps/web/vite.config.ts alias vue-i18n -> src/i18n/lite.ts",
+      "why": "в проде другая реализация, чем в тестах (vitest.config не в скоупе, тесты идут на настоящем vue-i18n); поддержано только t/te/locale, {name} и {'литерал'}, без plural/linked/d/n",
+      "checked": "grep: приложение использует только t, te, locale, i18n.global.t/locale; plural и linked в ru/en нет; unit-тест lite.test.ts. В браузере не проверял."
+    },
+    {
+      "where": "apps/web/src/layout/TopBar.vue",
+      "why": "Menu/Avatar подгружаются лениво, при первой загрузке на мгновение нет кнопки профиля/аватара",
+      "checked": "layout-тесты проходят"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T02:12:41",
+  "by": "executor"
+}

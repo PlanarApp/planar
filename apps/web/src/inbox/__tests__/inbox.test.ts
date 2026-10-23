@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { nextTick } from 'vue';
+import { computed, nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
 import { domainMutators, uuidv7 } from '@planar/shared';
 import en from '../../i18n/en';
@@ -288,5 +288,31 @@ describe('inbox:push', () => {
     await nextTick();
     expect(w.find('[data-testid=push-ios]').exists()).toBe(true);
     expect(w.find('button').exists()).toBe(false);
+  });
+  it('polish: inbox:push iPadOS (MacIntel + тач) считается iOS', () => {
+    const ua = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (Macintosh)');
+    const pf = vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
+    const touch = vi.spyOn(navigator, 'maxTouchPoints', 'get').mockReturnValue(5);
+    expect(push.needsInstall()).toBe(true);
+    touch.mockReturnValue(0);
+    expect(push.needsInstall()).toBe(false);
+    [ua, pf, touch].forEach((x) => x.mockRestore());
+  });
+});
+
+describe('inbox:snooze', () => {
+  it('polish: inbox:snooze отложенное возвращается в срок без перезагрузки', async () => {
+    vi.useFakeTimers();
+    try {
+      const { isSnoozed, snooze } = await import('../snooze');
+      const c = computed(() => isSnoozed('n1'));
+      expect(c.value).toBe(false);
+      snooze('n1', new Date(Date.now() + 5000));
+      expect(c.value).toBe(true);
+      vi.advanceTimersByTime(6000);
+      expect(c.value).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

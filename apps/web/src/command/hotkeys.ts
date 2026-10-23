@@ -18,10 +18,18 @@ let attached = false;
 const editable = (t: EventTarget | null) =>
   t instanceof HTMLElement && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
 
+/** Буквы — по физической клавише (KeyC → 'c'), чтобы работало на любой раскладке; '?' — Shift+Slash. */
+const tokenOf = (e: KeyboardEvent) => {
+  const m = /^Key([A-Z])$/.exec(e.code ?? '');
+  if (m) return m[1].toLowerCase();
+  return e.key === '?' || (e.shiftKey && e.code === 'Slash') ? '?' : e.key;
+};
+
 function onKey(e: KeyboardEvent) {
   const mod = e.metaKey || e.ctrlKey;
+  const key = tokenOf(e);
   // Cmd/Ctrl+K работает и в полях ввода
-  const token = mod && e.key.toLowerCase() === 'k' ? 'mod+k' : e.key;
+  const token = mod && key === 'k' ? 'mod+k' : key;
   if (token !== 'mod+k' && (mod || e.altKey || editable(e.target))) return;
   const now = Date.now();
   if (now - last > SEQ_MS) buf = [];

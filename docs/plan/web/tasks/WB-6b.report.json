@@ -1,0 +1,82 @@
+{
+  "status": "done",
+  "summary": "Реакции (Reactions.vue, useReactions, reaction.toggle); drop в редактор описания: картинка -> image, не-картинка -> attachment (emit attach); uploadFile перенесён в api/files.ts, ProfileScreen его использует.",
+  "commits": [
+    "3d6e064 WB-6b"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "reactions",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "attachments",
+      "value": "5",
+      "pass": true
+    },
+    {
+      "name": "avatar",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "102",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "186.2",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "302/303; падает settings:spaces 'удаление пространства с проектами' (есть и без моих правок, вне скоупа)",
+      "pass": false
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-6b --dry",
+  "uncertain": [
+    {
+      "where": "apps/web/src/task/__tests__/social.test.ts",
+      "why": "jsdom не доставляет drop в PM (нет координат)",
+      "checked": "тесты вызывают view.someProp('handleDrop') напрямую; старый тест 'drop не создаёт вложение' проходил вакуумно и заменён"
+    },
+    {
+      "where": "apps/web/src/task/Reactions.vue",
+      "why": "свой TooltipProvider внутри (в тестах нет провайдера App)",
+      "checked": "тесты зелёные"
+    },
+    {
+      "where": "apps/web/src/screens/settings/__tests__/settings.test.ts",
+      "why": "красный тест не мой",
+      "checked": "воспроизведён на stash без правок"
+    }
+  ],
+  "dp_feedback": "accept --dry в 120с таймаут при полном прогоне; падение чужого теста блокирует PASS test.",
+  "t": "2026-10-23T02:14:10",
+  "by": "executor"
+}

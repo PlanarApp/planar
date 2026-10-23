@@ -118,6 +118,14 @@ describe('board:move', () => {
     const r = (await db.table('tasks').get(p.id)).rank as string;
     expect(r > 'a1' && r < 'a3').toBe(true);
   });
+  it('polish: board:move на прежнее место — плана нет', async () => {
+    const cols = await setup();
+    const t = (n: string) => byTitle(cols, n).id;
+    expect(planMove(cols, 'status', t('t2'), ids.todo, ids.todo, t('t3'))).toBeNull();
+    expect(planMove(cols, 'status', t('t3'), ids.todo, ids.todo, null)).toBeNull();
+    expect(planMove(cols, 'status', t('t2'), ids.todo, ids.todo, t('t2'))).toBeNull();
+    expect(planMove(cols, 'status', t('t3'), ids.todo, ids.todo, t('t1'))).not.toBeNull();
+  });
   it('board:move в конец колонки', async () => {
     const cols = await setup();
     const p = planMove(cols, 'status', byTitle(cols, 't1').id, ids.todo, ids.todo, null)!;
@@ -185,7 +193,7 @@ describe('board:move многозначные', () => {
   };
   it('board:move перестановка во второй колонке не меняет связи', async () => {
     const { cols, t, b, field } = await multi('assignee');
-    expect(planMove(cols, 'assignee', t.id, b, b, null)![field]).toBeUndefined();
+    expect(planMove(cols, 'assignee', t.id, b, b, null)?.[field]).toBeUndefined();
   });
   it('board:move из A в C снимает A и добавляет C, B остаётся', async () => {
     const { cols, t, a, b, c } = await multi('assignee');
@@ -194,7 +202,7 @@ describe('board:move многозначные', () => {
   it('board:move то же для меток', async () => {
     const { cols, t, a, b, c } = await multi('label');
     expect(planMove(cols, 'label', t.id, b, c, null)!.labels).toEqual([a, c]);
-    expect(planMove(cols, 'label', t.id, b, b, null)!.labels).toBeUndefined();
+    expect(planMove(cols, 'label', t.id, b, b, null)?.labels).toBeUndefined();
   });
 });
 
