@@ -72,6 +72,13 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
     limit: z.number().int().min(1).max(50).optional(),
   };
   tool(
+    'list_fields',
+    'Определения пользовательских полей проекта',
+    { projectId: z.uuid() },
+    false,
+    async (a) => (await rest.fields(uid, a.projectId)).data,
+  );
+  tool(
     'search_tasks',
     'Поиск задач по части заголовка или ключа',
     {

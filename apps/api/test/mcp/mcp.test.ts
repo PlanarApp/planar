@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { apiTokenCreatedSchema } from '@planar/shared';
+import { apiTokenCreatedSchema, uuidv7 } from '@planar/shared';
 import { createApp } from '../../src/app.js';
 import * as schema from '../../src/db/schema.js';
 import { ORIGIN, loginCookie } from '../auth.js';
@@ -94,7 +94,7 @@ const mk = async (c: Client, title: string, extra = {}) => {
 };
 
 describe('MCP /mcp', () => {
-  it('initialize и tools/list: 8 инструментов со схемами', async () => {
+  it('initialize и tools/list: 9 инструментов со схемами', async () => {
     const c = await connect(write.secret);
     const { tools } = await c.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
@@ -102,6 +102,7 @@ describe('MCP /mcp', () => {
         'add_comment',
         'create_task',
         'get_task',
+        'list_fields',
         'list_projects',
         'list_spaces',
         'my_tasks',
@@ -279,5 +280,54 @@ describe('MCP /mcp', () => {
     const rows = await db.select().from(schema.activity).where(eq(schema.activity.taskId, id));
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.every((x) => x.viaTokenId === write.id)).toBe(true);
+  });
+});
+
+describe('MCP: пользовательские поля', () => {
+  const mkField = async () => {
+    const id = uuidv7();
+    await w.admin.ok('field.create', {
+      id,
+      projectId: w.projectId,
+      name: 'F',
+      type: 'number',
+      rank: 'a0',
+    });
+    return id;
+  };
+
+  it('fields: list_fields отдаёт определения проекта; чужому — not_found', async () => {
+    const id = await mkField();
+    const [err, defs] = await call(await connect(write.secret), 'list_fields', {
+      projectId: w.projectId,
+    });
+    expect(err).toBe(false);
+    expect(defs.map((f: { id: string }) => f.id)).toContain(id);
+    const [e2, e] = await call(await connect(outsider.secret), 'list_fields', {
+      projectId: w.projectId,
+    });
+    expect([e2, e.code]).toEqual([true, 'not_found']);
+  });
+
+  it('fields: update_task ставит и убирает значение, неверное → invalid_request', async () => {
+    const id = await mkField();
+    const c = await connect(write.secret);
+    const t = await mk(c, 'Поля');
+    const [e1, u] = await call(c, 'update_task', { task: t.key, fields: { [id]: 3 } });
+    expect(e1, JSON.stringify(u)).toBe(false);
+    expect(u.fields).toEqual({ [id]: 3 });
+    const [e2, bad] = await call(c, 'update_task', { task: t.key, fields: { [id]: 'x' } });
+    expect([e2, bad.code]).toEqual([true, 'invalid_request']);
+    const [, cleared] = await call(c, 'update_task', { task: t.key, fields: { [id]: null } });
+    expect(cleared.fields).toEqual({});
+  });
+
+  it('fields: read-токен на update_task с fields → forbidden', async () => {
+    const id = await mkField();
+    const [err, e] = await call(await connect(read.secret), 'update_task', {
+      task: 'A-1',
+      fields: { [id]: 1 },
+    });
+    expect([err, e.code]).toEqual([true, 'forbidden']);
   });
 });

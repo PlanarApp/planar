@@ -38,6 +38,7 @@ export const patchTaskBody = z.object({
   assigneeIds: z.array(uuid).optional(),
   labelIds: z.array(uuid).optional(),
   parentId: uuid.nullable().optional(),
+  fields: z.record(uuid, z.unknown()).optional(),
 });
 export const commentBody = z.object({ text: z.string().min(1) });
 
@@ -45,4 +46,5 @@ export const {
   spaces: spaceSchema,
   projects: projectSchema,
   comments: commentSchema,
+  fieldDefs: fieldDefSchema,
 } = entitySchemas;

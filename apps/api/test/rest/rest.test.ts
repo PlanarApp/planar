@@ -375,6 +375,7 @@ describe('REST /api/v1: OpenAPI', () => {
     expect(doc.openapi).toBe('3.1.0');
     expect(Object.keys(doc.paths).sort()).toEqual([
       '/api/v1/projects',
+      '/api/v1/projects/{id}/fields',
       '/api/v1/spaces',
       '/api/v1/tasks',
       '/api/v1/tasks/{task}',
@@ -387,5 +388,59 @@ describe('REST /api/v1: OpenAPI', () => {
 
   it('openapi.json без входа → 401', async () => {
     expect((await call('GET', '/api/v1/openapi.json')).statusCode).toBe(401);
+  });
+});
+
+describe('REST /api/v1: пользовательские поля', () => {
+  const mkField = (over: Record<string, unknown> = {}, who = w.admin, projectId = w.projectId) => {
+    const id = uuidv7();
+    return who
+      .ok('field.create', { id, projectId, name: 'F', type: 'number', rank: 'a0', ...over })
+      .then(() => id);
+  };
+  const patch = (t: string, fields: unknown) =>
+    call('PATCH', `/api/v1/tasks/${t}`, 'member', { fields });
+
+  it('fields: GET отдаёт определения по rank, чужому проекту — 404', async () => {
+    const b = await mkField({ name: 'B', rank: 'b0' });
+    const a = await mkField({ name: 'A', rank: 'a0' });
+    const r = await get(`/api/v1/projects/${w.projectId}/fields`, 'member');
+    expect(r.statusCode).toBe(200);
+    const ids = r.json().data.map((f: { id: string }) => f.id);
+    expect(ids.indexOf(a)).toBeLessThan(ids.indexOf(b));
+    expect(r.json().data[0]).toMatchObject({ projectId: w.projectId });
+    const o = await get(`/api/v1/projects/${w.projectId}/fields`, 'outsider');
+    expect(o.statusCode).toBe(404);
+    expect(o.json().code).toBe('not_found');
+  });
+
+  it('fields: PATCH ставит значение, null убирает, другие ключи не трогает', async () => {
+    const f1 = await mkField();
+    const f2 = await mkField({ rank: 'a1' });
+    const t = await create({});
+    const r = await patch(t.id, { [f1]: 5, [f2]: 7 });
+    expect(r.statusCode, r.body).toBe(200);
+    expect(r.json().data.fields).toEqual({ [f1]: 5, [f2]: 7 });
+    const r2 = await patch(t.id, { [f1]: null });
+    expect(r2.json().data.fields).toEqual({ [f2]: 7 });
+    expect(v1TaskSchema.safeParse(r2.json().data).success).toBe(true);
+  });
+
+  it('fields: неверное значение → 400 invalid_request', async () => {
+    const f = await mkField();
+    const t = await create({});
+    const r = await patch(t.id, { [f]: 'не число' });
+    expect(r.statusCode).toBe(400);
+    expect(r.json().code).toBe('invalid_request');
+    expect((await patch(t.id, { 'не-uuid': 1 })).statusCode).toBe(400);
+  });
+
+  it('fields: поле другого проекта → 400', async () => {
+    const w2 = await world(db);
+    const alien = await mkField({}, w2.admin, w2.projectId);
+    const t = await create({});
+    const r = await patch(t.id, { [alien]: 1 });
+    expect(r.statusCode).toBe(400);
+    expect(r.json().code).toBe('invalid_request');
   });
 });

@@ -4,6 +4,7 @@ import {
   commentBody,
   commentSchema,
   createTaskBody,
+  fieldDefSchema,
   patchTaskBody,
   projectSchema,
   spaceSchema,
@@ -14,6 +15,7 @@ const ref = (n: string) => ({ $ref: `#/components/schemas/${n}` });
 const models = {
   Space: spaceSchema,
   Project: projectSchema,
+  FieldDef: fieldDefSchema,
   Task: v1TaskSchema,
   Comment: commentSchema,
   Error: httpErrorSchema,
@@ -72,6 +74,9 @@ export function openapi() {
       '/api/v1/spaces': { get: { parameters: paging, responses: ok('Space', true) } },
       '/api/v1/projects': {
         get: { parameters: [param('spaceId', 'query'), ...paging], responses: ok('Project', true) },
+      },
+      '/api/v1/projects/{id}/fields': {
+        get: { parameters: [param('id', 'path')], responses: ok('FieldDef', true) },
       },
       '/api/v1/tasks': {
         get: { parameters: [...queryParams, ...paging], responses: ok('Task', true) },
