@@ -1,0 +1,71 @@
+{
+  "id": "CR-6a",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "Доработки файлов по ревью CR-6",
+  "goal": "MAX_UPLOAD_MB: пустое значение — по умолчанию 50, нечисло или ≤ 0 — отказ старта с сообщением; превью: 404 только для «не картинка/нет файла», прочие ошибки диска и sharp — 500 internal с логом.",
+  "plan_ref": "CR-6 Файлы",
+  "contracts": [
+    {
+      "name": "C-http",
+      "version": "4",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-6a",
+  "branch": "core/CR-6a",
+  "base": "feature/core",
+  "scope": [
+    "apps/api/src/files/",
+    "apps/api/src/main.ts",
+    "apps/api/src/config.ts",
+    "apps/api/test/files/"
+  ],
+  "dont_touch": [
+    "apps/api/src/sync/",
+    "apps/api/src/auth/",
+    "packages/",
+    "docs/"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0",
+      "timeout": 300
+    },
+    {
+      "name": "files_tests",
+      "cmd": "pnpm exec vitest run apps/api/test/files",
+      "expect": "num:Tests\\s+(\\d+) passed >=24",
+      "timeout": 300
+    },
+    {
+      "name": "bad_env",
+      "cmd": "MAX_UPLOAD_MB=abc DATABASE_URL=postgres://x@127.0.0.1:1/x node apps/api/dist/main.js >/dev/null 2>&1; echo rc=$?",
+      "expect": "re:^rc=[1-9]",
+      "timeout": 60
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0",
+      "timeout": 900
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T00:58:19"
+}

@@ -78,10 +78,15 @@ export interface DocMutator {
   args: { name: string; optional: boolean }[];
 }
 
-/** Таблица «Мутаторы домена»: `| \`имя\` | \`args\` | правила |` */
+export const mutatorsDoc = readFileSync(
+  new URL('../../../docs/contracts/core-mutators.md', import.meta.url),
+  'utf8',
+);
+
+/** Таблица «Мутаторы домена» (docs/contracts/core-mutators.md): `| \`имя\` | \`args\` | правила |` */
 export const docMutators: DocMutator[] = (() => {
   const sec = /^### Мутаторы домена[^\n]*\n([\s\S]*?)(?=^#{2,3} |^Вспомогательное)/m.exec(
-    contractDoc,
+    mutatorsDoc,
   );
   if (!sec) return [];
   return [...sec[1].matchAll(/^\| `([\w.]+)` \| `([^`]*)` \|/gm)].map((r) => ({
