@@ -23,6 +23,9 @@ export function useTaskFilter(
   return computed(() => {
     const f = toValue(filter);
     if (!f?.rules.length) return () => true;
+    // defs ещё грузятся: field:-правила не должны пропускать лишнее
+    if (defs.value === undefined && f.rules.some((r) => r.field.startsWith('field:')))
+      return () => false;
     const ctx = {
       statuses: toValue(statuses) ?? [],
       userId: user.value?.id ?? '',

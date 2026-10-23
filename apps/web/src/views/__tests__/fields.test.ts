@@ -56,8 +56,25 @@ describe('fields-ui: фильтр', () => {
         [],
       ),
     )!;
-    await vi.waitFor(() => expect(pred.value(task({ [f1]: 1 }) as never)).toBe(false));
-    expect(pred.value(task({ [f1]: 10 }) as never)).toBe(true);
+    await vi.waitFor(() => expect(pred.value(task({ [f1]: 10 }) as never)).toBe(true));
+    expect(pred.value(task({ [f1]: 1 }) as never)).toBe(false);
+    scope.stop();
+  });
+});
+
+describe('fields-fix: useTaskFilter', () => {
+  it('fields-fix: до загрузки defs field:-правило не пропускает, после — по правилу', async () => {
+    await db.table('fieldDefs').bulkPut(defs);
+    const scope = effectScope();
+    const pred = scope.run(() =>
+      useTaskFilter(
+        { op: 'and', rules: [{ field: `field:${f1}`, operator: 'gte', value: 9 }] },
+        [],
+      ),
+    )!;
+    expect(pred.value(task({ [f1]: 10 }) as never)).toBe(false);
+    await vi.waitFor(() => expect(pred.value(task({ [f1]: 10 }) as never)).toBe(true));
+    expect(pred.value(task({ [f1]: 1 }) as never)).toBe(false);
     scope.stop();
   });
 });

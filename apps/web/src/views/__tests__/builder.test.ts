@@ -8,6 +8,7 @@ import ru from '../../i18n/ru';
 import { ids, reset } from '../../tasks/__tests__/data';
 import type { Filter } from '..';
 import FilterBuilder from '../saved/FilterBuilder.vue';
+import { db } from '../../sync';
 
 const state = ref<Filter>({ op: 'and', rules: [] });
 const Host = defineComponent({
@@ -64,5 +65,34 @@ describe('views:builder', () => {
     expect(w.find('[data-value]').exists()).toBe(false);
     await w.get('[data-op=and]').trigger('click');
     expect(state.value.op).toBe('and');
+  });
+});
+
+describe('views:builder fields-fix', () => {
+  it('fields-fix: с projectId только поля проекта', async () => {
+    const mk = (id: string, projectId: string) => ({
+      id,
+      spaceId: ids.space,
+      projectId,
+      name: `N${id}`,
+      type: 'text',
+      options: {},
+      rank: 'a0',
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+    });
+    await db
+      .table('fieldDefs')
+      .bulkPut([mk('f-mine', ids.project), mk('f-other', 'other-project')]);
+    const w = mount(FilterBuilder, {
+      props: {
+        modelValue: { op: 'and', rules: [{ field: 'status', operator: 'in' }] },
+        spaceId: ids.space,
+        projectId: ids.project,
+      },
+      global: { plugins: [createI18n({ legacy: false, locale: 'ru', messages: { ru, en } })] },
+    });
+    await vi.waitFor(() => expect(w.find('option[value="field:f-mine"]').exists()).toBe(true));
+    expect(w.find('option[value="field:f-other"]').exists()).toBe(false);
   });
 });

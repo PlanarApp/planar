@@ -111,3 +111,14 @@ describe('fields-ui', () => {
     w.unmount();
   });
 });
+
+describe('fields-fix', () => {
+  it('fields-fix: Enter и change дают одну мутацию', async () => {
+    const w = editor(def('text'));
+    const input = w.get('input');
+    await input.setValue('hi'); // input + change
+    await input.trigger('keydown.enter');
+    await input.trigger('change');
+    expect(emitted(w)).toEqual([['hi']]);
+  });
+});

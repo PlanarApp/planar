@@ -18,10 +18,12 @@ const show = (v: unknown) =>
       : String(v);
 const draft = ref(show(props.value));
 const invalid = ref(false);
+// последний записанный текст: Enter и следом change не пишут дважды
+let last = draft.value;
 watch(
   () => props.value,
   (v) => {
-    draft.value = show(v);
+    draft.value = last = show(v);
     invalid.value = false;
   },
 );
@@ -37,7 +39,11 @@ function commit(v: unknown | null) {
 }
 function commitDraft() {
   const s = draft.value.trim();
-  if (!s) return commit(null);
+  if (s === last.trim()) return;
+  if (!s) {
+    last = draft.value;
+    return commit(null);
+  }
   const type = props.def.type;
   if (type === 'number' || type === 'money') {
     const x = Number(s.replace(',', '.'));
@@ -45,8 +51,10 @@ function commitDraft() {
       invalid.value = true;
       return;
     }
+    last = draft.value;
     return commit(type === 'money' ? Math.round(x * 100) : x);
   }
+  last = draft.value;
   commit(s);
 }
 
