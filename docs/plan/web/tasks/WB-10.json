@@ -119,10 +119,11 @@
     {
       "name": "modules",
       "cmd": "pnpm --filter web exec vitest run src -t settings:modules",
-      "expect": "num:Tests\\s+(\\d+) passed >=3"
+      "expect": "num:Tests\\s+(\\d+) passed >=5"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-23T01:23:42"
+  "created": "2026-10-23T01:23:42",
+  "edited": "2026-10-23T01:50:12"
 }

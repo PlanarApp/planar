@@ -1,0 +1,46 @@
+{
+  "verdict": "accept",
+  "summary": "Скоуп соблюдён (12 файлов, dont_touch не задеты), CommandCtx/CommandDef по C-ui, ленивые Palette/CheatSheet, в начальном чанке только hotkeys. Подгонки под тест нет: замер только запроса, индекс строится заранее. Подтверждение удаления по коду верно. Замечания только minor.",
+  "issues": [
+    {
+      "file": "apps/web/src/command/Palette.vue",
+      "line": 57,
+      "severity": "minor",
+      "what": "items зависит только от query/ready (Map индекса не реактивен): если задачи меняются при открытой палитре, результаты «Задачи» устаревают, пока не изменится ввод",
+      "fix": "счётчик версии индекса (ref) увеличивать в index.update и читать в computed вместо ready"
+    },
+    {
+      "file": "apps/web/src/command/hotkeys.ts",
+      "line": 24,
+      "severity": "minor",
+      "what": "токены берутся из e.key: на русской раскладке 'c', 'g i/m/s' не срабатывают (e.key='с','п'); в отчёте упомянут только '?'",
+      "fix": "для букв без модификаторов брать e.code (KeyC→'c'), '?' оставить на e.key"
+    },
+    {
+      "file": "apps/web/src/command/CommandHost.vue",
+      "line": 31,
+      "severity": "minor",
+      "what": "'/' открывает ту же палитру, что Cmd+K; отдельного «режима поиска» из дополнения координатора нет",
+      "fix": "либо флаг режима (только группа «Задачи»), либо координатор принимает как есть"
+    }
+  ],
+  "rerun": [
+    {
+      "name": "search-ms",
+      "value": "7.1",
+      "pass": true
+    },
+    {
+      "name": "palette",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T01:49:46",
+  "by": "reviewer"
+}
