@@ -1,0 +1,74 @@
+{
+  "status": "done",
+  "summary": "API-токены (GET/POST/DELETE /api/tokens), Bearer в authenticateRaw, guard (read только GET/HEAD, /api/tokens по токену 403), activity.via_token_id + миграция 0005, tokenId через sync.controller -> PushService -> ServerTx.",
+  "commits": [
+    "daed4a1 core: CR-10a API-токены, Bearer-авторизация, activity.v"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "tokens_tests",
+      "value": "16",
+      "pass": true
+    },
+    {
+      "name": "schema",
+      "value": "70",
+      "pass": true
+    },
+    {
+      "name": "migrations_in_sync",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "вне scope: sync.controller.ts, test/sync/server-tx.test.ts",
+      "pass": false
+    }
+  ],
+  "not_done": [],
+  "questions": [
+    "Принять правку двух файлов вне scope (sync.controller.ts, test/sync/server-tx.test.ts)?"
+  ],
+  "how_to_check": ".dpcli/dpcli accept CR-10a",
+  "uncertain": [
+    {
+      "where": "apps/api/src/sync/sync.controller.ts:50",
+      "why": "вне scope, но без неё tokenId не дойдёт до PushService",
+      "checked": "правка 2 строки: getAuth(req).tokenId третьим аргументом push"
+    },
+    {
+      "where": "apps/api/test/sync/server-tx.test.ts:166",
+      "why": "вне scope; контракт v5 сделал viaTokenId обязательным в Row<activity>, тест падал",
+      "checked": "добавлено viaTokenId: null, pnpm test зелёный"
+    },
+    {
+      "where": "apps/api/src/tokens/tokens.controller.ts:revoke",
+      "why": "повторный DELETE уже отозванного даёт 404 (не идемпотентно)",
+      "checked": "осознанно, по карточке: чужой/нет -> 404"
+    }
+  ],
+  "dp_feedback": "scope-проверка не даёт предупредить заранее о файлах, которые ломает смена контракта; карточке стоило включить sync.controller.ts и тесты, использующие Row<activity>.",
+  "t": "2026-10-23T06:04:34",
+  "by": "executor"
+}
