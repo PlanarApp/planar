@@ -80,7 +80,7 @@ describe('C-ui: точки расширения', () => {
     const m = section('Точки расширения').match(/EXTENSION_KINDS = \[([^\]]+)\]/);
     expect(m).not.toBeNull();
     const fromDoc = [...m![1].matchAll(/'(\w+)'/g)].map((x) => x[1]);
-    // work.md §C-modules v3 (WK-0): += nav, topbar; collab.md §X-core п. 5 (C-ui v2): += search
+    // work.md §C-modules v3 (WK-0): += nav, topbar; web.md обновит координатор
     expect([...EXTENSION_KINDS]).toEqual([...fromDoc, 'nav', 'topbar', 'search']);
   });
   it('дубликат ключа элемента → Error', () => {

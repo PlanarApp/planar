@@ -10,6 +10,11 @@ describe('settings:modules registry', () => {
     setModuleLoaders({});
   });
 
+  it('cl1a: дубликат ключа search-провайдера → Error', () => {
+    const p = { id: 's', label: 'x', search: async () => [] };
+    expect(() => registerModules([{ id: 'cl1a-dup', search: [p, p] }])).toThrow();
+  });
+
   it('выключенный модуль не попадает в useExtensions, повторная регистрация не дублирует', async () => {
     registerModules([{ id: 'mod-a', commands: [cmd('c')] }]);
     registerModules([{ id: 'mod-a', commands: [cmd('c')] }]);

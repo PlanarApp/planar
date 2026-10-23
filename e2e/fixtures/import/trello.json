@@ -1,0 +1,147 @@
+{
+  "id": "b1",
+  "name": "Demo board",
+  "lists": [
+    {
+      "id": "l1",
+      "name": "To Do",
+      "closed": false,
+      "pos": 1
+    },
+    {
+      "id": "l2",
+      "name": "Doing",
+      "closed": false,
+      "pos": 2
+    },
+    {
+      "id": "l3",
+      "name": "Done",
+      "closed": false,
+      "pos": 3
+    }
+  ],
+  "labels": [
+    {
+      "id": "lb1",
+      "name": "Bug",
+      "color": "red"
+    },
+    {
+      "id": "lb2",
+      "name": "",
+      "color": "green"
+    }
+  ],
+  "members": [
+    {
+      "id": "m1",
+      "username": "bsmith",
+      "fullName": "Bob Smith"
+    },
+    {
+      "id": "m2",
+      "username": "ghost",
+      "fullName": "Ghost"
+    }
+  ],
+  "checklists": [
+    {
+      "id": "cl1",
+      "idCard": "c1",
+      "name": "Steps",
+      "checkItems": [
+        {
+          "id": "ci1",
+          "name": "Первый шаг",
+          "state": "complete",
+          "pos": 1
+        },
+        {
+          "id": "ci2",
+          "name": "Второй шаг",
+          "state": "incomplete",
+          "pos": 2
+        }
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "id": "c1",
+      "name": "Trello card 1",
+      "desc": "Описание\nвторая строка",
+      "idList": "l1",
+      "idLabels": [
+        "lb1",
+        "lb2"
+      ],
+      "idMembers": [
+        "m1"
+      ],
+      "idChecklists": [
+        "cl1"
+      ],
+      "due": "2025-11-20T12:00:00.000Z",
+      "start": null,
+      "closed": false,
+      "pos": 1
+    },
+    {
+      "id": "c2",
+      "name": "Trello card 2",
+      "desc": "",
+      "idList": "l2",
+      "idLabels": [],
+      "idMembers": [
+        "m2"
+      ],
+      "idChecklists": [],
+      "due": null,
+      "start": null,
+      "closed": false,
+      "pos": 2
+    },
+    {
+      "id": "c3",
+      "name": "Trello card 3",
+      "desc": "x",
+      "idList": "l3",
+      "idLabels": [
+        "lb1"
+      ],
+      "idMembers": [],
+      "idChecklists": [],
+      "due": null,
+      "start": null,
+      "closed": false,
+      "pos": 3
+    },
+    {
+      "id": "c4",
+      "name": "Archived card",
+      "desc": "",
+      "idList": "l1",
+      "idLabels": [],
+      "idMembers": [],
+      "idChecklists": [],
+      "due": null,
+      "start": null,
+      "closed": true,
+      "pos": 4
+    },
+    {
+      "id": "c5",
+      "name": "",
+      "desc": "",
+      "idList": "l1",
+      "idLabels": [],
+      "idMembers": [],
+      "idChecklists": [],
+      "due": null,
+      "start": null,
+      "closed": false,
+      "pos": 5
+    }
+  ]
+}

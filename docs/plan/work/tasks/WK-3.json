@@ -1,0 +1,102 @@
+{
+  "id": "WK-3",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "Модуль automations: правила «триггер → условия → действия» (без send_webhook)",
+  "goal": "Модуль automations по docs/contracts/work.md §Модуль automations: правила проекта, все триггеры (включая cron task.due), условия F-filter, все действия кроме send_webhook (его добавит WK-3b после WK-4), выполнение задачей pg-boss от системного пользователя, защита от циклов (глубина ≤ 3, не на своё действие), журнал запусков, конструктор в настройках.",
+  "plan_ref": "5. Задачи — WK-3 Автоматизации",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "4",
+      "ref": "docs/contracts/work.md"
+    },
+    {
+      "name": "F-filter",
+      "version": "2",
+      "ref": "docs/contracts/work.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "3",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-3",
+  "branch": "work/WK-3",
+  "base": "feature/work",
+  "scope": [
+    "modules/automations",
+    "apps/api/drizzle",
+    "apps/api/test/automations",
+    "apps/web/src/modules/__tests__/automations",
+    "pnpm-lock.yaml"
+  ],
+  "dont_touch": [
+    "apps/api/src, apps/web/src (кроме тестов модуля), packages/ — ядро: только '@planar/server-kit' и '@planar/web/modules'; нужна точка расширения — «WK-3 contract: …»",
+    "modules/webhooks (параллельная WK-4) и другие modules/*; действие send_webhook — не делать (схема actionSchema может его уже знать, выполнение — ошибка «not implemented» в журнале запуска не нужна: просто не включай тип в схему)",
+    "docs/contracts/, apps/api/test/work-contract.test.ts — координатор",
+    "pnpm-lock.yaml, package.json, apps/*/package.json; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk3-api",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api -t wk3:",
+      "expect": "num:Tests\\s+(\\d+) passed >=20"
+    },
+    {
+      "name": "wk3-web",
+      "cmd": "pnpm --filter web exec vitest run -t wk3:",
+      "expect": "num:Tests\\s+(\\d+) passed >=4"
+    },
+    {
+      "name": "contract-work",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api test/work-contract.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=4"
+    },
+    {
+      "name": "migrations-linear",
+      "cmd": "ls apps/api/drizzle/*.sql | sed 's#.*/##' | cut -c1-4 | sort | uniq -d | wc -l",
+      "expect": "num:^(\\d+) <=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint modules/automations apps/api/test apps/web/src && pnpm exec prettier --check modules/automations apps/api/test apps/web/src",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T15:30:11",
+  "edited": "2026-10-23T17:51:18"
+}

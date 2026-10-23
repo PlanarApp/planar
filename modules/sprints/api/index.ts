@@ -8,14 +8,12 @@ import { sprintsCycles, sprintsSettings } from './schema.js';
 @Module({})
 class SprintsModule {}
 
-/** Закрытие цикла на сервере: строка цикла блокируется (prepare) до конца транзакции — перенос ровно один раз. */
+/** Закрытие цикла на сервере. Без for update: порядок блокировок (строка → глобальная advisory) обратный ручному пути и даёт deadlock; параллельный прогон ловит пересечение дат (conflict) после advisory-блокировки. */
 const closeCycle = (api: JobApi, id: string, nextId: string) =>
   api.execute(api.systemUserId, [{ name: 'sprints.close', args: { id, nextId } }], {
     system: true,
     async prepare(q) {
-      const r = await q.execute(
-        sql`select closed_at from sprints_cycles where id = ${id} for update`,
-      );
+      const r = await q.execute(sql`select closed_at from sprints_cycles where id = ${id}`);
       // цикла нет или уже закрыт параллельным прогоном
       if (!r.rows[0] || r.rows[0].closed_at) return false;
     },
