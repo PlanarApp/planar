@@ -22,7 +22,7 @@ async function mountAt(comp: object, path: string) {
   return { w, router };
 }
 const fill = async (w: ReturnType<typeof mount>, vals: string[]) => {
-  const inputs = w.findAll('input');
+  const inputs = w.findAll('input:not([type=file])');
   for (let i = 0; i < vals.length; i++) await inputs[i].setValue(vals[i]);
 };
 

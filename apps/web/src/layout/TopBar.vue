@@ -11,7 +11,8 @@ const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { theme } = useTheme();
-const { logout } = useAuth();
+const { logout, user } = useAuth();
+const notice = ref('');
 
 interface InstallEvent extends Event {
   prompt: () => Promise<void>;
@@ -73,8 +74,9 @@ const items = (): MenuItem[] => [
     label: t('auth.signOut'),
     icon: LogOut,
     onSelect: async () => {
-      await logout();
-      await router.push('/login');
+      notice.value = '';
+      if (await logout()) await router.push('/login');
+      else if (!useAuth().logoutPrompt.open.value) notice.value = t('auth.logoutNeedsNetwork');
     },
   },
 ];
@@ -85,6 +87,7 @@ const items = (): MenuItem[] => [
     <h1 class="flex-1 truncate text-lg font-semibold">
       {{ route.name ? t(`screens.${String(route.name)}`) : t('app.name') }}
     </h1>
+    <span v-if="notice" role="alert" class="text-sm text-fg-muted">{{ notice }}</span>
     <Button v-if="installEvent" size="sm" :icon="Download" @click="install">
       {{ t('topbar.install') }}
     </Button>
@@ -95,7 +98,11 @@ const items = (): MenuItem[] => [
           :aria-label="t('topbar.menu')"
           class="flex size-11 items-center justify-center rounded-full outline-none focus-visible:ring-2 ring-focus md:size-8"
         >
-          <Avatar name="Planar" size="md" />
+          <Avatar
+            :name="user?.name ?? 'Planar'"
+            :src="user?.avatarFile ? `/files/${user.avatarFile}/preview?w=256` : null"
+            size="md"
+          />
         </button>
       </template>
     </Menu>

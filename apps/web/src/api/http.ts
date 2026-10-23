@@ -15,8 +15,11 @@ export async function api<T = unknown>(method: string, path: string, body?: unkn
     res = await fetch(path, {
       method,
       credentials: 'same-origin',
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers:
+        body === undefined || body instanceof FormData
+          ? undefined
+          : { 'Content-Type': 'application/json' },
+      body: body === undefined || body instanceof FormData ? body : JSON.stringify(body),
     });
   } catch (e) {
     throw new ApiError(0, 'network', e instanceof Error ? e.message : 'network');

@@ -12,12 +12,36 @@ const { user } = useAuth();
 const { theme } = useTheme();
 const f = reactive({ name: user.value?.name ?? '', email: user.value?.email ?? '', password: '' });
 const msg = ref('');
-const err = reactive({ profile: '', password: '' });
+const err = reactive({ profile: '', password: '', avatar: '' });
 
 async function patch(body: Record<string, unknown>) {
   const r = await api<{ user: User }>('PATCH', `/api/users/${user.value!.id}`, body);
   user.value = r.user;
   msg.value = t('auth.saved');
+}
+
+async function setAvatar(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  err.avatar = '';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    await patch({ avatarFile: (await api<{ sha256: string }>('POST', '/files', fd)).sha256 });
+  } catch (e) {
+    err.avatar = errText(e, t);
+  }
+}
+
+async function removeAvatar() {
+  err.avatar = '';
+  try {
+    await patch({ avatarFile: null });
+  } catch (e) {
+    err.avatar = errText(e, t);
+  }
 }
 
 async function saveProfile() {
@@ -53,9 +77,21 @@ const themes = () => [
 <template>
   <div v-if="user" class="mx-auto flex max-w-md flex-col gap-6 p-4">
     <div class="flex items-center gap-3">
-      <Avatar :name="user.name" size="lg" />
+      <Avatar
+        :name="user.name"
+        :src="user.avatarFile ? `/files/${user.avatarFile}/preview?w=256` : null"
+        size="lg"
+      />
       <span class="text-sm text-fg-muted">{{ user.login }}</span>
+      <label class="cursor-pointer text-sm underline">
+        {{ t('auth.avatarUpload') }}
+        <input type="file" accept="image/*" class="sr-only" @change="setAvatar" />
+      </label>
+      <Button v-if="user.avatarFile" size="sm" @click="removeAvatar">
+        {{ t('auth.avatarRemove') }}
+      </Button>
     </div>
+    <p v-if="err.avatar" role="alert" class="text-sm text-danger">{{ err.avatar }}</p>
     <form class="flex flex-col gap-3" @submit.prevent="saveProfile">
       <Input v-model="f.name" :label="t('auth.name')" />
       <Input v-model="f.email" type="email" :label="t('auth.email')" :error="err.profile" />
