@@ -197,3 +197,4 @@
 {"t": "2026-10-23T02:16:59", "by": "reviewer", "task": "CR-8", "ev": "reviewed", "note": "C-modules v1 выполнен: реестр installed.ts, guard 404 module_disabled, unknown_mutator, фильтр bootstrap/pull, _reset при смене enabled_modules (уже был в CR-4…", "verdict": "accept", "issues": {"minor": 3}, "review": "docs/plan/core/tasks/CR-8.review.json"}
 {"t": "2026-10-23T02:17:08", "by": "coordinator", "task": null, "ev": "note", "note": "C-modules v2: маршруты модуля только под /api/<id>/, реестр apps/api/src/modules/installed.ts, пакет @planar/module-<id> (CR-8). Потребители — features (FT-*)."}
 {"t": "2026-10-23T02:17:30", "by": "coordinator", "task": "CR-8", "ev": "accepted", "note": "по ревью; minor (проверка id модуля и таблиц при старте, docker-образ) — в доработки перед шлюзом"}
+{"t": "2026-10-23T02:17:30", "by": "coordinator", "task": "CR-8", "ev": "merged"}
