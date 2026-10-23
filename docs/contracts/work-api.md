@@ -3,11 +3,19 @@ type: reference
 status: active
 module: work
 updated: 2026-10-23
-summary: Контракты work, часть 2 — C-modules v5 (CoreServices.enqueue, SDK FilterBuilder и router, страницы настроек модулей), REST v1 и MCP (WK-5)
+summary: Контракты work, часть 2 — C-modules v5 и v6 (enqueue, SDK, настройки модулей, правки collab), REST v1 и MCP (WK-5)
 related: ["docs/contracts/work.md", "docs/contracts/core-api-v1.md", "docs/contracts/core.md"]
 ---
 
 # Контракты модуля work, часть 2
+
+## C-modules v6 (WK-14)
+v6 = v5 (ниже) + правки ядра от collab (docs/contracts/collab.md §X-core в feature/collab, п. 1 — только тип, п. 4–6). Владелец C-modules — work; collab присылает правки главной строкой «contract: …», work вносит их следующей версией.
+- `EntityMeta.members?: { entity: string; key: string; container: string; via: string }` — только тип и проверка формы при загрузке модулей; поведение видимости `space|members` — C-sync v2 (collab).
+- `BackendModuleManifest.canReadFile?(q: Q, userId: string, sha256: string): Promise<boolean>` — `GET /files/:sha256` разрешён, если обычная проверка ядра запрещает, но `true` вернул любой включённый модуль (collab.md §X-core п. 4).
+- web: вид расширений `search` (`EXTENSION_KINDS` += `'search'`): `SearchDef = { id: string; label: LocalizedText; search(q: string, limit: number): Promise<{ id: string; title: string; subtitle?: string; icon?: Component; to: RouteLocationRaw }[]> }`; палитра Cmd+K показывает группы включённых модулей под задачами, ошибка/таймаут поиска модуля не ломает палитру.
+- SDK `@planar/web/modules` += `Editor` (`apps/web/src/task/editor/Editor.vue`, пропсы как есть), `uploadFile` (`apps/web/src/api/files.ts`), JSON-хелперы `apps/web/src/api/http.ts` (те же имена), `onMutationError` (C-client), `useSearch` (поиск задач, `apps/web/src/command/search.ts`). `sendTyping`/`onTyping` — вместе с C-sync v2 у collab.
+- Тесты модулей (`*.test.ts`) могут импортировать `apps/web/src` относительным путём для настройки клиента; код модулей — только SDK и server-kit.
 
 ## C-modules v5 (WK-12)
 v5 — дополнения к v4 (docs/contracts/work.md §C-modules v4), обратно совместимы:

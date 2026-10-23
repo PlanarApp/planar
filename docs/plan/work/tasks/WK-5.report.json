@@ -1,0 +1,62 @@
+{
+  "status": "done",
+  "summary": "REST v1: links (GET/POST/DELETE), time-entries, timer, cycles/current, automations (чтение) + OpenAPI; MCP: link_tasks, log_time, start_timer, stop_timer, current_sprint. Выключенный модуль -> 404 module_disabled.",
+  "commits": [
+    "a6d09df WK-5: REST v1 и MCP"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "wk5",
+      "value": "16",
+      "pass": true
+    },
+    {
+      "name": "contract-core",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WK-5",
+  "uncertain": [
+    {
+      "where": "apps/api/test/wk5/wk5.test.ts (automations)",
+      "why": "modules/automations ещё пуст (WK-3 не влит): сущности automationsRules нет, тест правил пропускается (skipIf), путь отдаёт 404 module_disabled",
+      "checked": "module_disabled для automations проверен; чтение правил — только после влития WK-3"
+    },
+    {
+      "where": "rest.service.ts timeEntries",
+      "why": "from/to включительно по startedAt (контракт не уточняет)",
+      "checked": "тест на from/to"
+    },
+    {
+      "where": "rest.service.ts currentCycle",
+      "why": "'сегодня' в timezone из sprintsSettings, без настроек UTC",
+      "checked": "тест в UTC"
+    }
+  ],
+  "dp_feedback": "accept --dry идёт >120с — сразу запускать в фоне.",
+  "t": "2026-10-23T18:14:04",
+  "by": "executor"
+}
