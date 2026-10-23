@@ -63,7 +63,11 @@
     "apps/web/src/inbox",
     "apps/web/src/i18n",
     "apps/web/src/__contract__",
-    "apps/web/src/session.ts"
+    "apps/web/src/session.ts",
+    "apps/api/test/sync/server-tx.test.ts",
+    "apps/api/test/sync/visibility.test.ts",
+    "apps/web/src/contract.ts",
+    "apps/web/src/screens/InboxScreen.vue"
   ],
   "dont_touch": [
     "docs/contracts",
@@ -119,5 +123,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-23T12:29:41",
-  "edited": "2026-10-23T12:31:00"
+  "edited": "2026-10-23T12:59:41"
 }
