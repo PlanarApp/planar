@@ -369,3 +369,59 @@ test('связи: «связана» видна с обеих сторон по�
   await expect(other.getByRole('heading', { name: 'Связана' })).toBeVisible();
   await expect(other).toContainText(a);
 });
+
+// ---------- Колонки полей в Таблице, снятие блокировки
+
+test('таблица: колонка числового поля — показ и правка ячейки; переживает reload', async ({
+  browser,
+}) => {
+  const f = await fixture([uniq('Колонка поля')]);
+  const fid = await addField(f, 'Оценка', 'number');
+  const page = await loginAs(browser, 'alice');
+  await page.goto(`/p/${f.projectId}/table`);
+  await page.getByRole('button', { name: 'Колонки', exact: true }).click();
+  await page.getByLabel('Оценка', { exact: true }).check();
+  await page.keyboard.press('Escape');
+  const cellOf = () =>
+    page.locator(`[data-task="${f.taskKeys[0]}"] [role=gridcell][data-col="field:${fid}"]`);
+  await expect(cellOf()).toBeVisible();
+  await cellOf().locator('span').first().dblclick();
+  const input = cellOf().locator('input');
+  await input.fill('7');
+  await input.press('Enter');
+  await expect.poll(async () => (await serverTask(f, f.taskIds[0]!)).fields).toEqual({ [fid]: 7 });
+
+  await page.reload();
+  await expect(cellOf()).toContainText('7');
+  await page.goto(`/t/${f.taskKeys[0]}`);
+  await expect(page.getByTestId('fields-block').getByLabel('Оценка')).toHaveValue('7');
+});
+
+test('связи: пометка «заблокирована» снимается, когда блокирующая задача завершена', async ({
+  browser,
+}) => {
+  const f = await fixture([uniq('Блокер'), uniq('Блокируемая')]);
+  await f.admin.pushOk([
+    f.admin.mut('link.create', {
+      id: uuidv7(),
+      taskId: f.taskIds[0],
+      targetId: f.taskIds[1],
+      kind: 'blocks',
+    }),
+  ]);
+  const page = await loginAs(browser, 'alice');
+  await page.goto(`/p/${f.projectId}/board`);
+  const mark = page
+    .locator(`[data-id="${f.taskIds[1]}"]`)
+    .getByRole('img', { name: 'Заблокирована' });
+  await expect(mark).toBeVisible();
+
+  // statusIds[3] — категория done
+  await f.admin.pushOk([
+    f.admin.mut('task.update', { id: f.taskIds[0], statusId: f.statusIds[3] }),
+  ]);
+  await expect(mark).toHaveCount(0, { timeout: 10_000 });
+  await page.reload();
+  await expect(page.locator(`[data-id="${f.taskIds[1]}"]`)).toBeVisible();
+  await expect(mark).toHaveCount(0);
+});
