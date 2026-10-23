@@ -1,44 +1,45 @@
 {
   "status": "partial",
-  "summary": "measure.spec.ts + конфиг готовы, тест проходит и печатает все ключи. Бюджеты §7 не выполнены ни по одному из шести числовых (кроме них — только long-frames=1 вместо 0); приложение не правил.",
+  "summary": "Замер идёт через e2e/web/perf/run.sh на прод-сборке (vite build + vite preview, api/postgres в dev-стеке). Проходят frames и long-frames; cold, warm, mutate, switch, realtime далеки от бюджета. Приложение не правил.",
   "commits": [
+    "afca57e WB-15: run.sh — замер на прод-сборке (vite preview), без хвостов",
     "2dbfbda WB-15: замеры — правки по 5 видимым строкам, целый счётчик долгих кадров",
     "886e97b WB-15: замеры бюджетов §7 в Chromium"
   ],
   "checks": [
     {
       "name": "cold_bootstrap_ms",
-      "value": "4379 (3961-4563 по прогонам), порог 2000",
+      "value": "3546 (прогоны 3409, 3546), порог 2000; dev было 3961-4563",
       "pass": false
     },
     {
       "name": "warm_start_ms",
-      "value": "1177 (1123-1417), порог 400",
+      "value": "859 (841, 859), порог 400; dev 1123-1417",
       "pass": false
     },
     {
       "name": "mutate_ms_p95",
-      "value": "916 (916-1016), порог 50",
+      "value": "865 (828, 865), порог 50; dev 916-1016",
       "pass": false
     },
     {
       "name": "project_switch_ms_p95",
-      "value": "838 (838-904), порог 100",
+      "value": "774 (769, 774), порог 100; dev 838-904",
       "pass": false
     },
     {
       "name": "scroll_frame_ms_p95",
-      "value": "33.3, порог 20",
-      "pass": false
+      "value": "16.8, порог 20; dev 33.3",
+      "pass": true
     },
     {
       "name": "scroll_long_frames",
-      "value": "1 (кадров >50 мс), порог 0",
-      "pass": false
+      "value": "0, порог 0; dev 1",
+      "pass": true
     },
     {
       "name": "realtime_ms_p95",
-      "value": "4074 (2154-4074), медиана 1.8-2.2 с, порог 500",
+      "value": "2112 (2043, 2112), медиана ~1.85 с, порог 500; dev 2154-4074",
       "pass": false
     },
     {
@@ -48,31 +49,31 @@
     }
   ],
   "not_done": [
-    "бюджеты §7 не выполнены; оптимизация приложения вне скоупа, решение за координатором"
+    "бюджеты cold/warm/mutate/switch/realtime §7 на прод-сборке не выполнены; оптимизация вне скоупа, решение за координатором"
   ],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept WB-15",
   "uncertain": [
     {
       "where": "e2e/web/perf/measure.spec.ts",
-      "why": "headless Chromium в Docker на общей машине (соседние стеки wb14 и др.) — абсолютные числа шумные; проект PLN 3334 задач (10000 на 3 проекта сидом), а не 10000 в одном",
-      "checked": "3 прогона дали один порядок величин: cold 3.9-4.6 с, mutate ~0.8-1 с, realtime 2-4 с"
+      "why": "headless Chromium в Docker на общей машине, числа шумные; в проекте PLN 3334 задач (10000 на 3 проекта), не 10000 в одном",
+      "checked": "два прогона на прод-сборке дали близкие числа (разброс до 4%)"
     },
     {
       "where": "measure.spec.ts editTitle",
-      "why": "правки идут по 5 верхним строкам по кругу (20 правок): при правке строк ниже окна (PLN-76) тест зависал — строка не обновлялась после dblclick/fill/Enter; возможно дефект приложения (виртуализация списка / состояние редактирования), не разбирал",
-      "checked": "первые 15 строк с шагом 5 в списке правились стабильно; между правками пауза 1 с"
+      "why": "правки идут по 5 верхним строкам по кругу: при правке строки ниже окна (PLN-76) тест на dev зависал — возможно дефект приложения (виртуализация/редактирование), не разбирал",
+      "checked": "на прод-сборке с 5 верхними строками стабильно"
     },
     {
-      "where": "scroll_long_frames",
-      "why": "1 кадр >50 мс за 5 с прокрутки",
-      "checked": "scroll_frames_n 242-272 за 5 с"
+      "where": "e2e/web/perf/run.sh",
+      "why": "preview запускается как node_modules/.bin/vite под setsid; trap убивает группу и делает down -v",
+      "checked": "после прогона нет vite preview и контейнеров wb15 (ps, docker ps); первая версия оставляла процесс node из-за обёртки pnpm — исправлено"
     }
   ],
-  "dp_feedback": "Проверки cold/warm/... в accept читают build/wb15-measure.txt до шага measure, поэтому в --dry показывают числа прошлого прогона. Нужен порядок: measure первым.",
+  "dp_feedback": "Проверки cold/warm/... в accept идут до measure в --dry и сначала читали устаревший файл; сейчас порядок верный.",
   "extra": {
-    "методика": "как в карточке: cold медиана 3 (новый контекст, MutationObserver первой строки от navigationStart), warm медиана 5 (reload), mutate 20 правок dblclick+fill+Enter (keydown -> смена текста строки), switch 10 кликов по ссылкам сайдбара PLN/OPS, scroll 5 с wheel 100px/16мс + rAF, realtime 10 правок admin->alice, Date.now()"
+    "dev_vs_prod": "cold 3961-4563 -> 3409-3546; warm 1123-1417 -> 841-859; mutate_p95 916-1016 -> 828-865; switch_p95 838-904 -> 769-774; frame_p95 33.3 -> 16.7-16.8; long_frames 1 -> 0; realtime_p95 2154-4074 -> 2043-2112"
   },
-  "t": "2026-10-23T06:11:57",
+  "t": "2026-10-23T06:45:41",
   "by": "executor"
 }

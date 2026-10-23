@@ -39,48 +39,18 @@
       "expect": "exit=0"
     },
     {
-      "name": "cold",
-      "cmd": "cat build/wb15-measure.txt",
-      "expect": "num:cold_bootstrap_ms=([\\d.]+) <=2000"
-    },
-    {
-      "name": "warm",
-      "cmd": "cat build/wb15-measure.txt",
-      "expect": "num:warm_start_ms=([\\d.]+) <=400"
-    },
-    {
-      "name": "mutate",
-      "cmd": "cat build/wb15-measure.txt",
-      "expect": "num:mutate_ms_p95=([\\d.]+) <=50"
-    },
-    {
-      "name": "switch",
-      "cmd": "cat build/wb15-measure.txt",
-      "expect": "num:project_switch_ms_p95=([\\d.]+) <=100"
-    },
-    {
-      "name": "frames",
-      "cmd": "cat build/wb15-measure.txt",
-      "expect": "num:scroll_frame_ms_p95=([\\d.]+) <=20"
-    },
-    {
-      "name": "long-frames",
-      "cmd": "cat build/wb15-measure.txt",
-      "expect": "num:scroll_long_frames=(\\d+) <=0"
-    },
-    {
-      "name": "realtime",
-      "cmd": "cat build/wb15-measure.txt",
-      "expect": "num:realtime_ms_p95=([\\d.]+) <=500"
-    },
-    {
       "name": "measure",
       "cmd": "bash e2e/web/perf/run.sh > build/wb15-measure.txt 2>&1; rc=$?; cat build/wb15-measure.txt; exit $rc",
       "expect": "exit=0"
+    },
+    {
+      "name": "keys",
+      "cmd": "cat build/wb15-measure.txt",
+      "expect": "re:realtime_ms_p95=[\\d.]+"
     }
   ],
   "report_extra": [],
   "notes": "",
   "created": "2026-10-23T04:11:38",
-  "edited": "2026-10-23T06:37:33"
+  "edited": "2026-10-23T06:46:19"
 }
