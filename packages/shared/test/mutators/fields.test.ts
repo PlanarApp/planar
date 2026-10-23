@@ -157,6 +157,15 @@ it('fields: смена проекта обнуляет fields', async () => {
 it('fields: ключ без определения не пишется через setField', async () => {
   const { tx, t } = await setup();
   expect(await code(run(tx, 'task.setField', { taskId: t, fieldId: id(), value: 'x' }))).toBe(
-    'not_found',
+    'invalid_args',
   );
+});
+
+it('fields: project.delete удаляет fieldDefs проекта', async () => {
+  const { tx, s } = await setup();
+  const p2 = id();
+  await run(tx, 'project.create', { id: p2, spaceId: s.spaceId, name: 'Q', key: 'QQ', rank: 'a1' });
+  const f = await mkField(tx, p2, 'text');
+  await run(tx, 'project.delete', { id: p2 });
+  expect(await tx.get('fieldDefs', f)).toBeUndefined();
 });

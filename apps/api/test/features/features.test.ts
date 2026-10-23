@@ -42,6 +42,18 @@ describe('features', () => {
     const w = await world(db);
     const r = await w.guest.push('field.create', fieldArgs(w));
     expect(r).toMatchObject({ ok: false, code: 'forbidden' });
+    const a = taskArgs(w);
+    const b = taskArgs(w);
+    await w.admin.ok('task.create', a);
+    await w.admin.ok('task.create', b);
+    expect(
+      await w.guest.push('link.create', {
+        id: uuidv7(),
+        taskId: a.id,
+        targetId: b.id,
+        kind: 'relates',
+      }),
+    ).toMatchObject({ ok: false, code: 'forbidden' });
   });
 
   it('features: уникальный индекс пары даёт conflict при прямой вставке обратной пары', async () => {

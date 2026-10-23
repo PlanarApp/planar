@@ -48,7 +48,7 @@ it('links: разные пространства и нет задачи', async 
   ).toBe('invalid_args');
   expect(
     await code(run(tx, 'link.create', { id: id(), taskId: a, targetId: id(), kind: 'relates' })),
-  ).toBe('not_found');
+  ).toBe('invalid_args');
 });
 
 it('links: task.delete удаляет связи в обе стороны, включая подзадачи', async () => {

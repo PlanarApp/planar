@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MutatorError, defineMutator, entitySchemas } from '../contract/index.js';
-import { bad, need, uuid } from './util.js';
+import { bad, uuid } from './util.js';
 
 export const linkMutators = [
   defineMutator({
@@ -13,8 +13,9 @@ export const linkMutators = [
     }),
     async run(tx, a, ctx) {
       if (a.taskId === a.targetId) throw bad('связь задачи с самой собой');
-      const t = await need(tx, 'tasks', a.taskId);
-      const o = await need(tx, 'tasks', a.targetId);
+      const t = await tx.get('tasks', a.taskId);
+      const o = await tx.get('tasks', a.targetId);
+      if (!t || !o) throw bad('нет задачи');
       if (t.spaceId !== o.spaceId) throw bad('задачи разных пространств');
       const pair = [
         ...(await tx.scan('taskLinks', { index: 'taskId', eq: t.id })),

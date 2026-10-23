@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MutatorError, defineMutator } from '../contract/index.js';
-import { changes, color, doc, name, need, rank, uuid } from './util.js';
+import { changes, color, delWhere, doc, name, need, rank, uuid } from './util.js';
 
 const key = z.string().regex(/^[A-Z][A-Z0-9]{1,9}$/);
 
@@ -57,6 +57,7 @@ export const projectMutators = [
       await need(tx, 'projects', a.id);
       if ((await tx.scan('tasks', { index: 'projectId', eq: a.id })).length)
         throw new MutatorError('conflict', 'есть задачи');
+      await delWhere(tx, 'fieldDefs', 'projectId', a.id);
       await tx.del('projects', a.id);
     },
   }),

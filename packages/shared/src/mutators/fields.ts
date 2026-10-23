@@ -37,8 +37,8 @@ export const fieldMutators = [
     args: z.object({ taskId: uuid, fieldId: uuid, value: z.json() }),
     async run(tx, a, ctx) {
       const t = await need(tx, 'tasks', a.taskId);
-      const def = await need(tx, 'fieldDefs', a.fieldId);
-      if (def.projectId !== t.projectId) throw bad('поле другого проекта');
+      const def = await tx.get('fieldDefs', a.fieldId);
+      if (!def || def.projectId !== t.projectId) throw bad('поле другого проекта');
       const rest = { ...t.fields };
       delete rest[a.fieldId];
       if (a.value === null)
