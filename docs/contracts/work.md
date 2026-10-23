@@ -85,6 +85,39 @@ interface TopbarItemDef { id: string; component: Lazy<{}>; order?: number }
 - `nav` — элементы в `Sidebar.vue` после встроенных («Inbox», «Мои задачи»), по `order`, затем по ключу: ссылка — пункт меню, `section` — компонент целиком (лениво, `defineAsyncComponent`; сам рисует заголовок и содержимое; ошибка загрузки секции не ломает боковую панель). На mobile элементы `nav` не показываются. `to` вне `/m/<moduleId>/`, или ни `to`, ни `section` → `registerModules` бросает `Error`.
 - `topbar` — компоненты в `TopBar.vue` слева от меню пользователя, по `order`; desktop и mobile.
 
+## C-modules v4 (WK-10)
+v4: модулям — пакет `@planar/server-kit` (сервер) и SDK `@planar/web/modules` (web) вместо импорта ядра относительными путями; клиент синхронизации знает сущности и мутаторы модулей. v3 — без изменений.
+
+### Сервер: `packages/server-kit` → `@planar/server-kit`
+Зависимости — только `@planar/shared`, `drizzle-orm`, `@nestjs/common`, `zod` (без `@planar/api`: модули и api зависят от kit, цикла нет). Модули — `"@planar/server-kit": "workspace:*"`; импорт `@planar/api` из модулей запрещён.
+```ts
+export type Db = NodePgDatabase<Record<string, unknown>>;            // drizzle-orm/node-postgres
+export type Q = PgDatabase<NodePgQueryResultHKT, Record<string, unknown>>;
+export type { ModuleHookApi, JobApi, JobDef, JobOpts } from './hooks';  // перенос из apps/api/src/modules/hooks.ts; ModuleHookApi.sys: Tx (@planar/shared)
+// JobApi.execute opts += prepare?: (q: Q) => Promise<boolean | void> — в той же транзакции до мутаций (блокировки, проверки); false → мутации не выполняются
+export class HttpError extends HttpException { constructor(status: number, code: string, message: string) } // формат C-http «Ошибки»; ErrorFilter api его понимает
+export function parseBody<T extends z.ZodType>(schema: T, body: unknown): z.infer<T>; // 400 invalid_request
+export interface AuthCtx { userId: string; role: 'owner' | 'admin' | 'member' | 'guest'; tokenId: string | null; tokenScope: 'read' | 'write' | null }
+export interface CoreServices {
+  db: Db;
+  auth(req: object): AuthCtx;                       // как getAuth api; нет входа → 401
+  requireInstanceAdmin(req: object, opts?: { sessionOnly?: boolean }): AuthCtx; // не owner/admin → 403; sessionOnly и Bearer → 403
+  toV1Tasks(q: Q | Db, rows: Record<string, unknown>[]): Promise<Record<string, unknown>[]>; // строки tasks → форма REST v1 (key, assigneeIds, labelIds)
+  systemUserId(): string;
+}
+export const CORE = Symbol.for('planar.core');      // Nest-провайдер (глобальный) со значением CoreServices; модуль: @Inject(CORE) core: CoreServices
+```
+`apps/api` реализует `CoreServices` и реэкспортирует типы kit там, где они были (`@planar/api/modules` остаётся реэкспортом для обратной совместимости ядра; модулям — только kit).
+
+### Web: SDK `@planar/web/modules`
+`exports["./modules"]` → `apps/web/src/modules/sdk.ts`: всё прежнее из `types.ts` (`defineWebModule`, типы элементов) и для модулей —
+`db` (PlanarDB), `useQuery`, `mutate(name, args)` (вызов мутатора по имени через клиент синхронизации), `useSession()` (текущий пользователь), `useTask`/`useProjectTasks`/словари (C-tasks), `openTask`, базовые компоненты `apps/web/src/ui` (C-ui), `useI18n`, `useWeekStart`, `localToday`, `matchFilter`. Модули импортируют web только отсюда. Typecheck web (`vue-tsc`) включает `modules/*/web/**`; Tailwind сканирует `modules/*/web/**`.
+
+### Клиент синхронизации
+- `apps/web/src/sync`: Dexie-схема = ядро + `entities` всех установленных модулей (`import.meta.glob('…/modules/*/shared/index.ts', {eager: true})` — shared-манифесты без Node API, малые). Новая или изменённая сущность модуля → версия схемы Dexie растёт детерминированно; база пользователя обновляется без ручной очистки (при несовместимости — пересоздание и bootstrap).
+- `apps/web/src/session.ts` регистрирует мутаторы ядра и всех модулей (выключенный модуль сервер отвергает `unknown_mutator`).
+- Бюджет начального JS (≤ 200 КБ gzip) сохраняется: в начальный чанк входят только shared-манифесты модулей, web-части — лениво.
+
 ### Неделя (WK-0, потребители WK-1, WK-7)
 `apps/web/src/i18n/week.ts`: `useWeekStart(): Readonly<Ref<0 | 1>>` (0 — воскресенье, 1 — понедельник) и `setWeekStart(v: 'auto' | 0 | 1)`. Значение — `localStorage['planar.weekStart']` (`'auto'|'0'|'1'`, try/catch), `auto` и пусто — по локали i18n: `en` → 0, `ru` → 1.
 
