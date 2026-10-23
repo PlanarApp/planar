@@ -349,3 +349,69 @@ describe('table', () => {
     });
   });
 });
+
+describe('wk7b: раскладка в сохранённом виде', () => {
+  const heads = () => w.findAll('[role=columnheader]').map((h) => h.attributes('data-col'));
+  const lsKey = 'planar.table.p1';
+  it('wk7b: options.columns применяется поверх localStorage', async () => {
+    saveLayout('p1', { columns: [{ id: 'key', width: 90 }] });
+    await show({
+      columns: [
+        { id: 'status', width: 200 },
+        { id: 'title', width: 300 },
+      ],
+    });
+    expect(heads()).toEqual(['status', 'title']);
+  });
+  it('wk7b: без options.columns — localStorage', async () => {
+    saveLayout('p1', { columns: [{ id: 'key', width: 90 }] });
+    await show();
+    expect(heads()).toEqual(['key']);
+  });
+  it('wk7b: без обоих — по умолчанию', async () => {
+    await show();
+    expect(heads()).toEqual(defaultLayout().columns.map((c) => c.id));
+  });
+  it('wk7b: на сохранённом виде правка уходит в update:options, localStorage не меняется', async () => {
+    await show({
+      columns: [
+        { id: 'title', width: 300 },
+        { id: 'key', width: 90 },
+      ],
+    });
+    await w.setProps({ saved: true });
+    await colsMenu();
+    menuBox('Статус').click();
+    await flushPromises();
+    const ev = w.emitted('update:options')!;
+    expect((ev.at(-1)![0] as ViewOptions).columns!.map((c) => c.id)).toEqual([
+      'title',
+      'key',
+      'status',
+    ]);
+    expect(localStorage.getItem(lsKey)).toBeNull();
+  });
+  it('wk7b: на вкладке проекта правка пишет localStorage', async () => {
+    await show();
+    await colsMenu();
+    menuBox('Метки').click();
+    await flushPromises();
+    expect(w.emitted('update:options')).toBeUndefined();
+    expect(
+      JSON.parse(localStorage.getItem(lsKey)!).columns.map((c: { id: string }) => c.id),
+    ).not.toContain('labels');
+  });
+  it('wk7b: неизвестные id пропускаются, ширина зажимается в 60–800', async () => {
+    await show({
+      columns: [
+        { id: 'nope', width: 100 },
+        { id: 'title', width: 5 },
+        { id: 'key', width: 5000 },
+        { id: 'title', width: 100 },
+      ],
+    });
+    expect(heads()).toEqual(['title', 'key']);
+    expect(w.find('[data-col=title]').attributes('style')).toContain('width: 60px');
+    expect(w.find('[data-col=key]').attributes('style')).toContain('width: 800px');
+  });
+});

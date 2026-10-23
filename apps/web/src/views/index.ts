@@ -11,6 +11,8 @@ export interface ViewProps {
   projectId: string;
   options: ViewOptions;
   filter?: Filter | null;
+  /** открыт сохранённый вид: раскладка уходит в черновик опций (update:options) */
+  saved?: boolean;
 }
 export { useViewOptions } from './options';
 export { matchFilter } from './filter';

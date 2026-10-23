@@ -22,6 +22,7 @@ import {
 import { FieldCell, FieldEditor, setTaskField, useFieldDefs } from '../../fields';
 import { Button, Popover } from '../../ui';
 import { openTask, useSelection, type ViewProps } from '..';
+import type { ViewOptions } from '../options';
 import { useTaskFilter } from '../saved/useFilter';
 import {
   COLUMN_IDS,
@@ -31,12 +32,14 @@ import {
   loadLayout,
   moveColumn,
   newColumn,
+  parseColumns,
   saveLayout,
   type ColumnId,
   type ColumnState,
 } from './columns';
 
 const props = defineProps<ViewProps>();
+const emit = defineEmits<{ 'update:options': [ViewOptions] }>();
 const { t } = useI18n();
 const sel = useSelection();
 const ROW_H = 36;
@@ -60,11 +63,17 @@ const rows = computed(() => {
 const rowIds = computed(() => rows.value.map((r) => r.id));
 
 // --- раскладка
-const cols = ref<ColumnState[]>(loadLayout(props.projectId).columns);
-const save = () => saveLayout(props.projectId, { columns: cols.value });
+// options.columns → localStorage → по умолчанию
+const resolve = () => parseColumns(props.options.columns) ?? loadLayout(props.projectId).columns;
+const cols = ref<ColumnState[]>(resolve());
+// сохранённый вид: правка уходит в черновик опций; вкладка проекта — в localStorage
+const save = () =>
+  props.saved
+    ? emit('update:options', { ...props.options, columns: cols.value.map((c) => ({ ...c })) })
+    : saveLayout(props.projectId, { columns: cols.value });
 watch(
-  () => props.projectId,
-  (p) => (cols.value = loadLayout(p).columns),
+  () => [props.projectId, JSON.stringify(props.options.columns)],
+  () => (cols.value = resolve()),
 );
 const total = computed(() => CHECK_W + cols.value.reduce((s, c) => s + c.width, 0));
 // колонка удалённого поля выпадает из раскладки, когда определения загружены

@@ -1,4 +1,5 @@
 import { ref, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue';
+import { parseColumns } from './table/columns';
 import type { GroupBy, SortBy } from '../tasks';
 
 export type TaskField = 'status' | 'assignee' | 'priority' | 'dueDate' | 'labels' | 'project';
@@ -17,6 +18,8 @@ export interface ViewOptions {
   sortDir: 'asc' | 'desc';
   showSubtasks: boolean;
   fields: TaskField[];
+  /** раскладка Таблицы: порядок, ширина; нет id — колонка скрыта */
+  columns?: { id: string; width: number }[];
 }
 
 export const DEFAULT_OPTIONS: ViewOptions = {
@@ -36,7 +39,8 @@ export const optionsFrom = (config: Record<string, unknown> | undefined): ViewOp
   const fields = Array.isArray(o.fields)
     ? o.fields.filter((f): f is TaskField => TASK_FIELDS.includes(f as TaskField))
     : DEFAULT_OPTIONS.fields;
-  return { ...o, fields: [...fields] };
+  const columns = parseColumns(config?.columns);
+  return { ...o, fields: [...fields], ...(columns && { columns }) };
 };
 
 const load = (key: string): ViewOptions => {
