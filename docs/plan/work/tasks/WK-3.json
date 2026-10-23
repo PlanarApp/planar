@@ -29,7 +29,8 @@
     "modules/automations",
     "apps/api/drizzle",
     "apps/api/test/automations",
-    "apps/web/src/modules/__tests__/automations"
+    "apps/web/src/modules/__tests__/automations",
+    "pnpm-lock.yaml"
   ],
   "dont_touch": [
     "apps/api/src, apps/web/src (кроме тестов модуля), packages/ — ядро: только '@planar/server-kit' и '@planar/web/modules'; нужна точка расширения — «WK-3 contract: …»",
@@ -97,5 +98,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-23T15:30:11",
-  "edited": "2026-10-23T15:30:11"
+  "edited": "2026-10-23T17:51:18"
 }

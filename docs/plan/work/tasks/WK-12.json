@@ -26,9 +26,9 @@
     "docs/contracts/core.md"
   ],
   "dont_touch": [
-    "docs/contracts/ кроме одной правки core.md: заголовок «## C-modules v4» → «## C-modules v5» и строка под ним «v5 (WK-12): enqueue, FilterBuilder/router в SDK, настройки модулей — work-api.md.» (над строкой v4) — так contract-core совпадёт с CONTRACT_VERSIONS 5",
     "modules/automations, modules/import (параллельные доработки WK-3, WK-6), остальные modules/* — не трогать",
-    "зависимости, pnpm-lock.yaml; apps/api/test/work-contract.test.ts; .claude/, CLAUDE.md"
+    "зависимости, pnpm-lock.yaml; apps/api/test/work-contract.test.ts; .claude/, CLAUDE.md",
+    "docs/contracts/work.md, docs/contracts/work-api.md, остальные docs/contracts/* — координатор (core.md — только заголовок C-modules v5, разрешено)"
   ],
   "accept": [
     {
@@ -84,5 +84,6 @@
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-23T17:25:53"
+  "created": "2026-10-23T17:25:53",
+  "edited": "2026-10-23T17:58:04"
 }
