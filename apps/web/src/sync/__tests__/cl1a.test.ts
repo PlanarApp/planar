@@ -5,7 +5,16 @@ import { PlanarDB } from '../db';
 import { createClient } from '../client';
 import { FakeWebSocket } from './fake-server';
 import { setup, stopAll } from './helpers';
-import { moduleIndexes, moduleMutators } from '../../modules/shared';
+import type { SharedModuleManifest } from '@planar/shared';
+import { moduleIndexes as indexesOf, moduleMutators } from '../index';
+
+const moduleIndexes = indexesOf(
+  Object.values(
+    import.meta.glob<{ shared: SharedModuleManifest }>('../../../../../modules/*/shared/index.ts', {
+      eager: true,
+    }),
+  ).map((m) => m.shared),
+);
 
 afterEach(async () => {
   await stopAll();

@@ -41,16 +41,49 @@ export function buildSchema(
   return stores;
 }
 
+/**
+ * Версия схемы Dexie: 3 без модулей; с модулями растёт при каждом изменении набора таблиц/индексов
+ * (подпись и версия — в localStorage; нет хранилища → 4, а несовместимость лечит PlanarDB.open).
+ */
+export function schemaVersion(name: string, extra: Record<string, string[]>): number {
+  const names = Object.keys(extra).sort();
+  if (!names.length) return 3;
+  const sig = names.map((n) => `${n}:${extra[n]!.join(',')}`).join(';');
+  const key = `planar.dexieSchema.${name}`;
+  try {
+    const old = JSON.parse(localStorage.getItem(key) ?? 'null') as {
+      sig: string;
+      v: number;
+    } | null;
+    const v = !old ? 4 : old.sig === sig ? old.v : old.v + 1;
+    if (v !== old?.v) localStorage.setItem(key, JSON.stringify({ sig, v }));
+    return v;
+  } catch {
+    return 4;
+  }
+}
+
 export class PlanarDB extends Dexie {
   _meta!: Table<MetaRow, string>;
   _queue!: Table<QueueItem, number>;
   constructor(name = 'planar', extra: Record<string, string[]> = {}) {
     super(name);
     // v1 — реплика до fieldDefs/taskLinks; v2 добавляет их (Dexie мигрирует без потери данных)
-    this.version(1).stores(buildSchema(extra, ['fieldDefs', 'taskLinks']));
-    this.version(2).stores(buildSchema(extra, [], ['tasks.cycleId']));
+    this.version(1).stores(buildSchema({}, ['fieldDefs', 'taskLinks']));
+    this.version(2).stores(buildSchema({}, [], ['tasks.cycleId']));
     // v3 (C-schema v7): индекс tasks.cycleId
-    this.version(3).stores(buildSchema(extra));
+    this.version(3).stores(buildSchema());
+    // v≥4: сущности установленных модулей (C-modules v4)
+    const v = schemaVersion(name, extra);
+    if (v > 3) this.version(v).stores(buildSchema(extra));
+  }
+  /** Версия в базе выше объявленной (модуль убрали, хранилище сброшено) — реплика пересоздаётся, дальше bootstrap. */
+  override open(): ReturnType<Dexie['open']> {
+    return super.open().catch(async (e: Error) => {
+      if (e.name !== 'VersionError') throw e;
+      await this.delete();
+      return super.open();
+    }) as ReturnType<Dexie['open']>;
   }
   /** таблицы сущностей (без служебных) */
   entityTables(): Table[] {

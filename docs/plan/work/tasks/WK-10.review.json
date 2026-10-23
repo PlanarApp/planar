@@ -1,0 +1,54 @@
+{
+  "verdict": "accept",
+  "summary": "Kit, SDK, CORE, prepare, Dexie с сущностями модулей и регистрация мутаторов сделаны по §C-modules v4, все правки в скоупе. Перевод lockedClose на prepare перепроверен временным тестом гонки с трёх разных clientId (8 прогонов): нового цикла создаётся ровно один. Запасной путь Dexie (та же версия, другая схема) Dexie 4 закрывает сам через SchemaDiff.",
+  "issues": [
+    {
+      "file": "modules/sprints/api/index.ts",
+      "line": 11,
+      "severity": "minor",
+      "what": "Ручной sprints.close через push теперь идёт без for update. «Ровно один раз» (work.md:230) держится на глобальной advisory-блокировке changes и проверке пересечения дат в insertCycle: второе устройство получает conflict, а не тихий no-op. Тест wk2 «параллельное» проверяет только один clientId, а он и так сериализован строкой client_mutations.",
+      "fix": "Добавить в sprints.test тест параллельного закрытия с разных TestClient и с cron-задачей, чтобы гарантия была зафиксирована. Если no-op для второго устройства важен, координатору — решить, давать ли мутаторам блокировку через kit."
+    },
+    {
+      "file": "apps/api/src/core.service.ts",
+      "line": 18,
+      "severity": "minor",
+      "what": "Если ensureSystemUser упал при старте, ошибка проглатывается, и до перезапуска любой systemUserId() бросает Error. Комментарий «подтянется при первом обращении» не соответствует коду: повторной попытки нет.",
+      "fix": "Исправить комментарий, либо при отсутствии sysId делать ленивую повторную попытку там, где это допустимо (async-путь), либо падать при старте явно."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "no-relative-core",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "wk10-web",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "contract-core",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "wk10-api",
+      "value": "PASS, scope 42 файла в границах",
+      "pass": true
+    },
+    {
+      "name": "гонка sprints.close с 3 clientId ×8 (временный тест, удалён)",
+      "value": "2 цикла в каждом прогоне",
+      "pass": true
+    },
+    {
+      "name": "Dexie: та же версия, другая схема (fake-indexeddb)",
+      "value": "SchemaDiff, таблица добавлена, данные ядра целы",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T15:27:46",
+  "by": "reviewer"
+}
