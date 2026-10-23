@@ -19,6 +19,10 @@ export class RestController {
   projects(@Req() req: object, @Query() q: unknown) {
     return this.rest.projects(getAuth(req).userId, q);
   }
+  @Get('projects/:id/fields')
+  fields(@Req() req: object, @Param('id') id: string) {
+    return this.rest.fields(getAuth(req).userId, id);
+  }
   @Get('tasks')
   tasks(@Req() req: object, @Query() q: unknown) {
     return this.rest.tasks(getAuth(req).userId, q);

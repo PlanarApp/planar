@@ -108,6 +108,22 @@ export class RestService {
     return { data: p.items.map((r) => toWire('projects', r)), nextCursor: p.nextCursor };
   }
 
+  async fields(userId: string, projectId: string) {
+    const my = await this.mySpaces(userId);
+    if (!z.uuid().safeParse(projectId).success) throw NOT_FOUND('Проект');
+    const [project] = await this.db
+      .select({ id: s.projects.id })
+      .from(s.projects)
+      .where(and(eq(s.projects.id, projectId), inArray(s.projects.spaceId, my)));
+    if (!project) throw NOT_FOUND('Проект');
+    const rows = (await this.db
+      .select()
+      .from(s.fieldDefs)
+      .where(eq(s.fieldDefs.projectId, projectId))
+      .orderBy(asc(s.fieldDefs.rank), asc(s.fieldDefs.id))) as Wire[];
+    return { data: rows.map((r) => toWire('fieldDefs', r)) };
+  }
+
   async tasks(userId: string, query: unknown) {
     const q = parse(tasksQuery, query);
     const my = await this.mySpaces(userId);
@@ -289,7 +305,7 @@ export class RestService {
     const b = parse(patchTaskBody, raw);
     const t = await this.findTask(userId, ref);
     const id = t.id as string;
-    const { assigneeIds, labelIds, description, ...scalar } = b;
+    const { assigneeIds, labelIds, description, fields, ...scalar } = b;
     const muts: Mut[] = [];
     const upd = {
       ...scalar,
@@ -315,6 +331,8 @@ export class RestService {
         if (!cur.labelIds.includes(l))
           muts.push({ name: 'task.addLabel', args: { id: uuidv7(), taskId: id, labelId: l } });
     }
+    for (const [fieldId, value] of Object.entries(fields ?? {}))
+      muts.push({ name: 'task.setField', args: { taskId: id, fieldId, value: value ?? null } });
     await this.run(userId, muts, tokenId);
     return this.task(userId, id);
   }

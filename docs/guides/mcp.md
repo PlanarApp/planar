@@ -55,7 +55,8 @@ Claude Desktop и другие клиенты с `mcp.json`:
 
 Запись (нужен `write`):
 - `create_task` — как `POST /api/v1/tasks`;
-- `update_task {task, …}` — как `PATCH /api/v1/tasks/:task`;
+- `list_fields {projectId}` — определения пользовательских полей проекта (как `GET /api/v1/projects/:id/fields`);
+- `update_task {task, …, fields?}` — как `PATCH /api/v1/tasks/:task`, `fields` — `{<fieldId>: значение | null}`;
 - `add_comment {task, text}` — `@login` становится упоминанием.
 
 Ответ — компактный JSON в текстовом блоке; `description` — простой текст. Ошибки (`forbidden`, `not_found`, `invalid_request`, `conflict`) приходят как результат инструмента с `isError: true` и телом `{code, message}`. Токен `read` на запись даёт `forbidden`. Без токена, с отозванным или просроченным — HTTP `401`.
