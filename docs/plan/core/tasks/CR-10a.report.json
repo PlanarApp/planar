@@ -1,8 +1,9 @@
 {
   "status": "done",
-  "summary": "API-токены (GET/POST/DELETE /api/tokens), Bearer в authenticateRaw, guard (read только GET/HEAD, /api/tokens по токену 403), activity.via_token_id + миграция 0005, tokenId через sync.controller -> PushService -> ServerTx.",
+  "summary": "Rework 2: guard решает по req.routeOptions.url (percent-encoding не обходит), WS /ws отклоняет Bearer, слит feature/core; tokenId через runMutation/executeMutations (для REST CR-10b).",
   "commits": [
-    "daed4a1 core: CR-10a API-токены, Bearer-авторизация, activity.v"
+    "daed4a1 core: CR-10a API-токены, Bearer-авторизация, activity.v",
+    "be96629 core: CR-10a guard по шаблону маршрута, WS без токена, слияние feature/core"
   ],
   "checks": [
     {
@@ -22,7 +23,7 @@
     },
     {
       "name": "tokens_tests",
-      "value": "16",
+      "value": "17",
       "pass": true
     },
     {
@@ -48,7 +49,7 @@
   ],
   "not_done": [],
   "questions": [
-    "Принять правку двух файлов вне scope (sync.controller.ts, test/sync/server-tx.test.ts)?"
+    "Правки вне scope: sync/mutate.ts (tokenId в runMutation/executeMutations, после слияния CR-10b), sync/ws.ts (отказ токену). Принять?"
   ],
   "how_to_check": ".dpcli/dpcli accept CR-10a",
   "uncertain": [
@@ -66,9 +67,14 @@
       "where": "apps/api/src/tokens/tokens.controller.ts:revoke",
       "why": "повторный DELETE уже отозванного даёт 404 (не идемпотентно)",
       "checked": "осознанно, по карточке: чужой/нет -> 404"
+    },
+    {
+      "where": "apps/api/src/sync/mutate.ts:31",
+      "why": "вне scope; без tokenId REST CR-10b не пометит activity.viaTokenId",
+      "checked": "необязательный параметр, push и тесты зелёные"
     }
   ],
   "dp_feedback": "scope-проверка не даёт предупредить заранее о файлах, которые ломает смена контракта; карточке стоило включить sync.controller.ts и тесты, использующие Row<activity>.",
-  "t": "2026-10-23T06:04:34",
+  "t": "2026-10-23T06:21:21",
   "by": "executor"
 }

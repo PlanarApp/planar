@@ -34,7 +34,9 @@
     "packages/shared/src/contract/versions.ts",
     "docs/contracts/core.md",
     "apps/api/src/sync/sync.controller.ts",
-    "apps/api/test/sync/server-tx.test.ts"
+    "apps/api/test/sync/server-tx.test.ts",
+    "apps/api/src/sync/mutate.ts",
+    "apps/api/src/sync/ws.ts"
   ],
   "dont_touch": [
     "apps/api/src/rest/ — параллельно CR-10b",
@@ -90,5 +92,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-23T05:54:04",
-  "edited": "2026-10-23T06:12:58"
+  "edited": "2026-10-23T06:26:25"
 }

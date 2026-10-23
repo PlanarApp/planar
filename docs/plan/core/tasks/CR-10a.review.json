@@ -1,34 +1,41 @@
 {
-  "verdict": "rework",
-  "summary": "Токены, Bearer, viaTokenId и миграция сделаны по карточке, контракты не тронуты, файлы вне scope координатор уже добавил. Но запрет /api/tokens для Bearer обходится percent-encoding: guard сравнивает сырой req.url, а Fastify декодирует путь при маршрутизации.",
+  "verdict": "accept",
+  "summary": "Блокер прошлого ревью закрыт: guard решает по req.routeOptions.url. Временная проба на реальном приложении: %74okens, двойной слэш, регистр, хвостовой слэш для GET/POST/DELETE с read и write токенами дают 403 или 404, обхода нет; /ws по Bearer закрывается с 4401. Контракты не тронуты. Осталось: тесты из доработки написаны не полностью, а REST не передаёт tokenId.",
   "issues": [
     {
-      "file": "apps/api/src/auth/auth.guard.ts",
-      "line": 36,
-      "severity": "blocker",
-      "what": "Проверка пути идёт по сырому req.url. Проверил на fastify.inject: GET /api/%74okens попадает в маршрут /api/tokens, а guard его не узнаёт. Write-токен через POST /api/%74okens выпускает новый бессрочный токен (так утёкший токен живёт сколько угодно), DELETE /api/%74okens/:id отзывает чужие сессионные токены владельца, read-токен через GET видит список. Нарушено правило карточки «/api/tokens* с via 'token' → 403».",
-      "fix": "Проверять шаблон маршрута, а не URL: req.routeOptions.url (у Fastify это '/api/tokens' и '/api/tokens/:id'). Или метаданные на TokensController (например @SessionOnly) и чтение их через reflector. Добавить тест: Bearer → POST /api/%74okens → 403."
+      "file": "apps/api/src/rest/rest.service.ts",
+      "line": 195,
+      "severity": "major",
+      "what": "executeMutations вызывается без tokenId, поэтому запись через REST /api/v1 по Bearer пишет activity.viaTokenId = null. Это расходится с целью карточки «запись через токен помечается». Файл в dont_touch (CR-10b), исполнитель только добавил параметр в mutate.ts.",
+      "fix": "Координатору: отдельной правкой REST передать getAuth(req).tokenId в executeMutations (5-й аргумент) и добавить тест."
+    },
+    {
+      "file": "apps/api/test/tokens/tokens.test.ts",
+      "line": 165,
+      "severity": "minor",
+      "what": "Доработка требовала тесты на закодированный путь (%74okens, двойной слэш, регистр) для GET/POST/DELETE с read и write токенами, а также тест, что /ws отклоняет Bearer. Есть только GET /api/%74okens, WS-теста нет. Код при этом работает: ревьюер проверил это временной пробой (см. rerun).",
+      "fix": "Добавить цикл по методам, вариантам пути и scope (ожидать 403/404, не 2xx) и тест в test/sync/ws.test.ts: Bearer → close 4401."
     },
     {
       "file": "apps/api/src/sync/ws.ts",
-      "line": 66,
+      "line": 75,
       "severity": "minor",
-      "what": "ws.ts вызывает authenticateRaw, поэтому /ws теперь пускает и по Bearer, а в карточке сказано «WS /ws по токену не нужен (только cookie)». Read-scope тут не проверяется: guard для upgrade не вызывается.",
-      "fix": "Либо в ws.ts отклонять ctx.via === 'token', либо координатор явно разрешает WS по токену."
+      "what": "Вне scope: mutate.ts и ws.ts. Обе правки прямо требует заметка координатора 06:16, проверка scope падает только из-за них. Кроме того, Bearer отклоняется уже после authenticateRaw, поэтому неудачная попытка /ws обновляет last_used_at токена. В доработке предлагался allowToken:false.",
+      "fix": "Координатору: добавить apps/api/src/sync/mutate.ts и apps/api/src/sync/ws.ts в scope. По желанию: не разбирать Bearer для UPGRADE."
     }
   ],
   "rerun": [
     {
       "name": "tokens_tests",
-      "value": "16 passed",
+      "value": "17 passed",
       "pass": true
     },
     {
-      "name": "scope",
-      "value": "16 файлов в границах (после правки scope координатором)",
+      "name": "проба обхода guard: 10 путей × read/write, WS Bearer",
+      "value": "нет 2xx на /api/tokens*, read POST /sync/%70ush 403, WS 4401",
       "pass": true
     }
   ],
-  "t": "2026-10-23T06:15:09",
+  "t": "2026-10-23T06:23:39",
   "by": "reviewer"
 }
