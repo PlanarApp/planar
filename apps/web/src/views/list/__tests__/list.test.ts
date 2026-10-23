@@ -35,6 +35,7 @@ const opts = (o: Partial<ViewOptions> = {}): ViewOptions => ({
   sortBy: 'rank',
   sortDir: 'asc',
   showSubtasks: false,
+  fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
   ...o,
 });
 const rank = (n: number) => `a${String(n).padStart(5, '0')}`;

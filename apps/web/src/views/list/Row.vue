@@ -5,11 +5,14 @@ import {
   AssigneePicker,
   DueDatePicker,
   PriorityPicker,
+  LabelPicker,
   StatusPicker,
   setAssignees,
+  setLabels,
   updateTask,
   type TaskView,
 } from '../../tasks';
+import type { TaskField } from '../options';
 
 const props = defineProps<{
   task: TaskView;
@@ -18,6 +21,7 @@ const props = defineProps<{
   selected: boolean;
   focused: boolean;
   editing: boolean;
+  fields: TaskField[];
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -78,7 +82,7 @@ function save() {
       />
     </div>
     <div role="gridcell" class="w-16 shrink-0 truncate text-xs text-fg-subtle">{{ task.key }}</div>
-    <div role="gridcell" class="shrink-0" @click.stop>
+    <div v-if="fields.includes('status')" role="gridcell" class="shrink-0" @click.stop>
       <StatusPicker
         compact
         :space-id="spaceId"
@@ -100,14 +104,22 @@ function save() {
       />
       <span v-else class="block truncate">{{ task.title }}</span>
     </div>
-    <div role="gridcell" class="shrink-0" @click.stop>
+    <div v-if="fields.includes('labels')" role="gridcell" class="shrink-0" @click.stop>
+      <LabelPicker
+        compact
+        :space-id="spaceId"
+        :model-value="task.labelIds"
+        @update:model-value="setLabels(task.id, $event)"
+      />
+    </div>
+    <div v-if="fields.includes('priority')" role="gridcell" class="shrink-0" @click.stop>
       <PriorityPicker
         compact
         :model-value="task.priority"
         @update:model-value="updateTask(task.id, { priority: $event })"
       />
     </div>
-    <div role="gridcell" class="shrink-0" @click.stop>
+    <div v-if="fields.includes('assignee')" role="gridcell" class="shrink-0" @click.stop>
       <AssigneePicker
         compact
         :space-id="spaceId"
@@ -115,7 +127,12 @@ function save() {
         @update:model-value="setAssignees(task.id, $event)"
       />
     </div>
-    <div role="gridcell" class="hidden shrink-0 md:block" @click.stop>
+    <div
+      v-if="fields.includes('dueDate')"
+      role="gridcell"
+      class="hidden shrink-0 md:block"
+      @click.stop
+    >
       <DueDatePicker
         compact
         :model-value="task.dueDate"

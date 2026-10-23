@@ -12,6 +12,7 @@ import {
 import { useBreakpoint } from '../../ui';
 import { openTask } from '..';
 import type { ViewProps } from '..';
+import { useTaskFilter } from '../saved/useFilter';
 import Column from './Column.vue';
 import { applyMove, boardColumns, planMove } from './plan';
 
@@ -25,10 +26,13 @@ const tasks = useProjectTasks(() => props.projectId);
 const statuses = useStatuses(spaceId);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId);
+const passes = useTaskFilter(() => props.filter, statuses);
 
 const columns = computed(() =>
   boardColumns(
-    (tasks.value ?? []).filter((x) => props.options.showSubtasks || !x.parentId),
+    (tasks.value ?? []).filter(
+      (x) => (props.options.showSubtasks || !x.parentId) && passes.value(x),
+    ),
     props.options.groupBy,
     { statuses: statuses.value ?? [], members: members.value ?? [], labels: labels.value ?? [] },
   ),
@@ -93,6 +97,7 @@ function add(key: string, title: string) {
       :labels="labels ?? []"
       :collapsed="collapsed.has(g.key)"
       :mobile="isMobile"
+      :fields="options.fields"
       @toggle="toggle(g.key)"
       @open="openTask"
       @add="add(g.key, $event)"

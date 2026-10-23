@@ -1,28 +1,49 @@
 import { ref, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue';
 import type { GroupBy, SortBy } from '../tasks';
 
+export type TaskField = 'status' | 'assignee' | 'priority' | 'dueDate' | 'labels' | 'project';
+export const TASK_FIELDS: TaskField[] = [
+  'status',
+  'assignee',
+  'priority',
+  'dueDate',
+  'labels',
+  'project',
+];
+
 export interface ViewOptions {
   groupBy: GroupBy;
   sortBy: SortBy;
   sortDir: 'asc' | 'desc';
   showSubtasks: boolean;
+  fields: TaskField[];
 }
 
-const DEFAULTS: ViewOptions = {
+export const DEFAULT_OPTIONS: ViewOptions = {
   groupBy: 'status',
   sortBy: 'rank',
   sortDir: 'asc',
   showSubtasks: false,
+  fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
+};
+
+/** Опции из сохранённого `config`: известные поля поверх умолчаний. */
+export const optionsFrom = (config: Record<string, unknown> | undefined): ViewOptions => {
+  const o = {
+    ...DEFAULT_OPTIONS,
+    ...Object.fromEntries(Object.entries(config ?? {}).filter(([k]) => k in DEFAULT_OPTIONS)),
+  };
+  return { ...o, fields: [...o.fields] };
 };
 
 const load = (key: string): ViewOptions => {
   try {
     const raw = localStorage.getItem(key);
-    if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+    if (raw) return optionsFrom(JSON.parse(raw));
   } catch {
     // нет хранилища или битый JSON — значения по умолчанию
   }
-  return { ...DEFAULTS };
+  return optionsFrom(undefined);
 };
 
 export function useViewOptions(

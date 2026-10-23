@@ -1,14 +1,19 @@
 import type { Component } from 'vue';
 import { Columns3, List } from 'lucide-vue-next';
 import type { LocalizedText } from '../modules/types';
+import type { Filter } from './filter';
 import type { ViewOptions } from './options';
 
-export type { ViewOptions };
+export type { ViewOptions, Filter };
+export type { TaskField } from './options';
+export type { FilterRule } from './filter';
 export interface ViewProps {
   projectId: string;
   options: ViewOptions;
+  filter?: Filter | null;
 }
 export { useViewOptions } from './options';
+export { matchFilter } from './filter';
 export { useSelection } from './selection';
 export { openTask, closeTask, taskPanelLoader, viewLoaders } from './open';
 
