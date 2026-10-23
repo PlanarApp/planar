@@ -28,6 +28,7 @@ const flat = <T extends { description?: unknown }>(t: T) => ({
   ...t,
   description: docToText(t.description),
 });
+const cmt = <T extends { body?: unknown }>(c: T) => ({ ...c, body: docToText(c.body) });
 const task = z.string().describe('id или ключ задачи, например PLN-12');
 
 /** Новый сервер на каждый запрос (stateless); права — из ctx токена. */
@@ -84,7 +85,7 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
   tool('get_task', 'Задача с комментариями', { task }, false, async (a) => {
     const t = (await rest.task(uid, a.task)).data;
     const comments = (await rest.comments(uid, a.task, { limit: 200 })).data;
-    return { ...flat(t), comments };
+    return { ...flat(t), comments: comments.map(cmt) };
   });
   tool(
     'my_tasks',
@@ -111,7 +112,7 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
     'Добавить комментарий (@login — упоминание)',
     { task, ...commentBody.shape },
     true,
-    async ({ task: ref, ...a }) => (await rest.createComment(uid, ref, a, ctx.tokenId)).data,
+    async ({ task: ref, ...a }) => cmt((await rest.createComment(uid, ref, a, ctx.tokenId)).data),
   );
   return server;
 }

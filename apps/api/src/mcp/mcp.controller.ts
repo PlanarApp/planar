@@ -24,7 +24,7 @@ export class McpController {
     const ctx = /^Bearer /i.test(req.headers.authorization ?? '')
       ? await authenticateRaw(this.db, req.headers, req.method, this.opts)
       : null;
-    if (!ctx) throw new HttpError(401, 'unauthenticated', 'Нужен Bearer-токен');
+    if (ctx?.via !== 'token') throw new HttpError(401, 'unauthenticated', 'Нужен Bearer-токен');
     const server = buildMcpServer(this.rest, ctx);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,

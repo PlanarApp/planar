@@ -130,6 +130,21 @@ describe('MCP /mcp', () => {
     }
   });
 
+  it('сессия + Bearer x (неизвестный токен) + верный Origin → 401', async () => {
+    const r = await fetch(base, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json, text/event-stream',
+        cookie: adminCookie,
+        origin: ORIGIN,
+        authorization: 'Bearer x',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    });
+    expect(r.status).toBe(401);
+  });
+
   it('GET и DELETE → 405', async () => {
     for (const method of ['GET', 'DELETE'])
       expect(
@@ -181,9 +196,10 @@ describe('MCP /mcp', () => {
     const [u] = await db.select().from(schema.users).where(eq(schema.users.id, w.admin.userId));
     const [err, cm] = await call(c, 'add_comment', { task: t.id, text: `привет @${u!.login}` });
     expect(err, JSON.stringify(cm)).toBe(false);
-    expect(JSON.stringify(cm.body)).toContain(w.admin.userId);
+    expect(cm.body).toBe(`привет @${u!.login}`);
     const [, g] = await call(c, 'get_task', { task: t.id });
     expect(g.comments).toHaveLength(1);
+    expect(g.comments[0].body).toBe(`привет @${u!.login}`);
   });
 
   it('search_tasks: по части заголовка (без регистра) и по key', async () => {
