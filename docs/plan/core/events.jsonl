@@ -232,3 +232,5 @@
 {"t": "2026-10-23T03:13:51", "by": "reviewer", "task": "CR-3b", "ev": "reviewed", "note": "Повторное ревью: блокер закрыт — details 400 теперь сам массив issues zod, тест сверяет с contractSchemas['http.error']. Решение координатора по смене пароля в…", "verdict": "accept", "issues": {"minor": 1}, "review": "docs/plan/core/tasks/CR-3b.review.json"}
 {"t": "2026-10-23T03:16:52", "by": "coordinator", "task": "CR-3b", "ev": "checked", "note": "5/5 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; auth_tests=ok:33; test=ok:exit 0"}
 {"t": "2026-10-23T03:18:53", "by": "coordinator", "task": "CR-8b", "ev": "checked", "note": "5/5 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; dev_run=ok:\"db\":\"up\"; test=ok:exit 0"}
+{"t": "2026-10-23T03:19:20", "by": "coordinator", "task": "CR-3b", "ev": "accepted", "note": "по ревью (второе); minor: удаление сессий вне транзакции смены пароля"}
+{"t": "2026-10-23T03:19:20", "by": "coordinator", "task": "CR-8b", "ev": "accepted", "note": "по отчёту"}
