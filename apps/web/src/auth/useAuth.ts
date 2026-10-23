@@ -62,12 +62,20 @@ const confirmLoss = () =>
     promptOpen.value = true;
   });
 
-async function logout(): Promise<void> {
-  if (syncState.value.pending > 0 && !(await confirmLoss())) return;
-  await api('POST', '/api/auth/logout');
+/** true — вышли; false — отмена или нет сети (тогда ничего не чистим) */
+async function logout(): Promise<boolean> {
+  if (syncState.value.pending > 0 && !(await confirmLoss())) return false;
+  try {
+    await api('POST', '/api/auth/logout');
+  } catch (e) {
+    // cookie HttpOnly серверная: без ответа сервера локальный выход её не снимет
+    if (e instanceof ApiError && e.code === 'network') return false;
+    throw e;
+  }
   user.value = null;
   store(null);
   await clearLocal();
+  return true;
 }
 
 /** сессия истекла (401): локально выходим, реплика и очередь остаются */
