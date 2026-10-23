@@ -1,8 +1,9 @@
 {
   "status": "done",
-  "summary": "C-modules v6 поверх v5: canReadFile в GET /files, EntityMeta.members с проверкой формы в validateInstalled, search в палитре Cmd+K (providers.ts как в collab), SDK += Editor, uploadFile, api/ApiError, onMutationError, useSearch. Версия 6, core.md обновлён.",
+  "summary": "C-modules v6 поверх v5: canReadFile в GET /files, EntityMeta.members с проверкой формы в validateInstalled, search в палитре Cmd+K (providers.ts как в collab), SDK += Editor, uploadFile, api/ApiError, onMutationError, useSearch. Версия 6, core.md обновлён. Доработка ревью: PROVIDER_TIMEOUT_MS=2000 в queryProviders + тест.",
   "commits": [
-    "ad7d051 WK-14: C-modules v6"
+    "ad7d051 WK-14: C-modules v6",
+    "24ba7a2 WK-14: таймаут поиска модуля в палитре"
   ],
   "checks": [
     {
@@ -42,7 +43,7 @@
     },
     {
       "name": "wk14-web",
-      "value": "4",
+      "value": "5",
       "pass": true
     },
     {
@@ -72,6 +73,6 @@
     }
   ],
   "dp_feedback": "job wait в фоне и foreground sleep конфликтуют с лимитами; prettier --write по apps переписал drizzle-снапшоты вне скоупа (откатил).",
-  "t": "2026-10-23T18:24:16",
+  "t": "2026-10-23T19:02:41",
   "by": "executor"
 }

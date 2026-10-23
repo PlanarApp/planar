@@ -1,8 +1,9 @@
 {
   "status": "done",
-  "summary": "REST v1: links (GET/POST/DELETE), time-entries, timer, cycles/current, automations (чтение) + OpenAPI; MCP: link_tasks, log_time, start_timer, stop_timer, current_sprint. Выключенный модуль -> 404 module_disabled.",
+  "summary": "REST v1: links (GET/POST/DELETE), time-entries, timer, cycles/current, automations (чтение) + OpenAPI; MCP: link_tasks, log_time, start_timer, stop_timer, current_sprint. Выключенный модуль -> 404 module_disabled. Тест правил автоматизаций после влития WK-3 выполняется (17 wk5).",
   "commits": [
-    "a6d09df WK-5: REST v1 и MCP"
+    "a6d09df WK-5: REST v1 и MCP",
+    "047a2dd WK-5: тест правил автоматизаций без skipIf"
   ],
   "checks": [
     {
@@ -22,7 +23,7 @@
     },
     {
       "name": "wk5",
-      "value": "16",
+      "value": "17",
       "pass": true
     },
     {
@@ -41,11 +42,6 @@
   "how_to_check": ".dpcli/dpcli accept WK-5",
   "uncertain": [
     {
-      "where": "apps/api/test/wk5/wk5.test.ts (automations)",
-      "why": "modules/automations ещё пуст (WK-3 не влит): сущности automationsRules нет, тест правил пропускается (skipIf), путь отдаёт 404 module_disabled",
-      "checked": "module_disabled для automations проверен; чтение правил — только после влития WK-3"
-    },
-    {
       "where": "rest.service.ts timeEntries",
       "why": "from/to включительно по startedAt (контракт не уточняет)",
       "checked": "тест на from/to"
@@ -57,6 +53,6 @@
     }
   ],
   "dp_feedback": "accept --dry идёт >120с — сразу запускать в фоне.",
-  "t": "2026-10-23T18:14:04",
+  "t": "2026-10-23T18:42:37",
   "by": "executor"
 }
