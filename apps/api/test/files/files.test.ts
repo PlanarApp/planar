@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readdirSync, existsSync } from 'node:fs';
+import { mkdtempSync, readdirSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
@@ -282,6 +282,22 @@ describe('GET /files/:sha256/preview', () => {
 
   it('не картинка → 404', async () => {
     expect((await get(`/files/${sha(text)}/preview?w=256`, alice)).statusCode).toBe(404);
+  });
+
+  it('файла нет на диске → 404', async () => {
+    const b = Buffer.from('gone-' + Math.random());
+    const up = await upload(alice, b, 'image/png');
+    const { sha256 } = up.json();
+    rmSync(join(dataDir, 'files', sha256.slice(0, 2), sha256.slice(2, 4), sha256));
+    expect((await get(`/files/${sha256}/preview?w=256`, alice)).statusCode).toBe(404);
+  });
+
+  it('битая «картинка» → 500 internal', async () => {
+    const b = Buffer.from('broken-' + Math.random());
+    const { sha256 } = (await upload(alice, b, 'image/png')).json();
+    const res = await get(`/files/${sha256}/preview?w=256`, alice);
+    expect(res.statusCode).toBe(500);
+    expect(res.json().code).toBe('internal');
   });
 
   it('w=999 → 400', async () => {

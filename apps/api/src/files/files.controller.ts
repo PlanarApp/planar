@@ -200,14 +200,18 @@ export class FilesController {
       await mkdir(join(cache, '..'), { recursive: true });
       const tmp = `${cache}.${randomUUID()}.tmp`;
       try {
+        // нет файла на диске — 404; остальные сбои диска и sharp — 500 (фильтр логирует)
+        await stat(this.path(sha)).catch((e: NodeJS.ErrnoException) => {
+          throw e.code === 'ENOENT' ? notFound() : e;
+        });
         await sharp(this.path(sha))
           .resize({ width: Number(w), withoutEnlargement: true })
           .webp()
           .toFile(tmp);
         await rename(tmp, cache);
-      } catch {
+      } catch (e) {
         await rm(tmp, { force: true });
-        throw notFound(); // файл не раскодировался как картинка
+        throw e;
       }
     }
     return reply
