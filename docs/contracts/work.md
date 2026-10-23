@@ -97,6 +97,12 @@ interface TopbarItemDef { id: string; component: Lazy<{}>; order?: number }
 - `FilterCtx` += `cycles?: { id: string; projectId: string; startDate: string; endDate: string; closedAt: string | null }[]`. Текущий цикл проекта — `closedAt = null` и `startDate ≤ today ≤ endDate`; `'current'` совпадает, если `cycleId` задачи — текущий цикл её проекта. Без `cycles` правила с `'current'` пропускаются.
 - Web (WK-0): виды и сохранённые виды передают `cycles` из таблицы Dexie `sprintsCycles`, если она есть (модуль включён).
 
+## F-views v2 (WK-7)
+Изменения F-views v1 (docs/contracts/features.md) и C-views:
+- `ViewOptions` += `columns?: { id: string; width: number }[]` — раскладка Таблицы (порядок = порядок массива, ширина 60–800 px, нет id в массиве — колонка скрыта; неизвестные id пропускаются). Хранится в `savedViews.config.columns` вместе с остальными опциями.
+- Таблица берёт раскладку: `options.columns`, если задано; иначе `localStorage['planar.table.<projectId>']` (запасной вариант, формат v1); иначе по умолчанию. Правка ширины, порядка, видимости: на сохранённом виде — меняет черновик опций (`columns`), «Сохранить» — `view.update`; на вкладке проекта без сохранённого вида — localStorage, как в v1. «Сохранить как вид» с Таблицы кладёт текущую раскладку в `config.columns`.
+- Календарь: первый день недели — `useWeekStart()` (§Неделя), а не всегда понедельник; профиль (`/profile`) — выбор «Авто / Понедельник / Воскресенье» (`setWeekStart`).
+
 ## Модуль time (WK-1)
 
 #### timeEntries
