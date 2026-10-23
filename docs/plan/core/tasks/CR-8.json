@@ -1,0 +1,98 @@
+{
+  "id": "CR-8",
+  "module": "core",
+  "type": "dp-engineer",
+  "title": "Модульная система: реестр модулей, enabled_modules, пример hello",
+  "goal": "Модули по C-modules v1: реестр модулей api, включение через settings.enabled_modules без перезапуска (маршруты 404 module_disabled, мутаторы unknown_mutator, сущности вне bootstrap/pull, _reset при смене), GET /api/modules, тестовый модуль modules/hello.",
+  "plan_ref": "CR-8 Модульная система",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-sync",
+      "version": "1",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-http",
+      "version": "4",
+      "ref": "docs/contracts/core.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "4",
+      "ref": "docs/contracts/core.md"
+    }
+  ],
+  "copy": "~/planar-core-CR-8",
+  "branch": "core/CR-8",
+  "base": "feature/core",
+  "scope": [
+    "apps/api/src/modules/",
+    "modules/hello/",
+    "apps/api/src/sync/",
+    "apps/api/src/app.module.ts",
+    "apps/api/src/app.ts",
+    "apps/api/drizzle.config.ts",
+    "apps/api/drizzle/",
+    "apps/api/test/modules/",
+    "apps/api/package.json",
+    "apps/api/tsconfig.json",
+    "apps/api/tsconfig.build.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "vitest.config.ts"
+  ],
+  "dont_touch": [
+    "apps/api/test/contract.schema.test.ts",
+    "apps/api/src/auth/",
+    "apps/api/src/db/schema.ts — схема ядра; таблицы модуля — modules/hello/api/schema.ts",
+    "packages/shared/src/contract/",
+    "apps/web/",
+    "docs/"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm lint",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0",
+      "timeout": 600
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0",
+      "timeout": 300
+    },
+    {
+      "name": "modules_tests",
+      "cmd": "pnpm exec vitest run apps/api/test/modules",
+      "expect": "num:Tests\\s+(\\d+) passed >=10",
+      "timeout": 600
+    },
+    {
+      "name": "migrations_in_sync",
+      "cmd": "cd apps/api && pnpm exec drizzle-kit generate 2>&1; git status --porcelain drizzle",
+      "expect": "!re:^\\s*(\\?\\?|M|A) ",
+      "timeout": 120
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0",
+      "timeout": 900
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T01:55:43"
+}
