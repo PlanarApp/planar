@@ -80,7 +80,7 @@ export function useSpaces() {
 export const useProject = (id: MaybeRefOrGetter<string>) =>
   useLive(
     () => toValue(id),
-    (i) => db.table<Row<'projects'>>('projects').get(i),
+    async (i) => (await db.table<Row<'projects'>>('projects').get(i)) ?? null,
   );
 
 export const useStatuses = (spaceId: MaybeRefOrGetter<string>) =>
@@ -153,7 +153,7 @@ export const useTask = (idOrKey: MaybeRefOrGetter<string>) =>
                 .first()
             : undefined;
       }
-      if (!task) return undefined;
+      if (!task) return null;
       const p = await db.table<Row<'projects'>>('projects').get(task.projectId);
       return (await views([task], new Map(p ? [[p.id, p.key]] : [])))[0];
     },

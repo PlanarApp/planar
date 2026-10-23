@@ -14,7 +14,14 @@ import { useProject } from '../tasks';
 import { Button, Select, useBreakpoint } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
-import { buildViewTabs, closeTask, taskPanelLoader, useSelection, useViewOptions } from '../views';
+import {
+  buildViewTabs,
+  closeTask,
+  taskPanelLoader,
+  useSelection,
+  viewLoaders,
+  useViewOptions,
+} from '../views';
 
 const { t, te, locale } = useI18n();
 const route = useRoute();
@@ -24,7 +31,7 @@ const { isMobile } = useBreakpoint();
 const projectId = computed(() => String(route.params.projectId));
 const project = useProject(projectId);
 const extViews = useExtensions('views');
-const tabs = computed(() => buildViewTabs(import.meta.glob('../views/*/View.vue'), extViews.value));
+const tabs = computed(() => buildViewTabs(viewLoaders(), extViews.value));
 const active = computed(
   () => tabs.value.find((v) => v.key === (route.params.view || 'list')) ?? tabs.value[0],
 );
@@ -67,7 +74,8 @@ const sortOptions = computed(() => sorts.map((v) => ({ value: v, label: t(`views
 </script>
 
 <template>
-  <div v-if="!project" class="p-4 text-fg-muted">{{ t('views.projectNotFound') }}</div>
+  <div v-if="project === undefined" />
+  <div v-else-if="project === null" class="p-4 text-fg-muted">{{ t('views.projectNotFound') }}</div>
   <div v-else class="flex h-full min-h-0">
     <section class="flex min-w-0 flex-1 flex-col">
       <header class="flex items-baseline gap-2 px-4 pt-3">

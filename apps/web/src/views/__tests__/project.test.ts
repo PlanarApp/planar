@@ -23,8 +23,20 @@ vi.mock('../../router', async () => {
   router.current = r as never;
   return { router: r };
 });
+const stubView = (id: string) => async () => ({
+  __esModule: true,
+  default: defineComponent({
+    props: ['projectId', 'options'],
+    setup: (p) => () =>
+      h('div', { 'data-testid': 'view', 'data-id': id }, `${p.projectId}|${p.options.groupBy}`),
+  }),
+});
 vi.mock('../open', async (orig) => ({
   ...(await orig<typeof import('../open')>()),
+  viewLoaders: () => ({
+    '../views/list/View.vue': stubView('list'),
+    '../views/board/View.vue': stubView('board'),
+  }),
   taskPanelLoader: async () => ({
     __esModule: true,
     default: defineComponent({
@@ -85,14 +97,26 @@ describe('views:project', () => {
     expect(buildViewTabs({}, [])).toEqual([]);
   });
 
-  it('смена вкладки меняет маршрут', async () => {
+  it('вид по умолчанию — list и получает ViewProps; клик по вкладке меняет маршрут', async () => {
     const w = mountScreen();
+    await vi.waitFor(() => expect(w.find('[data-testid=view]').exists()).toBe(true));
+    expect(w.get('[data-testid=view]').attributes('data-id')).toBe('list');
+    expect(w.get('[data-testid=view]').text()).toBe(`${project}|status`);
+    const tabs = w.findAll('[role=tab]');
+    expect(tabs.map((x) => x.text())).toEqual(['Список', 'Доска']);
+    await tabs[1].trigger('click');
     await flushPromises();
-    // вкладок нет (виды WB-4/WB-5 ещё не в ветке) — пустое состояние
-    expect(w.text()).toContain('Нет доступных видов');
-    expect(w.text()).toContain('PRJ');
-    await r.replace({ params: { projectId: project, view: 'board' } });
-    expect(r.currentRoute.value.params.view).toBe('board');
+    expect(r.currentRoute.value.path).toBe(`/p/${project}/board`);
+    await vi.waitFor(() => expect(w.get('[data-testid=view]').attributes('data-id')).toBe('board'));
+  });
+
+  it(':view выбирает вид', async () => {
+    await r.push(`/p/${project}/board`);
+    const w = mountScreen();
+    await vi.waitFor(() =>
+      expect(w.find('[data-testid=view]').attributes('data-id')).toBe('board'),
+    );
+    expect(w.get('[aria-selected=true]').text()).toBe('Доска');
   });
 
   it('?task открывает и закрывает панель; mobile — ведёт на /t/<key>', async () => {
@@ -125,8 +149,7 @@ describe('views:project', () => {
   it('проект не найден', async () => {
     await r.push(`/p/${uuidv7()}`);
     const w = mountScreen();
-    await flushPromises();
-    expect(w.text()).toContain('Проект не найден');
+    await vi.waitFor(() => expect(w.text()).toContain('Проект не найден'));
   });
 
   it('useViewOptions сохраняет и читает localStorage', async () => {

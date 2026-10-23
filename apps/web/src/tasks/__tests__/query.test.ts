@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { effectScope } from 'vue';
 import { db } from '../../sync';
-import { useProjectTasks, useSpaces, useTask } from '../index';
+import { useProject, useProjectTasks, useSpaces, useTask } from '../index';
 import { ids, reset, task, until } from './data';
 
 beforeEach(reset);
@@ -40,8 +40,16 @@ describe('tasks:query', () => {
     await db.table('tasks').put(t);
     const scope = effectScope();
     const [byKey, byId] = scope.run(() => [useTask('PLN-1'), useTask(t.id)])!;
-    expect((await until(() => byKey.value)).id).toBe(t.id);
-    expect((await until(() => byId.value)).key).toBe('PLN-1');
+    expect((await until(() => byKey.value))?.id).toBe(t.id);
+    expect((await until(() => byId.value))?.key).toBe('PLN-1');
+    scope.stop();
+  });
+  it('useTask/useProject: null — нет в реплике', async () => {
+    const scope = effectScope();
+    const [t, p] = scope.run(() => [useTask('PLN-99'), useProject('nope')])!;
+    await until(() => t.value !== undefined && p.value !== undefined);
+    expect(t.value).toBeNull();
+    expect(p.value).toBeNull();
     scope.stop();
   });
   it('useSpaces без архивных проектов', async () => {

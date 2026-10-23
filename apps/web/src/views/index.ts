@@ -10,7 +10,7 @@ export interface ViewProps {
 }
 export { useViewOptions } from './options';
 export { useSelection } from './selection';
-export { openTask, closeTask, taskPanelLoader } from './open';
+export { openTask, closeTask, taskPanelLoader, viewLoaders } from './open';
 
 export interface ViewTab {
   key: string;

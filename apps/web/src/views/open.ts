@@ -21,3 +21,7 @@ export function closeTask(): void {
 /** Панель задачи (WB-6): нет файла — undefined, панель не открывается. */
 export const taskPanelLoader = Object.values(import.meta.glob('../task/TaskPanel.vue'))[0] as
   (() => Promise<{ default: Component }>) | undefined;
+
+/** Встроенные виды (WB-4, WB-5): подменяется в тестах. */
+export const viewLoaders = (): Record<string, () => Promise<unknown>> =>
+  import.meta.glob('../views/*/View.vue');
