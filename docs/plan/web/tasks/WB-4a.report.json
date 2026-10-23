@@ -1,0 +1,63 @@
+{
+  "status": "done",
+  "summary": "Доработка: viewLoaders подменяемы в тестах; тесты вкладок (клик меняет маршрут, :view, ViewProps); useProject/useTask null/undefined по C-tasks v2; «Проект не найден» только при null.",
+  "commits": [
+    "6343f45 web: WB-4a доработка — тесты вкладок, C-tasks v2"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "171.6",
+      "pass": true
+    },
+    {
+      "name": "project-screen",
+      "value": "7",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "98",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept WB-4a",
+  "uncertain": [
+    {
+      "where": "apps/web/src/views/open.ts",
+      "why": "TaskPanel.vue (WB-6) ещё нет; панель проверена на подставном загрузчике",
+      "checked": "тест открытия/закрытия панели"
+    }
+  ],
+  "dp_feedback": "prettier --write по apps/web/src задевает чужие файлы; регэксп контрактных таблиц ломается на \\| в ячейках.",
+  "t": "2026-10-23T00:30:31",
+  "by": "executor"
+}

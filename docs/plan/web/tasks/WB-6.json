@@ -1,0 +1,143 @@
+{
+  "id": "WB-6",
+  "module": "web",
+  "type": "dp-engineer",
+  "title": "Карточка задачи: панель и страница",
+  "goal": "src/task/TaskPanel.vue по C-views v1 (mode panel|page): поля задачи, описание в TipTap (Markdown-ввод, @упоминания, вставка изображений через /files), подзадачи, чек-лист, вложения, лента «комментарии + активность» с @упоминаниями, наблюдатели, вкладки модулей taskPanels. Реакции — не в этой задаче.",
+  "plan_ref": "WB-6 Карточка задачи",
+  "contracts": [
+    {
+      "name": "C-views",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-tasks",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-client",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-http",
+      "version": "3",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-6",
+  "branch": "web/WB-6",
+  "base": "feature/web",
+  "scope": [
+    "apps/web/src/task/",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts"
+  ],
+  "dont_touch": [
+    "контрактные тесты в apps/web/src/__contract__ не править",
+    "src/screens/ProjectScreen.vue, src/screens/TaskScreen.vue, src/views/ — WB-4a (монтирует панель через glob)",
+    "src/tasks/, src/sync/, src/ui/, src/api/ — контракты как есть; не хватает — «WB-6 contract: …»",
+    "в package.json и pnpm-lock.yaml — ничего (TipTap уже стоит)",
+    "packages/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm --filter web build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__",
+      "expect": "num:Tests\\s+(\\d+) passed >=91"
+    },
+    {
+      "name": "fields",
+      "cmd": "pnpm --filter web exec vitest run src/task -t task:fields",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "description",
+      "cmd": "pnpm --filter web exec vitest run src/task -t task:description",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "subtasks",
+      "cmd": "pnpm --filter web exec vitest run src/task -t task:subtasks",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    },
+    {
+      "name": "checklist",
+      "cmd": "pnpm --filter web exec vitest run src/task -t task:checklist",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "comments",
+      "cmd": "pnpm --filter web exec vitest run src/task -t task:comments",
+      "expect": "num:Tests\\s+(\\d+) passed >=4"
+    },
+    {
+      "name": "feed",
+      "cmd": "pnpm --filter web exec vitest run src/task -t task:feed",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    },
+    {
+      "name": "attachments",
+      "cmd": "pnpm --filter web exec vitest run src/task -t task:attachments",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    },
+    {
+      "name": "watch",
+      "cmd": "pnpm --filter web exec vitest run src/task -t task:watch",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
+    },
+    {
+      "name": "extensions",
+      "cmd": "pnpm --filter web exec vitest run src/task -t task:extensions",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T00:27:37"
+}
