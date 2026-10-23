@@ -46,6 +46,8 @@ export interface BackendModuleManifest {
   afterMutation?: (writes: MutationWrite[], ctx: AfterMutationCtx, api: never) => Promise<void>;
   /** JobDef[] (apps/api/src/modules/hooks.ts) */
   jobs?: unknown[];
+  /** Доступ к файлу сверх встроенных проверок (GET /files); q — Drizzle-коннект/транзакция */
+  canReadFile?: (q: unknown, userId: string, sha256: string) => Promise<boolean>;
 }
 
 /** Типы элементов задаёт web (C-ui); здесь — только форма манифеста. */
@@ -59,6 +61,7 @@ export interface FrontendModuleManifest {
   settings?: unknown[];
   nav?: unknown[];
   topbar?: unknown[];
+  search?: unknown[];
 }
 
 export const MODULE_ID_RE = /^[a-z][a-z0-9-]{1,30}$/;

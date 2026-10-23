@@ -3,7 +3,7 @@ import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { MutatorError, uuidv7, type EntityName, type Row, type Tx } from '@planar/shared';
 import * as schema from '../db/schema.js';
-import { metaOf, schemaOf, tableOf, toWire } from './rows.js';
+import { allMetas, metaOf, schemaOf, tableOf, toWire } from './rows.js';
 
 /** Drizzle-транзакция (или соединение внутри ручного BEGIN). */
 export type Q = PgDatabase<NodePgQueryResultHKT, typeof schema>;
@@ -114,6 +114,7 @@ export class ServerTx implements Tx {
     const t = tableOf(entity);
     await this.exec(() => this.q.delete(t).where(eq(getTableColumns(t).id, id)));
     await this.log(entity, 'del', old);
+    await this.memberChange(entity, old, 'del');
     this.writes.push({ entity, op: 'del', before: old });
     if (entity === 'spaceMembers') await this.reset(old.userId as string);
     await this.activity(entity, old, undefined);
@@ -162,6 +163,7 @@ export class ServerTx implements Tx {
     if (entity === 'tasks' && next.number == null)
       next.number = await this.nextNumber(next.projectId as string);
     await this.store(entity, next, extra);
+    if (!old) await this.memberChange(entity, next, 'put');
     this.writes.push({ entity, op: 'put', before: old, after: next });
     if (entity === 'spaceMembers' && !old) await this.reset(next.userId as string);
     if (entity === 'settings' && next.id === 'enabled_modules')
@@ -217,11 +219,29 @@ export class ServerTx implements Tx {
     let spaceId: string | null = null;
     let userId: string | null = resetUser ?? null;
     if (row && entity !== '_reset') {
-      const scope = metaOf(entity).scope;
+      const meta = metaOf(entity);
+      const scope = meta.scope;
+      if (scope === 'space|members' && row.spaceId == null) {
+        // по строке на участника контейнера (C-sync v2); состояние — после записи
+        for (const u of await this.memberIds(entity, row))
+          await this.append(null, u, entity, id, op, row);
+        return;
+      }
       const byUser = scope === 'user' || (scope === 'space|user' && row.userId != null);
       if (byUser) userId = row.userId as string;
       else if (scope !== 'global') spaceId = (entity === 'spaces' ? row.id : row.spaceId) as string;
     }
+    await this.append(spaceId, userId, entity, id, op, op === 'put' ? row : null);
+  }
+
+  private async append(
+    spaceId: string | null,
+    userId: string | null,
+    entity: string,
+    id: string,
+    op: 'put' | 'del',
+    row: Wire | null,
+  ) {
     const [c] = await this.exec(() =>
       this.q
         .insert(schema.changes)
@@ -229,6 +249,54 @@ export class ServerTx implements Tx {
         .returning({ seq: schema.changes.seq }),
     );
     this.lastSeq = c.seq;
+  }
+
+  /** userId участников контейнера строки сущности scope space|members. */
+  private async memberIds(entity: string, row: Wire): Promise<string[]> {
+    const m = metaOf(entity).members;
+    if (!m) throw new Error(`${entity}: scope space|members без meta.members`);
+    const t = tableOf(m.entity);
+    const c = getTableColumns(t);
+    const rows = await this.exec(() =>
+      this.q.select({ u: c.userId }).from(t).where(eq(c[m.key], row[m.via])),
+    );
+    return rows.map((r) => r.u as string);
+  }
+
+  /**
+   * Добавили/убрали участника (строка members.entity): ему put/del контейнера и bootstrap-строк
+   * контейнера (только без spaceId — строки пространства видны по правилам space). _reset не пишем.
+   */
+  private async memberChange(entity: string, row: Wire, op: 'put' | 'del'): Promise<void> {
+    const deps = Object.entries(allMetas()).filter(
+      ([, m]) => m.scope === 'space|members' && m.members?.entity === entity,
+    );
+    if (!deps.length) return;
+    const user = row.userId as string;
+    const seen = new Set<string>();
+    const send = async (e: string, id: string, data: Wire | null) => {
+      if (seen.has(`${e}:${id}`)) return;
+      seen.add(`${e}:${id}`);
+      await this.append(null, user, e, id, op, data);
+    };
+    // удалённая строка участника уже не найдётся в таблице; новая и так разослана log()
+    if (op === 'del') await send(entity, row.id as string, null);
+    else seen.add(`${entity}:${row.id}`);
+    for (const [name, m] of deps) {
+      const { key, via, container } = m.members!;
+      const targets = [container, ...(m.bootstrap && name !== container ? [name] : [])];
+      for (const e of targets) {
+        const col = getTableColumns(tableOf(e))[e === container ? 'id' : via];
+        const rows = await this.exec(() =>
+          this.q.select().from(tableOf(e)).where(eq(col, row[key])),
+        );
+        if (op === 'del' && e === container) await send(e, row[key] as string, null);
+        for (const r of rows) {
+          const w = toWire(e, r);
+          if (w.spaceId == null) await send(e, w.id as string, op === 'put' ? w : null);
+        }
+      }
+    }
   }
 
   private async activity(entity: EntityName, old: Wire | undefined, next: Wire | undefined) {
@@ -315,6 +383,11 @@ export class ServerTx implements Tx {
     }
     for (const r of [old, next]) {
       if (!r) continue;
+      if (metaOf(entity).scope === 'space|members' && r.spaceId == null) {
+        if (!(await this.canWriteMembers(entity, old, r)))
+          throw forbidden('не участник контейнера');
+        continue;
+      }
       if (w === 'self') {
         if (r.userId !== this.ctx.userId) throw forbidden('чужая строка');
         continue;
@@ -330,6 +403,21 @@ export class ServerTx implements Tx {
       const need = RANK[w === 'member|self' ? 'member' : w];
       if ((await this.spaceRole(spaceId)) < need) throw forbidden('нет прав на пространство');
     }
+  }
+
+  /** space|members без spaceId: участник row[via] или создатель контейнера (C-sync v2). */
+  private async canWriteMembers(entity: string, old: Wire | undefined, r: Wire): Promise<boolean> {
+    if ((await this.memberIds(entity, r)).includes(this.ctx.userId)) return true;
+    const m = metaOf(entity).members!;
+    if (entity === m.container) return (old ?? r).createdBy === this.ctx.userId;
+    const t = tableOf(m.container);
+    const [c] = await this.exec(() =>
+      this.q
+        .select()
+        .from(t)
+        .where(eq(getTableColumns(t).id, r[m.via])),
+    );
+    return (c as Wire | undefined)?.createdBy === this.ctx.userId;
   }
 
   /** attachments: у ctx.userId есть file_uploads на файл либо файл уже приложен в этом пространстве. */

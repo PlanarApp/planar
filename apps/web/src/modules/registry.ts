@@ -32,6 +32,7 @@ export function registerModules(all: WebModuleManifest[]): void {
       'settings',
       'nav',
       'topbar',
+      'search',
     ] as const) {
       for (const it of m[kind] ?? []) {
         const key = `${m.id}:${it.id}`;

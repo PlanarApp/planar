@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { BellOff, Trash2 } from 'lucide-vue-next';
 import { Button, Menu, type MenuItem } from '../ui';
+import { router } from '../router';
 import { mutate } from '../sync';
 import { openTask } from '../views';
 import PushToggle from '../inbox/PushToggle.vue';
@@ -41,6 +42,7 @@ const read = (ids: string[]) => ids.length && mutate('notification.read', { ids 
 function open(n: InboxItem) {
   if (!n.readAt) void read([n.id]);
   if (n.taskKey) openTask(n.taskKey);
+  else if (n.url?.startsWith('/') && !/^\/[/\\]/.test(n.url)) void router.push(n.url);
 }
 const snoozeItems = (n: InboxItem): MenuItem[] =>
   (['3h', 'tomorrow', 'week'] as SnoozeOption[]).map((o) => ({

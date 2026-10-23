@@ -1,9 +1,10 @@
 import { generateKeyBetween } from 'fractional-indexing';
 import { uuidv7 } from '@planar/shared';
 import { createClient } from './client';
+import { moduleIndexes } from '../modules/shared';
 import { PlanarDB } from './db';
 
-export const db = new PlanarDB('planar');
+export const db = new PlanarDB('planar', moduleIndexes);
 const client = createClient(db);
 
 export const {
@@ -17,6 +18,8 @@ export const {
   onUnauthorized,
   onReplicaChange,
   replicaState,
+  sendTyping,
+  onTyping,
 } = client;
 export { useQuery } from './query';
 export const newId = (): string => uuidv7();

@@ -68,6 +68,8 @@ const note = (id: string, taskId: string, o: Record<string, unknown> = {}) => ({
   spaceId: space,
   kind: 'assigned',
   taskId,
+  url: null,
+  body: null,
   commentId: null,
   actorId: bob,
   readAt: null,
@@ -314,5 +316,52 @@ describe('inbox:snooze', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('cl1a: inbox без задачи', () => {
+  it('cl1a: уведомление chat_dm показывает body и ведёт на url', async () => {
+    const id = uuidv7();
+    await db.table('notifications').bulkPut([
+      note(id, null as never, {
+        spaceId: null,
+        kind: 'chat_dm',
+        url: '/m/chat/c/abc/def',
+        body: 'Bob: созвонимся?',
+      }),
+    ]);
+    const w = mount(InboxScreen, { global: g });
+    await vi.waitFor(() => expect(w.find('[data-testid=inbox-item]').exists()).toBe(true));
+    const text = w.find('[data-testid=inbox-item]').text();
+    expect(text).toContain('Личное сообщение от Bob');
+    expect(text).toContain('Bob: созвонимся?');
+    await w.find('[data-testid=inbox-item] button').trigger('click');
+    await vi.waitFor(() =>
+      expect(
+        (router.current as { currentRoute: { value: { path: string } } }).currentRoute.value.path,
+      ).toBe('/m/chat/c/abc/def'),
+    );
+    expect((await db.table('notifications').get(id)).readAt).toBeTruthy();
+  });
+
+  it('cl1a: чужой url (//host) из уведомления не открывается', async () => {
+    const id = uuidv7();
+    await db.table('notifications').bulkPut([
+      note(id, null as never, {
+        spaceId: null,
+        kind: 'chat_dm',
+        url: '//evil.example',
+        body: 'x',
+      }),
+    ]);
+    const before = (router.current as { currentRoute: { value: { path: string } } }).currentRoute
+      .value.path;
+    const w = mount(InboxScreen, { global: g });
+    await vi.waitFor(() => expect(w.find('[data-testid=inbox-item]').exists()).toBe(true));
+    await w.find('[data-testid=inbox-item] button').trigger('click');
+    await flushPromises();
+    expect(
+      (router.current as { currentRoute: { value: { path: string } } }).currentRoute.value.path,
+    ).toBe(before);
   });
 });

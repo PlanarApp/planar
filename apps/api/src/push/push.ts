@@ -19,7 +19,7 @@ import type { FastifyReply } from 'fastify';
 import type { PgBoss } from 'pg-boss';
 import webpush from 'web-push';
 import { z } from 'zod';
-import type { PushPayload } from '@planar/shared';
+import { pushPayloadSchema, type PushPayload } from '@planar/shared';
 import { BadRequestException } from '@nestjs/common';
 import { getAuth } from '../auth/auth.js';
 import type { Db } from '../db/index.js';
@@ -67,6 +67,9 @@ const TITLES: Record<string, string> = {
   mentioned: 'Вас упомянули',
   commented: 'Новый комментарий',
   status_changed: 'Статус задачи изменён',
+  chat_mention: 'Упоминание в чате',
+  chat_dm: 'Личное сообщение',
+  chat_reply: 'Ответ в треде',
 };
 
 /** Очередь pg-boss + доставка. Провайдер PUSH_QUEUE для PushService. */
@@ -144,19 +147,30 @@ export class PushQueue implements OnApplicationShutdown {
       .from(notifications)
       .where(eq(notifications.id, notificationId));
     if (!n) return;
-    const [t] = await this.db
-      .select({ title: tasks.title, number: tasks.number, key: projects.key })
-      .from(tasks)
-      .innerJoin(projects, eq(projects.id, tasks.projectId))
-      .where(eq(tasks.id, n.taskId));
-    if (!t) return; // задача удалена: открывать нечего
+    let body: string;
+    let url: string;
+    if (n.taskId) {
+      const [t] = await this.db
+        .select({ title: tasks.title, number: tasks.number, key: projects.key })
+        .from(tasks)
+        .innerJoin(projects, eq(projects.id, tasks.projectId))
+        .where(eq(tasks.id, n.taskId));
+      if (!t) return; // задача удалена: открывать нечего
+      body = t.title;
+      url = `/t/${t.key}-${t.number}`;
+    } else {
+      body = n.body ?? '';
+      url = n.url ?? '';
+    }
     const payload: PushPayload = {
       title: TITLES[n.kind] ?? 'Уведомление',
-      body: t.title,
-      url: `/t/${t.key}-${t.number}`,
+      body,
+      url,
       tag: n.id,
       kind: n.kind as PushPayload['kind'],
     };
+    // невалидный url (чужой сайт в SW) не отправляем
+    if (!pushPayloadSchema.safeParse(payload).success) return;
     const subs = await this.db
       .select()
       .from(pushSubscriptions)

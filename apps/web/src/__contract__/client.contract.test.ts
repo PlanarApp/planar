@@ -36,6 +36,13 @@ describe('C-client: экспорты', () => {
       `sync/index.ts не экспортирует ${n}`,
     ).toBeDefined();
   });
+  it.each(['sendTyping', 'onTyping'])('экспорт %s (C-client v4)', (n) => {
+    expect((client as Record<string, unknown>)[n]).toBeTypeOf('function');
+  });
+  it('sendTyping без WS — ничего; onTyping возвращает отписку', () => {
+    expect(() => client.sendTyping('chatMessages', 'x')).not.toThrow();
+    expect(client.onTyping(() => {})).toBeTypeOf('function');
+  });
   it('rankBetween упорядочен', () => {
     const a = client.rankBetween(null, null);
     const b = client.rankBetween(a, null);

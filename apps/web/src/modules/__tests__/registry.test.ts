@@ -33,4 +33,9 @@ describe('settings:modules registry', () => {
     expect(useExtensions('commands').value.map((c) => c.key)).toContain('mod-c:c');
     expect(warn).toHaveBeenCalled();
   });
+
+  it('cl1a: дубликат ключа search-провайдера → Error', () => {
+    const p = { id: 's', label: 'x', search: async () => [] };
+    expect(() => registerModules([{ id: 'cl1a-dup', search: [p, p] }])).toThrow();
+  });
 });
