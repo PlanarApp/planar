@@ -357,21 +357,5 @@ const ok = header.length === expected.length && timingSafeEqual(Buffer.from(head
 - Эталоны — `e2e/fixtures/import/` (`clickup.csv`, `jira.csv`, `linear.csv`, `trello.json`, `README.md` с источником формата для каждого).
 - Web: маршрут `/m/import/` (мастер: файл → формат и заготовка → сопоставление и предпросмотр → прогресс и отчёт), команда `import:open`.
 
-## REST и MCP (WK-5)
-Дополнение `docs/contracts/core-api-v1.md` (форма ответов, пагинация, ошибки, права токена — как там). Пути модулей при выключенном модуле → `404 module_disabled`.
-
-| метод и путь | вход → выход |
-|---|---|
-| `GET /api/v1/tasks/:task/links` | → `{data: link[]}`; `link` — строка `taskLinks` |
-| `POST /api/v1/tasks/:task/links` | `{target (id или key), kind}` → `201 {data: link}` (`link.create`) |
-| `DELETE /api/v1/links/:id` | → `204` |
-| `GET /api/v1/time-entries?taskId=&userId=&from=&to=` | → список `timeEntries` (`userId=me`; `from`/`to` — ts по `startedAt`) |
-| `POST /api/v1/time-entries` | `{task, startedAt, durationSec, note?}` → `201` запись (`time.log`) |
-| `GET /api/v1/timer` | → `{data: timeEntry \| null}` — идущий таймер пользователя |
-| `POST /api/v1/timer/start` | `{task}` → `201 {data: timeEntry}` |
-| `POST /api/v1/timer/stop` | → `{data: timeEntry \| null}` |
-| `GET /api/v1/projects/:id/cycles` | → `{data: cycle[]}` по `number` убыв., без пагинации |
-| `GET /api/v1/projects/:id/cycles/current` | → `{data: cycle \| null}` |
-| `GET /api/v1/projects/:id/automations` | → `{data: rule[]}` (чтение) |
-
-MCP — новые инструменты: `link_tasks {task, target, kind}`, `log_time {task, minutes, date?: YYYY-MM-DD, note?}` (начало — 09:00 UTC даты, по умолчанию сегодня), `start_timer {task}`, `stop_timer {}`, `current_sprint {projectId}` → цикл и его задачи (компактно). Запись (`link_tasks`, `log_time`, `start_timer`, `stop_timer`) — нужен `write`.
+## REST и MCP (WK-5), C-modules v5
+Вынесены в docs/contracts/work-api.md (размер документа).

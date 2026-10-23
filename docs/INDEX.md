@@ -37,6 +37,7 @@ generated: true
 
 - [docs/contracts/core-api-v1.md](contracts/core-api-v1.md) — API-токены, Bearer, REST /api/v1 и MCP /mcp — часть C-http v8 (docs/contracts/core.md); примеры проверяет контрактный тест
 - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Мутаторы домена C-mutators v3 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
+- [docs/contracts/work-api.md](contracts/work-api.md) — Контракты work, часть 2 — C-modules v5 (CoreServices.enqueue, SDK FilterBuilder и router, страницы настроек модулей), REST v1 и MCP (WK-5)
 - [docs/contracts/work.md](contracts/work.md) — Контракты work — C-modules v3, C-schema v7, F-filter v2, модули time, sprints, automations, webhooks, import, REST/MCP
 
 ## Реестры (registry)
