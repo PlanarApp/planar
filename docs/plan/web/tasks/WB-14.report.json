@@ -1,0 +1,57 @@
+{
+  "status": "blocked",
+  "summary": "5 сценариев Playwright в e2e/web (ui.spec.ts, helpers.ts, playwright.config.ts). На чистом feature/web красные 4 из 5 из-за двух дефектов приложения; тесты не подгонял.",
+  "commits": [
+    "9cad69f WB-14: e2e UI-сценарии web в Chromium (вход, задача, доска, упоминание, офлайн)"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "eslint+prettier exit 0",
+      "pass": true
+    },
+    {
+      "name": "e2e-ui passed",
+      "value": "1 из 5 (нужно >=5)",
+      "pass": false
+    },
+    {
+      "name": "e2e-ui при локальной правке дефекта 1 (откачена)",
+      "value": "4 из 5; красный только упоминание",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "Приёмка e2e-ui не пройдёт до исправления дефектов 1 и 2"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-14",
+  "uncertain": [
+    {
+      "where": "apps/web/src/views/index.ts:40",
+      "why": "ДЕФЕКТ 1 (WB-4/5): buildViewTabs берёт ключи glob из views/open.ts ('../views/*/View.vue' нормализуется Vite в './list/View.vue'), а regex /views/([^/]+)/View.vue$/ требует 'views/' -> вкладок нет, проект показывает 'Нет доступных видов', список и доска недоступны. Шаги: ./dev.sh up/seed, войти alice, открыть /p/<id> любого проекта. Юнит-тесты не ловят: подменяют glob.",
+      "checked": "curl /src/views/open.ts в dev-стеке показывает ключи './board/View.vue'; локальная правка regex на /(?:^|/)([^/]+)/View.vue$/ (откачена) -> вход, создание, доска, офлайн зелёные"
+    },
+    {
+      "where": "apps/api (хук уведомлений CR-7)",
+      "why": "ДЕФЕКТ 2 (core): comment.create с mentions=[bob] сохраняется и приходит bob, но уведомление 'mentioned' не создаётся: bootstrap bob -> notifications=[]; в apps/api/src и packages/*/src нет кода, создающего notifications (только схема и put-правила). Шаги: alice комментирует @Bob в задаче общего пространства, bob открывает /inbox — 'Нет уведомлений'. Сценарий 4 оставлен красным.",
+      "checked": "bootstrap bob через API спустя 3 с: комментарий с mentions есть, notifications пуст"
+    },
+    {
+      "where": "apps/web/src/views/list/Row.vue:94",
+      "why": "Двойной клик по названию в списке открывает панель задачи и инлайн-ввод не удерживается (input не появляется); F2 работает. В тесте офлайн использую click+F2. Возможно, дефект UX; не проверял причину.",
+      "checked": "probe: после dblclick input[aria-label='Название задачи'] count=0, после F2 =1"
+    },
+    {
+      "where": "dev.sh / compose.dev.yml",
+      "why": "Гонка миграций: api при старте и 'dev.sh seed' одновременно мигрируют -> api падает (duplicate key pg_type_typname_nsp_index / __drizzle_migrations already exists), tsx watch не перезапускает, прокси даёт 502. Приёмочная команда 'up && seed' подвержена этому.",
+      "checked": "воспроизвёл дважды, помог docker compose restart api"
+    }
+  ],
+  "dp_feedback": "accept e2e-ui запускает up && seed без ожидания готовности api — см. гонку миграций; полезен шаг ожидания /api/health перед seed.",
+  "extra": {
+    "passed": "1/5 на feature/web; 4/5 с локальной правкой дефекта 1"
+  },
+  "t": "2026-10-23T05:30:32",
+  "by": "executor"
+}
