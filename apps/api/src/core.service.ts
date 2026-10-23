@@ -1,10 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Optional,
-  type OnModuleDestroy,
-  type OnModuleInit,
-} from '@nestjs/common';
+import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { CORE, HttpError, type AuthCtx, type CoreServices, type JobOpts } from '@planar/server-kit';
 import { JobsService } from './jobs/jobs.js';
 import { getAuth } from './auth/auth.js';
@@ -21,7 +15,7 @@ export class CoreService implements CoreServices, OnModuleInit, OnModuleDestroy 
   private sysId?: string;
   constructor(
     @Inject(DB) readonly db: Db,
-    @Optional() private jobs?: JobsService,
+    @Inject(JobsService) private jobs: JobsService,
   ) {}
 
   retryMs = 2000;
@@ -64,7 +58,7 @@ export class CoreService implements CoreServices, OnModuleInit, OnModuleDestroy 
   }
 
   enqueue(queue: string, data: object, opts?: JobOpts) {
-    return this.jobs?.enqueue(queue, data, opts) ?? Promise.resolve();
+    return this.jobs.enqueue(queue, data, opts);
   }
 
   systemUserId(): string {

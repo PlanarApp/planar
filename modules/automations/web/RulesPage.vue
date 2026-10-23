@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import type { Filter, Row } from '@planar/shared';
 import {
   Button,
+  FilterBuilder,
   db,
   newId,
   useLabels,
@@ -20,7 +21,6 @@ import {
   type Run,
   type Trigger,
 } from '../shared/index.js';
-import ConditionsEditor from './ConditionsEditor.vue';
 import { ACTIONS, TRIGGERS, blankAction, blankTrigger, fetchRuns, run, text } from './data';
 
 const tx = computed(text);
@@ -261,7 +261,7 @@ const setValue = (i: number, raw: string) => {
 
       <fieldset class="flex flex-col gap-2">
         <legend class="font-medium">{{ tx.conditions }}</legend>
-        <ConditionsEditor v-model="draft.conditions" />
+        <FilterBuilder v-model="draft.conditions" :project-id="projectId" />
       </fieldset>
 
       <fieldset class="flex flex-col gap-2">
@@ -311,6 +311,14 @@ const setValue = (i: number, raw: string) => {
             v-if="a.type === 'create_subtask'"
             v-model="a.title"
             maxlength="500"
+            :class="field"
+            data-role="action-text"
+          />
+          <input
+            v-if="a.type === 'send_webhook'"
+            v-model="a.subscriptionId"
+            :aria-label="tx.subscription"
+            :placeholder="tx.subscription"
             :class="field"
             data-role="action-text"
           />

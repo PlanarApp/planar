@@ -32,6 +32,7 @@ export const ACTIONS = [
   'add_comment',
   'move_to_project',
   'create_subtask',
+  'send_webhook',
 ] as const;
 
 export const blankTrigger = (type: Trigger['type']): Trigger =>
@@ -59,6 +60,8 @@ export const blankAction = (type: Action['type']): Action => {
       return { type, projectId: '' };
     case 'create_subtask':
       return { type, title: '' };
+    case 'send_webhook':
+      return { type, subscriptionId: '' };
   }
 };
 
@@ -87,6 +90,7 @@ const TEXT = {
     user: 'Пользователь',
     field: 'Поле',
     value: 'Значение',
+    subscription: 'ID подписки вебхука',
     daysBefore: 'За сколько дней до срока',
     invalid: 'Правило заполнено неверно',
     triggers: {
@@ -107,6 +111,7 @@ const TEXT = {
       add_comment: 'Комментарий',
       move_to_project: 'Перенести в проект',
       create_subtask: 'Создать подзадачу',
+      send_webhook: 'Отправить вебхук',
     },
     status: { ok: 'выполнено', skipped: 'пропущено', error: 'ошибка' },
     op: {
@@ -145,6 +150,7 @@ const TEXT = {
     user: 'User',
     field: 'Field',
     value: 'Value',
+    subscription: 'Webhook subscription ID',
     daysBefore: 'Days before due date',
     invalid: 'The rule is not valid',
     triggers: {
@@ -165,6 +171,7 @@ const TEXT = {
       add_comment: 'Comment',
       move_to_project: 'Move to project',
       create_subtask: 'Create subtask',
+      send_webhook: 'Send webhook',
     },
     status: { ok: 'ok', skipped: 'skipped', error: 'error' },
     op: {

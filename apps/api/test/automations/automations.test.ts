@@ -1,3 +1,5 @@
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
@@ -7,6 +9,7 @@ import type { JobApi } from '../../src/modules/hooks.js';
 import { installed } from '../../src/modules/installed.js';
 import { PushQueue } from '../../src/push/push.js';
 import { PushService } from '../../src/sync/push.service.js';
+import { attempt } from '../../../../modules/webhooks/api/deliver.js';
 import { ORIGIN, loginCookie } from '../auth.js';
 import {
   dbUrl,
@@ -137,7 +140,7 @@ describe('wk3: правила (мутаторы)', () => {
     await bad({ trigger: { type: 'task.due', daysBefore: 31 } });
     await bad({ actions: [] });
     await bad({ actions: Array(11).fill({ type: 'assign', userId: w.member.userId }) });
-    await bad({ actions: [{ type: 'send_webhook', subscriptionId: uuidv7() }] });
+    await bad({ actions: [{ type: 'send_webhook', subscriptionId: 'x' }] });
     await bad({ actions: [{ type: 'set_field', field: 'priority', value: 9 }] });
     await bad({ actions: [{ type: 'set_field', field: 'dueDate', value: 'завтра' }] });
     await bad({ name: '' });
@@ -594,6 +597,105 @@ describe('wk3: REST журнал запусков', () => {
     expect((await get(`/api/automations/rules/${r.id}/runs`, 'outsider')).statusCode).toBe(404);
     expect((await get(`/api/automations/rules/${uuidv7()}/runs`, 'admin')).statusCode).toBe(404);
     expect((await get(`/api/automations/rules/не-uuid/runs`, 'admin')).statusCode).toBe(404);
+  });
+});
+
+describe('wk3b: send_webhook и циклы в условиях', () => {
+  let recv: http.Server;
+  let hits: { body: string }[] = [];
+  let base: string;
+  beforeAll(async () => {
+    process.env.WEBHOOKS_ALLOW_HOSTS = '127.0.0.1';
+    recv = http.createServer((req, res) => {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => {
+        hits.push({ body });
+        res.writeHead(200).end('ok');
+      });
+    });
+    await new Promise<void>((r) => recv.listen(0, '127.0.0.1', r));
+    base = `http://127.0.0.1:${(recv.address() as AddressInfo).port}`;
+  });
+  afterAll(() => void recv.close());
+  beforeEach(() => void (hits = []));
+
+  async function sub(active: boolean) {
+    const id = uuidv7();
+    await raw(
+      `insert into webhooks_subscriptions (id, url, events, secret, active, created_by)
+       values ('${id}', '${base}/hook', '{}', 's', ${active}, '${w.admin.userId}')`,
+    );
+    return id;
+  }
+  const deliveries = (id: string) =>
+    raw(`select * from webhooks_deliveries where subscription_id = '${id}'`);
+
+  it('wk3b: send_webhook — приёмник получает automation.fired с ruleId и задачей v1', async () => {
+    const s = await sub(true);
+    const r = await rule({ type: 'task.created' }, [{ type: 'send_webhook', subscriptionId: s }]);
+    const t = await task({ title: 'Хук' });
+    await drain();
+    expect(statuses(await runsOf(r.id))).toEqual(['ok']);
+    const j = jobs.find((x) => x.queue === 'webhooks.deliver')!;
+    await attempt(j.data.deliveryId as string, api);
+    expect(hits).toHaveLength(1);
+    expect(JSON.parse(hits[0]!.body)).toMatchObject({
+      event: 'automation.fired',
+      data: { ruleId: r.id, task: { id: t, title: 'Хук', key: expect.stringMatching(/-\d+$/) } },
+    });
+  });
+
+  it('wk3b: неактивная или несуществующая подписка — error, остальные действия откатываются', async () => {
+    for (const id of [await sub(false), uuidv7()]) {
+      const r = await rule({ type: 'task.created' }, [
+        { type: 'assign', userId: w.member.userId },
+        { type: 'send_webhook', subscriptionId: id },
+      ]);
+      const t = await task();
+      await drain();
+      const [run] = await runsOf(r.id);
+      expect(run).toMatchObject({ status: 'error', task_id: t });
+      expect(run.error).toContain(id);
+      expect(await raw(`select 1 from task_assignees where task_id = '${t}'`)).toHaveLength(0);
+      expect(await deliveries(id)).toHaveLength(0);
+    }
+  });
+
+  it('wk3b: условие cycle in [current] — только задачи текущего цикла', async () => {
+    const c = uuidv7();
+    await raw(
+      `insert into sprints_cycles (id, space_id, project_id, number, start_date, end_date, created_at, updated_at)
+       values ('${c}', '${w.spaceId}', '${P}', 1, current_date - 1, current_date + 7, now(), now())`,
+    );
+    const r = await rule(
+      { type: 'task.created' },
+      [{ type: 'set_status', statusId: w.statusIds[PROG] }],
+      {
+        conditions: { op: 'and', rules: [{ field: 'cycle', operator: 'in', value: ['current'] }] },
+      },
+    );
+    const out = await task();
+    const inn = await task();
+    await raw(`update tasks set cycle_id = '${c}' where id = '${inn}'`);
+    await drain();
+    expect(statuses((await runsOf(r.id)).filter((x) => x.task_id === out))).toEqual(['skipped']);
+    expect(statuses((await runsOf(r.id)).filter((x) => x.task_id === inn))).toEqual(['ok']);
+  });
+
+  it('wk3b: закрытый цикл не считается текущим', async () => {
+    const c = uuidv7();
+    await raw(
+      `insert into sprints_cycles (id, space_id, project_id, number, start_date, end_date, closed_at, created_at, updated_at)
+       values ('${c}', '${w.spaceId}', '${P}', 1, current_date - 1, current_date + 7, now(), now(), now())`,
+    );
+    const r = await rule({ type: 'task.created' }, undefined, {
+      conditions: { op: 'and', rules: [{ field: 'cycle', operator: 'in', value: ['current'] }] },
+    });
+    const t = await task();
+    await raw(`update tasks set cycle_id = '${c}' where id = '${t}'`);
+    await drain();
+    expect(statuses(await runsOf(r.id))).toEqual(['skipped']);
   });
 });
 

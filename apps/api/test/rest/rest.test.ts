@@ -374,12 +374,21 @@ describe('REST /api/v1: OpenAPI', () => {
     const doc = JSON.parse(r.body);
     expect(doc.openapi).toBe('3.1.0');
     expect(Object.keys(doc.paths).sort()).toEqual([
+      '/api/v1/links/{id}',
       '/api/v1/projects',
+      '/api/v1/projects/{id}/automations',
+      '/api/v1/projects/{id}/cycles',
+      '/api/v1/projects/{id}/cycles/current',
       '/api/v1/projects/{id}/fields',
       '/api/v1/spaces',
       '/api/v1/tasks',
       '/api/v1/tasks/{task}',
       '/api/v1/tasks/{task}/comments',
+      '/api/v1/tasks/{task}/links',
+      '/api/v1/time-entries',
+      '/api/v1/timer',
+      '/api/v1/timer/start',
+      '/api/v1/timer/stop',
     ]);
     expect(Object.keys(doc.paths['/api/v1/tasks/{task}'])).toEqual(['get', 'patch']);
     expect(doc.components.schemas.Task.properties).toHaveProperty('assigneeIds');
