@@ -1,0 +1,72 @@
+{
+  "status": "done",
+  "summary": "Пять пустых модулей (пакеты, tsconfig, shared/api/schema/web, workspace-зависимости, installed.ts, lockfile) + тест wk9:. modules.test.ts ослаблен: проверял, что установлен только hello.",
+  "commits": [
+    "c1e620d WK-9 скелеты модулей"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "installed",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "test-api",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "wk9",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "contract-work",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WK-9",
+  "uncertain": [
+    {
+      "where": "modules/*/web/index.ts",
+      "why": "web-манифест не проверен в браузере; tsconfig.build исключает web (загрузка glob-ом)",
+      "checked": "typecheck-web, build, size 142.7 KB"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T12:38:32",
+  "by": "executor"
+}
