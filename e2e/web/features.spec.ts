@@ -353,6 +353,21 @@ test('связи: заблокированная задача помечена �
   await expect(card(1).getByRole('img', { name: 'Заблокирована' })).toHaveCount(0);
 });
 
+test('связи: заблокированная задача помечена в списке', async ({ browser }) => {
+  const [a, b] = [uniq('Блокирует'), uniq('Ждёт')];
+  const f = await fixture([a, b]);
+  const page = await loginAs(browser, 'alice');
+  await page.goto(`/t/${f.taskKeys[0]}`);
+  const links = page.getByRole('region', { name: 'Связи' });
+  await links.getByLabel('Найти задачу по названию или ключу').fill(b);
+  await links.getByTestId('candidate').filter({ hasText: b }).click();
+  await expect.poll(() => serverLinks(f)).toBe(1);
+  await page.goto(`/p/${f.projectId}/list`);
+  const row = (k: string) => page.locator(`[data-task="${k}"]`);
+  await expect(row(f.taskKeys[1]!).getByRole('img', { name: 'Заблокирована' })).toBeVisible();
+  await expect(row(f.taskKeys[0]!).getByRole('img', { name: 'Заблокирована' })).toHaveCount(0);
+});
+
 test('связи: «связана» видна с обеих сторон под одним заголовком', async ({ browser }) => {
   const [a, b] = [uniq('Рел-A'), uniq('Рел-B')];
   const f = await fixture([a, b]);
