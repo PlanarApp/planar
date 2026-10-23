@@ -1,62 +1,39 @@
 {
-  "verdict": "rework",
-  "summary": "Логика модуля корректна, test-all теперь зелёный (245 с). Но в feature/work после отчёта появилась 0010_webhooks (WK-4): миграция 0010 WK-3 конфликтует, нужно синхронизироваться и сгенерировать её заново. Кроме того, тесты подменяют enqueue и не проходят через настоящий pg-boss, и нет теста на выключенный модуль.",
+  "verdict": "accept",
+  "summary": "Все замечания прошлого ревью закрыты: миграция 0012 идёт после 0010/0011, тесты гоняют настоящий pg-boss (срабатывание, цикл глубины 3, ошибка, выключенный модуль), ранг через generateKeyBetween с collate C, отдельный суточный cron чистки. После отчёта в feature/work влит WK-12 (C-modules v5/v6, FilterBuilder в SDK, страницы настроек модулей). Слияние проходит без конфликтов, новых миграций там нет.",
   "issues": [
     {
-      "file": "apps/api/drizzle/0010_strong_wallop.sql",
-      "line": 1,
-      "severity": "blocker",
-      "what": "В feature/work уже есть apps/api/drizzle/0010_webhooks.sql (слияние WK-4). После sync номер 0010 повторится (migrations-linear FAIL), а meta/_journal.json и snapshot дадут конфликт.",
-      "fix": "Сделать .dpcli/dpcli task sync WK-3, удалить свою 0010 (sql + snapshot + запись в _journal), заново запустить drizzle-kit generate (получится 0011), прогнать accept WK-3 --dry целиком."
-    },
-    {
-      "file": "apps/api/test/automations/automations.test.ts",
-      "line": 52,
-      "severity": "major",
-      "what": "Карточка требует createApp с push:{boss:true} и ожидание по automations_runs. В тестах же enqueue подменён массивом, а handler вызывается вручную (drain). Регистрация очередей и cron в настоящем pg-boss, retryLimit:0 и передача systemUserId воркеру end-to-end не проверены.",
-      "fix": "Добавить хотя бы один тест wk3: на настоящем pg-boss (createApp({push:{boss:true}}), task.create, затем опрос automations_runs с таймаутом). Остальные тесты можно оставить с drain."
-    },
-    {
-      "file": "apps/api/test/automations/automations.test.ts",
-      "line": 44,
-      "severity": "major",
-      "what": "Нет обязательного по карточке теста «модуль выключен — хук не ставит задачи». enabled_modules задаётся один раз на весь файл.",
-      "fix": "Тест wk3:, в котором automations убирается из enabled_modules, после мутации задачи не ставятся, затем модуль включается обратно."
-    },
-    {
-      "file": "modules/automations/web/RulesPage.vue",
-      "line": 1,
-      "severity": "major",
-      "what": "Вопрос координатору. SettingsScreen ядра рисует жёсткий список SECTIONS, поэтому manifest.settings модулей (automations, а также webhooks из WK-4) пользователю не видны и конструктор недоступен из UI. Исполнитель отметил это в uncertain, но запрос «WK-3 contract: …» не подал.",
-      "fix": "Координатору решить вопрос с точкой расширения SettingsScreen для manifest.settings модулей: это отдельная задача ядра, общая для WK-3 и WK-4. Исполнителю в отчёте сослаться на этот запрос."
-    },
-    {
       "file": "modules/automations/api/index.ts",
-      "line": 196,
+      "line": 293,
       "severity": "minor",
-      "what": "Ранг create_subtask вычисляется как max(rank)+'V', а не через generateKeyBetween, как требует контракт. Кроме того, max() в Postgres сравнивает по collation столбца, а не побайтно: при колляции не C ключи со смешанным регистром могут оказаться не последними.",
-      "fix": "Использовать generateKeyBetween(last, null) из той же зависимости, что и ядро, а max брать с collate \"C\" (или как это делает ядро)."
+      "what": "matchFilter вызывается без ctx.cycles. Условие cycle in ['current'] из-за этого всегда истинно (filter.ts:155: 'без циклов правило пропускается'), и правило выполняет действия над любой задачей вместо skipped. UI такое условие не собирает, но API его принимает (filterSchema знает поле 'cycle').",
+      "fix": "Подгружать циклы проекта в ctx.cycles. Если это не нужно — запретить 'cycle' в filterSchema правил."
     },
     {
-      "file": "modules/automations/api/index.ts",
-      "line": 300,
+      "file": "modules/automations/web/ConditionsEditor.vue",
+      "line": 1,
       "severity": "minor",
-      "what": "Чистку runs старше 30 дней по контракту нужно делать раз в сутки отдельным cron, а она выполняется в часовом automations.due. Функционально это безвредно, но расходится с описанием в карточке.",
-      "fix": "Вынести в отдельную задачу с cron '0 3 * * *' либо явно согласовать с координатором."
+      "what": "В WK-12 FilterBuilder вынесен в SDK '@planar/web/modules'. Упрощённый конструктор условий теперь дублирует компонент ядра.",
+      "fix": "Отдельной задачей (или в WK-3b) перейти на FilterBuilder из SDK. Блокером не считаю."
     }
   ],
   "rerun": [
     {
-      "name": "test-all (accept --only test-all --dry)",
-      "value": "exit 0, 245 с",
+      "name": "wk3-api (accept --only wk3-api --dry)",
+      "value": "28",
       "pass": true
     },
     {
-      "name": "migrations-linear против feature/work",
-      "value": "0010 повторяется: 0010_webhooks и 0010_strong_wallop",
-      "pass": false
+      "name": "migrations-linear (accept --only migrations-linear --dry)",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "git merge-tree work/WK-3 feature/work (4d6ebc5)",
+      "value": "без конфликтов",
+      "pass": true
     }
   ],
-  "t": "2026-10-23T17:24:54",
+  "t": "2026-10-23T18:28:23",
   "by": "reviewer"
 }

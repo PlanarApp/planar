@@ -1,63 +1,91 @@
 {
-  "status": "partial",
-  "summary": "modules/automations: правила (create/update/delete), 6 триггеров включая cron task.due, условия matchFilter, 9 действий (без send_webhook), воркер automations.run с защитой от циклов, журнал запусков + REST, конструктор в настройках, миграция 0010.",
+  "status": "done",
+  "summary": "Доработка по ревью: миграция пересоздана (0012), ранг подзадачи через generateKeyBetween, cron automations.cleanup раз в сутки, тесты на настоящем pg-boss (правило, цикл глубины 3, ошибка, модуль выключен).",
   "commits": [
-    "2220645 WK-3: типы fieldRef, vue-tsc",
-    "ec5a151 WK-3: тест skipped",
-    "dd2edac WK-3: modules/automations — правила, триггеры, действия, воркер, журнал, конструктор"
+    "579eb85 WK-3: миграция 0012, ранг через generateKeyBetween",
+    "f9b800f Слияние feature/work в work/WK-3",
+    "c38ea5e WK-3: откат своей миграции перед sync",
+    "583e465 Слияние work/WK-6: WK-6: тест succRank",
+    "da6fc56 work: журнал dpcli",
+    "5478234 WK-3: изоляция проекта в boss-тестах"
   ],
   "checks": [
     {
-      "name": "wk3-api",
-      "value": "24 passed",
+      "name": "install",
+      "value": "exit 0",
       "pass": true
     },
     {
-      "name": "wk3-web",
-      "value": "7 passed",
-      "pass": true
-    },
-    {
-      "name": "install/build/size/test-web/contract-work/migrations-linear/lint",
-      "value": "PASS в accept --dry (size 146.9 KB)",
+      "name": "build",
+      "value": "exit 0",
       "pass": true
     },
     {
       "name": "typecheck-web",
-      "value": "vue-tsc --noEmit чисто после правки (в dry был FAIL до правки)",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "147.6",
       "pass": true
     },
     {
       "name": "test-all",
-      "value": "не подтверждён: диск хоста 100% (8 МБ свободно), контейнер planar-testdb упал (No space left on device)",
-      "pass": false
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "wk3-api",
+      "value": "28",
+      "pass": true
+    },
+    {
+      "name": "wk3-web",
+      "value": "7",
+      "pass": true
+    },
+    {
+      "name": "contract-work",
+      "value": "12",
+      "pass": true
+    },
+    {
+      "name": "migrations-linear",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
     }
   ],
   "not_done": [
-    "Повторный accept --dry целиком: тест-БД не поднимается из-за переполненного диска хоста"
+    "SettingsScreen ядра не рендерит manifest.settings модулей — вопрос координатору"
   ],
   "questions": [
-    "Освободить диск хоста (docker build cache ~9 ГБ) и перезапустить accept WK-3"
+    "Точка расширения SettingsScreen для settings модулей"
   ],
   "how_to_check": ".dpcli/dpcli accept WK-3",
   "uncertain": [
     {
-      "where": "modules/automations/api/index.ts:run",
-      "why": "действия применяются без перечитывания задачи между ними; create_subtask ранг = max(sibling)+'V'",
-      "checked": "тесты wk3: на цепочки, откат при ошибке, подзадачу"
+      "where": "modules/automations/web/ConditionsEditor.vue",
+      "why": "упрощённый конструктор фильтра, FilterBuilder ядра не в SDK",
+      "checked": "unit-тесты"
     },
     {
-      "where": "modules/automations/web/RulesPage.vue",
-      "why": "SettingsScreen ядра не рендерит settings модулей (жёсткий список секций), страница объявлена в manifest.settings, но в UI не откроется до правки ядра; FilterBuilder ядра не экспортирован SDK — свой упрощённый ConditionsEditor",
-      "checked": "компонент смонтирован в unit-тестах; контракт на правку SettingsScreen не заводил"
-    },
-    {
-      "where": "modules/automations/api/index.ts:run",
-      "why": "условие cycle (спринты) не вычисляется — циклы в FilterCtx не передаются",
+      "where": "modules/automations/api/index.ts",
+      "why": "условие cycle (спринты) не вычисляется",
       "checked": "matchFilter пропускает такие правила"
     }
   ],
-  "dp_feedback": "accept test-all падает без внятной причины при полном диске/упавшем testdb (charCodeAt вместо ошибки подключения); не хватает проверки свободного места перед прогоном. dpcli task sync пишет 'feature/work уже влит' — ок.",
-  "t": "2026-10-23T16:04:07",
+  "dp_feedback": "task sync при конфликте миграций отменяет слияние — пришлось вручную откатывать свою миграцию; подсказка в выводе помогла бы.",
+  "t": "2026-10-23T18:05:22",
   "by": "executor"
 }
