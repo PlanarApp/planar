@@ -16,6 +16,7 @@ generated: true
 
 ## Описания систем (guide)
 
+- [docs/deploy.md](deploy.md) — Prod-стек compose.yml (postgres, api, Caddy) и смоук ./dev.sh prod-smoke
 - [docs/guides/mcp.md](guides/mcp.md) — Подключение ИИ-клиента к Planar по MCP: токен, URL /mcp, конфигурация, инструменты, права read/write
 
 ## Планы (plan)

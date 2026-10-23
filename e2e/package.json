@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
+    "prod": "playwright test -c prod",
     "measure": "tsx measure.ts"
   },
   "devDependencies": {

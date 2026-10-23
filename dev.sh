@@ -57,6 +57,27 @@ waitapidirect() {
   return 1
 }
 
+# prod-smoke: собирает web и api, поднимает compose.yml (postgres, api, caddy) в изолированном проекте,
+# сидит БД, гоняет e2e/prod через Caddy и гасит всё. Порты и проект — из env (HTTP_PORT, HTTPS_PORT, COMPOSE_PROJECT_NAME).
+prodsmoke() {
+  export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-planar-prod-smoke}"
+  export HTTP_PORT="${HTTP_PORT:-8080}" HTTPS_PORT="${HTTPS_PORT:-8443}"
+  export PUBLIC_URL="http://localhost:$HTTP_PORT" COOKIE_SECURE=false SITE_ADDRESS=:80
+  local P=(docker compose -f compose.yml -f deploy/compose.smoke.yml) rc=0
+  trap '"${P[@]}" down -v --remove-orphans >/dev/null 2>&1 || true' EXIT
+  pnpm install --frozen-lockfile && pnpm --filter @planar/web build || return 1
+  "${P[@]}" up -d --build || return 1
+  for _ in $(seq 1 90); do
+    curl -sf "$PUBLIC_URL/api/health" >/dev/null && break
+    sleep 2
+  done
+  curl -sf "$PUBLIC_URL/api/health" >/dev/null || { echo "prod-стек не отвечает" >&2; "${P[@]}" logs --tail 40 >&2; return 1; }
+  local pg; pg="$("${P[@]}" port postgres 5432)"
+  DATABASE_URL="postgres://postgres:postgres@127.0.0.1:${pg##*:}/planar" pnpm --filter @planar/api seed || return 1
+  E2E_BASE_URL="$PUBLIC_URL" pnpm --filter @planar/e2e prod || rc=$?
+  return $rc
+}
+
 cmd="${1:-}"
 [ $# -gt 0 ] && shift
 case "$cmd" in
@@ -69,7 +90,8 @@ case "$cmd" in
   logs) "${DEV[@]}" logs -f "$@" ;;
   e2e) waitapi && E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e test "$@" ;;
   measure) waitapi && E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e measure "$@" ;;
+  prod-smoke) prodsmoke ;;
   testdb) testdb ;;
   test) testdb && pnpm test "$@" ;;
-  *) echo "usage: ./dev.sh up|down|reset|seed|logs|e2e|measure|test|testdb|vapid" >&2; exit 2 ;;
+  *) echo "usage: ./dev.sh up|down|reset|seed|logs|e2e|measure|prod-smoke|test|testdb|vapid" >&2; exit 2 ;;
 esac
