@@ -143,6 +143,17 @@ describe('list:inline', () => {
     await poll(async () => (await get(t.id)).title === 'new');
     expect(await db._queue.count()).toBe(1);
   });
+  it('list:dblclick настоящая последовательность click-click-dblclick не открывает панель', async () => {
+    await db.table('tasks').put(task(1));
+    await show();
+    const cell = w.get('[role=gridcell].flex-1');
+    await cell.trigger('click');
+    await cell.trigger('click');
+    await cell.trigger('dblclick');
+    await new Promise((r) => setTimeout(r, 400));
+    expect(r.currentRoute.value.query.task).toBeUndefined();
+    expect(w.find('input[aria-label="Название задачи"]').exists()).toBe(true);
+  });
   it('list:inline статус меняет реплику', async () => {
     const t = task(1);
     await db.table('tasks').put(t);
@@ -227,8 +238,7 @@ describe('list:select', () => {
     await db.table('tasks').put(task(1));
     await show();
     await row('PLN-1').trigger('click');
-    await flushPromises();
-    expect(r.currentRoute.value.query.task).toBe('PLN-1');
+    await poll(async () => r.currentRoute.value.query.task === 'PLN-1');
   });
 });
 
@@ -287,8 +297,7 @@ describe('list:keys', () => {
     await show();
     await key('j');
     await key('Enter');
-    await flushPromises();
-    expect(r.currentRoute.value.query.task).toBe('PLN-1');
+    await poll(async () => r.currentRoute.value.query.task === 'PLN-1');
     await w.get('[data-create] button').trigger('click');
     await w.get('[data-create] input').trigger('keydown', { key: 'x' });
     expect(useSelection().selected.value.size).toBe(0);
