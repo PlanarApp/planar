@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import en from '../../i18n/en';
 import ru from '../../i18n/ru';
-import { AssigneePicker, PriorityPicker, StatusPicker } from '../index';
+import { AssigneePicker, DueDatePicker, PriorityPicker, StatusPicker } from '../index';
 import { ids, reset } from './data';
 
 beforeEach(reset);
@@ -76,6 +76,13 @@ describe('tasks:pickers', () => {
     const w = mount(PriorityPicker, { ...opts, props: { modelValue: 0 } });
     await open(w);
     expect(document.body.querySelector('[role="listbox"]')).not.toBeNull();
+    w.unmount();
+  });
+  it('DueDatePicker: ленивый Popover, клик открывает поле даты', async () => {
+    const w = mount(DueDatePicker, { ...opts, props: { modelValue: null } });
+    expect(document.body.querySelector('[aria-expanded]')).toBeNull();
+    await open(w);
+    expect(document.body.querySelector('input[type="date"]')).not.toBeNull();
     w.unmount();
   });
 });

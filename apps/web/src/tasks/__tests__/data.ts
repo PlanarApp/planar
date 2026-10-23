@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { uuidv7 } from '@planar/shared';
 import { db } from '../../sync';
+import { resetProjections } from '../projection';
 
 export const T = '2026-10-22T10:00:00.000Z';
 export const id = uuidv7;
@@ -47,6 +48,7 @@ function bridge() {
 export async function reset() {
   await db.open();
   bridge();
+  resetProjections();
   await Promise.all(db.tables.map((t) => t.clear()));
   await db.table('spaces').put({
     id: ids.space,

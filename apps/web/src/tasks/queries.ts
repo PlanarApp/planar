@@ -1,20 +1,17 @@
 import { liveQuery, type Subscription } from 'dexie';
-import { getCurrentScope, onScopeDispose, shallowRef, toValue, watch, type WatchHandle } from 'vue';
+import { getCurrentScope, onScopeDispose, shallowRef, toValue, watch } from 'vue';
 import type { MaybeRefOrGetter, Ref } from 'vue';
 import type { Row } from '@planar/shared';
 import { db, useQuery } from '../sync';
+import { byRank } from './dictionaries';
 import { readLinks } from './projection';
 
+export { useLabels, useMembers, useStatuses } from './dictionaries';
 export { prefetchIdle, prefetchProject, useProjectTasks } from './projection';
 
 export type TaskView = Row<'tasks'> & { key: string; assigneeIds: string[]; labelIds: string[] };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
-const byStr =
-  <T>(f: (x: T) => string) =>
-  (a: T, b: T) =>
-    f(a) < f(b) ? -1 : f(a) > f(b) ? 1 : 0;
-const byRank = byStr<{ rank: string }>((x) => x.rank);
 
 /** useQuery с реактивным аргументом: при его смене подписка пересоздаётся. */
 function useLive<A, T>(arg: () => A, fn: (a: A) => T | Promise<T>): Readonly<Ref<T | undefined>> {
@@ -60,6 +57,12 @@ async function views(tasks: Row<'tasks'>[], projectKey: Map<string, string>): Pr
   }));
 }
 
+export const useProject = (id: MaybeRefOrGetter<string>) =>
+  useLive(
+    () => toValue(id),
+    async (i) => (await db.table<Row<'projects'>>('projects').get(i)) ?? null,
+  );
+
 export function useSpaces() {
   return useQuery(async () => {
     const [spaces, projects] = await Promise.all([
@@ -72,94 +75,6 @@ export function useSpaces() {
       .map((s) => ({ ...s, projects: live.filter((p) => p.spaceId === s.id) }));
   });
 }
-
-export const useProject = (id: MaybeRefOrGetter<string>) =>
-  useLive(
-    () => toValue(id),
-    async (i) => (await db.table<Row<'projects'>>('projects').get(i)) ?? null,
-  );
-
-/**
- * Справочники пространства (статусы, метки, участники): один liveQuery на (вид, spaceId) на всех подписчиков,
- * а не по запросу на каждый пикер в каждой строке.
- */
-const shared = new Map<string, { r: Ref<unknown>; sub: Subscription; n: number }>();
-function useShared<T>(kind: string, arg: () => string, fn: (a: string) => Promise<T>) {
-  const out = shallowRef<T>();
-  let key = '';
-  let follow: WatchHandle | undefined;
-  const release = () => {
-    follow?.stop();
-    const x = shared.get(key);
-    if (x && --x.n === 0) {
-      x.sub.unsubscribe();
-      shared.delete(key);
-    }
-  };
-  const stop = watch(
-    arg,
-    (a) => {
-      if (key) release();
-      key = kind + a;
-      let x = shared.get(key);
-      if (!x) {
-        const r = shallowRef<T>();
-        const sub = liveQuery(() => fn(a)).subscribe({
-          next: (v) => (r.value = v),
-          error: () => {},
-        });
-        shared.set(key, (x = { r, sub, n: 0 }));
-      }
-      x.n++;
-      out.value = x.r.value as T;
-      follow = watch(x.r, (v) => (out.value = v as T), { flush: 'sync' });
-    },
-    { immediate: true, flush: 'sync' },
-  );
-  if (getCurrentScope())
-    onScopeDispose(() => {
-      stop();
-      release();
-    });
-  return out as Readonly<Ref<T | undefined>>;
-}
-
-export const useStatuses = (spaceId: MaybeRefOrGetter<string>) =>
-  useShared(
-    'st',
-    () => toValue(spaceId),
-    async (s) =>
-      (await db.table<Row<'statuses'>>('statuses').where('spaceId').equals(s).toArray()).sort(
-        byRank,
-      ),
-  );
-
-export const useLabels = (spaceId: MaybeRefOrGetter<string>) =>
-  useShared(
-    'lb',
-    () => toValue(spaceId),
-    async (s) =>
-      (await db.table<Row<'labels'>>('labels').where('spaceId').equals(s).toArray()).sort(
-        byStr((l) => l.name),
-      ),
-  );
-
-export const useMembers = (spaceId: MaybeRefOrGetter<string>) =>
-  useShared(
-    'mb',
-    () => toValue(spaceId),
-    async (s) => {
-      const ms = await db
-        .table<Row<'spaceMembers'>>('spaceMembers')
-        .where('spaceId')
-        .equals(s)
-        .toArray();
-      const us = await db.table<Row<'users'>>('users').bulkGet(ms.map((m) => m.userId));
-      return us
-        .filter((u): u is Row<'users'> => !!u && !u.deactivatedAt)
-        .sort((a, b) => a.name.localeCompare(b.name));
-    },
-  );
 
 export const useTask = (idOrKey: MaybeRefOrGetter<string>) =>
   useLive(

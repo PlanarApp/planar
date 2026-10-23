@@ -2,6 +2,7 @@ import { shallowRef, toValue, watch, getCurrentScope, onScopeDispose } from 'vue
 import type { MaybeRefOrGetter, Ref } from 'vue';
 import type { Row } from '@planar/shared';
 import { db, onReplicaChange, type ReplicaChange } from '../sync';
+import { resetDictionaries, warmSpace } from './dictionaries';
 import type { TaskView } from './queries';
 
 /** связи задач по id: точечными запросами, пока проект — малая доля таблицы, иначе чтение таблицы целиком и фильтр */
@@ -25,31 +26,45 @@ export async function readLinks<R extends { taskId: string }>(
  */
 const KEEP = 3;
 
-/** связь id → (задача, значение) и индекс по задаче; значения отдаёт в порядке id, как полное чтение */
+/** связи по задаче (массивы пар [id, значение]: у задачи их единицы) и по id связи; значения — в порядке id, как полное чтение */
 class LinkIndex {
-  byId = new Map<string, [string, string]>();
-  byTask = new Map<string, Map<string, string>>();
+  byId = new Map<string, string>(); // id связи → задача
+  byTask = new Map<string, [string, string][]>();
   set(id: string, taskId: string | null, value = ''): string[] {
     const touched: string[] = [];
     const old = this.byId.get(id);
-    if (old) {
+    if (old !== undefined) {
       this.byId.delete(id);
-      this.byTask.get(old[0])?.delete(id);
-      touched.push(old[0]);
+      const list = this.byTask.get(old)!;
+      if (list.length > 1)
+        this.byTask.set(
+          old,
+          list.filter((x) => x[0] !== id),
+        );
+      else this.byTask.delete(old);
+      touched.push(old);
     }
     if (taskId) {
-      this.byId.set(id, [taskId, value]);
-      let m = this.byTask.get(taskId);
-      if (!m) this.byTask.set(taskId, (m = new Map()));
-      m.set(id, value);
+      this.byId.set(id, taskId);
+      const list = this.byTask.get(taskId);
+      if (list) this.byTask.set(taskId, [...list, [id, value]]);
+      else this.byTask.set(taskId, [[id, value]]);
       touched.push(taskId);
     }
     return touched;
   }
+  /** первичное заполнение строками в порядке id (без проверки старого значения) */
+  add(id: string, taskId: string, value: string): void {
+    this.byId.set(id, taskId);
+    const list = this.byTask.get(taskId);
+    if (list) list.push([id, value]);
+    else this.byTask.set(taskId, [[id, value]]);
+  }
   of(taskId: string): string[] {
-    const m = this.byTask.get(taskId);
-    if (!m) return [];
-    return [...m].sort((x, y) => (x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : 0)).map((x) => x[1]);
+    const list = this.byTask.get(taskId);
+    if (!list) return [];
+    if (list.length > 1) list.sort((x, y) => (x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : 0));
+    return list.map((x) => x[1]);
   }
 }
 interface Links {
@@ -81,6 +96,11 @@ function applyLinks(
 
 let shared: Links | undefined; // общий индекс связей всех задач
 
+function fill(L: Links, as: Row<'taskAssignees'>[], ls: Row<'taskLabels'>[]): void {
+  for (const r of as) L.a.add(r.id, r.taskId, r.userId);
+  for (const r of ls) L.l.add(r.id, r.taskId, r.labelId);
+}
+
 function loadShared(): Links {
   const L: Links = { a: new LinkIndex(), l: new LinkIndex(), queue: [], ready: undefined as never };
   L.ready = (async () => {
@@ -90,11 +110,8 @@ function loadShared(): Links {
     ]);
     const q = L.queue!;
     L.queue = null;
-    applyLinks(L, [
-      ...as.map((r) => ({ entity: 'taskAssignees', id: r.id, row: r })),
-      ...ls.map((r) => ({ entity: 'taskLabels', id: r.id, row: r })),
-      ...q,
-    ]);
+    fill(L, as, ls);
+    applyLinks(L, q); // события, пришедшие во время чтения (идемпотентно)
   })();
   return L;
 }
@@ -121,41 +138,48 @@ const view = (e: Entry, t: Row<'tasks'>): TaskView => ({
 });
 const snapshot = (e: Entry) => (e.arr ??= [...e.tasks!.values()]);
 
+/** реплика не больше — связи читаем целиком не раздумывая (до ~40 тыс. строк); больше — решаем по доле проекта */
+const SMALL = 20_000;
+
 function reload(e: Entry): void {
   const run = ++e.run;
   e.tasks = e.arr = e.links = undefined;
   e.queue = [];
   void (async () => {
-    const [project, tasks] = await Promise.all([
-      db.table<Row<'projects'>>('projects').get(e.pid),
-      db.table<Row<'tasks'>>('tasks').where('projectId').equals(e.pid).toArray(),
-    ]);
-    // ветвление по доле проекта: заметная доля таблицы связей — общий индекс, иначе точечные чтения
-    const ids = tasks.map((t) => t.id);
-    let L: Links | undefined = shared;
-    let own = false;
-    if (!L && ids.length > 500) {
-      const total =
-        (await db.table('taskAssignees').count()) + (await db.table('taskLabels').count());
-      if (ids.length * 20 >= total) L = shared = loadShared();
-    }
+    const own = (): Promise<[Row<'projects'> | undefined, Row<'tasks'>[]]> =>
+      Promise.all([
+        db.table<Row<'projects'>>('projects').get(e.pid),
+        db.table<Row<'tasks'>>('tasks').where('projectId').equals(e.pid).toArray(),
+      ]);
+    const read = own();
+    let L = shared;
+    // связи читаются параллельно с задачами; много проектов — только если проект заметная доля таблицы связей,
+    // иначе точечные чтения (anyOf) только его задач
+    if (!L && (await db.table('tasks').count()) <= SMALL) L = shared ??= loadShared();
+    const [project, tasks] = await read;
     if (!L) {
-      own = true;
+      const [a, l] = await Promise.all([
+        db.table('taskAssignees').count(),
+        db.table('taskLabels').count(),
+      ]);
+      if (tasks.length > 500 && tasks.length * 20 >= a + l) L = shared ??= loadShared();
+    }
+    if (project) warmSpace(project.spaceId);
+    const isOwn = !L;
+    if (!L) {
+      const ids = tasks.map((t) => t.id);
       L = { a: new LinkIndex(), l: new LinkIndex(), queue: null, ready: Promise.resolve() };
       const [as, ls] = await Promise.all([
         readLinks<Row<'taskAssignees'>>('taskAssignees', ids),
         readLinks<Row<'taskLabels'>>('taskLabels', ids),
       ]);
-      applyLinks(L, [
-        ...as.map((r) => ({ entity: 'taskAssignees', id: r.id, row: r })),
-        ...ls.map((r) => ({ entity: 'taskLabels', id: r.id, row: r })),
-      ]);
+      fill(L, as, ls);
     }
     await L.ready;
     if (e.run !== run) return;
     e.key = project?.key ?? '?';
     e.links = L;
-    e.own = own;
+    e.own = isOwn;
     e.tasks = new Map();
     for (const t of tasks) e.tasks.set(t.id, view(e, t));
     const q = e.queue;
@@ -185,8 +209,8 @@ function patch(e: Entry, cs: ReplicaChange[], touched?: Set<string>): -1 | 0 | 1
     if (c.entity !== 'tasks') continue;
     const old = tasks.get(c.id);
     if (c.row && c.row.projectId === e.pid) {
-      // свой индекс не знает связей задачи, пришедшей из другого проекта (у новой задачи номера ещё нет)
-      if (!old && e.own && c.row.number != null) return -1;
+      // свой индекс (много проектов) не знает связей появившейся задачи: она может прийти из другого проекта — перечитать
+      if (!old && e.own) return -1;
       tasks.set(c.id, view(e, c.row as Row<'tasks'>));
       dirty.delete(c.id);
       changed = 1;
@@ -269,8 +293,12 @@ export function prefetchIdle(projectIds: string[]): void {
   for (const id of projectIds) if (entries.size < KEEP && !entries.has(id)) prefetchProject(id);
 }
 
-/** для тестов: сбросить память проекций */
+/** для тестов: проекты в памяти (от давнего к недавнему) */
+export const projectionKeys = (): string[] => [...entries.keys()];
+
+/** для тестов: сбросить память проекций и справочников (тесты очищают базу напрямую, минуя события) */
 export function resetProjections(): void {
   entries.clear();
   shared = undefined;
+  resetDictionaries();
 }

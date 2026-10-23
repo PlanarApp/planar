@@ -5,7 +5,7 @@ import { domainMutators, uuidv7, type Row } from '@planar/shared';
 import { db, registerMutators, startSync, stopSync } from '../../sync';
 import { FakeServer } from '../../sync/__tests__/fake-server';
 import { createTask, deleteTask, setAssignees, setLabels, updateTask } from '../index';
-import { prefetchProject, resetProjections, useProjectTasks } from '../projection';
+import { prefetchProject, projectionKeys, resetProjections, useProjectTasks } from '../projection';
 import type { TaskView } from '../queries';
 import { T, ids, reset, task, until } from './data';
 
@@ -176,39 +176,37 @@ describe('tasks:projection', () => {
     const ps = ['P1', 'P2', 'P3', 'P4'].map(mkProject);
     await db.table('projects').bulkPut(ps);
     for (const p of ps) await db.table('tasks').put(task(1, { projectId: p.id }));
-    const where = vi.spyOn(db.table('tasks'), 'where');
-    const read = async () => {
-      await tick();
-      return where.mock.calls.length;
-    };
-    for (const p of ps.slice(0, 3)) prefetchProject(p.id);
-    expect(await read()).toBe(3);
-    prefetchProject(ps[2].id); // повтор — ничего
-    prefetchProject(ps[1].id);
-    expect(await read()).toBe(3);
-    prefetchProject(ps[3].id); // 4-й вытесняет самый давний (P1)
-    expect(await read()).toBe(4);
-    prefetchProject(ps[2].id);
-    prefetchProject(ps[3].id);
-    expect(await read()).toBe(4);
-    prefetchProject(ps[0].id); // P1 вытеснен — читается заново
-    expect(await read()).toBe(5);
+    const [a, b, c, d] = ps.map((p) => p.id);
+    for (const id of [a, b, c]) prefetchProject(id);
+    expect(projectionKeys()).toEqual([a, b, c]);
+    prefetchProject(c); // повтор — ничего
+    prefetchProject(b); // b стал самым свежим
+    expect(projectionKeys()).toEqual([a, c, b]);
+    prefetchProject(d); // 4-й вытесняет самый давний
+    expect(projectionKeys()).toEqual([c, b, d]);
+    await tick();
+    prefetchProject(a); // a вытеснен — строится заново и вытесняет c
+    expect(projectionKeys()).toEqual([b, d, a]);
+    const { r, stop } = open(a);
+    await until(() => r.value?.length === 1);
+    stop();
   });
 
   it('perf:projection при многих проектах связи читаются точечно, а не таблицей целиком', async () => {
     const big = mkProject('BIG');
     await db.table('projects').put(big);
-    // проект 600 задач при 30 000 связей чужих проектов: доля < 1/20 → anyOf
+    // реплика больше 20 000 задач, проект 600 из них при 30 000 связей чужих проектов: доля < 1/20 → anyOf
     await db
       .table('tasks')
       .bulkPut(Array.from({ length: 600 }, (_, i) => task(i + 1, { projectId: big.id })));
-    const foreign = task(1);
-    await db.table('tasks').put(foreign);
+    const foreigns = Array.from({ length: 20_001 }, (_, i) => task(i + 1));
+    const foreign = foreigns[0];
+    await db.table('tasks').bulkPut(foreigns);
     await db.table('taskAssignees').bulkPut(
-      Array.from({ length: 30_000 }, () => ({
+      Array.from({ length: 30_000 }, (_, i) => ({
         id: uuidv7(),
         spaceId: ids.space,
-        taskId: foreign.id,
+        taskId: foreigns[i % 15_000].id, // foreign получает 2 связи
         userId: ids.ann,
         createdAt: T,
       })),
@@ -217,6 +215,10 @@ describe('tasks:projection', () => {
     const { r, stop } = open(big.id);
     await until(() => r.value?.length === 600, 10_000);
     expect(all).not.toHaveBeenCalled();
+    // задача из другого проекта приходит со своими связями (у индекса проекта их нет — проект перечитывается)
+    await updateTask(foreign.id, { projectId: big.id });
+    await until(() => r.value?.find((x) => x.id === foreign.id)?.assigneeIds.length === 2, 10_000);
+    expect(r.value).toHaveLength(601);
     stop();
   }, 60_000);
 });

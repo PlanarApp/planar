@@ -2,7 +2,8 @@
 import { Calendar } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Button, Input, Popover } from '../../ui';
+import { Button, Input } from '../../ui';
+import LazyPopover from './LazyPopover.vue';
 
 defineProps<{ compact?: boolean }>();
 const model = defineModel<string | null>({ default: null });
@@ -15,9 +16,10 @@ const set = (v: string) => {
 </script>
 
 <template>
-  <Popover v-model:open="open" align="start">
-    <template #trigger>
+  <LazyPopover v-model:open="open" align="start">
+    <template #trigger="{ attrs }">
       <button
+        v-bind="attrs"
         type="button"
         :aria-label="t('tasks.dueDate')"
         class="inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
@@ -38,5 +40,5 @@ const set = (v: string) => {
         t('tasks.clear')
       }}</Button>
     </div>
-  </Popover>
+  </LazyPopover>
 </template>
