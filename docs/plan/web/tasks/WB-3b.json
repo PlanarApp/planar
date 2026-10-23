@@ -66,17 +66,18 @@
       "expect": "num:Tests\\s+(\\d+) passed >=3"
     },
     {
-      "name": "logout-cancel",
-      "cmd": "pnpm --filter web exec vitest run src -t auth:logout",
-      "expect": "num:Tests\\s+(\\d+) passed >=1"
-    },
-    {
       "name": "test",
       "cmd": "pnpm --filter web test",
       "expect": "exit=0"
+    },
+    {
+      "name": "logout-cancel",
+      "cmd": "pnpm --filter web exec vitest run src -t auth:logout",
+      "expect": "num:Tests\\s+(\\d+) passed >=2"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-23T00:08:23"
+  "created": "2026-10-23T00:08:23",
+  "edited": "2026-10-23T00:10:00"
 }
