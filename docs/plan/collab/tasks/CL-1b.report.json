@@ -1,0 +1,71 @@
+{
+  "status": "done",
+  "summary": "Модуль modules/chat по CH-schema/CH-mutators/CH-api v1: 5 сущностей, 11 мутаторов, REST истории и треда, уведомления chat_* с push через afterMutation, canReadFile, миграция 0010. 25 тестов, включая утечки личных диалогов (bootstrap, pull, WS, GET /files, REST).",
+  "commits": [
+    "5153305 модуль chat и тесты",
+    "604dab4 lint",
+    "433ef94 prettier миграции"
+  ],
+  "checks": [
+    {
+      "name": "collab contract",
+      "value": "34/34",
+      "pass": true
+    },
+    {
+      "name": "chat-tests",
+      "value": "25 passed",
+      "pass": true
+    },
+    {
+      "name": "api-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "shared-all",
+      "value": "194/194",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "server-tx.ts не правил: del-строки space|members уже пишутся с data = null (append: op==='put' ? row : null); закреплено тестом 'server-tx: del ... data = null'"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CL-1b",
+  "uncertain": [
+    {
+      "where": "modules/chat/api/index.ts:chatApi(DB)",
+      "why": "модуль не может импортировать токен DB из apps/api без цикла workspace-зависимостей и сборки, поэтому экспортируется фабрика chatApi(DB), installed.ts передаёт токен; отличие от образца docs (export api)",
+      "checked": "pnpm -r build и контрактный тест зелёные"
+    },
+    {
+      "where": "modules/chat/api/schema.ts:chat_messages",
+      "why": "уникальный индекс (channel_id, seq): гонка двух одновременных send в канал даст conflict вместо дубля seq; сериализации по каналу нет",
+      "checked": "параллельный тест не писал"
+    },
+    {
+      "where": "modules/chat/api/index.ts:thread",
+      "why": "GET thread для id ответа (не корня) отдаёт 404 - в контракте не оговорено",
+      "checked": "покрыто тестом"
+    },
+    {
+      "where": "modules/chat/shared/index.ts:chat.message.send",
+      "why": "chatReads у ответа не создаётся/не меняется (lastReadSeq только для верхнего уровня)",
+      "checked": "по тексту контракта"
+    }
+  ],
+  "dp_feedback": "task show --full не существует, пришлось читать дополнения из обычного вывода; job wait обрывается по таймауту инструмента (590 с) - полезен режим с выводом прогресса.",
+  "t": "2026-10-23T14:51:31",
+  "by": "executor"
+}

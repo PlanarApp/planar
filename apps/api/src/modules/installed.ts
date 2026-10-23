@@ -1,9 +1,22 @@
 import type { BackendModuleManifest } from '@planar/shared';
 import type { PgTable } from 'drizzle-orm/pg-core';
+import { chatApi } from '@planar/module-chat/api';
+import * as chatTables from '@planar/module-chat/api/schema';
 import { api as docs } from '@planar/module-docs/api';
 import * as docsTables from '@planar/module-docs/api/schema';
 import { api as hello } from '@planar/module-hello/api';
 import * as helloTables from '@planar/module-hello/api/schema';
+import { DB } from '../tokens.js';
+import { api as timeApi } from '@planar/module-time/api';
+import * as timeTables from '@planar/module-time/api/schema';
+import { api as sprintsApi } from '@planar/module-sprints/api';
+import * as sprintsTables from '@planar/module-sprints/api/schema';
+import { api as automationsApi } from '@planar/module-automations/api';
+import * as automationsTables from '@planar/module-automations/api/schema';
+import { api as webhooksApi } from '@planar/module-webhooks/api';
+import * as webhooksTables from '@planar/module-webhooks/api/schema';
+import { api as importApi } from '@planar/module-import/api';
+import * as importTables from '@planar/module-import/api/schema';
 
 export interface InstalledModule {
   api: BackendModuleManifest;
@@ -43,7 +56,13 @@ export function validateInstalled(list: InstalledModule[]): InstalledModule[] {
 
 export const installed: InstalledModule[] = validateInstalled([
   { api: hello, tables: helloTables },
+  { api: timeApi, tables: timeTables },
+  { api: sprintsApi, tables: sprintsTables },
+  { api: automationsApi, tables: automationsTables },
+  { api: webhooksApi, tables: webhooksTables },
+  { api: importApi, tables: importTables },
   { api: docs, tables: docsTables },
+  { api: chatApi(DB), tables: chatTables },
 ]);
 
 export const moduleTables = (): Map<string, PgTable> =>

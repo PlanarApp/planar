@@ -397,7 +397,7 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 ### Журнал `changes`
 - Каждая запись серверного `Tx` добавляет строку: `put` — с полной строкой в `data` (провод, camelCase), `del` — `data = null`. `patch` тоже даёт `put` с полной строкой.
 - Колонки видимости по `scope`: `space` → `space_id = row.spaceId` (у `spaces` — `row.id`), `user_id = null`; `user` → `space_id = null`, `user_id = row.userId`; `global` → обе null.
-- **Порядок.** Транзакция, пишущая в `changes`, первой записью берёт `pg_advisory_xact_lock(7311)`; так порядок `seq` совпадает с порядком коммитов и pull не пропускает строки.
+- **Порядок.** Транзакция, пишущая в `changes`, первой записью берёт `pg_advisory_xact_lock(7311)`; так порядок `seq` совпадает с порядком коммитов и pull не пропускает строки. v2: серверный `Tx` мутации берёт его до первого `get`/`scan` (мутации сериализуются: чтение-затем-запись — `docs.lock`, `lastSeq` чата — без гонок).
 - В той же транзакции — `SELECT pg_notify('planar_changes', '<max seq>')`: только номер.
 - **Сброс.** Добавление или удаление участника пространства → строка `entity = '_reset'`, `op = 'put'`, `id = <userId>`, `user_id = <userId>`. Смена `settings.enabled_modules` → `_reset` с обеими колонками null (для всех).
 
@@ -528,10 +528,10 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Мутаторы домена v2
 Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
-## C-modules v4
+## C-modules v5
 
-v4 (CL-1a): `canReadFile?`, `EntityMeta.members?`, web `search` — collab.md §X-core п. 1, 4, 5; v3 — work.md.
-
+v5 (CL-1a): `canReadFile?`, `EntityMeta.members?`, web `search` — collab.md §X-core п. 1, 4, 5.
+v4 (WK-10): server-kit, web SDK, сущности модулей в клиенте — work.md §C-modules v4.
 v3 (WK-0): хуки, задачи, nav/topbar — work.md §C-modules v3.
 
 Модуль — каталог `modules/<id>/` (`id` — `^[a-z][a-z0-9-]{1,30}$`):

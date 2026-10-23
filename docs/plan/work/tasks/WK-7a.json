@@ -1,0 +1,67 @@
+{
+  "id": "WK-7a",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "Календарь: первый день недели по локали и профилю",
+  "goal": "Календарь (месяц и неделя) начинает неделю с useWeekStart() (en — воскресенье, ru — понедельник, либо выбор профиля); в профиле — выбор «Авто / Понедельник / Воскресенье» (setWeekStart), по docs/contracts/work.md §F-views v2 и §Неделя.",
+  "plan_ref": "5. Задачи — WK-7 Хвосты фазы 1 (первый пункт)",
+  "contracts": [
+    {
+      "name": "F-views",
+      "version": "2",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-7a",
+  "branch": "work/WK-7a",
+  "base": "feature/work",
+  "scope": [
+    "apps/web/src/views/calendar",
+    "apps/web/src/screens/ProfileScreen.vue",
+    "apps/web/src/screens/profile",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "apps/web/src/i18n/messages"
+  ],
+  "dont_touch": [
+    "apps/web/src/i18n/week.ts — готов (WK-0), только использовать",
+    "apps/web/src/screens/MyScreen.vue — не в этой задаче",
+    "packages/, apps/api/, modules/ — не трогать; docs/contracts/, apps/web/src/__contract__/ — координатор",
+    "package.json, pnpm-lock.yaml; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk7a",
+      "cmd": "pnpm --filter web exec vitest run -t wk7a:",
+      "expect": "num:Tests\\s+(\\d+) passed >=4"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T12:49:37"
+}
