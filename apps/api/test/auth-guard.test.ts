@@ -1,12 +1,11 @@
 import { Controller, Post } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createApp } from '../src/app.js';
+import { describe, expect, it } from 'vitest';
 import { authenticateRaw } from '../src/auth/auth.js';
 import { hashToken } from '../src/auth/sessions.js';
 import { sessions, users } from '../src/db/schema.js';
 import { ORIGIN, createUser, loginCookie } from './auth.js';
-import { testDb, testDbUrl } from './db.js';
+import { db, getApp, useApp } from './auth/harness.js';
 
 @Controller('api/_probe')
 class Probe {
@@ -16,21 +15,11 @@ class Probe {
   }
 }
 
-const db = testDb();
-let app: Awaited<ReturnType<typeof createApp>>;
 const req = (method: 'GET' | 'POST', url: string, headers: Record<string, string> = {}) =>
-  app.getHttpAdapter().getInstance().inject({ method, url, headers });
+  getApp().getHttpAdapter().getInstance().inject({ method, url, headers });
 const sid = (cookie: string) => hashToken(cookie.split('=')[1]!);
 
-beforeAll(async () => {
-  app = await createApp({ databaseUrl: testDbUrl(), publicUrl: ORIGIN, extraControllers: [Probe] });
-  await app.init();
-  await app.getHttpAdapter().getInstance().ready();
-});
-afterAll(async () => {
-  await app.close();
-  await db.$client.end();
-});
+useApp({ extraControllers: [Probe] });
 
 describe('AuthGuard', () => {
   it('без cookie → 401', async () => {

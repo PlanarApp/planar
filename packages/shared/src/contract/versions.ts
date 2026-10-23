@@ -4,5 +4,5 @@ export const CONTRACT_VERSIONS = {
   'C-sync': 1,
   'C-mutators': 2,
   'C-modules': 2,
-  'C-http': 5,
+  'C-http': 6,
 } as const;

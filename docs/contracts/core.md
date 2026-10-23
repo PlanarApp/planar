@@ -5,7 +5,7 @@ module: core
 updated: 2026-10-22
 summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 related: ["docs/plan/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-schema", "version": 4}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 5}]
+contracts: [{"id": "C-schema", "version": 4}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 6}]
 ---
 
 # Контракты модуля core
@@ -500,7 +500,7 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v5
+## C-http v6
 
 ### Пути и окружение
 - `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11). В dev Vite проксирует их на api, в prod — Caddy.
@@ -560,7 +560,7 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 `user` в ответах — строка `users` (C-schema), без `password_hash`. Пароль — от 8 символов, argon2id.
 
 ### Web Push
-Тело push-сообщения (CR-7 → service worker web) — JSON: `title` (по kind, напр. «Вас назначили»), `body` (заголовок задачи), `url` — путь в приложении `/t/<KEY>-<number>`, `tag` — id уведомления (SW заменяет показ с тем же tag), `kind` — как `notifications.kind`. Данных других пространств в теле нет.
+Тело push-сообщения (CR-7 → service worker web) — JSON: `title` (по kind, напр. «Вас назначили»), `body` (заголовок задачи), `url` — путь в приложении `/t/<KEY>-<number>` (начинается с `/`, но не с `//` и не с `/\`), `tag` — id уведомления (SW заменяет показ с тем же tag), `kind` — как `notifications.kind`. Данных других пространств в теле нет.
 
 ```json example=push.payload
 {"title": "Вас назначили", "body": "Починить вход", "url": "/t/PLN-12", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
@@ -568,4 +568,12 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 
 ```json bad=push.payload
 {"title": "Вас назначили", "body": "x", "url": "https://evil.example/t/1", "tag": "n1", "kind": "assigned"}
+```
+
+```json bad=push.payload
+{"title": "Вас назначили", "body": "x", "url": "//evil.example/t/1", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
+```
+
+```json bad=push.payload
+{"title": "Вас назначили", "body": "x", "url": "/\\evil.example/t/1", "tag": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a90", "kind": "assigned"}
 ```

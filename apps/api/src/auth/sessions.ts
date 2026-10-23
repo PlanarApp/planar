@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
 import { sessions } from '../db/schema.js';
 
@@ -33,3 +33,15 @@ export const sessionCookie = (token: string, { secure }: { secure: boolean }) =>
 
 export const clearSessionCookie = ({ secure }: { secure: boolean }) =>
   `${SESSION_COOKIE}=; ${base(secure)}; Max-Age=0`;
+
+/** Все сессии пользователя, кроме той, что с токеном keepToken. */
+export async function deleteOtherSessions(db: Db, userId: string, keepToken: string | null) {
+  await db
+    .delete(sessions)
+    .where(
+      and(
+        eq(sessions.userId, userId),
+        keepToken ? ne(sessions.id, hashToken(keepToken)) : undefined,
+      ),
+    );
+}

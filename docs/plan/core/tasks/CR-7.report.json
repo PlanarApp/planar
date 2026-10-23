@@ -1,9 +1,13 @@
 {
   "status": "done",
-  "summary": "Хук notificationsHook в PushService (в транзакции мутации, после run) создаёт notifications и taskWatchers через ServerTx.asSystem; pg-boss очередь push.notification, send после COMMIT, воркер с PushSender (web-push), 404/410 удаляют подписку; эндпоинты vapid/subscribe; dev.sh vapid; миграция 0003 (kind + status_changed).",
+  "summary": "Хук notificationsHook в транзакции мутации создаёт notifications и taskWatchers (ServerTx.asSystem); pg-boss очередь push.notification, send после COMMIT, воркер с PushSender (web-push), 404/410 удаляют подписку; эндпоинты vapid/subscribe; dev.sh vapid; миграция 0003. Payload по C-http v5 (pushPayloadSchema: url /t/KEY-N, tag, kind), тест проверяет схему. Слит feature/core: миграция перегенерирована как 0004, lockfile пересобран, app.module объединён.",
   "commits": [
     "CR-7: уведомления, автоподписка и push через pg-boss",
-    "CR-7: prettier для миграции и теста"
+    "CR-7: тело Web Push по C-http v5",
+    "CR-7: пул pg-boss 2 соединения",
+    "CR-7: таймаут воркер-теста",
+    "CR-7: слияние feature/core, миграция 0004",
+    "CR-7: lockfile после слияния"
   ],
   "checks": [
     {
@@ -48,26 +52,21 @@
   "uncertain": [
     {
       "where": "apps/api/src/push/push.ts",
-      "why": "url в payload — /tasks/<id>, маршрут веба в контрактах не найден",
-      "checked": "только тест payload"
-    },
-    {
-      "where": "apps/api/src/push/push.ts",
-      "why": "WebPushSender с реальным web-push и pg-boss на prod-базе не гонялся; в тестах отправитель — мок",
+      "why": "реальный web-push и pg-boss на prod-базе не гонялись; в тестах отправитель мок",
       "checked": "воркер pg-boss end-to-end на тестовой базе (worker.test.ts)"
     },
     {
       "where": "apps/api/src/push/push.ts subscribe",
-      "why": "повтор endpoint с другого аккаунта переназначает подписку текущему пользователю (200), контракт молчит",
+      "why": "повтор endpoint с другого аккаунта переназначает подписку текущему (200), контракт молчит",
       "checked": "решено ради уникальности endpoint"
     },
     {
-      "where": "apps/api/src/app.ts",
-      "why": "в createApp pg-boss по умолчанию выключен (boss:false), main.ts включает; сбой enqueue только логируется, мутацию не откатывает",
-      "checked": "по коду"
+      "where": "pnpm test",
+      "why": "под нагрузкой (общий testdb) полный прогон падал по 53300/таймаутам; pg-boss ограничен max:2",
+      "checked": "повторный accept --dry PASS 7/7"
     }
   ],
-  "dp_feedback": "task show CR-7 из брифа с хвостом «и push» в plan падает: аргумент раздела надо давать как 'CR-7'.",
-  "t": "2026-10-23T02:09:51",
+  "dp_feedback": "Общий scratchpad: r.json перезаписал другой агент; отчёт стоит писать в файл с ID задачи.",
+  "t": "2026-10-23T03:09:17",
   "by": "executor"
 }
