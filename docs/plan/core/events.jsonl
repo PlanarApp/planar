@@ -155,3 +155,6 @@
 {"t": "2026-10-23T01:00:54", "by": "coordinator", "task": "CR-6a", "ev": "started"}
 {"t": "2026-10-23T01:02:32", "by": "coordinator", "task": "CR-6a", "ev": "checked", "note": "6/6 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; files_tests=ok:26; bad_env=ok:rc=1; test=ok:exit 0"}
 {"t": "2026-10-23T01:02:37", "by": "coordinator", "task": "CR-6a", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-23T01:04:43", "by": "coordinator", "task": "CR-6a", "ev": "accepted", "commits": ["e1bc5c4"], "note": "6/6 lint=ok:exit 0; build=ok:exit 0; testdb=ok:exit 0; files_tests=ok:26; bad_env=ok:rc=1; test=ok:exit 0"}
+{"t": "2026-10-23T01:04:43", "by": "coordinator", "task": "CR-6a", "ev": "merged"}
+{"t": "2026-10-23T01:04:51", "by": "coordinator", "task": "CR-4", "ev": "note", "note": "Ещё слита CR-6a (main.ts: разбор env в apps/api/src/config.ts) — перед отчётом снова git merge feature/core.", "addendum": true}
