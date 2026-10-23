@@ -180,6 +180,7 @@ export default {
       operator: 'Оператор',
       value: 'Значение',
       me: 'Я',
+      cycleCurrent: 'Текущий',
       date: 'Дата: 2026-12-31, today, today+7',
       fields: {
         status: 'Статус',
@@ -190,6 +191,7 @@ export default {
         dueDate: 'Срок',
         title: 'Название',
         createdBy: 'Автор',
+        cycle: 'Спринт',
       },
       ops: {
         in: 'любой из',
