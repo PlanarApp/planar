@@ -361,3 +361,6 @@
 {"t": "2026-10-23T10:17:50", "by": "coordinator", "task": "WB-11", "ev": "checked", "note": "7/7 install=ok:exit 0; typecheck=ok:exit 0; lint=ok:exit 0; build=ok:exit 0; size=ok:136.8; test=ok:exit 0; tokens=ok:7"}
 {"t": "2026-10-23T10:18:00", "by": "coordinator", "task": "WB-18", "ev": "accepted", "note": "по ревью; бюджеты §7 выполнены (cold 1625, warm 363, mutate 23, switch 80, realtime 121, кадры 16.7/0); minor: фоновые пачки bootstrap в другие вкладки — сброс '*' (уточнено в контракте), лишние перечитывания проекции >20k, тестовый мост data.ts"}
 {"t": "2026-10-23T10:18:00", "by": "coordinator", "task": "WB-11", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-23T10:19:17", "by": "coordinator", "task": "WB-18", "ev": "merged"}
+{"t": "2026-10-23T10:19:17", "by": "coordinator", "task": "WB-11", "ev": "merged"}
+{"t": "2026-10-23T10:20:12", "by": "coordinator", "task": "WB-11", "ev": "accepted", "commits": ["a2b6c97"], "note": "7/7 install=ok:exit 0; typecheck=ok:exit 0; lint=ok:exit 0; build=ok:exit 0; size=ok:139.2; test=ok:exit 0; tokens=ok:7"}
