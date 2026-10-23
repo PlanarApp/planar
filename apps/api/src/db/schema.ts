@@ -12,6 +12,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -376,6 +377,24 @@ export const files = pgTable('files', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: createdAt(),
+});
+
+export const fileUploads = pgTable(
+  'file_uploads',
+  {
+    sha256: text()
+      .notNull()
+      .references(() => files.sha256, { onDelete: 'cascade' }),
+    userId: cascadeUser(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.sha256, t.userId] })],
+);
+
+export const loginAttempts = pgTable('login_attempts', {
+  key: text().primaryKey(),
+  attempts: integer().notNull(),
+  windowStartedAt: ts().notNull(),
 });
 
 export const pushSubscriptions = pgTable(
