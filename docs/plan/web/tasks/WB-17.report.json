@@ -1,0 +1,99 @@
+{
+  "status": "done",
+  "summary": "Время §7 уходит в перечитывание связей задач курсором Dexie (0,5 с на скан, 3 раза на правку и на каждый вход в проект) и в запись 23 368 строк bootstrap (1,7 из 3,3 с). Прототипы P1…P12 (патчи в build/artifacts/WB-17, копия в profile/patches): mutate p95 651→22, switch 738→90…111, warm 850→380…406, cold 3307→1690…1840, realtime p95 1546→65…99 мс.",
+  "commits": [
+    "dd0627a WB-17: профилирование бюджетов §7 — стадии, CPU-профили, прототипы правок (патчи)"
+  ],
+  "checks": [
+    {
+      "name": "breakdown",
+      "value": "build/artifacts/WB-17/breakdown.md",
+      "pass": true
+    },
+    {
+      "name": "patches",
+      "value": "12 файлов (9 в цепочке + ALL + 2 rejected)",
+      "pass": true
+    },
+    {
+      "name": "база mutate p95 / switch p95 / warm / cold / realtime p95, мс",
+      "value": "651 / 738 / 850 / 3307 / 1546 (WB-15: 865/774/859/3546/2112)",
+      "pass": true
+    },
+    {
+      "name": "с прототипами mutate p95 / switch p95 / warm / cold / realtime p95, мс",
+      "value": "22 / 90…111 / 380…406 / 1690…1840 / 65…99 (выбросы 296…956)",
+      "pass": true
+    },
+    {
+      "name": "юнит-тесты web: P1 / P1+P2 / все патчи",
+      "value": "324 зелёных / 3 красных (порядок pull→push в sync) / 19 красных (тесты пишут в db напрямую)",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "встраивание assigneeIds/labelIds в строку задачи (чтение 260→65 мс) и постраничный bootstrap не прототипировались — требуют C-schema/C-sync; даны оценки по idb-micro",
+    "warm (~400) и switch p95 (~100) на границе бюджета в пределах шума; без правки схемы стабильного запаса нет",
+    "кросс-вкладочность P6/P7 и доступность P11 не доведены"
+  ],
+  "questions": [
+    "Согласовать: событие записи реплики onRowChanges + инвариант «реплику пишет только sync-клиент» (C-client v3), встраивание связей в tasks (C-schema/C-sync), порядок push→pull (C-client инвариант rebase не меняется)?"
+  ],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept WB-17; воспроизведение — e2e/web/perf/profile/README.md",
+  "uncertain": [
+    {
+      "where": "apps/web/src/tasks/queries.ts (P6/P7, патч P6-memory-store.patch)",
+      "why": "проекция в памяти не видит правок из других вкладок; порядок событий от конкурентных транзакций mutate/applyServer не доказан формально",
+      "checked": "20 правок ×3 прогона и realtime 10×N без расхождений; юнит-тесты web: 16 красных, т.к. пишут в db напрямую"
+    },
+    {
+      "where": "apps/web/src/sync/client.ts (P8, P8-priority-bootstrap.patch)",
+      "why": "пока идёт фоновая запись, проекты кроме открытого неполны; интерфейс об этом не знает; курсор ставится в конце",
+      "checked": "cold 3 прогона, первая строка 1686…1858; поведение при обрыве вкладки и переходе в другой проект сразу после первой строки не проверялось"
+    },
+    {
+      "where": "apps/web/src/tasks/fields/OptionPicker.vue (P11)",
+      "why": "подмена кнопки на Popover при фокусе клавиатурой возвращает фокус эвристикой, доступность не проверена",
+      "checked": "только метрики switch/warm"
+    },
+    {
+      "where": "эффект P1 на switch/warm",
+      "why": "часть выигрыша даёт кэш запросов Dexie 4 (результаты toArray связей живут, пока таблица не менялась); без кэша пол чтения ≈ 260 мс",
+      "checked": "idb-micro (сырой IndexedDB), чтение dexie.js cacheMiddleware, переключение с изменённой таблицей (P6-сборка без кэша: 300…450 мс)"
+    },
+    {
+      "where": "замеры в целом",
+      "why": "одна машина, headless Chromium, localhost; шум ±5…10 %; база отличается от WB-15 (mutate 865→651, realtime 2112→1546); выбросы realtime 296…956 мс — серверный push (до 300 мс), не клиент",
+      "checked": "повторные прогоны базы (2) и итоговой сборки (3); серверные числа CR-9 pnpm measure"
+    },
+    {
+      "where": "e2e/web/perf/measure.spec.ts (WB-15)",
+      "why": "слушатели Enter/DOM ставятся без ожидания: при правке < ~30 мс Enter обгоняет page.evaluate и тест зависает",
+      "checked": "воспроизведено в моей копии (2 из 3 прогонов), исправлено в profile/lib.ts; оригинал прошёл 3 раза из 3 на быстрой сборке"
+    }
+  ],
+  "dp_feedback": "lock cpu возвращает управление сразу (задача уходит в job), вывод только в лог job — неочевидно, нужен job wait и чтение лога; хотелось бы lock cpu --wait с выводом в stdout. accept --dry считает работу вне scope по рабочему дереву, поэтому прототипы в apps/ пришлось откатить до accept (патчи сохранены) — стоит явно написать в карточке порядок «патч → откат → accept». Карточка не говорила, где лежит Claude-Session для коммита исполнителя — взял ID задачи.",
+  "extra": {
+    "effects_table": "e2e/web/perf/profile/results/effects.md",
+    "stage_tables": "e2e/web/perf/profile/results/stage-tables.md",
+    "patches_dir": "build/artifacts/WB-17 (копия e2e/web/perf/profile/patches)",
+    "server_cr9": {
+      "bootstrap_ms": 378,
+      "pull_ms": 15,
+      "push_ms_p95": 24,
+      "poke_ms_p95": 50,
+      "bootstrap_bytes": 8143051,
+      "gzip_bytes": 717638
+    },
+    "idb_floor_ms": {
+      "tasks_by_project_index_3334": 64,
+      "taskAssignees_getAll_10000": 142,
+      "taskLabels_getAll_3334": 48,
+      "write_10000_tasks_4_indexes": 897,
+      "write_10000_tasks_no_indexes": 519
+    }
+  },
+  "t": "2026-10-23T08:31:16",
+  "by": "executor"
+}

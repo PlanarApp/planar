@@ -1,0 +1,54 @@
+{
+  "id": "WB-17",
+  "module": "web",
+  "type": "dp-researcher",
+  "title": "Профилирование бюджетов §7: куда уходит время",
+  "goal": "На прод-сборке в Chromium разложить по стадиям время mutate (865 мс при бюджете 50), переход между проектами (774/100), тёплый (859/400) и холодный старт (3546/2000), реалтайм (2112/500); найти главные причины и проверить прототипами, сколько даёт каждая правка — числа для задачи оптимизации.",
+  "plan_ref": "7. Условия остановки",
+  "contracts": [
+    {
+      "name": "C-client",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-tasks",
+      "version": "2",
+      "ref": "docs/contracts/web.md"
+    },
+    {
+      "name": "C-sync",
+      "version": "1",
+      "ref": "docs/contracts/web.md"
+    }
+  ],
+  "copy": "~/planar-web-WB-17",
+  "branch": "web/WB-17",
+  "base": "feature/web",
+  "scope": [
+    "e2e/web/perf/profile/"
+  ],
+  "dont_touch": [
+    "apps/, packages/ — в коммитах не менять; прототипы правок — только в рабочей копии, без коммита, патч сохранить в build/artifacts/WB-17/*.patch",
+    "e2e/web/perf/run.sh, measure.spec.ts — инструмент WB-15, не менять (можно копировать в profile/)",
+    "compose*.yml, dev.sh, package.json, pnpm-lock.yaml",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "breakdown",
+      "cmd": "cat build/artifacts/WB-17/breakdown.md",
+      "expect": "re:(?s)mutate.*switch.*warm.*cold.*realtime"
+    },
+    {
+      "name": "patches",
+      "cmd": "ls build/artifacts/WB-17/*.patch | wc -l",
+      "expect": "num:^(\\d+) >=1"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T06:46:50"
+}
