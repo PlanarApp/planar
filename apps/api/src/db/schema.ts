@@ -256,6 +256,21 @@ export const comments = pgTable(
   (t) => [index().on(t.taskId)],
 );
 
+export const commentReactions = pgTable(
+  'comment_reactions',
+  {
+    id: id(),
+    spaceId: spaceId(),
+    commentId: uuid()
+      .notNull()
+      .references(() => comments.id),
+    userId: userRef().notNull(),
+    emoji: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex().on(t.commentId, t.userId, t.emoji)],
+);
+
 export const attachments = pgTable(
   'attachments',
   {

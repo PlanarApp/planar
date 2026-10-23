@@ -15,6 +15,13 @@
       "when": 1792712654807,
       "tag": "0001_narrow_epoch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792715507468,
+      "tag": "0002_woozy_joystick",
+      "breakpoints": true
     }
   ]
 }
