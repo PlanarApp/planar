@@ -4,6 +4,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: '.',
   testMatch: '*.spec.ts',
+  testIgnore: ['perf/**'],
   workers: 1,
   reporter: 'list',
   timeout: 60_000,

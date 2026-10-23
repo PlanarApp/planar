@@ -1,0 +1,41 @@
+{
+  "id": "WB-20",
+  "module": "web",
+  "type": "dp-mechanic",
+  "title": "e2e UI-конфиг не запускает perf",
+  "goal": "e2e/web/playwright.config.ts игнорирует perf/** — прогон UI-сценариев не запускает замеры и профилировщик.",
+  "plan_ref": "6. Волны",
+  "contracts": [],
+  "copy": "~/planar-web-WB-20",
+  "branch": "web/WB-20",
+  "base": "feature/web",
+  "scope": [
+    "e2e/web/playwright.config.ts"
+  ],
+  "dont_touch": [
+    "остальные файлы e2e/ и apps/",
+    "docs/",
+    ".claude/",
+    "CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "list",
+      "cmd": "pnpm install --frozen-lockfile >/dev/null && cd e2e && pnpm exec playwright test -c web/playwright.config.ts --list 2>&1",
+      "expect": "!re:perf/"
+    },
+    {
+      "name": "list-ui",
+      "cmd": "cd e2e && pnpm exec playwright test -c web/playwright.config.ts --list 2>&1",
+      "expect": "num:Total: (\\d+) tests? >=5"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint e2e && pnpm exec prettier --check e2e",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T10:41:29"
+}
