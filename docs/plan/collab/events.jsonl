@@ -16,3 +16,4 @@
 {"t": "2026-10-23T11:56:41", "by": "coordinator", "task": "CL-3", "ev": "accepted", "commits": ["fdbab4d"], "note": "5/5 collab contract=ok:15/15 (пропуск 507); docs-tests=ok:9/9; api-all=ok:336/336; build=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-23T11:56:41", "by": "coordinator", "task": "CL-3", "ev": "merged"}
 {"t": "2026-10-23T11:57:09", "by": "coordinator", "task": null, "ev": "note", "note": "dpcli: merge без --into по умолчанию льёт в main — координатору модуля легко ошибиться; лучше по умолчанию брать feature/<модуль> или требовать --into"}
+{"t": "2026-10-23T11:57:18", "by": "coordinator", "task": null, "ev": "note", "note": "dpcli: состояние — CL-3 принята и влита (fdbab4d); CL-1a/CL-1b/CL-4 ждут слияния WK-0 в feature/work; шлюз Q2 (зависимости TipTap) открыт"}
