@@ -1,0 +1,9 @@
+{
+  "module": "work",
+  "plan": "docs/plan/work.md",
+  "contracts": "docs/contracts/work.md",
+  "branch": "feature/work",
+  "copy": "~/planar-work",
+  "created": "2026-10-23T11:28:35",
+  "code": "WK"
+}
