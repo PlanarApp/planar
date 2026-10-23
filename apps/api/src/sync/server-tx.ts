@@ -74,7 +74,15 @@ export class ServerTx implements Tx {
       await this.q.execute(sql`select pg_notify('planar_changes', ${String(this.lastSeq)})`);
   }
 
+  /** Лок до первого чтения: мутации «чтение-затем-запись» сериализуются (C-sync v2). */
+  private async lock(): Promise<void> {
+    if (this.locked) return;
+    await this.q.execute(sql`select pg_advisory_xact_lock(${LOCK_KEY})`);
+    this.locked = true;
+  }
+
   async get<E extends EntityName>(entity: E, id: string): Promise<Row<E> | undefined> {
+    await this.lock();
     const t = tableOf(entity);
     const [r] = await this.exec(() =>
       this.q
@@ -126,6 +134,7 @@ export class ServerTx implements Tx {
   ): Promise<Row<E>[]> {
     if (opts && !metaOf(entity).indexes.includes(opts.index))
       throw new Error(`scan: ${entity} не индексирован по ${opts.index}`);
+    await this.lock();
     const t = tableOf(entity);
     const rows = await this.exec(() =>
       this.q
@@ -212,10 +221,7 @@ export class ServerTx implements Tx {
     id = row?.id as string,
     resetUser?: string,
   ): Promise<void> {
-    if (!this.locked) {
-      await this.q.execute(sql`select pg_advisory_xact_lock(${LOCK_KEY})`);
-      this.locked = true;
-    }
+    await this.lock();
     let spaceId: string | null = null;
     let userId: string | null = resetUser ?? null;
     if (row && entity !== '_reset') {
