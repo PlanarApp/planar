@@ -1,5 +1,5 @@
 {
-  "id": "c5f7850b-0a10-4e37-b436-ed7200b203a3",
+  "id": "65198fb4-37b9-448b-a61d-a4838574c6a8",
   "prevId": "54b104eb-fd5e-4e59-82f1-3cf0ee9477dd",
   "version": "7",
   "dialect": "postgresql",
@@ -1212,7 +1212,7 @@
       "checkConstraints": {
         "notifications_kind_check": {
           "name": "notifications_kind_check",
-          "value": "\"notifications\".\"kind\" in ('assigned', 'mentioned', 'commented', 'status_changed')"
+          "value": "\"notifications\".\"kind\" in ('assigned', 'mentioned', 'commented')"
         }
       },
       "isRLSEnabled": false
@@ -2631,6 +2631,59 @@
           "value": "\"users\".\"role\" in ('owner', 'admin', 'member', 'guest')"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.hello_notes": {
+      "name": "hello_notes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "space_id": {
+          "name": "space_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "hello_notes_space_id_idx": {
+          "name": "hello_notes_space_id_idx",
+          "columns": [
+            {
+              "expression": "space_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     }
   },

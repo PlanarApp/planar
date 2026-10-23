@@ -6,7 +6,7 @@ import { clientMutations } from '../db/schema.js';
 import { notificationsHook } from '../notifications/hook.js';
 import { PushQueue } from '../push/push.js';
 import { DB } from '../tokens.js';
-import { mutatorRegistry } from './registry.js';
+import { findMutator } from './registry.js';
 import { ServerTx } from './server-tx.js';
 
 type Result = SyncPushResponse['results'][number];
@@ -65,7 +65,7 @@ export class PushService {
           throw new ForbiddenException('clientId принадлежит другому пользователю');
         if (m.id <= cm.lastMutationId) return { id: m.id, ok: true as const };
 
-        const def = mutatorRegistry().get(m.name);
+        const def = await findMutator(tx, m.name);
         if (!def) throw new Reject('unknown_mutator', `нет мутатора ${m.name}`);
         const args = def.args.safeParse(m.args);
         if (!args.success) throw new Reject('invalid_args', args.error.message);

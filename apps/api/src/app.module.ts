@@ -7,6 +7,8 @@ import type { Db } from './db/index.js';
 import { FILES_OPTS, FilesController, type FilesOpts } from './files/files.controller.js';
 import { HealthController } from './health.controller.js';
 import { PUSH_OPTS, type PushOpts } from './push/push.js';
+import { ModuleGuard, ModulesController } from './modules/module.guard.js';
+import { installed } from './modules/installed.js';
 import { syncControllers, syncProviders } from './sync/sync.module.js';
 import { DB } from './tokens.js';
 
@@ -21,10 +23,12 @@ export class AppModule {
   ): DynamicModule {
     return {
       module: AppModule,
+      imports: installed.map((m) => m.api.nestModule as Type),
       controllers: [
         HealthController,
         AuthController,
         FilesController,
+        ModulesController,
         ...syncControllers,
         ...extraControllers,
       ],
@@ -34,6 +38,7 @@ export class AppModule {
         { provide: FILES_OPTS, useValue: files },
         { provide: PUSH_OPTS, useValue: push },
         { provide: APP_GUARD, useClass: AuthGuard },
+        { provide: APP_GUARD, useClass: ModuleGuard },
         ...syncProviders,
       ],
     };
