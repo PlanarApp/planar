@@ -84,9 +84,14 @@ export class ServerTx implements Tx {
     return r ? (toWire(entity, r) as Row<E>) : undefined;
   }
 
-  async put<E extends EntityName>(entity: E, row: Row<E>): Promise<void> {
+  /** extra — колонки «только в БД» (users.passwordHash): пишутся в строку, в changes не попадают. */
+  async put<E extends EntityName>(
+    entity: E,
+    row: Row<E>,
+    extra?: Record<string, unknown>,
+  ): Promise<void> {
     const next = this.parse(entity, row);
-    await this.save(entity, next, await this.get(entity, next.id as string));
+    await this.save(entity, next, await this.get(entity, next.id as string), extra);
   }
 
   async patch<E extends EntityName>(
@@ -142,14 +147,19 @@ export class ServerTx implements Tx {
     return r.data as Wire;
   }
 
-  private async save(entity: EntityName, next: Wire, old: Wire | undefined): Promise<void> {
+  private async save(
+    entity: EntityName,
+    next: Wire,
+    old: Wire | undefined,
+    extra?: Record<string, unknown>,
+  ): Promise<void> {
     if (entity !== 'spaces' && old && old.spaceId !== next.spaceId)
       throw new MutatorError('invalid_args', 'spaceId неизменяем');
     await this.authorize(entity, old, next);
     if (entity === 'attachments' && !old) await this.checkFile(next);
     if (entity === 'tasks' && next.number == null)
       next.number = await this.nextNumber(next.projectId as string);
-    await this.store(entity, next);
+    await this.store(entity, next, extra);
     this.writes.push({ entity, op: 'put', before: old, after: next });
     if (entity === 'spaceMembers' && !old) await this.reset(next.userId as string);
     if (entity === 'settings' && next.id === 'enabled_modules')
@@ -158,13 +168,18 @@ export class ServerTx implements Tx {
   }
 
   /** Запись без проверки прав: upsert + changes. */
-  private async store(entity: EntityName, next: Wire): Promise<void> {
+  private async store(
+    entity: EntityName,
+    next: Wire,
+    extra?: Record<string, unknown>,
+  ): Promise<void> {
     const t = tableOf(entity);
+    const full = { ...next, ...extra };
     await this.exec(() =>
       this.q
         .insert(t)
-        .values(next)
-        .onConflictDoUpdate({ target: getTableColumns(t).id, set: next }),
+        .values(full)
+        .onConflictDoUpdate({ target: getTableColumns(t).id, set: full }),
     );
     await this.log(entity, 'put', next);
   }

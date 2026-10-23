@@ -16,8 +16,6 @@ export type AuthCtx = {
   role: 'owner' | 'admin' | 'member' | 'guest';
   via: 'session' | 'token';
   tokenScope?: 'read' | 'write';
-  /** сессию продлили — guard переустанавливает cookie с этим токеном */
-  renewedToken?: string;
 };
 
 export const AUTH_OPTS = Symbol('AUTH_OPTS');
@@ -26,7 +24,7 @@ export type AuthOpts = { publicUrl: string; cookieSecure: boolean };
 const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE', 'UPGRADE']);
 const DAY = 86400_000;
 
-function readCookie(header: string | undefined, name: string): string | null {
+export function readCookie(header: string | undefined, name: string): string | null {
   for (const part of (header ?? '').split(';')) {
     const i = part.indexOf('=');
     if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim() || null;
@@ -40,6 +38,8 @@ export async function authenticateRaw(
   headers: IncomingHttpHeaders,
   method: string,
   opts: { publicUrl: string },
+  /** сессию продлили — вызывающий переустанавливает cookie (токен не входит в AuthCtx) */
+  onRenew?: (token: string) => void,
 ): Promise<AuthCtx | null> {
   const token = readCookie(headers.cookie, SESSION_COOKIE);
   if (!token) return null; // shortcut: Bearer plnr_… не разбираем, делает CR-10
@@ -75,11 +75,11 @@ export async function authenticateRaw(
         and(eq(sessions.id, row.s.id), lt(sessions.lastSeenAt, sql`now() - interval '1 minute'`)),
       );
   }
+  if (renew) onRenew?.(token);
   return {
     userId: row.s.userId,
     role: row.role as AuthCtx['role'],
     via: 'session',
-    ...(renew && { renewedToken: token }),
   };
 }
 

@@ -1,0 +1,41 @@
+{
+  "status": "done",
+  "summary": "В apps/api/tsconfig.json include добавлены ../../modules/*/api и shared, поэтому tsx применяет experimentalDecorators к файлам модулей; dev поднимается, health db:up.",
+  "commits": [
+    "8baf532 api dev: tsx видит experimentalDecorators для modules/*"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "dev_run",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept CR-8b",
+  "uncertain": [],
+  "dp_feedback": "plan core CR-8 Модульная система из карточки не работает: раздел с пробелами не принимается. dev_run занял 219 с.",
+  "t": "2026-10-23T03:08:47",
+  "by": "executor"
+}

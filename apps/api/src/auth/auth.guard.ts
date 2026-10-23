@@ -25,15 +25,22 @@ export class AuthGuard implements CanActivate {
     ) {
       return true;
     }
-    const req = context.switchToHttp().getRequest<FastifyRequest & { auth?: AuthCtx }>();
-    const ctx = await authenticateRaw(this.db, req.headers, req.method, this.opts);
+    const req = context
+      .switchToHttp()
+      .getRequest<FastifyRequest & { auth?: AuthCtx; planarRenewedToken?: string }>();
+    const ctx = await authenticateRaw(this.db, req.headers, req.method, this.opts, (t) => {
+      req.planarRenewedToken = t;
+    });
     if (!ctx) throw new HttpError(401, 'unauthenticated', 'Требуется вход');
     req.auth = ctx;
-    if (ctx.renewedToken) {
+    if (req.planarRenewedToken) {
       void context
         .switchToHttp()
         .getResponse<FastifyReply>()
-        .header('set-cookie', sessionCookie(ctx.renewedToken, { secure: this.opts.cookieSecure }));
+        .header(
+          'set-cookie',
+          sessionCookie(req.planarRenewedToken, { secure: this.opts.cookieSecure }),
+        );
     }
     return true;
   }
