@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { req, useApp } from './harness.js';
 
-useApp({ ownDb: true });
+useApp();
 
 describe('setup', () => {
   it('needed true → гонка двух setup: один 201 → needed false → повтор 409', async () => {

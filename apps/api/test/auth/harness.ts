@@ -12,7 +12,7 @@ vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 let app: Awaited<ReturnType<typeof createApp>>;
 
 /** Приложение на базе файла; req(method, url, {cookie?, body?}) — с верным Origin. */
-export function useApp({ ownDb = false } = {}) {
+export function useApp({ ownDb = true } = {}) {
   let url = testDbUrl();
   let drop: (() => Promise<void>) | undefined;
   beforeAll(async () => {
