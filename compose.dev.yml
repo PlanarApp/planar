@@ -49,8 +49,6 @@ services:
       COOKIE_SECURE: 'false'
       DATA_DIR: /app/data
       LOG_LEVEL: info
-      # tsx применяет tsconfig только к файлам из include; модули лежат вне apps/api (иначе декораторы модулей не собираются)
-      TSX_TSCONFIG_PATH: /app/e2e/tsconfig.dev.json
     ports:
       - '${API_PORT:-3000}:3000'
     depends_on:
