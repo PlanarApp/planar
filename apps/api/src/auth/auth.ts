@@ -75,12 +75,12 @@ export async function authenticateRaw(
   db: Db,
   headers: IncomingHttpHeaders,
   method: string,
-  opts: { publicUrl: string },
+  opts: { publicUrl: string; allowToken?: boolean },
   /** сессию продлили — вызывающий переустанавливает cookie (токен не входит в AuthCtx) */
   onRenew?: (token: string) => void,
 ): Promise<AuthCtx | null> {
   const bearer = /^Bearer (plnr_\S+)$/i.exec(headers.authorization ?? '');
-  if (bearer) return authenticateBearer(db, bearer[1]!); // Origin для Bearer не проверяется
+  if (bearer) return opts.allowToken === false ? null : authenticateBearer(db, bearer[1]!); // Origin для Bearer не проверяется
   const token = readCookie(headers.cookie, SESSION_COOKIE);
   if (!token) return null;
   if (UNSAFE.has(method) && headers.origin !== new URL(opts.publicUrl).origin) {
