@@ -10,6 +10,14 @@ export interface PageRow {
   text: string;
   archivedAt: string | null;
 }
+export interface PageFull extends PageRow {
+  body: { type: 'doc'; content?: unknown[] };
+}
+export interface TaskLinkRow {
+  id: string;
+  pageId: string;
+  taskId: string;
+}
 export interface LockRow {
   id: string;
   userId: string;

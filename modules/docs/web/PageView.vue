@@ -7,6 +7,7 @@ import type { Row } from '@planar/shared';
 import { db, mutate, useQuery, useSession, Button } from '@planar/web/modules';
 import DocEditor from './DocEditor.vue';
 import { useLock } from './lock';
+import type { PageFull } from './model';
 import { createSaver } from './save';
 import { useTexts } from './text';
 
@@ -14,7 +15,7 @@ const props = defineProps<{ pageId: string }>();
 const tx = useTexts();
 const router = useRouter();
 const user = useSession();
-const page = useQuery(() => db.table<Row<'docsPages'>>('docsPages').get(props.pageId));
+const page = useQuery(() => db.table<PageFull>('docsPages').get(props.pageId));
 const users = useQuery(() => db.table<Row<'users'>>('users').toArray());
 const members = computed(() => (users.value ?? []).map((u) => ({ id: u.id, name: u.name })));
 const { other, editable } = useLock(

@@ -4,7 +4,7 @@ import { RouterLink, useRouter } from 'vue-router';
 import { FilePlus, FileText, X } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
 import { db, useQuery, Button } from '@planar/web/modules';
-import { searchPages, type PageRow } from './model';
+import { searchPages, type PageRow, type TaskLinkRow } from './model';
 import { createForTask, link, unlink } from './links';
 import { useTexts } from './text';
 
@@ -14,7 +14,7 @@ const router = useRouter();
 const data = useQuery(async () => {
   const task = await db.table<Row<'tasks'>>('tasks').get(props.taskId);
   const links = await db
-    .table<Row<'docsTaskLinks'>>('docsTaskLinks')
+    .table<TaskLinkRow>('docsTaskLinks')
     .where('taskId')
     .equals(props.taskId)
     .toArray();

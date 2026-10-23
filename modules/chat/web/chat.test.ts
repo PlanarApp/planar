@@ -22,7 +22,7 @@ const mount = ((c: never, o: object = {}) => {
   const w = vmount(c, { ...o, global: { plugins: [i18n] } });
   mounted.push(w);
   return w;
-}) as typeof vmount;
+}) as unknown as typeof vmount;
 
 const ME = newId();
 const ANNA = newId();
@@ -51,7 +51,7 @@ vi.mock('@planar/web/modules', async (orig) => {
     openTask: h_.openTask,
     onTyping: (cb: never) => ((h_.typingCb = cb), () => (h_.typingCb = undefined)),
     onMutationError: (cb: never) => ((h_.errCb = cb), () => (h_.errCb = undefined)),
-    useSession: () => ref({ id: globalThis.__ME }),
+    useSession: () => ref({ id: (globalThis as Record<string, unknown>).__ME }),
   };
 });
 (globalThis as unknown as { __ME: string }).__ME = ME;
@@ -586,7 +586,7 @@ describe('сообщение', () => {
 
   it('упоминание подсвечено, небезопасная ссылка не становится <a>', () => {
     const body = {
-      type: 'doc',
+      type: 'doc' as const,
       content: [
         {
           type: 'paragraph',
