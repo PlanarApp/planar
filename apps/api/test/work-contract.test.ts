@@ -8,13 +8,28 @@ const doc = readFileSync(new URL('../../../docs/contracts/work.md', import.meta.
 const MODULES = ['time', 'sprints', 'automations', 'webhooks', 'import'];
 
 /** Раздел «## Модуль <id> …» до следующего «## ». */
-const section = (id: string) => new RegExp(`^## Модуль ${id} [^\\n]*\\n([\\s\\S]*?)(?=^## |$(?![\\s\\S]))`, 'm').exec(doc)?.[1] ?? '';
+const section = (id: string) =>
+  new RegExp(`^## Модуль ${id} [^\\n]*\\n([\\s\\S]*?)(?=^## |$(?![\\s\\S]))`, 'm').exec(doc)?.[1] ??
+  '';
 
 const entitiesOf = (sec: string) =>
-  [...sec.matchAll(/^#### (\w+)\nscope: (\S+) · write: (\S+) · bootstrap: (yes|no) · indexes: (.+)\n\n((?:\|.*\n)+)/gm)].map((m) => ({
+  [
+    ...sec.matchAll(
+      /^#### (\w+)\nscope: (\S+) · write: (\S+) · bootstrap: (yes|no) · indexes: (.+)\n\n((?:\|.*\n)+)/gm,
+    ),
+  ].map((m) => ({
     name: m[1],
-    meta: { scope: m[2], write: m[3], bootstrap: m[4] === 'yes', indexes: m[5].trim() === '—' ? [] : m[5].split(',').map((s) => s.trim()) },
-    fields: [...m[6].matchAll(/^\| `(\w+)` \| ([^|]+) \|/gm)].map((f) => ({ name: f[1], nullable: f[2].trim().endsWith('?'), json: f[2].trim() === 'json' })),
+    meta: {
+      scope: m[2],
+      write: m[3],
+      bootstrap: m[4] === 'yes',
+      indexes: m[5].trim() === '—' ? [] : m[5].split(',').map((s) => s.trim()),
+    },
+    fields: [...m[6].matchAll(/^\| `(\w+)` \| ([^|]+) \|/gm)].map((f) => ({
+      name: f[1],
+      nullable: f[2].trim().endsWith('?'),
+      json: f[2].trim() === 'json',
+    })),
   }));
 
 const mutatorsOf = (id: string, sec: string) =>
@@ -31,7 +46,11 @@ for (const id of MODULES) {
       return;
     }
     it('набор сущностей = контракт', () => {
-      expect(Object.keys(mod.api.entities).sort()).toEqual(entitiesOf(sec).map((e) => e.name).sort());
+      expect(Object.keys(mod.api.entities).sort()).toEqual(
+        entitiesOf(sec)
+          .map((e) => e.name)
+          .sort(),
+      );
     });
     for (const e of entitiesOf(sec)) {
       it(`entity ${e.name}: поля, nullability, meta`, () => {
@@ -40,7 +59,8 @@ for (const id of MODULES) {
         const shape = (ent.schema as unknown as { shape: Record<string, Parser> }).shape;
         expect(Object.keys(shape).sort()).toEqual(e.fields.map((f) => f.name).sort());
         for (const f of e.fields)
-          if (!f.json) expect(shape[f.name].safeParse(null).success, `${e.name}.${f.name}`).toBe(f.nullable);
+          if (!f.json)
+            expect(shape[f.name].safeParse(null).success, `${e.name}.${f.name}`).toBe(f.nullable);
         expect(ent.meta).toEqual(e.meta);
       });
     }
@@ -54,6 +74,8 @@ describe('webhook signature', () => {
   const m = /^```json example=webhook\.signature\n([\s\S]*?)^```/m.exec(doc);
   it('эталон подписи совпадает с HMAC-SHA256', () => {
     const v = JSON.parse(m![1]) as { secret: string; body: string; signature: string };
-    expect('sha256=' + createHmac('sha256', v.secret).update(v.body).digest('hex')).toBe(v.signature);
+    expect('sha256=' + createHmac('sha256', v.secret).update(v.body).digest('hex')).toBe(
+      v.signature,
+    );
   });
 });
