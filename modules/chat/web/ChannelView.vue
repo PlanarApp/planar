@@ -130,7 +130,7 @@ const typingText = computed(() => {
           :key="String(vi.key)"
           :ref="measure"
           :data-index="vi.index"
-          class="absolute left-0 top-0 w-full"
+          class="absolute left-0 top-0 w-full [contain:layout_style]"
           :style="{ transform: `translateY(${vi.start}px)` }"
         >
           <MessageItem

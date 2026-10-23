@@ -4,6 +4,7 @@ import { defineComponent, h, nextTick } from 'vue';
 import { flushPromises, mount as vmount } from '@vue/test-utils';
 import { db, Editor, i18n, newId } from '@planar/web/modules';
 import { web } from './index';
+import { shared } from '../shared';
 import { mergeFeed, taskRefs, type Channel, type Message } from './model';
 import { useFeed } from './feed';
 import { useTyping } from './typing';
@@ -567,10 +568,13 @@ describe('сообщение', () => {
 
   it('править и удалять можно только своё; реакция и ответ', async () => {
     const other = mount(MessageItem, { props: { ...base, message: msg(1) } });
+    await other.trigger('pointerenter');
+    expect(other.find('button[aria-label=Реакция]').exists()).toBe(true);
     expect(other.find('button[aria-label=Изменить]').exists()).toBe(false);
     const own = mount(MessageItem, {
       props: { ...base, message: msg(2, { authorId: ME, replyCount: 3 }) },
     });
+    await own.trigger('pointerenter');
     await own.find('button[aria-label=Удалить]').trigger('click');
     expect(h_.mutate).toHaveBeenCalledWith('chat.message.delete', { id: own.props('message').id });
     expect(own.find('[data-testid=chat-replies]').attributes('href')).toMatch(/\/t\//);
@@ -583,6 +587,18 @@ describe('сообщение', () => {
       'chat.reaction.toggle',
       expect.objectContaining({ emoji: '👍' }),
     );
+  });
+
+  // CL-2b: панель действий не монтируется, пока строку не навели/не сфокусировали (быстрая прокрутка)
+  it('до наведения панели нет; наведение и фокус её монтируют', async () => {
+    const m = msg(3, { authorId: ME });
+    const hover = mount(MessageItem, { props: { ...base, message: m } });
+    expect(hover.find('button[aria-label=Удалить]').exists()).toBe(false);
+    await hover.trigger('pointerenter');
+    expect(hover.find('button[aria-label=Удалить]').exists()).toBe(true);
+    const focus = mount(MessageItem, { props: { ...base, message: m } });
+    await focus.trigger('focusin');
+    expect(focus.find('button[aria-label=Удалить]').exists()).toBe(true);
   });
 });
 
@@ -640,5 +656,64 @@ describe('страница чата', () => {
     const w = mount(ChatPage);
     await vi.waitFor(() => expect(w.find('[data-testid=chat-thread]').exists()).toBe(true));
     expect(w.find('[data-testid=chat-title]').text()).toBe('# общий');
+  });
+});
+
+// CL-2b: стоимость клиентской отправки — число обращений к IndexedDB (≈1 мс каждое) и пересчётов строки
+describe('производительность', () => {
+  const fakeTx = () => {
+    const ops: string[] = [];
+    const rows: Record<string, unknown[]> = {
+      chatChannels: [chan(CH, { lastSeq: 5 })],
+      chatReads: [
+        { id: newId(), userId: ME, channelId: CH, lastReadSeq: 5, muted: false, updatedAt: NOW },
+      ],
+      spaceMembers: [{ spaceId: SPACE, userId: ME, role: 'member' }],
+    };
+    const tx = {
+      get: async (e: string, id: string) => (
+        ops.push(`get ${e}`),
+        rows[e]?.find((r) => (r as { id: string }).id === id)
+      ),
+      scan: async (e: string) => (ops.push(`scan ${e}`), rows[e] ?? []),
+      put: async (e: string) => void ops.push(`put ${e}`),
+      patch: async (e: string) => void ops.push(`patch ${e}`),
+    };
+    return { tx, ops };
+  };
+  const send = (server: boolean, text: string, extra: object[] = []) => {
+    const { tx, ops } = fakeTx();
+    const body = {
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text }, ...extra] }],
+    };
+    const run = shared.mutators.find((m) => m.name === 'chat.message.send')!.run as (
+      ...a: unknown[]
+    ) => Promise<void>;
+    return run(
+      tx,
+      { id: newId(), channelId: CH, body, readId: newId() },
+      { userId: ME, now: NOW, server },
+    ).then(() => ops);
+  };
+
+  it('send на клиенте: без чтения участников пространства и повторных get; на сервере доступ проверяется', async () => {
+    const client = await send(false, 'привет');
+    expect(client).not.toContain('scan spaceMembers');
+    expect(client.filter((o) => o.startsWith('patch'))).toEqual([]);
+    expect(client.length).toBeLessThanOrEqual(5);
+    expect(await send(true, 'привет')).toContain('scan spaceMembers');
+    const mention = { type: 'mention', attrs: { id: ME, label: 'Я' } };
+    expect(await send(false, 'x', [mention])).toContain('scan spaceMembers');
+  });
+
+  it('строка ленты не вызывает toLocaleTimeString (создаёт Intl-форматтер на каждую строку)', () => {
+    const spy = vi.spyOn(Date.prototype, 'toLocaleTimeString');
+    for (let i = 0; i < 20; i++)
+      mount(MessageItem, {
+        props: { message: msg(i), reactions: [], users: new Map(), me: ME, members: [] },
+      });
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

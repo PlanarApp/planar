@@ -16,17 +16,33 @@ interface SpaceMember {
 /** Каналы, диалоги, участники и мои метки прочтения из реплики. */
 export function useChatData() {
   const me = useSession();
-  const raw = useQuery(async () => {
-    const t = <T>(n: string) => db.table<T>(n).toArray();
-    const [channels, members, reads, users, spaces, spaceMembers] = await Promise.all([
-      t<Channel>('chatChannels'),
-      t<Member>('chatMembers'),
-      t<Read>('chatReads'),
-      t<UserRow>('users'),
-      t<SpaceRow>('spaces'),
-      t<SpaceMember>('spaceMembers'),
-    ]);
-    return { channels, members, reads, users, spaces, spaceMembers };
+  // по запросу на таблицу: отправка сообщения правит только каналы и reads — users/spaces не перечитываются
+  const t = <T>(n: string) => useQuery(() => db.table<T>(n).toArray());
+  const q = {
+    channels: t<Channel>('chatChannels'),
+    members: t<Member>('chatMembers'),
+    reads: t<Read>('chatReads'),
+    users: t<UserRow>('users'),
+    spaces: t<SpaceRow>('spaces'),
+    spaceMembers: t<SpaceMember>('spaceMembers'),
+  };
+  const raw = computed(() => {
+    const { channels, members, reads, users, spaces, spaceMembers } = q;
+    return channels.value &&
+      members.value &&
+      reads.value &&
+      users.value &&
+      spaces.value &&
+      spaceMembers.value
+      ? {
+          channels: channels.value,
+          members: members.value,
+          reads: reads.value,
+          users: users.value,
+          spaces: spaces.value,
+          spaceMembers: spaceMembers.value,
+        }
+      : undefined;
   });
   const meId = computed(() => me.value?.id ?? '');
   const d = computed(() => raw.value);
