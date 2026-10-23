@@ -153,3 +153,10 @@ it('fields: смена проекта обнуляет fields', async () => {
   await run(tx, 'task.update', { id: t, projectId: p2 });
   expect(await fieldsOf(tx, t)).toEqual({});
 });
+
+it('fields: ключ без определения не пишется через setField', async () => {
+  const { tx, t } = await setup();
+  expect(await code(run(tx, 'task.setField', { taskId: t, fieldId: id(), value: 'x' }))).toBe(
+    'not_found',
+  );
+});
