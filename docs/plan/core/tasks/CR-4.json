@@ -37,7 +37,8 @@
     "apps/api/src/main.ts",
     "apps/api/test/sync/",
     "apps/api/package.json",
-    "pnpm-lock.yaml"
+    "pnpm-lock.yaml",
+    "apps/api/vitest.config.ts"
   ],
   "dont_touch": [
     "apps/api/src/auth/ — CR-3a/CR-3b; нужна правка — «CR-4 contract: …»",
@@ -96,5 +97,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-22T23:28:57",
-  "edited": "2026-10-22T23:51:05"
+  "edited": "2026-10-23T00:29:37"
 }
