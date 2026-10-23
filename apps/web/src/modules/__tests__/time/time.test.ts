@@ -1,6 +1,5 @@
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ref } from 'vue';
 
 vi.mock('../../../../../../modules/time/web/data', async () => {
   const { ref } = await import('vue');
@@ -35,7 +34,8 @@ import WeekPage from '../../../../../../modules/time/web/WeekPage.vue';
 import { dayKey, planCell, weekDays } from '../../../../../../modules/time/web/lib';
 import { registerModules } from '../../registry';
 
-const st = (data as unknown as { __state: Record<string, ReturnType<typeof ref<never>>> }).__state;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const st = (data as unknown as { __state: Record<string, { value: any }> }).__state;
 const mutate = data.mutate as unknown as ReturnType<typeof vi.fn>;
 
 const NOW = Date.parse('2026-10-21T12:00:00Z');
