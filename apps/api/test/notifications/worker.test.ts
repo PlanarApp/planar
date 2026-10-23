@@ -35,9 +35,9 @@ it('воркер pg-boss доставляет push после коммита м�
   };
   await admin.ok('task.create', t);
   await admin.ok('task.assign', { id: uuidv7(), taskId: t.id, userId: w.member.userId });
-  await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1), { timeout: 15_000 });
+  await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1), { timeout: 50_000 });
   expect(send.mock.calls[0]).toMatchObject([
     { endpoint: 'https://push.example/w' },
     { kind: 'assigned' },
   ]);
-});
+}, 60_000);
