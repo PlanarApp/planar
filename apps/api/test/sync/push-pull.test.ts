@@ -190,6 +190,7 @@ describe('push → pull', () => {
         'taskLabels',
         'checklistItems',
         'comments',
+        'commentReactions',
         'attachments',
         'notifications',
         'savedViews',
