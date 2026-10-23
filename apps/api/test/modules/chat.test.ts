@@ -502,8 +502,7 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
     expect(dels.every((d) => d.data === null)).toBe(true);
   });
 });
-
-
+describe('chat: уведомления и push', () => {
   it('упоминание → chat_mention; автор и упомянутый-автор без уведомления; push в очереди', async () => {
     const ch = await mkChannel();
     const m = await sendOk(w.member, ch, {
