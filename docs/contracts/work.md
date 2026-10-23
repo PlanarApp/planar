@@ -36,7 +36,7 @@ export interface AfterMutationCtx {
 }
 export interface BackendModuleManifest {
   /* … v2 … */
-  afterMutation?: (writes: MutationWrite[], ctx: AfterMutationCtx, api: unknown /* ModuleHookApi */) => Promise<void>;
+  afterMutation?: (writes: MutationWrite[], ctx: AfterMutationCtx, api: never /* ModuleHookApi; never — чтобы модуль с типизированным api присваивался при strictFunctionTypes */) => Promise<void>;
   jobs?: unknown[];               // JobDef[]
 }
 ```
