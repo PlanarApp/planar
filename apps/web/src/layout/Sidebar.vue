@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { Inbox, ListChecks, Settings, Star } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+import { Badge } from '../ui';
+import { useUnread } from '../inbox/queries';
 import { useNavData } from './nav';
 
 const { t } = useI18n();
+const unread = useUnread();
 const { spaces, favorites } = useNavData();
 const link =
   'flex h-8 items-center gap-2 rounded-md px-2 text-base text-fg hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus';
@@ -17,6 +20,7 @@ const link =
     <nav class="flex flex-col gap-0.5">
       <RouterLink to="/inbox" :class="link" active-class="bg-accent-subtle">
         <Inbox :size="16" />{{ t('sidebar.inbox') }}
+        <Badge v-if="unread" variant="solid" class="ml-auto">{{ unread }}</Badge>
       </RouterLink>
       <RouterLink to="/my" :class="link" active-class="bg-accent-subtle">
         <ListChecks :size="16" />{{ t('sidebar.my') }}

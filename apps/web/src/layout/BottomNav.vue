@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Folder, Inbox, ListChecks, MoreHorizontal } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+import { Badge } from '../ui';
+import { useUnread } from '../inbox/queries';
 
 const { t } = useI18n();
+const unread = useUnread();
 const items = [
   { to: '/inbox', icon: Inbox, label: 'nav.inbox' },
   { to: '/my', icon: ListChecks, label: 'nav.my' },
@@ -24,6 +27,7 @@ const items = [
       active-class="text-accent"
     >
       <component :is="i.icon" :size="20" />{{ t(i.label) }}
+      <Badge v-if="i.to === '/inbox' && unread" variant="solid">{{ unread }}</Badge>
     </RouterLink>
   </nav>
 </template>
