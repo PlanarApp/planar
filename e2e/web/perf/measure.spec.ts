@@ -40,7 +40,7 @@ async function firstRow(page: Page): Promise<number> {
 /** Правит название задачи через UI; в странице: Enter (keydown) → смена текста строки. */
 async function editTitle(page: Page, key: string, title: string): Promise<number> {
   const row = page.locator(`[data-task="${key}"]`);
-  await row.locator('span.truncate.block').dblclick();
+  await row.locator('span.truncate').dblclick();
   const input = row.getByRole('textbox');
   await input.fill(title);
   // слушатели ставятся и подтверждаются до Enter: иначе быстрая правка обгоняет page.evaluate
@@ -54,7 +54,7 @@ async function editTitle(page: Page, key: string, title: string): Promise<number
           once: true,
         });
         const mo = new MutationObserver(() => {
-          const el = document.querySelector(`[data-task="${k}"] span.truncate.block`);
+          const el = document.querySelector(`[data-task="${k}"] span.truncate`);
           if (t0 && el?.textContent === t) {
             mo.disconnect();
             res(performance.now() - t0);
@@ -198,7 +198,7 @@ test('бюджеты §7', async ({ browser }) => {
         const w = window as unknown as { __seen: Promise<number> };
         w.__seen = new Promise<number>((res) => {
           const ok = () =>
-            document.querySelector(`[data-task="${k}"] span.truncate.block`)?.textContent === t;
+            document.querySelector(`[data-task="${k}"] span.truncate`)?.textContent === t;
           const mo = new MutationObserver(() => ok() && (mo.disconnect(), res(Date.now())));
           mo.observe(document, { childList: true, subtree: true, characterData: true });
         });
@@ -215,7 +215,7 @@ test('бюджеты §7', async ({ browser }) => {
       );
     });
     const row = a.locator(`[data-task="${k}"]`);
-    await row.locator('span.truncate.block').dblclick();
+    await row.locator('span.truncate').dblclick();
     await row.getByRole('textbox').fill(title);
     await a.keyboard.press('Enter');
     const seen = b.evaluate(() => (window as unknown as { __seen: Promise<number> }).__seen);
