@@ -13,12 +13,12 @@
     },
     {
       "name": "C-mutators",
-      "version": "1",
+      "version": "2",
       "ref": "docs/contracts/core.md"
     },
     {
       "name": "C-schema",
-      "version": "2",
+      "version": "3",
       "ref": "docs/contracts/core.md"
     },
     {
@@ -97,5 +97,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-22T23:28:57",
-  "edited": "2026-10-23T00:29:37"
+  "edited": "2026-10-23T00:55:06"
 }
