@@ -325,3 +325,4 @@
 {"t": "2026-10-23T06:51:18", "by": "coordinator", "task": "CR-10c", "ev": "checked", "note": "4/4 lint=ok:exit 0; testdb=ok:exit 0; tokens_tests=ok:26; test=ok:exit 0"}
 {"t": "2026-10-23T06:51:29", "by": "coordinator", "task": "CR-11", "ev": "accepted", "note": "по ревью (второе); в журнале CR-11 в 06:46 — чужой отчёт (общий /tmp/claude-0/r.json перезаписан соседним исполнителем), верный — b92d270,b95a08e"}
 {"t": "2026-10-23T06:51:29", "by": "coordinator", "task": "CR-10c", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-23T06:51:30", "by": "coordinator", "task": "CR-11", "ev": "merged"}
