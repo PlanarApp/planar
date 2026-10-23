@@ -45,14 +45,14 @@ test('спринт: «Закрыть» переносит незакрытые �
   const [todo, done] = [uniq('Не закрыта'), uniq('Закрыта')];
   const f = await fixture([todo, done]);
   const cycleId = uuidv7();
-  const today = utcDay();
   await f.admin.pushOk([
     f.admin.mut('sprints.configure', { projectId: f.projectId, enabled: true, timezone: 'UTC' }),
     f.admin.mut('sprints.create', {
       id: cycleId,
       projectId: f.projectId,
-      startDate: today,
-      endDate: today,
+      // пояс проекта UTC, запас в обе стороны: не зависит от полуночи
+      startDate: utcDay(-1),
+      endDate: utcDay(7),
     }),
     f.admin.mut('sprints.setTask', { taskId: f.taskIds[0], cycleId }),
     f.admin.mut('sprints.setTask', { taskId: f.taskIds[1], cycleId }),
@@ -73,11 +73,26 @@ test('спринт: «Закрыть» переносит незакрытые �
   await expect.poll(async () => (await cycles()).length).toBe(2);
   const [c1, c2] = (await cycles()).sort((a, b) => (a.number as number) - (b.number as number));
   expect(c1!.closedAt).toBeTruthy();
-  expect(c2!.startDate).toBe(utcDay(1));
+  expect(c2!.startDate).toBe(utcDay(8));
   const { data } = await f.admin.bootstrap();
   const cy = (id: string) => data.tasks!.find((t) => t.id === id)!.cycleId;
   expect(cy(f.taskIds[0]!)).toBe(c2!.id);
   expect(cy(f.taskIds[1]!)).toBe(cycleId);
+});
+
+test('спринт: холодная загрузка прямой ссылки рисует экран модуля, а не заглушку', async ({
+  browser,
+}) => {
+  const f = await fixture([uniq('Для ссылки')]);
+  await f.admin.pushOk([
+    f.admin.mut('sprints.configure', { projectId: f.projectId, enabled: true, timezone: 'UTC' }),
+  ]);
+  const page = await loginAs(browser, 'alice');
+  await page.goto(`/p/${f.projectId}/sprints:sprint`);
+  await expect(
+    page.getByTestId('sprint-current').or(page.getByTestId('sprint-none')),
+  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Модуль:/ })).toHaveCount(0);
 });
 
 test('автоматизация: смена статуса → webhook с верной подписью', async ({ browser }) => {

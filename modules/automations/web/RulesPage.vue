@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import type { Filter, Row } from '@planar/shared';
 import {
   Button,
@@ -21,9 +21,21 @@ import {
   type Run,
   type Trigger,
 } from '../shared/index.js';
-import { ACTIONS, TRIGGERS, blankAction, blankTrigger, fetchRuns, run, text } from './data';
+import {
+  ACTIONS,
+  TRIGGERS,
+  blankAction,
+  blankTrigger,
+  fetchRuns,
+  fetchSubscriptions,
+  run,
+  text,
+  type HookSub,
+} from './data';
 
 const tx = computed(text);
+const subs = ref<HookSub[]>([]);
+onMounted(async () => (subs.value = await fetchSubscriptions().catch(() => [])));
 const spaces = useSpaces();
 const projects = computed(() => (spaces.value ?? []).flatMap((s) => s.projects));
 const projectId = ref('');
@@ -314,14 +326,23 @@ const setValue = (i: number, raw: string) => {
             :class="field"
             data-role="action-text"
           />
-          <input
-            v-if="a.type === 'send_webhook'"
-            v-model="a.subscriptionId"
-            :aria-label="tx.subscription"
-            :placeholder="tx.subscription"
-            :class="field"
-            data-role="action-text"
-          />
+          <template v-if="a.type === 'send_webhook'">
+            <select
+              v-if="subs.length"
+              v-model="a.subscriptionId"
+              :aria-label="tx.subscription"
+              :class="field"
+              data-role="action-param"
+            >
+              <option value="" disabled></option>
+              <option v-for="x in subs" :key="x.id" :value="x.id">
+                {{ x.description ? `${x.description} — ${x.url}` : x.url }}
+              </option>
+            </select>
+            <a v-else href="/settings/webhooks" class="text-sm underline">{{
+              tx.noSubscriptions
+            }}</a>
+          </template>
           <Button
             size="sm"
             variant="ghost"

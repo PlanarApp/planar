@@ -74,7 +74,10 @@ beforeEach(async () => {
   mutate.mockClear();
   await Promise.all(h.db.tables.map((t) => t.clear()));
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe('wk3: схемы', () => {
   it('wk3: trigger/action/filter — верные принимаются, send_webhook и мусор', () => {
@@ -203,12 +206,20 @@ describe('wk3b: конструктор', () => {
 
   it('wk3b: действие send_webhook — создаётся с subscriptionId', async () => {
     const sub = uuidv7();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ data: [{ id: sub, url: 'http://x/hook', description: 'Хук' }] }),
+      })),
+    );
     const w = mount(RulesPage, stubs);
     await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
     await w.get('[data-role=new]').trigger('click');
     await w.get('[data-role=name]').setValue('Хук');
     await w.get('[data-role=action-type]').setValue('send_webhook');
-    await w.get('[data-role=action-text]').setValue(sub);
+    await vi.waitFor(() => expect(w.text()).toContain('Хук — http://x/hook'));
+    await w.get('[data-role=action-param]').setValue(sub);
     await w.get('[data-testid=editor]').trigger('submit');
     expect(mutate).toHaveBeenCalledWith(
       'automations.create',
