@@ -335,7 +335,10 @@ export const notifications = pgTable(
   (t) => [
     index().on(t.taskId),
     index().on(t.userId, t.createdAt),
-    check('notifications_kind_check', inList(t.kind, ['assigned', 'mentioned', 'commented'])),
+    check(
+      'notifications_kind_check',
+      inList(t.kind, ['assigned', 'mentioned', 'commented', 'status_changed']),
+    ),
   ],
 );
 

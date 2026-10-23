@@ -130,6 +130,14 @@ describe('push → pull', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('чужой clientId → 403 и при пустой пачке', async () => {
+    const w = await world(db);
+    await w.admin.ok('task.create', taskArgs(w));
+    await expect(
+      services(db).push.push(w.member.userId, { clientId: w.admin.clientId, mutations: [] }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('отказ откатывает мутацию целиком (нет частичных строк)', async () => {
     const w = await world(db);
     const args = taskArgs(w, { assignees: [{ id: uuidv7(), userId: uuidv7() }] });

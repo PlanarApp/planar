@@ -10,8 +10,13 @@ export const docVersions: Record<string, number> = Object.fromEntries(
   [...contractDoc.matchAll(/^## (C-[\w-]+) v(\d+)\s*$/gm)].map((m) => [m[1], Number(m[2])]),
 );
 
+export const apiDoc = readFileSync(
+  new URL('../../../docs/contracts/core-api-v1.md', import.meta.url),
+  'utf8',
+);
+
 export const docBlocks = [
-  ...contractDoc.matchAll(/^```json (example|bad)=([\w.]+)\n([\s\S]*?)^```/gm),
+  ...(contractDoc + '\n' + apiDoc).matchAll(/^```json (example|bad)=([\w.]+)\n([\s\S]*?)^```/gm),
 ].map((m) => ({
   kind: m[1] as 'example' | 'bad',
   name: m[2],

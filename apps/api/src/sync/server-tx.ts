@@ -15,6 +15,12 @@ export interface ServerTxCtx {
 }
 
 type Wire = Record<string, unknown>;
+export interface TxWrite {
+  entity: EntityName;
+  op: 'put' | 'del';
+  before?: Wire;
+  after?: Wire;
+}
 const RANK: Record<string, number> = { guest: 1, member: 2, admin: 3 };
 /** Порядок seq = порядок коммитов (C-sync «Журнал changes»). */
 const LOCK_KEY = 7311;
@@ -46,6 +52,8 @@ export class ServerTx implements Tx {
   private instanceRole?: string;
   private locked = false;
   private lastSeq = 0;
+  /** Записи этой мутации (для хука уведомлений). */
+  readonly writes: TxWrite[] = [];
 
   constructor(
     private q: Q,
@@ -104,6 +112,7 @@ export class ServerTx implements Tx {
     const t = tableOf(entity);
     await this.exec(() => this.q.delete(t).where(eq(getTableColumns(t).id, id)));
     await this.log(entity, 'del', old);
+    this.writes.push({ entity, op: 'del', before: old });
     if (entity === 'spaceMembers') await this.reset(old.userId as string);
     await this.activity(entity, old, undefined);
   }
@@ -151,6 +160,7 @@ export class ServerTx implements Tx {
     if (entity === 'tasks' && next.number == null)
       next.number = await this.nextNumber(next.projectId as string);
     await this.store(entity, next, extra);
+    this.writes.push({ entity, op: 'put', before: old, after: next });
     if (entity === 'spaceMembers' && !old) await this.reset(next.userId as string);
     if (entity === 'settings' && next.id === 'enabled_modules')
       await this.log('_reset', 'put', null, next.id as string);
@@ -321,6 +331,7 @@ export class ServerTx implements Tx {
 
   /** attachments: у ctx.userId есть file_uploads на файл либо файл уже приложен в этом пространстве. */
   private async checkFile(row: Wire): Promise<void> {
+    if (this.opts.system) return;
     const [u] = await this.exec(() =>
       this.q
         .select({ sha: schema.fileUploads.sha256 })

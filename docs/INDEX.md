@@ -27,6 +27,7 @@ generated: true
 
 ## Справка (reference)
 
+- [docs/contracts/core-api-v1.md](contracts/core-api-v1.md) — API-токены, Bearer, REST /api/v1 и MCP /mcp — часть C-http v7 (docs/contracts/core.md); примеры проверяет контрактный тест
 - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Мутаторы домена C-mutators v2 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
 
 ## Реестры (registry)
