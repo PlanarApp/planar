@@ -186,3 +186,6 @@
 {"t": "2026-10-23T21:01:53", "by": "coordinator", "task": "CL-9", "ev": "accepted", "note": "8/8: unit shared 194, web 583, api ok, e2e 35 passed 0 failed"}
 {"t": "2026-10-23T21:01:53", "by": "coordinator", "task": "CL-9", "ev": "merged", "note": "a835e05"}
 {"t": "2026-10-23T21:01:55", "by": "coordinator", "task": "CL-10", "ev": "started"}
+{"t": "2026-10-23T21:15:20", "by": "executor", "task": "CL-10", "ev": "reported", "commits": ["5d55966"], "note": "done: Замер §7 на feature/collab (PERF_MODULES=docs,chat, 10000 задач, прод-сборка web), n=10 на одном стеке. Всё в бюджете, …", "dp_feedback": "Карточка ссылалась на repeat.sh, которого не было — пришлось писать. В свежей копии нет node_modules: стоит делать pnpm install при создании копии. Метрики tasks_total/project_tasks попали в summary как медианы — шум."}
+{"t": "2026-10-23T21:16:14", "by": "coordinator", "task": "CL-10", "ev": "checked", "note": "3/3 runs=ok:10; switch=ok:project_switch_ms_p95_median=…; lint=ok:exit 0"}
+{"t": "2026-10-23T21:16:15", "by": "coordinator", "task": "CL-10", "ev": "accepted", "note": "по отчёту: n=10, switch p95 медиана 91 мс (≤100), warm 408.9 мс (>400)"}
