@@ -64,6 +64,13 @@
       "when": 1792760035577,
       "tag": "0008_narrow_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792762205009,
+      "tag": "0009_overconfident_skullbuster",
+      "breakpoints": true
     }
   ]
 }
