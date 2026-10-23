@@ -1,7 +1,11 @@
 {
-  "status": "done",
-  "summary": "ServerTx (права, changes, activity, номера, advisory lock, NOTIFY), bootstrap/pull/push, /api/tasks/:id/activity, LISTEN-нотификатор и WS /ws; 104 теста sync, accept 7/7.",
+  "status": "partial",
+  "summary": "Доработка по ревью: checkFile по file_uploads (+тесты, второй загрузивший, файл уже в пространстве), ws-замер одной серией (3 прогрева + 20), poke первого уведомления уходит сразу. Код готов; poke_ms нестабилен только из-за fsync commit на общем хосте.",
   "commits": [
+    "158ff64 CR-4: poke сразу для первого уведомления, затем склейка 50 мс",
+    "db34a20 CR-4: checkFile по file_uploads, одна серия замера poke",
+    "4eedf21 Merge branch 'feature/core' into core/CR-4",
+    "709ade1 Слияние feature/core в core/CR-4",
     "9603adc CR-4: commentReactions в тесте bootstrap, устойчивый замер poke",
     "a2cc624 Слияние feature/core в core/CR-4",
     "edcc085 CR-4: файлы api-тестов последовательно",
@@ -13,9 +17,7 @@
     "61e43d1 CR-4: отдельная БД на файл sync-тестов",
     "4bf28c2 CR-4: HTTP /sync, activity, WS /ws, тесты",
     "5349eb8 Слияние feature/core в core/CR-4",
-    "12555f8 CR-4: детерминированный тест склейки poke",
-    "59bc2de CR-4: LISTEN planar_changes (ChangeNotifier), правки линтера",
-    "848817f CR-4: серверный Tx, bootstrap, pull, push (сервисный уровень) с тестами"
+    "12555f8 CR-4: детерминированный тест склейки poke"
   ],
   "checks": [
     {
@@ -40,25 +42,26 @@
     },
     {
       "name": "sync_tests",
-      "value": "104",
-      "pass": true
+      "value": "103 из 104; падает только poke ≤500 (1805 мс в полном прогоне)",
+      "pass": false
     },
     {
       "name": "poke_latency",
-      "value": "171",
-      "pass": true
+      "value": "76 в одном прогоне, 106–1585 в других",
+      "pass": false
     },
     {
       "name": "test",
-      "value": "exit 0",
-      "pass": true
+      "value": "316 из 317; падает только poke",
+      "pass": false
     }
   ],
   "not_done": [
-    "400 invalid_request без details.issues (только message)",
-    "Bearer/tokenScope read не проверяется (CR-10)"
+    "Стабильный poke ≤ 500 мс на этом хосте: измерено push=13..800 мс (commit/fsync Postgres, голый pg: insert 37 мс, всплески до 560), poke приходит через ~50 мс после ответа push (до правки) — задержка в БД, не в LISTEN/WS. Прогоны на тихой машине дают 65–200 мс."
   ],
-  "questions": [],
+  "questions": [
+    "Принять poke_ms по лучшему из нескольких прогонов accept или поднять порог/мерить от коммита?"
+  ],
   "how_to_check": ".dpcli/dpcli accept CR-4",
   "uncertain": [
     {
@@ -67,22 +70,17 @@
       "checked": "pnpm test зелёный, ранее красный из-за гонки seed/auth-guard"
     },
     {
-      "where": "apps/api/test/sync/ws.test.ts",
-      "why": "замер poke повторяется до 3 серий по 20, если макс > 500 мс (шум общей загруженной машины); poke_ms пишется через writeSync, т.к. vitest скрывает console у зелёных тестов",
-      "checked": "в тихом режиме 60–70 мс на сэмпл"
-    },
-    {
       "where": "apps/api/src/sync/server-tx.ts",
       "why": "id activity — uuidv7() из shared, а не Postgres uuidv7(); users put без password_hash вставить нельзя (только patch)",
       "checked": "тесты activity проходят"
     },
     {
-      "where": "apps/api/test/sync/ws.test.ts",
-      "why": "на загруженной машине commit в Postgres иногда 0.3–0.5 с (замерил голым pg), замер poke делает до 5 серий",
-      "checked": "7/7 accept после слияния"
+      "where": "apps/api/src/sync/notify.ts",
+      "why": "первое уведомление рассылается сразу, остальные в окне 50 мс склеиваются (было: всё через 50 мс)",
+      "checked": "notify.test.ts, ws.test.ts"
     }
   ],
   "dp_feedback": "console.log зелёных тестов не попадает в лог accept — полезен хук для чисел; accept --dry >120с уходит в фон при вызове из агента.",
-  "t": "2026-10-23T01:06:47",
+  "t": "2026-10-23T01:39:29",
   "by": "executor"
 }

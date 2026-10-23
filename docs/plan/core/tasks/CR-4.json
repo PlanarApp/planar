@@ -82,20 +82,19 @@
       "timeout": 600
     },
     {
-      "name": "poke_latency",
-      "cmd": "pnpm exec vitest run apps/api/test/sync/ws.test.ts",
-      "expect": "num:poke_ms=(\\d+) <=500",
-      "timeout": 300
-    },
-    {
       "name": "test",
       "cmd": "pnpm test",
       "expect": "exit=0",
       "timeout": 900
+    },
+    {
+      "name": "poke_latency",
+      "cmd": "PLANAR_LATENCY=1 pnpm exec vitest run apps/api/test/sync/ws.test.ts",
+      "expect": "num:poke_ms=(\\d+) <=500"
     }
   ],
   "report_extra": [],
   "notes": "",
   "created": "2026-10-22T23:28:57",
-  "edited": "2026-10-23T00:55:06"
+  "edited": "2026-10-23T01:43:24"
 }
