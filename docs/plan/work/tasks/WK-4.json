@@ -1,0 +1,96 @@
+{
+  "id": "WK-4",
+  "module": "work",
+  "type": "dp-engineer",
+  "title": "Модуль webhooks: подписки, подпись, доставка с повторами, защита от SSRF",
+  "goal": "Модуль webhooks по docs/contracts/work.md §Модуль webhooks: подписки инстанса (только админ), события из хука afterMutation, доставка через pg-boss с подписью HMAC-SHA256, таймаутом 10 с и повторами по графику до ≈17 ч, журнал доставок и ручной повтор, SSRF-защита после DNS-резолва, страница настроек; экспорт enqueueWebhookEvent для automations.",
+  "plan_ref": "5. Задачи — WK-4 Webhooks",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "3",
+      "ref": "docs/contracts/work.md"
+    },
+    {
+      "name": "C-http",
+      "version": "9",
+      "ref": "docs/contracts/work.md"
+    }
+  ],
+  "copy": "~/planar-work-WK-4",
+  "branch": "work/WK-4",
+  "base": "feature/work",
+  "scope": [
+    "modules/webhooks",
+    "apps/api/drizzle",
+    "apps/api/test/webhooks",
+    "apps/web/src/modules/__tests__/webhooks"
+  ],
+  "dont_touch": [
+    "apps/api/src, apps/web/src (кроме тестов модуля), packages/ — ядро; нужна точка расширения — «WK-4 contract: …»",
+    "другие modules/*, modules/webhooks/package.json — зависимости не добавлять (HTTP — node:http/node:https, DNS — node:dns/promises, IP — node:net BlockList или свой разбор)",
+    "docs/contracts/, apps/api/test/work-contract.test.ts — координатор",
+    "pnpm-lock.yaml, package.json, apps/*/package.json; .claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "wk4-api",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api -t wk4:",
+      "expect": "num:Tests\\s+(\\d+) passed >=16"
+    },
+    {
+      "name": "wk4-web",
+      "cmd": "pnpm --filter web exec vitest run -t wk4:",
+      "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "contract-work",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api test/work-contract.test.ts",
+      "expect": "num:Tests\\s+(\\d+) passed >=1"
+    },
+    {
+      "name": "migrations-linear",
+      "cmd": "ls apps/api/drizzle/*.sql | sed 's#.*/##' | cut -c1-4 | sort | uniq -d | wc -l",
+      "expect": "num:^(\\d+) <=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint modules/webhooks apps/api/test apps/web/src && pnpm exec prettier --check modules/webhooks apps/api/test apps/web/src",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T12:49:22",
+  "edited": "2026-10-23T12:49:22"
+}
