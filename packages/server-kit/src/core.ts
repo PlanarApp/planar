@@ -1,3 +1,4 @@
+import type { JobOpts } from './hooks.js';
 import type { Db, Q } from './types.js';
 
 export interface AuthCtx {
@@ -16,6 +17,8 @@ export interface CoreServices {
   /** строки tasks → форма REST v1 (key, assigneeIds, labelIds) */
   toV1Tasks(q: Q | Db, rows: Record<string, unknown>[]): Promise<Record<string, unknown>[]>;
   systemUserId(): string;
+  /** задача pg-boss вне транзакции мутации; push.boss:false — no-op (C-modules v5) */
+  enqueue(queue: string, data: object, opts?: JobOpts): Promise<void>;
 }
 
 /** Nest-провайдер (глобальный) со значением CoreServices; модуль: `@Inject(CORE) core: CoreServices`. */

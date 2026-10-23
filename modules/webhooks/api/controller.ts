@@ -16,7 +16,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { CORE, HttpError, parseBody, type CoreServices } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
-import { createDelivery } from './deliver.js';
+import { QUEUE, createDelivery } from './deliver.js';
 import { webhooksDeliveries as D, webhooksSubscriptions as S } from './schema.js';
 
 const B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -154,13 +154,14 @@ export class WebhooksController {
     await this.core.db.delete(S).where(eq(S.id, id));
   }
 
-  // доставку без задачи подберёт webhooks.sweep (в kit у контроллера нет enqueue)
   @Post('subscriptions/:id/ping')
   @HttpCode(202)
   async ping(@Req() req: object, @Param('id') id: string) {
     this.admin(req);
     await this.one(id);
-    return { data: delivery(await createDelivery(this.core.db, id, 'ping', {})) };
+    const d = await createDelivery(this.core.db, id, 'ping', {});
+    await this.core.enqueue(QUEUE, { deliveryId: d.id }); // sweep — страховка
+    return { data: delivery(d) };
   }
 
   @Get('subscriptions/:id/deliveries')
@@ -209,8 +210,8 @@ export class WebhooksController {
       ? await this.core.db.select().from(D).where(eq(D.id, id))
       : [];
     if (!d) throw notFound();
-    return {
-      data: delivery(await createDelivery(this.core.db, d.subscriptionId, d.event, d.payload)),
-    };
+    const nd = await createDelivery(this.core.db, d.subscriptionId, d.event, d.payload);
+    await this.core.enqueue(QUEUE, { deliveryId: nd.id });
+    return { data: delivery(nd) };
   }
 }

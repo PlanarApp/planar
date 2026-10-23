@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Plus, X } from 'lucide-vue-next';
-import { AssigneePicker, DueDatePicker, LabelPicker, useStatuses } from '../../tasks';
+import { AssigneePicker, DueDatePicker, LabelPicker, useProject, useStatuses } from '../../tasks';
 import { useFieldDefs, useSpaceFieldDefs } from '../../fields';
 import { Button, Input } from '../../ui';
 import { useExtensions } from '../../modules/registry';
@@ -15,14 +15,17 @@ import {
   type FilterRule,
 } from '../filter';
 
-const props = defineProps<{ spaceId: string; projectId?: string }>();
+const props = defineProps<{ spaceId?: string; projectId?: string }>();
 const model = defineModel<Filter>({ required: true });
 const { t } = useI18n();
-const statuses = useStatuses(() => props.spaceId);
+// SDK модулей передаёт только projectId: пространство берём из проекта
+const project = useProject(() => props.projectId ?? '');
+const spaceId = computed(() => props.spaceId ?? project.value?.spaceId ?? '');
+const statuses = useStatuses(spaceId);
 
 // поля проекта (или всех проектов пространства, если проект не задан)
 const defsByProject = useFieldDefs(() => props.projectId ?? '');
-const defsBySpace = useSpaceFieldDefs(() => props.spaceId);
+const defsBySpace = useSpaceFieldDefs(spaceId);
 const defs = computed(() => (props.projectId ? defsByProject : defsBySpace).value ?? []);
 // правило «Спринт» — только при включённом модуле sprints
 const modViews = useExtensions('views');
