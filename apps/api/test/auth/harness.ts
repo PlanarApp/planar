@@ -1,3 +1,4 @@
+import type { Type } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, vi } from 'vitest';
@@ -12,7 +13,9 @@ vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 let app: Awaited<ReturnType<typeof createApp>>;
 
 /** Приложение на базе файла; req(method, url, {cookie?, body?}) — с верным Origin. */
-export function useApp({ ownDb = true } = {}) {
+export const getApp = () => app;
+
+export function useApp({ ownDb = true, extraControllers = [] as Type[] } = {}) {
   let url = testDbUrl();
   let drop: (() => Promise<void>) | undefined;
   beforeAll(async () => {
@@ -39,7 +42,7 @@ export function useApp({ ownDb = true } = {}) {
       };
     }
     db = createDb(url);
-    app = await createApp({ databaseUrl: url, publicUrl: ORIGIN });
+    app = await createApp({ databaseUrl: url, publicUrl: ORIGIN, extraControllers });
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
