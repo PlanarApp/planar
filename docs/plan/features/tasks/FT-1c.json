@@ -1,0 +1,79 @@
+{
+  "id": "FT-1c",
+  "module": "features",
+  "type": "dp-engineer",
+  "title": "Пользовательские поля в REST v1 и MCP",
+  "goal": "REST v1 отдаёт определения полей проекта и принимает fields в PATCH задачи, MCP — list_fields и fields в update_task, по C-http v8; ошибки валидации — 400 invalid_request / isError.",
+  "plan_ref": "5. Задачи",
+  "contracts": [
+    {
+      "name": "C-http",
+      "version": "8",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "3",
+      "ref": "docs/contracts/features.md"
+    },
+    {
+      "name": "F-fields",
+      "version": "1",
+      "ref": "docs/contracts/features.md"
+    }
+  ],
+  "copy": "~/planar-features-FT-1c",
+  "branch": "features/FT-1c",
+  "base": "feature/features",
+  "scope": [
+    "apps/api/src/rest/",
+    "apps/api/src/mcp/",
+    "apps/api/test/rest/",
+    "apps/api/test/mcp/",
+    "docs/guides/mcp.md",
+    "build/dpcli/FT-1c.report.json"
+  ],
+  "dont_touch": [
+    "packages/shared/ — мутаторы и схемы уже есть (FT-1a); нужна правка — «FT-1c contract: …»",
+    "apps/api/src/db/, apps/api/drizzle/, apps/api/src/sync/",
+    "apps/web/",
+    "docs/contracts/ — правит координатор",
+    "package.json, pnpm-lock.yaml",
+    ".claude/, CLAUDE.md"
+  ],
+  "accept": [
+    {
+      "name": "lint",
+      "cmd": "pnpm install --frozen-lockfile && pnpm exec eslint packages apps/api && pnpm exec prettier --check packages apps/api",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "testdb",
+      "cmd": "./dev.sh testdb",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm exec vitest run packages/shared/test/contract.test.ts apps/api/test/contract.schema.test.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "api_fields",
+      "cmd": "pnpm exec vitest run apps/api/test/rest apps/api/test/mcp -t 'fields:'",
+      "expect": "num:Tests\\s+(\\d+) passed >=6"
+    },
+    {
+      "name": "test",
+      "cmd": "pnpm test",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T09:29:07"
+}

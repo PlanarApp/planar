@@ -1,0 +1,52 @@
+{
+  "status": "done",
+  "summary": "GET /api/v1/projects/:id/fields, fields в PATCH задачи (task.setField по ключу в одной транзакции), MCP list_fields и fields в update_task; OpenAPI и docs/guides/mcp.md обновлены.",
+  "commits": [
+    "3b987d0 FT-1c: пользовательские поля в REST v1 и MCP"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "ok",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "ok",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "ok",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "ok",
+      "pass": true
+    },
+    {
+      "name": "api_fields",
+      "value": "7",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "ok",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept FT-1c",
+  "uncertain": [
+    {
+      "where": "apps/api/src/rest/rest.service.ts patchTask",
+      "why": "невалидный fieldId (не uuid) отсекается zod как 400; значение проверяет мутатор",
+      "checked": "тесты fields: на 400 для не-uuid, неверного значения, чужого проекта"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T09:37:39",
+  "by": "executor"
+}

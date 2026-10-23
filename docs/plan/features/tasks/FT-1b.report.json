@@ -1,0 +1,64 @@
+{
+  "status": "done",
+  "summary": "Блок «Поля» в карточке (7 типов), диалог настройки полей проекта, фильтры field:<id> в matchFilter/useTaskFilter/FilterBuilder.",
+  "commits": [
+    "FT-1b: пользовательские поля в интерфейсе, фильтры по полям"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "13",
+      "pass": true
+    },
+    {
+      "name": "fields_ui",
+      "value": "12",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "OptionsBar/FilterBuilder получили необязательный projectId, но экраны (вне скоупа) его не передают: конструктор показывает поля всех проектов пространства"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept FT-1b",
+  "uncertain": [
+    {
+      "where": "apps/web/src/views/saved/useFilter.ts",
+      "why": "пока fieldDefs грузятся, field:-правила пропускаются (мигание списка)",
+      "checked": "тест useTaskFilter ждёт появления defs"
+    },
+    {
+      "where": "apps/web/src/fields/FieldEditor.vue",
+      "why": "число/деньги — текстовый ввод (для запятой), commit по change/Enter",
+      "checked": "тесты 12,5 -> 1250"
+    }
+  ],
+  "dp_feedback": "Общий /tmp/r.json между исполнителями перезаписывается; в шаблоне отчёта указывать путь build/dpcli/<ID>.report.json.",
+  "t": "2026-10-23T09:42:03",
+  "by": "executor"
+}
