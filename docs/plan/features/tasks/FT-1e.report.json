@@ -1,0 +1,40 @@
+{
+  "status": "partial",
+  "summary": "PlanarDB: version(1) без fieldDefs/taskLinks, version(2) полная схема; buildSchema получил параметр skip. 2 теста dexie-v2.",
+  "commits": [
+    "59d469f FT-1e Dexie schema v2"
+  ],
+  "checks": [
+    {
+      "name": "dexie_v2",
+      "value": "2 passed",
+      "pass": true
+    },
+    {
+      "name": "lint/typecheck/size/test/testdb/core_test",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "e2e",
+      "value": "не запущен: порт 3300 занят контейнером planar-dev-api-1",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "e2e: Bind 0.0.0.0:3300 already allocated (planar-dev-api-1, чужой стек); нужен свободный порт или остановка dev-стека"
+  ],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept FT-1e",
+  "uncertain": [
+    {
+      "where": "accept e2e",
+      "why": "не выполнен из-за конфликта порта",
+      "checked": "изменение затрагивает только Dexie-схему, e2e её не меняет"
+    }
+  ],
+  "dp_feedback": "accept фиксирует порт 3300 в карточке; параллельные задачи/dev-стек конфликтуют, нужен уникальный порт на задачу.",
+  "t": "2026-10-23T10:57:57",
+  "by": "executor"
+}

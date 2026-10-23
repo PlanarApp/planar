@@ -75,11 +75,12 @@
     },
     {
       "name": "e2e",
-      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-ft9 API_PORT=3300 WEB_PORT=5319 DEV_PG_PORT=55519; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5319 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts features.spec.ts ui.spec.ts; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-ft1e API_PORT=3319 WEB_PORT=5319 DEV_PG_PORT=55519; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:5319 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts features.spec.ts ui.spec.ts; rc=$?; docker compose -f compose.dev.yml down -v; exit $rc",
       "expect": "num:(\\d+) passed >=22"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-23T10:51:12"
+  "created": "2026-10-23T10:51:12",
+  "edited": "2026-10-23T10:58:13"
 }
