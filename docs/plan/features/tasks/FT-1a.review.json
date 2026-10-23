@@ -1,0 +1,48 @@
+{
+  "verdict": "rework",
+  "summary": "Сущности, миграция, мутаторы и тесты в целом по контракту, приёмка подтверждается. Но в двух местах коды ошибок расходятся с C-mutators v3 / F-fields v1 (not_found вместо invalid_args), и тесты закрепляют это расхождение. Есть пробел контракта: project.delete при наличии fieldDefs.",
+  "issues": [
+    {
+      "file": "packages/shared/src/mutators/links.ts",
+      "line": 16,
+      "severity": "major",
+      "what": "link.create находит задачи через need(), который бросает not_found. Контракт (core-mutators.md, строка link.create) и заметка координатора требуют: «разные пространства или нет задачи → invalid_args». Тест links.test.ts ('links: разные пространства и нет задачи') проверяет not_found, то есть подогнан под код, а не под контракт.",
+      "fix": "Использовать tx.get и при отсутствии задачи бросать bad(...). В тесте ожидать invalid_args."
+    },
+    {
+      "file": "packages/shared/src/mutators/fields.ts",
+      "line": 40,
+      "severity": "major",
+      "what": "task.setField при несуществующем fieldId отвечает not_found (need), а F-fields «Инварианты» говорит: «Ключ без определения в проекте задачи не пишется (invalid_args)». task.update в этом же случае отвечает invalid_args (checkFields), так что поведение не согласовано. Тест 'fields: ключ без определения не пишется через setField' ожидает not_found.",
+      "fix": "Определение искать через tx.get('fieldDefs'), при отсутствии или другом projectId бросать bad(). Тест поправить на invalid_args. not_found для отсутствующей задачи можно оставить."
+    },
+    {
+      "file": "packages/shared/src/mutators/projects.ts",
+      "line": 54,
+      "severity": "major",
+      "what": "Вопрос к координатору, правка вне скоупа не нужна. У field_defs.project_id есть FK без каскада, а project.delete проверяет только наличие задач. Проект без задач, но с fieldDefs, на клиенте (MemoryTx/Dexie) удалится и оставит висящие fieldDefs, а на сервере упадёт на нарушении FK 23503. Получается расхождение клиента и сервера, и неясно, какой код ошибки уйдёт клиенту. В контракте project.delete fieldDefs не упомянуты, в uncertain этого нет.",
+      "fix": "Поднять через «FT-1a contract: …»: project.delete должен удалять fieldDefs проекта или давать conflict. После решения координатора реализовать и добавить тест."
+    },
+    {
+      "file": "apps/api/test/features/features.test.ts",
+      "line": 41,
+      "severity": "minor",
+      "what": "Тест называется «guest не может field.create и link.create», а проверяет только field.create.",
+      "fix": "Добавить проверку link.create от guest (forbidden) или убрать её из названия."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "links_tests",
+      "value": "7",
+      "pass": true
+    },
+    {
+      "name": "server_tests",
+      "value": "4",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-23T09:20:06",
+  "by": "reviewer"
+}

@@ -1,10 +1,35 @@
 {
-  "status": "partial",
-  "summary": "Сущности fieldDefs/taskLinks, fields.ts, мутаторы task.setField/field.*/link.*, правки task.update/delete, миграция 0006, тесты shared (16 fields, 7 links) и api (4 features). Два красных теста вне скоупа.",
+  "status": "done",
+  "summary": "fieldDefs/taskLinks, fields.ts, мутаторы, миграция 0006, тесты; accept --dry PASS.",
   "commits": [
     "13d34ea FT-1a: fieldDefs, taskLinks, мутаторы, миграция 0006"
   ],
   "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "testdb",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "mutators_doc",
+      "value": "mutators-ok 45",
+      "pass": true
+    },
     {
       "name": "fields_tests",
       "value": "16",
@@ -21,26 +46,12 @@
       "pass": true
     },
     {
-      "name": "mutators_doc",
-      "value": "mutators-ok 45",
+      "name": "test",
+      "value": "exit 0",
       "pass": true
-    },
-    {
-      "name": "contract.schema task_links",
-      "value": "unique (least, greatest)",
-      "pass": false
-    },
-    {
-      "name": "push-pull bootstrap",
-      "value": "нет fieldDefs/taskLinks в списке",
-      "pass": false
     }
   ],
-  "not_done": [
-    "contract.schema.test.ts: заметка core.md «уникально (least, greatest)» парсится как колонки least/greatest, у выражения-индекса cols пуст — тест не может пройти; нужна правка теста/заметки координатором",
-    "apps/api/test/sync/push-pull.test.ts (вне скоупа): список bootstrap-сущностей без fieldDefs и taskLinks — добавить 2 имени",
-    "lint: 58 ошибок в e2e/ (были до задачи), в моих файлах 0"
-  ],
+  "not_done": [],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept FT-1a",
   "uncertain": [
@@ -56,6 +67,6 @@
     }
   ],
   "dp_feedback": "",
-  "t": "2026-10-23T09:08:37",
+  "t": "2026-10-23T09:16:16",
   "by": "executor"
 }
