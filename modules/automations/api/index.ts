@@ -1,5 +1,6 @@
 import { Controller, Get, Inject, Module, Param, Query, Req } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
+import { generateKeyBetween } from 'fractional-indexing';
 import {
   CORE,
   HttpError,
@@ -257,8 +258,7 @@ async function toMutations(api: JobApi, rule: Rule, task: FilterTask, statuses: 
             parentId: task.id,
             statusId: (first('todo') ?? first('backlog') ?? statuses[0])!.id,
             title: a.title,
-            // shortcut: хвост 'V' даёт ранг после последнего, цепочка растёт; перебалансировка — при rankBetween в клиенте
-            rank: last?.r ? `${last.r as string}V` : 'a0',
+            rank: generateKeyBetween((last?.r as string | null) ?? null, null),
           },
         });
         break;
