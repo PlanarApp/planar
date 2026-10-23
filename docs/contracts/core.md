@@ -5,7 +5,7 @@ module: core
 updated: 2026-10-22
 summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 related: ["docs/plan/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-schema", "version": 4}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 1}, {"id": "C-http", "version": 5}]
+contracts: [{"id": "C-schema", "version": 4}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 5}]
 ---
 
 # Контракты модуля core
@@ -487,7 +487,7 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Мутаторы домена v2
 Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
-## C-modules v1
+## C-modules v2
 
 Модуль — каталог `modules/<id>/` (`id` — `^[a-z][a-z0-9-]{1,30}$`):
 - `shared/index.ts` — `export const shared: SharedModuleManifest = { id, mutators: MutatorDef[], entities: Record<string, {schema: ZodObject, meta: EntityMeta}> }` (без Node API; сущности — по правилам C-schema, имена с префиксом id модуля в camelCase);
@@ -495,6 +495,8 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 - `web/index.ts` — `export const web: FrontendModuleManifest = { id, routes?, views?, taskPanels?, commands?, fieldTypes?, settings? }`; типы элементов задаёт web (C-ui).
 
 `EntityMeta` = строка сущности из C-schema: `{scope, write, bootstrap: boolean, indexes: string[]}`; встроенные — `ENTITIES`.
+
+HTTP-маршруты модуля — только под `/api/<id>/` (по префиксу их находит guard включения). Реестр api-модулей — `apps/api/src/modules/installed.ts` (строка на модуль); пакет модуля — `@planar/module-<id>` в workspace. Сущности модуля в `Tx` — через приведение имени к `EntityName` (типы `Tx` знают только ядро).
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
