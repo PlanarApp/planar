@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { pushPayloadSchema, uuidv7 } from '@planar/shared';
 import * as schema from '../../src/db/schema.js';
@@ -11,6 +11,8 @@ const db = newDb();
 const sender = { send: vi.fn(async () => {}) } satisfies PushSender;
 // worker выключен: проверяем, что job лежит в очереди; доставку зовём вручную
 const queue = new PushQueue(db, { boss: true, worker: false, databaseUrl: dbUrl, sender });
+// pg-boss ставит схему при первом старте: под нагрузкой дольше таймаута теста
+beforeAll(() => queue.onModuleInit(), 90_000);
 afterAll(async () => {
   await queue.onApplicationShutdown();
   await db.$client.end();
