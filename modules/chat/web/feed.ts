@@ -75,5 +75,13 @@ export function useFeed(channelId: string) {
     }
     return messages.value.some((m) => m.id === id);
   }
-  return { messages, reactions, loadOlder, ensure, loading, hasMore, ready: computed(() => !!local.value) };
+  return {
+    messages,
+    reactions,
+    loadOlder,
+    ensure,
+    loading,
+    hasMore,
+    ready: computed(() => !!local.value),
+  };
 }
