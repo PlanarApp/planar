@@ -11,7 +11,7 @@ const ts = z.iso.datetime();
 const uuid = z.uuid();
 const bad = (m: string) => new MutatorError('invalid_args', m);
 
-const fieldRef = z.string().regex(/^field:[0-9a-f-]{36}$/);
+const fieldRef = z.templateLiteral(['field:', z.uuid()]);
 
 export const TRIGGER_TYPES = [
   'task.created',

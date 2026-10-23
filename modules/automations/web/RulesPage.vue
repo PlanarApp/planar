@@ -132,8 +132,7 @@ const pickerKey = (a: Action) =>
   (a.type === 'move_to_project' ? 'projectId' : null);
 const setValue = (i: number, raw: string) => {
   const a = draft.value!.actions[i] as Extract<Action, { type: 'set_field' }>;
-  a.value =
-    a.field === 'priority' ? Number(raw) : raw === '' && a.field !== 'priority' ? null : raw;
+  a.value = a.field === 'priority' ? Number(raw) : raw === '' ? null : raw;
 };
 </script>
 

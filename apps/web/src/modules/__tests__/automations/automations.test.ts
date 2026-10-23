@@ -115,7 +115,7 @@ describe('wk3: страница правил', () => {
     await w.get('[data-role=new]').trigger('click');
     await w.get('[data-role=name]').setValue('Без текста'); // add_comment с пустым text
     await w.get('[data-testid=editor]').trigger('submit');
-    expect(w.get('[data-role=error]').exists()).toBe(true);
+    expect(w.find('[data-role=error]').exists()).toBe(true);
     expect(mutate).not.toHaveBeenCalled();
   });
 
@@ -169,7 +169,10 @@ describe('wk3: условия', () => {
   it('wk3: смена поля сбрасывает оператор и значение; «пусто» без значения', async () => {
     const w = mount(ConditionsEditor, {
       props: {
-        modelValue: { op: 'and', rules: [{ field: 'priority', operator: 'in', value: ['1'] }] },
+        modelValue: {
+          op: 'and',
+          rules: [{ field: 'priority', operator: 'in', value: ['1'] }],
+        } as never,
         'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v as never }),
       },
     });
