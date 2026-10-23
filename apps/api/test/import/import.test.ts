@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
-import { api as importApi, rankAt } from '@planar/module-import/api';
+import { api as importApi, rankAt, succRank } from '@planar/module-import/api';
 import { parseCsv } from '../../../../modules/import/api/csv.js';
 import { parseDate, parsePriority } from '../../../../modules/import/api/parse.js';
 import { createApp } from '../../src/app.js';
@@ -12,7 +12,7 @@ import type { JobApi } from '../../src/modules/hooks.js';
 import { executeMutations } from '../../src/sync/mutate.js';
 import { ORIGIN, createUser, loginCookie } from '../auth.js';
 import { testDb, testDbUrl } from '../db.js';
-import { key, world, type World } from '../sync/helpers.js';
+import { key, taskArgs, world, type World } from '../sync/helpers.js';
 
 const db = testDb();
 const fx = (n: string) => readFileSync(join(__dirname, '../../../../e2e/fixtures/import', n));
@@ -539,5 +539,25 @@ describe('wk6: импорт', () => {
     expect(job.created).toBe(0);
     expect(job.skipped).toHaveLength(1);
     expect(await tasks(p)).toHaveLength(0);
+  });
+
+  it('wk6: ранги новых задач — после существующих задач статуса', async () => {
+    expect([
+      succRank(null),
+      succRank('a0'),
+      succRank('a5V'),
+      succRank('aZ'),
+      succRank('b0Z'),
+    ]).toEqual(['a0', 'a1', 'a6', 'b00', 'b10']);
+    const p = await project();
+    const a = taskArgs(w, { projectId: p, statusId: w.statusIds[4], rank: 'a5' });
+    await w.admin.ok('task.create', a);
+    await doImport(p, Buffer.from('Title,S\nN1,x\nN2,x\nN3,x\n'), 'csv', 'custom', {
+      title: 'Title',
+      status: 'S',
+      statusMap: { x: w.statusIds[4]! },
+    });
+    const ranks = (await tasks(p)).filter((t) => t.id !== a.id).map((t) => t.rank as string);
+    expect(ranks.sort()).toEqual(['a6', 'a7', 'a8']);
   });
 });

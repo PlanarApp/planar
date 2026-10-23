@@ -164,7 +164,7 @@ const DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 /**
  * Ключ fractional-indexing «a0, a1, …, aZ, b00, …» по номеру: возрастает с номером и остаётся допустимым для клиента.
- * shortcut: ранги не учитывают уже имеющиеся задачи статуса (могут совпасть с ними), порядок внутри статуса — по id; когда понадобится — брать последний rank из БД.
+ * Для чек-листа (внутри новой задачи).
  */
 export function rankAt(i: number): string {
   for (let len = 1, base = 0; ; len++) {
@@ -177,6 +177,28 @@ export function rankAt(i: number): string {
     }
     base += span;
   }
+}
+
+/**
+ * Ключ сразу после `last` (как generateKeyBetween(last, null) для целой части ключа fractional-indexing).
+ * shortcut: головы A–Z и переполнение z не разбираются — тогда `last` + 'V' (допустимый ключ, больше last).
+ */
+export function succRank(last: string | null): string {
+  if (!last) return 'a0';
+  const head = last.charCodeAt(0) - 97;
+  if (head < 0 || head > 24) return last + 'V';
+  const n = head + 2;
+  const ip = last.slice(0, n).split('');
+  for (let k = n - 1; k >= 1; k--) {
+    const d = DIGITS.indexOf(ip[k]!);
+    if (d < 61) {
+      ip[k] = DIGITS[d + 1]!;
+      return ip.join('');
+    }
+    ip[k] = '0';
+  }
+  // перенос в голову: aZ → b00
+  return String.fromCharCode(last.charCodeAt(0) + 1) + '0'.repeat(n);
 }
 
 const docOf = (text: string) => ({
@@ -295,7 +317,19 @@ async function runImport(jobId: string, api: JobApi) {
     // id задач заранее; повтор externalId в файле — обновление первой
     const taskOf = new Map(known);
     const fresh = new Set<string>(); // externalId, созданные этим запуском
-    let seq = 0;
+    // последний ключ по статусу: новые задачи встают после существующих
+    const lastRank = new Map<string, string | null>();
+    const nextRank = async (statusId: string) => {
+      if (!lastRank.has(statusId)) {
+        const r = await q<{ m: string | null }>(
+          sql`select max(rank collate "C") as m from tasks where status_id = ${statusId}`,
+        );
+        lastRank.set(statusId, r[0]?.m ?? null);
+      }
+      const k = succRank(lastRank.get(statusId)!);
+      lastRank.set(statusId, k);
+      return k;
+    };
 
     const buildRow = async (
       it: Item,
@@ -386,15 +420,16 @@ async function runImport(jobId: string, api: JobApi) {
         };
       }
       const id = uuidv7();
+      const createStatus = statusId ?? defaultStatus;
       const muts: Mut[] = [
         {
           name: 'task.create',
           args: {
             id,
             projectId: job!.projectId,
-            statusId: statusId ?? defaultStatus,
+            statusId: createStatus,
             title,
-            rank: rankAt(seq++),
+            rank: await nextRank(createStatus),
             parentId,
             description,
             priority: it.priority,
