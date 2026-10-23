@@ -6,6 +6,7 @@ import { api } from '../api/http';
 import { uploadFile } from '../api/files';
 import { useAuth, type User } from '../auth/useAuth';
 import { errText } from '../auth/errText';
+import TokensSection from './profile/TokensSection.vue';
 import { setLocale, type Locale } from '../i18n';
 
 const { t, locale } = useI18n();
@@ -122,6 +123,7 @@ const themes = () => [
         @update:model-value="(v) => setLocale(v as Locale)"
       />
     </div>
+    <TokensSection />
     <p v-if="msg" role="status" class="text-sm text-fg-muted">{{ msg }}</p>
   </div>
 </template>
