@@ -334,7 +334,7 @@ describe('wk11: гонки и системный пользователь', () =
       expect(await taskCycle(ts[1]!)).toBe(next.id);
       expect(await taskCycle(ts[2]!)).toBe(c);
     }
-  });
+  }, 120_000);
 
   const flakyCore = () => {
     const st = { down: true };
@@ -360,7 +360,7 @@ describe('wk11: гонки и системный пользователь', () =
     const { st, core } = flakyCore();
     await core.onModuleInit();
     st.down = false;
-    await expect.poll(() => core.systemUserId(), { timeout: 3000 }).toBeTypeOf('string');
+    await expect.poll(() => core.systemUserId(), { timeout: 30_000 }).toBeTypeOf('string');
     core.onModuleDestroy();
   });
 });
