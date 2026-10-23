@@ -2,10 +2,21 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Download, Languages, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-vue-next';
+import {
+  Bell,
+  Download,
+  Languages,
+  LogOut,
+  Monitor,
+  Moon,
+  Settings,
+  Sun,
+  User,
+} from 'lucide-vue-next';
 import { Avatar, Button, Menu, useTheme, type MenuItem } from '../ui';
 import { setLocale } from '../i18n';
 import { useAuth } from '../auth/useAuth';
+import { useUnread } from '../inbox/queries';
 
 const { t, locale } = useI18n();
 const route = useRoute();
@@ -13,6 +24,7 @@ const router = useRouter();
 const { theme } = useTheme();
 const { logout, user } = useAuth();
 const notice = ref('');
+const unread = useUnread();
 
 interface InstallEvent extends Event {
   prompt: () => Promise<void>;
@@ -91,6 +103,19 @@ const items = (): MenuItem[] => [
     <Button v-if="installEvent" size="sm" :icon="Download" @click="install">
       {{ t('topbar.install') }}
     </Button>
+    <RouterLink
+      to="/inbox"
+      :aria-label="t('topbar.notifications')"
+      class="relative flex size-11 items-center justify-center rounded-full outline-none focus-visible:ring-2 ring-focus md:size-8"
+    >
+      <Bell :size="18" />
+      <span
+        v-if="unread"
+        data-testid="bell-count"
+        class="absolute right-0 top-0 min-w-4 rounded-full bg-accent px-1 text-center text-xs text-accent-fg"
+        >{{ unread }}</span
+      >
+    </RouterLink>
     <Menu :items="items()">
       <template #trigger>
         <button
