@@ -230,6 +230,8 @@ export interface EntityMeta {
   write: string;
   bootstrap: boolean;
   indexes: string[];
+  /** scope 'space|members' (C-sync v2): участники контейнера строки без spaceId */
+  members?: { entity: string; key: string; container: string; via: string };
 }
 
 export const ENTITIES = {

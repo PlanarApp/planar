@@ -101,3 +101,10 @@ describe('wk10:', () => {
       expect(sdk, k).toHaveProperty(k);
   });
 });
+
+describe('wk14:', () => {
+  it('wk14: SDK экспортирует Editor, uploadFile, api, ApiError, onMutationError, useSearch', () => {
+    for (const k of ['Editor', 'uploadFile', 'api', 'ApiError', 'onMutationError', 'useSearch'])
+      expect(sdk, k).toHaveProperty(k);
+  });
+});
