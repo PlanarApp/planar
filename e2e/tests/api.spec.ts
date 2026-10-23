@@ -48,6 +48,8 @@ test('admin создаёт приватное пространство, прое
       memberId: uuidv7(),
       statusIds,
     }),
+    // метка нужна сиду --tasks: он раскладывает задачи по всем проектам, в т.ч. оставшимся от e2e
+    admin.mut('label.create', { id: uuidv7(), spaceId, name: 'e2e', color: '#3b82f6' }),
     admin.mut('project.create', { id: projectId, spaceId, name: 'E2E', key: 'E2E', rank: r2 }),
     admin.mut('task.create', {
       id: taskId,
@@ -168,7 +170,12 @@ test('отклонённая мутация даёт ok:false и не блоки
   ]);
   expect(bad).toMatchObject({ ok: false, code: 'invalid_args' });
   expect(good!.ok).toBe(true);
-  const r = await alice.ctx.post('/sync/push', { data: { clientId: c.clientId, mutations: [] } });
+  const r = await alice.ctx.post('/sync/push', {
+    data: {
+      clientId: c.clientId,
+      mutations: [{ id: 1, name: 'task.update', args: { id: taskId } }],
+    },
+  });
   expect(r.status()).toBe(403);
 });
 
