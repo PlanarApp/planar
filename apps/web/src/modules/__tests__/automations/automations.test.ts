@@ -1,10 +1,9 @@
 import 'fake-indexeddb/auto';
 import { mount } from '@vue/test-utils';
-import { ref } from 'vue';
+import { defineComponent, h as vh, ref } from 'vue';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import type { PlanarDB } from '../../../sync/db';
-import ConditionsEditor from '../../../../../../modules/automations/web/ConditionsEditor.vue';
 import RulesPage from '../../../../../../modules/automations/web/RulesPage.vue';
 import { fetchRuns } from '../../../../../../modules/automations/web/data';
 import * as shared from '../../../../../../modules/automations/shared/index';
@@ -26,6 +25,31 @@ vi.mock('../../../tasks', () => ({
   useMembers: () => ref([]),
   useLabels: () => ref([]),
 }));
+
+// настоящий FilterBuilder тянет всё ядро; здесь проверяем только связку с конструктором
+const FB = defineComponent({
+  name: 'FilterBuilder',
+  props: ['modelValue', 'projectId'],
+  emits: ['update:modelValue'],
+  setup:
+    (p, { emit }) =>
+    () =>
+      vh(
+        'button',
+        {
+          'data-role': 'add-condition',
+          'data-project': p.projectId,
+          type: 'button',
+          onClick: () =>
+            emit('update:modelValue', {
+              ...p.modelValue,
+              rules: [{ field: 'cycle', operator: 'in', value: ['current'] }],
+            }),
+        },
+        'fb',
+      ),
+});
+const stubs = { global: { stubs: { FilterBuilder: FB } } };
 
 const T = '2026-10-20T10:00:00.000Z';
 const ruleRow = (over: Record<string, unknown> = {}) => ({
@@ -53,7 +77,7 @@ beforeEach(async () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('wk3: схемы', () => {
-  it('wk3: trigger/action/filter — верные принимаются, send_webhook и мусор нет', () => {
+  it('wk3: trigger/action/filter — верные принимаются, send_webhook и мусор', () => {
     const ok = (s: { safeParse(v: unknown): { success: boolean } }, v: unknown) =>
       s.safeParse(v).success;
     expect(ok(shared.triggerSchema, { type: 'task.due', daysBefore: 30 })).toBe(true);
@@ -63,7 +87,8 @@ describe('wk3: схемы', () => {
       true,
     );
     expect(ok(shared.actionSchema, { type: 'set_field', field: 'priority', value: 7 })).toBe(false);
-    expect(ok(shared.actionSchema, { type: 'send_webhook', subscriptionId: uuidv7() })).toBe(false);
+    expect(ok(shared.actionSchema, { type: 'send_webhook', subscriptionId: uuidv7() })).toBe(true);
+    expect(ok(shared.actionSchema, { type: 'send_webhook', subscriptionId: 'x' })).toBe(false);
     expect(ok(shared.filterSchema, { op: 'and', rules: [] })).toBe(true);
     expect(ok(shared.filterSchema, { op: 'and', rules: [{ field: 'nope', operator: 'in' }] })).toBe(
       false,
@@ -87,14 +112,13 @@ describe('wk3: страница правил', () => {
   });
 
   it('wk3: конструктор — создаёт правило (триггер, условие, действие)', async () => {
-    const w = mount(RulesPage);
+    const w = mount(RulesPage, stubs);
     await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
     await w.get('[data-role=new]').trigger('click');
     await w.get('[data-role=name]').setValue('Срок');
     await w.get('[data-role=trigger]').setValue('task.due');
     await w.get('[data-role=days-before]').setValue('2');
     await w.get('[data-role=add-condition]').trigger('click');
-    await w.get('[data-role=value]').setValue('3, 4');
     await w.get('[data-role=action-type]').setValue('create_subtask');
     await w.get('[data-role=action-text]').setValue('Проверить');
     await w.get('[data-testid=editor]').trigger('submit');
@@ -104,13 +128,13 @@ describe('wk3: страница правил', () => {
       name: 'Срок',
       enabled: true,
       trigger: { type: 'task.due', daysBefore: 2 },
-      conditions: { op: 'and', rules: [{ field: 'priority', operator: 'in', value: ['3', '4'] }] },
+      conditions: { op: 'and', rules: [{ field: 'cycle', operator: 'in', value: ['current'] }] },
       actions: [{ type: 'create_subtask', title: 'Проверить' }],
     });
   });
 
   it('wk3: неверное правило не уходит на сервер', async () => {
-    const w = mount(RulesPage);
+    const w = mount(RulesPage, stubs);
     await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
     await w.get('[data-role=new]').trigger('click');
     await w.get('[data-role=name]').setValue('Без текста'); // add_comment с пустым text
@@ -165,20 +189,30 @@ describe('wk3: страница правил', () => {
   });
 });
 
-describe('wk3: условия', () => {
-  it('wk3: смена поля сбрасывает оператор и значение; «пусто» без значения', async () => {
-    const w = mount(ConditionsEditor, {
-      props: {
-        modelValue: {
-          op: 'and',
-          rules: [{ field: 'priority', operator: 'in', value: ['1'] }],
-        } as never,
-        'onUpdate:modelValue': (v: unknown) => w.setProps({ modelValue: v as never }),
-      },
+describe('wk3b: конструктор', () => {
+  it('wk3b: условия — FilterBuilder SDK с проектом правила', async () => {
+    const w = mount(RulesPage, stubs);
+    await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
+    await w.get('[data-role=new]').trigger('click');
+    expect(w.findComponent(FB).props('projectId')).toBe(P);
+    await w.get('[data-role=add-condition]').trigger('click');
+    expect(w.findComponent(FB).props('modelValue')).toMatchObject({
+      rules: [{ field: 'cycle', value: ['current'] }],
     });
-    await w.get('[data-role=field]').setValue('assignee');
-    expect(w.get('[data-role=operator]').element.querySelectorAll('option')).toHaveLength(4);
-    await w.get('[data-role=operator]').setValue('isEmpty');
-    expect(w.find('[data-role=value]').exists()).toBe(false);
+  });
+
+  it('wk3b: действие send_webhook — создаётся с subscriptionId', async () => {
+    const sub = uuidv7();
+    const w = mount(RulesPage, stubs);
+    await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
+    await w.get('[data-role=new]').trigger('click');
+    await w.get('[data-role=name]').setValue('Хук');
+    await w.get('[data-role=action-type]').setValue('send_webhook');
+    await w.get('[data-role=action-text]').setValue(sub);
+    await w.get('[data-testid=editor]').trigger('submit');
+    expect(mutate).toHaveBeenCalledWith(
+      'automations.create',
+      expect.objectContaining({ actions: [{ type: 'send_webhook', subscriptionId: sub }] }),
+    );
   });
 });

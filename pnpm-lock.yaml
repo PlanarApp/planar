@@ -393,6 +393,9 @@ importers:
       '@nestjs/common':
         specifier: ^11.2.7
         version: 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@planar/module-webhooks':
+        specifier: workspace:*
+        version: link:../webhooks
       '@planar/server-kit':
         specifier: workspace:*
         version: link:../../packages/server-kit

@@ -106,6 +106,7 @@ export const actionSchema = z.union([
   z.object({ type: z.literal('add_comment'), text: z.string().min(1).max(5000) }),
   z.object({ type: z.literal('move_to_project'), projectId: uuid, statusId: uuid.optional() }),
   z.object({ type: z.literal('create_subtask'), title: z.string().min(1).max(500) }),
+  z.object({ type: z.literal('send_webhook'), subscriptionId: uuid }),
 ]);
 export type Action = z.infer<typeof actionSchema>;
 

@@ -364,6 +364,7 @@ describe('wk4: события из хука', () => {
     expect(all.find((e) => e.event === 'comment.created')!.payload.comment).toMatchObject({
       taskId: t.id,
       text: 'привет',
+      createdAt: expect.stringMatching(/^\d{4}-\d\d-\d\dT/),
       authorId: w.admin.userId,
     });
     expect(all.find((e) => e.event === 'task.deleted')!.payload).toEqual({
