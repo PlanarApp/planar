@@ -14,6 +14,8 @@ import { AuthGuard } from './auth/auth.guard.js';
 import type { Db } from './db/index.js';
 import { FILES_OPTS, FilesController, type FilesOpts } from './files/files.controller.js';
 import { HealthController } from './health.controller.js';
+import { ModuleGuard, ModulesController } from './modules/module.guard.js';
+import { installed } from './modules/installed.js';
 import { syncControllers, syncProviders } from './sync/sync.module.js';
 import { DB } from './tokens.js';
 
@@ -34,12 +36,14 @@ export class AppModule implements OnApplicationShutdown {
   ): DynamicModule {
     return {
       module: AppModule,
+      imports: installed.map((m) => m.api.nestModule as Type),
       controllers: [
         HealthController,
         AuthController,
         SetupController,
         UsersController,
         FilesController,
+        ModulesController,
         ...syncControllers,
         ...extraControllers,
       ],
@@ -48,6 +52,7 @@ export class AppModule implements OnApplicationShutdown {
         { provide: AUTH_OPTS, useValue: auth },
         { provide: FILES_OPTS, useValue: files },
         { provide: APP_GUARD, useClass: AuthGuard },
+        { provide: APP_GUARD, useClass: ModuleGuard },
         ...syncProviders,
       ],
     };

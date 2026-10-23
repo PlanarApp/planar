@@ -54,7 +54,7 @@ export class PullService {
         .select({ max: sql<string>`coalesce(max(${changes.seq}), 0)` })
         .from(changes);
       const data: SyncBootstrap['data'] = {};
-      for (const [name, meta] of Object.entries(visibleEntities())) {
+      for (const [name, meta] of Object.entries(await visibleEntities(tx))) {
         if (!meta.bootstrap) continue;
         const t = tableOf(name as EntityName);
         const c = getTableColumns(t);
@@ -91,6 +91,7 @@ export class PullService {
       const reset = { ...head, changes: [], reset: true };
       if (cursor > head.cursor || (min !== null && cursor < Number(min) - 1)) return reset;
 
+      const visible = Object.keys(await visibleEntities(tx));
       const rows = await tx
         .select()
         .from(changes)
@@ -102,7 +103,7 @@ export class PullService {
               eq(changes.userId, userId),
               and(isNull(changes.spaceId), isNull(changes.userId)),
             ),
-            inArray(changes.entity, [...Object.keys(visibleEntities()), '_reset']),
+            inArray(changes.entity, [...visible, '_reset']),
           ),
         )
         .orderBy(asc(changes.seq))
