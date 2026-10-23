@@ -1,0 +1,62 @@
+{
+  "status": "done",
+  "summary": "Вид calendar: месяц/неделя, DnD дат одной updateTask, колонка «Без даты», mobile-список по дням; даты без toISOString.",
+  "commits": [
+    "ac1a982 FT-3: вид Календарь"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "tz_east",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "tz_west",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept FT-3",
+  "uncertain": [
+    {
+      "where": "apps/web/src/views/calendar/View.vue",
+      "why": "DnD проверен только синтетическими событиями jsdom, не в браузере; стили без визуальной проверки",
+      "checked": "тесты dragstart/drop на сетке и боковой колонке"
+    },
+    {
+      "where": "apps/web/src/views/calendar/View.vue",
+      "why": "фильтр через useTaskFilter (обёртка над matchFilter) и showSubtasks, как в board",
+      "checked": "эквивалент localToday()+matchFilter"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T09:05:09",
+  "by": "executor"
+}

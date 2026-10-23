@@ -1,0 +1,61 @@
+{
+  "status": "partial",
+  "summary": "Сущности fieldDefs/taskLinks, fields.ts, мутаторы task.setField/field.*/link.*, правки task.update/delete, миграция 0006, тесты shared (16 fields, 7 links) и api (4 features). Два красных теста вне скоупа.",
+  "commits": [
+    "13d34ea FT-1a: fieldDefs, taskLinks, мутаторы, миграция 0006"
+  ],
+  "checks": [
+    {
+      "name": "fields_tests",
+      "value": "16",
+      "pass": true
+    },
+    {
+      "name": "links_tests",
+      "value": "7",
+      "pass": true
+    },
+    {
+      "name": "server_tests",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "mutators_doc",
+      "value": "mutators-ok 45",
+      "pass": true
+    },
+    {
+      "name": "contract.schema task_links",
+      "value": "unique (least, greatest)",
+      "pass": false
+    },
+    {
+      "name": "push-pull bootstrap",
+      "value": "нет fieldDefs/taskLinks в списке",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "contract.schema.test.ts: заметка core.md «уникально (least, greatest)» парсится как колонки least/greatest, у выражения-индекса cols пуст — тест не может пройти; нужна правка теста/заметки координатором",
+    "apps/api/test/sync/push-pull.test.ts (вне скоупа): список bootstrap-сущностей без fieldDefs и taskLinks — добавить 2 имени",
+    "lint: 58 ошибок в e2e/ (были до задачи), в моих файлах 0"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept FT-1a",
+  "uncertain": [
+    {
+      "where": "apps/web/src/sync/db.ts",
+      "why": "Dexie version(1): новые таблицы могут не открыться у существующей реплики",
+      "checked": "не трогал (WB-18)"
+    },
+    {
+      "where": "packages/shared/src/mutators/fields.ts",
+      "why": "task.setField.value объявлен z.json() (z.unknown() даёт optional и валит check-mutators)",
+      "checked": "check-mutators ok"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-23T09:08:37",
+  "by": "executor"
+}
