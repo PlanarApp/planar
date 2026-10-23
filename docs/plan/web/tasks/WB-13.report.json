@@ -1,9 +1,10 @@
 {
   "status": "done",
-  "summary": "Начальный gzip 186.1 -> 136.8 КБ. Доработка: alias vue-i18n -> lite.ts добавлен в vitest.config.ts (тесты идут на lite), тест-сторож src/i18n/__tests__/syntax.test.ts (ловит '|', '@:', {n, plural}, %{} в ru/en), i18n-lite = 4 теста.",
+  "summary": "Бандл 136.8 КБ. По ревью: сторож дополнен (ключи ru==en, поиск в src не-lite API: useI18n сверх t/te/locale, i18n.global.*, $t/$tc/$d/$n, i18n-t, v-t, плюраль t(k, n)); комментарий в vite.config.ts исправлен; коммиты отчёта исправлены.",
   "commits": [
-    "61a50d5 push-sw: формат C-http v5 и безопасный переход",
-    "b97660c web: WB-13 vitest на lite-i18n, тест-сторож"
+    "7c8f5a1 web: WB-13 бандл 186.1 -> 136.8 КБ",
+    "b97660c vitest на lite-i18n, сторож синтаксиса",
+    "aa52b30 сторож: ключи ru==en, поиск неподдержанного API; комментарий alias"
   ],
   "checks": [
     {
@@ -18,7 +19,7 @@
     },
     {
       "name": "i18n-lite",
-      "value": "4",
+      "value": "6",
       "pass": true
     },
     {
@@ -73,6 +74,6 @@
     }
   ],
   "dp_feedback": "",
-  "t": "2026-10-23T02:32:29",
+  "t": "2026-10-23T02:38:30",
   "by": "executor"
 }

@@ -29,7 +29,9 @@
     "apps/web/src/session.ts",
     "apps/web/src/layout/",
     "apps/web/scripts/",
-    "apps/web/vitest.config.ts"
+    "apps/web/vitest.config.ts",
+    "apps/web/src/inbox/",
+    "apps/web/src/command/"
   ],
   "dont_touch": [
     "контрактные тесты в apps/web/src/__contract__ не править",
@@ -88,10 +90,15 @@
       "name": "i18n-lite",
       "cmd": "pnpm --filter web exec vitest run src/i18n",
       "expect": "num:Tests\\s+(\\d+) passed >=3"
+    },
+    {
+      "name": "precache",
+      "cmd": "pnpm --filter web build >/dev/null && node -e \"const fs=require('fs');const d='apps/web/dist';const sw=fs.readFileSync(d+'/sw.js','utf8');const js=fs.readdirSync(d+'/assets').filter(f=>f.endsWith('.js'));const miss=js.filter(f=>!sw.includes('assets/'+f));console.log('chunks '+js.length+' missing '+miss.length+' '+miss.join(','));process.exit(miss.length?1:0)\"",
+      "expect": "exit=0"
     }
   ],
   "report_extra": [],
   "notes": "",
   "created": "2026-10-23T02:05:01",
-  "edited": "2026-10-23T02:21:03"
+  "edited": "2026-10-23T02:45:24"
 }
