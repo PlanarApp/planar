@@ -50,6 +50,13 @@
       "when": 1792746194430,
       "tag": "0006_lowly_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792755630010,
+      "tag": "0007_brown_lilith",
+      "breakpoints": true
     }
   ]
 }
