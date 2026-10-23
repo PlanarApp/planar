@@ -29,7 +29,8 @@ export type HttpError = z.infer<typeof httpErrorSchema>;
 export const pushPayloadSchema = z.object({
   title: z.string().min(1),
   body: z.string(),
-  url: z.string().startsWith('/'),
+  // только путь приложения: '/x', не '//host' и не '/\\host' (иначе SW откроет чужой сайт)
+  url: z.string().regex(/^\/(?![/\\])/),
   tag: z.uuid(),
   kind: z.enum(['assigned', 'mentioned', 'commented', 'status_changed']),
 });
