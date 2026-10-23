@@ -2,10 +2,10 @@
 type: contract
 status: active
 module: core
-updated: 2026-10-22
+updated: 2026-10-23
 summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
 related: ["docs/plan/core.md", "docs/roadmap.md"]
-contracts: [{"id": "C-schema", "version": 5}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 2}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 7}]
+contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 3}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 8}]
 ---
 
 # Контракты модуля core
@@ -21,7 +21,9 @@ contracts: [{"id": "C-schema", "version": 5}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v5
+## C-schema v6
+
+v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 
 ### Общие правила
 - БД — snake_case, TS и провод — camelCase (Drizzle `casing: 'snake_case'`). Имя поля на проводе = имя свойства Drizzle; колонка = snake_case от него (`spaceId` → `space_id`).
@@ -157,7 +159,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, 
 | `startDate` | date? | |
 | `createdBy` | uuid | |
 | `completedAt` | ts? | ставит мутатор при переходе в категорию done/cancelled, снимает при выходе |
-| `fields` | obj | пользовательские поля (FT-1), по умолчанию `{}` |
+| `fields` | obj | `{<fieldDefs.id>: значение}` — поля проекта задачи, без `null`; формат — features.md §F-fields; по умолчанию `{}` |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
@@ -206,6 +208,34 @@ scope: space · write: member · bootstrap: yes · indexes: taskId, labelId
 | `spaceId` | uuid | |
 | `taskId` | uuid | |
 | `labelId` | uuid | |
+| `createdAt` | ts | |
+
+#### fieldDefs
+scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId
+
+| поле | тип | примечание |
+|---|---|---|
+| `id` | uuid | ключ значения в `tasks.fields` |
+| `spaceId` | uuid | = `projects.spaceId` |
+| `projectId` | uuid | поле принадлежит проекту |
+| `name` | text | 1–100 |
+| `type` | enum(text,number,date,select,user,url,money) | неизменяем после создания |
+| `options` | obj | по типу (features.md §F-fields) |
+| `rank` | rank | порядок полей в карточке и колонок по умолчанию |
+| `createdAt` | ts | |
+| `updatedAt` | ts | |
+
+#### taskLinks
+scope: space · write: member · bootstrap: yes · indexes: taskId, targetId
+
+| поле | тип | примечание |
+|---|---|---|
+| `id` | uuid | одна строка на пару: уникально (least, greatest) от (taskId, targetId) → `conflict` |
+| `spaceId` | uuid | обе задачи — этого пространства |
+| `taskId` | uuid | `blocks`: taskId блокирует targetId; `duplicates`: taskId — дубликат |
+| `targetId` | uuid | ≠ `taskId` |
+| `kind` | enum(blocks,relates,duplicates) | обратная сторона — features.md §F-links |
+| `createdBy` | uuid | = ctx.userId |
 | `createdAt` | ts | |
 
 #### checklistItems
@@ -446,7 +476,9 @@ scope: global · write: instance_admin · bootstrap: yes · indexes: —
 ### Клиент (для web)
 Применяет `changes` по `seq`; `reset` → bootstrap. После pull отбрасывает из очереди мутации с `id ≤ lastMutationId`, остальные заново применяет поверх серверного состояния (rebase). Повтор push при сетевой ошибке и `5xx` — с ростом паузы 1–30 с; `401` — на вход.
 
-## C-mutators v2
+## C-mutators v3
+
+v3 (FT): `field.*`, `task.setField`, `link.*` (core-mutators.md).
 
 Код — `packages/shared/src/contract/mutator.ts` (типы и регистрация), домен — `packages/shared/src/mutators/` (CR-5). Без Node API: тот же код идёт в браузер.
 
@@ -501,7 +533,9 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v7
+## C-http v8
+
+v8 (FT): поля в REST v1 и MCP (core-api-v1.md).
 
 ### Пути и окружение
 - `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11). В dev Vite проксирует их на api, в prod — Caddy.

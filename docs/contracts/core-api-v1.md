@@ -3,11 +3,11 @@ type: reference
 status: active
 module: core
 updated: 2026-10-23
-summary: API-токены, Bearer, REST /api/v1 и MCP /mcp — часть C-http v7 (docs/contracts/core.md); примеры проверяет контрактный тест
+summary: API-токены, Bearer, REST /api/v1 и MCP /mcp — часть C-http v8 (docs/contracts/core.md); примеры проверяет контрактный тест
 related: ["docs/contracts/core.md", "docs/contracts/core-mutators.md"]
 ---
 
-# API v1: токены, REST, MCP (часть C-http v7)
+# API v1: токены, REST, MCP (часть C-http v8)
 
 Версия — заголовок `## C-http vN` в `docs/contracts/core.md`. Блоки ` ```json example=…/bad=… ` этого файла проверяет `packages/shared/test/contract.test.ts` по `contractSchemas`.
 
@@ -43,10 +43,11 @@ related: ["docs/contracts/core.md", "docs/contracts/core-mutators.md"]
 |---|---|
 | `GET /api/v1/spaces` | → список пространств пользователя |
 | `GET /api/v1/projects?spaceId=` | → список проектов (видимых) |
+| `GET /api/v1/projects/:id/fields` | → `{data: fieldDefs[]}` по `rank` (без пагинации); проект невидим → 404 |
 | `GET /api/v1/tasks?projectId=&statusId=&assigneeId=&updatedAfter=` | → список задач; `assigneeId=me` — текущий пользователь |
 | `GET /api/v1/tasks/:task` | → задача; невидима → 404 |
 | `POST /api/v1/tasks` | `{projectId, title, statusId?, description?: string, priority?, dueDate?, assigneeIds?, labelIds?, parentId?}` → `201` задача; `statusId` по умолчанию — первый по `rank` статус категории `todo`, иначе `backlog`; `description` — текст через `textToDoc` |
-| `PATCH /api/v1/tasks/:task` | `{title?, statusId?, priority?, dueDate?, startDate?, description?: string\|null, assigneeIds?, labelIds?, parentId?}` → задача; `assigneeIds`/`labelIds` — полная замена списка |
+| `PATCH /api/v1/tasks/:task` | `{title?, statusId?, priority?, dueDate?, startDate?, description?: string\|null, assigneeIds?, labelIds?, parentId?, fields?: {<fieldId>: value \| null}}` → задача; `assigneeIds`/`labelIds` — полная замена списка; `fields` — по ключу через `task.setField` (`null` — убрать), остальные ключи задачи не меняются |
 | `GET /api/v1/tasks/:task/comments` | → список комментариев задачи (по `createdAt` возр.) |
 | `POST /api/v1/tasks/:task/comments` | `{text}` → `201` комментарий; `text` — через `textToDoc` (`@login` → упоминание) |
 
@@ -61,6 +62,6 @@ related: ["docs/contracts/core.md", "docs/contracts/core-mutators.md"]
 ## MCP `/mcp` (CR-11)
 - Streamable HTTP (`@modelcontextprotocol/sdk`), без сессий MCP на сервере (stateless: каждый POST — свой транспорт). Вход — только Bearer-токен; без него → `401`.
 - Инструменты (входы — zod, выход — `content: [{type:'text', text: JSON}]`, компактный JSON тех же форм, что REST v1, без `description`-документов целиком: `description` → текст):
-  - чтение: `list_spaces {}`, `list_projects {spaceId?}`, `search_tasks {query?, projectId?, statusId?, assigneeId?, limit?}` (поиск по `title` и `key`, без учёта регистра), `get_task {task}` (id или key, с комментариями), `my_tasks {includeDone?: bool}` (назначенные мне; по умолчанию без done/cancelled);
-  - запись (нужен `write`): `create_task` (как `POST /api/v1/tasks`), `update_task {task, …}` (как `PATCH`), `add_comment {task, text}`.
+  - чтение: `list_spaces {}`, `list_projects {spaceId?}`, `search_tasks {query?, projectId?, statusId?, assigneeId?, limit?}` (поиск по `title` и `key`, без учёта регистра), `get_task {task}` (id или key, с комментариями), `my_tasks {includeDone?: bool}` (назначенные мне; по умолчанию без done/cancelled), `list_fields {projectId}` (определения полей проекта, как REST `GET /api/v1/projects/:id/fields`);
+  - запись (нужен `write`): `create_task` (как `POST /api/v1/tasks`), `update_task {task, …, fields?}` (как `PATCH`, включая `fields`), `add_comment {task, text}`.
 - Ошибки прав и данных — результат инструмента с `isError: true` и текстом `{code, message}` (коды C-http), не HTTP 500. `read`-токен на запись → `isError`, `code: 'forbidden'`.

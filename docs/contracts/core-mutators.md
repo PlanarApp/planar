@@ -3,13 +3,13 @@ type: reference
 status: active
 module: core
 updated: 2026-10-23
-summary: Мутаторы домена C-mutators v2 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
+summary: Мутаторы домена C-mutators v3 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---
 
 # Мутаторы домена (C-mutators, docs/contracts/core.md)
 
-### Мутаторы домена v2 (CR-5; web вызывает по имени)
+### Мутаторы домена v3 (CR-5, FT; web вызывает по имени)
 Все id и `rank` — в args. `?` — необязательный аргумент (`.optional()`; `null` допустим там, где поле строки nullable). Экспорт — `domainMutators: MutatorDef[]` из `@planar/shared`; `args` — `z.object`. Сверка с таблицей — `packages/shared/test/check-mutators.ts`.
 
 | имя | args | правила |
@@ -30,14 +30,20 @@ related: ["docs/contracts/core.md"]
 | `label.update` | `id, name?, color?` | |
 | `label.delete` | `id` | удаляет `taskLabels` метки |
 | `task.create` | `id, projectId, statusId, title, rank, parentId?, description?, priority?, dueDate?, startDate?, assignees?: {id, userId}[], labels?: {id, labelId}[]` | `spaceId` — из проекта; `number = null`; `priority` по умолчанию 0; `fields = {}` |
-| `task.update` | `id, title?, description?, statusId?, priority?, rank?, dueDate?, startDate?, projectId?, parentId?, fields?` | `completedAt` по категории статуса; `projectId` другого пространства → `invalid_args`; `parentId` — не сама задача и не её потомок |
-| `task.delete` | `id` | рекурсивно подзадачи; затем исполнители, наблюдатели, метки, чек-лист, вложения, реакции, комментарии |
+| `task.update` | `id, title?, description?, statusId?, priority?, rank?, dueDate?, startDate?, projectId?, parentId?, fields?` | `completedAt` по категории статуса; `projectId` другого пространства → `invalid_args`; `parentId` — не сама задача и не её потомок; `fields` — полная замена, каждый ключ — поле проекта задачи, значение по типу (features.md §F-fields), иначе `invalid_args`; смена `projectId` без `fields` → `fields = {}` |
+| `task.delete` | `id` | рекурсивно подзадачи; затем исполнители, наблюдатели, метки, чек-лист, вложения, реакции, комментарии; связи `taskLinks` с taskId или targetId = задача (у каждой удаляемой подзадачи тоже) |
 | `task.assign` | `id, taskId, userId` | уже назначен — ничего |
 | `task.unassign` | `taskId, userId` | |
 | `task.watch` | `id, taskId` | userId = ctx.userId |
 | `task.unwatch` | `taskId` | только себя |
 | `task.addLabel` | `id, taskId, labelId` | метка того же пространства |
 | `task.removeLabel` | `taskId, labelId` | |
+| `task.setField` | `taskId, fieldId, value` | `value: unknown`; поле — проекта задачи, иначе `invalid_args`; `null` — убрать ключ; иначе значение по типу (features.md §F-fields), `user` — строка `users` есть; меняет один ключ `fields` (остальные не трогает) |
+| `field.create` | `id, projectId, name, type, options?, rank` | `spaceId` — из проекта; `options` по типу (по умолчанию: `select` — `{choices: []}`, `money` — `{currency: 'RUB'}`, иначе `{}`), неверные → `invalid_args` |
+| `field.update` | `id, name?, options?, rank?` | `type` не меняется; у `select` убранные `choices` — значения с ними удаляются из `fields` задач проекта |
+| `field.delete` | `id` | удаляет ключ из `fields` всех задач проекта (scan `projectId`), затем определение |
+| `link.create` | `id, taskId, targetId, kind` | `taskId = targetId` → `invalid_args`; задачи разных пространств или нет задачи → `invalid_args`; пара уже связана (в любом направлении, любым `kind`) → `conflict`; `spaceId` — из задачи, `createdBy = ctx.userId` |
+| `link.delete` | `id` | нет строки — ничего |
 | `checklist.add` | `id, taskId, text, rank` | |
 | `checklist.update` | `id, text?, done?, rank?` | |
 | `checklist.delete` | `id` | |
@@ -54,5 +60,5 @@ related: ["docs/contracts/core.md"]
 | `view.delete` | `id` | |
 | `settings.set` | `id, value` | |
 
-Вспомогательное (shared): `extractMentions(doc): string[]`, `textToDoc(text, users): doc` (абзацы, `@login` → mention; для REST и MCP).
+Вспомогательное (shared): `fieldValueSchema(def)`, `defaultFieldOptions(type)`, `fieldOptionsSchema(type)` (features.md §F-fields), `extractMentions(doc): string[]`, `textToDoc(text, users): doc` (абзацы, `@login` → mention; для REST и MCP).
 
