@@ -18,6 +18,9 @@ mkdir -p build
 ./dev.sh reset || exit 1
 wait_health "$API_PORT" || exit 1
 ./dev.sh seed --tasks 10000 || exit 1
+if [ -n "${PERF_MODULES:-}" ]; then # модули collab: PERF_MODULES=docs,chat
+  E2E_BASE_URL="http://localhost:$WEB_PORT" pnpm --filter @planar/e2e exec tsx web/perf/modules.ts "$PERF_MODULES" || exit 1
+fi
 docker compose -f compose.dev.yml stop web || exit 1
 pnpm --filter @planar/web build || exit 1
 cd apps/web
@@ -26,4 +29,4 @@ API_PROXY_TARGET="http://localhost:$API_PORT" setsid node_modules/.bin/vite prev
 PREVIEW_PID=$! # setsid-лидер группы; bin — сам node, без обёртки pnpm (иначе потомок уходит в свою группу)
 cd ../..
 wait_health "$WEB_PORT" || exit 1
-E2E_BASE_URL="http://localhost:$WEB_PORT" timeout 540 pnpm --filter @planar/e2e exec playwright test -c web/perf/playwright.config.ts
+E2E_BASE_URL="http://localhost:$WEB_PORT" timeout "${PERF_TIMEOUT:-540}" pnpm --filter @planar/e2e exec playwright test -c web/perf/playwright.config.ts
