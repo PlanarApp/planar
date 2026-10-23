@@ -1,3 +1,4 @@
+import { contractSchemas } from '@planar/shared';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { sessions, users } from '../../src/db/schema.js';
@@ -69,7 +70,8 @@ describe('login / logout', () => {
     const r = await req('POST', '/api/auth/login', { body: { login: 1 }, origin: null });
     expect(r.statusCode).toBe(400);
     expect(r.json().code).toBe('invalid_request');
-    expect(r.json().details.issues).toBeDefined();
+    expect(Array.isArray(r.json().details)).toBe(true);
+    expect(contractSchemas['http.error'].safeParse(r.json()).success).toBe(true);
   });
 });
 

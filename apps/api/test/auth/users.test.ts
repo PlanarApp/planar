@@ -143,6 +143,19 @@ describe('PATCH /api/users/:id', () => {
   });
 });
 
+describe('смена пароля и сессии', () => {
+  it('себе: чужие сессии удалены, текущая жива; админом чужому: все удалены', async () => {
+    const { u, cookie } = await as('member');
+    const other = await loginCookie(db, u.id);
+    expect((await patch(cookie, u.id, { password: 'newpassword1' })).statusCode).toBe(200);
+    expect((await req('GET', '/api/auth/me', { cookie })).statusCode).toBe(200);
+    expect((await req('GET', '/api/auth/me', { cookie: other })).statusCode).toBe(401);
+    const admin = await as('admin');
+    expect((await patch(admin.cookie, u.id, { password: 'another-pass1' })).statusCode).toBe(200);
+    expect(await db.select().from(sessions).where(eq(sessions.userId, u.id))).toHaveLength(0);
+  });
+});
+
 describe('changes', () => {
   it('создание и правка пишут users в changes без password_hash', async () => {
     const { cookie } = await as('admin');

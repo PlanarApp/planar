@@ -1,10 +1,11 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, Patch, Post, Req } from '@nestjs/common';
 import { z } from 'zod';
-import { getAuth } from '../auth/auth.js';
+import { getAuth, readCookie } from '../auth/auth.js';
 import { publicUser } from '../auth/auth.controller.js';
 import { HttpError } from '../auth/errors.js';
 import { hashPassword } from '../auth/password.js';
-import { deleteUserSessions } from '../auth/sessions.js';
+import { SESSION_COOKIE, deleteOtherSessions, deleteUserSessions } from '../auth/sessions.js';
+import type { FastifyRequest } from 'fastify';
 import { parseBody } from '../auth/validate.js';
 import type { Db } from '../db/index.js';
 import { DB } from '../tokens.js';
@@ -93,6 +94,11 @@ export class UsersController {
       }),
     );
     if (p.deactivated) await deleteUserSessions(this.db, id);
+    else if (p.password !== undefined) {
+      // себе — все сессии, кроме текущей; чужому — все
+      const keep = self ? readCookie((req as FastifyRequest).headers.cookie, SESSION_COOKIE) : null;
+      await deleteOtherSessions(this.db, id, keep);
+    }
     return { user: publicUser(row) };
   }
 }
