@@ -254,6 +254,7 @@ const panelComponent = computed(() => {
           :label="t('task.description')"
           :placeholder="t('task.descriptionPlaceholder')"
           image
+          @attach="(fs) => attachments?.addFiles(fs)"
           @update:model-value="onDescription"
           @blur="flush"
         />

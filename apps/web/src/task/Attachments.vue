@@ -5,7 +5,7 @@ import { Paperclip, X } from 'lucide-vue-next';
 import { ApiError } from '../api/http';
 import { mutate, newId } from '../sync';
 import { Button } from '../ui';
-import { uploadFile } from './files';
+import { uploadFile } from '../api/files';
 import { useAttachments } from './queries';
 
 const props = defineProps<{ taskId: string }>();

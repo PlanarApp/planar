@@ -45,3 +45,14 @@ export const useSubtasks = (taskId: string) =>
       .sort(byStr((x) => x.rank))
       .map((r) => ({ ...r, key: `${keys.get(r.projectId) ?? '?'}-${r.number ?? '…'}` }));
   });
+
+/** реакции на все комментарии задачи одним запросом */
+export const useReactions = (taskId: string) =>
+  useQuery(async () => {
+    const ids = (await byTask<Row<'comments'>>('comments', taskId)).map((c) => c.id);
+    return db
+      .table<Row<'commentReactions'>>('commentReactions')
+      .where('commentId')
+      .anyOf(ids)
+      .toArray();
+  });

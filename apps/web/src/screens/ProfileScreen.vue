@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Avatar, Button, Input, Select, useTheme } from '../ui';
 import { api } from '../api/http';
+import { uploadFile } from '../api/files';
 import { useAuth, type User } from '../auth/useAuth';
 import { errText } from '../auth/errText';
 import { setLocale, type Locale } from '../i18n';
@@ -27,9 +28,7 @@ async function setAvatar(e: Event) {
   if (!file) return;
   err.avatar = '';
   try {
-    const fd = new FormData();
-    fd.append('file', file);
-    await patch({ avatarFile: (await api<{ sha256: string }>('POST', '/files', fd)).sha256 });
+    await patch({ avatarFile: (await uploadFile(file)).sha256 });
   } catch (e) {
     err.avatar = errText(e, t);
   }
