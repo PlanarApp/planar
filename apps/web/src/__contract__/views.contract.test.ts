@@ -12,7 +12,7 @@ const doc = readFileSync(
 );
 const part = doc.split(/^## C-views v\d+\s*$/m)[1] ?? '';
 const table = part.split(/^### /m).find((s) => s.startsWith('Экспорты')) ?? '';
-const rows = [...table.matchAll(/^\| `(\w+)` \| ([^|]+) \|/gm)];
+const rows = [...table.matchAll(/^\| `(\w+)` \| ((?:\\\||[^|])+) \|/gm)];
 const values = rows.filter((r) => !r[2].trim().startsWith('тип')).map((r) => r[1]);
 
 describe('C-views: экспорты', () => {
