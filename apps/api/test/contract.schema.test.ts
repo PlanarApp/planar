@@ -1,5 +1,6 @@
 // Контрактный тест C-schema: схема БД после миграций = docs/contracts/core.md.
 // Правит только координатор модуля core.
+import { readdirSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { docEntities, docServerTables, snake } from '../../../packages/shared/test/contract-doc.js';
 import { testDb } from './db.js';
@@ -119,8 +120,15 @@ describe('contract schema', () => {
       ...docEntities.map((e) => snake(e.name)),
       ...docServerTables.map((t) => t.name),
     ]);
+    // таблицы модулей (C-modules): префикс <moduleId>_ каталога modules/<id>
+    const modulePrefixes = readdirSync(new URL('../../../modules', import.meta.url), {
+      withFileTypes: true,
+    })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name.replace(/-/g, '_') + '_');
     const extra = [...new Set(cols.map((c) => c.table_name))].filter(
-      (t) => !known.has(t) && !t.startsWith('__drizzle'),
+      (t) =>
+        !known.has(t) && !t.startsWith('__drizzle') && !modulePrefixes.some((p) => t.startsWith(p)),
     );
     expect(extra).toEqual([]);
   });
