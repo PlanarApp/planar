@@ -9,6 +9,7 @@ const S = {
   create: { ru: 'Создать', en: 'Create' },
   empty: { ru: 'Выберите канал или диалог', en: 'Pick a channel or conversation' },
   noMessages: { ru: 'Сообщений пока нет', en: 'No messages yet' },
+  msgNotFound: { ru: 'Сообщение не найдено', en: 'Message not found' },
   loading: { ru: 'Загрузка…', en: 'Loading…' },
   back: { ru: 'Назад', en: 'Back' },
   message: { ru: 'Сообщение', en: 'Message' },

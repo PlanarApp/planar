@@ -15,6 +15,7 @@ const props = defineProps<{
   me: string;
   readSeq: number;
   members: { id: string; name: string }[];
+  messageId?: string;
 }>();
 const tx = useTexts();
 const feed = useFeed(props.channel.id);
@@ -48,11 +49,33 @@ const onScroll = () => {
   if (el) stick = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
 };
 const positioned = ref(false);
+const hl = ref('');
+const notFound = ref(false);
+let hlTimer: ReturnType<typeof setTimeout> | undefined;
+async function jump(id: string) {
+  notFound.value = false;
+  if (!(await feed.ensure(id))) {
+    notFound.value = true;
+    return toEnd();
+  }
+  await nextTick();
+  const i = messages.value.findIndex((m) => m.id === id);
+  if (i < 0) return;
+  virt.value.scrollToIndex(i, { align: 'center' });
+  hl.value = id;
+  clearTimeout(hlTimer);
+  hlTimer = setTimeout(() => (hl.value = ''), 3000);
+}
 onMounted(async () => {
   await feed.loadOlder();
-  await toEnd();
+  if (props.messageId) await jump(props.messageId);
+  else await toEnd();
   positioned.value = true;
 });
+watch(
+  () => props.messageId,
+  (id) => id && positioned.value && void jump(id),
+);
 watch(
   messages,
   (cur, prev) => {
@@ -104,7 +127,7 @@ watch(
     else timer = setTimeout(flush, wait);
   },
 );
-onBeforeUnmount(() => clearTimeout(timer));
+onBeforeUnmount(() => (clearTimeout(timer), clearTimeout(hlTimer)));
 
 const typing = useTyping(props.channel.id, () => props.me);
 const typingText = computed(() => {
@@ -124,6 +147,9 @@ const typingText = computed(() => {
       <p v-else-if="!messages.length && positioned" class="p-4 text-center text-sm text-fg-muted">
         {{ tx('noMessages') }}
       </p>
+      <p v-if="notFound" class="p-2 text-center text-xs text-fg-muted" data-testid="chat-not-found">
+        {{ tx('msgNotFound') }}
+      </p>
       <div :style="{ height: total + 'px', position: 'relative' }">
         <div
           v-for="vi in items"
@@ -140,6 +166,7 @@ const typingText = computed(() => {
             :users="users"
             :me="me"
             :members="members"
+            :highlight="hl === messages[vi.index]!.id"
           />
         </div>
       </div>

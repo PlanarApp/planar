@@ -67,5 +67,21 @@ export function useFeed(channelId: string) {
       loading.value = false;
     }
   }
-  return { messages, reactions, loadOlder, loading, hasMore, ready: computed(() => !!local.value) };
+  /** Есть ли сообщение в ленте; нет — догружаем историю страницами (≤ maxPages). */
+  async function ensure(id: string, maxPages = 20): Promise<boolean> {
+    for (let i = 0; i < maxPages; i++) {
+      if (messages.value.some((m) => m.id === id)) return true;
+      if (!hasMore.value || !(await loadOlder())) break;
+    }
+    return messages.value.some((m) => m.id === id);
+  }
+  return {
+    messages,
+    reactions,
+    loadOlder,
+    ensure,
+    loading,
+    hasMore,
+    ready: computed(() => !!local.value),
+  };
 }
