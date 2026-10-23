@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
 import { createDb } from './db/index.js';
+import type { PushOpts } from './push/push.js';
 import { ErrorFilter } from './error.filter.js';
 
 export interface AppOptions {
@@ -16,6 +17,8 @@ export interface AppOptions {
   dataDir?: string;
   /** лимит загрузки, МБ (MAX_UPLOAD_MB) */
   maxUploadMb?: number;
+  /** pg-boss и Web Push; в тестах без настроек очередь выключена */
+  push?: Partial<Omit<PushOpts, 'databaseUrl'>>;
   /** только тесты: дополнительные контроллеры */
   extraControllers?: Type[];
   /** опции pino Fastify; false — без логов (тесты) */
@@ -30,6 +33,7 @@ export async function createApp(opts: AppOptions): Promise<NestFastifyApplicatio
       db,
       { publicUrl: opts.publicUrl, cookieSecure: opts.cookieSecure ?? false },
       { dataDir: opts.dataDir ?? './data', maxUploadMb: opts.maxUploadMb ?? 50 },
+      { boss: false, ...opts.push, databaseUrl: opts.databaseUrl },
       opts.extraControllers,
     ),
     new FastifyAdapter({ logger: opts.logger ?? false, bodyLimit: 1024 * 1024 }),
