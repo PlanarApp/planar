@@ -24,6 +24,7 @@ import {
 import { Button, Dialog, Input, useBreakpoint } from '../../ui';
 import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
+import { useBlockedIds } from '../../links';
 import Row from './Row.vue';
 
 const props = defineProps<ViewProps>();
@@ -32,6 +33,7 @@ const { isMobile } = useBreakpoint();
 const sel = useSelection();
 
 const project = useProject(() => props.projectId);
+const blocked = useBlockedIds(() => props.projectId);
 const spaceId = computed(() => project.value?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
 const members = useMembers(spaceId);
@@ -286,6 +288,7 @@ watch(
               :focused="focusedId === it.id"
               :editing="editing === it.id"
               :fields="options.fields"
+              :blocked="blocked.has(it.task.id)"
               @click="onRowClick(it, $event)"
               @toggle="sel.toggle(it.task.id)"
               @edit="startEdit(it.id)"

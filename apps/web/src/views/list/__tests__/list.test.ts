@@ -5,6 +5,7 @@ import { createI18n } from 'vue-i18n';
 import { domainMutators } from '@planar/shared';
 import en from '../../../i18n/en';
 import ru from '../../../i18n/ru';
+import { linkTasks } from '../../../links';
 import { db, registerMutators, startSync, stopSync } from '../../../sync';
 import { AssigneePicker, PriorityPicker, StatusPicker } from '../../../tasks';
 import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
@@ -342,3 +343,21 @@ describe('list:virtual', () => {
     expect(w.findAll('[role=row]').length).toBeLessThan(200);
   });
 }, 30000);
+
+describe('list:links', () => {
+  it('links-ui: Список показывает BlockedIcon только у заблокированной', async () => {
+    const [a, b] = [task(1), task(2)];
+    await db.table('tasks').bulkPut([a, b]);
+    await linkTasks(a.id, b.id, 'blocks');
+    await show();
+    await until(
+      () => w.find(`[data-task="PLN-2"] [aria-label="Заблокирована"]`).exists() || undefined,
+    );
+    expect(row('PLN-1').find('[aria-label="Заблокирована"]').exists()).toBe(false);
+  });
+  it('links-ui: без связей иконки нет', async () => {
+    await db.table('tasks').put(task(1));
+    await show();
+    expect(w.find('[aria-label="Заблокирована"]').exists()).toBe(false);
+  });
+});

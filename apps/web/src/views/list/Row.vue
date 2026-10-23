@@ -12,6 +12,7 @@ import {
   updateTask,
   type TaskView,
 } from '../../tasks';
+import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 
 const props = defineProps<{
@@ -22,6 +23,7 @@ const props = defineProps<{
   focused: boolean;
   editing: boolean;
   fields: TaskField[];
+  blocked: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -102,7 +104,10 @@ function save() {
         @keydown.esc.stop.prevent="((live = false), emit('done'))"
         @blur="save"
       />
-      <span v-else class="block truncate">{{ task.title }}</span>
+      <span v-else class="flex items-center gap-1">
+        <BlockedIcon v-if="blocked" />
+        <span class="truncate">{{ task.title }}</span>
+      </span>
     </div>
     <div v-if="fields.includes('labels')" role="gridcell" class="shrink-0" @click.stop>
       <LabelPicker
