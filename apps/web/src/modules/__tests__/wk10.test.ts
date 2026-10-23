@@ -11,13 +11,13 @@ import * as sprints from '../../../../../modules/sprints/shared/index';
 afterEach(stopAll);
 
 describe('wk10:', () => {
-  it('wk10: Dexie содержит таблицы сущностей модулей (sprintsCycles, timeEntries если модуль наполнен)', async () => {
+  it('wk10: Dexie содержит таблицы сущностей модулей (sprintsCycles, timeEntries)', async () => {
     const db = new PlanarDB('wk10-' + uuidv7(), moduleIndexes([sprints.shared, time.shared]));
     await db.open();
     const names = db.tables.map((t) => t.name);
     expect(names).toContain('sprintsCycles');
     expect(names).toContain('sprintsSettings');
-    for (const e of Object.keys(time.shared.entities)) expect(names).toContain(e);
+    expect(names).toContain('timeEntries');
     expect(names).toContain('tasks');
     await db.delete();
   });

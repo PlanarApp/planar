@@ -1,16 +1,13 @@
 // Единственная точка контакта модуля с ядром web: реплика, мутации, пользователь, язык.
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { useAuth } from '../../../apps/web/src/auth/useAuth';
-import { i18n } from '../../../apps/web/src/i18n';
-import { useWeekStart } from '../../../apps/web/src/i18n/week';
-import { db, mutate, newId, useQuery } from '../../../apps/web/src/sync';
+import { db, i18n, mutate, newId, useQuery, useSession, useWeekStart } from '@planar/web/modules';
 import type { TimeEntry, TimeEstimate } from '../shared/index.js';
 import type { TaskNode } from './lib.js';
 
 export { mutate, newId, useWeekStart };
 export type TaskLite = TaskNode & { title: string };
 
-export const userId = () => useAuth().user.value?.id ?? '';
+export const userId = () => useSession().value?.id ?? '';
 
 /** Свои записи (включая идущую). */
 export const useMyEntries = () =>
