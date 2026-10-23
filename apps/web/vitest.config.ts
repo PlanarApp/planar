@@ -8,6 +8,8 @@ export default defineConfig({
     conditions: ['source'],
     // node-окружение тестов не видит условие `source`
     alias: {
+      // как в проде (vite.config.ts): тесты идут на той же реализации i18n
+      'vue-i18n': fileURLToPath(new URL('./src/i18n/lite.ts', import.meta.url)),
       '@planar/shared': fileURLToPath(
         new URL('../../packages/shared/src/index.ts', import.meta.url),
       ),
