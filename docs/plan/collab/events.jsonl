@@ -133,3 +133,5 @@
 {"t": "2026-10-23T17:39:51", "by": "coordinator", "task": "CL-2", "ev": "accepted", "note": "по отчёту; web-all 517/518 — флак, повтор 519/519; не сделано: прокрутка к :messageId"}
 {"t": "2026-10-23T17:41:17", "by": "coordinator", "task": "CL-6b", "ev": "checked", "note": "7/7 docs-web=ok:21; web-all=ok:494/494; sdk-only=ok:exit 0; no-wildcard=ok:exit 0; size=ok:149; build=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-23T17:41:25", "by": "coordinator", "task": "CL-6b", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-23T17:41:33", "by": "coordinator", "task": "CL-6b", "ev": "merged", "note": "1b0ef67"}
+{"t": "2026-10-23T17:41:34", "by": "coordinator", "task": "CL-2", "ev": "merged", "note": "8271977"}
