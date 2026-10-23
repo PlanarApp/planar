@@ -522,8 +522,9 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Мутаторы домена v2
 Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
-## C-modules v6
+## C-modules v7
 
+v7: перечень SDK (sendTyping/onTyping с C-sync v2) — work-api.md.
 v3–v6 (work, владелец C-modules): хуки, server-kit, SDK, настройки, правки collab — work.md, work-api.md.
 
 Модуль — каталог `modules/<id>/` (`id` — `^[a-z][a-z0-9-]{1,30}$`):
