@@ -162,6 +162,7 @@ export const task = (n: number, over: Record<string, unknown> = {}) => ({
   createdBy: ids.ann,
   completedAt: null,
   fields: {},
+  cycleId: null,
   createdAt: T,
   updatedAt: T,
   ...over,

@@ -342,6 +342,7 @@ describe('sync:perf', () => {
         createdBy: uuidv7(),
         completedAt: null,
         fields: {},
+        cycleId: null,
         createdAt: NOW,
         updatedAt: NOW,
       };

@@ -79,6 +79,7 @@ export const entitySchemas = {
     createdBy: uuid,
     completedAt: ts.nullable(),
     fields: z.record(z.string(), z.unknown()),
+    cycleId: uuid.nullable(),
     createdAt: ts,
     updatedAt: ts,
   }),
@@ -241,7 +242,7 @@ export const ENTITIES = {
     scope: 'space',
     write: 'member',
     bootstrap: true,
-    indexes: ['spaceId', 'projectId', 'parentId', 'statusId'],
+    indexes: ['spaceId', 'projectId', 'parentId', 'statusId', 'cycleId'],
   },
   taskAssignees: {
     scope: 'space',

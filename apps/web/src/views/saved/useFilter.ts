@@ -3,7 +3,8 @@ import type { Row } from '@planar/shared';
 import { useFieldDefsByIds } from '../../fields';
 import { useAuth } from '../../auth/useAuth';
 import type { TaskView } from '../../tasks';
-import { localToday, matchFilter, type Filter } from '../filter';
+import { db, useQuery } from '../../sync';
+import { localToday, matchFilter, type Filter, type FilterCtx } from '../filter';
 
 /** Предикат «задача проходит фильтр вида» для list/board. */
 export function useTaskFilter(
@@ -20,6 +21,12 @@ export function useTaskFilter(
       ),
     ].join(','),
   );
+  // таблицу sprintsCycles добавляет модуль sprints; без неё cycles не передаются
+  const cycles = useQuery(() =>
+    db.tables.some((t) => t.name === 'sprintsCycles')
+      ? (db.table('sprintsCycles').toArray() as Promise<NonNullable<FilterCtx['cycles']>>)
+      : undefined,
+  );
   return computed(() => {
     const f = toValue(filter);
     if (!f?.rules.length) return () => true;
@@ -31,6 +38,7 @@ export function useTaskFilter(
       userId: user.value?.id ?? '',
       today: localToday(),
       fieldDefs: defs.value,
+      cycles: cycles.value,
     };
     return (t: TaskView) => matchFilter(t, f, ctx);
   });

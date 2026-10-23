@@ -62,7 +62,7 @@ export async function updateUser(
 }
 
 /** Запись строки провода в changes; вызывать внутри транзакции. */
-async function publish(q: Q, actorId: string, row: UserRow) {
+export async function publish(q: Q, actorId: string, row: UserRow) {
   const tx = ServerTx.asSystem(q, { userId: actorId });
   await tx.put('users', toWire('users', row) as never, { passwordHash: row.passwordHash });
   await tx.finish();
