@@ -3,15 +3,68 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Plus, X } from 'lucide-vue-next';
 import { AssigneePicker, DueDatePicker, LabelPicker, useStatuses } from '../../tasks';
+import { useFieldDefs, useSpaceFieldDefs } from '../../fields';
 import { Button, Input } from '../../ui';
-import { FIELD_OPERATORS, type Filter, type FilterField, type FilterRule } from '../filter';
+import {
+  FIELD_OPERATORS,
+  isFieldRule,
+  operatorsFor,
+  type Filter,
+  type FilterField,
+  type FilterRule,
+} from '../filter';
 
-const props = defineProps<{ spaceId: string }>();
+const props = defineProps<{ spaceId: string; projectId?: string }>();
 const model = defineModel<Filter>({ required: true });
 const { t } = useI18n();
 const statuses = useStatuses(() => props.spaceId);
 
-const fields = Object.keys(FIELD_OPERATORS) as FilterField[];
+// поля проекта (или всех проектов пространства, если проект не задан)
+const defsByProject = useFieldDefs(() => props.projectId ?? '');
+const defsBySpace = useSpaceFieldDefs(() => props.spaceId);
+const defs = computed(() => (props.projectId ? defsByProject : defsBySpace).value ?? []);
+const fields = computed<FilterField[]>(() => [
+  ...(Object.keys(FIELD_OPERATORS) as FilterField[]),
+  ...defs.value.map((d) => `field:${d.id}` as const),
+]);
+const fieldLabel = (f: FilterField) =>
+  isFieldRule(f)
+    ? (defs.value.find((d) => d.id === f.slice(6))?.name ?? '—')
+    : t(`views.filter.fields.${f}`);
+const ops = (f: FilterField) => operatorsFor(f, defs.value);
+/** Вид ввода значения: базовое поле или тип пользовательского. */
+function kind(r: FilterRule): string {
+  if (!isFieldRule(r.field)) return r.field;
+  const d = defs.value.find((x) => x.id === (r.field as string).slice(6));
+  return d
+    ? (
+        {
+          select: 'fselect',
+          user: 'assignee',
+          date: 'dueDate',
+          number: 'num',
+          money: 'num',
+          text: 'title',
+          url: 'title',
+        } as const
+      )[d.type]
+    : 'title';
+}
+const defOf = (r: FilterRule) => defs.value.find((x) => x.id === (r.field as string).slice(6));
+const choices = (r: FilterRule) =>
+  ((defOf(r)?.options.choices as { id: string; label: string }[]) ?? []).map((c) => ({
+    v: c.id,
+    l: c.label,
+  }));
+const isMoney = (r: FilterRule) => defOf(r)?.type === 'money';
+const showNum = (r: FilterRule) =>
+  typeof r.value === 'number' ? String(isMoney(r) ? r.value / 100 : r.value) : '';
+function setNum(i: number, r: FilterRule, v: string) {
+  const x = Number(v.replace(',', '.'));
+  patch(i, {
+    value: v.trim() && Number.isFinite(x) ? (isMoney(r) ? Math.round(x * 100) : x) : undefined,
+  });
+}
 const CATEGORIES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'];
 const selectClass =
   'h-11 md:h-8 rounded-md border border-border-strong bg-bg px-2 text-base text-fg outline-none focus-visible:ring-2 ring-focus';
@@ -22,9 +75,7 @@ const patch = (i: number, p: Partial<FilterRule>) =>
   setRules(rules.value.map((r, j) => (j === i ? { ...r, ...p } : r)));
 
 function setField(i: number, field: FilterField) {
-  setRules(
-    rules.value.map((r, j) => (j === i ? { field, operator: FIELD_OPERATORS[field][0] } : r)),
-  );
+  setRules(rules.value.map((r, j) => (j === i ? { field, operator: ops(field)[0] } : r)));
 }
 // смена оператора сбрасывает значение
 const setOperator = (i: number, operator: FilterRule['operator']) =>
@@ -78,7 +129,7 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
         :value="r.field"
         @change="setField(i, ($event.target as HTMLSelectElement).value as FilterField)"
       >
-        <option v-for="f in fields" :key="f" :value="f">{{ t(`views.filter.fields.${f}`) }}</option>
+        <option v-for="f in fields" :key="f" :value="f">{{ fieldLabel(f) }}</option>
       </select>
       <select
         :class="selectClass"
@@ -89,24 +140,26 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
           setOperator(i, ($event.target as HTMLSelectElement).value as FilterRule['operator'])
         "
       >
-        <option v-for="o in FIELD_OPERATORS[r.field]" :key="o" :value="o">
+        <option v-for="o in ops(r.field)" :key="o" :value="o">
           {{ t(`views.filter.ops.${o}`) }}
         </option>
       </select>
 
       <template v-if="hasValue(r)">
         <div
-          v-if="r.field === 'status' || r.field === 'statusCategory' || r.field === 'priority'"
+          v-if="['status', 'statusCategory', 'priority', 'fselect'].includes(kind(r))"
           class="flex flex-wrap gap-x-3 gap-y-1"
           role="group"
           :aria-label="t('views.filter.value')"
         >
           <label
-            v-for="o in r.field === 'status'
-              ? (statuses ?? []).map((s) => ({ v: s.id, l: s.name }))
-              : r.field === 'priority'
-                ? [0, 1, 2, 3, 4].map((p) => ({ v: String(p), l: t(`tasks.priority.${p}`) }))
-                : CATEGORIES.map((c) => ({ v: c, l: t(`views.filter.category.${c}`) }))"
+            v-for="o in kind(r) === 'fselect'
+              ? choices(r)
+              : r.field === 'status'
+                ? (statuses ?? []).map((s) => ({ v: s.id, l: s.name }))
+                : r.field === 'priority'
+                  ? [0, 1, 2, 3, 4].map((p) => ({ v: String(p), l: t(`tasks.priority.${p}`) }))
+                  : CATEGORIES.map((c) => ({ v: c, l: t(`views.filter.category.${c}`) }))"
             :key="o.v"
             class="inline-flex items-center gap-1.5 text-sm"
           >
@@ -119,7 +172,7 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
             {{ o.l }}
           </label>
         </div>
-        <template v-else-if="r.field === 'assignee' || r.field === 'createdBy'">
+        <template v-else-if="kind(r) === 'assignee' || kind(r) === 'createdBy'">
           <label class="inline-flex items-center gap-1.5 text-sm">
             <input
               type="checkbox"
@@ -136,12 +189,12 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
           />
         </template>
         <LabelPicker
-          v-else-if="r.field === 'label'"
+          v-else-if="kind(r) === 'label'"
           :space-id="spaceId"
           :model-value="list(r)"
           @update:model-value="patch(i, { value: $event })"
         />
-        <template v-else-if="r.field === 'dueDate'">
+        <template v-else-if="kind(r) === 'dueDate'">
           <Input
             :model-value="typeof r.value === 'string' ? r.value : ''"
             :label="t('views.filter.value')"
@@ -155,6 +208,13 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
             @update:model-value="$event && patch(i, { value: $event })"
           />
         </template>
+        <Input
+          v-else-if="kind(r) === 'num'"
+          :model-value="showNum(r)"
+          :label="t('views.filter.value')"
+          hide-label
+          @update:model-value="setNum(i, r, $event)"
+        />
         <Input
           v-else
           :model-value="typeof r.value === 'string' ? r.value : ''"

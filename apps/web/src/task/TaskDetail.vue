@@ -25,6 +25,7 @@ import { useExtensions } from '../modules/registry';
 import { Avatar, Button, Dialog, Menu } from '../ui';
 import Attachments from './Attachments.vue';
 import Checklist from './Checklist.vue';
+import FieldsBlock from '../fields/FieldsBlock.vue';
 import Editor from './editor/Editor.vue';
 import Feed from './Feed.vue';
 import { useUsers, useWatchers } from './queries';
@@ -261,6 +262,7 @@ const panelComponent = computed(() => {
         />
       </section>
 
+      <FieldsBlock :task="task" />
       <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
       <Checklist :task-id="task.id" />
       <Attachments ref="attachments" :task-id="task.id" />
