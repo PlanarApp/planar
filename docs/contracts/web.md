@@ -117,6 +117,7 @@ vue-i18n, локали `ru`, `en`. Ключи вложенные: `<экран>.
 
 ### Точки расширения (C-modules, сторона web)
 `EXTENSION_KINDS = ['routes', 'views', 'taskPanels', 'commands', 'fieldTypes', 'settings'] as const` — ровно поля `FrontendModuleManifest` (core, C-modules) кроме `id`.
+C-modules v3 (work): к списку добавлены `nav`, `topbar` — docs/contracts/work.md §C-modules v3.
 
 ```ts
 type Lazy<P> = () => Promise<{ default: Component }>; // компонент с пропсами P
