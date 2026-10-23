@@ -12,6 +12,8 @@ const app = await createApp({
   databaseUrl,
   publicUrl: process.env.PUBLIC_URL ?? 'http://localhost:5173',
   cookieSecure: process.env.COOKIE_SECURE === 'true',
+  dataDir: process.env.DATA_DIR,
+  maxUploadMb: Number(process.env.MAX_UPLOAD_MB ?? 50),
   logger: { level: process.env.LOG_LEVEL ?? 'info' },
 });
 await app.listen(Number(process.env.PORT ?? 3000), '0.0.0.0');
