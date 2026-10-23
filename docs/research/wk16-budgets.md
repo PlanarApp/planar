@@ -1,3 +1,12 @@
+---
+type: research
+status: done
+module: work
+updated: 2026-10-23
+summary: A/B 5×5 main против feature/work — бюджеты §7 не ухудшились за шумом; switch +8 % не доказано, хост у порогов
+related: ["docs/roadmap.md", "docs/plan/work.md"]
+---
+
 # WK-16 — бюджеты §7: A/B main против feature/work
 
 ## Метод
