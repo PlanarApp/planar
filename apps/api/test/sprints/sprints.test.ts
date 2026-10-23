@@ -336,19 +336,30 @@ describe('wk11: гонки и системный пользователь', () =
     }
   });
 
-  it('wk11: ensureSystemUser упал на старте — systemUserId доступен после восстановления', async () => {
-    let down = true;
+  const flakyCore = () => {
+    const st = { down: true };
     const flaky = new Proxy(db, {
       get: (t, k, r) =>
-        k === 'transaction' && down
+        k === 'transaction' && st.down
           ? () => Promise.reject(new Error('db down'))
           : Reflect.get(t, k, r),
     });
     const core = new CoreService(flaky);
     core.retryMs = 10;
+    return { st, core };
+  };
+
+  it('wk11: старт при недоступной БД не падает, systemUserId пока бросает', async () => {
+    const { core } = flakyCore();
     await core.onModuleInit();
     expect(() => core.systemUserId()).toThrow();
-    down = false;
+    core.onModuleDestroy();
+  });
+
+  it('wk11: после восстановления БД systemUserId доступен без перезапуска', async () => {
+    const { st, core } = flakyCore();
+    await core.onModuleInit();
+    st.down = false;
     await expect.poll(() => core.systemUserId(), { timeout: 3000 }).toBeTypeOf('string');
     core.onModuleDestroy();
   });
