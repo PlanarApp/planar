@@ -189,3 +189,5 @@
 {"t": "2026-10-23T21:15:20", "by": "executor", "task": "CL-10", "ev": "reported", "commits": ["5d55966"], "note": "done: Замер §7 на feature/collab (PERF_MODULES=docs,chat, 10000 задач, прод-сборка web), n=10 на одном стеке. Всё в бюджете, …", "dp_feedback": "Карточка ссылалась на repeat.sh, которого не было — пришлось писать. В свежей копии нет node_modules: стоит делать pnpm install при создании копии. Метрики tasks_total/project_tasks попали в summary как медианы — шум."}
 {"t": "2026-10-23T21:16:14", "by": "coordinator", "task": "CL-10", "ev": "checked", "note": "3/3 runs=ok:10; switch=ok:project_switch_ms_p95_median=…; lint=ok:exit 0"}
 {"t": "2026-10-23T21:16:15", "by": "coordinator", "task": "CL-10", "ev": "accepted", "note": "по отчёту: n=10, switch p95 медиана 91 мс (≤100), warm 408.9 мс (>400)"}
+{"t": "2026-10-23T21:16:15", "by": "coordinator", "task": "CL-10", "ev": "merged", "note": "588826b"}
+{"t": "2026-10-23T21:16:37", "by": "coordinator", "task": null, "ev": "note", "note": "dpcli: collab done — CL-9 (e2e 35/35, unit 194+583+api), CL-10 (§7 n=10: switch 91, warm 409>400); feature/collab 588826b итоговая; repeat.sh/stack.sh для замеров"}
