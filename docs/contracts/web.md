@@ -14,7 +14,9 @@ contracts: [{"id": "C-ui", "version": 1}, {"id": "C-client", "version": 3}, {"id
 
 **Контрактный тест** — `apps/web/src/__contract__/ui.contract.test.ts` (пишет координатор, исполнитель не правит). Проверяет: версию из заголовка `## C-ui vN` = `UI_CONTRACT_VERSIONS` из `apps/web/src/contract.ts`; каждый токен из таблиц ниже объявлен в `tokens.css` в светлом и в тёмном блоке; каждый компонент из списка экспортирован из `apps/web/src/ui/index.ts`; `EXTENSION_KINDS` = список точек расширения ниже. Запуск: `pnpm --filter web test`.
 
-## C-ui v1
+## C-ui v2
+
+v2 (collab, CL-1a): точка расширения `search` (`EXTENSION_KINDS` += `search`) — `docs/contracts/collab.md` §X-core п. 5; Inbox показывает уведомления без задачи по `body` и ведёт на `url`.
 
 ### Файлы
 | Путь | Что |
@@ -143,7 +145,9 @@ interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; 
 - `useExtensions(kind)` → `ComputedRef<элементы[]>` только включённых модулей (`settings.enabled_modules`; до WB-10 — все зарегистрированные), `taskPanels` — по `order`, затем по ключу.
 - Модули подключаются лениво: `import.meta.glob('../../../../modules/*/web/index.ts')` из `apps/web/src/modules/registry.ts` (WB-10); в начальный чанк не входят.
 
-## C-client v3
+## C-client v4
+
+v4 (collab, CL-1a): `sendTyping(entity: string, id: string): void` (нет WS — ничего), `onTyping(cb: (e: {entity: string; id: string; userId: string}) => void): () => void` — `docs/contracts/collab.md` §X-core п. 2.
 
 Клиент синхронизации — `apps/web/src/sync/index.ts` (владелец WB-2; потребители — WB-3…WB-10, модули). Протокол с сервером — C-sync (core), мутаторы — C-mutators. Контрактный тест — `apps/web/src/__contract__/client.contract.test.ts` (экспорты ниже).
 
