@@ -1,0 +1,103 @@
+{
+  "status": "done",
+  "summary": "C-client v2: clearLocal и очистка при смене userId; session.ts (registerMutators, startSync/stopSync по user, 401 -> /login), выход с подтверждением при pending>0 (sync/LogoutDialog.vue в корне main.ts), Sidebar из реплики; src/tasks по C-tasks v1 (запросы, group/sort, ops, пикеры и иконки).",
+  "commits": [
+    "cd291c6 web: WB-2a — тест session в sync/__tests__ (scope)",
+    "21a6b53 web: WB-2a — подключение клиента к приложению, общий слой задач C-tasks"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "170.3 KB",
+      "pass": true
+    },
+    {
+      "name": "query",
+      "value": "3 passed",
+      "pass": true
+    },
+    {
+      "name": "ops",
+      "value": "5 passed",
+      "pass": true
+    },
+    {
+      "name": "pickers",
+      "value": "3 passed",
+      "pass": true
+    },
+    {
+      "name": "session",
+      "value": "5 passed",
+      "pass": true
+    },
+    {
+      "name": "perf",
+      "value": "projectTasks10k_ms=523-576",
+      "pass": true
+    },
+    {
+      "name": "test",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "91 passed",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept WB-2a",
+  "uncertain": [
+    {
+      "where": "apps/web/src/tasks/queries.ts:views",
+      "why": "контракт требует anyOf по id задач; для >500 задач сделан скан таблицы связей с фильтром: anyOf на 10k id в fake-indexeddb 12 с",
+      "checked": "perf 10k = ~540 мс; в Chromium не мерял"
+    },
+    {
+      "where": "apps/web/src/tasks/ops.ts:createTask",
+      "why": "after:null при заданном before трактуется как вставка в начало (rankBetween(null,before)), а не как «последний в статусе»; в конец — только если оба undefined",
+      "checked": "тест tasks:ops"
+    },
+    {
+      "where": "apps/web/src/layout/TopBar.vue:76",
+      "why": "TopBar после logout() всегда делает push('/login'); при отмене выхода гард вернёт на '/' (TopBar вне scope)",
+      "checked": "не проверял в браузере"
+    },
+    {
+      "where": "apps/web/src/sync/__tests__/session.test.ts",
+      "why": "тест session перенесён из src/__tests__ в sync/__tests__ из-за scope; в helpers и sync.test.ts userId сделан постоянным (смена userId теперь чистит реплику)",
+      "checked": "все 158 тестов проходят"
+    },
+    {
+      "where": "apps/web/src/tasks/group.ts",
+      "why": "groupTasks: assignee/label вне справочника получают label '?'; статус вне справочника пропускается; приоритет 0 в sortTasks считается пустым и идёт в конец",
+      "checked": "контрактные тесты"
+    }
+  ],
+  "dp_feedback": "accept scope-check узнаёт о нарушении только после коммита; в карточке нет явного списка разрешённых тестовых путей.",
+  "t": "2026-10-23T00:03:27",
+  "by": "executor"
+}
