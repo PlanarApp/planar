@@ -104,6 +104,7 @@ export default {
     editTitle: 'Task title',
     selected: 'Selected: {n}',
     clear: 'Clear selection',
+    bulkField: 'Field to bulk edit',
     empty: 'No tasks',
   },
   cmd: {

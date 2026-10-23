@@ -104,6 +104,7 @@ export default {
     editTitle: 'Название задачи',
     selected: 'Выбрано: {n}',
     clear: 'Снять выбор',
+    bulkField: 'Поле для массовой правки',
     empty: 'Нет задач',
   },
   cmd: {

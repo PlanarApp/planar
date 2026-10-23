@@ -10,7 +10,12 @@ export const COLUMN_IDS = [
   'createdAt',
   'updatedAt',
 ] as const;
-export type ColumnId = (typeof COLUMN_IDS)[number];
+export type SystemColumnId = (typeof COLUMN_IDS)[number];
+/** Системная колонка или `field:<fieldId>` (пользовательское поле). */
+export type ColumnId = SystemColumnId | `field:${string}`;
+export const FIELD_PREFIX = 'field:';
+export const isFieldCol = (id: string): id is `field:${string}` =>
+  id.startsWith(FIELD_PREFIX) && id.length > FIELD_PREFIX.length;
 export interface ColumnState {
   id: ColumnId;
   width: number;
@@ -21,7 +26,8 @@ export interface Layout {
 
 export const MIN_W = 60;
 export const MAX_W = 800;
-const DEFAULT_W: Record<ColumnId, number> = {
+const FIELD_W = 160;
+const DEFAULT_W: Record<SystemColumnId, number> = {
   title: 360,
   key: 90,
   status: 150,
@@ -33,7 +39,7 @@ const DEFAULT_W: Record<ColumnId, number> = {
   createdAt: 150,
   updatedAt: 150,
 };
-const DEFAULT_IDS: ColumnId[] = [
+const DEFAULT_IDS: SystemColumnId[] = [
   'title',
   'key',
   'status',
@@ -45,7 +51,10 @@ const DEFAULT_IDS: ColumnId[] = [
 
 export const clampWidth = (w: number): number =>
   Math.min(MAX_W, Math.max(MIN_W, Number.isFinite(w) ? Math.round(w) : MIN_W));
-export const newColumn = (id: ColumnId): ColumnState => ({ id, width: DEFAULT_W[id] });
+export const newColumn = (id: ColumnId): ColumnState => ({
+  id,
+  width: isFieldCol(id) ? FIELD_W : DEFAULT_W[id as SystemColumnId],
+});
 export const defaultLayout = (): Layout => ({ columns: DEFAULT_IDS.map(newColumn) });
 
 const storageKey = (projectId: string) => `planar.table.${projectId}`;
@@ -60,11 +69,12 @@ export function loadLayout(projectId: string): Layout {
       const columns: ColumnState[] = [];
       for (const c of cols) {
         const id = c?.id as ColumnId;
-        if (!COLUMN_IDS.includes(id) || seen.has(id)) continue;
+        if (!(COLUMN_IDS.includes(id as SystemColumnId) || isFieldCol(String(id))) || seen.has(id))
+          continue;
         seen.add(id);
         columns.push({
           id,
-          width: typeof c.width === 'number' ? clampWidth(c.width) : DEFAULT_W[id],
+          width: typeof c.width === 'number' ? clampWidth(c.width) : newColumn(id).width,
         });
       }
       if (columns.length) return { columns };
