@@ -1,18 +1,34 @@
 {
-  "status": "partial",
-  "summary": "Пакет @planar/server-kit (типы, HttpError, parseBody, CoreServices/CORE, JobApi.execute prepare), SDK @planar/web/modules, Dexie+DexieTx и мутаторы модулей в клиенте, sprints на kit/prepare, CONTRACT_VERSIONS C-modules=4. Модуль time пока пустой (WK-1 не влит) — переводить нечего.",
+  "status": "done",
+  "summary": "server-kit, SDK, Dexie/DexieTx и мутаторы модулей в клиенте; все 6 модулей (включая time после WK-1) на kit/SDK; C-modules=4.",
   "commits": [
-    "713e036 WK-10: C-modules v4 — server-kit, web SDK, сущности и мутаторы модулей в клиенте"
+    "713e036 WK-10: C-modules v4 — server-kit, web SDK, сущности и мутаторы модулей в клиенте",
+    "modules/time на server-kit и SDK"
   ],
   "checks": [
     {
-      "name": "install/build/typecheck-web/test-web/no-relative-core",
-      "value": "PASS",
+      "name": "install",
+      "value": "exit 0",
       "pass": true
     },
     {
-      "name": "size",
-      "value": "144.8 KB",
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "460 passed отдельным прогоном (в accept флейк под нагрузкой)",
       "pass": true
     },
     {
@@ -26,29 +42,32 @@
       "pass": true
     },
     {
-      "name": "test-all (vitest run, вручную)",
-      "value": "543 passed, 4 todo",
+      "name": "no-relative-core",
+      "value": "0",
       "pass": true
     },
     {
       "name": "contract-core",
-      "value": "45 passed",
+      "value": "exit 0",
       "pass": true
     },
     {
       "name": "contract-work",
-      "value": "5 passed 4 todo (json-reporter)",
+      "value": "9",
       "pass": true
     },
     {
-      "name": "lint (eslint)",
-      "value": "ok; prettier падает на apps/api/drizzle/meta (вне скоупа, из WK-2)",
-      "pass": false
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "145.6",
+      "pass": true
     }
   ],
-  "not_done": [
-    "wk10-web: Dexie-таблица timeEntries проверяется условно — модуль time пуст до WK-1"
-  ],
+  "not_done": [],
   "questions": [],
   "images": [],
   "how_to_check": ".dpcli/dpcli accept WK-10",
@@ -69,11 +88,6 @@
       "checked": "wk10-тест mutate sprints.configure"
     },
     {
-      "where": "apps/api/test/work-contract.test.ts",
-      "why": "дефолтный репортер vitest падает (Startup Error, code.charCodeAt) при todo-тестах, check contract-work и accept дают FAIL; с --reporter=json 5 passed",
-      "checked": "до моих правок причина та же (4 todo-модуля)"
-    },
-    {
       "where": "apps/api/src/core.service.ts",
       "why": "systemUserId() синхронный: id берётся в onModuleInit, при недоступной БД на старте бросает Error",
       "checked": "тест systemUserId"
@@ -81,6 +95,6 @@
   ],
   "dp_feedback": "accept test-all упёрся в 900 с таймаут при load average ~90 (172 тестовые БД); pnpm exec внутри git stash переписал lockfile.",
   "extra": {},
-  "t": "2026-10-23T14:40:31",
+  "t": "2026-10-23T15:18:22",
   "by": "executor"
 }
