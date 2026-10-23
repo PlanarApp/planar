@@ -41,7 +41,8 @@
     "apps/api/package.json",
     "apps/api/drizzle",
     "pnpm-lock.yaml",
-    "apps/api/test/modules/docs.test.ts"
+    "apps/api/test/modules/docs.test.ts",
+    "apps/api/test/modules/modules.test.ts"
   ],
   "dont_touch": [
     "packages/shared",
@@ -80,5 +81,6 @@
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-23T11:38:45"
+  "created": "2026-10-23T11:38:45",
+  "edited": "2026-10-23T11:46:28"
 }
