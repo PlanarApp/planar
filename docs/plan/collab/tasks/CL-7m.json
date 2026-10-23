@@ -1,0 +1,105 @@
+{
+  "id": "CL-7m",
+  "module": "collab",
+  "type": "dp-engineer",
+  "title": "Слияние feature/work (C-modules v6, WK-14) в feature/collab",
+  "goal": "Влить feature/work в ветку задачи: C-modules v6 из work (там уже правки collab: canReadFile, members, search, SDK) — базовая реализация, дубли collab в тех же файлах удалить, collab v5 убрать; остальные версии collab (C-schema 8, C-sync 2, C-http 10, C-ui 2, C-client 4) — поверх work; миграцию collab пересоздать поверх миграций work; все тесты collab зелёные.",
+  "plan_ref": "решение 2026-10-23 18:03 (C-modules ведёт work)",
+  "contracts": [
+    {
+      "name": "C-modules",
+      "version": "6",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-sync",
+      "version": "2",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-schema",
+      "version": "8",
+      "ref": "docs/contracts/collab.md"
+    },
+    {
+      "name": "C-http",
+      "version": "10",
+      "ref": "docs/contracts/collab.md"
+    }
+  ],
+  "copy": "~/planar-collab-CL-7m",
+  "branch": "collab/CL-7m",
+  "base": "feature/collab",
+  "scope": [
+    "apps",
+    "packages",
+    "modules",
+    "docs",
+    "e2e",
+    "deploy",
+    "pnpm-lock.yaml",
+    "package.json",
+    "compose.yml",
+    "compose.dev.yml",
+    "dev.sh",
+    "eslint.config.js",
+    "vitest.config.ts",
+    "tsconfig.json",
+    "tsconfig.base.json",
+    "pnpm-workspace.yaml"
+  ],
+  "dont_touch": [
+    "docs/plan/collab",
+    "docs/contracts/collab.md",
+    "apps/api/test/modules/collab.contract.test.ts"
+  ],
+  "accept": [
+    {
+      "name": "collab contract",
+      "tests": "collab contract"
+    },
+    {
+      "name": "shared-all",
+      "cmd": "pnpm exec vitest run --project shared",
+      "expect": "tests"
+    },
+    {
+      "name": "api-all",
+      "cmd": "pnpm exec vitest run --project api",
+      "expect": "tests"
+    },
+    {
+      "name": "web-all",
+      "cmd": "pnpm --filter @planar/web exec vitest run",
+      "expect": "tests"
+    },
+    {
+      "name": "collab-web",
+      "cmd": "pnpm --filter @planar/web exec vitest run -t 'cl1a:|cl6s:' ../../modules/chat/web ../../modules/docs/web",
+      "expect": "num:(\\d+) passed >=60"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter @planar/web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "merged",
+      "cmd": "git merge-base --is-ancestor 6b45948 HEAD && echo yes",
+      "expect": "re:yes"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-23T19:12:20"
+}
