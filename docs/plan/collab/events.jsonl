@@ -77,3 +77,5 @@
 {"t": "2026-10-23T15:42:10", "by": "coordinator", "task": "CL-1c", "ev": "checked", "note": "3/4 cl1c=ok:3; api-all=FAIL:exit 143 · RUN v5.0.5 /root/p…; build=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-23T15:51:46", "by": "coordinator", "task": "CL-1c", "ev": "checked", "note": "4/4 cl1c=ok:3; api-all=ok:exit 0; build=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-23T15:52:04", "by": "coordinator", "task": "CL-1c", "ev": "accepted", "note": "по отчёту: 2 файла, тесты гонок падали до правки"}
+{"t": "2026-10-23T15:53:51", "by": "coordinator", "task": "CL-1c", "ev": "checked", "commits": ["ffd586f"], "note": "3/4 cl1c=ok:3; api-all=FAIL:exit 1 · at printErrorInner (…; build=ok:exit 0; lint=ok:exit 0"}
+{"t": "2026-10-23T15:53:51", "by": "coordinator", "task": "CL-1c", "ev": "merged"}
