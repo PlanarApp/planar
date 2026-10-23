@@ -328,3 +328,4 @@
 {"t": "2026-10-23T06:51:30", "by": "coordinator", "task": "CR-11", "ev": "merged"}
 {"t": "2026-10-23T06:51:31", "by": "coordinator", "task": "CR-10c", "ev": "merged"}
 {"t": "2026-10-23T06:51:31", "by": "coordinator", "task": null, "ev": "note", "note": "dpcli: исполнители пишут отчёт в общий /tmp/claude-0/r.json — параллельные исполнители перезаписывают друг друга (CR-2 получил текст WB-1, CR-11 — чужой perf-отчёт); шаблон report должен предлагать путь с ID задачи (напр. build/dpcli/<ID>/r.json)."}
+{"t": "2026-10-23T06:54:03", "by": "coordinator", "task": null, "ev": "note", "note": "core: CR-1…CR-11 и доработки слиты в feature/core (39d9e8b+): 453 теста, lint/build зелёные. Не проверялся: prod-стек compose.yml с Caddy целиком (только config и образ api). Слияние в main — общий шлюз с web по решению пользователя."}
