@@ -195,3 +195,9 @@
 {"t": "2026-10-23T19:04:23", "by": "coordinator", "task": "WK-6b", "ev": "checked", "note": "11/11 install=ok:exit 0; build=ok:exit 0; typecheck-web=ok:exit 0; size=ok:147.6; test-all=ok:exit 0; test-web=ok:exit 0; wk6b-api=ok:3; wk6b-web=ok:1; contract-work=ok:12; migrations-linear=ok:0; lint=ok:exit 0"}
 {"t": "2026-10-23T19:07:08", "by": "reviewer", "task": "WK-14", "ev": "reviewed", "note": "Повторное ревью: замечание по таймауту закрыто (Promise.race с PROVIDER_TIMEOUT_MS=2000 в queryProviders, тест wk14 на таймаут). Контракт C-modules v6 соблюдён…", "verdict": "accept", "issues": {"minor": 2}, "review": "docs/plan/work/tasks/WK-14.review.json"}
 {"t": "2026-10-23T19:07:25", "by": "coordinator", "task": "WK-14", "ev": "accepted", "note": "по ревью (второй круг)"}
+{"t": "2026-10-23T19:07:26", "by": "coordinator", "task": "WK-14", "ev": "merged"}
+{"t": "2026-10-23T19:08:54", "by": "coordinator", "task": "WK-3b", "ev": "checked", "note": "11/11 install=ok:exit 0; build=ok:exit 0; typecheck-web=ok:exit 0; size=ok:147.7; test-all=ok:exit 0; test-web=ok:exit 0; wk3b-api=ok:4; wk3b-web=ok:2; contract-work=ok:12; migrations-linear=ok:0; lint=ok:exit 0"}
+{"t": "2026-10-23T19:12:35", "by": "reviewer", "task": "WK-5", "ev": "reviewed", "note": "Пути и MCP-инструменты соответствуют work-api.md §REST и MCP (WK-5): форма {data}, 201/204, module_disabled через moduleTables+enabledModules, запись — мутатор…", "verdict": "accept", "issues": {"minor": 1}, "review": "docs/plan/work/tasks/WK-5.review.json"}
+{"t": "2026-10-23T19:13:33", "by": "coordinator", "task": "WK-5", "ev": "accepted", "note": "по ревью"}
+{"t": "2026-10-23T19:13:33", "by": "coordinator", "task": "WK-6b", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-23T19:13:33", "by": "coordinator", "task": "WK-3b", "ev": "accepted", "note": "по отчёту; webhook payload — до действий, subscriptionId текстом (shortcut)"}
