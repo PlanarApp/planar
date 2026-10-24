@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ChevronRight, Plus } from 'lucide-vue-next';
-import { Badge, Button, Input, mutate, newId } from '@planar/web/modules';
+import { Badge, Button, IconButton, Input, mutate, newId } from '@planar/web/modules';
 import { useChatData } from './data';
 import { byName, dmTitle, findDm, type Channel } from './model';
 import { useTexts } from './text';
@@ -140,16 +140,15 @@ const link = (id: string) => `/m/chat/c/${id}`;
       </form>
       <div v-if="d && !groups.length" class="flex h-7 items-center px-2 text-xs text-fg-muted">
         {{ tx('noChannels') }}
-        <button
+        <IconButton
           v-if="firstCreate"
-          type="button"
-          :aria-label="tx('newChannel')"
+          :icon="Plus"
+          :label="tx('newChannel')"
+          size="sm"
           data-testid="chat-add-channel"
-          class="ml-auto rounded-sm p-0.5 hover:bg-bg-muted"
+          class="ml-auto"
           @click="addIn = addIn ? '' : firstCreate.id"
-        >
-          <Plus :size="14" />
-        </button>
+        />
       </div>
       <div v-for="g in groups" :key="g.s.id">
         <div
@@ -157,16 +156,15 @@ const link = (id: string) => `/m/chat/c/${id}`;
           class="flex h-7 items-center px-2 text-xs text-fg-muted"
         >
           <span v-if="groups.length > 1" class="truncate">{{ g.s.name }}</span>
-          <button
+          <IconButton
             v-if="g.canCreate"
-            type="button"
-            :aria-label="tx('newChannel')"
+            :icon="Plus"
+            :label="tx('newChannel')"
+            size="sm"
             data-testid="chat-add-channel"
-            class="ml-auto rounded-sm p-0.5 hover:bg-bg-muted"
+            class="ml-auto"
             @click="addIn = addIn === g.s.id ? '' : g.s.id"
-          >
-            <Plus :size="14" />
-          </button>
+          />
         </div>
         <form v-if="addIn === g.s.id" class="flex gap-1 px-2 py-1" @submit.prevent="addChannel">
           <Input
@@ -203,15 +201,13 @@ const link = (id: string) => `/m/chat/c/${id}`;
       <div>
         <div class="flex h-7 items-center justify-between px-2 text-xs text-fg-muted">
           <span>{{ tx('dms') }}</span>
-          <button
-            type="button"
-            :aria-label="tx('newDm')"
+          <IconButton
+            :icon="Plus"
+            :label="tx('newDm')"
+            size="sm"
             data-testid="chat-add-dm"
-            class="rounded-sm p-0.5 hover:bg-bg-muted"
             @click="picking = !picking"
-          >
-            <Plus :size="14" />
-          </button>
+          />
         </div>
         <form v-if="picking" class="px-2 py-1" @submit.prevent="openDm">
           <label v-for="u in people" :key="u.id" class="flex items-center gap-2 py-0.5 text-sm">

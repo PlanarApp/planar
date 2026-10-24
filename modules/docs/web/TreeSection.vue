@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ChevronRight, FileText, Plus } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import { db, mutate, newId, rankBetween, useQuery } from '@planar/web/modules';
+import { IconButton, db, mutate, newId, rankBetween, useQuery } from '@planar/web/modules';
 import { buildTree, moveArgs, type DropZone, type PageRow, type TreeNode } from './model';
 import { useTexts } from './text';
 
@@ -108,15 +108,13 @@ function drop(e: DragEvent, n: TreeNode) {
     <div v-for="t in trees" :key="t.s.id">
       <div class="group flex h-7 items-center px-2 text-xs text-fg-muted">
         <span class="truncate">{{ t.s.name }}</span>
-        <button
-          type="button"
-          :aria-label="tx('newPage')"
-          :title="tx('newPage')"
-          class="ml-auto rounded-sm p-1 hover:bg-bg-muted"
+        <IconButton
+          :icon="Plus"
+          :label="tx('newPage')"
+          size="sm"
+          class="ml-auto"
           @click="add(t.s.id, null)"
-        >
-          <Plus :size="14" />
-        </button>
+        />
       </div>
       <div
         v-for="n in t.rows"
@@ -154,14 +152,13 @@ function drop(e: DragEvent, n: TreeNode) {
           <FileText v-else :size="14" class="shrink-0 text-fg-subtle" />
           <span class="truncate">{{ n.page.title || tx('untitled') }}</span>
         </RouterLink>
-        <button
-          type="button"
-          :aria-label="tx('newPage')"
-          class="mr-1 rounded-sm p-1 opacity-0 hover:bg-bg group-hover:opacity-100 focus-visible:opacity-100"
+        <IconButton
+          :icon="Plus"
+          :label="tx('newPage')"
+          size="sm"
+          class="mr-1 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
           @click="add(n.page.spaceId, n.page)"
-        >
-          <Plus :size="12" />
-        </button>
+        />
       </div>
     </div>
     </template>

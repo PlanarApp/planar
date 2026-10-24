@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { FilePlus, FileText, X } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import { db, useQuery, Button } from '@planar/web/modules';
+import { Button, IconButton, Input, db, useQuery } from '@planar/web/modules';
 import { searchPages, type PageRow, type TaskLinkRow } from './model';
 import { createForTask, link, unlink } from './links';
 import { useTexts } from './text';
@@ -53,25 +53,12 @@ async function create() {
           <FileText :size="14" class="shrink-0 text-fg-subtle" />
           <span class="truncate">{{ p.title || tx('untitled') }}</span>
         </RouterLink>
-        <button
-          type="button"
-          :aria-label="tx('unlink')"
-          :title="tx('unlink')"
-          class="rounded-sm p-1.5 hover:bg-bg"
-          @click="unlink(p.id, taskId)"
-        >
-          <X :size="14" />
-        </button>
+        <IconButton :icon="X" :label="tx('unlink')" size="sm" @click="unlink(p.id, taskId)" />
       </li>
     </ul>
     <p v-else class="px-2 text-sm text-fg-subtle">{{ tx('noLinks') }}</p>
     <div class="relative flex items-center gap-2">
-      <input
-        v-model="q"
-        :placeholder="tx('link')"
-        :aria-label="tx('link')"
-        class="h-9 min-w-0 flex-1 rounded-md border border-border-strong bg-bg px-2 text-base outline-none focus-visible:ring-2 ring-focus md:h-8"
-      />
+      <Input v-model="q" :label="tx('link')" hide-label :placeholder="tx('link')" class="min-w-0 flex-1" />
       <Button size="sm" :icon="FilePlus" @click="create">{{ tx('createFromTask') }}</Button>
       <ul
         v-if="found.length"

@@ -1,4 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import { defineComponent, h } from 'vue';
+import { TooltipProvider } from 'reka-ui';
+import { i18n } from '../../../i18n';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Settings from '../../../../../../modules/webhooks/web/WebhooksSettings.vue';
 
@@ -42,7 +45,8 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 const mountIt = async () => {
-  const w = mount(Settings);
+  const Host = defineComponent({ render: () => h(TooltipProvider, () => h(Settings)) });
+  const w = mount(Host, { global: { plugins: [i18n] } });
   await flushPromises();
   return w;
 };
@@ -50,7 +54,7 @@ const mountIt = async () => {
 describe('wk4:', () => {
   it('wk4: создание показывает секрет один раз и шлёт url и события', async () => {
     const w = await mountIt();
-    await w.get('[data-testid=wh-url]').setValue('https://example.com/hook');
+    await w.get('[data-testid=wh-url] input').setValue('https://example.com/hook');
     await w.get('form').trigger('submit');
     await flushPromises();
     expect(calls.find((c) => c.method === 'POST')!.body).toMatchObject({

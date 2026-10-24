@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, h, onMounted, ref, watch } from 'vue';
 import type { Filter, Row } from '@planar/shared';
 import {
   Button,
+  EmptyState,
   FilterBuilder,
+  IconButton,
+  Input,
+  Menu,
+  Select,
   db,
   newId,
   useLabels,
@@ -129,7 +134,17 @@ const csv = (s: string) =>
     .map((x) => x.trim())
     .filter(Boolean);
 const optional = (a: string[]) => (a.length ? a : undefined);
-const field = 'h-11 rounded-md border border-border-strong bg-bg px-2 text-base md:h-8';
+// иконка «…» без lucide (у модуля нет этой зависимости)
+const More = () =>
+  h(
+    'svg',
+    { viewBox: '0 0 24 24', fill: 'currentColor', width: 16, height: 16 },
+    [5, 12, 19].map((cx) => h('circle', { cx, cy: 12, r: 1.5 })),
+  );
+const NONE = '__none';
+const opts = (list: { v: string; l: string }[]) => list.map((o) => ({ value: o.v, label: o.l }));
+const names = <T extends string>(list: readonly T[], dict: Record<string, string>) =>
+  list.map((x) => ({ value: x, label: dict[x]! }));
 const t = computed(() => draft.value!.trigger as Record<string, unknown>);
 const act = (a: Action) => a as Record<string, unknown>;
 const projectName = (id: string) => projects.value.find((p) => p.id === id)?.name ?? id;
@@ -150,25 +165,25 @@ const setValue = (i: number, raw: string) => {
 
 <template>
   <section class="flex flex-col gap-4 p-4" data-testid="automations-page">
-    <h1 class="text-xl font-semibold">{{ tx.title }}</h1>
-    <label class="flex items-center gap-2 text-sm">
+    <header class="flex flex-col gap-0.5">
+      <h1 class="text-lg font-semibold">{{ tx.title }}</h1>
+    </header>
+    <div class="flex items-center gap-2 text-sm" data-role="project">
       {{ tx.project }}
-      <select v-model="projectId" :class="field" data-role="project">
-        <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
-      </select>
-    </label>
+      <Select v-model="projectId" :label="tx.project" :options="opts(pickers.projectId)" />
+    </div>
 
     <div v-if="!draft" class="flex flex-col gap-2">
       <div class="flex items-center justify-between">
         <h2 class="font-medium">{{ tx.rules }}</h2>
         <Button variant="primary" size="sm" data-role="new" @click="startNew">{{ tx.add }}</Button>
       </div>
-      <p v-if="!mine.length" class="text-sm text-fg-muted">{{ tx.none }}</p>
-      <ul class="flex flex-col gap-2">
+      <EmptyState v-if="!mine.length" :title="tx.none" />
+      <ul class="flex flex-col divide-y divide-border">
         <li
           v-for="r in mine"
           :key="r.id"
-          class="flex flex-wrap items-center gap-2 rounded-md border border-border p-2"
+          class="group flex min-h-8 flex-wrap items-center gap-2 py-1"
           data-role="rule"
         >
           <input
@@ -177,20 +192,43 @@ const setValue = (i: number, raw: string) => {
             :aria-label="tx.enabled"
             @change="toggle(r)"
           />
-          <span class="font-medium">{{ r.name }}</span>
+          <span class="text-sm font-medium">{{ r.name }}</span>
           <span class="text-sm text-fg-muted">
             {{ tx.triggers[r.trigger.type] }} → {{ r.actions.length }}
           </span>
-          <span class="ml-auto flex gap-1">
+          <span class="ml-auto flex items-center gap-1">
             <Button size="sm" variant="ghost" data-role="runs" @click="showRuns(r)">{{
               tx.log
             }}</Button>
             <Button size="sm" variant="ghost" data-role="edit" @click="edit(r)">{{
               tx.edit
             }}</Button>
-            <Button size="sm" variant="ghost" data-role="delete" @click="remove(r)">{{
-              tx.delete
-            }}</Button>
+            <Menu
+              align="end"
+              :items="[
+                {
+                  id: 'delete',
+                  label: tx.delete,
+                  danger: true,
+                  confirm: {
+                    title: tx.confirmDelete,
+                    description: r.name,
+                    confirmLabel: tx.delete,
+                  },
+                  onSelect: () => remove(r),
+                },
+              ]"
+            >
+              <template #trigger>
+                <IconButton
+                  :icon="More"
+                  :label="tx.more"
+                  size="sm"
+                  data-role="delete"
+                  class="md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:data-[state=open]:opacity-100"
+                />
+              </template>
+            </Menu>
           </span>
         </li>
       </ul>
@@ -207,68 +245,56 @@ const setValue = (i: number, raw: string) => {
     </div>
 
     <form v-else class="flex flex-col gap-4" data-testid="editor" @submit.prevent="save">
-      <label class="flex flex-col gap-1 text-sm">
-        {{ tx.name }}
-        <input v-model="draft.name" maxlength="100" :class="field" data-role="name" />
-      </label>
+      <Input v-model="draft.name" :label="tx.name" maxlength="100" data-role="name" />
       <label class="flex items-center gap-2 text-sm">
         <input v-model="draft.enabled" type="checkbox" /> {{ tx.enabled }}
       </label>
 
       <fieldset class="flex flex-col gap-2">
         <legend class="font-medium">{{ tx.trigger }}</legend>
-        <select
-          :value="draft.trigger.type"
-          :class="field"
-          data-role="trigger"
-          @change="setTriggerType(($event.target as HTMLSelectElement).value as Trigger['type'])"
-        >
-          <option v-for="x in TRIGGERS" :key="x" :value="x">{{ tx.triggers[x] }}</option>
-        </select>
-        <template v-if="draft.trigger.type === 'task.status_changed'">
-          <input
-            :value="((t.from as string[]) ?? []).join(', ')"
-            :placeholder="tx.from"
-            :aria-label="tx.from"
-            :class="field"
-            @input="t.from = optional(csv(($event.target as HTMLInputElement).value))"
+        <div data-role="trigger">
+          <Select
+            :model-value="draft.trigger.type"
+            :label="tx.trigger"
+            :options="names(TRIGGERS, tx.triggers)"
+            @update:model-value="(v) => setTriggerType(v as Trigger['type'])"
           />
-          <input
-            :value="((t.to as string[]) ?? []).join(', ')"
+        </div>
+        <template v-if="draft.trigger.type === 'task.status_changed'">
+          <Input
+            :model-value="((t.from as string[]) ?? []).join(', ')"
+            :label="tx.from"
+            :placeholder="tx.from"
+            @update:model-value="(v) => (t.from = optional(csv(v)))"
+          />
+          <Input
+            :model-value="((t.to as string[]) ?? []).join(', ')"
+            :label="tx.to"
             :placeholder="tx.to"
-            :aria-label="tx.to"
-            :class="field"
-            @input="t.to = optional(csv(($event.target as HTMLInputElement).value))"
+            @update:model-value="(v) => (t.to = optional(csv(v)))"
           />
         </template>
-        <select
+        <Select
           v-if="draft.trigger.type === 'task.assignee_changed'"
-          :value="t.userId ?? ''"
-          :aria-label="tx.user"
-          :class="field"
-          @change="t.userId = ($event.target as HTMLSelectElement).value || undefined"
-        >
-          <option value="">—</option>
-          <option v-for="u in pickers.userId" :key="u.v" :value="u.v">{{ u.l }}</option>
-        </select>
-        <input
+          :model-value="(t.userId as string) || NONE"
+          :label="tx.user"
+          :options="[{ value: NONE, label: '—' }, ...opts(pickers.userId)]"
+          @update:model-value="(v) => (t.userId = v === NONE ? undefined : (v ?? undefined))"
+        />
+        <Input
           v-if="draft.trigger.type === 'task.field_changed'"
           v-model="(t as Record<string, string>).field"
-          :aria-label="tx.field"
-          :class="field"
+          :label="tx.field"
           data-role="trigger-field"
         />
-        <label v-if="draft.trigger.type === 'task.due'" class="flex items-center gap-2 text-sm">
-          {{ tx.daysBefore }}
-          <input
-            v-model.number="(t as Record<string, number>).daysBefore"
-            type="number"
-            min="0"
-            max="30"
-            :class="field"
-            data-role="days-before"
-          />
-        </label>
+        <Input
+          v-if="draft.trigger.type === 'task.due'"
+          :model-value="String((t as Record<string, number>).daysBefore ?? '')"
+          type="number"
+          :label="tx.daysBefore"
+          data-role="days-before"
+          @update:model-value="(v) => ((t as Record<string, number>).daysBefore = Number(v))"
+        />
       </fieldset>
 
       <fieldset class="flex flex-col gap-2">
@@ -281,64 +307,62 @@ const setValue = (i: number, raw: string) => {
         <div
           v-for="(a, i) in draft.actions"
           :key="i"
-          class="flex flex-wrap items-center gap-2"
+          class="flex flex-wrap items-end gap-2"
           data-role="action"
         >
-          <select
-            :value="a.type"
-            :class="field"
-            data-role="action-type"
-            @change="setActionType(i, ($event.target as HTMLSelectElement).value as Action['type'])"
-          >
-            <option v-for="x in ACTIONS" :key="x" :value="x">{{ tx.actionNames[x] }}</option>
-          </select>
-          <select
-            v-if="pickerKey(a)"
-            :value="act(a)[pickerKey(a)!]"
-            :class="field"
-            data-role="action-param"
-            @change="act(a)[pickerKey(a)!] = ($event.target as HTMLSelectElement).value"
-          >
-            <option value="" disabled></option>
-            <option v-for="o in pickers[pickerKey(a)!]" :key="o.v" :value="o.v">{{ o.l }}</option>
-          </select>
+          <div data-role="action-type">
+            <Select
+              :model-value="a.type"
+              :label="tx.actions"
+              :options="names(ACTIONS, tx.actionNames)"
+              @update:model-value="(v) => setActionType(i, v as Action['type'])"
+            />
+          </div>
+          <div v-if="pickerKey(a)" data-role="action-param">
+            <Select
+              :model-value="(act(a)[pickerKey(a)!] as string) || null"
+              :label="tx.actions"
+              :options="opts(pickers[pickerKey(a)!])"
+              @update:model-value="(v) => (act(a)[pickerKey(a)!] = v ?? '')"
+            />
+          </div>
           <template v-if="a.type === 'set_field'">
-            <input v-model="a.field" :aria-label="tx.field" :class="field" />
-            <input
-              :value="a.value ?? ''"
-              :aria-label="tx.value"
-              :class="field"
+            <Input v-model="a.field" :label="tx.field" />
+            <Input
+              :model-value="String(a.value ?? '')"
+              :label="tx.value"
               data-role="action-value"
-              @input="setValue(i, ($event.target as HTMLInputElement).value)"
+              @update:model-value="(v) => setValue(i, v)"
             />
           </template>
-          <input
+          <Input
             v-if="a.type === 'add_comment'"
             v-model="a.text"
+            :label="tx.actionNames.add_comment"
             maxlength="5000"
-            :class="field"
             data-role="action-text"
           />
-          <input
+          <Input
             v-if="a.type === 'create_subtask'"
             v-model="a.title"
+            :label="tx.actionNames.create_subtask"
             maxlength="500"
-            :class="field"
             data-role="action-text"
           />
           <template v-if="a.type === 'send_webhook'">
-            <select
-              v-if="subs.length"
-              v-model="a.subscriptionId"
-              :aria-label="tx.subscription"
-              :class="field"
-              data-role="action-param"
-            >
-              <option value="" disabled></option>
-              <option v-for="x in subs" :key="x.id" :value="x.id">
-                {{ x.description ? `${x.description} — ${x.url}` : x.url }}
-              </option>
-            </select>
+            <div v-if="subs.length" data-role="action-param">
+              <Select
+                :model-value="a.subscriptionId || null"
+                :label="tx.subscription"
+                :options="
+                  subs.map((x) => ({
+                    value: x.id,
+                    label: x.description ? `${x.description} — ${x.url}` : x.url,
+                  }))
+                "
+                @update:model-value="(v) => (a.subscriptionId = v ?? '')"
+              />
+            </div>
             <a v-else href="/settings/webhooks:webhooks" class="text-sm underline">{{
               tx.noSubscriptions
             }}</a>

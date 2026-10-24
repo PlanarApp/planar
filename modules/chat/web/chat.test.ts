@@ -18,7 +18,11 @@ import ChatPage from './ChatPage.vue';
 // Editor из SDK берёт строки у i18n приложения
 const mounted: { unmount(): void }[] = [];
 const mount = ((c: never, o: object = {}) => {
-  const w = vmount(c, { ...o, global: { plugins: [i18n] } });
+  // Tooltip требует TooltipProvider (в приложении он в App.vue) — в тестах пропускаем обёртку
+  const w = vmount(c, {
+    ...o,
+    global: { plugins: [i18n], stubs: { Tooltip: { template: '<slot />' } } },
+  });
   mounted.push(w);
   return w;
 }) as unknown as typeof vmount;
@@ -628,6 +632,12 @@ describe('сообщение', () => {
     });
     await own.trigger('pointerenter');
     await own.find('button[aria-label=Удалить]').trigger('click');
+    expect(h_.mutate).not.toHaveBeenCalledWith('chat.message.delete', expect.anything());
+    // подтверждение — в диалоге (портал в body)
+    const ok = [...document.body.querySelectorAll('button')].find(
+      (b) => b.textContent?.trim() === 'Удалить',
+    );
+    ok!.click();
     expect(h_.mutate).toHaveBeenCalledWith('chat.message.delete', { id: own.props('message').id });
     expect(own.find('[data-testid=chat-replies]').attributes('href')).toMatch(/\/t\//);
     await own.find('button[aria-label=Реакция]').trigger('click');

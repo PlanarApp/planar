@@ -1,8 +1,15 @@
 import 'fake-indexeddb/auto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h } from 'vue';
-import { flushPromises, mount } from '@vue/test-utils';
+import { flushPromises, mount as vmount } from '@vue/test-utils';
 import { Editor } from '@tiptap/vue-3';
+
+// Tooltip требует TooltipProvider (в приложении он в App.vue) — в тестах пропускаем обёртку
+const mount = ((c: never, o: object = {}) =>
+  vmount(c, {
+    ...o,
+    global: { plugins: [i18n], stubs: { Tooltip: { template: '<slot />' } } },
+  })) as unknown as typeof vmount;
 import StarterKit from '@tiptap/starter-kit';
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
