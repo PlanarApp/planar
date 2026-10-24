@@ -68,7 +68,7 @@ export default async function setup(project: TestProject) {
       `select datname from pg_database where datname like $1`,
       [`${name}\\_%`],
     );
-    await admin.query('set statement_timeout = 8000');
+    await admin.query('set statement_timeout = 60000');
     await admin.query('select pg_advisory_lock(7240001)').catch(() => {});
     for (const { datname } of [...rows, { datname: name }])
       await admin.query(`drop database if exists ${datname} with (force)`).catch(() => {});
