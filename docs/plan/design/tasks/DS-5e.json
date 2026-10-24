@@ -23,11 +23,6 @@
   ],
   "accept": [
     {
-      "name": "e2e-all",
-      "cmd": "mkdir -p build/artifacts/DS-5e && export COMPOSE_PROJECT_NAME=planar-e2e-ds5e API_PORT=3256 WEB_PORT=5356 DEV_PG_PORT=55556; ./dev.sh reset >/dev/null 2>&1 && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed >/dev/null && E2E_BASE_URL=http://localhost:5356 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts > build/artifacts/DS-5e/e2e.txt 2>&1; rc=$?; docker compose -f compose.dev.yml down -v >/dev/null 2>&1; exit $rc",
-      "expect": "exit=0"
-    },
-    {
       "name": "perf-file",
       "cmd": "cat build/artifacts/DS-5e/perf.md",
       "expect": "re:project_switch_ms_p95"
@@ -61,10 +56,15 @@
       "name": "install",
       "cmd": "pnpm install --frozen-lockfile",
       "expect": "exit=0"
+    },
+    {
+      "name": "e2e-all",
+      "cmd": "mkdir -p build/artifacts/DS-5e && export COMPOSE_PROJECT_NAME=planar-e2e-ds5e API_PORT=3256 WEB_PORT=5356 DEV_PG_PORT=55556 WEBHOOKS_ALLOW_HOSTS=host.docker.internal; ./dev.sh reset >/dev/null 2>&1 && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed >/dev/null && E2E_BASE_URL=http://localhost:5356 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts > build/artifacts/DS-5e/e2e.txt 2>&1; rc=$?; docker compose -f compose.dev.yml down -v >/dev/null 2>&1; exit $rc",
+      "expect": "exit=0"
     }
   ],
   "report_extra": [],
   "notes": "",
   "created": "2026-10-24T18:49:06",
-  "edited": "2026-10-24T18:57:50"
+  "edited": "2026-10-24T20:08:00"
 }
