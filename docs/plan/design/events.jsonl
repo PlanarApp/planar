@@ -330,3 +330,6 @@
 {"t": "2026-10-24T17:32:17", "by": "executor", "task": "DS-8", "ev": "reported", "commits": ["DS-8:"], "note": "partial: Причина: строка списка (DS-3) всегда монтировала 4 пикера (метки, приоритет, исполнитель, срок) в скрытой панели наведе…", "dp_feedback": "lock cpu уходит в job без вывода, ожидание отдельным job wait; -g с ^ и | через pnpm exec не работает. accept --dry идёт >10 мин."}
 {"t": "2026-10-24T17:35:10", "by": "coordinator", "task": "DS-5d", "ev": "checked", "note": "4/4 install=ok:exit 0; lint=ok:exit 0; baselines=ok:48; visual-fresh-stack=ok:exit 0"}
 {"t": "2026-10-24T17:35:28", "by": "coordinator", "task": "DS-5d", "ev": "accepted", "note": "по отчёту; остаток визуальных дефектов — DS-6e (попытка 2)"}
+{"t": "2026-10-24T17:37:56", "by": "coordinator", "task": "DS-5d", "ev": "accepted", "commits": ["dc39727"], "note": "4/4 install=ok:exit 0; lint=ok:exit 0; baselines=ok:48; visual-fresh-stack=ok:exit 0"}
+{"t": "2026-10-24T17:37:57", "by": "coordinator", "task": "DS-5d", "ev": "merged"}
+{"t": "2026-10-24T17:37:58", "by": "coordinator", "task": "DS-8", "ev": "note", "note": "DS-5d влит в feature/design (dc39727): .dpcli/dpcli task sync DS-8, затем accept --dry (visual-unchanged против новых эталонов) и report заново.", "addendum": true}
