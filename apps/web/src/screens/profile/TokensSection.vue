@@ -137,8 +137,10 @@ const fmt = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '');
             <span class="block truncate">{{ tk.name }}</span>
             <span class="text-fg-muted">
               plnr_{{ tk.prefix }}… · {{ t('tokens.expires') }}:
-              {{ tk.expiresAt ? fmt(tk.expiresAt) : t('tokens.never') }} ·
-              {{ t('tokens.lastUsed') }}: {{ fmt(tk.lastUsedAt) }}
+              {{ tk.expiresAt ? fmt(tk.expiresAt) : t('tokens.never') }}
+              <template v-if="tk.lastUsedAt">
+                · {{ t('tokens.lastUsed') }}: {{ fmt(tk.lastUsedAt) }}
+              </template>
             </span>
           </span>
           <Badge>{{ t(`tokens.${tk.scope}`) }}</Badge>

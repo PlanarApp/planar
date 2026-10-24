@@ -43,6 +43,11 @@ describe('tasks:pickers', () => {
     expect(w.emitted('update:modelValue')?.[0]).toEqual([1]);
     w.unmount();
   });
+  it('PriorityPicker: compact без приоритета рендерит видимый значок', () => {
+    const w = mount(PriorityPicker, { ...opts, props: { modelValue: 0, compact: true } });
+    expect(w.find('button svg').exists()).toBe(true);
+    w.unmount();
+  });
   it('AssigneePicker: множественный выбор, деактивированные не показаны', async () => {
     const w = mount(AssigneePicker, { ...opts, props: { spaceId: ids.space, modelValue: [] } });
     await open(w);
