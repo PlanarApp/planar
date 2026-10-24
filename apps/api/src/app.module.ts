@@ -26,6 +26,8 @@ import { McpController } from './mcp/mcp.controller.js';
 import { restControllers, restProviders } from './rest/index.js';
 import { syncControllers, syncProviders } from './sync/sync.module.js';
 import { DB } from './tokens.js';
+import { CollabService } from './collab/collab.service.js';
+import { COLLAB_OPTS, defaultCollabOpts, type CollabOpts } from './collab/options.js';
 
 @Module({})
 export class AppModule implements OnApplicationShutdown {
@@ -47,6 +49,7 @@ export class AppModule implements OnApplicationShutdown {
     files: FilesOpts,
     push: PushOpts,
     extraControllers: Type[] = [],
+    collab: Partial<CollabOpts> = {},
   ): DynamicModule {
     return {
       module: AppModule,
@@ -73,6 +76,8 @@ export class AppModule implements OnApplicationShutdown {
         { provide: PUSH_OPTS, useValue: push },
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_GUARD, useClass: ModuleGuard },
+        { provide: COLLAB_OPTS, useValue: { ...defaultCollabOpts, ...collab } },
+        CollabService,
         JobsService,
         CoreService,
         { provide: CORE, useExisting: CoreService },
