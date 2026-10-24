@@ -30,7 +30,7 @@ const emit = defineEmits<{
   submit: [];
   attach: [files: File[]]; // не-картинки, брошенные в редактор
 }>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const error = ref('');
 
 // подсказка @: состояние пишет suggestion, список рисуем сами
@@ -63,7 +63,12 @@ const imagesOf = (list?: FileList | null) =>
 
 const { user } = useAuth();
 const editor = shallowRef<Editor | null>(null);
-let session: { destroy: () => void } | undefined;
+let session: { destroy: () => void; retry: () => void } | undefined;
+const unsynced = ref(false);
+const retry = () => {
+  unsynced.value = false;
+  session?.retry();
+};
 let gone = false;
 let readOnly = () => false;
 
@@ -155,7 +160,8 @@ if (props.collab) {
     editor.value = new Editor(options(c.extensions, true));
     const sync = () => editor.value?.setEditable(props.editable && !readOnly());
     c.onAuthenticated(sync);
-    c.onDenied(() => editor.value?.setEditable(false));
+    c.onDenied(() => (unsynced.value = true));
+    c.onAuthenticated(() => (unsynced.value = false));
     sync();
   });
 } else editor.value = new Editor(options());
@@ -192,6 +198,17 @@ defineExpose({
   <div class="task-editor relative">
     <EditorContent :editor="editor" />
     <p v-if="error" role="alert" class="mt-1 text-xs text-danger">{{ error }}</p>
+    <p
+      v-if="unsynced"
+      role="status"
+      data-testid="unsynced"
+      class="mt-1 flex items-center gap-2 text-xs text-warning"
+    >
+      {{ locale === 'ru' ? 'Не синхронизируется' : 'Not syncing' }}
+      <button type="button" class="underline" @click="retry">
+        {{ locale === 'ru' ? 'Повторить' : 'Retry' }}
+      </button>
+    </p>
     <ul
       v-if="sug && sug.items.length"
       role="listbox"

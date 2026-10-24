@@ -12,8 +12,10 @@ export type Collab = {
   /** Вызывается после каждой успешной аутентификации (в т.ч. после переподключения). */
   onAuthenticated: (cb: () => void) => void;
   /** Сервер открыл документ только для чтения. */
-  /** Доступ так и не получен после повторов: редактор нужно сделать нередактируемым. */
+  /** Доступ не получен после повторов: правки копятся в IndexedDB, нужно показать «не синхронизируется». */
   onDenied: (cb: () => void) => void;
+  /** Новая серия попыток подключения. */
+  retry: () => void;
   readOnly: () => boolean;
   destroy: () => void;
 };
@@ -67,6 +69,12 @@ export function openCollab(name: string, user: { id: string; name: string }): Co
     ],
     onAuthenticated: (cb) => void listeners.push(cb),
     onDenied: (cb) => void denied.push(cb),
+    retry: () => {
+      tries = 0;
+      clearTimeout(timer);
+      provider.destroy();
+      connect();
+    },
     readOnly: () => provider.authorizedScope === 'readonly',
     destroy: () => {
       gone = true;

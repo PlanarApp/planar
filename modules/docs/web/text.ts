@@ -15,6 +15,8 @@ const S = {
   unlink: { ru: 'Отвязать', en: 'Unlink' },
   createFromTask: { ru: 'Создать страницу', en: 'Create page' },
   noLinks: { ru: 'Нет связанных страниц', en: 'No linked pages' },
+  unsynced: { ru: 'Не синхронизируется', en: 'Not syncing' },
+  retry: { ru: 'Повторить', en: 'Retry' },
   mention: { ru: 'Упоминание', en: 'Mention' },
   uploadFailed: { ru: 'Не удалось загрузить изображение', en: 'Image upload failed' },
   h1: { ru: 'Заголовок 1', en: 'Heading 1' },

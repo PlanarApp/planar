@@ -106,7 +106,12 @@ const TaskMention = Mention.extend({
 });
 
 const editor = shallowRef<Editor | null>(null);
-let session: { destroy: () => void } | undefined;
+let session: { destroy: () => void; retry: () => void } | undefined;
+const unsynced = ref(false);
+const retry = () => {
+  unsynced.value = false;
+  session?.retry();
+};
 let gone = false;
 let readOnly = () => false;
 
@@ -147,7 +152,8 @@ void import('@planar/editor/collab').then(({ openCollab }) => {
   });
   editor.value = ed;
   c.onAuthenticated(() => ed.setEditable(props.editable && !readOnly()));
-  c.onDenied(() => ed.setEditable(false));
+  c.onDenied(() => (unsynced.value = true));
+  c.onAuthenticated(() => (unsynced.value = false));
 });
 
 watch(
@@ -178,6 +184,15 @@ defineExpose({ editor });
       "
     />
     <p v-if="error" role="alert" class="mt-1 text-xs text-danger">{{ error }}</p>
+    <p
+      v-if="unsynced"
+      role="status"
+      data-testid="unsynced"
+      class="mt-1 flex items-center gap-2 text-xs text-warning"
+    >
+      {{ tx('unsynced') }}
+      <button type="button" class="underline" @click="retry">{{ tx('retry') }}</button>
+    </p>
     <ul
       v-if="sug && sug.items.length"
       role="listbox"

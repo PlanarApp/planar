@@ -25,6 +25,23 @@ vi.mock('@planar/web/modules', async (orig) => {
   return { ...(await orig<object>()), useSession: () => ref({ id: (globalThis as Record<string, unknown>).__ME }) };
 });
 (globalThis as unknown as { __ME: string }).__ME = ME;
+// перехват onDenied: тест имитирует исчерпание попыток подключения
+vi.mock('@planar/editor/collab', async (orig) => {
+  const m = await orig<typeof import('@planar/editor/collab')>();
+  return {
+    ...m,
+    openCollab: (...a: Parameters<typeof m.openCollab>) => {
+      const c = m.openCollab(...a);
+      return {
+        ...c,
+        onDenied: (cb: () => void) => {
+          (globalThis as Record<string, unknown>).__denied = cb;
+          c.onDenied(cb);
+        },
+      };
+    },
+  };
+});
 const router = { push: vi.fn(), replace: vi.fn() };
 vi.mock('vue-router', async (orig) => ({
   ...(await orig<object>()),
@@ -211,6 +228,21 @@ describe('docs web: совместное редактирование (DC-web v2
     });
     expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
     expect(w.find('[data-testid=doc-lock]').exists()).toBe(false);
+    w.unmount();
+  });
+
+  it('доступ не получен после повторов: редактор остаётся редактируемым, «Не синхронизируется» + «Повторить»', async () => {
+    const id = uuidv7();
+    await db.table('docsPages').put(page(id));
+    const w = mount(PageView, { props: { pageId: id } });
+    await vi.waitFor(() => expect(editorOf(w)).toBeTruthy(), { timeout: 10_000 });
+    expect(w.find('[data-testid=unsynced]').exists()).toBe(false);
+    ((globalThis as Record<string, unknown>).__denied as () => void)();
+    await flushPromises();
+    expect(w.find('[data-testid=unsynced]').text()).toContain('Не синхронизируется');
+    expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
+    await w.find('[data-testid=unsynced] button').trigger('click');
+    expect(w.find('[data-testid=unsynced]').exists()).toBe(false);
     w.unmount();
   });
 
