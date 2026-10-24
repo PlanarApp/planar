@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TooltipProvider } from 'reka-ui';
 import { createI18n } from 'vue-i18n';
 import { uuidv7 } from '@planar/shared';
 import en from '../../i18n/en';
@@ -63,7 +64,7 @@ function mockMq(mobile: boolean) {
   })) as unknown as typeof window.matchMedia;
 }
 const mountScreen = () =>
-  mount(ProjectScreen, {
+  mount(defineComponent({ render: () => h(TooltipProvider, null, () => h(ProjectScreen)) }), {
     global: {
       plugins: [r, createI18n({ legacy: false, locale: 'ru', messages: { ru, en } })],
     },
@@ -104,7 +105,7 @@ describe('views:project', () => {
     expect(w.get('[data-testid=view]').text()).toBe(`${project}|status`);
     const tabs = w.findAll('[role=tab]');
     expect(tabs.map((x) => x.text())).toEqual(['Список', 'Доска']);
-    await tabs[1].trigger('click');
+    await tabs[1].trigger('mousedown', { button: 0 }); // reka Tabs выбирает по mousedown
     await flushPromises();
     expect(r.currentRoute.value.path).toBe(`/p/${project}/board`);
     await vi.waitFor(() => expect(w.get('[data-testid=view]').attributes('data-id')).toBe('board'));
