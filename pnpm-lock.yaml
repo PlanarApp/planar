@@ -235,6 +235,9 @@ importers:
       '@planar/module-time':
         specifier: workspace:*
         version: link:../../modules/time
+      '@planar/module-timeline':
+        specifier: workspace:*
+        version: link:../../modules/timeline
       '@planar/module-webhooks':
         specifier: workspace:*
         version: link:../../modules/webhooks
@@ -658,6 +661,30 @@ importers:
         version: 4.6.7
 
   modules/time:
+    dependencies:
+      '@nestjs/common':
+        specifier: ^11.2.7
+        version: 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@planar/server-kit':
+        specifier: workspace:*
+        version: link:../../packages/server-kit
+      '@planar/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@planar/web':
+        specifier: workspace:*
+        version: link:../../apps/web
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
+      vue:
+        specifier: ~3.5.44
+        version: 3.5.44(typescript@6.0.3)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+
+  modules/timeline:
     dependencies:
       '@nestjs/common':
         specifier: ^11.2.7

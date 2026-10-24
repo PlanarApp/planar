@@ -8,7 +8,7 @@
   "contracts": [
     {
       "name": "P3-dashboards",
-      "version": "1",
+      "version": "2",
       "ref": "docs/contracts/p3.md"
     },
     {
@@ -86,5 +86,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-24T11:47:32",
-  "edited": "2026-10-24T12:15:56"
+  "edited": "2026-10-24T12:27:05"
 }
