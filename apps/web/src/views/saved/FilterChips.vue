@@ -21,6 +21,15 @@ function valueLabel(r: FilterRule, v: unknown): string {
   const s = String(v);
   if (s === 'me') return t('views.filter.me');
   if (s === 'current') return t('views.filter.cycleCurrent');
+  const d = isFieldRule(r.field)
+    ? defs.value.find((x) => x.id === (r.field as string).slice(6))
+    : undefined;
+  if (d?.type === 'select')
+    return (
+      (d.options.choices as { id: string; label: string }[])?.find((c) => c.id === s)?.label ?? s
+    );
+  if (d?.type === 'user') return members.value?.find((x) => x.id === s)?.name ?? s;
+  if (d?.type === 'money' && typeof v === 'number') return String(v / 100);
   if (r.field === 'status') return statuses.value?.find((x) => x.id === s)?.name ?? s;
   if (r.field === 'assignee' || r.field === 'createdBy')
     return members.value?.find((x) => x.id === s)?.name ?? s;
