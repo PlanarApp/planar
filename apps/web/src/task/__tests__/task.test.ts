@@ -60,7 +60,7 @@ describe('task:delete', () => {
     await del();
     const dlg = document.body.querySelector('[role="dialog"]')!;
     [...dlg.querySelectorAll('button')].find((b) => b.textContent === 'Удалить')!.click();
-    await eventually(async () => expect(await row('tasks', t.id)).toBeUndefined());
+    await eventually(async () => (await row('tasks', t.id)) === undefined);
   });
 });
 
