@@ -1,0 +1,34 @@
+{
+  "verdict": "rework",
+  "summary": "Menu, Input, Sheet, Select и тесты v4 соответствуют C-ui v4, скоуп соблюдён. Регрессия в PriorityPicker: в compact-триггере (строка списка) задача без приоритета теперь рисует пустую кнопку без значка.",
+  "issues": [
+    {
+      "file": "apps/web/src/tasks/fields/PriorityPicker.vue",
+      "line": 14,
+      "severity": "major",
+      "what": "icon: p ? PriorityIcon : Blank действует и на триггер OptionPicker. В compact (views/list/Row.vue:169) подписи нет, есть только значок (OptionPicker.vue:64-70), поэтому при priority=0 ячейка приоритета — пустая кнопка шириной ~12 px, без видимой цели для клика. Раньше там был значок Minus.",
+      "fix": "Прятать значок только там, где рядом есть подпись, например icon: p || props.compact ? PriorityIcon : Blank (через const props = defineProps). Добавить тест: compact-триггер при priority=0 рендерит значок."
+    },
+    {
+      "file": "apps/web/src/screens/profile/TokensSection.vue",
+      "line": 141,
+      "severity": "minor",
+      "what": "У токена, который ни разу не использовали, строка заканчивается на «Последнее использование:» без значения. Карточка допускает «пусто», но подпись без значения выглядит как сбой.",
+      "fix": "По желанию: скрывать фрагмент lastUsed, если lastUsedAt нет (v-if)."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "v4-tests",
+      "value": "3 passed",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit=0",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T13:50:00",
+  "by": "reviewer"
+}
