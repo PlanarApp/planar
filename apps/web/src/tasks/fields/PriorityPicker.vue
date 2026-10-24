@@ -12,7 +12,7 @@ const options = [0, 1, 2, 3, 4].map((p) => ({
   label: t(`tasks.priority.${p}`),
   // у «Без приоритета» значка нет (иначе «—» перед подписью), кроме compact: там триггер — один значок
   icon: p || props.compact ? PriorityIcon : Blank,
-  iconProps: { priority: p },
+  iconProps: { priority: p, size: props.compact ? 14 : 16 },
 }));
 </script>
 

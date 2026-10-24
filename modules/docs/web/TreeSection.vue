@@ -120,7 +120,7 @@ function drop(e: DragEvent, n: TreeNode) {
         v-for="n in t.rows"
         :key="n.page.id"
         draggable="true"
-        :style="{ paddingLeft: 16 + n.depth * 12 + 'px' }"
+        :style="{ paddingLeft: 24 + n.depth * 12 + 'px' }"
         :class="[
           'group flex h-7 items-center rounded-md hover:bg-bg-muted',
           current === n.page.id && 'bg-accent-subtle',

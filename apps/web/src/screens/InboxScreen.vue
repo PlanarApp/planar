@@ -69,7 +69,7 @@ const rowItems = (n: InboxItem): MenuItem[] => [
 <template>
   <div class="flex flex-col gap-3 p-4">
     <div class="flex flex-wrap items-center gap-2">
-      <h1 class="flex-1 text-xl font-semibold">{{ t('screens.inbox') }}</h1>
+      <h1 class="w-full text-xl font-semibold md:w-auto md:flex-1">{{ t('screens.inbox') }}</h1>
       <Tabs
         v-model="filter"
         :label="t('inbox.filter')"
@@ -78,7 +78,7 @@ const rowItems = (n: InboxItem): MenuItem[] => [
           { value: 'unread', label: t('inbox.onlyUnread') },
         ]"
       />
-      <Button size="sm" :disabled="!unreadIds.length" @click="read(unreadIds)">
+      <Button class="ml-auto" size="sm" :disabled="!unreadIds.length" @click="read(unreadIds)">
         {{ t('inbox.readAll') }}
       </Button>
     </div>
