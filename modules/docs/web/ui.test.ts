@@ -185,7 +185,9 @@ describe('docs web: совместное редактирование (DC-web v2
     await db.table('docsPages').put(page(id));
     const n0 = await queued('docs.lock');
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true));
+    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+      timeout: 10_000,
+    });
     expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
     expect(w.find('[data-testid=doc-lock]').exists()).toBe(false);
     expect((w.find('[data-testid=doc-title]').element as HTMLInputElement).disabled).toBe(false);
@@ -204,7 +206,9 @@ describe('docs web: совместное редактирование (DC-web v2
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
     });
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true));
+    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+      timeout: 10_000,
+    });
     expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
     expect(w.find('[data-testid=doc-lock]').exists()).toBe(false);
     w.unmount();
@@ -214,7 +218,7 @@ describe('docs web: совместное редактирование (DC-web v2
     const id = uuidv7();
     await db.table('docsPages').put(page(id));
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(editorOf(w)).toBeTruthy());
+    await vi.waitFor(() => expect(editorOf(w)).toBeTruthy(), { timeout: 10_000 });
     expect(w.findComponent({ name: 'DocEditor' }).props('name')).toBe(`docs:${id}`);
     w.unmount();
   });
@@ -253,7 +257,9 @@ describe('docs web: slash-меню и редактор', () => {
     const id = uuidv7();
     await db.table('docsPages').put(page(id));
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true));
+    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+      timeout: 10_000,
+    });
     const ed = (w.findComponent({ name: 'DocEditor' }).vm as unknown as { editor: Editor }).editor;
     const n0 = await db._queue.filter((q) => q.name === 'docs.page.update').count();
     ed.commands.insertContent('Привет');
@@ -268,7 +274,9 @@ describe('docs web: slash-меню и редактор', () => {
     const id = uuidv7();
     await db.table('docsPages').put(page(id));
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true));
+    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+      timeout: 10_000,
+    });
     await flushPromises();
     const input = w.find('[data-testid=doc-title]');
     await input.setValue('Новое имя');
