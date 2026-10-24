@@ -380,3 +380,5 @@
 {"t": "2026-10-24T20:01:01", "by": "coordinator", "task": "DS-10", "ev": "accepted", "note": "по отчёту: гонка ensureModule есть на main (import 5/10, chat 4/10) — не регрессия design"}
 {"t": "2026-10-24T20:07:09", "by": "coordinator", "task": "DS-9", "ev": "checked", "note": "6/7 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0; e2e-all=FAIL:exit 1 · $ tsx --conditions=s…"}
 {"t": "2026-10-24T20:07:49", "by": "coordinator", "task": "DS-9", "ev": "accepted", "note": "по отчёту; e2e 83/84 — единственное падение collab:217 — гонка ensureModule, есть на main (DS-10), передано главной"}
+{"t": "2026-10-24T20:07:50", "by": "coordinator", "task": "DS-9", "ev": "merged"}
+{"t": "2026-10-24T20:07:51", "by": "coordinator", "task": "DS-5e", "ev": "note", "note": "DS-9 влит (94bda5f): .dpcli/dpcli task sync DS-5e, pnpm install --frozen-lockfile, затем шаги 1–4 заново (в e2e-all допустимо одно падение collab:217 / импорт — известная гонка ensureModule на main, DS-10; укажи в отчёте).", "addendum": true}
