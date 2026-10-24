@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, inject } from 'vitest';
-import { closePools, dropDb, setFileDbUrl } from './db.js';
+import { closePools, setFileDbUrl } from './db.js';
 
 // Имя начинается с имени шаблона: global-setup в teardown добивает оставшиеся.
 const name = `${inject('dbTemplate')}_${randomBytes(4).toString('hex')}`;
@@ -15,6 +15,6 @@ setFileDbUrl(url.toString());
 
 afterAll(async () => {
   await closePools();
-  await dropDb(admin, name);
+  // базу не роняем здесь (каждый DROP — checkpoint, очередь под нагрузкой): удалит teardown global-setup
   await admin.end();
 });
