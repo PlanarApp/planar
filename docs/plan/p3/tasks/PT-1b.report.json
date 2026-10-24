@@ -1,10 +1,13 @@
 {
   "status": "done",
-  "summary": "Menu без trigger рисует IconButton «…» с label (dev-warn без обоих); Input отдаёт атрибуты на input, class/style на обёртку; лист Select — role=listbox, aria-describedby в Sheet привязан; PriorityPicker и TokensSection без «—»; селекторы settings.test обновлены. По ревью: awareness не уничтожается при повторе (стаб destroy, setLocalState), курсоры новой страницы проверены e2e; после 5 отказов редактор editable=false. После sync: тесты docs ждут ленивый чанк collab до 10 с (на нагрузке 1 с не хватало).",
+  "summary": "Совместное редактирование docs и описания задачи (Yjs/Hocuspocus, курсоры, офлайн), блокировка CL-3 убрана из UI; серверный external() по изменению body; повтор подключения с сохранением awareness; «Не синхронизируется»+«Повторить». Влит feature/p3 (C-ui v4): конфликты TaskDetail.vue и ui.test.ts разрешены с сохранением вёрстки v4 и collab-описания; тексты в i18n.",
   "commits": [
-    "a440c1a DS-0b: Menu без trigger, атрибуты Input, listbox, пустые значения",
-    "e1dda24 PT-1b: повтор подключения сохраняет awareness (курсоры), после исчерпания попыток редактор нередактируемый",
-    "29fecf6 PT-1b: тесты docs ждут ленивый чанк collab до 10 с"
+    "aac7965",
+    "c38ef2e",
+    "e1dda24",
+    "29fecf6",
+    "ef208d4",
+    "c90ade3"
   ],
   "checks": [
     {
@@ -24,7 +27,7 @@
     },
     {
       "name": "test-web",
-      "value": "696 passed (через lock)",
+      "value": "759 passed (через lock)",
       "pass": true
     },
     {
@@ -34,7 +37,7 @@
     },
     {
       "name": "size",
-      "value": "154 KB",
+      "value": "176.6 KB",
       "pass": true
     },
     {
@@ -44,21 +47,21 @@
     },
     {
       "name": "scope",
-      "value": "PASS 19 файлов",
+      "value": "PASS 21 файл",
       "pass": true
     }
   ],
   "not_done": [],
   "questions": [],
-  "how_to_check": ".dpcli/dpcli accept DS-0b",
+  "how_to_check": ".dpcli/dpcli accept PT-1b --dry",
   "uncertain": [
     {
       "where": "apps/web/src/command/__tests__/ui.test.ts:59",
-      "why": "первый тест файла палитры иногда падает по таймауту 3.4 с при полной параллельной нагрузке accept; отдельно и через lock проходит (696/696), к задаче не относится",
-      "checked": "3 прогона: прямой — PASS, lock — PASS, accept — 2 из 4 раз флейк"
+      "why": "первый тест палитры под нагрузкой accept падает по until-таймауту 3 с (4.4 с); отдельно и через lock — 759/759",
+      "checked": "не связано с задачей; воспроизводится только в параллельном прогоне"
     }
   ],
-  "dp_feedback": "plan design '5. Задачи / DS-0' не находится — раздел назван иначе.",
-  "t": "2026-10-24T14:49:59",
+  "dp_feedback": "Влитие feature/p3 после ревью даёт конфликты в вёрстке; полезно предупреждать о ожидаемых конфликтах в карточке.",
+  "t": "2026-10-24T15:57:00",
   "by": "executor"
 }

@@ -1,34 +1,34 @@
 {
-  "verdict": "rework",
-  "summary": "Awareness при повторе сохраняется (патч destroy), external() по body с тестом, scope и lint подтверждаются. Но второй пункт доработки сделан наоборот: вместо состояния «не синхронизируется» редактор становится только для чтения. Ещё отчёт описывает чужую задачу (DS-0b).",
+  "verdict": "accept",
+  "summary": "Оба пункта прошлого ревью закрыты. onDenied больше не выключает редактирование, а показывает «Не синхронизируется» (text-warning, токен --color-warning) с кнопкой «Повторить»: retry обнуляет счётчик и пересоздаёт провайдер на тех же ydoc и awareness. Есть тест docs (contenteditable=true, кнопка). Отчёт собран по коммитам PT-1b aac7965..ef208d4.",
   "issues": [
     {
-      "file": "packages/editor/src/collab.ts",
-      "line": 51,
-      "severity": "major",
-      "what": "Координатор 14:00, п.2: после 5 неудачных попыток показать «не синхронизируется» (C-ui v3), режим только чтения не включать. Сделано обратное: onDenied вызывает setEditable(false) в Editor.vue:158 и DocEditor.vue:150, индикатора нет. Пользователь молча теряет возможность писать.",
-      "fix": "onDenied: оставить редактор редактируемым (правки остаются в IndexedDB) и показать состояние «не синхронизируется» токенами C-ui v3 в Editor.vue и DocEditor.vue; добавить юнит-тест"
+      "file": "apps/web/src/task/editor/Editor.vue",
+      "line": 207,
+      "severity": "minor",
+      "what": "Строки «Не синхронизируется»/«Повторить» заданы тернарником по locale, а не через i18n t(), как остальной текст Editor.vue. Для описания задачи нет теста на onDenied и retry, тест есть только для DocEditor.",
+      "fix": "Вынести строки в словарь i18n web. По желанию добавить тест в task.test.ts по образцу ui.test.ts."
     },
     {
-      "file": "build/dpcli/PT-1b.report.json",
-      "line": 1,
-      "severity": "major",
-      "what": "Отчёт ≠ факт. В summary описаны Menu/Input/Select/PriorityPicker/settings.test, а в commits указан a440c1a. Это всё работа DS-0b: коммит есть только в design/*, в p3/PT-1b его нет. Флейк в uncertain (apps/web/src/command/__tests__/ui.test.ts) тоже вне scope задачи.",
-      "fix": "Пересобрать отчёт по фактическим коммитам aac7965, c38ef2e, e1dda24, 29fecf6 и по правкам PT-1b"
+      "file": "packages/editor/src/collab.ts",
+      "line": 14,
+      "severity": "minor",
+      "what": "Комментарий «Сервер открыл документ только для чтения» остался над onDenied, а относится к readOnly.",
+      "fix": "Перенести комментарий к readOnly."
     }
   ],
   "rerun": [
     {
-      "name": "scope",
-      "value": "19 файлов в границах",
+      "name": "test-web",
+      "value": "exit 0, 29 с",
       "pass": true
     },
     {
-      "name": "lint",
-      "value": "1/1 PASS",
+      "name": "scope",
+      "value": "19 файлов в границах",
       "pass": true
     }
   ],
-  "t": "2026-10-24T15:26:27",
+  "t": "2026-10-24T15:48:24",
   "by": "reviewer"
 }
