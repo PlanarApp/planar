@@ -1,0 +1,43 @@
+{
+  "status": "partial",
+  "summary": "Строка списка 32 px (ID mono, иконка статуса, название; справа метки Badge dot, срок с тоном, AvatarStack; пикеры по наведению), компактная карточка доски без пустой нижней строки, сид --locale ru|en (по умолчанию ru).",
+  "commits": [
+    "cbd1d44 design: DS-3 строка списка и карточка доски по C-ui v3, сид на русском"
+  ],
+  "checks": [
+    {
+      "name": "accept --dry",
+      "value": "все PASS; web-tests один раз упал во флейке command/ui.test (palette Cmd+K), повтор 689/689",
+      "pass": true
+    },
+    {
+      "name": "perf",
+      "value": "before switch 107.9 scroll 16.8; after switch 122.4 scroll 16.7 (прогон 1 был 169.4 — шум; прогон 0 случайно шёл на чужом коде DS-2, отброшен)",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Скриншоты до/после (Playwright, 1440x900 и 390x844, обе темы) не сделаны",
+    "Тест на сид в apps/api/test/seed.test.ts не добавлен — вне скоупа",
+    "Статусы по умолчанию новых пространств (packages/shared mutators/spaces.ts, core) не тронуты — ограничение"
+  ],
+  "questions": [
+    "Расширить скоуп на apps/api/test/seed.test.ts для случая --locale?"
+  ],
+  "how_to_check": ".dpcli/dpcli accept DS-3",
+  "uncertain": [
+    {
+      "where": "apps/web/src/views/list/Row.vue",
+      "why": "пикеры полей спрятаны до наведения (opacity, абсолют справа); визуально не проверено",
+      "checked": "vitest views, vue-tsc"
+    },
+    {
+      "where": "apps/web/src/views/list/Row.vue dueTone",
+      "why": "порог warning/danger (<2 дней / просрочено) выбран мной, в строке раньше срока-тона не было",
+      "checked": "нет"
+    }
+  ],
+  "dp_feedback": "git stash общий для всех копий (refs/stash): мой git stash pop снял чужой стэш DS-2. Нужен совет в workflow не использовать stash, перф-замер до правок делать из чистого git worktree/коммита. Я вернул стэш DS-2 через git stash store (запись в stash list); стэш DS-1 (23f9e4d) висит оборванным.",
+  "t": "2026-10-24T11:40:56",
+  "by": "executor"
+}

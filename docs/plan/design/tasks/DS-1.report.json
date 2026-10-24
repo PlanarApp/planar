@@ -1,0 +1,70 @@
+{
+  "status": "done",
+  "summary": "Тёмная боковая панель (sidebar-токены, h-7, шапка workspace с меню пользователя, Inbox/Мои задачи, пространства и «Разделы» сворачиваются, состояние в planar.sidebar.collapsed). TopBar: крошки пространство / проект / вид, поиск с Kbd Mod+K, колокольчик, h-11; иконка чата и Topbar.vue удалены; каналы чата показываются без группировки по пространствам.",
+  "commits": [
+    "fa0084e DS-1: оболочка"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Избранное скрыто (данных нет); название workspace — «Planar» (в данных его нет); счётчик чата — только существующий unreadOf"
+  ],
+  "questions": [],
+  "images": [
+    "build/artifacts/DS-1/before-d-light-project.png",
+    "build/artifacts/DS-1/after-d-light-project.png",
+    "build/artifacts/DS-1/after-d-dark-project.png",
+    "build/artifacts/DS-1/after-m-dark-my.png"
+  ],
+  "how_to_check": ".dpcli/dpcli accept DS-1",
+  "uncertain": [
+    {
+      "where": "apps/web/src/layout/nav.ts",
+      "why": "меню пользователя на desktop перенесено в шапку панели, на mobile осталось в TopBar (панели там нет); сворачивание секций модулей — через provide/inject 'planar.sidebar.collapse'",
+      "checked": "тесты layout, скриншоты 1440 и 390 светлая/тёмная"
+    },
+    {
+      "where": "modules/chat/web/chat.test.ts",
+      "why": "тест 'отправка ≤ 50 мс' один раз дал 51 мс под нагрузкой хоста; в изоляции проходит",
+      "checked": "повторный прогон"
+    },
+    {
+      "where": "e2e/web/collab.spec.ts",
+      "why": "e2e не гонял; h2 'Чат'/'Документы' и data-testid nav-section/sidebar сохранены",
+      "checked": "grep testid"
+    }
+  ],
+  "dp_feedback": "ОПАСНО: git stash общий для всех копий (worktree). Я сделал stash -u и pop, и поп взял чужой stash (DS-3), а мой попал другим: DS-2 и DS-3 тоже получили чужие правки. Мои восстановил через git stash apply 23f9e4d0. DS-3 stash = a2760b7 (seed, board, list), DS-2 stash = df37daf (ProjectScreen, SavedView, OptionsBar + 2 новых файла): их деревья сейчас содержат чужое, их надо вернуть git stash apply по этим хешам. Правило: исполнителям не использовать git stash; для «до»-снимков брать git worktree/отдельную копию.",
+  "t": "2026-10-24T11:36:47",
+  "by": "executor"
+}
