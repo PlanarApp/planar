@@ -165,3 +165,4 @@
 {"t": "2026-10-24T13:09:19", "by": "coordinator", "task": "DS-4c", "ev": "accepted", "note": "по отчёту"}
 {"t": "2026-10-24T13:10:21", "by": "coordinator", "task": "DS-4c", "ev": "accepted", "commits": ["4229f1f"], "note": "6/6 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-24T13:10:21", "by": "coordinator", "task": "DS-4c", "ev": "merged"}
+{"t": "2026-10-24T13:10:34", "by": "coordinator", "task": "DS-4b", "ev": "accepted", "note": "по ревью; minors — в DS-6"}
