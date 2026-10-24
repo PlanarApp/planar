@@ -56,6 +56,20 @@ describe('раскладка', () => {
     expect(w.find('[data-testid=bottom-nav]').exists()).toBe(true);
   });
 
+  it('375: кнопка «меню» в TopBar открывает Sidebar в выезжающей панели', async () => {
+    const { router, i18n } = setup(true);
+    const w = mount(withTips(AppShell), {
+      global: { plugins: [router, i18n] },
+      attachTo: document.body,
+    });
+    await router.isReady();
+    await w.find('button[aria-label="Навигация"]').trigger('click');
+    await vi.waitFor(() => expect(document.querySelector('[data-testid=sidebar]')).not.toBeNull());
+    await router.push('/inbox');
+    await vi.waitFor(() => expect(document.querySelector('[data-testid=sidebar]')).toBeNull());
+    w.unmount();
+  });
+
   it('useTheme ставит и снимает класс dark', () => {
     setup(false);
     const { theme } = useTheme('dark');

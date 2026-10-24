@@ -24,6 +24,7 @@ export default {
     language: 'Language',
     install: 'Install app',
     menu: 'Menu',
+    nav: 'Navigation',
   },
   fields: {
     title: 'Fields',

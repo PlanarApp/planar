@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onScopeDispose, provide, watch, type Component } from 'vue';
+import { defineAsyncComponent, onScopeDispose, watch, type Component } from 'vue';
 import { ChevronRight, Inbox, ListChecks, Settings } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+import Badge from '../ui/Badge.vue';
 import { useUnread } from '../inbox/queries';
 import { prefetchIdle, prefetchProject } from '../tasks/queries';
 import { useExtensions } from '../modules/registry';
@@ -14,8 +15,6 @@ const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
 const { user } = useAuth();
 const { items } = useUserMenu();
-// секции модулей сворачиваются тем же хранилищем
-provide('planar.sidebar.collapse', sc);
 
 const { t, te, locale } = useI18n();
 const navItems = useExtensions('nav');
@@ -85,10 +84,12 @@ const chev = (id: string) => ['shrink-0 transition-transform', !sc.is(id) && 'ro
       <div class="flex flex-col gap-0.5">
         <RouterLink to="/inbox" :class="link" active-class="bg-accent-subtle">
           <Inbox :size="16" />{{ t('sidebar.inbox') }}
-          <span
+          <Badge
             v-if="unread"
-            class="ml-auto rounded-full bg-accent px-1.5 text-xs text-accent-fg"
-            >{{ unread }}</span
+            variant="solid"
+            color="var(--color-accent)"
+            class="ml-auto text-accent-fg!"
+            >{{ unread }}</Badge
           >
         </RouterLink>
         <RouterLink to="/my" :class="link" active-class="bg-accent-subtle">

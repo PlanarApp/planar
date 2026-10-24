@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ChevronRight, FileText, Plus } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
@@ -14,14 +14,22 @@ const pages = useQuery(() => db.table<PageRow>('docsPages').toArray());
 const spaces = useQuery(async () =>
   (await db.table<Row<'spaces'>>('spaces').toArray()).sort((a, b) => (a.rank < b.rank ? -1 : 1)),
 );
-// свёрнутость — общее хранилище боковой панели (provide из ядра); без него — локально
-const sc = inject<{ is: (id: string) => boolean; toggle: (id: string) => void }>(
-  'planar.sidebar.collapse',
-  (() => {
-    const off = ref(false);
-    return { is: () => off.value, toggle: () => (off.value = !off.value) };
-  })(),
-);
+// свёрнутость секции — своё состояние, не часть интерфейса ядра
+const KEY = 'planar.sidebar.docs';
+const folded = ref(false);
+try {
+  folded.value = localStorage.getItem(KEY) === '1';
+} catch {
+  /* без хранилища — до перезагрузки */
+}
+const fold = () => {
+  folded.value = !folded.value;
+  try {
+    localStorage.setItem(KEY, folded.value ? '1' : '0');
+  } catch {
+    /* см. выше */
+  }
+};
 const opened = ref(new Set<string>());
 const current = computed(() => route.params.pageId as string | undefined);
 
@@ -87,16 +95,16 @@ function drop(e: DragEvent, n: TreeNode) {
     <h2>
       <button
         type="button"
-        :aria-expanded="!sc.is('docs')"
+        :aria-expanded="!folded"
         class="flex h-7 w-full items-center gap-1 rounded-md px-2 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
-        @click="sc.toggle('docs')"
+        @click="fold"
       >
-        <ChevronRight :size="12" :class="['shrink-0', !sc.is('docs') && 'rotate-90']" />{{
+        <ChevronRight :size="12" :class="['shrink-0', !folded && 'rotate-90']" />{{
           tx('docs')
         }}
       </button>
     </h2>
-    <template v-if="!sc.is('docs')">
+    <template v-if="!folded">
     <div v-for="t in trees" :key="t.s.id">
       <div class="group flex h-7 items-center px-2 text-xs text-fg-muted">
         <span class="truncate">{{ t.s.name }}</span>

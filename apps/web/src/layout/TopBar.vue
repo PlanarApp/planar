@@ -9,7 +9,7 @@ import {
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Bell, ChevronRight, Download, Search } from 'lucide-vue-next';
+import { Bell, ChevronRight, Download, PanelLeft, Search } from 'lucide-vue-next';
 // reka (Avatar/Menu) — вне начального бандла
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
@@ -23,9 +23,10 @@ import { useUnread } from '../inbox/queries';
 import { useExtensions } from '../modules/registry';
 import { useProject, useSpaces } from '../tasks/queries';
 import { useSavedView } from '../views/saved/queries';
-import { useUserMenu } from './nav';
+import { mobileNav, useUserMenu } from './nav';
 
 const { t, te, locale } = useI18n();
+const openNav = () => (mobileNav.value = true);
 const route = useRoute();
 const router = useRouter();
 const { user } = useAuth();
@@ -84,6 +85,10 @@ const crumbs = computed(() => {
 
 <template>
   <header class="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-bg px-3">
+    <!-- IconButton не пробрасывает атрибуты на <button> (корень — Tooltip): клик ловим на обёртке -->
+    <span v-if="isMobile" class="contents" @click="openNav">
+      <IconButton :icon="PanelLeft" :label="t('topbar.nav')" />
+    </span>
     <nav :aria-label="t('topbar.breadcrumb')" class="min-w-0 flex-1">
       <h1 class="flex items-center gap-1 truncate text-sm">
         <template v-for="(c, i) in crumbs" :key="i">
@@ -101,7 +106,9 @@ const crumbs = computed(() => {
       :key="i.key"
       data-testid="topbar-item"
     />
-    <IconButton v-if="isMobile" :icon="Search" :label="t('cmd.open')" @click="ui.palette = true" />
+    <span v-if="isMobile" class="contents" @click="ui.palette = true">
+      <IconButton :icon="Search" :label="t('cmd.open')" />
+    </span>
     <Button v-else size="sm" :icon="Search" :aria-label="t('cmd.open')" @click="ui.palette = true">
       {{ t('topbar.search') }}<Kbd keys="Mod+K" />
     </Button>
@@ -109,7 +116,9 @@ const crumbs = computed(() => {
       {{ t('topbar.install') }}
     </Button>
     <span class="relative">
-      <IconButton :icon="Bell" :label="t('topbar.notifications')" @click="router.push('/inbox')" />
+      <span class="contents" @click="router.push('/inbox')">
+        <IconButton :icon="Bell" :label="t('topbar.notifications')" />
+      </span>
       <span
         v-if="unread"
         data-testid="bell-count"

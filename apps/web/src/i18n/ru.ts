@@ -24,6 +24,7 @@ export default {
     language: 'Язык',
     install: 'Установить приложение',
     menu: 'Меню',
+    nav: 'Навигация',
   },
   fields: {
     title: 'Поля',

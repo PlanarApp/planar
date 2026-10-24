@@ -135,6 +135,7 @@ const texts = (w: { findAll: (s: string) => { text: () => string }[] }, sel: str
   w.findAll(sel).map((e) => e.text());
 
 beforeEach(async () => {
+  localStorage.clear();
   i18n.global.locale.value = 'ru';
   h_.mutate.mockReset().mockResolvedValue(undefined);
   h_.api.mockReset().mockResolvedValue({ messages: [], reactions: [] });
@@ -230,6 +231,13 @@ describe('секция боковой панели', () => {
     expect(w.text()).not.toContain('Alpha');
     await w.find('h2 button').trigger('click');
     expect(w.findAll('[data-testid=chat-channel]').length).toBe(0);
+  });
+
+  it('без каналов: «Нет каналов» и одна кнопка создать, без имён пространств', async () => {
+    const w = mount(Section);
+    await vi.waitFor(() => expect(w.find('[data-testid=chat-add-channel]').exists()).toBe(true));
+    expect(w.text()).toContain('Нет каналов');
+    expect(w.findAll('[data-testid=chat-add-channel]').length).toBe(1);
   });
 
   it('диалоги по lastMessageAt, имя — участники кроме меня', async () => {

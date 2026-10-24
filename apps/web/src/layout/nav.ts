@@ -31,6 +31,9 @@ export const sidebarCollapse = {
   },
 };
 
+/** Выезжающая боковая панель на mobile. */
+export const mobileNav = ref(false);
+
 const notice = ref(''); // общий: показывается в TopBar при любом входе в меню
 
 /** Меню пользователя (профиль, настройки, тема, язык, выход) — в шапке панели и в TopBar на mobile. */
