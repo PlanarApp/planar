@@ -1,32 +1,67 @@
 {
-  "status": "partial",
-  "summary": "TaskDetail: верхняя полоса (назад на mobile, ID mono, меню «…» с danger+confirm, закрыть), заголовок text-xl, справа колонка свойств 264px (статус, приоритет, исполнитель, метки, срок, наблюдатели через AvatarStack, поля модуля, панели модулей), слева описание/подзадачи/чек-лист/вложения/лента; на mobile одна колонка, свойства над описанием. Тест-хелпер обёрнут в TooltipProvider.",
+  "status": "done",
+  "summary": "Две колонки по ширине контейнера (@container, @2xl): в панели 480px — одна колонка, на /t/:key — две. Обёртка описания text-base, тест удаления через ConfirmDialog, скриншоты сняты.",
   "commits": [
-    "5ba6bc5 DS-4a: карточка задачи"
+    "4f70f46 DS-4a: доработка по ревью — @container вместо ширины экрана, text-base описания, тест удаления с подтверждением"
   ],
   "checks": [
     {
-      "name": "accept --dry",
-      "value": "6/6 PASS",
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
       "pass": true
     }
   ],
   "not_done": [
-    "Пустые значения как ghost-кнопка «Добавить…» без «—»: пикеры живут в apps/web/src/tasks (вне скоупа), их внешний вид не менял",
-    "Скриншоты не снимал, визуальной проверки нет"
+    "Пустые значения пикеров: PriorityPicker показывает «—» перед «Без приоритета» (tasks/, вне скоупа)"
   ],
-  "questions": [
-    "Нужно ли DS-задаче на пикеры (tasks/fields/*) для пустых состояний «Добавить…»?"
+  "questions": [],
+  "images": [
+    "build/artifacts/DS-4a/panel-light-1440.png",
+    "build/artifacts/DS-4a/panel-dark-1440.png",
+    "build/artifacts/DS-4a/page-light-1440.png",
+    "build/artifacts/DS-4a/page-dark-1440.png",
+    "build/artifacts/DS-4a/mobile-light-390.png",
+    "build/artifacts/DS-4a/mobile-dark-390.png"
   ],
   "how_to_check": ".dpcli/dpcli accept DS-4a",
   "uncertain": [
     {
-      "where": "apps/web/src/task/TaskDetail.vue",
-      "why": "вёрстка не проверена глазами; панели модулей в колонке 264px могут быть тесными; кнопка 'Следить' в пустом состоянии наблюдателей",
-      "checked": "vue-tsc, 52 теста task, accept"
+      "where": "build/artifacts/DS-4a (mobile)",
+      "why": "на mobile внизу остаётся нижняя навигация оболочки — не «весь экран» буквально; оболочка вне скоупа",
+      "checked": "скриншот 390x844"
+    },
+    {
+      "where": "task/__tests__/task.test.ts:task:delete",
+      "why": "меню reka открывается через keydown Enter в jsdom",
+      "checked": "тест проходит, отмена оставляет строку, подтверждение удаляет"
     }
   ],
-  "dp_feedback": "",
-  "t": "2026-10-24T12:58:25",
+  "dp_feedback": "build/ в .gitignore, а карточка требует скриншоты в build/artifacts — коммитить нельзя, это неочевидно.",
+  "t": "2026-10-24T13:24:35",
   "by": "executor"
 }
