@@ -78,7 +78,7 @@ const empty = computed(() => !!all.value && !all.value.some((x) => !x.parentId))
 
 // --- виртуализация
 const scroller = ref<HTMLElement>();
-const rowH = computed(() => (isMobile.value ? 48 : 36));
+const rowH = computed(() => (isMobile.value ? 48 : 32));
 const virt = useVirtualizer(
   computed(() => ({
     count: items.value.length,
@@ -289,6 +289,8 @@ watch(
               :editing="editing === it.id"
               :fields="options.fields"
               :blocked="blocked.has(it.task.id)"
+              :members="members ?? []"
+              :labels="labels ?? []"
               @click="onRowClick(it, $event)"
               @toggle="sel.toggle(it.task.id)"
               @edit="startEdit(it.id)"
