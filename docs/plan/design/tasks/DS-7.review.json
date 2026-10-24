@@ -1,20 +1,13 @@
 {
-  "verdict": "rework",
-  "summary": "Мутатор и контракт C-mutators v4 в порядке (partialRecord по категориям, trim, 1–64, иначе по умолчанию; тесты зелёные). Но web берёт имена из settings.cat.* (метки категорий), а не из settings.statuses.defaults.* по карточке: в ru новое пространство получает «К выполнению», а сид DS-3 даёт «К работе» — имена расходятся.",
+  "verdict": "accept",
+  "summary": "C-mutators v4 соблюдён: statusNames — partialRecord по категориям, trim, 1–64, иначе имя по умолчанию; web передаёт имена из i18n, ru совпадает с сидом. Скоуп чистый, space.create в web вызывается только в SpacesSettings.vue. Ключ settings.statusDefaults вместо settings.statuses.defaults обоснован: settings.statuses — строка, используется в StatusesSettings.vue.",
   "issues": [
     {
-      "file": "apps/web/src/screens/settings/SpacesSettings.vue",
-      "line": 33,
-      "severity": "major",
-      "what": "statusNames берутся из t(`settings.cat.${c}`); ru.ts:341 todo='К выполнению', а карточка и сид (apps/api/src/db/seed.ts:35) требуют 'К работе'. Ключи settings.statuses.defaults.* не заведены, ru.ts/en.ts не тронуты, хотя в скоупе.",
-      "fix": "Добавить settings.statuses.defaults.<категория> в ru.ts (Бэклог, К работе, В работе, Готово, Отменено) и en.ts (Backlog, Todo, In Progress, Done, Cancelled) и брать имена оттуда; в тесте settings проверять todo = 'К работе'. Иначе — согласовать отступление с координатором."
-    },
-    {
-      "file": "build/dpcli/DS-7.report.json",
-      "line": 1,
+      "file": "apps/web/src/i18n/en.ts",
+      "line": 341,
       "severity": "minor",
-      "what": "В commits только коммит слияния a45dd0c; коммит с работой ad2e7f8 не указан.",
-      "fix": "Указать ad2e7f8 в отчёте."
+      "what": "en in_progress = 'In progress' (как в сиде), а в карточке и в CATEGORIES по умолчанию — 'In Progress'; в англоязычном UI новые пространства получают другой регистр, чем без statusNames",
+      "fix": "координатору выбрать одно написание (сид или CATEGORIES) и выровнять отдельной правкой"
     }
   ],
   "rerun": [
@@ -25,10 +18,10 @@
     },
     {
       "name": "scope",
-      "value": "4 файла в границах",
+      "value": "6 файлов в границах",
       "pass": true
     }
   ],
-  "t": "2026-10-24T16:29:29",
+  "t": "2026-10-24T16:34:38",
   "by": "reviewer"
 }
