@@ -106,13 +106,6 @@
       "when": 1792839882825,
       "tag": "0014_stiff_klaw",
       "breakpoints": true
-    },
-    {
-      "idx": 15,
-      "version": "7",
-      "when": 1792842613717,
-      "tag": "0015_tan_brood",
-      "breakpoints": true
     }
   ]
 }
