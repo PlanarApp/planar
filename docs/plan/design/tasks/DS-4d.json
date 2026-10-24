@@ -24,7 +24,11 @@
     "modules/webhooks/web",
     "modules/import/web",
     "apps/web/src/modules/__tests__",
-    "build/artifacts/DS-4d"
+    "build/artifacts/DS-4d",
+    "modules/time/package.json",
+    "modules/automations/package.json",
+    "modules/import/package.json",
+    "pnpm-lock.yaml"
   ],
   "dont_touch": [
     "modules/docs/web/DocEditor.vue и редактор (slash.ts, suggest.ts) — совместное редактирование делает модуль p3",
@@ -77,5 +81,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-24T13:14:22",
-  "edited": "2026-10-24T13:29:03"
+  "edited": "2026-10-24T14:03:42"
 }
