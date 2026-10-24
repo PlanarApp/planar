@@ -160,3 +160,4 @@
 {"t": "2026-10-24T13:58:03", "by": "reviewer", "task": "PT-5b", "ev": "reviewed", "note": "Страница /f/<slug>, второй вход Vite, Caddy, size.mjs и настройки по P3-forms v1 в целом верны, скоуп чист, pt5b и form-size перезапущены (PASS). Блокер: деньг…", "verdict": "rework", "issues": {"blocker": 1, "major": 2, "minor": 2}, "review": "docs/plan/p3/tasks/PT-5b.review.json"}
 {"t": "2026-10-24T14:00:07", "by": "reviewer", "task": "PT-1b", "ev": "reviewed", "note": "Контракты P3-ydoc «Клиент (web)»/DC-web v2 соблюдены, scope в границах, external() по body исправлен с тестом, проверки подтверждаются. Один major: повтор подк…", "verdict": "rework", "issues": {"major": 1, "minor": 1}, "review": "docs/plan/p3/tasks/PT-1b.review.json"}
 {"t": "2026-10-24T14:00:42", "by": "coordinator", "task": "PT-4", "ev": "accepted", "note": "по ревью"}
+{"t": "2026-10-24T14:00:42", "by": "coordinator", "task": "PT-6b", "ev": "accepted", "note": "по отчёту"}
