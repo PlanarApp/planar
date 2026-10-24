@@ -53,14 +53,14 @@ describe('task:delete', () => {
       await until(() => !!document.body.querySelector('[role="dialog"]'));
     };
     await del();
-    expect((await row<{ deletedAt?: unknown }>('tasks', t.id)).deletedAt ?? null).toBeNull();
+    expect(await row('tasks', t.id)).toBeDefined(); // task.delete — жёсткое удаление строки
     byText('Отмена')!.click();
     await flushPromises();
-    expect((await row<{ deletedAt?: unknown }>('tasks', t.id)).deletedAt ?? null).toBeNull();
+    expect(await row('tasks', t.id)).toBeDefined(); // task.delete — жёсткое удаление строки
     await del();
     const dlg = document.body.querySelector('[role="dialog"]')!;
     [...dlg.querySelectorAll('button')].find((b) => b.textContent === 'Удалить')!.click();
-    await eventually(async () => expect((await row('tasks', t.id))?.deletedAt ?? 1).toBeTruthy());
+    await eventually(async () => expect(await row('tasks', t.id)).toBeUndefined());
   });
 });
 
