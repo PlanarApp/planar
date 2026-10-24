@@ -1,0 +1,48 @@
+{
+  "verdict": "accept",
+  "summary": "Скоуп и C-modules соблюдены (types.ts/sdk.ts/sync не тронуты, replicaState уже экспортирован). Логика «null = неизвестно до bootstrap» верна: settings не входит в DEFERRED, т.е. приходит в hot-части bootstrap. Блокеров нет; cold-10x/e2e-all не зелёные из-за флейка loginAs вне скоупа — решение по приёмке за координатором.",
+  "issues": [
+    {
+      "file": "apps/web/src/modules/registry.ts",
+      "line": 20,
+      "severity": "major",
+      "what": "Модуль включён, но фронта нет в loaders или load() бросил: ensureModule -> false, а moduleStatus возвращает 'loading' (enabled содержит id, registered нет) — вечный скелетон вместо понятной ошибки, что противоречит цели карточки.",
+      "fix": "Запоминать id, которые не загрузились/не найдены (Set failed), и отдавать для них 'error'; добавить случай в cold-module.test.ts."
+    },
+    {
+      "file": "apps/web/src/router.ts",
+      "line": 45,
+      "severity": "minor",
+      "what": "beforeEach делает await ensureModule, поэтому навигация держится до 10 с, а ModuleScreen со скелетоном в это время не монтируется: при холодном заходе пользователь видит пустой/прежний экран, а скелетон показывается почти только в случае из замечания 1.",
+      "fix": "Приемлемо как есть; если скелетон нужен именно в ожидании — пропускать маршрут module сразу и вызывать ensureModule из ModuleScreen (watch status 'ready' уже повторяет навигацию)."
+    },
+    {
+      "file": "e2e/web/cold-module.spec.ts",
+      "line": 7,
+      "severity": "minor",
+      "what": "setModules перезаписывает enabled_modules на ['docs','chat','import'] и оставляет так для следующих спеков (collab, features, visual...), выключая модули из seed (time, sprints и др.).",
+      "fix": "Брать текущий список и дописывать, как enableModules в work-helpers.ts, а в тесте выключенного модуля восстанавливать исходный список."
+    },
+    {
+      "file": "build/artifacts/DS-11/e2e.txt",
+      "line": 144,
+      "severity": "minor",
+      "what": "Отчёт ≠ факт: в отчёте все падения e2e-all списаны на loginAs, но в visual inbox-1440-light и time-week-390-light падают на toBeVisible текста экрана ('Подготовить макеты экрана входа', 'Мои часы'), логин там ни при чём. collab:217 — целевой сценарий холодного /m/chat/c — в e2e-all не дошёл до проверки (упал на loginAs).",
+      "fix": "Перепроверить два visual-теста на чистом feature/design (A/B, как с loginAs) и поправить отчёт; collab:217 прогнать отдельно."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "web-tests",
+      "value": "2 таймаута 5 с (social, avatar) при load avg 29; отдельно эти 2 файла — 20/20 pass",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T21:02:11",
+  "by": "reviewer"
+}

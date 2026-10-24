@@ -23,7 +23,9 @@
     "apps/web/src/i18n/ru.ts",
     "apps/web/src/i18n/en.ts",
     "e2e/web/cold-module.spec.ts",
-    "build/artifacts/DS-11"
+    "build/artifacts/DS-11",
+    "e2e/web/helpers.ts",
+    "e2e/web/collab-helpers.ts"
   ],
   "dont_touch": [
     "apps/web/src/modules/types.ts, apps/web/src/modules/sdk.ts — интерфейс C-modules не меняется",
@@ -76,5 +78,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-24T20:27:41",
-  "edited": "2026-10-24T20:27:58"
+  "edited": "2026-10-24T21:23:08"
 }
