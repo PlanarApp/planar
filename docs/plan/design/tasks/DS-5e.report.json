@@ -1,0 +1,71 @@
+{
+  "status": "failed",
+  "summary": "e2e/web на свежем стеке: 79 passed, 5 failed (файлы web/features.spec.ts, web/work.spec.ts). Замер §7 не выполнен: vite build падает на отсутствующем @tiptap/extension-table в копии, 3 прогона не получены.",
+  "commits": [],
+  "checks": [
+    {
+      "name": "e2e-all",
+      "value": "79 passed, 5 failed (e2e.txt), exit 1",
+      "pass": false
+    },
+    {
+      "name": "perf-file",
+      "value": "perf.md не создан",
+      "pass": false
+    },
+    {
+      "name": "perf-switch",
+      "value": "нет данных",
+      "pass": false
+    },
+    {
+      "name": "perf-warm",
+      "value": "нет данных",
+      "pass": false
+    },
+    {
+      "name": "perf-cold",
+      "value": "нет данных",
+      "pass": false
+    },
+    {
+      "name": "perf-mutate",
+      "value": "нет данных",
+      "pass": false
+    },
+    {
+      "name": "perf-realtime",
+      "value": "нет данных",
+      "pass": false
+    },
+    {
+      "name": "scope",
+      "value": "0 файл(ов) в границах",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Упавшие e2e (не чинил): 1) web/features.spec.ts:159 «таблица: выбор строк показывает панель массовых действий» — strict mode: getByRole('toolbar') resolved to 2 elements. 2) web/work.spec.ts:11 «время: таймер в панели задачи и верхней панели, запись, неделя «Мои часы»» — expect toHaveText / element not found. 3) web/work.spec.ts:98 «автоматизация: смена статуса → webhook с верной подписью» — expect(received).toBeGreaterThan(expected). 4) web/work.spec.ts:131 «импорт: jira.csv по заготовке, прогресс до конца, задачи видны в проекте» — locator.selectOption: Element is not a <select> (data-role=project is a div). 5) web/work.spec.ts:155 «настройки: страница автоматизаций открывается и показывает правило» — то же selectOption на [data-role=project].",
+    "Замер §7 (3 прогона e2e/web/perf/run.sh под CPU-замком) не выполнен: прогон 1 упал на сборке apps/web: Rolldown failed to resolve import \"@tiptap/extension-table\" из modules/docs/web/DocEditor.vue:9. Пакет объявлен в modules/docs/package.json, но в node_modules копии отсутствует (modules/docs/node_modules/@tiptap неполный). Установка зависимостей не делалась (вне скоупа «только запуск»). Прогоны 2–3 остановлены, стек planar-e2e-wb15 снесён."
+  ],
+  "questions": [
+    "Нужно ли выполнить pnpm install в копии ~/planar-design-DS-5e (отсутствует @tiptap/extension-table для сборки web), чтобы снять замер §7?"
+  ],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept DS-5e --dry",
+  "uncertain": [
+    {
+      "where": "build/artifacts/DS-5e/e2e.txt",
+      "why": "exit=1 в e2e-all при 79 passed: в логе после итога — ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL",
+      "checked": "итог 5 failed подтверждён строками «✘» и блоком ошибок в e2e.txt"
+    }
+  ],
+  "dp_feedback": "perf-проверки accept читают build/artifacts/DS-5e/perf.md, но нет команды, которая создаёт его из perf-run логов (run.sh пишет key=value в stdout); также job wait не даёт уведомления при завершении, пришлось опрашивать файл.",
+  "extra": {
+    "e2e_passed": 79,
+    "e2e_failed": 5,
+    "perf_runs_done": 0
+  },
+  "t": "2026-10-24T18:57:03",
+  "by": "executor"
+}

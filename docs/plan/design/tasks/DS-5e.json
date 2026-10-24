@@ -56,9 +56,15 @@
       "name": "perf-realtime",
       "cmd": "cat build/artifacts/DS-5e/perf.md",
       "expect": "num:median_realtime_ms_p95=([\\d.]+) <=500"
+    },
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-24T18:49:06"
+  "created": "2026-10-24T18:49:06",
+  "edited": "2026-10-24T18:57:50"
 }
