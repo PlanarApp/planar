@@ -315,3 +315,5 @@
 {"t": "2026-10-24T16:34:02", "by": "coordinator", "task": "DS-7", "ev": "checked", "note": "5/5 install=ok:exit 0; shared-tests=ok:exit 0; web-tests=ok:exit 0; lint=ok:exit 0; typecheck=ok:exit 0"}
 {"t": "2026-10-24T16:34:38", "by": "reviewer", "task": "DS-7", "ev": "reviewed", "note": "C-mutators v4 соблюдён: statusNames — partialRecord по категориям, trim, 1–64, иначе имя по умолчанию; web передаёт имена из i18n, ru совпадает с сидом. Скоуп …", "verdict": "accept", "issues": {"minor": 1}, "review": "docs/plan/design/tasks/DS-7.review.json"}
 {"t": "2026-10-24T16:34:52", "by": "coordinator", "task": "DS-7", "ev": "accepted", "note": "по ревью; minor: en «In progress» vs «In Progress» — как в сиде"}
+{"t": "2026-10-24T16:35:53", "by": "coordinator", "task": "DS-7", "ev": "accepted", "commits": ["1115462"], "note": "5/5 install=ok:exit 0; shared-tests=ok:exit 0; web-tests=ok:exit 0; lint=ok:exit 0; typecheck=ok:exit 0"}
+{"t": "2026-10-24T16:35:53", "by": "coordinator", "task": "DS-7", "ev": "merged"}
