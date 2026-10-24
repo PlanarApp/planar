@@ -165,6 +165,8 @@ Tailwind 4: имена в `@theme` дают утилиты (`--color-bg` → `bg
 Mobile — ширина < 768px (`md` Tailwind = 768px, стили mobile-first). В коде — `useBreakpoint()` → `{ isMobile: Ref<boolean> }` по `matchMedia('(max-width: 767.98px)')`.
 
 ### Базовые компоненты (`apps/web/src/ui/index.ts`)
+C-modules v10: `IconButton`, `ConfirmDialog`, `Tabs`, `Chip`, `AvatarStack`, `Kbd`, `EmptyState`, `Toolbar` входят в обязательный перечень SDK (`docs/contracts/work-api.md`, блок `sdk-exports=required`; тест `apps/web/src/__contract__/sdk.contract.test.ts`).
+
 На Reka UI + Tailwind 4, SFC `<script setup lang="ts">`. Пользовательских строк внутри нет, кроме ключей `ui.*` через `t()` (подписи по умолчанию); остальные подписи приходят пропсами. Пропсы и события v2 сохраняются.
 
 | Компонент | Пропсы и события | Поведение |
