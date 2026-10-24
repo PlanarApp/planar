@@ -1,0 +1,81 @@
+{
+  "status": "done",
+  "summary": "Доработка под P3-dashboards v2: spaceId обязателен, create {id,spaceId,name,rank,personal?}; правка server-tx.ts откачена, миграция пересоздана (0016) поверх feature/p3. Остальное как в первом отчёте.",
+  "commits": [
+    "b53f5a7 модуль дашбордов",
+    "revert 31a36e0",
+    "PT-4: v2, миграция 0016"
+  ],
+  "checks": [
+    {
+      "name": "pt4-api",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "pt4-web",
+      "value": "10",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "152.9 KB",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "в границах",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "1-4 теста с таймаутом 5 с (палитра/TopBar, код не мой) плавают под нагрузкой; повторный прогон: 697/698, падает ui.test 'Cmd+K'",
+      "pass": false
+    },
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Группировка bars по field:<id> не выбирается в диалоге (расчёт и контракт есть)"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-4 --dry",
+  "uncertain": [
+    {
+      "where": "apps/web/src/command/__tests__/ui.test.ts",
+      "why": "таймаут 5 с, не связан с PT-4; плавает от прогона к прогону",
+      "checked": "два прогона, разный набор упавших"
+    },
+    {
+      "where": "modules/dashboards/web/WidgetBody.vue",
+      "why": "подписи select-полей — сырое значение; UI вручную не смотрел",
+      "checked": "юнит-тесты, сборка"
+    }
+  ],
+  "dp_feedback": "accept --dry идёт >2 мин и блокирует; scope-проверка помечает миграцию, которую требует сама карточка.",
+  "t": "2026-10-24T12:35:26",
+  "by": "executor"
+}

@@ -26,6 +26,8 @@ import { McpController } from './mcp/mcp.controller.js';
 import { restControllers, restProviders } from './rest/index.js';
 import { syncControllers, syncProviders } from './sync/sync.module.js';
 import { DB } from './tokens.js';
+import { CollabService } from './collab/collab.service.js';
+import { COLLAB_OPTS, defaultCollabOpts } from './collab/options.js';
 
 @Module({})
 export class AppModule implements OnApplicationShutdown {
@@ -73,6 +75,8 @@ export class AppModule implements OnApplicationShutdown {
         { provide: PUSH_OPTS, useValue: push },
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_GUARD, useClass: ModuleGuard },
+        { provide: COLLAB_OPTS, useValue: defaultCollabOpts() },
+        CollabService,
         JobsService,
         CoreService,
         { provide: CORE, useExisting: CoreService },

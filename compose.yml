@@ -30,6 +30,7 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      PLANAR_SECRET_KEY: ${PLANAR_SECRET_KEY:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - data:/data
