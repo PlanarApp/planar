@@ -59,7 +59,8 @@ export default {
   inbox: {
     today: 'Today',
     yesterday: 'Yesterday',
-    empty: 'No notifications',
+    empty: 'All caught up',
+    emptyHint: 'New notifications will appear here',
     onlyUnread: 'Unread',
     readAll: 'Mark all read',
     delete: 'Delete',
@@ -75,6 +76,7 @@ export default {
       chat_reply: '{who} replied in a thread',
     },
     myEmpty: 'No assigned tasks',
+    myEmptyHint: 'Tasks assigned to you will appear here',
     my: {
       overdue: 'Overdue',
       today: 'Today',
@@ -163,6 +165,7 @@ export default {
     offlineReady: 'Ready to work offline',
   },
   views: {
+    emptyBoard: 'Add a task in any column',
     list: 'List',
     board: 'Board',
     table: 'Table',
@@ -460,6 +463,7 @@ export default {
     deleteText: 'Tasks to delete: {n}',
     cancel: 'Cancel',
     emptyTitle: 'No tasks in this project yet',
+    emptyHint: 'Create the first task in this project',
     create: 'Create task',
   },
   logoutPending: {
