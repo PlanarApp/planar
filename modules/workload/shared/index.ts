@@ -4,7 +4,6 @@ import {
   MutatorError,
   type EntityName,
   type SharedModuleManifest,
-  type Tx,
 } from '@planar/shared';
 
 export const workloadCapacities = z.object({
