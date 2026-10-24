@@ -8,6 +8,8 @@ import { api as formsApi } from '@planar/module-forms/api';
 import * as formsTables from '@planar/module-forms/api/schema';
 import { api as hello } from '@planar/module-hello/api';
 import * as helloTables from '@planar/module-hello/api/schema';
+import { api as dashboardsApi } from '@planar/module-dashboards/api';
+import * as dashboardsTables from '@planar/module-dashboards/api/schema';
 import { api as timeApi } from '@planar/module-time/api';
 import * as timeTables from '@planar/module-time/api/schema';
 import { api as sprintsApi } from '@planar/module-sprints/api';
@@ -81,6 +83,7 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: docs, tables: docsTables },
   { api: chat, tables: chatTables },
   { api: formsApi, tables: formsTables },
+  { api: dashboardsApi, tables: dashboardsTables },
   { api: workloadApi, tables: workloadTables },
   { api: timelineApi, tables: timelineTables },
 ]);

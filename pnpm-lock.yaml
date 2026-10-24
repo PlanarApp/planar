@@ -217,6 +217,9 @@ importers:
       '@planar/module-chat':
         specifier: workspace:*
         version: link:../../modules/chat
+      '@planar/module-dashboards':
+        specifier: workspace:*
+        version: link:../../modules/dashboards
       '@planar/module-docs':
         specifier: workspace:*
         version: link:../../modules/docs
@@ -496,6 +499,30 @@ importers:
       fake-indexeddb:
         specifier: ^6.2.6
         version: 6.2.6
+
+  modules/dashboards:
+    dependencies:
+      '@nestjs/common':
+        specifier: ^11.2.7
+        version: 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@planar/server-kit':
+        specifier: workspace:*
+        version: link:../../packages/server-kit
+      '@planar/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@planar/web':
+        specifier: workspace:*
+        version: link:../../apps/web
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
+      vue:
+        specifier: ~3.5.44
+        version: 3.5.44(typescript@6.0.3)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
 
   modules/docs:
     dependencies:
