@@ -1,0 +1,64 @@
+{
+  "id": "DS-5e",
+  "module": "design",
+  "type": "dp-mechanic",
+  "title": "Финальная проверка: все e2e web на свежем стеке и замер §7 (3 прогона)",
+  "goal": "На итоговом feature/design прогнаны все сценарии e2e/web (включая visual.spec) на свежем стеке и 3 прогона e2e/web/perf/run.sh под замком CPU; медианы и результаты записаны.",
+  "plan_ref": "5. Задачи / DS-5",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "4",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-5e",
+  "branch": "design/DS-5e",
+  "base": "feature/design",
+  "scope": [
+    "build/artifacts/DS-5e"
+  ],
+  "dont_touch": [
+    "весь код, тесты и эталоны — только запуск; упавшие сценарии — списком в отчёт, не чинить"
+  ],
+  "accept": [
+    {
+      "name": "e2e-all",
+      "cmd": "mkdir -p build/artifacts/DS-5e && export COMPOSE_PROJECT_NAME=planar-e2e-ds5e API_PORT=3256 WEB_PORT=5356 DEV_PG_PORT=55556; ./dev.sh reset >/dev/null 2>&1 && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed >/dev/null && E2E_BASE_URL=http://localhost:5356 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts > build/artifacts/DS-5e/e2e.txt 2>&1; rc=$?; docker compose -f compose.dev.yml down -v >/dev/null 2>&1; exit $rc",
+      "expect": "exit=0"
+    },
+    {
+      "name": "perf-file",
+      "cmd": "cat build/artifacts/DS-5e/perf.md",
+      "expect": "re:project_switch_ms_p95"
+    },
+    {
+      "name": "perf-switch",
+      "cmd": "cat build/artifacts/DS-5e/perf.md",
+      "expect": "num:median_project_switch_ms_p95=([\\d.]+) <=100"
+    },
+    {
+      "name": "perf-warm",
+      "cmd": "cat build/artifacts/DS-5e/perf.md",
+      "expect": "num:median_warm_start_ms=([\\d.]+) <=450"
+    },
+    {
+      "name": "perf-cold",
+      "cmd": "cat build/artifacts/DS-5e/perf.md",
+      "expect": "num:median_cold_bootstrap_ms=([\\d.]+) <=2000"
+    },
+    {
+      "name": "perf-mutate",
+      "cmd": "cat build/artifacts/DS-5e/perf.md",
+      "expect": "num:median_mutate_ms_p95=([\\d.]+) <=50"
+    },
+    {
+      "name": "perf-realtime",
+      "cmd": "cat build/artifacts/DS-5e/perf.md",
+      "expect": "num:median_realtime_ms_p95=([\\d.]+) <=500"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T18:49:06"
+}
