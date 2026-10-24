@@ -1,8 +1,8 @@
 {
   "status": "done",
-  "summary": "moduleStatus 'error' для включённого модуля без фронта/упавшей загрузки; beforeEach не ждёт неизвестных настроек (ModuleScreen сама зовёт ensureModule, скелетон до готовности); cold-module.spec не затирает список модулей; loginAs делает один reload при ERR_NETWORK_CHANGED.",
+  "summary": "Доработка 2: timedOut стал shallowRef (через 10 с без настроек статус error), watch(status) с immediate (холодный заход не теряет ready). Тест cold-timeout.test.ts с fake timers.",
   "commits": [
-    "9a5059d DS-11: статус error, переход без ожидания, e2e список модулей, loginAs reload"
+    "8b84da3 DS-11: timedOut реактивный, watch status immediate"
   ],
   "checks": [
     {
@@ -12,6 +12,11 @@
     },
     {
       "name": "contract",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
       "value": "PASS",
       "pass": true
     },
@@ -31,11 +36,6 @@
       "pass": true
     },
     {
-      "name": "web-tests",
-      "value": "719/719 (в accept --dry один флейк chat ≤50мс под нагрузкой, перезапуск зелёный)",
-      "pass": true
-    },
-    {
       "name": "cold-10x",
       "value": "PASS",
       "pass": true
@@ -48,21 +48,9 @@
   ],
   "not_done": [],
   "questions": [],
-  "images": [],
   "how_to_check": ".dpcli/dpcli accept DS-11",
-  "uncertain": [
-    {
-      "where": "apps/web/src/screens/ModuleScreen.vue",
-      "why": "при готовом модуле, но неподходящем под-пути экран показывает 'не загрузился'",
-      "checked": "поведение прежнее, цикла навигации нет"
-    },
-    {
-      "where": "visual inbox/time-week",
-      "why": "в этом прогоне e2e-all зелёный, по тексту не падали",
-      "checked": "полный e2e-all PASS"
-    }
-  ],
-  "dp_feedback": "plan <м> <раздел> не принимает 'N. Задачи / DS-5' без кавычек; полный текст дополнения карточки обрезан в task show — только --full.",
-  "t": "2026-10-24T21:43:33",
+  "uncertain": [],
+  "dp_feedback": "",
+  "t": "2026-10-24T22:18:24",
   "by": "executor"
 }

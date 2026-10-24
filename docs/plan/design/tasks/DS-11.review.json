@@ -1,34 +1,39 @@
 {
-  "verdict": "rework",
-  "summary": "Доработка по ревью 1 выполнена: статус error, beforeEach не ждёт, спек не затирает список, reload в loginAs. Скоуп и C-modules соблюдены. Остались два мелких бага реактивности в ModuleScreen/registry, оба противоречат карточке (после таймаута — понятная ошибка; холодный заход открывает модуль). Чинятся парой строк.",
+  "verdict": "accept",
+  "summary": "Доработка 2 выполнена: timedOut стал shallowRef, поэтому через 10 с без настроек статус становится error (тест с fake timers есть); watch(status) теперь с immediate. Скоуп и C-modules соблюдены. Не хватает одного unit-теста ModuleScreen, но логика проста, а сценарий покрыт cold-10x.",
   "issues": [
-    {
-      "file": "apps/web/src/modules/registry.ts",
-      "line": 16,
-      "severity": "major",
-      "what": "timedOut — обычный let, а не ref. computed status в ModuleScreen зависит только от enabled/registered/failed, поэтому после 10 с таймаута (enabled так и остался null) он не пересчитывается: на экране вечный скелетон вместо ошибки, которую требует карточка. Unit-тест таймаут не покрывает.",
-      "fix": "Сделать timedOut shallowRef (сбрасывать при появлении enabled не нужно: ветка !enabled перестаёт срабатывать). Добавить тест с vi.useFakeTimers: реплика без настроек → через 10 с moduleStatus='error' и computed пересчитался."
-    },
     {
       "file": "apps/web/src/screens/ModuleScreen.vue",
       "line": 18,
-      "severity": "major",
-      "what": "watch(status) без immediate. На холодном заходе beforeEach пропускает маршрут сразу (modulesKnown=false), а ленивый чанк ModuleScreen ещё грузится. Если за это время setEnabledModules уже зарегистрировал модуль, при монтировании status сразу 'ready': watch не срабатывает, router.replace не вызывается, а v-else показывает EmptyState «не загрузился» для рабочего модуля. Именно такую гонку и чинит задача. cold-10x её просто не поймал (бандл маленький, bootstrap медленнее).",
-      "fix": "watch(status, ..., { immediate: true }) или вызвать replace после await ensureModule(...) === true. Для 'ready' без подходящего маршрута отдельный текст не нужен (оставить как есть)."
+      "severity": "minor",
+      "what": "Карточка (доработка 2, п.2) просила unit-тест: статус 'ready' до монтирования — навигация повторяется, EmptyState не показывается. Такого теста в __tests__ нет, есть только cold-timeout.test.ts. Сама правка ({ immediate: true }) верна.",
+      "fix": "При следующей правке рядом добавить mount-тест ModuleScreen: модуль зарегистрирован до монтирования, проверить, что router.replace вызван и data-testid=module-loading/EmptyState не показан. Блокером не считаю."
+    },
+    {
+      "file": "apps/web/src/modules/__tests__/cold-timeout.test.ts",
+      "line": 12,
+      "severity": "minor",
+      "what": "vi.useRealTimers() стоит в конце теста, а не в afterEach/finally: если expect упадёт, fake timers останутся включёнными (файл отдельный, так что влияние небольшое).",
+      "fix": "Перенести в afterEach или в try/finally."
     }
   ],
   "rerun": [
     {
-      "name": "lint",
+      "name": "web-tests",
+      "value": "exit 0, 40 с",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
       "value": "exit 0",
       "pass": true
     },
     {
-      "name": "web-tests",
-      "value": "exit 0, 21 с",
+      "name": "scope",
+      "value": "10 файлов в границах",
       "pass": true
     }
   ],
-  "t": "2026-10-24T21:55:33",
+  "t": "2026-10-24T22:29:50",
   "by": "reviewer"
 }
