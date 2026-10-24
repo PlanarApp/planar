@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { BellOff, Trash2 } from 'lucide-vue-next';
-import { Button, Menu, type MenuItem } from '../ui';
+import { BellOff, Inbox, Trash2 } from 'lucide-vue-next';
+import { Button, EmptyState, Menu, type MenuItem } from '../ui';
 import { router } from '../router';
 import { mutate } from '../sync';
 import { openTask } from '../views';
@@ -64,7 +64,12 @@ const snoozeItems = (n: InboxItem): MenuItem[] =>
       </Button>
     </div>
     <PushToggle />
-    <p v-if="rows && !visible.length" class="text-sm text-fg-subtle">{{ t('inbox.empty') }}</p>
+    <EmptyState
+      v-if="rows && !visible.length"
+      :icon="Inbox"
+      :title="t('inbox.empty')"
+      :description="t('inbox.emptyHint')"
+    />
     <section v-for="g in groups" :key="g.day">
       <h2 class="mb-1 text-xs font-medium text-fg-muted">{{ g.day }}</h2>
       <div

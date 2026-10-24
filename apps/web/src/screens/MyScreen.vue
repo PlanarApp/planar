@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { ListChecks } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { StatusIcon } from '../tasks';
+import { EmptyState } from '../ui';
 import { openTask } from '../views';
 import { useAuth } from '../auth/useAuth';
 import { useMyTasks, type MyTask } from '../inbox/queries';
@@ -34,7 +36,12 @@ const groups = computed(() => {
 <template>
   <div class="flex flex-col gap-3 p-4">
     <h1 class="text-xl font-semibold">{{ t('screens.my') }}</h1>
-    <p v-if="rows && !rows.length" class="text-sm text-fg-subtle">{{ t('inbox.myEmpty') }}</p>
+    <EmptyState
+      v-if="rows && !rows.length"
+      :icon="ListChecks"
+      :title="t('inbox.myEmpty')"
+      :description="t('inbox.myEmptyHint')"
+    />
     <section v-for="g in groups" :key="g.k" :data-group="g.k">
       <h2 class="mb-1 text-xs font-medium text-fg-muted">{{ t(`inbox.my.${g.k}`) }}</h2>
       <button

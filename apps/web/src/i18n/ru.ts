@@ -59,7 +59,8 @@ export default {
   inbox: {
     today: 'Сегодня',
     yesterday: 'Вчера',
-    empty: 'Нет уведомлений',
+    empty: 'Всё прочитано',
+    emptyHint: 'Новые уведомления появятся здесь',
     onlyUnread: 'Непрочитанные',
     readAll: 'Прочитать все',
     delete: 'Удалить',
@@ -75,6 +76,7 @@ export default {
       chat_reply: '{who} ответил(а) в треде',
     },
     myEmpty: 'Нет назначенных задач',
+    myEmptyHint: 'Здесь будут задачи, назначенные вам',
     my: {
       overdue: 'Просрочено',
       today: 'Сегодня',
@@ -163,6 +165,7 @@ export default {
     offlineReady: 'Готово к работе офлайн',
   },
   views: {
+    emptyBoard: 'Добавьте задачу в любой колонке',
     list: 'Список',
     board: 'Доска',
     table: 'Таблица',
@@ -460,6 +463,7 @@ export default {
     deleteText: 'Будет удалено задач: {n}',
     cancel: 'Отмена',
     emptyTitle: 'В проекте пока нет задач',
+    emptyHint: 'Создайте первую задачу в этом проекте',
     create: 'Создать задачу',
   },
   logoutPending: {
