@@ -96,23 +96,23 @@ function drop(e: DragEvent, n: TreeNode) {
       <button
         type="button"
         :aria-expanded="!folded"
-        class="flex h-7 w-full items-center gap-1 rounded-md px-2 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+        class="flex h-7 w-full items-center gap-1 rounded-md px-2 text-xs font-medium uppercase text-fg-muted outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
         @click="fold"
       >
-        <ChevronRight :size="12" :class="['shrink-0', !folded && 'rotate-90']" />{{
+        <ChevronRight :size="12" :class="['shrink-0 transition-transform', !folded && 'rotate-90']" />{{
           tx('docs')
         }}
       </button>
     </h2>
     <template v-if="!folded">
     <div v-for="t in trees" :key="t.s.id">
-      <div class="group flex h-7 items-center px-2 text-xs text-fg-muted">
+      <div class="group flex h-7 items-center pl-4 pr-2 text-xs text-fg-muted">
         <span class="truncate">{{ t.s.name }}</span>
         <IconButton
           :icon="Plus"
           :label="tx('newPage')"
           size="sm"
-          class="ml-auto"
+          class="ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
           @click="add(t.s.id, null)"
         />
       </div>
@@ -120,7 +120,7 @@ function drop(e: DragEvent, n: TreeNode) {
         v-for="n in t.rows"
         :key="n.page.id"
         draggable="true"
-        :style="{ paddingLeft: n.depth * 12 + 'px' }"
+        :style="{ paddingLeft: 16 + n.depth * 12 + 'px' }"
         :class="[
           'group flex h-7 items-center rounded-md hover:bg-bg-muted',
           current === n.page.id && 'bg-accent-subtle',

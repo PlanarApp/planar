@@ -31,6 +31,7 @@ export default {
     language: 'Язык',
     install: 'Установить приложение',
     menu: 'Меню',
+    modules: { chat: 'Чат', docs: 'Документы' },
     nav: 'Навигация',
   },
   fields: {

@@ -31,6 +31,7 @@ export default {
     language: 'Language',
     install: 'Install app',
     menu: 'Menu',
+    modules: { chat: 'Chat', docs: 'Docs' },
     nav: 'Navigation',
   },
   fields: {

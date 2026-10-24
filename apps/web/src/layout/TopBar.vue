@@ -73,7 +73,19 @@ const viewLabel = computed(() => {
   const ext = extViews.value.find((e) => e.key === v);
   return ext ? text(ext.label) : te(`views.${v}`) ? t(`views.${v}`) : v;
 });
+const navItems = useExtensions('nav');
+// экран модуля (/m/<id>/…): подпись nav-элемента модуля, иначе meta.title маршрута, иначе название модуля
+const moduleTitle = computed(() => {
+  const id = route.path.startsWith('/m/') ? route.path.split('/')[2] : '';
+  if (!id) return '';
+  const nav = navItems.value.find((n) => n.moduleId === id && 'label' in n);
+  if (nav && 'label' in nav) return text(nav.label);
+  const meta = route.meta.title;
+  if (typeof meta === 'string' && meta) return te(meta) ? t(meta) : meta;
+  return te(`topbar.modules.${id}`) ? t(`topbar.modules.${id}`) : id;
+});
 const crumbs = computed(() => {
+  if (moduleTitle.value) return [moduleTitle.value];
   if (!inProject.value) {
     return [route.name ? t(`screens.${String(route.name)}`) : t('app.name')];
   }
@@ -87,12 +99,18 @@ const crumbs = computed(() => {
   <header class="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-bg px-3">
     <IconButton v-if="isMobile" :icon="PanelLeft" :label="t('topbar.nav')" @click="openNav" />
     <nav :aria-label="t('topbar.breadcrumb')" class="min-w-0 flex-1">
-      <h1 class="flex items-center gap-1 truncate text-sm">
+      <h1 class="flex items-center gap-1 truncate text-sm" :title="crumbs.join(' / ')">
         <template v-for="(c, i) in crumbs" :key="i">
-          <ChevronRight v-if="i" :size="12" class="shrink-0 text-fg-subtle" aria-hidden="true" />
-          <span :class="['truncate', i === crumbs.length - 1 ? 'font-medium' : 'text-fg-muted']">{{
-            c
-          }}</span>
+          <template v-if="!isMobile || i === crumbs.length - 1">
+            <ChevronRight v-if="i" :size="12" class="shrink-0 text-fg-subtle" aria-hidden="true" />
+            <span
+              :class="[
+                'truncate',
+                i === crumbs.length - 1 ? 'font-medium' : 'max-w-40 text-fg-muted',
+              ]"
+              >{{ c }}</span
+            >
+          </template>
         </template>
       </h1>
     </nav>
