@@ -130,3 +130,21 @@ export const resizeBox = (b: Box, dw: number, dh: number): Box => ({
 });
 /** Ниже всех виджетов. */
 export const nextY = (ws: Box[]): number => ws.reduce((m, w) => Math.max(m, w.y + w.h), 0);
+
+export interface FieldDefLite {
+  id: string;
+  name: string;
+  type: string;
+  options: Record<string, unknown>;
+}
+/** Поля, по которым можно группировать (select/user): groupBy `field:<id>`. */
+export const groupableFields = (defs: FieldDefLite[]) =>
+  defs.filter((d) => d.type === 'select' || d.type === 'user');
+/** id варианта select -> название (подпись столбца). */
+export const choiceNames = (defs: FieldDefLite[]): Record<string, string> =>
+  Object.fromEntries(
+    defs
+      .filter((d) => d.type === 'select')
+      .flatMap((d) => (d.options.choices as { id: string; label: string }[] | undefined) ?? [])
+      .map((c) => [c.id, c.label]),
+  );

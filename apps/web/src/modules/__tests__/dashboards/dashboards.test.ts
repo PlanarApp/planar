@@ -8,7 +8,8 @@ vi.mock('../../../../../../modules/dashboards/web/data', async () => {
     tr: (k: string) => k,
     locale: () => 'en',
     useWeekStart: () => ref(1),
-    useNames: () => ref({ s1: 'Todo', s2: 'Done', u1: 'Ann', u2: 'Bob', l1: 'bug', l2: 'ui' }),
+    useNames: () =>
+      ref({ s1: 'Todo', s2: 'Done', u1: 'Ann', u2: 'Bob', c1: 'High', l1: 'bug', l2: 'ui' }),
     useFilterCtx: () => ref({ statuses: [], userId: 'me', today: '2026-10-21' }),
   };
 });
@@ -17,6 +18,8 @@ import { web } from '../../../../../../modules/dashboards/web';
 import WidgetBody from '../../../../../../modules/dashboards/web/WidgetBody.vue';
 import {
   boardTasks,
+  choiceNames,
+  groupableFields,
   compute,
   moveBox,
   nextY,
@@ -167,6 +170,28 @@ describe('pt4: dashboards web', () => {
     expect(bars.text()).toContain('Todo');
     expect(mk('list', { sort: 'updatedAt', limit: 1 }).findAll('[data-test=item]')).toHaveLength(1);
     expect(mk('line', { series: 'created', weeks: 4 }).find('polyline').exists()).toBe(true);
+  });
+
+  it('pt4: field:<id> — только select/user, подписи — названия вариантов', async () => {
+    const defs = [
+      {
+        id: 'f1',
+        name: 'Sev',
+        type: 'select',
+        options: { choices: [{ id: 'c1', label: 'High' }] },
+      },
+      { id: 'f2', name: 'Who', type: 'user', options: {} },
+      { id: 'f3', name: 'Txt', type: 'text', options: {} },
+    ];
+    expect(groupableFields(defs).map((d) => d.id)).toEqual(['f1', 'f2']);
+    expect(choiceNames(defs)).toEqual({ c1: 'High' });
+    const m = mount(WidgetBody, {
+      props: {
+        widget: { id: 'w', kind: 'bars', config: { filter: none, groupBy: 'field:f1' } } as never,
+        tasks: [task({ fields: { f1: 'c1' } })],
+      },
+    });
+    expect(m.text()).toContain('High');
   });
 
   it('pt4: модуль регистрирует маршруты и nav', () => {

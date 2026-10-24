@@ -16,7 +16,7 @@ import {
   useWeekStart,
 } from '@planar/web/modules';
 import type { Board, Widget } from '../shared/index.js';
-import type { Task } from './lib.js';
+import { choiceNames, groupableFields, type FieldDefLite, type Task } from './lib.js';
 
 export { mutate, newId, openTask, rankBetween, useSpaces, useWeekStart, localToday };
 
@@ -60,6 +60,14 @@ export const useTasks = () =>
     }));
   });
 
+/** Поля пространства для группировки (select/user). */
+export const useGroupFields = (spaceId: () => string) =>
+  useQuery(async () =>
+    groupableFields(
+      (await db.table('fieldDefs').where('spaceId').equals(spaceId()).toArray()) as FieldDefLite[],
+    ),
+  );
+
 /** id -> название (статусы, метки, пользователи, проекты, пространства) для подписей столбцов. */
 export const useNames = () => {
   const r = useQuery(async () => {
@@ -73,6 +81,7 @@ export const useNames = () => {
       ['fieldDefs', 'name'],
     ] as const)
       for (const x of await db.table(t).toArray()) m[x.id] = x[f];
+    Object.assign(m, choiceNames((await db.table('fieldDefs').toArray()) as FieldDefLite[]));
     return m;
   });
   return computed(() => r.value ?? {});

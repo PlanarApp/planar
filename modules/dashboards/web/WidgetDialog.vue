@@ -3,7 +3,7 @@ import { reactive, watch } from 'vue';
 import { Button, Dialog, FilterBuilder, Input, Select } from '@planar/web/modules';
 import type { Filter } from '@planar/shared';
 import { KINDS, type Widget, type WidgetKind } from '../shared/index.js';
-import { tr, type Key } from './data';
+import { tr, useGroupFields, type Key } from './data';
 
 const props = defineProps<{ widget?: Widget; spaceId: string }>();
 const emit = defineEmits<{
@@ -11,6 +11,7 @@ const emit = defineEmits<{
 }>();
 const open = defineModel<boolean>('open', { default: false });
 
+const fields = useGroupFields(() => props.spaceId);
 const f = reactive({
   kind: 'number' as WidgetKind,
   title: '',
@@ -66,7 +67,10 @@ function save() {
         v-if="f.kind === 'bars'"
         v-model="f.groupBy"
         :label="tr('groupBy')"
-        :options="opts(['status', 'priority', 'assignee', 'label', 'project'])"
+        :options="[
+          ...opts(['status', 'priority', 'assignee', 'label', 'project']),
+          ...(fields ?? []).map((d) => ({ value: `field:${d.id}`, label: d.name })),
+        ]"
       />
       <template v-if="f.kind === 'line'">
         <Select
