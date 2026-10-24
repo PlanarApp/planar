@@ -484,8 +484,9 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 ### Клиент (для web)
 Применяет `changes` по `seq`; `reset` → bootstrap. После pull отбрасывает из очереди мутации с `id ≤ lastMutationId`, остальные заново применяет поверх серверного состояния (rebase). Повтор push при сетевой ошибке и `5xx` — с ростом паузы 1–30 с; `401` — на вход.
 
-## C-mutators v3
+## C-mutators v4
 
+v4 (design): `space.create` += `statusNames?` (core-mutators.md).
 v3 (FT): `field.*`, `task.setField`, `link.*` (core-mutators.md).
 
 Код — `packages/shared/src/contract/mutator.ts` (типы и регистрация), домен — `packages/shared/src/mutators/` (CR-5). Без Node API: тот же код идёт в браузер.

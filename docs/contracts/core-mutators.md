@@ -2,19 +2,19 @@
 type: reference
 status: active
 module: core
-updated: 2026-10-23
-summary: Мутаторы домена C-mutators v3 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
+updated: 2026-10-24
+summary: Мутаторы домена C-mutators v4 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---
 
 # Мутаторы домена (C-mutators, docs/contracts/core.md)
 
-### Мутаторы домена v3 (CR-5, FT; web вызывает по имени)
+### Мутаторы домена v4 (CR-5, FT, design; web вызывает по имени)
 Все id и `rank` — в args. `?` — необязательный аргумент (`.optional()`; `null` допустим там, где поле строки nullable). Экспорт — `domainMutators: MutatorDef[]` из `@planar/shared`; `args` — `z.object`. Сверка с таблицей — `packages/shared/test/check-mutators.ts`.
 
 | имя | args | правила |
 |---|---|---|
-| `space.create` | `id, name, rank, memberId, statusIds: uuid[5]` | создаёт пространство, участника (ctx.userId, admin) и 5 статусов по категориям: Backlog, Todo, In Progress, Done, Cancelled |
+| `space.create` | `id, name, rank, memberId, statusIds: uuid[5], statusNames?: Partial<Record<'backlog'\|'todo'\|'in_progress'\|'done'\|'cancelled', string>>` | создаёт пространство, участника (ctx.userId, admin) и 5 статусов по категориям; имя статуса — `statusNames[категория]` (строка 1–64 символа после trim), иначе по умолчанию: Backlog, Todo, In Progress, Done, Cancelled (v4: `statusNames`; клиент передаёт имена из i18n текущей локали; существующие пространства не переименовываются) |
 | `space.update` | `id, name?, description?, color?, icon?, rank?` | |
 | `space.delete` | `id` | есть проекты → `conflict`; удаляет статусы, метки, виды, участников |
 | `member.add` | `id, spaceId, userId, role` | |
