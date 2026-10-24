@@ -28,7 +28,7 @@ const Grid = defineComponent({
 export const web = defineWebModule({
   id: 'dashboards',
   routes: [
-    { path: '/m/dashboards', component: () => import('./BoardsPage.vue') },
+    { path: '/m/dashboards/', component: () => import('./BoardsPage.vue') },
     { path: '/m/dashboards/:id', component: () => import('./BoardPage.vue') },
   ],
   nav: [
@@ -37,7 +37,7 @@ export const web = defineWebModule({
       order: 60,
       label: { ru: 'Дашборды', en: 'Dashboards' },
       icon: Grid,
-      to: '/m/dashboards',
+      to: '/m/dashboards/',
     },
   ],
 });

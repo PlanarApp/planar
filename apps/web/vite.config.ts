@@ -2,16 +2,17 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, type Connect, type Plugin } from 'vite';
 
-// dev: /f/<slug> — отдельный вход form.html (prod — deploy/Caddyfile)
+// dev и vite preview: /f/<slug> — отдельный вход form.html (prod — deploy/Caddyfile)
+const toForm: Connect.NextHandleFunction = (req, _res, next) => {
+  if (req.url?.startsWith('/f/')) req.url = '/form.html';
+  next();
+};
 const formEntry = (): Plugin => ({
   name: 'planar-form-entry',
-  configureServer: (s) =>
-    void s.middlewares.use((req, _res, next) => {
-      if (req.url?.startsWith('/f/')) req.url = '/form.html';
-      next();
-    }),
+  configureServer: (s) => void s.middlewares.use(toForm),
+  configurePreviewServer: (s) => void s.middlewares.use(toForm),
 });
 
 // публичная страница не предлагает установить приложение
@@ -55,7 +56,7 @@ export default defineConfig({
       workbox: {
         importScripts: ['/push-sw.js'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/(api|sync|ws|files|mcp|f)\//],
+        navigateFallbackDenylist: [/^\/(api|sync|ws|files|mcp|collab|f)\//],
       },
     }),
   ],

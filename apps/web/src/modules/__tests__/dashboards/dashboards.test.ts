@@ -196,7 +196,7 @@ describe('pt4: dashboards web', () => {
 
   it('pt4: модуль регистрирует маршруты и nav', () => {
     expect(web.id).toBe('dashboards');
-    expect(web.routes?.map((r) => r.path)).toEqual(['/m/dashboards', '/m/dashboards/:id']);
-    expect(web.nav?.[0]).toMatchObject({ id: 'list', to: '/m/dashboards' });
+    expect(web.routes?.map((r) => r.path)).toEqual(['/m/dashboards/', '/m/dashboards/:id']);
+    expect(web.nav?.[0]).toMatchObject({ id: 'list', to: '/m/dashboards/' });
   });
 });

@@ -68,10 +68,7 @@ test('p3: таймлайн — перетаскивание из «Без дат
     .toBe(true);
   await expect(page.locator(`[data-tl-task="${f.taskKeys[0]}"]`)).toBeVisible();
 });
-
-// баг приложения: useWorkloadData делает where('spaceId') по неиндексированным taskAssignees и timeEstimates
-// (DexieError), таблица пуста; убрать fixme после правки modules/workload/web/data.ts
-test.fixme('p3: нагрузка — задача в неделе срока, ёмкость меньше часов подсвечивает ячейку, клик → список', async ({
+test('p3: нагрузка — задача в неделе срока, ёмкость меньше часов подсвечивает ячейку, клик → список', async ({
   browser,
 }) => {
   const title = uniq('Нагрузка');
@@ -99,10 +96,7 @@ test.fixme('p3: нагрузка — задача в неделе срока, ё
   await cell.click();
   await expect(page.locator('[data-test=list] [data-test=task]')).toContainText(title);
 });
-
-// баг приложения: registerModules отклоняет маршрут '/m/dashboards' модуля dashboards (нужен префикс
-// '/m/dashboards/'), модуль не открывается; убрать fixme после правки в modules/dashboards/web/index.ts
-test.fixme('p3: дашборды — виджет «число» с фильтром по статусу совпадает с числом задач', async ({
+test('p3: дашборды — виджет «число» с фильтром по статусу совпадает с числом задач', async ({
   browser,
 }) => {
   await enableP3(admin, true);
@@ -190,10 +184,7 @@ test.describe('формы', () => {
     await expect(warm.getByRole('heading', { name: formTitle })).toBeVisible();
     await expect(warm.getByTestId('sidebar')).toHaveCount(0);
   });
-
-  // баг приложения: FormsSettings передаёт в mutate реактивный черновик (DataCloneError в IndexedDB),
-  // сохранение полей из конструктора не доходит до сервера; убрать fixme после правки FormsSettings.vue
-  test.fixme('p3: форма — конструктор сохраняет добавленное поле e-mail', async ({ browser }) => {
+  test('p3: форма — конструктор сохраняет добавленное поле e-mail', async ({ browser }) => {
     const f = await fixture([uniq('Поля')]);
     const page = await loginAs(browser, 'admin');
     await spa(page, '/settings/forms:forms', page.getByTestId('fm-project'));
