@@ -9,7 +9,6 @@ import { mergeFeed, taskRefs, type Channel, type Message } from './model';
 import { useFeed } from './feed';
 import { useTyping } from './typing';
 import Section from './Section.vue';
-import Topbar from './Topbar.vue';
 import ChannelView from './ChannelView.vue';
 import ThreadPanel from './ThreadPanel.vue';
 import Composer from './Composer.vue';
@@ -192,7 +191,7 @@ afterEach(() => {
 });
 
 describe('chat web: манифест', () => {
-  it('маршруты, секция nav и topbar', () => {
+  it('маршруты, секция nav без topbar', () => {
     expect(web.id).toBe('chat');
     expect(web.routes!.map((r) => r.path)).toEqual([
       '/m/chat/',
@@ -200,7 +199,7 @@ describe('chat web: манифест', () => {
       '/m/chat/c/:channelId/t/:rootId',
     ]);
     expect(web.nav![0]).toMatchObject({ id: 'channels', section: expect.any(Function) });
-    expect(web.topbar![0]!.id).toBe('chat');
+    expect(web.topbar).toBeUndefined();
   });
 });
 
@@ -222,6 +221,15 @@ describe('секция боковой панели', () => {
     expect(rows[0]).toMatch(/3$/); // нет строки chatReads — 0
     expect(rows[1]).toMatch(/3$/); // 5 − 2
     expect(rows[2]).toBe('# zzz'); // muted
+  });
+
+  it('одно пространство — без заголовка с его именем; заголовок «Чат» сворачивает секцию', async () => {
+    await db.table('chatChannels').put(chan('a-one', { name: 'alpha', lastSeq: 1 }));
+    const w = mount(Section);
+    await vi.waitFor(() => expect(w.findAll('[data-testid=chat-channel]').length).toBe(1));
+    expect(w.text()).not.toContain('Alpha');
+    await w.find('h2 button').trigger('click');
+    expect(w.findAll('[data-testid=chat-channel]').length).toBe(0);
   });
 
   it('диалоги по lastMessageAt, имя — участники кроме меня', async () => {
@@ -295,15 +303,6 @@ describe('секция боковой панели', () => {
       'chat.channel.create',
       expect.objectContaining({ spaceId: SPACE, name: 'новости' }),
     );
-  });
-
-  it('topbar показывает сумму непрочитанных без muted', async () => {
-    await db
-      .table('chatChannels')
-      .bulkPut([chan('a', { lastSeq: 4 }), chan('b', { lastSeq: 3 }), chan('c', { lastSeq: 8 })]);
-    await db.table('chatReads').bulkPut([read('a', 1), read('c', 0, true)]);
-    const w = mount(Topbar);
-    await vi.waitFor(() => expect(w.find('[data-testid=chat-topbar-count]').text()).toBe('6')); // 3 + 3
   });
 });
 

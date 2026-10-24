@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onScopeDispose, watch, type Component } from 'vue';
-import { Inbox, ListChecks, Settings, Star } from 'lucide-vue-next';
+import { defineAsyncComponent, onScopeDispose, provide, watch, type Component } from 'vue';
+import { ChevronRight, Inbox, ListChecks, Settings } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import Badge from '../ui/Badge.vue';
 import { useUnread } from '../inbox/queries';
 import { prefetchIdle, prefetchProject } from '../tasks/queries';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
-import { useNavData } from './nav';
+import { sidebarCollapse as sc, useNavData, useUserMenu } from './nav';
+import { useAuth } from '../auth/useAuth';
+
+// reka (Avatar/Menu) — вне начального бандла
+const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
+const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
+const { user } = useAuth();
+const { items } = useUserMenu();
+// секции модулей сворачиваются тем же хранилищем
+provide('planar.sidebar.collapse', sc);
 
 const { t, te, locale } = useI18n();
 const navItems = useExtensions('nav');
@@ -39,62 +47,151 @@ const stop = watch(
 );
 onScopeDispose(() => clearTimeout(idle));
 const link =
-  'flex h-8 items-center gap-2 rounded-md px-2 text-base text-fg hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus';
+  'flex h-7 items-center gap-2 rounded-md px-2 text-sm text-fg hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus';
+const head =
+  'flex h-7 w-full items-center gap-1 rounded-md px-2 text-xs font-medium uppercase text-fg-muted hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus';
+const chev = (id: string) => ['shrink-0 transition-transform', !sc.is(id) && 'rotate-90'];
 </script>
 
 <template>
   <aside
     data-testid="sidebar"
-    class="flex w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-bg-subtle p-2"
+    class="sidebar-dark flex w-60 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-sidebar-bg p-2 text-fg"
   >
-    <nav class="flex flex-col gap-0.5">
-      <RouterLink to="/inbox" :class="link" active-class="bg-accent-subtle">
-        <Inbox :size="16" />{{ t('sidebar.inbox') }}
-        <Badge v-if="unread" variant="solid" class="ml-auto">{{ unread }}</Badge>
-      </RouterLink>
-      <RouterLink to="/my" :class="link" active-class="bg-accent-subtle">
-        <ListChecks :size="16" />{{ t('sidebar.my') }}
-      </RouterLink>
-      <template v-for="n in navItems" :key="n.key">
-        <component
-          :is="section(n.key, n.section)"
-          v-if="'section' in n"
-          data-testid="nav-section"
-        />
-        <RouterLink v-else :to="n.to" :class="link" active-class="bg-accent-subtle">
-          <component :is="n.icon" :size="16" />{{ navLabel(n.label) }}
+    <div class="flex h-9 items-center gap-2 px-1">
+      <span
+        class="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent text-xs font-semibold text-accent-fg"
+        aria-hidden="true"
+        >P</span
+      >
+      <span class="flex-1 truncate text-base font-semibold">{{ t('app.name') }}</span>
+      <Menu :items="items()" align="end">
+        <template #trigger>
+          <button
+            type="button"
+            :aria-label="t('topbar.menu')"
+            class="flex size-7 items-center justify-center rounded-full outline-none focus-visible:ring-2 ring-focus"
+          >
+            <Avatar
+              :name="user?.name ?? 'Planar'"
+              :src="user?.avatarFile ? `/files/${user.avatarFile}/preview?w=256` : null"
+              size="md"
+            />
+          </button>
+        </template>
+      </Menu>
+    </div>
+    <nav class="flex flex-col gap-3">
+      <div class="flex flex-col gap-0.5">
+        <RouterLink to="/inbox" :class="link" active-class="bg-accent-subtle">
+          <Inbox :size="16" />{{ t('sidebar.inbox') }}
+          <span
+            v-if="unread"
+            class="ml-auto rounded-full bg-accent px-1.5 text-xs text-accent-fg"
+            >{{ unread }}</span
+          >
         </RouterLink>
-      </template>
-    </nav>
-    <section>
-      <h2 class="mb-1 flex items-center gap-1 px-2 text-xs font-medium text-fg-muted">
-        <Star :size="12" />{{ t('sidebar.favorites') }}
-      </h2>
-      <RouterLink v-for="f in favorites" :key="f.id" :to="f.to" :class="link">
-        {{ f.name }}
-      </RouterLink>
-      <p v-if="!favorites.length" class="px-2 text-sm text-fg-subtle">{{ t('sidebar.empty') }}</p>
-    </section>
-    <section class="flex-1">
-      <h2 class="mb-1 px-2 text-xs font-medium text-fg-muted">{{ t('sidebar.spaces') }}</h2>
-      <div v-for="s in spaces" :key="s.id" class="mb-2">
-        <div class="px-2 text-sm font-medium text-fg">{{ s.name }}</div>
-        <RouterLink
-          v-for="p in s.projects"
-          :key="p.id"
-          :to="`/p/${p.id}`"
-          :class="link"
-          @pointerenter="prefetchProject(p.id)"
-          @focus="prefetchProject(p.id)"
-        >
-          <span class="text-xs text-fg-subtle">{{ p.prefix }}</span
-          >{{ p.name }}
+        <RouterLink to="/my" :class="link" active-class="bg-accent-subtle">
+          <ListChecks :size="16" />{{ t('sidebar.my') }}
         </RouterLink>
       </div>
-      <p v-if="!spaces.length" class="px-2 text-sm text-fg-subtle">{{ t('sidebar.empty') }}</p>
-    </section>
-    <RouterLink to="/settings" :class="link" active-class="bg-accent-subtle">
+      <section v-if="favorites.length">
+        <h2>
+          <button
+            type="button"
+            :class="head"
+            :aria-expanded="!sc.is('favorites')"
+            @click="sc.toggle('favorites')"
+          >
+            <ChevronRight :size="12" :class="chev('favorites')" />{{ t('sidebar.favorites') }}
+          </button>
+        </h2>
+        <template v-if="!sc.is('favorites')">
+          <RouterLink v-for="f in favorites" :key="f.id" :to="f.to" :class="link">
+            {{ f.name }}
+          </RouterLink>
+        </template>
+      </section>
+      <section>
+        <h2>
+          <button
+            type="button"
+            :class="head"
+            :aria-expanded="!sc.is('spaces')"
+            @click="sc.toggle('spaces')"
+          >
+            <ChevronRight :size="12" :class="chev('spaces')" />{{ t('sidebar.spaces') }}
+          </button>
+        </h2>
+        <template v-if="!sc.is('spaces')">
+          <div v-for="s in spaces" :key="s.id">
+            <button
+              type="button"
+              :class="[link, 'w-full font-medium']"
+              :aria-expanded="!sc.is('space:' + s.id)"
+              @click="sc.toggle('space:' + s.id)"
+            >
+              <ChevronRight :size="12" :class="chev('space:' + s.id)" />
+              <span class="truncate">{{ s.name }}</span>
+            </button>
+            <template v-if="!sc.is('space:' + s.id)">
+              <RouterLink
+                v-for="p in s.projects"
+                :key="p.id"
+                :to="`/p/${p.id}`"
+                :class="[link, 'pl-7']"
+                active-class="bg-accent-subtle"
+                @pointerenter="prefetchProject(p.id)"
+                @focus="prefetchProject(p.id)"
+              >
+                <span class="font-mono text-xs text-fg-muted">{{ p.prefix }}</span
+                ><span class="truncate">{{ p.name }}</span>
+              </RouterLink>
+            </template>
+          </div>
+          <p v-if="!spaces.length" class="px-2 text-sm text-fg-muted">{{ t('sidebar.empty') }}</p>
+        </template>
+      </section>
+      <section v-if="navItems.length">
+        <h2>
+          <button
+            type="button"
+            :class="head"
+            :aria-expanded="!sc.is('sections')"
+            @click="sc.toggle('sections')"
+          >
+            <ChevronRight :size="12" :class="chev('sections')" />{{ t('sidebar.sections') }}
+          </button>
+        </h2>
+        <div v-show="!sc.is('sections')" class="flex flex-col gap-0.5">
+          <template v-for="n in navItems" :key="n.key">
+            <component
+              :is="section(n.key, n.section)"
+              v-if="'section' in n"
+              data-testid="nav-section"
+            />
+            <RouterLink v-else :to="n.to" :class="link" active-class="bg-accent-subtle">
+              <component :is="n.icon" :size="16" />{{ navLabel(n.label) }}
+            </RouterLink>
+          </template>
+        </div>
+      </section>
+    </nav>
+    <RouterLink to="/settings" :class="[link, 'mt-auto']" active-class="bg-accent-subtle">
       <Settings :size="16" />{{ t('sidebar.settings') }}
     </RouterLink>
   </aside>
 </template>
+
+<style>
+/* тёмная панель: семантические токены внутри <aside> заменены sidebar-токенами */
+.sidebar-dark {
+  --color-bg: var(--color-sidebar-bg);
+  --color-fg: var(--color-sidebar-fg);
+  --color-fg-muted: var(--color-sidebar-fg-muted);
+  --color-fg-subtle: var(--color-sidebar-fg-muted);
+  --color-bg-muted: var(--color-sidebar-hover);
+  --color-accent-subtle: var(--color-sidebar-active);
+  --color-border: var(--color-sidebar-border);
+}
+</style>

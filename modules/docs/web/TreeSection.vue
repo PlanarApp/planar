@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, inject, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ChevronRight, FileText, Plus } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
@@ -13,6 +13,14 @@ const router = useRouter();
 const pages = useQuery(() => db.table<PageRow>('docsPages').toArray());
 const spaces = useQuery(async () =>
   (await db.table<Row<'spaces'>>('spaces').toArray()).sort((a, b) => (a.rank < b.rank ? -1 : 1)),
+);
+// свёрнутость — общее хранилище боковой панели (provide из ядра); без него — локально
+const sc = inject<{ is: (id: string) => boolean; toggle: (id: string) => void }>(
+  'planar.sidebar.collapse',
+  (() => {
+    const off = ref(false);
+    return { is: () => off.value, toggle: () => (off.value = !off.value) };
+  })(),
 );
 const opened = ref(new Set<string>());
 const current = computed(() => route.params.pageId as string | undefined);
@@ -75,16 +83,28 @@ function drop(e: DragEvent, n: TreeNode) {
 </script>
 
 <template>
-  <section data-testid="docs-tree" class="mt-2">
-    <h2 class="mb-1 px-2 text-xs font-medium text-fg-muted">{{ tx('docs') }}</h2>
-    <div v-for="t in trees" :key="t.s.id" class="mb-1">
-      <div class="group flex h-7 items-center justify-between px-2 text-xs text-fg-subtle">
+  <section data-testid="docs-tree">
+    <h2>
+      <button
+        type="button"
+        :aria-expanded="!sc.is('docs')"
+        class="flex h-7 w-full items-center gap-1 rounded-md px-2 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+        @click="sc.toggle('docs')"
+      >
+        <ChevronRight :size="12" :class="['shrink-0', !sc.is('docs') && 'rotate-90']" />{{
+          tx('docs')
+        }}
+      </button>
+    </h2>
+    <template v-if="!sc.is('docs')">
+    <div v-for="t in trees" :key="t.s.id">
+      <div class="group flex h-7 items-center px-2 text-xs text-fg-muted">
         <span class="truncate">{{ t.s.name }}</span>
         <button
           type="button"
           :aria-label="tx('newPage')"
           :title="tx('newPage')"
-          class="rounded-sm p-1 hover:bg-bg-muted"
+          class="ml-auto rounded-sm p-1 hover:bg-bg-muted"
           @click="add(t.s.id, null)"
         >
           <Plus :size="14" />
@@ -96,7 +116,7 @@ function drop(e: DragEvent, n: TreeNode) {
         draggable="true"
         :style="{ paddingLeft: n.depth * 12 + 'px' }"
         :class="[
-          'group flex h-8 items-center rounded-md hover:bg-bg-muted',
+          'group flex h-7 items-center rounded-md hover:bg-bg-muted',
           current === n.page.id && 'bg-accent-subtle',
           hint?.id === n.page.id && hint.zone === 'into' && 'ring-2 ring-focus',
           hint?.id === n.page.id && hint.zone === 'before' && 'border-t-2 border-accent',
@@ -120,7 +140,7 @@ function drop(e: DragEvent, n: TreeNode) {
         <span v-else class="w-5 shrink-0" />
         <RouterLink
           :to="`/m/docs/${n.page.id}`"
-          class="flex min-w-0 flex-1 items-center gap-1.5 text-base text-fg outline-none focus-visible:ring-2 ring-focus"
+          class="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-fg outline-none focus-visible:ring-2 ring-focus"
         >
           <span v-if="n.page.icon" aria-hidden="true">{{ n.page.icon }}</span>
           <FileText v-else :size="14" class="shrink-0 text-fg-subtle" />
@@ -136,5 +156,6 @@ function drop(e: DragEvent, n: TreeNode) {
         </button>
       </div>
     </div>
+    </template>
   </section>
 </template>

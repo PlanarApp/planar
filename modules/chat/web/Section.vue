@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, inject, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { Plus } from 'lucide-vue-next';
+import { ChevronRight, Plus } from 'lucide-vue-next';
 import { Button, Input, mutate, newId } from '@planar/web/modules';
 import { useChatData } from './data';
 import { byName, dmTitle, findDm, type Channel } from './model';
@@ -11,6 +11,14 @@ const tx = useTexts();
 const route = useRoute();
 const router = useRouter();
 const { d, meId, users, unreadOf } = useChatData();
+// свёрнутость — общее хранилище боковой панели (provide из ядра); без него — локально
+const sc = inject<{ is: (id: string) => boolean; toggle: (id: string) => void }>(
+  'planar.sidebar.collapse',
+  (() => {
+    const off = ref(false);
+    return { is: () => off.value, toggle: () => (off.value = !off.value) };
+  })(),
+);
 const current = computed(() => route.params.channelId as string | undefined);
 
 const groups = computed(() => {
@@ -85,98 +93,111 @@ const link = (id: string) => `/m/chat/c/${id}`;
 </script>
 
 <template>
-  <section data-testid="chat-section" class="mt-2">
-    <h2 class="mb-1 px-2 text-xs font-medium text-fg-muted">{{ tx('chat') }}</h2>
-    <div v-for="g in groups" :key="g.s.id" class="mb-1">
-      <div class="flex items-center justify-between px-2 text-xs text-fg-subtle">
-        <span class="truncate">{{ g.s.name }}</span>
-        <button
-          v-if="g.canCreate"
-          type="button"
-          :aria-label="tx('newChannel')"
-          data-testid="chat-add-channel"
-          class="rounded-sm p-0.5 hover:bg-bg-muted"
-          @click="addIn = addIn === g.s.id ? '' : g.s.id"
-        >
-          <Plus :size="14" />
-        </button>
-      </div>
-      <form v-if="addIn === g.s.id" class="flex gap-1 px-2 py-1" @submit.prevent="addChannel">
-        <Input
-          v-model="name"
-          :label="tx('channelName')"
-          hide-label
-          :placeholder="tx('channelName')"
-        />
-        <Button type="submit" size="sm" variant="primary">{{ tx('create') }}</Button>
-      </form>
-      <RouterLink
-        v-for="c in g.items"
-        :key="c.id"
-        :to="link(c.id)"
-        data-testid="chat-channel"
-        :aria-current="current === c.id ? 'page' : undefined"
-        :class="[
-          'flex h-8 items-center justify-between rounded-md px-2 text-base hover:bg-bg-muted',
-          current === c.id && 'bg-bg-muted font-medium',
-        ]"
+  <section data-testid="chat-section">
+    <h2>
+      <button
+        type="button"
+        :aria-expanded="!sc.is('chat')"
+        class="flex h-7 w-full items-center gap-1 rounded-md px-2 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+        @click="sc.toggle('chat')"
       >
-        <span class="truncate"># {{ title(c) }}</span>
-        <span
-          v-if="unreadOf(c) > 0"
-          data-testid="chat-unread"
-          class="ml-2 rounded-full bg-accent px-1.5 text-xs text-accent-fg"
-          >{{ unreadOf(c) }}</span
-        >
-      </RouterLink>
-    </div>
-
-    <div class="mb-1">
-      <div class="flex items-center justify-between px-2 text-xs text-fg-subtle">
-        <span>{{ tx('dms') }}</span>
-        <button
-          type="button"
-          :aria-label="tx('newDm')"
-          data-testid="chat-add-dm"
-          class="rounded-sm p-0.5 hover:bg-bg-muted"
-          @click="picking = !picking"
-        >
-          <Plus :size="14" />
-        </button>
-      </div>
-      <form v-if="picking" class="px-2 py-1" @submit.prevent="openDm">
-        <label v-for="u in people" :key="u.id" class="flex items-center gap-2 py-0.5 text-sm">
-          <input
-            type="checkbox"
-            :checked="picked.includes(u.id)"
-            :data-testid="`chat-pick-${u.id}`"
-            @change="toggle(u.id)"
+        <ChevronRight :size="12" :class="['shrink-0', !sc.is('chat') && 'rotate-90']" />{{
+          tx('chat')
+        }}
+      </button>
+    </h2>
+    <template v-if="!sc.is('chat')">
+      <div v-for="g in groups" :key="g.s.id">
+        <div class="flex h-7 items-center px-2 text-xs text-fg-muted">
+          <span v-if="groups.length > 1" class="truncate">{{ g.s.name }}</span>
+          <button
+            v-if="g.canCreate"
+            type="button"
+            :aria-label="tx('newChannel')"
+            data-testid="chat-add-channel"
+            class="ml-auto rounded-sm p-0.5 hover:bg-bg-muted"
+            @click="addIn = addIn === g.s.id ? '' : g.s.id"
+          >
+            <Plus :size="14" />
+          </button>
+        </div>
+        <form v-if="addIn === g.s.id" class="flex gap-1 px-2 py-1" @submit.prevent="addChannel">
+          <Input
+            v-model="name"
+            :label="tx('channelName')"
+            hide-label
+            :placeholder="tx('channelName')"
           />
-          {{ u.name }}
-        </label>
-        <Button type="submit" size="sm" variant="primary" :disabled="!picked.length">{{
-          tx('create')
-        }}</Button>
-      </form>
-      <RouterLink
-        v-for="x in dms"
-        :key="x.c.id"
-        :to="link(x.c.id)"
-        data-testid="chat-dm"
-        :aria-current="current === x.c.id ? 'page' : undefined"
-        :class="[
-          'flex h-8 items-center justify-between rounded-md px-2 text-base hover:bg-bg-muted',
-          current === x.c.id && 'bg-bg-muted font-medium',
-        ]"
-      >
-        <span class="truncate">{{ x.title }}</span>
-        <span
-          v-if="unreadOf(x.c) > 0"
-          data-testid="chat-unread"
-          class="ml-2 rounded-full bg-accent px-1.5 text-xs text-accent-fg"
-          >{{ unreadOf(x.c) }}</span
+          <Button type="submit" size="sm" variant="primary">{{ tx('create') }}</Button>
+        </form>
+        <RouterLink
+          v-for="c in g.items"
+          :key="c.id"
+          :to="link(c.id)"
+          data-testid="chat-channel"
+          :aria-current="current === c.id ? 'page' : undefined"
+          :class="[
+            'flex h-7 items-center justify-between rounded-md px-2 text-sm hover:bg-bg-muted',
+            current === c.id && 'bg-bg-muted font-medium',
+          ]"
         >
-      </RouterLink>
-    </div>
+          <span class="truncate"># {{ title(c) }}</span>
+          <span
+            v-if="unreadOf(c) > 0"
+            data-testid="chat-unread"
+            class="ml-2 rounded-full bg-accent px-1.5 text-xs text-accent-fg"
+            >{{ unreadOf(c) }}</span
+          >
+        </RouterLink>
+      </div>
+
+      <div>
+        <div class="flex h-7 items-center justify-between px-2 text-xs text-fg-muted">
+          <span>{{ tx('dms') }}</span>
+          <button
+            type="button"
+            :aria-label="tx('newDm')"
+            data-testid="chat-add-dm"
+            class="rounded-sm p-0.5 hover:bg-bg-muted"
+            @click="picking = !picking"
+          >
+            <Plus :size="14" />
+          </button>
+        </div>
+        <form v-if="picking" class="px-2 py-1" @submit.prevent="openDm">
+          <label v-for="u in people" :key="u.id" class="flex items-center gap-2 py-0.5 text-sm">
+            <input
+              type="checkbox"
+              :checked="picked.includes(u.id)"
+              :data-testid="`chat-pick-${u.id}`"
+              @change="toggle(u.id)"
+            />
+            {{ u.name }}
+          </label>
+          <Button type="submit" size="sm" variant="primary" :disabled="!picked.length">{{
+            tx('create')
+          }}</Button>
+        </form>
+        <RouterLink
+          v-for="x in dms"
+          :key="x.c.id"
+          :to="link(x.c.id)"
+          data-testid="chat-dm"
+          :aria-current="current === x.c.id ? 'page' : undefined"
+          :class="[
+            'flex h-7 items-center justify-between rounded-md px-2 text-sm hover:bg-bg-muted',
+            current === x.c.id && 'bg-bg-muted font-medium',
+          ]"
+        >
+          <span class="truncate">{{ x.title }}</span>
+          <span
+            v-if="unreadOf(x.c) > 0"
+            data-testid="chat-unread"
+            class="ml-2 rounded-full bg-accent px-1.5 text-xs text-accent-fg"
+            >{{ unreadOf(x.c) }}</span
+          >
+        </RouterLink>
+      </div>
+    </template>
   </section>
 </template>

@@ -1,37 +1,36 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, type Component } from 'vue';
+import {
+  computed,
+  defineAsyncComponent,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  type Component,
+} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import {
-  Bell,
-  Download,
-  Languages,
-  LogOut,
-  Monitor,
-  Search,
-  Moon,
-  Settings,
-  Sun,
-  User,
-} from 'lucide-vue-next';
+import { Bell, ChevronRight, Download, Search } from 'lucide-vue-next';
 // reka (Avatar/Menu) — вне начального бандла
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
+const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
 import Button from '../ui/Button.vue';
-import type { MenuItem } from '../ui/Menu.vue';
-import { useTheme } from '../ui/useTheme';
+import IconButton from '../ui/IconButton.vue';
+import Kbd from '../ui/Kbd.vue';
+import { useBreakpoint } from '../ui/useBreakpoint';
 import { ui } from '../command/hotkeys';
-import { setLocale } from '../i18n';
 import { useAuth } from '../auth/useAuth';
 import { useUnread } from '../inbox/queries';
 import { useExtensions } from '../modules/registry';
+import { useProject, useSpaces } from '../tasks/queries';
+import { useSavedView } from '../views/saved/queries';
+import { useUserMenu } from './nav';
 
-const { t, locale } = useI18n();
+const { t, te, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { theme } = useTheme();
-const { logout, user } = useAuth();
-const mac = /Mac/i.test(navigator.platform);
-const notice = ref('');
+const { user } = useAuth();
+const { isMobile } = useBreakpoint();
+const { items, notice } = useUserMenu();
 const unread = useUnread();
 
 interface InstallEvent extends Event {
@@ -58,65 +57,43 @@ const topbarComp = (key: string, load: () => Promise<{ default: Component }>) =>
   return c;
 };
 
-const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
-const items = (): MenuItem[] => [
-  {
-    id: 'profile',
-    label: t('topbar.profile'),
-    icon: User,
-    onSelect: () => router.push('/profile'),
-  },
-  {
-    id: 'settings',
-    label: t('topbar.settings'),
-    icon: Settings,
-    onSelect: () => router.push('/settings'),
-  },
-  { separator: true },
-  {
-    id: 't-system',
-    label: t('topbar.themeSystem'),
-    icon: Monitor,
-    onSelect: () => (theme.value = 'system'),
-  },
-  {
-    id: 't-light',
-    label: t('topbar.themeLight'),
-    icon: Sun,
-    onSelect: () => (theme.value = 'light'),
-  },
-  {
-    id: 't-dark',
-    label: t('topbar.themeDark'),
-    icon: Moon,
-    onSelect: () => (theme.value = 'dark'),
-  },
-  { separator: true },
-  {
-    id: 'lang',
-    label: `${t('topbar.language')}: ${locale.value === 'ru' ? 'English' : 'Русский'}`,
-    icon: Languages,
-    onSelect: () => setLocale(locale.value === 'ru' ? 'en' : 'ru'),
-  },
-  { separator: true },
-  {
-    id: 'logout',
-    label: t('auth.signOut'),
-    icon: LogOut,
-    onSelect: async () => {
-      notice.value = '';
-      if (await logout()) await router.push('/login');
-      else if (!useAuth().logoutPrompt.open.value) notice.value = t('auth.logoutNeedsNetwork');
-    },
-  },
-];
+// хлебные крошки: пространство / проект / вид; на прочих экранах — название экрана
+const projectId = computed(() => String(route.params.projectId ?? ''));
+const inProject = computed(() => route.name === 'project' || route.name === 'savedView');
+const project = useProject(() => (inProject.value ? projectId.value : ''));
+const spaces = useSpaces();
+const saved = useSavedView(() => (route.name === 'savedView' ? String(route.params.viewId) : ''));
+const extViews = useExtensions('views');
+const text = (l: string | { ru: string; en: string }) =>
+  typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
+const viewLabel = computed(() => {
+  if (route.name === 'savedView') return saved.value?.name ?? '';
+  const v = String(route.params.view || 'list');
+  const ext = extViews.value.find((e) => e.key === v);
+  return ext ? text(ext.label) : te(`views.${v}`) ? t(`views.${v}`) : v;
+});
+const crumbs = computed(() => {
+  if (!inProject.value) {
+    return [route.name ? t(`screens.${String(route.name)}`) : t('app.name')];
+  }
+  const p = project.value;
+  const space = spaces.value?.find((s) => s.id === p?.spaceId)?.name;
+  return [space, p?.name, viewLabel.value].filter((x): x is string => !!x);
+});
 </script>
 
 <template>
-  <header class="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-bg px-3">
-    <h1 class="flex-1 truncate text-lg font-semibold">
-      {{ route.name ? t(`screens.${String(route.name)}`) : t('app.name') }}
-    </h1>
+  <header class="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-bg px-3">
+    <nav :aria-label="t('topbar.breadcrumb')" class="min-w-0 flex-1">
+      <h1 class="flex items-center gap-1 truncate text-sm">
+        <template v-for="(c, i) in crumbs" :key="i">
+          <ChevronRight v-if="i" :size="12" class="shrink-0 text-fg-subtle" aria-hidden="true" />
+          <span :class="['truncate', i === crumbs.length - 1 ? 'font-medium' : 'text-fg-muted']">{{
+            c
+          }}</span>
+        </template>
+      </h1>
+    </nav>
     <span v-if="notice" role="alert" class="text-sm text-fg-muted">{{ notice }}</span>
     <component
       :is="topbarComp(i.key, i.component)"
@@ -124,37 +101,28 @@ const items = (): MenuItem[] => [
       :key="i.key"
       data-testid="topbar-item"
     />
-    <button
-      type="button"
-      :aria-label="t('cmd.open')"
-      class="flex size-11 items-center justify-center gap-2 rounded-md border-border text-fg-muted outline-none focus-visible:ring-2 ring-focus md:h-8 md:w-auto md:border md:px-2 md:text-sm"
-      @click="ui.palette = true"
-    >
-      <Search class="size-4" aria-hidden="true" />
-      <kbd class="hidden md:inline">{{ mac ? '⌘K' : 'Ctrl K' }}</kbd>
-    </button>
+    <IconButton v-if="isMobile" :icon="Search" :label="t('cmd.open')" @click="ui.palette = true" />
+    <Button v-else size="sm" :icon="Search" :aria-label="t('cmd.open')" @click="ui.palette = true">
+      {{ t('topbar.search') }}<Kbd keys="Mod+K" />
+    </Button>
     <Button v-if="installEvent" size="sm" :icon="Download" @click="install">
       {{ t('topbar.install') }}
     </Button>
-    <RouterLink
-      to="/inbox"
-      :aria-label="t('topbar.notifications')"
-      class="relative flex size-11 items-center justify-center rounded-full outline-none focus-visible:ring-2 ring-focus md:size-8"
-    >
-      <Bell :size="18" />
+    <span class="relative">
+      <IconButton :icon="Bell" :label="t('topbar.notifications')" @click="router.push('/inbox')" />
       <span
         v-if="unread"
         data-testid="bell-count"
-        class="absolute right-0 top-0 min-w-4 rounded-full bg-accent px-1 text-center text-xs text-accent-fg"
+        class="pointer-events-none absolute right-0 top-0 min-w-4 rounded-full bg-accent px-1 text-center text-2xs text-accent-fg"
         >{{ unread }}</span
       >
-    </RouterLink>
-    <Menu :items="items()">
+    </span>
+    <Menu v-if="isMobile" :items="items()" align="end">
       <template #trigger>
         <button
           type="button"
           :aria-label="t('topbar.menu')"
-          class="flex size-11 items-center justify-center rounded-full outline-none focus-visible:ring-2 ring-focus md:size-8"
+          class="flex size-11 items-center justify-center rounded-full outline-none focus-visible:ring-2 ring-focus"
         >
           <Avatar
             :name="user?.name ?? 'Planar'"
