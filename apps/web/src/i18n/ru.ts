@@ -432,6 +432,8 @@ export default {
     addReaction: 'Добавить реакцию',
     tooLarge: 'Файл больше допустимого размера',
     uploadFailed: 'Не удалось загрузить файл',
+    unsynced: 'Не синхронизируется',
+    retry: 'Повторить',
     subtasks: 'Подзадачи',
     addSubtask: 'Добавить подзадачу',
     checklist: 'Чек-лист',

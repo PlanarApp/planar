@@ -45,6 +45,8 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
   private projected = new Map<string, { lo: number; hi: number; key: string }[]>();
   /** seq журнала на момент загрузки документа: более ранние записи уже учтены в Y.Doc. */
   private loadedAt = new Map<string, number>();
+  /** Последнее известное содержимое body/description в БД: запись других полей (title, icon…) — не внешняя правка. */
+  private seen = new Map<string, string>();
 
   constructor(
     @Inject(DB) private db: Db,
@@ -66,6 +68,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
       afterUnloadDocument: async ({ documentName }) => {
         this.projected.delete(documentName);
         this.loadedAt.delete(documentName);
+        this.seen.delete(documentName);
       },
       onLoadDocument: ({ documentName, document }) => this.load(documentName, document),
       onStoreDocument: ({ documentName, document, lastContext }) =>
@@ -178,6 +181,8 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
 
   private async load(name: string, doc: Y.Doc) {
     this.loadedAt.set(name, await this.maxSeq());
+    const was = await this.current(name);
+    if (was) this.seen.set(name, key(normalizeSafe(was.json)));
     const [row] = await this.db.select().from(ydocs).where(eq(ydocs.docId, name));
     if (row) return void Y.applyUpdate(doc, row.state);
     const cur = await this.current(name);
@@ -219,6 +224,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
         this.queue,
       );
       win.hi = await this.maxSeq();
+      this.seen.set(name, key(next));
     } catch (e) {
       // ydocs уже сохранён, следующее сохранение попробует снова
       this.projected.set(
@@ -280,6 +286,8 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     if (loaded) {
       // своя проекция или запись, учтённая при загрузке, — не внешняя (иначе откатим набранное)
       const k = key(normalizeSafe(json));
+      if (this.seen.get(name) === k) return; // body не менялся (запись title/icon…)
+      this.seen.set(name, k);
       const ws = (this.projected.get(name) ?? []).filter((w) => w.hi >= seq);
       this.projected.set(name, ws);
       if (ws.some((w) => w.lo < seq && w.key === k)) return;

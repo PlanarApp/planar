@@ -1,32 +1,27 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue';
-import { EditorContent, Extension, useEditor } from '@tiptap/vue-3';
-import type { JSONContent } from '@tiptap/vue-3';
-import StarterKit from '@tiptap/starter-kit';
+import { onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { Editor, EditorContent, Extension } from '@tiptap/vue-3';
 import Placeholder from '@tiptap/extension-placeholder';
 import Mention from '@tiptap/extension-mention';
-import Image from '@tiptap/extension-image';
-import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
-import { TaskList, TaskItem } from '@tiptap/extension-list';
+import { editorExtensions } from '@planar/editor';
 import Suggestion from '@tiptap/suggestion';
 import { PluginKey } from '@tiptap/pm/state';
-import { uploadFile, useSearch } from '@planar/web/modules';
+import { uploadFile, useSearch, useSession } from '@planar/web/modules';
 import { suggestRender, type SugState } from './suggest';
 import { filterSlash, type SlashItem } from './slash';
 import { useTexts } from './text';
 
 const props = withDefaults(
   defineProps<{
-    modelValue: JSONContent;
+    /** Имя документа Yjs: `docs:<pageId>` (P3-ydoc). */
+    name: string;
     members: { id: string; name: string }[];
     editable?: boolean;
   }>(),
   { editable: true },
 );
-const emit = defineEmits<{
-  'update:modelValue': [v: JSONContent];
-  'open-task': [ref: string];
-}>();
+const emit = defineEmits<{ 'open-task': [ref: string] }>();
+const user = useSession();
 const tx = useTexts();
 const error = ref('');
 const sug = ref<SugState | null>(null);
@@ -110,58 +105,66 @@ const TaskMention = Mention.extend({
   ],
 });
 
-const editor = useEditor({
-  content: props.modelValue,
-  editable: props.editable,
-  extensions: [
-    StarterKit,
-    Placeholder.configure({ placeholder: tx('placeholder') }),
-    Image,
-    Table,
-    TableRow,
-    TableHeader,
-    TableCell,
-    TaskList,
-    TaskItem.configure({ nested: true }),
-    TaskMention,
-    Slash,
-  ],
-  editorProps: {
-    attributes: { 'aria-label': tx('body'), role: 'textbox', 'aria-multiline': 'true' },
-    handleClick: (_v, _p, e) => {
-      const a = (e.target as HTMLElement).closest?.('a[data-kind="task"]');
-      if (!a) return false;
-      e.preventDefault();
-      emit('open-task', a.textContent!.slice(1));
-      return true;
+const editor = shallowRef<Editor | null>(null);
+let session: { destroy: () => void; retry: () => void } | undefined;
+const unsynced = ref(false);
+const retry = () => {
+  unsynced.value = false;
+  session?.retry();
+};
+let gone = false;
+let readOnly = () => false;
+
+// yjs/hocuspocus — отдельный чанк
+void import('@planar/editor/collab').then(({ openCollab }) => {
+  if (gone) return;
+  const c = openCollab(props.name, { id: user.value?.id ?? '', name: user.value?.name ?? '' });
+  session = c;
+  readOnly = c.readOnly;
+  const ed = new Editor({
+    editable: props.editable,
+    extensions: [
+      Placeholder.configure({ placeholder: tx('placeholder') }),
+      ...editorExtensions({ collab: true, image: true, mention: TaskMention }),
+      Slash,
+      ...c.extensions,
+    ],
+    editorProps: {
+      attributes: { 'aria-label': tx('body'), role: 'textbox', 'aria-multiline': 'true' },
+      handleClick: (_v, _p, e) => {
+        const a = (e.target as HTMLElement).closest?.('a[data-kind="task"]');
+        if (!a) return false;
+        e.preventDefault();
+        emit('open-task', a.textContent!.slice(1));
+        return true;
+      },
+      handlePaste: (_v, e) => {
+        const f = images(e.clipboardData?.files);
+        if (f.length) void insertImages(f);
+        return f.length > 0;
+      },
+      handleDrop: (_v, e) => {
+        const f = images(e.dataTransfer?.files);
+        if (f.length) void insertImages(f);
+        return f.length > 0;
+      },
     },
-    handlePaste: (_v, e) => {
-      const f = images(e.clipboardData?.files);
-      if (f.length) void insertImages(f);
-      return f.length > 0;
-    },
-    handleDrop: (_v, e) => {
-      const f = images(e.dataTransfer?.files);
-      if (f.length) void insertImages(f);
-      return f.length > 0;
-    },
-  },
-  onUpdate: ({ editor: ed }) => emit('update:modelValue', ed.getJSON()),
+  });
+  editor.value = ed;
+  c.onAuthenticated(() => ed.setEditable(props.editable && !readOnly()));
+  c.onDenied(() => (unsynced.value = true));
+  c.onAuthenticated(() => (unsynced.value = false));
 });
 
-// чужие правки подставляем только в режиме чтения: у редактирующего блокировка, правит он один
-watch(
-  () => props.modelValue,
-  (v) => {
-    if (!props.editable && JSON.stringify(v) !== JSON.stringify(editor.value?.getJSON()))
-      editor.value?.commands.setContent(v, { emitUpdate: false });
-  },
-);
 watch(
   () => props.editable,
-  (v) => editor.value?.setEditable(v),
+  (v) => editor.value?.setEditable(v && !readOnly()),
 );
-onBeforeUnmount(() => editor.value?.destroy());
+onBeforeUnmount(() => {
+  gone = true;
+  editor.value?.destroy();
+  session?.destroy();
+});
 defineExpose({ editor });
 </script>
 
@@ -181,6 +184,15 @@ defineExpose({ editor });
       "
     />
     <p v-if="error" role="alert" class="mt-1 text-xs text-danger">{{ error }}</p>
+    <p
+      v-if="unsynced"
+      role="status"
+      data-testid="unsynced"
+      class="mt-1 flex items-center gap-2 text-xs text-warning"
+    >
+      {{ tx('unsynced') }}
+      <button type="button" class="underline" @click="retry">{{ tx('retry') }}</button>
+    </p>
     <ul
       v-if="sug && sug.items.length"
       role="listbox"
@@ -288,5 +300,25 @@ defineExpose({ editor });
 .doc-editor .mention {
   color: var(--color-accent);
   font-weight: 500;
+}
+.doc-editor .collaboration-carets__caret {
+  position: relative;
+  margin: 0 -1px;
+  border-left: 1px solid;
+  border-right: 1px solid;
+  word-break: normal;
+  pointer-events: none;
+}
+.doc-editor .collaboration-carets__label {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  padding: 0 0.25rem;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  user-select: none;
 }
 </style>

@@ -156,8 +156,12 @@ test('collab: документ создаётся в дереве, связыв�
   await body.click();
   await body.pressSequentially(`текст ${word}`);
   await expect
-    .poll(async () =>
-      JSON.stringify(((await lines(f.admin)).docsPages ?? []).find((p) => p.title === title)?.text),
+    .poll(
+      async () =>
+        JSON.stringify(
+          ((await lines(f.admin)).docsPages ?? []).find((p) => p.title === title)?.text,
+        ),
+      { timeout: 20_000 },
     )
     .toContain(word);
 

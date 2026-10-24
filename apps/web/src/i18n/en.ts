@@ -432,6 +432,8 @@ export default {
     addReaction: 'Add reaction',
     tooLarge: 'File is larger than allowed',
     uploadFailed: 'Could not upload the file',
+    unsynced: 'Not syncing',
+    retry: 'Retry',
     subtasks: 'Subtasks',
     addSubtask: 'Add subtask',
     checklist: 'Checklist',

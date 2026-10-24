@@ -1,6 +1,5 @@
 import 'fake-indexeddb/auto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent, h } from 'vue';
 import { flushPromises, mount as vmount } from '@vue/test-utils';
 import { Editor } from '@tiptap/vue-3';
 
@@ -20,7 +19,6 @@ import { moduleMutators, registerMutators, startSync, stopSync } from '../../../
 import { web } from './index';
 import { slashItems } from './slash';
 import { moveArgs, type PageRow } from './model';
-import { useLock } from './lock';
 import TaskPanel from './TaskPanel.vue';
 import PageView from './PageView.vue';
 import TreeSection from './TreeSection.vue';
@@ -34,6 +32,23 @@ vi.mock('@planar/web/modules', async (orig) => {
   return { ...(await orig<object>()), useSession: () => ref({ id: (globalThis as Record<string, unknown>).__ME }) };
 });
 (globalThis as unknown as { __ME: string }).__ME = ME;
+// перехват onDenied: тест имитирует исчерпание попыток подключения
+vi.mock('@planar/editor/collab', async (orig) => {
+  const m = await orig<typeof import('@planar/editor/collab')>();
+  return {
+    ...m,
+    openCollab: (...a: Parameters<typeof m.openCollab>) => {
+      const c = m.openCollab(...a);
+      return {
+        ...c,
+        onDenied: (cb: () => void) => {
+          (globalThis as Record<string, unknown>).__denied = cb;
+          c.onDenied(cb);
+        },
+      };
+    },
+  };
+});
 const router = { push: vi.fn(), replace: vi.fn() };
 vi.mock('vue-router', async (orig) => ({
   ...(await orig<object>()),
@@ -184,69 +199,66 @@ describe('docs web: панель задачи', () => {
   });
 });
 
-describe('docs web: блокировка', () => {
-  const lockRow = (pageId: string, userId: string, ms: number) => ({
-    id: pageId,
-    spaceId: SPACE,
-    userId,
-    expiresAt: new Date(Date.now() + ms).toISOString(),
-  });
+describe('docs web: совместное редактирование (DC-web v2)', () => {
+  const queued = (name: string) => db._queue.filter((q) => q.name === name).count();
+  const editorOf = (w: ReturnType<typeof mount>) =>
+    (w.findComponent({ name: 'DocEditor' }).vm as unknown as { editor: Editor | null }).editor;
 
-  it('чужая действующая блокировка: плашка «Редактирует Анна», редактор только для чтения', async () => {
-    const id = uuidv7();
-    await db.table('docsPages').put(page(id, { title: 'Док' }));
-    await db.table('docsLocks').put(lockRow(id, OTHER, 60_000));
-    const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('[data-testid=doc-lock]').text()).toContain('Редактирует Анна'));
-    expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('false');
-    expect((w.find('[data-testid=doc-title]').element as HTMLInputElement).disabled).toBe(true);
-    // чужую блокировку не затираем
-    expect((await db.table('docsLocks').get(id)).userId).toBe(OTHER);
-    w.unmount();
-  });
-
-  it('своя/свободная: редактор доступен, docs.lock ставит строку, при закрытии docs.unlock снимает', async () => {
+  it('редактор открывается сразу редактируемым: без плашки «редактирует», без docs.lock', async () => {
     const id = uuidv7();
     await db.table('docsPages').put(page(id));
+    const n0 = await queued('docs.lock');
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(async () => expect((await db.table('docsLocks').get(id))?.userId).toBe(ME));
-    await flushPromises();
-    expect(w.find('[data-testid=doc-lock]').exists()).toBe(false);
-    expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
-    w.unmount();
-    await vi.waitFor(async () => expect(await db.table('docsLocks').get(id)).toBeUndefined());
-  });
-
-  it('истёкшая чужая блокировка не мешает', async () => {
-    const id = uuidv7();
-    await db.table('docsPages').put(page(id));
-    await db.table('docsLocks').put(lockRow(id, OTHER, -1000));
-    const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(async () => expect((await db.table('docsLocks').get(id))?.userId).toBe(ME));
-    expect(w.find('[data-testid=doc-lock]').exists()).toBe(false);
-    w.unmount();
-  });
-
-  it('продление каждые 60 с: ещё один docs.lock в очереди', async () => {
-    const id = uuidv7();
-    await db.table('docsPages').put(page(id));
-    const locks = () => db._queue.filter((q) => q.name === 'docs.lock').count();
-    const n0 = await locks();
-    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-    const C = defineComponent({
-      setup() {
-        useLock(
-          () => id,
-          () => ME,
-        );
-        return () => h('i');
-      },
+    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+      timeout: 10_000,
     });
-    const w = mount(C);
-    await vi.waitFor(async () => expect(await locks()).toBe(n0 + 1));
-    await vi.advanceTimersByTimeAsync(60_000);
-    vi.useRealTimers();
-    await vi.waitFor(async () => expect(await locks()).toBe(n0 + 2));
+    expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
+    expect(w.find('[data-testid=doc-lock]').exists()).toBe(false);
+    expect((w.find('[data-testid=doc-title]').element as HTMLInputElement).disabled).toBe(false);
+    w.unmount();
+    expect(await queued('docs.lock')).toBe(n0);
+    expect(await queued('docs.unlock')).toBe(0);
+  });
+
+  it('чужая запись блокировки не мешает: страница не переходит в режим чтения', async () => {
+    const id = uuidv7();
+    await db.table('docsPages').put(page(id));
+    await db.table('docsLocks').put({
+      id,
+      spaceId: SPACE,
+      userId: OTHER,
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const w = mount(PageView, { props: { pageId: id } });
+    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+      timeout: 10_000,
+    });
+    expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
+    expect(w.find('[data-testid=doc-lock]').exists()).toBe(false);
+    w.unmount();
+  });
+
+  it('доступ не получен после повторов: редактор остаётся редактируемым, «Не синхронизируется» + «Повторить»', async () => {
+    const id = uuidv7();
+    await db.table('docsPages').put(page(id));
+    const w = mount(PageView, { props: { pageId: id } });
+    await vi.waitFor(() => expect(editorOf(w)).toBeTruthy(), { timeout: 10_000 });
+    expect(w.find('[data-testid=unsynced]').exists()).toBe(false);
+    ((globalThis as Record<string, unknown>).__denied as () => void)();
+    await flushPromises();
+    expect(w.find('[data-testid=unsynced]').text()).toContain('Не синхронизируется');
+    expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
+    await w.find('[data-testid=unsynced] button').trigger('click');
+    expect(w.find('[data-testid=unsynced]').exists()).toBe(false);
+    w.unmount();
+  });
+
+  it('документ подключается как docs:<pageId>', async () => {
+    const id = uuidv7();
+    await db.table('docsPages').put(page(id));
+    const w = mount(PageView, { props: { pageId: id } });
+    await vi.waitFor(() => expect(editorOf(w)).toBeTruthy(), { timeout: 10_000 });
+    expect(w.findComponent({ name: 'DocEditor' }).props('name')).toBe(`docs:${id}`);
     w.unmount();
   });
 });
@@ -280,18 +292,20 @@ describe('docs web: slash-меню и редактор', () => {
     e2.destroy();
   });
 
-  it('правка в редакторе уходит в docs.page.update с debounce 800 мс, тело сохраняется', async () => {
+  it('тело правится через Yjs: docs.page.update с body из редактора не уходит', async () => {
     const id = uuidv7();
     await db.table('docsPages').put(page(id));
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true));
-    await vi.waitFor(async () => expect((await db.table('docsLocks').get(id))?.userId).toBe(ME));
-    await flushPromises();
+    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+      timeout: 10_000,
+    });
     const ed = (w.findComponent({ name: 'DocEditor' }).vm as unknown as { editor: Editor }).editor;
+    const n0 = await db._queue.filter((q) => q.name === 'docs.page.update').count();
     ed.commands.insertContent('Привет');
-    await new Promise((r) => setTimeout(r, 300));
+    expect(ed.getText()).toBe('Привет');
+    await new Promise((r) => setTimeout(r, 1200));
+    expect(await db._queue.filter((q) => q.name === 'docs.page.update').count()).toBe(n0);
     expect((await db.table('docsPages').get(id)).text).toBe('');
-    await vi.waitFor(async () => expect((await db.table('docsPages').get(id)).text).toBe('Привет'));
     w.unmount();
   });
 
@@ -299,7 +313,9 @@ describe('docs web: slash-меню и редактор', () => {
     const id = uuidv7();
     await db.table('docsPages').put(page(id));
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true));
+    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+      timeout: 10_000,
+    });
     await flushPromises();
     const input = w.find('[data-testid=doc-title]');
     await input.setValue('Новое имя');
