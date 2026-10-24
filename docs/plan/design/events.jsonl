@@ -289,3 +289,8 @@
 {"t": "2026-10-24T16:01:01", "by": "coordinator", "task": "DS-6c", "ev": "accepted", "note": "по отчёту; визуальная проверка — в DS-5d"}
 {"t": "2026-10-24T16:01:02", "by": "coordinator", "task": "DS-6c", "ev": "merged"}
 {"t": "2026-10-24T16:01:02", "by": "coordinator", "task": "DS-6d", "ev": "accepted", "note": "по отчёту; визуальная проверка — в DS-5d"}
+{"t": "2026-10-24T16:01:02", "by": "coordinator", "task": "DS-6d", "ev": "merged"}
+{"t": "2026-10-24T16:01:31", "by": "coordinator", "task": "DS-6a", "ev": "checked", "commits": ["0dce35d"], "note": "1/6 typecheck=ok:exit 0"}
+{"t": "2026-10-24T16:01:55", "by": "coordinator", "task": "DS-6b", "ev": "checked", "commits": ["8b7a233"], "note": "1/6 typecheck=ok:exit 0"}
+{"t": "2026-10-24T16:02:17", "by": "coordinator", "task": "DS-6c", "ev": "checked", "commits": ["c7500bf"], "note": "1/6 typecheck=ok:exit 0"}
+{"t": "2026-10-24T16:02:39", "by": "coordinator", "task": "DS-6d", "ev": "checked", "commits": ["f030d91"], "note": "1/6 typecheck=ok:exit 0"}
