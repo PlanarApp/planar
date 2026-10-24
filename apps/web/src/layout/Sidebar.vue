@@ -57,7 +57,6 @@ const chev = (id: string) => ['shrink-0 transition-transform', !sc.is(id) && 'ro
     data-testid="sidebar"
     class="sidebar-dark flex w-60 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-sidebar-bg p-2 text-fg"
   >
-    <!-- shortcut: styles.css @source 'modules/*/web' без маски файлов не сканируется — классы секций модулей: pl-4 pl-6 ml-2 mr-1 py-0.5; убрать после правки @source -->
     <div class="flex h-9 items-center gap-2 px-1">
       <span
         class="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent text-xs font-semibold text-accent-fg"
