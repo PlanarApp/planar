@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
-import { Badge, Button, EmptyState, Input, Menu } from '@planar/web/modules';
+import { X } from 'lucide-vue-next';
+import { Badge, Button, EmptyState, IconButton, Input, Menu } from '@planar/web/modules';
 
 interface Sub {
   id: string;
@@ -36,6 +37,7 @@ const L = ru
       title: 'Вебхуки',
       desc: 'Уведомления о событиях на внешний адрес',
       more: 'Действия',
+      close: 'Скрыть',
       confirmDel: 'Удалить подписку?',
       emptyTitle: 'Нет подписок',
       emptyDesc: 'Добавьте адрес получателя, чтобы получать события',
@@ -54,6 +56,7 @@ const L = ru
       title: 'Webhooks',
       desc: 'Event notifications sent to an external URL',
       more: 'Actions',
+      close: 'Hide',
       confirmDel: 'Delete subscription?',
       emptyTitle: 'No subscriptions',
       emptyDesc: 'Add a receiver URL to start receiving events',
@@ -148,9 +151,7 @@ onMounted(() => void load().catch(() => {}));
       <span>
         {{ L.secret }}: <code class="font-mono">{{ secret }}</code>
       </span>
-      <Button size="sm" variant="ghost" aria-label="×" class="ml-auto" @click="secret = ''"
-        >×</Button
-      >
+      <IconButton :icon="X" :label="L.close" size="sm" class="ml-auto" @click="secret = ''" />
     </div>
 
     <EmptyState v-if="!subs.length" :title="L.emptyTitle" :description="L.emptyDesc" />

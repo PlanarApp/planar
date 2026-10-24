@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { X } from 'lucide-vue-next';
 import type { Filter, Row } from '@planar/shared';
 import {
   Button,
   EmptyState,
   FilterBuilder,
+  IconButton,
   Input,
   Menu,
   Select,
@@ -277,8 +279,17 @@ const setValue = (i: number, raw: string) => {
           min="0"
           max="30"
           :label="tx.daysBefore"
+          :error="
+            (t as Record<string, number | undefined>).daysBefore === undefined
+              ? tx.invalid
+              : undefined
+          "
           data-role="days-before"
-          @update:model-value="(v) => ((t as Record<string, number>).daysBefore = Number(v))"
+          @update:model-value="
+            (v) =>
+              ((t as Record<string, number | undefined>).daysBefore =
+                v === '' ? undefined : Number(v))
+          "
         />
       </fieldset>
 
@@ -306,7 +317,7 @@ const setValue = (i: number, raw: string) => {
           <div v-if="pickerKey(a)" data-role="action-param">
             <Select
               :model-value="(act(a)[pickerKey(a)!] as string) || null"
-              :label="tx.actions"
+              :label="tx.value"
               :options="opts(pickers[pickerKey(a)!])"
               @update:model-value="(v) => (act(a)[pickerKey(a)!] = v ?? '')"
             />
@@ -352,13 +363,7 @@ const setValue = (i: number, raw: string) => {
               tx.noSubscriptions
             }}</a>
           </template>
-          <Button
-            size="sm"
-            variant="ghost"
-            :aria-label="tx.delete"
-            @click="draft.actions.splice(i, 1)"
-            >×</Button
-          >
+          <IconButton :icon="X" :label="tx.delete" size="sm" @click="draft.actions.splice(i, 1)" />
         </div>
         <div>
           <Button
