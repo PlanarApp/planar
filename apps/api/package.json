@@ -18,6 +18,7 @@
     "@nestjs/platform-fastify": "^11.2.7",
     "@planar/module-chat": "workspace:*",
     "@planar/module-docs": "workspace:*",
+    "@planar/module-gitlab": "workspace:*",
     "@planar/module-hello": "workspace:*",
     "@planar/module-automations": "workspace:*",
     "@planar/module-import": "workspace:*",

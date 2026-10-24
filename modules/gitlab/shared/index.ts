@@ -1,0 +1,149 @@
+import { z } from 'zod';
+import {
+  defineMutator,
+  MutatorError,
+  type EntityName,
+  type SharedModuleManifest,
+  type Tx,
+} from '@planar/shared';
+
+const ts = z.iso.datetime();
+const id = z.uuid();
+
+export const gitlabMrs = z.object({
+  id,
+  spaceId: id,
+  taskId: id,
+  gitlabProjectId: z.number().int(),
+  iid: z.number().int(),
+  title: z.string().max(500),
+  sourceBranch: z.string(),
+  state: z.enum(['opened', 'closed', 'locked', 'merged']),
+  authorName: z.string(),
+  webUrl: z.string(),
+  mrUpdatedAt: ts,
+  createdAt: ts,
+  updatedAt: ts,
+});
+export const gitlabProjectSettings = z.object({
+  id,
+  spaceId: id,
+  mergedStatusId: id.nullable(),
+  updatedAt: ts,
+});
+export type GitlabMr = z.output<typeof gitlabMrs>;
+
+// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+interface MTx {
+  get(e: string, id: string): Promise<unknown>;
+  put(e: string, row: unknown): Promise<void>;
+  patch(e: string, id: string, p: unknown): Promise<void>;
+  del(e: string, id: string): Promise<void>;
+  scan(e: string, o?: { index: string; eq: unknown }): Promise<unknown[]>;
+}
+const mtx = (tx: Tx) => tx as unknown as MTx;
+const E = (n: string) => n as EntityName;
+
+const sameInstant = (a: string, b: string) => Date.parse(a) === Date.parse(b);
+
+export const mutators = [
+  defineMutator({
+    name: 'gitlab.mr.sync',
+    args: z.object({
+      gitlabProjectId: z.number().int(),
+      iid: z.number().int(),
+      mr: gitlabMrs.pick({
+        title: true,
+        sourceBranch: true,
+        state: true,
+        authorName: true,
+        webUrl: true,
+        mrUpdatedAt: true,
+      }),
+      links: z.array(z.object({ id, taskId: id })).max(50),
+    }),
+    // запись в gitlabMrs (write: server) доступна только system; клиенту — forbidden
+    async run(tx, a, ctx) {
+      const t = mtx(tx);
+      // shortcut: полный скан таблицы — индекса по (проект, iid) в контракте нет; при росте >10k строк
+      // — завести индекс gitlabProjectId через контракт
+      const old = ((await t.scan(E('gitlabMrs'))) as GitlabMr[]).filter(
+        (r) => r.gitlabProjectId === a.gitlabProjectId && r.iid === a.iid,
+      );
+      const keep = new Set(a.links.map((l) => l.taskId));
+      for (const r of old) if (!keep.has(r.taskId)) await t.del(E('gitlabMrs'), r.id);
+      for (const l of a.links) {
+        const task = await tx.get('tasks', l.taskId);
+        if (!task) continue;
+        const prev = old.find((r) => r.taskId === l.taskId);
+        const row = { ...a.mr, title: a.mr.title.slice(0, 500) };
+        const same =
+          prev &&
+          prev.title === row.title &&
+          prev.sourceBranch === row.sourceBranch &&
+          prev.state === row.state &&
+          prev.authorName === row.authorName &&
+          prev.webUrl === row.webUrl &&
+          sameInstant(prev.mrUpdatedAt, row.mrUpdatedAt);
+        if (!same)
+          await t.put(E('gitlabMrs'), {
+            id: prev?.id ?? l.id,
+            spaceId: task.spaceId,
+            taskId: l.taskId,
+            gitlabProjectId: a.gitlabProjectId,
+            iid: a.iid,
+            ...row,
+            createdAt: prev?.createdAt ?? ctx.now,
+            updatedAt: ctx.now,
+          });
+        if (row.state !== 'merged' || prev?.state === 'merged') continue;
+        const st = (await t.get(E('gitlabProjectSettings'), task.projectId)) as
+          { mergedStatusId: string | null } | undefined;
+        if (!st?.mergedStatusId || st.mergedStatusId === task.statusId) continue;
+        // то же, что task.update {statusId}: completedAt по категории статуса
+        const status = await tx.get('statuses', st.mergedStatusId);
+        if (!status || status.spaceId !== task.spaceId) continue;
+        const done = status.category === 'done' || status.category === 'cancelled';
+        await tx.patch('tasks', task.id, {
+          statusId: status.id,
+          completedAt: done ? (task.completedAt ?? ctx.now) : null,
+          updatedAt: ctx.now,
+        });
+      }
+    },
+  }),
+  defineMutator({
+    name: 'gitlab.setMergedStatus',
+    args: z.object({ projectId: id, statusId: id.nullable() }),
+    async run(tx, a, ctx) {
+      const p = await tx.get('projects', a.projectId);
+      if (!p) throw new MutatorError('not_found', `projects ${a.projectId}`);
+      if (a.statusId) {
+        const s = await tx.get('statuses', a.statusId);
+        if (!s || s.spaceId !== p.spaceId)
+          throw new MutatorError('invalid_args', 'statusId другого пространства');
+      }
+      await mtx(tx).put(E('gitlabProjectSettings'), {
+        id: p.id,
+        spaceId: p.spaceId,
+        mergedStatusId: a.statusId,
+        updatedAt: ctx.now,
+      });
+    },
+  }),
+];
+
+export const shared: SharedModuleManifest = {
+  id: 'gitlab',
+  mutators,
+  entities: {
+    gitlabMrs: {
+      schema: gitlabMrs,
+      meta: { scope: 'space', write: 'server', bootstrap: true, indexes: ['taskId'] },
+    },
+    gitlabProjectSettings: {
+      schema: gitlabProjectSettings,
+      meta: { scope: 'space', write: 'admin', bootstrap: true, indexes: ['spaceId'] },
+    },
+  },
+};
