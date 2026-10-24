@@ -11,18 +11,17 @@ export const createTestDb = (url: string): Db =>
     casing: 'snake_case',
   });
 
-/** Ждёт ухода соединений и удаляет базу (по одной, под advisory-локом); не вышло — добьёт teardown. */
+/** Удаляет базу with (force) (рвёт соединения сам) под advisory-локом; худший случай ≈ 2+2×(15+15) с < hookTimeout. Не вышло — добьёт teardown. */
 export async function dropDb(admin: pg.Client, name: string) {
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      for (let i = 0; i < 100; i++) {
-        const r = await admin.query('select 1 from pg_stat_activity where datname = $1', [name]);
-        if (r.rowCount === 0) break;
-        await new Promise((r) => setTimeout(r, 100));
-      }
-      await admin.query('set statement_timeout = 25000');
+      await admin.query('set statement_timeout = 15000');
       await admin.query('select pg_advisory_lock(7240001)');
-      await admin.query(`drop database if exists ${name} with (force)`);
+      try {
+        await admin.query(`drop database if exists ${name} with (force)`);
+      } finally {
+        await admin.query('select pg_advisory_unlock(7240001)').catch(() => {});
+      }
       return;
     } catch {
       /* таймаут под нагрузкой: повтор; не вышло — добьёт teardown/страховка global-setup */
@@ -51,5 +50,9 @@ export const testDb = (): Db => {
   return db;
 };
 
+/** Закрывает пулы, но не ждёт дольше 2 с: невозвращённый клиент не должен вешать хук (drop with force его оборвёт). */
 export const closePools = () =>
-  Promise.all(pools.map((d) => (d.$client.ended ? undefined : d.$client.end())));
+  Promise.race([
+    Promise.all(pools.map((d) => (d.$client.ended ? undefined : d.$client.end()))).catch(() => {}),
+    new Promise((r) => setTimeout(r, 2000)),
+  ]);
