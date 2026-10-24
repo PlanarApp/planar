@@ -1,0 +1,53 @@
+{
+  "status": "partial",
+  "summary": "Семь модулей переведены на Button/IconButton/Input/Select/Menu(danger+confirm)/ConfirmDialog/EmptyState из SDK; настройки webhooks и automations — список строк с меню «…» и подтверждением удаления; тесты обновлены, поведение прежнее.",
+  "commits": [
+    "768b002 DS-4d: модули на компонентах C-ui v3"
+  ],
+  "checks": [
+    {
+      "name": "install/contract/web-tests/typecheck/size/lint/no-raw-danger",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "raw-buttons",
+      "value": "2 (chat/Section.vue — свёртка секции; docs/TreeSection.vue — свёртка и шеврон дерева)",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "FAIL: dont_touch 'apps/web/src/' перекрывает scope 'apps/web/src/modules/__tests__' (тесты модулей, правка обязательна)",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "Скриншоты до/после (build/artifacts/DS-4d) не сняты",
+    "Действие «Создать канал» в пустом чате не добавлено: создание канала живёт в состоянии Section (боковая панель), в ChatPage только EmptyState",
+    "PageView: заголовок страницы — оставлен сырой input (крупный заголовок, не поле формы)"
+  ],
+  "questions": [
+    "Исправить dont_touch карточки: 'apps/web/src/' без исключения __tests__ ломает проверку scope"
+  ],
+  "how_to_check": ".dpcli/dpcli accept DS-4d --dry",
+  "uncertain": [
+    {
+      "where": "modules/*/web: Input",
+      "why": "атрибуты (data-test*, required, maxlength, min/max) попадают на обёртку Input, а не на input; потеряны native required/maxlength у url вебхука, имени правила, текста действий",
+      "checked": "в webhooks добавлена проверка пустого url в create; остальное валидирует схема zod/сервер; тесты используют '[data-…] input'"
+    },
+    {
+      "where": "modules/webhooks, automations: иконка «…»",
+      "why": "у модулей нет зависимости lucide (package.json вне скоупа), иконка — inline svg",
+      "checked": "time — icons.ts; webhooks/automations — локальный h()"
+    },
+    {
+      "where": "MessageItem.vue",
+      "why": "удаление сообщения теперь через ConfirmDialog (раньше сразу); тулбар на lucide/IconButton монтируется только при наведении",
+      "checked": "chat.test (31) зелёный, включая бюджет ленты"
+    }
+  ],
+  "dp_feedback": "Проверка scope парсит свободный текст dont_touch как путь; исключение в скобках не учитывается. Пересечение scope и dont_touch надо ловить при создании карточки.",
+  "t": "2026-10-24T13:24:56",
+  "by": "executor"
+}

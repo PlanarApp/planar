@@ -22,7 +22,7 @@ const open = defineModel<boolean>('open', { default: false });
       <DialogOverlay class="fixed inset-0 z-40 bg-overlay" />
       <DialogContent
         data-testid="sheet"
-        aria-describedby="undefined"
+        :aria-describedby="undefined"
         class="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-auto rounded-t-lg border-t border-border bg-surface p-1 pb-[env(safe-area-inset-bottom)] text-fg outline-none"
       >
         <DialogTitle class="sr-only">{{ title || t('ui.sheet') }}</DialogTitle>
