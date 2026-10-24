@@ -43,3 +43,4 @@
 {"t": "2026-10-24T03:13:42", "by": "executor", "task": "PL-4", "ev": "reported", "commits": ["c3ddedb", "6fadad0", "dropDb", "teardown"], "note": "partial: Сделано по rework: afterAll файла = closePools (гонка 2 с) + admin.end(), без dropDb; базы удаляет global-teardown; dro…", "dp_feedback": "accept --dry занимает ~25 мин и шумит из-за общего сервера БД; нужен отдельный testdb на копию"}
 {"t": "2026-10-24T03:13:57", "by": "main", "task": "PL-4", "ev": "accepted", "note": "по отчёту: hook timeout 0; afterAll без drop, teardown 60 с; wk13 — известный флейк при load > 16; no-leftover проверяется итоговым прогоном"}
 {"t": "2026-10-24T03:13:59", "by": "main", "task": "PL-4", "ev": "merged", "commits": ["a1afd21"]}
+{"t": "2026-10-24T03:25:06", "by": "main", "task": null, "ev": "note", "note": "главная: planar-testdb с fsync=off/synchronous_commit=off/full_page_writes=off — полный vitest 343 → 47 с, 760/760, 0 забытых баз (контейнер пересоздан)"}
