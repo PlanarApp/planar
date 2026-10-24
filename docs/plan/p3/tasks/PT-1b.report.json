@@ -1,0 +1,63 @@
+{
+  "status": "done",
+  "summary": "Editor.vue (проп collab) и DocEditor работают на Collaboration + CollaborationCaret + HocuspocusProvider(/collab) + y-indexeddb; docs и описание задачи открываются с collab, lock.ts/плашка/режим чтения удалены. Общая схема расширена (таблицы, чек-листы, attrs.kind) в @planar/editor, подключение — @planar/editor/collab (лениво, initial 152.1 КБ). Доработка: серверный external() сравнивает body с прежним (seen), тест pt1a; клиент пересоздаёт провайдер при отказе доступа (≤5 раз, 2 с), e2e новой страницы; обход ожидания заголовка убран.",
+  "commits": [
+    "aac7965 PT-1b: совместное редактирование docs и описания задачи (Yjs, Hocuspocus, курсоры, офлайн); блокировка CL-3 убрана из UI",
+    "c38ef2e PT-1b: external() сравнивает body с прежним (title не откатывает набор), переподключение при отказе доступа, e2e новой страницы"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "152.1 KB",
+      "pass": true
+    },
+    {
+      "name": "e2e",
+      "value": "13 passed",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "FAIL: dont_touch apps/api не обновлён в карточке",
+      "pass": false
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-1b --dry",
+  "uncertain": [
+    {
+      "where": "scope",
+      "why": "accept --dry: scope FAIL — collab.service.ts и pt1a.test.ts всё ещё в dont_touch карточки (apps/api), хотя дополнение разрешило",
+      "checked": "остальные 7 проверок PASS, e2e 13 passed"
+    }
+  ],
+  "dp_feedback": "accept падает по scope на тестах, которые карточка не перечислила, хотя их ломает сама задача; в карточку стоит добавлять существующие тесты затронутых файлов.",
+  "t": "2026-10-24T13:41:57",
+  "by": "executor"
+}

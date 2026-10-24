@@ -217,12 +217,18 @@ importers:
       '@planar/module-chat':
         specifier: workspace:*
         version: link:../../modules/chat
+      '@planar/module-dashboards':
+        specifier: workspace:*
+        version: link:../../modules/dashboards
       '@planar/module-docs':
         specifier: workspace:*
         version: link:../../modules/docs
       '@planar/module-forms':
         specifier: workspace:*
         version: link:../../modules/forms
+      '@planar/module-gitlab':
+        specifier: workspace:*
+        version: link:../../modules/gitlab
       '@planar/module-hello':
         specifier: workspace:*
         version: link:../../modules/hello
@@ -241,6 +247,9 @@ importers:
       '@planar/module-webhooks':
         specifier: workspace:*
         version: link:../../modules/webhooks
+      '@planar/module-workload':
+        specifier: workspace:*
+        version: link:../../modules/workload
       '@planar/server-kit':
         specifier: workspace:*
         version: link:../../packages/server-kit
@@ -491,6 +500,30 @@ importers:
         specifier: ^6.2.6
         version: 6.2.6
 
+  modules/dashboards:
+    dependencies:
+      '@nestjs/common':
+        specifier: ^11.2.7
+        version: 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@planar/server-kit':
+        specifier: workspace:*
+        version: link:../../packages/server-kit
+      '@planar/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@planar/web':
+        specifier: workspace:*
+        version: link:../../apps/web
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
+      vue:
+        specifier: ~3.5.44
+        version: 3.5.44(typescript@6.0.3)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+
   modules/docs:
     dependencies:
       '@nestjs/common':
@@ -587,6 +620,30 @@ importers:
       fractional-indexing:
         specifier: ^4.0.0
         version: 4.0.0
+      vue:
+        specifier: ~3.5.44
+        version: 3.5.44(typescript@6.0.3)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+
+  modules/gitlab:
+    dependencies:
+      '@nestjs/common':
+        specifier: ^11.2.7
+        version: 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@planar/server-kit':
+        specifier: workspace:*
+        version: link:../../packages/server-kit
+      '@planar/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@planar/web':
+        specifier: workspace:*
+        version: link:../../apps/web
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
       vue:
         specifier: ~3.5.44
         version: 3.5.44(typescript@6.0.3)
@@ -712,6 +769,30 @@ importers:
         version: 4.6.7
 
   modules/webhooks:
+    dependencies:
+      '@nestjs/common':
+        specifier: ^11.2.7
+        version: 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@planar/server-kit':
+        specifier: workspace:*
+        version: link:../../packages/server-kit
+      '@planar/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@planar/web':
+        specifier: workspace:*
+        version: link:../../apps/web
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
+      vue:
+        specifier: ~3.5.44
+        version: 3.5.44(typescript@6.0.3)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+
+  modules/workload:
     dependencies:
       '@nestjs/common':
         specifier: ^11.2.7

@@ -1,0 +1,76 @@
+{
+  "status": "done",
+  "summary": "Страница /f/<slug> (form.html, чистый TS, 2.7 КБ gzip), второй вход Vite, dev-rewrite и Caddy, строка 'form gzip' в size.mjs; настройки forms:forms (проект, список, создание, конструктор полей, ссылка, включение, удаление). Ревью: money ×100 (+тест), NaN → «Введите число», user-поля не в конструкторе, manifest убран из form.html.",
+  "commits": [
+    "24aade8 PT-5b: публичная страница /f/<slug> и настройки форм",
+    "fba8c72 доработка по ревью"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "153.1 KB",
+      "pass": true
+    },
+    {
+      "name": "form-size",
+      "value": "2.7 KB",
+      "pass": true
+    },
+    {
+      "name": "pt5b",
+      "value": "11 passed",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "apps/web/Dockerfile в репозитории нет — не правился (Caddy отдаёт /srv, form.html лежит в dist).",
+    "Браузером страницу не открывал: проверено curl-ом в dev-стеке (planar-pt5b, 3251/5351/55551, стек снесён): GET /f/<slug> 200 (dev-rewrite), GET схемы, POST JSON 201 (задача), POST multipart с файлом 201 (задача с 1 вложением). Модуль forms пришлось включить вставкой settings.enabled_modules и форму вставить SQL-ом."
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-5b",
+  "uncertain": [
+    {
+      "where": "modules/forms/web/FormsSettings.vue",
+      "why": "админ определяется по роли инстанса (owner/admin), не по роли в пространстве; кнопки скрыты у остальных",
+      "checked": "сервер всё равно проверяет write: admin"
+    },
+    {
+      "where": "apps/web/src/form/form.ts",
+      "why": "поле типа user (uuid) рисуется текстовым вводом; только русские тексты; money шлётся целым как введено",
+      "checked": "по контракту F-fields, в тестах не покрыто"
+    },
+    {
+      "where": "apps/web/vite.config.ts",
+      "why": "PWA добавляет manifest-ссылку и в form.html; /f/ добавлен в navigateFallbackDenylist, но поведение SW для /f/ вживую не проверено",
+      "checked": "только сборка"
+    }
+  ],
+  "dp_feedback": "Первый pnpm build в свежей копии падал без pnpm install (нет zod у automations) — полезно напоминание в карточке.",
+  "t": "2026-10-24T14:08:13",
+  "by": "executor"
+}
