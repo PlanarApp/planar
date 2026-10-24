@@ -35,6 +35,35 @@ const type = (i: number, text: string) => {
   return ed;
 };
 
+describe('task:delete', () => {
+  it('удаление — только после подтверждения', async () => {
+    w = await open();
+    await until(() => w.find('[aria-label="Меню задачи"]').exists());
+    const byText = (s: string) =>
+      [...document.body.querySelectorAll<HTMLElement>('button, [role="menuitem"]')].find((e) =>
+        e.textContent?.includes(s),
+      );
+    const del = async () => {
+      w.find('[aria-label="Меню задачи"]').element.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+      );
+      await flushPromises();
+      await until(() => !!byText('Удалить'));
+      byText('Удалить')!.click();
+      await until(() => !!document.body.querySelector('[role="dialog"]'));
+    };
+    await del();
+    expect((await row<{ deletedAt?: unknown }>('tasks', t.id)).deletedAt ?? null).toBeNull();
+    byText('Отмена')!.click();
+    await flushPromises();
+    expect((await row<{ deletedAt?: unknown }>('tasks', t.id)).deletedAt ?? null).toBeNull();
+    await del();
+    const dlg = document.body.querySelector('[role="dialog"]')!;
+    [...dlg.querySelectorAll('button')].find((b) => b.textContent === 'Удалить')!.click();
+    await eventually(async () => expect((await row('tasks', t.id))?.deletedAt ?? 1).toBeTruthy());
+  });
+});
+
 describe('task:fields', () => {
   it('смена статуса правит реплику', async () => {
     w = await open();

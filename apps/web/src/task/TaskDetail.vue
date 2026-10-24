@@ -165,8 +165,8 @@ const panelComponent = computed(() => {
 <template>
   <article
     :class="[
-      'flex h-full flex-col overflow-y-auto bg-bg',
-      mode === 'panel' ? 'w-full border-l border-border md:w-[760px]' : 'mx-auto w-full max-w-5xl',
+      '@container flex h-full flex-col overflow-y-auto bg-bg',
+      mode === 'panel' ? 'w-full border-l border-border' : 'mx-auto w-full max-w-5xl',
     ]"
     :aria-label="task.key"
     @keydown="onKeydown"
@@ -198,8 +198,8 @@ const panelComponent = computed(() => {
       />
     </div>
 
-    <div class="grid gap-x-8 gap-y-5 p-4 md:grid-cols-[minmax(0,1fr)_16.5rem] md:px-6">
-      <header class="md:col-start-1">
+    <div class="grid gap-x-8 gap-y-5 p-4 @2xl:grid-cols-[minmax(0,1fr)_16.5rem] @2xl:px-6">
+      <header class="@2xl:col-start-1">
         <input
           v-model="title"
           :aria-label="t('task.title')"
@@ -210,7 +210,7 @@ const panelComponent = computed(() => {
         />
       </header>
 
-      <aside class="flex flex-col gap-4 md:col-start-2 md:row-span-2 md:row-start-1">
+      <aside class="flex flex-col gap-4 @2xl:col-start-2 @2xl:row-span-2 @2xl:row-start-1">
         <dl class="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-y-1 text-sm">
           <dt class="text-xs text-fg-muted">{{ t('tasks.status') }}</dt>
           <dd class="min-h-8">
@@ -287,8 +287,8 @@ const panelComponent = computed(() => {
         </section>
       </aside>
 
-      <div class="flex min-w-0 flex-col gap-5 md:col-start-1">
-        <section :aria-label="t('task.description')">
+      <div class="flex min-w-0 flex-col gap-5 @2xl:col-start-1">
+        <section :aria-label="t('task.description')" class="text-base">
           <Editor
             :model-value="task.description as JSONContent | null"
             :members="memberList"
