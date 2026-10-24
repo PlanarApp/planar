@@ -1,0 +1,80 @@
+{
+  "id": "DS-0",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "Токены и базовые компоненты C-ui v3, витрина /dev/ui",
+  "goal": "Код web соответствует C-ui v3 (docs/contracts/design.md): токены в tokens.css, база 13 px, 8 новых компонентов и обновлённые v2-компоненты по плотности; контрактный тест зелёный, витрина /dev/ui показывает все компоненты в обеих темах, только в dev.",
+  "plan_ref": "5. Задачи / DS-0",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "3",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-0",
+  "branch": "design/DS-0",
+  "base": "feature/design",
+  "scope": [
+    "apps/web/src/ui",
+    "apps/web/src/styles.css",
+    "apps/web/src/router.ts",
+    "apps/web/src/screens/DevUiScreen.vue",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "build/artifacts/DS-0"
+  ],
+  "dont_touch": [
+    "apps/web/src/__contract__/ и apps/web/src/contract.ts — контрактный тест и версии пишет координатор",
+    "docs/contracts/ — контракт меняет только координатор; расхождение — строкой DS-0 contract: …",
+    "apps/web/src/layout/ — DS-1",
+    "apps/web/src/views/, apps/web/src/task/, apps/web/src/screens/ кроме DevUiScreen.vue — DS-2…DS-4",
+    "modules/ — DS-4 и модуль p3",
+    "apps/api/, packages/ — не web"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "ui-tests",
+      "cmd": "pnpm --filter web exec vitest run src/ui 2>&1 | grep -E '^\\s*Tests'",
+      "expect": "num:(\\d+) passed >=12"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "no-dev-route-in-prod",
+      "cmd": "pnpm --filter web build >/dev/null && grep -rl -e 'dev/ui' -e 'DevUi' apps/web/dist | wc -l",
+      "expect": "num:^(\\d+) <=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T10:56:38"
+}
