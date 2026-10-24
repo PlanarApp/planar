@@ -24,6 +24,7 @@ export interface JobApi {
   /**
    * Мутации одной транзакцией; system — обход прав от имени userId.
    * prepare — в той же транзакции до мутаций (блокировки, проверки); false → мутации не выполняются.
+   * after — в той же транзакции после всех мутаций; enqueue — pg-boss send в ней же; ошибка откатывает всё и выходит из execute.
    */
   execute(
     userId: string,
@@ -32,6 +33,7 @@ export interface JobApi {
       system?: boolean;
       origin?: MutationOrigin | null;
       prepare?: (q: Q) => Promise<boolean | void>;
+      after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void>;
     },
   ): Promise<void>;
   /** вне транзакции */

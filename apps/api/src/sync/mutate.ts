@@ -136,7 +136,10 @@ export async function executeMutations(
   muts: { name: string; args: unknown }[],
   queue?: PushQueue,
   tokenId?: string,
-  opts?: Pick<RunOpts, 'system' | 'origin'> & { prepare?: (q: Q) => Promise<boolean | void> },
+  opts?: Pick<RunOpts, 'system' | 'origin'> & {
+    prepare?: (q: Q) => Promise<boolean | void>;
+    after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void>;
+  },
 ): Promise<void> {
   const notified: string[] = [];
   await db.transaction(async (tx) => {
@@ -144,6 +147,10 @@ export async function executeMutations(
     if ((await opts?.prepare?.(tx)) === false) return;
     for (const m of muts)
       await runMutation(tx, userId, m, notified, tokenId, { ...opts, jobs: queue?.jobs });
+    await opts?.after?.(
+      tx,
+      async (name, data, o) => void (await queue?.jobs.enqueue(name, data, o, tx)),
+    );
   });
   await queue?.enqueue(notified);
 }

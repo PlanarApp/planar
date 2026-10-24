@@ -95,6 +95,7 @@ export type Db = NodePgDatabase<Record<string, unknown>>;            // drizzle-
 export type Q = PgDatabase<NodePgQueryResultHKT, Record<string, unknown>>;
 export type { ModuleHookApi, JobApi, JobDef, JobOpts } from './hooks';  // перенос из apps/api/src/modules/hooks.ts; ModuleHookApi.sys: Tx (@planar/shared)
 // JobApi.execute opts += prepare?: (q: Q) => Promise<boolean | void> — в той же транзакции до мутаций (блокировки, проверки); false → мутации не выполняются
+// JobApi.execute opts += after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void> — в той же транзакции после всех мутаций; enqueue — в ней же; ошибка откатывает транзакцию и пробрасывается из execute (аддитивно, C-modules +1)
 export class HttpError extends HttpException { constructor(status: number, code: string, message: string) } // формат C-http «Ошибки»; ErrorFilter api его понимает
 export function parseBody<T extends z.ZodType>(schema: T, body: unknown): z.infer<T>; // 400 invalid_request
 export interface AuthCtx { userId: string; role: 'owner' | 'admin' | 'member' | 'guest'; tokenId: string | null; tokenScope: 'read' | 'write' | null }
