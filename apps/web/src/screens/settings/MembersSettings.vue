@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { Avatar, Button, Select } from '../../ui';
 import { db, mutate, newId, useQuery } from '../../sync';
+import RowMenu from './RowMenu.vue';
+import SectionHeader from './SectionHeader.vue';
 import { byName, useAction, useAdminSpaces } from './shared';
 
 const props = defineProps<{ spaceId: string }>();
@@ -52,24 +54,25 @@ const remove = (id: string) => run(() => mutate('member.remove', { id }));
 
 <template>
   <section class="flex flex-col gap-3">
-    <h2 class="text-lg font-semibold">{{ t('settings.members') }}</h2>
+    <SectionHeader :title="t('settings.members')" :description="t('settings.membersDesc')">
+      <form v-if="canEdit" class="flex flex-wrap items-end gap-2" @submit.prevent="add">
+        <Select v-model="userId" :label="t('settings.user')" :options="free" />
+        <Select v-model="role" :label="t('auth.role')" :options="roles" />
+        <Button type="submit" variant="primary" size="sm" data-testid="member-add">{{
+          t('settings.add')
+        }}</Button>
+      </form>
+    </SectionHeader>
     <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
-    <form v-if="canEdit" class="flex flex-wrap items-end gap-2" @submit.prevent="add">
-      <Select v-model="userId" :label="t('settings.user')" :options="free" />
-      <Select v-model="role" :label="t('auth.role')" :options="roles" />
-      <Button type="submit" variant="primary" data-testid="member-add">{{
-        t('settings.add')
-      }}</Button>
-    </form>
     <ul class="flex flex-col divide-y divide-border">
       <li
         v-for="r in rows"
         :key="r.m.id"
         data-testid="member-row"
-        class="flex items-center gap-3 py-2"
+        class="group flex items-center gap-3 py-1"
       >
         <Avatar :name="r.u!.name" />
-        <span class="min-w-0 flex-1 truncate">{{ r.u!.name }}</span>
+        <span class="min-w-0 flex-1 truncate text-sm">{{ r.u!.name }}</span>
         <Select
           :model-value="r.m.role"
           :label="t('auth.role')"
@@ -77,9 +80,22 @@ const remove = (id: string) => run(() => mutate('member.remove', { id }));
           :disabled="!canEdit"
           @update:model-value="(v) => setRole(r.m.id, v)"
         />
-        <Button v-if="canEdit" size="sm" variant="danger" @click="remove(r.m.id)">{{
-          t('settings.remove')
-        }}</Button>
+        <RowMenu
+          v-if="canEdit"
+          :items="[
+            {
+              id: 'remove',
+              label: t('settings.remove'),
+              danger: true,
+              confirm: {
+                title: t('settings.removeMember'),
+                description: r.u!.name,
+                confirmLabel: t('settings.remove'),
+              },
+              onSelect: () => remove(r.m.id),
+            },
+          ]"
+        />
       </li>
     </ul>
   </section>
