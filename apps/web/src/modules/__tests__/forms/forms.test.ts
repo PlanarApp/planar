@@ -35,6 +35,7 @@ const schema = {
       type: 'select',
       options: [{ id: 'a', label: 'Высокий' }],
     },
+    { key: 'field:m', label: 'Сумма', required: false, type: 'money' },
     { key: 'files', label: 'Файлы', required: false, type: 'files' },
   ],
 };
@@ -135,6 +136,14 @@ describe('pt5b:', () => {
     expect(fd).toBeInstanceOf(FormData);
     expect(JSON.parse(fd.get('payload') as string).values).toEqual({ title: 'Сбой' });
     expect(fd.getAll('file')).toHaveLength(2);
+  });
+
+  it('pt5b: money уходит в копейках, не число — ошибка поля', async () => {
+    const f = await open();
+    type(f, 'title', 'x');
+    type(f, 'field:m', '12.34');
+    await submit(f);
+    expect(JSON.parse(calls.at(-1)!.init!.body as string).values['field:m']).toBe(1234);
   });
 
   it('pt5b: slug — 16 символов [a-z0-9], разные', () => {

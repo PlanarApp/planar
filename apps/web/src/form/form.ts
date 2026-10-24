@@ -52,7 +52,7 @@ function control(f: Field): HTMLElement {
         { email: 'email', number: 'number', money: 'number', date: 'date', url: 'url' }[f.type] ??
         'text';
       const i = build('input', { ...base, type }, []) as HTMLInputElement;
-      if (f.type === 'money') i.step = '1';
+      if (f.type === 'money') i.step = '0.01';
       if (f.type === 'number') i.step = 'any';
       return i;
     }
@@ -117,7 +117,11 @@ export async function mountForm(root: HTMLElement, slug: string): Promise<void> 
         else if (f.required && !files.length) problem = 'Приложите файл';
       } else {
         const v = c.value.trim();
-        if (v) values[f.key] = ['number', 'money'].includes(f.type) ? Number(v) : v;
+        const num = f.type === 'number' || f.type === 'money';
+        const n = Number(v);
+        if (v && num && !Number.isFinite(n)) problem = 'Введите число';
+        // money — целое в минимальных единицах (копейки), как FieldEditor
+        else if (v) values[f.key] = f.type === 'money' ? Math.round(n * 100) : num ? n : v;
         else if (f.required) problem = 'Обязательное поле';
       }
       errs.get(f.key)!.textContent = problem;

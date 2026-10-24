@@ -75,7 +75,10 @@ const catalog = computed(() => [
   { key: 'description', label: L.description },
   { key: 'email', label: L.email },
   { key: 'files', label: L.files },
-  ...(defs.value ?? []).map((d) => ({ key: `field:${d.id}`, label: d.name })),
+  // user-поле на публичной странице заполнить нельзя
+  ...(defs.value ?? [])
+    .filter((d) => d.type !== 'user')
+    .map((d) => ({ key: `field:${d.id}`, label: d.name })),
 ]);
 
 // черновики конструктора: formId → fields

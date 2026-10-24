@@ -14,11 +14,22 @@ const formEntry = (): Plugin => ({
     }),
 });
 
+// публичная страница не предлагает установить приложение
+const noManifest = (): Plugin => ({
+  name: 'planar-form-no-manifest',
+  enforce: 'post',
+  generateBundle(_o, bundle) {
+    const f = bundle['form.html'];
+    if (f?.type === 'asset') f.source = String(f.source).replace(/<link rel="manifest"[^>]*>/, '');
+  },
+});
+
 const target = process.env.API_PROXY_TARGET ?? 'http://localhost:3000';
 
 export default defineConfig({
   plugins: [
     formEntry(),
+    noManifest(),
     vue(),
     tailwindcss(),
     VitePWA({
