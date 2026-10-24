@@ -15,11 +15,16 @@
     "e2e/web/work.spec.ts",
     "e2e/web/work-helpers.ts",
     "apps/api/test/automations/",
-    "apps/web/src/modules/__tests__/automations/automations.test.ts"
+    "apps/web/src/modules/__tests__/automations/automations.test.ts",
+    "packages/server-kit/src/hooks.ts",
+    "apps/api/src/sync/mutate.ts",
+    "apps/api/test/",
+    "docs/contracts/work.md",
+    "apps/web/src/__contract__/"
   ],
   "dont_touch": [
-    "packages/, apps/api/src/ — ядро; нужна правка — «PL-2 contract: …»",
-    "контракты docs/contracts/ — только если меняется поведение; тогда «PL-2 contract: …»"
+    "контракты docs/contracts/ — только если меняется поведение; тогда «PL-2 contract: …»",
+    "apps/api/src/ и packages/ — кроме mutate.ts и server-kit hooks.ts"
   ],
   "accept": [
     {
@@ -79,5 +84,5 @@
     "Отчёт — только build/dpcli/PL-2.report.json в своей копии."
   ],
   "created": "2026-10-23T22:33:20",
-  "edited": "2026-10-23T23:15:22"
+  "edited": "2026-10-24T00:50:36"
 }
