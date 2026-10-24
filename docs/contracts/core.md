@@ -80,7 +80,7 @@ v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 | `file_uploads` | `sha256 text`, `user_id uuid`, `created_at`; первичный ключ (sha256, user_id) — кто загружал файл (дубли контента — одна строка files) |
 | `login_attempts` | `key text pk` (ip и login через «\|»), `attempts int`, `window_started_at timestamptz` — окно 1 мин для лимита входа |
 | `api_tokens` | `id uuid pk`, `user_id uuid`, `name text`, `token_sha256 text unique`, `prefix text`, `scope text check (read,write)`, `expires_at?`, `last_used_at?`, `revoked_at?`, `created_at` |
-| `ydocs` | `doc_id text pk` (`docs:<uuid>` \| `task:<uuid>`), `state bytea not null` (`Y.encodeStateAsUpdate`), `updated_at timestamptz` — `docs/contracts/p3.md` §P3-ydoc |
+| `ydocs` | `doc_id text pk` (имя документа docs:uuid или task:uuid), `state bytea not null` (Y.encodeStateAsUpdate), `updated_at timestamptz` — p3.md §P3-ydoc |
 
 Миграции — drizzle-kit, каталог `apps/api/drizzle/`, схема — `apps/api/src/db/schema.ts` (+ схемы модулей `modules/*/api/schema.ts`, таблицы с префиксом `<moduleId>_`).
 
