@@ -16,7 +16,7 @@ perf_up() {
   mkdir -p build
   ./dev.sh reset || return 1
   wait_health "$API_PORT" || return 1
-  ./dev.sh seed --tasks 10000 || return 1
+  ./dev.sh seed --tasks 10000 ${PERF_SEED_DATES:+--dates} || return 1
   if [ -n "${PERF_MODULES:-}" ]; then # модули collab: PERF_MODULES=docs,chat
     E2E_BASE_URL="http://localhost:$WEB_PORT" pnpm --filter @planar/e2e exec tsx web/perf/modules.ts "$PERF_MODULES" || return 1
   fi
