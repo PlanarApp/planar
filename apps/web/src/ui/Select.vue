@@ -45,22 +45,24 @@ const sheet = ref(false);
         <ChevronDown :size="16" class="text-fg-subtle" />
       </button>
     </template>
-    <button
-      v-for="o in options"
-      :key="o.value"
-      type="button"
-      role="option"
-      :aria-selected="o.value === model"
-      :class="[
-        'flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-fg outline-none',
-        o.value === model && 'bg-accent-subtle',
-      ]"
-      @click="((model = o.value), (sheet = false))"
-    >
-      <component :is="o.icon" v-if="o.icon" :size="16" :style="{ color: o.color }" />
-      <span v-else-if="o.color" class="size-2 rounded-full" :style="{ background: o.color }" />
-      {{ o.label }}
-    </button>
+    <div role="listbox" :aria-label="label">
+      <button
+        v-for="o in options"
+        :key="o.value"
+        type="button"
+        role="option"
+        :aria-selected="o.value === model"
+        :class="[
+          'flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-fg outline-none',
+          o.value === model && 'bg-accent-subtle',
+        ]"
+        @click="((model = o.value), (sheet = false))"
+      >
+        <component :is="o.icon" v-if="o.icon" :size="16" :style="{ color: o.color }" />
+        <span v-else-if="o.color" class="size-2 rounded-full" :style="{ background: o.color }" />
+        {{ o.label }}
+      </button>
+    </div>
   </Sheet>
   <SelectRoot v-else v-model="model as string | undefined" :disabled="disabled">
     <SelectTrigger

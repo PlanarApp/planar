@@ -13,6 +13,7 @@ import {
   ConfirmDialog,
   EmptyState,
   IconButton,
+  Input,
   Kbd,
   Menu,
   Select,
@@ -315,5 +316,41 @@ describe('mobile: листы', () => {
     wrap(Popover, {}, { trigger: () => h('button', 'P'), default: () => h('p', 'Тело') });
     document.body.querySelector('button')!.click();
     await vi.waitFor(() => expect($('[data-testid=sheet]')?.textContent).toContain('Тело'));
+  });
+});
+
+describe('v4', () => {
+  it('v4: Menu без trigger рисует кнопку с aria-label и открывается', async () => {
+    wrap(Menu, { items: [{ id: 'a', label: 'Пункт', onSelect: () => {} }], label: 'Действия' });
+    const b = $('button[aria-label="Действия"]')!;
+    expect(b).not.toBeNull();
+    press(b, 'Enter');
+    await flushPromises();
+    expect($('[role="menuitem"]')).not.toBeNull();
+  });
+  it('v4: Input пробрасывает required и maxlength на input, class на обёртку', () => {
+    const w = wrap(Input, { label: 'Имя', required: true, maxlength: 5, class: 'wrap-x' });
+    const i = $('input')!;
+    expect(i.hasAttribute('required')).toBe(true);
+    expect(i.getAttribute('maxlength')).toBe('5');
+    expect(i.classList.contains('wrap-x')).toBe(false);
+    expect($('.wrap-x')!.contains(i)).toBe(true);
+    w.unmount();
+  });
+  it('v4: Select на mobile — role=listbox', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: true,
+      media: q,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    resetBreakpoint();
+    wrap(Select, { label: 'Статус', options: [{ value: 'a', label: 'Альфа' }], modelValue: 'a' });
+    $('button[aria-label="Статус"]')!.click();
+    await vi.waitFor(() =>
+      expect($('[role=listbox][aria-label="Статус"] [role=option]')).not.toBeNull(),
+    );
+    vi.unstubAllGlobals();
+    resetBreakpoint();
   });
 });
