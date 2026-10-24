@@ -28,7 +28,8 @@
     "modules/docs/web/ui.test.ts",
     "apps/web/src/screens/InboxScreen.vue",
     "e2e/web/visual.spec.ts-snapshots",
-    "build/artifacts/DS-6e"
+    "build/artifacts/DS-6e",
+    "apps/web/src/styles.css"
   ],
   "dont_touch": [
     "apps/web/src/ui/, apps/web/src/__contract__/, docs/contracts/ — C-ui v4 не меняется",
@@ -74,5 +75,6 @@
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-24T18:09:55"
+  "created": "2026-10-24T18:09:55",
+  "edited": "2026-10-24T18:28:33"
 }
