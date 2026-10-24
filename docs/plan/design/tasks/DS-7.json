@@ -1,0 +1,67 @@
+{
+  "id": "DS-7",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "space.create.statusNames: статусы новых пространств на языке интерфейса",
+  "goal": "Мутатор space.create принимает statusNames (C-mutators v4) и называет статусы по ним; web при создании пространства передаёт имена из i18n текущей локали; без аргумента — прежние английские имена.",
+  "plan_ref": "5. Задачи / DS-3",
+  "contracts": [
+    {
+      "name": "C-mutators",
+      "version": "4",
+      "ref": "docs/contracts/design.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "4",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-7",
+  "branch": "design/DS-7",
+  "base": "feature/design",
+  "scope": [
+    "packages/shared/src/mutators/spaces.ts",
+    "packages/shared/test",
+    "apps/web/src/screens/settings/SpacesSettings.vue",
+    "apps/web/src/screens/settings/__tests__",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts"
+  ],
+  "dont_touch": [
+    "docs/contracts/, packages/shared/src/contract/ — контракт и версии уже обновлены координатором",
+    "packages/shared/test/contract*.ts, check-mutators.ts, contract-doc.ts — контрактные тесты (читают таблицу; не править)",
+    "apps/api/ — сервер берёт мутатор из shared"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "shared-tests",
+      "cmd": "pnpm exec vitest run --project shared",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint packages/shared apps/web && pnpm exec prettier --check packages/shared apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit && pnpm exec tsc -p packages/shared/tsconfig.build.json --noEmit",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T16:05:04",
+  "edited": "2026-10-24T16:05:17"
+}

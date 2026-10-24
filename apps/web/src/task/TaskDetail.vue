@@ -284,7 +284,10 @@ const panelComponent = computed(() => {
         <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
         <Checklist :task-id="task.id" />
         <Attachments ref="attachments" :task-id="task.id" />
-        <LinksBlock :task="task" />
+        <LinksBlock
+          :task="task"
+          class="min-w-0 [&_.flex-wrap>div:last-child]:min-w-40 [&_.flex-wrap>div:last-child]:flex-1"
+        />
         <Feed :task="task" />
       </div>
     </div>

@@ -14,6 +14,9 @@ beforeEach(() => {
 });
 
 const mountProfile = () => mount(ProfileScreen, { global: { plugins: [mkRouter(), mkI18n()] } });
+// список токенов профиль грузит при открытии — к аватару не относится
+const calls = (f: { mock: { calls: [string, RequestInit?][] } }) =>
+  f.mock.calls.filter((c) => c[0] !== '/api/tokens');
 const pick = async (w: ReturnType<typeof mountProfile>) => {
   const input = w.find('input[type=file]');
   Object.defineProperty(input.element, 'files', {
@@ -28,14 +31,16 @@ describe('auth:avatar', () => {
     const f = vi.fn(async (p: string, ...[]: [RequestInit?]) =>
       p === '/files'
         ? json(201, { sha256: 'abc' })
-        : json(200, { user: mkUser({ avatarFile: 'abc' }) }),
+        : p === '/api/tokens'
+          ? json(200, { tokens: [] })
+          : json(200, { user: mkUser({ avatarFile: 'abc' }) }),
     );
     vi.stubGlobal('fetch', f);
     const w = mountProfile();
     await pick(w);
-    expect(f.mock.calls[0][1]?.body).toBeInstanceOf(FormData);
-    expect(f.mock.calls[1][0]).toBe('/api/users/0190-u1');
-    expect(JSON.parse(f.mock.calls[1][1]!.body as string)).toEqual({ avatarFile: 'abc' });
+    expect(calls(f)[0][1]?.body).toBeInstanceOf(FormData);
+    expect(calls(f)[1][0]).toBe('/api/users/0190-u1');
+    expect(JSON.parse(calls(f)[1][1]!.body as string)).toEqual({ avatarFile: 'abc' });
     expect(useAuth().user.value?.avatarFile).toBe('abc');
   });
   it('413: показывает ошибку, аватар не меняется', async () => {
@@ -47,14 +52,16 @@ describe('auth:avatar', () => {
   });
   it('убрать: PATCH avatarFile null', async () => {
     useAuth().user.value = mkUser({ avatarFile: 'abc' });
-    const f = mockFetch(() => json(200, { user: mkUser() }));
+    const f = mockFetch((_m, p) =>
+      p === '/api/tokens' ? json(200, { tokens: [] }) : json(200, { user: mkUser() }),
+    );
     const w = mountProfile();
     await w
       .findAll('button')
       .find((b) => b.text() === 'Убрать фото')!
       .trigger('click');
     await flushPromises();
-    expect(JSON.parse(f.mock.calls[0][1]?.body as string)).toEqual({ avatarFile: null });
+    expect(JSON.parse(calls(f)[0][1]?.body as string)).toEqual({ avatarFile: null });
     expect(useAuth().user.value?.avatarFile).toBeNull();
   });
 });

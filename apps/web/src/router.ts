@@ -41,9 +41,11 @@ router.beforeEach(async (to) => {
   }
   if (to.name === 'login' || to.name === 'setup') return '/';
   if (to.name === 'module') {
-    // маршруты модуля добавляются лениво — дождаться и повторить навигацию
-    const { ensureModule } = await import('./modules/registry');
+    // маршруты модуля добавляются лениво — дождаться и повторить навигацию.
+    // Настройки ещё не известны (холодный заход) — не держим переход: ModuleScreen покажет скелетон и сама повторит навигацию.
+    const { ensureModule, modulesKnown } = await import('./modules/registry');
     if (
+      modulesKnown() &&
       (await ensureModule(String(to.params.moduleId))) &&
       router.resolve(to.fullPath).name !== 'module'
     )

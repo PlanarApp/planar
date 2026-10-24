@@ -1,0 +1,45 @@
+{
+  "status": "blocked",
+  "summary": "4 из 5 сценариев исправлены (устаревшие селекторы под Reka Select/Toolbar/разметку Мои часы; подпись панели массовых действий в table/View.vue). Импорт возвращён на прямой goto('/m/import/'); при холодном заходе воспроизводится гонка ensureModule (заглушка модуля).",
+  "commits": [
+    "6f54334 DS-9: e2e features/work под C-ui v4",
+    "dbcb800 DS-9: импорт — прямой goto('/m/import/') без обхода через сайдбар"
+  ],
+  "checks": [
+    {
+      "name": "accept --dry (без e2e-all)",
+      "value": "6/6 PASS",
+      "pass": true
+    },
+    {
+      "name": "e2e-all",
+      "value": "83 passed, 1 failed (collab.spec.ts:217 холодная загрузка /m/chat)",
+      "pass": false
+    },
+    {
+      "name": "import --repeat-each 5 (workers 1)",
+      "value": "3 failed / 2 passed",
+      "pass": false
+    },
+    {
+      "name": "collab холодная загрузка --repeat-each 5",
+      "value": "3 failed (заглушка Модуль)",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "Гонка ensureModule при холодном заходе /m/<id>/ (registry.ts, enabled=[] до загрузки реплики → false): не чинил, C-modules. Ломает также collab:217 и import."
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept DS-9 --dry; playwright -g 'импорт: jira' --repeat-each 5",
+  "uncertain": [
+    {
+      "where": "apps/web/src/modules/registry.ts:65",
+      "why": "ensureModule при холодной реплике видит enabled=[] и возвращает false",
+      "checked": "воспроизведено на import и collab:217, причина прочитана в коде, не правил"
+    }
+  ],
+  "dp_feedback": "plan <м> <раздел> не принимает раздел с пробелами без кавычек.",
+  "t": "2026-10-24T19:48:13",
+  "by": "executor"
+}

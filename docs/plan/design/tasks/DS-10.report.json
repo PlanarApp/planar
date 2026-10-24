@@ -1,0 +1,57 @@
+{
+  "status": "done",
+  "summary": "Гонка ensureModule воспроизводится на main так же, как на design/DS-9: холодный goto даёт заглушку «Модуль: <id>». bisect не нужен.",
+  "commits": [
+    "dbb6d7d DS-10: замеры гонки ensureModule"
+  ],
+  "checks": [
+    {
+      "name": "table",
+      "value": "race.md: main.*design, PASS",
+      "pass": true
+    },
+    {
+      "name": "import падений/прогонов main vs design",
+      "value": "5/10 vs 6/10",
+      "pass": true
+    },
+    {
+      "name": "chat /m/chat/ main vs design",
+      "value": "4/10 vs 5/10",
+      "pass": true
+    },
+    {
+      "name": "chat channel /m/chat/c/<id> main vs design",
+      "value": "1/10 vs 5/10",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "bisect не делался: дефект есть на main"
+  ],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept DS-10",
+  "uncertain": [
+    {
+      "where": "build/artifacts/DS-10/race.md",
+      "why": "n=10: разница channel 1/10 и 5/10 может быть шумом, ни в одном сценарии не значима",
+      "checked": "ошибки идентичны на обеих версиях; тест импорта из work.spec на main не гонялся (selectOption), вместо него минимальный спек ds10.spec.ts"
+    }
+  ],
+  "dp_feedback": "Раздел плана «5. Задачи / DS-5» из карточки не находится (в оглавлении «5. Задачи»); lock cpu не печатает итог.",
+  "extra": {
+    "main": {
+      "import": "5/10",
+      "chat": "4/10",
+      "channel": "1/10"
+    },
+    "design_DS9": {
+      "import": "6/10",
+      "chat": "5/10",
+      "channel": "5/10"
+    }
+  },
+  "t": "2026-10-24T20:00:30",
+  "by": "executor"
+}

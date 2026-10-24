@@ -31,6 +31,7 @@ export default {
     language: 'Язык',
     install: 'Установить приложение',
     menu: 'Меню',
+    modules: { chat: 'Чат', docs: 'Документы' },
     nav: 'Навигация',
   },
   fields: {
@@ -64,6 +65,9 @@ export default {
     },
   },
   inbox: {
+    all: 'Все',
+    filter: 'Фильтр',
+    actions: 'Действия',
     today: 'Сегодня',
     yesterday: 'Вчера',
     empty: 'Всё прочитано',
@@ -152,6 +156,9 @@ export default {
     },
   },
   profile: {
+    title: 'Профиль',
+    appearance: 'Внешний вид',
+    notifications: 'Уведомления',
     weekStart: 'Начало недели',
     weekAuto: 'Авто (по языку)',
     weekMon: 'Понедельник',
@@ -277,6 +284,9 @@ export default {
     setup: 'Первичная настройка',
     profile: 'Профиль',
     module: 'Модуль',
+    moduleOff: 'Модуль выключен',
+    moduleError: 'Модуль не загрузился',
+    moduleOffAction: 'Настройки модулей',
     notFound: 'Страница не найдена',
   },
   links: {
@@ -329,6 +339,13 @@ export default {
     deleteProject: 'Удалить проект?',
     deleteStatus: 'Удалить статус?',
     replaceWith: 'Перенести задачи в статус',
+    statusDefaults: {
+      backlog: 'Бэклог',
+      todo: 'К работе',
+      in_progress: 'В работе',
+      done: 'Готово',
+      cancelled: 'Отменено',
+    },
     cat: {
       backlog: 'Бэклог',
       todo: 'К выполнению',
@@ -427,7 +444,7 @@ export default {
     send: 'Отправить',
     notFound: 'Задача не найдена',
     description: 'Описание',
-    descriptionPlaceholder: "Описание… (Markdown, {'@'} — упомянуть)",
+    descriptionPlaceholder: 'Добавьте описание…',
     mention: 'Упоминание',
     addReaction: 'Добавить реакцию',
     tooLarge: 'Файл больше допустимого размера',

@@ -1,0 +1,27 @@
+{
+  "verdict": "accept",
+  "summary": "C-mutators v4 соблюдён: statusNames — partialRecord по категориям, trim, 1–64, иначе имя по умолчанию; web передаёт имена из i18n, ru совпадает с сидом. Скоуп чистый, space.create в web вызывается только в SpacesSettings.vue. Ключ settings.statusDefaults вместо settings.statuses.defaults обоснован: settings.statuses — строка, используется в StatusesSettings.vue.",
+  "issues": [
+    {
+      "file": "apps/web/src/i18n/en.ts",
+      "line": 341,
+      "severity": "minor",
+      "what": "en in_progress = 'In progress' (как в сиде), а в карточке и в CATEGORIES по умолчанию — 'In Progress'; в англоязычном UI новые пространства получают другой регистр, чем без statusNames",
+      "fix": "координатору выбрать одно написание (сид или CATEGORIES) и выровнять отдельной правкой"
+    }
+  ],
+  "rerun": [
+    {
+      "name": "shared-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "6 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T16:34:38",
+  "by": "reviewer"
+}
