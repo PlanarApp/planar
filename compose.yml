@@ -4,6 +4,7 @@ services:
   postgres:
     image: pgvector/pgvector:pg18
     restart: unless-stopped
+    networks: [app]
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: planar
@@ -31,6 +32,9 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # подсеть Caddy: только оттуда верим X-Forwarded-For
+      TRUST_PROXY: 172.30.0.0/24
+    networks: [app]
     volumes:
       - data:/data
     depends_on:
@@ -49,10 +53,17 @@ services:
       - ./apps/web/dist:/srv:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks: [app]
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
     depends_on:
       - api
+
+networks:
+  app:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
 
 volumes:
   pgdata:
