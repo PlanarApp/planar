@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { mutate, newId } from '@planar/web/modules';
+import { EmptyState, mutate, newId } from '@planar/web/modules';
 import Composer from './Composer.vue';
 import MessageItem from './MessageItem.vue';
 import { useFeed } from './feed';
@@ -144,9 +144,7 @@ const typingText = computed(() => {
       <p v-if="feed.loading.value" class="p-2 text-center text-xs text-fg-subtle">
         {{ tx('loading') }}
       </p>
-      <p v-else-if="!messages.length && positioned" class="p-4 text-center text-sm text-fg-muted">
-        {{ tx('noMessages') }}
-      </p>
+      <EmptyState v-else-if="!messages.length && positioned" :title="tx('noMessages')" />
       <p v-if="notFound" class="p-2 text-center text-xs text-fg-muted" data-testid="chat-not-found">
         {{ tx('msgNotFound') }}
       </p>

@@ -24,6 +24,7 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
+    "lucide-vue-next": "^1.0.0",
     "@nestjs/common": "^11.2.7",
     "@planar/server-kit": "workspace:*",
     "@planar/shared": "workspace:*",

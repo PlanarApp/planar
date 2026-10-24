@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Button, Editor, mutate, newId } from '@planar/web/modules';
+import { MessageSquare, Pencil, SmilePlus, Trash2 } from 'lucide-vue-next';
+import { Button, ConfirmDialog, Editor, IconButton, mutate, newId } from '@planar/web/modules';
 import RichBody from './RichBody';
 import TaskCard from './TaskCard.vue';
 import {
@@ -72,6 +73,7 @@ async function save() {
     await mutate('chat.message.update', { id: m.value.id, body: plain(draft.value) });
   editing.value = false;
 }
+const confirming = ref(false);
 const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catch(() => {});
 </script>
 
@@ -131,19 +133,17 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
         v-if="!m.deletedAt && (grouped.length || (!inThread && m.replyCount > 0))"
         class="mt-1 flex flex-wrap items-center gap-1"
       >
-        <button
+        <Button
           v-for="g in grouped"
           :key="g.emoji"
-          type="button"
+          size="sm"
+          :variant="g.mine ? 'secondary' : 'ghost'"
           :aria-pressed="g.mine"
-          :class="[
-            'rounded-full border px-2 text-xs',
-            g.mine ? 'border-accent bg-accent-subtle' : 'border-border',
-          ]"
+          :class="g.mine && 'border-accent bg-accent-subtle'"
           @click="react(g.emoji)"
         >
           {{ g.emoji }} {{ g.n }}
-        </button>
+        </Button>
         <a
           v-if="!inThread && m.replyCount > 0"
           :href="threadUrl"
@@ -156,91 +156,32 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
     </div>
     <div
       v-if="armed && !m.deletedAt"
-      class="flex h-6 items-center gap-0.5 opacity-0 focus-within:opacity-100 group-hover:opacity-100"
+      class="flex min-h-7 items-center gap-0.5 opacity-0 focus-within:opacity-100 group-hover:opacity-100"
     >
       <template v-if="picking">
-        <button v-for="e in EMOJI" :key="e" type="button" class="px-0.5" @click="react(e)">
+        <Button v-for="e in EMOJI" :key="e" size="sm" variant="ghost" @click="react(e)">
           {{ e }}
-        </button>
+        </Button>
       </template>
-      <button v-else type="button" :aria-label="tx('react')" class="p-1" @click="picking = true">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M22 11v1a10 10 0 1 1-9-10" />
-          <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-          <line x1="9" x2="9.01" y1="9" y2="9" />
-          <line x1="15" x2="15.01" y1="9" y2="9" />
-          <path d="M16 5h6" />
-          <path d="M19 2v6" />
-        </svg>
-      </button>
-      <a v-if="!inThread" :href="threadUrl" :aria-label="tx('reply')" class="p-1" @click="go"
-        ><svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path
-            d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"
-          /></svg
-      ></a>
+      <IconButton v-else :icon="SmilePlus" :label="tx('react')" size="sm" @click="picking = true" />
+      <a
+        v-if="!inThread"
+        :href="threadUrl"
+        :aria-label="tx('reply')"
+        class="inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg"
+        @click="go"
+        ><MessageSquare :size="16"
+      /></a>
       <template v-if="mine">
-        <button type="button" :aria-label="tx('edit')" class="p-1" @click="startEdit">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path
-              d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
-            />
-            <path d="m15 5 4 4" />
-          </svg>
-        </button>
-        <button type="button" :aria-label="tx('delete')" class="p-1" @click="remove">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M10 11v6" />
-            <path d="M14 11v6" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-            <path d="M3 6h18" />
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-          </svg>
-        </button>
+        <IconButton :icon="Pencil" :label="tx('edit')" size="sm" @click="startEdit" />
+        <IconButton :icon="Trash2" :label="tx('delete')" size="sm" @click="confirming = true" />
+        <ConfirmDialog
+          v-if="confirming"
+          v-model:open="confirming"
+          :title="tx('deleteConfirm')"
+          :confirm-label="tx('delete')"
+          @confirm="remove"
+        />
       </template>
     </div>
   </article>

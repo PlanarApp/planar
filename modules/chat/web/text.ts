@@ -26,6 +26,7 @@ const S = {
   save: { ru: 'Сохранить', en: 'Save' },
   cancel: { ru: 'Отмена', en: 'Cancel' },
   delete: { ru: 'Удалить', en: 'Delete' },
+  deleteConfirm: { ru: 'Удалить сообщение?', en: 'Delete message?' },
   deleted: { ru: 'Сообщение удалено', en: 'Message deleted' },
   edited: { ru: 'изменено', en: 'edited' },
   typing: { ru: '{names} печатает…', en: '{names} is typing…' },

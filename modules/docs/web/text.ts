@@ -11,6 +11,7 @@ const S = {
   editingOther: { ru: 'Редактирует другой участник', en: 'Someone else is editing' },
   notFound: { ru: 'Страница не найдена', en: 'Page not found' },
   pick: { ru: 'Выберите страницу в боковой панели', en: 'Pick a page in the sidebar' },
+  noPages: { ru: 'Страниц пока нет', en: 'No pages yet' },
   archive: { ru: 'В архив', en: 'Archive' },
   expand: { ru: 'Развернуть', en: 'Expand' },
   link: { ru: 'Связать со страницей…', en: 'Link a page…' },

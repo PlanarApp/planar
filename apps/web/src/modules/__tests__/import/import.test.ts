@@ -1,3 +1,4 @@
+import Select from '../../../ui/Select.vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -98,7 +99,8 @@ describe('wk6: web импорта', () => {
     await flushPromises();
     expect(data.previewFile).toHaveBeenCalledWith(expect.any(File), 'csv', 'clickup');
     expect(w.findAll('.import-preview tbody tr')).toHaveLength(3);
-    await w.get('.import-project').setValue('p1');
+    w.get('.import-project').getComponent(Select).vm.$emit('update:modelValue', 'p1');
+    await w.vm.$nextTick();
     expect(w.get('.import-start').attributes('disabled')).toBeUndefined();
     await w.get('.import-start').trigger('click');
     await flushPromises();

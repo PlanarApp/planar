@@ -1,4 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import { defineComponent, h } from 'vue';
+import { TooltipProvider } from 'reka-ui';
+import { i18n } from '../../../i18n';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Settings from '../../../../../../modules/webhooks/web/WebhooksSettings.vue';
 
@@ -42,7 +45,8 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 const mountIt = async () => {
-  const w = mount(Settings);
+  const Host = defineComponent({ render: () => h(TooltipProvider, () => h(Settings)) });
+  const w = mount(Host, { global: { plugins: [i18n] } });
   await flushPromises();
   return w;
 };

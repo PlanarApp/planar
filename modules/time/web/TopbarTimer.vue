@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { Button } from '@planar/web/modules';
 import { clock } from './lib';
 import { mutate, tr, useMyEntries, useNow, useTasks } from './data';
 
@@ -11,9 +12,9 @@ const title = computed(() => tasks.value?.find((t) => t.id === running.value?.ta
 </script>
 
 <template>
-  <button
+  <Button
     v-if="running"
-    class="tt"
+    size="sm"
     data-test="topbar-timer"
     :title="`${tr('stop')}: ${title}`"
     @click="mutate('time.stop', { id: running!.id })"
@@ -23,23 +24,10 @@ const title = computed(() => tasks.value?.find((t) => t.id === running.value?.ta
       clock(Math.max(0, Math.floor((now - Date.parse(running.startedAt)) / 1000)))
     }}</span>
     <span class="name">{{ title }}</span>
-  </button>
+  </Button>
 </template>
 
 <style scoped>
-.tt {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-fg);
-  cursor: pointer;
-  font-size: var(--text-sm);
-}
 .dot {
   width: 8px;
   height: 8px;
