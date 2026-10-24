@@ -168,6 +168,7 @@ describe('auth:admin-users', () => {
     await flushPromises();
     expect(w.find('[data-testid=nav-users]').exists()).toBe(false);
     expect(w.find('[data-testid=user-row]').exists()).toBe(false);
-    expect(f).not.toHaveBeenCalled();
+    // профиль (куда ведёт редирект) сам грузит токены; список пользователей — нет
+    expect(f.mock.calls.map((c) => c[0])).not.toContain('/api/users');
   });
 });
