@@ -1,0 +1,68 @@
+{
+  "id": "DS-3a",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "Список: просрочка по локальной дате, скрытые пикеры не перехватывают клики, тест строки",
+  "goal": "Тон срока в строке списка считается по локальной дате пользователя (просрочен — срок раньше сегодняшнего дня, как в «Моих задачах»); невидимые пикеры строки не ловят клики и касания; поведение строки покрыто тестом.",
+  "plan_ref": "5. Задачи / DS-3",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "3",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-3a",
+  "branch": "design/DS-3a",
+  "base": "feature/design",
+  "scope": [
+    "apps/web/src/views/list",
+    "build/artifacts/DS-3a"
+  ],
+  "dont_touch": [
+    "apps/web/src/screens/MyScreen.vue — только образец правила, не менять (DS-4)",
+    "apps/web/src/views/board/, apps/web/src/views/saved/ — другие задачи",
+    "apps/web/src/ui/, apps/web/src/__contract__/, apps/web/src/contract.ts, docs/contracts/ — DS-0 готов; нужна правка — строкой <ID> contract: …",
+    "packages/, apps/api/ — core и p3"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "list-tests",
+      "cmd": "pnpm --filter web exec vitest run src/views/list 2>&1 | grep -E '^\\s*Tests'",
+      "expect": "num:(\\d+) passed >=4"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T12:19:22"
+}

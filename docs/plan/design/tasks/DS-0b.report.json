@@ -1,0 +1,58 @@
+{
+  "status": "done",
+  "summary": "Доработка по ревью: PriorityPicker в compact оставляет значок (тест добавлен); TokensSection не показывает «Последнее использование» без lastUsedAt.",
+  "commits": [
+    "a440c1a основной",
+    "01c8972 доработка по ревью"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "v4-tests",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept DS-0b",
+  "uncertain": [
+    {
+      "where": "tasks/fields/PriorityPicker.vue:14",
+      "why": "в compact-списке вариантов у «Без приоритета» тоже виден значок (общий icon триггера и списка)",
+      "checked": "приемлемо по предложению ревью; без разделения опций иначе нельзя"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-24T13:52:19",
+  "by": "executor"
+}

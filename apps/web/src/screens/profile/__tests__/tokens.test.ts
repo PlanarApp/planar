@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProfileScreen from '../../ProfileScreen.vue';
 import { useAuth } from '../../../auth/useAuth';
+import { menuAct } from '../../settings/__tests__/setup';
 import {
   json,
   mkI18n,
@@ -94,10 +95,11 @@ describe('tokens:', () => {
     const { w, f } = await open((m) =>
       m === 'DELETE' ? json(204) : json(200, { tokens: [tk()] }),
     );
-    await w.find('[data-testid=revoke]').trigger('click');
-    await flushPromises();
-    (document.body.querySelector('[data-testid=confirm]') as HTMLElement).click();
-    await flushPromises();
+    await menuAct(
+      w.find('[data-testid=token-row] [data-testid=row-menu]').element,
+      'Отозвать',
+      true,
+    );
     expect(f.mock.calls.some((c) => c[0] === '/api/tokens/t1' && c[1]?.method === 'DELETE')).toBe(
       true,
     );

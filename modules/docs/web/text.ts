@@ -9,6 +9,7 @@ const S = {
   placeholder: { ru: 'Печатайте «/» для команд', en: "Type '/' for commands" },
   notFound: { ru: 'Страница не найдена', en: 'Page not found' },
   pick: { ru: 'Выберите страницу в боковой панели', en: 'Pick a page in the sidebar' },
+  noPages: { ru: 'Страниц пока нет', en: 'No pages yet' },
   archive: { ru: 'В архив', en: 'Archive' },
   expand: { ru: 'Развернуть', en: 'Expand' },
   link: { ru: 'Связать со страницей…', en: 'Link a page…' },

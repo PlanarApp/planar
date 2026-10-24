@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { routerKey, useRoute } from 'vue-router';
-import { Eye, EyeOff, Link, MoreHorizontal, Trash2, X } from 'lucide-vue-next';
+import { ArrowLeft, Eye, EyeOff, Link, MoreHorizontal, Trash2, X } from 'lucide-vue-next';
 import { useAuth } from '../auth/useAuth';
 import { mutate, newId } from '../sync';
 import {
@@ -21,7 +21,7 @@ import {
   type TaskView,
 } from '../tasks';
 import { useExtensions } from '../modules/registry';
-import { Avatar, Button, Dialog, Menu } from '../ui';
+import { AvatarStack, Button, IconButton, Menu, type MenuItem } from '../ui';
 import Attachments from './Attachments.vue';
 import Checklist from './Checklist.vue';
 import FieldsBlock from '../fields/FieldsBlock.vue';
@@ -67,6 +67,12 @@ function cancelTitle(e: KeyboardEvent) {
   (e.target as HTMLElement).blur();
 }
 
+const watcherPeople = computed(() =>
+  (watchers.value ?? []).map((w) => ({
+    name: users.value?.find((u) => u.id === w.userId)?.name ?? '?',
+  })),
+);
+
 // --- наблюдатели
 const mine = computed(() => watchers.value?.find((w) => w.userId === user.value?.id));
 const toggleWatch = () =>
@@ -75,8 +81,7 @@ const toggleWatch = () =>
     : mutate('task.watch', { id: newId(), taskId: props.task.id });
 
 // --- меню, удаление
-const confirmDelete = ref(false);
-const menu = computed(() => [
+const menu = computed<MenuItem[]>(() => [
   {
     id: 'copy',
     label: t('task.copyLink'),
@@ -90,11 +95,15 @@ const menu = computed(() => [
     label: t('task.delete'),
     icon: Trash2,
     danger: true,
-    onSelect: () => (confirmDelete.value = true),
+    confirm: {
+      title: t('task.deleteTitle'),
+      description: t('task.deleteText'),
+      confirmLabel: t('task.delete'),
+    },
+    onSelect: remove,
   },
 ]);
 async function remove() {
-  confirmDelete.value = false;
   await deleteTask(props.task.id);
   emit('close');
 }
@@ -138,147 +147,146 @@ const panelComponent = computed(() => {
 <template>
   <article
     :class="[
-      'flex h-full flex-col overflow-y-auto bg-bg',
-      mode === 'panel' ? 'w-full border-l border-border md:w-[480px]' : 'mx-auto w-full max-w-3xl',
+      '@container flex h-full flex-col overflow-y-auto bg-bg',
+      mode === 'panel' ? 'w-full border-l border-border' : 'mx-auto w-full max-w-5xl',
     ]"
     :aria-label="task.key"
     @keydown="onKeydown"
     @dragover.prevent
     @drop.prevent="onDrop"
   >
-    <header class="flex items-center gap-2 border-b border-border p-3">
-      <span class="text-sm text-fg-muted">{{ task.key }}</span>
-      <input
-        v-model="title"
-        :aria-label="t('task.title')"
-        class="h-11 min-w-0 flex-1 rounded-md bg-transparent px-2 text-xl font-semibold outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus md:h-9"
-        @keydown.enter.prevent="commitTitle"
-        @keydown.esc.stop.prevent="cancelTitle"
-        @blur="commitTitle"
+    <div class="flex h-11 shrink-0 items-center gap-1 border-b border-border px-3">
+      <IconButton
+        class="md:hidden"
+        :icon="ArrowLeft"
+        :label="t('task.close')"
+        data-testid="back"
+        @click="emit('close')"
       />
-      <Menu :items="menu">
+      <span class="font-mono text-xs text-fg-muted">{{ task.key }}</span>
+      <span class="flex-1" />
+      <Menu :items="menu" align="end">
         <template #trigger>
-          <Button variant="ghost" :icon="MoreHorizontal" :aria-label="t('task.menu')" />
+          <IconButton :icon="MoreHorizontal" :label="t('task.menu')" />
         </template>
       </Menu>
-      <Button
-        variant="ghost"
+      <IconButton
+        class="max-md:hidden"
         :icon="X"
-        :aria-label="t('task.close')"
-        :title="t('task.close') + ' (Esc)'"
+        :label="t('task.close')"
+        shortcut="Esc"
         data-testid="close"
         @click="emit('close')"
       />
-    </header>
-
-    <div class="flex flex-col gap-5 p-4">
-      <dl class="grid grid-cols-[7rem_1fr] items-center gap-x-2 gap-y-1 text-sm">
-        <dt class="text-fg-muted">{{ t('tasks.status') }}</dt>
-        <dd>
-          <StatusPicker
-            :model-value="task.statusId"
-            :space-id="task.spaceId"
-            @update:model-value="(v?: string) => v && updateTask(task.id, { statusId: v })"
-          />
-        </dd>
-        <dt class="text-fg-muted">{{ t('tasks.assignee') }}</dt>
-        <dd>
-          <AssigneePicker
-            :model-value="task.assigneeIds"
-            :space-id="task.spaceId"
-            @update:model-value="(v: string[]) => setAssignees(task.id, v)"
-          />
-        </dd>
-        <dt class="text-fg-muted">{{ t('tasks.priorityTitle') }}</dt>
-        <dd>
-          <PriorityPicker
-            :model-value="task.priority"
-            @update:model-value="(v: number) => updateTask(task.id, { priority: v })"
-          />
-        </dd>
-        <dt class="text-fg-muted">{{ t('tasks.dueDate') }}</dt>
-        <dd>
-          <DueDatePicker
-            :model-value="task.dueDate"
-            @update:model-value="(v: string | null) => updateTask(task.id, { dueDate: v })"
-          />
-        </dd>
-        <dt class="text-fg-muted">{{ t('tasks.labels') }}</dt>
-        <dd>
-          <LabelPicker
-            :model-value="task.labelIds"
-            :space-id="task.spaceId"
-            @update:model-value="(v: string[]) => setLabels(task.id, v)"
-          />
-        </dd>
-        <dt class="text-fg-muted">{{ t('task.watchers') }}</dt>
-        <dd class="flex items-center gap-1">
-          <Avatar
-            v-for="w in watchers"
-            :key="w.id"
-            size="sm"
-            :name="users?.find((u) => u.id === w.userId)?.name ?? '—'"
-          />
-          <Button
-            size="sm"
-            variant="ghost"
-            :icon="mine ? EyeOff : Eye"
-            data-testid="watch"
-            @click="toggleWatch"
-          >
-            {{ mine ? t('task.unwatch') : t('task.watch') }}
-          </Button>
-        </dd>
-      </dl>
-
-      <section :aria-label="t('task.description')">
-        <Editor
-          :members="memberList"
-          :label="t('task.description')"
-          :placeholder="t('task.descriptionPlaceholder')"
-          image
-          :collab="{ name: `task:${task.id}` }"
-          @attach="(fs) => attachments?.addFiles(fs)"
-        />
-      </section>
-
-      <FieldsBlock :task="task" />
-      <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
-      <Checklist :task-id="task.id" />
-      <Attachments ref="attachments" :task-id="task.id" />
-      <LinksBlock :task="task" />
-      <Feed :task="task" />
-
-      <section v-if="panels.length" :aria-label="t('task.extensions')">
-        <div role="tablist" class="mb-2 flex gap-1">
-          <Button
-            v-for="p in panels"
-            :key="p.key"
-            role="tab"
-            size="sm"
-            :variant="tab === p.key ? 'primary' : 'ghost'"
-            :icon="p.icon"
-            :aria-selected="tab === p.key"
-            @click="tab = tab === p.key ? null : p.key"
-          >
-            {{ lt(p.label) }}
-          </Button>
-        </div>
-        <component :is="panelComponent" v-if="panelComponent" :task-id="task.id" />
-      </section>
     </div>
 
-    <Dialog
-      v-model:open="confirmDelete"
-      :title="t('task.deleteTitle')"
-      :description="t('task.deleteText')"
-    >
-      <template #footer>
-        <Button variant="ghost" @click="confirmDelete = false">{{ t('task.cancel') }}</Button>
-        <Button variant="danger" data-testid="confirm-delete" @click="remove">{{
-          t('task.delete')
-        }}</Button>
-      </template>
-    </Dialog>
+    <div class="grid gap-x-8 gap-y-5 p-4 @2xl:grid-cols-[minmax(0,1fr)_16.5rem] @2xl:px-6">
+      <header class="@2xl:col-start-1">
+        <input
+          v-model="title"
+          :aria-label="t('task.title')"
+          class="h-11 w-full min-w-0 rounded-md bg-transparent px-2 text-xl font-semibold outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus md:h-10"
+          @keydown.enter.prevent="commitTitle"
+          @keydown.esc.stop.prevent="cancelTitle"
+          @blur="commitTitle"
+        />
+      </header>
+
+      <aside class="flex flex-col gap-4 @2xl:col-start-2 @2xl:row-span-2 @2xl:row-start-1">
+        <dl class="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-y-1 text-sm">
+          <dt class="text-xs text-fg-muted">{{ t('tasks.status') }}</dt>
+          <dd class="min-h-8">
+            <StatusPicker
+              :model-value="task.statusId"
+              :space-id="task.spaceId"
+              @update:model-value="(v?: string) => v && updateTask(task.id, { statusId: v })"
+            />
+          </dd>
+          <dt class="text-xs text-fg-muted">{{ t('tasks.priorityTitle') }}</dt>
+          <dd class="min-h-8">
+            <PriorityPicker
+              :model-value="task.priority"
+              @update:model-value="(v: number) => updateTask(task.id, { priority: v })"
+            />
+          </dd>
+          <dt class="text-xs text-fg-muted">{{ t('tasks.assignee') }}</dt>
+          <dd class="min-h-8">
+            <AssigneePicker
+              :model-value="task.assigneeIds"
+              :space-id="task.spaceId"
+              @update:model-value="(v: string[]) => setAssignees(task.id, v)"
+            />
+          </dd>
+          <dt class="text-xs text-fg-muted">{{ t('tasks.labels') }}</dt>
+          <dd class="min-h-8">
+            <LabelPicker
+              :model-value="task.labelIds"
+              :space-id="task.spaceId"
+              @update:model-value="(v: string[]) => setLabels(task.id, v)"
+            />
+          </dd>
+          <dt class="text-xs text-fg-muted">{{ t('tasks.dueDate') }}</dt>
+          <dd class="min-h-8">
+            <DueDatePicker
+              :model-value="task.dueDate"
+              @update:model-value="(v: string | null) => updateTask(task.id, { dueDate: v })"
+            />
+          </dd>
+          <dt class="text-xs text-fg-muted">{{ t('task.watchers') }}</dt>
+          <dd class="flex min-h-8 items-center gap-1">
+            <AvatarStack :people="watcherPeople" />
+            <Button
+              size="sm"
+              variant="ghost"
+              :icon="mine ? EyeOff : Eye"
+              :class="mine ? '' : 'text-fg-subtle'"
+              data-testid="watch"
+              @click="toggleWatch"
+            >
+              {{ mine ? t('task.unwatch') : t('task.watch') }}
+            </Button>
+          </dd>
+        </dl>
+
+        <FieldsBlock :task="task" />
+
+        <section v-if="panels.length" :aria-label="t('task.extensions')">
+          <div role="tablist" class="mb-2 flex flex-wrap gap-1">
+            <Button
+              v-for="p in panels"
+              :key="p.key"
+              role="tab"
+              size="sm"
+              :variant="tab === p.key ? 'primary' : 'ghost'"
+              :icon="p.icon"
+              :aria-selected="tab === p.key"
+              @click="tab = tab === p.key ? null : p.key"
+            >
+              {{ lt(p.label) }}
+            </Button>
+          </div>
+          <component :is="panelComponent" v-if="panelComponent" :task-id="task.id" />
+        </section>
+      </aside>
+
+      <div class="flex min-w-0 flex-col gap-5 @2xl:col-start-1">
+        <section :aria-label="t('task.description')" class="text-base">
+          <Editor
+            :members="memberList"
+            :label="t('task.description')"
+            :placeholder="t('task.descriptionPlaceholder')"
+            image
+            :collab="{ name: `task:${task.id}` }"
+            @attach="(fs) => attachments?.addFiles(fs)"
+          />
+        </section>
+
+        <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
+        <Checklist :task-id="task.id" />
+        <Attachments ref="attachments" :task-id="task.id" />
+        <LinksBlock :task="task" />
+        <Feed :task="task" />
+      </div>
+    </div>
   </article>
 </template>

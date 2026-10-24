@@ -1,0 +1,64 @@
+{
+  "status": "done",
+  "summary": "Обёртки span.contents вокруг IconButton убраны в TopBar (в DevUiScreen их уже не было); mobile-панель закрывается по клику на любую a[href] (тест на текущий маршрут); счётчики каналов — Badge, «Нет каналов» — через text.ts. Скриншоты сняты.",
+  "commits": [
+    "62802a6 DS-1a: IconButton без обёрток, панель закрывается по клику на ссылку, Badge и тексты чата"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [
+    "build/artifacts/DS-1a/my-desk-light.png",
+    "build/artifacts/DS-1a/my-desk-dark.png",
+    "build/artifacts/DS-1a/my-mob-light.png",
+    "build/artifacts/DS-1a/my-mob-dark.png",
+    "build/artifacts/DS-1a/project-desk-light.png",
+    "build/artifacts/DS-1a/project-desk-dark.png",
+    "build/artifacts/DS-1a/project-mob-light.png",
+    "build/artifacts/DS-1a/project-mob-dark.png",
+    "build/artifacts/DS-1a/panel-mob-light.png",
+    "build/artifacts/DS-1a/panel-mob-dark.png"
+  ],
+  "how_to_check": ".dpcli/dpcli accept DS-1a",
+  "uncertain": [
+    {
+      "where": "modules/chat/web/Section.vue",
+      "why": "Badge каналов не виден на скриншотах: в сиде нет непрочитанных чата",
+      "checked": "типизация, lint, chat-тесты проходят; стиль скопирован с Badge Inbox в Sidebar"
+    }
+  ],
+  "dp_feedback": "build/ в .gitignore, а карточка требует build/artifacts в скоупе — git add отказывает; пояснить в карточке.",
+  "t": "2026-10-24T12:22:49",
+  "by": "executor"
+}

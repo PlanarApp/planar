@@ -1,0 +1,53 @@
+{
+  "status": "done",
+  "summary": "Исправлены 5 багов p3: workload читает assignees/estimates по индексу taskId и перезапрашивает при смене пространства; дашборды — маршрут '/m/dashboards/' и клон фильтра виджета (DataCloneError); конструктор форм — клон полей и статус из пространства проекта; vite preview отдаёт form.html на /f/*, в denylist SW добавлен /collab; добавлен p3-sw.spec.ts, fixme сняты.",
+  "commits": [
+    "e18b7c1 p3: баги из e2e"
+  ],
+  "checks": [
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "no-fixme",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "e2e-p3",
+      "value": "10 passed",
+      "pass": true
+    },
+    {
+      "name": "sw",
+      "value": "1 passed",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept PT-10",
+  "uncertain": [
+    {
+      "where": "apps/web/vite.config.ts",
+      "why": "p3-sw.spec.ts не существовал — написан мной; /f/ в denylist уже был, реальная причина падения — отсутствие rewrite /f/ в vite preview (в prod это Caddy)",
+      "checked": "тест зелёный на прод-сборке stack.sh; GitLab-тест 10 единожды упал флейком (3.5с), потом прошёл дважды"
+    }
+  ],
+  "dp_feedback": "Карточка ссылалась на несуществующий p3-sw.spec.ts и раздел плана '4. Задачи (PT-7)' не находится.",
+  "t": "2026-10-24T15:15:27",
+  "by": "executor"
+}

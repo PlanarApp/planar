@@ -5,6 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { uuidv7 } from '@planar/shared';
 import type { PlanarDB } from '../../../sync/db';
 import { burnup } from '../../../../../../modules/sprints/web/burnup';
+import Select from '../../../ui/Select.vue';
 import CyclePanel from '../../../../../../modules/sprints/web/CyclePanel.vue';
 import SprintView from '../../../../../../modules/sprints/web/SprintView.vue';
 import * as shared from '../../../../../../modules/sprints/shared/index';
@@ -179,10 +180,11 @@ describe('wk2: поле «Спринт» в панели задачи', () => {
     const t = task(S.todo, null);
     await h.db.table('tasks').put(t);
     const w = mount(CyclePanel, { props: { taskId: t.id } });
-    await vi.waitFor(() => expect(w.findAll('option')).toHaveLength(2)); // закрытый скрыт
-    await w.get('[data-role=cycle]').setValue(c.id);
+    const sel = () => w.get('[data-role=cycle]').getComponent(Select);
+    await vi.waitFor(() => expect(sel().props('options')).toHaveLength(2)); // «без» + открытый; закрытый скрыт
+    sel().vm.$emit('update:modelValue', c.id);
     expect(mutate).toHaveBeenLastCalledWith('sprints.setTask', { taskId: t.id, cycleId: c.id });
-    await w.get('[data-role=cycle]').setValue('');
+    sel().vm.$emit('update:modelValue', '__none');
     expect(mutate).toHaveBeenLastCalledWith('sprints.setTask', { taskId: t.id, cycleId: null });
     await flushPromises();
   });

@@ -2,7 +2,8 @@
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Dialog, Input } from '../ui';
+import { SearchX } from 'lucide-vue-next';
+import { Dialog, EmptyState, Input } from '../ui';
 import { useSelection, openTask } from '../views';
 import { useExtensions } from '../modules/registry';
 import { buildCommands, type Cmd } from './commands';
@@ -135,7 +136,9 @@ const onKey = (e: KeyboardEvent) => {
             <kbd v-if="it.shortcut" class="text-xs text-fg-subtle">{{ it.shortcut }}</kbd>
           </li>
         </template>
-        <li v-if="!items.length" class="px-2 py-3 text-sm text-fg-muted">{{ t('cmd.empty') }}</li>
+        <li v-if="!items.length" role="presentation">
+          <EmptyState class="!pt-4 !pb-2" :icon="SearchX" :title="t('cmd.empty')" />
+        </li>
       </ul>
     </div>
   </Dialog>

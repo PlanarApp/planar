@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, toRaw, watch } from 'vue';
 import type { Row } from '@planar/shared';
 import { db, mutate, newId, useQuery, useSession } from '@planar/web/modules';
 import type { FormField, FormsForm } from '../shared/index.js';
@@ -94,7 +94,12 @@ function toggle(f: FormsForm, key: string, label: string, on: boolean) {
 const run = (name: string, args: Record<string, unknown>) => mutate(name, args).catch(() => {});
 
 const nf = reactive({ title: '', statusId: '' });
-watch(statuses, (s) => void (nf.statusId ||= s?.[0]?.id ?? ''), { immediate: true });
+// статус должен быть из пространства выбранного проекта: при смене проекта берём первый
+watch(
+  statuses,
+  (s) => void (s?.some((x) => x.id === nf.statusId) || (nf.statusId = s?.[0]?.id ?? '')),
+  { immediate: true },
+);
 const create = () =>
   run('forms.create', {
     id: newId(),
@@ -205,7 +210,9 @@ const copy = (f: FormsForm) => void navigator.clipboard?.writeText(url(f)).catch
         <div v-if="admin" class="flex gap-2 text-sm">
           <button
             data-testid="fm-save"
-            @click="run('forms.update', { id: f.id, fields: fieldsOf(f) })"
+            @click="
+              run('forms.update', { id: f.id, fields: toRaw(fieldsOf(f)).map((x) => ({ ...x })) })
+            "
           >
             {{ L.save }}
           </button>

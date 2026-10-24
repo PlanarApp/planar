@@ -5,6 +5,7 @@ import type { Row } from '@planar/shared';
 import { api } from '../../api/http';
 import { useAuth } from '../../auth/useAuth';
 import { db, mutate, useQuery } from '../../sync';
+import SectionHeader from './SectionHeader.vue';
 import { useAction } from './shared';
 
 const { t } = useI18n();
@@ -32,7 +33,7 @@ function toggle(id: string, on: boolean) {
 
 <template>
   <section class="flex flex-col gap-3">
-    <h2 class="text-lg font-semibold">{{ t('settings.modules') }}</h2>
+    <SectionHeader :title="t('settings.modules')" :description="t('settings.modulesDesc')" />
     <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
     <p v-if="!server.length" class="text-sm text-fg-muted">{{ t('sidebar.empty') }}</p>
     <ul class="flex flex-col divide-y divide-border">
@@ -40,13 +41,13 @@ function toggle(id: string, on: boolean) {
         v-for="m in server"
         :key="m.id"
         data-testid="module-row"
-        class="flex items-center gap-3 py-2"
+        class="flex h-11 items-center gap-3 md:h-8"
       >
-        <label class="flex flex-1 items-center gap-2">
+        <label class="flex flex-1 items-center gap-2 text-sm">
           <input
             type="checkbox"
             role="switch"
-            class="size-5"
+            class="size-4"
             :checked="enabled.has(m.id)"
             :disabled="!isAdmin"
             @change="(e) => toggle(m.id, (e.target as HTMLInputElement).checked)"

@@ -6,6 +6,8 @@ import { mutate, newId } from '../../sync';
 import { useLabels } from '../../tasks';
 import ColorPicker from './ColorPicker.vue';
 import { COLORS } from './colors';
+import RowMenu from './RowMenu.vue';
+import SectionHeader from './SectionHeader.vue';
 import { useAction, useAdminSpaces } from './shared';
 
 const props = defineProps<{ spaceId: string }>();
@@ -32,19 +34,20 @@ const create = () =>
 
 <template>
   <section class="flex flex-col gap-3">
-    <h2 class="text-lg font-semibold">{{ t('settings.labels') }}</h2>
+    <SectionHeader :title="t('settings.labels')" :description="t('settings.labelsDesc')">
+      <form v-if="canEdit" class="flex flex-wrap items-end gap-2" @submit.prevent="create">
+        <Input v-model="name" :label="t('settings.name')" size="sm" data-testid="label-new" />
+        <ColorPicker v-model="color" />
+        <Button type="submit" variant="primary" size="sm">{{ t('auth.create') }}</Button>
+      </form>
+    </SectionHeader>
     <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
-    <form v-if="canEdit" class="flex flex-wrap items-end gap-2" @submit.prevent="create">
-      <Input v-model="name" :label="t('settings.name')" data-testid="label-new" />
-      <ColorPicker v-model="color" />
-      <Button type="submit" variant="primary">{{ t('auth.create') }}</Button>
-    </form>
     <ul class="flex flex-col divide-y divide-border">
       <li
         v-for="l in labels"
         :key="l.id"
         data-testid="label-row"
-        class="flex flex-wrap items-end gap-2 py-2"
+        class="group flex items-center gap-2 py-1"
       >
         <Input
           :model-value="l.name"
@@ -64,14 +67,22 @@ const create = () =>
           :disabled="!canEdit"
           @update:model-value="(c) => run(() => mutate('label.update', { id: l.id, color: c }))"
         />
-        <Button
+        <RowMenu
           v-if="canEdit"
-          size="sm"
-          variant="danger"
-          data-testid="label-delete"
-          @click="run(() => mutate('label.delete', { id: l.id }))"
-          >{{ t('settings.delete') }}</Button
-        >
+          :items="[
+            {
+              id: 'delete',
+              label: t('settings.delete'),
+              danger: true,
+              confirm: {
+                title: t('settings.deleteLabel'),
+                description: l.name,
+                confirmLabel: t('settings.delete'),
+              },
+              onSelect: () => run(() => mutate('label.delete', { id: l.id })),
+            },
+          ]"
+        />
       </li>
     </ul>
   </section>

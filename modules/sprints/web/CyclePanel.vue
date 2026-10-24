@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { db, useQuery } from '@planar/web/modules';
+import { Select, db, useQuery } from '@planar/web/modules';
 import type { Row } from '@planar/shared';
 import type { Cycle } from '../shared/index.js';
 import { hasTables, run, text } from './data';
@@ -23,24 +23,26 @@ const options = computed(() =>
   (cycles.value ?? []).filter((c) => !c.closedAt || c.id === task.value?.cycleId),
 );
 const label = (c: Cycle) => `${tx.value.cycle} ${c.number}${c.name ? ` · ${c.name}` : ''}`;
-const change = (e: Event) =>
-  run('sprints.setTask', {
-    taskId: props.taskId,
-    cycleId: (e.target as HTMLSelectElement).value || null,
-  });
+// Reka Select не принимает пустое значение
+const NONE = '__none';
+const choices = computed(() => [
+  { value: NONE, label: tx.value.noCycle },
+  ...options.value.map((c) => ({ value: c.id, label: label(c) })),
+]);
+const change = (v: string | null) =>
+  run('sprints.setTask', { taskId: props.taskId, cycleId: v && v !== NONE ? v : null });
 </script>
 
 <template>
-  <label class="flex items-center gap-2 p-2 text-sm" data-testid="cycle-panel">
+  <div class="flex items-center gap-2 p-2 text-sm" data-testid="cycle-panel">
     {{ tx.cycle }}
-    <select
-      class="h-11 rounded-md border border-border-strong bg-bg px-2 text-base text-fg md:h-8"
-      :value="task?.cycleId ?? ''"
-      data-role="cycle"
-      @change="change"
-    >
-      <option value="">{{ tx.noCycle }}</option>
-      <option v-for="c in options" :key="c.id" :value="c.id">{{ label(c) }}</option>
-    </select>
-  </label>
+    <div data-role="cycle">
+      <Select
+        :model-value="task?.cycleId ?? NONE"
+        :label="tx.cycle"
+        :options="choices"
+        @update:model-value="change"
+      />
+    </div>
+  </div>
 </template>

@@ -10,6 +10,7 @@ import {
   useWeekStart,
   openTask,
 } from '@planar/web/modules';
+import { effectScope, onScopeDispose, shallowRef, watch, type EffectScope, type Ref } from 'vue';
 import type { WorkloadCapacity } from '../shared/index.js';
 
 export { mutate, newId, useWeekStart, useSpaces, openTask };
@@ -22,32 +23,53 @@ const all = <T>(t: string, spaceId: string) =>
   db.table(t).where('spaceId').equals(spaceId).toArray() as Promise<T[]>;
 
 /** Данные пространства для таблицы; `time` — включён ли модуль time (есть оценки). */
-export const useWorkloadData = (spaceId: () => string) =>
-  useQuery(async () => {
-    const s = spaceId();
-    if (!s) return null;
-    const has = (n: string) => db.tables.some((t) => t.name === n);
-    const [tasks, assignees, statuses, members, caps, projects, estimates, users] =
-      await Promise.all([
-        all<{
-          id: string;
-          statusId: string;
-          dueDate: string | null;
-          startDate: string | null;
-          title: string;
-          number: number | null;
-          projectId: string;
-        }>('tasks', s),
-        all<{ taskId: string; userId: string }>('taskAssignees', s),
-        all<Base & { category: string }>('statuses', s),
-        all<{ userId: string; role: string }>('spaceMembers', s),
-        has('workloadCapacities') ? all<WorkloadCapacity>('workloadCapacities', s) : [],
-        all<Base & { key: string }>('projects', s),
-        has('timeEstimates') ? all<{ taskId: string; minutes: number }>('timeEstimates', s) : null,
-        db.table('users').toArray() as Promise<{ id: string; name: string }[]>,
-      ]);
-    return { tasks, assignees, statuses, members, caps, projects, estimates, users };
-  });
+export const useWorkloadData = (spaceId: () => string) => {
+  // useQuery не следит за реактивным spaceId — пересоздаём запрос при смене пространства
+  const out = shallowRef<Data | null>();
+  let scope: EffectScope | undefined;
+  watch(
+    spaceId,
+    (s) => {
+      scope?.stop();
+      scope = effectScope();
+      scope.run(() => {
+        const q = useQuery(() => load(s));
+        watch(q, (v) => (out.value = v), { immediate: true });
+      });
+    },
+    { immediate: true },
+  );
+  onScopeDispose(() => scope?.stop());
+  return out as Readonly<Ref<Data | null | undefined>>;
+};
+
+const load = async (s: string) => {
+  if (!s) return null;
+  const has = (n: string) => db.tables.some((t) => t.name === n);
+  const tasks = await all<{
+    id: string;
+    statusId: string;
+    dueDate: string | null;
+    startDate: string | null;
+    title: string;
+    number: number | null;
+    projectId: string;
+  }>('tasks', s);
+  // taskAssignees/timeEstimates без индекса spaceId — читаем по индексу taskId
+  const ids = tasks.map((t) => t.id);
+  const byTask = <T>(t: string) => db.table(t).where('taskId').anyOf(ids).toArray() as Promise<T[]>;
+  const [assignees, statuses, members, caps, projects, estimates, users] = await Promise.all([
+    byTask<{ taskId: string; userId: string }>('taskAssignees'),
+    all<Base & { category: string }>('statuses', s),
+    all<{ userId: string; role: string }>('spaceMembers', s),
+    has('workloadCapacities') ? all<WorkloadCapacity>('workloadCapacities', s) : [],
+    all<Base & { key: string }>('projects', s),
+    has('timeEstimates') ? byTask<{ taskId: string; minutes: number }>('timeEstimates') : null,
+    db.table('users').toArray() as Promise<{ id: string; name: string }[]>,
+  ]);
+  return { tasks, assignees, statuses, members, caps, projects, estimates, users };
+};
+type Data = NonNullable<Awaited<ReturnType<typeof load>>>;
 
 export const useMe = () => {
   const s = useSession();

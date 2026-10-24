@@ -30,7 +30,7 @@ const emit = defineEmits<{
   submit: [];
   attach: [files: File[]]; // не-картинки, брошенные в редактор
 }>();
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const error = ref('');
 
 // подсказка @: состояние пишет suggestion, список рисуем сами
@@ -204,9 +204,9 @@ defineExpose({
       data-testid="unsynced"
       class="mt-1 flex items-center gap-2 text-xs text-warning"
     >
-      {{ locale === 'ru' ? 'Не синхронизируется' : 'Not syncing' }}
+      {{ t('task.unsynced') }}
       <button type="button" class="underline" @click="retry">
-        {{ locale === 'ru' ? 'Повторить' : 'Retry' }}
+        {{ t('task.retry') }}
       </button>
     </p>
     <ul

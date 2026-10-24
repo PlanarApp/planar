@@ -2,6 +2,7 @@
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Badge, Button, Input, Select } from '../../ui';
+import RowMenu from '../settings/RowMenu.vue';
 import {
   createToken,
   listTokens,
@@ -10,7 +11,6 @@ import {
   type TokenScope,
 } from '../../api/tokens';
 import { errText } from '../../auth/errText';
-import ConfirmDialog from '../settings/ConfirmDialog.vue';
 
 const { t } = useI18n();
 const tokens = ref<ApiToken[]>([]);
@@ -19,13 +19,6 @@ const err = ref('');
 const secret = ref('');
 const copied = ref(false);
 const f = reactive({ name: '', scope: 'read' as TokenScope, days: '0' });
-const askRevoke = ref<ApiToken | null>(null);
-const confirmOpen = computed({
-  get: () => askRevoke.value !== null,
-  set: (v) => {
-    if (!v) askRevoke.value = null;
-  },
-});
 const mcpUrl = `${location.origin}/mcp`;
 const mcpConfig = computed(() =>
   JSON.stringify(
@@ -91,9 +84,7 @@ async function copy(text: string) {
   }
 }
 
-async function revoke() {
-  const tk = askRevoke.value;
-  if (!tk) return;
+async function revoke(tk: ApiToken) {
   err.value = '';
   try {
     await revokeToken(tk.id);
@@ -103,7 +94,7 @@ async function revoke() {
   }
 }
 
-const fmt = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '—');
+const fmt = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '');
 </script>
 
 <template>
@@ -139,25 +130,37 @@ const fmt = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '—')
         <li
           v-for="tk in tokens"
           :key="tk.id"
-          class="flex items-center justify-between gap-2 text-sm"
+          class="group flex items-center justify-between gap-2 text-sm"
           data-testid="token-row"
         >
           <span class="min-w-0">
             <span class="block truncate">{{ tk.name }}</span>
             <span class="text-fg-muted">
-              plnr_{{ tk.prefix }}… · {{ t('tokens.expires') }}: {{ fmt(tk.expiresAt) }} ·
-              {{ t('tokens.lastUsed') }}: {{ fmt(tk.lastUsedAt) }}
+              plnr_{{ tk.prefix }}… · {{ t('tokens.expires') }}:
+              {{ tk.expiresAt ? fmt(tk.expiresAt) : t('tokens.never') }}
+              <template v-if="tk.lastUsedAt">
+                · {{ t('tokens.lastUsed') }}: {{ fmt(tk.lastUsedAt) }}
+              </template>
             </span>
           </span>
           <Badge>{{ t(`tokens.${tk.scope}`) }}</Badge>
-          <Button size="sm" variant="danger" data-testid="revoke" @click="askRevoke = tk">{{
-            t('tokens.revoke')
-          }}</Button>
+          <RowMenu
+            :items="[
+              {
+                id: 'revoke',
+                label: t('tokens.revoke'),
+                danger: true,
+                confirm: {
+                  title: t('tokens.revokeTitle'),
+                  description: tk.name,
+                  confirmLabel: t('tokens.revoke'),
+                },
+                onSelect: () => revoke(tk),
+              },
+            ]"
+          />
         </li>
       </ul>
-      <ConfirmDialog v-model:open="confirmOpen" :title="t('tokens.revokeTitle')" @confirm="revoke">
-        {{ askRevoke?.name }}
-      </ConfirmDialog>
       <section class="flex flex-col gap-2">
         <h3 class="text-sm font-medium">{{ t('tokens.mcpTitle') }}</h3>
         <p class="text-sm text-fg-muted">{{ t('tokens.mcpText') }}</p>

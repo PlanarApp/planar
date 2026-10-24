@@ -1,0 +1,92 @@
+{
+  "id": "DS-4d",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "Модули chat, docs, time, sprints, automations, webhooks, import на компонентах C-ui v3",
+  "goal": "Web-части семи модулей используют компоненты C-ui v3 из SDK вместо своих кнопок, полей и селектов; страницы настроек модулей — шаблон «список + меню …» с подтверждением удаления; пустые экраны чата и документов — EmptyState. Поведение модулей не меняется.",
+  "plan_ref": "5. Задачи / DS-4",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "3",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-4d",
+  "branch": "design/DS-4d",
+  "base": "feature/design",
+  "scope": [
+    "modules/chat/web",
+    "modules/docs/web",
+    "modules/time/web",
+    "modules/sprints/web",
+    "modules/automations/web",
+    "modules/webhooks/web",
+    "modules/import/web",
+    "apps/web/src/modules/__tests__",
+    "build/artifacts/DS-4d",
+    "modules/time/package.json",
+    "modules/automations/package.json",
+    "modules/import/package.json",
+    "pnpm-lock.yaml",
+    "modules/sprints/package.json",
+    "modules/webhooks/package.json"
+  ],
+  "dont_touch": [
+    "modules/docs/web/DocEditor.vue и редактор (slash.ts, suggest.ts) — совместное редактирование делает модуль p3",
+    "modules/*/server, modules/*/shared и прочие модули (timeline, workload, dashboards…) — p3",
+    "apps/web/src/__contract__/, docs/contracts/ — только координатор; нужно что-то в SDK — строкой DS-4d contract: …",
+    "apps/web/src/ui/, apps/web/src/layout/, apps/web/src/screens/, apps/web/src/task/, apps/web/src/views/ — ядро web; импорт ядра в модулях — только через SDK @planar/web/modules"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint modules apps/web && pnpm exec prettier --check modules apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "no-raw-danger",
+      "cmd": "grep -rn 'variant=\"danger\"' modules/chat/web modules/docs/web modules/time/web modules/sprints/web modules/automations/web modules/webhooks/web modules/import/web | wc -l",
+      "expect": "num:^(\\d+) <=0"
+    },
+    {
+      "name": "raw-buttons",
+      "cmd": "grep -rlE '<button' modules/chat/web modules/docs/web modules/time/web modules/sprints/web modules/automations/web modules/webhooks/web modules/import/web --include=*.vue | grep -v DocEditor.vue | wc -l",
+      "expect": "num:^(\\d+) <=3"
+    },
+    {
+      "name": "no-inline-svg",
+      "cmd": "grep -rlE \"<svg|h\\(['\\\"]svg\" modules/chat/web modules/docs/web modules/time/web modules/sprints/web modules/automations/web modules/webhooks/web modules/import/web | grep -v SprintView.vue | wc -l",
+      "expect": "num:^(\\d+) <=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T13:14:22",
+  "edited": "2026-10-24T14:10:38"
+}

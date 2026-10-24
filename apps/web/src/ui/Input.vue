@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { useId, type Component } from 'vue';
+import { computed, useAttrs, useId, type Component } from 'vue';
 
+defineOptions({ inheritAttrs: false });
 withDefaults(
   defineProps<{
     label: string;
@@ -16,10 +17,15 @@ withDefaults(
 );
 const model = defineModel<string>({ default: '' });
 const id = useId();
+const attrs = useAttrs();
+const inputAttrs = computed(() => {
+  const { class: _c, style: _s, ...rest } = attrs;
+  return rest;
+});
 </script>
 
 <template>
-  <div class="flex flex-col gap-1">
+  <div :class="['flex flex-col gap-1', $attrs.class]" :style="$attrs.style as any">
     <label :for="id" :class="hideLabel ? 'sr-only' : 'text-xs text-fg-muted'">{{ label }}</label>
     <div class="relative">
       <component
@@ -29,6 +35,7 @@ const id = useId();
         class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-fg-subtle"
       />
       <input
+        v-bind="inputAttrs"
         :id="id"
         v-model="model"
         :type="type ?? 'text'"

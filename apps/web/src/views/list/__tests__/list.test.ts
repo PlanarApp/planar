@@ -361,3 +361,34 @@ describe('list:links', () => {
     expect(w.find('[aria-label="Заблокирована"]').exists()).toBe(false);
   });
 });
+
+describe('list:row', () => {
+  const ymd = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const day = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return ymd(d);
+  };
+  it('list:row срок: вчера — danger, сегодня — warning, через 3 дня — muted', async () => {
+    await db
+      .table('tasks')
+      .bulkPut([
+        task(1, { dueDate: day(-1) }),
+        task(2, { dueDate: day(0) }),
+        task(3, { dueDate: day(3) }),
+      ]);
+    await show();
+    const tone = (k: string) => row(k).find('span.text-xs').classes();
+    expect(tone('PLN-1')).toContain('text-danger');
+    expect(tone('PLN-2')).toContain('text-warning');
+    expect(tone('PLN-3')).toContain('text-fg-muted');
+  });
+  it('list:row без меток, срока и исполнителей лишнего нет; пикеры не ловят клики', async () => {
+    await db.table('tasks').put(task(1));
+    await show();
+    const r = row('PLN-1');
+    expect(r.find('span.text-xs').exists()).toBe(false);
+    expect(r.find('div.absolute').classes()).toContain('pointer-events-none');
+  });
+});

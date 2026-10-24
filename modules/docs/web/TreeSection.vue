@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ChevronRight, FileText, Plus } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import { db, mutate, newId, rankBetween, useQuery } from '@planar/web/modules';
+import { IconButton, db, mutate, newId, rankBetween, useQuery } from '@planar/web/modules';
 import { buildTree, moveArgs, type DropZone, type PageRow, type TreeNode } from './model';
 import { useTexts } from './text';
 
@@ -14,6 +14,22 @@ const pages = useQuery(() => db.table<PageRow>('docsPages').toArray());
 const spaces = useQuery(async () =>
   (await db.table<Row<'spaces'>>('spaces').toArray()).sort((a, b) => (a.rank < b.rank ? -1 : 1)),
 );
+// свёрнутость секции — своё состояние, не часть интерфейса ядра
+const KEY = 'planar.sidebar.docs';
+const folded = ref(false);
+try {
+  folded.value = localStorage.getItem(KEY) === '1';
+} catch {
+  /* без хранилища — до перезагрузки */
+}
+const fold = () => {
+  folded.value = !folded.value;
+  try {
+    localStorage.setItem(KEY, folded.value ? '1' : '0');
+  } catch {
+    /* см. выше */
+  }
+};
 const opened = ref(new Set<string>());
 const current = computed(() => route.params.pageId as string | undefined);
 
@@ -75,20 +91,30 @@ function drop(e: DragEvent, n: TreeNode) {
 </script>
 
 <template>
-  <section data-testid="docs-tree" class="mt-2">
-    <h2 class="mb-1 px-2 text-xs font-medium text-fg-muted">{{ tx('docs') }}</h2>
-    <div v-for="t in trees" :key="t.s.id" class="mb-1">
-      <div class="group flex h-7 items-center justify-between px-2 text-xs text-fg-subtle">
+  <section data-testid="docs-tree">
+    <h2>
+      <button
+        type="button"
+        :aria-expanded="!folded"
+        class="flex h-7 w-full items-center gap-1 rounded-md px-2 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+        @click="fold"
+      >
+        <ChevronRight :size="12" :class="['shrink-0', !folded && 'rotate-90']" />{{
+          tx('docs')
+        }}
+      </button>
+    </h2>
+    <template v-if="!folded">
+    <div v-for="t in trees" :key="t.s.id">
+      <div class="group flex h-7 items-center px-2 text-xs text-fg-muted">
         <span class="truncate">{{ t.s.name }}</span>
-        <button
-          type="button"
-          :aria-label="tx('newPage')"
-          :title="tx('newPage')"
-          class="rounded-sm p-1 hover:bg-bg-muted"
+        <IconButton
+          :icon="Plus"
+          :label="tx('newPage')"
+          size="sm"
+          class="ml-auto"
           @click="add(t.s.id, null)"
-        >
-          <Plus :size="14" />
-        </button>
+        />
       </div>
       <div
         v-for="n in t.rows"
@@ -96,7 +122,7 @@ function drop(e: DragEvent, n: TreeNode) {
         draggable="true"
         :style="{ paddingLeft: n.depth * 12 + 'px' }"
         :class="[
-          'group flex h-8 items-center rounded-md hover:bg-bg-muted',
+          'group flex h-7 items-center rounded-md hover:bg-bg-muted',
           current === n.page.id && 'bg-accent-subtle',
           hint?.id === n.page.id && hint.zone === 'into' && 'ring-2 ring-focus',
           hint?.id === n.page.id && hint.zone === 'before' && 'border-t-2 border-accent',
@@ -120,21 +146,21 @@ function drop(e: DragEvent, n: TreeNode) {
         <span v-else class="w-5 shrink-0" />
         <RouterLink
           :to="`/m/docs/${n.page.id}`"
-          class="flex min-w-0 flex-1 items-center gap-1.5 text-base text-fg outline-none focus-visible:ring-2 ring-focus"
+          class="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-fg outline-none focus-visible:ring-2 ring-focus"
         >
           <span v-if="n.page.icon" aria-hidden="true">{{ n.page.icon }}</span>
           <FileText v-else :size="14" class="shrink-0 text-fg-subtle" />
           <span class="truncate">{{ n.page.title || tx('untitled') }}</span>
         </RouterLink>
-        <button
-          type="button"
-          :aria-label="tx('newPage')"
-          class="mr-1 rounded-sm p-1 opacity-0 hover:bg-bg group-hover:opacity-100 focus-visible:opacity-100"
+        <IconButton
+          :icon="Plus"
+          :label="tx('newPage')"
+          size="sm"
+          class="mr-1 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
           @click="add(n.page.spaceId, n.page)"
-        >
-          <Plus :size="12" />
-        </button>
+        />
       </div>
     </div>
+    </template>
   </section>
 </template>

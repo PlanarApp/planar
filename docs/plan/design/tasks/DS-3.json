@@ -21,7 +21,8 @@
     "apps/api/src/db/seed.ts",
     "apps/web/src/i18n/ru.ts",
     "apps/web/src/i18n/en.ts",
-    "build/artifacts/DS-3"
+    "build/artifacts/DS-3",
+    "apps/api/test/seed.test.ts"
   ],
   "dont_touch": [
     "packages/shared/src/mutators/spaces.ts — статусы по умолчанию для новых пространств (core); здесь только сид",
@@ -59,17 +60,23 @@
       "expect": "exit=0"
     },
     {
-      "name": "api-seed-lint",
-      "cmd": "pnpm exec eslint apps/web apps/api/src/db/seed.ts && pnpm exec prettier --check apps/web apps/api/src/db/seed.ts",
+      "name": "perf-not-worse",
+      "cmd": "awk -F= 'FNR==NR{b[$1]=$2;next} ($1==\"project_switch_ms_p95\"||$1==\"scroll_frame_ms_p95\"){n++; if($2>b[$1]*1.15+3) bad++} END{exit (n<2||bad)}' build/artifacts/DS-3/perf-before.txt build/artifacts/DS-3/perf-after.txt",
       "expect": "exit=0"
     },
     {
-      "name": "perf-not-worse",
-      "cmd": "awk -F= 'FNR==NR{b[$1]=$2;next} ($1==\"project_switch_ms_p95\"||$1==\"scroll_frame_ms_p95\"){n++; if($2>b[$1]*1.15+3) bad++} END{exit (n<2||bad)}' build/artifacts/DS-3/perf-before.txt build/artifacts/DS-3/perf-after.txt",
+      "name": "seed-test",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api apps/api/test/seed.test.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "api-seed-lint",
+      "cmd": "pnpm exec eslint apps/web apps/api/src/db/seed.ts apps/api/test/seed.test.ts && pnpm exec prettier --check apps/web apps/api/src/db/seed.ts apps/api/test/seed.test.ts",
       "expect": "exit=0"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-24T11:17:09"
+  "created": "2026-10-24T11:17:09",
+  "edited": "2026-10-24T11:47:53"
 }

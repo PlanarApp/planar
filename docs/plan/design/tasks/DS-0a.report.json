@@ -1,0 +1,58 @@
+{
+  "status": "done",
+  "summary": "IconButton: inheritAttrs false + v-bind attrs на button, поэтому атрибуты/слушатели триггера Menu/Popover доходят до кнопки; Tooltip сохранён. Два trigger-теста. Пример Menu с IconButton на витрине уже был.",
+  "commits": [
+    "14588a3 DS-0a: IconButton как trigger Menu/Popover"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "pass",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "pass",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "pass",
+      "pass": true
+    },
+    {
+      "name": "trigger-test",
+      "value": "pass",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "pass",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "pass",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "pass",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept DS-0a",
+  "uncertain": [
+    {
+      "where": "apps/web/src/ui/IconButton.vue",
+      "why": "Tooltip-trigger и Menu-trigger оба вешают обработчики на button",
+      "checked": "тест: Enter открывает Menu, click открывает Popover, aria-expanded и aria-label на той же кнопке"
+    }
+  ],
+  "dp_feedback": "plan design '5. Задачи / DS-0' не находится по названию из задания",
+  "t": "2026-10-24T11:52:13",
+  "by": "executor"
+}
