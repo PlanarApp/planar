@@ -139,8 +139,7 @@ test('импорт: jira.csv по заготовке, прогресс до ко
 }) => {
   const f = await fixture([]);
   const page = await loginAs(browser, 'admin');
-  // через сайдбар: прямой заход на холодную реплику иногда даёт заглушку модуля (registry.ensureModule, см. отчёт DS-9)
-  await page.getByTestId('sidebar').getByRole('link', { name: 'Импорт' }).click();
+  await page.goto('/m/import/');
   await page
     .locator('input[type=file]')
     .setInputFiles(path.resolve(import.meta.dirname, '../fixtures/import/jira.csv'));
