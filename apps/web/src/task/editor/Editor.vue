@@ -3,10 +3,8 @@ import { onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import type { JSONContent } from '@tiptap/vue-3';
-import StarterKit from '@tiptap/starter-kit';
+import { editorExtensions } from '@planar/editor';
 import Placeholder from '@tiptap/extension-placeholder';
-import Mention from '@tiptap/extension-mention';
-import Image from '@tiptap/extension-image';
 import { ApiError } from '../../api/http';
 import { uploadFile } from '../../api/files';
 
@@ -63,10 +61,9 @@ const editor = useEditor({
   content: props.modelValue ?? '',
   editable: props.editable,
   extensions: [
-    StarterKit,
     Placeholder.configure({ placeholder: props.placeholder ?? '' }),
-    Mention.configure({
-      HTMLAttributes: { class: 'mention' },
+    ...editorExtensions({
+      image: props.image,
       suggestion: {
         char: '@',
         items: ({ query }: { query: string }): Item[] =>
@@ -104,7 +101,6 @@ const editor = useEditor({
         },
       },
     }),
-    ...(props.image ? [Image] : []),
   ],
   editorProps: {
     attributes: { 'aria-label': props.label, role: 'textbox', 'aria-multiline': 'true' },
