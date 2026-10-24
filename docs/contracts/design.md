@@ -3,9 +3,9 @@ type: contract
 status: active
 module: design
 updated: 2026-10-24
-summary: Контракт C-ui v3 — токены, контраст, плотность, базовые компоненты, маршруты и точки расширения web
+summary: Контракт C-ui v4 — токены, контраст, плотность, базовые компоненты, маршруты и точки расширения web
 related: ["docs/plan/design.md", "docs/contracts/web.md", "docs/contracts/work.md", "docs/roadmap.md"]
-contracts: [{"id": "C-ui", "version": 3}]
+contracts: [{"id": "C-ui", "version": 4}]
 ---
 
 # Контракт C-ui (интерфейс web)
@@ -14,7 +14,9 @@ contracts: [{"id": "C-ui", "version": 3}]
 
 **Контрактный тест** — `apps/web/src/__contract__/ui.contract.test.ts` (пишет координатор, исполнитель не правит). Проверяет: версию из заголовка `## C-ui vN` (здесь) и заголовки `## C-… vN` из `docs/contracts/web.md` = `UI_CONTRACT_VERSIONS` из `apps/web/src/contract.ts`; каждый токен цвета объявлен в `tokens.css` в светлом и в тёмном блоке, размеры — в `@theme`; пары из «Контраст» не ниже порога в обеих темах; каждый компонент из списка экспортирован из `apps/web/src/ui/index.ts`; `EXTENSION_KINDS` = список точек расширения ниже. Запуск: `pnpm --filter web test`.
 
-## C-ui v3
+## C-ui v4
+
+v4 (design, DS-0b): `Menu` без слота `trigger` рисует сам `IconButton` «…» (`MoreHorizontal`) с подписью `label` — модулям без зависимости `lucide-vue-next` не нужны свои иконки; `Input` передаёт атрибуты (`required`, `maxlength`, `name`, `autocomplete`, `data-*`) на `<input>`, а не на обёртку. Совместимо с v3.
 
 v3 (design, DS-0): визуал «плотно и строго, как Linear» (`docs/plan/design.md` §4). Нейтральная шкала, токены боковой панели, тени, шкала шрифта 11–20 px с базой 13 px, проверка контраста, новые компоненты (IconButton, ConfirmDialog, Tabs, Chip, AvatarStack, Kbd, EmptyState, Toolbar), правила плотности и деструктивных действий, витрина `/dev/ui`. Совместимо с v2: пропсы и события v2 сохраняются, значения токенов и вид компонентов меняются. Вариант `Button` `danger` — только для кнопки подтверждения в `ConfirmDialog`; прочие его вызовы переводит DS-4.
 v2 (collab, CL-1a): точка расширения `search` (`EXTENSION_KINDS` += `search`) — `docs/contracts/collab.md` §X-core п. 5; Inbox показывает уведомления без задачи по `body` и ведёт на `url`.
@@ -24,7 +26,7 @@ v2 (collab, CL-1a): точка расширения `search` (`EXTENSION_KINDS` 
 ### Файлы
 | Путь | Что |
 |---|---|
-| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 3, 'C-client': 4, 'C-tasks': 3, 'C-views': 2 } as const;` |
+| `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 4, 'C-client': 4, 'C-tasks': 3, 'C-views': 2 } as const;` |
 | `apps/web/src/ui/tokens.css` | токены: блок `@theme { … }` — светлая тема и общие размеры, блок `.dark { … }` — тёмная (те же имена цветов) |
 | `apps/web/src/ui/index.ts` | экспорт компонентов и `useBreakpoint`, `useTheme` |
 | `apps/web/src/styles.css` | база: `body` — `font-size: var(--text-sm)` (13 px), `line-height: var(--text-sm--line-height)` |
@@ -175,9 +177,9 @@ C-modules v10: `IconButton`, `ConfirmDialog`, `Tabs`, `Chip`, `AvatarStack`, `Kb
 |---|---|---|
 | `Button` | `variant: 'primary'\|'secondary'\|'ghost'\|'danger-ghost'\|'danger'` = `secondary`; `size: 'sm'\|'md'` = `md`; `icon?: Component`; `iconRight?: Component`; `loading?`, `disabled?`; `type` = `button`; слот default | высота 28/32 px; `danger-ghost` — текст `danger`, без фона, hover `danger-subtle`; `danger` (сплошная) — только в `ConfirmDialog`; `loading` → `aria-busy`, кнопка неактивна |
 | `IconButton` | `icon: Component` (обязателен); `label: string` (обязателен); `variant: 'ghost'\|'secondary'` = `ghost`; `size: 'sm'\|'md'` = `md`; `shortcut?: string`; `active?: boolean`; `disabled?`; событие `click` | квадрат 28/32 px; `label` → `aria-label` и `Tooltip` (с `shortcut`); `active` → `aria-pressed="true"` и фон `bg-muted` |
-| `Input` | `v-model: string`; `label: string` (обязателен); `hideLabel?`; `type?`, `placeholder?`, `error?: string`, `disabled?`; `size: 'sm'\|'md'` = `md`; `icon?: Component` (слева) | `error` → `aria-invalid` и текст под полем |
+| `Input` | `v-model: string`; `label: string` (обязателен); `hideLabel?`; `type?`, `placeholder?`, `error?: string`, `disabled?`; `size: 'sm'\|'md'` = `md`; `icon?: Component` (слева) | `error` → `aria-invalid` и текст под полем; прочие атрибуты (`required`, `maxlength`, `name`, `autocomplete`, `data-*`) — на `<input>`; `class` — на обёртку |
 | `Select` | `v-model: string\|null`; `options: {value: string, label: string, icon?: Component, color?: string}[]`; `label: string`; `placeholder?`, `disabled?`; `size: 'sm'\|'md'` = `md` | клавиатура Reka; `color` — точка 8 px перед подписью |
-| `Menu` | `items: MenuItem[]`; `side?`, `align?` = `start`; слот `trigger` | `MenuItem = {id, label, icon?, shortcut?, danger?, disabled?, confirm?: {title: string, description?: string, confirmLabel: string}, onSelect: () => void} \| {separator: true}`; `danger` — текст `danger`, hover `danger-subtle`; `confirm` задан → выбор открывает `ConfirmDialog`, `onSelect` — только после подтверждения; `shortcut` — `Kbd` справа |
+| `Menu` | `items: MenuItem[]`; `side?`, `align?` = `start`; слот `trigger`; `label?: string` (обязателен без слота `trigger`) | без слота `trigger` — `IconButton` с иконкой `MoreHorizontal`, `label` → `aria-label` и подсказка; `MenuItem = {id, label, icon?, shortcut?, danger?, disabled?, confirm?: {title: string, description?: string, confirmLabel: string}, onSelect: () => void} \| {separator: true}`; `danger` — текст `danger`, hover `danger-subtle`; `confirm` задан → выбор открывает `ConfirmDialog`, `onSelect` — только после подтверждения; `shortcut` — `Kbd` справа |
 | `Popover` | `v-model:open`; `side?`, `align?`; слоты `trigger`, default | тень `shadow-popover`, радиус `lg` |
 | `Dialog` | `v-model:open`; `title: string` (обязателен); `description?`; `size: 'sm'\|'md'\|'lg'` = `md` (ширина 400/560/720 px); слоты default, `footer` | на mobile — на весь экран; Esc закрывает; подложка `overlay`, тень `shadow-dialog` |
 | `ConfirmDialog` | `v-model:open`; `title: string` (обязателен); `description?`; `confirmLabel: string` (обязателен); `cancelLabel?` = `t('ui.cancel')`; `danger?: boolean` = `true`; событие `confirm` | `Dialog` `size="sm"`; кнопки «отмена» (`ghost`) и подтверждение (`danger` или `primary`); фокус при открытии — на «отмене»; подтверждение → `confirm`, затем закрытие; Esc и «отмена» — закрытие без `confirm` |
