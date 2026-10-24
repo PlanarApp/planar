@@ -5,12 +5,15 @@ export default {
     inbox: 'Inbox',
     my: 'My tasks',
     favorites: 'Favorites',
+    sections: 'Sections',
     spaces: 'Spaces',
     empty: 'Nothing here yet',
     settings: 'Settings',
   },
   nav: { inbox: 'Inbox', my: 'My tasks', projects: 'Projects', more: 'More' },
   topbar: {
+    search: 'Search',
+    breadcrumb: 'Breadcrumbs',
     notifications: 'Notifications',
     theme: 'Theme',
     themeSystem: 'System',
@@ -21,6 +24,7 @@ export default {
     language: 'Language',
     install: 'Install app',
     menu: 'Menu',
+    nav: 'Navigation',
   },
   fields: {
     title: 'Fields',
