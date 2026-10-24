@@ -22,6 +22,8 @@ import { api as timelineApi } from '@planar/module-timeline/api';
 import * as timelineTables from '@planar/module-timeline/api/schema';
 import { api as importApi } from '@planar/module-import/api';
 import * as importTables from '@planar/module-import/api/schema';
+import { api as workloadApi } from '@planar/module-workload/api';
+import * as workloadTables from '@planar/module-workload/api/schema';
 
 export interface InstalledModule {
   api: BackendModuleManifest;
@@ -79,6 +81,7 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: docs, tables: docsTables },
   { api: chat, tables: chatTables },
   { api: formsApi, tables: formsTables },
+  { api: workloadApi, tables: workloadTables },
   { api: timelineApi, tables: timelineTables },
 ]);
 
