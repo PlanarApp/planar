@@ -12,7 +12,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { BookmarkPlus, MoreHorizontal } from 'lucide-vue-next';
 import { useProject } from '../tasks';
-import { Button, Menu, Tabs, Toolbar, useBreakpoint } from '../ui';
+import { IconButton, Menu, Tabs, Toolbar, useBreakpoint } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import {
@@ -133,13 +133,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
                 ]"
               >
                 <template #trigger>
-                  <!-- IconButton (Tooltip) теряет атрибуты триггера Menu: берём Button -->
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    :icon="MoreHorizontal"
-                    :aria-label="t('views.more')"
-                  />
+                  <IconButton size="sm" :icon="MoreHorizontal" :label="t('views.more')" />
                 </template>
               </Menu>
             </OptionsBar>

@@ -154,6 +154,25 @@ describe('views:saved', () => {
     await until(() => r.currentRoute.value.path === `/p/${ids.project}/v/${v.id}`);
   });
 
+  it('views:saved чип исполнителя показывает имя, не id', async () => {
+    await r.push(`/p/${ids.project}`);
+    const FilterChips = (await import('../saved/FilterChips.vue')).default;
+    const w = mountScreen(
+      defineComponent({
+        render: () =>
+          h(FilterChips, {
+            spaceId: ids.space,
+            modelValue: {
+              op: 'and',
+              rules: [{ field: 'assignee', operator: 'in', value: [ids.ann] }],
+            },
+          }),
+      }),
+    );
+    await until(() => w.find('[data-testid=filter-chip]').exists());
+    await until(() => !w.get('[data-testid=filter-chip]').text().includes(ids.ann));
+  });
+
   it('views:saved чип условия снимает правило', async () => {
     await r.push(`/p/${ids.project}`);
     const w = mountScreen(ProjectScreen);

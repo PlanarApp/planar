@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useStatuses } from '../../tasks';
+import { useLabels, useMembers, useStatuses } from '../../tasks';
 import { useFieldDefs, useSpaceFieldDefs } from '../../fields';
 import { Chip } from '../../ui';
 import { isFieldRule, type Filter, type FilterRule } from '../filter';
@@ -10,6 +10,8 @@ const props = defineProps<{ spaceId: string; projectId?: string }>();
 const model = defineModel<Filter | null>({ default: null });
 const { t } = useI18n();
 const statuses = useStatuses(() => props.spaceId);
+const members = useMembers(() => props.spaceId);
+const labels = useLabels(() => props.spaceId);
 const defsByProject = useFieldDefs(() => props.projectId ?? '');
 const defsBySpace = useSpaceFieldDefs(() => props.spaceId);
 const defs = computed(() => (props.projectId ? defsByProject : defsBySpace).value ?? []);
@@ -20,6 +22,9 @@ function valueLabel(r: FilterRule, v: unknown): string {
   if (s === 'me') return t('views.filter.me');
   if (s === 'current') return t('views.filter.cycleCurrent');
   if (r.field === 'status') return statuses.value?.find((x) => x.id === s)?.name ?? s;
+  if (r.field === 'assignee' || r.field === 'createdBy')
+    return members.value?.find((x) => x.id === s)?.name ?? s;
+  if (r.field === 'label') return labels.value?.find((x) => x.id === s)?.name ?? s;
   if (r.field === 'priority') return t(`tasks.priority.${s}`);
   if (r.field === 'statusCategory') return t(`views.filter.category.${s}`);
   return s;
