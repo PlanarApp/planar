@@ -35,11 +35,11 @@ export function barOf(t: Dated): Bar | null {
   return { s: Math.min(a, b), e: Math.max(a, b) };
 }
 
-export interface DateArgs {
+export type DateArgs = {
   id: string;
   startDate?: string;
   dueDate?: string;
-}
+};
 
 /** Перенос на delta дней: сдвиг обеих дат (какие есть). */
 export function moveArgs(t: Dated, delta: number): DateArgs {
