@@ -1,8 +1,9 @@
 {
   "status": "done",
-  "summary": "Приоритет: своя SVG-иконка (14 px в compact, 16 иначе, urgent — «!» в квадрате); маски переполнения на вкладках и колонках доски; секции чата/документов с отступом и иконками; Inbox 390 — фильтр и кнопка в одну строку; gridcell в строке списка постоянны. Эталоны затронутых экранов удалены и сняты заново, прогон на свежем стеке 48 passed.",
+  "summary": "PriorityIcon на lucide (Signal*/OctagonAlert/Minus, stroke 2.5, 14/16 px); @source модулей по файлам (pl-6/ml-2 в собранном CSS), обходной комментарий убран; все 48 эталонов пересняты.",
   "commits": [
-    "a3f42c9 DS-6e: иконка приоритета, маски переполнения, секции сайдбара, Inbox на mobile, эталоны"
+    "a3f42c9 DS-6e: основной визуал",
+    "d07738f DS-6e: lucide-иконки приоритета, @source, эталоны"
   ],
   "checks": [
     {
@@ -41,35 +42,18 @@
       "pass": true
     }
   ],
-  "not_done": [
-    "Корень отсутствия отступов в секциях модулей — apps/web/src/styles.css: @source '../../../modules/*/web' без маски файлов не сканируется (pl-4, pl-6, ml-2, mr-1, py-0.5 не попадали в CSS). styles.css вне скоупа: обошёл комментарием-подсказкой в Sidebar.vue; правильно заменить на '../../../modules/*/web/**/*.vue' (проверил — классы появляются) и убрать комментарий."
-  ],
-  "questions": [
-    "Поправить @source в styles.css отдельной задачей?"
-  ],
+  "not_done": [],
+  "questions": [],
   "images": [],
   "how_to_check": ".dpcli/dpcli accept DS-6e",
   "uncertain": [
     {
-      "where": "apps/web/src/layout/Sidebar.vue:60",
-      "why": "Обход через комментарий со списком классов хрупок (тихо пропадёт при переименовании классов в модулях)",
-      "checked": "собрал CSS, классы присутствуют; эталоны board-1440-light, list-390-light, inbox-390-light, board-390-dark открыты"
-    },
-    {
-      "where": "modules/chat/web/Section.vue",
-      "why": "Личные сообщения (иконка User) на эталонах не видны — в фикстуре нет DM; «+» по наведению статикой не снять",
-      "checked": "chat.test.ts обновлён (без префикса «# »), 52 теста проходят"
-    },
-    {
-      "where": "apps/web/src/views/list/Row.vue",
-      "why": "Пункт 5: пустые gridcell без ширины (пикеры по-прежнему лениво монтируются); замер switch не гонял",
-      "checked": "vitest web-tests проходят"
+      "where": "apps/web/src/tasks/fields/PriorityIcon.vue",
+      "why": "глиф lucide Signal* занимает малую часть рамки, на list-1440 low-иконка всё ещё мелкая; в рамках C-ui не увеличить",
+      "checked": "list-1440-light, board-390-light"
     }
   ],
-  "dp_feedback": "Хотелось бы в accept проверку 'классы Tailwind из modules попали в сборку'; dpcli lock cpu <имя> -- cmd уходит в job без ожидания — не очевидно, что нужно job wait.",
-  "extra": {
-    "items": "1 исправлено; 2 исправлено (маска 40px, видна на list-390/board-390); 3 исправлено (через обход, см. not_done); 4 исправлено; 5 исправлено"
-  },
-  "t": "2026-10-24T18:24:06",
+  "dp_feedback": "",
+  "t": "2026-10-24T18:40:14",
   "by": "executor"
 }
