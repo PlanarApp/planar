@@ -1,0 +1,9 @@
+{
+  "module": "design",
+  "plan": "docs/plan/design.md",
+  "contracts": "docs/contracts/design.md",
+  "branch": "feature/design",
+  "copy": "~/planar-design",
+  "created": "2026-10-24T10:48:59",
+  "code": "DS"
+}
