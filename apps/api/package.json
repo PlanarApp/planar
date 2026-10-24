@@ -19,6 +19,7 @@
     "@planar/module-chat": "workspace:*",
     "@planar/module-docs": "workspace:*",
     "@planar/module-gitlab": "workspace:*",
+    "@planar/module-forms": "workspace:*",
     "@planar/module-hello": "workspace:*",
     "@planar/module-automations": "workspace:*",
     "@planar/module-import": "workspace:*",

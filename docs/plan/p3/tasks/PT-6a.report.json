@@ -1,0 +1,76 @@
+{
+  "status": "done",
+  "summary": "Модуль modules/gitlab: токен AES-256-GCM (PLANAR_SECRET_KEY), REST админа, cron-опрос MR с пагинацией и курсором, привязка по ключу, gitlabMrs/gitlabProjectSettings, мутаторы, авто-статус при merge, миграция 0014. 12 тестов pt6a против фейкового GitLab.",
+  "commits": [
+    "3274f44 gitlab: модуль PT-6a",
+    "gitlab: коды ошибок по HttpError, prettier для миграции"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "pt6a",
+      "value": "12 passed",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "web/index.ts — манифест без элементов (панель и настройки — PT-6b)",
+    "PLANAR_SECRET_KEY не добавлен в .env.example (вне скоупа)"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-6a",
+  "uncertain": [
+    {
+      "where": "modules/gitlab/api/poll.ts, controller.ts, crypto.ts",
+      "why": "безопасность токена: нужен dp-reviewer",
+      "checked": "токен: в БД только token_enc (тест: нет открытого, iv разный, расшифровка верна); GET/PUT не отдают токен и tokenEnc (тест на тело ответа); токен идёт только в заголовок PRIVATE-TOKEN; log.warn пишет коды ошибок и id проекта, не URL с заголовками и не тело ответа; last_error хранит только коды (unauthorized, http_NNN, not_found, rate_limited) либо e.message fetch (без токена); redirect: manual, чтобы токен не ушёл на чужой хост; 503 при PUT без ключа не эхо-возвращает токен"
+    },
+    {
+      "where": "shared/index.ts gitlab.mr.sync",
+      "why": "полный scan gitlabMrs по (gitlabProjectId, iid): индекса нет в контракте; авто-статус сделан tx.patch tasks (statusId, completedAt по категории, updatedAt), а не вызовом task.update (мутатор из мутатора вызвать нельзя); переход в merged = предыдущей строки нет или state != merged (первый опрос подтянет давно смерженные MR за 30 дней и сменит статусы)",
+      "checked": "тесты merge/без настройки/идемпотентность повторного опроса"
+    },
+    {
+      "where": "controller.ts DELETE projects/:id",
+      "why": "строки gitlabMrs удаляются прямым SQL, без записи в журнал синхронизации — открытые клиенты видят MR до перезагрузки",
+      "checked": "тест удаления; через мутатор из REST нельзя (CoreServices без execute)"
+    },
+    {
+      "where": "controller.ts",
+      "why": "коды ошибок HttpError ограничены перечнем; not_configured/gitlab_* заменены на conflict/unavailable (409/502)",
+      "checked": "build"
+    },
+    {
+      "where": "poll.ts get()",
+      "why": "без курсора пагинация идёт до конца (не только первые 100 MR)",
+      "checked": "тест 3 страниц"
+    }
+  ],
+  "dp_feedback": "accept --dry без job блокирует на >120 с; хорошо бы сразу печатать подсказку про job start. task sync отказывает при грязной копии, даже если грязь — prettier-правки своих файлов.",
+  "t": "2026-10-24T11:13:21",
+  "by": "executor"
+}

@@ -1,5 +1,5 @@
 {
-  "id": "a9eb8c4f-1e40-4b8a-b549-ec570d2c1fed",
+  "id": "a856cb47-b7dc-42af-9d84-f89496016844",
   "prevId": "7b397cad-7b93-42ff-bdeb-c4ef193545ee",
   "version": "7",
   "dialect": "postgresql",
@@ -4024,65 +4024,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.gitlab_config": {
-      "name": "gitlab_config",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "base_url": {
-          "name": "base_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token_enc": {
-          "name": "token_enc",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "interval_sec": {
-          "name": "interval_sec",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 120
-        },
-        "last_error": {
-          "name": "last_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_error_at": {
-          "name": "last_error_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.gitlab_mrs": {
-      "name": "gitlab_mrs",
+    "public.forms_forms": {
+      "name": "forms_forms",
       "schema": "",
       "columns": {
         "id": {
@@ -4097,21 +4040,15 @@
           "primaryKey": false,
           "notNull": true
         },
-        "task_id": {
-          "name": "task_id",
+        "project_id": {
+          "name": "project_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "gitlab_project_id": {
-          "name": "gitlab_project_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "iid": {
-          "name": "iid",
-          "type": "integer",
+        "slug": {
+          "name": "slug",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -4121,33 +4058,33 @@
           "primaryKey": false,
           "notNull": true
         },
-        "source_branch": {
-          "name": "source_branch",
+        "description": {
+          "name": "description",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fields": {
+          "name": "fields",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
-        "state": {
-          "name": "state",
-          "type": "text",
+        "status_id": {
+          "name": "status_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "author_name": {
-          "name": "author_name",
-          "type": "text",
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true
         },
-        "web_url": {
-          "name": "web_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "mr_updated_at": {
-          "name": "mr_updated_at",
-          "type": "timestamp with time zone",
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -4165,88 +4102,8 @@
         }
       },
       "indexes": {
-        "gitlab_mrs_task_id_idx": {
-          "name": "gitlab_mrs_task_id_idx",
-          "columns": [
-            {
-              "expression": "task_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "gitlab_mrs_mr_uq": {
-          "name": "gitlab_mrs_mr_uq",
-          "columns": [
-            {
-              "expression": "task_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "gitlab_project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "iid",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.gitlab_project_settings": {
-      "name": "gitlab_project_settings",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "space_id": {
-          "name": "space_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "merged_status_id": {
-          "name": "merged_status_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "gitlab_project_settings_space_id_idx": {
-          "name": "gitlab_project_settings_space_id_idx",
+        "forms_forms_space_id_idx": {
+          "name": "forms_forms_space_id_idx",
           "columns": [
             {
               "expression": "space_id",
@@ -4259,79 +4116,63 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "forms_forms_project_id_idx": {
+          "name": "forms_forms_project_id_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "forms_forms_slug_unique": {
+          "name": "forms_forms_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": ["slug"]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.gitlab_projects": {
-      "name": "gitlab_projects",
+    "public.forms_rate_limits": {
+      "name": "forms_rate_limits",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
+        "key": {
+          "name": "key",
+          "type": "text",
           "primaryKey": true,
           "notNull": true
         },
-        "gitlab_project_id": {
-          "name": "gitlab_project_id",
+        "count": {
+          "name": "count",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
-        "path": {
-          "name": "path",
-          "type": "text",
+        "window_started_at": {
+          "name": "window_started_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
-        },
-        "cursor": {
-          "name": "cursor",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_polled_at": {
-          "name": "last_polled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_error": {
-          "name": "last_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_error_at": {
-          "name": "last_error_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "gitlab_projects_gitlabProjectId_unique": {
-          "name": "gitlab_projects_gitlabProjectId_unique",
-          "nullsNotDistinct": false,
-          "columns": ["gitlab_project_id"]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

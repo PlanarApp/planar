@@ -1,0 +1,69 @@
+{
+  "status": "done",
+  "summary": "Модуль modules/forms (formsForms, forms.create/update/delete, публичные GET/POST /api/forms/public/:slug: схема zod из fields, honeypot, лимит IP 5/мин и 30/час, 404 без различий, multipart-вложения до 3 файлов). CoreServices v9: execute, ensureSystemUser(login,name), storeFile (общий commitFile для /files и ядра). Миграция 0014.",
+  "commits": [
+    "94f0f8c forms: модуль и публичный эндпоинт, CoreServices v9"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "pt5a",
+      "value": "18",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "web/страница /f/<slug> и настройки — PT-5b; тексты core.md/versions.ts — другая задача"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-5a",
+  "uncertain": [
+    {
+      "where": "modules/forms/api/controller.ts:maxUploadBytes",
+      "why": "сумма файлов ограничена по process.env.MAX_UPLOAD_MB (fallback 50), а не по опциям приложения: CoreServices не отдаёт лимит; лимит одного файла берётся из реального FILES_OPTS в storeFile",
+      "checked": "тест 413 с MAX_UPLOAD_MB=1 и maxUploadMb:1"
+    },
+    {
+      "where": "packages/server-kit/src/core.ts:storeFile",
+      "why": "добавил необязательный третий аргумент mime (контракт: buf, uploaderId); без него mime = application/octet-stream",
+      "checked": "тест storeFile"
+    },
+    {
+      "where": "modules/forms/api/controller.ts:submit",
+      "why": "лимит JSON 64 КБ проверяется в обработчике (content-length и размер разобранного тела), а не bodyLimit маршрута; глобальный bodyLimit 1 МБ остаётся",
+      "checked": "тест 70 КБ → 413"
+    },
+    {
+      "where": "modules/forms/api/controller.ts:limit",
+      "why": "счётчик растёт и на отклонённых 429, как у login-limit; 404 не считаются",
+      "checked": "тесты 429 минутный/часовой"
+    }
+  ],
+  "dp_feedback": "task sync отказывает при грязной копии даже для нового файла миграции — пришлось сначала коммитить.",
+  "t": "2026-10-24T11:13:53",
+  "by": "executor"
+}

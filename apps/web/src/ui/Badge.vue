@@ -2,12 +2,13 @@
 import { computed } from 'vue';
 
 const props = withDefaults(
-  defineProps<{ variant?: 'solid' | 'soft' | 'outline'; color?: string }>(),
+  defineProps<{ variant?: 'solid' | 'soft' | 'outline'; color?: string; dot?: boolean }>(),
   { variant: 'soft' },
 );
 // color — значение из данных (статус, метка), допустимый литерал
 const style = computed(() => {
   const c = props.color ?? 'var(--color-fg-muted)';
+  if (props.dot) return {};
   if (props.variant === 'solid') return { background: c, color: 'var(--color-bg)' };
   if (props.variant === 'outline') return { border: `1px solid ${c}`, color: c };
   return { background: `color-mix(in srgb, ${c} 15%, transparent)`, color: c };
@@ -16,9 +17,17 @@ const style = computed(() => {
 
 <template>
   <span
-    class="inline-flex items-center rounded-sm px-1.5 py-0.5 text-xs font-medium"
+    :class="[
+      'inline-flex h-5 items-center rounded-sm text-xs font-medium',
+      dot ? 'gap-1 text-fg-muted' : 'px-1.5',
+    ]"
     :style="style"
   >
+    <span
+      v-if="dot"
+      class="size-2 shrink-0 rounded-full"
+      :style="{ background: color ?? 'var(--color-fg-muted)' }"
+    />
     <slot />
   </span>
 </template>

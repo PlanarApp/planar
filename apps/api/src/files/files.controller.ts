@@ -15,9 +15,10 @@ import { attachments, fileUploads, files, spaceMembers, users } from '../db/sche
 import { enabledModules } from '../modules/enabled.js';
 import { installed } from '../modules/installed.js';
 import { DB } from '../tokens.js';
+import { commitFile, filePath, type FilesOpts } from './store.js';
 
 export const FILES_OPTS = Symbol('FILES_OPTS');
-export type FilesOpts = { dataDir: string; maxUploadMb: number };
+export type { FilesOpts };
 
 const SHA = /^[0-9a-f]{64}$/;
 const notFound = () => new HttpError(404, 'not_found', 'Файл не найден');
@@ -31,7 +32,7 @@ export class FilesController {
   ) {}
 
   private path(sha: string) {
-    return join(this.opts.dataDir, 'files', sha.slice(0, 2), sha.slice(2, 4), sha);
+    return filePath(this.opts.dataDir, sha);
   }
 
   @Post()
@@ -81,48 +82,14 @@ export class FilesController {
           ? badRequest('Некорректный multipart')
           : e;
     }
-    const sha = hash.digest('hex');
-    const dest = this.path(sha);
-    try {
-      let width: number | null = null;
-      let height: number | null = null;
-      if (mime.startsWith('image/')) {
-        try {
-          const m = await sharp(tmp).metadata();
-          width = m.width ?? null;
-          height = m.height ?? null;
-        } catch {
-          // не картинка или битая — размеров нет
-        }
-      }
-      if (
-        await stat(dest).then(
-          () => true,
-          () => false,
-        )
-      )
-        await rm(tmp);
-      else {
-        await mkdir(join(dest, '..'), { recursive: true });
-        await rename(tmp, dest);
-      }
-      await this.db
-        .insert(files)
-        .values({ sha256: sha, size, mime, width, height, createdBy: userId })
-        .onConflictDoNothing();
-      await this.db.insert(fileUploads).values({ sha256: sha, userId }).onConflictDoNothing();
-    } catch (e) {
-      await rm(tmp, { force: true });
-      throw e;
-    }
-    const [row] = await this.db.select().from(files).where(eq(files.sha256, sha));
-    void reply.status(201).send({
-      sha256: sha,
-      size: row!.size,
-      mime: row!.mime,
-      width: row!.width,
-      height: row!.height,
+    const out = await commitFile(this.db, this.opts.dataDir, {
+      tmp,
+      sha: hash.digest('hex'),
+      size,
+      mime,
+      userId,
     });
+    void reply.status(201).send(out);
   }
 
   /** Строка files, если файл существует и пользователь вправе его видеть; иначе 404. */
