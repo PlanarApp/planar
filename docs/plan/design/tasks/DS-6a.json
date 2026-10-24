@@ -1,0 +1,69 @@
+{
+  "id": "DS-6a",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "Визуал: сроки по-русски, карточка доски без обрезки, читаемые иконки приоритета",
+  "goal": "Сроки в строке списка, «Моих задачах» и на карточке доски — локализованы («8 мар», с годом, если не текущий), а не ISO; заголовок карточки доски не обрезается (до 3 строк, нижняя строка не наезжает); иконка приоритета 14–16 px и различима для всех уровней.",
+  "plan_ref": "5. Задачи / DS-5",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "4",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-6a",
+  "branch": "design/DS-6a",
+  "base": "feature/design",
+  "scope": [
+    "apps/web/src/views/list",
+    "apps/web/src/views/board",
+    "apps/web/src/screens/MyScreen.vue",
+    "apps/web/src/tasks/fields/DueDatePicker.vue",
+    "apps/web/src/tasks/fields/PriorityIcon.vue",
+    "apps/web/src/tasks/__tests__",
+    "build/artifacts/DS-6a"
+  ],
+  "dont_touch": [
+    "apps/web/src/layout/, apps/web/src/screens/ кроме MyScreen.vue — DS-6b, DS-6c",
+    "прочие apps/web/src/tasks — C-tasks, пропсы и экспорты не менять",
+    "e2e/web/visual.spec.ts-snapshots/ — эталоны обновит DS-5d после всех правок; не коммитить png",
+    "apps/web/src/__contract__/, apps/web/src/contract.ts, docs/contracts/ — только координатор",
+    "packages/, apps/api/ — core и p3"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T15:41:13"
+}
