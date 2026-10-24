@@ -406,6 +406,7 @@ export class ServerTx implements Tx {
       }
       if (w === 'member|self' && r.userId != null && r.userId !== this.ctx.userId)
         throw forbidden('личный вид другого пользователя');
+      if (w === 'member|self' && r.userId != null && r.spaceId == null) continue;
       const need = RANK[w === 'member|self' ? 'member' : w];
       if ((await this.spaceRole(spaceId)) < need) throw forbidden('нет прав на пространство');
     }
