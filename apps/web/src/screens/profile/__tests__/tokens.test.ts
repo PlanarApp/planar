@@ -39,19 +39,16 @@ async function open(h: Parameters<typeof mockFetch>[0]) {
     global: { plugins: [mkRouter(), mkI18n()] },
     attachTo: document.body,
   });
-  const d = w.find('details');
-  (d.element as HTMLDetailsElement).open = true;
-  await d.trigger('toggle');
   await flushPromises();
   return { w, f };
 }
 
 describe('tokens:', () => {
-  it('tokens: профиль не грузит список до раскрытия', async () => {
+  it('tokens: профиль загружает список при открытии', async () => {
     const f = mockFetch(() => json(200, { tokens: [] }));
     mount(ProfileScreen, { global: { plugins: [mkRouter(), mkI18n()] } });
     await flushPromises();
-    expect(f).not.toHaveBeenCalled();
+    expect(f.mock.calls.map((c) => c[0])).toContain('/api/tokens');
   });
   it('tokens: список показывает префикс и права', async () => {
     const { w } = await open(() => json(200, { tokens: [tk()] }));
@@ -61,8 +58,8 @@ describe('tokens:', () => {
     const { w, f } = await open((m) =>
       m === 'POST' ? json(201, { token: tk(), secret: 'plnr_xyz' }) : json(200, { tokens: [] }),
     );
-    await w.find('details input:not([type=radio])').setValue(' CI ');
-    await w.find('details form').trigger('submit');
+    await w.find('[data-testid=tokens] input:not([type=radio])').setValue(' CI ');
+    await w.find('[data-testid=tokens] form').trigger('submit');
     await flushPromises();
     const post = f.mock.calls.find((c) => c[1]?.method === 'POST')!;
     expect(JSON.parse(post[1]!.body as string)).toEqual({
@@ -75,7 +72,7 @@ describe('tokens:', () => {
   });
   it('tokens: пустое название — ошибка без запроса', async () => {
     const { w, f } = await open(() => json(200, { tokens: [] }));
-    await w.find('details form').trigger('submit');
+    await w.find('[data-testid=tokens] form').trigger('submit');
     expect(w.find('[role=alert]').exists()).toBe(true);
     expect(f.mock.calls.every((c) => c[1]?.method !== 'POST')).toBe(true);
   });
@@ -85,8 +82,8 @@ describe('tokens:', () => {
     const { w } = await open((m) =>
       m === 'POST' ? json(201, { token: tk(), secret: 'plnr_xyz' }) : json(200, { tokens: [] }),
     );
-    await w.find('details input:not([type=radio])').setValue('CI');
-    await w.find('details form').trigger('submit');
+    await w.find('[data-testid=tokens] input:not([type=radio])').setValue('CI');
+    await w.find('[data-testid=tokens] form').trigger('submit');
     await flushPromises();
     await w.find('[data-testid=copy]').trigger('click');
     expect(writeText).toHaveBeenCalledWith('plnr_xyz');

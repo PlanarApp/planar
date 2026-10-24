@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Badge, Button, Input, Select } from '../../ui';
 import RowMenu from '../settings/RowMenu.vue';
@@ -47,10 +47,7 @@ async function load() {
   }
 }
 
-// список грузится при первом раскрытии, не при открытии профиля
-function onToggle(e: Event) {
-  if ((e.target as HTMLDetailsElement).open && !loaded.value) void load();
-}
+onMounted(load);
 
 async function create() {
   err.value = '';
@@ -98,9 +95,9 @@ const fmt = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '');
 </script>
 
 <template>
-  <details class="flex flex-col gap-3" data-testid="tokens" @toggle="onToggle">
-    <summary class="cursor-pointer text-sm font-medium">{{ t('tokens.title') }}</summary>
-    <div class="mt-3 flex flex-col gap-3">
+  <section class="flex flex-col gap-3" data-testid="tokens" :aria-label="t('tokens.title')">
+    <h2 class="text-lg font-semibold">{{ t('tokens.title') }}</h2>
+    <div class="flex flex-col gap-3">
       <form class="flex flex-col gap-3" @submit.prevent="create">
         <Input v-model="f.name" :label="t('tokens.name')" />
         <fieldset class="flex gap-4 text-sm">
@@ -166,8 +163,10 @@ const fmt = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '');
         <p class="text-sm text-fg-muted">{{ t('tokens.mcpText') }}</p>
         <code class="break-all text-sm" data-testid="mcp-url">{{ mcpUrl }}</code>
         <pre class="overflow-x-auto text-xs" data-testid="mcp-config">{{ mcpConfig }}</pre>
-        <Button size="sm" @click="copy(mcpConfig)">{{ t('tokens.copyConfig') }}</Button>
+        <Button size="sm" class="self-start" @click="copy(mcpConfig)">{{
+          t('tokens.copyConfig')
+        }}</Button>
       </section>
     </div>
-  </details>
+  </section>
 </template>

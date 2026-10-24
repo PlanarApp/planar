@@ -64,6 +64,9 @@ export default {
     },
   },
   inbox: {
+    all: 'All',
+    filter: 'Filter',
+    actions: 'Actions',
     today: 'Today',
     yesterday: 'Yesterday',
     empty: 'All caught up',
@@ -152,6 +155,9 @@ export default {
     },
   },
   profile: {
+    title: 'Profile',
+    appearance: 'Appearance',
+    notifications: 'Notifications',
     weekStart: 'Week starts on',
     weekAuto: 'Auto (by language)',
     weekMon: 'Monday',
@@ -427,7 +433,7 @@ export default {
     send: 'Send',
     notFound: 'Task not found',
     description: 'Description',
-    descriptionPlaceholder: "Description… (Markdown, {'@'} to mention)",
+    descriptionPlaceholder: 'Add a description…',
     mention: 'Mention',
     addReaction: 'Add reaction',
     tooLarge: 'File is larger than allowed',

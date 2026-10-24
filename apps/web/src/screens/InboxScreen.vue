@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { BellOff, Inbox, Trash2 } from 'lucide-vue-next';
-import { Button, EmptyState, Menu, type MenuItem } from '../ui';
+import { Button, EmptyState, Menu, Tabs, useBreakpoint, type MenuItem } from '../ui';
 import { router } from '../router';
 import { mutate } from '../sync';
 import { openTask } from '../views';
@@ -12,7 +12,10 @@ import { isSnoozed, snooze, snoozeUntil, snoozed, type SnoozeOption } from '../i
 
 const { t, locale } = useI18n();
 const rows = useNotifications();
-const onlyUnread = ref(false);
+const act = 'flex size-11 items-center justify-center rounded-md hover:bg-bg-muted md:size-8';
+const filter = ref('all');
+const onlyUnread = computed(() => filter.value === 'unread');
+const { isMobile } = useBreakpoint();
 
 const visible = computed(() =>
   (rows.value ?? []).filter(
@@ -50,15 +53,31 @@ const snoozeItems = (n: InboxItem): MenuItem[] =>
     label: t(`inbox.snooze.${o}`),
     onSelect: () => snooze(n.id, snoozeUntil(o)),
   }));
+const rowItems = (n: InboxItem): MenuItem[] => [
+  ...snoozeItems(n),
+  { separator: true },
+  {
+    id: 'delete',
+    label: t('inbox.delete'),
+    icon: Trash2,
+    danger: true,
+    onSelect: () => mutate('notification.delete', { ids: [n.id] }),
+  },
+];
 </script>
 
 <template>
   <div class="flex flex-col gap-3 p-4">
     <div class="flex flex-wrap items-center gap-2">
       <h1 class="flex-1 text-xl font-semibold">{{ t('screens.inbox') }}</h1>
-      <label class="flex items-center gap-1 text-sm">
-        <input v-model="onlyUnread" type="checkbox" />{{ t('inbox.onlyUnread') }}
-      </label>
+      <Tabs
+        v-model="filter"
+        :label="t('inbox.filter')"
+        :items="[
+          { value: 'all', label: t('inbox.all') },
+          { value: 'unread', label: t('inbox.onlyUnread') },
+        ]"
+      />
       <Button size="sm" :disabled="!unreadIds.length" @click="read(unreadIds)">
         {{ t('inbox.readAll') }}
       </Button>
@@ -77,36 +96,35 @@ const snoozeItems = (n: InboxItem): MenuItem[] =>
         :key="n.id"
         data-testid="inbox-item"
         :data-unread="!n.readAt || undefined"
-        class="flex items-center gap-1 rounded-md hover:bg-bg-muted"
+        class="group flex items-center gap-1 rounded-md hover:bg-bg-muted"
         :class="n.readAt ? 'text-fg-muted' : 'bg-accent-subtle font-medium'"
       >
         <button
           type="button"
-          class="min-h-11 flex-1 truncate px-2 text-left text-sm outline-none focus-visible:ring-2 ring-focus"
+          class="min-h-11 min-w-0 flex-1 px-2 text-left md:min-h-8 md:truncate text-sm outline-none focus-visible:ring-2 ring-focus"
           @click="open(n)"
         >
           {{ t(`inbox.kind.${n.kind}`, { who: n.actorName, key: n.taskKey ?? '?' }) }}
           <span class="text-fg-subtle">{{ n.taskTitle }}</span>
         </button>
-        <Menu :items="snoozeItems(n)">
-          <template #trigger>
-            <button
-              type="button"
-              :aria-label="t('inbox.snoozeLabel')"
-              class="flex size-11 items-center justify-center md:size-8"
-            >
-              <BellOff :size="16" />
-            </button>
-          </template>
-        </Menu>
-        <button
-          type="button"
-          :aria-label="t('inbox.delete')"
-          class="flex size-11 items-center justify-center md:size-8"
-          @click="mutate('notification.delete', { ids: [n.id] })"
-        >
-          <Trash2 :size="16" />
-        </button>
+        <Menu v-if="isMobile" :items="rowItems(n)" :label="t('inbox.actions')" align="end" />
+        <div v-else class="flex opacity-0 group-focus-within:opacity-100 group-hover:opacity-100">
+          <Menu :items="snoozeItems(n)" align="end">
+            <template #trigger>
+              <button type="button" :aria-label="t('inbox.snoozeLabel')" :class="act">
+                <BellOff :size="16" />
+              </button>
+            </template>
+          </Menu>
+          <button
+            type="button"
+            :aria-label="t('inbox.delete')"
+            :class="act"
+            @click="mutate('notification.delete', { ids: [n.id] })"
+          >
+            <Trash2 :size="16" />
+          </button>
+        </div>
       </div>
     </section>
   </div>

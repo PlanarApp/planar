@@ -64,6 +64,9 @@ export default {
     },
   },
   inbox: {
+    all: 'Все',
+    filter: 'Фильтр',
+    actions: 'Действия',
     today: 'Сегодня',
     yesterday: 'Вчера',
     empty: 'Всё прочитано',
@@ -152,6 +155,9 @@ export default {
     },
   },
   profile: {
+    title: 'Профиль',
+    appearance: 'Внешний вид',
+    notifications: 'Уведомления',
     weekStart: 'Начало недели',
     weekAuto: 'Авто (по языку)',
     weekMon: 'Понедельник',
@@ -427,7 +433,7 @@ export default {
     send: 'Отправить',
     notFound: 'Задача не найдена',
     description: 'Описание',
-    descriptionPlaceholder: "Описание… (Markdown, {'@'} — упомянуть)",
+    descriptionPlaceholder: 'Добавьте описание…',
     mention: 'Упоминание',
     addReaction: 'Добавить реакцию',
     tooLarge: 'Файл больше допустимого размера',
