@@ -103,7 +103,7 @@ export class GitlabController {
     const b = parseBody(postProject, body);
     const [c] = await this.core.db.select().from(C).where(eq(C.id, 'default'));
     const key = secretKey();
-    if (!c?.tokenEnc || !key) throw new HttpError(409, 'not_configured', 'Сначала задайте токен');
+    if (!c?.tokenEnc || !key) throw new HttpError(409, 'conflict', 'Сначала задайте токен');
     let found;
     try {
       found = await fetchProject(c.baseUrl, decrypt(c.tokenEnc, key), b.project);
@@ -111,10 +111,10 @@ export class GitlabController {
       if (e instanceof HttpFail && e.status === 404)
         throw new HttpError(404, 'not_found', 'Проект не найден в GitLab');
       if (e instanceof Unauthorized)
-        throw new HttpError(502, 'gitlab_unauthorized', 'GitLab отклонил токен');
+        throw new HttpError(502, 'unavailable', 'GitLab отклонил токен');
       throw new HttpError(
         502,
-        'gitlab_unreachable',
+        'unavailable',
         e instanceof Deferred ? 'GitLab ограничил запросы' : 'GitLab недоступен',
       );
     }
