@@ -118,3 +118,4 @@
 {"t": "2026-10-24T12:47:23", "by": "coordinator", "task": "DS-2", "ev": "checked", "note": "7/7 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0; chip-tests=ok:3"}
 {"t": "2026-10-24T12:49:11", "by": "reviewer", "task": "DS-2", "ev": "reviewed", "note": "Замечания прошлого ревью закрыты: testid save-as-view снят координатором; чипы field:<id> показывают подпись варианта, имя участника, рубли (/100, как String(v…", "verdict": "accept", "review": "docs/plan/design/tasks/DS-2.review.json"}
 {"t": "2026-10-24T12:49:35", "by": "coordinator", "task": "DS-2", "ev": "accepted", "note": "по ревью"}
+{"t": "2026-10-24T12:49:36", "by": "coordinator", "task": "DS-2", "ev": "merged"}
