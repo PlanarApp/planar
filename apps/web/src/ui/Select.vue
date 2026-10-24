@@ -12,12 +12,16 @@ import {
 } from 'reka-ui';
 import { ChevronDown } from 'lucide-vue-next';
 
-defineProps<{
-  options: { value: string; label: string; icon?: Component; color?: string }[];
-  label: string;
-  placeholder?: string;
-  disabled?: boolean;
-}>();
+withDefaults(
+  defineProps<{
+    options: { value: string; label: string; icon?: Component; color?: string }[];
+    label: string;
+    placeholder?: string;
+    disabled?: boolean;
+    size?: 'sm' | 'md';
+  }>(),
+  { size: 'md' },
+);
 const model = defineModel<string | null>({ default: null });
 </script>
 
@@ -25,7 +29,10 @@ const model = defineModel<string | null>({ default: null });
   <SelectRoot v-model="model as string | undefined" :disabled="disabled">
     <SelectTrigger
       :aria-label="label"
-      class="inline-flex h-11 md:h-8 items-center justify-between gap-2 rounded-md border border-border-strong bg-bg px-2.5 text-base text-fg outline-none focus-visible:ring-2 ring-focus disabled:opacity-50"
+      :class="[
+        'inline-flex items-center justify-between gap-2 rounded-md border border-border-strong bg-bg px-2 text-sm text-fg outline-none focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-50',
+        size === 'sm' ? 'h-11 md:h-7' : 'h-11 md:h-8',
+      ]"
     >
       <SelectValue :placeholder="placeholder" />
       <ChevronDown :size="16" class="text-fg-subtle" />
@@ -34,14 +41,14 @@ const model = defineModel<string | null>({ default: null });
       <SelectContent
         position="popper"
         :side-offset="4"
-        class="z-50 min-w-[var(--reka-select-trigger-width)] rounded-lg border border-border bg-surface p-1 shadow-md"
+        class="z-50 min-w-[var(--reka-select-trigger-width)] rounded-lg border border-border bg-surface p-1 shadow-popover"
       >
         <SelectViewport>
           <SelectItem
             v-for="o in options"
             :key="o.value"
             :value="o.value"
-            class="flex h-11 md:h-8 cursor-default items-center gap-2 rounded-sm px-2 text-base text-fg outline-none data-[highlighted]:bg-bg-muted data-[state=checked]:bg-accent-subtle"
+            class="flex h-11 md:h-8 cursor-default items-center gap-2 rounded-md px-2 text-sm text-fg outline-none data-[highlighted]:bg-bg-muted data-[state=checked]:bg-accent-subtle"
           >
             <component :is="o.icon" v-if="o.icon" :size="16" :style="{ color: o.color }" />
             <span

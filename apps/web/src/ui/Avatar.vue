@@ -28,7 +28,7 @@ const hue = computed(() => [...props.name].reduce((h, c) => (h * 31 + c.charCode
     <AvatarFallback
       class="flex size-full items-center justify-center font-medium text-white"
       :style="{ background: `hsl(${hue} 45% 40%)`, fontSize: px[size] * 0.42 + 'px' }"
-      :delay-ms="src ? 300 : 0"
+      :delay-ms="src ? 300 : undefined"
     >
       {{ initials }}
     </AvatarFallback>

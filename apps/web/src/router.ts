@@ -1,7 +1,9 @@
 import { useAuth } from './auth/useAuth';
 import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router';
 
-const screen = (name: string) => () => import(`./screens/${name}Screen.vue`);
+// без витрины: DevUiScreen подключается отдельно и только в dev
+const screens = import.meta.glob(['./screens/*Screen.vue', '!./screens/DevUiScreen.vue']);
+const screen = (name: string) => screens[`./screens/${name}Screen.vue`];
 
 export const router = createRouter({
   history: typeof window === 'undefined' ? createMemoryHistory() : createWebHistory(),
@@ -19,6 +21,14 @@ export const router = createRouter({
     { path: '/m/:moduleId/:rest(.*)*', name: 'module', component: screen('Module') },
   ],
 });
+
+if (import.meta.env.DEV)
+  router.addRoute({
+    path: '/dev/ui',
+    name: 'devUi',
+    component: () => import('./screens/DevUiScreen.vue'),
+    meta: { layout: 'none' },
+  });
 
 router.beforeEach(async (to) => {
   const { user, ready, refresh, setupNeeded } = useAuth();
