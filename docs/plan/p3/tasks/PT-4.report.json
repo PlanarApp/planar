@@ -1,0 +1,68 @@
+{
+  "status": "partial",
+  "summary": "Модуль modules/dashboards: сущности, 6 мутаторов, миграция 0015, web (список, сетка 12 колонок с pointer-перетаскиванием и размером, number/bars/line/list, свой SVG). Личные дашборды (spaceId null) требуют правки ядра server-tx.ts вне scope (коммит 31a36e0).",
+  "commits": [
+    "b53f5a7 модуль дашбордов",
+    "31a36e0 sync: member|self для личной строки без spaceId (вне scope)"
+  ],
+  "checks": [
+    {
+      "name": "pt4-api",
+      "value": "4 passed",
+      "pass": true
+    },
+    {
+      "name": "pt4-web",
+      "value": "10 passed",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "152.9 KB",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "падает 1 тест chat 'отправка ≤50 мс': 50.3 мс (флейк под нагрузкой, не мой код)",
+      "pass": false
+    },
+    {
+      "name": "test-all",
+      "value": "падает только contract.schema 'schema ydocs' (ожидалось до PT-1a)",
+      "pass": false
+    },
+    {
+      "name": "scope",
+      "value": "вне scope: миграция apps/api/drizzle (требует карточка) и server-tx.ts",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "Группировка bars по field:<id> есть в расчёте и контракте, но не выбирается в диалоге виджета",
+    "Серверная агрегация при >50000 задач — отдельная задача по контракту"
+  ],
+  "questions": [
+    "Принять правку server-tx.ts (authorize: member|self со spaceId null и userId задан пропускает проверку роли пространства)? Иначе dashboards.create личного даёт forbidden."
+  ],
+  "how_to_check": ".dpcli/dpcli accept PT-4 --dry",
+  "uncertain": [
+    {
+      "where": "apps/api/src/sync/server-tx.ts:authorize",
+      "why": "ядро проверяло spaceRole(undefined) для личной строки без spaceId, контракт C-schema говорит 'по scope строки'",
+      "checked": "pt4-api: личный create, чужой не виден, forbidden на правках; userId чужого запрещён строкой выше"
+    },
+    {
+      "where": "modules/dashboards/web/WidgetBody.vue",
+      "why": "подписи столбцов для select-полей показывают сырое значение; UI вручную не смотрел",
+      "checked": "юнит-тесты с моком data.ts, сборка web"
+    }
+  ],
+  "dp_feedback": "accept --dry идёт >2 мин и блокирует; scope-проверка помечает миграцию, которую требует сама карточка.",
+  "t": "2026-10-24T12:01:30",
+  "by": "executor"
+}

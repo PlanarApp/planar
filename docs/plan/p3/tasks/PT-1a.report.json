@@ -1,65 +1,69 @@
 {
-  "status": "partial",
+  "status": "done",
   "summary": "Hocuspocus на WS /collab (сессия+Origin, права docs/task, readOnly для guest/архива), ydocs + миграция 0014, проекция через executeMutations от последнего правившего, внешняя запись через журнал changes, пакет @planar/editor (схема + палитра курсоров), Editor.vue берёт схему из пакета, proxy Vite/Caddy. 12 тестов pt1a зелёные.",
   "commits": [
     "7d61a6b PT-1a: collab",
-    "179cab4 понижение роли закрывает соединение"
+    "179cab4 понижение роли закрывает соединение",
+    "6934d40 миграция 0015, окно seq, recheck"
   ],
   "checks": [
     {
-      "name": "pt1a",
-      "value": "13 passed",
+      "name": "install",
+      "value": "PASS",
       "pass": true
     },
     {
-      "name": "build/lint/install/scope",
+      "name": "build",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
       "value": "PASS",
       "pass": true
     },
     {
       "name": "test-all",
-      "value": "1 fail: contract.schema 'schema ydocs: колонки и null' — строка ydocs в core.md:83 содержит лишние бэктики (`docs:<uuid>`, `Y.encodeStateAsUpdate`, путь), парсер считает их колонками",
-      "pass": false
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "pt1a",
+      "value": "PASS",
+      "pass": true
     }
   ],
-  "not_done": [
-    "Исправить строку ydocs в docs/contracts/core.md:83: в ячейке колонок оставить только `doc_id text pk`, `state bytea not null`, `updated_at timestamptz` (пояснения без бэктиков). docs/contracts мне трогать нельзя"
-  ],
+  "not_done": [],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept PT-1a (после внесения ydocs в core.md)",
   "uncertain": [
     {
-      "where": "apps/api/src/collab/collab.service.ts external()",
-      "why": "внешняя запись определяется по журналу changes (ChangeNotifier), а не по ServerTx.writes в mutate.ts: покрывает все пути записи без правки mutate.ts. Чтобы не откатывать набранное, игнорируются записи со seq <= seq на момент загрузки документа и совпадающие с недавними собственными проекциями (до 8, в памяти) — это не флаги в данных, но добавка к правилу контракта",
-      "checked": "тест 9 и 4 прогона pt1a подряд; флейк гонки (task.create после открытия откатывал правку) был найден и исправлен"
+      "where": "collab.service.ts external()",
+      "why": "Замечание 1 ревью: список из 8 содержимых убран. Своя проекция узнаётся по окну seq (lo<seq<=hi вокруг executeMutations) + совпадению содержимого — иначе запись проекции A, дошедшая после новых правок в Y, откатила бы набранное. Остаток правила контракта: внутри окна сравнение идёт не с Y, а с тем, что записали. Если нужно строго по контракту — 'PT-1a contract: допустить окно собственной проекции'. Также игнорируются записи со seq <= seq загрузки документа",
+      "checked": "14 тестов pt1a, 3 прогона"
     },
     {
       "where": "collab.service.ts load()",
-      "why": "тело, не разбираемое схемой (неизвестный узел), даёт отказ загрузки, а не пустой документ — иначе проекция затёрла бы данные",
-      "checked": "только по коду"
+      "why": "тело, не разбираемое схемой, даёт отказ загрузки, а не пустой документ",
+      "checked": "по коду"
     },
     {
       "where": "collab.service.ts recheck()",
-      "why": "смена роли member->guest уже открытого соединения readOnly не меняет; закрываются только del участника и деактивация",
-      "checked": "тест 11 (удаление)"
+      "why": "закрывает соединения при del/смене роли участника (member->guest, тест), деактивации, архивировании страницы и смене enabled_modules (тесты); при переподключении получат readOnly/отказ",
+      "checked": "тесты pt1a"
     },
     {
-      "where": "app.module.ts / options.ts",
-      "why": "debounce тестов задаётся env COLLAB_DEBOUNCE_MS, т.к. app.ts вне scope (createApp опций не принимает)",
+      "where": "options.ts",
+      "why": "debounce тестов — env COLLAB_DEBOUNCE_MS (app.ts вне scope)",
       "checked": "pt1a"
     },
     {
       "where": "package.json api",
-      "why": "@hocuspocus/transformer не добавлен: используется y-prosemirror напрямую (prosemirrorJSONToYXmlFragment/yXmlFragmentToProsemirrorJSON), схема из @planar/editor",
-      "checked": "тест схемы: JSON (заголовок, список, жирный, mention, image) -> Y.Doc -> JSON равен"
-    },
-    {
-      "where": "task.delete",
-      "why": "ydocs удаляется по журналу, не синхронно с COMMIT мутации",
-      "checked": "тест 10"
+      "why": "@hocuspocus/transformer не добавлен: y-prosemirror напрямую + схема @planar/editor",
+      "checked": "тест схемы"
     }
   ],
-  "dp_feedback": "accept падает на контрактном тесте, читающем docs/contracts, который по scope нельзя править: нужен способ пометить 'ждёт контрактной задачи'.",
-  "t": "2026-10-24T11:27:40",
+  "dp_feedback": "accept падает на контрактном тесте, читающем docs/contracts, который по scope нельзя править: нужен способ пометить 'ждёт контрактной задачи'. Параллельные копии: один прогон test-all упал на 'source database is being accessed by other users' (общий шаблон БД), повтор прошёл.",
+  "t": "2026-10-24T11:52:00",
   "by": "executor"
 }

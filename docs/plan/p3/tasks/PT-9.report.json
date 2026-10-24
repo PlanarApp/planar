@@ -1,0 +1,47 @@
+{
+  "status": "done",
+  "summary": "parseTrustProxy (IP/CIDR списком, true/мусор — ошибка) в config.ts, createApp({trustProxy}) -> FastifyAdapter только при непустом списке, main.ts читает TRUST_PROXY; compose: сеть app 172.30.0.0/24, api TRUST_PROXY=эта подсеть, у api нет ports.",
+  "commits": [
+    "ca97885 TRUST_PROXY: клиентский IP за Caddy для лим"
+  ],
+  "checks": [
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "compose",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "pt9",
+      "value": "5",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 1: только contract.schema 'schema ydocs' (ydocs придёт с PT-1a)",
+      "pass": false
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-9 --dry",
+  "uncertain": [
+    {
+      "where": "compose.yml",
+      "why": "postgres тоже перенесён в сеть app (иначе api не достучится)",
+      "checked": "docker compose config OK; в реальный запуск не поднимал"
+    }
+  ],
+  "dp_feedback": "accept --dry дольше 120с таймаута Bash; task sync отказывает на грязной копии (надо сначала коммит).",
+  "t": "2026-10-24T11:45:54",
+  "by": "executor"
+}
