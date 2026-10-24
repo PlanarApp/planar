@@ -4,6 +4,8 @@ import { api as chat } from '@planar/module-chat/api';
 import * as chatTables from '@planar/module-chat/api/schema';
 import { api as docs } from '@planar/module-docs/api';
 import * as docsTables from '@planar/module-docs/api/schema';
+import { api as formsApi } from '@planar/module-forms/api';
+import * as formsTables from '@planar/module-forms/api/schema';
 import { api as hello } from '@planar/module-hello/api';
 import * as helloTables from '@planar/module-hello/api/schema';
 import { api as timeApi } from '@planar/module-time/api';
@@ -71,6 +73,7 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: importApi, tables: importTables },
   { api: docs, tables: docsTables },
   { api: chat, tables: chatTables },
+  { api: formsApi, tables: formsTables },
 ]);
 
 export const moduleTables = (): Map<string, PgTable> =>
