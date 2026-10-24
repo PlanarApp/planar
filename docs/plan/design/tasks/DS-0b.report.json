@@ -1,8 +1,9 @@
 {
   "status": "done",
-  "summary": "Menu без trigger рисует IconButton «…» с label (dev-warn без обоих); Input отдаёт атрибуты на input, class/style на обёртку; лист Select — role=listbox, aria-describedby в Sheet привязан; PriorityPicker и TokensSection без «—»; селекторы settings.test обновлены.",
+  "summary": "Доработка по ревью: PriorityPicker в compact оставляет значок (тест добавлен); TokensSection не показывает «Последнее использование» без lastUsedAt.",
   "commits": [
-    "a440c1a DS-0b: Menu без trigger, атрибуты Input, listbox, пустые значения"
+    "a440c1a основной",
+    "01c8972 доработка по ревью"
   ],
   "checks": [
     {
@@ -46,12 +47,12 @@
   "how_to_check": ".dpcli/dpcli accept DS-0b",
   "uncertain": [
     {
-      "where": "modules/chat/web/chat.test.ts",
-      "why": "в полном прогоне один раз упал таймингом ≤50 мс, отдельно и повторно проходит",
-      "checked": "повторный полный accept --dry PASS"
+      "where": "tasks/fields/PriorityPicker.vue:14",
+      "why": "в compact-списке вариантов у «Без приоритета» тоже виден значок (общий icon триггера и списка)",
+      "checked": "приемлемо по предложению ревью; без разделения опций иначе нельзя"
     }
   ],
-  "dp_feedback": "plan design '5. Задачи / DS-0' не находится — раздел назван иначе.",
-  "t": "2026-10-24T13:45:09",
+  "dp_feedback": "",
+  "t": "2026-10-24T13:52:19",
   "by": "executor"
 }
