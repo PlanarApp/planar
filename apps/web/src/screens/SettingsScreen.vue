@@ -74,7 +74,7 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
         :key="s.key"
         :to="`/settings/${s.key}`"
         :data-testid="`nav-${s.key}`"
-        class="rounded-md px-2 py-2 text-sm hover:bg-bg-muted"
+        class="flex h-11 items-center rounded-md px-2 text-sm hover:bg-bg-muted md:h-7"
         :class="{ 'bg-bg-muted font-medium': s.key === active }"
         >{{ s.label }}</RouterLink
       >

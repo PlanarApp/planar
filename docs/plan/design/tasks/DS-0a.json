@@ -1,0 +1,66 @@
+{
+  "id": "DS-0a",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "IconButton работает как триггер Menu и Popover",
+  "goal": "IconButton (и Button) можно ставить в слот trigger у Menu и Popover (Reka as-child): атрибуты и обработчики триггера доходят до <button>, меню открывается кликом и клавиатурой; подсказка Tooltip при этом сохраняется.",
+  "plan_ref": "5. Задачи / DS-0",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "3",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-0a",
+  "branch": "design/DS-0a",
+  "base": "feature/design",
+  "scope": [
+    "apps/web/src/ui",
+    "apps/web/src/screens/DevUiScreen.vue"
+  ],
+  "dont_touch": [
+    "apps/web/src/__contract__/, apps/web/src/contract.ts, docs/contracts/ — только координатор",
+    "apps/web/src/layout/, apps/web/src/views/, apps/web/src/screens/ кроме DevUiScreen.vue, modules/ — другие задачи"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "trigger-test",
+      "cmd": "pnpm --filter web exec vitest run src/ui -t 'trigger' 2>&1 | grep -E '^\\s*Tests'",
+      "expect": "num:(\\d+) passed >=2"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T11:47:09"
+}

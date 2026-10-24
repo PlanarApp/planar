@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { Check, RotateCcw } from 'lucide-vue-next';
 import { useAuth } from '../auth/useAuth';
 import { useProject } from '../tasks';
-import { Button } from '../ui';
+import { Button, Toolbar } from '../ui';
 import { useExtensions } from '../modules/registry';
 import { buildViewTabs, viewLoaders } from '../views';
 import type { Filter } from '../views';
@@ -89,33 +89,36 @@ const viewComponent = computed(() => {
       <h1 class="truncate text-xl font-semibold">{{ project.name }}</h1>
       <span class="text-sm text-fg-subtle">{{ project.key }}</span>
     </header>
-    <nav class="flex gap-1 overflow-x-auto px-4 pt-2" role="tablist">
-      <Button variant="ghost" @click="router.push(`/p/${projectId}`)">{{
+    <Toolbar :label="t('views.toolbar')">
+      <Button variant="ghost" size="sm" @click="router.push(`/p/${projectId}`)">{{
         t('views.saved.back')
       }}</Button>
       <SavedTabs :space-id="spaceId" :project-id="projectId" :active-id="viewId" />
-    </nav>
-    <OptionsBar
-      v-model:options="options"
-      v-model:filter="filter"
-      :space-id="spaceId"
-      :project-id="projectId"
-    >
-      <template v-if="dirty">
-        <Button
-          v-if="editable"
-          variant="primary"
-          :icon="Check"
-          data-testid="saved-save"
-          @click="save"
+      <template #end>
+        <OptionsBar
+          v-model:options="options"
+          v-model:filter="filter"
+          :space-id="spaceId"
+          :project-id="projectId"
         >
-          {{ t('views.saved.saveChanges') }}
-        </Button>
-        <Button :icon="RotateCcw" data-testid="saved-reset" @click="reset">
-          {{ t('views.saved.reset') }}
-        </Button>
+          <template v-if="dirty">
+            <Button
+              v-if="editable"
+              variant="primary"
+              size="sm"
+              :icon="Check"
+              data-testid="saved-save"
+              @click="save"
+            >
+              {{ t('views.saved.saveChanges') }}
+            </Button>
+            <Button size="sm" :icon="RotateCcw" data-testid="saved-reset" @click="reset">
+              {{ t('views.saved.reset') }}
+            </Button>
+          </template>
+        </OptionsBar>
       </template>
-    </OptionsBar>
+    </Toolbar>
     <div class="min-h-0 flex-1">
       <component
         :is="viewComponent"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { openTask, useStatuses, useTask } from '@planar/web/modules';
+import { Button, openTask, useStatuses, useTask } from '@planar/web/modules';
 
 const props = defineProps<{ taskKey: string }>();
 const task = useTask(() => props.taskKey);
@@ -9,15 +9,15 @@ const status = computed(() => statuses.value?.find((s) => s.id === task.value?.s
 </script>
 
 <template>
-  <button
+  <Button
     v-if="task"
-    type="button"
+    size="sm"
     data-testid="chat-task-card"
-    class="mt-1 flex max-w-sm items-center gap-2 rounded-md border border-border px-2 py-1 text-left text-sm hover:bg-bg-muted"
+    class="mt-1 max-w-sm justify-start"
     @click="openTask(taskKey)"
   >
     <span class="font-medium text-fg-muted">{{ taskKey }}</span>
     <span class="truncate">{{ task.title }}</span>
     <span v-if="status" class="shrink-0 text-xs text-fg-subtle">{{ status }}</span>
-  </button>
+  </Button>
 </template>

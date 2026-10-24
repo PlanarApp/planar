@@ -2,6 +2,9 @@
 import type { Component } from 'vue';
 import Tooltip from './Tooltip.vue';
 
+// Корень — Tooltip (фрагмент): атрибуты триггера Menu/Popover вешаем на <button> сами.
+defineOptions({ inheritAttrs: false });
+
 withDefaults(
   defineProps<{
     icon: Component;
@@ -19,6 +22,7 @@ withDefaults(
 <template>
   <Tooltip :content="label" :shortcut="shortcut">
     <button
+      v-bind="$attrs"
       type="button"
       :aria-label="label"
       :aria-pressed="active === undefined ? undefined : active"

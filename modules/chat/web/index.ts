@@ -9,7 +9,6 @@ export const web = defineWebModule({
     { path: '/m/chat/c/:channelId/:messageId?', component: page },
     { path: '/m/chat/c/:channelId/t/:rootId', component: page },
   ],
-  // на mobile nav не показывается — вход через topbar
+  // на mobile секция доступна через выезжающую боковую панель (кнопка «меню» в TopBar)
   nav: [{ id: 'channels', order: 5, section: () => import('./Section.vue') }],
-  topbar: [{ id: 'chat', order: 5, component: () => import('./Topbar.vue') }],
 });

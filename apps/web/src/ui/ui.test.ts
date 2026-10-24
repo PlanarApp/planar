@@ -13,8 +13,13 @@ import {
   ConfirmDialog,
   EmptyState,
   IconButton,
+  Input,
   Kbd,
   Menu,
+  Select,
+  Tooltip,
+  resetBreakpoint,
+  Popover,
   Tabs,
   Toolbar,
   type MenuItem,
@@ -61,6 +66,30 @@ describe('Button / IconButton', () => {
   it('IconButton без active — без aria-pressed', () => {
     const w = wrap(IconButton, { icon: Plus, label: 'A' });
     expect(w.find('button').element.hasAttribute('aria-pressed')).toBe(false);
+  });
+});
+
+describe('IconButton как trigger', () => {
+  const trigger = () => h(IconButton, { icon: Plus, label: 'Ещё' });
+  it('trigger Menu: открывается с клавиатуры, aria на той же кнопке', async () => {
+    const w = wrap(Menu, { items: [{ id: 'a', label: 'Пункт', onSelect: () => {} }] }, { trigger });
+    const b = w.find('button').element;
+    expect(b.getAttribute('aria-label')).toBe('Ещё');
+    press(b, 'Enter');
+    await flushPromises();
+    expect(b.getAttribute('aria-expanded')).toBe('true');
+    expect($('[role="menuitem"]')).not.toBeNull();
+    w.unmount();
+  });
+  it('trigger Popover: открывается кликом', async () => {
+    const w = wrap(Popover, {}, { trigger, default: () => 'Тело' });
+    const b = w.find('button').element;
+    b.click();
+    await flushPromises();
+    expect(b.getAttribute('aria-expanded')).toBe('true');
+    expect(b.getAttribute('aria-label')).toBe('Ещё');
+    expect(document.body.textContent).toContain('Тело');
+    w.unmount();
   });
 });
 
@@ -215,5 +244,113 @@ describe('Avatar', () => {
   it('без src сразу показывает инициалы', async () => {
     const { Avatar } = await import('./index');
     expect(wrap(Avatar, { name: 'Анна Белова' }).text()).toBe('АБ');
+  });
+});
+
+describe('mobile: листы', () => {
+  const setMobile = (m: boolean) => {
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: m,
+      media: q,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    resetBreakpoint();
+  };
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetBreakpoint();
+  });
+
+  it('mobile: Menu открывается листом, пункт выбирается', async () => {
+    setMobile(true);
+    const onSelect = vi.fn();
+    wrap(
+      Menu,
+      { items: [{ id: 'a', label: 'Пункт', onSelect }] },
+      { trigger: () => h('button', 'M') },
+    );
+    document.body.querySelector('button')!.click();
+    await vi.waitFor(() => expect($('[data-testid=sheet]')).not.toBeNull());
+    expect($('[role=menu]')).toBeNull();
+    const item = [...document.body.querySelectorAll('[data-testid=sheet] button')].find((b) =>
+      b.textContent?.includes('Пункт'),
+    ) as HTMLElement;
+    item.click();
+    expect(onSelect).toHaveBeenCalled();
+    await vi.waitFor(() => expect($('[data-testid=sheet]')).toBeNull());
+  });
+
+  it('mobile: Select выбор опции меняет v-model', async () => {
+    setMobile(true);
+    const onUpdate = vi.fn();
+    wrap(Select, {
+      label: 'Статус',
+      options: [
+        { value: 'a', label: 'Альфа' },
+        { value: 'b', label: 'Бета' },
+      ],
+      modelValue: 'a',
+      'onUpdate:modelValue': onUpdate,
+    });
+    document.body.querySelector<HTMLElement>('button[aria-label="Статус"]')!.click();
+    await vi.waitFor(() => expect($('[data-testid=sheet]')).not.toBeNull());
+    [...document.body.querySelectorAll<HTMLElement>('[role=option]')]
+      .find((b) => b.textContent?.includes('Бета'))!
+      .click();
+    expect(onUpdate).toHaveBeenCalledWith('b');
+  });
+
+  it('mobile: Tooltip не рендерит content', async () => {
+    setMobile(true);
+    const w = wrap(Tooltip, { content: 'Подсказка' }, { default: () => h('button', 'T') });
+    await w.find('button').trigger('focus');
+    await w.find('button').trigger('pointermove');
+    await nextTick();
+    expect(document.body.textContent).not.toContain('Подсказка');
+    expect(w.find('button').exists()).toBe(true);
+  });
+
+  it('mobile: Popover открывается листом', async () => {
+    setMobile(true);
+    wrap(Popover, {}, { trigger: () => h('button', 'P'), default: () => h('p', 'Тело') });
+    document.body.querySelector('button')!.click();
+    await vi.waitFor(() => expect($('[data-testid=sheet]')?.textContent).toContain('Тело'));
+  });
+});
+
+describe('v4', () => {
+  it('v4: Menu без trigger рисует кнопку с aria-label и открывается', async () => {
+    wrap(Menu, { items: [{ id: 'a', label: 'Пункт', onSelect: () => {} }], label: 'Действия' });
+    const b = $('button[aria-label="Действия"]')!;
+    expect(b).not.toBeNull();
+    press(b, 'Enter');
+    await flushPromises();
+    expect($('[role="menuitem"]')).not.toBeNull();
+  });
+  it('v4: Input пробрасывает required и maxlength на input, class на обёртку', () => {
+    const w = wrap(Input, { label: 'Имя', required: true, maxlength: 5, class: 'wrap-x' });
+    const i = $('input')!;
+    expect(i.hasAttribute('required')).toBe(true);
+    expect(i.getAttribute('maxlength')).toBe('5');
+    expect(i.classList.contains('wrap-x')).toBe(false);
+    expect($('.wrap-x')!.contains(i)).toBe(true);
+    w.unmount();
+  });
+  it('v4: Select на mobile — role=listbox', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: true,
+      media: q,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    resetBreakpoint();
+    wrap(Select, { label: 'Статус', options: [{ value: 'a', label: 'Альфа' }], modelValue: 'a' });
+    $('button[aria-label="Статус"]')!.click();
+    await vi.waitFor(() =>
+      expect($('[role=listbox][aria-label="Статус"] [role=option]')).not.toBeNull(),
+    );
+    vi.unstubAllGlobals();
+    resetBreakpoint();
   });
 });

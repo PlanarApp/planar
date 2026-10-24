@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ArrowLeft } from 'lucide-vue-next';
-import { useBreakpoint, useMembers } from '@planar/web/modules';
+import { ArrowLeft, MessageSquare } from 'lucide-vue-next';
+import { EmptyState, useBreakpoint, useMembers } from '@planar/web/modules';
 import ChannelView from './ChannelView.vue';
 import Section from './Section.vue';
 import ThreadPanel from './ThreadPanel.vue';
@@ -52,7 +52,7 @@ const showFeed = computed(() => !(isMobile.value && rootId.value));
 <template>
   <div class="flex h-full min-h-0 flex-1" data-testid="chat-page">
     <div v-if="!channelId && isMobile" class="flex-1 overflow-y-auto p-2"><Section /></div>
-    <p v-else-if="!channel" class="m-auto text-sm text-fg-muted">{{ tx('empty') }}</p>
+    <EmptyState v-else-if="!channel" :icon="MessageSquare" :title="tx('empty')" class="m-auto" />
     <template v-else>
       <div v-if="showFeed" class="flex min-h-0 min-w-0 flex-1 flex-col">
         <header class="flex h-10 items-center gap-2 border-b border-border px-3">

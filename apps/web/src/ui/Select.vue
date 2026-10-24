@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
+import { ref } from 'vue';
+import { useBreakpoint } from './useBreakpoint';
+import Sheet from './Sheet.vue';
 import {
   SelectContent,
   SelectItem,
@@ -12,7 +15,7 @@ import {
 } from 'reka-ui';
 import { ChevronDown } from 'lucide-vue-next';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     options: { value: string; label: string; icon?: Component; color?: string }[];
     label: string;
@@ -23,10 +26,45 @@ withDefaults(
   { size: 'md' },
 );
 const model = defineModel<string | null>({ default: null });
+const { isMobile } = useBreakpoint();
+const sheet = ref(false);
 </script>
 
 <template>
-  <SelectRoot v-model="model as string | undefined" :disabled="disabled">
+  <Sheet v-if="isMobile" v-model:open="sheet" :title="label">
+    <template #trigger>
+      <button
+        type="button"
+        :aria-label="label"
+        :disabled="disabled"
+        :class="[
+          'inline-flex h-11 items-center justify-between gap-2 rounded-md border border-border-strong bg-bg px-2 text-sm text-fg outline-none focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-50',
+        ]"
+      >
+        <span>{{ props.options.find((o) => o.value === model)?.label ?? placeholder }}</span>
+        <ChevronDown :size="16" class="text-fg-subtle" />
+      </button>
+    </template>
+    <div role="listbox" :aria-label="label">
+      <button
+        v-for="o in options"
+        :key="o.value"
+        type="button"
+        role="option"
+        :aria-selected="o.value === model"
+        :class="[
+          'flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-fg outline-none',
+          o.value === model && 'bg-accent-subtle',
+        ]"
+        @click="((model = o.value), (sheet = false))"
+      >
+        <component :is="o.icon" v-if="o.icon" :size="16" :style="{ color: o.color }" />
+        <span v-else-if="o.color" class="size-2 rounded-full" :style="{ background: o.color }" />
+        {{ o.label }}
+      </button>
+    </div>
+  </Sheet>
+  <SelectRoot v-else v-model="model as string | undefined" :disabled="disabled">
     <SelectTrigger
       :aria-label="label"
       :class="[

@@ -1,0 +1,66 @@
+{
+  "status": "done",
+  "summary": "Разделы настроек и токены профиля: SectionHeader + список h-8 + RowMenu «…» (по наведению на desktop, всегда на mobile); удаление/архив/исключение/отзыв — пункты Menu с danger+confirm; локальный ConfirmDialog удалён; nav h-7.",
+  "commits": [
+    "dc1a0a3 DS-4b: настройки — шаблон список + меню"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "no-danger-buttons",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Скриншоты не снимались",
+    "Блокировка пользователя осталась ghost-кнопкой toggle-block: тест auth/__tests__/screens.test.ts вне scope опирается на неё",
+    "Форма создания — справа в заголовке (инлайн), не в диалоге: сохранены testid и тесты"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept DS-4b",
+  "uncertain": [
+    {
+      "where": "settings/StatusesSettings.vue",
+      "why": "удаление статуса — Dialog с выбором замены (Menu.confirm не умеет Select), кнопка danger-ghost",
+      "checked": "тест удаления со сменой статуса проходит"
+    },
+    {
+      "where": "settings/RowMenu.vue",
+      "why": "обёрнут в свой TooltipProvider, чтобы строки рендерились вне App в тестах",
+      "checked": "тесты проходят"
+    }
+  ],
+  "dp_feedback": "План design: раздел '5. Задачи / DS-4' в plan не найден.",
+  "t": "2026-10-24T13:02:39",
+  "by": "executor"
+}
