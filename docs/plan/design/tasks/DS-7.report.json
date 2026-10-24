@@ -1,0 +1,42 @@
+{
+  "status": "done",
+  "summary": "space.create принимает statusNames (trim, 1–64, иначе имя по умолчанию); SpacesSettings передаёт settings.cat.* текущей локали. Тесты shared и web добавлены.",
+  "commits": [
+    "a45dd0c Слияние feature/design в design/DS-7"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "shared-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept DS-7",
+  "uncertain": [],
+  "dp_feedback": "task sync отказал на грязной копии — пришлось коммитить до sync",
+  "t": "2026-10-24T16:27:04",
+  "by": "executor"
+}
