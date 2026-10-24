@@ -83,3 +83,5 @@
 {"t": "2026-10-24T12:15:25", "by": "reviewer", "task": "DS-1", "ev": "reviewed", "note": "Все 4 замечания прошлого ревью закрыты: mobile-панель через Reka Dialog, provide/inject убран, Badge для Inbox, пустой чат показывает «Нет каналов» и одну кноп…", "verdict": "accept", "issues": {"major": 1, "minor": 4}, "review": "docs/plan/design/tasks/DS-1.review.json"}
 {"t": "2026-10-24T12:15:48", "by": "coordinator", "task": "DS-1", "ev": "accepted", "note": "по ревью; скриншоты после доработки и minors — в DS-1a"}
 {"t": "2026-10-24T12:15:48", "by": "coordinator", "task": "DS-3", "ev": "accepted", "note": "по ревью; major (просрочка по локальной дате, как MyScreen) и minors — в DS-3a"}
+{"t": "2026-10-24T12:16:48", "by": "coordinator", "task": "DS-1", "ev": "accepted", "commits": ["63b5b3b"], "note": "6/6 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0"}
+{"t": "2026-10-24T12:16:49", "by": "coordinator", "task": "DS-1", "ev": "merged"}
