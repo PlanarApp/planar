@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   AssigneePicker,
   DueDatePicker,
   PriorityPicker,
+  PriorityIcon,
   LabelPicker,
   StatusPicker,
   setAssignees,
@@ -12,6 +13,8 @@ import {
   updateTask,
   type TaskView,
 } from '../../tasks';
+import type { Row as DbRow } from '@planar/shared';
+import { AvatarStack, Badge } from '../../ui';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 
@@ -24,6 +27,8 @@ const props = defineProps<{
   editing: boolean;
   fields: TaskField[];
   blocked: boolean;
+  members: DbRow<'users'>[];
+  labels: DbRow<'labels'>[];
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -49,6 +54,22 @@ watch(
   { immediate: true },
 );
 
+const labelsSet = computed(() =>
+  props.task.labelIds.flatMap((id) => props.labels.find((l) => l.id === id) ?? []),
+);
+const people = computed(() =>
+  props.task.assigneeIds.map((id) => ({
+    name: props.members.find((u) => u.id === id)?.name ?? '?',
+  })),
+);
+// просрочен — danger, ближайшие 2 дня — warning
+const dueTone = computed(() => {
+  const d = props.task.dueDate;
+  if (!d) return '';
+  const left = (Date.parse(d) - Date.now()) / 864e5;
+  return left < -1 ? 'text-danger' : left < 2 ? 'text-warning' : 'text-fg-muted';
+});
+
 function save() {
   if (!live) return;
   live = false;
@@ -65,7 +86,7 @@ function save() {
     :aria-selected="selected"
     :data-task="task.key"
     :class="[
-      'group flex h-full items-center gap-2 border-b border-border px-3 text-sm',
+      'group relative flex h-full items-center gap-2 border-b border-border px-3 text-sm',
       selected ? 'bg-accent-subtle' : 'hover:bg-bg-subtle',
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
@@ -83,7 +104,9 @@ function save() {
         @change="(emit('toggle'), emit('done'))"
       />
     </div>
-    <div role="gridcell" class="w-16 shrink-0 truncate text-xs text-fg-subtle">{{ task.key }}</div>
+    <div role="gridcell" class="w-16 shrink-0 truncate font-mono text-xs text-fg-muted">
+      {{ task.key }}
+    </div>
     <div v-if="fields.includes('status')" role="gridcell" class="shrink-0" @click.stop>
       <StatusPicker
         compact
@@ -109,40 +132,57 @@ function save() {
         <span class="truncate">{{ task.title }}</span>
       </span>
     </div>
-    <div v-if="fields.includes('labels')" role="gridcell" class="shrink-0" @click.stop>
-      <LabelPicker
-        compact
-        :space-id="spaceId"
-        :model-value="task.labelIds"
-        @update:model-value="setLabels(task.id, $event)"
-      />
-    </div>
-    <div v-if="fields.includes('priority')" role="gridcell" class="shrink-0" @click.stop>
-      <PriorityPicker
-        compact
-        :model-value="task.priority"
-        @update:model-value="updateTask(task.id, { priority: $event })"
-      />
-    </div>
-    <div v-if="fields.includes('assignee')" role="gridcell" class="shrink-0" @click.stop>
-      <AssigneePicker
-        compact
-        :space-id="spaceId"
-        :model-value="task.assigneeIds"
-        @update:model-value="setAssignees(task.id, $event)"
-      />
+    <div class="ml-auto flex shrink-0 items-center gap-2">
+      <span
+        v-if="fields.includes('labels') && labelsSet.length"
+        class="hidden items-center gap-2 md:flex"
+      >
+        <Badge v-for="l in labelsSet" :key="l.id" dot :color="l.color ?? undefined">{{
+          l.name
+        }}</Badge>
+      </span>
+      <PriorityIcon v-if="fields.includes('priority') && task.priority" :priority="task.priority" />
+      <span
+        v-if="fields.includes('dueDate') && task.dueDate"
+        :class="['hidden text-xs md:inline', dueTone]"
+        >{{ task.dueDate }}</span
+      >
+      <AvatarStack v-if="fields.includes('assignee')" :people="people" size="xs" />
     </div>
     <div
-      v-if="fields.includes('dueDate')"
-      role="gridcell"
-      class="hidden shrink-0 md:block"
+      class="absolute inset-y-0 right-2 flex items-center bg-inherit opacity-0 focus-within:opacity-100 group-hover:opacity-100"
       @click.stop
     >
-      <DueDatePicker
-        compact
-        :model-value="task.dueDate"
-        @update:model-value="updateTask(task.id, { dueDate: $event })"
-      />
+      <div v-if="fields.includes('labels')" role="gridcell">
+        <LabelPicker
+          compact
+          :space-id="spaceId"
+          :model-value="task.labelIds"
+          @update:model-value="setLabels(task.id, $event)"
+        />
+      </div>
+      <div v-if="fields.includes('priority')" role="gridcell">
+        <PriorityPicker
+          compact
+          :model-value="task.priority"
+          @update:model-value="updateTask(task.id, { priority: $event })"
+        />
+      </div>
+      <div v-if="fields.includes('assignee')" role="gridcell">
+        <AssigneePicker
+          compact
+          :space-id="spaceId"
+          :model-value="task.assigneeIds"
+          @update:model-value="setAssignees(task.id, $event)"
+        />
+      </div>
+      <div v-if="fields.includes('dueDate')" role="gridcell">
+        <DueDatePicker
+          compact
+          :model-value="task.dueDate"
+          @update:model-value="updateTask(task.id, { dueDate: $event })"
+        />
+      </div>
     </div>
   </div>
 </template>

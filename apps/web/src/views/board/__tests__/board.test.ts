@@ -63,6 +63,22 @@ const mountView = (by: GroupBy = 'status') =>
     global: { plugins: [i18n] },
   });
 
+describe('board:card', () => {
+  it('board:card без меток, срока и исполнителей нижней строки нет', async () => {
+    await db.table('tasks').put(task(1));
+    const w = mountView();
+    await until(() => w.find('article').exists());
+    expect(w.get('article').element.children).toHaveLength(2);
+    w.unmount();
+    await db.table('tasks').put(task(1, { dueDate: '2026-12-24' }));
+    const w2 = mountView();
+    await until(() => w2.text().includes('12.24'));
+    expect(
+      w2.findAll('article').find((a) => a.text().includes('12.24'))!.element.children,
+    ).toHaveLength(3);
+  });
+});
+
 describe('board:columns', () => {
   it('board:columns по статусу — в порядке rank статусов, внутри по rank', async () => {
     await db.table('tasks').bulkPut([task(1, { rank: 'a2' }), task(2, { rank: 'a1' })]);
