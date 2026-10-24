@@ -22,7 +22,8 @@
     "apps/web/src/tasks/fields/DueDatePicker.vue",
     "apps/web/src/tasks/fields/PriorityIcon.vue",
     "apps/web/src/tasks/__tests__",
-    "build/artifacts/DS-6a"
+    "build/artifacts/DS-6a",
+    "apps/web/src/views/__tests__/apply.test.ts"
   ],
   "dont_touch": [
     "apps/web/src/layout/, apps/web/src/screens/ кроме MyScreen.vue — DS-6b, DS-6c",
@@ -65,5 +66,6 @@
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-24T15:41:13"
+  "created": "2026-10-24T15:41:13",
+  "edited": "2026-10-24T15:51:42"
 }
