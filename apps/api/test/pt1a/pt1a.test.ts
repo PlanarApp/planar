@@ -285,4 +285,20 @@ describe('pt1a', () => {
     await w.admin.ok('member.remove', { id: m.id });
     await until(() => !svc.hp.documents.get(name)?.getConnectionsCount());
   });
+
+  it('pt1a: понижение member -> guest закрывает соединение', async () => {
+    const id = await mkPage();
+    const name = `docs:${id}`;
+    const a = open('member', name);
+    await until(() => a.state.synced);
+    expect(svc.hp.documents.get(name)!.getConnectionsCount()).toBe(1);
+    const rows = (await w.admin.bootstrap()).data as Record<
+      string,
+      { id: string; userId: string }[]
+    >;
+    const m = rows.spaceMembers!.find((r) => r.userId === w.member.userId)!;
+    await w.admin.ok('member.update', { id: m.id, role: 'guest' });
+    await until(() => !svc.hp.documents.get(name)?.getConnectionsCount());
+    await w.admin.ok('member.update', { id: m.id, role: 'member' });
+  });
 });

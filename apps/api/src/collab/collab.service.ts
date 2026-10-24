@@ -244,7 +244,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
       data: Json | null;
     }[]) {
       if (c.entity === 'spaceMembers' || c.entity === 'users') {
-        recheck ||= c.op === 'del' || !!c.data?.deactivatedAt;
+        recheck ||= c.entity === 'spaceMembers' || !!c.data?.deactivatedAt;
         continue;
       }
       const name = `${c.entity === 'tasks' ? 'task' : 'docs'}:${c.id}`;
@@ -287,7 +287,9 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     for (const doc of [...this.hp.documents.values()])
       for (const c of doc.getConnections()) {
         const u = (c.context as Ctx).userId;
-        if (!(await this.access(u, doc.name))) c.close({ code: 4403, reason: 'forbidden' });
+        const a = await this.access(u, doc.name);
+        // понижение до guest: переподключение получит readOnly
+        if (!a || (a.readOnly && !c.readOnly)) c.close({ code: 4403, reason: 'forbidden' });
       }
   }
 }
