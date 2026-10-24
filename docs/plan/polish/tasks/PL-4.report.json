@@ -1,0 +1,51 @@
+{
+  "status": "partial",
+  "summary": "db.ts: closePools с таймаутом 2 с, dropDb без ожидания pg_stat_activity (drop with force), advisory-лок снимается, statement_timeout 15 с. Приёмка не PASS из-за перегруза хоста.",
+  "commits": [
+    "c3ddedb teardown БД без зависаний"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "test-all-x2",
+      "value": "wk13 dropDb (34 с) и wk6b упали под нагрузкой",
+      "pass": false
+    },
+    {
+      "name": "no-hook-timeout",
+      "value": "1-й прогон 0; 2-й — таймаут шага 900 с",
+      "pass": false
+    },
+    {
+      "name": "no-leftover-dbs",
+      "value": "149 (общий сервер, чужие прогоны)",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "test-all-x2 и no-leftover-dbs не зелёные при load ~16-24"
+  ],
+  "questions": [
+    "wk13 'dropDb удаляет базу' (тест продукта, не трогаю) падает, когда drop занимает >15 с под нагрузкой; при 10 с и 15 с падал, одиночно проходит. Перезапустить приёмку на менее загруженном хосте?"
+  ],
+  "how_to_check": ".dpcli/dpcli accept PL-4",
+  "uncertain": [
+    {
+      "where": "apps/api/test/db.ts:dropDb",
+      "why": "advisory-лок сериализует drop между копиями на общем сервере; под нагрузкой ожидание лока может быть причиной wk13",
+      "checked": "wk13 отдельно проходит; без лока не пробовал"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-24T01:40:03",
+  "by": "executor"
+}
