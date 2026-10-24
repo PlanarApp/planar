@@ -155,6 +155,7 @@ if (props.collab) {
     editor.value = new Editor(options(c.extensions, true));
     const sync = () => editor.value?.setEditable(props.editable && !readOnly());
     c.onAuthenticated(sync);
+    c.onDenied(() => editor.value?.setEditable(false));
     sync();
   });
 } else editor.value = new Editor(options());

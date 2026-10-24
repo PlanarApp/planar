@@ -150,4 +150,7 @@ test('collab-edit: страница, ещё не дошедшая до серв�
   const bob = await loginAs(browser, 'bob');
   await spaGo(bob, `/m/docs/${id}`);
   await expect(docBody(bob)).toContainText(text, { timeout: 20_000 });
+  await docBody(alice).pressSequentially('z');
+  // awareness пережил повторное подключение: курсор alice виден bob
+  await expect(bob.locator('.collaboration-carets__label', { hasText: 'Alice' })).toBeVisible();
 });

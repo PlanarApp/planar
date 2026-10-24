@@ -147,6 +147,7 @@ void import('@planar/editor/collab').then(({ openCollab }) => {
   });
   editor.value = ed;
   c.onAuthenticated(() => ed.setEditable(props.editable && !readOnly()));
+  c.onDenied(() => ed.setEditable(false));
 });
 
 watch(
