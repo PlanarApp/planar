@@ -14,3 +14,5 @@
 {"t": "2026-10-24T11:09:19", "by": "coordinator", "task": "DS-0", "ev": "checked", "note": "8/8 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; ui-tests=ok:18; typecheck=ok:exit 0; size=ok:exit 0; no-dev-route-in-prod=ok:0; lint=ok:exit 0"}
 {"t": "2026-10-24T11:11:21", "by": "reviewer", "task": "DS-0", "ev": "reviewed", "note": "Пропсы, значения по умолчанию и поведение всех 17 компонентов совпадают с C-ui v3, пропсы v2 сохранены, все 25 файлов в скоупе, dont_touch не тронут. Витрина п…", "verdict": "accept", "issues": {"minor": 2}, "review": "docs/plan/design/tasks/DS-0.review.json"}
 {"t": "2026-10-24T11:11:44", "by": "coordinator", "task": "DS-0", "ev": "accepted", "note": "по ревью; minor: фокус ConfirmDialog из Menu (close-auto-focus) — проверить в DS-4"}
+{"t": "2026-10-24T11:13:58", "by": "coordinator", "task": "DS-0", "ev": "checked", "commits": ["b152c87"], "note": "7/8 install=ok:exit 0; contract=ok:exit 0; web-tests=FAIL:exit 1 · × \"pnpm recursive ru…; ui-tests=ok:18; typecheck=ok:exit 0; size=ok:exit 0; no-dev-route-in-prod=ok:0; lint=ok:exit 0"}
+{"t": "2026-10-24T11:13:58", "by": "coordinator", "task": "DS-0", "ev": "merged"}
