@@ -1,0 +1,75 @@
+{
+  "status": "done",
+  "summary": "Страница /f/<slug> (form.html, чистый TS, 2.7 КБ gzip), второй вход Vite, dev-rewrite и Caddy, строка 'form gzip' в size.mjs; настройки forms:forms (проект, список, создание, конструктор полей, ссылка, включение, удаление).",
+  "commits": [
+    "24aade8 PT-5b: публичная страница /f/<slug> и настройки форм"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "153.1 KB",
+      "pass": true
+    },
+    {
+      "name": "form-size",
+      "value": "2.7 KB",
+      "pass": true
+    },
+    {
+      "name": "pt5b",
+      "value": "10 passed",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Ручная отправка /f/<slug> в dev-стеке не выполнена: проверено только vitest (happy-dom, мок fetch) и сборкой.",
+    "apps/web/Dockerfile в репозитории нет — не правился (Caddy отдаёт /srv, form.html лежит в dist)."
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-5b",
+  "uncertain": [
+    {
+      "where": "modules/forms/web/FormsSettings.vue",
+      "why": "админ определяется по роли инстанса (owner/admin), не по роли в пространстве; кнопки скрыты у остальных",
+      "checked": "сервер всё равно проверяет write: admin"
+    },
+    {
+      "where": "apps/web/src/form/form.ts",
+      "why": "поле типа user (uuid) рисуется текстовым вводом; только русские тексты; money шлётся целым как введено",
+      "checked": "по контракту F-fields, в тестах не покрыто"
+    },
+    {
+      "where": "apps/web/vite.config.ts",
+      "why": "PWA добавляет manifest-ссылку и в form.html; /f/ добавлен в navigateFallbackDenylist, но поведение SW для /f/ вживую не проверено",
+      "checked": "только сборка"
+    }
+  ],
+  "dp_feedback": "Первый pnpm build в свежей копии падал без pnpm install (нет zod у automations) — полезно напоминание в карточке.",
+  "t": "2026-10-24T13:40:00",
+  "by": "executor"
+}

@@ -1,0 +1,19 @@
+{
+  "verdict": "accept",
+  "summary": "Модуль соответствует P3-dashboards v2: spaceId обязателен у обеих сущностей, create {id,spaceId,name,rank,personal?}, config по kind через zod → invalid_args, x+w>12 → invalid_args, чужой личный → forbidden, delete удаляет виджеты. Подсчёт на клиенте по задачам пространства дашборда, затем matchFilter; field:<id> из fieldDefs select/user, подписи select — названия вариантов. Миграция 0018 одна, совпадает со схемой; скоуп в границах, dont_touch не тронут.",
+  "issues": [],
+  "rerun": [
+    {
+      "name": "pt4-web",
+      "value": "11 passed",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T13:57:07",
+  "by": "reviewer"
+}

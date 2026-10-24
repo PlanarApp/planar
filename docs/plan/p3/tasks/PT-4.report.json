@@ -1,10 +1,9 @@
 {
   "status": "done",
-  "summary": "Группировка bars по field:<id> (select/user) выбирается в диалоге, подписи select - названия вариантов, тест pt4 (11). v2 и миграция 0016 - как раньше.",
+  "summary": "feature/p3 влит (PT-6a, PT-3), миграция пересоздана как 0018 (одна, только дашборды). accept --dry 9/9 PASS.",
   "commits": [
-    "b53f5a7 модуль дашбордов",
-    "revert 31a36e0",
-    "PT-4: v2, миграция 0016"
+    "merge feature/p3",
+    "PT-4: миграция 0018"
   ],
   "checks": [
     {
@@ -29,7 +28,7 @@
     },
     {
       "name": "size",
-      "value": "152.9 KB",
+      "value": "153.9 KB",
       "pass": true
     },
     {
@@ -39,7 +38,7 @@
     },
     {
       "name": "test-web",
-      "value": "699/699 при повторном прогоне; в accept --dry флейки: cl1a-палитра, ui Cmd+K, list:virtual 10000",
+      "value": "exit 0 (в логе первого прогона таймауты: cl1a-палитра, ui Cmd+K, list:virtual — прошли при перезапуске)",
       "pass": true
     },
     {
@@ -58,24 +57,17 @@
       "pass": true
     }
   ],
-  "not_done": [
-    "Миграция 0016 пересоздаётся после слияния PT-6a (заметки о слиянии ещё не было)"
-  ],
+  "not_done": [],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept PT-4 --dry",
   "uncertain": [
     {
-      "where": "apps/web/src/command, views/list tests",
-      "why": "флейки таймаута в accept --dry: палитра (cl1a, Cmd+K, TopBar), list:virtual; 3 прогона accept - каждый раз разные",
-      "checked": "перезапуск test-web 699/699"
-    },
-    {
-      "where": "apps/api/drizzle/0016",
-      "why": "надо пересоздать после слияния PT-6a",
-      "checked": "task sync на момент отчёта без конфликта"
+      "where": "apps/web command/views tests",
+      "why": "флейки таймаута палитры/list:virtual в первом прогоне test-web, перезапуск зелёный",
+      "checked": "4 прогона accept, наборы разные"
     }
   ],
   "dp_feedback": "accept --dry идёт >2 мин и блокирует; scope-проверка помечает миграцию, которую требует сама карточка.",
-  "t": "2026-10-24T12:44:22",
+  "t": "2026-10-24T13:30:55",
   "by": "executor"
 }

@@ -1,0 +1,55 @@
+{
+  "verdict": "rework",
+  "summary": "Страница /f/<slug>, второй вход Vite, Caddy, size.mjs и настройки по P3-forms v1 в целом верны, скоуп чист, pt5b и form-size перезапущены (PASS). Блокер: деньги отправляются в рублях, а контракт F-fields требует минимальные единицы (суммы в 100 раз меньше). Ручную проверку в dev-стеке, которую требует карточка, не провели.",
+  "issues": [
+    {
+      "file": "apps/web/src/form/form.ts",
+      "line": 120,
+      "severity": "blocker",
+      "what": "Единицы money нарушают F-fields (features.md: целое в минимальных единицах — копейки). Поле шлёт введённое число как есть, step=1 не даёт ввести копейки: посетитель вводит 1500 (₽), в задаче оказывается 15,00 ₽. В приложении FieldEditor.vue:55 делает Math.round(x*100).",
+      "fix": "money: step=0.01, отправлять Math.round(Number(v)*100), отбрасывать NaN; добавить тест pt5b на money."
+    },
+    {
+      "file": "apps/web/src/form/form.ts",
+      "line": 120,
+      "severity": "major",
+      "what": "Number(v) для number/money без проверки на NaN/Infinity: нечисловая строка уходит как NaN, JSON.stringify превращает его в null. Сервер выбрасывает null у необязательного поля (тихая потеря значения), у обязательного отвечает общим 400.",
+      "fix": "Number.isFinite проверять на клиенте, при ошибке показывать 'Введите число' в errs."
+    },
+    {
+      "file": "build/dpcli/PT-5b.report.json",
+      "line": 1,
+      "severity": "major",
+      "what": "Карточка требует открыть /f/<slug> руками в dev-стеке (свои порты) и отправить форму. Этого не сделали (отчёт честно пишет в 'не вышло'): dev-rewrite, multipart с реальным сервером PT-5a и поведение SW для /f/ вживую не проверены.",
+      "fix": "Поднять dev-стек на своих портах, создать форму в настройках, отправить /f/<slug> с файлом и без. Записать результат в отчёт."
+    },
+    {
+      "file": "modules/forms/web/FormsSettings.vue",
+      "line": 67,
+      "severity": "minor",
+      "what": "В конструктор попадают поля проекта типа user. На публичной странице это текстовый ввод uuid, который посетитель заполнить не может.",
+      "fix": "Исключить type==='user' из catalog или спросить координатора."
+    },
+    {
+      "file": "apps/web/vite.config.ts",
+      "line": 24,
+      "severity": "minor",
+      "what": "VitePWA вставляет <link rel=manifest> в dist/form.html: публичная страница предлагает установить приложение Planar.",
+      "fix": "Убрать manifest из form.html (transformIndexHtml по имени файла) или явно согласовать."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "pt5b",
+      "value": "10 passed",
+      "pass": true
+    },
+    {
+      "name": "form-size",
+      "value": "2.7 KB",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T13:58:03",
+  "by": "reviewer"
+}

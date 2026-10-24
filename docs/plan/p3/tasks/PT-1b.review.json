@@ -1,0 +1,39 @@
+{
+  "verdict": "rework",
+  "summary": "Контракты P3-ydoc «Клиент (web)»/DC-web v2 соблюдены, scope в границах, external() по body исправлен с тестом, проверки подтверждаются. Один major: повтор подключения после отказа уничтожает общий Awareness, и у новой страницы пропадают курсоры.",
+  "issues": [
+    {
+      "file": "packages/editor/src/collab.ts",
+      "line": 46,
+      "severity": "major",
+      "what": "При authenticationFailed код вызывает provider.destroy() и создаёт новый провайдер на том же awareness. HocuspocusProvider.destroy() (v4.7.1, hocuspocus-provider.esm.js:916-919) вызывает awareness.destroy(): локальное состояние становится null, наблюдатели очищаются (lib0 Observable.destroy), _checkInterval останавливается. CollaborationCaret привязан к этому же awareness: после первого повтора своё имя и курсор не рассылаются (setLocalStateField при state=null ничего не делает), чужие курсоры не рисуются, а через 30 с без heartbeat собеседники снимают клиента. Это ровно сценарий доработки «новая страница сразу после создания»; e2e проверяет только текст, курсоры не проверяет.",
+      "fix": "Повторять без уничтожения общего Awareness: например, переподключать тот же провайдер или отвязывать awareness перед destroy. Либо задать awareness заново (setLocalStateField('user', …)) и пересоздать caret. Добавить в e2e новой страницы проверку, что курсор bob с именем виден alice."
+    },
+    {
+      "file": "packages/editor/src/collab.ts",
+      "line": 44,
+      "severity": "minor",
+      "what": "После 5 неудачных попыток (настоящий forbidden или страница так и не дошла до сервера) редактор остаётся editable: правки уходят только в IndexedDB, и пользователь не видит, что они не синхронизируются. readOnly() смотрит только на authorizedScope.",
+      "fix": "После исчерпания попыток считать документ readOnly (setEditable(false)) или показывать ошибку."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "scope",
+      "value": "19 файлов в границах",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "696 passed (запуск напрямую через lock; accept --dry выдал FAIL без нового лога — похоже на окружение/лок)",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T14:00:07",
+  "by": "reviewer"
+}
