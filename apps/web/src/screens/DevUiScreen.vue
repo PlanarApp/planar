@@ -130,6 +130,7 @@ const variants = ['primary', 'secondary', 'ghost', 'danger-ghost', 'danger'] as 
         <Menu :items="items">
           <template #trigger><IconButton :icon="MoreHorizontal" label="Ещё" /></template>
         </Menu>
+        <Menu :items="items" label="Действия" />
         <Popover v-model:open="pop">
           <template #trigger><Button>Popover</Button></template>
           Содержимое поповера

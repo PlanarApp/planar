@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref, type Component } from 'vue';
+import { ref, useSlots, type Component } from 'vue';
+import { MoreHorizontal } from 'lucide-vue-next';
+import IconButton from './IconButton.vue';
 import {
   DropdownMenuContent,
   DropdownMenuItem,
@@ -25,15 +27,20 @@ type Item = {
 };
 export type MenuItem = Item | { separator: true };
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     items: MenuItem[];
     side?: 'top' | 'right' | 'bottom' | 'left';
     align?: 'start' | 'center' | 'end';
+    /** подпись кнопки «…», когда слота trigger нет */
+    label?: string;
   }>(),
   { align: 'start' },
 );
 
+const hasTrigger = !!useSlots().trigger;
+if (import.meta.env.DEV && !hasTrigger && !props.label)
+  console.warn('Menu: нужен слот trigger или label');
 const { isMobile } = useBreakpoint();
 const sheet = ref(false);
 const pending = ref<Item | null>(null);
@@ -52,7 +59,10 @@ const confirmed = () => pending.value?.onSelect();
 
 <template>
   <Sheet v-if="isMobile" v-model:open="sheet">
-    <template #trigger><slot name="trigger" /></template>
+    <template #trigger
+      ><slot name="trigger"
+        ><IconButton :icon="MoreHorizontal" :label="label ?? ''" size="sm" /></slot
+    ></template>
     <template v-for="(it, i) in items" :key="'separator' in it ? 'sep' + i : it.id">
       <div v-if="'separator' in it" class="my-1 h-px bg-border" />
       <button
@@ -71,7 +81,10 @@ const confirmed = () => pending.value?.onSelect();
     </template>
   </Sheet>
   <DropdownMenuRoot v-else>
-    <DropdownMenuTrigger as-child><slot name="trigger" /></DropdownMenuTrigger>
+    <DropdownMenuTrigger as-child
+      ><slot name="trigger"
+        ><IconButton :icon="MoreHorizontal" :label="label ?? ''" size="sm" /></slot
+    ></DropdownMenuTrigger>
     <DropdownMenuPortal>
       <DropdownMenuContent
         :side="side"

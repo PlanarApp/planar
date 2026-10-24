@@ -17,7 +17,7 @@ const rows = (t: string) => db.table(t).toArray();
 describe('settings:spaces', () => {
   it('создаёт пространство с 5 статусами и участником', async () => {
     const w = await show(SpacesSettings, {});
-    await w.find('[data-testid=space-new] input').setValue('Новое');
+    await w.find('input[data-testid=space-new]').setValue('Новое');
     await w.find('form').trigger('submit');
     await wait();
     const s = (await rows('spaces')).find((x) => x.name === 'Новое');
@@ -81,8 +81,8 @@ describe('settings:members', () => {
 describe('settings:projects', () => {
   it('неверный ключ не отправляется', async () => {
     const w = await show(ProjectsSettings);
-    await w.find('[data-testid=project-name] input').setValue('X');
-    await w.find('[data-testid=project-key] input').setValue('1a');
+    await w.find('input[data-testid=project-name]').setValue('X');
+    await w.find('input[data-testid=project-key]').setValue('1a');
     await w.find('form').trigger('submit');
     await wait();
     expect(await db._queue.count()).toBe(0);
@@ -90,8 +90,8 @@ describe('settings:projects', () => {
   });
   it('создаёт с верным ключом и архивирует', async () => {
     const w = await show(ProjectsSettings);
-    await w.find('[data-testid=project-name] input').setValue('Новый');
-    await w.find('[data-testid=project-key] input').setValue('NEW');
+    await w.find('input[data-testid=project-name]').setValue('Новый');
+    await w.find('input[data-testid=project-key]').setValue('NEW');
     await w.find('form').trigger('submit');
     await wait();
     const p = (await rows('projects')).find((x) => x.key === 'NEW');
@@ -122,7 +122,7 @@ describe('settings:projects', () => {
 describe('settings:statuses', () => {
   it('создаёт статус', async () => {
     const w = await show(StatusesSettings);
-    await w.find('[data-testid=status-new] input').setValue('Review');
+    await w.find('input[data-testid=status-new]').setValue('Review');
     await w.find('form').trigger('submit');
     await wait();
     expect((await rows('statuses')).some((s) => s.name === 'Review')).toBe(true);
@@ -174,7 +174,7 @@ describe('settings:statuses', () => {
 describe('settings:labels', () => {
   it('создаёт метку', async () => {
     const w = await show(LabelsSettings);
-    await w.find('[data-testid=label-new] input').setValue('feat');
+    await w.find('input[data-testid=label-new]').setValue('feat');
     await w.find('form').trigger('submit');
     await wait();
     expect((await rows('labels')).some((l) => l.name === 'feat')).toBe(true);

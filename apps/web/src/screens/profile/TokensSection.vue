@@ -94,7 +94,7 @@ async function revoke(tk: ApiToken) {
   }
 }
 
-const fmt = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '—');
+const fmt = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '');
 </script>
 
 <template>
@@ -136,7 +136,8 @@ const fmt = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '—')
           <span class="min-w-0">
             <span class="block truncate">{{ tk.name }}</span>
             <span class="text-fg-muted">
-              plnr_{{ tk.prefix }}… · {{ t('tokens.expires') }}: {{ fmt(tk.expiresAt) }} ·
+              plnr_{{ tk.prefix }}… · {{ t('tokens.expires') }}:
+              {{ tk.expiresAt ? fmt(tk.expiresAt) : t('tokens.never') }} ·
               {{ t('tokens.lastUsed') }}: {{ fmt(tk.lastUsedAt) }}
             </span>
           </span>
