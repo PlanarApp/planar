@@ -24,6 +24,8 @@ describe('settings:spaces', () => {
     expect(s).toBeTruthy();
     expect(await db.table('statuses').where('spaceId').equals(s.id).count()).toBe(5);
     expect(await db.table('spaceMembers').where('spaceId').equals(s.id).count()).toBe(1);
+    const sts = await db.table('statuses').where('spaceId').equals(s.id).toArray();
+    expect(sts.find((x) => x.category === 'in_progress').name).toBe('В работе');
   });
   it('переименовывает', async () => {
     const w = await show(SpacesSettings, {});

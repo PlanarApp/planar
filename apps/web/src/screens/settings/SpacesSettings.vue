@@ -27,6 +27,12 @@ const create = () =>
       rank: rankBetween(last, null),
       memberId: newId(),
       statusIds: Array.from({ length: 5 }, newId),
+      statusNames: Object.fromEntries(
+        ['backlog', 'todo', 'in_progress', 'done', 'cancelled'].map((c) => [
+          c,
+          t(`settings.cat.${c}`),
+        ]),
+      ),
     });
     name.value = '';
   });
