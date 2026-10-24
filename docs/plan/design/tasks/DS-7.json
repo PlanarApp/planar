@@ -50,17 +50,18 @@
       "expect": "exit=0"
     },
     {
-      "name": "typecheck",
-      "cmd": "pnpm --filter web exec vue-tsc --noEmit && pnpm exec tsc -p packages/shared --noEmit",
+      "name": "lint",
+      "cmd": "pnpm exec eslint packages/shared apps/web && pnpm exec prettier --check packages/shared apps/web",
       "expect": "exit=0"
     },
     {
-      "name": "lint",
-      "cmd": "pnpm exec eslint packages/shared apps/web && pnpm exec prettier --check packages/shared apps/web",
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit && pnpm exec tsc -p packages/shared/tsconfig.build.json --noEmit",
       "expect": "exit=0"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-24T16:05:04"
+  "created": "2026-10-24T16:05:04",
+  "edited": "2026-10-24T16:05:17"
 }
