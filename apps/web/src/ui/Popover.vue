@@ -13,7 +13,7 @@ const open = defineModel<boolean>('open', { default: false });
         :side="side"
         :align="align"
         :side-offset="4"
-        class="z-50 rounded-lg border border-border bg-surface p-3 text-fg shadow-md outline-none"
+        class="z-50 rounded-lg border border-border bg-surface p-3 text-fg shadow-popover outline-none"
       >
         <slot />
       </PopoverContent>

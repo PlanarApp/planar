@@ -1,5 +1,6 @@
 export default {
   app: { name: 'Planar' },
+  ui: { cancel: 'Отмена' },
   sidebar: {
     inbox: 'Входящие',
     my: 'Мои задачи',
