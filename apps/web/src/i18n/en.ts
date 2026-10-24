@@ -31,6 +31,7 @@ export default {
     language: 'Language',
     install: 'Install app',
     menu: 'Menu',
+    modules: { chat: 'Chat', docs: 'Docs' },
     nav: 'Navigation',
   },
   fields: {
@@ -64,6 +65,9 @@ export default {
     },
   },
   inbox: {
+    all: 'All',
+    filter: 'Filter',
+    actions: 'Actions',
     today: 'Today',
     yesterday: 'Yesterday',
     empty: 'All caught up',
@@ -152,6 +156,9 @@ export default {
     },
   },
   profile: {
+    title: 'Profile',
+    appearance: 'Appearance',
+    notifications: 'Notifications',
     weekStart: 'Week starts on',
     weekAuto: 'Auto (by language)',
     weekMon: 'Monday',
@@ -277,6 +284,9 @@ export default {
     setup: 'Initial setup',
     profile: 'Profile',
     module: 'Module',
+    moduleOff: 'Module is disabled',
+    moduleError: 'Module failed to load',
+    moduleOffAction: 'Module settings',
     notFound: 'Page not found',
   },
   links: {
@@ -329,6 +339,13 @@ export default {
     deleteProject: 'Delete project?',
     deleteStatus: 'Delete status?',
     replaceWith: 'Move tasks to status',
+    statusDefaults: {
+      backlog: 'Backlog',
+      todo: 'Todo',
+      in_progress: 'In progress',
+      done: 'Done',
+      cancelled: 'Cancelled',
+    },
     cat: {
       backlog: 'Backlog',
       todo: 'Todo',
@@ -427,7 +444,7 @@ export default {
     send: 'Send',
     notFound: 'Task not found',
     description: 'Description',
-    descriptionPlaceholder: "Description… (Markdown, {'@'} to mention)",
+    descriptionPlaceholder: 'Add a description…',
     mention: 'Mention',
     addReaction: 'Add reaction',
     tooLarge: 'File is larger than allowed',

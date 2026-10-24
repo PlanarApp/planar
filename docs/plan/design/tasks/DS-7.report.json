@@ -1,0 +1,50 @@
+{
+  "status": "done",
+  "summary": "space.create принимает statusNames (мутатор и тесты уже в ветке); web передаёт имена из i18n. Доработка по ревью: имена берутся из новых ключей, ru как в сиде.",
+  "commits": [
+    "a97f4a1 мутатор statusNames и тесты",
+    "122b297 имена статусов из settings.statusDefaults"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "shared-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [
+    "Ключ назван settings.statusDefaults.*, а не settings.statuses.defaults.*: settings.statuses — строка-заголовок, используется в StatusesSettings.vue:91 (вне скоупа). Переименовать — отдельной правкой."
+  ],
+  "how_to_check": ".dpcli/dpcli accept DS-7",
+  "uncertain": [
+    {
+      "where": "apps/web/src/i18n/ru.ts:settings.statusDefaults",
+      "why": "отступление от имени ключа из карточки",
+      "checked": "vue-i18n не допускает строку и объект под одним ключом; единственное использование settings.statuses вне скоупа"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-24T16:32:28",
+  "by": "executor"
+}

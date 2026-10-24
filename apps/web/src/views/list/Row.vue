@@ -18,6 +18,7 @@ import { AvatarStack, Badge } from '../../ui';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 import { localToday } from '../filter';
+import { formatDue } from './due';
 
 const props = defineProps<{
   task: TaskView;
@@ -37,7 +38,9 @@ const emit = defineEmits<{
   edit: [];
   done: [];
 }>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
+// пикеры справа видны только при наведении/фокусе — до этого не монтируем (переключение проекта)
+const hot = ref(false);
 const input = ref<HTMLInputElement>();
 const draft = ref('');
 let live = false; // blur после Enter/Esc не сохраняет повторно
@@ -95,6 +98,8 @@ function save() {
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
     @click="emit('click', $event)"
+    @pointerenter="hot = true"
+    @focusin="hot = true"
   >
     <div role="gridcell" class="w-5 shrink-0" @click.stop>
       <input
@@ -149,7 +154,7 @@ function save() {
       <span
         v-if="fields.includes('dueDate') && task.dueDate"
         :class="['hidden text-xs md:inline', dueTone]"
-        >{{ task.dueDate }}</span
+        >{{ formatDue(task.dueDate, locale) }}</span
       >
       <AvatarStack v-if="fields.includes('assignee')" :people="people" size="xs" />
     </div>
@@ -159,6 +164,7 @@ function save() {
     >
       <div v-if="fields.includes('labels')" role="gridcell">
         <LabelPicker
+          v-if="hot || focused"
           compact
           :space-id="spaceId"
           :model-value="task.labelIds"
@@ -167,6 +173,7 @@ function save() {
       </div>
       <div v-if="fields.includes('priority')" role="gridcell">
         <PriorityPicker
+          v-if="hot || focused"
           compact
           :model-value="task.priority"
           @update:model-value="updateTask(task.id, { priority: $event })"
@@ -174,6 +181,7 @@ function save() {
       </div>
       <div v-if="fields.includes('assignee')" role="gridcell">
         <AssigneePicker
+          v-if="hot || focused"
           compact
           :space-id="spaceId"
           :model-value="task.assigneeIds"
@@ -182,6 +190,7 @@ function save() {
       </div>
       <div v-if="fields.includes('dueDate')" role="gridcell">
         <DueDatePicker
+          v-if="hot || focused"
           compact
           :model-value="task.dueDate"
           @update:model-value="updateTask(task.id, { dueDate: $event })"

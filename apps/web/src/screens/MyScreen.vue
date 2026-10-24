@@ -5,10 +5,11 @@ import { useI18n } from 'vue-i18n';
 import { StatusIcon } from '../tasks';
 import { EmptyState } from '../ui';
 import { openTask } from '../views';
+import { formatDue } from '../views/list/due';
 import { useAuth } from '../auth/useAuth';
 import { useMyTasks, type MyTask } from '../inbox/queries';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { user } = useAuth();
 const rows = useMyTasks(() => user.value?.id);
 
@@ -55,7 +56,9 @@ const groups = computed(() => {
         <StatusIcon :status="r.status" />
         <span class="text-xs text-fg-subtle">{{ r.key }}</span>
         <span class="flex-1 truncate">{{ r.title }}</span>
-        <span class="text-xs text-fg-muted">{{ r.dueDate }}</span>
+        <span v-if="r.dueDate" class="text-xs text-fg-muted">{{
+          formatDue(r.dueDate, locale)
+        }}</span>
         <span class="hidden text-xs text-fg-subtle md:inline">{{ r.project }}</span>
       </button>
     </section>

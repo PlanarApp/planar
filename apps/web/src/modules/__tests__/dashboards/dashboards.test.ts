@@ -46,7 +46,7 @@ const task = (o: Record<string, unknown>): Task =>
     assigneeIds: [],
     labelIds: [],
     ...o,
-  }) as Task;
+  }) as unknown as Task;
 const w = (kind: string, config: Record<string, unknown> = {}) =>
   ({ kind, config: { filter: none, ...config } }) as never;
 

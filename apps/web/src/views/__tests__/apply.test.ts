@@ -79,17 +79,19 @@ describe('views:apply', () => {
   it('views:apply fields убирает колонку списка и поле карточки', async () => {
     const list = show(ListView, opts(ALL));
     await until(() => list.findAll('[data-task]').length === 2);
+    await list.get('[data-task]').trigger('pointerenter'); // пикеры справа монтируются по наведению
     const cells = list.get('[data-task]').findAll('[role=gridcell]').length;
     list.unmount();
     const less = show(ListView, opts(['status']));
     await until(() => less.findAll('[data-task]').length === 2);
+    await less.get('[data-task]').trigger('pointerenter');
     expect(less.get('[data-task]').findAll('[role=gridcell]').length).toBe(cells - 4);
     await db.table('tasks').put(task(3, { title: 'срок', dueDate: '2026-12-24' }));
     const withDue = show(BoardView, opts(ALL));
     await until(() => withDue.text().includes('срок'));
-    expect(withDue.text()).toContain('12.24');
+    expect(withDue.text()).toContain('24 дек');
     const noDue = show(BoardView, opts(['status']));
     await until(() => noDue.text().includes('срок'));
-    expect(noDue.text()).not.toContain('12.24');
+    expect(noDue.text()).not.toContain('24 дек');
   });
 });

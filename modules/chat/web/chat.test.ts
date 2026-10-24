@@ -222,10 +222,10 @@ describe('секция боковой панели', () => {
     const w = mount(Section);
     await vi.waitFor(() => expect(w.findAll('[data-testid=chat-channel]').length).toBe(3));
     const rows = texts(w, '[data-testid=chat-channel]');
-    expect(rows.map((r) => r.replace(/\d+$/, '').trim())).toEqual(['# alpha', '# beta', '# zzz']);
+    expect(rows.map((r) => r.replace(/\d+$/, '').trim())).toEqual(['alpha', 'beta', 'zzz']);
     expect(rows[0]).toMatch(/3$/); // нет строки chatReads — 0
     expect(rows[1]).toMatch(/3$/); // 5 − 2
-    expect(rows[2]).toBe('# zzz'); // muted
+    expect(rows[2]).toBe('zzz'); // muted
   });
 
   it('одно пространство — без заголовка с его именем; заголовок «Чат» сворачивает секцию', async () => {

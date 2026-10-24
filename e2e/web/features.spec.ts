@@ -164,9 +164,9 @@ test('таблица: выбор строк показывает панель м
   await expect(checks).toHaveCount(2);
   await checks.nth(0).click();
   await checks.nth(1).click({ modifiers: ['Shift'] });
-  await expect(page.getByRole('toolbar')).toContainText('Выбрано: 2');
+  await expect(page.getByRole('toolbar', { name: /^Выбрано/ })).toContainText('Выбрано: 2');
   await page.getByRole('button', { name: 'Снять выбор' }).click();
-  await expect(page.getByRole('toolbar')).toHaveCount(0);
+  await expect(page.getByRole('toolbar', { name: /^Выбрано/ })).toHaveCount(0);
 });
 
 // ---------- Пользовательские поля

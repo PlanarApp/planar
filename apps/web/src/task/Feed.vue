@@ -106,7 +106,7 @@ async function send() {
         @save="(body) => mutate('comment.update', { id: e.comment.id, body })"
         @remove="mutate('comment.delete', { id: e.comment.id })"
       />
-      <p v-else class="text-xs text-fg-subtle" data-testid="activity">{{ describe(e.act) }}</p>
+      <p v-else class="text-xs text-fg-muted" data-testid="activity">{{ describe(e.act) }}</p>
     </template>
     <div class="rounded-md border border-border-strong p-2">
       <Editor

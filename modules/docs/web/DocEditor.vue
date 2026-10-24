@@ -170,7 +170,7 @@ defineExpose({ editor });
 
 <template>
   <div class="doc-editor relative">
-    <EditorContent :editor="editor" />
+    <EditorContent :editor="editor ?? undefined" />
     <input
       ref="fileInput"
       type="file"

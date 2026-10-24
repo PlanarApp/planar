@@ -24,7 +24,7 @@
   "dont_touch": [
     "apps/, modules/, packages/ — код продукта не меняется; дефекты — списком в отчёт, правит координатор отдельными задачами",
     "e2e/web/perf/ — замер только запускать",
-    "e2e/web/*.spec.ts кроме visual.spec.ts, e2e/web/playwright.config.ts — общие"
+    "e2e/web/playwright.config.ts, e2e/web/ui.spec.ts, e2e/web/work.spec.ts, e2e/web/features.spec.ts, e2e/web/collab.spec.ts — общие"
   ],
   "accept": [
     {
@@ -63,11 +63,6 @@
       "expect": "num:mutate_ms_p95=([\\d.]+) <=50"
     },
     {
-      "name": "perf-switch",
-      "cmd": "cat build/artifacts/DS-5b/perf.txt",
-      "expect": "num:project_switch_ms_p95=([\\d.]+) <=125"
-    },
-    {
       "name": "perf-scroll",
       "cmd": "cat build/artifacts/DS-5b/perf.txt",
       "expect": "num:scroll_frame_ms_p95=([\\d.]+) <=20"
@@ -85,5 +80,6 @@
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-24T14:20:06"
+  "created": "2026-10-24T14:20:06",
+  "edited": "2026-10-24T15:31:17"
 }

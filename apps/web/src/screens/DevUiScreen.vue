@@ -33,8 +33,8 @@ const cfm = ref(false);
 const pop = ref(false);
 const pressed = ref(false);
 const opts = [
-  { value: 'todo', label: 'Todo', color: '#ca8a04' },
-  { value: 'done', label: 'Done', color: '#15803d' },
+  { value: 'todo', label: 'К выполнению', color: '#ca8a04' },
+  { value: 'done', label: 'Готово', color: '#15803d' },
 ];
 const people = [
   { name: 'Анна Белова' },
@@ -76,7 +76,7 @@ const variants = ['primary', 'secondary', 'ghost', 'danger-ghost', 'danger'] as 
 
 <template>
   <div class="mx-auto flex max-w-3xl flex-col gap-6 p-4 text-fg">
-    <h1 class="text-xl font-semibold">C-ui v3</h1>
+    <h1 class="text-xl font-semibold">C-ui v4</h1>
     <Tabs
       v-model="theme"
       label="Тема"

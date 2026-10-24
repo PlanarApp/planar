@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Archive } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import { db, mutate, useQuery, Button } from '@planar/web/modules';
+import { db, mutate, useQuery, Menu, type MenuItem } from '@planar/web/modules';
 import DocEditor from './DocEditor.vue';
 import type { PageFull } from './model';
 import { createSaver } from './save';
@@ -33,6 +33,16 @@ const saver = createSaver<{ title?: string }>((patch) =>
 const onTitle = () => saver.push({ title: title.value });
 onBeforeUnmount(saver.flush);
 
+const actions = computed<MenuItem[]>(() => [
+  {
+    id: 'archive',
+    label: tx('archive'),
+    icon: Archive,
+    confirm: { title: tx('archiveTitle'), confirmLabel: tx('archive') },
+    onSelect: archive,
+  },
+]);
+
 async function archive() {
   saver.flush();
   await mutate('docs.page.archive', { id: props.pageId });
@@ -41,22 +51,22 @@ async function archive() {
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-3xl flex-col gap-3 p-4 md:p-6">
+  <div class="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-8 md:px-6">
     <p v-if="page === undefined" class="text-fg-muted" />
     <p v-else-if="!page" class="text-fg-muted">{{ tx('notFound') }}</p>
     <template v-else>
       <div class="flex items-center gap-2">
-        <input
-          v-model="title"
-          :aria-label="tx('title')"
-          :placeholder="tx('untitled')"
-          data-testid="doc-title"
-          class="h-11 min-w-0 flex-1 rounded-md bg-transparent px-2 text-2xl font-semibold outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus md:h-12"
-          @input="onTitle"
-        />
-        <Button variant="ghost" size="sm" :icon="Archive" @click="archive">
-          {{ tx('archive') }}
-        </Button>
+        <h1 class="min-w-0 flex-1 text-xl font-semibold">
+          <input
+            v-model="title"
+            :aria-label="tx('title')"
+            :placeholder="tx('untitled')"
+            data-testid="doc-title"
+            class="h-11 w-full rounded-md bg-transparent px-2 font-[inherit] outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus md:h-12"
+            @input="onTitle"
+          />
+        </h1>
+        <Menu :items="actions" :label="tx('actions')" align="end" />
       </div>
       <DocEditor
         :name="`docs:${pageId}`"

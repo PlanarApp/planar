@@ -22,6 +22,27 @@ describe('space/member', () => {
     expect(sts.map((x) => x.id)).toEqual(s.statusIds);
   });
 
+  it('space.create: statusNames переименовывает, пустое/длинное — по умолчанию', async () => {
+    const tx = mem();
+    const s = { spaceId: id(), statusIds: [id(), id(), id(), id(), id()] };
+    await run(tx, 'space.create', {
+      id: s.spaceId,
+      name: 'S',
+      rank: 'a0',
+      memberId: id(),
+      statusIds: s.statusIds,
+      statusNames: { todo: ' К работе ', done: '  ', cancelled: 'x'.repeat(65) },
+    });
+    const sts = await tx.scan('statuses', { index: 'spaceId', eq: s.spaceId });
+    const n = (c: string) => sts.find((x) => x.category === c)!.name;
+    expect([n('todo'), n('done'), n('cancelled'), n('backlog')]).toEqual([
+      'К работе',
+      'Done',
+      'Cancelled',
+      'Backlog',
+    ]);
+  });
+
   it('space.create: statusIds не 5 → invalid_args', async () => {
     const a = { id: id(), name: 'S', rank: 'a0', memberId: id(), statusIds: [id()] };
     await expect(run(mem(), 'space.create', a)).rejects.toThrow();

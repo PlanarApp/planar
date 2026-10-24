@@ -1,0 +1,87 @@
+{
+  "id": "DS-8",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "Регрессия переключения проекта после design: найти причину и устранить",
+  "goal": "Переключение проекта p95 ≤ 100 мс (медиана A/B, n ≥ 10 прогонов на версию, один хост, под замком CPU) на ветке задачи; причина регрессии main → feature/design (93.6 → 116.3 мс, DS-5c) найдена профилем и устранена без изменения визуала (скриншотные тесты проходят).",
+  "plan_ref": "8. Условия остановки",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "4",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-8",
+  "branch": "design/DS-8",
+  "base": "feature/design",
+  "scope": [
+    "apps/web/src/views",
+    "apps/web/src/ui",
+    "apps/web/src/layout",
+    "apps/web/src/screens/ProjectScreen.vue",
+    "apps/web/src/screens/SavedViewScreen.vue",
+    "apps/web/src/tasks/fields",
+    "build/artifacts/DS-8"
+  ],
+  "dont_touch": [
+    "e2e/ — инструменты замера и скриншотные тесты только запускать; эталоны не обновлять (визуал не должен меняться)",
+    "packages/, apps/api/, modules/ — не web-ядро",
+    "apps/web/src/__contract__/, docs/contracts/ — только координатор; пропсы и поведение компонентов C-ui v4 не менять"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "ab-design",
+      "cmd": "cat build/artifacts/DS-8/ab.md",
+      "expect": "num:design_switch_p95_median=([\\d.]+) <=100"
+    },
+    {
+      "name": "ab-runs",
+      "cmd": "cat build/artifacts/DS-8/ab.md",
+      "expect": "num:design_runs=(\\d+) >=10"
+    },
+    {
+      "name": "ab-main-runs",
+      "cmd": "cat build/artifacts/DS-8/ab.md",
+      "expect": "num:main_runs=(\\d+) >=10"
+    },
+    {
+      "name": "visual-unchanged",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-ds8 API_PORT=3261 WEB_PORT=5361 DEV_PG_PORT=55561; ./dev.sh reset >/dev/null 2>&1 && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed >/dev/null && E2E_BASE_URL=http://localhost:5361 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts visual.spec.ts; rc=$?; docker compose -f compose.dev.yml down -v >/dev/null 2>&1; exit $rc",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T16:36:33"
+}

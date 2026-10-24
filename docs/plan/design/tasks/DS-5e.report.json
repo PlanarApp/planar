@@ -1,0 +1,69 @@
+{
+  "status": "partial",
+  "summary": "E2E web на свежем стеке: 83 passed, 1 failed (collab.spec.ts:217, известная гонка DS-10). Замер §7: 3 прогона perf/run.sh под замком CPU, все метрики в пороге; perf.md записан. accept --dry: e2e-all FAIL (exit 1 из-за одного падения), остальные 7/8 PASS.",
+  "commits": [],
+  "checks": [
+    {
+      "name": "perf-switch",
+      "value": "76.4 мс (≤100)",
+      "pass": true
+    },
+    {
+      "name": "perf-warm",
+      "value": "408.3 мс (≤450)",
+      "pass": true
+    },
+    {
+      "name": "perf-cold",
+      "value": "1751.8 мс (≤2000)",
+      "pass": true
+    },
+    {
+      "name": "perf-mutate",
+      "value": "22.0 мс (≤50)",
+      "pass": true
+    },
+    {
+      "name": "perf-realtime",
+      "value": "348.0 мс (≤500)",
+      "pass": true
+    },
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "e2e-all",
+      "value": "83 passed, 1 failed (collab.spec.ts:217), exit 1",
+      "pass": false
+    },
+    {
+      "name": "scope",
+      "value": "0 файлов вне границ",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "accept --dry e2e-all: exit 1 из-за одного падения. Упавший сценарий: web/collab.spec.ts:217 «collab: холодная загрузка /m/chat/c/<id> открывает канал, а не заглушку «Модуль»»; первая строка ошибки: expect(locator).toBeVisible() failed, Locator getByTestId('chat-feed'), element(s) not found (таймаут 15 с). Не чинено по карточке."
+  ],
+  "questions": [
+    "Разрешить ли PASS при известном падении collab:217 (DS-10), или e2e-all должен быть зелёным до слияния?"
+  ],
+  "images": [],
+  "how_to_check": "cat build/artifacts/DS-5e/perf.md; grep -E 'passed|failed' build/artifacts/DS-5e/e2e.txt",
+  "uncertain": [
+    {
+      "where": "build/artifacts/DS-5e/perf-run-*.log",
+      "why": "realtime_ms_p95 разброс 293–559 мс между прогонами",
+      "checked": "медиана 348 мс в пороге 500"
+    }
+  ],
+  "dp_feedback": "perf.md не создаётся run.sh: метрики только в логе, медианы считаю вручную; accept --dry для e2e-all падает на любой ненулевой выход, без учёта известных падений.",
+  "extra": {
+    "perf_runs": "build/artifacts/DS-5e/perf-run-1..3.log",
+    "e2e_runs_tests": 84
+  },
+  "t": "2026-10-24T20:26:25",
+  "by": "executor"
+}

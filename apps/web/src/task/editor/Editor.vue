@@ -2,7 +2,7 @@
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Editor, EditorContent } from '@tiptap/vue-3';
-import type { JSONContent } from '@tiptap/vue-3';
+import type { EditorOptions, JSONContent } from '@tiptap/vue-3';
 import type { Extensions } from '@tiptap/core';
 import { editorExtensions } from '@planar/editor';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -72,7 +72,7 @@ const retry = () => {
 let gone = false;
 let readOnly = () => false;
 
-const options = (extra: Extensions = [], collab = false) => ({
+const options = (extra: Extensions = [], collab = false): Partial<EditorOptions> => ({
   ...(collab ? {} : { content: props.modelValue ?? '' }),
   editable: props.editable,
   extensions: [
@@ -142,8 +142,7 @@ const options = (extra: Extensions = [], collab = false) => ({
       return all.length > 0;
     },
   },
-  onUpdate: ({ editor: ed }: { editor: Editor }) =>
-    emit('update:modelValue', ed.isEmpty ? null : ed.getJSON()),
+  onUpdate: ({ editor: ed }) => emit('update:modelValue', ed.isEmpty ? null : ed.getJSON()),
   onBlur: () => emit('blur'),
 });
 
@@ -196,7 +195,7 @@ defineExpose({
 
 <template>
   <div class="task-editor relative">
-    <EditorContent :editor="editor" />
+    <EditorContent :editor="editor ?? undefined" />
     <p v-if="error" role="alert" class="mt-1 text-xs text-danger">{{ error }}</p>
     <p
       v-if="unsynced"

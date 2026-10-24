@@ -1,0 +1,39 @@
+{
+  "id": "DS-5c",
+  "module": "design",
+  "type": "dp-researcher",
+  "title": "A/B-замер §7: main против feature/design на одном хосте",
+  "goal": "Таблица медиан бюджетов §7 (cold, warm, mutate, switch, scroll, realtime) для main (до design) и feature/design (после), по 3 чередующихся прогона e2e/web/perf/run.sh на каждой версии под одним замком CPU; вывод — ухудшился ли какой-либо бюджет сверх шума.",
+  "plan_ref": "8. Условия остановки",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "4",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-5c",
+  "branch": "design/DS-5c",
+  "base": "feature/design",
+  "scope": [
+    "build/artifacts/DS-5c"
+  ],
+  "dont_touch": [
+    "весь код и e2e — только запуск"
+  ],
+  "accept": [
+    {
+      "name": "table",
+      "cmd": "cat build/artifacts/DS-5c/ab.md",
+      "expect": "re:project_switch_ms_p95"
+    },
+    {
+      "name": "runs",
+      "cmd": "ls build/artifacts/DS-5c/run-*.txt | wc -l",
+      "expect": "num:^(\\d+) >=6"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T16:05:36"
+}

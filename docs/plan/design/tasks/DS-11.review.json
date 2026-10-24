@@ -1,0 +1,39 @@
+{
+  "verdict": "accept",
+  "summary": "Доработка 2 выполнена: timedOut стал shallowRef, поэтому через 10 с без настроек статус становится error (тест с fake timers есть); watch(status) теперь с immediate. Скоуп и C-modules соблюдены. Не хватает одного unit-теста ModuleScreen, но логика проста, а сценарий покрыт cold-10x.",
+  "issues": [
+    {
+      "file": "apps/web/src/screens/ModuleScreen.vue",
+      "line": 18,
+      "severity": "minor",
+      "what": "Карточка (доработка 2, п.2) просила unit-тест: статус 'ready' до монтирования — навигация повторяется, EmptyState не показывается. Такого теста в __tests__ нет, есть только cold-timeout.test.ts. Сама правка ({ immediate: true }) верна.",
+      "fix": "При следующей правке рядом добавить mount-тест ModuleScreen: модуль зарегистрирован до монтирования, проверить, что router.replace вызван и data-testid=module-loading/EmptyState не показан. Блокером не считаю."
+    },
+    {
+      "file": "apps/web/src/modules/__tests__/cold-timeout.test.ts",
+      "line": 12,
+      "severity": "minor",
+      "what": "vi.useRealTimers() стоит в конце теста, а не в afterEach/finally: если expect упадёт, fake timers останутся включёнными (файл отдельный, так что влияние небольшое).",
+      "fix": "Перенести в afterEach или в try/finally."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "web-tests",
+      "value": "exit 0, 40 с",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "10 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T22:29:50",
+  "by": "reviewer"
+}

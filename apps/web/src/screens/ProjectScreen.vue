@@ -8,11 +8,12 @@ import {
   watch,
   type Component,
 } from 'vue';
+import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { BookmarkPlus, MoreHorizontal } from 'lucide-vue-next';
 import { useProject } from '../tasks';
-import { IconButton, Menu, Tabs, Toolbar, useBreakpoint } from '../ui';
+import { IconButton, Menu, Tabs, useBreakpoint } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import {
@@ -88,6 +89,36 @@ const panelOpen = computed(() => !!TaskPanel && !!taskKey.value && !isMobile.val
 const { clear } = useSelection();
 watch(projectId, clear, { immediate: true });
 
+// полоса вкладок: при переполнении — градиентная маска у края, где есть скрытое
+const strip = ref<HTMLElement>();
+const fade = ref({ l: false, r: false });
+const measure = () => {
+  const el = strip.value;
+  if (el)
+    fade.value = {
+      l: el.scrollLeft > 1,
+      r: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+    };
+};
+const stripMask = computed(() => {
+  const { l, r } = fade.value;
+  if (!l && !r) return undefined;
+  const g = `linear-gradient(to right, ${l ? 'transparent, #000 40px' : '#000, #000'}, ${r ? '#000 calc(100% - 40px), transparent' : '#000, #000'})`;
+  return { maskImage: g, WebkitMaskImage: g };
+});
+let ro: ResizeObserver | undefined;
+watch(strip, (el) => {
+  ro?.disconnect();
+  if (el && typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(measure);
+    ro.observe(el);
+    // scrollWidth растёт без смены размера самой полосы (сохранённые виды, шрифт) — смотрим и детей
+    for (const c of el.children) ro.observe(c);
+  }
+  measure();
+});
+onBeforeUnmount(() => ro?.disconnect());
+
 const onKey = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && panelOpen.value) closeTask();
 };
@@ -106,15 +137,26 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
       </header>
       <div v-if="!active" class="p-4 text-fg-muted">{{ t('views.empty') }}</div>
       <template v-else>
-        <Toolbar :label="t('views.toolbar')">
-          <Tabs
-            :model-value="active.key"
-            :label="t('views.toolbar')"
-            :items="tabs.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon }))"
-            @update:model-value="selectTab"
-          />
-          <SavedTabs :space-id="spaceId" :project-id="projectId" />
-          <template #end>
+        <ToolbarRoot
+          :aria-label="t('views.toolbar')"
+          class="flex h-11 shrink-0 items-center gap-1 border-b border-border px-2"
+        >
+          <div
+            ref="strip"
+            data-testid="view-tabs"
+            class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap"
+            :style="stripMask"
+            @scroll.passive="measure"
+          >
+            <Tabs
+              :model-value="active.key"
+              :label="t('views.toolbar')"
+              :items="tabs.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon }))"
+              @update:model-value="selectTab"
+            />
+            <SavedTabs :space-id="spaceId" :project-id="projectId" />
+          </div>
+          <div class="flex shrink-0 items-center gap-1">
             <OptionsBar
               v-model:options="options"
               v-model:filter="draftFilter"
@@ -137,8 +179,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
                 </template>
               </Menu>
             </OptionsBar>
-          </template>
-        </Toolbar>
+          </div>
+        </ToolbarRoot>
         <SaveViewDialog v-model:open="saveOpen" :can-share="canShare" @submit="onSave" />
         <div class="min-h-0 flex-1">
           <component
