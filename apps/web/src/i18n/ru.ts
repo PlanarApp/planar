@@ -1,6 +1,6 @@
 export default {
   app: { name: 'Planar' },
-  ui: { cancel: 'Отмена' },
+  ui: { cancel: 'Отмена', sheet: 'Выбор' },
   sidebar: {
     inbox: 'Входящие',
     my: 'Мои задачи',
@@ -10,7 +10,14 @@ export default {
     empty: 'Пока пусто',
     settings: 'Настройки',
   },
-  nav: { inbox: 'Входящие', my: 'Мои задачи', projects: 'Проекты', more: 'Ещё' },
+  nav: {
+    inbox: 'Входящие',
+    my: 'Мои задачи',
+    projects: 'Проекты',
+    more: 'Ещё',
+    menu: 'Меню',
+    search: 'Поиск',
+  },
   topbar: {
     search: 'Поиск',
     breadcrumb: 'Навигационная цепочка',
@@ -59,7 +66,8 @@ export default {
   inbox: {
     today: 'Сегодня',
     yesterday: 'Вчера',
-    empty: 'Нет уведомлений',
+    empty: 'Всё прочитано',
+    emptyHint: 'Новые уведомления появятся здесь',
     onlyUnread: 'Непрочитанные',
     readAll: 'Прочитать все',
     delete: 'Удалить',
@@ -75,6 +83,7 @@ export default {
       chat_reply: '{who} ответил(а) в треде',
     },
     myEmpty: 'Нет назначенных задач',
+    myEmptyHint: 'Здесь будут задачи, назначенные вам',
     my: {
       overdue: 'Просрочено',
       today: 'Сегодня',
@@ -163,6 +172,7 @@ export default {
     offlineReady: 'Готово к работе офлайн',
   },
   views: {
+    emptyBoard: 'Добавьте задачу в любой колонке',
     list: 'Список',
     board: 'Доска',
     table: 'Таблица',
@@ -286,6 +296,16 @@ export default {
     },
   },
   settings: {
+    more: 'Действия',
+    spacesDesc: 'Рабочие области: проекты, статусы, метки и участники живут внутри пространства.',
+    membersDesc: 'Кто работает в пространстве и с какой ролью.',
+    projectsDesc: 'Проекты пространства; ключ задаёт номера задач.',
+    statusesDesc: 'Статусы по категориям; порядок меняется перетаскиванием.',
+    labelsDesc: 'Метки задач пространства.',
+    modulesDesc: 'Включённые модули доступны всем пользователям.',
+    usersDesc: 'Учётные записи и роли.',
+    deleteLabel: 'Удалить метку?',
+    removeMember: 'Убрать участника?',
     spaces: 'Пространства',
     members: 'Участники',
     projects: 'Проекты',
@@ -460,6 +480,7 @@ export default {
     deleteText: 'Будет удалено задач: {n}',
     cancel: 'Отмена',
     emptyTitle: 'В проекте пока нет задач',
+    emptyHint: 'Создайте первую задачу в этом проекте',
     create: 'Создать задачу',
   },
   logoutPending: {

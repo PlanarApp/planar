@@ -1,6 +1,6 @@
 export default {
   app: { name: 'Planar' },
-  ui: { cancel: 'Cancel' },
+  ui: { cancel: 'Cancel', sheet: 'Choose' },
   sidebar: {
     inbox: 'Inbox',
     my: 'My tasks',
@@ -10,7 +10,14 @@ export default {
     empty: 'Nothing here yet',
     settings: 'Settings',
   },
-  nav: { inbox: 'Inbox', my: 'My tasks', projects: 'Projects', more: 'More' },
+  nav: {
+    inbox: 'Inbox',
+    my: 'My tasks',
+    projects: 'Projects',
+    more: 'More',
+    menu: 'Menu',
+    search: 'Search',
+  },
   topbar: {
     search: 'Search',
     breadcrumb: 'Breadcrumbs',
@@ -59,7 +66,8 @@ export default {
   inbox: {
     today: 'Today',
     yesterday: 'Yesterday',
-    empty: 'No notifications',
+    empty: 'All caught up',
+    emptyHint: 'New notifications will appear here',
     onlyUnread: 'Unread',
     readAll: 'Mark all read',
     delete: 'Delete',
@@ -75,6 +83,7 @@ export default {
       chat_reply: '{who} replied in a thread',
     },
     myEmpty: 'No assigned tasks',
+    myEmptyHint: 'Tasks assigned to you will appear here',
     my: {
       overdue: 'Overdue',
       today: 'Today',
@@ -163,6 +172,7 @@ export default {
     offlineReady: 'Ready to work offline',
   },
   views: {
+    emptyBoard: 'Add a task in any column',
     list: 'List',
     board: 'Board',
     table: 'Table',
@@ -286,6 +296,16 @@ export default {
     },
   },
   settings: {
+    more: 'Actions',
+    spacesDesc: 'Workspaces: projects, statuses, labels and members live inside a space.',
+    membersDesc: 'Who works in the space and with which role.',
+    projectsDesc: 'Projects of the space; the key sets task numbers.',
+    statusesDesc: 'Statuses by category; drag to reorder.',
+    labelsDesc: 'Task labels of the space.',
+    modulesDesc: 'Enabled modules are available to all users.',
+    usersDesc: 'Accounts and roles.',
+    deleteLabel: 'Delete label?',
+    removeMember: 'Remove member?',
     spaces: 'Spaces',
     members: 'Members',
     projects: 'Projects',
@@ -460,6 +480,7 @@ export default {
     deleteText: 'Tasks to delete: {n}',
     cancel: 'Cancel',
     emptyTitle: 'No tasks in this project yet',
+    emptyHint: 'Create the first task in this project',
     create: 'Create task',
   },
   logoutPending: {

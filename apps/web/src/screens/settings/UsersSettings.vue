@@ -5,6 +5,7 @@ import { Avatar, Badge, Button, Dialog, Input, Select } from '../../ui';
 import { api } from '../../api/http';
 import type { User } from '../../auth/useAuth';
 import { errText } from '../../auth/errText';
+import SectionHeader from './SectionHeader.vue';
 
 const { t } = useI18n();
 const users = ref<User[]>([]);
@@ -44,17 +45,16 @@ async function create() {
 
 <template>
   <section class="flex flex-col gap-3 p-4">
-    <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold">{{ t('auth.users') }}</h2>
-      <Button variant="primary" @click="open = true">{{ t('auth.addUser') }}</Button>
-    </div>
+    <SectionHeader :title="t('auth.users')" :description="t('settings.usersDesc')">
+      <Button variant="primary" size="sm" @click="open = true">{{ t('auth.addUser') }}</Button>
+    </SectionHeader>
     <p v-if="error && !open" role="alert" class="text-sm text-danger">{{ error }}</p>
     <ul class="flex flex-col divide-y divide-border">
       <li
         v-for="u in users"
         :key="u.id"
         data-testid="user-row"
-        class="flex items-center gap-3 py-2"
+        class="group flex items-center gap-3 py-1"
       >
         <Avatar :name="u.name" />
         <div class="min-w-0 flex-1">
@@ -72,6 +72,7 @@ async function create() {
         <Button
           v-if="u.role !== 'owner'"
           size="sm"
+          variant="ghost"
           data-testid="toggle-block"
           @click="patch(u, { deactivated: !u.deactivatedAt })"
         >

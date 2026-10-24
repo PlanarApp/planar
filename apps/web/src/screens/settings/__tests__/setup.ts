@@ -68,3 +68,21 @@ export async function pick(trigger: Element, option: number | string = 0) {
   o!.click();
   await wait();
 }
+
+/** Открыть меню строки «…» (reka: keydown Enter), выбрать пункт; confirm — нажать подтверждение в диалоге. */
+export async function menuAct(trigger: Element, item: string, confirm = false) {
+  trigger.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+  );
+  const find = () =>
+    [...document.body.querySelectorAll<HTMLElement>('[role=menuitem]')].find((x) =>
+      x.textContent?.includes(item),
+    );
+  await vi.waitFor(() => expect(find()).toBeTruthy());
+  find()!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  await wait();
+  if (!confirm) return;
+  await vi.waitFor(() => expect(document.body.querySelector('[role=dialog] button')).toBeTruthy());
+  [...document.body.querySelectorAll<HTMLElement>('[role=dialog] button')].at(-1)!.click(); // «отмена» первая, подтверждение последнее
+  await wait();
+}

@@ -10,7 +10,8 @@ import {
   useStatuses,
 } from '../../tasks';
 import { useBlockedIds } from '../../links';
-import { useBreakpoint } from '../../ui';
+import { LayoutDashboard } from 'lucide-vue-next';
+import { EmptyState, useBreakpoint } from '../../ui';
 import { openTask } from '..';
 import type { ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
@@ -85,26 +86,35 @@ function add(key: string, title: string) {
 </script>
 
 <template>
-  <div
-    class="flex h-full gap-3 overflow-x-auto p-3"
-    :class="isMobile && 'snap-x snap-mandatory'"
-    role="group"
-    :aria-label="t('views.board')"
-  >
-    <Column
-      v-for="g in columns"
-      :key="g.key"
-      :group="g"
-      :members="members ?? []"
-      :labels="labels ?? []"
-      :collapsed="collapsed.has(g.key)"
-      :mobile="isMobile"
-      :fields="options.fields"
-      :blocked="blocked"
-      @toggle="toggle(g.key)"
-      @open="openTask"
-      @add="add(g.key, $event)"
-      @move="move"
+  <div class="flex h-full min-h-0 flex-col">
+    <EmptyState
+      v-if="tasks && !tasks.length"
+      class="!pt-6 !pb-2"
+      :icon="LayoutDashboard"
+      :title="t('list.emptyTitle')"
+      :description="t('views.emptyBoard')"
     />
+    <div
+      class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3"
+      :class="isMobile && 'snap-x snap-mandatory'"
+      role="group"
+      :aria-label="t('views.board')"
+    >
+      <Column
+        v-for="g in columns"
+        :key="g.key"
+        :group="g"
+        :members="members ?? []"
+        :labels="labels ?? []"
+        :collapsed="collapsed.has(g.key)"
+        :mobile="isMobile"
+        :fields="options.fields"
+        :blocked="blocked"
+        @toggle="toggle(g.key)"
+        @open="openTask"
+        @add="add(g.key, $event)"
+        @move="move"
+      />
+    </div>
   </div>
 </template>

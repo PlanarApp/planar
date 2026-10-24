@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { TooltipContent, TooltipPortal, TooltipRoot, TooltipTrigger } from 'reka-ui';
+import { useBreakpoint } from './useBreakpoint';
 import Kbd from './Kbd.vue';
 
 defineProps<{ content: string; shortcut?: string }>();
+const { isMobile } = useBreakpoint();
 </script>
 
 <template>
-  <TooltipRoot :delay-duration="400">
+  <slot v-if="isMobile" />
+  <TooltipRoot v-else :delay-duration="400">
     <TooltipTrigger as-child><slot /></TooltipTrigger>
     <TooltipPortal>
       <TooltipContent
