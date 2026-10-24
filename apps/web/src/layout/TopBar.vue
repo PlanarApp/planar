@@ -85,10 +85,7 @@ const crumbs = computed(() => {
 
 <template>
   <header class="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-bg px-3">
-    <!-- IconButton не пробрасывает атрибуты на <button> (корень — Tooltip): клик ловим на обёртке -->
-    <span v-if="isMobile" class="contents" @click="openNav">
-      <IconButton :icon="PanelLeft" :label="t('topbar.nav')" />
-    </span>
+    <IconButton v-if="isMobile" :icon="PanelLeft" :label="t('topbar.nav')" @click="openNav" />
     <nav :aria-label="t('topbar.breadcrumb')" class="min-w-0 flex-1">
       <h1 class="flex items-center gap-1 truncate text-sm">
         <template v-for="(c, i) in crumbs" :key="i">
@@ -106,9 +103,7 @@ const crumbs = computed(() => {
       :key="i.key"
       data-testid="topbar-item"
     />
-    <span v-if="isMobile" class="contents" @click="ui.palette = true">
-      <IconButton :icon="Search" :label="t('cmd.open')" />
-    </span>
+    <IconButton v-if="isMobile" :icon="Search" :label="t('cmd.open')" @click="ui.palette = true" />
     <Button v-else size="sm" :icon="Search" :aria-label="t('cmd.open')" @click="ui.palette = true">
       {{ t('topbar.search') }}<Kbd keys="Mod+K" />
     </Button>
@@ -116,9 +111,7 @@ const crumbs = computed(() => {
       {{ t('topbar.install') }}
     </Button>
     <span class="relative">
-      <span class="contents" @click="router.push('/inbox')">
-        <IconButton :icon="Bell" :label="t('topbar.notifications')" />
-      </span>
+      <IconButton :icon="Bell" :label="t('topbar.notifications')" @click="router.push('/inbox')" />
       <span
         v-if="unread"
         data-testid="bell-count"

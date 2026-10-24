@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ChevronRight, Plus } from 'lucide-vue-next';
-import { Button, Input, i18n, mutate, newId } from '@planar/web/modules';
+import { Badge, Button, Input, mutate, newId } from '@planar/web/modules';
 import { useChatData } from './data';
 import { byName, dmTitle, findDm, type Channel } from './model';
 import { useTexts } from './text';
@@ -27,7 +27,6 @@ const fold = () => {
     /* см. выше */
   }
 };
-const noChannels = () => (i18n.global.locale.value === 'en' ? 'No channels' : 'Нет каналов');
 const current = computed(() => route.params.channelId as string | undefined);
 
 const groups = computed(() => {
@@ -140,7 +139,7 @@ const link = (id: string) => `/m/chat/c/${id}`;
         <Button type="submit" size="sm" variant="primary">{{ tx('create') }}</Button>
       </form>
       <div v-if="d && !groups.length" class="flex h-7 items-center px-2 text-xs text-fg-muted">
-        {{ noChannels() }}
+        {{ tx('noChannels') }}
         <button
           v-if="firstCreate"
           type="button"
@@ -190,11 +189,13 @@ const link = (id: string) => `/m/chat/c/${id}`;
           ]"
         >
           <span class="truncate"># {{ title(c) }}</span>
-          <span
+          <Badge
             v-if="unreadOf(c) > 0"
             data-testid="chat-unread"
-            class="ml-2 rounded-full bg-accent px-1.5 text-xs text-accent-fg"
-            >{{ unreadOf(c) }}</span
+            variant="solid"
+            color="var(--color-accent)"
+            class="ml-2 text-accent-fg!"
+            >{{ unreadOf(c) }}</Badge
           >
         </RouterLink>
       </div>
@@ -238,11 +239,13 @@ const link = (id: string) => `/m/chat/c/${id}`;
           ]"
         >
           <span class="truncate">{{ x.title }}</span>
-          <span
+          <Badge
             v-if="unreadOf(x.c) > 0"
             data-testid="chat-unread"
-            class="ml-2 rounded-full bg-accent px-1.5 text-xs text-accent-fg"
-            >{{ unreadOf(x.c) }}</span
+            variant="solid"
+            color="var(--color-accent)"
+            class="ml-2 text-accent-fg!"
+            >{{ unreadOf(x.c) }}</Badge
           >
         </RouterLink>
       </div>

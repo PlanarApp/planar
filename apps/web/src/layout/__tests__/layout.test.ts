@@ -70,6 +70,21 @@ describe('раскладка', () => {
     w.unmount();
   });
 
+  it('375: клик по ссылке на текущий маршрут закрывает панель', async () => {
+    const { router, i18n } = setup(true);
+    await router.push('/my');
+    const w = mount(withTips(AppShell), {
+      global: { plugins: [router, i18n] },
+      attachTo: document.body,
+    });
+    await router.isReady();
+    await w.find('button[aria-label="Навигация"]').trigger('click');
+    await vi.waitFor(() => expect(document.querySelector('[data-testid=sidebar]')).not.toBeNull());
+    document.querySelector<HTMLElement>('[data-testid=sidebar] a[href="/my"]')!.click();
+    await vi.waitFor(() => expect(document.querySelector('[data-testid=sidebar]')).toBeNull());
+    w.unmount();
+  });
+
   it('useTheme ставит и снимает класс dark', () => {
     setup(false);
     const { theme } = useTheme('dark');
