@@ -11,8 +11,10 @@ testdb() {
     docker start planar-testdb >/dev/null
   else
     # параллельные копии делят один контейнер; гонка двух create — второй получит ошибку и просто стартует/ждёт
+    # тестовой базе надёжность не нужна: без fsync DROP DATABASE (checkpoint) не тормозит под нагрузкой хоста
     docker run -d --name planar-testdb -p 55432:5432 -e POSTGRES_PASSWORD=postgres \
-      pgvector/pgvector:pg18 >/dev/null 2>&1 || docker start planar-testdb >/dev/null 2>&1 || true
+      pgvector/pgvector:pg18 -c fsync=off -c synchronous_commit=off -c full_page_writes=off \
+      >/dev/null 2>&1 || docker start planar-testdb >/dev/null 2>&1 || true
   fi
   for _ in $(seq 1 60); do
     docker exec planar-testdb pg_isready -U postgres -h localhost >/dev/null 2>&1 && return 0
