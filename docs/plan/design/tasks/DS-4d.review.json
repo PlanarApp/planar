@@ -1,55 +1,27 @@
 {
-  "verdict": "rework",
-  "summary": "Миграция семи модулей на C-ui в целом корректна: скоуп, lockfile (+9 строк, только три импортёра), меню «…» с confirm, required/maxlength вернулись, data-testid сохранены. Но решение координатора «inline-svg → lucide» в time выполнено не полностью, а отчёт пишет, что выполнено.",
+  "verdict": "accept",
+  "summary": "Все 5 замечаний прошлого ревью закрыты в 94ae2ac. Clock, Zap и Bell теперь из lucide, icons.ts в ветке нет, '<svg' остался только в burnup SprintView. Кнопки закрытия секрета и удаления действия стали IconButton с подписью из словаря. Пустое daysBefore даёт undefined: z.number() в triggerSchema его не пропускает, save() не сохраняет, Input показывает ошибку. У Select параметра подпись tx.value, есть в ru и en. Lockfile: +6 строк, только импортёры sprints и webhooks. Скоуп чистый.",
   "issues": [
     {
-      "file": "modules/time/web/index.ts",
-      "line": 4,
-      "severity": "major",
-      "what": "Отчёт расходится с фактом. Иконка модуля Clock осталась inline-svg через h('svg') с устаревшим комментарием «без зависимости от lucide», хотя lucide-vue-next теперь в зависимостях time. Удалён только icons.ts, который появился в этой же ветке (в базе f75bf24 его нет).",
-      "fix": "import { Clock } from 'lucide-vue-next'; удалить defineComponent-иконку и комментарий."
-    },
-    {
-      "file": "modules/webhooks/web/WebhooksSettings.vue",
-      "line": 151,
-      "severity": "minor",
-      "what": "Кнопка закрытия секрета сделана как Button с текстом «×» и aria-label=\"×\". По правилу контракта кнопка без текста должна быть IconButton, а «×» для скринридера ничего не значит.",
-      "fix": "IconButton с lucide X (если в webhooks нет lucide — Button с текстом L.close/«Скрыть»), aria-label из словаря."
-    },
-    {
       "file": "modules/automations/web/RulesPage.vue",
-      "line": 281,
+      "line": 283,
       "severity": "minor",
-      "what": "Если очистить поле daysBefore, Number('') даёт 0, и пустое поле молча сохраняется как 0. Раньше v-model.number оставлял '', и это ловила валидация.",
-      "fix": "Пустую строку переводить в undefined, а не в Number(v)."
-    },
-    {
-      "file": "modules/automations/web/RulesPage.vue",
-      "line": 306,
-      "severity": "minor",
-      "what": "Select типа действия и Select параметра действия получили одинаковый label tx.actions. Два поля с одним доступным именем в одной строке.",
-      "fix": "Параметру дать свою подпись (tx.status/tx.user/… по pickerKey или общий tx.value)."
-    },
-    {
-      "file": "modules/sprints/web/index.ts",
-      "line": 7,
-      "severity": "minor",
-      "what": "Вопрос координатору, задачу не блокирует: inline-svg иконки модулей остались в sprints/web/index.ts и webhooks/web/index.ts, а правило «иконки — только lucide». Решение координатора покрывало только time/automations/import.",
-      "fix": "Решает координатор: добавить lucide в sprints/webhooks (отдельная строка contract) или оставить до DS-5b."
+      "what": "Под пустым полем daysBefore стоит общий текст tx.invalid «Правило заполнено неверно», а не текст про само поле. Поведение верное, вопрос только в формулировке.",
+      "fix": "По желанию, на визуальном проходе DS-5b: дать полю свой текст, например «Укажите число 0–30»."
     }
   ],
   "rerun": [
     {
-      "name": "raw-buttons",
-      "value": "PASS (Section.vue, TreeSection.vue — 2 файла)",
+      "name": "no-inline-svg",
+      "value": "0 (scope 39 файлов в границах)",
       "pass": true
     },
     {
       "name": "typecheck",
-      "value": "PASS",
+      "value": "exit 0",
       "pass": true
     }
   ],
-  "t": "2026-10-24T14:09:53",
+  "t": "2026-10-24T14:17:51",
   "by": "reviewer"
 }

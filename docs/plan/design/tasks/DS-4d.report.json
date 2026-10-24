@@ -1,8 +1,8 @@
 {
   "status": "done",
-  "summary": "Семь модулей на C-ui; меню «…» без trigger, нативные required/maxlength, иконки time/automations/import на lucide (зависимость добавлена, lockfile +9 строк), icons.ts удалён.",
+  "summary": "Доработка по ревью: Clock/Zap/Bell на lucide (lucide-vue-next в sprints и webhooks, lockfile +6), '×' секрета и удаления действия — IconButton, пустое daysBefore не сохраняется (ошибка Input), у Select параметра действия подпись tx.value.",
   "commits": [
-    "f957c24 DS-4d: иконки на lucide (time, automations, import), lucide-vue-next в зависимостях"
+    "94ae2ac доработка по ревью"
   ],
   "checks": [
     {
@@ -44,23 +44,24 @@
       "name": "raw-buttons",
       "value": "PASS",
       "pass": true
+    },
+    {
+      "name": "no-inline-svg",
+      "value": "PASS",
+      "pass": true
     }
   ],
-  "not_done": [
-    "скриншоты не делались (по доработке, DS-5b)",
-    "hover-показ «…» не делал: Menu без class, оставлено видимым"
-  ],
+  "not_done": [],
   "questions": [],
-  "images": [],
   "how_to_check": ".dpcli/dpcli accept DS-4d",
   "uncertain": [
     {
-      "where": "modules/sprints/web/SprintView.vue:119",
-      "why": "inline svg burnup оставлен как диаграмма",
-      "checked": "по решению координатора"
+      "where": "modules/automations/web/RulesPage.vue:281",
+      "why": "пустое daysBefore даёт undefined; ошибка берётся из tx.invalid, а сохранение блокирует схема триггера",
+      "checked": "typecheck и web-tests PASS; ручной прогон UI не делал"
     }
   ],
   "dp_feedback": "",
-  "t": "2026-10-24T14:06:31",
+  "t": "2026-10-24T14:14:50",
   "by": "executor"
 }
