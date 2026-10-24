@@ -200,6 +200,30 @@ describe('pt6a: опрос', () => {
     );
   });
 
+  it('pt6a: 250 MR — фейк фильтрует по updated_after и делит на страницы по 100, обработаны все', async () => {
+    await addProject();
+    const t = await mkTask();
+    const all = Array.from({ length: 250 }, (_, i) =>
+      mr(i + 1, {
+        title: t.key,
+        updated_at: new Date(Date.UTC(2026, 9, 1) + i * 60_000).toISOString(),
+      }),
+    );
+    handler = (_, res, q) => {
+      const after = Date.parse(q.get('updated_after')!);
+      const page = Number(q.get('page'));
+      const rows = all.filter((m) => Date.parse(m.updated_at) >= after);
+      json(res, rows.slice((page - 1) * 100, page * 100), {
+        'x-next-page': page * 100 < rows.length ? String(page + 1) : '',
+      });
+    };
+    // курсор в БД уже есть: обход идёт от него, а не от курсора после первой страницы
+    await db.update(P).set({ cursor: '2026-10-01T00:00:00.000Z' });
+    await poll();
+    expect(await db.select().from(M)).toHaveLength(250);
+    expect(new Date((await proj()).cursor!).toISOString()).toBe(all[249]!.updated_at);
+  });
+
   it('pt6a: ключи в title/branch/description; два ключа — две строки; ключ исчез — строка удалена; неизвестный пропущен', async () => {
     await addProject();
     const a = await mkTask();
@@ -208,8 +232,8 @@ describe('pt6a: опрос', () => {
     handler = (_, res) =>
       json(res, [
         mr(1, {
-          title: `fix ${a.key.toLowerCase()}`,
-          source_branch: `feature/${b.key}-x`,
+          title: `fix ${a.key} ${c.key.toLowerCase()}`,
+          source_branch: `feature/${b.key.toLowerCase()}-x`,
           description: `see ${c.key} and ZZZ-999`,
         }),
         mr(2, { title: 'нет ключей' }),

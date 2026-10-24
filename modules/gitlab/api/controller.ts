@@ -134,11 +134,29 @@ export class GitlabController {
       ? await this.core.db.select().from(P).where(eq(P.id, id))
       : [];
     if (!r) throw new HttpError(404, 'not_found', 'Не найдено');
-    // shortcut: прямое удаление без записи в журнал синхронизации — клиенты увидят MR до перезагрузки
-    await this.core.db.transaction(async (tx) => {
-      await tx.delete(M).where(eq(M.gitlabProjectId, r.gitlabProjectId));
-      await tx.delete(P).where(eq(P.id, id));
-    });
+    // строки gitlabMrs уходят мутатором в Tx с записью в changes (клиенты узнают сразу)
+    const rows = await this.core.db
+      .select()
+      .from(M)
+      .where(eq(M.gitlabProjectId, r.gitlabProjectId));
+    const muts = [...new Map(rows.map((x) => [x.iid, x])).values()].map((x) => ({
+      name: 'gitlab.mr.sync',
+      args: {
+        gitlabProjectId: x.gitlabProjectId,
+        iid: x.iid,
+        mr: {
+          title: x.title,
+          sourceBranch: x.sourceBranch,
+          state: x.state,
+          authorName: x.authorName,
+          webUrl: x.webUrl,
+          mrUpdatedAt: new Date(x.mrUpdatedAt).toISOString(),
+        },
+        links: [],
+      },
+    }));
+    if (muts.length) await this.core.execute(this.core.systemUserId(), muts, { system: true });
+    await this.core.db.delete(P).where(eq(P.id, id));
   }
 
   @Post('poll')

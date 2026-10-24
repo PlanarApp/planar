@@ -6,7 +6,7 @@ import { decrypt, secretKey } from './crypto.js';
 import { gitlabConfig as C, gitlabMrs as M, gitlabProjects as P } from './schema.js';
 
 const log = new Logger('gitlab');
-const KEY_RE = /\b([A-Z][A-Z0-9]{1,9})-(\d+)\b/gi;
+const KEY_SRC = '\\b([A-Z][A-Z0-9]{1,9})-(\\d+)\\b';
 const DAY = 86_400_000;
 const MAX_RETRY_AFTER_SEC = 300;
 
@@ -42,12 +42,17 @@ export function mrRowId(taskId: string, gitlabProjectId: number, iid: number): s
 export function keysOf(
   mr: Pick<GlMr, 'title' | 'source_branch' | 'description'>,
 ): [string, number][] {
-  const text = [mr.title, mr.source_branch, mr.description].filter(Boolean).join('\n');
   const seen = new Map<string, [string, number]>();
-  for (const m of text.matchAll(KEY_RE)) {
-    const k: [string, number] = [m[1]!.toUpperCase(), Number(m[2])];
-    seen.set(`${k[0]}-${k[1]}`, k);
-  }
+  // регистр не важен только в имени ветки
+  const scan = (text: string | null, flags: string) => {
+    for (const m of (text ?? '').matchAll(new RegExp(KEY_SRC, flags))) {
+      const k: [string, number] = [m[1]!.toUpperCase(), Number(m[2])];
+      seen.set(`${k[0]}-${k[1]}`, k);
+    }
+  };
+  scan(mr.title, 'g');
+  scan(mr.source_branch, 'gi');
+  scan(mr.description, 'g');
   return [...seen.values()];
 }
 
@@ -134,7 +139,7 @@ async function syncMr(api: JobApi, gitlabProjectId: number, mr: GlMr) {
 }
 
 async function pollProject(api: JobApi, base: string, token: string, p: typeof P.$inferSelect) {
-  let cursor = p.cursor
+  const after = p.cursor
     ? new Date(p.cursor).toISOString()
     : new Date(Date.now() - 30 * DAY).toISOString();
   let page = '1';
@@ -142,7 +147,7 @@ async function pollProject(api: JobApi, base: string, token: string, p: typeof P
     const url =
       `${base}/projects/${p.gitlabProjectId}/merge_requests?` +
       new URLSearchParams({
-        updated_after: cursor,
+        updated_after: after,
         order_by: 'updated_at',
         sort: 'asc',
         per_page: '100',
@@ -153,7 +158,7 @@ async function pollProject(api: JobApi, base: string, token: string, p: typeof P
     for (const mr of mrs) await syncMr(api, p.gitlabProjectId, mr);
     const last = mrs.at(-1);
     if (last) {
-      cursor = new Date(last.updated_at).toISOString();
+      const cursor = new Date(last.updated_at).toISOString();
       await api.db.update(P).set({ cursor }).where(eq(P.id, p.id));
     }
     page = res.headers.get('x-next-page') ?? '';
