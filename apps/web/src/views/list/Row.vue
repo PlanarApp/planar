@@ -18,6 +18,7 @@ import { AvatarStack, Badge } from '../../ui';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 import { localToday } from '../filter';
+import { formatDue } from './due';
 
 const props = defineProps<{
   task: TaskView;
@@ -37,7 +38,7 @@ const emit = defineEmits<{
   edit: [];
   done: [];
 }>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const input = ref<HTMLInputElement>();
 const draft = ref('');
 let live = false; // blur после Enter/Esc не сохраняет повторно
@@ -149,7 +150,7 @@ function save() {
       <span
         v-if="fields.includes('dueDate') && task.dueDate"
         :class="['hidden text-xs md:inline', dueTone]"
-        >{{ task.dueDate }}</span
+        >{{ formatDue(task.dueDate, locale) }}</span
       >
       <AvatarStack v-if="fields.includes('assignee')" :people="people" size="xs" />
     </div>
