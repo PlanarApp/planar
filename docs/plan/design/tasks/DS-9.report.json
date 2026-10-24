@@ -1,44 +1,45 @@
 {
-  "status": "partial",
-  "summary": "4 из 5 сценариев были устаревшими селекторами/тестами, 1 (webhook) — среда: в e2e-all нет WEBHOOKS_ALLOW_HOSTS. С env полный прогон 84 passed; по команде карточки без env падает только work.spec:99.",
+  "status": "blocked",
+  "summary": "4 из 5 сценариев исправлены (устаревшие селекторы под Reka Select/Toolbar/разметку Мои часы; подпись панели массовых действий в table/View.vue). Импорт возвращён на прямой goto('/m/import/'); при холодном заходе воспроизводится гонка ensureModule (заглушка модуля).",
   "commits": [
-    "6f54334 DS-9: e2e features/work под C-ui v4"
+    "6f54334 DS-9: e2e features/work под C-ui v4",
+    "dbcb800 DS-9: импорт — прямой goto('/m/import/') без обхода через сайдбар"
   ],
   "checks": [
     {
-      "name": "install/contract/web-tests/typecheck/size/lint",
-      "value": "PASS",
+      "name": "accept --dry (без e2e-all)",
+      "value": "6/6 PASS",
       "pass": true
     },
     {
-      "name": "e2e-all по команде карточки",
-      "value": "83 passed, 1 failed (webhook, нет WEBHOOKS_ALLOW_HOSTS)",
+      "name": "e2e-all",
+      "value": "83 passed, 1 failed (collab.spec.ts:217 холодная загрузка /m/chat)",
       "pass": false
     },
     {
-      "name": "e2e-all с WEBHOOKS_ALLOW_HOSTS=host.docker.internal",
-      "value": "84 passed",
-      "pass": true
+      "name": "import --repeat-each 5 (workers 1)",
+      "value": "3 failed / 2 passed",
+      "pass": false
+    },
+    {
+      "name": "collab холодная загрузка --repeat-each 5",
+      "value": "3 failed (заглушка Модуль)",
+      "pass": false
     }
   ],
   "not_done": [
-    "Команда e2e-all в карточке не экспортирует WEBHOOKS_ALLOW_HOSTS=host.docker.internal (как WK-8/PL-2/CL-9) — DS-9 contract: добавить export в e2e-all. Сервер дропает доставку: webhooks_deliveries.last_error=blocked_address (SSRF, по контракту)."
+    "Гонка ensureModule при холодном заходе /m/<id>/ (registry.ts, enabled=[] до загрузки реплики → false): не чинил, C-modules. Ломает также collab:217 и import."
   ],
   "questions": [],
-  "how_to_check": "export WEBHOOKS_ALLOW_HOSTS=host.docker.internal; .dpcli/dpcli accept DS-9 --dry",
+  "how_to_check": ".dpcli/dpcli accept DS-9 --dry; playwright -g 'импорт: jira' --repeat-each 5",
   "uncertain": [
     {
-      "where": "e2e/web/work.spec.ts:импорт",
-      "why": "Прямой goto('/m/import/') на свежем контексте стабильно даёт заглушку «Модуль: import» (в dbg-прогоне самовосстановилась через ~секунды). Гипотеза: registry.ensureModule при пустой реплике видит enabled=[] и возвращает false. Тест переведён на клик по пункту сайдбара (как у time) — это ослабление проверки холодной загрузки.",
-      "checked": "воспроизведено 4/4 прогонов; registry.ts/router.ts вне скоупа DS-9, не правил; WK-15 заявлял прямой заход — возможна продуктовая регрессия/гонка, нужна отдельная задача"
-    },
-    {
-      "where": "e2e/web/helpers.ts:pick",
-      "why": "Опции Reka Select в длинном списке (много проектов E2E) не влезают в окно, click() по опции не работает; выбор через focus+Enter. Проекту fixture задано уникальное имя E2E <key> (иначе опции неразличимы).",
-      "checked": "work.spec 6/6 дважды"
+      "where": "apps/web/src/modules/registry.ts:65",
+      "why": "ensureModule при холодной реплике видит enabled=[] и возвращает false",
+      "checked": "воспроизведено на import и collab:217, причина прочитана в коде, не правил"
     }
   ],
-  "dp_feedback": "accept --dry для e2e-all занял 5 мин; в карточке стоит дублировать env, нужные e2e (WEBHOOKS_ALLOW_HOSTS) — шаблон карточки e2e-all этого не знает.",
-  "t": "2026-10-24T19:32:55",
+  "dp_feedback": "plan <м> <раздел> не принимает раздел с пробелами без кавычек.",
+  "t": "2026-10-24T19:48:13",
   "by": "executor"
 }
