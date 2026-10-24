@@ -1,7 +1,7 @@
-import { computed, shallowRef, type ComputedRef } from 'vue';
+import { computed, shallowRef, watch, type ComputedRef } from 'vue';
 import { liveQuery } from 'dexie';
 import { router } from '../router';
-import { db } from '../sync';
+import { db, replicaState } from '../sync';
 import type { ExtensionKind, WebModuleManifest } from './types';
 
 export type Extension<K extends ExtensionKind> = NonNullable<WebModuleManifest[K]>[number] & {
@@ -11,8 +11,41 @@ export type Extension<K extends ExtensionKind> = NonNullable<WebModuleManifest[K
 
 const registered = shallowRef<WebModuleManifest[]>([]);
 
-/** null — ещё не известно (показываем все зарегистрированные) */
+/** null — ещё не известно (реплика не прошла bootstrap): показываем все зарегистрированные, ensureModule ждёт */
 const enabled = shallowRef<string[] | null>(null);
+let timedOut = false;
+const SETTINGS_WAIT_MS = 10_000;
+
+/** Состояние модуля для экрана: loading — настройки ещё не прочитаны, off — выключен, error — не дождались/не загрузился. */
+export const moduleStatus = (id: string): 'loading' | 'off' | 'ready' | 'error' =>
+  !enabled.value
+    ? timedOut
+      ? 'error'
+      : 'loading'
+    : !enabled.value.includes(id)
+      ? 'off'
+      : registered.value.some((m) => m.id === id)
+        ? 'ready'
+        : 'loading';
+
+/** Ждёт, пока enabled станет известен; false — не дождались за SETTINGS_WAIT_MS. */
+function settingsKnown(): Promise<boolean> {
+  if (enabled.value) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      stop();
+      timedOut = true;
+      console.warn('Настройки модулей не загрузились');
+      resolve(false);
+    }, SETTINGS_WAIT_MS);
+    const stop = watch(enabled, (v) => {
+      if (!v) return;
+      clearTimeout(timer);
+      stop();
+      resolve(true);
+    });
+  });
+}
 type Loaders = Record<string, () => Promise<{ web: WebModuleManifest }>>;
 let loaders: Loaders = import.meta.glob<{ web: WebModuleManifest }>(
   '../../../../modules/*/web/index.ts',
@@ -62,7 +95,8 @@ export const setModuleLoaders = (l: Loaders): void => void (loaders = l);
 
 /** Лениво грузит только модуль `id` (прямой заход на /m/<id>/…); false — выключен или не найден. */
 export async function ensureModule(id: string): Promise<boolean> {
-  if (enabled.value && !enabled.value.includes(id)) return false;
+  if (!(await settingsKnown())) return false;
+  if (!enabled.value!.includes(id)) return false;
   if (registered.value.some((m) => m.id === id)) return true;
   const load = Object.entries(loaders).find(([path]) => path.split('/').at(-3) === id)?.[1];
   if (!load) return false;
@@ -94,9 +128,18 @@ export async function setEnabledModules(ids: string[]): Promise<void> {
 
 /** Следит за settings.enabled_modules в реплике; вызывать из main.ts один раз. */
 export function initModules(): void {
+  // пустая реплика (до bootstrap) — «неизвестно», а не «все выключены»
+  const apply = (r: { value?: unknown } | undefined) => {
+    if (r || replicaState.value !== 'empty')
+      void setEnabledModules(Array.isArray(r?.value) ? (r.value as string[]) : []);
+  };
   liveQuery(() => db.table('settings').get('enabled_modules')).subscribe({
-    next: (r) => void setEnabledModules(Array.isArray(r?.value) ? (r.value as string[]) : []),
+    next: apply,
     error: () => {},
+  });
+  // bootstrap без строки настроек: перечитать, когда реплика перестала быть пустой
+  watch(replicaState, async (st) => {
+    if (st !== 'empty') apply(await db.table('settings').get('enabled_modules'));
   });
 }
 
