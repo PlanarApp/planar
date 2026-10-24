@@ -42,7 +42,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
   private last = 0;
   private chain: Promise<void> = Promise.resolve();
   /** Что проекция записала последним: её собственная запись не «внешняя», даже если в Y уже есть новые правки. */
-  private projected = new Map<string, string[]>();
+  private projected = new Map<string, { lo: number; hi: number; key: string }[]>();
   /** seq журнала на момент загрузки документа: более ранние записи уже учтены в Y.Doc. */
   private loadedAt = new Map<string, number>();
 
@@ -204,8 +204,9 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     if (same(cur.json, next)) return;
     const [, kind, id] = NAME.exec(name)!;
     const docs = kind === 'docs';
-    const mine = this.projected.get(name) ?? [];
-    this.projected.set(name, [...mine.slice(-7), key(next)]);
+    // окно seq собственной проекции: её запись в журнале — не внешняя, даже если в Y уже есть новые правки
+    const win = { lo: await this.maxSeq(), hi: Infinity, key: key(next) };
+    this.projected.set(name, [...(this.projected.get(name) ?? []), win]);
     try {
       await executeMutations(
         this.db,
@@ -217,9 +218,13 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
         ],
         this.queue,
       );
+      win.hi = await this.maxSeq();
     } catch (e) {
       // ydocs уже сохранён, следующее сохранение попробует снова
-      this.projected.set(name, mine);
+      this.projected.set(
+        name,
+        this.projected.get(name)!.filter((w) => w !== win),
+      );
       this.log.warn(`проекция ${name}: ${e instanceof Error ? e.message : e}`);
     }
   }
@@ -232,7 +237,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     const r = await this.db.execute(sql`
       select seq::float8 as seq, entity, id, op, data from changes
       where seq > ${this.last} and seq <= ${max}
-        and entity in ('docsPages', 'tasks', 'spaceMembers', 'users')
+        and entity in ('docsPages', 'tasks', 'spaceMembers', 'users', 'settings')
       order by seq`);
     this.last = max;
     let recheck = false;
@@ -243,10 +248,15 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
       op: string;
       data: Json | null;
     }[]) {
-      if (c.entity === 'spaceMembers' || c.entity === 'users') {
-        recheck ||= c.entity === 'spaceMembers' || !!c.data?.deactivatedAt;
+      if (['spaceMembers', 'users', 'settings'].includes(c.entity)) {
+        // доступ мог пропасть: участник, деактивация, выключен модуль docs
+        recheck ||=
+          c.entity === 'spaceMembers' ||
+          (c.entity === 'settings' && c.id === 'enabled_modules') ||
+          !!c.data?.deactivatedAt;
         continue;
       }
+      if (c.entity === 'docsPages' && c.op === 'put' && c.data?.archivedAt) recheck = true;
       const name = `${c.entity === 'tasks' ? 'task' : 'docs'}:${c.id}`;
       if (c.op === 'del') await this.purge(name);
       else
@@ -269,7 +279,10 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     const loaded = this.hp.documents.get(name);
     if (loaded) {
       // своя проекция или запись, учтённая при загрузке, — не внешняя (иначе откатим набранное)
-      if (this.projected.get(name)?.includes(key(normalizeSafe(json)))) return;
+      const k = key(normalizeSafe(json));
+      const ws = (this.projected.get(name) ?? []).filter((w) => w.hi >= seq);
+      this.projected.set(name, ws);
+      if (ws.some((w) => w.lo < seq && w.key === k)) return;
       if (seq <= (this.loadedAt.get(name) ?? 0)) return;
       if (same(json, toJson(loaded))) return;
       loaded.transact(() => fill(loaded, json), { source: 'local', context: {} });

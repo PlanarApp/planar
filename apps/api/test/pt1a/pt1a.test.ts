@@ -28,12 +28,13 @@ let app: Awaited<ReturnType<typeof createApp>>;
 let w: World;
 let port: number;
 let svc: CollabService;
+let ia: TestClient;
 const cookies: Record<string, string> = {};
 const providers: HocuspocusProvider[] = [];
 
 beforeAll(async () => {
   w = await world(db);
-  const ia = new TestClient(services(db), await mkUser(db, 'admin'));
+  ia = new TestClient(services(db), await mkUser(db, 'admin'));
   await ia.ok('settings.set', { id: 'enabled_modules', value: ['docs'] });
   process.env.COLLAB_DEBOUNCE_MS = '100';
   app = await createApp({ databaseUrl: dbUrl, publicUrl: ORIGIN });
@@ -300,5 +301,25 @@ describe('pt1a', () => {
     await w.admin.ok('member.update', { id: m.id, role: 'guest' });
     await until(() => !svc.hp.documents.get(name)?.getConnectionsCount());
     await w.admin.ok('member.update', { id: m.id, role: 'member' });
+  });
+
+  it('pt1a: архивирование страницы и выключение модуля docs закрывают открытые соединения', async () => {
+    const id = await mkPage();
+    const name = `docs:${id}`;
+    const a = open('member', name);
+    await until(() => a.state.synced);
+    await w.admin.ok('docs.page.archive', { id });
+    await until(() => !svc.hp.documents.get(name)?.getConnectionsCount());
+
+    const id2 = await mkPage();
+    const name2 = `docs:${id2}`;
+    const b = open('member', name2);
+    await until(() => b.state.synced);
+    await ia.ok('settings.set', { id: 'enabled_modules', value: [] });
+    try {
+      await until(() => !svc.hp.documents.get(name2)?.getConnectionsCount());
+    } finally {
+      await ia.ok('settings.set', { id: 'enabled_modules', value: ['docs'] });
+    }
   });
 });
