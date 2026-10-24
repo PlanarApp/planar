@@ -337,3 +337,6 @@
 {"t": "2026-10-24T18:07:16", "by": "coordinator", "task": "DS-8", "ev": "checked", "note": "10/10 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0; ab-design=ok:85; ab-runs=ok:10; ab-main-runs=ok:10; visual-unchanged=ok:exit 0"}
 {"t": "2026-10-24T18:08:32", "by": "reviewer", "task": "DS-8", "ev": "reviewed", "note": "Правка точечная: 4 пикера в строке списка монтируются по pointerenter/focusin/focused (Row.vue), контракты C-ui и скоуп не задеты, визуал и тесты целы. A/B 10+…", "verdict": "accept", "issues": {"minor": 2}, "review": "docs/plan/design/tasks/DS-8.review.json"}
 {"t": "2026-10-24T18:08:54", "by": "coordinator", "task": "DS-8", "ev": "accepted", "note": "по ревью: switch p95 медиана n=10 main 95.0 / design 85.0 мс"}
+{"t": "2026-10-24T18:09:15", "by": "coordinator", "task": "DS-8", "ev": "checked", "commits": ["f7f29ed"], "note": "1/10 typecheck=ok:exit 0"}
+{"t": "2026-10-24T18:09:15", "by": "coordinator", "task": "DS-8", "ev": "merged"}
+{"t": "2026-10-24T18:09:16", "by": "coordinator", "task": null, "ev": "note", "note": "Q1 закрыт результатом: DS-8 — причина в монтировании 4 пикеров на каждой строке списка (DS-3), пикеры по наведению/фокусу; switch p95 медиана n=10: main 95.0, design 85.0 мс (build/artifacts/DS-8/ab.md)"}
