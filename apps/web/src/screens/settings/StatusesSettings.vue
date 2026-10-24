@@ -8,6 +8,8 @@ import { mutate, newId, rankBetween } from '../../sync';
 import { useStatuses } from '../../tasks';
 import ColorPicker from './ColorPicker.vue';
 import { COLORS } from './colors';
+import RowMenu from './RowMenu.vue';
+import SectionHeader from './SectionHeader.vue';
 import { useAction, useAdminSpaces } from './shared';
 
 const CATEGORIES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
@@ -86,14 +88,15 @@ async function remove() {
 
 <template>
   <section class="flex flex-col gap-3">
-    <h2 class="text-lg font-semibold">{{ t('settings.statuses') }}</h2>
+    <SectionHeader :title="t('settings.statuses')" :description="t('settings.statusesDesc')">
+      <form v-if="canEdit" class="flex flex-wrap items-end gap-2" @submit.prevent="create">
+        <Input v-model="name" :label="t('settings.name')" size="sm" data-testid="status-new" />
+        <Select v-model="category" :label="t('settings.category')" :options="catOptions" />
+        <ColorPicker v-model="color" />
+        <Button type="submit" variant="primary" size="sm">{{ t('auth.create') }}</Button>
+      </form>
+    </SectionHeader>
     <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
-    <form v-if="canEdit" class="flex flex-wrap items-end gap-2" @submit.prevent="create">
-      <Input v-model="name" :label="t('settings.name')" data-testid="status-new" />
-      <Select v-model="category" :label="t('settings.category')" :options="catOptions" />
-      <ColorPicker v-model="color" />
-      <Button type="submit" variant="primary">{{ t('auth.create') }}</Button>
-    </form>
     <div v-for="c in CATEGORIES" :key="c" :data-testid="`cat-${c}`">
       <h3 class="text-sm font-medium text-fg-muted">{{ t(`settings.cat.${c}`) }}</h3>
       <VueDraggable
@@ -109,11 +112,9 @@ async function remove() {
           v-for="s in lists[c]"
           :key="s.id"
           data-testid="status-row"
-          class="flex items-end gap-2 py-2"
+          class="group flex items-center gap-2 py-1"
         >
-          <span class="handle mb-2 cursor-grab select-none text-fg-subtle" aria-hidden="true"
-            >⋮⋮</span
-          >
+          <span class="handle cursor-grab select-none text-fg-subtle" aria-hidden="true">⋮⋮</span>
           <Input
             :model-value="s.name"
             :label="t('settings.name')"
@@ -132,14 +133,17 @@ async function remove() {
             :disabled="!canEdit"
             @update:model-value="(v) => run(() => mutate('status.update', { id: s.id, color: v }))"
           />
-          <Button
+          <RowMenu
             v-if="canEdit"
-            size="sm"
-            variant="danger"
-            data-testid="status-delete"
-            @click="askDelete(s)"
-            >{{ t('settings.delete') }}</Button
-          >
+            :items="[
+              {
+                id: 'delete',
+                label: t('settings.delete'),
+                danger: true,
+                onSelect: () => askDelete(s),
+              },
+            ]"
+          />
         </div>
       </VueDraggable>
     </div>
@@ -153,9 +157,13 @@ async function remove() {
       <p v-if="error" role="alert" class="mt-2 text-sm text-danger">{{ error }}</p>
       <template #footer>
         <Button @click="del = null">{{ t('auth.cancel') }}</Button>
-        <Button variant="danger" :disabled="!replaceWith" data-testid="confirm" @click="remove">{{
-          t('settings.delete')
-        }}</Button>
+        <Button
+          variant="danger-ghost"
+          :disabled="!replaceWith"
+          data-testid="confirm"
+          @click="remove"
+          >{{ t('settings.delete') }}</Button
+        >
       </template>
     </Dialog>
   </section>

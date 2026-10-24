@@ -4,7 +4,8 @@ import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { Badge, Button, Input } from '../../ui';
 import { db, mutate, newId, rankBetween, useQuery } from '../../sync';
-import ConfirmDialog from './ConfirmDialog.vue';
+import RowMenu from './RowMenu.vue';
+import SectionHeader from './SectionHeader.vue';
 import { useAction, useAdminSpaces } from './shared';
 
 const KEY_RE = /^[A-Z][A-Z0-9]{1,9}$/;
@@ -22,7 +23,6 @@ const projects = computed(() =>
 const name = ref('');
 const key = ref('');
 const keyError = ref('');
-const del = ref<Row<'projects'> | null>(null);
 
 function create() {
   keyError.value = '';
@@ -49,49 +49,61 @@ const archive = (p: Row<'projects'>) =>
       archivedAt: p.archivedAt ? null : new Date().toISOString(),
     }),
   );
-const remove = () => del.value && run(() => mutate('project.delete', { id: del.value!.id }));
+const remove = (id: string) => run(() => mutate('project.delete', { id }));
 </script>
 
 <template>
   <section class="flex flex-col gap-3">
-    <h2 class="text-lg font-semibold">{{ t('settings.projects') }}</h2>
+    <SectionHeader :title="t('settings.projects')" :description="t('settings.projectsDesc')">
+      <form v-if="canEdit" class="flex flex-wrap items-start gap-2" @submit.prevent="create">
+        <Input v-model="name" :label="t('settings.name')" size="sm" data-testid="project-name" />
+        <Input
+          v-model="key"
+          :label="t('settings.key')"
+          size="sm"
+          :error="keyError"
+          data-testid="project-key"
+          @input="key = key.toUpperCase()"
+        />
+        <Button type="submit" variant="primary" size="sm" class="mt-5">{{
+          t('auth.create')
+        }}</Button>
+      </form>
+    </SectionHeader>
     <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
-    <form v-if="canEdit" class="flex flex-wrap items-start gap-2" @submit.prevent="create">
-      <Input v-model="name" :label="t('settings.name')" data-testid="project-name" />
-      <Input
-        v-model="key"
-        :label="t('settings.key')"
-        :error="keyError"
-        data-testid="project-key"
-        @input="key = key.toUpperCase()"
-      />
-      <Button type="submit" variant="primary" class="mt-6">{{ t('auth.create') }}</Button>
-    </form>
     <ul class="flex flex-col divide-y divide-border">
       <li
         v-for="p in projects"
         :key="p.id"
         data-testid="project-row"
-        class="flex items-center gap-3 py-2"
+        class="group flex h-11 items-center gap-3 md:h-8"
       >
         <Badge>{{ p.key }}</Badge>
-        <span class="min-w-0 flex-1 truncate">{{ p.name }}</span>
+        <span class="min-w-0 flex-1 truncate text-sm">{{ p.name }}</span>
         <Badge v-if="p.archivedAt">{{ t('settings.archived') }}</Badge>
-        <template v-if="canEdit">
-          <Button size="sm" data-testid="project-archive" @click="archive(p)">{{
-            p.archivedAt ? t('settings.unarchive') : t('settings.archive')
-          }}</Button>
-          <Button size="sm" variant="danger" data-testid="project-delete" @click="del = p">{{
-            t('settings.delete')
-          }}</Button>
-        </template>
+        <RowMenu
+          v-if="canEdit"
+          :items="[
+            {
+              id: 'archive',
+              label: p.archivedAt ? t('settings.unarchive') : t('settings.archive'),
+              onSelect: () => archive(p),
+            },
+            { separator: true },
+            {
+              id: 'delete',
+              label: t('settings.delete'),
+              danger: true,
+              confirm: {
+                title: t('settings.deleteProject'),
+                description: p.name,
+                confirmLabel: t('settings.delete'),
+              },
+              onSelect: () => remove(p.id),
+            },
+          ]"
+        />
       </li>
     </ul>
-    <ConfirmDialog
-      :open="!!del"
-      :title="t('settings.deleteProject')"
-      @update:open="(v) => !v && (del = null)"
-      @confirm="remove"
-    />
   </section>
 </template>
