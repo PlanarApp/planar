@@ -85,3 +85,5 @@
 {"t": "2026-10-24T12:15:48", "by": "coordinator", "task": "DS-3", "ev": "accepted", "note": "по ревью; major (просрочка по локальной дате, как MyScreen) и minors — в DS-3a"}
 {"t": "2026-10-24T12:16:48", "by": "coordinator", "task": "DS-1", "ev": "accepted", "commits": ["63b5b3b"], "note": "6/6 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-24T12:16:49", "by": "coordinator", "task": "DS-1", "ev": "merged"}
+{"t": "2026-10-24T12:18:17", "by": "coordinator", "task": "DS-3", "ev": "checked", "commits": ["ec6de5b"], "note": "7/8 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; perf-not-worse=FAIL:exit 2 · awk: cannot open \"bu…; seed-test=ok:exit 0; api-seed-lint=ok:exit 0"}
+{"t": "2026-10-24T12:18:17", "by": "coordinator", "task": "DS-3", "ev": "merged"}
