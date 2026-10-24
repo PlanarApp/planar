@@ -224,8 +224,9 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Мутаторы домена v2
 Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
-## C-modules v9
+## C-modules v10
 
+v10 (design, DS-0): SDK += компоненты C-ui v3 — work-api.md, design.md.
 v9 (p3, PT-5): `CoreServices` += `execute(userId, muts, opts?)` — как `JobApi.execute`; `ensureSystemUser(login, name): Promise<string>` — деактивированный пользователь без пароля (как «Автоматизация»), повторный вызов возвращает того же; `storeFile(buf: Buffer, uploaderId: string): Promise<{sha256, size, mime, width, height}>` — та же запись, что `POST /files` (`files`, `file_uploads`, лимит `MAX_UPLOAD_MB` → `413`).
 v8: JobApi.execute opts.after — в транзакции после всех мутаций, ошибка откатывает (PL-2) — work.md §C-modules v4.
 v7: перечень SDK (sendTyping/onTyping с C-sync v2) — work-api.md.
