@@ -18,6 +18,8 @@ import { api as webhooksApi } from '@planar/module-webhooks/api';
 import * as webhooksTables from '@planar/module-webhooks/api/schema';
 import { api as importApi } from '@planar/module-import/api';
 import * as importTables from '@planar/module-import/api/schema';
+import { api as workloadApi } from '@planar/module-workload/api';
+import * as workloadTables from '@planar/module-workload/api/schema';
 
 export interface InstalledModule {
   api: BackendModuleManifest;
@@ -74,6 +76,7 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: docs, tables: docsTables },
   { api: chat, tables: chatTables },
   { api: formsApi, tables: formsTables },
+  { api: workloadApi, tables: workloadTables },
 ]);
 
 export const moduleTables = (): Map<string, PgTable> =>
