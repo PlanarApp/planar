@@ -1,20 +1,20 @@
 {
   "verdict": "rework",
-  "summary": "Контракты P3-ydoc «Клиент (web)»/DC-web v2 соблюдены, scope в границах, external() по body исправлен с тестом, проверки подтверждаются. Один major: повтор подключения после отказа уничтожает общий Awareness, и у новой страницы пропадают курсоры.",
+  "summary": "Awareness при повторе сохраняется (патч destroy), external() по body с тестом, scope и lint подтверждаются. Но второй пункт доработки сделан наоборот: вместо состояния «не синхронизируется» редактор становится только для чтения. Ещё отчёт описывает чужую задачу (DS-0b).",
   "issues": [
     {
       "file": "packages/editor/src/collab.ts",
-      "line": 46,
+      "line": 51,
       "severity": "major",
-      "what": "При authenticationFailed код вызывает provider.destroy() и создаёт новый провайдер на том же awareness. HocuspocusProvider.destroy() (v4.7.1, hocuspocus-provider.esm.js:916-919) вызывает awareness.destroy(): локальное состояние становится null, наблюдатели очищаются (lib0 Observable.destroy), _checkInterval останавливается. CollaborationCaret привязан к этому же awareness: после первого повтора своё имя и курсор не рассылаются (setLocalStateField при state=null ничего не делает), чужие курсоры не рисуются, а через 30 с без heartbeat собеседники снимают клиента. Это ровно сценарий доработки «новая страница сразу после создания»; e2e проверяет только текст, курсоры не проверяет.",
-      "fix": "Повторять без уничтожения общего Awareness: например, переподключать тот же провайдер или отвязывать awareness перед destroy. Либо задать awareness заново (setLocalStateField('user', …)) и пересоздать caret. Добавить в e2e новой страницы проверку, что курсор bob с именем виден alice."
+      "what": "Координатор 14:00, п.2: после 5 неудачных попыток показать «не синхронизируется» (C-ui v3), режим только чтения не включать. Сделано обратное: onDenied вызывает setEditable(false) в Editor.vue:158 и DocEditor.vue:150, индикатора нет. Пользователь молча теряет возможность писать.",
+      "fix": "onDenied: оставить редактор редактируемым (правки остаются в IndexedDB) и показать состояние «не синхронизируется» токенами C-ui v3 в Editor.vue и DocEditor.vue; добавить юнит-тест"
     },
     {
-      "file": "packages/editor/src/collab.ts",
-      "line": 44,
-      "severity": "minor",
-      "what": "После 5 неудачных попыток (настоящий forbidden или страница так и не дошла до сервера) редактор остаётся editable: правки уходят только в IndexedDB, и пользователь не видит, что они не синхронизируются. readOnly() смотрит только на authorizedScope.",
-      "fix": "После исчерпания попыток считать документ readOnly (setEditable(false)) или показывать ошибку."
+      "file": "build/dpcli/PT-1b.report.json",
+      "line": 1,
+      "severity": "major",
+      "what": "Отчёт ≠ факт. В summary описаны Menu/Input/Select/PriorityPicker/settings.test, а в commits указан a440c1a. Это всё работа DS-0b: коммит есть только в design/*, в p3/PT-1b его нет. Флейк в uncertain (apps/web/src/command/__tests__/ui.test.ts) тоже вне scope задачи.",
+      "fix": "Пересобрать отчёт по фактическим коммитам aac7965, c38ef2e, e1dda24, 29fecf6 и по правкам PT-1b"
     }
   ],
   "rerun": [
@@ -25,15 +25,10 @@
     },
     {
       "name": "lint",
-      "value": "exit 0",
-      "pass": true
-    },
-    {
-      "name": "test-web",
-      "value": "696 passed (запуск напрямую через lock; accept --dry выдал FAIL без нового лога — похоже на окружение/лок)",
+      "value": "1/1 PASS",
       "pass": true
     }
   ],
-  "t": "2026-10-24T14:00:07",
+  "t": "2026-10-24T15:26:27",
   "by": "reviewer"
 }
