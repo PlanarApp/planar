@@ -129,3 +129,6 @@
 {"t": "2026-10-24T12:53:18", "by": "executor", "task": "PT-3", "ev": "reported", "commits": ["2fc6ddb", "7be2191", "bb3a729", "10b4386"], "note": "done: Модуль modules/workload: сущность workloadCapacities, workload.setCapacity, страница /m/workload/ (люди x 8 недель, оце…"}
 {"t": "2026-10-24T13:16:40", "by": "executor", "task": "PT-1b", "ev": "reported", "commits": ["aac7965"], "note": "partial: Editor.vue (проп collab) и DocEditor работают на Collaboration + CollaborationCaret + HocuspocusProvider(/collab) + y-i…", "dp_feedback": "accept падает по scope на тестах, которые карточка не перечислила, хотя их ломает сама задача; в карточку стоит добавлять существующие тесты затронутых файлов."}
 {"t": "2026-10-24T13:17:05", "by": "coordinator", "task": "PT-9", "ev": "accepted", "note": "по ревью (повторное)"}
+{"t": "2026-10-24T13:20:30", "by": "coordinator", "task": "PT-3", "ev": "checked", "note": "9/9 install=ok:exit 0; build=ok:exit 0; lint=ok:exit 0; size=ok:153; contract=ok:exit 0; pt3-api=ok:3; pt3-web=ok:8; test-web=ok:exit 0; test-all=ok:exit 0"}
+{"t": "2026-10-24T13:20:37", "by": "coordinator", "task": "PT-9", "ev": "merged"}
+{"t": "2026-10-24T13:20:38", "by": "coordinator", "task": "PT-3", "ev": "accepted", "note": "по отчёту"}
