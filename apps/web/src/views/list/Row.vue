@@ -39,6 +39,8 @@ const emit = defineEmits<{
   done: [];
 }>();
 const { t, locale } = useI18n();
+// пикеры справа видны только при наведении/фокусе — до этого не монтируем (переключение проекта)
+const hot = ref(false);
 const input = ref<HTMLInputElement>();
 const draft = ref('');
 let live = false; // blur после Enter/Esc не сохраняет повторно
@@ -96,6 +98,8 @@ function save() {
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
     @click="emit('click', $event)"
+    @pointerenter="hot = true"
+    @focusin="hot = true"
   >
     <div role="gridcell" class="w-5 shrink-0" @click.stop>
       <input
@@ -158,36 +162,38 @@ function save() {
       class="pointer-events-none absolute inset-y-0 right-2 flex items-center bg-inherit opacity-0 focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
       @click.stop
     >
-      <div v-if="fields.includes('labels')" role="gridcell">
-        <LabelPicker
-          compact
-          :space-id="spaceId"
-          :model-value="task.labelIds"
-          @update:model-value="setLabels(task.id, $event)"
-        />
-      </div>
-      <div v-if="fields.includes('priority')" role="gridcell">
-        <PriorityPicker
-          compact
-          :model-value="task.priority"
-          @update:model-value="updateTask(task.id, { priority: $event })"
-        />
-      </div>
-      <div v-if="fields.includes('assignee')" role="gridcell">
-        <AssigneePicker
-          compact
-          :space-id="spaceId"
-          :model-value="task.assigneeIds"
-          @update:model-value="setAssignees(task.id, $event)"
-        />
-      </div>
-      <div v-if="fields.includes('dueDate')" role="gridcell">
-        <DueDatePicker
-          compact
-          :model-value="task.dueDate"
-          @update:model-value="updateTask(task.id, { dueDate: $event })"
-        />
-      </div>
+      <template v-if="hot || focused">
+        <div v-if="fields.includes('labels')" role="gridcell">
+          <LabelPicker
+            compact
+            :space-id="spaceId"
+            :model-value="task.labelIds"
+            @update:model-value="setLabels(task.id, $event)"
+          />
+        </div>
+        <div v-if="fields.includes('priority')" role="gridcell">
+          <PriorityPicker
+            compact
+            :model-value="task.priority"
+            @update:model-value="updateTask(task.id, { priority: $event })"
+          />
+        </div>
+        <div v-if="fields.includes('assignee')" role="gridcell">
+          <AssigneePicker
+            compact
+            :space-id="spaceId"
+            :model-value="task.assigneeIds"
+            @update:model-value="setAssignees(task.id, $event)"
+          />
+        </div>
+        <div v-if="fields.includes('dueDate')" role="gridcell">
+          <DueDatePicker
+            compact
+            :model-value="task.dueDate"
+            @update:model-value="updateTask(task.id, { dueDate: $event })"
+          />
+        </div>
+      </template>
     </div>
   </div>
 </template>

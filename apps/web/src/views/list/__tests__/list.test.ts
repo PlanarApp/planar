@@ -167,6 +167,7 @@ describe('list:inline', () => {
     const t = task(1);
     await db.table('tasks').put(t);
     await show();
+    await row('PLN-1').trigger('pointerenter'); // пикеры справа монтируются по наведению
     w.getComponent(PriorityPicker).vm.$emit('update:modelValue', 2);
     await poll(async () => (await get(t.id)).priority === 2);
     w.getComponent(AssigneePicker).vm.$emit('update:modelValue', [ids.ann]);
