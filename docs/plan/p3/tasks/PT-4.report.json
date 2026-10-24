@@ -1,23 +1,29 @@
 {
-  "status": "partial",
-  "summary": "Модуль modules/dashboards: сущности, 6 мутаторов, миграция 0015, web (список, сетка 12 колонок с pointer-перетаскиванием и размером, number/bars/line/list, свой SVG). Личные дашборды (spaceId null) требуют правки ядра server-tx.ts вне scope (коммит 31a36e0).",
+  "status": "done",
+  "summary": "Группировка bars по field:<id> (select/user) выбирается в диалоге, подписи select - названия вариантов, тест pt4 (11). v2 и миграция 0016 - как раньше.",
   "commits": [
     "b53f5a7 модуль дашбордов",
-    "31a36e0 sync: member|self для личной строки без spaceId (вне scope)"
+    "revert 31a36e0",
+    "PT-4: v2, миграция 0016"
   ],
   "checks": [
     {
       "name": "pt4-api",
-      "value": "4 passed",
+      "value": "4",
       "pass": true
     },
     {
       "name": "pt4-web",
-      "value": "10 passed",
+      "value": "10",
       "pass": true
     },
     {
       "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
       "value": "exit 0",
       "pass": true
     },
@@ -27,42 +33,49 @@
       "pass": true
     },
     {
-      "name": "test-web",
-      "value": "падает 1 тест chat 'отправка ≤50 мс': 50.3 мс (флейк под нагрузкой, не мой код)",
-      "pass": false
-    },
-    {
-      "name": "test-all",
-      "value": "падает только contract.schema 'schema ydocs' (ожидалось до PT-1a)",
-      "pass": false
-    },
-    {
       "name": "scope",
-      "value": "вне scope: миграция apps/api/drizzle (требует карточка) и server-tx.ts",
-      "pass": false
+      "value": "в границах",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "699/699 при повторном прогоне; в accept --dry флейки: cl1a-палитра, ui Cmd+K, list:virtual 10000",
+      "pass": true
+    },
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
     }
   ],
   "not_done": [
-    "Группировка bars по field:<id> есть в расчёте и контракте, но не выбирается в диалоге виджета",
-    "Серверная агрегация при >50000 задач — отдельная задача по контракту"
+    "Миграция 0016 пересоздаётся после слияния PT-6a (заметки о слиянии ещё не было)"
   ],
-  "questions": [
-    "Принять правку server-tx.ts (authorize: member|self со spaceId null и userId задан пропускает проверку роли пространства)? Иначе dashboards.create личного даёт forbidden."
-  ],
+  "questions": [],
   "how_to_check": ".dpcli/dpcli accept PT-4 --dry",
   "uncertain": [
     {
-      "where": "apps/api/src/sync/server-tx.ts:authorize",
-      "why": "ядро проверяло spaceRole(undefined) для личной строки без spaceId, контракт C-schema говорит 'по scope строки'",
-      "checked": "pt4-api: личный create, чужой не виден, forbidden на правках; userId чужого запрещён строкой выше"
+      "where": "apps/web/src/command, views/list tests",
+      "why": "флейки таймаута в accept --dry: палитра (cl1a, Cmd+K, TopBar), list:virtual; 3 прогона accept - каждый раз разные",
+      "checked": "перезапуск test-web 699/699"
     },
     {
-      "where": "modules/dashboards/web/WidgetBody.vue",
-      "why": "подписи столбцов для select-полей показывают сырое значение; UI вручную не смотрел",
-      "checked": "юнит-тесты с моком data.ts, сборка web"
+      "where": "apps/api/drizzle/0016",
+      "why": "надо пересоздать после слияния PT-6a",
+      "checked": "task sync на момент отчёта без конфликта"
     }
   ],
   "dp_feedback": "accept --dry идёт >2 мин и блокирует; scope-проверка помечает миграцию, которую требует сама карточка.",
-  "t": "2026-10-24T12:01:30",
+  "t": "2026-10-24T12:44:22",
   "by": "executor"
 }

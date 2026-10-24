@@ -1,11 +1,38 @@
 {
-  "status": "partial",
-  "summary": "Модуль modules/workload: сущность workloadCapacities, workload.setCapacity, страница /m/workload/ (люди x 8 недель, оценки/число задач, перегрузка, список задач ячейки, правка ёмкости админом).",
+  "status": "done",
+  "summary": "Модуль modules/workload: сущность workloadCapacities, workload.setCapacity, страница /m/workload/ (люди x 8 недель, оценки/число задач, перегрузка, список задач ячейки, правка ёмкости админом). Миграция пересоздана (0017) после слияния feature/p3.",
   "commits": [
-    "1525e43 PT-3: lint",
-    "5615e8f PT-3: модуль workload (загрузка людей по неделям)"
+    "2fc6ddb prettier",
+    "7be2191 Слияние feature/p3 в p3/PT-3, миграция workload заново",
+    "bb3a729 PT-3: убрана миграция до пересоздания",
+    "10b4386 Слияние p3/PT-6a: Слияние feature/p3 в p3/PT-6a (timeline), тест DELETE проверяет del в changes"
   ],
   "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "153",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
     {
       "name": "pt3-api",
       "value": "3",
@@ -17,25 +44,18 @@
       "pass": true
     },
     {
-      "name": "contract",
+      "name": "test-web",
       "value": "exit 0",
       "pass": true
     },
     {
       "name": "test-all",
-      "value": "красный только contract.schema ydocs (ожидаемо до PT-1a)",
-      "pass": false
-    },
-    {
-      "name": "scope",
-      "value": "миграция drizzle вне scope",
-      "pass": false
+      "value": "exit 0",
+      "pass": true
     }
   ],
   "not_done": [],
-  "questions": [
-    "Миграция apps/api/drizzle/0015_workload.sql (+snapshot, _journal) вне scope, но без неё нет таблицы. Нумерация 0015 конфликтует с миграциями PT-1a/PT-2/PT-4 при слиянии — кто перегенерирует?"
-  ],
+  "questions": [],
   "how_to_check": ".dpcli/dpcli accept PT-3 --dry",
   "uncertain": [
     {
@@ -47,14 +67,9 @@
       "where": "modules/workload/web/data.ts",
       "why": "наличие time определяется по таблице timeEstimates в реплике, а не по enabled_modules",
       "checked": "аналогично useCycles в sdk"
-    },
-    {
-      "where": "apps/web/src/command/__tests__/ui.test.ts",
-      "why": "cmd:palette таймаут в первом прогоне под нагрузкой, во втором зелёный",
-      "checked": "прогон отдельно проходит"
     }
   ],
-  "dp_feedback": "scope-проверка не учитывает обязательную drizzle-миграцию нового модуля; добавить apps/api/drizzle в типовой scope.",
-  "t": "2026-10-24T12:02:31",
+  "dp_feedback": "",
+  "t": "2026-10-24T12:53:18",
   "by": "executor"
 }

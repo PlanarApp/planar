@@ -8,7 +8,7 @@
   "contracts": [
     {
       "name": "P3-dashboards",
-      "version": "1",
+      "version": "2",
       "ref": "docs/contracts/p3.md"
     },
     {
@@ -53,19 +53,9 @@
       "expect": "exit=0"
     },
     {
-      "name": "test-web",
-      "cmd": "pnpm --filter web test",
-      "expect": "exit=0"
-    },
-    {
       "name": "size",
       "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
       "expect": "num:initial gzip ([\\d.]+) KB <=200"
-    },
-    {
-      "name": "test-all",
-      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
-      "expect": "exit=0"
     },
     {
       "name": "contract",
@@ -81,10 +71,20 @@
       "name": "pt4-web",
       "cmd": "pnpm --filter web exec vitest run -t pt4:",
       "expect": "num:(\\d+) passed >=7"
+    },
+    {
+      "name": "test-web",
+      "cmd": ".dpcli/dpcli lock cpu test-web -- pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && .dpcli/dpcli lock cpu test-all -- pnpm exec vitest run",
+      "expect": "exit=0"
     }
   ],
   "report_extra": [],
   "notes": "",
   "created": "2026-10-24T11:47:32",
-  "edited": "2026-10-24T12:15:56"
+  "edited": "2026-10-24T12:41:29"
 }

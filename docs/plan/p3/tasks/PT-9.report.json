@@ -1,8 +1,8 @@
 {
   "status": "done",
-  "summary": "parseTrustProxy (IP/CIDR списком, true/мусор — ошибка) в config.ts, createApp({trustProxy}) -> FastifyAdapter только при непустом списке, main.ts читает TRUST_PROXY; compose: сеть app 172.30.0.0/24, api TRUST_PROXY=эта подсеть, у api нет ports.",
+  "summary": "parseTrustProxy (IP/CIDR списком, true/мусор — ошибка) в config.ts, createApp({trustProxy}) -> FastifyAdapter только при непустом списке, main.ts читает TRUST_PROXY; compose: сеть app 172.30.0.0/24, api TRUST_PROXY=эта подсеть, у api нет ports. Доработка по ревью: тест лимита публичной формы по клиентскому IP (forms-ip.test.ts, 2 теста pt9).",
   "commits": [
-    "ca97885 TRUST_PROXY: клиентский IP за Caddy для лим"
+    "0dd001e PT-9 тест лимита форм по IP"
   ],
   "checks": [
     {
@@ -16,19 +16,19 @@
       "pass": true
     },
     {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
       "name": "compose",
       "value": "exit 0",
       "pass": true
     },
     {
       "name": "pt9",
-      "value": "5",
+      "value": "7",
       "pass": true
-    },
-    {
-      "name": "test-all",
-      "value": "exit 1: только contract.schema 'schema ydocs' (ydocs придёт с PT-1a)",
-      "pass": false
     }
   ],
   "not_done": [],
@@ -41,7 +41,7 @@
       "checked": "docker compose config OK; в реальный запуск не поднимал"
     }
   ],
-  "dp_feedback": "accept --dry дольше 120с таймаута Bash; task sync отказывает на грязной копии (надо сначала коммит).",
-  "t": "2026-10-24T11:45:54",
+  "dp_feedback": "job start: имя задания общее для всех копий (acc) — столкнулся с чужим заданием; нужно уникальное имя или префикс по ID.",
+  "t": "2026-10-24T12:43:48",
   "by": "executor"
 }

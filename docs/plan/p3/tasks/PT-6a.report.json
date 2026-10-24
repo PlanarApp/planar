@@ -1,46 +1,61 @@
 {
-  "status": "partial",
-  "summary": "Доработка по ревью: updated_after фиксирован на обход (тест 250 MR с фильтрующим фейком), DELETE проекта через core.execute (gitlab.mr.sync, links=[]) с записью в changes, регистр ключа только в ветке; миграция пересоздана как 0015 после слияния feature/p3. test-all падает только на schema ydocs (таблицу ydocs вносит PT-1a, не в скоупе).",
+  "status": "done",
+  "summary": "Доработка по ревью (updated_after зафиксирован на обход, DELETE проекта через мутатор с записью в changes, регистр ключа только в ветке); после слияния PT-1a миграция пересоздана как 0016. accept --dry 6/6.",
   "commits": [
-    "cbd1d44 design: DS-3 строка списка и карточка доски по C-ui v3, сид на русском",
-    "слияние feature/p3 + миграция 0015",
-    "по ревью: updated_after, удаление проекта, регистр"
+    "по ревью: updated_after, удаление проекта, регистр",
+    "слияние feature/p3, миграция 0016"
   ],
   "checks": [
     {
-      "name": "accept --dry",
-      "value": "все PASS; web-tests один раз упал во флейке command/ui.test (palette Cmd+K), повтор 689/689",
+      "name": "install",
+      "value": "exit 0",
       "pass": true
     },
     {
-      "name": "perf",
-      "value": "before switch 107.9 scroll 16.8; after switch 122.4 scroll 16.7 (прогон 1 был 169.4 — шум; прогон 0 случайно шёл на чужом коде DS-2, отброшен)",
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "pt6a",
+      "value": "13 passed",
       "pass": true
     }
   ],
   "not_done": [
-    "test-all красный из-за ydocs в feature/p3 (контракт C-schema v9 без таблицы, её делает PT-1a)",
-    "Скриншоты до/после (Playwright, 1440x900 и 390x844, обе темы) не сделаны",
-    "Тест на сид в apps/api/test/seed.test.ts не добавлен — вне скоупа",
-    "Статусы по умолчанию новых пространств (packages/shared mutators/spaces.ts, core) не тронуты — ограничение"
+    "web/index.ts — манифест без элементов (панель и настройки — PT-6b)",
+    "PLANAR_SECRET_KEY не добавлен в .env.example (вне скоупа)"
   ],
-  "questions": [
-    "Расширить скоуп на apps/api/test/seed.test.ts для случая --locale?"
-  ],
-  "how_to_check": ".dpcli/dpcli accept DS-3",
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-6a",
   "uncertain": [
     {
-      "where": "apps/web/src/views/list/Row.vue",
-      "why": "пикеры полей спрятаны до наведения (opacity, абсолют справа); визуально не проверено",
-      "checked": "vitest views, vue-tsc"
+      "where": "modules/gitlab/api/poll.ts, controller.ts, crypto.ts",
+      "why": "безопасность токена: нужен dp-reviewer",
+      "checked": "в БД только token_enc (тест: iv разный, расшифровка верна); GET/PUT не отдают токен; токен только в заголовке PRIVATE-TOKEN; log.warn без URL/заголовков/тела; redirect: manual; 503 без ключа не эхо-возвращает токен"
     },
     {
-      "where": "apps/web/src/views/list/Row.vue dueTone",
-      "why": "порог warning/danger (<2 дней / просрочено) выбран мной, в строке раньше срока-тона не было",
-      "checked": "нет"
+      "where": "shared/index.ts gitlab.mr.sync",
+      "why": "полный scan gitlabMrs (индекса по проекту/iid нет в контракте); авто-статус через tx.patch tasks, а не вызов task.update; переход в merged = предыдущей строки нет или state != merged",
+      "checked": "тесты merge, идемпотентность"
     }
   ],
-  "dp_feedback": "git stash общий для всех копий (refs/stash): мой git stash pop снял чужой стэш DS-2. Нужен совет в workflow не использовать stash, перф-замер до правок делать из чистого git worktree/коммита. Я вернул стэш DS-2 через git stash store (запись в stash list); стэш DS-1 (23f9e4d) висит оборванным.",
-  "t": "2026-10-24T11:44:28",
+  "dp_feedback": "Общий /tmp-путь для report.json перетёрт соседним агентом — шаблон лучше брать из scratchpad по имени задачи.",
+  "t": "2026-10-24T12:41:41",
   "by": "executor"
 }
