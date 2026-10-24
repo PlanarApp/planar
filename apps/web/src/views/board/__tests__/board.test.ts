@@ -72,9 +72,9 @@ describe('board:card', () => {
     w.unmount();
     await db.table('tasks').put(task(1, { dueDate: '2026-12-24' }));
     const w2 = mountView();
-    await until(() => w2.text().includes('12.24'));
+    await until(() => w2.text().includes('24 дек'));
     expect(
-      w2.findAll('article').find((a) => a.text().includes('12.24'))!.element.children,
+      w2.findAll('article').find((a) => a.text().includes('24 дек'))!.element.children,
     ).toHaveLength(3);
   });
 });

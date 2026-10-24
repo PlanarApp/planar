@@ -11,9 +11,10 @@ import { PriorityIcon } from '../../tasks';
 import { BlockedIcon } from '../../links';
 import { AvatarStack, Badge, Button, Input } from '../../ui';
 import type { TaskField } from '../options';
+import { formatDue } from '../list/due';
 
 const VIRTUAL_FROM = 50;
-const CARD = 88; // высота карточки с зазором, px (h-20 + mb-2)
+const CARD = 128; // высота карточки с зазором, px (h-[120px] + mb-2)
 
 const props = defineProps<{
   group: TaskGroup;
@@ -30,7 +31,7 @@ const emit = defineEmits<{
   add: [title: string];
   move: [id: string, from: string, to: string, beforeId: string | null];
 }>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const scroller = useTemplateRef<HTMLElement>('scroller');
 const virtual = computed(() => props.group.tasks.length > VIRTUAL_FROM);
@@ -99,9 +100,6 @@ const hasFoot = (x: TaskView) =>
   (props.fields.includes('labels') && x.labelIds.some((l) => label(l))) ||
   (props.fields.includes('dueDate') && !!x.dueDate) ||
   (props.fields.includes('assignee') && x.assigneeIds.length > 0);
-function due(d: string) {
-  return d.slice(5).replace('-', '.');
-}
 </script>
 
 <template>
@@ -158,7 +156,7 @@ function due(d: string) {
           :key="x.id"
           :data-id="x.id"
           tabindex="0"
-          class="mb-2 flex h-20 cursor-grab flex-col gap-1 overflow-hidden rounded-lg border border-border bg-surface p-2 focus-visible:ring-2 ring-focus"
+          class="mb-2 flex h-[120px] cursor-grab flex-col gap-1 overflow-hidden rounded-lg border border-border bg-surface p-2 focus-visible:ring-2 ring-focus"
           @click="emit('open', x.key)"
           @keydown.enter.self="emit('open', x.key)"
         >
@@ -167,15 +165,15 @@ function due(d: string) {
             <span class="font-mono text-fg-muted">{{ x.key }}</span>
             <BlockedIcon v-if="blocked.has(x.id)" />
           </div>
-          <p class="line-clamp-2 text-sm text-fg">{{ x.title }}</p>
-          <div v-if="hasFoot(x)" class="mt-auto flex items-center gap-2 overflow-hidden">
+          <p class="line-clamp-3 text-sm leading-snug text-fg">{{ x.title }}</p>
+          <div v-if="hasFoot(x)" class="mt-auto flex items-center gap-2 overflow-hidden pt-1">
             <template v-for="l in fields.includes('labels') ? x.labelIds : []" :key="l">
               <Badge v-if="label(l)" dot :color="label(l)!.color ?? undefined">{{
                 label(l)!.name
               }}</Badge>
             </template>
             <span v-if="x.dueDate && fields.includes('dueDate')" class="text-xs text-fg-muted">{{
-              due(x.dueDate)
+              formatDue(x.dueDate, locale)
             }}</span>
             <AvatarStack
               v-if="fields.includes('assignee')"
