@@ -224,3 +224,4 @@
 {"t": "2026-10-24T23:32:32", "by": "executor", "task": "PT-12", "ev": "reported", "commits": ["merge", "vue-tsc:", "summary"], "note": "done: feature/design влит в p3/PT-12; конфликты сняты (versions, findings, PageView: логика p3 Collaboration + разметка C-ui …", "dp_feedback": "e2e webhook-тест требует WEBHOOKS_ALLOW_HOSTS=host.docker.internal, нигде не задокументировано в карточке/скриптах; было бы полезно в stack.sh/dev.sh. Для perf нужен PERF_MODULES=forms,timeline PERF_SEED_DATES=1, чтобы sw/timeline-спеки не падали."}
 {"t": "2026-10-24T23:33:02", "by": "coordinator", "task": "PT-12", "ev": "checked", "note": "1/9 merged=ok:yes"}
 {"t": "2026-10-24T23:33:03", "by": "main", "task": "PT-12", "ev": "accepted", "note": "по отчёту: 9/9, e2e 104/104, SW /f/* ок; warm 459 при 450 под нагрузкой (min 415) — на шлюз пользователю"}
+{"t": "2026-10-24T23:33:05", "by": "main", "task": "PT-12", "ev": "merged", "commits": ["92c33de"]}
