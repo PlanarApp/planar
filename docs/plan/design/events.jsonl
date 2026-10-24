@@ -163,3 +163,5 @@
 {"t": "2026-10-24T13:09:08", "by": "reviewer", "task": "DS-4a", "ev": "reviewed", "note": "Раскладка колонкой и меню «…» с danger+confirm сделаны по C-ui v3, проверки проходят. Но в режиме панели карточка шириной 760px не помещается в контейнер Proje…", "verdict": "rework", "issues": {"blocker": 1, "major": 3, "minor": 1}, "review": "docs/plan/design/tasks/DS-4a.review.json"}
 {"t": "2026-10-24T13:09:11", "by": "reviewer", "task": "DS-5a", "ev": "reviewed", "note": "C-ui v3 §Брейкпоинт выполнен: Popover/Menu/Select на mobile — лист (Reka Dialog, подложка, Esc), Tooltip — только слот, пропсы/события не менялись; BottomNav п…", "verdict": "accept", "issues": {"major": 1, "minor": 2}, "review": "docs/plan/design/tasks/DS-5a.review.json"}
 {"t": "2026-10-24T13:09:19", "by": "coordinator", "task": "DS-4c", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-24T13:10:21", "by": "coordinator", "task": "DS-4c", "ev": "accepted", "commits": ["4229f1f"], "note": "6/6 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0"}
+{"t": "2026-10-24T13:10:21", "by": "coordinator", "task": "DS-4c", "ev": "merged"}
