@@ -285,3 +285,5 @@
 {"t": "2026-10-24T16:00:59", "by": "coordinator", "task": "DS-6a", "ev": "accepted", "note": "по отчёту; визуальная проверка — в DS-5d"}
 {"t": "2026-10-24T16:01:00", "by": "coordinator", "task": "DS-6a", "ev": "merged"}
 {"t": "2026-10-24T16:01:00", "by": "coordinator", "task": "DS-6b", "ev": "accepted", "note": "по отчёту; визуальная проверка — в DS-5d"}
+{"t": "2026-10-24T16:01:01", "by": "coordinator", "task": "DS-6b", "ev": "merged"}
+{"t": "2026-10-24T16:01:01", "by": "coordinator", "task": "DS-6c", "ev": "accepted", "note": "по отчёту; визуальная проверка — в DS-5d"}
