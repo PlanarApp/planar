@@ -1,0 +1,44 @@
+{
+  "status": "partial",
+  "summary": "registry: enabled=null пока реплика пуста (bootstrap) и строки settings нет; ensureModule ждёт (таймаут 10 с -> error), moduleStatus loading/off/ready/error; ModuleScreen: скелетон / EmptyState «Модуль выключен» (+кнопка для admin) / ошибка. Unit-тест + e2e/web/cold-module.spec.ts (4 теста). router.ts не менялся.",
+  "commits": [],
+  "checks": [
+    {
+      "name": "install/contract/web-tests/typecheck/size/lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "cold-10x",
+      "value": "39/40 (падение — loginAs, не модуль)",
+      "pass": false
+    },
+    {
+      "name": "e2e-all",
+      "value": "падения: loginAs в collab:217, features:159, visual x2 (экран логина не появился)",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "cold-10x и e2e-all не дали 0 падений из-за флейка экрана /login (вне скоупа)"
+  ],
+  "questions": [
+    "Флейк /login (page.goto('/login') -> getByLabel('Логин') не появляется 60 с) — кому отдать?"
+  ],
+  "how_to_check": ".dpcli/dpcli accept DS-11",
+  "uncertain": [
+    {
+      "where": "apps/web/src/modules/registry.ts initModules",
+      "why": "«настройки неизвестны» = нет строки settings и replicaState==='empty'; полагаюсь, что hot-часть bootstrap содержит settings",
+      "checked": "cold chat/import/channel 10x: ни одного падения на модульных проверках; unit-тесты"
+    },
+    {
+      "where": "e2e loginAs",
+      "why": "флейк воспроизведён без моих правок: 60 входов на чистом feature/design — 3 падения (blank page), с правками 1/60",
+      "checked": "temp-спек loginAs x60 с откатом apps/web/src и без"
+    }
+  ],
+  "dp_feedback": "accept --dry занимает ~15 мин и блокирует порты; флейки вне скоупа не отличимы от своих без ручного A/B.",
+  "t": "2026-10-24T20:58:11",
+  "by": "executor"
+}
