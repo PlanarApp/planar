@@ -10,6 +10,8 @@ const CATEGORIES = [
   ['cancelled', 'Cancelled', '#ef4444'],
 ] as const;
 
+const customName = (v?: string) => (v && v.trim().length <= 64 ? v.trim() || undefined : undefined);
+
 export const spaceMutators = [
   defineMutator({
     name: 'space.create',
@@ -19,6 +21,9 @@ export const spaceMutators = [
       rank,
       memberId: uuid,
       statusIds: z.array(uuid).length(5),
+      statusNames: z
+        .partialRecord(z.enum(CATEGORIES.map((c) => c[0]) as [string, ...string[]]), z.string())
+        .optional(),
     }),
     async run(tx, a, ctx) {
       const t = { createdAt: ctx.now, updatedAt: ctx.now };
@@ -43,7 +48,7 @@ export const spaceMutators = [
         await tx.put('statuses', {
           id: a.statusIds[i],
           spaceId: a.id,
-          name: title,
+          name: customName(a.statusNames?.[category]) ?? title,
           category,
           color: c,
           rank: `a${i}`,
