@@ -1,0 +1,69 @@
+{
+  "status": "partial",
+  "summary": "Editor.vue (проп collab) и DocEditor работают на Collaboration + CollaborationCaret + HocuspocusProvider(/collab) + y-indexeddb; docs и описание задачи открываются с collab, lock.ts/плашка/режим чтения удалены. Общая схема расширена (таблицы, чек-листы, attrs.kind) в @planar/editor, подключение — @planar/editor/collab (лениво, initial 152.1 КБ).",
+  "commits": [
+    "aac7965 PT-1b: совместное редактирование docs и описания задачи (Yjs, Hocuspocus, курсоры, офлайн); блокировка CL-3 убрана из UI"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "152.1 KB",
+      "pass": true
+    },
+    {
+      "name": "e2e",
+      "value": "12 passed",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "FAIL: task.test.ts вне scope",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "apps/web/src/task/__tests__/task.test.ts вне scope: два теста сохранения описания через Editor заменены тестом collab-режима (старое поведение удалено по контракту) — нужно расширить scope"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-1b --dry",
+  "uncertain": [
+    {
+      "where": "apps/api/src/collab/collab.service.ts:external",
+      "why": "БАГ PT-1a: любая запись docsPages (put с тем же body, напр. сохранение заголовка) трактуется как внешняя запись body и откатывает ещё не спроецированный набор текста в Y.Doc (потеря правок за ~2 с). Нужно сравнивать с предыдущим body, а не с Y.Doc",
+      "checked": "воспроизведено e2e: заголовок, затем текст — projection пустая; в collab.spec.ts ждём сохранения заголовка (обход)"
+    },
+    {
+      "where": "packages/editor/src/collab.ts",
+      "why": "если страница создана в UI и ещё не дошла до сервера, onAuthenticate даёт forbidden, повторного подключения нет",
+      "checked": "в 6 прогонах e2e аутентификация проходила с первой попытки; ретрай пробовал, не подтвердил, убрал"
+    }
+  ],
+  "dp_feedback": "accept падает по scope на тестах, которые карточка не перечислила, хотя их ломает сама задача; в карточку стоит добавлять существующие тесты затронутых файлов.",
+  "t": "2026-10-24T13:16:40",
+  "by": "executor"
+}

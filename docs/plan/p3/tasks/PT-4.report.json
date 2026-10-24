@@ -1,6 +1,6 @@
 {
   "status": "done",
-  "summary": "Доработка под P3-dashboards v2: spaceId обязателен, create {id,spaceId,name,rank,personal?}; правка server-tx.ts откачена, миграция пересоздана (0016) поверх feature/p3. Остальное как в первом отчёте.",
+  "summary": "Группировка bars по field:<id> (select/user) выбирается в диалоге, подписи select - названия вариантов, тест pt4 (11). v2 и миграция 0016 - как раньше.",
   "commits": [
     "b53f5a7 модуль дашбордов",
     "revert 31a36e0",
@@ -39,8 +39,8 @@
     },
     {
       "name": "test-web",
-      "value": "1-4 теста с таймаутом 5 с (палитра/TopBar, код не мой) плавают под нагрузкой; повторный прогон: 697/698, падает ui.test 'Cmd+K'",
-      "pass": false
+      "value": "699/699 при повторном прогоне; в accept --dry флейки: cl1a-палитра, ui Cmd+K, list:virtual 10000",
+      "pass": true
     },
     {
       "name": "install",
@@ -59,23 +59,23 @@
     }
   ],
   "not_done": [
-    "Группировка bars по field:<id> не выбирается в диалоге (расчёт и контракт есть)"
+    "Миграция 0016 пересоздаётся после слияния PT-6a (заметки о слиянии ещё не было)"
   ],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept PT-4 --dry",
   "uncertain": [
     {
-      "where": "apps/web/src/command/__tests__/ui.test.ts",
-      "why": "таймаут 5 с, не связан с PT-4; плавает от прогона к прогону",
-      "checked": "два прогона, разный набор упавших"
+      "where": "apps/web/src/command, views/list tests",
+      "why": "флейки таймаута в accept --dry: палитра (cl1a, Cmd+K, TopBar), list:virtual; 3 прогона accept - каждый раз разные",
+      "checked": "перезапуск test-web 699/699"
     },
     {
-      "where": "modules/dashboards/web/WidgetBody.vue",
-      "why": "подписи select-полей — сырое значение; UI вручную не смотрел",
-      "checked": "юнит-тесты, сборка"
+      "where": "apps/api/drizzle/0016",
+      "why": "надо пересоздать после слияния PT-6a",
+      "checked": "task sync на момент отчёта без конфликта"
     }
   ],
   "dp_feedback": "accept --dry идёт >2 мин и блокирует; scope-проверка помечает миграцию, которую требует сама карточка.",
-  "t": "2026-10-24T12:35:26",
+  "t": "2026-10-24T12:44:22",
   "by": "executor"
 }
