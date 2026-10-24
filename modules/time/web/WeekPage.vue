@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { Button, IconButton, Input } from '@planar/web/modules';
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { dayKey, entrySec, hm, parseHm, planCell, weekDays } from './lib';
 import { locale, mutate, newId, tr, useMyEntries, useNow, useTasks, useWeekStart } from './data';
 
@@ -58,8 +60,8 @@ async function edit(taskId: string, k: string, text: string) {
   <section class="wk">
     <header class="row">
       <h2>{{ tr('week') }}</h2>
-      <button class="btn" :aria-label="tr('prev')" data-test="prev" @click="offset--">‹</button>
-      <button class="btn" :aria-label="tr('next')" data-test="next" @click="offset++">›</button>
+      <IconButton :icon="ChevronLeft" :label="tr('prev')" data-test="prev" @click="offset--" />
+      <IconButton :icon="ChevronRight" :label="tr('next')" data-test="next" @click="offset++" />
     </header>
     <p v-if="err" class="err" role="alert">{{ err }}</p>
     <p v-if="!rows.length" class="muted">{{ tr('empty') }}</p>
@@ -76,11 +78,14 @@ async function edit(taskId: string, k: string, text: string) {
           <tr v-for="r in rows" :key="r.id" data-test="row">
             <td class="title">{{ r.title }}</td>
             <td v-for="k in keys" :key="k">
-              <input
-                :value="hm(cellSec(r.id, k))"
-                :aria-label="`${r.title} ${k}`"
+              <Input
+                :model-value="hm(cellSec(r.id, k))"
+                :label="`${r.title} ${k}`"
+                hide-label
+                size="sm"
+                class="cell"
                 :data-test="`cell-${r.id}-${k}`"
-                @change="edit(r.id, k, ($event.target as HTMLInputElement).value)"
+                @change="(e: Event) => edit(r.id, k, (e.target as HTMLInputElement).value)"
               />
             </td>
             <td class="mono">{{ hm(rowTotal(r.id)) }}</td>
@@ -150,27 +155,8 @@ th {
 .err {
   color: var(--color-danger);
 }
-input {
-  width: 6ch;
-  text-align: center;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-fg);
-  padding: 4px;
-}
-input:hover,
-input:focus {
-  border-color: var(--color-border-strong);
-  background: var(--color-bg);
-}
-.btn {
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-fg);
-  min-width: 32px;
-  min-height: 32px;
-  cursor: pointer;
+.cell {
+  width: 8ch;
+  margin: 0 auto;
 }
 </style>

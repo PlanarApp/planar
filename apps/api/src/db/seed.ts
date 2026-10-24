@@ -1,4 +1,4 @@
-// Сид dev-данных: tsx --conditions=source src/db/seed.ts [--tasks N: довести число задач до N] [--bench] [--dates: ~80 % задач с startDate/dueDate]
+// Сид dev-данных: tsx --conditions=source src/db/seed.ts [--tasks N: довести число задач до N] [--bench] [--dates: ~80 % задач с startDate/dueDate] [--locale ru|en: язык статусов, по умолчанию ru]
 import { randomBytes } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import argon2 from 'argon2';
@@ -30,12 +30,17 @@ async function insertBatched<T extends Parameters<Db['insert']>[0]>(
   }
 }
 
+export type SeedLocale = 'ru' | 'en';
+const STATUS_NAMES: Record<SeedLocale, string[]> = {
+  ru: ['Бэклог', 'К работе', 'В работе', 'Готово', 'Отменено'],
+  en: ['Backlog', 'Todo', 'In progress', 'Done', 'Cancelled'],
+};
 const STATUSES = [
-  ['Backlog', 'backlog', '#94a3b8'],
-  ['Todo', 'todo', '#3b82f6'],
-  ['In progress', 'in_progress', '#f59e0b'],
-  ['Done', 'done', '#22c55e'],
-  ['Cancelled', 'cancelled', '#ef4444'],
+  ['backlog', '#94a3b8'],
+  ['todo', '#3b82f6'],
+  ['in_progress', '#f59e0b'],
+  ['done', '#22c55e'],
+  ['cancelled', '#ef4444'],
 ] as const;
 const LABELS = [
   ['bug', '#ef4444'],
@@ -45,7 +50,7 @@ const LABELS = [
 ] as const;
 
 /** Базовые данные; ничего не делает, если пользователь admin уже есть. */
-async function seedBase(db: Db) {
+async function seedBase(db: Db, locale: SeedLocale = 'ru') {
   const [exists] = await db
     .select({ id: s.users.id })
     .from(s.users)
@@ -86,9 +91,9 @@ async function seedBase(db: Db) {
   const ranks = generateNKeysBetween(null, null, STATUSES.length);
   await db.insert(s.statuses).values(
     spaces.flatMap((sp) =>
-      STATUSES.map(([name, category, color], i) => ({
+      STATUSES.map(([category, color], i) => ({
         spaceId: sp.id,
-        name,
+        name: STATUS_NAMES[locale][i]!,
         category,
         color,
         rank: ranks[i]!,
@@ -190,8 +195,8 @@ async function seedTasks(db: Db, target: number, dates = false) {
   await insertBatched(db, s.taskLabels, taskLabels);
 }
 
-export async function seed(db: Db, tasks = 0, dates = false) {
-  await seedBase(db);
+export async function seed(db: Db, tasks = 0, locale: SeedLocale = 'ru', dates = false) {
+  await seedBase(db, locale);
   await seedTasks(db, tasks, dates);
 }
 
@@ -202,6 +207,9 @@ async function main() {
   const tasks = ti >= 0 ? Number(argv[ti + 1]) : 0;
   const dates = argv.includes('--dates');
   if (!Number.isInteger(tasks) || tasks < 0) throw new Error('--tasks N: целое ≥ 0');
+  const li = argv.indexOf('--locale');
+  const locale = li >= 0 ? argv[li + 1] : 'ru';
+  if (locale !== 'ru' && locale !== 'en') throw new Error('--locale ru|en');
 
   if (!bench) {
     const url = process.env.DATABASE_URL;
@@ -209,7 +217,7 @@ async function main() {
     const db = createDb(url);
     try {
       await migrate(db);
-      await seed(db, tasks, dates);
+      await seed(db, tasks, locale, dates);
     } finally {
       await db.$client.end();
     }
@@ -227,7 +235,7 @@ async function main() {
   const db = createDb(adminUrl.toString());
   try {
     await migrate(db);
-    await seedBase(db);
+    await seedBase(db, locale);
     const t0 = performance.now();
     await seedTasks(db, tasks, dates);
     console.log(`seed_ms=${Math.round(performance.now() - t0)} tasks=${tasks}`);

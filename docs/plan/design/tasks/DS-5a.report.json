@@ -1,0 +1,61 @@
+{
+  "status": "done",
+  "summary": "Popover/Menu/Select на mobile открываются листом снизу (новый ui/Sheet.vue на Reka Dialog), Tooltip на mobile — только слот. BottomNav: Inbox с Badge, Мои задачи, Поиск (палитра), Меню (mobileNav из nav.ts, AppShell не правился).",
+  "commits": [
+    "e663e42 DS-5a: mobile-листы, нижняя навигация"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "mobile-tests",
+      "value": "4 passed",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "визуальные скриншоты не снимались",
+    "DevUiScreen не обновлялся"
+  ],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept DS-5a",
+  "uncertain": [
+    {
+      "where": "apps/web/src/ui/Select.vue",
+      "why": "на mobile нативный Reka Select заменён кнопками в листе: нет типизации-поиска/стрелок",
+      "checked": "тест выбора опции; ARIA role=option на кнопках"
+    }
+  ],
+  "dp_feedback": "plan design '5. Задачи / DS-5' из карточки не находится.",
+  "t": "2026-10-24T12:56:26",
+  "by": "executor"
+}

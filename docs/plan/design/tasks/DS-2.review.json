@@ -1,0 +1,24 @@
+{
+  "verdict": "accept",
+  "summary": "Замечания прошлого ревью закрыты: testid save-as-view снят координатором; чипы field:<id> показывают подпись варианта, имя участника, рубли (/100, как String(v/100) в FilterBuilder). Тест chips.test.ts проверяет все три. labels.ts не понадобился: логика в FilterBuilder встроена в разметку, FilterBuilder.vue не тронут. Поля project в BaseField нет, дата выводится как строка, так же как в FilterBuilder.",
+  "issues": [],
+  "rerun": [
+    {
+      "name": "chip-tests",
+      "value": "3 passed",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "11 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T12:49:11",
+  "by": "reviewer"
+}

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { Button, Input, Menu } from '@planar/web/modules';
 import { mutate, newId, tr, useEstimate, useMyEntries, useNow, userId, useTasks } from './data';
 import { clock, dayKey, hm, parseHm, subtreeIds, sumSec } from './lib';
 
@@ -58,9 +59,9 @@ const add = async () => {
 <template>
   <section class="tp">
     <div class="row">
-      <button class="btn primary" data-test="toggle" @click="toggle">
+      <Button variant="primary" data-test="toggle" @click="toggle">
         {{ runningHere ? tr('stop') : tr('start') }}
-      </button>
+      </Button>
       <span v-if="runningHere" class="mono" data-test="running">
         {{ clock(Math.floor((now - Date.parse(running!.startedAt)) / 1000)) }}
       </span>
@@ -73,20 +74,24 @@ const add = async () => {
         <span :class="{ over }" data-test="vs">{{ Math.round((total / estSec) * 100) }}%</span>
       </template>
     </p>
-    <label class="row">
-      {{ tr('estimate') }}
-      <input
-        v-model="estInput"
-        :placeholder="estimate ? hm(estimate.minutes * 60) : tr('estimateHint')"
-        data-test="estimate"
-        @change="saveEstimate"
-      />
-    </label>
+    <Input
+      v-model="estInput"
+      :label="tr('estimate')"
+      :placeholder="estimate ? hm(estimate.minutes * 60) : tr('estimateHint')"
+      data-test="estimate"
+      @change="saveEstimate"
+    />
     <form class="row" @submit.prevent="add">
-      <input v-model="day" type="date" />
-      <input v-model="dur" :placeholder="tr('estimateHint')" data-test="dur" />
-      <input v-model="note" :placeholder="tr('note')" maxlength="1000" />
-      <button class="btn" data-test="add">{{ tr('add') }}</button>
+      <Input v-model="day" type="date" :label="tr('day')" hide-label />
+      <Input
+        v-model="dur"
+        :label="tr('estimateHint')"
+        hide-label
+        :placeholder="tr('estimateHint')"
+        data-test="dur"
+      />
+      <Input v-model="note" :label="tr('note')" hide-label :placeholder="tr('note')" class="grow" />
+      <Button type="submit" data-test="add">{{ tr('add') }}</Button>
     </form>
     <p v-if="err" class="err" role="alert">{{ err }}</p>
     <h4>{{ tr('entries') }}</h4>
@@ -96,9 +101,19 @@ const add = async () => {
         <span>{{ e.startedAt.slice(0, 10) }}</span>
         <span class="mono">{{ e.endedAt ? hm(e.durationSec ?? 0) || '0:00' : '…' }}</span>
         <span class="muted grow">{{ e.note }}</span>
-        <button class="btn" :aria-label="tr('del')" @click="mutate('time.delete', { id: e.id })">
-          ×
-        </button>
+        <Menu
+          align="end"
+          :label="tr('more')"
+          :items="[
+            {
+              id: 'delete',
+              label: tr('del'),
+              danger: true,
+              confirm: { title: tr('confirmDel'), confirmLabel: tr('del') },
+              onSelect: () => mutate('time.delete', { id: e.id }),
+            },
+          ]"
+        />
       </li>
     </ul>
   </section>
@@ -130,28 +145,6 @@ const add = async () => {
 .err,
 .over {
   color: var(--color-danger);
-}
-input {
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-fg);
-  padding: 4px 8px;
-  min-width: 0;
-}
-.btn {
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-fg);
-  padding: 4px 12px;
-  min-height: 32px;
-  cursor: pointer;
-}
-.btn.primary {
-  background: var(--color-accent);
-  color: var(--color-accent-fg);
-  border-color: transparent;
 }
 ul {
   list-style: none;

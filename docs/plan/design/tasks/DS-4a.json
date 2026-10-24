@@ -1,0 +1,75 @@
+{
+  "id": "DS-4a",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "Карточка задачи по C-ui v3: свойства колонкой справа, mobile на весь экран",
+  "goal": "Карточка задачи (панель и экран /t/:key): заголовок и описание крупнее, свойства — колонка справа «ключ — значение» (пустые значения — приглушённая подпись-кнопка «Добавить…», без «—»), вторичные действия — в меню «…» и по наведению; на mobile карточка на весь экран, свойства — над описанием.",
+  "plan_ref": "5. Задачи / DS-4",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "3",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-4a",
+  "branch": "design/DS-4a",
+  "base": "feature/design",
+  "scope": [
+    "apps/web/src/task/TaskDetail.vue",
+    "apps/web/src/task/TaskPanel.vue",
+    "apps/web/src/task/Subtasks.vue",
+    "apps/web/src/task/Checklist.vue",
+    "apps/web/src/task/Attachments.vue",
+    "apps/web/src/task/Feed.vue",
+    "apps/web/src/task/CommentItem.vue",
+    "apps/web/src/task/Reactions.vue",
+    "apps/web/src/task/__tests__",
+    "apps/web/src/screens/TaskScreen.vue",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "build/artifacts/DS-4a"
+  ],
+  "dont_touch": [
+    "apps/web/src/task/editor/ — редактор описания правит модуль p3 (совместное редактирование)",
+    "apps/web/src/ui/ — компоненты готовы",
+    "modules/ — DS-4d и p3 (панели задач модулей рендерятся как есть)",
+    "apps/web/src/__contract__/, apps/web/src/contract.ts, docs/contracts/ — только координатор; не хватает компонента — строкой <ID> contract: …",
+    "packages/, apps/api/ — core и p3"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T12:52:17"
+}

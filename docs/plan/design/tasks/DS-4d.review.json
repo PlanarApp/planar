@@ -1,0 +1,27 @@
+{
+  "verdict": "accept",
+  "summary": "Все 5 замечаний прошлого ревью закрыты в 94ae2ac. Clock, Zap и Bell теперь из lucide, icons.ts в ветке нет, '<svg' остался только в burnup SprintView. Кнопки закрытия секрета и удаления действия стали IconButton с подписью из словаря. Пустое daysBefore даёт undefined: z.number() в triggerSchema его не пропускает, save() не сохраняет, Input показывает ошибку. У Select параметра подпись tx.value, есть в ru и en. Lockfile: +6 строк, только импортёры sprints и webhooks. Скоуп чистый.",
+  "issues": [
+    {
+      "file": "modules/automations/web/RulesPage.vue",
+      "line": 283,
+      "severity": "minor",
+      "what": "Под пустым полем daysBefore стоит общий текст tx.invalid «Правило заполнено неверно», а не текст про само поле. Поведение верное, вопрос только в формулировке.",
+      "fix": "По желанию, на визуальном проходе DS-5b: дать полю свой текст, например «Укажите число 0–30»."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "no-inline-svg",
+      "value": "0 (scope 39 файлов в границах)",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T14:17:51",
+  "by": "reviewer"
+}

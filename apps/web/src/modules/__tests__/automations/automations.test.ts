@@ -1,5 +1,8 @@
 import 'fake-indexeddb/auto';
-import { mount } from '@vue/test-utils';
+import { mount as vmount } from '@vue/test-utils';
+import { TooltipProvider } from 'reka-ui';
+import { i18n } from '../../../i18n';
+import Select from '../../../ui/Select.vue';
 import { defineComponent, h as vh, ref } from 'vue';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { uuidv7 } from '@planar/shared';
@@ -50,6 +53,16 @@ const FB = defineComponent({
       ),
 });
 const stubs = { global: { stubs: { FilterBuilder: FB } } };
+// IconButton/Menu требуют TooltipProvider (в приложении он в App.vue) и i18n
+const mount = (c: object, o: { global?: object } = {}) =>
+  vmount(defineComponent({ render: () => vh(TooltipProvider, () => vh(c)) }), {
+    global: { plugins: [i18n], ...o.global },
+  } as never);
+// Select (Reka) в jsdom не раскрывается: выбор значения — событие компонента
+const pick = async (w: ReturnType<typeof mount>, role: string, v: string) => {
+  w.get(`[data-role=${role}]`).getComponent(Select).vm.$emit('update:modelValue', v);
+  await w.vm.$nextTick();
+};
 
 const T = '2026-10-20T10:00:00.000Z';
 const ruleRow = (over: Record<string, unknown> = {}) => ({
@@ -119,10 +132,10 @@ describe('wk3: страница правил', () => {
     await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
     await w.get('[data-role=new]').trigger('click');
     await w.get('[data-role=name]').setValue('Срок');
-    await w.get('[data-role=trigger]').setValue('task.due');
+    await pick(w, 'trigger', 'task.due');
     await w.get('[data-role=days-before]').setValue('2');
     await w.get('[data-role=add-condition]').trigger('click');
-    await w.get('[data-role=action-type]').setValue('create_subtask');
+    await pick(w, 'action-type', 'create_subtask');
     await w.get('[data-role=action-text]').setValue('Проверить');
     await w.get('[data-testid=editor]').trigger('submit');
     expect(mutate).toHaveBeenCalledWith('automations.create', {
@@ -217,9 +230,13 @@ describe('wk3b: конструктор', () => {
     await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
     await w.get('[data-role=new]').trigger('click');
     await w.get('[data-role=name]').setValue('Хук');
-    await w.get('[data-role=action-type]').setValue('send_webhook');
-    await vi.waitFor(() => expect(w.text()).toContain('Хук — http://x/hook'));
-    await w.get('[data-role=action-param]').setValue(sub);
+    await pick(w, 'action-type', 'send_webhook');
+    await vi.waitFor(() =>
+      expect(w.get('[data-role=action-param]').getComponent(Select).props('options')).toEqual([
+        { value: sub, label: 'Хук — http://x/hook' },
+      ]),
+    );
+    await pick(w, 'action-param', sub);
     await w.get('[data-testid=editor]').trigger('submit');
     expect(mutate).toHaveBeenCalledWith(
       'automations.create',

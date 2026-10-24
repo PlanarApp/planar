@@ -1,0 +1,67 @@
+{
+  "status": "done",
+  "summary": "Доработка по ревью: Clock/Zap/Bell на lucide (lucide-vue-next в sprints и webhooks, lockfile +6), '×' секрета и удаления действия — IconButton, пустое daysBefore не сохраняется (ошибка Input), у Select параметра действия подпись tx.value.",
+  "commits": [
+    "94ae2ac доработка по ревью"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "no-raw-danger",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "raw-buttons",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "no-inline-svg",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept DS-4d",
+  "uncertain": [
+    {
+      "where": "modules/automations/web/RulesPage.vue:281",
+      "why": "пустое daysBefore даёт undefined; ошибка берётся из tx.invalid, а сохранение блокирует схема триггера",
+      "checked": "typecheck и web-tests PASS; ручной прогон UI не делал"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-24T14:14:50",
+  "by": "executor"
+}

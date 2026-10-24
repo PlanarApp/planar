@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, Input, newId, useStatuses } from '@planar/web/modules';
+import { Button, EmptyState, Input, newId, useStatuses } from '@planar/web/modules';
 import { addDays, todayIn } from '../shared/index.js';
 import { burnup } from './burnup';
 import { browserTz, currentCycle, run, text, useSprintData } from './data';
@@ -139,7 +139,7 @@ const closeCycle = () => run('sprints.close', { id: cycle.value!.id, nextId: new
           </p>
         </div>
       </section>
-      <p v-else class="text-fg-muted" data-testid="sprint-none">{{ tx.none }}</p>
+      <EmptyState v-else :title="tx.none" data-testid="sprint-none" />
 
       <div>
         <Button size="sm" data-role="create" @click="createCycle">{{ tx.create }}</Button>

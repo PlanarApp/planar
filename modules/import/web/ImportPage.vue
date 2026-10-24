@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
+import { Button, EmptyState, Select } from '@planar/web/modules';
 import type { ImportJob, Preview } from '../shared/index.js';
 import { getJob, previewFile, startJob, tr, useProjects, useStatuses } from './data';
 import { FIELDS, buildMapping, guessStatus, presetsFor, statusValues } from './lib';
@@ -29,6 +30,20 @@ const values = computed(() =>
   pv.value ? statusValues(pv.value.columns, pv.value.rows, map.value.status) : [],
 );
 const presets = computed(() => presetsFor(format.value));
+// Reka Select не принимает пустое значение: «нет» — служебная метка
+const NONE = '__none';
+const colOptions = computed(() => [
+  { value: NONE, label: tr('none') },
+  ...(pv.value?.columns ?? []).map((c) => ({ value: c, label: c })),
+]);
+const statusOptions = computed(() => [
+  { value: NONE, label: tr('byDefault') },
+  ...statuses.value.map((s) => ({ value: s.id, label: s.name })),
+]);
+const setMap = (f: string, v: string | null) => {
+  map.value[f] = !v || v === NONE ? '' : v;
+  if (f === 'status') onStatusColumn();
+};
 
 function setFormat(f: 'csv' | 'trello') {
   format.value = f;
@@ -77,87 +92,117 @@ onBeforeUnmount(() => clearInterval(timer));
 </script>
 
 <template>
-  <div class="import-page" style="padding: 16px; max-width: 960px">
-    <h1>{{ tr('title') }}</h1>
-    <p v-if="err" role="alert" class="import-err">{{ err }}</p>
+  <div class="import-page max-w-[960px] p-4">
+    <header class="mb-3 flex flex-col gap-0.5">
+      <h1 class="text-lg font-semibold">{{ tr('title') }}</h1>
+    </header>
+    <p v-if="err" role="alert" class="import-err text-sm text-danger">{{ err }}</p>
 
-    <section v-if="step === 1">
-      <label
+    <section v-if="step === 1" class="flex flex-col gap-3">
+      <EmptyState v-if="!file" :title="tr('file')" />
+      <label class="flex flex-col gap-1 text-sm"
         >{{ tr('file') }}
         <input
           type="file"
           accept=".csv,.json"
           @change="file = ($event.target as HTMLInputElement).files?.[0] ?? null"
       /></label>
-      <label
-        >{{ tr('format') }}
-        <select
-          :value="format"
-          @change="setFormat(($event.target as HTMLSelectElement).value as 'csv' | 'trello')"
+      <div class="flex flex-wrap items-center gap-2 text-sm">
+        {{ tr('format') }}
+        <Select
+          :model-value="format"
+          :label="tr('format')"
+          :options="[
+            { value: 'csv', label: 'CSV' },
+            { value: 'trello', label: 'Trello JSON' },
+          ]"
+          @update:model-value="(v) => v && setFormat(v as 'csv' | 'trello')"
+        />
+        {{ tr('preset') }}
+        <Select
+          v-model="preset"
+          :label="tr('preset')"
+          :options="presets.map((p) => ({ value: p, label: p }))"
+        />
+      </div>
+      <div>
+        <Button
+          variant="primary"
+          class="import-next"
+          :disabled="!file || busy"
+          :loading="busy"
+          @click="toPreview"
         >
-          <option value="csv">CSV</option>
-          <option value="trello">Trello JSON</option>
-        </select>
-      </label>
-      <label
-        >{{ tr('preset') }}
-        <select v-model="preset">
-          <option v-for="p in presets" :key="p" :value="p">{{ p }}</option>
-        </select>
-      </label>
-      <button class="import-next" :disabled="!file || busy" @click="toPreview">
-        {{ tr('next') }}
-      </button>
+          {{ tr('next') }}
+        </Button>
+      </div>
     </section>
 
-    <section v-else-if="step === 2 && pv">
-      <label
-        >{{ tr('project') }}
-        <select v-model="projectId" class="import-project">
-          <option value="" disabled>—</option>
-          <option v-for="p in projects ?? []" :key="p.id" :value="p.id">{{ p.name }}</option>
-        </select>
-      </label>
-      <h2 v-if="format === 'csv'">{{ tr('mapping') }}</h2>
-      <div v-if="format === 'csv'">
-        <label v-for="f in FIELDS" :key="f" class="import-map">
-          {{ f }}
-          <select v-model="map[f]" :data-field="f" @change="f === 'status' && onStatusColumn()">
-            <option value="">{{ tr('none') }}</option>
-            <option v-for="c in pv.columns" :key="c" :value="c">{{ c }}</option>
-          </select>
-        </label>
+    <section v-else-if="step === 2 && pv" class="flex flex-col gap-3">
+      <div class="import-project flex items-center gap-2 text-sm">
+        {{ tr('project') }}
+        <Select
+          v-model="projectId"
+          :label="tr('project')"
+          placeholder="—"
+          :options="(projects ?? []).map((p) => ({ value: p.id, label: p.name }))"
+        />
       </div>
-      <div v-if="values.length">
-        <h2>{{ tr('statuses') }}</h2>
-        <label v-for="v in values" :key="v" class="import-status">
-          {{ v }}
-          <select v-model="chosen[v]">
-            <option value="">{{ tr('byDefault') }}</option>
-            <option v-for="s in statuses" :key="s.id" :value="s.id">{{ s.name }}</option>
-          </select>
-        </label>
+      <h2 v-if="format === 'csv'" class="font-medium">{{ tr('mapping') }}</h2>
+      <div v-if="format === 'csv'" class="flex flex-col gap-1">
+        <div v-for="f in FIELDS" :key="f" class="import-map flex items-center gap-2 text-sm">
+          <span class="w-28">{{ f }}</span>
+          <div :data-field="f">
+            <Select
+              :model-value="map[f] || NONE"
+              :label="f"
+              :options="colOptions"
+              @update:model-value="(v) => setMap(f, v)"
+            />
+          </div>
+        </div>
       </div>
-      <h2>{{ tr('preview') }}</h2>
-      <table class="import-preview">
-        <thead>
-          <tr>
-            <th v-for="c in pv.columns" :key="c">{{ c }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(r, i) in pv.rows" :key="i">
-            <td v-for="(c, j) in r" :key="j">{{ c }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <button @click="step = 1">{{ tr('back') }}</button>
-      <button class="import-start" :disabled="!projectId || !map.title || busy" @click="run">
-        {{ tr('start') }}
-      </button>
+      <div v-if="values.length" class="flex flex-col gap-1">
+        <h2 class="font-medium">{{ tr('statuses') }}</h2>
+        <div v-for="v in values" :key="v" class="import-status flex items-center gap-2 text-sm">
+          <span class="w-28">{{ v }}</span>
+          <Select
+            :model-value="chosen[v] || NONE"
+            :label="v"
+            :options="statusOptions"
+            @update:model-value="(x) => (chosen[v] = !x || x === NONE ? '' : x)"
+          />
+        </div>
+      </div>
+      <h2 class="font-medium">{{ tr('preview') }}</h2>
+      <div class="overflow-x-auto">
+        <table class="import-preview text-sm">
+          <thead>
+            <tr>
+              <th v-for="c in pv.columns" :key="c" class="px-2 text-left">{{ c }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(r, i) in pv.rows" :key="i">
+              <td v-for="(c, j) in r" :key="j" class="px-2">{{ c }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="flex gap-2">
+        <Button @click="step = 1">{{ tr('back') }}</Button>
+        <Button
+          variant="primary"
+          class="import-start"
+          :disabled="!projectId || !map.title || busy"
+          @click="run"
+        >
+          {{ tr('start') }}
+        </Button>
+      </div>
     </section>
 
-    <section v-else-if="job">
+    <section v-else-if="job" class="flex flex-col gap-2">
       <p class="import-status-line">
         {{
           job.status === 'done'
@@ -173,25 +218,27 @@ onBeforeUnmount(() => clearInterval(timer));
         {{ tr('skipped') }}: {{ job.skipped.length }}
       </p>
       <p v-if="job.error" role="alert">{{ job.error }}</p>
-      <h2 v-if="job.skipped.length">{{ tr('skipped') }}</h2>
-      <ul class="import-skipped">
+      <h2 v-if="job.skipped.length" class="font-medium">{{ tr('skipped') }}</h2>
+      <ul class="import-skipped text-sm">
         <li v-for="s in job.skipped" :key="s.row">{{ tr('row') }} {{ s.row }}: {{ s.reason }}</li>
       </ul>
-      <h2 v-if="job.warnings.length">{{ tr('warnings') }}</h2>
-      <ul class="import-warnings">
+      <h2 v-if="job.warnings.length" class="font-medium">{{ tr('warnings') }}</h2>
+      <ul class="import-warnings text-sm">
         <li v-for="s in job.warnings" :key="s.row + s.message">
           {{ tr('row') }} {{ s.row }}: {{ s.message }}
         </li>
       </ul>
-      <button
-        v-if="job.status === 'done' || job.status === 'failed'"
-        @click="
-          step = 1;
-          job = null;
-        "
-      >
-        {{ tr('again') }}
-      </button>
+      <div>
+        <Button
+          v-if="job.status === 'done' || job.status === 'failed'"
+          @click="
+            step = 1;
+            job = null;
+          "
+        >
+          {{ tr('again') }}
+        </Button>
+      </div>
     </section>
   </div>
 </template>
