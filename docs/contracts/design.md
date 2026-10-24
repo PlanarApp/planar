@@ -164,6 +164,8 @@ Tailwind 4: имена в `@theme` дают утилиты (`--color-bg` → `bg
 ### Брейкпоинт
 Mobile — ширина < 768px (`md` Tailwind = 768px, стили mobile-first). В коде — `useBreakpoint()` → `{ isMobile: Ref<boolean> }` по `matchMedia('(max-width: 767.98px)')`.
 
+На mobile (DS-5a, поведение без смены пропсов): `Popover`, `Menu`, `Select` открываются листом снизу (на всю ширину, радиус `lg` сверху, подложка `overlay`, закрытие по подложке и Esc); `Dialog` — на весь экран; `Tooltip` не показывается.
+
 ### Базовые компоненты (`apps/web/src/ui/index.ts`)
 C-modules v10: `IconButton`, `ConfirmDialog`, `Tabs`, `Chip`, `AvatarStack`, `Kbd`, `EmptyState`, `Toolbar` входят в обязательный перечень SDK (`docs/contracts/work-api.md`, блок `sdk-exports=required`; тест `apps/web/src/__contract__/sdk.contract.test.ts`).
 
