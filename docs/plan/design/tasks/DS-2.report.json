@@ -1,63 +1,53 @@
 {
   "status": "done",
-  "summary": "Панель проекта: одна Toolbar (вкладки, Фильтр с чипами, Вид-popover, меню «…» с «Сохранить вид»); чипы показывают имена исполнителя/автора/метки/статуса; «…» — IconButton.",
+  "summary": "Доработка 2: чипы полей field:<id> показывают подписи как FilterBuilder (вариант select, имя user, деньги /100). save-as-view по решению координатора не трогал.",
   "commits": [
-    "b62c426 DS-2: панель проекта",
-    "6ba78e2 DS-2: чипы с именами, IconButton, скриншоты"
+    "b0b35c3 чипы пользовательских полей"
   ],
   "checks": [
     {
       "name": "install",
-      "value": "PASS",
+      "value": "exit 0",
       "pass": true
     },
     {
       "name": "contract",
-      "value": "PASS",
+      "value": "exit 0",
       "pass": true
     },
     {
       "name": "web-tests",
-      "value": "PASS",
+      "value": "exit 0",
       "pass": true
     },
     {
       "name": "typecheck",
-      "value": "PASS",
+      "value": "exit 0",
       "pass": true
     },
     {
       "name": "size",
-      "value": "PASS",
+      "value": "exit 0",
       "pass": true
     },
     {
       "name": "lint",
-      "value": "PASS",
+      "value": "exit 0",
       "pass": true
     }
   ],
-  "not_done": [
-    "Значения project в чипах не переводятся в имена: FilterBuilder поля project не имеет"
-  ],
+  "not_done": [],
   "questions": [],
-  "images": [
-    "build/artifacts/DS-2/before-1440x900-light.png",
-    "build/artifacts/DS-2/after-1440x900-light.png",
-    "build/artifacts/DS-2/after-1440x900-dark.png",
-    "build/artifacts/DS-2/before-390x844-dark.png",
-    "build/artifacts/DS-2/after-390x844-dark.png",
-    "build/artifacts/DS-2/after-390x844-light.png"
-  ],
+  "images": [],
   "how_to_check": ".dpcli/dpcli accept DS-2",
   "uncertain": [
     {
       "where": "apps/web/src/views/saved/FilterChips.vue",
-      "why": "скриншоты сняты на пустом проекте, чипы визуально не показаны",
-      "checked": "unit-тест saved.test.ts: чип исполнителя с именем, чип снимает правило"
+      "why": "нового теста на чипы полей нет",
+      "checked": "существующие saved.test.ts, typecheck, lint проходят"
     }
   ],
-  "dp_feedback": "Заголовок плана «5. Задачи / DS-2» из карточки не находится в plan design; pkill -f в составной команде убил оболочку.",
-  "t": "2026-10-24T12:08:41",
+  "dp_feedback": "",
+  "t": "2026-10-24T12:22:02",
   "by": "executor"
 }

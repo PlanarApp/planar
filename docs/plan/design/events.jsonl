@@ -97,3 +97,11 @@
 {"t": "2026-10-24T12:19:24", "by": "coordinator", "task": "DS-1a", "ev": "started"}
 {"t": "2026-10-24T12:19:24", "by": "coordinator", "task": "DS-3a", "ev": "started"}
 {"t": "2026-10-24T12:19:24", "by": "coordinator", "task": "DS-2", "ev": "note", "note": "доработка 2: см. дополнения"}
+{"t": "2026-10-24T12:22:02", "by": "executor", "task": "DS-2", "ev": "reported", "commits": ["b0b35c3"], "note": "done: Доработка 2: чипы полей field:<id> показывают подписи как FilterBuilder (вариант select, имя user, деньги /100). save-a…"}
+{"t": "2026-10-24T12:22:49", "by": "executor", "task": "DS-1a", "ev": "reported", "commits": ["62802a6"], "note": "done: Обёртки span.contents вокруг IconButton убраны в TopBar (в DevUiScreen их уже не было); mobile-панель закрывается по кл…", "dp_feedback": "build/ в .gitignore, а карточка требует build/artifacts в скоупе — git add отказывает; пояснить в карточке."}
+{"t": "2026-10-24T12:25:30", "by": "executor", "task": "DS-3a", "ev": "checked", "note": "7/7 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; list-tests=ok:25; lint=ok:exit 0"}
+{"t": "2026-10-24T12:25:34", "by": "executor", "task": "DS-3a", "ev": "reported", "commits": ["24860e4"], "note": "done: Тон срока в Row.vue по localToday (d<today danger, <=завтра warning); слой пикеров pointer-events-none с auto на hover/…", "dp_feedback": "План design: раздел '5. Задачи / DS-3' в карточке не находится через plan."}
+{"t": "2026-10-24T12:26:52", "by": "coordinator", "task": "DS-1a", "ev": "checked", "note": "6/6 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0"}
+{"t": "2026-10-24T12:28:27", "by": "coordinator", "task": "DS-3a", "ev": "checked", "note": "7/7 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; list-tests=ok:25; lint=ok:exit 0"}
+{"t": "2026-10-24T12:28:41", "by": "coordinator", "task": "DS-1a", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-24T12:28:42", "by": "coordinator", "task": "DS-3a", "ev": "accepted", "note": "по отчёту"}
