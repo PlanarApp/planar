@@ -1,0 +1,53 @@
+{
+  "status": "done",
+  "summary": "Доработка 2: чипы полей field:<id> показывают подписи как FilterBuilder (вариант select, имя user, деньги /100). save-as-view по решению координатора не трогал.",
+  "commits": [
+    "b0b35c3 чипы пользовательских полей"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept DS-2",
+  "uncertain": [
+    {
+      "where": "apps/web/src/views/saved/FilterChips.vue",
+      "why": "нового теста на чипы полей нет",
+      "checked": "существующие saved.test.ts, typecheck, lint проходят"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-24T12:22:02",
+  "by": "executor"
+}

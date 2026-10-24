@@ -1,48 +1,60 @@
 {
-  "verdict": "rework",
-  "summary": "Десктоп-оболочка сделана по карточке, приёмка воспроизводится (lint, web-tests PASS). Но на mobile пропал единственный вход в чат: иконку из topbar убрали, а в BottomNav чата нет. Комментарий в index.ts при этом говорит обратное, и в отчёте это не отмечено.",
+  "verdict": "accept",
+  "summary": "Все 4 замечания прошлого ревью закрыты: mobile-панель через Reka Dialog, provide/inject убран, Badge для Inbox, пустой чат показывает «Нет каналов» и одну кнопку. Скоуп соблюдён, web-tests/typecheck/lint перезапущены и проходят (первый прогон web-tests упал по таймауту палитры под нагрузкой; файл не связан с DS-1, отдельно и повторно PASS). Осталось: скриншоты после доработки не пересняты.",
   "issues": [
     {
-      "file": "modules/chat/web/index.ts",
-      "line": 12,
-      "severity": "blocker",
-      "what": "Убрано поле topbar. На mobile Sidebar не рендерится (AppShell: v-if=!isMobile), в BottomNav.vue есть только inbox/my/p/settings, в палитре команд чата нет. Значит на 390 px в чат можно попасть только по прямому URL. Новый комментарий «вход через нижнюю навигацию» не соответствует коду, в отчёте (uncertain/not_done) об этом ничего нет.",
-      "fix": "Оставить вход в чат на mobile, например Topbar.vue модуля, который рендерится только при useBreakpoint().isMobile, со своим тестом. Либо получить у координатора решение, что вход переносится в BottomNav (DS-5), и записать это в not_done. Комментарий исправить."
-    },
-    {
-      "file": "apps/web/src/layout/Sidebar.vue",
-      "line": 47,
+      "file": "build/artifacts/DS-1",
+      "line": 0,
       "severity": "major",
-      "what": "Новый неявный интерфейс ядро→модули: provide('planar.sidebar.collapse', {is, toggle}), который chat/Section.vue и docs/TreeSection.vue получают через inject по строковому ключу. В C-modules / SDK @planar/web/modules этого ключа нет, а интерфейсы меняет только координатор.",
-      "fix": "Попросить координатора внести ключ и тип в C-modules (экспорт из @planar/web/modules) либо сворачивать секцию модуля оболочкой Sidebar, без inject в модулях. Решение записать строкой DS-1 contract: …"
+      "what": "Отчёт ≠ требование карточки: скриншоты после доработки (в т.ч. mobile с открытой панелью, 390×844, обе темы) не пересняты, mobile-панель (w-70, [&>aside]:w-full, контраст Badge text-accent-fg!) глазами не проверена. В отчёте это честно указано в «не вышло».",
+      "fix": "Поднять dev-стек на своих портах, переснять after-скриншоты, включая mobile с открытой панелью; либо координатору явно снять требование."
     },
     {
-      "file": "apps/web/src/layout/Sidebar.vue",
-      "line": 88,
+      "file": "apps/web/src/ui/IconButton.vue",
+      "line": 20,
       "severity": "minor",
-      "what": "Счётчик Inbox собран вручную через span с bg-accent вместо Badge из apps/web/src/ui. По правилу C-ui v3 компоненты берутся из ui.",
-      "fix": "Вернуть Badge (variant=solid). Если в тёмной панели не хватает варианта, написать строку DS-1 contract: …"
+      "what": "Вопрос исполнителя подтверждается: корень IconButton — Tooltip, attrs (@click, data-testid) на <button> не доходят. В DS-1 обойдено обёртками <span class=contents @click> в TopBar.vue:89,109,119. Тот же баг в DevUiScreen.vue:110 (@click на IconButton).",
+      "fix": "Координатору: исправить IconButton (inheritAttrs:false + v-bind=$attrs на button) отдельной задачей по C-ui; после — убрать обёртки в TopBar."
     },
     {
       "file": "modules/chat/web/Section.vue",
-      "line": 111,
+      "line": 31,
       "severity": "minor",
-      "what": "При нескольких пространствах без каналов (seed, скриншот after-d-light-project) секция по-прежнему показывает только имена пространств с «+», то есть симптом из аудита остаётся.",
-      "fix": "Скрывать подгруппу пространства без каналов, а «+» оставить в заголовке «Чат» с выбором пространства. Либо явно передать пустое состояние в DS-4 и записать это в not_done."
+      "what": "Строка «Нет каналов/No channels» собрана тернарником по locale, а не через тексты модуля (text.ts/useTexts) — нарушает правило «строки только через i18n» по форме (text.ts вне скоупа).",
+      "fix": "Перенести ключ в modules/chat/web/text.ts (расширив скоуп) при следующей правке."
+    },
+    {
+      "file": "modules/chat/web/Section.vue",
+      "line": 190,
+      "severity": "minor",
+      "what": "Счётчик непрочитанного канала по-прежнему ручной span bg-accent, тогда как для Inbox по ревью переведён на Badge.",
+      "fix": "Использовать Badge (если он экспортирован в @planar/web/modules; иначе строкой contract)."
+    },
+    {
+      "file": "apps/web/src/layout/AppShell.vue",
+      "line": 16,
+      "severity": "minor",
+      "what": "Панель закрывается только по смене route.fullPath: клик по ссылке на текущую страницу оставляет панель открытой.",
+      "fix": "Закрывать также по клику на ссылку внутри DialogContent (например @click по a в контейнере)."
     }
   ],
   "rerun": [
     {
-      "name": "lint",
+      "name": "web-tests",
+      "value": "1-й прогон: 1 FAIL (command/ui.test.ts таймаут под нагрузкой, параллельно шёл DS-2); файл отдельно 9/9; повторный полный — PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
       "value": "exit 0",
       "pass": true
     },
     {
-      "name": "web-tests",
+      "name": "lint",
       "value": "exit 0",
       "pass": true
     }
   ],
-  "t": "2026-10-24T11:46:59",
+  "t": "2026-10-24T12:15:25",
   "by": "reviewer"
 }

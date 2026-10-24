@@ -8,6 +8,25 @@ const db = testDb();
 afterAll(() => db.$client.end());
 
 describe('seed', () => {
+  it('--locale: имена статусов ru/en, категории и цвета прежние', async () => {
+    const read = () =>
+      db.$client
+        .query<{ names: string; cats: string }>(
+          `select string_agg(name, ',' order by rank) as names, string_agg(category || color, ',' order by rank) as cats
+           from statuses group by space_id limit 1`,
+        )
+        .then((r) => r.rows[0]!);
+    await seed(db, 0, 'en');
+    const en = await read();
+    await db.$client.query('truncate users cascade');
+    await seed(db, 0, 'ru');
+    const ru = await read();
+    expect(en.names).toBe('Backlog,Todo,In progress,Done,Cancelled');
+    expect(ru.names).toBe('Бэклог,К работе,В работе,Готово,Отменено');
+    expect(ru.cats).toBe(en.cats);
+    await db.$client.query('truncate users cascade');
+  });
+
   it('идемпотентен; --tasks N доводит число задач до N и двигает task_counter', async () => {
     await seed(db, 30);
     await seed(db, 20);

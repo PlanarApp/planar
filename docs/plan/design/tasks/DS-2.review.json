@@ -1,0 +1,29 @@
+{
+  "verdict": "rework",
+  "summary": "Панель собрана по карточке, скоуп и контракты C-ui соблюдены, web-tests перепроверены (PASS). Два требования координатора не выполнены: пропал data-testid save-as-view, а чипы пользовательских полей показывают id и копейки вместо подписей FilterBuilder.",
+  "issues": [
+    {
+      "file": "apps/web/src/screens/ProjectScreen.vue",
+      "line": 128,
+      "severity": "major",
+      "what": "data-testid=save-as-view удалён: у пункта меню «Сохранить вид» и у IconButton «…» его нет, хотя дополнение карточки прямо требует оставить его на пункте меню или кнопке, которая открывает диалог. e2e на него сейчас не опирается, но требование явное. Тип Menu Item (ui/Menu.vue) testid не принимает, а строки «DS-2 contract: …» в журнале нет.",
+      "fix": "Вернуть testid. Например, повесить data-testid=save-as-view на триггер IconButton (через attrs) или запросить у координатора поле testid в MenuItem («DS-2 contract: …»). Тест saved.test.ts пусть ищет по testid, а не по aria-label=Ещё."
+    },
+    {
+      "file": "apps/web/src/views/saved/FilterChips.vue",
+      "line": 20,
+      "severity": "major",
+      "what": "valueLabel смотрит только на базовые r.field, поэтому для пользовательских полей (field:<id>) чип выводит сырые значения: у select — id варианта вместо choices.label, у user — id участника вместо имени, у money — копейки вместо r.value/100. FilterBuilder все три случая показывает подписью (kind(): fselect/assignee/num с isMoney), а карточка требует брать подпись из того же, что использует FilterBuilder, и не показывать id.",
+      "fix": "Определить вид значения через defs, как kind()/choices()/isMoney в FilterBuilder: fselect → label варианта, user → имя из useMembers, money → /100. Добавить тест на чип пользовательского select-поля."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "web-tests",
+      "value": "exit 0, 18 с; scope 10 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T12:14:06",
+  "by": "reviewer"
+}

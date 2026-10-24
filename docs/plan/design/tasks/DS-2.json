@@ -27,7 +27,9 @@
     "apps/web/src/views/__tests__",
     "apps/web/src/i18n/ru.ts",
     "apps/web/src/i18n/en.ts",
-    "build/artifacts/DS-2"
+    "build/artifacts/DS-2",
+    "apps/web/src/views/saved/FilterBuilder.vue",
+    "apps/web/src/views/saved/labels.ts"
   ],
   "dont_touch": [
     "apps/web/src/views/saved/FilterBuilder.vue — в SDK (C-modules), пропсы и события не менять; можно только переиспользовать",
@@ -68,9 +70,15 @@
       "name": "lint",
       "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
       "expect": "exit=0"
+    },
+    {
+      "name": "chip-tests",
+      "cmd": "pnpm --filter web exec vitest run src/views/saved -t chip 2>&1 | grep -E '^\\s*Tests'",
+      "expect": "num:(\\d+) passed >=3"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-24T11:17:09"
+  "created": "2026-10-24T11:17:09",
+  "edited": "2026-10-24T12:31:43"
 }

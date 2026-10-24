@@ -5,12 +5,15 @@ export default {
     inbox: 'Входящие',
     my: 'Мои задачи',
     favorites: 'Избранное',
+    sections: 'Разделы',
     spaces: 'Пространства',
     empty: 'Пока пусто',
     settings: 'Настройки',
   },
   nav: { inbox: 'Входящие', my: 'Мои задачи', projects: 'Проекты', more: 'Ещё' },
   topbar: {
+    search: 'Поиск',
+    breadcrumb: 'Навигационная цепочка',
     notifications: 'Уведомления',
     theme: 'Тема',
     themeSystem: 'Системная',
@@ -21,6 +24,7 @@ export default {
     language: 'Язык',
     install: 'Установить приложение',
     menu: 'Меню',
+    nav: 'Навигация',
   },
   fields: {
     title: 'Поля',
