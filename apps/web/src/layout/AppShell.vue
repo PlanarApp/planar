@@ -12,7 +12,10 @@ import { mobileNav } from './nav';
 const { isMobile } = useBreakpoint();
 const { t } = useI18n();
 const route = useRoute();
-// переход по ссылке закрывает панель
+// переход по ссылке закрывает панель; клик по ссылке на текущий маршрут route не меняет — ловим клик
+const closeOnLink = (e: MouseEvent) => {
+  if ((e.target as Element).closest('a[href]')) mobileNav.value = false;
+};
 watch(
   () => route.fullPath,
   () => (mobileNav.value = false),
@@ -28,6 +31,7 @@ watch(
         <DialogContent
           aria-describedby="undefined"
           class="fixed inset-y-0 left-0 z-50 flex w-70 max-w-full outline-none [&>aside]:w-full"
+          @click="closeOnLink"
         >
           <DialogTitle class="sr-only">{{ t('topbar.nav') }}</DialogTitle>
           <Sidebar />

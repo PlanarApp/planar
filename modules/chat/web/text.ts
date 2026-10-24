@@ -35,6 +35,7 @@ const S = {
   tooLarge: { ru: 'Файл слишком большой', en: 'File is too large' },
   archived: { ru: 'Канал в архиве', en: 'Channel is archived' },
   unread: { ru: 'Непрочитанных: {n}', en: '{n} unread' },
+  noChannels: { ru: 'Нет каналов', en: 'No channels' },
   unknown: { ru: 'Неизвестный', en: 'Unknown' },
 } as const;
 export type TextKey = keyof typeof S;
