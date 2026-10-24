@@ -646,6 +646,48 @@ describe('wk3b: send_webhook и циклы в условиях', () => {
     });
   });
 
+  it('pl2: send_webhook шлёт задачу после всех действий правила', async () => {
+    const s = await sub(true);
+    const r = await rule({ type: 'task.created' }, [
+      { type: 'send_webhook', subscriptionId: s },
+      { type: 'assign', userId: w.member.userId },
+    ]);
+    const t = await task({ title: 'После действий' });
+    await drain();
+    expect(statuses(await runsOf(r.id))).toEqual(['ok']);
+    const j = jobs.find((x) => x.queue === 'webhooks.deliver')!;
+    await attempt(j.data.deliveryId as string, api);
+    expect(JSON.parse(hits[0]!.body).data.task).toMatchObject({
+      id: t,
+      assigneeIds: [w.member.userId],
+    });
+  });
+
+  it('pl2: send_webhook до set_status — в теле уже новый статус', async () => {
+    const s = await sub(true);
+    await rule({ type: 'task.created' }, [
+      { type: 'send_webhook', subscriptionId: s },
+      { type: 'set_status', statusId: w.statusIds[PROG] },
+    ]);
+    await task();
+    await drain();
+    const j = jobs.find((x) => x.queue === 'webhooks.deliver')!;
+    await attempt(j.data.deliveryId as string, api);
+    expect(JSON.parse(hits[0]!.body).data.task.statusId).toBe(w.statusIds[PROG]);
+  });
+
+  it('pl2: неактивная подписка после действий — действия не применяются', async () => {
+    const id = await sub(false);
+    const r = await rule({ type: 'task.created' }, [
+      { type: 'assign', userId: w.member.userId },
+      { type: 'send_webhook', subscriptionId: id },
+    ]);
+    const t = await task();
+    await drain();
+    expect(statuses(await runsOf(r.id))).toEqual(['error']);
+    expect(await raw(`select 1 from task_assignees where task_id = '${t}'`)).toHaveLength(0);
+  });
+
   it('wk3b: неактивная или несуществующая подписка — error, остальные действия откатываются', async () => {
     for (const id of [await sub(false), uuidv7()]) {
       const r = await rule({ type: 'task.created' }, [

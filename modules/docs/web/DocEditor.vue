@@ -78,14 +78,14 @@ const TaskMention = Mention.extend({
 }).configure({
   HTMLAttributes: { class: 'mention' },
   renderText: ({ node }) => `${node.attrs.kind === 'task' ? '#' : '@'}${node.attrs.label}`,
-  renderHTML: ({ node, HTMLAttributes }) =>
+  renderHTML: ({ node, options }) =>
     node.attrs.kind === 'task'
       ? [
           'a',
-          { ...HTMLAttributes, href: `/t/${node.attrs.label}`, 'data-kind': 'task' },
+          { ...options.HTMLAttributes, href: `/t/${node.attrs.label}`, 'data-kind': 'task' },
           `#${node.attrs.label}`,
         ]
-      : ['span', HTMLAttributes, `@${node.attrs.label}`],
+      : ['span', options.HTMLAttributes, `@${node.attrs.label}`],
   suggestions: [
     {
       char: '@',

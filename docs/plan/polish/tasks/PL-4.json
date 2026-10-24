@@ -1,0 +1,59 @@
+{
+  "id": "PL-4",
+  "module": "polish",
+  "type": "dp-engineer",
+  "title": "Тестовый teardown БД не зависает под нагрузкой",
+  "goal": "afterAll в apps/api/test/file-db.ts гарантированно укладывается в хук-таймаут: полный прогон vitest завершается с кодом 0, без 'Hook timed out' и без забытых баз planar_t_*.",
+  "plan_ref": "3. Задачи",
+  "contracts": [],
+  "copy": "~/planar-polish-PL-4",
+  "branch": "polish/PL-4",
+  "base": "feature/polish",
+  "scope": [
+    "apps/api/test/db.ts",
+    "apps/api/test/file-db.ts",
+    "apps/api/test/global-setup.ts",
+    "apps/api/test/teardown.test.ts"
+  ],
+  "dont_touch": [
+    "apps/api/src/ — тесты продукта не трогать"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-all-x2",
+      "cmd": "./dev.sh testdb >/dev/null && for i in 1 2; do pnpm exec vitest run || exit 1; done",
+      "expect": "exit=0",
+      "timeout": 1500
+    },
+    {
+      "name": "no-hook-timeout",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api 2>&1 | grep -c 'Hook timed out' || true",
+      "expect": "num:^(\\d+) <=0",
+      "timeout": 900
+    },
+    {
+      "name": "no-leftover-dbs",
+      "cmd": "sleep 5; docker exec planar-testdb psql -U postgres -tAc \"select count(*) from pg_database where datname like 'planar_t_%' and datname not like '%template%'\"",
+      "expect": "num:^(\\d+) <=2"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/api/test && pnpm exec prettier --check apps/api/test",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": [
+    "Причина (разбор главной): в afterAll `await closePools()` висит, если тест не вернул соединение в пул — pg.Pool.end() ждёт выданных клиентов; затем dropDb до 10 с ждёт ухода соединений и до 3 попыток по 25 с под общим advisory-локом 7240001 — под нагрузкой хоста это > 90 с hookTimeout.",
+    "Что сделать: drop database … with (force) сам обрывает соединения — ожидание pg_stat_activity убрать; closePools ограничить коротким таймаутом (Promise.race ~2 с), после него — drop with force; statement_timeout на drop — с запасом, но так, чтобы худший случай afterAll был заметно меньше hookTimeout; advisory-лок — оставить, только если он нужен (выяснить, зачем он; если против гонки create from template — проверить тестом), и снимать его (pg_advisory_unlock) после drop.",
+    "Проверка no-leftover-dbs: допускается ≤ 2 базы — чужие параллельные прогоны других копий. Если global-setup уже чистит остатки — не дублировать.",
+    "Тесты не ослаблять; hookTimeout не увеличивать как решение.",
+    "Отчёт — только build/dpcli/PL-4.report.json в своей копии."
+  ],
+  "created": "2026-10-24T00:16:19"
+}

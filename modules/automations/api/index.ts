@@ -275,7 +275,20 @@ async function toMutations(api: JobApi, rule: Rule, task: FilterTask, statuses: 
   return muts;
 }
 
-async function sendWebhooks(api: JobApi, q: Q, subs: string[], d: RunData) {
+async function checkWebhooks(q: Q, subs: string[]) {
+  for (const id of subs) {
+    const [s] = (await q.execute(sql`select active from webhooks_subscriptions where id = ${id}`))
+      .rows as { active: boolean }[];
+    if (!s?.active) throw new Error(`вебхук ${id}: подписка неактивна или не найдена`);
+  }
+}
+
+async function sendWebhooks(
+  api: Pick<ModuleHookApi, 'enqueue'>,
+  q: Q,
+  subs: string[],
+  d: Pick<RunData, 'ruleId' | 'taskId'>,
+) {
   const [t] = (await q.execute(sql`select row_to_json(t) as r from tasks t where id = ${d.taskId}`))
     .rows as { r: Row }[];
   if (!t) throw new Error('задача удалена');
@@ -287,9 +300,6 @@ async function sendWebhooks(api: JobApi, q: Q, subs: string[], d: RunData) {
   );
   const [task] = await core!.toV1Tasks(q, [row]);
   for (const id of subs) {
-    const [s] = (await q.execute(sql`select active from webhooks_subscriptions where id = ${id}`))
-      .rows as { active: boolean }[];
-    if (!s?.active) throw new Error(`вебхук ${id}: подписка неактивна или не найдена`);
     await enqueueWebhookEvent({ q, enqueue: api.enqueue } as never, id, 'automation.fired', {
       ruleId: d.ruleId,
       task,
@@ -336,8 +346,10 @@ async function run(d: RunData, api: JobApi) {
     await api.execute(api.systemUserId, muts, {
       system: true,
       origin: { ruleId: d.ruleId, depth: d.depth },
-      // вебхуки — в той же транзакции; неактивная/несуществующая подписка откатывает всё
-      prepare: hooks.length ? (q) => sendWebhooks(api, q, hooks, d) : undefined,
+      // неактивная/несуществующая подписка откатывает всё до действий
+      prepare: hooks.length ? (q) => checkWebhooks(q, hooks) : undefined,
+      // доставка — в той же транзакции после всех действий; сбой откатывает действия, запуск = error
+      after: hooks.length ? (q, enqueue) => sendWebhooks({ enqueue }, q, hooks, d) : undefined,
     });
   } catch (e) {
     return void (await record(api, d, 'error', e instanceof Error ? e.message : String(e)));
