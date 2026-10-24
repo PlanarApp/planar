@@ -17,6 +17,7 @@ import type { Row as DbRow } from '@planar/shared';
 import { AvatarStack, Badge } from '../../ui';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
+import { localToday } from '../filter';
 
 const props = defineProps<{
   task: TaskView;
@@ -62,12 +63,15 @@ const people = computed(() =>
     name: props.members.find((u) => u.id === id)?.name ?? '?',
   })),
 );
-// просрочен — danger, ближайшие 2 дня — warning
+// просрочен (раньше локального сегодня) — danger, сегодня и завтра — warning
 const dueTone = computed(() => {
   const d = props.task.dueDate;
   if (!d) return '';
-  const left = (Date.parse(d) - Date.now()) / 864e5;
-  return left < -1 ? 'text-danger' : left < 2 ? 'text-warning' : 'text-fg-muted';
+  const today = localToday();
+  const next = new Date();
+  next.setDate(next.getDate() + 1);
+  const tomorrow = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
+  return d < today ? 'text-danger' : d <= tomorrow ? 'text-warning' : 'text-fg-muted';
 });
 
 function save() {
@@ -150,7 +154,7 @@ function save() {
       <AvatarStack v-if="fields.includes('assignee')" :people="people" size="xs" />
     </div>
     <div
-      class="absolute inset-y-0 right-2 flex items-center bg-inherit opacity-0 focus-within:opacity-100 group-hover:opacity-100"
+      class="pointer-events-none absolute inset-y-0 right-2 flex items-center bg-inherit opacity-0 focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
       @click.stop
     >
       <div v-if="fields.includes('labels')" role="gridcell">
