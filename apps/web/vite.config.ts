@@ -60,6 +60,7 @@ export default defineConfig({
       '/api': target,
       '/sync': target,
       '/ws': { target, ws: true },
+      '/collab': { target, ws: true },
       '/files': target,
       '/mcp': target,
     },

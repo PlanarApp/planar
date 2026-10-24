@@ -1,0 +1,60 @@
+{
+  "status": "partial",
+  "summary": "Модуль modules/workload: сущность workloadCapacities, workload.setCapacity, страница /m/workload/ (люди x 8 недель, оценки/число задач, перегрузка, список задач ячейки, правка ёмкости админом).",
+  "commits": [
+    "1525e43 PT-3: lint",
+    "5615e8f PT-3: модуль workload (загрузка людей по неделям)"
+  ],
+  "checks": [
+    {
+      "name": "pt3-api",
+      "value": "3",
+      "pass": true
+    },
+    {
+      "name": "pt3-web",
+      "value": "8",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "красный только contract.schema ydocs (ожидаемо до PT-1a)",
+      "pass": false
+    },
+    {
+      "name": "scope",
+      "value": "миграция drizzle вне scope",
+      "pass": false
+    }
+  ],
+  "not_done": [],
+  "questions": [
+    "Миграция apps/api/drizzle/0015_workload.sql (+snapshot, _journal) вне scope, но без неё нет таблицы. Нумерация 0015 конфликтует с миграциями PT-1a/PT-2/PT-4 при слиянии — кто перегенерирует?"
+  ],
+  "how_to_check": ".dpcli/dpcli accept PT-3 --dry",
+  "uncertain": [
+    {
+      "where": "modules/workload/web/index.ts",
+      "why": "маршрут /m/workload/ со слэшем: registerModules требует префикс /m/<id>/, контракт пишет /m/workload",
+      "checked": "vue-router сопоставляет оба; как у chat"
+    },
+    {
+      "where": "modules/workload/web/data.ts",
+      "why": "наличие time определяется по таблице timeEstimates в реплике, а не по enabled_modules",
+      "checked": "аналогично useCycles в sdk"
+    },
+    {
+      "where": "apps/web/src/command/__tests__/ui.test.ts",
+      "why": "cmd:palette таймаут в первом прогоне под нагрузкой, во втором зелёный",
+      "checked": "прогон отдельно проходит"
+    }
+  ],
+  "dp_feedback": "scope-проверка не учитывает обязательную drizzle-миграцию нового модуля; добавить apps/api/drizzle в типовой scope.",
+  "t": "2026-10-24T12:02:31",
+  "by": "executor"
+}

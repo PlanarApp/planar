@@ -1,0 +1,41 @@
+{
+  "verdict": "accept",
+  "summary": "P3-collab v1 / P3-ydoc v1 соблюдены: /collab отдельным upgrade тем же authenticateRaw, что /ws; права и readOnly; ydocs + миграция 0014; проекция через executeMutations от последнего правившего; внешняя запись по журналу changes (seq монотонен благодаря advisory-lock ServerTx). Скоуп и dont_touch чисты, pt1a перезапущен — 13 PASS. Блокеров нет, замечания minor.",
+  "issues": [
+    {
+      "file": "apps/api/src/collab/collab.service.ts",
+      "line": 272,
+      "severity": "minor",
+      "what": "external() пропускает запись, если JSON совпадает с любой из последних 8 проекций, а не только с текущей проекцией Y.Doc (как в контракте). Пример: проекции A, потом B; REST пишет снова A, документ открыт — запись пропущена, body=A, а в Y.Doc и у клиентов B до следующей правки.",
+      "fix": "Отличать свою проекцию по самой записи (seq или userId/мутация из executeMutations), а не по совпадению содержимого с историей; либо хранить только последний ключ."
+    },
+    {
+      "file": "apps/api/src/collab/collab.service.ts",
+      "line": 246,
+      "severity": "minor",
+      "what": "recheck запускается только на spaceMembers/users. Если страницу архивировали при открытом соединении, оно остаётся доступным на запись: проекция получает conflict, ydocs уходит от body. То же при выключении модуля docs.",
+      "fix": "Запускать recheck для docs:<id> и при смене archivedAt в docsPages (можно отдельной задачей)."
+    },
+    {
+      "file": "build/dpcli/PT-1a.report.json",
+      "line": 0,
+      "severity": "minor",
+      "what": "Отчёт ≠ факт: в uncertain записано, что смена роли member->guest readOnly не меняет. После 179cab4 соединение закрывается (recheck, строка 292), и это проверяет тест pt1a.",
+      "fix": "Обновить пункт uncertain."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "pt1a",
+      "value": "13 passed",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "19 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T11:43:37",
+  "by": "reviewer"
+}

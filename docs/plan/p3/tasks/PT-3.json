@@ -1,0 +1,91 @@
+{
+  "id": "PT-3",
+  "module": "p3",
+  "type": "dp-engineer",
+  "title": "Workload: загрузка людей по неделям",
+  "goal": "Модуль modules/workload: таблица люди × недели с суммой оценок или числом задач, ёмкость участника (workloadCapacities, workload.setCapacity), подсветка перегрузки, список задач ячейки.",
+  "plan_ref": "4. Задачи (PT-3)",
+  "contracts": [
+    {
+      "name": "P3-workload",
+      "version": "1",
+      "ref": "docs/contracts/p3.md"
+    },
+    {
+      "name": "C-ui",
+      "version": "3",
+      "ref": "docs/contracts/p3.md"
+    }
+  ],
+  "copy": "~/planar-p3-PT-3",
+  "branch": "p3/PT-3",
+  "base": "feature/p3",
+  "scope": [
+    "modules/workload/",
+    "apps/api/src/modules/installed.ts",
+    "apps/api/package.json",
+    "apps/web/package.json",
+    "pnpm-lock.yaml",
+    "apps/web/src/modules/__tests__/workload/",
+    "apps/api/test/workload/",
+    "apps/api/drizzle/"
+  ],
+  "dont_touch": [
+    "apps/web/src/layout",
+    "apps/web/src/ui",
+    "docs/contracts",
+    "packages/shared/src/contract",
+    "modules/time"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "P3_CONTRACT_STRICT=1 pnpm exec vitest run apps/api/test/modules/p3.contract.test.ts -t 'модуль workload|разбор'",
+      "expect": "exit=0"
+    },
+    {
+      "name": "pt3-api",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run -t pt3:",
+      "expect": "num:(\\d+) passed >=3"
+    },
+    {
+      "name": "pt3-web",
+      "cmd": "pnpm --filter web exec vitest run -t pt3:",
+      "expect": "num:(\\d+) passed >=6"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T11:47:32",
+  "edited": "2026-10-24T12:15:56"
+}
