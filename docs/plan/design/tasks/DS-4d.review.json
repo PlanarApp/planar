@@ -1,0 +1,55 @@
+{
+  "verdict": "rework",
+  "summary": "Миграция семи модулей на C-ui в целом корректна: скоуп, lockfile (+9 строк, только три импортёра), меню «…» с confirm, required/maxlength вернулись, data-testid сохранены. Но решение координатора «inline-svg → lucide» в time выполнено не полностью, а отчёт пишет, что выполнено.",
+  "issues": [
+    {
+      "file": "modules/time/web/index.ts",
+      "line": 4,
+      "severity": "major",
+      "what": "Отчёт расходится с фактом. Иконка модуля Clock осталась inline-svg через h('svg') с устаревшим комментарием «без зависимости от lucide», хотя lucide-vue-next теперь в зависимостях time. Удалён только icons.ts, который появился в этой же ветке (в базе f75bf24 его нет).",
+      "fix": "import { Clock } from 'lucide-vue-next'; удалить defineComponent-иконку и комментарий."
+    },
+    {
+      "file": "modules/webhooks/web/WebhooksSettings.vue",
+      "line": 151,
+      "severity": "minor",
+      "what": "Кнопка закрытия секрета сделана как Button с текстом «×» и aria-label=\"×\". По правилу контракта кнопка без текста должна быть IconButton, а «×» для скринридера ничего не значит.",
+      "fix": "IconButton с lucide X (если в webhooks нет lucide — Button с текстом L.close/«Скрыть»), aria-label из словаря."
+    },
+    {
+      "file": "modules/automations/web/RulesPage.vue",
+      "line": 281,
+      "severity": "minor",
+      "what": "Если очистить поле daysBefore, Number('') даёт 0, и пустое поле молча сохраняется как 0. Раньше v-model.number оставлял '', и это ловила валидация.",
+      "fix": "Пустую строку переводить в undefined, а не в Number(v)."
+    },
+    {
+      "file": "modules/automations/web/RulesPage.vue",
+      "line": 306,
+      "severity": "minor",
+      "what": "Select типа действия и Select параметра действия получили одинаковый label tx.actions. Два поля с одним доступным именем в одной строке.",
+      "fix": "Параметру дать свою подпись (tx.status/tx.user/… по pickerKey или общий tx.value)."
+    },
+    {
+      "file": "modules/sprints/web/index.ts",
+      "line": 7,
+      "severity": "minor",
+      "what": "Вопрос координатору, задачу не блокирует: inline-svg иконки модулей остались в sprints/web/index.ts и webhooks/web/index.ts, а правило «иконки — только lucide». Решение координатора покрывало только time/automations/import.",
+      "fix": "Решает координатор: добавить lucide в sprints/webhooks (отдельная строка contract) или оставить до DS-5b."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "raw-buttons",
+      "value": "PASS (Section.vue, TreeSection.vue — 2 файла)",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T14:09:53",
+  "by": "reviewer"
+}

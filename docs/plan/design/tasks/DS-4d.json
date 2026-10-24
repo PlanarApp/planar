@@ -28,7 +28,9 @@
     "modules/time/package.json",
     "modules/automations/package.json",
     "modules/import/package.json",
-    "pnpm-lock.yaml"
+    "pnpm-lock.yaml",
+    "modules/sprints/package.json",
+    "modules/webhooks/package.json"
   ],
   "dont_touch": [
     "modules/docs/web/DocEditor.vue и редактор (slash.ts, suggest.ts) — совместное редактирование делает модуль p3",
@@ -76,10 +78,15 @@
       "name": "raw-buttons",
       "cmd": "grep -rlE '<button' modules/chat/web modules/docs/web modules/time/web modules/sprints/web modules/automations/web modules/webhooks/web modules/import/web --include=*.vue | grep -v DocEditor.vue | wc -l",
       "expect": "num:^(\\d+) <=3"
+    },
+    {
+      "name": "no-inline-svg",
+      "cmd": "grep -rln '<svg' modules/chat/web modules/docs/web modules/time/web modules/sprints/web modules/automations/web modules/webhooks/web modules/import/web | grep -v SprintView.vue | wc -l",
+      "expect": "num:^(\\d+) <=0"
     }
   ],
   "report_extra": [],
   "notes": "",
   "created": "2026-10-24T13:14:22",
-  "edited": "2026-10-24T14:03:42"
+  "edited": "2026-10-24T14:10:27"
 }
