@@ -67,29 +67,16 @@ describe('task:fields', () => {
 });
 
 describe('task:description', () => {
-  it('ввод сохраняется через 500 мс', async () => {
+  it('описание — Collaboration task:<id>; редактор не пишет task.update, комментарии без collab', async () => {
     w = await open();
+    expect(editorOf(0).props('collab')).toEqual({ name: `task:${t.id}` });
+    expect(editorOf(1).props('collab')).toBeUndefined();
+    await until(() => !!editorOf(0).vm.editor);
+    const n0 = (await queued('task.update')).length;
     type(0, 'привет');
-    await flushPromises();
+    await new Promise((r) => setTimeout(r, 800));
+    expect((await queued('task.update')).length).toBe(n0);
     expect((await row<{ description: unknown }>('tasks', t.id)).description).toBeNull();
-    await eventually(
-      async () => (await row<{ description: unknown }>('tasks', t.id)).description,
-      2000,
-    );
-    const d = (await row<{ description: { content: unknown[] } }>('tasks', t.id)).description;
-    expect(JSON.stringify(d)).toContain('привет');
-  });
-  it('mention-узел попадает в JSON, blur сохраняет сразу', async () => {
-    w = await open();
-    const ed = editorOf(0).vm.editor!;
-    ed.commands.insertContent({ type: 'mention', attrs: { id: ids.ann, label: 'Ann' } });
-    editorOf(0).vm.$emit('blur');
-    await eventually(
-      async () => (await row<{ description: unknown }>('tasks', t.id)).description,
-      300,
-    );
-    const d = (await row<{ description: unknown }>('tasks', t.id)).description;
-    expect(JSON.stringify(d)).toContain(`"type":"mention","attrs":{"id":"${ids.ann}"`);
   });
   it('картинка: uploadFile и узел image; 413 — сообщение', async () => {
     const f = stubFetch((m, p) =>
@@ -98,6 +85,7 @@ describe('task:description', () => {
         : undefined,
     );
     w = await open();
+    await until(() => !!editorOf(0).vm.editor);
     await editorOf(0).vm.insertFiles([new File(['x'], 'a.png', { type: 'image/png' })]);
     expect(f.mock.calls.some((c) => c[0] === '/files')).toBe(true);
     expect(JSON.stringify(editorOf(0).vm.editor!.getJSON())).toContain(

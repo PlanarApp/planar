@@ -1,18 +1,38 @@
 import Image from '@tiptap/extension-image';
 import Mention, { type MentionOptions } from '@tiptap/extension-mention';
 import StarterKit from '@tiptap/starter-kit';
-import type { Extensions } from '@tiptap/core';
+import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
+import { TaskList, TaskItem } from '@tiptap/extension-list';
+import type { AnyExtension, Extensions } from '@tiptap/core';
 
 /** Схема ProseMirror редактора: одна для web и api (P3-ydoc), без DOM и Vue. */
 export function editorExtensions(
-  o: { image?: boolean; suggestion?: MentionOptions['suggestion'] } = {},
+  o: {
+    image?: boolean;
+    suggestion?: MentionOptions['suggestion'];
+    /** Свой Mention (узел `mention` с attrs.kind); по умолчанию — обычный. */
+    mention?: AnyExtension;
+    /** Yjs: встроенная история выключена (undo — Collaboration). */
+    collab?: boolean;
+  } = {},
 ): Extensions {
   return [
-    StarterKit,
-    Mention.configure({
-      HTMLAttributes: { class: 'mention' },
-      ...(o.suggestion ? { suggestion: o.suggestion } : {}),
-    }),
+    StarterKit.configure(o.collab ? { undoRedo: false } : {}),
+    o.mention ??
+      Mention.extend({
+        addAttributes() {
+          return { ...this.parent?.(), kind: { default: null } };
+        },
+      }).configure({
+        HTMLAttributes: { class: 'mention' },
+        ...(o.suggestion ? { suggestion: o.suggestion } : {}),
+      }),
+    Table,
+    TableRow,
+    TableHeader,
+    TableCell,
+    TaskList,
+    TaskItem.configure({ nested: true }),
     ...(o.image ? [Image] : []),
   ];
 }

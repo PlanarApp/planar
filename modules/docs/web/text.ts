@@ -7,8 +7,6 @@ const S = {
   title: { ru: 'Название', en: 'Title' },
   body: { ru: 'Текст страницы', en: 'Page body' },
   placeholder: { ru: 'Печатайте «/» для команд', en: "Type '/' for commands" },
-  editing: { ru: 'Редактирует {name}', en: '{name} is editing' },
-  editingOther: { ru: 'Редактирует другой участник', en: 'Someone else is editing' },
   notFound: { ru: 'Страница не найдена', en: 'Page not found' },
   pick: { ru: 'Выберите страницу в боковой панели', en: 'Pick a page in the sidebar' },
   archive: { ru: 'В архив', en: 'Archive' },

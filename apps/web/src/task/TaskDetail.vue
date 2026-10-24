@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, inject, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { routerKey, useRoute } from 'vue-router';
-import type { JSONContent } from '@tiptap/vue-3';
 import { Eye, EyeOff, Link, MoreHorizontal, Trash2, X } from 'lucide-vue-next';
 import { useAuth } from '../auth/useAuth';
 import { mutate, newId } from '../sync';
@@ -67,23 +66,6 @@ function cancelTitle(e: KeyboardEvent) {
   title.value = savedTitle;
   (e.target as HTMLElement).blur();
 }
-
-// --- описание: сохранение через 500 мс после ввода и при blur
-let pending: JSONContent | null | undefined;
-let timer: ReturnType<typeof setTimeout> | undefined;
-function flush() {
-  clearTimeout(timer);
-  if (pending === undefined) return;
-  const description = pending;
-  pending = undefined;
-  void updateTask(props.task.id, { description: description as never });
-}
-function onDescription(v: JSONContent | null) {
-  pending = v;
-  clearTimeout(timer);
-  timer = setTimeout(flush, 500);
-}
-onBeforeUnmount(flush);
 
 // --- наблюдатели
 const mine = computed(() => watchers.value?.find((w) => w.userId === user.value?.id));
@@ -251,14 +233,12 @@ const panelComponent = computed(() => {
 
       <section :aria-label="t('task.description')">
         <Editor
-          :model-value="task.description as JSONContent | null"
           :members="memberList"
           :label="t('task.description')"
           :placeholder="t('task.descriptionPlaceholder')"
           image
+          :collab="{ name: `task:${task.id}` }"
           @attach="(fs) => attachments?.addFiles(fs)"
-          @update:model-value="onDescription"
-          @blur="flush"
         />
       </section>
 
