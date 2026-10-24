@@ -31,3 +31,6 @@ related: []
 
 - Личные диалоги чата уложились в C-sync без нового протокола: scope `space|members` — строка `changes` на каждого участника (pull и WS не менялись), догрузка/снятие строк при смене участников без `_reset`, advisory lock до первого чтения мутации снял гонки `lastSeq`/`docs.lock`; e2e утечки (UI, bootstrap, pull, WS, GET /files, REST) — 0 строк третьему — docs/contracts/collab.md#X-core — правки ядра от collab (проект, шлюз)
 - Чат и документы на итоговой ветке: лента 10 000 сообщений без длинных кадров (57→0, кадр p95 50→16,8 мс; причина — монтирование строки: toLocaleTimeString, панель действий, Avatar), отправка p95 43,7 мс ≤ 50; §7 n=10: switch p95 медиана 91 мс, warm 409 мс (бюджет 400), cold 1704, mutate 22,1, realtime p95 430, начальный JS 151,5 КБ; e2e web 35/35 — docs/contracts/collab.md#CH-web v1 (CL-2)
+
+## design
+- Визуал «как Linear» (C-ui v4, 17 компонентов, 48 скриншотных эталонов): §7 после design — switch p95 76.4 мс, warm 408, cold 1752, mutate 22, realtime 348 (n=3); регрессия switch +24% от пикеров в каждой строке списка снята ленивым монтированием (n=10: main 95.0 → 85.0 мс) — docs/contracts/design.md#C-ui v4 (DS-0…DS-10)
