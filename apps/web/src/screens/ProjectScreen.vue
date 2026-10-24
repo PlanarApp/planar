@@ -10,9 +10,9 @@ import {
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { BookmarkPlus } from 'lucide-vue-next';
+import { BookmarkPlus, MoreHorizontal } from 'lucide-vue-next';
 import { useProject } from '../tasks';
-import { Button, useBreakpoint } from '../ui';
+import { IconButton, Menu, Tabs, Toolbar, useBreakpoint } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import {
@@ -106,34 +106,39 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
       </header>
       <div v-if="!active" class="p-4 text-fg-muted">{{ t('views.empty') }}</div>
       <template v-else>
-        <nav class="flex gap-1 overflow-x-auto px-4 pt-2" role="tablist">
-          <button
-            v-for="v in tabs"
-            :key="v.key"
-            role="tab"
-            type="button"
-            :aria-selected="v.key === active.key"
-            class="inline-flex h-11 md:h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-base outline-none focus-visible:ring-2 ring-focus"
-            :class="
-              v.key === active.key ? 'bg-accent-subtle text-fg' : 'text-fg-muted hover:bg-bg-muted'
-            "
-            @click="selectTab(v.key)"
-          >
-            <component :is="v.icon" v-if="v.icon" :size="16" />
-            {{ text(v.label) }}
-          </button>
+        <Toolbar :label="t('views.toolbar')">
+          <Tabs
+            :model-value="active.key"
+            :label="t('views.toolbar')"
+            :items="tabs.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon }))"
+            @update:model-value="selectTab"
+          />
           <SavedTabs :space-id="spaceId" :project-id="projectId" />
-        </nav>
-        <OptionsBar
-          v-model:options="options"
-          v-model:filter="draftFilter"
-          :space-id="spaceId"
-          :project-id="projectId"
-        >
-          <Button :icon="BookmarkPlus" data-testid="save-as-view" @click="saveOpen = true">
-            {{ t('views.saved.save') }}
-          </Button>
-        </OptionsBar>
+          <template #end>
+            <OptionsBar
+              v-model:options="options"
+              v-model:filter="draftFilter"
+              :space-id="spaceId"
+              :project-id="projectId"
+            >
+              <Menu
+                align="end"
+                :items="[
+                  {
+                    id: 'save',
+                    label: t('views.saved.save'),
+                    icon: BookmarkPlus,
+                    onSelect: () => (saveOpen = true),
+                  },
+                ]"
+              >
+                <template #trigger>
+                  <IconButton size="sm" :icon="MoreHorizontal" :label="t('views.more')" />
+                </template>
+              </Menu>
+            </OptionsBar>
+          </template>
+        </Toolbar>
         <SaveViewDialog v-model:open="saveOpen" :can-share="canShare" @submit="onSave" />
         <div class="min-h-0 flex-1">
           <component
