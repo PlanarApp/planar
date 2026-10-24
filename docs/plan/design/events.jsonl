@@ -105,3 +105,5 @@
 {"t": "2026-10-24T12:28:27", "by": "coordinator", "task": "DS-3a", "ev": "checked", "note": "7/7 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; list-tests=ok:25; lint=ok:exit 0"}
 {"t": "2026-10-24T12:28:41", "by": "coordinator", "task": "DS-1a", "ev": "accepted", "note": "по отчёту"}
 {"t": "2026-10-24T12:28:42", "by": "coordinator", "task": "DS-3a", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-24T12:30:08", "by": "coordinator", "task": "DS-1a", "ev": "accepted", "commits": ["3ce85b0"], "note": "6/6 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0"}
+{"t": "2026-10-24T12:30:08", "by": "coordinator", "task": "DS-1a", "ev": "merged"}
