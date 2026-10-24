@@ -30,7 +30,7 @@ const create = () =>
       statusNames: Object.fromEntries(
         ['backlog', 'todo', 'in_progress', 'done', 'cancelled'].map((c) => [
           c,
-          t(`settings.cat.${c}`),
+          t(`settings.statusDefaults.${c}`),
         ]),
       ),
     });

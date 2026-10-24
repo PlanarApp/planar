@@ -336,6 +336,13 @@ export default {
     deleteProject: 'Delete project?',
     deleteStatus: 'Delete status?',
     replaceWith: 'Move tasks to status',
+    statusDefaults: {
+      backlog: 'Backlog',
+      todo: 'Todo',
+      in_progress: 'In progress',
+      done: 'Done',
+      cancelled: 'Cancelled',
+    },
     cat: {
       backlog: 'Backlog',
       todo: 'Todo',

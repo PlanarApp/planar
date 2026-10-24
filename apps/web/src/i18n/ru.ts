@@ -336,6 +336,13 @@ export default {
     deleteProject: 'Удалить проект?',
     deleteStatus: 'Удалить статус?',
     replaceWith: 'Перенести задачи в статус',
+    statusDefaults: {
+      backlog: 'Бэклог',
+      todo: 'К работе',
+      in_progress: 'В работе',
+      done: 'Готово',
+      cancelled: 'Отменено',
+    },
     cat: {
       backlog: 'Бэклог',
       todo: 'К выполнению',
