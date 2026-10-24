@@ -15,9 +15,13 @@ const status = computed(() => moduleStatus(String(route.params.moduleId)));
 // ждёт настройки (до таймаута) и грузит фронт модуля; статус обновится сам
 void ensureModule(String(route.params.moduleId));
 // настройки пришли позже таймаута / модуль догрузился — повторить навигацию, маршруты уже добавлены
-watch(status, (s) => {
-  if (s === 'ready') void router.replace(route.fullPath);
-});
+watch(
+  status,
+  (s) => {
+    if (s === 'ready') void router.replace(route.fullPath);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>

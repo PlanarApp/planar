@@ -13,7 +13,7 @@ const registered = shallowRef<WebModuleManifest[]>([]);
 
 /** null — ещё не известно (реплика не прошла bootstrap): показываем все зарегистрированные, ensureModule ждёт */
 const enabled = shallowRef<string[] | null>(null);
-let timedOut = false;
+const timedOut = shallowRef(false);
 /** включённые модули, чей фронт не нашёлся или не загрузился */
 const failed = shallowRef<string[]>([]);
 const fail = (id: string) => void (failed.value = [...failed.value, id]);
@@ -24,7 +24,7 @@ const SETTINGS_WAIT_MS = 10_000;
 /** Состояние модуля для экрана: loading — настройки ещё не прочитаны, off — выключен, error — не дождались/не загрузился. */
 export const moduleStatus = (id: string): 'loading' | 'off' | 'ready' | 'error' =>
   !enabled.value
-    ? timedOut
+    ? timedOut.value
       ? 'error'
       : 'loading'
     : !enabled.value.includes(id)
@@ -41,7 +41,7 @@ function settingsKnown(): Promise<boolean> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
       stop();
-      timedOut = true;
+      timedOut.value = true;
       console.warn('Настройки модулей не загрузились');
       resolve(false);
     }, SETTINGS_WAIT_MS);
