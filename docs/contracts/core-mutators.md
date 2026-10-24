@@ -14,7 +14,7 @@ related: ["docs/contracts/core.md"]
 
 | имя | args | правила |
 |---|---|---|
-| `space.create` | `id, name, rank, memberId, statusIds: uuid[5], statusNames?: Partial<Record<'backlog'\|'todo'\|'in_progress'\|'done'\|'cancelled', string>>` | создаёт пространство, участника (ctx.userId, admin) и 5 статусов по категориям; имя статуса — `statusNames[категория]` (строка 1–64 символа после trim), иначе по умолчанию: Backlog, Todo, In Progress, Done, Cancelled (v4: `statusNames`; клиент передаёт имена из i18n текущей локали; существующие пространства не переименовываются) |
+| `space.create` | `id, name, rank, memberId, statusIds: uuid[5], statusNames?` | создаёт пространство, участника (ctx.userId, admin) и 5 статусов по категориям; `statusNames` — объект с необязательными ключами-категориями `backlog`/`todo`/`in_progress`/`done`/`cancelled` и строковыми значениями; имя статуса — `statusNames[категория]` (строка 1–64 символа после trim), иначе по умолчанию: Backlog, Todo, In Progress, Done, Cancelled (v4: `statusNames`; клиент передаёт имена из i18n текущей локали; существующие пространства не переименовываются) |
 | `space.update` | `id, name?, description?, color?, icon?, rank?` | |
 | `space.delete` | `id` | есть проекты → `conflict`; удаляет статусы, метки, виды, участников |
 | `member.add` | `id, spaceId, userId, role` | |
