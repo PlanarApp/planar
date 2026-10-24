@@ -13,6 +13,8 @@ const S = {
   pick: { ru: 'Выберите страницу в боковой панели', en: 'Pick a page in the sidebar' },
   noPages: { ru: 'Страниц пока нет', en: 'No pages yet' },
   archive: { ru: 'В архив', en: 'Archive' },
+  archiveTitle: { ru: 'Отправить страницу в архив?', en: 'Archive this page?' },
+  actions: { ru: 'Действия страницы', en: 'Page actions' },
   expand: { ru: 'Развернуть', en: 'Expand' },
   link: { ru: 'Связать со страницей…', en: 'Link a page…' },
   unlink: { ru: 'Отвязать', en: 'Unlink' },

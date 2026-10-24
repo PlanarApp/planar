@@ -69,9 +69,9 @@ async function edit(taskId: string, k: string, text: string) {
       <table>
         <thead>
           <tr>
-            <th>{{ tr('task') }}</th>
-            <th v-for="(d, i) in days" :key="keys[i]" data-test="day">{{ fmt(d) }}</th>
-            <th>{{ tr('total') }}</th>
+            <th class="title">{{ tr('task') }}</th>
+            <th v-for="(d, i) in days" :key="keys[i]" class="num" data-test="day">{{ fmt(d) }}</th>
+            <th class="num">{{ tr('total') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -83,19 +83,19 @@ async function edit(taskId: string, k: string, text: string) {
                 :label="`${r.title} ${k}`"
                 hide-label
                 size="sm"
-                class="cell"
+                :class="['cell', cellSec(r.id, k) ? '' : 'empty']"
                 :data-test="`cell-${r.id}-${k}`"
                 @change="(e: Event) => edit(r.id, k, (e.target as HTMLInputElement).value)"
               />
             </td>
-            <td class="mono">{{ hm(rowTotal(r.id)) }}</td>
+            <td class="num total">{{ hm(rowTotal(r.id)) }}</td>
           </tr>
         </tbody>
         <tfoot v-if="rows.length">
           <tr>
-            <td>{{ tr('total') }}</td>
-            <td v-for="k in keys" :key="k" class="mono">{{ hm(dayTotal(k)) }}</td>
-            <td class="mono">{{ hm(grand) }}</td>
+            <td class="title">{{ tr('total') }}</td>
+            <td v-for="k in keys" :key="k" class="num">{{ hm(dayTotal(k)) }}</td>
+            <td class="num total">{{ hm(grand) }}</td>
           </tr>
         </tfoot>
       </table>
@@ -133,7 +133,8 @@ th,
 td {
   border-bottom: 1px solid var(--color-border);
   padding: 4px 6px;
-  text-align: center;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 th {
   color: var(--color-fg-muted);
@@ -145,9 +146,10 @@ th {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  background: var(--color-bg);
 }
-.mono {
-  font-family: var(--font-mono);
+.total {
+  font-weight: 500;
 }
 .muted {
   color: var(--color-fg-subtle);
@@ -157,6 +159,22 @@ th {
 }
 .cell {
   width: 8ch;
-  margin: 0 auto;
+  margin-left: auto;
+}
+.cell :deep(input) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* пустые ячейки — без рамки до наведения/фокуса */
+.cell.empty :deep(input:not(:hover):not(:focus)) {
+  border-color: transparent;
+  background: transparent;
+}
+@media (max-width: 767px) {
+  .title {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
 }
 </style>
