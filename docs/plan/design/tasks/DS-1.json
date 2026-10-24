@@ -1,0 +1,76 @@
+{
+  "id": "DS-1",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "Оболочка: боковая панель и верхняя панель по C-ui v3",
+  "goal": "Боковая панель тёмная (sidebar-токены), плотная (элемент 28 px), со шапкой workspace, Inbox/«Мои задачи», сворачиваемыми пространствами с проектами и группой «Разделы» с секциями модулей; верхняя панель — хлебные крошки «пространство / проект / вид», поиск Cmd+K и колокольчик, без иконки чата.",
+  "plan_ref": "5. Задачи / DS-1",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "3",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-1",
+  "branch": "design/DS-1",
+  "base": "feature/design",
+  "scope": [
+    "apps/web/src/layout/Sidebar.vue",
+    "apps/web/src/layout/TopBar.vue",
+    "apps/web/src/layout/AppShell.vue",
+    "apps/web/src/layout/nav.ts",
+    "apps/web/src/layout/__tests__",
+    "modules/chat/web/Section.vue",
+    "modules/chat/web/Topbar.vue",
+    "modules/chat/web/index.ts",
+    "modules/chat/web/chat.test.ts",
+    "modules/docs/web/TreeSection.vue",
+    "modules/docs/web/ui.test.ts",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "build/artifacts/DS-1"
+  ],
+  "dont_touch": [
+    "apps/web/src/layout/BottomNav.vue — mobile-навигация, DS-5",
+    "apps/web/src/screens/, apps/web/src/views/, apps/web/src/task/ — DS-2…DS-4",
+    "apps/web/src/ui/ — компоненты C-ui v3 готовы (DS-0); не хватает компонента или пропса — строкой <ID> contract: …",
+    "apps/web/src/__contract__/, apps/web/src/contract.ts, docs/contracts/ — только координатор",
+    "packages/, apps/api/ — core и p3 (кроме явно указанного в скоупе)"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web modules/chat/web modules/docs/web && pnpm exec prettier --check apps/web modules/chat/web modules/docs/web",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T11:17:09"
+}

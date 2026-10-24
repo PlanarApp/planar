@@ -15,6 +15,7 @@ import {
   IconButton,
   Kbd,
   Menu,
+  Popover,
   Tabs,
   Toolbar,
   type MenuItem,
@@ -61,6 +62,30 @@ describe('Button / IconButton', () => {
   it('IconButton без active — без aria-pressed', () => {
     const w = wrap(IconButton, { icon: Plus, label: 'A' });
     expect(w.find('button').element.hasAttribute('aria-pressed')).toBe(false);
+  });
+});
+
+describe('IconButton как trigger', () => {
+  const trigger = () => h(IconButton, { icon: Plus, label: 'Ещё' });
+  it('trigger Menu: открывается с клавиатуры, aria на той же кнопке', async () => {
+    const w = wrap(Menu, { items: [{ id: 'a', label: 'Пункт', onSelect: () => {} }] }, { trigger });
+    const b = w.find('button').element;
+    expect(b.getAttribute('aria-label')).toBe('Ещё');
+    press(b, 'Enter');
+    await flushPromises();
+    expect(b.getAttribute('aria-expanded')).toBe('true');
+    expect($('[role="menuitem"]')).not.toBeNull();
+    w.unmount();
+  });
+  it('trigger Popover: открывается кликом', async () => {
+    const w = wrap(Popover, {}, { trigger, default: () => 'Тело' });
+    const b = w.find('button').element;
+    b.click();
+    await flushPromises();
+    expect(b.getAttribute('aria-expanded')).toBe('true');
+    expect(b.getAttribute('aria-label')).toBe('Ещё');
+    expect(document.body.textContent).toContain('Тело');
+    w.unmount();
   });
 });
 

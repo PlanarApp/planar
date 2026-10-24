@@ -1,0 +1,48 @@
+{
+  "verdict": "rework",
+  "summary": "Десктоп-оболочка сделана по карточке, приёмка воспроизводится (lint, web-tests PASS). Но на mobile пропал единственный вход в чат: иконку из topbar убрали, а в BottomNav чата нет. Комментарий в index.ts при этом говорит обратное, и в отчёте это не отмечено.",
+  "issues": [
+    {
+      "file": "modules/chat/web/index.ts",
+      "line": 12,
+      "severity": "blocker",
+      "what": "Убрано поле topbar. На mobile Sidebar не рендерится (AppShell: v-if=!isMobile), в BottomNav.vue есть только inbox/my/p/settings, в палитре команд чата нет. Значит на 390 px в чат можно попасть только по прямому URL. Новый комментарий «вход через нижнюю навигацию» не соответствует коду, в отчёте (uncertain/not_done) об этом ничего нет.",
+      "fix": "Оставить вход в чат на mobile, например Topbar.vue модуля, который рендерится только при useBreakpoint().isMobile, со своим тестом. Либо получить у координатора решение, что вход переносится в BottomNav (DS-5), и записать это в not_done. Комментарий исправить."
+    },
+    {
+      "file": "apps/web/src/layout/Sidebar.vue",
+      "line": 47,
+      "severity": "major",
+      "what": "Новый неявный интерфейс ядро→модули: provide('planar.sidebar.collapse', {is, toggle}), который chat/Section.vue и docs/TreeSection.vue получают через inject по строковому ключу. В C-modules / SDK @planar/web/modules этого ключа нет, а интерфейсы меняет только координатор.",
+      "fix": "Попросить координатора внести ключ и тип в C-modules (экспорт из @planar/web/modules) либо сворачивать секцию модуля оболочкой Sidebar, без inject в модулях. Решение записать строкой DS-1 contract: …"
+    },
+    {
+      "file": "apps/web/src/layout/Sidebar.vue",
+      "line": 88,
+      "severity": "minor",
+      "what": "Счётчик Inbox собран вручную через span с bg-accent вместо Badge из apps/web/src/ui. По правилу C-ui v3 компоненты берутся из ui.",
+      "fix": "Вернуть Badge (variant=solid). Если в тёмной панели не хватает варианта, написать строку DS-1 contract: …"
+    },
+    {
+      "file": "modules/chat/web/Section.vue",
+      "line": 111,
+      "severity": "minor",
+      "what": "При нескольких пространствах без каналов (seed, скриншот after-d-light-project) секция по-прежнему показывает только имена пространств с «+», то есть симптом из аудита остаётся.",
+      "fix": "Скрывать подгруппу пространства без каналов, а «+» оставить в заголовке «Чат» с выбором пространства. Либо явно передать пустое состояние в DS-4 и записать это в not_done."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T11:46:59",
+  "by": "reviewer"
+}

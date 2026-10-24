@@ -1,0 +1,82 @@
+{
+  "id": "DS-3",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "Строка списка и карточка доски по C-ui v3, статусы сида на русском",
+  "goal": "Строка списка 32 px: ID моноширинным, иконка статуса, название; справа только заданные метки (точка с названием), срок (если есть), аватары исполнителей; действия по наведению. Карточка доски компактная. Сид создаёт статусы на русском при ru. Скорость прокрутки и переключения не хуже исходной.",
+  "plan_ref": "5. Задачи / DS-3",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "3",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-3",
+  "branch": "design/DS-3",
+  "base": "feature/design",
+  "scope": [
+    "apps/web/src/views/list",
+    "apps/web/src/views/board",
+    "apps/api/src/db/seed.ts",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "build/artifacts/DS-3",
+    "apps/api/test/seed.test.ts"
+  ],
+  "dont_touch": [
+    "packages/shared/src/mutators/spaces.ts — статусы по умолчанию для новых пространств (core); здесь только сид",
+    "apps/web/src/screens/, apps/web/src/views/saved/, apps/web/src/layout/ — DS-1, DS-2",
+    "e2e/web/perf/ — замер только запускать, не править",
+    "modules/ — DS-4 и p3",
+    "apps/web/src/ui/ — компоненты C-ui v3 готовы (DS-0); не хватает компонента или пропса — строкой <ID> contract: …",
+    "apps/web/src/__contract__/, apps/web/src/contract.ts, docs/contracts/ — только координатор",
+    "packages/, apps/api/ — core и p3 (кроме явно указанного в скоупе)"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "perf-not-worse",
+      "cmd": "awk -F= 'FNR==NR{b[$1]=$2;next} ($1==\"project_switch_ms_p95\"||$1==\"scroll_frame_ms_p95\"){n++; if($2>b[$1]*1.15+3) bad++} END{exit (n<2||bad)}' build/artifacts/DS-3/perf-before.txt build/artifacts/DS-3/perf-after.txt",
+      "expect": "exit=0"
+    },
+    {
+      "name": "seed-test",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run --project api apps/api/test/seed.test.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "api-seed-lint",
+      "cmd": "pnpm exec eslint apps/web apps/api/src/db/seed.ts apps/api/test/seed.test.ts && pnpm exec prettier --check apps/web apps/api/src/db/seed.ts apps/api/test/seed.test.ts",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T11:17:09",
+  "edited": "2026-10-24T11:47:53"
+}
