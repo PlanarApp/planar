@@ -11,11 +11,11 @@ export const createTestDb = (url: string): Db =>
     casing: 'snake_case',
   });
 
-/** Удаляет базу with (force) (рвёт соединения сам) под advisory-локом; худший случай ≈ 2+2×(15+15) с < hookTimeout. Не вышло — добьёт teardown. */
+/** Удаляет базу with (force) (рвёт соединения сам) под advisory-локом; один проход, ≤ 70 с (вызывает только wk13; afterAll файлов базы не роняет). Не вышло — добьёт teardown. */
 export async function dropDb(admin: pg.Client, name: string) {
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 1; attempt++) {
     try {
-      await admin.query('set statement_timeout = 15000');
+      await admin.query('set statement_timeout = 35000');
       await admin.query('select pg_advisory_lock(7240001)');
       try {
         await admin.query(`drop database if exists ${name} with (force)`);
