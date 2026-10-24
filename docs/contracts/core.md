@@ -245,7 +245,7 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 
 ## C-http v11
 
-v11 (p3): WS `/collab` (Hocuspocus; cookie и Origin — как `/ws`; `docs/contracts/p3.md` §P3-collab); env `PLANAR_SECRET_KEY`; вход `/f/*` — отдельная HTML-страница публичных форм (§P3-forms).
+v11 (p3): WS `/collab` (Hocuspocus; cookie и Origin — как `/ws`; `docs/contracts/p3.md` §P3-collab); env `PLANAR_SECRET_KEY`, `TRUST_PROXY`; вход `/f/*` — отдельная HTML-страница публичных форм (§P3-forms).
 
 v10 (CL-1a): `GET /files` и push без задачи — collab.md §X-core п. 3–4.
 
@@ -254,7 +254,7 @@ v8 (FT): поля в REST v1 и MCP (core-api-v1.md).
 
 ### Пути и окружение
 - `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11), `/collab` — WebSocket совместного редактирования (v11), `/f/*` — страница публичной формы, отдельный HTML-вход web без приложения (v11). В dev Vite проксирует их на api, в prod — Caddy.
-- Env api: `DATABASE_URL`, `PORT` (3000), `PUBLIC_URL` (origin для проверки, напр. `http://localhost:5173`), `COOKIE_SECURE` (`true` в prod), `DATA_DIR` (`./data`, файлы — `$DATA_DIR/files/<ab>/<cd>/<sha256>`, ab и cd — первые 4 hex-символа), `MAX_UPLOAD_MB` (50), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `LOG_LEVEL`, `PLANAR_SECRET_KEY` (v11; 32 байта в base64 — ключ AES-256-GCM секретов модулей, напр. токена GitLab; не задан — функции с секретами отвечают `503 unavailable`).
+- Env api: `DATABASE_URL`, `PORT` (3000), `PUBLIC_URL` (origin для проверки, напр. `http://localhost:5173`), `COOKIE_SECURE` (`true` в prod), `DATA_DIR` (`./data`, файлы — `$DATA_DIR/files/<ab>/<cd>/<sha256>`, ab и cd — первые 4 hex-символа), `MAX_UPLOAD_MB` (50), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `LOG_LEVEL`, `PLANAR_SECRET_KEY` (v11; 32 байта в base64 — ключ AES-256-GCM секретов модулей, напр. токена GitLab; не задан — функции с секретами отвечают `503 unavailable`). `TRUST_PROXY` (v11) — IP/CIDR доверенных прокси через запятую (Fastify `trustProxy` списком, не `true`); пусто — выкл.: `req.ip` — адрес соединения. Задан — `req.ip` из `X-Forwarded-For` только от адресов списка. Prod `compose.yml`: фиксированная подсеть сети Caddy, порт api наружу не публикуется. По `req.ip` считаются лимит входа и лимит публичных форм.
 - JSON-тело ≤ 1 МБ, кроме загрузки файлов.
 
 ### Ошибки
