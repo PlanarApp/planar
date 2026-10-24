@@ -1,34 +1,62 @@
 {
-  "status": "partial",
-  "summary": "Причина: строка списка (DS-3) всегда монтировала 4 пикера (метки, приоритет, исполнитель, срок) в скрытой панели наведения - десятки Reka-компонентов на экран при переключении. Пикеры теперь монтируются по pointerenter/focusin/focused строки; switch p95 медиана A/B n=10: main 95.0, design 85.0 мс.",
+  "status": "done",
+  "summary": "Причина: строка списка (DS-3) всегда монтировала 4 пикера (метки, приоритет, исполнитель, срок) в скрытой панели наведения - десятки Reka-компонентов на экран при переключении. Пикеры монтируются по pointerenter/focusin/focused строки. switch p95 медиана A/B n=10: main 95.0, design 85.0 мс. Повторная независимая проверка после task sync: полный measure.spec и run.sh - design 72-74 мс, main 89-108 мс.",
   "commits": [
     "DS-8: пикеры строки списка монтируются по наведению/фокусу (переключение проекта)"
   ],
   "checks": [
     {
-      "name": "ab-design switch p95 медиана",
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "ab-design",
       "value": "85.0 (main 95.0)",
       "pass": true
     },
     {
       "name": "ab-runs",
-      "value": "10 + 10",
+      "value": "10",
       "pass": true
     },
     {
-      "name": "web-tests",
-      "value": "716 passed (повторный прогон; в accept --dry упали 4 теста command/ по таймауту под нагрузкой, отдельно проходят)",
+      "name": "ab-main-runs",
+      "value": "10",
       "pass": true
     },
     {
       "name": "visual-unchanged",
-      "value": "list/board/task/my/chat/time проходят; падают login, inbox-390, settings-projects-390-light, profile, docs-390, dev-ui (экраны не тронуты, эталоны ждут DS-5d)",
-      "pass": false
+      "value": "exit 0",
+      "pass": true
     }
   ],
-  "not_done": [
-    "visual-unchanged FAIL: эталоны переснимает DS-5d, он ещё не влит в feature/design; повторить после task sync"
-  ],
+  "not_done": [],
   "questions": [],
   "images": [],
   "how_to_check": ".dpcli/dpcli accept DS-8 --dry",
@@ -45,6 +73,6 @@
     }
   ],
   "dp_feedback": "lock cpu уходит в job без вывода, ожидание отдельным job wait; -g с ^ и | через pnpm exec не работает. accept --dry идёт >10 мин.",
-  "t": "2026-10-24T17:32:17",
+  "t": "2026-10-24T18:02:53",
   "by": "executor"
 }
