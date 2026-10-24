@@ -139,6 +139,29 @@ describe('wk10:', () => {
       expect(await title()).toBe('orig');
     });
 
+    it('wk10: after видит результат мутаций; ошибка after откатывает всё', async () => {
+      const { w, id, api, title } = await mk();
+      const mut = [{ name: 'task.update', args: { id, title: 'new' } }];
+      let seen = '';
+      await api.execute(w.admin.userId, mut, {
+        system: true,
+        after: async (q) => {
+          const r = await q.execute(sql`select title from tasks where id = ${id}`);
+          seen = (r.rows[0] as { title: string }).title;
+        },
+      });
+      expect(seen).toBe('new');
+      await expect(
+        api.execute(w.admin.userId, [{ name: 'task.update', args: { id, title: 'again' } }], {
+          system: true,
+          after: async () => {
+            throw new Error('boom');
+          },
+        }),
+      ).rejects.toThrow('boom');
+      expect(await title()).toBe('new');
+    });
+
     it('wk10: prepare и мутации — одна транзакция', async () => {
       const { w, id, api, title } = await mk();
       const prep = (

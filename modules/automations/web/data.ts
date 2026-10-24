@@ -5,6 +5,18 @@ import type { Action, Run, Trigger } from '../shared/index.js';
 export const run = (name: string, args: Record<string, unknown>): Promise<void> =>
   mutate(name, args);
 
+export interface HookSub {
+  id: string;
+  url: string;
+  description: string | null;
+}
+
+/** Подписки webhooks (только админ; иначе пусто). */
+export async function fetchSubscriptions(fetcher = globalThis.fetch): Promise<HookSub[]> {
+  const r = await fetcher('/api/webhooks/subscriptions', { credentials: 'same-origin' });
+  return r.ok ? ((await r.json()) as { data: HookSub[] }).data : [];
+}
+
 /** Журнал запусков правила (новые сверху). */
 export async function fetchRuns(ruleId: string, fetcher = globalThis.fetch): Promise<Run[]> {
   const r = await fetcher(`/api/automations/rules/${ruleId}/runs?limit=50`, {
@@ -90,7 +102,8 @@ const TEXT = {
     user: 'Пользователь',
     field: 'Поле',
     value: 'Значение',
-    subscription: 'ID подписки вебхука',
+    subscription: 'Подписка вебхука',
+    noSubscriptions: 'Подписок нет — создайте её в настройках вебхуков',
     daysBefore: 'За сколько дней до срока',
     invalid: 'Правило заполнено неверно',
     triggers: {
@@ -150,7 +163,8 @@ const TEXT = {
     user: 'User',
     field: 'Field',
     value: 'Value',
-    subscription: 'Webhook subscription ID',
+    subscription: 'Webhook subscription',
+    noSubscriptions: 'No subscriptions — create one in webhook settings',
     daysBefore: 'Days before due date',
     invalid: 'The rule is not valid',
     triggers: {
