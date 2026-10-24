@@ -284,6 +284,9 @@ export default {
     setup: 'Initial setup',
     profile: 'Profile',
     module: 'Module',
+    moduleOff: 'Module is disabled',
+    moduleError: 'Module failed to load',
+    moduleOffAction: 'Module settings',
     notFound: 'Page not found',
   },
   links: {

@@ -284,6 +284,9 @@ export default {
     setup: 'Первичная настройка',
     profile: 'Профиль',
     module: 'Модуль',
+    moduleOff: 'Модуль выключен',
+    moduleError: 'Модуль не загрузился',
+    moduleOffAction: 'Настройки модулей',
     notFound: 'Страница не найдена',
   },
   links: {
