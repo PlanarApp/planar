@@ -169,3 +169,5 @@
 {"t": "2026-10-24T13:11:59", "by": "coordinator", "task": "DS-4b", "ev": "accepted", "commits": ["eb404a3"], "note": "7/7 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; no-danger-buttons=ok:0; lint=ok:exit 0"}
 {"t": "2026-10-24T13:11:59", "by": "coordinator", "task": "DS-4b", "ev": "merged"}
 {"t": "2026-10-24T13:12:00", "by": "coordinator", "task": "DS-5a", "ev": "accepted", "note": "по ревью; minors — в DS-6"}
+{"t": "2026-10-24T13:13:13", "by": "coordinator", "task": "DS-5a", "ev": "accepted", "commits": ["bda6c57"], "note": "7/7 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; mobile-tests=ok:4; lint=ok:exit 0"}
+{"t": "2026-10-24T13:13:13", "by": "coordinator", "task": "DS-5a", "ev": "merged"}
