@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { Client, uuidv7 } from '../lib.js';
-import { fixture, loginAs, uniq } from './helpers.js';
+import { fixture, loginAs, pick, uniq } from './helpers.js';
 import { enableModules, receiver, signatureOk, utcDay } from './work-helpers.js';
 
 test.beforeAll(async () => {
@@ -11,7 +11,8 @@ test.beforeAll(async () => {
 test('время: таймер в панели задачи и верхней панели, запись, неделя «Мои часы»', async ({
   browser,
 }) => {
-  const f = await fixture([uniq('Учёт времени')]);
+  const title = uniq('Учёт времени');
+  const f = await fixture([title]);
   const page = await loginAs(browser, 'alice');
   await page.goto(`/t/${f.taskKeys[0]}`);
   await page.getByRole('tab', { name: 'Время' }).click();
@@ -31,11 +32,11 @@ test('время: таймер в панели задачи и верхней п
 
   await page.getByTestId('sidebar').getByRole('link', { name: 'Мои часы' }).click();
   await expect(page).toHaveURL(/\/m\/time\/week/);
-  const row = page.locator('[data-test=row]', { hasText: 'Учёт времени' });
-  const total = row.locator('td.mono');
+  const row = page.locator('[data-test=row]', { hasText: title });
+  const total = row.locator('td.total');
   await expect(total).toHaveText('1:30');
-  await row.locator('input[data-test^=cell-]:not([value=""])').fill('2:00');
-  await row.locator('input[data-test^=cell-]:not([value=""])').blur();
+  await row.locator('.cell:not(.empty) input').fill('2:00');
+  await row.locator('.cell:not(.empty) input').blur();
   await expect(total).toHaveText('2:00');
 });
 
@@ -115,9 +116,14 @@ test('автоматизация: смена статуса → webhook с ве�
     ]);
     const page = await loginAs(browser, 'alice');
     await page.goto(`/p/${f.projectId}/board`);
-    await page
-      .locator(`[data-col="${f.statusIds[0]}"] [data-id="${f.taskIds[0]}"]`)
-      .dragTo(page.locator(`[data-col="${f.statusIds[1]}"]`));
+    const card = page.locator(`[data-col="${f.statusIds[0]}"] [data-id="${f.taskIds[0]}"]`);
+    const target = page.locator(`[data-col="${f.statusIds[1]}"]`);
+    await expect(card).toBeVisible();
+    await expect(target).toBeVisible();
+    await card.dragTo(target);
+    await expect(
+      page.locator(`[data-col="${f.statusIds[1]}"] [data-id="${f.taskIds[0]}"]`),
+    ).toBeVisible();
     await expect.poll(() => rcv.hits.length, { timeout: 30_000 }).toBeGreaterThan(0);
     const hit = rcv.hits.find((h) => h.headers['x-planar-event'] === 'automation.fired')!;
     expect(hit).toBeTruthy();
@@ -133,13 +139,14 @@ test('импорт: jira.csv по заготовке, прогресс до ко
 }) => {
   const f = await fixture([]);
   const page = await loginAs(browser, 'admin');
-  await page.goto('/m/import/');
+  // через сайдбар: прямой заход на холодную реплику иногда даёт заглушку модуля (registry.ensureModule, см. отчёт DS-9)
+  await page.getByTestId('sidebar').getByRole('link', { name: 'Импорт' }).click();
   await page
     .locator('input[type=file]')
     .setInputFiles(path.resolve(import.meta.dirname, '../fixtures/import/jira.csv'));
-  await page.getByRole('combobox').nth(1).selectOption('jira');
+  await pick(page.getByRole('combobox', { name: 'Источник' }), 'jira');
   await page.locator('.import-next').click();
-  await page.locator('.import-project').selectOption(f.projectId);
+  await pick(page.locator('.import-project').getByRole('combobox'), `E2E ${f.key}`);
   await page.locator('.import-start').click();
   await expect(page.locator('.import-status-line')).toContainText('8 / 8', {
     timeout: 30_000,
@@ -168,6 +175,6 @@ test('настройки: страница автоматизаций откры
   await page.goto('/settings');
   await page.getByTestId('nav-automations:rules').click();
   await expect(page.getByTestId('automations-page')).toBeVisible();
-  await page.locator('[data-role=project]').selectOption(f.projectId);
+  await pick(page.locator('[data-role=project]').getByRole('combobox'), `E2E ${f.key}`);
   await expect(page.locator('[data-role=rule]', { hasText: name })).toBeVisible();
 });

@@ -1,10 +1,12 @@
-import { expect, type Browser, type Page } from '@playwright/test';
+import { expect, type Browser, type Locator, type Page } from '@playwright/test';
 import { Client, ranks, uuidv7 } from '../lib.js';
 
 export interface Fixture {
   admin: Client;
   spaceId: string;
   projectId: string;
+  /** ключ проекта; название проекта — `E2E ${key}` */
+  key: string;
   statusIds: string[];
   /** ключ задачи вида ABCDE-1 */
   taskKeys: string[];
@@ -16,9 +18,18 @@ const letters = () =>
     '',
   );
 
+/** Выбор в Reka Select (нативного <select> нет): опция фокусом и Enter — длинный список не влезает в окно для клика. */
+export async function pick(trigger: Locator, name: string): Promise<void> {
+  await trigger.click();
+  const opt = trigger.page().getByRole('option', { name, exact: true });
+  await opt.focus();
+  await opt.press('Enter');
+}
+
 /** Своё пространство с alice и bob (участники), проектом и задачами с уникальными названиями. */
 export async function fixture(titles: string[]): Promise<Fixture> {
   const admin = await Client.login('admin');
+  const key = letters();
   const [alice, bob] = await Promise.all([Client.login('alice'), Client.login('bob')]);
   const spaceId = uuidv7();
   const projectId = uuidv7();
@@ -35,7 +46,7 @@ export async function fixture(titles: string[]): Promise<Fixture> {
     }),
     admin.mut('member.add', { id: uuidv7(), spaceId, userId: alice.userId, role: 'member' }),
     admin.mut('member.add', { id: uuidv7(), spaceId, userId: bob.userId, role: 'member' }),
-    admin.mut('project.create', { id: projectId, spaceId, name: 'E2E', key: letters(), rank: r2 }),
+    admin.mut('project.create', { id: projectId, spaceId, name: `E2E ${key}`, key, rank: r2 }),
     ...titles.map((title, i) =>
       admin.mut('task.create', {
         id: taskIds[i],
@@ -47,12 +58,12 @@ export async function fixture(titles: string[]): Promise<Fixture> {
     ),
   ]);
   const { data } = await admin.bootstrap();
-  const key = data.projects!.find((p) => p.id === projectId)!.key as string;
   const num = (id: string) => data.tasks!.find((t) => t.id === id)!.number;
   return {
     admin,
     spaceId,
     projectId,
+    key,
     statusIds,
     taskIds,
     taskKeys: taskIds.map((id) => `${key}-${num(id)}`),
