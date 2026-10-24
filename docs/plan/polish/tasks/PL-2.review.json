@@ -1,0 +1,55 @@
+{
+  "verdict": "rework",
+  "summary": "Доставка после последней мутации в транзакции сделана, pl2-тесты зелёные (31/31 в automations). Ссылка подсказки ведёт не в настройки webhooks. Сбой в хуке молча теряет доставку и каскад. У координатора test-all и e2e-work (4 < 6) упали.",
+  "issues": [
+    {
+      "file": "modules/automations/web/RulesPage.vue",
+      "line": 342,
+      "severity": "major",
+      "what": "href=\"/settings/webhooks\" не совпадает с ключом раздела модуля: в registry.ts:111 ключ `${m.id}:${it.id}` = webhooks:webhooks. SettingsScreen не найдёт страницу и откроет 'spaces'. Пункт 2 карточки («ссылка на настройки webhooks») не выполнен. Пустой список тестом не покрыт.",
+      "fix": "Ссылку сделать на /settings/webhooks:webhooks (лучше RouterLink { name: 'settings', params: { section: 'webhooks:webhooks' } }). Добавить pl2-тест: пустой список подписок показывает ссылку с этим адресом."
+    },
+    {
+      "file": "modules/automations/api/index.ts",
+      "line": 113,
+      "severity": "major",
+      "what": "sendWebhooks бросает внутри afterMutation, ядро (mutate.ts:79-84) откатывает savepoint и только пишет лог. Запуск получает 'ok', а доставки нет, и в automations_runs следа не остаётся. Вдобавок исключение срабатывает до каскадной части afterMutation, поэтому события последней мутации (eventsOf → enqueue) тоже пропадают.",
+      "fix": "Обернуть отправку в try/catch внутри хука, чтобы каскад шёл всегда. Сбой отправки записать в запуск правила, например флагом в firing и record после execute с текстом ошибки (статус по решению координатора), но не терять его молча."
+    },
+    {
+      "file": "modules/automations/api/index.ts",
+      "line": 105,
+      "severity": "major",
+      "what": "Глобальная Map firing по ruleId и счётчик left верны, только пока run выполняется последовательно в одном процессе (localConcurrency по умолчанию 1, jobs.ts:67). Если поднять конкурентность или вызвать run параллельно для того же правила, запуски затрут друг друга: в webhook уйдёт чужая задача или доставка потеряется. Допущение нигде не записано.",
+      "fix": "Ключ firing — ruleId+taskId (или id запуска), и комментарий shortcut: про зависимость от localConcurrency=1. Ещё лучше — явно задать localConcurrency: 1 у RUN_QUEUE."
+    },
+    {
+      "file": "build/dpcli/PL-2/results.json",
+      "line": 0,
+      "severity": "major",
+      "what": "Отчёт ≠ проверка координатора: в 00:04 test-all=FAIL и e2e-work=4 (порог ≥6). В отчёте исполнителя e2e-work=6 только после ручного повтора, импорт флакует по таймауту. Ревьюер перезапустил accept test-all --dry: за 15 мин не завершился, параллельно шли accept PL-4/IFM-2, вероятно общая testdb. Причину FAIL подтвердить не смог.",
+      "fix": "Перезапустить accept test-all и e2e-work в одиночку. Если e2e-work стабильно падает на импорте, разобрать причину или вынести в отдельную задачу через координатора, а не повторять до зелёного."
+    },
+    {
+      "file": "modules/automations/api/index.ts",
+      "line": 107,
+      "severity": "minor",
+      "what": "В хуке actions правила заново читаются из БД, хотя run уже вычислил hooks. Лишний запрос, и правило может поменяться между prepare и хуком.",
+      "fix": "Положить hooks в firing ({ d, subs, left }) и использовать их."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "vitest apps/api/test/automations/automations.test.ts (включая pl2:)",
+      "value": "31 passed",
+      "pass": true
+    },
+    {
+      "name": "accept test-all --dry",
+      "value": "не завершился за 900 с (параллельные accept других задач)",
+      "pass": false
+    }
+  ],
+  "t": "2026-10-24T00:35:03",
+  "by": "reviewer"
+}
