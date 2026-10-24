@@ -1,10 +1,8 @@
 {
   "status": "done",
-  "summary": "send_webhook ставит доставку в той же транзакции, что и действия правила, после последней мутации (afterMutation, счётчик по ruleId; без нового мутатора - контракт work не меняется). Выбор подписки списком, e2e спринта с запасом, e2e глубокой ссылки /p/<id>/sprints:sprint.",
+  "summary": "Контракт: JobApi.execute opts.after(q, enqueue) - в транзакции после всех мутаций, ошибка откатывает всё и пробрасывается в run (error в журнале). send_webhook ставит доставку через after; убраны afterMutation-хук, Map firing и счётчик. Ссылка подсказки - /settings/webhooks:webhooks. Контрактный тест wk10 для after, строка в docs/contracts/work.md.",
   "commits": [
-    "dc3e18f PL-2: доставка webhook после последней мутации правила без нового мутатора",
-    "a8790bd PL-2: доставка webhook ставится в транзакции действий правила (маркер automations.fire)",
-    "9f8fe78 Слияние feature/polish в polish/PL-2"
+    "29177b9 PL-2: JobApi.execute after (в транзакции после мутаций); send_webhook через after"
   ],
   "checks": [
     {
@@ -19,7 +17,7 @@
     },
     {
       "name": "size",
-      "value": "151.4",
+      "value": "151.5",
       "pass": true
     },
     {
@@ -44,7 +42,7 @@
     },
     {
       "name": "e2e-work",
-      "value": "6 (accept: флак импорта 5; ручной повтор 6)",
+      "value": "6",
       "pass": true
     },
     {
@@ -53,22 +51,19 @@
       "pass": true
     }
   ],
-  "not_done": [],
+  "not_done": [
+    "accept scope FAIL: проверка считает apps/api/src/sync/mutate.ts в dont_touch, хотя карточка делает исключение и scope его включает"
+  ],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept PL-2",
   "uncertain": [
     {
-      "where": "modules/automations/api/index.ts afterMutation",
-      "why": "ошибка внутри хука модуля логируется и не откатывает действия (механизм ядра); подписка проверяется в prepare, поэтому неактивная откатывает всё. Правило из одних send_webhook (нет мутаций) шлётся после execute вне транзакции",
-      "checked": "pl2-тесты: тело после assign/set_status, откат при неактивной подписке"
-    },
-    {
-      "where": "e2e/web/work.spec.ts импорт",
-      "why": "один раз тест импорта упал по таймауту 1 мин, повтор зелёный",
-      "checked": "прогон повторён"
+      "where": "docs/contracts/work.md:98",
+      "why": "версия C-modules в тексте не поднята (написано '+1'), номер на усмотрение владельца",
+      "checked": "строка добавлена рядом с prepare"
     }
   ],
-  "dp_feedback": "export в карточке исправлен - спасибо; ожидание хука: ядро глотает ошибки afterMutation, из-за этого нельзя гарантировать атомарность без правки ядра.",
-  "t": "2026-10-23T23:35:54",
+  "dp_feedback": "Шаблон dont_touch 'apps/api/src/ кроме ...' не разбирается проверкой scope: исключения надо выражать отдельными путями.",
+  "t": "2026-10-24T01:23:01",
   "by": "executor"
 }

@@ -20,11 +20,12 @@
     "apps/api/src/sync/mutate.ts",
     "apps/api/test/",
     "docs/contracts/work.md",
-    "apps/web/src/__contract__/"
+    "apps/web/src/__contract__/",
+    "packages/shared/src/contract/versions.ts",
+    "docs/contracts/core.md"
   ],
   "dont_touch": [
-    "контракты docs/contracts/ — только если меняется поведение; тогда «PL-2 contract: …»",
-    "apps/api/src/ и packages/ — кроме mutate.ts и server-kit hooks.ts"
+    "контракты docs/contracts/ — только если меняется поведение; тогда «PL-2 contract: …»"
   ],
   "accept": [
     {
@@ -84,5 +85,5 @@
     "Отчёт — только build/dpcli/PL-2.report.json в своей копии."
   ],
   "created": "2026-10-23T22:33:20",
-  "edited": "2026-10-24T00:50:36"
+  "edited": "2026-10-24T01:23:58"
 }
