@@ -2,12 +2,34 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
+
+// dev: /f/<slug> — отдельный вход form.html (prod — deploy/Caddyfile)
+const formEntry = (): Plugin => ({
+  name: 'planar-form-entry',
+  configureServer: (s) =>
+    void s.middlewares.use((req, _res, next) => {
+      if (req.url?.startsWith('/f/')) req.url = '/form.html';
+      next();
+    }),
+});
+
+// публичная страница не предлагает установить приложение
+const noManifest = (): Plugin => ({
+  name: 'planar-form-no-manifest',
+  enforce: 'post',
+  generateBundle(_o, bundle) {
+    const f = bundle['form.html'];
+    if (f?.type === 'asset') f.source = String(f.source).replace(/<link rel="manifest"[^>]*>/, '');
+  },
+});
 
 const target = process.env.API_PROXY_TARGET ?? 'http://localhost:3000';
 
 export default defineConfig({
   plugins: [
+    formEntry(),
+    noManifest(),
     vue(),
     tailwindcss(),
     VitePWA({
@@ -33,7 +55,7 @@ export default defineConfig({
       workbox: {
         importScripts: ['/push-sw.js'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/(api|sync|ws|files|mcp)\//],
+        navigateFallbackDenylist: [/^\/(api|sync|ws|files|mcp|f)\//],
       },
     }),
   ],
@@ -44,6 +66,10 @@ export default defineConfig({
   },
   build: {
     rolldownOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        form: fileURLToPath(new URL('./form.html', import.meta.url)),
+      },
       output: {
         // vue-обёртка иначе оседает в ленивом reka-чанке и тащит его в начальный бандл (WB-13)
         codeSplitting: {
