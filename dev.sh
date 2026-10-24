@@ -39,6 +39,14 @@ vapid() {
   " >> .env
 }
 
+# PLANAR_SECRET_KEY (AES-256-GCM токена GitLab): дописывает в ./.env, если его там нет
+secretkey() {
+  touch .env
+  grep -qE '^PLANAR_SECRET_KEY=.+' .env && return 0
+  sed -i '/^PLANAR_SECRET_KEY=/d' .env
+  echo "PLANAR_SECRET_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")" >> .env
+}
+
 # api стартует после up -d: ждём ответ через прокси web
 waitapi() {
   for _ in $(seq 1 120); do
@@ -84,8 +92,8 @@ prodsmoke() {
 cmd="${1:-}"
 [ $# -gt 0 ] && shift
 case "$cmd" in
-  vapid) vapid ;;
-  up) vapid; "${DEV[@]}" up -d --build ;;
+  vapid) vapid; secretkey ;;
+  up) vapid; secretkey; "${DEV[@]}" up -d --build ;;
   down) "${DEV[@]}" down ;;
   # reset: удаляет тома (БД, node_modules, pnpm store) и поднимает заново
   reset) "${DEV[@]}" down -v && "${DEV[@]}" up -d --build ;;
