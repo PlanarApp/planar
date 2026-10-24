@@ -23,6 +23,7 @@
     "@planar/module-automations": "workspace:*",
     "@planar/module-import": "workspace:*",
     "@planar/module-sprints": "workspace:*",
+    "@planar/module-dashboards": "workspace:*",
     "@planar/module-time": "workspace:*",
     "@planar/module-webhooks": "workspace:*",
     "@planar/server-kit": "workspace:*",
