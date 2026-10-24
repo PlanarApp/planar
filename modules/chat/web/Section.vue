@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ChevronRight, Plus } from 'lucide-vue-next';
+import { ChevronRight, Hash, Plus, User } from 'lucide-vue-next';
 import { Badge, Button, IconButton, Input, mutate, newId } from '@planar/web/modules';
 import { useChatData } from './data';
 import { byName, dmTitle, findDm, type Channel } from './model';
@@ -77,7 +77,8 @@ const headerSpace = computed(() =>
       : firstCreate.value || undefined,
 );
 const hoverPlus = 'md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100';
-const row = 'flex h-7 items-center justify-between rounded-md pl-6 pr-2 text-sm hover:bg-bg-muted';
+const row =
+  'flex h-7 items-center justify-between gap-1.5 rounded-md pl-6 pr-2 text-sm hover:bg-bg-muted';
 
 // + канал: имя в строке под заголовком пространства
 const addIn = ref('');
@@ -202,7 +203,12 @@ const link = (id: string) => `/m/chat/c/${id}`;
           :aria-current="current === c.id ? 'page' : undefined"
           :class="[row, current === c.id && 'bg-bg-muted font-medium']"
         >
-          <span class="truncate"># {{ title(c) }}</span>
+          <span class="flex min-w-0 flex-1 items-center gap-1.5"
+            ><Hash :size="14" class="shrink-0 text-fg-subtle" aria-hidden="true" /><span
+              class="truncate"
+              >{{ title(c) }}</span
+            ></span
+          >
           <Badge
             v-if="unreadOf(c) > 0"
             data-testid="chat-unread"
@@ -248,7 +254,12 @@ const link = (id: string) => `/m/chat/c/${id}`;
           :aria-current="current === x.c.id ? 'page' : undefined"
           :class="[row, current === x.c.id && 'bg-bg-muted font-medium']"
         >
-          <span class="truncate">{{ x.title }}</span>
+          <span class="flex min-w-0 flex-1 items-center gap-1.5"
+            ><User :size="14" class="shrink-0 text-fg-subtle" aria-hidden="true" /><span
+              class="truncate"
+              >{{ x.title }}</span
+            ></span
+          >
           <Badge
             v-if="unreadOf(x.c) > 0"
             data-testid="chat-unread"

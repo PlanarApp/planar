@@ -103,13 +103,18 @@ const measure = () => {
 const stripMask = computed(() => {
   const { l, r } = fade.value;
   if (!l && !r) return undefined;
-  const g = `linear-gradient(to right, ${l ? 'transparent, #000 24px' : '#000, #000'}, ${r ? '#000 calc(100% - 24px), transparent' : '#000, #000'})`;
+  const g = `linear-gradient(to right, ${l ? 'transparent, #000 40px' : '#000, #000'}, ${r ? '#000 calc(100% - 40px), transparent' : '#000, #000'})`;
   return { maskImage: g, WebkitMaskImage: g };
 });
 let ro: ResizeObserver | undefined;
 watch(strip, (el) => {
   ro?.disconnect();
-  if (el && typeof ResizeObserver !== 'undefined') (ro = new ResizeObserver(measure)).observe(el);
+  if (el && typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(measure);
+    ro.observe(el);
+    // scrollWidth растёт без смены размера самой полосы (сохранённые виды, шрифт) — смотрим и детей
+    for (const c of el.children) ro.observe(c);
+  }
   measure();
 });
 onBeforeUnmount(() => ro?.disconnect());

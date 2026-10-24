@@ -162,38 +162,40 @@ function save() {
       class="pointer-events-none absolute inset-y-0 right-2 flex items-center bg-inherit opacity-0 focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
       @click.stop
     >
-      <template v-if="hot || focused">
-        <div v-if="fields.includes('labels')" role="gridcell">
-          <LabelPicker
-            compact
-            :space-id="spaceId"
-            :model-value="task.labelIds"
-            @update:model-value="setLabels(task.id, $event)"
-          />
-        </div>
-        <div v-if="fields.includes('priority')" role="gridcell">
-          <PriorityPicker
-            compact
-            :model-value="task.priority"
-            @update:model-value="updateTask(task.id, { priority: $event })"
-          />
-        </div>
-        <div v-if="fields.includes('assignee')" role="gridcell">
-          <AssigneePicker
-            compact
-            :space-id="spaceId"
-            :model-value="task.assigneeIds"
-            @update:model-value="setAssignees(task.id, $event)"
-          />
-        </div>
-        <div v-if="fields.includes('dueDate')" role="gridcell">
-          <DueDatePicker
-            compact
-            :model-value="task.dueDate"
-            @update:model-value="updateTask(task.id, { dueDate: $event })"
-          />
-        </div>
-      </template>
+      <div v-if="fields.includes('labels')" role="gridcell">
+        <LabelPicker
+          v-if="hot || focused"
+          compact
+          :space-id="spaceId"
+          :model-value="task.labelIds"
+          @update:model-value="setLabels(task.id, $event)"
+        />
+      </div>
+      <div v-if="fields.includes('priority')" role="gridcell">
+        <PriorityPicker
+          v-if="hot || focused"
+          compact
+          :model-value="task.priority"
+          @update:model-value="updateTask(task.id, { priority: $event })"
+        />
+      </div>
+      <div v-if="fields.includes('assignee')" role="gridcell">
+        <AssigneePicker
+          v-if="hot || focused"
+          compact
+          :space-id="spaceId"
+          :model-value="task.assigneeIds"
+          @update:model-value="setAssignees(task.id, $event)"
+        />
+      </div>
+      <div v-if="fields.includes('dueDate')" role="gridcell">
+        <DueDatePicker
+          v-if="hot || focused"
+          compact
+          :model-value="task.dueDate"
+          @update:model-value="updateTask(task.id, { dueDate: $event })"
+        />
+      </div>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   createTask,
@@ -65,6 +65,36 @@ function toggle(key: string) {
   }
 }
 
+// маска у края горизонтальной прокрутки колонок (как у полосы вкладок)
+const scroller = ref<HTMLElement>();
+const fade = ref({ l: false, r: false });
+const measure = () => {
+  const el = scroller.value;
+  if (el)
+    fade.value = {
+      l: el.scrollLeft > 1,
+      r: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+    };
+};
+const mask = computed(() => {
+  const { l, r } = fade.value;
+  if (!l && !r) return undefined;
+  const g = `linear-gradient(to right, ${l ? 'transparent, #000 40px' : '#000, #000'}, ${r ? '#000 calc(100% - 40px), transparent' : '#000, #000'})`;
+  return { maskImage: g, WebkitMaskImage: g };
+});
+let ro: ResizeObserver | undefined;
+watch(scroller, (el) => {
+  ro?.disconnect();
+  if (el && typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(measure);
+    ro.observe(el);
+    for (const c of el.children) ro.observe(c);
+  }
+  measure();
+});
+watch(columns, () => void nextTick(measure));
+onBeforeUnmount(() => ro?.disconnect());
+
 async function move(id: string, from: string, to: string, beforeId: string | null) {
   const plan = planMove(columns.value, props.options.groupBy, id, from, to, beforeId);
   if (plan) await applyMove(plan);
@@ -95,8 +125,11 @@ function add(key: string, title: string) {
       :description="t('views.emptyBoard')"
     />
     <div
+      ref="scroller"
       class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3"
       :class="isMobile && 'snap-x snap-mandatory'"
+      :style="mask"
+      @scroll.passive="measure"
       role="group"
       :aria-label="t('views.board')"
     >
