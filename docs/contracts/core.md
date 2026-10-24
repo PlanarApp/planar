@@ -21,7 +21,9 @@ contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v8
+## C-schema v9
+
+v9 (p3, PT-1): несинхронизируемая таблица `ydocs` — состояние Y.Doc совместного редактирования (`docs/contracts/p3.md` §P3-ydoc).
 
 v8 (CL-1a): `notifications` для чата; scope `space|members`.
 
@@ -65,7 +67,7 @@ v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 
 ### Сущности
 
-Сущности — docs/contracts/core-schema.md (часть C-schema v8).
+Сущности — docs/contracts/core-schema.md (часть C-schema v9).
 
 ### Несинхронизируемые таблицы (только сервер)
 | таблица | колонки |
@@ -78,6 +80,7 @@ v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 | `file_uploads` | `sha256 text`, `user_id uuid`, `created_at`; первичный ключ (sha256, user_id) — кто загружал файл (дубли контента — одна строка files) |
 | `login_attempts` | `key text pk` (ip и login через «\|»), `attempts int`, `window_started_at timestamptz` — окно 1 мин для лимита входа |
 | `api_tokens` | `id uuid pk`, `user_id uuid`, `name text`, `token_sha256 text unique`, `prefix text`, `scope text check (read,write)`, `expires_at?`, `last_used_at?`, `revoked_at?`, `created_at` |
+| `ydocs` | `doc_id text pk` (`docs:<uuid>` \| `task:<uuid>`), `state bytea not null` (`Y.encodeStateAsUpdate`), `updated_at timestamptz` — `docs/contracts/p3.md` §P3-ydoc |
 
 Миграции — drizzle-kit, каталог `apps/api/drizzle/`, схема — `apps/api/src/db/schema.ts` (+ схемы модулей `modules/*/api/schema.ts`, таблицы с префиксом `<moduleId>_`).
 
@@ -221,8 +224,9 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Мутаторы домена v2
 Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
-## C-modules v8
+## C-modules v9
 
+v9 (p3, PT-5): `CoreServices` += `execute(userId, muts, opts?)` — как `JobApi.execute`; `ensureSystemUser(login, name): Promise<string>` — деактивированный пользователь без пароля (как «Автоматизация»), повторный вызов возвращает того же; `storeFile(buf: Buffer, uploaderId: string): Promise<{sha256, size, mime, width, height}>` — та же запись, что `POST /files` (`files`, `file_uploads`, лимит `MAX_UPLOAD_MB` → `413`).
 v8: JobApi.execute opts.after — в транзакции после всех мутаций, ошибка откатывает (PL-2) — work.md §C-modules v4.
 v7: перечень SDK (sendTyping/onTyping с C-sync v2) — work-api.md.
 v3–v6 (work, владелец C-modules): хуки, server-kit, SDK, настройки, правки collab — work.md, work-api.md.
@@ -238,7 +242,9 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v10
+## C-http v11
+
+v11 (p3): WS `/collab` (Hocuspocus; cookie и Origin — как `/ws`; `docs/contracts/p3.md` §P3-collab); env `PLANAR_SECRET_KEY`; вход `/f/*` — отдельная HTML-страница публичных форм (§P3-forms).
 
 v10 (CL-1a): `GET /files` и push без задачи — collab.md §X-core п. 3–4.
 
@@ -246,8 +252,8 @@ v9 (WK-0): `cycleId` в REST v1; пути WK-5 — work.md.
 v8 (FT): поля в REST v1 и MCP (core-api-v1.md).
 
 ### Пути и окружение
-- `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11). В dev Vite проксирует их на api, в prod — Caddy.
-- Env api: `DATABASE_URL`, `PORT` (3000), `PUBLIC_URL` (origin для проверки, напр. `http://localhost:5173`), `COOKIE_SECURE` (`true` в prod), `DATA_DIR` (`./data`, файлы — `$DATA_DIR/files/<ab>/<cd>/<sha256>`, ab и cd — первые 4 hex-символа), `MAX_UPLOAD_MB` (50), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `LOG_LEVEL`.
+- `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11), `/collab` — WebSocket совместного редактирования (v11), `/f/*` — страница публичной формы, отдельный HTML-вход web без приложения (v11). В dev Vite проксирует их на api, в prod — Caddy.
+- Env api: `DATABASE_URL`, `PORT` (3000), `PUBLIC_URL` (origin для проверки, напр. `http://localhost:5173`), `COOKIE_SECURE` (`true` в prod), `DATA_DIR` (`./data`, файлы — `$DATA_DIR/files/<ab>/<cd>/<sha256>`, ab и cd — первые 4 hex-символа), `MAX_UPLOAD_MB` (50), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `LOG_LEVEL`, `PLANAR_SECRET_KEY` (v11; 32 байта в base64 — ключ AES-256-GCM секретов модулей, напр. токена GitLab; не задан — функции с секретами отвечают `503 unavailable`).
 - JSON-тело ≤ 1 МБ, кроме загрузки файлов.
 
 ### Ошибки

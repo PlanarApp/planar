@@ -3,13 +3,13 @@ type: reference
 status: active
 module: core
 updated: 2026-10-24
-summary: Сущности C-schema v8 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
+summary: Сущности C-schema v9 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
 related: ["docs/contracts/core.md"]
 ---
 
-# Сущности C-schema v8
+# Сущности C-schema v9
 
-Часть контракта `C-schema v8` из `docs/contracts/core.md`. Раздел читает контрактный тест (`packages/shared/test/contract-doc.ts` → `docEntities`); версия — в заголовке `## C-schema vN` в core.md.
+Часть контракта `C-schema v9` из `docs/contracts/core.md`. Раздел читает контрактный тест (`packages/shared/test/contract-doc.ts` → `docEntities`); версия — в заголовке `## C-schema vN` в core.md.
 
 ## Сущности
 
