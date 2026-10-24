@@ -69,3 +69,5 @@
 {"t": "2026-10-24T11:54:18", "by": "coordinator", "task": "DS-0a", "ev": "checked", "note": "6/7 install=ok:exit 0; contract=ok:exit 0; web-tests=FAIL:exit 1 · × \"pnpm recursive ru…; trigger-test=ok:2; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-24T11:56:14", "by": "coordinator", "task": "DS-0a", "ev": "checked", "note": "7/7 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; trigger-test=ok:2; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-24T11:56:23", "by": "coordinator", "task": "DS-0a", "ev": "accepted", "note": "по отчёту; первый web-tests FAIL — флейк под нагрузкой, повтор 7/7"}
+{"t": "2026-10-24T11:57:44", "by": "coordinator", "task": "DS-0a", "ev": "accepted", "commits": ["8d740dc"], "note": "7/7 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; trigger-test=ok:2; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0"}
+{"t": "2026-10-24T11:57:44", "by": "coordinator", "task": "DS-0a", "ev": "merged"}
