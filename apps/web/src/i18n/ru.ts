@@ -1,6 +1,6 @@
 export default {
   app: { name: 'Planar' },
-  ui: { cancel: 'Отмена' },
+  ui: { cancel: 'Отмена', sheet: 'Выбор' },
   sidebar: {
     inbox: 'Входящие',
     my: 'Мои задачи',
@@ -10,7 +10,14 @@ export default {
     empty: 'Пока пусто',
     settings: 'Настройки',
   },
-  nav: { inbox: 'Входящие', my: 'Мои задачи', projects: 'Проекты', more: 'Ещё' },
+  nav: {
+    inbox: 'Входящие',
+    my: 'Мои задачи',
+    projects: 'Проекты',
+    more: 'Ещё',
+    menu: 'Меню',
+    search: 'Поиск',
+  },
   topbar: {
     search: 'Поиск',
     breadcrumb: 'Навигационная цепочка',
