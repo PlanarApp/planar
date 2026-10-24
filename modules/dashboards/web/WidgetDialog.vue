@@ -5,7 +5,7 @@ import type { Filter } from '@planar/shared';
 import { KINDS, type Widget, type WidgetKind } from '../shared/index.js';
 import { tr, type Key } from './data';
 
-const props = defineProps<{ widget?: Widget; spaceId: string | null }>();
+const props = defineProps<{ widget?: Widget; spaceId: string }>();
 const emit = defineEmits<{
   save: [v: { kind: WidgetKind; title: string | null; config: Record<string, unknown> }];
 }>();
@@ -84,7 +84,7 @@ function save() {
         />
         <Input v-model="f.limit" type="number" :label="tr('limit')" />
       </template>
-      <FilterBuilder v-model="f.filter" :space-id="spaceId ?? undefined" />
+      <FilterBuilder v-model="f.filter" :space-id="spaceId" />
     </div>
     <template #footer>
       <Button @click="open = false">{{ tr('cancel') }}</Button>

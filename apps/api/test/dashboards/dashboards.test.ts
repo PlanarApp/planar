@@ -32,7 +32,7 @@ beforeAll(async () => {
 afterAll(() => db.$client.end());
 
 describe('pt4: dashboards', () => {
-  it('pt4: create — пространства (userId null) и личный (spaceId null)', async () => {
+  it('pt4: create — пространства (userId null) и личный (userId = автор)', async () => {
     const a = uuidv7();
     const b = uuidv7();
     await w.member.ok('dashboards.create', {
@@ -41,17 +41,29 @@ describe('pt4: dashboards', () => {
       rank: 'a0',
       spaceId: w.spaceId,
     });
-    await w.member.ok('dashboards.create', { id: b, name: 'Mine', rank: 'a1' });
+    await w.member.ok('dashboards.create', {
+      id: b,
+      name: 'Mine',
+      rank: 'a1',
+      spaceId: w.spaceId,
+      personal: true,
+    });
     const [ra] = await db.select().from(dashboardsBoards).where(eq(dashboardsBoards.id, a));
     const [rb] = await db.select().from(dashboardsBoards).where(eq(dashboardsBoards.id, b));
     expect(ra).toMatchObject({ spaceId: w.spaceId, userId: null, createdBy: w.member.userId });
-    expect(rb).toMatchObject({ spaceId: null, userId: w.member.userId });
+    expect(rb).toMatchObject({ spaceId: w.spaceId, userId: w.member.userId });
     expect(await rows(w.admin, 'dashboardsBoards')).toContain(a);
   });
 
   it('pt4: чужой личный не виден в bootstrap и не правится', async () => {
     const b = uuidv7();
-    await w.member.ok('dashboards.create', { id: b, name: 'Mine', rank: 'a1' });
+    await w.member.ok('dashboards.create', {
+      id: b,
+      name: 'Mine',
+      rank: 'a1',
+      spaceId: w.spaceId,
+      personal: true,
+    });
     const wid = widget(b);
     await w.member.ok('dashboards.widget.add', wid);
     expect(await rows(w.member, 'dashboardsBoards')).toContain(b);

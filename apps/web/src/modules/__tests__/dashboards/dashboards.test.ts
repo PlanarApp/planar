@@ -137,10 +137,10 @@ describe('pt4: dashboards web', () => {
     expect(titles('priority', 3)).toEqual(['c', 'a', 'b']);
   });
 
-  it('pt4: личный дашборд — все видимые задачи, пространства — только его', () => {
+  it('pt4: задачи дашборда (и личного) — только его пространства', () => {
     const ts = [task({ spaceId: 'sp1' }), task({ spaceId: 'sp2' }), task({ spaceId: 'sp2' })];
-    expect(boardTasks(null, ts)).toHaveLength(3);
     expect(boardTasks('sp2', ts)).toHaveLength(2);
+    expect(boardTasks('sp1', ts)).toHaveLength(1);
   });
 
   it('pt4: сетка — перенос и размер в пределах 12 колонок', () => {

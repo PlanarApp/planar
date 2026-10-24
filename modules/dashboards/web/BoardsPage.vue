@@ -12,29 +12,24 @@ const where = ref('');
 
 const groups = computed(() => {
   const all = boards.value ?? [];
-  return [
-    { id: '', title: tr('personal'), items: all.filter((b) => !b.spaceId) },
-    ...(spaces.value ?? []).map((s) => ({
-      id: s.id,
-      title: s.name,
-      items: all.filter((b) => b.spaceId === s.id),
-    })),
-  ].filter((g) => g.items.length);
+  return (spaces.value ?? [])
+    .map((s) => ({ id: s.id, title: s.name, items: all.filter((b) => b.spaceId === s.id) }))
+    .filter((g) => g.items.length);
 });
-const whereOpts = computed(() => [
-  { value: '', label: tr('personal') },
-  ...(spaces.value ?? []).map((s) => ({ value: s.id, label: s.name })),
-]);
+const personal = ref(false);
+const whereOpts = computed(() => (spaces.value ?? []).map((s) => ({ value: s.id, label: s.name })));
 
 async function create() {
-  if (!name.value.trim()) return;
+  const spaceId = where.value || whereOpts.value[0]?.value;
+  if (!name.value.trim() || !spaceId) return;
   const last = (boards.value ?? []).at(-1)?.rank ?? null;
   const id = newId();
   await mutate('dashboards.create', {
     id,
     name: name.value.trim(),
     rank: rankBetween(last, null),
-    ...(where.value ? { spaceId: where.value } : {}),
+    spaceId,
+    ...(personal.value ? { personal: true } : {}),
   });
   open.value = false;
   name.value = '';
@@ -66,6 +61,10 @@ async function create() {
       <div class="form">
         <Input v-model="name" :label="tr('name')" />
         <Select v-model="where" :label="tr('space')" :options="whereOpts" />
+        <label
+          ><input v-model="personal" type="checkbox" data-test="personal" />
+          {{ tr('personal') }}</label
+        >
       </div>
       <template #footer>
         <Button @click="open = false">{{ tr('cancel') }}</Button>

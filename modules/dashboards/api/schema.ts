@@ -6,7 +6,7 @@ export const dashboardsBoards = pgTable(
   'dashboards_boards',
   {
     id: uuid().primaryKey(),
-    spaceId: uuid(),
+    spaceId: uuid().notNull(),
     userId: uuid(),
     name: text().notNull(),
     rank: text().notNull(),
@@ -25,7 +25,7 @@ export const dashboardsWidgets = pgTable(
   {
     id: uuid().primaryKey(),
     dashboardId: uuid().notNull(),
-    spaceId: uuid(),
+    spaceId: uuid().notNull(),
     userId: uuid(),
     kind: text().notNull(),
     title: text(),

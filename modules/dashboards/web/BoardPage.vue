@@ -12,7 +12,7 @@ const id = computed(() => String(router.currentRoute.value.params.id ?? ''));
 const board = useBoard(() => id.value);
 const widgets = useWidgets(() => id.value);
 const allTasks = useTasks();
-const tasks = computed(() => boardTasks(board.value?.spaceId ?? null, allTasks.value ?? []));
+const tasks = computed(() => boardTasks(board.value?.spaceId ?? '', allTasks.value ?? []));
 
 // предпросмотр перетаскивания: id -> бокс; в реплику пишем по отпусканию
 const preview = reactive<Record<string, Box>>({});

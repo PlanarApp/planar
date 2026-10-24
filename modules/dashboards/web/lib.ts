@@ -12,9 +12,9 @@ export interface WidgetLike {
   config: Record<string, unknown>;
 }
 
-/** Задачи дашборда: пространства — его задачи, личный (spaceId null) — все видимые. */
-export const boardTasks = (spaceId: string | null, tasks: Task[]): Task[] =>
-  spaceId ? tasks.filter((t) => t.spaceId === spaceId) : tasks;
+/** Задачи дашборда (и личного): задачи его пространства. */
+export const boardTasks = (spaceId: string, tasks: Task[]): Task[] =>
+  tasks.filter((t) => t.spaceId === spaceId);
 
 /** Значения groupBy у задачи; несколько исполнителей/меток/значений — по столбцу на каждое; пусто — ''. */
 export function groupKeys(t: Task, groupBy: string): string[] {

@@ -13,7 +13,7 @@ const bad = (m: string) => new MutatorError('invalid_args', m);
 
 export const dashboardsBoards = z.object({
   id,
-  spaceId: id.nullable(),
+  spaceId: id,
   userId: id.nullable(),
   name: z.string().min(1).max(100),
   rank: z.string().min(1),
@@ -26,7 +26,7 @@ export const KINDS = ['number', 'bars', 'line', 'list'] as const;
 export const dashboardsWidgets = z.object({
   id,
   dashboardId: id,
-  spaceId: id.nullable(),
+  spaceId: id,
   userId: id.nullable(),
   kind: z.enum(KINDS),
   title: z.string().max(100).nullable(),
@@ -119,14 +119,14 @@ const box = {
 export const mutators = [
   defineMutator({
     name: 'dashboards.create',
-    args: z.object({ id, name, rank, spaceId: id.optional() }),
+    args: z.object({ id, spaceId: id, name, rank, personal: z.boolean().optional() }),
     async run(tx, a, ctx) {
       if (await mtx(tx).get(E('dashboardsBoards'), a.id))
         throw new MutatorError('conflict', 'дашборд уже есть');
       await mtx(tx).put(E('dashboardsBoards'), {
         id: a.id,
-        spaceId: a.spaceId ?? null,
-        userId: a.spaceId ? null : ctx.userId,
+        spaceId: a.spaceId,
+        userId: a.personal ? ctx.userId : null,
         name: a.name,
         rank: a.rank,
         createdBy: ctx.userId,
