@@ -79,8 +79,19 @@ export async function loginAs(browser: Browser, login: string): Promise<Page> {
     locale: 'ru-RU',
   });
   const page = await ctx.newPage();
+  let netChanged = false;
+  page.on('requestfailed', (r) => {
+    if (r.failure()?.errorText.includes('ERR_NETWORK_CHANGED')) netChanged = true;
+  });
   await page.goto('/login');
-  await page.getByLabel('Логин').fill(login);
+  // dev-сервер: смена сети хоста обрывает подгрузку модулей vite — приложение не монтируется; один reload лечит
+  const field = page.getByLabel('Логин');
+  const shown = await field.waitFor({ timeout: 10_000 }).then(
+    () => true,
+    () => false,
+  );
+  if (!shown && netChanged) await page.reload();
+  await field.fill(login);
   await page.getByLabel('Пароль').fill(login);
   await page.getByRole('button', { name: 'Войти' }).click();
   await expect(page.getByTestId('sidebar')).toBeVisible();

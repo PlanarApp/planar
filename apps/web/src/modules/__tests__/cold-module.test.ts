@@ -23,4 +23,16 @@ describe('холодная реплика: ensureModule', () => {
     expect(await ensureModule('off')).toBe(false);
     expect(moduleStatus('off')).toBe('off');
   });
+
+  it('включён, но фронта нет или загрузка упала → error, не вечный скелетон', async () => {
+    setModuleLoaders({
+      '../../../../modules/boom/web/index.ts': async () => {
+        throw new Error('x');
+      },
+    });
+    await setEnabledModules(['cold', 'boom', 'ghost']);
+    expect(await ensureModule('ghost')).toBe(false);
+    expect(moduleStatus('ghost')).toBe('error');
+    expect(moduleStatus('boom')).toBe('error');
+  });
 });

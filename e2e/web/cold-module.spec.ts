@@ -3,8 +3,18 @@ import { Client } from '../lib.js';
 import { fixture, loginAs, uniq } from './helpers.js';
 import { channel, setModules } from './collab-helpers.js';
 
+const need = ['docs', 'chat', 'import'];
+const current = async (admin: Client) =>
+  ((await admin.bootstrap()).data.settings?.find((x) => x.id === 'enabled_modules')?.value as
+    string[] | undefined) ?? [];
+let initial: string[] = [];
 test.beforeAll(async () => {
-  await setModules(await Client.login('admin'), ['docs', 'chat', 'import']);
+  const admin = await Client.login('admin');
+  initial = await current(admin);
+  await setModules(admin, [...new Set([...initial, ...need])]);
+});
+test.afterAll(async () => {
+  await setModules(await Client.login('admin'), initial);
 });
 const stub = (p: import('@playwright/test').Page) => p.getByRole('heading', { name: /^Модуль: / });
 
@@ -28,12 +38,17 @@ test('cold chat channel', async ({ browser }) => {
   await expect(page.getByTestId('chat-feed')).toBeVisible();
 });
 test('выключенный модуль показывает «Модуль выключен»', async ({ browser }) => {
-  await setModules(await Client.login('admin'), ['docs', 'chat']);
+  const admin = await Client.login('admin');
+  const all = await current(admin);
+  await setModules(
+    admin,
+    all.filter((m) => m !== 'import'),
+  );
   try {
     const page = await loginAs(browser, 'admin');
     await page.goto('/m/import/');
     await expect(page.getByText('Модуль выключен')).toBeVisible();
   } finally {
-    await setModules(await Client.login('admin'), ['docs', 'chat', 'import']);
+    await setModules(await Client.login('admin'), all);
   }
 });

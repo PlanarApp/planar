@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Boxes } from 'lucide-vue-next';
 import { useAuth } from '../auth/useAuth';
-import { moduleStatus } from '../modules/registry';
+import { ensureModule, moduleStatus } from '../modules/registry';
 import { Button, EmptyState } from '../ui';
 
 const { t } = useI18n();
@@ -12,6 +12,8 @@ const route = useRoute();
 const router = useRouter();
 const { isAdmin } = useAuth();
 const status = computed(() => moduleStatus(String(route.params.moduleId)));
+// ждёт настройки (до таймаута) и грузит фронт модуля; статус обновится сам
+void ensureModule(String(route.params.moduleId));
 // настройки пришли позже таймаута / модуль догрузился — повторить навигацию, маршруты уже добавлены
 watch(status, (s) => {
   if (s === 'ready') void router.replace(route.fullPath);

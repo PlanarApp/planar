@@ -14,6 +14,11 @@ const registered = shallowRef<WebModuleManifest[]>([]);
 /** null — ещё не известно (реплика не прошла bootstrap): показываем все зарегистрированные, ensureModule ждёт */
 const enabled = shallowRef<string[] | null>(null);
 let timedOut = false;
+/** включённые модули, чей фронт не нашёлся или не загрузился */
+const failed = shallowRef<string[]>([]);
+const fail = (id: string) => void (failed.value = [...failed.value, id]);
+/** Настройки модулей уже прочитаны из реплики. */
+export const modulesKnown = (): boolean => !!enabled.value;
 const SETTINGS_WAIT_MS = 10_000;
 
 /** Состояние модуля для экрана: loading — настройки ещё не прочитаны, off — выключен, error — не дождались/не загрузился. */
@@ -26,7 +31,9 @@ export const moduleStatus = (id: string): 'loading' | 'off' | 'ready' | 'error' 
       ? 'off'
       : registered.value.some((m) => m.id === id)
         ? 'ready'
-        : 'loading';
+        : failed.value.includes(id)
+          ? 'error'
+          : 'loading';
 
 /** Ждёт, пока enabled станет известен; false — не дождались за SETTINGS_WAIT_MS. */
 function settingsKnown(): Promise<boolean> {
@@ -99,12 +106,13 @@ export async function ensureModule(id: string): Promise<boolean> {
   if (!enabled.value!.includes(id)) return false;
   if (registered.value.some((m) => m.id === id)) return true;
   const load = Object.entries(loaders).find(([path]) => path.split('/').at(-3) === id)?.[1];
-  if (!load) return false;
+  if (!load) return (fail(id), false);
   try {
     registerModules([(await load()).web]);
     return true;
   } catch (e) {
     console.warn(`Модуль ${id} не загрузился`, e);
+    fail(id);
     return false;
   }
 }
@@ -119,7 +127,10 @@ export async function setEnabledModules(ids: string[]): Promise<void> {
     todo.map(([path, load]) =>
       load().then(
         (m) => m.web,
-        (e) => void console.warn(`Модуль ${path} не загрузился`, e),
+        (e) => {
+          console.warn(`Модуль ${path} не загрузился`, e);
+          fail(path.split('/').at(-3)!);
+        },
       ),
     ),
   );
