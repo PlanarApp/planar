@@ -355,3 +355,4 @@
 {"t": "2026-10-24T18:44:40", "by": "coordinator", "task": "DS-6e", "ev": "checked", "note": "7/7 install=ok:exit 0; contract=ok:exit 0; web-tests=ok:exit 0; typecheck=ok:exit 0; size=ok:exit 0; lint=ok:exit 0; visual-fresh-stack=ok:exit 0"}
 {"t": "2026-10-24T18:46:29", "by": "reviewer", "task": "DS-6e", "ev": "reviewed", "note": "Пункты 1–5 и доработка координатора сделаны: lucide-иконки приоритета 14/16 px, @source модулей по файлам (в собранном CSS есть pl-6, ml-2 и gap-1.5), маски пе…", "verdict": "accept", "issues": {"minor": 2}, "review": "docs/plan/design/tasks/DS-6e.review.json"}
 {"t": "2026-10-24T18:46:50", "by": "coordinator", "task": "DS-6e", "ev": "accepted", "note": "по ревью; minor: SignalLow мелкий глиф — предел попыток (2/2)"}
+{"t": "2026-10-24T18:46:51", "by": "coordinator", "task": "DS-6e", "ev": "merged"}
