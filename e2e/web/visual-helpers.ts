@@ -75,6 +75,13 @@ export async function buildData(): Promise<Data> {
       rank: rs,
       memberId: uuidv7(),
       statusIds,
+      statusNames: {
+        backlog: 'Бэклог',
+        todo: 'К работе',
+        in_progress: 'В работе',
+        done: 'Готово',
+        cancelled: 'Отменено',
+      },
     }),
     admin.mut('member.add', { id: uuidv7(), spaceId, userId: alice.userId, role: 'member' }),
     admin.mut('member.add', { id: uuidv7(), spaceId, userId: bob.userId, role: 'member' }),
