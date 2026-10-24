@@ -152,10 +152,6 @@ test('collab: документ создаётся в дереве, связыв�
     .click();
   await expect(page).toHaveURL(/\/m\/docs\//);
   await page.getByTestId('doc-title').fill(title);
-  // известное ограничение P3-ydoc: сохранение заголовка (put docsPages) сервер читает как внешнюю запись body и откатывает ещё не спроецированный набор — ждём заголовок
-  await expect
-    .poll(async () => ((await lines(f.admin)).docsPages ?? []).some((p) => p.title === title))
-    .toBe(true);
   const body = page.getByRole('textbox', { name: 'Текст страницы' });
   await body.click();
   await body.pressSequentially(`текст ${word}`);

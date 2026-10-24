@@ -259,6 +259,17 @@ describe('pt1a', () => {
     await until(async () => !(await ydoc(`docs:${id2}`)));
   });
 
+  it('pt1a: правка заголовка при открытом документе не откатывает несохранённый набор', async () => {
+    const id = await mkPage(doc('база'));
+    const a = open('member', `docs:${id}`);
+    await until(() => a.state.synced);
+    addParagraph(a.document, 'набранное');
+    await w.admin.ok('docs.page.update', { id, title: 'Новый заголовок' });
+    await new Promise((r) => setTimeout(r, 600));
+    expect(has(a.document, 'набранное')).toBe(true);
+    await until(async () => (await page(id)).text.includes('набранное'));
+  });
+
   it('pt1a: task.delete удаляет ydocs и закрывает соединения', async () => {
     const id = await mkTask();
     const a = open('member', `task:${id}`);
