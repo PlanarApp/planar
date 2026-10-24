@@ -5,7 +5,6 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
 import { createDb } from './db/index.js';
-import type { CollabOpts } from './collab/options.js';
 import type { PushOpts } from './push/push.js';
 import { ErrorFilter } from './error.filter.js';
 
@@ -22,8 +21,6 @@ export interface AppOptions {
   push?: Partial<Omit<PushOpts, 'databaseUrl'>>;
   /** только тесты: дополнительные контроллеры */
   extraControllers?: Type[];
-  /** только тесты: debounce сохранения совместного редактирования */
-  collab?: Partial<CollabOpts>;
   /** опции pino Fastify; false — без логов (тесты) */
   logger?: boolean | { level: string };
 }
@@ -38,7 +35,6 @@ export async function createApp(opts: AppOptions): Promise<NestFastifyApplicatio
       { dataDir: opts.dataDir ?? './data', maxUploadMb: opts.maxUploadMb ?? 50 },
       { boss: false, ...opts.push, databaseUrl: opts.databaseUrl },
       opts.extraControllers,
-      opts.collab,
     ),
     new FastifyAdapter({ logger: opts.logger ?? false, bodyLimit: 1024 * 1024 }),
     { logger: false },

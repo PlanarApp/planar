@@ -35,11 +35,8 @@ beforeAll(async () => {
   w = await world(db);
   const ia = new TestClient(services(db), await mkUser(db, 'admin'));
   await ia.ok('settings.set', { id: 'enabled_modules', value: ['docs'] });
-  app = await createApp({
-    databaseUrl: dbUrl,
-    publicUrl: ORIGIN,
-    collab: { debounceMs: 100, maxDebounceMs: 300 },
-  });
+  process.env.COLLAB_DEBOUNCE_MS = '100';
+  app = await createApp({ databaseUrl: dbUrl, publicUrl: ORIGIN });
   await app.listen(0, '127.0.0.1');
   port = (app.getHttpServer().address() as AddressInfo).port;
   svc = app.get(CollabService);

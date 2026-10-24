@@ -76,8 +76,8 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
   async onApplicationBootstrap() {
     this.server = this.host.httpAdapter.getHttpServer() as Server;
     this.server.on('upgrade', this.onUpgrade);
-    const r = await this.db.execute(sql`select coalesce(max(seq), 0)::float8 as seq from changes`);
-    this.last = Number(r.rows[0]!.seq);
+    // БД недоступна — приложение всё равно стартует: стартовую точку возьмёт первое уведомление
+    this.last = await this.maxSeq().catch(() => -1);
     this.off = this.notifier.subscribe(
       () => (this.chain = this.chain.then(() => this.onChanges()).catch((e) => this.log.error(e))),
     );
@@ -132,6 +132,11 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     });
   };
 
+  private async maxSeq(): Promise<number> {
+    const r = await this.db.execute(sql`select coalesce(max(seq), 0)::float8 as seq from changes`);
+    return Number(r.rows[0]!.seq);
+  }
+
   /** Права на документ; null — отказ. Только чтение: guest или архивная страница. */
   async access(userId: string, name: string): Promise<{ readOnly: boolean } | null> {
     const m = NAME.exec(name);
@@ -172,8 +177,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async load(name: string, doc: Y.Doc) {
-    const m = await this.db.execute(sql`select coalesce(max(seq), 0)::float8 as seq from changes`);
-    this.loadedAt.set(name, Number(m.rows[0]!.seq));
+    this.loadedAt.set(name, await this.maxSeq());
     const [row] = await this.db.select().from(ydocs).where(eq(ydocs.docId, name));
     if (row) return void Y.applyUpdate(doc, row.state);
     const cur = await this.current(name);
@@ -222,8 +226,8 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
 
   /** Новые строки changes: внешняя запись body/description, удаления, выход участников. */
   private async onChanges() {
-    const m = await this.db.execute(sql`select coalesce(max(seq), 0)::float8 as seq from changes`);
-    const max = Number(m.rows[0]!.seq);
+    const max = await this.maxSeq();
+    if (this.last < 0) this.last = max;
     if (max <= this.last) return;
     const r = await this.db.execute(sql`
       select seq::float8 as seq, entity, id, op, data from changes
