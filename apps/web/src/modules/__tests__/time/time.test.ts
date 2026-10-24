@@ -100,11 +100,11 @@ describe('wk1: панель задачи', () => {
     st.estimate.value = { id: 'root', minutes: 120 };
     const w = mount(TimerPanel, { props: { taskId: 'root' } });
     expect(w.get('[data-test=vs]').text()).toBe('50%');
-    await w.get('[data-test=estimate] input').setValue('3:00');
-    await w.get('[data-test=estimate] input').trigger('change');
+    await w.get('[data-test=estimate]').setValue('3:00');
+    await w.get('[data-test=estimate]').trigger('change');
     expect(mutate).toHaveBeenCalledWith('time.setEstimate', { taskId: 'root', minutes: 180 });
-    await w.get('[data-test=estimate] input').setValue('');
-    await w.get('[data-test=estimate] input').trigger('change');
+    await w.get('[data-test=estimate]').setValue('');
+    await w.get('[data-test=estimate]').trigger('change');
     expect(mutate).toHaveBeenLastCalledWith('time.setEstimate', { taskId: 'root', minutes: null });
   });
 
@@ -120,7 +120,7 @@ describe('wk1: панель задачи', () => {
 
   it('wk1: ручная запись — time.log с длительностью', async () => {
     const w = mount(TimerPanel, { props: { taskId: 'root' } });
-    await w.get('[data-test=dur] input').setValue('1:30');
+    await w.get('[data-test=dur]').setValue('1:30');
     await w.get('form').trigger('submit');
     expect(mutate).toHaveBeenCalledWith(
       'time.log',
@@ -174,7 +174,7 @@ describe('wk1: неделя «Мои часы»', () => {
       entry({ startedAt: startedToday(), endedAt: startedToday(), durationSec: 3600 }),
     ];
     const w = mount(WeekPage);
-    const cell = w.get(`[data-test=cell-root-${today}] input`);
+    const cell = w.get(`[data-test=cell-root-${today}]`);
     expect((cell.element as HTMLInputElement).value).toBe('1:00');
     await cell.setValue('2:30'); // setValue в happy-dom сам шлёт change
     expect(mutate).toHaveBeenCalledTimes(1);

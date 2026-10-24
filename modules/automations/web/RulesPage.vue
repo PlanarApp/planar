@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, h, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import type { Filter, Row } from '@planar/shared';
 import {
   Button,
   EmptyState,
   FilterBuilder,
-  IconButton,
   Input,
   Menu,
   Select,
@@ -134,13 +133,6 @@ const csv = (s: string) =>
     .map((x) => x.trim())
     .filter(Boolean);
 const optional = (a: string[]) => (a.length ? a : undefined);
-// иконка «…» без lucide (у модуля нет этой зависимости)
-const More = () =>
-  h(
-    'svg',
-    { viewBox: '0 0 24 24', fill: 'currentColor', width: 16, height: 16 },
-    [5, 12, 19].map((cx) => h('circle', { cx, cy: 12, r: 1.5 })),
-  );
 const NONE = '__none';
 const opts = (list: { v: string; l: string }[]) => list.map((o) => ({ value: o.v, label: o.l }));
 const names = <T extends string>(list: readonly T[], dict: Record<string, string>) =>
@@ -205,6 +197,7 @@ const setValue = (i: number, raw: string) => {
             }}</Button>
             <Menu
               align="end"
+              :label="tx.more"
               :items="[
                 {
                   id: 'delete',
@@ -218,17 +211,7 @@ const setValue = (i: number, raw: string) => {
                   onSelect: () => remove(r),
                 },
               ]"
-            >
-              <template #trigger>
-                <IconButton
-                  :icon="More"
-                  :label="tx.more"
-                  size="sm"
-                  data-role="delete"
-                  class="md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:data-[state=open]:opacity-100"
-                />
-              </template>
-            </Menu>
+            />
           </span>
         </li>
       </ul>
@@ -291,6 +274,8 @@ const setValue = (i: number, raw: string) => {
           v-if="draft.trigger.type === 'task.due'"
           :model-value="String((t as Record<string, number>).daysBefore ?? '')"
           type="number"
+          min="0"
+          max="30"
           :label="tx.daysBefore"
           data-role="days-before"
           @update:model-value="(v) => ((t as Record<string, number>).daysBefore = Number(v))"

@@ -54,7 +54,7 @@ const mountIt = async () => {
 describe('wk4:', () => {
   it('wk4: создание показывает секрет один раз и шлёт url и события', async () => {
     const w = await mountIt();
-    await w.get('[data-testid=wh-url] input').setValue('https://example.com/hook');
+    await w.get('[data-testid=wh-url]').setValue('https://example.com/hook');
     await w.get('form').trigger('submit');
     await flushPromises();
     expect(calls.find((c) => c.method === 'POST')!.body).toMatchObject({

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, IconButton, Input, Menu } from '@planar/web/modules';
-import { MoreHorizontal } from './icons';
+import { Button, Input, Menu } from '@planar/web/modules';
 import { mutate, newId, tr, useEstimate, useMyEntries, useNow, userId, useTasks } from './data';
 import { clock, dayKey, hm, parseHm, subtreeIds, sumSec } from './lib';
 
@@ -104,6 +103,7 @@ const add = async () => {
         <span class="muted grow">{{ e.note }}</span>
         <Menu
           align="end"
+          :label="tr('more')"
           :items="[
             {
               id: 'delete',
@@ -113,16 +113,7 @@ const add = async () => {
               onSelect: () => mutate('time.delete', { id: e.id }),
             },
           ]"
-        >
-          <template #trigger>
-            <IconButton
-              :icon="MoreHorizontal"
-              :label="tr('more')"
-              size="sm"
-              data-test="entry-menu"
-            />
-          </template>
-        </Menu>
+        />
       </li>
     </ul>
   </section>

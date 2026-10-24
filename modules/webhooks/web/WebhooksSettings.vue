@@ -1,14 +1,6 @@
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from 'vue';
-import { Badge, Button, EmptyState, IconButton, Input, Menu } from '@planar/web/modules';
-
-// иконка «…» без lucide (у модуля нет этой зависимости)
-const MoreHorizontal = () =>
-  h(
-    'svg',
-    { viewBox: '0 0 24 24', fill: 'currentColor', width: 16, height: 16 },
-    [5, 12, 19].map((cx) => h('circle', { cx, cy: 12, r: 1.5 })),
-  );
+import { onMounted, reactive, ref } from 'vue';
+import { Badge, Button, EmptyState, Input, Menu } from '@planar/web/modules';
 
 interface Sub {
   id: string;
@@ -127,6 +119,8 @@ onMounted(() => void load().catch(() => {}));
           type="url"
           :label="L.url"
           :placeholder="L.url"
+          required
+          maxlength="2000"
           data-testid="wh-url"
           class="min-w-0 flex-1"
         />
@@ -183,6 +177,7 @@ onMounted(() => void load().catch(() => {}));
             >
             <Menu
               align="end"
+              :label="L.more"
               :items="[
                 {
                   id: 'toggle',
@@ -198,17 +193,7 @@ onMounted(() => void load().catch(() => {}));
                   onSelect: () => run(call('DELETE', `subscriptions/${s.id}`)),
                 },
               ]"
-            >
-              <template #trigger>
-                <IconButton
-                  :icon="MoreHorizontal"
-                  :label="L.more"
-                  size="sm"
-                  data-testid="wh-menu"
-                  class="md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:data-[state=open]:opacity-100"
-                />
-              </template>
-            </Menu>
+            />
           </span>
         </div>
         <table v-if="logs[s.id]" class="mt-1 w-full text-xs">

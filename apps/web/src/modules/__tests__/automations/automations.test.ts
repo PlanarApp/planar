@@ -131,12 +131,12 @@ describe('wk3: страница правил', () => {
     const w = mount(RulesPage, stubs);
     await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
     await w.get('[data-role=new]').trigger('click');
-    await w.get('[data-role=name] input').setValue('Срок');
+    await w.get('[data-role=name]').setValue('Срок');
     await pick(w, 'trigger', 'task.due');
-    await w.get('[data-role=days-before] input').setValue('2');
+    await w.get('[data-role=days-before]').setValue('2');
     await w.get('[data-role=add-condition]').trigger('click');
     await pick(w, 'action-type', 'create_subtask');
-    await w.get('[data-role=action-text] input').setValue('Проверить');
+    await w.get('[data-role=action-text]').setValue('Проверить');
     await w.get('[data-testid=editor]').trigger('submit');
     expect(mutate).toHaveBeenCalledWith('automations.create', {
       id: 'new-id',
@@ -153,7 +153,7 @@ describe('wk3: страница правил', () => {
     const w = mount(RulesPage, stubs);
     await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
     await w.get('[data-role=new]').trigger('click');
-    await w.get('[data-role=name] input').setValue('Без текста'); // add_comment с пустым text
+    await w.get('[data-role=name]').setValue('Без текста'); // add_comment с пустым text
     await w.get('[data-testid=editor]').trigger('submit');
     expect(w.find('[data-role=error]').exists()).toBe(true);
     expect(mutate).not.toHaveBeenCalled();
@@ -229,7 +229,7 @@ describe('wk3b: конструктор', () => {
     const w = mount(RulesPage, stubs);
     await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
     await w.get('[data-role=new]').trigger('click');
-    await w.get('[data-role=name] input').setValue('Хук');
+    await w.get('[data-role=name]').setValue('Хук');
     await pick(w, 'action-type', 'send_webhook');
     await vi.waitFor(() =>
       expect(w.get('[data-role=action-param]').getComponent(Select).props('options')).toEqual([
