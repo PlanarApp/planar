@@ -1,1 +1,2 @@
 {"t": "2026-10-24T10:48:59", "by": "main", "task": null, "ev": "note", "note": "модуль заведён от main"}
+{"t": "2026-10-24T10:57:52", "by": "coordinator", "task": "PT-0", "ev": "created", "note": "Разбить docs/contracts/core.md на файлы-разделы"}

@@ -1,0 +1,47 @@
+{
+  "id": "PT-0",
+  "module": "p3",
+  "type": "dp-mechanic",
+  "title": "Разбить docs/contracts/core.md на файлы-разделы",
+  "goal": "core.md меньше 40 КБ: крупные разделы (сущности C-schema и др.) вынесены в отдельные файлы docs/contracts/core-*.md со ссылками; текст контрактов не меняется; контрактные тесты проходят.",
+  "plan_ref": "4. Задачи (PT-0)",
+  "contracts": [],
+  "copy": "~/planar-p3-PT-0",
+  "branch": "p3/PT-0",
+  "base": "feature/p3",
+  "scope": [
+    "docs/contracts/core.md",
+    "docs/contracts/core-schema.md",
+    "docs/contracts/core-sync.md",
+    "packages/shared/test/contract-doc.ts",
+    "apps/api/test/contract.schema.test.ts",
+    "docs/INDEX.md",
+    "docs/registry/contracts.md"
+  ],
+  "dont_touch": [
+    "packages/shared/src",
+    "apps/api/src",
+    "modules",
+    "docs/contracts/p3.md"
+  ],
+  "accept": [
+    {
+      "name": "docs",
+      "cmd": "cd $PWD && .dpcli/dpcli docs check 2>&1",
+      "expect": "!re:ОШИБКА\\s+docs/contracts/core"
+    },
+    {
+      "name": "contract",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run packages/shared/test apps/api/test/contract.schema.test.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T10:57:52"
+}
