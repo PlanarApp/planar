@@ -1,8 +1,9 @@
 {
   "status": "done",
-  "summary": "Страница /f/<slug> (form.html, чистый TS, 2.7 КБ gzip), второй вход Vite, dev-rewrite и Caddy, строка 'form gzip' в size.mjs; настройки forms:forms (проект, список, создание, конструктор полей, ссылка, включение, удаление).",
+  "summary": "Страница /f/<slug> (form.html, чистый TS, 2.7 КБ gzip), второй вход Vite, dev-rewrite и Caddy, строка 'form gzip' в size.mjs; настройки forms:forms (проект, список, создание, конструктор полей, ссылка, включение, удаление). Ревью: money ×100 (+тест), NaN → «Введите число», user-поля не в конструкторе, manifest убран из form.html.",
   "commits": [
-    "24aade8 PT-5b: публичная страница /f/<slug> и настройки форм"
+    "24aade8 PT-5b: публичная страница /f/<slug> и настройки форм",
+    "fba8c72 доработка по ревью"
   ],
   "checks": [
     {
@@ -42,13 +43,13 @@
     },
     {
       "name": "pt5b",
-      "value": "10 passed",
+      "value": "11 passed",
       "pass": true
     }
   ],
   "not_done": [
-    "Ручная отправка /f/<slug> в dev-стеке не выполнена: проверено только vitest (happy-dom, мок fetch) и сборкой.",
-    "apps/web/Dockerfile в репозитории нет — не правился (Caddy отдаёт /srv, form.html лежит в dist)."
+    "apps/web/Dockerfile в репозитории нет — не правился (Caddy отдаёт /srv, form.html лежит в dist).",
+    "Браузером страницу не открывал: проверено curl-ом в dev-стеке (planar-pt5b, 3251/5351/55551, стек снесён): GET /f/<slug> 200 (dev-rewrite), GET схемы, POST JSON 201 (задача), POST multipart с файлом 201 (задача с 1 вложением). Модуль forms пришлось включить вставкой settings.enabled_modules и форму вставить SQL-ом."
   ],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept PT-5b",
@@ -70,6 +71,6 @@
     }
   ],
   "dp_feedback": "Первый pnpm build в свежей копии падал без pnpm install (нет zod у automations) — полезно напоминание в карточке.",
-  "t": "2026-10-24T13:40:00",
+  "t": "2026-10-24T14:08:13",
   "by": "executor"
 }
