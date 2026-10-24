@@ -164,7 +164,13 @@ describe('pt6a: токен и REST', () => {
     handler = (_, res) => json(res, [mr(1, { title: t.key })]);
     await poll();
     expect(await mrsOf(1)).toHaveLength(1);
+    const [row] = await mrsOf(1);
     expect((await call('DELETE', `projects/${p.id}`)).statusCode).toBe(204);
+    const ch = await db.$client.query(
+      "select op from changes where entity = 'gitlabMrs' and id = $1 order by seq desc limit 1",
+      [row!.id],
+    );
+    expect(ch.rows[0]).toMatchObject({ op: 'del' });
     expect(await mrsOf(1)).toHaveLength(0);
     expect((await call('GET', 'config')).json().projects).toHaveLength(0);
     handler = (_, res) => json(res, {}, {}, 404);

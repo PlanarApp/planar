@@ -18,6 +18,8 @@ import { api as webhooksApi } from '@planar/module-webhooks/api';
 import * as webhooksTables from '@planar/module-webhooks/api/schema';
 import { api as gitlabApi } from '@planar/module-gitlab/api';
 import * as gitlabTables from '@planar/module-gitlab/api/schema';
+import { api as timelineApi } from '@planar/module-timeline/api';
+import * as timelineTables from '@planar/module-timeline/api/schema';
 import { api as importApi } from '@planar/module-import/api';
 import * as importTables from '@planar/module-import/api/schema';
 
@@ -77,6 +79,7 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: docs, tables: docsTables },
   { api: chat, tables: chatTables },
   { api: formsApi, tables: formsTables },
+  { api: timelineApi, tables: timelineTables },
 ]);
 
 export const moduleTables = (): Map<string, PgTable> =>

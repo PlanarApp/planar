@@ -1,4 +1,4 @@
-// Сид dev-данных: tsx --conditions=source src/db/seed.ts [--tasks N: довести число задач до N] [--bench]
+// Сид dev-данных: tsx --conditions=source src/db/seed.ts [--tasks N: довести число задач до N] [--bench] [--dates: ~80 % задач с startDate/dueDate]
 import { randomBytes } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import argon2 from 'argon2';
@@ -108,8 +108,16 @@ async function seedBase(db: Db) {
   ]);
 }
 
+/** Даты задачи i (детерминированно): старт в пределах ±120 дней от сегодня, длительность 1–14 дней; часть — с одной датой. */
+function seedDates(i: number) {
+  const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+  const start = ((i * 37) % 240) - 120;
+  const due = start + (i % 14);
+  return i % 7 === 0 ? { dueDate: day(due) } : { startDate: day(start), dueDate: day(due) };
+}
+
 /** Доводит общее число задач до target (повтор не копит); пишет напрямую в таблицы, без changes. */
-async function seedTasks(db: Db, target: number) {
+async function seedTasks(db: Db, target: number, dates = false) {
   const [{ total }] = (await db.execute(sql`select count(*)::int as total from tasks`)).rows as {
     total: number;
   }[];
@@ -161,6 +169,7 @@ async function seedTasks(db: Db, target: number) {
         rank: ranks[i]!,
         createdBy: admin!.id,
         completedAt: done ? new Date().toISOString() : null,
+        ...(dates && i % 5 !== 4 ? seedDates(i) : {}),
       });
       assignees.push({ spaceId: p.spaceId, taskId: id, userId: us[i % us.length]!.userId });
       if (i % 3 === 0 && lb.length)
@@ -181,9 +190,9 @@ async function seedTasks(db: Db, target: number) {
   await insertBatched(db, s.taskLabels, taskLabels);
 }
 
-export async function seed(db: Db, tasks = 0) {
+export async function seed(db: Db, tasks = 0, dates = false) {
   await seedBase(db);
-  await seedTasks(db, tasks);
+  await seedTasks(db, tasks, dates);
 }
 
 async function main() {
@@ -191,6 +200,7 @@ async function main() {
   const bench = argv.includes('--bench');
   const ti = argv.indexOf('--tasks');
   const tasks = ti >= 0 ? Number(argv[ti + 1]) : 0;
+  const dates = argv.includes('--dates');
   if (!Number.isInteger(tasks) || tasks < 0) throw new Error('--tasks N: целое ≥ 0');
 
   if (!bench) {
@@ -199,7 +209,7 @@ async function main() {
     const db = createDb(url);
     try {
       await migrate(db);
-      await seed(db, tasks);
+      await seed(db, tasks, dates);
     } finally {
       await db.$client.end();
     }
@@ -219,7 +229,7 @@ async function main() {
     await migrate(db);
     await seedBase(db);
     const t0 = performance.now();
-    await seedTasks(db, tasks);
+    await seedTasks(db, tasks, dates);
     console.log(`seed_ms=${Math.round(performance.now() - t0)} tasks=${tasks}`);
   } finally {
     await db.$client.end();
