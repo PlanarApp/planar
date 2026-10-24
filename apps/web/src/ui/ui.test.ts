@@ -15,6 +15,9 @@ import {
   IconButton,
   Kbd,
   Menu,
+  Select,
+  Tooltip,
+  resetBreakpoint,
   Popover,
   Tabs,
   Toolbar,
@@ -240,5 +243,77 @@ describe('Avatar', () => {
   it('без src сразу показывает инициалы', async () => {
     const { Avatar } = await import('./index');
     expect(wrap(Avatar, { name: 'Анна Белова' }).text()).toBe('АБ');
+  });
+});
+
+describe('mobile: листы', () => {
+  const setMobile = (m: boolean) => {
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: m,
+      media: q,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    resetBreakpoint();
+  };
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetBreakpoint();
+  });
+
+  it('mobile: Menu открывается листом, пункт выбирается', async () => {
+    setMobile(true);
+    const onSelect = vi.fn();
+    wrap(
+      Menu,
+      { items: [{ id: 'a', label: 'Пункт', onSelect }] },
+      { trigger: () => h('button', 'M') },
+    );
+    document.body.querySelector('button')!.click();
+    await vi.waitFor(() => expect($('[data-testid=sheet]')).not.toBeNull());
+    expect($('[role=menu]')).toBeNull();
+    const item = [...document.body.querySelectorAll('[data-testid=sheet] button')].find((b) =>
+      b.textContent?.includes('Пункт'),
+    ) as HTMLElement;
+    item.click();
+    expect(onSelect).toHaveBeenCalled();
+    await vi.waitFor(() => expect($('[data-testid=sheet]')).toBeNull());
+  });
+
+  it('mobile: Select выбор опции меняет v-model', async () => {
+    setMobile(true);
+    const onUpdate = vi.fn();
+    wrap(Select, {
+      label: 'Статус',
+      options: [
+        { value: 'a', label: 'Альфа' },
+        { value: 'b', label: 'Бета' },
+      ],
+      modelValue: 'a',
+      'onUpdate:modelValue': onUpdate,
+    });
+    document.body.querySelector<HTMLElement>('button[aria-label="Статус"]')!.click();
+    await vi.waitFor(() => expect($('[data-testid=sheet]')).not.toBeNull());
+    [...document.body.querySelectorAll<HTMLElement>('[role=option]')]
+      .find((b) => b.textContent?.includes('Бета'))!
+      .click();
+    expect(onUpdate).toHaveBeenCalledWith('b');
+  });
+
+  it('mobile: Tooltip не рендерит content', async () => {
+    setMobile(true);
+    const w = wrap(Tooltip, { content: 'Подсказка' }, { default: () => h('button', 'T') });
+    await w.find('button').trigger('focus');
+    await w.find('button').trigger('pointermove');
+    await nextTick();
+    expect(document.body.textContent).not.toContain('Подсказка');
+    expect(w.find('button').exists()).toBe(true);
+  });
+
+  it('mobile: Popover открывается листом', async () => {
+    setMobile(true);
+    wrap(Popover, {}, { trigger: () => h('button', 'P'), default: () => h('p', 'Тело') });
+    document.body.querySelector('button')!.click();
+    await vi.waitFor(() => expect($('[data-testid=sheet]')?.textContent).toContain('Тело'));
   });
 });
