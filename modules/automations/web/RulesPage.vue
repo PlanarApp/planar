@@ -339,7 +339,7 @@ const setValue = (i: number, raw: string) => {
                 {{ x.description ? `${x.description} — ${x.url}` : x.url }}
               </option>
             </select>
-            <a v-else href="/settings/webhooks" class="text-sm underline">{{
+            <a v-else href="/settings/webhooks:webhooks" class="text-sm underline">{{
               tx.noSubscriptions
             }}</a>
           </template>

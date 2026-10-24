@@ -98,20 +98,15 @@ function eventsOf(writes: MutationWrite[]): Event[] {
   return out;
 }
 
-/** Запуск правила: хук вызывается после каждой мутации; после последней ставим доставку (в той же транзакции). */
-const firing = new Map<string, { d: RunData; left: number }>();
+/**
+ * Запуск правила: хук вызывается после каждой мутации; после последней ставим доставку (в той же транзакции).
+ * shortcut: ключ — ruleId, верно при localConcurrency=1 (запуски очереди последовательны); upgrade — after-хук execute в ядре.
+ */
+const firing = new Map<string, { d: RunData; subs: string[]; left: number }>();
 
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
   const f = ctx.origin && firing.get(ctx.origin.ruleId);
-  if (f && --f.left === 0) {
-    const [r] = (
-      await api.q.execute(sql`select actions from automations_rules where id = ${f.d.ruleId}`)
-    ).rows as { actions: Action[] }[];
-    const subs = (r?.actions ?? []).flatMap((a) =>
-      a.type === 'send_webhook' ? [a.subscriptionId] : [],
-    );
-    await sendWebhooks(api, api.q, subs, f.d);
-  }
+  if (f && --f.left === 0) await sendWebhooks(api, api.q, f.subs, f.d);
   const depth = (ctx.origin?.depth ?? 0) + 1;
   if (depth > MAX_DEPTH) return;
   const projects = new Map<string, string | null>();
@@ -357,7 +352,7 @@ async function run(d: RunData, api: JobApi) {
       a.type === 'send_webhook' ? [a.subscriptionId] : [],
     );
     // без мутаций хук не вызовется: состояние задачи не меняется, шлём после execute
-    if (hooks.length && muts.length) firing.set(d.ruleId, { d, left: muts.length });
+    if (hooks.length && muts.length) firing.set(d.ruleId, { d, subs: hooks, left: muts.length });
     await api.execute(api.systemUserId, muts, {
       system: true,
       origin: { ruleId: d.ruleId, depth: d.depth },
