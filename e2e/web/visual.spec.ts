@@ -15,7 +15,7 @@ const SCREENS: [name: string, url: (d: Data) => string, ready: string | RegExp][
   ['chat', (d) => `/m/chat/c/${d.chatId}`, 'Нашла обрезку заголовка на узком экране.'],
   ['docs', (d) => `/m/docs/${d.docId}`, 'Плотность и отступы'],
   ['time-week', () => '/m/time/week', 'Мои часы'],
-  ['dev-ui', () => '/dev/ui', 'C-ui v3'],
+  ['dev-ui', () => '/dev/ui', 'C-ui v4'],
 ];
 const WIDTHS = [
   [1440, 900],
