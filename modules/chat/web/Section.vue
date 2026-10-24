@@ -66,6 +66,18 @@ const dms = computed(() => {
     .map((c) => ({ c, title: dmTitle(c, x.members, users.value, meId.value) }));
 });
 const title = (c: Channel) => c.name ?? '';
+// «+» канал: в строке заголовка «Чат» — когда пространство одно (или каналов нет); при нескольких — в строке пространства
+const headerSpace = computed(() =>
+  groups.value.length > 1
+    ? undefined
+    : groups.value.length
+      ? groups.value[0].canCreate
+        ? groups.value[0].s
+        : undefined
+      : firstCreate.value || undefined,
+);
+const hoverPlus = 'md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100';
+const row = 'flex h-7 items-center justify-between rounded-md pl-6 pr-2 text-sm hover:bg-bg-muted';
 
 // + канал: имя в строке под заголовком пространства
 const addIn = ref('');
@@ -114,20 +126,32 @@ const link = (id: string) => `/m/chat/c/${id}`;
 
 <template>
   <section data-testid="chat-section">
-    <h2>
+    <h2 class="group flex items-center">
       <button
         type="button"
         :aria-expanded="!folded"
-        class="flex h-7 w-full items-center gap-1 rounded-md px-2 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+        class="flex h-7 min-w-0 flex-1 items-center gap-1 rounded-md px-2 text-xs font-medium uppercase text-fg-muted outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
         @click="fold"
       >
-        <ChevronRight :size="12" :class="['shrink-0', !folded && 'rotate-90']" />{{ tx('chat') }}
+        <ChevronRight
+          :size="12"
+          :class="['shrink-0 transition-transform', !folded && 'rotate-90']"
+        />{{ tx('chat') }}
       </button>
+      <IconButton
+        v-if="headerSpace"
+        :icon="Plus"
+        :label="tx('newChannel')"
+        size="sm"
+        data-testid="chat-add-channel"
+        :class="hoverPlus"
+        @click="addIn = addIn === headerSpace.id ? '' : headerSpace.id"
+      />
     </h2>
     <template v-if="!folded">
       <form
         v-if="d && !groups.length && addIn"
-        class="flex gap-1 px-2 py-1"
+        class="flex gap-1 py-1 pl-6 pr-2"
         @submit.prevent="addChannel"
       >
         <Input
@@ -138,35 +162,30 @@ const link = (id: string) => `/m/chat/c/${id}`;
         />
         <Button type="submit" size="sm" variant="primary">{{ tx('create') }}</Button>
       </form>
-      <div v-if="d && !groups.length" class="flex h-7 items-center px-2 text-xs text-fg-muted">
+      <div v-if="d && !groups.length" class="flex h-7 items-center pl-6 pr-2 text-xs text-fg-muted">
         {{ tx('noChannels') }}
-        <IconButton
-          v-if="firstCreate"
-          :icon="Plus"
-          :label="tx('newChannel')"
-          size="sm"
-          data-testid="chat-add-channel"
-          class="ml-auto"
-          @click="addIn = addIn ? '' : firstCreate.id"
-        />
       </div>
       <div v-for="g in groups" :key="g.s.id">
         <div
-          v-if="groups.length > 1 || g.canCreate"
-          class="flex h-7 items-center px-2 text-xs text-fg-muted"
+          v-if="groups.length > 1"
+          class="group flex h-7 items-center pl-4 pr-2 text-xs text-fg-muted"
         >
-          <span v-if="groups.length > 1" class="truncate">{{ g.s.name }}</span>
+          <span class="truncate">{{ g.s.name }}</span>
           <IconButton
             v-if="g.canCreate"
             :icon="Plus"
             :label="tx('newChannel')"
             size="sm"
             data-testid="chat-add-channel"
-            class="ml-auto"
+            :class="['ml-auto', hoverPlus]"
             @click="addIn = addIn === g.s.id ? '' : g.s.id"
           />
         </div>
-        <form v-if="addIn === g.s.id" class="flex gap-1 px-2 py-1" @submit.prevent="addChannel">
+        <form
+          v-if="addIn === g.s.id"
+          class="flex gap-1 py-1 pl-6 pr-2"
+          @submit.prevent="addChannel"
+        >
           <Input
             v-model="name"
             :label="tx('channelName')"
@@ -181,10 +200,7 @@ const link = (id: string) => `/m/chat/c/${id}`;
           :to="link(c.id)"
           data-testid="chat-channel"
           :aria-current="current === c.id ? 'page' : undefined"
-          :class="[
-            'flex h-7 items-center justify-between rounded-md px-2 text-sm hover:bg-bg-muted',
-            current === c.id && 'bg-bg-muted font-medium',
-          ]"
+          :class="[row, current === c.id && 'bg-bg-muted font-medium']"
         >
           <span class="truncate"># {{ title(c) }}</span>
           <Badge
@@ -199,17 +215,18 @@ const link = (id: string) => `/m/chat/c/${id}`;
       </div>
 
       <div>
-        <div class="flex h-7 items-center justify-between px-2 text-xs text-fg-muted">
+        <div class="group flex h-7 items-center justify-between pl-4 pr-2 text-xs text-fg-muted">
           <span>{{ tx('dms') }}</span>
           <IconButton
             :icon="Plus"
             :label="tx('newDm')"
             size="sm"
+            :class="hoverPlus"
             data-testid="chat-add-dm"
             @click="picking = !picking"
           />
         </div>
-        <form v-if="picking" class="px-2 py-1" @submit.prevent="openDm">
+        <form v-if="picking" class="py-1 pl-6 pr-2" @submit.prevent="openDm">
           <label v-for="u in people" :key="u.id" class="flex items-center gap-2 py-0.5 text-sm">
             <input
               type="checkbox"
@@ -229,10 +246,7 @@ const link = (id: string) => `/m/chat/c/${id}`;
           :to="link(x.c.id)"
           data-testid="chat-dm"
           :aria-current="current === x.c.id ? 'page' : undefined"
-          :class="[
-            'flex h-7 items-center justify-between rounded-md px-2 text-sm hover:bg-bg-muted',
-            current === x.c.id && 'bg-bg-muted font-medium',
-          ]"
+          :class="[row, current === x.c.id && 'bg-bg-muted font-medium']"
         >
           <span class="truncate">{{ x.title }}</span>
           <Badge

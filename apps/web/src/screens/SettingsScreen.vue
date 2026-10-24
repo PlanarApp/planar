@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { useAuth } from '../auth/useAuth';
 import { onMutationError } from '../sync';
 import { useSpaces } from '../tasks';
-import { Select } from '../ui';
+import { Select, Tabs, useBreakpoint } from '../ui';
 import UsersSettings from './settings/UsersSettings.vue';
 
 const lazy = (n: string) => defineAsyncComponent(() => import(`./settings/${n}Settings.vue`));
@@ -25,6 +25,8 @@ type Id = keyof typeof SECTIONS;
 const { t, te, locale } = useI18n();
 const route = useRoute();
 const { isAdmin } = useAuth();
+const { isMobile } = useBreakpoint();
+const router = useRouter();
 const builtin = computed(() =>
   (Object.keys(SECTIONS) as Id[]).filter((s) => isAdmin.value || !('admin' in SECTIONS[s])),
 );
@@ -67,7 +69,16 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
 
 <template>
   <div class="flex flex-col gap-4 p-4 md:flex-row">
-    <nav :class="[param ? 'hidden md:flex' : 'flex', 'flex-col gap-1 md:w-48']">
+    <h1 v-if="isMobile" class="text-xl font-semibold">{{ t('screens.settings') }}</h1>
+    <!-- mobile: разделы — горизонтальные вкладки вверху -->
+    <Tabs
+      v-if="isMobile"
+      :model-value="active"
+      :label="t('screens.settings')"
+      :items="items.map((s) => ({ value: s.key, label: s.label }))"
+      @update:model-value="(k) => router.push(`/settings/${k}`)"
+    />
+    <nav v-else class="flex flex-col gap-1 md:w-48">
       <h1 class="mb-2 text-xl font-semibold">{{ t('screens.settings') }}</h1>
       <RouterLink
         v-for="s in items"
@@ -79,10 +90,7 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
         >{{ s.label }}</RouterLink
       >
     </nav>
-    <div :class="[param ? 'flex' : 'hidden md:flex', 'min-w-0 flex-1 flex-col gap-3']">
-      <RouterLink to="/settings" class="text-sm underline md:hidden">{{
-        t('screens.settings')
-      }}</RouterLink>
+    <div class="flex min-w-0 flex-1 flex-col gap-3">
       <p v-if="serverError" role="alert" class="text-sm text-danger">{{ serverError }}</p>
       <Select
         v-if="sec && 'space' in sec"
