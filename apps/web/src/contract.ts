@@ -1,5 +1,5 @@
 export const UI_CONTRACT_VERSIONS = {
-  'C-ui': 2,
+  'C-ui': 3,
   'C-client': 4,
   'C-tasks': 3,
   'C-views': 2,

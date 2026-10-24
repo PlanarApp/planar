@@ -99,6 +99,13 @@
       "when": 1792782829752,
       "tag": "0013_worried_wolverine",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792839882825,
+      "tag": "0014_stiff_klaw",
+      "breakpoints": true
     }
   ]
 }

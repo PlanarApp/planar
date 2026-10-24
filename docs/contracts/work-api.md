@@ -13,8 +13,9 @@ related: ["docs/contracts/work.md", "docs/contracts/core-api-v1.md", "docs/contr
 v7 = v6 + полный перечень значений SDK `@planar/web/modules` (сверка с collab.md §X-core п. 6; при слиянии ветки нельзя терять ни одно имя). Контрактный тест — `apps/web/src/__contract__/sdk.contract.test.ts` (блок `sdk-exports` ниже).
 - Обязательные (есть всегда):
 ```text sdk-exports=required
-defineWebModule mutate newId rankBetween useQuery db useTask useProjectTasks useSpaces useProject useStatuses useMembers useLabels openTask useI18n i18n useWeekStart useRouter useSearch Editor uploadFile api ApiError onMutationError FilterBuilder localToday matchFilter useSession useCycles
+defineWebModule mutate newId rankBetween useQuery db useTask useProjectTasks useSpaces useProject useStatuses useMembers useLabels openTask useI18n i18n useWeekStart useRouter useSearch Editor uploadFile api ApiError onMutationError FilterBuilder localToday matchFilter useSession useCycles IconButton ConfirmDialog Tabs Chip AvatarStack Kbd EmptyState Toolbar
 ```
+- C-modules v10 (design, DS-0): += `IconButton ConfirmDialog Tabs Chip AvatarStack Kbd EmptyState Toolbar` — компоненты C-ui v3, `docs/contracts/design.md` §Базовые компоненты.
 - Вместе с клиентом синхронизации (C-sync v2, collab): если `apps/web/src/sync` экспортирует имя — SDK обязан его реэкспортировать:
 ```text sdk-exports=with-sync
 sendTyping onTyping
