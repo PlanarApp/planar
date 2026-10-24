@@ -1,0 +1,64 @@
+{
+  "status": "partial",
+  "summary": "Hocuspocus на WS /collab (сессия+Origin, права docs/task, readOnly для guest/архива), ydocs + миграция 0014, проекция через executeMutations от последнего правившего, внешняя запись через журнал changes, пакет @planar/editor (схема + палитра курсоров), Editor.vue берёт схему из пакета, proxy Vite/Caddy. 12 тестов pt1a зелёные.",
+  "commits": [
+    "7d61a6b PT-1a: collab"
+  ],
+  "checks": [
+    {
+      "name": "pt1a",
+      "value": "12 passed",
+      "pass": true
+    },
+    {
+      "name": "build/lint/install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "772 passed, 1 failed: contract.schema 'нет лишних таблиц' (ydocs нет в core.md)",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "test-all красный из-за contract.schema.test: таблица ydocs не внесена в docs/contracts/core.md «Несинхронизируемые таблицы» (C-schema v9) — это отдельная задача, мне docs/contracts трогать нельзя"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-1a (после внесения ydocs в core.md)",
+  "uncertain": [
+    {
+      "where": "apps/api/src/collab/collab.service.ts external()",
+      "why": "внешняя запись определяется по журналу changes (ChangeNotifier), а не по ServerTx.writes в mutate.ts: покрывает все пути записи без правки mutate.ts. Чтобы не откатывать набранное, игнорируются записи со seq <= seq на момент загрузки документа и совпадающие с недавними собственными проекциями (до 8, в памяти) — это не флаги в данных, но добавка к правилу контракта",
+      "checked": "тест 9 и 4 прогона pt1a подряд; флейк гонки (task.create после открытия откатывал правку) был найден и исправлен"
+    },
+    {
+      "where": "collab.service.ts load()",
+      "why": "тело, не разбираемое схемой (неизвестный узел), даёт отказ загрузки, а не пустой документ — иначе проекция затёрла бы данные",
+      "checked": "только по коду"
+    },
+    {
+      "where": "collab.service.ts recheck()",
+      "why": "смена роли member->guest уже открытого соединения readOnly не меняет; закрываются только del участника и деактивация",
+      "checked": "тест 11 (удаление)"
+    },
+    {
+      "where": "app.module.ts / options.ts",
+      "why": "debounce тестов задаётся env COLLAB_DEBOUNCE_MS, т.к. app.ts вне scope (createApp опций не принимает)",
+      "checked": "pt1a"
+    },
+    {
+      "where": "package.json api",
+      "why": "@hocuspocus/transformer не добавлен: используется y-prosemirror напрямую (prosemirrorJSONToYXmlFragment/yXmlFragmentToProsemirrorJSON), схема из @planar/editor",
+      "checked": "тест схемы: JSON (заголовок, список, жирный, mention, image) -> Y.Doc -> JSON равен"
+    },
+    {
+      "where": "task.delete",
+      "why": "ydocs удаляется по журналу, не синхронно с COMMIT мутации",
+      "checked": "тест 10"
+    }
+  ],
+  "dp_feedback": "accept падает на контрактном тесте, читающем docs/contracts, который по scope нельзя править: нужен способ пометить 'ждёт контрактной задачи'.",
+  "t": "2026-10-24T11:20:33",
+  "by": "executor"
+}

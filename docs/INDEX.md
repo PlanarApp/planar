@@ -46,6 +46,7 @@ generated: true
 - [docs/contracts/collab.md](contracts/collab.md) — Контракты collab — документы (DC-*), чат (CH-schema, CH-mutators, CH-api, CH-web), правки ядра для чата (X-core)
 - [docs/contracts/core-api-v1.md](contracts/core-api-v1.md) — API-токены, Bearer, REST /api/v1 и MCP /mcp — часть C-http v8 (docs/contracts/core.md); примеры проверяет контрактный тест
 - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Мутаторы домена C-mutators v3 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
+- [docs/contracts/core-schema.md](contracts/core-schema.md) — Сущности C-schema v8 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
 - [docs/contracts/p3.md](contracts/p3.md) — Контракты p3 — совместное редактирование (/collab, ydocs, проекция), сущности и мутаторы timeline, workload, dashboards, forms, gitlab
 - [docs/contracts/work-api.md](contracts/work-api.md) — Контракты work, часть 2 — C-modules v5 и v6 (enqueue, SDK, настройки модулей, правки collab), REST v1 и MCP (WK-5)
 - [docs/contracts/work.md](contracts/work.md) — Контракты work — C-modules v3, C-schema v7, F-filter v2, модули time, sprints, automations, webhooks, import, REST/MCP
