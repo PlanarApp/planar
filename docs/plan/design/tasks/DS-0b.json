@@ -20,7 +20,8 @@
     "apps/web/src/screens/DevUiScreen.vue",
     "apps/web/src/tasks/fields/PriorityPicker.vue",
     "apps/web/src/screens/profile/TokensSection.vue",
-    "apps/web/src/tasks/__tests__"
+    "apps/web/src/tasks/__tests__",
+    "apps/web/src/screens/settings/__tests__/settings.test.ts"
   ],
   "dont_touch": [
     "apps/web/src/__contract__/, apps/web/src/contract.ts, docs/contracts/ — только координатор",
@@ -66,5 +67,6 @@
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-24T13:29:54"
+  "created": "2026-10-24T13:29:54",
+  "edited": "2026-10-24T13:35:54"
 }

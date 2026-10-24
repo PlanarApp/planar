@@ -1,0 +1,57 @@
+{
+  "status": "done",
+  "summary": "Menu без trigger рисует IconButton «…» с label (dev-warn без обоих); Input отдаёт атрибуты на input, class/style на обёртку; лист Select — role=listbox, aria-describedby в Sheet привязан; PriorityPicker и TokensSection без «—»; селекторы settings.test обновлены.",
+  "commits": [
+    "a440c1a DS-0b: Menu без trigger, атрибуты Input, listbox, пустые значения"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "v4-tests",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept DS-0b",
+  "uncertain": [
+    {
+      "where": "modules/chat/web/chat.test.ts",
+      "why": "в полном прогоне один раз упал таймингом ≤50 мс, отдельно и повторно проходит",
+      "checked": "повторный полный accept --dry PASS"
+    }
+  ],
+  "dp_feedback": "plan design '5. Задачи / DS-0' не находится — раздел назван иначе.",
+  "t": "2026-10-24T13:45:09",
+  "by": "executor"
+}

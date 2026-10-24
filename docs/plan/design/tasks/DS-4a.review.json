@@ -1,34 +1,14 @@
 {
-  "verdict": "rework",
-  "summary": "Блокер прошлого ревью снят: раскладка теперь зависит от ширины контейнера (@container/@2xl). В панели 480 px карточка в одну колонку, на /t/:key — в две, это видно на скриншотах. Описание обёрнуто в text-base. Но в новом тесте удаления (п. 4 доработки) проверка «после подтверждения задача удалена» проходит всегда, так что требование фактически не проверено.",
-  "issues": [
-    {
-      "file": "apps/web/src/task/__tests__/task.test.ts",
-      "line": 63,
-      "severity": "major",
-      "what": "Проверка `expect((await row('tasks', t.id))?.deletedAt ?? 1).toBeTruthy()` проходит всегда: если deletedAt равен null, `null ?? 1` даёт 1. Тест останется зелёным, даже если подтверждение в ConfirmDialog ничего не удаляет. Требование координатора из п. 4 не проверяется.",
-      "fix": "Проверять явно: `const r = await row<{deletedAt?: unknown}>('tasks', t.id); expect(r === undefined || r.deletedAt != null).toBe(true)`. Лучше выбрать одну ветку по тому, как устроен task.delete: мягкое удаление или жёсткое."
-    },
-    {
-      "file": "apps/web/src/task/TaskDetail.vue",
-      "line": 201,
-      "severity": "minor",
-      "what": "@2xl в Tailwind 4 — это контейнер шириной 42rem, то есть 672 px. Координатор назначил порог 640 px. На панели 480 px и на странице max-w-5xl разница не видна, но порог не совпадает с решением.",
-      "fix": "Взять @min-[40rem]: или согласовать с координатором порог 672 px."
-    }
-  ],
+  "verdict": "accept",
+  "summary": "Доработка 2 выполнена: task.delete удаляет строку целиком (tx.del('tasks', id) в packages/shared/src/mutators/tasks.ts:46). Тест проверяет именно это: после «Отмена» строка на месте, после подтверждения строки нет. eventually получает булево значение, поэтому проверка не проходит всегда. Порог @2xl оставлен, как решил координатор, других правок нет.",
+  "issues": [],
   "rerun": [
-    {
-      "name": "typecheck (accept --only typecheck --dry)",
-      "value": "exit 0, скоуп 3 файла",
-      "pass": true
-    },
     {
       "name": "vitest src/task/__tests__/task.test.ts",
       "value": "12/12",
       "pass": true
     }
   ],
-  "t": "2026-10-24T13:28:46",
+  "t": "2026-10-24T13:38:30",
   "by": "reviewer"
 }
