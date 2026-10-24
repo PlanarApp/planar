@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Button, IconButton, Input } from '@planar/web/modules';
-import { ChevronLeft, ChevronRight } from './icons';
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { dayKey, entrySec, hm, parseHm, planCell, weekDays } from './lib';
 import { locale, mutate, newId, tr, useMyEntries, useNow, useTasks, useWeekStart } from './data';
 
