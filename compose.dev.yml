@@ -45,7 +45,7 @@ services:
       <<: *node-env
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/planar
       PORT: '3000'
-      PUBLIC_URL: http://localhost:${WEB_PORT:-5173}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:${WEB_PORT:-5173}}
       COOKIE_SECURE: 'false'
       DATA_DIR: /app/data
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
