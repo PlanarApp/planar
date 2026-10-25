@@ -85,3 +85,10 @@ volumes:
   nm_shared:
   nm_e2e:
   pnpm_store:
+
+# явная подсеть: на общих хостах пулы docker по умолчанию бывают исчерпаны; параллельным стекам — свой DEV_SUBNET
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${DEV_SUBNET:-10.231.0.0/24}
