@@ -3,6 +3,7 @@ import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { MutatorError, uuidv7, type EntityName, type Row, type Tx } from '@planar/shared';
 import * as schema from '../db/schema.js';
+import { installed } from '../modules/installed.js';
 import { allMetas, metaOf, schemaOf, tableOf, toWire } from './rows.js';
 
 /** Drizzle-транзакция (или соединение внутри ручного BEGIN). */
@@ -169,6 +170,8 @@ export class ServerTx implements Tx {
       throw new MutatorError('invalid_args', 'spaceId неизменяем');
     await this.authorize(entity, old, next);
     if (entity === 'attachments' && !old) await this.checkFile(next);
+    if (entity === 'settings' && next.id === 'enabled_modules')
+      await this.checkAvailable(old, next);
     if (entity === 'tasks' && next.number == null)
       next.number = await this.nextNumber(next.projectId as string);
     await this.store(entity, next, extra);
@@ -178,6 +181,17 @@ export class ServerTx implements Tx {
     if (entity === 'settings' && next.id === 'enabled_modules')
       await this.log('_reset', 'put', null, next.id as string);
     await this.activity(entity, old, next);
+  }
+
+  /** C-mutators v5: новый включённый модуль с unavailable ≠ null → invalid_args (код причины). */
+  private async checkAvailable(old: Wire | undefined, next: Wire): Promise<void> {
+    const was = Array.isArray(old?.value) ? old.value : [];
+    if (!Array.isArray(next.value)) return;
+    for (const id of next.value) {
+      if (was.includes(id)) continue;
+      const code = await installed.find((m) => m.api.id === id)?.api.unavailable?.(this.q);
+      if (code) throw new MutatorError('invalid_args', code);
+    }
   }
 
   /** Запись без проверки прав: upsert + changes. */

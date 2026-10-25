@@ -1,0 +1,41 @@
+{
+  "verdict": "rework",
+  "summary": "Мутаторы, схема data, templateIdPlan и тесты соответствуют P4-templates v1, а C-modules v11 (3) выполнен; contract и pf2 (13) при перепроверке проходят. Ветка не синхронизирована после слияния PF-1: миграция 0019 конфликтует с 0019_condemned_exodus в feature/p4. Web-теста меню, который требовал координатор, нет.",
+  "issues": [
+    {
+      "file": "apps/api/drizzle/0019_templates.sql",
+      "line": 1,
+      "severity": "blocker",
+      "what": "Указание координатора от 10-25 02:11 не выполнено: ветка p4/PF-2 растёт от 1ab9de6, без 675a92c (слияние PF-1). В feature/p4 уже есть 0019_condemned_exodus (idx 19 в _journal), поэтому слияние даст две миграции 0019 и конфликт в meta/_journal.json и снапшоте.",
+      "fix": ".dpcli/dpcli task sync PF-2; удалить свою 0019 (sql, snapshot, запись в _journal); pnpm --filter api exec drizzle-kit generate поверх; accept --dry; отчёт заново."
+    },
+    {
+      "file": "apps/web/src/views/list/View.vue",
+      "line": 156,
+      "severity": "major",
+      "what": "Нет web-теста меню «Новая задача» (команды с newTaskMenu и when(ctx); без команд меню не показывается), хотя в дополнении координатора он требуется (modules/templates/web/*.test.ts или views/list/__tests__, префикс pf2:). В отчёте это указано в «не вышло».",
+      "fix": "Добавить pf2:-тест: меню появляется при команде с newTaskMenu и истинным when, скрыто без таких команд и при when=false."
+    },
+    {
+      "file": "modules/templates/shared/index.ts",
+      "line": 320,
+      "severity": "minor",
+      "what": "createTask передаёт a.parentId в makeTree. Если шаблон с subtasks применить с parentId, подзадачи шаблона окажутся вторым уровнем вложенности, а контракт говорит «один уровень». Я не проверял, отклоняет ли task.create такую глубину.",
+      "fix": "Проверить правило глубины в task.create. Если глубина 2 запрещена или нежелательна, при parentId отвергать шаблон с подзадачами (invalid_args) или явно описать поведение."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "pf2",
+      "value": "13 passed",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-25T02:20:50",
+  "by": "reviewer"
+}

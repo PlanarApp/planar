@@ -56,6 +56,18 @@ const weekStart = useWeekStart();
 const scale = ref<Scale>('day');
 const px = computed(() => PX[scale.value]);
 
+// веха модуля goals: таблицы может не быть (модуль выключен — строк нет, C-modules)
+const milestones = useQuery(async () =>
+  db.tables.some((t) => t.name === 'goalsMilestones')
+    ? ((await db.table('goalsMilestones').where('projectId').equals(props.projectId).toArray()) as {
+        id: string;
+        name: string;
+        date: string;
+      }[])
+    : [],
+);
+const msDays = computed(() => (milestones.value ?? []).map((m) => ({ ...m, day: toDay(m.date) })));
+
 const dated = computed(() => (tasks.value ?? []).filter((t) => barOf(t)));
 const undated = computed(() => (tasks.value ?? []).filter((t) => !barOf(t)));
 const bars = computed(() => new Map(dated.value.map((t) => [t.id, barOf(t)!])));
@@ -68,10 +80,12 @@ const blocks = computed(() =>
 );
 
 const today = toDay(localToday());
-const range = computed(() => span([...bars.value.values()], today));
+const range = computed(() =>
+  span([...bars.value.values(), ...msDays.value.map((m) => ({ s: m.day, e: m.day }))], today),
+);
 const origin = computed(() => range.value[0]);
 const width = computed(() => (range.value[1] - range.value[0] + 1) * px.value);
-const height = computed(() => dated.value.length * ROW_H);
+const height = computed(() => Math.max(dated.value.length, 1) * ROW_H);
 const x = (day: number) => (day - origin.value) * px.value;
 
 // окно виртуализации; в тестовой среде размеры равны 0 — берём запасные
@@ -266,6 +280,17 @@ watch(scale, () => {
             :style="{ left: x(today) + 'px' }"
             aria-hidden="true"
           />
+          <div
+            v-for="m in msDays"
+            :key="m.id"
+            class="pointer-events-none absolute inset-y-0 w-px bg-warning"
+            :style="{ left: x(m.day) + 'px' }"
+            data-testid="tl-milestone"
+          >
+            <span class="absolute top-0 whitespace-nowrap pl-1 text-2xs text-warning">
+              {{ m.name }}
+            </span>
+          </div>
           <div
             v-for="{ t, i } in rows"
             :key="t.id"

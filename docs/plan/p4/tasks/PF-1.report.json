@@ -1,0 +1,64 @@
+{
+  "status": "done",
+  "summary": "Модуль modules/recurring: сущность recurringRules, мутаторы set/remove/advance, чистые функции, cron tick, воркер spawn (for update + recurring_runs), хук after_done и удаления задачи, панель «Повтор», миграция 0019.",
+  "commits": [
+    "f751ed6 recurring: повторяющиеся задачи (PF-1)"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "pf1",
+      "value": "18",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "web: часовой пояс по умолчанию — пояс браузера, settings.timezone не читается"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PF-1",
+  "uncertain": [
+    {
+      "where": "modules/recurring/shared/index.ts: advance",
+      "why": "MutatorCtx не имеет system (контракт: ctx.system); shared/src трогать нельзя. Системность определяю по users[ctx.userId].deactivatedAt != null (системный пользователь деактивирован). Остальные модули p4 (email.setPrefs, plugins.save) упрутся в то же.",
+      "checked": "admin → forbidden, spawn от системы проходит (тесты pf1)"
+    },
+    {
+      "where": "modules/recurring/api/index.ts: spawn",
+      "why": "data тика содержит taskId сверх {ruleId, period} — нужно для проверки «taskId не сменился с постановки»; без него берётся rule.task_id. «ещё участники пространства» понял как: исполнители образца, остающиеся участниками пространства.",
+      "checked": "тесты на устаревший taskId и вышедшего исполнителя"
+    },
+    {
+      "where": "web/RepeatPanel.vue",
+      "why": "UI не проверялся в браузере, только сборка/lint",
+      "checked": "vue-tsc/build"
+    }
+  ],
+  "dp_feedback": "accept --dry идёт ~5 мин при лимите 120с у foreground; полезен явный совет запускать через job start.",
+  "t": "2026-10-25T01:52:02",
+  "by": "executor"
+}
