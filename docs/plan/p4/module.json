@@ -1,0 +1,9 @@
+{
+  "module": "p4",
+  "plan": "docs/plan/p4.md",
+  "contracts": "docs/contracts/p4.md",
+  "branch": "feature/p4",
+  "copy": "~/planar-p4",
+  "created": "2026-10-25T01:16:50",
+  "code": "PF"
+}
