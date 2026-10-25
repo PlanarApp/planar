@@ -6,9 +6,11 @@ import {
   useLabels,
   useMembers,
   useProject,
-  useProjectTasks,
+  useScopeTasks,
+  updateTask,
   useStatuses,
 } from '../../tasks';
+import { statusFor, useStatusKey } from '../scope';
 import { useBlockedIds } from '../../links';
 import { LayoutDashboard } from 'lucide-vue-next';
 import { EmptyState, useBreakpoint } from '../../ui';
@@ -27,13 +29,14 @@ const { t } = useI18n();
 const { isMobile } = useBreakpoint();
 
 const project = useProject(() => props.projectId);
-const spaceId = computed(() => project.value?.spaceId ?? '');
-const tasks = useProjectTasks(() => props.projectId);
+const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
+const tasks = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 const statuses = useStatuses(spaceId);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId);
 const blocked = useBlockedIds(() => props.projectId);
 const passes = useTaskFilter(() => props.filter, statuses);
+const statusKey = useStatusKey(() => props.scope, statuses);
 
 const columns = computed(() =>
   boardColumns(
@@ -41,7 +44,12 @@ const columns = computed(() =>
       (x) => (props.options.showSubtasks || !x.parentId) && passes.value(x),
     ),
     props.options.groupBy,
-    { statuses: statuses.value ?? [], members: members.value ?? [], labels: labels.value ?? [] },
+    {
+      statuses: statuses.value ?? [],
+      members: members.value ?? [],
+      labels: labels.value ?? [],
+      statusKey: statusKey.value,
+    },
   ),
 );
 
@@ -117,6 +125,13 @@ async function onColumnsEnd(e: { oldDraggableIndex?: number; newDraggableIndex?:
 }
 
 async function move(id: string, from: string, to: string, beforeId: string | null) {
+  if (statusKey.value) {
+    // колонки — имена статусов разных пространств; порядок внутри колонки не меняем
+    const task = tasks.value?.find((x) => x.id === id);
+    const statusId = task && from !== to && statusFor(statuses.value ?? [], task.spaceId, to);
+    if (statusId) await updateTask(id, { statusId });
+    return;
+  }
   const plan = planMove(columns.value, props.options.groupBy, id, from, to, beforeId);
   if (plan) await applyMove(plan);
 }
@@ -157,7 +172,7 @@ function add(key: string, title: string) {
         draggable="[data-column]"
         filter="button"
         :prevent-on-filter="false"
-        :disabled="options.groupBy !== 'status'"
+        :disabled="options.groupBy !== 'status' || !!scope"
         :animation="150"
         :delay="300"
         :delay-on-touch-only="true"
@@ -180,9 +195,10 @@ function add(key: string, title: string) {
           :fields="options.fields"
           :blocked="blocked"
           :titles="titles"
-          :space-id="spaceId"
+          :space-id="scope ? undefined : spaceId"
           :show-empty="options.showEmpty"
-          :sortable="options.groupBy === 'status'"
+          :sortable="options.groupBy === 'status' && !scope"
+          :no-add="!!scope"
           @toggle="toggle(g.key)"
           @open="openTask"
           @add="add(g.key, $event)"

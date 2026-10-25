@@ -31,6 +31,8 @@ const props = defineProps<{
   showEmpty?: boolean;
   /** шапку можно тащить (порядок статусов) */
   sortable?: boolean;
+  /** без «+» и быстрого создания (сводка группы) */
+  noAdd?: boolean;
 }>();
 const emit = defineEmits<{
   toggle: [];
@@ -185,6 +187,7 @@ function submit() {
       <h3 class="truncate font-medium text-fg">{{ group.label }}</h3>
       <span class="text-fg-muted">{{ group.tasks.length }}</span>
       <button
+        v-if="!noAdd"
         type="button"
         class="ml-auto rounded-sm p-1 text-fg-subtle hover:bg-bg-muted focus-visible:ring-2 ring-focus"
         :aria-label="t('board.add')"
@@ -195,6 +198,7 @@ function submit() {
       </button>
       <button
         type="button"
+        :class="noAdd && 'ml-auto'"
         class="rounded-sm p-1 text-fg-subtle hover:bg-bg-muted focus-visible:ring-2 ring-focus"
         :aria-label="t('board.collapse')"
         data-testid="collapse"
@@ -265,7 +269,7 @@ function submit() {
               :key="c"
               :col="c"
               :task="x"
-              :space-id="spaceId ?? ''"
+              :space-id="spaceId ?? x.spaceId"
               :members="members"
               :labels="labels"
               :hot="hotId === x.id"

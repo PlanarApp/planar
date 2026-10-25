@@ -72,19 +72,17 @@ function useShared<T>(kind: string, arg: () => string, fn: (a: string) => Promis
   return out as Readonly<Ref<T | undefined>>;
 }
 
-const statuses = async (s: string) =>
-  (await db.table<Row<'statuses'>>('statuses').where('spaceId').equals(s).toArray()).sort(byRank);
+// ключ — id пространства или несколько через запятую (сводка группы)
+const bySpace = <T>(table: string, s: string) => {
+  const w = db.table<T>(table).where('spaceId');
+  return (s.includes(',') ? w.anyOf(s.split(',')) : w.equals(s)).toArray();
+};
+const statuses = async (s: string) => (await bySpace<Row<'statuses'>>('statuses', s)).sort(byRank);
 const labels = async (s: string) =>
-  (await db.table<Row<'labels'>>('labels').where('spaceId').equals(s).toArray()).sort(
-    byStr((l) => l.name),
-  );
+  (await bySpace<Row<'labels'>>('labels', s)).sort(byStr((l) => l.name));
 const members = async (s: string) => {
-  const ms = await db
-    .table<Row<'spaceMembers'>>('spaceMembers')
-    .where('spaceId')
-    .equals(s)
-    .toArray();
-  const us = await db.table<Row<'users'>>('users').bulkGet(ms.map((m) => m.userId));
+  const ms = await bySpace<Row<'spaceMembers'>>('spaceMembers', s);
+  const us = await db.table<Row<'users'>>('users').bulkGet([...new Set(ms.map((m) => m.userId))]);
   return us
     .filter((u): u is Row<'users'> => !!u && !u.deactivatedAt)
     .sort((a, b) => a.name.localeCompare(b.name));

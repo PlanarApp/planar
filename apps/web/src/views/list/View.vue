@@ -18,7 +18,7 @@ import {
   useLabels,
   useMembers,
   useProject,
-  useProjectTasks,
+  useScopeTasks,
   useStatuses,
   type TaskGroup,
   type TaskView,
@@ -29,6 +29,7 @@ import { useExtensions } from '../../modules/registry';
 import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
+import { useStatusKey } from '../scope';
 import Row from './Row.vue';
 import { treeOrder } from './tree';
 import { COLUMN_CLASS, visibleColumns } from './columns';
@@ -41,11 +42,12 @@ const sel = useSelection();
 
 const project = useProject(() => props.projectId);
 const blocked = useBlockedIds(() => props.projectId);
-const spaceId = computed(() => project.value?.spaceId ?? '');
+const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId);
-const all = useProjectTasks(() => props.projectId);
+const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
+const statusKey = useStatusKey(() => props.scope, statuses);
 const passes = useTaskFilter(() => props.filter, statuses);
 
 type Item =
@@ -70,6 +72,7 @@ const groups = computed(() => {
     statuses: statuses.value ?? [],
     members: members.value ?? [],
     labels: labels.value ?? [],
+    statusKey: statusKey.value,
   };
   return groupTasks(tasks, o.groupBy, ctx).map((g) => ({
     ...g,
@@ -133,7 +136,7 @@ const items = computed<Item[]>(() => {
           ? []
           : [{ id: `g:${g.key}`, kind: 'group' as const, group: g }]),
         ...rows,
-        { id: `c:${g.key}`, kind: 'create', group: g },
+        ...(props.scope ? [] : [{ id: `c:${g.key}`, kind: 'create' as const, group: g }]),
       ];
     }),
   );
@@ -149,7 +152,9 @@ const colName = (c: keyof typeof COL_LABEL) => t(COL_LABEL[c]);
 
 // --- перетаскивание (сортировка «Вручную»):
 // середина строки — сделать подзадачей этой задачи; граница — встать на уровень следующей строки
-const manual = computed(() => props.options.sortBy === 'rank' && props.options.sortDir === 'asc');
+const manual = computed(
+  () => !props.scope && props.options.sortBy === 'rank' && props.options.sortDir === 'asc',
+);
 type Drop = { mode: 'slot'; slot: number } | { mode: 'nest'; index: number };
 const drag = ref<{ task: TaskView; from: string; drop: Drop } | null>(null);
 // потомки перетаскиваемой задачи: в них её не вложить
@@ -417,10 +422,10 @@ watch(
           />
         </div>
         <template v-else>
-          <Button variant="primary" :icon="Plus" @click="startCreate('')">{{
+          <Button v-if="!scope" variant="primary" :icon="Plus" @click="startCreate('')">{{
             t('list.create')
           }}</Button>
-          <Menu v-if="newMenu.length" :items="newMenu" :label="t('list.newMenu')" />
+          <Menu v-if="newMenu.length && !scope" :items="newMenu" :label="t('list.newMenu')" />
         </template>
       </template>
     </EmptyState>
@@ -499,7 +504,7 @@ watch(
               <Row
                 v-else-if="it.kind === 'task'"
                 :task="it.task"
-                :space-id="spaceId"
+                :space-id="it.task.spaceId"
                 :index="v.index + 1"
                 :selected="sel.selected.value.has(it.task.id)"
                 :focused="focusedId === it.id"

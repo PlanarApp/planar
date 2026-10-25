@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import { CalendarDays, Columns3, List, Table2 } from 'lucide-vue-next';
+import { CalendarDays, Columns3, List, Table2, UserCheck } from 'lucide-vue-next';
 import type { LocalizedText } from '../modules/types';
 import type { Filter } from './filter';
 import type { ViewOptions } from './options';
@@ -13,6 +13,11 @@ export interface ViewProps {
   filter?: Filter | null;
   /** открыт сохранённый вид: раскладка уходит в черновик опций (update:options) */
   saved?: boolean;
+  /**
+   * сводка группы (Пространство, Воркспейс): задачи этих проектов; `projectId` — ключ сводки для
+   * хранилища, создание задач и ручной порядок выключены
+   */
+  scope?: { projectIds: string[]; spaceIds: string[] };
 }
 export { useViewOptions } from './options';
 export { matchFilter } from './filter';
@@ -33,8 +38,9 @@ const BUILTIN: Record<string, Component> = {
   board: Columns3,
   table: Table2,
   calendar: CalendarDays,
+  my: UserCheck,
 };
-const ORDER = ['list', 'board', 'table', 'calendar'];
+const ORDER = ['list', 'board', 'table', 'calendar', 'my'];
 
 /** Вкладки: встроенные виды из glob (list, board, затем остальные по имени) и виды модулей. */
 export function buildViewTabs(

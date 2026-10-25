@@ -13,6 +13,8 @@ export interface GroupCtx {
   statuses: Row<'statuses'>[];
   members: Row<'users'>[];
   labels: Row<'labels'>[];
+  /** сводка нескольких пространств: ключ группы статуса (имя) вместо id */
+  statusKey?: (statusId: string) => string;
 }
 
 const NONE = 'none';
@@ -43,11 +45,11 @@ export function groupTasks(tasks: TaskView[], by: GroupBy, ctx: GroupCtx): TaskG
     const st = ctx.statuses
       .slice()
       .sort((a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0));
-    return bucket(
-      tasks,
-      st.map((s) => ({ key: s.id, label: s.name, color: s.color })),
-      (x) => [x.statusId],
+    const k = ctx.statusKey ?? ((id: string) => id);
+    const order = new Map(
+      st.map((s) => [k(s.id), { key: k(s.id), label: s.name, color: s.color }]),
     );
+    return bucket(tasks, [...order.values()], (x) => [k(x.statusId)]);
   }
   if (by === 'priority')
     return bucket(

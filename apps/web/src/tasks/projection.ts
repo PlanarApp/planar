@@ -288,6 +288,37 @@ export function useProjectTasks(
   return r;
 }
 
+/** Задачи нескольких проектов (сводка группы): склейка проекций; один проект — его массив как есть. */
+export function useScopeTasks(
+  projectIds: MaybeRefOrGetter<string[]>,
+): Readonly<Ref<TaskView[] | undefined>> {
+  const r = shallowRef<TaskView[]>();
+  let unsubs: (() => void)[] = [];
+  watch(
+    () => toValue(projectIds).join(','),
+    () => {
+      for (const u of unsubs) u();
+      const es = toValue(projectIds).map(acquire);
+      const parts = es.map((e) => (e.tasks ? snapshot(e) : undefined));
+      const publish = () =>
+        (r.value = parts.every(Boolean)
+          ? parts.length === 1
+            ? parts[0]
+            : parts.flatMap((p) => p!)
+          : undefined);
+      unsubs = es.map((e, i) => {
+        const f = (a: TaskView[]) => ((parts[i] = a), publish());
+        e.subs.add(f);
+        return () => e.subs.delete(f);
+      });
+      publish();
+    },
+    { immediate: true, flush: 'sync' },
+  );
+  if (getCurrentScope()) onScopeDispose(() => unsubs.forEach((u) => u()));
+  return r;
+}
+
 /** в простое: заранее строит проекции первых проектов, пока в памяти есть место */
 export function prefetchIdle(projectIds: string[]): void {
   for (const id of projectIds) if (entries.size < KEEP && !entries.has(id)) prefetchProject(id);

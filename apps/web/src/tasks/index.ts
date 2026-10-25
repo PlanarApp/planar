@@ -1,10 +1,12 @@
 export {
   useSpaces,
+  useRootSpaceId,
   useProject,
   useStatuses,
   useMembers,
   useLabels,
   useProjectTasks,
+  useScopeTasks,
   prefetchProject,
   useTask,
 } from './queries';

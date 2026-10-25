@@ -235,6 +235,7 @@ export default {
     board: 'Board',
     table: 'Table',
     calendar: 'Calendar',
+    my: 'My tasks',
     empty: 'No views available',
     projectNotFound: 'Project not found',
     view: 'View',

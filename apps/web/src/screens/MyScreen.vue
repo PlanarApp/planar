@@ -10,8 +10,14 @@ import { useAuth } from '../auth/useAuth';
 import { useMyTasks, type MyTask } from '../inbox/queries';
 
 const { t, locale } = useI18n();
+// projectIds — вид «Мои задачи» группы (только её проекты, без заголовка экрана)
+const props = defineProps<{ projectIds?: string[] }>();
 const { user } = useAuth();
-const rows = useMyTasks(() => user.value?.id);
+const all = useMyTasks(() => user.value?.id);
+const rows = computed(() => {
+  const ids = props.projectIds && new Set(props.projectIds);
+  return ids ? all.value?.filter((r) => ids.has(r.projectId)) : all.value;
+});
 
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -36,7 +42,7 @@ const groups = computed(() => {
 
 <template>
   <div class="flex flex-col gap-3 p-4">
-    <h1 class="text-xl font-semibold">{{ t('screens.my') }}</h1>
+    <h1 v-if="!projectIds" class="text-xl font-semibold">{{ t('screens.my') }}</h1>
     <EmptyState
       v-if="rows && !rows.length"
       :icon="ListChecks"

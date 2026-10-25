@@ -3,7 +3,6 @@ import {
   computed,
   defineAsyncComponent,
   onBeforeUnmount,
-  onMounted,
   ref,
   watch,
   type Component,
@@ -13,13 +12,12 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { BookmarkPlus, MoreHorizontal } from 'lucide-vue-next';
 import { useProject } from '../tasks';
-import { IconButton, Menu, Tabs, useBreakpoint } from '../ui';
+import { IconButton, Menu, Tabs } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
+import TaskModal from '../views/TaskModal.vue';
 import {
   buildViewTabs,
-  closeTask,
-  taskPanelLoader,
   useSelection,
   viewLoaders,
   useViewOptions,
@@ -37,7 +35,6 @@ import { useCanShare } from '../views/saved/queries';
 const { t, te, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { isMobile } = useBreakpoint();
 
 const projectId = computed(() => String(route.params.projectId));
 const project = useProject(projectId);
@@ -102,9 +99,6 @@ function selectTab(key: string) {
   void router.replace({ params: { ...route.params, view: key }, query: route.query });
 }
 
-const TaskPanel = taskPanelLoader && defineAsyncComponent(taskPanelLoader);
-const taskKey = computed(() => (typeof route.query.task === 'string' ? route.query.task : ''));
-const panelOpen = computed(() => !!TaskPanel && !!taskKey.value && !isMobile.value);
 
 const { clear } = useSelection();
 watch(projectId, clear, { immediate: true });
@@ -138,12 +132,6 @@ watch(strip, (el) => {
   measure();
 });
 onBeforeUnmount(() => ro?.disconnect());
-
-const onKey = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && panelOpen.value) closeTask();
-};
-onMounted(() => window.addEventListener('keydown', onKey));
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 </script>
 
 <template>
@@ -200,20 +188,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
         </div>
       </template>
     </section>
-    <!-- задача — окно поверх вида, как в ClickUp; без ловушки фокуса: пикеры открываются в порталах -->
-    <div
-      v-if="panelOpen"
-      class="fixed inset-0 z-40 flex items-center justify-center bg-overlay p-4 md:p-8"
-      data-testid="task-modal"
-      @mousedown.self="closeTask"
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        class="flex h-full max-h-[56rem] w-full max-w-7xl overflow-hidden rounded-xl border border-border bg-surface shadow-dialog"
-      >
-        <component :is="TaskPanel" :task-key="taskKey" mode="panel" @close="closeTask" />
-      </div>
-    </div>
+    <TaskModal />
   </div>
 </template>

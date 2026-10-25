@@ -7,7 +7,7 @@ import { byRank } from './dictionaries';
 import { readLinks } from './projection';
 
 export { useLabels, useMembers, useStatuses } from './dictionaries';
-export { prefetchIdle, prefetchProject, useProjectTasks } from './projection';
+export { prefetchIdle, prefetchProject, useProjectTasks, useScopeTasks } from './projection';
 
 export type TaskView = Row<'tasks'> & { key: string; assigneeIds: string[]; labelIds: string[] };
 
@@ -62,6 +62,13 @@ export const useProject = (id: MaybeRefOrGetter<string>) =>
     () => toValue(id),
     async (i) => (await db.table<Row<'projects'>>('projects').get(i)) ?? null,
   );
+
+/** корневое пространство «Общее» — уровень Воркспейс (документы и чаты для всех) */
+export const useRootSpaceId = () =>
+  useQuery(async () => {
+    const v = (await db.table<Row<'settings'>>('settings').get('root_space'))?.value;
+    return typeof v === 'string' ? v : null;
+  });
 
 export function useSpaces() {
   return useQuery(async () => {

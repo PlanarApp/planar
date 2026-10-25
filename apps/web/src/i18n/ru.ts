@@ -235,6 +235,7 @@ export default {
     board: 'Доска',
     table: 'Таблица',
     calendar: 'Календарь',
+    my: 'Мои задачи',
     empty: 'Нет доступных видов',
     projectNotFound: 'Проект не найден',
     view: 'Вид',

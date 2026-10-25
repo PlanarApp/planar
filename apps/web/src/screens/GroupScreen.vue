@@ -3,10 +3,11 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { BarChart3, FileText, Inbox, ListTodo, MessagesSquare, Settings } from 'lucide-vue-next';
-import { useProject, useSpaces } from '../tasks';
+import { useProject, useRootSpaceId, useSpaces } from '../tasks';
 import { EmptyState } from '../ui';
 import { GROUP_TABS, groupTab, groupUrl, type GroupLevel } from '../layout/groups';
 import ProjectScreen from './ProjectScreen.vue';
+import ScopeTasks from '../views/ScopeTasks.vue';
 
 // Группа: Воркспейс (/w), Пространство (/s/:spaceId), Проект (/p/:projectId) — одинаковые табы
 const { t } = useI18n();
@@ -20,6 +21,7 @@ const id = computed(() =>
 const tab = computed(() => groupTab(route.params.view ?? route.params.tab));
 const project = useProject(() => (level.value === 'project' ? id.value : ''));
 const spaces = useSpaces();
+const rootId = useRootSpaceId();
 const name = computed(() =>
   level.value === 'project'
     ? project.value?.name
@@ -64,6 +66,11 @@ const icons = {
     </nav>
     <div class="min-h-0 flex-1">
       <ProjectScreen v-if="level === 'project' && tab === 'tasks'" />
+      <ScopeTasks
+        v-else-if="name && tab === 'tasks'"
+        :space-id="level === 'space' ? id : undefined"
+        :root-space-id="rootId ?? undefined"
+      />
       <EmptyState
         v-else-if="name"
         :icon="icons[tab]"
