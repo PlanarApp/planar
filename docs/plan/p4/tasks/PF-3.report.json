@@ -1,0 +1,59 @@
+{
+  "status": "done",
+  "summary": "Модуль modules/goals: сущности, 10 мутаторов, функции прогресса, хук удаления задачи/смены проекта, миграция 0019, экран Цели, вид Вехи, панель задачи, линии вех в Timeline.",
+  "commits": [
+    "d995397 goals: цели, вехи, ключевые результаты (PF-3)"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "pf3",
+      "value": "13",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Web-часть (GoalsPage, MilestonesView, MilestonePanel, линии в Timeline) не покрыта тестами и не открывалась в браузере; редактирование projectIds у KR в форме нет (только все проекты); имя/описание/владелец цели после создания в UI не правятся"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PF-3",
+  "uncertain": [
+    {
+      "where": "modules/goals/web/GoalsPage.vue",
+      "why": "Select с v-model + @update:model-value для kind, FilterBuilder в форме KR не проверены визуально",
+      "checked": "vue-tsc/lint/build проходят"
+    },
+    {
+      "where": "modules/goals/shared/index.ts:milestoneProgress",
+      "why": "контракт не задаёт форму аргумента; принимаю {category}[]",
+      "checked": "юнит-тесты"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-25T01:55:52",
+  "by": "executor"
+}

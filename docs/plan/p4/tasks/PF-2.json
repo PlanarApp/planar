@@ -1,0 +1,79 @@
+{
+  "id": "PF-2",
+  "module": "p4",
+  "type": "dp-engineer",
+  "title": "Шаблоны задач и проектов (modules/templates)",
+  "goal": "Модуль modules/templates: шаблоны задач (поля, описание, чек-лист, подзадачи) и проектов (статусы, метки, поля, задачи) с мутаторами создания из шаблона; задача из шаблона — Cmd+K и меню кнопки «Новая задача» (C-modules v11 newTaskMenu), проект из шаблона и сохранение как шаблон — в настройках и командах.",
+  "plan_ref": "4. Задачи (PF-2)",
+  "contracts": [
+    {
+      "name": "P4-templates",
+      "version": "1",
+      "ref": "docs/contracts/p4.md"
+    },
+    {
+      "name": "C-modules",
+      "version": "11",
+      "ref": "docs/contracts/p4.md"
+    }
+  ],
+  "copy": "~/planar-p4-PF-2",
+  "branch": "p4/PF-2",
+  "base": "feature/p4",
+  "scope": [
+    "modules/templates/",
+    "apps/api/src/modules/installed.ts",
+    "apps/api/package.json",
+    "apps/api/drizzle/",
+    "apps/api/test/templates/",
+    "pnpm-lock.yaml",
+    "apps/web/src/modules/types.ts",
+    "apps/web/src/views/list/View.vue",
+    "apps/web/src/views/list/",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts"
+  ],
+  "dont_touch": [
+    "apps/api/src/sync",
+    "packages/shared/src",
+    "docs/contracts",
+    "apps/web/src/sync",
+    "apps/web/src/screens/settings/ModulesSettings.vue",
+    "apps/api/src/modules/module.guard.ts"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "P4_CONTRACT_STRICT=1 pnpm exec vitest run apps/api/test/modules/p4.contract.test.ts -t 'модуль templates|разбор'",
+      "expect": "exit=0"
+    },
+    {
+      "name": "pf2",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run -t pf2:",
+      "expect": "num:(\\d+) passed >=10"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-25T01:31:07"
+}

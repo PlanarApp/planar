@@ -1,0 +1,48 @@
+{
+  "verdict": "accept",
+  "summary": "Модуль соответствует P4-recurring v1: формулы nextOccurrence/duePeriod/afterDoneDue по контракту, дедуп spawn через for update + recurring_runs on conflict, копия полей/исполнителей(участники)/меток/чек-листа, скоуп соблюдён. pf1 перезапущен: 18 passed. Блокеров нет; два вопроса к координатору по пробелам контракта.",
+  "issues": [
+    {
+      "file": "modules/recurring/shared/index.ts",
+      "line": 176,
+      "severity": "major",
+      "what": "Контракт требует ctx.system, но MutatorCtx (packages/shared/src/contract/mutator.ts, C-mutators v5) его не имеет. Исполнитель заменил на «пользователь деактивирован» (системный — единственный деактивированный, кто может исполнять: сессии и токены деактивированных отклоняются в auth.ts). На практике безопасно, но это обход контракта; тот же пробел ждёт email.setPrefs и plugins.save/delete.",
+      "fix": "Координатору: решить — добавить system в MutatorCtx (смена C-mutators через главную) или закрепить правило «деактивированный = система» в контракте; после решения при необходимости заменить проверку."
+    },
+    {
+      "file": "modules/recurring/web/data.ts",
+      "line": 5,
+      "severity": "minor",
+      "what": "Пояс по умолчанию — только браузерный; контракт: сначала settings.timezone. В web SDK нет доступа к settings (apps/web/src — dont_touch), заявлено в «не вышло».",
+      "fix": "Координатору: либо поправить контракт, либо отдельной задачей дать web чтение settings.timezone."
+    },
+    {
+      "file": "modules/recurring/api/index.ts",
+      "line": 152,
+      "severity": "minor",
+      "what": "data spawn содержит taskId сверх {ruleId, period}; оправдано (проверка смены образца), обратно совместимо.",
+      "fix": "Отразить поле в контракте при следующей правке."
+    },
+    {
+      "file": "apps/api/drizzle/0019_condemned_exodus.sql",
+      "line": 1,
+      "severity": "minor",
+      "what": "Миграция 0019 есть также у PF-2, PF-3, PF-4; feature/p4 пока на 0018 — конфликт нумерации при слиянии.",
+      "fix": "При слиянии второй и следующих — перегенерировать миграцию поверх (как в дополнении к карточке)."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "pf1",
+      "value": "18 passed",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "18 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-25T02:09:54",
+  "by": "reviewer"
+}

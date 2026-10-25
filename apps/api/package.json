@@ -26,6 +26,7 @@
     "@planar/module-forms": "workspace:*",
     "@planar/module-hello": "workspace:*",
     "@planar/module-import": "workspace:*",
+    "@planar/module-recurring": "workspace:*",
     "@planar/module-sprints": "workspace:*",
     "@planar/module-dashboards": "workspace:*",
     "@planar/module-time": "workspace:*",

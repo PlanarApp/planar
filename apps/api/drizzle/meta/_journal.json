@@ -138,8 +138,15 @@
     {
       "idx": 19,
       "version": "7",
-      "when": 1792892074741,
-      "tag": "0019_goals",
+      "when": 1792892157099,
+      "tag": "0019_condemned_exodus",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792894360373,
+      "tag": "0020_goals",
       "breakpoints": true
     }
   ]
