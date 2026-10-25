@@ -1,0 +1,66 @@
+{
+  "id": "UT-1",
+  "module": "tails",
+  "type": "dp-engineer",
+  "title": "Визуальные хвосты фазы 3",
+  "goal": "Шесть визуальных хвостов из плана tails §3 исправлены по C-ui v4; эталоны visual обновлены только для затронутых экранов; тесты и бюджеты не хуже.",
+  "plan_ref": "3. Задачи",
+  "contracts": [],
+  "copy": "~/planar-tails-UT-1",
+  "branch": "tails/UT-1",
+  "base": "feature/tails",
+  "scope": [
+    "apps/web/src/",
+    "modules/chat/web/",
+    "modules/docs/web/",
+    "e2e/web/visual.spec.ts",
+    "e2e/web/__screenshots__/",
+    "e2e/web/visual.spec.ts-snapshots/",
+    "build/artifacts/UT-1/"
+  ],
+  "dont_touch": [
+    "packages/",
+    "apps/api/"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0",
+      "timeout": 1200
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "shots",
+      "cmd": "ls build/artifacts/UT-1/*.png | wc -l",
+      "expect": "num:^(\\d+) >=12"
+    }
+  ],
+  "report_extra": [],
+  "notes": [
+    "Скриншоты «до/после» на 1440×900 и 390×844 (доска, список, вход, боковая панель с чатом, телефон — крошки) — в build/artifacts/UT-1/, имена before-*/after-*.",
+    "Эталоны visual: прогон e2e/web/visual.spec.ts на своём стеке (COMPOSE_PROJECT_NAME=planar-e2e-ut1, свои API_PORT/WEB_PORT); обновлять (--update-snapshots) только экраны, которые меняет задача; перечислить их в отчёте.",
+    "Как поднимать стек и где порты — docs/plan/design.md §7. Долгие прогоны — run_in_background.",
+    "Отчёт — только build/dpcli/UT-1.report.json в своей копии."
+  ],
+  "created": "2026-10-25T00:35:12"
+}
