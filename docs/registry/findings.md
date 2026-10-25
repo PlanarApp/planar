@@ -38,5 +38,12 @@ related: []
 - Timeline: своя виртуализация, 10 000 задач — 0 long task > 50 мс за 2 с прокрутки (PT-2); страница формы `/f/*` — 2,8 КБ gzip; initial gzip 176,6 КБ после C-ui v4 (было 154).
 - Параллельные задачи с миграциями drizzle конфликтуют в `meta/_journal.json`: сливать по одной, следующая пересоздаёт миграцию поверх.
 
+## p4
+- «Только система» в мутаторе без правки C-mutators: `users[ctx.userId].deactivatedAt ≠ null` (системные пользователи деактивированы) или сущность `write: server` — `docs/contracts/p4.md#Контракты модуля p4`.
+- Включение модуля по условию (email без SMTP) — C-modules v11 `unavailable` + запрет в `settings.set` (C-mutators v5), setup выключенного модуля только для admin в ModuleGuard — `docs/contracts/p4.md`.
+- iframe-плагины: `allow-same-origin` допустим только на чужом хосте (иначе origin `null` и проверка невозможна); CSP `frame-src` через meta только сужается — новый плагин виден после перезагрузки — `docs/contracts/p4.md#P4-plugins v1 (PF-5)`.
+- Корневой vitest не запускает `modules/*/web/**/*.test.ts` — нужна отдельная проверка `pnpm --filter web exec vitest run`; при load хоста 40–98 web-тесты и perf нестабильны: A/B p4 против базы без регрессии, абсолютный §7 — на тихом хосте (Q3) — PF-6.
+- initial gzip 183,2 КБ после p4 (было 176,6).
+
 ## design
 - Визуал «как Linear» (C-ui v4, 17 компонентов, 48 скриншотных эталонов): §7 после design — switch p95 76.4 мс, warm 408, cold 1752, mutate 22, realtime 348 (n=3); регрессия switch +24% от пикеров в каждой строке списка снята ленивым монтированием (n=10: main 95.0 → 85.0 мс) — docs/contracts/design.md#C-ui v4 (DS-0…DS-10)
