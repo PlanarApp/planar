@@ -78,6 +78,9 @@ test('pf6: шаблоны — задача из шаблона через мен
   await page.getByRole('menuitem', { name: 'Задача из шаблона…' }).click();
   await page.getByRole('dialog').getByRole('button', { name: title }).click();
   await expect.poll(async () => (await made()).length).toBe(1);
+  // созданная задача открывается окном поверх вида — закрываем, иначе в DOM два диалога
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('task-modal')).toHaveCount(0);
 
   await page.keyboard.press('Control+k');
   await page.getByRole('dialog').getByRole('textbox').fill('Задача из шаблона');
@@ -150,18 +153,19 @@ test('pf6: цели — цель, ключевой результат «числ
   await page.getByTestId('goal-create').click();
   const card = page.getByTestId('goal').filter({ hasText: goal });
   await card.getByRole('button', { name: 'Ключевой результат' }).click();
-  await card.getByLabel('Название', { exact: true }).fill('Выручка');
+  const krName = uniq('Выручка'); // база общая: прежние прогоны оставили свои «Выручка»
+  await card.getByLabel('Название', { exact: true }).fill(krName);
   await card.getByLabel('Цель', { exact: true }).fill('200');
   await card.getByRole('button', { name: 'Создать' }).click();
   const kr = card.getByTestId('kr');
-  await expect(kr).toContainText('Выручка');
+  await expect(kr).toContainText(krName);
   await expect(card.getByTestId('goal-percent')).toHaveText('0%');
   await kr.getByLabel('Текущее').fill('50');
   await kr.getByLabel('Текущее').blur();
   await expect(card.getByTestId('goal-percent')).toHaveText('25%');
   await expect
     .poll(async () => {
-      const k = (await rows('goalsKeyResults')).find((x) => x.name === 'Выручка');
+      const k = (await rows('goalsKeyResults')).find((x) => x.name === krName);
       return (k?.metric as { current: number } | undefined)?.current;
     })
     .toBe(50);
