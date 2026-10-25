@@ -32,5 +32,7 @@ const toggle = (id: string) =>
     :empty="t('tasks.noLabel')"
     :compact="compact"
     @pick="toggle"
-  />
+  >
+    <template v-if="$slots.value" #value><slot name="value" /></template>
+  </OptionPicker>
 </template>

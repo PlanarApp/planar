@@ -4,7 +4,7 @@ import type { TaskField } from '../options';
 export const LIST_COLUMNS = ['assignee', 'dueDate', 'priority', 'labels'] as const;
 export type ListColumn = (typeof LIST_COLUMNS)[number];
 export const COLUMN_CLASS: Record<ListColumn, string> = {
-  assignee: 'w-28',
+  assignee: 'w-36',
   dueDate: 'w-28',
   priority: 'w-28',
   labels: 'w-40 max-lg:hidden',

@@ -61,15 +61,18 @@ function onKey(e: KeyboardEvent) {
         :aria-label="title"
         class="inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
       >
-        <component
-          :is="o.icon"
-          v-for="o in compact ? chosen.slice(0, 1) : chosen"
-          :key="o.id"
-          v-bind="o.iconProps"
-        />
-        <span v-if="!compact" class="truncate">{{
-          chosen.length ? chosen.map((o) => o.label).join(', ') : (empty ?? '—')
-        }}</span>
+        <!-- value: своё содержимое кнопки (ячейка Списка рисует значение так же, как без пикера) -->
+        <slot name="value">
+          <component
+            :is="o.icon"
+            v-for="o in compact ? chosen.slice(0, 1) : chosen"
+            :key="o.id"
+            v-bind="o.iconProps"
+          />
+          <span v-if="!compact" class="truncate">{{
+            chosen.length ? chosen.map((o) => o.label).join(', ') : (empty ?? '—')
+          }}</span>
+        </slot>
       </button>
     </template>
     <div class="flex w-56 flex-col gap-2" @keydown="onKey">

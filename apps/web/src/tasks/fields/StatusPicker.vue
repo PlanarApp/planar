@@ -26,5 +26,7 @@ const options = computed(() =>
     :title="t('tasks.status')"
     :compact="compact"
     @pick="model = $event"
-  />
+  >
+    <template v-if="$slots.value" #value><slot name="value" /></template>
+  </OptionPicker>
 </template>

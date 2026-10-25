@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   AssigneePicker,
   DueDatePicker,
   PriorityPicker,
-  PriorityIcon,
   LabelPicker,
   StatusPicker,
   setAssignees,
@@ -14,22 +13,12 @@ import {
   type TaskView,
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
-import { AvatarStack, Badge } from '../../ui';
-import {
-  CalendarDays,
-  ChevronDown,
-  ChevronRight,
-  Flag,
-  GripVertical,
-  ListTree,
-  Tag,
-  UserRound,
-} from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, GripVertical, ListTree } from 'lucide-vue-next';
 import { COLUMN_CLASS, visibleColumns } from './columns';
+import CellValue from './CellValue.vue';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 import { localToday } from '../filter';
-import { formatDue } from './due';
 
 const props = defineProps<{
   task: TaskView;
@@ -64,6 +53,26 @@ const emit = defineEmits<{
 const { t, locale } = useI18n();
 // пикеры справа видны только при наведении/фокусе — до этого не монтируем (переключение проекта)
 const hot = ref(false);
+// курсор ушёл — обратно к выводу значения; пока у пикера строки открыт список — ждём его закрытия
+const rowEl = ref<HTMLElement>();
+let inside = false;
+let wait: ReturnType<typeof setInterval> | undefined;
+function enter() {
+  inside = true;
+  hot.value = true;
+}
+function leave() {
+  inside = false;
+  clearInterval(wait);
+  const open = () => !!rowEl.value?.querySelector('[aria-expanded="true"]');
+  if (!open()) return void (hot.value = false);
+  wait = setInterval(() => {
+    if (open()) return;
+    clearInterval(wait);
+    if (!inside) hot.value = false;
+  }, 150);
+}
+onBeforeUnmount(() => clearInterval(wait));
 const input = ref<HTMLInputElement>();
 const draft = ref('');
 let live = false; // blur после Enter/Esc не сохраняет повторно
@@ -82,8 +91,8 @@ watch(
 );
 
 const columns = computed(() => visibleColumns(props.fields));
-// пустая ячейка — бледная иконка поля, как в ClickUp (а не пустота до наведения)
-const empty = 'mx-1.5 text-fg-subtle opacity-50';
+// рамка значения = рамка кнопки пикера (OptionPicker, DueDatePicker): смена при наведении не видна
+const box = 'inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg';
 const labelsSet = computed(() =>
   props.task.labelIds.flatMap((id) => props.labels.find((l) => l.id === id) ?? []),
 );
@@ -124,7 +133,9 @@ function save() {
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
     @click="emit('click', $event)"
-    @pointerenter="hot = true"
+    ref="rowEl"
+    @pointerenter="enter"
+    @pointerleave="leave"
     @focusin="hot = true"
   >
     <div
@@ -211,52 +222,73 @@ function save() {
         :data-col="c"
         :class="['flex h-full min-w-0 items-center overflow-hidden px-1', COLUMN_CLASS[c]]"
       >
-        <template v-if="c === 'assignee'">
+        <!-- в покое — та же рамка, что у кнопки пикера; при наведении на её месте пикер с тем же содержимым -->
+        <template v-if="hot || focused">
           <AssigneePicker
-            v-if="hot || focused"
+            v-if="c === 'assignee'"
             :space-id="spaceId"
             :model-value="task.assigneeIds"
             @update:model-value="setAssignees(task.id, $event)"
-          />
-          <AvatarStack v-else-if="people.length" :people="people" size="xs" />
-          <UserRound v-else :size="16" :class="empty" aria-hidden="true" />
-        </template>
-        <template v-else-if="c === 'dueDate'">
+            ><template #value
+              ><CellValue
+                :col="c"
+                :people="people"
+                :due-date="task.dueDate"
+                :due-tone="dueTone"
+                :priority="task.priority"
+                :labels="labelsSet" /></template
+          ></AssigneePicker>
           <DueDatePicker
-            v-if="hot || focused"
+            v-else-if="c === 'dueDate'"
             :model-value="task.dueDate"
             @update:model-value="updateTask(task.id, { dueDate: $event })"
-          />
-          <span v-else-if="task.dueDate" :class="['px-1.5 text-sm', dueTone]">{{
-            formatDue(task.dueDate, locale)
-          }}</span>
-          <CalendarDays v-else :size="16" :class="empty" aria-hidden="true" />
-        </template>
-        <template v-else-if="c === 'priority'">
+            ><template #value
+              ><CellValue
+                :col="c"
+                :people="people"
+                :due-date="task.dueDate"
+                :due-tone="dueTone"
+                :priority="task.priority"
+                :labels="labelsSet" /></template
+          ></DueDatePicker>
           <PriorityPicker
-            v-if="hot || focused"
+            v-else-if="c === 'priority'"
             :model-value="task.priority"
             @update:model-value="updateTask(task.id, { priority: $event })"
-          />
-          <span v-else-if="task.priority" class="flex items-center gap-1.5 px-1.5 text-sm">
-            <PriorityIcon :priority="task.priority" />{{ t(`tasks.priority.${task.priority}`) }}
-          </span>
-          <Flag v-else :size="16" :class="empty" aria-hidden="true" />
-        </template>
-        <template v-else>
+            ><template #value
+              ><CellValue
+                :col="c"
+                :people="people"
+                :due-date="task.dueDate"
+                :due-tone="dueTone"
+                :priority="task.priority"
+                :labels="labelsSet" /></template
+          ></PriorityPicker>
           <LabelPicker
-            v-if="hot || focused"
+            v-else
             :space-id="spaceId"
             :model-value="task.labelIds"
             @update:model-value="setLabels(task.id, $event)"
-          />
-          <Tag v-else-if="!labelsSet.length" :size="16" :class="empty" aria-hidden="true" />
-          <span v-else class="flex gap-1 overflow-hidden px-1">
-            <Badge v-for="l in labelsSet" :key="l.id" dot :color="l.color ?? undefined">{{
-              l.name
-            }}</Badge>
-          </span>
+            ><template #value
+              ><CellValue
+                :col="c"
+                :people="people"
+                :due-date="task.dueDate"
+                :due-tone="dueTone"
+                :priority="task.priority"
+                :labels="labelsSet" /></template
+          ></LabelPicker>
         </template>
+        <span v-else :class="box">
+          <CellValue
+            :col="c"
+            :people="people"
+            :due-date="task.dueDate"
+            :due-tone="dueTone"
+            :priority="task.priority"
+            :labels="labelsSet"
+          />
+        </span>
       </div>
     </div>
   </div>

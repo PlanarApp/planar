@@ -23,5 +23,7 @@ const options = [0, 1, 2, 3, 4].map((p) => ({
     :title="t('tasks.priorityTitle')"
     :compact="compact"
     @pick="model = Number($event)"
-  />
+  >
+    <template v-if="$slots.value" #value><slot name="value" /></template>
+  </OptionPicker>
 </template>

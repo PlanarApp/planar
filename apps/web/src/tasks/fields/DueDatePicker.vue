@@ -26,10 +26,12 @@ const set = (v: string) => {
         :aria-label="props.label ?? t('tasks.dueDate')"
         class="inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
       >
-        <Calendar :size="14" aria-hidden="true" />
-        <span v-if="!compact">{{
-          model ? formatDue(model, locale) : (props.empty ?? t('tasks.noDate'))
-        }}</span>
+        <slot name="value">
+          <Calendar :size="14" aria-hidden="true" />
+          <span v-if="!compact">{{
+            model ? formatDue(model, locale) : (props.empty ?? t('tasks.noDate'))
+          }}</span>
+        </slot>
       </button>
     </template>
     <div class="flex w-56 flex-col gap-2">
