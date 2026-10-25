@@ -65,6 +65,8 @@ export interface SettingsPageDef {
   component: Lazy<object>;
   /** скрыт от не-админов инстанса (сервер всё равно проверяет права) */
   adminOnly?: boolean;
+  /** уровень настроек группы (C-modules v12): по умолчанию Воркспейс; страница получает spaceId и projectId */
+  level?: 'workspace' | 'space' | 'project';
 }
 
 export type NavItemDef = { id: string; order?: number } & (

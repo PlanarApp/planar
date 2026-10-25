@@ -398,6 +398,7 @@ export default {
     statuses: 'Статусы',
     labels: 'Метки',
     modules: 'Модули',
+    fields: 'Поля',
     users: 'Пользователи',
     name: 'Название',
     key: 'Ключ',

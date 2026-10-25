@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  defineAsyncComponent,
-  onBeforeUnmount,
-  ref,
-  watch,
-  type Component,
-} from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch, type Component } from 'vue';
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -16,12 +9,7 @@ import { IconButton, Menu, Tabs } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import TaskModal from '../views/TaskModal.vue';
-import {
-  buildViewTabs,
-  useSelection,
-  viewLoaders,
-  useViewOptions,
-} from '../views';
+import { buildViewTabs, useSelection, viewLoaders, useViewOptions } from '../views';
 import type { Filter } from '../views';
 import { loadLayout } from '../views/table/columns';
 import OptionsBar from '../views/saved/OptionsBar.vue';
@@ -98,7 +86,6 @@ const viewComponent = computed(() => {
 function selectTab(key: string) {
   void router.replace({ params: { ...route.params, view: key }, query: route.query });
 }
-
 
 const { clear } = useSelection();
 watch(projectId, clear, { immediate: true });

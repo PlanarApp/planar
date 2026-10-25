@@ -13,6 +13,11 @@ export const web = defineWebModule({
   // на mobile секция доступна через выезжающую боковую панель (кнопка «меню» в TopBar)
   nav: [{ id: 'channels', order: 5, section: () => import('./Section.vue') }],
   groupTabs: [
-    { id: 'channels', tab: 'chats', label: label('chat'), component: () => import('./GroupChats.vue') },
+    {
+      id: 'channels',
+      tab: 'chats',
+      label: label('chat'),
+      component: () => import('./GroupChats.vue'),
+    },
   ],
 });

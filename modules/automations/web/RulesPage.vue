@@ -49,17 +49,22 @@ const projects = computed(() => (spaces.value ?? []).flatMap((s) => s.projects))
 const router = useRouter();
 // без роутера (тесты страницы) — выбор просто не запоминается
 const query = () => router?.currentRoute.value.query ?? {};
-const projectId = ref(typeof query().project === 'string' ? (query().project as string) : '');
+// projectId — настройки проекта-группы: проект задан, выбора нет
+const props = defineProps<{ projectId?: string }>();
+const projectId = ref(
+  props.projectId ?? (typeof query().project === 'string' ? (query().project as string) : ''),
+);
 watch(
   projects,
   (p) => {
-    if (!p.length) return; // реплика ещё грузится — выбор из адреса не сбрасываем
+    if (!p.length || props.projectId) return; // реплика ещё грузится — выбор из адреса не сбрасываем
     if (!projectId.value || !p.some((x) => x.id === projectId.value)) projectId.value = p[0]!.id;
   },
   { immediate: true },
 );
 watch(projectId, (id) => {
-  if (id && query().project !== id) void router?.replace({ query: { ...query(), project: id } });
+  if (id && !props.projectId && query().project !== id)
+    void router?.replace({ query: { ...query(), project: id } });
 });
 const spaceId = computed(() => projects.value.find((p) => p.id === projectId.value)?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
@@ -172,7 +177,12 @@ const setValue = (i: number, raw: string) => {
     </header>
     <div class="flex items-center gap-2 text-sm" data-role="project">
       {{ tx.project }}
-      <Select v-model="projectId" :label="tx.project" :options="opts(pickers.projectId)" />
+      <Select
+        v-if="!props.projectId"
+        v-model="projectId"
+        :label="tx.project"
+        :options="opts(pickers.projectId)"
+      />
     </div>
 
     <div v-if="!draft" class="flex flex-col gap-2">

@@ -52,6 +52,7 @@ export const web = defineWebModule({
   settings: [
     {
       id: 'templates',
+      level: 'space',
       label: { ru: 'Шаблоны', en: 'Templates' },
       icon: Copy,
       component: () => import('./TemplatesSettings.vue'),

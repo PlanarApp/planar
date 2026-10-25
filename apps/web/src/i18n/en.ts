@@ -398,6 +398,7 @@ export default {
     statuses: 'Statuses',
     labels: 'Labels',
     modules: 'Modules',
+    fields: 'Fields',
     users: 'Users',
     name: 'Name',
     key: 'Key',

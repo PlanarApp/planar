@@ -6,6 +6,7 @@ export const web = defineWebModule({
   settings: [
     {
       id: 'rules',
+      level: 'project',
       label: { ru: 'Автоматизации', en: 'Automations' },
       icon: Zap,
       component: () => import('./RulesPage.vue'),

@@ -7,7 +7,8 @@ import { mutate, newId, rankBetween } from '../sync';
 import { Button, Dialog, Input, Select } from '../ui';
 import { useFieldDefs } from './index';
 
-const props = defineProps<{ projectId: string }>();
+// inline — без окна, разделом настроек проекта
+const props = defineProps<{ projectId: string; inline?: boolean }>();
 const open = defineModel<boolean>('open', { default: false });
 const { t } = useI18n();
 const defs = useFieldDefs(() => props.projectId);
@@ -65,11 +66,15 @@ const setCurrency = (d: Row<'fieldDefs'>, v: string) => {
   if (/^[A-Z]{3}$/.test(currency) && currency !== d.options.currency)
     void mutate('field.update', { id: d.id, options: { ...d.options, currency } });
 };
+const setOpen = (v: boolean) => (open.value = v);
 const val = (e: Event) => (e.target as HTMLInputElement).value;
 </script>
 
 <template>
-  <Dialog v-model:open="open" :title="t('fields.configure')">
+  <component
+    :is="inline ? 'section' : Dialog"
+    v-bind="inline ? {} : { open, title: t('fields.configure'), 'onUpdate:open': setOpen }"
+  >
     <ul class="flex flex-col gap-3">
       <li
         v-for="(d, i) in defs"
@@ -171,5 +176,5 @@ const val = (e: Event) => (e.target as HTMLInputElement).value;
         }}</Button>
       </template>
     </Dialog>
-  </Dialog>
+  </component>
 </template>

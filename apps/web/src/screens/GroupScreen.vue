@@ -10,6 +10,7 @@ import type { GroupScope, LocalizedText } from '../modules/types';
 import { GROUP_TABS, groupTab, groupUrl, type GroupLevel } from '../layout/groups';
 import ProjectScreen from './ProjectScreen.vue';
 import ScopeTasks from '../views/ScopeTasks.vue';
+import SettingsScreen from './SettingsScreen.vue';
 
 // Группа: Воркспейс (/w), Пространство (/s/:spaceId), Проект (/p/:projectId) — одинаковые табы
 const { t, te, locale } = useI18n();
@@ -49,9 +50,7 @@ const scope = computed<GroupScope | null>(() => {
 // таб модулей: несколько вкладов (Отчёты) — подтабы, выбранный в ?r
 const exts = useExtensions('groupTabs');
 const parts = computed(() => exts.value.filter((x) => x.tab === tab.value));
-const part = computed(
-  () => parts.value.find((x) => x.key === route.query.r) ?? parts.value[0],
-);
+const part = computed(() => parts.value.find((x) => x.key === route.query.r) ?? parts.value[0]);
 const text = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 const cache = new Map<string, Component>();
@@ -104,13 +103,18 @@ const icons = {
         :space-id="level === 'space' ? id : undefined"
         :root-space-id="rootId ?? undefined"
       />
+      <SettingsScreen v-else-if="name && scope && tab === 'settings'" :scope="scope" />
       <div v-else-if="name && scope && part" class="flex h-full min-h-0 flex-col">
         <div v-if="parts.length > 1" class="shrink-0 border-b border-border px-2 py-1">
           <Tabs
             :model-value="part.key"
             :label="t(`groups.tab.${tab}`)"
             :items="
-              parts.map((x) => ({ value: x.key, label: x.label ? text(x.label) : x.id, icon: x.icon }))
+              parts.map((x) => ({
+                value: x.key,
+                label: x.label ? text(x.label) : x.id,
+                icon: x.icon,
+              }))
             "
             @update:model-value="selectPart"
           />

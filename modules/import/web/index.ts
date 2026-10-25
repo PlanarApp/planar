@@ -4,6 +4,15 @@ import { defineWebModule, useRouter } from '@planar/web/modules';
 export const web = defineWebModule({
   id: 'import',
   routes: [{ path: '/m/import/', component: () => import('./ImportPage.vue') }],
+  // импорт — раздел настроек Воркспейса
+  settings: [
+    {
+      id: 'import',
+      label: { ru: 'Импорт', en: 'Import' },
+      icon: Upload,
+      component: () => import('./ImportPage.vue'),
+    },
+  ],
   nav: [
     {
       id: 'import',
