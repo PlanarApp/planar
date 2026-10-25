@@ -142,21 +142,29 @@ function save() {
       </span>
     </div>
     <div class="ml-auto flex shrink-0 items-center gap-2">
-      <span
-        v-if="fields.includes('labels') && labelsSet.length"
-        class="hidden items-center gap-2 md:flex"
+      <!-- пустая ячейка занимает колонку: метки, срок и аватары не прыгают от строки к строке -->
+      <div
+        v-if="fields.includes('labels')"
+        role="gridcell"
+        class="hidden w-32 items-center gap-2 overflow-hidden md:flex"
       >
         <Badge v-for="l in labelsSet" :key="l.id" dot :color="l.color ?? undefined">{{
           l.name
         }}</Badge>
-      </span>
-      <PriorityIcon v-if="fields.includes('priority') && task.priority" :priority="task.priority" />
-      <span
-        v-if="fields.includes('dueDate') && task.dueDate"
-        :class="['hidden text-xs md:inline', dueTone]"
-        >{{ formatDue(task.dueDate, locale) }}</span
+      </div>
+      <div v-if="fields.includes('priority')" role="gridcell" class="flex w-4 justify-center">
+        <PriorityIcon v-if="task.priority" :priority="task.priority" />
+      </div>
+      <div
+        v-if="fields.includes('dueDate')"
+        role="gridcell"
+        :class="['hidden w-14 text-xs md:block', dueTone]"
       >
-      <AvatarStack v-if="fields.includes('assignee')" :people="people" size="xs" />
+        {{ task.dueDate ? formatDue(task.dueDate, locale) : '' }}
+      </div>
+      <div v-if="fields.includes('assignee')" role="gridcell" class="flex w-12 justify-end">
+        <AvatarStack :people="people" size="xs" />
+      </div>
     </div>
     <div
       class="pointer-events-none absolute inset-y-0 right-2 flex items-center bg-inherit opacity-0 focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"

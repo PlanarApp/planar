@@ -14,7 +14,7 @@ import type { TaskField } from '../options';
 import { formatDue } from '../list/due';
 
 const VIRTUAL_FROM = 50;
-const CARD = 128; // высота карточки с зазором, px (h-[120px] + mb-2)
+const CARD = 84; // оценка высоты карточки с зазором, px; реальная — по содержимому (measureElement)
 
 const props = defineProps<{
   group: TaskGroup;
@@ -48,10 +48,11 @@ const virt = useVirtualizer(
   })),
 );
 const rows = computed(() => {
-  if (!virtual.value) return { items: props.group.tasks, top: 0, bottom: 0 };
+  if (!virtual.value) return { items: props.group.tasks, first: 0, top: 0, bottom: 0 };
   const v = virt.value.getVirtualItems();
   return {
     items: v.map((x) => props.group.tasks[x.index]),
+    first: v[0]?.index ?? 0,
     top: v[0]?.start ?? 0,
     bottom: v.length ? virt.value.getTotalSize() - v[v.length - 1].end : 0,
   };
@@ -152,21 +153,27 @@ const hasFoot = (x: TaskView) =>
         @end="onEnd"
       >
         <article
-          v-for="x in rows.items"
+          v-for="(x, n) in rows.items"
           :key="x.id"
+          :ref="(el) => virtual && virt.measureElement(el as Element | null)"
+          :data-index="rows.first + n"
           :data-id="x.id"
           tabindex="0"
-          class="mb-2 flex h-[120px] cursor-grab flex-col gap-1 overflow-hidden rounded-lg border border-border bg-surface p-2 focus-visible:ring-2 ring-focus"
+          class="mb-2 flex cursor-grab flex-col gap-1 rounded-lg border border-border bg-surface p-2 focus-visible:ring-2 ring-focus"
           @click="emit('open', x.key)"
           @keydown.enter.self="emit('open', x.key)"
         >
-          <div class="flex items-center gap-1.5 text-xs">
-            <PriorityIcon v-if="fields.includes('priority') && x.priority" :priority="x.priority" />
-            <span class="font-mono text-fg-muted">{{ x.key }}</span>
+          <div class="flex items-start gap-1.5">
+            <PriorityIcon
+              v-if="fields.includes('priority') && x.priority"
+              :priority="x.priority"
+              class="mt-0.5"
+            />
+            <span class="mt-0.5 shrink-0 font-mono text-xs text-fg-muted">{{ x.key }}</span>
             <BlockedIcon v-if="blocked.has(x.id)" />
+            <p class="line-clamp-3 min-w-0 flex-1 text-sm leading-snug text-fg">{{ x.title }}</p>
           </div>
-          <p class="line-clamp-3 text-sm leading-snug text-fg">{{ x.title }}</p>
-          <div v-if="hasFoot(x)" class="mt-auto flex items-center gap-2 overflow-hidden pt-1">
+          <div v-if="hasFoot(x)" class="flex items-center gap-2 overflow-hidden">
             <template v-for="l in fields.includes('labels') ? x.labelIds : []" :key="l">
               <Badge v-if="label(l)" dot :color="label(l)!.color ?? undefined">{{
                 label(l)!.name

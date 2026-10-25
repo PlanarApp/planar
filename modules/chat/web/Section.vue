@@ -78,7 +78,7 @@ const headerSpace = computed(() =>
 );
 const hoverPlus = 'md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100';
 const row =
-  'flex h-7 items-center justify-between gap-1.5 rounded-md pl-6 pr-2 text-sm hover:bg-bg-muted';
+  'flex h-7 items-center justify-between gap-1.5 rounded-md pl-7 pr-2 text-sm hover:bg-bg-muted';
 
 // + канал: имя в строке под заголовком пространства
 const addIn = ref('');
@@ -152,7 +152,7 @@ const link = (id: string) => `/m/chat/c/${id}`;
     <template v-if="!folded">
       <form
         v-if="d && !groups.length && addIn"
-        class="flex gap-1 py-1 pl-6 pr-2"
+        class="flex gap-1 py-1 pl-7 pr-2"
         @submit.prevent="addChannel"
       >
         <Input
@@ -163,13 +163,13 @@ const link = (id: string) => `/m/chat/c/${id}`;
         />
         <Button type="submit" size="sm" variant="primary">{{ tx('create') }}</Button>
       </form>
-      <div v-if="d && !groups.length" class="flex h-7 items-center pl-6 pr-2 text-xs text-fg-muted">
+      <div v-if="d && !groups.length" class="flex h-7 items-center pl-7 pr-2 text-sm text-fg-muted">
         {{ tx('noChannels') }}
       </div>
       <div v-for="g in groups" :key="g.s.id">
         <div
           v-if="groups.length > 1"
-          class="group flex h-7 items-center pl-4 pr-2 text-xs text-fg-muted"
+          class="group flex h-7 items-center px-2 text-sm font-medium text-fg"
         >
           <span class="truncate">{{ g.s.name }}</span>
           <IconButton
@@ -184,7 +184,7 @@ const link = (id: string) => `/m/chat/c/${id}`;
         </div>
         <form
           v-if="addIn === g.s.id"
-          class="flex gap-1 py-1 pl-6 pr-2"
+          class="flex gap-1 py-1 pl-7 pr-2"
           @submit.prevent="addChannel"
         >
           <Input
@@ -221,7 +221,7 @@ const link = (id: string) => `/m/chat/c/${id}`;
       </div>
 
       <div>
-        <div class="group flex h-7 items-center justify-between pl-4 pr-2 text-xs text-fg-muted">
+        <div class="group flex h-7 items-center justify-between px-2 text-sm font-medium text-fg">
           <span>{{ tx('dms') }}</span>
           <IconButton
             :icon="Plus"
@@ -232,7 +232,7 @@ const link = (id: string) => `/m/chat/c/${id}`;
             @click="picking = !picking"
           />
         </div>
-        <form v-if="picking" class="py-1 pl-6 pr-2" @submit.prevent="openDm">
+        <form v-if="picking" class="py-1 pl-7 pr-2" @submit.prevent="openDm">
           <label v-for="u in people" :key="u.id" class="flex items-center gap-2 py-0.5 text-sm">
             <input
               type="checkbox"

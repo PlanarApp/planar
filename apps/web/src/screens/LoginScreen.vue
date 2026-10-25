@@ -31,18 +31,23 @@ async function submit() {
 </script>
 
 <template>
-  <main class="flex min-h-dvh items-center justify-center bg-bg p-4">
+  <main class="flex min-h-dvh items-center justify-center bg-bg-subtle p-4">
     <div
-      class="flex w-full max-w-[360px] flex-col gap-4 rounded-lg border border-border bg-surface p-6"
+      class="flex w-full max-w-[360px] flex-col gap-6 rounded-lg border border-border bg-surface p-6 shadow-sm"
     >
-      <header>
+      <header class="flex flex-col items-center gap-2 text-center">
+        <span
+          class="flex size-10 items-center justify-center rounded-lg bg-accent text-lg font-semibold text-accent-fg"
+          aria-hidden="true"
+          >{{ t('app.name').slice(0, 1) }}</span
+        >
         <p class="text-xl font-semibold">{{ t('app.name') }}</p>
         <h1 class="text-sm text-fg-muted">{{ t('screens.login') }}</h1>
       </header>
       <form class="flex flex-col gap-3" @submit.prevent="submit">
         <Input v-model="loginV" :label="t('auth.login')" />
         <Input v-model="password" type="password" :label="t('auth.password')" :error="error" />
-        <Button type="submit" variant="primary" class="w-full" :loading="busy">{{
+        <Button type="submit" variant="primary" class="mt-1 w-full" :loading="busy">{{
           t('auth.signIn')
         }}</Button>
       </form>
