@@ -96,3 +96,5 @@
 {"t": "2026-10-25T09:12:20", "by": "coordinator", "task": "OP-5", "ev": "merged"}
 {"t": "2026-10-25T09:19:01", "by": "coordinator", "task": "OP-4b", "ev": "checked", "note": "2/2 upgrade-test=ok:upgrade-test: OK; bash-syntax=ok:exit 0"}
 {"t": "2026-10-25T09:19:13", "by": "coordinator", "task": "OP-4b", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-25T09:19:13", "by": "coordinator", "task": "OP-4b", "ev": "merged"}
+{"t": "2026-10-25T09:20:59", "by": "coordinator", "task": null, "ev": "note", "note": "dpcli: lock cpu уходит в фон (tmux job) — в проверках карточек ломает вывод, не использовать; accept тяжёлых проверок > 600 с — нужен фоновый режим/таймаут проверки в карточке; docs index трогает реестры вне скоупа; job-имена общие между задачами"}
