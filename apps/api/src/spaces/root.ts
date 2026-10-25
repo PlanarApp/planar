@@ -23,7 +23,11 @@ export async function ensureRootSpace(db: Db): Promise<string> {
     id = undefined; // настройка осталась от удалённого пространства
   if (!id) {
     id = uuidv7();
-    const [first] = await db.select({ rank: spaces.rank }).from(spaces).orderBy(spaces.rank).limit(1);
+    const [first] = await db
+      .select({ rank: spaces.rank })
+      .from(spaces)
+      .orderBy(spaces.rank)
+      .limit(1);
     await executeMutations(
       db,
       sys,

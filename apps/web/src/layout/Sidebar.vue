@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onScopeDispose, watch, type Component } from 'vue';
-import {
-  ChevronRight,
-  MoreHorizontal,
-  Plus,
-  Settings,
-  Star,
-} from 'lucide-vue-next';
+import { ChevronRight, MoreHorizontal, Plus, Settings, Star } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { useUnreadItems } from '../inbox/queries';
 import { prefetchIdle, prefetchProject, useRootSpaceId } from '../tasks/queries';
@@ -220,11 +214,7 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
           @blur="act.cancel"
         />
         <template v-if="!sc.is('spaces')">
-          <GroupBranches
-            :scope="scopeOf('workspace', rootId ?? '')"
-            :unread="unread"
-            pad="pl-3"
-          />
+          <GroupBranches :scope="scopeOf('workspace', rootId ?? '')" :unread="unread" pad="pl-3" />
           <div v-for="s in spaces" :key="s.id">
             <input
               v-if="act.editing.value === 'space:' + s.id"

@@ -232,8 +232,6 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ## C-modules v12
 
 v12 (группы): `FrontendModuleManifest.groupTabs?` — `GroupTabDef {id, tab: inbox|docs|chats|reports|settings, label?, icon?, order?, component}`; компонент получает `scope: GroupScope {level: workspace|space|project, spaceId, projectId, rootSpaceId}` (у Воркспейса `spaceId` — корневое пространство) и показывает данные уровня группы и вложенных; несколько вкладов в один таб — подтабы (`?r=<moduleId>:<id>`). SDK += `useGroupLevels(scope)` — уровни группы сверху вниз (`apps/web/src/layout/groups.ts`). `GroupTabDef.branch?` — ветка меню группы в боковой панели (элементы только её уровня). `SettingsPageDef.level?` (workspace по умолчанию | space | project) — уровень настроек группы; страница получает `spaceId` и `projectId`. Секции `nav` модулей docs, chat, time, import, dashboards, workload, goals убраны — их место в дереве групп; точка `nav` — для прочих модулей. SDK += `groupUrl`, `GroupProjectPick`.
-## C-modules v11
-
 v11 (p4): `BackendModuleManifest.unavailable?`, `GET /api/modules` += `unavailable`; `/api/<id>/setup/*` выключенного модуля — только owner/admin (ModuleGuard); `FrontendModuleManifest.setup?`; `CommandDef.newTaskMenu?` — docs/contracts/p4.md (вступление).
 v10 (design, DS-0): SDK += компоненты C-ui v3 — work-api.md, design.md.
 v9 (p3, PT-5): `CoreServices` += `execute(userId, muts, opts?)` — как `JobApi.execute`; `ensureSystemUser(login, name): Promise<string>` — деактивированный пользователь без пароля (как «Автоматизация»), повторный вызов возвращает того же; `storeFile(buf: Buffer, uploaderId: string): Promise<{sha256, size, mime, width, height}>` — та же запись, что `POST /files` (`files`, `file_uploads`, лимит `MAX_UPLOAD_MB` → `413`).

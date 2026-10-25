@@ -204,7 +204,11 @@ describe('chat web: манифест', () => {
       '/m/chat/c/:channelId/:messageId?',
       '/m/chat/c/:channelId/t/:rootId',
     ]);
-    expect(web.groupTabs![0]).toMatchObject({ id: 'channels', tab: 'chats', branch: expect.any(Function) });
+    expect(web.groupTabs![0]).toMatchObject({
+      id: 'channels',
+      tab: 'chats',
+      branch: expect.any(Function),
+    });
     expect(web.topbar).toBeUndefined();
   });
 });
