@@ -1,0 +1,8 @@
+[Unit]
+Description=Planar backup
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/planar
+ExecStart=/opt/planar/ops/backup.sh
