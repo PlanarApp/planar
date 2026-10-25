@@ -16,6 +16,7 @@ import { UsersController } from './users/users.controller.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import type { Db } from './db/index.js';
 import { FILES_OPTS, FilesController, type FilesOpts } from './files/files.controller.js';
+import { MetricsController } from './metrics/metrics.controller.js';
 import { HealthController } from './health.controller.js';
 import { JobsService, PUSH_OPTS } from './jobs/jobs.js';
 import type { PushOpts } from './push/push.js';
@@ -57,6 +58,7 @@ export class AppModule implements OnApplicationShutdown {
       imports: installed.map((m) => m.api.nestModule as Type),
       controllers: [
         HealthController,
+        MetricsController,
         AuthController,
         SetupController,
         UsersController,

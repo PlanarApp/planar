@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { sql } from 'drizzle-orm';
+import { wsOpened } from '../metrics/metrics.js';
 import { WebSocket, WebSocketServer } from 'ws';
 import { wsClientSchema, wsTypingClientSchema } from '@planar/shared';
 import { AUTH_OPTS, authenticateRaw, type AuthOpts } from '../auth/auth.js';
@@ -79,6 +80,8 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
     }
     this.wss.handleUpgrade(req, socket, head, (ws) => {
       if (!ctx || ctx.via === 'token') return ws.close(4401, 'unauthenticated');
+      const closed = wsOpened('/ws');
+      ws.on('close', closed);
       this.alive.add(ws);
       this.users.set(ws, ctx.userId);
       ws.on('pong', () => this.alive.add(ws));
