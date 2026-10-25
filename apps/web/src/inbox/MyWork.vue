@@ -21,7 +21,16 @@ const route = useRoute();
 const router = useRouter();
 const { user } = useAuth();
 const spaces = useSpaces();
-const SUBS = ['summary', 'assigned', 'comments', 'created', 'watched', 'activity'] as const;
+const SUBS = [
+  'summary',
+  'assigned',
+  'comments',
+  'mentions',
+  'created',
+  'watched',
+  'activity',
+] as const;
+const MENTIONS = ['mentioned', 'chat_mention'];
 type Sub = (typeof SUBS)[number];
 const sub = computed<Sub>(() =>
   SUBS.includes(route.query.w as Sub) ? (route.query.w as Sub) : 'summary',
@@ -52,6 +61,11 @@ const tiles = computed(() => [
       .length,
   },
   { w: 'comments', n: openComments.value.length },
+  {
+    w: 'mentions',
+    n: (unread.value ?? []).filter((n) => MENTIONS.includes(n.kind) && inGroup(n, props.scope))
+      .length,
+  },
   { w: 'created', n: count(created.value) },
   { w: 'watched', n: count(watched.value) },
   {
@@ -139,6 +153,7 @@ const textOf = (body: unknown): string => {
           </button>
         </div>
       </div>
+      <InboxScreen v-else-if="sub === 'mentions'" :scope="scope" :kinds="MENTIONS" />
       <InboxScreen v-else :scope="scope" />
     </div>
   </div>

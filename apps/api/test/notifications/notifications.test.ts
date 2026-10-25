@@ -103,6 +103,20 @@ describe('триггеры', () => {
     expect(await notes(w.guest.userId)).toHaveLength(1);
   });
 
+  it('mentioned: упоминание в описании задачи — новым упомянутым, без commentId', async () => {
+    const w = await setup();
+    const t = await task(w);
+    await w.admin.ok('task.update', { id: t.id, description: doc(w.member.userId) });
+    await w.admin.ok('task.update', {
+      id: t.id,
+      description: doc(w.member.userId, w.guest.userId),
+    });
+    expect(await notes(w.member.userId)).toMatchObject([
+      { kind: 'mentioned', taskId: t.id, commentId: null },
+    ]);
+    expect(await notes(w.guest.userId)).toHaveLength(1);
+  });
+
   it('автор себя не упоминает', async () => {
     const w = await setup();
     const t = await task(w);

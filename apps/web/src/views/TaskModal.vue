@@ -21,16 +21,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 </script>
 
 <template>
+  <!-- боковая панель — правая часть сплита в AppShell (под верхней панелью), здесь только окно -->
   <div
-    v-if="panelOpen && side"
-    role="dialog"
-    class="fixed inset-y-0 right-0 z-40 flex w-[min(56rem,100%)] overflow-hidden border-l border-border bg-surface shadow-dialog"
-    data-testid="task-side"
-  >
-    <component :is="TaskPanel" :task-key="taskKey" mode="panel" @close="closeTask" />
-  </div>
-  <div
-    v-else-if="panelOpen"
+    v-if="panelOpen && !side"
     class="fixed inset-0 z-40 flex items-center justify-center bg-overlay p-4 md:p-8"
     data-testid="task-modal"
     @mousedown.self="closeTask"

@@ -12,11 +12,15 @@ import type { GroupScope } from '../modules/types';
 import { isSnoozed, snooze, snoozeUntil, snoozed, type SnoozeOption } from '../inbox/snooze';
 
 // scope — таб «Входящие» группы: уведомления её уровня и вложенных
-const props = defineProps<{ scope?: GroupScope }>();
+// kinds — только эти виды уведомлений («Моя работа › Упоминания»)
+const props = defineProps<{ scope?: GroupScope; kinds?: string[] }>();
 const { t, locale } = useI18n();
 const all = useNotifications();
 const rows = computed(() =>
-  props.scope ? all.value?.filter((n) => inGroup(n, props.scope!)) : all.value,
+  all.value?.filter(
+    (n) =>
+      (!props.scope || inGroup(n, props.scope)) && (!props.kinds || props.kinds.includes(n.kind)),
+  ),
 );
 const act = 'flex size-11 items-center justify-center rounded-md hover:bg-bg-muted md:size-8';
 const filter = ref('all');

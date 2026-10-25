@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { uuidv7 } from '@planar/shared';
+import { extractMentions, uuidv7 } from '@planar/shared';
 import * as schema from '../db/schema.js';
 import { ServerTx, type Q, type ServerTxCtx } from '../sync/server-tx.js';
 
@@ -94,11 +94,16 @@ export async function notificationsHook(
     const spaceId = a.spaceId as string;
     if (w.entity === 'taskAssignees' && !w.before) {
       await notify('assigned', spaceId, a.taskId as string, a.userId as string, null);
-    } else if (w.entity === 'tasks' && w.before && w.before.statusId !== a.statusId) {
-      for (const u of await watchersOf(a.id as string))
-        await notify('status_changed', spaceId, a.id as string, u, null, {
-          statusId: [w.before.statusId, a.statusId],
-        });
+    } else if (w.entity === 'tasks') {
+      // упоминание в описании — как в комментарии: только новым упомянутым
+      const old = new Set(w.before ? extractMentions(w.before.description) : []);
+      for (const u of extractMentions(a.description).filter((u) => !old.has(u)))
+        await notify('mentioned', spaceId, a.id as string, u, null);
+      if (w.before && w.before.statusId !== a.statusId)
+        for (const u of await watchersOf(a.id as string))
+          await notify('status_changed', spaceId, a.id as string, u, null, {
+            statusId: [w.before.statusId, a.statusId],
+          });
     } else if (w.entity === 'comments') {
       const taskId = a.taskId as string;
       const all = (a.mentions as string[]) ?? [];
