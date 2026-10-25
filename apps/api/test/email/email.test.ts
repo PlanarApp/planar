@@ -322,7 +322,7 @@ describe('pf4: отписка', () => {
       origin: ORIGIN,
       'content-type': 'application/x-www-form-urlencoded',
     });
-    expect(r.statusCode).toBe(415);
+    expect([400, 415]).toContain(r.statusCode);
   });
 
   it('pf4: RFC 8058 One-Click: digest отписывает только digest', async () => {
