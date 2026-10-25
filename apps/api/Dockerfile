@@ -12,5 +12,7 @@ FROM node:24-slim
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /out .
+RUN mkdir -p /data && chown node:node /data
+USER node
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
