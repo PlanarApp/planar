@@ -117,6 +117,19 @@ export async function ensureModule(id: string): Promise<boolean> {
   }
 }
 
+/** Компонент setup модуля (в том числе выключенного): грузит его web-часть, не регистрируя; нет — undefined. */
+export async function moduleSetup(
+  id: string,
+): Promise<NonNullable<WebModuleManifest['setup']> | undefined> {
+  const load = Object.entries(loaders).find(([path]) => path.split('/').at(-3) === id)?.[1];
+  try {
+    return (await load?.())?.web.setup;
+  } catch (e) {
+    console.warn(`Модуль ${id} не загрузился`, e);
+    return undefined;
+  }
+}
+
 export async function setEnabledModules(ids: string[]): Promise<void> {
   enabled.value = ids;
   const todo = Object.entries(loaders).filter(([path]) => {

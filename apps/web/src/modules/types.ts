@@ -99,6 +99,8 @@ export interface WebModuleManifest extends FrontendModuleManifest {
   nav?: NavItemDef[];
   topbar?: TopbarItemDef[];
   search?: SearchProviderDef[];
+  /** Компонент настройки: диалог в ModulesSettings, в том числе у выключенного модуля (C-modules v11) */
+  setup?: Lazy<object>;
 }
 
 export const defineWebModule = (m: WebModuleManifest): WebModuleManifest => m;
