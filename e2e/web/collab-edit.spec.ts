@@ -106,7 +106,7 @@ test('collab-edit: после правки и debounce Cmd+K находит но
       { timeout: 20_000 },
     )
     .toContain(word);
-  await alice.getByRole('link', { name: 'Входящие' }).click();
+  await alice.getByRole('link', { name: 'Входящие' }).first().click();
   await alice.keyboard.press('Control+k');
   await alice.getByRole('dialog').getByRole('textbox').fill(word);
   await expect(alice.getByRole('option').filter({ hasText: title })).toBeVisible();
@@ -117,19 +117,19 @@ test('collab-edit: страница, ещё не дошедшая до серв�
 }) => {
   const f = await fixture([uniq('Новая')]);
   const alice = await loginAs(browser, 'alice');
-  await expect(alice.getByRole('heading', { name: 'Документы', level: 2 })).toBeVisible();
+  await alice.goto(`/s/${f.spaceId}/docs`);
+  await expect(alice.getByTestId('group-docs')).toBeVisible();
   // push страницы задержан: collab-подключение сначала получает отказ
   await alice.route('**/sync/push', async (r) => {
     await new Promise((x) => setTimeout(x, 4000));
     await r.continue();
   });
   await alice
-    .getByTestId('nav-section')
-    .filter({ has: alice.getByRole('heading', { name: 'Документы', level: 2 }) })
+    .getByTestId('group-docs')
     .locator('div.group', { hasText: `e2e ${f.spaceId}` })
     .getByRole('button', { name: 'Новая страница' })
     .click();
-  await expect(alice).toHaveURL(/\/m\/docs\//);
+  await expect(alice).toHaveURL(/page=/);
   const title = uniq('Свежая');
   await alice.getByTestId('doc-title').fill(title);
   const text = `свежее${uuidv7().slice(-10)}`;

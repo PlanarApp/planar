@@ -310,7 +310,7 @@ function onKey(e: KeyboardEvent) {
     ArrowUp: () => moveFocus(-1),
     Enter: () => task && openTask(task.key),
     x: () => task && sel.toggle(task.id),
-    F2: () => task && (editing.value = focusedId.value),
+    F2: () => task && startEdit(focusedId.value!), // правка, а не открытие после клика
     Escape: () => sel.clear(),
   };
   const h = handlers[e.key];

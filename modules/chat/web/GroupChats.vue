@@ -140,6 +140,7 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
           v-for="c in s.items"
           :key="c.id"
           :to="links.channel(c.id)"
+          data-testid="chat-channel"
           :class="[row, q('c') === c.id && 'bg-accent-subtle']"
         >
           <span class="flex min-w-0 items-center gap-1.5">
@@ -162,6 +163,7 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
           v-for="x in dms"
           :key="x.c.id"
           :to="links.channel(x.c.id)"
+          data-testid="chat-dm"
           :class="[row, q('c') === x.c.id && 'bg-accent-subtle']"
         >
           <span class="flex min-w-0 items-center gap-1.5">

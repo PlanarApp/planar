@@ -19,12 +19,11 @@ test.beforeAll(async () => {
 });
 test.afterEach(() => setModules(admin, MODULES));
 
-// корень секций модуля перекрывается data-testid=nav-section ядра: ищем по заголовку
-const chatNav = (p: Page) => p.getByRole('heading', { name: 'Чат', level: 2 });
-const docsNav = (p: Page) =>
-  p
-    .getByTestId('nav-section')
-    .filter({ has: p.getByRole('heading', { name: 'Документы', level: 2 }) });
+// модуль включён — у групп в боковой панели есть его ветка («Чаты», «Документы»)
+const branch = (p: Page, name: string) =>
+  p.getByTestId('nav-branch').filter({ hasText: name }).first();
+const chatNav = (p: Page) => branch(p, 'Чаты');
+const docsNav = (p: Page) => branch(p, 'Документы');
 // goto по url модуля при холодной загрузке показывает заглушку «Модуль» (см. fixme ниже): переходим как SPA
 const spa = async (p: Page, url: string) => {
   await expect(chatNav(p)).toBeVisible(); // маршруты модуля добавляются после загрузки реплики
@@ -145,12 +144,14 @@ test('collab: документ создаётся в дереве, связыв�
   const title = uniq('Страница');
   const word = `слово${uuidv7().slice(-10)}`;
 
-  const tree = docsNav(page);
-  await tree
+  // страница уровня пространства — из таба «Документы» группы
+  await page.goto(`/s/${f.spaceId}/docs`);
+  await page
+    .getByTestId('group-docs')
     .locator('div.group', { hasText: `e2e ${f.spaceId}` })
     .getByRole('button', { name: 'Новая страница' })
     .click();
-  await expect(page).toHaveURL(/\/m\/docs\//);
+  await expect(page).toHaveURL(/page=/);
   await page.getByTestId('doc-title').fill(title);
   const body = page.getByRole('textbox', { name: 'Текст страницы' });
   await body.click();
@@ -181,7 +182,7 @@ test('collab: документ создаётся в дереве, связыв�
     )
     .toBe(true);
 
-  await page.getByRole('link', { name: 'Входящие' }).click();
+  await page.getByRole('link', { name: 'Входящие' }).first().click();
   await page.keyboard.press('Control+k');
   await page.getByRole('dialog').getByRole('textbox').fill(word);
   await page.getByRole('option').filter({ hasText: title }).click();
@@ -211,6 +212,7 @@ test('collab: реплика, открытая до включения моду�
   const name = uniq('канал после');
   await channel(f.admin, f, name);
   await expect(chatNav(page)).toBeVisible({ timeout: 15_000 });
+  await page.goto(`/s/${f.spaceId}/chats`);
   await expect(page.getByTestId('chat-channel').filter({ hasText: name })).toBeVisible({
     timeout: 15_000,
   });

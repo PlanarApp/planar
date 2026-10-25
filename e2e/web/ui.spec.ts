@@ -16,7 +16,7 @@ test('вход: admin/admin попадает на главную с боково
   await page.getByRole('button', { name: 'Войти' }).click();
   await expect(page).not.toHaveURL(/\/login/);
   await expect(page.getByTestId('sidebar')).toBeVisible();
-  await expect(page.getByText('Пространства')).toBeVisible();
+  await expect(page.getByTestId('nav-workspace')).toBeVisible();
 });
 
 test('создать задачу в списке: видна и переживает reload', async ({ browser }) => {
@@ -95,7 +95,8 @@ test('офлайн: правки названия не теряются и до�
   await alice.goto(`/p/${f.projectId}`);
   const rows = f.taskKeys.map((k) => alice.locator(`[role=row][data-task="${k}"]`));
   for (const r of rows) await expect(r).toBeVisible();
-  await rows[0]!.click(); // прогрев ленивой панели задачи: офлайн её не загрузить
+  // прогрев ленивой панели задачи: офлайн её не загрузить; клик по названию — середина строки занята ячейками
+  await rows[0]!.getByText(titles[0]!).click();
   await expect(alice).toHaveURL(/task=/);
   // окно задачи накрывает список (как в ClickUp) — закрываем перед правками в строках
   await alice.keyboard.press('Escape');
@@ -103,7 +104,7 @@ test('офлайн: правки названия не теряются и до�
   await alice.context().setOffline(true);
   const names = f.taskKeys.map(() => uniq('Правка офлайн'));
   for (let i = 0; i < rows.length; i++) {
-    await rows[i]!.click();
+    await rows[i]!.getByText(f.taskKeys[i]!, { exact: true }).click();
     await alice.keyboard.press('F2'); // dblclick открывает панель и сбивает фокус инлайн-ввода
     await alice.getByLabel('Название задачи', { exact: true }).fill(names[i]!);
     await alice.keyboard.press('Enter');

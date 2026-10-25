@@ -30,8 +30,8 @@ test('время: таймер в панели задачи и верхней п
   await expect(page.locator('[data-test=entry]')).toHaveCount(2);
   await expect(page.locator('[data-test=sum] b')).toHaveText('1:30');
 
-  await page.getByTestId('sidebar').getByRole('link', { name: 'Мои часы' }).click();
-  await expect(page).toHaveURL(/\/m\/time\/week/);
+  await page.goto('/w/reports?r=time:week'); // «Мои часы» → Отчёты › Время
+  await expect(page.getByRole('heading', { name: 'Время' })).toBeVisible();
   const row = page.locator('[data-test=row]', { hasText: title });
   const total = row.locator('td.total');
   await expect(total).toHaveText('1:30');
@@ -61,8 +61,8 @@ test('спринт: «Закрыть» переносит незакрытые �
     f.admin.mut('task.update', { id: f.taskIds[1], statusId: f.statusIds[3] }),
   ]);
   const page = await loginAs(browser, 'alice');
-  await page.goto(`/p/${f.projectId}`);
-  await page.getByRole('tab', { name: 'Спринт' }).click();
+  await page.goto(`/p/${f.projectId}/reports`);
+  await page.getByRole('tab', { name: 'Спринты' }).click();
   await expect(page.getByTestId('sprint-current')).toBeVisible();
   await page.locator('[data-role=close]').click();
   await expect(page.getByTestId('sprint-none')).toBeVisible();

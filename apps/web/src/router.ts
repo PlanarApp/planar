@@ -5,6 +5,8 @@ import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router'
 const screens = import.meta.glob(['./screens/*Screen.vue', '!./screens/DevUiScreen.vue']);
 const screen = (name: string) => screens[`./screens/${name}Screen.vue`];
 
+const MOVED_VIEWS = ['sprints:sprint', 'goals:milestones'];
+
 export const router = createRouter({
   history: typeof window === 'undefined' ? createMemoryHistory() : createWebHistory(),
   routes: [
@@ -43,6 +45,13 @@ router.beforeEach(async (to) => {
     return (await setupNeeded()) ? '/setup' : { path: '/login', query: { redirect: to.fullPath } };
   }
   if (to.name === 'login' || to.name === 'setup') return '/';
+  // бывшие виды проекта Спринт и Вехи живут в Отчётах группы
+  if (to.name === 'project' && MOVED_VIEWS.includes(String(to.params.view)))
+    return {
+      path: `/p/${String(to.params.projectId)}/reports`,
+      query: { ...to.query, r: String(to.params.view) },
+      replace: true,
+    };
   if (to.name === 'module') {
     // маршруты модуля добавляются лениво — дождаться и повторить навигацию.
     // Настройки ещё не известны (холодный заход) — не держим переход: ModuleScreen покажет скелетон и сама повторит навигацию.
