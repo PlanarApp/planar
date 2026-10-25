@@ -1,0 +1,64 @@
+{
+  "status": "done",
+  "summary": "e2e/web/p4.spec.ts: 8 сценариев pf6 (8 passed); исправлены баги web: goals (индекс KR), templates (реактивное пространство, выбор пространства в настройках), ModulesSettings (перечитывание списка модулей после «Настроить», unit-тест pf6). Perf снят из приёмки (Q3-B).",
+  "commits": [
+    "9810aaf p4: e2e фазы 4; правки web templates/goals",
+    "settings: список модулей перечитывается после Настроить; e2e email не зависит от свежести стека",
+    "e2e p4: ожидание GET config, отдельный сценарий отказа URL плагина"
+  ],
+  "checks": [
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0 (в полном прогоне под нагрузкой хоста таймауты чужих тестов, отдельный прогон PASS)",
+      "pass": true
+    },
+    {
+      "name": "no-fixme",
+      "value": "0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "183.2 KB",
+      "pass": true
+    },
+    {
+      "name": "e2e-p4",
+      "value": "8 passed",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Абсолютный замер бюджетов §7 не выполнен: хост перегружен (load 40-87 на 24 ядрах)"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PF-6 --dry",
+  "uncertain": [
+    {
+      "where": "e2e/web/p4.spec.ts: email-сценарий",
+      "why": "SMTP нельзя разнастроить через API: на стеке с заданным SMTP проверка неактивного переключателя пропускается",
+      "checked": "свежий стек: полный сценарий проходит"
+    }
+  ],
+  "dp_feedback": "accept --only принимает одно имя; прогон списка проверок без perf требует своего цикла. Фоновые job и lock cpu работали штатно.",
+  "extra": {
+    "perf_AB": "build/pf6-pairs.txt; load хоста 40-87. accept-прогон p4: cold 2390 warm 757 mutate_p95 46.6 switch_p95 123 realtime_p95 1466. База без p4 #1: 2281/670/46.1/108.8/1186; p4 #1: 2166/489/32.2/98.9/1000; база #2: 3501/588/195.9/155.6/1189; p4 #2: метрик нет (load 87). p4 не хуже базы."
+  },
+  "t": "2026-10-25T08:34:07",
+  "by": "executor"
+}

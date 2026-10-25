@@ -1,0 +1,5 @@
+# Только для ops/test-upgrade.sh: миграции новой версии не проходят (БД недоступна), образ при этом новый.
+services:
+  api:
+    environment:
+      DATABASE_URL: postgres://postgres:x@127.0.0.1:1/planar

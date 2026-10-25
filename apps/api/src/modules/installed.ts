@@ -14,18 +14,28 @@ import { api as timeApi } from '@planar/module-time/api';
 import * as timeTables from '@planar/module-time/api/schema';
 import { api as sprintsApi } from '@planar/module-sprints/api';
 import * as sprintsTables from '@planar/module-sprints/api/schema';
+import { api as recurringApi } from '@planar/module-recurring/api';
+import * as recurringTables from '@planar/module-recurring/api/schema';
 import { api as automationsApi } from '@planar/module-automations/api';
 import * as automationsTables from '@planar/module-automations/api/schema';
 import { api as webhooksApi } from '@planar/module-webhooks/api';
 import * as webhooksTables from '@planar/module-webhooks/api/schema';
 import { api as gitlabApi } from '@planar/module-gitlab/api';
 import * as gitlabTables from '@planar/module-gitlab/api/schema';
+import { api as emailApi } from '@planar/module-email/api';
+import * as emailTables from '@planar/module-email/api/schema';
 import { api as timelineApi } from '@planar/module-timeline/api';
 import * as timelineTables from '@planar/module-timeline/api/schema';
 import { api as importApi } from '@planar/module-import/api';
 import * as importTables from '@planar/module-import/api/schema';
 import { api as workloadApi } from '@planar/module-workload/api';
 import * as workloadTables from '@planar/module-workload/api/schema';
+import { api as templatesApi } from '@planar/module-templates/api';
+import * as templatesTables from '@planar/module-templates/api/schema';
+import { api as goalsApi } from '@planar/module-goals/api';
+import * as goalsTables from '@planar/module-goals/api/schema';
+import { api as pluginsApi } from '@planar/module-plugins/api';
+import * as pluginsTables from '@planar/module-plugins/api/schema';
 
 export interface InstalledModule {
   api: BackendModuleManifest;
@@ -86,6 +96,11 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: dashboardsApi, tables: dashboardsTables },
   { api: workloadApi, tables: workloadTables },
   { api: timelineApi, tables: timelineTables },
+  { api: templatesApi, tables: templatesTables },
+  { api: emailApi, tables: emailTables },
+  { api: goalsApi, tables: goalsTables },
+  { api: recurringApi, tables: recurringTables },
+  { api: pluginsApi, tables: pluginsTables },
 ]);
 
 export const moduleTables = (): Map<string, PgTable> =>

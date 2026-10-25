@@ -10,6 +10,7 @@ import {
 import { HttpAdapterHost } from '@nestjs/core';
 import { Hocuspocus } from '@hocuspocus/server';
 import { eq, sql } from 'drizzle-orm';
+import { wsOpened } from '../metrics/metrics.js';
 import { WebSocketServer } from 'ws';
 import * as Y from 'yjs';
 import { AUTH_OPTS, authenticateRaw, type AuthOpts } from '../auth/auth.js';
@@ -129,6 +130,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     this.wss.handleUpgrade(req, socket, head, (ws) => {
       const conn = this.hp.handleConnection(ws as never, request, { userId: userId! });
       ws.on('message', (raw) => conn.handleMessage(new Uint8Array(raw as Buffer)));
+      ws.on('close', wsOpened('/collab'));
       ws.on('pong', () => conn.touch());
       ws.on('close', (code, reason) => conn.handleClose({ code, reason: reason.toString() }));
       ws.on('error', () => {});

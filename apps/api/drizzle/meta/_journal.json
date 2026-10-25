@@ -134,6 +134,41 @@
       "when": 1792848349854,
       "tag": "0018_volatile_maximus",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792892157099,
+      "tag": "0019_condemned_exodus",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792894360373,
+      "tag": "0020_goals",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792895281786,
+      "tag": "0021_secret_redwing",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792897601130,
+      "tag": "0022_jittery_leader",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792906266557,
+      "tag": "0023_opposite_quasimodo",
+      "breakpoints": true
     }
   ]
 }

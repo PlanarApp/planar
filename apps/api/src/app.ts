@@ -6,6 +6,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { AppModule } from './app.module.js';
 import { createDb } from './db/index.js';
 import type { PushOpts } from './push/push.js';
+import { observeRequest } from './metrics/metrics.js';
 import { ErrorFilter } from './error.filter.js';
 
 export interface AppOptions {
@@ -47,6 +48,15 @@ export async function createApp(opts: AppOptions): Promise<NestFastifyApplicatio
   );
   // cast: у platform-fastify своя копия fastify другой минорной версии
   await app.register(multipart as never);
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onResponse', async (req, reply) => {
+      const route = req.routeOptions?.url ?? 'unmatched';
+      if (route === '/api/metrics' || route.startsWith('/api/health')) return;
+      if (route === 'unmatched' && /^\/api\/(metrics|health)/.test(req.url)) return;
+      observeRequest(req.method, route, reply.statusCode, reply.elapsedTime / 1000);
+    });
   app.useGlobalFilters(new ErrorFilter());
   app.enableShutdownHooks();
   return app;

@@ -54,7 +54,7 @@ describe('модули', () => {
 
   it('GET /api/modules: hello выключен', async () => {
     const r = await get('/api/modules');
-    expect(r.json().modules).toContainEqual({ id: 'hello', enabled: false });
+    expect(r.json().modules).toContainEqual({ id: 'hello', enabled: false, unavailable: null });
   });
 
   it('GET /api/modules без входа → 401', async () => {
@@ -77,6 +77,7 @@ describe('модули', () => {
     expect((await get('/api/modules')).json().modules).toContainEqual({
       id: 'hello',
       enabled: true,
+      unavailable: null,
     });
 
     const n = note(w.spaceId);

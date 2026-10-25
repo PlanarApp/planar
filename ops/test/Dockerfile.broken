@@ -1,0 +1,4 @@
+# Только для ops/test-upgrade.sh: «сломанная новая версия» api — падает при старте.
+ARG BASE
+FROM ${BASE}
+CMD ["node", "-e", "process.exit(1)"]

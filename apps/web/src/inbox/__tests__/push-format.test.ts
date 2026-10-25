@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 import { pushPayloadSchema } from '@planar/shared';
 
-const src = readFileSync('public/push-sw.js', 'utf8');
+const src = readFileSync(resolve(__dirname, '../../../public/push-sw.js'), 'utf8');
 const origin = 'https://app.example';
 
 const good = {

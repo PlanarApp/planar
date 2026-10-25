@@ -1,5 +1,9 @@
 export default {
   app: { name: 'Planar' },
+  modules: {
+    setup: 'Настроить',
+    unavailable: { smtp_not_configured: 'Сначала настройте SMTP (кнопка «Настроить»)' },
+  },
   ui: { cancel: 'Отмена', sheet: 'Выбор' },
   sidebar: {
     inbox: 'Входящие',
@@ -488,6 +492,7 @@ export default {
   },
   list: {
     newTask: 'Новая задача',
+    newMenu: 'Новая задача из…',
     newTaskTitle: 'Название новой задачи',
     editTitle: 'Название задачи',
     select: 'Выбрать задачу',

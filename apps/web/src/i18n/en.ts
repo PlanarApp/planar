@@ -1,5 +1,9 @@
 export default {
   app: { name: 'Planar' },
+  modules: {
+    setup: 'Set up',
+    unavailable: { smtp_not_configured: 'Configure SMTP first (the Set up button)' },
+  },
   ui: { cancel: 'Cancel', sheet: 'Choose' },
   sidebar: {
     inbox: 'Inbox',
@@ -488,6 +492,7 @@ export default {
   },
   list: {
     newTask: 'New task',
+    newMenu: 'New task from…',
     newTaskTitle: 'New task title',
     editTitle: 'Task title',
     select: 'Select task',

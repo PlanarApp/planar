@@ -1,0 +1,68 @@
+{
+  "id": "PF-1",
+  "module": "p4",
+  "type": "dp-engineer",
+  "title": "Повторяющиеся задачи (modules/recurring)",
+  "goal": "Модуль modules/recurring: правило повтора на задаче (интервал, дни недели, после завершения), cron pg-boss создаёт ровно один следующий экземпляр на период от системного пользователя с копией полей, исполнителей, меток и чек-листа; блок «Повтор» в карточке задачи.",
+  "plan_ref": "4. Задачи (PF-1)",
+  "contracts": [
+    {
+      "name": "P4-recurring",
+      "version": "1",
+      "ref": "docs/contracts/p4.md"
+    }
+  ],
+  "copy": "~/planar-p4-PF-1",
+  "branch": "p4/PF-1",
+  "base": "feature/p4",
+  "scope": [
+    "modules/recurring/",
+    "apps/api/src/modules/installed.ts",
+    "apps/api/package.json",
+    "apps/api/drizzle/",
+    "apps/api/test/recurring/",
+    "pnpm-lock.yaml"
+  ],
+  "dont_touch": [
+    "apps/api/src/sync",
+    "packages/shared/src",
+    "docs/contracts",
+    "apps/web/src",
+    "compose.dev.yml"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "P4_CONTRACT_STRICT=1 pnpm exec vitest run apps/api/test/modules/p4.contract.test.ts -t 'модуль recurring|разбор'",
+      "expect": "exit=0"
+    },
+    {
+      "name": "pf1",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run -t pf1:",
+      "expect": "num:(\\d+) passed >=12"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-25T01:30:04"
+}

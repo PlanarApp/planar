@@ -1,0 +1,47 @@
+{
+  "status": "done",
+  "summary": "ops/backup.sh, restore.sh, lib.sh, test-backup.sh, systemd-примеры по C-ops-backup v1. Круг стек->бэкап->снос томов->restore->те же данные (задачи, sha256 файлов, вход), ротация и битый архив проверены тестом.",
+  "commits": [
+    "77b1d0d OP-2: backup.sh, restore.sh, test-backup.sh, systemd-примеры"
+  ],
+  "checks": [
+    {
+      "name": "ops-contract",
+      "value": "5/5",
+      "pass": true
+    },
+    {
+      "name": "backup-test",
+      "value": "OK",
+      "pass": true
+    },
+    {
+      "name": "bash-syntax",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept OP-2",
+  "uncertain": [
+    {
+      "where": "ops/restore.sh:23",
+      "why": "восстановление делает drop database planar with (force) + create, а не pg_restore --clean поверх: --clean на базе с уже мигрированным pg-boss падает (cannot drop inherited constraint). Контракт говорит --clean --if-exists; флаги оставлены, итог тот же",
+      "checked": "круг test-backup.sh проходит"
+    },
+    {
+      "where": "ops/restore.sh:21",
+      "why": "'пустой стек' = нет пользователей с password_hash <> '!' (миграция создаёт системного automation)",
+      "checked": "проверено на живом стеке"
+    },
+    {
+      "where": "ops/lib.sh",
+      "why": "manifest разбирается grep/sed без jq; формат пишет только backup.sh",
+      "checked": "тест круга"
+    }
+  ],
+  "dp_feedback": "accept --dry идёт ~15 мин в foreground и упирается в 600с таймаут Bash; полезен запуск в фоне с ожиданием.",
+  "t": "2026-10-25T05:54:48",
+  "by": "executor"
+}

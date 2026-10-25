@@ -1,0 +1,90 @@
+{
+  "id": "PF-4",
+  "module": "p4",
+  "type": "dp-engineer",
+  "title": "Email-уведомления и дайджест (modules/email) + C-modules v11 (1, 2), C-mutators v5",
+  "goal": "Модуль modules/email: SMTP через nodemailer с шифрованным паролем, письма по упоминаниям и назначениям с задержкой 10 мин без дублей и ежедневный дайджест, подписка в настройках пользователя и отписка по подписанной ссылке; в ядре — недоступность модуля без настроек (unavailable, запрет включения) и setup выключенного модуля только для админа.",
+  "plan_ref": "4. Задачи (PF-4)",
+  "contracts": [
+    {
+      "name": "P4-email",
+      "version": "2",
+      "ref": "docs/contracts/p4.md"
+    },
+    {
+      "name": "C-modules",
+      "version": "11",
+      "ref": "docs/contracts/p4.md"
+    },
+    {
+      "name": "C-mutators",
+      "version": "5",
+      "ref": "docs/contracts/p4.md"
+    }
+  ],
+  "copy": "~/planar-p4-PF-4",
+  "branch": "p4/PF-4",
+  "base": "feature/p4",
+  "scope": [
+    "modules/email/",
+    "apps/api/src/modules/",
+    "apps/api/src/sync/server-tx.ts",
+    "apps/api/package.json",
+    "apps/api/drizzle/",
+    "apps/api/test/email/",
+    "apps/api/test/modules/email.test.ts",
+    "apps/api/test/modules/setup-guard.test.ts",
+    "pnpm-lock.yaml",
+    "packages/shared/src/contract/modules.ts",
+    "apps/web/src/screens/settings/ModulesSettings.vue",
+    "apps/web/src/modules/types.ts",
+    "apps/web/src/modules/registry.ts",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "apps/web/src/screens/settings/__tests__/",
+    "apps/api/test/modules/modules.test.ts"
+  ],
+  "dont_touch": [
+    "docs/contracts",
+    "packages/shared/src/contract/versions.ts",
+    "apps/api/test/modules/p4.contract.test.ts",
+    "apps/web/src/views",
+    "compose.dev.yml"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "P4_CONTRACT_STRICT=1 pnpm exec vitest run apps/api/test/modules/p4.contract.test.ts -t 'модуль email|разбор'",
+      "expect": "exit=0"
+    },
+    {
+      "name": "pf4",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run -t pf4:",
+      "expect": "num:(\\d+) passed >=16"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-25T01:32:12",
+  "edited": "2026-10-25T02:25:04"
+}
