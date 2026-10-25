@@ -62,4 +62,14 @@ BROKEN_BASE="$COMPOSE_PROJECT_NAME-api:latest" COMPOSE_FILE="$COMPOSE_FILE:ops/t
 [ "$(ready_code)" = 200 ] || fail "ready ≠ 200 после отката"
 snapshot >"$TMP/after2"
 diff "$TMP/before" "$TMP/after2" || fail "данные изменились после отката"
+
+# провал миграций: имя :latest снова указывает на прежний образ, :rollback снят
+oldimg="$(docker image inspect --format '{{.Id}}' "$COMPOSE_PROJECT_NAME-api:latest")"
+BROKEN_BASE="$COMPOSE_PROJECT_NAME-api:latest" COMPOSE_FILE="$COMPOSE_FILE:ops/test/compose.broken.yml:ops/test/compose.badmig.yml" \
+  ./ops/upgrade.sh >"$TMP/up3.log" 2>&1 && fail "upgrade.sh принял провал миграций"
+grep -q 'миграции не прошли' "$TMP/up3.log" || fail "нет сообщения о миграциях"
+[ "$(docker image inspect --format '{{.Id}}' "$COMPOSE_PROJECT_NAME-api:latest")" = "$oldimg" ] || fail "тег api не вернулся на прежний образ"
+[ -z "$(docker images -q "$COMPOSE_PROJECT_NAME-api:rollback")" ] || fail "остался тег :rollback после провала миграций"
+[ "$(api_image_id)" = "$old" ] || fail "api не на старом образе после провала миграций"
+[ "$(ready_code)" = 200 ] || fail "ready ≠ 200 после провала миграций"
 echo "upgrade-test: OK"

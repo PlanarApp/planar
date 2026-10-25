@@ -15,35 +15,36 @@ READY_TIMEOUT=120
 SVCS=(api caddy)
 tagged=()
 
-# shortcut: локальная копия; заменить на wait_ready из lib.sh, когда OP-2b её добавит.
-ready() {
-  local t=$((SECONDS + $1))
-  while [ "$SECONDS" -lt "$t" ]; do
-    dc exec -T api node -e "fetch('http://localhost:3000/api/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))" >/dev/null 2>&1 && return 0
-    sleep 2
-  done
-  return 1
-}
-cleanup() { local i; for i in "${tagged[@]}"; do docker rmi "$i:rollback" >/dev/null 2>&1 || true; done; }
+# Репозиторий без тега (тег — только после ':' в последнем компоненте; порт реестра не трогаем).
+rb() { local b=$1; [[ ${b##*/} == *:* ]] && b=${b%:*}; echo "$b:rollback"; }
+cleanup() { local i; for i in "${tagged[@]}"; do docker rmi "$(rb "$i")" >/dev/null 2>&1 || true; done; }
 trap cleanup EXIT
 fail() { echo "upgrade: $*" >&2; exit 1; }
 
-./ops/backup.sh || fail "бэкап не удался, ничего не тронуто"
-[ "${1:-}" = --pull ] && git pull --ff-only
+restore_tags() { local i; for i in "${tagged[@]}"; do docker image tag "$(rb "$i")" "$i"; done; }
+
+main() {
+# После pull скрипт мог измениться: перезапускаем свежую версию без --pull (бэкап уже сделан).
+if [ -z "${UPGRADE_REEXEC:-}" ]; then
+  ./ops/backup.sh || fail "бэкап не удался, ничего не тронуто"
+  if [ "${1:-}" = --pull ]; then git pull --ff-only; UPGRADE_REEXEC=1 exec "$0"; fi
+fi
 
 for s in "${SVCS[@]}"; do
   img="$(docker inspect --format '{{.Config.Image}}' "$(dc ps -q "$s")")" || fail "нет запущенного $s"
-  docker image tag "$img" "$img:rollback"
+  docker image tag "$img" "$(rb "$img")"
   tagged+=("$img")
 done
-dc build "${SVCS[@]}"
+dc build "${SVCS[@]}" || { restore_tags; fail "сборка не прошла; прежний api продолжает работать"; }
 dc run --rm --no-deps -T api node --input-type=module -e "import {createDb,migrate} from './dist/db/index.js'; const db=createDb(process.env.DATABASE_URL); await migrate(db); await db.\$client.end()" \
-  || fail "миграции не прошли; прежний api продолжает работать"
+  || { restore_tags; fail "миграции не прошли; прежний api продолжает работать"; }
 dc up -d --no-deps --force-recreate "${SVCS[@]}"
-if ready "$READY_TIMEOUT"; then echo "upgrade: OK"; exit 0; fi
+if wait_ready "$READY_TIMEOUT"; then echo "upgrade: OK"; exit 0; fi
 
 echo "upgrade: новая версия не готова, откат образов (миграции не откатываются)" >&2
-for img in "${tagged[@]}"; do docker image tag "$img:rollback" "$img"; done
+restore_tags
 dc up -d --no-deps --force-recreate "${SVCS[@]}"
-ready "$READY_TIMEOUT" || fail "после отката api не готов"
+wait_ready "$READY_TIMEOUT" || fail "после отката api не готов"
 exit 1
+}
+main "$@"
