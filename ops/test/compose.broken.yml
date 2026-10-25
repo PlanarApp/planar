@@ -1,0 +1,7 @@
+# Только для ops/test-upgrade.sh: подменяет сборку api на сломанную.
+services:
+  api:
+    build:
+      dockerfile: ops/test/Dockerfile.broken
+      args:
+        BASE: ${BROKEN_BASE:?}
