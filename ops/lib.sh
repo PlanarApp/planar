@@ -24,7 +24,8 @@ verify_dir() {
   n="$(tar -tf "$d/files.tar" | grep -vc '/$' || true)"
   [ "$n" = "$(mval "$m" files count)" ] || die "число файлов $n ≠ count манифеста"
   if [ "$deep" = deep ]; then
-    mkdir -p "$d/x" && tar -xf "$d/files.tar" -C "$d/x"
+    mkdir -p "$d/x"
+    tar -xf "$d/files.tar" -C "$d/x" || die "tar -x не прошёл"
     while IFS= read -r f; do
       [ "$(sha256sum "$f" | cut -d' ' -f1)" = "$(basename "$f")" ] || die "файл не соответствует своему sha256: $f"
     done < <(find "$d/x" -type f)
@@ -38,4 +39,14 @@ verify_archive() {
   tar -xf "$1" -C "$t" || { rm -rf "$t"; die "архив не читается: $1"; }
   (verify_dir "$t" "${2:-}") || { rm -rf "$t"; exit 1; }
   rm -rf "$t"
+}
+
+# Ждёт готовности api изнутри контейнера (не через Caddy: с PLANAR_DOMAIN порт 80 даёт редирект). wait_ready <таймаут_с>: 0 готов, 1 нет.
+wait_ready() {
+  local end=$((SECONDS + ${1:?wait_ready <таймаут_с>}))
+  while [ $SECONDS -lt $end ]; do
+    dc exec -T api node -e "fetch('http://localhost:3000/api/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))" >/dev/null 2>&1 && return 0
+    sleep 2
+  done
+  return 1
 }

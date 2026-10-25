@@ -54,6 +54,14 @@ mkdir "$TMP/bad" && tar -xf "$arc" -C "$TMP/bad" && printf x >>"$TMP/bad/db.dump
 tar -cf "$TMP/bad.tar" -C "$TMP/bad" manifest.json db.dump files.tar
 if ./ops/restore.sh "$TMP/bad.tar" >/dev/null 2>&1; then fail "повреждённый архив принят"; fi
 
+# --deep ловит сбой tar -x: files.tar читается (-t), но не распаковывается (файл a и a/b)
+mkdir "$TMP/dp" && (cd "$TMP/dp" && echo 1 >a && echo 2 >b && tar -cf files.tar --transform 's,^b,a/b,' a b)
+cp "$TMP/bad/manifest.json" "$TMP/dp/"; tar -xf "$arc" -C "$TMP/dp" db.dump
+sed -i "s/\"sha256\": \"[0-9a-f]*\", \"count\": [0-9]*/\"sha256\": \"$(sha256sum "$TMP/dp/files.tar" | cut -d' ' -f1)\", \"count\": 2/;s/\"db\": {\"file\": \"db.dump\", \"sha256\": \"[0-9a-f]*/\"db\": {\"file\": \"db.dump\", \"sha256\": \"$(sha256sum "$TMP/dp/db.dump" | cut -d' ' -f1)/" "$TMP/dp/manifest.json"
+tar -cf "$TMP/dp.tar" -C "$TMP/dp" manifest.json db.dump files.tar
+bash -c '. ops/lib.sh; verify_archive "$1"' _ "$TMP/dp.tar" >/dev/null 2>&1 || fail "тест --deep: без deep архив должен пройти"
+if bash -c '. ops/lib.sh; verify_archive "$1" deep' _ "$TMP/dp.tar" >/dev/null 2>&1; then fail "--deep пропустил сбой tar -x"; fi
+
 # снос томов → чистый стек → restore
 docker compose down -v --remove-orphans
 docker compose up -d postgres api caddy
@@ -61,7 +69,13 @@ wait_health
 [ "$(docker compose exec -T postgres psql -U postgres -d planar -Atc "select count(*) from users where password_hash <> '!'")" = 0 ] || fail "стек не чистый"
 ./ops/restore.sh "$arc"
 # непустая база без --force отвергается
-if ./ops/restore.sh "$arc" >/dev/null 2>&1; then fail "restore без --force поверх данных"; fi
+# (относительный путь из другого каталога разрешается; отказ именно из-за данных, не из-за usage)
+out="$(cd "$(dirname "$arc")" && "$OLDPWD/ops/restore.sh" "$(basename "$arc")" 2>&1)" && fail "restore без --force поверх данных"
+case "$out" in *"уже есть пользователи"*) ;; *) fail "отказ не по данным: $out" ;; esac
+# сбой запроса users (docker-обёртка роняет psql с users) без --force = отказ, а не drop
+mkdir "$TMP/shim"; REAL="$(command -v docker)"
+printf '#!/bin/sh\ncase "$*" in *psql*users*) exit 1;; esac\nexec %s "$@"\n' "$REAL" >"$TMP/shim/docker"; chmod +x "$TMP/shim/docker"
+PATH="$TMP/shim:$PATH" ./ops/restore.sh "$arc" >/dev/null 2>&1 && fail "restore при сбое запроса users продолжился"
 wait_health
 snapshot >"$TMP/after"
 diff "$TMP/before" "$TMP/after" || fail "данные после restore отличаются"
