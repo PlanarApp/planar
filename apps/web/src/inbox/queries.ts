@@ -1,6 +1,7 @@
 import { computed } from 'vue';
 import type { Row } from '@planar/shared';
 import { db, useQuery } from '../sync';
+import { docText } from '../command/search';
 import { isSnoozed, snoozed } from './snooze';
 
 export type InboxItem = Row<'notifications'> & {
@@ -9,7 +10,11 @@ export type InboxItem = Row<'notifications'> & {
   taskTitle: string;
   /** уровень группы: проект задачи или канала; null — пространство (spaceId) или личный диалог */
   projectId: string | null;
+  /** что изменилось: статус «было → стало» (status_changed), текст комментария (commented, mentioned) */
+  status: [Status, Status] | null;
+  comment: string | null;
 };
+type Status = { name: string; color: string };
 
 const CHANNEL = /^\/m\/chat\/c\/([0-9a-f-]{36})/;
 
@@ -22,6 +27,16 @@ export const useNotifications = () =>
         .bulkGet([...new Set(ns.flatMap((n) => (n.taskId ? [n.taskId] : [])))]),
       db.table<Row<'users'>>('users').bulkGet([...new Set(ns.map((n) => n.actorId))]),
     ]);
+    const statusPair = (n: Row<'notifications'>) =>
+      (n.changes?.statusId as [string, string] | undefined) ?? [];
+    const [comments, statuses] = await Promise.all([
+      db
+        .table<Row<'comments'>>('comments')
+        .bulkGet([...new Set(ns.flatMap((n) => (n.commentId ? [n.commentId] : [])))]),
+      db.table<Row<'statuses'>>('statuses').bulkGet([...new Set(ns.flatMap(statusPair))]),
+    ]);
+    const comment = new Map(comments.flatMap((c) => (c ? [[c.id, c.body] as const] : [])));
+    const status = new Map(statuses.flatMap((s) => (s ? [[s.id, s] as const] : [])));
     const projects = await db
       .table<Row<'projects'>>('projects')
       .bulkGet([...new Set(tasks.flatMap((t) => (t ? [t.projectId] : [])))]);
@@ -45,9 +60,29 @@ export const useNotifications = () =>
           // уведомление без задачи (chat_*): вместо названия — body
           taskTitle: t?.title ?? (n.taskId ? '' : (n.body ?? '')),
           projectId: t?.projectId ?? chProject.get(CHANNEL.exec(n.url ?? '')?.[1] ?? '') ?? null,
+          status: pair(statusPair(n).map((id) => status.get(id))),
+          comment: n.commentId
+            ? docText(comment.get(n.commentId)).replace(/\s+/g, ' ').trim().slice(0, 200) || null
+            : null,
         };
       });
   });
+
+// оба статуса ещё есть локально — иначе показываем только фразу уведомления
+const pair = (s: (Row<'statuses'> | undefined)[]): [Status, Status] | null =>
+  s.length === 2 && s[0] && s[1] ? [s[0], s[1]] : null;
+
+/** Карточки Входящих, как в ClickUp: уведомления одной задачи — вместе; порядок — по самому новому. */
+export function groupByTask(items: InboxItem[]): InboxItem[][] {
+  const m = new Map<string, InboxItem[]>();
+  for (const n of items) {
+    const k = n.taskId ?? n.id;
+    const g = m.get(k);
+    if (g) g.push(n);
+    else m.set(k, [n]);
+  }
+  return [...m.values()];
+}
 
 /** Число непрочитанных, не отложенных (для колокольчика и бейджей). */
 export function useUnread() {

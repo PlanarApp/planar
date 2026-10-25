@@ -129,6 +129,8 @@ export default {
     delete: 'Удалить',
     snoozeLabel: 'Отложить',
     snooze: { '3h': 'Через 3 часа', tomorrow: 'Завтра в 9:00', week: 'Через неделю' },
+    more: 'ещё {n}',
+    pick: 'Выберите уведомление, чтобы открыть задачу',
     kind: {
       assigned: '{who} назначил(а) вас на {key}',
       mentioned: '{who} упомянул(а) вас в {key}',

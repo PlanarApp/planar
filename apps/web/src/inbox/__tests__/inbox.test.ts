@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { computed, nextTick } from 'vue';
+import { computed, defineComponent, h, nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
 import { domainMutators, uuidv7 } from '@planar/shared';
 import en from '../../i18n/en';
@@ -9,6 +9,8 @@ import ru from '../../i18n/ru';
 import { db, registerMutators, startSync, stopSync } from '../../sync';
 import { useAuth } from '../../auth/useAuth';
 import { mkUser } from '../../auth/__tests__/helpers';
+import { TooltipProvider } from 'reka-ui';
+import { resetBreakpoint } from '../../ui';
 
 const { router } = vi.hoisted(() => ({ router: { current: undefined as never } }));
 vi.mock('../../router', async () => {
@@ -25,6 +27,18 @@ vi.mock('../../router', async () => {
   return { router: r };
 });
 
+// форма задачи — заглушка: проверяем только, какую задачу открыл сплит
+vi.mock('../../views/open', async (orig) => ({
+  ...(await orig<typeof import('../../views/open')>()),
+  taskPanelLoader: async () => ({
+    __esModule: true, // defineAsyncComponent берёт default только у модуля
+    default: {
+      props: ['taskKey'],
+      setup: (p: { taskKey: string }) => () => h('div', { 'data-testid': 'panel' }, p.taskKey),
+    },
+  }),
+}));
+
 const InboxScreen = (await import('../../screens/InboxScreen.vue')).default;
 const MyScreen = (await import('../../screens/MyScreen.vue')).default;
 const PushToggle = (await import('../PushToggle.vue')).default;
@@ -39,6 +53,16 @@ const i18n = createI18n({
   messages: { ru, en },
 });
 const g = { plugins: [i18n] };
+const route = () =>
+  (router.current as { currentRoute: { value: { path: string; query: Record<string, unknown> } } })
+    .currentRoute.value;
+function mockMq(mobile: boolean) {
+  resetBreakpoint();
+  window.matchMedia = vi.fn().mockImplementation((q: string) => ({
+    matches: q.includes('max-width') ? mobile : false,
+    addEventListener: () => {},
+  })) as unknown as typeof window.matchMedia;
+}
 const me = uuidv7();
 const bob = uuidv7();
 const space = uuidv7();
@@ -82,14 +106,15 @@ beforeEach(async () => {
   await stopSync();
   for (const t of db.tables) await t.clear();
   localStorage.clear();
+  mockMq(false);
   snoozed.value = {};
   useAuth().user.value = mkUser({ id: me });
   await startSync({ userId: me, fetch: (() => Promise.reject(new TypeError('offline'))) as never });
   await db.table('users').bulkPut([{ id: bob, name: 'Bob' }]);
   await db.table('projects').bulkPut([{ id: project, key: 'PL', name: 'Planar' }]);
   await db.table('statuses').bulkPut([
-    { id: sTodo, category: 'todo', color: '#000' },
-    { id: sDone, category: 'done', color: '#000' },
+    { id: sTodo, name: 'Открыта', category: 'todo', color: '#000' },
+    { id: sDone, name: 'Готово', category: 'done', color: '#000' },
   ]);
 });
 
@@ -113,21 +138,74 @@ describe('inbox:list', () => {
     expect(w.findAll('[data-testid=inbox-item]')[0].text()).toContain('PL-2');
     expect(w.findAll('[data-testid=inbox-item]')[0].text()).toContain('Bob');
   });
-  it('inbox:list клик читает и открывает задачу', async () => {
+  it('inbox:list клик читает и открывает задачу (мобильный — страница)', async () => {
+    mockMq(true);
     await seed();
     const id = uuidv7();
     await db.table('notifications').bulkPut([note(id, t1)]);
-    const w = mount(InboxScreen, { global: g });
+    // на мобильном у карточки меню «…» с подсказкой
+    const w = mount(
+      defineComponent({ render: () => h(TooltipProvider, null, () => h(InboxScreen)) }),
+      { global: g },
+    );
     await vi.waitFor(() => expect(w.find('[data-testid=inbox-item]').exists()).toBe(true));
     await w.find('[data-testid=inbox-item] button').trigger('click');
     await vi.waitFor(async () =>
       expect((await db.table('notifications').get(id)).readAt).toBeTruthy(),
     );
-    await vi.waitFor(() =>
-      expect(
-        (router.current as { currentRoute: { value: { path: string } } }).currentRoute.value.path,
-      ).toBe('/t/PL-1'),
+    await vi.waitFor(() => expect(route().path).toBe('/t/PL-1'));
+  });
+  it('inbox:list уведомления задачи — одна карточка; действия на все', async () => {
+    await seed();
+    const [a, b, c] = [uuidv7(), uuidv7(), uuidv7()];
+    await db
+      .table('notifications')
+      .bulkPut([
+        note(a, t1, { createdAt: ts(3) }),
+        note(b, t1, { kind: 'status_changed', changes: { statusId: [sTodo, sDone] } }),
+        note(c, null as never, { kind: 'chat_dm', body: 'Bob: привет', createdAt: ts(2) }),
+      ]);
+    const w = mount(InboxScreen, { global: g });
+    await vi.waitFor(() => expect(w.findAll('[data-testid=inbox-item]')).toHaveLength(2));
+    const card = w.findAll('[data-testid=inbox-item]')[0];
+    expect(card.findAll('[data-testid=inbox-change]')).toHaveLength(2);
+    expect(card.text()).toMatch(/Открыта.*Готово/);
+    expect(w.findAll('[data-testid=inbox-item]')[1].text()).toContain('привет');
+    await card.find('button').trigger('click');
+    await vi.waitFor(async () =>
+      expect((await db.table('notifications').bulkGet([a, b])).every((n) => n.readAt)).toBe(true),
     );
+    expect((await db.table('notifications').get(c)).readAt).toBeNull();
+  });
+  it('inbox:list комментарий виден текстом', async () => {
+    await seed();
+    const cm = uuidv7();
+    await db.table('comments').put({
+      id: cm,
+      taskId: t1,
+      spaceId: space,
+      authorId: bob,
+      body: {
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Посмотри макет' }] }],
+      },
+      createdAt: ts(1),
+    });
+    await db.table('notifications').put(note(uuidv7(), t1, { kind: 'commented', commentId: cm }));
+    const w = mount(InboxScreen, { global: g });
+    await vi.waitFor(() => expect(w.text()).toContain('Посмотри макет'));
+  });
+  it('inbox:list десктоп — задача открывается справа (?task)', async () => {
+    await (router.current as { push: (p: string) => Promise<unknown> }).push('/inbox');
+    await seed();
+    await db.table('notifications').put(note(uuidv7(), t1));
+    const w = mount(InboxScreen, { global: g });
+    await vi.waitFor(() => expect(w.find('[data-testid=inbox-item]').exists()).toBe(true));
+    await w.find('[data-testid=inbox-item] button').trigger('click');
+    await vi.waitFor(() => expect(route().query.task).toBe('PL-1'));
+    expect(route().path).toBe('/inbox');
+    await vi.waitFor(() => expect(w.find('[data-testid=panel]').text()).toBe('PL-1'));
+    w.unmount();
   });
   it('inbox:list «прочитать все»', async () => {
     await seed();

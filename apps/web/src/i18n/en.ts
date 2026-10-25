@@ -129,6 +129,8 @@ export default {
     delete: 'Delete',
     snoozeLabel: 'Snooze',
     snooze: { '3h': 'In 3 hours', tomorrow: 'Tomorrow 9:00', week: 'In a week' },
+    more: '{n} more',
+    pick: 'Select a notification to open its task',
     kind: {
       assigned: '{who} assigned you to {key}',
       mentioned: '{who} mentioned you in {key}',
