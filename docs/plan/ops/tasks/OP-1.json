@@ -1,0 +1,57 @@
+{
+  "id": "OP-1",
+  "module": "ops",
+  "type": "dp-engineer",
+  "title": "prod-стек: compose, Caddy с TLS и заголовками, образ api не от root, prod-smoke",
+  "goal": "Prod-стек compose.yml (postgres, api из образа, caddy) соответствует C-ops-env/volumes/headers v1, образ api многостадийный и не от root; ./dev.sh prod-smoke на свободных портах проверяет health, вход, задачу, WS, /collab, /f/*, загрузку файла, заголовки и гасит стек.",
+  "plan_ref": "§4 OP-1",
+  "contracts": [
+    {
+      "name": "C-ops-env",
+      "version": "1",
+      "ref": "docs/contracts/ops.md"
+    },
+    {
+      "name": "C-ops-volumes",
+      "version": "1",
+      "ref": "docs/contracts/ops.md"
+    },
+    {
+      "name": "C-ops-headers",
+      "version": "1",
+      "ref": "docs/contracts/ops.md"
+    }
+  ],
+  "copy": "~/planar-ops-OP-1",
+  "branch": "ops/OP-1",
+  "base": "feature/ops",
+  "scope": [
+    "compose.yml",
+    "deploy/",
+    "apps/api/Dockerfile",
+    ".dockerignore",
+    "dev.sh",
+    "e2e/prod/"
+  ],
+  "dont_touch": [
+    "apps/api/src",
+    "apps/web",
+    "docs/contracts",
+    "apps/api/test/ops.contract.test.ts",
+    "compose.dev.yml"
+  ],
+  "accept": [
+    {
+      "name": "ops-contract",
+      "tests": "ops-contract"
+    },
+    {
+      "name": "prod-smoke",
+      "cmd": "COMPOSE_PROJECT_NAME=planar-op1 HTTP_PORT=18080 HTTPS_PORT=18443 PLANAR_SUBNET=10.230.1.0/24 .dpcli/dpcli lock cpu op1 -- ./dev.sh prod-smoke 2>&1",
+      "expect": "re:(?s)api uid: [1-9][0-9]*.*prod-smoke: OK"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-25T01:23:11"
+}
