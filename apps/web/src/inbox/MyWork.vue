@@ -10,7 +10,7 @@ import { useSpaces } from '../tasks';
 import { openTask } from '../views';
 import { groupLevels } from '../layout/groups';
 import type { GroupScope } from '../modules/types';
-import MyScreen from '../screens/MyScreen.vue';
+import ScopeTasks from '../views/ScopeTasks.vue';
 import InboxScreen from '../screens/InboxScreen.vue';
 import { useAssignedComments, useMyTasks, useUnreadItems, inGroup } from './queries';
 
@@ -96,13 +96,15 @@ const textOf = (body: unknown): string => {
             <span class="text-xs text-fg-muted">{{ t(`work.tile.${x.key ?? x.w}`) }}</span>
           </button>
         </div>
-        <MyScreen :project-ids="projectIds" kind="assigned" />
       </div>
-      <MyScreen
+      <!-- вид таба Задачи (Список/Доска) с закреплённым Me Mode -->
+      <ScopeTasks
         v-else-if="sub === 'assigned' || sub === 'created' || sub === 'watched'"
         :key="sub"
-        :project-ids="projectIds"
-        :kind="sub"
+        :me="sub"
+        :space-id="scope.level === 'space' ? scope.spaceId : undefined"
+        :project-id="scope.projectId ?? undefined"
+        :root-space-id="scope.rootSpaceId"
       />
       <div v-else-if="sub === 'comments'" class="flex flex-col gap-1 p-4">
         <EmptyState v-if="comments && !mine.length" :title="t('work.noComments')" />

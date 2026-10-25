@@ -42,6 +42,7 @@ describe('C-views: поведение', () => {
       sortDir: 'asc',
       showSubtasks: false,
       showEmpty: false,
+      me: null,
       fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
     });
   });

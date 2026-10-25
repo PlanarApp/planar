@@ -89,8 +89,6 @@ export interface GroupTabDef {
   icon?: Component;
   order?: number;
   component: Lazy<{ scope: GroupScope }>;
-  /** ветка меню группы: элементы только её уровня (страницы, каналы) под строкой таба */
-  branch?: Lazy<{ scope: GroupScope }>;
 }
 
 export interface TopbarItemDef {

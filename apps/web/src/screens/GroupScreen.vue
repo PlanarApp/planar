@@ -16,7 +16,8 @@ import { useProject, useRootSpaceId, useSpaces } from '../tasks';
 import { EmptyState, Tabs } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { GroupScope, LocalizedText } from '../modules/types';
-import { groupTab, groupUrl, tabsFor, type GroupLevel } from '../layout/groups';
+import { groupTab, groupUrl, type GroupLevel } from '../layout/groups';
+import { useGroupTabs } from '../layout/useGroupTabs';
 import GroupList from './GroupList.vue';
 import ProjectScreen from './ProjectScreen.vue';
 import ScopeTasks from '../views/ScopeTasks.vue';
@@ -34,6 +35,7 @@ const level = computed<GroupLevel>(() =>
 const id = computed(() =>
   String(level.value === 'project' ? route.params.projectId : (route.params.spaceId ?? '')),
 );
+const tabs = useGroupTabs(level);
 const tab = computed(() => groupTab(route.params.view ?? route.params.tab));
 const project = useProject(() => (level.value === 'project' ? id.value : ''));
 const spaces = useSpaces();
@@ -98,7 +100,7 @@ const icons = {
       class="flex shrink-0 gap-1 overflow-x-auto border-b border-border px-2"
     >
       <RouterLink
-        v-for="k in tabsFor(level)"
+        v-for="k in tabs"
         :key="k"
         :to="groupUrl(level, id, k)"
         :aria-current="tab === k ? 'page' : undefined"

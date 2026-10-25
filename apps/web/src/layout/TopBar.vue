@@ -23,7 +23,8 @@ import { useUnread } from '../inbox/queries';
 import { useExtensions } from '../modules/registry';
 import { useProject, useRootSpaceId, useSpaces } from '../tasks/queries';
 import { useSavedView } from '../views/saved/queries';
-import { groupTab, groupUrl, tabsFor } from './groups';
+import { groupTab, groupUrl, type GroupLevel } from './groups';
+import { useGroupTabs } from './useGroupTabs';
 import type { MenuItem } from '../ui/Menu.vue';
 import { mobileNav, useUserMenu } from './nav';
 
@@ -94,6 +95,10 @@ interface Crumb {
   menu?: MenuItem[];
 }
 const rootId = useRootSpaceId();
+const crumbLevel = computed<GroupLevel>(() =>
+  inProject.value ? 'project' : route.name === 'space' ? 'space' : 'workspace',
+);
+const crumbTabs = useGroupTabs(crumbLevel);
 const go = (to: string) => () => void router.push(to);
 const crumbs = computed<Crumb[]>(() => {
   if (moduleTitle.value) return [{ label: moduleTitle.value }];
@@ -126,7 +131,7 @@ const crumbs = computed<Crumb[]>(() => {
   const tab = groupTab(inProject.value ? route.params.view : route.params.tab);
   out.push({
     label: inProject.value ? viewLabel.value : t(`groups.tab.${tab}`),
-    menu: tabsFor(gl).map((k) => ({
+    menu: crumbTabs.value.map((k) => ({
       id: k,
       label: t(`groups.tab.${k}`),
       onSelect: go(groupUrl(gl, gid, k)),

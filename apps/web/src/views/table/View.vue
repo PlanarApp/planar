@@ -53,7 +53,7 @@ const all = useProjectTasks(() => props.projectId);
 const defs = useFieldDefs(() => props.projectId);
 const defOf = (id: string) => defs.value?.find((d) => `${FIELD_PREFIX}${d.id}` === id);
 const colName = (id: ColumnId) => (isFieldCol(id) ? (defOf(id)?.name ?? '') : t(`table.col.${id}`));
-const passes = useTaskFilter(() => props.filter, statuses);
+const passes = useTaskFilter(() => props.filter, statuses, () => props.options.me);
 
 // группировка в таблице не применяется
 const rows = computed(() => {

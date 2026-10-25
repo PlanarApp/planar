@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue';
+import { computed, defineAsyncComponent, ref, watch, watchEffect, type Component } from 'vue';
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -8,30 +8,52 @@ import { useSpaces } from '../tasks';
 import OptionsBar from './saved/OptionsBar.vue';
 import TaskModal from './TaskModal.vue';
 import { buildViewTabs, useSelection, useViewOptions, viewLoaders, type Filter } from '.';
+import type { MeMode } from './saved/useFilter';
 
-// Задачи Пространства и Воркспейса — сводка проектов группы (Список и Доска)
-const props = defineProps<{ spaceId?: string; rootSpaceId?: string }>();
+// Задачи Пространства и Воркспейса — сводка проектов группы (Список и Доска).
+// me — вид в «Моей работе» (назначенные, созданные, отслеживаемые) любой группы, и проекта тоже:
+// Me Mode задан, вид — в ?v, а не в адресе таба
+const props = defineProps<{
+  spaceId?: string;
+  rootSpaceId?: string;
+  projectId?: string;
+  me?: MeMode;
+}>();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const spaces = useSpaces();
 const scope = computed(() => {
   const ss = (spaces.value ?? []).filter((s) =>
-    props.spaceId ? s.id === props.spaceId : s.id !== props.rootSpaceId,
+    props.projectId
+      ? s.projects.some((p) => p.id === props.projectId)
+      : props.spaceId
+        ? s.id === props.spaceId
+        : s.id !== props.rootSpaceId,
   );
-  const projectIds = ss.flatMap((s) => s.projects.map((p) => p.id));
+  const projectIds = props.projectId
+    ? [props.projectId]
+    : ss.flatMap((s) => s.projects.map((p) => p.id));
   return {
     projectIds,
     spaceIds: ss.filter((s) => s.projects.length).map((s) => s.id),
   };
 });
-const key = computed(() => (props.spaceId ? `s:${props.spaceId}` : 'w'));
-const tabs = computed(() =>
-  buildViewTabs(viewLoaders(), []).filter((v) => ['list', 'board', 'my'].includes(v.key)),
+const key = computed(
+  () =>
+    (props.projectId ? `p:${props.projectId}` : props.spaceId ? `s:${props.spaceId}` : 'w') +
+    (props.me ? `:me-${props.me}` : ''),
 );
-const seg = computed(() => String(route.params.tab ?? ''));
+const tabs = computed(() =>
+  buildViewTabs(viewLoaders(), []).filter((v) => ['list', 'board'].includes(v.key)),
+);
+const seg = computed(() => String((props.me ? route.query.v : route.params.tab) ?? ''));
 const active = computed(() => tabs.value.find((v) => v.key === seg.value) ?? tabs.value[0]);
 const options = useViewOptions(key, () => active.value?.key ?? 'list');
+// у «Моей работы» свой ключ опций — Me Mode в нём закреплён
+watchEffect(() => {
+  if (props.me && options.value.me !== props.me) options.value.me = props.me;
+});
 const draftFilter = ref<Filter | null>(null);
 watch([key, () => active.value?.key], () => (draftFilter.value = null));
 const { clear } = useSelection();
@@ -45,10 +67,11 @@ const viewComponent = computed(() => {
   return cache.get(a.key);
 });
 const selectTab = (k: string) =>
-  void router.replace({
-    params: { ...route.params, tab: k === 'list' ? '' : k },
-    query: route.query,
-  });
+  void router.replace(
+    props.me
+      ? { query: { ...route.query, v: k } }
+      : { params: { ...route.params, tab: k === 'list' ? '' : k }, query: route.query },
+  );
 </script>
 
 <template>
@@ -68,6 +91,7 @@ const selectTab = (k: string) =>
       </div>
       <OptionsBar
         v-model:options="options"
+        :no-me="!!me"
         v-model:filter="draftFilter"
         :space-id="scope.spaceIds.join(',')"
       />
@@ -83,6 +107,7 @@ const selectTab = (k: string) =>
         :filter="draftFilter"
       />
     </div>
-    <TaskModal />
+    <!-- в «Моей работе» окно задачи рисует экран группы -->
+    <TaskModal v-if="!me" />
   </div>
 </template>

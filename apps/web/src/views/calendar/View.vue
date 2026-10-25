@@ -17,7 +17,7 @@ const { isMobile } = useBreakpoint();
 
 const project = useProject(() => props.projectId);
 const statuses = useStatuses(() => project.value?.spaceId ?? '');
-const passes = useTaskFilter(() => props.filter, statuses);
+const passes = useTaskFilter(() => props.filter, statuses, () => props.options.me);
 const all = useProjectTasks(() => props.projectId);
 const tasks = computed(() =>
   (all.value ?? []).filter((x) => (props.options.showSubtasks || !x.parentId) && passes.value(x)),

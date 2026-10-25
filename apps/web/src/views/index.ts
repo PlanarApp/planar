@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import { CalendarDays, Columns3, List, Table2, UserCheck } from 'lucide-vue-next';
+import { CalendarDays, Columns3, List, Table2 } from 'lucide-vue-next';
 import type { LocalizedText } from '../modules/types';
 import type { Filter } from './filter';
 import type { ViewOptions } from './options';
@@ -38,9 +38,8 @@ const BUILTIN: Record<string, Component> = {
   board: Columns3,
   table: Table2,
   calendar: CalendarDays,
-  my: UserCheck,
 };
-const ORDER = ['list', 'board', 'table', 'calendar', 'my'];
+const ORDER = ['list', 'board', 'table', 'calendar'];
 
 /** Вкладки: встроенные виды из glob (list, board, затем остальные по имени) и виды модулей. */
 export function buildViewTabs(

@@ -1,6 +1,7 @@
 import { ref, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue';
 import { parseColumns } from './table/columns';
 import type { GroupBy, SortBy } from '../tasks';
+import type { MeMode } from './saved/useFilter';
 
 export type TaskField = 'status' | 'assignee' | 'priority' | 'dueDate' | 'labels' | 'project';
 export const TASK_FIELDS: TaskField[] = [
@@ -19,6 +20,8 @@ export interface ViewOptions {
   showSubtasks: boolean;
   /** Доска: показывать незаполненные поля карточки (клик — задать значение), как в ClickUp */
   showEmpty?: boolean;
+  /** Me Mode: только мои задачи (назначенные, созданные, отслеживаемые); null — все */
+  me?: MeMode | null;
   fields: TaskField[];
   /** раскладка Таблицы: порядок, ширина; нет id — колонка скрыта */
   columns?: { id: string; width: number }[];
@@ -30,6 +33,7 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   sortDir: 'asc',
   showSubtasks: false,
   showEmpty: false,
+  me: null,
   fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
 };
 

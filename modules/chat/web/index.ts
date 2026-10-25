@@ -16,7 +16,6 @@ export const web = defineWebModule({
       tab: 'chats',
       label: label('chat'),
       component: () => import('./GroupChats.vue'),
-      branch: () => import('./ChatBranch.vue'),
     },
   ],
 });

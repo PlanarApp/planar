@@ -202,7 +202,7 @@ describe('inbox:list', () => {
     const w = mount(InboxScreen, { global: g });
     await vi.waitFor(() => expect(w.find('[data-testid=inbox-item]').exists()).toBe(true));
     await w.find('[data-testid=inbox-item] button').trigger('click');
-    await vi.waitFor(() => expect(route().query.task).toBe('PL-1'));
+    await vi.waitFor(() => expect(route().query.open).toBe('PL-1'));
     expect(route().path).toBe('/inbox');
     await vi.waitFor(() => expect(w.find('[data-testid=panel]').text()).toBe('PL-1'));
     w.unmount();

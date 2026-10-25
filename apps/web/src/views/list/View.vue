@@ -49,7 +49,7 @@ const labels = useLabels(spaceId);
 const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 const statusKey = useStatusKey(() => props.scope, statuses);
 const projectNames = useProjectNames();
-const passes = useTaskFilter(() => props.filter, statuses);
+const passes = useTaskFilter(() => props.filter, statuses, () => props.options.me);
 
 type Item =
   | { id: string; kind: 'head' }

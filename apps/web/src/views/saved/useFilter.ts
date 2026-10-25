@@ -6,12 +6,36 @@ import type { TaskView } from '../../tasks';
 import { db, useQuery } from '../../sync';
 import { localToday, matchFilter, type Filter, type FilterCtx } from '../filter';
 
-/** Предикат «задача проходит фильтр вида» для list/board. */
+/** Me Mode вида: только назначенные мне, созданные мной или отслеживаемые; null — все. */
+export type MeMode = 'assigned' | 'created' | 'watched';
+
+/** Предикат «задача проходит фильтр вида» (и Me Mode) для list/board/table/calendar. */
 export function useTaskFilter(
   filter: MaybeRefOrGetter<Filter | null | undefined>,
   statuses: MaybeRefOrGetter<Row<'statuses'>[] | undefined>,
+  me?: MaybeRefOrGetter<MeMode | null | undefined>,
 ) {
   const { user } = useAuth();
+  const watched = useQuery(
+    async () =>
+      new Set(
+        (
+          await db
+            .table<Row<'taskWatchers'>>('taskWatchers')
+            .where('userId')
+            .equals(user.value?.id ?? '')
+            .toArray()
+        ).map((w) => w.taskId),
+      ),
+  );
+  const mine = computed((): ((t: TaskView) => boolean) => {
+    const m = toValue(me);
+    const uid = user.value?.id ?? '';
+    if (m === 'assigned') return (t) => t.assigneeIds.includes(uid);
+    if (m === 'created') return (t) => t.createdBy === uid;
+    if (m === 'watched') return (t) => !!watched.value?.has(t.id);
+    return () => true;
+  });
   const defs = useFieldDefsByIds(() =>
     [
       ...new Set(
@@ -27,7 +51,7 @@ export function useTaskFilter(
       ? (db.table('sprintsCycles').toArray() as Promise<NonNullable<FilterCtx['cycles']>>)
       : undefined,
   );
-  return computed(() => {
+  const rules = computed(() => {
     const f = toValue(filter);
     if (!f?.rules.length) return () => true;
     // defs ещё грузятся: field:-правила не должны пропускать лишнее
@@ -41,5 +65,10 @@ export function useTaskFilter(
       cycles: cycles.value,
     };
     return (t: TaskView) => matchFilter(t, f, ctx);
+  });
+  return computed(() => {
+    const a = rules.value;
+    const b = mine.value;
+    return (t: TaskView) => b(t) && a(t);
   });
 }

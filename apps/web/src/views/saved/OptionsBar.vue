@@ -8,13 +8,16 @@ import FilterBuilder from './FilterBuilder.vue';
 import FilterChips from './FilterChips.vue';
 import ViewOptionsPopover from './ViewOptionsPopover.vue';
 
-defineProps<{ spaceId: string; projectId?: string }>();
+// noMe — Me Mode задан снаружи («Моя работа»)
+defineProps<{ spaceId: string; projectId?: string; noMe?: boolean }>();
 const options = defineModel<ViewOptions>('options', { required: true });
 const filter = defineModel<Filter | null>('filter', { default: null });
 const { t } = useI18n();
+import MeMode from './MeMode.vue';
 </script>
 
 <template>
+  <MeMode v-if="!noMe" v-model="options.me" />
   <Popover align="end">
     <template #trigger>
       <Button variant="ghost" size="sm" :icon="FilterIcon" data-testid="filter-toggle">

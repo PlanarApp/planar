@@ -207,7 +207,7 @@ describe('chat web: манифест', () => {
     expect(web.groupTabs![0]).toMatchObject({
       id: 'channels',
       tab: 'chats',
-      branch: expect.any(Function),
+      component: expect.any(Function),
     });
     expect(web.topbar).toBeUndefined();
   });

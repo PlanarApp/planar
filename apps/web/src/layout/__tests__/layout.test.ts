@@ -93,13 +93,13 @@ describe('раскладка', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(false);
   });
 
-  it('смена локали меняет текст ветки «Моя работа»', async () => {
+  it('смена локали меняет текст панели', async () => {
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
-    expect(w.text()).toContain('Моя работа');
+    expect(w.text()).toContain('Настройки');
     i18n.global.locale.value = 'en';
     await nextTick();
-    expect(w.text()).toContain('My work');
+    expect(w.text()).toContain('Settings');
   });
 
   it('боковая панель: группы сворачиваются, состояние пишется в localStorage', async () => {

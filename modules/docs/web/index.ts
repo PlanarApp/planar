@@ -17,7 +17,6 @@ export const web = defineWebModule({
   search: [pageSearch],
   groupTabs: [
     { id: 'pages', tab: 'docs', label: label('docs'), component: () => import('./GroupDocs.vue'),
-      branch: () => import('./DocsBranch.vue'),
     },
   ],
 });

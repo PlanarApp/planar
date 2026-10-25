@@ -5,7 +5,7 @@ import { ArrowRight, BellOff, Inbox, Trash2 } from 'lucide-vue-next';
 import { Button, EmptyState, Menu, Tabs, useBreakpoint, type MenuItem } from '../ui';
 import { router } from '../router';
 import { mutate } from '../sync';
-import { closeTask, openTask, taskPanelLoader } from '../views';
+import { openTask, taskPanelLoader } from '../views';
 import PushToggle from '../inbox/PushToggle.vue';
 import { groupByTask, inGroup, useNotifications, type InboxItem } from '../inbox/queries';
 import type { GroupScope } from '../modules/types';
@@ -48,15 +48,17 @@ const groups = computed(() => {
 });
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' });
-// десктоп: справа форма задачи из ?task, как в ClickUp
+// десктоп: справа форма задачи из ?open, как в ClickUp (не ?task — его открывает окно задачи поверх)
 const TaskPanel = taskPanelLoader && defineAsyncComponent(taskPanelLoader);
 const selected = computed(() => {
-  const q = router.currentRoute.value.query.task;
+  const q = router.currentRoute.value.query.open;
   return typeof q === 'string' ? q : '';
 });
 const split = computed(() => !!TaskPanel && !isMobile.value);
 const unreadIds = computed(() => visible.value.filter((n) => !n.readAt).map((n) => n.id));
 
+const closeSplit = () =>
+  void router.replace({ query: { ...router.currentRoute.value.query, open: undefined } });
 const read = (ids: string[]) => ids.length && mutate('notification.read', { ids });
 const ids = (c: InboxItem[]) => c.map((n) => n.id);
 // действия карточки — на все её уведомления
@@ -64,7 +66,7 @@ function open(c: InboxItem[]) {
   const n = c[0];
   void read(c.filter((x) => !x.readAt).map((x) => x.id));
   if (n.taskKey && split.value)
-    void router.replace({ query: { ...router.currentRoute.value.query, task: n.taskKey } });
+    void router.replace({ query: { ...router.currentRoute.value.query, open: n.taskKey } });
   else if (n.taskKey) openTask(n.taskKey);
   else if (n.url?.startsWith('/') && !/^\/[/\\]/.test(n.url)) void router.push(n.url);
 }
@@ -214,7 +216,7 @@ const rowItems = (c: InboxItem[]): MenuItem[] => [
         :key="selected"
         :task-key="selected"
         mode="panel"
-        @close="closeTask"
+        @close="closeSplit"
       />
       <EmptyState v-else :icon="Inbox" :title="t('inbox.pick')" />
     </div>

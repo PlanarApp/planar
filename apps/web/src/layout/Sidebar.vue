@@ -2,10 +2,7 @@
 import { computed, defineAsyncComponent, onScopeDispose, watch, type Component } from 'vue';
 import { ChevronRight, MoreHorizontal, Plus, Settings, Star } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import { useUnreadItems } from '../inbox/queries';
 import { prefetchIdle, prefetchProject, useRootSpaceId } from '../tasks/queries';
-import type { GroupScope } from '../modules/types';
-import GroupBranches from './GroupBranches.vue';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { sidebarCollapse as sc, useNavData, useUserMenu } from './nav';
@@ -34,13 +31,10 @@ const section = (key: string, load: () => Promise<{ default: Component }>) => {
 };
 const navLabel = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
-const unread = useUnreadItems();
 const { spaces: allSpaces, favorites } = useNavData();
 // дерево групп: Воркспейс (корневое пространство) › пространства › проекты
 const rootId = useRootSpaceId();
 const spaces = computed(() => allSpaces.value.filter((s) => s.id !== rootId.value));
-const scopeOf = (level: GroupScope['level'], spaceId: string, projectId: string | null = null) =>
-  ({ level, spaceId, projectId, rootSpaceId: rootId.value ?? '' }) as GroupScope;
 const act = useSidebarActions();
 // поле ввода на месте: Enter — сохранить, Esc/blur без текста — отмена
 const onKey = (e: KeyboardEvent) => {
@@ -214,7 +208,6 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
           @blur="act.cancel"
         />
         <template v-if="!sc.is('spaces')">
-          <GroupBranches :scope="scopeOf('workspace', rootId ?? '')" :unread="unread" pad="pl-3" />
           <div v-for="s in spaces" :key="s.id">
             <input
               v-if="act.editing.value === 'space:' + s.id"
@@ -259,7 +252,6 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
               </div>
             </Menu>
             <template v-if="!sc.is('space:' + s.id) || act.editing.value === 'new:' + s.id">
-              <GroupBranches :scope="scopeOf('space', s.id)" :unread="unread" pad="pl-8" />
               <template v-for="p in s.projects" :key="p.id">
                 <input
                   v-if="act.editing.value === p.id"
@@ -279,18 +271,6 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
                     @pointerenter="prefetchProject(p.id)"
                     @focus="prefetchProject(p.id)"
                   >
-                    <button
-                      type="button"
-                      class="-ml-1 flex shrink-0 items-center outline-none"
-                      :aria-label="t('sidebar.expand')"
-                      :aria-expanded="sc.is('open:p:' + p.id)"
-                      @click.prevent="sc.toggle('open:p:' + p.id)"
-                    >
-                      <ChevronRight
-                        :size="12"
-                        :class="['transition-transform', sc.is('open:p:' + p.id) && 'rotate-90']"
-                      />
-                    </button>
                     <span class="font-mono text-xs text-fg-muted">{{ p.prefix }}</span
                     ><span class="truncate">{{ p.name }}</span>
                     <span :class="tools" @click.prevent>
@@ -304,12 +284,6 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
                     </span>
                   </RouterLink>
                 </Menu>
-                <GroupBranches
-                  v-if="sc.is('open:p:' + p.id)"
-                  :scope="scopeOf('project', s.id, p.id)"
-                  :unread="unread"
-                  pad="pl-11"
-                />
               </template>
               <input
                 v-if="act.editing.value === 'new:' + s.id"

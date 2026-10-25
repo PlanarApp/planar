@@ -35,7 +35,7 @@ const statuses = useStatuses(spaceId);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId);
 const blocked = useBlockedIds(() => props.projectId);
-const passes = useTaskFilter(() => props.filter, statuses);
+const passes = useTaskFilter(() => props.filter, statuses, () => props.options.me);
 const statusKey = useStatusKey(() => props.scope, statuses);
 const projectNames = useProjectNames();
 
