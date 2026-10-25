@@ -1,8 +1,8 @@
 {
   "status": "done",
-  "summary": "Модуль modules/plugins: сущность, мутаторы, checkPluginUrl, REST admin и mutate, мост postMessage v1, CSP frame-src, web (панель, страница, nav, админка), миграция 0021, examples/plugin-hello. Тесты моста — в apps/api/test/plugins (чистый bridge.ts без Vue), т.к. корневой vitest не запускает apps/web.",
+  "summary": "Модуль modules/plugins: сущность, мутаторы, checkPluginUrl, REST admin и mutate, мост postMessage v1, CSP frame-src, web (панель, страница, nav, админка), миграция 0021, examples/plugin-hello. Тесты моста — в apps/api/test/plugins (чистый bridge.ts без Vue), т.к. корневой vitest не запускает apps/web. Доработка по ревью: usePlugins различает 'не загружено' и пусто, ensureWhenLoaded не фиксирует CSP до загрузки списка; iframe и мост только при сессии; миграция пересоздана поверх 0022 (0023).",
   "commits": [
-    "bb1ae12 plugins: внешние плагины через iframe"
+    "6f5c2d2 plugins: миграция поверх 0022"
   ],
   "checks": [
     {
@@ -32,13 +32,12 @@
     },
     {
       "name": "pf5",
-      "value": "20 passed",
+      "value": "21 passed",
       "pass": true
     }
   ],
   "not_done": [
-    "Vue-компоненты (PluginFrame, Panel, Page, Admin) не покрыты тестами и не проверены в браузере; только сборка и lint",
-    "happy-dom-тестов в modules/plugins/web нет"
+    "Vue-компоненты не покрыты тестами и не проверены в браузере (только сборка/lint); тест на 'мост создаётся при появлении сессии' не написан — логика во Vue-компоненте (watch на iframe)"
   ],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept PF-5",
@@ -65,6 +64,6 @@
     }
   ],
   "dp_feedback": "Раздел плана в карточке назван '4. Задачи (PF-5)', а plan p4 '4. Задачи (PF-5)' не находит (искать надо '4'); accept --dry дольше 120 с — стоит сразу подсказывать job start.",
-  "t": "2026-10-25T02:46:25",
+  "t": "2026-10-25T05:37:23",
   "by": "executor"
 }

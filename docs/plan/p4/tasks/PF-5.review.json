@@ -1,34 +1,29 @@
 {
   "verdict": "rework",
-  "summary": "Безопасность моста, сервера и checkPluginUrl по контракту P4-plugins v1 в порядке, скоуп соблюдён, pf5 (20) и contract перезапущены — PASS. Но в Panel.vue CSP фиксируется по ещё не загруженному списку плагинов: панель задачи может навсегда получить frame-src 'none'.",
+  "summary": "Доработка CSP и сессии в Panel/PluginFrame выполнена верно, миграция 0023 поверх 0022, ветка актуальна, pf5 (21) перезапущен — PASS. Но в Page.vue после правки импорта остался вызов ensureFrameCsp без импорта: точка page падает ReferenceError при открытии /m/plugins/p/:pluginId. Сборка это не ловит (tsc без .vue, vite без проверки типов).",
   "issues": [
     {
-      "file": "modules/plugins/web/Panel.vue",
+      "file": "modules/plugins/web/Page.vue",
       "line": 14,
       "severity": "major",
-      "what": "Гонка: usePlugins() отдаёт [] пока useQuery не ответил (r.value undefined → []), а watchEffect зовёт ensureFrameCsp, как только готов ctx (отдельный liveQuery). Если tasks.get ответит раньше pluginsPlugins или реплика ещё не получила плагины (первый вход), вставится одноразовая meta 'frame-src 'none'', allowed = ∅, и все плагины до перезагрузки показывают «Перезагрузите страницу» (страница /m/plugins/p/:id в той же вкладке тоже). После перезагрузки гонка та же — итог недетерминирован.",
-      "fix": "Различать «не загружено» и «пусто»: usePlugins/allPlugins должны давать undefined до первого ответа, ensureFrameCsp вызывать только когда список загружен (в Panel и Page); добавить pf5-тест на это условие (например, вынести решение «можно ли вставлять CSP» в чистую функцию)."
+      "what": "Импорт заменён на ensureWhenLoaded, а в computed ready остался ensureFrameCsp(plugins.value.map(...)) — идентификатор не определён; как только plugin найден, computed бросает ReferenceError и страница плагина не показывается никогда.",
+      "fix": "ready = computed(() => !!plugin.value && ensureWhenLoaded(plugins.value?.map((p) => p.origin))); проверить в браузере или vue-tsc, что Page.vue компилируется без ошибок."
     },
     {
-      "file": "modules/plugins/web/PluginFrame.vue",
-      "line": 21,
+      "file": "build/dpcli/PF-5.report.json",
+      "line": 1,
       "severity": "minor",
-      "what": "Если useSession() ещё пуст в onMounted, мост не создаётся, а iframe всё равно показан: плагин шлёт ready и молча не получает init. Позже мост не создаётся.",
-      "fix": "Показывать iframe только при user (v-if) или создавать мост из watch на user."
+      "what": "В итоге отчёта «миграция 0021», фактически 0023_opposite_quasimodo.",
+      "fix": "Исправить номер в отчёте."
     }
   ],
   "rerun": [
     {
       "name": "pf5",
-      "value": "20 passed",
-      "pass": true
-    },
-    {
-      "name": "contract",
-      "value": "exit 0",
+      "value": "21 passed",
       "pass": true
     }
   ],
-  "t": "2026-10-25T05:16:26",
+  "t": "2026-10-25T05:40:42",
   "by": "reviewer"
 }
