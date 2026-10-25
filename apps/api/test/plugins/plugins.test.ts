@@ -5,6 +5,7 @@ import { checkPluginUrl } from '@planar/module-plugins/shared';
 import { createBridge, type BridgeDeps } from '../../../../modules/plugins/web/bridge.js';
 import {
   ensureFrameCsp,
+  ensureWhenLoaded,
   frameAllowed,
   resetFrameCsp,
 } from '../../../../modules/plugins/web/csp.js';
