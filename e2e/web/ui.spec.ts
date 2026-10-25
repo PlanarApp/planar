@@ -97,6 +97,9 @@ test('офлайн: правки названия не теряются и до�
   for (const r of rows) await expect(r).toBeVisible();
   await rows[0]!.click(); // прогрев ленивой панели задачи: офлайн её не загрузить
   await expect(alice).toHaveURL(/task=/);
+  // окно задачи накрывает список (как в ClickUp) — закрываем перед правками в строках
+  await alice.keyboard.press('Escape');
+  await expect(alice.getByTestId('task-modal')).toHaveCount(0);
   await alice.context().setOffline(true);
   const names = f.taskKeys.map(() => uniq('Правка офлайн'));
   for (let i = 0; i < rows.length; i++) {

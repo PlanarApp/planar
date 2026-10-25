@@ -481,6 +481,10 @@ export default {
     clear: 'Clear',
   },
   task: {
+    subtasksDone: '{done} of {n}',
+    dates: 'Dates',
+    startDate: 'Start date',
+    start: 'Start',
     title: 'Title',
     close: 'Close',
     menu: 'Task menu',

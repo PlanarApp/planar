@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
@@ -71,6 +71,16 @@ const feed = computed<Entry[]>(() =>
   ].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)),
 );
 
+// новые записи внизу, у поля комментария: лента держится у конца
+const list = ref<HTMLElement>();
+watch(
+  () => feed.value.length,
+  async () => {
+    await nextTick();
+    list.value?.scrollTo({ top: list.value.scrollHeight });
+  },
+);
+
 const setDraft = (v: JSONContent | null) => (draft.value = v);
 
 async function send() {
@@ -84,31 +94,34 @@ async function send() {
 
 <template>
   <section :aria-label="t('task.activity')" class="flex flex-col gap-3">
-    <h3 class="text-sm font-medium text-fg-muted">{{ t('task.activity') }}</h3>
-    <template v-for="e in feed" :key="e.id">
-      <CommentItem
-        v-if="'comment' in e"
-        :comment="e.comment"
-        :author="nameOf(e.comment.authorId)"
-        :avatar="
-          userOf(e.comment.authorId)?.avatarFile
-            ? `/files/${userOf(e.comment.authorId)!.avatarFile}/preview?w=256`
-            : null
-        "
-        :mine="e.comment.authorId === user?.id"
-        :reactions="(reactions ?? []).filter((r) => r.commentId === e.comment.id)"
-        :user-id="user?.id"
-        :names="Object.fromEntries((users ?? []).map((u) => [u.id, u.name]))"
-        @react="
-          (emoji) => mutate('reaction.toggle', { id: newId(), commentId: e.comment.id, emoji })
-        "
-        :members="(members ?? []).map((m) => ({ id: m.id, name: m.name }))"
-        @save="(body) => mutate('comment.update', { id: e.comment.id, body })"
-        @remove="mutate('comment.delete', { id: e.comment.id })"
-      />
-      <p v-else class="text-xs text-fg-muted" data-testid="activity">{{ describe(e.act) }}</p>
-    </template>
-    <div class="rounded-md border border-border-strong p-2">
+    <h3 class="text-sm font-medium text-fg">{{ t('task.activity') }}</h3>
+    <!-- лента прокручивается, поле комментария — внизу колонки (в колонке активности карточки) -->
+    <div ref="list" class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto" data-testid="feed">
+      <template v-for="e in feed" :key="e.id">
+        <CommentItem
+          v-if="'comment' in e"
+          :comment="e.comment"
+          :author="nameOf(e.comment.authorId)"
+          :avatar="
+            userOf(e.comment.authorId)?.avatarFile
+              ? `/files/${userOf(e.comment.authorId)!.avatarFile}/preview?w=256`
+              : null
+          "
+          :mine="e.comment.authorId === user?.id"
+          :reactions="(reactions ?? []).filter((r) => r.commentId === e.comment.id)"
+          :user-id="user?.id"
+          :names="Object.fromEntries((users ?? []).map((u) => [u.id, u.name]))"
+          @react="
+            (emoji) => mutate('reaction.toggle', { id: newId(), commentId: e.comment.id, emoji })
+          "
+          :members="(members ?? []).map((m) => ({ id: m.id, name: m.name }))"
+          @save="(body) => mutate('comment.update', { id: e.comment.id, body })"
+          @remove="mutate('comment.delete', { id: e.comment.id })"
+        />
+        <p v-else class="text-xs text-fg-muted" data-testid="activity">{{ describe(e.act) }}</p>
+      </template>
+    </div>
+    <div class="shrink-0 rounded-md border border-border-strong bg-bg p-2">
       <Editor
         ref="composer"
         :model-value="draft"

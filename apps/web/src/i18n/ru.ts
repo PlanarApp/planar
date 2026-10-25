@@ -481,6 +481,10 @@ export default {
     clear: 'Очистить',
   },
   task: {
+    subtasksDone: '{done} из {n}',
+    dates: 'Даты',
+    startDate: 'Дата начала',
+    start: 'Начало',
     title: 'Название',
     close: 'Закрыть',
     menu: 'Меню задачи',

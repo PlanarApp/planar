@@ -204,11 +204,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
         </div>
       </template>
     </section>
-    <aside
+    <!-- задача — окно поверх вида, как в ClickUp; без ловушки фокуса: пикеры открываются в порталах -->
+    <div
       v-if="panelOpen"
-      class="w-[480px] shrink-0 overflow-y-auto border-l border-border bg-surface"
+      class="fixed inset-0 z-40 flex items-center justify-center bg-overlay p-4 md:p-8"
+      data-testid="task-modal"
+      @mousedown.self="closeTask"
     >
-      <component :is="TaskPanel" :task-key="taskKey" mode="panel" @close="closeTask" />
-    </aside>
+      <div
+        role="dialog"
+        aria-modal="true"
+        class="flex h-full max-h-[56rem] w-full max-w-7xl overflow-hidden rounded-xl border border-border bg-surface shadow-dialog"
+      >
+        <component :is="TaskPanel" :task-key="taskKey" mode="panel" @close="closeTask" />
+      </div>
+    </div>
   </div>
 </template>

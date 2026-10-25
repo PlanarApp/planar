@@ -40,7 +40,6 @@ const settings = ref(false);
         </dd>
       </template>
     </dl>
-    <p v-if="defs && !defs.length" class="text-sm text-fg-subtle">{{ t('fields.empty') }}</p>
     <FieldsDialog v-model:open="settings" :project-id="task.projectId" />
   </section>
 </template>

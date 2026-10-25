@@ -6,7 +6,8 @@ import { Button, Input } from '../../ui';
 import { formatDue } from '../../views/list/due';
 import LazyPopover from './LazyPopover.vue';
 
-defineProps<{ compact?: boolean }>();
+// label/empty — для даты начала (по умолчанию: срок)
+const props = defineProps<{ compact?: boolean; label?: string; empty?: string }>();
 const model = defineModel<string | null>({ default: null });
 const { t, locale } = useI18n();
 const open = ref(false);
@@ -22,18 +23,20 @@ const set = (v: string) => {
       <button
         v-bind="attrs"
         type="button"
-        :aria-label="t('tasks.dueDate')"
+        :aria-label="props.label ?? t('tasks.dueDate')"
         class="inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
       >
         <Calendar :size="14" aria-hidden="true" />
-        <span v-if="!compact">{{ model ? formatDue(model, locale) : t('tasks.noDate') }}</span>
+        <span v-if="!compact">{{
+          model ? formatDue(model, locale) : (props.empty ?? t('tasks.noDate'))
+        }}</span>
       </button>
     </template>
     <div class="flex w-56 flex-col gap-2">
       <Input
         :model-value="model ?? ''"
         type="date"
-        :label="t('tasks.dueDate')"
+        :label="props.label ?? t('tasks.dueDate')"
         hide-label
         @update:model-value="set"
       />

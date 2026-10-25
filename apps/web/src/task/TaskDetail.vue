@@ -2,7 +2,19 @@
 import { computed, defineAsyncComponent, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { routerKey, useRoute } from 'vue-router';
-import { ArrowLeft, Eye, EyeOff, Link, MoreHorizontal, Trash2, X } from 'lucide-vue-next';
+import {
+  ArrowLeft,
+  CalendarDays,
+  ChevronRight,
+  CircleDot,
+  Eye,
+  EyeOff,
+  Flag,
+  MoreHorizontal,
+  Tag,
+  Users,
+  X,
+} from 'lucide-vue-next';
 import { useAuth } from '../auth/useAuth';
 import { mutate, newId } from '../sync';
 import {
@@ -21,6 +33,7 @@ import {
   type TaskView,
 } from '../tasks';
 import { useExtensions } from '../modules/registry';
+import { useSpaces } from '../tasks/queries';
 import { AvatarStack, Button, IconButton, Menu, type MenuItem } from '../ui';
 import Attachments from './Attachments.vue';
 import Checklist from './Checklist.vue';
@@ -43,6 +56,16 @@ const members = useMembers(() => props.task.spaceId);
 useLabels(() => props.task.spaceId);
 const users = useUsers();
 const watchers = useWatchers(props.task.id);
+// хлебные крошки: пространство / проект
+const spaces = useSpaces();
+const crumbs = computed(() => {
+  const s = spaces.value?.find((x) => x.id === props.task.spaceId);
+  return { space: s?.name ?? '', project: s?.projects.find((p) => p.id === props.task.projectId) };
+});
+// статус — плашкой своего цвета, как в ClickUp
+const statusColor = computed(
+  () => statuses.value?.find((s) => s.id === props.task.statusId)?.color ?? null,
+);
 const memberList = computed(() => (members.value ?? []).map((m) => ({ id: m.id, name: m.name })));
 
 // --- заголовок
@@ -132,8 +155,8 @@ const panelComponent = computed(() => {
 <template>
   <article
     :class="[
-      '@container flex h-full flex-col overflow-y-auto bg-bg',
-      mode === 'panel' ? 'w-full border-l border-border' : 'mx-auto w-full max-w-5xl',
+      '@container flex h-full w-full flex-col bg-bg',
+      mode === 'page' && 'mx-auto max-w-7xl',
     ]"
     :aria-label="task.key"
     @keydown="onKeydown"
@@ -148,8 +171,21 @@ const panelComponent = computed(() => {
         data-testid="back"
         @click="emit('close')"
       />
-      <span class="font-mono text-xs text-fg-muted">{{ task.key }}</span>
-      <span class="flex-1" />
+      <nav
+        class="flex min-w-0 flex-1 items-center gap-1 text-sm text-fg-muted"
+        aria-label="breadcrumb"
+      >
+        <span class="truncate max-md:hidden">{{ crumbs.space }}</span>
+        <ChevronRight v-if="crumbs.space" :size="14" class="shrink-0 max-md:hidden" />
+        <RouterLink
+          v-if="crumbs.project && router"
+          :to="`/p/${crumbs.project.id}`"
+          class="truncate rounded px-1 hover:bg-bg-muted hover:text-fg"
+          >{{ crumbs.project.name }}</RouterLink
+        >
+        <ChevronRight v-if="crumbs.project" :size="14" class="shrink-0" />
+        <span class="font-mono text-xs text-fg">{{ task.key }}</span>
+      </nav>
       <Menu :items="menu" align="end">
         <template #trigger>
           <IconButton :icon="MoreHorizontal" :label="t('task.menu')" />
@@ -165,84 +201,121 @@ const panelComponent = computed(() => {
       />
     </div>
 
-    <div class="grid gap-x-8 gap-y-5 p-4 @2xl:grid-cols-[minmax(0,1fr)_16.5rem] @2xl:px-6">
-      <header class="@2xl:col-start-1">
-        <input
-          v-model="title"
-          :aria-label="t('task.title')"
-          class="h-11 w-full min-w-0 rounded-md bg-transparent px-2 text-xl font-semibold outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus md:h-10"
-          @keydown.enter.prevent="commitTitle"
-          @keydown.esc.stop.prevent="cancelTitle"
-          @blur="commitTitle"
-        />
-      </header>
+    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto @4xl:flex-row @4xl:overflow-hidden">
+      <div class="flex min-w-0 flex-1 flex-col gap-6 px-4 py-5 @2xl:px-8 @4xl:overflow-y-auto">
+        <header>
+          <input
+            v-model="title"
+            :aria-label="t('task.title')"
+            class="h-12 w-full min-w-0 rounded-md bg-transparent px-2 -mx-2 text-2xl font-semibold outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+            @keydown.enter.prevent="commitTitle"
+            @keydown.esc.stop.prevent="cancelTitle"
+            @blur="commitTitle"
+          />
+        </header>
 
-      <aside class="flex flex-col gap-4 @2xl:col-start-2 @2xl:row-span-2 @2xl:row-start-1">
-        <dl class="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-y-1 text-sm">
-          <dt class="text-xs text-fg-muted">{{ t('tasks.status') }}</dt>
-          <dd class="min-h-8">
-            <StatusPicker
-              :model-value="task.statusId"
-              :space-id="task.spaceId"
-              @update:model-value="(v?: string) => v && updateTask(task.id, { statusId: v })"
-            />
-          </dd>
-          <dt class="text-xs text-fg-muted">{{ t('tasks.priorityTitle') }}</dt>
-          <dd class="min-h-8">
-            <PriorityPicker
-              :model-value="task.priority"
-              @update:model-value="(v: number) => updateTask(task.id, { priority: v })"
-            />
-          </dd>
-          <dt class="text-xs text-fg-muted">{{ t('tasks.assignee') }}</dt>
-          <dd class="min-h-8">
-            <AssigneePicker
-              :model-value="task.assigneeIds"
-              :space-id="task.spaceId"
-              @update:model-value="(v: string[]) => setAssignees(task.id, v)"
-            />
-          </dd>
-          <dt class="text-xs text-fg-muted">{{ t('tasks.labels') }}</dt>
-          <dd class="min-h-8">
-            <LabelPicker
-              :model-value="task.labelIds"
-              :space-id="task.spaceId"
-              @update:model-value="(v: string[]) => setLabels(task.id, v)"
-            />
-          </dd>
-          <dt class="text-xs text-fg-muted">{{ t('tasks.dueDate') }}</dt>
-          <dd class="min-h-8">
-            <DueDatePicker
-              :model-value="task.dueDate"
-              @update:model-value="(v: string | null) => updateTask(task.id, { dueDate: v })"
-            />
-          </dd>
-          <dt class="text-xs text-fg-muted">{{ t('task.watchers') }}</dt>
-          <dd class="flex min-h-8 items-center gap-1">
-            <AvatarStack :people="watcherPeople" />
-            <Button
-              size="sm"
-              variant="ghost"
-              :icon="mine ? EyeOff : Eye"
-              :class="mine ? '' : 'text-fg-subtle'"
-              data-testid="watch"
-              @click="toggleWatch"
+        <dl class="grid gap-x-10 gap-y-1 text-sm @2xl:grid-cols-2" data-testid="task-props">
+          <div class="flex min-h-9 items-center">
+            <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
+              <CircleDot :size="15" />{{ t('tasks.status') }}
+            </dt>
+            <dd
+              class="min-w-0 rounded-md"
+              :style="
+                statusColor && { background: `color-mix(in srgb, ${statusColor} 16%, transparent)` }
+              "
+              data-testid="status-pill"
             >
-              {{ mine ? t('task.unwatch') : t('task.watch') }}
-            </Button>
-          </dd>
+              <StatusPicker
+                :model-value="task.statusId"
+                :space-id="task.spaceId"
+                @update:model-value="(v?: string) => v && updateTask(task.id, { statusId: v })"
+              />
+            </dd>
+          </div>
+          <div class="flex min-h-9 items-center">
+            <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
+              <Users :size="15" />{{ t('tasks.assignee') }}
+            </dt>
+            <dd class="min-w-0">
+              <AssigneePicker
+                :model-value="task.assigneeIds"
+                :space-id="task.spaceId"
+                @update:model-value="(v: string[]) => setAssignees(task.id, v)"
+              />
+            </dd>
+          </div>
+          <div class="flex min-h-9 items-center">
+            <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
+              <CalendarDays :size="15" />{{ t('task.dates') }}
+            </dt>
+            <dd class="flex min-w-0 items-center gap-1">
+              <DueDatePicker
+                :model-value="task.startDate"
+                :label="t('task.startDate')"
+                :empty="t('task.start')"
+                @update:model-value="(v: string | null) => updateTask(task.id, { startDate: v })"
+              />
+              <span class="text-fg-subtle">→</span>
+              <DueDatePicker
+                :model-value="task.dueDate"
+                @update:model-value="(v: string | null) => updateTask(task.id, { dueDate: v })"
+              />
+            </dd>
+          </div>
+          <div class="flex min-h-9 items-center">
+            <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
+              <Flag :size="15" />{{ t('tasks.priorityTitle') }}
+            </dt>
+            <dd class="min-w-0">
+              <PriorityPicker
+                :model-value="task.priority"
+                @update:model-value="(v: number) => updateTask(task.id, { priority: v })"
+              />
+            </dd>
+          </div>
+          <div class="flex min-h-9 items-center">
+            <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
+              <Tag :size="15" />{{ t('tasks.labels') }}
+            </dt>
+            <dd class="min-w-0">
+              <LabelPicker
+                :model-value="task.labelIds"
+                :space-id="task.spaceId"
+                @update:model-value="(v: string[]) => setLabels(task.id, v)"
+              />
+            </dd>
+          </div>
+          <div class="flex min-h-9 items-center">
+            <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
+              <Eye :size="15" />{{ t('task.watchers') }}
+            </dt>
+            <dd class="flex min-w-0 items-center gap-1">
+              <AvatarStack :people="watcherPeople" />
+              <Button
+                size="sm"
+                variant="ghost"
+                :icon="mine ? EyeOff : Eye"
+                :class="mine ? '' : 'text-fg-subtle'"
+                data-testid="watch"
+                @click="toggleWatch"
+              >
+                {{ mine ? t('task.unwatch') : t('task.watch') }}
+              </Button>
+            </dd>
+          </div>
         </dl>
 
         <FieldsBlock :task="task" />
 
         <section v-if="panels.length" :aria-label="t('task.extensions')">
-          <div role="tablist" class="mb-2 flex flex-wrap gap-1">
+          <div role="tablist" class="flex flex-wrap gap-1">
             <Button
               v-for="p in panels"
               :key="p.key"
               role="tab"
               size="sm"
-              :variant="tab === p.key ? 'primary' : 'ghost'"
+              :variant="tab === p.key ? 'primary' : 'secondary'"
               :icon="p.icon"
               :aria-selected="tab === p.key"
               @click="tab = tab === p.key ? null : p.key"
@@ -250,12 +323,13 @@ const panelComponent = computed(() => {
               {{ lt(p.label) }}
             </Button>
           </div>
-          <component :is="panelComponent" v-if="panelComponent" :task-id="task.id" />
+          <div v-if="panelComponent" class="mt-2 rounded-lg border border-border p-3">
+            <component :is="panelComponent" :task-id="task.id" />
+          </div>
         </section>
-      </aside>
 
-      <div class="flex min-w-0 flex-col gap-5 @2xl:col-start-1">
         <section :aria-label="t('task.description')" class="text-base">
+          <h3 class="mb-1 text-sm font-medium text-fg-muted">{{ t('task.description') }}</h3>
           <Editor
             :members="memberList"
             :label="t('task.description')"
@@ -273,8 +347,14 @@ const panelComponent = computed(() => {
           :task="task"
           class="min-w-0 [&_.flex-wrap>div:last-child]:min-w-40 [&_.flex-wrap>div:last-child]:flex-1"
         />
-        <Feed :task="task" />
       </div>
+
+      <aside
+        class="flex shrink-0 flex-col border-t border-border bg-bg-subtle p-4 @4xl:min-h-0 @4xl:w-96 @4xl:border-t-0 @4xl:border-l"
+        :aria-label="t('task.activity')"
+      >
+        <Feed :task="task" class="@4xl:min-h-0 @4xl:flex-1" />
+      </aside>
     </div>
   </article>
 </template>
