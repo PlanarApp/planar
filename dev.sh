@@ -72,10 +72,11 @@ waitapidirect() {
 prodsmoke() {
   export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-planar-prod-smoke}"
   export HTTP_PORT="${HTTP_PORT:-8080}" HTTPS_PORT="${HTTPS_PORT:-8443}"
-  export PUBLIC_URL="http://localhost:$HTTP_PORT" COOKIE_SECURE=false SITE_ADDRESS=:80
+  export PLANAR_SUBNET="${PLANAR_SUBNET:-172.30.0.0/24}" PLANAR_DOMAIN= POSTGRES_PASSWORD=smoke-pg-pass
+  export PUBLIC_URL="http://localhost:$HTTP_PORT" COOKIE_SECURE=false
   P=(docker compose -f compose.yml -f deploy/compose.smoke.yml)
   local rc=0
-  trap '"${P[@]}" down -v --remove-orphans >/dev/null 2>&1 || true' EXIT
+  trap '"${P[@]}" down -v --remove-orphans --rmi local >/dev/null 2>&1 || true' EXIT
   pnpm install --frozen-lockfile && pnpm --filter @planar/web build || return 1
   "${P[@]}" up -d --build || return 1
   for _ in $(seq 1 90); do
@@ -83,9 +84,14 @@ prodsmoke() {
     sleep 2
   done
   curl -sf "$PUBLIC_URL/api/health" >/dev/null || { echo "prod-стек не отвечает" >&2; "${P[@]}" logs --tail 40 >&2; return 1; }
+  echo "api uid: $("${P[@]}" exec -T api id -u)"
+  local img; img="$(docker inspect --format '{{.Image}}' "$("${P[@]}" ps -q api)")"
+  echo "api image MB: $(( $(docker image inspect --format '{{.Size}}' "$img") / 1000000 ))"
+  "${P[@]}" exec -T -e PLANAR_DOMAIN=planar.example.com caddy caddy validate --config /etc/caddy/Caddyfile || return 1
   local pg; pg="$("${P[@]}" port postgres 5432)"
-  DATABASE_URL="postgres://postgres:postgres@127.0.0.1:${pg##*:}/planar" pnpm --filter @planar/api seed || return 1
+  DATABASE_URL="postgres://postgres:$POSTGRES_PASSWORD@127.0.0.1:${pg##*:}/planar" pnpm --filter @planar/api seed || return 1
   E2E_BASE_URL="$PUBLIC_URL" pnpm --filter @planar/e2e prod || rc=$?
+  [ $rc = 0 ] && echo "prod-smoke: OK"
   return $rc
 }
 
