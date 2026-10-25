@@ -627,6 +627,7 @@ export default {
     },
   },
   list: {
+    resize: 'Column width (double-click — auto)',
     colName: 'Name',
     drag: 'Drag',
     newTask: 'New task',

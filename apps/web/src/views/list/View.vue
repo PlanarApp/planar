@@ -33,6 +33,7 @@ import { useProjectNames, useStatusKey } from '../scope';
 import Row from './Row.vue';
 import { treeOrder } from './tree';
 import { COLUMN_CLASS, visibleColumns } from './columns';
+import { useColumnWidths } from './widths';
 import { applyMove, planMove } from '../board/plan';
 
 const props = defineProps<ViewProps>();
@@ -49,7 +50,30 @@ const labels = useLabels(spaceId);
 const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 const statusKey = useStatusKey(() => props.scope, statuses);
 const projectNames = useProjectNames();
-const passes = useTaskFilter(() => props.filter, statuses, () => props.options.me);
+// колонки: авторазмер по содержимому, разделитель в шапке — вручную (двойной клик — снова авто)
+const {
+  widths,
+  startResize,
+  reset: resetWidth,
+} = useColumnWidths(
+  () => props.projectId,
+  () => visibleColumns(props.options.fields),
+  all,
+  () => ({
+    users: new Map((members.value ?? []).map((u) => [u.id, u.name])),
+    labels: new Map((labels.value ?? []).map((l) => [l.id, l.name])),
+    projects: projectNames.value,
+    header: (c) => colName(c),
+    noAssignee: t('tasks.noAssignee'),
+    priority: (p) => t(`tasks.priority.${p}`),
+    locale: locale.value,
+  }),
+);
+const passes = useTaskFilter(
+  () => props.filter,
+  statuses,
+  () => props.options.me,
+);
 
 type Item =
   | { id: string; kind: 'head' }
@@ -460,9 +484,21 @@ watch(
                 class="flex h-full items-center border-b border-border px-3 pl-10 text-xs text-fg-muted"
               >
                 <span class="flex-1">{{ t('list.colName') }}</span>
-                <span v-for="c in columns" :key="c" :class="['px-1', COLUMN_CLASS[c]]">{{
-                  colName(c)
-                }}</span>
+                <span
+                  v-for="c in columns"
+                  :key="c"
+                  :class="['relative shrink-0 truncate px-1', COLUMN_CLASS[c]]"
+                  :style="{ width: `${widths[c]}px` }"
+                  >{{ colName(c)
+                  }}<span
+                    role="separator"
+                    aria-orientation="vertical"
+                    :aria-label="t('list.resize')"
+                    data-testid="col-resize"
+                    class="absolute inset-y-0 right-0 w-1.5 cursor-col-resize hover:bg-accent"
+                    @pointerdown.stop.prevent="startResize(c, $event)"
+                    @dblclick.stop="resetWidth(c)"
+                /></span>
               </div>
               <div
                 v-else-if="it.kind === 'group'"
@@ -498,9 +534,21 @@ watch(
                 >
                 <span class="text-xs text-fg-subtle">{{ it.group.tasks.length }}</span>
                 <span class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden">
-                  <span v-for="c in columns" :key="c" :class="['px-1', COLUMN_CLASS[c]]">{{
-                    colName(c)
-                  }}</span>
+                  <span
+                    v-for="c in columns"
+                    :key="c"
+                    :class="['relative shrink-0 truncate px-1', COLUMN_CLASS[c]]"
+                    :style="{ width: `${widths[c]}px` }"
+                    >{{ colName(c)
+                    }}<span
+                      role="separator"
+                      aria-orientation="vertical"
+                      :aria-label="t('list.resize')"
+                      data-testid="col-resize"
+                      class="absolute inset-y-0 right-0 w-1.5 cursor-col-resize hover:bg-accent"
+                      @pointerdown.stop.prevent="startResize(c, $event)"
+                      @dblclick.stop="resetWidth(c)"
+                  /></span>
                 </span>
               </div>
               <Row
@@ -508,6 +556,7 @@ watch(
                 :task="it.task"
                 :space-id="it.task.spaceId"
                 :project-name="projectNames.get(it.task.projectId)"
+                :widths="widths"
                 :index="v.index + 1"
                 :selected="sel.selected.value.has(it.task.id)"
                 :focused="focusedId === it.id"

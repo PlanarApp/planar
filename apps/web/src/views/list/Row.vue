@@ -14,7 +14,7 @@ import {
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
 import { ChevronDown, ChevronRight, GripVertical, ListTree } from 'lucide-vue-next';
-import { COLUMN_CLASS, visibleColumns } from './columns';
+import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
@@ -43,6 +43,8 @@ const props = defineProps<{
   folded?: boolean;
   /** название проекта задачи — колонка «Проект» */
   projectName?: string;
+  /** ширины колонок, px (авторазмер или заданные вручную) */
+  widths?: Partial<Record<ListColumn, number>>;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -222,7 +224,8 @@ function save() {
         :key="c"
         role="gridcell"
         :data-col="c"
-        :class="['flex h-full min-w-0 items-center overflow-hidden px-1', COLUMN_CLASS[c]]"
+        :class="['flex h-full shrink-0 items-center overflow-hidden px-1', COLUMN_CLASS[c]]"
+        :style="{ width: `${widths?.[c] ?? 112}px` }"
       >
         <!-- в покое — та же рамка, что у кнопки пикера; при наведении на её месте пикер с тем же содержимым -->
         <template v-if="(hot || focused) && c !== 'project'">
