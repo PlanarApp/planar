@@ -52,9 +52,18 @@ export interface GoalsData {
 export const useGoalsData = (spaceId: MaybeRefOrGetter<string>) =>
   useScoped(spaceId, async (s): Promise<GoalsData | null> => {
     if (!s || !hasTables()) return null;
+    // у goalsKeyResults индекс только goalId
+    const goalsP = bySpace<Goal>('goalsGoals', s);
     const [goals, krs, rows, statuses, fieldDefs, members, users] = await Promise.all([
-      bySpace<Goal>('goalsGoals', s),
-      bySpace<KeyResult>('goalsKeyResults', s),
+      goalsP,
+      goalsP.then(
+        (gs) =>
+          db
+            .table('goalsKeyResults')
+            .where('goalId')
+            .anyOf(gs.map((g) => g.id))
+            .toArray() as Promise<KeyResult[]>,
+      ),
       bySpace<Row<'tasks'>>('tasks', s),
       bySpace<Row<'statuses'>>('statuses', s),
       bySpace<Row<'fieldDefs'>>('fieldDefs', s),

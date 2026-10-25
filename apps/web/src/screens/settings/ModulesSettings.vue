@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, ref, shallowRef } from 'vue';
+import { computed, defineAsyncComponent, onMounted, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { api } from '../../api/http';
@@ -20,17 +20,23 @@ const setupOf = ref<string | null>(null);
 const reason = (code: string) =>
   te(`modules.unavailable.${code}`) ? t(`modules.unavailable.${code}`) : code;
 const setting = useQuery(() => db.table<Row<'settings'>>('settings').get('enabled_modules'));
-onMounted(() =>
+const load = () =>
   run(
     async () =>
       (server.value = (await api<{ modules: typeof server.value }>('GET', '/api/modules')).modules),
-  ).then(async () => {
+  );
+onMounted(() =>
+  load().then(async () => {
     for (const m of server.value) {
       const load = await moduleSetup(m.id);
       if (load) setups.value = { ...setups.value, [m.id]: defineAsyncComponent(load as never) };
     }
   }),
 );
+// после «Настроить» доступность модуля могла измениться (например, задан SMTP)
+watch(setupOf, (id, prev) => {
+  if (!id && prev) void load();
+});
 // включённые — только по реплике; нет строки = ничего не включено (ответ сервера справочный)
 const enabled = computed(
   () => new Set(Array.isArray(setting.value?.value) ? (setting.value.value as string[]) : []),
