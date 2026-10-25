@@ -1,8 +1,8 @@
 {
   "status": "done",
-  "summary": "Модуль modules/templates: сущность templatesTemplates, мутаторы create/update/delete/createTask/createProject через domainMutators, templateIdPlan, taskToTemplate/projectToTemplate; миграция 0019; web: команды newTask (newTaskMenu) и saveTask, настройки, диалоги в topbar; меню «Новая задача» в списке.",
+  "summary": "Модуль templates, меню «Новая задача», доработки ревью (web-тест меню, createTask с parentId) на месте; миграция 0022 поверх feature/p4, убран дубль 0022_templates.sql.",
   "commits": [
-    "98ae42d templates: шаблоны задач и проектов (PF-2)"
+    "76ab18c templates: убрать дубль миграции 0022_templates.sql (в журнале 0022_jittery_leader)"
   ],
   "checks": [
     {
@@ -32,33 +32,21 @@
     },
     {
       "name": "pf2",
-      "value": "13 passed",
+      "value": "14 passed",
       "pass": true
     }
   ],
-  "not_done": [
-    "web-тестов UI (меню списка, диалоги, настройки) нет — только типы/линт/сборка"
-  ],
+  "not_done": [],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept PF-2",
   "uncertain": [
     {
-      "where": "modules/templates/shared/index.ts:taskToTemplate",
-      "why": "сигнатура с третьим параметром today (в контракте его нет, иначе dueInDays не вычислить)",
-      "checked": "по умолчанию UTC, web передаёт localToday"
-    },
-    {
-      "where": "apps/api/drizzle/0019_templates.sql",
-      "why": "номер 0019 может столкнуться с миграциями PF-1/3/4",
-      "checked": "переименовал и поправил _journal"
-    },
-    {
-      "where": "build/dpcli/PF-2/04-test-all.log",
-      "why": "один раз в полном прогоне был unhandled 57P01 (обрыв соединения БД), повтор чистый",
-      "checked": "два повторных полных прогона без ошибок"
+      "where": "test-all",
+      "why": "первый прогон упал: общая testdb закрыта (57P01) в email.test.ts",
+      "checked": "повтор прошёл PASS"
     }
   ],
-  "dp_feedback": "Пустой раздел плана '4. Задачи (PF-2)' не находится по имени карточки; accept --dry в 120с уходит в фон.",
-  "t": "2026-10-25T02:02:33",
+  "dp_feedback": "общая planar-testdb роняет test-all при параллельных задачах",
+  "t": "2026-10-25T05:07:38",
   "by": "executor"
 }

@@ -1,0 +1,34 @@
+{
+  "verdict": "rework",
+  "summary": "Безопасность моста, сервера и checkPluginUrl по контракту P4-plugins v1 в порядке, скоуп соблюдён, pf5 (20) и contract перезапущены — PASS. Но в Panel.vue CSP фиксируется по ещё не загруженному списку плагинов: панель задачи может навсегда получить frame-src 'none'.",
+  "issues": [
+    {
+      "file": "modules/plugins/web/Panel.vue",
+      "line": 14,
+      "severity": "major",
+      "what": "Гонка: usePlugins() отдаёт [] пока useQuery не ответил (r.value undefined → []), а watchEffect зовёт ensureFrameCsp, как только готов ctx (отдельный liveQuery). Если tasks.get ответит раньше pluginsPlugins или реплика ещё не получила плагины (первый вход), вставится одноразовая meta 'frame-src 'none'', allowed = ∅, и все плагины до перезагрузки показывают «Перезагрузите страницу» (страница /m/plugins/p/:id в той же вкладке тоже). После перезагрузки гонка та же — итог недетерминирован.",
+      "fix": "Различать «не загружено» и «пусто»: usePlugins/allPlugins должны давать undefined до первого ответа, ensureFrameCsp вызывать только когда список загружен (в Panel и Page); добавить pf5-тест на это условие (например, вынести решение «можно ли вставлять CSP» в чистую функцию)."
+    },
+    {
+      "file": "modules/plugins/web/PluginFrame.vue",
+      "line": 21,
+      "severity": "minor",
+      "what": "Если useSession() ещё пуст в onMounted, мост не создаётся, а iframe всё равно показан: плагин шлёт ready и молча не получает init. Позже мост не создаётся.",
+      "fix": "Показывать iframe только при user (v-if) или создавать мост из watch на user."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "pf5",
+      "value": "20 passed",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-25T05:16:26",
+  "by": "reviewer"
+}
