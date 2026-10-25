@@ -488,6 +488,7 @@ export default {
   },
   list: {
     newTask: 'Новая задача',
+    newMenu: 'Новая задача из…',
     newTaskTitle: 'Название новой задачи',
     editTitle: 'Название задачи',
     select: 'Выбрать задачу',

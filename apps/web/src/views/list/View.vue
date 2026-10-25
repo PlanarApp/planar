@@ -21,14 +21,16 @@ import {
   type TaskGroup,
   type TaskView,
 } from '../../tasks';
-import { Button, Dialog, EmptyState, Input, useBreakpoint } from '../../ui';
+import { Button, Dialog, EmptyState, Input, Menu, useBreakpoint, type MenuItem } from '../../ui';
+import { router } from '../../router';
+import { useExtensions } from '../../modules/registry';
 import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
 import Row from './Row.vue';
 
 const props = defineProps<ViewProps>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { isMobile } = useBreakpoint();
 const sel = useSelection();
 
@@ -150,6 +152,24 @@ function startEdit(id: string) {
 }
 let openTimer: ReturnType<typeof setTimeout> | undefined;
 
+// --- меню «Новая задача»: команды модулей с newTaskMenu
+const cmds = useExtensions('commands');
+const newMenu = computed<MenuItem[]>(() => {
+  const ctx = {
+    route: router.currentRoute.value,
+    selectedTaskIds: [...sel.selected.value],
+    projectId: props.projectId,
+  };
+  return cmds.value
+    .filter((c) => c.newTaskMenu && (!c.when || c.when(ctx)))
+    .map((c) => ({
+      id: c.key,
+      label: typeof c.label === 'string' ? t(c.label) : c.label[locale.value as 'ru' | 'en'],
+      icon: c.icon,
+      onSelect: () => void c.run(ctx),
+    }));
+});
+
 // --- быстрое создание
 const creating = ref<string | null>(null);
 const newTitle = ref('');
@@ -228,9 +248,12 @@ watch(
             @keydown.esc="creating = null"
           />
         </div>
-        <Button v-else variant="primary" :icon="Plus" @click="startCreate('')">{{
-          t('list.create')
-        }}</Button>
+        <template v-else>
+          <Button variant="primary" :icon="Plus" @click="startCreate('')">{{
+            t('list.create')
+          }}</Button>
+          <Menu v-if="newMenu.length" :items="newMenu" :label="t('list.newMenu')" />
+        </template>
       </template>
     </EmptyState>
     <div
@@ -328,6 +351,7 @@ watch(
               >
                 <Plus :size="14" aria-hidden="true" />{{ t('list.newTask') }}
               </button>
+              <Menu v-if="newMenu.length" :items="newMenu" :label="t('list.newMenu')" />
             </div>
           </template>
         </div>
