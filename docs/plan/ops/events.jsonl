@@ -93,3 +93,6 @@
 {"t": "2026-10-25T09:11:47", "by": "executor", "task": "OP-4b", "ev": "reported", "commits": ["3abc97e"], "note": "done: upgrade.sh: тело в main() и exec $0 без --pull после pull (бэкап не повторяется, UPGRADE_REEXEC); теги :rollback возвра…", "dp_feedback": "accept --dry идёт ~14 мин в foreground и упирается в таймаут инструмента; хотелось бы подсказку про job start в выводе."}
 {"t": "2026-10-25T09:12:06", "by": "coordinator", "task": "OP-5", "ev": "accepted", "note": "4/4 docs-check=ok:0; sections=ok:8; scripts-exist=ok:exit 0; env-complete=ok:exit 0"}
 {"t": "2026-10-25T09:12:19", "by": "coordinator", "task": "OP-5", "ev": "accepted", "note": "по проверкам"}
+{"t": "2026-10-25T09:12:20", "by": "coordinator", "task": "OP-5", "ev": "merged"}
+{"t": "2026-10-25T09:19:01", "by": "coordinator", "task": "OP-4b", "ev": "checked", "note": "2/2 upgrade-test=ok:upgrade-test: OK; bash-syntax=ok:exit 0"}
+{"t": "2026-10-25T09:19:13", "by": "coordinator", "task": "OP-4b", "ev": "accepted", "note": "по отчёту"}
