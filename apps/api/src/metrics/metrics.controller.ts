@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import { Controller, Get, Headers, Inject, Res } from '@nestjs/common';
+import { Controller, Logger, Get, Headers, Inject, Res } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import type { FastifyReply } from 'fastify';
 import { Public } from '../auth/public.js';
@@ -12,6 +12,8 @@ import { render, type Snapshot } from './metrics.js';
 @Public()
 @Controller('api/metrics')
 export class MetricsController {
+  private readonly log = new Logger(MetricsController.name);
+
   constructor(
     @Inject(DB) private readonly db: Db,
     @Inject(JobsService) private readonly jobs: JobsService,
@@ -28,20 +30,29 @@ export class MetricsController {
     const want = Buffer.from(token);
     if (given.length !== want.length || !timingSafeEqual(given, want))
       throw new HttpError(401, 'unauthenticated', 'Unauthenticated');
-    const snap: Snapshot = { queue: null, dbSize: 0 };
-    snap.dbSize = Number(
-      (await this.db.execute(sql`select pg_database_size(current_database())::float8 as n`))
-        .rows[0]!.n,
-    );
-    if (this.jobs.enabled) {
-      const r = await this.db.execute(
-        sql`select name, state::text as state, count(*)::int as n from pgboss.job group by 1, 2`,
+    const snap: Snapshot = { queue: null, dbSize: null };
+    // сбой запроса не роняет ответ: соответствующие строки пропускаются
+    try {
+      snap.dbSize = Number(
+        (await this.db.execute(sql`select pg_database_size(current_database())::float8 as n`))
+          .rows[0]!.n,
       );
-      snap.queue = r.rows.map((x) => ({
-        queue: String(x.name),
-        state: String(x.state),
-        n: Number(x.n),
-      }));
+    } catch (e) {
+      this.log.warn(`planar_db_size_bytes пропущена: ${(e as Error).message}`);
+    }
+    if (this.jobs.enabled) {
+      try {
+        const r = await this.db.execute(
+          sql`select name, state::text as state, count(*)::int as n from pgboss.job group by 1, 2`,
+        );
+        snap.queue = r.rows.map((x) => ({
+          queue: String(x.name),
+          state: String(x.state),
+          n: Number(x.n),
+        }));
+      } catch (e) {
+        this.log.warn(`planar_queue_jobs пропущена: ${(e as Error).message}`);
+      }
     }
     void res.header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
     return render(snap);
