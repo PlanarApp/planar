@@ -30,6 +30,8 @@ import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
 import Row from './Row.vue';
+import { treeOrder } from './tree';
+import { applyMove, planMove } from '../board/plan';
 
 const props = defineProps<ViewProps>();
 const { t, locale } = useI18n();
@@ -47,7 +49,7 @@ const passes = useTaskFilter(() => props.filter, statuses);
 
 type Item =
   | { id: string; kind: 'group'; group: TaskGroup }
-  | { id: string; kind: 'task'; task: TaskView }
+  | { id: string; kind: 'task'; task: TaskView; group: string; depth: number; parentTitle?: string }
   | { id: string; kind: 'create'; group: TaskGroup };
 
 const collapsed = ref(new Set<string>());
@@ -64,17 +66,83 @@ const groups = computed(() => {
     tasks: sortTasks(g.tasks, o.sortBy, o.sortDir),
   }));
 });
+// подзадачи — деревом под родителем; родитель не над строкой — подпись в строке
+const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
 const items = computed<Item[]>(() =>
   groups.value.flatMap((g) => [
-    { id: `g:${g.key}`, kind: 'group' as const, group: g },
+    ...(props.options.groupBy === 'none'
+      ? []
+      : [{ id: `g:${g.key}`, kind: 'group' as const, group: g }]),
     ...(collapsed.value.has(g.key)
       ? []
       : [
-          ...g.tasks.map((task) => ({ id: `t:${g.key}:${task.id}`, kind: 'task' as const, task })),
+          ...treeOrder(g.tasks).map(({ task, depth }) => ({
+            id: `t:${g.key}:${task.id}`,
+            kind: 'task' as const,
+            task,
+            group: g.key,
+            depth,
+            parentTitle: !depth && task.parentId ? byId.value.get(task.parentId)?.title : undefined,
+          })),
           { id: `c:${g.key}`, kind: 'create' as const, group: g },
         ]),
   ]),
 );
+
+// --- перетаскивание (сортировка «Вручную»): порядок среди задач с тем же родителем, перенос в другую группу
+const manual = computed(() => props.options.sortBy === 'rank' && props.options.sortDir === 'asc');
+const drag = ref<{ task: TaskView; from: string; slot: number } | null>(null);
+const slotAt = (clientY: number) => {
+  const el = scroller.value!;
+  const y = clientY - el.getBoundingClientRect().top + el.scrollTop;
+  return Math.max(0, Math.min(items.value.length, Math.round(y / rowH.value)));
+};
+function onDragMove(e: PointerEvent) {
+  if (!drag.value) return;
+  const el = scroller.value!;
+  const r = el.getBoundingClientRect();
+  if (e.clientY < r.top + 32)
+    el.scrollTop -= 12; // автопрокрутка у краёв
+  else if (e.clientY > r.bottom - 32) el.scrollTop += 12;
+  drag.value.slot = slotAt(e.clientY);
+}
+async function onDragEnd() {
+  removeEventListener('pointermove', onDragMove);
+  const d = drag.value;
+  drag.value = null;
+  if (!d) return;
+  // группа — по строке над местом сброса; «перед кем» — следующий брат в этой группе
+  const list = items.value;
+  const prev = list[d.slot - 1];
+  const to = !prev
+    ? groups.value[0]?.key
+    : prev.kind === 'group'
+      ? prev.group.key
+      : prev.kind === 'task'
+        ? prev.group
+        : prev.group.key;
+  if (!to) return;
+  let beforeId: string | null = null;
+  if (prev?.kind !== 'create')
+    for (const it of list.slice(d.slot)) {
+      if (it.kind !== 'task' || it.group !== to) break;
+      if (it.task.parentId === d.task.parentId && it.task.id !== d.task.id) {
+        beforeId = it.task.id;
+        break;
+      }
+    }
+  const cols = groups.value.map((g) => ({
+    ...g,
+    tasks: g.tasks.filter((x) => x.parentId === d.task.parentId),
+  }));
+  const plan = planMove(cols, props.options.groupBy, d.task.id, d.from, to, beforeId);
+  if (plan) await applyMove(plan);
+}
+function startDrag(it: { task: TaskView; group: string }, e: PointerEvent) {
+  drag.value = { task: it.task, from: it.group, slot: slotAt(e.clientY) };
+  addEventListener('pointermove', onDragMove);
+  addEventListener('pointerup', () => void onDragEnd(), { once: true });
+}
 const taskIds = computed(() => [
   ...new Set(items.value.flatMap((i) => (i.kind === 'task' ? [i.task.id] : []))),
 ]);
@@ -259,6 +327,12 @@ watch(
       >
         <div class="relative w-full" :style="{ height: `${virt.getTotalSize()}px` }">
           <div
+            v-if="drag"
+            class="pointer-events-none absolute left-0 z-10 h-0.5 w-full bg-accent"
+            :style="{ top: `${drag.slot * rowH - 1}px` }"
+            data-testid="drop-line"
+          />
+          <div
             v-for="v in virt.getVirtualItems()"
             :key="String(v.key)"
             class="absolute left-0 top-0 w-full"
@@ -310,6 +384,11 @@ watch(
                 :blocked="blocked.has(it.task.id)"
                 :members="members ?? []"
                 :labels="labels ?? []"
+                :depth="it.depth"
+                :parent-title="it.parentTitle"
+                :draggable="manual"
+                :class="drag?.task.id === it.task.id && 'opacity-40'"
+                @drag="startDrag(it, $event)"
                 @click="onRowClick(it, $event)"
                 @toggle="sel.toggle(it.task.id)"
                 @edit="startEdit(it.id)"

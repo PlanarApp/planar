@@ -15,6 +15,7 @@ import {
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
 import { AvatarStack, Badge } from '../../ui';
+import { GripVertical } from 'lucide-vue-next';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 import { localToday } from '../filter';
@@ -31,9 +32,16 @@ const props = defineProps<{
   blocked: boolean;
   members: DbRow<'users'>[];
   labels: DbRow<'labels'>[];
+  /** уровень вложенности подзадачи (0 — верхний) */
+  depth?: number;
+  /** родитель не показан над строкой (другая группа, подзадачи скрыты) — подпись в строке */
+  parentTitle?: string;
+  /** ручка перетаскивания (сортировка «Вручную») */
+  draggable?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
+  drag: [e: PointerEvent];
   toggle: [];
   edit: [];
   done: [];
@@ -101,6 +109,16 @@ function save() {
     @pointerenter="hot = true"
     @focusin="hot = true"
   >
+    <div
+      v-if="draggable"
+      class="-ml-2 flex w-4 shrink-0 cursor-grab items-center justify-center text-fg-subtle opacity-0 group-hover:opacity-100 touch-none"
+      data-testid="row-grip"
+      :aria-label="t('list.drag')"
+      @pointerdown.stop.prevent="emit('drag', $event)"
+      @click.stop
+    >
+      <GripVertical :size="14" />
+    </div>
     <div role="gridcell" class="w-5 shrink-0" @click.stop>
       <input
         type="checkbox"
@@ -113,6 +131,7 @@ function save() {
         @change="(emit('toggle'), emit('done'))"
       />
     </div>
+    <span v-if="depth" class="shrink-0" :style="{ width: `${depth * 20}px` }" aria-hidden="true" />
     <div role="gridcell" class="w-16 shrink-0 truncate font-mono text-xs text-fg-muted">
       {{ task.key }}
     </div>
@@ -138,6 +157,12 @@ function save() {
       />
       <span v-else class="flex items-center gap-1">
         <BlockedIcon v-if="blocked" />
+        <span
+          v-if="parentTitle"
+          class="max-w-48 shrink-0 truncate text-xs text-fg-subtle"
+          data-testid="row-parent"
+          >{{ parentTitle }} ›</span
+        >
         <span class="truncate">{{ task.title }}</span>
       </span>
     </div>

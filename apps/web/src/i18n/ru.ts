@@ -245,7 +245,14 @@ export default {
     sortBy: 'Сортировка',
     sortDir: 'Порядок сортировки',
     subtasks: 'Подзадачи',
-    group: { status: 'Статус', assignee: 'Исполнитель', priority: 'Приоритет', label: 'Метка' },
+    group: {
+      none: 'Нет',
+      all: 'Все задачи',
+      status: 'Статус',
+      assignee: 'Исполнитель',
+      priority: 'Приоритет',
+      label: 'Метка',
+    },
     sort: {
       rank: 'Вручную',
       priority: 'Приоритет',
@@ -542,6 +549,7 @@ export default {
     },
   },
   list: {
+    drag: 'Перетащить',
     newTask: 'Новая задача',
     newMenu: 'Новая задача из…',
     newTaskTitle: 'Название новой задачи',

@@ -8,7 +8,7 @@ import { TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
 const options = defineModel<ViewOptions>('options', { required: true });
 const { t } = useI18n();
 
-const groups = ['status', 'assignee', 'priority', 'label'] as const;
+const groups = ['status', 'assignee', 'priority', 'label', 'none'] as const;
 const sorts = ['rank', 'priority', 'dueDate', 'createdAt', 'updatedAt', 'title'] as const;
 const groupOptions = computed(() =>
   groups.map((v) => ({ value: v, label: t(`views.group.${v}`) })),

@@ -25,6 +25,8 @@ const props = defineProps<{
   mobile: boolean;
   fields: TaskField[];
   blocked: ReadonlySet<string>;
+  /** id задачи → название, для подписи родителя у подзадачи */
+  titles?: ReadonlyMap<string, string>;
 }>();
 const emit = defineEmits<{
   toggle: [];
@@ -74,10 +76,8 @@ const name = (id: string) => props.members.find((u) => u.id === id)?.name ?? '?'
 const label = (id: string) => props.labels.find((l) => l.id === id);
 
 let anchor: ChildNode | null = null;
-let startBefore: string | null = null;
 const onStart = (e: { item: HTMLElement }) => {
   anchor = e.item.nextSibling;
-  startBefore = dataId(nextCard(e.item.nextElementSibling));
 };
 const dataId = (n: Element | null) => n?.getAttribute('data-id') ?? null;
 const nextCard = (el: Element | null) => {
@@ -85,13 +85,26 @@ const nextCard = (el: Element | null) => {
   return el;
 };
 /** DOM Sortable переставляет сам; данные — из реплики, поэтому возвращаем DOM на место. */
-function onEnd(e: { item: HTMLElement; from: HTMLElement; to: HTMLElement }) {
-  const beforeId = dataId(nextCard(e.item.nextElementSibling));
+function onEnd(e: {
+  item: HTMLElement;
+  from: HTMLElement;
+  to: HTMLElement;
+  oldDraggableIndex?: number;
+  newDraggableIndex?: number;
+}) {
   const id = dataId(e.item)!;
+  const from = e.from.dataset.col!;
+  // внутри колонки vue-draggable-plus уже вернул DOM на место (ждёт update:modelValue) — позиция из индексов
+  if (from === e.to.dataset.col) {
+    const o = e.oldDraggableIndex,
+      n = e.newDraggableIndex;
+    if (o === undefined || n === undefined || o === n) return; // бросили на то же место
+    const rest = rows.value.items.filter((x) => x.id !== id);
+    return emit('move', id, from, from, rest[n]?.id ?? null);
+  }
+  const beforeId = dataId(nextCard(e.item.nextElementSibling));
   e.item.remove();
   e.from.insertBefore(e.item, anchor);
-  const from = e.from.dataset.col!;
-  if (from === e.to.dataset.col && beforeId === startBefore) return; // бросили на то же место
   emit('move', id, from, e.to.dataset.col!, beforeId);
 }
 
@@ -179,6 +192,12 @@ const hasFoot = (x: TaskView) =>
           @click="onCard(x, $event)"
           @keydown.enter.self="emit('open', x.key)"
         >
+          <span
+            v-if="x.parentId && titles?.get(x.parentId)"
+            class="truncate text-xs text-fg-subtle"
+            data-testid="card-parent"
+            >↳ {{ titles.get(x.parentId) }}</span
+          >
           <div class="flex items-start gap-1.5">
             <PriorityIcon
               v-if="fields.includes('priority') && x.priority"

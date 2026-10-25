@@ -47,7 +47,9 @@ const items = (v: SavedView) => [
         personal: true,
         name: t('taskMenu.copyOf', { title: v.name }),
         layout: v.layout,
-        filter: (v.filter as Partial<Filter> | null)?.rules ? (v.filter as unknown as Filter) : null,
+        filter: (v.filter as Partial<Filter> | null)?.rules
+          ? (v.filter as unknown as Filter)
+          : null,
         config: optionsFrom(v.config),
       });
       void router.push(`/p/${encodeURIComponent(props.projectId)}/v/${encodeURIComponent(id)}`);

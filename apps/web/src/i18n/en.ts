@@ -245,7 +245,14 @@ export default {
     sortBy: 'Sort by',
     sortDir: 'Sort direction',
     subtasks: 'Subtasks',
-    group: { status: 'Status', assignee: 'Assignee', priority: 'Priority', label: 'Label' },
+    group: {
+      none: 'None',
+      all: 'All tasks',
+      status: 'Status',
+      assignee: 'Assignee',
+      priority: 'Priority',
+      label: 'Label',
+    },
     sort: {
       rank: 'Manual',
       priority: 'Priority',
@@ -542,6 +549,7 @@ export default {
     },
   },
   list: {
+    drag: 'Drag',
     newTask: 'New task',
     newMenu: 'New task from…',
     newTaskTitle: 'New task title',

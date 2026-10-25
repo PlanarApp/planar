@@ -2,7 +2,7 @@ import type { Row } from '@planar/shared';
 import { i18n } from '../i18n';
 import type { TaskView } from './queries';
 
-export type GroupBy = 'status' | 'assignee' | 'priority' | 'label';
+export type GroupBy = 'none' | 'status' | 'assignee' | 'priority' | 'label';
 export interface TaskGroup {
   key: string;
   label: string;
@@ -38,6 +38,7 @@ function bucket(
 }
 
 export function groupTasks(tasks: TaskView[], by: GroupBy, ctx: GroupCtx): TaskGroup[] {
+  if (by === 'none') return [{ key: 'all', label: t('views.group.all'), tasks }];
   if (by === 'status') {
     const st = ctx.statuses
       .slice()

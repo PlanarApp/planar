@@ -43,6 +43,8 @@ const columns = computed(() =>
   ),
 );
 
+const titles = computed(() => new Map((tasks.value ?? []).map((x) => [x.id, x.title])));
+
 const storeKey = () => `planar.board.${props.projectId}.collapsed`;
 const collapsed = ref<Set<string>>(new Set());
 watch(
@@ -104,7 +106,10 @@ async function move(id: string, from: string, to: string, beforeId: string | nul
 
 function add(key: string, title: string) {
   const by = props.options.groupBy;
-  const statusId = by === 'status' ? key : statuses.value?.[0]?.id;
+  const statusId =
+    by === 'status'
+      ? key
+      : (statuses.value?.find((s) => s.category === 'todo') ?? statuses.value?.[0])?.id;
   if (!statusId) return;
   void createTask({
     projectId: props.projectId,
@@ -146,6 +151,7 @@ function add(key: string, title: string) {
           :mobile="isMobile"
           :fields="options.fields"
           :blocked="blocked"
+          :titles="titles"
           @toggle="toggle(g.key)"
           @open="openTask"
           @add="add(g.key, $event)"

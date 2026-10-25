@@ -33,7 +33,7 @@ import {
   type TaskView,
 } from '../tasks';
 import { useExtensions } from '../modules/registry';
-import { useSpaces } from '../tasks/queries';
+import { useSpaces, useTask } from '../tasks/queries';
 import { AvatarStack, Button, IconButton, Menu, type MenuItem } from '../ui';
 import Attachments from './Attachments.vue';
 import Checklist from './Checklist.vue';
@@ -56,6 +56,8 @@ const members = useMembers(() => props.task.spaceId);
 useLabels(() => props.task.spaceId);
 const users = useUsers();
 const watchers = useWatchers(props.task.id);
+// родитель подзадачи — звено крошек
+const parent = useTask(() => props.task.parentId ?? '');
 // хлебные крошки: пространство / проект
 const spaces = useSpaces();
 const crumbs = computed(() => {
@@ -184,7 +186,18 @@ const panelComponent = computed(() => {
           >{{ crumbs.project.name }}</RouterLink
         >
         <ChevronRight v-if="crumbs.project" :size="14" class="shrink-0" />
-        <span class="font-mono text-xs text-fg">{{ task.key }}</span>
+        <template v-if="task.parentId && parent">
+          <button
+            type="button"
+            class="min-w-0 truncate rounded px-1 hover:bg-bg-muted hover:text-fg"
+            data-testid="crumb-parent"
+            @click="open(parent.key)"
+          >
+            <span class="font-mono text-xs">{{ parent.key }}</span> {{ parent.title }}
+          </button>
+          <ChevronRight :size="14" class="shrink-0" />
+        </template>
+        <span class="shrink-0 font-mono text-xs text-fg">{{ task.key }}</span>
       </nav>
       <Menu :items="menu" align="end">
         <template #trigger>
