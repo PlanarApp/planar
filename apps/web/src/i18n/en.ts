@@ -71,6 +71,7 @@ export default {
     search: 'Search',
   },
   topbar: {
+    crumbMenu: 'Siblings of {name}',
     search: 'Search',
     breadcrumb: 'Breadcrumbs',
     notifications: 'Notifications',

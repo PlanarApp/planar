@@ -112,8 +112,15 @@ describe('DS-1: хлебные крошки проекта', () => {
       global: { plugins: [router, i18n] },
     });
     await vi.waitFor(() =>
-      expect(w.findAll('h1 span').map((x) => x.text())).toEqual(['Разработка', 'Планар', 'Доска']),
+      expect(w.get('h1').attributes('title')).toBe('Planar / Разработка / Планар / Доска'),
     );
+    // крошки уровней — ссылки, у пространства и проекта — меню соседей
+    expect(w.findAll('[data-testid=crumb]').map((x) => x.attributes('href'))).toEqual([
+      '/w',
+      '/s/s1',
+      '/p/p1',
+    ]);
+    expect(w.findAll('[data-testid=crumb-menu]')).toHaveLength(3);
   });
 });
 

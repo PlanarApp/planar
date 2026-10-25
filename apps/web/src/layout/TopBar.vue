@@ -9,7 +9,7 @@ import {
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Bell, ChevronRight, Download, PanelLeft, Search } from 'lucide-vue-next';
+import { Bell, ChevronDown, ChevronRight, Download, PanelLeft, Search } from 'lucide-vue-next';
 // reka (Avatar/Menu) — вне начального бандла
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
@@ -21,9 +21,10 @@ import { ui } from '../command/hotkeys';
 import { useAuth } from '../auth/useAuth';
 import { useUnread } from '../inbox/queries';
 import { useExtensions } from '../modules/registry';
-import { useProject, useSpaces } from '../tasks/queries';
+import { useProject, useRootSpaceId, useSpaces } from '../tasks/queries';
 import { useSavedView } from '../views/saved/queries';
-import { groupTab } from './groups';
+import { GROUP_TABS, groupTab, groupUrl } from './groups';
+import type { MenuItem } from '../ui/Menu.vue';
 import { mobileNav, useUserMenu } from './nav';
 
 const { t, te, locale } = useI18n();
@@ -86,20 +87,52 @@ const moduleTitle = computed(() => {
   if (typeof meta === 'string' && meta) return te(meta) ? t(meta) : meta;
   return te(`topbar.modules.${id}`) ? t(`topbar.modules.${id}`) : id;
 });
-const crumbs = computed(() => {
-  if (moduleTitle.value) return [moduleTitle.value];
-  if (route.name === 'workspace' || route.name === 'space') {
-    const sp = spaces.value?.find((s) => s.id === route.params.spaceId)?.name;
-    return [t('app.name'), sp, t(`groups.tab.${groupTab(route.params.tab)}`)].filter(
-      (x): x is string => !!x,
-    );
-  }
-  if (!inProject.value) {
-    return [route.name ? t(`screens.${String(route.name)}`) : t('app.name')];
-  }
+// крошка — ссылка на свой уровень; ▾ — соседи по уровню (пространства, проекты пространства, табы)
+interface Crumb {
+  label: string;
+  to?: string;
+  menu?: MenuItem[];
+}
+const rootId = useRootSpaceId();
+const go = (to: string) => () => void router.push(to);
+const crumbs = computed<Crumb[]>(() => {
+  if (moduleTitle.value) return [{ label: moduleTitle.value }];
+  const level = route.name === 'workspace' ? 'workspace' : route.name === 'space' ? 'space' : '';
+  if (!level && !inProject.value)
+    return [{ label: route.name ? t(`screens.${String(route.name)}`) : t('app.name') }];
+  const all = (spaces.value ?? []).filter((x) => x.id !== rootId.value);
+  const spaceId = level === 'space' ? String(route.params.spaceId) : project.value?.spaceId;
+  const space = all.find((x) => x.id === spaceId);
+  const out: Crumb[] = [{ label: t('app.name'), to: '/w' }];
+  if (space)
+    out.push({
+      label: space.name,
+      to: groupUrl('space', space.id),
+      menu: all.map((x) => ({ id: x.id, label: x.name, onSelect: go(groupUrl('space', x.id)) })),
+    });
   const p = project.value;
-  const space = spaces.value?.find((s) => s.id === p?.spaceId)?.name;
-  return [space, p?.name, viewLabel.value].filter((x): x is string => !!x);
+  if (inProject.value && p)
+    out.push({
+      label: p.name,
+      to: groupUrl('project', p.id),
+      menu: (space?.projects ?? []).map((x) => ({
+        id: x.id,
+        label: x.name,
+        onSelect: go(groupUrl('project', x.id)),
+      })),
+    });
+  const gl = inProject.value ? 'project' : (level as 'workspace' | 'space');
+  const gid = inProject.value ? projectId.value : (spaceId ?? '');
+  const tab = groupTab(inProject.value ? route.params.view : route.params.tab);
+  out.push({
+    label: inProject.value ? viewLabel.value : t(`groups.tab.${tab}`),
+    menu: GROUP_TABS.map((k) => ({
+      id: k,
+      label: t(`groups.tab.${k}`),
+      onSelect: go(groupUrl(gl, gid, k)),
+    })),
+  });
+  return out.filter((c) => c.label);
 });
 </script>
 
@@ -107,7 +140,10 @@ const crumbs = computed(() => {
   <header class="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-bg px-3">
     <IconButton v-if="isMobile" :icon="PanelLeft" :label="t('topbar.nav')" @click="openNav" />
     <nav :aria-label="t('topbar.breadcrumb')" class="min-w-0 flex-1">
-      <h1 class="flex items-center gap-1 truncate text-sm" :title="crumbs.join(' / ')">
+      <h1
+        class="flex items-center gap-1 truncate text-sm"
+        :title="crumbs.map((c) => c.label).join(' / ')"
+      >
         <template v-for="(c, i) in crumbs" :key="i">
           <template v-if="!isMobile || i >= crumbs.length - 2">
             <ChevronRight
@@ -116,13 +152,35 @@ const crumbs = computed(() => {
               class="shrink-0 text-fg-subtle"
               aria-hidden="true"
             />
-            <span
-              :class="[
-                'truncate',
-                i === crumbs.length - 1 ? 'font-medium' : 'max-w-40 text-fg-muted',
-              ]"
-              >{{ c }}</span
-            >
+            <span class="flex min-w-0 items-center">
+              <RouterLink
+                v-if="c.to && i < crumbs.length - 1"
+                :to="c.to"
+                class="max-w-40 truncate rounded-sm px-0.5 text-fg-muted outline-none hover:text-fg hover:underline focus-visible:ring-2 ring-focus"
+                data-testid="crumb"
+                >{{ c.label }}</RouterLink
+              >
+              <span
+                v-else
+                :class="[
+                  'truncate',
+                  i === crumbs.length - 1 ? 'font-medium' : 'max-w-40 text-fg-muted',
+                ]"
+                >{{ c.label }}</span
+              >
+              <Menu v-if="c.menu?.length" :items="c.menu" align="start">
+                <template #trigger>
+                  <button
+                    type="button"
+                    :aria-label="t('topbar.crumbMenu', { name: c.label })"
+                    data-testid="crumb-menu"
+                    class="flex size-5 shrink-0 items-center justify-center rounded text-fg-subtle outline-none hover:bg-bg-muted hover:text-fg focus-visible:ring-2 ring-focus"
+                  >
+                    <ChevronDown :size="12" />
+                  </button>
+                </template>
+              </Menu>
+            </span>
           </template>
         </template>
       </h1>

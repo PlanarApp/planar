@@ -71,6 +71,7 @@ export default {
     search: 'Поиск',
   },
   topbar: {
+    crumbMenu: 'Соседи: {name}',
     search: 'Поиск',
     breadcrumb: 'Навигационная цепочка',
     notifications: 'Уведомления',
