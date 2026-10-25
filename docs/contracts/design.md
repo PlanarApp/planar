@@ -217,7 +217,7 @@ vue-i18n, локали `ru`, `en`. Ключи вложенные: `<экран>.
 Имена маршрутов совпадают с первым сегментом (`inbox`, `my`, `project`, `savedView`, `task`, `settings`, `login`, `setup`, `profile`). Экраны грузятся лениво (`() => import(...)`), чтобы держать бюджет бандла.
 
 ### Точки расширения (C-modules, сторона web)
-`EXTENSION_KINDS = ['routes', 'views', 'taskPanels', 'commands', 'fieldTypes', 'settings', 'nav', 'topbar', 'search'] as const` — ровно поля `FrontendModuleManifest` (core, C-modules) кроме `id`.
+`EXTENSION_KINDS = ['routes', 'views', 'taskPanels', 'commands', 'fieldTypes', 'settings', 'nav', 'topbar', 'search', 'groupTabs'] as const` — ровно поля `FrontendModuleManifest` (core, C-modules) кроме `id`.
 `nav`, `topbar` — C-modules v3 (work), docs/contracts/work.md §C-modules v3; `search` — C-ui v2.
 
 ```ts

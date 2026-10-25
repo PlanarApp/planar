@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useChatLinks } from './links';
 import { computed, onMounted, shallowRef } from 'vue';
 import { RouterLink } from 'vue-router';
 import { X } from 'lucide-vue-next';
@@ -45,6 +46,7 @@ const reactionsOf = (id: string) => {
     m.set(r.id, r);
   return [...m.values()].filter((r) => r.messageId === id);
 };
+const links = useChatLinks();
 </script>
 
 <template>
@@ -54,7 +56,7 @@ const reactionsOf = (id: string) => {
   >
     <header class="flex h-10 items-center justify-between border-b border-border px-3">
       <h2 class="text-sm font-medium">{{ tx('thread') }}</h2>
-      <RouterLink :to="`/m/chat/c/${channelId}`" :aria-label="tx('close')"
+      <RouterLink :to="links.channel(channelId)" :aria-label="tx('close')"
         ><X :size="16"
       /></RouterLink>
     </header>

@@ -3,6 +3,6 @@ export const CONTRACT_VERSIONS = {
   'C-schema': 9,
   'C-sync': 2,
   'C-mutators': 6,
-  'C-modules': 11,
+  'C-modules': 12,
   'C-http': 12,
 } as const;

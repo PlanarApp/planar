@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useChatLinks } from './links';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { MessageSquare, Pencil, SmilePlus, Trash2 } from 'lucide-vue-next';
@@ -31,11 +32,15 @@ const m = computed(() => props.message);
 const author = computed(() => props.users.get(m.value.authorId)?.name ?? tx('unknown'));
 // лента монтирует десятки строк за кадр: без Avatar/RouterLink/иконок-компонентов (CL-2b)
 const router = useRouter();
-const threadUrl = computed(() => `/m/chat/c/${m.value.channelId}/t/${m.value.id}`);
+const links = useChatLinks();
+const threadTo = computed(() => links.thread(m.value.channelId, m.value.id));
+const threadUrl = computed(() =>
+  typeof threadTo.value === 'string' ? threadTo.value : router.resolve(threadTo.value).href,
+);
 function go(e: MouseEvent) {
   if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   e.preventDefault();
-  void router.push((e.currentTarget as HTMLAnchorElement).getAttribute('href')!);
+  void router.push(threadTo.value);
 }
 const mine = computed(() => m.value.authorId === props.me && !m.value.deletedAt);
 const time = computed(() => hhmm.format(new Date(m.value.createdAt)));

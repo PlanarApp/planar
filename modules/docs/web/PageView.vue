@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, type RouteLocationRaw } from 'vue-router';
 import { Archive } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
 import { db, mutate, useQuery, Menu, type MenuItem } from '@planar/web/modules';
@@ -9,7 +9,8 @@ import type { PageFull } from './model';
 import { createSaver } from './save';
 import { useTexts } from './text';
 
-const props = defineProps<{ pageId: string }>();
+// back — куда уйти после архивации (в табе группы — та же группа без ?page)
+const props = defineProps<{ pageId: string; back?: RouteLocationRaw }>();
 const tx = useTexts();
 const router = useRouter();
 const page = useQuery(() => db.table<PageFull>('docsPages').get(props.pageId));
@@ -46,7 +47,7 @@ const actions = computed<MenuItem[]>(() => [
 async function archive() {
   saver.flush();
   await mutate('docs.page.archive', { id: props.pageId });
-  void router.push('/m/docs');
+  void router.push(props.back ?? '/m/docs');
 }
 </script>
 

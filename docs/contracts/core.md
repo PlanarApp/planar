@@ -229,6 +229,9 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Мутаторы домена v2
 Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
+## C-modules v12
+
+v12 (группы): `FrontendModuleManifest.groupTabs?` — `GroupTabDef {id, tab: inbox|docs|chats|reports|settings, label?, icon?, order?, component}`; компонент получает `scope: GroupScope {level: workspace|space|project, spaceId, projectId, rootSpaceId}` (у Воркспейса `spaceId` — корневое пространство) и показывает данные уровня группы и вложенных; несколько вкладов в один таб — подтабы (`?r=<moduleId>:<id>`). SDK += `useGroupLevels(scope)` — уровни группы сверху вниз (`apps/web/src/layout/groups.ts`).
 ## C-modules v11
 
 v11 (p4): `BackendModuleManifest.unavailable?`, `GET /api/modules` += `unavailable`; `/api/<id>/setup/*` выключенного модуля — только owner/admin (ModuleGuard); `FrontendModuleManifest.setup?`; `CommandDef.newTaskMenu?` — docs/contracts/p4.md (вступление).

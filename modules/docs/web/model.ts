@@ -3,6 +3,8 @@ import { rankBetween } from '@planar/web/modules';
 export interface PageRow {
   id: string;
   spaceId: string;
+  /** уровень: проект или null — пространство (у корневого — Воркспейс) */
+  projectId?: string | null;
   parentId: string | null;
   rank: string;
   title: string;

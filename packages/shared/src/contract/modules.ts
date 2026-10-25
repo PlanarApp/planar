@@ -64,6 +64,8 @@ export interface FrontendModuleManifest {
   nav?: unknown[];
   topbar?: unknown[];
   search?: unknown[];
+  /** Содержимое табов групп (C-modules v12) */
+  groupTabs?: unknown[];
   /** Компонент настройки модуля (диалог в ModulesSettings, в том числе у выключенного) */
   setup?: unknown;
 }

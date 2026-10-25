@@ -12,6 +12,7 @@ export const EXTENSION_KINDS = [
   'nav',
   'topbar',
   'search',
+  'groupTabs',
 ] as const;
 export type ExtensionKind = (typeof EXTENSION_KINDS)[number];
 
@@ -70,6 +71,24 @@ export type NavItemDef = { id: string; order?: number } & (
   | { label: LocalizedText; icon: Component; /** /m/<moduleId>/… */ to: string }
   | { section: Lazy<object> }
 );
+/** Группа: Воркспейс (данные — в корневом пространстве), Пространство или Проект. */
+export interface GroupScope {
+  level: 'workspace' | 'space' | 'project';
+  /** пространство группы; у Воркспейса — корневое («Общее») */
+  spaceId: string;
+  projectId: string | null;
+  rootSpaceId: string;
+}
+/** Содержимое таба группы (данные её уровня и вложенных); у Отчётов — подтабы по label. */
+export interface GroupTabDef {
+  id: string;
+  tab: 'inbox' | 'docs' | 'chats' | 'reports' | 'settings';
+  label?: LocalizedText;
+  icon?: Component;
+  order?: number;
+  component: Lazy<{ scope: GroupScope }>;
+}
+
 export interface TopbarItemDef {
   id: string;
   component: Lazy<object>;
@@ -101,6 +120,7 @@ export interface WebModuleManifest extends FrontendModuleManifest {
   nav?: NavItemDef[];
   topbar?: TopbarItemDef[];
   search?: SearchProviderDef[];
+  groupTabs?: GroupTabDef[];
   /** Компонент настройки: диалог в ModulesSettings, в том числе у выключенного модуля (C-modules v11) */
   setup?: Lazy<object>;
 }

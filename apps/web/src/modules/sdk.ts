@@ -3,6 +3,10 @@ import { computed, type Ref } from 'vue';
 import { db, useQuery as liveQuery } from '../sync';
 import type { FilterCtx } from '../views/filter';
 import { useAuth, type User } from '../auth/useAuth';
+import { useSpaces } from '../tasks';
+import { i18n } from '../i18n';
+import { groupLevels, type GroupLevelRow } from '../layout/groups';
+import type { GroupScope } from './types';
 
 export * from './types';
 export { mutate, newId, rankBetween, useQuery } from '../sync';
@@ -31,6 +35,13 @@ export { sendTyping, onTyping } from '../sync';
 export { onMutationError } from '../sync';
 export { default as FilterBuilder } from '../views/saved/FilterBuilder.vue';
 export { localToday, matchFilter } from '../views/filter';
+
+/** Уровни группы (свой и вложенные) для табов Документы/Чаты/Отчёты. */
+export const useGroupLevels = (scope: () => GroupScope): Readonly<Ref<GroupLevelRow[]>> => {
+  const spaces = useSpaces();
+  return computed(() => groupLevels(scope(), spaces.value ?? [], i18n.global.t('app.name')));
+};
+export type { GroupLevelRow } from '../layout/groups';
 
 /** Текущий пользователь (null — не вошёл). */
 export const useSession = (): Readonly<Ref<User | null>> => useAuth().user;

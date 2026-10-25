@@ -73,6 +73,7 @@ export function registerModules(all: WebModuleManifest[]): void {
       'nav',
       'topbar',
       'search',
+      'groupTabs',
     ] as const) {
       for (const it of m[kind] ?? []) {
         const key = `${m.id}:${it.id}`;
@@ -178,7 +179,7 @@ export function useExtensions<K extends ExtensionKind>(kind: K): ComputedRef<Ext
           key: `${m.id}:${it.id}`,
         })),
       ) as unknown as Extension<K>[];
-    if (kind === 'taskPanels' || kind === 'nav' || kind === 'topbar')
+    if (kind === 'taskPanels' || kind === 'nav' || kind === 'topbar' || kind === 'groupTabs')
       out.sort(
         (a, b) =>
           ((a as { order?: number }).order ?? 0) - ((b as { order?: number }).order ?? 0) ||
