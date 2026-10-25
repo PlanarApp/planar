@@ -75,3 +75,7 @@
 {"t": "2026-10-25T08:37:11", "by": "coordinator", "task": "OP-3b", "ev": "merged"}
 {"t": "2026-10-25T08:41:47", "by": "coordinator", "task": "OP-2b", "ev": "checked", "note": "3/3 ops-contract=ok:5/5 (пропуск 862); backup-test=ok:backup-test: OK; bash-syntax=ok:exit 0"}
 {"t": "2026-10-25T08:47:15", "by": "coordinator", "task": "OP-2b", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-25T08:47:17", "by": "coordinator", "task": "OP-2b", "ev": "merged"}
+{"t": "2026-10-25T08:48:50", "by": "coordinator", "task": "OP-4", "ev": "checked", "note": "3/3 contract-strict=ok:Tests 5 passed; upgrade-test=ok:upgrade-test: OK; bash-syntax=ok:exit 0"}
+{"t": "2026-10-25T08:49:56", "by": "reviewer", "task": "OP-4", "ev": "reviewed", "note": "Порядок шагов совпадает с дополнением координатора; скоуп и dont_touch соблюдены; контракты и lib.sh не тронуты. Тест реально проверяет откат (сравнивает ID об…", "verdict": "accept", "issues": {"major": 1, "minor": 2}, "review": "docs/plan/ops/tasks/OP-4.review.json"}
+{"t": "2026-10-25T08:50:20", "by": "coordinator", "task": "OP-4", "ev": "accepted", "note": "по ревью; замечания → OP-4b"}
