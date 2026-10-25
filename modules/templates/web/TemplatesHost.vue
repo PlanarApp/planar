@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { Button, Dialog, Input, useQuery, db } from '@planar/web/modules';
-import { createTaskFrom, saveTaskAs, tr, ui, useTemplates } from './data';
+import { Button, Dialog, Input, db } from '@planar/web/modules';
+import { createTaskFrom, saveTaskAs, tr, ui, useScoped, useTemplates } from './data';
 
 // проект открытого списка → пространство
-const space = useQuery(async () =>
-  ui.newTask ? ((await db.table('projects').get(ui.newTask))?.spaceId ?? '') : '',
+const space = useScoped(
+  () => ui.newTask,
+  async (p) => (p ? ((await db.table('projects').get(p))?.spaceId ?? '') : ''),
 );
 const list = useTemplates(() => space.value ?? '', 'task');
 const closeNew = () => void (ui.newTask = null);
@@ -30,8 +31,8 @@ const save = async () => {
 
 <template>
   <Dialog :open="!!ui.newTask" :title="tr('pickTask')" @update:open="(v) => !v && closeNew()">
-    <p v-if="!list?.length" class="text-sm text-fg-muted">{{ tr('none') }}</p>
-    <ul v-else class="flex flex-col gap-1">
+    <p v-if="list && !list.length" class="text-sm text-fg-muted">{{ tr('none') }}</p>
+    <ul v-else-if="list" class="flex flex-col gap-1">
       <li v-for="t in list" :key="t.id">
         <button
           type="button"

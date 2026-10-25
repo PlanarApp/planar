@@ -1,5 +1,14 @@
 // Единственная точка контакта модуля с ядром web: реплика, мутации, язык.
-import { reactive } from 'vue';
+import {
+  effectScope,
+  getCurrentScope,
+  onScopeDispose,
+  reactive,
+  shallowRef,
+  watch,
+  type EffectScope,
+  type Ref,
+} from 'vue';
 import {
   db,
   i18n,
@@ -27,12 +36,33 @@ export const ui = reactive<{ newTask: string | null; saveTask: string | null }>(
   saveTask: null,
 });
 
+/** useQuery не следит за реактивным аргументом — пересоздаём запрос при его смене. */
+export function useScoped<A, T>(arg: () => A, fn: (a: A) => Promise<T>) {
+  const out = shallowRef<T>();
+  let scope: EffectScope | undefined;
+  watch(
+    arg,
+    (a) => {
+      scope?.stop();
+      out.value = undefined;
+      scope = effectScope();
+      scope.run(() => {
+        const q = useQuery(() => fn(a));
+        watch(q, (v) => (out.value = v as T), { immediate: true, flush: 'sync' });
+      });
+    },
+    { immediate: true, flush: 'sync' },
+  );
+  if (getCurrentScope()) onScopeDispose(() => scope?.stop());
+  return out as Readonly<Ref<T | undefined>>;
+}
+
 export const useTemplates = (spaceId: () => string, kind?: TemplateKind) =>
-  useQuery(async () => {
+  useScoped(spaceId, async (s) => {
     const rows = (await db
       .table('templatesTemplates')
       .where('spaceId')
-      .equals(spaceId())
+      .equals(s)
       .toArray()) as TemplateRow[];
     return rows
       .filter((r) => !kind || r.kind === kind)
@@ -40,9 +70,10 @@ export const useTemplates = (spaceId: () => string, kind?: TemplateKind) =>
   });
 
 export const useProjects = (spaceId: () => string) =>
-  useQuery(
-    async () =>
-      (await db.table('projects').where('spaceId').equals(spaceId()).toArray()).filter(
+  useScoped(
+    spaceId,
+    async (s) =>
+      (await db.table('projects').where('spaceId').equals(s).toArray()).filter(
         (p) => !p.archivedAt,
       ) as { id: string; name: string; key: string; rank: string }[],
   );
@@ -163,6 +194,7 @@ const dict = {
   create: { ru: 'Создать', en: 'Create' },
   saveProject: { ru: 'Сохранить проект как шаблон', en: 'Save project as template' },
   project: { ru: 'Проект', en: 'Project' },
+  space: { ru: 'Пространство', en: 'Space' },
 } as const;
 export type Key = keyof typeof dict;
 export const tr = (k: Key): string => {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { Button, Dialog, Input, Menu, Select, type MenuItem } from '@planar/web/modules';
+import { computed, ref, watch } from 'vue';
+import { Button, Dialog, Input, Menu, Select, useSpaces, type MenuItem } from '@planar/web/modules';
 import {
   createProjectFrom,
   mutate,
@@ -12,8 +12,18 @@ import {
 } from './data';
 
 const props = defineProps<{ spaceId: string }>();
-const list = useTemplates(() => props.spaceId);
-const projects = useProjects(() => props.spaceId);
+// страница модуля получает пространство «по умолчанию» без выбора — выбор свой
+const spaceId = ref(props.spaceId);
+watch(
+  () => props.spaceId,
+  (v) => (spaceId.value ||= v),
+);
+const spaces = useSpaces();
+const spaceOptions = computed(() =>
+  (spaces.value ?? []).map((s) => ({ value: s.id, label: s.name })),
+);
+const list = useTemplates(() => spaceId.value);
+const projects = useProjects(() => spaceId.value);
 const err = ref('');
 const run = (p: Promise<unknown>) =>
   p.then(
@@ -84,6 +94,7 @@ const kind = (k: string) => tr(`${k}Kind` as Key);
         tr('saveProject')
       }}</Button>
     </div>
+    <Select v-model="spaceId" :label="tr('space')" :options="spaceOptions" />
     <p v-if="err" role="alert" class="text-sm text-danger">{{ err }}</p>
     <p v-if="list && !list.length" class="text-sm text-fg-muted">{{ tr('none') }}</p>
     <ul class="flex flex-col divide-y divide-border rounded-lg border border-border">
