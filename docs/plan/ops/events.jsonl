@@ -41,3 +41,5 @@
 {"t": "2026-10-25T05:58:25", "by": "coordinator", "task": "OP-3", "ev": "checked", "note": "5/5 ops-contract=ok:5/5 (пропуск 862); health=ok:8/8 (пропуск 859); metrics=ok:4/4 (пропуск 863); typecheck=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-25T06:05:04", "by": "coordinator", "task": "OP-1b", "ev": "checked", "note": "3/3 ops-contract=ok:5/5 (пропуск 856); no-dist-mount=ok:0; prod-smoke=ok:api uid: 1000 api image MB: 7…"}
 {"t": "2026-10-25T06:05:51", "by": "coordinator", "task": "OP-1b", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-25T06:10:35", "by": "reviewer", "task": "OP-3", "ev": "reviewed", "note": "Контракт C-ops-health v1 соблюдён: 5 метрик с нужными типами и метками, бакеты, 404/401/timingSafeEqual с проверкой длины, ready без текстов ошибок, /api/healt…", "verdict": "accept", "issues": {"major": 1, "minor": 2}, "review": "docs/plan/ops/tasks/OP-3.review.json"}
+{"t": "2026-10-25T06:10:56", "by": "coordinator", "task": "OP-3", "ev": "accepted", "note": "по ревью; замечания → OP-3b"}
