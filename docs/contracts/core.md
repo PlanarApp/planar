@@ -21,7 +21,9 @@ contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v10
+## C-schema v11
+
+v11 (комментарии): `comments.parentId` (треды), `assigneeId`, `resolvedAt`, `resolvedBy`; `notifications.kind` += `comment_assigned` (исполнителю назначенного комментария).
 
 v10 (Входящие как в ClickUp): `notifications.changes` — что изменилось (`status_changed`: `{statusId: [старый, новый]}`).
 
@@ -69,7 +71,7 @@ v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 
 ### Сущности
 
-Сущности — docs/contracts/core-schema.md (часть C-schema v10).
+Сущности — docs/contracts/core-schema.md (часть C-schema v11).
 
 ### Несинхронизируемые таблицы (только сервер)
 | таблица | колонки |
@@ -182,7 +184,9 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 ### Клиент (для web)
 Применяет `changes` по `seq`; `reset` → bootstrap. После pull отбрасывает из очереди мутации с `id ≤ lastMutationId`, остальные заново применяет поверх серверного состояния (rebase). Повтор push при сетевой ошибке и `5xx` — с ростом паузы 1–30 с; `401` — на вход.
 
-## C-mutators v6
+## C-mutators v7
+
+v7 (комментарии): `comment.create` += `parentId?`, `assigneeId?`; `comment.assign`, `comment.resolve`; `comment.delete` корня — с тредом — core-mutators.md.
 
 v6 (группы): `project.create` в корневом пространстве (`settings.root_space`, уровень «Воркспейс»; создаёт и наполняет участниками `apps/api/src/spaces/root.ts`) → `invalid_args` — core-mutators.md.
 

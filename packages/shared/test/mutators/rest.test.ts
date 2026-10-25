@@ -229,13 +229,13 @@ describe('детерминизм', () => {
     };
     const [a, b] = [await play(), await play()];
     expect(a).toEqual(b);
-    expect(domainMutators.length).toBe(45);
+    expect(domainMutators.length).toBe(47);
   });
 });
 
 describe('реестр и аргументы', () => {
   it('createRegistry принимает domainMutators без дублей', () => {
-    expect(createRegistry(domainMutators).size).toBe(45);
+    expect(createRegistry(domainMutators).size).toBe(47);
   });
 
   it.each(domainMutators.map((d) => d.name))('%s: пустые args отклоняются', async (name) => {

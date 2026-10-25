@@ -3,7 +3,7 @@ import { uuidv7 } from '@planar/shared';
 import * as schema from '../db/schema.js';
 import { ServerTx, type Q, type ServerTxCtx } from '../sync/server-tx.js';
 
-type Kind = 'assigned' | 'mentioned' | 'commented' | 'status_changed';
+type Kind = 'assigned' | 'mentioned' | 'commented' | 'status_changed' | 'comment_assigned';
 
 /**
  * Уведомления и автоподписка по записям мутации (C-schema v10 «notifications»).
@@ -107,7 +107,11 @@ export async function notificationsHook(
         await notify('mentioned', spaceId, taskId, u, a.id as string);
       if (!w.before)
         for (const u of await watchersOf(taskId))
-          if (!all.includes(u)) await notify('commented', spaceId, taskId, u, a.id as string);
+          if (!all.includes(u) && u !== a.assigneeId)
+            await notify('commented', spaceId, taskId, u, a.id as string);
+      // назначенный комментарий — исполнителю (новый или сменившийся)
+      if (a.assigneeId && a.assigneeId !== w.before?.assigneeId)
+        await notify('comment_assigned', spaceId, taskId, a.assigneeId as string, a.id as string);
     }
   }
   return { ids, tx: sys };

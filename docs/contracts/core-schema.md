@@ -3,13 +3,13 @@ type: reference
 status: active
 module: core
 updated: 2026-10-24
-summary: Сущности C-schema v10 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
+summary: Сущности C-schema v11 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
 related: ["docs/contracts/core.md"]
 ---
 
-# Сущности C-schema v10
+# Сущности C-schema v11
 
-Часть контракта `C-schema v10` из `docs/contracts/core.md`. Раздел читает контрактный тест (`packages/shared/test/contract-doc.ts` → `docEntities`); версия — в заголовке `## C-schema vN` в core.md.
+Часть контракта `C-schema v11` из `docs/contracts/core.md`. Раздел читает контрактный тест (`packages/shared/test/contract-doc.ts` → `docEntities`); версия — в заголовке `## C-schema vN` в core.md.
 
 ## Сущности
 
@@ -213,8 +213,12 @@ scope: space · write: guest · bootstrap: yes · indexes: taskId
 | `spaceId` | uuid | |
 | `taskId` | uuid | |
 | `authorId` | uuid | = ctx.userId; правит и удаляет только автор |
+| `parentId` | uuid? | тред: корень (комментарий этой задачи без parentId); null — сам корень |
 | `body` | doc | упоминание — узел `{type:'mention', attrs:{id:<userId>}}` |
 | `mentions` | uuid[] | id из узлов mention, без повторов, по порядку появления |
+| `assigneeId` | uuid? | назначенный комментарий (только корень) |
+| `resolvedAt` | ts? | назначенный отмечен завершённым |
+| `resolvedBy` | uuid? | кто завершил |
 | `editedAt` | ts? | |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
@@ -275,7 +279,7 @@ scope: user · write: self · bootstrap: yes · indexes: taskId
 | `id` | uuid | |
 | `userId` | uuid | получатель |
 | `spaceId` | uuid? | для группировки; на видимость не влияет; null — личный диалог чата |
-| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply) | `chat_*` создаёт модуль chat (collab.md §CH) |
+| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned) | `chat_*` создаёт модуль chat (collab.md §CH) |
 | `taskId` | uuid? | без FK; null — у `chat_*` |
 | `url` | text? | путь в приложении для уведомлений без задачи (правила `url` из «Web Push») |
 | `body` | text? | ≤ 140 символов, «Имя: текст»; для уведомлений без задачи |

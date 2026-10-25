@@ -47,9 +47,11 @@ related: ["docs/contracts/core.md"]
 | `checklist.add` | `id, taskId, text, rank` | |
 | `checklist.update` | `id, text?, done?, rank?` | |
 | `checklist.delete` | `id` | |
-| `comment.create` | `id, taskId, body` | `authorId = ctx.userId`, `mentions` из `body` |
+| `comment.create` | `id, taskId, body, parentId?, assigneeId?` | `authorId = ctx.userId`, `mentions` из `body`; `parentId` — корень треда этой задачи (ответ на ответ → `invalid_args`); `assigneeId` — только у корня, участник пространства не guest, иначе `invalid_args` |
 | `comment.update` | `id, body` | только автор; `editedAt = ctx.now` |
-| `comment.delete` | `id` | только автор; удаляет вложения и реакции комментария |
+| `comment.delete` | `id` | только автор; удаляет вложения и реакции комментария, у корня — и весь тред |
+| `comment.assign` | `id, assigneeId: uuid \| null` | только корень (иначе `invalid_args`); роль ≥ member, иначе `forbidden`; сбрасывает `resolvedAt/resolvedBy` |
+| `comment.resolve` | `id, resolved` | только назначенный корень; исполнитель, автор или admin пространства, иначе `forbidden`; `resolvedAt/resolvedBy` = `ctx.now/ctx.userId` или null |
 | `reaction.toggle` | `id, commentId, emoji` | есть реакция (commentId, ctx.userId, emoji) — удалить, иначе создать с `id`; `spaceId` — из комментария |
 | `attachment.create` | `id, taskId, commentId?, fileSha256, name, mime, size, width?, height?` | `uploadedBy = ctx.userId` |
 | `attachment.delete` | `id` | |

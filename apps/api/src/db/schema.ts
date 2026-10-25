@@ -295,11 +295,15 @@ export const comments = pgTable(
     spaceId: spaceId(),
     taskId: taskRef(),
     authorId: userRef().notNull(),
+    parentId: uuid(),
     body: jsonb().$type<Record<string, unknown>>().notNull(),
     mentions: uuid()
       .array()
       .notNull()
       .default(sql`'{}'`),
+    assigneeId: uuid(),
+    resolvedAt: ts(),
+    resolvedBy: uuid(),
     editedAt: ts(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -400,6 +404,7 @@ export const notifications = pgTable(
         'chat_mention',
         'chat_dm',
         'chat_reply',
+        'comment_assigned',
       ]),
     ),
   ],

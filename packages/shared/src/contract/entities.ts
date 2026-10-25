@@ -147,8 +147,14 @@ export const entitySchemas = {
     spaceId: uuid,
     taskId: uuid,
     authorId: uuid,
+    /** тред: ответ на комментарий верхнего уровня; null — сам корень */
+    parentId: uuid.nullable().default(null),
     body: tiptapDoc,
     mentions: z.array(uuid),
+    /** назначенный комментарий: исполнитель и отметка «завершён» (только у корня треда) */
+    assigneeId: uuid.nullable().default(null),
+    resolvedAt: ts.nullable().default(null),
+    resolvedBy: uuid.nullable().default(null),
     editedAt: ts.nullable(),
     createdAt: ts,
     updatedAt: ts,
@@ -206,6 +212,7 @@ export const entitySchemas = {
       'chat_mention',
       'chat_dm',
       'chat_reply',
+      'comment_assigned',
     ]),
     taskId: uuid.nullable(),
     url: z.string().nullable(),
