@@ -1,0 +1,107 @@
+{
+  "id": "PF-6",
+  "module": "p4",
+  "type": "dp-engineer",
+  "title": "e2e фазы 4 и замер бюджетов",
+  "goal": "e2e/web/p4.spec.ts — по сценарию на каждую функцию p4 (повтор, шаблоны, цели и вехи, email, плагины) против своего стека; замер бюджетов §7 роадмапа с модулями p4; найденные баги web-частей модулей p4 — исправить.",
+  "plan_ref": "4. Задачи (PF-6)",
+  "contracts": [
+    {
+      "name": "P4-recurring",
+      "version": "2",
+      "ref": "docs/contracts/p4.md"
+    },
+    {
+      "name": "P4-templates",
+      "version": "1",
+      "ref": "docs/contracts/p4.md"
+    },
+    {
+      "name": "P4-goals",
+      "version": "1",
+      "ref": "docs/contracts/p4.md"
+    },
+    {
+      "name": "P4-email",
+      "version": "2",
+      "ref": "docs/contracts/p4.md"
+    },
+    {
+      "name": "P4-plugins",
+      "version": "1",
+      "ref": "docs/contracts/p4.md"
+    }
+  ],
+  "copy": "~/planar-p4-PF-6",
+  "branch": "p4/PF-6",
+  "base": "feature/p4",
+  "scope": [
+    "e2e/web/p4.spec.ts",
+    "e2e/web/p4-helpers.ts",
+    "modules/recurring/web/",
+    "modules/templates/web/",
+    "modules/goals/web/",
+    "modules/email/web/",
+    "modules/plugins/web/",
+    "modules/timeline/web/",
+    "examples/plugin-hello/"
+  ],
+  "dont_touch": [
+    "modules/recurring/shared",
+    "modules/templates/shared",
+    "modules/goals/shared",
+    "modules/email/api",
+    "modules/plugins/api",
+    "modules/plugins/shared",
+    "apps",
+    "packages",
+    "docs/contracts",
+    "compose.dev.yml"
+  ],
+  "accept": [
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "no-fixme",
+      "cmd": "grep -c 'test.fixme\\|test.skip' e2e/web/p4.spec.ts || true",
+      "expect": "re:^0\\s*$"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "e2e-p4",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-pf6 API_PORT=3416 WEB_PORT=5416 DEV_PG_PORT=55516; trap \"docker compose -f compose.dev.yml down -v >/dev/null 2>&1\" EXIT; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:$WEB_PORT timeout 1500 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts p4.spec.ts 2>&1",
+      "expect": "num:(\\d+) passed >=6"
+    },
+    {
+      "name": "perf",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-perf-pf6 API_PORT=3426 WEB_PORT=5426 DEV_PG_PORT=55526 PERF_MODULES=recurring,templates,goals,plugins,timeline; source e2e/web/perf/stack.sh; trap perf_down EXIT; perf_up && pnpm --filter @planar/e2e exec playwright test -c web/perf/playwright.config.ts measure.spec.ts > build/pf6-perf.log 2>&1; cat build/pf6-perf.log | grep -E \"_ms\"; awk -F= '/^cold_bootstrap_ms=/{if($2>2000)v++;n++} /^warm_start_ms=/{if($2>450)v++;n++} /^mutate_ms_p95=/{if($2>50)v++;n++} /^project_switch_ms_p95=/{if($2>100)v++;n++} /^realtime_ms_p95=/{if($2>500)v++;n++} END{print \"violations=\" v+0 \" metrics=\" n+0}' build/pf6-perf.log",
+      "expect": "re:violations=0 metrics=5"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-25T06:30:34",
+  "edited": "2026-10-25T06:31:15"
+}
