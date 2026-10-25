@@ -54,7 +54,8 @@ export function wsOpened(path: '/ws' | '/collab'): () => void {
 export interface Snapshot {
   /** null — очередь выключена */
   queue: { queue: string; state: string; n: number }[] | null;
-  dbSize: number;
+  /** null — запрос не удался */
+  dbSize: number | null;
 }
 
 export function render(s: Snapshot): string {
@@ -85,6 +86,6 @@ export function render(s: Snapshot): string {
   for (const q of s.queue ?? [])
     o.push(`planar_queue_jobs${labels({ queue: q.queue, state: q.state })} ${q.n}`);
   o.push('# HELP planar_db_size_bytes Database size', '# TYPE planar_db_size_bytes gauge');
-  o.push(`planar_db_size_bytes ${s.dbSize}`);
+  if (s.dbSize !== null) o.push(`planar_db_size_bytes ${s.dbSize}`);
   return o.join('\n') + '\n';
 }

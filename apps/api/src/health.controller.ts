@@ -63,7 +63,16 @@ export class HealthController {
     let queue: 'up' | 'off' = 'off';
     if (this.jobs.enabled) {
       try {
-        await this.jobs.start();
+        // живая проверка на каждой пробе, таймаут 2 с
+        let timer: NodeJS.Timeout | undefined;
+        try {
+          await Promise.race([
+            this.jobs.start().then(() => this.db.$client.query('select 1 from pgboss.job limit 1')),
+            new Promise((_, rej) => (timer = setTimeout(() => rej(new Error('timeout')), 2000))),
+          ]);
+        } finally {
+          clearTimeout(timer);
+        }
         queue = 'up';
       } catch {
         return fail({ db: 'up', migrations: 'ok', queue: 'down' });

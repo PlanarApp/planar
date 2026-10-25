@@ -1,11 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import type { INestApplication } from '@nestjs/common';
+import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { ORIGIN } from './auth.js';
+import { DB } from '../src/tokens.js';
 import { testDbUrl } from './db.js';
 
-async function get(databaseUrl: string, url = '/api/health', push = {}) {
+async function get(
+  databaseUrl: string,
+  url = '/api/health',
+  push = {},
+  setup?: (app: INestApplication) => void,
+) {
   const app = await createApp({ databaseUrl, publicUrl: ORIGIN, push });
   await app.init();
+  setup?.(app);
   await app.getHttpAdapter().getInstance().ready();
   const res = await app.getHttpAdapter().getInstance().inject({ method: 'GET', url });
   await app.close();
@@ -52,5 +60,22 @@ describe('GET /api/health/ready', () => {
     const res = await get('postgres://postgres:postgres@127.0.0.1:1/none', '/api/health/ready');
     expect(res.statusCode).toBe(503);
     expect(res.json()).toEqual({ ok: false, db: 'down' });
+  });
+
+  it('pg-boss не отвечает на пробе → 503 queue: down', async () => {
+    const res = await get(
+      testDbUrl(),
+      '/api/health/ready',
+      { boss: true, worker: false },
+      (app) => {
+        const pool = app.get(DB).$client;
+        const real = pool.query.bind(pool);
+        vi.spyOn(pool, 'query').mockImplementation((q: unknown, ...a: never[]) =>
+          String(q).includes('pgboss') ? Promise.reject(new Error('down')) : real(q, ...a),
+        );
+      },
+    );
+    expect(res.statusCode).toBe(503);
+    expect(res.json()).toEqual({ ok: false, db: 'up', migrations: 'ok', queue: 'down' });
   });
 });
