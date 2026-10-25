@@ -77,7 +77,7 @@ prodsmoke() {
   P=(docker compose -f compose.yml -f deploy/compose.smoke.yml)
   local rc=0
   trap '"${P[@]}" down -v --remove-orphans --rmi local >/dev/null 2>&1 || true' EXIT
-  pnpm install --frozen-lockfile && pnpm --filter @planar/web build || return 1
+  pnpm install --frozen-lockfile || return 1 # для сида и e2e; web собирается в образе caddy
   "${P[@]}" up -d --build || return 1
   for _ in $(seq 1 90); do
     curl -sf "$PUBLIC_URL/api/health" >/dev/null && break
@@ -87,6 +87,8 @@ prodsmoke() {
   echo "api uid: $("${P[@]}" exec -T api id -u)"
   local img; img="$(docker inspect --format '{{.Image}}' "$("${P[@]}" ps -q api)")"
   echo "api image MB: $(( $(docker image inspect --format '{{.Size}}' "$img") / 1000000 ))"
+  local cimg; cimg="$(docker inspect --format '{{.Image}}' "$("${P[@]}" ps -q caddy)")"
+  echo "caddy image MB: $(( $(docker image inspect --format '{{.Size}}' "$cimg") / 1000000 ))"
   "${P[@]}" exec -T -e PLANAR_DOMAIN=planar.example.com caddy caddy validate --config /etc/caddy/Caddyfile || return 1
   local pg; pg="$("${P[@]}" port postgres 5432)"
   DATABASE_URL="postgres://postgres:$POSTGRES_PASSWORD@127.0.0.1:${pg##*:}/planar" pnpm --filter @planar/api seed || return 1

@@ -53,15 +53,14 @@ services:
 
   caddy:
     logging: *logging
-    image: caddy:2
+    build:
+      context: .
+      dockerfile: deploy/caddy.Dockerfile
     restart: unless-stopped
     ports:
       - '${HTTP_PORT:-80}:80'
       - '${HTTPS_PORT:-443}:443'
     volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      # статика web: pnpm --filter @planar/web build
-      - ./apps/web/dist:/srv:ro
       - caddy_data:/data
       - caddy_config:/config
     networks: [app]
