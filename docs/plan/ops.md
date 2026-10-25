@@ -3,7 +3,7 @@ type: plan
 status: active
 module: ops
 updated: 2026-10-25
-summary: План модуля ops: prod-стек с Caddy и TLS, бэкапы с тестом восстановления, health/метрики/логи, обновление без простоя, инструкция по развёртыванию
+summary: План ops: prod-стек с Caddy и TLS, бэкапы с тестом восстановления, health и метрики, обновление, инструкция по развёртыванию
 related: ["docs/roadmap.md", "docs/plan/core.md"]
 ---
 
