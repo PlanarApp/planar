@@ -105,3 +105,5 @@
 {"t": "2026-10-25T08:59:44", "by": "coordinator", "task": "PF-5", "ev": "merged"}
 {"t": "2026-10-25T08:59:44", "by": "coordinator", "task": "PF-6", "ev": "merged"}
 {"t": "2026-10-25T09:08:59", "by": "coordinator", "task": null, "ev": "note", "note": "dpcli: accept --only — одно имя (нужен список); accept --dry дольше 120 с — подсказывать job start; корневой test-all не видит modules/*/web тесты — добавить test-web в шаблон проверок; общая planar-testdb даёт падения при параллельных accept; gc без аргументов идёт > 7 мин; review пишет вердикт задним числом без события started у повторных исполнителей"}
+{"t": "2026-10-25T09:21:59", "by": "main", "task": "PF-7", "ev": "created", "note": "Сведение feature/ops в p4, общий прогон тестов, итоговые проверки фазы 4"}
+{"t": "2026-10-25T09:22:04", "by": "main", "task": "PF-7", "ev": "started"}
