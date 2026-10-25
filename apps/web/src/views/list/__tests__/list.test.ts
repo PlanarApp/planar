@@ -380,7 +380,7 @@ describe('list:row', () => {
         task(3, { dueDate: day(3) }),
       ]);
     await show();
-    const tone = (k: string) => row(k).find('span.text-xs').classes();
+    const tone = (k: string) => row(k).find('[role=gridcell].w-14').classes();
     expect(tone('PLN-1')).toContain('text-danger');
     expect(tone('PLN-2')).toContain('text-warning');
     expect(tone('PLN-3')).toContain('text-fg-muted');

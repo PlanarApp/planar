@@ -101,8 +101,13 @@ const crumbs = computed(() => {
     <nav :aria-label="t('topbar.breadcrumb')" class="min-w-0 flex-1">
       <h1 class="flex items-center gap-1 truncate text-sm" :title="crumbs.join(' / ')">
         <template v-for="(c, i) in crumbs" :key="i">
-          <template v-if="!isMobile || i === crumbs.length - 1">
-            <ChevronRight v-if="i" :size="12" class="shrink-0 text-fg-subtle" aria-hidden="true" />
+          <template v-if="!isMobile || i >= crumbs.length - 2">
+            <ChevronRight
+              v-if="i && (!isMobile || i === crumbs.length - 1)"
+              :size="12"
+              class="shrink-0 text-fg-subtle"
+              aria-hidden="true"
+            />
             <span
               :class="[
                 'truncate',

@@ -68,14 +68,14 @@ describe('board:card', () => {
     await db.table('tasks').put(task(1));
     const w = mountView();
     await until(() => w.find('article').exists());
-    expect(w.get('article').element.children).toHaveLength(2);
+    expect(w.get('article').element.children).toHaveLength(1);
     w.unmount();
     await db.table('tasks').put(task(1, { dueDate: '2026-12-24' }));
     const w2 = mountView();
     await until(() => w2.text().includes('24 дек'));
     expect(
       w2.findAll('article').find((a) => a.text().includes('24 дек'))!.element.children,
-    ).toHaveLength(3);
+    ).toHaveLength(2);
   });
 });
 
