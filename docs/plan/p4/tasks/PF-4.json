@@ -41,7 +41,8 @@
     "apps/web/src/modules/registry.ts",
     "apps/web/src/i18n/ru.ts",
     "apps/web/src/i18n/en.ts",
-    "apps/web/src/screens/settings/__tests__/"
+    "apps/web/src/screens/settings/__tests__/",
+    "apps/api/test/modules/modules.test.ts"
   ],
   "dont_touch": [
     "docs/contracts",
@@ -84,5 +85,6 @@
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-25T01:32:12"
+  "created": "2026-10-25T01:32:12",
+  "edited": "2026-10-25T02:02:50"
 }
