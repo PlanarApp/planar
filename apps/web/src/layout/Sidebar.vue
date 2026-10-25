@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { defineAsyncComponent, onScopeDispose, watch, type Component } from 'vue';
-import { ChevronRight, Inbox, ListChecks, Settings } from 'lucide-vue-next';
+import {
+  ChevronRight,
+  Inbox,
+  ListChecks,
+  MoreHorizontal,
+  Plus,
+  Settings,
+  Star,
+} from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import Badge from '../ui/Badge.vue';
 import { useUnread } from '../inbox/queries';
@@ -9,6 +17,7 @@ import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { sidebarCollapse as sc, useNavData, useUserMenu } from './nav';
 import { useAuth } from '../auth/useAuth';
+import { useSidebarActions } from './sidebarActions';
 
 // reka (Avatar/Menu) — вне начального бандла
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
@@ -30,6 +39,13 @@ const navLabel = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 const unread = useUnread();
 const { spaces, favorites } = useNavData();
+const act = useSidebarActions();
+// поле ввода на месте: Enter — сохранить, Esc/blur без текста — отмена
+const onKey = (e: KeyboardEvent) => {
+  if (e.key === 'Enter') void act.commit();
+  else if (e.key === 'Escape') act.cancel();
+};
+const focusInput = (el: unknown) => (el as HTMLInputElement | null)?.focus();
 // проекты строятся в памяти заранее: по наведению/фокусу на ссылку и один раз в простое после появления списка
 let idle: ReturnType<typeof setTimeout> | undefined;
 const stop = watch(
@@ -50,6 +66,11 @@ const link =
 const head =
   'flex h-7 w-full items-center gap-1 rounded-md px-2 text-xs font-medium uppercase text-fg-muted hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus';
 const chev = (id: string) => ['shrink-0 transition-transform', !sc.is(id) && 'rotate-90'];
+const tools =
+  'ml-auto hidden shrink-0 items-center gap-0.5 group-hover:flex group-focus-within:flex';
+const tool =
+  'flex size-5 items-center justify-center rounded text-fg-muted hover:bg-bg hover:text-fg outline-none focus-visible:ring-2 ring-focus';
+const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm text-fg outline-none';
 </script>
 
 <template>
@@ -108,13 +129,21 @@ const chev = (id: string) => ['shrink-0 transition-transform', !sc.is(id) && 'ro
           </button>
         </h2>
         <template v-if="!sc.is('favorites')">
-          <RouterLink v-for="f in favorites" :key="f.id" :to="f.to" :class="link">
-            {{ f.name }}
+          <RouterLink
+            v-for="f in favorites"
+            :key="f.id"
+            :to="f.to"
+            :class="link"
+            active-class="bg-accent-subtle"
+          >
+            <Star :size="14" class="shrink-0 text-fg-muted" /><span class="truncate">{{
+              f.name
+            }}</span>
           </RouterLink>
         </template>
       </section>
       <section>
-        <h2>
+        <h2 class="group flex items-center">
           <button
             type="button"
             :class="head"
@@ -123,31 +152,112 @@ const chev = (id: string) => ['shrink-0 transition-transform', !sc.is(id) && 'ro
           >
             <ChevronRight :size="12" :class="chev('spaces')" />{{ t('sidebar.spaces') }}
           </button>
-        </h2>
-        <template v-if="!sc.is('spaces')">
-          <div v-for="s in spaces" :key="s.id">
+          <span :class="[tools, 'pr-1']">
             <button
               type="button"
-              :class="[link, 'w-full font-medium']"
-              :aria-expanded="!sc.is('space:' + s.id)"
-              @click="sc.toggle('space:' + s.id)"
+              :class="tool"
+              :aria-label="t('sidebar.newSpace')"
+              @click="act.start('new-space')"
             >
-              <ChevronRight :size="12" :class="chev('space:' + s.id)" />
-              <span class="truncate">{{ s.name }}</span>
+              <Plus :size="14" />
             </button>
-            <template v-if="!sc.is('space:' + s.id)">
-              <RouterLink
-                v-for="p in s.projects"
-                :key="p.id"
-                :to="`/p/${p.id}`"
-                :class="[link, 'pl-7']"
-                active-class="bg-accent-subtle"
-                @pointerenter="prefetchProject(p.id)"
-                @focus="prefetchProject(p.id)"
-              >
-                <span class="font-mono text-xs text-fg-muted">{{ p.prefix }}</span
-                ><span class="truncate">{{ p.name }}</span>
-              </RouterLink>
+          </span>
+        </h2>
+        <input
+          v-if="act.editing.value === 'new-space'"
+          :ref="focusInput"
+          v-model="act.draft.value"
+          :class="[input, 'mb-1']"
+          :placeholder="t('sidebar.spaceName')"
+          :aria-label="t('sidebar.spaceName')"
+          @keydown="onKey"
+          @blur="act.cancel"
+        />
+        <template v-if="!sc.is('spaces')">
+          <div v-for="s in spaces" :key="s.id">
+            <input
+              v-if="act.editing.value === 'space:' + s.id"
+              :ref="focusInput"
+              v-model="act.draft.value"
+              :class="input"
+              :aria-label="t('sidebar.rename')"
+              @keydown="onKey"
+              @blur="act.commit"
+            />
+            <Menu v-else context :items="act.spaceItems(s)">
+              <div :class="[link, 'group w-full pr-1 font-medium']" data-testid="nav-space">
+                <button
+                  type="button"
+                  class="flex min-w-0 flex-1 items-center gap-1 outline-none"
+                  :aria-expanded="!sc.is('space:' + s.id)"
+                  @click="sc.toggle('space:' + s.id)"
+                >
+                  <ChevronRight :size="12" :class="chev('space:' + s.id)" />
+                  <span class="truncate">{{ s.name }}</span>
+                </button>
+                <span :class="tools">
+                  <button
+                    type="button"
+                    :class="tool"
+                    :aria-label="t('sidebar.newProject')"
+                    @click="act.start('new:' + s.id)"
+                  >
+                    <Plus :size="14" />
+                  </button>
+                  <Menu :items="act.spaceItems(s)" align="start">
+                    <template #trigger>
+                      <button type="button" :class="tool" :aria-label="t('sidebar.more')">
+                        <MoreHorizontal :size="14" />
+                      </button>
+                    </template>
+                  </Menu>
+                </span>
+              </div>
+            </Menu>
+            <template v-if="!sc.is('space:' + s.id) || act.editing.value === 'new:' + s.id">
+              <template v-for="p in s.projects" :key="p.id">
+                <input
+                  v-if="act.editing.value === p.id"
+                  :ref="focusInput"
+                  v-model="act.draft.value"
+                  :class="[input, 'ml-5 w-[calc(100%-1.25rem)]']"
+                  :aria-label="t('sidebar.rename')"
+                  @keydown="onKey"
+                  @blur="act.commit"
+                />
+                <Menu v-else context :items="act.projectItems(p)">
+                  <RouterLink
+                    :to="`/p/${p.id}`"
+                    :class="[link, 'group pl-7 pr-1']"
+                    active-class="bg-accent-subtle"
+                    data-testid="nav-project"
+                    @pointerenter="prefetchProject(p.id)"
+                    @focus="prefetchProject(p.id)"
+                  >
+                    <span class="font-mono text-xs text-fg-muted">{{ p.prefix }}</span
+                    ><span class="truncate">{{ p.name }}</span>
+                    <span :class="tools" @click.prevent>
+                      <Menu :items="act.projectItems(p)" align="start">
+                        <template #trigger>
+                          <button type="button" :class="tool" :aria-label="t('sidebar.more')">
+                            <MoreHorizontal :size="14" />
+                          </button>
+                        </template>
+                      </Menu>
+                    </span>
+                  </RouterLink>
+                </Menu>
+              </template>
+              <input
+                v-if="act.editing.value === 'new:' + s.id"
+                :ref="focusInput"
+                v-model="act.draft.value"
+                :class="[input, 'ml-5 w-[calc(100%-1.25rem)]']"
+                :placeholder="t('sidebar.projectName')"
+                :aria-label="t('sidebar.projectName')"
+                @keydown="onKey"
+                @blur="act.cancel"
+              />
             </template>
           </div>
           <p v-if="!spaces.length" class="px-2 text-sm text-fg-muted">{{ t('sidebar.empty') }}</p>

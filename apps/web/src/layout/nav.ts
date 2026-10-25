@@ -107,7 +107,36 @@ export interface NavFavorite {
   to: string;
 }
 
-export function useNavData(): { spaces: Readonly<Ref<NavSpace[]>>; favorites: Ref<NavFavorite[]> } {
+// shortcut: избранное — в localStorage (личное, на этом устройстве); нужна синхронизация между устройствами — сущность на сервере
+const FAV_KEY = 'planar.favorites';
+const readFav = (): string[] => {
+  try {
+    const v = JSON.parse(localStorage.getItem(FAV_KEY) ?? '[]');
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+};
+const favIds = ref<string[]>(readFav());
+/** Избранные проекты: id в порядке добавления. */
+export const favoriteProjects = {
+  has: (id: string) => favIds.value.includes(id),
+  toggle(id: string) {
+    favIds.value = favIds.value.includes(id)
+      ? favIds.value.filter((x) => x !== id)
+      : [...favIds.value, id];
+    try {
+      localStorage.setItem(FAV_KEY, JSON.stringify(favIds.value));
+    } catch {
+      /* без хранилища — до перезагрузки */
+    }
+  },
+};
+
+export function useNavData(): {
+  spaces: Readonly<Ref<NavSpace[]>>;
+  favorites: Readonly<Ref<NavFavorite[]>>;
+} {
   const src = useSpaces();
   const spaces = computed<NavSpace[]>(() =>
     (src.value ?? []).map((s) => ({
@@ -116,5 +145,12 @@ export function useNavData(): { spaces: Readonly<Ref<NavSpace[]>>; favorites: Re
       projects: s.projects.map((p) => ({ id: p.id, name: p.name, prefix: p.key })),
     })),
   );
-  return { spaces, favorites: ref([]) }; // сущности «избранное» пока нет
+  const favorites = computed<NavFavorite[]>(() => {
+    const byId = new Map(spaces.value.flatMap((s) => s.projects).map((p) => [p.id, p]));
+    return favIds.value.flatMap((id) => {
+      const p = byId.get(id);
+      return p ? [{ id, name: p.name, to: `/p/${id}` }] : [];
+    });
+  });
+  return { spaces, favorites };
 }

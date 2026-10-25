@@ -3,6 +3,12 @@ import { ref, useSlots, type Component } from 'vue';
 import { MoreHorizontal } from 'lucide-vue-next';
 import IconButton from './IconButton.vue';
 import {
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuPortal,
+  ContextMenuRoot,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuPortal,
@@ -34,12 +40,14 @@ const props = withDefaults(
     align?: 'start' | 'center' | 'end';
     /** подпись кнопки «…», когда слота trigger нет */
     label?: string;
+    /** контекстное меню: открывается правым кликом (долгим нажатием) по содержимому слота default */
+    context?: boolean;
   }>(),
   { align: 'start' },
 );
 
 const hasTrigger = !!useSlots().trigger;
-if (import.meta.env.DEV && !hasTrigger && !props.label)
+if (import.meta.env.DEV && !hasTrigger && !props.label && !props.context)
   console.warn('Menu: нужен слот trigger или label');
 const { isMobile } = useBreakpoint();
 const sheet = ref(false);
@@ -58,7 +66,34 @@ const confirmed = () => pending.value?.onSelect();
 </script>
 
 <template>
-  <Sheet v-if="isMobile" v-model:open="sheet">
+  <ContextMenuRoot v-if="context">
+    <ContextMenuTrigger as-child><slot /></ContextMenuTrigger>
+    <ContextMenuPortal>
+      <ContextMenuContent
+        class="z-50 min-w-44 rounded-lg border border-border bg-surface p-1 shadow-popover"
+      >
+        <template v-for="(it, i) in items" :key="'separator' in it ? 'sep' + i : it.id">
+          <ContextMenuSeparator v-if="'separator' in it" class="my-1 h-px bg-border" />
+          <ContextMenuItem
+            v-else
+            :disabled="it.disabled"
+            :class="[
+              'flex h-11 md:h-8 cursor-default items-center gap-2 rounded-md px-2 text-sm outline-none data-[disabled]:opacity-50',
+              it.danger
+                ? 'text-danger data-[highlighted]:bg-danger-subtle'
+                : 'text-fg data-[highlighted]:bg-bg-muted',
+            ]"
+            @select="select(it)"
+          >
+            <component :is="it.icon" v-if="it.icon" :size="16" />
+            <span class="flex-1">{{ it.label }}</span>
+            <Kbd v-if="it.shortcut" :keys="it.shortcut" />
+          </ContextMenuItem>
+        </template>
+      </ContextMenuContent>
+    </ContextMenuPortal>
+  </ContextMenuRoot>
+  <Sheet v-else-if="isMobile" v-model:open="sheet">
     <template #trigger
       ><slot name="trigger"
         ><IconButton :icon="MoreHorizontal" :label="label ?? ''" size="sm" /></slot
