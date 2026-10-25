@@ -30,6 +30,8 @@ import OptionsBar from '../views/saved/OptionsBar.vue';
 import SaveViewDialog from '../views/saved/SaveViewDialog.vue';
 import SavedTabs from '../views/saved/SavedTabs.vue';
 import { saveView } from '../views/saved/ops';
+import { useSidebarActions } from '../layout/sidebarActions';
+import type { MenuItem } from '../ui/Menu.vue';
 import { useCanShare } from '../views/saved/queries';
 
 const { t, te, locale } = useI18n();
@@ -52,6 +54,24 @@ watch([projectId, () => active.value?.key], () => (draftFilter.value = null));
 const spaceId = computed(() => project.value?.spaceId ?? '');
 const canShare = useCanShare(spaceId);
 const saveOpen = ref(false);
+// меню «…» проекта: сохранить вид + действия проекта (как в боковой панели, без переименования на месте)
+const projectActions = useSidebarActions().projectItems;
+const headerMenu = computed<MenuItem[]>(() => [
+  {
+    id: 'save',
+    label: t('views.saved.save'),
+    icon: BookmarkPlus,
+    onSelect: () => (saveOpen.value = true),
+  },
+  { separator: true },
+  ...(project.value
+    ? projectActions({
+        id: project.value.id,
+        name: project.value.name,
+        prefix: project.value.key,
+      }).filter((it) => !('id' in it) || it.id !== 'rename')
+    : []),
+]);
 async function onSave(name: string, personal: boolean) {
   const id = await saveView({
     spaceId: spaceId.value,
@@ -163,17 +183,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
               :space-id="spaceId"
               :project-id="projectId"
             >
-              <Menu
-                align="end"
-                :items="[
-                  {
-                    id: 'save',
-                    label: t('views.saved.save'),
-                    icon: BookmarkPlus,
-                    onSelect: () => (saveOpen = true),
-                  },
-                ]"
-              >
+              <Menu align="end" :items="headerMenu">
                 <template #trigger>
                   <IconButton size="sm" :icon="MoreHorizontal" :label="t('views.more')" />
                 </template>

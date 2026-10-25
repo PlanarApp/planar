@@ -29,6 +29,7 @@ import Editor from './editor/Editor.vue';
 import Feed from './Feed.vue';
 import { useUsers, useWatchers } from './queries';
 import Subtasks from './Subtasks.vue';
+import { useTaskMenu } from '../tasks/taskMenu';
 import LinksBlock from '../links/LinksBlock.vue';
 
 const props = defineProps<{ task: TaskView; mode: 'panel' | 'page' }>();
@@ -80,29 +81,13 @@ const toggleWatch = () =>
     ? mutate('task.unwatch', { taskId: props.task.id })
     : mutate('task.watch', { id: newId(), taskId: props.task.id });
 
-// --- меню, удаление
-const menu = computed<MenuItem[]>(() => [
-  {
-    id: 'copy',
-    label: t('task.copyLink'),
-    icon: Link,
-    onSelect: () => {
-      navigator.clipboard?.writeText(`${location.origin}/t/${props.task.key}`).catch(() => {}); // буфер может быть запрещён
-    },
-  },
-  {
-    id: 'delete',
-    label: t('task.delete'),
-    icon: Trash2,
-    danger: true,
-    confirm: {
-      title: t('task.deleteTitle'),
-      description: t('task.deleteText'),
-      confirmLabel: t('task.delete'),
-    },
-    onSelect: remove,
-  },
-]);
+// --- меню (как контекстное в видах, без «Открыть»), удаление закрывает панель
+const menuFor = useTaskMenu(() => props.task.spaceId);
+const menu = computed<MenuItem[]>(() =>
+  menuFor(props.task)
+    .filter((it) => !('id' in it) || it.id !== 'open')
+    .map((it) => ('id' in it && it.id === 'delete' ? { ...it, onSelect: remove } : it)),
+);
 async function remove() {
   await deleteTask(props.task.id);
   emit('close');
