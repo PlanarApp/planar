@@ -10,6 +10,7 @@ import ProjectsSettings from '../ProjectsSettings.vue';
 import StatusesSettings from '../StatusesSettings.vue';
 import LabelsSettings from '../LabelsSettings.vue';
 import ModulesSettings from '../ModulesSettings.vue';
+import * as registry from '../../../modules/registry';
 
 setup();
 const rows = (t: string) => db.table(t).toArray();
@@ -224,5 +225,27 @@ describe('settings:modules', () => {
     await serve();
     const w = await show(ModulesSettings, {});
     expect(w.findAll('input').every((i) => (i.element as HTMLInputElement).disabled)).toBe(true);
+  });
+  it('pf6: после закрытия «Настроить» список модулей перечитывается', async () => {
+    await db.table('settings').put({ id: 'enabled_modules', value: [], updatedAt: 'x' });
+    const get = vi
+      .spyOn(http, 'api')
+      .mockResolvedValueOnce({
+        modules: [{ id: 'mail', enabled: false, unavailable: 'smtp_not_configured' }],
+      })
+      .mockResolvedValue({ modules: [{ id: 'mail', enabled: false, unavailable: null }] });
+    vi.spyOn(registry, 'moduleSetup').mockResolvedValue((async () => ({
+      default: { template: '<i />' },
+    })) as never);
+    useAuth().user.value = { id: ids.ann, role: 'admin' } as User;
+    const w = await show(ModulesSettings, {});
+    const sw = () => w.find('input[role=switch]').element as HTMLInputElement;
+    expect(sw().disabled).toBe(true);
+    await w.find('[data-testid=module-setup]').trigger('click');
+    await wait();
+    (w.vm as unknown as { setupOf: string | null }).setupOf = null;
+    await wait();
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(sw().disabled).toBe(false);
   });
 });

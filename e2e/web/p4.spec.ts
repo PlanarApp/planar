@@ -211,8 +211,12 @@ test('pf6: email — без SMTP переключатель неактивен �
   const page = await loginAs(browser, 'admin');
   await spa(page, '/settings/modules', page.getByTestId('module-row').first());
   const row = page.getByTestId('module-row').filter({ hasText: 'email' });
-  await expect(row.getByRole('switch')).toBeDisabled();
-  await expect(row.getByTestId('module-unavailable')).toContainText('SMTP');
+  // SMTP нельзя «разнастроить» через API: на стеке с уже заданным SMTP проверка неактивности пропускается
+  const cfg = await (await admin.ctx.get('/api/email/setup/config')).json();
+  if (!cfg.configured) {
+    await expect(row.getByRole('switch')).toBeDisabled();
+    await expect(row.getByTestId('module-unavailable')).toContainText('SMTP');
+  }
 
   await row.getByTestId('module-setup').click();
   const setup = page.getByTestId('email-setup');
@@ -225,8 +229,6 @@ test('pf6: email — без SMTP переключатель неактивен �
   await setup.getByTestId('email-save').click();
   expect((await put).status()).toBe(200);
   await page.keyboard.press('Escape');
-  // ModulesSettings читает GET /api/modules только при монтировании (apps/web, вне scope PF-6) — обновляем страницу
-  await page.reload();
   await expect(row.getByRole('switch')).toBeEnabled();
   await row.getByRole('switch').check();
   await expect
