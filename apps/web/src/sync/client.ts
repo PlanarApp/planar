@@ -42,8 +42,12 @@ type Change = {
 };
 
 class HttpError extends Error {
-  constructor(public status: number) {
-    super(`HTTP ${status}`);
+  constructor(
+    public status: number,
+    public code = '',
+    message = '',
+  ) {
+    super(message || `HTTP ${status}`);
   }
 }
 const LOCK = 'planar-sync-leader';
@@ -286,7 +290,11 @@ export function createClient(db: PlanarDB) {
     const f = opts!.fetch ?? globalThis.fetch.bind(globalThis);
     const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]);
     const res = await f((opts!.baseUrl ?? '') + path, { ...init, signal });
-    if (!res.ok) throw new HttpError(res.status);
+    if (!res.ok) {
+      // тело ошибки C-http {code, message}: показать причину, а не «HTTP 403»
+      const b = (await res.json().catch(() => null)) as { code?: string; message?: string } | null;
+      throw new HttpError(res.status, b?.code ?? '', b?.message ?? '');
+    }
     return res.json();
   }
 
@@ -360,6 +368,9 @@ export function createClient(db: PlanarDB) {
         (e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError')) ||
         (e instanceof HttpError && e.status >= 500);
       setStatus(net ? 'offline' : 'error');
+      // отказ сервера (не сеть): изменения не уходят — сказать, иначе правки молча копятся в очереди
+      if (!net && e instanceof HttpError)
+        emitErrors([{ id: 0, name: 'sync', code: e.code || String(e.status), message: e.message }]);
       const g = gen;
       retryTimer = setTimeout(() => g === gen && void kick(), BACKOFF(failures++));
     }

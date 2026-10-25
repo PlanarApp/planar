@@ -1,7 +1,7 @@
 import { Controller, Post } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { authenticateRaw } from '../src/auth/auth.js';
+import { allowedOrigins, authenticateRaw } from '../src/auth/auth.js';
 import { hashToken } from '../src/auth/sessions.js';
 import { sessions, users } from '../src/db/schema.js';
 import { ORIGIN, createUser, loginCookie } from './auth.js';
@@ -99,6 +99,14 @@ describe('AuthGuard', () => {
     const cookie = await loginCookie(db, (await createUser(db)).id);
     const res = await req('POST', '/api/_probe', { cookie, origin: ORIGIN });
     expect(res.statusCode).toBe(201);
+  });
+
+  it('EXTRA_ORIGINS: дополнительный Origin принимается, чужой — нет, мусор игнорируется', () => {
+    expect(allowedOrigins('http://localhost:5173', 'http://127.0.0.1:5173/, ::bad')).toEqual([
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+    ]);
+    expect(allowedOrigins('http://localhost:5173', '')).not.toContain('http://evil.example');
   });
 
   it('@Public health без cookie → 200', async () => {

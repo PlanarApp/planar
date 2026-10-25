@@ -47,6 +47,23 @@ describe('sync', () => {
     await c.stopSync();
   });
 
+  it('sync:server-refuses — отказ сервера (403) виден через onMutationError, правка остаётся в очереди', async () => {
+    const s = setup();
+    const c = s.mk();
+    const errs: { code: string; message: string }[] = [];
+    c.onMutationError((e) => errs.push(e));
+    await s.start(c);
+    s.server.mode = '403';
+    await c.mutate('test.label.put', args('a'));
+    await until(() => errs.length > 0);
+    expect(errs[0]).toMatchObject({
+      code: 'origin_mismatch',
+      message: 'Origin не совпадает с PUBLIC_URL',
+    });
+    expect(await s.db._queue.count()).toBe(1);
+    await c.stopSync();
+  });
+
   it('sync:confirm — после push+pull мутация уходит из очереди, состояние серверное', async () => {
     const s = setup();
     const c = s.mk();

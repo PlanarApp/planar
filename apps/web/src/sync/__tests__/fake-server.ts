@@ -25,7 +25,7 @@ export class FakeServer {
   log: Change[] = [];
   seq = 0;
   lastMut = new Map<string, number>();
-  mode: 'ok' | 'offline' | '5xx' | '401' = 'ok';
+  mode: 'ok' | 'offline' | '5xx' | '401' | '403' = 'ok';
   /** следующая push-мутация будет отклонена с этим кодом */
   rejectNext: string | null = null;
   resetNext = false;
@@ -128,6 +128,11 @@ export class FakeServer {
     if (this.mode === 'offline') throw new TypeError('Failed to fetch');
     if (this.mode === '5xx') return this.json({ error: 'internal' }, 500);
     if (this.mode === '401') return this.json({ error: 'unauthenticated' }, 401);
+    if (this.mode === '403')
+      return this.json(
+        { code: 'origin_mismatch', message: 'Origin не совпадает с PUBLIC_URL' },
+        403,
+      );
     const url = new URL(String(input), 'http://test');
     const clientId = url.searchParams.get('clientId') ?? '';
     if (url.pathname === '/sync/bootstrap') {

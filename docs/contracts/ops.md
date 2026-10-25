@@ -22,6 +22,7 @@ related: ["docs/plan/ops.md", "docs/contracts/core.md", "docs/roadmap.md"]
 | `POSTGRES_PASSWORD` | postgres,api | обязательна | пароль пользователя `postgres`; api собирает из неё `DATABASE_URL` |
 | `PLANAR_DOMAIN` | caddy,api | пусто | домен: задан — адрес сайта Caddy, TLS от ACME, редирект HTTP→HTTPS. `localhost` или IP — самоподписанный сертификат внутреннего CA Caddy. Пусто — сайт `:80`, только HTTP (локальная проверка, smoke) |
 | `PUBLIC_URL` | api | `https://$PLANAR_DOMAIN` | origin для проверки Origin и ссылок (C-http); без домена задаётся явно, напр. `http://localhost:8080` |
+| `EXTRA_ORIGINS` | api | пусто | дополнительные разрешённые Origin через запятую (второй домен, IP); ссылки строятся только от `PUBLIC_URL` |
 | `COOKIE_SECURE` | api | `true` | `false` — только при работе по HTTP |
 | `PLANAR_SECRET_KEY` | api | пусто | 32 байта base64 (C-http v11); пусто — функции с секретами `503 unavailable` |
 | `VAPID_PUBLIC_KEY` | api | пусто | Web Push (C-http) |

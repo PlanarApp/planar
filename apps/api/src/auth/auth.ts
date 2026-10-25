@@ -23,6 +23,21 @@ export const AUTH_OPTS = Symbol('AUTH_OPTS');
 export type AuthOpts = { publicUrl: string; cookieSecure: boolean };
 
 const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE', 'UPGRADE']);
+
+/** Разрешённые Origin: PUBLIC_URL и EXTRA_ORIGINS (через запятую; напр. 127.0.0.1 рядом с localhost в dev). */
+export function allowedOrigins(
+  publicUrl: string,
+  extra = process.env.EXTRA_ORIGINS ?? '',
+): string[] {
+  const list = [publicUrl, ...extra.split(',')].map((u) => u.trim()).filter(Boolean);
+  return list.flatMap((u) => {
+    try {
+      return [new URL(u).origin];
+    } catch {
+      return []; // опечатка в EXTRA_ORIGINS не открывает доступ и не роняет сервер
+    }
+  });
+}
 const DAY = 86400_000;
 
 export function readCookie(header: string | undefined, name: string): string | null {
@@ -83,7 +98,7 @@ export async function authenticateRaw(
   if (bearer) return opts.allowToken === false ? null : authenticateBearer(db, bearer[1]!); // Origin для Bearer не проверяется
   const token = readCookie(headers.cookie, SESSION_COOKIE);
   if (!token) return null;
-  if (UNSAFE.has(method) && headers.origin !== new URL(opts.publicUrl).origin) {
+  if (UNSAFE.has(method) && !allowedOrigins(opts.publicUrl).includes(headers.origin ?? '')) {
     throw new HttpError(403, 'origin_mismatch', 'Origin не совпадает с PUBLIC_URL');
   }
   const [row] = await db
