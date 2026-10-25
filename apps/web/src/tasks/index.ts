@@ -1,6 +1,7 @@
 export {
   useSpaces,
   useRootSpaceId,
+  useWorkspace,
   useProject,
   useStatuses,
   useMembers,

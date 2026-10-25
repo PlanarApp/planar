@@ -30,7 +30,7 @@ describe('settings:spaces', () => {
   });
   it('переименовывает', async () => {
     const w = await show(SpacesSettings, {});
-    const input = w.find('[data-testid=space-row] input');
+    const input = w.find('[data-testid=space-row] input:not([type=checkbox])');
     await input.setValue('Другое');
     await input.trigger('change');
     await wait();

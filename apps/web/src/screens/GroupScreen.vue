@@ -12,7 +12,7 @@ import {
   MessagesSquare,
   Settings,
 } from 'lucide-vue-next';
-import { useProject, useRootSpaceId, useSpaces } from '../tasks';
+import { useProject, useRootSpaceId, useSpaces, useWorkspace } from '../tasks';
 import { EmptyState, Tabs } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { GroupScope, LocalizedText } from '../modules/types';
@@ -40,12 +40,13 @@ const tab = computed(() => groupTab(route.params.view ?? route.params.tab));
 const project = useProject(() => (level.value === 'project' ? id.value : ''));
 const spaces = useSpaces();
 const rootId = useRootSpaceId();
+const ws = useWorkspace();
 const name = computed(() =>
   level.value === 'project'
     ? project.value?.name
     : level.value === 'space'
       ? spaces.value?.find((s) => s.id === id.value)?.name
-      : t('app.name'),
+      : ws.value.name,
 );
 const scope = computed<GroupScope | null>(() => {
   const root = rootId.value;

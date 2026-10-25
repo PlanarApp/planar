@@ -1,5 +1,6 @@
 import { liveQuery, type Subscription } from 'dexie';
-import { getCurrentScope, onScopeDispose, shallowRef, toValue, watch } from 'vue';
+import { computed, getCurrentScope, onScopeDispose, shallowRef, toValue, watch } from 'vue';
+import { i18n } from '../i18n';
 import type { MaybeRefOrGetter, Ref } from 'vue';
 import type { Row } from '@planar/shared';
 import { db, useQuery } from '../sync';
@@ -62,6 +63,23 @@ export const useProject = (id: MaybeRefOrGetter<string>) =>
     () => toValue(id),
     async (i) => (await db.table<Row<'projects'>>('projects').get(i)) ?? null,
   );
+
+/** Воркспейс: название, цвет, иконка (settings.workspace; по умолчанию — «Planar») */
+export function useWorkspace() {
+  const row = useQuery(() => db.table<Row<'settings'>>('settings').get('workspace'));
+  return computed(() => {
+    const v = (row.value?.value ?? {}) as {
+      name?: string;
+      color?: string | null;
+      icon?: string | null;
+    };
+    return {
+      name: v.name || i18n.global.t('app.name'),
+      color: v.color ?? null,
+      icon: v.icon ?? null,
+    };
+  });
+}
 
 /** корневое пространство «Общее» — уровень Воркспейс (документы и чаты для всех) */
 export const useRootSpaceId = () =>

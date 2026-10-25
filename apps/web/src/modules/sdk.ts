@@ -3,7 +3,7 @@ import { computed, type Ref } from 'vue';
 import { db, useQuery as liveQuery } from '../sync';
 import type { FilterCtx } from '../views/filter';
 import { useAuth, type User } from '../auth/useAuth';
-import { useSpaces } from '../tasks';
+import { useSpaces, useWorkspace } from '../tasks';
 import { i18n } from '../i18n';
 import { groupLevels, type GroupLevelRow } from '../layout/groups';
 import type { GroupScope } from './types';
@@ -40,7 +40,8 @@ export { localToday, matchFilter } from '../views/filter';
 /** Уровни группы (свой и вложенные) для табов Документы/Чаты/Отчёты. */
 export const useGroupLevels = (scope: () => GroupScope): Readonly<Ref<GroupLevelRow[]>> => {
   const spaces = useSpaces();
-  return computed(() => groupLevels(scope(), spaces.value ?? [], i18n.global.t('app.name')));
+  const ws = useWorkspace();
+  return computed(() => groupLevels(scope(), spaces.value ?? [], ws.value.name));
 };
 export type { GroupLevelRow } from '../layout/groups';
 export { groupUrl } from '../layout/groups';

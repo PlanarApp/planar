@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, onScopeDispose, watch, type Component } from 'vue';
 import { ChevronRight, MoreHorizontal, Plus, Settings, Star } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import { prefetchIdle, prefetchProject, useRootSpaceId } from '../tasks/queries';
+import { prefetchIdle, prefetchProject, useRootSpaceId, useWorkspace } from '../tasks/queries';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { sidebarCollapse as sc, useNavData, useUserMenu } from './nav';
@@ -34,6 +34,7 @@ const navLabel = (l: LocalizedText) =>
 const { spaces: allSpaces, favorites } = useNavData();
 // дерево групп: Воркспейс (корневое пространство) › пространства › проекты
 const rootId = useRootSpaceId();
+const ws = useWorkspace();
 const spaces = computed(() => allSpaces.value.filter((s) => s.id !== rootId.value));
 const act = useSidebarActions();
 // поле ввода на месте: Enter — сохранить, Esc/blur без текста — отмена
@@ -115,10 +116,11 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
     <div class="flex h-9 items-center gap-2 px-1">
       <span
         class="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent text-xs font-semibold text-accent-fg"
+        :style="ws.color ? { background: ws.color } : undefined"
         aria-hidden="true"
-        >P</span
+        >{{ ws.icon || ws.name.slice(0, 1).toUpperCase() }}</span
       >
-      <span class="flex-1 truncate text-base font-semibold">{{ t('app.name') }}</span>
+      <span class="flex-1 truncate text-base font-semibold">{{ ws.name }}</span>
       <Menu :items="items()" align="end">
         <template #trigger>
           <button
@@ -184,7 +186,7 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
             <ChevronRight :size="12" :class="chev('spaces')" />
           </button>
           <RouterLink to="/w" class="min-w-0 flex-1 truncate outline-none">{{
-            t('app.name')
+            ws.name
           }}</RouterLink>
           <span :class="tools">
             <button

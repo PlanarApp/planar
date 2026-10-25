@@ -21,7 +21,7 @@ import { ui } from '../command/hotkeys';
 import { useAuth } from '../auth/useAuth';
 import { useUnread } from '../inbox/queries';
 import { useExtensions } from '../modules/registry';
-import { useProject, useRootSpaceId, useSpaces } from '../tasks/queries';
+import { useProject, useRootSpaceId, useSpaces, useWorkspace } from '../tasks/queries';
 import { useSavedView } from '../views/saved/queries';
 import { groupTab, groupUrl, type GroupLevel } from './groups';
 import { useGroupTabs } from './useGroupTabs';
@@ -95,6 +95,7 @@ interface Crumb {
   menu?: MenuItem[];
 }
 const rootId = useRootSpaceId();
+const ws = useWorkspace();
 const crumbLevel = computed<GroupLevel>(() =>
   inProject.value ? 'project' : route.name === 'space' ? 'space' : 'workspace',
 );
@@ -108,7 +109,7 @@ const crumbs = computed<Crumb[]>(() => {
   const all = (spaces.value ?? []).filter((x) => x.id !== rootId.value);
   const spaceId = level === 'space' ? String(route.params.spaceId) : project.value?.spaceId;
   const space = all.find((x) => x.id === spaceId);
-  const out: Crumb[] = [{ label: t('app.name'), to: '/w' }];
+  const out: Crumb[] = [{ label: ws.value.name, to: '/w' }];
   if (space)
     out.push({
       label: space.name,

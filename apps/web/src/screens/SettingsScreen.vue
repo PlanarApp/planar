@@ -13,6 +13,7 @@ import UsersSettings from './settings/UsersSettings.vue';
 const lazy = (n: string) => defineAsyncComponent(() => import(`./settings/${n}Settings.vue`));
 type Level = GroupScope['level'];
 const SECTIONS = {
+  general: { c: lazy('General'), level: 'any' },
   spaces: { c: lazy('Spaces'), level: 'workspace' },
   members: { c: lazy('Members'), space: true, level: 'space' },
   projects: { c: lazy('Projects'), space: true, level: 'space' },
@@ -21,13 +22,17 @@ const SECTIONS = {
   fields: { c: lazy('Fields'), level: 'project' },
   modules: { c: lazy('Modules'), level: 'workspace' },
   users: { c: UsersSettings, admin: true, level: 'workspace' },
-} as const satisfies Record<string, { level: Level; c: unknown; space?: true; admin?: true }>;
+} as const satisfies Record<
+  string,
+  { level: Level | 'any'; c: unknown; space?: true; admin?: true }
+>;
 type Id = keyof typeof SECTIONS;
 
 // scope — таб «Настройки» группы: разделы её уровня, раздел — в ?s; без scope — прежний экран /settings
 const props = defineProps<{ scope?: GroupScope }>();
 const level = computed<Level | undefined>(() => props.scope?.level);
-const atLevel = (l: Level | undefined) => !level.value || (l ?? 'workspace') === level.value;
+const atLevel = (l: Level | 'any' | undefined) =>
+  !level.value || l === 'any' || (l ?? 'workspace') === level.value;
 
 const { t, te, locale } = useI18n();
 const route = useRoute();
@@ -49,7 +54,10 @@ const pages = computed(() =>
 const label = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 const items = computed(() => [
-  ...builtin.value.map((s) => ({ key: s as string, label: t(`settings.${s}`) })),
+  ...builtin.value.map((s) => ({
+    key: s as string,
+    label: t(s === 'general' ? 'settings.general.title' : `settings.${s}`),
+  })),
   ...pages.value.map((p) => ({ key: p.key, label: label(p.label) })),
 ]);
 const param = computed(
@@ -127,6 +135,7 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
         :is="comp"
         v-if="comp"
         :space-id="spaceId"
+        :level="scope?.level"
         v-bind="scope?.projectId ? { projectId: scope.projectId } : {}"
       />
     </div>

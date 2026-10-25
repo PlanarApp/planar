@@ -6,6 +6,7 @@ import { Badge, Button, Input } from '../../ui';
 import { db, mutate, newId, rankBetween, useQuery } from '../../sync';
 import RowMenu from './RowMenu.vue';
 import SectionHeader from './SectionHeader.vue';
+import BulkBar, { type BulkAction } from './BulkBar.vue';
 import { useAction, useAdminSpaces } from './shared';
 
 const KEY_RE = /^[A-Z][A-Z0-9]{1,9}$/;
@@ -50,6 +51,34 @@ const archive = (p: Row<'projects'>) =>
     }),
   );
 const remove = (id: string) => run(() => mutate('project.delete', { id }));
+// массовые действия: в архив / из архива / удалить выбранные
+const picked = ref(new Set<string>());
+const toggle = (id: string) => {
+  const s = new Set(picked.value);
+  if (!s.delete(id)) s.add(id);
+  picked.value = s;
+};
+const chosen = () => {
+  const ps = projects.value.filter((p) => picked.value.has(p.id));
+  picked.value = new Set();
+  return ps;
+};
+const setArchived = (on: boolean) => {
+  const at = on ? new Date().toISOString() : null;
+  for (const p of chosen())
+    if (!!p.archivedAt !== on)
+      void run(() => mutate('project.update', { id: p.id, archivedAt: at }));
+};
+const bulk = computed<BulkAction[]>(() => [
+  { id: 'archive', label: t('settings.archive'), run: () => setArchived(true) },
+  { id: 'unarchive', label: t('settings.unarchive'), run: () => setArchived(false) },
+  {
+    id: 'delete',
+    label: t('settings.delete'),
+    danger: true,
+    run: () => chosen().forEach((p) => void remove(p.id)),
+  },
+]);
 </script>
 
 <template>
@@ -71,6 +100,7 @@ const remove = (id: string) => run(() => mutate('project.delete', { id }));
       </form>
     </SectionHeader>
     <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
+    <BulkBar :count="picked.size" :actions="bulk" @clear="picked = new Set()" />
     <ul class="flex flex-col divide-y divide-border">
       <li
         v-for="p in projects"
@@ -78,6 +108,14 @@ const remove = (id: string) => run(() => mutate('project.delete', { id }));
         data-testid="project-row"
         class="group flex h-11 items-center gap-3 md:h-8"
       >
+        <input
+          v-if="canEdit"
+          type="checkbox"
+          :aria-label="p.name"
+          :checked="picked.has(p.id)"
+          data-testid="project-pick"
+          @change="toggle(p.id)"
+        />
         <Badge>{{ p.key }}</Badge>
         <span class="min-w-0 flex-1 truncate text-sm">{{ p.name }}</span>
         <Badge v-if="p.archivedAt">{{ t('settings.archived') }}</Badge>
