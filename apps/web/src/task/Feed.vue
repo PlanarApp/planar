@@ -14,7 +14,7 @@ import { useComments, useReactions, useUsers } from './queries';
 
 const props = defineProps<{ task: TaskView }>();
 const { t, te } = useI18n();
-const { user } = useAuth();
+const { user, isAdmin } = useAuth();
 const comments = useComments(props.task.id);
 const users = useUsers();
 const reactions = useReactions(props.task.id);
@@ -63,7 +63,10 @@ type Entry =
   | { at: string; id: string; act: Row<'activity'> };
 const feed = computed<Entry[]>(() =>
   [
-    ...(comments.value ?? []).map((c) => ({ at: c.createdAt, id: c.id, comment: c })),
+    // в ленте — корни тредов; ответы — под своим корнем
+    ...(comments.value ?? [])
+      .filter((c) => !c.parentId)
+      .map((c) => ({ at: c.createdAt, id: c.id, comment: c })),
     // комментарий и так в ленте
     ...activity.value
       .filter((a) => a.kind !== 'commented')
@@ -82,6 +85,41 @@ watch(
 );
 
 const setDraft = (v: JSONContent | null) => (draft.value = v);
+
+// треды: ответы по корню, по времени
+const replies = computed(() => {
+  const m = new Map<string, Row<'comments'>[]>();
+  for (const c of comments.value ?? [])
+    if (c.parentId) (m.get(c.parentId) ?? m.set(c.parentId, []).get(c.parentId)!).push(c);
+  for (const l of m.values()) l.sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  return m;
+});
+const replyTo = ref<string | null>(null);
+const replyDraft = shallowRef<JSONContent | null>(null);
+const setReply = (v: JSONContent | null) => (replyDraft.value = v);
+const replyBox = ref<InstanceType<typeof Editor>[]>();
+async function startReply(id: string) {
+  replyTo.value = id;
+  replyDraft.value = null;
+  await nextTick();
+  replyBox.value?.[0]?.focus?.();
+}
+async function sendReply() {
+  const body = replyDraft.value;
+  const parentId = replyTo.value;
+  if (!body || !parentId) return;
+  replyTo.value = null;
+  setReply(null);
+  await mutate('comment.create', { id: newId(), taskId: props.task.id, body, parentId });
+}
+const canResolve = (c: Row<'comments'>) =>
+  !!user.value && (c.assigneeId === user.value.id || c.authorId === user.value.id || isAdmin.value);
+const avatarOf = (id: string) =>
+  userOf(id)?.avatarFile ? `/files/${userOf(id)!.avatarFile}/preview?w=256` : null;
+const memberList = computed(() => (members.value ?? []).map((m) => ({ id: m.id, name: m.name })));
+const names = computed(() => Object.fromEntries((users.value ?? []).map((u) => [u.id, u.name])));
+const react = (commentId: string, emoji: string) =>
+  mutate('reaction.toggle', { id: newId(), commentId, emoji });
 
 async function send() {
   const body = draft.value;
@@ -102,22 +140,71 @@ async function send() {
           v-if="'comment' in e"
           :comment="e.comment"
           :author="nameOf(e.comment.authorId)"
-          :avatar="
-            userOf(e.comment.authorId)?.avatarFile
-              ? `/files/${userOf(e.comment.authorId)!.avatarFile}/preview?w=256`
-              : null
-          "
+          :avatar="avatarOf(e.comment.authorId)"
           :mine="e.comment.authorId === user?.id"
           :reactions="(reactions ?? []).filter((r) => r.commentId === e.comment.id)"
           :user-id="user?.id"
-          :names="Object.fromEntries((users ?? []).map((u) => [u.id, u.name]))"
-          @react="
-            (emoji) => mutate('reaction.toggle', { id: newId(), commentId: e.comment.id, emoji })
-          "
-          :members="(members ?? []).map((m) => ({ id: m.id, name: m.name }))"
+          :names="names"
+          :members="memberList"
+          root
+          :can-resolve="canResolve(e.comment)"
+          @react="(emoji) => react(e.comment.id, emoji)"
           @save="(body) => mutate('comment.update', { id: e.comment.id, body })"
           @remove="mutate('comment.delete', { id: e.comment.id })"
-        />
+          @reply="startReply(e.comment.id)"
+          @assign="(u) => mutate('comment.assign', { id: e.comment.id, assigneeId: u })"
+          @resolve="(done) => mutate('comment.resolve', { id: e.comment.id, resolved: done })"
+        >
+          <div
+            v-if="replies.get(e.comment.id)?.length || replyTo === e.comment.id"
+            class="mt-2 flex flex-col gap-2 border-l-2 border-border pl-3"
+            data-testid="thread"
+          >
+            <CommentItem
+              v-for="r in replies.get(e.comment.id) ?? []"
+              :key="r.id"
+              :comment="r"
+              :author="nameOf(r.authorId)"
+              :avatar="avatarOf(r.authorId)"
+              :mine="r.authorId === user?.id"
+              :reactions="(reactions ?? []).filter((x) => x.commentId === r.id)"
+              :user-id="user?.id"
+              :names="names"
+              :members="memberList"
+              @react="(emoji) => react(r.id, emoji)"
+              @save="(body) => mutate('comment.update', { id: r.id, body })"
+              @remove="mutate('comment.delete', { id: r.id })"
+            />
+            <div
+              v-if="replyTo === e.comment.id"
+              class="rounded-md border border-border-strong bg-bg p-2"
+              data-testid="reply-box"
+            >
+              <Editor
+                ref="replyBox"
+                :model-value="replyDraft"
+                :members="memberList"
+                :label="t('task.replyPlaceholder')"
+                :placeholder="t('task.replyPlaceholder')"
+                @update:model-value="setReply"
+                @submit="sendReply"
+              />
+              <div class="mt-2 flex justify-end gap-2">
+                <Button size="sm" variant="ghost" @click="replyTo = null">{{
+                  t('task.cancel')
+                }}</Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  :disabled="!replyDraft"
+                  data-testid="reply-send"
+                  @click="sendReply"
+                  >{{ t('task.send') }}</Button
+                >
+              </div>
+            </div>
+          </div>
+        </CommentItem>
         <p v-else class="text-xs text-fg-muted" data-testid="activity">{{ describe(e.act) }}</p>
       </template>
     </div>

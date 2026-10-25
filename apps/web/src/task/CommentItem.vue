@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { shallowRef, ref } from 'vue';
+import { computed, shallowRef, ref } from 'vue';
+import { MessageSquareReply, UserPlus } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
-import { Avatar, Button } from '../ui';
+import { Avatar, Button, Menu, type MenuItem } from '../ui';
 import Reactions from './Reactions.vue';
 import Editor from './editor/Editor.vue';
 
@@ -16,8 +17,32 @@ const props = defineProps<{
   reactions: Row<'commentReactions'>[];
   userId?: string;
   names: Record<string, string>;
+  /** корень треда: можно ответить и назначить; ответ — без этих действий */
+  root?: boolean;
+  /** назначенный корень: завершить может исполнитель, автор или admin */
+  canResolve?: boolean;
 }>();
-const emit = defineEmits<{ save: [body: JSONContent]; remove: []; react: [emoji: string] }>();
+const emit = defineEmits<{
+  save: [body: JSONContent];
+  remove: [];
+  react: [emoji: string];
+  reply: [];
+  assign: [userId: string | null];
+  resolve: [done: boolean];
+}>();
+const assignItems = computed<MenuItem[]>(() => [
+  ...props.members.map((m) => ({
+    id: m.id,
+    label: m.name,
+    onSelect: () => emit('assign', m.id),
+  })),
+  ...(props.comment.assigneeId
+    ? [
+        { separator: true as const },
+        { id: 'none', label: t('task.unassignComment'), onSelect: () => emit('assign', null) },
+      ]
+    : []),
+]);
 const { t } = useI18n();
 const editing = ref(false);
 const draft = shallowRef<JSONContent | null>(null); // shallow: в IndexedDB нельзя класть reactive-прокси
@@ -34,7 +59,7 @@ function save() {
 </script>
 
 <template>
-  <div class="flex gap-2" data-testid="comment">
+  <div class="flex gap-2" data-testid="comment" :data-comment="comment.id">
     <Avatar :name="author" :src="avatar" size="md" />
     <div class="min-w-0 flex-1">
       <div class="flex items-baseline gap-2 text-sm">
@@ -43,6 +68,32 @@ function save() {
           {{ new Date(comment.createdAt).toLocaleString() }}
         </time>
         <span v-if="comment.editedAt" class="text-xs text-fg-subtle">{{ t('task.edited') }}</span>
+      </div>
+      <!-- назначенный комментарий: исполнитель и «завершено» -->
+      <div
+        v-if="comment.assigneeId"
+        class="mt-1 flex items-center gap-2 text-xs"
+        data-testid="comment-assigned"
+      >
+        <span
+          :class="[
+            'rounded-full px-2 py-0.5',
+            comment.resolvedAt
+              ? 'bg-bg-muted text-fg-muted line-through'
+              : 'bg-accent-subtle text-fg',
+          ]"
+          >{{ t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' }) }}</span
+        >
+        <label class="inline-flex items-center gap-1 text-fg-muted">
+          <input
+            type="checkbox"
+            :checked="!!comment.resolvedAt"
+            :disabled="!canResolve"
+            data-testid="comment-resolve"
+            @change="emit('resolve', ($event.target as HTMLInputElement).checked)"
+          />
+          {{ t('task.resolved') }}
+        </label>
       </div>
       <template v-if="editing">
         <Editor v-model="draft" :members="members" :label="t('task.comment')" @submit="save" />
@@ -64,15 +115,36 @@ function save() {
           :names="names"
           @toggle="(emoji) => emit('react', emoji)"
         />
-        <div v-if="mine" class="mt-1 flex gap-2">
-          <Button size="sm" variant="ghost" data-testid="comment-edit" @click="start">
-            {{ t('task.edit') }}
+        <div class="mt-1 flex flex-wrap gap-1">
+          <Button
+            v-if="root"
+            size="sm"
+            variant="ghost"
+            :icon="MessageSquareReply"
+            data-testid="comment-reply"
+            @click="emit('reply')"
+          >
+            {{ t('task.reply') }}
           </Button>
-          <Button size="sm" variant="ghost" data-testid="comment-delete" @click="emit('remove')">
-            {{ t('task.delete') }}
-          </Button>
+          <Menu v-if="root && members.length" :items="assignItems" align="start">
+            <template #trigger>
+              <Button size="sm" variant="ghost" :icon="UserPlus" data-testid="comment-assign">
+                {{ t('task.assignComment') }}
+              </Button>
+            </template>
+          </Menu>
+          <template v-if="mine">
+            <Button size="sm" variant="ghost" data-testid="comment-edit" @click="start">
+              {{ t('task.edit') }}
+            </Button>
+            <Button size="sm" variant="ghost" data-testid="comment-delete" @click="emit('remove')">
+              {{ t('task.delete') }}
+            </Button>
+          </template>
         </div>
       </template>
+      <!-- тред: ответы и поле ответа -->
+      <slot />
     </div>
   </div>
 </template>
