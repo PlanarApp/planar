@@ -243,7 +243,7 @@ export async function digestTick(db: Db, now: Date, snd: Send = send): Promise<n
       const due = await rowsOf(
         db,
         sql`select t.title, t.number, t.due_date::text as due, p.key
-          from tasks t join projects p on p.id = t.project_id
+          from tasks t join projects p on p.id = t.project_id and p.archived_at is null
           join task_assignees ta on ta.task_id = t.id and ta.user_id = ${u.id}
           join statuses s on s.id = t.status_id and s.category not in ('done', 'cancelled')
           where t.due_date <= ${date}::date order by t.due_date, p.key, t.number limit 100`,

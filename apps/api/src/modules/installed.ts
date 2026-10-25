@@ -14,6 +14,8 @@ import { api as timeApi } from '@planar/module-time/api';
 import * as timeTables from '@planar/module-time/api/schema';
 import { api as sprintsApi } from '@planar/module-sprints/api';
 import * as sprintsTables from '@planar/module-sprints/api/schema';
+import { api as recurringApi } from '@planar/module-recurring/api';
+import * as recurringTables from '@planar/module-recurring/api/schema';
 import { api as automationsApi } from '@planar/module-automations/api';
 import * as automationsTables from '@planar/module-automations/api/schema';
 import { api as webhooksApi } from '@planar/module-webhooks/api';
@@ -28,6 +30,8 @@ import { api as importApi } from '@planar/module-import/api';
 import * as importTables from '@planar/module-import/api/schema';
 import { api as workloadApi } from '@planar/module-workload/api';
 import * as workloadTables from '@planar/module-workload/api/schema';
+import { api as goalsApi } from '@planar/module-goals/api';
+import * as goalsTables from '@planar/module-goals/api/schema';
 
 export interface InstalledModule {
   api: BackendModuleManifest;
@@ -89,6 +93,8 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: workloadApi, tables: workloadTables },
   { api: timelineApi, tables: timelineTables },
   { api: emailApi, tables: emailTables },
+  { api: goalsApi, tables: goalsTables },
+  { api: recurringApi, tables: recurringTables },
 ]);
 
 export const moduleTables = (): Map<string, PgTable> =>

@@ -18,7 +18,11 @@ class EmailModule implements OnModuleInit {
         .addContentTypeParser(
           'application/x-www-form-urlencoded',
           { parseAs: 'string' },
-          (_r: unknown, b: unknown, done: (e: null, v: unknown) => void) => done(null, b),
+          (r: { url?: string }, b: unknown, done: (e: Error | null, v?: unknown) => void) => {
+            // только этот маршрут; на остальных — как до модуля (415)
+            if (r.url?.split('?')[0] === '/api/email/unsubscribe') return done(null, b);
+            done(Object.assign(new Error('Unsupported Media Type'), { statusCode: 415 }));
+          },
         );
     } catch {
       /* уже есть */

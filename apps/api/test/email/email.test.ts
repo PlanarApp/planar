@@ -142,7 +142,7 @@ describe('pf4: настройки SMTP', () => {
       expect((await setup('PUT', 'config', body)).statusCode).toBe(400);
   });
 
-  it('pf4: тестовое письмо доходит; ошибка SMTP → 502 smtp_error без пароля', async () => {
+  it('pf4: тестовое письмо доходит; ошибка SMTP → 502 без пароля', async () => {
     const ok = await setup('POST', 'test', { to: 'admin@example.test' });
     expect(ok.json()).toEqual({ ok: true });
     expect(stub.mails).toHaveLength(1);
@@ -150,7 +150,7 @@ describe('pf4: настройки SMTP', () => {
     stub.failRcpt = true;
     const bad = await setup('POST', 'test', { to: 'admin@example.test' });
     expect(bad.statusCode).toBe(502);
-    expect(bad.json().code).toBe('smtp_error');
+    expect(bad.json().code).toBe('unavailable');
     expect(bad.body).not.toContain(PASSWORD);
   });
 });
@@ -265,6 +265,13 @@ describe('pf4: дайджест', () => {
     );
     expect(await digestTick(db, new Date('2026-10-25T09:00:00Z'))).toBe(1);
     expect(decoded(stub.mails[0]!.data)).toContain(taskKey);
+    // архивный проект — задача не попадает
+    await db.delete(D);
+    stub.mails.length = 0;
+    await db.execute(sql`update projects set archived_at = now() where id = ${w.projectId}`);
+    await digestTick(db, new Date('2026-10-25T09:00:00Z'));
+    expect(stub.mails).toHaveLength(0);
+    await db.execute(sql`update projects set archived_at = null where id = ${w.projectId}`);
     await db.execute(sql`delete from task_assignees where task_id = ${taskId}`);
   });
 });
@@ -307,6 +314,15 @@ describe('pf4: отписка', () => {
         400,
       );
     expect((await call('GET', '/api/email/unsubscribe', undefined, {})).statusCode).toBe(400);
+  });
+
+  it('pf4: form-urlencoded на другой маршрут /api/* — 415 как до модуля', async () => {
+    const r = await call('POST', '/api/email/setup/test', 'to=a', {
+      cookie,
+      origin: ORIGIN,
+      'content-type': 'application/x-www-form-urlencoded',
+    });
+    expect(r.statusCode).toBe(415);
   });
 
   it('pf4: RFC 8058 One-Click: digest отписывает только digest', async () => {

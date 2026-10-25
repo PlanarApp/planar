@@ -115,8 +115,7 @@ export class EmailController {
       };
       await send(cfg, m);
     } catch (e) {
-      // contract: 502 smtp_error (кода нет в HTTP_ERROR_CODES ядра)
-      throw new HttpError(502, 'smtp_error' as 'unavailable', safeErr(e, cfg));
+      throw new HttpError(502, 'unavailable', safeErr(e, cfg));
     }
     return { ok: true };
   }

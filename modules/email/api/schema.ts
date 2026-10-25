@@ -11,6 +11,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
+// только для FK (таблица ядра); не экспортируется, drizzle-kit её не создаёт
+const users = pgTable('users', { id: uuid().primaryKey() });
 const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 const status = (name: string) => check(name, sql`status in ('sending','sent','failed','skipped')`);
 
@@ -31,7 +33,9 @@ export const emailOutbox = pgTable(
   'email_outbox',
   {
     notificationId: uuid().primaryKey(),
-    userId: uuid().notNull(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     status: text().notNull(),
     error: text(),
     createdAt: ts().notNull().defaultNow(),
@@ -43,7 +47,9 @@ export const emailOutbox = pgTable(
 export const emailDigests = pgTable(
   'email_digests',
   {
-    userId: uuid().notNull(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     date: date({ mode: 'string' }).notNull(),
     status: text().notNull(),
     error: text(),
