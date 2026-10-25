@@ -1,14 +1,43 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Button, IconButton, Input } from '@planar/web/modules';
+import { Button, IconButton, Input, Select, type GroupScope } from '@planar/web/modules';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { dayKey, entrySec, hm, parseHm, planCell, weekDays } from './lib';
-import { locale, mutate, newId, tr, useMyEntries, useNow, useTasks, useWeekStart } from './data';
+import {
+  isInstanceAdmin,
+  locale,
+  mutate,
+  newId,
+  tr,
+  useEntries,
+  useNow,
+  useTasks,
+  useUsers,
+  useWeekStart,
+  userId,
+} from './data';
 
+// scope — таб «Отчёты › Время» группы: только задачи её уровня и вложенных
+const props = defineProps<{ scope?: GroupScope }>();
 const weekStart = useWeekStart();
 const now = useNow();
-const entries = useMyEntries();
+const admin = computed(isInstanceAdmin);
+const users = useUsers();
+const who = ref(userId());
+const mine = computed(() => who.value === userId());
+const all = useEntries(() => who.value);
 const tasks = useTasks();
+const inScope = computed(() => {
+  const s = props.scope;
+  if (!s || s.level === 'workspace') return () => true;
+  const ok = new Set(
+    (tasks.value ?? [])
+      .filter((t) => (s.projectId ? t.projectId === s.projectId : t.spaceId === s.spaceId))
+      .map((t) => t.id),
+  );
+  return (id: string) => ok.has(id);
+});
+const entries = computed(() => all.value?.filter((e) => inScope.value(e.taskId)));
 const offset = ref(0);
 const err = ref('');
 
@@ -62,6 +91,14 @@ async function edit(taskId: string, k: string, text: string) {
       <h2>{{ tr('week') }}</h2>
       <IconButton :icon="ChevronLeft" :label="tr('prev')" data-test="prev" @click="offset--" />
       <IconButton :icon="ChevronRight" :label="tr('next')" data-test="next" @click="offset++" />
+      <Select
+        v-if="admin"
+        v-model="who"
+        size="sm"
+        :label="tr('user')"
+        :options="(users ?? []).map((u) => ({ value: u.id, label: u.name }))"
+        data-test="user"
+      />
     </header>
     <p v-if="err" class="err" role="alert">{{ err }}</p>
     <p v-if="!rows.length" class="muted">{{ tr('empty') }}</p>
@@ -83,6 +120,7 @@ async function edit(taskId: string, k: string, text: string) {
                 :label="`${r.title} ${k}`"
                 hide-label
                 size="sm"
+                :disabled="!mine"
                 :class="['cell', cellSec(r.id, k) ? '' : 'empty']"
                 :data-test="`cell-${r.id}-${k}`"
                 @change="(e: Event) => edit(r.id, k, (e.target as HTMLInputElement).value)"

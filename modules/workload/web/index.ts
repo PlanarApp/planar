@@ -23,6 +23,15 @@ const Bars = defineComponent({
 export const web = defineWebModule({
   id: 'workload',
   routes: [{ path: '/m/workload/', component: () => import('./WorkloadPage.vue') }],
+  groupTabs: [
+    {
+      id: 'page',
+      tab: 'reports',
+      order: 30,
+      label: { ru: 'Загрузка', en: 'Workload' },
+      component: () => import('./GroupWorkload.vue'),
+    },
+  ],
   nav: [
     {
       id: 'page',

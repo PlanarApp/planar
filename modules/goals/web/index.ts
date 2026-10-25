@@ -32,12 +32,21 @@ export const web = defineWebModule({
       to: '/m/goals/',
     },
   ],
-  views: [
+  // вехи — в «Отчётах» группы (раньше — вид проекта)
+  groupTabs: [
     {
       id: 'milestones',
+      tab: 'reports',
+      order: 50,
       label: { ru: 'Вехи', en: 'Milestones' },
-      icon: Flag,
-      component: () => import('./MilestonesView.vue'),
+      component: () => import('./GroupMilestones.vue'),
+    },
+    {
+      id: 'goals',
+      tab: 'reports',
+      order: 60,
+      label: { ru: 'Цели', en: 'Goals' },
+      component: () => import('./GroupGoals.vue'),
     },
   ],
   taskPanels: [

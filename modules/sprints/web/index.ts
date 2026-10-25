@@ -3,12 +3,14 @@ import { defineWebModule } from '@planar/web/modules';
 
 export const web = defineWebModule({
   id: 'sprints',
-  views: [
+  // спринт — в «Отчётах» группы (раньше — вид проекта)
+  groupTabs: [
     {
       id: 'sprint',
-      label: { ru: 'Спринт', en: 'Sprint' },
-      icon: Zap,
-      component: () => import('./SprintView.vue'),
+      tab: 'reports',
+      order: 40,
+      label: { ru: 'Спринты', en: 'Sprints' },
+      component: () => import('./GroupSprint.vue'),
     },
   ],
   taskPanels: [

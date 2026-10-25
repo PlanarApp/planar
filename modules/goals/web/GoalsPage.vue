@@ -11,17 +11,22 @@ const spaces = useSpaces();
 const router = useRouter();
 // без роутера (тесты страницы) — выбор просто не запоминается
 const query = () => router?.currentRoute.value.query ?? {};
-const spaceId = ref(typeof query().space === 'string' ? (query().space as string) : '');
+// space — таб «Отчёты» группы: пространство задано группой, выбора нет
+const props = defineProps<{ space?: string }>();
+const spaceId = ref(
+  props.space ?? (typeof query().space === 'string' ? (query().space as string) : ''),
+);
 watch(
   spaces,
   (s) => {
-    if (!s?.length) return;
+    if (!s?.length || props.space) return;
     if (!s.some((x) => x.id === spaceId.value)) spaceId.value = s[0].id;
   },
   { immediate: true },
 );
 watch(spaceId, (id) => {
-  if (id && query().space !== id) void router?.replace({ query: { ...query(), space: id } });
+  if (id && !props.space && query().space !== id)
+    void router?.replace({ query: { ...query(), space: id } });
 });
 const data = useGoalsData(spaceId);
 const archive = ref(false);
@@ -103,6 +108,7 @@ const setCurrent = (k: KeyResult, v: string) => {
     <header class="flex flex-wrap items-end gap-2">
       <h1 class="text-lg font-medium">{{ tx.goals }}</h1>
       <Select
+        v-if="!space"
         v-model="spaceId"
         :label="tx.space"
         :options="(spaces ?? []).map((s) => ({ value: s.id, label: s.name }))"

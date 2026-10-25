@@ -13,12 +13,21 @@ export const web = defineWebModule({
       component: () => import('./TimerPanel.vue'),
     },
   ],
+  groupTabs: [
+    {
+      id: 'week',
+      tab: 'reports',
+      order: 20,
+      label: { ru: 'Время', en: 'Time' },
+      component: () => import('./GroupTime.vue'),
+    },
+  ],
   topbar: [{ id: 'timer', order: 10, component: () => import('./TopbarTimer.vue') }],
   nav: [
     {
       id: 'week',
       order: 50,
-      label: { ru: 'Мои часы', en: 'My hours' },
+      label: { ru: 'Время', en: 'Time' },
       icon: Clock,
       to: '/m/time/week',
     },

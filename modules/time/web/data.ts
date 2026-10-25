@@ -5,15 +5,29 @@ import type { TimeEntry, TimeEstimate } from '../shared/index.js';
 import type { TaskNode } from './lib.js';
 
 export { mutate, newId, useWeekStart };
-export type TaskLite = TaskNode & { title: string };
+export type TaskLite = TaskNode & { title: string; projectId?: string; spaceId?: string };
 
 export const userId = () => useSession().value?.id ?? '';
 
 /** Свои записи (включая идущую). */
-export const useMyEntries = () =>
+export const useEntries = (uid: () => string) =>
   useQuery(
-    () =>
-      db.table('timeEntries').where('userId').equals(userId()).toArray() as Promise<TimeEntry[]>,
+    () => db.table('timeEntries').where('userId').equals(uid()).toArray() as Promise<TimeEntry[]>,
+  );
+export const useMyEntries = () => useEntries(userId);
+/** владелец или админ инстанса: «Время» любого пользователя (записи пространств и так в реплике) */
+export const isInstanceAdmin = () => ['owner', 'admin'].includes(useSession().value?.role ?? '');
+export const useUsers = () =>
+  useQuery(async () =>
+    (
+      (await db.table('users').toArray()) as {
+        id: string;
+        name: string;
+        deactivatedAt: string | null;
+      }[]
+    )
+      .filter((u) => !u.deactivatedAt)
+      .sort((a, b) => a.name.localeCompare(b.name)),
   );
 export const useEstimate = (taskId: () => string) =>
   useQuery(() => db.table('timeEstimates').get(taskId()) as Promise<TimeEstimate | undefined>);
@@ -23,6 +37,8 @@ export const useTasks = () =>
       id: t.id,
       parentId: t.parentId ?? null,
       title: t.title,
+      projectId: t.projectId,
+      spaceId: t.spaceId,
     })),
   );
 
@@ -53,7 +69,8 @@ const dict = {
   day: { ru: 'Дата', en: 'Date' },
   invalid: { ru: 'Неверное время', en: 'Invalid time' },
   timer: { ru: 'Таймер', en: 'Timer' },
-  week: { ru: 'Мои часы', en: 'My hours' },
+  week: { ru: 'Время', en: 'Time' },
+  user: { ru: 'Пользователь', en: 'User' },
   prev: { ru: 'Прошлая неделя', en: 'Previous week' },
   next: { ru: 'Следующая неделя', en: 'Next week' },
   task: { ru: 'Задача', en: 'Task' },

@@ -31,6 +31,15 @@ export const web = defineWebModule({
     { path: '/m/dashboards/', component: () => import('./BoardsPage.vue') },
     { path: '/m/dashboards/:id', component: () => import('./BoardPage.vue') },
   ],
+  groupTabs: [
+    {
+      id: 'boards',
+      tab: 'reports',
+      order: 10,
+      label: { ru: 'Дашборды', en: 'Dashboards' },
+      component: () => import('./GroupBoards.vue'),
+    },
+  ],
   nav: [
     {
       id: 'list',

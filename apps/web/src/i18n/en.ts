@@ -344,6 +344,8 @@ export default {
       settings: 'Settings',
     },
     soon: 'This section is moving into groups — coming soon',
+    project: 'Project',
+    noProjects: 'No projects in this group',
   },
   screens: {
     inbox: 'Inbox',

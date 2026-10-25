@@ -3,6 +3,8 @@ import { computed, ref } from 'vue';
 import { Button, Dialog, EmptyState, Input, Select, useRouter } from '@planar/web/modules';
 import { mutate, newId, rankBetween, tr, useBoards, useSpaces } from './data';
 
+// space — таб «Отчёты» группы: только дашборды её пространства
+const props = defineProps<{ space?: string }>();
 const router = useRouter();
 const boards = useBoards();
 const spaces = useSpaces();
@@ -13,6 +15,7 @@ const where = ref('');
 const groups = computed(() => {
   const all = boards.value ?? [];
   return (spaces.value ?? [])
+    .filter((s) => !props.space || s.id === props.space)
     .map((s) => ({ id: s.id, title: s.name, items: all.filter((b) => b.spaceId === s.id) }))
     .filter((g) => g.items.length);
 });
@@ -20,7 +23,7 @@ const personal = ref(false);
 const whereOpts = computed(() => (spaces.value ?? []).map((s) => ({ value: s.id, label: s.name })));
 
 async function create() {
-  const spaceId = where.value || whereOpts.value[0]?.value;
+  const spaceId = props.space || where.value || whereOpts.value[0]?.value;
   if (!name.value.trim() || !spaceId) return;
   const last = (boards.value ?? []).at(-1)?.rank ?? null;
   const id = newId();
@@ -60,7 +63,7 @@ async function create() {
     <Dialog v-model:open="open" :title="tr('create')" size="sm">
       <div class="form">
         <Input v-model="name" :label="tr('name')" />
-        <Select v-model="where" :label="tr('space')" :options="whereOpts" />
+        <Select v-if="!space" v-model="where" :label="tr('space')" :options="whereOpts" />
         <label
           ><input v-model="personal" type="checkbox" data-test="personal" />
           {{ tr('personal') }}</label

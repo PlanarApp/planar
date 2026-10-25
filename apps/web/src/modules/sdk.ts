@@ -34,6 +34,7 @@ export { api, ApiError } from '../api/http';
 export { sendTyping, onTyping } from '../sync';
 export { onMutationError } from '../sync';
 export { default as FilterBuilder } from '../views/saved/FilterBuilder.vue';
+export { default as GroupProjectPick } from '../views/GroupProjectPick.vue';
 export { localToday, matchFilter } from '../views/filter';
 
 /** Уровни группы (свой и вложенные) для табов Документы/Чаты/Отчёты. */

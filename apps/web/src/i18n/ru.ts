@@ -344,6 +344,8 @@ export default {
       settings: 'Настройки',
     },
     soon: 'Раздел переносится в группы — скоро здесь',
+    project: 'Проект',
+    noProjects: 'В группе нет проектов',
   },
   screens: {
     inbox: 'Входящие',

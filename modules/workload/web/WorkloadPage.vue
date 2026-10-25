@@ -19,17 +19,22 @@ const spaces = useSpaces();
 const router = useRouter();
 // без роутера (тесты страницы) — выбор просто не запоминается
 const query = () => router?.currentRoute.value.query ?? {};
-const spaceId = ref(typeof query().space === 'string' ? (query().space as string) : '');
+// space — таб «Отчёты» группы: пространство задано группой, выбора нет
+const props = defineProps<{ space?: string }>();
+const spaceId = ref(
+  props.space ?? (typeof query().space === 'string' ? (query().space as string) : ''),
+);
 watch(
   spaces,
   (s) => {
-    if (!s?.length) return;
+    if (!s?.length || props.space) return;
     if (!s.some((x) => x.id === spaceId.value)) spaceId.value = s[0].id;
   },
   { immediate: true },
 );
 watch(spaceId, (id) => {
-  if (id && query().space !== id) void router?.replace({ query: { ...query(), space: id } });
+  if (id && !props.space && query().space !== id)
+    void router?.replace({ query: { ...query(), space: id } });
 });
 const data = useWorkloadData(() => spaceId.value);
 const hasEst = computed(() => !!data.value?.estimates);
@@ -103,7 +108,7 @@ const setCap = (u: string, text: string) => {
   <section class="wl">
     <header class="row">
       <h2>{{ tr('title') }}</h2>
-      <select v-model="spaceId" :aria-label="tr('space')" data-test="space">
+      <select v-if="!space" v-model="spaceId" :aria-label="tr('space')" data-test="space">
         <option v-for="s in spaces ?? []" :key="s.id" :value="s.id">{{ s.name }}</option>
       </select>
       <select v-if="hasEst" v-model="pick" :aria-label="tr('mode')" data-test="mode">
