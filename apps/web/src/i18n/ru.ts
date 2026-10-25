@@ -244,6 +244,7 @@ export default {
     groupBy: 'Группировка',
     sortBy: 'Сортировка',
     sortDir: 'Порядок сортировки',
+    showEmpty: 'Показывать пустые поля',
     subtasks: 'Подзадачи',
     group: {
       none: 'Нет',

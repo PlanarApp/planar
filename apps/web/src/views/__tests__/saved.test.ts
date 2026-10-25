@@ -225,6 +225,7 @@ describe('views:saved', () => {
       sortBy: 'rank',
       sortDir: 'desc',
       showSubtasks: false,
+      showEmpty: false,
       fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
     });
     expect(JSON.parse(el.attributes('data-filter')!)).toEqual(v.filter);

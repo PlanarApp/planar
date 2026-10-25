@@ -19,6 +19,8 @@ import Column from './Column.vue';
 import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkBar from '../BulkBar.vue';
 import { applyMove, boardColumns, planMove } from './plan';
+import { VueDraggable } from 'vue-draggable-plus';
+import { mutate, rankBetween } from '../../sync';
 
 const props = defineProps<ViewProps>();
 const { t } = useI18n();
@@ -99,6 +101,21 @@ watch(scroller, (el) => {
 watch(columns, () => void nextTick(measure));
 onBeforeUnmount(() => ro?.disconnect());
 
+// порядок статусов — перетаскиванием шапок колонок (группировка по статусу)
+async function onColumnsEnd(e: { oldDraggableIndex?: number; newDraggableIndex?: number }) {
+  const o = e.oldDraggableIndex;
+  const n = e.newDraggableIndex;
+  if (o === undefined || n === undefined || o === n) return;
+  const st = columns.value.map((c) => statuses.value?.find((s) => s.id === c.key));
+  const moved = st[o];
+  if (!moved || st.some((x) => !x)) return;
+  const rest = st.filter((x) => x !== moved);
+  await mutate('status.update', {
+    id: moved.id,
+    rank: rankBetween(rest[n - 1]?.rank ?? null, rest[n]?.rank ?? null),
+  });
+}
+
 async function move(id: string, from: string, to: string, beforeId: string | null) {
   const plan = planMove(columns.value, props.options.groupBy, id, from, to, beforeId);
   if (plan) await applyMove(plan);
@@ -132,12 +149,23 @@ function add(key: string, title: string) {
       :description="t('views.emptyBoard')"
     />
     <TaskContextMenu :space-id="spaceId" :tasks="tasks">
-      <div
-        ref="scroller"
+      <VueDraggable
+        :ref="(c) => (scroller = (c as { $el?: HTMLElement } | null)?.$el)"
+        :model-value="columns"
+        group="columns"
+        handle="[data-col-handle]"
+        draggable="[data-column]"
+        filter="button"
+        :prevent-on-filter="false"
+        :disabled="options.groupBy !== 'status'"
+        :animation="150"
+        :delay="300"
+        :delay-on-touch-only="true"
         class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3"
         :class="isMobile && 'snap-x snap-mandatory'"
         :style="mask"
         @scroll.passive="measure"
+        @end="onColumnsEnd"
         role="group"
         :aria-label="t('views.board')"
       >
@@ -152,12 +180,15 @@ function add(key: string, title: string) {
           :fields="options.fields"
           :blocked="blocked"
           :titles="titles"
+          :space-id="spaceId"
+          :show-empty="options.showEmpty"
+          :sortable="options.groupBy === 'status'"
           @toggle="toggle(g.key)"
           @open="openTask"
           @add="add(g.key, $event)"
           @move="move"
         />
-      </div>
+      </VueDraggable>
     </TaskContextMenu>
     <BulkBar :space-id="spaceId" :tasks="tasks" />
   </div>

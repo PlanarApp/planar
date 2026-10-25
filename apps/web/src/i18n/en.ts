@@ -244,6 +244,7 @@ export default {
     groupBy: 'Group by',
     sortBy: 'Sort by',
     sortDir: 'Sort direction',
+    showEmpty: 'Show empty fields',
     subtasks: 'Subtasks',
     group: {
       none: 'None',

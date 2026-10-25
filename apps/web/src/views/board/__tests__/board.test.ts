@@ -241,9 +241,9 @@ describe('board:create', () => {
     await db.table('tasks').put(task(1, { rank: 'a1' }));
     const w = mountView();
     await until(() => w.findAll('article').length === 1 || undefined);
-    await w.get('footer button').trigger('click');
-    await w.get('footer input').setValue('Новая');
-    await w.get('footer form').trigger('submit');
+    await w.get('[data-column] [data-testid=column-add]').trigger('click');
+    await w.get('[data-column] form input').setValue('Новая');
+    await w.get('[data-column] form').trigger('submit');
     await flushPromises();
     await until(() => w.findAll('article').length === 2 || undefined);
     const made = (await db.table('tasks').toArray()).find((t) => t.title === 'Новая');

@@ -17,6 +17,8 @@ export interface ViewOptions {
   sortBy: SortBy;
   sortDir: 'asc' | 'desc';
   showSubtasks: boolean;
+  /** Доска: показывать незаполненные поля карточки (клик — задать значение), как в ClickUp */
+  showEmpty?: boolean;
   fields: TaskField[];
   /** раскладка Таблицы: порядок, ширина; нет id — колонка скрыта */
   columns?: { id: string; width: number }[];
@@ -27,6 +29,7 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   sortBy: 'rank',
   sortDir: 'asc',
   showSubtasks: false,
+  showEmpty: false,
   fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
 };
 
