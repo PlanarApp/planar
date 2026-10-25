@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, toRaw, watch } from 'vue';
 import type { Row } from '@planar/shared';
-import { db, mutate, newId, useQuery, useSession } from '@planar/web/modules';
+import { db, mutate, newId, useQuery, useRouter, useSession } from '@planar/web/modules';
 import type { FormField, FormsForm } from '../shared/index.js';
 import { genSlug } from './slug';
 
@@ -55,8 +55,22 @@ const admin = computed(() => ['owner', 'admin'].includes(session.value?.role ?? 
 const projects = useQuery(async () =>
   (await db.table<Row<'projects'>>('projects').toArray()).filter((p) => !p.archivedAt),
 );
-const projectId = ref('');
-watch(projects, (p) => void (projectId.value ||= p?.[0]?.id ?? ''), { immediate: true });
+// выбранный проект — в адресе (?project=): после перезагрузки тот же
+const router = useRouter();
+// без роутера (тесты страницы) — выбор просто не запоминается
+const query = () => router?.currentRoute.value.query ?? {};
+const projectId = ref(typeof query().project === 'string' ? (query().project as string) : '');
+watch(
+  projects,
+  (p) => {
+    if (!p?.length) return;
+    if (!p.some((x) => x.id === projectId.value)) projectId.value = p[0]!.id;
+  },
+  { immediate: true },
+);
+watch(projectId, (id) => {
+  if (id && query().project !== id) void router?.replace({ query: { ...query(), project: id } });
+});
 const project = computed(() => projects.value?.find((p) => p.id === projectId.value));
 
 // liveQuery не следит за Vue-реф: читаем всё и фильтруем в computed

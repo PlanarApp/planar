@@ -1,20 +1,28 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Button, FilterBuilder, Input, Select } from '@planar/web/modules';
+import { Button, FilterBuilder, Input, Select, useRouter } from '@planar/web/modules';
 import type { Filter } from '@planar/shared';
 import { goalProgress, krProgress, type KeyResult } from '../shared/index.js';
 import { newId, rankBetween, run, text, useGoalsData, useSpaces } from './data';
 
 const tx = computed(text);
 const spaces = useSpaces();
-const spaceId = ref('');
+// выбранное пространство — в адресе (?space=): после перезагрузки то же самое
+const router = useRouter();
+// без роутера (тесты страницы) — выбор просто не запоминается
+const query = () => router?.currentRoute.value.query ?? {};
+const spaceId = ref(typeof query().space === 'string' ? (query().space as string) : '');
 watch(
   spaces,
   (s) => {
-    if (!spaceId.value && s?.length) spaceId.value = s[0].id;
+    if (!s?.length) return;
+    if (!s.some((x) => x.id === spaceId.value)) spaceId.value = s[0].id;
   },
   { immediate: true },
 );
+watch(spaceId, (id) => {
+  if (id && query().space !== id) void router?.replace({ query: { ...query(), space: id } });
+});
 const data = useGoalsData(spaceId);
 const archive = ref(false);
 
