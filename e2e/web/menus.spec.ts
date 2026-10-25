@@ -49,9 +49,11 @@ test('боковая панель: новый проект через «+» и �
   const item = page.getByTestId('nav-project').filter({ hasText: name });
   await item.click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Переименовать' }).click();
-  await page.keyboard.press('ControlOrMeta+a');
-  await page.keyboard.type(`${name} 2`);
-  await page.keyboard.press('Enter');
+  const input = page.getByTestId('sidebar').getByLabel('Переименовать');
+  await expect(input).toBeFocused();
+  await input.fill(`${name} 2`);
+  await input.press('Enter');
+  await expect(page.getByTestId('nav-project').filter({ hasText: `${name} 2` })).toHaveCount(1);
   await page.reload();
   await expect(page.getByTestId('nav-project').filter({ hasText: `${name} 2` })).toHaveCount(1);
 });
