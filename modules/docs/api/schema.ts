@@ -8,6 +8,7 @@ export const docsPages = pgTable(
   {
     id: uuid().primaryKey(),
     spaceId: uuid().notNull(),
+    projectId: uuid(),
     parentId: uuid(),
     rank: rank().notNull(),
     title: text().notNull(),

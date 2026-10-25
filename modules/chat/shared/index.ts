@@ -22,6 +22,7 @@ const attachment = z.object({
 export const chatChannels = z.object({
   id: z.uuid(),
   spaceId: z.uuid().nullable(),
+  projectId: z.uuid().nullable(),
   kind: z.enum(['channel', 'dm']),
   name: z.string().min(1).max(80).nullable(),
   topic: z.string().max(250).nullable(),
@@ -140,10 +141,13 @@ const createChannel = defineMutator({
   args: z.object({
     id: z.uuid(),
     spaceId: z.uuid(),
+    projectId: z.uuid().nullable().optional(),
     name: z.string(),
     topic: z.string().max(250).nullable().optional(),
   }),
   async run(tx, a, ctx) {
+    if (a.projectId && (await tx.get('projects', a.projectId))?.spaceId !== a.spaceId)
+      throw new MutatorError('invalid_args', 'проект другого пространства');
     const me = (await tx.scan('spaceMembers', { index: 'spaceId', eq: a.spaceId })).find(
       (m) => m.userId === ctx.userId,
     );
@@ -153,6 +157,7 @@ const createChannel = defineMutator({
     const row: Channel = {
       id: a.id,
       spaceId: a.spaceId,
+      projectId: a.projectId ?? null,
       kind: 'channel',
       name,
       topic: a.topic ?? null,
@@ -215,6 +220,7 @@ const createDm = defineMutator({
     const row: Channel = {
       id: a.id,
       spaceId: null,
+      projectId: null,
       kind: 'dm',
       name: null,
       topic: null,

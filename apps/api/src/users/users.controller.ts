@@ -9,6 +9,7 @@ import type { FastifyRequest } from 'fastify';
 import { parseBody } from '../auth/validate.js';
 import type { Db } from '../db/index.js';
 import { DB } from '../tokens.js';
+import { ensureRootSpace } from '../spaces/root.js';
 import { findUser, hasFileUpload, insertUser, listUsers, updateUser } from './users.repo.js';
 
 export const loginSchema = z
@@ -57,6 +58,7 @@ export class UsersController {
     const { password, ...v } = parseBody(createSchema, body);
     const passwordHash = await hashPassword(password);
     const row = await this.db.transaction((q) => insertUser(q, { ...v, passwordHash }));
+    await ensureRootSpace(this.db); // новый пользователь — участник «Общего» (Воркспейс)
     return { user: publicUser(row) };
   }
 
@@ -93,6 +95,7 @@ export class UsersController {
         ...(passwordHash && { passwordHash }),
       }),
     );
+    if (p.role !== undefined || p.deactivated === false) await ensureRootSpace(this.db);
     if (p.deactivated) await deleteUserSessions(this.db, id);
     else if (p.password !== undefined) {
       // себе — все сессии, кроме текущей; чужому — все

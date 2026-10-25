@@ -27,6 +27,7 @@ import { McpController } from './mcp/mcp.controller.js';
 import { restControllers, restProviders } from './rest/index.js';
 import { syncControllers, syncProviders } from './sync/sync.module.js';
 import { DB } from './tokens.js';
+import { ensureRootSpace } from './spaces/root.js';
 import { CollabService } from './collab/collab.service.js';
 import { COLLAB_OPTS, defaultCollabOpts } from './collab/options.js';
 
@@ -37,6 +38,7 @@ export class AppModule implements OnApplicationShutdown {
   async onModuleInit() {
     // БД недоступна — приложение всё равно стартует (health вернёт 503), пользователь появится при следующем старте
     await ensureSystemUser(this.db).catch((e) => new Logger('app').error(e));
+    await ensureRootSpace(this.db).catch((e) => new Logger('app').error(e));
   }
 
   /** app.close() закрывает пул (и в тестах, и по SIGTERM) */

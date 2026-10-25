@@ -20,7 +20,7 @@ related: ["docs/contracts/core.md"]
 | `member.add` | `id, spaceId, userId, role` | |
 | `member.update` | `id, role` | последний admin → `conflict` |
 | `member.remove` | `id` | последний admin → `conflict` |
-| `project.create` | `id, spaceId, name, key, rank, description?, color?, icon?, leadId?` | |
+| `project.create` | `id, spaceId, name, key, rank, description?, color?, icon?, leadId?` | `spaceId` = `settings.root_space` → `invalid_args` (v6) |
 | `project.update` | `id, name?, key?, description?, color?, icon?, leadId?, rank?, archivedAt?` | |
 | `project.delete` | `id` | есть задачи → `conflict`; удаляет `fieldDefs` проекта |
 | `status.create` | `id, spaceId, name, category, color, rank` | |

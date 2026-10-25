@@ -60,6 +60,7 @@ vi.mock('vue-router', async (orig) => ({
 const page = (id: string, o: Partial<PageRow & { body: unknown }> = {}) => ({
   id,
   spaceId: SPACE,
+  projectId: null,
   parentId: null,
   rank: 'a0',
   title: id,

@@ -77,6 +77,23 @@ describe('docs', () => {
     });
   });
 
+  it('projectId: свой проект ок, чужой → invalid_args; дети и перенос наследуют группу', async () => {
+    const other = await world(db);
+    expect(
+      await w.member.push('docs.page.create', pg({ projectId: other.projectId })),
+    ).toMatchObject({ code: 'invalid_args' });
+    const root = await mk({ projectId: w.projectId });
+    const kid = await mk({ parentId: root, projectId: null });
+    expect(await row(kid)).toMatchObject({ projectId: w.projectId });
+    const loose = await mk();
+    const sub = await mk({ parentId: loose });
+    expect(await row(loose)).toMatchObject({ projectId: null });
+    await w.member.ok('docs.page.move', { id: loose, parentId: root, rank: 'b0' });
+    expect(await row(sub)).toMatchObject({ projectId: w.projectId });
+    await w.member.ok('docs.page.move', { id: loose, parentId: null, rank: 'b0', projectId: null });
+    expect(await row(sub)).toMatchObject({ projectId: null });
+  });
+
   it('update: пересчёт text, архивная → conflict', async () => {
     const id = await mk();
     await w.member.ok('docs.page.update', { id, body: body('new') });

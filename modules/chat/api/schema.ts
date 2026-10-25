@@ -18,6 +18,7 @@ export const chatChannels = pgTable(
   {
     id: uuid().primaryKey(),
     spaceId: uuid(),
+    projectId: uuid(),
     kind: text().notNull(),
     name: text(),
     topic: text(),

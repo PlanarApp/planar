@@ -68,6 +68,7 @@ vi.mock('vue-router', async (orig) => ({
 const chan = (id: string, o: Partial<Channel> = {}): Channel => ({
   id,
   spaceId: SPACE,
+  projectId: null,
   kind: 'channel',
   name: id,
   topic: null,

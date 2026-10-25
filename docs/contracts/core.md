@@ -180,7 +180,9 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 ### Клиент (для web)
 Применяет `changes` по `seq`; `reset` → bootstrap. После pull отбрасывает из очереди мутации с `id ≤ lastMutationId`, остальные заново применяет поверх серверного состояния (rebase). Повтор push при сетевой ошибке и `5xx` — с ростом паузы 1–30 с; `401` — на вход.
 
-## C-mutators v5
+## C-mutators v6
+
+v6 (группы): `project.create` в корневом пространстве (`settings.root_space`, уровень «Воркспейс»; создаёт и наполняет участниками `apps/api/src/spaces/root.ts`) → `invalid_args` — core-mutators.md.
 
 v5 (p4, PF-4): `settings.set {id: 'enabled_modules'}` — новый id модуля с `unavailable` ≠ null → `invalid_args` (только сервер) — p4.md, core-mutators.md.
 

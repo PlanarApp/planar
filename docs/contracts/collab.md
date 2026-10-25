@@ -11,7 +11,9 @@ related: ["docs/plan/collab.md", "docs/contracts/core.md", "docs/contracts/core-
 
 Владелец — координатор collab. Формат сущностей и мутаторов — как в `docs/contracts/core.md` (C-schema) и `core-mutators.md`; правила C-schema «Общие правила», «Типы», «Видимость и права» действуют. Контрактный тест — `apps/api/test/modules/collab.contract.test.ts`: сверяет разделы `#### <сущность>` и таблицы мутаторов этого файла с `shared.entities` и `shared.mutators` модулей (имена полей, nullability, meta, имена и необязательность args).
 
-## DC-schema v1
+## DC-schema v2
+
+v2 (группы): `docsPages.projectId` — уровень страницы.
 
 Модуль `docs` (`modules/docs`, пакет `@planar/module-docs`), таблицы `docs_<snake>`. FK между сущностями модуля — без каскада; на `tasks` FK нет (ядро удаляет задачи, не зная о модуле): связь с удалённой задачей UI не показывает.
 
@@ -22,6 +24,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, parentId
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
+| `projectId` | uuid? | проект того же пространства; null — уровень пространства (у корневого — Воркспейс); у потомков — как у корня дерева |
 | `parentId` | uuid? | страница того же пространства; null — корень |
 | `rank` | rank | порядок среди соседей (один `parentId`) |
 | `title` | text | 0–200 символов; пусто — UI пишет «Без названия» |
@@ -61,15 +64,17 @@ scope: space · write: member · bootstrap: yes · indexes: —
 
 Мягкая блокировка: только индикатор «редактирует X» и режим чтения у остальных в UI; `docs.page.update` её не проверяет. Истёкшая (`expiresAt ≤ ctx.now`) считается отсутствующей. Шорткат: без совместного редактирования; понадобится — Yjs + Hocuspocus.
 
-## DC-mutators v1
+## DC-mutators v2
+
+v2 (группы): `projectId` в `docs.page.create`/`docs.page.move`.
 
 Экспорт — `shared.mutators` из `modules/docs/shared/index.ts`; `args` — `z.object`. Все id и `rank` — в args. Чужое пространство или нет строки — `not_found`/`forbidden` по общим правилам серверного `Tx`.
 
 | имя | args | правила |
 |---|---|---|
-| `docs.page.create` | `id, spaceId, rank, parentId?, title?, icon?, body?` | родитель — неархивная страница того же пространства, иначе `invalid_args`; `title` по умолчанию `''`, `body` — `{type:'doc', content:[]}`; `text`, `files` из `body`; `createdBy = updatedBy = ctx.userId` |
+| `docs.page.create` | `id, spaceId, rank, projectId?, parentId?, title?, icon?, body?` | родитель — неархивная страница того же пространства, иначе `invalid_args`; с родителем `projectId` = родителя, без — проект этого пространства или null, иначе `invalid_args`; `title` по умолчанию `''`, `body` — `{type:'doc', content:[]}`; `text`, `files` из `body`; `createdBy = updatedBy = ctx.userId` |
 | `docs.page.update` | `id, title?, icon?, body?` | архивная → `conflict`; `body` → пересчёт `text`, `files`; `updatedBy = ctx.userId` |
-| `docs.page.move` | `id, parentId, rank` | `parentId: uuid \| null` (ключ обязателен); сама страница или её потомок → `invalid_args`; другое пространство → `invalid_args`; страница или новый родитель архивные → `conflict` |
+| `docs.page.move` | `id, parentId, rank, projectId?` | `parentId: uuid \| null` (ключ обязателен); `projectId` = нового родителя, в корне — `projectId` из args (нет ключа — прежний), проект чужого пространства → `invalid_args`; потомки получают тот же `projectId`; сама страница или её потомок → `invalid_args`; другое пространство → `invalid_args`; страница или новый родитель архивные → `conflict` |
 | `docs.page.archive` | `id` | `archivedAt = ctx.now` у страницы и всех её неархивных потомков; уже архивная — ничего |
 | `docs.page.restore` | `id` | снимает `archivedAt` у страницы и потомков с тем же `archivedAt`; родитель архивный → `parentId = null` |
 | `docs.link.add` | `id, pageId, taskId` | задача (строка `tasks`) и страница одного пространства, иначе `invalid_args`; пара уже связана — ничего |
@@ -86,7 +91,9 @@ scope: space · write: member · bootstrap: yes · indexes: —
 - Поиск Cmd+K — по `docsPages.title` и `text` локальной реплики (точка поиска — X-core, после шлюза).
 - Изображения — `POST /files`, узел `image` с `src: '/files/<sha256>'`; чтение файла другими участниками — X-core `canReadFile`.
 
-## CH-schema v1
+## CH-schema v2
+
+v2 (группы): `chatChannels.projectId`.
 
 Модуль `chat` (`modules/chat`, пакет `@planar/module-chat`), таблицы `chat_<snake>`. Каналы пространства (`spaceId` задан) видны всем участникам пространства. Личные диалоги — `spaceId = null`, 2–8 участников (`chatMembers`), видны только им: scope `space|members` (C-sync v2, §X-core п. 1), у всех сущностей с этим scope `meta.members = {entity: 'chatMembers', key: 'channelId', container: 'chatChannels', via}` — `via: 'id'` у `chatChannels`, `'channelId'` у остальных. FK внутри модуля — без каскада; на `users` и `spaces` FK нет.
 
@@ -97,6 +104,7 @@ scope: space|members · write: guest · bootstrap: yes · indexes: spaceId
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid? | null — личный диалог |
+| `projectId` | uuid? | проект того же пространства — канал проекта; null — уровень пространства или диалог |
 | `kind` | enum(channel,dm) | `dm` ⇔ `spaceId = null` |
 | `name` | text? | канал — 1–80 символов; у диалога null (UI — имена участников) |
 | `topic` | text? | ≤ 250 |
@@ -164,13 +172,15 @@ scope: user · write: self · bootstrap: yes · indexes: channelId
 | `muted` | bool | без push и счётчика в боковой панели |
 | `updatedAt` | ts | |
 
-## CH-mutators v1
+## CH-mutators v2
+
+v2 (группы): `chat.channel.create` += `projectId?`.
 
 Экспорт — `shared.mutators` из `modules/chat/shared/index.ts`. Все id — в args. «Видит канал»: канал пространства — участник `spaceMembers`; диалог — строка `chatMembers`.
 
 | имя | args | правила |
 |---|---|---|
-| `chat.channel.create` | `id, spaceId, name, topic?` | роль в пространстве ≥ member, иначе `forbidden`; `name` после trim 1–80, иначе `invalid_args`; `kind = channel`, `lastSeq = 0` |
+| `chat.channel.create` | `id, spaceId, projectId?, name, topic?` | роль в пространстве ≥ member, иначе `forbidden`; проект не этого пространства → `invalid_args`; `name` после trim 1–80, иначе `invalid_args`; `kind = channel`, `lastSeq = 0` |
 | `chat.channel.update` | `id, name?, topic?, archivedAt?` | только `kind = channel` (иначе `invalid_args`); создатель или admin пространства, иначе `forbidden` |
 | `chat.dm.create` | `id, members: {id, userId}[]` | 2–8 строк, `userId` без повторов, среди них ctx.userId, у каждого есть строка `users` без `deactivatedAt` — иначе `invalid_args`; `spaceId = null`, `kind = dm`, `name = null`; сначала контейнер, затем участники (`addedBy = ctx.userId`). Повторный диалог с тем же составом UI не создаёт (открывает существующий) |
 | `chat.dm.addMember` | `id, channelId, userId` | только диалог; уже участник — ничего; станет > 8 → `conflict` |

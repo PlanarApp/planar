@@ -169,6 +169,13 @@
       "when": 1792906266557,
       "tag": "0023_opposite_quasimodo",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792958901808,
+      "tag": "0024_true_moon_knight",
+      "breakpoints": true
     }
   ]
 }

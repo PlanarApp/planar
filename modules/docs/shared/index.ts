@@ -12,6 +12,7 @@ const doc = z.looseObject({ type: z.literal('doc'), content: z.array(z.unknown()
 export const docsPages = z.object({
   id: z.uuid(),
   spaceId: z.uuid(),
+  projectId: z.uuid().nullable(),
   parentId: z.uuid().nullable(),
   rank: z.string().min(1),
   title: z.string().max(200),
@@ -103,6 +104,13 @@ async function descendants(tx: Tx, id: string): Promise<Page[]> {
   return out;
 }
 
+// уровень страницы: проект своего пространства или само пространство (null)
+async function checkProject(tx: Tx, spaceId: string, projectId: string | null) {
+  if (!projectId) return;
+  const pr = await tx.get('projects', projectId);
+  if (!pr || pr.spaceId !== spaceId) throw new MutatorError('invalid_args', 'проект другого пространства');
+}
+
 const expiry = (now: string) => new Date(Date.parse(now) + 120_000).toISOString();
 
 const create = defineMutator({
@@ -110,6 +118,7 @@ const create = defineMutator({
   args: z.object({
     id: z.uuid(),
     spaceId: z.uuid(),
+    projectId: z.uuid().nullable().optional(),
     rank: z.string().min(1),
     parentId: z.uuid().nullable().optional(),
     title: z.string().max(200).optional(),
@@ -117,16 +126,19 @@ const create = defineMutator({
     body: doc.optional(),
   }),
   async run(tx, a, ctx) {
+    let projectId = a.projectId ?? null;
     if (a.parentId) {
       const p = await dtx(tx).get<Page>('docsPages', a.parentId);
       if (!p || p.spaceId !== a.spaceId || p.archivedAt)
         throw new MutatorError('invalid_args', 'родитель недопустим');
-    }
+      projectId = p.projectId; // дочерняя страница — в группе родителя
+    } else await checkProject(tx, a.spaceId, projectId);
     const body = a.body ?? { type: 'doc' as const, content: [] };
     checkBody(body);
     const row: Page = {
       id: a.id,
       spaceId: a.spaceId,
+      projectId,
       parentId: a.parentId ?? null,
       rank: a.rank,
       title: a.title ?? '',
@@ -167,9 +179,15 @@ const update = defineMutator({
 
 const move = defineMutator({
   name: 'docs.page.move',
-  args: z.object({ id: z.uuid(), parentId: z.uuid().nullable(), rank: z.string().min(1) }),
+  args: z.object({
+    id: z.uuid(),
+    parentId: z.uuid().nullable(),
+    rank: z.string().min(1),
+    projectId: z.uuid().nullable().optional(), // для корня; без него группа не меняется
+  }),
   async run(tx, a, ctx) {
     const p = await page(tx, a.id);
+    let projectId = a.projectId === undefined ? p.projectId : a.projectId;
     if (a.parentId) {
       const np = await dtx(tx).get<Page>('docsPages', a.parentId);
       if (!np) throw new MutatorError('not_found', 'родитель не найден');
@@ -177,9 +195,14 @@ const move = defineMutator({
       if (a.parentId === a.id || (await descendants(tx, a.id)).some((d) => d.id === a.parentId))
         throw new MutatorError('invalid_args', 'цикл');
       if (np.archivedAt) throw new MutatorError('conflict', 'родитель в архиве');
-    }
+      projectId = np.projectId;
+    } else await checkProject(tx, p.spaceId, projectId);
     if (p.archivedAt) throw new MutatorError('conflict', 'страница в архиве');
+    if (projectId !== p.projectId)
+      for (const d of await descendants(tx, a.id))
+        await dtx(tx).patch('docsPages', d.id, { projectId, updatedAt: ctx.now });
     await dtx(tx).patch('docsPages', a.id, {
+      projectId,
       parentId: a.parentId,
       rank: a.rank,
       updatedAt: ctx.now,

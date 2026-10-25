@@ -12,6 +12,7 @@ import { HttpError } from './errors.js';
 import { hashPassword } from './password.js';
 import { Public } from './public.js';
 import { parseBody } from './validate.js';
+import { ensureRootSpace } from '../spaces/root.js';
 
 const setupSchema = z.object({
   login: loginSchema,
@@ -49,6 +50,7 @@ export class SetupController {
       }
       return insertUser(tx, { ...v, role: 'owner', passwordHash });
     });
+    await ensureRootSpace(this.db); // владелец — участник «Общего» (Воркспейс)
     return { user: publicUser(row) };
   }
 }
