@@ -48,6 +48,8 @@ export interface BackendModuleManifest {
   jobs?: unknown[];
   /** Доступ к файлу сверх встроенных проверок (GET /files); q — Drizzle-коннект/транзакция */
   canReadFile?: (q: unknown, userId: string, sha256: string) => Promise<boolean>;
+  /** null — модуль можно включить, строка — код причины (C-modules v11); q — Drizzle-коннект/транзакция */
+  unavailable?: (q: unknown) => Promise<string | null>;
 }
 
 /** Типы элементов задаёт web (C-ui); здесь — только форма манифеста. */
@@ -62,6 +64,8 @@ export interface FrontendModuleManifest {
   nav?: unknown[];
   topbar?: unknown[];
   search?: unknown[];
+  /** Компонент настройки модуля (диалог в ModulesSettings, в том числе у выключенного) */
+  setup?: unknown;
 }
 
 export const MODULE_ID_RE = /^[a-z][a-z0-9-]{1,30}$/;

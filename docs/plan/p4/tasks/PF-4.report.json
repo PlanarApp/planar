@@ -1,8 +1,10 @@
 {
   "status": "done",
-  "summary": "Ядро: unavailable/setup в C-modules v11 (guard, GET /api/modules, server-tx для enabled_modules, web ModulesSettings + registry.moduleSetup). Модуль modules/email: SMTP через nodemailer с шифрованным паролем, cron email.notify (10 мин, без дублей) и email.digest, отписка по HMAC-токену (GET/POST, One-Click), emailPrefs, web setup и настройки; миграция 0019.",
+  "summary": "Доработка по ревью: миграция 0021 поверх 0019/0020 с FK users (cascade) в schema.ts; 502 unavailable без приведения; form-парсер только для /api/email/unsubscribe (иначе 415); дайджест без архивных проектов. Первичная работа: ядро C-modules v11/C-mutators v5 + модуль email.",
   "commits": [
-    "f39f6fe PF-4: модуль email (SMTP, письма по уведомлениям, дайджест, отписка); C-modules v11, C-mutators v5"
+    "9ef0960 PF-4: тест 415/400",
+    "623bd8a PF-4: доработка после ревью (P4-email v2): FK в схеме, 502 unavailable, form-парсер только для отписки, дайджест без архивных проектов; миграция 0021",
+    "94ff912 PF-4: убрана своя миграция перед слиянием"
   ],
   "checks": [
     {
@@ -32,53 +34,41 @@
     },
     {
       "name": "pf4",
-      "value": "26",
+      "value": "27",
       "pass": true
     },
     {
       "name": "scope",
-      "value": "FAIL: apps/api/test/modules/modules.test.ts вне scope",
-      "pass": false
+      "value": "32 файла в границах",
+      "pass": true
     }
   ],
   "not_done": [
-    "web-тест ModulesSettings (неактивный переключатель, диалог setup) не написан; в pf4-тестах только API"
+    "web-тест ModulesSettings не написан (необязателен)"
   ],
-  "questions": [
-    "Добавить apps/api/test/modules/modules.test.ts в scope PF-4: GET /api/modules по контракту получил unavailable, старые toContainEqual({id, enabled}) в этом файле обязаны измениться (3 строки)."
-  ],
+  "questions": [],
   "how_to_check": ".dpcli/dpcli accept PF-4",
   "uncertain": [
     {
-      "where": "modules/email/api/controller.ts: test()",
-      "why": "контракт требует код 502 smtp_error, а HTTP_ERROR_CODES ядра его не содержит",
-      "checked": "отдаю HttpError(502, 'smtp_error' as 'unavailable'); ErrorFilter код не валидирует, тест проверяет json().code === 'smtp_error'"
+      "where": "modules/email/api/index.ts парсер",
+      "why": "при не-unsubscribe маршруте Fastify отдаёт 400 или 415",
+      "checked": "тест принимает оба, как в заметке; тело не разбирается"
     },
     {
-      "where": "modules/email/api/index.ts onModuleInit",
-      "why": "form-urlencoded парсер добавляется в Fastify из модуля (app.ts вне scope)",
-      "checked": "тесты POST /unsubscribe с application/x-www-form-urlencoded и RFC 8058 проходят; повторная регистрация обёрнута в try"
-    },
-    {
-      "where": "apps/api/src/modules/module.guard.ts",
-      "why": "отписка (/api/email/unsubscribe) у выключенного модуля даёт 404 module_disabled — старые ссылки в письмах перестают работать после выключения модуля",
-      "checked": "соответствует контракту (выключен — маршруты закрыты, кроме setup); покрыто setup-guard.test"
-    },
-    {
-      "where": "безопасность (ревью)",
+      "where": "безопасность",
       "why": "секреты SMTP и токен отписки",
-      "checked": "пароль AES-256-GCM (iv 12 байт), не в ответах GET/PUT/test и не в error/логах (safeErr подменяет пароль); токен HMAC-SHA256 с PLANAR_SECRET_KEY, timingSafeEqual, подмена kind/подписи/ключа → 400; без ключа писем нет, отписка 503; from без CR/LF и одиночный адрес (инъекция заголовков); весь HTML письма и страниц экранирован (esc), ссылки только PUBLIC_URL+путь от '/' не '//'; setup — сессия owner/admin, Bearer 403; один outbox на уведомление (insert on conflict), повторов нет"
+      "checked": "AES-256-GCM, пароль не в ответах/ошибках/логах (safeErr); HMAC-SHA256 + timingSafeEqual, подмена kind/подписи/ключа -> 400; без ключа писем нет, отписка 503; from без CR/LF, один адрес; HTML экранирован; ссылки PUBLIC_URL+путь; setup только сессия owner/admin; один outbox на уведомление"
     },
     {
-      "where": "apps/api/drizzle/0019_loose_nico_minoru.sql",
-      "why": "FK email_outbox/email_digests -> users дописаны вручную (модуль не импортирует схему ядра), снимок drizzle их не знает",
-      "checked": "миграция применяется в тестах; task sync выполнен, конфликтов миграций нет"
+      "where": "modules/email/api/schema.ts users",
+      "why": "нешаренная заглушка таблицы users для FK",
+      "checked": "сгенерированная 0021 не содержит CREATE TABLE users, только ADD CONSTRAINT FK"
     }
   ],
-  "dp_feedback": "accept проверяет scope жёстко, а контракт неизбежно меняет существующие тесты (modules.test.ts): в карточке стоило сразу указать их в scope.",
+  "dp_feedback": "sync при конфликте миграций приходится делать вручную (удалить, merge, generate); команда для этого сэкономила бы время.",
   "extra": {
-    "pf4_tests": 26
+    "pf4_tests": 27
   },
-  "t": "2026-10-25T01:52:16",
+  "t": "2026-10-25T02:37:44",
   "by": "executor"
 }
