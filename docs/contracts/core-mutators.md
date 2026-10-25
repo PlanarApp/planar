@@ -3,7 +3,7 @@ type: reference
 status: active
 module: core
 updated: 2026-10-24
-summary: Мутаторы домена C-mutators v4 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
+summary: Мутаторы домена C-mutators v5 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---
 
@@ -58,7 +58,7 @@ related: ["docs/contracts/core.md"]
 | `view.create` | `id, spaceId, personal: bool, name, layout, filter, config, rank` | `personal` → `userId = ctx.userId` |
 | `view.update` | `id, name?, layout?, filter?, config?, rank?` | |
 | `view.delete` | `id` | |
-| `settings.set` | `id, value` | |
+| `settings.set` | `id, value` | v5: `id = 'enabled_modules'` — id модуля, которого не было во включённых, с `unavailable` ≠ null (C-modules v11) → `invalid_args`; проверка только на сервере |
 
 Вспомогательное (shared): `fieldValueSchema(def)`, `defaultFieldOptions(type)`, `fieldOptionsSchema(type)` (features.md §F-fields), `extractMentions(doc): string[]`, `textToDoc(text, users): doc` (абзацы, `@login` → mention; для REST и MCP).
 

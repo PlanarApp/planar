@@ -180,7 +180,9 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 ### Клиент (для web)
 Применяет `changes` по `seq`; `reset` → bootstrap. После pull отбрасывает из очереди мутации с `id ≤ lastMutationId`, остальные заново применяет поверх серверного состояния (rebase). Повтор push при сетевой ошибке и `5xx` — с ростом паузы 1–30 с; `401` — на вход.
 
-## C-mutators v4
+## C-mutators v5
+
+v5 (p4, PF-4): `settings.set {id: 'enabled_modules'}` — новый id модуля с `unavailable` ≠ null → `invalid_args` (только сервер) — p4.md, core-mutators.md.
 
 v4 (design): `space.create` += `statusNames?` (core-mutators.md).
 v3 (FT): `field.*`, `task.setField`, `link.*` (core-mutators.md).
@@ -225,8 +227,9 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Мутаторы домена v2
 Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
 
-## C-modules v10
+## C-modules v11
 
+v11 (p4): `BackendModuleManifest.unavailable?`, `GET /api/modules` += `unavailable`; `/api/<id>/setup/*` выключенного модуля — только owner/admin (ModuleGuard); `FrontendModuleManifest.setup?`; `CommandDef.newTaskMenu?` — docs/contracts/p4.md (вступление).
 v10 (design, DS-0): SDK += компоненты C-ui v3 — work-api.md, design.md.
 v9 (p3, PT-5): `CoreServices` += `execute(userId, muts, opts?)` — как `JobApi.execute`; `ensureSystemUser(login, name): Promise<string>` — деактивированный пользователь без пароля (как «Автоматизация»), повторный вызов возвращает того же; `storeFile(buf: Buffer, uploaderId: string): Promise<{sha256, size, mime, width, height}>` — та же запись, что `POST /files` (`files`, `file_uploads`, лимит `MAX_UPLOAD_MB` → `413`).
 v8: JobApi.execute opts.after — в транзакции после всех мутаций, ошибка откатывает (PL-2) — work.md §C-modules v4.
