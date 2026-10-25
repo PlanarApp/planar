@@ -96,18 +96,28 @@ export function useUnread() {
 
 export type MyTask = Row<'tasks'> & { key: string; project: string; status: Row<'statuses'> };
 
-export const useMyTasks = (userId: () => string | undefined) =>
+/** «Моя работа»: назначенные мне, созданные мной, отслеживаемые */
+export type WorkKind = 'assigned' | 'created' | 'watched';
+
+async function workTasks(kind: WorkKind, uid: string): Promise<Row<'tasks'>[]> {
+  const tasks = db.table<Row<'tasks'>>('tasks');
+  if (kind === 'created') return tasks.filter((t) => t.createdBy === uid).toArray();
+  const links = await db
+    .table<{ taskId: string }>(kind === 'assigned' ? 'taskAssignees' : 'taskWatchers')
+    .where('userId')
+    .equals(uid)
+    .toArray();
+  return (await tasks.bulkGet(links.map((a) => a.taskId))).filter((t): t is Row<'tasks'> => !!t);
+}
+
+export const useMyTasks = (
+  userId: () => string | undefined,
+  kind: () => WorkKind = () => 'assigned',
+) =>
   useQuery(async (): Promise<MyTask[]> => {
     const uid = userId();
     if (!uid) return [];
-    const as = await db
-      .table<Row<'taskAssignees'>>('taskAssignees')
-      .where('userId')
-      .equals(uid)
-      .toArray();
-    const tasks = (await db.table<Row<'tasks'>>('tasks').bulkGet(as.map((a) => a.taskId))).filter(
-      (t): t is Row<'tasks'> => !!t,
-    );
+    const tasks = await workTasks(kind(), uid);
     const [statuses, projects] = await Promise.all([
       db.table<Row<'statuses'>>('statuses').bulkGet([...new Set(tasks.map((t) => t.statusId))]),
       db.table<Row<'projects'>>('projects').bulkGet([...new Set(tasks.map((t) => t.projectId))]),
@@ -140,3 +150,39 @@ export function useUnreadItems() {
     (rows.value ?? []).filter((n) => !n.readAt && !(snoozed.value[n.id] && isSnoozed(n.id))),
   );
 }
+
+export type AssignedComment = Row<'comments'> & { key: string; title: string; projectId: string };
+
+/** «Комментарии мне»: назначенные мне комментарии с задачей */
+export const useAssignedComments = (userId: () => string | undefined) =>
+  useQuery(async (): Promise<AssignedComment[]> => {
+    const uid = userId();
+    if (!uid) return [];
+    const cs = await db
+      .table<Row<'comments'>>('comments')
+      .filter((c) => c.assigneeId === uid)
+      .toArray();
+    const tasks = await db
+      .table<Row<'tasks'>>('tasks')
+      .bulkGet([...new Set(cs.map((c) => c.taskId))]);
+    const task = new Map(tasks.flatMap((t) => (t ? [[t.id, t] as const] : [])));
+    const projects = await db
+      .table<Row<'projects'>>('projects')
+      .bulkGet([...new Set(tasks.flatMap((t) => (t ? [t.projectId] : [])))]);
+    const key = new Map(projects.flatMap((p) => (p ? [[p.id, p.key] as const] : [])));
+    return cs
+      .flatMap((c) => {
+        const t = task.get(c.taskId);
+        return t
+          ? [
+              {
+                ...c,
+                title: t.title,
+                projectId: t.projectId,
+                key: `${key.get(t.projectId) ?? '?'}-${t.number ?? '…'}`,
+              },
+            ]
+          : [];
+      })
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  });

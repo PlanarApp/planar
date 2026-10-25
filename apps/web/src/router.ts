@@ -14,7 +14,8 @@ export const router = createRouter({
     { path: '/setup', name: 'setup', component: screen('Setup'), meta: { layout: 'none' } },
     { path: '/login', name: 'login', component: screen('Login'), meta: { layout: 'none' } },
     { path: '/profile', name: 'profile', component: screen('Profile') },
-    { path: '/inbox', name: 'inbox', component: screen('Inbox') },
+    // Входящие переехали в «Моя работа › Активность» Воркспейса
+    { path: '/inbox', redirect: { path: '/w/work', query: { w: 'activity' } } },
     { path: '/my', name: 'my', component: screen('My') },
     { path: '/p/:projectId/v/:viewId', name: 'savedView', component: screen('SavedView') },
     { path: '/w/:tab?', name: 'workspace', component: screen('Group') },
@@ -45,6 +46,14 @@ router.beforeEach(async (to) => {
     return (await setupNeeded()) ? '/setup' : { path: '/login', query: { redirect: to.fullPath } };
   }
   if (to.name === 'login' || to.name === 'setup') return '/';
+  // бывший таб «Входящие» группы — «Моя работа › Активность»
+  const seg = String((to.name === 'project' ? to.params.view : to.params.tab) ?? '');
+  if (seg === 'inbox' && ['project', 'space', 'workspace'].includes(String(to.name)))
+    return {
+      path: to.path.replace(/\/inbox$/, '/work'),
+      query: { ...to.query, w: 'activity' },
+      replace: true,
+    };
   // бывшие виды проекта Спринт и Вехи живут в Отчётах группы
   if (to.name === 'project' && MOVED_VIEWS.includes(String(to.params.view)))
     return {

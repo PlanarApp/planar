@@ -7,13 +7,17 @@ import { EmptyState } from '../ui';
 import { openTask } from '../views';
 import { formatDue } from '../views/list/due';
 import { useAuth } from '../auth/useAuth';
-import { useMyTasks, type MyTask } from '../inbox/queries';
+import { useMyTasks, type MyTask, type WorkKind } from '../inbox/queries';
 
 const { t, locale } = useI18n();
 // projectIds — вид «Мои задачи» группы (только её проекты, без заголовка экрана)
-const props = defineProps<{ projectIds?: string[] }>();
+// kind — список «Моей работы» (назначенные, созданные, отслеживаемые); по умолчанию — назначенные
+const props = defineProps<{ projectIds?: string[]; kind?: WorkKind }>();
 const { user } = useAuth();
-const all = useMyTasks(() => user.value?.id);
+const all = useMyTasks(
+  () => user.value?.id,
+  () => props.kind ?? 'assigned',
+);
 const rows = computed(() => {
   const ids = props.projectIds && new Set(props.projectIds);
   return ids ? all.value?.filter((r) => ids.has(r.projectId)) : all.value;

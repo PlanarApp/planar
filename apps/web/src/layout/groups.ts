@@ -1,6 +1,6 @@
 /** Группы: три уровня и общие табы (Задачи — любой ключ вида, напр. `/p/<id>/board`). */
 export type GroupLevel = 'workspace' | 'space' | 'project';
-export const GROUP_TABS = ['inbox', 'tasks', 'docs', 'chats', 'reports', 'settings'] as const;
+export const GROUP_TABS = ['work', 'tasks', 'docs', 'chats', 'reports', 'settings'] as const;
 export type GroupTab = (typeof GROUP_TABS)[number];
 
 export const groupTab = (seg: unknown): GroupTab =>

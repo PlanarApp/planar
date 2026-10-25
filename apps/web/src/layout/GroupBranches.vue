@@ -5,7 +5,7 @@ import {
   BarChart3,
   ChevronRight,
   FileText,
-  Inbox,
+  Briefcase,
   ListTodo,
   MessagesSquare,
 } from 'lucide-vue-next';
@@ -29,7 +29,7 @@ const count = computed(() => props.unread.filter((n) => inGroup(n, props.scope, 
 const rows = computed(() =>
   (
     [
-      { tab: 'inbox', icon: Inbox, on: true },
+      { tab: 'work', icon: Briefcase, on: true },
       { tab: 'tasks', icon: ListTodo, on: props.scope.level === 'project' },
       { tab: 'docs', icon: FileText, on: has('docs') },
       { tab: 'chats', icon: MessagesSquare, on: has('chats') },
@@ -73,7 +73,7 @@ const link =
         <component :is="r.icon" :size="14" class="shrink-0" />
         <span class="truncate">{{ t(`groups.tab.${r.tab}`) }}</span>
         <Badge
-          v-if="r.tab === 'inbox' && count"
+          v-if="r.tab === 'work' && count"
           variant="solid"
           color="var(--color-accent)"
           class="ml-auto text-accent-fg!"

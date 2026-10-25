@@ -106,7 +106,7 @@ test('collab-edit: после правки и debounce Cmd+K находит но
       { timeout: 20_000 },
     )
     .toContain(word);
-  await alice.getByRole('link', { name: 'Входящие' }).first().click();
+  await alice.getByRole('link', { name: 'Моя работа' }).first().click();
   await alice.keyboard.press('Control+k');
   await alice.getByRole('dialog').getByRole('textbox').fill(word);
   await expect(alice.getByRole('option').filter({ hasText: title })).toBeVisible();

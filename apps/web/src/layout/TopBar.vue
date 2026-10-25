@@ -200,7 +200,11 @@ const crumbs = computed<Crumb[]>(() => {
       {{ t('topbar.install') }}
     </Button>
     <span class="relative">
-      <IconButton :icon="Bell" :label="t('topbar.notifications')" @click="router.push('/inbox')" />
+      <IconButton
+        :icon="Bell"
+        :label="t('topbar.notifications')"
+        @click="router.push('/w/work?w=activity')"
+      />
       <span
         v-if="unread"
         data-testid="bell-count"

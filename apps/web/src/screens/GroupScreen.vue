@@ -2,7 +2,14 @@
 import { computed, defineAsyncComponent, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { BarChart3, FileText, Inbox, ListTodo, MessagesSquare, Settings } from 'lucide-vue-next';
+import {
+  BarChart3,
+  Briefcase,
+  FileText,
+  ListTodo,
+  MessagesSquare,
+  Settings,
+} from 'lucide-vue-next';
 import { useProject, useRootSpaceId, useSpaces } from '../tasks';
 import { EmptyState, Tabs } from '../ui';
 import { useExtensions } from '../modules/registry';
@@ -11,7 +18,7 @@ import { GROUP_TABS, groupTab, groupUrl, type GroupLevel } from '../layout/group
 import ProjectScreen from './ProjectScreen.vue';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import SettingsScreen from './SettingsScreen.vue';
-import InboxScreen from './InboxScreen.vue';
+import MyWork from '../inbox/MyWork.vue';
 import TaskModal from '../views/TaskModal.vue';
 
 // Группа: Воркспейс (/w), Пространство (/s/:spaceId), Проект (/p/:projectId) — одинаковые табы
@@ -64,7 +71,7 @@ const partComponent = computed(() => {
 });
 const selectPart = (k: string) => void router.replace({ query: { ...route.query, r: k } });
 const icons = {
-  inbox: Inbox,
+  work: Briefcase,
   tasks: ListTodo,
   docs: FileText,
   chats: MessagesSquare,
@@ -106,11 +113,7 @@ const icons = {
         :root-space-id="rootId ?? undefined"
       />
       <SettingsScreen v-else-if="name && scope && tab === 'settings'" :scope="scope" />
-      <InboxScreen
-        v-else-if="name && scope && tab === 'inbox'"
-        :scope="scope"
-        class="h-full overflow-y-auto"
-      />
+      <MyWork v-else-if="name && scope && tab === 'work'" :scope="scope" />
       <div v-else-if="name && scope && part" class="flex h-full min-h-0 flex-col">
         <div v-if="parts.length > 1" class="shrink-0 border-b border-border px-2 py-1">
           <Tabs

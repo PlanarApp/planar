@@ -84,7 +84,7 @@ export interface GroupScope {
 /** Содержимое таба группы (данные её уровня и вложенных); у Отчётов — подтабы по label. */
 export interface GroupTabDef {
   id: string;
-  tab: 'inbox' | 'docs' | 'chats' | 'reports' | 'settings';
+  tab: 'work' | 'docs' | 'chats' | 'reports' | 'settings';
   label?: LocalizedText;
   icon?: Component;
   order?: number;

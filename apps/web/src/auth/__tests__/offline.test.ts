@@ -14,12 +14,12 @@ beforeEach(async () => {
 describe('auth:offline', () => {
   it('офлайн с известным пользователем открывает защищённый маршрут', async () => {
     localStorage.setItem('planar.user', JSON.stringify(mkUser()));
-    await router.push('/inbox');
-    expect(router.currentRoute.value.path).toBe('/inbox');
+    await router.push('/w');
+    expect(router.currentRoute.value.path).toBe('/w');
     expect(useAuth().user.value?.login).toBe('ann');
   });
   it('офлайн без пользователя -> /login без исключения', async () => {
-    await router.push('/inbox');
+    await router.push('/w');
     expect(router.currentRoute.value.path).toBe('/login');
   });
 });
