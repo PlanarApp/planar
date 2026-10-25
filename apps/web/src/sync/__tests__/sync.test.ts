@@ -1,6 +1,6 @@
 // @vitest-environment node
 import 'fake-indexeddb/auto';
-import { effectScope, nextTick, watch } from 'vue';
+import { effectScope, nextTick, reactive, watch } from 'vue';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { useQuery } from '../query';
@@ -33,6 +33,17 @@ describe('sync', () => {
     expect(s.server.pushes).toBe(0);
     await until(() => c.syncState.value.pending === 1);
     scope.stop();
+    await c.stopSync();
+  });
+
+  it('sync:reactive-args — реактивные аргументы (Vue Proxy) не роняют IndexedDB', async () => {
+    const s = setup();
+    const c = s.mk();
+    await s.start(c);
+    s.server.mode = 'offline';
+    await c.mutate('test.label.put', reactive(args('a')));
+    expect((await labels(s.db)).map((l) => l.name)).toEqual(['a']);
+    expect(await s.db._queue.count()).toBe(1);
     await c.stopSync();
   });
 

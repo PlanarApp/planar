@@ -164,9 +164,11 @@ export function createClient(db: PlanarDB) {
     for (const d of defs) registry.set(d.name, d);
   }
 
-  async function mutate(name: string, args: unknown): Promise<void> {
+  async function mutate(name: string, input: unknown): Promise<void> {
     const def = registry.get(name);
     if (!def) throw new MutatorError('invalid_args', `неизвестный мутатор: ${name}`);
+    // аргументы — JSON по C-sync; реактивные Proxy Vue IndexedDB не клонирует (DataCloneError)
+    const args: unknown = input === undefined ? undefined : JSON.parse(JSON.stringify(input));
     const parsed = def.args.safeParse(args);
     if (!parsed.success) throw new MutatorError('invalid_args', parsed.error.message);
     if (!opts) throw new Error('sync не запущен: вызовите startSync');
