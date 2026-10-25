@@ -95,3 +95,13 @@
 {"t": "2026-10-25T08:45:50", "by": "coordinator", "task": "PF-6", "ev": "checked", "note": "6/7 build=ok:exit 0; lint=ok:exit 0; typecheck-web=ok:exit 0; test-web=FAIL:exit 1 · × \"pnpm recursive ex…; no-fixme=ok:0; size=ok:183.2; e2e-p4=ok:8"}
 {"t": "2026-10-25T08:46:40", "by": "coordinator", "task": "PF-6", "ev": "checked", "note": "7/7 build=ok:exit 0; lint=ok:exit 0; typecheck-web=ok:exit 0; test-web=ok:exit 0; no-fixme=ok:0; size=ok:183.2; e2e-p4=ok:8"}
 {"t": "2026-10-25T08:46:45", "by": "coordinator", "task": "PF-6", "ev": "accepted", "note": "по отчёту; Q3-B: perf A/B без регрессии, абсолютный §7 — отдельно перед main; test-web повтор PASS (нагрузка хоста)"}
+{"t": "2026-10-25T08:54:38", "by": "coordinator", "task": "PF-6", "ev": "checked", "commits": ["9adf2eb"], "note": "6/7 build=ok:exit 0; lint=ok:exit 0; typecheck-web=ok:exit 0; test-web=ok:exit 0; no-fixme=ok:0; size=ok:183.2; e2e-p4=FAIL:7"}
+{"t": "2026-10-25T08:59:21", "by": "coordinator", "task": "PF-6", "ev": "accepted", "commits": ["9adf2eb"], "note": "7/7 build=ok:exit 0; lint=ok:exit 0; typecheck-web=ok:exit 0; test-web=ok:exit 0; no-fixme=ok:0; size=ok:183.2; e2e-p4=ok:8"}
+{"t": "2026-10-25T08:59:43", "by": "coordinator", "task": "PF-6", "ev": "note", "note": "post-merge e2e-p4: 7/8 в первом прогоне при load ~48, повтор 8/8 — нестабильность под нагрузкой хоста"}
+{"t": "2026-10-25T08:59:43", "by": "coordinator", "task": "PF-1", "ev": "merged"}
+{"t": "2026-10-25T08:59:43", "by": "coordinator", "task": "PF-2", "ev": "merged"}
+{"t": "2026-10-25T08:59:43", "by": "coordinator", "task": "PF-3", "ev": "merged"}
+{"t": "2026-10-25T08:59:44", "by": "coordinator", "task": "PF-4", "ev": "merged"}
+{"t": "2026-10-25T08:59:44", "by": "coordinator", "task": "PF-5", "ev": "merged"}
+{"t": "2026-10-25T08:59:44", "by": "coordinator", "task": "PF-6", "ev": "merged"}
+{"t": "2026-10-25T09:08:59", "by": "coordinator", "task": null, "ev": "note", "note": "dpcli: accept --only — одно имя (нужен список); accept --dry дольше 120 с — подсказывать job start; корневой test-all не видит modules/*/web тесты — добавить test-web в шаблон проверок; общая planar-testdb даёт падения при параллельных accept; gc без аргументов идёт > 7 мин; review пишет вердикт задним числом без события started у повторных исполнителей"}
