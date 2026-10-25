@@ -6,9 +6,10 @@ import type { Plugin } from '../shared/index.js';
 
 export { api, useRouter, useSession };
 
+/** undefined — список ещё не загружен (не путать с пустым). */
 export const usePlugins = () => {
   const r = useQuery(() => db.table('pluginsPlugins').toArray() as Promise<Plugin[]>);
-  return computed(() => (r.value ?? []).filter((p) => p.enabled));
+  return computed(() => r.value?.filter((p) => p.enabled));
 };
 export const allPlugins = () =>
   useQuery(() => db.table('pluginsPlugins').toArray() as Promise<Plugin[]>);

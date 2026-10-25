@@ -14,3 +14,10 @@ export function ensureFrameCsp(origins: string[], doc: Document = document): Set
 export const frameAllowed = (origin: string): boolean => !!allowed?.has(origin);
 /** для тестов */
 export const resetFrameCsp = (): void => void (allowed = null);
+
+/** CSP фиксируется только по загруженному списку: undefined — ждём (иначе навсегда frame-src 'none'). */
+export const ensureWhenLoaded = (origins: string[] | undefined, doc?: Document): boolean => {
+  if (!origins) return false;
+  ensureFrameCsp(origins, doc);
+  return true;
+};

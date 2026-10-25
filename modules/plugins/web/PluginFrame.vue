@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { checkPluginUrl, type Plugin } from '../shared/index.js';
 import { createBridge, type BridgeContext } from './bridge.js';
 import { frameAllowed } from './csp.js';
@@ -14,13 +14,15 @@ const height = ref(240);
 const ok = computed(
   () => checkPluginUrl(props.plugin.url, location.origin, import.meta.env.PROD) === null,
 );
-const allowed = computed(() => ok.value && frameAllowed(props.plugin.origin));
+// без сессии iframe не показываем: мост создаётся, когда элемент появился
+const allowed = computed(() => ok.value && !!user.value && frameAllowed(props.plugin.origin));
 let stop = () => {};
 
-onMounted(() => {
-  const win = frame.value?.contentWindow;
-  if (!allowed.value || !win || !user.value) return;
+watch(frame, (el) => {
+  const win = el?.contentWindow;
   const u = user.value;
+  stop();
+  if (!win || !u) return;
   const bridge = createBridge(win, props.plugin, {
     query: queryReplica,
     mutate: mutateVia,
@@ -40,9 +42,11 @@ onBeforeUnmount(() => stop());
 
 <template>
   <p v-if="!ok" class="text-sm text-danger">{{ plugin.name }}: {{ tr('refused') }}</p>
-  <p v-else-if="!allowed" class="text-sm text-fg-muted">{{ plugin.name }}: {{ tr('reload') }}</p>
+  <p v-else-if="ok && user && !allowed" class="text-sm text-fg-muted">
+    {{ plugin.name }}: {{ tr('reload') }}
+  </p>
   <iframe
-    v-else
+    v-else-if="allowed"
     ref="frame"
     :src="plugin.url"
     :title="plugin.name"

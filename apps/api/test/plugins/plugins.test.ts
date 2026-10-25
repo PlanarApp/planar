@@ -308,4 +308,18 @@ describe('pf5: CSP frame-src', () => {
     expect(metas[1]!.content).toBe("frame-src 'none'");
     resetFrameCsp();
   });
+  it('pf5: список не загружен (undefined) — CSP не фиксируется; пустой список — frame-src none', () => {
+    resetFrameCsp();
+    const metas: { content: string }[] = [];
+    const d = {
+      createElement: () => ({ content: '', httpEquiv: '' }),
+      head: { appendChild: (m: { content: string }) => metas.push(m) },
+    } as unknown as Document;
+    expect(ensureWhenLoaded(undefined, d)).toBe(false);
+    expect(metas).toHaveLength(0);
+    expect(frameAllowed('https://a.example')).toBe(false);
+    expect(ensureWhenLoaded(['https://a.example'], d)).toBe(true);
+    expect(metas[0]!.content).toBe('frame-src https://a.example');
+    resetFrameCsp();
+  });
 });

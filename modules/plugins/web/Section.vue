@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { usePlugins } from './data.js';
 
 const plugins = usePlugins();
-const pages = computed(() => plugins.value.filter((p) => p.points.page));
+const pages = computed(() => (plugins.value ?? []).filter((p) => p.points.page));
 </script>
 
 <template>
