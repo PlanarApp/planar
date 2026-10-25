@@ -21,7 +21,18 @@ export default {
     duplicate: 'Duplicate',
     copyOf: '{title} (copy)',
   },
+  quick: {
+    title: 'New task',
+    name: 'Title',
+    placeholder: 'What needs to be done?',
+    project: 'Project',
+    create: 'Create',
+    more: 'Create another',
+    noProjects: 'Create a project first',
+  },
   sidebar: {
+    create: 'Create',
+    newTask: 'Task',
     inbox: 'Inbox',
     my: 'My tasks',
     favorites: 'Favorites',

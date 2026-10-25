@@ -2,11 +2,18 @@
 import { defineAsyncComponent, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { ui, useHotkey } from './hotkeys';
+import { quickCreate, ui, useHotkey } from './hotkeys';
 
 // тяжёлое — лениво, при первом открытии; в начальном чанке только hotkeys
 const Palette = defineAsyncComponent(() => import('./Palette.vue'));
 const CheatSheet = defineAsyncComponent(() => import('./CheatSheet.vue'));
+const QuickCreate = defineAsyncComponent(() => import('./QuickCreate.vue'));
+const creating = ref(false);
+watch(
+  () => ui.create,
+  (v) => v && (creating.value = true),
+  { immediate: true },
+);
 const palette = ref(false);
 const cheat = ref(false);
 watch(
@@ -34,9 +41,7 @@ useHotkey(
   'c',
   async () => {
     const c = await import('./commands');
-    const p = c.projectOf(route);
-    if (p) await c.createIn(p, t('cmd.newTitle'));
-    else open(t('cmd.create'));
+    quickCreate(c.projectOf(route) ?? '');
   },
   { label: 'cmd.hk.create' },
 );
@@ -48,4 +53,5 @@ useHotkey('g s', () => void router.push('/settings'), { label: 'cmd.hk.settings'
 <template>
   <Palette v-if="palette" />
   <CheatSheet v-if="cheat" />
+  <QuickCreate v-if="creating" />
 </template>

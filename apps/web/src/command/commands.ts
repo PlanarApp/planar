@@ -2,8 +2,8 @@ import type { Component } from 'vue';
 import type { Router, RouteLocationNormalizedLoaded } from 'vue-router';
 import type { Row } from '@planar/shared';
 import { db } from '../sync';
-import { createTask, deleteTask, setAssignees, updateTask } from '../tasks';
-import { openTask } from '../views';
+import { deleteTask, setAssignees, updateTask } from '../tasks';
+import { quickCreate } from './hotkeys';
 import { setLocale } from '../i18n';
 import { useTheme } from '../ui';
 import { useExtensions } from '../modules/registry';
@@ -22,18 +22,6 @@ export interface Cmd {
 type T = (key: string, named?: Record<string, unknown>) => string;
 const byRank = (a: { rank: string }, b: { rank: string }) =>
   a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0;
-
-/** Новая задача в проекте: статус по умолчанию — первый todo, иначе первый по rank. */
-export async function createIn(projectId: string, title: string): Promise<void> {
-  const p = await db.table<Row<'projects'>>('projects').get(projectId);
-  if (!p) return;
-  const st = (
-    await db.table<Row<'statuses'>>('statuses').where('spaceId').equals(p.spaceId).toArray()
-  ).sort(byRank);
-  const s = st.find((x) => x.category === 'todo') ?? st[0];
-  if (!s) return;
-  openTask(await createTask({ projectId, statusId: s.id, title }));
-}
 
 export const projectOf = (route: RouteLocationNormalizedLoaded): string | undefined =>
   route.name === 'project' || route.name === 'savedView'
@@ -75,14 +63,13 @@ export async function buildCommands(o: {
     for (const p of live.filter((x) => x.spaceId === s.id))
       out.push(go(gNav, `go:p:${p.id}`, `${t('cmd.toProject')}: ${p.name}`, `/p/${p.id}`));
 
-  const title = t('cmd.newTitle');
   for (const p of live.filter((x) => !projectId || x.id === projectId))
     out.push({
       id: `new:${p.id}`,
       label: projectId ? t('cmd.create') : `${t('cmd.create')}: ${p.name}`,
       group: gNew,
       shortcut: projectId ? 'c' : undefined,
-      run: () => createIn(p.id, title),
+      run: () => quickCreate(p.id),
     });
 
   if (o.selected.length) {

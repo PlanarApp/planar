@@ -1,7 +1,19 @@
 import { getCurrentScope, onScopeDispose, reactive } from 'vue';
 
 /** Общее состояние оверлеев: палитра (с начальным запросом) и шпаргалка. */
-export const ui = reactive({ palette: false, query: '', cheat: false });
+export const ui = reactive({
+  palette: false,
+  query: '',
+  cheat: false,
+  create: false,
+  createProject: '',
+});
+
+/** Диалог быстрого создания задачи; projectId — проект по умолчанию. */
+export const quickCreate = (projectId = ''): void => {
+  ui.createProject = projectId;
+  ui.create = true;
+};
 
 interface Hotkey {
   combo: string;

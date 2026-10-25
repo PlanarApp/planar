@@ -18,6 +18,10 @@ import type { LocalizedText } from '../modules/types';
 import { sidebarCollapse as sc, useNavData, useUserMenu } from './nav';
 import { useAuth } from '../auth/useAuth';
 import { useSidebarActions } from './sidebarActions';
+import { quickCreate } from '../command/hotkeys';
+import { useRoute } from 'vue-router';
+import { CheckSquare, FolderPlus, LayoutGrid } from 'lucide-vue-next';
+import type { MenuItem } from '../ui/Menu.vue';
 
 // reka (Avatar/Menu) — вне начального бандла
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
@@ -46,6 +50,44 @@ const onKey = (e: KeyboardEvent) => {
   else if (e.key === 'Escape') act.cancel();
 };
 const focusInput = (el: unknown) => (el as HTMLInputElement | null)?.focus();
+const route = useRoute();
+const createItems = (): MenuItem[] => {
+  const pid =
+    route.name === 'project' || route.name === 'savedView' ? String(route.params.projectId) : '';
+  const space = spaces.value.find((s) => s.projects.some((p) => p.id === pid)) ?? spaces.value[0];
+  return [
+    {
+      id: 'task',
+      label: t('sidebar.newTask'),
+      icon: CheckSquare,
+      shortcut: 'c',
+      onSelect: () => quickCreate(pid),
+    },
+    ...(space
+      ? [
+          {
+            id: 'project',
+            label: t('sidebar.newProject'),
+            icon: FolderPlus,
+            onSelect: () => {
+              if (sc.is('spaces')) sc.toggle('spaces');
+              if (sc.is('space:' + space.id)) sc.toggle('space:' + space.id);
+              act.start('new:' + space.id);
+            },
+          },
+        ]
+      : []),
+    {
+      id: 'space',
+      label: t('sidebar.newSpace'),
+      icon: LayoutGrid,
+      onSelect: () => {
+        if (sc.is('spaces')) sc.toggle('spaces');
+        act.start('new-space');
+      },
+    },
+  ];
+};
 // проекты строятся в памяти заранее: по наведению/фокусу на ссылку и один раз в простое после появления списка
 let idle: ReturnType<typeof setTimeout> | undefined;
 const stop = watch(
@@ -101,6 +143,17 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
         </template>
       </Menu>
     </div>
+    <Menu :items="createItems()" align="start">
+      <template #trigger>
+        <button
+          type="button"
+          class="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-sm text-fg hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
+          data-testid="create-menu"
+        >
+          <Plus :size="16" />{{ t('sidebar.create') }}
+        </button>
+      </template>
+    </Menu>
     <nav class="flex flex-col gap-3">
       <div class="flex flex-col gap-0.5">
         <RouterLink to="/inbox" :class="link" active-class="bg-accent-subtle">

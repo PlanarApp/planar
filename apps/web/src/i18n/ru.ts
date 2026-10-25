@@ -21,7 +21,18 @@ export default {
     duplicate: 'Дублировать',
     copyOf: '{title} (копия)',
   },
+  quick: {
+    title: 'Новая задача',
+    name: 'Название',
+    placeholder: 'Что нужно сделать?',
+    project: 'Проект',
+    create: 'Создать',
+    more: 'Создать ещё',
+    noProjects: 'Сначала создайте проект',
+  },
   sidebar: {
+    create: 'Создать',
+    newTask: 'Задача',
     inbox: 'Входящие',
     my: 'Мои задачи',
     favorites: 'Избранное',
