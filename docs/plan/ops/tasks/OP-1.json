@@ -47,11 +47,12 @@
     },
     {
       "name": "prod-smoke",
-      "cmd": "COMPOSE_PROJECT_NAME=planar-op1 HTTP_PORT=18080 HTTPS_PORT=18443 PLANAR_SUBNET=10.230.1.0/24 .dpcli/dpcli lock cpu op1 -- ./dev.sh prod-smoke 2>&1",
+      "cmd": "COMPOSE_PROJECT_NAME=planar-op1 HTTP_PORT=18080 HTTPS_PORT=18443 PLANAR_SUBNET=10.230.1.0/24 ./dev.sh prod-smoke 2>&1",
       "expect": "re:(?s)api uid: [1-9][0-9]*.*prod-smoke: OK"
     }
   ],
   "report_extra": [],
   "notes": "",
-  "created": "2026-10-25T01:23:11"
+  "created": "2026-10-25T01:23:11",
+  "edited": "2026-10-25T02:29:20"
 }

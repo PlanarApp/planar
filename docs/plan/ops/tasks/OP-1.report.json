@@ -1,0 +1,48 @@
+{
+  "status": "done",
+  "summary": "compose.yml по C-ops-env/volumes, Caddyfile с заголовками C-ops-headers, api USER node, prod-smoke (7 тестов, OK). Образ api 713 МБ, uid 1000.",
+  "commits": [
+    "af0b429 OP-1: prod-стек (PLANAR_DOMAIN, заголовк"
+  ],
+  "checks": [
+    {
+      "name": "ops-contract",
+      "value": "5/5",
+      "pass": true
+    },
+    {
+      "name": "prod-smoke",
+      "value": "api uid: 1000; image 713 MB; prod-smoke: OK",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept OP-1",
+  "uncertain": [
+    {
+      "where": "compose.yml: caddy PLANAR_DOMAIN",
+      "why": "Caddy при пустой переменной не берёт умолчание {$VAR::80} (падал 'unrecognized global option'), поэтому compose передаёт ${PLANAR_DOMAIN:-:80}",
+      "checked": "smoke на :80; caddy validate с planar.example.com OK; реальный ACME/внутренний CA с localhost не гонял"
+    },
+    {
+      "where": "deploy/Caddyfile",
+      "why": "матчер /files не покрывал POST /files (405) — добавлен /files",
+      "checked": "загрузка и чтение по sha256 в smoke"
+    },
+    {
+      "where": "compose.yml postgres healthcheck",
+      "why": "retries 20→60: при load average ~35 хоста postgres не успевал стать healthy",
+      "checked": "прогон прошёл"
+    },
+    {
+      "where": "Caddyfile CSP-хэш",
+      "why": "sha256 скрипта темы захардкожен",
+      "checked": "тест ops-contract сверяет; браузерная проверка CSP без нарушений"
+    }
+  ],
+  "dp_feedback": "accept --dry из обычного shell: lock cpu внутри запускает отдельный job, вывод не попадает в лог проверки (регэксп не совпадает). Работает только через job start ... accept. Стоит предупреждать или ставить DPCLI_NO_TMUX в accept.",
+  "t": "2026-10-25T02:24:28",
+  "by": "executor"
+}
