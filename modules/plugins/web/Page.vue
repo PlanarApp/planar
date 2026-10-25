@@ -10,8 +10,8 @@ const route = useRoute();
 const plugin = computed(() =>
   plugins.value?.find((p) => p.id === route.params.pluginId && p.points.page),
 );
-const ready = computed(() =>
-  plugin.value ? !!ensureFrameCsp(plugins.value.map((p) => p.origin)) : false,
+const ready = computed(
+  () => !!plugin.value && ensureWhenLoaded(plugins.value?.map((p) => p.origin)),
 );
 </script>
 
