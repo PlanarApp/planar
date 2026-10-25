@@ -44,7 +44,9 @@
     "modules/email/web/",
     "modules/plugins/web/",
     "modules/timeline/web/",
-    "examples/plugin-hello/"
+    "examples/plugin-hello/",
+    "apps/web/src/screens/settings/ModulesSettings.vue",
+    "apps/web/src/screens/settings/__tests__/"
   ],
   "dont_touch": [
     "modules/recurring/shared",
@@ -53,10 +55,12 @@
     "modules/email/api",
     "modules/plugins/api",
     "modules/plugins/shared",
-    "apps",
     "packages",
     "docs/contracts",
-    "compose.dev.yml"
+    "compose.dev.yml",
+    "apps/api",
+    "apps/web/src/sync",
+    "apps/web/src/modules"
   ],
   "accept": [
     {
@@ -90,18 +94,18 @@
       "expect": "num:initial gzip ([\\d.]+) KB <=200"
     },
     {
-      "name": "e2e-p4",
-      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-pf6 API_PORT=3416 WEB_PORT=5416 DEV_PG_PORT=55516; trap \"docker compose -f compose.dev.yml down -v >/dev/null 2>&1\" EXIT; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:$WEB_PORT timeout 1500 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts p4.spec.ts 2>&1",
-      "expect": "num:(\\d+) passed >=6"
-    },
-    {
       "name": "perf",
       "cmd": "export COMPOSE_PROJECT_NAME=planar-perf-pf6 API_PORT=3426 WEB_PORT=5426 DEV_PG_PORT=55526 PERF_MODULES=recurring,templates,goals,plugins,timeline; source e2e/web/perf/stack.sh; trap perf_down EXIT; perf_up && pnpm --filter @planar/e2e exec playwright test -c web/perf/playwright.config.ts measure.spec.ts > build/pf6-perf.log 2>&1; cat build/pf6-perf.log | grep -E \"_ms\"; awk -F= '/^cold_bootstrap_ms=/{if($2>2000)v++;n++} /^warm_start_ms=/{if($2>450)v++;n++} /^mutate_ms_p95=/{if($2>50)v++;n++} /^project_switch_ms_p95=/{if($2>100)v++;n++} /^realtime_ms_p95=/{if($2>500)v++;n++} END{print \"violations=\" v+0 \" metrics=\" n+0}' build/pf6-perf.log",
       "expect": "re:violations=0 metrics=5"
+    },
+    {
+      "name": "e2e-p4",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-pf6 API_PORT=3416 WEB_PORT=5416 DEV_PG_PORT=55516; trap \"docker compose -f compose.dev.yml down -v >/dev/null 2>&1\" EXIT; ./dev.sh reset && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed && E2E_BASE_URL=http://localhost:$WEB_PORT timeout 1500 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts p4.spec.ts 2>&1",
+      "expect": "num:(\\d+) passed >=8"
     }
   ],
   "report_extra": [],
   "notes": "",
   "created": "2026-10-25T06:30:34",
-  "edited": "2026-10-25T06:31:15"
+  "edited": "2026-10-25T07:34:37"
 }
