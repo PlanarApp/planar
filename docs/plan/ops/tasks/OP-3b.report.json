@@ -1,0 +1,47 @@
+{
+  "status": "done",
+  "summary": "Тесты metrics (рост счётчика, route-шаблон, исключение /api/health*, сбой очереди и размера БД → 200); /api/metrics пропускает упавшие запросы с warn в лог; ready делает живую проверку pg-boss на каждой пробе (таймаут 2 с).",
+  "commits": [
+    "9f54d70 OP-3b: тесты метрик, устойчивость к сбою очереди, живая проверка pg-boss в ready"
+  ],
+  "checks": [
+    {
+      "name": "ops-contract",
+      "value": "5/5",
+      "pass": true
+    },
+    {
+      "name": "health",
+      "value": "10/10",
+      "pass": true
+    },
+    {
+      "name": "metrics",
+      "value": "7/7",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept OP-3b",
+  "uncertain": [
+    {
+      "where": "apps/api/src/health.controller.ts",
+      "why": "проба вызывает jobs.start() и select из pgboss.job; при таймауте запрос не отменяется",
+      "checked": "тест down через подмену pool.query; на хосте под нагрузкой 2 с может давать ложный down"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-25T07:48:26",
+  "by": "executor"
+}

@@ -1,0 +1,37 @@
+{
+  "status": "done",
+  "summary": "upgrade.sh: тело в main() и exec $0 без --pull после pull (бэкап не повторяется, UPGRADE_REEXEC); теги :rollback возвращаются при провале сборки/миграций; имя :rollback строится от репозитория без тега; локальная ready заменена на wait_ready из lib.sh. В тест добавлен сценарий провала миграций.",
+  "commits": [
+    "3abc97e ops: upgrade.sh замечания ревью OP-4"
+  ],
+  "checks": [
+    {
+      "name": "upgrade-test",
+      "value": "OK",
+      "pass": true
+    },
+    {
+      "name": "bash-syntax",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept OP-4b",
+  "uncertain": [
+    {
+      "where": "ops/upgrade.sh:rb",
+      "why": "явный тег (image: x:1.2) и порт реестра не проверены на живом образе",
+      "checked": "только логика подстановки bash; тест идёт с образом без тега"
+    },
+    {
+      "where": "ops/upgrade.sh --pull",
+      "why": "путь --pull с exec не прогонялся в тесте",
+      "checked": "bash -n; UPGRADE_REEXEC покрыт только чтением кода"
+    }
+  ],
+  "dp_feedback": "accept --dry идёт ~14 мин в foreground и упирается в таймаут инструмента; хотелось бы подсказку про job start в выводе.",
+  "t": "2026-10-25T09:11:47",
+  "by": "executor"
+}

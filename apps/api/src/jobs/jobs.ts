@@ -28,6 +28,10 @@ export class JobsService implements OnApplicationShutdown {
     @Inject(PUSH_OPTS) private opts: PushOpts,
   ) {}
 
+  get enabled(): boolean {
+    return !!this.opts.boss;
+  }
+
   systemUserId(): Promise<string> {
     return (this.sysId ??= ensureSystemUser(this.db).catch((e) => {
       this.sysId = undefined;

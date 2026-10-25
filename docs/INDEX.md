@@ -16,7 +16,7 @@ generated: true
 
 ## Описания систем (guide)
 
-- [docs/deploy.md](deploy.md) — Prod-стек compose.yml (postgres, api, Caddy) и смоук ./dev.sh prod-smoke
+- [docs/guides/deploy.md](guides/deploy.md) — Развёртывание planar на одном VPS - .env, первый запуск, бэкапы и восстановление, обновление, мониторинг, неполадки
 - [docs/guides/mcp.md](guides/mcp.md) — Подключение ИИ-клиента к Planar по MCP: токен, URL /mcp, конфигурация, инструменты, права read/write
 
 ## Планы (plan)
@@ -25,6 +25,7 @@ generated: true
 - [docs/plan/core.md](plan/core.md) — План модуля core: каркас, БД, синхронизация, мутаторы, авторизация, файлы, уведомления, модули, API-токены, MCP
 - [docs/plan/design.md](plan/design.md) — План модуля design: визуал Planar в стиле Linear — C-ui v3, оболочка, Список/Доска, карточка, настройки, mobile, скриншоты
 - [docs/plan/features.md](plan/features.md) — План модуля features: ярус A v1 — пользовательские поля, Таблица, Календарь, связи задач
+- [docs/plan/ops.md](plan/ops.md) — План ops: prod-стек с Caddy и TLS, бэкапы с тестом восстановления, health и метрики, обновление, инструкция по развёртыванию
 - [docs/plan/p3.md](plan/p3.md) — План модуля p3: совместное редактирование (Yjs), Timeline, Workload, дашборды, формы, GitLab (опрос API)
 - [docs/plan/p4.md](plan/p4.md) — План модуля p4: повторяющиеся задачи и шаблоны, цели и вехи, email-уведомления (SMTP), внешние плагины через iframe
 - [docs/plan/polish.md](plan/polish.md) — Доводка после фазы 2: тёплый старт до бюджета 400 мс и мелкие недочёты автоматизаций, webhooks и e2e
@@ -51,6 +52,7 @@ generated: true
 - [docs/contracts/core-api-v1.md](contracts/core-api-v1.md) — API-токены, Bearer, REST /api/v1 и MCP /mcp — часть C-http v8 (docs/contracts/core.md); примеры проверяет контрактный тест
 - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Мутаторы домена C-mutators v5 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
 - [docs/contracts/core-schema.md](contracts/core-schema.md) — Сущности C-schema v9 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
+- [docs/contracts/ops.md](contracts/ops.md) — Контракты ops — env prod-стека, тома, заголовки Caddy и CSP, формат бэкапа v1, /api/health/ready и /api/metrics
 - [docs/contracts/p3.md](contracts/p3.md) — Контракты p3 — совместное редактирование (/collab, ydocs, проекция), сущности и мутаторы timeline, workload, dashboards, forms, gitlab
 - [docs/contracts/p4.md](contracts/p4.md) — Контракты p4 — сущности, мутаторы, задачи pg-boss и REST модулей recurring, templates, goals, email, plugins; протокол postMessage плагинов
 - [docs/contracts/work-api.md](contracts/work-api.md) — Контракты work, часть 2 — C-modules v5 и v6 (enqueue, SDK, настройки модулей, правки collab), REST v1 и MCP (WK-5)

@@ -1,0 +1,47 @@
+{
+  "status": "done",
+  "summary": "/api/health/ready (БД, миграции по журналу, pg-boss up/off) и /api/metrics (Prometheus вручную, METRICS_TOKEN, timingSafeEqual) по C-ops-health v1; метрики запросов/WS в памяти, очередь и размер БД — запросами при скрейпе.",
+  "commits": [
+    "83abffc OP-3: /api/health/ready и /api/metrics (Prometheus)"
+  ],
+  "checks": [
+    {
+      "name": "ops-contract",
+      "value": "5/5",
+      "pass": true
+    },
+    {
+      "name": "health",
+      "value": "8/8",
+      "pass": true
+    },
+    {
+      "name": "metrics",
+      "value": "4/4",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept OP-3",
+  "uncertain": [
+    {
+      "where": "apps/api/src/metrics/metrics.controller.ts:40",
+      "why": "запрос к pgboss.job (name, state) при включённой очереди не покрыт тестом",
+      "checked": "тесты идут с очередью off; схема pgboss.job по коду pg-boss не сверялась на живой очереди"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-25T04:39:22",
+  "by": "executor"
+}

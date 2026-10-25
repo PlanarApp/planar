@@ -247,7 +247,9 @@ HTTP-маршруты модуля — только под `/api/<id>/` (по п
 
 Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
 
-## C-http v11
+## C-http v12
+
+v12 (ops): `GET /api/health/ready`, `GET /api/metrics` (docs/contracts/ops.md).
 
 v11 (p3): WS `/collab` (Hocuspocus; cookie и Origin — как `/ws`; `docs/contracts/p3.md` §P3-collab); env `PLANAR_SECRET_KEY`, `TRUST_PROXY`; вход `/f/*` — отдельная HTML-страница публичных форм (§P3-forms).
 
