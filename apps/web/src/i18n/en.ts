@@ -549,6 +549,7 @@ export default {
     },
   },
   list: {
+    colName: 'Name',
     drag: 'Drag',
     newTask: 'New task',
     newMenu: 'New task from…',

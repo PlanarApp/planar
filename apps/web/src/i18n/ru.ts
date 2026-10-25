@@ -549,6 +549,7 @@ export default {
     },
   },
   list: {
+    colName: 'Название',
     drag: 'Перетащить',
     newTask: 'Новая задача',
     newMenu: 'Новая задача из…',

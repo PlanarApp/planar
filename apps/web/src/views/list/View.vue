@@ -31,6 +31,7 @@ import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
 import Row from './Row.vue';
 import { treeOrder } from './tree';
+import { COLUMN_CLASS, visibleColumns } from './columns';
 import { applyMove, planMove } from '../board/plan';
 
 const props = defineProps<ViewProps>();
@@ -48,8 +49,17 @@ const all = useProjectTasks(() => props.projectId);
 const passes = useTaskFilter(() => props.filter, statuses);
 
 type Item =
+  | { id: string; kind: 'head' }
   | { id: string; kind: 'group'; group: TaskGroup }
-  | { id: string; kind: 'task'; task: TaskView; group: string; depth: number; parentTitle?: string }
+  | {
+      id: string;
+      kind: 'task';
+      task: TaskView;
+      group: string;
+      depth: number;
+      parentTitle?: string;
+      childCount: number;
+    }
   | { id: string; kind: 'create'; group: TaskGroup };
 
 const collapsed = ref(new Set<string>());
@@ -66,37 +76,116 @@ const groups = computed(() => {
     tasks: sortTasks(g.tasks, o.sortBy, o.sortDir),
   }));
 });
+
+// свёрнутые подзадачи: id родителей, на проект — в localStorage
+const foldKey = () => `planar.list.${props.projectId}.folded`;
+const folded = ref(new Set<string>());
+watch(
+  () => props.projectId,
+  () => {
+    try {
+      folded.value = new Set(JSON.parse(localStorage.getItem(foldKey()) ?? '[]'));
+    } catch {
+      folded.value = new Set();
+    }
+  },
+  { immediate: true },
+);
+function toggleFold(id: string) {
+  const f = new Set(folded.value);
+  if (!f.delete(id)) f.add(id);
+  folded.value = f;
+  try {
+    localStorage.setItem(foldKey(), JSON.stringify([...f]));
+  } catch {
+    /* без хранилища — до перезагрузки */
+  }
+}
+
 // подзадачи — деревом под родителем; родитель не над строкой — подпись в строке
 const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
-const items = computed<Item[]>(() =>
-  groups.value.flatMap((g) => [
-    ...(props.options.groupBy === 'none'
-      ? []
-      : [{ id: `g:${g.key}`, kind: 'group' as const, group: g }]),
-    ...(collapsed.value.has(g.key)
-      ? []
-      : [
-          ...treeOrder(g.tasks).map(({ task, depth }) => ({
-            id: `t:${g.key}:${task.id}`,
-            kind: 'task' as const,
-            task,
-            group: g.key,
-            depth,
-            parentTitle: !depth && task.parentId ? byId.value.get(task.parentId)?.title : undefined,
-          })),
-          { id: `c:${g.key}`, kind: 'create' as const, group: g },
-        ]),
-  ]),
-);
+const items = computed<Item[]>(() => {
+  const head: Item[] = props.options.groupBy === 'none' ? [{ id: 'head', kind: 'head' }] : [];
+  return head.concat(
+    groups.value.flatMap((g): Item[] => {
+      if (collapsed.value.has(g.key)) return [{ id: `g:${g.key}`, kind: 'group', group: g }];
+      const tree = treeOrder(g.tasks);
+      const kids = new Map<string, number>();
+      for (const x of tree)
+        if (x.depth) kids.set(x.task.parentId!, (kids.get(x.task.parentId!) ?? 0) + 1);
+      const rows: Item[] = [];
+      let hideBelow = Infinity; // глубина свёрнутого предка: строки глубже — скрыты
+      for (const { task, depth } of tree) {
+        if (depth > hideBelow) continue;
+        hideBelow = folded.value.has(task.id) && kids.has(task.id) ? depth : Infinity;
+        rows.push({
+          id: `t:${g.key}:${task.id}`,
+          kind: 'task',
+          task,
+          group: g.key,
+          depth,
+          parentTitle: !depth && task.parentId ? byId.value.get(task.parentId)?.title : undefined,
+          childCount: kids.get(task.id) ?? 0,
+        });
+      }
+      return [
+        ...(props.options.groupBy === 'none'
+          ? []
+          : [{ id: `g:${g.key}`, kind: 'group' as const, group: g }]),
+        ...rows,
+        { id: `c:${g.key}`, kind: 'create', group: g },
+      ];
+    }),
+  );
+});
+const columns = computed(() => visibleColumns(props.options.fields));
+const COL_LABEL = {
+  assignee: 'tasks.assignee',
+  dueDate: 'tasks.dueDate',
+  priority: 'tasks.priorityTitle',
+  labels: 'tasks.labels',
+} as const;
+const colName = (c: keyof typeof COL_LABEL) => t(COL_LABEL[c]);
 
-// --- перетаскивание (сортировка «Вручную»): порядок среди задач с тем же родителем, перенос в другую группу
+// --- перетаскивание (сортировка «Вручную»):
+// середина строки — сделать подзадачей этой задачи; граница — встать на уровень следующей строки
 const manual = computed(() => props.options.sortBy === 'rank' && props.options.sortDir === 'asc');
-const drag = ref<{ task: TaskView; from: string; slot: number } | null>(null);
-const slotAt = (clientY: number) => {
+type Drop = { mode: 'slot'; slot: number } | { mode: 'nest'; index: number };
+const drag = ref<{ task: TaskView; from: string; drop: Drop } | null>(null);
+// потомки перетаскиваемой задачи: в них её не вложить
+const descendants = (id: string) => {
+  const out = new Set<string>([id]);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const x of all.value ?? [])
+      if (x.parentId && out.has(x.parentId) && !out.has(x.id)) (out.add(x.id), (grew = true));
+  }
+  return out;
+};
+let banned = new Set<string>();
+function dropAt(clientY: number): Drop {
   const el = scroller.value!;
   const y = clientY - el.getBoundingClientRect().top + el.scrollTop;
-  return Math.max(0, Math.min(items.value.length, Math.round(y / rowH.value)));
-};
+  const i = Math.floor(y / rowH.value);
+  const frac = y / rowH.value - i;
+  const it = items.value[i];
+  if (it?.kind === 'task' && !banned.has(it.task.id) && frac > 0.3 && frac < 0.7)
+    return { mode: 'nest', index: i };
+  return {
+    mode: 'slot',
+    slot: Math.max(0, Math.min(items.value.length, Math.round(y / rowH.value))),
+  };
+}
+// уровень линии-индикатора — по следующей строке
+const dropDepth = computed(() => {
+  const d = drag.value?.drop;
+  const next = d?.mode === 'slot' ? items.value[d.slot] : undefined;
+  return next?.kind === 'task' ? next.depth : 0;
+});
+const nestId = computed(() => {
+  const d = drag.value?.drop;
+  return d?.mode === 'nest' ? items.value[d.index]?.id : undefined;
+});
 function onDragMove(e: PointerEvent) {
   if (!drag.value) return;
   const el = scroller.value!;
@@ -104,42 +193,61 @@ function onDragMove(e: PointerEvent) {
   if (e.clientY < r.top + 32)
     el.scrollTop -= 12; // автопрокрутка у краёв
   else if (e.clientY > r.bottom - 32) el.scrollTop += 12;
-  drag.value.slot = slotAt(e.clientY);
+  drag.value.drop = dropAt(e.clientY);
 }
+const groupOf = (it: Item | undefined) =>
+  !it || it.kind === 'head' ? undefined : it.kind === 'task' ? it.group : it.group.key;
 async function onDragEnd() {
   removeEventListener('pointermove', onDragMove);
   const d = drag.value;
   drag.value = null;
   if (!d) return;
-  // группа — по строке над местом сброса; «перед кем» — следующий брат в этой группе
   const list = items.value;
-  const prev = list[d.slot - 1];
-  const to = !prev
-    ? groups.value[0]?.key
-    : prev.kind === 'group'
-      ? prev.group.key
-      : prev.kind === 'task'
-        ? prev.group
-        : prev.group.key;
-  if (!to) return;
+  let to: string | undefined;
+  let parent: string | null;
   let beforeId: string | null = null;
-  if (prev?.kind !== 'create')
-    for (const it of list.slice(d.slot)) {
-      if (it.kind !== 'task' || it.group !== to) break;
-      if (it.task.parentId === d.task.parentId && it.task.id !== d.task.id) {
-        beforeId = it.task.id;
-        break;
-      }
+  if (d.drop.mode === 'nest') {
+    const target = list[d.drop.index] as Extract<Item, { kind: 'task' }>;
+    to = target.group;
+    parent = target.task.id; // в конец подзадач цели
+  } else {
+    const prev = list[d.drop.slot - 1];
+    const next = list[d.drop.slot];
+    to = groupOf(prev) ?? groups.value[0]?.key;
+    const nextTask = next?.kind === 'task' && next.group === to ? next : undefined;
+    if (nextTask && banned.has(nextTask.task.id) && nextTask.task.id !== d.task.id) return; // внутрь себя
+    parent = nextTask ? nextTask.task.parentId : null;
+    if (nextTask && nextTask.task.id !== d.task.id) beforeId = nextTask.task.id;
+    else if (nextTask) {
+      // бросили прямо перед собой — следующий брат после себя
+      const after = list
+        .slice(d.drop.slot + 1)
+        .find((x) => x.kind === 'task' && x.group === to && x.task.parentId === parent);
+      beforeId = after?.kind === 'task' ? after.task.id : null;
     }
+  }
+  if (!to) return;
+  const reparent = parent !== d.task.parentId;
+  const sibs = (g: TaskGroup) => g.tasks.filter((x) => x.parentId === parent && x.id !== d.task.id);
+  // ранг — среди новых братьев; поле группы меняет planMove при переносе в другую группу
   const cols = groups.value.map((g) => ({
     ...g,
-    tasks: g.tasks.filter((x) => x.parentId === d.task.parentId),
+    tasks: [...sibs(g), ...(g.key === d.from ? [d.task] : [])].sort((a, b) =>
+      a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0,
+    ),
   }));
-  const plan = planMove(cols, props.options.groupBy, d.task.id, d.from, to, beforeId);
+  let plan = planMove(cols, props.options.groupBy, d.task.id, d.from, to, beforeId);
+  if (!plan && reparent) {
+    const target = cols.find((c) => c.key === to)!.tasks.filter((x) => x.id !== d.task.id);
+    const i = beforeId ? target.findIndex((x) => x.id === beforeId) : target.length;
+    plan = { id: d.task.id, after: target[i - 1]?.rank ?? null, before: target[i]?.rank ?? null };
+  }
+  if (reparent) await updateTask(d.task.id, { parentId: parent });
   if (plan) await applyMove(plan);
 }
 function startDrag(it: { task: TaskView; group: string }, e: PointerEvent) {
-  drag.value = { task: it.task, from: it.group, slot: slotAt(e.clientY) };
+  banned = descendants(it.task.id);
+  drag.value = { task: it.task, from: it.group, drop: dropAt(e.clientY) };
   addEventListener('pointermove', onDragMove);
   addEventListener('pointerup', () => void onDragEnd(), { once: true });
 }
@@ -327,9 +435,9 @@ watch(
       >
         <div class="relative w-full" :style="{ height: `${virt.getTotalSize()}px` }">
           <div
-            v-if="drag"
-            class="pointer-events-none absolute left-0 z-10 h-0.5 w-full bg-accent"
-            :style="{ top: `${drag.slot * rowH - 1}px` }"
+            v-if="drag?.drop.mode === 'slot'"
+            class="pointer-events-none absolute right-0 z-10 h-0.5 bg-accent"
+            :style="{ top: `${drag.drop.slot * rowH - 1}px`, left: `${40 + dropDepth * 20}px` }"
             data-testid="drop-line"
           />
           <div
@@ -340,16 +448,27 @@ watch(
           >
             <template v-for="it in [items[v.index]]" :key="it.id">
               <div
-                v-if="it.kind === 'group'"
+                v-if="it.kind === 'head'"
+                role="row"
+                class="flex h-full items-center border-b border-border px-3 pl-10 text-xs text-fg-muted"
+              >
+                <span class="flex-1">{{ t('list.colName') }}</span>
+                <span v-for="c in columns" :key="c" :class="['px-1', COLUMN_CLASS[c]]">{{
+                  colName(c)
+                }}</span>
+              </div>
+              <div
+                v-else-if="it.kind === 'group'"
                 role="row"
                 :aria-rowindex="v.index + 1"
-                class="flex h-full items-center gap-2 border-b border-border bg-bg-muted px-3 text-sm font-medium"
+                class="flex h-full items-center gap-2 border-b border-border px-3 text-sm"
+                data-testid="group-row"
               >
                 <button
                   type="button"
                   :aria-expanded="!collapsed.has(it.group.key)"
                   :aria-label="t(collapsed.has(it.group.key) ? 'list.expand' : 'list.collapse')"
-                  class="inline-flex size-6 items-center justify-center rounded-md outline-none hover:bg-bg-subtle focus-visible:ring-2 ring-focus"
+                  class="inline-flex size-6 items-center justify-center rounded-md outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
                   @click="
                     collapsed.has(it.group.key)
                       ? collapsed.delete(it.group.key)
@@ -363,14 +482,19 @@ watch(
                     aria-hidden="true"
                   />
                 </button>
+                <!-- плашка группы цветом статуса/метки, как в ClickUp -->
                 <span
-                  v-if="it.group.color"
-                  class="size-2.5 rounded-full"
-                  :style="{ background: it.group.color }"
-                  aria-hidden="true"
-                />
-                <span class="truncate">{{ it.group.label }}</span>
-                <span class="text-fg-subtle">{{ it.group.tasks.length }}</span>
+                  class="truncate rounded px-2 py-0.5 text-xs font-semibold uppercase"
+                  :class="it.group.color ? 'text-white' : 'bg-bg-muted text-fg'"
+                  :style="it.group.color && { background: it.group.color }"
+                  >{{ it.group.label }}</span
+                >
+                <span class="text-xs text-fg-subtle">{{ it.group.tasks.length }}</span>
+                <span class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden">
+                  <span v-for="c in columns" :key="c" :class="['px-1', COLUMN_CLASS[c]]">{{
+                    colName(c)
+                  }}</span>
+                </span>
               </div>
               <Row
                 v-else-if="it.kind === 'task'"
@@ -387,7 +511,13 @@ watch(
                 :depth="it.depth"
                 :parent-title="it.parentTitle"
                 :draggable="manual"
-                :class="drag?.task.id === it.task.id && 'opacity-40'"
+                :child-count="it.childCount"
+                :folded="folded.has(it.task.id)"
+                :class="[
+                  drag?.task.id === it.task.id && 'opacity-40',
+                  nestId === it.id && 'ring-2 ring-inset ring-accent',
+                ]"
+                @fold="toggleFold(it.task.id)"
                 @drag="startDrag(it, $event)"
                 @click="onRowClick(it, $event)"
                 @toggle="sel.toggle(it.task.id)"

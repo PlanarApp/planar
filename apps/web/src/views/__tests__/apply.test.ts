@@ -85,7 +85,7 @@ describe('views:apply', () => {
     const less = show(ListView, opts(['status']));
     await until(() => less.findAll('[data-task]').length === 2);
     await less.get('[data-task]').trigger('pointerenter');
-    expect(less.get('[data-task]').findAll('[role=gridcell]').length).toBe(cells - 8);
+    expect(less.get('[data-task]').findAll('[role=gridcell]').length).toBe(cells - 4); // по ячейке на колонку
     await db.table('tasks').put(task(3, { title: 'срок', dueDate: '2026-12-24' }));
     const withDue = show(BoardView, opts(ALL));
     await until(() => withDue.text().includes('срок'));

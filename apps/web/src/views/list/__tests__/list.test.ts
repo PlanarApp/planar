@@ -383,7 +383,7 @@ describe('list:row', () => {
         task(3, { dueDate: day(3) }),
       ]);
     await show();
-    const tone = (k: string) => row(k).find('[role=gridcell].w-14').classes();
+    const tone = (k: string) => row(k).find('[data-col=dueDate] span').classes();
     expect(tone('PLN-1')).toContain('text-danger');
     expect(tone('PLN-2')).toContain('text-warning');
     expect(tone('PLN-3')).toContain('text-fg-muted');
@@ -392,8 +392,10 @@ describe('list:row', () => {
     await db.table('tasks').put(task(1));
     await show();
     const r = row('PLN-1');
-    expect(r.find('span.text-xs').exists()).toBe(false);
-    expect(r.find('div.absolute').classes()).toContain('pointer-events-none');
+    // колонки на месте (не прыгают), но пустые; пикеры не смонтированы до наведения
+    for (const c of ['assignee', 'dueDate', 'priority', 'labels'])
+      expect(r.find(`[data-col=${c}]`).text()).toBe('');
+    expect(r.find('[data-col=dueDate] button').exists()).toBe(false);
   });
 });
 

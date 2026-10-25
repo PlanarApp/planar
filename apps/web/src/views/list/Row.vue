@@ -15,7 +15,8 @@ import {
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
 import { AvatarStack, Badge } from '../../ui';
-import { GripVertical } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, GripVertical, ListTree } from 'lucide-vue-next';
+import { COLUMN_CLASS, visibleColumns } from './columns';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 import { localToday } from '../filter';
@@ -38,10 +39,15 @@ const props = defineProps<{
   parentTitle?: string;
   /** ручка перетаскивания (сортировка «Вручную») */
   draggable?: boolean;
+  /** число подзадач в виде; > 0 — шеврон сворачивания и счётчик */
+  childCount?: number;
+  /** подзадачи свёрнуты */
+  folded?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
   drag: [e: PointerEvent];
+  fold: [];
   toggle: [];
   edit: [];
   done: [];
@@ -66,6 +72,7 @@ watch(
   { immediate: true },
 );
 
+const columns = computed(() => visibleColumns(props.fields));
 const labelsSet = computed(() =>
   props.task.labelIds.flatMap((id) => props.labels.find((l) => l.id === id) ?? []),
 );
@@ -132,6 +139,18 @@ function save() {
       />
     </div>
     <span v-if="depth" class="shrink-0" :style="{ width: `${depth * 20}px` }" aria-hidden="true" />
+    <button
+      v-if="childCount"
+      type="button"
+      class="-mx-1 flex size-5 shrink-0 items-center justify-center rounded text-fg-muted hover:bg-bg-muted"
+      :aria-expanded="!folded"
+      :aria-label="t(folded ? 'list.expand' : 'list.collapse')"
+      data-testid="row-fold"
+      @click.stop="emit('fold')"
+    >
+      <component :is="folded ? ChevronRight : ChevronDown" :size="14" />
+    </button>
+    <span v-else-if="childCount !== undefined" class="w-3 shrink-0" aria-hidden="true" />
     <div role="gridcell" class="w-16 shrink-0 truncate font-mono text-xs text-fg-muted">
       {{ task.key }}
     </div>
@@ -164,70 +183,65 @@ function save() {
           >{{ parentTitle }} ›</span
         >
         <span class="truncate">{{ task.title }}</span>
+        <span
+          v-if="childCount"
+          class="inline-flex shrink-0 items-center gap-0.5 rounded border border-border px-1 text-xs text-fg-muted"
+          data-testid="row-children"
+          ><ListTree :size="12" />{{ childCount }}</span
+        >
       </span>
     </div>
-    <div class="ml-auto flex shrink-0 items-center gap-2">
-      <!-- пустая ячейка занимает колонку: метки, срок и аватары не прыгают от строки к строке -->
+    <!-- колонки как в ClickUp: значение в ячейке; при наведении ячейка — сам пикер (монтируется лениво) -->
+    <div class="ml-auto flex shrink-0 items-center" @click.stop>
       <div
-        v-if="fields.includes('labels')"
+        v-for="c in columns"
+        :key="c"
         role="gridcell"
-        class="hidden w-32 items-center gap-2 overflow-hidden md:flex"
+        :data-col="c"
+        :class="['flex h-full min-w-0 items-center overflow-hidden px-1', COLUMN_CLASS[c]]"
       >
-        <Badge v-for="l in labelsSet" :key="l.id" dot :color="l.color ?? undefined">{{
-          l.name
-        }}</Badge>
-      </div>
-      <div v-if="fields.includes('priority')" role="gridcell" class="flex w-4 justify-center">
-        <PriorityIcon v-if="task.priority" :priority="task.priority" />
-      </div>
-      <div
-        v-if="fields.includes('dueDate')"
-        role="gridcell"
-        :class="['hidden w-14 text-xs md:block', dueTone]"
-      >
-        {{ task.dueDate ? formatDue(task.dueDate, locale) : '' }}
-      </div>
-      <div v-if="fields.includes('assignee')" role="gridcell" class="flex w-12 justify-end">
-        <AvatarStack :people="people" size="xs" />
-      </div>
-    </div>
-    <div
-      class="pointer-events-none absolute inset-y-0 right-2 flex items-center bg-inherit opacity-0 focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
-      @click.stop
-    >
-      <div v-if="fields.includes('labels')" role="gridcell">
-        <LabelPicker
-          v-if="hot || focused"
-          compact
-          :space-id="spaceId"
-          :model-value="task.labelIds"
-          @update:model-value="setLabels(task.id, $event)"
-        />
-      </div>
-      <div v-if="fields.includes('priority')" role="gridcell">
-        <PriorityPicker
-          v-if="hot || focused"
-          compact
-          :model-value="task.priority"
-          @update:model-value="updateTask(task.id, { priority: $event })"
-        />
-      </div>
-      <div v-if="fields.includes('assignee')" role="gridcell">
-        <AssigneePicker
-          v-if="hot || focused"
-          compact
-          :space-id="spaceId"
-          :model-value="task.assigneeIds"
-          @update:model-value="setAssignees(task.id, $event)"
-        />
-      </div>
-      <div v-if="fields.includes('dueDate')" role="gridcell">
-        <DueDatePicker
-          v-if="hot || focused"
-          compact
-          :model-value="task.dueDate"
-          @update:model-value="updateTask(task.id, { dueDate: $event })"
-        />
+        <template v-if="c === 'assignee'">
+          <AssigneePicker
+            v-if="hot || focused"
+            :space-id="spaceId"
+            :model-value="task.assigneeIds"
+            @update:model-value="setAssignees(task.id, $event)"
+          />
+          <AvatarStack v-else-if="people.length" :people="people" size="xs" />
+        </template>
+        <template v-else-if="c === 'dueDate'">
+          <DueDatePicker
+            v-if="hot || focused"
+            :model-value="task.dueDate"
+            @update:model-value="updateTask(task.id, { dueDate: $event })"
+          />
+          <span v-else-if="task.dueDate" :class="['px-1.5 text-sm', dueTone]">{{
+            formatDue(task.dueDate, locale)
+          }}</span>
+        </template>
+        <template v-else-if="c === 'priority'">
+          <PriorityPicker
+            v-if="hot || focused"
+            :model-value="task.priority"
+            @update:model-value="updateTask(task.id, { priority: $event })"
+          />
+          <span v-else-if="task.priority" class="flex items-center gap-1.5 px-1.5 text-sm">
+            <PriorityIcon :priority="task.priority" />{{ t(`tasks.priority.${task.priority}`) }}
+          </span>
+        </template>
+        <template v-else>
+          <LabelPicker
+            v-if="hot || focused"
+            :space-id="spaceId"
+            :model-value="task.labelIds"
+            @update:model-value="setLabels(task.id, $event)"
+          />
+          <span v-else class="flex gap-1 overflow-hidden px-1">
+            <Badge v-for="l in labelsSet" :key="l.id" dot :color="l.color ?? undefined">{{
+              l.name
+            }}</Badge>
+          </span>
+        </template>
       </div>
     </div>
   </div>
