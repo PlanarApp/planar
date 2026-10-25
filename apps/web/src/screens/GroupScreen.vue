@@ -12,6 +12,7 @@ import ProjectScreen from './ProjectScreen.vue';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import SettingsScreen from './SettingsScreen.vue';
 import InboxScreen from './InboxScreen.vue';
+import TaskModal from '../views/TaskModal.vue';
 
 // Группа: Воркспейс (/w), Пространство (/s/:spaceId), Проект (/p/:projectId) — одинаковые табы
 const { t, te, locale } = useI18n();
@@ -135,5 +136,7 @@ const icons = {
       />
       <ProjectScreen v-else-if="level === 'project'" />
     </div>
+    <!-- в Задачах окно задачи рисует сам вид (ProjectScreen, ScopeTasks) -->
+    <TaskModal v-if="tab !== 'tasks'" />
   </div>
 </template>

@@ -11,6 +11,8 @@ import {
   EyeOff,
   Flag,
   MoreHorizontal,
+  AppWindow,
+  Maximize2,
   PanelRight,
   Tag,
   Users,
@@ -112,26 +114,15 @@ const toggleWatch = () =>
 const menuFor = useTaskMenu(() => props.task.spaceId);
 const { isMobile } = useBreakpoint();
 const menu = computed<MenuItem[]>(() => [
-  ...(isMobile.value
-    ? []
-    : [
-        {
-          id: 'openAs',
-          label: t('task.openAs.label'),
-          icon: PanelRight,
-          children: (['modal', 'side', 'page'] as const).map((m) => ({
-            id: m,
-            label: t(`task.openAs.${m}`),
-            checked: taskOpenMode.value === m,
-            onSelect: () => setOpenMode(m),
-          })),
-        },
-        { separator: true as const },
-      ]),
   ...menuFor(props.task)
     .filter((it) => !('id' in it) || it.id !== 'open')
     .map((it) => ('id' in it && it.id === 'delete' ? { ...it, onSelect: remove } : it)),
 ]);
+const OPEN_MODES = [
+  { id: 'modal', icon: AppWindow },
+  { id: 'side', icon: PanelRight },
+  { id: 'page', icon: Maximize2 },
+] as const;
 // смена режима применяется сразу: панель ↔ страница — переход, окно ↔ боковая — на месте
 function setOpenMode(m: TaskOpenMode) {
   taskOpenMode.value = m;
@@ -231,6 +222,31 @@ const panelComponent = computed(() => {
         </template>
         <span class="shrink-0 font-mono text-xs text-fg">{{ task.key }}</span>
       </nav>
+      <!-- «Открывать как» — переключатель иконок, как в ClickUp/Plane -->
+      <div
+        v-if="!isMobile && router"
+        role="group"
+        :aria-label="t('task.openAs.label')"
+        class="flex items-center rounded-md border border-border p-0.5"
+        data-testid="open-as"
+      >
+        <button
+          v-for="m in OPEN_MODES"
+          :key="m.id"
+          type="button"
+          :aria-label="t(`task.openAs.${m.id}`)"
+          :title="t(`task.openAs.${m.id}`)"
+          :aria-pressed="taskOpenMode === m.id"
+          :data-mode="m.id"
+          :class="[
+            'flex size-6 items-center justify-center rounded outline-none focus-visible:ring-2 ring-focus',
+            taskOpenMode === m.id ? 'bg-bg-muted text-fg' : 'text-fg-subtle hover:text-fg',
+          ]"
+          @click="setOpenMode(m.id)"
+        >
+          <component :is="m.icon" :size="14" />
+        </button>
+      </div>
       <Menu :items="menu" align="end">
         <template #trigger>
           <IconButton :icon="MoreHorizontal" :label="t('task.menu')" />

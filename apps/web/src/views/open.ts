@@ -24,9 +24,16 @@ watch(taskOpenMode, (v) => {
   }
 });
 
+const GROUP_ROUTES = ['project', 'space', 'workspace'];
+
 export function openTask(key: string): void {
   const r = router.currentRoute.value;
-  if (r.name === 'project' && taskOpenMode.value !== 'page' && !useBreakpoint().isMobile.value) {
+  // окно/боковая панель — на любом экране группы (TaskModal есть и в Задачах, и в прочих табах)
+  if (
+    GROUP_ROUTES.includes(String(r.name)) &&
+    taskOpenMode.value !== 'page' &&
+    !useBreakpoint().isMobile.value
+  ) {
     void router.push({ query: { ...r.query, task: key } });
   } else {
     void router.push(`/t/${encodeURIComponent(key)}`);
