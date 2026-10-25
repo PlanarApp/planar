@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import TaskContextMenu from '../TaskContextMenu.vue';
+import BulkBar from '../BulkBar.vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { ChevronDown, ChevronRight, ListChecks, Plus } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
@@ -200,16 +202,6 @@ async function submitCreate(g?: TaskGroup) {
   });
 }
 
-// --- массовые действия
-const confirmDelete = ref(false);
-const chosen = () => (all.value ?? []).filter((x) => sel.selected.value.has(x.id));
-const each = (f: (x: TaskView) => Promise<unknown>) => Promise.all(chosen().map(f));
-async function removeSelected() {
-  confirmDelete.value = false;
-  await each((x) => deleteTask(x.id));
-  sel.clear();
-}
-
 // первая задача в пустом проекте: поле ввода остаётся для следующей
 watch(empty, async (e, was) => {
   if (was && !e && creating.value === '') {
@@ -256,141 +248,109 @@ watch(
         </template>
       </template>
     </EmptyState>
-    <div
-      v-else
-      ref="scroller"
-      role="grid"
-      tabindex="0"
-      :aria-rowcount="items.length"
-      class="min-h-0 flex-1 overflow-auto outline-none focus-visible:ring-2 ring-inset ring-focus"
-      @keydown="onKey"
-    >
-      <div class="relative w-full" :style="{ height: `${virt.getTotalSize()}px` }">
-        <div
-          v-for="v in virt.getVirtualItems()"
-          :key="String(v.key)"
-          class="absolute left-0 top-0 w-full"
-          :style="{ height: `${v.size}px`, transform: `translateY(${v.start}px)` }"
-        >
-          <template v-for="it in [items[v.index]]" :key="it.id">
-            <div
-              v-if="it.kind === 'group'"
-              role="row"
-              :aria-rowindex="v.index + 1"
-              class="flex h-full items-center gap-2 border-b border-border bg-bg-muted px-3 text-sm font-medium"
-            >
-              <button
-                type="button"
-                :aria-expanded="!collapsed.has(it.group.key)"
-                :aria-label="t(collapsed.has(it.group.key) ? 'list.expand' : 'list.collapse')"
-                class="inline-flex size-6 items-center justify-center rounded-md outline-none hover:bg-bg-subtle focus-visible:ring-2 ring-focus"
-                @click="
-                  collapsed.has(it.group.key)
-                    ? collapsed.delete(it.group.key)
-                    : collapsed.add(it.group.key);
-                  collapsed = new Set(collapsed);
-                "
+    <TaskContextMenu v-else :space-id="spaceId" :tasks="all">
+      <div
+        ref="scroller"
+        role="grid"
+        tabindex="0"
+        :aria-rowcount="items.length"
+        class="min-h-0 flex-1 overflow-auto outline-none focus-visible:ring-2 ring-inset ring-focus"
+        @keydown="onKey"
+      >
+        <div class="relative w-full" :style="{ height: `${virt.getTotalSize()}px` }">
+          <div
+            v-for="v in virt.getVirtualItems()"
+            :key="String(v.key)"
+            class="absolute left-0 top-0 w-full"
+            :style="{ height: `${v.size}px`, transform: `translateY(${v.start}px)` }"
+          >
+            <template v-for="it in [items[v.index]]" :key="it.id">
+              <div
+                v-if="it.kind === 'group'"
+                role="row"
+                :aria-rowindex="v.index + 1"
+                class="flex h-full items-center gap-2 border-b border-border bg-bg-muted px-3 text-sm font-medium"
               >
-                <component
-                  :is="collapsed.has(it.group.key) ? ChevronRight : ChevronDown"
-                  :size="16"
+                <button
+                  type="button"
+                  :aria-expanded="!collapsed.has(it.group.key)"
+                  :aria-label="t(collapsed.has(it.group.key) ? 'list.expand' : 'list.collapse')"
+                  class="inline-flex size-6 items-center justify-center rounded-md outline-none hover:bg-bg-subtle focus-visible:ring-2 ring-focus"
+                  @click="
+                    collapsed.has(it.group.key)
+                      ? collapsed.delete(it.group.key)
+                      : collapsed.add(it.group.key);
+                    collapsed = new Set(collapsed);
+                  "
+                >
+                  <component
+                    :is="collapsed.has(it.group.key) ? ChevronRight : ChevronDown"
+                    :size="16"
+                    aria-hidden="true"
+                  />
+                </button>
+                <span
+                  v-if="it.group.color"
+                  class="size-2.5 rounded-full"
+                  :style="{ background: it.group.color }"
                   aria-hidden="true"
                 />
-              </button>
-              <span
-                v-if="it.group.color"
-                class="size-2.5 rounded-full"
-                :style="{ background: it.group.color }"
-                aria-hidden="true"
+                <span class="truncate">{{ it.group.label }}</span>
+                <span class="text-fg-subtle">{{ it.group.tasks.length }}</span>
+              </div>
+              <Row
+                v-else-if="it.kind === 'task'"
+                :task="it.task"
+                :space-id="spaceId"
+                :index="v.index + 1"
+                :selected="sel.selected.value.has(it.task.id)"
+                :focused="focusedId === it.id"
+                :editing="editing === it.id"
+                :fields="options.fields"
+                :blocked="blocked.has(it.task.id)"
+                :members="members ?? []"
+                :labels="labels ?? []"
+                @click="onRowClick(it, $event)"
+                @toggle="sel.toggle(it.task.id)"
+                @edit="startEdit(it.id)"
+                @done="
+                  editing = null;
+                  scroller?.focus();
+                "
               />
-              <span class="truncate">{{ it.group.label }}</span>
-              <span class="text-fg-subtle">{{ it.group.tasks.length }}</span>
-            </div>
-            <Row
-              v-else-if="it.kind === 'task'"
-              :task="it.task"
-              :space-id="spaceId"
-              :index="v.index + 1"
-              :selected="sel.selected.value.has(it.task.id)"
-              :focused="focusedId === it.id"
-              :editing="editing === it.id"
-              :fields="options.fields"
-              :blocked="blocked.has(it.task.id)"
-              :members="members ?? []"
-              :labels="labels ?? []"
-              @click="onRowClick(it, $event)"
-              @toggle="sel.toggle(it.task.id)"
-              @edit="startEdit(it.id)"
-              @done="
-                editing = null;
-                scroller?.focus();
-              "
-            />
-            <div
-              v-else
-              role="row"
-              :aria-rowindex="v.index + 1"
-              data-create
-              class="flex h-full items-center border-b border-border px-3 pl-10"
-            >
-              <input
-                v-if="creating === it.group.key"
-                v-model="newTitle"
-                :aria-label="t('list.newTaskTitle')"
-                :placeholder="t('list.newTask')"
-                class="h-7 w-full rounded-md border border-border-strong bg-bg px-2 text-sm outline-none focus-visible:ring-2 ring-focus"
-                @keydown.enter.prevent="submitCreate(it.group)"
-                @keydown.esc.prevent="creating = null"
-                @blur="!newTitle && (creating = null)"
-              />
-              <button
+              <div
                 v-else
-                type="button"
-                class="inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-sm text-fg-muted outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
-                @click="startCreate(it.group.key)"
+                role="row"
+                :aria-rowindex="v.index + 1"
+                data-create
+                class="flex h-full items-center border-b border-border px-3 pl-10"
               >
-                <Plus :size="14" aria-hidden="true" />{{ t('list.newTask') }}
-              </button>
-              <Menu v-if="newMenu.length" :items="newMenu" :label="t('list.newMenu')" />
-            </div>
-          </template>
+                <input
+                  v-if="creating === it.group.key"
+                  v-model="newTitle"
+                  :aria-label="t('list.newTaskTitle')"
+                  :placeholder="t('list.newTask')"
+                  class="h-7 w-full rounded-md border border-border-strong bg-bg px-2 text-sm outline-none focus-visible:ring-2 ring-focus"
+                  @keydown.enter.prevent="submitCreate(it.group)"
+                  @keydown.esc.prevent="creating = null"
+                  @blur="!newTitle && (creating = null)"
+                />
+                <button
+                  v-else
+                  type="button"
+                  class="inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-sm text-fg-muted outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+                  @click="startCreate(it.group.key)"
+                >
+                  <Plus :size="14" aria-hidden="true" />{{ t('list.newTask') }}
+                </button>
+                <Menu v-if="newMenu.length" :items="newMenu" :label="t('list.newMenu')" />
+              </div>
+            </template>
+          </div>
         </div>
       </div>
-    </div>
+    </TaskContextMenu>
 
-    <div
-      v-if="sel.selected.value.size"
-      role="toolbar"
-      class="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-3 py-2 text-sm"
-    >
-      <span>{{ t('list.selected', { n: sel.selected.value.size }) }}</span>
-      <StatusPicker
-        :space-id="spaceId"
-        @update:model-value="each((x) => updateTask(x.id, { statusId: $event }))"
-      />
-      <AssigneePicker
-        :space-id="spaceId"
-        @update:model-value="
-          each((x) => setAssignees(x.id, [...new Set([...x.assigneeIds, ...$event])]))
-        "
-      />
-      <PriorityPicker @update:model-value="each((x) => updateTask(x.id, { priority: $event }))" />
-      <Button variant="danger" size="sm" @click="confirmDelete = true">{{
-        t('list.delete')
-      }}</Button>
-    </div>
-
-    <Dialog
-      v-model:open="confirmDelete"
-      :title="t('list.deleteTitle')"
-      :description="t('list.deleteText', { n: sel.selected.value.size })"
-    >
-      <template #footer>
-        <Button @click="confirmDelete = false">{{ t('list.cancel') }}</Button>
-        <Button variant="danger" data-testid="confirm-delete" @click="removeSelected">{{
-          t('list.delete')
-        }}</Button>
-      </template>
-    </Dialog>
+    <BulkBar :space-id="spaceId" :tasks="all" />
   </div>
 </template>

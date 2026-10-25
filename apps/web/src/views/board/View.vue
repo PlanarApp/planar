@@ -16,6 +16,8 @@ import { openTask } from '..';
 import type { ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import Column from './Column.vue';
+import TaskContextMenu from '../TaskContextMenu.vue';
+import BulkBar from '../BulkBar.vue';
 import { applyMove, boardColumns, planMove } from './plan';
 
 const props = defineProps<ViewProps>();
@@ -124,30 +126,33 @@ function add(key: string, title: string) {
       :title="t('list.emptyTitle')"
       :description="t('views.emptyBoard')"
     />
-    <div
-      ref="scroller"
-      class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3"
-      :class="isMobile && 'snap-x snap-mandatory'"
-      :style="mask"
-      @scroll.passive="measure"
-      role="group"
-      :aria-label="t('views.board')"
-    >
-      <Column
-        v-for="g in columns"
-        :key="g.key"
-        :group="g"
-        :members="members ?? []"
-        :labels="labels ?? []"
-        :collapsed="collapsed.has(g.key)"
-        :mobile="isMobile"
-        :fields="options.fields"
-        :blocked="blocked"
-        @toggle="toggle(g.key)"
-        @open="openTask"
-        @add="add(g.key, $event)"
-        @move="move"
-      />
-    </div>
+    <TaskContextMenu :space-id="spaceId" :tasks="tasks">
+      <div
+        ref="scroller"
+        class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3"
+        :class="isMobile && 'snap-x snap-mandatory'"
+        :style="mask"
+        @scroll.passive="measure"
+        role="group"
+        :aria-label="t('views.board')"
+      >
+        <Column
+          v-for="g in columns"
+          :key="g.key"
+          :group="g"
+          :members="members ?? []"
+          :labels="labels ?? []"
+          :collapsed="collapsed.has(g.key)"
+          :mobile="isMobile"
+          :fields="options.fields"
+          :blocked="blocked"
+          @toggle="toggle(g.key)"
+          @open="openTask"
+          @add="add(g.key, $event)"
+          @move="move"
+        />
+      </div>
+    </TaskContextMenu>
+    <BulkBar :space-id="spaceId" :tasks="tasks" />
   </div>
 </template>

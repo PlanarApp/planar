@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useSelection } from '../selection';
 import { computed, nextTick, ref, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { observeElementRect, useVirtualizer } from '@tanstack/vue-virtual';
@@ -32,6 +33,17 @@ const emit = defineEmits<{
   move: [id: string, from: string, to: string, beforeId: string | null];
 }>();
 const { t, locale } = useI18n();
+// Ctrl/Cmd — добавить к выделению, Shift — диапазон в колонке; обычный клик открывает задачу
+const sel = useSelection();
+function onCard(x: TaskView, e: MouseEvent) {
+  if (e.metaKey || e.ctrlKey) sel.toggle(x.id);
+  else if (e.shiftKey)
+    sel.range(
+      props.group.tasks.map((y) => y.id),
+      x.id,
+    );
+  else emit('open', x.key);
+}
 
 const scroller = useTemplateRef<HTMLElement>('scroller');
 const virtual = computed(() => props.group.tasks.length > VIRTUAL_FROM);
@@ -158,9 +170,13 @@ const hasFoot = (x: TaskView) =>
           :ref="(el) => virtual && virt.measureElement(el as Element | null)"
           :data-index="rows.first + n"
           :data-id="x.id"
+          :data-task="x.key"
           tabindex="0"
-          class="mb-2 flex cursor-grab flex-col gap-1 rounded-lg border border-border bg-surface p-2 focus-visible:ring-2 ring-focus"
-          @click="emit('open', x.key)"
+          :class="[
+            'mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 focus-visible:ring-2 ring-focus',
+            sel.selected.value.has(x.id) ? 'border-accent bg-accent-subtle' : 'border-border',
+          ]"
+          @click="onCard(x, $event)"
           @keydown.enter.self="emit('open', x.key)"
         >
           <div class="flex items-start gap-1.5">

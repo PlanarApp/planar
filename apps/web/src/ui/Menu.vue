@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, useSlots, type Component } from 'vue';
-import { MoreHorizontal } from 'lucide-vue-next';
+import { computed, ref, useSlots, type Component } from 'vue';
+import { Check, ChevronRight, MoreHorizontal } from 'lucide-vue-next';
 import IconButton from './IconButton.vue';
 import {
   ContextMenuContent,
@@ -8,12 +8,18 @@ import {
   ContextMenuPortal,
   ContextMenuRoot,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuPortal,
   DropdownMenuRoot,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from 'reka-ui';
 import { useBreakpoint } from './useBreakpoint';
@@ -21,6 +27,15 @@ import Sheet from './Sheet.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 import Kbd from './Kbd.vue';
 
+/** пункт подменю: выбор значения (статус, приоритет…); checked — текущее */
+export type SubItem = {
+  id: string;
+  label: string;
+  icon?: Component;
+  iconProps?: Record<string, unknown>;
+  checked?: boolean;
+  onSelect: () => void;
+};
 type Item = {
   id: string;
   label: string;
@@ -29,7 +44,9 @@ type Item = {
   danger?: boolean;
   disabled?: boolean;
   confirm?: { title: string; description?: string; confirmLabel: string };
-  onSelect: () => void;
+  /** подменю вместо действия (один уровень) */
+  children?: SubItem[];
+  onSelect?: () => void;
 };
 export type MenuItem = Item | { separator: true };
 
@@ -54,52 +71,70 @@ const sheet = ref(false);
 const pending = ref<Item | null>(null);
 const confirmOpen = ref(false);
 const select = (it: Item) => {
-  if (!it.confirm) return it.onSelect();
+  if (!it.confirm) return it.onSelect?.();
   pending.value = it;
   confirmOpen.value = true;
 };
-const pick = (it: Item) => {
+const pick = (f: () => void) => {
   sheet.value = false;
-  select(it);
+  f();
 };
-const confirmed = () => pending.value?.onSelect();
+const confirmed = () => pending.value?.onSelect?.();
+
+// одинаковые компоненты reka для двух видов меню
+const kind = computed(() =>
+  props.context
+    ? {
+        Content: ContextMenuContent,
+        Item: ContextMenuItem,
+        Portal: ContextMenuPortal,
+        Separator: ContextMenuSeparator,
+        Sub: ContextMenuSub,
+        SubContent: ContextMenuSubContent,
+        SubTrigger: ContextMenuSubTrigger,
+      }
+    : {
+        Content: DropdownMenuContent,
+        Item: DropdownMenuItem,
+        Portal: DropdownMenuPortal,
+        Separator: DropdownMenuSeparator,
+        Sub: DropdownMenuSub,
+        SubContent: DropdownMenuSubContent,
+        SubTrigger: DropdownMenuSubTrigger,
+      },
+);
+const panel = 'z-50 min-w-44 rounded-lg border border-border bg-surface p-1 shadow-popover';
+const row = (danger?: boolean) => [
+  'flex h-11 md:h-8 cursor-default items-center gap-2 rounded-md px-2 text-sm outline-none data-[disabled]:opacity-50',
+  danger
+    ? 'text-danger data-[highlighted]:bg-danger-subtle'
+    : 'text-fg data-[highlighted]:bg-bg-muted data-[state=open]:bg-bg-muted',
+];
+const subPanel = `${panel} max-h-80 overflow-y-auto`;
 </script>
 
 <template>
-  <ContextMenuRoot v-if="context">
-    <ContextMenuTrigger as-child><slot /></ContextMenuTrigger>
-    <ContextMenuPortal>
-      <ContextMenuContent
-        class="z-50 min-w-44 rounded-lg border border-border bg-surface p-1 shadow-popover"
-      >
-        <template v-for="(it, i) in items" :key="'separator' in it ? 'sep' + i : it.id">
-          <ContextMenuSeparator v-if="'separator' in it" class="my-1 h-px bg-border" />
-          <ContextMenuItem
-            v-else
-            :disabled="it.disabled"
-            :class="[
-              'flex h-11 md:h-8 cursor-default items-center gap-2 rounded-md px-2 text-sm outline-none data-[disabled]:opacity-50',
-              it.danger
-                ? 'text-danger data-[highlighted]:bg-danger-subtle'
-                : 'text-fg data-[highlighted]:bg-bg-muted',
-            ]"
-            @select="select(it)"
-          >
-            <component :is="it.icon" v-if="it.icon" :size="16" />
-            <span class="flex-1">{{ it.label }}</span>
-            <Kbd v-if="it.shortcut" :keys="it.shortcut" />
-          </ContextMenuItem>
-        </template>
-      </ContextMenuContent>
-    </ContextMenuPortal>
-  </ContextMenuRoot>
-  <Sheet v-else-if="isMobile" v-model:open="sheet">
+  <Sheet v-if="isMobile && !context" v-model:open="sheet">
     <template #trigger
       ><slot name="trigger"
         ><IconButton :icon="MoreHorizontal" :label="label ?? ''" size="sm" /></slot
     ></template>
     <template v-for="(it, i) in items" :key="'separator' in it ? 'sep' + i : it.id">
       <div v-if="'separator' in it" class="my-1 h-px bg-border" />
+      <template v-else-if="it.children">
+        <div class="px-2 pt-2 text-xs font-medium text-fg-muted">{{ it.label }}</div>
+        <button
+          v-for="c in it.children"
+          :key="c.id"
+          type="button"
+          class="flex min-h-11 w-full items-center gap-2 rounded-md px-2 pl-4 text-left text-sm text-fg outline-none"
+          @click="pick(c.onSelect)"
+        >
+          <component :is="c.icon" v-if="c.icon" :size="16" v-bind="c.iconProps" />
+          <span class="flex-1">{{ c.label }}</span>
+          <Check v-if="c.checked" :size="14" />
+        </button>
+      </template>
       <button
         v-else
         type="button"
@@ -108,46 +143,64 @@ const confirmed = () => pending.value?.onSelect();
           'flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none disabled:opacity-50',
           it.danger ? 'text-danger' : 'text-fg',
         ]"
-        @click="pick(it)"
+        @click="pick(() => select(it))"
       >
         <component :is="it.icon" v-if="it.icon" :size="16" />
         <span class="flex-1">{{ it.label }}</span>
       </button>
     </template>
   </Sheet>
-  <DropdownMenuRoot v-else>
-    <DropdownMenuTrigger as-child
+  <component :is="context ? ContextMenuRoot : DropdownMenuRoot" v-else>
+    <ContextMenuTrigger v-if="context" as-child><slot /></ContextMenuTrigger>
+    <DropdownMenuTrigger v-else as-child
       ><slot name="trigger"
         ><IconButton :icon="MoreHorizontal" :label="label ?? ''" size="sm" /></slot
     ></DropdownMenuTrigger>
-    <DropdownMenuPortal>
-      <DropdownMenuContent
-        :side="side"
-        :align="align"
-        :side-offset="4"
-        class="z-50 min-w-44 rounded-lg border border-border bg-surface p-1 shadow-popover"
+    <component :is="kind.Portal">
+      <component
+        :is="kind.Content"
+        v-bind="context ? {} : { side, align, sideOffset: 4 }"
+        :class="panel"
       >
         <template v-for="(it, i) in items" :key="'separator' in it ? 'sep' + i : it.id">
-          <DropdownMenuSeparator v-if="'separator' in it" class="my-1 h-px bg-border" />
-          <DropdownMenuItem
+          <component :is="kind.Separator" v-if="'separator' in it" class="my-1 h-px bg-border" />
+          <component :is="kind.Sub" v-else-if="it.children">
+            <component :is="kind.SubTrigger" :disabled="it.disabled" :class="row()">
+              <component :is="it.icon" v-if="it.icon" :size="16" />
+              <span class="flex-1">{{ it.label }}</span>
+              <ChevronRight :size="14" class="text-fg-muted" />
+            </component>
+            <component :is="kind.Portal">
+              <component :is="kind.SubContent" :side-offset="4" :class="subPanel">
+                <component
+                  :is="kind.Item"
+                  v-for="c in it.children"
+                  :key="c.id"
+                  :class="row()"
+                  @select="c.onSelect()"
+                >
+                  <component :is="c.icon" v-if="c.icon" :size="16" v-bind="c.iconProps" />
+                  <span class="flex-1 truncate">{{ c.label }}</span>
+                  <Check v-if="c.checked" :size="14" class="text-accent" />
+                </component>
+              </component>
+            </component>
+          </component>
+          <component
+            :is="kind.Item"
             v-else
             :disabled="it.disabled"
-            :class="[
-              'flex h-11 md:h-8 cursor-default items-center gap-2 rounded-md px-2 text-sm outline-none data-[disabled]:opacity-50',
-              it.danger
-                ? 'text-danger data-[highlighted]:bg-danger-subtle'
-                : 'text-fg data-[highlighted]:bg-bg-muted',
-            ]"
+            :class="row(it.danger)"
             @select="select(it)"
           >
             <component :is="it.icon" v-if="it.icon" :size="16" />
             <span class="flex-1">{{ it.label }}</span>
             <Kbd v-if="it.shortcut" :keys="it.shortcut" />
-          </DropdownMenuItem>
+          </component>
         </template>
-      </DropdownMenuContent>
-    </DropdownMenuPortal>
-  </DropdownMenuRoot>
+      </component>
+    </component>
+  </component>
   <ConfirmDialog
     v-if="pending?.confirm"
     v-model:open="confirmOpen"
