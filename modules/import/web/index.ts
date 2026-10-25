@@ -13,15 +13,6 @@ export const web = defineWebModule({
       component: () => import('./ImportPage.vue'),
     },
   ],
-  nav: [
-    {
-      id: 'import',
-      order: 90,
-      label: { ru: 'Импорт', en: 'Import' },
-      icon: Upload,
-      to: '/m/import/',
-    },
-  ],
   commands: [
     {
       id: 'import:open',

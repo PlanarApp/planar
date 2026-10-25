@@ -7,11 +7,17 @@ import { router } from '../router';
 import { mutate } from '../sync';
 import { openTask } from '../views';
 import PushToggle from '../inbox/PushToggle.vue';
-import { useNotifications, type InboxItem } from '../inbox/queries';
+import { inGroup, useNotifications, type InboxItem } from '../inbox/queries';
+import type { GroupScope } from '../modules/types';
 import { isSnoozed, snooze, snoozeUntil, snoozed, type SnoozeOption } from '../inbox/snooze';
 
+// scope — таб «Входящие» группы: уведомления её уровня и вложенных
+const props = defineProps<{ scope?: GroupScope }>();
 const { t, locale } = useI18n();
-const rows = useNotifications();
+const all = useNotifications();
+const rows = computed(() =>
+  props.scope ? all.value?.filter((n) => inGroup(n, props.scope!)) : all.value,
+);
 const act = 'flex size-11 items-center justify-center rounded-md hover:bg-bg-muted md:size-8';
 const filter = ref('all');
 const onlyUnread = computed(() => filter.value === 'unread');
@@ -69,7 +75,9 @@ const rowItems = (n: InboxItem): MenuItem[] => [
 <template>
   <div class="flex flex-col gap-3 p-4">
     <div class="flex flex-wrap items-center gap-2">
-      <h1 class="w-full text-xl font-semibold md:w-auto md:flex-1">{{ t('screens.inbox') }}</h1>
+      <h1 v-if="!scope" class="w-full text-xl font-semibold md:w-auto md:flex-1">
+        {{ t('screens.inbox') }}
+      </h1>
       <Tabs
         v-model="filter"
         :label="t('inbox.filter')"

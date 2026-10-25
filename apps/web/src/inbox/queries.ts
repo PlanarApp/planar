@@ -7,7 +7,11 @@ export type InboxItem = Row<'notifications'> & {
   actorName: string;
   taskKey: string | null;
   taskTitle: string;
+  /** уровень группы: проект задачи или канала; null — пространство (spaceId) или личный диалог */
+  projectId: string | null;
 };
+
+const CHANNEL = /^\/m\/chat\/c\/([0-9a-f-]{36})/;
 
 export const useNotifications = () =>
   useQuery(async (): Promise<InboxItem[]> => {
@@ -21,6 +25,12 @@ export const useNotifications = () =>
     const projects = await db
       .table<Row<'projects'>>('projects')
       .bulkGet([...new Set(tasks.flatMap((t) => (t ? [t.projectId] : [])))]);
+    const chIds = [...new Set(ns.flatMap((n) => CHANNEL.exec(n.url ?? '')?.[1] ?? []))];
+    const channels =
+      chIds.length && db.tables.some((x) => x.name === 'chatChannels')
+        ? await db.table<{ id: string; projectId?: string | null }>('chatChannels').bulkGet(chIds)
+        : [];
+    const chProject = new Map(channels.flatMap((c) => (c ? [[c.id, c.projectId ?? null]] : [])));
     const task = new Map(tasks.flatMap((t) => (t ? [[t.id, t] as const] : [])));
     const user = new Map(users.flatMap((u) => (u ? [[u.id, u.name] as const] : [])));
     const proj = new Map(projects.flatMap((p) => (p ? [[p.id, p.key] as const] : [])));
@@ -34,6 +44,7 @@ export const useNotifications = () =>
           taskKey: t ? `${proj.get(t.projectId) ?? '?'}-${t.number ?? '…'}` : null,
           // уведомление без задачи (chat_*): вместо названия — body
           taskTitle: t?.title ?? (n.taskId ? '' : (n.body ?? '')),
+          projectId: t?.projectId ?? chProject.get(CHANNEL.exec(n.url ?? '')?.[1] ?? '') ?? null,
         };
       });
   });
@@ -75,3 +86,22 @@ export const useMyTasks = (userId: () => string | undefined) =>
       return [{ ...t, status, project: p?.name ?? '', key: `${p?.key ?? '?'}-${t.number ?? '…'}` }];
     });
   });
+
+/** Уведомление в группе: свой уровень и вложенные (own — только свой уровень, для бейджа ветки меню). */
+export function inGroup(
+  n: InboxItem,
+  g: { level: 'workspace' | 'space' | 'project'; spaceId: string; projectId: string | null },
+  own = false,
+): boolean {
+  if (g.level === 'project') return n.projectId === g.projectId;
+  if (g.level === 'space') return n.spaceId === g.spaceId && (!own || !n.projectId);
+  return !own || n.spaceId === g.spaceId || n.spaceId === null;
+}
+
+/** Непрочитанные, не отложенные — по группам (ветка «Входящие» в меню). */
+export function useUnreadItems() {
+  const rows = useNotifications();
+  return computed(() =>
+    (rows.value ?? []).filter((n) => !n.readAt && !(snoozed.value[n.id] && isSnoozed(n.id))),
+  );
+}

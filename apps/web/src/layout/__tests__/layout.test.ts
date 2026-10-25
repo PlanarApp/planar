@@ -72,7 +72,7 @@ describe('раскладка', () => {
 
   it('375: клик по ссылке на текущий маршрут закрывает панель', async () => {
     const { router, i18n } = setup(true);
-    await router.push('/my');
+    await router.push('/w');
     const w = mount(withTips(AppShell), {
       global: { plugins: [router, i18n] },
       attachTo: document.body,
@@ -80,7 +80,7 @@ describe('раскладка', () => {
     await router.isReady();
     await w.find('button[aria-label="Навигация"]').trigger('click');
     await vi.waitFor(() => expect(document.querySelector('[data-testid=sidebar]')).not.toBeNull());
-    document.querySelector<HTMLElement>('[data-testid=sidebar] a[href="/my"]')!.click();
+    document.querySelector<HTMLElement>('[data-testid=sidebar] a[href="/w"]')!.click();
     await vi.waitFor(() => expect(document.querySelector('[data-testid=sidebar]')).toBeNull());
     w.unmount();
   });
@@ -106,9 +106,10 @@ describe('раскладка', () => {
     localStorage.removeItem('planar.sidebar.collapsed');
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
-    expect(w.text()).toContain('Пространства');
+    // корень дерева — Воркспейс; его шеврон сворачивает пространства
+    expect(w.get('[data-testid=nav-workspace]').text()).toBe('Planar');
     expect(w.text()).not.toContain('Избранное'); // пусто — скрыто
-    const head = w.findAll('h2 button').find((b) => b.text() === 'Пространства')!;
+    const head = w.get('[data-testid=nav-workspace] button');
     expect(head.attributes('aria-expanded')).toBe('true');
     await head.trigger('click');
     expect(head.attributes('aria-expanded')).toBe('false');

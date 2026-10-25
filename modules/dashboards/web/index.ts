@@ -37,16 +37,8 @@ export const web = defineWebModule({
       tab: 'reports',
       order: 10,
       label: { ru: 'Дашборды', en: 'Dashboards' },
-      component: () => import('./GroupBoards.vue'),
-    },
-  ],
-  nav: [
-    {
-      id: 'list',
-      order: 60,
-      label: { ru: 'Дашборды', en: 'Dashboards' },
       icon: Grid,
-      to: '/m/dashboards/',
+      component: () => import('./GroupBoards.vue'),
     },
   ],
 });

@@ -11,6 +11,7 @@ import { GROUP_TABS, groupTab, groupUrl, type GroupLevel } from '../layout/group
 import ProjectScreen from './ProjectScreen.vue';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import SettingsScreen from './SettingsScreen.vue';
+import InboxScreen from './InboxScreen.vue';
 
 // Группа: Воркспейс (/w), Пространство (/s/:spaceId), Проект (/p/:projectId) — одинаковые табы
 const { t, te, locale } = useI18n();
@@ -104,6 +105,11 @@ const icons = {
         :root-space-id="rootId ?? undefined"
       />
       <SettingsScreen v-else-if="name && scope && tab === 'settings'" :scope="scope" />
+      <InboxScreen
+        v-else-if="name && scope && tab === 'inbox'"
+        :scope="scope"
+        class="h-full overflow-y-auto"
+      />
       <div v-else-if="name && scope && part" class="flex h-full min-h-0 flex-col">
         <div v-if="parts.length > 1" class="shrink-0 border-b border-border px-2 py-1">
           <Tabs

@@ -43,6 +43,7 @@ export const useGroupLevels = (scope: () => GroupScope): Readonly<Ref<GroupLevel
   return computed(() => groupLevels(scope(), spaces.value ?? [], i18n.global.t('app.name')));
 };
 export type { GroupLevelRow } from '../layout/groups';
+export { groupUrl } from '../layout/groups';
 
 /** Текущий пользователь (null — не вошёл). */
 export const useSession = (): Readonly<Ref<User | null>> => useAuth().user;

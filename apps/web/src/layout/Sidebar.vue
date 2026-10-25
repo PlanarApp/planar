@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onScopeDispose, watch, type Component } from 'vue';
+import { computed, defineAsyncComponent, onScopeDispose, watch, type Component } from 'vue';
 import {
   ChevronRight,
-  Inbox,
-  ListChecks,
   MoreHorizontal,
   Plus,
   Settings,
   Star,
 } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import Badge from '../ui/Badge.vue';
-import { useUnread } from '../inbox/queries';
-import { prefetchIdle, prefetchProject } from '../tasks/queries';
+import { useUnreadItems } from '../inbox/queries';
+import { prefetchIdle, prefetchProject, useRootSpaceId } from '../tasks/queries';
+import type { GroupScope } from '../modules/types';
+import GroupBranches from './GroupBranches.vue';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { sidebarCollapse as sc, useNavData, useUserMenu } from './nav';
@@ -41,8 +40,13 @@ const section = (key: string, load: () => Promise<{ default: Component }>) => {
 };
 const navLabel = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
-const unread = useUnread();
-const { spaces, favorites } = useNavData();
+const unread = useUnreadItems();
+const { spaces: allSpaces, favorites } = useNavData();
+// дерево групп: Воркспейс (корневое пространство) › пространства › проекты
+const rootId = useRootSpaceId();
+const spaces = computed(() => allSpaces.value.filter((s) => s.id !== rootId.value));
+const scopeOf = (level: GroupScope['level'], spaceId: string, projectId: string | null = null) =>
+  ({ level, spaceId, projectId, rootSpaceId: rootId.value ?? '' }) as GroupScope;
 const act = useSidebarActions();
 // поле ввода на месте: Enter — сохранить, Esc/blur без текста — отмена
 const onKey = (e: KeyboardEvent) => {
@@ -155,21 +159,6 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
       </template>
     </Menu>
     <nav class="flex flex-col gap-3">
-      <div class="flex flex-col gap-0.5">
-        <RouterLink to="/inbox" :class="link" active-class="bg-accent-subtle">
-          <Inbox :size="16" />{{ t('sidebar.inbox') }}
-          <Badge
-            v-if="unread"
-            variant="solid"
-            color="var(--color-accent)"
-            class="ml-auto text-accent-fg!"
-            >{{ unread }}</Badge
-          >
-        </RouterLink>
-        <RouterLink to="/my" :class="link" active-class="bg-accent-subtle">
-          <ListChecks :size="16" />{{ t('sidebar.my') }}
-        </RouterLink>
-      </div>
       <section v-if="favorites.length">
         <h2>
           <button
@@ -196,16 +185,20 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
         </template>
       </section>
       <section>
-        <h2 class="group flex items-center">
+        <h2 :class="[link, 'group w-full pr-1 font-semibold']" data-testid="nav-workspace">
           <button
             type="button"
-            :class="head"
+            class="flex shrink-0 items-center outline-none"
+            :aria-label="t('sidebar.expand')"
             :aria-expanded="!sc.is('spaces')"
             @click="sc.toggle('spaces')"
           >
-            <ChevronRight :size="12" :class="chev('spaces')" />{{ t('sidebar.spaces') }}
+            <ChevronRight :size="12" :class="chev('spaces')" />
           </button>
-          <span :class="[tools, 'pr-1']">
+          <RouterLink to="/w" class="min-w-0 flex-1 truncate outline-none">{{
+            t('app.name')
+          }}</RouterLink>
+          <span :class="tools">
             <button
               type="button"
               :class="tool"
@@ -227,6 +220,11 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
           @blur="act.cancel"
         />
         <template v-if="!sc.is('spaces')">
+          <GroupBranches
+            :scope="scopeOf('workspace', rootId ?? '')"
+            :unread="unread"
+            pad="pl-3"
+          />
           <div v-for="s in spaces" :key="s.id">
             <input
               v-if="act.editing.value === 'space:' + s.id"
@@ -238,16 +236,19 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
               @blur="act.commit"
             />
             <Menu v-else context :items="act.spaceItems(s)">
-              <div :class="[link, 'group w-full pr-1 font-medium']" data-testid="nav-space">
+              <div :class="[link, 'group w-full pl-5 pr-1 font-medium']" data-testid="nav-space">
                 <button
                   type="button"
-                  class="flex min-w-0 flex-1 items-center gap-1 outline-none"
+                  class="flex shrink-0 items-center outline-none"
+                  :aria-label="t('sidebar.expand')"
                   :aria-expanded="!sc.is('space:' + s.id)"
                   @click="sc.toggle('space:' + s.id)"
                 >
                   <ChevronRight :size="12" :class="chev('space:' + s.id)" />
-                  <span class="truncate">{{ s.name }}</span>
                 </button>
+                <RouterLink :to="`/s/${s.id}`" class="min-w-0 flex-1 truncate outline-none">{{
+                  s.name
+                }}</RouterLink>
                 <span :class="tools">
                   <button
                     type="button"
@@ -268,6 +269,7 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
               </div>
             </Menu>
             <template v-if="!sc.is('space:' + s.id) || act.editing.value === 'new:' + s.id">
+              <GroupBranches :scope="scopeOf('space', s.id)" :unread="unread" pad="pl-8" />
               <template v-for="p in s.projects" :key="p.id">
                 <input
                   v-if="act.editing.value === p.id"
@@ -281,12 +283,24 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
                 <Menu v-else context :items="act.projectItems(p)">
                   <RouterLink
                     :to="`/p/${p.id}`"
-                    :class="[link, 'group pl-7 pr-1']"
+                    :class="[link, 'group pl-8 pr-1']"
                     active-class="bg-accent-subtle"
                     data-testid="nav-project"
                     @pointerenter="prefetchProject(p.id)"
                     @focus="prefetchProject(p.id)"
                   >
+                    <button
+                      type="button"
+                      class="-ml-1 flex shrink-0 items-center outline-none"
+                      :aria-label="t('sidebar.expand')"
+                      :aria-expanded="sc.is('open:p:' + p.id)"
+                      @click.prevent="sc.toggle('open:p:' + p.id)"
+                    >
+                      <ChevronRight
+                        :size="12"
+                        :class="['transition-transform', sc.is('open:p:' + p.id) && 'rotate-90']"
+                      />
+                    </button>
                     <span class="font-mono text-xs text-fg-muted">{{ p.prefix }}</span
                     ><span class="truncate">{{ p.name }}</span>
                     <span :class="tools" @click.prevent>
@@ -300,6 +314,12 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
                     </span>
                   </RouterLink>
                 </Menu>
+                <GroupBranches
+                  v-if="sc.is('open:p:' + p.id)"
+                  :scope="scopeOf('project', s.id, p.id)"
+                  :unread="unread"
+                  pad="pl-11"
+                />
               </template>
               <input
                 v-if="act.editing.value === 'new:' + s.id"
@@ -341,7 +361,7 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
         </div>
       </section>
     </nav>
-    <RouterLink to="/settings" :class="[link, 'mt-auto']" active-class="bg-accent-subtle">
+    <RouterLink to="/w/settings" :class="[link, 'mt-auto']" active-class="bg-accent-subtle">
       <Settings :size="16" />{{ t('sidebar.settings') }}
     </RouterLink>
   </aside>

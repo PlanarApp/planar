@@ -6,7 +6,6 @@ import { label } from './text';
 export const web = defineWebModule({
   id: 'docs',
   routes: [{ path: '/m/docs/:pageId?', component: () => import('./PageScreen.vue') }],
-  nav: [{ id: 'tree', order: 10, section: () => import('./TreeSection.vue') }],
   taskPanels: [
     {
       id: 'pages',
@@ -17,6 +16,8 @@ export const web = defineWebModule({
   ],
   search: [pageSearch],
   groupTabs: [
-    { id: 'pages', tab: 'docs', label: label('docs'), component: () => import('./GroupDocs.vue') },
+    { id: 'pages', tab: 'docs', label: label('docs'), component: () => import('./GroupDocs.vue'),
+      branch: () => import('./DocsBranch.vue'),
+    },
   ],
 });

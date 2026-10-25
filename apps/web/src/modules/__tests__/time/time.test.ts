@@ -210,7 +210,7 @@ describe('wk1: неделя «Мои часы»', () => {
 describe('wk1: манифест', () => {
   it('wk1: registerModules принимает time (route, nav, topbar, taskPanels)', () => {
     expect(() => registerModules([web])).not.toThrow();
-    expect(web.nav?.[0]).toMatchObject({ id: 'week', to: '/m/time/week' });
+    expect(web.groupTabs?.[0]).toMatchObject({ id: 'week', tab: 'reports' });
     expect(web.taskPanels?.[0].id).toBe('timer');
     expect(web.topbar?.[0].id).toBe('timer');
   });

@@ -57,7 +57,7 @@ describe('wk6: web импорта', () => {
   it('wk6: манифест — маршрут /m/import/, пункт навигации и команда import:open', () => {
     expect(web.id).toBe('import');
     expect(web.routes?.[0]?.path).toBe('/m/import/');
-    expect(web.nav?.[0]).toMatchObject({ to: '/m/import/' });
+    expect(web.settings?.[0]).toMatchObject({ id: 'import' }); // раздел настроек Воркспейса
     expect(web.commands?.map((c) => c.id)).toEqual(['import:open']);
   });
 

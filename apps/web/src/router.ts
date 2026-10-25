@@ -8,7 +8,7 @@ const screen = (name: string) => screens[`./screens/${name}Screen.vue`];
 export const router = createRouter({
   history: typeof window === 'undefined' ? createMemoryHistory() : createWebHistory(),
   routes: [
-    { path: '/', redirect: '/my' },
+    { path: '/', redirect: '/w' },
     { path: '/setup', name: 'setup', component: screen('Setup'), meta: { layout: 'none' } },
     { path: '/login', name: 'login', component: screen('Login'), meta: { layout: 'none' } },
     { path: '/profile', name: 'profile', component: screen('Profile') },

@@ -55,6 +55,7 @@ export default {
     archive: 'Archive',
     delete: 'Delete',
     more: 'More',
+    expand: 'Expand',
     deleteProject: 'Delete project “{name}”?',
     deleteProjectHint:
       'Only an empty project can be deleted: delete or move its tasks first. Archive a project that has tasks.',

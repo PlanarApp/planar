@@ -23,15 +23,6 @@ const Flag = defineComponent({
 export const web = defineWebModule({
   id: 'goals',
   routes: [{ path: '/m/goals/', component: () => import('./GoalsPage.vue') }],
-  nav: [
-    {
-      id: 'page',
-      order: 70,
-      label: { ru: 'Цели', en: 'Goals' },
-      icon: Flag,
-      to: '/m/goals/',
-    },
-  ],
   // вехи — в «Отчётах» группы (раньше — вид проекта)
   groupTabs: [
     {

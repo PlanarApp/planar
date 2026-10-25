@@ -126,7 +126,7 @@ export function useSidebarActions() {
       id: 'settings',
       label: t('sidebar.spaceSettings'),
       icon: Settings,
-      onSelect: () => void router.push('/settings/spaces'),
+      onSelect: () => void router.push(`/s/${s.id}/settings`),
     },
     { separator: true },
     {
@@ -174,7 +174,7 @@ export function useSidebarActions() {
         id: 'settings',
         label: t('sidebar.projectSettings'),
         icon: Settings,
-        onSelect: () => void router.push('/settings/projects'),
+        onSelect: () => void router.push(`/p/${p.id}/settings`),
       },
       { separator: true },
       {

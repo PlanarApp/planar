@@ -29,16 +29,8 @@ export const web = defineWebModule({
       tab: 'reports',
       order: 30,
       label: { ru: 'Загрузка', en: 'Workload' },
-      component: () => import('./GroupWorkload.vue'),
-    },
-  ],
-  nav: [
-    {
-      id: 'page',
-      order: 60,
-      label: { ru: 'Загрузка', en: 'Workload' },
       icon: Bars,
-      to: '/m/workload/',
+      component: () => import('./GroupWorkload.vue'),
     },
   ],
 });

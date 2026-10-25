@@ -126,7 +126,7 @@ describe('pt3: подсчёт', () => {
 describe('pt3: страница', () => {
   it('pt3: manifest — маршрут и nav под /m/workload', () => {
     expect(web.id).toBe('workload');
-    expect(web.nav![0].id).toBe('page');
+    expect(web.groupTabs![0]).toMatchObject({ id: 'page', tab: 'reports' });
   });
 
   it('pt3: перегрузка подсвечена, клик открывает список, ёмкость правится админом', async () => {

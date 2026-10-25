@@ -31,7 +31,7 @@ describe('auth:guard-login', () => {
     useAuth().user.value = mkUser();
     await router.push('/inbox');
     await router.push('/login');
-    expect(router.currentRoute.value.path).toBe('/my');
+    expect(router.currentRoute.value.path).toBe('/w');
     expect(useAuth().user.value?.login).toBe('ann');
   });
 });

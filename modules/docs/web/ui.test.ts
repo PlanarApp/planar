@@ -106,7 +106,7 @@ describe('docs web: манифест и провайдер поиска', () => 
   it('точки расширения: маршрут, секция, панель задачи, поиск', () => {
     expect(web.id).toBe('docs');
     expect(web.routes![0]!.path).toBe('/m/docs/:pageId?');
-    expect(web.nav![0]).toMatchObject({ id: 'tree', section: expect.any(Function) });
+    expect(web.groupTabs![0]).toMatchObject({ id: 'pages', tab: 'docs', branch: expect.any(Function) });
     expect(web.taskPanels![0]!.id).toBe('pages');
     expect(web.search![0]!.id).toBe('pages');
   });

@@ -23,13 +23,4 @@ export const web = defineWebModule({
     },
   ],
   topbar: [{ id: 'timer', order: 10, component: () => import('./TopbarTimer.vue') }],
-  nav: [
-    {
-      id: 'week',
-      order: 50,
-      label: { ru: 'Время', en: 'Time' },
-      icon: Clock,
-      to: '/m/time/week',
-    },
-  ],
 });
