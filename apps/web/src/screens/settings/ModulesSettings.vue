@@ -1,23 +1,35 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, onMounted, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { api } from '../../api/http';
+import { Dialog } from '../../ui';
+import { moduleSetup } from '../../modules/registry';
 import { useAuth } from '../../auth/useAuth';
 import { db, mutate, useQuery } from '../../sync';
 import SectionHeader from './SectionHeader.vue';
 import { useAction } from './shared';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const { isAdmin } = useAuth();
 const { error, run } = useAction();
-const server = ref<{ id: string; enabled: boolean }[]>([]);
+const server = ref<{ id: string; enabled: boolean; unavailable?: string | null }[]>([]);
+/** модули с компонентом setup (в том числе выключенные) */
+const setups = shallowRef<Record<string, ReturnType<typeof defineAsyncComponent>>>({});
+const setupOf = ref<string | null>(null);
+const reason = (code: string) =>
+  te(`modules.unavailable.${code}`) ? t(`modules.unavailable.${code}`) : code;
 const setting = useQuery(() => db.table<Row<'settings'>>('settings').get('enabled_modules'));
 onMounted(() =>
   run(
     async () =>
       (server.value = (await api<{ modules: typeof server.value }>('GET', '/api/modules')).modules),
-  ),
+  ).then(async () => {
+    for (const m of server.value) {
+      const load = await moduleSetup(m.id);
+      if (load) setups.value = { ...setups.value, [m.id]: defineAsyncComponent(load as never) };
+    }
+  }),
 );
 // включённые — только по реплике; нет строки = ничего не включено (ответ сервера справочный)
 const enabled = computed(
@@ -49,12 +61,35 @@ function toggle(id: string, on: boolean) {
             role="switch"
             class="size-4"
             :checked="enabled.has(m.id)"
-            :disabled="!isAdmin"
+            :disabled="!isAdmin || (!enabled.has(m.id) && !!m.unavailable)"
             @change="(e) => toggle(m.id, (e.target as HTMLInputElement).checked)"
           />
           {{ m.id }}
+          <span
+            v-if="!enabled.has(m.id) && m.unavailable"
+            data-testid="module-unavailable"
+            class="text-xs text-fg-muted"
+            >{{ reason(m.unavailable) }}</span
+          >
         </label>
+        <button
+          v-if="isAdmin && setups[m.id]"
+          type="button"
+          data-testid="module-setup"
+          class="text-sm underline"
+          @click="setupOf = m.id"
+        >
+          {{ t('modules.setup') }}
+        </button>
       </li>
     </ul>
+    <Dialog
+      :open="!!setupOf"
+      :title="t('modules.setup') + ': ' + setupOf"
+      size="lg"
+      @update:open="(v: boolean) => !v && (setupOf = null)"
+    >
+      <component :is="setups[setupOf!]" v-if="setupOf && setups[setupOf]" />
+    </Dialog>
   </section>
 </template>
