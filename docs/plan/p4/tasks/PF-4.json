@@ -8,7 +8,7 @@
   "contracts": [
     {
       "name": "P4-email",
-      "version": "1",
+      "version": "2",
       "ref": "docs/contracts/p4.md"
     },
     {
@@ -86,5 +86,5 @@
   "report_extra": [],
   "notes": "",
   "created": "2026-10-25T01:32:12",
-  "edited": "2026-10-25T02:02:50"
+  "edited": "2026-10-25T02:25:04"
 }
