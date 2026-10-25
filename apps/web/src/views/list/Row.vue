@@ -15,7 +15,16 @@ import {
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
 import { AvatarStack, Badge } from '../../ui';
-import { ChevronDown, ChevronRight, GripVertical, ListTree } from 'lucide-vue-next';
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  Flag,
+  GripVertical,
+  ListTree,
+  Tag,
+  UserRound,
+} from 'lucide-vue-next';
 import { COLUMN_CLASS, visibleColumns } from './columns';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
@@ -73,6 +82,8 @@ watch(
 );
 
 const columns = computed(() => visibleColumns(props.fields));
+// пустая ячейка — бледная иконка поля, как в ClickUp (а не пустота до наведения)
+const empty = 'mx-1.5 text-fg-subtle opacity-50';
 const labelsSet = computed(() =>
   props.task.labelIds.flatMap((id) => props.labels.find((l) => l.id === id) ?? []),
 );
@@ -208,6 +219,7 @@ function save() {
             @update:model-value="setAssignees(task.id, $event)"
           />
           <AvatarStack v-else-if="people.length" :people="people" size="xs" />
+          <UserRound v-else :size="16" :class="empty" aria-hidden="true" />
         </template>
         <template v-else-if="c === 'dueDate'">
           <DueDatePicker
@@ -218,6 +230,7 @@ function save() {
           <span v-else-if="task.dueDate" :class="['px-1.5 text-sm', dueTone]">{{
             formatDue(task.dueDate, locale)
           }}</span>
+          <CalendarDays v-else :size="16" :class="empty" aria-hidden="true" />
         </template>
         <template v-else-if="c === 'priority'">
           <PriorityPicker
@@ -228,6 +241,7 @@ function save() {
           <span v-else-if="task.priority" class="flex items-center gap-1.5 px-1.5 text-sm">
             <PriorityIcon :priority="task.priority" />{{ t(`tasks.priority.${task.priority}`) }}
           </span>
+          <Flag v-else :size="16" :class="empty" aria-hidden="true" />
         </template>
         <template v-else>
           <LabelPicker
@@ -236,6 +250,7 @@ function save() {
             :model-value="task.labelIds"
             @update:model-value="setLabels(task.id, $event)"
           />
+          <Tag v-else-if="!labelsSet.length" :size="16" :class="empty" aria-hidden="true" />
           <span v-else class="flex gap-1 overflow-hidden px-1">
             <Badge v-for="l in labelsSet" :key="l.id" dot :color="l.color ?? undefined">{{
               l.name
