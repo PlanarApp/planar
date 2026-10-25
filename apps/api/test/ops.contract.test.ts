@@ -43,16 +43,25 @@ describe('ops-contract', () => {
       ...[...compose.matchAll(/\$\{([A-Z_]+)/g)].map((m) => m[1]),
       ...[...caddy.matchAll(/\{\$([A-Z_]+)/g)].map((m) => m[1]),
     ]);
-    const declared = new Set(env.filter((e) => !e.where.every((w) => w === 'ops')).map((e) => e.name));
-    expect([...used].filter((n) => !declared.has(n)).sort(), 'есть в compose/Caddyfile, нет в контракте').toEqual([]);
-    expect([...declared].filter((n) => !used.has(n)).sort(), 'есть в контракте, нет в compose/Caddyfile').toEqual([]);
+    const declared = new Set(
+      env.filter((e) => !e.where.every((w) => w === 'ops')).map((e) => e.name),
+    );
+    expect(
+      [...used].filter((n) => !declared.has(n)).sort(),
+      'есть в compose/Caddyfile, нет в контракте',
+    ).toEqual([]);
+    expect(
+      [...declared].filter((n) => !used.has(n)).sort(),
+      'есть в контракте, нет в compose/Caddyfile',
+    ).toEqual([]);
     for (const n of env.filter((e) => e.where.includes('caddy')).map((e) => e.name))
       expect(caddy, `Caddyfile не читает ${n}`).toContain(`{$${n}`);
   });
 
   it('ops-contract volumes: тома compose.yml = C-ops-volumes', () => {
     const vols = lines('ops-volumes').map((l) => l.split(/\s+/));
-    for (const [, vol, path] of vols) expect(compose, `том ${vol}:${path}`).toContain(`${vol}:${path}`);
+    for (const [, vol, path] of vols)
+      expect(compose, `том ${vol}:${path}`).toContain(`${vol}:${path}`);
     const top = compose.slice(compose.search(/^volumes:/m));
     const topNames = [...top.matchAll(/^ {2}(\w+):/gm)].map((m) => m[1]).sort();
     expect(topNames).toEqual(vols.map((v) => v[1]).sort());
@@ -62,12 +71,16 @@ describe('ops-contract', () => {
     const scripts = ['apps/web/index.html', 'apps/web/form.html']
       .filter((p) => existsSync(new URL(p, root)))
       .flatMap((p) => [...read(p).matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]));
-    const hashes = scripts.map((s) => `'sha256-${createHash('sha256').update(s).digest('base64')}'`).join(' ');
+    const hashes = scripts
+      .map((s) => `'sha256-${createHash('sha256').update(s).digest('base64')}'`)
+      .join(' ');
     for (const l of lines('ops-headers')) {
       const i = l.indexOf(': ');
       const name = l.slice(0, i);
       const value = l.slice(i + 2).replace('{inline-hashes}', hashes);
-      expect(caddy, `заголовок ${name}`).toMatch(new RegExp(`${name}\\s+"${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`));
+      expect(caddy, `заголовок ${name}`).toMatch(
+        new RegExp(`${name}\\s+"${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`),
+      );
     }
     expect(caddy).toMatch(/-Server\b/);
   });
@@ -82,11 +95,15 @@ describe('ops-contract', () => {
   it('ops-contract backup: формат C-ops-backup в ops/*.sh', () => {
     const sh = srcFiles(new URL('ops/', root)).join('\n');
     if (!sh && !strict) return;
-    const manifest = JSON.parse(block('ops-backup-manifest')) as { format: string; version: number };
+    const manifest = JSON.parse(block('ops-backup-manifest')) as {
+      format: string;
+      version: number;
+    };
     expect(sh).toContain(manifest.format);
     expect(sh).toContain('BACKUP_DIR');
     expect(sh).toContain('.partial');
     for (const f of ['backup.sh', 'restore.sh', 'upgrade.sh'])
-      if (strict || f !== 'upgrade.sh') expect(existsSync(new URL(`ops/${f}`, root)), `ops/${f}`).toBe(true);
+      if (strict || f !== 'upgrade.sh')
+        expect(existsSync(new URL(`ops/${f}`, root)), `ops/${f}`).toBe(true);
   });
 });
