@@ -1,0 +1,62 @@
+{
+  "id": "PT-9",
+  "module": "p3",
+  "type": "dp-engineer",
+  "title": "TRUST_PROXY: клиентский IP за Caddy для лимитов",
+  "goal": "env TRUST_PROXY (список IP/CIDR) включает Fastify trustProxy только для этих адресов; лимит входа и лимит публичных форм считаются по IP клиента; prod compose — фиксированная подсеть Caddy, порт api наружу не публикуется.",
+  "plan_ref": "4. Задачи (PT-5)",
+  "contracts": [
+    {
+      "name": "C-http",
+      "version": "11",
+      "ref": "docs/contracts/p3.md"
+    }
+  ],
+  "copy": "~/planar-p3-PT-9",
+  "branch": "p3/PT-9",
+  "base": "feature/p3",
+  "scope": [
+    "apps/api/src/app.ts",
+    "apps/api/src/main.ts",
+    "apps/api/src/config.ts",
+    "compose.yml",
+    "deploy/",
+    "apps/api/test/pt9/"
+  ],
+  "dont_touch": [
+    "modules/forms",
+    "apps/api/src/auth",
+    "docs/contracts",
+    "compose.dev.yml"
+  ],
+  "accept": [
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "pt9",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run -t pt9:",
+      "expect": "num:(\\d+) passed >=4"
+    },
+    {
+      "name": "compose",
+      "cmd": "docker compose -f compose.yml config >/dev/null",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T11:38:25"
+}

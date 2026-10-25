@@ -1,0 +1,27 @@
+{
+  "verdict": "accept",
+  "summary": "Замечание прошлого ревью закрыто: forms-ip.test.ts проверяет лимит POST /api/forms/public/:slug по клиенту за доверенным прокси (два клиента не делят лимит) и игнор X-Forwarded-For с недоверенного адреса. Порог 5/мин совпадает с controller.ts (m > 5), modules/forms не тронут.",
+  "issues": [
+    {
+      "file": "compose.yml",
+      "line": 36,
+      "severity": "minor",
+      "what": "Осталось с прошлого раза: TRUST_PROXY — вся подсеть app, в неё входит и postgres. На практике вреда нет.",
+      "fix": "Можно не трогать; при желании дать Caddy ipv4_address и доверять только ему."
+    }
+  ],
+  "rerun": [
+    {
+      "name": "pt9",
+      "value": "7 passed",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "6 файлов в границах",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-24T12:49:57",
+  "by": "reviewer"
+}

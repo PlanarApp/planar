@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
+import { X } from 'lucide-vue-next';
+import { Badge, Button, EmptyState, IconButton, Input, Menu } from '@planar/web/modules';
 
 interface Sub {
   id: string;
@@ -33,6 +35,12 @@ const L = ru
       on: 'Включить',
       empty: 'Нет доставок',
       title: 'Вебхуки',
+      desc: 'Уведомления о событиях на внешний адрес',
+      more: 'Действия',
+      close: 'Скрыть',
+      confirmDel: 'Удалить подписку?',
+      emptyTitle: 'Нет подписок',
+      emptyDesc: 'Добавьте адрес получателя, чтобы получать события',
     }
   : {
       url: 'Receiver URL',
@@ -46,6 +54,12 @@ const L = ru
       on: 'Enable',
       empty: 'No deliveries',
       title: 'Webhooks',
+      desc: 'Event notifications sent to an external URL',
+      more: 'Actions',
+      close: 'Hide',
+      confirmDel: 'Delete subscription?',
+      emptyTitle: 'No subscriptions',
+      emptyDesc: 'Add a receiver URL to start receiving events',
     };
 
 const subs = ref<Sub[]>([]);
@@ -78,6 +92,7 @@ const loadLog = (id: string) =>
   );
 
 async function create() {
+  if (!f.url.trim()) return;
   const r = await call<{ secret: string }>('POST', 'subscriptions', {
     url: f.url.trim(),
     events: f.events,
@@ -94,65 +109,95 @@ onMounted(() => void load().catch(() => {}));
 
 <template>
   <section class="flex flex-col gap-4" data-testid="webhooks-settings">
-    <h2 class="text-lg font-semibold">{{ L.title }}</h2>
+    <header class="flex flex-col gap-0.5">
+      <h2 class="text-lg font-semibold">{{ L.title }}</h2>
+      <p class="text-sm text-fg-muted">{{ L.desc }}</p>
+    </header>
     <p v-if="err" role="alert" class="text-sm text-danger">{{ err }}</p>
 
     <form class="flex flex-col gap-2" @submit.prevent="create().catch(() => {})">
-      <input
-        v-model="f.url"
-        type="url"
-        required
-        maxlength="2000"
-        :placeholder="L.url"
-        data-testid="wh-url"
-        class="rounded-md border border-border bg-bg px-2 py-1"
-      />
+      <div class="flex flex-wrap items-end gap-2">
+        <Input
+          v-model="f.url"
+          type="url"
+          :label="L.url"
+          :placeholder="L.url"
+          required
+          maxlength="2000"
+          data-testid="wh-url"
+          class="min-w-0 flex-1"
+        />
+        <Button
+          type="submit"
+          variant="primary"
+          :disabled="!f.events.length"
+          data-testid="wh-create"
+        >
+          {{ L.create }}
+        </Button>
+      </div>
       <div class="flex flex-wrap gap-3 text-sm">
         <label v-for="e in EVENTS" :key="e" class="flex items-center gap-1">
           <input v-model="f.events" type="checkbox" :value="e" />{{ e }}
         </label>
       </div>
-      <button
-        type="submit"
-        :disabled="!f.events.length"
-        data-testid="wh-create"
-        class="self-start rounded-md border border-border px-3 py-1"
-      >
-        {{ L.create }}
-      </button>
     </form>
 
-    <div v-if="secret" class="rounded-md border border-border p-2 text-sm" data-testid="wh-secret">
-      {{ L.secret }}: <code>{{ secret }}</code>
-      <button class="ml-2 underline" @click="secret = ''">×</button>
+    <div
+      v-if="secret"
+      class="flex items-center gap-2 rounded-md border border-border p-2 text-sm"
+      data-testid="wh-secret"
+    >
+      <span>
+        {{ L.secret }}: <code class="font-mono">{{ secret }}</code>
+      </span>
+      <IconButton :icon="X" :label="L.close" size="sm" class="ml-auto" @click="secret = ''" />
     </div>
 
-    <ul class="flex flex-col gap-3">
-      <li
-        v-for="s in subs"
-        :key="s.id"
-        class="rounded-md border border-border p-2"
-        data-testid="wh-sub"
-      >
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="break-all font-medium">{{ s.url }}</span>
+    <EmptyState v-if="!subs.length" :title="L.emptyTitle" :description="L.emptyDesc" />
+    <ul v-else class="flex flex-col divide-y divide-border">
+      <li v-for="s in subs" :key="s.id" class="group py-1" data-testid="wh-sub">
+        <div class="flex min-h-8 flex-wrap items-center gap-2">
+          <span class="min-w-0 break-all text-sm font-medium">{{ s.url }}</span>
           <span class="text-xs text-fg-muted">{{ s.events.join(', ') }}</span>
-          <span class="text-xs">{{ s.active ? 'active' : 'off' }}</span>
+          <Badge v-if="!s.active">off</Badge>
+          <span class="ml-auto flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid="wh-ping"
+              @click="run(call('POST', `subscriptions/${s.id}/ping`), s.id)"
+              >{{ L.ping }}</Button
+            >
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid="wh-log"
+              @click="loadLog(s.id).catch(() => {})"
+              >{{ L.log }}</Button
+            >
+            <Menu
+              align="end"
+              :label="L.more"
+              :items="[
+                {
+                  id: 'toggle',
+                  label: s.active ? L.off : L.on,
+                  onSelect: () =>
+                    run(call('PATCH', `subscriptions/${s.id}`, { active: !s.active })),
+                },
+                {
+                  id: 'delete',
+                  label: L.del,
+                  danger: true,
+                  confirm: { title: L.confirmDel, description: s.url, confirmLabel: L.del },
+                  onSelect: () => run(call('DELETE', `subscriptions/${s.id}`)),
+                },
+              ]"
+            />
+          </span>
         </div>
-        <div class="mt-2 flex flex-wrap gap-2 text-sm">
-          <button
-            data-testid="wh-ping"
-            @click="run(call('POST', `subscriptions/${s.id}/ping`), s.id)"
-          >
-            {{ L.ping }}
-          </button>
-          <button data-testid="wh-log" @click="loadLog(s.id).catch(() => {})">{{ L.log }}</button>
-          <button @click="run(call('PATCH', `subscriptions/${s.id}`, { active: !s.active }))">
-            {{ s.active ? L.off : L.on }}
-          </button>
-          <button @click="run(call('DELETE', `subscriptions/${s.id}`))">{{ L.del }}</button>
-        </div>
-        <table v-if="logs[s.id]" class="mt-2 w-full text-xs">
+        <table v-if="logs[s.id]" class="mt-1 w-full text-xs">
           <tr v-if="!logs[s.id]!.length">
             <td>{{ L.empty }}</td>
           </tr>
@@ -162,12 +207,13 @@ onMounted(() => void load().catch(() => {}));
             <td>{{ d.attempts }}</td>
             <td>{{ d.lastStatus ?? d.lastError ?? '' }}</td>
             <td>
-              <button
+              <Button
+                size="sm"
+                variant="ghost"
                 data-testid="wh-redeliver"
                 @click="run(call('POST', `deliveries/${d.id}/redeliver`), s.id)"
+                >{{ L.redeliver }}</Button
               >
-                {{ L.redeliver }}
-              </button>
             </td>
           </tr>
         </table>

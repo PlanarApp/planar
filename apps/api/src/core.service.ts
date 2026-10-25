@@ -1,9 +1,18 @@
-import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Optional,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { CORE, HttpError, type AuthCtx, type CoreServices, type JobOpts } from '@planar/server-kit';
 import { JobsService } from './jobs/jobs.js';
 import { getAuth } from './auth/auth.js';
 import type { Db } from './db/index.js';
 import { toV1Tasks } from './rest/v1-tasks.js';
+import { FILES_OPTS } from './files/files.controller.js';
+import { storeBuffer, type FilesOpts } from './files/store.js';
+import { executeMutations } from './sync/mutate.js';
 import { DB } from './tokens.js';
 import { ensureSystemUser } from './users/system.js';
 
@@ -16,6 +25,9 @@ export class CoreService implements CoreServices, OnModuleInit, OnModuleDestroy 
   constructor(
     @Inject(DB) readonly db: Db,
     @Inject(JobsService) private jobs: JobsService,
+    @Optional()
+    @Inject(FILES_OPTS)
+    private files: FilesOpts = { dataDir: './data', maxUploadMb: 50 },
   ) {}
 
   retryMs = 2000;
@@ -59,6 +71,17 @@ export class CoreService implements CoreServices, OnModuleInit, OnModuleDestroy 
 
   enqueue(queue: string, data: object, opts?: JobOpts) {
     return this.jobs.enqueue(queue, data, opts);
+  }
+
+  execute: CoreServices['execute'] = (userId, muts, opts) =>
+    executeMutations(this.db, userId, muts, this.jobs.push, undefined, opts);
+
+  ensureSystemUser(login: string, name: string) {
+    return ensureSystemUser(this.db, login, name);
+  }
+
+  storeFile(buf: Buffer, uploaderId: string, mime?: string) {
+    return storeBuffer(this.db, this.files, buf, uploaderId, mime);
   }
 
   systemUserId(): string {

@@ -4,8 +4,12 @@ import { api as chat } from '@planar/module-chat/api';
 import * as chatTables from '@planar/module-chat/api/schema';
 import { api as docs } from '@planar/module-docs/api';
 import * as docsTables from '@planar/module-docs/api/schema';
+import { api as formsApi } from '@planar/module-forms/api';
+import * as formsTables from '@planar/module-forms/api/schema';
 import { api as hello } from '@planar/module-hello/api';
 import * as helloTables from '@planar/module-hello/api/schema';
+import { api as dashboardsApi } from '@planar/module-dashboards/api';
+import * as dashboardsTables from '@planar/module-dashboards/api/schema';
 import { api as timeApi } from '@planar/module-time/api';
 import * as timeTables from '@planar/module-time/api/schema';
 import { api as sprintsApi } from '@planar/module-sprints/api';
@@ -14,8 +18,14 @@ import { api as automationsApi } from '@planar/module-automations/api';
 import * as automationsTables from '@planar/module-automations/api/schema';
 import { api as webhooksApi } from '@planar/module-webhooks/api';
 import * as webhooksTables from '@planar/module-webhooks/api/schema';
+import { api as gitlabApi } from '@planar/module-gitlab/api';
+import * as gitlabTables from '@planar/module-gitlab/api/schema';
+import { api as timelineApi } from '@planar/module-timeline/api';
+import * as timelineTables from '@planar/module-timeline/api/schema';
 import { api as importApi } from '@planar/module-import/api';
 import * as importTables from '@planar/module-import/api/schema';
+import { api as workloadApi } from '@planar/module-workload/api';
+import * as workloadTables from '@planar/module-workload/api/schema';
 
 export interface InstalledModule {
   api: BackendModuleManifest;
@@ -69,8 +79,13 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: automationsApi, tables: automationsTables },
   { api: webhooksApi, tables: webhooksTables },
   { api: importApi, tables: importTables },
+  { api: gitlabApi, tables: gitlabTables },
   { api: docs, tables: docsTables },
   { api: chat, tables: chatTables },
+  { api: formsApi, tables: formsTables },
+  { api: dashboardsApi, tables: dashboardsTables },
+  { api: workloadApi, tables: workloadTables },
+  { api: timelineApi, tables: timelineTables },
 ]);
 
 export const moduleTables = (): Map<string, PgTable> =>

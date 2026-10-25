@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { flushPromises, mount } from '@vue/test-utils';
+import { TooltipProvider } from 'reka-ui';
+import { defineComponent, h } from 'vue';
 import { vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import { domainMutators } from '@planar/shared';
@@ -50,11 +52,15 @@ export async function setup(over: Record<string, unknown> = {}) {
 }
 
 export async function open(key = 'PLN-1') {
-  const w = mount(TaskPanel, {
-    props: { taskKey: key, mode: 'panel' },
-    global: { plugins: [i18n] },
-    attachTo: document.body,
-  });
+  const w = mount(
+    defineComponent({
+      render: () => h(TooltipProvider, null, () => h(TaskPanel, { taskKey: key, mode: 'panel' })),
+    }),
+    {
+      global: { plugins: [i18n] },
+      attachTo: document.body,
+    },
+  );
   await until(() => w.find('header').exists());
   await flushPromises();
   return w;

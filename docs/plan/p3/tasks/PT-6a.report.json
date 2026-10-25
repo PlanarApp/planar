@@ -1,0 +1,61 @@
+{
+  "status": "done",
+  "summary": "Доработка по ревью (updated_after зафиксирован на обход, DELETE проекта через мутатор с записью в changes, регистр ключа только в ветке); после слияния PT-1a миграция пересоздана как 0016. accept --dry 6/6.",
+  "commits": [
+    "по ревью: updated_after, удаление проекта, регистр",
+    "слияние feature/p3, миграция 0016"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "pt6a",
+      "value": "13 passed",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "web/index.ts — манифест без элементов (панель и настройки — PT-6b)",
+    "PLANAR_SECRET_KEY не добавлен в .env.example (вне скоупа)"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-6a",
+  "uncertain": [
+    {
+      "where": "modules/gitlab/api/poll.ts, controller.ts, crypto.ts",
+      "why": "безопасность токена: нужен dp-reviewer",
+      "checked": "в БД только token_enc (тест: iv разный, расшифровка верна); GET/PUT не отдают токен; токен только в заголовке PRIVATE-TOKEN; log.warn без URL/заголовков/тела; redirect: manual; 503 без ключа не эхо-возвращает токен"
+    },
+    {
+      "where": "shared/index.ts gitlab.mr.sync",
+      "why": "полный scan gitlabMrs (индекса по проекту/iid нет в контракте); авто-статус через tx.patch tasks, а не вызов task.update; переход в merged = предыдущей строки нет или state != merged",
+      "checked": "тесты merge, идемпотентность"
+    }
+  ],
+  "dp_feedback": "Общий /tmp-путь для report.json перетёрт соседним агентом — шаблон лучше брать из scratchpad по имени задачи.",
+  "t": "2026-10-24T12:41:41",
+  "by": "executor"
+}

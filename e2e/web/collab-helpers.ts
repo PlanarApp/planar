@@ -1,4 +1,4 @@
-import { request } from '@playwright/test';
+import { expect, request, type Page } from '@playwright/test';
 import { BASE, Client, uuidv7 } from '../lib.js';
 import type { Fixture } from './helpers.js';
 
@@ -86,3 +86,14 @@ export const status = async (c: Client, path: string): Promise<number> =>
   (await c.ctx.get(path)).status();
 
 export { BASE, request };
+
+/** Открывает url модуля как SPA-переход: при холодной загрузке маршруты модулей ещё не добавлены (реплика грузится), и роутер разрешает url в заглушку. */
+export async function spaGo(p: Page, url: string) {
+  await p.goto('/');
+  await expect(p.getByTestId('sidebar')).toBeVisible();
+  await expect(p.getByRole('heading', { name: 'Документы', level: 2 })).toBeVisible();
+  await p.evaluate((u) => {
+    history.pushState({}, '', u);
+    dispatchEvent(new PopStateEvent('popstate'));
+  }, url);
+}

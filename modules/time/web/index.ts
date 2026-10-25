@@ -1,25 +1,5 @@
-import { defineComponent, h } from 'vue';
+import { Clock } from 'lucide-vue-next';
 import { defineWebModule } from '@planar/web/modules';
-
-// Иконка без зависимости от lucide: часы
-const Clock = defineComponent({
-  props: { size: { type: [Number, String], default: 16 } },
-  setup: (p) => () =>
-    h(
-      'svg',
-      {
-        width: p.size,
-        height: p.size,
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        stroke: 'currentColor',
-        'stroke-width': 2,
-        'stroke-linecap': 'round',
-        'stroke-linejoin': 'round',
-      },
-      [h('circle', { cx: 12, cy: 12, r: 10 }), h('path', { d: 'M12 6v6l4 2' })],
-    ),
-});
 
 export const web = defineWebModule({
   id: 'time',

@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-10-23"
+updated: "2026-10-24"
 summary: "Точка входа: документы docs/ по типам, строка на документ."
 related: []
 generated: true
@@ -23,7 +23,9 @@ generated: true
 
 - [docs/plan/collab.md](plan/collab.md) — План модуля collab: чат (каналы, треды, личные сообщения, push) и документы (дерево страниц на TipTap, связь с задачами)
 - [docs/plan/core.md](plan/core.md) — План модуля core: каркас, БД, синхронизация, мутаторы, авторизация, файлы, уведомления, модули, API-токены, MCP
+- [docs/plan/design.md](plan/design.md) — План модуля design: визуал Planar в стиле Linear — C-ui v3, оболочка, панель проекта, Список/Доска, карточка, настройки, mobile, скриншотные тесты
 - [docs/plan/features.md](plan/features.md) — План модуля features: ярус A v1 — пользовательские поля, Таблица, Календарь, связи задач
+- [docs/plan/p3.md](plan/p3.md) — План модуля p3: совместное редактирование (Yjs), Timeline, Workload, дашборды, формы, GitLab (опрос API)
 - [docs/plan/polish.md](plan/polish.md) — Доводка после фазы 2: тёплый старт до бюджета 400 мс и мелкие недочёты автоматизаций, webhooks и e2e
 - [docs/plan/web.md](plan/web.md) — План модуля web: PWA на Vue 3, клиент синхронизации, Список, Доска, карточка задачи, Cmd+K, виды, Inbox, настройки, токены
 - [docs/plan/work.md](plan/work.md) — План модуля work: учёт времени, спринты, автоматизации, webhooks, связи в REST/MCP, импорт, хвосты фазы 1
@@ -32,8 +34,9 @@ generated: true
 ## Контракты стыков (contract)
 
 - [docs/contracts/core.md](contracts/core.md) — Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
+- [docs/contracts/design.md](contracts/design.md) — Контракт C-ui v3 — токены, контраст, плотность, базовые компоненты, маршруты и точки расширения web
 - [docs/contracts/features.md](contracts/features.md) — Контракты features — пользовательские поля, связи задач, фильтры по полям, виды «Таблица» и «Календарь»
-- [docs/contracts/web.md](contracts/web.md) — Контракты web — C-ui, C-client (синхронизация), C-tasks (слой задач), C-views (экран проекта и стык видов)
+- [docs/contracts/web.md](contracts/web.md) — Контракты web — C-client (синхронизация), C-tasks (слой задач), C-views (экран проекта и стык видов); C-ui — design.md
 
 ## Исследования (research)
 
@@ -45,6 +48,8 @@ generated: true
 - [docs/contracts/collab.md](contracts/collab.md) — Контракты collab — документы (DC-*), чат (CH-schema, CH-mutators, CH-api, CH-web), правки ядра для чата (X-core)
 - [docs/contracts/core-api-v1.md](contracts/core-api-v1.md) — API-токены, Bearer, REST /api/v1 и MCP /mcp — часть C-http v8 (docs/contracts/core.md); примеры проверяет контрактный тест
 - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Мутаторы домена C-mutators v3 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
+- [docs/contracts/core-schema.md](contracts/core-schema.md) — Сущности C-schema v8 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
+- [docs/contracts/p3.md](contracts/p3.md) — Контракты p3 — совместное редактирование (/collab, ydocs, проекция), сущности и мутаторы timeline, workload, dashboards, forms, gitlab
 - [docs/contracts/work-api.md](contracts/work-api.md) — Контракты work, часть 2 — C-modules v5 и v6 (enqueue, SDK, настройки модулей, правки collab), REST v1 и MCP (WK-5)
 - [docs/contracts/work.md](contracts/work.md) — Контракты work — C-modules v3, C-schema v7, F-filter v2, модули time, sprints, automations, webhooks, import, REST/MCP
 

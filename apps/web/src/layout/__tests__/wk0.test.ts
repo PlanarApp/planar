@@ -1,11 +1,13 @@
 import 'fake-indexeddb/auto';
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
+import { TooltipProvider } from 'reka-ui';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { createI18n } from 'vue-i18n';
 import { describe, expect, it, vi } from 'vitest';
 import en from '../../i18n/en';
 import ru from '../../i18n/ru';
+import { db } from '../../sync';
 import { i18n as appI18n } from '../../i18n';
 import { setWeekStart, useWeekStart } from '../../i18n/week';
 import { registerModules, setEnabledModules } from '../../modules/registry';
@@ -86,9 +88,32 @@ describe('wk0: модули nav/topbar', () => {
       },
     ]);
     await setEnabledModules(['tbok']);
-    const w = mount(TopBar, { global: { plugins: plugins() } });
+    const w = mount(defineComponent({ render: () => h(TooltipProvider, null, () => h(TopBar)) }), {
+      global: { plugins: plugins() },
+    });
     await flushPromises();
     expect(w.find('[data-testid=topbar-item]').exists()).toBe(true);
+  });
+});
+
+describe('DS-1: хлебные крошки проекта', () => {
+  it('пространство / проект / вид', async () => {
+    await db.table('spaces').put({ id: 's1', name: 'Разработка', rank: 'a0' });
+    await db
+      .table('projects')
+      .put({ id: 'p1', spaceId: 's1', name: 'Планар', key: 'PLN', rank: 'a0', archivedAt: null });
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/p/:projectId/:view?', name: 'project', component: stub }],
+    });
+    await router.push('/p/p1/board');
+    const [, i18n] = plugins();
+    const w = mount(defineComponent({ render: () => h(TooltipProvider, null, () => h(TopBar)) }), {
+      global: { plugins: [router, i18n] },
+    });
+    await vi.waitFor(() =>
+      expect(w.findAll('h1 span').map((x) => x.text())).toEqual(['Разработка', 'Планар', 'Доска']),
+    );
   });
 });
 

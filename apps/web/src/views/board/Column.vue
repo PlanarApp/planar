@@ -6,14 +6,15 @@ import type { Rect, Virtualizer } from '@tanstack/vue-virtual';
 import { VueDraggable } from 'vue-draggable-plus';
 import { ChevronsLeft, Plus } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import type { TaskGroup } from '../../tasks';
+import type { TaskGroup, TaskView } from '../../tasks';
 import { PriorityIcon } from '../../tasks';
 import { BlockedIcon } from '../../links';
-import { Avatar, Badge, Button, Input } from '../../ui';
+import { AvatarStack, Badge, Button, Input } from '../../ui';
 import type { TaskField } from '../options';
+import { formatDue } from '../list/due';
 
 const VIRTUAL_FROM = 50;
-const CARD = 96; // высота карточки с зазором, px
+const CARD = 128; // высота карточки с зазором, px (h-[120px] + mb-2)
 
 const props = defineProps<{
   group: TaskGroup;
@@ -30,7 +31,7 @@ const emit = defineEmits<{
   add: [title: string];
   move: [id: string, from: string, to: string, beforeId: string | null];
 }>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const scroller = useTemplateRef<HTMLElement>('scroller');
 const virtual = computed(() => props.group.tasks.length > VIRTUAL_FROM);
@@ -95,9 +96,10 @@ function submit() {
   title.value = '';
   adding.value = false;
 }
-function due(d: string) {
-  return d.slice(5).replace('-', '.');
-}
+const hasFoot = (x: TaskView) =>
+  (props.fields.includes('labels') && x.labelIds.some((l) => label(l))) ||
+  (props.fields.includes('dueDate') && !!x.dueDate) ||
+  (props.fields.includes('assignee') && x.assigneeIds.length > 0);
 </script>
 
 <template>
@@ -154,28 +156,31 @@ function due(d: string) {
           :key="x.id"
           :data-id="x.id"
           tabindex="0"
-          class="mb-2 flex h-[88px] cursor-grab flex-col gap-1 overflow-hidden rounded-md border border-border bg-surface p-2 text-sm focus-visible:ring-2 ring-focus"
+          class="mb-2 flex h-[120px] cursor-grab flex-col gap-1 overflow-hidden rounded-lg border border-border bg-surface p-2 focus-visible:ring-2 ring-focus"
           @click="emit('open', x.key)"
           @keydown.enter.self="emit('open', x.key)"
         >
-          <div class="flex items-center gap-1.5 text-xs text-fg-muted">
-            <PriorityIcon v-if="fields.includes('priority')" :priority="x.priority" />
-            <span>{{ x.key }}</span>
+          <div class="flex items-center gap-1.5 text-xs">
+            <PriorityIcon v-if="fields.includes('priority') && x.priority" :priority="x.priority" />
+            <span class="font-mono text-fg-muted">{{ x.key }}</span>
             <BlockedIcon v-if="blocked.has(x.id)" />
-            <span v-if="x.dueDate && fields.includes('dueDate')" class="ml-auto">{{
-              due(x.dueDate)
-            }}</span>
           </div>
-          <p class="line-clamp-2 text-fg">{{ x.title }}</p>
-          <div class="mt-auto flex items-center gap-1 overflow-hidden">
+          <p class="line-clamp-3 text-sm leading-snug text-fg">{{ x.title }}</p>
+          <div v-if="hasFoot(x)" class="mt-auto flex items-center gap-2 overflow-hidden pt-1">
             <template v-for="l in fields.includes('labels') ? x.labelIds : []" :key="l">
-              <Badge v-if="label(l)" :color="label(l)!.color ?? undefined">{{
+              <Badge v-if="label(l)" dot :color="label(l)!.color ?? undefined">{{
                 label(l)!.name
               }}</Badge>
             </template>
-            <span v-if="fields.includes('assignee')" class="ml-auto flex shrink-0 -space-x-1">
-              <Avatar v-for="a in x.assigneeIds.slice(0, 3)" :key="a" :name="name(a)" size="xs" />
-            </span>
+            <span v-if="x.dueDate && fields.includes('dueDate')" class="text-xs text-fg-muted">{{
+              formatDue(x.dueDate, locale)
+            }}</span>
+            <AvatarStack
+              v-if="fields.includes('assignee')"
+              class="ml-auto shrink-0"
+              :people="x.assigneeIds.map((a) => ({ name: name(a) }))"
+              size="xs"
+            />
           </div>
         </article>
       </VueDraggable>

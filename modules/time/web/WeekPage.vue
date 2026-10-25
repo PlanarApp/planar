@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { Button, IconButton, Input } from '@planar/web/modules';
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { dayKey, entrySec, hm, parseHm, planCell, weekDays } from './lib';
 import { locale, mutate, newId, tr, useMyEntries, useNow, useTasks, useWeekStart } from './data';
 
@@ -58,8 +60,8 @@ async function edit(taskId: string, k: string, text: string) {
   <section class="wk">
     <header class="row">
       <h2>{{ tr('week') }}</h2>
-      <button class="btn" :aria-label="tr('prev')" data-test="prev" @click="offset--">‹</button>
-      <button class="btn" :aria-label="tr('next')" data-test="next" @click="offset++">›</button>
+      <IconButton :icon="ChevronLeft" :label="tr('prev')" data-test="prev" @click="offset--" />
+      <IconButton :icon="ChevronRight" :label="tr('next')" data-test="next" @click="offset++" />
     </header>
     <p v-if="err" class="err" role="alert">{{ err }}</p>
     <p v-if="!rows.length" class="muted">{{ tr('empty') }}</p>
@@ -67,30 +69,33 @@ async function edit(taskId: string, k: string, text: string) {
       <table>
         <thead>
           <tr>
-            <th>{{ tr('task') }}</th>
-            <th v-for="(d, i) in days" :key="keys[i]" data-test="day">{{ fmt(d) }}</th>
-            <th>{{ tr('total') }}</th>
+            <th class="title">{{ tr('task') }}</th>
+            <th v-for="(d, i) in days" :key="keys[i]" class="num" data-test="day">{{ fmt(d) }}</th>
+            <th class="num">{{ tr('total') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="r in rows" :key="r.id" data-test="row">
             <td class="title">{{ r.title }}</td>
             <td v-for="k in keys" :key="k">
-              <input
-                :value="hm(cellSec(r.id, k))"
-                :aria-label="`${r.title} ${k}`"
+              <Input
+                :model-value="hm(cellSec(r.id, k))"
+                :label="`${r.title} ${k}`"
+                hide-label
+                size="sm"
+                :class="['cell', cellSec(r.id, k) ? '' : 'empty']"
                 :data-test="`cell-${r.id}-${k}`"
-                @change="edit(r.id, k, ($event.target as HTMLInputElement).value)"
+                @change="(e: Event) => edit(r.id, k, (e.target as HTMLInputElement).value)"
               />
             </td>
-            <td class="mono">{{ hm(rowTotal(r.id)) }}</td>
+            <td class="num total">{{ hm(rowTotal(r.id)) }}</td>
           </tr>
         </tbody>
         <tfoot v-if="rows.length">
           <tr>
-            <td>{{ tr('total') }}</td>
-            <td v-for="k in keys" :key="k" class="mono">{{ hm(dayTotal(k)) }}</td>
-            <td class="mono">{{ hm(grand) }}</td>
+            <td class="title">{{ tr('total') }}</td>
+            <td v-for="k in keys" :key="k" class="num">{{ hm(dayTotal(k)) }}</td>
+            <td class="num total">{{ hm(grand) }}</td>
           </tr>
         </tfoot>
       </table>
@@ -128,7 +133,8 @@ th,
 td {
   border-bottom: 1px solid var(--color-border);
   padding: 4px 6px;
-  text-align: center;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 th {
   color: var(--color-fg-muted);
@@ -140,9 +146,10 @@ th {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  background: var(--color-bg);
 }
-.mono {
-  font-family: var(--font-mono);
+.total {
+  font-weight: 500;
 }
 .muted {
   color: var(--color-fg-subtle);
@@ -150,27 +157,24 @@ th {
 .err {
   color: var(--color-danger);
 }
-input {
-  width: 6ch;
-  text-align: center;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
+.cell {
+  width: 8ch;
+  margin-left: auto;
+}
+.cell :deep(input) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* пустые ячейки — без рамки до наведения/фокуса */
+.cell.empty :deep(input:not(:hover):not(:focus)) {
+  border-color: transparent;
   background: transparent;
-  color: var(--color-fg);
-  padding: 4px;
 }
-input:hover,
-input:focus {
-  border-color: var(--color-border-strong);
-  background: var(--color-bg);
-}
-.btn {
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-fg);
-  min-width: 32px;
-  min-height: 32px;
-  cursor: pointer;
+@media (max-width: 767px) {
+  .title {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
 }
 </style>

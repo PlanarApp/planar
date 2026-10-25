@@ -51,6 +51,8 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      # dev/e2e: фиксированный ключ по умолчанию (./dev.sh up пишет свой в .env; reset его не создаёт)
+      PLANAR_SECRET_KEY: ${PLANAR_SECRET_KEY:-ZGV2LW9ubHktc2VjcmV0LWtleS0zMi1ieXRlcy0hISE=}
       LOG_LEVEL: info
       WEBHOOKS_ALLOW_HOSTS: ${WEBHOOKS_ALLOW_HOSTS:-}
     extra_hosts:

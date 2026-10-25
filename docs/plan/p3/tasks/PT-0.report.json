@@ -1,0 +1,33 @@
+{
+  "status": "done",
+  "summary": "core.md 41 КБ → 28 КБ: раздел «Сущности» (20 сущностей) вынесен в docs/contracts/core-schema.md; contract-doc.ts читает сущности оттуда; тексты контрактов не менялись.",
+  "commits": [
+    "80eee20 PT-0: core.md — сущности C-schema вынесены в docs/contracts/core-schema.md"
+  ],
+  "checks": [
+    {
+      "name": "docs",
+      "value": "docs check: ошибок у core нет; 1 ошибка вне задачи (docs/plan/p3.md related → design.md)",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "vitest: 10 файлов, 223 теста passed; сущности 20=20, примеры json 14=14",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "pnpm lint exit 0 (prettier исправлен в contract-doc.ts)",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "C-sync не выносился: core.md уже 28 КБ < 36 КБ"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-0",
+  "uncertain": [],
+  "dp_feedback": "docs index зацепил docs/registry/research.md (дата updated) — откатил вручную; docs init не принимает путь файла.",
+  "t": "2026-10-24T11:03:19",
+  "by": "executor"
+}

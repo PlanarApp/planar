@@ -9,8 +9,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@planar/editor": "workspace:*",
     "@planar/shared": "workspace:*",
     "@tanstack/vue-virtual": "^3.13.47",
+    "@tiptap/core": "^3.32.0",
     "@tiptap/extension-image": "^3.32.0",
     "@tiptap/extension-mention": "^3.32.0",
     "@tiptap/extension-placeholder": "^3.32.0",

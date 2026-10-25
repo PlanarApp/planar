@@ -1,10 +1,9 @@
 import 'fake-indexeddb/auto';
-import { flushPromises } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { useAuth, type User } from '../../../auth/useAuth';
 import * as http from '../../../api/http';
-import { db, ids, pick, setup, show, wait } from './setup';
+import { db, ids, menuAct, pick, setup, show, wait } from './setup';
 import SpacesSettings from '../SpacesSettings.vue';
 import MembersSettings from '../MembersSettings.vue';
 import ProjectsSettings from '../ProjectsSettings.vue';
@@ -18,13 +17,15 @@ const rows = (t: string) => db.table(t).toArray();
 describe('settings:spaces', () => {
   it('создаёт пространство с 5 статусами и участником', async () => {
     const w = await show(SpacesSettings, {});
-    await w.find('[data-testid=space-new] input').setValue('Новое');
+    await w.find('input[data-testid=space-new]').setValue('Новое');
     await w.find('form').trigger('submit');
     await wait();
     const s = (await rows('spaces')).find((x) => x.name === 'Новое');
     expect(s).toBeTruthy();
     expect(await db.table('statuses').where('spaceId').equals(s.id).count()).toBe(5);
     expect(await db.table('spaceMembers').where('spaceId').equals(s.id).count()).toBe(1);
+    const sts = await db.table('statuses').where('spaceId').equals(s.id).toArray();
+    expect(sts.find((x) => x.category === 'in_progress').name).toBe('В работе');
   });
   it('переименовывает', async () => {
     const w = await show(SpacesSettings, {});
@@ -36,9 +37,11 @@ describe('settings:spaces', () => {
   });
   it('удаление пространства с проектами — conflict, текст показан', async () => {
     const w = await show(SpacesSettings, {});
-    await w.find('[data-testid=space-row] button').trigger('click');
-    await flushPromises();
-    (document.body.querySelector('[data-testid=confirm]') as HTMLElement).click();
+    await menuAct(
+      w.find('[data-testid=space-row] [data-testid=row-menu]').element,
+      'Удалить',
+      true,
+    );
     await vi.waitFor(() => expect(w.find('[role=alert]').text()).toContain('есть проекты'));
     expect(await db.table('spaces').get(ids.space)).toBeTruthy();
   });
@@ -69,15 +72,10 @@ describe('settings:members', () => {
   });
   it('последний admin — conflict, текст показан', async () => {
     const w = await show(MembersSettings);
-    const removes = w.findAll('[data-testid=member-row] button.bg-danger, button[class*=danger]');
-    // первый admin (ann) — единственный
+    const annRow = w.findAll('[data-testid=member-row]').find((r) => r.text().includes('Ann'))!;
     const ann = (await rows('spaceMembers')).find((m) => m.userId === ids.ann);
-    const idx = (await db.table('spaceMembers').toArray())
-      .filter((m) => m.spaceId === ids.space)
-      .findIndex((m) => m.id === ann.id);
-    await removes[idx < 0 ? 0 : idx].trigger('click');
-    await wait();
-    expect(w.find('[role=alert]').text()).toContain('последний admin');
+    await menuAct(annRow.find('[data-testid=row-menu]').element, 'Убрать', true);
+    await vi.waitFor(() => expect(w.find('[role=alert]').text()).toContain('последний admin'));
     expect(await db.table('spaceMembers').get(ann.id)).toBeTruthy();
   });
 });
@@ -85,8 +83,8 @@ describe('settings:members', () => {
 describe('settings:projects', () => {
   it('неверный ключ не отправляется', async () => {
     const w = await show(ProjectsSettings);
-    await w.find('[data-testid=project-name] input').setValue('X');
-    await w.find('[data-testid=project-key] input').setValue('1a');
+    await w.find('input[data-testid=project-name]').setValue('X');
+    await w.find('input[data-testid=project-key]').setValue('1a');
     await w.find('form').trigger('submit');
     await wait();
     expect(await db._queue.count()).toBe(0);
@@ -94,8 +92,8 @@ describe('settings:projects', () => {
   });
   it('создаёт с верным ключом и архивирует', async () => {
     const w = await show(ProjectsSettings);
-    await w.find('[data-testid=project-name] input').setValue('Новый');
-    await w.find('[data-testid=project-key] input').setValue('NEW');
+    await w.find('input[data-testid=project-name]').setValue('Новый');
+    await w.find('input[data-testid=project-key]').setValue('NEW');
     await w.find('form').trigger('submit');
     await wait();
     const p = (await rows('projects')).find((x) => x.key === 'NEW');
@@ -103,8 +101,10 @@ describe('settings:projects', () => {
     const i = (await w.findAll('[data-testid=project-row]')).findIndex((r) =>
       r.text().includes('NEW'),
     );
-    await w.findAll('[data-testid=project-archive]')[i].trigger('click');
-    await wait();
+    await menuAct(
+      w.findAll('[data-testid=project-row] [data-testid=row-menu]')[i].element,
+      'В архив',
+    );
     expect((await db.table('projects').get(p.id)).archivedAt).toBeTruthy();
   });
   it('удаление проекта с задачами — conflict', async () => {
@@ -112,9 +112,11 @@ describe('settings:projects', () => {
     await db.table('tasks').put(task(1));
     const w = await show(ProjectsSettings);
     const i = w.findAll('[data-testid=project-row]').findIndex((r) => r.text().includes('PLN'));
-    await w.findAll('[data-testid=project-delete]')[i].trigger('click');
-    await flushPromises();
-    (document.body.querySelector('[data-testid=confirm]') as HTMLElement).click();
+    await menuAct(
+      w.findAll('[data-testid=project-row] [data-testid=row-menu]')[i].element,
+      'Удалить',
+      true,
+    );
     await vi.waitFor(() => expect(w.find('[role=alert]').text()).toContain('есть задачи'));
   });
 });
@@ -122,7 +124,7 @@ describe('settings:projects', () => {
 describe('settings:statuses', () => {
   it('создаёт статус', async () => {
     const w = await show(StatusesSettings);
-    await w.find('[data-testid=status-new] input').setValue('Review');
+    await w.find('input[data-testid=status-new]').setValue('Review');
     await w.find('form').trigger('submit');
     await wait();
     expect((await rows('statuses')).some((s) => s.name === 'Review')).toBe(true);
@@ -159,8 +161,10 @@ describe('settings:statuses', () => {
     const i = w
       .findAll('[data-testid=status-row]')
       .findIndex((r) => (r.find('input').element as HTMLInputElement).value === 'Todo');
-    await w.findAll('[data-testid=status-delete]')[i].trigger('click');
-    await flushPromises();
+    await menuAct(
+      w.findAll('[data-testid=status-row] [data-testid=row-menu]')[i].element,
+      'Удалить',
+    );
     await pick(document.body.querySelector('[role=dialog] button[role=combobox]')!);
     (document.body.querySelector('[data-testid=confirm]') as HTMLElement).click();
     await wait();
@@ -172,15 +176,18 @@ describe('settings:statuses', () => {
 describe('settings:labels', () => {
   it('создаёт метку', async () => {
     const w = await show(LabelsSettings);
-    await w.find('[data-testid=label-new] input').setValue('feat');
+    await w.find('input[data-testid=label-new]').setValue('feat');
     await w.find('form').trigger('submit');
     await wait();
     expect((await rows('labels')).some((l) => l.name === 'feat')).toBe(true);
   });
   it('удаляет метку', async () => {
     const w = await show(LabelsSettings);
-    await w.find('[data-testid=label-delete]').trigger('click');
-    await wait();
+    await menuAct(
+      w.find('[data-testid=label-row] [data-testid=row-menu]').element,
+      'Удалить',
+      true,
+    );
     expect(await db.table('labels').get(ids.bug)).toBeUndefined();
   });
 });

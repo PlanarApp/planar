@@ -1,0 +1,73 @@
+{
+  "status": "done",
+  "summary": "feature/p3 влит (PT-6a, PT-3), миграция пересоздана как 0018 (одна, только дашборды). accept --dry 9/9 PASS.",
+  "commits": [
+    "merge feature/p3",
+    "PT-4: миграция 0018"
+  ],
+  "checks": [
+    {
+      "name": "pt4-api",
+      "value": "4",
+      "pass": true
+    },
+    {
+      "name": "pt4-web",
+      "value": "10",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "153.9 KB",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "в границах",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0 (в логе первого прогона таймауты: cl1a-палитра, ui Cmd+K, list:virtual — прошли при перезапуске)",
+      "pass": true
+    },
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PT-4 --dry",
+  "uncertain": [
+    {
+      "where": "apps/web command/views tests",
+      "why": "флейки таймаута палитры/list:virtual в первом прогоне test-web, перезапуск зелёный",
+      "checked": "4 прогона accept, наборы разные"
+    }
+  ],
+  "dp_feedback": "accept --dry идёт >2 мин и блокирует; scope-проверка помечает миграцию, которую требует сама карточка.",
+  "t": "2026-10-24T13:30:55",
+  "by": "executor"
+}

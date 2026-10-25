@@ -1,0 +1,59 @@
+{
+  "status": "done",
+  "summary": "PriorityIcon на lucide (Signal*/OctagonAlert/Minus, stroke 2.5, 14/16 px); @source модулей по файлам (pl-6/ml-2 в собранном CSS), обходной комментарий убран; все 48 эталонов пересняты.",
+  "commits": [
+    "a3f42c9 DS-6e: основной визуал",
+    "d07738f DS-6e: lucide-иконки приоритета, @source, эталоны"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "web-tests",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "typecheck",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "visual-fresh-stack",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "not_done": [],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept DS-6e",
+  "uncertain": [
+    {
+      "where": "apps/web/src/tasks/fields/PriorityIcon.vue",
+      "why": "глиф lucide Signal* занимает малую часть рамки, на list-1440 low-иконка всё ещё мелкая; в рамках C-ui не увеличить",
+      "checked": "list-1440-light, board-390-light"
+    }
+  ],
+  "dp_feedback": "",
+  "t": "2026-10-24T18:40:14",
+  "by": "executor"
+}

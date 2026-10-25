@@ -21,6 +21,8 @@ export interface AppOptions {
   push?: Partial<Omit<PushOpts, 'databaseUrl'>>;
   /** только тесты: дополнительные контроллеры */
   extraControllers?: Type[];
+  /** TRUST_PROXY: IP/CIDR доверенных прокси; пусто — req.ip = адрес соединения */
+  trustProxy?: string[];
   /** опции pino Fastify; false — без логов (тесты) */
   logger?: boolean | { level: string };
 }
@@ -36,7 +38,11 @@ export async function createApp(opts: AppOptions): Promise<NestFastifyApplicatio
       { boss: false, ...opts.push, databaseUrl: opts.databaseUrl },
       opts.extraControllers,
     ),
-    new FastifyAdapter({ logger: opts.logger ?? false, bodyLimit: 1024 * 1024 }),
+    new FastifyAdapter({
+      logger: opts.logger ?? false,
+      bodyLimit: 1024 * 1024,
+      ...(opts.trustProxy?.length ? { trustProxy: opts.trustProxy } : {}),
+    }),
     { logger: false },
   );
   // cast: у platform-fastify своя копия fastify другой минорной версии

@@ -1,0 +1,79 @@
+{
+  "id": "DS-9",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "e2e web после design: 5 упавших сценариев (features, work)",
+  "goal": "Все сценарии e2e/web проходят на свежем стеке: для каждого из 5 упавших (DS-5e) установлено, регрессия ли это продукта или устаревший селектор; регрессия исправлена в коде, селектор обновлён под новую разметку без ослабления проверки.",
+  "plan_ref": "5. Задачи / DS-5",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "4",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-9",
+  "branch": "design/DS-9",
+  "base": "feature/design",
+  "scope": [
+    "e2e/web/features.spec.ts",
+    "e2e/web/work.spec.ts",
+    "e2e/web/features-helpers.ts",
+    "e2e/web/work-helpers.ts",
+    "e2e/web/helpers.ts",
+    "apps/web/src/views",
+    "apps/web/src/screens/ProjectScreen.vue",
+    "modules/time/web",
+    "modules/automations/web",
+    "modules/webhooks/web",
+    "modules/import/web",
+    "apps/web/src/modules/__tests__",
+    "build/artifacts/DS-9"
+  ],
+  "dont_touch": [
+    "apps/web/src/ui/, apps/web/src/__contract__/, docs/contracts/ — C-ui v4 не меняется (нужно — строкой DS-9 contract: …)",
+    "e2e/web/visual.spec.ts и эталоны, e2e/web/perf/ — не трогать",
+    "packages/, apps/api/ — если причина на сервере — строкой DS-9 contract: …"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web modules e2e/web && pnpm exec prettier --check apps/web modules e2e/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "e2e-all",
+      "cmd": "mkdir -p build/artifacts/DS-9 && export COMPOSE_PROJECT_NAME=planar-e2e-ds9 API_PORT=3257 WEB_PORT=5357 DEV_PG_PORT=55557 WEBHOOKS_ALLOW_HOSTS=host.docker.internal; ./dev.sh reset >/dev/null 2>&1 && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed >/dev/null && E2E_BASE_URL=http://localhost:5357 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts > build/artifacts/DS-9/e2e.txt 2>&1; rc=$?; docker compose -f compose.dev.yml down -v >/dev/null 2>&1; tail -5 build/artifacts/DS-9/e2e.txt; exit $rc",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T18:57:49",
+  "edited": "2026-10-24T19:33:31"
+}

@@ -1,0 +1,76 @@
+{
+  "id": "PT-12",
+  "module": "p3",
+  "type": "dp-engineer",
+  "title": "Интеграция feature/design в feature/p3 и полный прогон фазы 3",
+  "goal": "feature/design влит в ветку задачи без потерь обеих сторон; все проверки, e2e (включая скриншотные эталоны и совместное редактирование), замер §7 и проверка SW на /f/* зелёные.",
+  "plan_ref": "5. Волны",
+  "contracts": [],
+  "copy": "~/planar-p3-PT-12",
+  "branch": "p3/PT-12",
+  "base": "feature/p3",
+  "scope": [
+    "**"
+  ],
+  "dont_touch": [],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck-web",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "num:initial gzip ([\\d.]+) KB <=200"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0",
+      "timeout": 1800
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "docs",
+      "cmd": ".dpcli/dpcli docs check",
+      "expect": "exit=0"
+    },
+    {
+      "name": "versions",
+      "cmd": "cat packages/shared/src/contract/versions.ts",
+      "expect": {
+        "re": "'C-schema': 9[\\s\\S]*'C-mutators': 4[\\s\\S]*'C-modules': 10[\\s\\S]*'C-http': 11"
+      }
+    },
+    {
+      "name": "merged",
+      "cmd": "git merge-base --is-ancestor feature/design HEAD && echo yes",
+      "expect": "re:yes"
+    }
+  ],
+  "report_extra": [],
+  "notes": [
+    "Сделать: git merge feature/design (в ветке p3/PT-12). Конфликты: docs/registry/findings.md (оставить оба раздела), packages/shared/src/contract/versions.ts (итог: C-schema 9, C-sync 2, C-mutators 4, C-modules 10, C-http 11), modules/docs/web/PageView.vue — содержательный: p3 перевёл страницу на Collaboration (Yjs, курсоры, без мягкой блокировки), design — визуал C-ui v4; взять логику p3 и разметку/компоненты design.",
+    "docs/contracts/core.md разбит p3 (PT-0) — заголовок «## C-mutators v4» из design должен оказаться в нужной части (contract.test.ts сверяет заголовки с versions.ts). C-ui v4 — в docs/contracts/design.md.",
+    "После слияния — полный e2e web на своём стеке (COMPOSE_PROJECT_NAME=planar-e2e-pt12, свои API_PORT/WEB_PORT, не 3000/3300/5173): ui, features, work, collab, p3, visual (48 эталонов). Если эталон расходится только из-за p3-экранов (новые блоки) — обновить эталоны с пояснением в отчёте; иначе — исправить.",
+    "Замер §7: PERF_MODULES=docs,chat bash e2e/web/perf/repeat.sh (PERF_RUNS=5) — бюджеты: switch ≤100, warm ≤450, cold ≤2000, mutate ≤50, realtime ≤500. Числа — в отчёт.",
+    "SW: проверить, что service worker не перехватывает /f/* (страница формы открывается без приложения, прямой заход и после установленного SW).",
+    "Долгие прогоны — в фоне (run_in_background). Отчёт — только build/dpcli/PT-12.report.json в своей копии (не /tmp)."
+  ],
+  "created": "2026-10-24T22:32:57"
+}

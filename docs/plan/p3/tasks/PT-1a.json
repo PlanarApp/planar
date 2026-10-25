@@ -1,0 +1,77 @@
+{
+  "id": "PT-1a",
+  "module": "p3",
+  "type": "dp-engineer",
+  "title": "Совместное редактирование: сервер Hocuspocus, ydocs, проекция",
+  "goal": "В api работает Hocuspocus на WS /collab с авторизацией по сессии и правам на документ; состояние Y.Doc хранится в ydocs, проекция пересобирает docsPages.body/text и tasks.description через существующие мутаторы; внешняя запись заменяет содержимое Y.Doc.",
+  "plan_ref": "4. Задачи (PT-1)",
+  "contracts": [
+    {
+      "name": "P3-collab",
+      "version": "1",
+      "ref": "docs/contracts/p3.md"
+    },
+    {
+      "name": "P3-ydoc",
+      "version": "1",
+      "ref": "docs/contracts/p3.md"
+    }
+  ],
+  "copy": "~/planar-p3-PT-1a",
+  "branch": "p3/PT-1a",
+  "base": "feature/p3",
+  "scope": [
+    "apps/api/src/collab/",
+    "apps/api/src/db/schema.ts",
+    "apps/api/drizzle/",
+    "apps/api/src/sync/mutate.ts",
+    "apps/api/src/sync/ws.ts",
+    "apps/api/src/main.ts",
+    "apps/api/src/app.module.ts",
+    "apps/api/package.json",
+    "packages/editor/",
+    "apps/web/src/task/editor/Editor.vue",
+    "apps/web/package.json",
+    "apps/web/vite.config.ts",
+    "deploy/Caddyfile",
+    "pnpm-lock.yaml",
+    "apps/api/test/pt1a/"
+  ],
+  "dont_touch": [
+    "modules/docs/shared",
+    "packages/shared/src/contract",
+    "docs/contracts",
+    "apps/web/src/layout",
+    "apps/web/src/ui"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "pt1a",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run -t pt1a:",
+      "expect": "num:(\\d+) passed >=10"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T10:58:55"
+}

@@ -393,6 +393,7 @@ const date = (v: string) => v.slice(0, 10);
     <div
       v-if="sel.selected.value.size"
       role="toolbar"
+      :aria-label="t('table.selected', { n: sel.selected.value.size })"
       class="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-3 py-2 text-sm"
     >
       <span>{{ t('table.selected', { n: sel.selected.value.size }) }}</span>

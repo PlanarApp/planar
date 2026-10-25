@@ -1,5 +1,5 @@
 import { createApp } from './app.js';
-import { parseMaxUploadMb } from './config.js';
+import { parseMaxUploadMb, parseTrustProxy } from './config.js';
 import { createDb, migrate } from './db/index.js';
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -8,7 +8,9 @@ if (!databaseUrl) {
   process.exit(1);
 }
 let maxUploadMb: number;
+let trustProxy: string[];
 try {
+  trustProxy = parseTrustProxy(process.env.TRUST_PROXY);
   maxUploadMb = parseMaxUploadMb(process.env.MAX_UPLOAD_MB);
 } catch (e) {
   console.error((e as Error).message);
@@ -22,6 +24,7 @@ const app = await createApp({
   cookieSecure: process.env.COOKIE_SECURE === 'true',
   dataDir: process.env.DATA_DIR,
   maxUploadMb: maxUploadMb,
+  trustProxy,
   push: {
     boss: true,
     vapid: {

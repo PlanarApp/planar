@@ -1,9 +1,15 @@
 {$SITE_ADDRESS::80} {
 	encode zstd gzip
 
-	@backend path /api/* /sync/* /ws /mcp* /files/*
+	@backend path /api/* /sync/* /ws /collab /mcp* /files/*
 	handle @backend {
 		reverse_proxy api:3000
+	}
+
+	handle /f/* {
+		root * /srv
+		rewrite * /form.html
+		file_server
 	}
 
 	handle {

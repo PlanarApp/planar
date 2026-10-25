@@ -26,6 +26,7 @@ const S = {
   save: { ru: 'Сохранить', en: 'Save' },
   cancel: { ru: 'Отмена', en: 'Cancel' },
   delete: { ru: 'Удалить', en: 'Delete' },
+  deleteConfirm: { ru: 'Удалить сообщение?', en: 'Delete message?' },
   deleted: { ru: 'Сообщение удалено', en: 'Message deleted' },
   edited: { ru: 'изменено', en: 'edited' },
   typing: { ru: '{names} печатает…', en: '{names} is typing…' },
@@ -35,6 +36,7 @@ const S = {
   tooLarge: { ru: 'Файл слишком большой', en: 'File is too large' },
   archived: { ru: 'Канал в архиве', en: 'Channel is archived' },
   unread: { ru: 'Непрочитанных: {n}', en: '{n} unread' },
+  noChannels: { ru: 'Нет каналов', en: 'No channels' },
   unknown: { ru: 'Неизвестный', en: 'Unknown' },
 } as const;
 export type TextKey = keyof typeof S;

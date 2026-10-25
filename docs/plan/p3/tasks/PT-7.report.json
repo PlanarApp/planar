@@ -1,0 +1,58 @@
+{
+  "status": "partial",
+  "summary": "e2e/web/p3.spec.ts: 10 сценариев, 7 зелёных (timeline x2, forms x3, gitlab x2), 3 test.fixme из-за багов приложения (workload, dashboards, конструктор форм). compose.dev.yml: PLANAR_SECRET_KEY по умолчанию (dev.sh reset не создаёт .env, без ключа токен GitLab даёт 503). perf в норме, stack.sh не менялся.",
+  "commits": [
+    "7a14df9 PT-7: e2e фазы 3 (p3.spec.ts), ключ PLANAR_SECRET_KEY по умолчанию в compose.dev.yml"
+  ],
+  "checks": [
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "e2e-p3",
+      "value": "7 passed, 3 fixme",
+      "pass": true
+    },
+    {
+      "name": "perf",
+      "value": "1 passed",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "workload: сценарий fixme — modules/workload/web/data.ts делает where('spaceId') по неиндексированным taskAssignees и timeEstimates (DexieError), таблица пуста",
+    "dashboards: сценарий fixme — modules/dashboards/web/index.ts маршрут '/m/dashboards' вне префикса '/m/dashboards/', registerModules бросает; при включении dashboards вместе с другими модулями НЕ регистрируется вся пачка (setEnabledModules), поэтому p3.spec включает dashboards только внутри fixme-теста",
+    "forms: сценарий конструктора полей fixme — FormsSettings.vue передаёт в mutate реактивный черновик fields (DataCloneError в IndexedDB), сохранение полей не доходит до сервера (toRaw/structuredClone)"
+  ],
+  "questions": [
+    "Баги workload/dashboards/forms-конструктор отдать исполнителям PT-3/PT-4/PT-5 на доработку; после правки снять test.fixme (в dashboards — заодно вернуть 'dashboards' в P3_MODULES в p3-helpers.ts)."
+  ],
+  "how_to_check": ".dpcli/dpcli accept PT-7",
+  "uncertain": [
+    {
+      "where": "e2e/web/p3.spec.ts:форма 429",
+      "why": "лимит 5/мин по IP общий: повторный запуск на той же живой базе в ту же минуту даёт 429 в тесте отправки",
+      "checked": "на свежем стеке (accept --dry) проходит; в accept стек всегда свежий"
+    },
+    {
+      "where": "e2e/web/p3.spec.ts:SW-контекст",
+      "why": "в dev-стеке service worker не регистрируется (PWA только в прод-сборке), проверка страницы формы после warm-up фактически без SW",
+      "checked": "в тесте ждём navigator.serviceWorker.ready до 5 с, затем /f/<slug> показывает форму, не sidebar"
+    },
+    {
+      "where": "e2e/web/p3.spec.ts:таймлайн",
+      "why": "перетаскивание на 96 px = 3 дня при PX.day=32; зависит от масштаба по умолчанию",
+      "checked": "3 прогона зелёные"
+    }
+  ],
+  "dp_feedback": "task show обрезает дополнения (…) — полный текст не получить; 'plan p3 4. Задачи (PT-7)' из карточки не находится (раздел '4. Задачи' целиком, 48 строк).",
+  "extra": {
+    "scenarios_total": 10,
+    "passed": 7,
+    "fixme": 3
+  },
+  "t": "2026-10-24T14:38:10",
+  "by": "executor"
+}

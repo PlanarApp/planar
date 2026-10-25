@@ -1,7 +1,7 @@
 # Общий код run.sh/repeat.sh: подъём стека (dev api/postgres + прод-сборка web через vite preview) и остановка.
 # Источник: `source stack.sh` из скрипта; после perf_up доступны E2E_BASE_URL, cwd — корень репозитория.
 cd "$(dirname "${BASH_SOURCE[0]}")/../../.."
-export COMPOSE_PROJECT_NAME=planar-e2e-wb15 API_PORT=3215 WEB_PORT=5315 DEV_PG_PORT=55515
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-planar-e2e-wb15}" API_PORT="${API_PORT:-3215}" WEB_PORT="${WEB_PORT:-5315}" DEV_PG_PORT="${DEV_PG_PORT:-55515}"
 PREVIEW_PID=
 perf_down() {
   [ -n "$PREVIEW_PID" ] && kill -- "-$PREVIEW_PID" 2>/dev/null
@@ -16,7 +16,7 @@ perf_up() {
   mkdir -p build
   ./dev.sh reset || return 1
   wait_health "$API_PORT" || return 1
-  ./dev.sh seed --tasks 10000 || return 1
+  ./dev.sh seed --tasks 10000 ${PERF_SEED_DATES:+--dates} || return 1
   if [ -n "${PERF_MODULES:-}" ]; then # модули collab: PERF_MODULES=docs,chat
     E2E_BASE_URL="http://localhost:$WEB_PORT" pnpm --filter @planar/e2e exec tsx web/perf/modules.ts "$PERF_MODULES" || return 1
   fi

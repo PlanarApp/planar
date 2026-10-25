@@ -1,4 +1,7 @@
-import { mount } from '@vue/test-utils';
+import { mount as vmount } from '@vue/test-utils';
+import { defineComponent, h } from 'vue';
+import { TooltipProvider } from 'reka-ui';
+import { i18n } from '../../../i18n';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../../../../modules/time/web/data', async () => {
@@ -53,6 +56,12 @@ const entry = (o: Record<string, unknown>) => ({
   updatedAt: '',
   ...o,
 });
+
+// IconButton/Menu требуют TooltipProvider (в приложении он в App.vue) и i18n
+const mount = (c: object, o: { props?: Record<string, unknown> } = {}) =>
+  vmount(defineComponent({ render: () => h(TooltipProvider, () => h(c, o.props)) }), {
+    global: { plugins: [i18n] },
+  });
 
 beforeEach(() => {
   mutate.mockClear();

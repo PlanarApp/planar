@@ -1,7 +1,9 @@
 import { useAuth } from './auth/useAuth';
 import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router';
 
-const screen = (name: string) => () => import(`./screens/${name}Screen.vue`);
+// без витрины: DevUiScreen подключается отдельно и только в dev
+const screens = import.meta.glob(['./screens/*Screen.vue', '!./screens/DevUiScreen.vue']);
+const screen = (name: string) => screens[`./screens/${name}Screen.vue`];
 
 export const router = createRouter({
   history: typeof window === 'undefined' ? createMemoryHistory() : createWebHistory(),
@@ -20,6 +22,14 @@ export const router = createRouter({
   ],
 });
 
+if (import.meta.env.DEV)
+  router.addRoute({
+    path: '/dev/ui',
+    name: 'devUi',
+    component: () => import('./screens/DevUiScreen.vue'),
+    meta: { layout: 'none' },
+  });
+
 router.beforeEach(async (to) => {
   const { user, ready, refresh, setupNeeded } = useAuth();
   if (!ready.value) await refresh();
@@ -31,9 +41,11 @@ router.beforeEach(async (to) => {
   }
   if (to.name === 'login' || to.name === 'setup') return '/';
   if (to.name === 'module') {
-    // маршруты модуля добавляются лениво — дождаться и повторить навигацию
-    const { ensureModule } = await import('./modules/registry');
+    // маршруты модуля добавляются лениво — дождаться и повторить навигацию.
+    // Настройки ещё не известны (холодный заход) — не держим переход: ModuleScreen покажет скелетон и сама повторит навигацию.
+    const { ensureModule, modulesKnown } = await import('./modules/registry');
     if (
+      modulesKnown() &&
       (await ensureModule(String(to.params.moduleId))) &&
       router.resolve(to.fullPath).name !== 'module'
     )

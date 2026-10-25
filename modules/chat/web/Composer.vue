@@ -5,6 +5,7 @@ import {
   ApiError,
   Button,
   Editor,
+  IconButton,
   mutate,
   newId,
   onMutationError,
@@ -126,24 +127,16 @@ function onEnter(e: KeyboardEvent) {
           class="flex items-center gap-1 rounded-md bg-bg-muted px-2 py-0.5 text-xs"
         >
           {{ a.name }}
-          <button
-            type="button"
-            :aria-label="tx('remove')"
+          <IconButton
+            :icon="X"
+            :label="tx('remove')"
+            size="sm"
             @click="atts = atts.filter((x) => x !== a)"
-          >
-            <X :size="12" />
-          </button>
+          />
         </li>
       </ul>
       <div class="flex items-end gap-1">
-        <button
-          type="button"
-          :aria-label="tx('attach')"
-          class="rounded-md p-1.5 text-fg-muted hover:bg-bg-muted"
-          @click="picker?.click()"
-        >
-          <Paperclip :size="18" />
-        </button>
+        <IconButton :icon="Paperclip" :label="tx('attach')" @click="picker?.click()" />
         <input
           ref="picker"
           type="file"

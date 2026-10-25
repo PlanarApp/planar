@@ -35,24 +35,33 @@ async function submit() {
 </script>
 
 <template>
-  <main class="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-4 p-4">
-    <h1 class="text-xl font-semibold">{{ t('auth.setupTitle') }}</h1>
-    <form class="flex flex-col gap-3" @submit.prevent="submit">
-      <Input v-model="f.login" :label="t('auth.login')" :error="errors.login" />
-      <Input v-model="f.name" :label="t('auth.name')" :error="errors.name" />
-      <Input
-        v-model="f.password"
-        type="password"
-        :label="t('auth.password')"
-        :error="errors.password"
-      />
-      <Input
-        v-model="f.repeat"
-        type="password"
-        :label="t('auth.repeat')"
-        :error="errors.repeat || errors.form"
-      />
-      <Button type="submit" variant="primary" :loading="busy">{{ t('auth.create') }}</Button>
-    </form>
+  <main class="flex min-h-dvh items-center justify-center bg-bg p-4">
+    <div
+      class="flex w-full max-w-[360px] flex-col gap-4 rounded-lg border border-border bg-surface p-6"
+    >
+      <header>
+        <p class="text-xl font-semibold">{{ t('app.name') }}</p>
+        <h1 class="text-sm text-fg-muted">{{ t('auth.setupTitle') }}</h1>
+      </header>
+      <form class="flex flex-col gap-3" @submit.prevent="submit">
+        <Input v-model="f.login" :label="t('auth.login')" :error="errors.login" />
+        <Input v-model="f.name" :label="t('auth.name')" :error="errors.name" />
+        <Input
+          v-model="f.password"
+          type="password"
+          :label="t('auth.password')"
+          :error="errors.password"
+        />
+        <Input
+          v-model="f.repeat"
+          type="password"
+          :label="t('auth.repeat')"
+          :error="errors.repeat || errors.form"
+        />
+        <Button type="submit" variant="primary" class="w-full" :loading="busy">{{
+          t('auth.create')
+        }}</Button>
+      </form>
+    </div>
   </main>
 </template>

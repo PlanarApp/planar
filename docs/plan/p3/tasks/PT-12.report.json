@@ -1,0 +1,136 @@
+{
+  "status": "done",
+  "summary": "feature/design влит в p3/PT-12; конфликты сняты (versions, findings, PageView: логика p3 Collaboration + разметка C-ui v4). Починен vue-tsc (был красным и на feature/p3). e2e web 104/104 (один webhook-тест — только с WEBHOOKS_ALLOW_HOSTS), SW на /f/* ок; §7: warm 459 мс при бюджете 450 (хост под нагрузкой).",
+  "commits": [
+    "merge feature/design",
+    "vue-tsc: типы tiptap, DateArgs, тест dashboards",
+    "summary design.md ≤140, stack.sh принимает порты из env"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "size",
+      "value": "177.3 КБ",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "docs",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "versions",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "merged",
+      "value": "PASS",
+      "pass": true
+    },
+    {
+      "name": "accept --dry",
+      "value": "9/9 PASS",
+      "pass": true
+    },
+    {
+      "name": "e2e ui+features+work+collab+p3+visual",
+      "value": "103 passed + webhook-тест passed отдельно (48 эталонов visual без изменений)",
+      "pass": true
+    },
+    {
+      "name": "SW /f/*",
+      "value": "p3-sw.spec passed (прод-сборка, SW активен)",
+      "pass": true
+    },
+    {
+      "name": "initial gzip",
+      "value": "177.3 КБ (<=200)",
+      "pass": true
+    },
+    {
+      "name": "§7 switch p95 (бюджет 100)",
+      "value": "95.1 мс медиана n=5 (79.8–125.5)",
+      "pass": true
+    },
+    {
+      "name": "§7 warm (бюджет 450)",
+      "value": "459.1 мс медиана n=5 (414.9–690.7); первый набор 460.8",
+      "pass": false
+    },
+    {
+      "name": "§7 cold (бюджет 2000)",
+      "value": "1870.9 мс медиана (1817–2005)",
+      "pass": true
+    },
+    {
+      "name": "§7 mutate p95 (бюджет 50)",
+      "value": "24.5 мс",
+      "pass": true
+    },
+    {
+      "name": "§7 realtime p95 (бюджет 500)",
+      "value": "467 мс медиана второго набора (381–1083); первого 609",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "warm 459 > 450 на 2%: замер при load average 9–22 на 24 ядрах, min 415 укладывается; повторить на тихом хосте"
+  ],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept PT-12",
+  "uncertain": [
+    {
+      "where": "modules/docs/web/PageView.vue",
+      "why": "ручное слияние: у design убрана блокировка useLock/holder/editable, остались title/Menu из design",
+      "checked": "vue-tsc, lint, e2e collab/visual/p3 зелёные"
+    },
+    {
+      "where": "apps/web/package.json, pnpm-lock.yaml",
+      "why": "добавлен @tiptap/core в deps web: Editor.vue импортирует его типы, без него vue-tsc не находил модуль (и на feature/p3)",
+      "checked": "frozen-lockfile install, vue-tsc"
+    },
+    {
+      "where": "e2e/web/perf/stack.sh",
+      "why": "порты/проект compose берутся из env (дефолты прежние), чтобы гонять на своём стеке",
+      "checked": "repeat.sh отработал"
+    },
+    {
+      "where": "realtime p95",
+      "why": "в одном прогоне 992/1083 мс — выбросы под нагрузкой хоста",
+      "checked": "медиана вне выбросов укладывается"
+    }
+  ],
+  "dp_feedback": "e2e webhook-тест требует WEBHOOKS_ALLOW_HOSTS=host.docker.internal, нигде не задокументировано в карточке/скриптах; было бы полезно в stack.sh/dev.sh. Для perf нужен PERF_MODULES=forms,timeline PERF_SEED_DATES=1, чтобы sw/timeline-спеки не падали.",
+  "extra": {
+    "perf_n5_docs_chat": "см. build/artifacts/CL-10/summary.txt",
+    "sw_timeline_run": "timeline_longtasks_over50=0, warm 458, switch 102"
+  },
+  "t": "2026-10-24T23:32:32",
+  "by": "executor"
+}

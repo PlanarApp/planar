@@ -1,0 +1,85 @@
+{
+  "id": "DS-5b",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "Скриншотные тесты 12 экранов × 2 ширины × 2 темы и финальный замер §7",
+  "goal": "e2e/web/visual.spec.ts: Playwright toHaveScreenshot на 12 экранов при 1440×900 и 390×844 в светлой и тёмной теме (48 эталонов в репозитории), стабильно проходит на свежем стеке; финальный замер бюджетов §7 записан; список видимых дефектов интерфейса по эталонам — в отчёте.",
+  "plan_ref": "5. Задачи / DS-5",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "4",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-5b",
+  "branch": "design/DS-5b",
+  "base": "feature/design",
+  "scope": [
+    "e2e/web/visual.spec.ts",
+    "e2e/web/visual-helpers.ts",
+    "e2e/web/visual.spec.ts-snapshots",
+    "build/artifacts/DS-5b"
+  ],
+  "dont_touch": [
+    "apps/, modules/, packages/ — код продукта не меняется; дефекты — списком в отчёт, правит координатор отдельными задачами",
+    "e2e/web/perf/ — замер только запускать",
+    "e2e/web/playwright.config.ts, e2e/web/ui.spec.ts, e2e/web/work.spec.ts, e2e/web/features.spec.ts, e2e/web/collab.spec.ts — общие"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint e2e/web/visual.spec.ts e2e/web/visual-helpers.ts && pnpm exec prettier --check e2e/web/visual.spec.ts e2e/web/visual-helpers.ts",
+      "expect": "exit=0"
+    },
+    {
+      "name": "baselines",
+      "cmd": "ls e2e/web/visual.spec.ts-snapshots/*.png | wc -l",
+      "expect": "num:^(\\d+) >=48"
+    },
+    {
+      "name": "visual-fresh-stack",
+      "cmd": "export COMPOSE_PROJECT_NAME=planar-e2e-ds5b API_PORT=3251 WEB_PORT=5351 DEV_PG_PORT=55551; ./dev.sh reset >/dev/null 2>&1 && for i in $(seq 1 90); do curl -sf http://localhost:$WEB_PORT/api/health >/dev/null && break; sleep 2; done && ./dev.sh seed >/dev/null && E2E_BASE_URL=http://localhost:5351 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts visual.spec.ts; rc=$?; docker compose -f compose.dev.yml down -v >/dev/null 2>&1; exit $rc",
+      "expect": "exit=0"
+    },
+    {
+      "name": "perf-cold",
+      "cmd": "cat build/artifacts/DS-5b/perf.txt",
+      "expect": "num:cold_bootstrap_ms=([\\d.]+) <=2000"
+    },
+    {
+      "name": "perf-warm",
+      "cmd": "cat build/artifacts/DS-5b/perf.txt",
+      "expect": "num:warm_start_ms=([\\d.]+) <=450"
+    },
+    {
+      "name": "perf-mutate",
+      "cmd": "cat build/artifacts/DS-5b/perf.txt",
+      "expect": "num:mutate_ms_p95=([\\d.]+) <=50"
+    },
+    {
+      "name": "perf-scroll",
+      "cmd": "cat build/artifacts/DS-5b/perf.txt",
+      "expect": "num:scroll_frame_ms_p95=([\\d.]+) <=20"
+    },
+    {
+      "name": "perf-realtime",
+      "cmd": "cat build/artifacts/DS-5b/perf.txt",
+      "expect": "num:realtime_ms_p95=([\\d.]+) <=500"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T14:20:06",
+  "edited": "2026-10-24T15:31:17"
+}

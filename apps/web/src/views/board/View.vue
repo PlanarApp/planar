@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   createTask,
@@ -10,7 +10,8 @@ import {
   useStatuses,
 } from '../../tasks';
 import { useBlockedIds } from '../../links';
-import { useBreakpoint } from '../../ui';
+import { LayoutDashboard } from 'lucide-vue-next';
+import { EmptyState, useBreakpoint } from '../../ui';
 import { openTask } from '..';
 import type { ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
@@ -64,6 +65,36 @@ function toggle(key: string) {
   }
 }
 
+// маска у края горизонтальной прокрутки колонок (как у полосы вкладок)
+const scroller = ref<HTMLElement>();
+const fade = ref({ l: false, r: false });
+const measure = () => {
+  const el = scroller.value;
+  if (el)
+    fade.value = {
+      l: el.scrollLeft > 1,
+      r: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+    };
+};
+const mask = computed(() => {
+  const { l, r } = fade.value;
+  if (!l && !r) return undefined;
+  const g = `linear-gradient(to right, ${l ? 'transparent, #000 40px' : '#000, #000'}, ${r ? '#000 calc(100% - 40px), transparent' : '#000, #000'})`;
+  return { maskImage: g, WebkitMaskImage: g };
+});
+let ro: ResizeObserver | undefined;
+watch(scroller, (el) => {
+  ro?.disconnect();
+  if (el && typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(measure);
+    ro.observe(el);
+    for (const c of el.children) ro.observe(c);
+  }
+  measure();
+});
+watch(columns, () => void nextTick(measure));
+onBeforeUnmount(() => ro?.disconnect());
+
 async function move(id: string, from: string, to: string, beforeId: string | null) {
   const plan = planMove(columns.value, props.options.groupBy, id, from, to, beforeId);
   if (plan) await applyMove(plan);
@@ -85,26 +116,38 @@ function add(key: string, title: string) {
 </script>
 
 <template>
-  <div
-    class="flex h-full gap-3 overflow-x-auto p-3"
-    :class="isMobile && 'snap-x snap-mandatory'"
-    role="group"
-    :aria-label="t('views.board')"
-  >
-    <Column
-      v-for="g in columns"
-      :key="g.key"
-      :group="g"
-      :members="members ?? []"
-      :labels="labels ?? []"
-      :collapsed="collapsed.has(g.key)"
-      :mobile="isMobile"
-      :fields="options.fields"
-      :blocked="blocked"
-      @toggle="toggle(g.key)"
-      @open="openTask"
-      @add="add(g.key, $event)"
-      @move="move"
+  <div class="flex h-full min-h-0 flex-col">
+    <EmptyState
+      v-if="tasks && !tasks.length"
+      class="!pt-6 !pb-2"
+      :icon="LayoutDashboard"
+      :title="t('list.emptyTitle')"
+      :description="t('views.emptyBoard')"
     />
+    <div
+      ref="scroller"
+      class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3"
+      :class="isMobile && 'snap-x snap-mandatory'"
+      :style="mask"
+      @scroll.passive="measure"
+      role="group"
+      :aria-label="t('views.board')"
+    >
+      <Column
+        v-for="g in columns"
+        :key="g.key"
+        :group="g"
+        :members="members ?? []"
+        :labels="labels ?? []"
+        :collapsed="collapsed.has(g.key)"
+        :mobile="isMobile"
+        :fields="options.fields"
+        :blocked="blocked"
+        @toggle="toggle(g.key)"
+        @open="openTask"
+        @add="add(g.key, $event)"
+        @move="move"
+      />
+    </div>
   </div>
 </template>

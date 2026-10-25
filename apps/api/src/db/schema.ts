@@ -447,6 +447,14 @@ export const sessions = pgTable(
   (t) => [index().on(t.userId)],
 );
 
+/** Состояние Y.Doc совместного редактирования (P3-ydoc): doc_id = `docs:<uuid>` | `task:<uuid>`. */
+const bytea = customType<{ data: Buffer }>({ dataType: () => 'bytea' });
+export const ydocs = pgTable('ydocs', {
+  docId: text().primaryKey(),
+  state: bytea().notNull(),
+  updatedAt: updatedAt(),
+});
+
 export const files = pgTable('files', {
   sha256: text().primaryKey(),
   size: bigint({ mode: 'number' }).notNull(),

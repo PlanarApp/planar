@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, ListChecks, Plus } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
@@ -21,7 +21,7 @@ import {
   type TaskGroup,
   type TaskView,
 } from '../../tasks';
-import { Button, Dialog, Input, useBreakpoint } from '../../ui';
+import { Button, Dialog, EmptyState, Input, useBreakpoint } from '../../ui';
 import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
@@ -78,7 +78,7 @@ const empty = computed(() => !!all.value && !all.value.some((x) => !x.parentId))
 
 // --- виртуализация
 const scroller = ref<HTMLElement>();
-const rowH = computed(() => (isMobile.value ? 48 : 36));
+const rowH = computed(() => (isMobile.value ? 48 : 32));
 const virt = useVirtualizer(
   computed(() => ({
     count: items.value.length,
@@ -210,25 +210,29 @@ watch(
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <div
+    <EmptyState
       v-if="empty"
-      class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-fg-muted"
+      class="flex-1 justify-center !pt-8"
+      :icon="ListChecks"
+      :title="t('list.emptyTitle')"
+      :description="t('list.emptyHint')"
     >
-      <p>{{ t('list.emptyTitle') }}</p>
-      <div v-if="creating === ''" data-create class="w-64">
-        <Input
-          v-model="newTitle"
-          :label="t('list.newTaskTitle')"
-          hide-label
-          :placeholder="t('list.newTask')"
-          @keydown.enter="submitCreate()"
-          @keydown.esc="creating = null"
-        />
-      </div>
-      <Button v-else variant="primary" :icon="Plus" @click="startCreate('')">{{
-        t('list.create')
-      }}</Button>
-    </div>
+      <template #actions>
+        <div v-if="creating === ''" data-create class="w-64">
+          <Input
+            v-model="newTitle"
+            :label="t('list.newTaskTitle')"
+            hide-label
+            :placeholder="t('list.newTask')"
+            @keydown.enter="submitCreate()"
+            @keydown.esc="creating = null"
+          />
+        </div>
+        <Button v-else variant="primary" :icon="Plus" @click="startCreate('')">{{
+          t('list.create')
+        }}</Button>
+      </template>
+    </EmptyState>
     <div
       v-else
       ref="scroller"
@@ -289,6 +293,8 @@ watch(
               :editing="editing === it.id"
               :fields="options.fields"
               :blocked="blocked.has(it.task.id)"
+              :members="members ?? []"
+              :labels="labels ?? []"
               @click="onRowClick(it, $event)"
               @toggle="sel.toggle(it.task.id)"
               @edit="startEdit(it.id)"

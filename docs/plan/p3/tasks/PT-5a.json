@@ -1,0 +1,71 @@
+{
+  "id": "PT-5a",
+  "module": "p3",
+  "type": "dp-engineer",
+  "title": "Формы: модуль и защищённый публичный эндпоинт (сервер), CoreServices v9",
+  "goal": "Модуль modules/forms: сущность formsForms и мутаторы, публичные GET/POST /api/forms/public/:slug без входа с валидацией по схеме формы, лимитом частоты по IP, honeypot, 404 для выключенной формы и вложениями; задача создаётся пользователем «Форма». В ядре — CoreServices.execute, ensureSystemUser, storeFile (C-modules v9).",
+  "plan_ref": "4. Задачи (PT-5)",
+  "contracts": [
+    {
+      "name": "P3-forms",
+      "version": "1",
+      "ref": "docs/contracts/p3.md"
+    }
+  ],
+  "copy": "~/planar-p3-PT-5a",
+  "branch": "p3/PT-5a",
+  "base": "feature/p3",
+  "scope": [
+    "modules/forms/",
+    "packages/server-kit/src/core.ts",
+    "apps/api/src/core.service.ts",
+    "apps/api/src/users/system.ts",
+    "apps/api/src/files/",
+    "apps/api/src/modules/installed.ts",
+    "apps/api/package.json",
+    "apps/api/drizzle/",
+    "apps/api/test/forms/",
+    "pnpm-lock.yaml"
+  ],
+  "dont_touch": [
+    "apps/api/src/sync",
+    "packages/shared/src/contract",
+    "docs/contracts",
+    "apps/web/src"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "build",
+      "cmd": "pnpm -r build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm lint",
+      "expect": "exit=0"
+    },
+    {
+      "name": "test-all",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "P3_CONTRACT_STRICT=1 pnpm exec vitest run apps/api/test/modules/p3.contract.test.ts -t 'модуль forms|разбор'",
+      "expect": "exit=0"
+    },
+    {
+      "name": "pt5a",
+      "cmd": "./dev.sh testdb >/dev/null && pnpm exec vitest run -t pt5a:",
+      "expect": "num:(\\d+) passed >=12"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T11:00:51"
+}

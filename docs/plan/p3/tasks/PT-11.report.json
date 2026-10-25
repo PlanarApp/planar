@@ -1,0 +1,59 @@
+{
+  "status": "partial",
+  "summary": "feature/design влит в p3/PT-11 (merge 89f1590), конфликт seed.ts решён: seed(db, tasks, locale, dates), обе стороны сохранены. build, lint, test-web, test-all, merged, cui — PASS.",
+  "commits": [
+    "89f1590 Слияние feature/design (C-ui v4) в p3"
+  ],
+  "checks": [
+    {
+      "name": "build",
+      "value": "exit 0, 41 с",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0, 29 с",
+      "pass": true
+    },
+    {
+      "name": "test-web",
+      "value": "exit 0, 35 с",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0, 67 с",
+      "pass": true
+    },
+    {
+      "name": "merged",
+      "value": "yes",
+      "pass": true
+    },
+    {
+      "name": "cui",
+      "value": "1",
+      "pass": true
+    },
+    {
+      "name": "scope",
+      "value": "FAIL: 33 файла docs/plan/design/* (в dont_touch) и файлы apps/* вне scope '.' приходят самим merge feature/design",
+      "pass": false
+    }
+  ],
+  "not_done": [
+    "Откат файлов docs/plan/design из merge не делал: иначе это уже не слияние feature/design. Нужно решение координатора: разрешить docs/plan/design в scope/dont_touch для этой задачи или выполнить слияние иначе."
+  ],
+  "questions": [
+    "Разрешить ли merge-коммит с docs/plan/design из feature/design (33 файла), или scope/dont_touch для PT-11 менять?"
+  ],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept PT-11 --dry (в ~/planar-p3-PT-11)",
+  "uncertain": [],
+  "dp_feedback": "scope/dont_touch не учитывает файлы, которые приходят слиянием ветки; нет способа указать исключение для merge-задач.",
+  "extra": {
+    "seed_signature": "seed(db, tasks=0, locale='ru', dates=false); seed.test.ts вызывает seed(db, 0, 'en') без изменений"
+  },
+  "t": "2026-10-24T15:30:48",
+  "by": "executor"
+}

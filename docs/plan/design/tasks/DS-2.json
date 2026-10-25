@@ -1,0 +1,84 @@
+{
+  "id": "DS-2",
+  "module": "design",
+  "type": "dp-engineer",
+  "title": "Панель проекта: вкладки видов, кнопка «Вид», фильтр с чипами",
+  "goal": "Панель экрана проекта — одна строка Toolbar: вкладки видов (Tabs), одна кнопка «Вид» с popover (группировка, сортировка, подзадачи, поля), «Фильтр» с чипами активных условий, «Сохранить вид» в меню «…»; на mobile — одна строка с горизонтальной прокруткой.",
+  "plan_ref": "5. Задачи / DS-2",
+  "contracts": [
+    {
+      "name": "C-ui",
+      "version": "3",
+      "ref": "docs/contracts/design.md"
+    }
+  ],
+  "copy": "~/planar-design-DS-2",
+  "branch": "design/DS-2",
+  "base": "feature/design",
+  "scope": [
+    "apps/web/src/screens/ProjectScreen.vue",
+    "apps/web/src/screens/SavedViewScreen.vue",
+    "apps/web/src/views/saved/OptionsBar.vue",
+    "apps/web/src/views/saved/SavedTabs.vue",
+    "apps/web/src/views/saved/SaveViewDialog.vue",
+    "apps/web/src/views/saved/FilterChips.vue",
+    "apps/web/src/views/saved/ViewOptionsPopover.vue",
+    "apps/web/src/views/saved/__tests__",
+    "apps/web/src/views/__tests__",
+    "apps/web/src/i18n/ru.ts",
+    "apps/web/src/i18n/en.ts",
+    "build/artifacts/DS-2",
+    "apps/web/src/views/saved/FilterBuilder.vue",
+    "apps/web/src/views/saved/labels.ts"
+  ],
+  "dont_touch": [
+    "apps/web/src/views/saved/FilterBuilder.vue — в SDK (C-modules), пропсы и события не менять; можно только переиспользовать",
+    "apps/web/src/views/list/, apps/web/src/views/board/ — DS-3",
+    "apps/web/src/layout/ — DS-1",
+    "modules/ — DS-4 и p3",
+    "apps/web/src/ui/ — компоненты C-ui v3 готовы (DS-0); не хватает компонента или пропса — строкой <ID> contract: …",
+    "apps/web/src/__contract__/, apps/web/src/contract.ts, docs/contracts/ — только координатор",
+    "packages/, apps/api/ — core и p3 (кроме явно указанного в скоупе)"
+  ],
+  "accept": [
+    {
+      "name": "install",
+      "cmd": "pnpm install --frozen-lockfile",
+      "expect": "exit=0"
+    },
+    {
+      "name": "contract",
+      "cmd": "pnpm --filter web exec vitest run src/__contract__/",
+      "expect": "exit=0"
+    },
+    {
+      "name": "web-tests",
+      "cmd": "pnpm --filter web test",
+      "expect": "exit=0"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter web exec vue-tsc --noEmit",
+      "expect": "exit=0"
+    },
+    {
+      "name": "size",
+      "cmd": "pnpm --filter web build >/dev/null && node apps/web/scripts/size.mjs",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/web && pnpm exec prettier --check apps/web",
+      "expect": "exit=0"
+    },
+    {
+      "name": "chip-tests",
+      "cmd": "pnpm --filter web exec vitest run src/views/saved -t chip 2>&1 | grep -E '^\\s*Tests'",
+      "expect": "num:(\\d+) passed >=3"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-24T11:17:09",
+  "edited": "2026-10-24T12:31:43"
+}

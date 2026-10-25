@@ -3,14 +3,16 @@ import { useI18n } from 'vue-i18n';
 import OptionPicker from './OptionPicker.vue';
 import PriorityIcon from './PriorityIcon.vue';
 
-defineProps<{ compact?: boolean }>();
+const props = defineProps<{ compact?: boolean }>();
+const Blank = () => null;
 const model = defineModel<number>({ default: 0 });
 const { t } = useI18n();
 const options = [0, 1, 2, 3, 4].map((p) => ({
   id: String(p),
   label: t(`tasks.priority.${p}`),
-  icon: PriorityIcon,
-  iconProps: { priority: p },
+  // у «Без приоритета» значка нет (иначе «—» перед подписью), кроме compact: там триггер — один значок
+  icon: p || props.compact ? PriorityIcon : Blank,
+  iconProps: { priority: p, size: props.compact ? 14 : 16 },
 }));
 </script>
 

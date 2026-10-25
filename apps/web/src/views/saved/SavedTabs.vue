@@ -50,14 +50,14 @@ async function confirmDelete() {
     v-for="v in views"
     :key="v.id"
     class="inline-flex shrink-0 items-center rounded-md"
-    :class="v.id === activeId ? 'bg-accent-subtle text-fg' : 'text-fg-muted hover:bg-bg-muted'"
+    :class="v.id === activeId ? 'bg-bg-muted text-fg' : 'text-fg-muted hover:bg-bg-subtle'"
   >
     <button
       role="tab"
       type="button"
       :aria-selected="v.id === activeId"
       :data-saved-view="v.id"
-      class="inline-flex h-11 md:h-8 items-center gap-1.5 rounded-md px-2.5 text-base outline-none focus-visible:ring-2 ring-focus"
+      class="inline-flex h-11 md:h-7 items-center gap-1.5 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2 ring-focus"
       @click="open(v)"
     >
       <Bookmark :size="16" aria-hidden="true" />
@@ -68,7 +68,7 @@ async function confirmDelete() {
         <button
           type="button"
           :aria-label="`${t('views.saved.menu')}: ${v.name}`"
-          class="inline-flex h-11 w-8 md:h-8 items-center justify-center rounded-md outline-none focus-visible:ring-2 ring-focus"
+          class="inline-flex h-11 w-8 md:h-7 items-center justify-center rounded-md outline-none focus-visible:ring-2 ring-focus"
         >
           <MoreHorizontal :size="14" aria-hidden="true" />
         </button>
