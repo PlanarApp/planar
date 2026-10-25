@@ -208,6 +208,24 @@ describe('pf2: templates.createTask', () => {
     );
   });
 
+  it('pf2: с parentId — задача ребёнок parentId, подзадачи шаблона — дети новой', async () => {
+    const parent = uuidv7();
+    await w.admin.ok('task.create', {
+      id: parent,
+      projectId: w.projectId,
+      statusId: w.statusIds[1],
+      title: 'Родитель',
+      rank: 'a0',
+    });
+    const data = node({ title: 'Дочерняя', subtasks: [node({ title: 'Внучка' })] });
+    const { id } = await create(w.admin, data);
+    const a = use(id, data, { parentId: parent });
+    await w.admin.ok('templates.createTask', a);
+    const rows = await tasksOf(w.projectId);
+    expect(rows.find((x) => x.id === a.ids[0])!.parentId).toBe(parent);
+    expect(rows.find((x) => x.title === 'Внучка' && x.parentId === a.ids[0])).toBeTruthy();
+  });
+
   it('pf2: dueInDays проходит через границу месяца и года', async () => {
     const data = node({ dueInDays: 70 });
     const { id } = await create(w.admin, data);
