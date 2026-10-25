@@ -514,6 +514,7 @@ export default {
     start: 'Start',
     title: 'Title',
     close: 'Close',
+    openAs: { label: 'Open as', modal: 'Dialog', side: 'Side panel', page: 'Full screen' },
     menu: 'Task menu',
     copyLink: 'Copy link',
     delete: 'Delete',

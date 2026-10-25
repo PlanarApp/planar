@@ -1,11 +1,32 @@
 /// <reference types="vite/client" />
-import type { Component } from 'vue';
+import { ref, watch, type Component } from 'vue';
 import { router } from '../router';
 import { useBreakpoint } from '../ui';
 
+export type TaskOpenMode = 'modal' | 'side' | 'page';
+const KEY = 'planar.taskOpen';
+const read = (): TaskOpenMode => {
+  try {
+    const v = localStorage.getItem(KEY);
+    if (v === 'side' || v === 'page') return v;
+  } catch {
+    /* хранилище недоступно */
+  }
+  return 'modal';
+};
+/** Как открывать задачу на десктопе (как в Plane/ClickUp): окно, боковая панель, страница; настройка устройства. */
+export const taskOpenMode = ref<TaskOpenMode>(read());
+watch(taskOpenMode, (v) => {
+  try {
+    localStorage.setItem(KEY, v);
+  } catch {
+    /* хранилище недоступно */
+  }
+});
+
 export function openTask(key: string): void {
   const r = router.currentRoute.value;
-  if (r.name === 'project' && !useBreakpoint().isMobile.value) {
+  if (r.name === 'project' && taskOpenMode.value !== 'page' && !useBreakpoint().isMobile.value) {
     void router.push({ query: { ...r.query, task: key } });
   } else {
     void router.push(`/t/${encodeURIComponent(key)}`);

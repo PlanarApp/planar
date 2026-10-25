@@ -136,6 +136,17 @@ describe('views:project', () => {
     expect(r.currentRoute.value.path).toBe('/t/PRJ-2');
   });
 
+  it('режим «страница» ведёт на /t/<key> и на десктопе', async () => {
+    const { taskOpenMode } = await import('../open');
+    mountScreen();
+    await flushPromises();
+    taskOpenMode.value = 'page';
+    openTask('PRJ-3');
+    await flushPromises();
+    expect(r.currentRoute.value.path).toBe('/t/PRJ-3');
+    taskOpenMode.value = 'modal';
+  });
+
   it('смена проекта очищает выделение', async () => {
     const w = mountScreen();
     await flushPromises();

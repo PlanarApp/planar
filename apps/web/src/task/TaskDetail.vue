@@ -11,6 +11,7 @@ import {
   EyeOff,
   Flag,
   MoreHorizontal,
+  PanelRight,
   Tag,
   Users,
   X,
@@ -34,7 +35,8 @@ import {
 } from '../tasks';
 import { useExtensions } from '../modules/registry';
 import { useSpaces, useTask } from '../tasks/queries';
-import { AvatarStack, Button, IconButton, Menu, type MenuItem } from '../ui';
+import { AvatarStack, Button, IconButton, Menu, useBreakpoint, type MenuItem } from '../ui';
+import { taskOpenMode, type TaskOpenMode } from '../views/open';
 import Attachments from './Attachments.vue';
 import Checklist from './Checklist.vue';
 import FieldsBlock from '../fields/FieldsBlock.vue';
@@ -108,11 +110,41 @@ const toggleWatch = () =>
 
 // --- меню (как контекстное в видах, без «Открыть»), удаление закрывает панель
 const menuFor = useTaskMenu(() => props.task.spaceId);
-const menu = computed<MenuItem[]>(() =>
-  menuFor(props.task)
+const { isMobile } = useBreakpoint();
+const menu = computed<MenuItem[]>(() => [
+  ...(isMobile.value
+    ? []
+    : [
+        {
+          id: 'openAs',
+          label: t('task.openAs.label'),
+          icon: PanelRight,
+          children: (['modal', 'side', 'page'] as const).map((m) => ({
+            id: m,
+            label: t(`task.openAs.${m}`),
+            checked: taskOpenMode.value === m,
+            onSelect: () => setOpenMode(m),
+          })),
+        },
+        { separator: true as const },
+      ]),
+  ...menuFor(props.task)
     .filter((it) => !('id' in it) || it.id !== 'open')
     .map((it) => ('id' in it && it.id === 'delete' ? { ...it, onSelect: remove } : it)),
-);
+]);
+// смена режима применяется сразу: панель ↔ страница — переход, окно ↔ боковая — на месте
+function setOpenMode(m: TaskOpenMode) {
+  taskOpenMode.value = m;
+  if (!router) return;
+  const key = props.task.key;
+  if (props.mode === 'panel' && m === 'page') void router.replace(`/t/${encodeURIComponent(key)}`);
+  else if (props.mode === 'page' && m !== 'page')
+    void router.replace({
+      name: 'project',
+      params: { projectId: props.task.projectId },
+      query: { task: key },
+    });
+}
 async function remove() {
   await deleteTask(props.task.id);
   emit('close');

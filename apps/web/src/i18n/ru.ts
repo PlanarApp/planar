@@ -514,6 +514,7 @@ export default {
     start: 'Начало',
     title: 'Название',
     close: 'Закрыть',
+    openAs: { label: 'Открывать как', modal: 'Окно', side: 'Боковая панель', page: 'Во весь экран' },
     menu: 'Меню задачи',
     copyLink: 'Копировать ссылку',
     delete: 'Удалить',
