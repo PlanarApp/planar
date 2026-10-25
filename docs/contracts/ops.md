@@ -104,6 +104,8 @@ Content-Security-Policy: default-src 'self'; script-src 'self' {inline-hashes}; 
 | `GET /api/health/ready` | `200 {ok: true, db: 'up', migrations: 'ok', queue: 'up'}`; что-то не так — `503`, `ok: false` и `db: 'down'` \| `migrations: 'pending'` (применено меньше, чем в журнале образа) \| `queue: 'down'`. Очередь выключена конфигом (тесты, `push.boss: false`) — `queue: 'off'`, на `ok` не влияет |
 | `GET /api/metrics` | `METRICS_TOKEN` пуст — `404 not_found`. Иначе `Authorization: Bearer <METRICS_TOKEN>` (сравнение за постоянное время), нет/не тот — `401 unauthenticated`. Ответ — `200`, `text/plain; version=0.0.4`, формат экспозиции Prometheus |
 
+Одобрено главной как C-http v12. `/api/health/ready` отдаёт только статусы компонентов из таблицы — без версий, строк подключения и текстов ошибок. Сравнение токена — `crypto.timingSafeEqual` (разная длина — отказ без сравнения). Обязательные тесты: без `METRICS_TOKEN` — 404, с неверным токеном — 401, с верным — 200 и все имена ниже.
+
 Caddy проксирует `/api/metrics` как обычный `/api/*`; токен — единственная защита, поэтому он обязателен для включения. Метрики (строка: `имя тип метки`):
 
 ```text ops-metrics
