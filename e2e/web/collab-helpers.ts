@@ -91,7 +91,7 @@ export { BASE, request };
 export async function spaGo(p: Page, url: string) {
   await p.goto('/');
   await expect(p.getByTestId('sidebar')).toBeVisible();
-  await expect(p.getByTestId('nav-branch').filter({ hasText: 'Документы' }).first()).toBeVisible();
+  await expect(p.getByTestId('group-tabs').getByRole('link', { name: 'Документы' })).toBeVisible();
   await p.evaluate((u) => {
     history.pushState({}, '', u);
     dispatchEvent(new PopStateEvent('popstate'));

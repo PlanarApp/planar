@@ -19,9 +19,9 @@ test.beforeAll(async () => {
 });
 test.afterEach(() => setModules(admin, MODULES));
 
-// модуль включён — у групп в боковой панели есть его ветка («Чаты», «Документы»)
+// модуль включён — у группы есть его таб («Чаты», «Документы»); вход ведёт на экран Воркспейса
 const branch = (p: Page, name: string) =>
-  p.getByTestId('nav-branch').filter({ hasText: name }).first();
+  p.getByTestId('group-tabs').getByRole('link', { name });
 const chatNav = (p: Page) => branch(p, 'Чаты');
 const docsNav = (p: Page) => branch(p, 'Документы');
 // goto по url модуля при холодной загрузке показывает заглушку «Модуль» (см. fixme ниже): переходим как SPA
