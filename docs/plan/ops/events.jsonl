@@ -72,3 +72,6 @@
 {"t": "2026-10-25T08:26:23", "by": "executor", "task": "OP-4", "ev": "reported", "commits": ["6fa5cea"], "note": "done: ops/upgrade.sh: бэкап, (pull), теги :rollback, сборка, миграции до переключения, перезапуск api+caddy с --force-recreat…", "dp_feedback": "job start с именем accept занято чужой задачей (общий каталог jobs) - wait вернул чужой результат; нужны имена с префиксом задачи или предупреждение."}
 {"t": "2026-10-25T08:32:30", "by": "coordinator", "task": "OP-3b", "ev": "checked", "note": "5/5 ops-contract=ok:5/5 (пропуск 866); health=ok:10/10 (пропуск 861); metrics=ok:7/7 (пропуск 864); typecheck=ok:exit 0; lint=ok:exit 0"}
 {"t": "2026-10-25T08:36:51", "by": "coordinator", "task": "OP-3b", "ev": "accepted", "note": "по отчёту"}
+{"t": "2026-10-25T08:37:11", "by": "coordinator", "task": "OP-3b", "ev": "merged"}
+{"t": "2026-10-25T08:41:47", "by": "coordinator", "task": "OP-2b", "ev": "checked", "note": "3/3 ops-contract=ok:5/5 (пропуск 862); backup-test=ok:backup-test: OK; bash-syntax=ok:exit 0"}
+{"t": "2026-10-25T08:47:15", "by": "coordinator", "task": "OP-2b", "ev": "accepted", "note": "по отчёту"}
