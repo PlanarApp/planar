@@ -218,7 +218,12 @@ test('pf6: email — без SMTP переключатель неактивен �
     await expect(row.getByTestId('module-unavailable')).toContainText('SMTP');
   }
 
+  // форма перезаписывается ответом GET config при монтировании — заполняем после него
+  const loaded = page.waitForResponse(
+    (r) => r.url().endsWith('/api/email/setup/config') && r.request().method() === 'GET',
+  );
   await row.getByTestId('module-setup').click();
+  await loaded;
   const setup = page.getByTestId('email-setup');
   await setup.getByTestId('email-host').fill('127.0.0.1');
   await setup.getByTestId('email-port').fill('2525');
@@ -260,7 +265,7 @@ test('pf6: email — без SMTP переключатель неактивен �
   await setModules(admin, P4_MODULES);
 });
 
-test('pf6: плагины — регистрация, iframe показывает задачу, «Комментарий» создаёт комментарий; URL с хостом приложения отклоняется', async ({
+test('pf6: плагины — регистрация, iframe показывает задачу, «Комментарий» создаёт комментарий', async ({
   browser,
 }) => {
   const srv = await pluginServer();
@@ -280,18 +285,6 @@ test('pf6: плагины — регистрация, iframe показывае�
     await form.getByRole('button', { name: 'Добавить' }).click();
     await expect(form.getByText(name)).toBeVisible();
 
-    // хост приложения (localhost, другой порт тоже) — отказ
-    const r = await admin.ctx.post('/api/plugins/admin', {
-      data: {
-        id: uuidv7(),
-        name: 'bad',
-        url: 'http://localhost:9999/',
-        permissions: { read: ['tasks'], write: [] },
-        points: { taskPanel: { label: 'x' }, page: null },
-      },
-    });
-    expect(r.status()).toBe(400);
-
     await page.goto(`/t/${f.taskKeys[0]}`);
     const tab = page.getByRole('tab', { name: 'Плагины', exact: true });
     await expect(tab).toBeVisible();
@@ -306,4 +299,21 @@ test('pf6: плагины — регистрация, iframe показывае�
   } finally {
     await srv.close();
   }
+});
+
+test('pf6: плагины — регистрация URL с хостом приложения отклоняется', async ({ browser }) => {
+  const page = await loginAs(browser, 'admin');
+  await spa(page, '/settings/plugins:admin', page.getByTestId('plugins-admin'));
+  const form = page.getByTestId('plugins-admin');
+  await form.getByPlaceholder('Название').fill(uniq('Bad'));
+  await form.getByPlaceholder('Адрес (URL)').fill('http://localhost:9999/');
+  await form.getByLabel('tasks', { exact: true }).first().check();
+  await form.getByPlaceholder(/Панель задачи/).fill('x');
+  await form.getByRole('button', { name: 'Добавить' }).click();
+  await expect(form.getByRole('alert')).toBeVisible();
+  expect(
+    ((await admin.bootstrap()).data.pluginsPlugins ?? []).some((p) =>
+      p.name.toString().startsWith('Bad'),
+    ),
+  ).toBe(false);
 });
