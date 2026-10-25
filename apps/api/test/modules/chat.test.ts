@@ -149,7 +149,12 @@ describe('chat: каналы и права', () => {
 
   it('channel.create: projectId своего пространства, чужой проект → invalid_args', async () => {
     const id = uuidv7();
-    await w.member.ok('chat.channel.create', { id, spaceId: w.spaceId, projectId: w.projectId, name: 'p' });
+    await w.member.ok('chat.channel.create', {
+      id,
+      spaceId: w.spaceId,
+      projectId: w.projectId,
+      name: 'p',
+    });
     expect(await chan(w.member, id)).toMatchObject({ projectId: w.projectId });
     const other = await world(db);
     expect(

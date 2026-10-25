@@ -27,7 +27,13 @@ describe('корневое пространство', () => {
     expect(await role(id, guest)).toBeUndefined();
     const c = new TestClient(services(db), admin);
     expect(
-      await c.push('project.create', { id: uuidv7(), spaceId: id, name: 'X', key: 'ROOTX', rank: 'a0' }),
+      await c.push('project.create', {
+        id: uuidv7(),
+        spaceId: id,
+        name: 'X',
+        key: 'ROOTX',
+        rank: 'a0',
+      }),
     ).toMatchObject({ code: 'invalid_args' });
   });
 });
