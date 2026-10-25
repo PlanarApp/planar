@@ -134,13 +134,6 @@
       "when": 1792848349854,
       "tag": "0018_volatile_maximus",
       "breakpoints": true
-    },
-    {
-      "idx": 19,
-      "version": "7",
-      "when": 1792892243223,
-      "tag": "0019_loose_nico_minoru",
-      "breakpoints": true
     }
   ]
 }
