@@ -33,6 +33,7 @@
     "@planar/module-time": "workspace:*",
     "@planar/module-workload": "workspace:*",
     "@planar/module-timeline": "workspace:*",
+    "@planar/module-templates": "workspace:*",
     "@planar/module-webhooks": "workspace:*",
     "@planar/server-kit": "workspace:*",
     "@planar/shared": "workspace:*",

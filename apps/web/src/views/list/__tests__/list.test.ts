@@ -2,6 +2,8 @@ import 'fake-indexeddb/auto';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
+import { defineComponent, h } from 'vue';
+import { TooltipProvider } from 'reka-ui';
 import { domainMutators } from '@planar/shared';
 import en from '../../../i18n/en';
 import ru from '../../../i18n/ru';
@@ -10,6 +12,7 @@ import { db, registerMutators, startSync, stopSync } from '../../../sync';
 import { AssigneePicker, PriorityPicker, StatusPicker } from '../../../tasks';
 import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
 import { resetBreakpoint } from '../../../ui';
+import { registerModules } from '../../../modules/registry';
 import type { ViewOptions } from '../..';
 
 const { router } = vi.hoisted(() => ({ router: { current: undefined as never } }));
@@ -391,5 +394,62 @@ describe('list:row', () => {
     const r = row('PLN-1');
     expect(r.find('span.text-xs').exists()).toBe(false);
     expect(r.find('div.absolute').classes()).toContain('pointer-events-none');
+  });
+});
+
+describe('list:newTaskMenu', () => {
+  // IconButton меню требует TooltipProvider (в приложении он в App.vue)
+  const show = async () => {
+    w = mount(
+      defineComponent({
+        render: () =>
+          h(TooltipProvider, null, () => h(View, { projectId: ids.project, options: opts() })),
+      }),
+      {
+        attachTo: document.body,
+        global: { plugins: [createI18n({ legacy: false, locale: 'ru', messages: { ru, en } })] },
+      },
+    );
+    await until(() => w.find('[role=row][data-task]').exists());
+  };
+  const trigger = () => w.find('button[aria-label="Новая задача из…"]');
+  let when = true;
+  const reg = () =>
+    registerModules([
+      {
+        id: 'pf2menu',
+        commands: [
+          {
+            id: 'yes',
+            label: 'Из шаблона PF2',
+            newTaskMenu: true,
+            when: () => when,
+            run: () => {},
+          },
+          { id: 'plain', label: 'Обычная PF2', run: () => {} },
+        ],
+      },
+    ]);
+
+  it('pf2: нет команд с newTaskMenu — меню не рендерится', async () => {
+    await db.table('tasks').put(task(1));
+    await show();
+    expect(trigger().exists()).toBe(false);
+  });
+  it('pf2: команда с newTaskMenu и when=true — меню есть, пункт виден; без newTaskMenu — нет', async () => {
+    reg();
+    when = true;
+    await db.table('tasks').put(task(1));
+    await show();
+    await trigger().trigger('keydown', { key: 'Enter' });
+    await until(() => document.body.textContent!.includes('Из шаблона PF2'));
+    expect(document.body.textContent).not.toContain('Обычная PF2');
+  });
+  it('pf2: when=false — меню не рендерится', async () => {
+    reg();
+    when = false;
+    await db.table('tasks').put(task(1));
+    await show();
+    expect(trigger().exists()).toBe(false);
   });
 });

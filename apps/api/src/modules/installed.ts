@@ -30,6 +30,8 @@ import { api as importApi } from '@planar/module-import/api';
 import * as importTables from '@planar/module-import/api/schema';
 import { api as workloadApi } from '@planar/module-workload/api';
 import * as workloadTables from '@planar/module-workload/api/schema';
+import { api as templatesApi } from '@planar/module-templates/api';
+import * as templatesTables from '@planar/module-templates/api/schema';
 import { api as goalsApi } from '@planar/module-goals/api';
 import * as goalsTables from '@planar/module-goals/api/schema';
 
@@ -92,6 +94,7 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: dashboardsApi, tables: dashboardsTables },
   { api: workloadApi, tables: workloadTables },
   { api: timelineApi, tables: timelineTables },
+  { api: templatesApi, tables: templatesTables },
   { api: emailApi, tables: emailTables },
   { api: goalsApi, tables: goalsTables },
   { api: recurringApi, tables: recurringTables },

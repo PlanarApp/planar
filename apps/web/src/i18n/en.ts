@@ -492,6 +492,7 @@ export default {
   },
   list: {
     newTask: 'New task',
+    newMenu: 'New task from…',
     newTaskTitle: 'New task title',
     editTitle: 'Task title',
     select: 'Select task',

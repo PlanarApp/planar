@@ -46,6 +46,8 @@ export interface CommandDef {
   icon?: Component;
   shortcut?: string;
   group?: LocalizedText;
+  /** видна и в меню кнопки «Новая задача» вида (C-modules v11) */
+  newTaskMenu?: boolean;
   when?: (ctx: CommandCtx) => boolean;
   run: (ctx: CommandCtx) => void | Promise<void>;
 }
