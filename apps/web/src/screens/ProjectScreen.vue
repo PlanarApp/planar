@@ -151,10 +151,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
   <div v-else-if="project === null" class="p-4 text-fg-muted">{{ t('views.projectNotFound') }}</div>
   <div v-else class="flex h-full min-h-0">
     <section class="flex min-w-0 flex-1 flex-col">
-      <header class="flex items-baseline gap-2 px-4 pt-3">
-        <h1 class="truncate text-xl font-semibold">{{ project.name }}</h1>
-        <span class="text-sm text-fg-subtle">{{ project.key }}</span>
-      </header>
       <div v-if="!active" class="p-4 text-fg-muted">{{ t('views.empty') }}</div>
       <template v-else>
         <ToolbarRoot

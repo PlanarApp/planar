@@ -23,6 +23,7 @@ import { useUnread } from '../inbox/queries';
 import { useExtensions } from '../modules/registry';
 import { useProject, useSpaces } from '../tasks/queries';
 import { useSavedView } from '../views/saved/queries';
+import { groupTab } from './groups';
 import { mobileNav, useUserMenu } from './nav';
 
 const { t, te, locale } = useI18n();
@@ -70,6 +71,7 @@ const text = (l: string | { ru: string; en: string }) =>
 const viewLabel = computed(() => {
   if (route.name === 'savedView') return saved.value?.name ?? '';
   const v = String(route.params.view || 'list');
+  if (groupTab(v) !== 'tasks') return t(`groups.tab.${v}`);
   const ext = extViews.value.find((e) => e.key === v);
   return ext ? text(ext.label) : te(`views.${v}`) ? t(`views.${v}`) : v;
 });
@@ -86,6 +88,12 @@ const moduleTitle = computed(() => {
 });
 const crumbs = computed(() => {
   if (moduleTitle.value) return [moduleTitle.value];
+  if (route.name === 'workspace' || route.name === 'space') {
+    const sp = spaces.value?.find((s) => s.id === route.params.spaceId)?.name;
+    return [t('app.name'), sp, t(`groups.tab.${groupTab(route.params.tab)}`)].filter(
+      (x): x is string => !!x,
+    );
+  }
   if (!inProject.value) {
     return [route.name ? t(`screens.${String(route.name)}`) : t('app.name')];
   }

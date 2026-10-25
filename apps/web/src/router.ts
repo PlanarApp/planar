@@ -15,7 +15,10 @@ export const router = createRouter({
     { path: '/inbox', name: 'inbox', component: screen('Inbox') },
     { path: '/my', name: 'my', component: screen('My') },
     { path: '/p/:projectId/v/:viewId', name: 'savedView', component: screen('SavedView') },
-    { path: '/p/:projectId/:view?', name: 'project', component: screen('Project') },
+    { path: '/w/:tab?', name: 'workspace', component: screen('Group') },
+    { path: '/s/:spaceId/:tab?', name: 'space', component: screen('Group') },
+    // :view — таб группы (docs, chats, …) или ключ вида Задач (list, board, …)
+    { path: '/p/:projectId/:view?', name: 'project', component: screen('Group') },
     { path: '/t/:key', name: 'task', component: screen('Task') },
     { path: '/settings/:section?', name: 'settings', component: screen('Settings') },
     { path: '/m/:moduleId/:rest(.*)*', name: 'module', component: screen('Module') },
