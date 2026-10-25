@@ -5,6 +5,8 @@ import { useI18n } from 'vue-i18n';
 import {
   BarChart3,
   Briefcase,
+  FolderKanban,
+  LayoutGrid,
   FileText,
   ListTodo,
   MessagesSquare,
@@ -14,7 +16,8 @@ import { useProject, useRootSpaceId, useSpaces } from '../tasks';
 import { EmptyState, Tabs } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { GroupScope, LocalizedText } from '../modules/types';
-import { GROUP_TABS, groupTab, groupUrl, type GroupLevel } from '../layout/groups';
+import { groupTab, groupUrl, tabsFor, type GroupLevel } from '../layout/groups';
+import GroupList from './GroupList.vue';
 import ProjectScreen from './ProjectScreen.vue';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import SettingsScreen from './SettingsScreen.vue';
@@ -72,6 +75,8 @@ const partComponent = computed(() => {
 const selectPart = (k: string) => void router.replace({ query: { ...route.query, r: k } });
 const icons = {
   work: Briefcase,
+  spaces: LayoutGrid,
+  projects: FolderKanban,
   tasks: ListTodo,
   docs: FileText,
   chats: MessagesSquare,
@@ -93,7 +98,7 @@ const icons = {
       class="flex shrink-0 gap-1 overflow-x-auto border-b border-border px-2"
     >
       <RouterLink
-        v-for="k in GROUP_TABS"
+        v-for="k in tabsFor(level)"
         :key="k"
         :to="groupUrl(level, id, k)"
         :aria-current="tab === k ? 'page' : undefined"
@@ -114,6 +119,11 @@ const icons = {
       />
       <SettingsScreen v-else-if="name && scope && tab === 'settings'" :scope="scope" />
       <MyWork v-else-if="name && scope && tab === 'work'" :scope="scope" />
+      <GroupList
+        v-else-if="name && scope && (tab === 'spaces' || tab === 'projects') && level !== 'project'"
+        :scope="scope"
+        :kind="tab"
+      />
       <div v-else-if="name && scope && part" class="flex h-full min-h-0 flex-col">
         <div v-if="parts.length > 1" class="shrink-0 border-b border-border px-2 py-1">
           <Tabs

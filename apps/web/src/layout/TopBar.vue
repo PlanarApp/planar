@@ -23,7 +23,7 @@ import { useUnread } from '../inbox/queries';
 import { useExtensions } from '../modules/registry';
 import { useProject, useRootSpaceId, useSpaces } from '../tasks/queries';
 import { useSavedView } from '../views/saved/queries';
-import { GROUP_TABS, groupTab, groupUrl } from './groups';
+import { groupTab, groupUrl, tabsFor } from './groups';
 import type { MenuItem } from '../ui/Menu.vue';
 import { mobileNav, useUserMenu } from './nav';
 
@@ -126,7 +126,7 @@ const crumbs = computed<Crumb[]>(() => {
   const tab = groupTab(inProject.value ? route.params.view : route.params.tab);
   out.push({
     label: inProject.value ? viewLabel.value : t(`groups.tab.${tab}`),
-    menu: GROUP_TABS.map((k) => ({
+    menu: tabsFor(gl).map((k) => ({
       id: k,
       label: t(`groups.tab.${k}`),
       onSelect: go(groupUrl(gl, gid, k)),

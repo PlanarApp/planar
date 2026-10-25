@@ -1,10 +1,25 @@
 /** Группы: три уровня и общие табы (Задачи — любой ключ вида, напр. `/p/<id>/board`). */
 export type GroupLevel = 'workspace' | 'space' | 'project';
-export const GROUP_TABS = ['work', 'tasks', 'docs', 'chats', 'reports', 'settings'] as const;
+export const GROUP_TABS = [
+  'work',
+  'tasks',
+  'docs',
+  'chats',
+  'reports',
+  'spaces',
+  'projects',
+  'settings',
+] as const;
 export type GroupTab = (typeof GROUP_TABS)[number];
 
 export const groupTab = (seg: unknown): GroupTab =>
   GROUP_TABS.includes(seg as GroupTab) ? (seg as GroupTab) : 'tasks';
+
+/** табы уровня: списки вложенных групп — у Воркспейса пространства и проекты, у Пространства проекты */
+export const tabsFor = (level: GroupLevel): GroupTab[] =>
+  GROUP_TABS.filter(
+    (k) => (k !== 'spaces' || level === 'workspace') && (k !== 'projects' || level !== 'project'),
+  );
 
 export function groupUrl(level: GroupLevel, id: string, tab: GroupTab = 'tasks'): string {
   const base = level === 'project' ? `/p/${id}` : level === 'space' ? `/s/${id}` : '/w';
