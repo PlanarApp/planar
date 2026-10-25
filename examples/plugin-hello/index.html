@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Hello plugin</title>
+<body style="font: 14px system-ui; margin: 8px">
+  <p id="who">…</p>
+  <p id="task"></p>
+  <button id="comment" disabled>Комментарий</button>
+  <p id="msg"></p>
+  <script>
+    // Хостить на другом ХОСТЕ, чем приложение (другой порт не годится); зарегистрировать в Настройки → Плагины.
+    // Права: read — tasks, users; write — comments. Origin приложения плагину заранее неизвестен, поэтому
+    // запросы идут с '*' (хост проверяет origin и source), а ответы принимаем только от parent.
+    let init;
+    let seq = 0;
+    const pending = {};
+    const send = (m) => parent.postMessage({ planar: 1, ...m }, '*');
+    const call = (m) =>
+      new Promise((res) => {
+        const id = String(++seq);
+        pending[id] = res;
+        send({ ...m, id });
+      });
+    addEventListener('message', async (e) => {
+      const d = e.data;
+      if (e.source !== parent || !d || d.planar !== 1) return;
+      if (d.type === 'result' && pending[d.id]) return pending[d.id](d);
+      if (d.type !== 'init') return;
+      init = d;
+      who.textContent = 'Привет, ' + d.user.name;
+      if (d.context.point !== 'taskPanel') return;
+      const r = await call({ type: 'query', entity: 'tasks', where: { id: d.context.taskId } });
+      task.textContent = r.ok && r.rows[0] ? 'Задача: ' + r.rows[0].title : '';
+      comment.disabled = false;
+      send({ type: 'resize', height: document.body.scrollHeight + 16 });
+    });
+    comment.onclick = async () => {
+      const r = await call({
+        type: 'mutate',
+        name: 'comment.create',
+        args: {
+          id: crypto.randomUUID(),
+          taskId: init.context.taskId,
+          body: {
+            type: 'doc',
+            content: [
+              { type: 'paragraph', content: [{ type: 'text', text: 'Привет от плагина' }] },
+            ],
+          },
+        },
+      });
+      msg.textContent = r.ok ? 'Готово' : 'Ошибка: ' + r.error.code;
+    };
+    send({ type: 'ready' });
+  </script>
+</body>

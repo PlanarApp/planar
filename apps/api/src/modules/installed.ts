@@ -30,6 +30,8 @@ import { api as workloadApi } from '@planar/module-workload/api';
 import * as workloadTables from '@planar/module-workload/api/schema';
 import { api as goalsApi } from '@planar/module-goals/api';
 import * as goalsTables from '@planar/module-goals/api/schema';
+import { api as pluginsApi } from '@planar/module-plugins/api';
+import * as pluginsTables from '@planar/module-plugins/api/schema';
 
 export interface InstalledModule {
   api: BackendModuleManifest;
@@ -92,6 +94,7 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: timelineApi, tables: timelineTables },
   { api: goalsApi, tables: goalsTables },
   { api: recurringApi, tables: recurringTables },
+  { api: pluginsApi, tables: pluginsTables },
 ]);
 
 export const moduleTables = (): Map<string, PgTable> =>
