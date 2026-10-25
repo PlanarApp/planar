@@ -1,0 +1,61 @@
+{
+  "id": "OP-1b",
+  "module": "ops",
+  "type": "dp-engineer",
+  "title": "образ caddy со статикой web: сервер без node",
+  "goal": "Статика web собирается внутри образа caddy (многостадийно), compose.yml не монтирует ./apps/web/dist, prod-smoke и docker compose up --build работают без pnpm на хосте для web.",
+  "plan_ref": "§4 OP-1",
+  "contracts": [
+    {
+      "name": "C-ops-env",
+      "version": "1",
+      "ref": "docs/contracts/ops.md"
+    },
+    {
+      "name": "C-ops-volumes",
+      "version": "2",
+      "ref": "docs/contracts/ops.md"
+    },
+    {
+      "name": "C-ops-headers",
+      "version": "1",
+      "ref": "docs/contracts/ops.md"
+    }
+  ],
+  "copy": "~/planar-ops-OP-1b",
+  "branch": "ops/OP-1b",
+  "base": "feature/ops",
+  "scope": [
+    "compose.yml",
+    "deploy/",
+    ".dockerignore",
+    "dev.sh"
+  ],
+  "dont_touch": [
+    "apps/api",
+    "apps/web",
+    "docs/contracts",
+    "e2e",
+    "compose.dev.yml",
+    "ops"
+  ],
+  "accept": [
+    {
+      "name": "ops-contract",
+      "tests": "ops-contract"
+    },
+    {
+      "name": "no-dist-mount",
+      "cmd": "grep -c 'apps/web/dist' compose.yml",
+      "expect": "re:^0"
+    },
+    {
+      "name": "prod-smoke",
+      "cmd": "COMPOSE_PROJECT_NAME=planar-op1b HTTP_PORT=19080 HTTPS_PORT=19443 PLANAR_SUBNET=10.230.11.0/24 ./dev.sh prod-smoke 2>&1",
+      "expect": "re:(?s)api uid: [1-9][0-9]*.*prod-smoke: OK"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-25T02:48:22"
+}

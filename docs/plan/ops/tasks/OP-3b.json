@@ -1,0 +1,61 @@
+{
+  "id": "OP-3b",
+  "module": "ops",
+  "type": "dp-engineer",
+  "title": "метрики: недостающие тесты и устойчивость к сбою очереди",
+  "goal": "Тесты /api/metrics покрывают рост счётчика, route-шаблон и исключение /api/health*; сбой запроса к pg-boss не роняет /api/metrics в 500; ready проверяет живость pg-boss на каждой пробе.",
+  "plan_ref": "§4 OP-3",
+  "contracts": [
+    {
+      "name": "C-ops-health",
+      "version": "1",
+      "ref": "docs/contracts/ops.md"
+    }
+  ],
+  "copy": "~/planar-ops-OP-3b",
+  "branch": "ops/OP-3b",
+  "base": "feature/ops",
+  "scope": [
+    "apps/api/src/metrics/",
+    "apps/api/src/health.controller.ts",
+    "apps/api/src/jobs/jobs.ts",
+    "apps/api/test/metrics.test.ts",
+    "apps/api/test/health.test.ts"
+  ],
+  "dont_touch": [
+    "apps/web",
+    "apps/api/src/db",
+    "docs/contracts",
+    "apps/api/test/ops.contract.test.ts",
+    "compose.yml",
+    "deploy",
+    "ops"
+  ],
+  "accept": [
+    {
+      "name": "ops-contract",
+      "tests": "ops-contract"
+    },
+    {
+      "name": "health",
+      "tests": "health"
+    },
+    {
+      "name": "metrics",
+      "tests": "metrics"
+    },
+    {
+      "name": "typecheck",
+      "cmd": "pnpm --filter @planar/api build",
+      "expect": "exit=0"
+    },
+    {
+      "name": "lint",
+      "cmd": "pnpm exec eslint apps/api/src apps/api/test/health.test.ts apps/api/test/metrics.test.ts",
+      "expect": "exit=0"
+    }
+  ],
+  "report_extra": [],
+  "notes": "",
+  "created": "2026-10-25T06:11:10"
+}

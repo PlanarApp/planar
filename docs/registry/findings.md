@@ -47,3 +47,6 @@ related: []
 
 ## design
 - Визуал «как Linear» (C-ui v4, 17 компонентов, 48 скриншотных эталонов): §7 после design — switch p95 76.4 мс, warm 408, cold 1752, mutate 22, realtime 348 (n=3); регрессия switch +24% от пикеров в каждой строке списка снята ленивым монтированием (n=10: main 95.0 → 85.0 мс) — docs/contracts/design.md#C-ui v4 (DS-0…DS-10)
+
+## ops
+- Prod-стек: compose (postgres, api не от root, caddy со статикой web в образе, сервер без node), заголовки и CSP, бэкап v1 с ротацией 7+4 и кругом restore по sha256 файлов, /api/health/ready и /api/metrics за METRICS_TOKEN, upgrade.sh с откатом образов; образ api 713 МБ, caddy 95 МБ; ACME вживую не проверен — docs/contracts/ops.md, docs/guides/deploy.md (OP-1…OP-5)
