@@ -56,6 +56,7 @@ describe('видимость', () => {
       url: null,
       body: null,
       commentId: null,
+      changes: null,
       actorId: w.admin.userId,
       readAt: null,
       createdAt: NOW,

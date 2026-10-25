@@ -395,6 +395,7 @@ describe('cl1a: уведомления без задачи', () => {
       url: '/m/chat/c/x',
       body: 'x: y',
       commentId: null,
+      changes: null,
       actorId: a.userId,
       readAt: null,
       createdAt: now(),

@@ -21,7 +21,9 @@ contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v9
+## C-schema v10
+
+v10 (Входящие как в ClickUp): `notifications.changes` — что изменилось (`status_changed`: `{statusId: [старый, новый]}`).
 
 v9 (p3, PT-1): несинхронизируемая таблица `ydocs` — состояние Y.Doc совместного редактирования (`docs/contracts/p3.md` §P3-ydoc).
 
@@ -67,7 +69,7 @@ v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 
 ### Сущности
 
-Сущности — docs/contracts/core-schema.md (часть C-schema v9).
+Сущности — docs/contracts/core-schema.md (часть C-schema v10).
 
 ### Несинхронизируемые таблицы (только сервер)
 | таблица | колонки |

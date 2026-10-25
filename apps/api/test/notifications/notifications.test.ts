@@ -133,7 +133,9 @@ describe('триггеры', () => {
     await w.member.ok('task.update', { id: t.id, title: 'новое' });
     expect(await notes(w.admin.userId)).toHaveLength(0);
     await w.member.ok('task.update', { id: t.id, statusId: w.statusIds[2] });
-    expect((await notes(w.admin.userId)).map((n) => n.kind)).toEqual(['status_changed']);
+    const [n] = await notes(w.admin.userId);
+    expect(n.kind).toBe('status_changed');
+    expect(n.changes).toEqual({ statusId: [t.statusId, w.statusIds[2]] });
     expect(await notes(w.member.userId)).toHaveLength(0);
   });
 });

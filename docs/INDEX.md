@@ -51,7 +51,7 @@ generated: true
 - [docs/contracts/collab.md](contracts/collab.md) — Контракты collab — документы (DC-*), чат (CH-schema, CH-mutators, CH-api, CH-web), правки ядра для чата (X-core)
 - [docs/contracts/core-api-v1.md](contracts/core-api-v1.md) — API-токены, Bearer, REST /api/v1 и MCP /mcp — часть C-http v8 (docs/contracts/core.md); примеры проверяет контрактный тест
 - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Мутаторы домена C-mutators v5 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
-- [docs/contracts/core-schema.md](contracts/core-schema.md) — Сущности C-schema v9 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
+- [docs/contracts/core-schema.md](contracts/core-schema.md) — Сущности C-schema v10 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
 - [docs/contracts/ops.md](contracts/ops.md) — Контракты ops — env prod-стека, тома, заголовки Caddy и CSP, формат бэкапа v1, /api/health/ready и /api/metrics
 - [docs/contracts/p3.md](contracts/p3.md) — Контракты p3 — совместное редактирование (/collab, ydocs, проекция), сущности и мутаторы timeline, workload, dashboards, forms, gitlab
 - [docs/contracts/p4.md](contracts/p4.md) — Контракты p4 — сущности, мутаторы, задачи pg-boss и REST модулей recurring, templates, goals, email, plugins; протокол postMessage плагинов

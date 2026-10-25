@@ -382,6 +382,7 @@ export const notifications = pgTable(
     url: text(),
     body: text(),
     commentId: uuid(),
+    changes: obj(),
     actorId: userRef().notNull(),
     readAt: ts(),
     createdAt: createdAt(),

@@ -196,6 +196,7 @@ async function notify(
         kind,
         taskId: null,
         commentId: null,
+        changes: null,
         actorId: ctx.userId,
         readAt: null,
         createdAt: ctx.now,

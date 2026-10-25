@@ -6,7 +6,7 @@ import { ServerTx, type Q, type ServerTxCtx } from '../sync/server-tx.js';
 type Kind = 'assigned' | 'mentioned' | 'commented' | 'status_changed';
 
 /**
- * Уведомления и автоподписка по записям мутации (C-schema v4 «notifications»).
+ * Уведомления и автоподписка по записям мутации (C-schema v10 «notifications»).
  * Вызывать в той же транзакции после run. Возвращает id созданных уведомлений и
  * ServerTx хука (его finish() — оповещение о записанном).
  */
@@ -56,6 +56,7 @@ export async function notificationsHook(
     taskId: string,
     userId: string,
     commentId: string | null,
+    changes: Record<string, unknown> | null = null,
   ) => {
     if (userId === actor || !(await membersOf(spaceId)).has(userId)) return;
     const id = uuidv7();
@@ -68,6 +69,7 @@ export async function notificationsHook(
       url: null,
       body: null,
       commentId,
+      changes,
       actorId: actor,
       readAt: null,
       createdAt,
@@ -94,7 +96,9 @@ export async function notificationsHook(
       await notify('assigned', spaceId, a.taskId as string, a.userId as string, null);
     } else if (w.entity === 'tasks' && w.before && w.before.statusId !== a.statusId) {
       for (const u of await watchersOf(a.id as string))
-        await notify('status_changed', spaceId, a.id as string, u, null);
+        await notify('status_changed', spaceId, a.id as string, u, null, {
+          statusId: [w.before.statusId, a.statusId],
+        });
     } else if (w.entity === 'comments') {
       const taskId = a.taskId as string;
       const all = (a.mentions as string[]) ?? [];

@@ -176,6 +176,13 @@
       "when": 1792958901808,
       "tag": "0024_true_moon_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792965024793,
+      "tag": "0025_nice_speed",
+      "breakpoints": true
     }
   ]
 }

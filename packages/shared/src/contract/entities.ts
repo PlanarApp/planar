@@ -211,6 +211,8 @@ export const entitySchemas = {
     url: z.string().nullable(),
     body: z.string().max(140).nullable(),
     commentId: uuid.nullable(),
+    /** status_changed: {statusId: [старый, новый]}, как activity.changes; иначе null */
+    changes: z.record(z.string(), z.unknown()).nullable().default(null), // старые строки и кэш клиента — без поля
     actorId: uuid,
     readAt: ts.nullable(),
     createdAt: ts,
