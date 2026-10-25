@@ -1,6 +1,7 @@
 import { computed, toValue, type MaybeRefOrGetter, type Ref } from 'vue';
 import type { Row } from '@planar/shared';
 import type { ViewProps } from '.';
+import { useSpaces } from '../tasks';
 
 const norm = (name: string) => name.trim().toLowerCase();
 
@@ -22,3 +23,11 @@ export function useStatusKey(
 /** статус пространства задачи для группы-имени `key`; нет такого — undefined (колонка не принимает) */
 export const statusFor = (statuses: Row<'statuses'>[], spaceId: string, key: string) =>
   statuses.find((s) => s.spaceId === spaceId && norm(s.name) === key)?.id;
+
+/** id проекта → название: поле «Проект» в строках и на карточках */
+export function useProjectNames() {
+  const spaces = useSpaces();
+  return computed(
+    () => new Map((spaces.value ?? []).flatMap((s) => s.projects.map((p) => [p.id, p.name]))),
+  );
+}

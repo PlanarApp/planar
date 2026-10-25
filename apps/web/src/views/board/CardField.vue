@@ -17,7 +17,7 @@ import {
 import { AvatarStack, Badge } from '../../ui';
 import { formatDue } from '../list/due';
 
-export type CardCol = 'priority' | 'dueDate' | 'assignee' | 'labels';
+export type CardCol = 'project' | 'priority' | 'dueDate' | 'assignee' | 'labels';
 // поле карточки: в покое — значение; пока карточка под курсором — пикер с тем же содержимым (клик — выбор)
 const props = defineProps<{
   col: CardCol;
@@ -26,6 +26,8 @@ const props = defineProps<{
   members: Row<'users'>[];
   labels: Row<'labels'>[];
   hot: boolean;
+  /** название проекта задачи — поле «Проект» */
+  projectName?: string;
 }>();
 const { t, locale } = useI18n();
 const people = computed(() =>
@@ -42,7 +44,10 @@ const empty = 'text-fg-subtle opacity-60';
 
 <template>
   <span data-no-drag class="contents" @click.stop>
-    <template v-if="hot">
+    <span v-if="col === 'project'" :class="[box, 'text-fg-muted']" :title="projectName">
+      <span class="truncate">{{ projectName }}</span>
+    </span>
+    <template v-else-if="hot">
       <PriorityPicker
         v-if="col === 'priority'"
         :model-value="task.priority"

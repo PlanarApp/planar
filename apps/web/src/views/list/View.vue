@@ -29,7 +29,7 @@ import { useExtensions } from '../../modules/registry';
 import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
-import { useStatusKey } from '../scope';
+import { useProjectNames, useStatusKey } from '../scope';
 import Row from './Row.vue';
 import { treeOrder } from './tree';
 import { COLUMN_CLASS, visibleColumns } from './columns';
@@ -48,6 +48,7 @@ const members = useMembers(spaceId);
 const labels = useLabels(spaceId);
 const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 const statusKey = useStatusKey(() => props.scope, statuses);
+const projectNames = useProjectNames();
 const passes = useTaskFilter(() => props.filter, statuses);
 
 type Item =
@@ -147,6 +148,7 @@ const COL_LABEL = {
   dueDate: 'tasks.dueDate',
   priority: 'tasks.priorityTitle',
   labels: 'tasks.labels',
+  project: 'views.fields.project',
 } as const;
 const colName = (c: keyof typeof COL_LABEL) => t(COL_LABEL[c]);
 
@@ -505,6 +507,7 @@ watch(
                 v-else-if="it.kind === 'task'"
                 :task="it.task"
                 :space-id="it.task.spaceId"
+                :project-name="projectNames.get(it.task.projectId)"
                 :index="v.index + 1"
                 :selected="sel.selected.value.has(it.task.id)"
                 :focused="focusedId === it.id"

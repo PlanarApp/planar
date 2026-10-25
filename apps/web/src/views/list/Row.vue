@@ -41,6 +41,8 @@ const props = defineProps<{
   childCount?: number;
   /** подзадачи свёрнуты */
   folded?: boolean;
+  /** название проекта задачи — колонка «Проект» */
+  projectName?: string;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -223,7 +225,7 @@ function save() {
         :class="['flex h-full min-w-0 items-center overflow-hidden px-1', COLUMN_CLASS[c]]"
       >
         <!-- в покое — та же рамка, что у кнопки пикера; при наведении на её месте пикер с тем же содержимым -->
-        <template v-if="hot || focused">
+        <template v-if="(hot || focused) && c !== 'project'">
           <AssigneePicker
             v-if="c === 'assignee'"
             :space-id="spaceId"
@@ -236,7 +238,8 @@ function save() {
                 :due-date="task.dueDate"
                 :due-tone="dueTone"
                 :priority="task.priority"
-                :labels="labelsSet" /></template
+                :labels="labelsSet"
+                :project="projectName" /></template
           ></AssigneePicker>
           <DueDatePicker
             v-else-if="c === 'dueDate'"
@@ -249,7 +252,8 @@ function save() {
                 :due-date="task.dueDate"
                 :due-tone="dueTone"
                 :priority="task.priority"
-                :labels="labelsSet" /></template
+                :labels="labelsSet"
+                :project="projectName" /></template
           ></DueDatePicker>
           <PriorityPicker
             v-else-if="c === 'priority'"
@@ -262,7 +266,8 @@ function save() {
                 :due-date="task.dueDate"
                 :due-tone="dueTone"
                 :priority="task.priority"
-                :labels="labelsSet" /></template
+                :labels="labelsSet"
+                :project="projectName" /></template
           ></PriorityPicker>
           <LabelPicker
             v-else
@@ -276,7 +281,8 @@ function save() {
                 :due-date="task.dueDate"
                 :due-tone="dueTone"
                 :priority="task.priority"
-                :labels="labelsSet" /></template
+                :labels="labelsSet"
+                :project="projectName" /></template
           ></LabelPicker>
         </template>
         <span v-else :class="box">
@@ -287,6 +293,7 @@ function save() {
             :due-tone="dueTone"
             :priority="task.priority"
             :labels="labelsSet"
+            :project="projectName"
           />
         </span>
       </div>

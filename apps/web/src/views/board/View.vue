@@ -10,7 +10,7 @@ import {
   updateTask,
   useStatuses,
 } from '../../tasks';
-import { statusFor, useStatusKey } from '../scope';
+import { statusFor, useProjectNames, useStatusKey } from '../scope';
 import { useBlockedIds } from '../../links';
 import { LayoutDashboard } from 'lucide-vue-next';
 import { EmptyState, useBreakpoint } from '../../ui';
@@ -37,6 +37,7 @@ const labels = useLabels(spaceId);
 const blocked = useBlockedIds(() => props.projectId);
 const passes = useTaskFilter(() => props.filter, statuses);
 const statusKey = useStatusKey(() => props.scope, statuses);
+const projectNames = useProjectNames();
 
 const columns = computed(() =>
   boardColumns(
@@ -197,6 +198,7 @@ function add(key: string, title: string) {
           :titles="titles"
           :space-id="scope ? undefined : spaceId"
           :show-empty="options.showEmpty"
+          :projects="projectNames"
           :sortable="options.groupBy === 'status' && !scope"
           :no-add="!!scope"
           @toggle="toggle(g.key)"

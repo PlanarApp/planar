@@ -15,13 +15,18 @@ defineProps<{
   dueTone: string;
   priority: number;
   labels: DbRow<'labels'>[];
+  /** название проекта задачи (поле «Проект») */
+  project?: string;
 }>();
 const { t, locale } = useI18n();
 const empty = 'text-fg-subtle opacity-50';
 </script>
 
 <template>
-  <template v-if="col === 'assignee'">
+  <span v-if="col === 'project'" class="truncate text-sm text-fg-muted" :title="project">{{
+    project
+  }}</span>
+  <template v-else-if="col === 'assignee'">
     <!-- как в селекторе: аватар и имя; несколько — первое имя и «+N» -->
     <span
       v-if="people.length"

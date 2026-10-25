@@ -31,6 +31,8 @@ const props = defineProps<{
   showEmpty?: boolean;
   /** шапку можно тащить (порядок статусов) */
   sortable?: boolean;
+  /** id проекта → название (поле «Проект») */
+  projects?: ReadonlyMap<string, string>;
   /** без «+» и быстрого создания (сводка группы) */
   noAdd?: boolean;
 }>();
@@ -42,15 +44,17 @@ const emit = defineEmits<{
 }>();
 const { t } = useI18n();
 // поля карточки: заполненные, а с «Показывать пустые поля» — все включённые в виде
-const CARD_COLS: CardCol[] = ['priority', 'dueDate', 'labels', 'assignee'];
+const CARD_COLS: CardCol[] = ['project', 'priority', 'dueDate', 'labels', 'assignee'];
 const filled = (x: TaskView, c: CardCol) =>
-  c === 'priority'
-    ? !!x.priority
-    : c === 'dueDate'
-      ? !!x.dueDate
-      : c === 'assignee'
-        ? x.assigneeIds.length > 0
-        : x.labelIds.some((l) => label(l));
+  c === 'project'
+    ? true
+    : c === 'priority'
+      ? !!x.priority
+      : c === 'dueDate'
+        ? !!x.dueDate
+        : c === 'assignee'
+          ? x.assigneeIds.length > 0
+          : x.labelIds.some((l) => label(l));
 const cardCols = (x: TaskView) =>
   CARD_COLS.filter((c) => props.fields.includes(c) && (props.showEmpty || filled(x, c)));
 // пикеры полей — только у карточки под курсором; ушёл курсор — обратно к выводу (кроме открытого выбора)
@@ -273,6 +277,7 @@ function submit() {
               :members="members"
               :labels="labels"
               :hot="hotId === x.id"
+              :project-name="projects?.get(x.projectId)"
             />
           </div>
         </article>
