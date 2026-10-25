@@ -162,6 +162,13 @@
       "when": 1792897601130,
       "tag": "0022_jittery_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792906266557,
+      "tag": "0023_opposite_quasimodo",
+      "breakpoints": true
     }
   ]
 }
