@@ -1,29 +1,27 @@
 {
-  "verdict": "rework",
-  "summary": "Доработка CSP и сессии в Panel/PluginFrame выполнена верно, миграция 0023 поверх 0022, ветка актуальна, pf5 (21) перезапущен — PASS. Но в Page.vue после правки импорта остался вызов ensureFrameCsp без импорта: точка page падает ReferenceError при открытии /m/plugins/p/:pluginId. Сборка это не ловит (tsc без .vue, vite без проверки типов).",
+  "verdict": "accept",
+  "summary": "Доработка 2 выполнена: Page.vue через ensureWhenLoaded (импорт есть, ReferenceError устранён), web-тесты pf5: монтируют Page.vue и проверяют позднюю сессию в PluginFrame; отчёт называет миграцию 0023_opposite_quasimodo; ветка содержит feature/p4, скоуп 25 файлов в границах.",
   "issues": [
     {
-      "file": "modules/plugins/web/Page.vue",
-      "line": 14,
-      "severity": "major",
-      "what": "Импорт заменён на ensureWhenLoaded, а в computed ready остался ensureFrameCsp(plugins.value.map(...)) — идентификатор не определён; как только plugin найден, computed бросает ReferenceError и страница плагина не показывается никогда.",
-      "fix": "ready = computed(() => !!plugin.value && ensureWhenLoaded(plugins.value?.map((p) => p.origin))); проверить в браузере или vue-tsc, что Page.vue компилируется без ошибок."
-    },
-    {
-      "file": "build/dpcli/PF-5.report.json",
+      "file": "modules/plugins/web/plugins.test.ts",
       "line": 1,
       "severity": "minor",
-      "what": "В итоге отчёта «миграция 0021», фактически 0023_opposite_quasimodo.",
-      "fix": "Исправить номер в отчёте."
+      "what": "Web-тесты pf5: (3 шт., happy-dom) запускает только vitest в apps/web (include ../../modules/*/web/**); корневой vitest (projects: shared, api) их не берёт, поэтому ни одна проверка приёмки (test-all, pf5=21) их не покрывает. Ревьюер запустил вручную: 3 passed.",
+      "fix": "Координатору: добавить в карточку/шлюз проверку `pnpm --filter web exec vitest run ../../modules/plugins/web` (или web-тесты в test-all)."
     }
   ],
   "rerun": [
     {
-      "name": "pf5",
-      "value": "21 passed",
+      "name": "typecheck-web",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "apps/web vitest modules/plugins/web",
+      "value": "3 passed",
       "pass": true
     }
   ],
-  "t": "2026-10-25T05:40:42",
+  "t": "2026-10-25T05:54:42",
   "by": "reviewer"
 }

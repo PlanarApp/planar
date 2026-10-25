@@ -1,8 +1,8 @@
 {
   "status": "done",
-  "summary": "Модуль modules/plugins: сущность, мутаторы, checkPluginUrl, REST admin и mutate, мост postMessage v1, CSP frame-src, web (панель, страница, nav, админка), миграция 0021, examples/plugin-hello. Тесты моста — в apps/api/test/plugins (чистый bridge.ts без Vue), т.к. корневой vitest не запускает apps/web. Доработка по ревью: usePlugins различает 'не загружено' и пусто, ensureWhenLoaded не фиксирует CSP до загрузки списка; iframe и мост только при сессии; миграция пересоздана поверх 0022 (0023).",
+  "summary": "Модуль modules/plugins: сущность, мутаторы, checkPluginUrl, REST admin и mutate, мост postMessage v1, CSP frame-src, web (панель, страница, nav, админка), миграция 0023, examples/plugin-hello. Тесты моста — в apps/api/test/plugins (чистый bridge.ts без Vue), т.к. корневой vitest не запускает apps/web. Доработка по ревью: usePlugins различает 'не загружено' и пусто, ensureWhenLoaded не фиксирует CSP до загрузки списка; iframe и мост только при сессии; миграция пересоздана поверх 0022 (0023_opposite_quasimodo). Доработка 2: Page.vue через ensureWhenLoaded (был ReferenceError); web-тесты pf5 в modules/plugins/web/plugins.test.ts (Page без ошибки, список не загружен, мост при поздней сессии; apps/web vitest, 3 теста, не входят в корневой счёт 21); typecheck-web PASS.",
   "commits": [
-    "6f5c2d2 plugins: миграция поверх 0022"
+    "fb366cc plugins: Page.vue через ensureWhenLoaded, web-тесты (happy-dom)"
   ],
   "checks": [
     {
@@ -34,10 +34,15 @@
       "name": "pf5",
       "value": "21 passed",
       "pass": true
+    },
+    {
+      "name": "typecheck-web",
+      "value": "exit 0",
+      "pass": true
     }
   ],
   "not_done": [
-    "Vue-компоненты не покрыты тестами и не проверены в браузере (только сборка/lint); тест на 'мост создаётся при появлении сессии' не написан — логика во Vue-компоненте (watch на iframe)"
+    "Vue-компоненты не проверены в реальном браузере (iframe, CSP meta, sandbox)"
   ],
   "questions": [],
   "how_to_check": ".dpcli/dpcli accept PF-5",
@@ -64,6 +69,6 @@
     }
   ],
   "dp_feedback": "Раздел плана в карточке назван '4. Задачи (PF-5)', а plan p4 '4. Задачи (PF-5)' не находит (искать надо '4'); accept --dry дольше 120 с — стоит сразу подсказывать job start.",
-  "t": "2026-10-25T05:37:23",
+  "t": "2026-10-25T05:52:08",
   "by": "executor"
 }

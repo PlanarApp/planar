@@ -67,10 +67,15 @@
       "name": "typecheck-web",
       "cmd": "pnpm --filter web exec vue-tsc --noEmit",
       "expect": "exit=0"
+    },
+    {
+      "name": "test-web",
+      "cmd": "pnpm --filter web exec vitest run",
+      "expect": "exit=0"
     }
   ],
   "report_extra": [],
   "notes": "",
   "created": "2026-10-25T02:25:59",
-  "edited": "2026-10-25T05:41:07"
+  "edited": "2026-10-25T05:55:09"
 }
