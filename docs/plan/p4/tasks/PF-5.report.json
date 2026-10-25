@@ -1,0 +1,70 @@
+{
+  "status": "done",
+  "summary": "Модуль modules/plugins: сущность, мутаторы, checkPluginUrl, REST admin и mutate, мост postMessage v1, CSP frame-src, web (панель, страница, nav, админка), миграция 0021, examples/plugin-hello. Тесты моста — в apps/api/test/plugins (чистый bridge.ts без Vue), т.к. корневой vitest не запускает apps/web.",
+  "commits": [
+    "bb1ae12 plugins: внешние плагины через iframe"
+  ],
+  "checks": [
+    {
+      "name": "install",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "build",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "lint",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "test-all",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "contract",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "pf5",
+      "value": "20 passed",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "Vue-компоненты (PluginFrame, Panel, Page, Admin) не покрыты тестами и не проверены в браузере; только сборка и lint",
+    "happy-dom-тестов в modules/plugins/web нет"
+  ],
+  "questions": [],
+  "how_to_check": ".dpcli/dpcli accept PF-5",
+  "uncertain": [
+    {
+      "where": "modules/plugins/web/bridge.ts, PluginFrame.vue, api/controller.ts",
+      "why": "обязательное ревью безопасности",
+      "checked": "тестами: чужой origin/source, planar!=1, неизвестный type — игнор без ответа; ответы только postMessage(msg, plugin.origin), '*' нет; query вне read и where не по индексу отклоняются, users урезан до id/name/login/avatarFile; mutate вне write — forbidden без запроса; сервер: 403 для мутатора вне прав, выключенного/неизвестного плагина, Bearer; не админ и Bearer на /admin — 403; checkPluginUrl (хост приложения, тот же хост другой порт, javascript:, userinfo, http не localhost, http в prod); навигация '//x', '/\\x', абсолютные URL игнорируются; Set-Cookie planar_sid без Domain; запись сущности клиентом через sync — forbidden. Не проверено в браузере: реальный iframe, CSP meta, sandbox."
+    },
+    {
+      "where": "examples/plugin-hello/index.html",
+      "why": "плагин шлёт parent.postMessage(..., '*'): origin приложения ему неизвестен (referrerpolicy no-referrer). Хост проверяет origin и source, ответы плагин принимает только от parent",
+      "checked": "чтением"
+    },
+    {
+      "where": "api/controller.ts mutate",
+      "why": "ошибки executeMutations (Reject) определяются по полю code без импорта класса (он в apps/api); неизвестные коды уходят как 500",
+      "checked": "тест: чужой пользователь получает 403/404"
+    },
+    {
+      "where": "web/data.ts queryReplica",
+      "why": "where с несколькими ключами — первый через индекс Dexie, остальные в памяти; при indexes:[] у Dexie where по несуществующему индексу не проверялся",
+      "checked": "только типизация; where допускает id и индексы ENTITIES"
+    }
+  ],
+  "dp_feedback": "Раздел плана в карточке назван '4. Задачи (PF-5)', а plan p4 '4. Задачи (PF-5)' не находит (искать надо '4'); accept --dry дольше 120 с — стоит сразу подсказывать job start.",
+  "t": "2026-10-25T02:46:25",
+  "by": "executor"
+}
