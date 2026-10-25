@@ -39,7 +39,10 @@ related: ["docs/plan/ops.md", "docs/contracts/core.md", "docs/roadmap.md"]
 
 Модули, которым нужны свои переменные (напр. SMTP у p4), присылают правку строкой `contract: …`; координатор ops вносит её следующей версией.
 
-## C-ops-volumes v1
+## C-ops-volumes v2
+
+v2: статика web собирается в образ caddy (`deploy/caddy.Dockerfile`, стадия node → `/srv`), на сервере не нужны node и pnpm; каталог `./apps/web/dist` хоста не монтируется.
+
 
 Именованные тома compose (имя проекта — префикс). Строка блока: `<сервис> <том> <путь в контейнере> <в бэкапе: yes|no>`.
 
@@ -53,7 +56,7 @@ caddy caddy_config /config no
 - `pgdata` — каталог Postgres 18 (образ `pgvector/pgvector:pg18`, данные в `/var/lib/postgresql/18/docker`); в бэкап — через `pg_dump`, не копией каталога.
 - `data` — `DATA_DIR`: `files/<ab>/<cd>/<sha256>` (C-http) в бэкапе; `tmp/` — нет.
 - `caddy_data` — сертификаты и ключи ACME; не бэкапится, Caddy получит заново.
-- Статика web — `./apps/web/dist` только для чтения (собирается до `up`), не том.
+- Статика web — в образе caddy (`/srv`), не том; `deploy/Caddyfile` тоже внутри образа.
 
 ## C-ops-headers v1
 
