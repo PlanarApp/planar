@@ -1,4 +1,4 @@
-import { computed, toValue, type MaybeRefOrGetter } from 'vue';
+import type { MaybeRefOrGetter } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   ArrowRightLeft,
@@ -39,9 +39,9 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
   const statuses = useStatuses(spaceId);
   const members = useMembers(spaceId);
   const projects = useQuery(() => db.table<Row<'projects'>>('projects').toArray());
-  const spaceProjects = computed(() =>
-    (projects.value ?? []).filter((p) => p.spaceId === toValue(spaceId) && !p.archivedAt),
-  );
+  // сводка группы: spaceId — несколько пространств через запятую; статусы и проекты — пространства задачи
+  const spaceProjects = (task: TaskView) =>
+    (projects.value ?? []).filter((p) => p.spaceId === task.spaceId && !p.archivedAt);
 
   const copy = (text: string, note: string) =>
     navigator.clipboard?.writeText(text).then(() => toast(note, 2500));
@@ -82,14 +82,16 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
         id: 'status',
         label: t('tasks.status'),
         icon: CircleDot,
-        children: (statuses.value ?? []).map((s) => ({
-          id: s.id,
-          label: s.name,
-          icon: StatusIcon,
-          iconProps: { status: s },
-          checked: s.id === task.statusId,
-          onSelect: () => void updateTask(task.id, { statusId: s.id }),
-        })),
+        children: (statuses.value ?? [])
+          .filter((s) => s.spaceId === task.spaceId)
+          .map((s) => ({
+            id: s.id,
+            label: s.name,
+            icon: StatusIcon,
+            iconProps: { status: s },
+            checked: s.id === task.statusId,
+            onSelect: () => void updateTask(task.id, { statusId: s.id }),
+          })),
       },
       {
         id: 'priority',
@@ -166,8 +168,8 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
         id: 'move',
         label: t('taskMenu.move'),
         icon: ArrowRightLeft,
-        disabled: spaceProjects.value.length < 2,
-        children: spaceProjects.value.map((p) => ({
+        disabled: spaceProjects(task).length < 2,
+        children: spaceProjects(task).map((p) => ({
           id: p.id,
           label: p.name,
           checked: p.id === task.projectId,
