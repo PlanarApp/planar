@@ -4,6 +4,8 @@ import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Select, Tabs } from '../ui';
+import { useExtensions } from '../modules/registry';
+import type { LocalizedText } from '../modules/types';
 import { useSpaces } from '../tasks';
 import OptionsBar from './saved/OptionsBar.vue';
 import TaskModal from './TaskModal.vue';
@@ -19,7 +21,9 @@ const props = defineProps<{
   projectId?: string;
   me?: MeMode;
 }>();
-const { t } = useI18n();
+const { t, te, locale } = useI18n();
+const text = (l: LocalizedText) =>
+  typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 const route = useRoute();
 const router = useRouter();
 const spaces = useSpaces();
@@ -84,8 +88,13 @@ const createIn = computed({
     }
   },
 });
+// встроенные виды и виды модулей, умеющие сводку (Таймлайн)
+const extViews = useExtensions('views');
 const tabs = computed(() =>
-  buildViewTabs(viewLoaders(), []).filter((v) => ['list', 'board'].includes(v.key)),
+  buildViewTabs(
+    viewLoaders(),
+    extViews.value.filter((e) => e.scope),
+  ).filter((v) => v.ext || ['list', 'board', 'table', 'calendar'].includes(v.key)),
 );
 const seg = computed(() => String((props.me ? route.query.v : route.params.tab) ?? ''));
 const active = computed(() => tabs.value.find((v) => v.key === seg.value) ?? tabs.value[0]);
@@ -125,7 +134,7 @@ const selectTab = (k: string) =>
           v-if="active"
           :model-value="active.key"
           :label="t('views.toolbar')"
-          :items="tabs.map((v) => ({ value: v.key, label: t(`views.${v.key}`), icon: v.icon }))"
+          :items="tabs.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon }))"
           @update:model-value="selectTab"
         />
       </div>
@@ -154,6 +163,7 @@ const selectTab = (k: string) =>
         :scope="scope"
         :options="options"
         :filter="draftFilter"
+        v-bind="active.ext ? { viewId: active.key } : {}"
       />
     </div>
     <!-- в «Моей работе» окно задачи рисует экран группы -->

@@ -7,7 +7,8 @@ import {
   localToday,
   mutate,
   openTask,
-  useProjectTasks,
+  useScopeTasks,
+  type ViewScope,
   useQuery,
   useWeekStart,
 } from '@planar/web/modules';
@@ -31,7 +32,9 @@ import {
   type Scale,
 } from './lib';
 
-const props = defineProps<{ projectId: string; viewId?: string }>();
+// scope — сводка группы: задачи и вехи её проектов
+const props = defineProps<{ projectId: string; viewId?: string; scope?: ViewScope }>();
+const pids = () => props.scope?.projectIds ?? [props.projectId];
 
 const dict = {
   day: { ru: 'День', en: 'Day' },
@@ -50,7 +53,7 @@ const tr = (k: keyof typeof dict) => {
   return dict[k][l] ?? dict[k].ru;
 };
 
-const tasks = useProjectTasks(() => props.projectId);
+const tasks = useScopeTasks(pids);
 const links = useQuery(async () => (await db.table('taskLinks').toArray()) as unknown as Link[]);
 const weekStart = useWeekStart();
 const scale = ref<Scale>('day');
@@ -59,7 +62,7 @@ const px = computed(() => PX[scale.value]);
 // веха модуля goals: таблицы может не быть (модуль выключен — строк нет, C-modules)
 const milestones = useQuery(async () =>
   db.tables.some((t) => t.name === 'goalsMilestones')
-    ? ((await db.table('goalsMilestones').where('projectId').equals(props.projectId).toArray()) as {
+    ? ((await db.table('goalsMilestones').where('projectId').anyOf(pids()).toArray()) as {
         id: string;
         name: string;
         date: string;

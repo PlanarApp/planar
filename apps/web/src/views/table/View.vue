@@ -16,7 +16,7 @@ import {
   sortTasks,
   updateTask,
   useProject,
-  useProjectTasks,
+  useScopeTasks,
   useStatuses,
   type TaskView,
 } from '../../tasks';
@@ -47,13 +47,18 @@ const ROW_H = 36;
 const CHECK_W = 40;
 
 const project = useProject(() => props.projectId);
-const spaceId = computed(() => project.value?.spaceId ?? '');
+// сводка группы: задачи проектов группы, справочники их пространств; поля проекта — только у одного проекта
+const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
-const all = useProjectTasks(() => props.projectId);
-const defs = useFieldDefs(() => props.projectId);
+const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
+const defs = useFieldDefs(() => (props.scope ? '' : props.projectId));
 const defOf = (id: string) => defs.value?.find((d) => `${FIELD_PREFIX}${d.id}` === id);
 const colName = (id: ColumnId) => (isFieldCol(id) ? (defOf(id)?.name ?? '') : t(`table.col.${id}`));
-const passes = useTaskFilter(() => props.filter, statuses, () => props.options.me);
+const passes = useTaskFilter(
+  () => props.filter,
+  statuses,
+  () => props.options.me,
+);
 
 // группировка в таблице не применяется
 const rows = computed(() => {
@@ -328,14 +333,14 @@ const date = (v: string) => v.slice(0, 10);
                     </button>
                     <StatusPicker
                       v-else-if="c.id === 'status'"
-                      :space-id="spaceId"
+                      :space-id="task.spaceId"
                       :model-value="task.statusId"
                       @update:model-value="updateTask(task.id, { statusId: $event })"
                     />
                     <AssigneePicker
                       v-else-if="c.id === 'assignee'"
                       compact
-                      :space-id="spaceId"
+                      :space-id="task.spaceId"
                       :model-value="task.assigneeIds"
                       @update:model-value="setAssignees(task.id, $event)"
                     />
@@ -356,7 +361,7 @@ const date = (v: string) => v.slice(0, 10);
                     />
                     <LabelPicker
                       v-else-if="c.id === 'labels'"
-                      :space-id="spaceId"
+                      :space-id="task.spaceId"
                       :model-value="task.labelIds"
                       @update:model-value="setLabels(task.id, $event)"
                     />
@@ -368,7 +373,7 @@ const date = (v: string) => v.slice(0, 10);
                         <FieldEditor
                           :def="defOf(c.id)!"
                           :value="task.fields?.[defOf(c.id)!.id]"
-                          :space-id="spaceId"
+                          :space-id="task.spaceId"
                           @update:value="saveCell(task, c.id, $event)"
                         />
                       </div>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { updateTask, useProjectTasks, useStatuses, useProject } from '../../tasks';
+import { updateTask, useScopeTasks, useStatuses, useProject } from '../../tasks';
 import type { TaskView } from '../../tasks';
 import { useBreakpoint } from '../../ui';
 import { openTask } from '..';
@@ -16,9 +16,13 @@ const { t, locale } = useI18n();
 const { isMobile } = useBreakpoint();
 
 const project = useProject(() => props.projectId);
-const statuses = useStatuses(() => project.value?.spaceId ?? '');
-const passes = useTaskFilter(() => props.filter, statuses, () => props.options.me);
-const all = useProjectTasks(() => props.projectId);
+const statuses = useStatuses(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
+const passes = useTaskFilter(
+  () => props.filter,
+  statuses,
+  () => props.options.me,
+);
+const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 const tasks = computed(() =>
   (all.value ?? []).filter((x) => (props.options.showSubtasks || !x.parentId) && passes.value(x)),
 );

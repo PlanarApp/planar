@@ -27,7 +27,14 @@ export interface ViewDef {
   id: string;
   label: LocalizedText;
   icon: Component;
-  component: Lazy<{ projectId: string; viewId?: string }>;
+  component: Lazy<{ projectId: string; viewId?: string; scope?: ViewScope }>;
+  /** вид умеет сводку группы (Пространство, Воркспейс): получает scope с проектами (C-modules v12) */
+  scope?: boolean;
+}
+/** сводка группы для вида: проекты и их пространства; projectId вида — тогда ключ сводки */
+export interface ViewScope {
+  projectIds: string[];
+  spaceIds: string[];
 }
 export interface TaskPanelDef {
   id: string;

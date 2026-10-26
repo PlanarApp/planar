@@ -33,7 +33,7 @@ vi.mock('@planar/web/modules', async () => {
     localToday: () => '2026-10-24',
     mutate,
     openTask: vi.fn(),
-    useProjectTasks: () =>
+    useScopeTasks: () =>
       ref(
         Array.from({ length: N }, (_, i) => ({
           id: `t${i}`,

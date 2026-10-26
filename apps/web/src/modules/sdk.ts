@@ -14,6 +14,7 @@ export { db };
 export {
   useTask,
   useProjectTasks,
+  useScopeTasks,
   useSpaces,
   useProject,
   useStatuses,

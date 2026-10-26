@@ -24,6 +24,7 @@ export const web = defineWebModule({
       label: { ru: 'Таймлайн', en: 'Timeline' },
       icon: Gantt,
       component: () => import('./TimelineView.vue'),
+      scope: true,
     },
   ],
 });

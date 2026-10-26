@@ -35,6 +35,7 @@ vi.mock('../../../tasks', async (orig) => {
   return {
     ...real,
     useProjectTasks: () => h$.tasks,
+    useScopeTasks: () => h$.tasks,
     useProject: () => r({ spaceId: 's' }),
     useStatuses: () => r([]),
     useMembers: () => r([]),
