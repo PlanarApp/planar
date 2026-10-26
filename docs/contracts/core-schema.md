@@ -3,13 +3,13 @@ type: reference
 status: active
 module: core
 updated: 2026-10-24
-summary: Сущности C-schema v11 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
+summary: Сущности C-schema v12 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
 related: ["docs/contracts/core.md"]
 ---
 
-# Сущности C-schema v11
+# Сущности C-schema v12
 
-Часть контракта `C-schema v11` из `docs/contracts/core.md`. Раздел читает контрактный тест (`packages/shared/test/contract-doc.ts` → `docEntities`); версия — в заголовке `## C-schema vN` в core.md.
+Часть контракта `C-schema v12` из `docs/contracts/core.md`. Раздел читает контрактный тест (`packages/shared/test/contract-doc.ts` → `docEntities`); версия — в заголовке `## C-schema vN` в core.md.
 
 ## Сущности
 
@@ -279,7 +279,7 @@ scope: user · write: self · bootstrap: yes · indexes: taskId
 | `id` | uuid | |
 | `userId` | uuid | получатель |
 | `spaceId` | uuid? | для группировки; на видимость не влияет; null — личный диалог чата |
-| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned) | `chat_*` создаёт модуль chat (collab.md §CH) |
+| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned,doc_mention) | `chat_*` создаёт модуль chat (collab.md §CH) |
 | `taskId` | uuid? | без FK; null — у `chat_*` |
 | `url` | text? | путь в приложении для уведомлений без задачи (правила `url` из «Web Push») |
 | `body` | text? | ≤ 140 символов, «Имя: текст»; для уведомлений без задачи |

@@ -21,7 +21,9 @@ contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v11
+## C-schema v12
+
+v12: `notifications.kind` += `doc_mention` (упоминание на странице модуля docs, `url` — `/m/docs/<pageId>`).
 
 v11 (комментарии): `comments.parentId` (треды), `assigneeId`, `resolvedAt`, `resolvedBy`; `notifications.kind` += `comment_assigned` (исполнителю назначенного комментария).
 
@@ -71,7 +73,7 @@ v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 
 ### Сущности
 
-Сущности — docs/contracts/core-schema.md (часть C-schema v11).
+Сущности — docs/contracts/core-schema.md (часть C-schema v12).
 
 ### Несинхронизируемые таблицы (только сервер)
 | таблица | колонки |

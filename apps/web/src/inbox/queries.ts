@@ -17,6 +17,7 @@ export type InboxItem = Row<'notifications'> & {
 type Status = { name: string; color: string };
 
 const CHANNEL = /^\/m\/chat\/c\/([0-9a-f-]{36})/;
+const PAGE = /^\/m\/docs\/([0-9a-f-]{36})/;
 
 export const useNotifications = () =>
   useQuery(async (): Promise<InboxItem[]> => {
@@ -46,6 +47,13 @@ export const useNotifications = () =>
         ? await db.table<{ id: string; projectId?: string | null }>('chatChannels').bulkGet(chIds)
         : [];
     const chProject = new Map(channels.flatMap((c) => (c ? [[c.id, c.projectId ?? null]] : [])));
+    // уровень страницы документа (doc_mention) — её проект
+    const pageIds = [...new Set(ns.flatMap((n) => PAGE.exec(n.url ?? '')?.[1] ?? []))];
+    const pages =
+      pageIds.length && db.tables.some((x) => x.name === 'docsPages')
+        ? await db.table<{ id: string; projectId?: string | null }>('docsPages').bulkGet(pageIds)
+        : [];
+    for (const p of pages) if (p) chProject.set(p.id, p.projectId ?? null);
     const task = new Map(tasks.flatMap((t) => (t ? [[t.id, t] as const] : [])));
     const user = new Map(users.flatMap((u) => (u ? [[u.id, u.name] as const] : [])));
     const proj = new Map(projects.flatMap((p) => (p ? [[p.id, p.key] as const] : [])));
@@ -59,7 +67,10 @@ export const useNotifications = () =>
           taskKey: t ? `${proj.get(t.projectId) ?? '?'}-${t.number ?? '…'}` : null,
           // уведомление без задачи (chat_*): вместо названия — body
           taskTitle: t?.title ?? (n.taskId ? '' : (n.body ?? '')),
-          projectId: t?.projectId ?? chProject.get(CHANNEL.exec(n.url ?? '')?.[1] ?? '') ?? null,
+          projectId:
+            t?.projectId ??
+            chProject.get((CHANNEL.exec(n.url ?? '') ?? PAGE.exec(n.url ?? ''))?.[1] ?? '') ??
+            null,
           status: pair(statusPair(n).map((id) => status.get(id))),
           comment: n.commentId
             ? docText(comment.get(n.commentId)).replace(/\s+/g, ' ').trim().slice(0, 200) || null

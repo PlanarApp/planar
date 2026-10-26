@@ -141,6 +141,7 @@ export default {
       chat_dm: 'Direct message from {who}',
       chat_reply: '{who} replied in a thread',
       comment_assigned: '{who} assigned you a comment in {key}',
+      doc_mention: '{who} mentioned you in a document',
     },
     myEmpty: 'No assigned tasks',
     myEmptyHint: 'Tasks assigned to you will appear here',

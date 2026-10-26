@@ -405,6 +405,7 @@ export const notifications = pgTable(
         'chat_dm',
         'chat_reply',
         'comment_assigned',
+        'doc_mention',
       ]),
     ),
   ],

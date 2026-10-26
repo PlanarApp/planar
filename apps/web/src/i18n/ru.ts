@@ -141,6 +141,7 @@ export default {
       chat_dm: 'Личное сообщение от {who}',
       chat_reply: '{who} ответил(а) в треде',
       comment_assigned: '{who} назначил(а) вам комментарий в {key}',
+      doc_mention: '{who} упомянул(а) вас в документе',
     },
     myEmpty: 'Нет назначенных задач',
     myEmptyHint: 'Здесь будут задачи, назначенные вам',

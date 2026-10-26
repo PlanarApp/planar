@@ -1,18 +1,81 @@
 import { Module } from '@nestjs/common';
 import { sql, type SQL } from 'drizzle-orm';
-import type { BackendModuleManifest } from '@planar/shared';
+import { uuidv7, type BackendModuleManifest } from '@planar/shared';
 import { shared } from '../shared/index.js';
 
 @Module({})
 class DocsModule {}
 
 type Q = { execute(q: SQL): Promise<{ rows: unknown[] }> };
+type Wire = Record<string, unknown>;
+interface HookApi {
+  sys: {
+    get<T>(e: string, id: string): Promise<T | undefined>;
+    put(e: string, row: unknown): Promise<void>;
+    scan<T>(e: string, opts: { index: string; eq: unknown }): Promise<T[]>;
+  };
+  enqueue(job: string, data: unknown): Promise<void>;
+}
+
+/** упомянутые люди на странице (узел mention без kind='task'), без повторов */
+function people(doc: unknown): string[] {
+  const out = new Set<string>();
+  const walk = (n: unknown) => {
+    const x = n as { type?: string; attrs?: { id?: string; kind?: string }; content?: unknown[] };
+    if (x?.type === 'mention' && typeof x.attrs?.id === 'string' && x.attrs.kind !== 'task')
+      out.add(x.attrs.id);
+    x?.content?.forEach(walk);
+  };
+  walk(doc);
+  return [...out];
+}
+
+/** Упоминание на странице — уведомление doc_mention новым упомянутым участникам пространства (не автору). */
+async function notify(
+  writes: { entity: string; op: string; before: Wire | null; after: Wire | null }[],
+  ctx: { userId: string; now: string },
+  api: HookApi,
+) {
+  for (const w of writes) {
+    if (w.entity !== 'docsPages' || w.op !== 'put' || !w.after || w.after.archivedAt) continue;
+    const old = new Set(w.before ? people(w.before.body) : []);
+    const fresh = people(w.after.body).filter((u) => !old.has(u) && u !== ctx.userId);
+    if (!fresh.length) continue;
+    const spaceId = w.after.spaceId as string;
+    const members = new Set(
+      (await api.sys.scan<{ userId: string }>('spaceMembers', { index: 'spaceId', eq: spaceId })).map(
+        (m) => m.userId,
+      ),
+    );
+    const author = await api.sys.get<{ name: string }>('users', ctx.userId);
+    const title = String(w.after.title || '…');
+    for (const userId of fresh.filter((u) => members.has(u))) {
+      const id = uuidv7();
+      await api.sys.put('notifications', {
+        id,
+        userId,
+        spaceId,
+        kind: 'doc_mention',
+        taskId: null,
+        commentId: null,
+        changes: null,
+        actorId: ctx.userId,
+        readAt: null,
+        createdAt: ctx.now,
+        url: `/m/docs/${String(w.after.id)}`,
+        body: `${author?.name ?? ''}: ${title}`.slice(0, 140),
+      });
+      await api.enqueue('push.notification', { notificationId: id });
+    }
+  }
+}
 
 export const api: BackendModuleManifest = {
   id: shared.id,
   nestModule: DocsModule,
   mutators: shared.mutators,
   entities: shared.entities,
+  afterMutation: notify as unknown as BackendModuleManifest['afterMutation'],
   // файл на странице пространства пользователя и загружен кем-то из участников этого пространства
   async canReadFile(q, userId, sha256) {
     const r = await (q as Q).execute(sql`

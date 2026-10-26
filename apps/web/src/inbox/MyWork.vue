@@ -30,7 +30,7 @@ const SUBS = [
   'watched',
   'activity',
 ] as const;
-const MENTIONS = ['mentioned', 'chat_mention'];
+const MENTIONS = ['mentioned', 'chat_mention', 'doc_mention'];
 type Sub = (typeof SUBS)[number];
 const sub = computed<Sub>(() =>
   SUBS.includes(route.query.w as Sub) ? (route.query.w as Sub) : 'summary',

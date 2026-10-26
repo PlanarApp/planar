@@ -94,6 +94,30 @@ describe('docs', () => {
     expect(await row(sub)).toMatchObject({ projectId: null });
   });
 
+  it('упоминание на странице → doc_mention новым упомянутым, не автору и не задачам', async () => {
+    const m = (id: string, kind?: string) => ({
+      type: 'mention',
+      attrs: { id, ...(kind && { kind }) },
+    });
+    const withMentions = (...nodes: unknown[]) => ({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: nodes }],
+    });
+    const id = await mk({
+      title: 'Ревью',
+      body: withMentions(m(w.admin.userId), m(uuidv7(), 'task')),
+    });
+    await w.member.ok('docs.page.update', {
+      id,
+      body: withMentions(m(w.admin.userId), m(w.guest.userId), m(w.member.userId)),
+    });
+    const docNotes = async (c: TestClient) =>
+      ((await c.bootstrap()).data.notifications ?? []).filter((n) => n.kind === 'doc_mention');
+    expect(await docNotes(w.admin)).toMatchObject([{ url: `/m/docs/${id}`, spaceId: w.spaceId }]);
+    expect(await docNotes(w.guest)).toHaveLength(1);
+    expect(await docNotes(w.member)).toHaveLength(0); // автор себя не уведомляет
+  });
+
   it('update: пересчёт text, архивная → conflict', async () => {
     const id = await mk();
     await w.member.ok('docs.page.update', { id, body: body('new') });
