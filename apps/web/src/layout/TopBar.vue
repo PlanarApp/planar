@@ -25,6 +25,7 @@ import { useProject, useRootSpaceId, useSpaces, useWorkspace } from '../tasks/qu
 import { useSavedView } from '../views/saved/queries';
 import { groupTab, groupUrl, type GroupLevel } from './groups';
 import { useGroupTabs } from './useGroupTabs';
+import SyncStatus from './SyncStatus.vue';
 import type { MenuItem } from '../ui/Menu.vue';
 import { mobileNav, useUserMenu } from './nav';
 
@@ -192,6 +193,7 @@ const crumbs = computed<Crumb[]>(() => {
       </h1>
     </nav>
     <span v-if="notice" role="alert" class="text-sm text-fg-muted">{{ notice }}</span>
+    <SyncStatus />
     <component
       :is="topbarComp(i.key, i.component)"
       v-for="i in topbarItems"

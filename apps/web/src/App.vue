@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
@@ -13,7 +13,25 @@ useTheme();
 const route = useRoute();
 const { t } = useI18n();
 const bare = computed(() => route.meta.layout === 'none');
-const { needRefresh, updateServiceWorker } = useRegisterSW();
+// обновления PWA: проверка раз в 30 мин и при возврате во вкладку; вкладка в фоне — ставим сразу,
+// иначе плашка «Обновить» (не перезагружать посреди ввода)
+const CHECK_MS = 30 * 60_000;
+let reg: ServiceWorkerRegistration | undefined;
+const check = () => void reg?.update().catch(() => {});
+const { needRefresh, updateServiceWorker } = useRegisterSW({
+  onRegisteredSW(_url, r) {
+    reg = r;
+    if (r) setInterval(check, CHECK_MS);
+  },
+});
+const applyIfHidden = () => {
+  if (needRefresh.value && document.visibilityState === 'hidden') void updateServiceWorker(true);
+};
+watch(needRefresh, applyIfHidden);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') check();
+  else applyIfHidden();
+});
 </script>
 
 <template>

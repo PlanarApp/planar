@@ -235,6 +235,12 @@ export default {
     update: 'A new version is available',
     reload: 'Update',
     offlineReady: 'Ready to work offline',
+    offline: 'Offline',
+    offlinePending: 'Offline · {n} pending',
+    offlineHint: 'No connection: changes are saved and will sync when you are back online',
+    syncing: 'Syncing…',
+    syncError: 'Sync error',
+    synced: 'Synced',
   },
   views: {
     emptyBoard: 'Add a task in any column',
