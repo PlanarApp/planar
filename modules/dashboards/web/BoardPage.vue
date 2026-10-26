@@ -8,7 +8,10 @@ import { boardTasks, moveBox, nextY, resizeBox, type Box } from './lib';
 import { mutate, newId, tr, useBoard, useTasks, useWidgets } from './data';
 
 const router = useRouter();
-const id = computed(() => String(router.currentRoute.value.params.id ?? ''));
+// boardId и back — дашборд внутри таба группы (id из ?board, назад — к списку)
+const props = defineProps<{ boardId?: string; back?: () => void }>();
+const id = computed(() => props.boardId ?? String(router.currentRoute.value.params.id ?? ''));
+const leave = () => (props.back ? props.back() : void router.push('/m/dashboards'));
 const board = useBoard(() => id.value);
 const widgets = useWidgets(() => id.value);
 const allTasks = useTasks();
@@ -98,7 +101,7 @@ async function rename() {
 const confirmDel = ref(false);
 async function delBoard() {
   await mutate('dashboards.delete', { id: id.value });
-  void router.push('/m/dashboards');
+  leave();
 }
 </script>
 
@@ -107,9 +110,7 @@ async function delBoard() {
     <p v-if="board === undefined && widgets" class="muted">{{ tr('notFound') }}</p>
     <template v-else-if="board">
       <header class="head">
-        <Button variant="ghost" data-test="back" @click="router.push('/m/dashboards')"
-          >‹ {{ tr('back') }}</Button
-        >
+        <Button variant="ghost" data-test="back" @click="leave()">‹ {{ tr('back') }}</Button>
         <Input
           v-if="renaming"
           v-model="name"

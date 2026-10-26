@@ -1,11 +1,23 @@
 <script setup lang="ts">
-import type { GroupScope } from '@planar/web/modules';
+import { computed } from 'vue';
+import { useRouter, type GroupScope } from '@planar/web/modules';
 import BoardsPage from './BoardsPage.vue';
+import BoardPage from './BoardPage.vue';
 
+// Отчёты › Дашборды группы: список и сам дашборд — в той же группе (?board=<id>)
 defineProps<{ scope: GroupScope }>();
+const router = useRouter();
+const q = () => router.currentRoute.value.query;
+const board = computed(() => (typeof q().board === 'string' ? (q().board as string) : ''));
+const open = (id: string) => void router.push({ query: { ...q(), board: id } });
+const back = () => void router.push({ query: { ...q(), board: undefined } });
 </script>
 
 <template>
-  <!-- shortcut: дашборд открывается на /m/dashboards/<id>, вне группы; встроить, если попросят -->
-  <BoardsPage :space="scope.level === 'workspace' ? undefined : scope.spaceId" />
+  <BoardPage v-if="board" :key="board" :board-id="board" :back="back" />
+  <BoardsPage
+    v-else
+    :space="scope.level === 'workspace' ? undefined : scope.spaceId"
+    :open="open"
+  />
 </template>

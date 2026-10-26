@@ -4,7 +4,9 @@ import { Button, Dialog, EmptyState, Input, Select, useRouter } from '@planar/we
 import { mutate, newId, rankBetween, tr, useBoards, useSpaces } from './data';
 
 // space — таб «Отчёты» группы: только дашборды её пространства
-const props = defineProps<{ space?: string }>();
+// open — открыть дашборд (в табе группы — в той же группе); по умолчанию — страница модуля
+const props = defineProps<{ space?: string; open?: (id: string) => void }>();
+const go = (id: string) => (props.open ? props.open(id) : void router.push(`/m/dashboards/${id}`));
 const router = useRouter();
 const boards = useBoards();
 const spaces = useSpaces();
@@ -36,7 +38,7 @@ async function create() {
   });
   open.value = false;
   name.value = '';
-  void router.push(`/m/dashboards/${id}`);
+  go(id);
 }
 </script>
 
@@ -51,12 +53,9 @@ async function create() {
       <h3>{{ g.title }}</h3>
       <ul>
         <li v-for="b in g.items" :key="b.id">
-          <a
-            :href="`/m/dashboards/${b.id}`"
-            data-test="board"
-            @click.prevent="router.push(`/m/dashboards/${b.id}`)"
-            >{{ b.name }}</a
-          >
+          <a :href="`/m/dashboards/${b.id}`" data-test="board" @click.prevent="go(b.id)">{{
+            b.name
+          }}</a>
         </li>
       </ul>
     </div>
