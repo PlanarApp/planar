@@ -45,5 +45,14 @@ export const web = defineWebModule({
       adminOnly: true,
       component: () => import('./GitlabSettings.vue'),
     },
+    // в проекте — статус задачи при слиянии MR (подключение и репозитории — в Воркспейсе)
+    {
+      id: 'project',
+      level: 'project',
+      label: { ru: 'GitLab', en: 'GitLab' },
+      icon: Branch,
+      adminOnly: true,
+      component: () => import('./GitlabSettings.vue'),
+    },
   ],
 });

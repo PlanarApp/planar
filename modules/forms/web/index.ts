@@ -25,6 +25,7 @@ export const web = defineWebModule({
   settings: [
     {
       id: 'forms',
+      level: 'project',
       label: { ru: 'Формы', en: 'Forms' },
       icon: Icon,
       adminOnly: true,

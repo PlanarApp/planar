@@ -59,17 +59,22 @@ const projects = useQuery(async () =>
 const router = useRouter();
 // без роутера (тесты страницы) — выбор просто не запоминается
 const query = () => router?.currentRoute.value.query ?? {};
-const projectId = ref(typeof query().project === 'string' ? (query().project as string) : '');
+// projectId — настройки проекта-группы: проект задан, выбора нет
+const props = defineProps<{ projectId?: string }>();
+const projectId = ref(
+  props.projectId ?? (typeof query().project === 'string' ? (query().project as string) : ''),
+);
 watch(
   projects,
   (p) => {
-    if (!p?.length) return;
+    if (!p?.length || props.projectId) return;
     if (!p.some((x) => x.id === projectId.value)) projectId.value = p[0]!.id;
   },
   { immediate: true },
 );
 watch(projectId, (id) => {
-  if (id && query().project !== id) void router?.replace({ query: { ...query(), project: id } });
+  if (id && !props.projectId && query().project !== id)
+    void router?.replace({ query: { ...query(), project: id } });
 });
 const project = computed(() => projects.value?.find((p) => p.id === projectId.value));
 
@@ -131,7 +136,7 @@ const copy = (f: FormsForm) => void navigator.clipboard?.writeText(url(f)).catch
 <template>
   <section class="flex flex-col gap-4" data-testid="forms-settings">
     <h2 class="text-lg font-semibold">{{ L.title }}</h2>
-    <label class="flex items-center gap-2">
+    <label v-if="!props.projectId" class="flex items-center gap-2">
       {{ L.project }}
       <select
         v-model="projectId"
