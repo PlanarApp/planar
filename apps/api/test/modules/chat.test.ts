@@ -167,6 +167,16 @@ describe('chat: каналы и права', () => {
     ).toMatchObject({ code: 'invalid_args' });
   });
 
+  it('channel.delete: создатель удаляет канал с тредом; другой member — forbidden', async () => {
+    const id = await mkChannel();
+    const root = await sendOk(w.member, id);
+    await sendOk(w.member, id, { parentId: root });
+    expect(await w.guest.push('chat.channel.delete', { id })).toMatchObject({ code: 'forbidden' });
+    await w.member.ok('chat.channel.delete', { id });
+    expect(await chan(w.member, id)).toBeUndefined();
+    expect(await msg(root)).toBeUndefined();
+  });
+
   it('channel.update: создатель и admin могут, другой member — нет; dm — invalid_args', async () => {
     const id = await mkChannel();
     expect(await spaceMember.push('chat.channel.update', { id, name: 'z' })).toMatchObject({

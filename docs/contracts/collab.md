@@ -172,8 +172,9 @@ scope: user · write: self · bootstrap: yes · indexes: channelId
 | `muted` | bool | без push и счётчика в боковой панели |
 | `updatedAt` | ts | |
 
-## CH-mutators v2
+## CH-mutators v3
 
+v3: `chat.channel.delete`; `chat.reaction.toggle` += `removeId?`.
 v2 (группы): `chat.channel.create` += `projectId?`.
 
 Экспорт — `shared.mutators` из `modules/chat/shared/index.ts`. Все id — в args. «Видит канал»: канал пространства — участник `spaceMembers`; диалог — строка `chatMembers`.
@@ -182,6 +183,7 @@ v2 (группы): `chat.channel.create` += `projectId?`.
 |---|---|---|
 | `chat.channel.create` | `id, spaceId, projectId?, name, topic?` | роль в пространстве ≥ member, иначе `forbidden`; проект не этого пространства → `invalid_args`; `name` после trim 1–80, иначе `invalid_args`; `kind = channel`, `lastSeq = 0` |
 | `chat.channel.update` | `id, name?, topic?, archivedAt?` | только `kind = channel` (иначе `invalid_args`); создатель или admin пространства, иначе `forbidden` |
+| `chat.channel.delete` | `id` | только `kind = channel`; создатель или admin пространства, иначе `forbidden`; удаляет сообщения и реакции канала, свою `chatReads` и канал (чужие `chatReads` — строки self — остаются) |
 | `chat.dm.create` | `id, members: {id, userId}[]` | 2–8 строк, `userId` без повторов, среди них ctx.userId, у каждого есть строка `users` без `deactivatedAt` — иначе `invalid_args`; `spaceId = null`, `kind = dm`, `name = null`; сначала контейнер, затем участники (`addedBy = ctx.userId`). Повторный диалог с тем же составом UI не создаёт (открывает существующий) |
 | `chat.dm.addMember` | `id, channelId, userId` | только диалог; уже участник — ничего; станет > 8 → `conflict` |
 | `chat.dm.leave` | `channelId` | удаляет свою строку `chatMembers`; нет — ничего |

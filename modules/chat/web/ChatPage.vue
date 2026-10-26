@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ArrowLeft, MessageSquare } from 'lucide-vue-next';
-import { EmptyState, useBreakpoint, useMembers } from '@planar/web/modules';
+import { EmptyState, db, groupUrl, useBreakpoint, useMembers, useQuery } from '@planar/web/modules';
 import ChannelView from './ChannelView.vue';
 import Section from './Section.vue';
 import ThreadPanel from './ThreadPanel.vue';
@@ -19,6 +19,37 @@ const channelId = computed(() => route.params.channelId as string | undefined);
 const messageId = computed(() => route.params.messageId as string | undefined);
 const rootId = computed(() => route.params.rootId as string | undefined);
 const channel = computed(() => d.value?.channels.find((c) => c.id === channelId.value));
+
+// старые адреса (уведомления, пуши, ссылки) — во вкладку «Чаты» группы канала: проект, пространство или
+// Воркспейс (личные диалоги и корневое «Общее»); не нашли канал — остаёмся здесь
+const rootSpace = useQuery(async () => {
+  const v = ((await db.table('settings').get('root_space')) as { value?: unknown } | undefined)
+    ?.value;
+  return typeof v === 'string' ? v : null;
+});
+watch(
+  () => [d.value, rootSpace.value, channelId.value] as const,
+  ([x, root, id]) => {
+    if (!x || root === undefined) return;
+    if (!id) return void router.replace('/w/chats');
+    const c = x.channels.find((y) => y.id === id);
+    if (!c) return;
+    const base = c.projectId
+      ? groupUrl('project', c.projectId, 'chats')
+      : c.spaceId && c.spaceId !== root
+        ? groupUrl('space', c.spaceId, 'chats')
+        : groupUrl('workspace', '', 'chats');
+    void router.replace({
+      path: base,
+      query: {
+        c: c.id,
+        ...(rootId.value && { t: rootId.value }),
+        ...(messageId.value && { m: messageId.value }),
+      },
+    });
+  },
+  { immediate: true },
+);
 
 // desktop: /m/chat/ открывает самый свежий канал или диалог
 watch(

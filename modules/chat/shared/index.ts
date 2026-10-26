@@ -200,6 +200,33 @@ const updateChannel = defineMutator({
   },
 });
 
+// удалить канал (создатель или admin пространства): сообщения и реакции; чужие отметки прочтения
+// остаются (строки self), без канала они ни на что не влияют
+const deleteChannel = defineMutator({
+  name: 'chat.channel.delete',
+  args: z.object({ id: z.uuid() }),
+  async run(tx, a, ctx) {
+    const c = await channel(tx, a.id);
+    if (c.kind !== 'channel') throw new MutatorError('invalid_args', 'не канал');
+    const me = (await tx.scan('spaceMembers', { index: 'spaceId', eq: c.spaceId })).find(
+      (m) => m.userId === ctx.userId,
+    );
+    if (c.createdBy !== ctx.userId && me?.role !== 'admin')
+      throw new MutatorError('forbidden', 'только создатель или admin');
+    const t = ctx_(tx);
+    const msgs = await t.scan<Message>('chatMessages', { index: 'channelId', eq: c.id });
+    // ответы тредов — раньше корней (parentId ссылается на корень)
+    for (const m of [...msgs.filter((x) => x.parentId), ...msgs.filter((x) => !x.parentId)]) {
+      for (const r of await t.scan<Reaction>('chatReactions', { index: 'messageId', eq: m.id }))
+        await t.del('chatReactions', r.id);
+      await t.del('chatMessages', m.id);
+    }
+    const mine = await myRead(tx, c.id, ctx.userId);
+    if (mine) await t.del('chatReads', mine.id);
+    await t.del('chatChannels', c.id);
+  },
+});
+
 const createDm = defineMutator({
   name: 'chat.dm.create',
   args: z.object({
@@ -486,6 +513,7 @@ export const shared: SharedModuleManifest = {
   mutators: [
     createChannel,
     updateChannel,
+    deleteChannel,
     createDm,
     addMember,
     leaveDm,

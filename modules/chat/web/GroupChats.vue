@@ -1,12 +1,26 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { Hash, MessageSquare, Plus, User } from 'lucide-vue-next';
+import {
+  Archive,
+  Hash,
+  MessageSquare,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+  User,
+} from 'lucide-vue-next';
 import {
   Badge,
+  Button,
+  ConfirmDialog,
+  Dialog,
   EmptyState,
   IconButton,
   Input,
+  Menu,
+  type MenuItem,
   mutate,
   newId,
   useGroupLevels,
@@ -17,7 +31,7 @@ import ChannelView from './ChannelView.vue';
 import ThreadPanel from './ThreadPanel.vue';
 import { useChatData } from './data';
 import { provideChatLinks } from './links';
-import { byName, dmTitle } from './model';
+import { byName, dmTitle, findDm } from './model';
 import { useTexts } from './text';
 
 // таб «Чаты» группы: каналы её уровня и вложенных, личные диалоги — у Воркспейса; канал — ?c, тред — ?t
@@ -94,6 +108,96 @@ const title = computed(() => {
   if (!c) return '';
   return c.kind === 'dm' ? dmTitle(c, d.value!.members, users.value, meId.value) : `# ${c.name}`;
 });
+// личный диалог: 1–7 коллег (видимых по правам — пользователи реплики); тот же состав — открыть существующий
+const picking = ref(false);
+const picked = ref<string[]>([]);
+const people = computed(() =>
+  [...users.value.values()]
+    .filter((u) => u.id !== meId.value && !u.deactivatedAt)
+    .sort((a, b) => byName(a.name, b.name)),
+);
+const togglePick = (id: string) =>
+  (picked.value = picked.value.includes(id)
+    ? picked.value.filter((x) => x !== id)
+    : picked.value.length < 7
+      ? [...picked.value, id]
+      : picked.value);
+async function openDm() {
+  const x = d.value;
+  if (!x || !picked.value.length) return;
+  const ids = [meId.value, ...picked.value];
+  let id = findDm(x.channels, x.members, ids)?.id;
+  if (!id) {
+    id = newId();
+    await mutate('chat.dm.create', { id, members: ids.map((userId) => ({ id: newId(), userId })) });
+  }
+  picking.value = false;
+  picked.value = [];
+  void router.push(links.channel(id));
+}
+
+// настройка канала: создатель или admin пространства — название, тема, архив, удаление
+const canManage = computed(() => {
+  const c = channel.value;
+  if (!c || c.kind !== 'channel') return false;
+  const role = d.value?.spaceMembers.find(
+    (m) => m.spaceId === c.spaceId && m.userId === meId.value,
+  )?.role;
+  return c.createdBy === meId.value || role === 'admin';
+});
+const editOpen = ref(false);
+const deleting = ref(false);
+const form = ref({ name: '', topic: '' });
+const channelMenu = computed<MenuItem[]>(() => {
+  const c = channel.value!;
+  return [
+    {
+      id: 'edit',
+      label: tx('settings'),
+      icon: Pencil,
+      onSelect: () => {
+        form.value = { name: c.name ?? '', topic: c.topic ?? '' };
+        editOpen.value = true;
+      },
+    },
+    {
+      id: 'archive',
+      label: c.archivedAt ? tx('unarchive') : tx('archive'),
+      icon: Archive,
+      onSelect: () =>
+        void mutate('chat.channel.update', {
+          id: c.id,
+          archivedAt: c.archivedAt ? null : new Date().toISOString(),
+        }),
+    },
+    { separator: true },
+    {
+      id: 'delete',
+      label: tx('deleteChannel'),
+      icon: Trash2,
+      danger: true,
+      onSelect: () => (deleting.value = true),
+    },
+  ];
+});
+async function saveChannel() {
+  const c = channel.value;
+  if (!c || !form.value.name.trim()) return;
+  await mutate('chat.channel.update', {
+    id: c.id,
+    name: form.value.name.trim(),
+    topic: form.value.topic.trim() || null,
+  });
+  editOpen.value = false;
+}
+async function removeChannel() {
+  const c = channel.value;
+  if (!c) return;
+  deleting.value = false;
+  await mutate('chat.channel.delete', { id: c.id });
+  void router.push({ query: { ...route.query, c: undefined, t: undefined } });
+}
+
 const row =
   'flex h-7 items-center justify-between gap-1.5 rounded-md pl-6 pr-2 text-sm hover:bg-bg-muted';
 const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100';
@@ -157,8 +261,37 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
           >
         </RouterLink>
       </div>
-      <div v-if="dms.length" class="mt-2">
-        <div class="flex h-7 items-center pl-4 text-xs text-fg-muted">{{ tx('dms') }}</div>
+      <div v-if="scope.level === 'workspace'" class="mt-2">
+        <div class="group flex h-7 items-center pl-4 pr-2 text-xs text-fg-muted">
+          <span>{{ tx('dms') }}</span>
+          <IconButton
+            :icon="Plus"
+            :label="tx('newDm')"
+            size="sm"
+            :class="hoverPlus"
+            data-testid="chat-add-dm"
+            @click="picking = !picking"
+          />
+        </div>
+        <form
+          v-if="picking"
+          class="flex max-h-64 flex-col gap-1 overflow-y-auto px-3 py-1"
+          data-testid="chat-dm-picker"
+          @submit.prevent="openDm"
+        >
+          <label v-for="u in people" :key="u.id" class="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              :checked="picked.includes(u.id)"
+              :data-testid="`chat-pick-${u.id}`"
+              @change="togglePick(u.id)"
+            />
+            {{ u.name }}
+          </label>
+          <Button type="submit" size="sm" variant="primary" :disabled="!picked.length">{{
+            tx('create')
+          }}</Button>
+        </form>
         <RouterLink
           v-for="x in dms"
           :key="x.c.id"
@@ -189,7 +322,39 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
           <span v-if="channel.topic" class="truncate text-xs text-fg-muted">{{
             channel.topic
           }}</span>
+          <span v-if="channel.archivedAt" class="text-xs text-fg-subtle">{{ tx('archived') }}</span>
+          <Menu v-if="canManage" :items="channelMenu" align="end">
+            <template #trigger>
+              <IconButton
+                :icon="MoreHorizontal"
+                :label="tx('channelMenu')"
+                size="sm"
+                class="ml-auto"
+                data-testid="chat-channel-menu"
+              />
+            </template>
+          </Menu>
         </header>
+        <Dialog v-model:open="editOpen" :title="tx('settings')" size="sm">
+          <form class="flex flex-col gap-3" @submit.prevent="saveChannel">
+            <Input v-model="form.name" :label="tx('channelName')" data-testid="chat-edit-name" />
+            <Input v-model="form.topic" :label="tx('topic')" />
+          </form>
+          <template #footer>
+            <Button variant="ghost" @click="editOpen = false">{{ tx('cancel') }}</Button>
+            <Button variant="primary" data-testid="chat-edit-save" @click="saveChannel">{{
+              tx('save')
+            }}</Button>
+          </template>
+        </Dialog>
+        <ConfirmDialog
+          v-model:open="deleting"
+          :title="tx('deleteChannelTitle', { name: channel.name ?? '' })"
+          :description="tx('deleteChannelHint')"
+          :confirm-label="tx('deleteChannel')"
+          danger
+          @confirm="removeChannel"
+        />
         <ChannelView
           :key="channel.id"
           :channel="channel"
@@ -197,7 +362,7 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
           :me="meId"
           :read-seq="readOf.get(channel.id)?.lastReadSeq ?? 0"
           :members="members"
-          :message-id="undefined"
+          :message-id="q('m')"
         />
       </div>
       <ThreadPanel

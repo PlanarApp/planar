@@ -2,6 +2,17 @@ import { i18n } from '@planar/web/modules';
 
 const S = {
   chat: { ru: 'Чат', en: 'Chat' },
+  settings: { ru: 'Настроить канал', en: 'Channel settings' },
+  channelMenu: { ru: 'Действия канала', en: 'Channel actions' },
+  topic: { ru: 'Тема', en: 'Topic' },
+  archive: { ru: 'В архив', en: 'Archive' },
+  unarchive: { ru: 'Вернуть из архива', en: 'Unarchive' },
+  deleteChannel: { ru: 'Удалить канал', en: 'Delete channel' },
+  deleteChannelTitle: { ru: 'Удалить канал «{name}»?', en: 'Delete channel “{name}”?' },
+  deleteChannelHint: {
+    ru: 'Сообщения и реакции канала удалятся у всех, вернуть нельзя',
+    en: 'Messages and reactions will be deleted for everyone; this cannot be undone',
+  },
   dms: { ru: 'Личные', en: 'Direct' },
   newChannel: { ru: 'Новый канал', en: 'New channel' },
   channelName: { ru: 'Название канала', en: 'Channel name' },
