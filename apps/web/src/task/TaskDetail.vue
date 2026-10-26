@@ -52,6 +52,7 @@ import LinksBlock from '../links/LinksBlock.vue';
 const props = defineProps<{ task: TaskView; mode: 'panel' | 'page' }>();
 const emit = defineEmits<{ close: [] }>();
 const { t, locale } = useI18n();
+const sideSheet = computed(() => props.mode === 'panel' && taskOpenMode.value === 'side');
 const { user } = useAuth();
 const router = inject(routerKey, null);
 const route = router ? useRoute() : null;
@@ -196,6 +197,16 @@ const panelComponent = computed(() => {
         data-testid="back"
         @click="emit('close')"
       />
+      <!-- боковой лист: крестик слева от крошек -->
+      <IconButton
+        v-if="sideSheet"
+        class="max-md:hidden"
+        :icon="X"
+        :label="t('task.close')"
+        shortcut="Esc"
+        data-testid="close"
+        @click="emit('close')"
+      />
       <nav
         class="flex min-w-0 flex-1 items-center gap-1 text-sm text-fg-muted"
         aria-label="breadcrumb"
@@ -253,6 +264,7 @@ const panelComponent = computed(() => {
         </template>
       </Menu>
       <IconButton
+        v-if="!sideSheet"
         class="max-md:hidden"
         :icon="X"
         :label="t('task.close')"

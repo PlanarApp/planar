@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue';
-import { closeTask, taskPanelLoader } from '../views';
-import { taskOpenMode } from '../views/open';
+import { watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui';
 import { useI18n } from 'vue-i18n';
@@ -22,33 +20,6 @@ watch(
   () => route.fullPath,
   () => (mobileNav.value = false),
 );
-
-// «Открывать как: боковая панель» — правая часть сплита под верхней панелью, как в ClickUp: экран слева
-// сохраняет прежнюю ширину и прокручивается вбок, а не сжимается
-const TaskPanel = taskPanelLoader && defineAsyncComponent(taskPanelLoader);
-const GROUP_ROUTES = ['project', 'space', 'workspace'];
-const sideKey = computed(() =>
-  TaskPanel &&
-  !isMobile.value &&
-  taskOpenMode.value === 'side' &&
-  GROUP_ROUTES.includes(String(route.name)) &&
-  typeof route.query.task === 'string'
-    ? route.query.task
-    : '',
-);
-const main = ref<HTMLElement>();
-const fullW = ref(0);
-let ro: ResizeObserver | undefined;
-watch(main, (el) => {
-  ro?.disconnect();
-  if (!el || typeof ResizeObserver === 'undefined') return;
-  // ширина экрана без панели — её и держит содержимое, пока панель открыта
-  ro = new ResizeObserver(() => {
-    if (!sideKey.value) fullW.value = el.clientWidth;
-  });
-  ro.observe(el);
-});
-onBeforeUnmount(() => ro?.disconnect());
 </script>
 
 <template>
@@ -69,28 +40,7 @@ onBeforeUnmount(() => ro?.disconnect());
     </DialogRoot>
     <div class="flex min-w-0 flex-1 flex-col">
       <TopBar />
-      <div class="flex min-h-0 flex-1">
-        <main ref="main" class="min-h-0 min-w-0 flex-1 overflow-auto">
-          <div class="h-full" :style="sideKey && fullW ? { minWidth: `${fullW}px` } : undefined">
-            <RouterView />
-          </div>
-        </main>
-        <aside
-          v-if="sideKey"
-          role="dialog"
-          :aria-label="sideKey"
-          class="flex w-[min(48rem,55%)] shrink-0 overflow-hidden border-l border-border bg-surface"
-          data-testid="task-side"
-        >
-          <component
-            :is="TaskPanel"
-            :key="sideKey"
-            :task-key="sideKey"
-            mode="panel"
-            @close="closeTask"
-          />
-        </aside>
-      </div>
+      <main class="min-h-0 flex-1 overflow-auto"><RouterView /></main>
       <BottomNav v-if="isMobile" />
     </div>
   </div>
