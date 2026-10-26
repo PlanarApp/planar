@@ -14,6 +14,31 @@ const byId = <T extends { id: string }>(a: T[], b: T[]) => [
 ];
 
 /**
+ * Реакции канала: строки реплики (этой сессии) поверх истории REST; снятые (удаление пришло в реплику)
+ * прячутся, даже если строка была только в REST. Лента и тред — одно и то же.
+ */
+export function useChannelReactions(channelId: () => string) {
+  // у chatReactions индекс только messageId — по каналу фильтруем
+  const local = useQuery(() =>
+    db
+      .table<Reaction>('chatReactions')
+      .filter((r) => r.channelId === channelId())
+      .toArray(),
+  );
+  const gone = shallowRef(new Set<string>());
+  const off = onReplicaChange((cs) => {
+    const ids = cs.filter((c) => c.entity === 'chatReactions' && !c.row).map((c) => c.id);
+    if (ids.length) gone.value = new Set([...gone.value, ...ids]);
+  });
+  onScopeDispose(off);
+  return (rest: Reaction[]) =>
+    byId(
+      rest.filter((r) => !gone.value.has(r.id)),
+      local.value ?? [],
+    );
+}
+
+/**
  * Лента канала: строки реплики (верхний уровень) + страницы истории REST, в памяти.
  * Реплика новее REST; порядок — по seq.
  */
@@ -26,20 +51,7 @@ export function useFeed(channelId: string) {
       .filter((m) => !m.parentId)
       .toArray(),
   );
-  // у chatReactions индекс только messageId — по каналу фильтруем (в реплике лишь реакции этой сессии)
-  const localReactions = useQuery(() =>
-    db
-      .table<Reaction>('chatReactions')
-      .filter((r) => r.channelId === channelId)
-      .toArray(),
-  );
-  // снятые реакции: удаление приходит в реплику, а строка могла быть только в истории REST
-  const gone = shallowRef(new Set<string>());
-  const off = onReplicaChange((cs) => {
-    const ids = cs.filter((c) => c.entity === 'chatReactions' && !c.row).map((c) => c.id);
-    if (ids.length) gone.value = new Set([...gone.value, ...ids]);
-  });
-  onScopeDispose(off);
+  const merged = useChannelReactions(() => channelId);
   const restMessages = shallowRef<Message[]>([]);
   const restReactions = shallowRef<Reaction[]>([]);
   const loading = ref(false);
@@ -49,8 +61,7 @@ export function useFeed(channelId: string) {
   const messages = computed(() => mergeFeed(restMessages.value, local.value ?? []));
   const reactions = computed(() => {
     const out = new Map<string, Reaction[]>();
-    const rest = restReactions.value.filter((r) => !gone.value.has(r.id));
-    for (const r of byId(rest, localReactions.value ?? []))
+    for (const r of merged(restReactions.value))
       out.set(r.messageId, [...(out.get(r.messageId) ?? []), r]);
     return out;
   });

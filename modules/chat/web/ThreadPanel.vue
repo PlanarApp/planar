@@ -8,6 +8,7 @@ import Composer from './Composer.vue';
 import MessageItem from './MessageItem.vue';
 import { bySeq, type Message, type Reaction, type UserRow } from './model';
 import { useTexts } from './text';
+import { useChannelReactions } from './feed';
 
 const props = defineProps<{
   channelId: string;
@@ -29,9 +30,7 @@ const localRoot = useQuery(() => db.table<Message>('chatMessages').get(props.roo
 const localReplies = useQuery(() =>
   db.table<Message>('chatMessages').where('parentId').equals(props.rootId).toArray(),
 );
-const localReactions = useQuery(() =>
-  db.table<Reaction>('chatReactions').where('channelId').equals(props.channelId).toArray(),
-);
+const merged = useChannelReactions(() => props.channelId);
 
 const root = computed(() => localRoot.value ?? rest.value?.root);
 const replies = computed(() => {
@@ -40,12 +39,8 @@ const replies = computed(() => {
   for (const r of localReplies.value ?? []) m.set(r.id, r);
   return [...m.values()].sort(bySeq);
 });
-const reactionsOf = (id: string) => {
-  const m = new Map<string, Reaction>();
-  for (const r of [...(rest.value?.reactions ?? []), ...(localReactions.value ?? [])])
-    m.set(r.id, r);
-  return [...m.values()].filter((r) => r.messageId === id);
-};
+const reactions = computed(() => merged(rest.value?.reactions ?? []));
+const reactionsOf = (id: string) => reactions.value.filter((r) => r.messageId === id);
 const links = useChatLinks();
 </script>
 
