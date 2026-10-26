@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Settings } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import { Button, EmptyState } from '../ui';
+import { Button, EmptyState, Input, Select } from '../ui';
+import { useSidebarActions } from '../layout/sidebarActions';
 import { db, useQuery } from '../sync';
 import { useSpaces } from '../tasks';
 import { groupUrl } from '../layout/groups';
@@ -60,6 +61,25 @@ const rows = computed(() =>
         })),
       ),
 );
+// создание: то же, что «+» в боковой панели (пространство; проект — в выбранном пространстве)
+const act = useSidebarActions();
+const name = ref('');
+const where = ref<string | null>(null);
+const spaceOptions = computed(() => nested.value.map((s) => ({ value: s.id, label: s.name })));
+const targetSpace = computed(() =>
+  props.scope.level === 'space'
+    ? props.scope.spaceId
+    : (where.value ?? spaceOptions.value[0]?.value ?? null),
+);
+async function create() {
+  const v = name.value.trim();
+  if (!v) return;
+  if (props.kind === 'spaces') act.start('new-space', v);
+  else if (targetSpace.value) act.start(`new:${targetSpace.value}`, v);
+  else return;
+  name.value = '';
+  await act.commit();
+}
 const manage = computed(() =>
   props.kind === 'spaces'
     ? '/w/settings?s=spaces'
@@ -71,6 +91,30 @@ const manage = computed(() =>
 
 <template>
   <div class="flex h-full min-h-0 flex-col overflow-y-auto p-4" :data-testid="`group-${kind}`">
+    <form
+      class="mb-3 flex flex-wrap items-end gap-2"
+      data-testid="group-create"
+      @submit.prevent="create"
+    >
+      <Input
+        v-model="name"
+        size="sm"
+        :label="t(kind === 'spaces' ? 'sidebar.spaceName' : 'sidebar.projectName')"
+        class="w-64"
+      />
+      <Select
+        v-if="kind === 'projects' && scope.level === 'workspace' && spaceOptions.length"
+        :model-value="targetSpace"
+        size="sm"
+        :label="t('settings.space')"
+        :options="spaceOptions"
+        class="w-48"
+        @update:model-value="where = $event"
+      />
+      <Button type="submit" size="sm" variant="primary" :disabled="!name.trim()">{{
+        t(kind === 'spaces' ? 'sidebar.newSpace' : 'sidebar.newProject')
+      }}</Button>
+    </form>
     <div class="mb-2 flex items-center">
       <span class="text-sm text-fg-muted">{{ rows.length }}</span>
       <RouterLink :to="manage" class="ml-auto">
