@@ -96,7 +96,10 @@ async function addKr() {
   });
   form.value = null;
 }
+// набранное держим до change: перерисовка (подтверждение синхронизации) не затирает поле
+const drafts = ref<Record<string, string>>({});
 const setCurrent = (k: KeyResult, v: string) => {
+  delete drafts.value[k.id];
   const current = Number(v);
   if (k.metric && v !== '' && Number.isFinite(current))
     void run('goals.kr.update', { id: k.id, metric: { ...k.metric, current } });
@@ -159,7 +162,8 @@ const setCurrent = (k: KeyResult, v: string) => {
               type="number"
               class="w-24 rounded-sm border border-border bg-bg px-1"
               :aria-label="tx.current"
-              :value="k.metric.current"
+              :value="drafts[k.id] ?? k.metric.current"
+              @input="drafts[k.id] = ($event.target as HTMLInputElement).value"
               @change="setCurrent(k, ($event.target as HTMLInputElement).value)"
             />
             <span class="text-fg-muted"> / {{ k.metric.target }} {{ k.metric.unit ?? '' }} </span>
