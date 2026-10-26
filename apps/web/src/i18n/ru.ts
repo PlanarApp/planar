@@ -165,6 +165,7 @@ export default {
     col: {
       title: 'Название',
       key: 'Ключ',
+      project: 'Проект',
       status: 'Статус',
       assignee: 'Исполнитель',
       priority: 'Приоритет',

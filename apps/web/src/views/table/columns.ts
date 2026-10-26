@@ -1,6 +1,7 @@
 export const COLUMN_IDS = [
   'title',
   'key',
+  'project',
   'status',
   'assignee',
   'priority',
@@ -32,6 +33,7 @@ const FIELD_W = 160;
 const DEFAULT_W: Record<SystemColumnId, number> = {
   title: 360,
   key: 90,
+  project: 150,
   status: 150,
   assignee: 150,
   priority: 120,
@@ -58,6 +60,12 @@ export const newColumn = (id: ColumnId): ColumnState => ({
   width: isFieldCol(id) ? FIELD_W : DEFAULT_W[id as SystemColumnId],
 });
 export const defaultLayout = (): Layout => ({ columns: DEFAULT_IDS.map(newColumn) });
+/** сводка группы (несколько проектов): по умолчанию и колонка «Проект» после ключа */
+export const scopeLayout = (): Layout => ({
+  columns: ['title', 'key', 'project', ...DEFAULT_IDS.slice(2)].map((id) =>
+    newColumn(id as SystemColumnId),
+  ),
+});
 
 const storageKey = (projectId: string) => `planar.table.${projectId}`;
 
@@ -85,7 +93,7 @@ export function parseColumns(cols: unknown): ColumnState[] | undefined {
 }
 
 /** Раскладка из localStorage (запасной вариант); битый JSON — по умолчанию. */
-export function loadLayout(projectId: string): Layout {
+export function loadLayout(projectId: string, fallback: () => Layout = defaultLayout): Layout {
   try {
     const raw = localStorage.getItem(storageKey(projectId));
     const columns = parseColumns(raw && JSON.parse(raw)?.columns);
@@ -93,7 +101,7 @@ export function loadLayout(projectId: string): Layout {
   } catch {
     // нет хранилища или битый JSON — раскладка по умолчанию
   }
-  return defaultLayout();
+  return fallback();
 }
 
 export function saveLayout(projectId: string, layout: Layout): void {

@@ -30,6 +30,7 @@ import { treeOrder } from '../list/tree';
 import { textWidth } from '../list/widths';
 import { formatDue } from '../list/due';
 import { nextSort, sortMark } from '../sortHead';
+import { useProjectNames } from '../scope';
 import type { SortBy } from '../../tasks';
 import {
   COLUMN_IDS,
@@ -43,6 +44,7 @@ import {
   saveLayout,
   type ColumnId,
   type ColumnState,
+  scopeLayout,
 } from './columns';
 
 const props = defineProps<ViewProps>();
@@ -57,6 +59,7 @@ const project = useProject(() => props.projectId);
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
 const labels = useLabels(spaceId);
+const projectNames = useProjectNames();
 const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 const defs = useFieldDefs(() => (props.scope ? '' : props.projectId));
 const defOf = (id: string) => defs.value?.find((d) => `${FIELD_PREFIX}${d.id}` === id);
@@ -116,7 +119,9 @@ const rowIds = computed(() => rows.value.map((r) => r.id));
 
 // --- раскладка
 // options.columns → localStorage → по умолчанию
-const resolve = () => parseColumns(props.options.columns) ?? loadLayout(props.projectId).columns;
+const resolve = () =>
+  parseColumns(props.options.columns) ??
+  loadLayout(props.projectId, props.scope ? scopeLayout : undefined).columns;
 const cols = ref<ColumnState[]>(resolve());
 // сохранённый вид: правка уходит в черновик опций; вкладка проекта — в localStorage
 const save = () =>
@@ -141,23 +146,27 @@ const autoW = computed(() => {
           ? textWidth(x.title) + 16 * (depthOf.value.get(x.id) ?? 0) + 28
           : c.id === 'key'
             ? textWidth(x.key, 12)
-            : c.id === 'status'
-              ? textWidth(st.get(x.statusId) ?? '') + 40
-              : c.id === 'assignee'
-                ? 28 + 20 * Math.min(x.assigneeIds.length, 3)
-                : c.id === 'priority'
-                  ? textWidth(t(`tasks.priority.${x.priority}`)) + 40
-                  : c.id === 'dueDate' || c.id === 'startDate'
-                    ? textWidth(x[c.id] ? formatDue(x[c.id]!, locale.value) : t('taskMenu.noDue')) +
-                      44
-                    : c.id === 'labels'
-                      ? x.labelIds.reduce(
-                          (s, id) => s + textWidth(lb.get(id) ?? '', 12) + 24,
-                          24,
-                        ) || textWidth(t('tasks.noLabel')) + 40
-                      : c.id === 'createdAt' || c.id === 'updatedAt'
-                        ? textWidth('2026-10-26')
-                        : textWidth(String(x.fields?.[c.id.slice(FIELD_PREFIX.length)] ?? '')) + 24;
+            : c.id === 'project'
+              ? textWidth(projectNames.value.get(x.projectId) ?? '')
+              : c.id === 'status'
+                ? textWidth(st.get(x.statusId) ?? '') + 40
+                : c.id === 'assignee'
+                  ? 28 + 20 * Math.min(x.assigneeIds.length, 3)
+                  : c.id === 'priority'
+                    ? textWidth(t(`tasks.priority.${x.priority}`)) + 40
+                    : c.id === 'dueDate' || c.id === 'startDate'
+                      ? textWidth(
+                          x[c.id] ? formatDue(x[c.id]!, locale.value) : t('taskMenu.noDue'),
+                        ) + 44
+                      : c.id === 'labels'
+                        ? x.labelIds.reduce(
+                            (s, id) => s + textWidth(lb.get(id) ?? '', 12) + 24,
+                            24,
+                          ) || textWidth(t('tasks.noLabel')) + 40
+                        : c.id === 'createdAt' || c.id === 'updatedAt'
+                          ? textWidth('2026-10-26')
+                          : textWidth(String(x.fields?.[c.id.slice(FIELD_PREFIX.length)] ?? '')) +
+                            24;
       if (v > w) w = v;
     }
     m.set(c.id, clampWidth(Math.min(AUTO_MAX, w + 16)));
@@ -451,6 +460,9 @@ const date = (v: string) => v.slice(0, 10);
                         >
                       </div>
                     </template>
+                    <span v-else-if="c.id === 'project'" class="block truncate text-fg-muted">{{
+                      projectNames.get(task.projectId) ?? ''
+                    }}</span>
                     <button
                       v-else-if="c.id === 'key'"
                       type="button"

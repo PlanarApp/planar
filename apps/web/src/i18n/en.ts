@@ -165,6 +165,7 @@ export default {
     col: {
       title: 'Title',
       key: 'Key',
+      project: 'Project',
       status: 'Status',
       assignee: 'Assignee',
       priority: 'Priority',
