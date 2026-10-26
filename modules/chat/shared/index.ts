@@ -324,10 +324,9 @@ const send = defineMutator({
       createdAt: ctx.now,
       updatedAt: ctx.now,
     };
-    // записи независимы: на клиенте идут разом (IndexedDB конвейеризует запросы одной транзакции),
-    // на сервере — по порядку: от него зависит порядок строк changes
-    const writes: Promise<void>[] = [];
-    const w = (p: () => Promise<void>) => (ctx.server ? p() : void writes.push(p()));
+    // записи по порядку и на клиенте: параллельные async-цепочки Dexie не держит в транзакции
+    // (PrematureCommitError «Transaction committed too early»); на сервере порядок задаёт порядок changes
+    const w = (p: () => Promise<void>) => p();
     await w(() => ctx_(tx).put('chatMessages', row));
     if (root)
       await w(() =>
@@ -364,7 +363,6 @@ const send = defineMutator({
         await w(() => ctx_(tx).put('chatReads', r));
       }
     }
-    await Promise.all(writes);
   },
 });
 
@@ -407,13 +405,21 @@ const remove = defineMutator({
 
 const toggle = defineMutator({
   name: 'chat.reaction.toggle',
-  args: z.object({ id: z.uuid(), messageId: z.uuid(), emoji: z.string().min(1).max(32) }),
+  args: z.object({
+    id: z.uuid(),
+    messageId: z.uuid(),
+    emoji: z.string().min(1).max(32),
+    // своя реакция, видимая клиенту (может быть только в истории REST, не в реплике) — снять её
+    removeId: z.uuid().optional(),
+  }),
   async run(tx, a, ctx) {
     const m = await message(tx, a.messageId);
     await visible(tx, m.channelId, ctx.userId);
     if (m.deletedAt) throw new MutatorError('conflict', 'сообщение удалено');
     const rs = await ctx_(tx).scan<Reaction>('chatReactions', { index: 'messageId', eq: m.id });
-    const mine = rs.find((r) => r.userId === ctx.userId && r.emoji === a.emoji);
+    const mine =
+      rs.find((r) => r.userId === ctx.userId && r.emoji === a.emoji) ??
+      (a.removeId && !ctx.server ? ({ id: a.removeId } as Reaction) : undefined);
     if (mine) return ctx_(tx).del('chatReactions', mine.id);
     const row: Reaction = {
       id: a.id,

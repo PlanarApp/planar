@@ -32,7 +32,7 @@ export { useSearch } from '../command/search';
 export { default as Editor } from '../task/editor/Editor.vue';
 export { uploadFile, type Uploaded } from '../api/files';
 export { api, ApiError } from '../api/http';
-export { sendTyping, onTyping } from '../sync';
+export { sendTyping, onTyping, onReplicaChange } from '../sync';
 export { onMutationError } from '../sync';
 export { default as FilterBuilder } from '../views/saved/FilterBuilder.vue';
 export { default as GroupProjectPick } from '../views/GroupProjectPick.vue';

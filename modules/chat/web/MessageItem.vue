@@ -62,9 +62,13 @@ const grouped = computed(() => {
 });
 const react = (emoji: string) => {
   picking.value = false;
-  void mutate('chat.reaction.toggle', { id: newId(), messageId: m.value.id, emoji }).catch(
-    () => {},
-  );
+  const mine = props.reactions.find((r) => r.userId === props.me && r.emoji === emoji);
+  void mutate('chat.reaction.toggle', {
+    id: newId(),
+    messageId: m.value.id,
+    emoji,
+    ...(mine && { removeId: mine.id }),
+  }).catch(() => {});
 };
 
 const editing = ref(false);

@@ -188,7 +188,7 @@ v2 (группы): `chat.channel.create` += `projectId?`.
 | `chat.message.send` | `id, channelId, body, readId, parentId?, attachments?` | канал архивный → `conflict`; `parentId` — сообщение верхнего уровня того же канала, иначе `invalid_args`; верхний уровень: `seq = lastSeq + 1`, у канала `lastSeq`, `lastMessageAt`; ответ: `seq = null`, у корня `replyCount + 1`, `lastReplyAt`; `mentions` из `body` (кто не видит канал — отбрасывается); своя `chatReads` (`id = readId`, если строки нет): `lastReadSeq = max(текущее, seq)` для верхнего уровня |
 | `chat.message.update` | `id, body` | только автор (`forbidden`); удалённое → `conflict`; `editedAt = ctx.now`, `mentions` пересчитать |
 | `chat.message.delete` | `id` | только автор; мягкое удаление (`deletedAt`); удаляет реакции сообщения; `replyCount` корня не меняется |
-| `chat.reaction.toggle` | `id, messageId, emoji` | есть (messageId, ctx.userId, emoji) — удалить, иначе создать; удалённое сообщение → `conflict` |
+| `chat.reaction.toggle` | `id, messageId, emoji, removeId?` | есть (messageId, ctx.userId, emoji) — удалить, иначе создать; `removeId` — своя реакция, которую клиент видит из истории REST (на клиенте удаляется по нему, сервер находит сам); удалённое сообщение → `conflict` |
 | `chat.read` | `id, channelId, lastReadSeq` | своя `chatReads` (`id` — если строки нет): `lastReadSeq = min(max(текущее, args), lastSeq канала)` |
 | `chat.mute` | `id, channelId, muted` | своя `chatReads` (`id` — если строки нет) |
 

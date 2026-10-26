@@ -1,5 +1,6 @@
 import { computed, ref, shallowRef } from 'vue';
-import { api, db, useQuery } from '@planar/web/modules';
+import { api, db, onReplicaChange, useQuery } from '@planar/web/modules';
+import { onScopeDispose } from 'vue';
 import { mergeFeed, type Message, type Reaction } from './model';
 
 const LIMIT = 50;
@@ -25,9 +26,20 @@ export function useFeed(channelId: string) {
       .filter((m) => !m.parentId)
       .toArray(),
   );
+  // у chatReactions индекс только messageId — по каналу фильтруем (в реплике лишь реакции этой сессии)
   const localReactions = useQuery(() =>
-    db.table<Reaction>('chatReactions').where('channelId').equals(channelId).toArray(),
+    db
+      .table<Reaction>('chatReactions')
+      .filter((r) => r.channelId === channelId)
+      .toArray(),
   );
+  // снятые реакции: удаление приходит в реплику, а строка могла быть только в истории REST
+  const gone = shallowRef(new Set<string>());
+  const off = onReplicaChange((cs) => {
+    const ids = cs.filter((c) => c.entity === 'chatReactions' && !c.row).map((c) => c.id);
+    if (ids.length) gone.value = new Set([...gone.value, ...ids]);
+  });
+  onScopeDispose(off);
   const restMessages = shallowRef<Message[]>([]);
   const restReactions = shallowRef<Reaction[]>([]);
   const loading = ref(false);
@@ -37,7 +49,8 @@ export function useFeed(channelId: string) {
   const messages = computed(() => mergeFeed(restMessages.value, local.value ?? []));
   const reactions = computed(() => {
     const out = new Map<string, Reaction[]>();
-    for (const r of byId(restReactions.value, localReactions.value ?? []))
+    const rest = restReactions.value.filter((r) => !gone.value.has(r.id));
+    for (const r of byId(rest, localReactions.value ?? []))
       out.set(r.messageId, [...(out.get(r.messageId) ?? []), r]);
     return out;
   });
