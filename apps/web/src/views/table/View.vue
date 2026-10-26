@@ -313,10 +313,12 @@ const date = (v: string) => v.slice(0, 10);
             role="row"
             class="sticky top-0 z-10 flex h-9 border-b border-border bg-bg-muted text-sm font-medium"
             filter=".no-drag"
+            draggable="[role=columnheader]"
             :prevent-on-filter="false"
             @update="
-              (e: { oldIndex?: number; newIndex?: number }) =>
-                move(e.oldIndex ?? 0, e.newIndex ?? 0)
+              // индексы среди заголовков: место под чекбоксы впереди не считается
+              (e: { oldDraggableIndex?: number; newDraggableIndex?: number }) =>
+                move(e.oldDraggableIndex ?? 0, e.newDraggableIndex ?? 0)
             "
           >
             <div :style="{ width: `${CHECK_W}px` }" class="no-drag shrink-0" />
@@ -338,7 +340,7 @@ const date = (v: string) => v.slice(0, 10);
               <button
                 v-if="SORT_COL[c.id]"
                 type="button"
-                class="no-drag min-w-0 truncate rounded-sm text-left outline-none hover:text-fg focus-visible:ring-2 ring-focus"
+                class="min-w-0 truncate rounded-sm text-left outline-none hover:text-fg focus-visible:ring-2 ring-focus"
                 :title="t('table.sortBy')"
                 data-testid="col-sort"
                 @click="sortBy(c.id)"
