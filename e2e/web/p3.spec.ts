@@ -299,13 +299,20 @@ test('p3: GitLab — неверный токен: ошибка в настрой
     await spa(page, '/settings/gitlab:settings', page.getByTestId('gl-url'));
     await page.getByTestId('gl-url').fill(gl.url);
     await page.getByTestId('gl-token').fill('wrong-token');
-    await page.getByTestId('gl-save').click();
+    // ждём само сохранение: подсказка «токен задан» могла остаться от прошлого теста (старый адрес фейка)
+    await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/api/gitlab/config') && r.request().method() === 'PUT',
+      ),
+      page.getByTestId('gl-save').click(),
+    ]);
     await expect(page.getByTestId('gl-token')).toHaveAttribute('placeholder', /.+/);
     await page.getByTestId('gl-project-input').fill('grp/proj');
     await page.getByTestId('gl-add').click();
     // проект ищется с неверным токеном: 401 от GitLab показан как ошибка
     await expect(page.getByRole('alert')).toBeVisible();
-    expect(gl.seen.tokens.length).toBeGreaterThan(0);
+    // запрос к GitLab асинхронный — ошибка на экране может опередить его в журнале фейка
+    await expect.poll(() => gl.seen.tokens.length).toBeGreaterThan(0);
     expect(gl.seen.tokens.every((t) => t === 'wrong-token')).toBe(true);
   } finally {
     await gl.close();
