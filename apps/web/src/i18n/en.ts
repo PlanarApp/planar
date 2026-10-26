@@ -365,6 +365,9 @@ export default {
     watched: 'Subscribed',
     activity: 'Activity',
     noComments: 'No comments assigned to you',
+    commentFilter: 'Comment status',
+    commentOpen: 'Open',
+    commentResolved: 'Resolved',
     tile: {
       assigned: 'Assigned to me',
       overdue: 'Overdue',

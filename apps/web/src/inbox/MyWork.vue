@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { CheckCircle2, Circle } from 'lucide-vue-next';
@@ -48,6 +48,13 @@ const watched = useMyTasks(uid, () => 'watched');
 const comments = useAssignedComments(uid);
 const unread = useUnreadItems();
 const mine = computed(() => (comments.value ?? []).filter((c) => inScope(c.projectId)));
+// «Комментарии мне»: открытые (по умолчанию), закрытые или все
+const commentFilter = ref<'open' | 'resolved' | 'all'>('open');
+const shownComments = computed(() =>
+  mine.value.filter((c) =>
+    commentFilter.value === 'all' ? true : (commentFilter.value === 'open') === !c.resolvedAt,
+  ),
+);
 const openComments = computed(() => mine.value.filter((c) => !c.resolvedAt));
 const today = new Date().toISOString().slice(0, 10);
 const count = (rows: { projectId: string }[] | undefined) =>
@@ -121,9 +128,19 @@ const textOf = (body: unknown): string => {
         :root-space-id="scope.rootSpaceId"
       />
       <div v-else-if="sub === 'comments'" class="flex flex-col gap-1 p-4">
-        <EmptyState v-if="comments && !mine.length" :title="t('work.noComments')" />
+        <Tabs
+          v-model="commentFilter"
+          class="mb-2"
+          :label="t('work.commentFilter')"
+          :items="[
+            { value: 'open', label: t('work.commentOpen') },
+            { value: 'resolved', label: t('work.commentResolved') },
+            { value: 'all', label: t('inbox.all') },
+          ]"
+        />
+        <EmptyState v-if="comments && !shownComments.length" :title="t('work.noComments')" />
         <div
-          v-for="c in mine"
+          v-for="c in shownComments"
           :key="c.id"
           data-testid="work-comment"
           class="flex min-h-11 items-center gap-2 rounded-md px-2 hover:bg-bg-muted"

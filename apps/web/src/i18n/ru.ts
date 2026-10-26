@@ -365,6 +365,9 @@ export default {
     watched: 'Отслеживаемые',
     activity: 'Активность',
     noComments: 'Назначенных вам комментариев нет',
+    commentFilter: 'Статус комментариев',
+    commentOpen: 'Открытые',
+    commentResolved: 'Закрытые',
     tile: {
       assigned: 'Назначено мне',
       overdue: 'Просрочено',
