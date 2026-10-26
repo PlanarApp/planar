@@ -182,7 +182,7 @@ test('collab: документ создаётся в дереве, связыв�
     )
     .toBe(true);
 
-  await page.getByRole('link', { name: 'Моя работа' }).first().click();
+  await page.getByTestId('nav-workspace').getByRole('link').click();
   await page.keyboard.press('Control+k');
   await page.getByRole('dialog').getByRole('textbox').fill(word);
   await page.getByRole('option').filter({ hasText: title }).click();
