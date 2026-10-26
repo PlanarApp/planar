@@ -256,7 +256,12 @@ export default {
     projectNotFound: 'Project not found',
     view: 'View',
     toolbar: 'Project toolbar',
-    createIn: 'New tasks go to project',
+    projects: {
+      title: 'Projects',
+      all: 'All projects',
+      n: '{n} projects',
+      hint: 'Show tasks of selected projects; new tasks can be created when one project is selected',
+    },
     more: 'More',
     taskUnavailable: 'Task panel is unavailable',
     groupBy: 'Group by',

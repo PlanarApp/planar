@@ -3,7 +3,8 @@ import { computed, defineAsyncComponent, ref, watch, watchEffect, type Component
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Select, Tabs } from '../ui';
+import { Tabs } from '../ui';
+import ProjectFilter from './ProjectFilter.vue';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { useSpaces } from '../tasks';
@@ -35,15 +36,18 @@ const scope = computed(() => {
         ? s.id === props.spaceId
         : s.id !== props.rootSpaceId,
   );
-  const projectIds = props.projectId
-    ? [props.projectId]
-    : ss.flatMap((s) => s.projects.map((p) => p.id));
-  const target = ss
-    .flatMap((s) => s.projects.map((p) => ({ p, s })))
-    .find((x) => x.p.id === createIn.value);
+  // фильтр по проектам: ничего не выбрано — все проекты группы
+  const all = ss.flatMap((s) => s.projects.map((p) => ({ p, s })));
+  const shown = props.projectId
+    ? all.filter((x) => x.p.id === props.projectId)
+    : picked.value.length
+      ? all.filter((x) => picked.value.includes(x.p.id))
+      : all;
+  // создание — когда проект один (иначе непонятно, куда)
+  const target = shown.length === 1 ? shown[0] : undefined;
   return {
-    projectIds,
-    spaceIds: ss.filter((s) => s.projects.length).map((s) => s.id),
+    projectIds: shown.map((x) => x.p.id),
+    spaceIds: [...new Set(shown.map((x) => x.s.id))],
     ...(target && { createIn: { projectId: target.p.id, spaceId: target.s.id } }),
   };
 });
@@ -52,7 +56,7 @@ const key = computed(
     (props.projectId ? `p:${props.projectId}` : props.spaceId ? `s:${props.spaceId}` : 'w') +
     (props.me ? `:me-${props.me}` : ''),
 );
-// проект для новых задач сводки — выбор в панели (запоминается на сводку); по умолчанию первый
+// выбранные проекты сводки (запоминаются на сводку)
 const projectOptions = computed(() =>
   (spaces.value ?? []).flatMap((s) =>
     s.projects
@@ -61,28 +65,27 @@ const projectOptions = computed(() =>
       .map((p) => ({ value: p.id, label: p.name })),
   ),
 );
-const createKey = () => `planar.scope.${key.value}.createIn`;
-const picked = ref<string | null>(null);
+const pickKey = () => `planar.scope.${key.value}.projects`;
+const stored = ref<string[]>([]);
 watch(
   () => key.value,
   () => {
     try {
-      picked.value = localStorage.getItem(createKey());
+      const v = JSON.parse(localStorage.getItem(pickKey()) ?? '[]');
+      stored.value = Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
     } catch {
-      picked.value = null;
+      stored.value = [];
     }
   },
   { immediate: true },
 );
-const createIn = computed({
-  get: () =>
-    projectOptions.value.find((o) => o.value === picked.value)?.value ??
-    projectOptions.value[0]?.value ??
-    null,
-  set: (v: string | null) => {
-    picked.value = v;
+// удалённые/чужие проекты из запомненного выбора не учитываются
+const picked = computed({
+  get: () => stored.value.filter((id) => projectOptions.value.some((o) => o.value === id)),
+  set: (v: string[]) => {
+    stored.value = v;
     try {
-      if (v) localStorage.setItem(createKey(), v);
+      localStorage.setItem(pickKey(), JSON.stringify(v));
     } catch {
       /* без хранилища — до перезагрузки */
     }
@@ -138,15 +141,7 @@ const selectTab = (k: string) =>
           @update:model-value="selectTab"
         />
       </div>
-      <Select
-        v-if="projectOptions.length > 1"
-        v-model="createIn"
-        size="sm"
-        :label="t('views.createIn')"
-        :options="projectOptions"
-        class="w-48"
-        data-testid="create-in"
-      />
+      <ProjectFilter v-if="projectOptions.length > 1" v-model="picked" :options="projectOptions" />
       <OptionsBar
         v-model:options="options"
         :no-me="!!me"

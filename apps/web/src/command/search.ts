@@ -19,10 +19,16 @@ interface Entry extends Hit {
 const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е');
 const words = (q: string) => norm(q).split(/\s+/).filter(Boolean);
 
-/** Текст всех text-узлов TipTap JSON. */
+/** Текст всех text-узлов TipTap JSON; упоминание — «@Имя». */
 export function docText(n: unknown): string {
   if (!n || typeof n !== 'object') return typeof n === 'string' ? n : '';
-  const o = n as { text?: unknown; content?: unknown[] };
+  const o = n as {
+    type?: string;
+    text?: unknown;
+    attrs?: { label?: unknown };
+    content?: unknown[];
+  };
+  if (o.type === 'mention' && typeof o.attrs?.label === 'string') return `@${o.attrs.label} `;
   return (typeof o.text === 'string' ? o.text + ' ' : '') + (o.content ?? []).map(docText).join('');
 }
 
