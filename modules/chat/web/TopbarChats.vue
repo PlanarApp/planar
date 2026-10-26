@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { MessageSquare } from 'lucide-vue-next';
+import { MessageSquare, User } from 'lucide-vue-next';
 import {
   Badge,
   EmptyState,
   IconButton,
+  Input,
   Popover,
   Tabs,
   useRouter,
   useSpaces,
 } from '@planar/web/modules';
-import { useChatData } from './data';
-import { dmTitle } from './model';
+import { ensureDm, useChatData } from './data';
+import { byName, dmTitle } from './model';
 import { useTexts } from './text';
 
 // кнопка чатов в верхней панели: счётчик непрочитанных, в меню — каналы и диалоги (непрочитанные / все)
+// и «Написать»: быстрый выбор чата или сотрудника (диалог 1:1 — существующий или новый)
 const { d, meId, users, unreadOf, attentionOf, total } = useChatData();
 const router = useRouter();
 const tr = useTexts();
@@ -27,14 +29,14 @@ const where = (spaceId: string | null, projectId: string | null) => {
   return p ? `${sp.name} › ${p.name}` : sp.name;
 };
 const open = ref(false);
-const filter = ref<'unread' | 'all'>('unread');
-const rows = computed(() => {
+const filter = ref<'unread' | 'all' | 'write'>('unread');
+const search = ref('');
+const chats = computed(() => {
   const x = d.value;
   if (!x) return [];
   const mine = new Set(x.members.filter((m) => m.userId === meId.value).map((m) => m.channelId));
   return x.channels
     .filter((c) => !c.archivedAt && (c.kind === 'channel' || mine.has(c.id)))
-    .filter((c) => filter.value === 'all' || unreadOf(c) > 0)
     .sort((a, b) => (b.lastMessageAt ?? b.createdAt).localeCompare(a.lastMessageAt ?? a.createdAt))
     .map((c) => ({
       c,
@@ -48,9 +50,30 @@ const rows = computed(() => {
           : `# ${c.name}`,
     }));
 });
+const match = (s: string) => s.toLowerCase().includes(search.value.trim().toLowerCase());
+const rows = computed(() =>
+  filter.value === 'unread'
+    ? chats.value.filter((r) => r.unread)
+    : filter.value === 'all'
+      ? chats.value
+      : chats.value.filter((r) => match(r.title) || match(r.where)),
+);
+const people = computed(() =>
+  filter.value !== 'write'
+    ? []
+    : [...users.value.values()]
+        .filter((u) => u.id !== meId.value && !u.deactivatedAt && match(u.name))
+        .sort((a, b) => byName(a.name, b.name)),
+);
+async function write(userId: string) {
+  const x = d.value;
+  if (!x) return;
+  go(await ensureDm(x.channels, x.members, [meId.value, userId]));
+}
 // /m/chat/c/<id> сам ведёт в таб «Чаты» нужной группы
 const go = (c: string) => {
   open.value = false;
+  search.value = '';
   void router.push(`/m/chat/c/${c}`);
 };
 </script>
@@ -75,11 +98,21 @@ const go = (c: string) => {
         :items="[
           { value: 'unread', label: tr('unreadOnly') },
           { value: 'all', label: tr('allChats') },
+          { value: 'write', label: tr('write') },
         ]"
       />
+      <Input
+        v-if="filter === 'write'"
+        v-model="search"
+        size="sm"
+        :label="tr('writeSearch')"
+        data-testid="topbar-chat-search"
+      />
       <EmptyState
-        v-if="!rows.length"
-        :title="tr(filter === 'unread' ? 'noUnread' : 'noChannels')"
+        v-if="!rows.length && !people.length"
+        :title="
+          tr(filter === 'unread' ? 'noUnread' : filter === 'all' ? 'noChannels' : 'nothingFound')
+        "
       />
       <div class="flex max-h-80 flex-col overflow-y-auto">
         <button
@@ -101,6 +134,19 @@ const go = (c: string) => {
           }}</Badge>
           <span v-else-if="r.unread" class="size-2 shrink-0 rounded-full bg-accent" />
         </button>
+        <template v-if="people.length">
+          <p class="mt-2 px-2 text-xs font-medium text-fg-muted">{{ tr('people') }}</p>
+          <button
+            v-for="u in people"
+            :key="u.id"
+            type="button"
+            data-testid="topbar-person"
+            class="flex min-h-9 items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
+            @click="write(u.id)"
+          >
+            <User :size="14" class="shrink-0 text-fg-subtle" />{{ u.name }}
+          </button>
+        </template>
       </div>
     </div>
   </Popover>

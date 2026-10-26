@@ -10,7 +10,6 @@ import {
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
-  Bell,
   ChevronDown,
   ChevronRight,
   Download,
@@ -22,13 +21,13 @@ import {
 // reka (Avatar/Menu) — вне начального бандла
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
+const BellMenu = defineAsyncComponent(() => import('../inbox/BellMenu.vue'));
 import Button from '../ui/Button.vue';
 import IconButton from '../ui/IconButton.vue';
 import Kbd from '../ui/Kbd.vue';
 import { useBreakpoint } from '../ui/useBreakpoint';
 import { quickCreate, ui } from '../command/hotkeys';
 import { useAuth } from '../auth/useAuth';
-import { useUnread } from '../inbox/queries';
 import { useExtensions } from '../modules/registry';
 import { useProject, useRootSpaceId, useSpaces, useWorkspace } from '../tasks/queries';
 import { useSavedView } from '../views/saved/queries';
@@ -45,7 +44,6 @@ const router = useRouter();
 const { user } = useAuth();
 const { isMobile } = useBreakpoint();
 const { items, notice } = useUserMenu();
-const unread = useUnread();
 
 interface InstallEvent extends Event {
   prompt: () => Promise<void>;
@@ -229,19 +227,7 @@ const crumbs = computed<Crumb[]>(() => {
     <Button v-if="installEvent" size="sm" :icon="Download" @click="install">
       {{ t('topbar.install') }}
     </Button>
-    <span class="relative">
-      <IconButton
-        :icon="Bell"
-        :label="t('topbar.notifications')"
-        @click="router.push('/w/work?w=activity')"
-      />
-      <span
-        v-if="unread"
-        data-testid="bell-count"
-        class="pointer-events-none absolute right-0 top-0 min-w-4 rounded-full bg-accent px-1 text-center text-2xs text-accent-fg"
-        >{{ unread }}</span
-      >
-    </span>
+    <BellMenu />
     <Menu v-if="isMobile" :items="items()" align="end">
       <template #trigger>
         <button

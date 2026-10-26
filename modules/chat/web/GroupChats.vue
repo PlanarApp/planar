@@ -10,6 +10,9 @@ import {
   Plus,
   Trash2,
   User,
+  UserPlus,
+  Users,
+  X,
 } from 'lucide-vue-next';
 import {
   Badge,
@@ -21,6 +24,7 @@ import {
   Input,
   Menu,
   type MenuItem,
+  Popover,
   mutate,
   newId,
   useGroupLevels,
@@ -29,9 +33,9 @@ import {
 } from '@planar/web/modules';
 import ChannelView from './ChannelView.vue';
 import ThreadPanel from './ThreadPanel.vue';
-import { useChatData } from './data';
+import { ensureDm, useChatData } from './data';
 import { provideChatLinks } from './links';
-import { byName, dmTitle, findDm, isDirect } from './model';
+import { byName, dmTitle, isDirect } from './model';
 import { useTexts } from './text';
 
 // таб «Чаты» группы: каналы её уровня и вложенных, личные диалоги — у Воркспейса; канал — ?c, тред — ?t
@@ -129,16 +133,31 @@ const togglePick = (id: string) =>
 async function openDm() {
   const x = d.value;
   if (!x || !picked.value.length) return;
-  const ids = [meId.value, ...picked.value];
-  let id = findDm(x.channels, x.members, ids)?.id;
-  if (!id) {
-    id = newId();
-    await mutate('chat.dm.create', { id, members: ids.map((userId) => ({ id: newId(), userId })) });
-  }
+  const id = await ensureDm(x.channels, x.members, [meId.value, ...picked.value]);
   picking.value = false;
   picked.value = [];
   void router.push(links.channel(id));
 }
+
+// состав диалога: видят все участники; добавить может любой (до 8), убрать — создатель диалога
+const dmPeople = computed(() =>
+  channel.value?.kind === 'dm'
+    ? (d.value?.members ?? [])
+        .filter((m) => m.channelId === channel.value!.id)
+        .flatMap((m) => users.value.get(m.userId) ?? [])
+        .sort((a, b) => byName(a.name, b.name))
+    : [],
+);
+const ownDm = computed(() => channel.value?.createdBy === meId.value);
+const addable = computed(() =>
+  dmPeople.value.length >= 8
+    ? []
+    : people.value.filter((u) => !dmPeople.value.some((p) => p.id === u.id)),
+);
+const addToDm = (userId: string) =>
+  void mutate('chat.dm.addMember', { id: newId(), channelId: channel.value!.id, userId });
+const removeFromDm = (userId: string) =>
+  void mutate('chat.dm.removeMember', { channelId: channel.value!.id, userId });
 
 // настройка канала: создатель или admin пространства — название, тема, архив, удаление
 const canManage = computed(() => {
@@ -343,6 +362,51 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
             channel.topic
           }}</span>
           <span v-if="channel.archivedAt" class="text-xs text-fg-subtle">{{ tx('archived') }}</span>
+          <Popover v-if="channel.kind === 'dm'" align="end">
+            <template #trigger>
+              <Button
+                size="sm"
+                variant="ghost"
+                :icon="Users"
+                class="ml-auto"
+                data-testid="chat-dm-members"
+                >{{ dmPeople.length }}</Button
+              >
+            </template>
+            <div class="flex w-64 flex-col gap-1" data-testid="chat-dm-members-panel">
+              <p class="text-xs font-medium text-fg-muted">{{ tx('members') }}</p>
+              <div
+                v-for="u in dmPeople"
+                :key="u.id"
+                class="flex min-h-8 items-center gap-2 text-sm"
+                data-testid="chat-dm-member"
+              >
+                <span class="min-w-0 flex-1 truncate">{{ u.name }}</span>
+                <IconButton
+                  v-if="ownDm && u.id !== meId && dmPeople.length > 2"
+                  :icon="X"
+                  size="sm"
+                  :label="tx('removeMember', { name: u.name })"
+                  @click="removeFromDm(u.id)"
+                />
+              </div>
+              <template v-if="addable.length">
+                <p class="mt-2 text-xs font-medium text-fg-muted">{{ tx('addMember') }}</p>
+                <div class="flex max-h-48 flex-col overflow-y-auto">
+                  <button
+                    v-for="u in addable"
+                    :key="u.id"
+                    type="button"
+                    class="flex min-h-8 items-center gap-2 rounded px-1 text-left text-sm hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
+                    :data-testid="`chat-dm-add-${u.id}`"
+                    @click="addToDm(u.id)"
+                  >
+                    <UserPlus :size="14" class="shrink-0 text-fg-subtle" />{{ u.name }}
+                  </button>
+                </div>
+              </template>
+            </div>
+          </Popover>
           <Menu v-if="canManage" :items="channelMenu" align="end">
             <template #trigger>
               <IconButton

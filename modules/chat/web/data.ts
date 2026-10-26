@@ -1,8 +1,9 @@
 import { computed } from 'vue';
-import { db, useQuery, useSession } from '@planar/web/modules';
+import { db, mutate, newId, useQuery, useSession } from '@planar/web/modules';
 import {
   ATTENTION,
   channelOfUrl,
+  findDm,
   unread,
   type Channel,
   type Member,
@@ -25,6 +26,18 @@ interface SpaceMember {
   spaceId: string;
   userId: string;
   role: string;
+}
+
+/** Диалог ровно с этим составом (включая меня): существующий или новый; возвращает id. */
+export async function ensureDm(channels: Channel[], members: Member[], ids: string[]) {
+  const id = findDm(channels, members, ids)?.id;
+  if (id) return id;
+  const nid = newId();
+  await mutate('chat.dm.create', {
+    id: nid,
+    members: ids.map((userId) => ({ id: newId(), userId })),
+  });
+  return nid;
 }
 
 /** Каналы, диалоги, участники и мои метки прочтения из реплики. */

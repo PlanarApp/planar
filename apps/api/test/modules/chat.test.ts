@@ -477,6 +477,22 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
     await w.guest.ok('chat.dm.leave', { channelId: dm });
   });
 
+  it('dm.removeMember: только создатель, убранный теряет диалог, меньше двух — conflict', async () => {
+    const dm = await mkDm(w.member, [w.member, w.admin, w.guest]);
+    const del = { channelId: dm, userId: w.guest.userId };
+    expect(await w.admin.push('chat.dm.removeMember', del)).toMatchObject({ code: 'forbidden' });
+    expect(
+      await w.member.push('chat.dm.removeMember', { channelId: dm, userId: w.member.userId }),
+    ).toMatchObject({ code: 'invalid_args' });
+    await w.member.ok('chat.dm.removeMember', del);
+    expect(await chan(w.guest, dm)).toBeUndefined();
+    expect((await send(w.guest, dm)).r).toMatchObject({ code: 'forbidden' });
+    await w.member.ok('chat.dm.removeMember', del); // повтор — ничего
+    expect(
+      await w.member.push('chat.dm.removeMember', { channelId: dm, userId: w.admin.userId }),
+    ).toMatchObject({ code: 'conflict' });
+  });
+
   it('dm.addMember: новый получает канал и участников, лимит 8 — conflict, повтор — ничего', async () => {
     const dm = await mkDm(w.member, [w.member, w.admin]);
     await w.admin.ok('chat.dm.addMember', {

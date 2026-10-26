@@ -72,6 +72,7 @@ export default {
   },
   topbar: {
     newTask: 'New task',
+    allNotifications: 'All notifications',
     crumbMenu: 'Siblings of {name}',
     search: 'Search',
     breadcrumb: 'Breadcrumbs',

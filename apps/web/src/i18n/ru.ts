@@ -72,6 +72,7 @@ export default {
   },
   topbar: {
     newTask: 'Создать задачу',
+    allNotifications: 'Все уведомления',
     crumbMenu: 'Соседи: {name}',
     search: 'Поиск',
     breadcrumb: 'Навигационная цепочка',

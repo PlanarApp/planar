@@ -293,6 +293,24 @@ const addMember = defineMutator({
   },
 });
 
+const removeMember = defineMutator({
+  name: 'chat.dm.removeMember',
+  args: z.object({ channelId: z.uuid(), userId: z.uuid() }),
+  async run(tx, a, ctx) {
+    const { c, v } = await visible(tx, a.channelId, ctx.userId);
+    if (c.kind !== 'dm') throw new MutatorError('invalid_args', 'не диалог');
+    if (c.createdBy !== ctx.userId) throw new MutatorError('forbidden', 'состав меняет создатель');
+    if (a.userId === ctx.userId) throw new MutatorError('invalid_args', 'себя — chat.dm.leave');
+    if (!v.has(a.userId)) return;
+    if (v.size - 1 < 2) throw new MutatorError('conflict', 'в диалоге не меньше двух');
+    const rows = await ctx_(tx).scan<Member>('chatMembers', {
+      index: 'channelId',
+      eq: a.channelId,
+    });
+    for (const m of rows) if (m.userId === a.userId) await ctx_(tx).del('chatMembers', m.id);
+  },
+});
+
 const leaveDm = defineMutator({
   name: 'chat.dm.leave',
   args: z.object({ channelId: z.uuid() }),
@@ -516,6 +534,7 @@ export const shared: SharedModuleManifest = {
     deleteChannel,
     createDm,
     addMember,
+    removeMember,
     leaveDm,
     send,
     update,
