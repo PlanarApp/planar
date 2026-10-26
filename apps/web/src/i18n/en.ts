@@ -71,6 +71,7 @@ export default {
     search: 'Search',
   },
   topbar: {
+    newTask: 'New task',
     crumbMenu: 'Siblings of {name}',
     search: 'Search',
     breadcrumb: 'Breadcrumbs',

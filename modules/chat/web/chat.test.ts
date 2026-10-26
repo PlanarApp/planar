@@ -197,7 +197,7 @@ afterEach(() => {
 });
 
 describe('chat web: манифест', () => {
-  it('маршруты, секция nav без topbar', () => {
+  it('маршруты, кнопка в верхней панели', () => {
     expect(web.id).toBe('chat');
     expect(web.routes!.map((r) => r.path)).toEqual([
       '/m/chat/',
@@ -209,7 +209,7 @@ describe('chat web: манифест', () => {
       tab: 'chats',
       component: expect.any(Function),
     });
-    expect(web.topbar).toBeUndefined();
+    expect(web.topbar!.map((x) => x.id)).toEqual(['chats']);
   });
 });
 

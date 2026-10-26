@@ -10,6 +10,7 @@ export const web = defineWebModule({
     { path: '/m/chat/c/:channelId/:messageId?', component: page },
     { path: '/m/chat/c/:channelId/t/:rootId', component: page },
   ],
+  topbar: [{ id: 'chats', order: 20, component: () => import('./TopbarChats.vue') }],
   groupTabs: [
     {
       id: 'channels',

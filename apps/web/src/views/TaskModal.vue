@@ -21,16 +21,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 </script>
 
 <template>
-  <!-- боковой лист: поверх всего (и верхней панели), клик мимо закрывает -->
-  <div v-if="panelOpen && side" class="fixed inset-0 z-40 bg-overlay" @mousedown.self="closeTask">
-    <div
-      role="dialog"
-      aria-modal="true"
-      class="absolute inset-y-0 right-0 flex w-[min(56rem,100%)] overflow-hidden border-l border-border bg-surface shadow-dialog"
-      data-testid="task-side"
-    >
-      <component :is="TaskPanel" :task-key="taskKey" mode="panel" @close="closeTask" />
-    </div>
+  <!-- боковой лист: ниже верхней панели, экран под ним остаётся рабочим (клик по другой задаче — сменить её) -->
+  <div
+    v-if="panelOpen && side"
+    role="dialog"
+    class="fixed bottom-0 right-0 top-11 z-30 flex w-[min(56rem,100%)] overflow-hidden border-l border-border bg-surface shadow-dialog"
+    data-testid="task-side"
+  >
+    <component :is="TaskPanel" :task-key="taskKey" mode="panel" @close="closeTask" />
   </div>
   <div
     v-else-if="panelOpen"

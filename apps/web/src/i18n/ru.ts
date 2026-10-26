@@ -71,6 +71,7 @@ export default {
     search: 'Поиск',
   },
   topbar: {
+    newTask: 'Создать задачу',
     crumbMenu: 'Соседи: {name}',
     search: 'Поиск',
     breadcrumb: 'Навигационная цепочка',

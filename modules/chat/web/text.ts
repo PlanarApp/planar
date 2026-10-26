@@ -47,6 +47,9 @@ const S = {
   tooLarge: { ru: 'Файл слишком большой', en: 'File is too large' },
   archived: { ru: 'Канал в архиве', en: 'Channel is archived' },
   unread: { ru: 'Непрочитанных: {n}', en: '{n} unread' },
+  unreadOnly: { ru: 'Непрочитанные', en: 'Unread' },
+  allChats: { ru: 'Все', en: 'All' },
+  noUnread: { ru: 'Нет непрочитанных', en: 'Nothing unread' },
   noChannels: { ru: 'Нет каналов', en: 'No channels' },
   unknown: { ru: 'Неизвестный', en: 'Unknown' },
 } as const;

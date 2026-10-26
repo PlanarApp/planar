@@ -9,7 +9,16 @@ import {
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Bell, ChevronDown, ChevronRight, Download, PanelLeft, Search } from 'lucide-vue-next';
+import {
+  Bell,
+  ChevronDown,
+  ChevronRight,
+  Download,
+  Inbox,
+  PanelLeft,
+  Plus,
+  Search,
+} from 'lucide-vue-next';
 // reka (Avatar/Menu) — вне начального бандла
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
@@ -17,7 +26,7 @@ import Button from '../ui/Button.vue';
 import IconButton from '../ui/IconButton.vue';
 import Kbd from '../ui/Kbd.vue';
 import { useBreakpoint } from '../ui/useBreakpoint';
-import { ui } from '../command/hotkeys';
+import { quickCreate, ui } from '../command/hotkeys';
 import { useAuth } from '../auth/useAuth';
 import { useUnread } from '../inbox/queries';
 import { useExtensions } from '../modules/registry';
@@ -204,6 +213,19 @@ const crumbs = computed<Crumb[]>(() => {
     <Button v-else size="sm" :icon="Search" :aria-label="t('cmd.open')" @click="ui.palette = true">
       {{ t('topbar.search') }}<Kbd keys="Mod+K" />
     </Button>
+    <IconButton
+      :icon="Plus"
+      :label="t('topbar.newTask')"
+      data-testid="topbar-create"
+      @click="quickCreate(inProject ? projectId : '')"
+    />
+    <!-- «Моя работа» верхнего уровня: Воркспейс доступен всем участникам -->
+    <IconButton
+      :icon="Inbox"
+      :label="t('groups.tab.work')"
+      data-testid="topbar-work"
+      @click="router.push('/w/work')"
+    />
     <Button v-if="installEvent" size="sm" :icon="Download" @click="install">
       {{ t('topbar.install') }}
     </Button>
