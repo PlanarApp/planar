@@ -349,7 +349,10 @@ export const activity = pgTable(
   'activity',
   {
     id: id(),
-    spaceId: spaceId(),
+    // журнал и уведомления пространства уходят вместе с ним (space.delete с содержимым)
+    spaceId: uuid()
+      .notNull()
+      .references(() => spaces.id, { onDelete: 'cascade' }),
     taskId: uuid().notNull(),
     actorId: userRef().notNull(),
     kind: text().notNull(),
@@ -380,7 +383,7 @@ export const notifications = pgTable(
   {
     id: id(),
     userId: userRef().notNull(),
-    spaceId: uuid().references(() => spaces.id),
+    spaceId: uuid().references(() => spaces.id, { onDelete: 'cascade' }),
     kind: text().notNull(),
     taskId: uuid(),
     url: text(),

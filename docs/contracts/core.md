@@ -186,7 +186,9 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 ### Клиент (для web)
 Применяет `changes` по `seq`; `reset` → bootstrap. После pull отбрасывает из очереди мутации с `id ≤ lastMutationId`, остальные заново применяет поверх серверного состояния (rebase). Повтор push при сетевой ошибке и `5xx` — с ростом паузы 1–30 с; `401` — на вход.
 
-## C-mutators v7
+## C-mutators v8
+
+v8: `space.delete` += `withContent?` (пространство с проектами и задачами — массовое удаление в настройках); корневое пространство не удаляется — core-mutators.md.
 
 v7 (комментарии): `comment.create` += `parentId?`, `assigneeId?`; `comment.assign`, `comment.resolve`; `comment.delete` корня — с тредом — core-mutators.md.
 

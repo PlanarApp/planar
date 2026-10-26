@@ -29,12 +29,13 @@ const toggle = (id: string) => {
 const bulk = computed<BulkAction[]>(() => [
   {
     id: 'delete',
-    label: t('settings.delete'),
+    label: t('settings.deleteWithContent'),
     danger: true,
+    // массово — вместе с проектами и задачами (подтверждение называет это явно)
     run: () => {
       const ids = [...picked.value];
       picked.value = new Set();
-      for (const id of ids) void remove(id);
+      for (const id of ids) void run(() => mutate('space.delete', { id, withContent: true }));
     },
   },
 ]);

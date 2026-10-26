@@ -16,7 +16,7 @@ related: ["docs/contracts/core.md"]
 |---|---|---|
 | `space.create` | `id, name, rank, memberId, statusIds: uuid[5], statusNames?` | создаёт пространство, участника (ctx.userId, admin) и 5 статусов по категориям; `statusNames` — объект с необязательными ключами-категориями `backlog`/`todo`/`in_progress`/`done`/`cancelled` и строковыми значениями; имя статуса — `statusNames[категория]` (строка 1–64 символа после trim), иначе по умолчанию: Backlog, Todo, In Progress, Done, Cancelled (v4: `statusNames`; клиент передаёт имена из i18n текущей локали; существующие пространства не переименовываются) |
 | `space.update` | `id, name?, description?, color?, icon?, rank?` | |
-| `space.delete` | `id` | есть проекты → `conflict`; удаляет статусы, метки, виды, участников |
+| `space.delete` | `id, withContent?` | корневое (`settings.root_space`) → `invalid_args`; есть проекты и нет `withContent` → `conflict`; с `withContent` — сначала задачи проектов (как `task.delete`), поля и проекты; удаляет статусы, метки, виды, участников; журнал и уведомления пространства удаляет БД (FK on delete cascade) |
 | `member.add` | `id, spaceId, userId, role` | |
 | `member.update` | `id, role` | последний admin → `conflict` |
 | `member.remove` | `id` | последний admin → `conflict` |

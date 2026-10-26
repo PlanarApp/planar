@@ -421,6 +421,7 @@ export default {
     },
   },
   settings: {
+    deleteWithContent: 'Удалить вместе с проектами и задачами',
     bulk: {
       selected: 'Выбрано: {n}',
       clear: 'Снять выбор',

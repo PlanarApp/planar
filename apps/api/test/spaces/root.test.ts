@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { uuidv7 } from '@planar/shared';
 import { spaceMembers } from '../../src/db/schema.js';
 import { ensureRootSpace } from '../../src/spaces/root.js';
-import { mkUser, newDb, services, TestClient } from '../sync/helpers.js';
+import { mkUser, newDb, services, taskArgs, TestClient, world } from '../sync/helpers.js';
 
 const db = newDb();
 afterAll(() => db.$client.end());
@@ -35,5 +35,23 @@ describe('корневое пространство', () => {
         rank: 'a0',
       }),
     ).toMatchObject({ code: 'invalid_args' });
+    expect(await c.push('space.delete', { id, withContent: true })).toMatchObject({
+      code: 'invalid_args',
+    });
+  });
+
+  it('space.delete withContent: пространство с проектами, задачами и уведомлениями удаляется', async () => {
+    const w = await world(db);
+    const t = taskArgs(w);
+    await w.member.ok('task.create', t);
+    await w.member.ok('task.assign', { id: uuidv7(), taskId: t.id, userId: w.admin.userId }); // уведомление admin
+    expect(await w.admin.push('space.delete', { id: w.spaceId })).toMatchObject({
+      code: 'conflict',
+    });
+    await w.admin.ok('space.delete', { id: w.spaceId, withContent: true });
+    const d = (await w.admin.bootstrap()).data;
+    expect(d.spaces!.some((s) => s.id === w.spaceId)).toBe(false);
+    expect(d.tasks!.some((x) => x.id === t.id)).toBe(false);
+    expect((d.notifications ?? []).some((n) => n.spaceId === w.spaceId)).toBe(false);
   });
 });

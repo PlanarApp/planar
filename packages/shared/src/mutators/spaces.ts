@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MutatorError, defineMutator } from '../contract/index.js';
 import { changes, color, delWhere, name, need, rank, uuid } from './util.js';
+import { deleteTask } from './tasks.js';
 
 const CATEGORIES = [
   ['backlog', 'Backlog', '#94a3b8'],
@@ -73,11 +74,23 @@ export const spaceMutators = [
   }),
   defineMutator({
     name: 'space.delete',
-    args: z.object({ id: uuid }),
+    // withContent — удалить и проекты с задачами (массовое удаление в настройках); без него — только пустое
+    args: z.object({ id: uuid, withContent: z.boolean().optional() }),
     async run(tx, a) {
       await need(tx, 'spaces', a.id);
-      if ((await tx.scan('projects', { index: 'spaceId', eq: a.id })).length)
-        throw new MutatorError('conflict', 'есть проекты');
+      if ((await tx.get('settings', 'root_space'))?.value === a.id)
+        throw new MutatorError('invalid_args', 'корневое пространство — это Воркспейс');
+      const projects = await tx.scan('projects', { index: 'spaceId', eq: a.id });
+      if (projects.length && !a.withContent) throw new MutatorError('conflict', 'есть проекты');
+      for (const p of projects) {
+        const tasks = await tx.scan('tasks', { index: 'projectId', eq: p.id });
+        // корни уносят подзадачи; оставшиеся (родитель в другом проекте) — по одной
+        for (const t of tasks.filter((x) => !x.parentId)) await deleteTask(tx, t.id);
+        for (const t of await tx.scan('tasks', { index: 'projectId', eq: p.id }))
+          await deleteTask(tx, t.id);
+        await delWhere(tx, 'fieldDefs', 'projectId', p.id);
+        await tx.del('projects', p.id);
+      }
       for (const e of ['statuses', 'labels', 'savedViews', 'spaceMembers'] as const)
         await delWhere(tx, e, 'spaceId', a.id);
       await tx.del('spaces', a.id);

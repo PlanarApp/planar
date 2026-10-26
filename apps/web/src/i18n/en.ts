@@ -421,6 +421,7 @@ export default {
     },
   },
   settings: {
+    deleteWithContent: 'Delete with projects and tasks',
     bulk: {
       selected: '{n} selected',
       clear: 'Clear selection',

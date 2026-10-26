@@ -28,7 +28,7 @@ async function checkParent(tx: Tx, taskId: string, spaceId: string, parentId: st
   }
 }
 
-async function deleteTask(tx: Tx, id: string) {
+export async function deleteTask(tx: Tx, id: string) {
   for (const c of await tx.scan('tasks', { index: 'parentId', eq: id })) await deleteTask(tx, c.id);
   for (const e of [
     'taskAssignees',
