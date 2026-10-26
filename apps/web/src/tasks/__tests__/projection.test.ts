@@ -5,7 +5,13 @@ import { domainMutators, uuidv7, type Row } from '@planar/shared';
 import { db, registerMutators, startSync, stopSync } from '../../sync';
 import { FakeServer } from '../../sync/__tests__/fake-server';
 import { createTask, deleteTask, setAssignees, setLabels, updateTask } from '../index';
-import { prefetchProject, projectionKeys, resetProjections, useProjectTasks } from '../projection';
+import {
+  prefetchProject,
+  projectionKeys,
+  resetProjections,
+  useProjectTasks,
+  useScopeTasks,
+} from '../projection';
 import type { TaskView } from '../queries';
 import { T, ids, reset, task, until } from './data';
 
@@ -197,6 +203,19 @@ describe('tasks:projection', () => {
     const { r, stop } = open(a);
     await until(() => r.value?.length === 1);
     stop();
+  });
+
+  it('perf:projection сводка больше KEEP проектов получает правки всех (ранние не вытесняются до подписки)', async () => {
+    const ps = ['P1', 'P2', 'P3', 'P4', 'P5'].map(mkProject);
+    await db.table('projects').bulkPut(ps);
+    for (const p of ps) await db.table('tasks').put(task(1, { projectId: p.id }));
+    const scope = effectScope();
+    const r = scope.run(() => useScopeTasks(ps.map((p) => p.id)))!;
+    await until(() => r.value?.length === 5);
+    const first = r.value!.find((x) => x.projectId === ps[0].id)!;
+    await updateTask(first.id, { dueDate: '2026-10-18' });
+    await until(() => r.value?.find((x) => x.id === first.id)?.dueDate === '2026-10-18');
+    scope.stop();
   });
 
   it('perf:projection при многих проектах связи читаются точечно, а не таблицей целиком', async () => {

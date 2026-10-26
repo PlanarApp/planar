@@ -298,15 +298,18 @@ export function useScopeTasks(
     () => toValue(projectIds).join(','),
     () => {
       for (const u of unsubs) u();
-      const es = toValue(projectIds).map(acquire);
-      const parts = es.map((e) => (e.tasks ? snapshot(e) : undefined));
+      const ids = toValue(projectIds);
+      const parts: (TaskView[] | undefined)[] = [];
       const publish = () =>
         (r.value = parts.every(Boolean)
           ? parts.length === 1
             ? parts[0]
             : parts.flatMap((p) => p!)
           : undefined);
-      unsubs = es.map((e, i) => {
+      // подписка сразу после acquire: иначе проекции без подписчиков вытесняются следующими (KEEP) и не получают правок
+      unsubs = ids.map((pid, i) => {
+        const e = acquire(pid);
+        parts[i] = e.tasks ? snapshot(e) : undefined;
         const f = (a: TaskView[]) => ((parts[i] = a), publish());
         e.subs.add(f);
         return () => e.subs.delete(f);
