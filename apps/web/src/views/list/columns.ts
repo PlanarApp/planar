@@ -4,11 +4,12 @@ import type { TaskField } from '../options';
 export const LIST_COLUMNS = ['project', 'assignee', 'dueDate', 'priority', 'labels'] as const;
 export type ListColumn = (typeof LIST_COLUMNS)[number];
 /** ширины — авторазмер и ручные (widths.ts); здесь — только скрытие на узких экранах */
+// на телефоне — только название: колонки авторазмера иначе сжимают его в ноль
 export const COLUMN_CLASS: Record<ListColumn, string> = {
   project: 'max-md:hidden',
-  assignee: '',
-  dueDate: '',
-  priority: '',
+  assignee: 'max-md:hidden',
+  dueDate: 'max-md:hidden',
+  priority: 'max-md:hidden',
   labels: 'max-lg:hidden',
 };
 export const visibleColumns = (fields: readonly TaskField[]): ListColumn[] =>

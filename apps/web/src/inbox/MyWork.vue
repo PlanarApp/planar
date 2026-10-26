@@ -97,7 +97,7 @@ const textOf = (body: unknown): string => {
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto">
       <div v-if="sub === 'summary'" class="flex flex-col gap-4 p-4">
-        <div class="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+        <div class="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
           <button
             v-for="x in tiles"
             :key="x.key ?? x.w"

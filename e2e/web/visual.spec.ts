@@ -2,19 +2,21 @@ import { expect, test, type Browser } from '@playwright/test';
 import { BASE } from '../lib.js';
 import { NOW, buildData, shiftTime, type Data } from './visual-helpers.js';
 
-// Скриншоты 12 экранов × 2 ширины × 2 темы. Эталоны — в visual.spec.ts-snapshots (создание: --update-snapshots).
+// Скриншоты 14 экранов × 2 ширины × 2 темы. Эталоны — в visual.spec.ts-snapshots (создание: --update-snapshots).
 const SCREENS: [name: string, url: (d: Data) => string, ready: string | RegExp][] = [
   ['login', () => '/login', 'Войти'],
   ['my', () => '/my', 'Подготовить макеты экрана входа'],
-  ['inbox', () => '/inbox', 'Подготовить макеты экрана входа'],
+  ['work', () => '/w/work', 'Назначено мне'],
+  ['activity', () => '/w/work?w=activity', 'Подготовить макеты экрана входа'],
   ['list', (d) => `/p/${d.projectId}`, 'Подготовить макеты экрана входа'],
   ['board', (d) => `/p/${d.projectId}/board`, 'Подготовить макеты экрана входа'],
   ['task', (d) => `/t/${d.taskKey}`, 'Макеты готовы к ревью.'],
-  ['settings-projects', () => '/settings/projects', 'Проекты пространства'],
+  ['settings-projects', (d) => `/s/${d.spaceId}/settings?s=projects`, 'Проекты пространства'],
+  ['space-board', (d) => `/s/${d.spaceId}/board`, 'Подготовить макеты экрана входа'],
   ['profile', () => '/profile', 'Новый пароль'],
   ['chat', (d) => `/m/chat/c/${d.chatId}`, 'Нашла обрезку заголовка на узком экране.'],
   ['docs', (d) => `/m/docs/${d.docId}`, 'Плотность и отступы'],
-  ['time-week', () => '/m/time/week', 'Мои часы'],
+  ['time-week', () => '/w/reports?r=time:week', 'Время'],
   ['dev-ui', () => '/dev/ui', 'C-ui v4'],
 ];
 const WIDTHS = [
