@@ -160,6 +160,7 @@ export default {
     pushInstall: 'Install the app to your Home Screen to receive push notifications',
   },
   table: {
+    sortBy: 'Sort (click again — reverse, third — manual order)',
     columns: 'Columns',
     col: {
       title: 'Title',

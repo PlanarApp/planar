@@ -1,6 +1,7 @@
 import type { TaskView } from './queries';
 
-export type SortBy = 'rank' | 'priority' | 'dueDate' | 'createdAt' | 'updatedAt' | 'title';
+export type SortBy =
+  'rank' | 'priority' | 'dueDate' | 'startDate' | 'createdAt' | 'updatedAt' | 'title';
 
 // приоритет 0 («нет») считается пустым значением и уходит в конец при любом направлении
 const val = (t: TaskView, by: SortBy): string | number | null =>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import TaskContextMenu from '../TaskContextMenu.vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { MoreHorizontal } from 'lucide-vue-next';
+import { ChevronRight, MoreHorizontal } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import { VueDraggable } from 'vue-draggable-plus';
 import { useI18n } from 'vue-i18n';
@@ -19,12 +19,18 @@ import {
   useScopeTasks,
   useStatuses,
   type TaskView,
+  useLabels,
 } from '../../tasks';
 import { FieldCell, FieldEditor, setTaskField, useFieldDefs } from '../../fields';
 import { Button, Popover } from '../../ui';
 import { openTask, useSelection, type ViewProps } from '..';
 import type { ViewOptions } from '../options';
 import { useTaskFilter } from '../saved/useFilter';
+import { treeOrder } from '../list/tree';
+import { textWidth } from '../list/widths';
+import { formatDue } from '../list/due';
+import { nextSort, sortMark } from '../sortHead';
+import type { SortBy } from '../../tasks';
 import {
   COLUMN_IDS,
   FIELD_PREFIX,
@@ -41,7 +47,7 @@ import {
 
 const props = defineProps<ViewProps>();
 const emit = defineEmits<{ 'update:options': [ViewOptions] }>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const sel = useSelection();
 const ROW_H = 36;
 const CHECK_W = 40;
@@ -50,6 +56,7 @@ const project = useProject(() => props.projectId);
 // сводка группы: задачи проектов группы, справочники их пространств; поля проекта — только у одного проекта
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
+const labels = useLabels(spaceId);
 const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 const defs = useFieldDefs(() => (props.scope ? '' : props.projectId));
 const defOf = (id: string) => defs.value?.find((d) => `${FIELD_PREFIX}${d.id}` === id);
@@ -60,12 +67,51 @@ const passes = useTaskFilter(
   () => props.options.me,
 );
 
-// группировка в таблице не применяется
-const rows = computed(() => {
+// группировка в таблице не применяется; с подзадачами — деревом под родителем (сортировка среди братьев)
+const folded = ref(new Set<string>());
+const tree = computed(() => {
   const o = props.options;
   const tasks = (all.value ?? []).filter((x) => (o.showSubtasks || !x.parentId) && passes.value(x));
-  return sortTasks(tasks, o.sortBy, o.sortDir);
+  const sorted = sortTasks(tasks, o.sortBy, o.sortDir);
+  if (!o.showSubtasks) return sorted.map((task) => ({ task, depth: 0 }));
+  const out: { task: (typeof sorted)[number]; depth: number }[] = [];
+  let hideBelow = Infinity; // глубина свёрнутого предка: строки глубже — скрыты
+  for (const n of treeOrder(sorted)) {
+    if (n.depth > hideBelow) continue;
+    hideBelow = folded.value.has(n.task.id) ? n.depth : Infinity;
+    out.push(n);
+  }
+  return out;
 });
+const rows = computed(() => tree.value.map((n) => n.task));
+const depthOf = computed(() => new Map(tree.value.map((n) => [n.task.id, n.depth])));
+const kids = computed(() => {
+  const m = new Map<string, number>();
+  for (const x of all.value ?? []) if (x.parentId) m.set(x.parentId, (m.get(x.parentId) ?? 0) + 1);
+  return m;
+});
+const toggleFold = (id: string) => {
+  const f = new Set(folded.value);
+  if (!f.delete(id)) f.add(id);
+  folded.value = f;
+};
+
+// сортировка по клику на заголовок: по возрастанию → по убыванию → ручной порядок
+const SORT_COL: Partial<Record<string, SortBy>> = {
+  title: 'title',
+  priority: 'priority',
+  dueDate: 'dueDate',
+  startDate: 'startDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+};
+function sortBy(id: string) {
+  const by = SORT_COL[id];
+  if (!by) return;
+  const n = nextSort(props.options, by);
+  if (props.saved) emit('update:options', { ...props.options, ...n });
+  else Object.assign(props.options, n);
+}
 const rowIds = computed(() => rows.value.map((r) => r.id));
 
 // --- раскладка
@@ -81,7 +127,49 @@ watch(
   () => [props.projectId, JSON.stringify(props.options.columns)],
   () => (cols.value = resolve()),
 );
-const total = computed(() => CHECK_W + cols.value.reduce((s, c) => s + c.width, 0));
+// авторазмер (как в ClickUp): по самому широкому значению колонки; перетащенная — своя ширина
+const AUTO_MAX = 480;
+const autoW = computed(() => {
+  const st = new Map((statuses.value ?? []).map((s) => [s.id, s.name]));
+  const lb = new Map((labels.value ?? []).map((l) => [l.id, l.name]));
+  const m = new Map<string, number>();
+  for (const c of cols.value) {
+    let w = textWidth(colName(c.id)) + 52; // меню колонки и стрелка сортировки
+    for (const x of rows.value) {
+      const v =
+        c.id === 'title'
+          ? textWidth(x.title) + 16 * (depthOf.value.get(x.id) ?? 0) + 28
+          : c.id === 'key'
+            ? textWidth(x.key, 12)
+            : c.id === 'status'
+              ? textWidth(st.get(x.statusId) ?? '') + 40
+              : c.id === 'assignee'
+                ? 28 + 20 * Math.min(x.assigneeIds.length, 3)
+                : c.id === 'priority'
+                  ? textWidth(t(`tasks.priority.${x.priority}`)) + 40
+                  : c.id === 'dueDate' || c.id === 'startDate'
+                    ? textWidth(x[c.id] ? formatDue(x[c.id]!, locale.value) : t('taskMenu.noDue')) +
+                      44
+                    : c.id === 'labels'
+                      ? x.labelIds.reduce(
+                          (s, id) => s + textWidth(lb.get(id) ?? '', 12) + 24,
+                          24,
+                        ) || textWidth(t('tasks.noLabel')) + 40
+                      : c.id === 'createdAt' || c.id === 'updatedAt'
+                        ? textWidth('2026-10-26')
+                        : textWidth(String(x.fields?.[c.id.slice(FIELD_PREFIX.length)] ?? '')) + 24;
+      if (v > w) w = v;
+    }
+    m.set(c.id, clampWidth(Math.min(AUTO_MAX, w + 16)));
+  }
+  return m;
+});
+const widthOf = (c: ColumnState) => (c.manual ? c.width : (autoW.value.get(c.id) ?? c.width));
+const resetWidth = (c: ColumnState) => {
+  c.manual = false;
+  save();
+};
+const total = computed(() => CHECK_W + cols.value.reduce((s, c) => s + widthOf(c), 0));
 // колонка удалённого поля выпадает из раскладки, когда определения загружены
 watch(defs, (ds) => {
   if (!ds) return;
@@ -107,9 +195,10 @@ function move(i: number, to: number) {
 }
 function startResize(c: ColumnState, e: PointerEvent) {
   const x0 = e.clientX;
-  const w0 = c.width;
+  const w0 = widthOf(c);
   const onMove = (m: PointerEvent) => {
     c.width = clampWidth(w0 + m.clientX - x0);
+    c.manual = true;
   };
   const onUp = () => {
     window.removeEventListener('pointermove', onMove);
@@ -227,10 +316,28 @@ const date = (v: string) => v.slice(0, 10);
               :key="c.id"
               role="columnheader"
               :data-col="c.id"
-              :style="{ width: `${c.width}px` }"
+              :style="{ width: `${widthOf(c)}px` }"
               class="relative flex shrink-0 items-center gap-1 px-2"
+              :aria-sort="
+                sortMark(options, SORT_COL[c.id]) === '↑'
+                  ? 'ascending'
+                  : sortMark(options, SORT_COL[c.id]) === '↓'
+                    ? 'descending'
+                    : undefined
+              "
             >
-              <span class="truncate">{{ colName(c.id) }}</span>
+              <button
+                v-if="SORT_COL[c.id]"
+                type="button"
+                class="no-drag min-w-0 truncate rounded-sm text-left outline-none hover:text-fg focus-visible:ring-2 ring-focus"
+                :title="t('table.sortBy')"
+                data-testid="col-sort"
+                @click="sortBy(c.id)"
+              >
+                {{ colName(c.id) }}
+                <span class="text-accent">{{ sortMark(options, SORT_COL[c.id]) }}</span>
+              </button>
+              <span v-else class="truncate">{{ colName(c.id) }}</span>
               <Popover align="start">
                 <template #trigger>
                   <button
@@ -259,6 +366,7 @@ const date = (v: string) => v.slice(0, 10);
                 :aria-label="t('table.resize')"
                 class="no-drag absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-accent-subtle"
                 @pointerdown.prevent.stop="startResize(c, $event)"
+                @dblclick.stop="resetWidth(c)"
               />
             </div>
           </VueDraggable>
@@ -299,7 +407,7 @@ const date = (v: string) => v.slice(0, 10);
                     :key="c.id"
                     role="gridcell"
                     :data-col="c.id"
-                    :style="{ width: `${c.width}px` }"
+                    :style="{ width: `${widthOf(c)}px` }"
                     class="min-w-0 shrink-0 truncate px-2"
                     :class="{ 'self-stretch': isFieldCol(c.id) }"
                   >
@@ -314,14 +422,34 @@ const date = (v: string) => v.slice(0, 10);
                         @keydown.esc.stop.prevent="cancelEdit"
                         @blur="saveTitle(task)"
                       />
-                      <span
+                      <div
                         v-else
-                        tabindex="0"
-                        class="block truncate outline-none focus-visible:ring-2 ring-focus"
-                        @dblclick="startEdit(task)"
-                        @keydown.enter.prevent="startEdit(task)"
-                        >{{ task.title }}</span
+                        class="flex min-w-0 items-center gap-1"
+                        :style="{ paddingLeft: `${16 * (depthOf.get(task.id) ?? 0)}px` }"
                       >
+                        <button
+                          v-if="options.showSubtasks && kids.get(task.id)"
+                          type="button"
+                          :aria-label="t(folded.has(task.id) ? 'list.expand' : 'list.collapse')"
+                          :aria-expanded="!folded.has(task.id)"
+                          data-testid="table-fold"
+                          class="shrink-0 rounded-sm text-fg-muted hover:text-fg"
+                          @click="toggleFold(task.id)"
+                        >
+                          <ChevronRight
+                            :size="14"
+                            :class="['transition-transform', !folded.has(task.id) && 'rotate-90']"
+                          />
+                        </button>
+                        <div v-else-if="options.showSubtasks" class="w-3.5 shrink-0" />
+                        <span
+                          tabindex="0"
+                          class="block truncate outline-none focus-visible:ring-2 ring-focus"
+                          @dblclick="startEdit(task)"
+                          @keydown.enter.prevent="startEdit(task)"
+                          >{{ task.title }}</span
+                        >
+                      </div>
                     </template>
                     <button
                       v-else-if="c.id === 'key'"

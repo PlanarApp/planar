@@ -32,8 +32,10 @@ import { useBlockedIds } from '../../links';
 import { createStatus, fixPlan, useProjectNames, useStatusKey } from '../scope';
 import Row from './Row.vue';
 import { treeOrder } from './tree';
-import { COLUMN_CLASS, visibleColumns } from './columns';
+import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import { useColumnWidths } from './widths';
+import { nextSort, sortMark } from '../sortHead';
+import type { SortBy } from '../../tasks';
 import { applyMove, planMove } from '../board/plan';
 
 const props = defineProps<ViewProps>();
@@ -177,6 +179,9 @@ const COL_LABEL = {
   project: 'views.fields.project',
 } as const;
 const colName = (c: keyof typeof COL_LABEL) => t(COL_LABEL[c]);
+// сортировка по клику на заголовок колонки: по возрастанию → по убыванию → ручной порядок
+const LIST_SORT: Partial<Record<ListColumn, SortBy>> = { dueDate: 'dueDate', priority: 'priority' };
+const sortBy = (by: SortBy) => Object.assign(props.options, nextSort(props.options, by));
 
 // --- перетаскивание (сортировка «Вручную»):
 // середина строки — сделать подзадачей этой задачи; граница — встать на уровень следующей строки
@@ -512,14 +517,32 @@ watch(
                 role="row"
                 class="flex h-full items-center border-b border-border px-3 pl-10 text-xs text-fg-muted"
               >
-                <span class="flex-1">{{ t('list.colName') }}</span>
+                <button
+                  type="button"
+                  class="flex-1 truncate text-left hover:text-fg"
+                  :title="t('table.sortBy')"
+                  @click="sortBy('title')"
+                >
+                  {{ t('list.colName') }}
+                  <span class="text-accent">{{ sortMark(options, 'title') }}</span>
+                </button>
                 <span
                   v-for="c in columns"
                   :key="c"
                   :class="['relative shrink-0 truncate px-1', COLUMN_CLASS[c]]"
                   :style="{ width: `${widths[c]}px` }"
-                  >{{ colName(c)
-                  }}<span
+                  ><button
+                    v-if="LIST_SORT[c]"
+                    type="button"
+                    class="truncate rounded-sm hover:text-fg"
+                    :title="t('table.sortBy')"
+                    data-testid="col-sort"
+                    @click.stop="sortBy(LIST_SORT[c]!)"
+                  >
+                    {{ colName(c) }}
+                    <span class="text-accent">{{ sortMark(options, LIST_SORT[c]) }}</span></button
+                  ><template v-else>{{ colName(c) }}</template
+                  ><span
                     role="separator"
                     aria-orientation="vertical"
                     :aria-label="t('list.resize')"
@@ -568,8 +591,18 @@ watch(
                     :key="c"
                     :class="['relative shrink-0 truncate px-1', COLUMN_CLASS[c]]"
                     :style="{ width: `${widths[c]}px` }"
-                    >{{ colName(c)
-                    }}<span
+                    ><button
+                      v-if="LIST_SORT[c]"
+                      type="button"
+                      class="truncate rounded-sm hover:text-fg"
+                      :title="t('table.sortBy')"
+                      data-testid="col-sort"
+                      @click.stop="sortBy(LIST_SORT[c]!)"
+                    >
+                      {{ colName(c) }}
+                      <span class="text-accent">{{ sortMark(options, LIST_SORT[c]) }}</span></button
+                    ><template v-else>{{ colName(c) }}</template
+                    ><span
                       role="separator"
                       aria-orientation="vertical"
                       :aria-label="t('list.resize')"

@@ -19,6 +19,8 @@ export const isFieldCol = (id: string): id is `field:${string}` =>
 export interface ColumnState {
   id: ColumnId;
   width: number;
+  /** ширина задана перетаскиванием; иначе — авторазмер по содержимому */
+  manual?: boolean;
 }
 export interface Layout {
   columns: ColumnState[];
@@ -72,6 +74,11 @@ export function parseColumns(cols: unknown): ColumnState[] | undefined {
     columns.push({
       id,
       width: typeof c.width === 'number' ? clampWidth(c.width) : newColumn(id).width,
+      // старые раскладки без флага: ширина не по умолчанию — значит, её перетащили
+      ...((c.manual === true ||
+        (c.manual === undefined &&
+          typeof c.width === 'number' &&
+          clampWidth(c.width) !== newColumn(id).width)) && { manual: true }),
     });
   }
   return columns.length ? columns : undefined;

@@ -152,7 +152,7 @@ describe('table', () => {
         ],
       }),
     );
-    expect(loadLayout('p1').columns).toEqual([{ id: 'key', width: 99 }]);
+    expect(loadLayout('p1').columns).toEqual([{ id: 'key', width: 99, manual: true }]);
     const deny = () => {
       throw new Error('denied');
     };
@@ -282,8 +282,8 @@ describe('table', () => {
         { id: 'title', width: 100 },
       ]);
       expect(loadLayout('p1').columns).toEqual([
-        { id: 'field:abc', width: 200 },
-        { id: 'title', width: 100 },
+        { id: 'field:abc', width: 200, manual: true },
+        { id: 'title', width: 100, manual: true },
       ]);
     });
     it('table-fields: ячейка показывает formatFieldValue (деньги, select)', async () => {
