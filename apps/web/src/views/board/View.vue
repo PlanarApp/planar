@@ -10,7 +10,7 @@ import {
   updateTask,
   useStatuses,
 } from '../../tasks';
-import { statusFor, useProjectNames, useStatusKey } from '../scope';
+import { createStatus, fixPlan, useProjectNames, useStatusKey } from '../scope';
 import { useBlockedIds } from '../../links';
 import { LayoutDashboard } from 'lucide-vue-next';
 import { EmptyState, useBreakpoint } from '../../ui';
@@ -35,7 +35,11 @@ const statuses = useStatuses(spaceId);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId);
 const blocked = useBlockedIds(() => props.projectId);
-const passes = useTaskFilter(() => props.filter, statuses, () => props.options.me);
+const passes = useTaskFilter(
+  () => props.filter,
+  statuses,
+  () => props.options.me,
+);
 const statusKey = useStatusKey(() => props.scope, statuses);
 const projectNames = useProjectNames();
 
@@ -126,26 +130,32 @@ async function onColumnsEnd(e: { oldDraggableIndex?: number; newDraggableIndex?:
 }
 
 async function move(id: string, from: string, to: string, beforeId: string | null) {
-  if (statusKey.value) {
-    // колонки — имена статусов разных пространств; порядок внутри колонки не меняем
-    const task = tasks.value?.find((x) => x.id === id);
-    const statusId = task && from !== to && statusFor(statuses.value ?? [], task.spaceId, to);
-    if (statusId) await updateTask(id, { statusId });
-    return;
-  }
-  const plan = planMove(columns.value, props.options.groupBy, id, from, to, beforeId);
+  // сводка нескольких пространств: колонка — имя статуса, ставим одноимённый статус пространства задачи
+  const plan = fixPlan(
+    planMove(columns.value, props.options.groupBy, id, from, to, beforeId),
+    tasks.value?.find((x) => x.id === id),
+    !!statusKey.value,
+    statuses.value ?? [],
+  );
   if (plan) await applyMove(plan);
 }
 
 function add(key: string, title: string) {
   const by = props.options.groupBy;
-  const statusId =
-    by === 'status'
+  const target = props.scope?.createIn;
+  const statusId = target
+    ? createStatus(
+        statuses.value ?? [],
+        target.spaceId,
+        by === 'status' ? key : undefined,
+        !!statusKey.value,
+      )
+    : by === 'status'
       ? key
       : (statuses.value?.find((s) => s.category === 'todo') ?? statuses.value?.[0])?.id;
   if (!statusId) return;
   void createTask({
-    projectId: props.projectId,
+    projectId: target?.projectId ?? props.projectId,
     statusId,
     title,
     ...(by === 'priority' && { priority: Number(key) }),
@@ -200,7 +210,7 @@ function add(key: string, title: string) {
           :show-empty="options.showEmpty"
           :projects="projectNames"
           :sortable="options.groupBy === 'status' && !scope"
-          :no-add="!!scope"
+          :no-add="!!scope && !scope.createIn"
           @toggle="toggle(g.key)"
           @open="openTask"
           @add="add(g.key, $event)"

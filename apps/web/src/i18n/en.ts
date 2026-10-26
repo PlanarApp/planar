@@ -249,6 +249,7 @@ export default {
     projectNotFound: 'Project not found',
     view: 'View',
     toolbar: 'Project toolbar',
+    createIn: 'New tasks go to project',
     more: 'More',
     taskUnavailable: 'Task panel is unavailable',
     groupBy: 'Group by',

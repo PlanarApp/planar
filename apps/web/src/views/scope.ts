@@ -31,3 +31,30 @@ export function useProjectNames() {
     () => new Map((spaces.value ?? []).flatMap((s) => s.projects.map((p) => [p.id, p.name]))),
   );
 }
+
+/**
+ * План переноса в сводке нескольких пространств: ключ колонки — имя статуса, ставим статус с этим именем
+ * в пространстве задачи; такого нет — переноса нет (null).
+ */
+export function fixPlan<P extends { statusId?: string }>(
+  plan: P | null,
+  task: { spaceId: string } | undefined,
+  byName: boolean,
+  statuses: Row<'statuses'>[],
+): P | null {
+  if (!plan || !byName || !plan.statusId) return plan;
+  const id = task && statusFor(statuses, task.spaceId, plan.statusId);
+  return id ? { ...plan, statusId: id } : null;
+}
+
+/** Статус новой задачи: колонки/группы статуса (id или имя в сводке) или «К работе» пространства задачи. */
+export function createStatus(
+  statuses: Row<'statuses'>[],
+  spaceId: string,
+  groupKey: string | undefined,
+  byName: boolean,
+): string | undefined {
+  const own = statuses.filter((s) => s.spaceId === spaceId);
+  if (groupKey) return byName ? statusFor(statuses, spaceId, groupKey) : groupKey;
+  return (own.find((s) => s.category === 'todo') ?? own[0])?.id;
+}

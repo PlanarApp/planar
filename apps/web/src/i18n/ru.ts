@@ -249,6 +249,7 @@ export default {
     projectNotFound: 'Проект не найден',
     view: 'Вид',
     toolbar: 'Панель проекта',
+    createIn: 'Новые задачи — в проект',
     more: 'Ещё',
     taskUnavailable: 'Панель задачи недоступна',
     groupBy: 'Группировка',

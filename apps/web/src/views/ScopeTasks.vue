@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, ref, watch, watchEffect, type Component
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Tabs } from '../ui';
+import { Select, Tabs } from '../ui';
 import { useSpaces } from '../tasks';
 import OptionsBar from './saved/OptionsBar.vue';
 import TaskModal from './TaskModal.vue';
@@ -34,9 +34,13 @@ const scope = computed(() => {
   const projectIds = props.projectId
     ? [props.projectId]
     : ss.flatMap((s) => s.projects.map((p) => p.id));
+  const target = ss
+    .flatMap((s) => s.projects.map((p) => ({ p, s })))
+    .find((x) => x.p.id === createIn.value);
   return {
     projectIds,
     spaceIds: ss.filter((s) => s.projects.length).map((s) => s.id),
+    ...(target && { createIn: { projectId: target.p.id, spaceId: target.s.id } }),
   };
 });
 const key = computed(
@@ -44,6 +48,42 @@ const key = computed(
     (props.projectId ? `p:${props.projectId}` : props.spaceId ? `s:${props.spaceId}` : 'w') +
     (props.me ? `:me-${props.me}` : ''),
 );
+// проект для новых задач сводки — выбор в панели (запоминается на сводку); по умолчанию первый
+const projectOptions = computed(() =>
+  (spaces.value ?? []).flatMap((s) =>
+    s.projects
+      .filter((p) => !props.projectId || p.id === props.projectId)
+      .filter((p) => (props.spaceId ? s.id === props.spaceId : s.id !== props.rootSpaceId))
+      .map((p) => ({ value: p.id, label: p.name })),
+  ),
+);
+const createKey = () => `planar.scope.${key.value}.createIn`;
+const picked = ref<string | null>(null);
+watch(
+  () => key.value,
+  () => {
+    try {
+      picked.value = localStorage.getItem(createKey());
+    } catch {
+      picked.value = null;
+    }
+  },
+  { immediate: true },
+);
+const createIn = computed({
+  get: () =>
+    projectOptions.value.find((o) => o.value === picked.value)?.value ??
+    projectOptions.value[0]?.value ??
+    null,
+  set: (v: string | null) => {
+    picked.value = v;
+    try {
+      if (v) localStorage.setItem(createKey(), v);
+    } catch {
+      /* без хранилища — до перезагрузки */
+    }
+  },
+});
 const tabs = computed(() =>
   buildViewTabs(viewLoaders(), []).filter((v) => ['list', 'board'].includes(v.key)),
 );
@@ -89,6 +129,15 @@ const selectTab = (k: string) =>
           @update:model-value="selectTab"
         />
       </div>
+      <Select
+        v-if="projectOptions.length > 1"
+        v-model="createIn"
+        size="sm"
+        :label="t('views.createIn')"
+        :options="projectOptions"
+        class="w-48"
+        data-testid="create-in"
+      />
       <OptionsBar
         v-model:options="options"
         :no-me="!!me"

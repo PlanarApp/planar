@@ -17,7 +17,12 @@ export interface ViewProps {
    * сводка группы (Пространство, Воркспейс): задачи этих проектов; `projectId` — ключ сводки для
    * хранилища, создание задач и ручной порядок выключены
    */
-  scope?: { projectIds: string[]; spaceIds: string[] };
+  scope?: {
+    projectIds: string[];
+    spaceIds: string[];
+    /** куда создавать задачи из сводки (выбор в панели); нет — создание выключено */
+    createIn?: { projectId: string; spaceId: string };
+  };
 }
 export { useViewOptions } from './options';
 export { matchFilter } from './filter';

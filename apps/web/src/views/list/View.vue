@@ -29,7 +29,7 @@ import { useExtensions } from '../../modules/registry';
 import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
-import { useProjectNames, useStatusKey } from '../scope';
+import { createStatus, fixPlan, useProjectNames, useStatusKey } from '../scope';
 import Row from './Row.vue';
 import { treeOrder } from './tree';
 import { COLUMN_CLASS, visibleColumns } from './columns';
@@ -161,7 +161,9 @@ const items = computed<Item[]>(() => {
           ? []
           : [{ id: `g:${g.key}`, kind: 'group' as const, group: g }]),
         ...rows,
-        ...(props.scope ? [] : [{ id: `c:${g.key}`, kind: 'create' as const, group: g }]),
+        ...(props.scope && !props.scope.createIn
+          ? []
+          : [{ id: `c:${g.key}`, kind: 'create' as const, group: g }]),
       ];
     }),
   );
@@ -178,9 +180,7 @@ const colName = (c: keyof typeof COL_LABEL) => t(COL_LABEL[c]);
 
 // --- перетаскивание (сортировка «Вручную»):
 // середина строки — сделать подзадачей этой задачи; граница — встать на уровень следующей строки
-const manual = computed(
-  () => !props.scope && props.options.sortBy === 'rank' && props.options.sortDir === 'asc',
-);
+const manual = computed(() => props.options.sortBy === 'rank' && props.options.sortDir === 'asc');
 type Drop = { mode: 'slot'; slot: number } | { mode: 'nest'; index: number };
 const drag = ref<{ task: TaskView; from: string; drop: Drop } | null>(null);
 // потомки перетаскиваемой задачи: в них её не вложить
@@ -194,13 +194,21 @@ const descendants = (id: string) => {
   return out;
 };
 let banned = new Set<string>();
+let dragProject = '';
 function dropAt(clientY: number): Drop {
   const el = scroller.value!;
   const y = clientY - el.getBoundingClientRect().top + el.scrollTop;
   const i = Math.floor(y / rowH.value);
   const frac = y / rowH.value - i;
   const it = items.value[i];
-  if (it?.kind === 'task' && !banned.has(it.task.id) && frac > 0.3 && frac < 0.7)
+  // внутрь — только задачи того же проекта (сводка группы смешивает проекты)
+  if (
+    it?.kind === 'task' &&
+    !banned.has(it.task.id) &&
+    it.task.projectId === dragProject &&
+    frac > 0.3 &&
+    frac < 0.7
+  )
     return { mode: 'nest', index: i };
   return {
     mode: 'slot',
@@ -248,6 +256,8 @@ async function onDragEnd() {
     const nextTask = next?.kind === 'task' && next.group === to ? next : undefined;
     if (nextTask && banned.has(nextTask.task.id) && nextTask.task.id !== d.task.id) return; // внутрь себя
     parent = nextTask ? nextTask.task.parentId : null;
+    // родитель из другого проекта (сводка) — без смены родителя
+    if (parent && byId.value.get(parent)?.projectId !== d.task.projectId) parent = d.task.parentId;
     if (nextTask && nextTask.task.id !== d.task.id) beforeId = nextTask.task.id;
     else if (nextTask) {
       // бросили прямо перед собой — следующий брат после себя
@@ -267,7 +277,13 @@ async function onDragEnd() {
       a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0,
     ),
   }));
-  let plan = planMove(cols, props.options.groupBy, d.task.id, d.from, to, beforeId);
+  let plan = fixPlan(
+    planMove(cols, props.options.groupBy, d.task.id, d.from, to, beforeId),
+    d.task,
+    !!statusKey.value,
+    statuses.value ?? [],
+  );
+  if (!plan && d.from !== to && statusKey.value) return; // в пространстве задачи нет такого статуса
   if (!plan && reparent) {
     const target = cols.find((c) => c.key === to)!.tasks.filter((x) => x.id !== d.task.id);
     const i = beforeId ? target.findIndex((x) => x.id === beforeId) : target.length;
@@ -278,6 +294,7 @@ async function onDragEnd() {
 }
 function startDrag(it: { task: TaskView; group: string }, e: PointerEvent) {
   banned = descendants(it.task.id);
+  dragProject = it.task.projectId;
   drag.value = { task: it.task, from: it.group, drop: dropAt(e.clientY) };
   addEventListener('pointermove', onDragMove);
   addEventListener('pointerup', () => void onDragEnd(), { once: true });
@@ -396,11 +413,19 @@ async function submitCreate(g?: TaskGroup) {
   const title = newTitle.value.trim();
   const by = props.options.groupBy;
   const k = g && g.key !== 'none' ? g.key : undefined;
-  const statusId = (by === 'status' && k) || defaultStatus.value;
+  const target = props.scope?.createIn;
+  const statusId = target
+    ? createStatus(
+        statuses.value ?? [],
+        target.spaceId,
+        by === 'status' ? k : undefined,
+        !!statusKey.value,
+      )
+    : (by === 'status' && k) || defaultStatus.value;
   if (!title || !statusId) return;
   newTitle.value = '';
   await createTask({
-    projectId: props.projectId,
+    projectId: target?.projectId ?? props.projectId,
     statusId,
     title,
     ...(by === 'priority' && k && { priority: Number(k) }),
@@ -448,9 +473,13 @@ watch(
           />
         </div>
         <template v-else>
-          <Button v-if="!scope" variant="primary" :icon="Plus" @click="startCreate('')">{{
-            t('list.create')
-          }}</Button>
+          <Button
+            v-if="!scope || scope.createIn"
+            variant="primary"
+            :icon="Plus"
+            @click="startCreate('')"
+            >{{ t('list.create') }}</Button
+          >
           <Menu v-if="newMenu.length && !scope" :items="newMenu" :label="t('list.newMenu')" />
         </template>
       </template>
