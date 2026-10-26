@@ -97,6 +97,21 @@ prodsmoke() {
   return $rc
 }
 
+# e2e браузера на отдельном чистом стеке planar-vis (свои порты, подсеть, БД): тесты не засоряют данные dev-стека
+e2eweb() {
+  local vis=(env COMPOSE_PROJECT_NAME=planar-vis WEB_PORT=5183 API_PORT=3310 DEV_PG_PORT=55443
+    DEV_SUBNET=10.232.0.0/24 WEBHOOKS_ALLOW_HOSTS=host.docker.internal)
+  "${vis[@]}" docker compose -f compose.dev.yml up -d || return 1
+  API_PORT=3310 waitapidirect || return 1
+  "${vis[@]}" docker compose -f compose.dev.yml exec -T api pnpm --filter @planar/api seed || return 1
+  local rc=0
+  WEB_PORT=5183 waitapi &&
+    E2E_BASE_URL=http://localhost:5183 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts "$@" ||
+    rc=$?
+  "${vis[@]}" docker compose -f compose.dev.yml stop >/dev/null
+  return $rc
+}
+
 cmd="${1:-}"
 [ $# -gt 0 ] && shift
 case "$cmd" in
@@ -107,10 +122,11 @@ case "$cmd" in
   reset) "${DEV[@]}" down -v && "${DEV[@]}" up -d --build ;;
   seed) waitapidirect && "${DEV[@]}" exec -T api pnpm --filter @planar/api seed "$@" ;;
   logs) "${DEV[@]}" logs -f "$@" ;;
+  e2e-web) e2eweb "$@" ;;
   e2e) waitapi && E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e test "$@" ;;
   measure) waitapi && E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e measure "$@" ;;
   prod-smoke) prodsmoke ;;
   testdb) testdb ;;
   test) testdb && pnpm test "$@" ;;
-  *) echo "usage: ./dev.sh up|down|reset|seed|logs|e2e|measure|prod-smoke|test|testdb|vapid" >&2; exit 2 ;;
+  *) echo "usage: ./dev.sh up|down|reset|seed|logs|e2e|e2e-web|measure|prod-smoke|test|testdb|vapid" >&2; exit 2 ;;
 esac

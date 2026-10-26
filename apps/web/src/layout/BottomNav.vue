@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Inbox, ListChecks, Menu, Search } from 'lucide-vue-next';
+import { Briefcase, ListTodo, Menu, Search } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import Badge from '../ui/Badge.vue';
 import { useUnread } from '../inbox/queries';
@@ -17,12 +17,13 @@ const cell =
     data-testid="bottom-nav"
     class="flex shrink-0 border-t border-border bg-bg-subtle pb-[env(safe-area-inset-bottom)]"
   >
-    <RouterLink to="/inbox" :class="cell" active-class="!text-fg">
-      <Inbox :size="20" />{{ t('nav.inbox') }}
+    <!-- как у групп: «Моя работа» (бывшие Входящие и Мои задачи) и Задачи Воркспейса -->
+    <RouterLink to="/w/work" :class="cell" active-class="!text-fg">
+      <Briefcase :size="20" />{{ t('groups.tab.work') }}
       <Badge v-if="unread" variant="solid" class="absolute right-1/4 top-1.5">{{ unread }}</Badge>
     </RouterLink>
-    <RouterLink to="/my" :class="cell" active-class="!text-fg">
-      <ListChecks :size="20" />{{ t('nav.my') }}
+    <RouterLink to="/w" :class="cell" exact-active-class="!text-fg">
+      <ListTodo :size="20" />{{ t('groups.tab.tasks') }}
     </RouterLink>
     <button type="button" :class="cell" @click="ui.palette = true">
       <Search :size="20" />{{ t('nav.search') }}

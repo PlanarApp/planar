@@ -55,7 +55,8 @@ services:
       # dev/e2e: фиксированный ключ по умолчанию (./dev.sh up пишет свой в .env; reset его не создаёт)
       PLANAR_SECRET_KEY: ${PLANAR_SECRET_KEY:-ZGV2LW9ubHktc2VjcmV0LWtleS0zMi1ieXRlcy0hISE=}
       LOG_LEVEL: info
-      WEBHOOKS_ALLOW_HOSTS: ${WEBHOOKS_ALLOW_HOSTS:-}
+      # dev/e2e: доставка вебхуков на хост (приёмник e2e); в проде — пусто
+      WEBHOOKS_ALLOW_HOSTS: ${WEBHOOKS_ALLOW_HOSTS:-host.docker.internal}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     ports:
