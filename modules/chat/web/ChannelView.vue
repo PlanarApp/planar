@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { EmptyState, mutate, newId } from '@planar/web/modules';
+import { EmptyState, db, mutate, newId } from '@planar/web/modules';
 import Composer from './Composer.vue';
 import MessageItem from './MessageItem.vue';
 import { useFeed } from './feed';
-import type { Channel, UserRow } from './model';
+import { ATTENTION, channelOfUrl, type Channel, type UserRow } from './model';
 import { useTyping } from './typing';
 import { useTexts } from './text';
 
@@ -20,6 +20,13 @@ const props = defineProps<{
 const tx = useTexts();
 const feed = useFeed(props.channel.id);
 const { messages } = feed;
+// «Новые»: граница непрочитанного на момент открытия — не сдвигается, пока канал открыт
+const since = props.channel.lastSeq > props.readSeq ? props.readSeq : null;
+const firstNew = computed(() =>
+  since === null
+    ? undefined
+    : messages.value.find((m) => (m.seq ?? 0) > since && m.authorId !== props.me)?.id,
+);
 
 const scroller = ref<HTMLElement | null>(null);
 const virt = useVirtualizer(
@@ -69,7 +76,14 @@ async function jump(id: string) {
 onMounted(async () => {
   await feed.loadOlder();
   if (props.messageId) await jump(props.messageId);
-  else await toEnd();
+  else {
+    // открыли непрочитанный — к первому новому, иначе в конец
+    const i = messages.value.findIndex((m) => m.id === firstNew.value);
+    if (i > 0) {
+      await nextTick();
+      virt.value.scrollToIndex(i, { align: 'start' });
+    } else await toEnd();
+  }
   positioned.value = true;
 });
 watch(
@@ -109,6 +123,22 @@ function flush() {
     channelId: props.channel.id,
     lastReadSeq: pending,
   }).catch(() => {});
+  void readAttention();
+}
+// прочитал канал — гаснут его уведомления (упоминания, 1:1) в счётчике чатов и колокольчике
+async function readAttention() {
+  const ids = (
+    await db
+      .table<{ id: string; kind: string; url: string | null; readAt: string | null }>(
+        'notifications',
+      )
+      .toArray()
+  )
+    .filter(
+      (n) => !n.readAt && ATTENTION.includes(n.kind) && channelOfUrl(n.url) === props.channel.id,
+    )
+    .map((n) => n.id);
+  if (ids.length) await mutate('notification.read', { ids }).catch(() => {});
 }
 watch(
   () => {
@@ -157,6 +187,14 @@ const typingText = computed(() => {
           class="absolute left-0 top-0 w-full [contain:layout_style]"
           :style="{ transform: `translateY(${vi.start}px)` }"
         >
+          <div
+            v-if="messages[vi.index]?.id === firstNew"
+            class="flex items-center gap-2 px-3 pt-2 text-xs font-medium text-danger"
+            data-testid="chat-new-divider"
+          >
+            <span class="h-px flex-1 bg-danger/40" />{{ tx('newMessages')
+            }}<span class="h-px flex-1 bg-danger/40" />
+          </div>
           <MessageItem
             v-if="messages[vi.index]"
             :message="messages[vi.index]!"

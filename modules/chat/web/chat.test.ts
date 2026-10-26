@@ -7,6 +7,7 @@ import { web } from './index';
 import { shared } from '../shared';
 import { mergeFeed, taskRefs, type Channel, type Message } from './model';
 import { useFeed } from './feed';
+import { useChatData } from './data';
 import { useTyping } from './typing';
 import Section from './Section.vue';
 import ChannelView from './ChannelView.vue';
@@ -210,6 +211,43 @@ describe('chat web: манифест', () => {
       component: expect.any(Function),
     });
     expect(web.topbar!.map((x) => x.id)).toEqual(['chats']);
+  });
+});
+
+describe('счётчик чатов', () => {
+  it('считает только непрочитанные упоминания и 1:1 по каналу; прочее — лишь непрочитанное', async () => {
+    const a = newId();
+    await db.table('chatChannels').put(chan(a, { lastSeq: 5 }));
+    const n = (kind: string, readAt: string | null, ch = a) => ({
+      id: newId(),
+      userId: ME,
+      kind,
+      url: `/m/chat/c/${ch}/${newId()}`,
+      readAt,
+    });
+    await db
+      .table('notifications')
+      .bulkPut([
+        n('chat_mention', null),
+        n('chat_dm', NOW),
+        n('chat_reply', null),
+        n('assigned', null),
+      ]);
+    const w = mount(
+      defineComponent({
+        setup: () => {
+          const x = useChatData();
+          return () =>
+            h(
+              'p',
+              x.ready.value
+                ? `${x.total.value}/${x.attentionOf(chan(a))}/${x.unreadOf(chan(a, { lastSeq: 5 }))}`
+                : '',
+            );
+        },
+      }),
+    );
+    await vi.waitFor(() => expect(w.text()).toBe('1/1/5'));
   });
 });
 

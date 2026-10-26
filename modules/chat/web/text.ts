@@ -50,6 +50,8 @@ const S = {
   unreadOnly: { ru: 'Непрочитанные', en: 'Unread' },
   allChats: { ru: 'Все', en: 'All' },
   noUnread: { ru: 'Нет непрочитанных', en: 'Nothing unread' },
+  newMessages: { ru: 'Новые', en: 'New' },
+  unreadMark: { ru: 'Есть непрочитанные', en: 'Unread' },
   noChannels: { ru: 'Нет каналов', en: 'No channels' },
   unknown: { ru: 'Неизвестный', en: 'Unknown' },
 } as const;

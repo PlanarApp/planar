@@ -1,7 +1,21 @@
 import { computed } from 'vue';
 import { db, useQuery, useSession } from '@planar/web/modules';
-import { unread, type Channel, type Member, type Read, type UserRow } from './model';
+import {
+  ATTENTION,
+  channelOfUrl,
+  unread,
+  type Channel,
+  type Member,
+  type Read,
+  type UserRow,
+} from './model';
 
+interface NotificationRow {
+  id: string;
+  kind: string;
+  url: string | null;
+  readAt: string | null;
+}
 interface SpaceRow {
   id: string;
   name: string;
@@ -25,6 +39,7 @@ export function useChatData() {
     users: t<UserRow>('users'),
     spaces: t<SpaceRow>('spaces'),
     spaceMembers: t<SpaceMember>('spaceMembers'),
+    notifications: t<NotificationRow>('notifications'),
   };
   const raw = computed(() => {
     const { channels, members, reads, users, spaces, spaceMembers } = q;
@@ -54,6 +69,26 @@ export function useChatData() {
       ),
   );
   const unreadOf = (c: Channel) => unread(c, readOf.value.get(c.id));
-  const total = computed(() => (d.value?.channels ?? []).reduce((s, c) => s + unreadOf(c), 0));
-  return { d, meId, users, readOf, unreadOf, total, ready: computed(() => !!raw.value) };
+  // счётчик — непрочитанные уведомления (упоминания и 1:1) по каналам; прочее непрочитанное — только пометка в списке
+  const attention = computed(() => {
+    const m = new Map<string, string[]>();
+    for (const n of q.notifications.value ?? []) {
+      const c = !n.readAt && ATTENTION.includes(n.kind) && channelOfUrl(n.url);
+      if (c) m.set(c, [...(m.get(c) ?? []), n.id]);
+    }
+    return m;
+  });
+  const attentionOf = (c: Channel) => attention.value.get(c.id)?.length ?? 0;
+  const total = computed(() => [...attention.value.values()].reduce((s, a) => s + a.length, 0));
+  return {
+    d,
+    meId,
+    users,
+    readOf,
+    unreadOf,
+    attention,
+    attentionOf,
+    total,
+    ready: computed(() => !!raw.value),
+  };
 }

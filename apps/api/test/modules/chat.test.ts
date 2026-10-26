@@ -558,15 +558,22 @@ describe('chat: уведомления и push', () => {
     expect(await jobs()).toContain(n[0]!.id);
   });
 
-  it('dm → chat_dm всем, кроме автора; упомянутый получает chat_mention, не оба', async () => {
+  it('группа из трёх: упомянутый — chat_mention, прочим без уведомления; 1:1 → chat_dm', async () => {
     const dm = await mkDm(w.member, [w.member, w.admin, w.guest]);
     const m = await sendOk(w.member, dm, { body: mention(w.admin.userId) });
-    const of = async (u: TestClient) => (await notifs(u.userId)).filter((x) => x.url?.includes(m));
-    expect((await of(w.admin)).map((x) => x.kind)).toEqual(['chat_mention']);
-    expect((await of(w.guest)).map((x) => x.kind)).toEqual(['chat_dm']);
-    expect(await of(w.member)).toHaveLength(0);
-    expect((await of(w.guest))[0]).toMatchObject({ spaceId: null, url: `/m/chat/c/${dm}/${m}` });
-    expect(await jobs()).toContain((await of(w.guest))[0]!.id);
+    const of = async (u: TestClient, id: string) =>
+      (await notifs(u.userId)).filter((x) => x.url?.includes(id));
+    expect((await of(w.admin, m)).map((x) => x.kind)).toEqual(['chat_mention']);
+    expect(await of(w.guest, m)).toHaveLength(0);
+    expect(await of(w.member, m)).toHaveLength(0);
+    const one = await mkDm(w.member, [w.member, w.guest]);
+    const m2 = await sendOk(w.member, one);
+    expect((await of(w.guest, m2)).map((x) => x.kind)).toEqual(['chat_dm']);
+    expect((await of(w.guest, m2))[0]).toMatchObject({
+      spaceId: null,
+      url: `/m/chat/c/${one}/${m2}`,
+    });
+    expect(await jobs()).toContain((await of(w.guest, m2))[0]!.id);
   });
 
   it('ответ в треде → chat_reply автору корня и прежним авторам ответов, url треда', async () => {

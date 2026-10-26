@@ -7,7 +7,6 @@ import {
   IconButton,
   Popover,
   Tabs,
-  groupUrl,
   useRouter,
   useSpaces,
 } from '@planar/web/modules';
@@ -16,7 +15,7 @@ import { dmTitle } from './model';
 import { useTexts } from './text';
 
 // кнопка чатов в верхней панели: счётчик непрочитанных, в меню — каналы и диалоги (непрочитанные / все)
-const { d, meId, users, unreadOf, total } = useChatData();
+const { d, meId, users, unreadOf, attentionOf, total } = useChatData();
 const router = useRouter();
 const tr = useTexts();
 const spaces = useSpaces();
@@ -39,23 +38,20 @@ const rows = computed(() => {
     .sort((a, b) => (b.lastMessageAt ?? b.createdAt).localeCompare(a.lastMessageAt ?? a.createdAt))
     .map((c) => ({
       c,
-      n: unreadOf(c),
+      n: attentionOf(c),
+      unread: unreadOf(c) > 0,
       where: where(c.spaceId, c.projectId),
       title:
         c.kind === 'dm'
           ? dmTitle(c, x.members, users.value, meId.value) ||
             (users.value.get(meId.value)?.name ?? tr('unknown'))
           : `# ${c.name}`,
-      to: c.projectId
-        ? groupUrl('project', c.projectId, 'chats')
-        : c.spaceId
-          ? groupUrl('space', c.spaceId, 'chats')
-          : groupUrl('workspace', '', 'chats'),
     }));
 });
-const go = (to: string, c: string) => {
+// /m/chat/c/<id> сам ведёт в таб «Чаты» нужной группы
+const go = (c: string) => {
   open.value = false;
-  void router.push({ path: to, query: { c } });
+  void router.push(`/m/chat/c/${c}`);
 };
 </script>
 
@@ -92,10 +88,10 @@ const go = (to: string, c: string) => {
           type="button"
           data-testid="topbar-chat"
           class="flex min-h-11 items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
-          @click="go(r.to, r.c.id)"
+          @click="go(r.c.id)"
         >
           <span class="flex min-w-0 flex-1 flex-col">
-            <span :class="['truncate', r.n && 'font-medium']">{{ r.title }}</span>
+            <span :class="['truncate', r.unread && 'font-semibold']">{{ r.title }}</span>
             <span class="truncate text-xs text-fg-subtle" data-testid="topbar-chat-where">{{
               r.where
             }}</span>
@@ -103,6 +99,7 @@ const go = (to: string, c: string) => {
           <Badge v-if="r.n" variant="solid" color="var(--color-accent)" class="text-accent-fg!">{{
             r.n
           }}</Badge>
+          <span v-else-if="r.unread" class="size-2 shrink-0 rounded-full bg-accent" />
         </button>
       </div>
     </div>

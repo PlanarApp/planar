@@ -16,6 +16,15 @@ export interface UserRow {
 export const unread = (c: Channel, r?: Read): number =>
   r?.muted ? 0 : Math.max(0, c.lastSeq - (r?.lastReadSeq ?? 0));
 
+/** Личный диалог 1:1 (я и один собеседник): без @-упоминаний, каждое сообщение — уведомление. */
+export const isDirect = (c: Channel, members: Member[]) =>
+  c.kind === 'dm' && members.filter((m) => m.channelId === c.id).length <= 2;
+
+/** Уведомления, которые зажигают счётчик чатов: упоминание или сообщение 1:1. */
+export const ATTENTION = ['chat_mention', 'chat_dm'];
+const CHANNEL_URL = /^\/m\/chat\/c\/([0-9a-f-]{36})/;
+export const channelOfUrl = (url: string | null | undefined) => CHANNEL_URL.exec(url ?? '')?.[1];
+
 export const byName = (a: string, b: string) => a.localeCompare(b);
 
 /** Имя диалога — участники, кроме меня. */

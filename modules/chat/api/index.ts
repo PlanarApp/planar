@@ -173,7 +173,8 @@ async function notify(
     };
     add(fresh, 'chat_mention');
     if (created) {
-      if (ch.kind === 'dm') add(seeing, 'chat_dm');
+      // личное — только 1:1; в группе от трёх уведомляет лишь упоминание
+      if (ch.kind === 'dm' && seeing.size <= 2) add(seeing, 'chat_dm');
       else if (m.parentId) {
         const root = await sys.get<Msg>('chatMessages', m.parentId);
         const prior = await sys.scan<Msg>('chatMessages', { index: 'parentId', eq: m.parentId });

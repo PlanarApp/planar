@@ -7,7 +7,7 @@ import ChannelView from './ChannelView.vue';
 import Section from './Section.vue';
 import ThreadPanel from './ThreadPanel.vue';
 import { useChatData } from './data';
-import { dmTitle } from './model';
+import { dmTitle, isDirect } from './model';
 import { useTexts } from './text';
 
 const tx = useTexts();
@@ -72,6 +72,10 @@ const members = computed(() =>
         .filter((m) => m.channelId === channelId.value)
         .flatMap((m) => users.value.get(m.userId) ?? []),
 );
+// @-упоминания — в каналах и группах от трёх; в диалоге 1:1 их нет
+const mentionable = computed(() =>
+  channel.value && d.value && isDirect(channel.value, d.value.members) ? [] : members.value,
+);
 const title = computed(() => {
   const c = channel.value;
   if (!c) return '';
@@ -101,7 +105,7 @@ const showFeed = computed(() => !(isMobile.value && rootId.value));
           :users="users"
           :me="meId"
           :read-seq="readOf.get(channel.id)?.lastReadSeq ?? 0"
-          :members="members"
+          :members="mentionable"
           :message-id="messageId"
         />
       </div>
@@ -112,7 +116,7 @@ const showFeed = computed(() => !(isMobile.value && rootId.value));
         :root-id="rootId"
         :users="users"
         :me="meId"
-        :members="members"
+        :members="mentionable"
         :archived="!!channel.archivedAt"
       />
     </template>

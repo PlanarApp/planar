@@ -31,7 +31,7 @@ import ChannelView from './ChannelView.vue';
 import ThreadPanel from './ThreadPanel.vue';
 import { useChatData } from './data';
 import { provideChatLinks } from './links';
-import { byName, dmTitle, findDm } from './model';
+import { byName, dmTitle, findDm, isDirect } from './model';
 import { useTexts } from './text';
 
 // таб «Чаты» группы: каналы её уровня и вложенных, личные диалоги — у Воркспейса; канал — ?c, тред — ?t
@@ -39,7 +39,7 @@ const props = defineProps<{ scope: GroupScope }>();
 const tx = useTexts();
 const route = useRoute();
 const router = useRouter();
-const { d, meId, users, readOf, unreadOf } = useChatData();
+const { d, meId, users, readOf, unreadOf, attentionOf } = useChatData();
 const levels = useGroupLevels(() => props.scope);
 const q = (k: string) =>
   typeof route.query[k] === 'string' ? (route.query[k] as string) : undefined;
@@ -102,6 +102,10 @@ const members = computed(() =>
     : (d.value?.members ?? [])
         .filter((m) => m.channelId === channel.value?.id)
         .flatMap((m) => users.value.get(m.userId) ?? []),
+);
+// @-упоминания — в каналах и группах от трёх; в диалоге 1:1 их нет
+const mentionable = computed(() =>
+  channel.value && d.value && isDirect(channel.value, d.value.members) ? [] : members.value,
 );
 const title = computed(() => {
   const c = channel.value;
@@ -248,17 +252,25 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
           :class="[row, q('c') === c.id && 'bg-accent-subtle']"
         >
           <span class="flex min-w-0 items-center gap-1.5">
-            <Hash :size="14" class="shrink-0 text-fg-subtle" /><span class="truncate">{{
-              c.name
-            }}</span>
+            <Hash :size="14" class="shrink-0 text-fg-subtle" /><span
+              :class="['truncate', unreadOf(c) > 0 && 'font-semibold']"
+              >{{ c.name }}</span
+            >
           </span>
           <Badge
-            v-if="unreadOf(c) > 0"
+            v-if="attentionOf(c) > 0"
+            data-testid="chat-attention"
             variant="solid"
             color="var(--color-accent)"
             class="text-accent-fg!"
-            >{{ unreadOf(c) }}</Badge
+            >{{ attentionOf(c) }}</Badge
           >
+          <span
+            v-else-if="unreadOf(c) > 0"
+            data-testid="chat-unread-dot"
+            :aria-label="tx('unreadMark')"
+            class="size-2 shrink-0 rounded-full bg-accent"
+          />
         </RouterLink>
       </div>
       <div v-if="scope.level === 'workspace'" class="mt-2">
@@ -300,17 +312,25 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
           :class="[row, q('c') === x.c.id && 'bg-accent-subtle']"
         >
           <span class="flex min-w-0 items-center gap-1.5">
-            <User :size="14" class="shrink-0 text-fg-subtle" /><span class="truncate">{{
-              x.title
-            }}</span>
+            <User :size="14" class="shrink-0 text-fg-subtle" /><span
+              :class="['truncate', unreadOf(x.c) > 0 && 'font-semibold']"
+              >{{ x.title }}</span
+            >
           </span>
           <Badge
-            v-if="unreadOf(x.c) > 0"
+            v-if="attentionOf(x.c) > 0"
+            data-testid="chat-attention"
             variant="solid"
             color="var(--color-accent)"
             class="text-accent-fg!"
-            >{{ unreadOf(x.c) }}</Badge
+            >{{ attentionOf(x.c) }}</Badge
           >
+          <span
+            v-else-if="unreadOf(x.c) > 0"
+            data-testid="chat-unread-dot"
+            :aria-label="tx('unreadMark')"
+            class="size-2 shrink-0 rounded-full bg-accent"
+          />
         </RouterLink>
       </div>
     </nav>
@@ -361,7 +381,7 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
           :users="users"
           :me="meId"
           :read-seq="readOf.get(channel.id)?.lastReadSeq ?? 0"
-          :members="members"
+          :members="mentionable"
           :message-id="q('m')"
         />
       </div>
@@ -372,7 +392,7 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
         :root-id="q('t')!"
         :users="users"
         :me="meId"
-        :members="members"
+        :members="mentionable"
         :archived="!!channel.archivedAt"
       />
     </template>
