@@ -159,6 +159,20 @@ watch(
 );
 onBeforeUnmount(() => (clearTimeout(timer), clearTimeout(hlTimer)));
 
+// ↑ в пустом поле: правка своего последнего сообщения; после — фокус обратно в поле ввода
+const composer = ref<InstanceType<typeof Composer> | null>(null);
+const editId = ref('');
+function editLast() {
+  const i = messages.value.findLastIndex((m) => m.authorId === props.me && !m.deletedAt);
+  if (i < 0) return;
+  editId.value = messages.value[i]!.id;
+  virt.value.scrollToIndex(i, { align: 'center' });
+}
+function editDone() {
+  editId.value = '';
+  composer.value?.focus();
+}
+
 const typing = useTyping(props.channel.id, () => props.me);
 const typingText = computed(() => {
   const names = typing.value.map((u) => props.users.get(u)?.name ?? tx('unknown'));
@@ -203,6 +217,8 @@ const typingText = computed(() => {
             :me="me"
             :members="members"
             :highlight="hl === messages[vi.index]!.id"
+            :edit="editId === messages[vi.index]!.id"
+            @edit-done="editDone"
           />
         </div>
       </div>
@@ -210,6 +226,12 @@ const typingText = computed(() => {
     <p class="h-5 px-3 text-xs text-fg-muted" data-testid="chat-typing" aria-live="polite">
       {{ typingText }}
     </p>
-    <Composer :channel-id="channel.id" :members="members" :disabled="!!channel.archivedAt" />
+    <Composer
+      ref="composer"
+      :channel-id="channel.id"
+      @edit-last="editLast"
+      :members="members"
+      :disabled="!!channel.archivedAt"
+    />
   </div>
 </template>

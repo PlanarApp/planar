@@ -191,6 +191,14 @@ defineExpose({
   clear: () => editor.value?.commands.clearContent(true),
   focus: () => editor.value?.commands.focus('end'),
 });
+// список @ под курсором; не помещается снизу (поле у нижнего края, как в чате) — над курсором
+const sugStyle = (r: DOMRect | null, n: number) => {
+  if (!r) return {};
+  const h = Math.min(256, n * 32 + 10);
+  return r.bottom + 4 + h > window.innerHeight
+    ? { left: r.left + 'px', bottom: window.innerHeight - r.top + 4 + 'px' }
+    : { left: r.left + 'px', top: r.bottom + 4 + 'px' };
+};
 </script>
 
 <template>
@@ -212,8 +220,8 @@ defineExpose({
       v-if="sug && sug.items.length"
       role="listbox"
       :aria-label="t('task.mention')"
-      class="fixed z-50 min-w-44 rounded-lg border border-border bg-surface p-1 shadow-md"
-      :style="sug.rect ? { left: sug.rect.left + 'px', top: sug.rect.bottom + 4 + 'px' } : {}"
+      class="fixed z-50 max-h-64 min-w-44 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-md"
+      :style="sugStyle(sug.rect, sug.items.length)"
     >
       <li
         v-for="(it, i) in sug.items"

@@ -21,7 +21,7 @@ const props = defineProps<{
   members: { id: string; name: string }[];
   disabled?: boolean;
 }>();
-const emit = defineEmits<{ sent: [id: string] }>();
+const emit = defineEmits<{ sent: [id: string]; editLast: [] }>();
 const tx = useTexts();
 
 interface Att {
@@ -99,6 +99,19 @@ async function send() {
   emit('sent', id);
 }
 
+// ↑ в пустом поле — править своё последнее сообщение, как в Slack
+function onUp(e: KeyboardEvent) {
+  if (
+    body.value ||
+    atts.value.length ||
+    (e.currentTarget as HTMLElement).querySelector('[role=listbox]')
+  )
+    return;
+  e.preventDefault();
+  emit('editLast');
+}
+defineExpose({ focus: () => editor.value?.focus() });
+
 // Enter отправляет (Shift+Enter — перенос); открытый список @ забирает Enter себе
 function onEnter(e: KeyboardEvent) {
   if (e.isComposing || (e.currentTarget as HTMLElement).querySelector('[role=listbox]')) return;
@@ -113,6 +126,7 @@ function onEnter(e: KeyboardEvent) {
     data-testid="chat-composer"
     class="border-t border-border p-2"
     @keydown.enter.exact.capture="onEnter"
+    @keydown.up.exact="onUp"
     @drop.prevent="attach(filesOf($event.dataTransfer?.files))"
     @dragover.prevent
     @paste="attach(filesOf($event.clipboardData?.files))"

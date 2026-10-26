@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useChatLinks } from './links';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { MessageSquare, Pencil, SmilePlus, Trash2 } from 'lucide-vue-next';
 import { Button, ConfirmDialog, Editor, IconButton, mutate, newId } from '@planar/web/modules';
@@ -26,7 +26,10 @@ const props = defineProps<{
   members: { id: string; name: string }[];
   inThread?: boolean;
   highlight?: boolean;
+  /** начать правку (↑ в пустом поле ввода) */
+  edit?: boolean;
 }>();
+const emit = defineEmits<{ editDone: [] }>();
 const tx = useTexts();
 const m = computed(() => props.message);
 const author = computed(() => props.users.get(m.value.authorId)?.name ?? tx('unknown'));
@@ -73,14 +76,32 @@ const react = (emoji: string) => {
 
 const editing = ref(false);
 const draft = ref<Record<string, unknown> | null>(null);
+const editor = ref<InstanceType<typeof Editor> | null>(null);
 const startEdit = () => {
   draft.value = m.value.body as Record<string, unknown>;
   editing.value = true;
+  void nextTick(() => editor.value?.focus());
+};
+watch(
+  () => props.edit,
+  (v) => v && mine.value && startEdit(),
+  { immediate: true },
+);
+const stopEdit = () => {
+  editing.value = false;
+  emit('editDone');
 };
 async function save() {
   if (draft.value)
     await mutate('chat.message.update', { id: m.value.id, body: plain(draft.value) });
-  editing.value = false;
+  stopEdit();
+}
+// в правке Enter сохраняет (Shift+Enter — перенос), Esc — отмена; открытый список @ забирает Enter себе
+function onEditEnter(e: KeyboardEvent) {
+  if (e.isComposing || (e.currentTarget as HTMLElement).querySelector('[role=listbox]')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  void save();
 }
 const confirming = ref(false);
 const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catch(() => {});
@@ -111,11 +132,23 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
         }}</span>
       </header>
       <p v-if="m.deletedAt" class="text-sm italic text-fg-subtle">{{ tx('deleted') }}</p>
-      <form v-else-if="editing" @submit.prevent="save">
-        <Editor v-model="draft" :members="members" :label="tx('message')" @submit="save" />
+      <form
+        v-else-if="editing"
+        data-testid="chat-edit"
+        @submit.prevent="save"
+        @keydown.enter.exact.capture="onEditEnter"
+        @keydown.esc.stop="stopEdit"
+      >
+        <Editor
+          ref="editor"
+          v-model="draft"
+          :members="members"
+          :label="tx('message')"
+          @submit="save"
+        />
         <div class="mt-1 flex gap-1">
           <Button type="submit" size="sm" variant="primary">{{ tx('save') }}</Button>
-          <Button size="sm" @click="editing = false">{{ tx('cancel') }}</Button>
+          <Button size="sm" @click="stopEdit">{{ tx('cancel') }}</Button>
         </div>
       </form>
       <template v-else>

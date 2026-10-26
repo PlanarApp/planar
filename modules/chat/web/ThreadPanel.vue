@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useChatLinks } from './links';
-import { computed, onMounted, shallowRef } from 'vue';
+import { computed, onMounted, ref, shallowRef } from 'vue';
 import { RouterLink } from 'vue-router';
 import { X } from 'lucide-vue-next';
 import { api, db, useQuery } from '@planar/web/modules';
@@ -42,6 +42,17 @@ const replies = computed(() => {
 const reactions = computed(() => merged(rest.value?.reactions ?? []));
 const reactionsOf = (id: string) => reactions.value.filter((r) => r.messageId === id);
 const links = useChatLinks();
+// ↑ в пустом поле — правка своего последнего ответа
+const composer = ref<InstanceType<typeof Composer> | null>(null);
+const editId = ref('');
+const editLast = () =>
+  (editId.value =
+    [...(replies.value ?? [])].reverse().find((r) => r.authorId === props.me && !r.deletedAt)?.id ??
+    '');
+function editDone() {
+  editId.value = '';
+  composer.value?.focus();
+}
 </script>
 
 <template>
@@ -74,8 +85,17 @@ const links = useChatLinks();
         :me="me"
         :members="members"
         in-thread
+        :edit="editId === r.id"
+        @edit-done="editDone"
       />
     </div>
-    <Composer :channel-id="channelId" :parent-id="rootId" :members="members" :disabled="archived" />
+    <Composer
+      ref="composer"
+      :channel-id="channelId"
+      :parent-id="rootId"
+      :members="members"
+      :disabled="archived"
+      @edit-last="editLast"
+    />
   </aside>
 </template>
