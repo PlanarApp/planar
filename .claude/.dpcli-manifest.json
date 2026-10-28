@@ -1,13 +1,13 @@
 {
   "files": {
-    ".claude/agents/dp-coordinator.md": "6b50d6149aa3b1a736f944bfe239569d21f6d4d8d65e67a83ae7fafe1fc4cb42",
+    ".claude/agents/dp-coordinator.md": "5fe4ac6cb832de3b7c3c02073f1aee73bdb64e905fe7c78ec51f70f4d1eb6a22",
     ".claude/agents/dp-engineer.md": "7373fa870563b2283cf317b33badf6b54b2c064f7fa320aa330c0107b1d27c7f",
     ".claude/agents/dp-mechanic.md": "7c7fd399bbc044b6dd0f8d35cd566fed1d6e4989c23856c3eaaf6e925512664a",
     ".claude/agents/dp-researcher.md": "7524cb8193f02779c0135589eb31366fbbb7e9f60eee50e070655f855b197e15",
     ".claude/agents/dp-reviewer.md": "f661c08872895c91d71473d35ed29b26e1a853f45b051df0ccb4c8f51b95ef13",
     ".claude/agents/dp-status.md": "57a6c48dc30561d5ae6ba0da628663d32f5eec26e21624068e494f0be782889d",
     ".claude/agents/dp-writer.md": "acca2c666215a657575bfd7f4a93c9825515abe5bb2b82c27373b05f5ae3dc72",
-    ".claude/dpcli-workflow.md": "4a9e6e97cebb7f953d7d5e0eb4cc22cd8d6c12d8409215b411e264ccf8e2e138",
+    ".claude/dpcli-workflow.md": "48bfdae1b87627feafa2992d2c6319122c552b2abfb49a9943787e4952c85990",
     ".claude/skills/harness-retro/SKILL.md": "d4f35c483da3b05a5ca8c80f69ef9ca8f8604b71eda978b283653cde13c0ab9b",
     ".claude/skills/harness-retro/cost.py": "6802932cad867f923ec41bfb71061d0c507de3c3ce0b74af26ced76ce4fa1949",
     ".claude/skills/start-to-do/SKILL.md": "5d9043711eab9b07b1fc4a3e397a8af8de52b61b8eed5a1820b375c8d27dc9e9"

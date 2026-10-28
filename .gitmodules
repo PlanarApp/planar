@@ -1,0 +1,3 @@
+[submodule ".dpcli"]
+	path = .dpcli
+	url = https://github.com/zolotarev/dpcli.git

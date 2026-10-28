@@ -20,6 +20,11 @@ module_copy: "{copies}/{project}-{module}"
 task_copy: "{copies}/{project}-{module}-{task}"
 
 # Журналы и планы модулей: <plan_dir>/<модуль>/ (карточки, отчёты, events.jsonl, decisions.jsonl).
+# Подготовка новых рабочих копий: dpcli — сабмодуль .dpcli, git worktree add его не выписывает.
+# node_modules и .env берутся из главной копии по умолчанию (worktree.link / worktree.copy).
+worktree:
+  setup: "git submodule update --init .dpcli"
+
 plan_dir: docs/plan
 # Контракты стыков: <contracts_dir>/<модуль>.md.
 contracts_dir: docs/contracts
