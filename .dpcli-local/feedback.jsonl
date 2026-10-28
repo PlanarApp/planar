@@ -1,0 +1,3 @@
+{"t": "2026-10-28T22:53:50", "id": "F-1", "kind": "cluster", "title": "task show truncates addenda", "match": "(task show|дополнени).{0,60}(обреза|усека|truncat)|(обреза|усека|truncat).{0,60}(дополнени|task show)", "scope": "dpcli", "why": "Executors miss coordinator instructions added after the brief and have to discover --full"}
+{"t": "2026-10-28T22:56:14", "id": "F-1", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/1"}
+{"t": "2026-10-28T22:58:40", "id": "F-1", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/1)", "pr": "https://github.com/zolotarev/dpcli/pull/1"}
