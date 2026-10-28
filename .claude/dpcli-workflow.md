@@ -14,12 +14,12 @@ Journal, cards, branches, docs — only via `.dpcli/dpcli` (help: `.dpcli/dpcli 
 ## Lifecycle
 1. Plan `docs/plan/<m>.md`: goal, user decisions, tasks with scope and acceptance, waves, stop conditions.
 2. Branch `feature/<module>` **from the module base** — the feature branch the main session is on (`module new` takes the current branch; another — `--from`); copy, coordinator; contracts before the first executor. Several modules of one feature — each its own branch from the same feature branch.
-3. Waves: ≤ 4 executors at once; task → card → copy and branch `<m>/<ID>` from `feature/<module>` → acceptance → merge into `feature/<module>` → `.dpcli/dpcli accept <ID> --here` → remove the copy.
+3. Waves: ≤ 4 executors at once; task → card → copy and branch `<m>/<ID>` from `feature/<module>` → acceptance (see "Acceptance").
 4. Gate (stop condition or a fork outside the plan): `.dpcli/dpcli decide <m> "question" --ask` → main session asks the user → `answer`.
 5. User check → on approval `.dpcli/dpcli deliver <m>`: one squash commit into the module base (`--into` — another branch); of the journal only `decisions.md` and `summary.md` go there; the full journal stays in `feature/<module>` (and under an archive tag if `deliver.archive_tag` is set); plan and contracts get `status: closed`, `INDEX.md` is rebuilt. Don't develop the module branch after delivery. Feature branch into `main` — only by the user's decision (usually an MR merged by a human); `deliver`/`merge` into `main` — only with explicit `--into`.
 
 ## Message protocol
-Agents send only these formats. Details are in the journal; read them with commands.
+Agents send only these formats; details are in the journal.
 
 | From → to | Message |
 |---|---|
@@ -33,12 +33,12 @@ Agents send only these formats. Details are in the journal; read them with comma
 
 - User decisions are already in the inbox (via `decide`); don't retell them in messages.
 - Add nothing to `brief`: task specifics go into the card (`.dpcli/dpcli task note <ID> "…"`).
-- Don't retell what is in the journal (report, review, status) — give the ID.
+- Don't retell the journal (report, review, status) — give the ID.
 - Missing information — ask in one line, don't read someone else's context.
 - New rules for a running agent — by message, no restart.
 
 ## Task card — boundaries
-Executor quality is set by card clarity. The coordinator writes it so the executor has nothing to search for:
+The coordinator writes it so the executor has nothing to search for:
 - `goal` — 1–2 sentences, what must come out;
 - `scope` — files/dirs that change; `dont_touch` — where there is temptation or risk;
 - `accept` checks: `--test <filter>` or `--check <name> "<cmd>" "<expect>"` — executable, with thresholds;
@@ -49,7 +49,7 @@ Executor quality is set by card clarity. The coordinator writes it so the execut
 
 ## Contracts
 `docs/contracts/<m>.md` — per interface: owner and consumers, the exact interface (signatures, fields, units, axes, types, behaviour on missing data, invariants), version.
-- Record what already exists in code; find and hand out discrepancies.
+- Record what already exists in code; report discrepancies.
 - Only the coordinator changes an interface: version +1, notify consumers, their fix in the same step.
 - A contract test breaks if the format changed without updating the contract.
 - Bulk data between tasks — format in the contract with a version; compact, with a schema, written once (temp file + rename).
@@ -74,7 +74,7 @@ The coordinator does not read the task's code, diffs or logs. Allowed: `status`,
 - Fast tools: search — `rg`; files — `fd` or `rg --files`; JSON — `jq`; code structure — `ast-grep`; read a file with the Read tool (offset/limit), not `cat`/`sed -n`; Python beyond one line — a script file run with `uv run` or `python3 file.py`, not a long `python3 -` heredoc.
 - Tests — non-interactive. GPU — `.dpcli/dpcli lock gpu <name> -- <cmd>`, heavy CPU — `.dpcli/dpcli lock cpu …`.
 - Long runs (> 1–2 min) — `run_in_background` or `.dpcli/dpcli job start <name> <timeout> <cmd>` → `.dpcli/dpcli job wait <name>`. No `pgrep -f`/`pkill -f`; other processes — only by PID after `readlink /proc/PID/cwd`.
-- Batches of runs — one script, one background run, results as a table; not a "run → look" loop.
+- Batches of runs — one script, one background run, results as a table.
 - Don't open images unless appearance is the subject of the task; verify with numbers. Artifacts — in `artifacts_dir`, a subfolder per task.
 - Read plans and contracts by section: `.dpcli/dpcli plan <m> <section>`, `--contracts <name>`.
 - Commits — only your own files: `git add <paths> && git commit -m "…" -- <paths>`, with a `Claude-Session` line; no push. Never `git stash`: the stash is shared by all worktrees.
@@ -84,11 +84,10 @@ The coordinator does not read the task's code, diffs or logs. Allowed: `status`,
 - `docs/plan/<m>/` — cards, reports, `events.jsonl`, `decisions.jsonl`; append-only via commands, never edit by hand. It is the module branch's working journal: commit it there freely, it does not go into the target branch — `deliver` folds it into `decisions.md` (decisions, questions with answers) and `summary.md` (task results, not done, doubts). Full view for the coordinator — `.dpcli/dpcli render <m>`.
 - Task ID `<CODE>-<n>[letter]`; `task new <m>` without an ID takes the next number.
 - Executor: `.dpcli/dpcli task show <ID>` → work → `.dpcli/dpcli accept <ID> --dry` → `.dpcli/dpcli report <ID> < r.json` (schema `report --template`; `uncertain` — doubts and what was checked; `dp_feedback`). `report` is the only write into the module copy.
-- Coordinator: `.dpcli/dpcli inbox <m>` at the start of every step; journal commit — `git add docs/plan/<m> && git commit -m "…" -- docs/plan/<m>`; at the end — process frictions `.dpcli/dpcli event <m> note --note "harness: …"` (see "Self-improvement").
-- Past modules — `.dpcli/dpcli search <text>` (`--sem` — by meaning, if enabled).
+- Coordinator: `.dpcli/dpcli inbox <m>` at the start of every step; journal commit — `git add docs/plan/<m> && git commit -m "…" -- docs/plan/<m>`; frictions — see "Self-improvement".
 
 ## Documentation
-- Entry — `docs/INDEX.md` (one line per document). Find — `.dpcli/dpcli docs find <words>`, `.dpcli/dpcli docs findings <words>`, module journals — `.dpcli/dpcli search`.
+- Entry — `docs/INDEX.md`. Find — `.dpcli/dpcli docs find <words>`, `.dpcli/dpcli docs findings <words>`, module journals — `.dpcli/dpcli search <text>` (`--sem` — by meaning, if enabled).
 - Read by section, not whole: `.dpcli/dpcli docs section <path>` — table of contents, `.dpcli/dpcli docs section <path> <number|heading start>` — a section.
 - Every md has frontmatter (`type`, `status`, `module`, `updated`, `summary`, `related`); new — `.dpcli/dpcli docs init`; `summary` — the conclusion/purpose in one line ≤ 140 chars (not TODO).
 - Document size ≤ `docs.max_kb` (40 KB): larger — split into section files or move data out; before commit — `.dpcli/dpcli docs check`, registries — `.dpcli/dpcli docs index`.
@@ -115,14 +114,14 @@ Opus only if the task needs design that cannot be moved into the plan or a contr
 - Role registry — `.dpcli/dpcli agents`.
 
 ## Monitoring
-- The main session does not poll on a timer: it wakes on a coordinator message (gate, `<m> done`, blocked) or on the user's request — then `.dpcli/dpcli status --since <period>` (stalls — `dp-status`); daily summary — `.dpcli/dpcli digest --since today`.
+- The main session does not poll: it wakes on a coordinator message (gate, `<m> done`, blocked) or the user's request — then `.dpcli/dpcli status --since <period>` (stalls — `dp-status`); daily summary — `.dpcli/dpcli digest --since today`.
 - Stall: "⚠quiet" > 30–40 min — find out what it is doing, report.
 
 ## Sessions and context
-Every turn pays for the whole session context again: a short answer at 500k context costs like 500k.
+Every turn pays for the whole session context again.
 - One session — one phase or module. After a merge, module acceptance or a change of topic — `/clear` or a new session; state is restored from the journal (`.dpcli/dpcli status`, `inbox`), not from session memory.
 - With a long context the main session does not read or edit code itself: a task for an executor or a fresh session.
-- Subagents — only when needed (protocol, waves); their answer is an ID and a line, no retelling.
+- Subagents — only when needed (protocol, waves).
 
 ## Self-improvement
 The process (agents, templates, rules, permissions, dpcli) improves as you work, but changes only with the user's approval.
