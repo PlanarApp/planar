@@ -1,15 +1,15 @@
 {
   "files": {
-    ".claude/agents/dp-coordinator.md": "5fe4ac6cb832de3b7c3c02073f1aee73bdb64e905fe7c78ec51f70f4d1eb6a22",
-    ".claude/agents/dp-engineer.md": "7373fa870563b2283cf317b33badf6b54b2c064f7fa320aa330c0107b1d27c7f",
-    ".claude/agents/dp-mechanic.md": "7c7fd399bbc044b6dd0f8d35cd566fed1d6e4989c23856c3eaaf6e925512664a",
-    ".claude/agents/dp-researcher.md": "7524cb8193f02779c0135589eb31366fbbb7e9f60eee50e070655f855b197e15",
-    ".claude/agents/dp-reviewer.md": "f661c08872895c91d71473d35ed29b26e1a853f45b051df0ccb4c8f51b95ef13",
-    ".claude/agents/dp-status.md": "57a6c48dc30561d5ae6ba0da628663d32f5eec26e21624068e494f0be782889d",
-    ".claude/agents/dp-writer.md": "acca2c666215a657575bfd7f4a93c9825515abe5bb2b82c27373b05f5ae3dc72",
-    ".claude/dpcli-workflow.md": "48bfdae1b87627feafa2992d2c6319122c552b2abfb49a9943787e4952c85990",
-    ".claude/skills/harness-retro/SKILL.md": "d4f35c483da3b05a5ca8c80f69ef9ca8f8604b71eda978b283653cde13c0ab9b",
-    ".claude/skills/harness-retro/cost.py": "6802932cad867f923ec41bfb71061d0c507de3c3ce0b74af26ced76ce4fa1949",
-    ".claude/skills/start-to-do/SKILL.md": "5d9043711eab9b07b1fc4a3e397a8af8de52b61b8eed5a1820b375c8d27dc9e9"
+    ".claude/agents/dp-coordinator.md": "85d2083bbd9bb7d44010f29bcf3506d8fc4f914b7c7c76a96a4340c01352b885",
+    ".claude/agents/dp-engineer.md": "26920a54e8af0e07eb01422260324901ac985e2c27269bf1b7771714460c94d8",
+    ".claude/agents/dp-mechanic.md": "9f77258c6f4a748f0fef4c81f8f939b787d75ac8f02a374dea3955711a8ab170",
+    ".claude/agents/dp-researcher.md": "d6ef209dc3a0753cd3b4d20d782e4df3b53155d92d004e7b71ecdbd6bbe2df0c",
+    ".claude/agents/dp-reviewer.md": "cae236862a51e61c28828b000f16cc2be4361f803b09b501a5d91fba5c7adc9a",
+    ".claude/agents/dp-status.md": "fa6a14362e7eb97883e909a67035557fa74cb666f3f4c45e89e98ed853b4e746",
+    ".claude/agents/dp-writer.md": "581e726c5f349b51f00c3a2f1e28c595b8a01b23fffe73a3953882ba9755b4a9",
+    ".claude/dpcli-workflow.md": "a5009d353e2f2e6345a84b3dbfe5c244413cdb15b88195fa95b67426b301b27c",
+    ".claude/skills/harness-retro/SKILL.md": "94d94705428866e430f1985bbed0c0422bb84b8da094cf74b2ef57e4bddd68b5",
+    ".claude/skills/harness-retro/cost.py": "e30e0d39b47cd144d67a41fb6e18774901c383a37b50a789030cee6cf8d8094a",
+    ".claude/skills/start-to-do/SKILL.md": "f8d98a49be47ae4b33c3a4c078e502c889d0a5999fe60ab64bb569f80af27314"
   }
 }

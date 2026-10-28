@@ -25,6 +25,11 @@ task_copy: "{copies}/{project}-{module}-{task}"
 worktree:
   setup: "git submodule update --init .dpcli"
 
+# Language agents write in (replies, reports, journal, plans, docs) and of commit messages.
+language:
+  text: ru
+  commits: ru
+
 plan_dir: docs/plan
 # Контракты стыков: <contracts_dir>/<модуль>.md.
 contracts_dir: docs/contracts

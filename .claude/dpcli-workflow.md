@@ -1,127 +1,129 @@
-# Процесс работы с агентами — planar
+# Working with agents — planar
 
-Журнал, карточки, ветки, документы — только через `.dpcli/dpcli` (справка `.dpcli/dpcli <команда> -h`, `.dpcli/README.md`). Цель процесса — экономия контекста: агенты обмениваются ID и командами, детали лежат в журнале.
+Journal, cards, branches, docs — only via `.dpcli/dpcli` (help: `.dpcli/dpcli <command> -h`, `.dpcli/README.md`). The process exists to save context: agents exchange IDs and commands, details live in the journal.
 
-## Роли
-- **Пользователь** — решения, развилки, приёмка результата.
-- **Главная сессия** — планы, вопросы пользователю одним списком; модуль: `.dpcli/dpcli module new <м> --area <подпроект>` + один `dp-coordinator` (area — из ключа `areas` конфига; разработчик его не назвал — спросить явно, не угадывать); модуль из 2–3 задач — без координатора, сама даёт задачи исполнителям. Решения пользователя — `.dpcli/dpcli decide <м> "…" --by user --why "…" --plan` (`--why` — причина; причины нет — не писать «ответ пользователя», оставить пустым: в `decisions.md` будет «утверждено разработчиком»), ответы на шлюзы — `.dpcli/dpcli answer <Qn> "…"`, правки плана — `.dpcli/dpcli plan edit … --commit`. Ветки: `.dpcli/dpcli sync <м>` (свежее из базы модуля в ветку модуля), сдача модуля — `.dpcli/dpcli deliver <м>` (только после одобрения пользователя), прочие ветки — `.dpcli/dpcli merge <ветка> --into <цель>`, `.dpcli/dpcli gc`. Push и версии — только по команде пользователя.
-- **Координатор модуля** (`dp-coordinator`) — контракты, карточки задач, запуск исполнителей, приёмка, шлюзы. Код не пишет и не ревьюит.
-- **Исполнитель** (`dpcli_role: executor`) — одна задача в своей копии и ветке, в границах карточки.
-- **Ревьюер** (`dp-reviewer`) — свежий, пустой контекст, одна задача; только читает и перезапускает проверки.
+**Language.** Everything written for people — replies to the user, reports, journal entries, plans, docs — in Russian. Commit messages in Russian.
 
-## Жизненный цикл
-1. План `docs/plan/<м>.md`: цель, решения пользователя, задачи со скоупом и приёмкой, волны, условия остановки.
-2. Ветка `feature/<модуль>` **от базы модуля** — фичеветки задачи, на которой стоит главная сессия (`module new` берёт текущую ветку; другая — `--from`); копия, координатор; контракты — до первого исполнителя. Несколько модулей одной задачи — каждый своей веткой от той же фичеветки.
-3. Волны: ≤ 4 исполнителя одновременно; задача → карточка → копия и ветка `<м>/<ID>` от `feature/<модуль>` → приёмка → merge в `feature/<модуль>` → `.dpcli/dpcli accept <ID> --here` → удаление копии.
-4. Шлюз (условие остановки или развилка вне плана): `.dpcli/dpcli decide <м> "вопрос" --ask` → главная спрашивает пользователя → `answer`.
-5. Проверка пользователем → по его одобрению `.dpcli/dpcli deliver <м>`: один squash-коммит в базу модуля (фичеветку; `--into` — другая ветка), из журнала туда попадают только `decisions.md` и `summary.md`; полный журнал остаётся в `feature/<модуль>` (и под архивным тегом, если `deliver.archive_tag` задан); план и контракты модуля получают `status: closed`, `INDEX.md` пересобирается. Ветку модуля после сдачи не развивать. Фичеветка в `main` — только по решению пользователя (обычно MR, который вливает человек); `deliver`/`merge` в `main` — только явным `--into`.
+## Roles
+- **User** — decisions, forks, acceptance of the result.
+- **Main session** — plans, questions to the user as one list; a module: `.dpcli/dpcli module new <m> --area <subproject>` + one `dp-coordinator` (area — from the `areas` config key; if the developer did not name it, ask, don't guess); a module of 2–3 tasks — no coordinator, the main session briefs executors itself. User decisions — `.dpcli/dpcli decide <m> "…" --by user --why "…" --plan` (`--why` is the reason; no reason — leave it empty, `decisions.md` will say "approved by the developer"), gate answers — `.dpcli/dpcli answer <Qn> "…"`, plan edits — `.dpcli/dpcli plan edit … --commit`. Branches: `.dpcli/dpcli sync <m>` (fresh module base into the module branch), delivery — `.dpcli/dpcli deliver <m>` (only after the user approves), other branches — `.dpcli/dpcli merge <branch> --into <target>`, `.dpcli/dpcli gc`. Push and releases — only on the user's command.
+- **Module coordinator** (`dp-coordinator`) — contracts, task cards, launching executors, acceptance, gates. Does not write or review code.
+- **Executor** (`dpcli_role: executor`) — one task in its own copy and branch, within the card's bounds.
+- **Reviewer** (`dp-reviewer`) — fresh, empty context, one task; only reads and re-runs checks.
 
-## Протокол сообщений
-Агент отправляет только эти форматы. Детали — в журнале, их читают командами.
+## Lifecycle
+1. Plan `docs/plan/<m>.md`: goal, user decisions, tasks with scope and acceptance, waves, stop conditions.
+2. Branch `feature/<module>` **from the module base** — the feature branch the main session is on (`module new` takes the current branch; another — `--from`); copy, coordinator; contracts before the first executor. Several modules of one feature — each its own branch from the same feature branch.
+3. Waves: ≤ 4 executors at once; task → card → copy and branch `<m>/<ID>` from `feature/<module>` → acceptance → merge into `feature/<module>` → `.dpcli/dpcli accept <ID> --here` → remove the copy.
+4. Gate (stop condition or a fork outside the plan): `.dpcli/dpcli decide <m> "question" --ask` → main session asks the user → `answer`.
+5. User check → on approval `.dpcli/dpcli deliver <m>`: one squash commit into the module base (`--into` — another branch); of the journal only `decisions.md` and `summary.md` go there; the full journal stays in `feature/<module>` (and under an archive tag if `deliver.archive_tag` is set); plan and contracts get `status: closed`, `INDEX.md` is rebuilt. Don't develop the module branch after delivery. Feature branch into `main` — only by the user's decision (usually an MR merged by a human); `deliver`/`merge` into `main` — only with explicit `--into`.
 
-| От → кому | Сообщение |
+## Message protocol
+Agents send only these formats. Details are in the journal; read them with commands.
+
+| From → to | Message |
 |---|---|
-| главная → координатор | `Модуль <м>: копия <путь>, ветка <ветка>. План: .dpcli/dpcli plan <м>. Новое: .dpcli/dpcli inbox <м>.` |
-| координатор → исполнитель | вывод `.dpcli/dpcli task brief <ID>` как есть |
-| координатор → ревьюер | вывод `.dpcli/dpcli task brief <ID> --review` как есть |
-| исполнитель → координатор | одна строка: `<ID> reported` \| `<ID> blocked: <причина ≤15 слов>` \| `<ID> contract: <что поменять>` |
-| ревьюер → координатор | `<ID> review accept` \| `<ID> review rework <n замечаний>` |
-| координатор → главная | `<м>: <n> accepted, <n> в работе; шлюз Q<n>` или `<м> done` |
-| главная → пользователь | свободно, по `.dpcli/dpcli status` / `.dpcli/dpcli digest` |
+| main → coordinator | `Module <m>: copy <path>, branch <branch>. Plan: .dpcli/dpcli plan <m>. New: .dpcli/dpcli inbox <m>.` |
+| coordinator → executor | output of `.dpcli/dpcli task brief <ID>` as is |
+| coordinator → reviewer | output of `.dpcli/dpcli task brief <ID> --review` as is |
+| executor → coordinator | one line: `<ID> reported` \| `<ID> blocked: <reason ≤15 words>` \| `<ID> contract: <what to change>` |
+| reviewer → coordinator | `<ID> review accept` \| `<ID> review rework <n issues>` |
+| coordinator → main | `<m>: <n> accepted, <n> in progress; gate Q<n>` or `<m> done` |
+| main → user | free form, from `.dpcli/dpcli status` / `.dpcli/dpcli digest` |
 
-- Решения пользователя — уже в inbox (через `decide`); в сообщении их не пересказывать.
-- К `brief` ничего не добавлять: особенности задачи — в карточку (`.dpcli/dpcli task note <ID> "…"`).
-- Не пересказывать то, что есть в журнале (отчёт, ревью, статус) — давать ID.
-- Не хватает сведений — спросить одной строкой, а не читать чужой контекст.
-- Новые правила работающему агенту — сообщением, без перезапуска.
+- User decisions are already in the inbox (via `decide`); don't retell them in messages.
+- Add nothing to `brief`: task specifics go into the card (`.dpcli/dpcli task note <ID> "…"`).
+- Don't retell what is in the journal (report, review, status) — give the ID.
+- Missing information — ask in one line, don't read someone else's context.
+- New rules for a running agent — by message, no restart.
 
-## Карточка задачи — границы
-Качество исполнителя определяется чёткостью карточки. Координатор пишет её так, чтобы исполнителю не нужно было ничего искать:
-- `goal` — 1–2 фразы, что должно получиться;
-- `scope` — файлы/каталоги, которые меняются; `dont_touch` — где есть соблазн или риск;
-- проверки `accept`: `--test <фильтр>` или `--check <имя> "<cmd>" "<expect>"` — исполняемые, с порогами;
-- контракты стыков с версиями (`--contract <имя>@<версия>`);
-- как делать, если неочевидно, — `task note` (файлы, функции, формат, замок GPU/CPU, где данные).
+## Task card — boundaries
+Executor quality is set by card clarity. The coordinator writes it so the executor has nothing to search for:
+- `goal` — 1–2 sentences, what must come out;
+- `scope` — files/dirs that change; `dont_touch` — where there is temptation or risk;
+- `accept` checks: `--test <filter>` or `--check <name> "<cmd>" "<expect>"` — executable, with thresholds;
+- interface contracts with versions (`--contract <name>@<version>`);
+- how to do it when not obvious — `task note` (files, functions, format, GPU/CPU lock, where data is).
 
-`task brief` откажет при неполной карточке; `accept` проверяет, что изменённые файлы — в `scope`.
+`task brief` refuses an incomplete card; `accept` checks that changed files are within `scope`.
 
-## Контракты
-`docs/contracts/<м>.md` — на каждый стык: владелец и потребители, точный интерфейс (сигнатуры, поля, единицы, оси, типы, поведение при отсутствии данных, инварианты), версия.
-- Фиксировать то, что уже есть в коде; расхождения — выявить и раздать.
-- Менять интерфейс — только координатор: версия +1, уведомить потребителей, их правка в том же шаге.
-- Контрактный тест ломается, если формат поменяли без правки контракта.
-- Массовые данные между задачами — формат в контракте с версией; компактный со схемой, пишется один раз (временный файл + переименование).
+## Contracts
+`docs/contracts/<m>.md` — per interface: owner and consumers, the exact interface (signatures, fields, units, axes, types, behaviour on missing data, invariants), version.
+- Record what already exists in code; find and hand out discrepancies.
+- Only the coordinator changes an interface: version +1, notify consumers, their fix in the same step.
+- A contract test breaks if the format changed without updating the contract.
+- Bulk data between tasks — format in the contract with a version; compact, with a schema, written once (temp file + rename).
 
-## Приёмка
-Координатор не читает код, диффы и логи задачи. Разрешено: `status`, `log`, `report --show`, `review --show`, итог `accept`, `git diff --stat` при слиянии.
-1. `.dpcli/dpcli accept <ID>`. FAIL → доработка (тот же исполнитель с итогом или новый с уточнённой карточкой).
+## Acceptance
+The coordinator does not read the task's code, diffs or logs. Allowed: `status`, `log`, `report --show`, `review --show`, the `accept` result, `git diff --stat` when merging.
+1. `.dpcli/dpcli accept <ID>`. FAIL → rework (same executor with the result, or a new one with a refined card).
 2. PASS, `dpcli_review: false` → `accepted`.
-3. PASS, `dpcli_review: true` → `checked`, дальше по риску:
-   - по умолчанию — по отчёту (`report --show`: проверки, `uncertain`) → `.dpcli/dpcli event <ID> accepted --note "по отчёту"`;
-   - свежий `dp-reviewer` — сложная предметная логика, численные схемы, параллельные/GPU-расчёты, стык контракта, вторая доработка, серьёзные `uncertain`.
-4. Вердикт ревьюера: accept → `event accepted --note "по ревью"`; rework → исполнителю: `.dpcli/dpcli review <ID> --show`, затем снова `accept` и свежий ревьюер. Спорное — вопрос ревьюеру/исполнителю.
-5. Merge ветки задачи в `feature/<модуль>`, `.dpcli/dpcli accept <ID> --here --commit <h>`, `.dpcli/dpcli event <ID> merged`, удалить копию.
+3. PASS, `dpcli_review: true` → `checked`, then by risk:
+   - by default — by the report (`report --show`: checks, `uncertain`) → `.dpcli/dpcli event <ID> accepted --note "by report"`;
+   - a fresh `dp-reviewer` — complex domain logic, numerical schemes, parallel/GPU computing, a contract interface, second rework, serious `uncertain`.
+4. Reviewer verdict: accept → `event accepted --note "by review"`; rework → to the executor: `.dpcli/dpcli review <ID> --show`, then `accept` again and a fresh reviewer. Disputed points — a question to the reviewer/executor.
+5. Merge the task branch into `feature/<module>`, `.dpcli/dpcli accept <ID> --here --commit <h>`, `.dpcli/dpcli event <ID> merged`, remove the copy.
 
-## Общие правила
-- На решения в плане, контрактах и карточках ссылаться по `Q<n>` или дате `ГГГГ-ММ-ДД`, не по времени («решение 12:35»): после сдачи журнала со временем записей в ветке нет.
-- Детерминированное — командами `.dpcli/dpcli` (`search`, `plan`, `docs`, `log`, `status`, `task`, `sync/merge`); свои grep/скрипты по журналу, планам и документам не писать. Не хватило команды — обойти один раз и записать обратную связь.
-- Агент делает только то, что требует мысли: спроектировать, разобрать причину, написать код/текст.
-- Корректность прежде «нравится»: параметры обоснованы (предметная область, замеры, источники); допущения и границы решения — в отчёте.
-- Не выдумывать: числа — из замеров, результаты — из отчётов.
-- Не шлифовать: мелкие визуальные/стилистические детали — не больше 2 попыток.
-- Тесты — неинтерактивно. GPU — `.dpcli/dpcli lock gpu <имя> -- <cmd>`, тяжёлый CPU — `.dpcli/dpcli lock cpu …`.
-- Долгие запуски (> 1–2 мин) — `run_in_background` или `.dpcli/dpcli job start <имя> <таймаут> <cmd>` → `.dpcli/dpcli job wait <имя>`. Не `pgrep -f`/`pkill -f`; чужие процессы — только по PID после `readlink /proc/PID/cwd`.
-- Пачки запусков — один скрипт, один фоновый прогон, итог таблицей; не цикл «запустил → посмотрел».
-- Картинки не открывать, кроме случаев, когда внешний вид — предмет задачи; проверка — числами. Артефакты — в `artifacts_dir`, подпапка задачи.
-- План и контракты читать разделами: `.dpcli/dpcli plan <м> <раздел>`, `--contracts <имя>`.
-- Коммиты — только свои файлы: `git add <пути> && git commit -m "…" -- <пути>`, по-русски, со строкой `Claude-Session`; не пушить.
-- `.claude/`, CLAUDE.md — не менять, если это не задача.
+## General rules
+- Refer to decisions in plans, contracts and cards by `Q<n>` or date `YYYY-MM-DD`, not by time ("decision 12:35"): after delivery the journal with timestamps is not in the branch.
+- Deterministic work — `.dpcli/dpcli` commands (`search`, `plan`, `docs`, `log`, `status`, `task`, `sync/merge`); don't write your own grep/scripts over the journal, plans and docs. A command is missing — work around once and log feedback.
+- Agents do only what needs thought: design, find the cause, write code/text.
+- Correctness over "looks nice": parameters are justified (domain, measurements, sources); assumptions and limits go into the report.
+- Don't invent: numbers come from measurements, results from reports.
+- Don't polish: minor visual/style details — at most 2 attempts.
+- Tests — non-interactive. GPU — `.dpcli/dpcli lock gpu <name> -- <cmd>`, heavy CPU — `.dpcli/dpcli lock cpu …`.
+- Long runs (> 1–2 min) — `run_in_background` or `.dpcli/dpcli job start <name> <timeout> <cmd>` → `.dpcli/dpcli job wait <name>`. No `pgrep -f`/`pkill -f`; other processes — only by PID after `readlink /proc/PID/cwd`.
+- Batches of runs — one script, one background run, results as a table; not a "run → look" loop.
+- Don't open images unless appearance is the subject of the task; verify with numbers. Artifacts — in `artifacts_dir`, a subfolder per task.
+- Read plans and contracts by section: `.dpcli/dpcli plan <m> <section>`, `--contracts <name>`.
+- Commits — only your own files: `git add <paths> && git commit -m "…" -- <paths>`, with a `Claude-Session` line; no push. Never `git stash`: the stash is shared by all worktrees.
+- Don't change `.claude/` or CLAUDE.md unless that is the task.
 
-## Журнал
-- `docs/plan/<м>/` — карточки, отчёты, `events.jsonl`, `decisions.jsonl`; только дописывается командами, руками не править. Это рабочий журнал ветки модуля: коммитить его в ветке модуля можно как угодно, в итоговую ветку он не идёт — `deliver` сворачивает его в `decisions.md` (решения, вопросы с ответами) и `summary.md` (итоги задач, не сделано, сомнения). Полный вид для координатора — `.dpcli/dpcli render <м>`.
-- ID задачи `<КОД>-<n>[буква]`; `task new <м>` без ID берёт следующий номер.
-- Исполнитель: `.dpcli/dpcli task show <ID>` → работа → `.dpcli/dpcli accept <ID> --dry` → `.dpcli/dpcli report <ID> < r.json` (схема `report --template`; `uncertain` — сомнения и что проверено; `dp_feedback`). `report` — единственная запись в копию модуля.
-- Координатор: `.dpcli/dpcli inbox <м>` в начале каждого шага; коммит журнала — `git add docs/plan/<м> && git commit -m "…" -- docs/plan/<м>`; в конце — трения процесса `.dpcli/dpcli event <м> note --note "harness: …"` (см. «Самосовершенствование»).
-- Прошлые модули — `.dpcli/dpcli search <текст>` (`--sem` — по смыслу, если включён).
+## Journal
+- `docs/plan/<m>/` — cards, reports, `events.jsonl`, `decisions.jsonl`; append-only via commands, never edit by hand. It is the module branch's working journal: commit it there freely, it does not go into the target branch — `deliver` folds it into `decisions.md` (decisions, questions with answers) and `summary.md` (task results, not done, doubts). Full view for the coordinator — `.dpcli/dpcli render <m>`.
+- Task ID `<CODE>-<n>[letter]`; `task new <m>` without an ID takes the next number.
+- Executor: `.dpcli/dpcli task show <ID>` → work → `.dpcli/dpcli accept <ID> --dry` → `.dpcli/dpcli report <ID> < r.json` (schema `report --template`; `uncertain` — doubts and what was checked; `dp_feedback`). `report` is the only write into the module copy.
+- Coordinator: `.dpcli/dpcli inbox <m>` at the start of every step; journal commit — `git add docs/plan/<m> && git commit -m "…" -- docs/plan/<m>`; at the end — process frictions `.dpcli/dpcli event <m> note --note "harness: …"` (see "Self-improvement").
+- Past modules — `.dpcli/dpcli search <text>` (`--sem` — by meaning, if enabled).
 
-## Документация
-- Вход — `docs/INDEX.md` (строка на документ). Найти — `.dpcli/dpcli docs find <слова>`, `.dpcli/dpcli docs findings <слова>`, журналы модулей — `.dpcli/dpcli search`.
-- Читать по разделам, не целиком: `.dpcli/dpcli docs section <путь>` — оглавление, `.dpcli/dpcli docs section <путь> <номер|начало заголовка>` — раздел.
-- Каждый md — с frontmatter (`type`, `status`, `module`, `updated`, `summary`, `related`); новый — `.dpcli/dpcli docs init`; `summary` — вывод/назначение в одну строку ≤ 140 символов (не TODO).
-- Размер документа ≤ `docs.max_kb` (40 КБ): больше — разбить на разделы-файлы или вынести данные; перед коммитом — `.dpcli/dpcli docs check`, реестры — `.dpcli/dpcli docs index`.
-- Закрытая работа — одна строка в `registry/findings.md` (раздел модуля): вывод с числами и ссылка `путь#раздел`.
+## Documentation
+- Entry — `docs/INDEX.md` (one line per document). Find — `.dpcli/dpcli docs find <words>`, `.dpcli/dpcli docs findings <words>`, module journals — `.dpcli/dpcli search`.
+- Read by section, not whole: `.dpcli/dpcli docs section <path>` — table of contents, `.dpcli/dpcli docs section <path> <number|heading start>` — a section.
+- Every md has frontmatter (`type`, `status`, `module`, `updated`, `summary`, `related`); new — `.dpcli/dpcli docs init`; `summary` — the conclusion/purpose in one line ≤ 140 chars (not TODO).
+- Document size ≤ `docs.max_kb` (40 KB): larger — split into section files or move data out; before commit — `.dpcli/dpcli docs check`, registries — `.dpcli/dpcli docs index`.
+- Finished work — one line in `registry/findings.md` (module section): the conclusion with numbers and a `path#section` link.
 
-## Агенты и модели
-| Тип | Модель | Для чего |
+## Agents and models
+| Type | Model | For |
 |---|---|---|
-| `dp-coordinator` | sonnet | координатор модуля |
-| `dp-engineer` | sonnet | код и тесты |
-| `dp-researcher` | sonnet | прототипы, замеры, литература |
-| `dp-writer` | sonnet | документы |
-| `dp-mechanic` | haiku | замены по шаблону, прогоны, слияния без конфликтов |
-| `dp-reviewer` | sonnet | ревью по риску; сложнейшие задачи — запуск с `model: opus` |
-| `dp-status` | haiku | сводка статуса для главной |
+| `dp-coordinator` | sonnet | module coordinator |
+| `dp-engineer` | sonnet | code and tests |
+| `dp-researcher` | sonnet | prototypes, measurements, literature |
+| `dp-writer` | sonnet | documents |
+| `dp-mechanic` | haiku | pattern replacements, runs, conflict-free merges |
+| `dp-reviewer` | sonnet | risk-based review; hardest tasks — launch with `model: opus` |
+| `dp-status` | haiku | status summary for the main session |
 
-Исполнители — sonnet (mechanic — haiku). Opus — только если задача требует проектирования, которое нельзя вынести в план или контракт. Неудача — сначала уточнить карточку, потом менять модель.
+Opus only if the task needs design that cannot be moved into the plan or a contract. On failure — refine the card first, change the model second.
 
-## Настройка агентов
-- Агенты dpcli — `.dpcli/agents/*.md` (формат Claude Code + `dpcli_role: coordinator|executor|reviewer|status`, `dpcli_review: true|false`); `.dpcli/dpcli init` кладёт их в `.claude/agents/`.
-- `init` не трогает агентов проекта: одноимённые файлы в `.claude/agents/` пропускает.
-- Подключить своего агента к роли — ключ `roles` в `dpcli.yml` (`имя: {role: executor, review: true}`) или `dpcli_role` во frontmatter; после этого он допустим в `task new --type`.
-- Реестр ролей — `.dpcli/dpcli agents`.
+## Agent setup
+- dpcli agents — `.dpcli/agents/*.md` (Claude Code format + `dpcli_role: coordinator|executor|reviewer|status`, `dpcli_review: true|false`); `.dpcli/dpcli init` puts them into `.claude/agents/`.
+- `init` does not touch project agents: same-named files in `.claude/agents/` are skipped.
+- Attach your own agent to a role — `roles` in `dpcli.yml` (`name: {role: executor, review: true}`) or `dpcli_role` in its frontmatter; then it is valid in `task new --type`.
+- Role registry — `.dpcli/dpcli agents`.
 
-## Наблюдение
-- Главная не опрашивает по таймеру: просыпается по сообщению координатора (шлюз, `<м> done`, blocked) или по запросу пользователя — тогда `.dpcli/dpcli status --since <период>` (разбор зависаний — `dp-status`); итог дня — `.dpcli/dpcli digest --since today`.
-- Зависание: «⚠тихо» > 30–40 мин — выяснить, чем занят, сообщить.
+## Monitoring
+- The main session does not poll on a timer: it wakes on a coordinator message (gate, `<m> done`, blocked) or on the user's request — then `.dpcli/dpcli status --since <period>` (stalls — `dp-status`); daily summary — `.dpcli/dpcli digest --since today`.
+- Stall: "⚠quiet" > 30–40 min — find out what it is doing, report.
 
-## Сессии и контекст
-Каждый ход заново оплачивает весь контекст сессии: короткий ответ при контексте 500k стоит как 500k.
-- Одна сессия — одна фаза или модуль. После слияния, приёмки модуля или смены темы — `/clear` или новая сессия; состояние восстанавливается из журнала (`.dpcli/dpcli status`, `inbox`), не из памяти сессии.
-- Главная при длинном контексте не читает и не правит код сама: задача на исполнителя или свежая сессия.
-- Субагент — только по делу (протокол, волны); его ответ — ID и строка, без пересказа.
+## Sessions and context
+Every turn pays for the whole session context again: a short answer at 500k context costs like 500k.
+- One session — one phase or module. After a merge, module acceptance or a change of topic — `/clear` or a new session; state is restored from the journal (`.dpcli/dpcli status`, `inbox`), not from session memory.
+- With a long context the main session does not read or edit code itself: a task for an executor or a fresh session.
+- Subagents — only when needed (protocol, waves); their answer is an ID and a line, no retelling.
 
-## Самосовершенствование
-Процесс (агенты, шаблоны, правила, разрешения, dpcli) улучшается по ходу работы, но меняется только с одобрения пользователя.
-- **Сбор — всеми, по ходу, одной строкой.** Трение = лишний круг доработки, ожидание разрешения, обход команды dpcli, правило, которое мешает или противоречит, лишний расход токенов/времени, повторённая ошибка. Исполнитель — поле `dp_feedback` отчёта; координатор и главная — `.dpcli/dpcli event <м> note --note "harness: <что мешало> → <что поменять>"`. Статус сюда не писать.
-- **Разбор — главная, скилл `harness-retro`:** по `<м> done`, раз в фазу или по просьбе пользователя. Итог — ≤ 3 предложений пользователю с ценой и выигрышем; одобренное правится в источнике (`.dpcli/templates/`, `.dpcli/agents/`, `.dpcli/skills/`) → `.dpcli/dpcli init` → коммит; решение — `.dpcli/dpcli decide harness …`.
-- Замечания пользователя о работе — в память (feedback) сразу, не дожидаясь разбора.
+## Self-improvement
+The process (agents, templates, rules, permissions, dpcli) improves as you work, but changes only with the user's approval.
+- **Collect — everyone, as you go, one line.** Friction = an extra rework round, waiting for a permission, working around a dpcli command, a rule that hinders or contradicts, wasted tokens/time, a repeated mistake. Executor — the report's `dp_feedback`; coordinator and main session — `.dpcli/dpcli event <m> note --note "harness: <what hurt> → <what to change>"`. No status here.
+- **Review — main session, skill `harness-retro`:** on `<m> done`, once per phase or on the user's request. Result — ≤ 3 proposals to the user with cost and gain; approved changes go to the source (`.dpcli/templates/`, `.dpcli/agents/`, `.dpcli/skills/`) → `.dpcli/dpcli init` → commit; decision — `.dpcli/dpcli decide harness …`.
+- The user's remarks about the work — into memory (feedback) at once, without waiting for a review.
