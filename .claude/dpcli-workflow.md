@@ -71,6 +71,7 @@ The coordinator does not read the task's code, diffs or logs. Allowed: `status`,
 - Correctness over "looks nice": parameters are justified (domain, measurements, sources); assumptions and limits go into the report.
 - Don't invent: numbers come from measurements, results from reports.
 - Don't polish: minor visual/style details — at most 2 attempts.
+- Fast tools: search — `rg`; files — `fd` or `rg --files`; JSON — `jq`; code structure — `ast-grep`; read a file with the Read tool (offset/limit), not `cat`/`sed -n`; Python beyond one line — a script file run with `uv run` or `python3 file.py`, not a long `python3 -` heredoc.
 - Tests — non-interactive. GPU — `.dpcli/dpcli lock gpu <name> -- <cmd>`, heavy CPU — `.dpcli/dpcli lock cpu …`.
 - Long runs (> 1–2 min) — `run_in_background` or `.dpcli/dpcli job start <name> <timeout> <cmd>` → `.dpcli/dpcli job wait <name>`. No `pgrep -f`/`pkill -f`; other processes — only by PID after `readlink /proc/PID/cwd`.
 - Batches of runs — one script, one background run, results as a table; not a "run → look" loop.
@@ -108,7 +109,8 @@ Opus only if the task needs design that cannot be moved into the plan or a contr
 
 ## Agent setup
 - dpcli agents — `.dpcli/agents/*.md` (Claude Code format + `dpcli_role: coordinator|executor|reviewer|status`, `dpcli_review: true|false`); `.dpcli/dpcli init` puts them into `.claude/agents/`.
-- `init` does not touch project agents: same-named files in `.claude/agents/` are skipped.
+- Project changes live in the project layer `.dpcli-local/` (see its README), never in `.dpcli/` — the distribution is replaced on update: `agents/<name>.append.md` adds to a dpcli agent, `agents/<name>.md` is an own agent, `skills/<name>/`, `workflow.md` (project rules), `claude-md.md`. Then `.dpcli/dpcli init`.
+- `init` does not touch files it did not create: same-named files in `.claude/agents/` are skipped.
 - Attach your own agent to a role — `roles` in `dpcli.yml` (`name: {role: executor, review: true}`) or `dpcli_role` in its frontmatter; then it is valid in `task new --type`.
 - Role registry — `.dpcli/dpcli agents`.
 
@@ -124,6 +126,7 @@ Every turn pays for the whole session context again: a short answer at 500k cont
 
 ## Self-improvement
 The process (agents, templates, rules, permissions, dpcli) improves as you work, but changes only with the user's approval.
-- **Collect — everyone, as you go, one line.** Friction = an extra rework round, waiting for a permission, working around a dpcli command, a rule that hinders or contradicts, wasted tokens/time, a repeated mistake. Executor — the report's `dp_feedback`; coordinator and main session — `.dpcli/dpcli event <m> note --note "harness: <what hurt> → <what to change>"`. No status here.
-- **Review — main session, skill `harness-retro`:** on `<m> done`, once per phase or on the user's request. Result — ≤ 3 proposals to the user with cost and gain; approved changes go to the source (`.dpcli/templates/`, `.dpcli/agents/`, `.dpcli/skills/`) → `.dpcli/dpcli init` → commit; decision — `.dpcli/dpcli decide harness …`.
+- **Collect — everyone, as you go, one line.** Friction = an extra rework round, waiting for a permission, working around a dpcli command, a rule that hinders or contradicts, wasted tokens/time, a repeated mistake. Executor — the report's `dp_feedback`; reviewer — the review's `harness`; coordinator and main session — `.dpcli/dpcli event <m> note --note "harness: <what hurt> → <what to change>"`. No status here.
+- **Review — main session, skill `harness-retro`:** on `<m> done`, once per phase or on the user's request: `.dpcli/dpcli feedback` (clusters, triage project|dpcli), `.dpcli/dpcli stats`, ≤ 3 proposals to the user.
+- **Where fixes go.** Project-specific — `.dpcli-local/` (survives updates). dpcli itself — never edited in place: a branch `improve/*` in `.dpcli` and `.dpcli/dpcli contribute F-n` (a PR to the dpcli hub or a +1 on a similar one); everyone gets it with the next update.
 - The user's remarks about the work — into memory (feedback) at once, without waiting for a review.
