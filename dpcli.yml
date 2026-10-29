@@ -50,7 +50,7 @@ checks:
   # По умолчанию — «N тестов, M упало[, K пропущено]». Регэксп — в одинарных кавычках (без экранирования \\).
   # vitest: «Tests  1 failed | 33 passed | 2 skipped (36)». total = passed (при failed > 0 всё равно FAIL);
   # прогон без выполненных тестов («37 skipped (37)») даёт total = 0 → FAIL.
-  tests_summary: '^\s*Tests\s+(?:(?P<failed>\d+) failed)?(?:\s*\|\s*)?(?:(?P<total>\d+) passed)?(?:\s*\|\s*)?(?:(?P<skipped>\d+) skipped)?\s*\(\d+\)'
+  tests_summary: '^\s*Tests\s+(?:(?P<failed>\d+) failed)?(?:\s*\|\s*)?(?:(?P<passed>\d+) passed)?(?:\s*\|\s*(?P<skipped>\d+) (?:skipped|todo))*\s*\((?P<total>\d+)\)'
   # Куда пишутся логи проверок: <log_dir>/<ID>/.
   log_dir: build/dpcli
 
