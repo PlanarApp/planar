@@ -17,3 +17,7 @@
 {"t": "2026-10-29T12:50:08", "id": "F-10", "kind": "fix", "where": "dpcli v17", "pr": "https://github.com/zolotarev/dpcli/pull/8"}
 {"t": "2026-10-29T12:50:08", "id": "F-4", "kind": "fix", "where": "dpcli v17", "pr": "https://github.com/zolotarev/dpcli/pull/8"}
 {"t": "2026-10-29T12:50:08", "id": "F-5", "kind": "fix", "where": "dpcli v17", "pr": "https://github.com/zolotarev/dpcli/pull/8"}
+{"t": "2026-10-29T13:58:33", "id": "F-11", "kind": "cluster", "title": "reviewing work in the main copy (no-copy card)", "match": "no-copy|accept log names|feedback --module", "scope": "dpcli", "why": ""}
+{"t": "2026-10-29T13:58:34", "id": "F-11", "kind": "fix", "where": "dpcli v21", "pr": "https://github.com/zolotarev/dpcli/pull/12"}
+{"t": "2026-10-29T13:58:34", "id": "F-12", "kind": "cluster", "title": "tests_summary does not parse vitest 5 todo", "match": "tests_summary", "scope": "project", "why": ""}
+{"t": "2026-10-29T13:58:34", "id": "F-12", "kind": "fix", "where": "dpcli.yml tests_summary"}
