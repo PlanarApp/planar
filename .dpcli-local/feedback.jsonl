@@ -1,3 +1,13 @@
 {"t": "2026-10-28T22:53:50", "id": "F-1", "kind": "cluster", "title": "task show truncates addenda", "match": "(task show|дополнени).{0,60}(обреза|усека|truncat)|(обреза|усека|truncat).{0,60}(дополнени|task show)", "scope": "dpcli", "why": "Executors miss coordinator instructions added after the brief and have to discover --full"}
 {"t": "2026-10-28T22:56:14", "id": "F-1", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/1"}
 {"t": "2026-10-28T22:58:40", "id": "F-1", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/1)", "pr": "https://github.com/zolotarev/dpcli/pull/1"}
+{"t": "2026-10-29T11:34:42", "id": "F-2", "kind": "cluster", "title": "git stash is shared by all worktrees", "match": "stash", "scope": "dpcli", "why": ""}
+{"t": "2026-10-29T11:34:43", "id": "F-3", "kind": "cluster", "title": "report file shared between parallel agents", "match": "r\\.json|report\\.json|/tmp.{0,60}(отч|report)|отч[её]т.{0,40}(перезап|перетёр|затёр|чуж)", "scope": "dpcli", "why": ""}
+{"t": "2026-10-29T11:34:43", "id": "F-4", "kind": "cluster", "title": "lock cpu goes to background and loses output", "match": "lock cpu", "scope": "dpcli", "why": ""}
+{"t": "2026-10-29T11:34:43", "id": "F-5", "kind": "cluster", "title": "job names shared between copies", "match": "job.{0,50}(им[ея]н?|name).{0,50}(общ|shared|чуж|столкн)|(общ|чуж).{0,30}job", "scope": "dpcli", "why": ""}
+{"t": "2026-10-29T11:34:43", "id": "F-6", "kind": "cluster", "title": "no baseline: pre-existing failures look like new ones", "match": "baseline|существующие красные|флейк|флак|A/B|чужого теста", "scope": "dpcli", "why": ""}
+{"t": "2026-10-29T11:34:43", "id": "F-7", "kind": "cluster", "title": "plan section referenced by a card is not found", "match": "plan.{0,100}(не наход|not found|не принима|кавычк|не работает)|раздел.{0,40}не наход", "scope": "dpcli", "why": ""}
+{"t": "2026-10-29T11:34:44", "id": "F-8", "kind": "cluster", "title": "false scope failures", "match": "scope|dont_touch|кроме", "scope": "dpcli", "why": ""}
+{"t": "2026-10-29T11:34:44", "id": "F-9", "kind": "cluster", "title": "shared test database and ports between parallel copies", "match": "testdb|тестов\\w* БД|БД.{0,20}общ|общ\\w* (сервер )?БД|порт|port|COMPOSE_PROJECT", "scope": "project", "why": ""}
+{"t": "2026-10-29T11:34:44", "id": "F-10", "kind": "cluster", "title": "long accept blocks the agent (tool timeout)", "match": "accept.{0,60}(\\d+\\s*(мин|с\\b)|таймаут|timeout|фон|foreground|блокир|job)", "scope": "dpcli", "why": ""}
+{"t": "2026-10-29T11:34:54", "id": "F-2", "kind": "fix", "where": "dpcli v4: workflow rule 'Never git stash'"}
