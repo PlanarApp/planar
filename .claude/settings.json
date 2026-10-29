@@ -1,11 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(.dpcli/dpcli *)"
+      "Bash(.dpcli/dpcli *)",
+      "Bash(gh api -X PUT repos/zolotarev/dpcli/actions/permissions/*)"
     ]
-  },
-  "enabledPlugins": {
-    "ponytail@ponytail": true
   },
   "hooks": {
     "SessionStart": [
@@ -18,5 +16,8 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "ponytail@ponytail": true
   }
 }
