@@ -11,3 +11,9 @@
 {"t": "2026-10-29T11:34:44", "id": "F-9", "kind": "cluster", "title": "shared test database and ports between parallel copies", "match": "testdb|тестов\\w* БД|БД.{0,20}общ|общ\\w* (сервер )?БД|порт|port|COMPOSE_PROJECT", "scope": "project", "why": ""}
 {"t": "2026-10-29T11:34:44", "id": "F-10", "kind": "cluster", "title": "long accept blocks the agent (tool timeout)", "match": "accept.{0,60}(\\d+\\s*(мин|с\\b)|таймаут|timeout|фон|foreground|блокир|job)", "scope": "dpcli", "why": ""}
 {"t": "2026-10-29T11:34:54", "id": "F-2", "kind": "fix", "where": "dpcli v4: workflow rule 'Never git stash'"}
+{"t": "2026-10-29T12:02:17", "id": "F-7", "kind": "fix", "where": "dpcli v15", "pr": "https://github.com/zolotarev/dpcli/pull/6"}
+{"t": "2026-10-29T12:02:17", "id": "F-3", "kind": "fix", "where": "dpcli v15", "pr": "https://github.com/zolotarev/dpcli/pull/6"}
+{"t": "2026-10-29T12:31:52", "id": "F-8", "kind": "fix", "where": "dpcli v16", "pr": "https://github.com/zolotarev/dpcli/pull/7"}
+{"t": "2026-10-29T12:50:08", "id": "F-10", "kind": "fix", "where": "dpcli v17", "pr": "https://github.com/zolotarev/dpcli/pull/8"}
+{"t": "2026-10-29T12:50:08", "id": "F-4", "kind": "fix", "where": "dpcli v17", "pr": "https://github.com/zolotarev/dpcli/pull/8"}
+{"t": "2026-10-29T12:50:08", "id": "F-5", "kind": "fix", "where": "dpcli v17", "pr": "https://github.com/zolotarev/dpcli/pull/8"}
