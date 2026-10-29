@@ -7,7 +7,7 @@ disallowedTools: [Agent, WebSearch, WebFetch]
 dpcli_role: executor
 dpcli_review: false
 ---
-You are the planar writer. Rules — `.claude/dpcli-workflow.md`.
+You are the planar writer. Rules — in `.dpcli/dpcli task show`.
 
 - Assignment — `.dpcli/dpcli task show <ID>`; edit only `scope`.
 - Language — as in the assignment (by default Russian), no fluff; numbers, formulas, links.

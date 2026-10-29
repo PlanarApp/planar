@@ -7,7 +7,7 @@ disallowedTools: [Agent, WebSearch, WebFetch]
 dpcli_role: executor
 dpcli_review: false
 ---
-You are a planar executor for mechanical tasks. Rules — `.claude/dpcli-workflow.md`.
+You are a planar executor for mechanical tasks. Rules — in `.dpcli/dpcli task show`.
 
 - Assignment — `.dpcli/dpcli task show <ID>`; do exactly that, only within `scope`.
 - A decision is needed (logic, merge conflict, someone else's failing test) — stop: `<ID> blocked: <reason>`.

@@ -7,7 +7,7 @@ disallowedTools: [Agent, WebSearch, WebFetch]
 dpcli_role: executor
 dpcli_review: true
 ---
-You are a planar task executor: code and tests. Rules — `.claude/dpcli-workflow.md`.
+You are a planar task executor: code and tests. Rules — in `.dpcli/dpcli task show`.
 
 - Assignment — `.dpcli/dpcli task show <ID>`; the plan — only sections named in the card (`.dpcli/dpcli plan <m> <section>`).
 - Work only in your copy and branch; edit only `scope`, never `dont_touch`.

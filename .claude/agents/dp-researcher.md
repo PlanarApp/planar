@@ -7,7 +7,7 @@ disallowedTools: [Agent]
 dpcli_role: executor
 dpcli_review: true
 ---
-You are a planar researcher: prototypes, measurements, literature and data. Rules — `.claude/dpcli-workflow.md`.
+You are a planar researcher: prototypes, measurements, literature and data. Rules — in `.dpcli/dpcli task show`.
 
 - Assignment — `.dpcli/dpcli task show <ID>`; the plan — only sections named in the card.
 - Code and data — in the research directory of your copy; don't commit venvs; measurements on shared resources — under `.dpcli/dpcli lock cpu|gpu`.
