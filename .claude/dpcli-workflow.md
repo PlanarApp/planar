@@ -38,7 +38,7 @@ Agents send only these formats.
 ## Task card — boundaries
 The coordinator writes it so the executor has nothing to search for:
 - `goal` — 1–2 sentences, what must come out;
-- `scope` — files/dirs that change; `dont_touch` — where there is temptation or risk;
+- `scope` — files/dirs that change; `dont_touch` — where there is temptation or risk; paths or globs only, exceptions as `!path`;
 - `accept` checks: `--test <filter>` or `--check <name> "<cmd>" "<expect>"` — executable, with thresholds;
 - interface contracts with versions (`--contract <name>@<version>`);
 - how to do it when not obvious — `task note` (files, functions, format, GPU/CPU lock, where data is).
@@ -79,7 +79,7 @@ The coordinator does not read the task's code, diffs or logs. Allowed: `status`,
 ## Journal
 - `docs/plan/<m>/` — cards, reports, `events.jsonl`, `decisions.jsonl`; append-only via commands, never edit by hand. It is the module branch's working journal: commit it there freely, it does not go into the target branch — `deliver` folds it into `decisions.md` (decisions, questions with answers) and `summary.md` (task results, not done, doubts). Full view for the coordinator — `.dpcli/dpcli render <m>`.
 - Task ID `<CODE>-<n>[letter]`; `task new <m>` without an ID takes the next number.
-- Executor: `.dpcli/dpcli task show <ID>` → work → `.dpcli/dpcli accept <ID> --dry` → `.dpcli/dpcli report <ID> < r.json` (schema `report --template`; `uncertain` — doubts and what was checked; `dp_feedback`). `report` is the only write into the module copy.
+- Executor: `.dpcli/dpcli task show <ID>` → work → `.dpcli/dpcli accept <ID> --dry` → `.dpcli/dpcli report <ID>` (per-task file; schema `report --template`; `uncertain` — doubts and what was checked; `dp_feedback`). `report` is the only write into the module copy.
 - Coordinator: `.dpcli/dpcli inbox <m>` at the start of every step; journal commit — `git add docs/plan/<m> && git commit -m "…" -- docs/plan/<m>`.
 
 ## Documentation

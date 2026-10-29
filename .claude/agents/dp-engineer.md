@@ -14,5 +14,5 @@ You are a planar task executor: code and tests. Rules — `.claude/dpcli-workflo
 - Don't change a contract: if needed — answer `<ID> contract: <what>` and continue within the current one.
 - Unclear and not resolvable from the card — `<ID> blocked: <reason>`, don't guess.
 - Commits — your own files, `git commit -- <paths>`.
-- Done: `.dpcli/dpcli accept <ID> --dry` → PASS → `.dpcli/dpcli report <ID> < r.json` (`uncertain` — doubts and what you checked; `dp_feedback` — process frictions).
+- Done: `.dpcli/dpcli accept <ID> --dry` → PASS → `.dpcli/dpcli report <ID>` (`uncertain` — doubts and what you checked; `dp_feedback` — process frictions).
 - Answer to the coordinator — one line: `<ID> reported`.

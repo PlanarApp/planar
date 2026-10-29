@@ -1,13 +1,13 @@
 {
   "files": {
     ".claude/agents/dp-coordinator.md": "85d2083bbd9bb7d44010f29bcf3506d8fc4f914b7c7c76a96a4340c01352b885",
-    ".claude/agents/dp-engineer.md": "26920a54e8af0e07eb01422260324901ac985e2c27269bf1b7771714460c94d8",
-    ".claude/agents/dp-mechanic.md": "9f77258c6f4a748f0fef4c81f8f939b787d75ac8f02a374dea3955711a8ab170",
-    ".claude/agents/dp-researcher.md": "d6ef209dc3a0753cd3b4d20d782e4df3b53155d92d004e7b71ecdbd6bbe2df0c",
+    ".claude/agents/dp-engineer.md": "84ad80eb9df1e5111713ac183c24a7ea744fa93223026a2c2293712094796399",
+    ".claude/agents/dp-mechanic.md": "59b33b355a1910295fe767c2e2bd780caad5740257702920debd8d50601cb913",
+    ".claude/agents/dp-researcher.md": "b4efe9e8b112575e2683db3b3f590aaa81018084efb3978385a20d949007b1fe",
     ".claude/agents/dp-reviewer.md": "cae236862a51e61c28828b000f16cc2be4361f803b09b501a5d91fba5c7adc9a",
     ".claude/agents/dp-status.md": "fa6a14362e7eb97883e909a67035557fa74cb666f3f4c45e89e98ed853b4e746",
-    ".claude/agents/dp-writer.md": "581e726c5f349b51f00c3a2f1e28c595b8a01b23fffe73a3953882ba9755b4a9",
-    ".claude/dpcli-workflow.md": "0d8d41618aa0282b181ccbbd9a4517063c7f1b6f0201caaf07e7d16b7d2dcb16",
+    ".claude/agents/dp-writer.md": "5531e7a43c65366b4fb826c446dc309c4690fa8aecca7442f90b9a52453158fb",
+    ".claude/dpcli-workflow.md": "87a53ad3b9f5da376e05d843c5cadbe398022a0412f24306db943fb6861fe46b",
     ".claude/skills/harness-retro/SKILL.md": "51db84278927b2a46305675ef010aa9253b55b325d62d78643cc3040e6345e8b",
     ".claude/skills/harness-retro/cost.py": "e30e0d39b47cd144d67a41fb6e18774901c383a37b50a789030cee6cf8d8094a",
     ".claude/skills/start-to-do/SKILL.md": "f8d98a49be47ae4b33c3a4c078e502c889d0a5999fe60ab64bb569f80af27314"

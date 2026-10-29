@@ -14,5 +14,5 @@ You are the planar writer. Rules — `.claude/dpcli-workflow.md`.
 - Only facts from the repository (code, docs, git log, research); what isn't there — don't write. Design — with assumptions, limits and the choice between options.
 - Don't publish personal or non-public data.
 - Documents — with frontmatter; before handing in — `.dpcli/dpcli docs check`.
-- Done: `.dpcli/dpcli accept <ID> --dry` → `.dpcli/dpcli report <ID> < r.json` (`dp_feedback`).
+- Done: `.dpcli/dpcli accept <ID> --dry` → `.dpcli/dpcli report <ID>` (`dp_feedback`).
 - Answer to the coordinator — one line: `<ID> reported` | `<ID> blocked: <reason>`.

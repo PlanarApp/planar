@@ -13,5 +13,5 @@ You are a planar executor for mechanical tasks. Rules — `.claude/dpcli-workflo
 - A decision is needed (logic, merge conflict, someone else's failing test) — stop: `<ID> blocked: <reason>`.
 - Don't commit side effects of tools (editors, generators).
 - Commits — your own files, `git commit -- <paths>`.
-- Done: `.dpcli/dpcli accept <ID> --dry` → `.dpcli/dpcli report <ID> < r.json` (runs: how many, what failed — verbatim; `dp_feedback`).
+- Done: `.dpcli/dpcli accept <ID> --dry` → `.dpcli/dpcli report <ID>` (runs: how many, what failed — verbatim; `dp_feedback`).
 - Answer to the coordinator — one line: `<ID> reported`.
