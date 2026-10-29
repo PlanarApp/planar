@@ -24,6 +24,8 @@ task_copy: "{copies}/{project}-{module}-{task}"
 # node_modules и .env берутся из главной копии по умолчанию (worktree.link / worktree.copy).
 worktree:
   setup: "git submodule update --init .dpcli"
+  # node_modules — как по умолчанию; сборка @planar/editor нужна vue-tsc, а в свежей копии её нет
+  link: [node_modules, packages/editor/dist]
 
 # Language agents write in (replies, reports, journal, plans, docs) and of commit messages.
 language:
