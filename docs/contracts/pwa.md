@@ -1,8 +1,9 @@
 ---
 type: contract
-status: active
+status: "closed"
 module: pwa
-updated: 2026-10-29
+area: "web"
+updated: "2026-10-30"
 summary: "C-pwa v1: usePwa() — состояние обновлений SW и установки PWA для UI"
 related: [docs/plan/pwa.md]
 ---
