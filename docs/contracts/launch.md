@@ -4,7 +4,7 @@ status: closed
 module: launch
 updated: 2026-10-30
 summary: launch contracts — SETUP_TOKEN, DB_POOL_MAX, DEMO_MODE, GET /api/setup, demo seed and reset, images, CI and release compose
-related: ["docs/plan/launch.md", "docs/contracts/ops.md"]
+related: ["docs/contracts/ops.md"]
 ---
 
 # launch module contracts
