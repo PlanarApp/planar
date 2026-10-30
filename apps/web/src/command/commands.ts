@@ -15,7 +15,7 @@ export interface Cmd {
   group: string;
   icon?: Component;
   shortcut?: string;
-  /** текст подтверждения: команда выполнится после второго Enter */
+  /** confirmation text: the command runs after the second Enter */
   confirm?: string;
   run: () => void | Promise<void>;
 }

@@ -7,12 +7,12 @@ import { db, useQuery } from '../../sync';
 import { localToday, matchFilter, type Filter, type FilterCtx } from '../filter';
 
 /**
- * Me Mode вида: 'mine' — тумблер в Задачах (работа для меня: назначенные мне незакрытые задачи и
- * задачи с назначенными мне нерешёнными комментариями); остальные — списки «Моей работы»; null — все.
+ * View's Me Mode: 'mine' — toggle in Tasks (work for me: open tasks assigned to me and
+ * tasks with unresolved comments assigned to me); the others — "My work" lists; null — all.
  */
 export type MeMode = 'mine' | 'assigned' | 'created' | 'watched';
 
-/** Предикат «задача проходит фильтр вида» (и Me Mode) для list/board/table/calendar. */
+/** Predicate "task passes the view filter" (and Me Mode) for list/board/table/calendar. */
 export function useTaskFilter(
   filter: MaybeRefOrGetter<Filter | null | undefined>,
   statuses: MaybeRefOrGetter<Row<'statuses'>[] | undefined>,
@@ -68,7 +68,7 @@ export function useTaskFilter(
       ),
     ].join(','),
   );
-  // таблицу sprintsCycles добавляет модуль sprints; без неё cycles не передаются
+  // the sprintsCycles table is added by the sprints module; without it cycles are not passed
   const cycles = useQuery(() =>
     db.tables.some((t) => t.name === 'sprintsCycles')
       ? (db.table('sprintsCycles').toArray() as Promise<NonNullable<FilterCtx['cycles']>>)
@@ -77,7 +77,7 @@ export function useTaskFilter(
   const rules = computed(() => {
     const f = toValue(filter);
     if (!f?.rules.length) return () => true;
-    // defs ещё грузятся: field:-правила не должны пропускать лишнее
+    // defs are still loading: field: rules must not let through extra items
     if (defs.value === undefined && f.rules.some((r) => r.field.startsWith('field:')))
       return () => false;
     const ctx = {

@@ -20,7 +20,7 @@ const props = defineProps<{
 const tx = useTexts();
 const feed = useFeed(props.channel.id);
 const { messages } = feed;
-// «Новые»: граница непрочитанного на момент открытия — не сдвигается, пока канал открыт
+// "New": the unread boundary at the moment of opening does not move while the channel is open
 const since = props.channel.lastSeq > props.readSeq ? props.readSeq : null;
 const firstNew = computed(() =>
   since === null
@@ -43,7 +43,7 @@ const items = computed(() => virt.value.getVirtualItems());
 const total = computed(() => virt.value.getTotalSize());
 const measure = (el: unknown) => el && virt.value.measureElement(el as Element);
 
-// старт с низа; при прокрутке вверх подгружаем историю и держим позицию
+// start from the bottom; on scrolling up we load history and keep the position
 let stick = true;
 const toEnd = () =>
   nextTick(
@@ -77,7 +77,7 @@ onMounted(async () => {
   await feed.loadOlder();
   if (props.messageId) await jump(props.messageId);
   else {
-    // открыли непрочитанный — к первому новому, иначе в конец
+    // opened an unread one — to the first new, otherwise to the end
     const i = messages.value.findIndex((m) => m.id === firstNew.value);
     if (i > 0) {
       await nextTick();
@@ -96,7 +96,7 @@ watch(
     if (!positioned.value || !cur.length || !prev.length) return;
     const i = cur.findIndex((m) => m.id === prev[0]!.id);
     if (i > 0)
-      virt.value.scrollToIndex(i, { align: 'start' }); // страница истории сверху
+      virt.value.scrollToIndex(i, { align: 'start' }); // history page from above
     else if (cur.at(-1)!.id !== prev.at(-1)!.id && (stick || cur.at(-1)!.authorId === props.me))
       void toEnd();
   },
@@ -109,7 +109,7 @@ watch(
   },
 );
 
-// прочтение: максимальный видимый seq, не чаще раза в секунду
+// read mark: the maximum visible seq, no more than once a second
 let sent = 0;
 let lastSent = 0;
 let pending = 0;
@@ -125,7 +125,7 @@ function flush() {
   }).catch(() => {});
   void readAttention();
 }
-// прочитал канал — гаснут его уведомления (упоминания, 1:1) в счётчике чатов и колокольчике
+// read the channel — its notifications (mentions, 1:1) fade from the chat counter and the bell
 async function readAttention() {
   const ids = (
     await db
@@ -159,7 +159,7 @@ watch(
 );
 onBeforeUnmount(() => (clearTimeout(timer), clearTimeout(hlTimer)));
 
-// ↑ в пустом поле: правка своего последнего сообщения; после — фокус обратно в поле ввода
+// ↑ in an empty field: edit your last message; afterwards — focus returns to the input field
 const composer = ref<InstanceType<typeof Composer> | null>(null);
 const editId = ref('');
 function editLast() {

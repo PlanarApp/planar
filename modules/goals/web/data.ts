@@ -17,7 +17,7 @@ export { mutate as run, newId, rankBetween, openTask, useSpaces } from '@planar/
 export const hasTables = () => db.tables.some((t) => t.name === 'goalsMilestones');
 export const userId = () => useSession().value?.id ?? '';
 
-/** useQuery не следит за реактивным аргументом — пересоздаём запрос при его смене. */
+/** useQuery does not watch a reactive argument — the query is recreated when it changes. */
 function useScoped<A, T>(arg: MaybeRefOrGetter<A>, fn: (a: A) => Promise<T>) {
   const out = shallowRef<T>();
   let scope: EffectScope | undefined;
@@ -52,7 +52,7 @@ export interface GoalsData {
 export const useGoalsData = (spaceId: MaybeRefOrGetter<string>) =>
   useScoped(spaceId, async (s): Promise<GoalsData | null> => {
     if (!s || !hasTables()) return null;
-    // у goalsKeyResults индекс только goalId
+    // goalsKeyResults has an index on goalId only
     const goalsP = bySpace<Goal>('goalsGoals', s);
     const [goals, krs, rows, statuses, fieldDefs, members, users] = await Promise.all([
       goalsP,

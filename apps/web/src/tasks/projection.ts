@@ -5,13 +5,13 @@ import { db, onReplicaChange, type ReplicaChange } from '../sync';
 import { resetDictionaries, warmSpace } from './dictionaries';
 import type { TaskView } from './queries';
 
-/** связи задач по id: точечными запросами, пока проект — малая доля таблицы, иначе чтение таблицы целиком и фильтр */
+/** task links by id: point queries while the project is a small share of the table, otherwise read the whole table and filter */
 export async function readLinks<R extends { taskId: string }>(
   table: string,
   ids: string[],
 ): Promise<R[]> {
   const t = db.table<R>(table);
-  // курсорный скан (filter().toArray()) в разы медленнее getAll
+  // a cursor scan (filter().toArray()) is several times slower than getAll
   if (ids.length <= 500 || ids.length * 20 < (await t.count()))
     return t.where('taskId').anyOf(ids).toArray();
   const set = new Set(ids);
@@ -19,16 +19,16 @@ export async function readLinks<R extends { taskId: string }>(
 }
 
 /**
- * Проекция задач проекта в памяти (C-tasks v3). Проект читается из IndexedDB один раз, дальше патчится
- * событиями `onReplicaChange`; до `KEEP` последних проектов остаются в памяти (LRU).
- * Связи (исполнители, метки) хранятся в индексе по задаче: общем на все проекты, если проект — заметная
- * доля таблицы связей, иначе (много проектов) — свой на проект и с чтением anyOf.
+ * In-memory projection of project tasks (C-tasks v3). A project is read from IndexedDB once, then patched by
+ * `onReplicaChange` events; the last `KEEP` projects stay in memory (LRU).
+ * Links (assignees, labels) are stored in an index per task: shared by all projects if the project is a notable
+ * share of the link table, otherwise (many projects) — one per project, read with anyOf.
  */
 const KEEP = 3;
 
-/** связи по задаче (массивы пар [id, значение]: у задачи их единицы) и по id связи; значения — в порядке id, как полное чтение */
+/** links by task (arrays of [id, value] pairs: a task has one or a few) and by link id; values are in id order, as in a full read */
 class LinkIndex {
-  byId = new Map<string, string>(); // id связи → задача
+  byId = new Map<string, string>(); // link id → task
   byTask = new Map<string, [string, string][]>();
   set(id: string, taskId: string | null, value = ''): string[] {
     const touched: string[] = [];
@@ -53,7 +53,7 @@ class LinkIndex {
     }
     return touched;
   }
-  /** первичное заполнение строками в порядке id (без проверки старого значения) */
+  /** initial fill with rows in id order (without checking the old value) */
   add(id: string, taskId: string, value: string): void {
     this.byId.set(id, taskId);
     const list = this.byTask.get(taskId);
@@ -70,12 +70,12 @@ class LinkIndex {
 interface Links {
   a: LinkIndex;
   l: LinkIndex;
-  /** события, пришедшие во время чтения (null — прочитано) */
+  /** events that arrived during the read (null — read finished) */
   queue: ReplicaChange[] | null;
   ready: Promise<void>;
 }
 
-/** применяет строки связей; accept — брать ли связь этой задачи (индекс проекта берёт только свои) */
+/** applies link rows; accept — whether to take this task's link (the project index takes only its own) */
 function applyLinks(
   L: Links,
   cs: ReplicaChange[],
@@ -94,7 +94,7 @@ function applyLinks(
   return touched;
 }
 
-let shared: Links | undefined; // общий индекс связей всех задач
+let shared: Links | undefined; // shared link index of all tasks
 
 function fill(L: Links, as: Row<'taskAssignees'>[], ls: Row<'taskLabels'>[]): void {
   for (const r of as) L.a.add(r.id, r.taskId, r.userId);
@@ -111,7 +111,7 @@ function loadShared(): Links {
     const q = L.queue!;
     L.queue = null;
     fill(L, as, ls);
-    applyLinks(L, q); // события, пришедшие во время чтения (идемпотентно)
+    applyLinks(L, q); // events that arrived during the read (idempotent)
   })();
   return L;
 }
@@ -119,11 +119,11 @@ function loadShared(): Links {
 interface Entry {
   pid: string;
   key: string;
-  tasks?: Map<string, TaskView>; // undefined — идёт чтение
+  tasks?: Map<string, TaskView>; // undefined — a read is in progress
   links?: Links;
-  own: boolean; // индекс связей свой (не общий)
-  arr?: TaskView[]; // снимок для подписчиков; undefined — устарел
-  queue: ReplicaChange[]; // события во время чтения
+  own: boolean; // the link index is its own (not shared)
+  arr?: TaskView[]; // snapshot for subscribers; undefined — stale
+  queue: ReplicaChange[]; // events during the read
   run: number;
   subs: Set<(a: TaskView[]) => void>;
 }
@@ -138,7 +138,7 @@ const view = (e: Entry, t: Row<'tasks'>): TaskView => ({
 });
 const snapshot = (e: Entry) => (e.arr ??= [...e.tasks!.values()]);
 
-/** реплика не больше — связи читаем целиком не раздумывая (до ~40 тыс. строк); больше — решаем по доле проекта */
+/** if the replica is not larger — read the links whole without hesitation (up to ~40k rows); larger — decide by the project's share */
 const SMALL = 20_000;
 
 function reload(e: Entry): void {
@@ -153,8 +153,8 @@ function reload(e: Entry): void {
       ]);
     const read = own();
     let L = shared;
-    // связи читаются параллельно с задачами; много проектов — только если проект заметная доля таблицы связей,
-    // иначе точечные чтения (anyOf) только его задач
+    // links are read in parallel with tasks; many projects — only if the project is a notable share of the link table,
+    // otherwise point reads (anyOf) of only its tasks
     if (!L && (await db.table('tasks').count()) <= SMALL) L = shared ??= loadShared();
     const [project, tasks] = await read;
     if (!L) {
@@ -197,7 +197,7 @@ function publish(e: Entry): void {
   }
 }
 
-/** -1 — проект надо перечитать (сброс реплики, сменился сам проект, задача пришла из другого проекта), 0 — не менялся, 1 — изменился */
+/** -1 — the project must be re-read (replica reset, the project itself changed, a task came from another project), 0 — unchanged, 1 — changed */
 function patch(e: Entry, cs: ReplicaChange[], touched?: Set<string>): -1 | 0 | 1 {
   const tasks = e.tasks!;
   const dirty = new Set(touched);
@@ -209,7 +209,7 @@ function patch(e: Entry, cs: ReplicaChange[], touched?: Set<string>): -1 | 0 | 1
     if (c.entity !== 'tasks') continue;
     const old = tasks.get(c.id);
     if (c.row && c.row.projectId === e.pid) {
-      // свой индекс (много проектов) не знает связей появившейся задачи: она может прийти из другого проекта — перечитать
+      // its own index (many projects) doesn't know the links of a newly appeared task: it may come from another project — re-read
       if (!old && e.own) return -1;
       tasks.set(c.id, view(e, c.row as Row<'tasks'>));
       dirty.delete(c.id);
@@ -251,13 +251,13 @@ function acquire(pid: string): Entry {
   off ??= onReplicaChange(onChanges);
   let e = entries.get(pid);
   if (e)
-    entries.delete(pid); // обновить порядок LRU
+    entries.delete(pid); // update the LRU order
   else {
     e = { pid, key: '?', own: false, queue: [], run: 0, subs: new Set() };
     reload(e);
   }
   entries.set(pid, e);
-  // выданную не вытесняем: подписчик добавится после возврата (иначе он подпишется на сироту без правок)
+  // the issued one is not evicted: the subscriber is added after return (otherwise it would subscribe to an orphan without edits)
   for (const [k, x] of entries) {
     if (entries.size <= KEEP) break;
     if (k !== pid && !x.subs.size) entries.delete(k);
@@ -265,7 +265,7 @@ function acquire(pid: string): Entry {
   return e;
 }
 
-/** Заранее строит проекцию проекта; повторный вызов ничего не делает. */
+/** Builds the project's projection in advance; a repeated call does nothing. */
 export const prefetchProject = (projectId: string): void => void acquire(projectId);
 
 export function useProjectTasks(
@@ -289,7 +289,7 @@ export function useProjectTasks(
   return r;
 }
 
-/** Задачи нескольких проектов (сводка группы): склейка проекций; один проект — его массив как есть. */
+/** Tasks of several projects (group summary): projections concatenated; one project — its array as is. */
 export function useScopeTasks(
   projectIds: MaybeRefOrGetter<string[]>,
 ): Readonly<Ref<TaskView[] | undefined>> {
@@ -307,7 +307,7 @@ export function useScopeTasks(
             ? parts[0]
             : parts.flatMap((p) => p!)
           : undefined);
-      // подписка сразу после acquire: иначе проекции без подписчиков вытесняются следующими (KEEP) и не получают правок
+      // subscribe right after acquire: otherwise projections without subscribers are evicted next (KEEP) and get no edits
       unsubs = ids.map((pid, i) => {
         const e = acquire(pid);
         parts[i] = e.tasks ? snapshot(e) : undefined;
@@ -323,15 +323,15 @@ export function useScopeTasks(
   return r;
 }
 
-/** в простое: заранее строит проекции первых проектов, пока в памяти есть место */
+/** when idle: pre-builds the projections of the first projects while there is room in memory */
 export function prefetchIdle(projectIds: string[]): void {
   for (const id of projectIds) if (entries.size < KEEP && !entries.has(id)) prefetchProject(id);
 }
 
-/** для тестов: проекты в памяти (от давнего к недавнему) */
+/** for tests: projects in memory (from oldest to newest) */
 export const projectionKeys = (): string[] => [...entries.keys()];
 
-/** для тестов: сбросить память проекций и справочников (тесты очищают базу напрямую, минуя события) */
+/** for tests: reset the projection and dictionary memory (tests clear the database directly, bypassing events) */
 export function resetProjections(): void {
   entries.clear();
   shared = undefined;

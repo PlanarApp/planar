@@ -1,5 +1,5 @@
-// Контрактный тест core: сверяет код контрактов с docs/contracts/core.md.
-// Правит только координатор модуля core (см. «Контрактный тест» в docs/contracts/core.md).
+// Core contract test: checks the contract code against docs/contracts/core.md.
+// Only the core module coordinator edits this (see «Contract test» in docs/contracts/core.md).
 import { describe, expect, it } from 'vitest';
 import { CONTRACT_VERSIONS, ENTITIES, contractSchemas, entitySchemas } from '../src/index';
 import { docBlocks, docEntities, docVersions } from './contract-doc';
@@ -42,7 +42,7 @@ describe('contract entities', () => {
       expect(schema, `нет entitySchemas.${e.name}`).toBeDefined();
       expect(Object.keys(schema.shape).sort()).toEqual(e.fields.map((f) => f.name).sort());
       for (const f of e.fields) {
-        if (f.type === 'json') continue; // любой JSON, null допустим по определению
+        if (f.type === 'json') continue; // any JSON; null is allowed by the definition
         expect(schema.shape[f.name].safeParse(null).success, `${e.name}.${f.name}: ${f.type}`).toBe(f.nullable);
       }
       expect((ENTITIES as Record<string, unknown>)[e.name]).toEqual(e.meta);

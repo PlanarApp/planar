@@ -1,6 +1,6 @@
-// Проверка CR-5: реестр domainMutators = таблица «Мутаторы домена» (имена, аргументы, необязательность).
-// Запуск: pnpm exec tsx packages/shared/test/check-mutators.ts → «mutators-ok» или список расхождений.
-// Правит только координатор модуля core.
+// Check CR-5: the domainMutators registry = the table «Domain mutators» (names, arguments, optionality).
+// Run: pnpm exec tsx packages/shared/test/check-mutators.ts → «mutators-ok» or the list of mismatches.
+// Only the core module coordinator edits this.
 import * as shared from '../src/index.js';
 import { docMutators } from './contract-doc.js';
 

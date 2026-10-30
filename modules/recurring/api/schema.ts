@@ -36,7 +36,7 @@ export const recurringRules = pgTable(
   ],
 );
 
-/** Серверная: один экземпляр на (правило, период). */
+/** Server: one instance per (rule, period). */
 export const recurringRuns = pgTable(
   'recurring_runs',
   {

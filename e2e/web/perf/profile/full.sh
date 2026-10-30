@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bash full.sh <label> — пересборка, замеры (mutate+stages), затем CPU-профили с разбором по исходным файлам (под lock cpu)
+# bash full.sh <label> — rebuild, measurements (mutate+stages), then CPU profiles with breakdown by source files (under cpu lock)
 cd "$(dirname "$0")/../../../.."
 export LABEL=${1:?label}
 bash e2e/web/perf/profile/rebuild.sh || exit 1

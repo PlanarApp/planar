@@ -45,17 +45,17 @@ describe('pf1: nextOccurrence', () => {
   });
 
   it('pf1: weekdays через неделю', () => {
-    // anchor — понедельник 2026-01-05; вт и чт каждые 2 недели
+    // anchor — Monday 2026-01-05; Tuesday and Thursday every 2 weeks
     const r = sch({ kind: 'weekdays', unit: 'week', every: 2, weekdays: [2, 4] });
     expect(nextOccurrence(r, '2026-01-04')).toBe('2026-01-06');
     expect(nextOccurrence(r, '2026-01-06')).toBe('2026-01-08');
-    expect(nextOccurrence(r, '2026-01-08')).toBe('2026-01-20'); // неделя 2026-01-12 пропущена
+    expect(nextOccurrence(r, '2026-01-08')).toBe('2026-01-20'); // week of 2026-01-12 is skipped
     expect(nextOccurrence(r, '2026-01-20')).toBe('2026-01-22');
   });
 
   it('pf1: weekdays — воскресенье принадлежит неделе, начатой в понедельник', () => {
     const r = sch({ kind: 'weekdays', unit: 'week', every: 2, weekdays: [0, 1] });
-    // 2026-01-11 — вс первой недели
+    // 2026-01-11 — Sunday of the first week
     expect(nextOccurrence(r, '2026-01-05')).toBe('2026-01-11');
     expect(nextOccurrence(r, '2026-01-11')).toBe('2026-01-19');
   });

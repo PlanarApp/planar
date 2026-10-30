@@ -3,7 +3,7 @@ import { serverExtensions } from '@planar/editor';
 import { prosemirrorJSONToYXmlFragment, yXmlFragmentToProsemirrorJSON } from 'y-prosemirror';
 import type * as Y from 'yjs';
 
-/** Поле Yjs (P3-collab): XmlFragment `default`. */
+/** Yjs field (P3-collab): XmlFragment `default`. */
 export const FIELD = 'default';
 export type Json = Record<string, unknown>;
 
@@ -16,13 +16,13 @@ const isEmpty = (j: Json): boolean => {
   );
 };
 
-/** Канонический JSON схемы (атрибуты по умолчанию, порядок ключей); пустой документ → null. Неизвестный узел → исключение. */
+/** Canonical JSON of the schema (default attributes, key order); empty document → null. Unknown node → exception. */
 export function normalize(j: Json | null | undefined): Json | null {
   if (!j || isEmpty(j)) return null;
   return schema.nodeFromJSON(j).toJSON() as Json;
 }
 
-/** Содержимое равно без учёта формы записи (пустой документ = null, порядок ключей jsonb). */
+/** Content is equal regardless of write form (empty document = null, jsonb key order). */
 export function same(a: Json | null | undefined, b: Json | null | undefined): boolean {
   try {
     return JSON.stringify(normalize(a)) === JSON.stringify(normalize(b));
@@ -31,7 +31,7 @@ export function same(a: Json | null | undefined, b: Json | null | undefined): bo
   }
 }
 
-/** Заменяет содержимое `default` на json одной Y-транзакцией (вызывать внутри doc.transact). */
+/** Replaces the content of `default` with json in one Y transaction (call inside doc.transact). */
 export function fill(doc: Y.Doc, json: Json | null): void {
   const frag = doc.getXmlFragment(FIELD);
   frag.delete(0, frag.length);

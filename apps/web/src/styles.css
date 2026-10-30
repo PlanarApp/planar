@@ -16,7 +16,7 @@ body {
   line-height: var(--text-sm--line-height);
 }
 
-/* тонкие полосы прокрутки под тему: на ПК крутят колёсиком, на mobile — свайпом */
+/* thin scrollbars matching the theme: on desktop scrolled with the wheel, on mobile by swiping */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-strong) transparent;

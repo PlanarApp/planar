@@ -1,7 +1,7 @@
 import { inject, provide, type InjectionKey } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
 
-/** Адреса канала и треда: страница /m/chat или таб «Чаты» группы (?c=…&t=…). */
+/** Addresses of a channel and a thread: page /m/chat or the "Chats" tab of a group (?c=…&t=…). */
 export interface ChatLinks {
   channel(id: string): RouteLocationRaw;
   thread(channelId: string, rootId: string): RouteLocationRaw;

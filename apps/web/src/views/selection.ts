@@ -1,6 +1,6 @@
 import { readonly, ref } from 'vue';
 
-// одно состояние на приложение
+// one state for the app
 const selected = ref<ReadonlySet<string>>(new Set());
 const anchor = ref<string | null>(null);
 

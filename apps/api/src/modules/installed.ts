@@ -39,13 +39,13 @@ import * as pluginsTables from '@planar/module-plugins/api/schema';
 
 export interface InstalledModule {
   api: BackendModuleManifest;
-  /** api/schema.ts модуля: ключ = имя сущности */
+  /** api/schema.ts of the module: key = entity name */
   tables: Record<string, unknown>;
 }
 
-/** Явный реестр: добавление модуля = строка здесь + зависимость в package.json (C-modules). */
+/** Explicit registry: adding a module = a line here + a dependency in package.json (C-modules). */
 const ID_RE = /^[a-z][a-z0-9-]{1,30}$/;
-/** Префиксы маршрутов ядра: модуль с таким id выключал бы их через guard. */
+/** Core route prefixes: a module with such an id would disable them via the guard. */
 const RESERVED = [
   'auth',
   'setup',
@@ -60,7 +60,7 @@ const RESERVED = [
   'mcp',
 ];
 
-/** Проверка при загрузке: id по C-modules, не маршрут ядра, у каждой сущности есть таблица. */
+/** Load-time check: id per C-modules, not a core route, every entity has a table. */
 export function validateInstalled(list: InstalledModule[]): InstalledModule[] {
   for (const m of list) {
     const id = m.api.id;

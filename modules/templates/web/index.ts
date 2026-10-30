@@ -2,7 +2,7 @@ import { defineComponent, h } from 'vue';
 import { defineWebModule } from '@planar/web/modules';
 import { taskIdByKey, ui } from './data';
 
-// иконка без lucide: страница с копией
+// icon without lucide: a page with a copy
 const Copy = defineComponent({
   props: { size: { type: [Number, String], default: 16 } },
   setup: (p) => () =>

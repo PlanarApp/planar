@@ -6,6 +6,6 @@ import { PushController, PushQueue } from '../push/push.js';
 import { SyncController } from './sync.controller.js';
 import { SyncGateway } from './ws.js';
 
-/** Подключаются в AppModule.register (DB и AUTH_OPTS — оттуда). */
+/** Connected in AppModule.register (DB and AUTH_OPTS come from there). */
 export const syncControllers = [SyncController, ActivityController, PushController];
 export const syncProviders = [PushQueue, PushService, PullService, ChangeNotifier, SyncGateway];

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { fixture, loginAs, uniq } from './helpers.js';
 
-// Меню и быстрое создание (уровень ClickUp): правый клик по задаче, «+ Создать», меню проекта.
-// statusIds фикстуры: [backlog, todo, in_progress, done, cancelled] — имена статусов по умолчанию (en).
+// Menus and quick create (ClickUp level): right click on a task, '+ Create', project menu.
+// statusIds of the fixture: [backlog, todo, in_progress, done, cancelled] — default status names (en).
 
 test('правый клик по задаче: статус через подменю, переживает reload', async ({ browser }) => {
   const title = uniq('Меню');
@@ -16,7 +16,7 @@ test('правый клик по задаче: статус через подм�
   await page.reload();
   await row.click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Статус' }).hover();
-  // отметка текущего статуса — у Done
+  // mark of the current status — on Done
   await expect(page.getByRole('menuitem', { name: 'Done' }).locator('svg').last()).toBeVisible();
 });
 

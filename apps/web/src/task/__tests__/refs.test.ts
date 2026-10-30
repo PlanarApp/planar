@@ -25,7 +25,7 @@ async function setup() {
   });
   await flushPromises();
   const view = w.vm.editor!.view;
-  // ввод с клавиатуры: правила ввода срабатывают через handleTextInput
+  // keyboard input: input rules fire via handleTextInput
   const type = (ch: string) => {
     const { from, to } = view.state.selection;
     const done = view.someProp('handleTextInput', (f) =>

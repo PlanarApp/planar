@@ -49,7 +49,7 @@ describe('wk0: модули nav/topbar', () => {
     const w = mount(Sidebar, { global: { plugins: plugins() } });
     const links = w.findAll('a[href^="/m/navok/"]');
     expect(links.map((l) => l.text())).toEqual(['Первый', 'Второй']);
-    // после встроенных пунктов
+    // after the built-in items
     expect(w.find('nav').text().indexOf('Первый')).toBeGreaterThan(
       w.find('nav').text().indexOf('Мои задачи'),
     );
@@ -115,7 +115,7 @@ describe('DS-1: хлебные крошки проекта', () => {
     await vi.waitFor(() =>
       expect(w.get('h1').attributes('title')).toBe('Planar / Разработка / Планар / Доска'),
     );
-    // крошки уровней — ссылки, у пространства и проекта — меню соседей
+    // level breadcrumbs are links; for a space and a project — a menu of siblings
     expect(w.findAll('[data-testid=crumb]').map((x) => x.attributes('href'))).toEqual([
       '/w',
       '/s/s1',

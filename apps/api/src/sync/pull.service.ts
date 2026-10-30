@@ -132,7 +132,7 @@ export class PullService {
     });
   }
 
-  /** История задачи; задача (или её пространство) невидима → 404. */
+  /** Task history; the task (or its space) is invisible → 404. */
   async taskActivity(userId: string, taskId: string) {
     return this.snapshot(async (tx) => {
       const my = await this.mySpaces(tx, userId);

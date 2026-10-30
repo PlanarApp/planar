@@ -28,7 +28,7 @@ interface SpaceMember {
   role: string;
 }
 
-/** Диалог ровно с этим составом (включая меня): существующий или новый; возвращает id. */
+/** Direct chat with exactly this set (including me): existing or new; returns the id. */
 export async function ensureDm(channels: Channel[], members: Member[], ids: string[]) {
   const id = findDm(channels, members, ids)?.id;
   if (id) return id;
@@ -40,10 +40,10 @@ export async function ensureDm(channels: Channel[], members: Member[], ids: stri
   return nid;
 }
 
-/** Каналы, диалоги, участники и мои метки прочтения из реплики. */
+/** Channels, direct chats, members and my read marks from the replica. */
 export function useChatData() {
   const me = useSession();
-  // по запросу на таблицу: отправка сообщения правит только каналы и reads — users/spaces не перечитываются
+  // one request per table: sending a message updates only channels and reads — users/spaces are not re-read
   const t = <T>(n: string) => useQuery(() => db.table<T>(n).toArray());
   const q = {
     channels: t<Channel>('chatChannels'),
@@ -82,7 +82,7 @@ export function useChatData() {
       ),
   );
   const unreadOf = (c: Channel) => unread(c, readOf.value.get(c.id));
-  // счётчик — непрочитанные уведомления (упоминания и 1:1) по каналам; прочее непрочитанное — только пометка в списке
+  // counter — unread notifications (mentions and 1:1) per channel; other unread — only a mark in the list
   const attention = computed(() => {
     const m = new Map<string, string[]>();
     for (const n of q.notifications.value ?? []) {

@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Connect, type Plugin } from 'vite';
 
-// dev и vite preview: /f/<slug> — отдельный вход form.html (prod — deploy/Caddyfile)
+// dev and vite preview: /f/<slug> is the separate form.html entry (prod — deploy/Caddyfile)
 const toForm: Connect.NextHandleFunction = (req, _res, next) => {
   if (req.url?.startsWith('/f/')) req.url = '/form.html';
   next();
@@ -15,7 +15,7 @@ const formEntry = (): Plugin => ({
   configurePreviewServer: (s) => void s.middlewares.use(toForm),
 });
 
-// публичная страница не предлагает установить приложение
+// the public page does not offer to install the app
 const noManifest = (): Plugin => ({
   name: 'planar-form-no-manifest',
   enforce: 'post',
@@ -62,7 +62,7 @@ export default defineConfig({
   ],
   resolve: {
     conditions: ['source'],
-    // vue-i18n весит ~50 КБ gzip в начальном бандле (WB-13); vitest.config.ts — тот же alias, прод и тесты на одной реализации.
+    // vue-i18n adds ~50 KB gzip to the initial bundle (WB-13); vitest.config.ts uses the same alias, so prod and tests share one implementation.
     alias: { 'vue-i18n': fileURLToPath(new URL('./src/i18n/lite.ts', import.meta.url)) },
   },
   build: {
@@ -72,7 +72,7 @@ export default defineConfig({
         form: fileURLToPath(new URL('./form.html', import.meta.url)),
       },
       output: {
-        // vue-обёртка иначе оседает в ленивом reka-чанке и тащит его в начальный бандл (WB-13)
+        // otherwise the vue wrapper lands in the lazy reka chunk and pulls it into the initial bundle (WB-13)
         codeSplitting: {
           groups: [
             { name: 'vue', test: /node_modules\/(\.pnpm\/[^/]+\/node_modules\/)?(vue|@vue)\// },

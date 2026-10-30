@@ -97,13 +97,13 @@ describe('pt4: dashboards web', () => {
   });
 
   it('pt4: line created/completed по неделям, окно weeks', () => {
-    const now = new Date(2026, 9, 21, 12); // ср, неделя с пн 2026-10-19
+    const now = new Date(2026, 9, 21, 12); // Wed, week from Mon 2026-10-19
     const at = (d: number, h = 12) => new Date(2026, 9, d, h).toISOString();
     const ts = [
       task({ createdAt: at(20), completedAt: at(21) }),
       task({ createdAt: at(21), completedAt: null }),
       task({ createdAt: at(13), completedAt: at(14) }),
-      task({ createdAt: new Date(2026, 0, 1).toISOString() }), // за окном
+      task({ createdAt: new Date(2026, 0, 1).toISOString() }), // outside the window
     ];
     const pts = (series: string) =>
       (

@@ -5,10 +5,10 @@ export interface Fixture {
   admin: Client;
   spaceId: string;
   projectId: string;
-  /** ключ проекта; название проекта — `E2E ${key}` */
+  /** project key; project name — `E2E ${key}` */
   key: string;
   statusIds: string[];
-  /** ключ задачи вида ABCDE-1 */
+  /** task key of the form ABCDE-1 */
   taskKeys: string[];
   taskIds: string[];
 }
@@ -18,7 +18,7 @@ const letters = () =>
     '',
   );
 
-/** Выбор в Reka Select (нативного <select> нет): опция фокусом и Enter — длинный список не влезает в окно для клика. */
+/** Selection in Reka Select (there is no native <select>): option by focus and Enter — a long list does not fit the window for a click. */
 export async function pick(trigger: Locator, name: string): Promise<void> {
   await trigger.click();
   const opt = trigger.page().getByRole('option', { name, exact: true });
@@ -26,7 +26,7 @@ export async function pick(trigger: Locator, name: string): Promise<void> {
   await opt.press('Enter');
 }
 
-/** Своё пространство с alice и bob (участники), проектом и задачами с уникальными названиями. */
+/** Own space with alice and bob (members), a project and tasks with unique names. */
 export async function fixture(titles: string[]): Promise<Fixture> {
   const admin = await Client.login('admin');
   const key = letters();
@@ -72,7 +72,7 @@ export async function fixture(titles: string[]): Promise<Fixture> {
 
 export const uniq = (p: string) => `${p} ${uuidv7().slice(-12)}`;
 
-/** Новый браузерный контекст со входом через форму. */
+/** New browser context with login via the form. */
 export async function loginAs(browser: Browser, login: string): Promise<Page> {
   const ctx = await browser.newContext({
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:5173',
@@ -84,7 +84,7 @@ export async function loginAs(browser: Browser, login: string): Promise<Page> {
     if (r.failure()?.errorText.includes('ERR_NETWORK_CHANGED')) netChanged = true;
   });
   await page.goto('/login');
-  // dev-сервер: смена сети хоста обрывает подгрузку модулей vite — приложение не монтируется; один reload лечит
+  // dev server: a change of the host network breaks loading of vite modules — the app does not mount; one reload fixes it
   const field = page.getByLabel('Логин');
   const shown = await field.waitFor({ timeout: 10_000 }).then(
     () => true,

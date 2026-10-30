@@ -52,7 +52,7 @@ import {
   Zap,
 } from 'lucide-vue-next';
 
-/** Иконки вкладки сохранённого вида (savedViews.icon — ключ); нет или неизвестный — bookmark. */
+/** Saved view tab icons (savedViews.icon is the key); missing or unknown — bookmark. */
 export const VIEW_ICONS: Record<string, Component> = {
   bookmark: Bookmark,
   star: Star,

@@ -101,7 +101,7 @@ const def = (id: string, type: string, extra: Record<string, unknown> = {}) => (
   ...extra,
 });
 const setDefs = (d: unknown[]) => ((h$.defs as { value: unknown }).value = d);
-// меню заголовка колонки → «Скрыть»
+// column header menu → "Hide"
 const hideCol = async (id: string) => {
   await w.get(`[role=columnheader][data-col="${id}"] button[aria-label]`).trigger('click');
   await flushPromises();

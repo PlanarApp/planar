@@ -12,7 +12,7 @@ export const COLUMN_IDS = [
   'updatedAt',
 ] as const;
 export type SystemColumnId = (typeof COLUMN_IDS)[number];
-/** Системная колонка или `field:<fieldId>` (пользовательское поле). */
+/** A system column or `field:<fieldId>` (a user field). */
 export type ColumnId = SystemColumnId | `field:${string}`;
 export const FIELD_PREFIX = 'field:';
 export const isFieldCol = (id: string): id is `field:${string}` =>
@@ -20,7 +20,7 @@ export const isFieldCol = (id: string): id is `field:${string}` =>
 export interface ColumnState {
   id: ColumnId;
   width: number;
-  /** ширина задана перетаскиванием; иначе — авторазмер по содержимому */
+  /** width set by dragging; otherwise — auto-size by content */
   manual?: boolean;
 }
 export interface Layout {
@@ -60,7 +60,7 @@ export const newColumn = (id: ColumnId): ColumnState => ({
   width: isFieldCol(id) ? FIELD_W : DEFAULT_W[id as SystemColumnId],
 });
 export const defaultLayout = (): Layout => ({ columns: DEFAULT_IDS.map(newColumn) });
-/** сводка группы (несколько проектов): по умолчанию и колонка «Проект» после ключа */
+/** group summary (several projects): by default, and the "Project" column after the key */
 export const scopeLayout = (): Layout => ({
   columns: ['title', 'key', 'project', ...DEFAULT_IDS.slice(2)].map((id) =>
     newColumn(id as SystemColumnId),
@@ -69,7 +69,7 @@ export const scopeLayout = (): Layout => ({
 
 const storageKey = (projectId: string) => `planar.table.${projectId}`;
 
-/** Раскладка из произвольных данных; неизвестные id и повторы пропускаются, ширина зажимается. */
+/** Layout from arbitrary data; unknown ids and duplicates are skipped, the width is clamped. */
 export function parseColumns(cols: unknown): ColumnState[] | undefined {
   if (!Array.isArray(cols)) return undefined;
   const seen = new Set<string>();
@@ -82,7 +82,7 @@ export function parseColumns(cols: unknown): ColumnState[] | undefined {
     columns.push({
       id,
       width: typeof c.width === 'number' ? clampWidth(c.width) : newColumn(id).width,
-      // старые раскладки без флага: ширина не по умолчанию — значит, её перетащили
+      // old layouts without the flag: a non-default width means it was dragged
       ...((c.manual === true ||
         (c.manual === undefined &&
           typeof c.width === 'number' &&
@@ -92,14 +92,14 @@ export function parseColumns(cols: unknown): ColumnState[] | undefined {
   return columns.length ? columns : undefined;
 }
 
-/** Раскладка из localStorage (запасной вариант); битый JSON — по умолчанию. */
+/** Layout from localStorage (fallback); broken JSON — defaults. */
 export function loadLayout(projectId: string, fallback: () => Layout = defaultLayout): Layout {
   try {
     const raw = localStorage.getItem(storageKey(projectId));
     const columns = parseColumns(raw && JSON.parse(raw)?.columns);
     if (columns) return { columns };
   } catch {
-    // нет хранилища или битый JSON — раскладка по умолчанию
+    // no storage or broken JSON — default layout
   }
   return fallback();
 }
@@ -108,7 +108,7 @@ export function saveLayout(projectId: string, layout: Layout): void {
   try {
     localStorage.setItem(storageKey(projectId), JSON.stringify(layout));
   } catch {
-    // квота или приватный режим — раскладка живёт до перезагрузки
+    // quota or private mode — layout lives until reload
   }
 }
 

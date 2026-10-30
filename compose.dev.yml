@@ -5,7 +5,7 @@ x-node: &node
   working_dir: /app
   volumes:
     - .:/app
-    # node_modules в томах: не мешают хостовым и не зависят от его платформы (новый пакет workspace → добавить том)
+    # node_modules in volumes: they do not interfere with host ones and do not depend on its platform (new workspace package → add a volume)
     - nm_root:/app/node_modules
     - nm_api:/app/apps/api/node_modules
     - nm_web:/app/apps/web/node_modules
@@ -32,7 +32,7 @@ services:
       timeout: 3s
       retries: 150
 
-  # одноразовая установка зависимостей: api и web ждут её завершения (нет гонки двух pnpm install)
+  # one-off dependency install: api and web wait for it to finish (no race between two pnpm installs)
   deps:
     <<: *node
     command: sh -c "corepack enable && pnpm install --frozen-lockfile"
@@ -52,7 +52,7 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
-      # dev/e2e: фиксированный ключ по умолчанию (./dev.sh up пишет свой в .env; reset его не создаёт)
+      # dev/e2e: fixed default key (./dev.sh up writes its own into .env; reset does not create it)
       PLANAR_SECRET_KEY: ${PLANAR_SECRET_KEY:-ZGV2LW9ubHktc2VjcmV0LWtleS0zMi1ieXRlcy0hISE=}
       LOG_LEVEL: info
       # dev/e2e: доставка вебхуков на хост (приёмник e2e); в проде — пусто
@@ -88,7 +88,7 @@ volumes:
   nm_e2e:
   pnpm_store:
 
-# явная подсеть: на общих хостах пулы docker по умолчанию бывают исчерпаны; параллельным стекам — свой DEV_SUBNET
+# explicit subnet: on shared hosts docker default pools are often exhausted; parallel stacks get their own DEV_SUBNET
 networks:
   default:
     ipam:

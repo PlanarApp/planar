@@ -3,7 +3,7 @@ import { onTyping } from '@planar/web/modules';
 
 const TTL = 5000;
 
-/** «Печатает…» в канале: userId → гаснет через 5 с после последнего события. */
+/** ‘Typing…’ in the channel: userId → fades 5 s after the last event. */
 export function useTyping(channelId: string, me: () => string) {
   const who = ref<string[]>([]);
   const timers = new Map<string, ReturnType<typeof setTimeout>>();

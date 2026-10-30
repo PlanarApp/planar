@@ -1,4 +1,4 @@
-# Контекст сборки — корень репозитория.
+# Build context — repository root.
 FROM node:24-slim AS build
 RUN corepack enable
 WORKDIR /app

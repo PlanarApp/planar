@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { MutatorError, defineMutator, type Tx, type MutatorCtx } from '../contract/index.js';
 import { changes, need, rank, record, uuid } from './util.js';
 
-/** Все строки notifications с этими id; чужая → forbidden; отсутствующие пропускаются. */
+/** All notifications rows with these ids; someone else's → forbidden; missing ones are skipped. */
 async function own(tx: Tx, ids: string[], ctx: MutatorCtx) {
   const rows = [];
   for (const id of ids) {
@@ -15,7 +15,7 @@ async function own(tx: Tx, ids: string[], ctx: MutatorCtx) {
 }
 
 const viewName = z.string().min(1).max(100);
-const viewIcon = z.string().max(32).nullable().optional(); // имя иконки lucide из набора web
+const viewIcon = z.string().max(32).nullable().optional(); // lucide icon name from the web set
 
 export const miscMutators = [
   defineMutator({

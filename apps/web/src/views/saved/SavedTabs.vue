@@ -23,7 +23,7 @@ const renameOpen = ref(false);
 const deleting = ref<SavedView | null>(null);
 const deleteOpen = ref(false);
 
-// личный вид — всегда свой; общий правит участник с правом member
+// a personal view is always one's own; a shared one is edited by a member with the member right
 const editable = (v: SavedView) => v.userId !== null || canShare.value;
 const viewUrl = (v: SavedView) =>
   `/p/${encodeURIComponent(props.projectId)}/v/${encodeURIComponent(v.id)}`;

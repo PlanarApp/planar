@@ -11,7 +11,7 @@ import { mobileNav } from './nav';
 const { isMobile } = useBreakpoint();
 const { t } = useI18n();
 const route = useRoute();
-// переход по ссылке закрывает панель; клик по ссылке на текущий маршрут route не меняет — ловим клик
+// following a link closes the panel; a click on a link to the current route doesn't change route — we catch the click
 const closeOnLink = (e: MouseEvent) => {
   if ((e.target as Element).closest('a[href]')) mobileNav.value = false;
 };

@@ -16,7 +16,7 @@ import {
 import * as schema from '../../src/db/schema.js';
 import { key, newDb, taskArgs, world, type World } from '../sync/helpers.js';
 
-// ---- чистые функции ----
+// ---- pure functions ----
 const st = (category: string) => ({ id: category, category }) as never;
 const ctx: FilterCtx = {
   statuses: ['backlog', 'todo', 'in_progress', 'done', 'cancelled'].map(st),
@@ -82,7 +82,7 @@ describe('pf3: прогресс', () => {
   });
 });
 
-// ---- мутаторы и хуки ----
+// ---- mutators and hooks ----
 const db = newDb();
 let w: World;
 beforeAll(async () => {

@@ -1,4 +1,4 @@
-// Таблицы по C-schema v1 (docs/contracts/core.md). Имя свойства = поле на проводе; колонка — snake_case.
+// Tables per C-schema v1 (docs/contracts/core.md). Property name = wire field; column — snake_case.
 import { sql, type SQL } from 'drizzle-orm';
 import {
   type AnyPgColumn,
@@ -19,7 +19,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-/** rank: ключи fractional-indexing сравниваются побайтно. */
+/** rank: fractional-indexing keys are compared byte by byte. */
 const rank = customType<{ data: string }>({ dataType: () => 'text COLLATE "C"' });
 
 const id = () =>
@@ -29,7 +29,7 @@ const id = () =>
 const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 const createdAt = () => ts().notNull().defaultNow();
 const updatedAt = () => ts().notNull().defaultNow();
-// значения — литералы контракта; параметры в DDL недопустимы
+// values are contract literals; parameters are not allowed in DDL
 const inList = (col: unknown, vals: string[]): SQL =>
   sql`${col} in (${sql.raw(vals.map((v) => `'${v}'`).join(', '))})`;
 const doc = () => jsonb().$type<Record<string, unknown>>();
@@ -261,7 +261,7 @@ export const taskLinks = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    // одна строка на пару в любом направлении
+    // one row per pair in either direction
     uniqueIndex('task_links_pair_uq').on(
       sql`least(${t.taskId}, ${t.targetId})`,
       sql`greatest(${t.taskId}, ${t.targetId})`,
@@ -349,7 +349,7 @@ export const activity = pgTable(
   'activity',
   {
     id: id(),
-    // журнал и уведомления пространства уходят вместе с ним (space.delete с содержимым)
+    // the space's journal and notifications go with it (space.delete with content)
     spaceId: uuid()
       .notNull()
       .references(() => spaces.id, { onDelete: 'cascade' }),
@@ -439,7 +439,7 @@ export const settings = pgTable('settings', {
   updatedAt: updatedAt(),
 });
 
-// Несинхронизируемые таблицы (только сервер): ссылки на users — ON DELETE CASCADE.
+// Non-syncable tables (server only): references to users — ON DELETE CASCADE.
 const cascadeUser = () =>
   uuid()
     .notNull()
@@ -458,7 +458,7 @@ export const sessions = pgTable(
   (t) => [index().on(t.userId)],
 );
 
-/** Состояние Y.Doc совместного редактирования (P3-ydoc): doc_id = `docs:<uuid>` | `task:<uuid>`. */
+/** Y.Doc state of collaborative editing (P3-ydoc): doc_id = `docs:<uuid>` | `task:<uuid>`. */
 const bytea = customType<{ data: Buffer }>({ dataType: () => 'bytea' });
 export const ydocs = pgTable('ydocs', {
   docId: text().primaryKey(),

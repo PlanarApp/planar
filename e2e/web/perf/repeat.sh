@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# N (PERF_RUNS, по умолчанию 10) прогонов measure.spec.ts на одном стеке → build/artifacts/CL-10/{perf-runs.csv,summary.txt}.
+# N (PERF_RUNS, default 10) runs of measure.spec.ts on one stack → build/artifacts/CL-10/{perf-runs.csv,summary.txt}.
 set -uo pipefail
 source "$(dirname "$0")/stack.sh"
 trap perf_down EXIT

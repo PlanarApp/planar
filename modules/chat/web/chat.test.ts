@@ -16,10 +16,10 @@ import Composer from './Composer.vue';
 import MessageItem from './MessageItem.vue';
 import ChatPage from './ChatPage.vue';
 
-// Editor из SDK берёт строки у i18n приложения
+// Editor from the SDK takes its strings from the app's i18n
 const mounted: { unmount(): void }[] = [];
 const mount = ((c: never, o: object = {}) => {
-  // Tooltip требует TooltipProvider (в приложении он в App.vue) — в тестах пропускаем обёртку
+  // Tooltip requires a TooltipProvider (the app wraps it in App.vue) — tests skip the wrapper
   const w = vmount(c, {
     ...o,
     global: { plugins: [i18n], stubs: { Tooltip: { template: '<slot />' } } },
@@ -157,7 +157,7 @@ afterEach(() => {
   mounted.splice(0).forEach((w) => w.unmount());
 });
 
-// размеры в happy-dom нулевые: окно 600 px, строка 72 px
+// sizes in happy-dom are zero: window 600 px, row 72 px
 const rect = (w: number, hgt: number) => ({
   width: w,
   height: hgt,
@@ -172,12 +172,12 @@ const rect = (w: number, hgt: number) => ({
 const proto = HTMLElement.prototype as unknown as { getBoundingClientRect(): unknown };
 const origRect = proto.getBoundingClientRect;
 function stubSizes() {
-  // виртуализатор читает clientHeight окна прокрутки
+  // the virtualizer reads clientHeight of the scroll window
   Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
     configurable: true,
     get: () => 600,
   });
-  // строки замеряются по offsetHeight
+  // rows are measured by offsetHeight
   Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
     configurable: true,
     get(this: HTMLElement) {
@@ -268,7 +268,7 @@ describe('секция боковой панели', () => {
     await vi.waitFor(() => expect(w.findAll('[data-testid=chat-channel]').length).toBe(3));
     const rows = texts(w, '[data-testid=chat-channel]');
     expect(rows.map((r) => r.replace(/\d+$/, '').trim())).toEqual(['alpha', 'beta', 'zzz']);
-    expect(rows[0]).toMatch(/3$/); // нет строки chatReads — 0
+    expect(rows[0]).toMatch(/3$/); // no chatReads row — 0
     expect(rows[1]).toMatch(/3$/); // 5 − 2
     expect(rows[2]).toBe('zzz'); // muted
   });
@@ -339,7 +339,7 @@ describe('секция боковой панели', () => {
     expect(h_.mutate).not.toHaveBeenCalled();
     expect(h_.push).toHaveBeenCalledWith('/m/chat/c/d1');
 
-    await w.find('[data-testid=chat-add-dm]').trigger('click'); // панель выбора закрылась после перехода
+    await w.find('[data-testid=chat-add-dm]').trigger('click'); // the selection panel closed after navigation
     await w.find(`[data-testid=chat-pick-${BOB}]`).setValue(true);
     await w.find('form').trigger('submit');
     await flushPromises();
@@ -388,7 +388,7 @@ describe('лента', () => {
     expect(h_.api.mock.calls[0]![1]).toBe(`/api/chat/channels/${CH}/messages?limit=50`);
     expect(h_.api.mock.calls[1]![1]).toBe(`/api/chat/channels/${CH}/messages?limit=50&before=51`);
     expect(feed.messages.value).toHaveLength(100);
-    await feed.loadOlder(); // дошли до seq 1 — запросов больше нет
+    await feed.loadOlder(); // reached seq 1 — no more requests
     expect(h_.api).toHaveBeenCalledTimes(2);
   });
 
@@ -462,7 +462,7 @@ describe('лента', () => {
 
   it('10 000 сообщений: в DOM не больше ~60 строк', async () => {
     stubSizes();
-    // история приходит страницами REST и живёт в памяти (fake-indexeddb на 10 000 строк квадратичен)
+    // history arrives in REST pages and lives in memory (fake-indexeddb with 10 000 rows is quadratic)
     h_.api.mockResolvedValueOnce({
       messages: Array.from({ length: 10_000 }, (_, i) => msg(i + 1)),
       reactions: [],
@@ -575,8 +575,8 @@ describe('«печатает…»', () => {
     let who!: ReturnType<typeof useTyping>;
     mount(defineComponent({ setup: () => ((who = useTyping(CH, () => ME)), () => h('div')) }));
     h_.typingCb!({ entity: 'chatChannels', id: CH, userId: ANNA });
-    h_.typingCb!({ entity: 'chatChannels', id: CH, userId: ME }); // себя не показываем
-    h_.typingCb!({ entity: 'chatChannels', id: newId(), userId: BOB }); // чужой канал
+    h_.typingCb!({ entity: 'chatChannels', id: CH, userId: ME }); // we don't show ourselves
+    h_.typingCb!({ entity: 'chatChannels', id: newId(), userId: BOB }); // someone else's channel
     expect(who.value).toEqual([ANNA]);
     vi.advanceTimersByTime(4900);
     expect(who.value).toEqual([ANNA]);
@@ -633,7 +633,7 @@ describe('сообщение', () => {
     await vi.waitFor(() => expect(card.text()).toContain('В работе'));
     await card.trigger('click');
     expect(h_.openTask).toHaveBeenCalledWith('PLN-123');
-    expect(w.text()).toContain('ZZZ-9'); // нет задачи — обычный текст
+    expect(w.text()).toContain('ZZZ-9'); // no task — plain text
   });
 
   it('taskRefs находит ключи без повторов', () => {
@@ -678,7 +678,7 @@ describe('сообщение', () => {
     await own.trigger('pointerenter');
     await own.find('button[aria-label=Удалить]').trigger('click');
     expect(h_.mutate).not.toHaveBeenCalledWith('chat.message.delete', expect.anything());
-    // подтверждение — в диалоге (портал в body)
+    // confirmation — in the dialog (portal to body)
     const ok = [...document.body.querySelectorAll('button')].find(
       (b) => b.textContent?.trim() === 'Удалить',
     );
@@ -750,7 +750,7 @@ describe('сообщение', () => {
     }
   });
 
-  // CL-2b: панель действий не монтируется, пока строку не навели/не сфокусировали (быстрая прокрутка)
+  // CL-2b: the action bar is not mounted until the row is hovered/focused (fast scrolling)
   it('до наведения панели нет; наведение и фокус её монтируют', async () => {
     const m = msg(3, { authorId: ME });
     const hover = mount(MessageItem, { props: { ...base, message: m } });
@@ -779,7 +779,7 @@ describe('редактор сообщения', () => {
     expect(name).toBe('chat.message.send');
     expect(a).toMatchObject({ channelId: CH, parentId: 'root', attachments: [] });
     expect(a.id).not.toBe(a.readId);
-    expect(() => structuredClone(a)).not.toThrow(); // реактивный прокси не клонируется в IndexedDB
+    expect(() => structuredClone(a)).not.toThrow(); // a reactive proxy is not cloned into IndexedDB
   });
 
   it('голосовое: запись → загрузка → сообщение с вложением audio/* и длительностью', async () => {
@@ -861,7 +861,7 @@ describe('страница чата', () => {
   });
 });
 
-// CL-2b: стоимость клиентской отправки — число обращений к IndexedDB (≈1 мс каждое) и пересчётов строки
+// CL-2b: the cost of client-side sending — the number of IndexedDB accesses (≈1 ms each) and row recalculations
 describe('производительность', () => {
   const fakeTx = () => {
     const ops: string[] = [];

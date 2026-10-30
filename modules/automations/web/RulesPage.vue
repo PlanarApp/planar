@@ -45,11 +45,11 @@ const subs = ref<HookSub[]>([]);
 onMounted(async () => (subs.value = await fetchSubscriptions().catch(() => [])));
 const spaces = useSpaces();
 const projects = computed(() => (spaces.value ?? []).flatMap((s) => s.projects));
-// выбранный проект — в адресе (?project=): после перезагрузки видны правила того же проекта
+// the selected project — in the address (?project=): after a reload, the rules of the same project are shown
 const router = useRouter();
-// без роутера (тесты страницы) — выбор просто не запоминается
+// without a router (page tests) — the selection is simply not remembered
 const query = () => router?.currentRoute.value.query ?? {};
-// projectId — настройки проекта-группы: проект задан, выбора нет
+// projectId — settings of the project group: the project is set, no choice
 const props = defineProps<{ projectId?: string }>();
 const projectId = ref(
   props.projectId ?? (typeof query().project === 'string' ? (query().project as string) : ''),
@@ -57,7 +57,7 @@ const projectId = ref(
 watch(
   projects,
   (p) => {
-    if (!p.length || props.projectId) return; // реплика ещё грузится — выбор из адреса не сбрасываем
+    if (!p.length || props.projectId) return; // the replica is still loading — do not reset the selection from the address
     if (!projectId.value || !p.some((x) => x.id === projectId.value)) projectId.value = p[0]!.id;
   },
   { immediate: true },

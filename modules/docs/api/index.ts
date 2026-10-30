@@ -17,7 +17,7 @@ interface HookApi {
   enqueue(job: string, data: unknown): Promise<void>;
 }
 
-/** упомянутые люди на странице (узел mention без kind='task'), без повторов */
+/** people mentioned on the page (mention node without kind='task'), no repeats */
 function people(doc: unknown): string[] {
   const out = new Set<string>();
   const walk = (n: unknown) => {
@@ -30,7 +30,7 @@ function people(doc: unknown): string[] {
   return [...out];
 }
 
-/** Упоминание на странице — уведомление doc_mention новым упомянутым участникам пространства (не автору). */
+/** A mention on the page — doc_mention notification to newly mentioned space members (not to the author). */
 async function notify(
   writes: { entity: string; op: string; before: Wire | null; after: Wire | null }[],
   ctx: { userId: string; now: string },
@@ -76,7 +76,7 @@ export const api: BackendModuleManifest = {
   mutators: shared.mutators,
   entities: shared.entities,
   afterMutation: notify as unknown as BackendModuleManifest['afterMutation'],
-  // файл на странице пространства пользователя и загружен кем-то из участников этого пространства
+  // a file on the user's space page, uploaded by a member of that space
   async canReadFile(q, userId, sha256) {
     const r = await (q as Q).execute(sql`
       select 1 from docs_pages p

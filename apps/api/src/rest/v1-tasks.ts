@@ -5,7 +5,7 @@ import * as s from '../db/schema.js';
 import { toWire } from '../sync/rows.js';
 import type { Q } from '../sync/server-tx.js';
 
-/** строки tasks → V1Task (key, assigneeIds, labelIds); общее для REST и CoreServices.toV1Tasks */
+/** tasks rows → V1Task (key, assigneeIds, labelIds); shared by REST and CoreServices.toV1Tasks */
 export async function toV1Tasks(db: Db | Q, rows: Record<string, unknown>[]): Promise<V1Task[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id as string);

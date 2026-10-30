@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Button, Input } from '../ui';
@@ -9,17 +9,22 @@ import { errText } from '../auth/errText';
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { login } = useAuth();
+const { login, demoLogin, setupInfo } = useAuth();
+const demo = ref(false);
+onMounted(async () => {
+  demo.value = (await setupInfo().catch(() => null))?.demo ?? false;
+});
 const loginV = ref('');
 const password = ref('');
 const error = ref('');
 const busy = ref(false);
 
-async function submit() {
+async function submit(demoMode = false) {
   error.value = '';
   busy.value = true;
   try {
-    await login(loginV.value, password.value);
+    if (demoMode) await demoLogin();
+    else await login(loginV.value, password.value);
     const r = route.query.redirect;
     await router.replace(typeof r === 'string' && r.startsWith('/') ? r : '/');
   } catch (e) {
@@ -44,11 +49,14 @@ async function submit() {
         <p class="text-xl font-semibold">{{ t('app.name') }}</p>
         <h1 class="text-sm text-fg-muted">{{ t('screens.login') }}</h1>
       </header>
-      <form class="flex flex-col gap-3" @submit.prevent="submit">
+      <form class="flex flex-col gap-3" @submit.prevent="submit()">
         <Input v-model="loginV" :label="t('auth.login')" />
         <Input v-model="password" type="password" :label="t('auth.password')" :error="error" />
         <Button type="submit" variant="primary" class="mt-1 w-full" :loading="busy">{{
           t('auth.signIn')
+        }}</Button>
+        <Button v-if="demo" type="button" class="w-full" :loading="busy" @click="submit(true)">{{
+          t('auth.tryDemo')
         }}</Button>
       </form>
     </div>

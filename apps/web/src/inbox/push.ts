@@ -1,15 +1,15 @@
 import { api } from '../api/http';
 
-// Формат push-сообщения (шлюз Q5): JSON {title, body, url, tag, kind} — разбирается в public/push-sw.js.
+// Push message format (gateway Q5): JSON {title, body, url, tag, kind} — parsed in public/push-sw.js.
 
 export type PushResult = 'ok' | 'denied' | 'unsupported';
 
 export const pushSupported = (): boolean =>
   'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
-/** iOS в браузере (не установлено на экран Домой): push там недоступен. */
+/** iOS in browser (not added to the home screen): push is unavailable there. */
 export function needsInstall(): boolean {
-  // iPadOS 13+ представляется как Mac, но с тачем
+  // iPadOS 13+ identifies itself as Mac, but with touch
   const ios =
     /iPhone|iPad|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);

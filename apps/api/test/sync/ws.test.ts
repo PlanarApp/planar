@@ -113,7 +113,7 @@ describe('WS /ws', () => {
     expect(m.t).toBe('poke');
     c.ws.send(JSON.stringify({ t: 'hello', cursor: m.seq + 1e9 }));
     await new Promise((r) => setTimeout(r, 200));
-    // допускаем poke от чужих параллельных тестов, но не от hello
+    // we allow poke from other parallel tests, but not from hello
     expect(c.msgs.every((x) => (x as { t: string }).t === 'poke')).toBe(true);
   });
 
@@ -163,9 +163,9 @@ describe('WS /ws', () => {
     const c = connect({ cookie: p.cb, origin: ORIGIN });
     await c.opened;
     await new Promise((r) => setTimeout(r, 200));
-    // замер и порог 500 мс — только при PLANAR_LATENCY=1 (в общем параллельном прогоне commit БД шумит)
+    // the measurement and the 500 ms threshold — only with PLANAR_LATENCY=1 (in the shared parallel run the DB commit is noisy)
     const strict = process.env.PLANAR_LATENCY === '1';
-    // 3 прогревочных push не считаются (пул, JIT), затем 20 замеров одной серией
+    // 3 warm-up pushes are not counted (pool, JIT), then 20 measurements in one series
     for (let i = 0; i < 3; i++) {
       await push(p, 'label.create', label(p.spaceId));
       await c.next();
@@ -180,7 +180,7 @@ describe('WS /ws', () => {
     }
     const max = Math.round(Math.max(...samples));
     if (strict) {
-      // мимо перехвата vitest: приёмка читает эту строку из лога
+      // bypassing vitest interception: acceptance reads this line from the log
       writeSync(1, `poke_ms=${max}\n`);
       expect(max).toBeLessThanOrEqual(500);
     }

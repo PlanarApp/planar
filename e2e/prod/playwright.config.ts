@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-// Смоук prod-стека через Caddy (E2E_BASE_URL); только request-контекст, браузеры не нужны.
+// Smoke test of the prod stack via Caddy (E2E_BASE_URL); request context only, browsers are not needed.
 export default defineConfig({
   testDir: '.',
   workers: 1,

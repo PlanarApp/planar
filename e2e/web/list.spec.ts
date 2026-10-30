@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { fixture, loginAs, uniq } from './helpers.js';
 
-// Список как в ClickUp: подзадачи деревом, сворачивание, перетаскивание внутрь подзадач и обратно.
+// List as in ClickUp: subtasks as a tree, collapsing, dragging into subtasks and back.
 
 const OPTS = {
   groupBy: 'none',
@@ -37,7 +37,7 @@ test('перетаскивание: в подзадачи (середина ст
   const row = (k: string) => page.locator(`[role=row][data-task="${k}"]`);
   await expect(row(third)).toBeVisible();
 
-  await drag(page, child, parent, 0.5); // внутрь
+  await drag(page, child, parent, 0.5); // into
   await expect(row(parent).getByTestId('row-children')).toHaveText('1');
 
   await row(parent).getByTestId('row-fold').click();
@@ -45,7 +45,7 @@ test('перетаскивание: в подзадачи (середина ст
   await row(parent).getByTestId('row-fold').click();
   await expect(row(child)).toBeVisible();
 
-  await drag(page, child, third, 0.02); // наружу, перед третьей
+  await drag(page, child, third, 0.02); // out, before the third
   await expect(row(parent).getByTestId('row-children')).toHaveCount(0);
   await page.reload();
   await expect(row(child)).toBeVisible();

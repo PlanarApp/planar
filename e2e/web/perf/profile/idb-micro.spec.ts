@@ -2,7 +2,7 @@ import { test } from '@playwright/test';
 import { Client } from '../../../lib';
 import { ctxFor, projects, save } from './lib';
 
-// Нижняя граница: чистый IndexedDB без Dexie/Vue — сколько стоит прочитать/записать данные §7 в Chromium.
+// Lower bound: plain IndexedDB without Dexie/Vue — how much it costs to read/write §7 data in Chromium.
 test('idb-micro', async ({ browser }) => {
   const admin = await Client.login('admin');
   const { big, counts } = await projects(admin);
@@ -64,7 +64,7 @@ test('idb-micro', async ({ browser }) => {
       );
       await done(tx);
     });
-    // запись: put 2000 строк tasks одной транзакцией (копии с новыми id), затем удаление
+    // write: put 2000 tasks rows in one transaction (copies with new ids), then delete
     const sample: Record<string, unknown>[] = await req(
       db.transaction('tasks').objectStore('tasks').getAll(),
     );
@@ -80,7 +80,7 @@ test('idb-micro', async ({ browser }) => {
     const tx = db.transaction('tasks', 'readwrite');
     for (let i = 0; i < 2000; i++) tx.objectStore('tasks').delete(`zz-${i}`);
     await done(tx);
-    // стоимость записи: 10000 строк tasks одной транзакцией в чистую БД — с индексами реплики и без
+    // write cost: 10000 tasks rows in one transaction into a clean DB — with and without replica indexes
     const idxNames = [...db.transaction('tasks').objectStore('tasks').indexNames];
     const idxDefs = idxNames.map((n) => {
       const ix = db.transaction('tasks').objectStore('tasks').index(n);

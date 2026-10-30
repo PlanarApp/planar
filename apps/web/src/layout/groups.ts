@@ -1,4 +1,4 @@
-/** Группы: три уровня и общие табы (Задачи — любой ключ вида, напр. `/p/<id>/board`). */
+/** Groups: three levels and shared tabs (Tasks — any view key, e.g. `/p/<id>/board`). */
 export type GroupLevel = 'workspace' | 'space' | 'project';
 export const GROUP_TABS = [
   'work',
@@ -15,7 +15,7 @@ export type GroupTab = (typeof GROUP_TABS)[number];
 export const groupTab = (seg: unknown): GroupTab =>
   GROUP_TABS.includes(seg as GroupTab) ? (seg as GroupTab) : 'tasks';
 
-/** табы уровня: списки вложенных групп — у Воркспейса пространства и проекты, у Пространства проекты */
+/** level tabs: lists of nested groups — Workspace has spaces and projects, Space has projects */
 export const tabsFor = (level: GroupLevel): GroupTab[] =>
   GROUP_TABS.filter(
     (k) => (k !== 'spaces' || level === 'workspace') && (k !== 'projects' || level !== 'project'),
@@ -26,7 +26,7 @@ export function groupUrl(level: GroupLevel, id: string, tab: GroupTab = 'tasks')
   return tab === 'tasks' ? base : `${base}/${tab}`;
 }
 
-/** Уровень внутри группы: пространство (projectId = null) или проект. */
+/** Level within a group: space (projectId = null) or project. */
 export interface GroupLevelRow {
   key: string;
   level: GroupLevel;
@@ -36,8 +36,8 @@ export interface GroupLevelRow {
 }
 
 /**
- * Уровни группы сверху вниз: свой и вложенные (Воркспейс → корневое пространство, пространства и их
- * проекты; Пространство → само и его проекты; Проект → он сам).
+ * Group levels top-down: own and nested (Workspace → root space, spaces and their
+ * projects; Space → itself and its projects; Project → itself).
  */
 export function groupLevels(
   scope: { level: GroupLevel; spaceId: string; projectId: string | null; rootSpaceId: string },

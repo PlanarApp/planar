@@ -4,7 +4,7 @@ import { createClient } from './client';
 import { registerModuleEntities } from './dexie-tx';
 import { PlanarDB } from './db';
 
-// shared-манифесты установленных модулей (без Node API, малые): сущности и мутаторы клиента
+// shared manifests of installed modules (no Node API, small): the client's entities and mutators
 const manifests = Object.values(
   import.meta.glob<{ shared: SharedModuleManifest }>('../../../../modules/*/shared/index.ts', {
     eager: true,
@@ -13,7 +13,7 @@ const manifests = Object.values(
 manifests.forEach((m) => registerModuleEntities(m.entities));
 export const moduleMutators = manifests.flatMap((m) => m.mutators);
 
-/** Сущности модулей → индексы Dexie. */
+/** Module entities → Dexie indexes. */
 export const moduleIndexes = (list: SharedModuleManifest[]): Record<string, string[]> =>
   Object.fromEntries(
     list.flatMap((m) => Object.entries(m.entities).map(([n, e]) => [n, e.meta.indexes] as const)),

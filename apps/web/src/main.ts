@@ -19,7 +19,7 @@ if (open) prefetchProject(open[1]!);
 initSession(router);
 initModules();
 
-// упавший клик показываем, а не глотаем: иначе пользователь жмёт ещё раз
+// show the failed click rather than swallowing it: otherwise the user clicks again
 const fail = (e: unknown) =>
   toast(`${i18n.global.t('auth.failed')}: ${e instanceof Error ? e.message || e.name : String(e)}`);
 onMutationError((e) => fail(new Error(e.message || e.code)));

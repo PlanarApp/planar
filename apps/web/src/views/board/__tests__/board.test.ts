@@ -147,7 +147,7 @@ describe('board:move', () => {
       ]);
     const cols = await columnsOf('status');
     const order = cols.find((c) => c.key === ids.todo)!.tasks.map((x) => x.title);
-    // t6 — между вторым и третьим из одинаковых
+    // t6 — between the second and third of the equal ones
     const p = planMove(
       cols,
       'status',

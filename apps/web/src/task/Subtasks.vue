@@ -13,7 +13,7 @@ const { t, locale } = useI18n();
 const subtasks = useSubtasks(props.task.id);
 const title = ref('');
 const status = (id: string) => props.statuses.find((x) => x.id === id);
-// выполнено: категории done и cancelled
+// done: categories done and cancelled
 const done = computed(
   () =>
     (subtasks.value ?? []).filter((x) =>

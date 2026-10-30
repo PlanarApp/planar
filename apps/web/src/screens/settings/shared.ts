@@ -4,7 +4,7 @@ import type { Row } from '@planar/shared';
 import { useAuth } from '../../auth/useAuth';
 import { db, useQuery } from '../../sync';
 
-/** Выполнение правки: ошибка мутатора (conflict и т.п.) → текст для показа, без исключения. */
+/** Running an edit: a mutator error (conflict, etc.) → text to show, without an exception. */
 export function useAction() {
   const { t } = useI18n();
   const error = ref('');
@@ -22,7 +22,7 @@ export function useAction() {
   return { error, run };
 }
 
-/** Пространства, где текущий пользователь — admin. */
+/** Spaces where the current user is admin. */
 export function useAdminSpaces() {
   const { user } = useAuth();
   const rows = useQuery(() =>
@@ -36,7 +36,7 @@ export function useAdminSpaces() {
 
 export const byName = <T extends { name: string }>(a: T, b: T) => a.name.localeCompare(b.name);
 
-/** Иконка узла — один символ (эмодзи из нескольких кодовых точек — тоже один). */
+/** Node icon — one character (an emoji made of several code points also counts as one). */
 export function firstGrapheme(v: string): string {
   const [g] = new Intl.Segmenter().segment(v);
   return g?.segment ?? '';

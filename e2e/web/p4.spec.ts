@@ -14,7 +14,7 @@ test.afterEach(() => enableP4(admin));
 
 const rows = async (entity: string) => (await admin.bootstrap()).data[entity] ?? [];
 
-/** Открыть вкладку модуля в карточке задачи (вкладки появляются после загрузки реплики). */
+/** Open the module tab in the task card (tabs appear after the replica loads). */
 async function openTab(page: Page, key: string, name: string) {
   await page.goto(`/t/${key}`);
   const tab = page.getByRole('tab', { name, exact: true });
@@ -78,7 +78,7 @@ test('pf6: шаблоны — задача из шаблона через мен
   await page.getByRole('menuitem', { name: 'Задача из шаблона…' }).click();
   await page.getByRole('dialog').getByRole('button', { name: title }).click();
   await expect.poll(async () => (await made()).length).toBe(1);
-  // созданная задача открывается окном поверх вида — закрываем, иначе в DOM два диалога
+  // the created task opens as a window over the view — close it, otherwise there are two dialogs in the DOM
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('task-modal')).toHaveCount(0);
 
@@ -120,7 +120,7 @@ test('pf6: шаблоны — «Сохранить как шаблон», про
   const row = page.getByTestId('tpl-row').filter({ hasText: tplName });
   await expect(row).toBeVisible();
 
-  // проект → шаблон → новый проект
+  // project → template → new project
   const projTpl = uniq('Шаблон проекта');
   await page.getByRole('button', { name: 'Сохранить проект как шаблон' }).click();
   await page.getByLabel('Название шаблона').fill(projTpl);
@@ -153,7 +153,7 @@ test('pf6: цели — цель, ключевой результат «числ
   await page.getByTestId('goal-create').click();
   const card = page.getByTestId('goal').filter({ hasText: goal });
   await card.getByRole('button', { name: 'Ключевой результат' }).click();
-  const krName = uniq('Выручка'); // база общая: прежние прогоны оставили свои «Выручка»
+  const krName = uniq('Выручка'); // the database is shared: earlier runs left their own "Revenue"
   await card.getByLabel('Название', { exact: true }).fill(krName);
   await card.getByLabel('Цель', { exact: true }).fill('200');
   await card.getByRole('button', { name: 'Создать' }).click();
@@ -186,7 +186,7 @@ test('pf6: вехи — веха, задача в вехе, прогресс; л
     .toBe(true);
   const ms = (await rows('goalsMilestones')).find((m) => m.name === msName)!;
 
-  // задача в вехе, затем закрыта (done) — 100%
+  // task in the milestone, then closed (done) — 100%
   const done = (await f.admin.bootstrap()).data.statuses!.find(
     (s) => f.statusIds.includes(s.id as string) && s.category === 'done',
   )!;
@@ -215,14 +215,14 @@ test('pf6: email — без SMTP переключатель неактивен �
   const page = await loginAs(browser, 'admin');
   await spa(page, '/settings/modules', page.getByTestId('module-row').first());
   const row = page.getByTestId('module-row').filter({ hasText: 'email' });
-  // SMTP нельзя «разнастроить» через API: на стеке с уже заданным SMTP проверка неактивности пропускается
+  // SMTP cannot be 'misconfigured' via API: on a stack with SMTP already set, the inactivity check is skipped
   const cfg = await (await admin.ctx.get('/api/email/setup/config')).json();
   if (!cfg.configured) {
     await expect(row.getByRole('switch')).toBeDisabled();
     await expect(row.getByTestId('module-unavailable')).toContainText('SMTP');
   }
 
-  // форма перезаписывается ответом GET config при монтировании — заполняем после него
+  // the form is overwritten by the GET config response on mount — we fill it in after that
   const loaded = page.waitForResponse(
     (r) => r.url().endsWith('/api/email/setup/config') && r.request().method() === 'GET',
   );
@@ -247,7 +247,7 @@ test('pf6: email — без SMTP переключатель неактивен �
     })
     .toBe(true);
 
-  // пользователь: переключатели notify/digest сохраняются
+  // user: notify/digest toggles are saved
   const al = await Client.login('alice');
   await al.pushOk([al.mut('email.setPrefs', { id: al.userId, notify: true, digest: false })]);
   const alice = await loginAs(browser, 'alice');

@@ -18,7 +18,7 @@ const readCollapsed = (): Record<string, boolean> => {
   }
 };
 const collapsed = ref(readCollapsed());
-/** Свёрнутые группы боковой панели: id → bool, хранится в localStorage. */
+/** Collapsed sidebar groups: id → bool, stored in localStorage. */
 export const sidebarCollapse = {
   is: (id: string) => !!collapsed.value[id],
   toggle(id: string) {
@@ -26,17 +26,17 @@ export const sidebarCollapse = {
     try {
       localStorage.setItem(KEY, JSON.stringify(collapsed.value));
     } catch {
-      /* без хранилища состояние живёт до перезагрузки */
+      /* without storage the state lives until reload */
     }
   },
 };
 
-/** Выезжающая боковая панель на mobile. */
+/** Slide-out sidebar on mobile. */
 export const mobileNav = ref(false);
 
-const notice = ref(''); // общий: показывается в TopBar при любом входе в меню
+const notice = ref(''); // common: shown in TopBar on any menu entry
 
-/** Меню пользователя (профиль, настройки, тема, язык, выход) — в шапке панели и в TopBar на mobile. */
+/** User menu (profile, settings, theme, language, logout) — in the panel header and in TopBar on mobile. */
 export function useUserMenu() {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -109,9 +109,9 @@ export interface NavSpace {
     icon: string | null;
   }[];
 }
-/** Что можно добавить в избранное; документы и чаты — сущности модулей. */
+/** What can be added to favourites; documents and chats are module entities. */
 export type FavKind = 'space' | 'project' | 'doc' | 'chat' | 'task';
-/** Ссылка в избранном: name и to — снимок на момент добавления (пространство и проект — живое имя). */
+/** Favourite link: name and to are a snapshot at the time of adding (space and project — live name). */
 export interface FavRef {
   kind: FavKind;
   id: string;
@@ -122,13 +122,13 @@ export interface NavFavorite extends FavRef {
   key: string;
 }
 
-// shortcut: избранное — в localStorage (личное, на этом устройстве); нужна синхронизация между устройствами — сущность на сервере
+// shortcut: favorites are in localStorage (personal, on this device); cross-device sync needs a server entity
 const FAV_KEY = 'planar.favorites';
 const readFav = (): FavRef[] => {
   try {
     const v = JSON.parse(localStorage.getItem(FAV_KEY) ?? '[]');
     if (!Array.isArray(v)) return [];
-    // до типов избранного хранились id проектов
+    // before favourite types, project ids were stored
     return v.flatMap((x): FavRef[] =>
       typeof x === 'string'
         ? [{ kind: 'project', id: x, name: '', to: `/p/${x}` }]
@@ -141,7 +141,7 @@ const readFav = (): FavRef[] => {
   }
 };
 const favList = ref<FavRef[]>(readFav());
-/** Избранное: в порядке добавления. */
+/** Favourites: in the order they were added. */
 export const favorites = {
   has: (kind: FavKind, id: string) => favList.value.some((f) => f.kind === kind && f.id === id),
   toggle(f: FavRef) {
@@ -151,7 +151,7 @@ export const favorites = {
     try {
       localStorage.setItem(FAV_KEY, JSON.stringify(favList.value));
     } catch {
-      /* без хранилища — до перезагрузки */
+      /* without storage — until reload */
     }
   },
 };
@@ -176,7 +176,7 @@ export function useNavData(): {
       })),
     })),
   );
-  // пространство и проект — живое имя, удалённые выпадают; прочее — снимок
+  // space and project — live name, deleted ones drop out; the rest — snapshot
   const favs = computed<NavFavorite[]>(() => {
     if (!src.value) return [];
     const sp = new Map(spaces.value.map((s) => [s.id, s.name]));

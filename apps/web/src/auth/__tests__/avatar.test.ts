@@ -17,7 +17,7 @@ beforeEach(() => {
 });
 
 const mountProfile = () => mount(ProfileScreen, { global: { plugins: [mkRouter(), mkI18n()] } });
-// список токенов профиль грузит при открытии — к аватару не относится
+// profile loads the token list on open — not related to the avatar
 const calls = (f: { mock: { calls: [string, RequestInit?][] } }) =>
   f.mock.calls.filter((c) => c[0] !== '/api/tokens');
 const pick = async (w: ReturnType<typeof mountProfile>) => {

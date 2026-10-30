@@ -29,7 +29,7 @@ vi.mock('../../../tasks', () => ({
   useLabels: () => ref([]),
 }));
 
-// настоящий FilterBuilder тянет всё ядро; здесь проверяем только связку с конструктором
+// the real FilterBuilder pulls in the whole core; here we only check the wiring with the builder
 const FB = defineComponent({
   name: 'FilterBuilder',
   props: ['modelValue', 'projectId'],
@@ -53,12 +53,12 @@ const FB = defineComponent({
       ),
 });
 const stubs = { global: { stubs: { FilterBuilder: FB } } };
-// IconButton/Menu требуют TooltipProvider (в приложении он в App.vue) и i18n
+// IconButton/Menu require TooltipProvider (App.vue provides it) and i18n
 const mount = (c: object, o: { global?: object } = {}) =>
   vmount(defineComponent({ render: () => vh(TooltipProvider, () => vh(c)) }), {
     global: { plugins: [i18n], ...o.global },
   } as never);
-// Select (Reka) в jsdom не раскрывается: выбор значения — событие компонента
+// Select (Reka) doesn't expand in jsdom: value selection is a component event
 const pick = async (w: ReturnType<typeof mount>, role: string, v: string) => {
   w.get(`[data-role=${role}]`).getComponent(Select).vm.$emit('update:modelValue', v);
   await w.vm.$nextTick();
@@ -153,7 +153,7 @@ describe('wk3: страница правил', () => {
     const w = mount(RulesPage, stubs);
     await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
     await w.get('[data-role=new]').trigger('click');
-    await w.get('[data-role=name]').setValue('Без текста'); // add_comment с пустым text
+    await w.get('[data-role=name]').setValue('Без текста'); // add_comment with empty text
     await w.get('[data-testid=editor]').trigger('submit');
     expect(w.find('[data-role=error]').exists()).toBe(true);
     expect(mutate).not.toHaveBeenCalled();

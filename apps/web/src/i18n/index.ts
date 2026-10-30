@@ -10,7 +10,7 @@ const initial = (): Locale => {
     const v = localStorage.getItem(KEY);
     if (v === 'ru' || v === 'en') return v;
   } catch {
-    /* хранилище недоступно */
+    /* storage unavailable */
   }
   return navigator.language?.startsWith('ru') ? 'ru' : 'en';
 };
@@ -28,6 +28,6 @@ export function setLocale(l: Locale): void {
   try {
     localStorage.setItem(KEY, l);
   } catch {
-    /* хранилище недоступно */
+    /* storage unavailable */
   }
 }

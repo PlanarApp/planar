@@ -10,20 +10,20 @@ export interface AuthCtx {
 
 export interface CoreServices {
   db: Db;
-  /** как getAuth api; нет входа → 401 */
+  /** same as api getAuth; no login → 401 */
   auth(req: object): AuthCtx;
-  /** не owner/admin → 403; sessionOnly и Bearer → 403 */
+  /** not owner/admin → 403; sessionOnly and Bearer → 403 */
   requireInstanceAdmin(req: object, opts?: { sessionOnly?: boolean }): AuthCtx;
-  /** строки tasks → форма REST v1 (key, assigneeIds, labelIds) */
+  /** tasks rows → REST v1 form (key, assigneeIds, labelIds) */
   toV1Tasks(q: Q | Db, rows: Record<string, unknown>[]): Promise<Record<string, unknown>[]>;
   systemUserId(): string;
-  /** задача pg-boss вне транзакции мутации; push.boss:false — no-op (C-modules v5) */
+  /** pg-boss task outside the mutation transaction; push.boss:false — no-op (C-modules v5) */
   enqueue(queue: string, data: object, opts?: JobOpts): Promise<void>;
-  /** мутации одной транзакцией от имени userId — как JobApi.execute (C-modules v9) */
+  /** mutations in one transaction on behalf of userId — like JobApi.execute (C-modules v9) */
   execute: JobApi['execute'];
-  /** системный пользователь с логином login: идемпотентно, деактивирован, без пароля (C-modules v9) */
+  /** system user with login login: idempotent, deactivated, without password (C-modules v9) */
   ensureSystemUser(login: string, name: string): Promise<string>;
-  /** файл в хранилище, как POST /files: нет файла → создать; больше MAX_UPLOAD_MB → 413 (C-modules v9) */
+  /** file in storage, like POST /files: no file → create; more than MAX_UPLOAD_MB → 413 (C-modules v9) */
   storeFile(
     buf: Buffer,
     uploaderId: string,
@@ -37,5 +37,5 @@ export interface CoreServices {
   }>;
 }
 
-/** Nest-провайдер (глобальный) со значением CoreServices; модуль: `@Inject(CORE) core: CoreServices`. */
+/** Nest provider (global) with the CoreServices value; module: `@Inject(CORE) core: CoreServices`. */
 export const CORE = Symbol.for('planar.core');

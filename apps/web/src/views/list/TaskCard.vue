@@ -6,22 +6,22 @@ import { BlockedIcon } from '../../links';
 import { useBreakpoint } from '../../ui';
 import CardField, { type CardCol } from '../board/CardField.vue';
 
-// Карточка задачи (Доска; Список на мобилке): статус-кнопка и название, ниже поля-кнопки.
-// Мобильная — поля только иконками.
+// task card (Board; List on mobile): status button and name, the field buttons below.
+// Mobile — fields as icons only.
 defineProps<{
   task: TaskView;
   spaceId: string;
-  /** поля карточки по порядку (отбор заполненных — у вызывающего) */
+  /** card fields in order (selecting the filled ones — by the caller) */
   cols: CardCol[];
   blocked: boolean;
   members: DbRow<'users'>[];
   labels: DbRow<'labels'>[];
-  /** пикеры полей смонтированы (карточка под курсором; на мобилке — всегда) */
+  /** field pickers are mounted (card under the cursor; on mobile — always) */
   hot: boolean;
   parentTitle?: string;
   childCount?: number;
   projectName?: string;
-  /** название в одну строку (строка Списка фиксированной высоты) */
+  /** name on one line (a List row of fixed height) */
   oneLine?: boolean;
   depth?: number;
 }>();

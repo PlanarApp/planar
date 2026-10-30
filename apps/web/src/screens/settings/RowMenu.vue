@@ -4,7 +4,7 @@ import { TooltipProvider } from 'reka-ui';
 import { useI18n } from 'vue-i18n';
 import { IconButton, Menu, type MenuItem } from '../../ui';
 
-// Свой TooltipProvider: строка рендерится и вне App (тесты). «…» строки списка: на desktop видна по наведению/фокусу/открытому меню, на mobile всегда (родитель — group).
+// Own TooltipProvider: the row renders outside App too (tests). The row's "…" list button: on desktop visible on hover/focus/open menu, on mobile always (parent — group).
 defineProps<{ items: MenuItem[] }>();
 const { t } = useI18n();
 </script>

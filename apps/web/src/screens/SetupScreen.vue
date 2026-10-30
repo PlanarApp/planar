@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Button, Input } from '../ui';
@@ -9,8 +9,9 @@ import { errText } from '../auth/errText';
 
 const { t } = useI18n();
 const router = useRouter();
-const { setup } = useAuth();
-const f = reactive({ login: '', name: '', password: '', repeat: '' });
+const { setup, lastSetupInfo } = useAuth();
+const tokenRequired = computed(() => lastSetupInfo.value?.tokenRequired ?? false);
+const f = reactive({ login: '', name: '', password: '', repeat: '', token: '' });
 const errors = reactive({ login: '', name: '', password: '', repeat: '', form: '' });
 const busy = ref(false);
 
@@ -23,7 +24,10 @@ async function submit() {
   if (errors.login || errors.name || errors.password || errors.repeat) return;
   busy.value = true;
   try {
-    await setup({ login: f.login.trim(), name: f.name.trim(), password: f.password });
+    await setup(
+      { login: f.login.trim(), name: f.name.trim(), password: f.password },
+      tokenRequired.value ? f.token.trim() : undefined,
+    );
     await router.replace('/');
   } catch (e) {
     if (e instanceof ApiError && e.status === 409) await router.replace('/login');
@@ -44,6 +48,12 @@ async function submit() {
         <h1 class="text-sm text-fg-muted">{{ t('auth.setupTitle') }}</h1>
       </header>
       <form class="flex flex-col gap-3" @submit.prevent="submit">
+        <Input
+          v-if="tokenRequired"
+          v-model="f.token"
+          type="password"
+          :label="t('auth.setupToken')"
+        />
         <Input v-model="f.login" :label="t('auth.login')" :error="errors.login" />
         <Input v-model="f.name" :label="t('auth.name')" :error="errors.name" />
         <Input

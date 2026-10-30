@@ -14,14 +14,14 @@ import ScopeTasks from '../views/ScopeTasks.vue';
 import InboxScreen from '../screens/InboxScreen.vue';
 import { useAssignedComments, useMyTasks, useUnreadItems, inGroup } from './queries';
 
-// «Моя работа» группы, как в Plane: сводка, назначенные, комментарии мне, созданные, отслеживаемые, активность
+// group "My work", as in Plane: summary, assigned, comments for me, created, watched, activity
 const props = defineProps<{ scope: GroupScope }>();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { user } = useAuth();
 const spaces = useSpaces();
-// первая и по умолчанию — «Назначенные», «Сводка» — в конце
+// first and default — "Assigned", "Summary" — at the end
 const SUBS = [
   'assigned',
   'comments',
@@ -49,7 +49,7 @@ const watched = useMyTasks(uid, () => 'watched');
 const comments = useAssignedComments(uid);
 const unread = useUnreadItems();
 const mine = computed(() => (comments.value ?? []).filter((c) => inScope(c.projectId)));
-// «Комментарии мне»: открытые (по умолчанию), закрытые или все
+// "Comments for me": open (default), resolved or all
 const commentFilter = ref<'open' | 'resolved' | 'all'>('open');
 const shownComments = computed(() =>
   mine.value.filter((c) =>

@@ -5,8 +5,8 @@ import { visibleEntities } from './registry.js';
 import { tableOf } from './rows.js';
 
 /**
- * Кто видит строку (те же правила, что bootstrap). null — сущность неизвестна/выключена,
- * строки нет или видимость `global` (для typing не нужна).
+ * Who sees the row (the same rules as bootstrap). null — entity unknown/disabled,
+ * row missing, or visibility `global` (not needed for typing).
  */
 export async function viewersOf(db: Db, entity: string, id: string): Promise<Set<string> | null> {
   const meta = (await visibleEntities(db))[entity];

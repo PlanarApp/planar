@@ -35,7 +35,7 @@ const S = {
 export type TextKey = keyof typeof S;
 export type Texts = (k: TextKey, p?: Record<string, string>) => string;
 
-/** Строки модуля — LocalizedText {ru, en}; язык берётся у web. */
+/** Module strings — LocalizedText {ru, en}; the language is taken from web. */
 export function useTexts(): Texts {
   const { locale } = i18n.global;
   return (k, p) =>

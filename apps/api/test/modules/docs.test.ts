@@ -115,7 +115,7 @@ describe('docs', () => {
       ((await c.bootstrap()).data.notifications ?? []).filter((n) => n.kind === 'doc_mention');
     expect(await docNotes(w.admin)).toMatchObject([{ url: `/m/docs/${id}`, spaceId: w.spaceId }]);
     expect(await docNotes(w.guest)).toHaveLength(1);
-    expect(await docNotes(w.member)).toHaveLength(0); // автор себя не уведомляет
+    expect(await docNotes(w.member)).toHaveLength(0); // the author does not notify themselves
   });
 
   it('update: пересчёт text, архивная → conflict', async () => {

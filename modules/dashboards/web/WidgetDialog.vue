@@ -44,7 +44,7 @@ watch(
 
 const opts = (ks: readonly string[]) => ks.map((k) => ({ value: k, label: tr(k as Key) }));
 function save() {
-  // filter — реактивный прокси: в IndexedDB (mutate) его не положить, нужна простая копия
+  // filter is a reactive proxy: it cannot be put into IndexedDB (mutate), a plain copy is needed
   const config: Record<string, unknown> = { filter: JSON.parse(JSON.stringify(f.filter)) };
   if (f.kind === 'bars') config.groupBy = f.groupBy;
   if (f.kind === 'line') Object.assign(config, { series: f.series, weeks: Number(f.weeks) });

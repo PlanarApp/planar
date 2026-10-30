@@ -8,7 +8,7 @@ import { mutate } from '../sync';
 import { openTask } from '../views/open';
 import { useUnreadItems, type InboxItem } from './queries';
 
-// колокольчик: меню непрочитанных уведомлений; клик — прочитать и перейти
+// bell: menu of unread notifications; click — read it and go to it
 const { t, locale } = useI18n();
 const router = useRouter();
 const unread = useUnreadItems();

@@ -33,19 +33,19 @@ const props = defineProps<{
   blocked: boolean;
   members: DbRow<'users'>[];
   labels: DbRow<'labels'>[];
-  /** уровень вложенности подзадачи (0 — верхний) */
+  /** subtask nesting level (0 — top) */
   depth?: number;
-  /** родитель не показан над строкой (другая группа, подзадачи скрыты) — подпись в строке */
+  /** the parent is not shown above the row (another group, subtasks hidden) — a label in the row */
   parentTitle?: string;
-  /** ручка перетаскивания (сортировка «Вручную») */
+  /** drag handle ("Manual" sort) */
   draggable?: boolean;
-  /** число подзадач в виде; > 0 — шеврон сворачивания и счётчик */
+  /** number of subtasks in the view; > 0 — the collapse chevron and counter */
   childCount?: number;
-  /** подзадачи свёрнуты */
+  /** subtasks collapsed */
   folded?: boolean;
-  /** название проекта задачи — колонка «Проект» */
+  /** the task's project name — the "Project" column */
   projectName?: string;
-  /** ширины колонок, px (авторазмер или заданные вручную) */
+  /** column widths, px (auto-size or set manually) */
   widths?: Partial<Record<ListColumn, number>>;
 }>();
 const emit = defineEmits<{
@@ -58,9 +58,9 @@ const emit = defineEmits<{
 }>();
 const { t, locale } = useI18n();
 const { isMobile } = useBreakpoint();
-// пикеры справа видны только при наведении/фокусе — до этого не монтируем (переключение проекта)
+// pickers on the right are visible only on hover/focus — until then they are not mounted (project switch)
 const hot = ref(false);
-// курсор ушёл — обратно к выводу значения; пока у пикера строки открыт список — ждём его закрытия
+// the cursor left — back to the value display; while the row picker's list is open — we wait for it to close
 const rowEl = ref<HTMLElement>();
 let inside = false;
 let wait: ReturnType<typeof setInterval> | undefined;
@@ -82,7 +82,7 @@ function leave() {
 onBeforeUnmount(() => clearInterval(wait));
 const input = ref<HTMLInputElement>();
 const draft = ref('');
-let live = false; // blur после Enter/Esc не сохраняет повторно
+let live = false; // blur after Enter/Esc does not save again
 
 watch(
   () => props.editing,
@@ -98,7 +98,7 @@ watch(
 );
 
 const columns = computed(() => visibleColumns(props.fields));
-// мобильная карточка: заполненные поля Списка в порядке карточки Доски
+// mobile card: the filled List fields in the order of the Board card
 const cardCols = computed(() =>
   (['project', 'priority', 'dueDate', 'labels', 'assignee'] as const).filter(
     (c) =>
@@ -114,7 +114,7 @@ const cardCols = computed(() =>
               : !!labelsSet.value.length),
   ),
 );
-// рамка значения = рамка кнопки пикера (OptionPicker, DueDatePicker): смена при наведении не видна
+// value frame = the picker button's frame (OptionPicker, DueDatePicker): the change on hover is not visible
 const box = 'inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg';
 const labelsSet = computed(() =>
   props.task.labelIds.flatMap((id) => props.labels.find((l) => l.id === id) ?? []),
@@ -124,7 +124,7 @@ const people = computed(() =>
     name: props.members.find((u) => u.id === id)?.name ?? '?',
   })),
 );
-// просрочен (раньше локального сегодня) — danger, сегодня и завтра — warning
+// overdue (before local today) — danger, today and tomorrow — warning
 const dueTone = computed(() => {
   const d = props.task.dueDate;
   if (!d) return '';
@@ -139,7 +139,7 @@ function save() {
   if (!live) return;
   live = false;
   const title = draft.value.trim();
-  emit('done'); // сначала выходим из режима правки: blur при размонтировании не сохранит повторно
+  emit('done'); // first leave edit mode: blur on unmount won't save again
   if (title && title !== props.task.title) void updateTask(props.task.id, { title });
 }
 </script>

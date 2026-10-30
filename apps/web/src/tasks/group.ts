@@ -13,14 +13,14 @@ export interface GroupCtx {
   statuses: Row<'statuses'>[];
   members: Row<'users'>[];
   labels: Row<'labels'>[];
-  /** сводка нескольких пространств: ключ группы статуса (имя) вместо id */
+  /** summary of several spaces: the status group key (name) instead of id */
   statusKey?: (statusId: string) => string;
 }
 
 const NONE = 'none';
 const t = (k: string) => i18n.global.t(k);
 
-/** Группа на каждый элемент `order`; задача попадает в группу каждого из своих ключей (`keys`). */
+/** A group per `order` element; a task falls into the group of each of its keys (`keys`). */
 function bucket(
   tasks: TaskView[],
   order: { key: string; label: string; color?: string }[],
@@ -33,7 +33,7 @@ function bucket(
   for (const task of tasks) {
     const ks = keys(task);
     if (!ks.length) noneGroup.tasks.push(task);
-    // shortcut: статус вне справочника пропускается, при необходимости — группа «неизвестно»
+    // shortcut: a status not in the dictionary is skipped; if needed — an "unknown" group
     for (const k of ks) groups[idx.get(k) ?? -1]?.tasks.push(task);
   }
   return none === undefined ? groups : [...groups, noneGroup];
@@ -62,7 +62,7 @@ export function groupTasks(tasks: TaskView[], by: GroupBy, ctx: GroupCtx): TaskG
     ? ctx.members.map((u) => ({ key: u.id, label: u.name }))
     : ctx.labels.map((l) => ({ key: l.id, label: l.name, color: l.color }));
   const keys = (x: TaskView) => (assignee ? x.assigneeIds : x.labelIds);
-  // id вне справочника (деактивированный пользователь, метка не прочитана) — после известных
+  // an id not in the dictionary (deactivated user, label not read) — after the known ones
   const seen = new Set(known.map((k) => k.key));
   const extra = [...new Set(tasks.flatMap(keys))]
     .filter((k) => !seen.has(k))

@@ -4,27 +4,27 @@ import type { Db, Q } from './types.js';
 export type { AfterMutationCtx, MutationOrigin, MutationWrite } from '@planar/shared';
 
 export interface JobOpts {
-  /** секунды или момент */
+  /** seconds or a moment */
   startAfter?: number | Date;
   singletonKey?: string;
 }
 
-/** Третий аргумент `afterMutation`. */
+/** Third argument `afterMutation`. */
 export interface ModuleHookApi {
-  /** транзакция мутации (внутри точки сохранения хука) */
+  /** mutation transaction (inside the hook's savepoint) */
   q: Q;
-  /** запись от системы: обход прав, попадает в changes */
+  /** write by the system: bypasses permissions, goes into changes */
   sys: Tx;
-  /** pg-boss send в этой же транзакции */
+  /** pg-boss send in this same transaction */
   enqueue(queue: string, data: object, opts?: JobOpts): Promise<void>;
 }
 
 export interface JobApi {
   db: Db;
   /**
-   * Мутации одной транзакцией; system — обход прав от имени userId.
-   * prepare — в той же транзакции до мутаций (блокировки, проверки); false → мутации не выполняются.
-   * after — в той же транзакции после всех мутаций; enqueue — pg-boss send в ней же; ошибка откатывает всё и выходит из execute.
+   * Mutations in one transaction; system — bypass of permissions on behalf of userId.
+   * prepare — in the same transaction before the mutations (locks, checks); false → the mutations are not executed.
+   * after — in the same transaction after all mutations; enqueue — pg-boss send in it too; an error rolls back everything and exits execute.
    */
   execute(
     userId: string,
@@ -36,16 +36,16 @@ export interface JobApi {
       after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void>;
     },
   ): Promise<void>;
-  /** вне транзакции */
+  /** outside the transaction */
   enqueue(queue: string, data: object, opts?: JobOpts): Promise<void>;
-  /** id пользователя «Автоматизация» */
+  /** id of the user «Automation» */
   systemUserId: string;
 }
 
 export interface JobDef<D = Record<string, unknown>> {
-  /** `<moduleId>.<имя>` */
+  /** `<moduleId>.<name>` */
   queue: string;
-  /** throw → повтор по retry* */
+  /** throw → retry via retry* */
   handler(data: D, api: JobApi): Promise<void>;
   /** pg-boss schedule, UTC; data = {} */
   cron?: string;
@@ -53,6 +53,6 @@ export interface JobDef<D = Record<string, unknown>> {
   retryDelay?: number;
   retryBackoff?: boolean;
   expireInSeconds?: number;
-  /** по умолчанию 1 */
+  /** default 1 */
   localConcurrency?: number;
 }

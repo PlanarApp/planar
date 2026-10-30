@@ -6,21 +6,21 @@ import { settings, spaceMembers, spaces, users } from '../db/schema.js';
 import { executeMutations } from '../sync/mutate.js';
 import { ensureSystemUser } from '../users/system.js';
 
-/** id настройки с корневым пространством — уровень «Воркспейс» (документы и чаты для всех). */
+/** id of the setting with the root space — the «Workspace» level (documents and chats for everyone). */
 export const ROOT_SPACE = 'root_space';
 const CATEGORIES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'];
 
 /**
- * Корневое пространство: создаётся при первом старте; все активные пользователи, кроме гостей, —
- * участники (владельцы и админы инстанса — админы пространства). Идемпотентно: вызывать при старте
- * и после создания или смены роли пользователя.
+ * Root space: created on first start; all active users except guests are
+ * members (instance owners and admins are space admins). Idempotent: call on start
+ * and after a user is created or a role changes.
  */
 export async function ensureRootSpace(db: Db): Promise<string> {
   const sys = await ensureSystemUser(db);
   const [row] = await db.select().from(settings).where(eq(settings.id, ROOT_SPACE));
   let id = typeof row?.value === 'string' ? row.value : undefined;
   if (id && !(await db.select({ id: spaces.id }).from(spaces).where(eq(spaces.id, id))).length)
-    id = undefined; // настройка осталась от удалённого пространства
+    id = undefined; // the setting was left over from a deleted space
   if (!id) {
     id = uuidv7();
     const [first] = await db

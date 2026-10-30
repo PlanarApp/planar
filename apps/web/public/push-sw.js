@@ -1,5 +1,5 @@
-// Подключается в workbox через importScripts. Формат — C-http «Web Push» (pushPayloadSchema в @planar/shared):
-// {title, body, url, tag, kind}. Правила ниже должны совпадать со схемой (проверяет inbox:push-format).
+// Loaded into workbox via importScripts. Format — C-http "Web Push" (pushPayloadSchema in @planar/shared):
+// {title, body, url, tag, kind}. The rules below must match the schema (checked by inbox:push-format).
 const KINDS = ['assigned', 'mentioned', 'commented', 'status_changed'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -24,7 +24,7 @@ self.addEventListener('push', (e) => {
   try {
     m = e.data ? e.data.json() : undefined;
   } catch {
-    /* не JSON */
+    /* not JSON */
   }
   if (!valid(m)) {
     console.warn('push: сообщение не по схеме C-http, не показано');
@@ -50,7 +50,7 @@ self.addEventListener('notificationclick', (e) => {
   } catch {
     target = new URL('/', origin);
   }
-  // только свой origin; иначе — на корень приложения
+  // own origin only; otherwise go to the app root
   const url = target.origin === origin ? target.href : origin + '/';
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((ws) => {

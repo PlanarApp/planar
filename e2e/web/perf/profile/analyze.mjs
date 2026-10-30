@@ -1,4 +1,4 @@
-// node analyze.mjs <file.cpuprofile> [dist/assets dir] — self-time по исходным файлам/пакетам (через sourcemap)
+// node analyze.mjs <file.cpuprofile> [dist/assets dir] — self-time by source files/packages (via sourcemap)
 import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';

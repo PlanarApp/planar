@@ -33,7 +33,7 @@ export const formsForms = pgTable(
   ],
 );
 
-/** Лимит отправок по IP: ключ `<ip>|m` и `<ip>|h`. */
+/** Submission limit per IP: keys `<ip>|m` and `<ip>|h`. */
 export const formsRateLimits = pgTable('forms_rate_limits', {
   key: text().primaryKey(),
   count: integer().notNull(),

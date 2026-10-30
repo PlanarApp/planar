@@ -164,7 +164,7 @@ describe('task:feed', () => {
 });
 
 describe('task:attachments', () => {
-  // jsdom не считает координаты — вызываем обработчик drop редактора напрямую
+  // jsdom doesn't compute coordinates — call the editor's drop handler directly
   const dropOnEditor = (...files: File[]) => {
     const view = w.findAllComponents(Editor)[0].vm.editor!.view;
     const ev = { dataTransfer: { files }, preventDefault() {} } as unknown as DragEvent;

@@ -144,7 +144,7 @@ describe('settings:statuses', () => {
     const [a, b, c] = [mk('A', 'a3'), mk('B', 'a4'), mk('C', 'a5')];
     await db.table('statuses').bulkPut([a, b, c]);
     const w = await show(StatusesSettings);
-    // todo: Todo(a1), A, B, C; переносим C на индекс 1 (между Todo и A)
+    // todo: Todo(a1), A, B, C; move C to index 1 (between Todo and A)
     (w.vm as unknown as { move(id: string, c: string, i: number): Promise<boolean> }).move?.(
       c.id,
       'todo',

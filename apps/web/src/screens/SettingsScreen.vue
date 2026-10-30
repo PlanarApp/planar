@@ -28,7 +28,7 @@ const SECTIONS = {
 >;
 type Id = keyof typeof SECTIONS;
 
-// scope — таб «Настройки» группы: разделы её уровня, раздел — в ?s; без scope — прежний экран /settings
+// scope — the group's "Settings" tab: sections of its level, the section — in ?s; without scope — the former /settings screen
 const props = defineProps<{ scope?: GroupScope }>();
 const level = computed<Level | undefined>(() => props.scope?.level);
 const atLevel = (l: Level | 'any' | undefined) =>
@@ -46,7 +46,7 @@ const builtin = computed(() =>
       (props.scope ? atLevel(SECTIONS[s].level) : SECTIONS[s].level !== 'project'),
   ),
 );
-// страницы включённых модулей (section = <moduleId>:<id>) — после встроенных
+// pages of enabled modules (section = <moduleId>:<id>) — after the built-in ones
 const modPages = useExtensions('settings');
 const pages = computed(() =>
   modPages.value.filter((p) => (isAdmin.value || !p.adminOnly) && atLevel(p.level)),
@@ -95,7 +95,7 @@ const spaceOptions = computed(() =>
   (spaces.value ?? []).map((s) => ({ value: s.id, label: s.name })),
 );
 
-// ошибка, пришедшая с сервера после локального применения
+// an error that came from the server after the local apply
 const serverError = ref('');
 onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
 </script>

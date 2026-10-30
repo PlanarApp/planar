@@ -34,7 +34,7 @@ describe('wk10:', () => {
     expect(b.verno).toBeGreaterThan(v1);
     expect(b.tables.map((t) => t.name)).toEqual(expect.arrayContaining(['tasks', 'modA', 'modB']));
     expect(await b.table('tasks').get(id)).toMatchObject({ title: 'T' });
-    // тот же набор — версия прежняя
+    // same set — previous version
     b.close();
     const c = new PlanarDB(name, { modA: ['spaceId'], modB: ['x'] });
     await c.open();
@@ -48,7 +48,7 @@ describe('wk10:', () => {
     await a.open();
     a.close();
     localStorage.clear?.();
-    // набор сменился, а подпись в хранилище потеряна → версия ниже установленной
+    // set changed, but the stored signature was lost → version below the installed one
     const hi = new PlanarDB(name, { modA: [], modB: [] });
     await hi.open();
     hi.close();

@@ -36,12 +36,12 @@ export class AppModule implements OnApplicationShutdown {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   async onModuleInit() {
-    // БД недоступна — приложение всё равно стартует (health вернёт 503), пользователь появится при следующем старте
+    // DB unavailable — the app still starts (health returns 503); the user appears on next start
     await ensureSystemUser(this.db).catch((e) => new Logger('app').error(e));
     await ensureRootSpace(this.db).catch((e) => new Logger('app').error(e));
   }
 
-  /** app.close() закрывает пул (и в тестах, и по SIGTERM) */
+  /** app.close() closes the pool (in tests and on SIGTERM) */
   async onApplicationShutdown() {
     await this.db.$client.end();
   }
@@ -55,7 +55,7 @@ export class AppModule implements OnApplicationShutdown {
   ): DynamicModule {
     return {
       module: AppModule,
-      global: true, // DB и JobsService доступны модулям без импорта
+      global: true, // DB and JobsService are available to modules without import
       exports: [DB, JobsService, CORE],
       imports: installed.map((m) => m.api.nestModule as Type),
       controllers: [

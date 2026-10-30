@@ -10,7 +10,7 @@ import { dbUrl, NOW, key, mkSpace, mkUser, newDb } from './helpers.js';
 const db = newDb();
 afterAll(() => db.$client.end());
 
-/** Выполняет fn в транзакции с откатом — журнал и данные не остаются. */
+/** Runs fn in a transaction with rollback — the journal and data do not remain. */
 async function inTx<T>(
   fn: (q: ReturnType<typeof drizzle<typeof schema>>) => Promise<T>,
 ): Promise<T> {
@@ -126,7 +126,7 @@ describe('ServerTx: права', () => {
       const l = label(b);
       await sys.put('labels', l);
       const tx = new ServerTx(q, { userId: user });
-      // user — member только в a: перенос строки из b в a запрещён (старая строка в b)
+      // user is a member only in a: moving a row from b to a is forbidden (the old row is in b)
       expect(await code(tx.put('labels', { ...l, spaceId: a }))).toBe('invalid_args');
       expect(await code(tx.put('labels', { ...l, name: 'x' }))).toBe('forbidden');
     });
@@ -251,7 +251,7 @@ describe('ServerTx: права', () => {
       };
       expect(await code(tx.put('spaceMembers', m))).toBe('ok');
       expect(await code(tx.put('labels', label(s.id)))).toBe('ok');
-      // чужое существующее пространство тем же tx создать нельзя
+      // a foreign existing space cannot be created with the same tx
       const foreign = await mkSpace(db, member, {});
       expect(await code(tx.put('labels', label(foreign)))).toBe('forbidden');
     });
@@ -332,12 +332,12 @@ describe('ServerTx: права', () => {
       await q
         .insert(schema.files)
         .values({ sha256: sha, size: 5_000_000_000, mime: 'x/y', createdBy: other });
-      // файл загрузил другой пользователь (files.created_by не в счёт)
+      // the file was uploaded by another user (files.created_by does not count)
       expect(await code(tx.put('attachments', att))).toBe('forbidden');
       await q.insert(schema.fileUploads).values({ sha256: sha, userId: user });
       expect(await code(tx.put('attachments', att))).toBe('ok');
       expect((await tx.get('attachments', att.id))!.size).toBe(5_000_000_000);
-      // второй загрузивший тот же файл
+      // a second uploader of the same file
       await q.insert(schema.fileUploads).values({ sha256: sha, userId: other });
       const tx2 = new ServerTx(q, { userId: other });
       await ServerTx.asSystem(q, { userId: user }).put('spaceMembers', {
@@ -351,7 +351,7 @@ describe('ServerTx: права', () => {
       expect(await code(tx2.put('attachments', { ...att, id: uuidv7(), uploadedBy: other }))).toBe(
         'ok',
       );
-      // без загрузки, но файл уже приложен в этом пространстве
+      // no upload, but the file is already attached in this space
       const third = await mkUser(db);
       await ServerTx.asSystem(q, { userId: user }).put('spaceMembers', {
         id: uuidv7(),

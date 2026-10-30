@@ -6,7 +6,7 @@ import { FakeServer, FakeWebSocket } from './fake-server';
 
 export const NOW = '2026-10-22T10:00:00.000Z';
 export const SPACE = uuidv7();
-export const USER = uuidv7(); // один пользователь на все запуски: смена userId чистит реплику
+export const USER = uuidv7(); // one user for all runs: changing userId clears the replica
 
 export const testMutators: MutatorDef[] = [
   {

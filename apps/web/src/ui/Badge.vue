@@ -5,7 +5,7 @@ const props = withDefaults(
   defineProps<{ variant?: 'solid' | 'soft' | 'outline'; color?: string; dot?: boolean }>(),
   { variant: 'soft' },
 );
-// color — значение из данных (статус, метка), допустимый литерал
+// color — a value from data (status, label), an allowed literal
 const style = computed(() => {
   const c = props.color ?? 'var(--color-fg-muted)';
   if (props.dot) return {};

@@ -12,7 +12,7 @@ import {
 } from './data';
 
 const props = defineProps<{ spaceId: string }>();
-// страница модуля получает пространство «по умолчанию» без выбора — выбор свой
+// the module page gets the default space without a choice — the choice is its own
 const spaceId = ref(props.spaceId);
 watch(
   () => props.spaceId,

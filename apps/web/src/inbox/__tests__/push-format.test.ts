@@ -85,7 +85,7 @@ describe('inbox:push-format', () => {
       const t = load();
       t.push(c);
       const shown = t.showNotification.mock.calls.length === 1;
-      // '//host' схема пропускает (startsWith('/')), SW — строже по требованию карточки
+      // '//host' passes the scheme (startsWith('/')), SW is stricter per the card requirement
       expect(shown).toBe(pushPayloadSchema.safeParse(c).success && c !== protoRel);
     }
   });

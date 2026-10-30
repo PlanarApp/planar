@@ -1,6 +1,6 @@
 // @vitest-environment node
-// Контрактный тест web (C-views): экспорты экрана проекта по docs/contracts/web.md.
-// Правит только координатор модуля web.
+// Contract test web (C-views): exports of the project screen per docs/contracts/web.md.
+// Edited only by the web module coordinator.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';

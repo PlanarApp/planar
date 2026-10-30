@@ -1,4 +1,4 @@
-# Контекст сборки — корень репозитория. Статика web собирается в образе, node на хосте не нужен.
+# Build context — repo root. The web static files are built in the image; node is not needed on the host.
 FROM node:24-slim AS build
 RUN corepack enable
 WORKDIR /app

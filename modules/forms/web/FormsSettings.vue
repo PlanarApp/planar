@@ -49,17 +49,17 @@ const L = ru
     };
 
 const session = useSession();
-// сервер всё равно проверяет права (write: admin)
+// the server checks rights anyway (write: admin)
 const admin = computed(() => ['owner', 'admin'].includes(session.value?.role ?? ''));
 
 const projects = useQuery(async () =>
   (await db.table<Row<'projects'>>('projects').toArray()).filter((p) => !p.archivedAt),
 );
-// выбранный проект — в адресе (?project=): после перезагрузки тот же
+// the selected project — in the address (?project=): after a reload, the same
 const router = useRouter();
-// без роутера (тесты страницы) — выбор просто не запоминается
+// without a router (page tests) — the selection is simply not remembered
 const query = () => router?.currentRoute.value.query ?? {};
-// projectId — настройки проекта-группы: проект задан, выбора нет
+// projectId — settings of a group project: the project is set, there is no choice
 const props = defineProps<{ projectId?: string }>();
 const projectId = ref(
   props.projectId ?? (typeof query().project === 'string' ? (query().project as string) : ''),
@@ -78,7 +78,7 @@ watch(projectId, (id) => {
 });
 const project = computed(() => projects.value?.find((p) => p.id === projectId.value));
 
-// liveQuery не следит за Vue-реф: читаем всё и фильтруем в computed
+// liveQuery does not watch a Vue ref: read everything and filter in computed
 const allForms = useQuery(() => db.table('formsForms').toArray() as Promise<FormsForm[]>);
 const allDefs = useQuery(() => db.table<Row<'fieldDefs'>>('fieldDefs').toArray());
 const allStatuses = useQuery(() => db.table<Row<'statuses'>>('statuses').toArray());
@@ -88,19 +88,19 @@ const statuses = computed(() =>
   allStatuses.value?.filter((s) => s.spaceId === project.value?.spaceId),
 );
 
-// доступные ключи полей формы
+// available keys of the form fields
 const catalog = computed(() => [
   { key: 'title', label: L.title0 },
   { key: 'description', label: L.description },
   { key: 'email', label: L.email },
   { key: 'files', label: L.files },
-  // user-поле на публичной странице заполнить нельзя
+  // a user field cannot be filled on the public page
   ...(defs.value ?? [])
     .filter((d) => d.type !== 'user')
     .map((d) => ({ key: `field:${d.id}`, label: d.name })),
 ]);
 
-// черновики конструктора: formId → fields
+// builder drafts: formId → fields
 const draft = reactive<Record<string, FormField[]>>({});
 const fieldsOf = (f: FormsForm) => (draft[f.id] ??= structuredClone(f.fields as FormField[]));
 const find = (f: FormsForm, key: string) => fieldsOf(f).find((x) => x.key === key);
@@ -113,7 +113,7 @@ function toggle(f: FormsForm, key: string, label: string, on: boolean) {
 const run = (name: string, args: Record<string, unknown>) => mutate(name, args).catch(() => {});
 
 const nf = reactive({ title: '', statusId: '' });
-// статус должен быть из пространства выбранного проекта: при смене проекта берём первый
+// the status must be from the space of the selected project: on a project change we take the first
 watch(
   statuses,
   (s) => void (s?.some((x) => x.id === nf.statusId) || (nf.statusId = s?.[0]?.id ?? '')),

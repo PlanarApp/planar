@@ -1,7 +1,14 @@
 import { createHash } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
-import type { Db, JobApi, JobDef, ModuleHookApi, MutationWrite } from '@planar/server-kit';
+import {
+  isDemo,
+  type Db,
+  type JobApi,
+  type JobDef,
+  type ModuleHookApi,
+  type MutationWrite,
+} from '@planar/server-kit';
 import { decrypt, secretKey } from './crypto.js';
 import { gitlabConfig as C, gitlabMrs as M, gitlabProjects as P } from './schema.js';
 
@@ -11,7 +18,7 @@ const DAY = 86_400_000;
 const MAX_RETRY_AFTER_SEC = 300;
 
 class Unauthorized extends Error {}
-/** 429 без успешного повтора: проект ждёт следующего тика */
+/** 429 without a successful retry: the project waits for the next tick */
 class Deferred extends Error {}
 class HttpFail extends Error {
   constructor(public status: number) {
@@ -30,7 +37,7 @@ interface GlMr {
   author?: { name?: string; username?: string } | null;
 }
 
-/** Детерминированный uuid строки (задача, проект GitLab, iid): повторный опрос не плодит строки. */
+/** Deterministic uuid of a row (job, GitLab project, iid): a repeated poll does not create rows. */
 export function mrRowId(taskId: string, gitlabProjectId: number, iid: number): string {
   const h = createHash('sha1').update(`${taskId}:${gitlabProjectId}:${iid}`).digest();
   h[6] = (h[6]! & 0x0f) | 0x50;
@@ -43,7 +50,7 @@ export function keysOf(
   mr: Pick<GlMr, 'title' | 'source_branch' | 'description'>,
 ): [string, number][] {
   const seen = new Map<string, [string, number]>();
-  // регистр не важен только в имени ветки
+  // case matters only in the branch name
   const scan = (text: string | null, flags: string) => {
     for (const m of (text ?? '').matchAll(new RegExp(KEY_SRC, flags))) {
       const k: [string, number] = [m[1]!.toUpperCase(), Number(m[2])];
@@ -79,7 +86,7 @@ async function get(url: string, token: string): Promise<Response> {
   }
 }
 
-/** Ответ GitLab на GET /projects/:id (для POST /api/gitlab/projects). */
+/** GitLab's response to GET /projects/:id (for POST /api/gitlab/projects). */
 export async function fetchProject(
   baseUrl: string,
   token: string,
@@ -171,11 +178,12 @@ const setConfigError = (db: Db, e: string | null) =>
     .set({ lastError: e, lastErrorAt: e ? now() : null })
     .where(eq(C.id, 'default'));
 
-/** Один проход по проектам. Не бросает: ошибки — в last_error. */
+/** One pass over the projects. Does not throw: errors go to last_error. */
 export async function pollAll(api: JobApi): Promise<void> {
+  if (isDemo()) return; // demo: no outgoing requests
   const [cfg] = await api.db.select().from(C).where(eq(C.id, 'default'));
   if (!cfg?.tokenEnc) return;
-  if (cfg.lastError === 'unauthorized') return; // до смены токена
+  if (cfg.lastError === 'unauthorized') return; // before the token change
   const key = secretKey();
   let token: string;
   try {
@@ -228,7 +236,7 @@ export const jobs: JobDef<Record<string, unknown>>[] = [
   },
 ];
 
-/** Удаление задачи уносит её строки gitlabMrs. */
+/** Deleting a job takes its gitlabMrs rows with it. */
 export async function afterMutation(writes: MutationWrite[], _ctx: unknown, api: ModuleHookApi) {
   for (const w of writes) {
     if (w.entity !== 'tasks' || w.op !== 'del' || !w.before) continue;

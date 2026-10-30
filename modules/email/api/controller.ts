@@ -19,11 +19,11 @@ import { encrypt, secretKey } from './crypto.js';
 import { esc, loadCfg, parseUnsub, safeErr, send, type Mail } from './mail.js';
 import { emailConfig as C } from './schema.js';
 
-// то же, что @Public() ядра (apps/api/src/auth/public.ts): модуль не импортирует apps/api
+// the same as core's @Public() (apps/api/src/auth/public.ts): the module does not import apps/api
 const Public = () => SetMetadata('planar:public', true);
 
 const ADDR = '[^\\s<>@,;"]+@[^\\s<>@,;"]+';
-// одна запись RFC 5322: addr или Имя <addr>; CR/LF исключены (инъекция заголовков)
+// one RFC 5322 entry: addr or Name <addr>; CR/LF excluded (header injection)
 const fromRe = new RegExp(`^(?:${ADDR}|[^<>\\r\\n,;"]+ <${ADDR}>)$`);
 const putBody = z.object({
   host: z.string().trim().min(1).max(255).optional(),

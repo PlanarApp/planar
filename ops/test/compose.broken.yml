@@ -1,4 +1,4 @@
-# Только для ops/test-upgrade.sh: подменяет сборку api на сломанную.
+# Only for ops/test-upgrade.sh: replaces the api build with a broken one.
 services:
   api:
     build:

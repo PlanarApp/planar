@@ -21,7 +21,7 @@ test('время: таймер в панели задачи и верхней п
   await expect(top).toBeVisible();
   const t0 = await top.locator('.mono').textContent();
   await expect.poll(() => top.locator('.mono').textContent()).not.toBe(t0);
-  await top.click(); // стоп из верхней панели
+  await top.click(); // stop from the top bar
   await expect(top).toHaveCount(0);
   await expect(page.locator('[data-test=entry]')).toHaveCount(1);
 
@@ -30,7 +30,7 @@ test('время: таймер в панели задачи и верхней п
   await expect(page.locator('[data-test=entry]')).toHaveCount(2);
   await expect(page.locator('[data-test=sum] b')).toHaveText('1:30');
 
-  await page.goto('/w/reports?r=time:week'); // «Мои часы» → Отчёты › Время
+  await page.goto('/w/reports?r=time:week'); // «My hours» → Reports › Time
   await expect(page.getByRole('heading', { name: 'Время' })).toBeVisible();
   const row = page.locator('[data-test=row]', { hasText: title });
   const total = row.locator('td.total');
@@ -51,7 +51,7 @@ test('спринт: «Закрыть» переносит незакрытые �
     f.admin.mut('sprints.create', {
       id: cycleId,
       projectId: f.projectId,
-      // пояс проекта UTC, запас в обе стороны: не зависит от полуночи
+      // project timezone UTC, margin in both directions: does not depend on midnight
       startDate: utcDay(-1),
       endDate: utcDay(7),
     }),
@@ -152,7 +152,7 @@ test('импорт: jira.csv по заготовке, прогресс до ко
   });
   await expect(page.locator('progress')).toHaveAttribute('value', '8');
   await page.goto(`/p/${f.projectId}`);
-  // подзадачи (6–8) в списке свёрнуты под родителем — проверяем верхний уровень и число на сервере
+  // subtasks (6–8) are collapsed under the parent in the list — we check the top level and the count on the server
   for (const n of [1, 5]) await expect(page.getByText(`Jira issue ${n}`).first()).toBeVisible();
   const { data } = await f.admin.bootstrap();
   expect(data.tasks!.filter((t) => t.projectId === f.projectId)).toHaveLength(8);

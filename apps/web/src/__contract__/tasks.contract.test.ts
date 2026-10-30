@@ -1,6 +1,6 @@
 // @vitest-environment node
-// Контрактный тест web (C-tasks): экспорты и чистые функции общего слоя задач по docs/contracts/web.md.
-// Правит только координатор модуля web.
+// Contract test web (C-tasks): exports and pure functions of the shared tasks layer per docs/contracts/web.md.
+// Edited only by the web module coordinator.
 import 'fake-indexeddb/auto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

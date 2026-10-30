@@ -10,7 +10,7 @@ import { createUser, loginCookie } from '../auth.js';
 import { db, getApp, req, useApp } from '../auth/harness.js';
 import { world } from '../sync/helpers.js';
 
-// тестовый контроллер «модуля»: ядро только через CORE
+// test controller of a "module": the core only through CORE
 @Controller('api/_wk10')
 class Probe {
   constructor(@Inject(CORE) private core: CoreServices) {}
@@ -167,7 +167,7 @@ describe('wk10:', () => {
       const prep = (
         q: Parameters<NonNullable<Parameters<typeof api.execute>[2]>['prepare'] & {}>[0],
       ) => q.execute(sql`update tasks set title = 'prepared' where id = ${id}`).then(() => {});
-      // мутация падает → откатывается и запись prepare
+      // the mutation fails → rolls back, and the prepare record too
       await expect(
         api.execute(w.admin.userId, [{ name: 'task.update', args: { id: uuidv7(), title: 'x' } }], {
           system: true,
@@ -175,7 +175,7 @@ describe('wk10:', () => {
         }),
       ).rejects.toThrow();
       expect(await title()).toBe('orig');
-      // успех: оба изменения на месте
+      // success: both changes are in place
       await api.execute(w.admin.userId, [{ name: 'task.update', args: { id, priority: 2 } }], {
         system: true,
         prepare: prep,

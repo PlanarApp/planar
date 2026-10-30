@@ -27,7 +27,7 @@ test('p3: таймлайн — перенос полосы меняет даты
     page.locator(`[data-tl-task="${f.taskKeys[0]}"]`),
   );
 
-  // день = 32 px: сдвиг на 3 дня
+  // day = 32 px: shift by 3 days
   const bar = page.locator(`[data-tl-task="${f.taskKeys[0]}"] [data-testid=tl-bar]`);
   const box = (await bar.boundingBox())!;
   const y = box.y + box.height / 2;
@@ -86,7 +86,7 @@ test('p3: нагрузка — задача в неделе срока, ёмко
 
   const cell = page.locator(`[data-test^="cell-${alice.userId}-"]`);
   await expect(cell).toHaveCount(1);
-  await expect(cell).toHaveText('2'); // 120 мин = 2 ч при 40 ч/нед — не перегружено
+  await expect(cell).toHaveText('2'); // 120 min = 2 h at 40 h/week — not overloaded
   await expect(page.locator('td.over')).toHaveCount(0);
 
   const cap = page.locator(`[data-test="cap-${alice.userId}"]`);
@@ -126,7 +126,7 @@ test('p3: дашборды — виджет «число» с фильтром �
   await w.locator('[data-test=save]').click();
   await expect(page.locator('[data-test=number]')).toHaveText('2');
 
-  // без фильтра в пространстве 3 задачи: число меняется вместе с данными реплики
+  // without a filter the space has 3 tasks: the number changes together with the replica data
   await f.admin.pushOk([
     f.admin.mut('task.update', { id: f.taskIds[2], statusId: f.statusIds[1] }),
   ]);
@@ -149,7 +149,7 @@ test.describe('формы', () => {
     const url = (await row.getByTestId('fm-url').textContent())!;
     const slug = new URL(url).pathname.split('/')[2]!;
     expect(slug).toMatch(/^[a-z0-9]{16}$/);
-    // форма дошла до сервера (мутация уходит из очереди асинхронно)
+    // the form reached the server (the mutation leaves the queue asynchronously)
     await expect
       .poll(async () =>
         (
@@ -158,7 +158,7 @@ test.describe('формы', () => {
       )
       .toBe(200);
 
-    // без входа: новый контекст
+    // without login: new context
     const anon = await browser.newContext({ baseURL: BASE, locale: 'ru-RU' });
     const ap = await anon.newPage();
     await ap.goto(`/f/${slug}`);
@@ -175,7 +175,7 @@ test.describe('формы', () => {
       .toEqual([f.projectId, f.statusIds[1]]);
     await anon.close();
 
-    // контекст, где приложение уже открывалось (SW зарегистрирован, если включён): /f/<slug> — страница формы
+    // context where the app was already opened (SW registered, if enabled): /f/<slug> — form page
     const warm = await loginAs(browser, 'alice');
     await warm.evaluate(async () => {
       if (!('serviceWorker' in navigator)) return;
@@ -253,7 +253,7 @@ test.describe('формы', () => {
       codes.push(r.status());
     }
     const first = codes.indexOf(429);
-    // до 5 отправок в минуту; в эту же минуту могла быть отправка предыдущего теста
+    // up to 5 submissions per minute; a submission of the previous test could fall in the same minute
     expect(first).toBeGreaterThan(0);
     expect(first).toBeLessThanOrEqual(5);
     expect(codes.slice(0, first).every((c) => c === 201)).toBe(true);
@@ -286,7 +286,7 @@ test('p3: GitLab — настройки, «Опросить сейчас», в �
     const mr = page.getByTestId('gl-mr');
     await expect(mr).toContainText('!7', { timeout: 60_000 });
     await expect(mr.getByRole('link')).toHaveAttribute('href', /merge_requests\/7$/);
-    // токен ушёл в GitLab расшифрованным
+    // the token went to GitLab decrypted
     expect(gl.seen.tokens.every((t) => t === token)).toBe(true);
   } finally {
     await gl.close();
@@ -300,7 +300,7 @@ test('p3: GitLab — неверный токен: ошибка в настрой
     await spa(page, '/settings/gitlab:settings', page.getByTestId('gl-url'));
     await page.getByTestId('gl-url').fill(gl.url);
     await page.getByTestId('gl-token').fill('wrong-token');
-    // ждём само сохранение: подсказка «токен задан» могла остаться от прошлого теста (старый адрес фейка)
+    // wait for the save itself: the "token set" hint could remain from the previous test (old fake address)
     await Promise.all([
       page.waitForResponse(
         (r) => r.url().includes('/api/gitlab/config') && r.request().method() === 'PUT',
@@ -310,9 +310,9 @@ test('p3: GitLab — неверный токен: ошибка в настрой
     await expect(page.getByTestId('gl-token')).toHaveAttribute('placeholder', /.+/);
     await page.getByTestId('gl-project-input').fill('grp/proj');
     await page.getByTestId('gl-add').click();
-    // проект ищется с неверным токеном: 401 от GitLab показан как ошибка
+    // the project is searched with an invalid token: 401 from GitLab is shown as an error
     await expect(page.getByRole('alert')).toBeVisible();
-    // запрос к GitLab асинхронный — ошибка на экране может опередить его в журнале фейка
+    // the GitLab request is async — the error on screen may come before it in the fake's log
     await expect.poll(() => gl.seen.tokens.length).toBeGreaterThan(0);
     expect(gl.seen.tokens.every((t) => t === 'wrong-token')).toBe(true);
   } finally {

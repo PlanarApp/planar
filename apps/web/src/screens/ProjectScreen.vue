@@ -30,7 +30,7 @@ const projectId = computed(() => String(route.params.projectId));
 const project = useProject(projectId);
 const extViews = useExtensions('views');
 const tabs = computed(() => buildViewTabs(viewLoaders(), extViews.value));
-// сохранённый вид (/p/:projectId/v/:viewId) — вкладка наравне со Списком и Доской
+// saved view (/p/:projectId/v/:viewId) — a tab on a par with List and Board
 const viewId = computed(() => (route.name === 'savedView' ? String(route.params.viewId) : ''));
 const saved = useSavedView(viewId);
 const active = computed(() => {
@@ -39,7 +39,7 @@ const active = computed(() => {
 });
 const tabOptions = useViewOptions(projectId, () => active.value?.key ?? 'list');
 
-// сохранённый вид: черновик — правки не пишутся, пока не нажато «Сохранить»; «Сбросить» возвращает
+// saved view: draft — edits are not written until "Save" is pressed; "Reset" returns
 const plain = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 const emptyFilter = (): Filter => ({ op: 'and', rules: [] });
 const fromSaved = () => {
@@ -57,7 +57,7 @@ const options = computed<ViewOptions>({
   set: (v) => (viewId.value ? (savedOptions.value = v) : (tabOptions.value = v)),
 });
 
-// черновик фильтра: у вкладки — пуст, у сохранённого вида — его фильтр; сброс при смене вкладки или проекта
+// filter draft: for a tab — empty, for a saved view — its filter; reset when the tab or project changes
 const draftFilter = ref<Filter | null>(null);
 const reset = () => {
   const d = viewId.value ? fromSaved() : undefined;
@@ -89,7 +89,7 @@ const saveChanges = () =>
     filter: draftFilter.value ?? emptyFilter(),
   });
 const saveOpen = ref(false);
-// меню «…» проекта: сохранить вид + действия проекта (как в боковой панели, без переименования на месте)
+// project "…" menu: save view + project actions (as in the sidebar, without inline renaming)
 const projectActions = useSidebarActions().projectItems;
 const headerMenu = computed<MenuItem[]>(() => [
   {
@@ -147,7 +147,7 @@ function selectTab(key: string) {
 const { clear } = useSelection();
 watch(projectId, clear, { immediate: true });
 
-// полоса вкладок: при переполнении — градиентная маска у края, где есть скрытое
+// tab strip: on overflow — a gradient mask at the edge where there is hidden content
 const strip = ref<HTMLElement>();
 const fade = ref({ l: false, r: false });
 const measure = () => {
@@ -170,7 +170,7 @@ watch(strip, (el) => {
   if (el && typeof ResizeObserver !== 'undefined') {
     ro = new ResizeObserver(measure);
     ro.observe(el);
-    // scrollWidth растёт без смены размера самой полосы (сохранённые виды, шрифт) — смотрим и детей
+    // scrollWidth grows without the strip itself resizing (saved views, font) — we watch the children too
     for (const c of el.children) ro.observe(c);
   }
   measure();

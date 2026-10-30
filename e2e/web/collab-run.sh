@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# e2e collab (чат и документы) против dev-стека; итог Playwright — в stdout.
+# e2e collab (chat and documents) against the dev stack; Playwright result — in stdout.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 export COMPOSE_PROJECT_NAME=planar-e2e-cl5 API_PORT=3225 WEB_PORT=5325 DEV_PG_PORT=55525

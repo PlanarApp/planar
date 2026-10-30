@@ -14,7 +14,7 @@ export interface CreateTaskArgs {
   labelIds?: string[];
 }
 
-/** rank последней задачи проекта в статусе */
+/** rank of the last task of the project in the status */
 async function lastRank(projectId: string, statusId: string): Promise<string | null> {
   let max: string | null = null;
   await db
@@ -77,7 +77,7 @@ export const moveTask = (
 
 export const deleteTask = (id: string): Promise<void> => mutate('task.delete', { id });
 
-/** Разница нужного набора с связями в реплике → add/remove мутации. */
+/** The difference between the wanted set and the links in the replica → add/remove mutations. */
 async function diff(
   table: 'taskAssignees' | 'taskLabels',
   field: 'userId' | 'labelId',

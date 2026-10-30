@@ -1,12 +1,12 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
-/** Ключ из PLANAR_SECRET_KEY (32 байта base64); нет или неверная длина — undefined. */
+/** Key from PLANAR_SECRET_KEY (32 bytes base64); missing or wrong length — undefined. */
 export function secretKey(): Buffer | undefined {
   const k = Buffer.from(process.env.PLANAR_SECRET_KEY ?? '', 'base64');
   return k.length === 32 ? k : undefined;
 }
 
-/** 'v1:' + b64(iv 12) + ':' + b64(tag 16) + ':' + b64(шифротекст) */
+/** 'v1:' + b64(iv 12) + ':' + b64(tag 16) + ':' + b64(ciphertext) */
 export function encrypt(plain: string, key: Buffer): string {
   const iv = randomBytes(12);
   const c = createCipheriv('aes-256-gcm', key, iv);

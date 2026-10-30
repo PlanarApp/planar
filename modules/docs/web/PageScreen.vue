@@ -13,7 +13,7 @@ const router = useRouter();
 const tx = useTexts();
 const pageId = computed(() => (route.params.pageId as string | undefined) || '');
 
-// /m/docs без страницы — последняя открытая, если она ещё есть
+// /m/docs without a page — the last one opened, if it still exists
 watch(
   pageId,
   async (id) => {
@@ -22,7 +22,7 @@ watch(
       const last = localStorage.getItem(KEY);
       if (last && (await db.table('docsPages').get(last))) void router.replace(`/m/docs/${last}`);
     } catch {
-      /* хранилище недоступно */
+      /* storage unavailable */
     }
   },
   { immediate: true },

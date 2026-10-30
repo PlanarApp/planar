@@ -27,7 +27,7 @@ const TRANSLIT: Record<string, string> = Object.fromEntries(
     .map((p) => p.split(':') as [string, string]),
 );
 
-/** Ключ проекта из названия: латиница (кириллица — транслитом) и цифры, 2–6 символов, без совпадений. */
+/** Project key from the name: Latin (Cyrillic — transliterated) and digits, 2–6 chars, no collisions. */
 export function projectKey(name: string, taken: Set<string>): string {
   const base =
     [...name.toUpperCase()]
@@ -44,11 +44,11 @@ export function projectKey(name: string, taken: Set<string>): string {
   }
 }
 
-/** Действия боковой панели: меню «…»/правый клик, создание и переименование на месте. */
+/** Sidebar actions: "…" menu / right click, inline creation and renaming. */
 export function useSidebarActions() {
   const { t } = useI18n();
   const router = useRouter();
-  /** id сущности, которую сейчас переименовывают, или «new:<spaceId>» / «new-space» для создания */
+  /** id of the entity being renamed now, or "new:<spaceId>" / "new-space" for creation */
   const editing = ref<string | null>(null);
   const draft = ref('');
 

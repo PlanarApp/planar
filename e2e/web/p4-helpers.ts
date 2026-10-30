@@ -8,10 +8,10 @@ import type { Client } from '../lib.js';
 
 export const P4_MODULES = [...MODULES, 'timeline', 'recurring', 'templates', 'goals', 'plugins'];
 
-/** Включает модули p4 (email — отдельно: нужен SMTP). */
+/** Enables p4 modules (email — separately: requires SMTP). */
 export const enableP4 = (admin: Client) => setModules(admin, P4_MODULES);
 
-/** Выбор в Reka Select по подписи: опция фокусом и Enter. */
+/** Selection in Reka Select by label: option by focus and Enter. */
 export async function pickIn(page: Page, label: string, option: string): Promise<void> {
   await page.getByRole('combobox', { name: label }).click();
   const opt = page.getByRole('option', { name: option, exact: true });
@@ -19,7 +19,7 @@ export async function pickIn(page: Page, label: string, option: string): Promise
   await opt.press('Enter');
 }
 
-/** SPA-переход по url: маршруты и вкладки модулей появляются после загрузки реплики (холодный goto — заглушка). */
+/** SPA transition by url: module routes and tabs appear after the replica loads (a cold goto — a stub). */
 export async function spa(page: Page, url: string, ready: Locator): Promise<void> {
   await expect(page.getByTestId('sidebar')).toBeVisible();
   await expect(async () => {
@@ -31,7 +31,7 @@ export async function spa(page: Page, url: string, ready: Locator): Promise<void
   }).toPass({ timeout: 30_000 });
 }
 
-/** Статика examples/plugin-hello на 127.0.0.1 (хост ≠ localhost приложения). */
+/** Static files of examples/plugin-hello on 127.0.0.1 (host ≠ app localhost). */
 export async function pluginServer() {
   const html = readFileSync(
     fileURLToPath(new URL('../../examples/plugin-hello/index.html', import.meta.url)),

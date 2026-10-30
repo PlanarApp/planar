@@ -18,7 +18,7 @@ const show = (v: unknown) =>
       : String(v);
 const draft = ref(show(props.value));
 const invalid = ref(false);
-// последний записанный текст: Enter и следом change не пишут дважды
+// last written text: Enter and the change after it don't write twice
 let last = draft.value;
 watch(
   () => props.value,
@@ -28,7 +28,7 @@ watch(
   },
 );
 
-/** Проверка по схеме типа: неверное не эмитится. */
+/** Check by the type schema: an invalid value is not emitted. */
 function commit(v: unknown | null) {
   if (v !== null && !fieldValueSchema(props.def as never).safeParse(v).success) {
     invalid.value = true;

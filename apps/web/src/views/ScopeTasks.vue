@@ -13,9 +13,9 @@ import TaskModal from './TaskModal.vue';
 import { buildViewTabs, useSelection, useViewOptions, viewLoaders, type Filter } from '.';
 import type { MeMode } from './saved/useFilter';
 
-// Задачи Пространства и Воркспейса — сводка проектов группы (Список и Доска).
-// me — вид в «Моей работе» (назначенные, созданные, отслеживаемые) любой группы, и проекта тоже:
-// Me Mode задан, вид — в ?v, а не в адресе таба
+// Tasks of a Space and of the Workspace — the group's project summary (List and Board).
+// me — the view "My work" (assigned, created, watched) of any group, and of a project too:
+// Me Mode is set, the view — in ?v, not in the tab address
 const props = defineProps<{
   spaceId?: string;
   rootSpaceId?: string;
@@ -36,14 +36,14 @@ const scope = computed(() => {
         ? s.id === props.spaceId
         : s.id !== props.rootSpaceId,
   );
-  // фильтр по проектам: ничего не выбрано — все проекты группы
+  // project filter: nothing selected — all projects of the group
   const all = ss.flatMap((s) => s.projects.map((p) => ({ p, s })));
   const shown = props.projectId
     ? all.filter((x) => x.p.id === props.projectId)
     : picked.value.length
       ? all.filter((x) => picked.value.includes(x.p.id))
       : all;
-  // создание — когда проект один (иначе непонятно, куда)
+  // creation — when there is one project (otherwise it is unclear where)
   const target = shown.length === 1 ? shown[0] : undefined;
   return {
     projectIds: shown.map((x) => x.p.id),
@@ -56,7 +56,7 @@ const key = computed(
     (props.projectId ? `p:${props.projectId}` : props.spaceId ? `s:${props.spaceId}` : 'w') +
     (props.me ? `:me-${props.me}` : ''),
 );
-// выбранные проекты сводки (запоминаются на сводку)
+// selected summary projects (remembered per summary)
 const projectOptions = computed(() =>
   (spaces.value ?? []).flatMap((s) =>
     s.projects
@@ -79,7 +79,7 @@ watch(
   },
   { immediate: true },
 );
-// удалённые/чужие проекты из запомненного выбора не учитываются
+// deleted / foreign projects are ignored in the remembered selection
 const picked = computed({
   get: () => stored.value.filter((id) => projectOptions.value.some((o) => o.value === id)),
   set: (v: string[]) => {
@@ -87,11 +87,11 @@ const picked = computed({
     try {
       localStorage.setItem(pickKey(), JSON.stringify(v));
     } catch {
-      /* без хранилища — до перезагрузки */
+      /* no storage — until reload */
     }
   },
 });
-// встроенные виды и виды модулей, умеющие сводку (Таймлайн)
+// built-in views and module views that support a summary (Timeline)
 const extViews = useExtensions('views');
 const tabs = computed(() =>
   buildViewTabs(
@@ -102,7 +102,7 @@ const tabs = computed(() =>
 const seg = computed(() => String((props.me ? route.query.v : route.params.tab) ?? ''));
 const active = computed(() => tabs.value.find((v) => v.key === seg.value) ?? tabs.value[0]);
 const options = useViewOptions(key, () => active.value?.key ?? 'list');
-// у «Моей работы» свой ключ опций — Me Mode в нём закреплён
+// "My work" has its own options key — Me Mode is fixed in it
 watchEffect(() => {
   if (props.me && options.value.me !== props.me) options.value.me = props.me;
 });

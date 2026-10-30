@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { quickCreate, ui, useHotkey } from './hotkeys';
 
-// тяжёлое — лениво, при первом открытии; в начальном чанке только hotkeys
+// heavy parts — lazily, on first open; only hotkeys in the initial chunk
 const Palette = defineAsyncComponent(() => import('./Palette.vue'));
 const CheatSheet = defineAsyncComponent(() => import('./CheatSheet.vue'));
 const QuickCreate = defineAsyncComponent(() => import('./QuickCreate.vue'));

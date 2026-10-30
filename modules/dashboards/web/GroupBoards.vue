@@ -4,7 +4,7 @@ import { useRouter, type GroupScope } from '@planar/web/modules';
 import BoardsPage from './BoardsPage.vue';
 import BoardPage from './BoardPage.vue';
 
-// Отчёты › Дашборды группы: список и сам дашборд — в той же группе (?board=<id>)
+// Reports › group Dashboards: the list and the dashboard itself — in the same group (?board=<id>)
 defineProps<{ scope: GroupScope }>();
 const router = useRouter();
 const q = () => router.currentRoute.value.query;

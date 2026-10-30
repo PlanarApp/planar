@@ -3,7 +3,7 @@ import type { TaskView } from './queries';
 export type SortBy =
   'rank' | 'priority' | 'dueDate' | 'startDate' | 'createdAt' | 'updatedAt' | 'title';
 
-// приоритет 0 («нет») считается пустым значением и уходит в конец при любом направлении
+// priority 0 ("none") counts as an empty value and goes to the end in either direction
 const val = (t: TaskView, by: SortBy): string | number | null =>
   by === 'priority' ? t.priority || null : (t[by] ?? null);
 

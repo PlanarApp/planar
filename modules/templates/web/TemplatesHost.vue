@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 import { Button, Dialog, Input, db } from '@planar/web/modules';
 import { createTaskFrom, saveTaskAs, tr, ui, useScoped, useTemplates } from './data';
 
-// проект открытого списка → пространство
+// project of the open list → space
 const space = useScoped(
   () => ui.newTask,
   async (p) => (p ? ((await db.table('projects').get(p))?.spaceId ?? '') : ''),

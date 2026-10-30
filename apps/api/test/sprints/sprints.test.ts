@@ -230,10 +230,10 @@ describe('wk2: закрытие цикла', () => {
     const rs = await Promise.all([close(c), close(c), close(c)]);
     for (const { r } of rs) expect(r).toMatchObject({ ok: true });
     const all = await cycles(p);
-    expect(all).toHaveLength(2); // исходный + один новый
+    expect(all).toHaveLength(2); // the original + one new
     const next = all.find((x) => x.id !== c)!;
     expect(await taskCycle(t)).toBe(next.id);
-    // задача, добавленная вручную в новый цикл, повторным закрытием не трогается
+    // a task added manually to the new cycle is not touched by a repeated closing
     await close(c);
     expect(await taskCycle(t)).toBe(next.id);
     expect(await cycles(p)).toHaveLength(2);
@@ -260,7 +260,7 @@ describe('wk2: cron', () => {
 
   it('wk2: close-due каждые 10 минут; due по часовому поясу проекта', async () => {
     expect(job('sprints.close-due').cron).toBe('*/10 * * * *');
-    // разница поясов 25 ч: «сегодня» в Кирибати всегда позже, чем в Паго-Паго
+    // a 25-hour time zone difference: "today" in Kiribati is always later than in Pago Pago
     const behind = todayIn('Pacific/Pago_Pago');
     const ahead = await project();
     const late = await project();
@@ -322,7 +322,7 @@ describe('wk11: гонки и системный пользователь', () =
       const clients = [w.admin, w.member, new TestClient(services(db), w.admin.userId)];
       const rs = await Promise.all([
         ...clients.map((cl) => cl.push('sprints.close', { id: c, nextId: uuidv7() })),
-        job.handler({ cycleId: c }, api).catch(() => undefined), // conflict → ретрай pg-boss
+        job.handler({ cycleId: c }, api).catch(() => undefined), // conflict → pg-boss retry
       ]);
       for (const r of rs.slice(0, 3))
         expect(r).toSatisfy((x: { ok: boolean; code?: string }) => x.ok || x.code === 'conflict');

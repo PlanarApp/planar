@@ -6,8 +6,8 @@ import { useSpaces } from '../tasks';
 const norm = (name: string) => name.trim().toLowerCase();
 
 /**
- * Сводка нескольких пространств: статусы с одинаковым именем — одна группа (ключ — имя, как «Everything» в
- * ClickUp); одно пространство — ключ остаётся id статуса (undefined).
+ * Summary of several spaces: statuses with the same name — one group (key — the name, as "Everything" in
+ * ClickUp); one space — the key stays the status id (undefined).
  */
 export function useStatusKey(
   scope: MaybeRefOrGetter<ViewProps['scope']>,
@@ -20,11 +20,11 @@ export function useStatusKey(
   });
 }
 
-/** статус пространства задачи для группы-имени `key`; нет такого — undefined (колонка не принимает) */
+/** the task's space status for the name group `key`; no such one — undefined (the column does not accept it) */
 export const statusFor = (statuses: Row<'statuses'>[], spaceId: string, key: string) =>
   statuses.find((s) => s.spaceId === spaceId && norm(s.name) === key)?.id;
 
-/** id проекта → название: поле «Проект» в строках и на карточках */
+/** project id → name: the "Project" field in rows and on cards */
 export function useProjectNames() {
   const spaces = useSpaces();
   return computed(
@@ -33,8 +33,8 @@ export function useProjectNames() {
 }
 
 /**
- * План переноса в сводке нескольких пространств: ключ колонки — имя статуса, ставим статус с этим именем
- * в пространстве задачи; такого нет — переноса нет (null).
+ * Move plan in a multi-space summary: the column key is the status name; we set the status with this name
+ * in the task's space; if there is none — no move (null).
  */
 export function fixPlan<P extends { statusId?: string }>(
   plan: P | null,
@@ -47,7 +47,7 @@ export function fixPlan<P extends { statusId?: string }>(
   return id ? { ...plan, statusId: id } : null;
 }
 
-/** Статус новой задачи: колонки/группы статуса (id или имя в сводке) или «К работе» пространства задачи. */
+/** Status of a new task: status columns/groups (id or name in the summary) or the task's space "To do". */
 export function createStatus(
   statuses: Row<'statuses'>[],
   spaceId: string,

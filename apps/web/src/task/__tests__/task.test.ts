@@ -53,10 +53,10 @@ describe('task:delete', () => {
       await until(() => !!document.body.querySelector('[role="dialog"]'));
     };
     await del();
-    expect(await row('tasks', t.id)).toBeDefined(); // task.delete — жёсткое удаление строки
+    expect(await row('tasks', t.id)).toBeDefined(); // task.delete — hard deletion of the row
     byText('Отмена')!.click();
     await flushPromises();
-    expect(await row('tasks', t.id)).toBeDefined(); // task.delete — жёсткое удаление строки
+    expect(await row('tasks', t.id)).toBeDefined(); // task.delete — hard deletion of the row
     await del();
     const dlg = document.body.querySelector('[role="dialog"]')!;
     [...dlg.querySelectorAll('button')].find((b) => b.textContent === 'Удалить')!.click();

@@ -17,7 +17,7 @@ export const i18n = createI18n({
   messages: { ru, en },
 });
 
-/** Реплика из tasks/__tests__/data; ann — admin пространства. */
+/** Replica from tasks/__tests__/data; ann — the space admin. */
 export function setup() {
   beforeAll(() => registerMutators(domainMutators));
   afterEach(() => vi.restoreAllMocks());
@@ -37,7 +37,7 @@ export function setup() {
 export async function show(comp: object, props: Record<string, unknown> = { spaceId: ids.space }) {
   const w = mount(comp, { props, global: { plugins: [i18n] }, attachTo: document.body });
   await flushPromises();
-  // экран подгружает данные из реплики асинхронно: ждём, пока разметка перестанет меняться
+  // the screen loads data from the replica asynchronously: wait until the markup stops changing
   let prev = '';
   await vi.waitFor(async () => {
     await flushPromises();
@@ -53,7 +53,7 @@ export const wait = async () => {
   await flushPromises();
 };
 
-/** Открыть Select (reka: pointerdown) и выбрать пункт по номеру или тексту. */
+/** Open Select (reka: pointerdown) and pick an item by number or text. */
 export async function pick(trigger: Element, option: number | string = 0) {
   trigger.dispatchEvent(
     new PointerEvent('pointerdown', { button: 0, bubbles: true, pointerType: 'mouse' }),
@@ -69,7 +69,7 @@ export async function pick(trigger: Element, option: number | string = 0) {
   await wait();
 }
 
-/** Открыть меню строки «…» (reka: keydown Enter), выбрать пункт; confirm — нажать подтверждение в диалоге. */
+/** Open the row menu "…" (reka: keydown Enter), pick an item; confirm — press confirm in the dialog. */
 export async function menuAct(trigger: Element, item: string, confirm = false) {
   trigger.dispatchEvent(
     new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
@@ -83,6 +83,6 @@ export async function menuAct(trigger: Element, item: string, confirm = false) {
   await wait();
   if (!confirm) return;
   await vi.waitFor(() => expect(document.body.querySelector('[role=dialog] button')).toBeTruthy());
-  [...document.body.querySelectorAll<HTMLElement>('[role=dialog] button')].at(-1)!.click(); // «отмена» первая, подтверждение последнее
+  [...document.body.querySelectorAll<HTMLElement>('[role=dialog] button')].at(-1)!.click(); // "cancel" first, confirmation last
   await wait();
 }

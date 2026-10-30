@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { entitySchemas } from './entities.js';
 
-// API v1 (docs/contracts/core-api-v1.md): токены и REST.
+// API v1 (docs/contracts/core-api-v1.md): tokens and REST.
 const ts = z.iso.datetime();
 
 export const apiTokenSchema = z.object({

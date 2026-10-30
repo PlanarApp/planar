@@ -4,11 +4,11 @@ import type { Fixture } from './helpers.js';
 
 export const MODULES = ['docs', 'chat'];
 
-/** settings.enabled_modules от админа. */
+/** settings.enabled_modules from admin. */
 export const setModules = (admin: Client, ids: string[]) =>
   admin.pushOk([admin.mut('settings.set', { id: 'enabled_modules', value: ids })]);
 
-/** Третий пользователь (не alice/bob); создаётся при первом вызове, пароль = логин (≥ 8 символов). */
+/** Third user (not alice/bob); created on the first call, password = login (≥ 8 characters). */
 export async function carol(admin: Client, f: Fixture): Promise<Client> {
   const login = 'carol-e2e';
   const r = await admin.ctx.post('/api/users', {
@@ -56,7 +56,7 @@ export const sendMsg = (
     }),
   ]);
 
-/** Загрузка файла через POST /files; возвращает sha256. */
+/** File upload via POST /files; returns sha256. */
 export async function upload(c: Client, name: string, data: string): Promise<string> {
   const r = await c.ctx.post('/files', {
     multipart: { file: { name, mimeType: 'text/plain', buffer: Buffer.from(data) } },
@@ -87,7 +87,7 @@ export const status = async (c: Client, path: string): Promise<number> =>
 
 export { BASE, request };
 
-/** Открывает url модуля как SPA-переход: при холодной загрузке маршруты модулей ещё не добавлены (реплика грузится), и роутер разрешает url в заглушку. */
+/** Opens the module url as an SPA transition: on a cold load the module routes are not added yet (the replica loads), and the router resolves the url to a stub. */
 export async function spaGo(p: Page, url: string) {
   await p.goto('/');
   await expect(p.getByTestId('sidebar')).toBeVisible();

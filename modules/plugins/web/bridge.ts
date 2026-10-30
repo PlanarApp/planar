@@ -1,4 +1,4 @@
-// Мост postMessage v1 (P4-plugins). Чистый TS без Vue/SDK: зависимости передаются, тестируется без приложения.
+// postMessage bridge v1 (P4-plugins). Plain TS without Vue/SDK: dependencies are passed in, testable without the app.
 import { ENTITIES } from '@planar/shared';
 import {
   PLUGIN_ENTITIES,
@@ -16,7 +16,7 @@ export interface BridgePlugin {
 export type BridgeContext =
   { point: 'taskPanel'; taskId: string; projectId: string; spaceId: string } | { point: 'page' };
 export interface BridgeDeps {
-  /** строки локальной реплики; limit уже ≤ 500 */
+  /** rows of the local replica; limit is already ≤ 500 */
   query(q: {
     entity: PluginEntity;
     where: Record<string, unknown>;
@@ -25,14 +25,14 @@ export interface BridgeDeps {
   }): Promise<Record<string, unknown>[]>;
   mutate(pluginId: string, name: string, args: unknown): Promise<void>;
   navigate(path: string): void;
-  /** только taskPanel; высота уже в 40–2000 */
+  /** taskPanel only; height is already in 40–2000 */
   resize(height: number): void;
   user: { id: string; name: string; login: string; role: string };
   context: BridgeContext;
   locale: 'ru' | 'en';
   theme: 'light' | 'dark';
 }
-/** Окно iframe: достаточно postMessage. */
+/** iframe window: postMessage is enough. */
 export interface FrameWindow {
   postMessage(msg: unknown, targetOrigin: string): void;
 }
@@ -45,13 +45,13 @@ export interface MessageLike {
 const KNOWN = new Set(['ready', 'query', 'mutate', 'navigate', 'resize']);
 const USER_FIELDS = ['id', 'name', 'login', 'avatarFile'];
 export const clampHeight = (h: number): number => Math.min(2000, Math.max(40, Math.round(h)));
-/** путь приложения: '/x'; не '//host' и не '/\host' */
+/** app path: '/x'; not '//host' and not '/\host' */
 export const safePath = (p: unknown): p is string =>
   typeof p === 'string' && p.startsWith('/') && !p.startsWith('//') && !p.startsWith('/\\');
 
 export function createBridge(frame: FrameWindow, plugin: BridgePlugin, deps: BridgeDeps) {
   const send = (msg: Record<string, unknown>) =>
-    frame.postMessage({ planar: 1, ...msg }, plugin.origin); // никогда '*'
+    frame.postMessage({ planar: 1, ...msg }, plugin.origin); // never '*'
   const fail = (id: string, code: string, message: string) =>
     send({ type: 'result', id, ok: false, error: { code, message } });
   const writeNames = new Set(
@@ -97,7 +97,7 @@ export function createBridge(frame: FrameWindow, plugin: BridgePlugin, deps: Bri
     send({ type: 'result', id, ok: true });
   }
 
-  /** Обработчик window 'message'. Чужое — молча в игнор. */
+  /** window 'message' handler. Foreign messages are silently ignored. */
   async function onMessage(e: MessageLike): Promise<void> {
     const m = e.data as Record<string, unknown> | null;
     if (

@@ -36,7 +36,7 @@ export const sprintsCycles = z.object({
 export type Settings = z.infer<typeof sprintsSettings>;
 export type Cycle = z.infer<typeof sprintsCycles>;
 
-// Tx типизирован сущностями ядра; сущности модуля приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface ModTx {
   get<T>(e: string, id: string): Promise<T | undefined>;
   put(e: string, row: unknown): Promise<void>;
@@ -55,7 +55,7 @@ export function addDays(d: string, n: number): string {
   return x.toISOString().slice(0, 10);
 }
 
-/** Сегодняшняя дата YYYY-MM-DD в часовом поясе. */
+/** Today's date YYYY-MM-DD in the time zone. */
 export const todayIn = (timeZone: string, now = new Date()): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone }).format(now);
 
@@ -81,7 +81,7 @@ async function needCycle(tx: Tx, id: string): Promise<Cycle> {
   return c;
 }
 
-/** Даты корректны и не пересекаются с другими циклами проекта (кроме self). */
+/** The dates are valid and do not overlap other project cycles (except self). */
 async function checkDates(tx: Tx, projectId: string, start: string, end: string, self?: string) {
   if (end < start) throw bad('endDate < startDate');
   for (const c of await cyclesOf(tx, projectId))

@@ -8,7 +8,7 @@ import { chatMessages, chatReactions } from './schema.js';
 
 type Wire = Record<string, unknown>;
 
-/** Видит ли userId канал: участник пространства или участник диалога. */
+/** Whether userId can see the channel: a space member or a dialog member. */
 const canSee = (channelId: SQL | string, userId: string) => sql`
   select 1 from chat_channels c where c.id = ${channelId} and (
     (c.space_id is not null and exists (
@@ -16,7 +16,7 @@ const canSee = (channelId: SQL | string, userId: string) => sql`
     or (c.space_id is null and exists (
       select 1 from chat_members m where m.channel_id = c.id and m.user_id = ${userId})))`;
 
-// timestamptz из pg ("2026-10-22 10:00:00.123+00") → ISO UTC, как toWire ядра
+// timestamptz from pg ("2026-10-22 10:00:00.123+00") → ISO UTC, as core's toWire does
 const TS = ['createdAt', 'updatedAt', 'lastReplyAt', 'editedAt', 'deletedAt'];
 function wire<T extends object>(r: T): Wire {
   const out = { ...r } as Wire;
@@ -103,9 +103,9 @@ class ChatController {
 @Module({ controllers: [ChatController] })
 class ChatModule {}
 
-// ---- хук уведомлений ----
+// ---- notification hook ----
 
-// Tx kit типизирован сущностями ядра; сущности чата — по имени строкой
+// Tx kit is typed with core entities; chat entities are referenced by name as a string
 interface Stx {
   get<T>(e: string, id: string): Promise<T | undefined>;
   put(e: string, row: unknown): Promise<void>;
@@ -123,7 +123,7 @@ type Msg = {
 };
 type Chan = { id: string; spaceId: string | null; kind: 'channel' | 'dm' };
 
-/** Текст узлов body (mention — @метка), абзацы через пробел. */
+/** Text of body nodes (mention — @label), paragraphs separated by a space. */
 function plain(n: unknown): string {
   const o = n as { type?: string; text?: string; attrs?: { label?: string }; content?: unknown[] };
   if (o?.type === 'text') return o.text ?? '';
@@ -143,12 +143,12 @@ async function notify(
     const before = w.before as unknown as Msg | null;
     if (m.deletedAt) continue;
     const created = !before;
-    // правка: только новые упомянутые; прочие изменения (replyCount корня) — не сообщения
+    // edit: only newly mentioned users; other changes (the root's replyCount) are not messages
     if (!created && m.editedAt === before.editedAt) continue;
     const ch = await sys.get<Chan>('chatChannels', m.channelId);
     if (!ch) continue;
     const fresh = created ? m.mentions : m.mentions.filter((u) => !before.mentions.includes(u));
-    // обычное сообщение канала без упоминаний никого не уведомляет — без сканов участников и muted
+    // a regular channel message without mentions notifies no one — no member or muted scans
     if (!fresh.length && !(created && (ch.kind === 'dm' || m.parentId))) continue;
     const seeing = new Set(
       (ch.spaceId
@@ -173,7 +173,7 @@ async function notify(
     };
     add(fresh, 'chat_mention');
     if (created) {
-      // личное — только 1:1; в группе от трёх уведомляет лишь упоминание
+      // direct — only 1:1; in a group of three or more only a mention notifies
       if (ch.kind === 'dm' && seeing.size <= 2) add(seeing, 'chat_dm');
       else if (m.parentId) {
         const root = await sys.get<Msg>('chatMessages', m.parentId);
@@ -215,7 +215,7 @@ export const api: BackendModuleManifest = {
   mutators: shared.mutators,
   entities: shared.entities,
   afterMutation: notify as BackendModuleManifest['afterMutation'],
-  // файл во вложении сообщения видимого канала, загруженный автором этого сообщения
+  // a file in a message attachment of a visible channel, uploaded by this message's author
   async canReadFile(q, userId, sha256) {
     const r = await (q as Q).execute(sql`
         select 1 from chat_messages m

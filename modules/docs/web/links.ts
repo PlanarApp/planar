@@ -7,7 +7,7 @@ export const link = (pageId: string, taskId: string) =>
 export const unlink = (pageId: string, taskId: string) =>
   mutate('docs.link.remove', { pageId, taskId });
 
-/** Новая страница в корне пространства задачи, названная как задача, и связь с ней. */
+/** New page at the root of the task's space, named like the task, and a link to it. */
 export async function createForTask(taskId: string): Promise<string | null> {
   const task = await db.table<Row<'tasks'>>('tasks').get(taskId);
   if (!task) return null;

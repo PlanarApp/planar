@@ -6,16 +6,16 @@ import { AvatarStack, useBreakpoint } from '../ui';
 import { PriorityIcon, StatusIcon, useMembers, useStatuses, type TaskView } from '../tasks';
 import { openTask } from './open';
 
-// Панель планирования (Календарь, Таймлайн): задачи без дат с поиском.
-// Десктоп — постоянная колонка, задачу перетаскивают на вид. Мобильная — блокирующий лист по кнопке вида
-// (нажатие вне — закрыть); нажатие на задачу выбирает её для размещения.
+// Planning panel (Calendar, Timeline): tasks without dates, with search.
+// Desktop — a permanent column, the task is dragged onto the view. Mobile — a blocking sheet opened by the view button
+// (tap outside — close); tapping a task selects it for placement.
 const props = defineProps<{ tasks: TaskView[] }>();
 const open = defineModel<boolean>('open', { default: false });
 const emit = defineEmits<{ pick: [id: string]; drag: [id: string] }>();
 const { t } = useI18n();
 const { isMobile } = useBreakpoint();
 const q = ref('');
-const LIMIT = 200; // shortcut: без виртуализации — первые 200 совпадений; хватит, пока бэклог без дат не огромен
+const LIMIT = 200; // shortcut: no virtualization — the first 200 matches; enough while the backlog without dates is not huge
 const found = computed(() => {
   const s = q.value.trim().toLowerCase();
   return s
@@ -24,7 +24,7 @@ const found = computed(() => {
       )
     : props.tasks;
 });
-// справочники пространств задач списка: статус и исполнители на карточке
+// reference lists of the list's task spaces: status and assignees on the card
 const spaces = computed(() => [...new Set(props.tasks.map((x) => x.spaceId))].sort().join(','));
 const statuses = useStatuses(spaces);
 const members = useMembers(spaces);

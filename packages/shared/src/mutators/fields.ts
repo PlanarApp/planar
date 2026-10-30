@@ -3,14 +3,14 @@ import { defineMutator, entitySchemas, type Row, type Tx } from '../contract/ind
 import { defaultFieldOptions, fieldOptionsSchema, fieldValueSchema } from '../fields.js';
 import { bad, changes, name, need, rank, uuid } from './util.js';
 
-/** Значение поля по определению; null/undefined не допускается. */
+/** Field value by definition; null/undefined is not allowed. */
 export async function checkValue(tx: Tx, def: Row<'fieldDefs'>, value: unknown) {
   if (!fieldValueSchema(def).safeParse(value).success) throw bad(`значение поля ${def.name}`);
   if (def.type === 'user' && !(await tx.get('users', value as string)))
     throw bad('нет такого пользователя');
 }
 
-/** Полная замена `fields` задачи проекта `projectId`: каждый ключ — поле проекта. */
+/** Full replacement of the task `fields` of project `projectId`: each key is a project field. */
 export async function checkFields(tx: Tx, projectId: string, fields: Record<string, unknown>) {
   for (const [k, v] of Object.entries(fields)) {
     const def = await tx.get('fieldDefs', k);
@@ -19,7 +19,7 @@ export async function checkFields(tx: Tx, projectId: string, fields: Record<stri
   }
 }
 
-/** Убрать из fields задач проекта значения, для которых drop(def-значение) истинно. */
+/** Remove from the fields of the project's tasks the values for which drop(def-value) is true. */
 async function scrub(tx: Tx, projectId: string, fieldId: string, drop: (v: unknown) => boolean) {
   for (const t of await tx.scan('tasks', { index: 'projectId', eq: projectId })) {
     if (!(fieldId in t.fields) || !drop(t.fields[fieldId])) continue;

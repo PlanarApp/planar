@@ -14,7 +14,7 @@ import { DB } from '../tokens.js';
 import { enabledModules } from './enabled.js';
 import { installed } from './installed.js';
 
-/** Маршруты модуля живут под /api/<id>/…; выключенный модуль → 404 module_disabled. */
+/** Module routes live under /api/<id>/…; disabled module → 404 module_disabled. */
 @Injectable()
 export class ModuleGuard implements CanActivate {
   constructor(@Inject(DB) private readonly db: Db) {}
@@ -23,7 +23,7 @@ export class ModuleGuard implements CanActivate {
     const url = context.switchToHttp().getRequest<FastifyRequest>().url;
     const id = /^\/api\/([^/?]+)/.exec(url)?.[1];
     if (id && installed.some((m) => m.api.id === id) && !(await enabledModules(this.db)).has(id)) {
-      // C-modules v11: setup выключенного модуля — только сессия owner/admin
+      // C-modules v11: setup of a disabled module — only by owner/admin session
       if (new RegExp(`^/api/${id}/setup(?:[/?]|$)`).test(url)) {
         const a = getAuth(context.switchToHttp().getRequest());
         if (a.via === 'token' || (a.role !== 'owner' && a.role !== 'admin'))

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-// эмодзи-пикер (web component) — свой чанк и данные из пакета, без CDN; монтируется только открытым
+// emoji picker (web component) — its own chunk and data from the package, no CDN; mounted only when open
 const emit = defineEmits<{ pick: [emoji: string] }>();
 const host = ref<HTMLElement | null>(null);
 let el: HTMLElement | undefined;

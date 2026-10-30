@@ -11,7 +11,7 @@ withDefaults(
     loading?: boolean;
     disabled?: boolean;
     type?: 'button' | 'submit' | 'reset';
-    /** на мобилке только иконка, текст — для экранного диктора */
+    /** on mobile only the icon, the text — for the screen reader */
     compact?: boolean;
   }>(),
   { variant: 'secondary', size: 'md', type: 'button' },

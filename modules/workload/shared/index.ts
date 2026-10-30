@@ -16,7 +16,7 @@ export const workloadCapacities = z.object({
 });
 export type WorkloadCapacity = z.output<typeof workloadCapacities>;
 
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface MTx {
   put(e: string, row: unknown): Promise<void>;
   patch(e: string, id: string, p: unknown): Promise<void>;

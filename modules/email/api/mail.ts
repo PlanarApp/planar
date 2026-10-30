@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import nodemailer from 'nodemailer';
-import type { Db, JobDef } from '@planar/server-kit';
+import { isDemo, type Db, type JobDef } from '@planar/server-kit';
 import { decrypt, secretKey } from './crypto.js';
 import { emailConfig as C } from './schema.js';
 
@@ -31,7 +31,7 @@ export type Send = (cfg: SmtpCfg, m: Mail) => Promise<void>;
 export const publicUrl = () =>
   (process.env.PUBLIC_URL ?? 'http://localhost:5173').replace(/\/+$/, '');
 
-// --- токен отписки: <userId>.<kind>.<sig> ---
+// --- unsubscribe token: <userId>.<kind>.<sig> ---
 const sig = (key: Buffer, userId: string, kind: Kind) =>
   createHmac('sha256', key).update(`email-unsub:v1:${userId}:${kind}`).digest('base64url');
 export const unsubToken = (key: Buffer, userId: string, kind: Kind) =>
@@ -46,11 +46,11 @@ export function parseUnsub(key: Buffer, t: unknown): { userId: string; kind: Kin
 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-/** Конфиг с расшифрованным паролем; нет настроек или ключа (писем нет) → null. */
+/** Config with the decrypted password; no settings or key (no emails) → null. */
 export async function loadCfg(q: Pick<Db, 'select'>): Promise<SmtpCfg | null> {
   const [r] = await q.select().from(C);
   const key = secretKey();
-  if (!r || !r.host || !r.fromAddress || !key) return null;
+  if (!r || !r.host || !r.fromAddress || !key || isDemo()) return null; // demo: no email
   return {
     host: r.host,
     port: r.port,
@@ -88,7 +88,7 @@ export const send: Send = async (cfg, m) => {
   }
 };
 
-/** Текст ошибки SMTP без пароля и с ограничением длины. */
+/** SMTP error text without the password and with a length limit. */
 export const safeErr = (e: unknown, cfg?: SmtpCfg | null) => {
   let s = (e instanceof Error ? e.message : String(e)).slice(0, 500);
   if (cfg?.password) s = s.split(cfg.password).join('***');
@@ -105,7 +105,7 @@ type Row = Record<string, unknown>;
 const rowsOf = async (db: Pick<Db, 'execute'>, q: ReturnType<typeof sql>) =>
   (await db.execute(q)).rows as Row[];
 
-/** Ссылка: задача — /t/<KEY>-<n>, иначе notifications.url (только путь, как в Web Push). */
+/** Link: a job — /t/<KEY>-<n>, otherwise notifications.url (path only, as in Web Push). */
 function link(n: Row): string {
   const path = n.key && n.number ? `/t/${n.key}-${n.number}` : String(n.url ?? '');
   return publicUrl() + (path.startsWith('/') && !path.startsWith('//') ? path : '');
@@ -116,7 +116,7 @@ const wrap = (body: string, unsub: string, what: string) =>
   `<p style="color:#888;font-size:12px;margin-top:24px">Вы получили это письмо, потому что включили ${what} в Planar. ` +
   `<a href="${esc(unsub)}">Отписаться</a></p></div>`;
 
-/** Cron email.notify: now — «сейчас» (в тестах — подставляется). Возвращает число отправленных. */
+/** Cron email.notify: now — 'now' (substituted in tests). Returns the number of messages sent. */
 export async function notifyTick(db: Db, now: Date, snd: Send = send): Promise<number> {
   const cfg = await loadCfg(db);
   const key = secretKey();
@@ -184,7 +184,7 @@ export async function notifyTick(db: Db, now: Date, snd: Send = send): Promise<n
   return sent;
 }
 
-/** Сегодняшняя дата и час в поясе tz (неверный пояс → UTC). */
+/** Today's date and hour in the zone tz (invalid zone → UTC). */
 export function localDay(now: Date, tz: string): { date: string; hour: number } {
   const f = (zone: string) =>
     new Intl.DateTimeFormat('en-CA', {
@@ -205,7 +205,7 @@ export function localDay(now: Date, tz: string): { date: string; hour: number } 
   return { date: `${g('year')}-${g('month')}-${g('day')}`, hour: Number(g('hour')) };
 }
 
-/** Cron email.digest: раз в сутки на пользователя после 8:00 в settings.timezone. */
+/** Cron email.digest: once a day per user after 8:00 in settings.timezone. */
 export async function digestTick(db: Db, now: Date, snd: Send = send): Promise<number> {
   const cfg = await loadCfg(db);
   const key = secretKey();

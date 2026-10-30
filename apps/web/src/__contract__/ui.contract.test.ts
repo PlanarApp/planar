@@ -1,6 +1,6 @@
 // @vitest-environment node
-// Контрактный тест C-ui: сверяет код с docs/contracts/design.md (версии — и с web.md).
-// Правит только координатор модуля design.
+// Contract test C-ui: checks code against docs/contracts/design.md (versions — and against web.md).
+// Edited only by the design module coordinator.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { UI_CONTRACT_VERSIONS } from '../contract';

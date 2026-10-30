@@ -178,7 +178,7 @@ test('realtime', async ({ browser }) => {
     const ms = (await seen) - (await sent);
     await a.waitForTimeout(1500);
     const [ea, eb] = await Promise.all([events(a), events(b)]);
-    // общая шкала: мс от Enter на A (Date.now-часы: timeOrigin + now)
+    // common scale: ms from Enter on A (Date.now clocks: timeOrigin + now)
     const [oa, ob] = await Promise.all([a, b].map((p) => p.evaluate(() => performance.timeOrigin)));
     const enter = ea.find((e) => e.k === 'enter').t + oa!;
     runs.push({

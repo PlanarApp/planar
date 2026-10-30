@@ -1,4 +1,4 @@
-// Единственная точка контакта модуля с ядром web: реплика, API, роутер, язык.
+// The module's single point of contact with the web core: replica, API, router, language.
 import { computed } from 'vue';
 import { api, db, i18n, useQuery, useRouter, useSession } from '@planar/web/modules';
 import type { BridgeDeps } from './bridge.js';
@@ -6,7 +6,7 @@ import type { Plugin } from '../shared/index.js';
 
 export { api, useRouter, useSession };
 
-/** undefined — список ещё не загружен (не путать с пустым). */
+/** undefined — the list is not loaded yet (do not confuse with empty). */
 export const usePlugins = () => {
   const r = useQuery(() => db.table('pluginsPlugins').toArray() as Promise<Plugin[]>);
   return computed(() => r.value?.filter((p) => p.enabled));
@@ -24,7 +24,7 @@ export const taskContext = async (taskId: string) => {
   return t && ({ point: 'taskPanel', taskId, projectId: t.projectId, spaceId: t.spaceId } as const);
 };
 
-/** Запрос в локальную реплику: where — по id и индексам (мост уже проверил), остальное фильтруем в памяти. */
+/** Query to the local replica: where — by id and indexes (the bridge has already checked it); the rest is filtered in memory. */
 export const queryReplica: BridgeDeps['query'] = async ({ entity, where, ids, limit }) => {
   const t = db.table(entity);
   const w = Object.entries(where);

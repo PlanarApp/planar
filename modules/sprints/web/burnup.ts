@@ -2,13 +2,13 @@ import { addDays, todayIn } from '../shared/index.js';
 
 export interface BurnupData {
   days: string[];
-  /** объём — число задач цикла сейчас, одна линия на все дни */
+  /** volume — the number of the cycle's tasks now, one line for all days */
   scope: number;
-  /** сделано нарастающим итогом; null — день в будущем */
+  /** done so far as a running total; null — a day in the future */
   done: (number | null)[];
 }
 
-/** Burn-up цикла: done(день) = задачи с completedAt ≤ дня (по часовому поясу проекта). */
+/** Cycle burn-up: done(day) = tasks with completedAt ≤ day (in the project's time zone). */
 export function burnup(
   cycle: { startDate: string; endDate: string },
   tasks: { completedAt: string | null }[],

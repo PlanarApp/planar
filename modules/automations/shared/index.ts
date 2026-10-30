@@ -77,7 +77,7 @@ export const filterSchema = z.object({
   ),
 });
 
-/** `YYYY-MM-DD` или `today`, `today+N`, `today-N`. */
+/** `YYYY-MM-DD` or `today`, `today+N`, `today-N`. */
 const DATE_EXPR = /^(\d{4}-\d{2}-\d{2}|today([+-]\d+)?)$/;
 
 const setField = z
@@ -140,7 +140,7 @@ export interface Run {
 
 export const EMPTY_FILTER: Filter = { op: 'and', rules: [] };
 
-// Tx типизирован сущностями ядра; сущности модуля приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface ModTx {
   get<T>(e: string, id: string): Promise<T | undefined>;
   put(e: string, row: unknown): Promise<void>;

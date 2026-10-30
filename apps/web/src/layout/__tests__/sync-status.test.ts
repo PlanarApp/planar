@@ -8,7 +8,7 @@ import { syncState } from '../../sync';
 import SyncStatus from '../SyncStatus.vue';
 
 const i18n = createI18n({ legacy: false, locale: 'ru', messages: { ru } });
-// в приложении состояние меняет только клиент синхронизации; тест выставляет его сам
+// in the app only the sync client changes the state; the test sets it itself
 const set = (v: { status: string; pending: number }) =>
   ((syncState as { value: unknown }).value = v);
 const state = (w: ReturnType<typeof mount>) => w.find('[data-testid=sync-status]');

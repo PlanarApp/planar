@@ -21,7 +21,7 @@ import { CheckSquare, FolderPlus, LayoutGrid } from 'lucide-vue-next';
 import type { MenuItem } from '../ui/Menu.vue';
 import NodeIcon from '../ui/NodeIcon.vue';
 
-// reka (Avatar/Menu) — вне начального бандла
+// reka (Avatar/Menu) — outside the initial bundle
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
 const { user } = useAuth();
@@ -29,7 +29,7 @@ const { items } = useUserMenu();
 
 const { t, te, locale } = useI18n();
 const navItems = useExtensions('nav');
-// секция — свой компонент; ошибка загрузки не ломает панель
+// a section is its own component; a loading error does not break the panel
 const sections = new Map<string, Component>();
 const section = (key: string, load: () => Promise<{ default: Component }>) => {
   let c = sections.get(key);
@@ -47,12 +47,12 @@ const FAV_ICONS = {
   chat: MessageSquare,
   task: CheckSquare,
 };
-// дерево групп: Воркспейс (корневое пространство) › пространства › проекты
+// group tree: Workspace (root space) › spaces › projects
 const rootId = useRootSpaceId();
 const ws = useWorkspace();
 const spaces = computed(() => allSpaces.value.filter((s) => s.id !== rootId.value));
 const act = useSidebarActions();
-// поле ввода на месте: Enter — сохранить, Esc/blur без текста — отмена
+// inline input field: Enter — save, Esc/blur with no text — cancel
 const onKey = (e: KeyboardEvent) => {
   if (e.key === 'Enter') void act.commit();
   else if (e.key === 'Escape') act.cancel();
@@ -96,7 +96,7 @@ const createItems = (): MenuItem[] => {
     },
   ];
 };
-// проекты строятся в памяти заранее: по наведению/фокусу на ссылку и один раз в простое после появления списка
+// projects are built in memory in advance: on hover/focus of the link and once when idle after the list appears
 let idle: ReturnType<typeof setTimeout> | undefined;
 const stop = watch(
   () => spaces.value.length > 0,
@@ -117,7 +117,7 @@ const head =
   'flex h-7 w-full items-center gap-1 rounded-md px-2 text-xs font-medium uppercase text-fg-muted hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus';
 const chev = (id: string) => ['shrink-0 transition-transform', !sc.is(id) && 'rotate-90'];
 const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm text-fg outline-none';
-// иконка узла в дереве: эмодзи или картинка, рядом с названием
+// node icon in the tree: emoji or image, next to the name
 const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
 </script>
 
@@ -322,7 +322,7 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
 </template>
 
 <style>
-/* тёмная панель: семантические токены внутри <aside> заменены sidebar-токенами */
+/* dark panel: semantic tokens inside <aside> are replaced by sidebar tokens */
 .sidebar-dark {
   --color-bg: var(--color-sidebar-bg);
   --color-fg: var(--color-sidebar-fg);

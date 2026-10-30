@@ -1,6 +1,6 @@
-// Клиент SDK в отдельном node-процессе: vitest запускает node с --conditions source,
-// и зависимости SDK (eventsource-parser) грузятся из src/*.ts, которые node не исполняет.
-// Протокол: строка JSON {id, method, params} в stdin → строка {id, result|error} в stdout.
+// SDK client in a separate node process: vitest runs node with --conditions source,
+// and SDK dependencies (eventsource-parser) load from src/*.ts, which node does not execute.
+// Protocol: a JSON line {id, method, params} on stdin → a line {id, result|error} on stdout.
 import { createInterface } from 'node:readline';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';

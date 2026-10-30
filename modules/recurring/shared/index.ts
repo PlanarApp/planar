@@ -25,18 +25,18 @@ export const recurringRules = z.object({
 export type Rule = z.infer<typeof recurringRules>;
 export type Schedule = Pick<Rule, 'kind' | 'every' | 'unit' | 'weekdays' | 'anchorDate'>;
 
-// ---- чистые функции: даты YYYY-MM-DD, сутки по UTC ----
+// ---- pure functions: dates YYYY-MM-DD, days in UTC ----
 const DAY = 86_400_000;
 const toDays = (d: string) => Math.round(Date.parse(`${d}T00:00:00Z`) / DAY);
 const fromDays = (n: number) => new Date(n * DAY).toISOString().slice(0, 10);
-const dow = (n: number) => (((n + 4) % 7) + 7) % 7; // 1970-01-01 — четверг
+const dow = (n: number) => (((n + 4) % 7) + 7) % 7; // 1970-01-01 — a Thursday
 const monday = (n: number) => n - ((dow(n) + 6) % 7);
 const monthIdx = (d: string) => Number(d.slice(0, 4)) * 12 + Number(d.slice(5, 7)) - 1;
 
 export const addDays = (d: string, n: number): string => fromDays(toDays(d) + n);
 export const daysBetween = (from: string, to: string): number => toDays(to) - toDays(from);
 
-/** d + n месяцев; число месяца — min(day, дней в месяце). */
+/** d + n months; the day of month — min(day, days in the month). */
 export function addMonths(d: string, n: number, day = Number(d.slice(8))): string {
   const t = monthIdx(d) + n;
   const y = Math.floor(t / 12);
@@ -45,7 +45,7 @@ export function addMonths(d: string, n: number, day = Number(d.slice(8))): strin
   return `${String(y).padStart(4, '0')}-${String(m + 1).padStart(2, '0')}-${String(Math.min(day, dim)).padStart(2, '0')}`;
 }
 
-/** Наименьшая дата расписания строго больше `after`. */
+/** The nearest schedule date strictly greater than `after`. */
 export function nextOccurrence(rule: Schedule, after: string): string {
   const { kind, every, unit, anchorDate: a } = rule;
   if (kind === 'weekdays') {
@@ -70,11 +70,11 @@ export function nextOccurrence(rule: Schedule, after: string): string {
   }
 }
 
-/** Дней от startDate до dueDate (0, если одной из дат нет). */
+/** Days from startDate to dueDate (0 if one of the dates is missing). */
 export const spanOf = (t: { startDate: string | null; dueDate: string | null }): number =>
   t.startDate && t.dueDate ? daysBetween(t.startDate, t.dueDate) : 0;
 
-/** Наибольшая дата расписания o ≥ nextDate с o − span ≤ today; нет — null. */
+/** The latest schedule date o ≥ nextDate with o − span ≤ today; none — null. */
 export function duePeriod(
   rule: Schedule & { nextDate: string | null },
   today: string,
@@ -100,11 +100,11 @@ export function afterDoneDue(
     : addDays(completedDate, rule.every * (rule.unit === 'week' ? 7 : 1));
 }
 
-/** Сегодняшняя дата в часовом поясе (неверный IANA — бросает). */
+/** Today's date in the time zone (an invalid IANA zone throws). */
 export const todayIn = (timeZone: string, now = new Date()): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone }).format(now);
 
-// ---- мутаторы ----
+// ---- mutators ----
 interface ModTx {
   get<T>(e: string, id: string): Promise<T | undefined>;
   put(e: string, row: unknown): Promise<void>;
@@ -180,7 +180,7 @@ export const advance = defineMutator({
   name: 'recurring.advance',
   args: z.object({ id: uuid, taskId: uuid, nextDate: date.nullable() }),
   async run(tx, a, ctx) {
-    // у MutatorCtx нет system: системный пользователь — единственный деактивированный, кто может исполнять мутации
+    // MutatorCtx has no system: the system user is the only deactivated one who can run mutations
     const me = await tx.get('users', ctx.userId);
     if (!me?.deactivatedAt) throw new MutatorError('forbidden', 'только система');
     if (!(await m(tx).get<Rule>('recurringRules', a.id)))

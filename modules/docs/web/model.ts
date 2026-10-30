@@ -3,7 +3,7 @@ import { rankBetween } from '@planar/web/modules';
 export interface PageRow {
   id: string;
   spaceId: string;
-  /** уровень: проект или null — пространство (у корневого — Воркспейс) */
+  /** level: project or null — space (the root one is Workspace) */
   projectId?: string | null;
   parentId: string | null;
   rank: string;
@@ -32,13 +32,13 @@ export interface TreeNode {
 
 const byRank = (a: PageRow, b: PageRow) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0);
 
-/** Неархивные страницы пространства, обход в глубину: родитель перед детьми, дети по rank. */
+/** Non-archived pages of the space, depth-first traversal: parent before children, children by rank. */
 export function buildTree(pages: PageRow[], spaceId: string, open?: Set<string>): TreeNode[] {
   const live = pages.filter((p) => p.spaceId === spaceId && !p.archivedAt);
   const ids = new Set(live.map((p) => p.id));
   const kids = new Map<string | null, PageRow[]>();
   for (const p of live) {
-    // сирота (родитель в архиве/не загружен) показывается в корне
+    // an orphan (parent archived/not loaded) is shown at the root
     const k = p.parentId && ids.has(p.parentId) ? p.parentId : null;
     (kids.get(k) ?? kids.set(k, []).get(k)!).push(p);
   }
@@ -55,7 +55,7 @@ export function buildTree(pages: PageRow[], spaceId: string, open?: Set<string>)
 
 export type DropZone = 'before' | 'after' | 'into';
 
-/** Аргументы docs.page.move для переноса `id` на `target`; null — цикл или бессмыслица. */
+/** Arguments for docs.page.move to move `id` to `target`; null — a cycle or nonsense. */
 export function moveArgs(
   pages: PageRow[],
   id: string,
@@ -65,7 +65,7 @@ export function moveArgs(
   const t = pages.find((p) => p.id === target);
   if (!t || id === target) return null;
   const parentId = zone === 'into' ? t.id : t.parentId;
-  // цель не должна лежать внутри переносимой страницы
+  // the target must not lie inside the moved page
   for (let p: PageRow | undefined = t, n = 0; p && n < 1000; n++, p = pages.find((x) => x.id === p!.parentId))
     if (p.parentId === id) return null;
   const sib = pages
@@ -79,7 +79,7 @@ export function moveArgs(
 
 export const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е');
 
-/** Все слова запроса — подстроки названия или текста; названия выше. */
+/** All query words are substrings of the name or text; names rank higher. */
 export function searchPages(pages: PageRow[], q: string, limit: number): PageRow[] {
   const ws = norm(q).split(/\s+/).filter(Boolean);
   if (!ws.length) return [];
@@ -96,7 +96,7 @@ export function searchPages(pages: PageRow[], q: string, limit: number): PageRow
     .map((h) => h[1]);
 }
 
-/** Чужая действующая блокировка → её владелец; иначе null. Время — по Date.now(). */
+/** Someone else's active lock → its owner; otherwise null. Time — by Date.now(). */
 export const lockedBy = (lock: LockRow | undefined, me: string, now = Date.now()): string | null =>
   lock && lock.userId !== me && Date.parse(lock.expiresAt) > now ? lock.userId : null;
 

@@ -21,13 +21,13 @@ import { viewersOf } from './viewers.js';
 const PING_MS = 30_000;
 const TYPING_MS = 3000;
 
-/** WS /ws: только poke (данные не передаются), C-sync «WebSocket». */
+/** WS /ws: poke only (no data is sent), C-sync "WebSocket". */
 @Injectable()
 export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
   private wss = new WebSocketServer({ noServer: true });
   private alive = new WeakSet<WebSocket>();
   private users = new WeakMap<WebSocket, string>();
-  /** (userId, id) -> время последней рассылки typing */
+  /** (userId, id) -> time of the last typing broadcast */
   private typed = new Map<string, number>();
   private server?: Server;
   private off?: () => void;
@@ -71,7 +71,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
     try {
       ctx = await authenticateRaw(this.db, req.headers, 'UPGRADE', {
         publicUrl: this.auth.publicUrl,
-        allowToken: false, // Bearer на /ws не разбираем: last_used_at не трогаем
+        allowToken: false, // Bearer on /ws is not parsed: last_used_at is not touched
       });
     } catch (e) {
       const status = e instanceof HttpError ? e.getStatus() : 500;
@@ -100,7 +100,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
     const typing = wsTypingClientSchema.safeParse(json);
     if (typing.success) return this.onTyping(ws, typing.data);
     const hello = wsClientSchema.safeParse(json);
-    if (!hello.success) return; // чужие сообщения игнорируем
+    if (!hello.success) return; // ignore others' messages
     const msg = hello.data;
     try {
       const r = await this.db.execute(
@@ -109,11 +109,11 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
       const max = Number(r.rows[0].seq);
       if (max > msg.cursor) this.poke(ws, max);
     } catch {
-      // БД недоступна: клиент получит poke со следующим изменением
+      // DB unavailable: the client gets a poke with the next change
     }
   }
 
-  /** «Печатает…» (C-sync v2): только тем, кто видит строку; не чаще раза в 3 с на (отправитель, id). */
+  /** "Typing…" (C-sync v2): only to those who see the row; at most once per 3 s per (sender, id). */
   private async onTyping(ws: WebSocket, m: { entity: string; id: string }) {
     const from = this.users.get(ws);
     if (!from) return;
@@ -131,7 +131,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
         if (u && u !== from && viewers.has(u) && c.readyState === WebSocket.OPEN) c.send(out);
       }
     } catch {
-      // эфемерное сообщение: сбой БД молча
+      // ephemeral message: a DB failure is silent
     }
   }
 

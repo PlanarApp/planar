@@ -30,7 +30,7 @@ const values = computed(() =>
   pv.value ? statusValues(pv.value.columns, pv.value.rows, map.value.status) : [],
 );
 const presets = computed(() => presetsFor(format.value));
-// Reka Select не принимает пустое значение: «нет» — служебная метка
+// Reka Select does not accept an empty value: «none» is a service label
 const NONE = '__none';
 const colOptions = computed(() => [
   { value: NONE, label: tr('none') },
@@ -84,7 +84,7 @@ const run = () =>
         job.value = await getJob(job.value!.id);
         if (job.value.status === 'done' || job.value.status === 'failed') clearInterval(timer);
       } catch {
-        /* следующий опрос повторит */
+        /* the next poll will repeat */
       }
     }, 1500);
   });

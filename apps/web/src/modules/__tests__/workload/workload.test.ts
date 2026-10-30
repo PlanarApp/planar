@@ -85,7 +85,7 @@ describe('pt3: подсчёт', () => {
   });
 
   it('pt3: startDate..dueDate делит часы по дням и суммирует по неделям', () => {
-    // сб 17 .. вт 20: сб, вс — неделя 12.10; пн, вт — неделя 19.10; 4 дня по 1 ч
+    // Sat 17 .. Tue 20: Sat, Sun — week of 12.10; Mon, Tue — week of 19.10; 4 days of 1 h
     const g = compute({
       ...base,
       tasks: [t('a', '2026-10-20', '2026-10-17')],
@@ -130,7 +130,7 @@ describe('pt3: страница', () => {
   });
 
   it('pt3: перегрузка подсвечена, клик открывает список, ёмкость правится админом', async () => {
-    // 25 ч + 20 ч = 45 > 40 в текущей неделе страницы — подставим даты недели «сегодня»
+    // 25 h + 20 h = 45 > 40 in the page's current week — substitute the dates of the "today" week
     const st = (d as unknown as { __data: { value: any } }).__data; // eslint-disable-line @typescript-eslint/no-explicit-any
     const due = new Date().toISOString().slice(0, 10);
     for (const x of st.value.tasks) x.dueDate = due;

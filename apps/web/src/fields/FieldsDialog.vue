@@ -7,7 +7,7 @@ import { mutate, newId, rankBetween } from '../sync';
 import { Button, Dialog, Input, Select } from '../ui';
 import { useFieldDefs } from './index';
 
-// inline — без окна, разделом настроек проекта
+// inline — without a window, as a section of the project settings
 const props = defineProps<{ projectId: string; inline?: boolean }>();
 const open = defineModel<boolean>('open', { default: false });
 const { t } = useI18n();
@@ -40,7 +40,7 @@ function move(i: number, dir: -1 | 1) {
   const l = defs.value ?? [];
   const j = i + dir;
   if (j < 0 || j >= l.length) return;
-  // между соседями по ту сторону, куда двигаем
+  // between the neighbours on the side we are moving to
   const rank =
     dir < 0
       ? rankBetween(l[j - 1]?.rank ?? null, l[j].rank)

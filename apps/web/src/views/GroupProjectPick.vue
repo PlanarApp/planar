@@ -6,7 +6,7 @@ import { useSpaces } from '../tasks';
 import { groupLevels } from '../layout/groups';
 import type { GroupScope } from '../modules/types';
 
-// отчёт по проекту в группе: у Проекта — он сам, выше — выбор проекта группы (слот получает projectId)
+// project report in a group: for a Project — itself, above — the group's project picker (the slot gets projectId)
 const props = defineProps<{ scope: GroupScope }>();
 const { t } = useI18n();
 const spaces = useSpaces();

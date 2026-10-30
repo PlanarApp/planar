@@ -94,7 +94,7 @@ describe('pf1: мутаторы', () => {
       nd: '2026-03-12',
       created_by: w.admin.userId,
     });
-    // другой id для той же задачи — обновляется существующее
+    // another id for the same task — the existing one is updated
     const again = await set(t, { kind: 'after_done', every: 3 });
     expect(again.r).toMatchObject({ ok: true });
     const all = await raw('select * from recurring_rules where task_id = $1', [t]);
@@ -142,7 +142,7 @@ describe('pf1: мутаторы', () => {
     ).toMatchObject({ ok: false });
     await w.admin.ok('recurring.remove', { taskId: t });
     expect(await rule(t)).toBeUndefined();
-    await w.admin.ok('recurring.remove', { taskId: t }); // нет правила — ничего
+    await w.admin.ok('recurring.remove', { taskId: t }); // no rule — nothing
   });
 });
 
@@ -181,8 +181,8 @@ describe('pf1: экземпляры', () => {
   it('pf1: tick ставит spawn с singletonKey; два tick и параллельный spawn — один экземпляр', async () => {
     expect(job('recurring.tick').cron).toBe('*/10 * * * *');
     const s = await sample();
-    const { id } = await set(s.t, { anchorDate: s.due }); // nextDate = завтра
-    // сдвигаем nextDate на «вчера» через advance от системы
+    const { id } = await set(s.t, { anchorDate: s.due }); // nextDate = tomorrow
+    // move nextDate back to "yesterday" via advance from the system
     await api.execute(
       sys,
       [{ name: 'recurring.advance', args: { id, taskId: s.t, nextDate: s.due } }],
@@ -195,13 +195,13 @@ describe('pf1: экземпляры', () => {
     await job('recurring.tick').handler({}, api);
     const mine = enq.filter((e) => e.data.ruleId === id);
     expect(mine).toHaveLength(2);
-    const per = plus(todayUtc(), 2); // span образца 2 дня: экземпляр создаётся заранее
+    const per = plus(todayUtc(), 2); // span of the 2-day sample: the instance is created in advance
     expect(mine[0]).toMatchObject({
       queue: 'recurring.spawn',
       key: `${id}:${per}`,
       data: { period: per, taskId: s.t },
     });
-    // воркеры: параллельно + повтор
+    // workers: in parallel + retry
     await Promise.all([1, 2, 3].map(() => job('recurring.spawn').handler(mine[0]!.data, api)));
     await job('recurring.spawn').handler(mine[1]!.data, api);
     const all = await instances(s.title);
@@ -230,7 +230,7 @@ describe('pf1: экземпляры', () => {
       priority: 3,
       fields: { [s.f]: 'v' },
     });
-    expect(n!.status_id).toBe(w.statusIds[1]); // первый todo
+    expect(n!.status_id).toBe(w.statusIds[1]); // first todo
     const as = await raw('select user_id from task_assignees where task_id = $1', [n!.id]);
     expect(as.map((x) => x.user_id).sort()).toEqual([w.admin.userId, w.member.userId].sort());
     expect(await raw('select label_id from task_labels where task_id = $1', [n!.id])).toEqual([
@@ -259,7 +259,7 @@ describe('pf1: экземпляры', () => {
     await job('recurring.spawn').handler({ ruleId: id, period: s.due, taskId: s.t }, api);
     await job('recurring.spawn').handler({ ruleId: id, period: plus(s.due, 1), taskId: s.t }, api);
     expect(await instances(s.title)).toHaveLength(2);
-    await job('recurring.spawn').handler({ ruleId: uuidv7(), period: s.due }, api); // правила нет
+    await job('recurring.spawn').handler({ ruleId: uuidv7(), period: s.due }, api); // no rule
   });
 
   it('pf1: исполнитель, вышедший из пространства, и без дат образца — только dueDate', async () => {

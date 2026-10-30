@@ -3,7 +3,7 @@ import pg from 'pg';
 import type { Db } from '../src/db/index.js';
 import * as schema from '../src/db/schema.js';
 
-/** Пул теста: небольшой, с запасом на таймаут подключения под нагрузкой хоста. */
+/** Test pool: small, with headroom for connection timeouts under host load. */
 export const createTestDb = (url: string): Db =>
   drizzle({
     client: new pg.Pool({ connectionString: url, max: 4, connectionTimeoutMillis: 20_000 }),
@@ -11,7 +11,7 @@ export const createTestDb = (url: string): Db =>
     casing: 'snake_case',
   });
 
-/** Удаляет базу with (force) (рвёт соединения сам) под advisory-локом; один проход, DROP ≤ 60 с, тест wk13 даёт 80 с (вызывает только wk13; afterAll файлов базы не роняет). Не вышло — добьёт teardown. */
+/** Drops the with (force) database (it breaks connections itself) under an advisory lock; one pass, DROP ≤ 60 s, test wk13 gives 80 s (calls only wk13; afterAll does not drop the file's database). If it fails, teardown will finish it. */
 export async function dropDb(admin: pg.Client, name: string) {
   for (let attempt = 0; attempt < 1; attempt++) {
     try {
@@ -24,7 +24,7 @@ export async function dropDb(admin: pg.Client, name: string) {
       }
       return;
     } catch {
-      /* таймаут под нагрузкой: повтор; не вышло — добьёт teardown/страховка global-setup */
+      /* timeout under load: retry; if it fails, teardown/global-setup safety net finishes it */
     }
   }
 }
@@ -32,25 +32,25 @@ export async function dropDb(admin: pg.Client, name: string) {
 let fileDbUrl: string | undefined;
 const pools: Db[] = [];
 
-/** Вызывает file-db.ts: база текущего файла тестов. */
+/** Calls file-db.ts: the database of the current test file. */
 export const setFileDbUrl = (url: string) => {
   fileDbUrl = url;
 };
 
-/** URL базы текущего файла тестов (копия шаблона, см. file-db.ts). */
+/** URL of the current test file's database (a copy of the template, see file-db.ts). */
 export const testDbUrl = () => {
   if (!fileDbUrl) throw new Error('База файла не создана: нет setupFiles file-db.ts');
   return fileDbUrl;
 };
 
-/** Пул к базе файла; закрывается сам в afterAll (повторный end() безопасен). */
+/** Pool to the file's database; closes itself in afterAll (a repeated end() is safe). */
 export const testDb = (): Db => {
   const db = createTestDb(testDbUrl());
   pools.push(db);
   return db;
 };
 
-/** Закрывает пулы, но не ждёт дольше 2 с: невозвращённый клиент не должен вешать хук (drop with force его оборвёт). */
+/** Closes pools, but waits no longer than 2 s: an unreturned client must not hang the hook (drop with force will break it). */
 export const closePools = () =>
   Promise.race([
     Promise.all(pools.map((d) => (d.$client.ended ? undefined : d.$client.end()))).catch(() => {}),

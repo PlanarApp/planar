@@ -235,7 +235,7 @@ describe('pf2: templates.createTask', () => {
   });
 });
 
-// --- memory-tx: те же мутаторы дают те же строки, что сервер
+// --- memory-tx: the same mutators give the same rows as the server
 class ModTx implements Tx {
   inner = new MemoryTx();
   mod = new Map<string, Map<string, Record<string, unknown>>>();

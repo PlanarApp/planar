@@ -19,14 +19,13 @@ test.beforeAll(async () => {
 });
 test.afterEach(() => setModules(admin, MODULES));
 
-// модуль включён — у группы есть его таб («Чаты», «Документы»); вход ведёт на экран Воркспейса
-const branch = (p: Page, name: string) =>
-  p.getByTestId('group-tabs').getByRole('link', { name });
+// module enabled — the group has its tab ("Chats", "Documents"); entry leads to the Workspace screen
+const branch = (p: Page, name: string) => p.getByTestId('group-tabs').getByRole('link', { name });
 const chatNav = (p: Page) => branch(p, 'Чаты');
 const docsNav = (p: Page) => branch(p, 'Документы');
-// goto по url модуля при холодной загрузке показывает заглушку «Модуль» (см. fixme ниже): переходим как SPA
+// goto by module url on a cold load shows the 'Module' stub (see fixme below): we navigate as SPA
 const spa = async (p: Page, url: string) => {
-  await expect(chatNav(p)).toBeVisible(); // маршруты модуля добавляются после загрузки реплики
+  await expect(chatNav(p)).toBeVisible(); // module routes are added after the replica loads
   await p.evaluate((u) => {
     history.pushState({}, '', u);
     dispatchEvent(new PopStateEvent('popstate'));
@@ -54,7 +53,7 @@ test('collab: сообщение с упоминанием доходит до b
   await box.press('Enter');
   await expect(feed.getByText(text)).toBeVisible({ timeout: 2000 });
 
-  // push (Web Push) покрыт api-тестами CL-1b; здесь — строка уведомления
+  // push (Web Push) is covered by api tests CL-1b; here — the notification line
   await bob.goto('/inbox');
   const item = bob.getByTestId('inbox-item').filter({ hasText: text });
   await expect(item).toContainText('упомянул(а) вас в чате');
@@ -98,7 +97,7 @@ test('collab: личный диалог невиден третьему (UI, boo
   expect(await status(bob, `/files/${sha}`)).toBe(200);
   expect(await status(bob, `/api/chat/channels/${id}/messages`)).toBe(200);
 
-  // WS: «печатает» по диалогу получает bob, carol — нет
+  // WS: 'typing' in the dialog is received by bob, not by carol
   const [wb, wc, wa] = await Promise.all([bob.ws(0), c.ws(0), alice.ws(0)]);
   wa.sock.send(JSON.stringify({ t: 'typing', entity: 'chatChannels', id }));
   await expect
@@ -144,7 +143,7 @@ test('collab: документ создаётся в дереве, связыв�
   const title = uniq('Страница');
   const word = `слово${uuidv7().slice(-10)}`;
 
-  // страница уровня пространства — из таба «Документы» группы
+  // space-level page — from the 'Documents' tab of the group
   await page.goto(`/s/${f.spaceId}/docs`);
   await page
     .getByTestId('group-docs')
@@ -223,7 +222,7 @@ test('collab: реплика, открытая до включения моду�
 test('collab: холодная загрузка /m/chat/c/<id> открывает канал, а не заглушку «Модуль»', async ({
   browser,
 }) => {
-  // дефект: маршруты модулей добавляются после загрузки реплики, роутер уже разрешил url в заглушку
+  // defect: module routes are added after the replica loads, the router has already resolved the url to a stub
   const f = await fixture([uniq('Deep')]);
   const ch = await channel(f.admin, f, uniq('канал'));
   const page = await loginAs(browser, 'alice');

@@ -2,7 +2,7 @@ import { index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'dri
 
 const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 
-// серверные таблицы (не синхронизируются)
+// server tables (not synced)
 export const gitlabConfig = pgTable('gitlab_config', {
   id: text().primaryKey(),
   baseUrl: text().notNull(),
@@ -24,7 +24,7 @@ export const gitlabProjects = pgTable('gitlab_projects', {
   createdAt: ts().notNull().defaultNow(),
 });
 
-// сущности синхронизации
+// sync entities
 export const gitlabMrs = pgTable(
   'gitlab_mrs',
   {

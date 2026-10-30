@@ -28,7 +28,7 @@ export const useTaskLinks = (taskId: MaybeRefOrGetter<string>) =>
 
 const EMPTY: ReadonlySet<string> = new Set();
 
-/** id задач проекта, заблокированных незавершённой задачей */
+/** ids of project tasks blocked by an unfinished task */
 export const useBlockedIds = (projectId: MaybeRefOrGetter<string>) => {
   const r = useLive(projectId, async (pid): Promise<ReadonlySet<string>> => {
     const tasks = db.table<Row<'tasks'>>('tasks');

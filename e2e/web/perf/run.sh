@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Замер бюджетов §7 на прод-сборке web (vite preview) против dev-стека api/postgres.
+# Measurement of §7 budgets on the prod build of web (vite preview) against the dev stack api/postgres.
 set -uo pipefail
 source "$(dirname "$0")/stack.sh"
 trap perf_down EXIT

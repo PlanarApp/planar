@@ -25,7 +25,7 @@ describe('комментарии: треды, назначение, заверш
       body: doc('ответ'),
       parentId: root,
     });
-    // ответ на ответ, назначение ответа и гостя — invalid_args
+    // reply to a reply, assigning a reply, and assigning a guest — invalid_args
     for (const a of [
       { parentId: reply },
       { parentId: root, assigneeId: w.member.userId },
@@ -35,7 +35,7 @@ describe('комментарии: треды, назначение, заверш
         await w.member.push('comment.create', { id: uuidv7(), taskId: t.id, body: doc('x'), ...a }),
       ).toMatchObject({ code: 'invalid_args' });
 
-    // завершить может исполнитель/автор/admin, гость — нет; переназначение снова открывает
+    // assignee/author/admin can resolve, guest cannot; reassignment reopens it
     expect(await w.guest.push('comment.resolve', { id: root, resolved: true })).toMatchObject({
       code: 'forbidden',
     });
@@ -49,9 +49,9 @@ describe('комментарии: треды, назначение, заверш
       code: 'invalid_args',
     });
 
-    // исполнителю — уведомление comment_assigned
+    // assignee gets a comment_assigned notification
     const notes = (await w.member.bootstrap()).data.notifications as R[];
-    expect(notes.some((n) => n.kind === 'comment_assigned' && n.commentId === root)).toBe(false); // сам себе — нет
+    expect(notes.some((n) => n.kind === 'comment_assigned' && n.commentId === root)).toBe(false); // not to oneself
     const adminNotes = (await w.admin.bootstrap()).data.notifications as R[];
     expect(adminNotes.some((n) => n.kind === 'comment_assigned' && n.commentId === root)).toBe(
       true,

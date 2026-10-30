@@ -26,7 +26,7 @@ const post = (remoteAddress: string, xff: string) =>
       remoteAddress,
       headers: { 'x-forwarded-for': xff },
     });
-// 5 отправок проходят, 6-я — 429
+// 5 submissions pass, the 6th — 429
 const burst = async (remote: string, xff: string) => {
   for (let i = 0; i < 5; i++) expect((await post(remote, xff)).statusCode).toBe(201);
   return (await post(remote, xff)).statusCode;
@@ -72,7 +72,7 @@ describe('TRUST_PROXY: публичные формы', () => {
     const a = `8.${rnd()}.${rnd()}.1`;
     const b = `8.${rnd()}.${rnd()}.2`;
     expect(await burst('172.30.0.2', a)).toBe(429);
-    expect((await post('172.30.0.2', b)).statusCode).toBe(201); // другой клиент не делит лимит
+    expect((await post('172.30.0.2', b)).statusCode).toBe(201); // another client does not share the limit
     expect((await post('172.30.0.2', a)).statusCode).toBe(429);
   });
 

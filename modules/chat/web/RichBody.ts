@@ -8,7 +8,7 @@ interface N {
   content?: N[];
 }
 const SAFE_URL = /^(https?:|mailto:)/i;
-// свои адреса: путь от корня, не //host и не /\host (браузер читает его как //host)
+// own addresses: path from root, not //host and not /\host (the browser reads it as //host)
 const INTERNAL = /^\/(?![/\\])/;
 const TAGS: Record<string, string> = {
   paragraph: 'p',
@@ -56,7 +56,7 @@ function node(n: N, me: string, i: number): VNode | string {
   }
 }
 
-/** TipTap JSON → VNode без v-html. */
+/** TipTap JSON → VNode without v-html. */
 export default function RichBody(props: { body: unknown; me: string }) {
   const doc = props.body as N;
   return h(

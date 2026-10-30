@@ -1,14 +1,14 @@
-# Общие функции backup.sh / restore.sh (source). Формат: docs/contracts/ops.md §C-ops-backup v1.
-# shortcut: manifest разбирается grep/sed без jq — строки db/files в manifest.json пишет только backup.sh.
+# Shared functions of backup.sh / restore.sh (sourced). Format: docs/contracts/ops.md §C-ops-backup v1.
+# shortcut: manifest is parsed with grep/sed without jq — only backup.sh writes the db/files lines to manifest.json, upgrade to jq if the format grows
 
 dc() { docker compose "$@"; }
 die() { echo "planar-backup: $*" >&2; exit 1; }
-# значение из строки манифеста: mval <файл> <ключ-блока> <поле>
+# value from a manifest line: mval <file> <block-key> <field>
 mval() { grep "\"$2\"" "$1" | sed -n "s/.*\"$3\": *\"\{0,1\}\([^\",}]*\).*/\1/p" | head -1; }
 mtop() { sed -n "s/^ *\"$2\": *\"\{0,1\}\([^\",}]*\).*/\1/p" "$1" | head -1; }
 pgq() { dc exec -T postgres psql -U postgres -d planar -Atc "$1"; }
 
-# Целостность распакованного архива в каталоге $1; $2=deep — имя файла = sha256 содержимого.
+# Integrity of the unpacked archive in directory $1; $2=deep — file name = sha256 of the content.
 verify_dir() {
   local d="$1" deep="${2:-}" m="$1/manifest.json" f got want n
   [ -f "$m" ] || die "нет manifest.json"
@@ -33,7 +33,7 @@ verify_dir() {
   fi
 }
 
-# Целостность файла-архива $1 (распаковка во временный каталог).
+# Integrity of the archive file $1 (unpacked into a temporary directory).
 verify_archive() {
   local t; t="$(mktemp -d)"
   tar -xf "$1" -C "$t" || { rm -rf "$t"; die "архив не читается: $1"; }
@@ -41,7 +41,7 @@ verify_archive() {
   rm -rf "$t"
 }
 
-# Ждёт готовности api изнутри контейнера (не через Caddy: с PLANAR_DOMAIN порт 80 даёт редирект). wait_ready <таймаут_с>: 0 готов, 1 нет.
+# Waits for api readiness from inside the container (not through Caddy: with PLANAR_DOMAIN port 80 gives a redirect). wait_ready <timeout_s>: 0 ready, 1 not ready.
 wait_ready() {
   local end=$((SECONDS + ${1:?wait_ready <таймаут_с>}))
   while [ $SECONDS -lt $end ]; do

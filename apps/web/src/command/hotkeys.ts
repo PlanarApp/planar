@@ -1,6 +1,6 @@
 import { getCurrentScope, onScopeDispose, reactive } from 'vue';
 
-/** Общее состояние оверлеев: палитра (с начальным запросом) и шпаргалка. */
+/** Shared overlay state: palette (with initial query) and cheat sheet. */
 export const ui = reactive({
   palette: false,
   query: '',
@@ -9,7 +9,7 @@ export const ui = reactive({
   createProject: '',
 });
 
-/** Диалог быстрого создания задачи; projectId — проект по умолчанию. */
+/** Quick task creation dialog; projectId — default project. */
 export const quickCreate = (projectId = ''): void => {
   ui.createProject = projectId;
   ui.create = true;
@@ -30,7 +30,7 @@ let attached = false;
 const editable = (t: EventTarget | null) =>
   t instanceof HTMLElement && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
 
-/** Буквы — по физической клавише (KeyC → 'c'), чтобы работало на любой раскладке; '?' — Shift+Slash. */
+/** Letters — by physical key (KeyC → 'c'), so it works on any layout; '?' — Shift+Slash. */
 const tokenOf = (e: KeyboardEvent) => {
   const m = /^Key([A-Z])$/.exec(e.code ?? '');
   if (m) return m[1].toLowerCase();
@@ -40,7 +40,7 @@ const tokenOf = (e: KeyboardEvent) => {
 function onKey(e: KeyboardEvent) {
   const mod = e.metaKey || e.ctrlKey;
   const key = tokenOf(e);
-  // Cmd/Ctrl+K работает и в полях ввода
+  // Cmd/Ctrl+K also works in input fields
   const token = mod && key === 'k' ? 'mod+k' : key;
   if (token !== 'mod+k' && (mod || e.altKey || editable(e.target))) return;
   const now = Date.now();
@@ -63,7 +63,7 @@ function onKey(e: KeyboardEvent) {
   if (!run(buf)) buf = [];
 }
 
-/** combo: 'mod+k', '?', 'c', последовательность через пробел — 'g i'. */
+/** combo: 'mod+k', '?', 'c', a space-separated sequence — 'g i'. */
 export function useHotkey(
   combo: string,
   handler: (e: KeyboardEvent) => void,

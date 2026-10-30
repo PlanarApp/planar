@@ -10,11 +10,11 @@ import { useSpaces } from '../tasks';
 import { groupUrl } from '../layout/groups';
 import type { GroupScope } from '../modules/types';
 
-// таб «Пространства» / «Проекты» группы: вложенные группы списком со счётчиками
+// "Spaces" / "Projects" tab of the group: nested groups as a list with counters
 const props = defineProps<{ scope: GroupScope; kind: 'spaces' | 'projects' }>();
 const { t } = useI18n();
 const spaces = useSpaces();
-// открытые задачи по проектам и участники по пространствам — одним проходом по таблицам
+// open tasks per project and members per space — in one pass over the tables
 const stats = useQuery(async () => {
   const [tasks, statuses, members] = await Promise.all([
     db.table<Row<'tasks'>>('tasks').toArray(),
@@ -61,7 +61,7 @@ const rows = computed(() =>
         })),
       ),
 );
-// создание: то же, что «+» в боковой панели (пространство; проект — в выбранном пространстве)
+// creation: same as "+" in the side panel (space; project — in the selected space)
 const act = useSidebarActions();
 const name = ref('');
 const where = ref<string | null>(null);

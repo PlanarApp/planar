@@ -1,7 +1,7 @@
 import { i18n, mutate } from '@planar/web/modules';
 import type { Action, Run, Trigger } from '../shared/index.js';
 
-/** Мутаторы модуля регистрирует клиент синхронизации (session.ts). */
+/** Module mutators are registered by the sync client (session.ts). */
 export const run = (name: string, args: Record<string, unknown>): Promise<void> =>
   mutate(name, args);
 
@@ -11,13 +11,13 @@ export interface HookSub {
   description: string | null;
 }
 
-/** Подписки webhooks (только админ; иначе пусто). */
+/** Webhook subscriptions (admin only; otherwise empty). */
 export async function fetchSubscriptions(fetcher = globalThis.fetch): Promise<HookSub[]> {
   const r = await fetcher('/api/webhooks/subscriptions', { credentials: 'same-origin' });
   return r.ok ? ((await r.json()) as { data: HookSub[] }).data : [];
 }
 
-/** Журнал запусков правила (новые сверху). */
+/** Run log of the rule (newest first). */
 export async function fetchRuns(ruleId: string, fetcher = globalThis.fetch): Promise<Run[]> {
   const r = await fetcher(`/api/automations/rules/${ruleId}/runs?limit=50`, {
     credentials: 'include',
@@ -206,5 +206,5 @@ const TEXT = {
   },
 };
 export type Text = (typeof TEXT)['ru'];
-/** Тексты модуля на текущем языке интерфейса. */
+/** Module texts in the current UI language. */
 export const text = (): Text => TEXT[i18n.global.locale.value as 'ru' | 'en'] ?? TEXT.ru;

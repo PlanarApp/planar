@@ -33,11 +33,11 @@ export const webhooksDeliveries = pgTable(
       .notNull()
       .references(() => webhooksSubscriptions.id, { onDelete: 'cascade' }),
     event: text().notNull(),
-    // data тела; тело {id, event, createdAt, data} собирается при каждой попытке
+    // the data of the body; the body {id, event, createdAt, data} is assembled on every attempt
     payload: jsonb().$type<Record<string, unknown>>().notNull(),
     status: text().notNull(),
     attempts: integer().notNull().default(0),
-    // момент следующей попытки (при попытке — аренда); null у завершённых
+    // the moment of the next attempt (when attempted — the lease); null for completed ones
     nextAttemptAt: ts(),
     lastStatus: integer(),
     lastError: text(),

@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { flushPromises, mount as vmount } from '@vue/test-utils';
 import { Editor } from '@tiptap/vue-3';
 
-// Tooltip требует TooltipProvider (в приложении он в App.vue) — в тестах пропускаем обёртку
+// Tooltip requires a TooltipProvider (the app wraps it in App.vue) — tests skip the wrapper
 const mount = ((c: never, o: object = {}) =>
   vmount(c, {
     ...o,
@@ -14,7 +14,7 @@ import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { uuidv7, domainMutators } from '@planar/shared';
 import { db, mutate, i18n } from '@planar/web/modules';
-// внутренности синка нужны только тесту, в SDK их нет
+// sync internals are needed only by the test, the SDK does not have them
 import { moduleMutators, registerMutators, startSync, stopSync } from '../../../apps/web/src/sync';
 import { web } from './index';
 import { slashItems } from './slash';
@@ -32,7 +32,7 @@ vi.mock('@planar/web/modules', async (orig) => {
   return { ...(await orig<object>()), useSession: () => ref({ id: (globalThis as Record<string, unknown>).__ME }) };
 });
 (globalThis as unknown as { __ME: string }).__ME = ME;
-// перехват onDenied: тест имитирует исчерпание попыток подключения
+// intercepting onDenied: the test simulates exhausting connection attempts
 vi.mock('@planar/editor/collab', async (orig) => {
   const m = await orig<typeof import('@planar/editor/collab')>();
   return {
@@ -153,7 +153,7 @@ describe('docs web: дерево в боковой панели', () => {
     const moved = await db.table('docsPages').get(c);
     expect(moved).toMatchObject({ parentId: a });
     expect(moved.rank > 'a1').toBe(true);
-    // цикл отклоняется и клиентом
+    // a cycle is rejected by the client too
     expect(moveArgs(all, a, b, 'into')).toBeNull();
   });
 });

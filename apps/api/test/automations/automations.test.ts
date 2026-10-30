@@ -25,7 +25,7 @@ import {
 const db = newDb();
 const queue = new PushQueue(db, { boss: false, databaseUrl: dbUrl });
 let w: World;
-let P: string; // проект теста: правила соседних тестов не мешают
+let P: string; // test project: neighbouring tests' rules do not interfere
 let api: JobApi;
 let app: Awaited<ReturnType<typeof createApp>>;
 const [BACKLOG, TODO, PROG, DONE] = [0, 1, 2, 3];
@@ -47,7 +47,7 @@ beforeAll(async () => {
     .values({ id: 'enabled_modules', value: ['automations'] })
     .onConflictDoUpdate({ target: schema.settings.id, set: { value: ['automations'] } });
   w = await world(db);
-  // мутации идут через PushService с очередью: enqueue хуков попадает в jobs
+  // mutations go through PushService with a queue: hook enqueue lands in jobs
   const svc = { ...services(db), push: new PushService(db, queue) };
   for (const c of ['admin', 'member', 'guest', 'outsider'] as const)
     w[c] = new TestClient(svc, w[c].userId);
@@ -71,7 +71,7 @@ afterAll(async () => {
 const raw = (text: string) => db.$client.query(text).then((r) => r.rows);
 const runsOf = (ruleId: string) =>
   raw(`select * from automations_runs where rule_id = '${ruleId}' order by created_at, id`);
-/** Выполняет поставленные automations.run (в том числе порождённые) по порядку. */
+/** Runs the queued automations.run jobs (including spawned ones) in order. */
 async function drain() {
   for (let i = 0; i < 50; i++) {
     const j = jobs.findIndex((x) => x.queue === 'automations.run');
@@ -227,7 +227,7 @@ describe('wk3: триггеры', () => {
     expect(queued(mine.id)).toHaveLength(1);
     await w.admin.ok('task.unassign', { taskId: t, userId: w.member.userId });
     expect(queued(any.id)).toHaveLength(3);
-    expect(queued(mine.id)).toHaveLength(1); // снятие не считается
+    expect(queued(mine.id)).toHaveLength(1); // clearing is not counted
     jobs.length = 0;
   });
 
@@ -252,7 +252,7 @@ describe('wk3: триггеры', () => {
     await w.admin.ok('task.setField', { taskId: t, fieldId, value: 5 });
     expect(queued(fl.id)).toHaveLength(1);
     expect(queued(pr.id)).toHaveLength(1);
-    await w.admin.ok('task.update', { id: t, priority: 3 }); // то же значение
+    await w.admin.ok('task.update', { id: t, priority: 3 }); // same value
     expect(queued(pr.id)).toHaveLength(1);
     jobs.length = 0;
   });
@@ -283,7 +283,7 @@ describe('wk3: триггеры', () => {
     };
     const soon = await mk({ dueDate: '2026-11-10' });
     const done = await mk({ dueDate: '2026-11-10', statusId: w.statusIds[DONE] });
-    await mk({}); // без срока
+    await mk({}); // no due date
     jobs.length = 0;
     const now = '2026-11-08T12:00:00.000Z';
     await handler('automations.due').handler({ now }, api);
@@ -292,10 +292,10 @@ describe('wk3: триггеры', () => {
     expect(queued(r3.id)[0]!.data.depth).toBe(1);
     expect(queued(r3.id).map((j) => j.data.taskId)).not.toContain(done);
     await handler('automations.due').handler({ now }, api);
-    expect(queued(r3.id)).toHaveLength(1); // повтор — не ставит
+    expect(queued(r3.id)).toHaveLength(1); // a repeat — does not enqueue
     await handler('automations.due').handler({ now: '2026-11-09T12:00:00.000Z' }, api);
     expect(queued(r1.id)).toHaveLength(1);
-    // новый срок — снова один раз
+    // a new due date — once again
     await w.admin.ok('task.update', { id: soon, dueDate: '2026-11-20' });
     await handler('automations.due').handler({ now: '2026-11-18T12:00:00.000Z' }, api);
     expect(queued(r3.id)).toHaveLength(2);
@@ -419,7 +419,7 @@ describe('wk3: условия и действия', () => {
       startDate: '2026-01-02',
       fields: { [fieldId]: 'привет' },
     });
-    // «сегодня» считается в поясе инстанса (UTC по умолчанию); допускаем границу суток
+    // "today" is counted in the instance time zone (UTC by default); we allow the day boundary
     expect([d.toISOString().slice(0, 10)]).toContain(x.dueDate);
     const r2 = await rule({ type: 'comment.added' }, [
       { type: 'set_field', field: 'dueDate', value: null },
@@ -458,7 +458,7 @@ describe('wk3: условия и действия', () => {
       projectId: p2,
       statusId: w.statusIds[TODO],
     });
-    // подзадача сама — task.created: правило ставится повторно, глубина 2
+    // the subtask itself — task.created: the rule is applied again, depth 2
     expect(queued(sub.id).concat(await runsOf(sub.id)).length).toBeGreaterThan(0);
     jobs.length = 0;
   });
@@ -474,7 +474,7 @@ describe('wk3: выполнение и защита', () => {
     await w.admin.ok('task.update', { id: t, statusId: w.statusIds[PROG] });
     await drain();
     expect((await row(t)).statusId).toBe(w.statusIds[DONE]);
-    expect(statuses(await runsOf(r.id))).toEqual(['ok']); // второго запуска нет
+    expect(statuses(await runsOf(r.id))).toEqual(['ok']); // no second run
     expect(jobs).toHaveLength(0);
   });
 
@@ -499,7 +499,7 @@ describe('wk3: выполнение и защита', () => {
     expect(await runsOf(r1.id)).toMatchObject([{ depth: 1, status: 'ok' }]);
     expect(await runsOf(r2.id)).toMatchObject([{ depth: 2, status: 'ok' }]);
     expect(await runsOf(r3.id)).toMatchObject([{ depth: 3, status: 'ok' }]);
-    expect(await runsOf(r4.id)).toHaveLength(0); // был бы depth 4
+    expect(await runsOf(r4.id)).toHaveLength(0); // would be depth 4
     expect((await row(a.id)).dueDate).toBeNull();
   });
 
@@ -514,7 +514,7 @@ describe('wk3: выполнение и защита', () => {
     expect(run).toMatchObject({ status: 'error', task_id: t, depth: 1 });
     expect(run.error).toBeTruthy();
     expect(await raw(`select 1 from task_assignees where task_id = '${t}'`)).toHaveLength(0);
-    expect(await row(t)).toMatchObject({ statusId: w.statusIds[TODO] }); // исходная мутация цела
+    expect(await row(t)).toMatchObject({ statusId: w.statusIds[TODO] }); // the original mutation is intact
   });
 
   it('wk3: выключенное или удалённое правило, удалённая задача — skipped', async () => {
@@ -526,7 +526,7 @@ describe('wk3: выполнение и защита', () => {
     await w.admin.ok('automations.delete', { id: gone.id });
     await w.admin.ok('task.delete', { id: t2 });
     await drain();
-    expect(statuses(await runsOf(r.id))).toEqual(['skipped', 'skipped']); // t и удалённая t2
+    expect(statuses(await runsOf(r.id))).toEqual(['skipped', 'skipped']); // t and the deleted t2
     expect(statuses(await runsOf(gone.id))).toEqual(['skipped', 'skipped']);
     const r3 = await rule({ type: 'task.created' });
     const t3 = await task();

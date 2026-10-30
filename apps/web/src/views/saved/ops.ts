@@ -3,7 +3,7 @@ import { db, mutate, newId, rankBetween } from '../../sync';
 import type { Filter } from '../filter';
 import type { ViewOptions } from '../options';
 
-// реактивные прокси в аргументы мутации не годятся — клонируем в чистый JSON
+// reactive proxies don't suit mutation arguments — clone to plain JSON
 const plain = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
 export async function saveView(a: {

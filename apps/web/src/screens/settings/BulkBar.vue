@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button, ConfirmDialog } from '../../ui';
 
-// массовые действия над выбранными строками списка настроек; danger — с подтверждением
+// bulk actions on the selected rows of the settings list; danger — with confirmation
 export interface BulkAction {
   id: string;
   label: string;

@@ -31,7 +31,7 @@ const PING_MS = 10_000;
 const key = (j: Json | null) => JSON.stringify(j);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Hocuspocus на WS /collab: права на документ, хранение в ydocs, проекция в body/description (P3-collab, P3-ydoc). */
+/** Hocuspocus on WS /collab: document rights, storage in ydocs, projection into body/description (P3-collab, P3-ydoc). */
 @Injectable()
 export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
   private log = new Logger('collab');
@@ -42,11 +42,11 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
   private ping?: NodeJS.Timeout;
   private last = 0;
   private chain: Promise<void> = Promise.resolve();
-  /** Что проекция записала последним: её собственная запись не «внешняя», даже если в Y уже есть новые правки. */
+  /** What the projection wrote last: its own write is not "external", even if Y already has newer edits. */
   private projected = new Map<string, { lo: number; hi: number; key: string }[]>();
-  /** seq журнала на момент загрузки документа: более ранние записи уже учтены в Y.Doc. */
+  /** seq of the journal at document load: earlier records are already in Y.Doc. */
   private loadedAt = new Map<string, number>();
-  /** Последнее известное содержимое body/description в БД: запись других полей (title, icon…) — не внешняя правка. */
+  /** Last known body/description content in the DB: writes of other fields (title, icon…) are not external edits. */
   private seen = new Map<string, string>();
 
   constructor(
@@ -80,7 +80,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
   async onApplicationBootstrap() {
     this.server = this.host.httpAdapter.getHttpServer() as Server;
     this.server.on('upgrade', this.onUpgrade);
-    // БД недоступна — приложение всё равно стартует: стартовую точку возьмёт первое уведомление
+    // DB unavailable — the app still starts: the first notification takes the starting point
     this.last = await this.maxSeq().catch(() => -1);
     this.off = this.notifier.subscribe(
       () => (this.chain = this.chain.then(() => this.onChanges()).catch((e) => this.log.error(e))),
@@ -97,7 +97,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     this.server?.off('upgrade', this.onUpgrade);
     for (const ws of this.wss.clients) ws.terminate();
     this.hp.flushPendingStores();
-    // дожидаемся сохранений, пока пул БД ещё открыт
+    // wait for saves while the DB pool is still open
     const busy = () =>
       this.hp.documents.size > 0 ||
       this.hp.unloadingDocuments.size > 0 ||
@@ -142,7 +142,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     return Number(r.rows[0]!.seq);
   }
 
-  /** Права на документ; null — отказ. Только чтение: guest или архивная страница. */
+  /** Document rights; null — denied. Read-only: guest or archived page. */
   async access(userId: string, name: string): Promise<{ readOnly: boolean } | null> {
     const m = NAME.exec(name);
     if (!m) return null;
@@ -170,7 +170,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     return { readOnly: readOnly || role === 'guest' };
   }
 
-  /** Содержимое сущности (body / description); undefined — сущности нет. */
+  /** Entity content (body / description); undefined — entity does not exist. */
   private async current(name: string): Promise<{ json: Json | null } | undefined> {
     const [, kind, id] = NAME.exec(name)!;
     if (kind === 'docs') {
@@ -189,9 +189,9 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     if (row) return void Y.applyUpdate(doc, row.state);
     const cur = await this.current(name);
     if (!cur) throw new Error('not_found');
-    // тело нечитаемо схемой — исключение: лучше отказ, чем пустой документ поверх данных
+    // body unreadable by schema — throw: better to refuse than to put an empty document over data
     doc.transact(() => fill(doc, cur.json));
-    // база сохраняется сразу: два клиента, строившие Y.Doc каждый сам, при слиянии удвоили бы текст
+    // the base is saved right away: two clients each building Y.Doc on their own would double the text on merge
     await this.db
       .insert(ydocs)
       .values({ docId: name, state: Buffer.from(Y.encodeStateAsUpdate(doc)) })
@@ -211,7 +211,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     if (same(cur.json, next)) return;
     const [, kind, id] = NAME.exec(name)!;
     const docs = kind === 'docs';
-    // окно seq собственной проекции: её запись в журнале — не внешняя, даже если в Y уже есть новые правки
+    // seq window of our own projection: its journal record is not external, even if Y already has newer edits
     const win = { lo: await this.maxSeq(), hi: Infinity, key: key(next) };
     this.projected.set(name, [...(this.projected.get(name) ?? []), win]);
     try {
@@ -228,7 +228,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
       win.hi = await this.maxSeq();
       this.seen.set(name, key(next));
     } catch (e) {
-      // ydocs уже сохранён, следующее сохранение попробует снова
+      // ydocs already saved; the next save will retry
       this.projected.set(
         name,
         this.projected.get(name)!.filter((w) => w !== win),
@@ -237,7 +237,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     }
   }
 
-  /** Новые строки changes: внешняя запись body/description, удаления, выход участников. */
+  /** New changes rows: external body/description write, deletions, participant exits. */
   private async onChanges() {
     const max = await this.maxSeq();
     if (this.last < 0) this.last = max;
@@ -257,7 +257,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
       data: Json | null;
     }[]) {
       if (['spaceMembers', 'users', 'settings'].includes(c.entity)) {
-        // доступ мог пропасть: участник, деактивация, выключен модуль docs
+        // access may be gone: member, deactivation, docs module disabled
         recheck ||=
           c.entity === 'spaceMembers' ||
           (c.entity === 'settings' && c.id === 'enabled_modules') ||
@@ -282,13 +282,13 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     await this.db.delete(ydocs).where(eq(ydocs.docId, name));
   }
 
-  /** Запись body/description: равна проекции Y.Doc — ничего; иначе заменяем Y.Doc или удаляем ydocs. */
+  /** Body/description write: equal to the Y.Doc projection — nothing; otherwise replace Y.Doc or delete ydocs. */
   private async external(name: string, json: Json | null, seq: number) {
     const loaded = this.hp.documents.get(name);
     if (loaded) {
-      // своя проекция или запись, учтённая при загрузке, — не внешняя (иначе откатим набранное)
+      // our own projection or a write already counted at load is not external (otherwise we would roll back typed text)
       const k = key(normalizeSafe(json));
-      if (this.seen.get(name) === k) return; // body не менялся (запись title/icon…)
+      if (this.seen.get(name) === k) return; // body did not change (title/icon… write)
       this.seen.set(name, k);
       const ws = (this.projected.get(name) ?? []).filter((w) => w.hi >= seq);
       this.projected.set(name, ws);
@@ -305,13 +305,13 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     if (!same(json, toJson(y))) await this.db.delete(ydocs).where(eq(ydocs.docId, name));
   }
 
-  /** Закрывает соединения тех, у кого пропал доступ (удалён из пространства, деактивирован). */
+  /** Closes connections of those who lost access (removed from the workspace, deactivated). */
   private async recheck() {
     for (const doc of [...this.hp.documents.values()])
       for (const c of doc.getConnections()) {
         const u = (c.context as Ctx).userId;
         const a = await this.access(u, doc.name);
-        // понижение до guest: переподключение получит readOnly
+        // downgrade to guest: reconnect will get readOnly
         if (!a || (a.readOnly && !c.readOnly)) c.close({ code: 4403, reason: 'forbidden' });
       }
   }

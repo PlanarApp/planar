@@ -1,7 +1,7 @@
 import { useAuth } from './auth/useAuth';
 import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router';
 
-// без витрины: DevUiScreen подключается отдельно и только в dev
+// without the showcase: DevUiScreen is connected separately and only in dev
 const screens = import.meta.glob(['./screens/*Screen.vue', '!./screens/DevUiScreen.vue']);
 const screen = (name: string) => screens[`./screens/${name}Screen.vue`];
 
@@ -14,13 +14,13 @@ export const router = createRouter({
     { path: '/setup', name: 'setup', component: screen('Setup'), meta: { layout: 'none' } },
     { path: '/login', name: 'login', component: screen('Login'), meta: { layout: 'none' } },
     { path: '/profile', name: 'profile', component: screen('Profile') },
-    // Входящие переехали в «Моя работа › Активность» Воркспейса
+    // Inbox moved to Workspace "My work › Activity"
     { path: '/inbox', redirect: { path: '/w/work', query: { w: 'activity' } } },
     { path: '/my', name: 'my', component: screen('My') },
     { path: '/p/:projectId/v/:viewId', name: 'savedView', component: screen('Group') },
     { path: '/w/:tab?', name: 'workspace', component: screen('Group') },
     { path: '/s/:spaceId/:tab?', name: 'space', component: screen('Group') },
-    // :view — таб группы (docs, chats, …) или ключ вида Задач (list, board, …)
+    // :view — group tab (docs, chats, …) or Tasks view key (list, board, …)
     { path: '/p/:projectId/:view?', name: 'project', component: screen('Group') },
     { path: '/t/:key', name: 'task', component: screen('Task') },
     { path: '/settings/:section?', name: 'settings', component: screen('Settings') },
@@ -46,7 +46,7 @@ router.beforeEach(async (to) => {
     return (await setupNeeded()) ? '/setup' : { path: '/login', query: { redirect: to.fullPath } };
   }
   if (to.name === 'login' || to.name === 'setup') return '/';
-  // бывший таб «Входящие» группы — «Моя работа › Активность»
+  // former group tab "Inbox" — "My work › Activity"
   const seg = String((to.name === 'project' ? to.params.view : to.params.tab) ?? '');
   if (seg === 'inbox' && ['project', 'space', 'workspace'].includes(String(to.name)))
     return {
@@ -54,7 +54,7 @@ router.beforeEach(async (to) => {
       query: { ...to.query, w: 'activity' },
       replace: true,
     };
-  // бывшие виды проекта Спринт и Вехи живут в Отчётах группы
+  // former project views Sprint and Milestones live in group Reports
   if (to.name === 'project' && MOVED_VIEWS.includes(String(to.params.view)))
     return {
       path: `/p/${String(to.params.projectId)}/reports`,
@@ -62,8 +62,8 @@ router.beforeEach(async (to) => {
       replace: true,
     };
   if (to.name === 'module') {
-    // маршруты модуля добавляются лениво — дождаться и повторить навигацию.
-    // Настройки ещё не известны (холодный заход) — не держим переход: ModuleScreen покажет скелетон и сама повторит навигацию.
+    // module routes are added lazily — wait and repeat the navigation.
+    // Settings are not known yet (cold entry) — don't hold the transition: ModuleScreen shows a skeleton and repeats the navigation itself.
     const { ensureModule, modulesKnown } = await import('./modules/registry');
     if (
       modulesKnown() &&

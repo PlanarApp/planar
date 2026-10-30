@@ -17,7 +17,7 @@ const attachment = z.object({
   size: int.nonnegative(),
   width: int.optional(),
   height: int.optional(),
-  /** голосовое (audio/*): длительность записи */
+  /** voice message (audio/*): recording duration */
   durationMs: int.nonnegative().optional(),
 });
 
@@ -83,7 +83,7 @@ type Message = z.infer<typeof chatMessages>;
 type Reaction = z.infer<typeof chatReactions>;
 type Read = z.infer<typeof chatReads>;
 
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface ChatTx {
   get<T>(e: string, id: string): Promise<T | undefined>;
   put(e: string, row: unknown): Promise<void>;
@@ -108,7 +108,7 @@ async function channel(tx: Tx, id: string): Promise<Channel> {
   return c;
 }
 
-/** Кто видит канал: участники пространства или участники диалога. */
+/** Who sees the channel: space members or dialog members. */
 async function viewers(tx: Tx, c: Channel): Promise<Set<string>> {
   const rows = c.spaceId
     ? await tx.scan('spaceMembers', { index: 'spaceId', eq: c.spaceId })
@@ -116,7 +116,7 @@ async function viewers(tx: Tx, c: Channel): Promise<Set<string>> {
   return new Set(rows.map((r) => r.userId));
 }
 
-/** Канал, который видит ctx.userId, иначе forbidden. */
+/** The channel visible to ctx.userId, otherwise forbidden. */
 async function visible(tx: Tx, id: string, userId: string) {
   const c = await channel(tx, id);
   const v = await viewers(tx, c);
@@ -132,7 +132,7 @@ async function message(tx: Tx, id: string): Promise<Message> {
 
 const mentionsOf = (body: unknown, v: Set<string>) => extractMentions(body).filter((u) => v.has(u));
 
-/** Своя chatReads канала (на сервере scan видит все строки — фильтр по userId). */
+/** The channel's own chatReads (on the server scan sees all rows — filter by userId). */
 async function myRead(tx: Tx, channelId: string, userId: string): Promise<Read | undefined> {
   const rows = await ctx_(tx).scan<Read>('chatReads', { index: 'channelId', eq: channelId });
   return rows.find((r) => r.userId === userId);
@@ -202,8 +202,8 @@ const updateChannel = defineMutator({
   },
 });
 
-// удалить канал (создатель или admin пространства): сообщения и реакции; чужие отметки прочтения
-// остаются (строки self), без канала они ни на что не влияют
+// delete channel (creator or space admin): messages and reactions; others' read marks
+// remain (self rows); without the channel they affect nothing
 const deleteChannel = defineMutator({
   name: 'chat.channel.delete',
   args: z.object({ id: z.uuid() }),
@@ -217,7 +217,7 @@ const deleteChannel = defineMutator({
       throw new MutatorError('forbidden', 'только создатель или admin');
     const t = ctx_(tx);
     const msgs = await t.scan<Message>('chatMessages', { index: 'channelId', eq: c.id });
-    // ответы тредов — раньше корней (parentId ссылается на корень)
+    // thread replies — before roots (parentId refers to the root)
     for (const m of [...msgs.filter((x) => x.parentId), ...msgs.filter((x) => !x.parentId)]) {
       for (const r of await t.scan<Reaction>('chatReactions', { index: 'messageId', eq: m.id }))
         await t.del('chatReactions', r.id);
@@ -336,8 +336,8 @@ const send = defineMutator({
     attachments: z.array(attachment).max(10).optional(),
   }),
   async run(tx, a, ctx) {
-    // CL-2b: каждое обращение к IndexedDB ≈ 1 мс на клиенте — читаем канал и свою chatReads вместе,
-    // viewers на клиенте нужны только ради mentions (сервер пересчитывает и проверяет доступ сам)
+    // CL-2b: each IndexedDB access ≈ 1 ms on the client — read the channel and its own chatReads together,
+    // viewers on the client are needed only for mentions (the server recalculates and checks access itself)
     const [c, mine] = await Promise.all([
       channel(tx, a.channelId),
       myRead(tx, a.channelId, ctx.userId),
@@ -371,8 +371,8 @@ const send = defineMutator({
       createdAt: ctx.now,
       updatedAt: ctx.now,
     };
-    // записи по порядку и на клиенте: параллельные async-цепочки Dexie не держит в транзакции
-    // (PrematureCommitError «Transaction committed too early»); на сервере порядок задаёт порядок changes
+    // writes in order and on the client: Dexie does not hold parallel async chains in a transaction
+    // (PrematureCommitError "Transaction committed too early"); on the server the order is set by the order of changes
     const w = (p: () => Promise<void>) => p();
     await w(() => ctx_(tx).put('chatMessages', row));
     if (root)
@@ -384,7 +384,7 @@ const send = defineMutator({
         }),
       );
     else {
-      // put по уже прочитанной строке — без повторного get, который делает patch
+      // put on an already read row — without the repeated get that patch does
       await w(() =>
         ctx_(tx).put('chatChannels', {
           ...c,
@@ -456,7 +456,7 @@ const toggle = defineMutator({
     id: z.uuid(),
     messageId: z.uuid(),
     emoji: z.string().min(1).max(32),
-    // своя реакция, видимая клиенту (может быть только в истории REST, не в реплике) — снять её
+    // own reaction visible to the client (may exist only in REST history, not in the replica) — remove it
     removeId: z.uuid().optional(),
   }),
   async run(tx, a, ctx) {

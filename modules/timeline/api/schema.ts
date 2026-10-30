@@ -1,2 +1,2 @@
-// Своих таблиц нет.
+// no tables of its own.
 export {};

@@ -80,11 +80,11 @@ function toggle(key: string) {
   try {
     localStorage.setItem(storeKey(), JSON.stringify([...s]));
   } catch {
-    // квота или приватный режим — свёрнутость живёт до перезагрузки
+    // quota or private mode — the collapsed state lives until reload
   }
 }
 
-// маска у края горизонтальной прокрутки колонок (как у полосы вкладок)
+// mask at the edge of the horizontal column scroll (as on the tab strip)
 const scroller = ref<HTMLElement>();
 const fade = ref({ l: false, r: false });
 const measure = () => {
@@ -114,7 +114,7 @@ watch(scroller, (el) => {
 watch(columns, () => void nextTick(measure));
 onBeforeUnmount(() => ro?.disconnect());
 
-// порядок статусов — перетаскиванием шапок колонок (группировка по статусу)
+// status order — by dragging the column headers (grouping by status)
 async function onColumnsEnd(e: { oldDraggableIndex?: number; newDraggableIndex?: number }) {
   const o = e.oldDraggableIndex;
   const n = e.newDraggableIndex;
@@ -130,7 +130,7 @@ async function onColumnsEnd(e: { oldDraggableIndex?: number; newDraggableIndex?:
 }
 
 async function move(id: string, from: string, to: string, beforeId: string | null) {
-  // сводка нескольких пространств: колонка — имя статуса, ставим одноимённый статус пространства задачи
+  // multi-space summary: the column is the status name; we set the same-named status of the task's space
   const plan = fixPlan(
     planMove(columns.value, props.options.groupBy, id, from, to, beforeId),
     tasks.value?.find((x) => x.id === id),

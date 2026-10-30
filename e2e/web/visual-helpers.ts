@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test';
 import { BASE, Client, ranks, uuidv7 } from '../lib.js';
 import { MODULES as COLLAB_MODULES, sendMsg, textDoc } from './collab-helpers.js';
 
-/** «Сейчас» в браузере: фиксированное, чтобы относительные и абсолютные даты не плыли по дням. */
+/** «Now» in the browser: fixed, so that relative and absolute dates do not drift by days. */
 export const NOW = '2026-03-10T10:10:00.000Z';
 const BASE_TS = Date.parse('2026-03-10T10:00:00.000Z');
 const ISO = /\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z/g;
@@ -33,22 +33,22 @@ const mentionDoc = (id: string, label: string, text: string) => ({
     },
   ],
 });
-// фиксированные id: порядок строк «Мои часы» зависит от id записей
+// fixed ids: the order of the 'My hours' rows depends on the record ids
 const entry = (n: number) => `00000000-0000-7000-8000-00000000000${n}`;
 const SPACE_NAME = 'Дизайн-ревью';
 
-/** Нужен свежий стек (./dev.sh reset && ./dev.sh seed): ключ DSG уникален; повтор на том же стеке берёт данные из кэша.
- * Серверные метки времени (ctx.now) нельзя задать — сдвигаем их в ответах sync к BASE_TS (см. shiftTime). */
+/** A fresh stack is needed (./dev.sh reset && ./dev.sh seed): key DSG is unique; a repeat on the same stack takes data from the cache.
+ * Server timestamps (ctx.now) cannot be set — we shift them to BASE_TS in the sync responses (see shiftTime). */
 export async function buildData(): Promise<Data> {
   const admin = await Client.login('admin');
-  // Playwright перезапускает воркер после падения теста — данные берём из кэша, если пространство ещё есть
+  // Playwright restarts the worker after a test fails — we take data from the cache, if the space still exists
   const cache = join(tmpdir(), `planar-visual-${new URL(BASE).port}.json`);
   try {
     const c = JSON.parse(readFileSync(cache, 'utf8')) as Data & { spaceId: string };
     if ((await admin.bootstrap()).data.spaces?.some((s) => s.id === c.spaceId))
       return { ...c, alice: await Client.login('alice') };
   } catch {
-    /* нет кэша — создаём */
+    /* no cache — create it */
   }
 
   const [alice, bob] = await Promise.all([Client.login('alice'), Client.login('bob')]);
@@ -241,7 +241,7 @@ export async function buildData(): Promise<Data> {
   return out;
 }
 
-/** Сдвигает все ISO-метки в ответах /sync и /api к BASE_TS: серверное «сейчас» → NOW − 10 мин. */
+/** Shifts all ISO timestamps in /sync and /api responses to BASE_TS: server «now» → NOW − 10 min. */
 export async function shiftTime(page: Page, offset: number) {
   await page.route(/\/(sync|api)\//, async (route) => {
     const r = await route.fetch();

@@ -5,7 +5,7 @@ import type { Client } from '../lib.js';
 
 export const MODULES = ['time', 'sprints', 'automations', 'webhooks', 'import'];
 
-/** Включает модули work (добавляет к уже включённым); смена пишет _reset, клиенты перезагружаются. */
+/** Enables work modules (adds to the already enabled ones); the change writes _reset, clients reload. */
 export async function enableModules(admin: Client): Promise<void> {
   const { data } = await admin.bootstrap();
   const cur = (data.settings?.find((s) => s.id === 'enabled_modules')?.value as string[]) ?? [];
@@ -14,7 +14,7 @@ export async function enableModules(admin: Client): Promise<void> {
   await admin.pushOk([admin.mut('settings.set', { id: 'enabled_modules', value: next })]);
 }
 
-/** YYYY-MM-DD в UTC со сдвигом в днях. */
+/** YYYY-MM-DD in UTC with a shift in days. */
 export const utcDay = (shift = 0): string =>
   new Date(Date.now() + shift * 86_400_000).toISOString().slice(0, 10);
 
@@ -23,7 +23,7 @@ export interface Hit {
   body: string;
 }
 
-/** Приёмник webhook в процессе Playwright: слушает все интерфейсы (api в контейнере ходит на host.docker.internal). */
+/** Webhook receiver in the Playwright process: listens on all interfaces (api in the container reaches host.docker.internal). */
 export async function receiver() {
   const hits: Hit[] = [];
   const server = http.createServer((req, res) => {
@@ -43,7 +43,7 @@ export async function receiver() {
   };
 }
 
-/** Эталон проверки подписи из docs/contracts/work.md. */
+/** Reference for checking the signature from docs/contracts/work.md. */
 export function signatureOk(secret: string, rawBody: string, header: string): boolean {
   const expected = 'sha256=' + createHmac('sha256', secret).update(rawBody).digest('hex');
   return (

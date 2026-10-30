@@ -42,7 +42,7 @@ const replies = computed(() => {
 const reactions = computed(() => merged(rest.value?.reactions ?? []));
 const reactionsOf = (id: string) => reactions.value.filter((r) => r.messageId === id);
 const links = useChatLinks();
-// ↑ в пустом поле — правка своего последнего ответа
+// ↑ in an empty field — edit your last reply
 const composer = ref<InstanceType<typeof Composer> | null>(null);
 const editId = ref('');
 const editLast = () =>

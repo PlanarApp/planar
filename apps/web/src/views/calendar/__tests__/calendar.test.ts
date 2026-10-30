@@ -64,11 +64,11 @@ const mountView = () =>
 
 describe('calendar:dates', () => {
   it('calendar: сетка месяца — целые недели с понедельника', () => {
-    const d = monthDays('2026-10-15'); // 1 окт 2026 — четверг, 31 — суббота
+    const d = monthDays('2026-10-15'); // 1 Oct 2026 — Thursday, 31 — Saturday
     expect(d).toHaveLength(35);
     expect(d[0]).toBe('2026-09-28');
     expect(d[34]).toBe('2026-11-01');
-    expect(monthDays('2026-02-10')).toHaveLength(35); // 1 фев 2026 — воскресенье, неделя с 26 янв
+    expect(monthDays('2026-02-10')).toHaveLength(35); // 1 Feb 2026 — Sunday, the week from 26 Jan
   });
   it('calendar: неделя — с понедельника по воскресенье', () => {
     expect(weekDays('2026-10-22')).toEqual([
@@ -107,7 +107,7 @@ describe('calendar:dates', () => {
     expect(shift(t('a', null, '2026-03-28'), '2026-03-28', '2026-03-30')).toEqual({
       dueDate: '2026-03-30',
     });
-    expect(addDays('2026-03-28', 2)).toBe('2026-03-30'); // переход на летнее время
+    expect(addDays('2026-03-28', 2)).toBe('2026-03-30'); // daylight saving time transition
   });
   it('calendar: из боковой колонки ставит dueDate', () => {
     expect(shift(t('a', null, null), null, '2026-10-25')).toEqual({ dueDate: '2026-10-25' });
@@ -125,7 +125,7 @@ describe('calendar:view', () => {
   it('calendar: перенос вызывает одну мутацию с нужными датами', async () => {
     mq(false);
     const today = localToday();
-    // неделя по умолчанию: соседний день той же недели
+    // default week: the neighbouring day of the same week
     const next = addDays(today, 1);
     const target = weekDays(today).includes(next) ? next : addDays(today, -1);
     const x = task(1, { startDate: today, dueDate: today });
@@ -133,7 +133,7 @@ describe('calendar:view', () => {
     await db.table('tasks').bulkPut([x, un]);
     const w = mountView();
     await until(() => w.find(`[data-day="${today}"] [data-task="${x.id}"]`).exists());
-    // десктоп: панель — постоянная колонка, кнопки нет
+    // desktop: the panel is a permanent column, no button
     expect(w.find('[data-test="plan-toggle"]').exists()).toBe(false);
     await until(() => w.find(`[data-test="undated"] [data-task="${un.id}"]`).exists());
     const before = await db._queue.count();
@@ -156,7 +156,7 @@ describe('calendar:view', () => {
     await db.table('tasks').bulkPut([task(1, { dueDate: today }), un]);
     const w = mountView();
     await until(() => w.find(`[data-day="${today}"] [data-task]`).exists());
-    // блокирующая на мобилке: нажатие вне панели закрывает
+    // blocking on mobile: a tap outside the panel closes it
     await w.get('[data-test="plan-toggle"]').trigger('click');
     await w.get('[data-testid="plan-overlay"]').trigger('click');
     expect(w.find('[data-testid="plan-panel"]').exists()).toBe(false);

@@ -81,7 +81,7 @@ const rows = () => db.table('savedViews').toArray();
 const until = (f: () => Promise<unknown> | unknown) =>
   vi.waitFor(async () => expect(await f()).toBeTruthy());
 
-// «Сохранить вид» лежит в меню «…» панели; Enter открывает reka DropdownMenu в jsdom
+// "Save view" is in the "…" menu of the panel; Enter opens reka DropdownMenu in jsdom
 async function openSaveMenu(w: ReturnType<typeof mountScreen>) {
   const trigger = await vi.waitFor(() => w.get('button[aria-label=Ещё]'));
   trigger.element.dispatchEvent(
@@ -92,7 +92,7 @@ async function openSaveMenu(w: ReturnType<typeof mountScreen>) {
   await body.get('[role=menuitem]').trigger('click');
 }
 
-// контролы вида — в popover «Вид»; открываем, если ещё закрыт
+// the view controls are in the "View" popover; open it if it is still closed
 async function flipSortDir(w: ReturnType<typeof mountScreen>) {
   const sel = '[aria-label="Порядок сортировки"]';
   if (!body.find(sel).exists()) {
@@ -241,7 +241,7 @@ describe('views:saved', () => {
     const dir = () => JSON.parse(w.get('[data-testid=view]').attributes('data-options')!).sortDir;
     await flipSortDir(w);
     expect(dir()).toBe('asc');
-    expect((await rows())[0].config.sortDir).toBe('desc'); // в реплике пока старое
+    expect((await rows())[0].config.sortDir).toBe('desc'); // the replica still has the old value
     await w.get('[data-testid=saved-reset]').trigger('click');
     expect(dir()).toBe('desc');
     await flipSortDir(w);

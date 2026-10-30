@@ -37,7 +37,7 @@ const plugin = {
 };
 
 beforeEach(() => {
-  // happy-dom не грузит iframe (contentWindow = null)
+  // happy-dom does not load iframes (contentWindow = null)
   Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
     configurable: true,
     get: () => ({ postMessage: vi.fn() }),

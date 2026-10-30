@@ -1,6 +1,6 @@
 import type { Row } from './contract/index.js';
 
-/** Задача для отбора: строка + id исполнителей и меток. */
+/** Task for filtering: row + assignee and label ids. */
 export type FilterTask = Row<'tasks'> & { assigneeIds: string[]; labelIds: string[] };
 
 export type BaseField =
@@ -29,9 +29,9 @@ export interface FilterCtx {
   statuses: Row<'statuses'>[];
   userId: string;
   today: string;
-  /** без него `field:` правила пропускаются */
+  /** without it `field:` rules are skipped */
   fieldDefs?: Row<'fieldDefs'>[];
-  /** циклы sprints; без них правила с `'current'` пропускаются */
+  /** sprint cycles; without them rules with `'current'` are skipped */
   cycles?: {
     id: string;
     projectId: string;
@@ -41,7 +41,7 @@ export interface FilterCtx {
   }[];
 }
 
-/** Допустимые операторы поля (конструктор и matchFilter). */
+/** Allowed operators of a field (constructor and matchFilter). */
 export const FIELD_OPERATORS: Record<BaseField, FilterOperator[]> = {
   status: ['in', 'notIn'],
   statusCategory: ['in', 'notIn'],
@@ -64,7 +64,7 @@ const BY_TYPE: Record<Row<'fieldDefs'>['type'], FilterOperator[]> = {
   select: ['in', 'notIn', ...EMPTY],
   user: ['in', 'notIn', ...EMPTY],
 };
-/** Операторы правила: `field:<id>` — по типу определения. */
+/** Rule operators: `field:<id>` — by the definition type. */
 export const operatorsFor = (
   field: FilterField,
   defs: Row<'fieldDefs'>[] = [],
@@ -76,7 +76,7 @@ export const isFieldRule = (f: FilterField): f is `field:${string}` => f.startsW
 
 const NO_VALUE: FilterOperator[] = ['isEmpty', 'isNotEmpty'];
 
-/** `YYYY-MM-DD` | `today` | `today+N` | `today-N` → дата; не разобралось — null. */
+/** `YYYY-MM-DD` | `today` | `today+N` | `today-N` → date; if not parsed — null. */
 export function resolveDate(v: string, today: string): string | null {
   const m = /^today(?:([+-])(\d+))?$/.exec(v.trim());
   if (!m) return /^\d{4}-\d{2}-\d{2}$/.test(v.trim()) ? v.trim() : null;
@@ -85,7 +85,7 @@ export function resolveDate(v: string, today: string): string | null {
   return d.toISOString().slice(0, 10);
 }
 
-/** Правило без значения (черновик в конструкторе) не участвует в отборе. */
+/** A rule without a value (a draft in the constructor) does not take part in filtering. */
 const complete = (r: FilterRule) =>
   NO_VALUE.includes(r.operator) ||
   (Array.isArray(r.value)
@@ -94,7 +94,7 @@ const complete = (r: FilterRule) =>
 
 function matchFieldRule(task: FilterTask, r: FilterRule, ctx: FilterCtx, id: string): boolean {
   const def = ctx.fieldDefs?.find((d) => d.id === id);
-  if (!def) return true; // нет определений или поле удалено — правило пропускается
+  if (!def) return true; // no definitions or the field is deleted — the rule is skipped
   const v = task.fields[id];
   if (r.operator === 'isEmpty') return v === undefined;
   if (r.operator === 'isNotEmpty') return v !== undefined;
@@ -152,7 +152,7 @@ function matchRule(task: FilterTask, r: FilterRule, ctx: FilterCtx): boolean {
       if (r.operator === 'isEmpty') return task.cycleId === null;
       if (r.operator === 'isNotEmpty') return task.cycleId !== null;
       const ids = (Array.isArray(r.value) ? r.value : []).map(String);
-      if (ids.includes('current') && !ctx.cycles) return true; // без циклов правило пропускается
+      if (ids.includes('current') && !ctx.cycles) return true; // without cycles the rule is skipped
       const current = ctx.cycles?.some(
         (c) =>
           c.id === task.cycleId &&

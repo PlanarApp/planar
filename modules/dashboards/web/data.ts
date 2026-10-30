@@ -1,4 +1,4 @@
-// Единственная точка контакта модуля с ядром web: реплика, мутации, пользователь, язык.
+// The module's single point of contact with the web core: replica, mutations, user, language.
 import { computed } from 'vue';
 import type { FilterCtx } from '@planar/shared';
 import {
@@ -38,7 +38,7 @@ export const useWidgets = (boardId: () => string) =>
       >,
   );
 
-/** Все видимые задачи с исполнителями и метками (как FilterTask). */
+/** All visible tasks with assignees and labels (as FilterTask). */
 export const useTasks = () =>
   useQuery(async (): Promise<Task[]> => {
     const [tasks, as, ls] = await Promise.all([
@@ -60,7 +60,7 @@ export const useTasks = () =>
     }));
   });
 
-/** Поля пространства для группировки (select/user). */
+/** Space fields for grouping (select/user). */
 export const useGroupFields = (spaceId: () => string) =>
   useQuery(async () =>
     groupableFields(
@@ -68,7 +68,7 @@ export const useGroupFields = (spaceId: () => string) =>
     ),
   );
 
-/** id -> название (статусы, метки, пользователи, проекты, пространства) для подписей столбцов. */
+/** id -> name (statuses, labels, users, projects, spaces) for column captions. */
 export const useNames = () => {
   const r = useQuery(async () => {
     const m: Record<string, string> = {};
@@ -87,7 +87,7 @@ export const useNames = () => {
   return computed(() => r.value ?? {});
 };
 
-/** Контекст matchFilter (F-filter v2); undefined, пока справочники грузятся. */
+/** matchFilter context (F-filter v2); undefined while the references are loading. */
 export function useFilterCtx() {
   const r = useQuery(async () => ({
     statuses: await db.table('statuses').toArray(),

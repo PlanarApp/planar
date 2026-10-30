@@ -41,7 +41,7 @@ type Wire = Record<string, unknown>;
 type Mut = { name: string; args: unknown };
 const NOT_FOUND = (what: string) => new HttpError(404, 'not_found', `${what} не найден`);
 
-/** Разбор входа; ошибка → 400 invalid_request с issues. */
+/** Input parsing; error → 400 invalid_request with issues. */
 export function parse<T extends z.ZodType>(schema: T, data: unknown): z.output<T> {
   const r = schema.safeParse(data ?? {});
   if (!r.success) throw new HttpError(400, 'invalid_request', 'Неверные параметры', r.error.issues);
@@ -62,7 +62,7 @@ function decode(c: string): { t: string; id: string } {
     if (typeof o.t === 'string' && z.uuid().safeParse(o.id).success && !isNaN(Date.parse(o.t)))
       return o;
   } catch {
-    /* ниже */
+    /* below */
   }
   throw new HttpError(400, 'invalid_request', 'Неверный cursor');
 }
@@ -83,8 +83,8 @@ export class RestService {
   }
 
   /**
-   * Страница по (ts, id) с курсором. Курсор несёт сырой timestamptz из БД (микросекунды),
-   * поэтому сравнение строкой в БД, а не в JS.
+   * Page by (ts, id) with a cursor. The cursor carries the raw timestamptz from the DB (microseconds),
+   * so the comparison is done as a string in the DB, not in JS.
    */
   private async page(
     table: PgTable,
@@ -167,7 +167,7 @@ export class RestService {
     return { data: await this.enrich(p.items), nextCursor: p.nextCursor };
   }
 
-  /** MCP search_tasks / my_tasks: поиск по title и ключу без учёта регистра */
+  /** MCP search_tasks / my_tasks: case-insensitive search by title and key */
   async searchTasks(
     userId: string,
     q: {
@@ -200,12 +200,12 @@ export class RestService {
     return this.enrich(p.items);
   }
 
-  /** строки tasks → V1Task (key, assigneeIds, labelIds) */
+  /** tasks rows → V1Task (key, assigneeIds, labelIds) */
   private enrich(rows: Wire[]): Promise<V1Task[]> {
     return toV1Tasks(this.db, rows);
   }
 
-  /** :task — uuid или ключ ABC-123; невидимая → 404. Возвращает строку БД. */
+  /** :task — uuid or key ABC-123; invisible → 404. Returns the DB row. */
   private async findTask(userId: string, ref: string): Promise<Wire> {
     const my = await this.mySpaces(userId);
     let cond: SQL;
@@ -226,7 +226,7 @@ export class RestService {
     return { data: (await this.enrich([await this.findTask(userId, ref)]))[0] };
   }
 
-  /** @login в тексте → известные пользователи для textToDoc */
+  /** @login in text → known users for textToDoc */
   private async toDoc(text: string) {
     const logins = [...text.matchAll(/@([\w.-]+)/g)].map((m) => m[1]);
     const users = logins.length
@@ -375,7 +375,7 @@ export class RestService {
     return p.id;
   }
 
-  // --- связи задач (ядро) ---
+  // --- task links (core) ---
 
   async links(userId: string, ref: string) {
     const t = await this.findTask(userId, ref);
@@ -414,9 +414,9 @@ export class RestService {
     await this.run(userId, [{ name: 'link.delete', args: { id } }], tokenId);
   }
 
-  // --- время (модуль time) ---
+  // --- time (time module) ---
 
-  /** Таблица модуля и её колонки (типы модулей ядру неизвестны). */
+  /** Module table and its columns (the core does not know module types). */
   private async mod(moduleId: string, entity: string) {
     const t = moduleTables().get(entity);
     if (!t || !(await enabledModules(this.db)).has(moduleId))
@@ -430,7 +430,7 @@ export class RestService {
     return toWire('timeEntries', row as Wire);
   }
 
-  /** идущий таймер пользователя или null */
+  /** the user's running timer, or null */
   private async running(userId: string) {
     const { t, c } = await this.mod('time', 'timeEntries');
     const [row] = await this.db
@@ -498,7 +498,7 @@ export class RestService {
     return { data: await this.entry(cur.id as string) };
   }
 
-  // --- циклы (модуль sprints) ---
+  // --- cycles (sprints module) ---
 
   async cycles(userId: string, projectId: string) {
     const pid = await this.visibleProject(userId, projectId);
@@ -511,7 +511,7 @@ export class RestService {
     return { data: (rows as Wire[]).map((r) => toWire('sprintsCycles', r)) };
   }
 
-  /** текущий: не закрыт, startDate ≤ сегодня ≤ endDate; «сегодня» — в часовом поясе проекта (UTC без настроек) */
+  /** current: not closed, startDate ≤ today ≤ endDate; "today" is in the project time zone (UTC without settings) */
   async currentCycle(userId: string, projectId: string) {
     const pid = await this.visibleProject(userId, projectId);
     const { t, c } = await this.mod('sprints', 'sprintsCycles');
@@ -533,7 +533,7 @@ export class RestService {
     return { data: row ? toWire('sprintsCycles', row as Wire) : null };
   }
 
-  /** MCP current_sprint: задачи цикла (до 200) */
+  /** MCP current_sprint: tasks of the cycle (up to 200) */
   async cycleTasks(userId: string, cycleId: string) {
     const rows = (await this.db
       .select()
@@ -546,7 +546,7 @@ export class RestService {
     return this.enrich(rows);
   }
 
-  // --- автоматизации (модуль automations, чтение) ---
+  // --- automations (automations module, read) ---
 
   async automations(userId: string, projectId: string) {
     const pid = await this.visibleProject(userId, projectId);

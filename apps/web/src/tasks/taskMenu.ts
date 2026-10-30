@@ -33,8 +33,8 @@ import StatusIcon from './fields/StatusIcon.vue';
 const PRIORITIES = [1, 2, 3, 4, 0];
 
 /**
- * Контекстное меню задачи (Список, Доска, Таблица): открыть, ссылка, статус, приоритет,
- * исполнители, срок, перенос в другой проект, дублировать, удалить. Справочники читаются один раз на вид.
+ * Task context menu (List, Board, Table): open, link, status, priority,
+ * assignees, due date, move to another project, duplicate, delete. Dictionaries are read once per view.
  */
 export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
   const { t } = useI18n();
@@ -42,7 +42,7 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
   const statuses = useStatuses(spaceId);
   const members = useMembers(spaceId);
   const projects = useQuery(() => db.table<Row<'projects'>>('projects').toArray());
-  // сводка группы: spaceId — несколько пространств через запятую; статусы и проекты — пространства задачи
+  // group summary: spaceId — several spaces comma-separated; statuses and projects — the task's spaces
   const spaceProjects = (task: TaskView) =>
     (projects.value ?? []).filter((p) => p.spaceId === task.spaceId && !p.archivedAt);
 

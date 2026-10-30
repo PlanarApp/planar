@@ -12,20 +12,20 @@ const route = useRoute();
 const spaces = useQuery(async () =>
   (await db.table<Row<'spaces'>>('spaces').toArray()).sort((a, b) => (a.rank < b.rank ? -1 : 1)),
 );
-// свёрнутость секции — своё состояние, не часть интерфейса ядра
+// the section's collapsed state — its own state, not part of the core UI
 const KEY = 'planar.sidebar.docs';
 const folded = ref(false);
 try {
   folded.value = localStorage.getItem(KEY) === '1';
 } catch {
-  /* без хранилища — до перезагрузки */
+  /* without storage — until reload */
 }
 const fold = () => {
   folded.value = !folded.value;
   try {
     localStorage.setItem(KEY, folded.value ? '1' : '0');
   } catch {
-    /* см. выше */
+    /* see above */
   }
 };
 const sections = computed(() =>

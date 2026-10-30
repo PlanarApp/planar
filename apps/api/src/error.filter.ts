@@ -14,7 +14,7 @@ const byStatus: Record<number, HttpErrorCode> = {
   503: 'unavailable',
 };
 
-/** Любая ошибка → формат C-http {code, message, details?}. */
+/** Any error → C-http format {code, message, details?}. */
 @Catch()
 export class ErrorFilter implements ExceptionFilter {
   catch(err: unknown, host: ArgumentsHost) {

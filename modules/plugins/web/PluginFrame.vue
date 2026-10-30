@@ -10,11 +10,11 @@ const router = useRouter();
 const user = useSession();
 const frame = ref<HTMLIFrameElement>();
 const height = ref(240);
-// проверка перед показом (allow-same-origin безопасен только на чужом хосте)
+// a check before showing (allow-same-origin is safe only on a foreign host)
 const ok = computed(
   () => checkPluginUrl(props.plugin.url, location.origin, import.meta.env.PROD) === null,
 );
-// без сессии iframe не показываем: мост создаётся, когда элемент появился
+// the iframe is not shown without a session: the bridge is created when the element appears
 const allowed = computed(() => ok.value && !!user.value && frameAllowed(props.plugin.origin));
 let stop = () => {};
 

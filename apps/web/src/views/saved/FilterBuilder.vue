@@ -18,16 +18,16 @@ import {
 const props = defineProps<{ spaceId?: string; projectId?: string }>();
 const model = defineModel<Filter>({ required: true });
 const { t } = useI18n();
-// SDK модулей передаёт только projectId: пространство берём из проекта
+// the module SDK passes only projectId: the space is taken from the project
 const project = useProject(() => props.projectId ?? '');
 const spaceId = computed(() => props.spaceId ?? project.value?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
 
-// поля проекта (или всех проектов пространства, если проект не задан)
+// project fields (or of all the space's projects, if no project is set)
 const defsByProject = useFieldDefs(() => props.projectId ?? '');
 const defsBySpace = useSpaceFieldDefs(spaceId);
 const defs = computed(() => (props.projectId ? defsByProject : defsBySpace).value ?? []);
-// правило «Спринт» — только при включённом модуле sprints
+// the "Sprint" rule — only when the sprints module is enabled
 const modViews = useExtensions('views');
 const hasSprints = computed(() => modViews.value.some((v) => v.moduleId === 'sprints'));
 const fields = computed<FilterField[]>(() => [
@@ -41,7 +41,7 @@ const fieldLabel = (f: FilterField) =>
     ? (defs.value.find((d) => d.id === f.slice(6))?.name ?? '—')
     : t(`views.filter.fields.${f}`);
 const ops = (f: FilterField) => operatorsFor(f, defs.value);
-/** Вид ввода значения: базовое поле или тип пользовательского. */
+/** Value input kind: a base field or a user field type. */
 function kind(r: FilterRule): string {
   if (!isFieldRule(r.field)) return r.field;
   const d = defs.value.find((x) => x.id === (r.field as string).slice(6));
@@ -86,7 +86,7 @@ const patch = (i: number, p: Partial<FilterRule>) =>
 function setField(i: number, field: FilterField) {
   setRules(rules.value.map((r, j) => (j === i ? { field, operator: ops(field)[0] } : r)));
 }
-// смена оператора сбрасывает значение
+// changing the operator resets the value
 const setOperator = (i: number, operator: FilterRule['operator']) =>
   setRules(rules.value.map((r, j) => (j === i ? { field: r.field, operator } : r)));
 const add = () =>
@@ -100,7 +100,7 @@ function toggle(i: number, r: FilterRule, v: string) {
   const next = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v];
   patch(i, { value: r.field === 'priority' ? next.map(Number) : next });
 }
-/** assignee/createdBy: пикер без 'me' + отдельный переключатель «Я». */
+/** assignee/createdBy: a picker without 'me' + a separate "Me" toggle. */
 const people = (r: FilterRule) => list(r).filter((x) => x !== 'me');
 const setPeople = (i: number, r: FilterRule, ids: string[]) =>
   patch(i, { value: [...(list(r).includes('me') ? ['me'] : []), ...ids] });

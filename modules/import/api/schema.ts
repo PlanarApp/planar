@@ -16,7 +16,7 @@ const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 export type RowNote = { row: number; reason: string };
 export type RowWarning = { row: number; message: string };
 
-// source и mapping — служебные колонки сверх контракта: файл и сопоставление для задачи import.run; наружу не отдаются
+// source and mapping are service columns beyond the contract: the file and mapping for the import.run job; not exposed outward
 export const importJobs = pgTable(
   'import_jobs',
   {

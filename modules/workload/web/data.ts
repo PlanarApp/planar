@@ -1,4 +1,4 @@
-// Единственная точка контакта модуля с ядром web.
+// The module's single point of contact with the web core.
 import {
   db,
   i18n,
@@ -22,9 +22,9 @@ interface Base {
 const all = <T>(t: string, spaceId: string) =>
   db.table(t).where('spaceId').equals(spaceId).toArray() as Promise<T[]>;
 
-/** Данные пространства для таблицы; `time` — включён ли модуль time (есть оценки). */
+/** Space data for the table; `time` — whether the time module is enabled (there are estimates). */
 export const useWorkloadData = (spaceId: () => string) => {
-  // useQuery не следит за реактивным spaceId — пересоздаём запрос при смене пространства
+  // useQuery does not watch a reactive spaceId — the query is recreated when the space changes
   const out = shallowRef<Data | null>();
   let scope: EffectScope | undefined;
   watch(
@@ -55,7 +55,7 @@ const load = async (s: string) => {
     number: number | null;
     projectId: string;
   }>('tasks', s);
-  // taskAssignees/timeEstimates без индекса spaceId — читаем по индексу taskId
+  // taskAssignees/timeEstimates have no spaceId index — read by the taskId index
   const ids = tasks.map((t) => t.id);
   const byTask = <T>(t: string) => db.table(t).where('taskId').anyOf(ids).toArray() as Promise<T[]>;
   const [assignees, statuses, members, caps, projects, estimates, users] = await Promise.all([

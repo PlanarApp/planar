@@ -10,8 +10,8 @@ testdb() {
   elif docker inspect planar-testdb >/dev/null 2>&1; then
     docker start planar-testdb >/dev/null
   else
-    # параллельные копии делят один контейнер; гонка двух create — второй получит ошибку и просто стартует/ждёт
-    # тестовой базе надёжность не нужна: без fsync DROP DATABASE (checkpoint) не тормозит под нагрузкой хоста
+    # parallel copies share one container; a race between two creates — the second gets an error and just starts/waits
+    # the test database does not need reliability: without fsync DROP DATABASE (checkpoint) does not slow down under host load
     docker run -d --name planar-testdb -p 55432:5432 -e POSTGRES_PASSWORD=postgres \
       pgvector/pgvector:pg18 -c fsync=off -c synchronous_commit=off -c full_page_writes=off \
       >/dev/null 2>&1 || docker start planar-testdb >/dev/null 2>&1 || true
@@ -24,11 +24,11 @@ testdb() {
   return 1
 }
 
-# VAPID-ключи для Web Push: дописывает в ./.env, если их там нет (без внешних пакетов)
+# VAPID keys for Web Push: appended to ./.env if they are missing there (no external packages)
 vapid() {
   touch .env
   grep -qE '^VAPID_PUBLIC_KEY=.+' .env && grep -qE '^VAPID_PRIVATE_KEY=.+' .env && return 0
-  # неполную пару убираем, чтобы ключи были парными
+  # an incomplete pair is removed so that the keys stay paired
   sed -i '/^VAPID_\(PUBLIC_KEY\|PRIVATE_KEY\|SUBJECT\)=/d' .env
   node -e "
     const {privateKey}=require('crypto').generateKeyPairSync('ec',{namedCurve:'prime256v1'});
@@ -39,7 +39,7 @@ vapid() {
   " >> .env
 }
 
-# PLANAR_SECRET_KEY (AES-256-GCM токена GitLab): дописывает в ./.env, если его там нет
+# PLANAR_SECRET_KEY (AES-256-GCM of the GitLab token): appended to ./.env if missing there
 secretkey() {
   touch .env
   grep -qE '^PLANAR_SECRET_KEY=.+' .env && return 0
@@ -47,7 +47,7 @@ secretkey() {
   echo "PLANAR_SECRET_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")" >> .env
 }
 
-# api стартует после up -d: ждём ответ через прокси web
+# api starts after up -d: wait for a response through the web proxy
 waitapi() {
   for _ in $(seq 1 120); do
     curl -sf "http://localhost:${WEB_PORT:-5173}/api/health" >/dev/null && return 0
@@ -57,7 +57,7 @@ waitapi() {
   return 1
 }
 
-# seed: api применяет миграции при старте; ждём /api/health на api-порту до ~5 мин
+# seed: api applies migrations on start; wait for /api/health on the api port for up to ~5 min
 waitapidirect() {
   for _ in $(seq 1 150); do
     curl -sf "http://localhost:${API_PORT:-3000}/api/health" >/dev/null && return 0
@@ -67,17 +67,17 @@ waitapidirect() {
   return 1
 }
 
-# prod-smoke: собирает web и api, поднимает compose.yml (postgres, api, caddy) в изолированном проекте,
-# сидит БД, гоняет e2e/prod через Caddy и гасит всё. Порты и проект — из env (HTTP_PORT, HTTPS_PORT, COMPOSE_PROJECT_NAME).
+# prod-smoke: builds web and api, brings up compose.yml (postgres, api, caddy) in an isolated project,
+# seeds the DB, runs e2e/prod through Caddy and stops everything. Ports and project come from env (HTTP_PORT, HTTPS_PORT, COMPOSE_PROJECT_NAME).
 prodsmoke() {
   export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-planar-prod-smoke}"
   export HTTP_PORT="${HTTP_PORT:-8080}" HTTPS_PORT="${HTTPS_PORT:-8443}"
   export PLANAR_SUBNET="${PLANAR_SUBNET:-172.30.0.0/24}" PLANAR_DOMAIN= POSTGRES_PASSWORD=smoke-pg-pass
   export PUBLIC_URL="http://localhost:$HTTP_PORT" COOKIE_SECURE=false
-  P=(docker compose -f compose.yml -f deploy/compose.smoke.yml)
+  P=(docker compose -f compose.yml -f compose.build.yml -f deploy/compose.smoke.yml)
   local rc=0
   trap '"${P[@]}" down -v --remove-orphans --rmi local >/dev/null 2>&1 || true' EXIT
-  pnpm install --frozen-lockfile || return 1 # для сида и e2e; web собирается в образе caddy
+  pnpm install --frozen-lockfile || return 1 # for seed and e2e; web is built in the caddy image
   "${P[@]}" up -d --build || return 1
   for _ in $(seq 1 90); do
     curl -sf "$PUBLIC_URL/api/health" >/dev/null && break
@@ -118,7 +118,7 @@ case "$cmd" in
   vapid) vapid; secretkey ;;
   up) vapid; secretkey; "${DEV[@]}" up -d --build ;;
   down) "${DEV[@]}" down ;;
-  # reset: удаляет тома (БД, node_modules, pnpm store) и поднимает заново
+  # reset: deletes volumes (DB, node_modules, pnpm store) and brings everything up again
   reset) "${DEV[@]}" down -v && "${DEV[@]}" up -d --build ;;
   seed) waitapidirect && "${DEV[@]}" exec -T api pnpm --filter @planar/api seed "$@" ;;
   logs) "${DEV[@]}" logs -f "$@" ;;

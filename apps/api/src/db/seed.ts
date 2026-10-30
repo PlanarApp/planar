@@ -1,4 +1,4 @@
-// Сид dev-данных: tsx --conditions=source src/db/seed.ts [--tasks N: довести число задач до N] [--bench] [--dates: ~80 % задач с startDate/dueDate] [--locale ru|en: язык статусов, по умолчанию ru]
+// Dev data seed: tsx --conditions=source src/db/seed.ts [--tasks N: bring task count to N] [--bench] [--dates: ~80 % of tasks with startDate/dueDate] [--locale ru|en: status language, default ru]
 import { randomBytes } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import argon2 from 'argon2';
@@ -10,7 +10,7 @@ import * as s from './schema.js';
 
 const BATCH = 1000;
 
-/** uuidv7: 48 бит времени (мс) + случайные биты. */
+/** uuidv7: 48 bits of time (ms) + random bits. */
 function uuidv7(): string {
   const b = randomBytes(16);
   b.writeUIntBE(Date.now(), 0, 6);
@@ -49,7 +49,7 @@ const LABELS = [
   ['chore', '#64748b'],
 ] as const;
 
-/** Базовые данные; ничего не делает, если пользователь admin уже есть. */
+/** Base data; does nothing if the admin user already exists. */
 async function seedBase(db: Db, locale: SeedLocale = 'ru') {
   const [exists] = await db
     .select({ id: s.users.id })
@@ -113,7 +113,7 @@ async function seedBase(db: Db, locale: SeedLocale = 'ru') {
   ]);
 }
 
-/** Даты задачи i (детерминированно): старт в пределах ±120 дней от сегодня, длительность 1–14 дней; часть — с одной датой. */
+/** Dates of task i (deterministic): start within ±120 days of today, duration 1–14 days; some with a single date. */
 function seedDates(i: number) {
   const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
   const start = ((i * 37) % 240) - 120;
@@ -121,7 +121,7 @@ function seedDates(i: number) {
   return i % 7 === 0 ? { dueDate: day(due) } : { startDate: day(start), dueDate: day(due) };
 }
 
-/** Доводит общее число задач до target (повтор не копит); пишет напрямую в таблицы, без changes. */
+/** Brings the total task count to target (re-runs do not accumulate); writes directly to tables, without changes. */
 async function seedTasks(db: Db, target: number, dates = false) {
   const [{ total }] = (await db.execute(sql`select count(*)::int as total from tasks`)).rows as {
     total: number;
@@ -155,7 +155,7 @@ async function seedTasks(db: Db, target: number, dates = false) {
     const st = statuses.filter((x) => x.spaceId === p.spaceId);
     const us = members.filter((x) => x.spaceId === p.spaceId);
     const lb = labels.filter((x) => x.spaceId === p.spaceId);
-    if (!st.length || !us.length) continue; // без статусов/участников задачу не создать
+    if (!st.length || !us.length) continue; // a task cannot be created without statuses/members
     const ids: string[] = [];
     for (let i = 0; i < count; i++) {
       const id = uuidv7();
@@ -185,7 +185,7 @@ async function seedTasks(db: Db, target: number, dates = false) {
       .set({ taskCounter: sql`${s.projects.taskCounter} + ${count}` })
       .where(eq(s.projects.id, p.id));
   }
-  // родители раньше детей: parentId указывает на более раннюю задачу того же проекта
+  // parents before children: parentId points to an earlier task of the same project
   await insertBatched(
     db,
     s.tasks,

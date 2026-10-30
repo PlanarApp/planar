@@ -76,7 +76,7 @@ const task = (statusId: string, cycleId: string | null, completedAt: string | nu
 });
 
 beforeAll(async () => {
-  await mod(); // создаёт h.db
+  await mod(); // creates h.db
   await h.db.open();
 });
 beforeEach(async () => {
@@ -93,7 +93,7 @@ describe('wk2: burn-up', () => {
       [
         { completedAt: '2026-10-01T10:00:00Z' },
         { completedAt: '2026-10-02T09:00:00Z' },
-        // 23:30 UTC 2-го — в Токио уже 3-е
+        // 23:30 UTC on the 2nd — already the 3rd in Tokyo
         { completedAt: '2026-10-02T23:30:00Z' },
         { completedAt: null },
       ],
@@ -102,7 +102,7 @@ describe('wk2: burn-up', () => {
     );
     expect(b.scope).toBe(4);
     expect(b.days).toHaveLength(4);
-    // Токио: 1-е 19:00 (1-е), 2-е 18:00 (2-е), 3-е 08:30 (3-е)
+    // Tokyo: 1st 19:00 (1st), 2nd 18:00 (2nd), 3rd 08:30 (3rd)
     expect(b.done).toEqual([1, 2, 3, null]);
   });
 });
@@ -181,7 +181,7 @@ describe('wk2: поле «Спринт» в панели задачи', () => {
     await h.db.table('tasks').put(t);
     const w = mount(CyclePanel, { props: { taskId: t.id } });
     const sel = () => w.get('[data-role=cycle]').getComponent(Select);
-    await vi.waitFor(() => expect(sel().props('options')).toHaveLength(2)); // «без» + открытый; закрытый скрыт
+    await vi.waitFor(() => expect(sel().props('options')).toHaveLength(2)); // "none" + open; closed hidden
     sel().vm.$emit('update:modelValue', c.id);
     expect(mutate).toHaveBeenLastCalledWith('sprints.setTask', { taskId: t.id, cycleId: c.id });
     sel().vm.$emit('update:modelValue', '__none');

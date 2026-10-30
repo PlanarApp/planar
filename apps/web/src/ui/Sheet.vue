@@ -9,7 +9,7 @@ import {
 } from 'reka-ui';
 import { useI18n } from 'vue-i18n';
 
-// Лист снизу для mobile (Popover/Menu/Select); закрытие — подложка и Esc (Reka Dialog)
+// Bottom sheet for mobile (Popover/Menu/Select); closing — backdrop and Esc (Reka Dialog)
 defineProps<{ title?: string }>();
 const { t } = useI18n();
 const open = defineModel<boolean>('open', { default: false });

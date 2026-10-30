@@ -15,19 +15,19 @@ const DAY = 86400000;
 const ms = (d: string) => Date.parse(`${d}T00:00:00Z`);
 const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
 
-/** Первый день недели (YYYY-MM-DD), содержащей дату; weekStart: 0 — вс, 1 — пн. */
+/** The first day of the week (YYYY-MM-DD) containing the date; weekStart: 0 — Sun, 1 — Mon. */
 export function weekOf(date: string, weekStart: 0 | 1): string {
   const t = ms(date);
   return iso(t - ((new Date(t).getUTCDay() - weekStart + 7) % 7) * DAY);
 }
 
-/** `n` недель подряд, начиная с недели даты `from`. */
+/** `n` consecutive weeks starting from the week of the date `from`. */
 export const weekList = (from: string, weekStart: 0 | 1, n = 8): string[] =>
   Array.from({ length: n }, (_, i) => iso(ms(weekOf(from, weekStart)) + i * 7 * DAY));
 
 /**
- * userId → неделя → ячейка. Учитываются задачи с исполнителями, не done/cancelled, с dueDate.
- * estimates (taskId → минуты) задан — режим «оценки», иначе «число задач».
+ * userId → week → cell. Counts tasks with assignees that are not done/cancelled and have a dueDate.
+ * estimates (taskId → minutes) given — the «estimates» mode, otherwise «task count».
  */
 export function compute(a: {
   tasks: WTask[];
@@ -42,7 +42,7 @@ export function compute(a: {
   for (const t of a.tasks) {
     const users = who.get(t.id);
     if (!users?.length || !t.dueDate || a.doneStatuses.has(t.statusId)) continue;
-    // недели -> доля часов задачи
+    // weeks -> share of the task's hours
     const share = new Map<string, number>();
     const est = a.estimates ? (a.estimates.get(t.id) ?? 0) / 60 : 0;
     if (t.startDate && t.startDate <= t.dueDate) {

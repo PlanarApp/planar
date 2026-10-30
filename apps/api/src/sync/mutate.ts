@@ -18,7 +18,7 @@ import { ServerTx, type Q } from './server-tx.js';
 
 export type FailCode = Extract<SyncPushResponse['results'][number], { ok: false }>['code'];
 
-/** Мутация отклонена: откат транзакции. */
+/** Mutation rejected: transaction rollback. */
 export class Reject extends Error {
   constructor(
     public code: FailCode,
@@ -30,7 +30,7 @@ export class Reject extends Error {
 
 const log = new Logger('mutate');
 
-// сбой соединения/сервера БД — 500 целиком, а не отказ мутации
+// DB connection/server failure — 500 as a whole, not a mutation rejection
 function isInfra(err: unknown): boolean {
   const e = err as { code?: string; cause?: { code?: string } };
   const code = e.cause?.code ?? e.code ?? '';
@@ -38,14 +38,14 @@ function isInfra(err: unknown): boolean {
 }
 
 export interface RunOpts {
-  /** обход прав (ServerTx.asSystem) */
+  /** bypass of rights (ServerTx.asSystem) */
   system?: boolean;
   origin?: MutationOrigin | null;
-  /** для enqueue из хуков модулей; без него enqueue — no-op */
+  /** for enqueue from module hooks; without it enqueue is a no-op */
   jobs?: JobsService;
 }
 
-/** afterMutation включённых модулей: каждый в точке сохранения, ошибка не откатывает мутацию. */
+/** afterMutation of enabled modules: each in its own savepoint; an error does not roll back the mutation. */
 async function moduleHooks(
   tx: Q,
   stx: ServerTx,
@@ -86,7 +86,7 @@ async function moduleHooks(
   }
 }
 
-/** Одна мутация внутри открытой транзакции: ServerTx + хук уведомлений + хуки модулей. Ошибка → Reject. */
+/** One mutation inside an open transaction: ServerTx + notification hook + module hooks. An error → Reject. */
 export async function runMutation(
   tx: Q,
   userId: string,
@@ -129,7 +129,7 @@ export async function runMutation(
   }
 }
 
-/** Мутации одной транзакцией (REST); при Reject откат целиком. Push — после COMMIT. */
+/** Mutations in one transaction (REST); on Reject the whole thing rolls back. Push — after COMMIT. */
 export async function executeMutations(
   db: Db,
   userId: string,
@@ -143,7 +143,7 @@ export async function executeMutations(
 ): Promise<void> {
   const notified: string[] = [];
   await db.transaction(async (tx) => {
-    // блокировки и проверки в той же транзакции; false — мутации пропускаются
+    // locks and checks in the same transaction; false — mutations are skipped
     if ((await opts?.prepare?.(tx)) === false) return;
     for (const m of muts)
       await runMutation(tx, userId, m, notified, tokenId, { ...opts, jobs: queue?.jobs });

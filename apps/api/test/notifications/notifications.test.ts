@@ -9,9 +9,9 @@ import { dbUrl, newDb, TestClient, taskArgs, world, type World } from '../sync/h
 
 const db = newDb();
 const sender = { send: vi.fn(async () => {}) } satisfies PushSender;
-// worker выключен: проверяем, что job лежит в очереди; доставку зовём вручную
+// worker disabled: check that the job sits in the queue; delivery is called manually
 const queue = new PushQueue(db, { boss: true, worker: false, databaseUrl: dbUrl, sender });
-// pg-boss ставит схему при первом старте: под нагрузкой дольше таймаута теста
+// pg-boss creates the schema on first start: under load it can take longer than the test timeout
 beforeAll(() => queue.onModuleInit(), 90_000);
 afterAll(async () => {
   await queue.onApplicationShutdown();
@@ -34,7 +34,7 @@ const doc = (...mentions: string[]) => ({
 async function setup() {
   const w = await world(db);
   const svc = { push: new PushService(db, queue), pull: new PullService(db) };
-  // клиенты с очередью (world создаёт без неё)
+  // clients with the queue (world creates them without it)
   const wrap = (c: TestClient) => new TestClient(svc, c.userId);
   const x = {
     ...w,
@@ -134,7 +134,7 @@ describe('триггеры', () => {
       taskId: t.id,
       body: doc(w.member.userId),
     });
-    // member упомянут → mentioned, а не commented; admin — наблюдатель-автор задачи
+    // member mentioned → mentioned, not commented; admin — the author-watcher of the task
     expect((await notes(w.member.userId)).map((n) => n.kind)).toEqual(['mentioned']);
     expect((await notes(w.admin.userId)).map((n) => n.kind)).toEqual(['commented']);
     expect(await notes(w.guest.userId)).toHaveLength(0);
@@ -191,7 +191,7 @@ describe('синхронизация и откат', () => {
   it('отклонённая мутация не создаёт уведомлений и подписок', async () => {
     const w = await setup();
     const t = await task(w);
-    // гость не может назначать → forbidden
+    // a guest cannot assign → forbidden
     const r = await w.guest.push('task.assign', {
       id: uuidv7(),
       taskId: t.id,
@@ -221,7 +221,7 @@ describe('push', () => {
     const ids = [...(await notes(w.member.userId)), ...(await notes(w.guest.userId))].map(
       (n) => n.id,
     );
-    expect(ids).toHaveLength(3); // assigned, commented (member наблюдает), mentioned
+    expect(ids).toHaveLength(3); // assigned, commented (member watches), mentioned
     const queued = await jobs();
     for (const id of ids) expect(queued).toContain(id);
   });

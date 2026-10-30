@@ -22,7 +22,7 @@ beforeAll(async () => {
   await app.getHttpAdapter().getInstance().ready();
   w = await world(db);
   cookie = await loginCookie(db, w.admin.userId);
-  // admin мира — member; для settings нужен instance admin
+  // world admin is a member; settings need an instance admin
 });
 afterAll(async () => {
   await app.close();
@@ -85,12 +85,12 @@ describe('модули', () => {
     expect((await w.admin.bootstrap()).data.helloNotes).toMatchObject([
       { id: n.id, text: 'hi', spaceId: w.spaceId },
     ]);
-    // другой клиент: смена enabled_modules → reset
+    // another client: change of enabled_modules → reset
     expect(await w.member.pull(cursor)).toMatchObject({ reset: true });
     const { cursor: c2 } = await w.member.bootstrap();
     expect((await w.member.bootstrap()).data.helloNotes).toHaveLength(1);
 
-    // pull отдаёт строки модуля
+    // pull returns the module's rows
     const n2 = note(w.spaceId);
     await w.admin.ok('hello.create', n2);
     const p = await w.member.pull(c2);
@@ -122,7 +122,7 @@ describe('модули', () => {
       code: 'unknown_mutator',
     });
     expect((await w.admin.bootstrap()).data).not.toHaveProperty('helloNotes');
-    // reset ведёт к bootstrap; а pull с курсором после reset не содержит helloNotes
+    // reset leads to bootstrap; and a pull with a cursor after reset does not contain helloNotes
     expect(await w.member.pull(cursor)).toMatchObject({ reset: true, changes: [] });
     const { cursor: c2 } = await w.member.bootstrap();
     await ia.ok('settings.set', { id: 'other', value: 1 });

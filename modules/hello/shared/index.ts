@@ -10,7 +10,7 @@ export const helloNotes = z.object({
   createdAt: ts,
 });
 
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 const modTx = (tx: Tx) => tx as unknown as { put(e: string, row: unknown): Promise<void> };
 
 export const create = defineMutator({

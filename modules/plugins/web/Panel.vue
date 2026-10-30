@@ -9,7 +9,7 @@ const props = defineProps<{ taskId: string }>();
 const plugins = usePlugins();
 const list = computed(() => (plugins.value ?? []).filter((p) => p.points.taskPanel));
 const ctx = useQuery(() => taskContext(props.taskId));
-// до первого iframe; ключ iframe — taskId (смена задачи = новый iframe)
+// before the first iframe; the iframe key is taskId (a task change = a new iframe)
 watchEffect(() => {
   if (ctx.value) ensureWhenLoaded(plugins.value?.map((p) => p.origin));
 });

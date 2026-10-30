@@ -49,7 +49,7 @@ describe('views:builder', () => {
     await w.get('[data-role=operator]').setValue('notIn');
     expect(state.value.rules[0]).toEqual({ field: 'status', operator: 'notIn' });
     await w.get('[data-role=field]').setValue('dueDate');
-    // операторы поля — только допустимые, первый выбран
+    // field operators — only the allowed ones, the first is selected
     expect(
       w.findAll('[data-role=operator] option').map((o) => (o.element as HTMLOptionElement).value),
     ).toEqual(['before', 'after', 'isEmpty', 'isNotEmpty']);

@@ -11,20 +11,20 @@ const tx = useTexts();
 const route = useRoute();
 const router = useRouter();
 const { d, meId, users, unreadOf } = useChatData();
-// свёрнутость секции — своё состояние, не часть интерфейса ядра
+// the section's collapsed state — its own state, not part of the core UI
 const KEY = 'planar.sidebar.chat';
 const folded = ref(false);
 try {
   folded.value = localStorage.getItem(KEY) === '1';
 } catch {
-  /* без хранилища — до перезагрузки */
+  /* without storage — until reload */
 }
 const fold = () => {
   folded.value = !folded.value;
   try {
     localStorage.setItem(KEY, folded.value ? '1' : '0');
   } catch {
-    /* см. выше */
+    /* see above */
   }
 };
 const current = computed(() => route.params.channelId as string | undefined);
@@ -45,7 +45,7 @@ const groups = computed(() => {
     }))
     .filter((g) => g.items.length);
 });
-// без каналов: одна кнопка «создать» в первом пространстве, где можно
+// no channels: a single «create» button in the first space where it is possible
 const firstCreate = computed(
   () =>
     d.value &&
@@ -66,7 +66,7 @@ const dms = computed(() => {
     .map((c) => ({ c, title: dmTitle(c, x.members, users.value, meId.value) }));
 });
 const title = (c: Channel) => c.name ?? '';
-// «+» канал: в строке заголовка «Чат» — когда пространство одно (или каналов нет); при нескольких — в строке пространства
+// «+» channel: in the «Chat» header row — when there is one space (or no channels); with several — in the space row
 const headerSpace = computed(() =>
   groups.value.length > 1
     ? undefined
@@ -80,7 +80,7 @@ const hoverPlus = 'md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opac
 const row =
   'flex h-7 items-center justify-between gap-1.5 rounded-md pl-7 pr-2 text-sm hover:bg-bg-muted';
 
-// + канал: имя в строке под заголовком пространства
+// + channel: name in the row under the space header
 const addIn = ref('');
 const name = ref('');
 async function addChannel() {
@@ -92,7 +92,7 @@ async function addChannel() {
   void router.push(`/m/chat/c/${id}`);
 }
 
-// + диалог: выбор 1–7 людей; тот же состав — открыть существующий
+// + dialog: choose 1–7 people; the same set — open the existing one
 const picking = ref(false);
 const picked = ref<string[]>([]);
 const people = computed(() =>

@@ -16,7 +16,7 @@ const data = useQuery(async () => {
   ]);
   return { ms: ms.sort((a, b) => (a.date < b.date ? -1 : 1)), current: link?.milestoneId };
 });
-// Reka Select не принимает пустое значение
+// Reka Select does not accept an empty value
 const NONE = '__none';
 const choices = computed(() => [
   { value: NONE, label: tx.value.noMilestone },

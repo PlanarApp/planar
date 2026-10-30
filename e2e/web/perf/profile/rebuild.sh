@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Пересборка web с sourcemap и перезапуск vite preview (стек api уже поднят up.sh).
+# Rebuild web with sourcemap and restart vite preview (api stack already up via up.sh).
 set -uo pipefail
 cd "$(dirname "$0")/../../../.."
 . e2e/web/perf/profile/env.sh

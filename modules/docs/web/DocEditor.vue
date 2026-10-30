@@ -13,7 +13,7 @@ import { useTexts } from './text';
 
 const props = withDefaults(
   defineProps<{
-    /** Имя документа Yjs: `docs:<pageId>` (P3-ydoc). */
+    /** Yjs document name: `docs:<pageId>` (P3-ydoc). */
     name: string;
     members: { id: string; name: string }[];
     editable?: boolean;
@@ -44,7 +44,7 @@ async function insertImages(files: File[]) {
 const images = (list?: FileList | null) =>
   [...(list ?? [])].filter((f) => f.type.startsWith('image/'));
 
-// '/' — меню блоков
+// '/' — block menu
 const Slash = Extension.create({
   name: 'slashMenu',
   addProseMirrorPlugins() {
@@ -65,7 +65,7 @@ const Slash = Extension.create({
   },
 });
 
-// '@' — люди, '#' — задачи; один узел mention, у задач attrs.kind = 'task'
+// '@' — people, '#' — tasks; one mention node, tasks have attrs.kind = 'task'
 const TaskMention = Mention.extend({
   addAttributes() {
     return { ...this.parent?.(), kind: { default: null } };
@@ -115,7 +115,7 @@ const retry = () => {
 let gone = false;
 let readOnly = () => false;
 
-// yjs/hocuspocus — отдельный чанк
+// yjs/hocuspocus — separate chunk
 void import('@planar/editor/collab').then(({ openCollab }) => {
   if (gone) return;
   const c = openCollab(props.name, { id: user.value?.id ?? '', name: user.value?.name ?? '' });

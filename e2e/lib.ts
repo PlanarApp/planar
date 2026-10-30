@@ -14,7 +14,7 @@ export function uuidv7(): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-/** n возрастающих rank (fractional-indexing). */
+/** n increasing ranks (fractional-indexing). */
 export function ranks(n: number): string[] {
   const out: string[] = [];
   let prev: string | null = null;
@@ -41,7 +41,7 @@ export interface Pull {
   reset?: boolean;
 }
 
-/** Клиент протокола C-sync: сессия, свой clientId и счётчик мутаций. */
+/** C-sync protocol client: session, its own clientId and mutation counter. */
 export class Client {
   clientId = uuidv7();
   mid = 0;
@@ -57,7 +57,7 @@ export class Client {
     return new Client(ctx, (await r.json()).user.id);
   }
 
-  /** Мутация со следующим id (не отправляет). */
+  /** Mutation with the next id (does not send). */
   mut(name: string, args: Record<string, unknown>): Mutation {
     return { id: ++this.mid, name, args };
   }
@@ -68,7 +68,7 @@ export class Client {
     return (await r.json()).results;
   }
 
-  /** Отправить и убедиться, что все приняты. */
+  /** Send and make sure all of them are accepted. */
   async pushOk(mutations: Mutation[]): Promise<void> {
     for (const x of await this.push(mutations))
       if (!x.ok) throw new Error(`mutation ${x.id}: ${x.code} ${x.message}`);
@@ -97,7 +97,7 @@ export class Client {
   }
 }
 
-/** WS-клиент: собирает poke, умеет ждать следующий. */
+/** WS client: collects poke, can wait for the next one. */
 export class Ws {
   messages: Record<string, unknown>[] = [];
   private waiters: ((m: Record<string, unknown>) => void)[] = [];
@@ -124,7 +124,7 @@ export class Ws {
     });
   }
 
-  /** Следующее сообщение после вызова (или ошибка по таймауту). */
+  /** Next message after the call (or an error on timeout). */
   next(timeoutMs = 5000): Promise<Record<string, unknown>> {
     return new Promise((res, rej) => {
       const t = setTimeout(() => rej(new Error('ws: нет сообщения')), timeoutMs);

@@ -1,4 +1,4 @@
-# Только для ops/test-upgrade.sh: миграции новой версии не проходят (БД недоступна), образ при этом новый.
+# Only for ops/test-upgrade.sh: the migrations of the new version fail (DB unavailable), while the image is new.
 services:
   api:
     environment:

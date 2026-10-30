@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { ChevronDown, FolderKanban } from 'lucide-vue-next';
 import { Button, Popover } from '../ui';
 
-// фильтр сводки по проектам: пусто — «Все проекты», можно выбрать несколько и очистить
+// project filter of the summary: empty — "All projects", several can be selected and cleared
 const props = defineProps<{ options: { value: string; label: string }[] }>();
 const picked = defineModel<string[]>({ default: () => [] });
 const { t } = useI18n();

@@ -1,4 +1,4 @@
-// Чистая логика вида «Таймлайн» (P3-timeline v1): даты — YYYY-MM-DD, дни считаются числом от эпохи (UTC).
+// Pure logic of the «Timeline» view (P3-timeline v1): dates — YYYY-MM-DD, days are counted as a number from the epoch (UTC).
 export type Scale = 'day' | 'week' | 'month';
 export interface Dated {
   id: string;
@@ -26,7 +26,7 @@ export const toDay = (d: string): number => {
 };
 export const fromDay = (n: number): string => new Date(n * DAY_MS).toISOString().slice(0, 10);
 
-/** Полоса по датам (включительно): обе — [start, due] (start > due — переставлены); одна — 1 день; нет — null. */
+/** A bar by dates (inclusive): both — [start, due] (start > due — swapped); one — 1 day; none — null. */
 export function barOf(t: Dated): Bar | null {
   const a = t.startDate ? toDay(t.startDate) : null;
   const b = t.dueDate ? toDay(t.dueDate) : null;
@@ -41,7 +41,7 @@ export type DateArgs = {
   dueDate?: string;
 };
 
-/** Перенос на delta дней: сдвиг обеих дат (какие есть). */
+/** Move by delta days: shift both dates (whichever exist). */
 export function moveArgs(t: Dated, delta: number): DateArgs {
   const a: DateArgs = { id: t.id };
   if (t.startDate) a.startDate = fromDay(toDay(t.startDate) + delta);
@@ -49,7 +49,7 @@ export function moveArgs(t: Dated, delta: number): DateArgs {
   return a;
 }
 
-/** Растягивание края полосы до дня `day`: одна дата превращается в обе; край не переходит за другой. */
+/** Stretching an edge of the bar to day `day`: one date becomes both; the edge does not cross the other. */
 export function resizeArgs(t: Dated, edge: 'start' | 'end', day: number): DateArgs {
   const b = barOf(t)!;
   const s = edge === 'start' ? Math.min(day, b.e) : b.s;
@@ -57,17 +57,17 @@ export function resizeArgs(t: Dated, edge: 'start' | 'end', day: number): DateAr
   return { id: t.id, startDate: fromDay(s), dueDate: fromDay(e) };
 }
 
-/** Перенос из «Без дат»: обе даты = день, длительность 1 день. */
+/** Move from «No dates»: both dates = the day, duration 1 day. */
 export const dropArgs = (id: string, day: number): DateArgs => ({
   id,
   startDate: fromDay(day),
   dueDate: fromDay(day),
 });
 
-/** Нарушение «A блокирует B»: начало B ≤ конец A (обе на шкале). */
+/** A violation of «A blocks B»: start of B ≤ end of A (both on the scale). */
 export const violates = (a: Bar | null, b: Bar | null): boolean => !!a && !!b && b.s <= a.e;
 
-/** Связи `blocks` с нарушением после применения args к задаче `id`, которых до переноса не было. */
+/** `blocks` links with a violation after applying args to task `id` that did not exist before the move. */
 export function newViolations(
   links: Link[],
   bars: (id: string) => Bar | null,
@@ -84,7 +84,7 @@ export function newViolations(
   );
 }
 
-/** Окно видимых строк [from, to) с запасом. */
+/** The window of visible rows [from, to) with a margin. */
 export function rowWindow(
   scrollTop: number,
   viewH: number,
@@ -97,7 +97,7 @@ export function rowWindow(
   return [from, Math.max(from, to)];
 }
 
-/** Видимый диапазон дней [from, to] (включительно) по прокрутке; origin — день левого края шкалы. */
+/** The visible range of days [from, to] (inclusive) by scrolling; origin — the day at the left edge of the scale. */
 export function dayWindow(
   scrollLeft: number,
   viewW: number,
@@ -112,7 +112,7 @@ export function dayWindow(
   ];
 }
 
-/** Метки шкалы в диапазоне: день — каждый день, неделя — первый день недели, месяц — 1-е число. */
+/** Scale marks in the range: a day — every day, a week — the first day of the week, a month — the 1st. */
 export function ticks(
   from: number,
   to: number,
@@ -134,7 +134,7 @@ export function ticks(
   return out;
 }
 
-/** Границы шкалы: все полосы + сегодня, с запасом по краям. */
+/** The scale bounds: all bars + today, with a margin at the edges. */
 export function span(bars: Bar[], today: number, pad = 14): [number, number] {
   let lo = today;
   let hi = today;

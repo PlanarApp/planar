@@ -31,7 +31,7 @@ const editor = (d: never, value?: unknown) =>
   });
 const type = async (w: ReturnType<typeof editor>, v: string) => {
   const input = w.get('input');
-  await input.setValue(v); // setValue шлёт input и change
+  await input.setValue(v); // setValue fires input and change
 };
 const emitted = (w: ReturnType<typeof editor>) => w.emitted('update:value') ?? [];
 

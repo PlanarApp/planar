@@ -5,12 +5,12 @@ export interface ToastItem {
   text: string;
 }
 
-/** Короткие сообщения об ошибках: клик, который упал, не должен выглядеть как «ничего не произошло». */
+/** Short error messages: a click that failed must not look like "nothing happened". */
 export const toasts = shallowRef<ToastItem[]>([]);
 let seq = 0;
 
 export function toast(text: string, ms = 6000): void {
-  // одинаковое сообщение подряд не множим (повторные клики по сломанной кнопке)
+  // don't multiply an identical message in a row (repeated clicks on a broken button)
   if (toasts.value.at(-1)?.text === text) return;
   const id = ++seq;
   toasts.value = [...toasts.value.slice(-2), { id, text }];

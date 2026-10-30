@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// иконка узла (Воркспейс, пространство, проект): 'file:<sha256>' — картинка, иначе эмодзи
+// node icon (Workspace, space, project): 'file:<sha256>' — an image, otherwise emoji
 defineProps<{ icon: string }>();
 </script>
 

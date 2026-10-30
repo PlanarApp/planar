@@ -24,7 +24,7 @@ const loginBody = z.object({ login: z.string().max(200), password: z.string().ma
 
 const iso = (s: string | null) => (s ? new Date(s).toISOString() : null);
 
-/** Строка users для ответов: без password_hash, даты ISO. */
+/** users row for responses: without password_hash, dates in ISO. */
 export function publicUser(u: typeof users.$inferSelect) {
   const rest: Partial<typeof u> = { ...u };
   delete rest.passwordHash;
@@ -64,9 +64,27 @@ export class AuthController {
       throw new HttpError(401, 'invalid_credentials', 'Неверный логин или пароль');
     }
     await resetAttempts(this.db, key);
+    return this.startSession(req, res, user);
+  }
+
+  private async startSession(
+    req: FastifyRequest,
+    res: FastifyReply,
+    user: typeof users.$inferSelect,
+  ) {
     const token = await createSession(this.db, user.id, req.headers['user-agent']);
     void res.header('set-cookie', sessionCookie(token, { secure: this.opts.cookieSecure }));
     return { user: publicUser(user) };
+  }
+
+  /** DEMO_MODE only: session of the «demo» user without a password. */
+  @Public()
+  @Post('demo-login')
+  @HttpCode(200)
+  async demoLogin(@Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
+    const user = this.opts.demo ? await findUserByLogin(this.db, 'demo') : undefined;
+    if (!user || user.deactivatedAt) throw new HttpError(404, 'not_found', 'Not found');
+    return this.startSession(req, res, user);
   }
 
   @Post('logout')

@@ -14,7 +14,7 @@ import {
 } from '../tasks';
 import { useSelection } from './selection';
 
-/** Панель массовых действий над выделенными задачами вида (по одной мутации на задачу). */
+/** Bulk action bar for the selected tasks of the view (one mutation per task). */
 const props = defineProps<{ spaceId: string; tasks: readonly TaskView[] | undefined }>();
 const { t } = useI18n();
 const sel = useSelection();

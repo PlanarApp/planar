@@ -10,7 +10,7 @@ for (const [a, p] of [
   ['169.254.0.0', 16],
   ['172.16.0.0', 12],
   ['192.168.0.0', 16],
-  ['224.0.0.0', 3], // 224/4 и выше
+  ['224.0.0.0', 3], // 224/4 and above
 ] as const)
   deny.addSubnet(a, p, 'ipv4');
 deny.addAddress('::', 'ipv6');
@@ -22,7 +22,7 @@ for (const [a, p] of [
 ] as const)
   deny.addSubnet(a, p, 'ipv6');
 
-/** ::ffff:a.b.c.d и ::ffff:xxxx:yyyy → a.b.c.d, иначе адрес как есть */
+/** ::ffff:a.b.c.d and ::ffff:xxxx:yyyy → a.b.c.d, otherwise the address as is */
 function unmap(addr: string): string {
   const a = addr.toLowerCase();
   const d = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(a);
@@ -38,7 +38,7 @@ export const isBlocked = (addr: string): boolean => {
   return deny.check(a, isIP(a) === 6 ? 'ipv6' : 'ipv4');
 };
 
-/** WEBHOOKS_ALLOW_HOSTS: имена хостов или CIDR через запятую (читается при каждой попытке). */
+/** WEBHOOKS_ALLOW_HOSTS: host names or CIDRs, comma-separated (read on every attempt). */
 function allowed(host: string, addrs: string[]): boolean {
   const items = (process.env.WEBHOOKS_ALLOW_HOSTS ?? '')
     .split(',')
@@ -64,7 +64,7 @@ export class BlockedAddress extends Error {
   }
 }
 
-/** DNS-резолв, проверка всех адресов; возвращает проверенный адрес для соединения. */
+/** DNS resolution, check of all addresses; returns the verified address for the connection. */
 export async function safeAddress(hostname: string): Promise<{ address: string; family: 4 | 6 }> {
   const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
   const list = isIP(host)

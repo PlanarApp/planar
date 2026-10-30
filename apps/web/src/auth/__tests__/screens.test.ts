@@ -83,6 +83,23 @@ describe('auth:setup', () => {
     expect(useAuth().user.value?.login).toBe('ann');
     expect(router.currentRoute.value.path).toBe('/');
   });
+  it('tokenRequired -> поле токена уходит в X-Setup-Token', async () => {
+    const f = mockFetch((m, p) =>
+      p === '/api/setup' || p === '/api/auth/login' ? json(200, { user: mkUser() }) : undefined,
+    );
+    useAuth().lastSetupInfo.value = {
+      needed: true,
+      tokenRequired: true,
+      demo: false,
+      demoResetHours: 24,
+    };
+    const { w } = await mountAt(SetupScreen, '/setup');
+    await fill(w, ['tok-123', 'ann', 'Ann', 'password1', 'password1']);
+    await w.find('form').trigger('submit');
+    await flushPromises();
+    const init = f.mock.calls[0]![1] as RequestInit;
+    expect((init.headers as Record<string, string>)['X-Setup-Token']).toBe('tok-123');
+  });
 });
 
 describe('auth:profile', () => {
@@ -171,7 +188,7 @@ describe('auth:admin-users', () => {
     await flushPromises();
     expect(w.find('[data-testid=nav-users]').exists()).toBe(false);
     expect(w.find('[data-testid=user-row]').exists()).toBe(false);
-    // профиль (куда ведёт редирект) сам грузит токены; список пользователей — нет
+    // profile (where the redirect leads) loads tokens itself; the user list does not
     expect(f.mock.calls.map((c) => c[0])).not.toContain('/api/users');
   });
 });

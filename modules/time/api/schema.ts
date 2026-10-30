@@ -22,7 +22,7 @@ export const timeEntries = pgTable(
     index('time_entries_space_id_idx').on(t.spaceId),
     index('time_entries_task_id_idx').on(t.taskId),
     index('time_entries_user_id_idx').on(t.userId),
-    // один идущий таймер на пользователя
+    // one running timer per user
     uniqueIndex('time_entries_running_uq')
       .on(t.userId)
       .where(sql`${t.endedAt} is null`),

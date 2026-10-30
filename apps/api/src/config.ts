@@ -1,6 +1,6 @@
 import { isIP } from 'node:net';
 
-/** MAX_UPLOAD_MB: пусто/не задано → 50; нечисло или ≤ 0 → ошибка. */
+/** MAX_UPLOAD_MB: empty/unset → 50; not a number or ≤ 0 → error. */
 export function parseMaxUploadMb(raw: string | undefined): number {
   if (raw === undefined || raw.trim() === '') return 50;
   const n = Number(raw);
@@ -9,7 +9,32 @@ export function parseMaxUploadMb(raw: string | undefined): number {
   return n;
 }
 
-/** TRUST_PROXY: IP/CIDR через запятую → список для Fastify trustProxy; пусто → []. true/имена → ошибка. */
+/** positive integer env var; empty/unset → def. */
+function parsePosInt(name: string, raw: string | undefined, def: number): number {
+  if (raw === undefined || raw.trim() === '') return def;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1)
+    throw new Error(`${name}: ожидается целое ≥ 1, получено "${raw}"`);
+  return n;
+}
+
+/** DB_POOL_MAX: empty/unset → 10; not an integer ≥ 1 → error. */
+export const parseDbPoolMax = (raw: string | undefined): number =>
+  parsePosInt('DB_POOL_MAX', raw, 10);
+
+/** DEMO_RESET_HOURS: empty/unset → 24; not an integer ≥ 1 → error. */
+export const parseDemoResetHours = (raw: string | undefined): number =>
+  parsePosInt('DEMO_RESET_HOURS', raw, 24);
+
+/** DEMO_MODE: true/false (case-insensitive); empty/unset → false; anything else → error. */
+export function parseDemoMode(raw: string | undefined): boolean {
+  const v = (raw ?? '').trim().toLowerCase();
+  if (v === '' || v === 'false') return false;
+  if (v === 'true') return true;
+  throw new Error(`DEMO_MODE: ожидается true или false, получено "${raw}"`);
+}
+
+/** TRUST_PROXY: comma-separated IP/CIDR → list for Fastify trustProxy; empty → []. true/names → error. */
 export function parseTrustProxy(raw: string | undefined): string[] {
   const list = (raw ?? '')
     .split(',')

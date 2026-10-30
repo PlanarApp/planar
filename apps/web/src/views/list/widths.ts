@@ -4,7 +4,7 @@ import type { TaskView } from '../../tasks';
 import { formatDue } from './due';
 import type { ListColumn } from './columns';
 
-/** Ширина текста в px шрифтом страницы (canvas); без canvas (тесты) — по числу символов. */
+/** Text width in px with the page font (canvas); without canvas (tests) — by character count. */
 let ctx: CanvasRenderingContext2D | null | undefined;
 export function textWidth(s: string, px = 14): number {
   if (ctx === undefined)
@@ -32,7 +32,7 @@ export interface WidthCtx {
   locale: string;
 }
 
-/** Авторазмер колонки по содержимому строк (как в ClickUp): самое широкое значение + отступы ячейки. */
+/** Column auto-size by row content (as in ClickUp): widest value + cell padding. */
 export function autoWidth(c: ListColumn, tasks: readonly TaskView[], x: WidthCtx): number {
   const head = textWidth(x.header(c), 12) + 16;
   let w = 0;
@@ -61,8 +61,8 @@ export function autoWidth(c: ListColumn, tasks: readonly TaskView[], x: WidthCtx
 }
 
 /**
- * Ширины колонок Списка: авторазмер по содержимому; перетащенная вручную — запоминается
- * (localStorage, на ключ вида), двойной клик по разделителю возвращает авторазмер.
+ * List column widths: auto-size by content; a width dragged by hand is remembered
+ * (localStorage, per view key), a double click on the divider returns auto-size.
  */
 export function useColumnWidths(
   key: MaybeRefOrGetter<string>,
@@ -87,7 +87,7 @@ export function useColumnWidths(
     try {
       localStorage.setItem(store(), JSON.stringify(manual.value));
     } catch {
-      /* без хранилища — до перезагрузки */
+      /* no storage — until reload */
     }
   };
   const widths = computed(() => {
@@ -107,7 +107,7 @@ export function useColumnWidths(
     manual.value = m;
     save();
   };
-  /** перетаскивание разделителя в шапке колонки */
+  /** dragging the divider in the column header */
   function startResize(col: ListColumn, e: PointerEvent) {
     const x0 = e.clientX;
     const w0 = widths.value[col];

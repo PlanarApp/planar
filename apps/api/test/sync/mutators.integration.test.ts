@@ -148,7 +148,7 @@ describe('мутаторы через push: данные', () => {
   it('space.delete целиком (создатель теряет членство до пространства, но права сохраняются)', async () => {
     const w = await world(db);
     await w.admin.ok('project.delete', { id: w.projectId });
-    // участники member/guest удаляются тем же мутатором
+    // members member/guest are deleted by the same mutator
     await w.admin.ok('space.delete', { id: w.spaceId });
     const b = await w.admin.bootstrap();
     expect(b.data.spaces!.some((s) => s.id === w.spaceId)).toBe(false);

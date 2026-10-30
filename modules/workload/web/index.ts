@@ -1,7 +1,7 @@
 import { defineComponent, h } from 'vue';
 import { defineWebModule } from '@planar/web/modules';
 
-// Иконка без зависимости от lucide: столбцы
+// Icon without a lucide dependency: columns
 const Bars = defineComponent({
   props: { size: { type: [Number, String], default: 16 } },
   setup: (p) => () =>

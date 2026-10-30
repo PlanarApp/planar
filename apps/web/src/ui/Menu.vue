@@ -27,7 +27,7 @@ import Sheet from './Sheet.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 import Kbd from './Kbd.vue';
 
-/** пункт подменю: выбор значения (статус, приоритет…); checked — текущее */
+/** submenu item: value choice (status, priority…); checked — the current one */
 export type SubItem = {
   id: string;
   label: string;
@@ -44,7 +44,7 @@ type Item = {
   danger?: boolean;
   disabled?: boolean;
   confirm?: { title: string; description?: string; confirmLabel: string };
-  /** подменю вместо действия (один уровень) */
+  /** submenu instead of an action (one level) */
   children?: SubItem[];
   onSelect?: () => void;
 };
@@ -55,9 +55,9 @@ const props = withDefaults(
     items: MenuItem[];
     side?: 'top' | 'right' | 'bottom' | 'left';
     align?: 'start' | 'center' | 'end';
-    /** подпись кнопки «…», когда слота trigger нет */
+    /** label of the "…" button when there is no trigger slot */
     label?: string;
-    /** контекстное меню: открывается правым кликом (долгим нажатием) по содержимому слота default */
+    /** context menu: opens by right-click (long press) on the content of the default slot */
     context?: boolean;
   }>(),
   { align: 'start' },
@@ -81,7 +81,7 @@ const pick = (f: () => void) => {
 };
 const confirmed = () => pending.value?.onSelect?.();
 
-// одинаковые компоненты reka для двух видов меню
+// the same reka components for two kinds of menu
 const kind = computed(() =>
   props.context
     ? {

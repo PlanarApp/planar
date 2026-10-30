@@ -7,9 +7,9 @@
   <button id="comment" disabled>Комментарий</button>
   <p id="msg"></p>
   <script>
-    // Хостить на другом ХОСТЕ, чем приложение (другой порт не годится); зарегистрировать в Настройки → Плагины.
-    // Права: read — tasks, users; write — comments. Origin приложения плагину заранее неизвестен, поэтому
-    // запросы идут с '*' (хост проверяет origin и source), а ответы принимаем только от parent.
+    // Host it on a different HOST than the app (another port is not enough); register it in Settings → Plugins.
+    // Permissions: read — tasks, users; write — comments. The plugin does not know the app's origin in advance, so
+    // requests go with '*' (the host checks origin and source), and we accept responses only from parent.
     let init;
     let seq = 0;
     const pending = {};

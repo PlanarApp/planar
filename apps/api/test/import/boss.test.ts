@@ -10,7 +10,7 @@ import * as schema from '../../src/db/schema.js';
 import { ORIGIN, loginCookie } from '../auth.js';
 import { dbUrl, key, newDb, taskArgs, world, type World } from '../sync/helpers.js';
 
-// Настоящий pg-boss: задача import.run ставится из контроллера, sweep (раз в минуту) не нужен.
+// Real pg-boss: the import.run job is enqueued from the controller; the sweep (once a minute) is not needed.
 const db = newDb();
 let app: Awaited<ReturnType<typeof createApp>>;
 let w: World;
@@ -24,7 +24,7 @@ beforeAll(async () => {
   app = await createApp({ databaseUrl: dbUrl, publicUrl: ORIGIN, push: { boss: true } });
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
-  // vitest без decorator-metadata: @Optional() JobsService в CoreService остаётся undefined — подключаем руками
+  // vitest without decorator metadata: @Optional() JobsService in CoreService stays undefined — wire it by hand
   (app.get(CORE) as unknown as { jobs: JobsService }).jobs = app.get(JobsService);
   w = await world(db);
   cookie = await loginCookie(db, w.admin.userId);

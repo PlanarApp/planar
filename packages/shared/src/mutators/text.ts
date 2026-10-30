@@ -1,6 +1,6 @@
 type Node = { type?: string; attrs?: { id?: string }; content?: unknown[] };
 
-/** id упомянутых пользователей (узлы mention), без повторов, в порядке появления. */
+/** ids of mentioned users (mention nodes), without repeats, in order of appearance. */
 export function extractMentions(doc: unknown): string[] {
   const ids = new Set<string>();
   const walk = (n: unknown) => {
@@ -12,7 +12,7 @@ export function extractMentions(doc: unknown): string[] {
   return [...ids];
 }
 
-/** Абзацы по переводам строки; `@login` известного пользователя → узел mention. */
+/** Paragraphs split by line breaks; `@login` of a known user → mention node. */
 export function textToDoc(text: string, users: { id: string; login: string }[]) {
   const byLogin = new Map(users.map((u) => [u.login, u.id]));
   const paragraph = (line: string) => {

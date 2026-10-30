@@ -7,7 +7,7 @@ import type { RestService } from '../rest/rest.service.js';
 import { commentBody, createTaskBody, linkBody, patchTaskBody } from '../rest/schemas.js';
 
 type Node = { text?: string; attrs?: { label?: string }; type?: string; content?: Node[] };
-/** ProseMirror-документ → простой текст (абзацы через \n, mention → @login) */
+/** ProseMirror document → plain text (paragraphs via \n, mention → @login) */
 export function docToText(doc: unknown): string | null {
   if (!doc) return null;
   const walk = (n: Node): string =>
@@ -31,7 +31,7 @@ const flat = <T extends { description?: unknown }>(t: T) => ({
 const cmt = <T extends { body?: unknown }>(c: T) => ({ ...c, body: docToText(c.body) });
 const task = z.string().describe('id или ключ задачи, например PLN-12');
 
-/** Новый сервер на каждый запрос (stateless); права — из ctx токена. */
+/** New server per request (stateless); rights — from the token ctx. */
 export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
   const server = new McpServer({ name: 'planar', version: '1.0.0' });
   const uid = ctx.userId;

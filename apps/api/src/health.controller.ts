@@ -7,7 +7,7 @@ import type { Db } from './db/index.js';
 import { JobsService } from './jobs/jobs.js';
 import { DB } from './tokens.js';
 
-// тот же путь, что migrationsFolder в db/index.ts
+// same path as migrationsFolder in db/index.ts
 const journal = fileURLToPath(new URL('../drizzle/meta/_journal.json', import.meta.url));
 
 @Public()
@@ -39,7 +39,7 @@ export class HealthController {
     let applied: number;
     try {
       await this.db.$client.query('select 1');
-      // нет таблицы миграций — ничего не применено
+      // no migrations table — nothing applied
       applied = Number(
         (await this.db.$client.query(`select to_regclass('drizzle.__drizzle_migrations') as t`))
           .rows[0].t
@@ -57,13 +57,13 @@ export class HealthController {
     try {
       expected = (JSON.parse(readFileSync(journal, 'utf8')).entries as unknown[]).length;
     } catch {
-      /* нет журнала (как в migrate()) — ждать нечего */
+      /* no journal (as in migrate()) — nothing to wait for */
     }
     if (applied < expected) return fail({ db: 'up', migrations: 'pending' });
     let queue: 'up' | 'off' = 'off';
     if (this.jobs.enabled) {
       try {
-        // живая проверка на каждой пробе, таймаут 2 с
+        // live check on every probe, 2 s timeout
         let timer: NodeJS.Timeout | undefined;
         try {
           await Promise.race([

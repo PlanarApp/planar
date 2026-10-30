@@ -17,7 +17,7 @@ interface RenderProps {
   clientRect?: (() => DOMRect | null) | null;
 }
 
-/** render для @tiptap/suggestion: состояние пишем в ref, список рисует компонент. */
+/** render for @tiptap/suggestion: state is written to a ref, the list is drawn by the component. */
 export const suggestRender = (state: Ref<SugState | null>) => () => {
   const set = (p: RenderProps) =>
     (state.value = {

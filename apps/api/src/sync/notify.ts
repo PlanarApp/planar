@@ -7,7 +7,7 @@ const CHANNEL = 'planar_changes';
 const COALESCE_MS = 50;
 const RECONNECT_MS = 1000;
 
-/** Одно LISTEN-соединение на процесс; подписчики получают последний seq пачки (склейка ≤ 50 мс). */
+/** One LISTEN connection per process; subscribers get the last seq of the batch (coalescing ≤ 50 ms). */
 @Injectable()
 export class ChangeNotifier implements OnModuleInit, OnModuleDestroy {
   private subs = new Set<(seq: number) => void>();
@@ -56,7 +56,7 @@ export class ChangeNotifier implements OnModuleInit, OnModuleDestroy {
     try {
       await client.connect();
       await client.query(`LISTEN ${CHANNEL}`);
-      // пока соединения не было, уведомления могли пропасть
+      // while there was no connection, notifications could have been lost
       const r = await this.db.$client.query('select coalesce(max(seq), 0) as seq from changes');
       this.push(Number(r.rows[0].seq));
     } catch {
@@ -64,7 +64,7 @@ export class ChangeNotifier implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Первое уведомление уходит сразу, пачка в течение следующих 50 мс склеивается в одну рассылку. */
+  /** The first notification goes out at once; a batch within the next 50 ms is merged into one broadcast. */
   private push(seq: number) {
     if (!seq) return;
     if (this.flushTimer) {

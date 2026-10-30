@@ -15,11 +15,11 @@ import {
 
 const weekStart = useWeekStart();
 const spaces = useSpaces();
-// выбранное пространство — в адресе (?space=): после перезагрузки то же самое
+// the selected space — in the address (?space=): after a reload, the same
 const router = useRouter();
-// без роутера (тесты страницы) — выбор просто не запоминается
+// without a router (page tests) — the selection is simply not remembered
 const query = () => router?.currentRoute.value.query ?? {};
-// space — таб «Отчёты» группы: пространство задано группой, выбора нет
+// space — «Reports» tab of the group: the space is set by the group, no choice
 const props = defineProps<{ space?: string }>();
 const spaceId = ref(
   props.space ?? (typeof query().space === 'string' ? (query().space as string) : ''),

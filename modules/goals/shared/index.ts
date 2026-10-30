@@ -97,12 +97,12 @@ export type KeyResult = {
   rank: string;
 };
 
-// ---- прогресс (чистые функции) ----
+// ---- progress (pure functions) ----
 
 export type StatusCategory = 'backlog' | 'todo' | 'in_progress' | 'done' | 'cancelled';
 const clamp = (x: number) => Math.min(1, Math.max(0, x));
 
-/** Доля 0–1: `number` — шкала start→target; `tasks` — доля done среди неотменённых задач по фильтру. */
+/** Share 0–1: `number` — scale start→target; `tasks` — share of done among non-cancelled tasks matching the filter. */
 export function krProgress(
   kr: Pick<KeyResult, 'kind' | 'metric' | 'filter'>,
   tasks: FilterTask[],
@@ -128,7 +128,7 @@ export function krProgress(
   return total ? done / total : 0;
 }
 
-/** Среднее по ключевым результатам; нет их — null. */
+/** Average over the key results; if there are none — null. */
 export const goalProgress = (progresses: number[]): number | null =>
   progresses.length ? progresses.reduce((a, b) => a + b, 0) / progresses.length : null;
 
@@ -148,9 +148,9 @@ export function milestoneProgress(tasks: { category: StatusCategory }[]): {
   return { counts, done: base > 0 ? counts.done / base : 0 };
 }
 
-// ---- мутаторы ----
+// ---- mutators ----
 
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface MTx {
   get<T>(e: string, id: string): Promise<T | undefined>;
   put(e: string, row: unknown): Promise<void>;
@@ -172,7 +172,7 @@ async function checkOwner(tx: Tx, spaceId: string, ownerId: string | null | unde
   const ms = await tx.scan('spaceMembers', { index: 'spaceId', eq: spaceId });
   if (!ms.some((x) => x.userId === ownerId)) throw bad('ownerId не участник пространства');
 }
-/** Убрать задачу из вехи (строки по taskId). */
+/** Remove a task from the milestone (rows by taskId). */
 const unlink = async (tx: Tx, taskId: string) => {
   for (const r of await m(tx).scan<MilestoneTask>('goalsMilestoneTasks', {
     index: 'taskId',
@@ -182,7 +182,7 @@ const unlink = async (tx: Tx, taskId: string) => {
 };
 
 const nullable = <T extends z.ZodType>(s: T) => s.nullable().optional();
-/** patch без `id` и ключей undefined */
+/** patch without `id` and undefined keys */
 const clean = (o: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(o).filter(([k, v]) => k !== 'id' && v !== undefined));
 

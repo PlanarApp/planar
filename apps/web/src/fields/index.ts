@@ -7,7 +7,7 @@ import { db, mutate } from '../sync';
 export { default as FieldCell } from './FieldCell.vue';
 export { default as FieldEditor } from './FieldEditor.vue';
 
-/** liveQuery с реактивным аргументом (см. tasks/queries useLive). */
+/** liveQuery with a reactive argument (see tasks/queries useLive). */
 function live<A, T>(arg: () => A, fn: (a: A) => Promise<T>): Readonly<Ref<T | undefined>> {
   const r = shallowRef<T>();
   let sub: Subscription | undefined;
@@ -34,14 +34,14 @@ export const useFieldDefs = (projectId: MaybeRefOrGetter<string>) =>
     async (p) => (await defs().where('projectId').equals(p).toArray()).sort(byRank),
   );
 
-/** Определения всех проектов пространства (конструктор фильтра без проекта). */
+/** Definitions of all projects in the space (filter builder without project). */
 export const useSpaceFieldDefs = (spaceId: MaybeRefOrGetter<string>) =>
   live(
     () => toValue(spaceId),
     async (s) => (await defs().where('spaceId').equals(s).toArray()).sort(byRank),
   );
 
-/** Определения по id (фильтры); удалённые пропускаются. */
+/** Definitions by id (filters); deleted ones are skipped. */
 export const useFieldDefsByIds = (ids: MaybeRefOrGetter<string>) =>
   live(
     () => toValue(ids),

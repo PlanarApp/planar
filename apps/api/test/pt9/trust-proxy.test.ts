@@ -27,7 +27,7 @@ async function failures(trustProxy: string[], remoteAddress: string, xffs: strin
   return codes;
 }
 
-// 11 попыток с разными X-Forwarded-For: лимит срабатывает, только если адрес один
+// 11 attempts with different X-Forwarded-For: the limit triggers only if the address is the same
 const many = Array.from({ length: 11 }, (_, i) => `9.9.9.${i + 1}`);
 const same = Array.from({ length: 11 }, () => '9.9.9.9');
 const addr = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.7`;

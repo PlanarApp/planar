@@ -20,7 +20,7 @@ const { error, run } = useAction();
 const isAdmin = useAdminSpaces();
 const canEdit = computed(() => isAdmin(props.spaceId));
 const statuses = useStatuses(() => props.spaceId);
-// локальные списки для Sortable; источник правды — реплика
+// local lists for Sortable; the source of truth is the replica
 const lists = reactive<Record<Category, Row<'statuses'>[]>>({
   backlog: [],
   todo: [],
@@ -58,7 +58,7 @@ const create = () =>
     name.value = '';
   });
 
-/** Перенос в категорию на позицию index: rank — между соседями без самого статуса. */
+/** Move to a category at position index: rank — between the neighbours, without the status itself. */
 function move(id: string, cat: Category, index: number) {
   const others = (statuses.value ?? []).filter((s) => s.category === cat && s.id !== id);
   const rank = rankBetween(others[index - 1]?.rank ?? null, others[index]?.rank ?? null);

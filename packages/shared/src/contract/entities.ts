@@ -1,4 +1,4 @@
-// Сущности из docs/contracts/core.md, раздел «Сущности». Меняет только координатор core.
+// Entities from docs/contracts/core.md, section «Entities». Changed only by the core coordinator.
 import { z } from 'zod';
 
 const uuid = z.uuid();
@@ -147,11 +147,11 @@ export const entitySchemas = {
     spaceId: uuid,
     taskId: uuid,
     authorId: uuid,
-    /** тред: ответ на комментарий верхнего уровня; null — сам корень */
+    /** thread: a reply to a top-level comment; null — the root itself */
     parentId: uuid.nullable().default(null),
     body: tiptapDoc,
     mentions: z.array(uuid),
-    /** назначенный комментарий: исполнитель и отметка «завершён» (только у корня треда) */
+    /** assigned comment: assignee and the "done" mark (only on the thread root) */
     assigneeId: uuid.nullable().default(null),
     resolvedAt: ts.nullable().default(null),
     resolvedBy: uuid.nullable().default(null),
@@ -219,8 +219,8 @@ export const entitySchemas = {
     url: z.string().nullable(),
     body: z.string().max(140).nullable(),
     commentId: uuid.nullable(),
-    /** status_changed: {statusId: [старый, новый]}, как activity.changes; иначе null */
-    changes: z.record(z.string(), z.unknown()).nullable().default(null), // старые строки и кэш клиента — без поля
+    /** status_changed: {statusId: [old, new]}, as in activity.changes; otherwise null */
+    changes: z.record(z.string(), z.unknown()).nullable().default(null), // old rows and client cache — without the field
     actorId: uuid,
     readAt: ts.nullable(),
     createdAt: ts,
@@ -231,7 +231,7 @@ export const entitySchemas = {
     userId: uuid.nullable(),
     createdBy: uuid,
     name: z.string(),
-    icon: z.string().nullable().optional(), // строки реплики до C-schema v13 — без поля
+    icon: z.string().nullable().optional(), // replica rows before C-schema v13 — without the field
     layout: z.string(),
     filter: z.record(z.string(), z.unknown()),
     config: z.record(z.string(), z.unknown()),
@@ -251,7 +251,7 @@ export interface EntityMeta {
   write: string;
   bootstrap: boolean;
   indexes: string[];
-  /** scope 'space|members' (C-sync v2): участники контейнера строки без spaceId */
+  /** scope 'space|members' (C-sync v2): container members, rows without spaceId */
   members?: { entity: string; key: string; container: string; via: string };
 }
 

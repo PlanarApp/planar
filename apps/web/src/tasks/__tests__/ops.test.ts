@@ -9,7 +9,7 @@ beforeAll(() => registerMutators(domainMutators));
 beforeEach(async () => {
   await stopSync();
   await reset();
-  await db.table('spaceMembers').clear(); // чистая реплика; mutate требует startSync
+  await db.table('spaceMembers').clear(); // clean replica; mutate requires startSync
   await startSync({
     userId: ids.ann,
     fetch: (() => Promise.reject(new TypeError('offline'))) as never,

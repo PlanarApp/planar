@@ -1,4 +1,4 @@
-// Метрики в памяти процесса, экспозиция Prometheus вручную (C-ops-health v1).
+// Metrics in process memory, Prometheus exposition by hand (C-ops-health v1).
 const BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
 
 const esc = (v: string) => v.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/"/g, '\\"');
@@ -40,7 +40,7 @@ export function observeRequest(method: string, route: string, status: number, se
   durations.set(k, h);
 }
 
-/** Открытое WS-соединение `/ws` или `/collab`; возвращает закрытие. */
+/** Open WS connection `/ws` or `/collab`; returns the close function. */
 export function wsOpened(path: '/ws' | '/collab'): () => void {
   ws.set(path, ws.get(path)! + 1);
   let done = false;
@@ -52,9 +52,9 @@ export function wsOpened(path: '/ws' | '/collab'): () => void {
 }
 
 export interface Snapshot {
-  /** null — очередь выключена */
+  /** null — queue is disabled */
   queue: { queue: string; state: string; n: number }[] | null;
-  /** null — запрос не удался */
+  /** null — the request failed */
   dbSize: number | null;
 }
 

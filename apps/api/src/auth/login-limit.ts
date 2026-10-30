@@ -6,7 +6,7 @@ import { HttpError } from './errors.js';
 const MAX = 10;
 const stale = sql`${loginAttempts.windowStartedAt} < now() - interval '1 minute'`;
 
-/** Уже больше 10 неудач за минуту → 429 (до проверки пароля). */
+/** More than 10 failures in a minute → 429 (before password check). */
 export async function assertNotLimited(db: Db, key: string) {
   const [r] = await db
     .select({ n: loginAttempts.attempts })
@@ -15,7 +15,7 @@ export async function assertNotLimited(db: Db, key: string) {
   if (r && r.n > MAX) throw tooMany();
 }
 
-/** Учесть неудачу; 11-я и далее → 429. */
+/** Record a failure; the 11th and later → 429. */
 export async function recordFailure(db: Db, key: string) {
   const [r] = await db
     .insert(loginAttempts)

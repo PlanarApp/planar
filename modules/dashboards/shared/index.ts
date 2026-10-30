@@ -41,7 +41,7 @@ export const dashboardsWidgets = z.object({
 export type Board = z.output<typeof dashboardsBoards>;
 export type Widget = z.output<typeof dashboardsWidgets>;
 
-// F-filter v2 (packages/shared/src/filter.ts): форму правил проверяет matchFilter, здесь — только каркас
+// F-filter v2 (packages/shared/src/filter.ts): matchFilter checks the rule shape, here only the skeleton
 const filter = z.object({
   op: z.enum(['and', 'or']),
   rules: z.array(
@@ -81,7 +81,7 @@ function checkBox(b: { x: number; w: number }) {
   if (b.x + b.w > 12) throw bad('x + w > 12');
 }
 
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface MTx {
   get(e: string, id: string): Promise<unknown>;
   put(e: string, row: unknown): Promise<void>;
@@ -92,7 +92,7 @@ interface MTx {
 const mtx = (tx: Tx) => tx as unknown as MTx;
 const E = (n: string) => n as EntityName;
 
-/** Дашборд: нет → not_found; личный чужой → forbidden (пространства проверяет роль write). */
+/** Dashboard: none → not_found; someone else's personal one → forbidden (spaces are checked by the write role). */
 async function board(tx: Tx, bid: string, userId: string) {
   const b = (await mtx(tx).get(E('dashboardsBoards'), bid)) as Board | undefined;
   if (!b) throw new MutatorError('not_found', `dashboardsBoards ${bid}`);

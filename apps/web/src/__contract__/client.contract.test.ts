@@ -1,6 +1,6 @@
 // @vitest-environment node
-// Контрактный тест web (C-client): экспорты клиента синхронизации по docs/contracts/web.md.
-// Правит только координатор модуля web.
+// Contract test web (C-client): sync client exports per docs/contracts/web.md.
+// Edited only by the web module coordinator.
 import 'fake-indexeddb/auto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

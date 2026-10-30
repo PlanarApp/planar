@@ -1,10 +1,9 @@
-// SDK модулей (C-modules v4): единственная точка, откуда web-часть модуля берёт ядро.
+// Module SDK (C-modules v4): the single point from which a module's web part takes the core.
 import { computed, type Ref } from 'vue';
 import { db, useQuery as liveQuery } from '../sync';
 import type { FilterCtx } from '../views/filter';
 import { useAuth, type User } from '../auth/useAuth';
 import { useSpaces, useWorkspace } from '../tasks';
-import { i18n } from '../i18n';
 import { groupLevels, type GroupLevelRow } from '../layout/groups';
 import type { GroupScope } from './types';
 
@@ -40,7 +39,7 @@ export { default as PlanPanel } from '../views/PlanPanel.vue';
 export { favorites, type FavRef } from '../layout/nav';
 export { localToday, matchFilter } from '../views/filter';
 
-/** Уровни группы (свой и вложенные) для табов Документы/Чаты/Отчёты. */
+/** Group levels (own and nested) for the Documents/Chats/Reports tabs. */
 export const useGroupLevels = (scope: () => GroupScope): Readonly<Ref<GroupLevelRow[]>> => {
   const spaces = useSpaces();
   const ws = useWorkspace();
@@ -49,10 +48,10 @@ export const useGroupLevels = (scope: () => GroupScope): Readonly<Ref<GroupLevel
 export type { GroupLevelRow } from '../layout/groups';
 export { groupUrl } from '../layout/groups';
 
-/** Текущий пользователь (null — не вошёл). */
+/** Current user (null — not logged in). */
 export const useSession = (): Readonly<Ref<User | null>> => useAuth().user;
 
-/** Циклы (по проекту или все) для `FilterCtx.cycles`; пусто, если модуль sprints не подключён. */
+/** Cycles (per project or all) for `FilterCtx.cycles`; empty if the sprints module is not connected. */
 export const useCycles = (projectId?: string): Readonly<Ref<NonNullable<FilterCtx['cycles']>>> => {
   const r = liveQuery(async () => {
     if (!db.tables.some((t) => t.name === 'sprintsCycles')) return [];

@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { Minus, OctagonAlert, SignalHigh, SignalMedium } from 'lucide-vue-next';
 
 const props = withDefaults(defineProps<{ priority: number; size?: number }>(), { size: 16 });
-const ICON = [Minus, OctagonAlert, SignalHigh, SignalMedium, Minus]; // 4 рисуется svg ниже;
+const ICON = [Minus, OctagonAlert, SignalHigh, SignalMedium, Minus]; // 4 is drawn as svg below;
 const COLOR = [
   'var(--color-fg-subtle)',
   'var(--color-priority-urgent)',

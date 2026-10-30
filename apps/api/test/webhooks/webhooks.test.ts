@@ -10,7 +10,7 @@ import { settings } from '../../src/db/schema.js';
 import { createUser, loginCookie, ORIGIN } from '../auth.js';
 import { db, getApp, useApp } from '../auth/harness.js';
 import { doc, world, type World } from '../sync/helpers.js';
-// внутренности модуля: подпись, проверка адресов, попытка доставки
+// module internals: signature, address checks, delivery attempt
 import { attempt, retryDelaySec } from '../../../../modules/webhooks/api/deliver.js';
 import { sign } from '../../../../modules/webhooks/api/send.js';
 import { BlockedAddress, isBlocked, safeAddress } from '../../../../modules/webhooks/api/ssrf.js';
@@ -79,7 +79,7 @@ const jobApi = {
 } as never;
 const row = async (id: string) => (await db.select().from(D).where(eq(D.id, id)))[0]!;
 const run = async (id: string) => {
-  // подготовка к попытке: срок наступил
+  // preparation for an attempt: the time has come
   await db
     .update(D)
     .set({ nextAttemptAt: new Date(Date.now() - 1000).toISOString() })
@@ -220,7 +220,7 @@ describe('wk4: попытки и повторы', () => {
     process.env.WEBHOOKS_TIMEOUT_MS = '200';
     const sockets = new Set<import('node:net').Socket>();
     recv.on('connection', (s) => sockets.add(s));
-    reply = () => {}; // не отвечает
+    reply = () => {}; // does not respond
     const d = await run((await ping((await mkSub()).id)).id);
     expect(d).toMatchObject({ status: 'pending', attempts: 1, lastError: 'timeout' });
     sockets.forEach((s) => s.destroy());
@@ -246,7 +246,7 @@ describe('wk4: попытки и повторы', () => {
     }
     expect(await run(id)).toMatchObject({ status: 'failed', attempts: 11, nextAttemptAt: null });
     expect(enq).toHaveLength(10);
-    expect(await run(id)).toMatchObject({ attempts: 11 }); // завершённая не повторяется
+    expect(await run(id)).toMatchObject({ attempts: 11 }); // a completed one is not retried
   });
 
   it('wk4: повторная параллельная задача не дублирует отправку (аренда)', async () => {

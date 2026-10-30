@@ -10,17 +10,17 @@ const read = (): TaskOpenMode => {
     const v = localStorage.getItem(KEY);
     if (v === 'side' || v === 'page') return v;
   } catch {
-    /* хранилище недоступно */
+    /* storage unavailable */
   }
   return 'modal';
 };
-/** Как открывать задачу на десктопе (как в Plane/ClickUp): окно, боковая панель, страница; настройка устройства. */
+/** How to open a task on desktop (as in Plane/ClickUp): window, side panel, page; a device setting. */
 export const taskOpenMode = ref<TaskOpenMode>(read());
 watch(taskOpenMode, (v) => {
   try {
     localStorage.setItem(KEY, v);
   } catch {
-    /* хранилище недоступно */
+    /* storage unavailable */
   }
 });
 
@@ -28,7 +28,7 @@ const GROUP_ROUTES = ['project', 'space', 'workspace'];
 
 export function openTask(key: string): void {
   const r = router.currentRoute.value;
-  // окно/боковая панель — на любом экране группы (TaskModal есть и в Задачах, и в прочих табах)
+  // window/side panel — on any group screen (TaskModal exists in Tasks and in other tabs)
   if (
     GROUP_ROUTES.includes(String(r.name)) &&
     taskOpenMode.value !== 'page' &&
@@ -46,10 +46,10 @@ export function closeTask(): void {
   void router.push({ query });
 }
 
-/** Панель задачи (WB-6): нет файла — undefined, панель не открывается. */
+/** Task panel (WB-6): no file — undefined, the panel does not open. */
 export const taskPanelLoader = Object.values(import.meta.glob('../task/TaskPanel.vue'))[0] as
   (() => Promise<{ default: Component }>) | undefined;
 
-/** Встроенные виды (WB-4, WB-5): подменяется в тестах. */
+/** Built-in views (WB-4, WB-5): replaced in tests. */
 export const viewLoaders = (): Record<string, () => Promise<unknown>> =>
   import.meta.glob('../views/*/View.vue');

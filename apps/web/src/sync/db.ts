@@ -6,7 +6,7 @@ export interface QueueItem {
   name: string;
   args: unknown;
   createdAt: string;
-  /** прообразы строк, затронутых оптимистичным применением (для rebase) */
+  /** pre-images of rows touched by the optimistic apply (for rebase) */
   undo?: Undo[];
 }
 export interface Undo {
@@ -14,7 +14,7 @@ export interface Undo {
   id: string;
   row: Record<string, unknown> | null;
 }
-/** Изменённая строка реплики; `entity: '*'` — реплика заменена целиком (сбросить всё). */
+/** A changed replica row; `entity: '*'` — the replica is replaced entirely (reset everything). */
 export interface ReplicaChange {
   entity: string;
   id: string;
@@ -25,11 +25,11 @@ export interface MetaRow {
   value: string | number;
 }
 
-/** Схема Dexie: таблица на сущность (индексы из meta.indexes) + служебные; extra — сущности модулей. */
+/** Dexie schema: a table per entity (indexes from meta.indexes) + service ones; extra — module entities. */
 export function buildSchema(
   extra: Record<string, string[]> = {},
   skip: string[] = [],
-  /** `entity.index`: индекс, которого в этой версии схемы ещё нет */
+  /** `entity.index`: an index that doesn't exist in this schema version yet */
   omit: string[] = [],
 ): Record<string, string> {
   const stores: Record<string, string> = { _meta: 'key', _queue: '++id' };
@@ -42,8 +42,8 @@ export function buildSchema(
 }
 
 /**
- * Версия схемы Dexie: 3 без модулей; с модулями растёт при каждом изменении набора таблиц/индексов
- * (подпись и версия — в localStorage; нет хранилища → 4, а несовместимость лечит PlanarDB.open).
+ * Dexie schema version: 3 without modules; with modules it grows on every change of the table/index set
+ * (signature and version — in localStorage; no storage → 4, and PlanarDB.open handles the incompatibility).
  */
 export function schemaVersion(name: string, extra: Record<string, string[]>): number {
   const names = Object.keys(extra).sort();
@@ -68,16 +68,16 @@ export class PlanarDB extends Dexie {
   _queue!: Table<QueueItem, number>;
   constructor(name = 'planar', extra: Record<string, string[]> = {}) {
     super(name);
-    // v1 — реплика до fieldDefs/taskLinks; v2 добавляет их (Dexie мигрирует без потери данных)
+    // v1 — replica before fieldDefs/taskLinks; v2 adds them (Dexie migrates without data loss)
     this.version(1).stores(buildSchema({}, ['fieldDefs', 'taskLinks']));
     this.version(2).stores(buildSchema({}, [], ['tasks.cycleId']));
-    // v3 (C-schema v7): индекс tasks.cycleId
+    // v3 (C-schema v7): index tasks.cycleId
     this.version(3).stores(buildSchema());
-    // v≥4: сущности установленных модулей (C-modules v4)
+    // v≥4: entities of installed modules (C-modules v4)
     const v = schemaVersion(name, extra);
     if (v > 3) this.version(v).stores(buildSchema(extra));
   }
-  /** Версия в базе выше объявленной (модуль убрали, хранилище сброшено) — реплика пересоздаётся, дальше bootstrap. */
+  /** The version in the database is higher than declared (a module was removed, storage reset) — the replica is recreated, then bootstrap. */
   override open(): ReturnType<Dexie['open']> {
     return super.open().catch(async (e: Error) => {
       if (e.name !== 'VersionError') throw e;
@@ -85,7 +85,7 @@ export class PlanarDB extends Dexie {
       return super.open();
     }) as ReturnType<Dexie['open']>;
   }
-  /** таблицы сущностей (без служебных) */
+  /** entity tables (without service ones) */
   entityTables(): Table[] {
     return this.tables.filter((t) => !t.name.startsWith('_'));
   }

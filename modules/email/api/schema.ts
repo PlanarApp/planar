@@ -11,12 +11,12 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
-// только для FK (таблица ядра); не экспортируется, drizzle-kit её не создаёт
+// only for FK (a core table); not exported, drizzle-kit does not create it
 const users = pgTable('users', { id: uuid().primaryKey() });
 const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 const status = (name: string) => check(name, sql`status in ('sending','sent','failed','skipped')`);
 
-// серверные таблицы (не синхронизируются)
+// server tables (not synced)
 export const emailConfig = pgTable('email_config', {
   id: text().primaryKey(),
   host: text().notNull(),
@@ -28,7 +28,7 @@ export const emailConfig = pgTable('email_config', {
   updatedAt: ts().notNull().defaultNow(),
 });
 
-// FK на users — в SQL миграции (modules не импортируют схему ядра)
+// FK to users — in the SQL migrations (modules do not import the core schema)
 export const emailOutbox = pgTable(
   'email_outbox',
   {
@@ -58,7 +58,7 @@ export const emailDigests = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.date] }), status('email_digests_status_check')],
 );
 
-// сущность синхронизации
+// sync entity
 export const emailPrefs = pgTable('email_prefs', {
   id: uuid().primaryKey(),
   userId: uuid().notNull(),

@@ -55,7 +55,7 @@ const ROW_H = 36;
 const CHECK_W = 40;
 
 const project = useProject(() => props.projectId);
-// сводка группы: задачи проектов группы, справочники их пространств; поля проекта — только у одного проекта
+// group summary: tasks of the group's projects, reference lists of their spaces; project fields — only for a single project
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
 const labels = useLabels(spaceId);
@@ -70,7 +70,7 @@ const passes = useTaskFilter(
   () => props.options.me,
 );
 
-// группировка в таблице не применяется; с подзадачами — деревом под родителем (сортировка среди братьев)
+// grouping in the table is not applied; with subtasks — a tree under the parent (sorted among siblings)
 const folded = ref(new Set<string>());
 const tree = computed(() => {
   const o = props.options;
@@ -78,7 +78,7 @@ const tree = computed(() => {
   const sorted = sortTasks(tasks, o.sortBy, o.sortDir);
   if (!o.showSubtasks) return sorted.map((task) => ({ task, depth: 0 }));
   const out: { task: (typeof sorted)[number]; depth: number }[] = [];
-  let hideBelow = Infinity; // глубина свёрнутого предка: строки глубже — скрыты
+  let hideBelow = Infinity; // depth of a collapsed ancestor: rows deeper are hidden
   for (const n of treeOrder(sorted)) {
     if (n.depth > hideBelow) continue;
     hideBelow = folded.value.has(n.task.id) ? n.depth : Infinity;
@@ -99,7 +99,7 @@ const toggleFold = (id: string) => {
   folded.value = f;
 };
 
-// сортировка по клику на заголовок: по возрастанию → по убыванию → ручной порядок
+// sorting by clicking the header: ascending → descending → manual order
 const SORT_COL: Partial<Record<string, SortBy>> = {
   title: 'title',
   priority: 'priority',
@@ -117,9 +117,9 @@ function sortBy(id: string) {
 }
 const rowIds = computed(() => rows.value.map((r) => r.id));
 
-// --- раскладка
-// options.columns → localStorage → по умолчанию
-// колонки полей «Вида» (статус, исполнитель…) — по options.fields: нет в полях — скрыта, есть — в конце
+// --- layout
+// options.columns → localStorage → default
+// columns of the view's fields (status, assignee…) — by options.fields: not in fields — hidden, in fields — at the end
 const isTaskField = (id: string): id is TaskField => TASK_FIELDS.includes(id as TaskField);
 const withFields = (list: ColumnState[]) => [
   ...list.filter((c) => !isTaskField(c.id) || props.options.fields.includes(c.id)),
@@ -131,7 +131,7 @@ const resolve = () =>
       loadLayout(props.projectId, props.scope ? scopeLayout : undefined).columns,
   );
 const cols = ref<ColumnState[]>(resolve());
-// сохранённый вид: правка уходит в черновик опций; вкладка проекта — в localStorage
+// saved view: the edit goes to the options draft; a project tab — to localStorage
 const save = () =>
   props.saved
     ? emit('update:options', { ...props.options, columns: cols.value.map((c) => ({ ...c })) })
@@ -140,14 +140,14 @@ watch(
   () => [props.projectId, JSON.stringify(props.options.columns), props.options.fields.join()],
   () => (cols.value = resolve()),
 );
-// авторазмер (как в ClickUp): по самому широкому значению колонки; перетащенная — своя ширина
+// auto-size (as in ClickUp): by the widest value of the column; a dragged one — its own width
 const AUTO_MAX = 480;
 const autoW = computed(() => {
   const st = new Map((statuses.value ?? []).map((s) => [s.id, s.name]));
   const lb = new Map((labels.value ?? []).map((l) => [l.id, l.name]));
   const m = new Map<string, number>();
   for (const c of cols.value) {
-    let w = textWidth(colName(c.id)) + 52; // меню колонки и стрелка сортировки
+    let w = textWidth(colName(c.id)) + 52; // column menu and sort arrow
     for (const x of rows.value) {
       const v =
         c.id === 'title'
@@ -187,7 +187,7 @@ const resetWidth = (c: ColumnState) => {
   save();
 };
 const total = computed(() => CHECK_W + cols.value.reduce((s, c) => s + widthOf(c), 0));
-// колонка удалённого поля выпадает из раскладки, когда определения загружены
+// a deleted field's column drops out of the layout once the definitions are loaded
 watch(defs, (ds) => {
   if (!ds) return;
   const kept = cols.value.filter((c) => !isFieldCol(c.id) || defOf(c.id));
@@ -221,7 +221,7 @@ function startResize(c: ColumnState, e: PointerEvent) {
   window.addEventListener('pointerup', onUp);
 }
 
-// --- виртуализация
+// --- virtualization
 const scroller = ref<HTMLElement>();
 const virt = useVirtualizer(
   computed(() => ({
@@ -233,10 +233,10 @@ const virt = useVirtualizer(
   })),
 );
 
-// --- правка
+// --- editing
 const editing = ref<string | null>(null);
 const draft = ref('');
-let live = false; // blur после Enter/Esc не сохраняет повторно
+let live = false; // blur after Enter/Esc does not save again
 async function startEdit(task: TaskView) {
   editing.value = task.id;
   draft.value = task.title;
@@ -263,11 +263,11 @@ function onCheck(task: TaskView, e: MouseEvent) {
   else sel.toggle(task.id);
 }
 
-// --- массовая правка: по одной мутации на задачу
+// --- bulk edit: one mutation per task
 const each = (f: (x: TaskView) => Promise<unknown>) =>
   Promise.all((all.value ?? []).filter((x) => sel.selected.value.has(x.id)).map(f));
 
-// --- поля: правка ячейки и массовая
+// --- fields: cell edit and bulk edit
 const editCell = ref<string | null>(null); // `${taskId}|${columnId}`
 function saveCell(task: TaskView, id: string, v: unknown) {
   editCell.value = null;
@@ -298,7 +298,7 @@ const date = (v: string) => v.slice(0, 10);
             draggable="[role=columnheader]"
             :prevent-on-filter="false"
             @update="
-              // индексы среди заголовков: место под чекбоксы впереди не считается
+              // indexes among the headers: space for the checkboxes in front is not counted
               (e: { oldDraggableIndex?: number; newDraggableIndex?: number }) =>
                 move(e.oldDraggableIndex ?? 0, e.newDraggableIndex ?? 0)
             "

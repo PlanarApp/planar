@@ -25,7 +25,7 @@ export const PLUGIN_WRITES = ['tasks', 'comments', 'checklistItems'] as const;
 export type PluginEntity = (typeof PLUGIN_ENTITIES)[number];
 export type PluginWrite = (typeof PLUGIN_WRITES)[number];
 
-/** Права записи → разрешённые мутаторы (всё остальное плагину недоступно). */
+/** Write rights → allowed mutators (everything else is unavailable to the plugin). */
 export const PLUGIN_MUTATORS: Record<PluginWrite, readonly string[]> = {
   tasks: [
     'task.create',
@@ -55,8 +55,8 @@ export type PluginPermissions = z.output<typeof permissionsSchema>;
 export type PluginPoints = z.output<typeof pointsSchema>;
 
 /**
- * null — URL годен, иначе код причины. appOrigin '' — хост приложения неизвестен (проверка схемы
- * в мутаторе); сервер и web передают реальный origin.
+ * null — URL is valid, otherwise a reason code. appOrigin '' — the app host is unknown (the scheme check
+ * is in the mutator); the server and web pass the real origin.
  */
 export function checkPluginUrl(url: string, appOrigin: string, prod: boolean): string | null {
   let u: URL;
@@ -70,7 +70,7 @@ export function checkPluginUrl(url: string, appOrigin: string, prod: boolean): s
   if (u.protocol !== 'https:' && !(u.protocol === 'http:' && !prod && local)) return 'scheme';
   if (appOrigin) {
     try {
-      // тот же хост на другом порту — тоже отказ: allow-same-origin безопасен только на чужом хосте
+      // the same host on another port is also a refusal: allow-same-origin is safe only on a foreign host
       if (new URL(appOrigin).hostname === u.hostname) return 'same_host';
     } catch {
       return 'invalid_app_origin';
@@ -113,9 +113,9 @@ export const mutators = [
       points: pointsSchema,
       enabled: z.boolean(),
     }),
-    // сущность write: server — клиенту forbidden, пишет только системный вызов
+    // entity write: server — forbidden for the client, written only by a system call
     async run(tx, a, ctx) {
-      // prod-ограничение (только https) и хост приложения проверяет вызывающий (controller)
+      // the prod restriction (https only) and the app host are checked by the caller (controller)
       const bad = checkPluginUrl(a.url, '', false);
       if (bad) throw new MutatorError('invalid_args', `url: ${bad}`);
       const t = mtx(tx);

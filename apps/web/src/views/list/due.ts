@@ -1,4 +1,4 @@
-/** 'YYYY-MM-DD' → «8 мар» (с годом, если не текущий); разбор как локальная дата, не UTC. */
+/** 'YYYY-MM-DD' → "8 Mar" (with year if not the current one); parsed as a local date, not UTC. */
 export function formatDue(d: string, locale: string, now: Date = new Date()): string {
   const [y, m, day] = d.split('-').map(Number);
   if (!y || !m || !day) return d;

@@ -16,7 +16,7 @@ import {
   timerStartBody,
 } from './schemas.js';
 
-/** схема сущности модуля (нет модуля — произвольный объект) */
+/** entity schema of the module (no module — arbitrary object) */
 const ent = (name: string): z.ZodType =>
   installed.map((m) => m.api.entities[name]?.schema).find(Boolean) ?? z.looseObject({});
 const ref = (n: string) => ({ $ref: `#/components/schemas/${n}` });
@@ -82,7 +82,7 @@ const body = (model: string) => ({
   content: { 'application/json': { schema: ref(model) } },
 });
 
-/** OpenAPI 3.1 из zod-схем (GET /api/v1/openapi.json). */
+/** OpenAPI 3.1 from zod schemas (GET /api/v1/openapi.json). */
 export function openapi() {
   const queryParams = Object.keys(tasksQuery.shape)
     .filter((k) => k !== 'limit' && k !== 'cursor')

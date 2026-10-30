@@ -9,7 +9,7 @@ import type { PageFull } from './model';
 import { createSaver } from './save';
 import { useTexts } from './text';
 
-// back — куда уйти после архивации (в табе группы — та же группа без ?page)
+// back — where to go after archiving (in the group's tab — the same group without ?page)
 const props = defineProps<{ pageId: string; back?: RouteLocationRaw }>();
 const tx = useTexts();
 const router = useRouter();
@@ -18,7 +18,7 @@ const page = useQuery(() => db.table<PageFull>('docsPages').get(props.pageId));
 const users = useQuery(() => db.table<Row<'users'>>('users').toArray());
 const members = computed(() => (users.value ?? []).map((u) => ({ id: u.id, name: u.name })));
 const title = ref('');
-// заголовок берём из реплики один раз; дальше его ведёт поле
+// the title is taken from the replica once; afterwards the field drives it
 const seeded = ref(false);
 watch(
   page,
@@ -41,7 +41,7 @@ const actions = computed<MenuItem[]>(() => [
     id: 'fav',
     label: i18n.global.t(fav.value ? 'sidebar.unfavorite' : 'sidebar.favorite'),
     icon: fav.value ? StarOff : Star,
-    // ссылка — текущий адрес страницы (в табе группы или в модуле)
+    // link — the current page address (in the group's tab or in the module)
     onSelect: () =>
       favorites.toggle({
         kind: 'doc',

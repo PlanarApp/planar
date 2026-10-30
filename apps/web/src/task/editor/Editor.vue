@@ -11,7 +11,7 @@ import { uploadFile } from '../../api/files';
 import { useAuth } from '../../auth/useAuth';
 import type { RefPick } from './RefPicker.vue';
 
-// диалог ссылок (@@/@@@) — отдельный чанк: индекс задач строится только при открытии
+// link dialog (@@/@@@) — a separate chunk: the task index is built only when opened
 const RefPicker = defineAsyncComponent(() => import('./RefPicker.vue'));
 
 type Item = { id: string; label: string };
@@ -23,9 +23,9 @@ const props = withDefaults(
     placeholder?: string;
     image?: boolean;
     editable?: boolean;
-    /** Совместное редактирование (P3-ydoc): имя документа `docs:<id>` | `task:<id>`; modelValue тогда не используется. */
+    /** Collaborative editing (P3-ydoc): document name `docs:<id>` | `task:<id>`; modelValue is not used then. */
     collab?: { name: string };
-    /** @@ — ссылка на задачу, @@@ — на документ (чат) */
+    /** @@ — link to a task, @@@ — to a document (chat) */
     refs?: boolean;
   }>(),
   { editable: true },
@@ -34,12 +34,12 @@ const emit = defineEmits<{
   'update:modelValue': [v: JSONContent | null];
   blur: [];
   submit: [];
-  attach: [files: File[]]; // не-картинки, брошенные в редактор
+  attach: [files: File[]]; // non-images dropped into the editor
 }>();
 const { t } = useI18n();
 const error = ref('');
 
-// подсказка @: состояние пишет suggestion, список рисуем сами
+// @ hint: the state is written by suggestion, we draw the list ourselves
 const sug = ref<{
   items: Item[];
   index: number;
@@ -47,7 +47,7 @@ const sug = ref<{
   rect: DOMRect | null;
 } | null>(null);
 
-// @@: символы убираем, открываем диалог у курсора; выбор вставляет ссылку туда же
+// @@: the characters are removed, the dialog opens at the cursor; the choice inserts the link there
 const refAt = ref<{ pos: number; rect: { left: number; top: number; bottom: number } } | null>(
   null,
 );
@@ -56,7 +56,7 @@ const refTrigger = Extension.create({
   addInputRules() {
     return [
       new InputRule({
-        // только отдельное @@ (начало строки или после пробела), не внутри слова или адреса
+        // only a standalone @@ (start of line or after a space), not inside a word or an address
         find: /(^|\s)@@$/,
         handler: ({ range, match, chain }) => {
           const from = range.from + match[1]!.length;
@@ -193,7 +193,7 @@ const options = (extra: Extensions = [], collab = false): Partial<EditorOptions>
 });
 
 if (props.collab) {
-  // yjs/hocuspocus — отдельный чанк: в initial-бандл не попадают
+  // yjs/hocuspocus — a separate chunk: not included in the initial bundle
   void import('@planar/editor/collab').then(({ openCollab }) => {
     if (gone) return;
     const c = openCollab(props.collab!.name, {
@@ -211,7 +211,7 @@ if (props.collab) {
   });
 } else editor.value = new Editor(options());
 
-// внешнее значение — только когда не печатаем (иначе сбросит набранное)
+// external value — only when we are not typing (otherwise it would reset the typed text)
 watch(
   () => props.modelValue,
   (v) => {
@@ -237,7 +237,7 @@ defineExpose({
   clear: () => editor.value?.commands.clearContent(true),
   focus: () => editor.value?.commands.focus('end'),
 });
-// список @ под курсором; не помещается снизу (поле у нижнего края, как в чате) — над курсором
+// the @ list under the cursor; does not fit below (field near the bottom edge, as in chat) — above the cursor
 const sugStyle = (r: DOMRect | null, n: number) => {
   if (!r) return {};
   const h = Math.min(256, n * 32 + 10);

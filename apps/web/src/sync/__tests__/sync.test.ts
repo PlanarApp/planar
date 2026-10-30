@@ -102,7 +102,7 @@ describe('sync', () => {
     await c1.mutate('test.label.put', args('b'));
     await c1.syncNow();
     await c1.stopSync();
-    const c2 = s.mk(); // «перезагрузка»: новый клиент над той же базой
+    const c2 = s.mk(); // "reload": a new client over the same database
     await s.start(c2);
     expect(c2.syncState.value.pending).toBe(2);
     expect(s.server.rows.get('labels')).toBeUndefined();
@@ -121,7 +121,7 @@ describe('sync', () => {
     await s.start(c);
     s.server.mode = 'offline';
     await c.mutate('test.label.rename', { id: l.id, name: 'local' });
-    await c.syncNow(); // фоновый цикл завершён (сеть недоступна)
+    await c.syncNow(); // background cycle finished (network unavailable)
     s.server.mode = 'ok';
     await s.server.runMutation('other', 1, 'test.label.rename', { id: l.id, name: 'remote' });
     await c.syncNow(); // pull (remote) → rebase → push (local) → pull
@@ -139,7 +139,7 @@ describe('sync', () => {
     const c = s.mk();
     await s.start(c);
     s.server.seed('labels', [{ ...other }, { ...l, name: 'remote' }]);
-    // цикл push → pull: правка появляется после push (очередь пуста), до ответа pull; её push блокируем
+    // cycle push → pull: an edit appears after push (queue empty), before the pull response; its push is blocked
     s.server.beforePull = async () => {
       s.server.blockPush = true;
       await c.mutate('test.label.rename', { id: l.id, name: 'local' });
@@ -159,7 +159,7 @@ describe('sync', () => {
     const c = s.mk();
     await s.start(c);
     expect(s.server.bootstraps).toBe(1);
-    s.server.rows.get('labels')!.delete(a.id); // на сервере строки больше нет
+    s.server.rows.get('labels')!.delete(a.id); // the row is no longer on the server
     s.server.log = [];
     s.server.resetNext = true;
     s.server.beforePull = async () => {
@@ -264,12 +264,12 @@ describe('sync', () => {
       s.server.remove('labels', l.id);
       await c.mutate('test.label.rename', { id: l.id, name: 'local' });
     };
-    await c.syncNow(); // push (пусто) → pull: строки нет, rename неприменим
+    await c.syncNow(); // push (empty) → pull: no row, rename is not applicable
     expect(await labels(s.db)).toHaveLength(0);
     expect(await s.db._queue.count()).toBe(1);
     expect(errs).toHaveLength(0);
     s.server.blockPush = false;
-    await c.syncNow(); // сервер отклоняет not_found
+    await c.syncNow(); // the server rejects with not_found
     expect(await s.db._queue.count()).toBe(0);
     expect(errs).toMatchObject([{ code: 'not_found' }]);
   });
@@ -305,8 +305,8 @@ describe('sync', () => {
 describe('sync:perf', () => {
   it('sync:perf — bootstrap 10 000 задач и локальная мутация', async () => {
     const server = new FakeServer(testMutators);
-    // 10 пространств × 10 проектов × 5 статусов: у fake-indexeddb обслуживание индекса
-    // линейно по числу строк с одним ключом, в настоящем IndexedDB (B-дерево) этого нет.
+    // 10 spaces × 10 projects × 5 statuses: fake-indexeddb maintains the index
+    // linear in the number of rows with one key; real IndexedDB (B-tree) doesn't have this.
     const spaces = Array.from({ length: 10 }, () => uuidv7());
     const projects = spaces.flatMap((spaceId) =>
       Array.from({ length: 10 }, (_, i) => ({
@@ -382,7 +382,7 @@ describe('sync:perf', () => {
     await s.start(c);
     const ms = performance.now() - t0;
     expect(await s.db.table('tasks').count()).toBe(10_000);
-    // vitest 5 прячет console.log прошедших тестов, а приёмка читает вывод
+    // vitest 5 hides console.log of passed tests, and acceptance reads the output
     process.stdout.write('perf bootstrap10k_ms=' + ms.toFixed(1) + '\n');
 
     const id = tasks[5000].id;

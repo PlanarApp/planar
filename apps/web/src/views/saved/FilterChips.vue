@@ -16,7 +16,7 @@ const defsByProject = useFieldDefs(() => props.projectId ?? '');
 const defsBySpace = useSpaceFieldDefs(() => props.spaceId);
 const defs = computed(() => (props.projectId ? defsByProject : defsBySpace).value ?? []);
 
-// подписи — те же ключи словаря, что у FilterBuilder: поле, оператор, значение
+// labels — the same dictionary keys as FilterBuilder: field, operator, value
 function valueLabel(r: FilterRule, v: unknown): string {
   const s = String(v);
   if (s === 'me') return t('views.filter.me');

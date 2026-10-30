@@ -8,9 +8,9 @@ export type InboxItem = Row<'notifications'> & {
   actorName: string;
   taskKey: string | null;
   taskTitle: string;
-  /** уровень группы: проект задачи или канала; null — пространство (spaceId) или личный диалог */
+  /** group level: project of the task or channel; null — space (spaceId) or personal dialog */
   projectId: string | null;
-  /** что изменилось: статус «было → стало» (status_changed), текст комментария (commented, mentioned) */
+  /** what changed: status "from → to" (status_changed), comment text (commented, mentioned) */
   status: [Status, Status] | null;
   comment: string | null;
 };
@@ -47,7 +47,7 @@ export const useNotifications = () =>
         ? await db.table<{ id: string; projectId?: string | null }>('chatChannels').bulkGet(chIds)
         : [];
     const chProject = new Map(channels.flatMap((c) => (c ? [[c.id, c.projectId ?? null]] : [])));
-    // уровень страницы документа (doc_mention) — её проект
+    // document page level (doc_mention) — its project
     const pageIds = [...new Set(ns.flatMap((n) => PAGE.exec(n.url ?? '')?.[1] ?? []))];
     const pages =
       pageIds.length && db.tables.some((x) => x.name === 'docsPages')
@@ -65,7 +65,7 @@ export const useNotifications = () =>
           ...n,
           actorName: user.get(n.actorId) ?? '?',
           taskKey: t ? `${proj.get(t.projectId) ?? '?'}-${t.number ?? '…'}` : null,
-          // уведомление без задачи (chat_*): вместо названия — body
+          // notification without a task (chat_*): body is used instead of the title
           taskTitle: t?.title ?? (n.taskId ? '' : (n.body ?? '')),
           projectId:
             t?.projectId ??
@@ -79,11 +79,11 @@ export const useNotifications = () =>
       });
   });
 
-// оба статуса ещё есть локально — иначе показываем только фразу уведомления
+// both statuses still exist locally — otherwise show only the notification phrase
 const pair = (s: (Row<'statuses'> | undefined)[]): [Status, Status] | null =>
   s.length === 2 && s[0] && s[1] ? [s[0], s[1]] : null;
 
-/** Карточки Входящих, как в ClickUp: уведомления одной задачи — вместе; порядок — по самому новому. */
+/** Inbox cards, as in ClickUp: notifications of one task together; order — newest first. */
 export function groupByTask(items: InboxItem[]): InboxItem[][] {
   const m = new Map<string, InboxItem[]>();
   for (const n of items) {
@@ -95,7 +95,7 @@ export function groupByTask(items: InboxItem[]): InboxItem[][] {
   return [...m.values()];
 }
 
-/** Число непрочитанных, не отложенных (для колокольчика и бейджей). */
+/** Count of unread, not snoozed notifications (for the bell and badges). */
 export function useUnread() {
   const rows = useQuery(() => db.table<Row<'notifications'>>('notifications').toArray());
   return computed(
@@ -107,7 +107,7 @@ export function useUnread() {
 
 export type MyTask = Row<'tasks'> & { key: string; project: string; status: Row<'statuses'> };
 
-/** «Моя работа»: назначенные мне, созданные мной, отслеживаемые */
+/** "My work": assigned to me, created by me, watched */
 export type WorkKind = 'assigned' | 'created' | 'watched';
 
 async function workTasks(kind: WorkKind, uid: string): Promise<Row<'tasks'>[]> {
@@ -143,7 +143,7 @@ export const useMyTasks = (
     });
   });
 
-/** Уведомление в группе: свой уровень и вложенные (own — только свой уровень, для бейджа ветки меню). */
+/** Notification in a group: its own level and nested (own — only its own level, for the menu branch badge). */
 export function inGroup(
   n: InboxItem,
   g: { level: 'workspace' | 'space' | 'project'; spaceId: string; projectId: string | null },
@@ -154,7 +154,7 @@ export function inGroup(
   return !own || n.spaceId === g.spaceId || n.spaceId === null;
 }
 
-/** Непрочитанные, не отложенные — по группам (ветка «Входящие» в меню). */
+/** Unread, not snoozed — by groups (the "Inbox" branch in the menu). */
 export function useUnreadItems() {
   const rows = useNotifications();
   return computed(() =>
@@ -164,7 +164,7 @@ export function useUnreadItems() {
 
 export type AssignedComment = Row<'comments'> & { key: string; title: string; projectId: string };
 
-/** «Комментарии мне»: назначенные мне комментарии с задачей */
+/** "Comments for me": comments assigned to me, with their task */
 export const useAssignedComments = (userId: () => string | undefined) =>
   useQuery(async (): Promise<AssignedComment[]> => {
     const uid = userId();

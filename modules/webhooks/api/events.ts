@@ -18,13 +18,13 @@ interface Slot {
   sets: Record<string, Set>;
 }
 
-// CoreServices выдаёт Nest (WebhooksBoot); хук — не провайдер
+// CoreServices provides it to Nest (WebhooksBoot); the hook is not a provider
 let core: CoreServices | undefined;
 export const setCore = (c: CoreServices) => void (core = c);
 
 const SKIP = new Set(['updatedAt', 'rank']);
 
-/** Текст comments.body (документ): текстовые узлы, абзацы через \n. */
+/** The text of comments.body (document): text nodes, paragraphs via \n. */
 function plain(n: unknown): string {
   const x = n as { text?: string; content?: Row[] } | undefined;
   if (typeof x?.text === 'string') return x.text;
@@ -32,7 +32,7 @@ function plain(n: unknown): string {
   return kids.join(x?.content?.some((c) => c.content) ? '\n' : '');
 }
 
-/** Одно событие на задачу на мутацию → доставки активным подпискам с этим событием. */
+/** One event per task per mutation → deliveries to the active subscriptions with this event. */
 export async function afterMutation(
   writes: MutationWrite[],
   ctx: AfterMutationCtx,

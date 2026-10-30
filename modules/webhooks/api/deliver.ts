@@ -7,14 +7,14 @@ import { BlockedAddress } from './ssrf.js';
 
 export const QUEUE = 'webhooks.deliver';
 const MAX_ATTEMPTS = 11;
-/** пауза после неудачной попытки n (1–10): 60·2^(n−1) с */
+/** pause after a failed attempt n (1–10): 60·2^(n−1) s */
 export const retryDelaySec = (n: number): number => 60 * 2 ** (n - 1);
-/** аренда на время попытки: упавший воркер не блокирует доставку навсегда (подберёт sweep) */
+/** a lease for the duration of the attempt: a crashed worker does not block delivery forever (sweep will pick it up) */
 const LEASE_SEC = 300;
 
 type Delivery = typeof D.$inferSelect;
 
-/** Новая доставка (pending, срок — сейчас). Задачу ставит вызывающий; без неё подберёт sweep. */
+/** A new delivery (pending, due — now). The caller enqueues the job; without it sweep will pick it up. */
 export async function createDelivery(
   q: Q | Db,
   subscriptionId: string,
@@ -35,7 +35,7 @@ export async function createDelivery(
   return row!;
 }
 
-/** Для automations: send_webhook в указанную (активную) подписку. */
+/** For automations: send_webhook to the given (active) subscription. */
 export async function enqueueWebhookEvent(
   api: ModuleHookApi | JobApi,
   subscriptionId: string,
@@ -57,10 +57,10 @@ const bodyOf = (d: Delivery) =>
     data: d.payload,
   });
 
-/** Одна попытка доставки; повтор — новая задача со startAfter. */
+/** One delivery attempt; a retry is a new job with startAfter. */
 export async function attempt(deliveryId: string, api: Pick<JobApi, 'db' | 'enqueue'>) {
   const now = new Date();
-  // захват: только своевременная pending-доставка; параллельная задача получит 0 строк
+  // capture: only a timely pending delivery; a parallel job gets 0 rows
   const [d] = await api.db
     .update(D)
     .set({
@@ -128,7 +128,7 @@ export const jobs: JobDef<Record<string, unknown>>[] = [
     handler: (data, api) => attempt(String(data.deliveryId), api),
   },
   {
-    // доставки без задачи (ping, ручной повтор) и потерянные задачи
+    // deliveries without a job (ping, manual retry) and lost jobs
     queue: 'webhooks.sweep',
     cron: '* * * * *',
     async handler(_, api) {

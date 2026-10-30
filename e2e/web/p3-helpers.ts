@@ -7,16 +7,16 @@ import type { Client } from '../lib.js';
 export const P3_MODULES = [...MODULES, 'time', 'timeline', 'workload', 'forms', 'gitlab'];
 
 /**
- * Включает модули p3 (time — для режима «оценки» нагрузки). dashboards — только по `withDashboards`:
- * пока маршрут '/m/dashboards' вне '/m/dashboards/' (registerModules), его включение ломает регистрацию
- * всей пачки модулей на клиенте.
+ * Enables p3 modules (time — for the 'estimate' load mode). dashboards — only via `withDashboards`:
+ * while the route '/m/dashboards' is outside '/m/dashboards/' (registerModules), enabling it breaks the registration
+ * of the whole batch of modules on the client.
  */
 export const enableP3 = (admin: Client, withDashboards = false) =>
   setModules(admin, withDashboards ? [...P3_MODULES, 'dashboards'] : P3_MODULES);
 
 /**
- * SPA-переход по url модуля: маршруты модуля добавляются после загрузки реплики, а холодный goto
- * показывает заглушку (см. collab.spec) — повторяем pushState, пока не появится `ready`.
+ * SPA transition by module url: module routes are added after the replica loads, and a cold goto
+ * shows the stub (see collab.spec) — repeat pushState until `ready` appears.
  */
 export async function spa(page: Page, url: string, ready: Locator): Promise<void> {
   await expect(page.getByTestId('sidebar')).toBeVisible();
@@ -29,7 +29,7 @@ export async function spa(page: Page, url: string, ready: Locator): Promise<void
   }).toPass({ timeout: 30_000 });
 }
 
-/** Случайный slug формы: ^[a-z0-9]{16}$. */
+/** Random form slug: ^[a-z0-9]{16}$. */
 export const slug16 = () =>
   Array.from(
     { length: 16 },
@@ -42,7 +42,7 @@ export interface FakeMr {
   updatedAt: string;
 }
 
-/** Фейковый GitLab REST v4 в процессе теста (api в docker ходит на host.docker.internal). */
+/** Fake GitLab REST v4 in the test process (api in docker reaches host.docker.internal). */
 export async function fakeGitlab(token: string, mrs: FakeMr[]) {
   const seen = { tokens: [] as string[], paths: [] as string[] };
   const server = http.createServer((req, res) => {

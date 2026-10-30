@@ -16,10 +16,10 @@ export const EXTENSION_KINDS = [
 ] as const;
 export type ExtensionKind = (typeof EXTENSION_KINDS)[number];
 
-/** Строка — ключ словаря web, объект — готовый текст модуля. */
+/** String — key of the web dictionary, object — ready module text. */
 export type LocalizedText = string | { ru: string; en: string };
 
-// P — тип пропсов компонента (документирующий параметр)
+// P — component props type (documenting parameter)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type Lazy<P> = () => Promise<{ default: Component }>;
 
@@ -28,10 +28,10 @@ export interface ViewDef {
   label: LocalizedText;
   icon: Component;
   component: Lazy<{ projectId: string; viewId?: string; scope?: ViewScope }>;
-  /** вид умеет сводку группы (Пространство, Воркспейс): получает scope с проектами (C-modules v12) */
+  /** view supports a group summary (Space, Workspace): receives a scope with projects (C-modules v12) */
   scope?: boolean;
 }
-/** сводка группы для вида: проекты и их пространства; projectId вида — тогда ключ сводки */
+/** group summary for the view: projects and their spaces; the view's projectId is then the summary key */
 export interface ViewScope {
   projectIds: string[];
   spaceIds: string[];
@@ -54,7 +54,7 @@ export interface CommandDef {
   icon?: Component;
   shortcut?: string;
   group?: LocalizedText;
-  /** видна и в меню кнопки «Новая задача» вида (C-modules v11) */
+  /** visible also in the "New task" button menu of the view (C-modules v11) */
   newTaskMenu?: boolean;
   when?: (ctx: CommandCtx) => boolean;
   run: (ctx: CommandCtx) => void | Promise<void>;
@@ -70,9 +70,9 @@ export interface SettingsPageDef {
   label: LocalizedText;
   icon?: Component;
   component: Lazy<object>;
-  /** скрыт от не-админов инстанса (сервер всё равно проверяет права) */
+  /** hidden from non-admins of the instance (the server still checks rights) */
   adminOnly?: boolean;
-  /** уровень настроек группы (C-modules v12): по умолчанию Воркспейс; страница получает spaceId и projectId */
+  /** group settings level (C-modules v12): default Workspace; the page receives spaceId and projectId */
   level?: 'workspace' | 'space' | 'project';
 }
 
@@ -80,15 +80,15 @@ export type NavItemDef = { id: string; order?: number } & (
   | { label: LocalizedText; icon: Component; /** /m/<moduleId>/… */ to: string }
   | { section: Lazy<object> }
 );
-/** Группа: Воркспейс (данные — в корневом пространстве), Пространство или Проект. */
+/** Group: Workspace (data in the root space), Space, or Project. */
 export interface GroupScope {
   level: 'workspace' | 'space' | 'project';
-  /** пространство группы; у Воркспейса — корневое («Общее») */
+  /** group's space; for Workspace — the root one ("General") */
   spaceId: string;
   projectId: string | null;
   rootSpaceId: string;
 }
-/** Содержимое таба группы (данные её уровня и вложенных); у Отчётов — подтабы по label. */
+/** Group tab content (data of its level and nested); for Reports — sub-tabs by label. */
 export interface GroupTabDef {
   id: string;
   tab: 'work' | 'docs' | 'chats' | 'reports' | 'settings';
@@ -111,7 +111,7 @@ export interface SearchHit {
   icon?: Component;
   to: RouteLocationRaw;
 }
-/** Поиск Cmd+K по данным модуля (локальная реплика); палитра ждёт не дольше своего debounce. */
+/** Cmd+K search over module data (local replica); the palette waits no longer than its debounce. */
 export interface SearchProviderDef {
   id: string;
   label: LocalizedText;
@@ -130,7 +130,7 @@ export interface WebModuleManifest extends FrontendModuleManifest {
   topbar?: TopbarItemDef[];
   search?: SearchProviderDef[];
   groupTabs?: GroupTabDef[];
-  /** Компонент настройки: диалог в ModulesSettings, в том числе у выключенного модуля (C-modules v11) */
+  /** Settings component: a dialog in ModulesSettings, including for a disabled module (C-modules v11) */
   setup?: Lazy<object>;
 }
 

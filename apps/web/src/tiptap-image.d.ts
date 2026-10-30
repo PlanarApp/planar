@@ -1,1 +1,1 @@
-import '@tiptap/extension-image'; // подключает типы setImage
+import '@tiptap/extension-image'; // connects the setImage types

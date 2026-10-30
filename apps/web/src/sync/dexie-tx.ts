@@ -11,7 +11,7 @@ import {
 import type { PlanarDB, ReplicaChange, Undo } from './db';
 
 const moduleEntities = new Map<string, ModuleEntity>();
-/** Сущности установленных модулей: Tx клиента проверяет и сканирует их так же, как сущности ядра. */
+/** Entities of installed modules: the client Tx checks and scans them the same way as core entities. */
 export const registerModuleEntities = (e: Record<string, ModuleEntity>): void =>
   void Object.entries(e).forEach(([n, v]) => moduleEntities.set(n, v));
 
@@ -22,13 +22,13 @@ function check<E extends EntityName>(entity: E, row: unknown): Row<E> {
   return r.data as Row<E>;
 }
 
-/** Tx над Dexie; вызывать внутри транзакции db.transaction(). С undo — запоминает прообразы строк. */
+/** Tx over Dexie; call inside db.transaction(). With undo — remembers row pre-images. */
 export class DexieTx implements Tx {
   private seen = new Set<string>();
   constructor(
     private db: PlanarDB,
     private undo?: Undo[],
-    /** сюда пишутся изменённые строки (для onReplicaChange) */
+    /** changed rows are written here (for onReplicaChange) */
     private changes?: ReplicaChange[],
   ) {}
 
@@ -85,7 +85,7 @@ export class DexieTx implements Tx {
     if (!meta?.indexes.includes(opts.index)) {
       throw new Error(`scan: индекс ${opts.index} не объявлен у ${entity}`);
     }
-    // shortcut: null/undefined не хранятся в индексе IndexedDB — полный просмотр таблицы
+    // shortcut: null/undefined are not stored in an IndexedDB index — a full table scan
     if (opts.eq == null) return t.filter((r) => (r[opts.index] ?? null) === null).toArray();
     return t
       .where(opts.index)
@@ -94,7 +94,7 @@ export class DexieTx implements Tx {
   }
 }
 
-/** Откат записей по прообразам (в обратном порядке). */
+/** Rolls back the writes by pre-images (in reverse order). */
 export async function applyUndo(
   db: PlanarDB,
   undo: Undo[],

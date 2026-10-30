@@ -7,7 +7,7 @@ const mrs = useMrs(() => props.taskId);
 const list = computed(() =>
   [...(mrs.value ?? [])].sort((a, b) => b.mrUpdatedAt.localeCompare(a.mrUpdatedAt)),
 );
-// только http(s): webUrl приходит из внешней системы
+// only http(s): webUrl comes from an external system
 const safe = (u: string) => (/^https?:\/\//i.test(u) ? u : undefined);
 </script>
 

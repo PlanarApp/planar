@@ -87,7 +87,7 @@ export class GitlabController {
         if (!key) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
         set.tokenEnc = encrypt(b.token, key);
       }
-      set.lastError = null; // смена токена снимает остановку после 401
+      set.lastError = null; // changing the token lifts the stop after a 401
       set.lastErrorAt = null;
     }
     await this.core.db
@@ -134,7 +134,7 @@ export class GitlabController {
       ? await this.core.db.select().from(P).where(eq(P.id, id))
       : [];
     if (!r) throw new HttpError(404, 'not_found', 'Не найдено');
-    // строки gitlabMrs уходят мутатором в Tx с записью в changes (клиенты узнают сразу)
+    // gitlabMrs rows go through the mutator into Tx with a write to changes (clients learn at once)
     const rows = await this.core.db
       .select()
       .from(M)

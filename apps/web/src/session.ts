@@ -4,7 +4,7 @@ import { domainMutators } from '@planar/shared';
 import { useAuth } from './auth/useAuth';
 import { moduleMutators, onUnauthorized, registerMutators, startSync, stopSync } from './sync';
 
-/** Связывает вход пользователя с синхронизацией: вызывается один раз из main.ts. */
+/** Connects user login with sync: called once from main.ts. */
 export function initSession(router: Router): void {
   registerMutators([...domainMutators, ...moduleMutators]);
   const { user, expire } = useAuth();

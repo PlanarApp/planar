@@ -1,9 +1,9 @@
 import type { ImportPreset, Mapping } from '../shared/index.js';
 import { parseCsv } from './csv.js';
 
-/** Нормализованная строка импорта; undefined — поле не сопоставлено (не трогать), null — сопоставлено, но пусто. */
+/** Normalized import row; undefined — field not mapped (leave alone), null — mapped but empty. */
 export interface Item {
-  /** номер строки для отчёта: CSV — как в таблице (заголовок = 1), Trello — номер карточки */
+  /** row number for the report: CSV — as in the table (header = 1), Trello — the card number */
   row: number;
   externalId?: string;
   title: string;
@@ -17,20 +17,20 @@ export interface Item {
   parentExt?: string;
   checklist?: { text: string; done: boolean }[];
   notes: string[];
-  /** причина, по которой строку нельзя импортировать */
+  /** reason the row cannot be imported */
   skip?: string;
 }
 
 export interface Parsed {
   columns: string[];
-  /** сырые строки для предпросмотра */
+  /** raw rows for the preview */
   rows: string[][];
   items: Item[];
 }
 
 export class ParseError extends Error {}
 
-// кандидаты заголовков (без регистра): сначала заготовка, затем общие синонимы
+// header candidates (case-insensitive): the template first, then common synonyms
 const GENERIC: Record<keyof Omit<Mapping, 'statusMap'>, string[]> = {
   externalId: ['id', 'task id', 'issue id', 'key', 'issue key'],
   title: ['title', 'name', 'summary', 'task name'],
@@ -67,7 +67,7 @@ export function suggestMapping(columns: string[], preset: ImportPreset): Mapping
       }
     }
   }
-  // без заголовка-кандидата title остаётся пустым: мастер потребует выбрать колонку
+  // without a title header candidate, title stays empty: the wizard will require a column to be chosen
   return { title: columns[0] ?? '', ...out };
 }
 
@@ -80,9 +80,9 @@ const ymd = (y: number, m: number, d: number) => {
 };
 
 /**
- * Дата → YYYY-MM-DD или null. Форматы: ISO, Unix (мс/с), Jira `14/Feb/26 10:30 AM`, `MM/DD/YYYY` (как в ClickUp, США),
- * `DD.MM.YYYY`, остальное — Date.parse.
- * shortcut: время и часовой пояс отбрасываются (дата как написана / в UTC для Unix), когда понадобится пояс — читать из настроек.
+ * Date → YYYY-MM-DD or null. Formats: ISO, Unix (ms/s), Jira `14/Feb/26 10:30 AM`, `MM/DD/YYYY` (as in ClickUp, US),
+ * `DD.MM.YYYY`, otherwise — Date.parse.
+ * shortcut: time and time zone are dropped (the date as written / in UTC for Unix); when a zone is needed, read it from settings.
  */
 export function parseDate(s: string): string | null {
   s = s.trim();
@@ -103,7 +103,7 @@ export function parseDate(s: string): string | null {
   return Number.isNaN(t) ? null : new Date(t).toISOString().slice(0, 10);
 }
 
-// 1 = срочный … 4 = низкий, 0 = нет (как в интерфейсе)
+// 1 = urgent … 4 = low, 0 = none (as in the UI)
 const PRIORITY: Record<string, number> = {
   none: 0,
   'no priority': 0,
@@ -126,7 +126,7 @@ export function parsePriority(s: string): number | null {
   return PRIORITY[s] ?? null;
 }
 
-/** «[a, b]» (ClickUp), «a,b», «a; b» → список без пустых. */
+/** `[a, b]` (ClickUp), `a,b`, `a; b` → a list without empties. */
 export const splitList = (s: string): string[] =>
   s
     .replace(/^\[|\]$/g, '')
@@ -139,7 +139,7 @@ function csvItems(text: string, m: Mapping): Parsed {
   if (!all.length) throw new ParseError('Пустой файл');
   const columns = all[0]!.map((c) => c.trim());
   const data = all.slice(1);
-  // повторяющиеся заголовки (Jira: несколько «Labels») собираются через запятую
+  // repeated headers (Jira: several "Labels") are joined with commas
   const idx = (name?: string) => (name ? columns.flatMap((c, i) => (c === name ? [i] : [])) : []);
   const need = (name: string | undefined, field: string) => {
     const ix = idx(name);
@@ -212,7 +212,7 @@ interface TrelloBoard {
   checklists?: { id: string; checkItems?: { name: string; state?: string; pos?: number }[] }[];
 }
 
-/** Trello JSON: сопоставление фиксированное — карточки, списки → статусы, метки, участники (по username), чек-листы. */
+/** Trello JSON: fixed mapping — cards, lists → statuses, labels, members (by username), checklists. */
 function trelloItems(text: string): Parsed {
   let b: TrelloBoard;
   try {
@@ -287,7 +287,7 @@ export function parseSource(
   preset: ImportPreset,
 ): Parsed {
   if (format === 'trello') return trelloItems(text);
-  // без mapping (предпросмотр) — разбор по предложению заготовки
+  // without a mapping (preview) — parsing by the template's suggestion
   if (!mapping) {
     const first = parseCsv(text)[0];
     if (!first) throw new ParseError('Пустой файл');

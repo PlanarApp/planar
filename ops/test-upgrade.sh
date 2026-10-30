@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Обновление: успешный путь и откат с сохранением данных.
-# Запуск: COMPOSE_PROJECT_NAME=planar-op4 HTTP_PORT=48080 HTTPS_PORT=48443 PLANAR_SUBNET=10.230.4.0/24 ./ops/test-upgrade.sh
+# Upgrade: the successful path and rollback with data preserved.
+# Run: COMPOSE_PROJECT_NAME=planar-op4 HTTP_PORT=48080 HTTPS_PORT=48443 PLANAR_SUBNET=10.230.4.0/24 ./ops/test-upgrade.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-planar-upgrade-test}"
 export HTTP_PORT="${HTTP_PORT:-48080}" HTTPS_PORT="${HTTPS_PORT:-48443}"
 export PLANAR_SUBNET="${PLANAR_SUBNET:-10.230.4.0/24}" PLANAR_DOMAIN= POSTGRES_PASSWORD=smoke-pg-pass
 export PUBLIC_URL="http://localhost:$HTTP_PORT" COOKIE_SECURE=false
-export COMPOSE_FILE=compose.yml:deploy/compose.smoke.yml
+export COMPOSE_FILE=compose.yml:compose.build.yml:deploy/compose.smoke.yml
 TMP="$(mktemp -d)"
 export BACKUP_DIR="$TMP/backups"
 trap 'docker compose down -v --remove-orphans --rmi local >/dev/null 2>&1 || true; docker rmi "$COMPOSE_PROJECT_NAME-api:rollback" "$COMPOSE_PROJECT_NAME-caddy:rollback" >/dev/null 2>&1 || true; rm -rf "$TMP"' EXIT
@@ -45,7 +45,7 @@ snapshot >"$TMP/before"
 grep -q '^tasks=[1-9]' "$TMP/before" || fail "нет задач в сиде"
 [ "$(grep -c '^file ' "$TMP/before")" = 3 ] || fail "не все файлы выданы"
 
-# успешный путь
+# successful path
 ./ops/upgrade.sh >"$TMP/up1.log" 2>&1 || { cat "$TMP/up1.log" >&2; fail "upgrade.sh код ≠ 0"; }
 grep -q '^upgrade: OK' "$TMP/up1.log" || fail "нет 'upgrade: OK'"
 [ "$(ready_code)" = 200 ] || fail "ready ≠ 200 после обновления"
@@ -54,7 +54,7 @@ snapshot >"$TMP/after1"
 diff "$TMP/before" "$TMP/after1" || fail "данные изменились после обновления"
 [ -z "$(docker images -q "$COMPOSE_PROJECT_NAME-api:rollback")" ] || fail "остался тег :rollback"
 
-# откат: новая версия падает при старте
+# rollback: the new version fails on start
 old="$(api_image_id)"
 BROKEN_BASE="$COMPOSE_PROJECT_NAME-api:latest" COMPOSE_FILE="$COMPOSE_FILE:ops/test/compose.broken.yml" \
   ./ops/upgrade.sh >"$TMP/up2.log" 2>&1 && fail "upgrade.sh принял сломанную версию"
@@ -63,7 +63,7 @@ BROKEN_BASE="$COMPOSE_PROJECT_NAME-api:latest" COMPOSE_FILE="$COMPOSE_FILE:ops/t
 snapshot >"$TMP/after2"
 diff "$TMP/before" "$TMP/after2" || fail "данные изменились после отката"
 
-# провал миграций: имя :latest снова указывает на прежний образ, :rollback снят
+# migration failure: the name :latest points to the previous image again, :rollback is removed
 oldimg="$(docker image inspect --format '{{.Id}}' "$COMPOSE_PROJECT_NAME-api:latest")"
 BROKEN_BASE="$COMPOSE_PROJECT_NAME-api:latest" COMPOSE_FILE="$COMPOSE_FILE:ops/test/compose.broken.yml:ops/test/compose.badmig.yml" \
   ./ops/upgrade.sh >"$TMP/up3.log" 2>&1 && fail "upgrade.sh принял провал миграций"

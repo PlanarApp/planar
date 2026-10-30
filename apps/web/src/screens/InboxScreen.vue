@@ -11,8 +11,8 @@ import { groupByTask, inGroup, useNotifications, type InboxItem } from '../inbox
 import type { GroupScope } from '../modules/types';
 import { isSnoozed, snooze, snoozeUntil, snoozed, type SnoozeOption } from '../inbox/snooze';
 
-// scope — таб «Входящие» группы: уведомления её уровня и вложенных
-// kinds — только эти виды уведомлений («Моя работа › Упоминания»)
+// scope — the group's "Inbox" tab: notifications of its level and nested ones
+// kinds — only these notification kinds ("My work › Mentions")
 const props = defineProps<{ scope?: GroupScope; kinds?: string[] }>();
 const { t, locale } = useI18n();
 const all = useNotifications();
@@ -41,7 +41,7 @@ const day = (iso: string) => {
   if (diff === 1) return t('inbox.yesterday');
   return d.toLocaleDateString(locale.value);
 };
-// день — по самому новому уведомлению карточки
+// day — by the newest notification of the card
 const groups = computed(() => {
   const g: { day: string; cards: InboxItem[][] }[] = [];
   for (const c of groupByTask(visible.value)) {
@@ -52,7 +52,7 @@ const groups = computed(() => {
 });
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' });
-// десктоп: справа форма задачи из ?open, как в ClickUp (не ?task — его открывает окно задачи поверх)
+// desktop: the task form from ?open on the right, as in ClickUp (not ?task — that one opens the task window over the view)
 const TaskPanel = taskPanelLoader && defineAsyncComponent(taskPanelLoader);
 const selected = computed(() => {
   const q = router.currentRoute.value.query.open;
@@ -65,7 +65,7 @@ const closeSplit = () =>
   void router.replace({ query: { ...router.currentRoute.value.query, open: undefined } });
 const read = (ids: string[]) => ids.length && mutate('notification.read', { ids });
 const ids = (c: InboxItem[]) => c.map((n) => n.id);
-// действия карточки — на все её уведомления
+// card actions — apply to all its notifications
 function open(c: InboxItem[]) {
   const n = c[0];
   void read(c.filter((x) => !x.readAt).map((x) => x.id));

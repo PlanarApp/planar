@@ -18,7 +18,7 @@ describe('wk15:', () => {
         web: { id: 'wk15m', routes: [{ path: '/m/wk15m/page', component: Page }] },
       }),
     });
-    await setEnabledModules(['wk15m']); // холодная реплика ждала бы настройки
+    await setEnabledModules(['wk15m']); // a cold replica would wait for settings
     await router.push('/m/wk15m/page');
     const r = router.currentRoute.value;
     expect(r.path).toBe('/m/wk15m/page');

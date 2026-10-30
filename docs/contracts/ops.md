@@ -34,6 +34,12 @@ related: ["docs/plan/ops.md", "docs/contracts/core.md", "docs/roadmap.md"]
 | `PLANAR_SUBNET` | compose,api | `172.30.0.0/24` | подсеть сети `app` (в ней Caddy); api получает её как `TRUST_PROXY`. Меняется, если пересекается с сетями хоста |
 | `HTTP_PORT` | compose | `80` | порт хоста для `:80` Caddy |
 | `HTTPS_PORT` | compose | `443` | порт хоста для `:443` Caddy |
+| `SETUP_TOKEN` | api | пусто | C-launch-env: задан — `POST /api/setup` требует заголовок `X-Setup-Token` |
+| `DB_POOL_MAX` | api | `10` | C-launch-env: размер пула соединений api |
+| `DEMO_MODE` | api | `false` | C-launch-env: демо-режим (C-launch-demo) |
+| `DEMO_RESET_HOURS` | api | `24` | C-launch-env: период сброса демо для плашки |
+| `PLANAR_REGISTRY` | compose | `registry.gitlab.com/planarhq/planar` | реестр образов api и caddy (C-launch-release); образы `<реестр>/api`, `<реестр>/caddy` |
+| `PLANAR_VERSION` | compose | `latest` | тег образов api и caddy |
 | `BACKUP_DIR` | ops | `./backups` | каталог архивов бэкапа (C-ops-backup) |
 
 Постоянные значения api в `compose.yml` (не из `.env`): `DATABASE_URL=postgres://postgres:$POSTGRES_PASSWORD@postgres:5432/planar`, `PORT=3000`, `DATA_DIR=/data`, `TRUST_PROXY=$PLANAR_SUBNET`. Порт api и postgres наружу не публикуется (порт postgres — только в `deploy/compose.smoke.yml`).

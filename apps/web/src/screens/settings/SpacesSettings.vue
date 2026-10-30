@@ -14,12 +14,12 @@ const { t } = useI18n();
 const { error, run } = useAction();
 const isAdmin = useAdminSpaces();
 const rootId = useRootSpaceId();
-// корневое «Общее» — это Воркспейс, не пространство списка
+// the root "General" is the Workspace, not a list space
 const spaces = useQuery(async () =>
   (await db.table<Row<'spaces'>>('spaces').toArray()).sort((a, b) => (a.rank < b.rank ? -1 : 1)),
 );
 const listed = computed(() => (spaces.value ?? []).filter((s) => s.id !== rootId.value));
-// массовые действия: удалить выбранные (непустые сервер не удалит — ошибка в строке сообщения)
+// bulk actions: delete selected (non-empty ones the server will not delete — the error shows in the row message)
 const picked = ref(new Set<string>());
 const toggle = (id: string) => {
   const s = new Set(picked.value);
@@ -31,7 +31,7 @@ const bulk = computed<BulkAction[]>(() => [
     id: 'delete',
     label: t('settings.deleteWithContent'),
     danger: true,
-    // массово — вместе с проектами и задачами (подтверждение называет это явно)
+    // in bulk — together with projects and tasks (the confirmation names this explicitly)
     run: () => {
       const ids = [...picked.value];
       picked.value = new Set();

@@ -52,7 +52,7 @@ const labels = useLabels(spaceId);
 const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 const statusKey = useStatusKey(() => props.scope, statuses);
 const projectNames = useProjectNames();
-// колонки: авторазмер по содержимому, разделитель в шапке — вручную (двойной клик — снова авто)
+// columns: auto-size by content, the divider in the header — manual (double click — auto again)
 const {
   widths,
   startResize,
@@ -107,7 +107,7 @@ const groups = computed(() => {
   }));
 });
 
-// свёрнутые подзадачи: id родителей, на проект — в localStorage
+// collapsed subtasks: parent ids, per project — in localStorage
 const foldKey = () => `planar.list.${props.projectId}.folded`;
 const folded = ref(new Set<string>());
 watch(
@@ -128,14 +128,14 @@ function toggleFold(id: string) {
   try {
     localStorage.setItem(foldKey(), JSON.stringify([...f]));
   } catch {
-    /* без хранилища — до перезагрузки */
+    /* without storage — until reload */
   }
 }
 
-// подзадачи — деревом под родителем; родитель не над строкой — подпись в строке
+// subtasks — as a tree under the parent; a parent not above the row — a label in the row
 const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
 const items = computed<Item[]>(() => {
-  // мобильная: карточки без строки заголовков колонок
+  // mobile: cards without a column header row
   const head: Item[] =
     props.options.groupBy === 'none' && !isMobile.value ? [{ id: 'head', kind: 'head' }] : [];
   return head.concat(
@@ -146,7 +146,7 @@ const items = computed<Item[]>(() => {
       for (const x of tree)
         if (x.depth) kids.set(x.task.parentId!, (kids.get(x.task.parentId!) ?? 0) + 1);
       const rows: Item[] = [];
-      let hideBelow = Infinity; // глубина свёрнутого предка: строки глубже — скрыты
+      let hideBelow = Infinity; // depth of the collapsed ancestor: rows deeper than it are hidden
       for (const { task, depth } of tree) {
         if (depth > hideBelow) continue;
         hideBelow = folded.value.has(task.id) && kids.has(task.id) ? depth : Infinity;
@@ -181,16 +181,16 @@ const COL_LABEL = {
   project: 'views.fields.project',
 } as const;
 const colName = (c: keyof typeof COL_LABEL) => t(COL_LABEL[c]);
-// сортировка по клику на заголовок колонки: по возрастанию → по убыванию → ручной порядок
+// sorting by clicking the column header: ascending → descending → manual order
 const LIST_SORT: Partial<Record<ListColumn, SortBy>> = { dueDate: 'dueDate', priority: 'priority' };
 const sortBy = (by: SortBy) => Object.assign(props.options, nextSort(props.options, by));
 
-// --- перетаскивание (сортировка «Вручную»):
-// середина строки — сделать подзадачей этой задачи; граница — встать на уровень следующей строки
+// --- dragging ("Manual" sort):
+// middle of a row — make it a subtask of this task; edge — place at the level of the next row
 const manual = computed(() => props.options.sortBy === 'rank' && props.options.sortDir === 'asc');
 type Drop = { mode: 'slot'; slot: number } | { mode: 'nest'; index: number };
 const drag = ref<{ task: TaskView; from: string; drop: Drop } | null>(null);
-// потомки перетаскиваемой задачи: в них её не вложить
+// descendants of the dragged task: it can't be nested into them
 const descendants = (id: string) => {
   const out = new Set<string>([id]);
   for (let grew = true; grew;) {
@@ -208,7 +208,7 @@ function dropAt(clientY: number): Drop {
   const i = Math.floor(y / rowH.value);
   const frac = y / rowH.value - i;
   const it = items.value[i];
-  // внутрь — только задачи того же проекта (сводка группы смешивает проекты)
+  // inside — only tasks of the same project (the group summary mixes projects)
   if (
     it?.kind === 'task' &&
     !banned.has(it.task.id) &&
@@ -222,7 +222,7 @@ function dropAt(clientY: number): Drop {
     slot: Math.max(0, Math.min(items.value.length, Math.round(y / rowH.value))),
   };
 }
-// уровень линии-индикатора — по следующей строке
+// the level of the indicator line — by the next row
 const dropDepth = computed(() => {
   const d = drag.value?.drop;
   const next = d?.mode === 'slot' ? items.value[d.slot] : undefined;
@@ -237,7 +237,7 @@ function onDragMove(e: PointerEvent) {
   const el = scroller.value!;
   const r = el.getBoundingClientRect();
   if (e.clientY < r.top + 32)
-    el.scrollTop -= 12; // автопрокрутка у краёв
+    el.scrollTop -= 12; // auto-scroll near the edges
   else if (e.clientY > r.bottom - 32) el.scrollTop += 12;
   drag.value.drop = dropAt(e.clientY);
 }
@@ -255,19 +255,19 @@ async function onDragEnd() {
   if (d.drop.mode === 'nest') {
     const target = list[d.drop.index] as Extract<Item, { kind: 'task' }>;
     to = target.group;
-    parent = target.task.id; // в конец подзадач цели
+    parent = target.task.id; // to the end of the target's subtasks
   } else {
     const prev = list[d.drop.slot - 1];
     const next = list[d.drop.slot];
     to = groupOf(prev) ?? groups.value[0]?.key;
     const nextTask = next?.kind === 'task' && next.group === to ? next : undefined;
-    if (nextTask && banned.has(nextTask.task.id) && nextTask.task.id !== d.task.id) return; // внутрь себя
+    if (nextTask && banned.has(nextTask.task.id) && nextTask.task.id !== d.task.id) return; // into itself
     parent = nextTask ? nextTask.task.parentId : null;
-    // родитель из другого проекта (сводка) — без смены родителя
+    // parent from another project (summary) — the parent is not changed
     if (parent && byId.value.get(parent)?.projectId !== d.task.projectId) parent = d.task.parentId;
     if (nextTask && nextTask.task.id !== d.task.id) beforeId = nextTask.task.id;
     else if (nextTask) {
-      // бросили прямо перед собой — следующий брат после себя
+      // dropped right in front of itself — the next sibling after itself
       const after = list
         .slice(d.drop.slot + 1)
         .find((x) => x.kind === 'task' && x.group === to && x.task.parentId === parent);
@@ -277,7 +277,7 @@ async function onDragEnd() {
   if (!to) return;
   const reparent = parent !== d.task.parentId;
   const sibs = (g: TaskGroup) => g.tasks.filter((x) => x.parentId === parent && x.id !== d.task.id);
-  // ранг — среди новых братьев; поле группы меняет planMove при переносе в другую группу
+  // rank — among the new siblings; the group field is changed by planMove when moving to another group
   const cols = groups.value.map((g) => ({
     ...g,
     tasks: [...sibs(g), ...(g.key === d.from ? [d.task] : [])].sort((a, b) =>
@@ -290,7 +290,7 @@ async function onDragEnd() {
     !!statusKey.value,
     statuses.value ?? [],
   );
-  if (!plan && d.from !== to && statusKey.value) return; // в пространстве задачи нет такого статуса
+  if (!plan && d.from !== to && statusKey.value) return; // the task's space has no such status
   if (!plan && reparent) {
     const target = cols.find((c) => c.key === to)!.tasks.filter((x) => x.id !== d.task.id);
     const i = beforeId ? target.findIndex((x) => x.id === beforeId) : target.length;
@@ -311,10 +311,10 @@ const taskIds = computed(() => [
 ]);
 const empty = computed(() => !!all.value && !all.value.some((x) => !x.parentId));
 
-// --- виртуализация
+// --- virtualization
 const scroller = ref<HTMLElement>();
 const rowH = computed(() => (isMobile.value ? 44 : 32));
-// мобильная: карточка задачи выше служебных строк; перетаскивание там выключено (dropAt считает по rowH)
+// mobile: the task card is above the service rows; dragging is disabled there (dropAt counts by rowH)
 const virt = useVirtualizer(
   computed(() => {
     const h = rowH.value;
@@ -329,7 +329,7 @@ const virt = useVirtualizer(
   }),
 );
 
-// --- фокус и клавиатура
+// --- focus and keyboard
 const focusedId = ref<string | null>(null);
 const editing = ref<string | null>(null);
 const focusedTask = computed(() => {
@@ -348,8 +348,8 @@ function moveFocus(d: 1 | -1) {
   virt.value.scrollToIndex(i);
 }
 function onKey(e: KeyboardEvent) {
-  // клавиши списка — когда фокус на самом списке или на кнопке/чекбоксе строки (после пикера
-  // фокус возвращается на его кнопку); в полях ввода — нет
+  // list keys — when focus is on the list itself or on a row's button/checkbox (after a picker
+  // focus returns to its button); not in input fields
   const t = e.target as HTMLElement;
   const onRowControl =
     t !== e.currentTarget &&
@@ -365,7 +365,7 @@ function onKey(e: KeyboardEvent) {
     ArrowUp: () => moveFocus(-1),
     Enter: () => task && openTask(task.key),
     x: () => task && sel.toggle(task.id),
-    F2: () => task && startEdit(focusedId.value!), // правка, а не открытие после клика
+    F2: () => task && startEdit(focusedId.value!), // edit, not opening after a click
     Escape: () => sel.clear(),
   };
   const h = handlers[e.key];
@@ -379,7 +379,7 @@ function onRowClick(it: Extract<Item, { kind: 'task' }>, e: MouseEvent) {
   if (e.metaKey || e.ctrlKey) sel.toggle(it.task.id);
   else if (e.shiftKey) sel.range(taskIds.value, it.task.id);
   else {
-    // двойной клик по названию = правка: открытие откладываем, dblclick его отменяет
+    // double-click on the name = edit: opening is deferred, dblclick cancels it
     clearTimeout(openTimer);
     openTimer = setTimeout(() => openTask(it.task.key), 250);
   }
@@ -390,7 +390,7 @@ function startEdit(id: string) {
 }
 let openTimer: ReturnType<typeof setTimeout> | undefined;
 
-// --- меню «Новая задача»: команды модулей с newTaskMenu
+// --- "New task" menu: module commands with newTaskMenu
 const cmds = useExtensions('commands');
 const newMenu = computed<MenuItem[]>(() => {
   const ctx = {
@@ -408,7 +408,7 @@ const newMenu = computed<MenuItem[]>(() => {
     }));
 });
 
-// --- быстрое создание
+// --- quick creation
 const creating = ref<string | null>(null);
 const newTitle = ref('');
 const defaultStatus = computed(() => {
@@ -446,7 +446,7 @@ async function submitCreate(g?: TaskGroup) {
   });
 }
 
-// первая задача в пустом проекте: поле ввода остаётся для следующей
+// the first task in an empty project: the input field stays for the next one
 watch(empty, async (e, was) => {
   if (was && !e && creating.value === '') {
     creating.value = groups.value[0]?.key ?? null;

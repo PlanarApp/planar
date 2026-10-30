@@ -7,8 +7,8 @@ type InstallEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
-// автопроверка раз в 30 мин и при возврате во вкладку; вкладка в фоне — применяем сразу,
-// иначе плашка «Обновить» (не перезагружать посреди ввода)
+// auto-check every 30 min and when the tab regains focus; if the tab is in background — apply at once,
+// otherwise show the "Update" banner (do not reload in the middle of input)
 const CHECK_MS = 30 * 60_000;
 
 const updateState = ref<UpdateState>('idle');
@@ -45,7 +45,7 @@ function init(): ReturnType<typeof useRegisterSW> {
     isStandalone.value = e.matches || nav.standalone === true;
     if (isStandalone.value) canInstall.value = false;
   });
-  // iPadOS 13+ выдаёт себя за Mac, отличаем по тачу
+  // iPadOS 13+ reports itself as a Mac, so we tell it apart by touch
   isIos =
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);

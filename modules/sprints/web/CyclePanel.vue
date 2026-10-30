@@ -18,12 +18,12 @@ const cycles = useQuery(async () => {
     .toArray();
   return all.sort((a, b) => a.number - b.number);
 });
-// закрытые цикл показываем только если задача в нём осталась
+// closed cycles are shown only if the task is still in it
 const options = computed(() =>
   (cycles.value ?? []).filter((c) => !c.closedAt || c.id === task.value?.cycleId),
 );
 const label = (c: Cycle) => `${tx.value.cycle} ${c.number}${c.name ? ` · ${c.name}` : ''}`;
-// Reka Select не принимает пустое значение
+// Reka Select does not accept an empty value
 const NONE = '__none';
 const choices = computed(() => [
   { value: NONE, label: tx.value.noCycle },

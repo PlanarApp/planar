@@ -30,7 +30,7 @@ let w: World;
 let app: Awaited<ReturnType<typeof createApp>>;
 let wsUrl: string;
 let cookies: Record<string, string>;
-let spaceMember: TestClient; // третий в пространстве: не участник диалога
+let spaceMember: TestClient; // the third in the space: not a member of the dialog
 let iadmin: TestClient;
 const sockets: WebSocket[] = [];
 
@@ -100,7 +100,7 @@ beforeAll(async () => {
   });
   await app.listen(0, '127.0.0.1');
   wsUrl = `ws://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}/ws`;
-  // клиенты с очередью приложения: push ставит задачи в pg-boss
+  // clients with the app queue: push enqueues jobs into pg-boss
   const svc = { push: new PushService(db, app.get(PushQueue)), pull: new PullService(db) };
   for (const k of ['admin', 'member', 'guest', 'outsider'] as const)
     w[k] = new TestClient(svc, w[k].userId);
@@ -203,7 +203,7 @@ describe('chat: сообщения', () => {
   it('send: seq растёт, ответ не трогает lastSeq, replyCount растёт, read автора', async () => {
     const ch = await mkChannel();
     const m1 = await sendOk(w.member, ch);
-    const m2 = await sendOk(w.guest, ch); // guest пишет в канал
+    const m2 = await sendOk(w.guest, ch); // guest writes to the channel
     expect(await msg(m1)).toMatchObject({ seq: 1, reply_count: 0 });
     expect(await msg(m2)).toMatchObject({ seq: 2 });
     const r1 = await sendOk(w.admin, ch, { parentId: m1 });
@@ -353,7 +353,7 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
     expect(await dm([m(w.member.userId)])).toMatchObject({ code: 'invalid_args' });
     expect(await dm([m(w.admin.userId), m(w.guest.userId)])).toMatchObject({
       code: 'invalid_args',
-    }); // без себя
+    }); // without self
     expect(await dm([m(w.member.userId), m(w.member.userId)])).toMatchObject({
       code: 'invalid_args',
     });
@@ -388,7 +388,7 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
     expect(ch.filter((x) => (x.data as R | null)?.channelId === dm || x.id === dm)).toEqual([]);
     expect((await get(`/api/chat/channels/${dm}/messages`, 'third')).statusCode).toBe(404);
     expect((await get(`/api/chat/messages/${m}/thread`, 'third')).statusCode).toBe(404);
-    // участники видят всё
+    // members see everything
     const mc = (await pulled(w.admin, acur)).filter(
       (x) => x.entity.startsWith('chat') && (x.id === dm || (x.data as R | null)?.channelId === dm),
     );
@@ -396,7 +396,7 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
       expect.arrayContaining(['chatChannels', 'chatMembers', 'chatMessages', 'chatReactions']),
     );
     expect((await get(`/api/chat/channels/${dm}/messages`, 'admin')).statusCode).toBe(200);
-    // чужой не пишет, на диалог не реагирует
+    // a stranger does not write, does not react to the dialog
     expect((await send(spaceMember, dm)).r).toMatchObject({ code: 'forbidden' });
     expect(
       await spaceMember.push('chat.reaction.toggle', { id: uuidv7(), messageId: m, emoji: 'x' }),
@@ -427,7 +427,7 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
       x.msgs.filter((m) => m.t === 'typing');
     cm!.ws.send(JSON.stringify({ t: 'typing', entity: 'chatChannels', id: dm }));
     await vi.waitFor(() => expect(typed(ca!)).toHaveLength(1));
-    ct!.ws.send(JSON.stringify({ t: 'typing', entity: 'chatChannels', id: dm })); // третий шлёт сам — никому
+    ct!.ws.send(JSON.stringify({ t: 'typing', entity: 'chatChannels', id: dm })); // the third sends on their own — to nobody
     await new Promise((r) => setTimeout(r, 300));
     expect(typed(ct!)).toHaveLength(0);
     expect(typed(cm!)).toHaveLength(0);
@@ -439,7 +439,7 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
   it('GET /files: вложение диалога читают участники, третий — 404; канал — участники пространства', async () => {
     const dm = await mkDm(w.member, [w.member, w.admin]);
     const sha = await upload('member', Buffer.from('chat dm file ' + uuidv7()));
-    expect((await get(`/files/${sha}`, 'admin')).statusCode).toBe(404); // ещё не приложен
+    expect((await get(`/files/${sha}`, 'admin')).statusCode).toBe(404); // not yet attached
     await sendOk(w.member, dm, { attachments: att(sha) });
     expect((await get(`/files/${sha}`, 'admin')).statusCode).toBe(200);
     expect((await get(`/files/${sha}`, 'third')).statusCode).toBe(404);
@@ -449,7 +449,7 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
     await sendOk(w.member, ch, { attachments: att(sha2) });
     expect((await get(`/files/${sha2}`, 'third')).statusCode).toBe(200);
     expect((await get(`/files/${sha2}`, 'outsider')).statusCode).toBe(404);
-    // чужой sha256 без своей загрузки файла не открывает
+    // a foreign sha256 does not open without its own file upload
     const foreign = await upload('outsider', Buffer.from('chat foreign ' + uuidv7()));
     await sendOk(w.member, ch, { attachments: att(foreign) });
     expect((await get(`/files/${foreign}`, 'third')).statusCode).toBe(404);
@@ -471,9 +471,9 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
     expect((await pulled(w.guest, cur2)).some((c) => c.id === m)).toBe(false);
     expect((await send(w.guest, dm)).r).toMatchObject({ code: 'forbidden' });
     expect((await get(`/api/chat/channels/${dm}/messages`, 'guest')).statusCode).toBe(404);
-    // оставшиеся видят уход
+    // the rest see the departure
     expect((await rows(w.admin, 'chatMembers')).filter((r) => r.channelId === dm)).toHaveLength(2);
-    // повторный leave — ничего
+    // repeated leave — nothing
     await w.guest.ok('chat.dm.leave', { channelId: dm });
   });
 
@@ -487,7 +487,7 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
     await w.member.ok('chat.dm.removeMember', del);
     expect(await chan(w.guest, dm)).toBeUndefined();
     expect((await send(w.guest, dm)).r).toMatchObject({ code: 'forbidden' });
-    await w.member.ok('chat.dm.removeMember', del); // повтор — ничего
+    await w.member.ok('chat.dm.removeMember', del); // repeat — nothing
     expect(
       await w.member.push('chat.dm.removeMember', { channelId: dm, userId: w.admin.userId }),
     ).toMatchObject({ code: 'conflict' });
@@ -537,8 +537,8 @@ describe('chat: личные диалоги и утечки (Q1)', () => {
     const cm = await sendOk(w.member, ch);
     await w.admin.ok('chat.reaction.toggle', { id: uuidv7(), messageId: m, emoji: 'a' });
     await w.admin.ok('chat.reaction.toggle', { id: uuidv7(), messageId: cm, emoji: 'a' });
-    await w.member.ok('chat.message.delete', { id: m }); // del реакции в диалоге
-    await w.member.ok('chat.message.delete', { id: cm }); // и в канале
+    await w.member.ok('chat.message.delete', { id: m }); // del of a reaction in the dialog
+    await w.member.ok('chat.message.delete', { id: cm }); // and in the channel
     await w.admin.ok('chat.dm.leave', { channelId: dm });
     const dels = await db
       .select()

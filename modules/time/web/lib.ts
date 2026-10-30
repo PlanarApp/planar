@@ -5,7 +5,7 @@ export interface TaskNode {
   parentId: string | null;
 }
 
-/** Задача и все её потомки (рекурсивно, без зацикливания). */
+/** A task and all its descendants (recursive, without looping). */
 export function subtreeIds(tasks: TaskNode[], rootId: string): Set<string> {
   const kids = new Map<string, string[]>();
   for (const t of tasks)
@@ -21,20 +21,20 @@ export function subtreeIds(tasks: TaskNode[], rootId: string): Set<string> {
   return out;
 }
 
-/** Секунды записи: готовая длительность или «сейчас − начало» у идущей. */
+/** Seconds of an entry: the ready duration, or «now − start» for a running one. */
 export const entrySec = (e: TimeEntry, nowMs: number): number =>
   e.endedAt
     ? (e.durationSec ?? 0)
     : Math.max(0, Math.floor((nowMs - Date.parse(e.startedAt)) / 1000));
 
-/** Сумма своих записей по набору задач. */
+/** The sum of own entries over a set of tasks. */
 export const sumSec = (entries: TimeEntry[], taskIds: Set<string>, userId: string, nowMs: number) =>
   entries.reduce(
     (s, e) => (e.userId === userId && taskIds.has(e.taskId) ? s + entrySec(e, nowMs) : s),
     0,
   );
 
-/** «1:05:09» / «5:09» для таймера. */
+/** «1:05:09» / «5:09» for the timer. */
 export function clock(sec: number): string {
   const h = Math.floor(sec / 3600);
   const m = String(Math.floor((sec % 3600) / 60)).padStart(h ? 2 : 1, '0');
@@ -42,13 +42,13 @@ export function clock(sec: number): string {
   return h ? `${h}:${m}:${s}` : `${m}:${s}`;
 }
 
-/** «1:30» (часы:минуты); 0 → пусто. */
+/** «1:30» (hours:minutes); 0 → empty. */
 export const hm = (sec: number): string =>
   sec <= 0
     ? ''
     : `${Math.floor(sec / 3600)}:${String(Math.round((sec % 3600) / 60)).padStart(2, '0')}`;
 
-/** Ввод ячейки: «1:30» или «1.5» / «1,5» (часы). Пусто → 0, мусор → null. */
+/** Cell input: «1:30» or «1.5» / «1,5» (hours). Empty → 0, junk → null. */
 export function parseHm(s: string): number | null {
   const v = s.trim().replace(',', '.');
   if (!v) return 0;
@@ -59,11 +59,11 @@ export function parseHm(s: string): number | null {
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
-/** Локальная дата YYYY-MM-DD. */
+/** Local date YYYY-MM-DD. */
 export const dayKey = (d: Date): string =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-/** Семь локальных дней недели, содержащей `anchor`; weekStart: 0 — вс, 1 — пн. */
+/** The seven local days of the week containing `anchor`; weekStart: 0 — Sun, 1 — Mon. */
 export function weekDays(anchor: Date, weekStart: 0 | 1): Date[] {
   const shift = (anchor.getDay() - weekStart + 7) % 7;
   return Array.from(
@@ -78,10 +78,10 @@ export type TimeOp = {
 };
 
 /**
- * Правка ячейки (задача × день): новая сумма дня → мутации.
- * Больше — разница добавляется time.log (кусками ≤ 24 ч); меньше — снимается с ручных записей
- * дня, с последней: целиком (delete) или укорочением (update); 0 — удаляются все завершённые
- * записи дня. Если ручных записей не хватает, снимается сколько есть.
+ * Editing a cell (task × day): the new day total → mutations.
+ * More — the difference is added with time.log (chunks ≤ 24 h); less — it is taken from the manual entries
+ * of the day, starting from the last: whole (delete) or shortened (update); 0 — all completed
+ * entries of the day are removed. If there are not enough manual entries, as many as exist are taken.
  */
 export function planCell(
   cell: TimeEntry[],

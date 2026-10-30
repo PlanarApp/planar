@@ -2,7 +2,7 @@
 import type { Component } from 'vue';
 import Tooltip from './Tooltip.vue';
 
-// Корень — Tooltip (фрагмент): атрибуты триггера Menu/Popover вешаем на <button> сами.
+// Root is Tooltip (a fragment): we attach the Menu/Popover trigger attributes to the <button> ourselves.
 defineOptions({ inheritAttrs: false });
 
 withDefaults(

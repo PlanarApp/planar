@@ -9,7 +9,7 @@ test.beforeAll(async () => {
   await setModules(admin, MODULES);
 });
 
-/** Страница docs в пространстве фикстуры. */
+/** docs page in the fixture space. */
 async function mkPage(f: Awaited<ReturnType<typeof fixture>>, title: string): Promise<string> {
   const id = uuidv7();
   await f.admin.pushOk([
@@ -41,7 +41,7 @@ test('collab-edit: ввод alice в документе docs виден bob ≤ 
   await docBody(alice).pressSequentially(text);
   await expect(docBody(bob)).toContainText(text, { timeout: 500 });
   await expect(bob.getByTestId('doc-lock')).toHaveCount(0);
-  // встречная правка
+  // counter-edit
   await docBody(bob).click();
   await bob.keyboard.press('Control+End');
   await bob.keyboard.type(' ответ');
@@ -119,7 +119,7 @@ test('collab-edit: страница, ещё не дошедшая до серв�
   const alice = await loginAs(browser, 'alice');
   await alice.goto(`/s/${f.spaceId}/docs`);
   await expect(alice.getByTestId('group-docs')).toBeVisible();
-  // push страницы задержан: collab-подключение сначала получает отказ
+  // push of the page is delayed: the collab connection first gets a refusal
   await alice.route('**/sync/push', async (r) => {
     await new Promise((x) => setTimeout(x, 4000));
     await r.continue();
@@ -151,6 +151,6 @@ test('collab-edit: страница, ещё не дошедшая до серв�
   await spaGo(bob, `/m/docs/${id}`);
   await expect(docBody(bob)).toContainText(text, { timeout: 20_000 });
   await docBody(alice).pressSequentially('z');
-  // awareness пережил повторное подключение: курсор alice виден bob
+  // awareness survived the reconnect: alice's cursor is visible to bob
   await expect(bob.locator('.collaboration-carets__label', { hasText: 'Alice' })).toBeVisible();
 });

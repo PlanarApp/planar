@@ -1,4 +1,4 @@
-// Единственная точка контакта web-части с ядром: реплика, пользователь, язык; HTTP модуля — fetch.
+// The web part's single point of contact with core: replica, user, language; the module's HTTP — fetch.
 import { db, i18n, useQuery } from '@planar/web/modules';
 import type { ImportJob, Mapping, Preview } from '../shared/index.js';
 

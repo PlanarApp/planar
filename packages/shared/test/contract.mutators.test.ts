@@ -1,4 +1,4 @@
-// Контрактный тест C-mutators: domainMutators = таблица «Мутаторы домена». Правит только координатор core.
+// Contract test C-mutators: domainMutators = the table «Domain mutators». Only the core coordinator edits this.
 import { expect, it } from 'vitest';
 import { checkMutators } from './check-mutators';
 

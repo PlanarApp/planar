@@ -5,7 +5,7 @@ import { useBreakpoint } from '../ui';
 import { closeTask, taskPanelLoader } from '.';
 import { taskOpenMode } from './open';
 
-// задача из ?task — окно поверх вида или боковая панель, как в ClickUp; без ловушки фокуса: пикеры открываются в порталах
+// task from ?task — a window over the view or a side panel, as in ClickUp; no focus trap: pickers open in portals
 const route = useRoute();
 const { isMobile } = useBreakpoint();
 const TaskPanel = taskPanelLoader && defineAsyncComponent(taskPanelLoader);

@@ -13,7 +13,7 @@ import TopBar from '../TopBar.vue';
 import { ui } from '../../command/hotkeys';
 
 const stub = { template: '<div />' };
-// Tooltip (IconButton) требует провайдера, который в приложении стоит в App.vue
+// Tooltip (IconButton) requires a provider, which the app mounts in App.vue
 const withTips = (c: object) =>
   defineComponent({ render: () => h(TooltipProvider, null, () => h(c)) });
 
@@ -106,9 +106,9 @@ describe('раскладка', () => {
     localStorage.removeItem('planar.sidebar.collapsed');
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
-    // корень дерева — «Всё»; его шеврон сворачивает пространства
+    // tree root — "All"; its chevron collapses spaces
     expect(w.get('[data-testid=nav-workspace]').text()).toBe('Всё');
-    expect(w.text()).not.toContain('Избранное'); // пусто — скрыто
+    expect(w.text()).not.toContain('Избранное'); // empty — hidden
     const head = w.get('[data-testid=nav-workspace] button');
     expect(head.attributes('aria-expanded')).toBe('true');
     await head.trigger('click');

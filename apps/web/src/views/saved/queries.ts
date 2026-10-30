@@ -5,10 +5,10 @@ import { db, useQuery } from '../../sync';
 
 export type SavedView = Row<'savedViews'>;
 
-/** Виды пространства, видимые пользователю: его личные и общие, по rank. */
+/** Space views visible to the user: his personal and shared ones, by rank. */
 export function useSavedViews(spaceId: MaybeRefOrGetter<string>) {
   const { user } = useAuth();
-  // таблица маленькая: читаем целиком, пространство и владельца отбираем в computed
+  // the table is small: read it whole, pick the space and the owner in computed
   const all = useQuery(() => db.table<SavedView>('savedViews').toArray());
   return computed(() =>
     (all.value ?? [])
@@ -26,7 +26,7 @@ export function useSavedView(id: MaybeRefOrGetter<string>) {
   );
 }
 
-/** Общий вид можно создавать и править участнику с правом member и выше (не гость). */
+/** A shared view can be created and edited by a member with the member right and above (not a guest). */
 export function useCanShare(spaceId: MaybeRefOrGetter<string>) {
   const { user } = useAuth();
   const members = useQuery(() => db.table<Row<'spaceMembers'>>('spaceMembers').toArray());

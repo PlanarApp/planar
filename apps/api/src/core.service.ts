@@ -18,7 +18,7 @@ import { ensureSystemUser } from './users/system.js';
 
 export { CORE };
 
-/** Услуги ядра модулям (C-modules v4): провайдер `CORE`. */
+/** Core services for modules (C-modules v4): provider `CORE`. */
 @Injectable()
 export class CoreService implements CoreServices, OnModuleInit, OnModuleDestroy {
   private sysId?: string;
@@ -33,7 +33,7 @@ export class CoreService implements CoreServices, OnModuleInit, OnModuleDestroy 
   retryMs = 2000;
   private timer?: NodeJS.Timeout;
 
-  /** БД недоступна — старт не падает; повторяем с интервалом, пока systemUserId не станет доступен */
+  /** DB unavailable — startup does not fail; retry at an interval until systemUserId becomes available */
   async onModuleInit() {
     try {
       this.sysId = await ensureSystemUser(this.db);

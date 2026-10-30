@@ -1,5 +1,5 @@
-// Контрактный тест ops: compose.yml, deploy/Caddyfile, web *.html, метрики, ops/*.sh = docs/contracts/ops.md. Правит только координатор ops.
-// Кода, которого ещё нет (метрики, ops/), — пропуск; OPS_CONTRACT_STRICT=1 — ошибка.
+// Contract test ops: compose.yml, deploy/Caddyfile, web *.html, metrics, ops/*.sh = docs/contracts/ops.md. Edited only by the ops coordinator.
+// Code that does not exist yet (metrics, ops/) — skip; OPS_CONTRACT_STRICT=1 — error.
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

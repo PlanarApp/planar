@@ -6,7 +6,7 @@ export interface Mail {
   data: string;
 }
 
-/** Письмо в читаемом виде: заголовки (encoded-word), quoted-printable раскрыты. */
+/** Message in readable form: headers (encoded-word) and quoted-printable decoded. */
 export const decoded = (raw: string) => {
   const i = raw.indexOf('\r\n\r\n');
   const head = raw
@@ -24,7 +24,7 @@ export const decoded = (raw: string) => {
   return head + body;
 };
 
-/** Заглушка SMTP: EHLO/MAIL/RCPT/DATA/QUIT без TLS и AUTH; сохраняет письма. failRcpt — ответить 550 на RCPT. */
+/** SMTP stub: EHLO/MAIL/RCPT/DATA/QUIT without TLS and AUTH; stores messages. failRcpt — reply 550 to RCPT. */
 export async function smtpStub() {
   const mails: Mail[] = [];
   const stub = {

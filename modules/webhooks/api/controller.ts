@@ -21,7 +21,7 @@ import { webhooksDeliveries as D, webhooksSubscriptions as S } from './schema.js
 
 const B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-/** whsec_ + 32 случайных байта в base62 (43 символа, слева '0'). */
+/** whsec_ + 32 random bytes in base62 (43 chars, left-padded with '0'). */
 export function newSecret(): string {
   let n = BigInt('0x' + randomBytes(32).toString('hex'));
   let s = '';
@@ -160,7 +160,7 @@ export class WebhooksController {
     this.admin(req);
     await this.one(id);
     const d = await createDelivery(this.core.db, id, 'ping', {});
-    await this.core.enqueue(QUEUE, { deliveryId: d.id }); // sweep — страховка
+    await this.core.enqueue(QUEUE, { deliveryId: d.id }); // sweep is a safety net
     return { data: delivery(d) };
   }
 

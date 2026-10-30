@@ -1,6 +1,6 @@
 import type { SortBy } from '../tasks';
 
-/** Клик по заголовку колонки (как в ClickUp): по возрастанию → по убыванию → снова ручной порядок. */
+/** Click on a column header (as in ClickUp): ascending → descending → manual order again. */
 export function nextSort(
   cur: { sortBy: SortBy; sortDir: 'asc' | 'desc' },
   by: SortBy,
@@ -11,7 +11,7 @@ export function nextSort(
     : { sortBy: 'rank', sortDir: 'asc' };
 }
 
-/** стрелка текущей сортировки у заголовка; '' — колонка не сортирует */
+/** current sort arrow at the header; '' — column is not sortable */
 export const sortMark = (
   cur: { sortBy: SortBy; sortDir: 'asc' | 'desc' },
   by: SortBy | undefined,

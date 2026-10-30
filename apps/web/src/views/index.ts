@@ -11,16 +11,16 @@ export interface ViewProps {
   projectId: string;
   options: ViewOptions;
   filter?: Filter | null;
-  /** открыт сохранённый вид: раскладка уходит в черновик опций (update:options) */
+  /** a saved view is open: the layout goes into the options draft (update:options) */
   saved?: boolean;
   /**
-   * сводка группы (Пространство, Воркспейс): задачи этих проектов; `projectId` — ключ сводки для
-   * хранилища, создание задач и ручной порядок выключены
+   * group summary (Space, Workspace): tasks of these projects; `projectId` — the summary key for
+   * storage, task creation and manual order are disabled
    */
   scope?: {
     projectIds: string[];
     spaceIds: string[];
-    /** куда создавать задачи из сводки (выбор в панели); нет — создание выключено */
+    /** where to create tasks from the summary (chosen in the panel); none — creation is disabled */
     createIn?: { projectId: string; spaceId: string };
   };
 }
@@ -34,7 +34,7 @@ export interface ViewTab {
   label: LocalizedText;
   icon?: Component;
   load: () => Promise<{ default: Component }>;
-  /** встроенный вид получает только ViewProps, вид модуля — ещё и viewId */
+  /** a built-in view receives only ViewProps, a module view also gets viewId */
   ext?: boolean;
 }
 
@@ -46,7 +46,7 @@ const BUILTIN: Record<string, Component> = {
 };
 const ORDER = ['list', 'board', 'table', 'calendar'];
 
-/** Вкладки: встроенные виды из glob (list, board, затем остальные по имени) и виды модулей. */
+/** Tabs: built-in views from glob (list, board, then the others by name) and module views. */
 export function buildViewTabs(
   glob: Record<string, () => Promise<unknown>>,
   ext: { key: string; label: LocalizedText; icon?: Component; component: ViewTab['load'] }[],

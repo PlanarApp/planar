@@ -5,7 +5,7 @@ import { addField, dayOfMonth, serverLinks, serverTask } from './features-helper
 
 const cell = (p: Page, day: string) => p.locator(`[data-day="${day}"]`);
 
-// ---------- Календарь
+// ---------- Calendar
 
 test('календарь: диапазон start..due на каждом дне, без дат — в «Без даты»', async ({
   browser,
@@ -83,7 +83,7 @@ test('календарь: неделя/месяц, навигация и зап�
   expect(month % 7).toBe(0);
   await page.locator('[data-test=mode-week]').click();
   await expect(days).toHaveCount(7);
-  // неделя начинается с понедельника
+  // week starts on Monday
   const first = await days.first().getAttribute('data-day');
   const [y, m, d] = first!.split('-').map(Number);
   expect(new Date(y!, m! - 1, d).getDay()).toBe(1);
@@ -103,7 +103,7 @@ test('календарь: на телефоне — список по дням',
   await expect(page.locator('[data-day]')).toHaveCount(0);
 });
 
-// ---------- Таблица
+// ---------- Table
 
 test('таблица: строки, правка названия двойным щелчком, видно bob', async ({ browser }) => {
   const t = uniq('Таблица');
@@ -169,7 +169,7 @@ test('таблица: выбор строк показывает панель м
   await expect(page.getByRole('toolbar', { name: /^Выбрано/ })).toHaveCount(0);
 });
 
-// ---------- Пользовательские поля
+// ---------- Custom fields
 
 test('поля: создать поле в диалоге, задать значение; переживает reload и видно bob', async ({
   browser,
@@ -273,7 +273,7 @@ test('поля: удаление поля чистит значения зада
   await expect.poll(async () => (await serverTask(f, f.taskIds[0]!)).fields).toEqual({});
 });
 
-// ---------- Связи
+// ---------- Links
 
 test('связи: создать «блокирует» в панели; у второй задачи — «Заблокирована»; удалить', async ({
   browser,
@@ -310,10 +310,10 @@ test('связи: повторная связь той же пары — соо�
   await links.getByTestId('candidate').filter({ hasText: b }).click();
   await expect(links.getByTestId('unlink')).toHaveCount(1);
   await expect.poll(() => serverLinks(f)).toBe(1);
-  // уже связанная задача из поиска исчезает
+  // an already linked task disappears from search
   await links.getByLabel('Найти задачу по названию или ключу').fill(b);
   await expect(links.getByTestId('candidate')).toHaveCount(0);
-  // обратная сторона той же пары, созданная параллельно извне, отвергается как conflict
+  // the reverse side of the same pair, created in parallel from outside, is rejected as conflict
   const r = await f.admin.push([
     f.admin.mut('link.create', {
       id: uuidv7(),
@@ -385,7 +385,7 @@ test('связи: «связана» видна с обеих сторон по�
   await expect(other).toContainText(a);
 });
 
-// ---------- Колонки полей в Таблице, снятие блокировки
+// ---------- Field columns in the Table, lock removal
 
 test('таблица: колонка числового поля — показ и правка ячейки; переживает reload', async ({
   browser,
@@ -430,7 +430,7 @@ test('связи: пометка «заблокирована» снимаетс
     .getByRole('img', { name: 'Заблокирована' });
   await expect(mark).toBeVisible();
 
-  // statusIds[3] — категория done
+  // statusIds[3] — done category
   await f.admin.pushOk([
     f.admin.mut('task.update', { id: f.taskIds[0], statusId: f.statusIds[3] }),
   ]);

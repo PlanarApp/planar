@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useAuth } from './auth/useAuth';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { TooltipProvider } from 'reka-ui';
@@ -18,6 +19,13 @@ const { needRefresh, applyUpdate } = usePwa();
 
 <template>
   <TooltipProvider>
+    <div
+      v-if="demoHours"
+      role="status"
+      class="bg-accent px-3 py-1 text-center text-xs text-accent-fg"
+    >
+      {{ t('auth.demoBanner', { n: demoHours }) }}
+    </div>
     <RouterView v-if="bare" />
     <AppShell v-else />
     <CommandHost v-if="!bare" />

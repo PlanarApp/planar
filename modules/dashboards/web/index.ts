@@ -1,7 +1,7 @@
 import { defineComponent, h } from 'vue';
 import { defineWebModule } from '@planar/web/modules';
 
-// Иконка без зависимости от lucide: четыре плитки
+// Icon without a lucide dependency: four tiles
 const Grid = defineComponent({
   props: { size: { type: [Number, String], default: 16 } },
   setup: (p) => () =>

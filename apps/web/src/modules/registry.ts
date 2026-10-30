@@ -11,17 +11,17 @@ export type Extension<K extends ExtensionKind> = NonNullable<WebModuleManifest[K
 
 const registered = shallowRef<WebModuleManifest[]>([]);
 
-/** null — ещё не известно (реплика не прошла bootstrap): показываем все зарегистрированные, ensureModule ждёт */
+/** null — not yet known (replica hasn't bootstrapped): show all registered, ensureModule waits */
 const enabled = shallowRef<string[] | null>(null);
 const timedOut = shallowRef(false);
-/** включённые модули, чей фронт не нашёлся или не загрузился */
+/** enabled modules whose frontend was not found or did not load */
 const failed = shallowRef<string[]>([]);
 const fail = (id: string) => void (failed.value = [...failed.value, id]);
-/** Настройки модулей уже прочитаны из реплики. */
+/** Module settings already read from the replica. */
 export const modulesKnown = (): boolean => !!enabled.value;
 const SETTINGS_WAIT_MS = 10_000;
 
-/** Состояние модуля для экрана: loading — настройки ещё не прочитаны, off — выключен, error — не дождались/не загрузился. */
+/** Module state for the screen: loading — settings not yet read, off — disabled, error — not awaited / not loaded. */
 export const moduleStatus = (id: string): 'loading' | 'off' | 'ready' | 'error' =>
   !enabled.value
     ? timedOut.value
@@ -35,7 +35,7 @@ export const moduleStatus = (id: string): 'loading' | 'off' | 'ready' | 'error' 
           ? 'error'
           : 'loading';
 
-/** Ждёт, пока enabled станет известен; false — не дождались за SETTINGS_WAIT_MS. */
+/** Waits until enabled becomes known; false — not awaited within SETTINGS_WAIT_MS. */
 function settingsKnown(): Promise<boolean> {
   if (enabled.value) return Promise.resolve(true);
   return new Promise((resolve) => {
@@ -59,9 +59,9 @@ let loaders: Loaders = import.meta.glob<{ web: WebModuleManifest }>(
 );
 
 export function registerModules(all: WebModuleManifest[]): void {
-  // повторная регистрация того же moduleId — без дубликатов
+  // repeated registration of the same moduleId — no duplicates
   const manifests = all.filter((m) => !registered.value.some((r) => r.id === m.id));
-  // проверка целиком до изменения состояния
+  // check everything before changing state
   const keys = new Set<string>();
   for (const m of [...registered.value, ...manifests]) {
     for (const kind of [
@@ -97,11 +97,11 @@ export function registerModules(all: WebModuleManifest[]): void {
   for (const m of manifests) for (const r of m.routes ?? []) router.addRoute(r);
 }
 
-/** Включённые модули (settings.enabled_modules): подгружает фронт ещё не зарегистрированных. */
-/** Только для тестов: подменить glob-загрузчики. */
+/** Enabled modules (settings.enabled_modules): loads the frontend of not-yet-registered ones. */
+/** Tests only: replace the glob loaders. */
 export const setModuleLoaders = (l: Loaders): void => void (loaders = l);
 
-/** Лениво грузит только модуль `id` (прямой заход на /m/<id>/…); false — выключен или не найден. */
+/** Lazily loads only module `id` (direct entry to /m/<id>/…); false — disabled or not found. */
 export async function ensureModule(id: string): Promise<boolean> {
   if (!(await settingsKnown())) return false;
   if (!enabled.value!.includes(id)) return false;
@@ -118,7 +118,7 @@ export async function ensureModule(id: string): Promise<boolean> {
   }
 }
 
-/** Компонент setup модуля (в том числе выключенного): грузит его web-часть, не регистрируя; нет — undefined. */
+/** Module setup component (including disabled): loads its web part without registering; none — undefined. */
 export async function moduleSetup(
   id: string,
 ): Promise<NonNullable<WebModuleManifest['setup']> | undefined> {
@@ -151,9 +151,9 @@ export async function setEnabledModules(ids: string[]): Promise<void> {
   registerModules(loaded.filter((m): m is WebModuleManifest => !!m));
 }
 
-/** Следит за settings.enabled_modules в реплике; вызывать из main.ts один раз. */
+/** Watches settings.enabled_modules in the replica; call from main.ts once. */
 export function initModules(): void {
-  // пустая реплика (до bootstrap) — «неизвестно», а не «все выключены»
+  // empty replica (before bootstrap) — "unknown", not "all disabled"
   const apply = (r: { value?: unknown } | undefined) => {
     if (r || replicaState.value !== 'empty')
       void setEnabledModules(Array.isArray(r?.value) ? (r.value as string[]) : []);
@@ -162,7 +162,7 @@ export function initModules(): void {
     next: apply,
     error: () => {},
   });
-  // bootstrap без строки настроек: перечитать, когда реплика перестала быть пустой
+  // bootstrap without a settings row: reread when the replica stops being empty
   watch(replicaState, async (st) => {
     if (st !== 'empty') apply(await db.table('settings').get('enabled_modules'));
   });

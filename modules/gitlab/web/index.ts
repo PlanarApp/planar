@@ -1,7 +1,7 @@
 import { defineComponent, h } from 'vue';
 import { defineWebModule } from '@planar/web/modules';
 
-// иконка без lucide: ветвление (merge request)
+// icon without lucide: branching (merge request)
 const Branch = defineComponent({
   props: { size: { type: [Number, String], default: 16 } },
   setup: (p) => () =>
@@ -45,7 +45,7 @@ export const web = defineWebModule({
       adminOnly: true,
       component: () => import('./GitlabSettings.vue'),
     },
-    // в проекте — статус задачи при слиянии MR (подключение и репозитории — в Воркспейсе)
+    // in the project — task status on MR merge (connection and repositories — in the Workspace)
     {
       id: 'project',
       level: 'project',

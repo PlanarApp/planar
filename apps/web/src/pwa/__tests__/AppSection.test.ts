@@ -23,7 +23,7 @@ async function mountAt(url: string, update = async () => {}) {
     routes: [{ path: '/profile', component: { template: '<div />' } }],
   });
   await router.push(url);
-  opts?.onRegisteredSW?.('/sw.js', { update }); // onMounted читает ?pwa=check сразу
+  opts?.onRegisteredSW?.('/sw.js', { update }); // onMounted reads ?pwa=check immediately
   const w = mount(AppSection, {
     attachTo: document.body,
     global: {

@@ -20,6 +20,7 @@ import type { PgBoss } from 'pg-boss';
 import webpush from 'web-push';
 import { z } from 'zod';
 import { pushPayloadSchema, type PushPayload } from '@planar/shared';
+import { isDemo } from '@planar/server-kit';
 import { BadRequestException } from '@nestjs/common';
 import { getAuth } from '../auth/auth.js';
 import type { Db } from '../db/index.js';
@@ -35,25 +36,26 @@ export interface PushSub {
   p256dh: string;
   auth: string;
 }
-/** Отправка Web Push; при ответе push-сервиса бросает ошибку со statusCode. */
+/** Sends Web Push; on a push-service response throws an error with statusCode. */
 export interface PushSender {
   send(sub: PushSub, payload: PushPayload): Promise<void>;
 }
 export interface PushOpts {
-  /** pg-boss: false — очередь не стартует (enqueue — no-op) */
+  /** pg-boss: false — queue does not start (enqueue — no-op) */
   boss: boolean;
-  /** воркер очереди; false — только постановка (тесты) */
+  /** queue worker; false — enqueue only (tests) */
   worker?: boolean;
-  /** VAPID: нет ключей — push выключен */
+  /** VAPID: no keys — push is disabled */
   vapid?: { publicKey?: string; privateKey?: string; subject?: string };
-  /** подмена отправителя (тесты) */
+  /** sender substitution (tests) */
   sender?: PushSender;
   databaseUrl: string;
 }
 
-class WebPushSender implements PushSender {
+export class WebPushSender implements PushSender {
   constructor(private v: { publicKey: string; privateKey: string; subject: string }) {}
   async send(s: PushSub, p: PushPayload) {
+    if (isDemo()) return; // demo: no outgoing requests
     await webpush.sendNotification(
       { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
       JSON.stringify(p),
@@ -72,7 +74,7 @@ const TITLES: Record<string, string> = {
   chat_reply: 'Ответ в треде',
 };
 
-/** Очередь pg-boss + доставка. Провайдер PUSH_QUEUE для PushService. */
+/** pg-boss queue + delivery. Provider PUSH_QUEUE for PushService. */
 @Injectable()
 export class PushQueue implements OnApplicationShutdown {
   private log = new Logger('push-queue');
@@ -103,7 +105,7 @@ export class PushQueue implements OnApplicationShutdown {
     return this.opts.vapid?.publicKey || undefined;
   }
 
-  /** Старт pg-boss (ленивый, один раз). */
+  /** Start pg-boss (lazy, once). */
   private start(): Promise<void> {
     return (this.ready ??= (async () => {
       const boss = await this.jobs.start();
@@ -119,7 +121,7 @@ export class PushQueue implements OnApplicationShutdown {
         );
       this.boss = boss;
     })().catch((e) => {
-      this.ready = undefined; // следующий enqueue попробует снова
+      this.ready = undefined; // the next enqueue will retry
       throw e;
     }));
   }
@@ -128,7 +130,7 @@ export class PushQueue implements OnApplicationShutdown {
     if (this.opts.boss) await this.start();
   }
 
-  /** После COMMIT: по job на уведомление. Сбой очереди мутацию не откатывает. */
+  /** After COMMIT: one job per notification. A queue failure does not roll back the mutation. */
   async enqueue(ids: string[]): Promise<void> {
     if (!ids.length || !this.opts.boss) return;
     try {
@@ -139,7 +141,7 @@ export class PushQueue implements OnApplicationShutdown {
     }
   }
 
-  /** Доставка одного уведомления всем подпискам получателя; 404/410 — подписка удаляется. */
+  /** Delivers one notification to all of the recipient's subscriptions; 404/410 — the subscription is deleted. */
   async deliver(notificationId: string): Promise<void> {
     if (!this.sender) return;
     const [n] = await this.db
@@ -155,7 +157,7 @@ export class PushQueue implements OnApplicationShutdown {
         .from(tasks)
         .innerJoin(projects, eq(projects.id, tasks.projectId))
         .where(eq(tasks.id, n.taskId));
-      if (!t) return; // задача удалена: открывать нечего
+      if (!t) return; // job deleted: nothing to open
       body = t.title;
       url = `/t/${t.key}-${t.number}`;
     } else {
@@ -169,7 +171,7 @@ export class PushQueue implements OnApplicationShutdown {
       tag: n.id,
       kind: n.kind as PushPayload['kind'],
     };
-    // невалидный url (чужой сайт в SW) не отправляем
+    // invalid url (foreign site in SW) is not sent
     if (!pushPayloadSchema.safeParse(payload).success) return;
     const subs = await this.db
       .select()
@@ -189,7 +191,7 @@ export class PushQueue implements OnApplicationShutdown {
 
   async onApplicationShutdown() {
     await this.ready?.catch(() => {});
-    await this.jobs.onApplicationShutdown(); // без Nest (тесты) его никто не остановит; повтор безопасен
+    await this.jobs.onApplicationShutdown(); // without Nest (tests) nobody stops it; a repeat is safe
   }
 }
 
@@ -232,7 +234,7 @@ export class PushController {
       .select({ userId: pushSubscriptions.userId })
       .from(pushSubscriptions)
       .where(eq(pushSubscriptions.endpoint, b.endpoint));
-    // endpoint уникален: повтор (в т.ч. с другого аккаунта того же браузера) переходит к текущему
+    // endpoint is unique: a repeat (including from another account of the same browser) takes over the current one
     await this.db
       .insert(pushSubscriptions)
       .values({

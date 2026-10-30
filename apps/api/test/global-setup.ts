@@ -13,7 +13,7 @@ declare module 'vitest' {
   }
 }
 
-/** Шаблонная база planar_tpl_<random>: мигрирует; файлы тестов копируют её (file-db.ts). */
+/** Template database planar_tpl_<random>: migrated; test files copy it (file-db.ts). */
 export default async function setup(project: TestProject) {
   const name = `planar_tpl_${randomBytes(6).toString('hex')}`;
   const admin = new pg.Client({ connectionString: ADMIN_URL });
@@ -22,7 +22,7 @@ export default async function setup(project: TestProject) {
   } catch (e) {
     throw new Error(`Нет тестовой базы (${(e as Error).message}): запусти ./dev.sh testdb`);
   }
-  // осиротевшие базы прошлых прогонов: свои префиксы, без соединений, старше часа
+  // orphaned databases of past runs: their own prefixes, no connections, older than an hour
   const { rows: old } = await admin.query<{ datname: string }>(
     `select datname from pg_database d where datname ~ '^planar_t(pl)?_' and not exists
        (select 1 from pg_stat_activity a where a.datname = d.datname)
@@ -41,7 +41,7 @@ export default async function setup(project: TestProject) {
   }
   project.provide('dbTemplate', name);
   project.provide('dbAdminUrl', ADMIN_URL);
-  // страховка на падение/SIGINT/SIGTERM/SIGKILL: отдельный процесс дожидается выхода vitest и добивает базы
+  // safety net for crash/SIGINT/SIGTERM/SIGKILL: a separate process waits for vitest to exit and finishes off the databases
   const watcher = `
     const pg = require('pg'); const [pid, url, name] = process.argv.slice(1);
     const alive = () => { try { process.kill(+pid, 0); return true; } catch { return false; } };

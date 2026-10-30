@@ -45,7 +45,7 @@ type Page = z.infer<typeof docsPages>;
 type Link = z.infer<typeof docsTaskLinks>;
 type Lock = z.infer<typeof docsLocks>;
 
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface DocsTx {
   get<T>(e: string, id: string): Promise<T | undefined>;
   put(e: string, row: unknown): Promise<void>;
@@ -59,7 +59,7 @@ const MAX_BODY = 512 * 1024;
 const MAX_TEXT = 100_000;
 const SHA_SRC = /^\/files\/([0-9a-f]{64})/;
 
-/** text-узлы body через пробел и sha256 из image-узлов; один обход. */
+/** text nodes of body separated by a space, and sha256 of image nodes; one pass. */
 function derive(body: unknown): { text: string; files: string[] } {
   const texts: string[] = [];
   const files = new Set<string>();
@@ -87,7 +87,7 @@ async function page(tx: Tx, id: string): Promise<Page> {
   return p;
 }
 
-/** Все потомки (без самой страницы); visited защищает от цикла в испорченных данных. */
+/** All descendants (excluding the page itself); visited guards against a cycle in corrupted data. */
 async function descendants(tx: Tx, id: string): Promise<Page[]> {
   const out: Page[] = [];
   const seen = new Set([id]);
@@ -104,7 +104,7 @@ async function descendants(tx: Tx, id: string): Promise<Page[]> {
   return out;
 }
 
-// уровень страницы: проект своего пространства или само пространство (null)
+// page level: a project of its own space or the space itself (null)
 async function checkProject(tx: Tx, spaceId: string, projectId: string | null) {
   if (!projectId) return;
   const pr = await tx.get('projects', projectId);
@@ -131,7 +131,7 @@ const create = defineMutator({
       const p = await dtx(tx).get<Page>('docsPages', a.parentId);
       if (!p || p.spaceId !== a.spaceId || p.archivedAt)
         throw new MutatorError('invalid_args', 'родитель недопустим');
-      projectId = p.projectId; // дочерняя страница — в группе родителя
+      projectId = p.projectId; // a child page — into the parent's group
     } else await checkProject(tx, a.spaceId, projectId);
     const body = a.body ?? { type: 'doc' as const, content: [] };
     checkBody(body);
@@ -183,7 +183,7 @@ const move = defineMutator({
     id: z.uuid(),
     parentId: z.uuid().nullable(),
     rank: z.string().min(1),
-    projectId: z.uuid().nullable().optional(), // для корня; без него группа не меняется
+    projectId: z.uuid().nullable().optional(), // for the root; without it the group does not change
   }),
   async run(tx, a, ctx) {
     const p = await page(tx, a.id);

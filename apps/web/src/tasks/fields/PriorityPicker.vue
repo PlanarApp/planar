@@ -10,7 +10,7 @@ const { t } = useI18n();
 const options = [0, 1, 2, 3, 4].map((p) => ({
   id: String(p),
   label: t(`tasks.priority.${p}`),
-  // у «Без приоритета» значка нет (иначе «—» перед подписью), кроме compact: там триггер — один значок
+  // "No priority" has no icon (otherwise a "—" before the label), except compact: there the trigger is a single icon
   icon: p || props.compact ? PriorityIcon : Blank,
   iconProps: { priority: p, size: props.compact ? 14 : 16 },
 }));

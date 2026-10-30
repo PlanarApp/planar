@@ -12,7 +12,7 @@ describe('wk7a: первый день недели', () => {
     expect(weekDays('2026-10-25', 1)[0]).toBe('2026-10-19');
   });
   it('wk7a: месяц с воскресенья — целые недели', () => {
-    const d = monthDays('2026-10-15', 0); // 1 окт 2026 — четверг
+    const d = monthDays('2026-10-15', 0); // 1 Oct 2026 — Thursday
     expect(d[0]).toBe('2026-09-27');
     expect(d[34]).toBe('2026-10-31');
     expect(d).toHaveLength(35);

@@ -39,21 +39,21 @@ const props = defineProps<{
   members: { id: string; name: string }[];
   inThread?: boolean;
   highlight?: boolean;
-  /** начать правку (↑ в пустом поле ввода) */
+  /** start editing (↑ in an empty input field) */
   edit?: boolean;
 }>();
 const emit = defineEmits<{ editDone: [] }>();
 const tx = useTexts();
 const m = computed(() => props.message);
 const author = computed(() => props.users.get(m.value.authorId)?.name ?? tx('unknown'));
-// лента монтирует десятки строк за кадр: без Avatar/RouterLink/иконок-компонентов (CL-2b)
+// the feed mounts dozens of rows per frame: no Avatar/RouterLink/icon components (CL-2b)
 const router = useRouter();
 const links = useChatLinks();
 const threadTo = computed(() => links.thread(m.value.channelId, m.value.id));
 const threadUrl = computed(() =>
   typeof threadTo.value === 'string' ? threadTo.value : router.resolve(threadTo.value).href,
 );
-// внутренние ссылки тела (@@ задача, @@@ документ) — переход в приложении, не новая вкладка
+// internal links in the body (@@ task, @@@ document) — navigate within the app, not a new tab
 function onBodyClick(e: MouseEvent) {
   const a = (e.target as Element).closest?.('a[data-internal]');
   if (!a || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -73,17 +73,17 @@ const clock = (ms: number) =>
   `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 
 const EMOJI = ['👍', '❤️', '😄', '🎉'];
-// панель действий (иконки, кнопки) монтируется при наведении/фокусе: на быстрой прокрутке это треть стоимости строки
+// the action panel (icons, buttons) is mounted on hover/focus: on fast scrolling it is a third of the row's cost
 const armed = ref(false);
 const picking = ref(false);
-// полный набор эмодзи для реакции — пикер монтируется только открытым
+// the full emoji set for a reaction — the picker is mounted only when open
 const more = ref(false);
-// мобильная: наведения нет — нажатие на сообщение открывает лист действий (монтируется по нажатию)
+// mobile: no hover — tapping the message opens the action sheet (mounted on tap)
 const { isMobile } = useBreakpoint();
 const sheet = ref(false);
 const sheetRow =
   'flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-fg';
-// нажатие по самому сообщению (не по ссылке, кнопке, карточке задачи, вложению)
+// tap on the message itself (not on a link, button, task card, attachment)
 function openSheet(e: MouseEvent) {
   if (!isMobile.value || m.value.deletedAt || editing.value) return;
   if ((e.target as Element).closest('a, button, input, img, [contenteditable], [role=button]'))
@@ -142,7 +142,7 @@ async function save() {
   }
   stopEdit();
 }
-// в правке Enter сохраняет (Shift+Enter — перенос), Esc — отмена; открытый список @ забирает Enter себе
+// while editing Enter saves (Shift+Enter — new line), Esc — cancel; an open @ list takes Enter for itself
 function onEditEnter(e: KeyboardEvent) {
   if (e.isComposing || (e.currentTarget as HTMLElement).querySelector('[role=listbox]')) return;
   e.preventDefault();

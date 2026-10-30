@@ -4,7 +4,7 @@ import { defineWebModule, useRouter } from '@planar/web/modules';
 export const web = defineWebModule({
   id: 'import',
   routes: [{ path: '/m/import/', component: () => import('./ImportPage.vue') }],
-  // импорт — раздел настроек Воркспейса
+  // import — a section of Workspace settings
   settings: [
     {
       id: 'import',
@@ -18,7 +18,7 @@ export const web = defineWebModule({
       id: 'import:open',
       label: { ru: 'Импорт задач', en: 'Import tasks' },
       icon: Upload,
-      // shortcut: вне setup inject даёт undefined — тогда полная загрузка
+      // shortcut: outside setup, inject gives undefined — then a full load
       run: () => {
         const router = useRouter();
         if (router) void router.push('/m/import/');

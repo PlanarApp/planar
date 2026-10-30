@@ -1,4 +1,4 @@
-// Контрактный тест work (C-modules v7): перечень значений SDK @planar/web/modules. Правит только координатор work.
+// Contract test work (C-modules v7): list of SDK values @planar/web/modules. Edited only by the work coordinator.
 import 'fake-indexeddb/auto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';

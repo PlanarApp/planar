@@ -7,12 +7,12 @@ const roleIn = async (tx: Tx, spaceId: string, userId: string) =>
   (await tx.scan('spaceMembers', { index: 'spaceId', eq: spaceId })).find(
     (m) => m.userId === userId,
   )?.role;
-/** назначить можно участнику пространства, не гостю */
+/** can be assigned to a space member, not a guest */
 async function checkAssignee(tx: Tx, spaceId: string, userId: string) {
   const r = await roleIn(tx, spaceId, userId);
   if (!r || r === 'guest') throw bad('исполнитель — не участник пространства');
 }
-/** корень треда; ответ назначить/завершить нельзя */
+/** thread root; a reply cannot be assigned or resolved */
 async function root(tx: Tx, id: string) {
   const c = await need(tx, 'comments', id);
   if (c.parentId) throw bad('только у корня треда');
@@ -75,7 +75,7 @@ export const commentMutators = [
     async run(tx, a, ctx) {
       const c = await need(tx, 'comments', a.id);
       if (c.authorId !== ctx.userId) throw new MutatorError('forbidden', 'не автор');
-      // корень уносит тред: ответы, их реакции и вложения
+      // deleting the root takes the thread: replies, their reactions and attachments
       const replies = c.parentId
         ? []
         : (await tx.scan('comments', { index: 'taskId', eq: c.taskId })).filter(
@@ -96,7 +96,7 @@ export const commentMutators = [
       const r = await roleIn(tx, c.spaceId, ctx.userId);
       if (!r || r === 'guest') throw new MutatorError('forbidden', 'нужна роль member');
       if (a.assigneeId) await checkAssignee(tx, c.spaceId, a.assigneeId);
-      // новое назначение — снова открыт
+      // new assignment — reopened
       await tx.patch('comments', a.id, {
         assigneeId: a.assigneeId,
         resolvedAt: null,

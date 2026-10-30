@@ -19,7 +19,7 @@ import { formatDue } from '../list/due';
 import { localToday } from '../filter';
 
 export type CardCol = 'project' | 'priority' | 'dueDate' | 'assignee' | 'labels';
-// поле карточки: в покое — значение; пока карточка под курсором — пикер с тем же содержимым (клик — выбор)
+// card field: at rest — the value; while the card is under the cursor — a picker with the same content (click — choose)
 const props = defineProps<{
   col: CardCol;
   task: TaskView;
@@ -27,9 +27,9 @@ const props = defineProps<{
   members: Row<'users'>[];
   labels: Row<'labels'>[];
   hot: boolean;
-  /** название проекта задачи — поле «Проект» */
+  /** the task's project name — the "Project" field */
   projectName?: string;
-  /** мобильная: только иконки (текст — в подсказке) */
+  /** mobile: icons only (the text — in the hint) */
   iconOnly?: boolean;
 }>();
 const { t, locale } = useI18n();
@@ -43,7 +43,7 @@ const chosen = computed(() =>
 );
 const box = 'inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg';
 const due = computed(() => (props.task.dueDate ? formatDue(props.task.dueDate, locale.value) : ''));
-// просрочен — danger (иконка без текста должна это показать)
+// overdue — danger (an icon without text must show this)
 const dueTone = computed(() =>
   props.task.dueDate && props.task.dueDate < localToday() ? 'text-danger' : 'text-fg-muted',
 );

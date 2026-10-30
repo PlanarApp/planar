@@ -20,7 +20,7 @@ export const projectMutators = [
     }),
     async run(tx, a, ctx) {
       await need(tx, 'spaces', a.spaceId);
-      // корневое пространство — уровень Воркспейса: в нём только документы и чаты, проектов нет
+      // the root space is the Workspace level: it holds only documents and chats, no projects
       if ((await tx.get('settings', 'root_space'))?.value === a.spaceId)
         throw new MutatorError('invalid_args', 'в корневом пространстве нельзя создать проект');
       await tx.put('projects', {

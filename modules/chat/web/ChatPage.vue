@@ -20,8 +20,8 @@ const messageId = computed(() => route.params.messageId as string | undefined);
 const rootId = computed(() => route.params.rootId as string | undefined);
 const channel = computed(() => d.value?.channels.find((c) => c.id === channelId.value));
 
-// старые адреса (уведомления, пуши, ссылки) — во вкладку «Чаты» группы канала: проект, пространство или
-// Воркспейс (личные диалоги и корневое «Общее»); не нашли канал — остаёмся здесь
+// old addresses (notifications, pushes, links) — to the "Chats" tab of the channel's group: project, space or
+// Workspace (direct chats and the root "General"); channel not found — we stay here
 const rootSpace = useQuery(async () => {
   const v = ((await db.table('settings').get('root_space')) as { value?: unknown } | undefined)
     ?.value;
@@ -51,7 +51,7 @@ watch(
   { immediate: true },
 );
 
-// desktop: /m/chat/ открывает самый свежий канал или диалог
+// desktop: /m/chat/ opens the most recent channel or chat
 watch(
   () => [d.value, channelId.value, isMobile.value] as const,
   ([x, id, mobile]) => {
@@ -72,7 +72,7 @@ const members = computed(() =>
         .filter((m) => m.channelId === channelId.value)
         .flatMap((m) => users.value.get(m.userId) ?? []),
 );
-// @-упоминания — в каналах и группах от трёх; в диалоге 1:1 их нет
+// @-mentions — in channels and groups of three or more; in a 1:1 chat there are none
 const mentionable = computed(() =>
   channel.value && d.value && isDirect(channel.value, d.value.members) ? [] : members.value,
 );

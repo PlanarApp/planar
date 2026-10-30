@@ -13,13 +13,13 @@ export interface MutatorCtx {
 
 export interface Tx {
   get<E extends EntityName>(entity: E, id: string): Promise<Row<E> | undefined>;
-  /** вставка или полная замена */
+  /** insert or full replace */
   put<E extends EntityName>(entity: E, row: Row<E>): Promise<void>;
-  /** нет строки → MutatorError('not_found') */
+  /** no row → MutatorError('not_found') */
   patch<E extends EntityName>(entity: E, id: string, partial: Partial<Row<E>>): Promise<void>;
-  /** нет строки → ничего */
+  /** no row → nothing */
   del<E extends EntityName>(entity: E, id: string): Promise<void>;
-  /** порядок не гарантирован */
+  /** order is not guaranteed */
   scan<E extends EntityName>(entity: E, opts?: { index: string; eq: unknown }): Promise<Row<E>[]>;
 }
 
@@ -29,7 +29,7 @@ export interface MutatorDef<A extends z.ZodType = z.ZodType> {
   run(tx: Tx, args: z.output<A>, ctx: MutatorCtx): Promise<void>;
 }
 
-/** Возвращает def как есть; нужна для вывода типа args. */
+/** Returns def as is; needed to infer the type of args. */
 export function defineMutator<A extends z.ZodType>(def: MutatorDef<A>): MutatorDef<A> {
   return def;
 }

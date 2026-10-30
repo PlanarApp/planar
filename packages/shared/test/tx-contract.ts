@@ -1,9 +1,9 @@
-// Набор тестов семантики Tx (C-mutators). Обязателен для каждой реализации Tx:
-// MemoryTx (CR-5), серверный Tx (CR-4). Правит только координатор модуля core.
+// Set of Tx semantics tests (C-mutators). Mandatory for every Tx implementation:
+// MemoryTx (CR-5), server Tx (CR-4). Only the core module coordinator edits this.
 //
-// Использование: txContractSuite('MemoryTx', async () => ({ tx: new MemoryTx(), spaceId: uuidv7() }));
-// setup вызывается перед каждым тестом; spaceId — существующее пространство (для серверного Tx —
-// созданное в той же транзакции), done — откат/очистка после теста.
+// Usage: txContractSuite('MemoryTx', async () => ({ tx: new MemoryTx(), spaceId: uuidv7() }));
+// setup is called before each test; spaceId — an existing space (for the server Tx —
+// created in the same transaction), done — rollback/cleanup after the test.
 import { describe, expect, it } from 'vitest';
 import { MutatorError, uuidv7, type Row, type Tx } from '../src/index';
 

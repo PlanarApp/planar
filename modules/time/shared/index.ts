@@ -34,7 +34,7 @@ export const timeEstimates = z.object({
 export type TimeEntry = z.output<typeof timeEntries>;
 export type TimeEstimate = z.output<typeof timeEstimates>;
 
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface MTx {
   get(e: string, id: string): Promise<unknown>;
   put(e: string, row: unknown): Promise<void>;
@@ -47,7 +47,7 @@ const E = (n: string) => n as EntityName;
 const getEntry = async (tx: Tx, id: string) =>
   (await mtx(tx).get(E('timeEntries'), id)) as TimeEntry | undefined;
 
-/** Своя запись: нет → not_found, чужая → forbidden. */
+/** Own entry: none → not_found, someone else's → forbidden. */
 async function own(tx: Tx, id: string, userId: string) {
   const e = await getEntry(tx, id);
   if (!e) throw new MutatorError('not_found', `timeEntries ${id}`);

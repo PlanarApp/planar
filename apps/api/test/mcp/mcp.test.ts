@@ -47,7 +47,7 @@ afterAll(async () => {
   await db.$client.end();
 });
 
-/** клиент SDK (Client + StreamableHTTPClientTransport) в дочернем процессе, см. bridge.mjs */
+/** SDK client (Client + StreamableHTTPClientTransport) in a child process, see bridge.mjs */
 type Client = ReturnType<typeof bridge> extends Promise<infer C> ? C : never;
 const kids: ReturnType<typeof spawn>[] = [];
 async function bridge(secret: string) {
@@ -79,7 +79,7 @@ async function bridge(secret: string) {
   };
 }
 const connect = bridge;
-/** вызов инструмента → [isError, разобранный JSON] */
+/** tool call → [isError, parsed JSON] */
 async function call(c: Client, name: string, args: Record<string, unknown> = {}) {
   const r = (await c.callTool({ name, arguments: args })) as {
     isError?: boolean;
@@ -223,7 +223,7 @@ describe('MCP /mcp', () => {
     const open = await mk(c, 'Мой открытый', { assigneeIds: [w.member.userId] });
     const done = await mk(c, 'Мой закрытый', { assigneeIds: [w.member.userId] });
     await mk(c, 'Чужой');
-    // statusIds[3] — done по умолчанию в space.create
+    // statusIds[3] — done by default in space.create
     const [, d] = await call(c, 'update_task', { task: done.id, statusId: w.statusIds[3] });
     expect(d.completedAt).not.toBeNull();
     const ids = (await call(c, 'my_tasks'))[1].map((x: { id: string }) => x.id);

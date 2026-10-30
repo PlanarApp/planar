@@ -10,8 +10,8 @@ import { useAuth } from '../auth/useAuth';
 import { useMyTasks, type MyTask, type WorkKind } from '../inbox/queries';
 
 const { t, locale } = useI18n();
-// projectIds — вид «Мои задачи» группы (только её проекты, без заголовка экрана)
-// kind — список «Моей работы» (назначенные, созданные, отслеживаемые); по умолчанию — назначенные
+// projectIds — the group's "My tasks" view (only its projects, without the screen header)
+// kind — the "My work" list (assigned, created, watched); default — assigned
 const props = defineProps<{ projectIds?: string[]; kind?: WorkKind }>();
 const { user } = useAuth();
 const all = useMyTasks(

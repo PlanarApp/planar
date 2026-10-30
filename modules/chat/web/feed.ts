@@ -14,11 +14,11 @@ const byId = <T extends { id: string }>(a: T[], b: T[]) => [
 ];
 
 /**
- * Реакции канала: строки реплики (этой сессии) поверх истории REST; снятые (удаление пришло в реплику)
- * прячутся, даже если строка была только в REST. Лента и тред — одно и то же.
+ * Channel reactions: replica rows (of this session) on top of REST history; removed ones (deletion came via the replica)
+ * are hidden, even if the row was only in REST. Feed and thread are the same thing.
  */
 export function useChannelReactions(channelId: () => string) {
-  // у chatReactions индекс только messageId — по каналу фильтруем
+  // chatReactions has an index only on messageId — we filter by channel
   const local = useQuery(() =>
     db
       .table<Reaction>('chatReactions')
@@ -39,8 +39,8 @@ export function useChannelReactions(channelId: () => string) {
 }
 
 /**
- * Лента канала: строки реплики (верхний уровень) + страницы истории REST, в памяти.
- * Реплика новее REST; порядок — по seq.
+ * Channel feed: replica rows (top level) + REST history pages, in memory.
+ * The replica is newer than REST; order — by seq.
  */
 export function useFeed(channelId: string) {
   const local = useQuery(() =>
@@ -66,13 +66,13 @@ export function useFeed(channelId: string) {
     return out;
   });
 
-  /** Первая страница — последние; дальше — before = минимальный seq из имеющихся. */
+  /** The first page is the latest; further — before = the minimum seq among those present. */
   async function loadOlder(): Promise<number> {
     if (loading.value || !hasMore.value) return 0;
     loading.value = true;
     try {
       const seqs = messages.value.map((m) => m.seq).filter((s): s is number => s != null);
-      // первая загрузка — всегда последние, даже если в реплике уже есть свежие строки
+      // first load — always the latest, even if the replica already has fresh rows
       const before = started && seqs.length ? Math.min(...seqs) : undefined;
       if (before !== undefined && before <= 1) {
         hasMore.value = false;
@@ -86,12 +86,12 @@ export function useFeed(channelId: string) {
       if (page.messages.length < LIMIT) hasMore.value = false;
       return page.messages.length;
     } catch {
-      return 0; // офлайн: останется реплика; повтор — при следующей прокрутке к верху
+      return 0; // offline: the replica stays; retry on the next scroll to the top
     } finally {
       loading.value = false;
     }
   }
-  /** Есть ли сообщение в ленте; нет — догружаем историю страницами (≤ maxPages). */
+  /** Whether the message is in the feed; if not — load history pages (≤ maxPages). */
   async function ensure(id: string, maxPages = 20): Promise<boolean> {
     for (let i = 0; i < maxPages; i++) {
       if (messages.value.some((m) => m.id === id)) return true;
@@ -111,8 +111,8 @@ export function useFeed(channelId: string) {
 }
 
 /**
- * Сообщение из истории REST — в реплику, если его там нет: мутаторы (реакция, правка, удаление)
- * ищут сообщение в реплике (chatMessages без bootstrap). Права и итог — на сервере.
+ * A message from REST history goes into the replica if it is not there: mutators (reaction, edit, delete)
+ * look up the message in the replica (chatMessages without bootstrap). Permissions and outcome — on the server.
  */
 export async function toReplica(m: Message): Promise<void> {
   const t = db.table<Message>('chatMessages');

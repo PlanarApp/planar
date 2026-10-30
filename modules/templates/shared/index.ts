@@ -20,7 +20,7 @@ const docOrNull = entitySchemas.projects.shape.description;
 const MAX_JSON = 256 * 1024;
 const norm = (s: string) => s.trim().toLowerCase();
 
-// --- формат data (P4-templates v1)
+// --- data format (P4-templates v1)
 const fieldType = z.enum(FIELD_TYPES);
 const days = z.number().int().min(0).max(3650).nullable();
 const taskBase = z.object({
@@ -94,16 +94,16 @@ export const templatesTemplates = z.object({
 });
 export type TemplateRow = z.output<typeof templatesTemplates>;
 
-// --- план id: одна функция для клиента и сервера
+// --- id plan: one function for the client and the server
 const nodeCount = (t: TemplateTask) =>
   1 + t.assigneeIds.length + t.labels.length + t.checklist.length;
 const taskCount = (t: TaskTemplate) =>
   nodeCount(t) + t.subtasks.reduce((n, s) => n + nodeCount(s), 0);
 
 /**
- * Расход `ids` по порядку: задача — id задачи, по id на каждого исполнителя, метку, пункт чек-листа
- * (в порядке шаблона), затем так же по подзадачам; проект — статусы, метки, поля, затем задачи.
- * Пропущенные (нет метки, не участник) id тоже расходуются.
+ * Consumption of `ids` in order: a task — the task's id, an id for each assignee, label, checklist item
+ * (in template order), then the same for subtasks; a project — statuses, labels, fields, then tasks.
+ * Skipped ids (no label, not a member) are consumed too.
  */
 export function templateIdPlan(kind: TemplateKind, data: unknown): { count: number } {
   if (kind === 'task') return { count: taskCount(taskTemplateSchema.parse(data)) };
@@ -117,8 +117,8 @@ export function templateIdPlan(kind: TemplateKind, data: unknown): { count: numb
   };
 }
 
-// --- мутаторы
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// --- mutators
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface MTx {
   get(e: string, id: string): Promise<unknown>;
   put(e: string, row: unknown): Promise<void>;
@@ -170,7 +170,7 @@ function idSource(ids: string[], count: number) {
   return () => ids[i++]!;
 }
 
-/** Задача шаблона (и её подзадачи, если sub не пуст) через мутаторы ядра. */
+/** A template task (and its subtasks, if sub is not empty) via the core mutators. */
 async function makeTask(
   tx: Tx,
   ctx: MutatorCtx,
@@ -392,7 +392,7 @@ async function loadEnv(tx: Tx, spaceId: string, projectId: string, today: string
   return { spaceId, projectId, today, members: await loadMembers(tx, spaceId), labels, fields };
 }
 
-// --- сохранение как шаблон (данные из реплики)
+// --- save as a template (data from the replica)
 export type Reader = Pick<Tx, 'get' | 'scan'>;
 const byRank = (a: { rank: string }, b: { rank: string }) =>
   a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0;
@@ -437,7 +437,7 @@ async function nodeOf(read: Reader, taskId: string, today: string): Promise<Temp
 
 const todayUtc = () => new Date().toISOString().slice(0, 10);
 
-/** Задача + прямые дети → TaskTemplate; `today` — сегодня клиента (по умолчанию UTC). */
+/** Task + direct children → TaskTemplate; `today` — the client's today (UTC by default). */
 export async function taskToTemplate(
   taskId: string,
   read: Reader,
@@ -450,7 +450,7 @@ export async function taskToTemplate(
   };
 }
 
-/** Проект → ProjectTemplate: статусы и метки пространства, поля проекта, задачи верхнего уровня. */
+/** Project → ProjectTemplate: the space's statuses and labels, project fields, top-level tasks. */
 export async function projectToTemplate(
   projectId: string,
   read: Reader,

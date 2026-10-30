@@ -2,10 +2,10 @@ import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import { useExtensions } from '../modules/registry';
 import { tabsFor, type GroupLevel, type GroupTab } from './groups';
 
-// табы, наполняемые модулями: без включённого модуля таба нет
+// tabs filled by modules: without the enabled module there is no tab
 const MODULE_TABS: GroupTab[] = ['docs', 'chats', 'reports'];
 
-/** Табы группы уровня с учётом включённых модулей (экран группы, меню крошек). */
+/** Level group tabs taking enabled modules into account (group screen, breadcrumb menu). */
 export function useGroupTabs(level: MaybeRefOrGetter<GroupLevel>) {
   const exts = useExtensions('groupTabs');
   return computed(() =>

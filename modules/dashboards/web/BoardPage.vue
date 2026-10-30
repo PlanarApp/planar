@@ -8,7 +8,7 @@ import { boardTasks, moveBox, nextY, resizeBox, type Box } from './lib';
 import { mutate, newId, tr, useBoard, useTasks, useWidgets } from './data';
 
 const router = useRouter();
-// boardId и back — дашборд внутри таба группы (id из ?board, назад — к списку)
+// boardId and back — a dashboard inside the group's tab (id from ?board, back — to the list)
 const props = defineProps<{ boardId?: string; back?: () => void }>();
 const id = computed(() => props.boardId ?? String(router.currentRoute.value.params.id ?? ''));
 const leave = () => (props.back ? props.back() : void router.push('/m/dashboards'));
@@ -17,7 +17,7 @@ const widgets = useWidgets(() => id.value);
 const allTasks = useTasks();
 const tasks = computed(() => boardTasks(board.value?.spaceId ?? '', allTasks.value ?? []));
 
-// предпросмотр перетаскивания: id -> бокс; в реплику пишем по отпусканию
+// drag preview: id -> box; written to the replica on release
 const preview = reactive<Record<string, Box>>({});
 const boxOf = (w: Widget): Box => preview[w.id] ?? w;
 const style = (w: Widget) => {

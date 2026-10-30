@@ -97,7 +97,7 @@ describe('links-ui:block', () => {
     await w.find('[data-testid=unlink]').trigger('click');
     await flushPromises();
     expect((await rows()).find((r) => r.id === id)).toBeUndefined();
-    await unlinkTasks(id); // повторное удаление ничего не делает
+    await unlinkTasks(id); // repeated deletion does nothing
   });
   it('links-ui: conflict показывает сообщение', async () => {
     const w = mountBlock();
@@ -105,7 +105,7 @@ describe('links-ui:block', () => {
     const btn = await until(
       () => w.find('[data-testid=candidate]').exists() && w.find('[data-testid=candidate]'),
     );
-    // два клика по одной устаревшей кнопке: второй создаёт повторную пару
+    // two clicks on one stale button: the second creates a duplicate pair
     await btn.trigger('click');
     await btn.trigger('click');
     await until(() => w.find('[role=alert]').exists() || undefined);

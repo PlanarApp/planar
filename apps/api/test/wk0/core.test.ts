@@ -16,7 +16,7 @@ import { dbUrl, newDb, TestClient, world, type World } from '../sync/helpers.js'
 @Module({})
 class FixtureModule {}
 
-// Тестовый модуль: подмена списка installed (мутируемый массив) до старта pg-boss.
+// Test module: substitute the installed list (a mutable array) before pg-boss starts.
 const hookCalls: { writes: MutationWrite[]; ctx: AfterMutationCtx }[] = [];
 const jobCalls: { queue: string; data: unknown; api: JobApi }[] = [];
 let mode: 'record' | 'patch-throw' | 'patch' = 'record';
@@ -107,7 +107,7 @@ describe('wk0: afterMutation', () => {
     const a = taskArgs('x');
     await admin.ok('task.create', a);
     expect((await taskRow(a.id))!.title).toBe('hooked');
-    // записи хука в writes следующих хуков не попадают
+    // writes of a hook do not reach the next hooks
     expect(hookCalls).toHaveLength(1);
     const ch = await db
       .select()
@@ -147,7 +147,7 @@ describe('wk0: задачи модулей', () => {
       ]),
     ).rejects.toThrow();
     expect(await taskRow(bad.id)).toBeUndefined();
-    expect(hookCalls).toHaveLength(1); // хук ещё работал до отката
+    expect(hookCalls).toHaveLength(1); // the hook was still running before the rollback
     await new Promise((r) => setTimeout(r, 1500));
     expect(jobCalls).toHaveLength(0);
 
@@ -155,7 +155,7 @@ describe('wk0: задачи модулей', () => {
     await admin.ok('task.create', good);
     await vi.waitFor(() => expect(jobCalls).toHaveLength(1), { timeout: 20_000 });
     expect(jobCalls[0]!.data).toEqual({ id: good.id });
-    expect(await taskRow(good.id)).toBeDefined(); // задача видит закоммиченное
+    expect(await taskRow(good.id)).toBeDefined(); // the task sees the committed data
   }, 40_000);
 
   it('wk0: cron-расписание создаётся', async () => {
@@ -178,7 +178,7 @@ describe('wk0: задачи модулей', () => {
   it('wk0: execute(system) обходит права, actorId — системный пользователь', async () => {
     const api = await queue.jobs.api();
     const a = taskArgs('by-system');
-    // чужой пользователь без членства: без system — отказ
+    // a foreign user without membership: without system — refused
     await expect(
       api.execute(w.outsider.userId, [{ name: 'task.create', args: taskArgs('denied') }]),
     ).rejects.toThrow();

@@ -74,7 +74,7 @@ export const spaceMutators = [
   }),
   defineMutator({
     name: 'space.delete',
-    // withContent — удалить и проекты с задачами (массовое удаление в настройках); без него — только пустое
+    // withContent — also delete projects with tasks (bulk delete in settings); without it — only empty ones
     args: z.object({ id: uuid, withContent: z.boolean().optional() }),
     async run(tx, a) {
       await need(tx, 'spaces', a.id);
@@ -84,7 +84,7 @@ export const spaceMutators = [
       if (projects.length && !a.withContent) throw new MutatorError('conflict', 'есть проекты');
       for (const p of projects) {
         const tasks = await tx.scan('tasks', { index: 'projectId', eq: p.id });
-        // корни уносят подзадачи; оставшиеся (родитель в другом проекте) — по одной
+        // roots take subtasks; the remaining ones (parent in another project) — one by one
         for (const t of tasks.filter((x) => !x.parentId)) await deleteTask(tx, t.id);
         for (const t of await tx.scan('tasks', { index: 'projectId', eq: p.id }))
           await deleteTask(tx, t.id);

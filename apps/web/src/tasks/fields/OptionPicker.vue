@@ -7,7 +7,7 @@ import LazyPopover from './LazyPopover.vue';
 export interface Option {
   id: string;
   label: string;
-  /** иконка слева от названия */
+  /** icon to the left of the name */
   icon?: Component;
   iconProps?: Record<string, unknown>;
 }
@@ -16,10 +16,10 @@ const props = defineProps<{
   options: Option[];
   selected: string[];
   multiple?: boolean;
-  /** подпись кнопки для скринридера и поля поиска */
+  /** button label for screen readers and the search field */
   title: string;
   compact?: boolean;
-  /** текст кнопки, когда ничего не выбрано */
+  /** button text when nothing is selected */
   empty?: string;
 }>();
 const emit = defineEmits<{ pick: [id: string] }>();

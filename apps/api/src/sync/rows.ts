@@ -11,7 +11,7 @@ const modEntities = Object.assign({}, ...installed.map((m) => m.api.entities)) a
   { schema: z.ZodObject; meta: EntityMeta }
 >;
 
-/** Таблица Drizzle сущности: имя сущности = имя экспорта schema.ts (ядро) или api/schema.ts модуля. */
+/** Drizzle table of an entity: entity name = export name in schema.ts (core) or the module's api/schema.ts. */
 export const tableOf = (e: string): PgTable =>
   ((schema as Record<string, unknown>)[e] as PgTable | undefined) ?? modTables.get(e)!;
 
@@ -21,7 +21,7 @@ export const schemaOf = (e: string): z.ZodObject =>
 export const metaOf = (e: string): EntityMeta =>
   (ENTITIES as Record<string, EntityMeta>)[e] ?? modEntities[e]!.meta;
 
-/** Мета всех сущностей: ядро и установленные модули (включены или нет). */
+/** Meta of all entities: core and installed modules (enabled or not). */
 export const allMetas = (): Record<string, EntityMeta> => ({
   ...(ENTITIES as Record<string, EntityMeta>),
   ...Object.fromEntries(Object.entries(modEntities).map(([k, v]) => [k, v.meta])),
@@ -29,7 +29,7 @@ export const allMetas = (): Record<string, EntityMeta> => ({
 
 export const entityNames = Object.keys(entitySchemas) as EntityName[];
 
-/** timestamptz строкой из pg ("2026-10-22 10:00:00.123+00") → ISO UTC. */
+/** timestamptz as a string from pg ("2026-10-22 10:00:00.123+00") → ISO UTC. */
 export function toIso(s: string): string {
   const t = s.replace(' ', 'T');
   return new Date(/[+-]\d\d$/.test(t) ? `${t}:00` : t).toISOString();
@@ -47,7 +47,7 @@ function tsKeysOf(e: string): string[] {
   return keys;
 }
 
-/** Строка БД → строка провода: только поля контракта (без password_hash, task_counter), ts в ISO. */
+/** DB row → wire row: only contract fields (no password_hash, task_counter), ts in ISO. */
 export function toWire(e: string, dbRow: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   const ts = tsKeysOf(e);

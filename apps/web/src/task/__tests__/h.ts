@@ -22,7 +22,7 @@ export const i18n = createI18n({
 });
 
 let registered = false;
-/** fetch-заглушка: handler(method, path) → [status, body]; по умолчанию 500 (офлайн-подобно). */
+/** fetch stub: handler(method, path) → [status, body]; default 500 (offline-like). */
 export function stubFetch(h: (method: string, path: string) => [number, unknown?] | undefined) {
   const f = vi.fn(async (path: string, init?: RequestInit) => {
     const r = h(init?.method ?? 'GET', path) ?? [500, { code: 'internal', message: 'x' }];
@@ -32,7 +32,7 @@ export function stubFetch(h: (method: string, path: string) => [number, unknown?
   return f;
 }
 
-/** Реплика с пространством, участниками, одной задачей PLN-1; текущий пользователь — Ann. */
+/** Replica with a space, members, one task PLN-1; the current user is Ann. */
 export async function setup(over: Record<string, unknown> = {}) {
   if (!registered) registerMutators(domainMutators);
   registered = true;
@@ -69,7 +69,7 @@ export async function open(key = 'PLN-1') {
 export const queued = async (name: string) =>
   (await db._queue.toArray()).filter((q) => q.name === name);
 
-/** ждёт, пока async-условие станет истинным (until принимает только синхронное). */
+/** waits until an async condition becomes true (until accepts only a synchronous one). */
 export async function eventually(f: () => Promise<unknown>, ms = 3000) {
   const t0 = Date.now();
   while (!(await f())) {

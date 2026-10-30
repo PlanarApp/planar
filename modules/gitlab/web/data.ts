@@ -1,4 +1,4 @@
-// Единственная точка контакта модуля с ядром web: реплика, мутации, язык.
+// The module's single point of contact with the web core: replica, mutations, language.
 import { db, i18n, mutate, useQuery } from '@planar/web/modules';
 import type { GitlabMr } from '../shared/index.js';
 

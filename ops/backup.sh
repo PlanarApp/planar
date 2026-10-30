@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Бэкап planar по C-ops-backup v1: $BACKUP_DIR/planar-<UTC>.tar (db.dump + files.tar + manifest.json).
-# Использование: ops/backup.sh [--deep] | ops/backup.sh --rotate-only
-# Ротация: PLANAR_NOW (ISO UTC) подменяет «сейчас» — для теста.
-# Расписание: cron — `0 3 * * * cd /opt/planar && ./ops/backup.sh >>backups/backup.log 2>&1`;
+# Backup of planar per C-ops-backup v1: $BACKUP_DIR/planar-<UTC>.tar (db.dump + files.tar + manifest.json).
+# Usage: ops/backup.sh [--deep] | ops/backup.sh --rotate-only
+# Rotation: PLANAR_NOW (ISO UTC) overrides «now» — for tests.
+# Schedule: cron — `0 3 * * * cd /opt/planar && ./ops/backup.sh >>backups/backup.log 2>&1`;
 #   systemd — ops/systemd/planar-backup.{service,timer}.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -10,15 +10,15 @@ cd "$(dirname "$0")/.."
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 mkdir -p "$BACKUP_DIR"
 
-# Оставляет самый новый архив каждого из 7 последних дней и каждой из 4 последних ISO-недель (UTC).
-# $1 — архив, который не удаляется никогда.
+# Keeps the newest archive of each of the last 7 days and of each of the last 4 ISO weeks (UTC).
+# $1 — the archive that is never deleted.
 rotate() {
   local now="${PLANAR_NOW:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" i f b day wk
   declare -A days=() weeks=() sd=() sw=() keep=()
   for i in 0 1 2 3 4 5 6; do days[$(date -u -d "$now - $i days" +%Y%m%d)]=1; done
   for i in 0 1 2 3; do weeks[$(date -u -d "$now - $((i * 7)) days" +%G-%V)]=1; done
   [ -n "${1:-}" ] && keep[$(basename "$1")]=1
-  # имена сортируются хронологически; новые первыми
+  # names are sorted chronologically; newest first
   while IFS= read -r f; do
     b="$(basename "$f")"; day="${b:7:8}"; wk="$(date -u -d "$day" +%G-%V)"
     if [ -n "${days[$day]:-}" ] && [ -z "${sd[$day]:-}" ]; then sd[$day]=1; keep[$b]=1; fi
@@ -44,7 +44,7 @@ trap 'rm -rf "$work" "$out.partial"' EXIT
 
 migrations="$(pgq 'select count(*) from drizzle.__drizzle_migrations')"
 dc exec -T postgres pg_dump -U postgres -Fc planar >"$work/db.dump"
-# БД снята раньше файлов: файлы адресуются содержимым, лишние безвредны
+# the DB is dumped before the files: files are addressed by content, extra ones are harmless
 dc exec -T api sh -c 'mkdir -p /data/files && tar -C /data -cf - files' >"$work/files.tar"
 count="$(tar -tf "$work/files.tar" | grep -vc '/$' || true)"
 cat >"$work/manifest.json" <<JSON

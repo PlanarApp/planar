@@ -6,14 +6,14 @@ import * as schema from '../db/schema.js';
 import { installed } from '../modules/installed.js';
 import { allMetas, metaOf, schemaOf, tableOf, toWire } from './rows.js';
 
-/** Drizzle-транзакция (или соединение внутри ручного BEGIN). */
+/** Drizzle transaction (or a connection inside a manual BEGIN). */
 export type Q = PgDatabase<NodePgQueryResultHKT, typeof schema>;
 
 export interface ServerTxCtx {
   userId: string;
-  /** id API-токена, если запись идёт через Bearer (activity.viaTokenId) */
+  /** id of the API token, if the write comes via Bearer (activity.viaTokenId) */
   tokenId?: string;
-  /** ISO ts для activity; по умолчанию — текущее время */
+  /** ISO ts for activity; default — current time */
   now?: string;
 }
 
@@ -25,7 +25,7 @@ export interface TxWrite {
   after?: Wire;
 }
 const RANK: Record<string, number> = { guest: 1, member: 2, admin: 3 };
-/** Порядок seq = порядок коммитов (C-sync «Журнал changes»). */
+/** seq order = commit order (C-sync "changes journal"). */
 const LOCK_KEY = 7311;
 
 function mapPgError(err: unknown): never {
@@ -37,7 +37,7 @@ function mapPgError(err: unknown): never {
   throw err;
 }
 
-// ключи jsonb приходят в другом порядке, чем у клиента
+// jsonb keys arrive in a different order than the client's
 const stable = (v: unknown): string =>
   JSON.stringify(v, (_, x) =>
     x && typeof x === 'object' && !Array.isArray(x)
@@ -46,8 +46,8 @@ const stable = (v: unknown): string =>
   );
 
 /**
- * Tx поверх транзакции БД, строки в формате провода. Одна мутация = один экземпляр
- * (роли кешируются на мутацию). Перед коммитом вызвать finish().
+ * Tx on top of a DB transaction, rows in wire format. One mutation = one instance
+ * (roles are cached per mutation). Call finish() before commit.
  */
 export class ServerTx implements Tx {
   private roles = new Map<string, number>();
@@ -55,7 +55,7 @@ export class ServerTx implements Tx {
   private instanceRole?: string;
   private locked = false;
   private lastSeq = 0;
-  /** Записи этой мутации (для хука уведомлений). */
+  /** Records of this mutation (for the notification hook). */
   readonly writes: TxWrite[] = [];
 
   constructor(
@@ -64,18 +64,18 @@ export class ServerTx implements Tx {
     private opts: { system?: boolean } = {},
   ) {}
 
-  /** Серверный код: обход прав, запись попадает в changes. */
+  /** Server code: rights bypass, the write goes into changes. */
   static asSystem(q: Q, ctx: ServerTxCtx): ServerTx {
     return new ServerTx(q, ctx, { system: true });
   }
 
-  /** Оповещение о записанном; вызывать в той же транзакции перед коммитом. */
+  /** Notification about what was written; call in the same transaction before commit. */
   async finish(): Promise<void> {
     if (this.lastSeq)
       await this.q.execute(sql`select pg_notify('planar_changes', ${String(this.lastSeq)})`);
   }
 
-  /** Лок до первого чтения: мутации «чтение-затем-запись» сериализуются (C-sync v2). */
+  /** Lock until the first read: read-then-write mutations are serialized (C-sync v2). */
   private async lock(): Promise<void> {
     if (this.locked) return;
     await this.q.execute(sql`select pg_advisory_xact_lock(${LOCK_KEY})`);
@@ -95,7 +95,7 @@ export class ServerTx implements Tx {
     return r ? (toWire(entity, r) as Row<E>) : undefined;
   }
 
-  /** extra — колонки «только в БД» (users.passwordHash): пишутся в строку, в changes не попадают. */
+  /** extra — "DB-only" columns (users.passwordHash): written to the row, not into changes. */
   async put<E extends EntityName>(
     entity: E,
     row: Row<E>,
@@ -183,7 +183,7 @@ export class ServerTx implements Tx {
     await this.activity(entity, old, next);
   }
 
-  /** C-mutators v5: новый включённый модуль с unavailable ≠ null → invalid_args (код причины). */
+  /** C-mutators v5: a newly enabled module with unavailable ≠ null → invalid_args (reason code). */
   private async checkAvailable(old: Wire | undefined, next: Wire): Promise<void> {
     const was = Array.isArray(old?.value) ? old.value : [];
     if (!Array.isArray(next.value)) return;
@@ -194,7 +194,7 @@ export class ServerTx implements Tx {
     }
   }
 
-  /** Запись без проверки прав: upsert + changes. */
+  /** Write without rights check: upsert + changes. */
   private async store(
     entity: EntityName,
     next: Wire,
@@ -227,7 +227,7 @@ export class ServerTx implements Tx {
     return this.log('_reset', 'put', null, userId, userId);
   }
 
-  /** Строка changes. row null — служебная запись (_reset) с явными колонками. */
+  /** changes row. row null — service record (_reset) with explicit columns. */
   private async log(
     entity: string,
     op: 'put' | 'del',
@@ -242,7 +242,7 @@ export class ServerTx implements Tx {
       const meta = metaOf(entity);
       const scope = meta.scope;
       if (scope === 'space|members' && row.spaceId == null) {
-        // по строке на участника контейнера (C-sync v2); состояние — после записи
+        // one row per member of the container (C-sync v2); state — after the write
         for (const u of await this.memberIds(entity, row))
           await this.append(null, u, entity, id, op, row);
         return;
@@ -271,7 +271,7 @@ export class ServerTx implements Tx {
     this.lastSeq = c.seq;
   }
 
-  /** userId участников контейнера строки сущности scope space|members. */
+  /** userIds of members of the container of an entity row of scope space|members. */
   private async memberIds(entity: string, row: Wire): Promise<string[]> {
     const m = metaOf(entity).members;
     if (!m) throw new Error(`${entity}: scope space|members без meta.members`);
@@ -284,8 +284,8 @@ export class ServerTx implements Tx {
   }
 
   /**
-   * Добавили/убрали участника (строка members.entity): ему put/del контейнера и bootstrap-строк
-   * контейнера (только без spaceId — строки пространства видны по правилам space). _reset не пишем.
+   * A member was added/removed (members.entity row): they get put/del of the container and the bootstrap rows
+   * of the container (only without spaceId — space rows are visible by space rules). We do not write _reset.
    */
   private async memberChange(entity: string, row: Wire, op: 'put' | 'del'): Promise<void> {
     const deps = Object.entries(allMetas()).filter(
@@ -299,7 +299,7 @@ export class ServerTx implements Tx {
       seen.add(`${e}:${id}`);
       await this.append(null, user, e, id, op, data);
     };
-    // удалённая строка участника уже не найдётся в таблице; новая и так разослана log()
+    // a deleted member row is no longer found in the table; a new one has been broadcast by log() anyway
     if (op === 'del') await send(entity, row.id as string, null);
     else seen.add(`${entity}:${row.id}`);
     for (const [name, m] of deps) {
@@ -390,7 +390,7 @@ export class ServerTx implements Tx {
     return this.instanceRole;
   }
 
-  /** Права по ENTITIES[e].write для старой и новой строки (C-schema «Видимость и права»). */
+  /** Rights by ENTITIES[e].write for the old and new row (C-schema "Visibility and rights"). */
   private async authorize(entity: EntityName, old: Wire | undefined, next: Wire | undefined) {
     if (this.opts.system) return;
     const w = metaOf(entity).write;
@@ -425,7 +425,7 @@ export class ServerTx implements Tx {
     }
   }
 
-  /** space|members без spaceId: участник row[via] или создатель контейнера (C-sync v2). */
+  /** space|members without spaceId: row[via] member or the container creator (C-sync v2). */
   private async canWriteMembers(entity: string, old: Wire | undefined, r: Wire): Promise<boolean> {
     if ((await this.memberIds(entity, r)).includes(this.ctx.userId)) return true;
     const m = metaOf(entity).members!;
@@ -440,7 +440,7 @@ export class ServerTx implements Tx {
     return (c as Wire | undefined)?.createdBy === this.ctx.userId;
   }
 
-  /** attachments: у ctx.userId есть file_uploads на файл либо файл уже приложен в этом пространстве. */
+  /** attachments: ctx.userId has file_uploads for the file, or the file is already attached in this space. */
   private async checkFile(row: Wire): Promise<void> {
     if (this.opts.system) return;
     const [u] = await this.exec(() =>

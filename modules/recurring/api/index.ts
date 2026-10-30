@@ -18,7 +18,7 @@ import {
 class RecurringModule {}
 
 type Row = Record<string, unknown>;
-/** Правило + образец одним запросом; даты текстом (pg отдаёт date как Date). */
+/** Rule + template in one query; dates as text (pg returns date as Date). */
 const RULE_SQL = sql`select r.id, r.kind, r.every, r.unit, r.weekdays, r.timezone, r.task_id,
   r.anchor_date::text as "anchorDate", r.next_date::text as "nextDate",
   t.start_date::text as "startDate", t.due_date::text as "dueDate"
@@ -27,7 +27,7 @@ const RULE_SQL = sql`select r.id, r.kind, r.every, r.unit, r.weekdays, r.timezon
 interface Spawn {
   ruleId: string;
   period: string;
-  /** образец на момент постановки */
+  /** the template at the moment of enqueueing */
   taskId?: string;
 }
 
@@ -126,7 +126,7 @@ const jobs: JobDef<never>[] = [
             spanOf(r as { startDate: string | null; dueDate: string | null }),
           );
         } catch {
-          continue; // битый пояс не должен останавливать остальные правила
+          continue; // a broken zone must not stop the other rules
         }
         if (period)
           await api.enqueue(
@@ -140,7 +140,7 @@ const jobs: JobDef<never>[] = [
   { queue: 'recurring.spawn', retryLimit: 3, retryDelay: 30, handler: spawn },
 ] as JobDef<never>[];
 
-/** Завершение образца after_done → экземпляр; удаление задачи → правило. */
+/** Completing a template after_done → an instance; deleting a task → the rule. */
 async function afterMutation(writes: MutationWrite[], _ctx: unknown, api: ModuleHookApi) {
   const e = 'recurringRules' as never;
   const rulesOf = async (taskId: string) =>

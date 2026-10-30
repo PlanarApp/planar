@@ -6,7 +6,7 @@ import { shared } from '../shared/index.js';
 @Module({})
 class GoalsModule {}
 
-/** Удаление задачи или смена её проекта уносит строку вехи (C-modules хук). */
+/** Deleting a task or changing its project takes the milestone row with it (C-modules hook). */
 async function afterMutation(writes: MutationWrite[], _ctx: unknown, api: ModuleHookApi) {
   for (const w of writes) {
     if (w.entity !== 'tasks' || !w.before) continue;

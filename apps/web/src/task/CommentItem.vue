@@ -17,9 +17,9 @@ const props = defineProps<{
   reactions: Row<'commentReactions'>[];
   userId?: string;
   names: Record<string, string>;
-  /** корень треда: можно ответить и назначить; ответ — без этих действий */
+  /** thread root: can reply and assign; a reply — without these actions */
   root?: boolean;
-  /** назначенный корень: завершить может исполнитель, автор или admin */
+  /** assigned root: the assignee, author or admin can resolve */
   canResolve?: boolean;
 }>();
 const emit = defineEmits<{
@@ -45,7 +45,7 @@ const assignItems = computed<MenuItem[]>(() => [
 ]);
 const { t } = useI18n();
 const editing = ref(false);
-const draft = shallowRef<JSONContent | null>(null); // shallow: в IndexedDB нельзя класть reactive-прокси
+const draft = shallowRef<JSONContent | null>(null); // shallow: reactive proxies can't be stored in IndexedDB
 
 function start() {
   draft.value = props.comment.body as JSONContent;

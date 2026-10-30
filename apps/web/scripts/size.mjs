@@ -5,7 +5,7 @@ import { gzipSync } from 'node:zlib';
 
 const dist = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 
-/** gzip-сумма JS и CSS, которые грузит страница. */
+/** gzip size sum of the JS and CSS the page loads. */
 function measure(page) {
   const html = readFileSync(join(dist, page), 'utf8');
   const refs = new Set([

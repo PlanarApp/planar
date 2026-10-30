@@ -12,7 +12,7 @@ export interface MovePlan {
   assign?: string[];
   labels?: string[];
   priority?: number;
-  /** соседи с одинаковым rank: новые rank задачам после места вставки (иначе между ними не встать) */
+  /** neighbours with the same rank: new ranks go to tasks after the insertion point (otherwise nothing fits between them) */
   rerank?: [id: string, rank: string][];
 }
 
@@ -23,8 +23,8 @@ const swap = (cur: string[], from: string, to: string) => {
 };
 
 /**
- * Колонки: внутри — по rank (сортировка вида на доске не действует, порядок ручной).
- * groupTasks отбрасывает пустые группы, а на доску можно тащить и в пустую колонку — дополняем.
+ * Columns: inside — by rank (the view's sort does not apply on the board, order is manual).
+ * groupTasks drops empty groups, but on the board one can also drag into an empty column — we add it.
  */
 export function boardColumns(
   tasks: Parameters<typeof groupTasks>[0],
@@ -58,8 +58,8 @@ export function boardColumns(
 }
 
 /**
- * Перенос задачи `id` из колонки `from` в колонку `to` перед `beforeId` (null — в конец).
- * Соседи считаются по колонке без самой задачи, поэтому rank строго между ними.
+ * Moving task `id` from column `from` to column `to` before `beforeId` (null — to the end).
+ * Neighbours are counted in the column without the task itself, so the rank is strictly between them.
  */
 export function planMove(
   columns: TaskGroup[],
@@ -74,7 +74,7 @@ export function planMove(
   if (!task || !target) return null;
   const at = beforeId === null ? -1 : target.findIndex((t) => t.id === beforeId);
   const i = at < 0 ? target.length : at;
-  // бросили на прежнее место — мутации нет
+  // dropped back in the same place — no mutation
   if (from === to) {
     const col = columns.find((c) => c.key === from)!.tasks;
     if (beforeId === id || i === col.findIndex((t) => t.id === id)) return null;
@@ -84,8 +84,8 @@ export function planMove(
     after: target[i - 1]?.rank ?? null,
     before: target[i]?.rank ?? null,
   };
-  // ранги повторяются (сводка проектов, старые данные): задачи с rank соседа сверху, идущие после места вставки,
-  // получают rank до следующего большего; задача встаёт перед первой из них
+  // ranks repeat (project summary, old data): tasks with the neighbour-above rank that follow the insertion point,
+  // get a rank before the next larger one; the task goes before the first of them
   const lo = plan.after;
   if (lo !== null && plan.before !== null && plan.before <= lo) {
     let j = i;

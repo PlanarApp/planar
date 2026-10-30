@@ -18,7 +18,7 @@ interface Cfg {
   projects: Proj[];
 }
 
-// projectId — настройки проекта-группы: только статус при слиянии MR этого проекта; подключение — в Воркспейсе
+// projectId — settings of a group project: only the status on merge of this project's MR; connection — in the Workspace
 const props = defineProps<{ projectId?: string }>();
 const cfg = ref<Cfg | null>(null);
 const err = ref('');

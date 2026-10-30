@@ -57,7 +57,7 @@ const until = async (fn: () => unknown, ms = 3000) => {
       const v = await fn();
       if (v) return v;
     } catch {
-      /* ждём */
+      /* wait */
     }
     if (Date.now() - t0 > ms) throw new Error('не дождались');
     await new Promise((r) => setTimeout(r, 10));
@@ -243,7 +243,7 @@ describe('pt1a', () => {
     await until(() => a.state.synced);
     await w.admin.ok('docs.page.update', { id, body: doc('внешнее') });
     await until(() => has(a.document, 'внешнее') && !has(a.document, 'старое'), 1500);
-    // проекция не зациклилась: тело осталось внешним
+    // the projection did not loop: the body stayed external
     await new Promise((r) => setTimeout(r, 400));
     expect(JSON.stringify((await page(id)).body)).toContain('внешнее');
 
@@ -254,7 +254,7 @@ describe('pt1a', () => {
     await until(async () => (await page(id2)).text.includes('два'));
     b.provider.destroy();
     await until(() => !svc.hp.documents.has(`docs:${id2}`));
-    expect(await ydoc(`docs:${id2}`)).toBeDefined(); // собственная проекция ydocs не стирает
+    expect(await ydoc(`docs:${id2}`)).toBeDefined(); // our own ydocs projection does not erase it
     await w.admin.ok('docs.page.update', { id: id2, body: doc('другое') });
     await until(async () => !(await ydoc(`docs:${id2}`)));
   });

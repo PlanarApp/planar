@@ -7,7 +7,7 @@ import { PriorityIcon } from '../../tasks';
 import type { ListColumn } from './columns';
 import { formatDue } from './due';
 
-// значение ячейки Списка — одно и то же в покое и внутри кнопки пикера (при наведении ничего не меняется)
+// List cell value — the same at rest and inside the picker button (nothing changes on hover)
 defineProps<{
   col: ListColumn;
   people: { name: string }[];
@@ -15,7 +15,7 @@ defineProps<{
   dueTone: string;
   priority: number;
   labels: DbRow<'labels'>[];
-  /** название проекта задачи (поле «Проект») */
+  /** the task's project name (the "Project" field) */
   project?: string;
 }>();
 const { t, locale } = useI18n();

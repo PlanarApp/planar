@@ -1,6 +1,6 @@
 import { SAVE_DEBOUNCE_MS } from './model';
 
-/** Копит изменения полей и отправляет одним патчем через delay после последнего. */
+/** Accumulates field changes and sends them in one patch after a delay following the last. */
 export function createSaver<P extends object>(
   send: (patch: P) => unknown,
   delay = SAVE_DEBOUNCE_MS,

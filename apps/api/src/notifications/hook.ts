@@ -6,9 +6,9 @@ import { ServerTx, type Q, type ServerTxCtx } from '../sync/server-tx.js';
 type Kind = 'assigned' | 'mentioned' | 'commented' | 'status_changed' | 'comment_assigned';
 
 /**
- * Уведомления и автоподписка по записям мутации (C-schema v10 «notifications»).
- * Вызывать в той же транзакции после run. Возвращает id созданных уведомлений и
- * ServerTx хука (его finish() — оповещение о записанном).
+ * Notifications and auto-subscription from mutation records (C-schema v10 "notifications").
+ * Call in the same transaction after run. Returns the ids of created notifications and
+ * the hook's ServerTx (its finish() — notification about what was written).
  */
 export async function notificationsHook(
   q: Q,
@@ -77,7 +77,7 @@ export async function notificationsHook(
     ids.push(id);
   };
 
-  // автоподписка до рассылки: новый исполнитель/автор уже наблюдатели
+  // auto-subscription before the fan-out: a new assignee/author is already a watcher
   for (const w of source.writes) {
     const a = w.after;
     if (w.op !== 'put' || !a || w.before) continue;
@@ -95,7 +95,7 @@ export async function notificationsHook(
     if (w.entity === 'taskAssignees' && !w.before) {
       await notify('assigned', spaceId, a.taskId as string, a.userId as string, null);
     } else if (w.entity === 'tasks') {
-      // упоминание в описании — как в комментарии: только новым упомянутым
+      // mention in description — as in comments: only newly mentioned users
       const old = new Set(w.before ? extractMentions(w.before.description) : []);
       for (const u of extractMentions(a.description).filter((u) => !old.has(u)))
         await notify('mentioned', spaceId, a.id as string, u, null);
@@ -114,7 +114,7 @@ export async function notificationsHook(
         for (const u of await watchersOf(taskId))
           if (!all.includes(u) && u !== a.assigneeId)
             await notify('commented', spaceId, taskId, u, a.id as string);
-      // назначенный комментарий — исполнителю (новый или сменившийся)
+      // assigned comment — to the assignee (new or changed)
       if (a.assigneeId && a.assigneeId !== w.before?.assigneeId)
         await notify('comment_assigned', spaceId, taskId, a.assigneeId as string, a.id as string);
     }

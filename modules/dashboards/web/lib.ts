@@ -12,11 +12,11 @@ export interface WidgetLike {
   config: Record<string, unknown>;
 }
 
-/** Задачи дашборда (и личного): задачи его пространства. */
+/** Dashboard tasks (and personal): tasks of its space. */
 export const boardTasks = (spaceId: string, tasks: Task[]): Task[] =>
   tasks.filter((t) => t.spaceId === spaceId);
 
-/** Значения groupBy у задачи; несколько исполнителей/меток/значений — по столбцу на каждое; пусто — ''. */
+/** groupBy values of a task; several assignees/labels/values — one column each; empty — ''. */
 export function groupKeys(t: Task, groupBy: string): string[] {
   let v: unknown;
   if (groupBy === 'status') v = t.statusId;
@@ -37,14 +37,14 @@ export function countBy(tasks: Task[], groupBy: string): { key: string; n: numbe
     .sort((a, b) => b.n - a.n || (a.key < b.key ? -1 : 1));
 }
 
-/** Начало недели (локально, YYYY-MM-DD); weekStart: 0 — вс, 1 — пн. */
+/** Start of the week (local, YYYY-MM-DD); weekStart: 0 — Sun, 1 — Mon. */
 export function weekOf(d: Date, weekStart: 0 | 1 = 1): string {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   x.setDate(x.getDate() - ((x.getDay() - weekStart + 7) % 7));
   return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
 }
 
-/** Число задач по неделям createdAt/completedAt за последние `weeks` недель (последняя — текущая). */
+/** Number of tasks per week by createdAt/completedAt over the last `weeks` weeks (the last one is the current). */
 export function weekSeries(
   tasks: Task[],
   series: 'created' | 'completed',
@@ -75,7 +75,7 @@ export function sortList(tasks: Task[], sort: string, limit: number): Task[] {
   const by: Record<string, (a: Task, b: Task) => number> = {
     updatedAt: (a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0),
     dueDate: (a, b) => nullsLast(a.dueDate, b.dueDate),
-    // 1 — срочный … 4 — низкий, 0 — без приоритета (в конец)
+    // 1 — urgent … 4 — low, 0 — no priority (at the end)
     priority: (a, b) =>
       nullsLast(a.priority ? String(a.priority) : null, b.priority ? String(b.priority) : null),
   };
@@ -88,7 +88,7 @@ export type Computed =
   | { kind: 'line'; points: { start: string; n: number }[] }
   | { kind: 'list'; tasks: Task[] };
 
-/** Значение виджета: filter (matchFilter, F-filter v2), затем подсчёт по kind. */
+/** Widget value: filter (matchFilter, F-filter v2), then count by kind. */
 export function compute(
   w: WidgetLike,
   tasks: Task[],
@@ -116,19 +116,19 @@ export function compute(
 }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-/** Сдвиг на (dx, dy) клеток внутри сетки 12 колонок. */
+/** Shift by (dx, dy) cells within the 12-column grid. */
 export const moveBox = (b: Box, dx: number, dy: number): Box => ({
   ...b,
   x: clamp(b.x + dx, 0, 12 - b.w),
   y: Math.max(0, b.y + dy),
 });
-/** Изменение размера на (dw, dh) клеток: w ≤ 12 − x, h 1–12. */
+/** Resize by (dw, dh) cells: w ≤ 12 − x, h 1–12. */
 export const resizeBox = (b: Box, dw: number, dh: number): Box => ({
   ...b,
   w: clamp(b.w + dw, 1, 12 - b.x),
   h: clamp(b.h + dh, 1, 12),
 });
-/** Ниже всех виджетов. */
+/** Below all widgets. */
 export const nextY = (ws: Box[]): number => ws.reduce((m, w) => Math.max(m, w.y + w.h), 0);
 
 export interface FieldDefLite {
@@ -137,10 +137,10 @@ export interface FieldDefLite {
   type: string;
   options: Record<string, unknown>;
 }
-/** Поля, по которым можно группировать (select/user): groupBy `field:<id>`. */
+/** Fields that can be grouped by (select/user): groupBy `field:<id>`. */
 export const groupableFields = (defs: FieldDefLite[]) =>
   defs.filter((d) => d.type === 'select' || d.type === 'user');
-/** id варианта select -> название (подпись столбца). */
+/** select option id -> name (column caption). */
 export const choiceNames = (defs: FieldDefLite[]): Record<string, string> =>
   Object.fromEntries(
     defs

@@ -3,7 +3,7 @@ import { users } from '../src/db/schema.js';
 import type { Db } from '../src/db/index.js';
 import { createSession } from '../src/auth/sessions.js';
 
-/** publicUrl тестового приложения. */
+/** publicUrl of the test app. */
 export const ORIGIN = 'http://localhost:5173';
 
 export async function createUser(

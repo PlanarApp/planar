@@ -6,7 +6,7 @@ import { Button, Input } from '../../ui';
 import { formatDue } from '../../views/list/due';
 import LazyPopover from './LazyPopover.vue';
 
-// label/empty — для даты начала (по умолчанию: срок)
+// label/empty — for the start date (default: due date)
 const props = defineProps<{ compact?: boolean; label?: string; empty?: string }>();
 const model = defineModel<string | null>({ default: null });
 const { t, locale } = useI18n();

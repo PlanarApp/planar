@@ -11,9 +11,9 @@ export const byStr =
 export const byRank = byStr<{ rank: string }>((x) => x.rank);
 
 /**
- * Справочники (статусы, метки, участники пространства): один liveQuery на (вид, ключ) на всех подписчиков —
- * не по запросу на каждый пикер в каждой строке. После ухода последнего подписчика подписка живёт ещё `GRACE` мс:
- * возврат в проект того же пространства получает данные сразу, без чтения IndexedDB.
+ * Dictionaries (statuses, labels, space members): one liveQuery per (kind, key) for all subscribers —
+ * not a query per picker in every row. After the last subscriber leaves, the subscription lives on for `GRACE` ms:
+ * returning to a project of the same space gets the data at once, without reading IndexedDB.
  */
 const GRACE = 5 * 60_000;
 interface Shared {
@@ -42,7 +42,7 @@ function release(key: string): void {
     x.sub.unsubscribe();
     shared.delete(key);
   }, GRACE);
-  (x.timer as unknown as { unref?: () => void }).unref?.(); // Node: не держать процесс
+  (x.timer as unknown as { unref?: () => void }).unref?.(); // Node: don't keep the process alive
 }
 
 function useShared<T>(kind: string, arg: () => string, fn: (a: string) => Promise<T>) {
@@ -72,7 +72,7 @@ function useShared<T>(kind: string, arg: () => string, fn: (a: string) => Promis
   return out as Readonly<Ref<T | undefined>>;
 }
 
-// ключ — id пространства или несколько через запятую (сводка группы)
+// key — a space id or several comma-separated (group summary)
 const bySpace = <T>(table: string, s: string) => {
   const w = db.table<T>(table).where('spaceId');
   return (s.includes(',') ? w.anyOf(s.split(',')) : w.equals(s)).toArray();
@@ -95,7 +95,7 @@ export const useLabels = (spaceId: MaybeRefOrGetter<string>) =>
 export const useMembers = (spaceId: MaybeRefOrGetter<string>) =>
   useShared('mb', () => toValue(spaceId), members);
 
-/** Заранее читает справочники пространства проекта, чтобы экран проекта получил их без чтения IndexedDB. */
+/** Pre-reads the dictionaries of the project's space so the project screen gets them without reading IndexedDB. */
 export function warmSpace(spaceId: string): void {
   const warm = (key: string, fn: () => Promise<unknown>) => (retain(key, fn), release(key));
   warm('st' + spaceId, () => statuses(spaceId));
@@ -103,7 +103,7 @@ export function warmSpace(spaceId: string): void {
   warm('mb' + spaceId, () => members(spaceId));
 }
 
-/** для тестов: забыть справочники (тесты очищают базу напрямую) */
+/** for tests: forget the dictionaries (tests clear the database directly) */
 export function resetDictionaries(): void {
   for (const x of shared.values()) {
     clearTimeout(x.timer);

@@ -1,7 +1,7 @@
 import { defineComponent, h } from 'vue';
 import { defineWebModule } from '@planar/web/modules';
 
-// Иконка без зависимости от lucide: флажок
+// Icon without a lucide dependency: flag
 const Flag = defineComponent({
   props: { size: { type: [Number, String], default: 16 } },
   setup: (p) => () =>
@@ -23,7 +23,7 @@ const Flag = defineComponent({
 export const web = defineWebModule({
   id: 'goals',
   routes: [{ path: '/m/goals/', component: () => import('./GoalsPage.vue') }],
-  // вехи — в «Отчётах» группы (раньше — вид проекта)
+  // milestones — in the group's «Reports» (previously — a project view)
   groupTabs: [
     {
       id: 'milestones',

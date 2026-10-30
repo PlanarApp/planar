@@ -99,7 +99,7 @@ describe('metrics', () => {
         const db = app.get(DB);
         const real = db.execute.bind(db);
         let n = 0;
-        // 1-й вызов — размер БД, 2-й — очередь
+        // 1st call — DB size, 2nd — queue
         vi.spyOn(db, 'execute').mockImplementation((q: never) =>
           ++n === 2 ? Promise.reject(new Error('no pgboss')) : real(q),
         );

@@ -13,7 +13,7 @@ export const dbUrl = testDbUrl();
 export const newDb = (): Db => testDb();
 
 let n = 0;
-/** Пользователь напрямую в БД (до появления test/auth.ts из CR-3a). */
+/** User directly in the DB (until test/auth.ts from CR-3a appears). */
 export async function mkUser(db: Db, role: 'owner' | 'admin' | 'member' | 'guest' = 'member') {
   const id = uuidv7();
   n += 1;
@@ -23,7 +23,7 @@ export async function mkUser(db: Db, role: 'owner' | 'admin' | 'member' | 'guest
   return id;
 }
 
-/** Пространство с участниками {userId: роль} напрямую в БД; changes не пишет. */
+/** Space with members {userId: role} directly in the DB; does not write changes. */
 export async function mkSpace(
   db: Db,
   createdBy: string,
@@ -46,7 +46,7 @@ export const doc = (text: string) => ({
   content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
 });
 
-/** Клиент синхронизации: свой clientId, растущий id мутаций, сервисы напрямую (без HTTP). */
+/** Sync client: its own clientId, a growing mutation id, services directly (no HTTP). */
 export class TestClient {
   clientId = uuidv7();
   private n = 0;
@@ -62,7 +62,7 @@ export class TestClient {
     });
     return results[0];
   }
-  /** push с ожиданием успеха */
+  /** push waiting for success */
   async ok(name: string, args: unknown) {
     const r = await this.push(name, args);
     expect(r, `${name}: ${JSON.stringify(r)}`).toMatchObject({ ok: true });
@@ -92,7 +92,7 @@ export interface World {
   projectId: string;
 }
 
-/** Пространство (space.create от admin) + проект; member/guest добавлены, outsider — нет. */
+/** Space (space.create by admin) + project; member/guest added, outsider — not. */
 export async function world(db: Db): Promise<World> {
   const s = services(db);
   const [a, m, g, o] = await Promise.all(

@@ -11,7 +11,7 @@ export const api: BackendModuleManifest = {
   nestModule: TimeModule,
   mutators: shared.mutators,
   entities: shared.entities,
-  // удаление задачи (в т.ч. подзадач — отдельные writes) уносит записи времени и оценку
+  // deleting a task (including subtasks — separate writes) takes its time entries and estimate with it
   async afterMutation(writes: MutationWrite[], _ctx, api: ModuleHookApi) {
     for (const w of writes) {
       if (w.entity !== 'tasks' || w.op !== 'del' || !w.before) continue;

@@ -250,7 +250,7 @@ describe('pf4: дайджест', () => {
   it('pf4: пояс из settings.timezone', async () => {
     await notif();
     await db.insert(settings).values({ id: 'timezone', value: 'Asia/Tokyo' });
-    // 20:00 UTC = 05:00 в Токио
+    // 20:00 UTC = 05:00 in Tokyo
     expect(await digestTick(db, new Date('2026-10-25T20:00:00Z'))).toBe(0);
     expect(await digestTick(db, new Date('2026-10-25T23:30:00Z'))).toBe(1);
   });
@@ -265,7 +265,7 @@ describe('pf4: дайджест', () => {
     );
     expect(await digestTick(db, new Date('2026-10-25T09:00:00Z'))).toBe(1);
     expect(decoded(stub.mails[0]!.data)).toContain(taskKey);
-    // архивный проект — задача не попадает
+    // archived project — the task does not get in
     await db.delete(D);
     stub.mails.length = 0;
     await db.execute(sql`update projects set archived_at = now() where id = ${w.projectId}`);

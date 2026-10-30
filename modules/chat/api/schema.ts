@@ -72,7 +72,7 @@ export const chatMessages = pgTable(
     updatedAt: ts().notNull(),
   },
   (t) => [
-    // уникальность защищает от двух сообщений с одним seq при гонке; у ответов seq null
+    // uniqueness guards against two messages with one seq in a race; replies have seq null
     uniqueIndex('chat_messages_channel_seq_uq').on(t.channelId, t.seq),
     index('chat_messages_parent_id_idx').on(t.parentId),
   ],

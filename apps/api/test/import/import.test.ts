@@ -42,7 +42,7 @@ beforeAll(async () => {
     .insert(settings)
     .values({ id: 'enabled_modules', value: ['import'] })
     .onConflictDoUpdate({ target: settings.id, set: { value: ['import'] } });
-  // известные пользователи фикстур: alice по email, bsmith по login
+  // known fixture users: alice by email, bsmith by login
   await db.$client.query('update users set email = $1 where id = $2', [
     'Alice@Example.com',
     w.admin.userId,
@@ -115,7 +115,7 @@ const smap = () => ({
   Done: w.statusIds[DONE]!,
 });
 
-/** создать задачу импорта через HTTP и выполнить её воркером */
+/** create an import task via HTTP and run it with the worker */
 async function doImport(
   projectId: string,
   file: Buffer,
@@ -302,19 +302,19 @@ describe('wk6: импорт', () => {
     expect(t1.status_id).toBe(w.statusIds[DOING]);
     expect(t1.priority).toBe(2);
     expect(t1.due).toBe('2026-01-01');
-    expect(await assignees(t1.id)).toEqual([w.admin.userId]); // по email без регистра
+    expect(await assignees(t1.id)).toEqual([w.admin.userId]); // by email, case-insensitive
     expect(await labelNames(t1.id)).toEqual(['bug', 'frontend']);
-    const t2 = await one(p, 'ClickUp task 2'); // bsmith по login
+    const t2 = await one(p, 'ClickUp task 2'); // bsmith by login
     expect(await assignees(t2.id)).toEqual([w.member.userId]);
     expect(t2.description.content).toHaveLength(2);
-    const t3 = await one(p, 'ClickUp task 3'); // неизвестный исполнитель
+    const t3 = await one(p, 'ClickUp task 3'); // unknown assignee
     expect(await assignees(t3.id)).toEqual([]);
     expect(job.warnings).toContainEqual({
       row: 4,
       message: 'исполнитель «nobody@example.com» не найден',
     });
     expect((await one(p, 'ClickUp task 9')).parent_id).toBe((await one(p, 'ClickUp task 8')).id);
-    // метка создана один раз
+    // label created once
     const l = await db.$client.query(
       "select count(*)::int c from labels where space_id = $1 and lower(name) = 'bug'",
       [w.spaceId],
@@ -410,7 +410,7 @@ describe('wk6: импорт', () => {
       { row: 5, reason: 'нет заголовка' },
     ]);
     const c1 = await one(p, 'Trello card 1');
-    expect(c1.status_id).toBe(w.statusIds[TODO]); // «To Do» нет в statusMap → по умолчанию
+    expect(c1.status_id).toBe(w.statusIds[TODO]); // "To Do" is not in statusMap → default
     expect((await one(p, 'Trello card 2')).status_id).toBe(w.statusIds[DOING]);
     expect(await labelNames(c1.id)).toEqual(['bug', 'green']);
     expect(await assignees(c1.id)).toEqual([w.member.userId]);
@@ -429,7 +429,7 @@ describe('wk6: импорт', () => {
 
   it('wk6: ошибка мутатора пропускает только свою строку', async () => {
     const p = await project();
-    const foreign = uuidv7(); // статус не существует → task.create отклонён
+    const foreign = uuidv7(); // status does not exist → task.create rejected
     const f = Buffer.from('Title,St\nok1,a\nbad,b\nok2,a\n');
     const job = await doImport(p, f, 'csv', 'custom', {
       title: 'Title',
@@ -503,7 +503,7 @@ describe('wk6: импорт', () => {
   });
 
   it('wk6: права пользователя — участник без записи в проект получает failed только через 404 на создании', async () => {
-    // задание от пользователя, лишённого прав после постановки, не создаёт задач и не роняет воркер
+    // a job from a user who lost rights after enqueue creates no tasks and does not break the worker
     const p = await project();
     const res = await call(
       'POST',

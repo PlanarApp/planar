@@ -56,7 +56,7 @@ function setMode(m: Mode) {
   try {
     localStorage.setItem(storeKey(), m);
   } catch {
-    // приватный режим — режим живёт до перезагрузки
+    // private mode — the mode lives until reload
   }
 }
 
@@ -76,7 +76,7 @@ function step(n: number) {
 const fmtDate = (d: string, o: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat(locale.value, o).format(parse(d));
 const weekdayLabel = (d: string) => fmtDate(d, { weekday: 'short' });
-// неделя: дни сверху вниз (строки); месяц — дни недели в столбцах
+// week: days top to bottom (rows); month — weekdays in columns
 const vertical = computed(() => mode.value === 'week');
 const panel = ref(false);
 const drag = ref<{ task: TaskView; from: string | null } | null>(null);
@@ -97,7 +97,7 @@ async function drop(to: string) {
   await updateTask(d.task.id, patch);
 }
 
-// мобильная: задача из панели ставится нажатием на день
+// mobile: a task from the panel is placed by tapping a day
 const placing = ref<TaskView | null>(null);
 const pick = (id: string) => (placing.value = undated.value.find((x) => x.id === id) ?? null);
 function onCell(d: string) {
@@ -108,7 +108,7 @@ function onCell(d: string) {
   void drop(d);
 }
 
-// касание: HTML5 drag на телефонах не работает — переносим задачу в сетке пальцем
+// touch: HTML5 drag does not work on phones — the task is moved in the grid with a finger
 let touch: { task: TaskView; from: string; x: number; y: number; moved: boolean } | null = null;
 function touchDown(e: PointerEvent, task: TaskView, from: string) {
   if (e.pointerType !== 'touch') return;

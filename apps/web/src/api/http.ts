@@ -9,7 +9,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
+export async function api<T = unknown>(
+  method: string,
+  path: string,
+  body?: unknown,
+  extraHeaders?: Record<string, string>,
+): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, {
@@ -17,8 +22,8 @@ export async function api<T = unknown>(method: string, path: string, body?: unkn
       credentials: 'same-origin',
       headers:
         body === undefined || body instanceof FormData
-          ? undefined
-          : { 'Content-Type': 'application/json' },
+          ? extraHeaders
+          : { 'Content-Type': 'application/json', ...extraHeaders },
       body: body === undefined || body instanceof FormData ? body : JSON.stringify(body),
     });
   } catch (e) {

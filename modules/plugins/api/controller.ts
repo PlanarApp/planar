@@ -36,7 +36,7 @@ const patchBody = z.object({
 });
 const mutateBody = z.object({ name: z.string().min(1).max(100), args: z.unknown() });
 
-// как apps/api/src/main.ts
+// as in apps/api/src/main.ts
 const appOrigin = () => process.env.PUBLIC_URL ?? 'http://localhost:5173';
 const prod = () => process.env.NODE_ENV === 'production';
 const HTTP: Record<string, [number, 'invalid_request' | 'forbidden' | 'not_found' | 'conflict']> = {
@@ -114,7 +114,7 @@ export class PluginsController {
     await this.core.execute(userId, [{ name: 'plugins.delete', args: { id } }], { system: true });
   }
 
-  /** Мутация от плагина: права плагина (сервер) и пользователя сессии (executeMutations) — оба. */
+  /** A mutation from a plugin: both the plugin's rights (server) and the session user's (executeMutations). */
   @Post(':id/mutate')
   @HttpCode(204)
   async mutate(@Req() req: object, @Param('id') id: string, @Body() body: unknown) {
@@ -129,7 +129,7 @@ export class PluginsController {
     try {
       await this.core.execute(auth.userId, [{ name: b.name, args: b.args }]);
     } catch (e) {
-      // Reject из apps/api: code по таблице C-http; не мутаторные ошибки — наружу как есть
+      // Reject from apps/api: code per the C-http table; non-mutator errors go outward as is
       const code = (e as { code?: unknown }).code;
       const m = typeof code === 'string' ? HTTP[code] : undefined;
       if (!m || e instanceof HttpError) throw e;

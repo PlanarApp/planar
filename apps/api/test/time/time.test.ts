@@ -74,7 +74,7 @@ describe('wk1: time', () => {
       role: 'member',
     });
     const c = new TestClient(services(db), user);
-    // «первая транзакция»: идущая запись вставлена, но не закоммитирована
+    // "first transaction": the ongoing write is inserted but not committed
     const raw = await db.$client.connect();
     const first = uuidv7();
     await raw.query('begin');
@@ -83,7 +83,7 @@ describe('wk1: time', () => {
        values ($1, $2, $3, $4, now(), 'timer', now(), now())`,
       [first, w.spaceId, taskId, user],
     );
-    // вторая не видит её (read committed), вставляет и встаёт на ожидании уникального индекса
+    // the second does not see it (read committed), inserts, and waits on the unique index
     const second = start(c);
     for (let i = 0; i < 100; i++) {
       const r = await db.$client.query(
@@ -102,7 +102,7 @@ describe('wk1: time', () => {
 
   it('wk1: stop считает durationSec по серверному времени', async () => {
     const { id } = await start(w.admin);
-    // клиентская давность не влияет: правим startedAt в БД на 90 с назад
+    // the client's age does not matter: we edit startedAt in the DB back by 90 s
     const back = new Date(Date.now() - 90_000).toISOString();
     await db.update(timeEntries).set({ startedAt: back }).where(eq(timeEntries.id, id));
     await w.admin.ok('time.stop', { id });
@@ -113,7 +113,7 @@ describe('wk1: time', () => {
     expect(e.durationSec).toBe(
       Math.floor((Date.parse(e.endedAt!) - Date.parse(e.startedAt)) / 1000),
     );
-    // повторный stop — ничего
+    // repeated stop — nothing
     await w.admin.ok('time.stop', { id });
     expect((await entry(id)).endedAt).toBe(e.endedAt);
   });

@@ -288,7 +288,7 @@ describe('wk5: выключенный модуль → 404 module_disabled', () 
       const r = await call(m, u, 'member', b);
       expect([m, u, r.statusCode, r.json().code]).toEqual([m, u, 404, 'module_disabled']);
     }
-    // связи — ядро, работают без модулей
+    // links are the core, they work without modules
     expect((await call('GET', `/api/v1/tasks/${taskA.id}/links`)).statusCode).toBe(200);
   });
 });

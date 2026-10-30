@@ -1,4 +1,4 @@
-// Серверные замеры бюджетов §7 на стеке с сидом --tasks 10000; печатает key=value.
+// Server-side measurements of §7 budgets on a stack seeded with --tasks 10000; prints key=value.
 import { Client } from './lib.js';
 
 const now = () => performance.now();
@@ -50,7 +50,7 @@ for (let i = 0; i < 23; i++) {
   t0 = now();
   await a.pushOk([a.mut('task.update', { id: taskId, title: `measure poke ${i}` })]);
   await next;
-  if (i >= 3) poke.push(now() - t0); // 3 прогрева
+  if (i >= 3) poke.push(now() - t0); // 3 warm-ups
 }
 ws.close();
 const pokeP95 = p95(poke);

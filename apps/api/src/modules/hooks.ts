@@ -1,4 +1,4 @@
-// Типы хуков и задач модулей живут в @planar/server-kit; здесь — реэкспорт для ядра.
+// Hook and module job types live in @planar/server-kit; re-exported here for the core.
 export type {
   AfterMutationCtx,
   JobApi,

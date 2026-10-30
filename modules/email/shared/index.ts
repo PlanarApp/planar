@@ -17,7 +17,7 @@ export const emailPrefs = z.object({
 });
 export type EmailPrefs = z.output<typeof emailPrefs>;
 
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface MTx {
   get(e: string, id: string): Promise<EmailPrefs | undefined>;
   put(e: string, row: EmailPrefs): Promise<void>;
@@ -28,7 +28,7 @@ export const mutators = [
     name: 'email.setPrefs',
     args: z.object({ id, notify: z.boolean().optional(), digest: z.boolean().optional() }),
     async run(tx, a, ctx) {
-      // системная отписка идёт от имени владельца токена (CoreServices.execute), так что id = userId
+      // a system unsubscribe runs on behalf of the token owner (CoreServices.execute), so id = userId
       if (a.id !== ctx.userId) throw new MutatorError('forbidden', 'чужие настройки почты');
       const t = tx as unknown as MTx;
       const old = await t.get('emailPrefs' as EntityName, a.id);

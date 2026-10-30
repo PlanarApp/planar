@@ -1,4 +1,4 @@
-/* токены C-ui v3 (значения из ui/tokens.css); тема — по prefers-color-scheme, без приложения */
+/* C-ui v3 tokens (values from ui/tokens.css); theme — by prefers-color-scheme, without the app */
 :root {
   --bg: #fff;
   --fg: #18181b;
@@ -98,7 +98,7 @@ button:disabled {
 .ok {
   color: var(--success);
 }
-/* honeypot: вне экрана, не display:none (боты его пропускают) */
+/* honeypot: off-screen, not display:none (bots skip it) */
 .hp {
   position: absolute;
   left: -10000px;

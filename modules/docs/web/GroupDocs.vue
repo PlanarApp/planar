@@ -7,7 +7,7 @@ import PageTree from './PageTree.vue';
 import PageView from './PageView.vue';
 import { useTexts } from './text';
 
-// таб «Документы» группы: страницы её уровня и вложенных, страница — в ?page
+// «Documents» tab of the group: pages of its level and nested ones, a page — in ?page
 const props = defineProps<{ scope: GroupScope }>();
 const tx = useTexts();
 const route = useRoute();

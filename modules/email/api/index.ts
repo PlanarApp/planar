@@ -10,7 +10,7 @@ import { emailConfig } from './schema.js';
 @Module({ controllers: [EmailController] })
 class EmailModule implements OnModuleInit {
   constructor(private readonly host: HttpAdapterHost) {}
-  // RFC 8058: One-Click приходит как application/x-www-form-urlencoded; Fastify такой тип по умолчанию не разбирает
+  // RFC 8058: One-Click arrives as application/x-www-form-urlencoded; Fastify does not parse that type by default
   onModuleInit() {
     try {
       this.host.httpAdapter
@@ -19,20 +19,20 @@ class EmailModule implements OnModuleInit {
           'application/x-www-form-urlencoded',
           { parseAs: 'string' },
           (r: { url?: string }, b: unknown, done: (e: Error | null, v?: unknown) => void) => {
-            // только этот маршрут; на остальных — как до модуля (415)
+            // only this route; on the others — as before the module (415)
             if (r.url?.split('?')[0] === '/api/email/unsubscribe') return done(null, b);
             done(Object.assign(new Error('Unsupported Media Type'), { statusCode: 415 }));
           },
         );
     } catch {
-      /* уже есть */
+      /* already exists */
     }
   }
 }
 
 export { digestTick, notifyTick };
 
-/** Без настроек SMTP модуль включить нельзя (C-modules v11). */
+/** Without SMTP settings the module cannot be enabled (C-modules v11). */
 const unavailable = async (q: unknown): Promise<string | null> => {
   const [c] = await (q as Db).select().from(emailConfig);
   return c?.host && c.fromAddress ? null : 'smtp_not_configured';

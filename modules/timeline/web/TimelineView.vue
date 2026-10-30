@@ -36,7 +36,7 @@ import {
   type Scale,
 } from './lib';
 
-// scope — сводка группы: задачи и вехи её проектов
+// scope — group summary: tasks and milestones of its projects
 const props = defineProps<{ projectId: string; viewId?: string; scope?: ViewScope }>();
 const pids = () => props.scope?.projectIds ?? [props.projectId];
 
@@ -74,7 +74,7 @@ const SCALES = [
 ] as const;
 const px = computed(() => PX[scale.value]);
 
-// веха модуля goals: таблицы может не быть (модуль выключен — строк нет, C-modules)
+// a milestone of the goals module: the table may be absent (module off — no rows, C-modules)
 const milestones = useQuery(async () =>
   db.tables.some((t) => t.name === 'goalsMilestones')
     ? ((await db.table('goalsMilestones').where('projectId').anyOf(pids()).toArray()) as {
@@ -106,7 +106,7 @@ const width = computed(() => (range.value[1] - range.value[0] + 1) * px.value);
 const height = computed(() => Math.max(dated.value.length, 1) * ROW_H);
 const x = (day: number) => (day - origin.value) * px.value;
 
-// окно виртуализации; в тестовой среде размеры равны 0 — берём запасные
+// virtualization window; in the test environment sizes are 0 — we take fallbacks
 const sc = ref<HTMLElement>();
 const view = ref({ top: 0, left: 0, w: 900, h: 600 });
 const rows = computed(() => {
@@ -121,7 +121,7 @@ const visibleTicks = computed(() =>
   })),
 );
 
-// стрелки: связи, у которых хотя бы один конец в окне строк, и по датам попадающие в видимый диапазон
+// arrows: links with at least one end in the row window, and those that fall in the visible range by dates
 const arrows = computed(() => {
   const [r0, r1] = rowWindow(view.value.top, view.value.h, dated.value.length);
   const [d0, d1] = days.value;
@@ -164,7 +164,7 @@ const onScroll = () => {
   if (!raf) raf = requestAnimationFrame(measure);
 };
 
-// перенос / растягивание мышью
+// move / stretch with the mouse
 interface Drag {
   id: string;
   mode: 'move' | 'start' | 'end';
@@ -215,7 +215,7 @@ async function commit(id: string, args: Record<string, unknown>, next: Bar) {
   warnTimer = setTimeout(() => (warning.value = false), 6000);
 }
 
-// «Без дат» (панель): перетаскивание на шкалу; на мобилке — выбрать задачу и нажать на шкалу
+// "No dates" (panel): drag onto the timeline; on mobile — pick a task and tap the timeline
 const panel = ref(false);
 const placing = ref<{ id: string; title: string } | null>(null);
 const dayAt = (clientX: number) => {
@@ -246,7 +246,7 @@ const pick = (id: string) => {
   const t = undated.value.find((x) => x.id === id);
   placing.value = t ? { id, title: t.title } : null;
 };
-// «период»: прокрутить шкалу к дате
+// "period": scroll the timeline to the date
 const goTo = (day: number) => {
   if (sc.value) sc.value.scrollLeft = Math.max(0, x(day) - 120);
   measure();

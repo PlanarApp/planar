@@ -8,10 +8,10 @@ const load = (): Record<string, string> => {
     return {};
   }
 };
-// shortcut: «отложить» хранится на устройстве, между устройствами не синхронизируется; нужна сущность в C-schema
+// shortcut: "snooze" is stored on the device, not synced between devices; needs an entity in C-schema
 export const snoozed = ref<Record<string, string>>(load());
 
-// «сейчас» для реактивности: тикает в момент ближайшего истечения, чтобы отложенное вернулось в срок
+// "now" for reactivity: ticks at the nearest expiry so snoozed items return on time
 const tick = ref(Date.now());
 let timer: ReturnType<typeof setTimeout> | undefined;
 watch(
@@ -24,7 +24,7 @@ watch(
         .map((u) => Date.parse(u))
         .filter((t) => t > now),
     );
-    // setTimeout держит не более 2^31 мс; дальше тик просто сработает раньше и переставится
+    // setTimeout holds at most 2^31 ms; beyond that the tick just fires early and reschedules
     if (next < Infinity)
       timer = setTimeout(() => (tick.value = Date.now()), Math.min(next - now, 2 ** 31 - 1) + 1);
   },
@@ -36,11 +36,11 @@ export function snooze(id: string, until: Date): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(snoozed.value));
   } catch {
-    /* хранилище недоступно: отложено до перезагрузки */
+    /* storage unavailable: postponed until reload */
   }
 }
 
-/** Скрыто ли уведомление в момент now (читает реактивный snoozed). */
+/** Whether the notification is hidden at moment now (reads reactive snoozed). */
 export const isSnoozed = (id: string, now = new Date()): boolean => {
   void tick.value;
   const u = snoozed.value[id];

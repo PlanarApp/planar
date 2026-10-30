@@ -1,4 +1,4 @@
-/** RFC 4180: кавычки, "" внутри, переводы строк в кавычках; BOM снимается; разделитель — , ; или TAB по заголовку. */
+/** RFC 4180: quotes, `""` inside, line breaks inside quotes; BOM is stripped; delimiter — comma, semicolon or TAB from the header. */
 export function parseCsv(text: string): string[][] {
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   const delim = detectDelimiter(text);
@@ -6,7 +6,7 @@ export function parseCsv(text: string): string[][] {
   let row: string[] = [];
   let cell = '';
   let quoted = false;
-  let any = false; // в текущей записи что-то было (отличает пустую строку от конца файла)
+  let any = false; // something was in the current record (distinguishes an empty line from the end of the file)
   const endCell = () => {
     row.push(cell);
     cell = '';
@@ -36,7 +36,7 @@ export function parseCsv(text: string): string[][] {
     endCell();
     rows.push(row);
   }
-  // полностью пустые строки (в т.ч. хвост файла) не данные
+  // completely empty lines (including the file tail) are not data
   return rows.filter((r) => r.length > 1 || r[0] !== '');
 }
 
@@ -49,6 +49,6 @@ function detectDelimiter(text: string): string {
     else if (!quoted && (c === '\n' || c === '\r')) break;
     else if (!quoted && c in counts) counts[c]!++;
   }
-  // при равенстве (в т.ч. все нули) — запятая
+  // on a tie (including all zeros) — comma
   return (Object.entries(counts).sort((a, b) => b[1] - a[1])[0] as [string, number])[0];
 }

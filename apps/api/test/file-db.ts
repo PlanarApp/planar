@@ -3,7 +3,7 @@ import pg from 'pg';
 import { afterAll, inject } from 'vitest';
 import { closePools, setFileDbUrl } from './db.js';
 
-// Имя начинается с имени шаблона: global-setup в teardown добивает оставшиеся.
+// The name starts with the template name: global-setup in teardown finishes the remaining ones.
 const name = `${inject('dbTemplate')}_${randomBytes(4).toString('hex')}`;
 const adminUrl = inject('dbAdminUrl');
 const admin = new pg.Client({ connectionString: adminUrl });
@@ -15,6 +15,6 @@ setFileDbUrl(url.toString());
 
 afterAll(async () => {
   await closePools();
-  // базу не роняем здесь (каждый DROP — checkpoint, очередь под нагрузкой): удалит teardown global-setup
+  // we do not drop the database here (every DROP is a checkpoint, the queue under load): teardown of global-setup will delete it
   await admin.end();
 });

@@ -20,18 +20,18 @@ const users = useUsers();
 const reactions = useReactions(props.task.id);
 const members = useMembers(() => props.task.spaceId);
 const labels = useLabels(() => props.task.spaceId);
-const draft = shallowRef<JSONContent | null>(null); // shallow: в IndexedDB нельзя класть reactive-прокси
+const draft = shallowRef<JSONContent | null>(null); // shallow: reactive proxies can't be stored in IndexedDB
 const composer = ref<InstanceType<typeof Editor>>();
 const activity = ref<Row<'activity'>[]>([]);
 
-// история — только при сети; офлайн/ошибка — остаются комментарии, без сообщения
+// history — only online; offline/error — comments remain, without a message
 async function load() {
   try {
     activity.value = (
       await api<{ rows: Row<'activity'>[] }>('GET', `/api/tasks/${props.task.id}/activity`)
     ).rows;
   } catch {
-    /* офлайн */
+    /* offline */
   }
 }
 onMounted(load);
@@ -63,18 +63,18 @@ type Entry =
   | { at: string; id: string; act: Row<'activity'> };
 const feed = computed<Entry[]>(() =>
   [
-    // в ленте — корни тредов; ответы — под своим корнем
+    // in the feed — thread roots; replies — under their own root
     ...(comments.value ?? [])
       .filter((c) => !c.parentId)
       .map((c) => ({ at: c.createdAt, id: c.id, comment: c })),
-    // комментарий и так в ленте
+    // the comment is in the feed already
     ...activity.value
       .filter((a) => a.kind !== 'commented')
       .map((a) => ({ at: a.createdAt, id: a.id, act: a })),
   ].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)),
 );
 
-// новые записи внизу, у поля комментария: лента держится у конца
+// new entries at the bottom, by the comment field: the feed sticks to the end
 const list = ref<HTMLElement>();
 watch(
   () => feed.value.length,
@@ -86,7 +86,7 @@ watch(
 
 const setDraft = (v: JSONContent | null) => (draft.value = v);
 
-// треды: ответы по корню, по времени
+// threads: replies by root, by time
 const replies = computed(() => {
   const m = new Map<string, Row<'comments'>[]>();
   for (const c of comments.value ?? [])

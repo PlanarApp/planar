@@ -24,7 +24,7 @@ export async function need<E extends EntityName>(tx: Tx, entity: E, id: string):
   return r;
 }
 
-/** Только переданные поля (без id) + updatedAt. */
+/** Only the passed fields (without id) + updatedAt. */
 export function changes<E extends EntityName>(
   _entity: E,
   args: { id?: string },
@@ -38,12 +38,12 @@ export function changes<E extends EntityName>(
   } as unknown as Partial<Row<E>>;
 }
 
-/** Удалить все строки entity с index = eq. */
+/** Delete all entity rows with index = eq. */
 export async function delWhere(tx: Tx, entity: EntityName, index: string, eq: unknown) {
   for (const r of await tx.scan(entity, { index, eq })) await tx.del(entity, r.id);
 }
 
-/** completedAt по категории статуса: done/cancelled — прежнее ?? now, иначе null. */
+/** completedAt by status category: done/cancelled — the previous ?? now, otherwise null. */
 export function completedAt(category: string, prev: string | null, ctx: MutatorCtx) {
   return category === 'done' || category === 'cancelled' ? (prev ?? ctx.now) : null;
 }

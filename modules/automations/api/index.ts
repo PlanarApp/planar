@@ -25,7 +25,7 @@ import {
 import { enqueueWebhookEvent } from '@planar/module-webhooks/api';
 import { shared, type Action, type Rule, type Trigger } from '../shared/index.js';
 
-// CoreServices выдаёт Nest (AutomationsBoot); задача pg-boss — не провайдер
+// CoreServices is provided by Nest (AutomationsBoot); a pg-boss job is not a provider
 let core: CoreServices | undefined;
 
 const MAX_DEPTH = 3;
@@ -42,7 +42,7 @@ interface RunData {
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 type Row = Record<string, unknown>;
 
-/** События по записям мутации: задача, тип триггера, детали для сверки с параметрами триггера. */
+/** Events for mutation records: job, trigger type, details to match against the trigger parameters. */
 interface Event {
   taskId: string;
   projectId?: string;
@@ -114,7 +114,7 @@ async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api
         );
       projectId = projects.get(e.taskId) ?? undefined;
     }
-    if (!projectId) continue; // задача удалена
+    if (!projectId) continue; // job deleted
     if (!rulesOf.has(projectId))
       rulesOf.set(
         projectId,
@@ -125,7 +125,7 @@ async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api
       );
     for (const r of rulesOf.get(projectId)!) {
       const key = `${r.id}:${e.taskId}`;
-      // правило не срабатывает на собственное действие
+      // the rule does not fire on its own action
       if (!r.enabled || r.id === ctx.origin?.ruleId || queued.has(key) || !e.match(r.trigger))
         continue;
       queued.add(key);
@@ -152,7 +152,7 @@ function tzOrUtc(v: unknown): string {
   try {
     if (typeof v === 'string') return (new Intl.DateTimeFormat('en-CA', { timeZone: v }), v);
   } catch {
-    /* неверный пояс — UTC */
+    /* wrong zone — UTC */
   }
   return 'UTC';
 }
@@ -250,7 +250,7 @@ async function toMutations(api: JobApi, rule: Rule, task: FilterTask, statuses: 
         upd({ projectId: a.projectId, ...(a.statusId && { statusId: a.statusId }) });
         break;
       case 'send_webhook':
-        break; // выполняется в транзакции действий (run)
+        break; // runs inside the transaction of actions (run)
       case 'create_subtask': {
         const first = (c: string) => statuses.find((s) => s.category === c);
         const [last] = await rows(
@@ -346,9 +346,9 @@ async function run(d: RunData, api: JobApi) {
     await api.execute(api.systemUserId, muts, {
       system: true,
       origin: { ruleId: d.ruleId, depth: d.depth },
-      // неактивная/несуществующая подписка откатывает всё до действий
+      // an inactive/nonexistent subscription rolls back everything up to the actions
       prepare: hooks.length ? (q) => checkWebhooks(q, hooks) : undefined,
-      // доставка — в той же транзакции после всех действий; сбой откатывает действия, запуск = error
+      // delivery — in the same transaction after all actions; a failure rolls back the actions, the run = error
       after: hooks.length ? (q, enqueue) => sendWebhooks({ enqueue }, q, hooks, d) : undefined,
     });
   } catch (e) {
@@ -357,7 +357,7 @@ async function run(d: RunData, api: JobApi) {
   await record(api, d, 'ok');
 }
 
-/** Один раз на (правило, задача, dueDate): запись в automations_due_fired до постановки. */
+/** Once per (rule, job, dueDate): a record in automations_due_fired before enqueueing. */
 async function due(data: { now?: string }, api: JobApi) {
   const now = data.now ? new Date(data.now) : new Date();
   const day = await today(api, now);
@@ -394,7 +394,7 @@ async function due(data: { now?: string }, api: JobApi) {
   }
 }
 
-/** Раз в сутки: журнал запусков хранится 30 дней. */
+/** Once a day: the run log is kept for 30 days. */
 async function cleanup(data: { now?: string }, api: JobApi) {
   const now = data.now ? new Date(data.now) : new Date();
   await api.db.execute(

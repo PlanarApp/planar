@@ -1,6 +1,6 @@
 // @vitest-environment node
-// Контрактный тест features (F-fields, F-filter): экспорты по docs/contracts/features.md.
-// Правит только координатор модуля features.
+// Contract test features (F-fields, F-filter): exports per docs/contracts/features.md.
+// Edited only by the features module coordinator.
 import 'fake-indexeddb/auto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

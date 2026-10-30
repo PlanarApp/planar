@@ -18,12 +18,12 @@ export interface ViewOptions {
   sortBy: SortBy;
   sortDir: 'asc' | 'desc';
   showSubtasks: boolean;
-  /** Доска: показывать незаполненные поля карточки (клик — задать значение), как в ClickUp */
+  /** Board: show empty card fields (click — set a value), as in ClickUp */
   showEmpty?: boolean;
-  /** Me Mode: только мои задачи (назначенные, созданные, отслеживаемые); null — все */
+  /** Me Mode: only my tasks (assigned, created, watched); null — all */
   me?: MeMode | null;
   fields: TaskField[];
-  /** раскладка Таблицы: порядок, ширина; нет id — колонка скрыта */
+  /** Table layout: order, width; no id — column hidden */
   columns?: { id: string; width: number }[];
 }
 
@@ -37,7 +37,7 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
 };
 
-/** Опции из сохранённого `config`: известные поля поверх умолчаний. */
+/** Options from the saved `config`: known fields over the defaults. */
 export const optionsFrom = (config: Record<string, unknown> | undefined): ViewOptions => {
   const o = {
     ...DEFAULT_OPTIONS,
@@ -55,7 +55,7 @@ const load = (key: string): ViewOptions => {
     const raw = localStorage.getItem(key);
     if (raw) return optionsFrom(JSON.parse(raw));
   } catch {
-    // нет хранилища или битый JSON — значения по умолчанию
+    // no storage or broken JSON — default values
   }
   return optionsFrom(undefined);
 };
@@ -74,12 +74,12 @@ export function useViewOptions(
   watch(
     options,
     (v) => {
-      // при смене ключа сохраняем только правки, а не загруженное значение
+      // on a key change we keep only the edits, not the loaded value
       if (loadedKey !== key()) return;
       try {
         localStorage.setItem(loadedKey, JSON.stringify(v));
       } catch {
-        // квота или приватный режим — настройки живут до перезагрузки
+        // quota or private mode — settings live until reload
       }
     },
     { deep: true, flush: 'sync' },

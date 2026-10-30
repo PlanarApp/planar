@@ -1,7 +1,7 @@
 import { h } from 'vue';
 import { defineWebModule } from '@planar/web/modules';
 
-// иконка без lucide: ссылка
+// icon without lucide: link
 const Icon = () =>
   h(
     'svg',

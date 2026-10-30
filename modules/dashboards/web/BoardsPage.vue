@@ -3,8 +3,8 @@ import { computed, ref } from 'vue';
 import { Button, Dialog, EmptyState, Input, Select, useRouter } from '@planar/web/modules';
 import { mutate, newId, rankBetween, tr, useBoards, useSpaces } from './data';
 
-// space — таб «Отчёты» группы: только дашборды её пространства
-// open — открыть дашборд (в табе группы — в той же группе); по умолчанию — страница модуля
+// space — the group's "Reports" tab: only the dashboards of its space
+// open — open a dashboard (in the group's tab — in the same group); default — the module page
 const props = defineProps<{ space?: string; open?: (id: string) => void }>();
 const go = (id: string) => (props.open ? props.open(id) : void router.push(`/m/dashboards/${id}`));
 const router = useRouter();

@@ -9,12 +9,12 @@ import { cursorColor } from './index.js';
 
 export type Collab = {
   extensions: Extensions;
-  /** Вызывается после каждой успешной аутентификации (в т.ч. после переподключения). */
+  /** Called after each successful authentication (including after a reconnect). */
   onAuthenticated: (cb: () => void) => void;
-  /** Сервер открыл документ только для чтения. */
-  /** Доступ не получен после повторов: правки копятся в IndexedDB, нужно показать «не синхронизируется». */
+  /** The server opened the document read-only. */
+  /** Access not obtained after retries: edits pile up in IndexedDB, «not synced» must be shown. */
   onDenied: (cb: () => void) => void;
-  /** Новая серия попыток подключения. */
+  /** A new series of connection attempts. */
   retry: () => void;
   readOnly: () => boolean;
   destroy: () => void;
@@ -23,13 +23,13 @@ export type Collab = {
 const RETRIES = 5;
 const RETRY_MS = 2000;
 
-/** Подключение документа `name` к /collab того же origin + офлайн-хранилище (P3-ydoc «Клиент»). Отдельный модуль: yjs/hocuspocus грузятся лениво. */
+/** Connects document `name` to /collab of the same origin + offline storage (P3-ydoc «Client»). A separate module: yjs/hocuspocus are loaded lazily. */
 export function openCollab(name: string, user: { id: string; name: string }): Collab {
   const ydoc = new Y.Doc();
   const idb = new IndexeddbPersistence(name, ydoc);
   const awareness = new Awareness(ydoc);
   const color = cursorColor(user.id);
-  // provider.destroy() уничтожает awareness: при повторах он нужен живым (на нём курсоры), гасим вручную в destroy()
+  // provider.destroy() destroys awareness: on retries it must stay alive (cursors live on it), so we turn it off manually in destroy()
   const realDestroy = awareness.destroy.bind(awareness);
   awareness.destroy = () => {};
   const listeners: (() => void)[] = [];
@@ -47,8 +47,8 @@ export function openCollab(name: string, user: { id: string; name: string }): Co
     });
     awareness.setLocalState({ ...awareness.getLocalState(), user: { name: user.name, color } });
     provider.on('authenticated', () => listeners.forEach((f) => f()));
-    // страница/задача могла быть создана только что и ещё не дойти до сервера (отказ в доступе):
-    // провайдер после отказа не восстанавливается, поэтому создаём новый на тех же ydoc и awareness
+    // the page/task could have just been created and not yet reached the server (access refusal):
+    // the provider is not restored after a refusal, so we create a new one on the same ydoc and awareness
     provider.on('authenticationFailed', () => {
       if (gone) return;
       if (++tries > RETRIES) return denied.forEach((f) => f());

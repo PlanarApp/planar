@@ -8,7 +8,7 @@ const median = (a: number[]) => sorted(a)[Math.floor((a.length - 1) / 2)]!;
 const p95 = (a: number[]) => sorted(a)[Math.min(a.length - 1, Math.ceil(a.length * 0.95) - 1)]!;
 const out = (k: string, v: number) => process.stdout.write(`${k}=${v.toFixed(1)}\n`);
 
-/** Контекст с сессией пользователя (вход через API, cookie в браузер). */
+/** Context with the user's session (login via API, cookie into the browser). */
 async function ctxFor(
   browser: import('@playwright/test').Browser,
   c: Client,
@@ -17,7 +17,7 @@ async function ctxFor(
     baseURL: BASE,
     storageState: await c.ctx.storageState(),
   });
-  // момент появления первой строки списка: performance.now() от navigationStart
+  // moment the first list row appears: performance.now() from navigationStart
   await context.addInitScript((sel) => {
     const w = window as unknown as { __first?: number };
     new MutationObserver((_, o) => {
@@ -37,13 +37,13 @@ async function firstRow(page: Page): Promise<number> {
   return page.evaluate(() => (window as unknown as { __first: number }).__first);
 }
 
-/** Правит название задачи через UI; в странице: Enter (keydown) → смена текста строки. */
+/** Edits the task title via UI; in the page: Enter (keydown) → change of the row text. */
 async function editTitle(page: Page, key: string, title: string): Promise<number> {
   const row = page.locator(`[data-task="${key}"]`);
   await row.locator('span.truncate').first().dblclick();
   const input = row.getByRole('textbox');
   await input.fill(title);
-  // слушатели ставятся и подтверждаются до Enter: иначе быстрая правка обгоняет page.evaluate
+  // listeners are set and confirmed before Enter: otherwise a fast edit outruns page.evaluate
   await page.evaluate(
     ([k, t]) => {
       const w = window as unknown as { __done: Promise<number> };
@@ -83,7 +83,7 @@ test('бюджеты §7', async ({ browser }) => {
   );
   const url = `/p/${big.id}`;
 
-  // cold: новый контекст (пустой IndexedDB), от goto до первой строки; медиана 3
+  // cold: new context (empty IndexedDB), from goto to the first row; median of 3
   const cold: number[] = [];
   for (let i = 0; i < 3; i++) {
     const c = await ctxFor(browser, admin);
@@ -94,12 +94,12 @@ test('бюджеты §7', async ({ browser }) => {
   }
   out('cold_bootstrap_ms', median(cold));
 
-  // warm: тот же контекст (IndexedDB заполнена), reload, медиана 5
+  // warm: same context (IndexedDB filled), reload, median of 5
   const ctx = await ctxFor(browser, admin);
   const page = await ctx.newPage();
   await page.goto(url);
   await firstRow(page);
-  await page.waitForTimeout(2000); // дать доехать bootstrap до IndexedDB
+  await page.waitForTimeout(2000); // let bootstrap reach IndexedDB
   const warm: number[] = [];
   for (let i = 0; i < 5; i++) {
     await page.reload();
@@ -107,20 +107,20 @@ test('бюджеты §7', async ({ browser }) => {
   }
   out('warm_start_ms', median(warm));
 
-  // mutate: 20 правок названия через UI
+  // mutate: 20 title edits via UI
   const keys = await page
     .locator(ROW)
     .evaluateAll((e) => e.slice(0, 5).map((r) => r.getAttribute('data-task')!));
   const mut: number[] = [];
   for (let i = 0; i < 20; i++) {
-    const k = keys[i % keys.length]!; // 5 верхних видимых строк по кругу: строки ниже окна виртуализуются
+    const k = keys[i % keys.length]!; // 5 top visible rows in a circle: rows below the window are virtualized
     mut.push(await editTitle(page, k, `perf ${i} ${Date.now()}`));
-    await page.waitForTimeout(1000); // дать улечься пересчёту после правки
+    await page.waitForTimeout(1000); // let the recalculation settle after the edit
   }
   out('mutate_ms_p95', p95(mut));
   out('mutate_ms_median', median(mut));
 
-  // switch: 10 кликов в боковой панели между двумя проектами
+  // switch: 10 clicks in the sidebar between two projects
   const sw: number[] = [];
   for (let i = 0; i < 10; i++) {
     const to = i % 2 === 0 ? other : big;
@@ -148,7 +148,7 @@ test('бюджеты §7', async ({ browser }) => {
   }
   out('project_switch_ms_p95', p95(sw));
 
-  // scroll: 5 с колесом по ~100 px каждые 16 мс, кадры через rAF
+  // scroll: 5 s with the wheel by ~100 px every 16 ms, frames via rAF
   await page.goto(url);
   await firstRow(page);
   const box = (await page.locator('[role=grid]').boundingBox())!;
@@ -179,7 +179,7 @@ test('бюджеты §7', async ({ browser }) => {
   process.stdout.write(`scroll_frames_n=${frames.length}\n`);
   await ctx.close();
 
-  // realtime: admin (A) правит, alice (B) видит; часы одной машины (Date.now)
+  // realtime: admin (A) edits, alice (B) sees; clock of one machine (Date.now)
   const ca = await ctxFor(browser, admin);
   const cb = await ctxFor(browser, alice);
   const [a, b] = [await ca.newPage(), await cb.newPage()];
@@ -192,7 +192,7 @@ test('бюджеты §7', async ({ browser }) => {
   const rt: number[] = [];
   for (const [i, k] of rk.entries()) {
     const title = `rt ${i} ${Date.now()}`;
-    // слушатели у A и B готовы до Enter
+    // listeners on A and B are ready before Enter
     await b.evaluate(
       ([k, t]) => {
         const w = window as unknown as { __seen: Promise<number> };

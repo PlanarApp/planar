@@ -1,6 +1,6 @@
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
-/** 16 символов [a-z0-9] из crypto.getRandomValues (255 % 36 ≠ 0 → отбрасываем хвост, без смещения). */
+/** 16 chars [a-z0-9] from crypto.getRandomValues (255 % 36 ≠ 0 → drop the tail, no bias). */
 export function genSlug(): string {
   let s = '';
   while (s.length < 16) {

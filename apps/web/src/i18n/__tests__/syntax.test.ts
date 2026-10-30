@@ -10,7 +10,7 @@ const leaves = (t: Tree, path = ''): [string, string][] =>
     typeof v === 'string' ? [[`${path}${k}`, v] as [string, string]] : leaves(v, `${path}${k}.`),
   );
 
-// lite.ts поддерживает только {name} и {'литерал'}: остальной синтаксис vue-i18n молча не сработает.
+// lite.ts supports only {name} and {'literal'}: other vue-i18n syntax silently won't work.
 const ok = (s: string) => {
   const rest = s.replace(/\{(?:'[^']*'|\w+)\}/g, '');
   return !/[{}|]|@[.:]|%|\$t/.test(rest);
@@ -53,7 +53,7 @@ describe('i18n: строки ru/en в синтаксисе lite', () => {
     const bad: string[] = [];
     for (const f of files(join(__dirname, '..', '..'))) {
       const src = readFileSync(f, 'utf8');
-      // useI18n() отдаёт только t, te, locale; i18n.global — только t, te, locale
+      // useI18n() returns only t, te, locale; i18n.global — only t, te, locale
       for (const m of src.matchAll(/const \{([^}]*)\} = useI18n\(/g))
         for (const n of m[1].split(',').map((x) => x.trim().split(':')[0].trim()))
           if (n && !['t', 'te', 'locale'].includes(n)) bad.push(`${f}: useI18n ${n}`);

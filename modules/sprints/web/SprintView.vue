@@ -37,7 +37,7 @@ const COLORS: Record<string, string> = {
   cancelled: '#ef4444',
 };
 
-// burn-up: SVG 300x120, ось X — дни цикла, Y — число задач
+// burn-up: SVG 300x120, X axis — the cycle's days, Y — the number of tasks
 const W = 300;
 const H = 120;
 const chart = computed(() => {

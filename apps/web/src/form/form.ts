@@ -1,4 +1,4 @@
-// Публичная страница формы: чистый TS, без Vue и роутера (≤ 30 КБ gzip, C-http: /f/*)
+// Public form page: plain TS, without Vue and router (≤ 30 KB gzip, C-http: /f/*)
 interface Field {
   key: string;
   label: string;
@@ -81,7 +81,7 @@ export async function mountForm(root: HTMLElement, slug: string): Promise<void> 
     errs.set(f.key, err);
     form.append(build('label', {}, [f.label + (f.required ? ' *' : ''), c, err]));
   }
-  // honeypot: пустой, вне экрана, не в порядке табуляции
+  // honeypot: empty, off-screen, not in tab order
   form.append(
     build('div', { className: 'hp' }, [
       build('label', {}, [
@@ -120,7 +120,7 @@ export async function mountForm(root: HTMLElement, slug: string): Promise<void> 
         const num = f.type === 'number' || f.type === 'money';
         const n = Number(v);
         if (v && num && !Number.isFinite(n)) problem = 'Введите число';
-        // money — целое в минимальных единицах (копейки), как FieldEditor
+        // money — an integer in minimal units (kopecks), as in FieldEditor
         else if (v) values[f.key] = f.type === 'money' ? Math.round(n * 100) : num ? n : v;
         else if (f.required) problem = 'Обязательное поле';
       }

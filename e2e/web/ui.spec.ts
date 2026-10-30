@@ -30,7 +30,7 @@ test('создать задачу в списке: видна и пережив�
   await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible();
-  // на сервере: другой пользователь видит
+  // on the server: another user sees
   const bob = await loginAs(browser, 'bob');
   await bob.goto(`/p/${f.projectId}`);
   await expect(bob.getByRole('row').filter({ hasText: title })).toBeVisible();
@@ -95,20 +95,20 @@ test('офлайн: правки названия не теряются и до�
   await alice.goto(`/p/${f.projectId}`);
   const rows = f.taskKeys.map((k) => alice.locator(`[role=row][data-task="${k}"]`));
   for (const r of rows) await expect(r).toBeVisible();
-  // прогрев ленивой панели задачи: офлайн её не загрузить; клик по названию — середина строки занята ячейками
+  // warm-up of the lazy task panel: it cannot be loaded offline; a click on the title — the middle of the row is taken by cells
   await rows[0]!.getByText(titles[0]!).click();
   await expect(alice).toHaveURL(/task=/);
-  // окно задачи накрывает список (как в ClickUp) — закрываем перед правками в строках
+  // the task window covers the list (as in ClickUp) — we close it before editing rows
   await alice.keyboard.press('Escape');
   await expect(alice.getByTestId('task-modal')).toHaveCount(0);
   await alice.context().setOffline(true);
   const names = f.taskKeys.map(() => uniq('Правка офлайн'));
   for (let i = 0; i < rows.length; i++) {
     await rows[i]!.getByText(f.taskKeys[i]!, { exact: true }).click();
-    await alice.keyboard.press('F2'); // dblclick открывает панель и сбивает фокус инлайн-ввода
+    await alice.keyboard.press('F2'); // dblclick opens the panel and knocks the focus off the inline input
     await alice.getByLabel('Название задачи', { exact: true }).fill(names[i]!);
     await alice.keyboard.press('Enter');
-    await expect(rows[i]).toContainText(names[i]!); // локально правка применена сразу
+    await expect(rows[i]).toContainText(names[i]!); // the edit is applied locally immediately
   }
   await alice.context().setOffline(false);
   for (const n of names)

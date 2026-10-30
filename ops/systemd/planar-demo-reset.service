@@ -1,0 +1,8 @@
+[Unit]
+Description=Planar demo reset
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/planar
+ExecStart=/opt/planar/ops/demo-reset.sh

@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-// Только API-тесты (request-контекст и ws): браузеры не нужны. Тесты файла идут по порядку на общих данных.
+// API tests only (request context and ws): browsers are not needed. Tests in the file run in order on shared data.
 export default defineConfig({
   testDir: 'tests',
   workers: 1,

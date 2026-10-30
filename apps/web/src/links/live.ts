@@ -10,7 +10,7 @@ import {
   type Ref,
 } from 'vue';
 
-/** liveQuery с реактивным аргументом: при его смене подписка пересоздаётся. */
+/** liveQuery with a reactive argument: the subscription is recreated when it changes. */
 export function useLive<A, T>(
   arg: MaybeRefOrGetter<A>,
   fn: (a: A) => T | Promise<T>,

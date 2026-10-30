@@ -26,7 +26,7 @@ import SettingsScreen from './SettingsScreen.vue';
 import MyWork from '../inbox/MyWork.vue';
 import TaskModal from '../views/TaskModal.vue';
 
-// Группа: Воркспейс (/w), Пространство (/s/:spaceId), Проект (/p/:projectId) — одинаковые табы
+// Group: Workspace (/w), Space (/s/:spaceId), Project (/p/:projectId) — the same tabs
 const { t, te, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
@@ -67,7 +67,7 @@ const scope = computed<GroupScope | null>(() => {
     rootSpaceId: root,
   };
 });
-// таб модулей: несколько вкладов (Отчёты) — подтабы, выбранный в ?r
+// module tab: several contributions (Reports) — sub-tabs, the selected one in ?r
 const exts = useExtensions('groupTabs');
 const parts = computed(() => exts.value.filter((x) => x.tab === tab.value));
 const part = computed(() => parts.value.find((x) => x.key === route.query.r) ?? parts.value[0]);

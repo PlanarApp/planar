@@ -3,12 +3,12 @@ import type { Db } from '../db/index.js';
 import { settings } from '../db/schema.js';
 import { installed } from './installed.js';
 
-/** Db или транзакция. */
+/** Db or transaction. */
 export type Reader = Pick<Db, 'select'>;
 
 /**
- * Включённые установленные модули: читается на каждый запрос (без кеша, один запрос по PK),
- * поэтому смена settings.enabled_modules действует сразу и без перезапуска.
+ * Enabled installed modules: read on every request (no cache, one query by PK),
+ * so a change of settings.enabled_modules takes effect immediately and without restart.
  */
 export async function enabledModules(q: Reader): Promise<Set<string>> {
   const [r] = await q.select().from(settings).where(eq(settings.id, 'enabled_modules'));

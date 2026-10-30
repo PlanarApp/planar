@@ -1,6 +1,6 @@
 /**
- * Подзадачи под родителем (как в ClickUp): порядок группы — дерево, отсортированное на каждом уровне
- * в порядке входного массива. Задача, чей родитель не в этом наборе, — на верхнем уровне.
+ * Subtasks under the parent (as in ClickUp): the group order is a tree, sorted at each level
+ * in the order of the input array. A task whose parent is not in this set goes to the top level.
  */
 export function treeOrder<T extends { id: string; parentId: string | null }>(
   tasks: readonly T[],
@@ -18,13 +18,13 @@ export function treeOrder<T extends { id: string; parentId: string | null }>(
   const out: { task: T; depth: number }[] = [];
   const seen = new Set<string>();
   const walk = (t: T, depth: number) => {
-    if (seen.has(t.id)) return; // цикл в данных parentId — не зацикливаемся
+    if (seen.has(t.id)) return; // a cycle in parentId data — don't loop forever
     seen.add(t.id);
     out.push({ task: t, depth });
     for (const c of kids.get(t.id) ?? []) walk(c, depth + 1);
   };
   for (const r of roots) walk(r, 0);
-  // остались только задачи из цикла (A→B→A): показываем на верхнем уровне
+  // only tasks from a cycle remain (A→B→A): show them at the top level
   for (const t of tasks) walk(t, 0);
   return out;
 }

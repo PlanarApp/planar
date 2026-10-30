@@ -15,9 +15,9 @@ export const ids = {
   bug: id(),
 };
 
-// Тесты пишут в реплику напрямую, минуя sync-клиент. Клиент сообщает о своих записях через
-// onReplicaChange (в том числе из «другой вкладки» — BroadcastChannel), поэтому прямые записи
-// тестов объявляем так же, как это сделала бы другая вкладка.
+// Tests write to the replica directly, bypassing the sync client. The client reports its own writes through
+// onReplicaChange (including from "another tab" — BroadcastChannel), so direct writes
+// of the tests are declared the same way another tab would do it.
 const channel = new BroadcastChannel('planar-replica');
 (channel as unknown as { unref?: () => void }).unref?.();
 const announce = (batch: { entity: string; id: string; row: unknown }[]) =>
@@ -143,7 +143,7 @@ export async function reset() {
     createdAt: T,
     updatedAt: T,
   });
-  announce([{ entity: '*', id: '*', row: null }]); // таблицы очищены напрямую: проекции перечитать
+  announce([{ entity: '*', id: '*', row: null }]); // tables cleared directly: re-read the projections
 }
 
 export const task = (n: number, over: Record<string, unknown> = {}) => ({

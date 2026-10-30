@@ -16,12 +16,12 @@ export interface SharedModuleManifest {
 export interface MutationWrite {
   entity: string;
   op: 'put' | 'del';
-  /** строка до (провод); null — не было */
+  /** row before (wire); null — there was none */
   before: Record<string, unknown> | null;
-  /** строка после; null — удалена */
+  /** row after; null — deleted */
   after: Record<string, unknown> | null;
 }
-/** Мутация сделана правилом автоматизации. */
+/** Mutation made by an automation rule. */
 export interface MutationOrigin {
   ruleId: string;
   depth: number;
@@ -31,14 +31,14 @@ export interface AfterMutationCtx {
   now: string;
   tokenId: string | null;
   mutator: string;
-  /** выполнено от системы (обход прав) */
+  /** executed by the system (bypasses permissions) */
   system: boolean;
   origin: MutationOrigin | null;
 }
 
 export interface BackendModuleManifest {
   id: string;
-  /** класс Nest-модуля; shared не зависит от Nest */
+  /** Nest module class; shared does not depend on Nest */
   nestModule: unknown;
   mutators: MutatorDef[];
   entities: Record<string, ModuleEntity>;
@@ -46,13 +46,13 @@ export interface BackendModuleManifest {
   afterMutation?: (writes: MutationWrite[], ctx: AfterMutationCtx, api: never) => Promise<void>;
   /** JobDef[] (apps/api/src/modules/hooks.ts) */
   jobs?: unknown[];
-  /** Доступ к файлу сверх встроенных проверок (GET /files); q — Drizzle-коннект/транзакция */
+  /** File access beyond the built-in checks (GET /files); q — Drizzle connection/transaction */
   canReadFile?: (q: unknown, userId: string, sha256: string) => Promise<boolean>;
-  /** null — модуль можно включить, строка — код причины (C-modules v11); q — Drizzle-коннект/транзакция */
+  /** null — the module can be enabled, a string — reason code (C-modules v11); q — Drizzle connection/transaction */
   unavailable?: (q: unknown) => Promise<string | null>;
 }
 
-/** Типы элементов задаёт web (C-ui); здесь — только форма манифеста. */
+/** Item types are set by web (C-ui); here only the manifest form. */
 export interface FrontendModuleManifest {
   id: string;
   routes?: unknown[];
@@ -64,9 +64,9 @@ export interface FrontendModuleManifest {
   nav?: unknown[];
   topbar?: unknown[];
   search?: unknown[];
-  /** Содержимое табов групп (C-modules v12) */
+  /** Contents of group tabs (C-modules v12) */
   groupTabs?: unknown[];
-  /** Компонент настройки модуля (диалог в ModulesSettings, в том числе у выключенного) */
+  /** Module settings component (dialog in ModulesSettings, including for a disabled module) */
   setup?: unknown;
 }
 

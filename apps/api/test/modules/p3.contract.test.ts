@@ -1,5 +1,5 @@
-// Контрактный тест p3: сущности и мутаторы модулей = docs/contracts/p3.md. Правит только координатор p3.
-// Модуля ещё нет в installed.ts — пропуск; P3_CONTRACT_STRICT=1 — ошибка.
+// Contract test p3: module entities and mutators = docs/contracts/p3.md. Edited only by the p3 coordinator.
+// The module is not in installed.ts yet — skip; P3_CONTRACT_STRICT=1 — error.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { installed } from '../../src/modules/installed.js';
@@ -37,7 +37,7 @@ const mutators = [...doc.matchAll(/^\| `([\w.]+)` \| `([^`]*)` \|/gm)].map((r) =
     .map((t) => ({ name: t.split(/[?:\s]/)[0], optional: /^\w+\?/.test(t) })),
 }));
 
-// модуль по префиксу: docsPages → docs, docs.page.create → docs
+// module by prefix: docsPages → docs, docs.page.create → docs
 const moduleIds = [
   ...new Set([
     ...entities.map((e) => /^[a-z]+/.exec(e.name)![0]),
@@ -78,7 +78,7 @@ for (const id of moduleIds) {
         const shape = ent!.schema.shape;
         expect(Object.keys(shape).sort()).toEqual(e.fields.map((f) => f.name).sort());
         for (const f of e.fields) {
-          if (f.type === 'json') continue; // любой JSON, null допустим по определению
+          if (f.type === 'json') continue; // any JSON; null is allowed by definition
           expect(shape[f.name].safeParse(null).success, `${e.name}.${f.name}: ${f.type}`).toBe(
             f.nullable,
           );

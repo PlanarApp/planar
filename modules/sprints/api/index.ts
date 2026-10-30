@@ -8,13 +8,13 @@ import { sprintsCycles, sprintsSettings } from './schema.js';
 @Module({})
 class SprintsModule {}
 
-/** Закрытие цикла на сервере. Без for update: порядок блокировок (строка → глобальная advisory) обратный ручному пути и даёт deadlock; параллельный прогон ловит пересечение дат (conflict) после advisory-блокировки. */
+/** Closing the cycle on the server. No for update: the lock order (row → global advisory) is the reverse of the manual path and gives a deadlock; a parallel run catches the date overlap (conflict) after the advisory lock. */
 const closeCycle = (api: JobApi, id: string, nextId: string) =>
   api.execute(api.systemUserId, [{ name: 'sprints.close', args: { id, nextId } }], {
     system: true,
     async prepare(q) {
       const r = await q.execute(sql`select closed_at from sprints_cycles where id = ${id}`);
-      // цикла нет или уже закрыт параллельным прогоном
+      // the cycle does not exist or is already closed by a parallel run
       if (!r.rows[0] || r.rows[0].closed_at) return false;
     },
   });
@@ -54,7 +54,7 @@ const jobs = [
         .from(sprintsCycles)
         .innerJoin(sprintsSettings, eq(sprintsSettings.id, sprintsCycles.projectId))
         .where(eq(sprintsCycles.id, data.cycleId));
-      // дата могла сдвинуться после постановки задачи
+      // the date could have shifted after the task was enqueued
       if (!r || r.closedAt || !due(r.endDate, r.tz)) return;
       await closeCycle(api, data.cycleId, uuidv7());
     },

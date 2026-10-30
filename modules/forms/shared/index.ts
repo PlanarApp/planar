@@ -21,7 +21,7 @@ export const formField = z.object({
 });
 export type FormField = z.infer<typeof formField>;
 
-/** title есть всегда и обязателен; ключи без повторов; ≤ 30 полей. */
+/** title is always present and required; keys are unique; ≤ 30 fields. */
 export const formFields = z
   .array(formField)
   .max(30)
@@ -44,7 +44,7 @@ export const formsForms = z.object({
 });
 export type FormsForm = z.output<typeof formsForms>;
 
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface MTx {
   get(e: string, id: string): Promise<unknown>;
   put(e: string, row: unknown): Promise<void>;
@@ -66,7 +66,7 @@ async function checkStatus(tx: Tx, statusId: string, spaceId: string) {
   if (st.spaceId !== spaceId) throw bad('statusId другого пространства');
 }
 
-/** Схема корректна и каждый `field:<id>` — поле проекта формы. */
+/** The schema is valid and each `field:<id>` is a field of the form's project. */
 async function checkFields(tx: Tx, projectId: string, raw: unknown): Promise<FormField[]> {
   const p = formFields.safeParse(raw);
   if (!p.success) throw bad(`fields: ${p.error.issues[0]?.message}`);

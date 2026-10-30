@@ -223,7 +223,7 @@ describe('pt6a: опрос', () => {
         'x-next-page': page * 100 < rows.length ? String(page + 1) : '',
       });
     };
-    // курсор в БД уже есть: обход идёт от него, а не от курсора после первой страницы
+    // the cursor is already in the DB: the walk starts from it, not from the cursor after the first page
     await db.update(P).set({ cursor: '2026-10-01T00:00:00.000Z' });
     await poll();
     expect(await db.select().from(M)).toHaveLength(250);
@@ -253,7 +253,7 @@ describe('pt6a: опрос', () => {
       authorName: 'Ann',
       webUrl: 'https://gl/mr/1',
     });
-    // ключи b и c исчезли; повторная обработка не плодит строки
+    // keys b and c are gone; reprocessing does not create rows
     handler = (_, res) =>
       json(res, [mr(1, { title: a.key, updated_at: '2026-10-05T10:00:00.000Z' })]);
     await poll();
@@ -334,7 +334,7 @@ describe('pt6a: мутаторы', () => {
     expect((await db.select().from(tasks).where(eq(tasks.id, a.id)))[0]!.statusId).toBe(
       w.statusIds[1],
     );
-    // настройка включена: следующий merge другого MR двигает статус
+    // setting enabled: the next merge of another MR moves the status
     await w.admin.ok('gitlab.setMergedStatus', { projectId: w.projectId, statusId: done });
     handler = (_, res) =>
       json(res, [mr(2, { title: a.key, state: 'merged', updated_at: '2026-10-07T10:00:00.000Z' })]);

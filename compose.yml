@@ -25,9 +25,7 @@ services:
 
   api:
     logging: *logging
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ${PLANAR_REGISTRY:-registry.gitlab.com/planarhq/planar}/api:${PLANAR_VERSION:-latest}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?задайте POSTGRES_PASSWORD в .env}@postgres:5432/planar
@@ -36,14 +34,19 @@ services:
       EXTRA_ORIGINS: ${EXTRA_ORIGINS:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       DATA_DIR: /data
-      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+      # empty → 50 (2 in demo mode)
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-}
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
+      DB_POOL_MAX: ${DB_POOL_MAX:-}
+      DEMO_MODE: ${DEMO_MODE:-false}
+      DEMO_RESET_HOURS: ${DEMO_RESET_HOURS:-24}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
       PLANAR_SECRET_KEY: ${PLANAR_SECRET_KEY:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      # подсеть Caddy: только оттуда верим X-Forwarded-For
+      # Caddy subnet: trust X-Forwarded-For only from there
       TRUST_PROXY: ${PLANAR_SUBNET:-172.30.0.0/24}
     networks: [app]
     volumes:
@@ -54,9 +57,7 @@ services:
 
   caddy:
     logging: *logging
-    build:
-      context: .
-      dockerfile: deploy/caddy.Dockerfile
+    image: ${PLANAR_REGISTRY:-registry.gitlab.com/planarhq/planar}/caddy:${PLANAR_VERSION:-latest}
     restart: unless-stopped
     ports:
       - '${HTTP_PORT:-80}:80'
@@ -66,7 +67,7 @@ services:
       - caddy_config:/config
     networks: [app]
     environment:
-      # пусто → :80 (Caddy при пустой переменной не берёт умолчание из Caddyfile)
+      # empty → :80 (Caddy does not take the default from the Caddyfile when the variable is empty)
       PLANAR_DOMAIN: ${PLANAR_DOMAIN:-:80}
     depends_on:
       - api

@@ -5,9 +5,9 @@ import { Popover } from '../../ui';
 defineProps<{ align?: 'start' | 'center' | 'end' }>();
 const open = defineModel<boolean>('open', { default: false });
 /**
- * Popover (reka-ui) стоит ~0,5 мс на экземпляр, а в списке их сотни. Пока пользователь не навёл мышь, не сфокусировал
- * с клавиатуры и не нажал, показываем только слот `trigger` (та же разметка); Popover монтируется при первом из этих событий.
- * Касание и фокус от клика заранее не монтируют: смена элемента между нажатием и отпусканием съела бы клик.
+ * Popover (reka-ui) costs ~0.5 ms per instance, and a list has hundreds of them. Until the user hovers with the mouse, focuses
+ * with the keyboard or presses, we show only the `trigger` slot (same markup); Popover is mounted on the first of these events.
+ * A touch and focus from a click do not mount it in advance: swapping the element between press and release would eat the click.
  */
 const armed = ref(false);
 const uid = useId();
@@ -18,7 +18,7 @@ async function arm(e: Event) {
   const had = (e.currentTarget as HTMLElement).contains(document.activeElement);
   armed.value = true;
   await nextTick();
-  // кнопка заменилась на триггер Popover: возвращаем на неё фокус; нажатие (мышь, Enter, Space) — открывает
+  // the button was replaced by the Popover trigger: we return focus to it; a press (mouse, Enter, Space) — opens
   if (had) document.querySelector<HTMLElement>(`[data-lazy-trigger="${uid}"]`)?.focus();
   if (e.type === 'click') open.value = true;
 }

@@ -1,4 +1,4 @@
-// Разбор docs/contracts/core.md для контрактных тестов. Правит только координатор core.
+// Parses docs/contracts/core.md for the contract tests. Only the core coordinator edits this.
 import { readFileSync } from 'node:fs';
 
 export const contractDoc = readFileSync(
@@ -10,7 +10,7 @@ export const docVersions: Record<string, number> = Object.fromEntries(
   [...contractDoc.matchAll(/^## (C-[\w-]+) v(\d+)\s*$/gm)].map((m) => [m[1], Number(m[2])]),
 );
 
-/** Сущности C-schema (docs/contracts/core-schema.md, раздел «Сущности»). */
+/** Entities of C-schema (docs/contracts/core-schema.md, section «Entities»). */
 export const schemaDoc = readFileSync(
   new URL('../../../docs/contracts/core-schema.md', import.meta.url),
   'utf8',
@@ -41,7 +41,7 @@ export interface DocEntity {
   name: string;
   meta: { scope: string; write: string; bootstrap: boolean; indexes: string[] };
   fields: DocField[];
-  /** колонки «Только в БД: `col type …`» после таблицы */
+  /** columns «DB-only: `col type …`» after the table */
   dbOnly: string[];
 }
 
@@ -71,7 +71,7 @@ export interface DocServerTable {
   columns: { name: string; nullable: boolean }[];
 }
 
-/** Таблица «Несинхронизируемые таблицы»: `| \`имя\` | \`col type?\`, … |` */
+/** Table "Non-synced tables" (non-synced tables): `| \`name\` | \`col type?\`, … |` */
 export const docServerTables: DocServerTable[] = (() => {
   const sec = /^### Несинхронизируемые таблицы[^\n]*\n([\s\S]*?)(?=^#{2,3} )/m.exec(contractDoc);
   if (!sec) return [];
@@ -96,7 +96,7 @@ export const mutatorsDoc = readFileSync(
   'utf8',
 );
 
-/** Таблица «Мутаторы домена» (docs/contracts/core-mutators.md): `| \`имя\` | \`args\` | правила |` */
+/** Table "Domain mutators" (domain mutators; docs/contracts/core-mutators.md): `| \`name\` | \`args\` | rules |` */
 export const docMutators: DocMutator[] = (() => {
   const sec = /^### Мутаторы домена[^\n]*\n([\s\S]*?)(?=^#{2,3} |^Вспомогательное)/m.exec(
     mutatorsDoc,

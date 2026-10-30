@@ -5,7 +5,7 @@ import { HttpError } from '../auth/errors.js';
 import { ServerTx, type Q } from '../sync/server-tx.js';
 import { toWire } from '../sync/rows.js';
 
-// Все записи users — здесь, через ServerTx.asSystem: строка попадает в changes (без password_hash).
+// All users writes — here, via ServerTx.asSystem: the row goes into changes (without password_hash).
 
 export type UserRow = typeof users.$inferSelect;
 
@@ -61,7 +61,7 @@ export async function updateUser(
   return row;
 }
 
-/** Запись строки провода в changes; вызывать внутри транзакции. */
+/** Writes a wire row into changes; call inside a transaction. */
 export async function publish(q: Q, actorId: string, row: UserRow) {
   const tx = ServerTx.asSystem(q, { userId: actorId });
   await tx.put('users', toWire('users', row) as never, { passwordHash: row.passwordHash });

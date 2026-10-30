@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { BASE, Client } from '../../../lib';
 
 export const ROW = '[role=row][data-task]';
-/** Событие инструментации; поля зависят от k (tx, fetch, ws, wsopen, loaf, enter, dom, click, firstRow). */
+/** Instrumentation event; fields depend on k (tx, fetch, ws, wsopen, loaf, enter, dom, click, firstRow). */
 export interface Ev {
   k: string;
   t?: number;
@@ -36,7 +36,7 @@ export const median = (a: number[]) => sorted(a)[Math.floor((a.length - 1) / 2)]
 export const p95 = (a: number[]) =>
   sorted(a)[Math.min(a.length - 1, Math.ceil(a.length * 0.95) - 1)]!;
 
-/** Инструментация страницы: транзакции IndexedDB, fetch, WebSocket, long-animation-frame, marks. Время — performance.now(). */
+/** Page instrumentation: IndexedDB transactions, fetch, WebSocket, long-animation-frame, marks. Time — performance.now(). */
 export function instrument(): void {
   const w = window;
   const ev: Ev[] = (w.__ev = []);
@@ -187,7 +187,7 @@ export class Prof {
   }
 }
 
-/** Проекты: большой (по числу задач) и второй. */
+/** Projects: large (by task count) and a second one. */
 export async function projects(admin: Client) {
   const { data } = await admin.bootstrap();
   const ps = data.projects as { id: string; key: string }[];
@@ -201,12 +201,12 @@ export async function projects(admin: Client) {
   };
 }
 
-/** Редактирование названия через UI; возвращает [t0 (Enter), t1 (смена текста)] в performance.now(). */
+/** Edit the title via UI; returns [t0 (Enter), t1 (text change)] in performance.now(). */
 export async function editTitle(page: Page, key: string, title: string): Promise<[number, number]> {
   const row = page.locator(`[data-task="${key}"]`);
   await row.locator('span.truncate.block').dblclick();
   await row.getByRole('textbox').fill(title);
-  // слушатели ставим и дожидаемся их установки до Enter: при правке < 50 мс иначе Enter обгоняет evaluate (гонка в measure.spec WB-15)
+  // listeners are set and we wait for them before Enter: with an edit < 50 ms, Enter would otherwise outrun evaluate (race in measure.spec WB-15)
   await page.evaluate(
     ([k, t]) => {
       window.__done = new Promise<[number, number]>((res) => {

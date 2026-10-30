@@ -83,7 +83,7 @@ export class FilesController {
     } catch (e) {
       await rm(tmp, { force: true });
       if (e instanceof HttpError) throw e;
-      // fastify-multipart бросает FST_* с statusCode (лимиты частей и т.п.)
+      // fastify-multipart throws FST_* with statusCode (part limits etc.)
       const code = (e as { statusCode?: number }).statusCode;
       throw code === 413
         ? new HttpError(413, 'payload_too_large', 'Файл слишком большой')
@@ -101,13 +101,13 @@ export class FilesController {
     void reply.status(201).send(out);
   }
 
-  /** Строка files, если файл существует и пользователь вправе его видеть; иначе 404. */
+  /** files row if the file exists and the user may see it; otherwise 404. */
   private async accessible(sha: string, userId: string) {
     if (!SHA.test(sha)) throw notFound();
     const [row] = await this.db.select().from(files).where(eq(files.sha256, sha));
     if (!row) throw notFound();
     if (await this.builtinAccess(sha, userId)) return row;
-    // модули (collab X-core п. 4): true любого включённого — отдать
+    // modules (collab X-core item 4): true for any enabled one — return it
     const on = await enabledModules(this.db);
     for (const m of installed)
       if (on.has(m.api.id) && (await m.api.canReadFile?.(this.db, userId, sha))) return row;
@@ -131,7 +131,7 @@ export class FilesController {
                 .where(and(eq(attachments.fileSha256, sha), eq(spaceMembers.userId, userId))),
             ),
             exists(this.db.select({ x: users.id }).from(users).where(eq(users.avatarFile, sha))),
-            // картинка-иконка узла (icon = 'file:<sha>'): Воркспейс — всем, пространство и проект — участникам
+            // node icon image (icon = 'file:<sha>'): Workspace — visible to all, space and project — to members
             exists(
               this.db
                 .select({ x: settings.id })
@@ -187,7 +187,7 @@ export class FilesController {
       );
     }
     reply.header('Content-Type', row.mime).header('Accept-Ranges', 'bytes');
-    // один диапазон (аудио/видео: перемотка, Safari без него не проигрывает); несколько — отдаём целиком
+    // a single range (audio/video: seeking; Safari won't play without it); several ranges — serve the whole file
     const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
     if (m && (m[1] || m[2])) {
       const size = row.size;
@@ -224,7 +224,7 @@ export class FilesController {
       await mkdir(join(cache, '..'), { recursive: true });
       const tmp = `${cache}.${randomUUID()}.tmp`;
       try {
-        // нет файла на диске — 404; остальные сбои диска и sharp — 500 (фильтр логирует)
+        // no file on disk — 404; other disk and sharp failures — 500 (the filter logs them)
         await stat(this.path(sha)).catch((e: NodeJS.ErrnoException) => {
           throw e.code === 'ENOENT' ? notFound() : e;
         });

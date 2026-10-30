@@ -20,11 +20,17 @@ export type AuthCtx = {
 };
 
 export const AUTH_OPTS = Symbol('AUTH_OPTS');
-export type AuthOpts = { publicUrl: string; cookieSecure: boolean };
+export type AuthOpts = {
+  publicUrl: string;
+  cookieSecure: boolean;
+  setupToken?: string;
+  demo?: boolean;
+  demoResetHours?: number;
+};
 
 const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE', 'UPGRADE']);
 
-/** Разрешённые Origin: PUBLIC_URL и EXTRA_ORIGINS (через запятую; напр. 127.0.0.1 рядом с localhost в dev). */
+/** Allowed Origins: PUBLIC_URL and EXTRA_ORIGINS (comma-separated; e.g. 127.0.0.1 next to localhost in dev). */
 export function allowedOrigins(
   publicUrl: string,
   extra = process.env.EXTRA_ORIGINS ?? '',
@@ -34,7 +40,7 @@ export function allowedOrigins(
     try {
       return [new URL(u).origin];
     } catch {
-      return []; // опечатка в EXTRA_ORIGINS не открывает доступ и не роняет сервер
+      return []; // a typo in EXTRA_ORIGINS neither opens access nor crashes the server
     }
   });
 }
@@ -48,7 +54,7 @@ export function readCookie(header: string | undefined, name: string): string | n
   return null;
 }
 
-/** Authorization: Bearer plnr_… → контекст токена; null — нет/отозван/истёк/владелец деактивирован. */
+/** Authorization: Bearer plnr_… → token context; null — missing/revoked/expired/owner deactivated. */
 async function authenticateBearer(db: Db, secret: string): Promise<AuthCtx | null> {
   const [row] = await db
     .select({ t: apiTokens, role: users.role })
@@ -63,7 +69,7 @@ async function authenticateBearer(db: Db, secret: string): Promise<AuthCtx | nul
       ),
     );
   if (!row) return null;
-  // не чаще раза в минуту
+  // no more than once a minute
   await db
     .update(apiTokens)
     .set({ lastUsedAt: sql`now()` })
@@ -85,17 +91,17 @@ async function authenticateBearer(db: Db, secret: string): Promise<AuthCtx | nul
   };
 }
 
-/** Контекст по Bearer-токену или cookie planar_sid; null — не авторизован. */
+/** Context by Bearer token or planar_sid cookie; null — not authorized. */
 export async function authenticateRaw(
   db: Db,
   headers: IncomingHttpHeaders,
   method: string,
   opts: { publicUrl: string; allowToken?: boolean },
-  /** сессию продлили — вызывающий переустанавливает cookie (токен не входит в AuthCtx) */
+  /** session was extended — the caller re-sets the cookie (the token is not part of AuthCtx) */
   onRenew?: (token: string) => void,
 ): Promise<AuthCtx | null> {
   const bearer = /^Bearer (plnr_\S+)$/i.exec(headers.authorization ?? '');
-  if (bearer) return opts.allowToken === false ? null : authenticateBearer(db, bearer[1]!); // Origin для Bearer не проверяется
+  if (bearer) return opts.allowToken === false ? null : authenticateBearer(db, bearer[1]!); // Origin is not checked for Bearer
   const token = readCookie(headers.cookie, SESSION_COOKIE);
   if (!token) return null;
   if (UNSAFE.has(method) && !allowedOrigins(opts.publicUrl).includes(headers.origin ?? '')) {
@@ -138,7 +144,7 @@ export async function authenticateRaw(
   };
 }
 
-/** Контекст запроса после AuthGuard. */
+/** Request context after AuthGuard. */
 export function getAuth(req: object): AuthCtx {
   const ctx = (req as { auth?: AuthCtx }).auth;
   if (!ctx) throw new HttpError(401, 'unauthenticated', 'Требуется вход');

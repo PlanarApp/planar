@@ -48,12 +48,12 @@ describe('views:filter', () => {
     const d = (operator: 'before' | 'after', value: string) =>
       ({ field: 'dueDate', operator, value }) as FilterRule;
     expect(m(task({ dueDate: '2026-10-25' }), d('before', 'today+7'))).toBe(true);
-    expect(m(task({ dueDate: '2026-10-30' }), d('before', 'today+7'))).toBe(false); // строго
+    expect(m(task({ dueDate: '2026-10-30' }), d('before', 'today+7'))).toBe(false); // strictly
     expect(m(task({ dueDate: '2026-10-22' }), d('after', 'today-1'))).toBe(false);
     expect(m(task({ dueDate: '2026-10-23' }), d('after', 'today-1'))).toBe(true);
     expect(m(task({ dueDate: '2026-11-01' }), d('after', '2026-10-31'))).toBe(true);
-    expect(m(task(), d('before', 'today'))).toBe(false); // без срока
-    expect(m(task({ dueDate: '2026-12-31' }), d('before', 'today+100'))).toBe(true); // переход месяцев
+    expect(m(task(), d('before', 'today'))).toBe(false); // no due date
+    expect(m(task({ dueDate: '2026-12-31' }), d('before', 'today+100'))).toBe(true); // month transition
   });
   it('views:filter contains без регистра', () => {
     expect(m(task(), { field: 'title', operator: 'contains', value: 'вход' })).toBe(true);
@@ -76,7 +76,7 @@ describe('views:filter', () => {
     expect(matchFilter(task(), f('and'), ctx)).toBe(false);
     expect(matchFilter(task(), f('or'), ctx)).toBe(true);
     expect(matchFilter(task(), null, ctx)).toBe(true);
-    // недозаполненное правило конструктора не отсекает задачи
+    // an incomplete builder rule doesn't filter out tasks
     expect(m(task(), { field: 'status', operator: 'in', value: [] })).toBe(true);
   });
 });

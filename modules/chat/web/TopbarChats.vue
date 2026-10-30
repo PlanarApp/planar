@@ -15,13 +15,13 @@ import { ensureDm, useChatData } from './data';
 import { byName, dmTitle } from './model';
 import { useTexts } from './text';
 
-// кнопка чатов в верхней панели: счётчик непрочитанных, в меню — каналы и диалоги (непрочитанные / все)
-// и «Написать»: быстрый выбор чата или сотрудника (диалог 1:1 — существующий или новый)
+// chats button in the top bar: unread counter, in the menu — channels and chats (unread / all)
+// and "Write": quick choice of a chat or a colleague (1:1 chat — existing or new)
 const { d, meId, users, unreadOf, attentionOf, total } = useChatData();
 const router = useRouter();
 const tr = useTexts();
 const spaces = useSpaces();
-// место в структуре: «Пространство › Проект»; диалоги — «Личные»
+// place in the structure: "Space › Project"; chats — "Personal"
 const where = (spaceId: string | null, projectId: string | null) => {
   const sp = (spaces.value ?? []).find((x) => x.id === spaceId);
   if (!sp) return tr('dms');
@@ -70,7 +70,7 @@ async function write(userId: string) {
   if (!x) return;
   go(await ensureDm(x.channels, x.members, [meId.value, userId]));
 }
-// /m/chat/c/<id> сам ведёт в таб «Чаты» нужной группы
+// /m/chat/c/<id> itself leads to the "Chats" tab of the right group
 const go = (c: string) => {
   open.value = false;
   search.value = '';

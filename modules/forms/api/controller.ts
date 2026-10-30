@@ -19,7 +19,7 @@ import { fieldValueSchema, uuidv7, type FieldType } from '@planar/shared';
 import { formFields, type FormField } from '../shared/index.js';
 import { formsRateLimits as R } from './schema.js';
 
-// то же, что @Public() ядра (apps/api/src/auth/public.ts): модуль не импортирует apps/api
+// same as core's @Public() (apps/api/src/auth/public.ts): the module does not import apps/api
 const Public = () => SetMetadata('planar:public', true);
 
 const BODY_MAX = 64 * 1024;
@@ -29,7 +29,7 @@ const invalid = (m: string) => new HttpError(400, 'invalid_request', m);
 
 type Def = { id: string; projectId: string; type: FieldType; options: Record<string, unknown> };
 
-/** Лимит МБ для суммы файлов (по одному файлу лимит ставит storeFile); shortcut: из env, не из опций приложения. */
+/** MB limit for the sum of file sizes (the per-file limit is set by storeFile); shortcut: from env, not from app options. */
 const maxUploadBytes = () => (Number(process.env.MAX_UPLOAD_MB) || 50) * 1024 * 1024;
 
 @Controller('api/forms/public')
@@ -96,7 +96,7 @@ export class FormsController {
         if (x.key === 'email') return [{ ...base, type: 'email' }];
         if (x.key === 'files') return [{ ...base, type: 'files' }];
         const d = defs.get(x.key);
-        if (!d) return []; // поле проекта удалено
+        if (!d) return []; // project field deleted
         return [
           {
             ...base,
@@ -108,7 +108,7 @@ export class FormsController {
     };
   }
 
-  /** ≤ 5 в минуту и ≤ 30 в час на IP: считаются все POST, дошедшие до формы. */
+  /** ≤ 5 per minute and ≤ 30 per hour per IP: all POSTs that reach the form are counted. */
   private async limit(ip: string) {
     const hit = async (key: string, interval: string) => {
       const stale = sql`${R.windowStartedAt} < now() - ${interval}::interval`;
@@ -165,7 +165,7 @@ export class FormsController {
           }
         }
       } catch (e) {
-        // fastify-multipart бросает FST_* со statusCode (лимит размера и т.п.)
+        // fastify-multipart throws FST_* with a statusCode (size limit, etc.)
         const code = (e as { statusCode?: number }).statusCode;
         if (e instanceof HttpError) throw e;
         if (code === 413) throw new HttpError(413, 'payload_too_large', 'Файлы слишком большие');
@@ -251,7 +251,7 @@ export class FormsController {
     return { ok: true };
   }
 
-  /** Схема собирается из fields формы: лишние ключи → 400; пустые необязательные отбрасываются. */
+  /** The schema is built from the form's fields: extra keys → 400; empty optional ones are dropped. */
   private validate(fields: FormField[], defs: Map<string, Def>, input: Record<string, unknown>) {
     const shape: Record<string, z.ZodType> = {};
     for (const x of fields) {

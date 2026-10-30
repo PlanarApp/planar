@@ -25,11 +25,11 @@ export const httpErrorSchema = z.object({
 
 export type HttpError = z.infer<typeof httpErrorSchema>;
 
-/** Тело Web Push (C-http «Web Push»): отправляет CR-7, разбирает service worker web. */
+/** Web Push body (C-http «Web Push»): sent by CR-7, parsed by the web service worker. */
 export const pushPayloadSchema = z.object({
   title: z.string().min(1),
   body: z.string(),
-  // только путь приложения: '/x', не '//host' и не '/\\host' (иначе SW откроет чужой сайт)
+  // app path only: '/x', not '//host' and not '/\\host' (otherwise the SW would open a foreign site)
   url: z.string().regex(/^\/(?![/\\])/),
   tag: z.uuid(),
   kind: z.enum([

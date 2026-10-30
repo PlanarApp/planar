@@ -30,11 +30,11 @@ afterEach(() => vi.restoreAllMocks());
 
 const byId = (a: TaskView[]) => [...a].sort((x, y) => (x.id < y.id ? -1 : 1));
 const tick = () => new Promise((r) => setTimeout(r, 30));
-/** проекция совпала с полным чтением (событие приходит чуть позже коммита) */
+/** the projection matched the full read (the event arrives slightly after the commit) */
 const sameAsFull = (r: { value: TaskView[] | undefined }, pid: string) =>
   vi.waitFor(async () => expect(byId(r.value!)).toEqual(await fullRead(pid)), { timeout: 3000 });
 
-/** эталон: полное чтение проекта из IndexedDB, как до проекции */
+/** reference: a full read of the project from IndexedDB, as before the projection */
 async function fullRead(pid: string): Promise<TaskView[]> {
   const project = await db.table<Row<'projects'>>('projects').get(pid);
   const tasks = await db.table<Row<'tasks'>>('tasks').where('projectId').equals(pid).toArray();
@@ -114,13 +114,13 @@ describe('tasks:projection', () => {
     await setLabels(c, [ids.bug]);
     await setAssignees(a, []);
     const d = await createTask({ ...base, title: 'd', assigneeIds: [ids.bob] });
-    await updateTask(c, { projectId: other.id }); // уехала в другой проект
+    await updateTask(c, { projectId: other.id }); // moved to another project
     await updateTask(d, { title: 'd2' });
     await deleteTask(b);
     await sameAsFull(r, ids.project);
     const got = byId(r.value!);
     expect(got.map((t) => t.title).sort()).toEqual(['a2', 'd2']);
-    // задача вернулась из другого проекта — связи подтягиваются из реплики
+    // the task came back from another project — links are pulled from the replica
     await updateTask(c, { projectId: ids.project });
     await sameAsFull(r, ids.project);
     expect(r.value!.find((t) => t.id === c)!.labelIds).toEqual([ids.bug]);
@@ -138,7 +138,7 @@ describe('tasks:projection', () => {
       userId: ids.ann,
       createdAt: T,
     });
-    // сервер с теми же данными; клиент загружает их bootstrap-ом
+    // server with the same data; the client loads it via bootstrap
     const server = new FakeServer(domainMutators);
     for (const t of db.entityTables()) server.seed(t.name, await t.toArray());
     const fetch = server.fetch as typeof globalThis.fetch;
@@ -148,7 +148,7 @@ describe('tasks:projection', () => {
     await until(() => r.value?.length === 2);
 
     server.mode = 'offline';
-    await updateTask(t1.id, { title: 'local' }); // локальная правка до обмена
+    await updateTask(t1.id, { title: 'local' }); // local edit before the exchange
     await setAssignees(t2.id, [ids.bob]);
     await server.runMutation('other', 1, 'task.update', { id: t1.id, title: 'remote' });
     await server.runMutation('other', 2, 'task.assign', {
@@ -180,7 +180,7 @@ describe('tasks:projection', () => {
     await db.table('tasks').put(t);
     const { r, stop } = open(ids.project);
     await until(() => r.value?.length === 1);
-    await db.table('tasks').delete(t.id); // через мост data.ts: как запись другой вкладки
+    await db.table('tasks').delete(t.id); // via the data.ts bridge: like a write from another tab
     await until(() => r.value?.length === 0);
     stop();
   });
@@ -192,13 +192,13 @@ describe('tasks:projection', () => {
     const [a, b, c, d] = ps.map((p) => p.id);
     for (const id of [a, b, c]) prefetchProject(id);
     expect(projectionKeys()).toEqual([a, b, c]);
-    prefetchProject(c); // повтор — ничего
-    prefetchProject(b); // b стал самым свежим
+    prefetchProject(c); // repeat — nothing
+    prefetchProject(b); // b became the freshest
     expect(projectionKeys()).toEqual([a, c, b]);
-    prefetchProject(d); // 4-й вытесняет самый давний
+    prefetchProject(d); // the 4th evicts the oldest
     expect(projectionKeys()).toEqual([c, b, d]);
     await tick();
-    prefetchProject(a); // a вытеснен — строится заново и вытесняет c
+    prefetchProject(a); // a is evicted — rebuilt from scratch and evicts c
     expect(projectionKeys()).toEqual([b, d, a]);
     const { r, stop } = open(a);
     await until(() => r.value?.length === 1);
@@ -222,7 +222,7 @@ describe('tasks:projection', () => {
     const ps = ['P1', 'P2', 'P3', 'P4'].map(mkProject);
     await db.table('projects').bulkPut(ps);
     for (const p of ps) await db.table('tasks').put(task(1, { projectId: p.id }));
-    prefetchProject(ps[3].id); // как сайдбар в простое
+    prefetchProject(ps[3].id); // like the sidebar when idle
     const scope = effectScope();
     const r = scope.run(() => useScopeTasks(ps.map((p) => p.id)))!;
     await until(() => r.value?.length === 4);
@@ -235,7 +235,7 @@ describe('tasks:projection', () => {
   it('perf:projection при многих проектах связи читаются точечно, а не таблицей целиком', async () => {
     const big = mkProject('BIG');
     await db.table('projects').put(big);
-    // реплика больше 20 000 задач, проект 600 из них при 30 000 связей чужих проектов: доля < 1/20 → anyOf
+    // the replica has more than 20 000 tasks, the project has 600 of them with 30 000 links to other projects: share < 1/20 → anyOf
     await db
       .table('tasks')
       .bulkPut(Array.from({ length: 600 }, (_, i) => task(i + 1, { projectId: big.id })));
@@ -246,7 +246,7 @@ describe('tasks:projection', () => {
       Array.from({ length: 30_000 }, (_, i) => ({
         id: uuidv7(),
         spaceId: ids.space,
-        taskId: foreigns[i % 15_000].id, // foreign получает 2 связи
+        taskId: foreigns[i % 15_000].id, // foreign gets 2 links
         userId: ids.ann,
         createdAt: T,
       })),
@@ -255,7 +255,7 @@ describe('tasks:projection', () => {
     const { r, stop } = open(big.id);
     await until(() => r.value?.length === 600, 10_000);
     expect(all).not.toHaveBeenCalled();
-    // задача из другого проекта приходит со своими связями (у индекса проекта их нет — проект перечитывается)
+    // a task from another project arrives with its own links (the project index has none — the project is re-read)
     await updateTask(foreign.id, { projectId: big.id });
     await until(() => r.value?.find((x) => x.id === foreign.id)?.assigneeIds.length === 2, 10_000);
     expect(r.value).toHaveLength(601);

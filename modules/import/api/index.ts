@@ -18,7 +18,7 @@ import {
 import { ParseError, TRELLO_MAPPING, parseSource, suggestMapping, type Item } from './parse.js';
 import { importJobs, type RowNote, type RowWarning } from './schema.js';
 
-// минимум от fastify-запроса с @fastify/multipart (fastify не зависимость модуля)
+// a minimum from a fastify request with @fastify/multipart (fastify is not a module dependency)
 interface FastifyRequest {
   isMultipart(): boolean;
   parts(o: {
@@ -32,7 +32,7 @@ interface FastifyRequest {
 const bad = (m: string) => new HttpError(400, 'invalid_request', m);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Поля и файл multipart; файл ≤ 10 МБ, иначе 400. */
+/** Multipart fields and the file; file ≤ 10 MB, otherwise 400. */
 async function readForm(req: FastifyRequest) {
   if (!req.isMultipart()) throw bad('Ожидается multipart/form-data');
   const fields: Record<string, string> = {};
@@ -49,7 +49,7 @@ async function readForm(req: FastifyRequest) {
     }
   } catch (e) {
     if (e instanceof HttpError) throw e;
-    // RequestFileTooLargeError и прочие FST_* — ошибка клиента
+    // RequestFileTooLargeError and other FST_* — a client error
     if ((e as { statusCode?: number }).statusCode)
       throw bad('Файл слишком большой или multipart некорректен');
     throw e;
@@ -118,7 +118,7 @@ class ImportController {
     }
     if (!UUID.test(fields.projectId ?? '')) throw bad('projectId неверен');
     const projectId = fields.projectId!;
-    // писать в проект может участник пространства с ролью не ниже member; чужой проект — как несуществующий
+    // a space member with a role no lower than member may write to a project; someone else's project — as a nonexistent one
     const ok = await this.core.db.execute(sql`
       select 1 from projects p join space_members m on m.space_id = p.space_id
       where p.id = ${projectId} and m.user_id = ${userId} and m.role in ('admin', 'member')`);
@@ -137,7 +137,7 @@ class ImportController {
         mapping,
       })
       .returning();
-    // сразу в очередь; import.sweep остаётся страховкой
+    // straight into the queue; import.sweep stays as a safety net
     await this.core.enqueue('import.run', { jobId: row!.id }, { singletonKey: row!.id });
     return { data: publicJob(row!) };
   }
@@ -159,7 +159,7 @@ class ImportController {
 @Module({ controllers: [ImportController] })
 class ImportModule {}
 
-// ---------- фоновый импорт ----------
+// ---------- background import ----------
 
 const BATCH = 100;
 const LABEL_COLOR = '#6b7280';
@@ -219,14 +219,14 @@ async function runImport(jobId: string, api: JobApi) {
       where m.space_id = ${spaceId} and u.deactivated_at is null`)) {
       users.set(u.login.toLowerCase(), u.id);
     }
-    // email важнее login: перезаписывает при совпадении строк
+    // email takes precedence over login: overwrites on matching rows
     for (const u of await q<{ id: string; email: string }>(sql`
       select u.id, u.email from users u join space_members m on m.user_id = u.id
       where m.space_id = ${spaceId} and u.deactivated_at is null and u.email is not null`)) {
       users.set(u.email.toLowerCase(), u.id);
     }
 
-    // метки по имени без регистра; недостающие создаются одним вызовом
+    // labels by name, case-insensitive; missing ones are created in one call
     const labels = new Map<string, string>();
     for (const l of await q<{ id: string; name: string }>(
       sql`select id, name from labels where space_id = ${spaceId}`,
@@ -245,7 +245,7 @@ async function runImport(jobId: string, api: JobApi) {
     for (let i = 0; i < make.length; i += BATCH)
       await api.execute(job!.userId, make.slice(i, i + BATCH));
 
-    // внешний ID → задача (ранее импортированные, ещё существующие)
+    // external ID → task (previously imported, still existing)
     const known = new Map<string, string>();
     for (const r of await q<{ external_id: string; task_id: string }>(sql`
       select i.external_id, i.task_id from import_items i join tasks t on t.id = i.task_id
@@ -253,13 +253,13 @@ async function runImport(jobId: string, api: JobApi) {
       known.set(r.external_id, r.task_id);
     const exists = new Set(known.values());
 
-    // родители раньше детей; цикл или неизвестный родитель — без родителя
+    // parents before children; a cycle or unknown parent — no parent
     const byExt = new Map<string, number>();
     items.forEach((it, i) => {
       if (it.externalId && !it.skip && !byExt.has(it.externalId)) byExt.set(it.externalId, i);
     });
     const order: number[] = [];
-    const state: number[] = []; // 1 — в пути, 2 — размещена
+    const state: number[] = []; // 1 — in the path, 2 — placed
     const place = (i: number) => {
       if (state[i]) return;
       state[i] = 1;
@@ -276,10 +276,10 @@ async function runImport(jobId: string, api: JobApi) {
     };
     items.forEach((_, i) => place(i));
 
-    // id задач заранее; повтор externalId в файле — обновление первой
+    // task ids in advance; a repeated externalId in the file — an update of the first
     const taskOf = new Map(known);
-    const fresh = new Set<string>(); // externalId, созданные этим запуском
-    // последний ключ по статусу: новые задачи встают после существующих
+    const fresh = new Set<string>(); // externalIds created by this run
+    // last key by status: new tasks go after the existing ones
     const lastRank = new Map<string, string | null>();
     const nextRank = async (statusId: string) => {
       if (!lastRank.has(statusId)) {
@@ -351,7 +351,7 @@ async function runImport(jobId: string, api: JobApi) {
             },
           },
         ];
-        // полная замена, только если колонка сопоставлена
+        // full replacement, only if the column is mapped
         if (it.assignees) {
           for (const u of hadA)
             if (!assigneeIds.includes(u))
@@ -440,7 +440,7 @@ async function runImport(jobId: string, api: JobApi) {
           continue;
         }
         const r = await buildRow(it);
-        // последующие строки (дети, повторы externalId) видят id этой задачи
+        // later rows (children, repeated externalIds) see this task's id
         if (r.attach) {
           taskOf.set(r.attach.ext, r.attach.taskId);
           if (r.kind === 'created') fresh.add(r.attach.ext);
@@ -465,14 +465,14 @@ async function runImport(jobId: string, api: JobApi) {
         await apply(rows);
         rows.forEach((r, k) => ok(r, src[k]!));
       } catch {
-        // пачка откатилась целиком: по одной строке, чтобы найти виновную
+        // the batch rolled back entirely: one row at a time to find the culprit
         for (let k = 0; k < rows.length; k++) {
           try {
             await apply([rows[k]!]);
             ok(rows[k]!, src[k]!);
           } catch (e) {
             skipped.push({ row: src[k]!.row, reason: msg(e) });
-            // задача не создана: дети не должны ссылаться на неё
+            // task not created: children must not reference it
             const a = rows[k]!.attach;
             if (a && rows[k]!.kind === 'created') {
               taskOf.delete(a.ext);
@@ -509,11 +509,11 @@ async function runImport(jobId: string, api: JobApi) {
 const jobs = [
   {
     queue: 'import.run',
-    // повтор не нужен: частичный прогон идемпотентен только по externalId, ошибка фиксируется в job
+    // no retry needed: a partial run is idempotent only by externalId; the error is recorded in the job
     retryLimit: 0,
     expireInSeconds: 3600,
     async handler(data: { jobId: string }, api: JobApi) {
-      // захват: параллельные/повторные доставки не запускают импорт дважды
+      // claim: parallel/repeated deliveries do not start the import twice
       const r = await api.db.execute(
         sql`update import_jobs set status = 'running', updated_at = now() where id = ${data.jobId} and status = 'pending' returning id`,
       );
@@ -521,7 +521,7 @@ const jobs = [
     },
   },
   {
-    // страховка: подбирает pending, если постановка из контроллера не удалась
+    // safety net: picks up pending if enqueueing from the controller failed
     queue: 'import.sweep',
     cron: '* * * * *',
     async handler(_: unknown, api: JobApi) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Все сценарии профилирования: bash runall.sh [PROF=1] — под замком cpu; результаты в build/artifacts/WB-17/results/, сырые профили в build/wb17-raw
+# All profiling scenarios: bash runall.sh [PROF=1] — under the cpu lock; results in build/artifacts/WB-17/results/, raw profiles in build/wb17-raw
 cd "$(dirname "$0")/../../../.."
 . e2e/web/perf/profile/env.sh
 export E2E_BASE_URL=http://localhost:$WEB_PORT

@@ -60,7 +60,7 @@ const entry = (o: Record<string, unknown>) => ({
   ...o,
 });
 
-// IconButton/Menu требуют TooltipProvider (в приложении он в App.vue) и i18n
+// IconButton/Menu require TooltipProvider (App.vue provides it) and i18n
 const mount = (c: object, o: { props?: Record<string, unknown> } = {}) =>
   vmount(defineComponent({ render: () => h(TooltipProvider, () => h(c, o.props)) }), {
     global: { plugins: [i18n] },
@@ -85,14 +85,14 @@ describe('wk1: панель задачи', () => {
     st.entries.value = [
       entry({ taskId: 'root' }), // 1:00
       entry({ taskId: 'grand', durationSec: 1800 }), // 0:30
-      entry({ taskId: 'kid', userId: 'someone' }), // чужая — не считается
-      entry({ taskId: 'other' }), // не из поддерева
+      entry({ taskId: 'kid', userId: 'someone' }), // someone else's — not counted
+      entry({ taskId: 'other' }), // not from the subtree
       entry({
         taskId: 'kid',
         startedAt: new Date(NOW - 600_000).toISOString(),
         endedAt: null,
         durationSec: null,
-      }), // идёт 10 мин
+      }), // runs 10 min
     ];
     const w = mount(TimerPanel, { props: { taskId: 'root' } });
     expect(w.get('[data-test=sum]').text()).toContain('1:40');
@@ -179,7 +179,7 @@ describe('wk1: неделя «Мои часы»', () => {
     const w = mount(WeekPage);
     const cell = w.get(`[data-test=cell-root-${today}]`);
     expect((cell.element as HTMLInputElement).value).toBe('1:00');
-    await cell.setValue('2:30'); // setValue в happy-dom сам шлёт change
+    await cell.setValue('2:30'); // setValue in happy-dom fires change itself
     expect(mutate).toHaveBeenCalledTimes(1);
     expect(mutate).toHaveBeenCalledWith(
       'time.log',

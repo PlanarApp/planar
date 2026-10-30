@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, Patch, Post, Req } from '@nestjs/common';
 import { z } from 'zod';
-import { getAuth, readCookie } from '../auth/auth.js';
+import { AUTH_OPTS, getAuth, readCookie, type AuthOpts } from '../auth/auth.js';
 import { publicUser } from '../auth/auth.controller.js';
 import { HttpError } from '../auth/errors.js';
 import { hashPassword } from '../auth/password.js';
@@ -17,7 +17,7 @@ export const loginSchema = z
   .transform((s) => s.toLowerCase())
   .pipe(z.string().regex(/^[a-z0-9._-]{2,32}$/));
 export const passwordSchema = z.string().min(8).max(256);
-const roleSchema = z.enum(['admin', 'member', 'guest']); // 'owner' назначить нельзя
+const roleSchema = z.enum(['admin', 'member', 'guest']); // 'owner' cannot be assigned
 
 const createSchema = z.object({
   login: loginSchema,
@@ -44,7 +44,10 @@ const isAdmin = (role: string) => role === 'owner' || role === 'admin';
 
 @Controller('api/users')
 export class UsersController {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    @Inject(AUTH_OPTS) private readonly auth: AuthOpts,
+  ) {}
 
   @Get()
   async list(@Req() req: object) {
@@ -58,7 +61,7 @@ export class UsersController {
     const { password, ...v } = parseBody(createSchema, body);
     const passwordHash = await hashPassword(password);
     const row = await this.db.transaction((q) => insertUser(q, { ...v, passwordHash }));
-    await ensureRootSpace(this.db); // новый пользователь — участник «Общего» (Воркспейс)
+    await ensureRootSpace(this.db); // a new user is a member of "General" (Workspace)
     return { user: publicUser(row) };
   }
 
@@ -82,6 +85,12 @@ export class UsersController {
     if (p.avatarFile && !(await hasFileUpload(this.db, p.avatarFile, id))) {
       throw new HttpError(400, 'invalid_request', 'avatarFile не загружен этим пользователем');
     }
+    if (
+      this.auth.demo &&
+      target.login === 'demo' &&
+      (p.password !== undefined || p.email !== undefined)
+    )
+      throw forbidden('В демо-режиме пароль и email пользователя demo менять нельзя');
     const passwordHash = p.password !== undefined ? await hashPassword(p.password) : undefined;
     const row = await this.db.transaction((q) =>
       updateUser(q, actor.userId, id, {
@@ -98,7 +107,7 @@ export class UsersController {
     if (p.role !== undefined || p.deactivated === false) await ensureRootSpace(this.db);
     if (p.deactivated) await deleteUserSessions(this.db, id);
     else if (p.password !== undefined) {
-      // себе — все сессии, кроме текущей; чужому — все
+      // own — all sessions except the current one; someone else's — all
       const keep = self ? readCookie((req as FastifyRequest).headers.cookie, SESSION_COOKIE) : null;
       await deleteOtherSessions(this.db, id, keep);
     }

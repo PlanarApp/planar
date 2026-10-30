@@ -12,7 +12,7 @@ import { defineMutator, uuidv7, type EntityMeta } from '@planar/shared';
 import * as schema from '../../src/db/schema.js';
 import type { TestClient as TC } from '../sync/helpers.js';
 
-// Фикстура модуля с space|members: подмена installed до загрузки реестра сущностей.
+// Module fixture with space|members: substitute installed before the entity registry loads.
 const { installed } = await import('../../src/modules/installed.js');
 @Module({})
 class FixtureModule {}
@@ -165,7 +165,7 @@ const item = (boxId: string, over: Partial<R> = {}) => ({
   createdAt: now(),
   ...over,
 });
-/** Контейнер с участниками users (создаёт первый). */
+/** Container with users members (the first one creates it). */
 async function mkBox(users: TC[]) {
   const bx = box(users[0]!.userId);
   await users[0]!.ok('clt.put', { entity: 'cltBoxes', row: bx });
@@ -210,7 +210,7 @@ describe('cl1a: space|members', () => {
     expect(await ids(c, 'cltBoxes')).not.toContain(bx.id);
     const memIds = (await changesOf('cltBoxes', bx.id)).map((r) => r.userId);
     expect(memIds).not.toContain(c.userId);
-    // чужие участники не просачиваются
+    // others' members do not leak
     const cm = ((await c.bootstrap()).data as Record<string, R[]>).cltMembers ?? [];
     expect(cm.some((m) => m.boxId === bx.id)).toBe(false);
   });
@@ -226,10 +226,10 @@ describe('cl1a: space|members', () => {
     const got = p.changes.map((x) => `${x.entity}:${x.op}`);
     expect(got).toContain('cltBoxes:put');
     expect(p.changes.filter((x) => x.entity === 'cltMembers')).toHaveLength(3);
-    // история (bootstrap:no) не отдаётся
+    // history (bootstrap:no) is not returned
     expect(p.changes.some((x) => x.id === it1.id)).toBe(false);
     expect(await ids(c, 'cltBoxes')).toContain(bx.id);
-    // новые сообщения доходят
+    // new messages arrive
     const it2 = item(bx.id);
     await a.ok('clt.put', { entity: 'cltItems', row: it2 });
     expect((await pulled(c, p.cursor)).map((x) => x.id)).toContain(it2.id);
@@ -264,11 +264,11 @@ describe('cl1a: space|members', () => {
     expect(await put(c, 'cltBoxes', { ...bx, name: 'hijack' })).toMatchObject({
       code: 'forbidden',
     });
-    // создатель нового контейнера (участников ещё нет)
+    // creator of the new container (no members yet)
     expect(await put(c, 'cltBoxes', box(c.userId))).toMatchObject({ ok: true });
-    // чужой createdBy в новом контейнере — нельзя
+    // a foreign createdBy in the new container — not allowed
     expect(await put(c, 'cltBoxes', box(a.userId))).toMatchObject({ code: 'forbidden' });
-    // участник пишет
+    // a member writes
     expect(await put(b, 'cltItems', item(bx.id))).toMatchObject({ ok: true });
   });
 
@@ -319,7 +319,7 @@ describe('cl1a: WS typing', () => {
     expect(typed(cb!)).toEqual([{ t: 'typing', entity: 'cltItems', id: x.id, userId: a.userId }]);
     expect(typed(ca!)).toHaveLength(0);
     expect(typed(cc!)).toHaveLength(0);
-    // третий шлёт typing по чужой строке — никто ничего не получает
+    // the third sends typing on someone else's row — nobody receives anything
     typing(cc!, 'cltItems', x.id);
     typing(cc!, 'nope', x.id);
     typing(cc!, 'cltItems', uuidv7());
@@ -462,7 +462,7 @@ describe('cl1a: canReadFile', () => {
 
   it('cl1a: docs — участник пространства читает файл страницы, не загрузивший и посторонний', async () => {
     expect((await get(`/files/${sha}`, cookies.a!)).statusCode).toBe(200);
-    expect((await get(`/files/${sha}`, cookies.b!)).statusCode).toBe(200); // не загружал сам
+    expect((await get(`/files/${sha}`, cookies.b!)).statusCode).toBe(200); // did not load it themselves
     expect((await get(`/files/${sha}`, cookies.c!)).statusCode).toBe(404);
   });
 
@@ -481,7 +481,7 @@ describe('cl1a: canReadFile', () => {
       .set({ value: ['clt'] })
       .where(eq(schema.settings.id, 'enabled_modules'));
     expect((await get(`/files/${sha}`, cookies.b!)).statusCode).toBe(404);
-    expect((await get(`/files/${sha}`, cookies.a!)).statusCode).toBe(200); // загрузил сам
+    expect((await get(`/files/${sha}`, cookies.a!)).statusCode).toBe(200); // loaded it themselves
     await db
       .update(schema.settings)
       .set({ value: ['clt', 'docs'] })

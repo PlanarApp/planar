@@ -14,7 +14,7 @@ const { t, te } = useI18n();
 const { isAdmin } = useAuth();
 const { error, run } = useAction();
 const server = ref<{ id: string; enabled: boolean; unavailable?: string | null }[]>([]);
-/** модули с компонентом setup (в том числе выключенные) */
+/** modules with a setup component (including disabled ones) */
 const setups = shallowRef<Record<string, ReturnType<typeof defineAsyncComponent>>>({});
 const setupOf = ref<string | null>(null);
 const reason = (code: string) =>
@@ -33,11 +33,11 @@ onMounted(() =>
     }
   }),
 );
-// после «Настроить» доступность модуля могла измениться (например, задан SMTP)
+// after "Configure" the module's availability could change (for example, SMTP was set)
 watch(setupOf, (id, prev) => {
   if (!id && prev) void load();
 });
-// включённые — только по реплике; нет строки = ничего не включено (ответ сервера справочный)
+// enabled — only from the replica; no row = nothing enabled (the server response is for reference)
 const enabled = computed(
   () => new Set(Array.isArray(setting.value?.value) ? (setting.value.value as string[]) : []),
 );

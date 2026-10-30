@@ -9,7 +9,7 @@ import { useStatuses } from '../tasks/dictionaries';
 import { openTask } from '../views/open';
 import { ui } from './hotkeys';
 
-/** Быстрое создание задачи из любого места: «+ Создать» и клавиша C. */
+/** Quick task creation from anywhere: "+ Create" and the C key. */
 const { t } = useI18n();
 const LAST = 'planar.quickCreate.project';
 const open = computed({ get: () => ui.create, set: (v) => (ui.create = v) });
@@ -30,12 +30,12 @@ const statusId = ref<string>();
 const assignees = ref<string[]>([]);
 const priority = ref(0);
 const due = ref<string | null>(null);
-const more = ref(false); // «создать ещё»: диалог остаётся открытым
+const more = ref(false); // "create another": the dialog stays open
 const busy = ref(false);
 
 const spaceId = computed(() => all.value?.find((p) => p.id === projectId.value)?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
-// статус по умолчанию: первый todo, иначе первый
+// default status: the first todo, otherwise the first one
 watch(
   [statuses, projectId],
   () => {
@@ -51,13 +51,13 @@ const pickProject = () => {
   try {
     last = localStorage.getItem(LAST) ?? '';
   } catch {
-    /* без хранилища — первый проект */
+    /* without storage — the first project */
   }
   const ids = new Set(options.value.map((o) => o.value));
   projectId.value =
     [ui.createProject, last].find((x) => x && ids.has(x)) ?? options.value[0]?.value ?? '';
 };
-// диалог монтируется уже открытым — сброс сразу; проекты могут прийти позже
+// the dialog mounts already open — reset at once; projects may arrive later
 watch(
   open,
   (o) => {
@@ -88,12 +88,12 @@ async function submit() {
     try {
       localStorage.setItem(LAST, projectId.value);
     } catch {
-      /* не страшно */
+      /* not a big deal */
     }
     if (more.value) title.value = '';
     else {
       open.value = false;
-      openTask(id); // номер задачи выдаёт сервер — открываем по id
+      openTask(id); // the server issues the task number — we open by id
     }
   } finally {
     busy.value = false;

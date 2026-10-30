@@ -44,7 +44,7 @@ describe('корневое пространство', () => {
     const w = await world(db);
     const t = taskArgs(w);
     await w.member.ok('task.create', t);
-    await w.member.ok('task.assign', { id: uuidv7(), taskId: t.id, userId: w.admin.userId }); // уведомление admin
+    await w.member.ok('task.assign', { id: uuidv7(), taskId: t.id, userId: w.admin.userId }); // admin notification
     expect(await w.admin.push('space.delete', { id: w.spaceId })).toMatchObject({
       code: 'conflict',
     });

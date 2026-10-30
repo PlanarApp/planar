@@ -1,0 +1,10 @@
+docs/plan/
+docs/research/
+docs/registry/
+.dpcli/
+.claude/
+CLAUDE.md
+dpcli.yml
+e2e/_*.mjs
+data/
+build/

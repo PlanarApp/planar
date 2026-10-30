@@ -1,0 +1,14 @@
+# Override: build api and caddy from source instead of pulling images.
+# Usage: docker compose -f compose.yml -f compose.build.yml up -d --build
+# The image name stays <project>-<service> (as compose names built images), so rollback tags in ops/ keep working.
+services:
+  api:
+    image: ${COMPOSE_PROJECT_NAME:-planar}-api
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+  caddy:
+    image: ${COMPOSE_PROJECT_NAME:-planar}-caddy
+    build:
+      context: .
+      dockerfile: deploy/caddy.Dockerfile

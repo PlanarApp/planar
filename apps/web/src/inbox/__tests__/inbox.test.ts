@@ -27,11 +27,11 @@ vi.mock('../../router', async () => {
   return { router: r };
 });
 
-// форма задачи — заглушка: проверяем только, какую задачу открыл сплит
+// task form is a stub: we only check which task the split opened
 vi.mock('../../views/open', async (orig) => ({
   ...(await orig<typeof import('../../views/open')>()),
   taskPanelLoader: async () => ({
-    __esModule: true, // defineAsyncComponent берёт default только у модуля
+    __esModule: true, // defineAsyncComponent takes default only from the module
     default: {
       props: ['taskKey'],
       setup: (p: { taskKey: string }) => () => h('div', { 'data-testid': 'panel' }, p.taskKey),
@@ -143,7 +143,7 @@ describe('inbox:list', () => {
     await seed();
     const id = uuidv7();
     await db.table('notifications').bulkPut([note(id, t1)]);
-    // на мобильном у карточки меню «…» с подсказкой
+    // on mobile the card's "…" menu has a hint
     const w = mount(
       defineComponent({ render: () => h(TooltipProvider, null, () => h(InboxScreen)) }),
       { global: g },

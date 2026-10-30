@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue';
 
-// один слушатель на приложение
+// one listener for the app
 let isMobile: Ref<boolean> | undefined;
 
 export function useBreakpoint(): { isMobile: Ref<boolean> } {
@@ -13,7 +13,7 @@ export function useBreakpoint(): { isMobile: Ref<boolean> } {
   return { isMobile };
 }
 
-/** Только для тестов: сбросить кэш после подмены matchMedia. */
+/** Tests only: reset the cache after replacing matchMedia. */
 export function resetBreakpoint(): void {
   isMobile = undefined;
 }

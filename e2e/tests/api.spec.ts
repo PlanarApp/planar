@@ -1,7 +1,7 @@
 import { expect, request, test } from '@playwright/test';
 import { BASE, Client, Ws, ranks, uuidv7, type Data } from '../lib.js';
 
-// Сценарии идут по порядку и делят данные: приватное пространство admin, затем права, очередь, реалтайм.
+// Scenarios run in order and share data: private space of admin, then permissions, queue, realtime.
 test.describe.configure({ mode: 'serial' });
 
 let admin: Client, alice: Client, bob: Client;
@@ -13,7 +13,7 @@ let sha: string;
 let bobCursor = 0;
 let aliceCursor = 0;
 
-// ключи проектов уникальны, а база между прогонами живёт: берём случайные
+// project keys are unique, and the database lives between runs: take random ones
 const key = () =>
   Array.from({ length: 5 }, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join(
     '',
@@ -53,7 +53,7 @@ test('admin создаёт приватное пространство, прое
       memberId: uuidv7(),
       statusIds,
     }),
-    // метка нужна сиду --tasks: он раскладывает задачи по всем проектам, в т.ч. оставшимся от e2e
+    // the label is needed by the seed --tasks: it spreads tasks across all projects, including those left over from e2e
     admin.mut('label.create', { id: uuidv7(), spaceId, name: 'e2e', color: '#3b82f6' }),
     admin.mut('project.create', { id: projectId, spaceId, name: 'E2E', key: key(), rank: r2 }),
     admin.mut('task.create', {
@@ -104,7 +104,7 @@ test('bob не видит пространство в pull', async () => {
   const p = await bob.pull(bobCursor);
   expect(p.reset).toBeFalsy();
   expect(JSON.stringify(p.changes)).not.toContain(spaceId);
-  expect(p.cursor).toBeGreaterThan(bobCursor); // курсор — по всему журналу
+  expect(p.cursor).toBeGreaterThan(bobCursor); // cursor — across the whole journal
 });
 
 test('bob по WS получает только poke без данных', async () => {
@@ -117,7 +117,7 @@ test('bob по WS получает только poke без данных', async
 
 test('WS без сессии закрывается кодом 4401', async () => {
   const ws = await Ws.open(undefined, 0).catch(() => null);
-  if (!ws) return; // отказ на upgrade тоже закрывает доступ
+  if (!ws) return; // a refusal on upgrade also closes access
   const code = await new Promise((res) => ws.sock.once('close', res));
   expect(code).toBe(4401);
 });
@@ -139,7 +139,7 @@ test('после member.add alice получает reset и видит стро�
 });
 
 test('офлайн-очередь: 30 задач с повтором пачек применены ровно один раз', async () => {
-  const c = await Client.login('admin'); // новый clientId, счётчик с 1
+  const c = await Client.login('admin'); // new clientId, counter from 1
   const pid = uuidv7();
   const rk = ranks(32);
   const queue = [
@@ -157,7 +157,7 @@ test('офлайн-очередь: 30 задач с повтором пачек 
   for (let i = 0; i < queue.length; i += 10) {
     const batch = queue.slice(i, i + 10);
     const first = await c.push(batch);
-    const again = await c.push(batch); // обрыв после отправки: клиент не знает, дошла ли пачка
+    const again = await c.push(batch); // disconnect after sending: the client does not know whether the batch arrived
     expect(first.every((r) => r.ok) && again.every((r) => r.ok)).toBe(true);
   }
   const boot = await c.bootstrap();

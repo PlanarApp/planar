@@ -6,7 +6,7 @@ import { useSearch } from '../../command/search';
 import { useExtensions } from '../../modules/registry';
 import type { SearchHit } from '../../modules/types';
 
-// @@ — ссылка на задачу, @@@ (третий @ в поле поиска) — на документ; поиск по реплике, как палитра
+// @@ — link to a task, @@@ (third @ in the search field) — to a document; search over the replica, like the palette
 export interface RefPick {
   label: string;
   href: string;
@@ -19,7 +19,7 @@ const q = ref('');
 const index = ref(0);
 const input = ref<HTMLInputElement | null>(null);
 const tasks = useSearch();
-// документы — провайдер модуля docs (если модуль включён); без импорта модуля в ядро
+// documents — the docs module's provider (if the module is enabled); no module import into the core
 const providers = useExtensions('search');
 const docsProvider = computed(() => providers.value.find((p) => p.moduleId === 'docs'));
 const docs = ref<SearchHit[]>([]);
@@ -51,7 +51,7 @@ const rows = computed<(RefPick & { id: string; sub?: string })[]>(() =>
 watch(rows, () => (index.value = 0));
 function onInput(e: Event) {
   const v = (e.target as HTMLInputElement).value;
-  // @@@: третий @, набранный сразу, — переключить на документы
+  // @@@: a third @ typed at once — switch to documents
   if (v === '@') {
     tab.value = 'docs';
     q.value = '';
@@ -73,7 +73,7 @@ function onKey(e: KeyboardEvent) {
 }
 const pick = (r: RefPick) => r.href && emit('pick', { label: r.label, href: r.href });
 onMounted(() => nextTick(() => input.value?.focus()));
-// как список @: снизу нет места — над курсором
+// like the @ list: no room below — above the cursor
 const style = computed(() => {
   const r = props.rect;
   return r.bottom + 4 + 320 > window.innerHeight

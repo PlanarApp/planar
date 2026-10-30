@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// UI-сценарии web в Chromium против dev-стека (E2E_BASE_URL). Каждый тест создаёт свои данные.
+// UI scenarios of web in Chromium against the dev stack (E2E_BASE_URL). Each test creates its own data.
 export default defineConfig({
   testDir: '.',
   testMatch: '*.spec.ts',

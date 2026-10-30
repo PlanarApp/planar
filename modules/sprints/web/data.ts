@@ -7,7 +7,7 @@ import { todayIn, type Cycle, type Settings } from '../shared/index.js';
 
 export const hasTables = () => db.tables.some((t) => t.name === 'sprintsCycles');
 
-/** Мутаторы модуля регистрирует клиент синхронизации (session.ts). */
+/** The module's mutators are registered by the sync client (session.ts). */
 export const run = (name: string, args: Record<string, unknown>): Promise<void> =>
   mutate(name, args);
 
@@ -16,11 +16,11 @@ export const browserTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone 
 export interface SprintData {
   settings: Settings | null;
   cycles: Cycle[];
-  /** задачи проекта с циклом */
+  /** the project's tasks with a cycle */
   tasks: Row<'tasks'>[];
 }
 
-/** Живые данные проекта: настройки, циклы, задачи в циклах. */
+/** Live project data: settings, cycles, tasks in cycles. */
 export function useSprintData(projectId: MaybeRefOrGetter<string>) {
   const r = shallowRef<SprintData>();
   let scope: EffectScope | undefined;
@@ -53,7 +53,7 @@ export function useSprintData(projectId: MaybeRefOrGetter<string>) {
   return r;
 }
 
-/** Текущий цикл: незакрытый, сегодня (в поясе проекта) внутри дат. */
+/** The current cycle: not closed, today (in the project's zone) is within the dates. */
 export const currentCycle = (cycles: Cycle[], tz: string): Cycle | undefined => {
   const today = todayIn(tz);
   return cycles.find((c) => !c.closedAt && c.startDate <= today && today <= c.endDate);
@@ -116,5 +116,5 @@ const TEXT = {
   },
 };
 export type Text = (typeof TEXT)['ru'];
-/** Тексты модуля на текущем языке интерфейса. */
+/** Module texts in the current UI language. */
 export const text = (): Text => TEXT[i18n.global.locale.value as 'ru' | 'en'] ?? TEXT.ru;

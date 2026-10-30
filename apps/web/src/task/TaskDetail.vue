@@ -61,21 +61,21 @@ const members = useMembers(() => props.task.spaceId);
 useLabels(() => props.task.spaceId);
 const users = useUsers();
 const watchers = useWatchers(props.task.id);
-// родитель подзадачи — звено крошек
+// subtask's parent — a breadcrumb link
 const parent = useTask(() => props.task.parentId ?? '');
-// хлебные крошки: пространство / проект
+// breadcrumbs: space / project
 const spaces = useSpaces();
 const crumbs = computed(() => {
   const s = spaces.value?.find((x) => x.id === props.task.spaceId);
   return { space: s?.name ?? '', project: s?.projects.find((p) => p.id === props.task.projectId) };
 });
-// статус — плашкой своего цвета, как в ClickUp
+// status — a badge in its own color, as in ClickUp
 const statusColor = computed(
   () => statuses.value?.find((s) => s.id === props.task.statusId)?.color ?? null,
 );
 const memberList = computed(() => (members.value ?? []).map((m) => ({ id: m.id, name: m.name })));
 
-// --- заголовок
+// --- header
 const title = ref(props.task.title);
 let savedTitle = props.task.title;
 function commitTitle() {
@@ -104,14 +104,14 @@ const watcherPeople = computed(() =>
   })),
 );
 
-// --- наблюдатели
+// --- watchers
 const mine = computed(() => watchers.value?.find((w) => w.userId === user.value?.id));
 const toggleWatch = () =>
   mine.value
     ? mutate('task.unwatch', { taskId: props.task.id })
     : mutate('task.watch', { id: newId(), taskId: props.task.id });
 
-// --- меню (как контекстное в видах, без «Открыть»), удаление закрывает панель
+// --- menu (like the context menu in views, without "Open"); deletion closes the panel
 const menuFor = useTaskMenu(() => props.task.spaceId);
 const { isMobile } = useBreakpoint();
 const menu = computed<MenuItem[]>(() => [
@@ -124,7 +124,7 @@ const OPEN_MODES = [
   { id: 'side', icon: PanelRight },
   { id: 'page', icon: Maximize2 },
 ] as const;
-// смена режима применяется сразу: панель ↔ страница — переход, окно ↔ боковая — на месте
+// switching mode applies at once: panel ↔ page — navigation, window ↔ side panel — in place
 function setOpenMode(m: TaskOpenMode) {
   taskOpenMode.value = m;
   if (!router) return;
@@ -142,7 +142,7 @@ async function remove() {
   emit('close');
 }
 
-// --- открыть подзадачу
+// --- open subtask
 function open(key: string) {
   if (!router) return;
   void (props.mode === 'panel'
@@ -150,10 +150,10 @@ function open(key: string) {
     : router.push(`/t/${key}`));
 }
 
-// --- вложения: перетаскивание на панель
+// --- attachments: drag onto the panel
 const attachments = ref<InstanceType<typeof Attachments>>();
 const onDrop = (e: DragEvent) => {
-  if ((e.target as HTMLElement).closest?.('.ProseMirror')) return; // картинка в описании — не вложение
+  if ((e.target as HTMLElement).closest?.('.ProseMirror')) return; // an image in the description — not an attachment
   const files = [...(e.dataTransfer?.files ?? [])];
   if (files.length) void attachments.value?.addFiles(files);
 };
@@ -166,7 +166,7 @@ const onKeydown = (e: KeyboardEvent) => {
     emit('close');
 };
 
-// --- вкладки модулей
+// --- module tabs
 const panels = useExtensions('taskPanels');
 const tab = ref<string | null>(null);
 const active = computed(() => panels.value.find((p) => p.key === tab.value) ?? null);

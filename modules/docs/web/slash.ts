@@ -25,7 +25,7 @@ export const slashItems: SlashItem[] = [
   { id: 'image', title: 'image', run: (_e, api) => api.pickImage() },
 ];
 
-/** По id и обоим языкам названия. */
+/** By id and both name languages. */
 export const filterSlash = (q: string): SlashItem[] => {
   const n = norm(q.trim());
   return slashItems.filter((i) =>

@@ -1,8 +1,8 @@
 import { test } from '@playwright/test';
 import { BASE, Client } from '../../lib';
 
-// Замер «Таймлайна» (PT-2): большой проект на 10 000 задач сида (PERF_SEED_DATES=1, PERF_MODULES=timeline),
-// 2 с прокрутки колесом по вертикали и горизонтали; считаются long task > 50 мс.
+// Measurement of the 'Timeline' (PT-2): large project with 10,000 seed tasks (PERF_SEED_DATES=1, PERF_MODULES=timeline),
+// 2 s of wheel scrolling vertically and horizontally; long tasks > 50 ms are counted.
 test('таймлайн: прокрутка без long task', async ({ browser }) => {
   const admin = await Client.login('admin');
   const { data } = await admin.bootstrap();
@@ -27,7 +27,7 @@ test('таймлайн: прокрутка без long task', async ({ browser }
   const page = await ctx.newPage();
   await page.goto(`/p/${big.id}/timeline:timeline`);
   await page.getByTestId('tl-bar').first().waitFor({ timeout: 60_000 });
-  await page.waitForTimeout(1500); // дать осесть начальному рендеру
+  await page.waitForTimeout(1500); // let the initial render settle
 
   const scroll = page.getByTestId('tl-scroll');
   const box = (await scroll.boundingBox())!;

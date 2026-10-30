@@ -1,4 +1,4 @@
-// Единственная точка контакта модуля с ядром web: реплика, мутации, пользователь, язык.
+// The module's single point of contact with the web core: replica, mutations, user, language.
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { db, i18n, mutate, newId, useQuery, useSession, useWeekStart } from '@planar/web/modules';
 import type { TimeEntry, TimeEstimate } from '../shared/index.js';
@@ -9,13 +9,13 @@ export type TaskLite = TaskNode & { title: string; projectId?: string; spaceId?:
 
 export const userId = () => useSession().value?.id ?? '';
 
-/** Свои записи (включая идущую). */
+/** Own entries (including the running one). */
 export const useEntries = (uid: () => string) =>
   useQuery(
     () => db.table('timeEntries').where('userId').equals(uid()).toArray() as Promise<TimeEntry[]>,
   );
 export const useMyEntries = () => useEntries(userId);
-/** владелец или админ инстанса: «Время» любого пользователя (записи пространств и так в реплике) */
+/** the owner or the instance admin: the "Time" of any user (spaces' entries are in the replica anyway) */
 export const isInstanceAdmin = () => ['owner', 'admin'].includes(useSession().value?.role ?? '');
 export const useUsers = () =>
   useQuery(async () =>
@@ -42,7 +42,7 @@ export const useTasks = () =>
     })),
   );
 
-/** Текущее время, тикает раз в секунду, пока компонент смонтирован. */
+/** The current time, ticks once a second while the component is mounted. */
 export function useNow() {
   const now = ref(Date.now());
   let h: ReturnType<typeof setInterval> | undefined;

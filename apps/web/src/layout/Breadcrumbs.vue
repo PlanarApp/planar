@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ChevronDown, ChevronRight } from 'lucide-vue-next';
-// reka (Menu) — вне начального бандла
+// reka (Menu) — outside the initial bundle
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
 import { useBreakpoint } from '../ui/useBreakpoint';
 import { useExtensions } from '../modules/registry';
@@ -18,7 +18,7 @@ const route = useRoute();
 const router = useRouter();
 const { isMobile } = useBreakpoint();
 
-// хлебные крошки: пространство / проект / вид; на прочих экранах — название экрана
+// breadcrumbs: space / project / view; on other screens — the screen name
 const projectId = computed(() => String(route.params.projectId ?? ''));
 const inProject = computed(() => route.name === 'project' || route.name === 'savedView');
 const project = useProject(() => (inProject.value ? projectId.value : ''));
@@ -35,7 +35,7 @@ const viewLabel = computed(() => {
   return ext ? text(ext.label) : te(`views.${v}`) ? t(`views.${v}`) : v;
 });
 const navItems = useExtensions('nav');
-// экран модуля (/m/<id>/…): подпись nav-элемента модуля, иначе meta.title маршрута, иначе название модуля
+// module screen (/m/<id>/…): the module's nav-item label, otherwise the route's meta.title, otherwise the module name
 const moduleTitle = computed(() => {
   const id = route.path.startsWith('/m/') ? route.path.split('/')[2] : '';
   if (!id) return '';
@@ -45,7 +45,7 @@ const moduleTitle = computed(() => {
   if (typeof meta === 'string' && meta) return te(meta) ? t(meta) : meta;
   return te(`topbar.modules.${id}`) ? t(`topbar.modules.${id}`) : id;
 });
-// крошка — ссылка на свой уровень; ▾ — соседи по уровню (пространства, проекты пространства, табы)
+// a crumb — a link to its own level; ▾ — siblings at the level (spaces, the space's projects, tabs)
 interface Crumb {
   label: string;
   to?: string;

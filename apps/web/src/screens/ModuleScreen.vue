@@ -12,9 +12,9 @@ const route = useRoute();
 const router = useRouter();
 const { isAdmin } = useAuth();
 const status = computed(() => moduleStatus(String(route.params.moduleId)));
-// ждёт настройки (до таймаута) и грузит фронт модуля; статус обновится сам
+// waits for settings (up to the timeout) and loads the module's frontend; the status updates itself
 void ensureModule(String(route.params.moduleId));
-// настройки пришли позже таймаута / модуль догрузился — повторить навигацию, маршруты уже добавлены
+// settings arrived after the timeout / the module finished loading — repeat the navigation, the routes are already added
 watch(
   status,
   (s) => {

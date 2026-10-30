@@ -4,7 +4,7 @@ import { UserRound } from 'lucide-vue-next';
 import { Button } from '../../ui';
 import type { MeMode } from './useFilter';
 
-// Me Mode как в ClickUp — один тумблер: работа для меня (назначенные задачи и комментарии)
+// Me Mode as in ClickUp — one toggle: work for me (assigned tasks and comments)
 const me = defineModel<MeMode | null | undefined>({ default: null });
 const { t } = useI18n();
 </script>

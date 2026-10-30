@@ -1,4 +1,4 @@
-# Только для ./dev.sh prod-smoke: порт БД наружу (случайный, localhost) для сида с хоста.
+# Only for ./dev.sh prod-smoke: DB port exposed outside (random, localhost) for seeding from the host.
 services:
   postgres:
     ports:

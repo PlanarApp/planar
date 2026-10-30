@@ -14,7 +14,7 @@ export type TaskView = Row<'tasks'> & { key: string; assigneeIds: string[]; labe
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
 
-/** useQuery с реактивным аргументом: при его смене подписка пересоздаётся. */
+/** useQuery with a reactive argument: the subscription is recreated when it changes. */
 function useLive<A, T>(arg: () => A, fn: (a: A) => T | Promise<T>): Readonly<Ref<T | undefined>> {
   const r = shallowRef<T>();
   let sub: Subscription | undefined;
@@ -28,7 +28,7 @@ function useLive<A, T>(arg: () => A, fn: (a: A) => T | Promise<T>): Readonly<Ref
     { immediate: true, flush: 'sync' },
   );
   if (getCurrentScope()) onScopeDispose(() => sub?.unsubscribe());
-  return r; // без readonly(): он оборачивает каждый элемент в Proxy
+  return r; // without readonly(): it wraps each element in a Proxy
 }
 
 const group = (rows: { taskId: string }[], val: (r: never) => string) => {
@@ -43,7 +43,7 @@ const group = (rows: { taskId: string }[], val: (r: never) => string) => {
 
 async function views(tasks: Row<'tasks'>[], projectKey: Map<string, string>): Promise<TaskView[]> {
   const ids = tasks.map((t) => t.id);
-  // одним запросом на все задачи, не по задаче в цикле
+  // one query for all tasks, not one per task in a loop
   const [as, ls] = await Promise.all([
     readLinks<Row<'taskAssignees'>>('taskAssignees', ids),
     readLinks<Row<'taskLabels'>>('taskLabels', ids),
@@ -64,7 +64,7 @@ export const useProject = (id: MaybeRefOrGetter<string>) =>
     async (i) => (await db.table<Row<'projects'>>('projects').get(i)) ?? null,
   );
 
-/** Воркспейс: название, цвет, иконка (settings.workspace; по умолчанию — «Planar») */
+/** Workspace: name, colour, icon (settings.workspace; default — "Planar") */
 export function useWorkspace() {
   const row = useQuery(() => db.table<Row<'settings'>>('settings').get('workspace'));
   return computed(() => {
@@ -81,7 +81,7 @@ export function useWorkspace() {
   });
 }
 
-/** корневое пространство «Общее» — уровень Воркспейс (документы и чаты для всех) */
+/** root space "General" — Workspace level (documents and chats for everyone) */
 export const useRootSpaceId = () =>
   useQuery(async () => {
     const v = (await db.table<Row<'settings'>>('settings').get('root_space'))?.value;

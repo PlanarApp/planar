@@ -11,7 +11,7 @@ import ColorPicker from './ColorPicker.vue';
 import SectionHeader from './SectionHeader.vue';
 import { firstGrapheme, useAction } from './shared';
 
-// первый раздел настроек группы — параметры самого узла: название, цвет, иконка
+// the first group settings section — the node's own parameters: name, colour, icon
 const props = defineProps<{
   level?: 'workspace' | 'space' | 'project';
   spaceId?: string;

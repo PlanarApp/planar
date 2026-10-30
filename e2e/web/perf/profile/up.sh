@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Поднимает стек WB-17 (api+postgres, seed 10000), собирает web ($1=sourcemap|plain) и запускает vite preview. Не гасит — down.sh.
+# Starts the WB-17 stack (api+postgres, seed 10000), builds web ($1=sourcemap|plain) and runs vite preview. Does not stop — see down.sh.
 set -uo pipefail
 cd "$(dirname "$0")/../../../.."
 . e2e/web/perf/profile/env.sh

@@ -33,10 +33,10 @@ describe('wk0: filter cycle', () => {
     expect(m(task(C1), f('isNotEmpty'))).toBe(true);
   });
   it('wk0: current — текущий цикл проекта задачи', () => {
-    expect(m(task(C1), f('in', ['current']))).toBe(true); // идёт сегодня
-    expect(m(task(C2), f('in', ['current']))).toBe(false); // закончился
+    expect(m(task(C1), f('in', ['current']))).toBe(true); // is today
+    expect(m(task(C2), f('in', ['current']))).toBe(false); // has ended
     expect(m(task(C2), f('notIn', ['current']))).toBe(true);
-    expect(m(task(C1, uuidv7()), f('in', ['current']))).toBe(false); // проект задачи другой
+    expect(m(task(C1, uuidv7()), f('in', ['current']))).toBe(false); // the task's project is different
     const closed = [{ ...cycles[0]!, closedAt: '2026-10-22T00:00:00.000Z' }];
     expect(m(task(C1), f('in', ['current']), { ...base, cycles: closed })).toBe(false);
   });

@@ -8,7 +8,7 @@ const read = (): Theme => {
     const v = localStorage.getItem(KEY);
     if (v === 'light' || v === 'dark') return v;
   } catch {
-    /* хранилище недоступно */
+    /* storage unavailable */
   }
   return 'system';
 };
@@ -32,7 +32,7 @@ const apply = () => {
   try {
     localStorage.setItem(KEY, theme.value);
   } catch {
-    /* хранилище недоступно */
+    /* storage unavailable */
   }
 };
 

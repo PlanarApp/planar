@@ -1,6 +1,6 @@
-// Облегчённая замена vue-i18n для сборки (alias в vite.config.ts): только то, чем пользуется приложение —
-// createI18n({legacy:false}), useI18n() → {t, te, locale}, i18n.global.{t,locale}, подстановки {name} и {'литерал'}.
-// shortcut: нет plural/linked/datetime/number; понадобятся — убрать alias и вернуть vue-i18n.
+// Lightweight vue-i18n replacement for the build (alias in vite.config.ts): only what the app uses —
+// createI18n({legacy:false}), useI18n() → {t, te, locale}, i18n.global.{t,locale}, substitutions {name} and {'literal'}.
+// shortcut: no plural/linked/datetime/number; if needed — remove the alias and restore vue-i18n.
 import { inject, ref, type App, type Ref } from 'vue';
 
 type Tree = { [k: string]: string | Tree };

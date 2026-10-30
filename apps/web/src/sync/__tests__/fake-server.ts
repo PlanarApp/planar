@@ -1,4 +1,4 @@
-// Фейковый сервер C-sync: журнал changes, last_mutation_id по clientId, те же MutatorDef; ответы проверяются схемами shared.
+// Fake C-sync server: changes log, last_mutation_id per clientId, the same MutatorDefs; responses are checked against shared schemas.
 import {
   MutatorError,
   entitySchemas,
@@ -26,12 +26,12 @@ export class FakeServer {
   seq = 0;
   lastMut = new Map<string, number>();
   mode: 'ok' | 'offline' | '5xx' | '401' | '403' = 'ok';
-  /** следующая push-мутация будет отклонена с этим кодом */
+  /** the next push mutation will be rejected with this code */
   rejectNext: string | null = null;
   resetNext = false;
-  /** push падает сетевой ошибкой, pull/bootstrap работают */
+  /** push fails with a network error, pull/bootstrap work */
   blockPush = false;
-  /** один раз перед ответом на pull (цикл: push → pull) — локальная правка «между push и pull» */
+  /** once, before answering a pull (cycle: push → pull) — a local edit "between push and pull" */
   beforePull: (() => Promise<void>) | null = null;
   pushes = 0;
   pulls = 0;
@@ -84,7 +84,7 @@ export class FakeServer {
     };
   }
 
-  /** Выполняет мутацию как сервер (идемпотентно по id). Возвращает результат push. */
+  /** Executes the mutation as the server does (idempotent by id). Returns the push result. */
   async runMutation(clientId: string, id: number, name: string, args: unknown) {
     if (id <= (this.lastMut.get(clientId) ?? 0)) return { id, ok: true as const };
     const fail = (code: string, message: string) => {
@@ -194,7 +194,7 @@ export class FakeWebSocket {
   close() {
     this.onclose?.({ code: 1000 });
   }
-  // --- управление из теста
+  // --- control from the test
   open() {
     this.onopen?.();
   }

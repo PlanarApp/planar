@@ -34,7 +34,7 @@ describe('docs web: дерево', () => {
       ['a1', 1],
       ['a2', 1],
       ['b', 0],
-      ['kid-of-old', 0], // родитель в архиве — страница не пропадает
+      ['kid-of-old', 0], // the parent is archived — the page does not disappear
     ]);
   });
 

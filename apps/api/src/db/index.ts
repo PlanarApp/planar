@@ -7,14 +7,14 @@ import * as schema from './schema.js';
 
 export type Db = NodePgDatabase<typeof schema> & { $client: pg.Pool };
 
-export function createDb(connectionString: string): Db {
-  const pool = new pg.Pool({ connectionString });
+export function createDb(connectionString: string, max?: number): Db {
+  const pool = new pg.Pool({ connectionString, ...(max && { max }) });
   return drizzle({ client: pool, schema, casing: 'snake_case' });
 }
 
 const migrationsFolder = fileURLToPath(new URL('../../drizzle', import.meta.url));
 
-/** Применяет миграции из apps/api/drizzle; нет журнала — не ошибка. */
+/** Applies migrations from apps/api/drizzle; no journal — not an error. */
 export async function migrate(db: Db, folder = migrationsFolder): Promise<void> {
   if (!existsSync(`${folder}/meta/_journal.json`)) return;
   await drizzleMigrate(db, { migrationsFolder: folder });

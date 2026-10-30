@@ -48,7 +48,7 @@ function insertEmoji(e: string) {
 }
 const picker = ref<HTMLInputElement | null>(null);
 
-// голосовое: MediaRecorder (webm/opus, в Safari — mp4), не дольше 5 минут; уходит вложением audio/*
+// voice: MediaRecorder (webm/opus, in Safari — mp4), no longer than 5 minutes; sent as an audio/* attachment
 const MAX_VOICE_MS = 5 * 60_000;
 const canRecord = typeof MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 const rec = ref<{ mr: MediaRecorder; startedAt: number } | null>(null);
@@ -109,7 +109,7 @@ onBeforeUnmount(() => stopVoice(false));
 const clock = (ms: number) =>
   `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 
-// отказ сервера: отправленная строка откатится — покажем причину
+// server refusal: the sent line will be rolled back — we show the reason
 const off = onMutationError((e) => {
   if (e.name === 'chat.message.send') error.value = tx('sendFailed', { m: e.message });
 });
@@ -153,7 +153,7 @@ async function send() {
   const id = newId();
   const doc = plain(body.value ?? { type: 'doc', content: [] });
   const attachments = plain(atts.value);
-  // запись в IndexedDB стартует до очистки редактора: они идут параллельно
+  // the IndexedDB write starts before the editor is cleared: they run in parallel
   const sending = mutate('chat.message.send', {
     id,
     channelId: props.channelId,
@@ -169,7 +169,7 @@ async function send() {
   emit('sent', id);
 }
 
-// ↑ в пустом поле — править своё последнее сообщение, как в Slack
+// ↑ in an empty field — edit your own last message, as in Slack
 function onUp(e: KeyboardEvent) {
   if (
     body.value ||
@@ -182,7 +182,7 @@ function onUp(e: KeyboardEvent) {
 }
 defineExpose({ focus: () => editor.value?.focus() });
 
-// Enter отправляет (Shift+Enter — перенос); открытый список @ забирает Enter себе
+// Enter sends (Shift+Enter — new line); an open @ list takes Enter for itself
 function onEnter(e: KeyboardEvent) {
   if (e.isComposing || (e.currentTarget as HTMLElement).querySelector('[role=listbox]')) return;
   e.preventDefault();

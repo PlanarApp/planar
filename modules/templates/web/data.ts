@@ -1,4 +1,4 @@
-// Единственная точка контакта модуля с ядром web: реплика, мутации, язык.
+// The module's single point of contact with the web core: replica, mutations, language.
 import {
   effectScope,
   getCurrentScope,
@@ -30,13 +30,13 @@ import {
 
 export { mutate, localToday };
 
-/** Диалоги, которые открывают команды (рисует TemplatesHost в topbar). */
+/** Dialogs that the commands open (drawn by TemplatesHost in the topbar). */
 export const ui = reactive<{ newTask: string | null; saveTask: string | null }>({
   newTask: null,
   saveTask: null,
 });
 
-/** useQuery не следит за реактивным аргументом — пересоздаём запрос при его смене. */
+/** useQuery does not watch a reactive argument — the query is recreated when it changes. */
 export function useScoped<A, T>(arg: () => A, fn: (a: A) => Promise<T>) {
   const out = shallowRef<T>();
   let scope: EffectScope | undefined;
@@ -95,7 +95,7 @@ const byRank = (a: { rank: string }, b: { rank: string }) =>
 const ids = (kind: TemplateKind, data: unknown) =>
   Array.from({ length: templateIdPlan(kind, data).count }, newId);
 
-/** Задача из шаблона: статус по умолчанию — первый todo, иначе первый по rank; в конец статуса. */
+/** A task from a template: the default status — the first todo, otherwise the first by rank; at the end of the status. */
 export async function createTaskFrom(templateId: string, projectId: string): Promise<void> {
   const tpl = (await db.table('templatesTemplates').get(templateId)) as TemplateRow | undefined;
   const project = await db.table('projects').get(projectId);
@@ -162,7 +162,7 @@ export async function saveProjectAs(projectId: string, name: string): Promise<vo
     await save(p.spaceId, 'project', name, await projectToTemplate(projectId, read, localToday()));
 }
 
-/** Открытая задача (панель `?task=` или экран /t/) по ключу `KEY-N` или id. */
+/** The open task (the `?task=` panel or the /t/ screen) by the key `KEY-N` or id. */
 export async function taskIdByKey(key: string): Promise<string | undefined> {
   const byId = await db.table('tasks').get(key);
   if (byId) return byId.id;

@@ -31,7 +31,7 @@ describe('cl1c: advisory lock до чтения', () => {
     const ch = uuidv7();
     await w.member.ok('chat.channel.create', { id: ch, spaceId: w.spaceId, name: 'race' });
     const ids = Array.from({ length: 6 }, () => uuidv7());
-    // у клиента mutation id последовательны — для параллели нужен клиент на каждый push
+    // the client's mutation ids are sequential — parallelism needs a client per push
     const sv = services(db);
     const clients = ids.map((_, i) => new TestClient(sv, (i % 2 ? w.admin : w.member).userId));
     const rs = await Promise.all(

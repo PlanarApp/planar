@@ -8,7 +8,7 @@ import { PushService } from '../../src/sync/push.service.js';
 import { ORIGIN } from '../auth.js';
 import { dbUrl, newDb, TestClient, taskArgs, world, type World } from '../sync/helpers.js';
 
-// Настоящий pg-boss: enqueue из хука и воркер recurring.spawn не подменяются.
+// Real pg-boss: enqueue from the hook and the recurring.spawn worker are not replaced.
 const db = newDb();
 let app: Awaited<ReturnType<typeof createApp>>;
 let w: World;
@@ -77,7 +77,7 @@ describe('pf1: pg-boss', () => {
     expect((await raw('select * from checklist_items where task_id = $1', [n.id])).length).toBe(1);
     const [r] = await raw('select task_id, next_date from recurring_rules where id = $1', [ruleId]);
     expect(r).toMatchObject({ task_id: n.id, next_date: null });
-    // образец «переоткрыт» и завершён снова: правило уже у нового экземпляра
+    // the sample is "reopened" and completed again: the rule already belongs to the new instance
     await w.admin.ok('task.update', { id: a.id, statusId: w.statusIds[1] });
     await w.admin.ok('task.update', { id: a.id, statusId: w.statusIds[DONE] });
     await new Promise((r) => setTimeout(r, 2500));

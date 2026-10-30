@@ -23,7 +23,7 @@ import {
   type MenuItem,
 } from '../ui';
 
-// витрина только для dev: литералы без i18n
+// showcase for dev only: literals without i18n
 const { theme } = useTheme();
 const text = ref('');
 const sel = ref<string | null>('todo');
@@ -58,7 +58,7 @@ const items: MenuItem[] = [
     onSelect: () => {},
   },
 ];
-// классы литералами: Tailwind выбрасывает неиспользуемые токены
+// classes as literals: Tailwind drops unused tokens
 const neutrals = [
   'bg-neutral-1',
   'bg-neutral-2',

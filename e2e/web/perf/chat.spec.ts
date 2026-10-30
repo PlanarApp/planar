@@ -1,7 +1,7 @@
 import { test, type Page } from '@playwright/test';
 import { BASE, Client, uuidv7 } from '../../lib';
 
-// Замер чата (CL-5): запускается только с CHAT_PERF=1 на стеке с включённым модулем chat.
+// Chat measurement (CL-5): runs only with CHAT_PERF=1 on a stack with the chat module enabled.
 test.skip(!process.env.CHAT_PERF, 'CHAT_PERF=1');
 
 const N = Number(process.env.CHAT_MSGS ?? 10_000);
@@ -16,7 +16,7 @@ const doc = (t: string) => ({
 async function open(page: Page, url: string) {
   await page.goto('/');
   await page.getByRole('heading', { name: 'Чат', level: 2 }).waitFor();
-  // роуты модуля появляются после загрузки реплики; прямой goto даёт заглушку (дефект, отчёт CL-5)
+  // module routes appear after the replica loads; a direct goto gives the stub (defect, CL-5 report)
   await page.evaluate((u) => {
     history.pushState({}, '', u);
     dispatchEvent(new PopStateEvent('popstate'));
@@ -25,7 +25,7 @@ async function open(page: Page, url: string) {
 }
 
 test('чат: 10 000 сообщений — отправка и прокрутка', async ({ browser }) => {
-  test.setTimeout(1_800_000); // посев 10 000 сообщений мутациями ≈ 10–15 мин (стоимость растёт с длиной канала);
+  test.setTimeout(1_800_000); // seeding 10,000 messages via mutations ≈ 10–15 min (cost grows with channel length);
   const admin = await Client.login('admin');
   const spaceId = ((await admin.bootstrap()).data.spaces as { id: string }[])[0]!.id;
   const ch = uuidv7();
@@ -56,7 +56,7 @@ test('чат: 10 000 сообщений — отправка и прокрутк
   const url = `/m/chat/c/${ch}`;
   await open(page, url);
 
-  // отправка: Enter → строка в DOM
+  // send: Enter → line in DOM
   const box = page.getByTestId('chat-composer').getByRole('textbox');
   const sends: number[] = [];
   for (let i = 0; i < 20; i++) {
@@ -89,7 +89,7 @@ test('чат: 10 000 сообщений — отправка и прокрутк
   out('send_ms_p95', p95(sends));
   out('send_ms_max', Math.max(...sends));
 
-  // прокрутка вверх на всю загруженную историю: длинные задачи (>50 мс) и кадры
+  // scroll up over the whole loaded history: long tasks (>50 ms) and frames
   await open(page, url);
   await page.waitForTimeout(1500);
   await page.evaluate(() => {
@@ -121,7 +121,7 @@ test('чат: 10 000 сообщений — отправка и прокрутк
     await page.waitForTimeout(16);
     steps++;
     if (steps % 50 === 0 && (await scroller.evaluate((e) => e.scrollTop)) < 5) {
-      await page.waitForTimeout(500); // дать подгрузиться следующей странице
+      await page.waitForTimeout(500); // let the next page load
       if ((await scroller.evaluate((e) => e.scrollTop)) < 5 && steps > 200) break;
     }
   }

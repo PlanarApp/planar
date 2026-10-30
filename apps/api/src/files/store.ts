@@ -18,7 +18,7 @@ const exists = (p: string) =>
     () => false,
   );
 
-/** Уже посчитанный по sha tmp-файл → на место в DATA_DIR, строки files и file_uploads. Tmp при любом исходе убирается. */
+/** tmp file already hashed by sha → into place in DATA_DIR, files and file_uploads rows. Tmp is removed in any outcome. */
 export async function commitFile(
   db: Db,
   dataDir: string,
@@ -34,7 +34,7 @@ export async function commitFile(
         width = m.width ?? null;
         height = m.height ?? null;
       } catch {
-        // не картинка или битая — размеров нет
+        // not an image or broken — no dimensions
       }
     }
     if (await exists(dest)) await rm(f.tmp);
@@ -61,7 +61,7 @@ export async function commitFile(
   };
 }
 
-/** Файл из памяти (CoreServices.storeFile): тот же путь записи, что POST /files; больше лимита → 413. */
+/** File from memory (CoreServices.storeFile): the same write path as POST /files; over the limit → 413. */
 export async function storeBuffer(
   db: Db,
   opts: FilesOpts,

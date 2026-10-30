@@ -52,7 +52,7 @@ const assignee = (t: { id: string }) => ({
   createdAt: NOW,
 });
 
-/** сервер: открытый проект (5 задач) и большой остальной (2500 задач, 3 пачки по ≤ 1000) */
+/** server: the open project (5 tasks) and a large remainder (2500 tasks, 3 batches of ≤ 1000) */
 function world(path: (hot: { id: string; key: string }) => string) {
   const hot = project('HOT');
   const cold = project('COLD');
@@ -79,7 +79,7 @@ describe('sync:partial', () => {
     });
     expect(c.replicaState.value).toBe('empty');
     const started = s.start(c);
-    // первая запись: открытый проект целиком (5 задач и его связь), остальное ещё не записано
+    // first write: the open project entirely (5 tasks and its link), the rest is not written yet
     while (c.replicaState.value === 'empty') await new Promise((r) => setTimeout(r, 0));
     expect(c.replicaState.value).toBe('partial');
     expect(await s.db.table('tasks').where('projectId').equals(hot.id).count()).toBe(5);
@@ -90,7 +90,7 @@ describe('sync:partial', () => {
     expect(c.replicaState.value).toBe('complete');
     expect(await s.db.table('tasks').count()).toBe(2505);
     expect(await s.db.table('taskAssignees').count()).toBe(2);
-    expect(seen.length).toBeGreaterThan(3); // reset + пачки
+    expect(seen.length).toBeGreaterThan(3); // reset + batches
   });
 
   it('perf:partial курсор сохраняется только после complete, события пачек — подписчикам', async () => {
@@ -106,9 +106,9 @@ describe('sync:partial', () => {
     await s.start(c);
     await new Promise((r) => setTimeout(r, 20));
     off();
-    expect(cursors[0]).toBeUndefined(); // после первой записи (partial) курсора нет
+    expect(cursors[0]).toBeUndefined(); // after the first write (partial) there is no cursor
     expect((await s.db._meta.get('cursor'))?.value).toBe(server.seq);
-    expect(rows).toBe(2500); // остальные задачи пришли событиями пачек
+    expect(rows).toBe(2500); // the remaining tasks arrived as batch events
   });
 
   it('perf:partial прерванный bootstrap начинается заново', async () => {
@@ -117,11 +117,11 @@ describe('sync:partial', () => {
     const c1 = s.mk();
     const started = s.start(c1);
     while (c1.replicaState.value !== 'partial') await new Promise((r) => setTimeout(r, 0));
-    await c1.stopSync(); // обрыв между пачками
+    await c1.stopSync(); // connection dropped between batches
     await started;
     expect((await s.db._meta.get('cursor'))?.value).toBeUndefined();
     expect(await s.db.table('tasks').count()).toBeLessThan(2505);
-    const c2 = s.mk(); // «перезагрузка»: курсора нет → снова bootstrap
+    const c2 = s.mk(); // "reload": no cursor → bootstrap again
     await s.start(c2);
     expect(server.bootstraps).toBe(2);
     expect(c2.replicaState.value).toBe('complete');

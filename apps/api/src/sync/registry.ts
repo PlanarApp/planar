@@ -10,7 +10,7 @@ import { installed } from '../modules/installed.js';
 
 let core: Map<string, MutatorDef> | undefined;
 
-/** Мутатор ядра или включённого модуля; выключенного модуля — undefined (unknown_mutator). */
+/** Core or enabled module mutator; a disabled module — undefined (unknown_mutator). */
 export async function findMutator(q: Reader, name: string): Promise<MutatorDef | undefined> {
   core ??= createRegistry(domainMutators);
   const def = core.get(name);
@@ -22,7 +22,7 @@ export async function findMutator(q: Reader, name: string): Promise<MutatorDef |
     .find((d) => d.name === name);
 }
 
-/** Сущности ядра и включённых модулей. */
+/** Entities of the core and enabled modules. */
 export async function visibleEntities(q: Reader): Promise<Record<string, EntityMeta>> {
   const on = await enabledModules(q);
   const out: Record<string, EntityMeta> = { ...ENTITIES };

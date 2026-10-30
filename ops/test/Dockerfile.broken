@@ -1,4 +1,4 @@
-# Только для ops/test-upgrade.sh: «сломанная новая версия» api — падает при старте.
+# Only for ops/test-upgrade.sh: a «broken new version» of api — fails on start.
 ARG BASE
 FROM ${BASE}
 CMD ["node", "-e", "process.exit(1)"]

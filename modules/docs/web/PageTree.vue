@@ -6,15 +6,15 @@ import { IconButton, db, mutate, newId, rankBetween, useQuery } from '@planar/we
 import { buildTree, moveArgs, type DropZone, type PageRow, type TreeNode } from './model';
 import { useTexts } from './text';
 
-/** Раздел дерева — уровень группы; projectId: undefined — все страницы пространства. */
+/** Tree section — a group level; projectId: undefined — all pages of the space. */
 export interface TreeSectionDef {
   key: string;
   title?: string;
   spaceId: string;
   projectId?: string | null;
-  /** скрыть раздел без страниц (вложенные уровни в табе группы) */
+  /** hide a section without pages (nested levels in the group's tab) */
   optional?: boolean;
-  /** отступ заголовка: проект под пространством */
+  /** header indent: a project under the space */
   indent?: boolean;
 }
 const props = defineProps<{
@@ -27,7 +27,7 @@ const router = useRouter();
 const pages = useQuery(() => db.table<PageRow>('docsPages').toArray());
 const opened = ref(new Set<string>());
 
-// путь до открытой страницы раскрыт всегда
+// the path to the open page is always expanded
 const trail = computed(() => {
   const out = new Set<string>();
   const all = pages.value ?? [];
@@ -41,7 +41,7 @@ const open = computed(() => new Set([...opened.value, ...trail.value]));
 const inSection = (s: TreeSectionDef) => (p: PageRow) =>
   s.projectId === undefined || (p.projectId ?? null) === s.projectId;
 const trees = computed(() => {
-  // есть ли дети — показывать шеврон
+  // whether there are children — show the chevron
   const parents = new Set((pages.value ?? []).filter((p) => !p.archivedAt).map((p) => p.parentId));
   return props.sections
     .map((s) => ({
@@ -79,7 +79,7 @@ async function add(sec: TreeSectionDef, parent: PageRow | null) {
   void router.push(props.link(id));
 }
 
-// перетаскивание: верх строки — перед, низ — после, середина — внутрь
+// dragging: top of a row — before, bottom — after, middle — inside
 const dragId = ref('');
 const hint = ref<{ id: string; zone: DropZone } | null>(null);
 const zoneOf = (e: DragEvent): DropZone => {
@@ -92,7 +92,7 @@ function drop(e: DragEvent, n: TreeNode) {
   hint.value = null;
   const a = dragId.value && moveArgs(pages.value ?? [], dragId.value, n.page.id, zone);
   dragId.value = '';
-  // рядом с чужой страницей в корне — на её уровень (проект или пространство)
+  // next to someone else's page at the root — to its level (project or space)
   if (a)
     void mutate('docs.page.move', { ...a, projectId: n.page.projectId ?? null }).catch(() => {});
 }

@@ -7,7 +7,7 @@ import {
   type Tx,
 } from '../contract/index.js';
 
-/** Tx в памяти: та же семантика, что у серверного, без прав, changes и activity. */
+/** In-memory Tx: the same semantics as the server one, without permissions, changes and activity. */
 export class MemoryTx implements Tx {
   private store = new Map<string, Map<string, Record<string, unknown>>>();
 

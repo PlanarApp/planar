@@ -105,7 +105,7 @@ describe('views:project', () => {
     expect(w.get('[data-testid=view]').text()).toBe(`${project}|status`);
     const tabs = w.findAll('[role=tab]');
     expect(tabs.map((x) => x.text())).toEqual(['Список', 'Доска']);
-    await tabs[1].trigger('mousedown', { button: 0 }); // reka Tabs выбирает по mousedown
+    await tabs[1].trigger('mousedown', { button: 0 }); // reka Tabs selects on mousedown
     await flushPromises();
     expect(r.currentRoute.value.path).toBe(`/p/${project}/board`);
     await vi.waitFor(() => expect(w.get('[data-testid=view]').attributes('data-id')).toBe('board'));

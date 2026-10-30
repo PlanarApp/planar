@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 import { ensureModule, moduleStatus, setEnabledModules, setModuleLoaders } from '../registry';
 
-// один файл — один экземпляр registry: порядок тестов важен (enabled сначала null)
+// one file — one registry instance: test order matters (enabled first = null)
 describe('холодная реплика: ensureModule', () => {
   it('ждёт настройки и возвращает true после их появления', async () => {
     setModuleLoaders({

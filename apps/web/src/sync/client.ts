@@ -54,7 +54,7 @@ const LOCK = 'planar-sync-leader';
 const CHANNEL = 'planar-replica';
 const RESET: ReplicaChange = { entity: '*', id: '*', row: null };
 export type ReplicaState = 'empty' | 'partial' | 'complete';
-/** Таблицы, которые bootstrap пишет вторым этапом (строки не открытого проекта), с полем связи. */
+/** Tables that bootstrap writes in the second stage (rows of the non-open project), with the link field. */
 const DEFERRED: Record<string, 'id' | 'taskId'> = {
   tasks: 'id',
   taskAssignees: 'taskId',
@@ -62,13 +62,13 @@ const DEFERRED: Record<string, 'id' | 'taskId'> = {
   checklistItems: 'taskId',
   comments: 'taskId',
   attachments: 'taskId',
-  commentReactions: 'taskId', // фактически commentId — см. splitBootstrap
+  commentReactions: 'taskId', // actually commentId — see splitBootstrap
 };
 const BATCH = 1000;
 
 type Rows = Record<string, unknown>[];
 
-/** Проект, открытый по адресу: /p/:projectId или /t/:key (PLN-12 или uuid задачи). */
+/** Project opened by the address: /p/:projectId or /t/:key (PLN-12 or task uuid). */
 function openProject(data: Record<string, Rows>): string | undefined {
   const path = globalThis.location?.pathname ?? '';
   const p = /^\/p\/([^/]+)/.exec(path)?.[1];
@@ -81,7 +81,7 @@ function openProject(data: Record<string, Rows>): string | undefined {
     string | undefined;
 }
 
-/** Строки открытого проекта + остальные пачки; без открытого проекта — undefined (пишем всё сразу). */
+/** Rows of the open project + the remaining batches; without an open project — undefined (write everything at once). */
 function splitBootstrap(data: Record<string, Rows>) {
   const pid = openProject(data);
   if (!pid) return undefined;
@@ -118,7 +118,7 @@ export function createClient(db: PlanarDB) {
   const replicaCbs = new Set<(b: ReplicaChange[]) => void>();
   const typingCbs = new Set<(e: TypingEvent) => void>();
   const replicaState = ref<ReplicaState>('empty');
-  // другие вкладки: те же пачки; db.name — чтобы клиенты разных баз (тесты) не слышали друг друга
+  // other tabs: the same batches; db.name — so clients of different databases (tests) don't hear each other
   const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(CHANNEL);
   (channel as { unref?: () => void } | null)?.unref?.();
   const fire = (b: ReplicaChange[]) => {
@@ -132,7 +132,7 @@ export function createClient(db: PlanarDB) {
   channel?.addEventListener('message', (ev: MessageEvent) => {
     if (ev.data?.db === db.name && Array.isArray(ev.data.batch)) fire(ev.data.batch);
   });
-  /** после коммита: подписчикам этой вкладки и (если не local) остальным вкладкам */
+  /** after commit: to this tab's subscribers and (unless local) to the other tabs */
   const emit = (b: ReplicaChange[], local = false) => {
     if (!b.length) return;
     fire(b);
@@ -140,7 +140,7 @@ export function createClient(db: PlanarDB) {
   };
 
   let opts: StartOpts | null = null;
-  let gen = 0; // номер запуска: отсекает хвосты прошлых startSync
+  let gen = 0; // run number: cuts off the tails of previous startSync calls
   let leading = false;
   let clientId = '';
   let cursor: number | undefined;
@@ -164,14 +164,14 @@ export function createClient(db: PlanarDB) {
     (await db._meta.get(key))?.value;
 
   function registerMutators(defs: MutatorDef[]) {
-    createRegistry([...registry.values(), ...defs]); // дубликат имени → Error
+    createRegistry([...registry.values(), ...defs]); // duplicate name → Error
     for (const d of defs) registry.set(d.name, d);
   }
 
   async function mutate(name: string, input: unknown): Promise<void> {
     const def = registry.get(name);
     if (!def) throw new MutatorError('invalid_args', `неизвестный мутатор: ${name}`);
-    // аргументы — JSON по C-sync; реактивные Proxy Vue IndexedDB не клонирует (DataCloneError)
+    // arguments are JSON per C-sync; Vue reactive Proxies can't be cloned by IndexedDB (DataCloneError)
     const args: unknown = input === undefined ? undefined : JSON.parse(JSON.stringify(input));
     const parsed = def.args.safeParse(args);
     if (!parsed.success) throw new MutatorError('invalid_args', parsed.error.message);
@@ -185,7 +185,7 @@ export function createClient(db: PlanarDB) {
       await db._queue.add({ name, args, createdAt, undo });
     });
     emit(changes);
-    // pending и отправку подхватывает подписка на _queue из startSync (в том числе из других вкладок)
+    // pending and sending are picked up by the _queue subscription from startSync (including from other tabs)
   }
 
   const ctx = (now: string): MutatorCtx => ({ userId: opts!.userId, now, server: false });
@@ -194,8 +194,8 @@ export function createClient(db: PlanarDB) {
   };
 
   /**
-   * Серверное состояние + rebase очереди в одной транзакции: откат оптимистичных записей,
-   * применение серверных, выброс подтверждённых/отклонённых, повтор оставшихся.
+   * Server state + queue rebase in one transaction: roll back optimistic writes,
+   * apply server ones, drop confirmed/rejected, replay the rest.
    */
   async function applyServer(p: {
     bootstrap?: Record<string, Record<string, unknown>[]>;
@@ -213,7 +213,7 @@ export function createClient(db: PlanarDB) {
       const queue = await db._queue.orderBy('id').toArray();
       if (p.bootstrap) {
         changes.push(RESET);
-        // shortcut: с неподтверждённой очередью пишем всё сразу — rebase не должен гоняться с фоновой записью
+        // shortcut: with an unconfirmed queue we write everything at once — the rebase must not race with a background write
         const split = queue.length ? undefined : splitBootstrap(p.bootstrap);
         const data = split?.hot ?? p.bootstrap;
         rest = split?.rest ?? [];
@@ -247,12 +247,12 @@ export function createClient(db: PlanarDB) {
           await def.run(new DexieTx(db, undo, changes), def.args.parse(q.args), ctx(q.createdAt));
           await db._queue.update(q.id!, { undo });
         } catch {
-          // не применима к реплике: пропускаем локальный эффект, но оставляем в очереди — судит сервер
+          // not applicable to the replica: skip the local effect but keep it in the queue — the server decides
           await applyUndo(db, undo, changes);
           await db._queue.update(q.id!, { undo: [] });
         }
       }
-      // курсор — только когда реплика целиком на месте: оборвавшийся bootstrap начнётся заново
+      // the cursor only when the replica is fully in place: an interrupted bootstrap will start over
       if (p.cursor !== undefined && !rest.length)
         await db._meta.put({ key: 'cursor', value: p.cursor });
       if (p.lastMutationId !== undefined)
@@ -261,10 +261,10 @@ export function createClient(db: PlanarDB) {
     if (p.bootstrap) replicaState.value = rest.length ? 'partial' : 'complete';
     emit(changes);
     if (rest.length) {
-      // остальные задачи — пачками, отдавая поток отрисовке; события только этой вкладке (в других — один reset в конце)
+      // other tasks — in batches, yielding the stream to rendering; events only to this tab (in others — a single reset at the end)
       for (const [name, rows] of rest)
         for (let i = 0; i < rows.length; i += BATCH) {
-          if (g !== gen) return; // остановлено: курсор не записан — bootstrap повторится
+          if (g !== gen) return; // stopped: cursor not written — bootstrap will repeat
           const part = rows.slice(i, i + BATCH);
           await db.table(name).bulkPut(part);
           emit(
@@ -291,7 +291,7 @@ export function createClient(db: PlanarDB) {
     const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]);
     const res = await f((opts!.baseUrl ?? '') + path, { ...init, signal });
     if (!res.ok) {
-      // тело ошибки C-http {code, message}: показать причину, а не «HTTP 403»
+      // C-http error body {code, message}: show the reason, not "HTTP 403"
       const b = (await res.json().catch(() => null)) as { code?: string; message?: string } | null;
       throw new HttpError(res.status, b?.code ?? '', b?.message ?? '');
     }
@@ -310,7 +310,7 @@ export function createClient(db: PlanarDB) {
     await applyServer({ changes: r.changes, cursor: r.cursor, lastMutationId: r.lastMutationId });
   }
 
-  /** true — что-то отправлено */
+  /** true — something was sent */
   async function push(): Promise<boolean> {
     const items = await db._queue.where('id').above(pushedUpTo).limit(100).toArray();
     if (!items.length) return false;
@@ -347,7 +347,7 @@ export function createClient(db: PlanarDB) {
     clearTimeout(retryTimer);
     const g = gen;
     try {
-      // сначала push (C-sync: push не зависит от курсора), затем один pull
+      // push first (C-sync: push does not depend on the cursor), then one pull
       const boot = cursor === undefined;
       if (boot) await bootstrap();
       if (g !== gen) return;
@@ -362,13 +362,13 @@ export function createClient(db: PlanarDB) {
         authCbs.forEach((cb) => cb());
         return;
       }
-      // таймаут/обрыв fetch (AbortError, TimeoutError) — как сетевая ошибка
+      // fetch timeout/abort (AbortError, TimeoutError) — treated as a network error
       const net =
         e instanceof TypeError ||
         (e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError')) ||
         (e instanceof HttpError && e.status >= 500);
       setStatus(net ? 'offline' : 'error');
-      // отказ сервера (не сеть): изменения не уходят — сказать, иначе правки молча копятся в очереди
+      // server refusal (not network): changes are not sent — say so, otherwise edits silently pile up in the queue
       if (!net && e instanceof HttpError)
         emitErrors([{ id: 0, name: 'sync', code: e.code || String(e.status), message: e.message }]);
       const g = gen;
@@ -376,7 +376,7 @@ export function createClient(db: PlanarDB) {
     }
   }
 
-  /** Один цикл pull+push за раз; запросы во время цикла сливаются в повтор. */
+  /** One pull+push cycle at a time; requests arriving during a cycle merge into one retry. */
   function kick(): Promise<void> {
     if (!leading) return Promise.resolve();
     if (running) {
@@ -400,7 +400,7 @@ export function createClient(db: PlanarDB) {
     const s = new WS(base.replace(/^http/, 'ws') + '/ws');
     ws = s;
     s.onopen = () => {
-      // устойчивое соединение — открыто ≥ 5 с или пришёл poke; иначе пауза растёт
+      // stable connection — open ≥ 5 s or a poke received; otherwise the pause grows
       wsStable = setTimeout(() => (wsFailures = 0), 5000);
       s.send(JSON.stringify({ t: 'hello', cursor: cursor ?? 0 }));
     };
@@ -433,7 +433,7 @@ export function createClient(db: PlanarDB) {
   async function lead(g: number) {
     if (g !== gen) return;
     leading = true;
-    // тёплый старт не ждёт сеть; холодный — ждёт bootstrap
+    // a warm start doesn't wait for the network; a cold one waits for bootstrap
     if (cursor === undefined) await kick();
     else void kick();
     if (g !== gen) return;
@@ -446,7 +446,7 @@ export function createClient(db: PlanarDB) {
     const g = ++gen;
     await db.open();
     const owner = (await meta('userId')) as string | undefined;
-    if (owner !== undefined && owner !== o.userId) await wipe(); // реплика другого пользователя
+    if (owner !== undefined && owner !== o.userId) await wipe(); // replica of another user
     await db._meta.put({ key: 'userId', value: o.userId });
     const id = (await meta('clientId')) as string | undefined;
     clientId = id ?? uuidv7();
@@ -457,7 +457,7 @@ export function createClient(db: PlanarDB) {
     failures = wsFailures = 0;
     setStatus('idle');
     await refreshPending();
-    // все вкладки следят за очередью; ведущая отправляет новое из любой вкладки
+    // all tabs watch the queue; the leader sends new items from any tab
     const sub = liveQuery(async () => ({
       n: await db._queue.count(),
       last: (await db._queue.orderBy('id').last())?.id ?? 0,
@@ -472,7 +472,7 @@ export function createClient(db: PlanarDB) {
     }
     const locks = globalThis.navigator?.locks;
     if (!locks) return lead(g);
-    // вкладки: лидер (navigator.locks) ведёт WS/pull/push, остальные только пишут в _queue
+    // tabs: the leader (navigator.locks) runs WS/pull/push, the others only write to _queue
     await new Promise<void>((resolve) => {
       const held = new Promise<void>((r) => (releaseLock = r));
       let done!: () => void;
@@ -515,12 +515,12 @@ export function createClient(db: PlanarDB) {
     onlineHandler = null;
     releaseLock?.();
     releaseLock = null;
-    await leaderLock; // замок снят до возврата: новый startSync станет лидером
+    await leaderLock; // the lock is released before return: a new startSync will become the leader
     leaderLock = null;
     await running;
   }
 
-  /** очистка реплики, очереди и _meta; новый clientId */
+  /** clear the replica, queue and _meta; a new clientId */
   async function wipe(): Promise<void> {
     await db.open();
     await db.transaction('rw', db.tables, async () => {
@@ -546,19 +546,19 @@ export function createClient(db: PlanarDB) {
     startSync,
     stopSync,
     syncState: syncState as Readonly<Ref<{ status: SyncStatus; pending: number }>>,
-    /** один цикл pull+push сейчас (для тестов) */
+    /** one pull+push cycle now (for tests) */
     syncNow: () => kick(),
     replicaState: replicaState as Readonly<Ref<ReplicaState>>,
     onReplicaChange(cb: (batch: ReplicaChange[]) => void) {
       replicaCbs.add(cb);
       return () => void replicaCbs.delete(cb);
     },
-    /** «Печатает…» (C-sync v2): WS не открыт — ничего. */
+    /** "Typing…" (C-sync v2): if WS is not open — nothing. */
     sendTyping(entity: string, id: string): void {
       try {
         ws?.send(JSON.stringify({ t: 'typing', entity, id }));
       } catch {
-        // соединение ещё открывается/закрыто — эфемерное сообщение не нужно
+        // connection is still opening/closed — no ephemeral message needed
       }
     },
     onTyping(cb: (e: TypingEvent) => void) {

@@ -3,6 +3,7 @@ import type { Type } from '@nestjs/common';
 import multipart from '@fastify/multipart';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { setDemo } from '@planar/server-kit';
 import { AppModule } from './app.module.js';
 import { createDb } from './db/index.js';
 import type { PushOpts } from './push/push.js';
@@ -11,30 +12,44 @@ import { ErrorFilter } from './error.filter.js';
 
 export interface AppOptions {
   databaseUrl: string;
-  /** origin для проверки Origin и cookie */
+  /** origin for Origin check and cookie */
   publicUrl: string;
   cookieSecure?: boolean;
-  /** корень хранилища файлов (DATA_DIR) */
+  /** file storage root (DATA_DIR) */
   dataDir?: string;
-  /** лимит загрузки, МБ (MAX_UPLOAD_MB) */
+  /** upload limit, MB (MAX_UPLOAD_MB) */
   maxUploadMb?: number;
-  /** pg-boss и Web Push; в тестах без настроек очередь выключена */
+  /** SETUP_TOKEN: set — POST /api/setup requires X-Setup-Token */
+  setupToken?: string;
+  /** DB_POOL_MAX */
+  dbPoolMax?: number;
+  /** DEMO_MODE and DEMO_RESET_HOURS */
+  demo?: boolean;
+  demoResetHours?: number;
+  /** pg-boss and Web Push; in tests without settings the queue is disabled */
   push?: Partial<Omit<PushOpts, 'databaseUrl'>>;
-  /** только тесты: дополнительные контроллеры */
+  /** tests only: extra controllers */
   extraControllers?: Type[];
-  /** TRUST_PROXY: IP/CIDR доверенных прокси; пусто — req.ip = адрес соединения */
+  /** TRUST_PROXY: IP/CIDR of trusted proxies; empty — req.ip is the connection address */
   trustProxy?: string[];
-  /** опции pino Fastify; false — без логов (тесты) */
+  /** Fastify pino options; false — no logs (tests) */
   logger?: boolean | { level: string };
 }
 
-/** Общая фабрика для main.ts и тестов. */
+/** Shared factory for main.ts and tests. */
 export async function createApp(opts: AppOptions): Promise<NestFastifyApplication> {
-  const db = createDb(opts.databaseUrl);
+  setDemo(opts.demo ?? false);
+  const db = createDb(opts.databaseUrl, opts.dbPoolMax);
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule.register(
       db,
-      { publicUrl: opts.publicUrl, cookieSecure: opts.cookieSecure ?? false },
+      {
+        publicUrl: opts.publicUrl,
+        cookieSecure: opts.cookieSecure ?? false,
+        setupToken: opts.setupToken,
+        demo: opts.demo ?? false,
+        demoResetHours: opts.demoResetHours ?? 24,
+      },
       { dataDir: opts.dataDir ?? './data', maxUploadMb: opts.maxUploadMb ?? 50 },
       { boss: false, ...opts.push, databaseUrl: opts.databaseUrl },
       opts.extraControllers,
@@ -46,7 +61,7 @@ export async function createApp(opts: AppOptions): Promise<NestFastifyApplicatio
     }),
     { logger: false },
   );
-  // cast: у platform-fastify своя копия fastify другой минорной версии
+  // cast: platform-fastify has its own copy of fastify of another minor version
   await app.register(multipart as never);
   app
     .getHttpAdapter()

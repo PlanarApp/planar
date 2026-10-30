@@ -1,4 +1,4 @@
-// Контрактный тест collab: сущности и мутаторы модулей = docs/contracts/collab.md. Правит только координатор collab.
+// Contract test collab: module entities and mutators = docs/contracts/collab.md. Edited only by the collab coordinator.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { installed } from '../../src/modules/installed.js';
@@ -36,7 +36,7 @@ const mutators = [...doc.matchAll(/^\| `([\w.]+)` \| `([^`]*)` \|/gm)].map((r) =
     .map((t) => ({ name: t.split(/[?:\s]/)[0], optional: /^\w+\?/.test(t) })),
 }));
 
-// модуль по префиксу: docsPages → docs, docs.page.create → docs
+// module by prefix: docsPages → docs, docs.page.create → docs
 const moduleIds = [
   ...new Set([
     ...entities.map((e) => /^[a-z]+/.exec(e.name)![0]),
@@ -68,7 +68,7 @@ for (const id of moduleIds) {
         const shape = ent!.schema.shape;
         expect(Object.keys(shape).sort()).toEqual(e.fields.map((f) => f.name).sort());
         for (const f of e.fields) {
-          if (f.type === 'json') continue; // любой JSON, null допустим по определению
+          if (f.type === 'json') continue; // any JSON; null is allowed by definition
           expect(shape[f.name].safeParse(null).success, `${e.name}.${f.name}: ${f.type}`).toBe(
             f.nullable,
           );

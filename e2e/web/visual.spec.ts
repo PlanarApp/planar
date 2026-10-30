@@ -2,7 +2,7 @@ import { expect, test, type Browser } from '@playwright/test';
 import { BASE } from '../lib.js';
 import { NOW, buildData, shiftTime, type Data } from './visual-helpers.js';
 
-// Скриншоты 14 экранов × 2 ширины × 2 темы. Эталоны — в visual.spec.ts-snapshots (создание: --update-snapshots).
+// Screenshots: 14 screens × 2 widths × 2 themes. Baselines — in visual.spec.ts-snapshots (creating: --update-snapshots).
 const SCREENS: [name: string, url: (d: Data) => string, ready: string | RegExp][] = [
   ['login', () => '/login', 'Войти'],
   ['my', () => '/my', 'Подготовить макеты экрана входа'],
@@ -24,7 +24,7 @@ const WIDTHS = [
   [390, 844],
 ] as const;
 
-test.describe.configure({ retries: 2 }); // редкий пустой экран при первой загрузке реплики (см. отчёт)
+test.describe.configure({ retries: 2 }); // a rare empty screen on the first load of the replica (see report)
 
 let data: Data;
 let state: Awaited<ReturnType<Data['alice']['ctx']['storageState']>>;
@@ -57,7 +57,7 @@ for (const [name, url, ready] of SCREENS)
         const to = url(data);
         const target = page.getByText(ready).first();
         if (to.startsWith('/m/')) {
-          // маршруты модулей добавляются после загрузки реплики: холодный goto иногда даёт заглушку «Модуль» — переходим как SPA, пока не откроется
+          // module routes are added after the replica loads: a cold goto sometimes gives the «Module» stub — we navigate as SPA until it opens
           await page.goto('/my');
           await expect(async () => {
             await page.evaluate(
@@ -76,7 +76,7 @@ for (const [name, url, ready] of SCREENS)
           await expect(target).toBeVisible();
         }
         await page.evaluate(() => document.fonts.ready);
-        await page.waitForTimeout(500); // догрузка реплики и перерисовка списков
+        await page.waitForTimeout(500); // replica catch-up and re-rendering of lists
         await expect(page).toHaveScreenshot(`${name}-${w}-${theme}.png`, {
           animations: 'disabled',
           caret: 'hide',

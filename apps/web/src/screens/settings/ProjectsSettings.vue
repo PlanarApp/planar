@@ -51,7 +51,7 @@ const archive = (p: Row<'projects'>) =>
     }),
   );
 const remove = (id: string) => run(() => mutate('project.delete', { id }));
-// массовые действия: в архив / из архива / удалить выбранные
+// bulk actions: to archive / from archive / delete selected
 const picked = ref(new Set<string>());
 const toggle = (id: string) => {
   const s = new Set(picked.value);

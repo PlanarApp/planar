@@ -8,7 +8,7 @@ import { PushService } from '../../src/sync/push.service.js';
 import { ORIGIN } from '../auth.js';
 import { dbUrl, key, newDb, TestClient, taskArgs, world, type World } from '../sync/helpers.js';
 
-// Настоящий pg-boss: enqueue из хука и воркер automations.run не подменяются.
+// Real pg-boss: enqueue from the hook and the automations.run worker are not replaced.
 const db = newDb();
 let app: Awaited<ReturnType<typeof createApp>>;
 let w: World;

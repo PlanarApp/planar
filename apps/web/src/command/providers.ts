@@ -12,7 +12,7 @@ export const PROVIDER_TIMEOUT_MS = 2000;
 
 type Provider = SearchProviderDef & { key: string };
 
-/** Группы провайдеров поиска; ошибка провайдера или пустой ответ — группа скрыта. */
+/** Search provider groups; provider error or empty response — group hidden. */
 export async function queryProviders(
   providers: Provider[],
   q: string,
@@ -38,7 +38,7 @@ export async function queryProviders(
   return out.filter((g): g is ProviderGroup => !!g);
 }
 
-/** Реактивные группы по запросу: debounce 150 мс, устаревший ответ отбрасывается. */
+/** Reactive groups by query: debounce 150 ms, stale response discarded. */
 export function useProviderGroups(
   query: Ref<string>,
   providers: () => Provider[],

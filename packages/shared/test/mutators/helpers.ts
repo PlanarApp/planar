@@ -15,7 +15,7 @@ export async function run(tx: Tx, name: string, args: unknown, c = ctx()) {
   return d.run(tx, d.args.parse(args), c);
 }
 
-/** Код MutatorError или 'ok'. */
+/** MutatorError code or 'ok'. */
 export async function code(p: Promise<unknown>): Promise<string> {
   try {
     await p;

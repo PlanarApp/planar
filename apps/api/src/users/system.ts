@@ -5,7 +5,7 @@ import { publish } from './users.repo.js';
 
 export const SYSTEM_LOGIN = 'automation';
 
-/** Системный пользователь (по умолчанию «Автоматизация»): идемпотентно; входить им нельзя (деактивирован, хэш невалиден). */
+/** System user (default "Automation"): idempotent; they cannot sign in (deactivated, hash invalid). */
 export async function ensureSystemUser(
   db: Db,
   login = SYSTEM_LOGIN,
@@ -19,7 +19,7 @@ export async function ensureSystemUser(
         name,
         role: 'member',
         deactivatedAt: new Date().toISOString(),
-        passwordHash: '!', // не argon2-хэш: verify всегда false
+        passwordHash: '!', // not an argon2 hash: verify is always false
       })
       .onConflictDoNothing({ target: users.login })
       .returning();

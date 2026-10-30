@@ -1,5 +1,11 @@
 import { createApp } from './app.js';
-import { parseMaxUploadMb, parseTrustProxy } from './config.js';
+import {
+  parseDbPoolMax,
+  parseDemoMode,
+  parseDemoResetHours,
+  parseMaxUploadMb,
+  parseTrustProxy,
+} from './config.js';
 import { createDb, migrate } from './db/index.js';
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -9,9 +15,17 @@ if (!databaseUrl) {
 }
 let maxUploadMb: number;
 let trustProxy: string[];
+let dbPoolMax: number;
+let demo: boolean;
+let demoResetHours: number;
 try {
   trustProxy = parseTrustProxy(process.env.TRUST_PROXY);
-  maxUploadMb = parseMaxUploadMb(process.env.MAX_UPLOAD_MB);
+  dbPoolMax = parseDbPoolMax(process.env.DB_POOL_MAX);
+  demo = parseDemoMode(process.env.DEMO_MODE);
+  demoResetHours = parseDemoResetHours(process.env.DEMO_RESET_HOURS);
+  // demo: 2 MB unless MAX_UPLOAD_MB is set explicitly
+  const upload = process.env.MAX_UPLOAD_MB;
+  maxUploadMb = parseMaxUploadMb(demo && !upload?.trim() ? '2' : upload);
 } catch (e) {
   console.error((e as Error).message);
   process.exit(1);
@@ -25,6 +39,10 @@ const app = await createApp({
   dataDir: process.env.DATA_DIR,
   maxUploadMb: maxUploadMb,
   trustProxy,
+  setupToken: process.env.SETUP_TOKEN || undefined,
+  dbPoolMax,
+  demo,
+  demoResetHours,
   push: {
     boss: true,
     vapid: {

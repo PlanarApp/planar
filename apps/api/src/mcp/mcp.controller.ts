@@ -9,7 +9,7 @@ import { RestService } from '../rest/rest.service.js';
 import { DB } from '../tokens.js';
 import { buildMcpServer } from './tools.js';
 
-/** Авторизация здесь своя: только Bearer, cookie не принимается. */
+/** Auth is its own here: Bearer only, cookie is not accepted. */
 @Public()
 @Controller('mcp')
 export class McpController {

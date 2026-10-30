@@ -42,7 +42,7 @@ import { provideChatLinks } from './links';
 import { byName, dmTitle, isDirect } from './model';
 import { useTexts } from './text';
 
-// таб «Чаты» группы: каналы её уровня и вложенных, личные диалоги — у Воркспейса; канал — ?c, тред — ?t
+// «Chats» tab of the group: channels of its level and nested ones, personal dialogs — at the Workspace; channel — ?c, thread — ?t
 const props = defineProps<{ scope: GroupScope }>();
 const tx = useTexts();
 const route = useRoute();
@@ -78,7 +78,7 @@ const sections = computed(() => {
           )
           .sort((a, b) => byName(a.name ?? '', b.name ?? '')),
       }))
-      // вложенные уровни без каналов не показываем; свой — всегда (там «+»)
+      // nested levels without channels are not shown; our own is always shown (it has the «+»)
       .filter((s) => s.own || s.items.length)
   );
 });
@@ -111,7 +111,7 @@ const members = computed(() =>
         .filter((m) => m.channelId === channel.value?.id)
         .flatMap((m) => users.value.get(m.userId) ?? []),
 );
-// @-упоминания — в каналах и группах от трёх; в диалоге 1:1 их нет
+// @-mentions — in channels and groups of three or more; in a 1:1 chat there are none
 const mentionable = computed(() =>
   channel.value && d.value && isDirect(channel.value, d.value.members) ? [] : members.value,
 );
@@ -121,7 +121,7 @@ const title = computed(() => {
   if (!c) return '';
   return c.kind === 'dm' ? dmTitle(c, d.value!.members, users.value, meId.value) : `# ${c.name}`;
 });
-// личный диалог: 1–7 коллег (видимых по правам — пользователи реплики); тот же состав — открыть существующий
+// personal chat: 1–7 colleagues (visible by permissions — replica users); the same set — open the existing one
 const picking = ref(false);
 const picked = ref<string[]>([]);
 const people = computed(() =>
@@ -144,7 +144,7 @@ async function openDm() {
   void router.push(links.channel(id));
 }
 
-// состав диалога: видят все участники; добавить может любой (до 8), убрать — создатель диалога
+// chat members: all participants see them; anyone can add (up to 8), only the chat creator can remove
 const dmPeople = computed(() =>
   channel.value?.kind === 'dm'
     ? (d.value?.members ?? [])
@@ -164,7 +164,7 @@ const addToDm = (userId: string) =>
 const removeFromDm = (userId: string) =>
   void mutate('chat.dm.removeMember', { channelId: channel.value!.id, userId });
 
-// настройка канала: создатель или admin пространства — название, тема, архив, удаление
+// channel settings: the creator or a space admin — name, topic, archive, delete
 const canManage = computed(() => {
   const c = channel.value;
   if (!c || c.kind !== 'channel') return false;

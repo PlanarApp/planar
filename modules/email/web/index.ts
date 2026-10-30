@@ -1,7 +1,7 @@
 import { defineComponent, h } from 'vue';
 import { defineWebModule } from '@planar/web/modules';
 
-// иконка без lucide: конверт
+// icon without lucide: envelope
 const Mail = defineComponent({
   props: { size: { type: [Number, String], default: 16 } },
   setup: (p) => () =>

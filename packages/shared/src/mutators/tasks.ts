@@ -16,7 +16,7 @@ import {
 
 const priority = z.number().int().min(0).max(4);
 
-/** Задача `parentId` — в том же пространстве, не сама `taskId` и не её потомок. */
+/** Task `parentId` — in the same space, not `taskId` itself and not its descendant. */
 async function checkParent(tx: Tx, taskId: string, spaceId: string, parentId: string) {
   let p: Row<'tasks'> | undefined = await need(tx, 'tasks', parentId);
   if (p.spaceId !== spaceId) throw bad('parentId другого пространства');

@@ -13,14 +13,14 @@ import { ensureSystemUser } from '../users/system.js';
 
 export const PUSH_OPTS = Symbol('PUSH_OPTS');
 
-/** Одна PgBoss на процесс (push + задачи модулей). */
+/** One PgBoss per process (push + module jobs). */
 @Injectable()
 export class JobsService implements OnApplicationShutdown {
   private log = new Logger('jobs');
   private ready?: Promise<PgBoss | undefined>;
   private sysId?: Promise<string>;
   private boss?: PgBoss;
-  /** доставка уведомлений после COMMIT мутаций из задач (ставит PushQueue) */
+  /** notification delivery after COMMIT of mutations from jobs (enqueued by PushQueue) */
   push?: PushQueue;
 
   constructor(
@@ -39,7 +39,7 @@ export class JobsService implements OnApplicationShutdown {
     }));
   }
 
-  /** Старт (ленивый, один раз); boss:false → undefined. */
+  /** Start (lazy, once); boss:false → undefined. */
   start(): Promise<PgBoss | undefined> {
     if (!this.opts.boss) return Promise.resolve(undefined);
     return (this.ready ??= (async () => {
@@ -52,14 +52,14 @@ export class JobsService implements OnApplicationShutdown {
       this.boss = boss;
       return boss;
     })().catch((e) => {
-      this.ready = undefined; // следующий вызов попробует снова
+      this.ready = undefined; // the next call will retry
       throw e;
     }));
   }
 
   private async register(boss: PgBoss, moduleId: string, j: JobDef) {
     const { retryLimit, retryDelay, retryBackoff, expireInSeconds } = j;
-    // pg-boss не принимает undefined-ключи
+    // pg-boss does not accept undefined keys
     const qo = Object.fromEntries(
       Object.entries({ retryLimit, retryDelay, retryBackoff, expireInSeconds }).filter(
         ([, v]) => v !== undefined,
@@ -70,7 +70,7 @@ export class JobsService implements OnApplicationShutdown {
       j.queue,
       { pollingIntervalSeconds: 0.5, localConcurrency: j.localConcurrency ?? 1 },
       async (jobs) => {
-        // выключенный модуль: задача завершается без handler
+        // disabled module: the job finishes without a handler
         if (!(await enabledModules(this.db)).has(moduleId)) return;
         const api = await this.api();
         for (const job of jobs) await j.handler(job.data, api);
@@ -89,7 +89,7 @@ export class JobsService implements OnApplicationShutdown {
     };
   }
 
-  /** Вне транзакции; boss:false — no-op. */
+  /** Outside a transaction; boss:false — no-op. */
   async enqueue(queue: string, data: object, o?: JobOpts, q?: Q): Promise<void> {
     const boss = await this.start();
     if (!boss) return;
@@ -108,7 +108,7 @@ export class JobsService implements OnApplicationShutdown {
   }
 }
 
-/** SQL pg-boss (`$n`-параметры) через Drizzle-транзакцию. */
+/** pg-boss SQL (`$n` parameters) via a Drizzle transaction. */
 async function run(q: Q, text: string, values: unknown[] = []) {
   const parts = text.split(/\$(\d+)/);
   const chunks = parts.map((p, i) => (i % 2 ? sql.param(values[Number(p) - 1]) : sql.raw(p)));

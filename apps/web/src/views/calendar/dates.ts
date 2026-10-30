@@ -1,4 +1,4 @@
-// Календарные даты YYYY-MM-DD без часового пояса: только локальные компоненты, без toISOString/Date.parse.
+// Calendar dates YYYY-MM-DD without a time zone: only local components, no toISOString/Date.parse.
 const pad = (n: number) => String(n).padStart(2, '0');
 export const fmt = (d: Date): string =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -10,7 +10,7 @@ export const addDays = (s: string, n: number): string => {
   const d = parse(s);
   return fmt(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
 };
-/** Разница в днях b − a (через UTC-компоненты, переход на летнее время не влияет). */
+/** Difference in days b − a (via UTC components, daylight saving time does not affect it). */
 export const diffDays = (a: string, b: string): number => {
   const [x, y] = [a, b].map((s) => {
     const [yy, mm, dd] = s.split('-').map(Number);
@@ -22,7 +22,7 @@ export const addMonths = (s: string, n: number): string => {
   const d = parse(s);
   return fmt(new Date(d.getFullYear(), d.getMonth() + n, 1));
 };
-/** Начало недели: ws 1 — понедельник, 0 — воскресенье. */
+/** Start of week: ws 1 — Monday, 0 — Sunday. */
 const weekFirst = (s: string, ws: 0 | 1) => addDays(s, -((parse(s).getDay() + 7 - ws) % 7));
 
 export const weekDays = (anchor: string, ws: 0 | 1 = 1): string[] => {
@@ -44,14 +44,14 @@ interface Dated {
   startDate: string | null;
   dueDate: string | null;
 }
-/** Диапазон показа: обе даты — start..due (перепутанные меняются местами), одна — день, нет — null. */
+/** Display range: both dates — start..due (swapped ones are exchanged), one — a day, none — null. */
 export function range(t: Dated): [string, string] | null {
   const a = t.startDate ?? t.dueDate;
   const b = t.dueDate ?? t.startDate;
   if (!a || !b) return null;
   return a <= b ? [a, b] : [b, a];
 }
-/** Задачи по дням из `days`; порядок задач сохраняется. */
+/** Tasks by the days in `days`; the order of tasks is preserved. */
 export function layout<T extends Dated>(tasks: T[], days: string[]): Map<string, T[]> {
   const res = new Map(days.map((d) => [d, [] as T[]]));
   for (const t of tasks) {
@@ -61,7 +61,7 @@ export function layout<T extends Dated>(tasks: T[], days: string[]): Map<string,
   }
   return res;
 }
-/** Патч дат при переносе: `from` — день, с которого тянут (null — из «Без даты»). */
+/** Date patch on drag: `from` — the day dragged from (null — from "No date"). */
 export function shift(
   t: Dated,
   from: string | null,

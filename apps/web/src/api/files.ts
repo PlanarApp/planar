@@ -8,7 +8,7 @@ export interface Uploaded {
   height: number | null;
 }
 
-/** POST /files (C-http); > лимита → ApiError(413). */
+/** POST /files (C-http); > limit → ApiError(413). */
 export function uploadFile(file: File): Promise<Uploaded> {
   const fd = new FormData();
   fd.append('file', file);

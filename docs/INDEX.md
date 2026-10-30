@@ -37,6 +37,12 @@ generated: true
   - [docs/guides/deploy.md](guides/deploy.md) — Развёртывание planar на одном VPS - .env, первый запуск, бэкапы и восстановление, обновление, мониторинг, неполадки
 - **p4** — План модуля p4: повторяющиеся задачи и шаблоны, цели и вехи, email-уведомления (SMTP), внешние плагины через iframe [active 2026-10-25] — [план](plan/p4.md) · [контракты](contracts/p4.md)
 - **tails** — Визуальные хвосты фазы 3: карточки доски, крошки на телефоне, раздел чата, экран входа, иконка приоритета, пустые ячейки строки [active 2026-10-25] — [план](plan/tails.md)
+- **launch** — План запуска Planar — open source, демо, docs, материалы; облако вынесено в отдельный проект [closed 2026-10-30] — [план](plan/launch.md) · [контракты](contracts/launch.md) · [решения](plan/launch/decisions.md) · [сводка](plan/launch/summary.md) · полный журнал: `archive/launch`
+  - [docs/launch-materials/article-en.md](launch-materials/article-en.md) — English version of the Habr article: how local-first sync works in the Planar task tracker
+  - [docs/launch-materials/habr-ru.md](launch-materials/habr-ru.md) — Статья для Хабра: как устроена local-first синхронизация в трекере Planar (по roadmap §3)
+  - [docs/launch-materials/one-pager.en.md](launch-materials/one-pager.en.md) — One-pager (EN): what Planar is, who it is for, what is in 0.9.0, how to start
+  - [docs/launch-materials/one-pager.ru.md](launch-materials/one-pager.ru.md) — One-pager (RU): что такое Planar, для кого, что есть в 0.9.0, как начать
+  - [docs/launch-materials/posts.md](launch-materials/posts.md) — Тексты постов запуска: Show HN, r/selfhosted, r/opensource, r/projectmanagement, Product Hunt, vc.ru, Telegram
 
 ## Прочие документы
 

@@ -31,7 +31,7 @@ export class MetricsController {
     if (given.length !== want.length || !timingSafeEqual(given, want))
       throw new HttpError(401, 'unauthenticated', 'Unauthenticated');
     const snap: Snapshot = { queue: null, dbSize: null };
-    // сбой запроса не роняет ответ: соответствующие строки пропускаются
+    // a failed request does not break the response: the corresponding rows are skipped
     try {
       snap.dbSize = Number(
         (await this.db.execute(sql`select pg_database_size(current_database())::float8 as n`))

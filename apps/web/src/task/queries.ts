@@ -6,7 +6,7 @@ const byStr =
   (a: T, b: T) =>
     f(a) < f(b) ? -1 : f(a) > f(b) ? 1 : 0;
 
-// fn читает db — liveQuery подписывается на таблицу; taskId постоянный на время жизни компонента
+// fn reads db — liveQuery subscribes to the table; taskId is constant for the component's lifetime
 const byTask = <R>(table: string, taskId: string) =>
   db.table<R>(table).where('taskId').equals(taskId).toArray();
 
@@ -22,7 +22,7 @@ export const useComments = (taskId: string) =>
     (await byTask<Row<'comments'>>('comments', taskId)).sort(byStr((x) => x.createdAt)),
   );
 
-/** вложения задачи (не комментариев) */
+/** task attachments (not comments) */
 export const useAttachments = (taskId: string) =>
   useQuery(async () =>
     (await byTask<Row<'attachments'>>('attachments', taskId))
@@ -46,7 +46,7 @@ export const useSubtasks = (taskId: string) =>
       .map((r) => ({ ...r, key: `${keys.get(r.projectId) ?? '?'}-${r.number ?? '…'}` }));
   });
 
-/** реакции на все комментарии задачи одним запросом */
+/** reactions to all comments of the task in one query */
 export const useReactions = (taskId: string) =>
   useQuery(async () => {
     const ids = (await byTask<Row<'comments'>>('comments', taskId)).map((c) => c.id);

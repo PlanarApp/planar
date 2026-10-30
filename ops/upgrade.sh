@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Обновление planar без потери данных: ops/upgrade.sh [--pull]
-# Порядок: бэкап → (git pull --ff-only) → метка :rollback на текущие образы api/caddy → сборка →
-#   миграции новым образом ДО переключения → перезапуск api и caddy → ожидание готовности (120 с) →
-#   при провале — возврат старых образов.
-# --force-recreate: compose сам не пересоздаёт контейнер при смене образа под тем же именем.
-# Проект и compose-файлы — из окружения (COMPOSE_PROJECT_NAME, COMPOSE_FILE), как в backup.sh.
-# ПРАВИЛО МИГРАЦИЙ (для OP-5): миграции при откате НЕ откатываются, поэтому в одном релизе — только
-#   расширяющие изменения (новые таблицы/колонки/индексы; без удаления и переименования), чтобы
-#   старый образ работал на новой схеме. Удаляющие изменения — отдельным следующим релизом.
+# Upgrade planar without data loss: ops/upgrade.sh [--pull]
+# Order: backup → (git pull --ff-only) → :rollback tag on the current api/caddy images → build →
+#   migrations with the new image BEFORE switching → restart api and caddy → wait for readiness (120 s) →
+#   on failure — return the old images.
+# --force-recreate: compose does not recreate the container by itself when the image changes under the same name.
+# Project and compose files come from the environment (COMPOSE_PROJECT_NAME, COMPOSE_FILE), as in backup.sh.
+# MIGRATION RULE (for OP-5): migrations are NOT rolled back on rollback, so within one release only
+#   expanding changes (new tables/columns/indexes; no deletion or renaming), so that
+#   the old image works on the new schema. Deleting changes go in a separate next release.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 . ops/lib.sh
@@ -15,7 +15,7 @@ READY_TIMEOUT=120
 SVCS=(api caddy)
 tagged=()
 
-# Репозиторий без тега (тег — только после ':' в последнем компоненте; порт реестра не трогаем).
+# A repository without a tag (the tag is only after ':' in the last component; the registry port is not touched).
 rb() { local b=$1; [[ ${b##*/} == *:* ]] && b=${b%:*}; echo "$b:rollback"; }
 cleanup() { local i; for i in "${tagged[@]}"; do docker rmi "$(rb "$i")" >/dev/null 2>&1 || true; done; }
 trap cleanup EXIT
@@ -24,7 +24,7 @@ fail() { echo "upgrade: $*" >&2; exit 1; }
 restore_tags() { local i; for i in "${tagged[@]}"; do docker image tag "$(rb "$i")" "$i"; done; }
 
 main() {
-# После pull скрипт мог измениться: перезапускаем свежую версию без --pull (бэкап уже сделан).
+# After pull the script may have changed: we restart the fresh version without --pull (the backup is already done).
 if [ -z "${UPGRADE_REEXEC:-}" ]; then
   ./ops/backup.sh || fail "бэкап не удался, ничего не тронуто"
   if [ "${1:-}" = --pull ]; then git pull --ff-only; UPGRADE_REEXEC=1 exec "$0"; fi

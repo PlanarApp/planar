@@ -17,7 +17,7 @@ export class PushService {
   ) {}
 
   async push(userId: string, req: SyncPushRequest, tokenId?: string): Promise<SyncPushResponse> {
-    // владелец clientId проверяется и при пустой пачке (в one() — под блокировкой строки)
+    // the clientId owner is checked even for an empty batch (in one() — under the row lock)
     const [owner] = await this.db
       .select({ userId: clientMutations.userId })
       .from(clientMutations)
@@ -58,7 +58,7 @@ export class PushService {
           .where(eq(clientMutations.clientId, clientId));
         return { id: m.id, ok: true as const };
       });
-      // после COMMIT; повтор уже учтённой мутации ничего не создаёт
+      // after COMMIT; a repeat of an already counted mutation creates nothing
       await this.queue?.enqueue(notified);
       return res;
     } catch (err) {

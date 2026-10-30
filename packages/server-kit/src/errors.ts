@@ -2,7 +2,7 @@ import { HttpException } from '@nestjs/common';
 import type { HttpErrorCode } from '@planar/shared';
 import type { z } from 'zod';
 
-/** Ошибка C-http с явным кодом; общий ErrorFilter берёт код отсюда. */
+/** C-http error with an explicit code; the common ErrorFilter takes the code from here. */
 export class HttpError extends HttpException {
   constructor(
     status: number,
@@ -14,7 +14,7 @@ export class HttpError extends HttpException {
   }
 }
 
-/** zod-разбор тела: ошибка → 400 invalid_request с issues. */
+/** zod parsing of the body: error → 400 invalid_request with issues. */
 export function parseBody<T extends z.ZodType>(schema: T, body: unknown): z.infer<T> {
   const r = schema.safeParse(body);
   if (!r.success) throw new HttpError(400, 'invalid_request', 'Неверный запрос', r.error.issues);

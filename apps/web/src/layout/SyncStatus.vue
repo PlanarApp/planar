@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { CloudOff, RefreshCw, TriangleAlert, Check } from 'lucide-vue-next';
 import { syncState } from '../sync';
 
-// статус соединения и синхронизации (PWA): офлайн и сколько правок ждут, отправка, ошибка; после — «синхронизировано»
+// connection and sync status (PWA): offline and how many edits are waiting, sending, error; afterwards — "synced"
 const { t } = useI18n();
 const net = ref(typeof navigator === 'undefined' ? true : navigator.onLine);
 const setNet = () => (net.value = navigator.onLine);
@@ -23,7 +23,7 @@ const state = computed<'offline' | 'error' | 'sync' | 'ok'>(() => {
   if (s.status === 'bootstrapping' || s.pending > 0) return 'sync';
   return 'ok';
 });
-// после офлайна/отправки — коротко «синхронизировано»
+// after offline/sending — briefly "synced"
 const done = ref(false);
 let timer: ReturnType<typeof setTimeout> | undefined;
 watch(state, (now, was) => {

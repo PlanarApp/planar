@@ -30,7 +30,7 @@ const View = (await import('../View.vue')).default;
 const { useSelection } = await import('../..');
 const r = router.current as import('vue-router').Router;
 
-// happy-dom не считает раскладку: даём списку высоту окна
+// happy-dom doesn't compute the layout: give the list the window height
 Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, value: 600 });
 Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 800 });
 
@@ -56,7 +56,7 @@ const show = async (o: Partial<ViewOptions> = {}, wait = 'tr, [role=row][data-ta
 const rows = () => w.findAll('[role=row][data-task]');
 const row = (t: string) => w.get(`[data-task="${t}"]`);
 const titles = () => rows().map((x) => x.text());
-// until с async-условием
+// until with an async condition
 const poll = async (f: () => Promise<unknown>, ms = 3000) => {
   const t0 = Date.now();
   for (;;) {
@@ -170,7 +170,7 @@ describe('list:inline', () => {
     const t = task(1);
     await db.table('tasks').put(t);
     await show();
-    await row('PLN-1').trigger('pointerenter'); // пикеры справа монтируются по наведению
+    await row('PLN-1').trigger('pointerenter'); // the pickers on the right are mounted on hover
     w.getComponent(PriorityPicker).vm.$emit('update:modelValue', 2);
     await poll(async () => (await get(t.id)).priority === 2);
     w.getComponent(AssigneePicker).vm.$emit('update:modelValue', [ids.ann]);
@@ -189,7 +189,7 @@ describe('list:create', () => {
   it('list:create в группе статуса — statusId группы, поле остаётся', async () => {
     await db.table('tasks').put(task(1));
     await show();
-    // первая кнопка создания — в группе Todo; нужна Done (вторая)
+    // the first create button is in the Todo group; Done (the second) is needed
     await w.findAll('[data-create] button')[1].trigger('click');
     const input = w.get('[data-create] input');
     await input.setValue('fresh');
@@ -212,7 +212,7 @@ describe('list:create', () => {
       updatedAt: t0.updatedAt,
     });
     await show({ groupBy: 'assignee' });
-    await until(() => w.text().includes('Ann')); // справочники подгружаются отдельно
+    await until(() => w.text().includes('Ann')); // dictionaries load separately
     await create('by ann');
     const t = await poll(async () =>
       (await db.table('tasks').toArray()).find((x) => x.title === 'by ann'),
@@ -315,7 +315,7 @@ describe('list:polish', () => {
     await w.get('button').trigger('click');
     const input = w.get('[data-create] input');
     await input.setValue('first');
-    // справочники подгружаются отдельно: повторяем Enter, пока задача не создана
+    // dictionaries load separately: repeat Enter until the task is created
     await poll(async () => {
       await input.trigger('keydown', { key: 'Enter' });
       return (await db.table('tasks').count()) > 0;
@@ -392,7 +392,7 @@ describe('list:row', () => {
     await db.table('tasks').put(task(1));
     await show();
     const r = row('PLN-1');
-    // колонки на месте (не прыгают), но пустые; пикеры не смонтированы до наведения
+    // columns are in place (they don't jump), but empty; the pickers are not mounted until hover
     for (const c of ['dueDate', 'priority', 'labels'])
       expect(r.find(`[data-col=${c}]`).text()).toBe('');
     expect(r.find('[data-col=assignee]').text()).toBe('Без исполнителя');
@@ -401,7 +401,7 @@ describe('list:row', () => {
 });
 
 describe('list:newTaskMenu', () => {
-  // IconButton меню требует TooltipProvider (в приложении он в App.vue)
+  // the menu's IconButton requires TooltipProvider (App.vue provides it)
   const show = async () => {
     w = mount(
       defineComponent({

@@ -14,7 +14,7 @@ import TaskCard from '../list/TaskCard.vue';
 import type { TaskField } from '../options';
 
 const VIRTUAL_FROM = 50;
-const CARD = 84; // оценка высоты карточки с зазором, px; реальная — по содержимому (measureElement)
+const CARD = 84; // estimated card height with the gap, px; the real one — by content (measureElement)
 
 const props = defineProps<{
   group: TaskGroup;
@@ -24,16 +24,16 @@ const props = defineProps<{
   mobile: boolean;
   fields: TaskField[];
   blocked: ReadonlySet<string>;
-  /** id задачи → название, для подписи родителя у подзадачи */
+  /** task id → name, for the parent label of a subtask */
   titles?: ReadonlyMap<string, string>;
   spaceId?: string;
-  /** показывать незаполненные поля (клик — задать значение) */
+  /** show empty fields (click — set a value) */
   showEmpty?: boolean;
-  /** шапку можно тащить (порядок статусов) */
+  /** the header can be dragged (status order) */
   sortable?: boolean;
-  /** id проекта → название (поле «Проект») */
+  /** project id → name (the "Project" field) */
   projects?: ReadonlyMap<string, string>;
-  /** без «+» и быстрого создания (сводка группы) */
+  /** without "+" and quick creation (group summary) */
   noAdd?: boolean;
 }>();
 const emit = defineEmits<{
@@ -43,7 +43,7 @@ const emit = defineEmits<{
   move: [id: string, from: string, to: string, beforeId: string | null];
 }>();
 const { t } = useI18n();
-// поля карточки: заполненные, а с «Показывать пустые поля» — все включённые в виде
+// card fields: filled ones, and with "Show empty fields" — all enabled in the view
 const CARD_COLS: CardCol[] = ['project', 'priority', 'dueDate', 'labels', 'assignee'];
 const filled = (x: TaskView, c: CardCol) =>
   c === 'project'
@@ -57,7 +57,7 @@ const filled = (x: TaskView, c: CardCol) =>
           : x.labelIds.some((l) => label(l));
 const cardCols = (x: TaskView) =>
   CARD_COLS.filter((c) => props.fields.includes(c) && (props.showEmpty || filled(x, c)));
-// пикеры полей — только у карточки под курсором; ушёл курсор — обратно к выводу (кроме открытого выбора)
+// field pickers — only on the card under the cursor; the cursor left — back to the display (except an open choice)
 const hotId = ref<string | null>(null);
 let wait: ReturnType<typeof setInterval> | undefined;
 function cardLeave(e: PointerEvent) {
@@ -70,7 +70,7 @@ function cardLeave(e: PointerEvent) {
   }, 150);
 }
 onBeforeUnmount(() => clearInterval(wait));
-// Ctrl/Cmd — добавить к выделению, Shift — диапазон в колонке; обычный клик открывает задачу
+// Ctrl/Cmd — add to the selection, Shift — range in the column; a plain click opens the task
 const sel = useSelection();
 function onCard(x: TaskView, e: MouseEvent) {
   if (e.metaKey || e.ctrlKey) sel.toggle(x.id);
@@ -90,7 +90,7 @@ const virt = useVirtualizer(
     getScrollElement: () => scroller.value,
     estimateSize: () => CARD,
     overscan: 6,
-    // нулевая высота (первый кадр, happy-dom) — берём 600px, иначе не отрисуется ничего
+    // zero height (first frame, happy-dom) — we take 600px, otherwise nothing gets rendered
     initialRect: { width: 280, height: 600 },
     observeElementRect: (i: Virtualizer<HTMLElement, Element>, cb: (r: Rect) => void) =>
       observeElementRect(i, (r) => cb(r.height ? r : { ...r, height: 600 })),
@@ -118,7 +118,7 @@ const nextCard = (el: Element | null) => {
   while (el && !el.hasAttribute('data-id')) el = el.nextElementSibling;
   return el;
 };
-/** DOM Sortable переставляет сам; данные — из реплики, поэтому возвращаем DOM на место. */
+/** Sortable's DOM moves items itself; the data comes from the replica, so we put the DOM back in place. */
 function onEnd(e: {
   item: HTMLElement;
   from: HTMLElement;
@@ -128,11 +128,11 @@ function onEnd(e: {
 }) {
   const id = dataId(e.item)!;
   const from = e.from.dataset.col!;
-  // внутри колонки vue-draggable-plus уже вернул DOM на место (ждёт update:modelValue) — позиция из индексов
+  // inside the column vue-draggable-plus has already returned the DOM to place (waits for update:modelValue) — the position comes from the indices
   if (from === e.to.dataset.col) {
     const o = e.oldDraggableIndex,
       n = e.newDraggableIndex;
-    if (o === undefined || n === undefined || o === n) return; // бросили на то же место
+    if (o === undefined || n === undefined || o === n) return; // dropped in the same place
     const rest = rows.value.items.filter((x) => x.id !== id);
     return emit('move', id, from, from, rest[n]?.id ?? null);
   }

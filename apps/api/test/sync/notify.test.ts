@@ -57,7 +57,7 @@ describe('ChangeNotifier', () => {
     const b: number[] = [];
     n.subscribe((s) => a.push(s));
     const off = n.subscribe((s) => b.push(s));
-    await new Promise((r) => setTimeout(r, 200)); // LISTEN установлен
+    await new Promise((r) => setTimeout(r, 200)); // LISTEN is set up
     a.length = b.length = 0;
     await write(1);
     await waitFor((x) => x.length > 0, a);
@@ -81,7 +81,7 @@ describe('ChangeNotifier', () => {
         await tx.execute(sql`select pg_notify('planar_changes', ${String(big + v)})`);
     });
     await new Promise((r) => setTimeout(r, 300));
-    // первое уходит сразу, остальные склеены: не больше двух рассылок, последняя — наибольший seq
+    // the first goes out at once, the rest are merged: no more than two broadcasts, the last one — the largest seq
     const mine = got.filter((x) => x > big);
     expect(mine.at(-1)).toBe(big + 3);
     expect(mine.length).toBeLessThanOrEqual(2);

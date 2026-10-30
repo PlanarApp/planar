@@ -34,7 +34,7 @@ export const sessionCookie = (token: string, { secure }: { secure: boolean }) =>
 export const clearSessionCookie = ({ secure }: { secure: boolean }) =>
   `${SESSION_COOKIE}=; ${base(secure)}; Max-Age=0`;
 
-/** Все сессии пользователя, кроме той, что с токеном keepToken. */
+/** All user sessions except the one with token keepToken. */
 export async function deleteOtherSessions(db: Db, userId: string, keepToken: string | null) {
   await db
     .delete(sessions)

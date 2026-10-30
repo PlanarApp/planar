@@ -56,7 +56,7 @@ export const syncPushResponseSchema = z.object({
 
 export const wsServerSchema = z.object({ t: z.literal('poke'), seq: int });
 export const wsClientSchema = z.object({ t: z.literal('hello'), cursor: int });
-/** «Печатает…» (C-sync v2): клиент → сервер и сервер → клиенты. */
+/** «Typing…» (C-sync v2): client → server and server → clients. */
 export const wsTypingClientSchema = z.object({
   t: z.literal('typing'),
   entity: z.string().min(1),

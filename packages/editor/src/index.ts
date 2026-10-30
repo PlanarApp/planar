@@ -5,14 +5,14 @@ import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import type { AnyExtension, Extensions } from '@tiptap/core';
 
-/** Схема ProseMirror редактора: одна для web и api (P3-ydoc), без DOM и Vue. */
+/** ProseMirror schema of the editor: one for web and api (P3-ydoc), without DOM and Vue. */
 export function editorExtensions(
   o: {
     image?: boolean;
     suggestion?: MentionOptions['suggestion'];
-    /** Свой Mention (узел `mention` с attrs.kind); по умолчанию — обычный. */
+    /** Own Mention (the `mention` node with attrs.kind); by default — the regular one. */
     mention?: AnyExtension;
-    /** Yjs: встроенная история выключена (undo — Collaboration). */
+    /** Yjs: the built-in history is off (undo — Collaboration). */
     collab?: boolean;
   } = {},
 ): Extensions {
@@ -37,10 +37,10 @@ export function editorExtensions(
   ];
 }
 
-/** Для сервера: схема со всеми узлами (картинка нужна, лишние узлы схему не ломают). */
+/** For the server: schema with all nodes (the image is needed; extra nodes do not break the schema). */
 export const serverExtensions = (): Extensions => editorExtensions({ image: true });
 
-/** Палитра курсоров: один источник для всех клиентов (P3-collab «Awareness»). */
+/** Cursor palette: one source for all clients (P3-collab «Awareness»). */
 export const CURSOR_COLORS = [
   '#e5484d',
   '#f76b15',
@@ -52,7 +52,7 @@ export const CURSOR_COLORS = [
   '#d6409f',
 ];
 
-/** Цвет участника: hash(userId) mod N, детерминирован. */
+/** Member colour: hash(userId) mod N, deterministic. */
 export function cursorColor(userId: string): string {
   let h = 0;
   for (const c of userId) h = (h * 31 + c.charCodeAt(0)) >>> 0;

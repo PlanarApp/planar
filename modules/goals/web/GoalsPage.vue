@@ -7,11 +7,11 @@ import { newId, rankBetween, run, text, useGoalsData, useSpaces } from './data';
 
 const tx = computed(text);
 const spaces = useSpaces();
-// выбранное пространство — в адресе (?space=): после перезагрузки то же самое
+// the selected space — in the address (?space=): after a reload, the same
 const router = useRouter();
-// без роутера (тесты страницы) — выбор просто не запоминается
+// without a router (page tests) — the selection is simply not remembered
 const query = () => router?.currentRoute.value.query ?? {};
-// space — таб «Отчёты» группы: пространство задано группой, выбора нет
+// space — «Reports» tab of the group: the space is set by the group, no choice
 const props = defineProps<{ space?: string }>();
 const spaceId = ref(
   props.space ?? (typeof query().space === 'string' ? (query().space as string) : ''),
@@ -52,7 +52,7 @@ async function addGoal() {
   goalName.value = '';
 }
 
-// форма нового ключевого результата (одна, для выбранной цели)
+// the form for a new key result (one, for the selected goal)
 const form = ref<{
   goalId: string;
   name: string;
@@ -96,7 +96,7 @@ async function addKr() {
   });
   form.value = null;
 }
-// набранное держим до change: перерисовка (подтверждение синхронизации) не затирает поле
+// the typed value is kept until change: a re-render (sync confirmation) does not overwrite the field
 const drafts = ref<Record<string, string>>({});
 const setCurrent = (k: KeyResult, v: string) => {
   delete drafts.value[k.id];

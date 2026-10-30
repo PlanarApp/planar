@@ -1,4 +1,4 @@
-/** uuidv7, RFC 9562: 48 бит мс, версия 7, вариант 10. */
+/** uuidv7, RFC 9562: 48 bits of ms, version 7, variant 10. */
 export function uuidv7(): string {
   const b = crypto.getRandomValues(new Uint8Array(16));
   let ms = Date.now();

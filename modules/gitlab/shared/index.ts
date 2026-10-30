@@ -33,7 +33,7 @@ export const gitlabProjectSettings = z.object({
 });
 export type GitlabMr = z.output<typeof gitlabMrs>;
 
-// Tx типизирован сущностями ядра; сущности модулей приводим (C-modules)
+// Tx is typed with core entities; module entities are cast (C-modules)
 interface MTx {
   get(e: string, id: string): Promise<unknown>;
   put(e: string, row: unknown): Promise<void>;
@@ -62,11 +62,11 @@ export const mutators = [
       }),
       links: z.array(z.object({ id, taskId: id })).max(50),
     }),
-    // запись в gitlabMrs (write: server) доступна только system; клиенту — forbidden
+    // writing to gitlabMrs (write: server) is available only to system; for the client — forbidden
     async run(tx, a, ctx) {
       const t = mtx(tx);
-      // shortcut: полный скан таблицы — индекса по (проект, iid) в контракте нет; при росте >10k строк
-      // — завести индекс gitlabProjectId через контракт
+      // shortcut: a full table scan — there is no (project, iid) index in the contract; revisit when it grows beyond 10k rows
+      // — add a gitlabProjectId index via the contract
       const old = ((await t.scan(E('gitlabMrs'))) as GitlabMr[]).filter(
         (r) => r.gitlabProjectId === a.gitlabProjectId && r.iid === a.iid,
       );
@@ -100,7 +100,7 @@ export const mutators = [
         const st = (await t.get(E('gitlabProjectSettings'), task.projectId)) as
           { mergedStatusId: string | null } | undefined;
         if (!st?.mergedStatusId || st.mergedStatusId === task.statusId) continue;
-        // то же, что task.update {statusId}: completedAt по категории статуса
+        // same as task.update {statusId}: completedAt by status category
         const status = await tx.get('statuses', st.mergedStatusId);
         if (!status || status.spaceId !== task.spaceId) continue;
         const done = status.category === 'done' || status.category === 'cancelled';

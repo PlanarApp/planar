@@ -1,4 +1,4 @@
-// Контрактный тест work: сверяет модули work с docs/contracts/work.md. Правит только координатор work.
+// Contract test work: checks the work modules against docs/contracts/work.md. Edited only by the work coordinator.
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -7,7 +7,7 @@ import { installed } from '../src/modules/installed.js';
 const doc = readFileSync(new URL('../../../docs/contracts/work.md', import.meta.url), 'utf8');
 const MODULES = ['time', 'sprints', 'automations', 'webhooks', 'import'];
 
-/** Раздел «## Модуль <id> …» до следующего «## ». */
+/** Section "## Module <id> …" up to the next "## ". */
 const section = (id: string) =>
   new RegExp(`^## Модуль ${id} [^\\n]*\\n([\\s\\S]*?)(?=^## |$(?![\\s\\S]))`, 'm').exec(doc)?.[1] ??
   '';
@@ -41,7 +41,7 @@ for (const id of MODULES) {
   const sec = section(id);
   const mod = installed.find((m) => m.api.id === id);
   describe(`module ${id}`, () => {
-    // скелет (WK-S): модуль установлен, но ещё пуст — его наполняет своя задача
+    // skeleton (WK-S): the module is installed but still empty — its own task fills it
     const empty = mod && !Object.keys(mod.api.entities).length && !mod.api.mutators.length;
     if (!mod || empty) {
       it.todo(`модуль ${id} ещё не установлен или пуст`);

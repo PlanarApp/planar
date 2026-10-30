@@ -3,7 +3,7 @@ import { defineWebModule } from '@planar/web/modules';
 
 export const web = defineWebModule({
   id: 'sprints',
-  // спринт — в «Отчётах» группы (раньше — вид проекта)
+  // a sprint — in the group's «Reports» (previously — a project view)
   groupTabs: [
     {
       id: 'sprint',

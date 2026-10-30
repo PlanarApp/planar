@@ -47,7 +47,7 @@ const install = async () => {
 };
 
 const topbarItems = useExtensions('topbar');
-// defineAsyncComponent на каждый элемент один раз
+// defineAsyncComponent once per element
 const topbarComps = new Map<string, Component>();
 const topbarComp = (key: string, load: () => Promise<{ default: Component }>) => {
   let c = topbarComps.get(key);
@@ -55,13 +55,13 @@ const topbarComp = (key: string, load: () => Promise<{ default: Component }>) =>
   return c;
 };
 
-// на экранах узлов (Воркспейс, пространство, проект, сохранённый вид) крошки — в заголовке окна
+// on node screens (Workspace, space, project, saved view) the breadcrumbs are in the window header
 const inProject = computed(() => route.name === 'project' || route.name === 'savedView');
 const projectId = computed(() => String(route.params.projectId ?? ''));
 const inGroup = computed(() =>
   ['workspace', 'space', 'project', 'savedView'].includes(String(route.name)),
 );
-// свободное место шапки на экранах узлов — имя узла (проект, пространство, Воркспейс)
+// free space in the header on node screens — the node name (project, space, Workspace)
 const project = useProject(() => (inProject.value ? projectId.value : ''));
 const spaces = useSpaces();
 const ws = useWorkspace();

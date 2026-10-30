@@ -1,5 +1,5 @@
-// Контрактный тест C-schema: схема БД после миграций = docs/contracts/core.md.
-// Правит только координатор модуля core.
+// Contract test C-schema: DB schema after migrations = docs/contracts/core.md.
+// Edited only by the core module coordinator.
 import { readdirSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { docEntities, docServerTables, snake } from '../../../packages/shared/test/contract-doc.js';
@@ -120,7 +120,7 @@ describe('contract schema', () => {
       ...docEntities.map((e) => snake(e.name)),
       ...docServerTables.map((t) => t.name),
     ]);
-    // таблицы модулей (C-modules): префикс <moduleId>_ каталога modules/<id>
+    // module tables (C-modules): prefix <moduleId>_ of the modules/<id> catalog
     const modulePrefixes = readdirSync(new URL('../../../modules', import.meta.url), {
       withFileTypes: true,
     })

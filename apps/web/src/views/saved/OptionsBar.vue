@@ -8,7 +8,7 @@ import FilterBuilder from './FilterBuilder.vue';
 import FilterChips from './FilterChips.vue';
 import ViewOptionsPopover from './ViewOptionsPopover.vue';
 
-// noMe — Me Mode задан снаружи («Моя работа»)
+// noMe — Me Mode is set from outside ("My work")
 defineProps<{ spaceId: string; projectId?: string; noMe?: boolean }>();
 const options = defineModel<ViewOptions>('options', { required: true });
 const filter = defineModel<Filter | null>('filter', { default: null });

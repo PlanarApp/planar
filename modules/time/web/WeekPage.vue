@@ -17,7 +17,7 @@ import {
   userId,
 } from './data';
 
-// scope — таб «Отчёты › Время» группы: только задачи её уровня и вложенных
+// scope — «Reports › Time» tab of the group: only tasks of its level and nested ones
 const props = defineProps<{ scope?: GroupScope }>();
 const weekStart = useWeekStart();
 const now = useNow();
@@ -50,7 +50,7 @@ const keys = computed(() => days.value.map(dayKey));
 const fmt = (d: Date) =>
   d.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'numeric' });
 
-// задача -> день -> записи
+// task -> day -> entries
 const grid = computed(() => {
   const g = new Map<string, Map<string, NonNullable<typeof entries.value>>>();
   for (const e of entries.value ?? []) {
@@ -203,7 +203,7 @@ th {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-/* пустые ячейки — без рамки до наведения/фокуса */
+/* empty cells — no border until hover/focus */
 .cell.empty :deep(input:not(:hover):not(:focus)) {
   border-color: transparent;
   background: transparent;

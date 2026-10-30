@@ -85,7 +85,7 @@ describe('pt2: перенос и растягивание', () => {
       dueDate: '2026-10-25',
     });
     expect(resizeArgs(t, 'start', toDay('2026-10-18'))).toMatchObject({ startDate: '2026-10-18' });
-    // край не переходит за другой
+    // the edge doesn't cross into the other one
     expect(resizeArgs(t, 'start', toDay('2026-10-30'))).toMatchObject({
       startDate: '2026-10-22',
       dueDate: '2026-10-22',
@@ -143,7 +143,7 @@ describe('pt2: виртуализация и шкала', () => {
     }
   });
   it('pt2: метки недели зависят от начала недели, месяца — от 1-го числа', () => {
-    const from = toDay('2026-10-19'); // понедельник
+    const from = toDay('2026-10-19'); // Monday
     const days = (ws: 0 | 1) =>
       ticks(from, from + 13, 'week', ws).map((k) => new Date(k.day * 86400000).getUTCDay());
     expect(days(1)).toEqual([1, 1]);

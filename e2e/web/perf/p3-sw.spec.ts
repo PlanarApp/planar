@@ -3,7 +3,7 @@ import { uuidv7 } from '../../lib';
 import { fixture, loginAs, uniq } from '../helpers';
 import { slug16 } from '../p3-helpers';
 
-// Прод-сборка (stack.sh, PERF_MODULES=forms): service worker не должен подменять /f/<slug> оболочкой приложения.
+// Prod build (stack.sh, PERF_MODULES=forms): the service worker must not replace /f/<slug> with the app shell.
 test('p3-sw: с зарегистрированным SW /f/<slug> открывает страницу формы, а не приложение', async ({
   browser,
 }) => {
