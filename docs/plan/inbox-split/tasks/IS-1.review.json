@@ -1,0 +1,34 @@
+{
+  "verdict": "accept",
+  "summary": "Both prior blockers fixed in 3bbe327 (vue-tsc and prettier re-run PASS). New @@/@@@ refs: scoped to chat only, internal-link regex blocks //host and /\\host with a test. Scope FAIL is only the .dpcli submodule pointer.",
+  "issues": [
+    {
+      "file": "apps/web/src/task/editor/Editor.vue",
+      "line": 55,
+      "severity": "minor",
+      "what": "InputRule /@@$/ also fires on '@@' typed inside text or addresses in chat (refs enabled), deleting the characters and opening the picker; agreed in the report as uncertain",
+      "fix": "optional: require start-of-line or whitespace before @@ (/(?:^|\\s)@@$/)"
+    },
+    {
+      "file": "modules/chat/web/RichBody.ts",
+      "line": 11,
+      "severity": "minor",
+      "what": "INTERNAL accepts any root path as an in-app link (router.push); no allowlist of routes, so an unknown path lands on the 404 route only",
+      "fix": "none required"
+    }
+  ],
+  "rerun": [
+    {
+      "name": "web-types",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "format",
+      "value": "exit 0",
+      "pass": true
+    }
+  ],
+  "t": "2026-10-30T11:39:46",
+  "by": "reviewer"
+}

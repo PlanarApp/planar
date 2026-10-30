@@ -1,0 +1,9 @@
+{
+  "module": "inbox-split",
+  "plan": "docs/plan/inbox-split.md",
+  "contracts": "docs/contracts/inbox-split.md",
+  "branch": "feature/inbox-split",
+  "copy": "~/planar-inbox-split",
+  "created": "2026-10-29T13:45:40",
+  "code": "IS"
+}

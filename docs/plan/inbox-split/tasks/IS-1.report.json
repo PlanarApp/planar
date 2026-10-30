@@ -1,0 +1,57 @@
+{
+  "id": "IS-1",
+  "status": "done",
+  "summary": "Доработка по ревью: ProjectScreen передаёт color/icon в меню проекта (vue-tsc), ru.ts и Sidebar.vue отформатированы. Дописана незаконченная часть дерева — ссылки @@ (задача) / @@@ (документ) в редакторе чата: RefPicker, правило ввода в Editor.vue, внутренние ссылки в RichBody; закрыт обход /\\host во внутренних ссылках.",
+  "commits": [
+    "3bbe327 Входящие и навигация, ссылки @@/@@@ в чате, доработка по ревью"
+  ],
+  "checks": [
+    {
+      "name": "web-types",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "web-unit",
+      "value": "803/803",
+      "pass": true
+    },
+    {
+      "name": "format",
+      "value": "exit 0",
+      "pass": true
+    },
+    {
+      "name": "api-shared-unit",
+      "value": "1024/1024 (skipped 2)",
+      "pass": true
+    },
+    {
+      "name": "richbody.test.ts после правки /\\host",
+      "value": "1/1",
+      "pass": true
+    }
+  ],
+  "not_done": [
+    "e2e (Playwright) не запускались: в карточке их нет; e2e/web/menus.spec.ts изменён под контекстное меню боковой панели",
+    "scope FAIL только из-за указателя сабмодуля .dpcli (незавершённый PR dpcli, в коммит IS-1 не входит)"
+  ],
+  "questions": [],
+  "images": [],
+  "how_to_check": ".dpcli/dpcli accept IS-1 --here",
+  "uncertain": [
+    {
+      "where": "apps/web/src/task/editor/Editor.vue (refTrigger)",
+      "why": "правило ввода /@@$/ срабатывает и внутри адресов/текста с @@; @@@ — третий @ уже в поле поиска диалога",
+      "checked": "refs включён только в чате (Composer, MessageItem); refs.test.ts и richbody.test.ts проходят"
+    },
+    {
+      "where": "modules/chat/web/RichBody.ts INTERNAL",
+      "why": "внутренняя ссылка — любой путь от корня; переход через router.push",
+      "checked": "//host, /\\host, javascript: не становятся ссылками (тест)"
+    }
+  ],
+  "dp_feedback": "harness: работа без копии в главной копии — accept scope FAIL из-за указателя сабмодуля .dpcli, который к задаче не относится; scope для --no-copy карточки стоит считать по git diff HEAD без сабмодуля dpcli",
+  "t": "2026-10-30T11:38:54",
+  "by": "coordinator"
+}
