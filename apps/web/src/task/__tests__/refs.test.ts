@@ -67,6 +67,18 @@ describe('редактор: @@ и @@@', () => {
     w.unmount();
   });
 
+  it('@@ внутри слова — текст; после пробела — диалог, пробел остаётся', async () => {
+    const { w, type, json } = await setup();
+    for (const ch of 'a@@') type(ch);
+    await flushPromises();
+    expect(w.find('[data-testid=ref-picker]').exists()).toBe(false);
+    expect(json()).toContain('a@@');
+    for (const ch of ' @@') type(ch);
+    await vi.waitFor(() => expect(w.find('[data-testid=ref-picker]').exists()).toBe(true));
+    expect(json()).toContain('a@@ ');
+    w.unmount();
+  });
+
   it('без refs @@ остаётся текстом', async () => {
     const w = mount(Editor, {
       props: { members: [], label: 'x' },

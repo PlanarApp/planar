@@ -56,11 +56,13 @@ const refTrigger = Extension.create({
   addInputRules() {
     return [
       new InputRule({
-        find: /@@$/,
-        handler: ({ range, chain }) => {
-          chain().deleteRange(range).run();
-          const c = this.editor.view.coordsAtPos(range.from);
-          refAt.value = { pos: range.from, rect: { left: c.left, top: c.top, bottom: c.bottom } };
+        // только отдельное @@ (начало строки или после пробела), не внутри слова или адреса
+        find: /(^|\s)@@$/,
+        handler: ({ range, match, chain }) => {
+          const from = range.from + match[1]!.length;
+          chain().deleteRange({ from, to: range.to }).run();
+          const c = this.editor.view.coordsAtPos(from);
+          refAt.value = { pos: from, rect: { left: c.left, top: c.top, bottom: c.bottom } };
         },
       }),
     ];
