@@ -17,6 +17,8 @@ const attachment = z.object({
   size: int.nonnegative(),
   width: int.optional(),
   height: int.optional(),
+  /** голосовое (audio/*): длительность записи */
+  durationMs: int.nonnegative().optional(),
 });
 
 export const chatChannels = z.object({

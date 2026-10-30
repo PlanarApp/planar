@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { defineAsyncComponent, onBeforeUnmount, ref } from 'vue';
-import { Paperclip, Send, Smile, X } from 'lucide-vue-next';
+import { Mic, Paperclip, Send, Smile, X } from 'lucide-vue-next';
 import {
   ApiError,
   Button,
@@ -34,6 +34,7 @@ interface Att {
   size: number;
   width?: number;
   height?: number;
+  durationMs?: number;
 }
 type Doc = Record<string, unknown> | null;
 const body = ref<Doc>(null);
@@ -46,6 +47,67 @@ function insertEmoji(e: string) {
   editor.value?.editor?.chain().focus().insertContent(e).run();
 }
 const picker = ref<HTMLInputElement | null>(null);
+
+// голосовое: MediaRecorder (webm/opus, в Safari — mp4), не дольше 5 минут; уходит вложением audio/*
+const MAX_VOICE_MS = 5 * 60_000;
+const canRecord = typeof MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
+const rec = ref<{ mr: MediaRecorder; startedAt: number } | null>(null);
+const recMs = ref(0);
+let recTimer: ReturnType<typeof setInterval> | undefined;
+let chunks: Blob[] = [];
+let keep = false;
+async function startVoice() {
+  error.value = '';
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    error.value = tx('micDenied');
+    return;
+  }
+  const type = ['audio/webm;codecs=opus', 'audio/mp4'].find((t) =>
+    MediaRecorder.isTypeSupported(t),
+  );
+  const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+  chunks = [];
+  mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  mr.onstop = () => {
+    stream.getTracks().forEach((t) => t.stop());
+    clearInterval(recTimer);
+    const ms = Date.now() - (rec.value?.startedAt ?? Date.now());
+    rec.value = null;
+    if (keep) void sendVoice(new Blob(chunks, { type: mr.mimeType || 'audio/webm' }), ms);
+  };
+  rec.value = { mr, startedAt: Date.now() };
+  recMs.value = 0;
+  recTimer = setInterval(() => {
+    recMs.value = Date.now() - rec.value!.startedAt;
+    if (recMs.value >= MAX_VOICE_MS) stopVoice(true);
+  }, 250);
+  mr.start();
+}
+function stopVoice(send: boolean) {
+  keep = send;
+  if (rec.value?.mr.state === 'recording') rec.value.mr.stop();
+}
+async function sendVoice(blob: Blob, durationMs: number) {
+  const mime = blob.type.split(';')[0]!;
+  const name = `voice-${new Date().toISOString().slice(0, 19)}.${mime === 'audio/mp4' ? 'm4a' : 'webm'}`;
+  try {
+    const r = await uploadFile(new File([blob], name, { type: mime }));
+    atts.value = [
+      ...atts.value,
+      { fileSha256: r.sha256, name, mime: r.mime, size: r.size, durationMs },
+    ];
+  } catch (e) {
+    error.value = e instanceof ApiError && e.status === 413 ? tx('tooLarge') : tx('uploadFailed');
+    return;
+  }
+  await send();
+}
+onBeforeUnmount(() => stopVoice(false));
+const clock = (ms: number) =>
+  `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 
 // отказ сервера: отправленная строка откатится — покажем причину
 const off = onMutationError((e) => {
@@ -176,7 +238,19 @@ function onEnter(e: KeyboardEvent) {
             picker!.value = '';
           "
         />
-        <div class="min-w-0 flex-1 rounded-md border border-border-strong px-2 py-1">
+        <div
+          v-if="rec"
+          role="status"
+          data-testid="chat-recording"
+          class="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-danger px-2 text-sm"
+        >
+          <span class="size-2 animate-pulse rounded-full bg-danger" aria-hidden="true" />
+          {{ tx('recording') }} {{ clock(recMs) }}
+          <Button size="sm" variant="ghost" class="ml-auto" @click="stopVoice(false)">{{
+            tx('cancel')
+          }}</Button>
+        </div>
+        <div v-show="!rec" class="min-w-0 flex-1 rounded-md border border-border-strong px-2 py-1">
           <Editor
             ref="editor"
             :model-value="body"
@@ -188,7 +262,22 @@ function onEnter(e: KeyboardEvent) {
             @submit="send"
           />
         </div>
-        <Button variant="primary" :icon="Send" :aria-label="tx('send')" @click="send" />
+        <IconButton
+          v-if="canRecord && !rec"
+          :icon="Mic"
+          :label="tx('voice')"
+          data-testid="chat-voice"
+          @click="startVoice"
+        />
+        <Button
+          v-if="rec"
+          variant="primary"
+          :icon="Send"
+          :aria-label="tx('send')"
+          data-testid="chat-voice-send"
+          @click="stopVoice(true)"
+        />
+        <Button v-else variant="primary" :icon="Send" :aria-label="tx('send')" @click="send" />
       </div>
     </template>
   </div>

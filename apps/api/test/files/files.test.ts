@@ -177,6 +177,25 @@ describe('GET /files/:sha256', () => {
     expect(res.headers['content-disposition']).toBeUndefined();
   });
 
+  it('Range: 206 с Content-Range, хвост, за границей — 416', async () => {
+    const data = Buffer.from('0123456789-' + Math.random());
+    await upload(alice, data, 'audio/webm');
+    const url = `/files/${sha(data)}`;
+    const a = await get(url, alice, { range: 'bytes=2-5' });
+    expect(a.statusCode).toBe(206);
+    expect(a.payload).toBe('2345');
+    expect(a.headers['content-range']).toBe(`bytes 2-5/${data.length}`);
+    expect(a.headers['content-length']).toBe('4');
+    const tail = await get(url, alice, { range: 'bytes=-3' });
+    expect(tail.rawPayload.equals(data.subarray(-3))).toBe(true);
+    const open = await get(url, alice, { range: 'bytes=4-' });
+    expect(open.rawPayload.equals(data.subarray(4))).toBe(true);
+    const bad = await get(url, alice, { range: `bytes=${data.length}-` });
+    expect(bad.statusCode).toBe(416);
+    expect(bad.headers['content-range']).toBe(`bytes */${data.length}`);
+    expect((await get(url, alice)).headers['accept-ranges']).toBe('bytes');
+  });
+
   it('чужой без прав → 404; кривой sha → 404', async () => {
     const data = Buffer.from('private ' + Math.random());
     await upload(alice, data);

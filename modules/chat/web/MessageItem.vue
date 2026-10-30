@@ -69,6 +69,8 @@ const mine = computed(() => m.value.authorId === props.me && !m.value.deletedAt)
 const time = computed(() => hhmm.format(new Date(m.value.createdAt)));
 const refs = computed(() => taskRefs(m.value.body).slice(0, 3));
 const isImage = (mime: string) => mime.startsWith('image/');
+const clock = (ms: number) =>
+  `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 
 const EMOJI = ['👍', '❤️', '😄', '🎉'];
 // панель действий (иконки, кнопки) монтируется при наведении/фокусе: на быстрой прокрутке это треть стоимости строки
@@ -205,7 +207,23 @@ const remove = () =>
         <TaskCard v-for="k in refs" :key="k" :task-key="k" />
         <ul v-if="m.attachments.length" class="mt-1 flex flex-wrap gap-2">
           <li v-for="a in m.attachments" :key="a.fileSha256">
-            <a :href="`/files/${a.fileSha256}`" target="_blank" rel="noopener noreferrer">
+            <span
+              v-if="a.mime.startsWith('audio/')"
+              class="flex items-center gap-2"
+              data-testid="chat-voice-msg"
+            >
+              <audio
+                controls
+                preload="none"
+                :src="`/files/${a.fileSha256}`"
+                :aria-label="tx('voice')"
+                class="h-9 max-w-72"
+              />
+              <span v-if="a.durationMs" class="text-xs text-fg-subtle">{{
+                clock(a.durationMs)
+              }}</span>
+            </span>
+            <a v-else :href="`/files/${a.fileSha256}`" target="_blank" rel="noopener noreferrer">
               <img
                 v-if="isImage(a.mime)"
                 :src="`/files/${a.fileSha256}`"

@@ -91,9 +91,10 @@ v2 (группы): `projectId` в `docs.page.create`/`docs.page.move`.
 - Поиск Cmd+K — по `docsPages.title` и `text` локальной реплики (точка поиска — X-core, после шлюза).
 - Изображения — `POST /files`, узел `image` с `src: '/files/<sha256>'`; чтение файла другими участниками — X-core `canReadFile`.
 
-## CH-schema v2
+## CH-schema v3
 
 v2 (группы): `chatChannels.projectId`.
+v3: вложение += `durationMs?` (голосовое, `mime audio/*`).
 
 Модуль `chat` (`modules/chat`, пакет `@planar/module-chat`), таблицы `chat_<snake>`. Каналы пространства (`spaceId` задан) видны всем участникам пространства. Личные диалоги — `spaceId = null`, 2–8 участников (`chatMembers`), видны только им: scope `space|members` (C-sync v2, §X-core п. 1), у всех сущностей с этим scope `meta.members = {entity: 'chatMembers', key: 'channelId', container: 'chatChannels', via}` — `via: 'id'` у `chatChannels`, `'channelId'` у остальных. FK внутри модуля — без каскада; на `users` и `spaces` FK нет.
 
@@ -139,7 +140,7 @@ scope: space|members · write: guest · bootstrap: no · indexes: channelId, par
 | `authorId` | uuid | = ctx.userId |
 | `body` | doc | TipTap JSON, как `comments.body`; ≤ 64 КБ в JSON |
 | `mentions` | uuid[] | id из узлов mention, без повторов, по порядку; только те, кто видит канал |
-| `attachments` | json | `{fileSha256, name, mime, size, width?, height?}[]`, ≤ 10; `fileSha256` — hex 64 |
+| `attachments` | json | `{fileSha256, name, mime, size, width?, height?, durationMs?}[]`, ≤ 10; `fileSha256` — hex 64 |
 | `replyCount` | int | у корня — число ответов |
 | `lastReplyAt` | ts? | |
 | `editedAt` | ts? | |

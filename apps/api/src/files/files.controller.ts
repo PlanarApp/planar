@@ -186,10 +186,22 @@ export class FilesController {
         `attachment; filename*=UTF-8''${encodeURIComponent(name)}`,
       );
     }
-    return reply
-      .header('Content-Type', row.mime)
-      .header('Content-Length', row.size)
-      .send(createReadStream(this.path(sha)));
+    reply.header('Content-Type', row.mime).header('Accept-Ranges', 'bytes');
+    // один диапазон (аудио/видео: перемотка, Safari без него не проигрывает); несколько — отдаём целиком
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+    if (m && (m[1] || m[2])) {
+      const size = row.size;
+      const start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
+      const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+      if (start >= size || start > end)
+        return reply.status(416).header('Content-Range', `bytes */${size}`).send();
+      return reply
+        .status(206)
+        .header('Content-Range', `bytes ${start}-${end}/${size}`)
+        .header('Content-Length', end - start + 1)
+        .send(createReadStream(this.path(sha), { start, end }));
+    }
+    return reply.header('Content-Length', row.size).send(createReadStream(this.path(sha)));
   }
 
   @Get(':sha256/preview')

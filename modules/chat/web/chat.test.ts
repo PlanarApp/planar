@@ -42,6 +42,7 @@ const h_ = vi.hoisted(() => ({
   typingCb: undefined as undefined | ((e: { entity: string; id: string; userId: string }) => void),
   errCb: undefined as undefined | ((e: { name: string; message: string }) => void),
   push: vi.fn(),
+  upload: vi.fn(),
   route: { params: {} as Record<string, string> },
 }));
 vi.mock('@planar/web/modules', async (orig) => {
@@ -53,6 +54,7 @@ vi.mock('@planar/web/modules', async (orig) => {
     api: h_.api,
     sendTyping: h_.sendTyping,
     openTask: h_.openTask,
+    uploadFile: h_.upload,
     onTyping: (cb: never) => ((h_.typingCb = cb), () => (h_.typingCb = undefined)),
     onMutationError: (cb: never) => ((h_.errCb = cb), () => (h_.errCb = undefined)),
     useSession: () => ref({ id: (globalThis as Record<string, unknown>).__ME }),
@@ -778,6 +780,47 @@ describe('редактор сообщения', () => {
     expect(a).toMatchObject({ channelId: CH, parentId: 'root', attachments: [] });
     expect(a.id).not.toBe(a.readId);
     expect(() => structuredClone(a)).not.toThrow(); // реактивный прокси не клонируется в IndexedDB
+  });
+
+  it('голосовое: запись → загрузка → сообщение с вложением audio/* и длительностью', async () => {
+    const stop = vi.fn();
+    class FakeRecorder {
+      static isTypeSupported = (t: string) => t.startsWith('audio/webm');
+      state = 'inactive';
+      mimeType = 'audio/webm;codecs=opus';
+      ondataavailable?: (e: { data: Blob }) => void;
+      onstop?: () => void;
+      start() {
+        this.state = 'recording';
+      }
+      stop() {
+        this.state = 'inactive';
+        this.ondataavailable?.({ data: new Blob(['abc'], { type: this.mimeType }) });
+        this.onstop?.();
+      }
+    }
+    vi.stubGlobal('MediaRecorder', FakeRecorder);
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: async () => ({ getTracks: () => [{ stop }] }) },
+    });
+    h_.upload.mockResolvedValue({ sha256: 'a'.repeat(64), mime: 'audio/webm', size: 3 });
+    const w = mount(Composer, { props: { channelId: CH, members: [] } });
+    await w.find('[data-testid=chat-voice]').trigger('click');
+    await flushPromises();
+    expect(w.find('[data-testid=chat-recording]').exists()).toBe(true);
+    await w.find('[data-testid=chat-voice-send]').trigger('click');
+    await flushPromises();
+    expect(stop).toHaveBeenCalled();
+    const file = h_.upload.mock.calls[0]![0] as File;
+    expect(file.type).toBe('audio/webm');
+    const [name, a] = h_.mutate.mock.calls[0]!;
+    expect(name).toBe('chat.message.send');
+    expect(a.attachments).toEqual([
+      expect.objectContaining({ mime: 'audio/webm', size: 3, durationMs: expect.any(Number) }),
+    ]);
+    expect(w.find('[data-testid=chat-recording]').exists()).toBe(false);
+    vi.unstubAllGlobals();
   });
 
   it('отказ сервера показывается ошибкой', async () => {

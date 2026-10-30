@@ -63,6 +63,9 @@ const S = {
   nothingFound: { ru: 'Ничего не найдено', en: 'Nothing found' },
   moreEmoji: { ru: 'Другие эмодзи', en: 'More emoji' },
   emoji: { ru: 'Эмодзи', en: 'Emoji' },
+  voice: { ru: 'Голосовое сообщение', en: 'Voice message' },
+  recording: { ru: 'Запись', en: 'Recording' },
+  micDenied: { ru: 'Нет доступа к микрофону', en: 'No microphone access' },
   noChannels: { ru: 'Нет каналов', en: 'No channels' },
   unknown: { ru: 'Неизвестный', en: 'Unknown' },
 } as const;
