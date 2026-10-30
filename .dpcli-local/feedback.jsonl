@@ -36,3 +36,4 @@
 {"t": "2026-10-30T05:29:34", "id": "F-15", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/16)", "pr": "https://github.com/zolotarev/dpcli/pull/16"}
 {"t": "2026-10-30T05:29:34", "id": "F-16", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/16)", "pr": "https://github.com/zolotarev/dpcli/pull/16"}
 {"t": "2026-10-30T05:29:35", "id": "F-17", "kind": "rework", "why": "Scope mismatch: the PR body describes only the CLAUDE.md line, but `lib/dpcli/commands/update.py` gains `drop_branches` (+21 lines) and reorders `check_prs`/`update_dist`. The friction (1 occurrence,…"}
+{"t": "2026-10-30T11:46:44", "id": "F-17", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/17)", "pr": "https://github.com/zolotarev/dpcli/pull/17"}
