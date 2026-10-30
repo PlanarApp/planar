@@ -21,3 +21,18 @@
 {"t": "2026-10-29T13:58:34", "id": "F-11", "kind": "fix", "where": "dpcli v21", "pr": "https://github.com/zolotarev/dpcli/pull/12"}
 {"t": "2026-10-29T13:58:34", "id": "F-12", "kind": "cluster", "title": "tests_summary does not parse vitest 5 todo", "match": "tests_summary", "scope": "project", "why": ""}
 {"t": "2026-10-29T13:58:34", "id": "F-12", "kind": "fix", "where": "dpcli.yml tests_summary"}
+{"t": "2026-10-29T20:37:53", "id": "F-13", "kind": "cluster", "title": "accept check waits on stdin", "match": "stdin", "scope": "dpcli", "why": "a formatter without files read the agent's open stdin until the check timeout"}
+{"t": "2026-10-29T20:37:53", "id": "F-14", "kind": "cluster", "title": "feedback crashes on a list dp_feedback", "match": "dp_feedback.*list", "scope": "dpcli", "why": "reports may carry dp_feedback as a list; feedback list fails with TypeError"}
+{"t": "2026-10-29T20:37:53", "id": "F-15", "kind": "cluster", "title": "main session context grows unnoticed", "match": "main session|главн.. сесси", "scope": "dpcli", "why": "the main session paid most of a module's tokens: one long session, context re-read on every turn"}
+{"t": "2026-10-29T20:37:53", "id": "F-16", "kind": "cluster", "title": "dpcli branches recognized by name pattern", "match": "branch name|шаблон.. имени|results\\.json", "scope": "dpcli", "why": "module new refused existing branches by name; accept --here in a module copy ignored check durations kept in the journal"}
+{"t": "2026-10-29T21:06:19", "id": "F-13", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/16"}
+{"t":"2026-10-29T21:11:01","id":"F-14","kind":"pr","url":"https://github.com/zolotarev/dpcli/pull/16"}
+{"t":"2026-10-29T21:11:01","id":"F-15","kind":"pr","url":"https://github.com/zolotarev/dpcli/pull/16"}
+{"t":"2026-10-29T21:11:01","id":"F-16","kind":"pr","url":"https://github.com/zolotarev/dpcli/pull/16"}
+{"t": "2026-10-29T21:37:37", "id": "F-17", "kind": "cluster", "title": "sessions leave merged branches behind", "match": "clean.?up|почист", "scope": "dpcli", "why": "merged improve branches and temp worktrees were left after the work was done"}
+{"t": "2026-10-29T21:37:47", "id": "F-17", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/17"}
+{"t": "2026-10-30T05:29:33", "id": "F-13", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/16)", "pr": "https://github.com/zolotarev/dpcli/pull/16"}
+{"t": "2026-10-30T05:29:33", "id": "F-14", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/16)", "pr": "https://github.com/zolotarev/dpcli/pull/16"}
+{"t": "2026-10-30T05:29:34", "id": "F-15", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/16)", "pr": "https://github.com/zolotarev/dpcli/pull/16"}
+{"t": "2026-10-30T05:29:34", "id": "F-16", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/16)", "pr": "https://github.com/zolotarev/dpcli/pull/16"}
+{"t": "2026-10-30T05:29:35", "id": "F-17", "kind": "rework", "why": "Scope mismatch: the PR body describes only the CLAUDE.md line, but `lib/dpcli/commands/update.py` gains `drop_branches` (+21 lines) and reorders `check_prs`/`update_dist`. The friction (1 occurrence,…"}
