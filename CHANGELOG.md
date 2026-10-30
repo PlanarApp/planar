@@ -4,7 +4,7 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-## [0.9.0] - public beta
+## [0.9.0] - 2026-10-30 (public beta)
 
 ### Added
 
@@ -15,6 +15,8 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - Personal API tokens, REST API `/api/v1` and an MCP server `/mcp`.
 - Module system and the bundled modules in `modules/*`; sandboxed plugin pages.
 - Self-hosting with `docker compose` (PostgreSQL 18, API, Caddy), backup, restore and upgrade scripts in `ops/`.
+- `SETUP_TOKEN` protects first-run owner setup, `DB_POOL_MAX` limits database connections, `DEMO_MODE` runs a resettable demo instance with an English demo seed.
+- Documentation site (`docs-site/`, VitePress, English and Russian) and English contract documents.
 
 ### Known limitations
 
