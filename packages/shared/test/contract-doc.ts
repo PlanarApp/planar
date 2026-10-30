@@ -98,9 +98,7 @@ export const mutatorsDoc = readFileSync(
 
 /** Table "Domain mutators" (domain mutators; docs/contracts/core-mutators.md): `| \`name\` | \`args\` | rules |` */
 export const docMutators: DocMutator[] = (() => {
-  const sec = /^### Domain mutators[^\n]*\n([\s\S]*?)(?=^#{2,3} |^Helpers)/m.exec(
-    mutatorsDoc,
-  );
+  const sec = /^### Domain mutators[^\n]*\n([\s\S]*?)(?=^#{2,3} |^Helpers)/m.exec(mutatorsDoc);
   if (!sec) return [];
   return [...sec[1].matchAll(/^\| `([\w.]+)` \| `([^`]*)` \|/gm)].map((r) => ({
     name: r[1],
