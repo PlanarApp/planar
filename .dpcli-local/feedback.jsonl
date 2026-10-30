@@ -40,3 +40,9 @@
 {"t": "2026-10-30T13:21:45", "id": "F-18", "kind": "cluster", "title": "update pins the submodule to an improve commit, not the tag", "match": "tag|тег", "scope": "dpcli", "why": "after an own PR merged, update saw VERSION equal to the release and committed the .dpcli pointer at the improve branch commit; the vN tag was not fetched"}
 {"t": "2026-10-30T13:21:47", "id": "F-19", "kind": "cluster", "title": "deliver links a missing module plan; journal notes lost on delivery", "match": "deliver|related", "scope": "dpcli", "why": "modules without docs/plan/<m>.md: decisions.md/summary.md get related -> missing file (docs check errors); harness notes in the module journal are deleted by deliver before feedback picks them up"}
 {"t": "2026-10-30T13:21:48", "id": "F-20", "kind": "cluster", "title": "merge into main needs main checked out", "match": "checked out", "scope": "dpcli", "why": "merge/deliver --into main refuse unless main is open in a copy; the main copy could not switch (vendored .dpcli on main vs submodule on the feature branch), a fast-forward needs no checkout"}
+{"t": "2026-10-30T15:59:56", "id": "F-18", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/19"}
+{"t": "2026-10-30T16:06:20", "id": "F-20", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/20"}
+{"t": "2026-10-30T16:12:30", "id": "F-19", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/21"}
+{"t": "2026-10-30T16:22:00", "id": "F-18", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/19)", "pr": "https://github.com/zolotarev/dpcli/pull/19"}
+{"t": "2026-10-30T16:22:01", "id": "F-19", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/21)", "pr": "https://github.com/zolotarev/dpcli/pull/21"}
+{"t": "2026-10-30T16:22:01", "id": "F-20", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/20)", "pr": "https://github.com/zolotarev/dpcli/pull/20"}
