@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
 import { flushPromises, mount as vmount } from '@vue/test-utils';
-import { db, Editor, i18n, newId } from '@planar/web/modules';
+import { db, Editor, i18n, newId, resetBreakpoint } from '@planar/web/modules';
 import { web } from './index';
 import { shared } from '../shared';
 import { mergeFeed, taskRefs, type Channel, type Message } from './model';
@@ -681,17 +681,71 @@ describe('сообщение', () => {
       (b) => b.textContent?.trim() === 'Удалить',
     );
     ok!.click();
-    expect(h_.mutate).toHaveBeenCalledWith('chat.message.delete', { id: own.props('message').id });
+    await vi.waitFor(() =>
+      expect(h_.mutate).toHaveBeenCalledWith('chat.message.delete', {
+        id: own.props('message').id,
+      }),
+    );
     expect(own.find('[data-testid=chat-replies]').attributes('href')).toMatch(/\/t\//);
     await own.find('button[aria-label=Реакция]').trigger('click');
     await own
       .findAll('button')
       .find((b) => b.text() === '👍')!
       .trigger('click');
-    expect(h_.mutate).toHaveBeenCalledWith(
-      'chat.reaction.toggle',
-      expect.objectContaining({ emoji: '👍' }),
+    await vi.waitFor(() =>
+      expect(h_.mutate).toHaveBeenCalledWith(
+        'chat.reaction.toggle',
+        expect.objectContaining({ emoji: '👍' }),
+      ),
     );
+  });
+
+  it('сообщение из истории REST (нет в реплике): реакция сначала кладёт его в реплику', async () => {
+    const old = msg(7);
+    expect(await db.table('chatMessages').get(old.id)).toBeUndefined();
+    const w = mount(MessageItem, { props: { ...base, message: old } });
+    await w.trigger('pointerenter');
+    await w.find('button[aria-label=Реакция]').trigger('click');
+    await w
+      .findAll('button')
+      .find((b) => b.text() === '👍')!
+      .trigger('click');
+    await vi.waitFor(() =>
+      expect(h_.mutate).toHaveBeenCalledWith(
+        'chat.reaction.toggle',
+        expect.objectContaining({ messageId: old.id }),
+      ),
+    );
+    expect((await db.table('chatMessages').get(old.id))?.id).toBe(old.id);
+  });
+
+  it('мобильная: вместо невидимой панели — нажатие на сообщение, лист с реакциями и действиями', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener() {} }) as never;
+    resetBreakpoint();
+    try {
+      const own = mount(MessageItem, { props: { ...base, message: msg(3, { authorId: ME }) } });
+      await own.trigger('pointerenter');
+      expect(own.find('button[aria-label=Реакция]').exists()).toBe(false);
+      await own.get('.chat-body').trigger('click');
+      await nextTick();
+      const sheetBtn = (t: string) =>
+        [...document.body.querySelectorAll<HTMLButtonElement>('[data-testid=sheet] button')].find(
+          (b) => b.textContent?.trim() === t,
+        );
+      expect(sheetBtn('Изменить')).toBeTruthy();
+      sheetBtn('👍')!.click();
+      await vi.waitFor(() =>
+        expect(h_.mutate).toHaveBeenCalledWith(
+          'chat.reaction.toggle',
+          expect.objectContaining({ emoji: '👍' }),
+        ),
+      );
+    } finally {
+      window.matchMedia = vi
+        .fn()
+        .mockReturnValue({ matches: false, addEventListener() {} }) as never;
+      resetBreakpoint();
+    }
   });
 
   // CL-2b: панель действий не монтируется, пока строку не навели/не сфокусировали (быстрая прокрутка)

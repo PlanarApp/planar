@@ -135,7 +135,9 @@ function toggleFold(id: string) {
 // подзадачи — деревом под родителем; родитель не над строкой — подпись в строке
 const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
 const items = computed<Item[]>(() => {
-  const head: Item[] = props.options.groupBy === 'none' ? [{ id: 'head', kind: 'head' }] : [];
+  // мобильная: карточки без строки заголовков колонок
+  const head: Item[] =
+    props.options.groupBy === 'none' && !isMobile.value ? [{ id: 'head', kind: 'head' }] : [];
   return head.concat(
     groups.value.flatMap((g): Item[] => {
       if (collapsed.value.has(g.key)) return [{ id: `g:${g.key}`, kind: 'group', group: g }];
@@ -311,15 +313,20 @@ const empty = computed(() => !!all.value && !all.value.some((x) => !x.parentId))
 
 // --- виртуализация
 const scroller = ref<HTMLElement>();
-const rowH = computed(() => (isMobile.value ? 48 : 32));
+const rowH = computed(() => (isMobile.value ? 44 : 32));
+// мобильная: карточка задачи выше служебных строк; перетаскивание там выключено (dropAt считает по rowH)
 const virt = useVirtualizer(
-  computed(() => ({
-    count: items.value.length,
-    getScrollElement: () => scroller.value ?? null,
-    estimateSize: () => rowH.value,
-    overscan: 8,
-    getItemKey: (i: number) => items.value[i]?.id ?? i,
-  })),
+  computed(() => {
+    const h = rowH.value;
+    const card = isMobile.value ? 64 : h;
+    return {
+      count: items.value.length,
+      getScrollElement: () => scroller.value ?? null,
+      estimateSize: (i: number) => (items.value[i]?.kind === 'task' ? card : h),
+      overscan: 8,
+      getItemKey: (i: number) => items.value[i]?.id ?? i,
+    };
+  }),
 );
 
 // --- фокус и клавиатура
@@ -629,7 +636,7 @@ watch(
                 :labels="labels ?? []"
                 :depth="it.depth"
                 :parent-title="it.parentTitle"
-                :draggable="manual"
+                :draggable="manual && !isMobile"
                 :child-count="it.childCount"
                 :folded="folded.has(it.task.id)"
                 :class="[
@@ -651,7 +658,7 @@ watch(
                 role="row"
                 :aria-rowindex="v.index + 1"
                 data-create
-                class="flex h-full items-center border-b border-border px-3 pl-10"
+                class="flex h-full items-center border-b border-border px-3 pl-10 max-md:pl-3"
               >
                 <input
                   v-if="creating === it.group.key"

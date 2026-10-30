@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import Breadcrumbs from '../layout/Breadcrumbs.vue';
 import {
   BarChart3,
   Briefcase,
@@ -30,7 +31,11 @@ const { t, te, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const level = computed<GroupLevel>(() =>
-  route.name === 'project' ? 'project' : route.name === 'space' ? 'space' : 'workspace',
+  route.name === 'project' || route.name === 'savedView'
+    ? 'project'
+    : route.name === 'space'
+      ? 'space'
+      : 'workspace',
 );
 const id = computed(() =>
   String(level.value === 'project' ? route.params.projectId : (route.params.spaceId ?? '')),
@@ -90,9 +95,8 @@ const icons = {
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <header v-if="name" class="flex items-baseline gap-2 px-4 pt-3">
-      <h1 class="truncate text-xl font-semibold">{{ name }}</h1>
-      <span v-if="level === 'project'" class="text-sm text-fg-subtle">{{ project?.key }}</span>
+    <header v-if="name" class="flex px-4 pt-3">
+      <Breadcrumbs />
     </header>
     <nav
       v-if="name"
@@ -110,7 +114,9 @@ const icons = {
           tab === k ? 'border-accent text-fg' : 'border-transparent text-fg-muted hover:text-fg',
         ]"
       >
-        <component :is="icons[k]" :size="16" aria-hidden="true" />{{ t(`groups.tab.${k}`) }}
+        <component :is="icons[k]" :size="16" aria-hidden="true" />
+        <!-- мобильная: подпись только у текущей вкладки -->
+        <span :class="tab !== k && 'max-md:sr-only'">{{ t(`groups.tab.${k}`) }}</span>
       </RouterLink>
     </nav>
     <div class="min-h-0 flex-1">

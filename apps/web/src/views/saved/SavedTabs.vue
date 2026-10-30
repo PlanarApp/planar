@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Bookmark, CopyPlus, Link, MoreHorizontal, Pencil, Trash2 } from 'lucide-vue-next';
+import { CopyPlus, Link, MoreHorizontal, Pencil, Trash2 } from 'lucide-vue-next';
 import { Button, Dialog, Menu } from '../../ui';
 import { deleteView, saveView, updateView } from './ops';
 import { toast } from '../../ui/toast';
@@ -10,6 +10,7 @@ import { optionsFrom } from '../options';
 import type { Filter } from '../filter';
 import { useCanShare, useSavedViews, type SavedView } from './queries';
 import SaveViewDialog from './SaveViewDialog.vue';
+import { viewIcon } from './icons';
 
 const props = defineProps<{ spaceId: string; projectId: string; activeId?: string }>();
 const { t } = useI18n();
@@ -46,6 +47,7 @@ const items = (v: SavedView) => [
         spaceId: v.spaceId,
         personal: true,
         name: t('taskMenu.copyOf', { title: v.name }),
+        icon: v.icon,
         layout: v.layout,
         filter: (v.filter as Partial<Filter> | null)?.rules
           ? (v.filter as unknown as Filter)
@@ -104,8 +106,9 @@ async function confirmDelete() {
         class="inline-flex h-11 md:h-7 items-center gap-1.5 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2 ring-focus"
         @click="open(v)"
       >
-        <Bookmark :size="16" aria-hidden="true" />
-        {{ v.name }}
+        <component :is="viewIcon(v.icon)" :size="16" aria-hidden="true" />
+        <!-- мобильная: только иконка, как у вкладок видов -->
+        <span class="max-md:sr-only">{{ v.name }}</span>
       </button>
     </Menu>
     <Menu :items="items(v)">
@@ -125,9 +128,10 @@ async function confirmDelete() {
     v-model:open="renameOpen"
     :can-share="false"
     :initial="renaming?.name ?? ''"
+    :initial-icon="renaming?.icon"
     :title="t('views.saved.rename')"
     :confirm="t('views.saved.saveChanges')"
-    @submit="(name) => renaming && updateView(renaming.id, { name })"
+    @submit="(name, _p, icon) => renaming && updateView(renaming.id, { name, icon })"
   />
   <Dialog
     v-model:open="deleteOpen"

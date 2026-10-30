@@ -3,9 +3,10 @@ import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch, type Compo
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { BookmarkPlus, MoreHorizontal } from 'lucide-vue-next';
+import { BookmarkPlus, Check, MoreHorizontal, RotateCcw } from 'lucide-vue-next';
 import { useProject } from '../tasks';
-import { IconButton, Menu, Tabs } from '../ui';
+import { Button, IconButton, Menu, Tabs } from '../ui';
+import { useAuth } from '../auth/useAuth';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import TaskModal from '../views/TaskModal.vue';
@@ -15,10 +16,11 @@ import { loadLayout } from '../views/table/columns';
 import OptionsBar from '../views/saved/OptionsBar.vue';
 import SaveViewDialog from '../views/saved/SaveViewDialog.vue';
 import SavedTabs from '../views/saved/SavedTabs.vue';
-import { saveView } from '../views/saved/ops';
+import { saveView, updateView } from '../views/saved/ops';
+import { optionsFrom, type ViewOptions } from '../views/options';
 import { useSidebarActions } from '../layout/sidebarActions';
 import type { MenuItem } from '../ui/Menu.vue';
-import { useCanShare } from '../views/saved/queries';
+import { useCanShare, useSavedView } from '../views/saved/queries';
 
 const { t, te, locale } = useI18n();
 const route = useRoute();
@@ -28,16 +30,64 @@ const projectId = computed(() => String(route.params.projectId));
 const project = useProject(projectId);
 const extViews = useExtensions('views');
 const tabs = computed(() => buildViewTabs(viewLoaders(), extViews.value));
-const active = computed(
-  () => tabs.value.find((v) => v.key === (route.params.view || 'list')) ?? tabs.value[0],
-);
-const options = useViewOptions(projectId, () => active.value?.key ?? 'list');
+// сохранённый вид (/p/:projectId/v/:viewId) — вкладка наравне со Списком и Доской
+const viewId = computed(() => (route.name === 'savedView' ? String(route.params.viewId) : ''));
+const saved = useSavedView(viewId);
+const active = computed(() => {
+  const key = viewId.value ? saved.value?.layout : route.params.view || 'list';
+  return tabs.value.find((v) => v.key === key) ?? tabs.value[0];
+});
+const tabOptions = useViewOptions(projectId, () => active.value?.key ?? 'list');
 
-// черновик фильтра текущего вида: сбрасывается при уходе со вкладки или из проекта
+// сохранённый вид: черновик — правки не пишутся, пока не нажато «Сохранить»; «Сбросить» возвращает
+const plain = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
+const emptyFilter = (): Filter => ({ op: 'and', rules: [] });
+const fromSaved = () => {
+  const v = saved.value;
+  return {
+    options: optionsFrom(v?.config),
+    filter: ((v?.filter as Partial<Filter> | undefined)?.rules
+      ? plain(v!.filter)
+      : emptyFilter()) as Filter,
+  };
+};
+const savedOptions = ref<ViewOptions>(optionsFrom(undefined));
+const options = computed<ViewOptions>({
+  get: () => (viewId.value ? savedOptions.value : tabOptions.value),
+  set: (v) => (viewId.value ? (savedOptions.value = v) : (tabOptions.value = v)),
+});
+
+// черновик фильтра: у вкладки — пуст, у сохранённого вида — его фильтр; сброс при смене вкладки или проекта
 const draftFilter = ref<Filter | null>(null);
-watch([projectId, () => active.value?.key], () => (draftFilter.value = null));
+const reset = () => {
+  const d = viewId.value ? fromSaved() : undefined;
+  if (d) savedOptions.value = d.options;
+  draftFilter.value = d?.filter ?? null;
+};
+watch([projectId, () => active.value?.key, viewId, () => saved.value?.id], reset, {
+  immediate: true,
+});
+const dirty = computed(() => {
+  if (!saved.value) return false;
+  const d = fromSaved();
+  return (
+    JSON.stringify(d.options) !== JSON.stringify(savedOptions.value) ||
+    JSON.stringify(d.filter) !== JSON.stringify(draftFilter.value)
+  );
+});
 const spaceId = computed(() => project.value?.spaceId ?? '');
 const canShare = useCanShare(spaceId);
+const { user } = useAuth();
+const editable = computed(
+  () =>
+    !!saved.value &&
+    (saved.value.userId === null ? canShare.value : saved.value.userId === user.value?.id),
+);
+const saveChanges = () =>
+  updateView(viewId.value, {
+    config: savedOptions.value,
+    filter: draftFilter.value ?? emptyFilter(),
+  });
 const saveOpen = ref(false);
 // меню «…» проекта: сохранить вид + действия проекта (как в боковой панели, без переименования на месте)
 const projectActions = useSidebarActions().projectItems;
@@ -54,14 +104,17 @@ const headerMenu = computed<MenuItem[]>(() => [
         id: project.value.id,
         name: project.value.name,
         prefix: project.value.key,
+        color: project.value.color ?? null,
+        icon: project.value.icon ?? null,
       }).filter((it) => !('id' in it) || it.id !== 'rename')
     : []),
 ]);
-async function onSave(name: string, personal: boolean) {
+async function onSave(name: string, personal: boolean, icon: string) {
   const id = await saveView({
     spaceId: spaceId.value,
     personal,
     name,
+    icon,
     layout: active.value?.key ?? 'list',
     filter: draftFilter.value,
     config:
@@ -84,7 +137,11 @@ const viewComponent = computed(() => {
 });
 
 function selectTab(key: string) {
-  void router.replace({ params: { ...route.params, view: key }, query: route.query });
+  void router.replace({
+    name: 'project',
+    params: { projectId: projectId.value, view: key },
+    query: route.query,
+  });
 }
 
 const { clear } = useSelection();
@@ -126,7 +183,11 @@ onBeforeUnmount(() => ro?.disconnect());
   <div v-else-if="project === null" class="p-4 text-fg-muted">{{ t('views.projectNotFound') }}</div>
   <div v-else class="flex h-full min-h-0">
     <section class="flex min-w-0 flex-1 flex-col">
-      <div v-if="!active" class="p-4 text-fg-muted">{{ t('views.empty') }}</div>
+      <div v-if="viewId && saved === undefined" />
+      <div v-else-if="viewId && !saved" class="p-4 text-fg-muted">
+        {{ t('views.saved.notFound') }}
+      </div>
+      <div v-else-if="!active" class="p-4 text-fg-muted">{{ t('views.empty') }}</div>
       <template v-else>
         <ToolbarRoot
           :aria-label="t('views.toolbar')"
@@ -140,23 +201,54 @@ onBeforeUnmount(() => ro?.disconnect());
             @scroll.passive="measure"
           >
             <Tabs
-              :model-value="active.key"
+              :model-value="viewId ? '' : active.key"
               :label="t('views.toolbar')"
               :items="tabs.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon }))"
               @update:model-value="selectTab"
             />
-            <SavedTabs :space-id="spaceId" :project-id="projectId" />
+            <SavedTabs
+              :space-id="spaceId"
+              :project-id="projectId"
+              :active-id="viewId || undefined"
+            />
           </div>
-          <div class="flex shrink-0 items-center gap-1">
+          <div class="flex shrink-0 items-center gap-1 max-md:gap-0">
             <OptionsBar
               v-model:options="options"
               v-model:filter="draftFilter"
               :space-id="spaceId"
               :project-id="projectId"
             >
+              <template v-if="dirty">
+                <Button
+                  v-if="editable"
+                  variant="primary"
+                  size="sm"
+                  :icon="Check"
+                  compact
+                  data-testid="saved-save"
+                  @click="saveChanges"
+                >
+                  {{ t('views.saved.saveChanges') }}
+                </Button>
+                <Button
+                  size="sm"
+                  :icon="RotateCcw"
+                  compact
+                  data-testid="saved-reset"
+                  @click="reset"
+                >
+                  {{ t('views.saved.reset') }}
+                </Button>
+              </template>
               <Menu align="end" :items="headerMenu">
                 <template #trigger>
-                  <IconButton size="sm" :icon="MoreHorizontal" :label="t('views.more')" />
+                  <IconButton
+                    size="sm"
+                    :icon="MoreHorizontal"
+                    :label="t('views.more')"
+                    class="max-md:w-7"
+                  />
                 </template>
               </Menu>
             </OptionsBar>
@@ -166,11 +258,16 @@ onBeforeUnmount(() => ro?.disconnect());
         <div class="min-h-0 flex-1">
           <component
             :is="viewComponent"
-            :key="active.key"
+            :key="viewId || active.key"
             :project-id="projectId"
             :options="options"
             :filter="draftFilter"
-            v-bind="active.ext ? { viewId: active.key } : {}"
+            v-bind="{
+              ...(active.ext ? { viewId: active.key } : {}),
+              ...(viewId
+                ? { saved: true, 'onUpdate:options': (o: ViewOptions) => (options = o) }
+                : {}),
+            }"
           />
         </div>
       </template>

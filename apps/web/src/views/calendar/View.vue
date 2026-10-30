@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import {
+  CalendarDays,
+  CalendarRange,
+  ChevronLeft,
+  ChevronRight,
+  PanelRight,
+} from 'lucide-vue-next';
 import { updateTask, useScopeTasks, useStatuses, useProject } from '../../tasks';
 import type { TaskView } from '../../tasks';
-import { useBreakpoint } from '../../ui';
+import { Button, IconButton, useBreakpoint } from '../../ui';
+import PlanPanel from '../PlanPanel.vue';
 import { openTask } from '..';
 import type { ViewProps } from '..';
 import { useWeekStart } from '../../i18n/week';
@@ -28,19 +36,22 @@ const tasks = computed(() =>
 );
 
 const storeKey = () => `planar.calendar.${props.projectId}`;
-const mode = ref<'month' | 'week'>('month');
+type Mode = 'week' | 'month';
+const MODES: Mode[] = ['week', 'month'];
+const mode = ref<Mode>('week');
 watch(
   () => props.projectId,
   () => {
     try {
-      mode.value = localStorage.getItem(storeKey()) === 'week' ? 'week' : 'month';
+      const v = localStorage.getItem(storeKey()) as Mode;
+      mode.value = MODES.includes(v) ? v : 'week';
     } catch {
-      mode.value = 'month';
+      mode.value = 'week';
     }
   },
   { immediate: true },
 );
-function setMode(m: 'month' | 'week') {
+function setMode(m: Mode) {
   mode.value = m;
   try {
     localStorage.setItem(storeKey(), m);
@@ -58,37 +69,25 @@ const days = computed(() =>
 const month = computed(() => parse(anchor.value).getMonth());
 const byDay = computed(() => layout(tasks.value, days.value));
 const undated = computed(() => tasks.value.filter((x) => !range(x)));
-// mobile: список по дням текущего месяца, только дни с задачами
-const mobileDays = computed(() => {
-  const m = monthDays(anchor.value, ws.value).filter((d) => parse(d).getMonth() === month.value);
-  return [...layout(tasks.value, m)].filter(([, l]) => l.length);
-});
 
 function step(n: number) {
-  anchor.value =
-    mode.value === 'week' && !isMobile.value
-      ? addDays(anchor.value, 7 * n)
-      : addMonths(anchor.value, n);
+  anchor.value = mode.value === 'week' ? addDays(anchor.value, 7 * n) : addMonths(anchor.value, n);
 }
-const title = computed(() =>
-  new Intl.DateTimeFormat(locale.value, { month: 'long', year: 'numeric' }).format(
-    parse(anchor.value),
-  ),
-);
-const dayLabel = (d: string) =>
-  new Intl.DateTimeFormat(locale.value, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  }).format(parse(d));
-const weekdayLabel = (d: string) =>
-  new Intl.DateTimeFormat(locale.value, { weekday: 'short' }).format(parse(d));
-
+const fmtDate = (d: string, o: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat(locale.value, o).format(parse(d));
+const weekdayLabel = (d: string) => fmtDate(d, { weekday: 'short' });
+// неделя: дни сверху вниз (строки); месяц — дни недели в столбцах
+const vertical = computed(() => mode.value === 'week');
+const panel = ref(false);
 const drag = ref<{ task: TaskView; from: string | null } | null>(null);
 function start(e: DragEvent, task: TaskView, from: string | null) {
   drag.value = { task, from };
   e.dataTransfer?.setData('text/plain', task.id);
 }
+const fromPanel = (id: string) => {
+  const task = undated.value.find((x) => x.id === id);
+  if (task) drag.value = { task, from: null };
+};
 async function drop(to: string) {
   const d = drag.value;
   drag.value = null;
@@ -97,99 +96,138 @@ async function drop(to: string) {
   if (Object.entries(patch).every(([k, v]) => d.task[k as 'dueDate' | 'startDate'] === v)) return;
   await updateTask(d.task.id, patch);
 }
+
+// мобильная: задача из панели ставится нажатием на день
+const placing = ref<TaskView | null>(null);
+const pick = (id: string) => (placing.value = undated.value.find((x) => x.id === id) ?? null);
+function onCell(d: string) {
+  const task = placing.value;
+  if (!task) return;
+  placing.value = null;
+  drag.value = { task, from: null };
+  void drop(d);
+}
+
+// касание: HTML5 drag на телефонах не работает — переносим задачу в сетке пальцем
+let touch: { task: TaskView; from: string; x: number; y: number; moved: boolean } | null = null;
+function touchDown(e: PointerEvent, task: TaskView, from: string) {
+  if (e.pointerType !== 'touch') return;
+  touch = { task, from, x: e.clientX, y: e.clientY, moved: false };
+  addEventListener('pointermove', touchMove);
+  addEventListener('pointerup', touchUp, { once: true });
+}
+function touchMove(e: PointerEvent) {
+  if (touch && Math.hypot(e.clientX - touch.x, e.clientY - touch.y) > 8) touch.moved = true;
+}
+function touchUp(e: PointerEvent) {
+  removeEventListener('pointermove', touchMove);
+  const t = touch;
+  touch = null;
+  if (!t?.moved) return;
+  const day = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-day]')
+    ?.dataset.day;
+  if (!day) return;
+  drag.value = { task: t.task, from: t.from };
+  void drop(day);
+}
+onBeforeUnmount(() => removeEventListener('pointermove', touchMove));
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-2 p-3" role="group" :aria-label="t('views.calendar')">
-    <div class="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        class="rounded border px-2 py-1"
-        :aria-label="t('calendar.prev')"
-        @click="step(-1)"
-      >
-        ‹
-      </button>
-      <button type="button" class="rounded border px-2 py-1" @click="anchor = localToday()">
-        {{ t('calendar.today') }}
-      </button>
-      <button
-        type="button"
-        class="rounded border px-2 py-1"
-        :aria-label="t('calendar.next')"
-        @click="step(1)"
-      >
-        ›
-      </button>
-      <h2 class="mx-2 font-medium capitalize" data-test="title">{{ title }}</h2>
-      <div v-if="!isMobile" class="ml-auto flex gap-1">
-        <button
-          v-for="m in ['month', 'week'] as const"
+  <div class="relative flex h-full flex-col" role="group" :aria-label="t('views.calendar')">
+    <div class="flex items-center gap-1 py-1 pl-3 pr-1">
+      <IconButton :icon="ChevronLeft" :label="t('calendar.prev')" @click="step(-1)" />
+      <input
+        type="date"
+        :value="anchor"
+        :aria-label="t('calendar.period')"
+        class="h-9 min-w-0 rounded-md border border-border-strong bg-bg px-2 text-sm md:h-8"
+        data-test="period"
+        @change="anchor = ($event.target as HTMLInputElement).value || anchor"
+      />
+      <IconButton :icon="ChevronRight" :label="t('calendar.next')" @click="step(1)" />
+      <div role="group" :aria-label="t('plan.mode')" class="ml-1 flex">
+        <Button
+          v-for="m in MODES"
           :key="m"
-          type="button"
-          class="rounded border px-2 py-1"
-          :class="mode === m && 'bg-black/10 font-medium'"
+          size="sm"
+          :variant="mode === m ? 'secondary' : 'ghost'"
+          :icon="m === 'month' ? CalendarDays : CalendarRange"
+          compact
           :aria-pressed="mode === m"
           :data-test="`mode-${m}`"
           @click="setMode(m)"
+          >{{ t(`calendar.${m}`) }}</Button
         >
-          {{ t(`calendar.${m}`) }}
-        </button>
       </div>
+      <IconButton
+        v-if="isMobile"
+        class="ml-auto"
+        :icon="PanelRight"
+        :label="t('plan.menu')"
+        :active="panel"
+        data-test="plan-toggle"
+        @click="panel = !panel"
+      />
+    </div>
+    <div
+      v-if="placing"
+      role="status"
+      class="mx-3 mb-2 flex items-center gap-2 rounded-md bg-accent-subtle px-3 py-1 text-sm"
+      data-test="placing"
+    >
+      <span class="min-w-0 flex-1">{{ t('plan.place', { title: placing.title }) }}</span>
+      <Button size="sm" variant="ghost" @click="placing = null">{{ t('plan.cancel') }}</Button>
     </div>
 
-    <div v-if="isMobile" class="flex-1 overflow-y-auto" data-test="agenda">
-      <p v-if="!mobileDays.length" class="p-3 opacity-60">{{ t('calendar.empty') }}</p>
-      <section v-for="[d, list] in mobileDays" :key="d" class="mb-3">
-        <h3 class="text-sm font-medium" :class="d === today && 'text-blue-600'">
-          {{ dayLabel(d) }}
-        </h3>
-        <button
-          v-for="x in list"
-          :key="x.id"
-          type="button"
-          class="block w-full truncate rounded px-2 py-2 text-left hover:bg-black/5"
-          @click="openTask(x.key)"
-        >
-          <span class="opacity-60">{{ x.key }}</span> {{ x.title }}
-        </button>
-      </section>
-      <section v-if="undated.length">
-        <h3 class="text-sm font-medium">{{ t('calendar.undated') }}</h3>
-        <button
-          v-for="x in undated"
-          :key="x.id"
-          type="button"
-          class="block w-full truncate rounded px-2 py-2 text-left hover:bg-black/5"
-          @click="openTask(x.key)"
-        >
-          <span class="opacity-60">{{ x.key }}</span> {{ x.title }}
-        </button>
-      </section>
-    </div>
-
-    <div v-else class="flex min-h-0 flex-1 gap-3">
+    <div class="relative flex min-h-0 flex-1 border-t border-border">
+      <!-- месяц на мобилке: ячейки в 1,5 раза шире экранной седьмой — прокрутка вбок -->
       <div
-        class="grid min-w-0 flex-1 grid-cols-7 content-start gap-px overflow-auto bg-black/10"
+        :class="[
+          'grid min-h-0 min-w-0 flex-1 gap-px overflow-auto bg-border',
+          vertical
+            ? 'grid-flow-col grid-cols-[auto_minmax(0,1fr)] grid-rows-[repeat(7,minmax(3.5rem,1fr))]'
+            : isMobile
+              ? 'grid-cols-[repeat(7,21.43%)] content-start'
+              : 'grid-cols-7 content-start',
+        ]"
         data-test="grid"
       >
         <div
           v-for="d in weekDays(anchor, ws)"
           :key="d"
-          class="bg-white px-1 text-xs opacity-70 dark:bg-neutral-900"
+          :class="[
+            'bg-bg px-1 text-xs',
+            mode === 'week' && d === today ? 'font-bold text-accent' : 'text-fg-muted',
+            vertical && 'flex w-12 flex-col items-center justify-center',
+          ]"
+          data-test="weekday"
         >
           {{ weekdayLabel(d) }}
+          <!-- неделя: число — в заголовке дня, не в ячейке -->
+          <span v-if="mode === 'week'">{{ parse(d).getDate() }}</span>
         </div>
         <div
           v-for="d in days"
           :key="d"
-          class="min-h-24 bg-white p-1 dark:bg-neutral-900"
-          :class="[mode === 'month' && parse(d).getMonth() !== month && 'opacity-50']"
+          :class="[
+            'min-w-0 bg-bg p-1',
+            vertical && 'flex flex-wrap content-start gap-1',
+            isMobile ? !vertical && 'min-h-14' : 'min-h-24',
+            mode === 'month' && parse(d).getMonth() !== month && 'opacity-50',
+            d === today && 'ring-2 ring-inset ring-accent',
+            placing && 'cursor-pointer hover:bg-accent-subtle',
+          ]"
           :data-day="d"
           @dragover.prevent
           @drop.prevent="drop(d)"
+          @click="onCell(d)"
         >
-          <div class="text-xs" :class="d === today && 'font-bold text-blue-600'">
+          <div
+            v-if="mode === 'month'"
+            class="text-xs"
+            :class="d === today && 'font-bold text-accent'"
+          >
             {{ parse(d).getDate() }}
           </div>
           <button
@@ -197,34 +235,21 @@ async function drop(to: string) {
             :key="x.id"
             type="button"
             draggable="true"
-            class="mt-0.5 block w-full truncate rounded bg-blue-500/15 px-1 text-left text-xs"
+            :class="[
+              'block touch-none truncate rounded bg-accent-subtle px-1 text-left',
+              vertical ? 'max-w-full py-0.5' : 'mt-0.5 w-full',
+              isMobile ? 'text-2xs' : 'text-xs',
+            ]"
             :data-task="x.id"
             @dragstart="start($event, x, d)"
-            @click="openTask(x.key)"
+            @pointerdown="touchDown($event, x, d)"
+            @click.stop="placing ? onCell(d) : openTask(x.key)"
           >
             {{ x.title }}
           </button>
         </div>
       </div>
-      <aside
-        class="w-56 shrink-0 overflow-y-auto"
-        data-test="undated"
-        :aria-label="t('calendar.undated')"
-      >
-        <h3 class="mb-1 text-sm font-medium">{{ t('calendar.undated') }}</h3>
-        <button
-          v-for="x in undated"
-          :key="x.id"
-          type="button"
-          draggable="true"
-          class="mb-0.5 block w-full truncate rounded bg-black/5 px-2 py-1 text-left text-sm"
-          :data-task="x.id"
-          @dragstart="start($event, x, null)"
-          @click="openTask(x.key)"
-        >
-          {{ x.title }}
-        </button>
-      </aside>
+      <PlanPanel v-model:open="panel" :tasks="undated" @pick="pick" @drag="fromPanel" />
     </div>
   </div>
 </template>

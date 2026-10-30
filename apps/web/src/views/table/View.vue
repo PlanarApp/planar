@@ -24,7 +24,7 @@ import {
 import { FieldCell, FieldEditor, setTaskField, useFieldDefs } from '../../fields';
 import { Button, Popover } from '../../ui';
 import { openTask, useSelection, type ViewProps } from '..';
-import type { ViewOptions } from '../options';
+import { TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
 import { useTaskFilter } from '../saved/useFilter';
 import { treeOrder } from '../list/tree';
 import { textWidth } from '../list/widths';
@@ -119,9 +119,17 @@ const rowIds = computed(() => rows.value.map((r) => r.id));
 
 // --- раскладка
 // options.columns → localStorage → по умолчанию
+// колонки полей «Вида» (статус, исполнитель…) — по options.fields: нет в полях — скрыта, есть — в конце
+const isTaskField = (id: string): id is TaskField => TASK_FIELDS.includes(id as TaskField);
+const withFields = (list: ColumnState[]) => [
+  ...list.filter((c) => !isTaskField(c.id) || props.options.fields.includes(c.id)),
+  ...props.options.fields.filter((f) => !list.some((c) => c.id === f)).map((f) => newColumn(f)),
+];
 const resolve = () =>
-  parseColumns(props.options.columns) ??
-  loadLayout(props.projectId, props.scope ? scopeLayout : undefined).columns;
+  withFields(
+    parseColumns(props.options.columns) ??
+      loadLayout(props.projectId, props.scope ? scopeLayout : undefined).columns,
+  );
 const cols = ref<ColumnState[]>(resolve());
 // сохранённый вид: правка уходит в черновик опций; вкладка проекта — в localStorage
 const save = () =>
@@ -129,7 +137,7 @@ const save = () =>
     ? emit('update:options', { ...props.options, columns: cols.value.map((c) => ({ ...c })) })
     : saveLayout(props.projectId, { columns: cols.value });
 watch(
-  () => [props.projectId, JSON.stringify(props.options.columns)],
+  () => [props.projectId, JSON.stringify(props.options.columns), props.options.fields.join()],
   () => (cols.value = resolve()),
 );
 // авторазмер (как в ClickUp): по самому широкому значению колонки; перетащенная — своя ширина
@@ -188,14 +196,9 @@ watch(defs, (ds) => {
     save();
   }
 });
-const allIds = computed<ColumnId[]>(() => [
-  ...COLUMN_IDS,
-  ...(defs.value ?? []).map((d) => `${FIELD_PREFIX}${d.id}` as const),
-]);
-const hidden = computed(() => allIds.value.filter((id) => !cols.value.some((c) => c.id === id)));
-function toggleCol(id: ColumnId, on: boolean) {
-  if (on) cols.value = [...cols.value, newColumn(id)];
-  else if (cols.value.length > 1) cols.value = cols.value.filter((c) => c.id !== id);
+function hideCol(id: ColumnId) {
+  if (cols.value.length < 2) return;
+  cols.value = cols.value.filter((c) => c.id !== id);
   save();
 }
 function move(i: number, to: number) {
@@ -278,27 +281,6 @@ const date = (v: string) => v.slice(0, 10);
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <div class="flex items-center justify-end border-b border-border px-3 py-1">
-      <Popover align="end">
-        <template #trigger>
-          <Button size="sm">{{ t('table.columns') }}</Button>
-        </template>
-        <ul class="flex flex-col gap-1 text-sm">
-          <li v-for="id in allIds" :key="id">
-            <label class="flex items-center gap-2">
-              <input
-                type="checkbox"
-                :checked="!hidden.includes(id)"
-                :disabled="!hidden.includes(id) && cols.length === 1"
-                @change="toggleCol(id, ($event.target as HTMLInputElement).checked)"
-              />
-              {{ colName(id) }}
-            </label>
-          </li>
-        </ul>
-      </Popover>
-    </div>
-
     <TaskContextMenu :space-id="spaceId" :tasks="all">
       <div
         ref="scroller"
@@ -366,9 +348,14 @@ const date = (v: string) => v.slice(0, 10);
                   <Button size="sm" :disabled="i === cols.length - 1" @click="move(i, i + 1)">{{
                     t('table.right')
                   }}</Button>
-                  <Button size="sm" :disabled="cols.length === 1" @click="toggleCol(c.id, false)">{{
-                    t('table.hide')
-                  }}</Button>
+                  <!-- поля «Вида» скрываются там же; прочие колонки — здесь -->
+                  <Button
+                    v-if="!isTaskField(c.id)"
+                    size="sm"
+                    :disabled="cols.length === 1"
+                    @click="hideCol(c.id)"
+                    >{{ t('table.hide') }}</Button
+                  >
                 </div>
               </Popover>
               <div

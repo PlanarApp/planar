@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { CalendarDays, CalendarRange, Columns3, PanelRight } from 'lucide-vue-next';
 import {
   Button,
   db,
   i18n,
+  IconButton,
+  PlanPanel,
   localToday,
   mutate,
   openTask,
+  useBreakpoint,
   useScopeTasks,
   type ViewScope,
   useQuery,
@@ -40,8 +44,13 @@ const dict = {
   day: { ru: 'День', en: 'Day' },
   week: { ru: 'Неделя', en: 'Week' },
   month: { ru: 'Месяц', en: 'Month' },
-  nodates: { ru: 'Без дат', en: 'No dates' },
-  hint: { ru: 'Перетащите на шкалу', en: 'Drag onto the timeline' },
+  menu: { ru: 'Задачи без дат', en: 'Unscheduled tasks' },
+  date: { ru: 'Перейти к дате', en: 'Go to date' },
+  place: {
+    ru: 'Нажмите на шкалу, чтобы поставить «{title}»',
+    en: 'Tap the timeline to place “{title}”',
+  },
+  cancel: { ru: 'Отмена', en: 'Cancel' },
   warn: {
     ru: 'Нарушена зависимость: задача начинается не позже конца блокирующей',
     en: 'Dependency violated: task starts no later than its blocker ends',
@@ -54,9 +63,15 @@ const tr = (k: keyof typeof dict) => {
 };
 
 const tasks = useScopeTasks(pids);
+const { isMobile } = useBreakpoint();
 const links = useQuery(async () => (await db.table('taskLinks').toArray()) as unknown as Link[]);
 const weekStart = useWeekStart();
 const scale = ref<Scale>('day');
+const SCALES = [
+  { key: 'day', icon: Columns3 },
+  { key: 'week', icon: CalendarRange },
+  { key: 'month', icon: CalendarDays },
+] as const;
 const px = computed(() => PX[scale.value]);
 
 // веха модуля goals: таблицы может не быть (модуль выключен — строк нет, C-modules)
@@ -200,51 +215,82 @@ async function commit(id: string, args: Record<string, unknown>, next: Bar) {
   warnTimer = setTimeout(() => (warning.value = false), 6000);
 }
 
-// «Без дат»: перетаскивание на шкалу
-const ud = ref(0);
-const udWin = computed(() => rowWindow(ud.value, view.value.h, undated.value.length));
-const udRows = computed(() => undated.value.slice(udWin.value[0], udWin.value[1]));
-function onDrop(e: DragEvent) {
-  const id = e.dataTransfer?.getData('text/plain');
-  const el = sc.value;
-  if (!id || !el || !undated.value.some((t) => t.id === id)) return;
-  e.preventDefault();
-  const day =
+// «Без дат» (панель): перетаскивание на шкалу; на мобилке — выбрать задачу и нажать на шкалу
+const panel = ref(false);
+const placing = ref<{ id: string; title: string } | null>(null);
+const dayAt = (clientX: number) => {
+  const el = sc.value!;
+  return (
     origin.value +
-    Math.floor((e.clientX - el.getBoundingClientRect().left + el.scrollLeft) / px.value);
+    Math.floor((clientX - el.getBoundingClientRect().left + el.scrollLeft) / px.value)
+  );
+};
+function place(id: string, clientX: number) {
+  if (!sc.value || !undated.value.some((t) => t.id === id)) return;
+  const day = dayAt(clientX);
   void commit(id, dropArgs(id, day), { s: day, e: day });
 }
+function onDrop(e: DragEvent) {
+  const id = e.dataTransfer?.getData('text/plain');
+  if (!id || !undated.value.some((t) => t.id === id)) return;
+  e.preventDefault();
+  place(id, e.clientX);
+}
+function onTap(e: MouseEvent) {
+  const p = placing.value;
+  if (!p) return;
+  placing.value = null;
+  place(p.id, e.clientX);
+}
+const pick = (id: string) => {
+  const t = undated.value.find((x) => x.id === id);
+  placing.value = t ? { id, title: t.title } : null;
+};
+// «период»: прокрутить шкалу к дате
+const goTo = (day: number) => {
+  if (sc.value) sc.value.scrollLeft = Math.max(0, x(day) - 120);
+  measure();
+};
 
 onMounted(() => {
   measure();
-  if (sc.value) sc.value.scrollLeft = Math.max(0, x(today) - 120);
-  measure();
+  goTo(today);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('pointermove', move);
   clearTimeout(warnTimer);
   if (raf) cancelAnimationFrame(raf);
 });
-watch(scale, () => {
-  if (sc.value) sc.value.scrollLeft = Math.max(0, x(today) - 120);
-  measure();
-});
+watch(scale, () => goTo(today));
 </script>
 
 <template>
   <section class="flex h-full min-h-0 flex-col" data-testid="timeline">
-    <header class="flex items-center gap-2 px-4 py-2">
-      <Button
-        v-for="s in ['day', 'week', 'month'] as const"
-        :key="s"
-        size="sm"
-        :variant="scale === s ? 'primary' : 'secondary'"
-        :data-testid="`tl-scale-${s}`"
-        :aria-pressed="scale === s"
-        @click="scale = s"
-      >
-        {{ tr(s) }}
-      </Button>
+    <header class="flex items-center gap-1 py-1 pl-3 pr-1">
+      <input
+        type="date"
+        :aria-label="tr('date')"
+        class="h-9 min-w-0 rounded-md border border-border-strong bg-bg px-2 text-sm md:h-8"
+        data-testid="tl-date"
+        @change="
+          ($event.target as HTMLInputElement).value &&
+          goTo(toDay(($event.target as HTMLInputElement).value))
+        "
+      />
+      <div role="group" class="ml-1 flex">
+        <Button
+          v-for="s in SCALES"
+          :key="s.key"
+          size="sm"
+          :variant="scale === s.key ? 'secondary' : 'ghost'"
+          :icon="s.icon"
+          compact
+          :data-testid="`tl-scale-${s.key}`"
+          :aria-pressed="scale === s.key"
+          @click="scale = s.key"
+          >{{ tr(s.key) }}</Button
+        >
+      </div>
       <span
         v-if="warning"
         role="alert"
@@ -253,9 +299,27 @@ watch(scale, () => {
       >
         {{ tr('warn') }}
       </span>
+      <IconButton
+        v-if="isMobile"
+        class="ml-auto"
+        :icon="PanelRight"
+        :label="tr('menu')"
+        :active="panel"
+        data-testid="tl-panel-toggle"
+        @click="panel = !panel"
+      />
     </header>
+    <div
+      v-if="placing"
+      role="status"
+      class="mx-3 mb-2 flex items-center gap-2 rounded-md bg-accent-subtle px-3 py-1 text-sm"
+      data-testid="tl-placing"
+    >
+      <span class="min-w-0 flex-1">{{ tr('place').replace('{title}', placing.title) }}</span>
+      <Button size="sm" variant="ghost" @click="placing = null">{{ tr('cancel') }}</Button>
+    </div>
     <div v-if="tasks && !tasks.length" class="p-4 text-fg-muted">{{ tr('empty') }}</div>
-    <div v-else class="flex min-h-0 flex-1">
+    <div v-else class="relative flex min-h-0 flex-1">
       <div
         ref="sc"
         class="relative min-w-0 flex-1 overflow-auto border-t border-border"
@@ -263,6 +327,7 @@ watch(scale, () => {
         @scroll.passive="onScroll"
         @dragover.prevent
         @drop="onDrop"
+        @click="onTap"
       >
         <div
           class="sticky top-0 z-10 h-6 border-b border-border bg-bg"
@@ -347,34 +412,7 @@ watch(scale, () => {
           </svg>
         </div>
       </div>
-      <aside
-        class="flex w-56 shrink-0 flex-col border-l border-t border-border"
-        data-testid="tl-nodates"
-      >
-        <h3 class="px-3 py-1 text-sm font-medium">
-          {{ tr('nodates') }} <span class="text-fg-subtle">{{ undated.length }}</span>
-        </h3>
-        <p class="px-3 pb-1 text-2xs text-fg-subtle">{{ tr('hint') }}</p>
-        <div
-          class="min-h-0 flex-1 overflow-auto"
-          @scroll.passive="ud = ($event.target as HTMLElement).scrollTop"
-        >
-          <div class="relative" :style="{ height: undated.length * ROW_H + 'px' }">
-            <div
-              v-for="(t, i) in udRows"
-              :key="t.id"
-              draggable="true"
-              class="absolute left-0 right-0 cursor-grab truncate px-3 text-sm leading-8 hover:bg-bg-muted"
-              :style="{ top: (udWin[0] + i) * ROW_H + 'px', height: ROW_H + 'px' }"
-              data-testid="tl-undated"
-              @dragstart="$event.dataTransfer?.setData('text/plain', t.id)"
-              @dblclick="openTask(t.key)"
-            >
-              {{ t.title }}
-            </div>
-          </div>
-        </div>
-      </aside>
+      <PlanPanel v-model:open="panel" :tasks="undated" @pick="pick" />
     </div>
   </section>
 </template>

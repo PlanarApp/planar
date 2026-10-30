@@ -10,6 +10,8 @@ import {
   Hash,
   Link,
   Maximize2,
+  Star,
+  StarOff,
   Trash2,
   UserRound,
 } from 'lucide-vue-next';
@@ -21,6 +23,7 @@ import { useAuth } from '../auth/useAuth';
 import { localToday } from '../views/filter';
 import { addDays } from '../views/calendar/dates';
 import { openTask } from '../views/open';
+import { favorites } from '../layout/nav';
 import { useMembers, useStatuses } from './dictionaries';
 import { createTask, deleteTask, setAssignees, updateTask } from './ops';
 import type { TaskView } from './queries';
@@ -76,6 +79,13 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
         label: t('taskMenu.copyId', { key: task.key }),
         icon: Hash,
         onSelect: () => void copy(task.key, t('taskMenu.idCopied')),
+      },
+      {
+        id: 'fav',
+        label: t(favorites.has('task', task.id) ? 'sidebar.unfavorite' : 'sidebar.favorite'),
+        icon: favorites.has('task', task.id) ? StarOff : Star,
+        onSelect: () =>
+          favorites.toggle({ kind: 'task', id: task.id, name: task.title, to: `/t/${task.key}` }),
       },
       { separator: true },
       {

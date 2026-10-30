@@ -17,7 +17,7 @@ export const router = createRouter({
     // Входящие переехали в «Моя работа › Активность» Воркспейса
     { path: '/inbox', redirect: { path: '/w/work', query: { w: 'activity' } } },
     { path: '/my', name: 'my', component: screen('My') },
-    { path: '/p/:projectId/v/:viewId', name: 'savedView', component: screen('SavedView') },
+    { path: '/p/:projectId/v/:viewId', name: 'savedView', component: screen('Group') },
     { path: '/w/:tab?', name: 'workspace', component: screen('Group') },
     { path: '/s/:spaceId/:tab?', name: 'space', component: screen('Group') },
     // :view — таб группы (docs, chats, …) или ключ вида Задач (list, board, …)

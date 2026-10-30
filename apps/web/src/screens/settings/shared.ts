@@ -35,3 +35,9 @@ export function useAdminSpaces() {
 }
 
 export const byName = <T extends { name: string }>(a: T, b: T) => a.name.localeCompare(b.name);
+
+/** Иконка узла — один символ (эмодзи из нескольких кодовых точек — тоже один). */
+export function firstGrapheme(v: string): string {
+  const [g] = new Intl.Segmenter().segment(v);
+  return g?.segment ?? '';
+}

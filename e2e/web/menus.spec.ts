@@ -41,8 +41,8 @@ test('боковая панель: новый проект через «+» и �
   const page = await loginAs(browser, 'admin');
   const name = uniq('Проект');
   const space = page.getByTestId('nav-space').first();
-  await space.hover();
-  await space.getByRole('button', { name: 'Новый проект' }).click();
+  await space.click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Новый проект' }).click();
   await page.getByPlaceholder('Название проекта').fill(name);
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/p\//);

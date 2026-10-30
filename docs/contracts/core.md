@@ -21,7 +21,9 @@ contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"
 
 Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
 
-## C-schema v12
+## C-schema v13
+
+v13: `savedViews.icon` (text?, иконка вкладки сохранённого вида; строки реплики до v13 — без поля) — core-schema.md.
 
 v12: `notifications.kind` += `doc_mention` (упоминание на странице модуля docs, `url` — `/m/docs/<pageId>`).
 
@@ -73,7 +75,7 @@ v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
 
 ### Сущности
 
-Сущности — docs/contracts/core-schema.md (часть C-schema v12).
+Сущности — docs/contracts/core-schema.md (часть C-schema v13).
 
 ### Несинхронизируемые таблицы (только сервер)
 | таблица | колонки |
@@ -186,7 +188,9 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 ### Клиент (для web)
 Применяет `changes` по `seq`; `reset` → bootstrap. После pull отбрасывает из очереди мутации с `id ≤ lastMutationId`, остальные заново применяет поверх серверного состояния (rebase). Повтор push при сетевой ошибке и `5xx` — с ростом паузы 1–30 с; `401` — на вход.
 
-## C-mutators v8
+## C-mutators v9
+
+v9: `view.create`, `view.update` += `icon?` — core-mutators.md.
 
 v8: `space.delete` += `withContent?` (пространство с проектами и задачами — массовое удаление в настройках); корневое пространство не удаляется — core-mutators.md.
 

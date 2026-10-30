@@ -16,7 +16,8 @@ import type { Row } from '@planar/shared';
 import type { MenuItem } from '../ui/Menu.vue';
 import { toast } from '../ui/toast';
 import { db, mutate, newId, rankBetween } from '../sync';
-import { favoriteProjects, type NavSpace } from './nav';
+import { favorites, type NavSpace } from './nav';
+import { groupUrl } from './groups';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
 
@@ -117,6 +118,13 @@ export function useSidebarActions() {
       onSelect: () => start(`new:${s.id}`),
     },
     {
+      id: 'fav',
+      label: t(favorites.has('space', s.id) ? 'sidebar.unfavorite' : 'sidebar.favorite'),
+      icon: favorites.has('space', s.id) ? StarOff : Star,
+      onSelect: () =>
+        favorites.toggle({ kind: 'space', id: s.id, name: s.name, to: groupUrl('space', s.id) }),
+    },
+    {
       id: 'rename',
       label: t('sidebar.rename'),
       icon: Pencil,
@@ -144,7 +152,7 @@ export function useSidebarActions() {
   ];
 
   const projectItems = (p: NavSpace['projects'][number]): MenuItem[] => {
-    const fav = favoriteProjects.has(p.id);
+    const fav = favorites.has('project', p.id);
     return [
       {
         id: 'rename',
@@ -156,7 +164,13 @@ export function useSidebarActions() {
         id: 'fav',
         label: t(fav ? 'sidebar.unfavorite' : 'sidebar.favorite'),
         icon: fav ? StarOff : Star,
-        onSelect: () => favoriteProjects.toggle(p.id),
+        onSelect: () =>
+          favorites.toggle({
+            kind: 'project',
+            id: p.id,
+            name: p.name,
+            to: groupUrl('project', p.id),
+          }),
       },
       {
         id: 'link',

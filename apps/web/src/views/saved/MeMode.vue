@@ -14,6 +14,7 @@ const { t } = useI18n();
     variant="ghost"
     size="sm"
     :icon="UserRound"
+    compact
     data-testid="me-mode"
     :aria-pressed="me === 'mine'"
     :title="t('views.me.hint')"

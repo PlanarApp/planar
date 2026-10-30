@@ -231,6 +231,7 @@ export const entitySchemas = {
     userId: uuid.nullable(),
     createdBy: uuid,
     name: z.string(),
+    icon: z.string().nullable().optional(), // строки реплики до C-schema v13 — без поля
     layout: z.string(),
     filter: z.record(z.string(), z.unknown()),
     config: z.record(z.string(), z.unknown()),

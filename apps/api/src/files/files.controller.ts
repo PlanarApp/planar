@@ -5,13 +5,22 @@ import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { Transform } from 'node:stream';
 import { Controller, Get, Inject, Param, Post, Query, Req, Res } from '@nestjs/common';
-import { and, eq, exists, or } from 'drizzle-orm';
+import { and, eq, exists, or, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import sharp from 'sharp';
 import { getAuth } from '../auth/auth.js';
 import { HttpError } from '../auth/errors.js';
 import type { Db } from '../db/index.js';
-import { attachments, fileUploads, files, spaceMembers, users } from '../db/schema.js';
+import {
+  attachments,
+  fileUploads,
+  files,
+  projects,
+  settings,
+  spaceMembers,
+  spaces,
+  users,
+} from '../db/schema.js';
 import { enabledModules } from '../modules/enabled.js';
 import { installed } from '../modules/installed.js';
 import { DB } from '../tokens.js';
@@ -106,6 +115,7 @@ export class FilesController {
   }
 
   private async builtinAccess(sha: string, userId: string): Promise<boolean> {
+    const icon = `file:${sha}`;
     const [ok] = await this.db
       .select({ x: files.sha256 })
       .from(files)
@@ -121,6 +131,29 @@ export class FilesController {
                 .where(and(eq(attachments.fileSha256, sha), eq(spaceMembers.userId, userId))),
             ),
             exists(this.db.select({ x: users.id }).from(users).where(eq(users.avatarFile, sha))),
+            // картинка-иконка узла (icon = 'file:<sha>'): Воркспейс — всем, пространство и проект — участникам
+            exists(
+              this.db
+                .select({ x: settings.id })
+                .from(settings)
+                .where(
+                  and(eq(settings.id, 'workspace'), sql`${settings.value}->>'icon' = ${icon}`),
+                ),
+            ),
+            exists(
+              this.db
+                .select({ x: spaces.id })
+                .from(spaces)
+                .innerJoin(spaceMembers, eq(spaceMembers.spaceId, spaces.id))
+                .where(and(eq(spaces.icon, icon), eq(spaceMembers.userId, userId))),
+            ),
+            exists(
+              this.db
+                .select({ x: projects.id })
+                .from(projects)
+                .innerJoin(spaceMembers, eq(spaceMembers.spaceId, projects.spaceId))
+                .where(and(eq(projects.icon, icon), eq(spaceMembers.userId, userId))),
+            ),
             exists(
               this.db
                 .select({ x: fileUploads.sha256 })

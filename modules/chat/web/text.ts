@@ -4,6 +4,7 @@ const S = {
   chat: { ru: 'Чат', en: 'Chat' },
   settings: { ru: 'Настроить канал', en: 'Channel settings' },
   channelMenu: { ru: 'Действия канала', en: 'Channel actions' },
+  actions: { ru: 'Действия с сообщением', en: 'Message actions' },
   topic: { ru: 'Тема', en: 'Topic' },
   archive: { ru: 'В архив', en: 'Archive' },
   unarchive: { ru: 'Вернуть из архива', en: 'Unarchive' },

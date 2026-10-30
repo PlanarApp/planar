@@ -15,6 +15,7 @@ async function own(tx: Tx, ids: string[], ctx: MutatorCtx) {
 }
 
 const viewName = z.string().min(1).max(100);
+const viewIcon = z.string().max(32).nullable().optional(); // имя иконки lucide из набора web
 
 export const miscMutators = [
   defineMutator({
@@ -39,6 +40,7 @@ export const miscMutators = [
       spaceId: uuid,
       personal: z.boolean(),
       name: viewName,
+      icon: viewIcon,
       layout: z.string().min(1),
       filter: record,
       config: record,
@@ -49,6 +51,7 @@ export const miscMutators = [
       const { personal, ...rest } = a;
       await tx.put('savedViews', {
         ...rest,
+        icon: a.icon ?? null,
         userId: personal ? ctx.userId : null,
         createdBy: ctx.userId,
         createdAt: ctx.now,
@@ -61,6 +64,7 @@ export const miscMutators = [
     args: z.object({
       id: uuid,
       name: viewName.optional(),
+      icon: viewIcon,
       layout: z.string().min(1).optional(),
       filter: record.optional(),
       config: record.optional(),

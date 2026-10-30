@@ -28,6 +28,9 @@ vi.mock('@planar/web/modules', async () => {
   const { ref } = await import('vue');
   return {
     Button: { template: '<button><slot /></button>' },
+    IconButton: { template: '<button />' },
+    useBreakpoint: () => ({ isMobile: ref(false) }),
+    PlanPanel: { props: ['open', 'tasks'], template: '<div />' },
     db: {},
     i18n: { global: { locale: ref('ru') } },
     localToday: () => '2026-10-24',
@@ -154,7 +157,6 @@ describe('pt2: виртуализация и шкала', () => {
     const rows = w.findAll('[role=row]').length;
     expect(rows).toBeGreaterThan(0);
     expect(rows).toBeLessThanOrEqual(100);
-    expect(w.findAll('[data-testid=tl-undated]').length).toBeLessThanOrEqual(100);
     w.unmount();
   });
 });

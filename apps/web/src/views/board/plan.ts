@@ -1,4 +1,6 @@
+import { generateNKeysBetween } from 'fractional-indexing';
 import { i18n } from '../../i18n';
+import { mutate } from '../../sync';
 import { groupTasks, moveTask, setAssignees, setLabels, updateTask } from '../../tasks';
 import type { GroupBy, TaskGroup } from '../../tasks';
 
@@ -10,6 +12,8 @@ export interface MovePlan {
   assign?: string[];
   labels?: string[];
   priority?: number;
+  /** соседи с одинаковым rank: новые rank задачам после места вставки (иначе между ними не встать) */
+  rerank?: [id: string, rank: string][];
 }
 
 const NONE = 'none';
@@ -80,6 +84,16 @@ export function planMove(
     after: target[i - 1]?.rank ?? null,
     before: target[i]?.rank ?? null,
   };
+  // ранги повторяются (сводка проектов, старые данные): задачи с rank соседа сверху, идущие после места вставки,
+  // получают rank до следующего большего; задача встаёт перед первой из них
+  const lo = plan.after;
+  if (lo !== null && plan.before !== null && plan.before <= lo) {
+    let j = i;
+    while (j < target.length && target[j]!.rank <= lo) j++;
+    const keys = generateNKeysBetween(lo, target[j]?.rank ?? null, j - i + 1);
+    plan.rerank = target.slice(i, j).map((t, k) => [t.id, keys[k + 1]!]);
+    plan.before = keys[1]!;
+  }
   if (from !== to) {
     if (by === 'status') plan.statusId = to;
     else if (by === 'priority') plan.priority = Number(to);
@@ -90,6 +104,7 @@ export function planMove(
 }
 
 export async function applyMove(p: MovePlan): Promise<void> {
+  for (const [id, rank] of p.rerank ?? []) await mutate('task.update', { id, rank });
   if (p.priority !== undefined) await updateTask(p.id, { priority: p.priority });
   if (p.assign) await setAssignees(p.id, p.assign);
   if (p.labels) await setLabels(p.id, p.labels);

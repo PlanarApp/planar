@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { flushPromises, mount } from '@vue/test-utils';
+import { defineComponent, h } from 'vue';
+import { TooltipProvider } from 'reka-ui';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import { domainMutators } from '@planar/shared';
@@ -53,7 +55,12 @@ const mq = (matches: boolean) => {
   resetBreakpoint();
 };
 const mountView = () =>
-  mount(View, { props: { projectId: ids.project, options }, global: { plugins: [i18n] } });
+  mount(
+    defineComponent({
+      render: () => h(TooltipProvider, null, () => h(View, { projectId: ids.project, options })),
+    }),
+    { global: { plugins: [i18n] } },
+  );
 
 describe('calendar:dates', () => {
   it('calendar: сетка месяца — целые недели с понедельника', () => {
@@ -118,12 +125,16 @@ describe('calendar:view', () => {
   it('calendar: перенос вызывает одну мутацию с нужными датами', async () => {
     mq(false);
     const today = localToday();
-    const target = addDays(today, 1);
+    // неделя по умолчанию: соседний день той же недели
+    const next = addDays(today, 1);
+    const target = weekDays(today).includes(next) ? next : addDays(today, -1);
     const x = task(1, { startDate: today, dueDate: today });
     const un = task(2);
     await db.table('tasks').bulkPut([x, un]);
     const w = mountView();
     await until(() => w.find(`[data-day="${today}"] [data-task="${x.id}"]`).exists());
+    // десктоп: панель — постоянная колонка, кнопки нет
+    expect(w.find('[data-test="plan-toggle"]').exists()).toBe(false);
     await until(() => w.find(`[data-test="undated"] [data-task="${un.id}"]`).exists());
     const before = await db._queue.count();
     await w.find(`[data-day="${today}"] [data-task="${x.id}"]`).trigger('dragstart');
@@ -138,13 +149,25 @@ describe('calendar:view', () => {
     await flushPromises();
     expect((await db.table('tasks').get(un.id)).dueDate).toBe(target);
   });
-  it('calendar: mobile — список по дням без сетки', async () => {
+  it('calendar: mobile — сетка; задача из панели ставится нажатием на день', async () => {
     mq(true);
     const today = localToday();
-    await db.table('tasks').put(task(1, { dueDate: today }));
+    const un = task(2);
+    await db.table('tasks').bulkPut([task(1, { dueDate: today }), un]);
     const w = mountView();
-    await until(() => w.find('[data-test="agenda"] section').exists());
-    expect(w.find('[data-test="grid"]').exists()).toBe(false);
-    expect(w.text()).toContain('t1');
+    await until(() => w.find(`[data-day="${today}"] [data-task]`).exists());
+    // блокирующая на мобилке: нажатие вне панели закрывает
+    await w.get('[data-test="plan-toggle"]').trigger('click');
+    await w.get('[data-testid="plan-overlay"]').trigger('click');
+    expect(w.find('[data-testid="plan-panel"]').exists()).toBe(false);
+    await w.get('[data-test="plan-toggle"]').trigger('click');
+    await until(() => w.find(`[data-test="undated"] [data-task="${un.id}"]`).exists());
+    await w.get(`[data-test="undated"] [data-task="${un.id}"]`).trigger('click');
+    expect(w.find('[data-testid="plan-panel"]').exists()).toBe(false);
+    expect(w.find('[data-test="placing"]').exists()).toBe(true);
+    await w.get(`[data-day="${today}"]`).trigger('click');
+    await flushPromises();
+    expect((await db.table('tasks').get(un.id)).dueDate).toBe(today);
+    expect(w.find('[data-test="placing"]').exists()).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CalendarDays, Flag, Tag, UserRound } from 'lucide-vue-next';
+import { CalendarDays, Flag, FolderKanban, Tag, UserRound } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
 import {
   AssigneePicker,
@@ -16,6 +16,7 @@ import {
 } from '../../tasks';
 import { AvatarStack, Badge } from '../../ui';
 import { formatDue } from '../list/due';
+import { localToday } from '../filter';
 
 export type CardCol = 'project' | 'priority' | 'dueDate' | 'assignee' | 'labels';
 // поле карточки: в покое — значение; пока карточка под курсором — пикер с тем же содержимым (клик — выбор)
@@ -28,6 +29,8 @@ const props = defineProps<{
   hot: boolean;
   /** название проекта задачи — поле «Проект» */
   projectName?: string;
+  /** мобильная: только иконки (текст — в подсказке) */
+  iconOnly?: boolean;
 }>();
 const { t, locale } = useI18n();
 const people = computed(() =>
@@ -39,13 +42,19 @@ const chosen = computed(() =>
   props.task.labelIds.flatMap((id) => props.labels.find((l) => l.id === id) ?? []),
 );
 const box = 'inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg';
+const due = computed(() => (props.task.dueDate ? formatDue(props.task.dueDate, locale.value) : ''));
+// просрочен — danger (иконка без текста должна это показать)
+const dueTone = computed(() =>
+  props.task.dueDate && props.task.dueDate < localToday() ? 'text-danger' : 'text-fg-muted',
+);
 const empty = 'text-fg-subtle opacity-60';
 </script>
 
 <template>
   <span data-no-drag class="contents" @click.stop>
     <span v-if="col === 'project'" :class="[box, 'text-fg-muted']" :title="projectName">
-      <span class="truncate">{{ projectName }}</span>
+      <FolderKanban v-if="iconOnly" :size="14" aria-hidden="true" />
+      <span v-else class="truncate">{{ projectName }}</span>
     </span>
     <template v-else-if="hot">
       <PriorityPicker
@@ -61,9 +70,8 @@ const empty = 'text-fg-subtle opacity-60';
         :model-value="task.dueDate"
         @update:model-value="updateTask(task.id, { dueDate: $event })"
         ><template #value>
-          <span v-if="task.dueDate" class="text-fg-muted">{{
-            formatDue(task.dueDate, locale)
-          }}</span>
+          <CalendarDays v-if="task.dueDate && iconOnly" :size="14" :class="dueTone" />
+          <span v-else-if="task.dueDate" :class="dueTone">{{ due }}</span>
           <CalendarDays v-else :size="14" :class="empty" /></template
       ></DueDatePicker>
       <AssigneePicker
@@ -81,23 +89,41 @@ const empty = 'text-fg-subtle opacity-60';
         :model-value="task.labelIds"
         @update:model-value="setLabels(task.id, $event)"
         ><template #value>
-          <Badge v-for="l in chosen" :key="l.id" dot :color="l.color ?? undefined">{{
-            l.name
-          }}</Badge>
+          <span
+            v-for="l in iconOnly ? chosen : []"
+            :key="l.id"
+            class="size-2 shrink-0 rounded-full bg-fg-subtle"
+            :style="l.color ? { background: l.color } : undefined" />
+          <Badge
+            v-for="l in iconOnly ? [] : chosen"
+            :key="l.id"
+            dot
+            :color="l.color ?? undefined"
+            >{{ l.name }}</Badge
+          >
           <Tag v-if="!chosen.length" :size="14" :class="empty" /></template
       ></LabelPicker>
     </template>
     <span
       v-else
       :class="box"
-      :title="col === 'assignee' ? people.map((p) => p.name).join(', ') : undefined"
+      :title="
+        col === 'assignee'
+          ? people.map((p) => p.name).join(', ')
+          : col === 'dueDate'
+            ? due
+            : col === 'labels'
+              ? chosen.map((l) => l.name).join(', ')
+              : undefined
+      "
     >
       <template v-if="col === 'priority'">
         <PriorityIcon v-if="task.priority" :priority="task.priority" />
         <Flag v-else :size="14" :class="empty" />
       </template>
       <template v-else-if="col === 'dueDate'">
-        <span v-if="task.dueDate" class="text-fg-muted">{{ formatDue(task.dueDate, locale) }}</span>
+        <CalendarDays v-if="task.dueDate && iconOnly" :size="14" :class="dueTone" />
+        <span v-else-if="task.dueDate" :class="dueTone">{{ due }}</span>
         <CalendarDays v-else :size="14" :class="empty" />
       </template>
       <template v-else-if="col === 'assignee'">
@@ -105,7 +131,13 @@ const empty = 'text-fg-subtle opacity-60';
         <UserRound v-else :size="14" :class="empty" />
       </template>
       <template v-else>
-        <Badge v-for="l in chosen" :key="l.id" dot :color="l.color ?? undefined">{{
+        <span
+          v-for="l in iconOnly ? chosen : []"
+          :key="l.id"
+          class="size-2 shrink-0 rounded-full bg-fg-subtle"
+          :style="l.color ? { background: l.color } : undefined"
+        />
+        <Badge v-for="l in iconOnly ? [] : chosen" :key="l.id" dot :color="l.color ?? undefined">{{
           l.name
         }}</Badge>
         <Tag v-if="!chosen.length" :size="14" :class="empty" />

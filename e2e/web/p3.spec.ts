@@ -56,8 +56,9 @@ test('p3: таймлайн — перетаскивание из «Без дат
     `/p/${f.projectId}/timeline:timeline`,
     page.locator(`[data-tl-task="${f.taskKeys[1]}"]`),
   );
+  await page.getByTestId('tl-panel-toggle').click();
   await page
-    .getByTestId('tl-undated')
+    .getByTestId('plan-task')
     .filter({ hasText: b })
     .dragTo(page.getByTestId('tl-scroll'), { targetPosition: { x: 400, y: 200 } });
   await expect

@@ -109,3 +109,12 @@ export function useFeed(channelId: string) {
     ready: computed(() => !!local.value),
   };
 }
+
+/**
+ * Сообщение из истории REST — в реплику, если его там нет: мутаторы (реакция, правка, удаление)
+ * ищут сообщение в реплике (chatMessages без bootstrap). Права и итог — на сервере.
+ */
+export async function toReplica(m: Message): Promise<void> {
+  const t = db.table<Message>('chatMessages');
+  if (!(await t.get(m.id))) await t.put(JSON.parse(JSON.stringify(m)) as Message);
+}

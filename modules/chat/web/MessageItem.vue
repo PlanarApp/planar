@@ -3,8 +3,18 @@ import { useChatLinks } from './links';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { MessageSquare, Pencil, SmilePlus, Trash2 } from 'lucide-vue-next';
-import { Button, ConfirmDialog, Editor, IconButton, mutate, newId } from '@planar/web/modules';
+import {
+  Button,
+  ConfirmDialog,
+  Editor,
+  IconButton,
+  Sheet,
+  mutate,
+  newId,
+  useBreakpoint,
+} from '@planar/web/modules';
 import RichBody from './RichBody';
+import { toReplica } from './feed';
 import TaskCard from './TaskCard.vue';
 import {
   hhmm,
@@ -40,6 +50,13 @@ const threadTo = computed(() => links.thread(m.value.channelId, m.value.id));
 const threadUrl = computed(() =>
   typeof threadTo.value === 'string' ? threadTo.value : router.resolve(threadTo.value).href,
 );
+// внутренние ссылки тела (@@ задача, @@@ документ) — переход в приложении, не новая вкладка
+function onBodyClick(e: MouseEvent) {
+  const a = (e.target as Element).closest?.('a[data-internal]');
+  if (!a || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  void router.push(a.getAttribute('href')!);
+}
 function go(e: MouseEvent) {
   if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   e.preventDefault();
@@ -54,6 +71,22 @@ const EMOJI = ['👍', '❤️', '😄', '🎉'];
 // панель действий (иконки, кнопки) монтируется при наведении/фокусе: на быстрой прокрутке это треть стоимости строки
 const armed = ref(false);
 const picking = ref(false);
+// мобильная: наведения нет — нажатие на сообщение открывает лист действий (монтируется по нажатию)
+const { isMobile } = useBreakpoint();
+const sheet = ref(false);
+const sheetRow =
+  'flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-fg';
+// нажатие по самому сообщению (не по ссылке, кнопке, карточке задачи, вложению)
+function openSheet(e: MouseEvent) {
+  if (!isMobile.value || m.value.deletedAt || editing.value) return;
+  if ((e.target as Element).closest('a, button, input, img, [contenteditable], [role=button]'))
+    return;
+  sheet.value = true;
+}
+const act = (f: () => unknown) => {
+  sheet.value = false;
+  f();
+};
 const grouped = computed(() => {
   const g = new Map<string, Reaction[]>();
   for (const r of props.reactions) g.set(r.emoji, [...(g.get(r.emoji) ?? []), r]);
@@ -66,12 +99,16 @@ const grouped = computed(() => {
 const react = (emoji: string) => {
   picking.value = false;
   const mine = props.reactions.find((r) => r.userId === props.me && r.emoji === emoji);
-  void mutate('chat.reaction.toggle', {
-    id: newId(),
-    messageId: m.value.id,
-    emoji,
-    ...(mine && { removeId: mine.id }),
-  }).catch(() => {});
+  void toReplica(m.value)
+    .then(() =>
+      mutate('chat.reaction.toggle', {
+        id: newId(),
+        messageId: m.value.id,
+        emoji,
+        ...(mine && { removeId: mine.id }),
+      }),
+    )
+    .catch(() => {});
 };
 
 const editing = ref(false);
@@ -92,8 +129,10 @@ const stopEdit = () => {
   emit('editDone');
 };
 async function save() {
-  if (draft.value)
+  if (draft.value) {
+    await toReplica(m.value);
     await mutate('chat.message.update', { id: m.value.id, body: plain(draft.value) });
+  }
   stopEdit();
 }
 // в правке Enter сохраняет (Shift+Enter — перенос), Esc — отмена; открытый список @ забирает Enter себе
@@ -104,7 +143,10 @@ function onEditEnter(e: KeyboardEvent) {
   void save();
 }
 const confirming = ref(false);
-const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catch(() => {});
+const remove = () =>
+  void toReplica(m.value)
+    .then(() => mutate('chat.message.delete', { id: m.value.id }))
+    .catch(() => {});
 </script>
 
 <template>
@@ -116,6 +158,7 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
     tabindex="0"
     @pointerenter.once="armed = true"
     @focusin.once="armed = true"
+    @click="openSheet"
   >
     <span
       :title="author"
@@ -143,6 +186,7 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
           ref="editor"
           v-model="draft"
           :members="members"
+          refs
           :label="tx('message')"
           @submit="save"
         />
@@ -152,7 +196,7 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
         </div>
       </form>
       <template v-else>
-        <RichBody :body="m.body" :me="me" />
+        <RichBody :body="m.body" :me="me" @click="onBodyClick" />
         <TaskCard v-for="k in refs" :key="k" :task-key="k" />
         <ul v-if="m.attachments.length" class="mt-1 flex flex-wrap gap-2">
           <li v-for="a in m.attachments" :key="a.fileSha256">
@@ -196,8 +240,50 @@ const remove = () => void mutate('chat.message.delete', { id: m.value.id }).catc
         >
       </div>
     </div>
+    <template v-if="isMobile && !m.deletedAt">
+      <Sheet v-if="sheet" v-model:open="sheet" :title="tx('actions')">
+        <div class="flex justify-around py-1">
+          <button
+            v-for="e in EMOJI"
+            :key="e"
+            type="button"
+            class="flex size-11 items-center justify-center rounded-md text-xl"
+            @click="act(() => react(e))"
+          >
+            {{ e }}
+          </button>
+        </div>
+        <button
+          v-if="!inThread"
+          type="button"
+          :class="sheetRow"
+          @click="act(() => router.push(threadTo))"
+        >
+          <MessageSquare :size="16" />{{ tx('reply') }}
+        </button>
+        <template v-if="mine">
+          <button type="button" :class="sheetRow" @click="act(startEdit)">
+            <Pencil :size="16" />{{ tx('edit') }}
+          </button>
+          <button
+            type="button"
+            :class="[sheetRow, 'text-danger']"
+            @click="act(() => (confirming = true))"
+          >
+            <Trash2 :size="16" />{{ tx('delete') }}
+          </button>
+        </template>
+      </Sheet>
+      <ConfirmDialog
+        v-if="confirming"
+        v-model:open="confirming"
+        :title="tx('deleteConfirm')"
+        :confirm-label="tx('delete')"
+        @confirm="remove"
+      />
+    </template>
     <div
-      v-if="armed && !m.deletedAt"
+      v-else-if="armed && !m.deletedAt"
       class="flex min-h-7 items-center gap-0.5 opacity-0 focus-within:opacity-100 group-hover:opacity-100"
     >
       <template v-if="picking">

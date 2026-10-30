@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router';
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui';
 import { useI18n } from 'vue-i18n';
 import { useBreakpoint } from '../ui/useBreakpoint';
-import BottomNav from './BottomNav.vue';
 import Sidebar from './Sidebar.vue';
 import TopBar from './TopBar.vue';
 import { mobileNav } from './nav';
@@ -41,7 +40,6 @@ watch(
     <div class="flex min-w-0 flex-1 flex-col">
       <TopBar />
       <main class="min-h-0 flex-1 overflow-auto"><RouterView /></main>
-      <BottomNav v-if="isMobile" />
     </div>
   </div>
 </template>

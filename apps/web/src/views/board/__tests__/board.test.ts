@@ -134,6 +134,34 @@ describe('board:move', () => {
     const r = (await db.table('tasks').get(p.id)).rank as string;
     expect(r > 'a1' && r < 'a3').toBe(true);
   });
+  it('board:move между соседями с одинаковым rank — встаёт ровно туда, повторы переранжированы', async () => {
+    await db
+      .table('tasks')
+      .bulkPut([
+        task(1, { rank: 'a1' }),
+        task(2, { rank: 'a2' }),
+        task(3, { rank: 'a2' }),
+        task(4, { rank: 'a2' }),
+        task(5, { rank: 'a3' }),
+        task(6, { rank: 'a4' }),
+      ]);
+    const cols = await columnsOf('status');
+    const order = cols.find((c) => c.key === ids.todo)!.tasks.map((x) => x.title);
+    // t6 — между вторым и третьим из одинаковых
+    const p = planMove(
+      cols,
+      'status',
+      byTitle(cols, 't6').id,
+      ids.todo,
+      ids.todo,
+      byTitle(cols, order[2]!).id,
+    )!;
+    await applyMove(p);
+    const after = (await columnsOf('status'))
+      .find((c) => c.key === ids.todo)!
+      .tasks.map((x) => x.title);
+    expect(after).toEqual([order[0], order[1], 't6', order[2], order[3], order[4]]);
+  });
   it('polish: board:move на прежнее место — плана нет', async () => {
     const cols = await setup();
     const t = (n: string) => byTitle(cols, n).id;

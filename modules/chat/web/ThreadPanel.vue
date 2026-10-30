@@ -58,7 +58,7 @@ function editDone() {
 <template>
   <aside
     data-testid="chat-thread"
-    class="flex min-h-0 w-full flex-col border-l border-border md:w-96"
+    class="flex min-h-0 w-full flex-col border-border md:w-96 md:border-l"
   >
     <header class="flex h-10 items-center justify-between border-b border-border px-3">
       <h2 class="text-sm font-medium">{{ tx('thread') }}</h2>

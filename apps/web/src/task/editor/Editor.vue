@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { defineAsyncComponent, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import type { EditorOptions, JSONContent } from '@tiptap/vue-3';
-import type { Extensions } from '@tiptap/core';
+import { Extension, InputRule, type Extensions } from '@tiptap/core';
 import { editorExtensions } from '@planar/editor';
 import Placeholder from '@tiptap/extension-placeholder';
 import { ApiError } from '../../api/http';
 import { uploadFile } from '../../api/files';
 import { useAuth } from '../../auth/useAuth';
+import type { RefPick } from './RefPicker.vue';
+
+// диалог ссылок (@@/@@@) — отдельный чанк: индекс задач строится только при открытии
+const RefPicker = defineAsyncComponent(() => import('./RefPicker.vue'));
 
 type Item = { id: string; label: string };
 const props = withDefaults(
@@ -21,6 +25,8 @@ const props = withDefaults(
     editable?: boolean;
     /** Совместное редактирование (P3-ydoc): имя документа `docs:<id>` | `task:<id>`; modelValue тогда не используется. */
     collab?: { name: string };
+    /** @@ — ссылка на задачу, @@@ — на документ (чат) */
+    refs?: boolean;
   }>(),
   { editable: true },
 );
@@ -40,6 +46,43 @@ const sug = ref<{
   command: (i: Item) => void;
   rect: DOMRect | null;
 } | null>(null);
+
+// @@: символы убираем, открываем диалог у курсора; выбор вставляет ссылку туда же
+const refAt = ref<{ pos: number; rect: { left: number; top: number; bottom: number } } | null>(
+  null,
+);
+const refTrigger = Extension.create({
+  name: 'refTrigger',
+  addInputRules() {
+    return [
+      new InputRule({
+        find: /@@$/,
+        handler: ({ range, chain }) => {
+          chain().deleteRange(range).run();
+          const c = this.editor.view.coordsAtPos(range.from);
+          refAt.value = { pos: range.from, rect: { left: c.left, top: c.top, bottom: c.bottom } };
+        },
+      }),
+    ];
+  },
+});
+function insertRef(r: RefPick) {
+  const at = refAt.value;
+  refAt.value = null;
+  if (!at) return;
+  editor.value
+    ?.chain()
+    .focus()
+    .insertContentAt(at.pos, [
+      { type: 'text', text: r.label, marks: [{ type: 'link', attrs: { href: r.href } }] },
+      { type: 'text', text: ' ' },
+    ])
+    .run();
+}
+function closeRef() {
+  refAt.value = null;
+  editor.value?.commands.focus();
+}
 
 async function insertFiles(files: File[]) {
   error.value = '';
@@ -117,6 +160,7 @@ const options = (extra: Extensions = [], collab = false): Partial<EditorOptions>
         },
       },
     }),
+    ...(props.refs ? [refTrigger] : []),
     ...extra,
   ],
   editorProps: {
@@ -237,6 +281,7 @@ const sugStyle = (r: DOMRect | null, n: number) => {
         {{ it.label }}
       </li>
     </ul>
+    <RefPicker v-if="refAt" :rect="refAt.rect" @pick="insertRef" @close="closeRef" />
   </div>
 </template>
 

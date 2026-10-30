@@ -31,7 +31,7 @@ const opened = ref(new Set<string>());
 const trail = computed(() => {
   const out = new Set<string>();
   const all = pages.value ?? [];
-  for (let p = all.find((x) => x.id === props.current); p?.parentId; ) {
+  for (let p = all.find((x) => x.id === props.current); p?.parentId;) {
     out.add(p.parentId);
     p = all.find((x) => x.id === p!.parentId);
   }
@@ -122,7 +122,7 @@ function drop(e: DragEvent, n: TreeNode) {
       draggable="true"
       :style="{ paddingLeft: 24 + n.depth * 12 + 'px' }"
       :class="[
-        'group flex h-7 items-center rounded-md hover:bg-bg-muted',
+        'group flex h-7 max-md:h-10 items-center rounded-md hover:bg-bg-muted',
         current === n.page.id && 'bg-accent-subtle',
         hint?.id === n.page.id && hint.zone === 'into' && 'ring-2 ring-focus',
         hint?.id === n.page.id && hint.zone === 'before' && 'border-t-2 border-accent',

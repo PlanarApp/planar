@@ -188,7 +188,7 @@ function add(key: string, title: string) {
         :delay="300"
         :delay-on-touch-only="true"
         class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3"
-        :class="isMobile && 'snap-x snap-mandatory'"
+        :class="isMobile && 'snap-x snap-mandatory scroll-px-3'"
         :style="mask"
         @scroll.passive="measure"
         @end="onColumnsEnd"

@@ -3,7 +3,7 @@ type: reference
 status: active
 module: core
 updated: 2026-10-24
-summary: Мутаторы домена C-mutators v5 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
+summary: Мутаторы домена C-mutators v9 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---
 
@@ -57,8 +57,8 @@ related: ["docs/contracts/core.md"]
 | `attachment.delete` | `id` | |
 | `notification.read` | `ids: uuid[]` | `readAt = ctx.now`, только свои |
 | `notification.delete` | `ids: uuid[]` | только свои |
-| `view.create` | `id, spaceId, personal: bool, name, layout, filter, config, rank` | `personal` → `userId = ctx.userId` |
-| `view.update` | `id, name?, layout?, filter?, config?, rank?` | |
+| `view.create` | `id, spaceId, personal: bool, name, icon?, layout, filter, config, rank` | `personal` → `userId = ctx.userId` |
+| `view.update` | `id, name?, icon?, layout?, filter?, config?, rank?` | |
 | `view.delete` | `id` | |
 | `settings.set` | `id, value` | v5: `id = 'enabled_modules'` — id модуля, которого не было во включённых, с `unavailable` ≠ null (C-modules v11) → `invalid_args`; проверка только на сервере |
 

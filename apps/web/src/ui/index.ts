@@ -18,3 +18,4 @@ export { default as Toolbar } from './Toolbar.vue';
 export { default as Tooltip } from './Tooltip.vue';
 export { useBreakpoint, resetBreakpoint } from './useBreakpoint';
 export { useTheme } from './useTheme';
+export { default as Sheet } from './Sheet.vue';

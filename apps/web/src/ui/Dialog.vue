@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 import {
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogOverlay,
@@ -12,6 +15,7 @@ withDefaults(defineProps<{ title: string; description?: string; size?: 'sm' | 'm
   size: 'md',
 });
 const open = defineModel<boolean>('open', { default: false });
+const { t } = useI18n();
 const widths = { sm: 'md:w-[400px]', md: 'md:w-[560px]', lg: 'md:w-[720px]' };
 </script>
 
@@ -25,7 +29,19 @@ const widths = { sm: 'md:w-[400px]', md: 'md:w-[560px]', lg: 'md:w-[720px]' };
           widths[size],
         ]"
       >
-        <DialogTitle class="text-base font-semibold">{{ title }}</DialogTitle>
+        <!-- мобильная: окно во весь экран — закрыть крестиком; tabindex -1 — начальный фокус
+             у содержимого (ConfirmDialog — «Отмена»), закрыть с клавиатуры — Esc -->
+        <div class="flex items-center gap-2">
+          <DialogTitle class="min-w-0 flex-1 text-base font-semibold">{{ title }}</DialogTitle>
+          <DialogClose
+            tabindex="-1"
+            :aria-label="t('ui.close')"
+            data-testid="dialog-close"
+            class="-my-2 -mr-2 inline-flex size-11 shrink-0 items-center justify-center rounded-md text-fg-muted outline-none hover:bg-bg-muted md:hidden"
+          >
+            <X :size="18" aria-hidden="true" />
+          </DialogClose>
+        </div>
         <DialogDescription v-if="description" class="text-sm text-fg-muted">
           {{ description }}
         </DialogDescription>

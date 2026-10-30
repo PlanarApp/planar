@@ -20,7 +20,7 @@ import MeMode from './MeMode.vue';
   <MeMode v-if="!noMe" v-model="options.me" />
   <Popover align="end">
     <template #trigger>
-      <Button variant="ghost" size="sm" :icon="FilterIcon" data-testid="filter-toggle">
+      <Button variant="ghost" size="sm" compact :icon="FilterIcon" data-testid="filter-toggle">
         {{ t('views.filter.title') }}
       </Button>
     </template>

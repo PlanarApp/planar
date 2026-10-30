@@ -16,9 +16,11 @@ import type { Row as DbRow } from '@planar/shared';
 import { ChevronDown, ChevronRight, GripVertical, ListTree } from 'lucide-vue-next';
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
+import TaskCard from './TaskCard.vue';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 import { localToday } from '../filter';
+import { useBreakpoint } from '../../ui/useBreakpoint';
 
 const props = defineProps<{
   task: TaskView;
@@ -55,6 +57,7 @@ const emit = defineEmits<{
   done: [];
 }>();
 const { t, locale } = useI18n();
+const { isMobile } = useBreakpoint();
 // пикеры справа видны только при наведении/фокусе — до этого не монтируем (переключение проекта)
 const hot = ref(false);
 // курсор ушёл — обратно к выводу значения; пока у пикера строки открыт список — ждём его закрытия
@@ -95,6 +98,22 @@ watch(
 );
 
 const columns = computed(() => visibleColumns(props.fields));
+// мобильная карточка: заполненные поля Списка в порядке карточки Доски
+const cardCols = computed(() =>
+  (['project', 'priority', 'dueDate', 'labels', 'assignee'] as const).filter(
+    (c) =>
+      props.fields.includes(c) &&
+      (c === 'project'
+        ? !!props.projectName
+        : c === 'priority'
+          ? !!props.task.priority
+          : c === 'dueDate'
+            ? !!props.task.dueDate
+            : c === 'assignee'
+              ? !!props.task.assigneeIds.length
+              : !!labelsSet.value.length),
+  ),
+);
 // рамка значения = рамка кнопки пикера (OptionPicker, DueDatePicker): смена при наведении не видна
 const box = 'inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg';
 const labelsSet = computed(() =>
@@ -126,7 +145,37 @@ function save() {
 </script>
 
 <template>
+  <!-- мобильная: карточка (общая с Доской) -->
   <div
+    v-if="isMobile"
+    role="row"
+    :aria-rowindex="index"
+    :aria-selected="selected"
+    :data-task="task.key"
+    :class="[
+      'flex h-full flex-col justify-center gap-1 border-b border-border px-3 text-sm',
+      selected ? 'bg-accent-subtle' : '',
+      focused ? 'ring-2 ring-inset ring-focus' : '',
+    ]"
+    @click="emit('click', $event)"
+  >
+    <TaskCard
+      :task="task"
+      :space-id="spaceId"
+      :cols="cardCols"
+      :blocked="blocked"
+      hot
+      one-line
+      :members="members"
+      :labels="labels"
+      :depth="depth"
+      :parent-title="parentTitle"
+      :child-count="childCount"
+      :project-name="projectName"
+    />
+  </div>
+  <div
+    v-else
     role="row"
     :aria-rowindex="index"
     :aria-selected="selected"

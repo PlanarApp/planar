@@ -99,34 +99,57 @@ export function useUserMenu() {
 export interface NavSpace {
   id: string;
   name: string;
-  projects: { id: string; name: string; prefix: string }[];
+  color: string | null;
+  icon: string | null;
+  projects: {
+    id: string;
+    name: string;
+    prefix: string;
+    color: string | null;
+    icon: string | null;
+  }[];
 }
-export interface NavFavorite {
+/** Что можно добавить в избранное; документы и чаты — сущности модулей. */
+export type FavKind = 'space' | 'project' | 'doc' | 'chat' | 'task';
+/** Ссылка в избранном: name и to — снимок на момент добавления (пространство и проект — живое имя). */
+export interface FavRef {
+  kind: FavKind;
   id: string;
   name: string;
   to: string;
 }
+export interface NavFavorite extends FavRef {
+  key: string;
+}
 
 // shortcut: избранное — в localStorage (личное, на этом устройстве); нужна синхронизация между устройствами — сущность на сервере
 const FAV_KEY = 'planar.favorites';
-const readFav = (): string[] => {
+const readFav = (): FavRef[] => {
   try {
     const v = JSON.parse(localStorage.getItem(FAV_KEY) ?? '[]');
-    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+    if (!Array.isArray(v)) return [];
+    // до типов избранного хранились id проектов
+    return v.flatMap((x): FavRef[] =>
+      typeof x === 'string'
+        ? [{ kind: 'project', id: x, name: '', to: `/p/${x}` }]
+        : x && typeof x.id === 'string' && typeof x.kind === 'string' && typeof x.to === 'string'
+          ? [{ kind: x.kind, id: x.id, name: String(x.name ?? ''), to: x.to }]
+          : [],
+    );
   } catch {
     return [];
   }
 };
-const favIds = ref<string[]>(readFav());
-/** Избранные проекты: id в порядке добавления. */
-export const favoriteProjects = {
-  has: (id: string) => favIds.value.includes(id),
-  toggle(id: string) {
-    favIds.value = favIds.value.includes(id)
-      ? favIds.value.filter((x) => x !== id)
-      : [...favIds.value, id];
+const favList = ref<FavRef[]>(readFav());
+/** Избранное: в порядке добавления. */
+export const favorites = {
+  has: (kind: FavKind, id: string) => favList.value.some((f) => f.kind === kind && f.id === id),
+  toggle(f: FavRef) {
+    favList.value = favorites.has(f.kind, f.id)
+      ? favList.value.filter((x) => !(x.kind === f.kind && x.id === f.id))
+      : [...favList.value, { kind: f.kind, id: f.id, name: f.name, to: f.to }];
     try {
-      localStorage.setItem(FAV_KEY, JSON.stringify(favIds.value));
+      localStorage.setItem(FAV_KEY, JSON.stringify(favList.value));
     } catch {
       /* без хранилища — до перезагрузки */
     }
@@ -142,15 +165,26 @@ export function useNavData(): {
     (src.value ?? []).map((s) => ({
       id: s.id,
       name: s.name,
-      projects: s.projects.map((p) => ({ id: p.id, name: p.name, prefix: p.key })),
+      color: s.color,
+      icon: s.icon,
+      projects: s.projects.map((p) => ({
+        id: p.id,
+        name: p.name,
+        prefix: p.key,
+        color: p.color,
+        icon: p.icon,
+      })),
     })),
   );
-  const favorites = computed<NavFavorite[]>(() => {
-    const byId = new Map(spaces.value.flatMap((s) => s.projects).map((p) => [p.id, p]));
-    return favIds.value.flatMap((id) => {
-      const p = byId.get(id);
-      return p ? [{ id, name: p.name, to: `/p/${id}` }] : [];
+  // пространство и проект — живое имя, удалённые выпадают; прочее — снимок
+  const favs = computed<NavFavorite[]>(() => {
+    if (!src.value) return [];
+    const sp = new Map(spaces.value.map((s) => [s.id, s.name]));
+    const pr = new Map(spaces.value.flatMap((s) => s.projects).map((p) => [p.id, p.name]));
+    return favList.value.flatMap((f) => {
+      const live = f.kind === 'space' ? sp.get(f.id) : f.kind === 'project' ? pr.get(f.id) : f.name;
+      return live ? [{ ...f, name: live, key: `${f.kind}:${f.id}` }] : [];
     });
   });
-  return { spaces, favorites };
+  return { spaces, favorites: favs };
 }

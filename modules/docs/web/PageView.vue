@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { useRouter, type RouteLocationRaw } from 'vue-router';
-import { Archive } from 'lucide-vue-next';
+import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
+import { Archive, Star, StarOff } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import { db, mutate, useQuery, Menu, type MenuItem } from '@planar/web/modules';
+import { db, favorites, i18n, mutate, useQuery, Menu, type MenuItem } from '@planar/web/modules';
 import DocEditor from './DocEditor.vue';
 import type { PageFull } from './model';
 import { createSaver } from './save';
@@ -13,6 +13,7 @@ import { useTexts } from './text';
 const props = defineProps<{ pageId: string; back?: RouteLocationRaw }>();
 const tx = useTexts();
 const router = useRouter();
+const route = useRoute();
 const page = useQuery(() => db.table<PageFull>('docsPages').get(props.pageId));
 const users = useQuery(() => db.table<Row<'users'>>('users').toArray());
 const members = computed(() => (users.value ?? []).map((u) => ({ id: u.id, name: u.name })));
@@ -34,7 +35,21 @@ const saver = createSaver<{ title?: string }>((patch) =>
 const onTitle = () => saver.push({ title: title.value });
 onBeforeUnmount(saver.flush);
 
+const fav = computed(() => favorites.has('doc', props.pageId));
 const actions = computed<MenuItem[]>(() => [
+  {
+    id: 'fav',
+    label: i18n.global.t(fav.value ? 'sidebar.unfavorite' : 'sidebar.favorite'),
+    icon: fav.value ? StarOff : Star,
+    // ссылка — текущий адрес страницы (в табе группы или в модуле)
+    onSelect: () =>
+      favorites.toggle({
+        kind: 'doc',
+        id: props.pageId,
+        name: title.value || tx('untitled'),
+        to: route.fullPath,
+      }),
+  },
   {
     id: 'archive',
     label: tx('archive'),

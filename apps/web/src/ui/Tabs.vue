@@ -26,7 +26,7 @@ const model = defineModel<string>({ default: '' });
         ]"
       >
         <component :is="i.icon" v-if="i.icon" :size="16" />
-        {{ i.label }}
+        <span :class="i.icon && 'max-md:sr-only'">{{ i.label }}</span>
         <span v-if="i.count !== undefined" class="text-2xs text-fg-subtle">{{ i.count }}</span>
       </TabsTrigger>
     </TabsList>

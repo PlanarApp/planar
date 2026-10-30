@@ -167,6 +167,7 @@ function onEnter(e: KeyboardEvent) {
             ref="editor"
             :model-value="body"
             :members="members"
+            refs
             :label="tx('message')"
             :placeholder="tx('placeholder')"
             @update:model-value="onInput"

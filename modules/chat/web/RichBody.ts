@@ -8,6 +8,8 @@ interface N {
   content?: N[];
 }
 const SAFE_URL = /^(https?:|mailto:)/i;
+// свои адреса: путь от корня, не //host и не /\host (браузер читает его как //host)
+const INTERNAL = /^\/(?![/\\])/;
 const TAGS: Record<string, string> = {
   paragraph: 'p',
   bulletList: 'ul',
@@ -25,7 +27,9 @@ function node(n: N, me: string, i: number): VNode | string {
       let v: VNode | string = n.text ?? '';
       for (const m of n.marks ?? []) {
         const href = String(m.attrs?.href ?? '');
-        if (m.type === 'link' && SAFE_URL.test(href))
+        if (m.type === 'link' && INTERNAL.test(href))
+          v = h('a', { href, 'data-internal': '', class: 'text-accent underline' }, [v]);
+        else if (m.type === 'link' && SAFE_URL.test(href))
           v = h(
             'a',
             { href, target: '_blank', rel: 'noopener noreferrer', class: 'text-accent underline' },

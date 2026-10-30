@@ -244,6 +244,25 @@ describe('GET /files/:sha256', () => {
     await db.update(users).set({ avatarFile: null }).where(eq(users.id, aliceId));
   });
 
+  it('картинка-иконка проекта — участникам пространства', async () => {
+    const data = Buffer.from('icon ' + Math.random());
+    await upload(alice, data);
+    const [sp] = await db
+      .insert(spaces)
+      .values({ name: 's', rank: 'a', createdBy: aliceId })
+      .returning();
+    await db.insert(projects).values({
+      spaceId: sp!.id,
+      name: 'p',
+      key: 'I' + Math.random().toString(36).slice(2, 8),
+      rank: 'a',
+      icon: `file:${sha(data)}`,
+    });
+    expect((await get(`/files/${sha(data)}`, bob)).statusCode).toBe(404);
+    await db.insert(spaceMembers).values({ spaceId: sp!.id, userId: bobId, role: 'member' });
+    expect((await get(`/files/${sha(data)}`, bob)).statusCode).toBe(200);
+  });
+
   it('ETag / If-None-Match → 304', async () => {
     const h = sha(text);
     const res = await get(`/files/${h}`, alice);

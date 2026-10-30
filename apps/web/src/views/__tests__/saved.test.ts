@@ -47,7 +47,6 @@ vi.mock('../open', async (orig) => ({
 }));
 
 const ProjectScreen = (await import('../../screens/ProjectScreen.vue')).default;
-const SavedViewScreen = (await import('../../screens/SavedViewScreen.vue')).default;
 const r = router.current as import('vue-router').Router;
 const body = new DOMWrapper(document.body);
 
@@ -217,7 +216,7 @@ describe('views:saved', () => {
     const v = savedRow();
     await db.table('savedViews').put(v);
     await r.push(`/p/${ids.project}/v/${v.id}`);
-    const w = mountScreen(SavedViewScreen);
+    const w = mountScreen(ProjectScreen);
     await until(() => w.find('[data-testid=view]').exists());
     const el = w.get('[data-testid=view]');
     expect(JSON.parse(el.attributes('data-options')!)).toEqual({
@@ -236,7 +235,7 @@ describe('views:saved', () => {
     const v = savedRow({ userId: ids.ann });
     await db.table('savedViews').put(v);
     await r.push(`/p/${ids.project}/v/${v.id}`);
-    const w = mountScreen(SavedViewScreen);
+    const w = mountScreen(ProjectScreen);
     await until(() => w.find('[data-testid=view]').exists());
     expect(w.find('[data-testid=saved-save]').exists()).toBe(false);
     const dir = () => JSON.parse(w.get('[data-testid=view]').attributes('data-options')!).sortDir;
@@ -256,7 +255,7 @@ describe('views:saved', () => {
     const v = savedRow({ userId: ids.bob });
     await db.table('savedViews').put(v);
     await r.push(`/p/${ids.project}/v/${v.id}`);
-    const w = mountScreen(SavedViewScreen);
+    const w = mountScreen(ProjectScreen);
     await until(() => w.find('[data-testid=view]').exists());
     await flipSortDir(w);
     await until(() => w.find('[data-testid=saved-reset]').exists());

@@ -61,7 +61,7 @@ const opts = (o: Partial<ViewOptions> = {}): ViewOptions => ({
   sortBy: 'rank',
   sortDir: 'asc',
   showSubtasks: false,
-  fields: [],
+  fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
   ...o,
 });
 const mk = (n: number, extra: Record<string, unknown> = {}) => ({
@@ -101,17 +101,15 @@ const def = (id: string, type: string, extra: Record<string, unknown> = {}) => (
   ...extra,
 });
 const setDefs = (d: unknown[]) => ((h$.defs as { value: unknown }).value = d);
-const colsMenu = async () => {
-  await w
-    .findAll('button')
-    .find((b) => b.text() === 'Колонки')!
-    .trigger('click');
+// меню заголовка колонки → «Скрыть»
+const hideCol = async (id: string) => {
+  await w.get(`[role=columnheader][data-col="${id}"] button[aria-label]`).trigger('click');
+  await flushPromises();
+  [...document.body.querySelectorAll('button')]
+    .find((b) => b.textContent!.trim() === 'Скрыть')!
+    .click();
   await flushPromises();
 };
-const menuBox = (name: string) =>
-  [...document.body.querySelectorAll('label')]
-    .find((l) => l.textContent!.trim() === name)!
-    .querySelector('input')!;
 const rows = () => w.findAll('[role=row][data-task]');
 
 beforeEach(() => {
@@ -260,20 +258,16 @@ describe('table', () => {
     const stored = (cols: unknown) =>
       localStorage.setItem('planar.table.p1', JSON.stringify({ columns: cols }));
 
-    it('table-fields: колонки полей в меню «Колонки» и сохраняются в раскладке', async () => {
-      setDefs([money, txt]);
-      await show();
-      expect(w.find('[data-col="field:m1"]').exists()).toBe(false);
-      await colsMenu();
-      const box = menuBox('F-m1');
-      box.checked = true;
-      box.dispatchEvent(new Event('change'));
+    it('table-fields: колонки полей «Вида» — по options.fields, без своего выбора колонок', async () => {
+      await show({ fields: ['status', 'labels'] });
+      expect(w.findAll('button').some((b) => b.text() === 'Колонки')).toBe(false);
+      const ids = w.findAll('[role=columnheader]').map((h) => h.attributes('data-col'));
+      expect(ids).toContain('status');
+      expect(ids).toContain('labels');
+      expect(ids).not.toContain('assignee');
+      await w.setProps({ options: opts({ fields: ['status', 'labels', 'project'] }) });
       await flushPromises();
-      expect(w.find('[role=columnheader][data-col="field:m1"]').text()).toContain('F-m1');
-      expect(JSON.parse(localStorage.getItem('planar.table.p1')!).columns.at(-1).id).toBe(
-        'field:m1',
-      );
-      expect(loadLayout('p1').columns.at(-1)!.id).toBe('field:m1');
+      expect(w.findAll('[role=columnheader]').at(-1)!.attributes('data-col')).toBe('project');
     });
     it('table-fields: раскладка с field-колонкой читается, пустой id отбрасывается', () => {
       stored([
@@ -341,7 +335,7 @@ describe('table', () => {
         { id: 'title', width: 200 },
         { id: 'field:t1', width: 200 },
       ]);
-      await show();
+      await show({ fields: [] });
       expect(w.find('[data-col="field:t1"]').exists()).toBe(true);
       setDefs([]);
       await flushPromises();
@@ -357,6 +351,7 @@ describe('wk7b: раскладка в сохранённом виде', () => {
   it('wk7b: options.columns применяется поверх localStorage', async () => {
     saveLayout('p1', { columns: [{ id: 'key', width: 90 }] });
     await show({
+      fields: ['status'],
       columns: [
         { id: 'status', width: 200 },
         { id: 'title', width: 300 },
@@ -366,7 +361,7 @@ describe('wk7b: раскладка в сохранённом виде', () => {
   });
   it('wk7b: без options.columns — localStorage', async () => {
     saveLayout('p1', { columns: [{ id: 'key', width: 90 }] });
-    await show();
+    await show({ fields: [] });
     expect(heads()).toEqual(['key']);
   });
   it('wk7b: без обоих — по умолчанию', async () => {
@@ -375,35 +370,29 @@ describe('wk7b: раскладка в сохранённом виде', () => {
   });
   it('wk7b: на сохранённом виде правка уходит в update:options, localStorage не меняется', async () => {
     await show({
+      fields: ['status'],
       columns: [
         { id: 'title', width: 300 },
         { id: 'key', width: 90 },
       ],
     });
     await w.setProps({ saved: true });
-    await colsMenu();
-    menuBox('Статус').click();
-    await flushPromises();
+    await hideCol('key');
     const ev = w.emitted('update:options')!;
-    expect((ev.at(-1)![0] as ViewOptions).columns!.map((c) => c.id)).toEqual([
-      'title',
-      'key',
-      'status',
-    ]);
+    expect((ev.at(-1)![0] as ViewOptions).columns!.map((c) => c.id)).toEqual(['title', 'status']);
     expect(localStorage.getItem(lsKey)).toBeNull();
   });
   it('wk7b: на вкладке проекта правка пишет localStorage', async () => {
     await show();
-    await colsMenu();
-    menuBox('Метки').click();
-    await flushPromises();
+    await hideCol('key');
     expect(w.emitted('update:options')).toBeUndefined();
     expect(
       JSON.parse(localStorage.getItem(lsKey)!).columns.map((c: { id: string }) => c.id),
-    ).not.toContain('labels');
+    ).not.toContain('key');
   });
   it('wk7b: неизвестные id пропускаются, ширина зажимается в 60–800', async () => {
     await show({
+      fields: [],
       columns: [
         { id: 'nope', width: 100 },
         { id: 'title', width: 5 },

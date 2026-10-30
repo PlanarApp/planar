@@ -3,11 +3,13 @@ import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import {
   Archive,
+  ChevronLeft,
   Hash,
   MessageSquare,
   MoreHorizontal,
   Pencil,
   Plus,
+  Star,
   Trash2,
   User,
   UserPlus,
@@ -17,6 +19,8 @@ import {
 import {
   Badge,
   Button,
+  favorites,
+  i18n,
   ConfirmDialog,
   Dialog,
   EmptyState,
@@ -111,6 +115,7 @@ const members = computed(() =>
 const mentionable = computed(() =>
   channel.value && d.value && isDirect(channel.value, d.value.members) ? [] : members.value,
 );
+const fav = computed(() => !!channel.value && favorites.has('chat', channel.value.id));
 const title = computed(() => {
   const c = channel.value;
   if (!c) return '';
@@ -222,15 +227,20 @@ async function removeChannel() {
 }
 
 const row =
-  'flex h-7 items-center justify-between gap-1.5 rounded-md pl-6 pr-2 text-sm hover:bg-bg-muted';
+  'flex h-7 max-md:h-10 items-center justify-between gap-1.5 rounded-md pl-6 pr-2 text-sm hover:bg-bg-muted';
 const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100';
 </script>
 
 <template>
   <div class="flex h-full min-h-0" data-testid="group-chats">
+    <!-- мобильная: без выбранного чата — список на весь экран, с выбранным — чат и «назад» к списку -->
     <nav
       :aria-label="tx('chat')"
-      class="w-64 shrink-0 overflow-y-auto border-r border-border py-2 max-md:hidden"
+      :class="[
+        'w-64 shrink-0 overflow-y-auto border-r border-border py-2',
+        channel ? 'max-md:hidden' : 'max-md:w-full max-md:border-r-0',
+      ]"
+      data-testid="chat-nav"
     >
       <div v-for="s in sections" :key="s.l.key" class="mb-1">
         <div
@@ -353,10 +363,23 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
         </RouterLink>
       </div>
     </nav>
-    <EmptyState v-if="!channel" :icon="MessageSquare" :title="tx('empty')" class="m-auto" />
+    <EmptyState
+      v-if="!channel"
+      :icon="MessageSquare"
+      :title="tx('empty')"
+      class="m-auto max-md:hidden"
+    />
     <template v-else>
-      <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+      <!-- мобильная: открытый тред — на весь экран вместо канала (иначе два поля ввода) -->
+      <div :class="['flex min-h-0 min-w-0 flex-1 flex-col', q('t') && 'max-md:hidden']">
         <header class="flex h-10 items-center gap-2 border-b border-border px-3">
+          <RouterLink
+            :to="{ query: { ...route.query, c: undefined, t: undefined } }"
+            :aria-label="tx('chat')"
+            class="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-md text-fg-muted hover:bg-bg-muted md:hidden"
+            data-testid="chat-back"
+            ><ChevronLeft :size="18" aria-hidden="true"
+          /></RouterLink>
           <h2 class="truncate text-sm font-medium" data-testid="chat-title">{{ title }}</h2>
           <span v-if="channel.topic" class="truncate text-xs text-fg-muted">{{
             channel.topic
@@ -407,13 +430,24 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
               </template>
             </div>
           </Popover>
+          <!-- избранное — любому участнику (меню канала — только управляющим) -->
+          <IconButton
+            :icon="Star"
+            :label="i18n.global.t(fav ? 'sidebar.unfavorite' : 'sidebar.favorite')"
+            :active="fav"
+            size="sm"
+            :class="channel.kind !== 'dm' && 'ml-auto'"
+            data-testid="chat-favorite"
+            @click="
+              favorites.toggle({ kind: 'chat', id: channel.id, name: title, to: route.fullPath })
+            "
+          />
           <Menu v-if="canManage" :items="channelMenu" align="end">
             <template #trigger>
               <IconButton
                 :icon="MoreHorizontal"
                 :label="tx('channelMenu')"
                 size="sm"
-                class="ml-auto"
                 data-testid="chat-channel-menu"
               />
             </template>

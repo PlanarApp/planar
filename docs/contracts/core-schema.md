@@ -3,13 +3,13 @@ type: reference
 status: active
 module: core
 updated: 2026-10-24
-summary: Сущности C-schema v12 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
+summary: Сущности C-schema v13 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
 related: ["docs/contracts/core.md"]
 ---
 
-# Сущности C-schema v12
+# Сущности C-schema v13
 
-Часть контракта `C-schema v12` из `docs/contracts/core.md`. Раздел читает контрактный тест (`packages/shared/test/contract-doc.ts` → `docEntities`); версия — в заголовке `## C-schema vN` в core.md.
+Часть контракта `C-schema v13` из `docs/contracts/core.md`. Раздел читает контрактный тест (`packages/shared/test/contract-doc.ts` → `docEntities`); версия — в заголовке `## C-schema vN` в core.md.
 
 ## Сущности
 
@@ -309,6 +309,7 @@ scope: space|user · write: member|self · bootstrap: yes · indexes: spaceId
 | `userId` | uuid? | не null — личный вид (видит только владелец), null — общий для пространства |
 | `createdBy` | uuid | |
 | `name` | text | |
+| `icon` | text? | имя иконки из набора web (вкладка вида); null — значок по умолчанию |
 | `layout` | text | `list`, `board` или id вида модуля |
 | `filter` | obj | |
 | `config` | obj | группировка, сортировка, колонки |

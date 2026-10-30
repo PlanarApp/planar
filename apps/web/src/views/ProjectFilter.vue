@@ -28,6 +28,7 @@ const toggle = (id: string) =>
         variant="ghost"
         size="sm"
         :icon="FolderKanban"
+        compact
         data-testid="project-filter"
         :aria-pressed="picked.length > 0"
         :class="picked.length && 'bg-accent-subtle text-fg'"

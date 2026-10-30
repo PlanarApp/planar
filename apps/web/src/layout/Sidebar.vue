@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onScopeDispose, watch, type Component } from 'vue';
-import { ChevronRight, MoreHorizontal, Plus, Settings, Star } from 'lucide-vue-next';
+import {
+  ChevronRight,
+  FileText,
+  FolderKanban,
+  MessageSquare,
+  Plus,
+  Settings,
+} from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { prefetchIdle, prefetchProject, useRootSpaceId, useWorkspace } from '../tasks/queries';
 import { useExtensions } from '../modules/registry';
@@ -12,6 +19,7 @@ import { quickCreate } from '../command/hotkeys';
 import { useRoute } from 'vue-router';
 import { CheckSquare, FolderPlus, LayoutGrid } from 'lucide-vue-next';
 import type { MenuItem } from '../ui/Menu.vue';
+import NodeIcon from '../ui/NodeIcon.vue';
 
 // reka (Avatar/Menu) — вне начального бандла
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
@@ -32,6 +40,13 @@ const section = (key: string, load: () => Promise<{ default: Component }>) => {
 const navLabel = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 const { spaces: allSpaces, favorites } = useNavData();
+const FAV_ICONS = {
+  space: LayoutGrid,
+  project: FolderKanban,
+  doc: FileText,
+  chat: MessageSquare,
+  task: CheckSquare,
+};
 // дерево групп: Воркспейс (корневое пространство) › пространства › проекты
 const rootId = useRootSpaceId();
 const ws = useWorkspace();
@@ -101,11 +116,9 @@ const link =
 const head =
   'flex h-7 w-full items-center gap-1 rounded-md px-2 text-xs font-medium uppercase text-fg-muted hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus';
 const chev = (id: string) => ['shrink-0 transition-transform', !sc.is(id) && 'rotate-90'];
-const tools =
-  'ml-auto hidden shrink-0 items-center gap-0.5 group-hover:flex group-focus-within:flex';
-const tool =
-  'flex size-5 items-center justify-center rounded text-fg-muted hover:bg-bg hover:text-fg outline-none focus-visible:ring-2 ring-focus';
 const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm text-fg outline-none';
+// иконка узла в дереве: эмодзи или картинка, рядом с названием
+const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
 </script>
 
 <template>
@@ -114,13 +127,18 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
     class="sidebar-dark flex w-60 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-sidebar-bg p-2 text-fg"
   >
     <div class="flex h-9 items-center gap-2 px-1">
+      <!-- как в шапке: значок без подложки, название цветом узла -->
       <span
-        class="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent text-xs font-semibold text-accent-fg"
-        :style="ws.color ? { background: ws.color } : undefined"
+        v-if="ws.icon"
+        class="flex size-6 shrink-0 items-center justify-center rounded-md text-base"
         aria-hidden="true"
-        >{{ ws.icon || ws.name.slice(0, 1).toUpperCase() }}</span
+        ><NodeIcon :icon="ws.icon"
+      /></span>
+      <span
+        class="flex-1 truncate text-base font-semibold"
+        :style="ws.color ? { color: ws.color } : undefined"
+        >{{ ws.name }}</span
       >
-      <span class="flex-1 truncate text-base font-semibold">{{ ws.name }}</span>
       <Menu :items="items()" align="end">
         <template #trigger>
           <button
@@ -149,7 +167,8 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
       </template>
     </Menu>
     <nav class="flex flex-col gap-3">
-      <section v-if="favorites.length">
+      <!-- отделено от дерева чертой -->
+      <section v-if="favorites.length" class="border-b border-border pb-3">
         <h2>
           <button
             type="button"
@@ -163,19 +182,22 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
         <template v-if="!sc.is('favorites')">
           <RouterLink
             v-for="f in favorites"
-            :key="f.id"
+            :key="f.key"
             :to="f.to"
             :class="link"
             active-class="bg-accent-subtle"
+            data-testid="nav-favorite"
           >
-            <Star :size="14" class="shrink-0 text-fg-muted" /><span class="truncate">{{
-              f.name
-            }}</span>
+            <component :is="FAV_ICONS[f.kind]" :size="14" class="shrink-0 text-fg-muted" /><span
+              class="truncate"
+              >{{ f.name }}</span
+            >
           </RouterLink>
         </template>
       </section>
-      <section>
-        <h2 :class="[link, 'group w-full pr-1 font-semibold']" data-testid="nav-workspace">
+      <!-- корневой узел дерева: «Всё», отделён от списка пространств чертой -->
+      <section class="border-b border-border pb-2">
+        <h2 :class="[link, 'w-full pr-1 font-semibold']" data-testid="nav-workspace">
           <button
             type="button"
             class="flex shrink-0 items-center outline-none"
@@ -186,18 +208,8 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
             <ChevronRight :size="12" :class="chev('spaces')" />
           </button>
           <RouterLink to="/w" class="min-w-0 flex-1 truncate outline-none">{{
-            ws.name
+            t('sidebar.all')
           }}</RouterLink>
-          <span :class="tools">
-            <button
-              type="button"
-              :class="tool"
-              :aria-label="t('sidebar.newSpace')"
-              @click="act.start('new-space')"
-            >
-              <Plus :size="14" />
-            </button>
-          </span>
         </h2>
         <input
           v-if="act.editing.value === 'new-space'"
@@ -209,6 +221,8 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
           @keydown="onKey"
           @blur="act.cancel"
         />
+      </section>
+      <section>
         <template v-if="!sc.is('spaces')">
           <div v-for="s in spaces" :key="s.id">
             <input
@@ -221,7 +235,7 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
               @blur="act.commit"
             />
             <Menu v-else context :items="act.spaceItems(s)">
-              <div :class="[link, 'group w-full pl-5 pr-1 font-medium']" data-testid="nav-space">
+              <div :class="[link, 'w-full pr-1 font-medium']" data-testid="nav-space">
                 <button
                   type="button"
                   class="flex shrink-0 items-center outline-none"
@@ -231,26 +245,15 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
                 >
                   <ChevronRight :size="12" :class="chev('space:' + s.id)" />
                 </button>
-                <RouterLink :to="`/s/${s.id}`" class="min-w-0 flex-1 truncate outline-none">{{
-                  s.name
-                }}</RouterLink>
-                <span :class="tools">
-                  <button
-                    type="button"
-                    :class="tool"
-                    :aria-label="t('sidebar.newProject')"
-                    @click="act.start('new:' + s.id)"
-                  >
-                    <Plus :size="14" />
-                  </button>
-                  <Menu :items="act.spaceItems(s)" align="start">
-                    <template #trigger>
-                      <button type="button" :class="tool" :aria-label="t('sidebar.more')">
-                        <MoreHorizontal :size="14" />
-                      </button>
-                    </template>
-                  </Menu>
-                </span>
+                <span v-if="s.icon" :class="nodeIcon" aria-hidden="true"
+                  ><NodeIcon :icon="s.icon"
+                /></span>
+                <RouterLink
+                  :to="`/s/${s.id}`"
+                  class="min-w-0 flex-1 truncate outline-none"
+                  :style="s.color ? { color: s.color } : undefined"
+                  >{{ s.name }}</RouterLink
+                >
               </div>
             </Menu>
             <template v-if="!sc.is('space:' + s.id) || act.editing.value === 'new:' + s.id">
@@ -267,23 +270,19 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
                 <Menu v-else context :items="act.projectItems(p)">
                   <RouterLink
                     :to="`/p/${p.id}`"
-                    :class="[link, 'group pl-8 pr-1']"
+                    :class="[link, 'pl-8 pr-1']"
                     active-class="bg-accent-subtle"
                     data-testid="nav-project"
                     @pointerenter="prefetchProject(p.id)"
                     @focus="prefetchProject(p.id)"
                   >
+                    <span v-if="p.icon" :class="nodeIcon" aria-hidden="true"
+                      ><NodeIcon :icon="p.icon"
+                    /></span>
                     <span class="font-mono text-xs text-fg-muted">{{ p.prefix }}</span
-                    ><span class="truncate">{{ p.name }}</span>
-                    <span :class="tools" @click.prevent>
-                      <Menu :items="act.projectItems(p)" align="start">
-                        <template #trigger>
-                          <button type="button" :class="tool" :aria-label="t('sidebar.more')">
-                            <MoreHorizontal :size="14" />
-                          </button>
-                        </template>
-                      </Menu>
-                    </span>
+                    ><span class="truncate" :style="p.color ? { color: p.color } : undefined">{{
+                      p.name
+                    }}</span>
                   </RouterLink>
                 </Menu>
               </template>
@@ -302,30 +301,19 @@ const input = 'h-7 w-full rounded-md border border-accent bg-bg px-2 text-sm tex
           <p v-if="!spaces.length" class="px-2 text-sm text-fg-muted">{{ t('sidebar.empty') }}</p>
         </template>
       </section>
-      <section v-if="navItems.length">
-        <h2>
-          <button
-            type="button"
-            :class="head"
-            :aria-expanded="!sc.is('sections')"
-            @click="sc.toggle('sections')"
-          >
-            <ChevronRight :size="12" :class="chev('sections')" />{{ t('sidebar.sections') }}
-          </button>
-        </h2>
-        <div v-show="!sc.is('sections')" class="flex flex-col gap-0.5">
-          <template v-for="n in navItems" :key="n.key">
-            <component
-              :is="section(n.key, n.section)"
-              v-if="'section' in n"
-              data-testid="nav-section"
-            />
-            <RouterLink v-else :to="n.to" :class="link" active-class="bg-accent-subtle">
-              <component :is="n.icon" :size="16" />{{ navLabel(n.label) }}
-            </RouterLink>
-          </template>
-        </div>
-      </section>
+      <!-- пункты модулей (страницы плагинов) — без своего заголовка -->
+      <div v-if="navItems.length" class="flex flex-col gap-0.5">
+        <template v-for="n in navItems" :key="n.key">
+          <component
+            :is="section(n.key, n.section)"
+            v-if="'section' in n"
+            data-testid="nav-section"
+          />
+          <RouterLink v-else :to="n.to" :class="link" active-class="bg-accent-subtle">
+            <component :is="n.icon" :size="16" />{{ navLabel(n.label) }}
+          </RouterLink>
+        </template>
+      </div>
     </nav>
     <RouterLink to="/w/settings" :class="[link, 'mt-auto']" active-class="bg-accent-subtle">
       <Settings :size="16" />{{ t('sidebar.settings') }}

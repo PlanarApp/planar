@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
-import { Input } from '../../ui';
+import { Button, Input } from '../../ui';
+import NodeIcon from '../../ui/NodeIcon.vue';
+import { uploadFile } from '../../api/files';
 import { db, mutate, useQuery } from '../../sync';
 import { useWorkspace } from '../../tasks';
 import ColorPicker from './ColorPicker.vue';
 import SectionHeader from './SectionHeader.vue';
-import { useAction } from './shared';
+import { firstGrapheme, useAction } from './shared';
 
 // первый раздел настроек группы — параметры самого узла: название, цвет, иконка
 const props = defineProps<{
@@ -45,6 +47,13 @@ function save(patch: { name?: string; color?: string | null; icon?: string | nul
   );
 }
 const val = (e: Event) => (e.target as HTMLInputElement).value;
+const fileInput = ref<HTMLInputElement>();
+function upload(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (file) void run(async () => save({ icon: `file:${(await uploadFile(file)).sha256}` }));
+}
 </script>
 
 <template>
@@ -65,14 +74,43 @@ const val = (e: Event) => (e.target as HTMLInputElement).value;
           @update:model-value="save({ color: $event })"
         />
       </div>
-      <div class="w-40">
-        <Input
-          :model-value="node.icon ?? ''"
-          :label="t('settings.general.icon')"
-          :placeholder="t('settings.general.iconHint')"
-          data-testid="general-icon"
-          @change="save({ icon: val($event).trim().slice(0, 16) || null })"
-        />
+      <div class="flex flex-col gap-1">
+        <span class="text-sm text-fg-muted">{{ t('settings.general.icon') }}</span>
+        <div class="flex items-center gap-2">
+          <!-- картинка вместо эмодзи; убрать картинку — снова ввод эмодзи -->
+          <template v-if="node.icon?.startsWith('file:')">
+            <span class="size-11 overflow-hidden rounded-md" data-testid="general-icon-image"
+              ><NodeIcon :icon="node.icon"
+            /></span>
+            <Button size="sm" variant="ghost" @click="save({ icon: null })">{{
+              t('settings.general.iconRemove')
+            }}</Button>
+          </template>
+          <template v-else>
+            <div class="w-16">
+              <Input
+                :model-value="node.icon ?? ''"
+                :label="t('settings.general.icon')"
+                hide-label
+                :placeholder="t('settings.general.iconHint')"
+                class="text-center"
+                data-testid="general-icon"
+                @change="save({ icon: firstGrapheme(val($event).trim()) || null })"
+              />
+            </div>
+            <Button size="sm" @click="fileInput?.click()">{{
+              t('settings.general.iconUpload')
+            }}</Button>
+            <input
+              ref="fileInput"
+              type="file"
+              accept="image/*"
+              class="sr-only"
+              tabindex="-1"
+              @change="upload"
+            />
+          </template>
+        </div>
       </div>
     </template>
   </section>

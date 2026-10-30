@@ -10,6 +10,7 @@ export async function saveView(a: {
   spaceId: string;
   personal: boolean;
   name: string;
+  icon?: string | null;
   layout: string;
   filter: Filter | null;
   config: ViewOptions;
@@ -35,7 +36,7 @@ export async function saveView(a: {
 
 export const updateView = (
   id: string,
-  p: { name?: string; filter?: Filter; config?: ViewOptions },
+  p: { name?: string; icon?: string | null; filter?: Filter; config?: ViewOptions },
 ): Promise<void> => mutate('view.update', { id, ...plain(p) });
 
 export const deleteView = (id: string): Promise<void> => mutate('view.delete', { id });

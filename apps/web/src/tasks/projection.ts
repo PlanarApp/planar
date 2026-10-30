@@ -257,9 +257,10 @@ function acquire(pid: string): Entry {
     reload(e);
   }
   entries.set(pid, e);
+  // выданную не вытесняем: подписчик добавится после возврата (иначе он подпишется на сироту без правок)
   for (const [k, x] of entries) {
     if (entries.size <= KEEP) break;
-    if (!x.subs.size) entries.delete(k);
+    if (k !== pid && !x.subs.size) entries.delete(k);
   }
   return e;
 }

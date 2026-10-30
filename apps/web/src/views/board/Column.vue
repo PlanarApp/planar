@@ -8,9 +8,9 @@ import { VueDraggable } from 'vue-draggable-plus';
 import { ChevronsLeft, Plus } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
 import type { TaskGroup, TaskView } from '../../tasks';
-import { BlockedIcon } from '../../links';
 import { Input } from '../../ui';
-import CardField, { type CardCol } from './CardField.vue';
+import type { CardCol } from './CardField.vue';
+import TaskCard from '../list/TaskCard.vue';
 import type { TaskField } from '../options';
 
 const VIRTUAL_FROM = 50;
@@ -174,7 +174,7 @@ function submit() {
     v-else
     :data-column="group.key"
     class="flex h-full shrink-0 snap-start flex-col rounded-md bg-bg-subtle"
-    :class="mobile ? 'w-[85vw]' : 'w-[280px]'"
+    :class="mobile ? 'w-[61vw]' : 'w-[280px]'"
     :aria-label="group.label"
   >
     <header
@@ -248,7 +248,7 @@ function submit() {
           :data-task="x.key"
           tabindex="0"
           :class="[
-            'mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 focus-visible:ring-2 ring-focus',
+            'mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 text-sm focus-visible:ring-2 ring-focus',
             sel.selected.value.has(x.id) ? 'border-accent bg-accent-subtle' : 'border-border',
           ]"
           @click="onCard(x, $event)"
@@ -256,30 +256,18 @@ function submit() {
           @pointerleave="cardLeave"
           @keydown.enter.self="emit('open', x.key)"
         >
-          <span
-            v-if="x.parentId && titles?.get(x.parentId)"
-            class="truncate text-xs text-fg-subtle"
-            data-testid="card-parent"
-            >↳ {{ titles.get(x.parentId) }}</span
-          >
-          <div class="flex items-start gap-1.5">
-            <span class="mt-0.5 shrink-0 font-mono text-xs text-fg-muted">{{ x.key }}</span>
-            <BlockedIcon v-if="blocked.has(x.id)" />
-            <p class="line-clamp-3 min-w-0 flex-1 text-sm leading-snug text-fg">{{ x.title }}</p>
-          </div>
-          <div v-if="cardCols(x).length" class="-mx-1.5 flex flex-wrap items-center">
-            <CardField
-              v-for="c in cardCols(x)"
-              :key="c"
-              :col="c"
-              :task="x"
-              :space-id="spaceId ?? x.spaceId"
-              :members="members"
-              :labels="labels"
-              :hot="hotId === x.id"
-              :project-name="projects?.get(x.projectId)"
-            />
-          </div>
+          <!-- карточка общая с мобильным Списком; на мобилке поля — иконки, пикеры смонтированы сразу -->
+          <TaskCard
+            :task="x"
+            :space-id="spaceId ?? x.spaceId"
+            :cols="cardCols(x)"
+            :blocked="blocked.has(x.id)"
+            :members="members"
+            :labels="labels"
+            :hot="mobile || hotId === x.id"
+            :parent-title="x.parentId ? titles?.get(x.parentId) : undefined"
+            :project-name="projects?.get(x.projectId)"
+          />
         </article>
       </VueDraggable>
     </div>

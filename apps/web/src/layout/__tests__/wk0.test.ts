@@ -12,6 +12,7 @@ import { i18n as appI18n } from '../../i18n';
 import { setWeekStart, useWeekStart } from '../../i18n/week';
 import { registerModules, setEnabledModules } from '../../modules/registry';
 import Sidebar from '../Sidebar.vue';
+import Breadcrumbs from '../Breadcrumbs.vue';
 import TopBar from '../TopBar.vue';
 
 const stub = { template: '<div />' };
@@ -108,7 +109,7 @@ describe('DS-1: хлебные крошки проекта', () => {
     });
     await router.push('/p/p1/board');
     const [, i18n] = plugins();
-    const w = mount(defineComponent({ render: () => h(TooltipProvider, null, () => h(TopBar)) }), {
+    const w = mount(Breadcrumbs, {
       global: { plugins: [router, i18n] },
     });
     await vi.waitFor(() =>

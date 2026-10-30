@@ -48,12 +48,12 @@ describe('раскладка', () => {
     expect(w.find('[data-testid=bottom-nav]').exists()).toBe(false);
   });
 
-  it('375: есть нижняя навигация, нет боковой панели', async () => {
+  it('375: нет нижней навигации и боковой панели', async () => {
     const { router, i18n } = setup(true);
     const w = mount(withTips(AppShell), { global: { plugins: [router, i18n] } });
     await router.isReady();
     expect(w.find('[data-testid=sidebar]').exists()).toBe(false);
-    expect(w.find('[data-testid=bottom-nav]').exists()).toBe(true);
+    expect(w.find('[data-testid=bottom-nav]').exists()).toBe(false);
   });
 
   it('375: кнопка «меню» в TopBar открывает Sidebar в выезжающей панели', async () => {
@@ -106,8 +106,8 @@ describe('раскладка', () => {
     localStorage.removeItem('planar.sidebar.collapsed');
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
-    // корень дерева — Воркспейс; его шеврон сворачивает пространства
-    expect(w.get('[data-testid=nav-workspace]').text()).toBe('Planar');
+    // корень дерева — «Всё»; его шеврон сворачивает пространства
+    expect(w.get('[data-testid=nav-workspace]').text()).toBe('Всё');
     expect(w.text()).not.toContain('Избранное'); // пусто — скрыто
     const head = w.get('[data-testid=nav-workspace] button');
     expect(head.attributes('aria-expanded')).toBe('true');

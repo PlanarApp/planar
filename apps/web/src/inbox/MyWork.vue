@@ -21,19 +21,20 @@ const route = useRoute();
 const router = useRouter();
 const { user } = useAuth();
 const spaces = useSpaces();
+// первая и по умолчанию — «Назначенные», «Сводка» — в конце
 const SUBS = [
-  'summary',
   'assigned',
   'comments',
   'mentions',
   'created',
   'watched',
   'activity',
+  'summary',
 ] as const;
 const MENTIONS = ['mentioned', 'chat_mention', 'doc_mention'];
 type Sub = (typeof SUBS)[number];
 const sub = computed<Sub>(() =>
-  SUBS.includes(route.query.w as Sub) ? (route.query.w as Sub) : 'summary',
+  SUBS.includes(route.query.w as Sub) ? (route.query.w as Sub) : 'assigned',
 );
 const pick = (w: string) => void router.replace({ query: { ...route.query, w } });
 

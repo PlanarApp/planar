@@ -23,7 +23,7 @@ const toggleField = (f: TaskField) =>
 <template>
   <Popover align="end">
     <template #trigger>
-      <Button variant="ghost" size="sm" :icon="SlidersHorizontal" data-testid="view-toggle">
+      <Button variant="ghost" size="sm" compact :icon="SlidersHorizontal" data-testid="view-toggle">
         {{ t('views.view') }}
       </Button>
     </template>

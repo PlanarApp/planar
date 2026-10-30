@@ -218,6 +218,20 @@ describe('tasks:projection', () => {
     scope.stop();
   });
 
+  it('perf:projection заранее построенная проекция, выданная сверх KEEP, получает правки (не вытеснена)', async () => {
+    const ps = ['P1', 'P2', 'P3', 'P4'].map(mkProject);
+    await db.table('projects').bulkPut(ps);
+    for (const p of ps) await db.table('tasks').put(task(1, { projectId: p.id }));
+    prefetchProject(ps[3].id); // как сайдбар в простое
+    const scope = effectScope();
+    const r = scope.run(() => useScopeTasks(ps.map((p) => p.id)))!;
+    await until(() => r.value?.length === 4);
+    const last = r.value!.find((x) => x.projectId === ps[3].id)!;
+    await updateTask(last.id, { dueDate: '2026-10-18' });
+    await until(() => r.value?.find((x) => x.id === last.id)?.dueDate === '2026-10-18');
+    scope.stop();
+  });
+
   it('perf:projection при многих проектах связи читаются точечно, а не таблицей целиком', async () => {
     const big = mkProject('BIG');
     await db.table('projects').put(big);
