@@ -4,12 +4,12 @@ import type { Db } from '../src/db/index.js';
 import * as schema from '../src/db/schema.js';
 
 /** Test pool: small, with headroom for connection timeouts under host load. */
-export const createTestDb = (url: string): Db =>
-  drizzle({
-    client: new pg.Pool({ connectionString: url, max: 4, connectionTimeoutMillis: 20_000 }),
-    schema,
-    casing: 'snake_case',
-  });
+export const createTestDb = (url: string): Db => {
+  const pool = new pg.Pool({ connectionString: url, max: 4, connectionTimeoutMillis: 20_000 });
+  // dropDb breaks idle connections (drop database ... force); without a listener that is an unhandled error
+  pool.on('error', () => {});
+  return drizzle({ client: pool, schema, casing: 'snake_case' });
+};
 
 /** Drops the with (force) database (it breaks connections itself) under an advisory lock; one pass, DROP ≤ 60 s, test wk13 gives 80 s (calls only wk13; afterAll does not drop the file's database). If it fails, teardown will finish it. */
 export async function dropDb(admin: pg.Client, name: string) {

@@ -9,6 +9,8 @@ export type Db = NodePgDatabase<typeof schema> & { $client: pg.Pool };
 
 export function createDb(connectionString: string, max?: number): Db {
   const pool = new pg.Pool({ connectionString, ...(max && { max }) });
+  // Without a listener an idle-client error (Postgres restart, failover, admin shutdown) crashes the process.
+  pool.on('error', (e) => console.error('[db] idle client error:', e.message));
   return drizzle({ client: pool, schema, casing: 'snake_case' });
 }
 
