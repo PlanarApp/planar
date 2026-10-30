@@ -11,6 +11,9 @@ import {
   mockFetch,
   resetAuth,
 } from '../../../auth/__tests__/helpers';
+vi.mock('../../../pwa/register', () => ({
+  useRegisterSW: () => ({ needRefresh: { value: false }, updateServiceWorker: async () => {} }),
+}));
 
 vi.mock('../../../sync', () => ({
   syncState: { value: { status: 'online', pending: 0 } },

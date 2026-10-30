@@ -1,11 +1,14 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginScreen from '../../screens/LoginScreen.vue';
 import SetupScreen from '../../screens/SetupScreen.vue';
 import ProfileScreen from '../../screens/ProfileScreen.vue';
 import SettingsScreen from '../../screens/SettingsScreen.vue';
 import { useAuth } from '../useAuth';
 import { json, mkI18n, mkRouter, mkUser, mockFetch, resetAuth, stub } from './helpers';
+vi.mock('../../pwa/register', () => ({
+  useRegisterSW: () => ({ needRefresh: { value: false }, updateServiceWorker: async () => {} }),
+}));
 
 beforeEach(resetAuth);
 

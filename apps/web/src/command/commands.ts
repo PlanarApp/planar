@@ -139,6 +139,16 @@ export async function buildCommands(o: {
     group: gApp,
     run: () => setLocale(o.locale === 'ru' ? 'en' : 'ru'),
   });
+  for (const [id, k] of [
+    ['pwa:check', 'cmdCheck'],
+    ['pwa:install', 'cmdInstall'],
+  ] as const)
+    out.push({
+      id,
+      label: t(`pwa.${k}`),
+      group: gApp,
+      run: () => void router.push({ name: 'profile', query: { pwa: id.slice(4) } }),
+    });
 
   const ctx: CommandCtx = { route, selectedTaskIds: o.selected, projectId };
   const txt = (x: string | { ru: string; en: string }) =>
