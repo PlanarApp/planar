@@ -3,89 +3,89 @@ type: contract
 status: active
 module: design
 updated: 2026-10-24
-summary: Контракт C-ui v4 — токены, контраст, плотность, базовые компоненты, маршруты и точки расширения web
+summary: Contract C-ui v4 - tokens, contrast, density, base components, routes and extension points of web
 related: ["docs/plan/design.md", "docs/contracts/web.md", "docs/contracts/work.md", "docs/roadmap.md"]
 contracts: [{"id": "C-ui", "version": 4}]
 ---
 
-# Контракт C-ui (интерфейс web)
+# Contract C-ui (web interface)
 
-Владелец — координатор design (до фазы 3 — координатор web). Потребители — web (`apps/web`), все `modules/*/web`, модуль `p3`. Менять — только координатор: версия +1 в заголовке и в `apps/web/src/contract.ts`, правка контрактного теста, уведомление потребителей.
+Owner - the design coordinator (before phase 3 - the web coordinator). Consumers - web (`apps/web`), all `modules/*/web`, module `p3`. Only the coordinator changes it: version +1 in the heading and in `apps/web/src/contract.ts`, edit the contract test, notify consumers.
 
-**Контрактный тест** — `apps/web/src/__contract__/ui.contract.test.ts` (пишет координатор, исполнитель не правит). Проверяет: версию из заголовка `## C-ui vN` (здесь) и заголовки `## C-… vN` из `docs/contracts/web.md` = `UI_CONTRACT_VERSIONS` из `apps/web/src/contract.ts`; каждый токен цвета объявлен в `tokens.css` в светлом и в тёмном блоке, размеры — в `@theme`; пары из «Контраст» не ниже порога в обеих темах; каждый компонент из списка экспортирован из `apps/web/src/ui/index.ts`; `EXTENSION_KINDS` = список точек расширения ниже. Запуск: `pnpm --filter web test`.
+**Contract test** - `apps/web/src/__contract__/ui.contract.test.ts` (written by the coordinator, the executor does not edit it). It checks: the version from the heading `## C-ui vN` (here) and the headings `## C-… vN` from `docs/contracts/web.md` = `UI_CONTRACT_VERSIONS` from `apps/web/src/contract.ts`; every color token is declared in `tokens.css` in both the light and the dark block, sizes - in `@theme`; the pairs from "Contrast" are not below the threshold in both themes; every component from the list is exported from `apps/web/src/ui/index.ts`; `EXTENSION_KINDS` = the list of extension points below. Run: `pnpm --filter web test`. The test finds sections by their Russian heading prefix, so the headings of the sections "Color tokens", "Fonts, spacing, sizes", "Contrast", "Base components", "Extension points" keep the Russian prefix.
 
 ## C-ui v4
 
-v4 (design, DS-0b): `Menu` без слота `trigger` рисует сам `IconButton` «…» (`MoreHorizontal`) с подписью `label` — модулям без зависимости `lucide-vue-next` не нужны свои иконки; `Input` передаёт атрибуты (`required`, `maxlength`, `name`, `autocomplete`, `data-*`) на `<input>`, а не на обёртку. Совместимо с v3.
+v4 (design, DS-0b): `Menu` without the `trigger` slot renders its own `IconButton` "..." (`MoreHorizontal`) with the `label` caption - modules without the `lucide-vue-next` dependency do not need their own icons; `Input` passes attributes (`required`, `maxlength`, `name`, `autocomplete`, `data-*`) to `<input>`, not to the wrapper. Compatible with v3.
 
-v3 (design, DS-0): визуал «плотно и строго, как Linear» (`docs/plan/design.md` §4). Нейтральная шкала, токены боковой панели, тени, шкала шрифта 11–20 px с базой 13 px, проверка контраста, новые компоненты (IconButton, ConfirmDialog, Tabs, Chip, AvatarStack, Kbd, EmptyState, Toolbar), правила плотности и деструктивных действий, витрина `/dev/ui`. Совместимо с v2: пропсы и события v2 сохраняются, значения токенов и вид компонентов меняются. Вариант `Button` `danger` — только для кнопки подтверждения в `ConfirmDialog`; прочие его вызовы переводит DS-4.
-v2 (collab, CL-1a): точка расширения `search` (`EXTENSION_KINDS` += `search`) — `docs/contracts/collab.md` §X-core п. 5; Inbox показывает уведомления без задачи по `body` и ведёт на `url`.
+v3 (design, DS-0): visual style "dense and strict, like Linear" (`docs/plan/design.md` §4). Neutral scale, sidebar tokens, shadows, font scale 11-20 px with a 13 px base, contrast check, new components (IconButton, ConfirmDialog, Tabs, Chip, AvatarStack, Kbd, EmptyState, Toolbar), density and destructive-action rules, showcase `/dev/ui`. Compatible with v2: v2 props and events are kept, token values and the look of components change. The `Button` variant `danger` is only for the confirm button in `ConfirmDialog`; DS-4 migrates its other uses.
+v2 (collab, CL-1a): extension point `search` (`EXTENSION_KINDS` += `search`) - `docs/contracts/collab.md` §X-core item 5; Inbox shows notifications without a task by `body` and leads to `url`.
 
-Модули (`modules/<id>/web/`) импортируют web только из SDK `@planar/web/modules` (`docs/contracts/work.md` §C-modules v4); прямой импорт `@planar/web/<путь>` запрещён (временный `exports["./*"]` из CL-4 убирает CL-6). Тесты модулей — `modules/*/web/**/*.test.ts`, их запускает проект web (`apps/web/vitest.config.ts`). Всё из `apps/web/src/ui/index.ts` попадает в SDK через `export * from '../ui'` в `apps/web/src/modules/sdk.ts` (добавление аддитивно, перечень C-modules не меняется).
+Modules (`modules/<id>/web/`) import web only from the SDK `@planar/web/modules` (`docs/contracts/work.md` §C-modules v4); direct import `@planar/web/<path>` is forbidden (the temporary `exports["./*"]` from CL-4 is removed by CL-6). Module tests - `modules/*/web/**/*.test.ts`, run by the web project (`apps/web/vitest.config.ts`). Everything from `apps/web/src/ui/index.ts` reaches the SDK via `export * from '../ui'` in `apps/web/src/modules/sdk.ts` (additions are additive, the C-modules list does not change).
 
-### Файлы
-| Путь | Что |
+### Files
+| Path | What |
 |---|---|
 | `apps/web/src/contract.ts` | `export const UI_CONTRACT_VERSIONS = { 'C-ui': 4, 'C-client': 4, 'C-tasks': 3, 'C-views': 2 } as const;` |
-| `apps/web/src/ui/tokens.css` | токены: блок `@theme { … }` — светлая тема и общие размеры, блок `.dark { … }` — тёмная (те же имена цветов) |
-| `apps/web/src/ui/index.ts` | экспорт компонентов и `useBreakpoint`, `useTheme` |
-| `apps/web/src/styles.css` | база: `body` — `font-size: var(--text-sm)` (13 px), `line-height: var(--text-sm--line-height)` |
-| `apps/web/src/screens/DevUiScreen.vue` | витрина `/dev/ui`: все компоненты и варианты, переключатель темы; только в dev |
-| `apps/web/src/i18n/{index,ru,en}.ts` | vue-i18n, словари; строки компонентов — ключи `ui.*` |
-| `apps/web/src/modules/types.ts` | типы точек расширения, `EXTENSION_KINDS`, `defineWebModule` |
+| `apps/web/src/ui/tokens.css` | tokens: the `@theme { … }` block - light theme and shared sizes, the `.dark { … }` block - dark theme (same color names) |
+| `apps/web/src/ui/index.ts` | export of components and `useBreakpoint`, `useTheme` |
+| `apps/web/src/styles.css` | base: `body` - `font-size: var(--text-sm)` (13 px), `line-height: var(--text-sm--line-height)` |
+| `apps/web/src/screens/DevUiScreen.vue` | showcase `/dev/ui`: all components and variants, theme switcher; dev only |
+| `apps/web/src/i18n/{index,ru,en}.ts` | vue-i18n, dictionaries; component strings - keys `ui.*` |
+| `apps/web/src/modules/types.ts` | extension point types, `EXTENSION_KINDS`, `defineWebModule` |
 | `apps/web/src/modules/registry.ts` | `registerModules(manifests)`, `useExtensions(kind)` |
 
-### Токены цвета
-Tailwind 4: имена в `@theme` дают утилиты (`--color-bg` → `bg-bg`, `text-fg`, `border-border`). В компонентах — только эти утилиты или `var(--color-…)`; литералы цветов запрещены (кроме значения `color` из данных: статусы, метки). Значение токена — `#rrggbb` или `var(--color-…)` другого токена (так их читает проверка контраста).
+### Color tokens
+Tailwind 4: names in `@theme` produce utilities (`--color-bg` -> `bg-bg`, `text-fg`, `border-border`). Components use only these utilities or `var(--color-…)`; color literals are forbidden (except a `color` value from data: statuses, labels). A token value is `#rrggbb` or `var(--color-…)` of another token (this is how the contrast check reads them).
 
-Нейтральная шкала — 10 ступеней по роли, а не по светлоте: в светлой теме 1 — самая светлая, в тёмной — самая тёмная. Семантические токены ссылаются на шкалу или задаются своим значением.
+The neutral scale has 10 steps by role, not by lightness: in the light theme 1 is the lightest, in the dark theme the darkest. Semantic tokens refer to the scale or have their own value.
 
-| Токен | Назначение |
+| Token | Purpose |
 |---|---|
-| `--color-neutral-1` | фон приложения |
-| `--color-neutral-2` | приподнятый фон (шапки групп, панели) |
+| `--color-neutral-1` | app background |
+| `--color-neutral-2` | raised background (group headers, panels) |
 | `--color-neutral-3` | hover |
-| `--color-neutral-4` | нажатое, выбранное нейтральное |
-| `--color-neutral-5` | граница |
-| `--color-neutral-6` | граница полей, сильная граница |
-| `--color-neutral-7` | неактивное, декоративные иконки (не текст) |
-| `--color-neutral-8` | третичный текст, плейсхолдеры |
-| `--color-neutral-9` | вторичный текст |
-| `--color-neutral-10` | основной текст |
-| `--color-bg` | фон приложения |
-| `--color-bg-subtle` | фон шапок групп, панелей |
-| `--color-bg-muted` | hover строк, неактивные поля |
-| `--color-surface` | поповеры, диалоги, карточки доски |
-| `--color-overlay` | подложка под диалогом (может быть `#rrggbbaa`; в проверке контраста не участвует) |
-| `--color-border` | обычная граница |
-| `--color-border-strong` | граница полей ввода |
-| `--color-fg` | основной текст |
-| `--color-fg-muted` | вторичный текст |
-| `--color-fg-subtle` | подсказки, плейсхолдеры, иконки |
-| `--color-accent` | основное действие, выбранное, ссылки (единственный акцент) |
-| `--color-accent-fg` | текст на `accent` |
-| `--color-accent-subtle` | фон выбранной строки |
-| `--color-danger` | опасное действие, ошибка (текст `danger-ghost`) |
-| `--color-danger-fg` | текст на `danger` |
-| `--color-danger-subtle` | hover опасного пункта меню и `danger-ghost` |
-| `--color-warning` | предупреждение, срок скоро |
-| `--color-success` | успех |
-| `--color-focus` | кольцо фокуса (`focus-visible`, 2px) |
-| `--color-sidebar-bg` | фон боковой панели (тёмный в обеих темах) |
-| `--color-sidebar-fg` | основной текст боковой панели |
-| `--color-sidebar-fg-muted` | вторичный текст, иконки, заголовки групп боковой панели |
-| `--color-sidebar-hover` | hover элемента боковой панели |
-| `--color-sidebar-active` | выбранный элемент боковой панели |
-| `--color-sidebar-border` | разделители боковой панели |
-| `--color-priority-urgent` | приоритет 1 |
-| `--color-priority-high` | приоритет 2 |
-| `--color-priority-medium` | приоритет 3 |
-| `--color-priority-low` | приоритет 4 |
+| `--color-neutral-4` | pressed, selected neutral |
+| `--color-neutral-5` | border |
+| `--color-neutral-6` | field border, strong border |
+| `--color-neutral-7` | inactive, decorative icons (not text) |
+| `--color-neutral-8` | tertiary text, placeholders |
+| `--color-neutral-9` | secondary text |
+| `--color-neutral-10` | primary text |
+| `--color-bg` | app background |
+| `--color-bg-subtle` | background of group headers, panels |
+| `--color-bg-muted` | row hover, inactive fields |
+| `--color-surface` | popovers, dialogs, board cards |
+| `--color-overlay` | backdrop under a dialog (may be `#rrggbbaa`; not part of the contrast check) |
+| `--color-border` | regular border |
+| `--color-border-strong` | input field border |
+| `--color-fg` | primary text |
+| `--color-fg-muted` | secondary text |
+| `--color-fg-subtle` | hints, placeholders, icons |
+| `--color-accent` | primary action, selected, links (the only accent) |
+| `--color-accent-fg` | text on `accent` |
+| `--color-accent-subtle` | selected row background |
+| `--color-danger` | dangerous action, error (`danger-ghost` text) |
+| `--color-danger-fg` | text on `danger` |
+| `--color-danger-subtle` | hover of a dangerous menu item and `danger-ghost` |
+| `--color-warning` | warning, due soon |
+| `--color-success` | success |
+| `--color-focus` | focus ring (`focus-visible`, 2px) |
+| `--color-sidebar-bg` | sidebar background (dark in both themes) |
+| `--color-sidebar-fg` | sidebar primary text |
+| `--color-sidebar-fg-muted` | sidebar secondary text, icons, group headers |
+| `--color-sidebar-hover` | sidebar item hover |
+| `--color-sidebar-active` | selected sidebar item |
+| `--color-sidebar-border` | sidebar dividers |
+| `--color-priority-urgent` | priority 1 |
+| `--color-priority-high` | priority 2 |
+| `--color-priority-medium` | priority 3 |
+| `--color-priority-low` | priority 4 |
 
-### Контраст
-Контраст по WCAG 2.1 (относительная яркость sRGB), в обеих темах (тёмная — значения из `.dark`, недостающие ссылки — из `@theme`). Проверяет контрактный тест по `tokens.css`.
+### Contrast
+Contrast per WCAG 2.1 (sRGB relative luminance), in both themes (dark - values from `.dark`, missing references - from `@theme`). Checked by the contract test against `tokens.css`.
 
-| Текст | Фон | Не ниже |
+| Text | Background | Not below |
 |---|---|---|
 | `--color-fg` | `--color-bg` | 4.5 |
 | `--color-fg` | `--color-bg-subtle` | 4.5 |
@@ -109,22 +109,22 @@ Tailwind 4: имена в `@theme` дают утилиты (`--color-bg` → `bg
 | `--color-sidebar-fg-muted` | `--color-sidebar-bg` | 4.5 |
 | `--color-focus` | `--color-bg` | 3 |
 
-### Тема
-- `useTheme()` → `{ theme: Ref<'system'|'light'|'dark'>, resolved: Ref<'light'|'dark'> }`; хранение — `localStorage['planar.theme']`, по умолчанию `system` (следит за `prefers-color-scheme`).
-- Тёмная — класс `dark` на `<html>`; в Tailwind — `@custom-variant dark (&:where(.dark, .dark *));`. Класс ставится до монтирования (скрипт в `index.html`), без мигания.
+### Theme
+- `useTheme()` -> `{ theme: Ref<'system'|'light'|'dark'>, resolved: Ref<'light'|'dark'> }`; stored in `localStorage['planar.theme']`, default `system` (follows `prefers-color-scheme`).
+- Dark theme - the `dark` class on `<html>`; in Tailwind - `@custom-variant dark (&:where(.dark, .dark *));`. The class is set before mounting (a script in `index.html`), without flicker.
 
-### Шрифты, отступы, размеры
-База — 13 px (`text-sm`, задан на `body`). Шкала 11/12/13/14/16/20: `text-2xs` — счётчики, `Kbd`, мелкие бейджи; `text-xs` — вторичный текст, ID, подписи; `text-sm` — основной текст, строки, кнопки, поля; `text-base` — заголовки диалогов, поля на mobile; `text-lg` — заголовки разделов, описание задачи; `text-xl` — заголовок страницы и задачи. Межстрочный интервал задан к каждому размеру (`--text-*--line-height`). Веса — 400 и 500 (заголовки — 600).
+### Fonts, spacing, sizes
+Base - 13 px (`text-sm`, set on `body`). Scale 11/12/13/14/16/20: `text-2xs` - counters, `Kbd`, small badges; `text-xs` - secondary text, IDs, captions; `text-sm` - primary text, rows, buttons, fields; `text-base` - dialog titles, fields on mobile; `text-lg` - section titles, task description; `text-xl` - page and task title. Line height is set for each size (`--text-*--line-height`). Weights - 400 and 500 (headings - 600).
 
-| Токен | Значение |
+| Token | Value |
 |---|---|
-| `--font-sans` | `ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif` (без веб-шрифтов) |
-| `--font-mono` | `ui-monospace, SFMono-Regular, Menlo, monospace` — ID задач (`PLN-123`), `Kbd`, код |
+| `--font-sans` | `ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif` (no web fonts) |
+| `--font-mono` | `ui-monospace, SFMono-Regular, Menlo, monospace` - task IDs (`PLN-123`), `Kbd`, code |
 | `--text-2xs` | 11px |
 | `--text-2xs--line-height` | 16px |
 | `--text-xs` | 12px |
 | `--text-xs--line-height` | 16px |
-| `--text-sm` | 13px (база) |
+| `--text-sm` | 13px (base) |
 | `--text-sm--line-height` | 20px |
 | `--text-base` | 14px |
 | `--text-base--line-height` | 20px |
@@ -132,98 +132,98 @@ Tailwind 4: имена в `@theme` дают утилиты (`--color-bg` → `bg
 | `--text-lg--line-height` | 24px |
 | `--text-xl` | 20px |
 | `--text-xl--line-height` | 28px |
-| `--radius-sm` | 4px — чипы, бейджи, `Kbd`, чекбоксы |
-| `--radius-md` | 6px — кнопки, поля, пункты меню |
-| `--radius-lg` | 8px — поповеры, диалоги, карточки доски |
-| `--shadow-popover` | тень поповера, меню, выпадающего списка, подсказки |
-| `--shadow-dialog` | тень диалога |
+| `--radius-sm` | 4px - chips, badges, `Kbd`, checkboxes |
+| `--radius-md` | 6px - buttons, fields, menu items |
+| `--radius-lg` | 8px - popovers, dialogs, board cards |
+| `--shadow-popover` | shadow of a popover, menu, dropdown, tooltip |
+| `--shadow-dialog` | dialog shadow |
 
-Тени — только у всплывающих элементов (`Popover`, `Menu`, `Select`, `Tooltip`, `Dialog`); у кнопок, полей, строк и карточек доски — граница, без тени.
+Shadows only on floating elements (`Popover`, `Menu`, `Select`, `Tooltip`, `Dialog`); buttons, fields, rows and board cards have a border, no shadow.
 
-### Плотность
-Отступы — шкала Tailwind по умолчанию (`--spacing: 0.25rem`, шаг 4 px); значения вне шага 4 px — запрещены (кроме 2 px внутри `Kbd`, `Badge`, `Chip`).
+### Density
+Spacing - the default Tailwind scale (`--spacing: 0.25rem`, 4 px step); values off the 4 px step are forbidden (except 2 px inside `Kbd`, `Badge`, `Chip`).
 
-| Элемент | Высота | Класс |
+| Element | Height | Class |
 |---|---|---|
-| строка списка | 32 px | `h-8` |
-| элемент боковой панели | 28 px | `h-7` |
-| кнопка, поле, выпадающий список `sm` / `md` | 28 / 32 px | `h-7` / `h-8` |
-| `IconButton` `sm` / `md` | 28 / 32 px, квадрат | `size-7` / `size-8` |
+| list row | 32 px | `h-8` |
+| sidebar item | 28 px | `h-7` |
+| button, field, dropdown `sm` / `md` | 28 / 32 px | `h-7` / `h-8` |
+| `IconButton` `sm` / `md` | 28 / 32 px, square | `size-7` / `size-8` |
 | `Chip`, `Badge` | 20 px | `h-5` |
 | `Toolbar` | 44 px | `h-11` |
-| пункт меню | 32 px | `h-8` |
+| menu item | 32 px | `h-8` |
 
-На mobile (< 768 px) интерактивные цели ≥ 44 px (`min-h-11`/`min-w-11` у кнопок, полей, пунктов меню).
+On mobile (< 768 px) interactive targets are >= 44 px (`min-h-11`/`min-w-11` on buttons, fields, menu items).
 
-### Правила
-- **Деструктивные действия** — пункт меню «…» (`Menu`, `MenuItem.danger` + `MenuItem.confirm`) с подтверждением в `ConfirmDialog`; сплошной красной кнопки в списках и строках нет.
-- **Пустые значения** в строках и карточках не показываются: ни «—», ни иконки-заглушки (срока нет — нет и иконки календаря).
-- **Вторичные действия** — по наведению: родитель `group`, действие `opacity-0 group-hover:opacity-100 group-focus-within:opacity-100`; на mobile (нет hover) — видимы всегда или в меню «…».
-- **ID** задач — `font-mono text-xs text-fg-muted`.
-- **Иконка-кнопка без текста** — только `IconButton` (подпись обязательна, она же `aria-label` и подсказка).
-- **Фокус** — `focus-visible:outline-2 outline-focus` у всех интерактивных элементов.
+### Rules
+- **Destructive actions** - a "..." menu item (`Menu`, `MenuItem.danger` + `MenuItem.confirm`) with confirmation in `ConfirmDialog`; no solid red button in lists and rows.
+- **Empty values** are not shown in rows and cards: no "-", no placeholder icons (no due date - no calendar icon).
+- **Secondary actions** - on hover: parent `group`, action `opacity-0 group-hover:opacity-100 group-focus-within:opacity-100`; on mobile (no hover) - always visible or in the "..." menu.
+- **Task IDs** - `font-mono text-xs text-fg-muted`.
+- **Icon button without text** - only `IconButton` (the caption is required; it is also the `aria-label` and the tooltip).
+- **Focus** - `focus-visible:outline-2 outline-focus` on all interactive elements.
 
-### Брейкпоинт
-Mobile — ширина < 768px (`md` Tailwind = 768px, стили mobile-first). В коде — `useBreakpoint()` → `{ isMobile: Ref<boolean> }` по `matchMedia('(max-width: 767.98px)')`.
+### Breakpoint
+Mobile - width < 768px (Tailwind `md` = 768px, mobile-first styles). In code - `useBreakpoint()` -> `{ isMobile: Ref<boolean> }` via `matchMedia('(max-width: 767.98px)')`.
 
-На mobile (DS-5a, поведение без смены пропсов): `Popover`, `Menu`, `Select` открываются листом снизу (на всю ширину, радиус `lg` сверху, подложка `overlay`, закрытие по подложке и Esc); `Dialog` — на весь экран; `Tooltip` не показывается.
+On mobile (DS-5a, behavior without prop changes): `Popover`, `Menu`, `Select` open as a bottom sheet (full width, top radius `lg`, `overlay` backdrop, closes on backdrop click and Esc); `Dialog` - full screen; `Tooltip` is not shown.
 
-### Базовые компоненты (`apps/web/src/ui/index.ts`)
-C-modules v10: `IconButton`, `ConfirmDialog`, `Tabs`, `Chip`, `AvatarStack`, `Kbd`, `EmptyState`, `Toolbar` входят в обязательный перечень SDK (`docs/contracts/work-api.md`, блок `sdk-exports=required`; тест `apps/web/src/__contract__/sdk.contract.test.ts`).
+### Base components (`apps/web/src/ui/index.ts`)
+C-modules v10: `IconButton`, `ConfirmDialog`, `Tabs`, `Chip`, `AvatarStack`, `Kbd`, `EmptyState`, `Toolbar` are part of the required SDK list (`docs/contracts/work-api.md`, block `sdk-exports=required`; test `apps/web/src/__contract__/sdk.contract.test.ts`).
 
-На Reka UI + Tailwind 4, SFC `<script setup lang="ts">`. Пользовательских строк внутри нет, кроме ключей `ui.*` через `t()` (подписи по умолчанию); остальные подписи приходят пропсами. Пропсы и события v2 сохраняются.
+Built on Reka UI + Tailwind 4, SFC `<script setup lang="ts">`. No user-facing strings inside except `ui.*` keys via `t()` (default captions); other captions come as props. v2 props and events are kept.
 
-| Компонент | Пропсы и события | Поведение |
+| Component | Props and events | Behavior |
 |---|---|---|
-| `Button` | `variant: 'primary'\|'secondary'\|'ghost'\|'danger-ghost'\|'danger'` = `secondary`; `size: 'sm'\|'md'` = `md`; `icon?: Component`; `iconRight?: Component`; `loading?`, `disabled?`; `type` = `button`; слот default | высота 28/32 px; `danger-ghost` — текст `danger`, без фона, hover `danger-subtle`; `danger` (сплошная) — только в `ConfirmDialog`; `loading` → `aria-busy`, кнопка неактивна |
-| `IconButton` | `icon: Component` (обязателен); `label: string` (обязателен); `variant: 'ghost'\|'secondary'` = `ghost`; `size: 'sm'\|'md'` = `md`; `shortcut?: string`; `active?: boolean`; `disabled?`; событие `click` | квадрат 28/32 px; `label` → `aria-label` и `Tooltip` (с `shortcut`); `active` → `aria-pressed="true"` и фон `bg-muted` |
-| `Input` | `v-model: string`; `label: string` (обязателен); `hideLabel?`; `type?`, `placeholder?`, `error?: string`, `disabled?`; `size: 'sm'\|'md'` = `md`; `icon?: Component` (слева) | `error` → `aria-invalid` и текст под полем; прочие атрибуты (`required`, `maxlength`, `name`, `autocomplete`, `data-*`) — на `<input>`; `class` — на обёртку |
-| `Select` | `v-model: string\|null`; `options: {value: string, label: string, icon?: Component, color?: string}[]`; `label: string`; `placeholder?`, `disabled?`; `size: 'sm'\|'md'` = `md` | клавиатура Reka; `color` — точка 8 px перед подписью |
-| `Menu` | `items: MenuItem[]`; `side?`, `align?` = `start`; слот `trigger`; `label?: string` (обязателен без слота `trigger`) | без слота `trigger` — `IconButton` с иконкой `MoreHorizontal`, `label` → `aria-label` и подсказка; `MenuItem = {id, label, icon?, shortcut?, danger?, disabled?, confirm?: {title: string, description?: string, confirmLabel: string}, onSelect: () => void} \| {separator: true}`; `danger` — текст `danger`, hover `danger-subtle`; `confirm` задан → выбор открывает `ConfirmDialog`, `onSelect` — только после подтверждения; `shortcut` — `Kbd` справа |
-| `Popover` | `v-model:open`; `side?`, `align?`; слоты `trigger`, default | тень `shadow-popover`, радиус `lg` |
-| `Dialog` | `v-model:open`; `title: string` (обязателен); `description?`; `size: 'sm'\|'md'\|'lg'` = `md` (ширина 400/560/720 px); слоты default, `footer` | на mobile — на весь экран; Esc закрывает; подложка `overlay`, тень `shadow-dialog` |
-| `ConfirmDialog` | `v-model:open`; `title: string` (обязателен); `description?`; `confirmLabel: string` (обязателен); `cancelLabel?` = `t('ui.cancel')`; `danger?: boolean` = `true`; событие `confirm` | `Dialog` `size="sm"`; кнопки «отмена» (`ghost`) и подтверждение (`danger` или `primary`); фокус при открытии — на «отмене»; подтверждение → `confirm`, затем закрытие; Esc и «отмена» — закрытие без `confirm` |
-| `Tabs` | `v-model: string`; `items: {value: string, label: string, icon?: Component, count?: number}[]`; `label: string` (обязателен, `aria-label` списка); `size: 'sm'\|'md'` = `sm` | `role="tablist"`/`tab`, `aria-selected`; стрелки ←/→ переводят фокус, Enter/Space выбирают; выбранная — фон `bg-muted`, текст `fg`; остальные — `fg-muted`; не переносятся, при переполнении — горизонтальная прокрутка |
-| `Chip` | `color?: string` (точка); `icon?: Component`; `removable?: boolean`; `removeLabel?: string` (обязателен при `removable`); событие `remove`; слот default | высота 20 px, радиус `sm`, фон `bg-muted`; крестик — кнопка с `aria-label=removeLabel` |
-| `Avatar` | `name: string`; `src?: string\|null`; `size: 'xs'\|'sm'\|'md'\|'lg'` = 16/20/24/32px | без `src` — инициалы, цвет фона от хэша `name` |
-| `AvatarStack` | `people: {name: string, src?: string\|null}[]`; `max?: number` = 3; `size: 'xs'\|'sm'` = `sm` | аватары внахлёст (−4 px) с обводкой цвета фона; больше `max` — последний кружок `+N`; `title` — имена через запятую; пустой список — ничего не рендерит |
-| `Badge` | `variant: 'solid'\|'soft'\|'outline'` = `soft`; `color?: string`; `dot?: boolean`; слот default | `dot` — точка 8 px цвета `color` и текст `fg-muted` без фона (метки в строках) |
-| `Kbd` | `keys: string` (`'Mod+K'`, `'Shift+Enter'`, `'G I'`) | `+` — одновременно, пробел — последовательно; `Mod` → `⌘` на macOS, `Ctrl` в остальных; каждая клавиша — `<kbd>`, `font-mono text-2xs`, граница `border`, радиус `sm` |
-| `EmptyState` | `title: string` (обязателен); `description?`; `icon?: Component`; слот `actions` | по центру контейнера, отступ ≥ 48 px сверху, иконка 32 px `fg-subtle`, `title` — `text-base`, `description` — `text-sm fg-muted`, ширина текста ≤ 360 px |
-| `Toolbar` | `label: string` (обязателен, `aria-label`); слоты default (слева), `end` (справа) | `role="toolbar"`, высота 44 px, граница снизу, промежутки 4 px; на mobile — одна строка с горизонтальной прокруткой без переноса |
-| `Tooltip` | `content: string`; `shortcut?: string`; слот default (триггер) | задержка 400 мс; `shortcut` — через `Kbd`; тень `shadow-popover` |
+| `Button` | `variant: 'primary'\|'secondary'\|'ghost'\|'danger-ghost'\|'danger'` = `secondary`; `size: 'sm'\|'md'` = `md`; `icon?: Component`; `iconRight?: Component`; `loading?`, `disabled?`; `type` = `button`; default slot | height 28/32 px; `danger-ghost` - `danger` text, no background, hover `danger-subtle`; `danger` (solid) - only in `ConfirmDialog`; `loading` -> `aria-busy`, button inactive |
+| `IconButton` | `icon: Component` (required); `label: string` (required); `variant: 'ghost'\|'secondary'` = `ghost`; `size: 'sm'\|'md'` = `md`; `shortcut?: string`; `active?: boolean`; `disabled?`; event `click` | square 28/32 px; `label` -> `aria-label` and `Tooltip` (with `shortcut`); `active` -> `aria-pressed="true"` and `bg-muted` background |
+| `Input` | `v-model: string`; `label: string` (required); `hideLabel?`; `type?`, `placeholder?`, `error?: string`, `disabled?`; `size: 'sm'\|'md'` = `md`; `icon?: Component` (left) | `error` -> `aria-invalid` and text under the field; other attributes (`required`, `maxlength`, `name`, `autocomplete`, `data-*`) - on `<input>`; `class` - on the wrapper |
+| `Select` | `v-model: string\|null`; `options: {value: string, label: string, icon?: Component, color?: string}[]`; `label: string`; `placeholder?`, `disabled?`; `size: 'sm'\|'md'` = `md` | Reka keyboard; `color` - an 8 px dot before the caption |
+| `Menu` | `items: MenuItem[]`; `side?`, `align?` = `start`; slot `trigger`; `label?: string` (required without the `trigger` slot) | without the `trigger` slot - an `IconButton` with the `MoreHorizontal` icon, `label` -> `aria-label` and tooltip; `MenuItem = {id, label, icon?, shortcut?, danger?, disabled?, confirm?: {title: string, description?: string, confirmLabel: string}, onSelect: () => void} \| {separator: true}`; `danger` - `danger` text, hover `danger-subtle`; `confirm` set -> selecting opens `ConfirmDialog`, `onSelect` runs only after confirmation; `shortcut` - `Kbd` on the right |
+| `Popover` | `v-model:open`; `side?`, `align?`; slots `trigger`, default | `shadow-popover` shadow, radius `lg` |
+| `Dialog` | `v-model:open`; `title: string` (required); `description?`; `size: 'sm'\|'md'\|'lg'` = `md` (width 400/560/720 px); slots default, `footer` | on mobile - full screen; Esc closes; `overlay` backdrop, `shadow-dialog` shadow |
+| `ConfirmDialog` | `v-model:open`; `title: string` (required); `description?`; `confirmLabel: string` (required); `cancelLabel?` = `t('ui.cancel')`; `danger?: boolean` = `true`; event `confirm` | `Dialog` `size="sm"`; buttons "cancel" (`ghost`) and confirm (`danger` or `primary`); focus on open - on "cancel"; confirm -> `confirm`, then close; Esc and "cancel" - close without `confirm` |
+| `Tabs` | `v-model: string`; `items: {value: string, label: string, icon?: Component, count?: number}[]`; `label: string` (required, the list's `aria-label`); `size: 'sm'\|'md'` = `sm` | `role="tablist"`/`tab`, `aria-selected`; arrows <-/-> move focus, Enter/Space select; selected - `bg-muted` background, `fg` text; others - `fg-muted`; no wrapping, horizontal scroll on overflow |
+| `Chip` | `color?: string` (dot); `icon?: Component`; `removable?: boolean`; `removeLabel?: string` (required when `removable`); event `remove`; default slot | height 20 px, radius `sm`, `bg-muted` background; the cross is a button with `aria-label=removeLabel` |
+| `Avatar` | `name: string`; `src?: string\|null`; `size: 'xs'\|'sm'\|'md'\|'lg'` = 16/20/24/32px | without `src` - initials, background color from the hash of `name` |
+| `AvatarStack` | `people: {name: string, src?: string\|null}[]`; `max?: number` = 3; `size: 'xs'\|'sm'` = `sm` | avatars overlap (-4 px) with an outline in the background color; more than `max` - the last circle is `+N`; `title` - names separated by commas; an empty list renders nothing |
+| `Badge` | `variant: 'solid'\|'soft'\|'outline'` = `soft`; `color?: string`; `dot?: boolean`; default slot | `dot` - an 8 px dot of the `color` and `fg-muted` text without background (labels in rows) |
+| `Kbd` | `keys: string` (`'Mod+K'`, `'Shift+Enter'`, `'G I'`) | `+` - simultaneous, space - sequential; `Mod` -> `⌘` on macOS, `Ctrl` elsewhere; each key is a `<kbd>`, `font-mono text-2xs`, `border` border, radius `sm` |
+| `EmptyState` | `title: string` (required); `description?`; `icon?: Component`; slot `actions` | centered in the container, >= 48 px top offset, 32 px `fg-subtle` icon, `title` - `text-base`, `description` - `text-sm fg-muted`, text width <= 360 px |
+| `Toolbar` | `label: string` (required, `aria-label`); slots default (left), `end` (right) | `role="toolbar"`, height 44 px, bottom border, 4 px gaps; on mobile - a single row with horizontal scroll, no wrapping |
+| `Tooltip` | `content: string`; `shortcut?: string`; default slot (trigger) | 400 ms delay; `shortcut` - via `Kbd`; `shadow-popover` shadow |
 
-### Иконки
-Только `lucide-vue-next`, импорт поштучно (`import { Plus } from 'lucide-vue-next'`); размер 16 по умолчанию, в mobile-навигации 20. Других наборов и SVG-файлов иконок нет (кроме иконок PWA).
+### Icons
+Only `lucide-vue-next`, imported one by one (`import { Plus } from 'lucide-vue-next'`); size 16 by default, 20 in mobile navigation. No other sets or SVG icon files (except PWA icons).
 
 ### i18n
-vue-i18n, локали `ru`, `en`. Ключи вложенные: `<экран>.<элемент>` (`sidebar.inbox`). Начальная локаль — `localStorage['planar.locale']`, иначе `ru`, если `navigator.language` начинается с `ru`, иначе `en`. Отсутствующий ключ в `en` → берётся `ru` (fallback), в тестах — предупреждение.
-`LocalizedText = string | { ru: string; en: string }`: строка — ключ словаря web, объект — готовый текст (так подписывают элементы модули, у которых своих словарей нет).
+vue-i18n, locales `ru`, `en`. Keys are nested: `<screen>.<element>` (`sidebar.inbox`). Initial locale - `localStorage['planar.locale']`, otherwise `ru` if `navigator.language` starts with `ru`, otherwise `en`. A key missing in `en` falls back to `ru`, with a warning in tests.
+`LocalizedText = string | { ru: string; en: string }`: a string is a web dictionary key, an object is ready text (this is how modules without their own dictionaries label elements).
 
-### Маршруты (WB-1 создаёт, экраны — заглушки до своих задач)
-| Путь | Экран | Задача |
+### Routes (WB-1 creates them, screens are stubs until their own tasks)
+| Path | Screen | Task |
 |---|---|---|
-| `/` | редирект на `/my` | WB-1 |
-| `/setup`, `/login` | первичная настройка, вход (без раскладки) | WB-3 |
-| `/profile` | профиль | WB-3 |
-| `/inbox`, `/my` | Inbox, «Мои задачи» | WB-9 |
-| `/p/:projectId/:view?` | проект; `view` = `list` (по умолчанию) \| `board` \| id вида модуля | WB-4, WB-5 |
-| `/p/:projectId/v/:viewId` | сохранённый вид | WB-8 |
-| `/t/:key` | задача по ключу `PLN-123` или по id | WB-6 |
-| `/settings/:section?` | настройки | WB-10 |
-| `/m/:moduleId/*` | маршруты модулей | модули |
-| `/dev/ui` | витрина компонентов C-ui; маршрут объявлен только при `import.meta.env.DEV`, в прод-сборке его нет | DS-0 |
+| `/` | redirect to `/my` | WB-1 |
+| `/setup`, `/login` | initial setup, login (no layout) | WB-3 |
+| `/profile` | profile | WB-3 |
+| `/inbox`, `/my` | Inbox, "My tasks" | WB-9 |
+| `/p/:projectId/:view?` | project; `view` = `list` (default) \| `board` \| module view id | WB-4, WB-5 |
+| `/p/:projectId/v/:viewId` | saved view | WB-8 |
+| `/t/:key` | task by key `PLN-123` or by id | WB-6 |
+| `/settings/:section?` | settings | WB-10 |
+| `/m/:moduleId/*` | module routes | modules |
+| `/dev/ui` | C-ui component showcase; the route is declared only under `import.meta.env.DEV`, absent in the production build | DS-0 |
 
-Имена маршрутов совпадают с первым сегментом (`inbox`, `my`, `project`, `savedView`, `task`, `settings`, `login`, `setup`, `profile`). Экраны грузятся лениво (`() => import(...)`), чтобы держать бюджет бандла.
+Route names match the first segment (`inbox`, `my`, `project`, `savedView`, `task`, `settings`, `login`, `setup`, `profile`). Screens load lazily (`() => import(...)`) to stay within the bundle budget.
 
-### Точки расширения (C-modules, сторона web)
-`EXTENSION_KINDS = ['routes', 'views', 'taskPanels', 'commands', 'fieldTypes', 'settings', 'nav', 'topbar', 'search', 'groupTabs'] as const` — ровно поля `FrontendModuleManifest` (core, C-modules) кроме `id`.
-`nav`, `topbar` — C-modules v3 (work), docs/contracts/work.md §C-modules v3; `search` — C-ui v2.
+### Extension points (C-modules, web side)
+`EXTENSION_KINDS = ['routes', 'views', 'taskPanels', 'commands', 'fieldTypes', 'settings', 'nav', 'topbar', 'search', 'groupTabs'] as const` - exactly the fields of `FrontendModuleManifest` (core, C-modules) except `id`.
+`nav`, `topbar` - C-modules v3 (work), docs/contracts/work.md §C-modules v3; `search` - C-ui v2.
 
 ```ts
-type Lazy<P> = () => Promise<{ default: Component }>; // компонент с пропсами P
+type Lazy<P> = () => Promise<{ default: Component }>; // component with props P
 interface WebModuleManifest extends FrontendModuleManifest {
-  routes?: RouteRecordRaw[];        // пути только под /m/<id>/
+  routes?: RouteRecordRaw[];        // paths only under /m/<id>/
   views?: ViewDef[];
   taskPanels?: TaskPanelDef[];
   commands?: CommandDef[];
@@ -239,7 +239,7 @@ interface FieldTypeDef { id: string; label: LocalizedText;
   cell: Lazy<{ value: unknown }>; editor: Lazy<{ value: unknown; 'onUpdate:value': (v: unknown) => void }> }
 interface SettingsPageDef { id: string; label: LocalizedText; icon?: Component; component: Lazy<{}> }
 ```
-- `defineWebModule(m: WebModuleManifest): WebModuleManifest` — возвращает как есть (для типов). Модуль пишет в `modules/<id>/web/index.ts`: `export const web = defineWebModule({...})`; импорт — `@planar/web/modules` (`exports["./modules"]` в `apps/web/package.json` → `./src/modules/types.ts`).
-- `id` элемента уникален в модуле; глобальный ключ — `<moduleId>:<id>`. Дубликат ключа или маршрут вне `/m/<id>/` → `registerModules` бросает `Error`.
-- `useExtensions(kind)` → `ComputedRef<элементы[]>` только включённых модулей (`settings.enabled_modules`; до WB-10 — все зарегистрированные), `taskPanels` — по `order`, затем по ключу.
-- Модули подключаются лениво: `import.meta.glob('../../../../modules/*/web/index.ts')` из `apps/web/src/modules/registry.ts` (WB-10); в начальный чанк не входят.
+- `defineWebModule(m: WebModuleManifest): WebModuleManifest` - returns its argument as is (for types). A module writes it in `modules/<id>/web/index.ts`: `export const web = defineWebModule({...})`; import - `@planar/web/modules` (`exports["./modules"]` in `apps/web/package.json` -> `./src/modules/types.ts`).
+- An item's `id` is unique within a module; the global key is `<moduleId>:<id>`. A duplicate key or a route outside `/m/<id>/` -> `registerModules` throws `Error`.
+- `useExtensions(kind)` -> `ComputedRef<items[]>` of enabled modules only (`settings.enabled_modules`; until WB-10 - all registered), `taskPanels` - by `order`, then by key.
+- Modules load lazily: `import.meta.glob('../../../../modules/*/web/index.ts')` from `apps/web/src/modules/registry.ts` (WB-10); not part of the initial chunk.

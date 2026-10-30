@@ -3,69 +3,69 @@ type: guide
 status: active
 module: ops
 updated: 2026-10-25
-summary: Развёртывание planar на одном VPS - .env, первый запуск, бэкапы и восстановление, обновление, мониторинг, неполадки
+summary: Deploying planar on a single VPS - .env, first start, backups and restore, upgrade, monitoring, troubleshooting
 related: ["docs/contracts/ops.md", "docs/plan/ops.md", "docs/contracts/core.md"]
 ---
 
-# Развёртывание planar на VPS
+# Deploying planar on a VPS
 
-Prod-стек — `compose.yml` в корне репозитория: `postgres`, `api`, `caddy`. Порт api и postgres наружу не публикуется; снаружи только Caddy (80/443). Контракты (переменные, тома, заголовки, формат бэкапа, метрики) — `docs/contracts/ops.md`. Все команды ниже запускаются из корня репозитория на сервере (в примерах — `/opt/planar`).
+The prod stack is `compose.yml` in the repository root: `postgres`, `api`, `caddy`. The api and postgres ports are not published outside; only Caddy (80/443) is exposed. The contracts (variables, volumes, headers, backup format, metrics) are in `docs/contracts/ops.md`. All commands below run from the repository root on the server (the examples use `/opt/planar`).
 
-Что проверено, а что нет: стек, бэкап/восстановление и обновление с откатом прогонялись тестами (`ops/test-backup.sh`, `ops/test-upgrade.sh`, `./dev.sh prod-smoke`) по HTTP на `:80`. **Реальная выдача сертификата ACME для публичного домена не проверялась** — только `caddy validate` Caddyfile с доменом и самоподписанный путь.
+What was verified and what was not: the stack, backup/restore and upgrade with rollback were exercised by tests (`ops/test-backup.sh`, `ops/test-upgrade.sh`, `./dev.sh prod-smoke`) over HTTP on `:80`. **Real ACME certificate issuance for a public domain was not verified** — only `caddy validate` of the Caddyfile with a domain and the self-signed path.
 
-## Требования к серверу
+## Server requirements
 
-- Один VPS с Linux, Docker и compose plugin (`docker compose`), git.
-- Node и pnpm на сервере **не нужны**: web собирается внутри образа caddy (`deploy/caddy.Dockerfile`), api — в образе api (`apps/api/Dockerfile`).
-- Размеры образов по отчётам OP-1/OP-1b: api ~713 МБ, caddy ~95 МБ (плюс слои сборки и данные). Требований по ОЗУ и CPU в репозитории не зафиксировано; сборка образов нагружает сервер — на слабой машине она идёт заметно дольше.
-- Порты 80 и 443 свободны и открыты (переопределяются `HTTP_PORT`, `HTTPS_PORT`).
-- Сеть `app` стека — `172.30.0.0/24` (`PLANAR_SUBNET`). Если пересекается с сетями хоста, задайте другую в `.env` до первого запуска.
+- One Linux VPS with Docker and the compose plugin (`docker compose`), git.
+- Node and pnpm are **not needed** on the server: web is built inside the caddy image (`deploy/caddy.Dockerfile`), api — in the api image (`apps/api/Dockerfile`).
+- Image sizes per the OP-1/OP-1b reports: api ~713 MB, caddy ~95 MB (plus build layers and data). No RAM or CPU requirements are fixed in the repository; building the images loads the server — on a weak machine it takes noticeably longer.
+- Ports 80 and 443 are free and open (overridable with `HTTP_PORT`, `HTTPS_PORT`).
+- The stack's `app` network is `172.30.0.0/24` (`PLANAR_SUBNET`). If it overlaps host networks, set another one in `.env` before the first start.
 
-Получить код:
+Get the code:
 
 ```bash
-git clone <адрес репозитория> /opt/planar && cd /opt/planar
+git clone <repository URL> /opt/planar && cd /opt/planar
 ```
 
-## DNS и домен
+## DNS and domain
 
-1. Создайте `A` (и `AAAA`, если есть IPv6) запись домена на адрес сервера.
-2. Убедитесь, что 80 и 443 доступны из интернета: Caddy получает сертификат ACME сам и редиректит HTTP на HTTPS.
-3. В `.env` задайте `PLANAR_DOMAIN=planar.example.com`. `PUBLIC_URL` по умолчанию `https://$PLANAR_DOMAIN`.
+1. Create an `A` (and `AAAA`, if you have IPv6) record for the domain pointing to the server address.
+2. Make sure 80 and 443 are reachable from the internet: Caddy obtains the ACME certificate itself and redirects HTTP to HTTPS.
+3. Set `PLANAR_DOMAIN=planar.example.com` in `.env`. `PUBLIC_URL` defaults to `https://$PLANAR_DOMAIN`.
 
-Варианты `PLANAR_DOMAIN`:
+`PLANAR_DOMAIN` options:
 
-| значение | поведение |
+| value | behavior |
 |---|---|
-| домен | сертификат ACME, редирект HTTP→HTTPS |
-| `localhost` или IP | самоподписанный сертификат внутреннего CA Caddy (браузер предупредит) |
-| пусто | сайт `:80`, только HTTP; тогда задайте `PUBLIC_URL` явно (например `http://localhost:8080`) и `COOKIE_SECURE=false` |
+| a domain | ACME certificate, HTTP→HTTPS redirect |
+| `localhost` or an IP | self-signed certificate of Caddy's internal CA (the browser will warn) |
+| empty | site `:80`, HTTP only; then set `PUBLIC_URL` explicitly (e.g. `http://localhost:8080`) and `COOKIE_SECURE=false` |
 
-## Настройка .env
+## Configuring .env
 
-Файл `.env` лежит рядом с `compose.yml`; compose читает его сам. Файл содержит секреты — не коммитьте его (`chmod 600 .env`).
+The `.env` file sits next to `compose.yml`; compose reads it itself. The file contains secrets — do not commit it (`chmod 600 .env`).
 
-| переменная | по умолчанию | назначение |
+| variable | default | purpose |
 |---|---|---|
-| `POSTGRES_PASSWORD` | обязательна | пароль пользователя `postgres`; api собирает из неё `DATABASE_URL`. Без неё compose не стартует |
-| `PLANAR_DOMAIN` | пусто | домен сайта, см. выше |
-| `PUBLIC_URL` | `https://$PLANAR_DOMAIN` | origin для проверки Origin и ссылок |
-| `COOKIE_SECURE` | `true` | `false` — только при работе по HTTP |
-| `PLANAR_SECRET_KEY` | пусто | 32 байта base64; пусто — функции с секретами отвечают `503 unavailable` |
-| `VAPID_PUBLIC_KEY` | пусто | Web Push |
-| `VAPID_PRIVATE_KEY` | пусто | Web Push |
-| `VAPID_SUBJECT` | пусто | Web Push, `mailto:…` |
-| `MAX_UPLOAD_MB` | `50` | лимит загрузки файла |
-| `LOG_LEVEL` | `info` | уровень pino |
-| `METRICS_TOKEN` | пусто | токен `/api/metrics`; пусто — эндпоинт отвечает `404` |
-| `PLANAR_SUBNET` | `172.30.0.0/24` | подсеть сети `app`; api получает её как `TRUST_PROXY` (заголовку `X-Forwarded-For` верят только оттуда) |
-| `HTTP_PORT` | `80` | порт хоста для `:80` Caddy |
-| `HTTPS_PORT` | `443` | порт хоста для `:443` Caddy |
-| `BACKUP_DIR` | `./backups` | каталог архивов бэкапа (читают скрипты `ops/`) |
+| `POSTGRES_PASSWORD` | required | password of the `postgres` user; api builds `DATABASE_URL` from it. Without it compose does not start |
+| `PLANAR_DOMAIN` | empty | site domain, see above |
+| `PUBLIC_URL` | `https://$PLANAR_DOMAIN` | origin for the Origin check and links |
+| `COOKIE_SECURE` | `true` | `false` — only when running over HTTP |
+| `PLANAR_SECRET_KEY` | empty | 32 bytes base64; empty — features with secrets answer `503 unavailable` |
+| `VAPID_PUBLIC_KEY` | empty | Web Push |
+| `VAPID_PRIVATE_KEY` | empty | Web Push |
+| `VAPID_SUBJECT` | empty | Web Push, `mailto:…` |
+| `MAX_UPLOAD_MB` | `50` | file upload limit |
+| `LOG_LEVEL` | `info` | pino level |
+| `METRICS_TOKEN` | empty | token for `/api/metrics`; empty — the endpoint answers `404` |
+| `PLANAR_SUBNET` | `172.30.0.0/24` | subnet of the `app` network; api gets it as `TRUST_PROXY` (the `X-Forwarded-For` header is trusted only from there) |
+| `HTTP_PORT` | `80` | host port for Caddy's `:80` |
+| `HTTPS_PORT` | `443` | host port for Caddy's `:443` |
+| `BACKUP_DIR` | `./backups` | directory of backup archives (read by the `ops/` scripts) |
 
-### Генерация секретов
+### Generating secrets
 
-На сервере с openssl:
+On a server with openssl:
 
 ```bash
 touch .env && chmod 600 .env
@@ -75,7 +75,7 @@ echo "METRICS_TOKEN=$(openssl rand -hex 32)" >> .env
 echo "PLANAR_DOMAIN=planar.example.com" >> .env
 ```
 
-Пару VAPID (ключ P-256) генерирует тот же скрипт, что `vapid()` в `dev.sh`. Node на сервере нет — запустите его в одноразовом контейнере:
+The VAPID pair (a P-256 key) is generated by the same script as `vapid()` in `dev.sh`. There is no Node on the server — run it in a throwaway container:
 
 ```bash
 docker run --rm node:24-slim node -e "
@@ -87,108 +87,108 @@ docker run --rm node:24-slim node -e "
 " >> .env
 ```
 
-Замените `VAPID_SUBJECT` на свой адрес. **`PLANAR_SECRET_KEY` и `POSTGRES_PASSWORD` не меняйте после запуска**: ключ шифрует сохранённые токены (например, GitLab), а пароль уже записан в том postgres. Сохраните `.env` отдельно от бэкапов данных — архивы бэкапа его не содержат.
+Replace `VAPID_SUBJECT` with your own address. **Do not change `PLANAR_SECRET_KEY` and `POSTGRES_PASSWORD` after the first start**: the key encrypts stored tokens (e.g. GitLab), and the password is already written into the postgres volume. Keep `.env` separately from data backups — backup archives do not contain it.
 
-## Первый запуск и создание владельца
+## First start and creating the owner
 
 ```bash
 docker compose up -d --build
 docker compose ps
 ```
 
-Первая сборка занимает несколько минут. Дождитесь готовности:
+The first build takes several minutes. Wait until it is ready:
 
 ```bash
 curl -fsS https://planar.example.com/api/health/ready
 # {"ok":true,"db":"up","migrations":"ok","queue":"up"}
 ```
 
-Миграции применяет api при старте. Владельца создаёт мастер настройки: пока в системе нет ни одного пользователя, первый вход в UI (`https://<домен>/`) показывает форму создания владельца. То же через API: `GET /api/setup` → `{needed: true}`, затем `POST /api/setup` с `{login, name, password}` → `201`; когда пользователи уже есть, повтор даёт `409 conflict`. Откройте адрес сразу после запуска: пока владельца нет, форму может заполнить любой, кто достучится до сайта.
+api applies migrations at startup. The owner is created by the setup wizard: while the system has no users, the first visit to the UI (`https://<domain>/`) shows the owner creation form. The same through the API: `GET /api/setup` → `{needed: true}`, then `POST /api/setup` with `{login, name, password}` → `201`; when users already exist, a repeat gives `409 conflict`. Open the address right after the start: until an owner exists, anyone who can reach the site can fill in the form.
 
-Проверка стека по умолчанию без сервера: `./dev.sh prod-smoke` поднимает prod-стек в изолированном проекте (`COMPOSE_PROJECT_NAME`, свободные порты), прогоняет вход, задачу, WS, `/collab`, `/f/*`, загрузку файла и гасит стек вместе с томами. Нужен репозиторий с node и pnpm — на prod-сервере запускать не обязательно.
+Checking the stack without a server: `./dev.sh prod-smoke` brings up the prod stack in an isolated project (`COMPOSE_PROJECT_NAME`, free ports), runs login, a task, WS, `/collab`, `/f/*`, a file upload, and tears the stack down together with its volumes. It needs a repository checkout with node and pnpm — it does not have to run on the prod server.
 
-## Бэкапы и восстановление
+## Backups and restore
 
-Тома: `pgdata` и `data` (файлы) — в бэкапе; `caddy_data` и `caddy_config` — нет (Caddy получит сертификаты заново).
+Volumes: `pgdata` and `data` (files) are in the backup; `caddy_data` and `caddy_config` are not (Caddy obtains the certificates again).
 
-### Бэкап
+### Backup
 
 ```bash
-./ops/backup.sh            # один архив $BACKUP_DIR/planar-<UTC>.tar
-./ops/backup.sh --deep     # плюс проверка: имя каждого файла = sha256 содержимого
+./ops/backup.sh            # one archive $BACKUP_DIR/planar-<UTC>.tar
+./ops/backup.sh --deep     # plus a check: the name of every file = sha256 of its content
 ./ops/backup.sh --rotate-only
 ```
 
-Архив — tar с `manifest.json`, `db.dump` (`pg_dump -Fc`) и `files.tar` (`files/<ab>/<cd>/<sha256>`). Он пишется как `.partial` и переименовывается после проверки целостности (sha256 частей, `pg_restore -l`, `tar -t`, число файлов); при ошибке `.partial` удаляется, код выхода не 0. Ротация после успешного бэкапа: самый новый архив каждого из 7 последних дней (UTC) и каждой из 4 последних ISO-недель; свежесозданный не удаляется, чужие файлы в каталоге не трогаются.
+The archive is a tar with `manifest.json`, `db.dump` (`pg_dump -Fc`) and `files.tar` (`files/<ab>/<cd>/<sha256>`). It is written as `.partial` and renamed after the integrity check (sha256 of the parts, `pg_restore -l`, `tar -t`, file count); on error `.partial` is deleted and the exit code is non-zero. Rotation after a successful backup: the newest archive of each of the last 7 days (UTC) and of each of the last 4 ISO weeks; the freshly created one is not deleted, foreign files in the directory are not touched.
 
-Расписание. Cron:
+Schedule. Cron:
 
 ```cron
 0 3 * * * cd /opt/planar && ./ops/backup.sh >>backups/backup.log 2>&1
 ```
 
-Или systemd — примеры `ops/systemd/planar-backup.service` и `planar-backup.timer` (ежедневно 03:00, `Persistent=true`; `WorkingDirectory=/opt/planar`, поправьте путь под свой):
+Or systemd — examples `ops/systemd/planar-backup.service` and `planar-backup.timer` (daily at 03:00, `Persistent=true`; `WorkingDirectory=/opt/planar`, adjust the path to yours):
 
 ```bash
 sudo cp ops/systemd/planar-backup.{service,timer} /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now planar-backup.timer
 ```
 
-Рекомендация (скриптами не делается): копируйте архивы за пределы сервера — бэкап на том же диске не защищает от потери диска. Храните отдельно и `.env`.
+Recommendation (the scripts do not do it): copy archives off the server — a backup on the same disk does not protect against losing the disk. Store `.env` separately too.
 
-### Восстановление
+### Restore
 
-Восстановление идёт на **чистый стек** (поднятый по этой инструкции, с тем же `.env`):
+Restore goes onto a **clean stack** (brought up by this guide, with the same `.env`):
 
 ```bash
 ./ops/restore.sh backups/planar-20261025T030000Z.tar
 ```
 
-Скрипт: поднимает postgres, проверяет целостность архива и `format`/`version`, сверяет число миграций (архив новее кода — отказ), проверяет, что в базе нет пользователей, останавливает api, пересоздаёт базу `planar` (`drop database … with (force)`, `create database`, `pg_restore`), заменяет каталог файлов, запускает api и ждёт `/api/health/ready` (до 120 с). Если в базе уже есть пользователи (`password_hash <> '!'`; системный пользователь автоматизации не считается), скрипт откажет — `--force` перезаписывает:
+The script: starts postgres, checks the archive integrity and `format`/`version`, compares the migration count (an archive newer than the code — refusal), checks that the database has no users, stops api, recreates the `planar` database (`drop database … with (force)`, `create database`, `pg_restore`), replaces the files directory, starts api and waits for `/api/health/ready` (up to 120 s). If the database already has users (`password_hash <> '!'`; the system automation user does not count), the script refuses — `--force` overwrites:
 
 ```bash
 ./ops/restore.sh --force backups/planar-20261025T030000Z.tar
 ```
 
-Недостающие миграции api применит при старте. Полный круг (стек → данные → бэкап → снос томов → restore → те же задачи, файлы по sha256, вход) проверяет `ops/test-backup.sh`.
+api applies missing migrations at startup. The full circle (stack → data → backup → volumes removed → restore → the same tasks, files by sha256, login) is checked by `ops/test-backup.sh`.
 
-## Обновление
+## Upgrade
 
 ```bash
-./ops/upgrade.sh           # собрать из текущей рабочей копии
-./ops/upgrade.sh --pull    # сначала git pull --ff-only
+./ops/upgrade.sh           # build from the current working copy
+./ops/upgrade.sh --pull    # git pull --ff-only first
 ```
 
-Что делает по шагам:
+What it does, step by step:
 
-1. Бэкап (`ops/backup.sh`); не удался — ничего не тронуто.
-2. С `--pull` — `git pull --ff-only`.
-3. Ставит метку `:rollback` на текущие образы api и caddy.
-4. Собирает новые образы.
-5. Применяет миграции новым образом **до** переключения; не прошли — прежний api продолжает работать.
-6. Пересоздаёт api и caddy (`--force-recreate`).
-7. Ждёт готовности `/api/health/ready` до 120 с.
-8. Не готов — возвращает старые образы и пересоздаёт контейнеры; код выхода 1. После успеха метки `:rollback` удаляются.
+1. Backup (`ops/backup.sh`); if it fails — nothing is touched.
+2. With `--pull` — `git pull --ff-only`.
+3. Tags the current api and caddy images `:rollback`.
+4. Builds the new images.
+5. Applies migrations with the new image **before** switching; if they fail — the previous api keeps running.
+6. Recreates api and caddy (`--force-recreate`).
+7. Waits for `/api/health/ready` for up to 120 s.
+8. Not ready — restores the old images and recreates the containers; exit code 1. After success the `:rollback` tags are removed.
 
-**Правило миграций.** Миграции при откате не откатываются, поэтому в одном релизе допустимы только расширяющие изменения (новые таблицы, колонки, индексы; без удаления и переименования): старый образ должен работать на новой схеме. Удаляющие изменения — отдельным следующим релизом. Если после неудачного обновления нужно вернуть и данные — восстановите архив, сделанный на шаге 1 (см. «Восстановление»).
+**Migration rule.** Migrations are not rolled back on a rollback, so a single release may contain only expanding changes (new tables, columns, indexes; no drops or renames): the old image must work on the new schema. Destructive changes go in a separate following release. If after a failed upgrade the data must be returned too, restore the archive made in step 1 (see "Restore").
 
-Успешный откат и сохранность данных проверяет `ops/test-upgrade.sh`.
+A successful rollback and data safety are checked by `ops/test-upgrade.sh`.
 
-## Мониторинг
+## Monitoring
 
-Эндпоинты без сессии:
+Endpoints without a session:
 
-| путь | назначение |
+| path | purpose |
 |---|---|
-| `GET /api/health` | живость: `200 {ok:true, db:'up'}` или `503 {ok:false, db:'down'}` |
-| `GET /api/health/ready` | готовность: `200 {ok:true, db:'up', migrations:'ok', queue:'up'}`; иначе `503` и `db:'down'` / `migrations:'pending'` / `queue:'down'`. `queue:'off'` (очередь выключена конфигом) на `ok` не влияет |
-| `GET /api/metrics` | Prometheus; нужен `Authorization: Bearer <METRICS_TOKEN>`; токен не задан — `404`, неверный — `401` |
+| `GET /api/health` | liveness: `200 {ok:true, db:'up'}` or `503 {ok:false, db:'down'}` |
+| `GET /api/health/ready` | readiness: `200 {ok:true, db:'up', migrations:'ok', queue:'up'}`; otherwise `503` and `db:'down'` / `migrations:'pending'` / `queue:'down'`. `queue:'off'` (queue disabled by config) does not affect `ok` |
+| `GET /api/metrics` | Prometheus; needs `Authorization: Bearer <METRICS_TOKEN>`; token not set — `404`, wrong — `401` |
 
-Caddy проксирует `/api/metrics` как любой `/api/*`, поэтому токен — единственная защита: задайте длинный случайный `METRICS_TOKEN`.
+Caddy proxies `/api/metrics` like any `/api/*`, so the token is the only protection: set a long random `METRICS_TOKEN`.
 
-Метрики:
+Metrics:
 
-| метрика | тип | метки |
+| metric | type | labels |
 |---|---|---|
 | `planar_http_requests_total` | counter | `method`, `route`, `status` |
 | `planar_http_request_duration_seconds` | histogram | `method`, `route` |
@@ -196,9 +196,9 @@ Caddy проксирует `/api/metrics` как любой `/api/*`, поэто
 | `planar_queue_jobs` | gauge | `queue`, `state` |
 | `planar_db_size_bytes` | gauge | — |
 
-`route` — шаблон маршрута (`/api/tasks/:id`), не сырой URL. Запросы к `/api/metrics` и `/api/health*` не считаются. Счётчики запросов и WS хранятся в памяти api и сбрасываются при его перезапуске.
+`route` is the route template (`/api/tasks/:id`), not the raw URL. Requests to `/api/metrics` and `/api/health*` are not counted. Request and WS counters are kept in api memory and reset when it restarts.
 
-Свой Grafana-стек planar не включает. Внешний Prometheus скрейпит так:
+planar does not include a Grafana stack. An external Prometheus scrapes it like this:
 
 ```yaml
 scrape_configs:
@@ -212,31 +212,31 @@ scrape_configs:
       - targets: ['planar.example.com']
 ```
 
-Grafana подключается к этому Prometheus как источнику данных (Prometheus или Grafana Cloud). Готовых дашбордов в репозитории нет.
+Grafana connects to that Prometheus as a data source (Prometheus or Grafana Cloud). There are no ready-made dashboards in the repository.
 
-Логи: api пишет pino JSON в stdout; у всех сервисов драйвер docker `json-file`, `max-size: 10m`, `max-file: 5`.
+Logs: api writes pino JSON to stdout; all services use the docker `json-file` driver, `max-size: 10m`, `max-file: 5`.
 
 ```bash
 docker compose logs -f api
 docker compose logs --tail 200 caddy postgres
 ```
 
-Внешняя проверка живости — опрос `/api/health/ready` (код ответа 200).
+External liveness check — poll `/api/health/ready` (response code 200).
 
-## Что делать при проблемах
+## Troubleshooting
 
-| симптом | что проверить |
+| symptom | what to check |
 |---|---|
-| `compose up` падает с «задайте POSTGRES_PASSWORD» | переменная не задана в `.env` |
-| `/api/health/ready` → `503`, `db: 'down'` | `docker compose ps postgres`, `docker compose logs postgres`; на сильно загруженном хосте postgres может долго становиться healthy (healthcheck до 60 попыток по 5 с) |
-| `ready` → `migrations: 'pending'` | применено меньше миграций, чем в образе: `docker compose logs api`; обычно после сбоя миграции при старте |
-| `ready` → `queue: 'down'` | pg-boss не отвечает: логи api, состояние postgres |
-| api не стартует / перезапускается | `docker compose logs api`; частые причины — неверный `POSTGRES_PASSWORD` относительно уже созданного тома, ошибка конфигурации |
-| сертификат не выдан, браузер ругается | DNS `A`/`AAAA` указывает на сервер; 80 и 443 открыты (ACME-проверка идёт по ним); `docker compose logs caddy`. Напоминание: выдача ACME в репозитории не проверялась |
-| вход не держится, ошибки Origin | `PUBLIC_URL` должен совпадать с адресом в браузере; по HTTP — `COOKIE_SECURE=false` |
-| функции с секретами дают `503 unavailable` | не задан `PLANAR_SECRET_KEY` |
-| `/api/metrics` → `404` / `401` | не задан `METRICS_TOKEN` / неверный токен |
-| `restore.sh` отказывает | «архив не читается» или целостность — архив повреждён, возьмите другой; «архив новее кода» — обновите код до версии архива; «в базе уже есть пользователи» — `--force`; «api не стал готов» — логи api |
-| `upgrade.sh` завершился с кодом 1 | `новая версия не готова` — образы возвращены, смотрите `docker compose logs api` и чините релиз; `миграции не прошли` — прежний api работает; `бэкап не удался` — ничего не менялось |
-| `upgrade.sh` откатил образы, но схема уже новая | миграции не откатываются; старый образ рассчитан на расширяющую схему (правило миграций). Нужен возврат данных — `ops/restore.sh --force` архивом с шага 1 |
-| подсеть `172.30.0.0/24` занята | задайте другую `PLANAR_SUBNET` в `.env` и пересоздайте стек |
+| `compose up` fails with "задайте POSTGRES_PASSWORD" ("set POSTGRES_PASSWORD") | the variable is not set in `.env` |
+| `/api/health/ready` → `503`, `db: 'down'` | `docker compose ps postgres`, `docker compose logs postgres`; on a heavily loaded host postgres may take long to become healthy (healthcheck up to 60 attempts of 5 s) |
+| `ready` → `migrations: 'pending'` | fewer migrations applied than in the image: `docker compose logs api`; usually after a migration failure at startup |
+| `ready` → `queue: 'down'` | pg-boss does not respond: api logs, postgres state |
+| api does not start / keeps restarting | `docker compose logs api`; common causes — a `POSTGRES_PASSWORD` that does not match the already created volume, a configuration error |
+| certificate not issued, the browser complains | DNS `A`/`AAAA` points to the server; 80 and 443 are open (the ACME check goes through them); `docker compose logs caddy`. Reminder: ACME issuance was not verified in the repository |
+| login does not persist, Origin errors | `PUBLIC_URL` must match the address in the browser; over HTTP — `COOKIE_SECURE=false` |
+| features with secrets give `503 unavailable` | `PLANAR_SECRET_KEY` is not set |
+| `/api/metrics` → `404` / `401` | `METRICS_TOKEN` is not set / the token is wrong |
+| `restore.sh` refuses | "архив не читается" (archive unreadable) or integrity — the archive is damaged, take another; "архив новее кода" (archive newer than the code) — update the code to the archive's version; "в базе уже есть пользователи" (database already has users) — `--force`; "api не стал готов" (api did not become ready) — api logs |
+| `upgrade.sh` finished with code 1 | "новая версия не готова" (new version not ready) — images were restored, see `docker compose logs api` and fix the release; "миграции не прошли" (migrations failed) — the previous api is running; "бэкап не удался" (backup failed) — nothing changed |
+| `upgrade.sh` rolled the images back, but the schema is already new | migrations are not rolled back; the old image is designed for an expanding schema (migration rule). To return the data — `ops/restore.sh --force` with the archive from step 1 |
+| subnet `172.30.0.0/24` is taken | set another `PLANAR_SUBNET` in `.env` and recreate the stack |

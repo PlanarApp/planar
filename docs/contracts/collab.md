@@ -3,114 +3,114 @@ type: reference
 status: active
 module: collab
 updated: 2026-10-23
-summary: Контракты collab — документы (DC-*), чат (CH-schema, CH-mutators, CH-api, CH-web), правки ядра для чата (X-core)
+summary: Collab contracts - documents (DC-*), chat (CH-schema, CH-mutators, CH-api, CH-web), core changes for chat (X-core)
 related: ["docs/plan/collab.md", "docs/contracts/core.md", "docs/contracts/core-mutators.md", "docs/contracts/web.md"]
 ---
 
-# Контракты модуля collab
+# Collab module contracts
 
-Владелец — координатор collab. Формат сущностей и мутаторов — как в `docs/contracts/core.md` (C-schema) и `core-mutators.md`; правила C-schema «Общие правила», «Типы», «Видимость и права» действуют. Контрактный тест — `apps/api/test/modules/collab.contract.test.ts`: сверяет разделы `#### <сущность>` и таблицы мутаторов этого файла с `shared.entities` и `shared.mutators` модулей (имена полей, nullability, meta, имена и необязательность args).
+Owner - the collab coordinator. The format of entities and mutators is as in `docs/contracts/core.md` (C-schema) and `core-mutators.md`; the C-schema rules "General rules", "Types", "Visibility and permissions" apply. Contract test - `apps/api/test/modules/collab.contract.test.ts`: it checks the `#### <entity>` sections and the mutator tables of this file against `shared.entities` and `shared.mutators` of the modules (field names, nullability, meta, arg names and optionality).
 
 ## DC-schema v2
 
-v2 (группы): `docsPages.projectId` — уровень страницы.
+v2 (groups): `docsPages.projectId` - the page level.
 
-Модуль `docs` (`modules/docs`, пакет `@planar/module-docs`), таблицы `docs_<snake>`. FK между сущностями модуля — без каскада; на `tasks` FK нет (ядро удаляет задачи, не зная о модуле): связь с удалённой задачей UI не показывает.
+Module `docs` (`modules/docs`, package `@planar/module-docs`), tables `docs_<snake>`. FKs between module entities have no cascade; there is no FK to `tasks` (the core deletes tasks without knowing about the module): the UI does not show a link to a deleted task.
 
 #### docsPages
 scope: space · write: member · bootstrap: yes · indexes: spaceId, parentId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
-| `projectId` | uuid? | проект того же пространства; null — уровень пространства (у корневого — Воркспейс); у потомков — как у корня дерева |
-| `parentId` | uuid? | страница того же пространства; null — корень |
-| `rank` | rank | порядок среди соседей (один `parentId`) |
-| `title` | text | 0–200 символов; пусто — UI пишет «Без названия» |
-| `icon` | text? | эмодзи, 1–16 символов |
-| `body` | doc | ProseMirror/TipTap JSON; ≤ 512 КБ в JSON |
-| `text` | text | текст всех text-узлов `body` через пробел, обрезан до 100 000 символов; считает мутатор |
-| `files` | json | `string[]` — sha256 (hex 64) из узлов `{type:'image', attrs:{src:'/files/<sha256>…'}}` `body`, без повторов, по порядку; считает мутатор |
+| `projectId` | uuid? | a project of the same space; null - space level (for the root - Workspace); for descendants - same as the tree root |
+| `parentId` | uuid? | a page of the same space; null - root |
+| `rank` | rank | order among siblings (one `parentId`) |
+| `title` | text | 0-200 characters; empty - the UI writes a localized "Untitled" placeholder |
+| `icon` | text? | emoji, 1-16 characters |
+| `body` | doc | ProseMirror/TipTap JSON; <= 512 KB as JSON |
+| `text` | text | text of all text nodes of `body` joined by spaces, truncated to 100 000 characters; computed by the mutator |
+| `files` | json | `string[]` - sha256 (hex 64) from the nodes `{type:'image', attrs:{src:'/files/<sha256>…'}}` of `body`, without repeats, in order; computed by the mutator |
 | `createdBy` | uuid | |
-| `updatedBy` | uuid | последний, кто менял `title`/`icon`/`body` |
+| `updatedBy` | uuid | the last one who changed `title`/`icon`/`body` |
 | `archivedAt` | ts? | |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
-Инварианты: `parentId` не образует цикл; у неархивной страницы родитель неархивный.
+Invariants: `parentId` forms no cycle; a non-archived page has a non-archived parent.
 
 #### docsTaskLinks
 scope: space · write: member · bootstrap: yes · indexes: pageId, taskId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | уникально (pageId, taskId) |
+| `id` | uuid | unique (pageId, taskId) |
 | `spaceId` | uuid | |
 | `pageId` | uuid | |
-| `taskId` | uuid | задача того же пространства; без FK |
+| `taskId` | uuid | a task of the same space; no FK |
 | `createdBy` | uuid | |
 | `createdAt` | ts | |
 
 #### docsLocks
 scope: space · write: member · bootstrap: yes · indexes: —
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | = id страницы (одна блокировка на страницу) |
+| `id` | uuid | = page id (one lock per page) |
 | `spaceId` | uuid | |
-| `userId` | uuid | кто редактирует |
-| `expiresAt` | ts | `ctx.now` + 120 с; клиент продлевает раз в 60 с, пока открыт редактор |
+| `userId` | uuid | who is editing |
+| `expiresAt` | ts | `ctx.now` + 120 s; the client renews it every 60 s while the editor is open |
 
-Мягкая блокировка: только индикатор «редактирует X» и режим чтения у остальных в UI; `docs.page.update` её не проверяет. Истёкшая (`expiresAt ≤ ctx.now`) считается отсутствующей. Шорткат: без совместного редактирования; понадобится — Yjs + Hocuspocus.
+A soft lock: only an "X is editing" indicator and read-only mode for the others in the UI; `docs.page.update` does not check it. An expired lock (`expiresAt ≤ ctx.now`) counts as absent. Shortcut: no collaborative editing; if needed - Yjs + Hocuspocus.
 
 ## DC-mutators v2
 
-v2 (группы): `projectId` в `docs.page.create`/`docs.page.move`.
+v2 (groups): `projectId` in `docs.page.create`/`docs.page.move`.
 
-Экспорт — `shared.mutators` из `modules/docs/shared/index.ts`; `args` — `z.object`. Все id и `rank` — в args. Чужое пространство или нет строки — `not_found`/`forbidden` по общим правилам серверного `Tx`.
+Export - `shared.mutators` from `modules/docs/shared/index.ts`; `args` - `z.object`. All ids and `rank` are in args. Another space or a missing row - `not_found`/`forbidden` by the general rules of the server `Tx`.
 
-| имя | args | правила |
+| name | args | rules |
 |---|---|---|
-| `docs.page.create` | `id, spaceId, rank, projectId?, parentId?, title?, icon?, body?` | родитель — неархивная страница того же пространства, иначе `invalid_args`; с родителем `projectId` = родителя, без — проект этого пространства или null, иначе `invalid_args`; `title` по умолчанию `''`, `body` — `{type:'doc', content:[]}`; `text`, `files` из `body`; `createdBy = updatedBy = ctx.userId` |
-| `docs.page.update` | `id, title?, icon?, body?` | архивная → `conflict`; `body` → пересчёт `text`, `files`; `updatedBy = ctx.userId` |
-| `docs.page.move` | `id, parentId, rank, projectId?` | `parentId: uuid \| null` (ключ обязателен); `projectId` = нового родителя, в корне — `projectId` из args (нет ключа — прежний), проект чужого пространства → `invalid_args`; потомки получают тот же `projectId`; сама страница или её потомок → `invalid_args`; другое пространство → `invalid_args`; страница или новый родитель архивные → `conflict` |
-| `docs.page.archive` | `id` | `archivedAt = ctx.now` у страницы и всех её неархивных потомков; уже архивная — ничего |
-| `docs.page.restore` | `id` | снимает `archivedAt` у страницы и потомков с тем же `archivedAt`; родитель архивный → `parentId = null` |
-| `docs.link.add` | `id, pageId, taskId` | задача (строка `tasks`) и страница одного пространства, иначе `invalid_args`; пара уже связана — ничего |
-| `docs.link.remove` | `pageId, taskId` | нет связи — ничего |
-| `docs.lock` | `pageId` | нет блокировки, истекла или своя → `put {id: pageId, spaceId страницы, userId: ctx.userId, expiresAt: ctx.now + 120 с}`; чужая действующая → `conflict` |
-| `docs.unlock` | `pageId` | своя → удалить; иначе ничего |
+| `docs.page.create` | `id, spaceId, rank, projectId?, parentId?, title?, icon?, body?` | the parent is a non-archived page of the same space, otherwise `invalid_args`; with a parent `projectId` = the parent's, without - a project of this space or null, otherwise `invalid_args`; `title` defaults to `''`, `body` - `{type:'doc', content:[]}`; `text`, `files` from `body`; `createdBy = updatedBy = ctx.userId` |
+| `docs.page.update` | `id, title?, icon?, body?` | archived -> `conflict`; `body` -> recompute `text`, `files`; `updatedBy = ctx.userId` |
+| `docs.page.move` | `id, parentId, rank, projectId?` | `parentId: uuid \| null` (the key is required); `projectId` = the new parent's, at the root - `projectId` from args (no key - unchanged), a project of another space -> `invalid_args`; descendants get the same `projectId`; the page itself or its descendant -> `invalid_args`; another space -> `invalid_args`; the page or the new parent is archived -> `conflict` |
+| `docs.page.archive` | `id` | `archivedAt = ctx.now` on the page and all its non-archived descendants; already archived - nothing |
+| `docs.page.restore` | `id` | clears `archivedAt` on the page and the descendants with the same `archivedAt`; parent archived -> `parentId = null` |
+| `docs.link.add` | `id, pageId, taskId` | the task (a `tasks` row) and the page are in one space, otherwise `invalid_args`; pair already linked - nothing |
+| `docs.link.remove` | `pageId, taskId` | no link - nothing |
+| `docs.lock` | `pageId` | no lock, expired or own -> `put {id: pageId, spaceId of the page, userId: ctx.userId, expiresAt: ctx.now + 120 s}`; another's active lock -> `conflict` |
+| `docs.unlock` | `pageId` | own -> delete; otherwise nothing |
 
-Удаления страниц нет (только архив) — шорткат до запроса пользователя.
+There is no page deletion (archive only) - a shortcut until a user asks.
 
 ## DC-web v1 (CL-4)
-- Маршрут `/m/docs/:pageId` — страница; `/m/docs` — последняя открытая или пусто.
-- Дерево страниц — точка боковой панели из WK-0 (C-modules v3, `docs/contracts/work.md`), по пространствам; перетаскивание = `docs.page.move`.
-- Панель задачи `taskPanels`: `{id: 'pages'}` — связанные страницы, связать/отвязать.
-- Поиск Cmd+K — по `docsPages.title` и `text` локальной реплики (точка поиска — X-core, после шлюза).
-- Изображения — `POST /files`, узел `image` с `src: '/files/<sha256>'`; чтение файла другими участниками — X-core `canReadFile`.
+- Route `/m/docs/:pageId` - a page; `/m/docs` - the last opened one or empty.
+- The page tree is a sidebar point from WK-0 (C-modules v3, `docs/contracts/work.md`), per space; drag-and-drop = `docs.page.move`.
+- Task panel `taskPanels`: `{id: 'pages'}` - linked pages, link/unlink.
+- Cmd+K search - by `docsPages.title` and `text` of the local replica (the search point is X-core, after the gateway).
+- Images - `POST /files`, node `image` with `src: '/files/<sha256>'`; reading the file by other members - X-core `canReadFile`.
 
 ## CH-schema v3
 
-v2 (группы): `chatChannels.projectId`.
-v3: вложение += `durationMs?` (голосовое, `mime audio/*`).
+v2 (groups): `chatChannels.projectId`.
+v3: attachment += `durationMs?` (voice, `mime audio/*`).
 
-Модуль `chat` (`modules/chat`, пакет `@planar/module-chat`), таблицы `chat_<snake>`. Каналы пространства (`spaceId` задан) видны всем участникам пространства. Личные диалоги — `spaceId = null`, 2–8 участников (`chatMembers`), видны только им: scope `space|members` (C-sync v2, §X-core п. 1), у всех сущностей с этим scope `meta.members = {entity: 'chatMembers', key: 'channelId', container: 'chatChannels', via}` — `via: 'id'` у `chatChannels`, `'channelId'` у остальных. FK внутри модуля — без каскада; на `users` и `spaces` FK нет.
+Module `chat` (`modules/chat`, package `@planar/module-chat`), tables `chat_<snake>`. Space channels (`spaceId` set) are visible to all space members. Direct dialogs have `spaceId = null`, 2-8 participants (`chatMembers`), visible only to them: scope `space|members` (C-sync v2, §X-core item 1); every entity with this scope has `meta.members = {entity: 'chatMembers', key: 'channelId', container: 'chatChannels', via}` - `via: 'id'` for `chatChannels`, `'channelId'` for the rest. FKs inside the module have no cascade; there are no FKs to `users` and `spaces`.
 
 #### chatChannels
 scope: space|members · write: guest · bootstrap: yes · indexes: spaceId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
-| `spaceId` | uuid? | null — личный диалог |
-| `projectId` | uuid? | проект того же пространства — канал проекта; null — уровень пространства или диалог |
-| `kind` | enum(channel,dm) | `dm` ⇔ `spaceId = null` |
-| `name` | text? | канал — 1–80 символов; у диалога null (UI — имена участников) |
-| `topic` | text? | ≤ 250 |
+| `spaceId` | uuid? | null - a direct dialog |
+| `projectId` | uuid? | a project of the same space - a project channel; null - space level or a dialog |
+| `kind` | enum(channel,dm) | `dm` <=> `spaceId = null` |
+| `name` | text? | channel - 1-80 characters; null for a dialog (the UI shows participant names) |
+| `topic` | text? | <= 250 |
 | `createdBy` | uuid | |
-| `lastSeq` | int | номер последнего сообщения верхнего уровня; 0 — нет |
+| `lastSeq` | int | number of the last top-level message; 0 - none |
 | `lastMessageAt` | ts? | |
 | `archivedAt` | ts? | |
 | `createdAt` | ts | |
@@ -119,9 +119,9 @@ scope: space|members · write: guest · bootstrap: yes · indexes: spaceId
 #### chatMembers
 scope: space|members · write: guest · bootstrap: yes · indexes: channelId, userId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | уникально (channelId, userId); только диалоги |
+| `id` | uuid | unique (channelId, userId); dialogs only |
 | `channelId` | uuid | |
 | `userId` | uuid | |
 | `addedBy` | uuid | |
@@ -130,47 +130,47 @@ scope: space|members · write: guest · bootstrap: yes · indexes: channelId, us
 #### chatMessages
 scope: space|members · write: guest · bootstrap: no · indexes: channelId, parentId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
-| `spaceId` | uuid? | = канала |
+| `spaceId` | uuid? | = the channel's |
 | `channelId` | uuid | |
-| `parentId` | uuid? | корень треда (сообщение верхнего уровня того же канала); один уровень |
-| `seq` | int? | верхний уровень — `lastSeq + 1` канала; у ответов null |
+| `parentId` | uuid? | thread root (a top-level message of the same channel); one level |
+| `seq` | int? | top level - the channel's `lastSeq + 1`; null for replies |
 | `authorId` | uuid | = ctx.userId |
-| `body` | doc | TipTap JSON, как `comments.body`; ≤ 64 КБ в JSON |
-| `mentions` | uuid[] | id из узлов mention, без повторов, по порядку; только те, кто видит канал |
-| `attachments` | json | `{fileSha256, name, mime, size, width?, height?, durationMs?}[]`, ≤ 10; `fileSha256` — hex 64 |
-| `replyCount` | int | у корня — число ответов |
+| `body` | doc | TipTap JSON, like `comments.body`; <= 64 KB as JSON |
+| `mentions` | uuid[] | ids from mention nodes, without repeats, in order; only those who can see the channel |
+| `attachments` | json | `{fileSha256, name, mime, size, width?, height?, durationMs?}[]`, <= 10; `fileSha256` - hex 64 |
+| `replyCount` | int | on a root - the number of replies |
 | `lastReplyAt` | ts? | |
 | `editedAt` | ts? | |
-| `deletedAt` | ts? | мягкое удаление: `body` пустой doc, `mentions` и `attachments` пусты |
+| `deletedAt` | ts? | soft delete: `body` is an empty doc, `mentions` and `attachments` are empty |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
 #### chatReactions
 scope: space|members · write: guest · bootstrap: no · indexes: messageId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | уникально (messageId, userId, emoji) |
-| `spaceId` | uuid? | = канала |
+| `id` | uuid | unique (messageId, userId, emoji) |
+| `spaceId` | uuid? | = the channel's |
 | `channelId` | uuid | |
 | `messageId` | uuid | |
 | `userId` | uuid | = ctx.userId |
-| `emoji` | text | 1–32 символа |
+| `emoji` | text | 1-32 characters |
 | `createdAt` | ts | |
 
 #### chatReads
 scope: user · write: self · bootstrap: yes · indexes: channelId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | уникально (userId, channelId) |
+| `id` | uuid | unique (userId, channelId) |
 | `userId` | uuid | |
 | `channelId` | uuid | |
-| `lastReadSeq` | int | непрочитано = `chatChannels.lastSeq − lastReadSeq` (нет строки — 0) |
-| `muted` | bool | без push и счётчика в боковой панели |
+| `lastReadSeq` | int | unread = `chatChannels.lastSeq − lastReadSeq` (no row - 0) |
+| `muted` | bool | no push and no counter in the sidebar |
 | `updatedAt` | ts | |
 
 ## CH-mutators v4
@@ -178,51 +178,51 @@ scope: user · write: self · bootstrap: yes · indexes: channelId
 v4: `chat.dm.removeMember`.
 
 v3: `chat.channel.delete`; `chat.reaction.toggle` += `removeId?`.
-v2 (группы): `chat.channel.create` += `projectId?`.
+v2 (groups): `chat.channel.create` += `projectId?`.
 
-Экспорт — `shared.mutators` из `modules/chat/shared/index.ts`. Все id — в args. «Видит канал»: канал пространства — участник `spaceMembers`; диалог — строка `chatMembers`.
+Export - `shared.mutators` from `modules/chat/shared/index.ts`. All ids are in args. "Can see the channel": a space channel - a `spaceMembers` member; a dialog - a `chatMembers` row.
 
-| имя | args | правила |
+| name | args | rules |
 |---|---|---|
-| `chat.channel.create` | `id, spaceId, projectId?, name, topic?` | роль в пространстве ≥ member, иначе `forbidden`; проект не этого пространства → `invalid_args`; `name` после trim 1–80, иначе `invalid_args`; `kind = channel`, `lastSeq = 0` |
-| `chat.channel.update` | `id, name?, topic?, archivedAt?` | только `kind = channel` (иначе `invalid_args`); создатель или admin пространства, иначе `forbidden` |
-| `chat.channel.delete` | `id` | только `kind = channel`; создатель или admin пространства, иначе `forbidden`; удаляет сообщения и реакции канала, свою `chatReads` и канал (чужие `chatReads` — строки self — остаются) |
-| `chat.dm.create` | `id, members: {id, userId}[]` | 2–8 строк, `userId` без повторов, среди них ctx.userId, у каждого есть строка `users` без `deactivatedAt` — иначе `invalid_args`; `spaceId = null`, `kind = dm`, `name = null`; сначала контейнер, затем участники (`addedBy = ctx.userId`). Повторный диалог с тем же составом UI не создаёт (открывает существующий) |
-| `chat.dm.addMember` | `id, channelId, userId` | только диалог; уже участник — ничего; станет > 8 → `conflict` |
-| `chat.dm.removeMember` | `channelId, userId` | только диалог (`invalid_args`); только создатель диалога (`forbidden`); себя — `invalid_args` (выход — `chat.dm.leave`); не участник — ничего; останется < 2 → `conflict`; удаляет строку `chatMembers` |
-| `chat.dm.leave` | `channelId` | удаляет свою строку `chatMembers`; нет — ничего |
-| `chat.message.send` | `id, channelId, body, readId, parentId?, attachments?` | канал архивный → `conflict`; `parentId` — сообщение верхнего уровня того же канала, иначе `invalid_args`; верхний уровень: `seq = lastSeq + 1`, у канала `lastSeq`, `lastMessageAt`; ответ: `seq = null`, у корня `replyCount + 1`, `lastReplyAt`; `mentions` из `body` (кто не видит канал — отбрасывается); своя `chatReads` (`id = readId`, если строки нет): `lastReadSeq = max(текущее, seq)` для верхнего уровня |
-| `chat.message.update` | `id, body` | только автор (`forbidden`); удалённое → `conflict`; `editedAt = ctx.now`, `mentions` пересчитать |
-| `chat.message.delete` | `id` | только автор; мягкое удаление (`deletedAt`); удаляет реакции сообщения; `replyCount` корня не меняется |
-| `chat.reaction.toggle` | `id, messageId, emoji, removeId?` | есть (messageId, ctx.userId, emoji) — удалить, иначе создать; `removeId` — своя реакция, которую клиент видит из истории REST (на клиенте удаляется по нему, сервер находит сам); удалённое сообщение → `conflict` |
-| `chat.read` | `id, channelId, lastReadSeq` | своя `chatReads` (`id` — если строки нет): `lastReadSeq = min(max(текущее, args), lastSeq канала)` |
-| `chat.mute` | `id, channelId, muted` | своя `chatReads` (`id` — если строки нет) |
+| `chat.channel.create` | `id, spaceId, projectId?, name, topic?` | space role >= member, otherwise `forbidden`; a project not of this space -> `invalid_args`; `name` after trim 1-80, otherwise `invalid_args`; `kind = channel`, `lastSeq = 0` |
+| `chat.channel.update` | `id, name?, topic?, archivedAt?` | only `kind = channel` (otherwise `invalid_args`); the creator or a space admin, otherwise `forbidden` |
+| `chat.channel.delete` | `id` | only `kind = channel`; the creator or a space admin, otherwise `forbidden`; deletes the channel's messages and reactions, own `chatReads` and the channel (other users' `chatReads` - self rows - remain) |
+| `chat.dm.create` | `id, members: {id, userId}[]` | 2-8 rows, `userId` without repeats, ctx.userId among them, each has a `users` row without `deactivatedAt` - otherwise `invalid_args`; `spaceId = null`, `kind = dm`, `name = null`; the container first, then the participants (`addedBy = ctx.userId`). The UI does not create a second dialog with the same set of participants (it opens the existing one) |
+| `chat.dm.addMember` | `id, channelId, userId` | dialog only; already a participant - nothing; would exceed 8 -> `conflict` |
+| `chat.dm.removeMember` | `channelId, userId` | dialog only (`invalid_args`); only the dialog creator (`forbidden`); oneself - `invalid_args` (leaving - `chat.dm.leave`); not a participant - nothing; fewer than 2 would remain -> `conflict`; deletes the `chatMembers` row |
+| `chat.dm.leave` | `channelId` | deletes own `chatMembers` row; none - nothing |
+| `chat.message.send` | `id, channelId, body, readId, parentId?, attachments?` | channel archived -> `conflict`; `parentId` - a top-level message of the same channel, otherwise `invalid_args`; top level: `seq = lastSeq + 1`, the channel gets `lastSeq`, `lastMessageAt`; reply: `seq = null`, the root gets `replyCount + 1`, `lastReplyAt`; `mentions` from `body` (those who cannot see the channel are dropped); own `chatReads` (`id = readId`, if there is no row): `lastReadSeq = max(current, seq)` for the top level |
+| `chat.message.update` | `id, body` | author only (`forbidden`); deleted -> `conflict`; `editedAt = ctx.now`, recompute `mentions` |
+| `chat.message.delete` | `id` | author only; soft delete (`deletedAt`); deletes the message's reactions; the root's `replyCount` does not change |
+| `chat.reaction.toggle` | `id, messageId, emoji, removeId?` | exists (messageId, ctx.userId, emoji) - delete, otherwise create; `removeId` - own reaction the client sees from REST history (on the client it is deleted by this id, the server finds it itself); deleted message -> `conflict` |
+| `chat.read` | `id, channelId, lastReadSeq` | own `chatReads` (`id` - if there is no row): `lastReadSeq = min(max(current, args), channel lastSeq)` |
+| `chat.mute` | `id, channelId, muted` | own `chatReads` (`id` - if there is no row) |
 
 ## CH-api v1
 
-REST под `/api/chat/` (сессия или Bearer), канал не виден → `404 not_found`; строки — в формате провода.
-- `GET /api/chat/channels/:id/messages?before=<seq>&limit=<1..100, по умолчанию 50>` → `{messages, reactions}`: верхний уровень с `seq < before` (без `before` — последние), по возрастанию `seq`; `reactions` — к этим сообщениям.
-- `GET /api/chat/messages/:id/thread` → `{root, replies, reactions}`: ответы по `createdAt`.
-- `canReadFile` — §X-core п. 4.
-- Уведомления — хук `afterMutation` (`docs/contracts/work.md` §C-modules v3): строки `notifications` через `api.sys` (`taskId = null`, `spaceId` канала, `url`, `body` = «Имя автора: текст», ≤ 140), push — `api.enqueue('push.notification', {notificationId})` на каждое (очередь ядра `apps/api/src/push/push.ts`). Получатель видит канал, не автор, у него нет `muted`, по одному уведомлению на сообщение в порядке приоритета: `chat_mention` (новые упомянутые, при создании и правке) → `chat_dm` (участникам диалога 1:1; в группе от трёх — только упоминания) → `chat_reply` (автору корня и прежним авторам ответов треда, кроме диалогов). `url` — `/m/chat/c/<channelId>/<messageId>`; ответ — `/m/chat/c/<channelId>/t/<rootId>`.
-- WS «печатает…» — `sendTyping('chatChannels', channelId)` (§X-core п. 2).
+REST under `/api/chat/` (session or Bearer), channel not visible -> `404 not_found`; rows in the wire format.
+- `GET /api/chat/channels/:id/messages?before=<seq>&limit=<1..100, default 50>` -> `{messages, reactions}`: top level with `seq < before` (without `before` - the latest), ascending by `seq`; `reactions` - for these messages.
+- `GET /api/chat/messages/:id/thread` -> `{root, replies, reactions}`: replies by `createdAt`.
+- `canReadFile` - §X-core item 4.
+- Notifications - the `afterMutation` hook (`docs/contracts/work.md` §C-modules v3): `notifications` rows via `api.sys` (`taskId = null`, the channel's `spaceId`, `url`, `body` = "Author name: text", <= 140), push - `api.enqueue('push.notification', {notificationId})` for each (the core queue `apps/api/src/push/push.ts`). The recipient can see the channel, is not the author, has no `muted`, one notification per message in priority order: `chat_mention` (newly mentioned, on create and edit) -> `chat_dm` (participants of a 1:1 dialog; in a group of three or more - mentions only) -> `chat_reply` (the root's author and earlier reply authors of the thread, except dialogs). `url` - `/m/chat/c/<channelId>/<messageId>`; a reply - `/m/chat/c/<channelId>/t/<rootId>`.
+- WS "typing..." - `sendTyping('chatChannels', channelId)` (§X-core item 2).
 
 ## CH-web v1 (CL-2)
-- Маршруты: `/m/chat/` — список (mobile) или последний канал, `/m/chat/c/:channelId/:messageId?`, `/m/chat/c/:channelId/t/:rootId` (тред: панель справа на desktop, экран на mobile).
-- Боковая панель — `nav` с `section` (WK-0): каналы пространств и диалоги, счётчики непрочитанных (`lastSeq − lastReadSeq`, без `muted`). На mobile `nav` не показывается — вход через `topbar` (иконка чата со счётчиком).
+- Routes: `/m/chat/` - the list (mobile) or the last channel, `/m/chat/c/:channelId/:messageId?`, `/m/chat/c/:channelId/t/:rootId` (thread: a panel on the right on desktop, a screen on mobile).
+- Sidebar - `nav` with `section` (WK-0): space channels and dialogs, unread counters (`lastSeq − lastReadSeq`, without `muted`). On mobile `nav` is not shown - entry via `topbar` (a chat icon with a counter).
 
-## X-core — правки ядра от collab (проект, шлюз)
+## X-core - core changes from collab (project, gateway)
 
-Делает collab отдельной задачей **после** вливания WK-0 (feature/work): хук `afterMutation`, pg-boss в транзакции, точки web nav/topbar — из WK-0, здесь не дублируются.
+Done by collab as a separate task **after** WK-0 (feature/work) is merged: the `afterMutation` hook, pg-boss in the transaction, web nav/topbar points - come from WK-0 and are not duplicated here.
 
-1. **C-sync v2 — видимость `space|members`.** `EntityMeta` += `members?: {entity, key, container, via}` (для chat: `{entity:'chatMembers', key:'channelId', container:'chatChannels', via:'id'|'channelId'}`).
-   - `row.spaceId` задан → как `space`. Иначе получатели — `userId` строк `members.entity` с `key = row[via]` (состояние после записи, в той же транзакции): по строке `changes` на каждого, `user_id = получатель`, `space_id = null`. Pull и WS не меняются.
-   - Новая строка `members.entity` (участник добавлен) → новому участнику дополнительно `put` контейнера и всех `bootstrap: yes`-строк этого контейнера; удалена → ему `del` тех же строк. `_reset` не пишется. История сообщений (`bootstrap: no`) — через REST.
-   - Bootstrap: `spaceId ∈ мои пространства` или (`spaceId` null и `row[via]` ∈ мои `key` из `members.entity`).
-   - Запись (серверный `Tx`): `spaceId` задан → роль ≥ `write` сущности; иначе `ctx.userId` — участник `row[via]` или `createdBy` контейнера = `ctx.userId` (новый контейнер — `row.createdBy = ctx.userId`). Проверка — по старой и новой строке.
-   - e2e на утечку: третий не получает строк диалога ни в bootstrap, ни в pull, ни данных по WS.
-2. **WS «печатает…».** Клиент → `{t:'typing', entity, id}`; сервер — если отправитель видит строку — рассылает `{t:'typing', entity, id, userId}` подключённым, кто её видит, кроме отправителя; не чаще раза в 3 с на (отправитель, id). Клиент показывает 5 с. C-client: `sendTyping(entity, id)`, `onTyping(cb) => unsubscribe`.
-3. **Уведомления.** `notifications`: `spaceId uuid?`, `taskId uuid?`, `kind` += `chat_mention, chat_dm, chat_reply`, новые `url text?` (путь в приложении), `body text?` (≤ 140 символов: «Имя: текст»). Push (C-http «Web Push»): нет `taskId` → `url`, `body` из уведомления; правила `url` прежние. Inbox web показывает такие уведомления по `body` и ведёт на `url`.
-4. **Файлы.** `BackendModuleManifest.canReadFile?(q, userId, sha256): Promise<boolean>` — `GET /files/:sha256` разрешён, если `true` вернул любой включённый модуль. chat — файл во `attachments` сообщения видимого пользователю канала **и** есть `file_uploads(sha256, authorId сообщения)`; docs — файл в `docsPages.files` страницы пространства пользователя **и** есть `file_uploads(sha256, u)` для участника `u` этого пространства. Запись не проверяется (хук `afterMutation` не может отклонить мутацию): чужой sha256 без своей загрузки файла не открывает.
-5. **Поиск Cmd+K.** web: точка расширения `search` — `{id, label, search(q: string, limit: number): Promise<{id, title, subtitle?, icon?, to: RouteLocationRaw}[]>}`; палитра показывает группы модулей под задачами.
-6. **SDK модулей** (`@planar/web/modules`, `apps/web/src/modules/sdk.ts`; C-modules v5 поверх v4 work): += `Editor` (компонент `apps/web/src/task/editor/Editor.vue`, пропсы как есть), `uploadFile` (`apps/web/src/api/files.ts`), HTTP-хелпер JSON-запросов `apps/web/src/api/http.ts` (те же имена), `sendTyping`, `onTyping`, `onMutationError` (C-client) — CL-6s; `useSearch` (поиск задач, `apps/web/src/command/search.ts`) — CL-6b. Тесты модулей (`*.test.ts`) для настройки клиента могут импортировать `apps/web/src` относительным путём; код модуля — только SDK; остальное в SDK — как в `docs/contracts/work.md` §C-modules v4.
+1. **C-sync v2 - `space|members` visibility.** `EntityMeta` += `members?: {entity, key, container, via}` (for chat: `{entity:'chatMembers', key:'channelId', container:'chatChannels', via:'id'|'channelId'}`).
+   - `row.spaceId` set -> as `space`. Otherwise the recipients are the `userId` of the `members.entity` rows with `key = row[via]` (state after the write, in the same transaction): one `changes` row per recipient, `user_id = recipient`, `space_id = null`. Pull and WS do not change.
+   - A new `members.entity` row (participant added) -> the new participant additionally gets a `put` of the container and all `bootstrap: yes` rows of that container; deleted -> a `del` of the same rows. No `_reset` is written. Message history (`bootstrap: no`) - via REST.
+   - Bootstrap: `spaceId ∈ my spaces` or (`spaceId` null and `row[via]` in my `key` values from `members.entity`).
+   - Write (server `Tx`): `spaceId` set -> role >= the entity's `write`; otherwise `ctx.userId` is a participant of `row[via]` or the container's `createdBy` = `ctx.userId` (a new container - `row.createdBy = ctx.userId`). Checked against both the old and the new row.
+   - Leak e2e: a third user receives no dialog rows in bootstrap, in pull, or any data over WS.
+2. **WS "typing...".** Client -> `{t:'typing', entity, id}`; server - if the sender can see the row - broadcasts `{t:'typing', entity, id, userId}` to connected users who can see it, except the sender; at most once per 3 s per (sender, id). The client shows it for 5 s. C-client: `sendTyping(entity, id)`, `onTyping(cb) => unsubscribe`.
+3. **Notifications.** `notifications`: `spaceId uuid?`, `taskId uuid?`, `kind` += `chat_mention, chat_dm, chat_reply`, new `url text?` (a path in the app), `body text?` (<= 140 characters: "Name: text"). Push (C-http "Web Push"): no `taskId` -> `url`, `body` from the notification; the `url` rules are unchanged. Inbox web shows such notifications by `body` and leads to `url`.
+4. **Files.** `BackendModuleManifest.canReadFile?(q, userId, sha256): Promise<boolean>` - `GET /files/:sha256` is allowed if any enabled module returned `true`. chat - the file is in the `attachments` of a message in a channel visible to the user **and** `file_uploads(sha256, message authorId)` exists; docs - the file is in `docsPages.files` of a page of the user's space **and** `file_uploads(sha256, u)` exists for a member `u` of that space. Writes are not checked (the `afterMutation` hook cannot reject a mutation): someone else's sha256 without your own file upload does not open the file.
+5. **Cmd+K search.** web: the extension point `search` - `{id, label, search(q: string, limit: number): Promise<{id, title, subtitle?, icon?, to: RouteLocationRaw}[]>}`; the palette shows module groups under tasks.
+6. **Module SDK** (`@planar/web/modules`, `apps/web/src/modules/sdk.ts`; C-modules v5 on top of work's v4): += `Editor` (component `apps/web/src/task/editor/Editor.vue`, props as is), `uploadFile` (`apps/web/src/api/files.ts`), the JSON request HTTP helper `apps/web/src/api/http.ts` (same names), `sendTyping`, `onTyping`, `onMutationError` (C-client) - CL-6s; `useSearch` (task search, `apps/web/src/command/search.ts`) - CL-6b. Module tests (`*.test.ts`) may import `apps/web/src` by relative path to set up the client; module code - only the SDK; the rest of the SDK - as in `docs/contracts/work.md` §C-modules v4.

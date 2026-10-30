@@ -3,39 +3,39 @@ type: reference
 status: active
 module: core
 updated: 2026-10-24
-summary: Сущности C-schema v13 — таблицы, поля, nullability, scope/write/bootstrap/indexes; проверяет контрактный тест
+summary: Entities of C-schema v13 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
 related: ["docs/contracts/core.md"]
 ---
 
-# Сущности C-schema v13
+# Entities of C-schema v13
 
-Часть контракта `C-schema v13` из `docs/contracts/core.md`. Раздел читает контрактный тест (`packages/shared/test/contract-doc.ts` → `docEntities`); версия — в заголовке `## C-schema vN` в core.md.
+Part of the contract `C-schema v13` from `docs/contracts/core.md`. The section is read by the contract test (`packages/shared/test/contract-doc.ts` → `docEntities`); the version is in the heading `## C-schema vN` in core.md.
 
-## Сущности
+## Entities
 
 #### users
 scope: global · write: server · bootstrap: yes · indexes: login
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
-| `login` | text | уникален, в нижнем регистре |
+| `login` | text | unique, lowercase |
 | `name` | text | |
 | `email` | text? | |
-| `role` | enum(owner,admin,member,guest) | роль в инстансе; owner — первый пользователь |
-| `avatarFile` | text? | sha256 файла |
+| `role` | enum(owner,admin,member,guest) | instance role; owner is the first user |
+| `avatarFile` | text? | sha256 of the file |
 | `deactivatedAt` | ts? | |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
-Только в БД: `password_hash text` (argon2id). В провод не попадает никогда.
+DB only: `password_hash text` (argon2id). Never goes onto the wire.
 
 #### spaces
 scope: space · write: admin · bootstrap: yes · indexes: —
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | он же spaceId для видимости |
+| `id` | uuid | also the spaceId for visibility |
 | `name` | text | 1–100 |
 | `description` | text? | |
 | `color` | text? | |
@@ -48,9 +48,9 @@ scope: space · write: admin · bootstrap: yes · indexes: —
 #### spaceMembers
 scope: space · write: admin · bootstrap: yes · indexes: spaceId, userId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | уникально (spaceId, userId) |
+| `id` | uuid | unique (spaceId, userId) |
 | `spaceId` | uuid | |
 | `userId` | uuid | |
 | `role` | enum(admin,member,guest) | |
@@ -60,12 +60,12 @@ scope: space · write: admin · bootstrap: yes · indexes: spaceId, userId
 #### projects
 scope: space · write: member · bootstrap: yes · indexes: spaceId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
 | `name` | text | 1–100 |
-| `key` | text | `^[A-Z][A-Z0-9]{1,9}$`, уникален в инстансе (нарушение → `conflict`) |
+| `key` | text | `^[A-Z][A-Z0-9]{1,9}$`, unique in the instance (violation → `conflict`) |
 | `description` | doc? | |
 | `color` | text? | |
 | `icon` | text? | |
@@ -75,12 +75,12 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
-Только в БД: `task_counter integer not null default 0`.
+DB only: `task_counter integer not null default 0`.
 
 #### statuses
 scope: space · write: admin · bootstrap: yes · indexes: spaceId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
@@ -94,35 +94,35 @@ scope: space · write: admin · bootstrap: yes · indexes: spaceId
 #### tasks
 scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, parentId, statusId, cycleId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | = `projects.spaceId` |
-| `projectId` | uuid | только проект того же пространства |
-| `number` | int? | null у клиента до ответа сервера; ключ задачи = `${project.key}-${number}`; уникально (projectId, number) |
-| `parentId` | uuid? | подзадача |
-| `statusId` | uuid | статус того же пространства |
+| `projectId` | uuid | only a project of the same space |
+| `number` | int? | null on the client until the server responds; task key = `${project.key}-${number}`; unique (projectId, number) |
+| `parentId` | uuid? | subtask |
+| `statusId` | uuid | a status of the same space |
 | `title` | text | 1–500 |
 | `description` | doc? | |
-| `priority` | int | 0 нет, 1 срочно, 2 высокий, 3 средний, 4 низкий |
-| `rank` | rank | ручной порядок |
+| `priority` | int | 0 none, 1 urgent, 2 high, 3 medium, 4 low |
+| `rank` | rank | manual order |
 | `dueDate` | date? | |
 | `startDate` | date? | |
 | `createdBy` | uuid | |
-| `completedAt` | ts? | ставит мутатор при переходе в категорию done/cancelled, снимает при выходе |
-| `fields` | obj | `{<fieldDefs.id>: значение}` — поля проекта задачи, без `null`; формат — features.md §F-fields; по умолчанию `{}` |
-| `cycleId` | uuid? | цикл sprints, без FK (work.md) |
+| `completedAt` | ts? | set by the mutator on a move to the done/cancelled category, cleared on leaving it |
+| `fields` | obj | `{<fieldDefs.id>: value}` — fields of the task's project, no `null`; format — features.md §F-fields; default `{}` |
+| `cycleId` | uuid? | a sprints cycle, no FK (work.md) |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
-Сервер: запись `tasks` с `number = null` получает `number = ++projects.task_counter` (в той же транзакции). Смена `projectId` — мутатор ставит `number = null`.
+Server: a `tasks` write with `number = null` gets `number = ++projects.task_counter` (in the same transaction). On a `projectId` change the mutator sets `number = null`.
 
 #### taskAssignees
 scope: space · write: member · bootstrap: yes · indexes: taskId, userId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | уникально (taskId, userId) |
+| `id` | uuid | unique (taskId, userId) |
 | `spaceId` | uuid | |
 | `taskId` | uuid | |
 | `userId` | uuid | |
@@ -131,9 +131,9 @@ scope: space · write: member · bootstrap: yes · indexes: taskId, userId
 #### taskWatchers
 scope: space · write: guest · bootstrap: yes · indexes: taskId, userId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | уникально (taskId, userId); мутаторы добавляют и снимают только себя |
+| `id` | uuid | unique (taskId, userId); mutators add and remove only the caller |
 | `spaceId` | uuid | |
 | `taskId` | uuid | |
 | `userId` | uuid | |
@@ -142,7 +142,7 @@ scope: space · write: guest · bootstrap: yes · indexes: taskId, userId
 #### labels
 scope: space · write: member · bootstrap: yes · indexes: spaceId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
@@ -154,9 +154,9 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId
 #### taskLabels
 scope: space · write: member · bootstrap: yes · indexes: taskId, labelId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | уникально (taskId, labelId) |
+| `id` | uuid | unique (taskId, labelId) |
 | `spaceId` | uuid | |
 | `taskId` | uuid | |
 | `labelId` | uuid | |
@@ -165,35 +165,35 @@ scope: space · write: member · bootstrap: yes · indexes: taskId, labelId
 #### fieldDefs
 scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | ключ значения в `tasks.fields` |
+| `id` | uuid | value key in `tasks.fields` |
 | `spaceId` | uuid | = `projects.spaceId` |
-| `projectId` | uuid | поле принадлежит проекту |
+| `projectId` | uuid | the field belongs to the project |
 | `name` | text | 1–100 |
-| `type` | enum(text,number,date,select,user,url,money) | неизменяем после создания |
-| `options` | obj | по типу (features.md §F-fields) |
-| `rank` | rank | порядок полей в карточке и колонок по умолчанию |
+| `type` | enum(text,number,date,select,user,url,money) | immutable after creation |
+| `options` | obj | by type (features.md §F-fields) |
+| `rank` | rank | order of fields in the card and of default columns |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
 #### taskLinks
 scope: space · write: member · bootstrap: yes · indexes: taskId, targetId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | одна строка на пару: уникальный индекс по least/greatest от taskId, targetId → `conflict` |
-| `spaceId` | uuid | обе задачи — этого пространства |
-| `taskId` | uuid | `blocks`: taskId блокирует targetId; `duplicates`: taskId — дубликат |
+| `id` | uuid | one row per pair: a unique index on least/greatest of taskId, targetId → `conflict` |
+| `spaceId` | uuid | both tasks are in this space |
+| `taskId` | uuid | `blocks`: taskId blocks targetId; `duplicates`: taskId is the duplicate |
 | `targetId` | uuid | ≠ `taskId` |
-| `kind` | enum(blocks,relates,duplicates) | обратная сторона — features.md §F-links |
+| `kind` | enum(blocks,relates,duplicates) | the reverse side — features.md §F-links |
 | `createdBy` | uuid | = ctx.userId |
 | `createdAt` | ts | |
 
 #### checklistItems
 scope: space · write: member · bootstrap: yes · indexes: taskId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
@@ -207,18 +207,18 @@ scope: space · write: member · bootstrap: yes · indexes: taskId
 #### comments
 scope: space · write: guest · bootstrap: yes · indexes: taskId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
 | `taskId` | uuid | |
-| `authorId` | uuid | = ctx.userId; правит и удаляет только автор |
-| `parentId` | uuid? | тред: корень (комментарий этой задачи без parentId); null — сам корень |
-| `body` | doc | упоминание — узел `{type:'mention', attrs:{id:<userId>}}` |
-| `mentions` | uuid[] | id из узлов mention, без повторов, по порядку появления |
-| `assigneeId` | uuid? | назначенный комментарий (только корень) |
-| `resolvedAt` | ts? | назначенный отмечен завершённым |
-| `resolvedBy` | uuid? | кто завершил |
+| `authorId` | uuid | = ctx.userId; edited and deleted only by the author |
+| `parentId` | uuid? | thread: the root (a comment of this task without parentId); null — the root itself |
+| `body` | doc | a mention is the node `{type:'mention', attrs:{id:<userId>}}` |
+| `mentions` | uuid[] | ids from mention nodes, without repeats, in order of appearance |
+| `assigneeId` | uuid? | assigned comment (root only) |
+| `resolvedAt` | ts? | the assigned comment is marked resolved |
+| `resolvedBy` | uuid? | who resolved it |
 | `editedAt` | ts? | |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
@@ -226,93 +226,93 @@ scope: space · write: guest · bootstrap: yes · indexes: taskId
 #### commentReactions
 scope: space · write: guest · bootstrap: yes · indexes: commentId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | uuid | уникально (commentId, userId, emoji) |
+| `id` | uuid | unique (commentId, userId, emoji) |
 | `spaceId` | uuid | |
 | `commentId` | uuid | |
-| `userId` | uuid | = ctx.userId; мутатор ставит и снимает только свои |
-| `emoji` | text | 1–32 символа (один эмодзи или короткий код) |
+| `userId` | uuid | = ctx.userId; the mutator adds and removes only its own |
+| `emoji` | text | 1–32 characters (one emoji or a short code) |
 | `createdAt` | ts | |
 
 #### attachments
 scope: space · write: member · bootstrap: yes · indexes: taskId, commentId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
 | `taskId` | uuid | |
 | `commentId` | uuid? | |
-| `fileSha256` | text | hex, 64 символа; файл должен быть в `files` |
-| `name` | text | имя для скачивания |
+| `fileSha256` | text | hex, 64 characters; the file must be in `files` |
+| `name` | text | name for download |
 | `mime` | text | |
-| `size` | int | байты |
-| `width` | int? | для картинок |
+| `size` | int | bytes |
+| `width` | int? | for images |
 | `height` | int? | |
 | `uploadedBy` | uuid | |
 | `createdAt` | ts | |
 
-Сервер: `put` разрешён, только если есть строка `file_uploads(fileSha256, ctx.userId)` или файл уже приложен в этом пространстве; иначе `forbidden`.
+Server: `put` is allowed only if a row `file_uploads(fileSha256, ctx.userId)` exists or the file is already attached in this space; otherwise `forbidden`.
 
 #### activity
 scope: space · write: server · bootstrap: no · indexes: taskId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
-| `taskId` | uuid | без FK |
+| `taskId` | uuid | no FK |
 | `actorId` | uuid | |
-| `viaTokenId` | uuid? | id API-токена, если запись сделана через токен (CR-10), иначе null |
+| `viaTokenId` | uuid? | id of the API token if the record was made through a token (CR-10), otherwise null |
 | `kind` | enum(created,updated,deleted,assignee_added,assignee_removed,label_added,label_removed,commented) | |
-| `changes` | obj | `updated`: `{<поле>: [старое, новое]}` без `updatedAt`, `rank`; `assignee_*`: `{userId}`; `label_*`: `{labelId}`; `commented`: `{commentId}`; иначе `{}` |
+| `changes` | obj | `updated`: `{<field>: [old, new]}` without `updatedAt`, `rank`; `assignee_*`: `{userId}`; `label_*`: `{labelId}`; `commented`: `{commentId}`; otherwise `{}` |
 | `createdAt` | ts | |
 
-Пишет серверный `Tx` при записи `tasks`, `taskAssignees`, `taskLabels`, `comments` (создание). История — `GET /api/tasks/:id/activity` (C-http).
+Written by the server `Tx` on writes of `tasks`, `taskAssignees`, `taskLabels`, `comments` (creation). History — `GET /api/tasks/:id/activity` (C-http).
 
 #### notifications
 scope: user · write: self · bootstrap: yes · indexes: taskId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
-| `userId` | uuid | получатель |
-| `spaceId` | uuid? | для группировки; на видимость не влияет; null — личный диалог чата |
-| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned,doc_mention) | `chat_*` создаёт модуль chat (collab.md §CH) |
-| `taskId` | uuid? | без FK; null — у `chat_*` |
-| `url` | text? | путь в приложении для уведомлений без задачи (правила `url` из «Web Push») |
-| `body` | text? | ≤ 140 символов, «Имя: текст»; для уведомлений без задачи |
-| `commentId` | uuid? | без FK |
-| `changes` | obj? | `status_changed`: `{statusId: [старый, новый]}` (формат `activity.changes`); иначе null (C-schema v10) |
+| `userId` | uuid | recipient |
+| `spaceId` | uuid? | for grouping; does not affect visibility; null — a personal chat dialog |
+| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned,doc_mention) | `chat_*` is created by the chat module (collab.md §CH) |
+| `taskId` | uuid? | no FK; null for `chat_*` |
+| `url` | text? | in-app path for notifications without a task (the `url` rules from "Web Push") |
+| `body` | text? | ≤ 140 characters, "Name: text"; for notifications without a task |
+| `commentId` | uuid? | no FK |
+| `changes` | obj? | `status_changed`: `{statusId: [old, new]}` (the `activity.changes` format); otherwise null (C-schema v10) |
 | `actorId` | uuid | |
 | `readAt` | ts? | |
 | `createdAt` | ts | |
 
-Создаёт сервер (CR-7) через серверный `Tx` от имени системы; пользователь мутаторами только читает (`readAt`) и удаляет свои. В bootstrap — последние 200 по `createdAt`.
+Created by the server (CR-7) through the server `Tx` on behalf of the system; with mutators a user only reads (`readAt`) and deletes their own. Bootstrap includes the last 200 by `createdAt`.
 
-Триггеры (серверный хук в транзакции мутации, после `run`; автор действия себя не уведомляет; получатель должен быть участником пространства):
-- `assigned` — новому исполнителю (`taskAssignees` put);
-- `mentioned` — каждому из `comments.mentions` (создание и правка — только новым упомянутым);
-- `commented` — наблюдателям задачи при новом комментарии, кроме упомянутых в нём;
-- `status_changed` — наблюдателям при смене `tasks.statusId`.
+Triggers (a server hook in the mutation transaction, after `run`; the author of the action does not notify themselves; the recipient must be a space member):
+- `assigned` — to a new assignee (`taskAssignees` put);
+- `mentioned` — to each of `comments.mentions` (on creation and edit — only to the newly mentioned);
+- `commented` — to task watchers on a new comment, except those mentioned in it;
+- `status_changed` — to watchers when `tasks.statusId` changes.
 
-Автоподписка (тот же хук, `taskWatchers` от имени системы): автор задачи, назначенный исполнитель, автор комментария. Push — задача pg-boss на каждое уведомление после коммита.
+Auto-subscription (the same hook, `taskWatchers` on behalf of the system): the task author, the assigned assignee, the comment author. Push — a pg-boss job per notification after commit.
 
 #### savedViews
 scope: space|user · write: member|self · bootstrap: yes · indexes: spaceId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
-| `userId` | uuid? | не null — личный вид (видит только владелец), null — общий для пространства |
+| `userId` | uuid? | not null — a personal view (seen only by the owner), null — shared across the space |
 | `createdBy` | uuid | |
 | `name` | text | |
-| `icon` | text? | имя иконки из набора web (вкладка вида); null — значок по умолчанию |
-| `layout` | text | `list`, `board` или id вида модуля |
+| `icon` | text? | icon name from the web set (view tab); null — the default icon |
+| `layout` | text | `list`, `board` or a module view id |
 | `filter` | obj | |
-| `config` | obj | группировка, сортировка, колонки |
+| `config` | obj | grouping, sorting, columns |
 | `rank` | rank | |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
@@ -320,10 +320,10 @@ scope: space|user · write: member|self · bootstrap: yes · indexes: spaceId
 #### settings
 scope: global · write: instance_admin · bootstrap: yes · indexes: —
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
-| `id` | text | ключ |
+| `id` | text | key |
 | `value` | json | |
 | `updatedAt` | ts | |
 
-Ключи v1: `enabled_modules` — `string[]` id модулей. Секреты (VAPID и т. п.) в `settings` не кладём — только env.
+Keys of v1: `enabled_modules` — `string[]` of module ids. Secrets (VAPID etc.) are not put into `settings` — env only.

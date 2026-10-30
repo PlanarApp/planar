@@ -16,13 +16,13 @@ const part = doc.split(/^## F-fields v\d+\s*$/m)[1]?.split(/^## /m)[0] ?? '';
 const names = (head: string) => {
   const t = part.split(/^### /m).find((s) => s.startsWith(head)) ?? '';
   return [...t.matchAll(/^\| `(\w+)` \| ((?:\\\||[^|])+) \|/gm)]
-    .filter((r) => !r[2].trim().startsWith('тип'))
+    .filter((r) => !r[2].trim().startsWith('type'))
     .map((r) => r[1]);
 };
 
 describe('F-fields: экспорты', () => {
   it('таблицы разобраны', () => {
-    expect(names('Экспорты shared')).toEqual([
+    expect(names('Exports')).toEqual([
       'FIELD_TYPES',
       'fieldOptionsSchema',
       'defaultFieldOptions',
@@ -36,7 +36,7 @@ describe('F-fields: экспорты', () => {
       'FieldEditor',
     ]);
   });
-  it.each(names('Экспорты shared'))('shared %s', (n) => {
+  it.each(names('Exports'))('shared %s', (n) => {
     expect(
       (shared as Record<string, unknown>)[n],
       `@planar/shared не экспортирует ${n}`,

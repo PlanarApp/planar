@@ -8,7 +8,7 @@ import * as client from '../sync/index';
 
 const doc = readFileSync(new URL('../../../../docs/contracts/web.md', import.meta.url), 'utf8');
 const part = doc.split(/^## C-client v\d+\s*$/m)[1] ?? '';
-const exportsTable = part.split(/^### /m).find((s) => s.startsWith('Экспорты')) ?? '';
+const exportsTable = part.split(/^### /m).find((s) => s.startsWith('Exports')) ?? '';
 const names = [...exportsTable.matchAll(/^\| `(\w+)` \|/gm)].map((m) => m[1]);
 
 describe('C-client: экспорты', () => {

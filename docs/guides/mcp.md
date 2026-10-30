@@ -3,26 +3,26 @@ type: guide
 status: active
 module: core
 updated: 2026-10-23
-summary: Подключение ИИ-клиента к Planar по MCP: токен, URL /mcp, конфигурация, инструменты, права read/write
+summary: Connecting an AI client to Planar over MCP: token, /mcp URL, configuration, tools, read/write permissions
 related: ["docs/contracts/core-api-v1.md"]
 ---
 
-# Подключение к Planar по MCP
+# Connecting to Planar over MCP
 
-Сервер MCP — `POST /mcp` (Streamable HTTP, без сессий). Вход только по API-токену; cookie не принимается.
+The MCP server is `POST /mcp` (Streamable HTTP, sessionless). Access is by API token only; cookies are not accepted.
 
-## 1. Токен
-В профиле Planar откройте «API-токены» → «Создать», задайте имя и права:
-- `read` — только инструменты чтения;
-- `write` — ещё и запись (создание и правка задач, комментарии).
+## 1. Token
+In your Planar profile open "API tokens" → "Create", set a name and permissions:
+- `read` — read tools only;
+- `write` — also writing (creating and editing tasks, comments).
 
-Секрет `plnr_…` показывается один раз. Права по пространствам те же, что у владельца токена. Запись по токену помечается в активности.
+The `plnr_…` secret is shown once. Permissions per space are the same as the token owner's. Writes by token are marked in the activity.
 
 ## 2. URL
-`http(s)://<host>/mcp`, где `<host>` — адрес вашего Planar (значение `PUBLIC_URL`).
+`http(s)://<host>/mcp`, where `<host>` is the address of your Planar (the `PUBLIC_URL` value).
 
-## 3. Конфигурация клиента
-Заголовок: `Authorization: Bearer plnr_…`
+## 3. Client configuration
+Header: `Authorization: Bearer plnr_…`
 
 Claude Code:
 
@@ -31,7 +31,7 @@ claude mcp add --transport http planar https://planar.example.com/mcp \
   --header "Authorization: Bearer plnr_xxxxxxxx"
 ```
 
-Claude Desktop и другие клиенты с `mcp.json`:
+Claude Desktop and other clients with `mcp.json`:
 
 ```json
 {
@@ -45,18 +45,18 @@ Claude Desktop и другие клиенты с `mcp.json`:
 }
 ```
 
-## 4. Инструменты
-Чтение (любой токен):
-- `list_spaces` — пространства пользователя;
-- `list_projects {spaceId?}` — проекты;
-- `search_tasks {query?, projectId?, statusId?, assigneeId?, limit?}` — поиск по заголовку и ключу (`PLN-12`), без учёта регистра;
-- `get_task {task}` — задача (id или ключ) с комментариями;
-- `my_tasks {includeDone?}` — назначенные мне; по умолчанию без done и cancelled.
+## 4. Tools
+Read (any token):
+- `list_spaces` — the user's spaces;
+- `list_projects {spaceId?}` — projects;
+- `search_tasks {query?, projectId?, statusId?, assigneeId?, limit?}` — search by title and key (`PLN-12`), case-insensitive;
+- `get_task {task}` — a task (id or key) with comments;
+- `my_tasks {includeDone?}` — assigned to me; by default without done and cancelled.
 
-Запись (нужен `write`):
-- `create_task` — как `POST /api/v1/tasks`;
-- `list_fields {projectId}` — определения пользовательских полей проекта (как `GET /api/v1/projects/:id/fields`);
-- `update_task {task, …, fields?}` — как `PATCH /api/v1/tasks/:task`, `fields` — `{<fieldId>: значение | null}`;
-- `add_comment {task, text}` — `@login` становится упоминанием.
+Write (needs `write`):
+- `create_task` — like `POST /api/v1/tasks`;
+- `list_fields {projectId}` — definitions of the project's custom fields (like `GET /api/v1/projects/:id/fields`);
+- `update_task {task, …, fields?}` — like `PATCH /api/v1/tasks/:task`, `fields` — `{<fieldId>: value | null}`;
+- `add_comment {task, text}` — `@login` becomes a mention.
 
-Ответ — компактный JSON в текстовом блоке; `description` — простой текст. Ошибки (`forbidden`, `not_found`, `invalid_request`, `conflict`) приходят как результат инструмента с `isError: true` и телом `{code, message}`. Токен `read` на запись даёт `forbidden`. Без токена, с отозванным или просроченным — HTTP `401`.
+The response is compact JSON in a text block; `description` is plain text. Errors (`forbidden`, `not_found`, `invalid_request`, `conflict`) arrive as a tool result with `isError: true` and the body `{code, message}`. A `read` token gets `forbidden` on writes. No token, or a revoked or expired one — HTTP `401`.

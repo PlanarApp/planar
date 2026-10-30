@@ -3,55 +3,55 @@ type: reference
 status: active
 module: ops
 updated: 2026-10-25
-summary: Контракты ops — env prod-стека, тома, заголовки Caddy и CSP, формат бэкапа v1, /api/health/ready и /api/metrics
+summary: ops contracts — prod stack env, volumes, Caddy headers and CSP, backup format v1, /api/health/ready and /api/metrics
 related: ["docs/plan/ops.md", "docs/contracts/core.md", "docs/roadmap.md"]
 ---
 
-# Контракты модуля ops
+# ops module contracts
 
-Владелец — координатор ops. Контрактный тест — `apps/api/test/ops.contract.test.ts` (имена тестов `ops-contract …`, правит только координатор): сверяет блоки ` ```text ops-…` ниже с `compose.yml`, `deploy/Caddyfile`, `apps/web/*.html`, `apps/api/src`, `ops/*.sh`. Проверки кода, которого ещё нет (метрики, скрипты `ops/`), пропускаются; `OPS_CONTRACT_STRICT=1` — ошибка.
+Owner — the ops coordinator. Contract test — `apps/api/test/ops.contract.test.ts` (test names `ops-contract …`, edited only by the coordinator): checks the ` ```text ops-…` blocks below against `compose.yml`, `deploy/Caddyfile`, `apps/web/*.html`, `apps/api/src`, `ops/*.sh`. Checks of code that does not exist yet (metrics, `ops/` scripts) are skipped; `OPS_CONTRACT_STRICT=1` — an error.
 
-Новые зависимости не добавляются (roadmap §8): метрики Prometheus — текстовый формат вручную, без `prom-client`.
+No new dependencies are added (roadmap §8): Prometheus metrics — the text format by hand, without `prom-client`.
 
 ## C-ops-env v1
 
-Переменные prod-стека. Источник значений — `.env` рядом с `compose.yml` (docker compose читает его сам). Строка: `| \`ИМЯ\` | где | по умолчанию | назначение |`; «где» — `api`, `postgres`, `caddy`, `compose` (порты), `ops` (скрипты `ops/*.sh`). `обязательна` — compose падает без значения (`${X:?…}`).
+Variables of the prod stack. The source of values is `.env` next to `compose.yml` (docker compose reads it itself). Row: `| \`NAME\` | where | default | purpose |`; "where" — `api`, `postgres`, `caddy`, `compose` (ports), `ops` (scripts `ops/*.sh`). `required` — compose fails without a value (`${X:?…}`).
 
-| имя | где | по умолчанию | назначение |
+| name | where | default | purpose |
 |---|---|---|---|
-| `POSTGRES_PASSWORD` | postgres,api | обязательна | пароль пользователя `postgres`; api собирает из неё `DATABASE_URL` |
-| `PLANAR_DOMAIN` | caddy,api | пусто | домен: задан — адрес сайта Caddy, TLS от ACME, редирект HTTP→HTTPS. `localhost` или IP — самоподписанный сертификат внутреннего CA Caddy. Пусто — сайт `:80`, только HTTP (локальная проверка, smoke) |
-| `PUBLIC_URL` | api | `https://$PLANAR_DOMAIN` | origin для проверки Origin и ссылок (C-http); без домена задаётся явно, напр. `http://localhost:8080` |
-| `EXTRA_ORIGINS` | api | пусто | дополнительные разрешённые Origin через запятую (второй домен, IP); ссылки строятся только от `PUBLIC_URL` |
-| `COOKIE_SECURE` | api | `true` | `false` — только при работе по HTTP |
-| `PLANAR_SECRET_KEY` | api | пусто | 32 байта base64 (C-http v11); пусто — функции с секретами `503 unavailable` |
-| `VAPID_PUBLIC_KEY` | api | пусто | Web Push (C-http) |
-| `VAPID_PRIVATE_KEY` | api | пусто | Web Push |
-| `VAPID_SUBJECT` | api | пусто | Web Push, `mailto:…` |
-| `MAX_UPLOAD_MB` | api | `50` | лимит загрузки файла |
-| `LOG_LEVEL` | api | `info` | уровень pino |
-| `METRICS_TOKEN` | api | пусто | токен `/api/metrics` (C-ops-health); пусто — эндпоинт отвечает `404 not_found` |
-| `PLANAR_SUBNET` | compose,api | `172.30.0.0/24` | подсеть сети `app` (в ней Caddy); api получает её как `TRUST_PROXY`. Меняется, если пересекается с сетями хоста |
-| `HTTP_PORT` | compose | `80` | порт хоста для `:80` Caddy |
-| `HTTPS_PORT` | compose | `443` | порт хоста для `:443` Caddy |
-| `SETUP_TOKEN` | api | пусто | C-launch-env: задан — `POST /api/setup` требует заголовок `X-Setup-Token` |
-| `DB_POOL_MAX` | api | `10` | C-launch-env: размер пула соединений api |
-| `DEMO_MODE` | api | `false` | C-launch-env: демо-режим (C-launch-demo) |
-| `DEMO_RESET_HOURS` | api | `24` | C-launch-env: период сброса демо для плашки |
-| `PLANAR_REGISTRY` | compose | `registry.gitlab.com/planarhq/planar` | реестр образов api и caddy (C-launch-release); образы `<реестр>/api`, `<реестр>/caddy` |
-| `PLANAR_VERSION` | compose | `latest` | тег образов api и caddy |
-| `BACKUP_DIR` | ops | `./backups` | каталог архивов бэкапа (C-ops-backup) |
+| `POSTGRES_PASSWORD` | postgres,api | required | password of the `postgres` user; api builds `DATABASE_URL` from it |
+| `PLANAR_DOMAIN` | caddy,api | empty | domain: set — the Caddy site address, TLS from ACME, HTTP→HTTPS redirect. `localhost` or an IP — a self-signed certificate of Caddy's internal CA. Empty — site `:80`, HTTP only (local check, smoke) |
+| `PUBLIC_URL` | api | `https://$PLANAR_DOMAIN` | origin for the Origin check and links (C-http); without a domain set explicitly, e.g. `http://localhost:8080` |
+| `EXTRA_ORIGINS` | api | empty | extra allowed Origins, comma-separated (a second domain, an IP); links are built only from `PUBLIC_URL` |
+| `COOKIE_SECURE` | api | `true` | `false` — only when running over HTTP |
+| `PLANAR_SECRET_KEY` | api | empty | 32 bytes base64 (C-http v11); empty — features with secrets give `503 unavailable` |
+| `VAPID_PUBLIC_KEY` | api | empty | Web Push (C-http) |
+| `VAPID_PRIVATE_KEY` | api | empty | Web Push |
+| `VAPID_SUBJECT` | api | empty | Web Push, `mailto:…` |
+| `MAX_UPLOAD_MB` | api | `50` | file upload limit |
+| `LOG_LEVEL` | api | `info` | pino level |
+| `METRICS_TOKEN` | api | empty | token for `/api/metrics` (C-ops-health); empty — the endpoint answers `404 not_found` |
+| `PLANAR_SUBNET` | compose,api | `172.30.0.0/24` | subnet of the `app` network (Caddy is in it); api gets it as `TRUST_PROXY`. Change it if it overlaps host networks |
+| `HTTP_PORT` | compose | `80` | host port for Caddy's `:80` |
+| `HTTPS_PORT` | compose | `443` | host port for Caddy's `:443` |
+| `SETUP_TOKEN` | api | empty | C-launch-env: set — `POST /api/setup` requires the `X-Setup-Token` header |
+| `DB_POOL_MAX` | api | `10` | C-launch-env: api connection pool size |
+| `DEMO_MODE` | api | `false` | C-launch-env: demo mode (C-launch-demo) |
+| `DEMO_RESET_HOURS` | api | `24` | C-launch-env: demo reset period for the banner |
+| `PLANAR_REGISTRY` | compose | `registry.gitlab.com/planarhq/planar` | registry of the api and caddy images (C-launch-release); images `<registry>/api`, `<registry>/caddy` |
+| `PLANAR_VERSION` | compose | `latest` | tag of the api and caddy images |
+| `BACKUP_DIR` | ops | `./backups` | directory of backup archives (C-ops-backup) |
 
-Постоянные значения api в `compose.yml` (не из `.env`): `DATABASE_URL=postgres://postgres:$POSTGRES_PASSWORD@postgres:5432/planar`, `PORT=3000`, `DATA_DIR=/data`, `TRUST_PROXY=$PLANAR_SUBNET`. Порт api и postgres наружу не публикуется (порт postgres — только в `deploy/compose.smoke.yml`).
+Constant api values in `compose.yml` (not from `.env`): `DATABASE_URL=postgres://postgres:$POSTGRES_PASSWORD@postgres:5432/planar`, `PORT=3000`, `DATA_DIR=/data`, `TRUST_PROXY=$PLANAR_SUBNET`. The api and postgres ports are not published outside (the postgres port only in `deploy/compose.smoke.yml`).
 
-Модули, которым нужны свои переменные (напр. SMTP у p4), присылают правку строкой `contract: …`; координатор ops вносит её следующей версией.
+Modules that need variables of their own (e.g. SMTP in p4) send the change as a `contract: …` line; the ops coordinator applies it in the next version.
 
 ## C-ops-volumes v2
 
-v2: статика web собирается в образ caddy (`deploy/caddy.Dockerfile`, стадия node → `/srv`), на сервере не нужны node и pnpm; каталог `./apps/web/dist` хоста не монтируется.
+v2: the web static files are built into the caddy image (`deploy/caddy.Dockerfile`, node stage → `/srv`), node and pnpm are not needed on the server; the host directory `./apps/web/dist` is not mounted.
 
 
-Именованные тома compose (имя проекта — префикс). Строка блока: `<сервис> <том> <путь в контейнере> <в бэкапе: yes|no>`.
+Named compose volumes (the project name is the prefix). Block row: `<service> <volume> <path in container> <in backup: yes|no>`.
 
 ```text ops-volumes
 postgres pgdata /var/lib/postgresql yes
@@ -60,14 +60,14 @@ caddy caddy_data /data no
 caddy caddy_config /config no
 ```
 
-- `pgdata` — каталог Postgres 18 (образ `pgvector/pgvector:pg18`, данные в `/var/lib/postgresql/18/docker`); в бэкап — через `pg_dump`, не копией каталога.
-- `data` — `DATA_DIR`: `files/<ab>/<cd>/<sha256>` (C-http) в бэкапе; `tmp/` — нет.
-- `caddy_data` — сертификаты и ключи ACME; не бэкапится, Caddy получит заново.
-- Статика web — в образе caddy (`/srv`), не том; `deploy/Caddyfile` тоже внутри образа.
+- `pgdata` — the Postgres 18 directory (image `pgvector/pgvector:pg18`, data in `/var/lib/postgresql/18/docker`); backed up through `pg_dump`, not by copying the directory.
+- `data` — `DATA_DIR`: `files/<ab>/<cd>/<sha256>` (C-http) is in the backup; `tmp/` is not.
+- `caddy_data` — ACME certificates and keys; not backed up, Caddy obtains them again.
+- Web static files are in the caddy image (`/srv`), not a volume; `deploy/Caddyfile` is also inside the image.
 
 ## C-ops-headers v1
 
-Заголовки ответов Caddy на всех путях сайта (и статика, и прокси к api). Строка блока: `Имя: значение`; в `deploy/Caddyfile` — `Имя "значение"` в блоке `header` (значение — точно, одной строкой). Заголовок `Server` удаляется (`-Server`).
+Caddy response headers on all site paths (both static files and the proxy to api). Block row: `Name: value`; in `deploy/Caddyfile` — `Name "value"` in the `header` block (the value exactly, on one line). The `Server` header is removed (`-Server`).
 
 ```text ops-headers
 Strict-Transport-Security: max-age=31536000; includeSubDomains
@@ -76,14 +76,14 @@ Referrer-Policy: same-origin
 Content-Security-Policy: default-src 'self'; script-src 'self' {inline-hashes}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'
 ```
 
-- `{inline-hashes}` — `'sha256-<base64>'` каждого встроенного `<script>` без `src` из `apps/web/index.html` и `apps/web/form.html`, через пробел, в порядке появления (сейчас — скрипт темы в `index.html`). Хэш — от текста между `<script>` и `</script>` как есть. Тест сверяет; поменяли скрипт в web — тест ломается, хэш обновляет ops.
-- HSTS отправляется всегда: по HTTP браузер его игнорирует.
-- `style-src 'unsafe-inline'` — стили-атрибуты Vue/TipTap/Reka. `img-src https:` — внешние картинки в описаниях. `connect-src 'self'` покрывает `ws:`/`wss:` того же хоста.
-- Внешние iframe-плагины (p4) расширяют `frame-src` правкой `contract: …`, не напрямую.
+- `{inline-hashes}` — `'sha256-<base64>'` of every inline `<script>` without `src` from `apps/web/index.html` and `apps/web/form.html`, space-separated, in order of appearance (currently — the theme script in `index.html`). The hash is of the text between `<script>` and `</script>` as is. The test checks it; if the script in web changes, the test breaks and ops updates the hash.
+- HSTS is always sent: over HTTP the browser ignores it.
+- `style-src 'unsafe-inline'` — Vue/TipTap/Reka style attributes. `img-src https:` — external images in descriptions. `connect-src 'self'` covers `ws:`/`wss:` of the same host.
+- External iframe plugins (p4) extend `frame-src` through a `contract: …` change, not directly.
 
 ## C-ops-backup v1
 
-Архив — один файл `$BACKUP_DIR/planar-<YYYYMMDDTHHMMSSZ>.tar` (время UTC). Пишется как `….tar.partial` и переименовывается после проверки целостности; при ошибке `.partial` удаляется. Содержимое (tar без сжатия, плоско):
+The archive is one file `$BACKUP_DIR/planar-<YYYYMMDDTHHMMSSZ>.tar` (UTC time). It is written as `….tar.partial` and renamed after the integrity check; on error `.partial` is deleted. Contents (tar without compression, flat):
 
 ```json ops-backup-manifest
 {
@@ -96,27 +96,27 @@ Content-Security-Policy: default-src 'self'; script-src 'self' {inline-hashes}; 
 }
 ```
 
-- `manifest.json` — как пример; `migrations` — число строк `drizzle.__drizzle_migrations` на момент бэкапа.
-- `db.dump` — `pg_dump -Fc` базы `planar` (из контейнера postgres).
-- `files.tar` — `$DATA_DIR/files` с путями `files/<ab>/<cd>/<sha256>`; `count` — число файлов.
-- Целостность (после записи и перед восстановлением): sha256 частей = манифест, `pg_restore -l db.dump` — код 0, `tar -t files.tar` — код 0, число файлов = `count`. `--deep`: имя каждого файла = sha256 его содержимого.
-- Ротация после успешного бэкапа: остаются самый новый архив каждого из 7 последних дней (UTC) и самый новый каждой из 4 последних ISO-недель; только что созданный не удаляется никогда; чужие файлы в `$BACKUP_DIR` не трогаются.
-- `ops/restore.sh <архив>`: проверяет целостность и `format`/`version` (неизвестная версия — отказ), `migrations` архива ≤ числа миграций образа (иначе отказ: архив новее кода). В базе есть пользователи — отказ без `--force`. Восстанавливает базу (`drop database … with (force)`, `create database`, `pg_restore`) и файлы при остановленном api; «пользователи есть» — есть строки `users` с `password_hash <> '!'` (системный automation из миграции не считается), запускает api (недостающие миграции применит api при старте), ждёт `/api/health/ready`.
-- Код выхода скриптов: 0 — успех, иначе ошибка с текстом в stderr.
+- `manifest.json` — as in the example; `migrations` — the number of rows in `drizzle.__drizzle_migrations` at backup time.
+- `db.dump` — `pg_dump -Fc` of the `planar` database (from the postgres container).
+- `files.tar` — `$DATA_DIR/files` with paths `files/<ab>/<cd>/<sha256>`; `count` — the number of files.
+- Integrity (after writing and before restoring): sha256 of the parts = the manifest, `pg_restore -l db.dump` — exit code 0, `tar -t files.tar` — exit code 0, number of files = `count`. `--deep`: the name of every file = sha256 of its content.
+- Rotation after a successful backup: the newest archive of each of the last 7 days (UTC) and the newest of each of the last 4 ISO weeks are kept; the one just created is never deleted; foreign files in `$BACKUP_DIR` are not touched.
+- `ops/restore.sh <archive>`: checks integrity and `format`/`version` (unknown version — refusal), the archive's `migrations` ≤ the image's migration count (otherwise refusal: the archive is newer than the code). If the database has users — refusal without `--force`. It restores the database (`drop database … with (force)`, `create database`, `pg_restore`) and the files with api stopped; "has users" means `users` rows with `password_hash <> '!'` (the system automation user from the migration does not count); then starts api (api applies missing migrations at startup) and waits for `/api/health/ready`.
+- Script exit code: 0 — success, otherwise an error with text in stderr.
 
 ## C-ops-health v1
 
-Дополняет C-http (`docs/contracts/core.md` §Эндпоинты core; правка — строкой `contract: …` главной). Все три — без сессии (`@Public`), вне `/api/v1`.
+Extends C-http (`docs/contracts/core.md` §Core endpoints; changed by a `contract: …` line from the main session). All three — without a session (`@Public`), outside `/api/v1`.
 
-| метод и путь | выход |
+| method and path | output |
 |---|---|
-| `GET /api/health` | живость, без изменений (C-http): `200 {ok: true, db: 'up'}` \| `503 {ok: false, db: 'down'}` |
-| `GET /api/health/ready` | `200 {ok: true, db: 'up', migrations: 'ok', queue: 'up'}`; что-то не так — `503`, `ok: false` и `db: 'down'` \| `migrations: 'pending'` (применено меньше, чем в журнале образа) \| `queue: 'down'`. Очередь выключена конфигом (тесты, `push.boss: false`) — `queue: 'off'`, на `ok` не влияет |
-| `GET /api/metrics` | `METRICS_TOKEN` пуст — `404 not_found`. Иначе `Authorization: Bearer <METRICS_TOKEN>` (сравнение за постоянное время), нет/не тот — `401 unauthenticated`. Ответ — `200`, `text/plain; version=0.0.4`, формат экспозиции Prometheus |
+| `GET /api/health` | liveness, unchanged (C-http): `200 {ok: true, db: 'up'}` \| `503 {ok: false, db: 'down'}` |
+| `GET /api/health/ready` | `200 {ok: true, db: 'up', migrations: 'ok', queue: 'up'}`; if anything is wrong — `503`, `ok: false` and `db: 'down'` \| `migrations: 'pending'` (fewer applied than in the image's journal) \| `queue: 'down'`. The queue is disabled by config (tests, `push.boss: false`) — `queue: 'off'`, does not affect `ok` |
+| `GET /api/metrics` | `METRICS_TOKEN` empty — `404 not_found`. Otherwise `Authorization: Bearer <METRICS_TOKEN>` (constant-time comparison), missing/wrong — `401 unauthenticated`. Response — `200`, `text/plain; version=0.0.4`, Prometheus exposition format |
 
-Одобрено главной как C-http v12. `/api/health/ready` отдаёт только статусы компонентов из таблицы — без версий, строк подключения и текстов ошибок. Сравнение токена — `crypto.timingSafeEqual` (разная длина — отказ без сравнения). Обязательные тесты: без `METRICS_TOKEN` — 404, с неверным токеном — 401, с верным — 200 и все имена ниже.
+Approved by the main session as C-http v12. `/api/health/ready` returns only the component statuses from the table — no versions, connection strings or error texts. Token comparison — `crypto.timingSafeEqual` (different length — refusal without comparing). Required tests: without `METRICS_TOKEN` — 404, with a wrong token — 401, with the right one — 200 and all the names below.
 
-Caddy проксирует `/api/metrics` как обычный `/api/*`; токен — единственная защита, поэтому он обязателен для включения. Метрики (строка: `имя тип метки`):
+Caddy proxies `/api/metrics` like any `/api/*`; the token is the only protection, hence it is required to enable the endpoint. Metrics (row: `name type labels`):
 
 ```text ops-metrics
 planar_http_requests_total counter method,route,status
@@ -126,9 +126,9 @@ planar_queue_jobs gauge queue,state
 planar_db_size_bytes gauge -
 ```
 
-- `route` — шаблон маршрута Fastify (`/api/tasks/:id`), не сырой URL; без маршрута — `route="unmatched"`. Запросы к `/api/metrics` и `/api/health*` не считаются.
-- Бакеты гистограммы (секунды): `0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10`.
-- `planar_ws_connections{path}` — открытые соединения `/ws` и `/collab`.
-- `planar_queue_jobs{queue,state}` — `count(*)` из таблицы заданий pg-boss по имени очереди и состоянию pg-boss как есть; при `queue: 'off'` — без строк.
+- `route` — the Fastify route template (`/api/tasks/:id`), not the raw URL; without a route — `route="unmatched"`. Requests to `/api/metrics` and `/api/health*` are not counted.
+- Histogram buckets (seconds): `0.005,0.01,0.025,0.05,0.1,0.25,0.5,1,2.5,5,10`.
+- `planar_ws_connections{path}` — open `/ws` and `/collab` connections.
+- `planar_queue_jobs{queue,state}` — `count(*)` from the pg-boss jobs table by queue name and pg-boss state as is; with `queue: 'off'` — no rows.
 - `planar_db_size_bytes` — `pg_database_size(current_database())`.
-- Логи api — pino JSON в stdout; ротация — драйвер docker `json-file` с `max-size: 10m`, `max-file: 5` у всех сервисов `compose.yml`.
+- api logs — pino JSON to stdout; rotation — the docker `json-file` driver with `max-size: 10m`, `max-file: 5` for all `compose.yml` services.

@@ -3,51 +3,51 @@ type: reference
 status: closed
 module: launch
 updated: 2026-10-30
-summary: Контракты launch — SETUP_TOKEN, DB_POOL_MAX, DEMO_MODE, GET /api/setup, демо-сид и сброс, образы, CI и compose релиза
+summary: launch contracts — SETUP_TOKEN, DB_POOL_MAX, DEMO_MODE, GET /api/setup, demo seed and reset, images, CI and release compose
 related: ["docs/plan/launch.md", "docs/contracts/ops.md"]
 ---
 
-# Контракты модуля launch
+# launch module contracts
 
-Владелец — координатор launch. Потребители: задача 4 (флаги), задача 5 (демо-сид, сброс), задача 3 (образы, compose, экспорт), задача 6 (docs описывает env). Любая правка — версия +1 и `task note` потребителям. Контрактный тест — `apps/api/test/launch.contract.test.ts` (имена `launch-contract …`, правит только координатор; пишется вместе с задачей 4).
+Owner — the launch coordinator. Consumers: task 4 (flags), task 5 (demo seed, reset), task 3 (images, compose, export), task 6 (docs describes env). Any change — version +1 and a `task note` to the consumers. Contract test — `apps/api/test/launch.contract.test.ts` (names `launch-contract …`, edited only by the coordinator; written together with task 4).
 
 ## C-launch-env v1
 
-Новые переменные api. Парсеры — в `apps/api/src/config.ts` рядом с `parseMaxUploadMb`, ошибка конфигурации — `throw new Error('<ИМЯ>: ожидается …, получено "<raw>"')` при старте. Каждая попадает в `.env.example` и в таблицу `C-ops-env` (`docs/contracts/ops.md`, только строки; правит координатор по сигналу задачи).
+New api variables. Parsers — in `apps/api/src/config.ts` next to `parseMaxUploadMb`, a configuration error is `throw new Error('<NAME>: ожидается …, получено "<raw>"')` at startup (the message text is Russian, as in the code). Each goes into `.env.example` and into the `C-ops-env` table (`docs/contracts/ops.md`, rows only; edited by the coordinator on a task's signal).
 
-| имя | по умолчанию | значение |
+| name | default | meaning |
 |---|---|---|
-| `SETUP_TOKEN` | пусто | пусто — поведение как сейчас. Задан — `POST /api/setup` принимает владельца только с заголовком `X-Setup-Token`, равным значению (сравнение `timingSafeEqual`); иначе `403 forbidden`. Токен не логируется |
-| `DB_POOL_MAX` | `10` | целое ≥ 1 → `new pg.Pool({ connectionString, max })`; пусто → 10; не целое или < 1 → ошибка конфигурации. Парсер `parseDbPoolMax(raw)`, `createDb(url, max?)` |
-| `DEMO_MODE` | `false` | `true`/`false` (регистр не важен), пусто → `false`, иное — ошибка. Парсер `parseDemoMode(raw): boolean`. `true`: см. C-launch-demo |
-| `DEMO_RESET_HOURS` | `24` | целое ≥ 1, только текст плашки в демо-режиме; сам сброс делает cron (C-launch-demo) |
+| `SETUP_TOKEN` | empty | empty — behavior as now. Set — `POST /api/setup` accepts the owner only with the `X-Setup-Token` header equal to the value (comparison `timingSafeEqual`); otherwise `403 forbidden`. The token is not logged |
+| `DB_POOL_MAX` | `10` | integer ≥ 1 → `new pg.Pool({ connectionString, max })`; empty → 10; not an integer or < 1 → configuration error. Parser `parseDbPoolMax(raw)`, `createDb(url, max?)` |
+| `DEMO_MODE` | `false` | `true`/`false` (case-insensitive), empty → `false`, anything else — an error. Parser `parseDemoMode(raw): boolean`. `true`: see C-launch-demo |
+| `DEMO_RESET_HOURS` | `24` | integer ≥ 1, only the banner text in demo mode; the reset itself is done by cron (C-launch-demo) |
 
 ## C-launch-setup v1
 
-Публичный `GET /api/setup` → `{ needed: boolean, tokenRequired: boolean, demo: boolean, demoResetHours: number }` (`demoResetHours` = `DEMO_RESET_HOURS` для плашки; `tokenRequired` = задан `SETUP_TOKEN`; `demo` = `DEMO_MODE`). Остальные поля и `POST` — как в `setup.controller.ts`; `POST` без/с неверным токеном при заданном `SETUP_TOKEN` → `403`, токен проверяется до любых запросов в БД. Веб: экран настройки показывает поле «Setup token», когда `tokenRequired`, и шлёт его в `X-Setup-Token`.
+Public `GET /api/setup` → `{ needed: boolean, tokenRequired: boolean, demo: boolean, demoResetHours: number }` (`demoResetHours` = `DEMO_RESET_HOURS` for the banner; `tokenRequired` = `SETUP_TOKEN` is set; `demo` = `DEMO_MODE`). The other fields and `POST` — as in `setup.controller.ts`; `POST` without/with a wrong token when `SETUP_TOKEN` is set → `403`, the token is checked before any DB queries. Web: the setup screen shows a "Setup token" field when `tokenRequired` and sends it in `X-Setup-Token`.
 
 ## C-launch-demo v1
 
-`DEMO_MODE=true` включает в api:
-- плашка в вебе (по `demo` из `GET /api/setup`): `Demo — data resets every {DEMO_RESET_HOURS} h`;
-- `POST /api/auth/demo-login` (публичный; при выключенном режиме — `404`): создаёт сессию пользователя с логином `demo` (роль `member`) тем же путём, что обычный вход; экран входа показывает кнопку «Try the demo» при `demo`;
-- отправка email, web push и исходящих webhooks отключена (no-op, без ошибки); автоматизации не делают исходящих запросов;
-- `MAX_UPLOAD_MB` по умолчанию `2`, если не задан явно;
-- смена пароля и email пользователя `demo` — `403`.
+`DEMO_MODE=true` enables in api:
+- a banner in web (by `demo` from `GET /api/setup`): `Demo — data resets every {DEMO_RESET_HOURS} h`;
+- `POST /api/auth/demo-login` (public; with the mode off — `404`): creates a session of the user with login `demo` (role `member`) the same way as a normal login; the login screen shows the "Try the demo" button when `demo`;
+- sending email, web push and outgoing webhooks is disabled (no-op, no error); automations make no outgoing requests;
+- `MAX_UPLOAD_MB` defaults to `2` if not set explicitly;
+- changing the password and email of the `demo` user — `403`.
 
-**Демо-сид** — `apps/api/src/db/seed-demo.ts`, экспорт `seedDemo(db: Db, now: Date = new Date()): Promise<void>`; CLI `pnpm --filter api seed:demo [--reset]`:
-- `--reset` — очистить данные (все таблицы приложения, кроме журнала миграций) и залить заново; без флага на непустой базе (есть пользователи, кроме системного) — ошибка `demo seed: database is not empty`;
-- все тексты английские; детерминизм: любые случайности из фиксированного seed (PRNG с константой), чтобы два запуска с одним `now` дали идентичные данные;
-- все даты — смещения от `now` (задачи со сроками на ближайшие 1–6 недель, часть просрочена на 1–5 дней, спринты: завершённый `now-28d…now-14d` и активный `now-14d…now+0d…+14d` и т. д.);
-- состав: 8–12 пользователей (логины латиницей, `demo` среди них, у всех `password_hash='!'` как у системного: вход только через demo-login), аватары — встроенные в сид SVG data-URI или существующий способ аватаров проекта; 4–5 пространств (Product, Engineering, Marketing, Design, Support); проекты с задачами разных статусов/приоритетов, метки, подзадачи, чек-листы, комментарии с @упоминаниями; активный и завершённый спринт, вехи, цели, учёт времени, дашборд, документы, чат с перепиской, повторяющиеся задачи — каждый включённый модуль наполнен так, чтобы первый экран не был пустым;
-- вставка через существующие репозитории/сервисы или SQL в рамках схемы; новые миграции схемы запрещены.
+**Demo seed** — `apps/api/src/db/seed-demo.ts`, export `seedDemo(db: Db, now: Date = new Date()): Promise<void>`; CLI `pnpm --filter api seed:demo [--reset]`:
+- `--reset` — clear the data (all application tables except the migration journal) and fill again; without the flag on a non-empty database (users exist, other than the system one) — the error `demo seed: database is not empty`;
+- all texts are English; determinism: any randomness from a fixed seed (a PRNG with a constant), so that two runs with the same `now` give identical data;
+- all dates are offsets from `now` (tasks with due dates in the next 1–6 weeks, some overdue by 1–5 days, sprints: a completed one `now-28d…now-14d` and an active one `now-14d…now+0d…+14d`, etc.);
+- composition: 8–12 users (Latin logins, `demo` among them, all with `password_hash='!'` like the system one: login only through demo-login), avatars — SVG data URIs embedded in the seed or the project's existing avatar mechanism; 4–5 spaces (Product, Engineering, Marketing, Design, Support); projects with tasks of different statuses/priorities, labels, subtasks, checklists, comments with @mentions; an active and a completed sprint, milestones, goals, time tracking, a dashboard, documents, a chat with conversation, recurring tasks — every enabled module is populated so that the first screen is not empty;
+- inserts through existing repositories/services or SQL within the schema; new schema migrations are forbidden.
 
-**Сброс** — `ops/demo-reset.sh`: вызывает `seed:demo --reset` в контейнере api стека и завершается кодом 0/1; рядом `ops/systemd/planar-demo-reset.{service,timer}` по образцу уже лежащих в `ops/systemd`. Дамп не используется: даты считаются от «сегодня», дамп бы устарел (отклонение от плана §2, обоснование выше).
+**Reset** — `ops/demo-reset.sh`: calls `seed:demo --reset` in the stack's api container and exits with code 0/1; next to it `ops/systemd/planar-demo-reset.{service,timer}` modeled on those already in `ops/systemd`. A dump is not used: dates are computed from "today", a dump would go stale (a deviation from plan §2, rationale above).
 
 ## C-launch-release v2
 
-Решение Q1: основной репозиторий — GitLab (`gitlab.com/planarhq/planar`), CI — GitLab CI, реестр — GitLab Container Registry; GitHub (`github.com/PlanarApp/planar`) — зеркало, образы дополнительно в `ghcr.io/planarapp`. Лицензия Apache-2.0. v2 заменяет v1 (там GitHub Actions/GHCR были основным путём).
+Decision Q1: the main repository is GitLab (`gitlab.com/planarhq/planar`), CI — GitLab CI, registry — GitLab Container Registry; GitHub (`github.com/PlanarApp/planar`) is a mirror, images additionally in `ghcr.io/planarapp`. License Apache-2.0. v2 replaces v1 (where GitHub Actions/GHCR were the main path).
 
-- CI: `.gitlab-ci.yml` в корне — стадии lint, test (vitest), build (сборка и push образов). Образы собираются на теге `vX.Y.Z` (теги образа `X.Y.Z`, `X.Y`, `latest`) и на main (`edge`) в `$CI_REGISTRY_IMAGE/api` и `$CI_REGISTRY_IMAGE/caddy`. Только `$CI_*`-переменные, секретов в файле нет. `.github/workflows/ghcr.yml` — единственный workflow: по тегу `v*` публикует те же образы в `ghcr.io/planarapp/planar-api` и `…/planar-caddy`; lint/test на GitHub не гоняются.
-- `compose.yml` для пользователей: `image: ${PLANAR_REGISTRY:-registry.gitlab.com/planarhq/planar}/api:${PLANAR_VERSION:-latest}` (и `/caddy`); `PLANAR_REGISTRY` и `PLANAR_VERSION` попадают в `.env.example` и в таблицу C-ops-env (правит координатор по сигналу задачи); `build:` остаётся в `compose.build.yml` (override для разработки/CI); поведение `.env` и C-ops-env не меняется.
-- Экспорт в публичный репо: `ops/export-public.sh <каталог-назначения>` — копирует индексированное дерево `git ls-files` без путей из `ops/export-exclude.txt` (список из плана §1: `docs/plan/`, `docs/research/`, `docs/registry/`, `.dpcli/`, `.claude/`, `CLAUDE.md`, `dpcli.yml`, `e2e/_*.mjs`, `data/`, `build/`), делает один начальный коммит (или следующий — при повторе поверх существующего репо), ничего не пушит. Выход ≠ 0, если после фильтра в целевом дереве остался исключённый путь.
+- CI: `.gitlab-ci.yml` in the root — stages lint, test (vitest), build (image build and push). Images are built on the tag `vX.Y.Z` (image tags `X.Y.Z`, `X.Y`, `latest`) and on main (`edge`) into `$CI_REGISTRY_IMAGE/api` and `$CI_REGISTRY_IMAGE/caddy`. Only `$CI_*` variables, no secrets in the file. `.github/workflows/ghcr.yml` is the only workflow: on a `v*` tag it publishes the same images to `ghcr.io/planarapp/planar-api` and `…/planar-caddy`; lint/test do not run on GitHub.
+- `compose.yml` for users: `image: ${PLANAR_REGISTRY:-registry.gitlab.com/planarhq/planar}/api:${PLANAR_VERSION:-latest}` (and `/caddy`); `PLANAR_REGISTRY` and `PLANAR_VERSION` go into `.env.example` and into the C-ops-env table (edited by the coordinator on a task's signal); `build:` stays in `compose.build.yml` (an override for development/CI); the behavior of `.env` and C-ops-env does not change.
+- Export to the public repo: `ops/export-public.sh <destination-dir>` — copies the indexed tree `git ls-files` without paths from `ops/export-exclude.txt` (the list from plan §1: `docs/plan/`, `docs/research/`, `docs/registry/`, `.dpcli/`, `.claude/`, `CLAUDE.md`, `dpcli.yml`, `e2e/_*.mjs`, `data/`, `build/`), makes one initial commit (or the next one — on a repeat over an existing repo), pushes nothing. Exit ≠ 0 if an excluded path remains in the target tree after the filter.

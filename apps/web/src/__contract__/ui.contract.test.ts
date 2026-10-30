@@ -42,8 +42,8 @@ describe('C-ui: версия', () => {
 describe('C-ui: токены', () => {
   const light = declared(block(/@theme\s*\{([\s\S]*?)\n\}/));
   const dark = declared(block(/\.dark\s*\{([\s\S]*?)\n\}/));
-  const colors = tableNames(section('Токены цвета'), /^\| `(--color-[\w-]+)`/gm);
-  const scale = tableNames(section('Шрифты, отступы, размеры'), /^\| `(--[\w-]+)`/gm);
+  const colors = tableNames(section('Color tokens'), /^\| `(--color-[\w-]+)`/gm);
+  const scale = tableNames(section('Fonts, spacing, sizes'), /^\| `(--[\w-]+)`/gm);
 
   it('в контракте есть токены', () => {
     expect(colors.length).toBeGreaterThan(10);
@@ -87,7 +87,7 @@ describe('C-ui: контраст (WCAG 2.1)', () => {
     return (x + 0.05) / (y + 0.05);
   };
   const pairs = [
-    ...section('Контраст').matchAll(
+    ...section('Contrast').matchAll(
       /^\| `(--color-[\w-]+)` \| `(--color-[\w-]+)` \| ([\d.]+) \|/gm,
     ),
   ].map((m) => [m[1], m[2], Number(m[3])] as const);
@@ -107,7 +107,7 @@ describe('C-ui: контраст (WCAG 2.1)', () => {
 });
 
 describe('C-ui: компоненты', () => {
-  const names = tableNames(section('Базовые компоненты'), /^\| `(\w+)` \|/gm);
+  const names = tableNames(section('Base components'), /^\| `(\w+)` \|/gm);
   it('список из контракта', () => {
     expect(names).toEqual([
       'Button',
@@ -136,7 +136,7 @@ describe('C-ui: компоненты', () => {
 
 describe('C-ui: точки расширения', () => {
   it('EXTENSION_KINDS = список из контракта', () => {
-    const m = section('Точки расширения').match(/EXTENSION_KINDS = \[([^\]]+)\]/);
+    const m = section('Extension points').match(/EXTENSION_KINDS = \[([^\]]+)\]/);
     expect(m).not.toBeNull();
     const fromDoc = [...m![1].matchAll(/'(\w+)'/g)].map((x) => x[1]);
     expect([...EXTENSION_KINDS]).toEqual(fromDoc);

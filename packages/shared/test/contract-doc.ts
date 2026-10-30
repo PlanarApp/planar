@@ -63,7 +63,7 @@ export const docEntities: DocEntity[] = [
     nullable: f[2].trim().endsWith('?'),
     note: f[3].trim(),
   })),
-  dbOnly: [...m[7].matchAll(/^Только в БД: `(\w+)/gm)].map((d) => d[1]),
+  dbOnly: [...m[7].matchAll(/^DB only: `(\w+)/gm)].map((d) => d[1]),
 }));
 
 export interface DocServerTable {
@@ -73,7 +73,7 @@ export interface DocServerTable {
 
 /** Table "Non-synced tables" (non-synced tables): `| \`name\` | \`col type?\`, … |` */
 export const docServerTables: DocServerTable[] = (() => {
-  const sec = /^### Несинхронизируемые таблицы[^\n]*\n([\s\S]*?)(?=^#{2,3} )/m.exec(contractDoc);
+  const sec = /^### Non-synced tables[^\n]*\n([\s\S]*?)(?=^#{2,3} )/m.exec(contractDoc);
   if (!sec) return [];
   return [...sec[1].matchAll(/^\| `(\w+)` \| (.+) \|$/gm)].map((r) => ({
     name: r[1],
@@ -98,7 +98,7 @@ export const mutatorsDoc = readFileSync(
 
 /** Table "Domain mutators" (domain mutators; docs/contracts/core-mutators.md): `| \`name\` | \`args\` | rules |` */
 export const docMutators: DocMutator[] = (() => {
-  const sec = /^### Мутаторы домена[^\n]*\n([\s\S]*?)(?=^#{2,3} |^Вспомогательное)/m.exec(
+  const sec = /^### Domain mutators[^\n]*\n([\s\S]*?)(?=^#{2,3} |^Helpers)/m.exec(
     mutatorsDoc,
   );
   if (!sec) return [];

@@ -11,9 +11,9 @@ const doc = readFileSync(
   'utf8',
 );
 const part = doc.split(/^## C-views v\d+\s*$/m)[1] ?? '';
-const table = part.split(/^### /m).find((s) => s.startsWith('Экспорты')) ?? '';
+const table = part.split(/^### /m).find((s) => s.startsWith('Exports')) ?? '';
 const rows = [...table.matchAll(/^\| `(\w+)` \| ((?:\\\||[^|])+) \|/gm)];
-const values = rows.filter((r) => !r[2].trim().startsWith('тип')).map((r) => r[1]);
+const values = rows.filter((r) => !r[2].trim().startsWith('type')).map((r) => r[1]);
 
 describe('C-views: экспорты', () => {
   it('список из контракта', () => {

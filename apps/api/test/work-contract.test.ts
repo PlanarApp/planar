@@ -9,7 +9,7 @@ const MODULES = ['time', 'sprints', 'automations', 'webhooks', 'import'];
 
 /** Section "## Module <id> …" up to the next "## ". */
 const section = (id: string) =>
-  new RegExp(`^## Модуль ${id} [^\\n]*\\n([\\s\\S]*?)(?=^## |$(?![\\s\\S]))`, 'm').exec(doc)?.[1] ??
+  new RegExp(`^## Module ${id} [^\\n]*\\n([\\s\\S]*?)(?=^## |$(?![\\s\\S]))`, 'm').exec(doc)?.[1] ??
   '';
 
 const entitiesOf = (sec: string) =>

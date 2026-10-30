@@ -3,333 +3,333 @@ type: reference
 status: active
 module: work
 updated: 2026-10-23
-summary: Контракты work — C-modules v3, C-schema v7, F-filter v2, модули time, sprints, automations, webhooks, import, REST/MCP
+summary: Work contracts — C-modules v3, C-schema v7, F-filter v2, modules time, sprints, automations, webhooks, import, REST/MCP
 related: ["docs/contracts/core.md", "docs/contracts/core-mutators.md", "docs/contracts/core-api-v1.md", "docs/contracts/web.md", "docs/contracts/features.md", "docs/plan/work.md"]
 ---
 
-# Контракты модуля work
+# Contracts of the work module
 
-Владелец — координатор work. Потребители: исполнители WK-*, модуль collab (C-modules v3). Контрактный тест — `apps/api/test/work-contract.test.ts`: сущности (`#### …` в формате C-schema) и имена мутаторов каждого установленного модуля сверяются с этим файлом; модуль, которого ещё нет в `installed.ts`, — `it.todo`. Блоки ` ```json example=… ` проверяет тот же тест.
+Owner — the work coordinator. Consumers: WK-* executors, the collab module (C-modules v3). Contract test — `apps/api/test/work-contract.test.ts`: the entities (`#### …` in the C-schema format) and mutator names of each installed module are checked against this file; a module not yet in `installed.ts` is an `it.todo`. The same test checks the ` ```json example=… ` blocks. The test finds the module sections by their headings `## Module <id> …`, so those headings stay as they are.
 
-Модули: `time` (WK-1), `sprints` (WK-2), `automations` (WK-3), `webhooks` (WK-4), `import` (WK-6) — каталоги `modules/<id>/` по C-modules, пакет `@planar/module-<id>`, строка в `apps/api/src/modules/installed.ts`. Имена мутаторов — `<id>.<действие>`, сущностей — `<id>` + имя в camelCase, серверных таблиц — `<id>_…`.
+Modules: `time` (WK-1), `sprints` (WK-2), `automations` (WK-3), `webhooks` (WK-4), `import` (WK-6) — directories `modules/<id>/` per C-modules, package `@planar/module-<id>`, a line in `apps/api/src/modules/installed.ts`. Mutator names are `<id>.<action>`, entity names are `<id>` + a camelCase name, server tables are `<id>_…`.
 
-Системный пользователь (WK-0): строка `users` `login = 'automation'`, `name = 'Автоматизация'`, `role = 'member'`, `deactivatedAt` задан (не входит, не виден в выборе людей), без пароля. Создаётся идемпотентно при старте API. От его имени работают автоматизации и cron модулей.
+System user (WK-0): a `users` row with `login = 'automation'`, `name` = the Russian word for "Automation", `role = 'member'`, `deactivatedAt` set (cannot sign in, not shown in people pickers), no password. Created idempotently at API start. Automations and module crons act on its behalf.
 
 ## C-modules v3 (WK-0)
 
-v3: серверный хук `afterMutation`, фоновые задачи модулей (pg-boss), выполнение мутаций от системы, web-точки `nav` и `topbar`. Остальное — как v2 (`docs/contracts/core.md` §C-modules).
+v3: server hook `afterMutation`, module background jobs (pg-boss), running mutations as the system, web points `nav` and `topbar`. The rest is as in v2 (`docs/contracts/core.md` §C-modules).
 
-### Сервер
-Типы без Node API — `packages/shared/src/contract/modules.ts`:
+### Server
+Types without Node API — `packages/shared/src/contract/modules.ts`:
 ```ts
 export interface MutationWrite {
   entity: string; op: 'put' | 'del';
-  before: Record<string, unknown> | null;  // строка до (провод), null — не было
-  after: Record<string, unknown> | null;   // строка после, null — удалена
+  before: Record<string, unknown> | null;  // row before (wire), null — there was none
+  after: Record<string, unknown> | null;   // row after, null — deleted
 }
-export interface MutationOrigin { ruleId: string; depth: number } // мутация сделана правилом автоматизации
+export interface MutationOrigin { ruleId: string; depth: number } // the mutation was made by an automation rule
 export interface AfterMutationCtx {
   userId: string; now: string; tokenId: string | null;
-  mutator: string;                // имя мутатора
-  system: boolean;                // выполнено от системы (обход прав)
+  mutator: string;                // mutator name
+  system: boolean;                // executed by the system (bypasses permissions)
   origin: MutationOrigin | null;
 }
 export interface BackendModuleManifest {
   /* … v2 … */
-  afterMutation?: (writes: MutationWrite[], ctx: AfterMutationCtx, api: never /* ModuleHookApi; never — чтобы модуль с типизированным api присваивался при strictFunctionTypes */) => Promise<void>;
+  afterMutation?: (writes: MutationWrite[], ctx: AfterMutationCtx, api: never /* ModuleHookApi; never — so a module with a typed api is assignable under strictFunctionTypes */) => Promise<void>;
   jobs?: unknown[];               // JobDef[]
 }
 ```
-Типы с Node API — `apps/api/src/modules/hooks.ts` (экспорт для модулей: `@planar/api/modules`, `exports["./modules"]` в `apps/api/package.json`):
+Types with Node API — `apps/api/src/modules/hooks.ts` (exported for modules as `@planar/api/modules`, `exports["./modules"]` in `apps/api/package.json`):
 ```ts
-export interface JobOpts { startAfter?: number /* сек */ | Date; singletonKey?: string }
+export interface JobOpts { startAfter?: number /* sec */ | Date; singletonKey?: string }
 export interface ModuleHookApi {
-  q: Q;                 // транзакция мутации (внутри точки сохранения хука)
-  sys: ServerTx;        // запись от системы: обход прав, попадает в changes
-  enqueue(queue: string, data: object, opts?: JobOpts): Promise<void>; // pg-boss send в этой же транзакции (опция db)
+  q: Q;                 // mutation transaction (inside the hook savepoint)
+  sys: ServerTx;        // system write: bypasses permissions, lands in changes
+  enqueue(queue: string, data: object, opts?: JobOpts): Promise<void>; // pg-boss send in the same transaction (db option)
 }
 export interface JobApi {
   db: Db;
-  /** мутации одной транзакцией, как executeMutations; system — обход прав от имени userId */
+  /** mutations in one transaction, like executeMutations; system — bypasses permissions on behalf of userId */
   execute(userId: string, muts: { name: string; args: unknown }[],
           opts?: { system?: boolean; origin?: MutationOrigin | null }): Promise<void>;
-  enqueue(queue: string, data: object, opts?: JobOpts): Promise<void>; // вне транзакции
-  systemUserId: string; // id пользователя «Автоматизация»
+  enqueue(queue: string, data: object, opts?: JobOpts): Promise<void>; // outside a transaction
+  systemUserId: string; // id of the "Automation" user
 }
 export interface JobDef<D = Record<string, unknown>> {
-  queue: string;        // `<moduleId>.<имя>`
-  handler(data: D, api: JobApi): Promise<void>; // throw → повтор по retry*
+  queue: string;        // `<moduleId>.<name>`
+  handler(data: D, api: JobApi): Promise<void>; // throw → retry per retry*
   cron?: string;        // pg-boss schedule, UTC; data = {}
   retryLimit?: number; retryDelay?: number; retryBackoff?: boolean; expireInSeconds?: number;
-  localConcurrency?: number; // по умолчанию 1
+  localConcurrency?: number; // default 1
 }
 ```
-Правила:
-- `runMutation` (`apps/api/src/sync/mutate.ts`): `run` → хук уведомлений → `afterMutation` каждого **включённого** модуля в порядке `installed` → `finish()`. `writes` — записи самой мутации (`ServerTx.writes`), без записей хуков; записи хуков хуки не вызывают.
-- Хук модуля — внутри точки сохранения (`tx.transaction` Drizzle). Ошибка хука → откат точки сохранения, `log.error`, мутация продолжается и коммитится.
-- `enqueue` из хука — в той же транзакции: откат мутации — задачи нет; задача видит закоммиченные данные.
-- Одна `PgBoss` на процесс (общая с push, `apps/api/src/jobs/jobs.ts`): при старте создаются очереди всех `jobs` установленных модулей, воркеры и расписания (`cron`). Выключенный модуль: воркер берёт задачу и завершает её без вызова `handler`.
-- `push.boss: false` (тесты по умолчанию) — `enqueue` ничего не делает, воркеров нет. Тесты задач модулей поднимают приложение с `push: {boss: true}`.
-- `executeMutations(db, userId, muts, queue?, tokenId?, opts?: {system?, origin?})` — `system: true` → `ServerTx.asSystem` с `ctx.userId = userId`; `activity.actorId`, уведомления, `changes` — как обычно.
-- Модуль, которому нужен `Db`, получает его из Nest-провайдера `DB` (`apps/api/src/tokens.ts`, глобальный).
+Rules:
+- `runMutation` (`apps/api/src/sync/mutate.ts`): `run` → notifications hook → `afterMutation` of every **enabled** module in `installed` order → `finish()`. `writes` are the writes of the mutation itself (`ServerTx.writes`), without hook writes; hook writes do not call hooks.
+- A module hook runs inside a savepoint (Drizzle `tx.transaction`). Hook error → the savepoint rolls back, `log.error`, and the mutation continues and commits.
+- `enqueue` from a hook is in the same transaction: if the mutation rolls back, there is no job; the job sees committed data.
+- One `PgBoss` per process (shared with push, `apps/api/src/jobs/jobs.ts`): at start the queues of all `jobs` of installed modules, workers and schedules (`cron`) are created. Disabled module: the worker takes the job and finishes it without calling `handler`.
+- `push.boss: false` (the test default) — `enqueue` does nothing, there are no workers. Tests of module jobs start the app with `push: {boss: true}`.
+- `executeMutations(db, userId, muts, queue?, tokenId?, opts?: {system?, origin?})` — `system: true` → `ServerTx.asSystem` with `ctx.userId = userId`; `activity.actorId`, notifications and `changes` work as usual.
+- A module that needs `Db` gets it from the Nest provider `DB` (`apps/api/src/tokens.ts`, global).
 
 ### Web
-`EXTENSION_KINDS` += `'nav'`, `'topbar'` (`FrontendModuleManifest` в shared — те же поля `nav?`, `topbar?`):
+`EXTENSION_KINDS` += `'nav'`, `'topbar'` (`FrontendModuleManifest` in shared — the same fields `nav?`, `topbar?`):
 ```ts
 type NavItemDef = { id: string; order?: number } & (
-  | { label: LocalizedText; icon: Component; to: string /* /m/<moduleId>/… */ }   // ссылка
-  | { section: Lazy<{}> }                                                         // секция: свой компонент (список каналов, дерево документов)
+  | { label: LocalizedText; icon: Component; to: string /* /m/<moduleId>/… */ }   // link
+  | { section: Lazy<{}> }                                                         // section: its own component (channel list, document tree)
 );
 interface TopbarItemDef { id: string; component: Lazy<{}>; order?: number }
 ```
-- `nav` — элементы в `Sidebar.vue` после встроенных («Inbox», «Мои задачи»), по `order`, затем по ключу: ссылка — пункт меню, `section` — компонент целиком (лениво, `defineAsyncComponent`; сам рисует заголовок и содержимое; ошибка загрузки секции не ломает боковую панель). На mobile элементы `nav` не показываются. `to` вне `/m/<moduleId>/`, или ни `to`, ни `section` → `registerModules` бросает `Error`.
-- `topbar` — компоненты в `TopBar.vue` слева от меню пользователя, по `order`; desktop и mobile.
+- `nav` — items in `Sidebar.vue` after the built-in ones ("Inbox", "My tasks"), ordered by `order`, then by key: a link is a menu item, a `section` is a whole component (lazy, `defineAsyncComponent`; it draws its own heading and content; a section load error does not break the sidebar). `nav` items are not shown on mobile. `to` outside `/m/<moduleId>/`, or neither `to` nor `section` → `registerModules` throws `Error`.
+- `topbar` — components in `TopBar.vue` to the left of the user menu, ordered by `order`; desktop and mobile.
 
 ## C-modules v4 (WK-10)
-v4: модулям — пакет `@planar/server-kit` (сервер) и SDK `@planar/web/modules` (web) вместо импорта ядра относительными путями; клиент синхронизации знает сущности и мутаторы модулей. v3 — без изменений.
+v4: modules get the package `@planar/server-kit` (server) and the SDK `@planar/web/modules` (web) instead of importing the core by relative paths; the sync client knows module entities and mutators. v3 is unchanged.
 
-### Сервер: `packages/server-kit` → `@planar/server-kit`
-Зависимости — только `@planar/shared`, `drizzle-orm`, `@nestjs/common`, `zod` (без `@planar/api`: модули и api зависят от kit, цикла нет). Модули — `"@planar/server-kit": "workspace:*"`; импорт `@planar/api` из модулей запрещён.
+### Server: `packages/server-kit` → `@planar/server-kit`
+Dependencies — only `@planar/shared`, `drizzle-orm`, `@nestjs/common`, `zod` (no `@planar/api`: modules and api depend on kit, so there is no cycle). Modules use `"@planar/server-kit": "workspace:*"`; importing `@planar/api` from modules is forbidden.
 ```ts
 export type Db = NodePgDatabase<Record<string, unknown>>;            // drizzle-orm/node-postgres
 export type Q = PgDatabase<NodePgQueryResultHKT, Record<string, unknown>>;
-export type { ModuleHookApi, JobApi, JobDef, JobOpts } from './hooks';  // перенос из apps/api/src/modules/hooks.ts; ModuleHookApi.sys: Tx (@planar/shared)
-// JobApi.execute opts += prepare?: (q: Q) => Promise<boolean | void> — в той же транзакции до мутаций (блокировки, проверки); false → мутации не выполняются
-// JobApi.execute opts += after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void> — в той же транзакции после всех мутаций; enqueue — в ней же; ошибка откатывает транзакцию и пробрасывается из execute (аддитивно, C-modules v8, PL-2)
-export class HttpError extends HttpException { constructor(status: number, code: string, message: string) } // формат C-http «Ошибки»; ErrorFilter api его понимает
+export type { ModuleHookApi, JobApi, JobDef, JobOpts } from './hooks';  // moved from apps/api/src/modules/hooks.ts; ModuleHookApi.sys: Tx (@planar/shared)
+// JobApi.execute opts += prepare?: (q: Q) => Promise<boolean | void> — in the same transaction before the mutations (locks, checks); false → the mutations are not executed
+// JobApi.execute opts += after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void> — in the same transaction after all mutations; enqueue — in it as well; an error rolls the transaction back and is rethrown from execute (additive, C-modules v8, PL-2)
+export class HttpError extends HttpException { constructor(status: number, code: string, message: string) } // C-http "Errors" format; the api ErrorFilter understands it
 export function parseBody<T extends z.ZodType>(schema: T, body: unknown): z.infer<T>; // 400 invalid_request
 export interface AuthCtx { userId: string; role: 'owner' | 'admin' | 'member' | 'guest'; tokenId: string | null; tokenScope: 'read' | 'write' | null }
 export interface CoreServices {
   db: Db;
-  auth(req: object): AuthCtx;                       // как getAuth api; нет входа → 401
-  requireInstanceAdmin(req: object, opts?: { sessionOnly?: boolean }): AuthCtx; // не owner/admin → 403; sessionOnly и Bearer → 403
-  toV1Tasks(q: Q | Db, rows: Record<string, unknown>[]): Promise<Record<string, unknown>[]>; // строки tasks → форма REST v1 (key, assigneeIds, labelIds)
+  auth(req: object): AuthCtx;                       // like getAuth in api; not signed in → 401
+  requireInstanceAdmin(req: object, opts?: { sessionOnly?: boolean }): AuthCtx; // not owner/admin → 403; sessionOnly and Bearer → 403
+  toV1Tasks(q: Q | Db, rows: Record<string, unknown>[]): Promise<Record<string, unknown>[]>; // tasks rows → REST v1 shape (key, assigneeIds, labelIds)
   systemUserId(): string;
 }
-export const CORE = Symbol.for('planar.core');      // Nest-провайдер (глобальный) со значением CoreServices; модуль: @Inject(CORE) core: CoreServices
+export const CORE = Symbol.for('planar.core');      // global Nest provider holding CoreServices; in a module: @Inject(CORE) core: CoreServices
 ```
-`apps/api` реализует `CoreServices` и реэкспортирует типы kit там, где они были (`@planar/api/modules` остаётся реэкспортом для обратной совместимости ядра; модулям — только kit).
+`apps/api` implements `CoreServices` and re-exports the kit types where they used to be (`@planar/api/modules` remains a re-export for backward compatibility of the core; modules use only kit).
 
 ### Web: SDK `@planar/web/modules`
-`exports["./modules"]` → `apps/web/src/modules/sdk.ts`: всё прежнее из `types.ts` (`defineWebModule`, типы элементов) и для модулей —
-`db` (PlanarDB), `useQuery`, `mutate(name, args)` (вызов мутатора по имени через клиент синхронизации), `useSession()` (текущий пользователь), `useTask`/`useProjectTasks`/словари (C-tasks), `openTask`, базовые компоненты `apps/web/src/ui` (C-ui), `useI18n`, `useWeekStart`, `localToday`, `matchFilter`. Модули импортируют web только отсюда. Typecheck web (`vue-tsc`) включает `modules/*/web/**`; Tailwind сканирует `modules/*/web/**`.
+`exports["./modules"]` → `apps/web/src/modules/sdk.ts`: everything previously in `types.ts` (`defineWebModule`, item types) and, for modules —
+`db` (PlanarDB), `useQuery`, `mutate(name, args)` (calls a mutator by name through the sync client), `useSession()` (the current user), `useTask`/`useProjectTasks`/dictionaries (C-tasks), `openTask`, the base components of `apps/web/src/ui` (C-ui), `useI18n`, `useWeekStart`, `localToday`, `matchFilter`. Modules import web only from here. The web typecheck (`vue-tsc`) includes `modules/*/web/**`; Tailwind scans `modules/*/web/**`.
 
-### Клиент синхронизации
-- `apps/web/src/sync`: Dexie-схема = ядро + `entities` всех установленных модулей (`import.meta.glob('…/modules/*/shared/index.ts', {eager: true})` — shared-манифесты без Node API, малые). Новая или изменённая сущность модуля → версия схемы Dexie растёт детерминированно; база пользователя обновляется без ручной очистки (при несовместимости — пересоздание и bootstrap).
-- `apps/web/src/session.ts` регистрирует мутаторы ядра и всех модулей (выключенный модуль сервер отвергает `unknown_mutator`).
-- Бюджет начального JS (≤ 200 КБ gzip) сохраняется: в начальный чанк входят только shared-манифесты модулей, web-части — лениво.
+### Sync client
+- `apps/web/src/sync`: the Dexie schema = core + `entities` of all installed modules (`import.meta.glob('…/modules/*/shared/index.ts', {eager: true})` — shared manifests without Node API, small). A new or changed module entity → the Dexie schema version grows deterministically; the user's database is upgraded without manual clearing (if incompatible — recreated and bootstrapped).
+- `apps/web/src/session.ts` registers the mutators of the core and of all modules (the server rejects a mutator of a disabled module with `unknown_mutator`).
+- The initial JS budget (≤ 200 KB gzip) is kept: the initial chunk includes only the shared manifests of modules, web parts are lazy.
 
-### Неделя (WK-0, потребители WK-1, WK-7)
-`apps/web/src/i18n/week.ts`: `useWeekStart(): Readonly<Ref<0 | 1>>` (0 — воскресенье, 1 — понедельник) и `setWeekStart(v: 'auto' | 0 | 1)`. Значение — `localStorage['planar.weekStart']` (`'auto'|'0'|'1'`, try/catch), `auto` и пусто — по локали i18n: `en` → 0, `ru` → 1.
+### Week (WK-0, consumers WK-1, WK-7)
+`apps/web/src/i18n/week.ts`: `useWeekStart(): Readonly<Ref<0 | 1>>` (0 — Sunday, 1 — Monday) and `setWeekStart(v: 'auto' | 0 | 1)`. The value is `localStorage['planar.weekStart']` (`'auto'|'0'|'1'`, try/catch); `auto` and empty follow the i18n locale: `en` → 0, `ru` → 1.
 
 ## C-schema v7 (WK-0)
-Изменение `tasks` (docs/contracts/core.md §C-schema): поле `cycleId` uuid? — цикл модуля `sprints`, без FK; индекс `cycleId` (БД и Dexie, `indexes: spaceId, projectId, parentId, statusId, cycleId`). Ядро: `task.create` — `cycleId = null`; смена `projectId` в `task.update` → `cycleId = null`; `task.update` `cycleId` не принимает (ставит только `sprints.setTask`). REST v1 `task` — с `cycleId` (строка `tasks`).
+Change to `tasks` (docs/contracts/core.md §C-schema): field `cycleId` uuid? — a cycle of the `sprints` module, no FK; index `cycleId` (DB and Dexie, `indexes: spaceId, projectId, parentId, statusId, cycleId`). Core: `task.create` — `cycleId = null`; changing `projectId` in `task.update` → `cycleId = null`; `task.update` does not accept `cycleId` (only `sprints.setTask` sets it). REST v1 `task` includes `cycleId` (a `tasks` column).
 
 ## F-filter v2 (WK-0)
-- `matchFilter`, `Filter`, `FilterRule`, `FilterCtx`, `FIELD_OPERATORS`, `resolveDate` — в `packages/shared/src/filter.ts` (экспорт `@planar/shared`), без Vue и DOM; `apps/web/src/views/filter.ts` реэкспортирует (сигнатуры C-views/F-filter v1 не меняются). Тип задачи — `FilterTask = Row<'tasks'> & { assigneeIds: string[]; labelIds: string[] }` (`TaskView` web ему совместим).
-- `FilterRule.field` += `'cycle'`: операторы `in`, `notIn` (id циклов или `'current'`), `isEmpty`, `isNotEmpty` (`cycleId` null).
-- `FilterCtx` += `cycles?: { id: string; projectId: string; startDate: string; endDate: string; closedAt: string | null }[]`. Текущий цикл проекта — `closedAt = null` и `startDate ≤ today ≤ endDate`; `'current'` совпадает, если `cycleId` задачи — текущий цикл её проекта. Без `cycles` правила с `'current'` пропускаются.
-- Web (WK-0): виды и сохранённые виды передают `cycles` из таблицы Dexie `sprintsCycles`, если она есть (модуль включён).
+- `matchFilter`, `Filter`, `FilterRule`, `FilterCtx`, `FIELD_OPERATORS`, `resolveDate` — in `packages/shared/src/filter.ts` (exported from `@planar/shared`), without Vue and DOM; `apps/web/src/views/filter.ts` re-exports them (the signatures of C-views/F-filter v1 do not change). Task type — `FilterTask = Row<'tasks'> & { assigneeIds: string[]; labelIds: string[] }` (web `TaskView` is compatible with it).
+- `FilterRule.field` += `'cycle'`: operators `in`, `notIn` (cycle ids or `'current'`), `isEmpty`, `isNotEmpty` (`cycleId` null).
+- `FilterCtx` += `cycles?: { id: string; projectId: string; startDate: string; endDate: string; closedAt: string | null }[]`. A project's current cycle is the one with `closedAt = null` and `startDate ≤ today ≤ endDate`; `'current'` matches if the task's `cycleId` is the current cycle of its project. Without `cycles`, rules with `'current'` are skipped.
+- Web (WK-0): views and saved views pass `cycles` from the Dexie table `sprintsCycles` if it exists (the module is enabled).
 
 ## F-views v2 (WK-7)
-Изменения F-views v1 (docs/contracts/features.md) и C-views:
-- `ViewOptions` += `columns?: { id: string; width: number }[]` — раскладка Таблицы (порядок = порядок массива, ширина 60–800 px, нет id в массиве — колонка скрыта; неизвестные id пропускаются). Хранится в `savedViews.config.columns` вместе с остальными опциями.
-- Таблица берёт раскладку: `options.columns`, если задано; иначе `localStorage['planar.table.<projectId>']` (запасной вариант, формат v1); иначе по умолчанию. Правка ширины, порядка, видимости: на сохранённом виде — меняет черновик опций (`columns`), «Сохранить» — `view.update`; на вкладке проекта без сохранённого вида — localStorage, как в v1. «Сохранить как вид» с Таблицы кладёт текущую раскладку в `config.columns`.
-- Календарь: первый день недели — `useWeekStart()` (§Неделя), а не всегда понедельник; профиль (`/profile`) — выбор «Авто / Понедельник / Воскресенье» (`setWeekStart`).
+Changes to F-views v1 (docs/contracts/features.md) and C-views:
+- `ViewOptions` += `columns?: { id: string; width: number }[]` — the Table layout (order = array order, width 60–800 px, an id absent from the array means the column is hidden; unknown ids are skipped). Stored in `savedViews.config.columns` with the other options.
+- The Table takes its layout from `options.columns` if set; otherwise from `localStorage['planar.table.<projectId>']` (fallback, v1 format); otherwise the default. Editing width, order or visibility: on a saved view, it changes the options draft (`columns`) and "Save" runs `view.update`; on a project tab without a saved view, it goes to localStorage, as in v1. "Save as view" from the Table puts the current layout into `config.columns`.
+- Calendar: the first day of the week is `useWeekStart()` (§Week), not always Monday; the profile (`/profile`) has a choice "Auto / Monday / Sunday" (`setWeekStart`).
 
-## Модуль time (WK-1)
+## Module time (WK-1)
 
 #### timeEntries
 scope: space · write: member · bootstrap: yes · indexes: spaceId, taskId, userId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
-| `spaceId` | uuid | из задачи |
-| `taskId` | uuid | без FK; удаление задачи — хук модуля удаляет записи (`sys.del`) |
-| `userId` | uuid | = ctx.userId; правит и удаляет только владелец |
+| `spaceId` | uuid | from the task |
+| `taskId` | uuid | no FK; on task deletion the module hook deletes the entries (`sys.del`) |
+| `userId` | uuid | = ctx.userId; only the owner edits and deletes |
 | `startedAt` | ts | |
-| `endedAt` | ts? | null — таймер идёт |
-| `durationSec` | int? | null, пока идёт; иначе секунды ≥ 0 |
+| `endedAt` | ts? | null — the timer is running |
+| `durationSec` | int? | null while running; otherwise seconds ≥ 0 |
 | `note` | text? | ≤ 1000 |
 | `source` | enum(timer,manual) | |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
-БД: частичный уникальный индекс `(user_id) where ended_at is null` — один идущий таймер на пользователя (нарушение → `conflict`).
+DB: partial unique index `(user_id) where ended_at is null` — one running timer per user (violation → `conflict`).
 
 #### timeEstimates
 scope: space · write: member · bootstrap: yes · indexes: taskId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | = `taskId` |
 | `spaceId` | uuid | |
-| `taskId` | uuid | без FK; удаляется с задачей хуком модуля |
+| `taskId` | uuid | no FK; deleted with the task by the module hook |
 | `minutes` | int | 1–100000 |
 | `updatedBy` | uuid | |
 | `updatedAt` | ts | |
 
-| мутатор | args | правила |
+| mutator | args | rules |
 |---|---|---|
-| `time.start` | `id, taskId` | идущие записи ctx.userId останавливаются (`endedAt = ctx.now`, `durationSec`); новая: `startedAt = ctx.now`, `source = timer` |
-| `time.stop` | `id` | только своя; уже остановлена — ничего; `endedAt = ctx.now`, `durationSec = floor((endedAt − startedAt)/1000)` |
+| `time.start` | `id, taskId` | running entries of ctx.userId are stopped (`endedAt = ctx.now`, `durationSec`); the new one: `startedAt = ctx.now`, `source = timer` |
+| `time.stop` | `id` | own only; already stopped — nothing; `endedAt = ctx.now`, `durationSec = floor((endedAt − startedAt)/1000)` |
 | `time.log` | `id, taskId, startedAt, durationSec, note?` | `durationSec` 1–86400; `endedAt = startedAt + durationSec`; `source = manual` |
-| `time.update` | `id, startedAt?, endedAt?, durationSec?, note?` | только своя; `durationSec` задан → `endedAt = startedAt + durationSec`, иначе пересчёт из `startedAt`/`endedAt`; `endedAt < startedAt` → `invalid_args`; у идущей — только `startedAt`, `note` |
-| `time.delete` | `id` | только своя |
-| `time.setEstimate` | `taskId, minutes: int\|null` | `null` — удалить; `updatedBy = ctx.userId` |
+| `time.update` | `id, startedAt?, endedAt?, durationSec?, note?` | own only; `durationSec` given → `endedAt = startedAt + durationSec`, otherwise recomputed from `startedAt`/`endedAt`; `endedAt < startedAt` → `invalid_args`; for a running entry — only `startedAt`, `note` |
+| `time.delete` | `id` | own only |
+| `time.setEstimate` | `taskId, minutes: int\|null` | `null` — delete; `updatedBy = ctx.userId` |
 
-- Длительность считает сервер: серверный прогон мутатора пересчитывает `startedAt`/`endedAt`/`durationSec` от серверного `ctx.now`, клиентская оценка перезаписывается синхронизацией.
-- Два устройства: гонка двух `time.start` — второй получает `conflict` по индексу; клиент показывает таймер, пришедший с сервера.
-- Сумма на задаче = свои записи + записи всех подзадач (рекурсивно); идущий таймер — `now − startedAt` на клиенте.
-- Web: `taskPanels` `time:timer` (кнопка, сумма, оценка против факта, список записей), `topbar` `time:timer` (идущий таймер тикает локально, стоп), `nav` `time:week` → `/m/time/week` («Мои часы»: таблица день × задача текущего пользователя, неделя с `useWeekStart()`, правка ячейки — новая сумма дня: разница добавляется `time.log` или снимается правкой/удалением ручных записей дня; 0 — удалить записи дня).
+- The server computes durations: the server run of a mutator recomputes `startedAt`/`endedAt`/`durationSec` from the server `ctx.now`; the client's estimate is overwritten by sync.
+- Two devices: in a race of two `time.start` calls the second gets `conflict` from the index; the client shows the timer that came from the server.
+- The total on a task = own entries + entries of all subtasks (recursively); a running timer is `now − startedAt` on the client.
+- Web: `taskPanels` `time:timer` (button, total, estimate vs. actual, list of entries), `topbar` `time:timer` (the running timer ticks locally, stop), `nav` `time:week` → `/m/time/week` ("My hours": a day × task table for the current user, week with `useWeekStart()`; editing a cell sets the new total for the day: the difference is added with `time.log` or removed by editing/deleting the day's manual entries; 0 — delete the day's entries).
 
-## Модуль sprints (WK-2)
+## Module sprints (WK-2)
 
 #### sprintsSettings
 scope: space · write: member · bootstrap: yes · indexes: projectId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | = `projectId` |
 | `spaceId` | uuid | |
 | `projectId` | uuid | |
 | `enabled` | bool | |
-| `lengthDays` | int | 1–60, по умолчанию 14 |
-| `timezone` | text | IANA (`Europe/Moscow`); по умолчанию — часовой пояс браузера при включении |
-| `autoCreate` | bool | создавать следующий цикл при закрытии; по умолчанию true |
+| `lengthDays` | int | 1–60, default 14 |
+| `timezone` | text | IANA (`Europe/Moscow`); by default the browser time zone at enabling |
+| `autoCreate` | bool | create the next cycle on close; default true |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
 #### sprintsCycles
 scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
 | `projectId` | uuid | |
-| `number` | int | 1, 2, …; уникально (projectId, number); мутатор ставит max + 1 |
+| `number` | int | 1, 2, …; unique (projectId, number); the mutator sets max + 1 |
 | `name` | text? | ≤ 100 |
 | `startDate` | date | |
-| `endDate` | date | включительно, ≥ `startDate` |
+| `endDate` | date | inclusive, ≥ `startDate` |
 | `closedAt` | ts? | |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
-Циклы проекта не пересекаются по датам (нарушение → `conflict`).
+Cycles of a project do not overlap in dates (violation → `conflict`).
 
-| мутатор | args | правила |
+| mutator | args | rules |
 |---|---|---|
-| `sprints.configure` | `projectId, enabled?, lengthDays?, timezone?, autoCreate?` | put `sprintsSettings` (id = projectId); неверный `timezone` (`Intl.DateTimeFormat` бросает) → `invalid_args` |
-| `sprints.create` | `id, projectId, startDate, endDate?, name?` | `endDate` по умолчанию `startDate + lengthDays − 1` |
-| `sprints.update` | `id, name?, startDate?, endDate?` | закрытый → `conflict` |
-| `sprints.delete` | `id` | задачам с `cycleId = id` — `cycleId = null` |
-| `sprints.setTask` | `taskId, cycleId: uuid\|null` | цикл — проекта задачи и не закрыт, иначе `invalid_args` |
-| `sprints.close` | `id, nextId` | уже закрыт — ничего; `closedAt = ctx.now`; задачи с `cycleId = id` не в категории done/cancelled → в следующий цикл: ближайший незакрытый с `startDate > endDate`, иначе при `autoCreate` — новый `nextId` с `startDate = endDate + 1`, длина `lengthDays`; иначе `cycleId = null` |
+| `sprints.configure` | `projectId, enabled?, lengthDays?, timezone?, autoCreate?` | put `sprintsSettings` (id = projectId); invalid `timezone` (`Intl.DateTimeFormat` throws) → `invalid_args` |
+| `sprints.create` | `id, projectId, startDate, endDate?, name?` | `endDate` defaults to `startDate + lengthDays − 1` |
+| `sprints.update` | `id, name?, startDate?, endDate?` | closed → `conflict` |
+| `sprints.delete` | `id` | tasks with `cycleId = id` get `cycleId = null` |
+| `sprints.setTask` | `taskId, cycleId: uuid\|null` | the cycle must belong to the task's project and not be closed, otherwise `invalid_args` |
+| `sprints.close` | `id, nextId` | already closed — nothing; `closedAt = ctx.now`; tasks with `cycleId = id` not in category done/cancelled move to the next cycle: the nearest unclosed one with `startDate > endDate`, otherwise, with `autoCreate`, a new one `nextId` with `startDate = endDate + 1` and length `lengthDays`; otherwise `cycleId = null` |
 
-- Cron `sprints.close-due` (каждые 10 мин): незакрытые циклы с `endDate < сегодня` в `timezone` проекта → `sprints.close` от системного пользователя, по одной задаче pg-boss на цикл (`singletonKey = cycleId`); строка цикла блокируется (`select … for update`) до мутатора. Перенос — ровно один раз (повтор задачи, два воркера, ручное закрытие одновременно).
-- Web: вид `sprints:sprint` (вкладка проекта): текущий цикл, прогресс по категориям статусов, burn-up (ось — дни цикла; объём — число задач цикла сейчас; сделано — задачи цикла с `completedAt` ≤ дня), кнопка «Закрыть»; настройки спринтов проекта — в том же виде; поле «Спринт» в панели задачи (`taskPanels` `sprints:cycle`); в конструкторе фильтра — правило «Спринт» (`cycle`, вариант «Текущий»).
+- Cron `sprints.close-due` (every 10 min): unclosed cycles with `endDate < today` in the project's `timezone` → `sprints.close` as the system user, one pg-boss job per cycle (`singletonKey = cycleId`); the cycle row is locked (`select … for update`) until the mutator runs. The carry-over happens exactly once (job retry, two workers, a manual close at the same time).
+- Web: view `sprints:sprint` (project tab): current cycle, progress by status categories, burn-up (axis — cycle days; scope — the number of tasks in the cycle now; done — cycle tasks with `completedAt` ≤ the day), a "Close" button; the project's sprint settings are in the same view; the "Sprint" field in the task panel (`taskPanels` `sprints:cycle`); in the filter builder — the "Sprint" rule (`cycle`, option "Current").
 
-## Модуль automations (WK-3)
+## Module automations (WK-3)
 
 #### automationsRules
 scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId
 
-| поле | тип | примечание |
+| field | type | note |
 |---|---|---|
 | `id` | uuid | |
 | `spaceId` | uuid | |
-| `projectId` | uuid | правило срабатывает на задачах этого проекта |
+| `projectId` | uuid | the rule fires on tasks of this project |
 | `name` | text | 1–100 |
 | `enabled` | bool | |
-| `trigger` | obj | `{type, …параметры}` — каталог ниже |
-| `conditions` | obj | `Filter` (F-filter v2), `{op:'and', rules:[]}` — всегда |
-| `actions` | json | массив 1–10 действий, каталог ниже |
+| `trigger` | obj | `{type, …parameters}` — catalog below |
+| `conditions` | obj | `Filter` (F-filter v2), `{op:'and', rules:[]}` — always |
+| `actions` | json | array of 1–10 actions, catalog below |
 | `createdBy` | uuid | |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
-| мутатор | args | правила |
+| mutator | args | rules |
 |---|---|---|
-| `automations.create` | `id, projectId, name, trigger, conditions?, actions, enabled?` | схемы `triggerSchema`, `actionSchema`, `filterSchema` (экспорт `modules/automations/shared`); неверно → `invalid_args`; `enabled` по умолчанию true |
+| `automations.create` | `id, projectId, name, trigger, conditions?, actions, enabled?` | schemas `triggerSchema`, `actionSchema`, `filterSchema` (exported from `modules/automations/shared`); invalid → `invalid_args`; `enabled` defaults to true |
 | `automations.update` | `id, name?, trigger?, conditions?, actions?, enabled?` | |
 | `automations.delete` | `id` | |
 
-### Триггеры
-| `type` | параметры | срабатывает |
+### Triggers
+| `type` | parameters | fires |
 |---|---|---|
 | `task.created` | — | `tasks` put, `before = null` |
-| `task.status_changed` | `from?: uuid[]`, `to?: uuid[]` | изменился `statusId`; заданы `from`/`to` — старый/новый в списке |
-| `task.assignee_changed` | `userId?: uuid` | `taskAssignees` put (новый) или del; `userId` — только добавление этого пользователя |
-| `task.field_changed` | `field: 'title'\|'description'\|'priority'\|'dueDate'\|'startDate'\|'parentId'\|'field:<uuid>'` | значение поля изменилось (`fields[id]` для `field:`) |
-| `task.due` | `daysBefore: int 0–30` | cron `automations.due` (каждый час): задача не done/cancelled, `dueDate − daysBefore ≤ сегодня` в `settings.timezone` (ключ инстанса, IANA, по умолчанию `UTC`); один раз на (правило, задача, `dueDate`) |
+| `task.status_changed` | `from?: uuid[]`, `to?: uuid[]` | `statusId` changed; if `from`/`to` are given — the old/new value is in the list |
+| `task.assignee_changed` | `userId?: uuid` | `taskAssignees` put (new) or del; with `userId` — only adding this user |
+| `task.field_changed` | `field: 'title'\|'description'\|'priority'\|'dueDate'\|'startDate'\|'parentId'\|'field:<uuid>'` | the field value changed (`fields[id]` for `field:`) |
+| `task.due` | `daysBefore: int 0–30` | cron `automations.due` (hourly): the task is not done/cancelled, `dueDate − daysBefore ≤ today` in `settings.timezone` (instance key, IANA, default `UTC`); once per (rule, task, `dueDate`) |
 | `comment.added` | — | `comments` put, `before = null` |
 
-Проект правила — `projectId` задачи после мутации. Удалённые задачи не запускают правил.
+The rule's project is the task's `projectId` after the mutation. Deleted tasks do not trigger rules.
 
-### Условия и действия
-Условия — `matchFilter(task, conditions, {statuses, fieldDefs, userId: системный, today})` на текущей строке задачи в момент выполнения; не выполнено → запуск `skipped`.
+### Conditions and actions
+Conditions — `matchFilter(task, conditions, {statuses, fieldDefs, userId: system, today})` on the task's current row at execution time; not met → the run is `skipped`.
 
-| `type` | параметры | мутатор |
+| `type` | parameters | mutator |
 |---|---|---|
 | `set_status` | `statusId` | `task.update` |
 | `assign` | `userId` | `task.assign` |
 | `unassign` | `userId` | `task.unassign` |
 | `add_label` | `labelId` | `task.addLabel` |
 | `remove_label` | `labelId` | `task.removeLabel` |
-| `set_field` | `field: 'priority'\|'dueDate'\|'startDate'\|'field:<uuid>'`, `value` | `task.update` / `task.setField`; даты — `YYYY-MM-DD`, `today±N` или `null` |
+| `set_field` | `field: 'priority'\|'dueDate'\|'startDate'\|'field:<uuid>'`, `value` | `task.update` / `task.setField`; dates — `YYYY-MM-DD`, `today±N` or `null` |
 | `add_comment` | `text` 1–5000 | `comment.create` (`textToDoc`) |
 | `move_to_project` | `projectId`, `statusId?` | `task.update` |
-| `create_subtask` | `title` 1–500 | `task.create` с `parentId`; статус — первый по `rank` категории todo, иначе backlog |
-| `send_webhook` | `subscriptionId` | `enqueueWebhookEvent` модуля webhooks, событие `automation.fired` |
+| `create_subtask` | `title` 1–500 | `task.create` with `parentId`; status — the first by `rank` in category todo, otherwise backlog |
+| `send_webhook` | `subscriptionId` | `enqueueWebhookEvent` of the webhooks module, event `automation.fired` |
 
-### Выполнение
-- Хук `afterMutation`: по `writes` — подходящие включённые правила → `enqueue('automations.run', {ruleId, taskId, depth, eventAt})`, `depth = (ctx.origin?.depth ?? 0) + 1`. Не ставится, если `depth > 3` или `ruleId = ctx.origin.ruleId` (правило не срабатывает на своё действие).
-- Воркер `automations.run`: правило выключено/удалено, задачи нет — `skipped`; иначе все действия одной транзакцией `JobApi.execute(systemUserId, muts, {system: true, origin: {ruleId, depth}})`. Ошибка → откат действий, запуск `error` с текстом; исходная мутация не затрагивается. Без повторов (`retryLimit: 0`).
-- Серверные таблицы: `automations_runs` (`id uuid pk`, `rule_id uuid`, `task_id uuid`, `depth int`, `status text check (ok,skipped,error)`, `error text?`, `created_at`; индекс `(rule_id, created_at desc)`; cron удаляет старше 30 дней), `automations_due_fired` (`rule_id`, `task_id`, `due_date date`; pk из трёх).
-- REST: `GET /api/automations/rules/:id/runs?limit=` (1–200, по умолчанию 50) → `{data: run[]}` новые сверху; правило невидимо → 404. `run` = `{id, ruleId, taskId, depth, status, error, createdAt}`.
-- Web: страница настроек `automations:rules` (выбор проекта, список правил, конструктор «триггер → условия (конструктор фильтра) → действия», журнал запусков).
+### Execution
+- Hook `afterMutation`: by `writes` — matching enabled rules → `enqueue('automations.run', {ruleId, taskId, depth, eventAt})`, `depth = (ctx.origin?.depth ?? 0) + 1`. Not enqueued if `depth > 3` or `ruleId = ctx.origin.ruleId` (a rule does not fire on its own action).
+- Worker `automations.run`: rule disabled/deleted or task gone — `skipped`; otherwise all actions in one transaction `JobApi.execute(systemUserId, muts, {system: true, origin: {ruleId, depth}})`. Error → actions roll back, the run is `error` with the text; the original mutation is not affected. No retries (`retryLimit: 0`).
+- Server tables: `automations_runs` (`id uuid pk`, `rule_id uuid`, `task_id uuid`, `depth int`, `status text check (ok,skipped,error)`, `error text?`, `created_at`; index `(rule_id, created_at desc)`; cron deletes rows older than 30 days), `automations_due_fired` (`rule_id`, `task_id`, `due_date date`; pk of all three).
+- REST: `GET /api/automations/rules/:id/runs?limit=` (1–200, default 50) → `{data: run[]}` newest first; rule not visible → 404. `run` = `{id, ruleId, taskId, depth, status, error, createdAt}`.
+- Web: settings page `automations:rules` (project picker, rule list, builder "trigger → conditions (filter builder) → actions", run log).
 
-## Модуль webhooks (WK-4)
-Синхронизируемых сущностей нет (секрет не должен попасть в клиент). Серверные таблицы:
+## Module webhooks (WK-4)
+No synced entities (the secret must not reach the client). Server tables:
 - `webhooks_subscriptions`: `id uuid pk`, `url text`, `events text[]`, `secret text`, `active bool`, `description text?`, `created_by uuid`, `created_at`, `updated_at`.
-- `webhooks_deliveries`: `id uuid pk` (= `X-Planar-Delivery`), `subscription_id uuid` (`on delete cascade`), `event text`, `payload jsonb`, `status text check (pending,ok,failed)`, `attempts int`, `next_attempt_at timestamptz?`, `last_status int?`, `last_error text?`, `created_at`, `updated_at`; индекс `(subscription_id, created_at desc)`.
+- `webhooks_deliveries`: `id uuid pk` (= `X-Planar-Delivery`), `subscription_id uuid` (`on delete cascade`), `event text`, `payload jsonb`, `status text check (pending,ok,failed)`, `attempts int`, `next_attempt_at timestamptz?`, `last_status int?`, `last_error text?`, `created_at`, `updated_at`; index `(subscription_id, created_at desc)`.
 
-REST — только `users.role` ∈ {owner, admin}, иначе 403; Bearer → 403 (как `/api/tokens`). `subscription` — без `secret`.
+REST — only `users.role` ∈ {owner, admin}, otherwise 403; Bearer → 403 (as for `/api/tokens`). `subscription` — without `secret`.
 
-| метод и путь | вход → выход |
+| method and path | input → output |
 |---|---|
 | `GET /api/webhooks/subscriptions` | → `{data: subscription[]}` |
 | `POST /api/webhooks/subscriptions` | `{url, events: string[] (≥1), description?}` → `201 {data, secret}` |
 | `PATCH /api/webhooks/subscriptions/:id` | `{url?, events?, active?, description?}` → `{data}` |
 | `POST /api/webhooks/subscriptions/:id/rotate-secret` | → `{secret}` |
 | `DELETE /api/webhooks/subscriptions/:id` | → `204` |
-| `POST /api/webhooks/subscriptions/:id/ping` | → `202 {data: delivery}` (событие `ping`) |
-| `GET /api/webhooks/subscriptions/:id/deliveries?limit=&cursor=` | → `{data: delivery[], nextCursor}` новые сверху |
-| `POST /api/webhooks/deliveries/:id/redeliver` | → `202 {data: delivery}` — новая доставка с тем же `payload` (новый `id`) |
+| `POST /api/webhooks/subscriptions/:id/ping` | → `202 {data: delivery}` (event `ping`) |
+| `GET /api/webhooks/subscriptions/:id/deliveries?limit=&cursor=` | → `{data: delivery[], nextCursor}` newest first |
+| `POST /api/webhooks/deliveries/:id/redeliver` | → `202 {data: delivery}` — a new delivery with the same `payload` (new `id`) |
 
-`url` — `http:`/`https:`, без userinfo, ≤ 2000; иначе 400. `secret` — `whsec_` + 32 случайных байта в base62.
+`url` — `http:`/`https:`, no userinfo, ≤ 2000; otherwise 400. `secret` — `whsec_` + 32 random bytes in base62.
 
-### События
-`task.created`, `task.updated`, `task.deleted`, `comment.created` — из хука `afterMutation` (одно событие на задачу на мутацию; `task.updated` — изменения строки `tasks`, исполнителей, меток); `ping`; `automation.fired` — только действием `send_webhook` в указанную подписку (в `events` подписки быть не обязано; подписка должна быть `active`).
+### Events
+`task.created`, `task.updated`, `task.deleted`, `comment.created` — from the `afterMutation` hook (one event per task per mutation; `task.updated` — changes to the `tasks` row, assignees, labels); `ping`; `automation.fired` — only by the `send_webhook` action into the given subscription (it need not be in the subscription's `events`; the subscription must be `active`).
 
-Тело — `{id, event, createdAt, data}`, UTF-8, `JSON.stringify`; подписываются ровно отправленные байты.
-- `task.created`, `task.updated`: `data = {task, changes, actorId}` — `task` в форме REST v1, `changes` — `{<поле>: [старое, новое]}` (как `activity.changes`; `assigneeIds`, `labelIds` — массивы), у `created` — `{}`;
+Body — `{id, event, createdAt, data}`, UTF-8, `JSON.stringify`; exactly the bytes that were sent are signed.
+- `task.created`, `task.updated`: `data = {task, changes, actorId}` — `task` in the REST v1 shape, `changes` — `{<field>: [old, new]}` (as `activity.changes`; `assigneeIds`, `labelIds` are arrays), for `created` — `{}`;
 - `task.deleted`: `data = {task: {id, key, projectId, spaceId}, actorId}`;
-- `comment.created`: `data = {task, comment: {id, taskId, authorId, text, createdAt}, actorId}` (`text` — текст `body`);
+- `comment.created`: `data = {task, comment: {id, taskId, authorId, text, createdAt}, actorId}` (`text` — the text of `body`);
 - `automation.fired`: `data = {ruleId, task}`; `ping`: `data = {}`.
 
-Экспорт для automations — `@planar/module-webhooks/api`: `enqueueWebhookEvent(api: ModuleHookApi | JobApi, subscriptionId: string, event: string, data: object): Promise<void>`.
+Export for automations — `@planar/module-webhooks/api`: `enqueueWebhookEvent(api: ModuleHookApi | JobApi, subscriptionId: string, event: string, data: object): Promise<void>`.
 
-### Доставка
-- Заголовки: `Content-Type: application/json`, `User-Agent: Planar-Webhooks/1`, `X-Planar-Event`, `X-Planar-Delivery`, `X-Planar-Signature: sha256=<hex HMAC-SHA256(secret, тело)>` (ключ — строка `secret` целиком, UTF-8).
-- Задача pg-boss `webhooks.deliver {deliveryId}`. Успех — ответ 2xx за ≤ 10 с (соединение + ответ); иначе попытка неудачна. 3xx — неудача, редиректы не выполняются. Тело ответа не читается: после статуса соединение закрывается.
-- Повторы: после неудачной попытки n (1–10) следующая через `60·2^(n−1)` с (1, 2, 4 … 512 мин; 11 попыток за ≈ 17,1 ч ≤ 24 ч); после 11-й — `failed`. `next_attempt_at` — время следующей попытки; повтор — новая задача с `startAfter`.
-- **SSRF:** перед каждой попыткой — DNS-резолв, все адреса проверяются; запрещены `0.0.0.0/8`, `10/8`, `100.64/10`, `127/8`, `169.254/16`, `172.16/12`, `192.168/16`, `224/4` и выше, `::`, `::1`, `fc00::/7`, `fe80::/10`, `ff00::/8`, IPv4-mapped (`::ffff:`) от запрещённых. Соединение — на проверенный адрес (`node:http`/`node:https` `request` со своим `lookup`, отдающим проверенный адрес; без повторного резолва; SNI и `Host` — исходное имя). Запрещённый адрес → `failed` сразу, `last_error = 'blocked_address'`, без повторов. Исключения — env `WEBHOOKS_ALLOW_HOSTS` (через запятую: имена хостов или CIDR), только для dev и e2e.
-- Web: страница настроек `webhooks:settings` (только админ): подписки, секрет показывается один раз, журнал доставок, «Повторить», «Проверить» (ping).
+### Delivery
+- Headers: `Content-Type: application/json`, `User-Agent: Planar-Webhooks/1`, `X-Planar-Event`, `X-Planar-Delivery`, `X-Planar-Signature: sha256=<hex HMAC-SHA256(secret, body)>` (the key is the whole `secret` string, UTF-8).
+- pg-boss job `webhooks.deliver {deliveryId}`. Success — a 2xx response within ≤ 10 s (connection + response); otherwise the attempt fails. 3xx is a failure, redirects are not followed. The response body is not read: the connection is closed after the status.
+- Retries: after failed attempt n (1–10) the next one comes after `60·2^(n−1)` s (1, 2, 4 … 512 min; 11 attempts over ≈ 17.1 h ≤ 24 h); after the 11th — `failed`. `next_attempt_at` is the time of the next attempt; a retry is a new job with `startAfter`.
+- **SSRF:** before each attempt — DNS resolution, all addresses are checked; forbidden: `0.0.0.0/8`, `10/8`, `100.64/10`, `127/8`, `169.254/16`, `172.16/12`, `192.168/16`, `224/4` and above, `::`, `::1`, `fc00::/7`, `fe80::/10`, `ff00::/8`, IPv4-mapped (`::ffff:`) forms of forbidden ones. The connection goes to the checked address (`node:http`/`node:https` `request` with its own `lookup` that returns the checked address; no second resolution; SNI and `Host` — the original name). Forbidden address → `failed` at once, `last_error = 'blocked_address'`, no retries. Exceptions — env `WEBHOOKS_ALLOW_HOSTS` (comma-separated: host names or CIDR), for dev and e2e only.
+- Web: settings page `webhooks:settings` (admin only): subscriptions, the secret is shown once, delivery log, "Redeliver", "Test" (ping).
 
-Эталон проверки подписи (получатель, Node):
+Reference for signature verification (receiver, Node):
 ```js
 import { createHmac, timingSafeEqual } from 'node:crypto';
 const expected = 'sha256=' + createHmac('sha256', secret).update(rawBody).digest('hex');
@@ -340,23 +340,23 @@ const ok = header.length === expected.length && timingSafeEqual(Buffer.from(head
 {"secret": "whsec_test", "body": "{\"id\":\"0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6c01\",\"event\":\"ping\",\"createdAt\":\"2026-10-23T06:00:00.000Z\",\"data\":{}}", "signature": "sha256=a43c17381401da94222350b1503b6bcef9ff6ef41b99d0b29a8df25c68b0dac1"}
 ```
 
-## Модуль import (WK-6)
-Серверные таблицы:
+## Module import (WK-6)
+Server tables:
 - `import_jobs`: `id uuid pk`, `user_id uuid`, `project_id uuid`, `format text check (csv,trello)`, `preset text` (`clickup`, `jira`, `linear`, `custom`, `trello`), `status text check (pending,running,done,failed)`, `total int`, `processed int`, `created int`, `updated int`, `skipped jsonb` (`{row, reason}[]`), `warnings jsonb` (`{row, message}[]`), `error text?`, `created_at`, `updated_at`.
 - `import_items`: `project_id uuid`, `preset text`, `external_id text`, `task_id uuid`, `updated_at`; pk `(project_id, preset, external_id)`.
 
-| метод и путь | вход → выход |
+| method and path | input → output |
 |---|---|
-| `POST /api/import/preview` | multipart: `file`, `format`, `preset` → `{columns: string[], rows: string[][] /* ≤ 20 */, mapping: Mapping /* предложение по preset */}` |
+| `POST /api/import/preview` | multipart: `file`, `format`, `preset` → `{columns: string[], rows: string[][] /* ≤ 20 */, mapping: Mapping /* suggestion for the preset */}` |
 | `POST /api/import/jobs` | multipart: `file`, `projectId`, `format`, `preset`, `mapping` (JSON) → `202 {data: job}` |
-| `GET /api/import/jobs/:id` | → `{data: job}`; чужая → 404 |
+| `GET /api/import/jobs/:id` | → `{data: job}`; someone else's → 404 |
 
-- `Mapping` = `{externalId?, title, description?, status?, assignee?, labels?, dueDate?, startDate?, priority?, parent?}` — имя колонки CSV; `statusMap?: {<значение>: statusId}` (неизвестное — статус по умолчанию, как REST v1); `labels` — через запятую, по имени, недостающие создаются `label.create`; `assignee` — по email, затем по login (без регистра), неизвестный — без исполнителя и строка в `warnings`; `parent` — внешний ID родителя в том же файле; Trello JSON — сопоставление фиксированное (карточки, списки → статусы, метки, участники, чек-листы → `checklist.add`).
-- Идемпотентность: строка с `externalId`, уже бывшая в `import_items`, обновляет задачу (`task.update`, полная замена исполнителей и меток), а не создаёт новую. Без `externalId` — всегда новая.
-- Задача pg-boss `import.run {jobId}`: от имени `user_id` (его права), пачками по 100 строк в транзакции; `processed` растёт после каждой пачки. Пропущенные строки (нет заголовка, ошибка мутатора) — в `skipped` с причиной, импорт продолжается.
-- Пределы: файл ≤ 10 МБ, ≤ 20 000 строк; больше → 400.
-- Эталоны — `e2e/fixtures/import/` (`clickup.csv`, `jira.csv`, `linear.csv`, `trello.json`, `README.md` с источником формата для каждого).
-- Web: маршрут `/m/import/` (мастер: файл → формат и заготовка → сопоставление и предпросмотр → прогресс и отчёт), команда `import:open`.
+- `Mapping` = `{externalId?, title, description?, status?, assignee?, labels?, dueDate?, startDate?, priority?, parent?}` — the CSV column name; `statusMap?: {<value>: statusId}` (unknown value — the default status, as in REST v1); `labels` — comma-separated, by name, missing ones are created with `label.create`; `assignee` — by email, then by login (case-insensitive), unknown — no assignee and a row in `warnings`; `parent` — the external ID of the parent in the same file; Trello JSON — fixed mapping (cards, lists → statuses, labels, members, checklists → `checklist.add`).
+- Idempotency: a row with an `externalId` already in `import_items` updates the task (`task.update`, full replacement of assignees and labels) instead of creating a new one. Without `externalId` — always new.
+- pg-boss job `import.run {jobId}`: as `user_id` (their permissions), in batches of 100 rows per transaction; `processed` grows after each batch. Skipped rows (no title, mutator error) go to `skipped` with a reason, the import continues.
+- Limits: file ≤ 10 MB, ≤ 20 000 rows; larger → 400.
+- References — `e2e/fixtures/import/` (`clickup.csv`, `jira.csv`, `linear.csv`, `trello.json`, `README.md` with the format source for each).
+- Web: route `/m/import/` (wizard: file → format and preset → mapping and preview → progress and report), command `import:open`.
 
-## REST и MCP (WK-5), C-modules v5
-Вынесены в docs/contracts/work-api.md (размер документа).
+## REST and MCP (WK-5), C-modules v5
+Moved to docs/contracts/work-api.md (document size).

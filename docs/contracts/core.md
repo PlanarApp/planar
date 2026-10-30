@@ -3,110 +3,110 @@ type: contract
 status: active
 module: core
 updated: 2026-10-23
-summary: Контракты core — C-schema, C-sync, C-mutators, C-modules, C-http; версии в заголовках, примеры проверяет контрактный тест
+summary: Core contracts — C-schema, C-sync, C-mutators, C-modules, C-http; versions are in the headings, examples are checked by the contract test
 related: ["docs/plan/core.md", "docs/roadmap.md", "docs/contracts/core-schema.md"]
 contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 3}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 8}]
 ---
 
-# Контракты модуля core
+# Contracts of the core module
 
-Владелец всех контрактов файла — координатор core. Меняет только он: версия +1 в заголовке и в `CONTRACT_VERSIONS`, потребителям — `task note`. C-sync и C-mutators после выдачи WB-2 — только через шлюз.
+The owner of all contracts in this file is the core coordinator. Only the coordinator changes them: version +1 in the heading and in `CONTRACT_VERSIONS`, consumers are notified with `task note`. After WB-2 is issued, C-sync and C-mutators change only through the gateway.
 
-**Контрактный тест** — `packages/shared/test/contract.test.ts` (правит только координатор). Он сверяет с этим файлом:
-- версии из заголовков `## C-… vN` = `CONTRACT_VERSIONS`;
-- каждый блок ` ```json example=<имя> ` проходит `contractSchemas[<имя>]`, каждый ` ```json bad=<имя> ` — нет; у каждой схемы есть пример;
-- сущности раздела «Сущности» (в `docs/contracts/core-schema.md`): имена, поля, nullability, строка `scope · write · bootstrap · indexes` = `entitySchemas` и `ENTITIES`.
+**Contract test** — `packages/shared/test/contract.test.ts` (edited only by the coordinator). It checks this file against the code:
+- versions from the `## C-… vN` headings = `CONTRACT_VERSIONS`;
+- every ` ```json example=<name> ` block passes `contractSchemas[<name>]`, every ` ```json bad=<name> ` block does not; every schema has an example;
+- entities of the "Entities" section (in `docs/contracts/core-schema.md`): names, fields, nullability, the line `scope · write · bootstrap · indexes` = `entitySchemas` and `ENTITIES`.
 
-Схема БД против этого файла — `apps/api/test/contract.schema.test.ts` (появится до CR-2).
+The DB schema against this file — `apps/api/test/contract.schema.test.ts` (appears before CR-2).
 
-Код контрактов — `packages/shared/src/contract/` (экспорт из `packages/shared/src/index.ts`, без Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, типы `Tx`, `MutatorCtx`, `MutatorDef`, функции `defineMutator`, `createRegistry`, класс `MutatorError`, `uuidv7()`.
+Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
 ## C-schema v13
 
-v13: `savedViews.icon` (text?, иконка вкладки сохранённого вида; строки реплики до v13 — без поля) — core-schema.md.
+v13: `savedViews.icon` (text?, icon of the saved view tab; replica rows before v13 have no such field) — core-schema.md.
 
-v12: `notifications.kind` += `doc_mention` (упоминание на странице модуля docs, `url` — `/m/docs/<pageId>`).
+v12: `notifications.kind` += `doc_mention` (a mention on a docs module page, `url` — `/m/docs/<pageId>`).
 
-v11 (комментарии): `comments.parentId` (треды), `assigneeId`, `resolvedAt`, `resolvedBy`; `notifications.kind` += `comment_assigned` (исполнителю назначенного комментария).
+v11 (comments): `comments.parentId` (threads), `assigneeId`, `resolvedAt`, `resolvedBy`; `notifications.kind` += `comment_assigned` (for the assignee of an assigned comment).
 
-v10 (Входящие как в ClickUp): `notifications.changes` — что изменилось (`status_changed`: `{statusId: [старый, новый]}`).
+v10 (Inbox as in ClickUp): `notifications.changes` — what changed (`status_changed`: `{statusId: [old, new]}`).
 
-v9 (p3, PT-1): несинхронизируемая таблица `ydocs` — состояние Y.Doc совместного редактирования (`docs/contracts/p3.md` §P3-ydoc).
+v9 (p3, PT-1): non-synced table `ydocs` — the Y.Doc state of collaborative editing (`docs/contracts/p3.md` §P3-ydoc).
 
-v8 (CL-1a): `notifications` для чата; scope `space|members`.
+v8 (CL-1a): `notifications` for chat; scope `space|members`.
 
 v7 (WK-0): `tasks.cycleId` (work.md).
-v6 (FT): `fieldDefs`, `taskLinks`, формат `tasks.fields` (features.md).
+v6 (FT): `fieldDefs`, `taskLinks`, format of `tasks.fields` (features.md).
 
-### Общие правила
-- БД — snake_case, TS и провод — camelCase (Drizzle `casing: 'snake_case'`). Имя поля на проводе = имя свойства Drizzle; колонка = snake_case от него (`spaceId` → `space_id`).
-- Имя сущности (entity) = имя таблицы в camelCase: `taskAssignees` ↔ `task_assignees`. Оно же — ключ в `bootstrap.data`, `changes.entity`, аргумент `Tx`.
-- `id` — `uuid` (uuidv7, создаёт клиент; серверные строки — `uuidv7()` Postgres 18), кроме `settings.id` (`text`, ключ настройки). PK — `id`.
-- Строка на проводе содержит **все** поля сущности; отсутствующее значение — `null` (не пропуск ключа).
-- `createdAt`/`updatedAt` ставит мутатор из `ctx.now`; на сервере `ctx.now` — серверное время.
-- `spaceId` неизменяем после создания (patch с другим `spaceId` → `invalid_args`); у задач, комментариев, вложений, чек-листов, меток задач он денормализован.
-- Enum — `text` + `CHECK`. `rank` — `text COLLATE "C"` (ключи fractional-indexing сравниваются побайтно).
-- FK между синхронизируемыми таблицами — без каскада (`NO ACTION`): мутатор удаляет дочерние строки сам, через `Tx`, иначе клиент не узнает об удалении. Исключения — `activity.taskId`, `notifications.taskId/commentId` (без FK, история переживает задачу). Несинхронизируемые таблицы ссылаются на `users` с `ON DELETE CASCADE`.
+### General rules
+- DB — snake_case, TS and the wire — camelCase (Drizzle `casing: 'snake_case'`). The field name on the wire = the Drizzle property name; the column = snake_case of it (`spaceId` → `space_id`).
+- Entity name = table name in camelCase: `taskAssignees` ↔ `task_assignees`. It is also the key in `bootstrap.data`, `changes.entity`, the `Tx` argument.
+- `id` — `uuid` (uuidv7, created by the client; server rows — Postgres 18 `uuidv7()`), except `settings.id` (`text`, the setting key). PK — `id`.
+- A row on the wire contains **all** fields of the entity; a missing value is `null` (the key is not omitted).
+- `createdAt`/`updatedAt` are set by the mutator from `ctx.now`; on the server `ctx.now` is the server time.
+- `spaceId` is immutable after creation (a patch with a different `spaceId` → `invalid_args`); for tasks, comments, attachments, checklists, task labels it is denormalized.
+- Enum — `text` + `CHECK`. `rank` — `text COLLATE "C"` (fractional-indexing keys are compared bytewise).
+- FK between synced tables — no cascade (`NO ACTION`): the mutator deletes child rows itself, through `Tx`, otherwise the client does not learn about the deletion. Exceptions — `activity.taskId`, `notifications.taskId/commentId` (no FK, the history outlives the task). Non-synced tables reference `users` with `ON DELETE CASCADE`.
 
-### Типы
-| тип | zod | Postgres |
+### Types
+| type | zod | Postgres |
 |---|---|---|
 | `uuid` | `z.uuid()` | `uuid` |
 | `text` | `z.string()` | `text` |
 | `int` | `z.number().int()` | `integer` (`size` — `bigint`, mode number) |
 | `bool` | `z.boolean()` | `boolean` |
-| `ts` | `z.iso.datetime()` (UTC, `Z`, мс) | `timestamptz` |
+| `ts` | `z.iso.datetime()` (UTC, `Z`, ms) | `timestamptz` |
 | `date` | `z.iso.date()` (`YYYY-MM-DD`) | `date` |
 | `rank` | `z.string().min(1)` | `text COLLATE "C"` |
-| `obj` | `z.record(z.string(), z.unknown())` | `jsonb` (объект) |
-| `json` | `z.json()` | `jsonb` (любой JSON) |
+| `obj` | `z.record(z.string(), z.unknown())` | `jsonb` (object) |
+| `json` | `z.json()` | `jsonb` (any JSON) |
 | `doc` | TipTap JSON: `z.looseObject({type: z.literal('doc'), content: z.array(z.unknown()).optional()})` | `jsonb` |
 | `enum(a,b)` | `z.enum([...])` | `text` + `CHECK` |
 | `uuid[]` | `z.array(z.uuid())` | `uuid[]` |
 
-Суффикс `?` — `.nullable()` (ключ есть, значение может быть `null`).
+The suffix `?` means `.nullable()` (the key is present, the value may be `null`).
 
-### Видимость и права (строка под заголовком сущности)
-- `scope` — кто видит строку (bootstrap, pull): `space` — участники пространства `spaceId` (у `spaces` — `id`); `user` — только `userId`; `global` — все вошедшие; `space|user` — `user`, если `userId` не null, иначе `space`. `space|members` (C-sync v2) — `space`, если `spaceId` задан, иначе участники контейнера по `meta.members` (`docs/contracts/collab.md` §X-core п. 1).
-- `write` — минимальная роль для записи через серверный `Tx`: `guest` < `member` < `admin` — роль в `spaceMembers` этого пространства; `self` — `row.userId = ctx.userId`; `instance_admin` — `users.role` ∈ {owner, admin}; `server` — только серверный код, мутаторам запрещено; `member|self` — по `scope` строки.
-- Создание пространства (`put` в `spaces` новой строки) разрешено любому с `users.role` ≠ guest; в той же транзакции он может создать себе `spaceMembers` с ролью admin.
-- `bootstrap` — входит ли сущность в `GET /sync/bootstrap` (`no` — только через pull и свой REST).
-- `indexes` — поля, по которым разрешён `Tx.scan({index, eq})` (в Dexie это индексы; в БД — b-tree).
+### Visibility and permissions (the line under an entity heading)
+- `scope` — who sees the row (bootstrap, pull): `space` — members of the space `spaceId` (for `spaces` — `id`); `user` — only `userId`; `global` — all signed-in users; `space|user` — `user` if `userId` is not null, otherwise `space`. `space|members` (C-sync v2) — `space` if `spaceId` is set, otherwise the members of the container per `meta.members` (`docs/contracts/collab.md` §X-core item 1).
+- `write` — the minimum role to write through the server `Tx`: `guest` < `member` < `admin` — the role in `spaceMembers` of this space; `self` — `row.userId = ctx.userId`; `instance_admin` — `users.role` ∈ {owner, admin}; `server` — server code only, forbidden for mutators; `member|self` — by the row's `scope`.
+- Creating a space (`put` of a new row into `spaces`) is allowed to anyone with `users.role` ≠ guest; in the same transaction they may create a `spaceMembers` row for themselves with the admin role.
+- `bootstrap` — whether the entity is included in `GET /sync/bootstrap` (`no` — only via pull and its own REST).
+- `indexes` — fields allowed for `Tx.scan({index, eq})` (in Dexie these are indexes; in the DB — b-tree).
 
-### Сущности
+### Entities
 
-Сущности — docs/contracts/core-schema.md (часть C-schema v13).
+Entities — docs/contracts/core-schema.md (part of C-schema v13).
 
-### Несинхронизируемые таблицы (только сервер)
-| таблица | колонки |
+### Non-synced tables (server only)
+| table | columns |
 |---|---|
-| `sessions` | `id text pk` (sha256 hex токена из cookie), `user_id uuid`, `created_at`, `expires_at`, `last_seen_at timestamptz`, `user_agent text?` |
+| `sessions` | `id text pk` (sha256 hex of the cookie token), `user_id uuid`, `created_at`, `expires_at`, `last_seen_at timestamptz`, `user_agent text?` |
 | `files` | `sha256 text pk`, `size bigint`, `mime text`, `width int?`, `height int?`, `created_by uuid`, `created_at` |
 | `push_subscriptions` | `id uuid pk`, `user_id uuid`, `endpoint text unique`, `p256dh text`, `auth text`, `user_agent text?`, `created_at` |
 | `client_mutations` | `client_id uuid pk`, `user_id uuid`, `last_mutation_id bigint not null`, `updated_at` |
-| `changes` | `seq bigserial pk`, `space_id uuid?`, `user_id uuid?`, `entity text`, `id text`, `op text check (put,del)`, `data jsonb?`, `created_at`; индексы `(space_id, seq)`, `(user_id, seq)` |
-| `file_uploads` | `sha256 text`, `user_id uuid`, `created_at`; первичный ключ (sha256, user_id) — кто загружал файл (дубли контента — одна строка files) |
-| `login_attempts` | `key text pk` (ip и login через «\|»), `attempts int`, `window_started_at timestamptz` — окно 1 мин для лимита входа |
+| `changes` | `seq bigserial pk`, `space_id uuid?`, `user_id uuid?`, `entity text`, `id text`, `op text check (put,del)`, `data jsonb?`, `created_at`; indexes `(space_id, seq)`, `(user_id, seq)` |
+| `file_uploads` | `sha256 text`, `user_id uuid`, `created_at`; primary key (sha256, user_id) — who uploaded the file (duplicate content is a single row in files) |
+| `login_attempts` | `key text pk` (ip and login joined by "\|"), `attempts int`, `window_started_at timestamptz` — a 1-minute window for the login limit |
 | `api_tokens` | `id uuid pk`, `user_id uuid`, `name text`, `token_sha256 text unique`, `prefix text`, `scope text check (read,write)`, `expires_at?`, `last_used_at?`, `revoked_at?`, `created_at` |
-| `ydocs` | `doc_id text pk` (имя документа docs:uuid или task:uuid), `state bytea not null` (Y.encodeStateAsUpdate), `updated_at timestamptz` — p3.md §P3-ydoc |
+| `ydocs` | `doc_id text pk` (document name docs:uuid or task:uuid), `state bytea not null` (Y.encodeStateAsUpdate), `updated_at timestamptz` — p3.md §P3-ydoc |
 
-Миграции — drizzle-kit, каталог `apps/api/drizzle/`, схема — `apps/api/src/db/schema.ts` (+ схемы модулей `modules/*/api/schema.ts`, таблицы с префиксом `<moduleId>_`).
+Migrations — drizzle-kit, directory `apps/api/drizzle/`, schema — `apps/api/src/db/schema.ts` (+ module schemas `modules/*/api/schema.ts`, tables prefixed with `<moduleId>_`).
 
 ## C-sync v2
 
-v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core п. 1–2.
+v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core items 1–2.
 
-Транспорт — JSON поверх HTTP, авторизация — сессия (C-http) или Bearer. Ошибки уровня запроса — формат C-http (`401 unauthenticated`, `400 invalid_request`, `413 payload_too_large`, `500 internal`).
+Transport — JSON over HTTP, authorization — session (C-http) or Bearer. Request-level errors use the C-http format (`401 unauthenticated`, `400 invalid_request`, `413 payload_too_large`, `500 internal`).
 
-### Журнал `changes`
-- Каждая запись серверного `Tx` добавляет строку: `put` — с полной строкой в `data` (провод, camelCase), `del` — `data = null`. `patch` тоже даёт `put` с полной строкой.
-- Колонки видимости по `scope`: `space` → `space_id = row.spaceId` (у `spaces` — `row.id`), `user_id = null`; `user` → `space_id = null`, `user_id = row.userId`; `global` → обе null.
-- **Порядок.** Транзакция, пишущая в `changes`, первой записью берёт `pg_advisory_xact_lock(7311)`; так порядок `seq` совпадает с порядком коммитов и pull не пропускает строки. v2: серверный `Tx` мутации берёт его до первого `get`/`scan` (мутации сериализуются: чтение-затем-запись — `docs.lock`, `lastSeq` чата — без гонок).
-- В той же транзакции — `SELECT pg_notify('planar_changes', '<max seq>')`: только номер.
-- **Сброс.** Добавление или удаление участника пространства → строка `entity = '_reset'`, `op = 'put'`, `id = <userId>`, `user_id = <userId>`. Смена `settings.enabled_modules` → `_reset` с обеими колонками null (для всех).
+### The `changes` journal
+- Every write of the server `Tx` adds a row: `put` — with the full row in `data` (wire format, camelCase), `del` — `data = null`. `patch` also yields a `put` with the full row.
+- Visibility columns by `scope`: `space` → `space_id = row.spaceId` (for `spaces` — `row.id`), `user_id = null`; `user` → `space_id = null`, `user_id = row.userId`; `global` → both null.
+- **Ordering.** A transaction that writes to `changes` takes `pg_advisory_xact_lock(7311)` with its first write; this way the order of `seq` matches the commit order and pull does not skip rows. v2: the server `Tx` of a mutation takes it before the first `get`/`scan` (mutations are serialized: read-then-write — `docs.lock`, the chat `lastSeq` — are race-free).
+- In the same transaction — `SELECT pg_notify('planar_changes', '<max seq>')`: the number only.
+- **Reset.** Adding or removing a space member → a row `entity = '_reset'`, `op = 'put'`, `id = <userId>`, `user_id = <userId>`. A change of `settings.enabled_modules` → `_reset` with both columns null (for everyone).
 
 ### `GET /sync/bootstrap?clientId=<uuid>`
-Один снимок `REPEATABLE READ`. `cursor` = `max(seq)` журнала (0 — пусто). `lastMutationId` — из `client_mutations` для `clientId` (0 — нет записи). `data` — все сущности с `bootstrap: yes`, видимые пользователю, включённых модулей; ключ есть у каждой такой сущности, даже пустой.
+One `REPEATABLE READ` snapshot. `cursor` = `max(seq)` of the journal (0 — empty). `lastMutationId` — from `client_mutations` for `clientId` (0 — no record). `data` — all entities with `bootstrap: yes` visible to the user, of enabled modules; the key is present for every such entity, even an empty one.
 
 ```json example=sync.bootstrap
 {
@@ -124,7 +124,7 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 ```
 
 ### `GET /sync/pull?cursor=<int>&clientId=<uuid>`
-Один снимок `REPEATABLE READ`. `changes` — видимые пользователю строки с `seq > cursor`, по возрастанию `seq`, только включённых модулей. Ответный `cursor` = `max(seq)` журнала (не только видимых). `reset: true` (и `changes: []`), если: среди видимых строк есть `_reset`; `cursor` больше `max(seq)` или меньше минимального хранимого `seq - 1`; видимых строк больше 5000. Клиент на `reset` делает bootstrap заново.
+One `REPEATABLE READ` snapshot. `changes` — rows visible to the user with `seq > cursor`, in ascending `seq`, of enabled modules only. The response `cursor` = `max(seq)` of the journal (not only of the visible rows). `reset: true` (and `changes: []`) if: among the visible rows there is a `_reset`; `cursor` is greater than `max(seq)` or less than the minimum stored `seq - 1`; there are more than 5000 visible rows. On `reset` the client does a bootstrap again.
 
 ```json example=sync.pull
 {
@@ -146,13 +146,13 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 ```
 
 ### `POST /sync/push`
-Тело ≤ 1 МБ, мутаций ≤ 100. `mutations[].id` — целое > 0, растёт на клиенте (`clientId` — uuidv7, создаётся вместе с локальной базой).
-- Мутации выполняются по порядку, каждая в своей транзакции: проверка `args` по zod мутатора → `run(serverTx, args, ctx)` → `client_mutations.last_mutation_id = id` → коммит.
-- `id ≤ last_mutation_id` — уже обработана: не выполняется, результат `{id, ok: true}`.
-- Отклонённая мутация (`MutatorError`, ошибка zod, неизвестное имя, любое исключение внутри `run`): транзакция откатывается, затем отдельной транзакцией `last_mutation_id = id`; результат `{id, ok: false, code, message}`. Клиент убирает её из очереди.
-- Сбой инфраструктуры (БД недоступна, ошибка коммита) — ответ `500` целиком; уже закоммиченные мутации идемпотентны при повторе.
-- `clientId` принадлежит первому пользователю, который его прислал; чужой → `403 forbidden`.
-- Коды результата: `invalid_args`, `forbidden`, `not_found`, `conflict`, `unknown_mutator`, `internal`.
+Body ≤ 1 MB, mutations ≤ 100. `mutations[].id` — an integer > 0, growing on the client (`clientId` — uuidv7, created together with the local database).
+- Mutations run in order, each in its own transaction: check `args` against the mutator's zod → `run(serverTx, args, ctx)` → `client_mutations.last_mutation_id = id` → commit.
+- `id ≤ last_mutation_id` — already processed: not executed, the result is `{id, ok: true}`.
+- A rejected mutation (`MutatorError`, zod error, unknown name, any exception inside `run`): the transaction is rolled back, then in a separate transaction `last_mutation_id = id`; the result is `{id, ok: false, code, message}`. The client removes it from the queue.
+- An infrastructure failure (DB unavailable, commit error) — the whole response is `500`; already committed mutations are idempotent on retry.
+- `clientId` belongs to the first user who sent it; another user's → `403 forbidden`.
+- Result codes: `invalid_args`, `forbidden`, `not_found`, `conflict`, `unknown_mutator`, `internal`.
 
 ```json example=sync.pushRequest
 {"clientId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a80", "mutations": [{"id": 18, "name": "task.update", "args": {"id": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d", "title": "Новый заголовок"}}]}
@@ -171,7 +171,7 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 ```
 
 ### WebSocket `/ws`
-Авторизация — cookie сессии при upgrade (плюс проверка Origin, C-http); без сессии — закрытие с кодом 4401. Сервер слушает `LISTEN planar_changes` одним соединением и шлёт всем подключённым `{t:'poke', seq}` (можно склеивать пачки не дольше 50 мс; seq — последний). Клиент после подключения шлёт `{t:'hello', cursor}`; если `max(seq) > cursor`, сервер сразу отвечает `poke`. На `poke` с `seq > cursor` клиент делает pull. Пинг — WS ping/pong раз в 30 с. Данные по WS не передаются.
+Authorization — the session cookie at upgrade (plus an Origin check, C-http); without a session — close with code 4401. The server listens to `LISTEN planar_changes` on one connection and sends `{t:'poke', seq}` to all connected clients (batches may be merged for up to 50 ms; seq is the last one). After connecting, the client sends `{t:'hello', cursor}`; if `max(seq) > cursor`, the server replies with `poke` immediately. On `poke` with `seq > cursor` the client does a pull. Ping — WS ping/pong every 30 s. No data is transferred over WS.
 
 ```json example=ws.server
 {"t": "poke", "seq": 1050}
@@ -185,25 +185,25 @@ v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core
 {"t": "poke"}
 ```
 
-### Клиент (для web)
-Применяет `changes` по `seq`; `reset` → bootstrap. После pull отбрасывает из очереди мутации с `id ≤ lastMutationId`, остальные заново применяет поверх серверного состояния (rebase). Повтор push при сетевой ошибке и `5xx` — с ростом паузы 1–30 с; `401` — на вход.
+### Client (for web)
+Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from the queue the mutations with `id ≤ lastMutationId` and re-applies the rest on top of the server state (rebase). Push is retried on a network error and `5xx` with a growing pause of 1–30 s; `401` — redirect to sign-in.
 
 ## C-mutators v9
 
 v9: `view.create`, `view.update` += `icon?` — core-mutators.md.
 
-v8: `space.delete` += `withContent?` (пространство с проектами и задачами — массовое удаление в настройках); корневое пространство не удаляется — core-mutators.md.
+v8: `space.delete` += `withContent?` (a space with projects and tasks — bulk deletion in settings); the root space is not deleted — core-mutators.md.
 
-v7 (комментарии): `comment.create` += `parentId?`, `assigneeId?`; `comment.assign`, `comment.resolve`; `comment.delete` корня — с тредом — core-mutators.md.
+v7 (comments): `comment.create` += `parentId?`, `assigneeId?`; `comment.assign`, `comment.resolve`; `comment.delete` of a root — with its thread — core-mutators.md.
 
-v6 (группы): `project.create` в корневом пространстве (`settings.root_space`, уровень «Воркспейс»; создаёт и наполняет участниками `apps/api/src/spaces/root.ts`) → `invalid_args` — core-mutators.md.
+v6 (groups): `project.create` in the root space (`settings.root_space`, the "Workspace" level; created and filled with members by `apps/api/src/spaces/root.ts`) → `invalid_args` — core-mutators.md.
 
-v5 (p4, PF-4): `settings.set {id: 'enabled_modules'}` — новый id модуля с `unavailable` ≠ null → `invalid_args` (только сервер) — p4.md, core-mutators.md.
+v5 (p4, PF-4): `settings.set {id: 'enabled_modules'}` — a new module id with `unavailable` ≠ null → `invalid_args` (server only) — p4.md, core-mutators.md.
 
 v4 (design): `space.create` += `statusNames?` (core-mutators.md).
 v3 (FT): `field.*`, `task.setField`, `link.*` (core-mutators.md).
 
-Код — `packages/shared/src/contract/mutator.ts` (типы и регистрация), домен — `packages/shared/src/mutators/` (CR-5). Без Node API: тот же код идёт в браузер.
+Code — `packages/shared/src/contract/mutator.ts` (types and registration), domain — `packages/shared/src/mutators/` (CR-5). No Node API: the same code goes to the browser.
 
 ```ts
 export type EntityName = keyof typeof entitySchemas;
@@ -213,77 +213,77 @@ export interface MutatorCtx { userId: string; now: string /* ISO ts */; server: 
 
 export interface Tx {
   get<E extends EntityName>(entity: E, id: string): Promise<Row<E> | undefined>;
-  put<E extends EntityName>(entity: E, row: Row<E>): Promise<void>;          // вставка или полная замена
-  patch<E extends EntityName>(entity: E, id: string, partial: Partial<Row<E>>): Promise<void>; // нет строки → MutatorError('not_found')
-  del<E extends EntityName>(entity: E, id: string): Promise<void>;           // нет строки → ничего
-  scan<E extends EntityName>(entity: E, opts?: { index: string; eq: unknown }): Promise<Row<E>[]>; // порядок не гарантирован
+  put<E extends EntityName>(entity: E, row: Row<E>): Promise<void>;          // insert or full replace
+  patch<E extends EntityName>(entity: E, id: string, partial: Partial<Row<E>>): Promise<void>; // no row → MutatorError('not_found')
+  del<E extends EntityName>(entity: E, id: string): Promise<void>;           // no row → nothing
+  scan<E extends EntityName>(entity: E, opts?: { index: string; eq: unknown }): Promise<Row<E>[]>; // order not guaranteed
 }
 
 export interface MutatorDef<A extends z.ZodType = z.ZodType> {
   name: string; args: A; run(tx: Tx, args: z.output<A>, ctx: MutatorCtx): Promise<void>;
 }
-export function defineMutator<A extends z.ZodType>(def: MutatorDef<A>): MutatorDef<A>; // возвращает def как есть
-export function createRegistry(defs: MutatorDef[]): Map<string, MutatorDef>;          // дубль имени → throw
+export function defineMutator<A extends z.ZodType>(def: MutatorDef<A>): MutatorDef<A>; // returns def as is
+export function createRegistry(defs: MutatorDef[]): Map<string, MutatorDef>;          // duplicate name → throw
 
 export type MutationErrorCode = 'invalid_args' | 'forbidden' | 'not_found' | 'conflict';
 export class MutatorError extends Error { constructor(public code: MutationErrorCode, message: string) }
 export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ```
 
-### Правила
-- `scan` с `index` не из `indexes` сущности → `throw Error` (во всех реализациях `Tx`). Без `opts` — все строки (только для малых сущностей: `users`, `settings`, `spaces`, `statuses`, `labels`).
-- `put`/`patch` проверяют итоговую строку по `entitySchemas[entity]`; нарушение → `MutatorError('invalid_args')`.
-- Мутатор детерминирован: все id создаваемых строк и `rank` приходят в `args` (их считает вызывающий: `uuidv7()`, `generateKeyBetween` из `fractional-indexing`). Время — только `ctx.now`. Ветвления по `ctx.server` — только чтобы не делать на клиенте то, что умеет лишь сервер.
-- Update-мутаторы: поле отсутствует — не меняется, `null` — обнулить. Изменения по полям: при конфликте побеждает последняя запись на сервере.
-- Удаление родителя — мутатор сначала удаляет дочерние строки (см. FK в C-schema).
-- **Серверный `Tx`** (CR-4, `apps/api/src/sync/server-tx.ts`): поверх транзакции Drizzle, строки в формате провода. На каждую запись — проверка прав по `write` сущности (для `patch`/`del` и замены — по существующей строке, для `put` — и по новой); запрет → `MutatorError('forbidden')`. Затем строка в `changes`, для `tasks`/`taskAssignees`/`taskLabels`/`comments` — `activity` (C-schema). Нарушение уникальности (23505) → `conflict`, FK (23503) → `invalid_args`. Чтение (`get`/`scan`) прав не проверяет: мутаторы — доверенный код. Серверный код (CR-3, CR-7) пишет через тот же `Tx` с `ctx.userId` системы и обходом прав (`asSystem`), чтобы попасть в `changes`.
-- **`MemoryTx`** (CR-5, `packages/shared/src/testing/memory-tx.ts`, экспорт `@planar/shared/testing`) — `new MemoryTx()`, та же семантика без прав, `changes`, `activity`; `get`/`scan` возвращают копии. Нужен web для тестов и как образец для Dexie.
-- Набор тестов семантики `Tx` — `txContractSuite(name, setup)` из `packages/shared/test/tx-contract.ts`: обе реализации обязаны его проходить (MemoryTx — `packages/shared/test/memory-tx.test.ts`, CR-5; серверный — CR-4).
+### Rules
+- `scan` with an `index` not in the entity's `indexes` → `throw Error` (in all `Tx` implementations). Without `opts` — all rows (only for small entities: `users`, `settings`, `spaces`, `statuses`, `labels`).
+- `put`/`patch` validate the resulting row against `entitySchemas[entity]`; a violation → `MutatorError('invalid_args')`.
+- A mutator is deterministic: all ids of created rows and `rank` come in `args` (computed by the caller: `uuidv7()`, `generateKeyBetween` from `fractional-indexing`). Time — only `ctx.now`. Branching on `ctx.server` — only to avoid doing on the client what only the server can do.
+- Update mutators: a missing field is unchanged, `null` clears it. Changes are per field: on conflict the last write on the server wins.
+- Deleting a parent — the mutator first deletes the child rows (see FK in C-schema).
+- **Server `Tx`** (CR-4, `apps/api/src/sync/server-tx.ts`): on top of a Drizzle transaction, rows in wire format. Every write is checked against the entity's `write` permission (for `patch`/`del` and replacement — against the existing row, for `put` — against the new one as well); a denial → `MutatorError('forbidden')`. Then a row in `changes`, and for `tasks`/`taskAssignees`/`taskLabels`/`comments` — `activity` (C-schema). A uniqueness violation (23505) → `conflict`, FK (23503) → `invalid_args`. Reads (`get`/`scan`) do not check permissions: mutators are trusted code. Server code (CR-3, CR-7) writes through the same `Tx` with the system `ctx.userId` and a permission bypass (`asSystem`), to get into `changes`.
+- **`MemoryTx`** (CR-5, `packages/shared/src/testing/memory-tx.ts`, exported as `@planar/shared/testing`) — `new MemoryTx()`, the same semantics without permissions, `changes`, `activity`; `get`/`scan` return copies. Needed by web for tests and as a model for Dexie.
+- The `Tx` semantics test suite — `txContractSuite(name, setup)` from `packages/shared/test/tx-contract.ts`: both implementations must pass it (MemoryTx — `packages/shared/test/memory-tx.test.ts`, CR-5; the server one — CR-4).
 
-### Мутаторы домена v2
-Таблица имён, args и правил — `docs/contracts/core-mutators.md` (часть C-mutators, версия — этого раздела).
+### Domain mutators v2
+The table of names, args and rules — `docs/contracts/core-mutators.md` (part of C-mutators, the version is that of this section).
 
 ## C-modules v12
 
-v12 (группы): `FrontendModuleManifest.groupTabs?` — `GroupTabDef {id, tab: inbox|docs|chats|reports|settings, label?, icon?, order?, component}`; компонент получает `scope: GroupScope {level: workspace|space|project, spaceId, projectId, rootSpaceId}` (у Воркспейса `spaceId` — корневое пространство) и показывает данные уровня группы и вложенных; несколько вкладов в один таб — подтабы (`?r=<moduleId>:<id>`). SDK += `useGroupLevels(scope)` — уровни группы сверху вниз (`apps/web/src/layout/groups.ts`). `SettingsPageDef.level?` (workspace по умолчанию | space | project) — уровень настроек группы; страница получает `spaceId` и `projectId`. Секции `nav` модулей docs, chat, time, import, dashboards, workload, goals убраны — их место в дереве групп; точка `nav` — для прочих модулей. SDK += `groupUrl`, `GroupProjectPick`.
-v11 (p4): `BackendModuleManifest.unavailable?`, `GET /api/modules` += `unavailable`; `/api/<id>/setup/*` выключенного модуля — только owner/admin (ModuleGuard); `FrontendModuleManifest.setup?`; `CommandDef.newTaskMenu?` — docs/contracts/p4.md (вступление).
-v10 (design, DS-0): SDK += компоненты C-ui v3 — work-api.md, design.md.
-v9 (p3, PT-5): `CoreServices` += `execute(userId, muts, opts?)` — как `JobApi.execute`; `ensureSystemUser(login, name): Promise<string>` — деактивированный пользователь без пароля (как «Автоматизация»), повторный вызов возвращает того же; `storeFile(buf: Buffer, uploaderId: string): Promise<{sha256, size, mime, width, height}>` — та же запись, что `POST /files` (`files`, `file_uploads`, лимит `MAX_UPLOAD_MB` → `413`).
-v8: JobApi.execute opts.after — в транзакции после всех мутаций, ошибка откатывает (PL-2) — work.md §C-modules v4.
-v7: перечень SDK (sendTyping/onTyping с C-sync v2) — work-api.md.
-v3–v6 (work, владелец C-modules): хуки, server-kit, SDK, настройки, правки collab — work.md, work-api.md.
+v12 (groups): `FrontendModuleManifest.groupTabs?` — `GroupTabDef {id, tab: inbox|docs|chats|reports|settings, label?, icon?, order?, component}`; the component receives `scope: GroupScope {level: workspace|space|project, spaceId, projectId, rootSpaceId}` (for the Workspace `spaceId` is the root space) and shows data of the group level and of nested ones; several contributions to one tab become subtabs (`?r=<moduleId>:<id>`). SDK += `useGroupLevels(scope)` — group levels from top to bottom (`apps/web/src/layout/groups.ts`). `SettingsPageDef.level?` (workspace by default | space | project) — the group settings level; the page receives `spaceId` and `projectId`. The `nav` sections of the modules docs, chat, time, import, dashboards, workload, goals are removed — their place is in the group tree; the `nav` point is for other modules. SDK += `groupUrl`, `GroupProjectPick`.
+v11 (p4): `BackendModuleManifest.unavailable?`, `GET /api/modules` += `unavailable`; `/api/<id>/setup/*` of a disabled module — owner/admin only (ModuleGuard); `FrontendModuleManifest.setup?`; `CommandDef.newTaskMenu?` — docs/contracts/p4.md (introduction).
+v10 (design, DS-0): SDK += C-ui v3 components — work-api.md, design.md.
+v9 (p3, PT-5): `CoreServices` += `execute(userId, muts, opts?)` — like `JobApi.execute`; `ensureSystemUser(login, name): Promise<string>` — a deactivated user without a password (like "Automation"), a repeated call returns the same one; `storeFile(buf: Buffer, uploaderId: string): Promise<{sha256, size, mime, width, height}>` — the same record as `POST /files` (`files`, `file_uploads`, limit `MAX_UPLOAD_MB` → `413`).
+v8: JobApi.execute opts.after — in the transaction after all mutations, an error rolls back (PL-2) — work.md §C-modules v4.
+v7: the SDK list (sendTyping/onTyping with C-sync v2) — work-api.md.
+v3–v6 (work, owner of C-modules): hooks, server-kit, SDK, settings, collab fixes — work.md, work-api.md.
 
-Модуль — каталог `modules/<id>/` (`id` — `^[a-z][a-z0-9-]{1,30}$`):
-- `shared/index.ts` — `export const shared: SharedModuleManifest = { id, mutators: MutatorDef[], entities: Record<string, {schema: ZodObject, meta: EntityMeta}> }` (без Node API; сущности — по правилам C-schema, имена с префиксом id модуля в camelCase);
-- `api/index.ts` — `export const api: BackendModuleManifest = { id, nestModule, mutators, entities }` (`mutators`, `entities` — из `shared`); таблицы — `api/schema.ts`;
-- `web/index.ts` — `export const web: FrontendModuleManifest = { id, routes?, views?, taskPanels?, commands?, fieldTypes?, settings? }`; типы элементов задаёт web (C-ui).
+A module is a directory `modules/<id>/` (`id` — `^[a-z][a-z0-9-]{1,30}$`):
+- `shared/index.ts` — `export const shared: SharedModuleManifest = { id, mutators: MutatorDef[], entities: Record<string, {schema: ZodObject, meta: EntityMeta}> }` (no Node API; entities follow the C-schema rules, names are the module id prefix in camelCase);
+- `api/index.ts` — `export const api: BackendModuleManifest = { id, nestModule, mutators, entities }` (`mutators`, `entities` — from `shared`); tables — `api/schema.ts`;
+- `web/index.ts` — `export const web: FrontendModuleManifest = { id, routes?, views?, taskPanels?, commands?, fieldTypes?, settings? }`; element types are defined by web (C-ui).
 
-`EntityMeta` = строка сущности из C-schema: `{scope, write, bootstrap: boolean, indexes: string[]}`; встроенные — `ENTITIES`.
+`EntityMeta` = an entity line from C-schema: `{scope, write, bootstrap: boolean, indexes: string[]}`; built-in ones — `ENTITIES`.
 
-HTTP-маршруты модуля — только под `/api/<id>/` (по префиксу их находит guard включения). Реестр api-модулей — `apps/api/src/modules/installed.ts` (строка на модуль); пакет модуля — `@planar/module-<id>` в workspace. Сущности модуля в `Tx` — через приведение имени к `EntityName` (типы `Tx` знают только ядро).
+HTTP routes of a module — only under `/api/<id>/` (the enable guard finds them by the prefix). The registry of api modules — `apps/api/src/modules/installed.ts` (a line per module); the module package — `@planar/module-<id>` in the workspace. Module entities in `Tx` — by casting the name to `EntityName` (the `Tx` types know only the core).
 
-Включение — `settings.enabled_modules`. Выключенный модуль: его HTTP-маршруты отвечают `404 module_disabled`, его мутаторы — `unknown_mutator`, его сущности не попадают в bootstrap и pull. Загрузка всех модулей — при старте API (маршруты есть всегда, проверку делает guard); смена `enabled_modules` пишет `_reset` для всех.
+Enabling — `settings.enabled_modules`. A disabled module: its HTTP routes answer `404 module_disabled`, its mutators — `unknown_mutator`, its entities do not reach bootstrap and pull. All modules are loaded at API start (the routes are always there, the guard does the check); a change of `enabled_modules` writes `_reset` for everyone.
 
 ## C-http v12
 
 v12 (ops): `GET /api/health/ready`, `GET /api/metrics` (docs/contracts/ops.md).
 
-v11 (p3): WS `/collab` (Hocuspocus; cookie и Origin — как `/ws`; `docs/contracts/p3.md` §P3-collab); env `PLANAR_SECRET_KEY`, `TRUST_PROXY`; вход `/f/*` — отдельная HTML-страница публичных форм (§P3-forms).
+v11 (p3): WS `/collab` (Hocuspocus; cookie and Origin — as for `/ws`; `docs/contracts/p3.md` §P3-collab); env `PLANAR_SECRET_KEY`, `TRUST_PROXY`; the entry `/f/*` — a separate HTML page of public forms (§P3-forms).
 
-v10 (CL-1a): `GET /files` и push без задачи — collab.md §X-core п. 3–4.
+v10 (CL-1a): `GET /files` and push without a task — collab.md §X-core items 3–4.
 
-v9 (WK-0): `cycleId` в REST v1; пути WK-5 — work.md.
-v8 (FT): поля в REST v1 и MCP (core-api-v1.md).
+v9 (WK-0): `cycleId` in REST v1; WK-5 paths — work.md.
+v8 (FT): fields in REST v1 and MCP (core-api-v1.md).
 
-### Пути и окружение
-- `/api/*` — REST, `/sync/*` — синхронизация, `/ws` — WebSocket, `/files/*` — файлы, `/mcp` — MCP (CR-11), `/collab` — WebSocket совместного редактирования (v11), `/f/*` — страница публичной формы, отдельный HTML-вход web без приложения (v11). В dev Vite проксирует их на api, в prod — Caddy.
-- Env api: `DATABASE_URL`, `PORT` (3000), `PUBLIC_URL` (origin для проверки, напр. `http://localhost:5173`), `COOKIE_SECURE` (`true` в prod), `DATA_DIR` (`./data`, файлы — `$DATA_DIR/files/<ab>/<cd>/<sha256>`, ab и cd — первые 4 hex-символа), `MAX_UPLOAD_MB` (50), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `LOG_LEVEL`, `PLANAR_SECRET_KEY` (v11; 32 байта в base64 — ключ AES-256-GCM секретов модулей, напр. токена GitLab; не задан — функции с секретами отвечают `503 unavailable`). `TRUST_PROXY` (v11) — IP/CIDR доверенных прокси через запятую (Fastify `trustProxy` списком, не `true`); пусто — выкл.: `req.ip` — адрес соединения. Задан — `req.ip` из `X-Forwarded-For` только от адресов списка. Prod `compose.yml`: фиксированная подсеть сети Caddy, порт api наружу не публикуется. По `req.ip` считаются лимит входа и лимит публичных форм.
-- JSON-тело ≤ 1 МБ, кроме загрузки файлов.
+### Paths and environment
+- `/api/*` — REST, `/sync/*` — sync, `/ws` — WebSocket, `/files/*` — files, `/mcp` — MCP (CR-11), `/collab` — collaborative editing WebSocket (v11), `/f/*` — public form page, a separate HTML entry of web without the app (v11). In dev Vite proxies them to api, in prod — Caddy.
+- Env api: `DATABASE_URL`, `PORT` (3000), `PUBLIC_URL` (origin for the check, e.g. `http://localhost:5173`), `COOKIE_SECURE` (`true` in prod), `DATA_DIR` (`./data`, files — `$DATA_DIR/files/<ab>/<cd>/<sha256>`, ab and cd — the first 4 hex characters), `MAX_UPLOAD_MB` (50), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `LOG_LEVEL`, `PLANAR_SECRET_KEY` (v11; 32 bytes in base64 — the AES-256-GCM key for module secrets, e.g. the GitLab token; not set — features with secrets answer `503 unavailable`). `TRUST_PROXY` (v11) — IPs/CIDRs of trusted proxies, comma-separated (Fastify `trustProxy` as a list, not `true`); empty — off: `req.ip` is the connection address. Set — `req.ip` is taken from `X-Forwarded-For` only from addresses in the list. Prod `compose.yml`: a fixed subnet of the Caddy network, the api port is not published outside. The login limit and the public-form limit are counted by `req.ip`.
+- JSON body ≤ 1 MB, except file uploads.
 
-### Ошибки
-Любой не-2xx ответ — JSON `{code, message, details?}`. `details` у `invalid_request` — `issues` из zod.
+### Errors
+Any non-2xx response is JSON `{code, message, details?}`. `details` of `invalid_request` — `issues` from zod.
 
-| статус | code |
+| status | code |
 |---|---|
 | 400 | `invalid_request` |
 | 401 | `unauthenticated`, `invalid_credentials` |
@@ -303,35 +303,34 @@ v8 (FT): поля в REST v1 и MCP (core-api-v1.md).
 {"code": "teapot", "message": "?"}
 ```
 
-### Сессия и Origin
-- Cookie `planar_sid`: случайные 32 байта, base64url; `HttpOnly; SameSite=Lax; Path=/`, `Secure` при `COOKIE_SECURE=true`. В БД — только sha256 hex (`sessions.id`). Срок 30 дней, продлевается, когда осталось < 15.
-- Небезопасные методы (POST, PUT, PATCH, DELETE) с cookie-авторизацией и upgrade `/ws`: заголовок `Origin` обязан совпасть с origin `PUBLIC_URL`, иначе `403 origin_mismatch` (нет заголовка — тоже отказ).
-- `Authorization: Bearer plnr_<…>` (CR-10) даёт тот же `ctx.userId`; Origin не проверяется. Токен `read` — только GET и `/sync/bootstrap`, `/sync/pull`; иначе `403 forbidden`. Токены, REST `/api/v1` и MCP `/mcp` — `docs/contracts/core-api-v1.md` (часть C-http).
-- Деактивированный пользователь — `401 unauthenticated` (сессии удаляются).
+### Session and Origin
+- Cookie `planar_sid`: 32 random bytes, base64url; `HttpOnly; SameSite=Lax; Path=/`, `Secure` when `COOKIE_SECURE=true`. In the DB — only the sha256 hex (`sessions.id`). Lifetime 30 days, extended when < 15 remain.
+- Unsafe methods (POST, PUT, PATCH, DELETE) with cookie authorization and the `/ws` upgrade: the `Origin` header must match the origin of `PUBLIC_URL`, otherwise `403 origin_mismatch` (a missing header is also a refusal).
+- `Authorization: Bearer plnr_<…>` (CR-10) gives the same `ctx.userId`; Origin is not checked. A `read` token — only GET and `/sync/bootstrap`, `/sync/pull`; otherwise `403 forbidden`. Tokens, REST `/api/v1` and MCP `/mcp` — `docs/contracts/core-api-v1.md` (part of C-http).
+- A deactivated user — `401 unauthenticated` (sessions are deleted).
 
-### Эндпоинты core
-| метод и путь | вход → выход | задача |
+### Core endpoints
+| method and path | input → output | task |
 |---|---|---|
 | `GET /api/health` | → `200 {ok: true, db: 'up'}` \| `503 {ok: false, db: 'down'}` | CR-1 |
-| `GET /api/setup` | → `200 {needed: boolean}` — `true`, пока нет ни одного пользователя; без авторизации | CR-3 |
-| `POST /api/setup` | `{login, name, password}` → `201 {user}`; пользователи уже есть → `409 conflict` | CR-3 |
-| `POST /api/auth/login` | `{login, password}` → `200 {user}` + cookie; `401 invalid_credentials`; > 10 попыток/мин на IP+login → `429` | CR-3 |
-| `POST /api/auth/logout` | → `204`, cookie сброшен | CR-3 |
+| `GET /api/setup` | → `200 {needed: boolean}` — `true` while there are no users; no authorization | CR-3 |
+| `POST /api/setup` | `{login, name, password}` → `201 {user}`; users already exist → `409 conflict` | CR-3 |
+| `POST /api/auth/login` | `{login, password}` → `200 {user}` + cookie; `401 invalid_credentials`; > 10 attempts/min per IP+login → `429` | CR-3 |
+| `POST /api/auth/logout` | → `204`, cookie cleared | CR-3 |
 | `GET /api/auth/me` | → `{user}` \| `401` | CR-3 |
 | `GET /api/users` | → `{users: user[]}` (instance_admin) | CR-3 |
 | `POST /api/users` | `{login, name, password, role, email?}` → `201 {user}` (instance_admin) | CR-3 |
-| `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool, avatarFile?: string\|null}` → `{user}`; `avatarFile` — sha256 из `POST /files`, загруженного этим пользователем (`file_uploads`), иначе `400 invalid_request`; себя — только name, email, password, avatarFile | CR-3 |
+| `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool, avatarFile?: string\|null}` → `{user}`; `avatarFile` — a sha256 from `POST /files` uploaded by this user (`file_uploads`), otherwise `400 invalid_request`; for oneself — only name, email, password, avatarFile | CR-3 |
 | `GET /api/push/vapid` | → `{publicKey}` (VAPID, base64url) | CR-7 |
-| `POST /api/push/subscribe` | `{endpoint, keys: {p256dh, auth}}` → `201`; повтор того же endpoint — обновление, `200` | CR-7 |
-| `DELETE /api/push/subscribe` | `{endpoint}` → `204` (только свои) | CR-7 |
-| `GET /api/modules` | → `{modules: [{id, enabled}]}` — все загруженные модули; включение — мутатор `settings.set` `enabled_modules` | CR-8 |
-| `GET /api/tasks/:id/activity` | → `{rows: activity[]}` по `createdAt`, права — видимость задачи | CR-4 |
-| `POST /files` | multipart, одно поле `file` → `201 {sha256, size, mime, width, height}`; > `MAX_UPLOAD_MB` → `413` | CR-6 |
-| `GET /files/:sha256` | → поток; `?name=` для `Content-Disposition`; доступ: файл приложен в пространстве пользователя, или это аватар пользователя, или есть `file_uploads(sha256, userId)`; иначе `404` | CR-6 |
-| `GET /files/:sha256/preview?w=256\|1024` | → `image/webp`; не картинка → `404` | CR-6 |
+| `POST /api/push/subscribe` | `{endpoint, keys: {p256dh, auth}}` → `201`; a repeat of the same endpoint — an update, `200` | CR-7 |
+| `DELETE /api/push/subscribe` | `{endpoint}` → `204` (own only) | CR-7 |
+| `GET /api/modules` | → `{modules: [{id, enabled}]}` — all loaded modules; enabling — the mutator `settings.set` `enabled_modules` | CR-8 |
+| `GET /api/tasks/:id/activity` | → `{rows: activity[]}` by `createdAt`, permissions — task visibility | CR-4 |
+| `POST /files` | multipart, a single field `file` → `201 {sha256, size, mime, width, height}`; > `MAX_UPLOAD_MB` → `413` | CR-6 |
+| `GET /files/:sha256` | → stream; `?name=` for `Content-Disposition`; access: the file is attached in the user's space, or it is the user's avatar, or `file_uploads(sha256, userId)` exists; otherwise `404` | CR-6 |
+| `GET /files/:sha256/preview?w=256\|1024` | → `image/webp`; not an image → `404` | CR-6 |
 
-`user` в ответах — строка `users` (C-schema), без `password_hash`. Пароль — от 8 символов, argon2id.
+`user` in responses is a `users` row (C-schema), without `password_hash`. Password — from 8 characters, argon2id.
 
 ### Web Push
-Формат тела push — `docs/contracts/core-api-v1.md` §Web Push (часть C-http).
-
+The push body format — `docs/contracts/core-api-v1.md` §Web Push (part of C-http).

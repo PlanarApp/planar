@@ -4,32 +4,32 @@ status: "closed"
 module: pwa
 area: "web"
 updated: "2026-10-30"
-summary: "C-pwa v1: usePwa() — состояние обновлений SW и установки PWA для UI"
+summary: "C-pwa v1: usePwa() — service worker update and PWA install state for the UI"
 related: [docs/plan/pwa.md]
 ---
 
-# Контракты модуля pwa
+# Contracts of the pwa module
 
 ## C-pwa v1 — `usePwa()` (apps/web/src/pwa/usePwa.ts)
-Владелец: PW-1. Потребители: `App.vue` (плашка), PW-2 (Профиль, диалог, палитра).
+Owner: PW-1. Consumers: `App.vue` (banner), PW-2 (Profile, dialog, palette).
 
-Один экземпляр состояния на приложение (модульные `ref`, регистрация SW — один раз при первом вызове).
+One state instance per application (module-level `ref`s; the SW is registered once, on the first call).
 
 ```ts
 type UpdateState = 'idle' | 'checking' | 'current' | 'available' | 'error';
 export function usePwa(): {
-  needRefresh: Readonly<Ref<boolean>>;      // новая версия ждёт применения (как сейчас в App.vue)
-  updateState: Readonly<Ref<UpdateState>>;  // итог последней ручной проверки
-  checkForUpdates(): Promise<UpdateState>;  // reg.update(); 'available' если после неё есть waiting/needRefresh, иначе 'current'; нет SW/ошибка → 'error'
+  needRefresh: Readonly<Ref<boolean>>;      // a new version is waiting to be applied (as in App.vue now)
+  updateState: Readonly<Ref<UpdateState>>;  // result of the last manual check
+  checkForUpdates(): Promise<UpdateState>;  // reg.update(); 'available' if waiting/needRefresh is set after it, otherwise 'current'; no SW/error → 'error'
   applyUpdate(): Promise<void>;             // updateServiceWorker(true)
-  canInstall: Readonly<Ref<boolean>>;       // перехвачен beforeinstallprompt и не standalone
-  isStandalone: Readonly<Ref<boolean>>;     // display-mode: standalone или navigator.standalone (iOS)
-  isIos: boolean;                           // Safari iOS/iPadOS: установки через prompt нет, нужна инструкция
-  install(): Promise<'accepted' | 'dismissed' | 'unavailable'>; // prompt() перехваченного события; после — canInstall=false
+  canInstall: Readonly<Ref<boolean>>;       // beforeinstallprompt was intercepted and not standalone
+  isStandalone: Readonly<Ref<boolean>>;     // display-mode: standalone or navigator.standalone (iOS)
+  isIos: boolean;                           // Safari iOS/iPadOS: no install via prompt, instructions are needed
+  install(): Promise<'accepted' | 'dismissed' | 'unavailable'>; // prompt() of the intercepted event; afterwards canInstall=false
 };
 ```
 
-Инварианты:
-- Автопроверка раз в 30 мин и при `visibilitychange → visible`, применение в скрытой вкладке — без изменений относительно текущего `App.vue`.
-- `beforeinstallprompt`: `preventDefault()` и сохранение события; `appinstalled` → `canInstall=false`.
-- Нет SW (dev без PWA, тесты) — `checkForUpdates()` даёт `'error'`, исключения наружу не летят.
+Invariants:
+- Automatic check every 30 min and on `visibilitychange → visible`; applying the update in a hidden tab — unchanged relative to the current `App.vue`.
+- `beforeinstallprompt`: `preventDefault()` and store the event; `appinstalled` → `canInstall=false`.
+- No SW (dev without PWA, tests) — `checkForUpdates()` returns `'error'`; no exceptions propagate.

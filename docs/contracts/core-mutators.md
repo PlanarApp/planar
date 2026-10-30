@@ -3,64 +3,64 @@ type: reference
 status: active
 module: core
 updated: 2026-10-24
-summary: Мутаторы домена C-mutators v9 — имена, args, правила; сверка с domainMutators — packages/shared/test/check-mutators.ts
+summary: Domain mutators of C-mutators v9 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---
 
-# Мутаторы домена (C-mutators, docs/contracts/core.md)
+# Domain mutators (C-mutators, docs/contracts/core.md)
 
-### Мутаторы домена v4 (CR-5, FT, design; web вызывает по имени)
-Все id и `rank` — в args. `?` — необязательный аргумент (`.optional()`; `null` допустим там, где поле строки nullable). Экспорт — `domainMutators: MutatorDef[]` из `@planar/shared`; `args` — `z.object`. Сверка с таблицей — `packages/shared/test/check-mutators.ts`.
+### Domain mutators v4 ( CR-5, FT, design; web calls them by name)
+All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `null` is allowed where the row field is nullable). Export — `domainMutators: MutatorDef[]` from `@planar/shared`; `args` is a `z.object`. Check against the table — `packages/shared/test/check-mutators.ts`.
 
-| имя | args | правила |
+| name | args | rules |
 |---|---|---|
-| `space.create` | `id, name, rank, memberId, statusIds: uuid[5], statusNames?` | создаёт пространство, участника (ctx.userId, admin) и 5 статусов по категориям; `statusNames` — объект с необязательными ключами-категориями `backlog`/`todo`/`in_progress`/`done`/`cancelled` и строковыми значениями; имя статуса — `statusNames[категория]` (строка 1–64 символа после trim), иначе по умолчанию: Backlog, Todo, In Progress, Done, Cancelled (v4: `statusNames`; клиент передаёт имена из i18n текущей локали; существующие пространства не переименовываются) |
+| `space.create` | `id, name, rank, memberId, statusIds: uuid[5], statusNames?` | creates the space, a member (ctx.userId, admin) and 5 statuses by category; `statusNames` is an object with optional keys-categories `backlog`/`todo`/`in_progress`/`done`/`cancelled` and string values; the status name is `statusNames[category]` (a string of 1–64 characters after trim), otherwise the defaults: Backlog, Todo, In Progress, Done, Cancelled (v4: `statusNames`; the client passes names from the i18n of the current locale; existing spaces are not renamed) |
 | `space.update` | `id, name?, description?, color?, icon?, rank?` | |
-| `space.delete` | `id, withContent?` | корневое (`settings.root_space`) → `invalid_args`; есть проекты и нет `withContent` → `conflict`; с `withContent` — сначала задачи проектов (как `task.delete`), поля и проекты; удаляет статусы, метки, виды, участников; журнал и уведомления пространства удаляет БД (FK on delete cascade) |
+| `space.delete` | `id, withContent?` | the root one (`settings.root_space`) → `invalid_args`; there are projects and no `withContent` → `conflict`; with `withContent` — first the project tasks (as `task.delete`), fields and projects; deletes statuses, labels, views, members; the space's journal and notifications are deleted by the DB (FK on delete cascade) |
 | `member.add` | `id, spaceId, userId, role` | |
-| `member.update` | `id, role` | последний admin → `conflict` |
-| `member.remove` | `id` | последний admin → `conflict` |
+| `member.update` | `id, role` | the last admin → `conflict` |
+| `member.remove` | `id` | the last admin → `conflict` |
 | `project.create` | `id, spaceId, name, key, rank, description?, color?, icon?, leadId?` | `spaceId` = `settings.root_space` → `invalid_args` (v6) |
 | `project.update` | `id, name?, key?, description?, color?, icon?, leadId?, rank?, archivedAt?` | |
-| `project.delete` | `id` | есть задачи → `conflict`; удаляет `fieldDefs` проекта |
+| `project.delete` | `id` | there are tasks → `conflict`; deletes the project's `fieldDefs` |
 | `status.create` | `id, spaceId, name, category, color, rank` | |
 | `status.update` | `id, name?, category?, color?, rank?` | |
-| `status.delete` | `id, replaceWith` | задачи переходят в `replaceWith` (того же пространства); последний статус → `conflict` |
+| `status.delete` | `id, replaceWith` | tasks move to `replaceWith` (of the same space); the last status → `conflict` |
 | `label.create` | `id, spaceId, name, color` | |
 | `label.update` | `id, name?, color?` | |
-| `label.delete` | `id` | удаляет `taskLabels` метки |
-| `task.create` | `id, projectId, statusId, title, rank, parentId?, description?, priority?, dueDate?, startDate?, assignees?: {id, userId}[], labels?: {id, labelId}[]` | `spaceId` — из проекта; `number = null`; `priority` по умолчанию 0; `fields = {}`; `cycleId = null` |
-| `task.update` | `id, title?, description?, statusId?, priority?, rank?, dueDate?, startDate?, projectId?, parentId?, fields?` | `completedAt` по категории статуса; `projectId` другого пространства → `invalid_args`; `parentId` — не сама задача и не её потомок; `fields` — полная замена, каждый ключ — поле проекта задачи, значение по типу (features.md §F-fields), иначе `invalid_args`; смена `projectId` без `fields` → `fields = {}`; смена `projectId` → `cycleId = null`; `cycleId` не принимает (work.md §C-schema v7) |
-| `task.delete` | `id` | рекурсивно подзадачи; затем исполнители, наблюдатели, метки, чек-лист, вложения, реакции, комментарии; связи `taskLinks` с taskId или targetId = задача (у каждой удаляемой подзадачи тоже) |
-| `task.assign` | `id, taskId, userId` | уже назначен — ничего |
+| `label.delete` | `id` | deletes the label's `taskLabels` |
+| `task.create` | `id, projectId, statusId, title, rank, parentId?, description?, priority?, dueDate?, startDate?, assignees?: {id, userId}[], labels?: {id, labelId}[]` | `spaceId` — from the project; `number = null`; `priority` defaults to 0; `fields = {}`; `cycleId = null` |
+| `task.update` | `id, title?, description?, statusId?, priority?, rank?, dueDate?, startDate?, projectId?, parentId?, fields?` | `completedAt` by the status category; `projectId` of another space → `invalid_args`; `parentId` — neither the task itself nor its descendant; `fields` — full replacement, each key is a field of the task's project, the value by type (features.md §F-fields), otherwise `invalid_args`; a `projectId` change without `fields` → `fields = {}`; a `projectId` change → `cycleId = null`; does not accept `cycleId` (work.md §C-schema v7) |
+| `task.delete` | `id` | subtasks recursively; then assignees, watchers, labels, checklist, attachments, reactions, comments; `taskLinks` links with taskId or targetId = the task (for each deleted subtask too) |
+| `task.assign` | `id, taskId, userId` | already assigned — nothing |
 | `task.unassign` | `taskId, userId` | |
 | `task.watch` | `id, taskId` | userId = ctx.userId |
-| `task.unwatch` | `taskId` | только себя |
-| `task.addLabel` | `id, taskId, labelId` | метка того же пространства |
+| `task.unwatch` | `taskId` | only oneself |
+| `task.addLabel` | `id, taskId, labelId` | a label of the same space |
 | `task.removeLabel` | `taskId, labelId` | |
-| `task.setField` | `taskId, fieldId, value` | `value: unknown`; поле — проекта задачи, иначе `invalid_args`; `null` — убрать ключ; иначе значение по типу (features.md §F-fields), `user` — строка `users` есть; меняет один ключ `fields` (остальные не трогает) |
-| `field.create` | `id, projectId, name, type, options?, rank` | `spaceId` — из проекта; `options` по типу (по умолчанию: `select` — `{choices: []}`, `money` — `{currency: 'RUB'}`, иначе `{}`), неверные → `invalid_args` |
-| `field.update` | `id, name?, options?, rank?` | `type` не меняется; у `select` убранные `choices` — значения с ними удаляются из `fields` задач проекта |
-| `field.delete` | `id` | удаляет ключ из `fields` всех задач проекта (scan `projectId`), затем определение |
-| `link.create` | `id, taskId, targetId, kind` | `taskId = targetId` → `invalid_args`; задачи разных пространств или нет задачи → `invalid_args`; пара уже связана (в любом направлении, любым `kind`) → `conflict`; `spaceId` — из задачи, `createdBy = ctx.userId` |
-| `link.delete` | `id` | нет строки — ничего |
+| `task.setField` | `taskId, fieldId, value` | `value: unknown`; the field belongs to the task's project, otherwise `invalid_args`; `null` — remove the key; otherwise the value by type (features.md §F-fields), for `user` the `users` row must exist; changes one key of `fields` (leaves the others alone) |
+| `field.create` | `id, projectId, name, type, options?, rank` | `spaceId` — from the project; `options` by type (defaults: `select` — `{choices: []}`, `money` — `{currency: 'RUB'}`, otherwise `{}`), invalid ones → `invalid_args` |
+| `field.update` | `id, name?, options?, rank?` | `type` does not change; for `select`, removed `choices` — values with them are deleted from the `fields` of the project's tasks |
+| `field.delete` | `id` | deletes the key from `fields` of all tasks of the project (scan `projectId`), then the definition |
+| `link.create` | `id, taskId, targetId, kind` | `taskId = targetId` → `invalid_args`; tasks of different spaces or a missing task → `invalid_args`; the pair is already linked (in any direction, with any `kind`) → `conflict`; `spaceId` — from the task, `createdBy = ctx.userId` |
+| `link.delete` | `id` | no row — nothing |
 | `checklist.add` | `id, taskId, text, rank` | |
 | `checklist.update` | `id, text?, done?, rank?` | |
 | `checklist.delete` | `id` | |
-| `comment.create` | `id, taskId, body, parentId?, assigneeId?` | `authorId = ctx.userId`, `mentions` из `body`; `parentId` — корень треда этой задачи (ответ на ответ → `invalid_args`); `assigneeId` — только у корня, участник пространства не guest, иначе `invalid_args` |
-| `comment.update` | `id, body` | только автор; `editedAt = ctx.now` |
-| `comment.delete` | `id` | только автор; удаляет вложения и реакции комментария, у корня — и весь тред |
-| `comment.assign` | `id, assigneeId: uuid \| null` | только корень (иначе `invalid_args`); роль ≥ member, иначе `forbidden`; сбрасывает `resolvedAt/resolvedBy` |
-| `comment.resolve` | `id, resolved` | только назначенный корень; исполнитель, автор или admin пространства, иначе `forbidden`; `resolvedAt/resolvedBy` = `ctx.now/ctx.userId` или null |
-| `reaction.toggle` | `id, commentId, emoji` | есть реакция (commentId, ctx.userId, emoji) — удалить, иначе создать с `id`; `spaceId` — из комментария |
+| `comment.create` | `id, taskId, body, parentId?, assigneeId?` | `authorId = ctx.userId`, `mentions` from `body`; `parentId` — the root of a thread of this task (a reply to a reply → `invalid_args`); `assigneeId` — only for a root, a space member who is not a guest, otherwise `invalid_args` |
+| `comment.update` | `id, body` | author only; `editedAt = ctx.now` |
+| `comment.delete` | `id` | author only; deletes the comment's attachments and reactions, for a root — the whole thread too |
+| `comment.assign` | `id, assigneeId: uuid \| null` | root only (otherwise `invalid_args`); role ≥ member, otherwise `forbidden`; resets `resolvedAt/resolvedBy` |
+| `comment.resolve` | `id, resolved` | assigned root only; the assignee, the author or a space admin, otherwise `forbidden`; `resolvedAt/resolvedBy` = `ctx.now/ctx.userId` or null |
+| `reaction.toggle` | `id, commentId, emoji` | a reaction (commentId, ctx.userId, emoji) exists — delete it, otherwise create it with `id`; `spaceId` — from the comment |
 | `attachment.create` | `id, taskId, commentId?, fileSha256, name, mime, size, width?, height?` | `uploadedBy = ctx.userId` |
 | `attachment.delete` | `id` | |
-| `notification.read` | `ids: uuid[]` | `readAt = ctx.now`, только свои |
-| `notification.delete` | `ids: uuid[]` | только свои |
+| `notification.read` | `ids: uuid[]` | `readAt = ctx.now`, own only |
+| `notification.delete` | `ids: uuid[]` | own only |
 | `view.create` | `id, spaceId, personal: bool, name, icon?, layout, filter, config, rank` | `personal` → `userId = ctx.userId` |
 | `view.update` | `id, name?, icon?, layout?, filter?, config?, rank?` | |
 | `view.delete` | `id` | |
-| `settings.set` | `id, value` | v5: `id = 'enabled_modules'` — id модуля, которого не было во включённых, с `unavailable` ≠ null (C-modules v11) → `invalid_args`; проверка только на сервере |
+| `settings.set` | `id, value` | v5: `id = 'enabled_modules'` — the id of a module that was not among the enabled ones, with `unavailable` ≠ null (C-modules v11) → `invalid_args`; checked on the server only |
 
-Вспомогательное (shared): `fieldValueSchema(def)`, `defaultFieldOptions(type)`, `fieldOptionsSchema(type)` (features.md §F-fields), `extractMentions(doc): string[]`, `textToDoc(text, users): doc` (абзацы, `@login` → mention; для REST и MCP).
+Helpers (shared): `fieldValueSchema(def)`, `defaultFieldOptions(type)`, `fieldOptionsSchema(type)` (features.md §F-fields), `extractMentions(doc): string[]`, `textToDoc(text, users): doc` (paragraphs, `@login` → mention; for REST and MCP).
 

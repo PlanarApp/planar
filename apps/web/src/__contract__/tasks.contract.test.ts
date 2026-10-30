@@ -9,7 +9,7 @@ import type { TaskView } from '../tasks/index';
 
 const doc = readFileSync(new URL('../../../../docs/contracts/web.md', import.meta.url), 'utf8');
 const part = doc.split(/^## C-tasks v\d+\s*$/m)[1] ?? '';
-const table = part.split(/^### /m).find((s) => s.startsWith('Экспорты')) ?? '';
+const table = part.split(/^### /m).find((s) => s.startsWith('Exports')) ?? '';
 const names = [...table.matchAll(/^\| (`\w+`(?:, `\w+`)*) \|/gm)].flatMap((m) =>
   [...m[1].matchAll(/`(\w+)`/g)].map((x) => x[1]),
 );
