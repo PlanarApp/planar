@@ -1,7 +1,13 @@
 docs/plan/
 docs/research/
 docs/registry/
+docs/INDEX.md
+docs/roadmap.md
+docs/launch-materials/
+.dpcli
 .dpcli/
+.dpcli-local/
+.gitmodules
 .claude/
 CLAUDE.md
 dpcli.yml
