@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue';
-import { Paperclip, Send, X } from 'lucide-vue-next';
+import { defineAsyncComponent, onBeforeUnmount, ref } from 'vue';
+import { Paperclip, Send, Smile, X } from 'lucide-vue-next';
 import {
   ApiError,
   Button,
   Editor,
   IconButton,
+  Popover,
   mutate,
   newId,
   onMutationError,
@@ -14,6 +15,8 @@ import {
 } from '@planar/web/modules';
 import { plain } from './model';
 import { useTexts } from './text';
+
+const EmojiPicker = defineAsyncComponent(() => import('./EmojiPicker.vue'));
 
 const props = defineProps<{
   channelId: string;
@@ -37,6 +40,11 @@ const body = ref<Doc>(null);
 const atts = ref<Att[]>([]);
 const error = ref('');
 const editor = ref<InstanceType<typeof Editor> | null>(null);
+const emojiOpen = ref(false);
+function insertEmoji(e: string) {
+  emojiOpen.value = false;
+  editor.value?.editor?.chain().focus().insertContent(e).run();
+}
 const picker = ref<HTMLInputElement | null>(null);
 
 // отказ сервера: отправленная строка откатится — покажем причину
@@ -151,6 +159,12 @@ function onEnter(e: KeyboardEvent) {
       </ul>
       <div class="flex items-end gap-1">
         <IconButton :icon="Paperclip" :label="tx('attach')" @click="picker?.click()" />
+        <Popover v-model:open="emojiOpen" side="top" align="start">
+          <template #trigger>
+            <IconButton :icon="Smile" :label="tx('emoji')" data-testid="chat-emoji" />
+          </template>
+          <EmojiPicker v-if="emojiOpen" @pick="insertEmoji" />
+        </Popover>
         <input
           ref="picker"
           type="file"

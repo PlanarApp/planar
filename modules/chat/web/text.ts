@@ -61,6 +61,8 @@ const S = {
   people: { ru: 'Сотрудники', en: 'People' },
   chats: { ru: 'Чаты', en: 'Chats' },
   nothingFound: { ru: 'Ничего не найдено', en: 'Nothing found' },
+  moreEmoji: { ru: 'Другие эмодзи', en: 'More emoji' },
+  emoji: { ru: 'Эмодзи', en: 'Emoji' },
   noChannels: { ru: 'Нет каналов', en: 'No channels' },
   unknown: { ru: 'Неизвестный', en: 'Unknown' },
 } as const;

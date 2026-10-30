@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { useChatLinks } from './links';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, nextTick, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { MessageSquare, Pencil, SmilePlus, Trash2 } from 'lucide-vue-next';
+import { MessageSquare, Pencil, Plus, SmilePlus, Trash2 } from 'lucide-vue-next';
 import {
   Button,
   ConfirmDialog,
   Editor,
   IconButton,
+  Popover,
   Sheet,
   mutate,
   newId,
@@ -27,6 +28,8 @@ import {
   type UserRow,
 } from './model';
 import { useTexts } from './text';
+
+const EmojiPicker = defineAsyncComponent(() => import('./EmojiPicker.vue'));
 
 const props = defineProps<{
   message: Message;
@@ -71,6 +74,8 @@ const EMOJI = ['👍', '❤️', '😄', '🎉'];
 // панель действий (иконки, кнопки) монтируется при наведении/фокусе: на быстрой прокрутке это треть стоимости строки
 const armed = ref(false);
 const picking = ref(false);
+// полный набор эмодзи для реакции — пикер монтируется только открытым
+const more = ref(false);
 // мобильная: наведения нет — нажатие на сообщение открывает лист действий (монтируется по нажатию)
 const { isMobile } = useBreakpoint();
 const sheet = ref(false);
@@ -97,7 +102,7 @@ const grouped = computed(() => {
   }));
 });
 const react = (emoji: string) => {
-  picking.value = false;
+  picking.value = more.value = false;
   const mine = props.reactions.find((r) => r.userId === props.me && r.emoji === emoji);
   void toReplica(m.value)
     .then(() =>
@@ -252,7 +257,16 @@ const remove = () =>
           >
             {{ e }}
           </button>
+          <button
+            type="button"
+            :aria-label="tx('moreEmoji')"
+            class="flex size-11 items-center justify-center rounded-md text-fg-muted"
+            @click="more = !more"
+          >
+            <Plus :size="18" />
+          </button>
         </div>
+        <EmojiPicker v-if="more" class="pb-2" @pick="act(() => react($event))" />
         <button
           v-if="!inThread"
           type="button"
@@ -290,6 +304,12 @@ const remove = () =>
         <Button v-for="e in EMOJI" :key="e" size="sm" variant="ghost" @click="react(e)">
           {{ e }}
         </Button>
+        <Popover v-model:open="more" align="start">
+          <template #trigger>
+            <IconButton :icon="Plus" :label="tx('moreEmoji')" size="sm" data-testid="emoji-more" />
+          </template>
+          <EmojiPicker v-if="more" @pick="react" />
+        </Popover>
       </template>
       <IconButton v-else :icon="SmilePlus" :label="tx('react')" size="sm" @click="picking = true" />
       <a
