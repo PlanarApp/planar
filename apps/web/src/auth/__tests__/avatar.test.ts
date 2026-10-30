@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProfileScreen from '../../screens/ProfileScreen.vue';
 import { useAuth } from '../useAuth';
 import { json, mkI18n, mkRouter, mkUser, mockFetch, resetAuth } from './helpers';
+vi.mock('../../pwa/register', () => ({
+  useRegisterSW: () => ({ needRefresh: { value: false }, updateServiceWorker: async () => {} }),
+}));
 
 const sync = vi.hoisted(() => ({ state: { value: { status: 'online', pending: 0 } } }));
 vi.mock('../../sync', () => ({ syncState: sync.state, clearLocal: async () => {} }));

@@ -44,10 +44,16 @@ generated: true
 
 - [docs/roadmap.md](roadmap.md) — Роадмап Planar: MVP + v1(часть) + API-токены и MCP за 24 ч параллельной работы — модули, задачи, волны, контракты, приёмка
 
+### Контракты стыков (contract)
+
+- [docs/contracts/pwa.md](contracts/pwa.md) — C-pwa v1: usePwa() — состояние обновлений SW и установки PWA для UI [closed]
+
 ### Журналы (journal)
 
 - [docs/plan/inbox-split/decisions.md](plan/inbox-split/decisions.md) — Решения (0) и вопросы (0, отвечено 0) модуля inbox-split [closed]
 - [docs/plan/inbox-split/summary.md](plan/inbox-split/summary.md) — Сводка реализации модуля inbox-split: 1 задач, итоги и оговорки исполнителей [closed]
+- [docs/plan/pwa/decisions.md](plan/pwa/decisions.md) — Decisions (0) and questions (0, 0 answered) of module pwa [closed]
+- [docs/plan/pwa/summary.md](plan/pwa/summary.md) — Implementation summary of module pwa: 2 tasks, executor outcomes and caveats [closed]
 
 ### Реестры (registry)
 
