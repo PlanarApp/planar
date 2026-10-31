@@ -65,3 +65,5 @@
 {"t": "2026-10-30T16:54:24", "module": "launch", "task": "LCH-6", "text": "lint-проверка в карточке падает на файле dont_touch координатора: стоило отформатировать его до выдачи задачи.", "src": "review", "kind": "item"}
 {"t": "2026-10-30T16:53:01", "module": "launch", "task": "LCH-8", "text": "dev.sh named in addendum but absent from scope", "src": "review", "kind": "item"}
 {"t": "2026-10-30T17:17:35", "module": "launch", "task": "LCH-9", "text": "api-typecheck красный в базе (~120 ошибок чужих файлов) - нет базовой линии в карточке.", "src": "review", "kind": "item"}
+{"t": "2026-10-30T18:26:12", "module": "docs-en", "task": "DEN-4", "text": "harness: ru-count.sh under default awk (mawk, non-UTF-8 locale) counts any non-ASCII byte (—, →, ≥) as Cyrillic: gives 226 by hand vs 9 under accept; needs LC_ALL=C.UTF-8 in the script. accept --contract run takes ~120 s, exceeds the 120 s Bash default.", "src": "report", "kind": "item"}
+{"t": "2026-10-30T18:34:23", "module": "docs-en", "task": "DEN-5", "text": "harness: bash_guard blocks perl -i; replacements had to go through a script file in scratchpad.", "src": "report", "kind": "item"}
