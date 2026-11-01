@@ -73,9 +73,7 @@ export default {
   topbar: {
     newTask: 'New task',
     allNotifications: 'All notifications',
-    crumbMenu: 'Siblings of {name}',
     search: 'Search',
-    breadcrumb: 'Breadcrumbs',
     notifications: 'Notifications',
     theme: 'Theme',
     themeSystem: 'System',
@@ -284,7 +282,7 @@ export default {
     table: 'Table',
     calendar: 'Calendar',
     me: {
-      title: 'Me Mode',
+      title: 'Mine',
       hint: 'Only work for me: open tasks and unresolved comments assigned to me',
     },
     empty: 'No views available',

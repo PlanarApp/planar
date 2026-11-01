@@ -12,8 +12,8 @@ import { i18n as appI18n } from '../../i18n';
 import { setWeekStart, useWeekStart } from '../../i18n/week';
 import { registerModules, setEnabledModules } from '../../modules/registry';
 import Sidebar from '../Sidebar.vue';
-import Breadcrumbs from '../Breadcrumbs.vue';
 import TopBar from '../TopBar.vue';
+import { favorites } from '../nav';
 
 const stub = { template: '<div />' };
 const plugins = () => [
@@ -97,8 +97,8 @@ describe('wk0: модули nav/topbar', () => {
   });
 });
 
-describe('DS-1: хлебные крошки проекта', () => {
-  it('пространство / проект / вид', async () => {
+describe('шапка узла: имя и звезда избранного', () => {
+  it('проект: звезда добавляет в избранное и снимает', async () => {
     await db.table('spaces').put({ id: 's1', name: 'Разработка', rank: 'a0' });
     await db
       .table('projects')
@@ -109,19 +109,17 @@ describe('DS-1: хлебные крошки проекта', () => {
     });
     await router.push('/p/p1/board');
     const [, i18n] = plugins();
-    const w = mount(Breadcrumbs, {
+    const w = mount(defineComponent({ render: () => h(TooltipProvider, null, () => h(TopBar)) }), {
       global: { plugins: [router, i18n] },
     });
-    await vi.waitFor(() =>
-      expect(w.get('h1').attributes('title')).toBe('Planar / Разработка / Планар / Доска'),
-    );
-    // level breadcrumbs are links; for a space and a project — a menu of siblings
-    expect(w.findAll('[data-testid=crumb]').map((x) => x.attributes('href'))).toEqual([
-      '/w',
-      '/s/s1',
-      '/p/p1',
-    ]);
-    expect(w.findAll('[data-testid=crumb-menu]')).toHaveLength(3);
+    await vi.waitFor(() => expect(w.get('[data-testid=topbar-node-link]').text()).toBe('Планар'));
+    const star = () => w.get('[data-testid=topbar-favorite]');
+    expect(star().attributes('aria-pressed')).toBe('false');
+    await star().trigger('click');
+    expect(favorites.has('project', 'p1')).toBe(true);
+    expect(star().attributes('aria-pressed')).toBe('true');
+    await star().trigger('click');
+    expect(favorites.has('project', 'p1')).toBe(false);
   });
 });
 

@@ -226,9 +226,6 @@ function save() {
       <component :is="folded ? ChevronRight : ChevronDown" :size="14" />
     </button>
     <span v-else-if="childCount !== undefined" class="w-3 shrink-0" aria-hidden="true" />
-    <div role="gridcell" class="w-16 shrink-0 truncate font-mono text-xs text-fg-muted">
-      {{ task.key }}
-    </div>
     <div v-if="fields.includes('status')" role="gridcell" class="shrink-0" @click.stop>
       <StatusPicker
         compact

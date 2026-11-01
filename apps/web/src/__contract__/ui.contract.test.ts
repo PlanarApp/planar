@@ -127,6 +127,7 @@ describe('C-ui: компоненты', () => {
       'EmptyState',
       'Toolbar',
       'Tooltip',
+      'FavStar',
     ]);
   });
   it.each([...names, 'useBreakpoint', 'useTheme'])('экспорт %s', (n) => {

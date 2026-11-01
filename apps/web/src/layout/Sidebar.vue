@@ -41,6 +41,7 @@ const navLabel = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 const { spaces: allSpaces, favorites } = useNavData();
 const FAV_ICONS = {
+  workspace: LayoutGrid,
   space: LayoutGrid,
   project: FolderKanban,
   doc: FileText,
@@ -188,10 +189,17 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
             active-class="bg-accent-subtle"
             data-testid="nav-favorite"
           >
-            <component :is="FAV_ICONS[f.kind]" :size="14" class="shrink-0 text-fg-muted" /><span
-              class="truncate"
-              >{{ f.name }}</span
-            >
+            <span v-if="f.icon" :class="nodeIcon" aria-hidden="true"
+              ><NodeIcon :icon="f.icon"
+            /></span>
+            <component
+              :is="FAV_ICONS[f.kind]"
+              v-else
+              :size="14"
+              class="shrink-0 text-fg-muted"
+            /><span class="truncate" :style="f.color ? { color: f.color } : undefined">{{
+              f.name
+            }}</span>
           </RouterLink>
         </template>
       </section>
@@ -207,9 +215,15 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
           >
             <ChevronRight :size="12" :class="chev('spaces')" />
           </button>
-          <RouterLink to="/w" class="min-w-0 flex-1 truncate outline-none">{{
-            t('sidebar.all')
-          }}</RouterLink>
+          <span v-if="ws.icon" :class="nodeIcon" aria-hidden="true"
+            ><NodeIcon :icon="ws.icon"
+          /></span>
+          <RouterLink
+            to="/w"
+            class="min-w-0 flex-1 truncate outline-none"
+            :style="ws.color ? { color: ws.color } : undefined"
+            >{{ t('sidebar.all') }}</RouterLink
+          >
         </h2>
         <input
           v-if="act.editing.value === 'new-space'"
@@ -279,8 +293,7 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
                     <span v-if="p.icon" :class="nodeIcon" aria-hidden="true"
                       ><NodeIcon :icon="p.icon"
                     /></span>
-                    <span class="font-mono text-xs text-fg-muted">{{ p.prefix }}</span
-                    ><span class="truncate" :style="p.color ? { color: p.color } : undefined">{{
+                    <span class="truncate" :style="p.color ? { color: p.color } : undefined">{{
                       p.name
                     }}</span>
                   </RouterLink>

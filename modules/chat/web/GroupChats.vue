@@ -9,7 +9,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Star,
   Trash2,
   User,
   UserPlus,
@@ -24,6 +23,7 @@ import {
   ConfirmDialog,
   Dialog,
   EmptyState,
+  FavStar,
   IconButton,
   Input,
   Menu,
@@ -431,11 +431,8 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
             </div>
           </Popover>
           <!-- избранное — любому участнику (меню канала — только управляющим) -->
-          <IconButton
-            :icon="Star"
-            :label="i18n.global.t(fav ? 'sidebar.unfavorite' : 'sidebar.favorite')"
-            :active="fav"
-            size="sm"
+          <FavStar
+            :fav="fav"
             :class="channel.kind !== 'dm' && 'ml-auto'"
             data-testid="chat-favorite"
             @click="

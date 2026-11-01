@@ -6,7 +6,7 @@ import type { MenuItem } from '../ui/Menu.vue';
 import { useTheme } from '../ui/useTheme';
 import { setLocale } from '../i18n';
 import { useAuth } from '../auth/useAuth';
-import { useSpaces } from '../tasks/queries';
+import { useSpaces, useWorkspace } from '../tasks/queries';
 
 const KEY = 'planar.sidebar.collapsed';
 const readCollapsed = (): Record<string, boolean> => {
@@ -109,8 +109,8 @@ export interface NavSpace {
     icon: string | null;
   }[];
 }
-/** What can be added to favourites; documents and chats are module entities. */
-export type FavKind = 'space' | 'project' | 'doc' | 'chat' | 'task';
+/** What can be added to favourites (workspace — id 'w'); documents and chats are module entities. */
+export type FavKind = 'workspace' | 'space' | 'project' | 'doc' | 'chat' | 'task';
 /** Favourite link: name and to are a snapshot at the time of adding (space and project — live name). */
 export interface FavRef {
   kind: FavKind;
@@ -120,6 +120,9 @@ export interface FavRef {
 }
 export interface NavFavorite extends FavRef {
   key: string;
+  /** node (workspace, space, project) — its live icon and color */
+  icon?: string | null;
+  color?: string | null;
 }
 
 // shortcut: favorites are in localStorage (personal, on this device); cross-device sync needs a server entity
@@ -161,6 +164,7 @@ export function useNavData(): {
   favorites: Readonly<Ref<NavFavorite[]>>;
 } {
   const src = useSpaces();
+  const ws = useWorkspace();
   const spaces = computed<NavSpace[]>(() =>
     (src.value ?? []).map((s) => ({
       id: s.id,
@@ -176,14 +180,20 @@ export function useNavData(): {
       })),
     })),
   );
-  // space and project — live name, deleted ones drop out; the rest — snapshot
+  // workspace, space and project — live name, icon and color, deleted ones drop out; the rest — snapshot
   const favs = computed<NavFavorite[]>(() => {
     if (!src.value) return [];
-    const sp = new Map(spaces.value.map((s) => [s.id, s.name]));
-    const pr = new Map(spaces.value.flatMap((s) => s.projects).map((p) => [p.id, p.name]));
+    const node = new Map<string, { name: string; icon: string | null; color: string | null }>([
+      ['workspace:w', ws.value],
+      ...spaces.value.map((s) => ['space:' + s.id, s] as const),
+      ...spaces.value.flatMap((s) => s.projects).map((p) => ['project:' + p.id, p] as const),
+    ]);
     return favList.value.flatMap((f) => {
-      const live = f.kind === 'space' ? sp.get(f.id) : f.kind === 'project' ? pr.get(f.id) : f.name;
-      return live ? [{ ...f, name: live, key: `${f.kind}:${f.id}` }] : [];
+      const key = `${f.kind}:${f.id}`;
+      if (!['workspace', 'space', 'project'].includes(f.kind))
+        return f.name ? [{ ...f, key }] : [];
+      const n = node.get(key);
+      return n ? [{ ...f, key, name: n.name, icon: n.icon, color: n.color }] : [];
     });
   });
   return { spaces, favorites: favs };

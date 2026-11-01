@@ -73,9 +73,7 @@ export default {
   topbar: {
     newTask: 'Создать задачу',
     allNotifications: 'Все уведомления',
-    crumbMenu: 'Соседи: {name}',
     search: 'Поиск',
-    breadcrumb: 'Навигационная цепочка',
     notifications: 'Уведомления',
     theme: 'Тема',
     themeSystem: 'Системная',
@@ -284,7 +282,7 @@ export default {
     table: 'Таблица',
     calendar: 'Календарь',
     me: {
-      title: 'Me Mode',
+      title: 'Мои',
       hint: 'Только работа для меня: назначенные мне незакрытые задачи и нерешённые комментарии',
     },
     empty: 'Нет доступных видов',

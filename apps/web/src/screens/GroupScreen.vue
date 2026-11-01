@@ -2,7 +2,6 @@
 import { computed, defineAsyncComponent, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import Breadcrumbs from '../layout/Breadcrumbs.vue';
 import {
   BarChart3,
   Briefcase,
@@ -95,9 +94,6 @@ const icons = {
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <header v-if="name" class="flex px-4 pt-3">
-      <Breadcrumbs />
-    </header>
     <nav
       v-if="name"
       :aria-label="t('groups.tabs')"

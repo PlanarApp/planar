@@ -117,7 +117,7 @@ describe('раскладка', () => {
     await head.trigger('click');
   });
 
-  it('верхняя панель: крошки экрана, поиск открывает палитру, чата нет', async () => {
+  it('верхняя панель: без крошек и звезды вне узла, поиск открывает палитру, чата нет', async () => {
     const { i18n } = setup(false);
     const router = createRouter({
       history: createMemoryHistory(),
@@ -125,7 +125,8 @@ describe('раскладка', () => {
     });
     await router.push('/inbox');
     const w = mount(withTips(TopBar), { global: { plugins: [router, i18n] } });
-    expect(w.find('h1').text()).toBe('Входящие');
+    expect(w.find('h1').exists()).toBe(false);
+    expect(w.find('[data-testid=topbar-favorite]').exists()).toBe(false);
     expect(w.find('[data-testid=chat-topbar]').exists()).toBe(false);
     await w.find('button[aria-label="Поиск и команды"]').trigger('click');
     expect(ui.palette).toBe(true);

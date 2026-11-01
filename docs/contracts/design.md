@@ -2,10 +2,10 @@
 type: contract
 status: active
 module: design
-updated: 2026-10-24
-summary: Contract C-ui v4 - tokens, contrast, density, base components, routes and extension points of web
+updated: 2026-11-01
+summary: Contract C-ui v5 - tokens, contrast, density, base components, routes and extension points of web
 related: ["docs/plan/design.md", "docs/contracts/web.md", "docs/contracts/work.md", "docs/roadmap.md"]
-contracts: [{"id": "C-ui", "version": 4}]
+contracts: [{"id": "C-ui", "version": 5}]
 ---
 
 # Contract C-ui (web interface)
@@ -14,8 +14,9 @@ Owner - the design coordinator (before phase 3 - the web coordinator). Consumers
 
 **Contract test** - `apps/web/src/__contract__/ui.contract.test.ts` (written by the coordinator, the executor does not edit it). It checks: the version from the heading `## C-ui vN` (here) and the headings `## C-… vN` from `docs/contracts/web.md` = `UI_CONTRACT_VERSIONS` from `apps/web/src/contract.ts`; every color token is declared in `tokens.css` in both the light and the dark block, sizes - in `@theme`; the pairs from "Contrast" are not below the threshold in both themes; every component from the list is exported from `apps/web/src/ui/index.ts`; `EXTENSION_KINDS` = the list of extension points below. Run: `pnpm --filter web test`. The test finds sections by their Russian heading prefix, so the headings of the sections "Color tokens", "Fonts, spacing, sizes", "Contrast", "Base components", "Extension points" keep the Russian prefix.
 
-## C-ui v4
+## C-ui v5
 
+v5 (nav-polish): `FavStar` - favourite toggle (grey / yellow star) for node headers and module entities (chats). Compatible with v4.
 v4 (design, DS-0b): `Menu` without the `trigger` slot renders its own `IconButton` "..." (`MoreHorizontal`) with the `label` caption - modules without the `lucide-vue-next` dependency do not need their own icons; `Input` passes attributes (`required`, `maxlength`, `name`, `autocomplete`, `data-*`) to `<input>`, not to the wrapper. Compatible with v3.
 
 v3 (design, DS-0): visual style "dense and strict, like Linear" (`docs/plan/design.md` §4). Neutral scale, sidebar tokens, shadows, font scale 11-20 px with a 13 px base, contrast check, new components (IconButton, ConfirmDialog, Tabs, Chip, AvatarStack, Kbd, EmptyState, Toolbar), density and destructive-action rules, showcase `/dev/ui`. Compatible with v2: v2 props and events are kept, token values and the look of components change. The `Button` variant `danger` is only for the confirm button in `ConfirmDialog`; DS-4 migrates its other uses.
@@ -192,6 +193,7 @@ Built on Reka UI + Tailwind 4, SFC `<script setup lang="ts">`. No user-facing st
 | `EmptyState` | `title: string` (required); `description?`; `icon?: Component`; slot `actions` | centered in the container, >= 48 px top offset, 32 px `fg-subtle` icon, `title` - `text-base`, `description` - `text-sm fg-muted`, text width <= 360 px |
 | `Toolbar` | `label: string` (required, `aria-label`); slots default (left), `end` (right) | `role="toolbar"`, height 44 px, bottom border, 4 px gaps; on mobile - a single row with horizontal scroll, no wrapping |
 | `Tooltip` | `content: string`; `shortcut?: string`; default slot (trigger) | 400 ms delay; `shortcut` - via `Kbd`; `shadow-popover` shadow |
+| `FavStar` | `fav: boolean` (required); event `click` | square 28 px; `Star` icon: `fav` -> filled `warning`, otherwise `fg-subtle`; `aria-pressed` = `fav`; `aria-label` and `Tooltip` - add to / remove from favourites |
 
 ### Icons
 Only `lucide-vue-next`, imported one by one (`import { Plus } from 'lucide-vue-next'`); size 16 by default, 20 in mobile navigation. No other sets or SVG icon files (except PWA icons).

@@ -17,12 +17,11 @@ import Kbd from '../ui/Kbd.vue';
 import { useBreakpoint } from '../ui/useBreakpoint';
 import { quickCreate, ui } from '../command/hotkeys';
 import { useExtensions } from '../modules/registry';
-import Breadcrumbs from './Breadcrumbs.vue';
-import NodeIcon from '../ui/NodeIcon.vue';
+import FavStar from '../ui/FavStar.vue';
 import { groupUrl } from './groups';
 import SyncStatus from './SyncStatus.vue';
 import { useProject, useSpaces, useWorkspace } from '../tasks/queries';
-import { mobileNav, useUserMenu } from './nav';
+import { favorites, mobileNav, useUserMenu, type FavRef } from './nav';
 
 const { t } = useI18n();
 const openNav = () => (mobileNav.value = true);
@@ -55,7 +54,6 @@ const topbarComp = (key: string, load: () => Promise<{ default: Component }>) =>
   return c;
 };
 
-// on node screens (Workspace, space, project, saved view) the breadcrumbs are in the window header
 const inProject = computed(() => route.name === 'project' || route.name === 'savedView');
 const projectId = computed(() => String(route.params.projectId ?? ''));
 const inGroup = computed(() =>
@@ -79,6 +77,24 @@ const nodeUrl = computed(() =>
       ? groupUrl('space', String(route.params.spaceId))
       : groupUrl('workspace', ''),
 );
+const fav = computed<FavRef | null>(() =>
+  node.value
+    ? {
+        kind: inProject.value ? 'project' : route.name === 'space' ? 'space' : 'workspace',
+        id: inProject.value
+          ? projectId.value
+          : route.name === 'space'
+            ? String(route.params.spaceId)
+            : 'w',
+        name: node.value.name,
+        to: inProject.value
+          ? `/p/${projectId.value}`
+          : route.name === 'space'
+            ? `/s/${String(route.params.spaceId)}`
+            : '/w',
+      }
+    : null,
+);
 </script>
 
 <template>
@@ -87,25 +103,23 @@ const nodeUrl = computed(() =>
     class="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-bg px-3 max-md:gap-0 max-md:px-1 max-md:[&_button.h-11]:h-9 max-md:[&_button.size-11]:size-9"
   >
     <IconButton v-if="isMobile" :icon="PanelLeft" :label="t('topbar.nav')" @click="openNav" />
-    <Breadcrumbs v-if="!inGroup" class="max-md:px-1" />
     <span
-      v-else
-      class="flex min-w-0 flex-1 items-center gap-2 px-1 text-sm font-medium"
+      class="flex min-w-0 flex-1 items-center gap-1 px-1 text-sm font-medium"
       data-testid="topbar-node"
     >
+      <FavStar
+        v-if="inGroup && fav"
+        :fav="favorites.has(fav.kind, fav.id)"
+        data-testid="topbar-favorite"
+        @click="favorites.toggle(fav)"
+      />
       <!-- нажатие — «Задачи» текущего уровня -->
       <RouterLink
-        v-if="node"
+        v-if="inGroup && node"
         :to="nodeUrl"
         class="flex min-w-0 items-center gap-2 rounded-md outline-none focus-visible:ring-2 ring-focus"
         data-testid="topbar-node-link"
       >
-        <span
-          v-if="node.icon"
-          class="flex size-6 shrink-0 items-center justify-center rounded-md text-base"
-          aria-hidden="true"
-          ><NodeIcon :icon="node.icon"
-        /></span>
         <span class="truncate" :style="node.color ? { color: node.color } : undefined">{{
           node.name
         }}</span>

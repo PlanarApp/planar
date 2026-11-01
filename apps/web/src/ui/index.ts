@@ -16,6 +16,7 @@ export { default as Kbd } from './Kbd.vue';
 export { default as EmptyState } from './EmptyState.vue';
 export { default as Toolbar } from './Toolbar.vue';
 export { default as Tooltip } from './Tooltip.vue';
+export { default as FavStar } from './FavStar.vue';
 export { useBreakpoint, resetBreakpoint } from './useBreakpoint';
 export { useTheme } from './useTheme';
 export { default as Sheet } from './Sheet.vue';
