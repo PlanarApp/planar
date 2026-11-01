@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, type Component } from 'vue';
+import { computed, defineAsyncComponent, watch, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
   BarChart3,
   Briefcase,
+  Check,
+  ChevronDown,
   FolderKanban,
   LayoutGrid,
   FileText,
@@ -13,10 +15,11 @@ import {
   Settings,
 } from 'lucide-vue-next';
 import { useProject, useRootSpaceId, useSpaces, useWorkspace } from '../tasks';
-import { EmptyState, Tabs } from '../ui';
+import { EmptyState, Menu, Tabs, type MenuItem } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { GroupScope, LocalizedText } from '../modules/types';
-import { groupTab, groupUrl, type GroupLevel } from '../layout/groups';
+import { groupTab, groupUrl, lastTab, tabsFor, type GroupLevel } from '../layout/groups';
+import { WORK_SUBS, workSub } from '../inbox/subs';
 import { useGroupTabs } from '../layout/useGroupTabs';
 import GroupList from './GroupList.vue';
 import ProjectScreen from './ProjectScreen.vue';
@@ -80,6 +83,31 @@ const partComponent = computed(() => {
   return cache.get(p.key);
 });
 const selectPart = (k: string) => void router.replace({ query: { ...route.query, r: k } });
+// "My work" sections: the current one is marked
+const workItems = computed<MenuItem[]>(() =>
+  WORK_SUBS.map((w) => ({
+    id: w,
+    label: t(`work.${w}`),
+    icon: tab.value === 'work' && workSub(route.query.w) === w ? Check : undefined,
+    onSelect: () =>
+      void router.push({ path: groupUrl(level.value, id.value, 'work'), query: { w } }),
+  })),
+);
+// the tab and the view are remembered for any node; a tab missing at the level (Spaces, Projects) — "My work".
+// Module tabs are not checked: on a cold start modules are not known yet
+const seg = computed(() => String(route.params.view ?? route.params.tab ?? ''));
+watch(
+  [seg, () => route.query.w],
+  ([s, w]) => {
+    if (!s || route.name === 'savedView') return;
+    if (!tabsFor(level.value).includes(tab.value)) {
+      void router.replace(groupUrl(level.value, id.value, 'work'));
+      return;
+    }
+    lastTab.set(s === 'work' && typeof w === 'string' ? { seg: s, w } : { seg: s });
+  },
+  { immediate: true },
+);
 const icons = {
   work: Briefcase,
   spaces: LayoutGrid,
@@ -100,20 +128,38 @@ const icons = {
       data-testid="group-tabs"
       class="flex shrink-0 gap-1 overflow-x-auto border-b border-border px-2"
     >
-      <RouterLink
-        v-for="k in tabs"
-        :key="k"
-        :to="groupUrl(level, id, k)"
-        :aria-current="tab === k ? 'page' : undefined"
-        :class="[
-          'inline-flex h-11 shrink-0 items-center gap-1.5 border-b-2 px-2 text-sm font-medium outline-none focus-visible:outline-2 focus-visible:outline-focus md:h-9',
-          tab === k ? 'border-accent text-fg' : 'border-transparent text-fg-muted hover:text-fg',
-        ]"
-      >
-        <component :is="icons[k]" :size="16" aria-hidden="true" />
-        <!-- мобильная: подпись только у текущей вкладки -->
-        <span :class="tab !== k && 'max-md:sr-only'">{{ t(`groups.tab.${k}`) }}</span>
-      </RouterLink>
+      <template v-for="k in tabs" :key="k">
+        <RouterLink
+          :to="groupUrl(level, id, k)"
+          :aria-current="tab === k ? 'page' : undefined"
+          :class="[
+            'inline-flex h-11 shrink-0 items-center gap-1.5 border-b-2 px-2 text-sm font-medium outline-none focus-visible:outline-2 focus-visible:outline-focus md:h-9',
+            tab === k ? 'border-accent text-fg' : 'border-transparent text-fg-muted hover:text-fg',
+          ]"
+        >
+          <component :is="icons[k]" :size="16" aria-hidden="true" />
+          <!-- мобильная: подпись только у текущей вкладки -->
+          <span :class="tab !== k && 'max-md:sr-only'"
+            >{{ t(`groups.tab.${k}`)
+            }}<template v-if="k === 'work' && tab === 'work'">
+              · {{ t(`work.${workSub(route.query.w)}`) }}</template
+            ></span
+          >
+        </RouterLink>
+        <!-- разделы «Моей работы» — меню справа от вкладки -->
+        <Menu v-if="k === 'work'" :items="workItems" align="start">
+          <template #trigger>
+            <button
+              type="button"
+              :aria-label="t('work.title')"
+              data-testid="work-menu"
+              class="-ml-1 inline-flex h-11 shrink-0 items-center rounded-md px-1 text-fg-muted outline-none hover:text-fg focus-visible:outline-2 focus-visible:outline-focus md:h-9"
+            >
+              <ChevronDown :size="14" />
+            </button>
+          </template>
+        </Menu>
+      </template>
     </nav>
     <div class="min-h-0 flex-1">
       <ProjectScreen v-if="level === 'project' && tab === 'tasks'" />

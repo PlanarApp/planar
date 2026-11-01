@@ -21,9 +21,48 @@ export const tabsFor = (level: GroupLevel): GroupTab[] =>
     (k) => (k !== 'spaces' || level === 'workspace') && (k !== 'projects' || level !== 'project'),
   );
 
+/** Group tab address; Tasks — an explicit `list`: the bare node address opens the remembered tab. */
 export function groupUrl(level: GroupLevel, id: string, tab: GroupTab = 'tasks'): string {
   const base = level === 'project' ? `/p/${id}` : level === 'space' ? `/s/${id}` : '/w';
-  return tab === 'tasks' ? base : `${base}/${tab}`;
+  return `${base}/${tab === 'tasks' ? 'list' : tab}`;
+}
+
+/** Last opened node tab: group tab or Tasks view key, and the "My work" section (?w). */
+export interface LastTab {
+  seg: string;
+  w?: string;
+}
+const LAST_KEY = 'planar.groupTab';
+export const lastTab = {
+  // by default — "My work"
+  get(): LastTab {
+    try {
+      const v = JSON.parse(localStorage.getItem(LAST_KEY) ?? 'null');
+      if (v && typeof v.seg === 'string' && v.seg)
+        return typeof v.w === 'string' ? { seg: v.seg, w: v.w } : { seg: v.seg };
+    } catch {
+      /* no storage or broken JSON */
+    }
+    return { seg: 'work' };
+  },
+  set(v: LastTab) {
+    try {
+      localStorage.setItem(LAST_KEY, JSON.stringify(v));
+    } catch {
+      /* no storage — default tab after reload */
+    }
+  },
+};
+
+/** Where the bare node address leads: the remembered tab (the level's own tab check is on the group screen). */
+export function nodeLanding(
+  path: string,
+  last: LastTab,
+): { path: string; query: Record<string, string> } {
+  return {
+    path: `${path.replace(/\/$/, '')}/${last.seg}`,
+    query: last.seg === 'work' && last.w ? { w: last.w } : {},
+  };
 }
 
 /** Level within a group: space (projectId = null) or project. */

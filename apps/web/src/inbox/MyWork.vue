@@ -13,6 +13,7 @@ import type { GroupScope } from '../modules/types';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import InboxScreen from '../screens/InboxScreen.vue';
 import { useAssignedComments, useMyTasks, useUnreadItems, inGroup } from './queries';
+import { workSub } from './subs';
 
 // group "My work", as in Plane: summary, assigned, comments for me, created, watched, activity
 const props = defineProps<{ scope: GroupScope }>();
@@ -21,21 +22,9 @@ const route = useRoute();
 const router = useRouter();
 const { user } = useAuth();
 const spaces = useSpaces();
-// first and default — "Assigned", "Summary" — at the end
-const SUBS = [
-  'assigned',
-  'comments',
-  'mentions',
-  'created',
-  'watched',
-  'activity',
-  'summary',
-] as const;
+// the section is picked in the menu of the group's "My work" tab
 const MENTIONS = ['mentioned', 'chat_mention', 'doc_mention'];
-type Sub = (typeof SUBS)[number];
-const sub = computed<Sub>(() =>
-  SUBS.includes(route.query.w as Sub) ? (route.query.w as Sub) : 'assigned',
-);
+const sub = computed(() => workSub(route.query.w));
 const pick = (w: string) => void router.replace({ query: { ...route.query, w } });
 
 const projectIds = computed(() =>
@@ -95,14 +84,6 @@ const textOf = (body: unknown): string => {
 
 <template>
   <div class="flex h-full min-h-0 flex-col" data-testid="my-work">
-    <div class="shrink-0 border-b border-border px-2 py-1">
-      <Tabs
-        :model-value="sub"
-        :label="t('work.title')"
-        :items="SUBS.map((s) => ({ value: s, label: t(`work.${s}`) }))"
-        @update:model-value="pick"
-      />
-    </div>
     <div class="min-h-0 flex-1 overflow-y-auto">
       <div v-if="sub === 'summary'" class="flex flex-col gap-4 p-4">
         <div class="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">

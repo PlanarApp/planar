@@ -40,7 +40,7 @@ const rows = computed(() =>
   props.kind === 'spaces'
     ? nested.value.map((s) => ({
         id: s.id,
-        to: groupUrl('space', s.id),
+        to: `/s/${s.id}`,
         name: s.name,
         prefix: '',
         meta: [
@@ -51,7 +51,7 @@ const rows = computed(() =>
     : nested.value.flatMap((s) =>
         s.projects.map((p) => ({
           id: p.id,
-          to: groupUrl('project', p.id),
+          to: `/p/${p.id}`,
           name: p.name,
           prefix: p.key,
           meta: [

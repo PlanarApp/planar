@@ -31,7 +31,8 @@ describe('auth:guard-login', () => {
     useAuth().user.value = mkUser();
     await router.push('/inbox');
     await router.push('/login');
-    expect(router.currentRoute.value.path).toBe('/w');
+    // bare node address — the remembered tab, by default "My work"
+    expect(router.currentRoute.value.path).toBe('/w/work');
     expect(useAuth().user.value?.login).toBe('ann');
   });
 });

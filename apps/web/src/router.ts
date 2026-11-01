@@ -1,4 +1,5 @@
 import { useAuth } from './auth/useAuth';
+import { lastTab, nodeLanding } from './layout/groups';
 import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router';
 
 // without the showcase: DevUiScreen is connected separately and only in dev
@@ -48,6 +49,11 @@ router.beforeEach(async (to) => {
   if (to.name === 'login' || to.name === 'setup') return '/';
   // former group tab "Inbox" — "My work › Activity"
   const seg = String((to.name === 'project' ? to.params.view : to.params.tab) ?? '');
+  // bare node address — the last opened tab (by default "My work")
+  if (!seg && ['project', 'space', 'workspace'].includes(String(to.name))) {
+    const l = nodeLanding(to.path, lastTab.get());
+    return { path: l.path, query: { ...l.query, ...to.query }, hash: to.hash, replace: true };
+  }
   if (seg === 'inbox' && ['project', 'space', 'workspace'].includes(String(to.name)))
     return {
       path: to.path.replace(/\/inbox$/, '/work'),

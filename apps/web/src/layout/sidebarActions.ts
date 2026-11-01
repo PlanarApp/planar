@@ -17,7 +17,6 @@ import type { MenuItem } from '../ui/Menu.vue';
 import { toast } from '../ui/toast';
 import { db, mutate, newId, rankBetween } from '../sync';
 import { favorites, type NavSpace } from './nav';
-import { groupUrl } from './groups';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
 
@@ -121,8 +120,7 @@ export function useSidebarActions() {
       id: 'fav',
       label: t(favorites.has('space', s.id) ? 'sidebar.unfavorite' : 'sidebar.favorite'),
       icon: favorites.has('space', s.id) ? StarOff : Star,
-      onSelect: () =>
-        favorites.toggle({ kind: 'space', id: s.id, name: s.name, to: groupUrl('space', s.id) }),
+      onSelect: () => favorites.toggle({ kind: 'space', id: s.id, name: s.name, to: `/s/${s.id}` }),
     },
     {
       id: 'rename',
@@ -169,7 +167,7 @@ export function useSidebarActions() {
             kind: 'project',
             id: p.id,
             name: p.name,
-            to: groupUrl('project', p.id),
+            to: `/p/${p.id}`,
           }),
       },
       {
