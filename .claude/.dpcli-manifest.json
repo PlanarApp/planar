@@ -7,8 +7,8 @@
     ".claude/agents/dp-reviewer.md": "825ec5a02bf1c08b2bc8e1ae5b1a61aecbc4c8aef415986e5388ac78c78ac16b",
     ".claude/agents/dp-status.md": "fa6a14362e7eb97883e909a67035557fa74cb666f3f4c45e89e98ed853b4e746",
     ".claude/agents/dp-writer.md": "a82b30efd8d2bed2f990c104773993abee3503f58666e0a30c11a4eb6365516e",
-    ".claude/dpcli-workflow.md": "2f9562dea4a3df2d3c5fbe1fa9848b7f9908d30ed528cb5a84adafe5628b15bd",
-    ".claude/skills/harness-retro/SKILL.md": "51db84278927b2a46305675ef010aa9253b55b325d62d78643cc3040e6345e8b",
+    ".claude/dpcli-workflow.md": "2e415af7dc50230d0b9e8d91240b6dfca802b71ca1cba07a1a424740605161e3",
+    ".claude/skills/harness-retro/SKILL.md": "d3b02726c45c33b55dbc676d69c909aa693412c7e925742e9cc4a73af405f2a5",
     ".claude/skills/harness-retro/cost.py": "e30e0d39b47cd144d67a41fb6e18774901c383a37b50a789030cee6cf8d8094a",
     ".claude/skills/start-to-do/SKILL.md": "f8d98a49be47ae4b33c3a4c078e502c889d0a5999fe60ab64bb569f80af27314"
   }
