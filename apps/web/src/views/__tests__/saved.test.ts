@@ -153,6 +153,34 @@ describe('views:saved', () => {
     await until(() => r.currentRoute.value.path === `/p/${ids.project}/v/${v.id}`);
   });
 
+  it('views:saved вид таба узла: правка — черновик, «Сохранить» — моя строка node, после открытия — из неё', async () => {
+    await r.push(`/p/${ids.project}/board`);
+    const w = mountScreen(ProjectScreen);
+    await until(() => w.find('[data-testid=view-toggle]').exists());
+    expect(w.find('[data-testid=saved-save]').exists()).toBe(false);
+    await w.get('[data-testid=view-toggle]').trigger('click');
+    await until(() => body.find('[data-field=labels]').exists());
+    await body.get('[data-field=labels]').setValue(false);
+    await w.get('[data-testid=view-toggle]').trigger('click');
+    await until(() => w.find('[data-testid=saved-save]').exists());
+    await w.get('[data-testid=saved-save]').trigger('click');
+    await until(async () => (await rows()).length === 1);
+    const [v] = await rows();
+    expect(v).toMatchObject({ node: `p:${ids.project}`, layout: 'board', userId: ids.ann });
+    expect(v.config.fields).not.toContain('labels');
+    await until(() => !w.find('[data-testid=saved-save]').exists());
+    // the node view is not a named tab
+    expect(w.find(`[data-saved-view="${v.id}"]`).exists()).toBe(false);
+    w.unmount();
+    // opened again — the saved view, without a draft
+    const w2 = mountScreen(ProjectScreen);
+    await until(() => w2.find('[data-testid=view-toggle]').exists());
+    await w2.get('[data-testid=view-toggle]').trigger('click');
+    await until(() => body.find('[data-field=labels]').exists());
+    expect((body.get('[data-field=labels]').element as HTMLInputElement).checked).toBe(false);
+    expect(w2.find('[data-testid=saved-save]').exists()).toBe(false);
+  });
+
   it('views:saved чип исполнителя показывает имя, не id', async () => {
     await r.push(`/p/${ids.project}`);
     const FilterChips = (await import('../saved/FilterChips.vue')).default;

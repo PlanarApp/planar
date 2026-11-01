@@ -2,8 +2,8 @@
 type: reference
 status: active
 module: core
-updated: 2026-10-24
-summary: Domain mutators of C-mutators v9 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
+updated: 2026-11-01
+summary: Domain mutators of C-mutators v10 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---
 
@@ -57,7 +57,7 @@ All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `nul
 | `attachment.delete` | `id` | |
 | `notification.read` | `ids: uuid[]` | `readAt = ctx.now`, own only |
 | `notification.delete` | `ids: uuid[]` | own only |
-| `view.create` | `id, spaceId, personal: bool, name, icon?, layout, filter, config, rank` | `personal` → `userId = ctx.userId` |
+| `view.create` | `id, spaceId, personal: bool, name, icon?, layout, node?, filter, config, rank` | `personal` → `userId = ctx.userId`; `node` set → always personal |
 | `view.update` | `id, name?, icon?, layout?, filter?, config?, rank?` | |
 | `view.delete` | `id` | |
 | `settings.set` | `id, value` | v5: `id = 'enabled_modules'` — the id of a module that was not among the enabled ones, with `unavailable` ≠ null (C-modules v11) → `invalid_args`; checked on the server only |

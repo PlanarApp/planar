@@ -2,14 +2,14 @@
 type: reference
 status: active
 module: core
-updated: 2026-10-24
-summary: Entities of C-schema v13 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
+updated: 2026-11-01
+summary: Entities of C-schema v14 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
 related: ["docs/contracts/core.md"]
 ---
 
-# Entities of C-schema v13
+# Entities of C-schema v14
 
-Part of the contract `C-schema v13` from `docs/contracts/core.md`. The section is read by the contract test (`packages/shared/test/contract-doc.ts` → `docEntities`); the version is in the heading `## C-schema vN` in core.md.
+Part of the contract `C-schema v14` from `docs/contracts/core.md`. The section is read by the contract test (`packages/shared/test/contract-doc.ts` → `docEntities`); the version is in the heading `## C-schema vN` in core.md.
 
 ## Entities
 
@@ -311,6 +311,7 @@ scope: space|user · write: member|self · bootstrap: yes · indexes: spaceId
 | `name` | text | |
 | `icon` | text? | icon name from the web set (view tab); null — the default icon |
 | `layout` | text | `list`, `board` or a module view id |
+| `node` | text? | not null — the owner's saved view of the built-in tab `layout` in a node (`w`, `s:<spaceId>`, `p:<projectId>`, suffix `:me-<mode>` — "My work"); not shown among named views; null — a named view |
 | `filter` | obj | |
 | `config` | obj | grouping, sorting, columns |
 | `rank` | rank | |

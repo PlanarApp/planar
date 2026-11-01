@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v13
+## C-schema v14
+
+v14: `savedViews.node` (text?, a node's saved view of a built-in tab: `w`, `s:<spaceId>`, `p:<projectId>`, with the suffix `:me-<mode>` for "My work"; null — a named view; replica rows before v14 have no such field) — core-schema.md.
 
 v13: `savedViews.icon` (text?, icon of the saved view tab; replica rows before v13 have no such field) — core-schema.md.
 
@@ -75,7 +77,7 @@ The suffix `?` means `.nullable()` (the key is present, the value may be `null`)
 
 ### Entities
 
-Entities — docs/contracts/core-schema.md (part of C-schema v13).
+Entities — docs/contracts/core-schema.md (part of C-schema v14).
 
 ### Non-synced tables (server only)
 | table | columns |
@@ -188,7 +190,9 @@ Authorization — the session cookie at upgrade (plus an Origin check, C-http); 
 ### Client (for web)
 Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from the queue the mutations with `id ≤ lastMutationId` and re-applies the rest on top of the server state (rebase). Push is retried on a network error and `5xx` with a growing pause of 1–30 s; `401` — redirect to sign-in.
 
-## C-mutators v9
+## C-mutators v10
+
+v10: `view.create` += `node?` (a node's saved view, always personal) — core-mutators.md.
 
 v9: `view.create`, `view.update` += `icon?` — core-mutators.md.
 

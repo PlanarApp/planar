@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref, watch, watchEffect, type Component } from 'vue';
+import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue';
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Tabs } from '../ui';
+import { Check, RotateCcw } from 'lucide-vue-next';
+import { Button, Tabs } from '../ui';
 import ProjectFilter from './ProjectFilter.vue';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { useSpaces } from '../tasks';
 import OptionsBar from './saved/OptionsBar.vue';
 import TaskModal from './TaskModal.vue';
-import { buildViewTabs, useSelection, useViewOptions, viewLoaders, type Filter } from '.';
+import { buildViewTabs, useSelection, viewLoaders } from '.';
 import type { MeMode } from './saved/useFilter';
+import { useNodeViewDraft } from './saved/nodeView';
 
 // Tasks of a Space and of the Workspace — the group's project summary (List and Board).
 // me — the view "My work" (assigned, created, watched) of any group, and of a project too:
@@ -101,13 +103,19 @@ const tabs = computed(() =>
 );
 const seg = computed(() => String((props.me ? route.query.v : route.params.tab) ?? ''));
 const active = computed(() => tabs.value.find((v) => v.key === seg.value) ?? tabs.value[0]);
-const options = useViewOptions(key, () => active.value?.key ?? 'list');
-// "My work" has its own options key — Me Mode is fixed in it
-watchEffect(() => {
-  if (props.me && options.value.me !== props.me) options.value.me = props.me;
+// node view: a draft until "Save"; "My work" has its own key — Me Mode is fixed in it
+const view = useNodeViewDraft({
+  spaceId: () =>
+    props.spaceId ??
+    (props.projectId
+      ? (spaces.value ?? []).find((s) => s.projects.some((p) => p.id === props.projectId))?.id
+      : props.rootSpaceId) ??
+    '',
+  node: key,
+  layout: () => active.value?.key ?? 'list',
+  fixed: () => (props.me ? { me: props.me } : {}),
 });
-const draftFilter = ref<Filter | null>(null);
-watch([key, () => active.value?.key], () => (draftFilter.value = null));
+const { options, filter: draftFilter } = view;
 const { clear } = useSelection();
 watch(key, clear, { immediate: true });
 
@@ -147,7 +155,23 @@ const selectTab = (k: string) =>
         :no-me="!!me"
         v-model:filter="draftFilter"
         :space-id="scope.spaceIds.join(',')"
-      />
+      >
+        <template v-if="view.dirty.value">
+          <Button
+            variant="primary"
+            size="sm"
+            :icon="Check"
+            compact
+            data-testid="saved-save"
+            @click="view.save"
+          >
+            {{ t('views.saved.saveChanges') }}
+          </Button>
+          <Button size="sm" :icon="RotateCcw" compact data-testid="saved-reset" @click="view.reset">
+            {{ t('views.saved.reset') }}
+          </Button>
+        </template>
+      </OptionsBar>
     </ToolbarRoot>
     <div class="min-h-0 flex-1">
       <component

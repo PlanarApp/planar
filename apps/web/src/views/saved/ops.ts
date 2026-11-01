@@ -12,6 +12,8 @@ export async function saveView(a: {
   name: string;
   icon?: string | null;
   layout: string;
+  /** a node's view of a built-in tab (w, s:<id>, p:<id>[:me-<mode>]) */
+  node?: string;
   filter: Filter | null;
   config: ViewOptions;
 }): Promise<string> {

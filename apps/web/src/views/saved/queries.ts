@@ -5,7 +5,7 @@ import { db, useQuery } from '../../sync';
 
 export type SavedView = Row<'savedViews'>;
 
-/** Space views visible to the user: his personal and shared ones, by rank. */
+/** Named space views visible to the user: his personal and shared ones, by rank (without node views). */
 export function useSavedViews(spaceId: MaybeRefOrGetter<string>) {
   const { user } = useAuth();
   // the table is small: read it whole, pick the space and the owner in computed
@@ -13,10 +13,28 @@ export function useSavedViews(spaceId: MaybeRefOrGetter<string>) {
   return computed(() =>
     (all.value ?? [])
       .filter(
-        (v) => v.spaceId === toValue(spaceId) && (v.userId === null || v.userId === user.value?.id),
+        (v) =>
+          !v.node &&
+          v.spaceId === toValue(spaceId) &&
+          (v.userId === null || v.userId === user.value?.id),
       )
       .sort((a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0)),
   );
+}
+
+/** My saved view of a built-in tab in a node; undefined — loading, null — not saved. */
+export function useNodeView(node: MaybeRefOrGetter<string>, layout: MaybeRefOrGetter<string>) {
+  const { user } = useAuth();
+  const all = useQuery(() => db.table<SavedView>('savedViews').toArray());
+  return computed(() => {
+    if (!all.value) return undefined;
+    // shortcut: no unique index — after a race of two devices the freshest row wins
+    const rows = all.value.filter(
+      (v) =>
+        v.node === toValue(node) && v.layout === toValue(layout) && v.userId === user.value?.id,
+    );
+    return rows.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))[0] ?? null;
+  });
 }
 
 export function useSavedView(id: MaybeRefOrGetter<string>) {

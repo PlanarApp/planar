@@ -151,6 +151,13 @@ describe('notification/view/settings', () => {
       filter: { a: 1 },
     });
     expect((await tx.get('savedViews', shared))!.userId).toBeNull();
+    // a node's view — always personal; the node format is checked
+    const nodeView = id();
+    const node = `p:${id()}:me-assigned`;
+    await run(tx, 'view.create', { ...v, id: nodeView, personal: false, node });
+    expect(await tx.get('savedViews', nodeView)).toMatchObject({ userId: U1, node });
+    expect((await tx.get('savedViews', v.id))!.node).toBeNull();
+    await expect(run(tx, 'view.create', { ...v, id: id(), node: 'x:1' })).rejects.toThrow(/node/);
     expect(await code(run(tx, 'view.create', { ...v, id: id(), spaceId: id() }))).toBe('not_found');
     await run(tx, 'view.update', { id: v.id, name: 'w', filter: {} });
     expect(await tx.get('savedViews', v.id)).toMatchObject({

@@ -10,7 +10,8 @@ import { useAuth } from '../auth/useAuth';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import TaskModal from '../views/TaskModal.vue';
-import { buildViewTabs, useSelection, viewLoaders, useViewOptions } from '../views';
+import { buildViewTabs, useSelection, viewLoaders } from '../views';
+import { useNodeViewDraft } from '../views/saved/nodeView';
 import type { Filter } from '../views';
 import { loadLayout } from '../views/table/columns';
 import OptionsBar from '../views/saved/OptionsBar.vue';
@@ -37,7 +38,12 @@ const active = computed(() => {
   const key = viewId.value ? saved.value?.layout : route.params.view || 'list';
   return tabs.value.find((v) => v.key === key) ?? tabs.value[0];
 });
-const tabOptions = useViewOptions(projectId, () => active.value?.key ?? 'list');
+// tab: my node view — a draft until "Save" (as in ClickUp)
+const tabView = useNodeViewDraft({
+  spaceId: () => project.value?.spaceId ?? '',
+  node: () => `p:${projectId.value}`,
+  layout: () => active.value?.key ?? 'list',
+});
 
 // saved view: draft — edits are not written until "Save" is pressed; "Reset" returns
 const plain = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
@@ -53,41 +59,51 @@ const fromSaved = () => {
 };
 const savedOptions = ref<ViewOptions>(optionsFrom(undefined));
 const options = computed<ViewOptions>({
-  get: () => (viewId.value ? savedOptions.value : tabOptions.value),
-  set: (v) => (viewId.value ? (savedOptions.value = v) : (tabOptions.value = v)),
+  get: () => (viewId.value ? savedOptions.value : tabView.options.value),
+  set: (v) => (viewId.value ? (savedOptions.value = v) : (tabView.options.value = v)),
 });
 
-// filter draft: for a tab — empty, for a saved view — its filter; reset when the tab or project changes
-const draftFilter = ref<Filter | null>(null);
-const reset = () => {
+// saved view's filter draft — its filter; reset when the view changes
+const savedFilter = ref<Filter | null>(null);
+const draftFilter = computed<Filter | null>({
+  get: () => (viewId.value ? savedFilter.value : tabView.filter.value),
+  set: (v) => (viewId.value ? (savedFilter.value = v) : (tabView.filter.value = v)),
+});
+const resetSaved = () => {
   const d = viewId.value ? fromSaved() : undefined;
   if (d) savedOptions.value = d.options;
-  draftFilter.value = d?.filter ?? null;
+  savedFilter.value = d?.filter ?? null;
 };
-watch([projectId, () => active.value?.key, viewId, () => saved.value?.id], reset, {
+watch([projectId, () => active.value?.key, viewId, () => saved.value?.id], resetSaved, {
   immediate: true,
 });
+const reset = () => (viewId.value ? resetSaved() : tabView.reset());
 const dirty = computed(() => {
+  if (!viewId.value) return tabView.dirty.value;
   if (!saved.value) return false;
   const d = fromSaved();
   return (
     JSON.stringify(d.options) !== JSON.stringify(savedOptions.value) ||
-    JSON.stringify(d.filter) !== JSON.stringify(draftFilter.value)
+    JSON.stringify(d.filter) !== JSON.stringify(savedFilter.value)
   );
 });
 const spaceId = computed(() => project.value?.spaceId ?? '');
 const canShare = useCanShare(spaceId);
 const { user } = useAuth();
+// a tab's view is always my own
 const editable = computed(
   () =>
-    !!saved.value &&
-    (saved.value.userId === null ? canShare.value : saved.value.userId === user.value?.id),
+    !viewId.value ||
+    (!!saved.value &&
+      (saved.value.userId === null ? canShare.value : saved.value.userId === user.value?.id)),
 );
 const saveChanges = () =>
-  updateView(viewId.value, {
-    config: savedOptions.value,
-    filter: draftFilter.value ?? emptyFilter(),
-  });
+  viewId.value
+    ? updateView(viewId.value, {
+        config: savedOptions.value,
+        filter: savedFilter.value ?? emptyFilter(),
+      })
+    : tabView.save();
 const saveOpen = ref(false);
 // project "…" menu: save view + project actions (as in the sidebar, without inline renaming)
 const projectActions = useSidebarActions().projectItems;

@@ -16,6 +16,11 @@ async function own(tx: Tx, ids: string[], ctx: MutatorCtx) {
 
 const viewName = z.string().min(1).max(100);
 const viewIcon = z.string().max(32).nullable().optional(); // lucide icon name from the web set
+// node of a built-in tab's saved view: w | s:<id> | p:<id>, "My work" — :me-<mode>
+const viewNode = z
+  .string()
+  .regex(/^(w|[sp]:[0-9a-f-]{36})(:me-(mine|assigned|created|watched))?$/)
+  .nullable();
 
 export const miscMutators = [
   defineMutator({
@@ -42,6 +47,7 @@ export const miscMutators = [
       name: viewName,
       icon: viewIcon,
       layout: z.string().min(1),
+      node: viewNode.optional(),
       filter: record,
       config: record,
       rank,
@@ -52,7 +58,9 @@ export const miscMutators = [
       await tx.put('savedViews', {
         ...rest,
         icon: a.icon ?? null,
-        userId: personal ? ctx.userId : null,
+        node: a.node ?? null,
+        // a node's view is always the owner's own
+        userId: personal || a.node ? ctx.userId : null,
         createdBy: ctx.userId,
         createdAt: ctx.now,
         updatedAt: ctx.now,

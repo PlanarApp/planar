@@ -233,6 +233,7 @@ export const entitySchemas = {
     name: z.string(),
     icon: z.string().nullable().optional(), // replica rows before C-schema v13 — without the field
     layout: z.string(),
+    node: z.string().nullable().optional(), // replica rows before C-schema v14 — without the field
     filter: z.record(z.string(), z.unknown()),
     config: z.record(z.string(), z.unknown()),
     rank: z.string().min(1),

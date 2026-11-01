@@ -424,6 +424,7 @@ export const savedViews = pgTable(
     name: text().notNull(),
     icon: text(),
     layout: text().notNull(),
+    node: text(),
     filter: obj().notNull(),
     config: obj().notNull(),
     rank: rank().notNull(),
