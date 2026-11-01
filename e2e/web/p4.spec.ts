@@ -71,7 +71,7 @@ test('pf6: шаблоны — задача из шаблона через мен
     }),
   ]);
   const page = await loginAs(browser, 'alice');
-  await page.goto(`/p/${f.projectId}`);
+  await page.goto(`/p/${f.projectId}/list`);
   const made = async () => (await rows('tasks')).filter((t) => t.title === title);
 
   await page.getByRole('button', { name: 'Новая задача из…' }).first().click();

@@ -8,7 +8,7 @@ test('правый клик по задаче: статус через подм�
   const title = uniq('Меню');
   const f = await fixture([title]);
   const page = await loginAs(browser, 'alice');
-  await page.goto(`/p/${f.projectId}`);
+  await page.goto(`/p/${f.projectId}/list`);
   const row = page.getByRole('row').filter({ hasText: title });
   await row.click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Статус' }).hover();
@@ -24,13 +24,13 @@ test('«+ Создать» → задача: создаётся с одного 
   const f = await fixture([]);
   const page = await loginAs(browser, 'alice');
   const title = uniq('Быстрая');
-  await page.goto(`/p/${f.projectId}`);
+  await page.goto(`/p/${f.projectId}/list`);
   await page.getByTestId('create-menu').click();
   await page.getByRole('menuitem', { name: /Задача/ }).click();
   await page.getByTestId('quick-title').fill(title);
   await page.getByTestId('quick-submit').click();
   await expect(page.getByTestId('quick-title')).toHaveCount(0);
-  await page.goto(`/p/${f.projectId}`);
+  await page.goto(`/p/${f.projectId}/list`);
   await expect(page.getByRole('row').filter({ hasText: title })).toHaveCount(1);
   await page.reload();
   await expect(page.getByRole('row').filter({ hasText: title })).toHaveCount(1);

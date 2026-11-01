@@ -10,7 +10,7 @@ test('mutate', async ({ browser }) => {
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log('PAGEERROR', e.message.slice(0, 300)));
   page.on('console', (m) => m.type() === 'error' && console.log('CONSOLE', m.text().slice(0, 300)));
-  await page.goto(`/p/${big.id}`);
+  await page.goto(`/p/${big.id}/list`);
   await firstRow(page);
   await page.waitForTimeout(3000);
   const keys = await page

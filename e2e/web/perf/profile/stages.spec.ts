@@ -32,7 +32,7 @@ const navInfo = (page: Page) =>
 async function loadScenario(name: 'cold' | 'warm', browser: Browser) {
   const admin = await Client.login('admin');
   const { big, counts } = await projects(admin);
-  const url = `/p/${big.id}`;
+  const url = `/p/${big.id}/list`;
   const runs: unknown[] = [];
   const ms: number[] = [];
   if (name === 'cold') {
@@ -78,7 +78,7 @@ test('switch', async ({ browser }) => {
   const { big, other, counts } = await projects(admin);
   const ctx = await ctxFor(browser, admin);
   const page = await ctx.newPage();
-  await page.goto(`/p/${big.id}`);
+  await page.goto(`/p/${big.id}/list`);
   await firstRow(page);
   await page.waitForTimeout(3000);
   const prof = new Prof(page);
@@ -127,7 +127,7 @@ test('realtime', async ({ browser }) => {
   const admin = await Client.login('admin');
   const alice = await Client.login('alice');
   const { big, counts } = await projects(admin);
-  const url = `/p/${big.id}`;
+  const url = `/p/${big.id}/list`;
   const ca = await ctxFor(browser, admin);
   const cb = await ctxFor(browser, alice);
   const [a, b] = [await ca.newPage(), await cb.newPage()];

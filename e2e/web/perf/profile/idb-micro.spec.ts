@@ -8,7 +8,7 @@ test('idb-micro', async ({ browser }) => {
   const { big, counts } = await projects(admin);
   const ctx = await ctxFor(browser, admin, false);
   const page = await ctx.newPage();
-  await page.goto(`/p/${big.id}`);
+  await page.goto(`/p/${big.id}/list`);
   await page.waitForSelector('[role=row][data-task]');
   await page.waitForTimeout(3000);
   const r = await page.evaluate(async (pid) => {

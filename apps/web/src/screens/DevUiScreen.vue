@@ -76,7 +76,7 @@ const variants = ['primary', 'secondary', 'ghost', 'danger-ghost', 'danger'] as 
 
 <template>
   <div class="mx-auto flex max-w-3xl flex-col gap-6 p-4 text-fg">
-    <h1 class="text-xl font-semibold">C-ui v4</h1>
+    <h1 class="text-xl font-semibold">C-ui v5</h1>
     <Tabs
       v-model="theme"
       label="Тема"

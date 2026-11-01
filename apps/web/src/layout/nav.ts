@@ -190,8 +190,7 @@ export function useNavData(): {
     ]);
     return favList.value.flatMap((f) => {
       const key = `${f.kind}:${f.id}`;
-      if (!['workspace', 'space', 'project'].includes(f.kind))
-        return f.name ? [{ ...f, key }] : [];
+      if (!['workspace', 'space', 'project'].includes(f.kind)) return f.name ? [{ ...f, key }] : [];
       const n = node.get(key);
       return n ? [{ ...f, key, name: n.name, icon: n.icon, color: n.color }] : [];
     });

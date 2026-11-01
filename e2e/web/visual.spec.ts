@@ -6,9 +6,9 @@ import { NOW, buildData, shiftTime, type Data } from './visual-helpers.js';
 const SCREENS: [name: string, url: (d: Data) => string, ready: string | RegExp][] = [
   ['login', () => '/login', 'Войти'],
   ['my', () => '/my', 'Подготовить макеты экрана входа'],
-  ['work', () => '/w/work', 'Назначено мне'],
+  ['work', () => '/w/work', 'Подготовить макеты экрана входа'],
   ['activity', () => '/w/work?w=activity', 'Подготовить макеты экрана входа'],
-  ['list', (d) => `/p/${d.projectId}`, 'Подготовить макеты экрана входа'],
+  ['list', (d) => `/p/${d.projectId}/list`, 'Подготовить макеты экрана входа'],
   ['board', (d) => `/p/${d.projectId}/board`, 'Подготовить макеты экрана входа'],
   ['task', (d) => `/t/${d.taskKey}`, 'Макеты готовы к ревью.'],
   ['settings-projects', (d) => `/s/${d.spaceId}/settings?s=projects`, 'Проекты пространства'],
@@ -17,7 +17,7 @@ const SCREENS: [name: string, url: (d: Data) => string, ready: string | RegExp][
   ['chat', (d) => `/m/chat/c/${d.chatId}`, 'Нашла обрезку заголовка на узком экране.'],
   ['docs', (d) => `/m/docs/${d.docId}`, 'Плотность и отступы'],
   ['time-week', () => '/w/reports?r=time:week', 'Время'],
-  ['dev-ui', () => '/dev/ui', 'C-ui v4'],
+  ['dev-ui', () => '/dev/ui', 'C-ui v5'],
 ];
 const WIDTHS = [
   [1440, 900],

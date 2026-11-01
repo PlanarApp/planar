@@ -151,7 +151,7 @@ test('импорт: jira.csv по заготовке, прогресс до ко
     timeout: 30_000,
   });
   await expect(page.locator('progress')).toHaveAttribute('value', '8');
-  await page.goto(`/p/${f.projectId}`);
+  await page.goto(`/p/${f.projectId}/list`);
   // subtasks (6–8) are collapsed under the parent in the list — we check the top level and the count on the server
   for (const n of [1, 5]) await expect(page.getByText(`Jira issue ${n}`).first()).toBeVisible();
   const { data } = await f.admin.bootstrap();

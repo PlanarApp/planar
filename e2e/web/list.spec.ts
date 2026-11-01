@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { Client, ranks, uuidv7 } from '../lib.js';
 import { fixture, loginAs, uniq } from './helpers.js';
 
 // List as in ClickUp: subtasks as a tree, collapsing, dragging into subtasks and back.
@@ -28,12 +29,23 @@ test('перетаскивание: в подзадачи (середина ст
 }) => {
   const f = await fixture([uniq('Родитель'), uniq('Ребёнок'), uniq('Третья')]);
   const [parent, child, third] = f.taskKeys as [string, string, string];
+  // alice's saved node view of the List tab — without grouping, with subtasks
+  const alice = await Client.login('alice');
+  await alice.pushOk([
+    alice.mut('view.create', {
+      id: uuidv7(),
+      spaceId: f.spaceId,
+      personal: true,
+      name: 'list',
+      layout: 'list',
+      node: `p:${f.projectId}`,
+      filter: { op: 'and', rules: [] },
+      config: OPTS,
+      rank: ranks(1)[0],
+    }),
+  ]);
   const page = await loginAs(browser, 'alice');
-  await page.evaluate(([p, o]) => localStorage.setItem(`planar.view.${p}.list`, o), [
-    f.projectId,
-    JSON.stringify(OPTS),
-  ] as const);
-  await page.goto(`/p/${f.projectId}`);
+  await page.goto(`/p/${f.projectId}/list`);
   const row = (k: string) => page.locator(`[role=row][data-task="${k}"]`);
   await expect(row(third)).toBeVisible();
 

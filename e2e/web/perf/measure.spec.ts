@@ -81,7 +81,7 @@ test('бюджеты §7', async ({ browser }) => {
   process.stdout.write(
     `tasks_total=${tasks.length}\nproject_tasks=${count(big.id)}\nproject=${big.key}\n`,
   );
-  const url = `/p/${big.id}`;
+  const url = `/p/${big.id}/list`;
 
   // cold: new context (empty IndexedDB), from goto to the first row; median of 3
   const cold: number[] = [];

@@ -23,7 +23,7 @@ test('создать задачу в списке: видна и пережив�
   const f = await fixture([]);
   const page = await loginAs(browser, 'alice');
   const title = uniq('Новая из UI');
-  await page.goto(`/p/${f.projectId}`);
+  await page.goto(`/p/${f.projectId}/list`);
   await page.getByRole('button', { name: 'Создать задачу' }).click();
   await page.getByPlaceholder('Новая задача').fill(title);
   await page.keyboard.press('Enter');
@@ -32,7 +32,7 @@ test('создать задачу в списке: видна и пережив�
   await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible();
   // on the server: another user sees
   const bob = await loginAs(browser, 'bob');
-  await bob.goto(`/p/${f.projectId}`);
+  await bob.goto(`/p/${f.projectId}/list`);
   await expect(bob.getByRole('row').filter({ hasText: title })).toBeVisible();
 });
 
@@ -91,8 +91,8 @@ test('офлайн: правки названия не теряются и до�
   const f = await fixture(titles);
   const alice = await loginAs(browser, 'alice');
   const bob = await loginAs(browser, 'bob');
-  await bob.goto(`/p/${f.projectId}`);
-  await alice.goto(`/p/${f.projectId}`);
+  await bob.goto(`/p/${f.projectId}/list`);
+  await alice.goto(`/p/${f.projectId}/list`);
   const rows = f.taskKeys.map((k) => alice.locator(`[role=row][data-task="${k}"]`));
   for (const r of rows) await expect(r).toBeVisible();
   // warm-up of the lazy task panel: it cannot be loaded offline; a click on the title — the middle of the row is taken by cells
@@ -104,7 +104,7 @@ test('офлайн: правки названия не теряются и до�
   await alice.context().setOffline(true);
   const names = f.taskKeys.map(() => uniq('Правка офлайн'));
   for (let i = 0; i < rows.length; i++) {
-    await rows[i]!.getByText(f.taskKeys[i]!, { exact: true }).click();
+    await rows[i]!.getByText(titles[i]!, { exact: true }).click();
     await alice.keyboard.press('F2'); // dblclick opens the panel and knocks the focus off the inline input
     await alice.getByLabel('Название задачи', { exact: true }).fill(names[i]!);
     await alice.keyboard.press('Enter');
