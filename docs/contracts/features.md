@@ -1,8 +1,8 @@
 ---
 type: contract
-status: active
+status: closed
 module: features
-updated: 2026-10-23
+updated: 2026-11-02
 summary: features contracts — custom fields, task links, filters by fields, the "Table" and "Calendar" views
 related: ["docs/plan/features.md", "docs/contracts/core.md", "docs/contracts/core-mutators.md", "docs/contracts/web.md"]
 contracts: [{"id": "F-fields", "version": 1}, {"id": "F-links", "version": 1}, {"id": "F-filter", "version": 1}, {"id": "F-views", "version": 1}]

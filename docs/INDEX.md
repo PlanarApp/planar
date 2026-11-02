@@ -19,7 +19,6 @@ generated: true
 ## Модули без area
 
 - **web** — План модуля web: PWA на Vue 3, клиент синхронизации, Список, Доска, карточка задачи, Cmd+K, виды, Inbox, настройки, токены [active 2026-10-22] — [план](plan/web.md) · [контракты](contracts/web.md)
-- **features** — План модуля features: ярус A v1 — пользовательские поля, Таблица, Календарь, связи задач [active 2026-10-23] — [план](plan/features.md) · [контракты](contracts/features.md)
 - **polish** — Доводка после фазы 2: тёплый старт до бюджета 400 мс и мелкие недочёты автоматизаций, webhooks и e2e [active 2026-10-23] — [план](plan/polish.md)
   - [docs/research/pl1-warm-start.md](research/pl1-warm-start.md) — Тёплый старт ~405–420 мс: время в чтении IndexedDB и монтировании Vue; модули и zod не причина; бюджет поднят до 450 [closed]
 - **work** — План модуля work: учёт времени, спринты, автоматизации, webhooks, связи в REST/MCP, импорт, хвосты фазы 1 [active 2026-10-23] — [план](plan/work.md) · [контракты](contracts/work.md)
@@ -38,6 +37,7 @@ generated: true
   - [docs/contracts/core-schema.md](contracts/core-schema.md) — Entities of C-schema v14 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test [closed]
   - [docs/guides/mcp.md](guides/mcp.md) — Connecting an AI client to Planar over MCP: token, /mcp URL, configuration, tools, read/write permissions
 - **design** — План модуля design: визуал Planar в стиле Linear — C-ui v3, оболочка, Список/Доска, карточка, настройки, mobile, скриншоты [closed 2026-11-02] — [план](plan/design.md) · [контракты](contracts/design.md) · [решения](plan/design/decisions.md) · [сводка](plan/design/summary.md) · полный журнал: `c55b909`
+- **features** — План модуля features: ярус A v1 — пользовательские поля, Таблица, Календарь, связи задач [closed 2026-11-02] — [план](plan/features.md) · [контракты](contracts/features.md) · [решения](plan/features/decisions.md) · [сводка](plan/features/summary.md) · полный журнал: `f1e8baf`
 
 ## Прочие документы
 

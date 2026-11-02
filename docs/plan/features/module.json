@@ -1,9 +1,0 @@
-{
-  "module": "features",
-  "plan": "docs/plan/features.md",
-  "contracts": "docs/contracts/features.md",
-  "branch": "feature/features",
-  "copy": "~/planar-features",
-  "created": "2026-10-23T08:53:49",
-  "code": "FT"
-}

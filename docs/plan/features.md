@@ -1,8 +1,8 @@
 ---
 type: plan
-status: active
+status: closed
 module: features
-updated: 2026-10-23
+updated: 2026-11-02
 summary: План модуля features: ярус A v1 — пользовательские поля, Таблица, Календарь, связи задач
 related: ["docs/roadmap.md", "docs/plan/core.md", "docs/plan/web.md"]
 ---
