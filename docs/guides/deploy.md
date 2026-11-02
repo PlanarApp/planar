@@ -2,7 +2,7 @@
 type: guide
 status: active
 module: ops
-updated: 2026-10-25
+updated: 2026-11-02
 summary: Deploying planar on a single VPS - .env, first start, backups and restore, upgrade, monitoring, troubleshooting
 related: ["docs/contracts/ops.md", "docs/plan/ops.md", "docs/contracts/core.md"]
 ---
@@ -88,6 +88,15 @@ docker run --rm node:24-slim node -e "
 ```
 
 Replace `VAPID_SUBJECT` with your own address. **Do not change `PLANAR_SECRET_KEY` and `POSTGRES_PASSWORD` after the first start**: the key encrypts stored tokens (e.g. GitLab), and the password is already written into the postgres volume. Keep `.env` separately from data backups — backup archives do not contain it.
+
+## Quick start from registry images
+
+```bash
+echo "PLANAR_DOMAIN=planar.example.com" >> .env   # optional: without it — localhost, self-signed certificate
+./start.sh
+```
+
+`start.sh` writes `COMPOSE_FILE=compose.yml:compose.prod.yml` into `.env` (so plain `docker compose` and the `ops/` scripts work with the same stack), generates `POSTGRES_PASSWORD` and `PLANAR_SECRET_KEY` if they have no value, pulls the api and caddy images (`PLANAR_REGISTRY`, `PLANAR_VERSION`) and starts the stack. Data lives in bind mounts instead of named volumes: `./data/postgres`, `./data/api` (files, owned by `node`), `./data/caddy/{data,config}`. Running `./start.sh` again pulls the new images and recreates the containers; api applies migrations at startup. Make a backup first (`./ops/backup.sh`); `ops/upgrade.sh` builds from source and does not pull images.
 
 ## First start and creating the owner
 

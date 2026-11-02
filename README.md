@@ -19,11 +19,11 @@ Planar is a fast, simple task tracker for teams, with a local replica of your da
 ```bash
 git clone https://gitlab.com/planarhq/planar.git
 cd planar
-cp .env.example .env   # then set POSTGRES_PASSWORD, PLANAR_DOMAIN and the other values
-docker compose up -d
+echo "PLANAR_DOMAIN=planar.example.com" >> .env   # without it — localhost with a self-signed certificate
+./start.sh
 ```
 
-`.env.example` is geared to development; for a real server set the variables described in [docs/guides/deploy.md](docs/guides/deploy.md) (domain, secrets, VAPID keys, backups). The first visit to the site shows a form that creates the owner, so open it right after the start. The current `compose.yml` builds the images locally (`docker compose up -d --build`). The guides are currently written in Russian.
+`start.sh` pulls ready images from the GitLab registry (`compose.yml` + `compose.prod.yml`), keeps data in `./data` (`postgres`, `api` — files, `caddy` — certificates) and generates missing `POSTGRES_PASSWORD` and `PLANAR_SECRET_KEY` into `.env`. Running it again updates the images to `PLANAR_VERSION` (default `latest`). Other variables (VAPID keys, backups) are in [docs/guides/deploy.md](docs/guides/deploy.md). The first visit to the site shows a form that creates the owner, so open it right after the start. Building the images from source: `docker compose -f compose.yml -f compose.build.yml up -d --build`. The guides are currently written in Russian.
 
 Connecting AI agents over MCP: [docs/guides/mcp.md](docs/guides/mcp.md).
 

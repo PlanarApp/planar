@@ -19,11 +19,11 @@ Planar — быстрый и простой трекер задач для ко�
 ```bash
 git clone https://gitlab.com/planarhq/planar.git
 cd planar
-cp .env.example .env   # затем задайте POSTGRES_PASSWORD, PLANAR_DOMAIN и остальное
-docker compose up -d
+echo "PLANAR_DOMAIN=planar.example.com" >> .env   # без этого — localhost с самоподписанным сертификатом
+./start.sh
 ```
 
-`.env.example` рассчитан на разработку; для реального сервера задайте переменные из [docs/guides/deploy.md](docs/guides/deploy.md) (домен, секреты, ключи VAPID, бэкапы). Первый заход на сайт показывает форму создания владельца — откройте адрес сразу после запуска. Текущий `compose.yml` собирает образы локально (`docker compose up -d --build`).
+`start.sh` берёт готовые образы из GitLab registry (`compose.yml` + `compose.prod.yml`), хранит данные в `./data` (`postgres`, `api` — файлы, `caddy` — сертификаты), а недостающие `POSTGRES_PASSWORD` и `PLANAR_SECRET_KEY` генерирует в `.env`. Повторный запуск обновляет образы до `PLANAR_VERSION` (по умолчанию `latest`). Остальные переменные (ключи VAPID, бэкапы) — в [docs/guides/deploy.md](docs/guides/deploy.md). Первый заход на сайт показывает форму создания владельца — откройте адрес сразу после запуска. Сборка образов из исходников: `docker compose -f compose.yml -f compose.build.yml up -d --build`.
 
 Подключение ИИ-агентов по MCP: [docs/guides/mcp.md](docs/guides/mcp.md).
 
