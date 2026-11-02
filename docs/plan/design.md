@@ -1,8 +1,8 @@
 ---
 type: plan
-status: active
+status: closed
 module: design
-updated: 2026-10-24
+updated: 2026-11-02
 summary: План модуля design: визуал Planar в стиле Linear — C-ui v3, оболочка, Список/Доска, карточка, настройки, mobile, скриншоты
 related: ["docs/roadmap.md", "docs/plan/web.md"]
 ---

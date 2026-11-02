@@ -25,7 +25,6 @@ generated: true
 - **work** — План модуля work: учёт времени, спринты, автоматизации, webhooks, связи в REST/MCP, импорт, хвосты фазы 1 [active 2026-10-23] — [план](plan/work.md) · [контракты](contracts/work.md)
   - [docs/contracts/work-api.md](contracts/work-api.md) — Work contracts, part 2 — C-modules v5 and v6 (enqueue, SDK, module settings, collab fixes), REST v1 and MCP (WK-5)
   - [docs/research/wk16-budgets.md](research/wk16-budgets.md) — A/B 5×5 main против feature/work — бюджеты §7 не ухудшились за шумом; switch +8 % не доказано, хост у порогов [closed]
-- **design** — План модуля design: визуал Planar в стиле Linear — C-ui v3, оболочка, Список/Доска, карточка, настройки, mobile, скриншоты [active 2026-10-24] — [план](plan/design.md) · [контракты](contracts/design.md)
 - **p3** — План модуля p3: совместное редактирование (Yjs), Timeline, Workload, дашборды, формы, GitLab (опрос API) [active 2026-10-24] — [план](plan/p3.md) · [контракты](contracts/p3.md)
 - **ops** — План ops: prod-стек с Caddy и TLS, бэкапы с тестом восстановления, health и метрики, обновление, инструкция по развёртыванию [active 2026-10-25] — [план](plan/ops.md) · [контракты](contracts/ops.md)
   - [docs/guides/deploy.md](guides/deploy.md) — Deploying planar on a single VPS - .env, first start, backups and restore, upgrade, monitoring, troubleshooting
@@ -38,6 +37,7 @@ generated: true
   - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Domain mutators of C-mutators v10 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts [closed]
   - [docs/contracts/core-schema.md](contracts/core-schema.md) — Entities of C-schema v14 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test [closed]
   - [docs/guides/mcp.md](guides/mcp.md) — Connecting an AI client to Planar over MCP: token, /mcp URL, configuration, tools, read/write permissions
+- **design** — План модуля design: визуал Planar в стиле Linear — C-ui v3, оболочка, Список/Доска, карточка, настройки, mobile, скриншоты [closed 2026-11-02] — [план](plan/design.md) · [контракты](contracts/design.md) · [решения](plan/design/decisions.md) · [сводка](plan/design/summary.md) · полный журнал: `c55b909`
 
 ## Прочие документы
 

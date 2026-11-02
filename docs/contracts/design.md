@@ -1,8 +1,8 @@
 ---
 type: contract
-status: active
+status: closed
 module: design
-updated: 2026-11-01
+updated: 2026-11-02
 summary: Contract C-ui v5 - tokens, contrast, density, base components, routes and extension points of web
 related: ["docs/plan/design.md", "docs/contracts/web.md", "docs/contracts/work.md", "docs/roadmap.md"]
 contracts: [{"id": "C-ui", "version": 5}]
