@@ -1,8 +1,8 @@
 ---
 type: contract
-status: active
+status: closed
 module: core
-updated: 2026-10-23
+updated: 2026-11-02
 summary: Core contracts — C-schema, C-sync, C-mutators, C-modules, C-http; versions are in the headings, examples are checked by the contract test
 related: ["docs/plan/core.md", "docs/roadmap.md", "docs/contracts/core-schema.md"]
 contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 3}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 8}]

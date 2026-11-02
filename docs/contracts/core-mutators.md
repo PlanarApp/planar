@@ -1,8 +1,8 @@
 ---
 type: reference
-status: active
+status: closed
 module: core
-updated: 2026-11-01
+updated: 2026-11-02
 summary: Domain mutators of C-mutators v10 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---

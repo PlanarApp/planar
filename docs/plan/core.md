@@ -1,8 +1,8 @@
 ---
 type: plan
-status: active
+status: closed
 module: core
-updated: 2026-10-22
+updated: 2026-11-02
 summary: План модуля core: каркас, БД, синхронизация, мутаторы, авторизация, файлы, уведомления, модули, API-токены, MCP
 related: ["docs/roadmap.md"]
 ---

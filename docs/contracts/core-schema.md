@@ -1,8 +1,8 @@
 ---
 type: reference
-status: active
+status: closed
 module: core
-updated: 2026-11-01
+updated: 2026-11-02
 summary: Entities of C-schema v14 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
 related: ["docs/contracts/core.md"]
 ---

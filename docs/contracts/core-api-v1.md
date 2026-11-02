@@ -1,8 +1,8 @@
 ---
 type: reference
-status: active
+status: closed
 module: core
-updated: 2026-10-23
+updated: 2026-11-02
 summary: API tokens, Bearer, REST /api/v1 and MCP /mcp — part of C-http v8 (docs/contracts/core.md); examples are checked by the contract test
 related: ["docs/contracts/core.md", "docs/contracts/core-mutators.md"]
 ---
