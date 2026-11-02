@@ -140,3 +140,8 @@
 {"t": "2026-10-24T20:58:11", "module": "design", "task": "DS-11", "text": "accept --dry занимает ~15 мин и блокирует порты; флейки вне скоупа не отличимы от своих без ручного A/B.", "src": "report", "kind": "item"}
 {"t": "2026-10-24T21:22:22", "module": "design", "task": "DS-12", "text": "Нужна команда для снимка сетевых/docker-событий хоста вокруг замера; lock cpu не защищает от чужих docker-стеков.", "src": "report", "kind": "item"}
 {"t": "2026-10-24T21:43:33", "module": "design", "task": "DS-11", "text": "plan <м> <раздел> не принимает 'N. Задачи / DS-5' без кавычек; полный текст дополнения карточки обрезан в task show — только --full.", "src": "report", "kind": "item"}
+{"t": "2026-10-23T09:05:44", "module": "features", "task": "FT-2a", "text": "report требует checks по именам из accept; шаблон об этом не говорит.", "src": "report", "kind": "item"}
+{"t": "2026-10-23T09:42:03", "module": "features", "task": "FT-1b", "text": "Общий /tmp/r.json между исполнителями перезаписывается; в шаблоне отчёта указывать путь build/dpcli/<ID>.report.json.", "src": "report", "kind": "item"}
+{"t": "2026-10-23T09:43:28", "module": "features", "task": "FT-4a", "text": "общий /tmp для отчётов исполнителей приводит к подмене; шаблон пишет в /tmp", "src": "report", "kind": "item"}
+{"t": "2026-10-23T09:58:11", "module": "features", "task": "FT-9", "text": "accept --dry показывает только 'num: 13' без списка упавших тестов — пришлось гонять команду вручную.", "src": "report", "kind": "item"}
+{"t": "2026-10-23T10:57:57", "module": "features", "task": "FT-1e", "text": "accept фиксирует порт 3300 в карточке; параллельные задачи/dev-стек конфликтуют, нужен уникальный порт на задачу.", "src": "report", "kind": "item"}
