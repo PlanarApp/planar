@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-10-30"
+updated: "2026-11-02"
 summary: "Точка входа: модули docs/ по подпроектам, прочие документы по типам."
 related: []
 generated: true
@@ -20,11 +20,10 @@ generated: true
 
 - **core** — План модуля core: каркас, БД, синхронизация, мутаторы, авторизация, файлы, уведомления, модули, API-токены, MCP [active 2026-10-22] — [план](plan/core.md) · [контракты](contracts/core.md)
   - [docs/contracts/core-api-v1.md](contracts/core-api-v1.md) — API tokens, Bearer, REST /api/v1 and MCP /mcp — part of C-http v8 (docs/contracts/core.md); examples are checked by the contract test
-  - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Domain mutators of C-mutators v9 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
-  - [docs/contracts/core-schema.md](contracts/core-schema.md) — Entities of C-schema v13 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
+  - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Domain mutators of C-mutators v10 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
+  - [docs/contracts/core-schema.md](contracts/core-schema.md) — Entities of C-schema v14 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
   - [docs/guides/mcp.md](guides/mcp.md) — Connecting an AI client to Planar over MCP: token, /mcp URL, configuration, tools, read/write permissions
 - **web** — План модуля web: PWA на Vue 3, клиент синхронизации, Список, Доска, карточка задачи, Cmd+K, виды, Inbox, настройки, токены [active 2026-10-22] — [план](plan/web.md) · [контракты](contracts/web.md)
-- **collab** — План модуля collab: чат (каналы, треды, личные сообщения, push) и документы (дерево страниц на TipTap, связь с задачами) [active 2026-10-23] — [план](plan/collab.md) · [контракты](contracts/collab.md)
 - **features** — План модуля features: ярус A v1 — пользовательские поля, Таблица, Календарь, связи задач [active 2026-10-23] — [план](plan/features.md) · [контракты](contracts/features.md)
 - **polish** — Доводка после фазы 2: тёплый старт до бюджета 400 мс и мелкие недочёты автоматизаций, webhooks и e2e [active 2026-10-23] — [план](plan/polish.md)
   - [docs/research/pl1-warm-start.md](research/pl1-warm-start.md) — Тёплый старт ~405–420 мс: время в чтении IndexedDB и монтировании Vue; модули и zod не причина; бюджет поднят до 450 [closed]
@@ -38,6 +37,7 @@ generated: true
 - **p4** — План модуля p4: повторяющиеся задачи и шаблоны, цели и вехи, email-уведомления (SMTP), внешние плагины через iframe [active 2026-10-25] — [план](plan/p4.md) · [контракты](contracts/p4.md)
 - **tails** — Визуальные хвосты фазы 3: карточки доски, крошки на телефоне, раздел чата, экран входа, иконка приоритета, пустые ячейки строки [active 2026-10-25] — [план](plan/tails.md)
 - **docs-en** — Перевод на английский документов, попадающих в публичный репозиторий — docs/contracts и docs/guides [closed 2026-10-30] — [план](plan/docs-en.md) · [решения](plan/docs-en/decisions.md) · [сводка](plan/docs-en/summary.md) · полный журнал: `archive/docs-en`
+- **collab** — План модуля collab: чат (каналы, треды, личные сообщения, push) и документы (дерево страниц на TipTap, связь с задачами) [closed 2026-11-02] — [план](plan/collab.md) · [контракты](contracts/collab.md) · [решения](plan/collab/decisions.md) · [сводка](plan/collab/summary.md) · полный журнал: `676d0b6`
 
 ## Прочие документы
 

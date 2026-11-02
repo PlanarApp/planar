@@ -1,9 +1,0 @@
-{
-  "module": "collab",
-  "plan": "docs/plan/collab.md",
-  "contracts": "docs/contracts/collab.md",
-  "branch": "feature/collab",
-  "copy": "~/planar-collab",
-  "created": "2026-10-23T11:28:34",
-  "code": "CL"
-}

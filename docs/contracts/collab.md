@@ -1,8 +1,8 @@
 ---
 type: reference
-status: active
+status: closed
 module: collab
-updated: 2026-10-23
+updated: 2026-11-02
 summary: Collab contracts - documents (DC-*), chat (CH-schema, CH-mutators, CH-api, CH-web), core changes for chat (X-core)
 related: ["docs/plan/collab.md", "docs/contracts/core.md", "docs/contracts/core-mutators.md", "docs/contracts/web.md"]
 ---

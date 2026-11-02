@@ -1,8 +1,8 @@
 ---
 type: plan
-status: active
+status: closed
 module: collab
-updated: 2026-10-23
+updated: 2026-11-02
 summary: План модуля collab: чат (каналы, треды, личные сообщения, push) и документы (дерево страниц на TipTap, связь с задачами)
 related: ["docs/roadmap.md", "docs/plan/core.md", "docs/plan/web.md"]
 ---
