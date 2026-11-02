@@ -1,8 +1,8 @@
 ---
 type: contract
-status: active
+status: closed
 module: web
-updated: 2026-10-24
+updated: 2026-11-02
 summary: Web contracts - C-client (sync), C-tasks (tasks layer), C-views (project screen and view interface); C-ui - design.md
 related: ["docs/plan/web.md", "docs/contracts/core.md", "docs/contracts/design.md", "docs/roadmap.md"]
 contracts: [{"id": "C-client", "version": 4}, {"id": "C-tasks", "version": 3}, {"id": "C-views", "version": 2}]

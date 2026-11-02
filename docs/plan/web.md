@@ -1,8 +1,8 @@
 ---
 type: plan
-status: active
+status: closed
 module: web
-updated: 2026-10-22
+updated: 2026-11-02
 summary: План модуля web: PWA на Vue 3, клиент синхронизации, Список, Доска, карточка задачи, Cmd+K, виды, Inbox, настройки, токены
 related: ["docs/roadmap.md", "docs/plan/core.md"]
 ---

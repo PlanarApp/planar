@@ -18,7 +18,6 @@ generated: true
 
 ## Модули без area
 
-- **web** — План модуля web: PWA на Vue 3, клиент синхронизации, Список, Доска, карточка задачи, Cmd+K, виды, Inbox, настройки, токены [active 2026-10-22] — [план](plan/web.md) · [контракты](contracts/web.md)
 - **work** — План модуля work: учёт времени, спринты, автоматизации, webhooks, связи в REST/MCP, импорт, хвосты фазы 1 [active 2026-10-23] — [план](plan/work.md) · [контракты](contracts/work.md)
   - [docs/contracts/work-api.md](contracts/work-api.md) — Work contracts, part 2 — C-modules v5 and v6 (enqueue, SDK, module settings, collab fixes), REST v1 and MCP (WK-5)
   - [docs/research/wk16-budgets.md](research/wk16-budgets.md) — A/B 5×5 main против feature/work — бюджеты §7 не ухудшились за шумом; switch +8 % не доказано, хост у порогов [closed]
@@ -38,6 +37,7 @@ generated: true
 - **polish** — Доводка после фазы 2: тёплый старт до бюджета 400 мс и мелкие недочёты автоматизаций, webhooks и e2e [closed 2026-11-02] — [план](plan/polish.md) · [решения](plan/polish/decisions.md) · [сводка](plan/polish/summary.md) · полный журнал: `8487630`
   - [docs/research/pl1-warm-start.md](research/pl1-warm-start.md) — Тёплый старт ~405–420 мс: время в чтении IndexedDB и монтировании Vue; модули и zod не причина; бюджет поднят до 450 [closed]
 - **tails** — Визуальные хвосты фазы 3: карточки доски, крошки на телефоне, раздел чата, экран входа, иконка приоритета, пустые ячейки строки [closed 2026-11-02] — [план](plan/tails.md) · [решения](plan/tails/decisions.md) · [сводка](plan/tails/summary.md) · полный журнал: `af6e562`
+- **web** — План модуля web: PWA на Vue 3, клиент синхронизации, Список, Доска, карточка задачи, Cmd+K, виды, Inbox, настройки, токены [closed 2026-11-02] — [план](plan/web.md) · [контракты](contracts/web.md) · [решения](plan/web/decisions.md) · [сводка](plan/web/summary.md) · полный журнал: `6dc403d`
 
 ## Прочие документы
 
