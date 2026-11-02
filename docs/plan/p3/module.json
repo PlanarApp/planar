@@ -1,9 +1,0 @@
-{
-  "module": "p3",
-  "plan": "docs/plan/p3.md",
-  "contracts": "docs/contracts/p3.md",
-  "branch": "feature/p3",
-  "copy": "~/planar-p3",
-  "created": "2026-10-24T10:48:59",
-  "code": "PT"
-}
