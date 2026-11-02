@@ -1,8 +1,8 @@
 ---
 type: plan
-status: active
+status: closed
 module: tails
-updated: 2026-10-25
+updated: 2026-11-02
 summary: Визуальные хвосты фазы 3: карточки доски, крошки на телефоне, раздел чата, экран входа, иконка приоритета, пустые ячейки строки
 related: ["docs/plan/design.md", "docs/contracts/design.md"]
 ---

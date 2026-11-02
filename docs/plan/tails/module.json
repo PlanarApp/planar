@@ -1,9 +1,0 @@
-{
-  "module": "tails",
-  "plan": "docs/plan/tails.md",
-  "contracts": "docs/contracts/tails.md",
-  "branch": "feature/tails",
-  "copy": "~/planar-tails",
-  "created": "2026-10-25T00:34:58",
-  "code": "UT"
-}
