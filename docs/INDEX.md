@@ -25,8 +25,6 @@ generated: true
   - [docs/contracts/work-api.md](contracts/work-api.md) — Work contracts, part 2 — C-modules v5 and v6 (enqueue, SDK, module settings, collab fixes), REST v1 and MCP (WK-5)
   - [docs/research/wk16-budgets.md](research/wk16-budgets.md) — A/B 5×5 main против feature/work — бюджеты §7 не ухудшились за шумом; switch +8 % не доказано, хост у порогов [closed]
 - **p3** — План модуля p3: совместное редактирование (Yjs), Timeline, Workload, дашборды, формы, GitLab (опрос API) [active 2026-10-24] — [план](plan/p3.md) · [контракты](contracts/p3.md)
-- **ops** — План ops: prod-стек с Caddy и TLS, бэкапы с тестом восстановления, health и метрики, обновление, инструкция по развёртыванию [active 2026-10-25] — [план](plan/ops.md) · [контракты](contracts/ops.md)
-  - [docs/guides/deploy.md](guides/deploy.md) — Deploying planar on a single VPS - .env, first start, backups and restore, upgrade, monitoring, troubleshooting
 - **p4** — План модуля p4: повторяющиеся задачи и шаблоны, цели и вехи, email-уведомления (SMTP), внешние плагины через iframe [active 2026-10-25] — [план](plan/p4.md) · [контракты](contracts/p4.md)
 - **tails** — Визуальные хвосты фазы 3: карточки доски, крошки на телефоне, раздел чата, экран входа, иконка приоритета, пустые ячейки строки [active 2026-10-25] — [план](plan/tails.md)
 - **docs-en** — Перевод на английский документов, попадающих в публичный репозиторий — docs/contracts и docs/guides [closed 2026-10-30] — [план](plan/docs-en.md) · [решения](plan/docs-en/decisions.md) · [сводка](plan/docs-en/summary.md) · полный журнал: `archive/docs-en`
@@ -38,6 +36,8 @@ generated: true
   - [docs/guides/mcp.md](guides/mcp.md) — Connecting an AI client to Planar over MCP: token, /mcp URL, configuration, tools, read/write permissions
 - **design** — План модуля design: визуал Planar в стиле Linear — C-ui v3, оболочка, Список/Доска, карточка, настройки, mobile, скриншоты [closed 2026-11-02] — [план](plan/design.md) · [контракты](contracts/design.md) · [решения](plan/design/decisions.md) · [сводка](plan/design/summary.md) · полный журнал: `c55b909`
 - **features** — План модуля features: ярус A v1 — пользовательские поля, Таблица, Календарь, связи задач [closed 2026-11-02] — [план](plan/features.md) · [контракты](contracts/features.md) · [решения](plan/features/decisions.md) · [сводка](plan/features/summary.md) · полный журнал: `f1e8baf`
+- **ops** — План ops: prod-стек с Caddy и TLS, бэкапы с тестом восстановления, health и метрики, обновление, инструкция по развёртыванию [closed 2026-11-02] — [план](plan/ops.md) · [контракты](contracts/ops.md) · [решения](plan/ops/decisions.md) · [сводка](plan/ops/summary.md) · полный журнал: `7090e90`
+  - [docs/guides/deploy.md](guides/deploy.md) — Deploying planar on a single VPS - .env, first start, backups and restore, upgrade, monitoring, troubleshooting
 
 ## Прочие документы
 

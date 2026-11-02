@@ -1,9 +1,0 @@
-{
-  "module": "ops",
-  "plan": "docs/plan/ops.md",
-  "contracts": "docs/contracts/ops.md",
-  "branch": "feature/ops",
-  "copy": "~/planar-ops",
-  "created": "2026-10-25T01:16:50",
-  "code": "OP"
-}

@@ -1,8 +1,8 @@
 ---
 type: reference
-status: active
+status: closed
 module: ops
-updated: 2026-10-25
+updated: 2026-11-02
 summary: ops contracts — prod stack env, volumes, Caddy headers and CSP, backup format v1, /api/health/ready and /api/metrics
 related: ["docs/plan/ops.md", "docs/contracts/core.md", "docs/roadmap.md"]
 ---
