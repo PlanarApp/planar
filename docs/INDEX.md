@@ -19,8 +19,6 @@ generated: true
 ## Модули без area
 
 - **web** — План модуля web: PWA на Vue 3, клиент синхронизации, Список, Доска, карточка задачи, Cmd+K, виды, Inbox, настройки, токены [active 2026-10-22] — [план](plan/web.md) · [контракты](contracts/web.md)
-- **polish** — Доводка после фазы 2: тёплый старт до бюджета 400 мс и мелкие недочёты автоматизаций, webhooks и e2e [active 2026-10-23] — [план](plan/polish.md)
-  - [docs/research/pl1-warm-start.md](research/pl1-warm-start.md) — Тёплый старт ~405–420 мс: время в чтении IndexedDB и монтировании Vue; модули и zod не причина; бюджет поднят до 450 [closed]
 - **work** — План модуля work: учёт времени, спринты, автоматизации, webhooks, связи в REST/MCP, импорт, хвосты фазы 1 [active 2026-10-23] — [план](plan/work.md) · [контракты](contracts/work.md)
   - [docs/contracts/work-api.md](contracts/work-api.md) — Work contracts, part 2 — C-modules v5 and v6 (enqueue, SDK, module settings, collab fixes), REST v1 and MCP (WK-5)
   - [docs/research/wk16-budgets.md](research/wk16-budgets.md) — A/B 5×5 main против feature/work — бюджеты §7 не ухудшились за шумом; switch +8 % не доказано, хост у порогов [closed]
@@ -38,6 +36,8 @@ generated: true
   - [docs/guides/deploy.md](guides/deploy.md) — Deploying planar on a single VPS - .env, first start, backups and restore, upgrade, monitoring, troubleshooting
 - **p3** — План модуля p3: совместное редактирование (Yjs), Timeline, Workload, дашборды, формы, GitLab (опрос API) [closed 2026-11-02] — [план](plan/p3.md) · [контракты](contracts/p3.md) · [решения](plan/p3/decisions.md) · [сводка](plan/p3/summary.md) · полный журнал: `dca93da`
 - **p4** — План модуля p4: повторяющиеся задачи и шаблоны, цели и вехи, email-уведомления (SMTP), внешние плагины через iframe [closed 2026-11-02] — [план](plan/p4.md) · [контракты](contracts/p4.md) · [решения](plan/p4/decisions.md) · [сводка](plan/p4/summary.md) · полный журнал: `febbb8d`
+- **polish** — Доводка после фазы 2: тёплый старт до бюджета 400 мс и мелкие недочёты автоматизаций, webhooks и e2e [closed 2026-11-02] — [план](plan/polish.md) · [решения](plan/polish/decisions.md) · [сводка](plan/polish/summary.md) · полный журнал: `8487630`
+  - [docs/research/pl1-warm-start.md](research/pl1-warm-start.md) — Тёплый старт ~405–420 мс: время в чтении IndexedDB и монтировании Vue; модули и zod не причина; бюджет поднят до 450 [closed]
 
 ## Прочие документы
 

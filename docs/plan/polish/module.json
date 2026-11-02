@@ -1,9 +1,0 @@
-{
-  "module": "polish",
-  "plan": "docs/plan/polish.md",
-  "contracts": "docs/contracts/polish.md",
-  "branch": "feature/polish",
-  "copy": "~/planar-polish",
-  "created": "2026-10-23T22:32:30",
-  "code": "PL"
-}

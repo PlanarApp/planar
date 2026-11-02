@@ -1,8 +1,8 @@
 ---
 type: plan
-status: active
+status: closed
 module: polish
-updated: 2026-10-23
+updated: 2026-11-02
 summary: Доводка после фазы 2: тёплый старт до бюджета 400 мс и мелкие недочёты автоматизаций, webhooks и e2e
 related: ["docs/roadmap.md", "docs/plan/work.md", "docs/plan/collab.md"]
 ---
