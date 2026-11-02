@@ -271,14 +271,12 @@ test('p3: GitLab — настройки, «Опросить сейчас», в �
   ]);
   try {
     const page = await loginAs(browser, 'admin');
-    await spa(page, '/settings/gitlab:settings', page.getByTestId('gl-url'));
+    await spa(page, `/p/${f.projectId}/settings?s=gitlab:project`, page.getByTestId('gl-url'));
     await page.getByTestId('gl-url').fill(gl.url);
     await page.getByTestId('gl-token').fill(token);
-    await page.getByTestId('gl-save').click();
-    await expect(page.getByTestId('gl-token')).toHaveAttribute('placeholder', /.+/);
     await page.getByTestId('gl-project-input').fill('grp/proj');
     await page.getByTestId('gl-add').click();
-    await expect(page.getByTestId('gl-project')).toContainText('grp/proj');
+    await expect(page.getByTestId('gl-conn')).toContainText('grp/proj');
     await page.getByTestId('gl-poll').click();
 
     await spa(page, `/t/${key}`, page.getByRole('tab', { name: 'GitLab' }));
@@ -294,24 +292,18 @@ test('p3: GitLab — настройки, «Опросить сейчас», в �
 });
 
 test('p3: GitLab — неверный токен: ошибка в настройках, MR не появляются', async ({ browser }) => {
+  const f = await fixture([uniq('Гитлаб')]);
   const gl = await fakeGitlab('right-token', []);
   try {
     const page = await loginAs(browser, 'admin');
-    await spa(page, '/settings/gitlab:settings', page.getByTestId('gl-url'));
+    await spa(page, `/p/${f.projectId}/settings?s=gitlab:project`, page.getByTestId('gl-url'));
     await page.getByTestId('gl-url').fill(gl.url);
     await page.getByTestId('gl-token').fill('wrong-token');
-    // wait for the save itself: the "token set" hint could remain from the previous test (old fake address)
-    await Promise.all([
-      page.waitForResponse(
-        (r) => r.url().includes('/api/gitlab/config') && r.request().method() === 'PUT',
-      ),
-      page.getByTestId('gl-save').click(),
-    ]);
-    await expect(page.getByTestId('gl-token')).toHaveAttribute('placeholder', /.+/);
     await page.getByTestId('gl-project-input').fill('grp/proj');
     await page.getByTestId('gl-add').click();
-    // the project is searched with an invalid token: 401 from GitLab is shown as an error
+    // the repository is searched with an invalid token: 401 from GitLab is shown as an error, no connection
     await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page.getByTestId('gl-conn')).toHaveCount(0);
     // the GitLab request is async — the error on screen may come before it in the fake's log
     await expect.poll(() => gl.seen.tokens.length).toBeGreaterThan(0);
     expect(gl.seen.tokens.every((t) => t === 'wrong-token')).toBe(true);

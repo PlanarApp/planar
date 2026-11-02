@@ -1,28 +1,22 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
-import { mutate, tr, useMergedStatuses, useProjects, useStatusList, type StatusLite } from './data';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { mutate, tr, useMergedStatuses, useProjects, useStatusList } from './data';
 
-interface Proj {
+interface Conn {
   id: string;
+  baseUrl: string;
   gitlabProjectId: number;
   path: string;
   lastPolledAt: string | null;
   lastError: string | null;
 }
-interface Cfg {
-  baseUrl: string;
-  hasToken: boolean;
-  intervalSec: number;
-  lastError: string | null;
-  lastErrorAt: string | null;
-  projects: Proj[];
-}
 
-// projectId — settings of a group project: only the status on merge of this project's MR; connection — in the Workspace
-const props = defineProps<{ projectId?: string }>();
-const cfg = ref<Cfg | null>(null);
+// project settings: its connections to GitLab repositories and the task status on MR merge
+const props = defineProps<{ projectId: string }>();
+const conns = ref<Conn[]>([]);
 const err = ref('');
-const f = reactive({ baseUrl: '', token: '', intervalSec: 120, project: '' });
+const f = reactive({ baseUrl: 'https://gitlab.com', token: '', project: '' });
+const tokens = reactive<Record<string, string>>({});
 const projects = useProjects();
 const statuses = useStatusList();
 const merged = useMergedStatuses();
@@ -43,169 +37,152 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   }
   return j as T;
 }
-const apply = (c: Cfg) => {
-  cfg.value = c;
-  f.baseUrl = c.baseUrl;
-  f.intervalSec = c.intervalSec;
-  f.token = '';
-};
-const load = () => call<Cfg>('GET', 'config').then(apply);
-const save = (token?: null) =>
-  call<Cfg>('PUT', 'config', {
+const base = () => `projects/${props.projectId}/connections`;
+const load = () =>
+  call<{ connections: Conn[] }>('GET', base()).then((r) => (conns.value = r.connections));
+const add = () =>
+  call('POST', base(), {
     baseUrl: f.baseUrl.trim(),
-    intervalSec: Number(f.intervalSec),
-    ...(token === null ? { token: null } : f.token ? { token: f.token } : {}),
-  }).then(apply);
-const addProject = () =>
-  call('POST', 'projects', { project: f.project.trim() }).then(() => {
+    token: f.token,
+    project: f.project.trim(),
+  }).then(() => {
+    f.token = '';
     f.project = '';
+    return load();
+  });
+const setToken = (id: string) =>
+  call('PATCH', `connections/${id}`, { token: tokens[id] }).then(() => {
+    tokens[id] = '';
     return load();
   });
 const run = (p: Promise<unknown>) => p.catch(() => {});
 
-const statusesOf = (spaceId: string): StatusLite[] =>
-  (statuses.value ?? []).filter((s) => s.spaceId === spaceId);
-const setMerged = (projectId: string, v: string) =>
-  mutate('gitlab.setMergedStatus', { projectId, statusId: v || null }).catch((e) => {
-    err.value = String(e?.message ?? e);
-  });
+const project = computed(() => (projects.value ?? []).find((p) => p.id === props.projectId));
+const spaceStatuses = computed(() =>
+  (statuses.value ?? []).filter((s) => s.spaceId === project.value?.spaceId),
+);
+const setMerged = (v: string) =>
+  mutate('gitlab.setMergedStatus', { projectId: props.projectId, statusId: v || null }).catch(
+    (e) => {
+      err.value = String(e?.message ?? e);
+    },
+  );
 
-onMounted(() => !props.projectId && run(load()));
+onMounted(() => run(load()));
 </script>
 
 <template>
   <section class="flex flex-col gap-4" data-testid="gitlab-settings">
     <h2 class="text-lg font-semibold">{{ tr('title') }}</h2>
     <p v-if="err" role="alert" class="text-sm text-danger">{{ err }}</p>
-    <p v-if="cfg?.lastError" class="text-sm text-danger" data-testid="gl-error">
-      {{ tr('error') }}: {{ cfg.lastError }}
-    </p>
 
-    <template v-if="!props.projectId">
-      <form class="flex flex-col gap-2" @submit.prevent="run(save())">
-        <label class="flex flex-col gap-1 text-sm"
-          >{{ tr('baseUrl') }}
+    <h3 class="font-medium">{{ tr('connections') }}</h3>
+    <ul class="flex flex-col gap-2">
+      <li
+        v-for="c in conns"
+        :key="c.id"
+        class="flex flex-col gap-2 rounded-md border border-border p-2 text-sm"
+        data-testid="gl-conn"
+      >
+        <div>
+          <span class="font-medium">{{ c.path }}</span>
+          <span class="ml-2 text-xs text-fg-muted">{{ c.baseUrl }}</span>
+          <span v-if="c.lastPolledAt" class="ml-2 text-xs text-fg-muted"
+            >{{ tr('polled') }} {{ c.lastPolledAt }}</span
+          >
+          <span v-if="c.lastError" class="ml-2 text-xs text-danger" data-testid="gl-error"
+            >{{ tr('error') }}: {{ c.lastError }}</span
+          >
+        </div>
+        <form class="flex gap-2" @submit.prevent="run(setToken(c.id))">
           <input
-            v-model="f.baseUrl"
-            type="url"
-            required
-            maxlength="2000"
-            data-testid="gl-url"
-            class="rounded-md border border-border bg-bg px-2 py-1"
-          />
-        </label>
-        <label class="flex flex-col gap-1 text-sm"
-          >{{ tr('token') }}
-          <input
-            v-model="f.token"
+            v-model="tokens[c.id]"
             type="password"
             autocomplete="off"
-            maxlength="500"
-            :placeholder="cfg?.hasToken ? tr('tokenSet') : ''"
-            data-testid="gl-token"
-            class="rounded-md border border-border bg-bg px-2 py-1"
-          />
-        </label>
-        <label class="flex flex-col gap-1 text-sm"
-          >{{ tr('interval') }}
-          <input
-            v-model="f.intervalSec"
-            type="number"
-            min="60"
-            max="3600"
             required
-            data-testid="gl-interval"
-            class="rounded-md border border-border bg-bg px-2 py-1"
+            maxlength="500"
+            :placeholder="tr('newToken')"
+            :aria-label="tr('newToken')"
+            data-testid="gl-conn-token"
+            class="flex-1 rounded-md border border-border bg-bg px-2 py-1"
           />
-        </label>
-        <div class="flex gap-2">
-          <button
-            type="submit"
-            data-testid="gl-save"
-            class="rounded-md border border-border px-3 py-1"
-          >
+          <button type="submit" class="rounded-md border border-border px-3 py-1">
             {{ tr('save') }}
           </button>
           <button
-            v-if="cfg?.hasToken"
             type="button"
-            data-testid="gl-token-del"
             class="underline"
-            @click="run(save(null))"
-          >
-            {{ tr('tokenDel') }}
-          </button>
-        </div>
-      </form>
-
-      <h3 class="font-medium">{{ tr('projects') }}</h3>
-      <ul class="flex flex-col gap-2">
-        <li
-          v-for="p in cfg?.projects ?? []"
-          :key="p.id"
-          class="rounded-md border border-border p-2 text-sm"
-          data-testid="gl-project"
-        >
-          <span class="font-medium">{{ p.path }}</span>
-          <span v-if="p.lastPolledAt" class="ml-2 text-xs text-fg-muted"
-            >{{ tr('polled') }} {{ p.lastPolledAt }}</span
-          >
-          <span
-            v-if="p.lastError"
-            class="ml-2 text-xs text-danger"
-            data-testid="gl-project-error"
-            >{{ p.lastError }}</span
-          >
-          <button
-            class="ml-2 underline"
             data-testid="gl-remove"
-            @click="run(call('DELETE', `projects/${p.id}`).then(load))"
+            @click="run(call('DELETE', `connections/${c.id}`).then(load))"
           >
             {{ tr('remove') }}
           </button>
-        </li>
-      </ul>
-      <form class="flex gap-2" @submit.prevent="run(addProject())">
+        </form>
+      </li>
+    </ul>
+
+    <form class="flex flex-col gap-2" data-testid="gl-add-form" @submit.prevent="run(add())">
+      <label class="flex flex-col gap-1 text-sm"
+        >{{ tr('baseUrl') }}
+        <input
+          v-model="f.baseUrl"
+          type="url"
+          required
+          maxlength="2000"
+          data-testid="gl-url"
+          class="rounded-md border border-border bg-bg px-2 py-1"
+        />
+      </label>
+      <label class="flex flex-col gap-1 text-sm"
+        >{{ tr('token') }}
+        <input
+          v-model="f.token"
+          type="password"
+          autocomplete="off"
+          required
+          maxlength="500"
+          data-testid="gl-token"
+          class="rounded-md border border-border bg-bg px-2 py-1"
+        />
+      </label>
+      <label class="flex flex-col gap-1 text-sm"
+        >{{ tr('repo') }}
         <input
           v-model="f.project"
           required
           maxlength="500"
-          :placeholder="tr('addProject')"
           data-testid="gl-project-input"
-          class="flex-1 rounded-md border border-border bg-bg px-2 py-1"
-        />
-        <button
-          type="submit"
-          data-testid="gl-add"
-          class="rounded-md border border-border px-3 py-1"
-        >
-          {{ tr('add') }}
-        </button>
-      </form>
-      <button class="self-start underline" data-testid="gl-poll" @click="run(call('POST', 'poll'))">
-        {{ tr('poll') }}
-      </button>
-    </template>
-
-    <h3 class="font-medium">{{ tr('merge') }}</h3>
-    <ul class="flex flex-col gap-1">
-      <li
-        v-for="p in (projects ?? []).filter((x) => !props.projectId || x.id === props.projectId)"
-        :key="p.id"
-        class="flex items-center gap-2 text-sm"
-        data-testid="gl-merge-row"
-      >
-        <span class="w-48 truncate">{{ p.name }}</span>
-        <select
-          :value="merged?.[p.id] ?? ''"
-          data-testid="gl-merge-select"
           class="rounded-md border border-border bg-bg px-2 py-1"
-          @change="setMerged(p.id, ($event.target as HTMLSelectElement).value)"
-        >
-          <option value="">{{ tr('off') }}</option>
-          <option v-for="s in statusesOf(p.spaceId)" :key="s.id" :value="s.id">{{ s.name }}</option>
-        </select>
-      </li>
-    </ul>
+        />
+      </label>
+      <button
+        type="submit"
+        data-testid="gl-add"
+        class="self-start rounded-md border border-border px-3 py-1"
+      >
+        {{ tr('add') }}
+      </button>
+    </form>
+    <button
+      v-if="conns.length"
+      class="self-start underline"
+      data-testid="gl-poll"
+      @click="run(call('POST', 'poll'))"
+    >
+      {{ tr('poll') }}
+    </button>
+
+    <label class="flex items-center gap-2 text-sm"
+      >{{ tr('merge') }}
+      <select
+        :value="merged?.[props.projectId] ?? ''"
+        data-testid="gl-merge-select"
+        class="rounded-md border border-border bg-bg px-2 py-1"
+        @change="setMerged(($event.target as HTMLSelectElement).value)"
+      >
+        <option value="">{{ tr('off') }}</option>
+        <option v-for="s in spaceStatuses" :key="s.id" :value="s.id">{{ s.name }}</option>
+      </select>
+    </label>
   </section>
 </template>

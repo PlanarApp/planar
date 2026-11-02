@@ -50,6 +50,8 @@ export const mutators = [
   defineMutator({
     name: 'gitlab.mr.sync',
     args: z.object({
+      // Planar project of the connection: only its tasks are linked and unlinked
+      projectId: id,
       gitlabProjectId: z.number().int(),
       iid: z.number().int(),
       mr: gitlabMrs.pick({
@@ -67,14 +69,19 @@ export const mutators = [
       const t = mtx(tx);
       // shortcut: a full table scan — there is no (project, iid) index in the contract; revisit when it grows beyond 10k rows
       // — add a gitlabProjectId index via the contract
-      const old = ((await t.scan(E('gitlabMrs'))) as GitlabMr[]).filter(
-        (r) => r.gitlabProjectId === a.gitlabProjectId && r.iid === a.iid,
-      );
+      const old: GitlabMr[] = [];
+      for (const r of (await t.scan(E('gitlabMrs'))) as GitlabMr[])
+        if (
+          r.gitlabProjectId === a.gitlabProjectId &&
+          r.iid === a.iid &&
+          (await tx.get('tasks', r.taskId))?.projectId === a.projectId
+        )
+          old.push(r);
       const keep = new Set(a.links.map((l) => l.taskId));
       for (const r of old) if (!keep.has(r.taskId)) await t.del(E('gitlabMrs'), r.id);
       for (const l of a.links) {
         const task = await tx.get('tasks', l.taskId);
-        if (!task) continue;
+        if (!task || task.projectId !== a.projectId) continue;
         const prev = old.find((r) => r.taskId === l.taskId);
         const row = { ...a.mr, title: a.mr.title.slice(0, 500) };
         const same =

@@ -2,27 +2,25 @@ import { index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'dri
 
 const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 
-// server tables (not synced)
-export const gitlabConfig = pgTable('gitlab_config', {
-  id: text().primaryKey(),
-  baseUrl: text().notNull(),
-  tokenEnc: text(),
-  intervalSec: integer().notNull().default(120),
-  lastError: text(),
-  lastErrorAt: ts(),
-  updatedAt: ts().notNull().defaultNow(),
-});
-
-export const gitlabProjects = pgTable('gitlab_projects', {
-  id: uuid().primaryKey(),
-  gitlabProjectId: integer().notNull().unique(),
-  path: text().notNull(),
-  cursor: ts(),
-  lastPolledAt: ts(),
-  lastError: text(),
-  lastErrorAt: ts(),
-  createdAt: ts().notNull().defaultNow(),
-});
+// server table (not synced): a Planar project's connection to a GitLab repository
+export const gitlabConnections = pgTable(
+  'gitlab_connections',
+  {
+    id: uuid().primaryKey(),
+    projectId: uuid().notNull(),
+    baseUrl: text().notNull(),
+    tokenEnc: text().notNull(),
+    gitlabProjectId: integer().notNull(),
+    path: text().notNull(),
+    cursor: ts(),
+    lastPolledAt: ts(),
+    lastError: text(),
+    lastErrorAt: ts(),
+    createdAt: ts().notNull().defaultNow(),
+  },
+  // gitlabMrs rows are keyed by gitlabProjectId: one such id per Planar project, whatever the host
+  (t) => [uniqueIndex('gitlab_connections_project_repo_uq').on(t.projectId, t.gitlabProjectId)],
+);
 
 // sync entities
 export const gitlabMrs = pgTable(

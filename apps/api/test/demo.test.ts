@@ -69,7 +69,7 @@ describe('demo: исходящие no-op', () => {
     let reads = 0;
     const api = {
       db: {
-        select: () => (reads++, { from: () => ({ where: async () => [] }) }),
+        select: () => (reads++, { from: () => ({ orderBy: async () => [] }) }),
       },
     } as unknown as JobApi;
     setDemo(true);

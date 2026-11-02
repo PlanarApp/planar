@@ -218,6 +218,13 @@
       "when": 1793499959758,
       "tag": "0030_sharp_roulette",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793608640799,
+      "tag": "0031_gitlab_connections",
+      "breakpoints": true
     }
   ]
 }

@@ -1,20 +1,20 @@
 import { createHash } from 'node:crypto';
 import { Logger } from '@nestjs/common';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import {
   isDemo,
-  type Db,
   type JobApi,
   type JobDef,
   type ModuleHookApi,
   type MutationWrite,
 } from '@planar/server-kit';
 import { decrypt, secretKey } from './crypto.js';
-import { gitlabConfig as C, gitlabMrs as M, gitlabProjects as P } from './schema.js';
+import { gitlabConnections as P } from './schema.js';
 
 const log = new Logger('gitlab');
 const KEY_SRC = '\\b([A-Z][A-Z0-9]{1,9})-(\\d+)\\b';
 const DAY = 86_400_000;
+const INTERVAL_MS = 120_000;
 const MAX_RETRY_AFTER_SEC = 300;
 
 class Unauthorized extends Error {}
@@ -101,22 +101,23 @@ export { Unauthorized, HttpFail, Deferred };
 
 const apiBase = (baseUrl: string) => `${baseUrl.replace(/\/+$/, '')}/api/v4`;
 
-async function syncMr(api: JobApi, gitlabProjectId: number, mr: GlMr) {
+async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr) {
+  const { projectId, gitlabProjectId } = c;
   const found = new Map<string, string>();
   for (const [key, number] of keysOf(mr)) {
     const r = await api.db.execute(
       sql`select t.id from tasks t join projects p on p.id = t.project_id
-          where p.key = ${key} and t.number = ${number}`,
+          where p.id = ${projectId} and p.key = ${key} and t.number = ${number}`,
     );
     for (const row of r.rows as { id: string }[]) found.set(row.id, row.id);
   }
   if (!found.size) {
-    const [had] = await api.db
-      .select({ id: M.id })
-      .from(M)
-      .where(and(eq(M.gitlabProjectId, gitlabProjectId), eq(M.iid, mr.iid)))
-      .limit(1);
-    if (!had) return;
+    const had = await api.db.execute(
+      sql`select 1 from gitlab_mrs m join tasks t on t.id = m.task_id
+          where m.gitlab_project_id = ${gitlabProjectId} and m.iid = ${mr.iid}
+            and t.project_id = ${projectId} limit 1`,
+    );
+    if (!had.rows.length) return;
   }
   await api.execute(
     api.systemUserId,
@@ -124,6 +125,7 @@ async function syncMr(api: JobApi, gitlabProjectId: number, mr: GlMr) {
       {
         name: 'gitlab.mr.sync',
         args: {
+          projectId,
           gitlabProjectId,
           iid: mr.iid,
           mr: {
@@ -145,7 +147,8 @@ async function syncMr(api: JobApi, gitlabProjectId: number, mr: GlMr) {
   );
 }
 
-async function pollProject(api: JobApi, base: string, token: string, p: typeof P.$inferSelect) {
+async function pollProject(api: JobApi, token: string, p: typeof P.$inferSelect) {
+  const base = apiBase(p.baseUrl);
   const after = p.cursor
     ? new Date(p.cursor).toISOString()
     : new Date(Date.now() - 30 * DAY).toISOString();
@@ -162,7 +165,7 @@ async function pollProject(api: JobApi, base: string, token: string, p: typeof P
       });
     const res = await get(url, token);
     const mrs = (await res.json()) as GlMr[];
-    for (const mr of mrs) await syncMr(api, p.gitlabProjectId, mr);
+    for (const mr of mrs) await syncMr(api, p, mr);
     const last = mrs.at(-1);
     if (last) {
       const cursor = new Date(last.updated_at).toISOString();
@@ -172,43 +175,30 @@ async function pollProject(api: JobApi, base: string, token: string, p: typeof P
   }
 }
 
-const setConfigError = (db: Db, e: string | null) =>
-  db
-    .update(C)
-    .set({ lastError: e, lastErrorAt: e ? now() : null })
-    .where(eq(C.id, 'default'));
-
-/** One pass over the projects. Does not throw: errors go to last_error. */
+/** One pass over the connections. Does not throw: errors go to the connection's last_error. */
 export async function pollAll(api: JobApi): Promise<void> {
   if (isDemo()) return; // demo: no outgoing requests
-  const [cfg] = await api.db.select().from(C).where(eq(C.id, 'default'));
-  if (!cfg?.tokenEnc) return;
-  if (cfg.lastError === 'unauthorized') return; // before the token change
   const key = secretKey();
-  let token: string;
-  try {
-    if (!key) throw new Error('secret_key_missing');
-    token = decrypt(cfg.tokenEnc, key);
-  } catch {
-    const msg = key ? 'token_undecryptable' : 'secret_key_missing';
-    log.warn(`gitlab: ${msg}`);
-    await setConfigError(api.db, msg);
-    return;
-  }
-  if (cfg.lastError) await setConfigError(api.db, null);
-  const base = apiBase(cfg.baseUrl);
-  for (const p of await api.db.select().from(P).orderBy(P.createdAt)) {
+  for (const p of await api.db.select().from(P).orderBy(P.createdAt, P.id)) {
+    if (p.lastError === 'unauthorized') continue; // before the token change
     let err: string | null = null;
     try {
-      await pollProject(api, base, token, p);
-    } catch (e) {
-      if (e instanceof Unauthorized) {
-        log.warn('gitlab: unauthorized');
-        await setConfigError(api.db, 'unauthorized');
-        return;
+      if (!key) throw new Error('secret_key_missing');
+      let token: string;
+      try {
+        token = decrypt(p.tokenEnc, key);
+      } catch {
+        throw new Error('token_undecryptable');
       }
-      err = e instanceof Deferred ? 'rate_limited' : errText(e);
-      log.warn(`gitlab: проект ${p.gitlabProjectId}: ${err}`);
+      await pollProject(api, token, p);
+    } catch (e) {
+      err =
+        e instanceof Unauthorized
+          ? 'unauthorized'
+          : e instanceof Deferred
+            ? 'rate_limited'
+            : errText(e);
+      log.warn(`gitlab: подключение ${p.id} (${p.gitlabProjectId}): ${err}`);
     }
     await api.db
       .update(P)
@@ -222,10 +212,11 @@ export const jobs: JobDef<Record<string, unknown>>[] = [
     queue: 'gitlab.tick',
     cron: '* * * * *',
     async handler(_, api) {
-      const [cfg] = await api.db.select().from(C).where(eq(C.id, 'default'));
-      if (!cfg?.tokenEnc) return;
-      const [r] = await api.db.select({ at: sql<string | null>`max(${P.lastPolledAt})` }).from(P);
-      if (r?.at && Date.now() - new Date(r.at).getTime() < cfg.intervalSec * 1000) return;
+      const [r] = await api.db
+        .select({ n: sql<number>`count(*)::int`, at: sql<string | null>`max(${P.lastPolledAt})` })
+        .from(P);
+      if (!r?.n) return;
+      if (r.at && Date.now() - new Date(r.at).getTime() < INTERVAL_MS) return;
       await api.enqueue('gitlab.poll', {}, { singletonKey: 'gitlab.poll' });
     },
   },
@@ -236,10 +227,15 @@ export const jobs: JobDef<Record<string, unknown>>[] = [
   },
 ];
 
-/** Deleting a job takes its gitlabMrs rows with it. */
+/** Deleting a task takes its gitlabMrs rows with it, deleting a project — its connections. */
 export async function afterMutation(writes: MutationWrite[], _ctx: unknown, api: ModuleHookApi) {
   for (const w of writes) {
-    if (w.entity !== 'tasks' || w.op !== 'del' || !w.before) continue;
+    if (w.op !== 'del' || !w.before) continue;
+    if (w.entity === 'projects') {
+      await api.q.delete(P).where(eq(P.projectId, w.before.id as string));
+      continue;
+    }
+    if (w.entity !== 'tasks') continue;
     const e = 'gitlabMrs' as never;
     const rows = (await api.sys.scan(e, { index: 'taskId', eq: w.before.id })) as { id: string }[];
     for (const r of rows) await api.sys.del(e, r.id);

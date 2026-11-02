@@ -6,17 +6,17 @@ import {
   HttpCode,
   Inject,
   Param,
+  Patch,
   Post,
-  Put,
   Req,
 } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { CORE, HttpError, parseBody, type CoreServices } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
-import { decrypt, encrypt, secretKey } from './crypto.js';
+import { encrypt, secretKey } from './crypto.js';
 import { Deferred, fetchProject, HttpFail, Unauthorized } from './poll.js';
-import { gitlabConfig as C, gitlabMrs as M, gitlabProjects as P } from './schema.js';
+import { gitlabConnections as P, gitlabMrs as M } from './schema.js';
 
 const baseUrl = z
   .string()
@@ -29,22 +29,30 @@ const baseUrl = z
       return false;
     }
   }, 'нужен http(s)-адрес без логина и пароля');
-const putBody = z.object({
-  baseUrl: baseUrl.optional(),
-  token: z.string().min(1).max(500).nullable().optional(),
-  intervalSec: z.number().int().min(60).max(3600).optional(),
-});
-const postProject = z.object({ project: z.string().min(1).max(500) });
+const token = z.string().min(1).max(500);
+const postBody = z.object({ baseUrl, token, project: z.string().min(1).max(500) });
+const patchBody = z.object({ token });
 
 const iso = (v: string | null) => (v ? new Date(v).toISOString() : null);
-const project = (r: typeof P.$inferSelect) => ({
+const view = (r: typeof P.$inferSelect) => ({
   id: r.id,
+  projectId: r.projectId,
+  baseUrl: r.baseUrl,
   gitlabProjectId: r.gitlabProjectId,
   path: r.path,
   lastPolledAt: iso(r.lastPolledAt),
   lastError: r.lastError,
   lastErrorAt: iso(r.lastErrorAt),
 });
+const uuidOr404 = (id: string) => {
+  if (!z.uuid().safeParse(id).success) throw new HttpError(404, 'not_found', 'Не найдено');
+  return id;
+};
+const encToken = (t: string) => {
+  const key = secretKey();
+  if (!key) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
+  return encrypt(t, key);
+};
 
 @Controller('api/gitlab')
 export class GitlabController {
@@ -54,59 +62,39 @@ export class GitlabController {
     return this.core.requireInstanceAdmin(req, { sessionOnly: true });
   }
 
-  private async view() {
-    const [c] = await this.core.db.select().from(C).where(eq(C.id, 'default'));
-    const ps = await this.core.db.select().from(P).orderBy(P.createdAt, P.id);
-    return {
-      baseUrl: c?.baseUrl ?? 'https://gitlab.com',
-      hasToken: !!c?.tokenEnc,
-      intervalSec: c?.intervalSec ?? 120,
-      lastError: c?.lastError ?? null,
-      lastErrorAt: iso(c?.lastErrorAt ?? null),
-      projects: ps.map(project),
-    };
+  private async conn(id: string) {
+    const [r] = await this.core.db
+      .select()
+      .from(P)
+      .where(eq(P.id, uuidOr404(id)));
+    if (!r) throw new HttpError(404, 'not_found', 'Не найдено');
+    return r;
   }
 
-  @Get('config')
-  async get(@Req() req: object) {
+  @Get('projects/:projectId/connections')
+  async list(@Req() req: object, @Param('projectId') projectId: string) {
     this.admin(req);
-    return this.view();
+    const rs = await this.core.db
+      .select()
+      .from(P)
+      .where(eq(P.projectId, uuidOr404(projectId)))
+      .orderBy(P.createdAt, P.id);
+    return { connections: rs.map(view) };
   }
 
-  @Put('config')
-  async put(@Req() req: object, @Body() body: unknown) {
+  @Post('projects/:projectId/connections')
+  async add(@Req() req: object, @Param('projectId') projectId: string, @Body() body: unknown) {
     this.admin(req);
-    const b = parseBody(putBody, body);
-    const set: Partial<typeof C.$inferInsert> = { updatedAt: new Date().toISOString() };
-    if (b.baseUrl !== undefined) set.baseUrl = b.baseUrl.replace(/\/+$/, '');
-    if (b.intervalSec !== undefined) set.intervalSec = b.intervalSec;
-    if (b.token !== undefined) {
-      if (b.token === null) set.tokenEnc = null;
-      else {
-        const key = secretKey();
-        if (!key) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
-        set.tokenEnc = encrypt(b.token, key);
-      }
-      set.lastError = null; // changing the token lifts the stop after a 401
-      set.lastErrorAt = null;
-    }
-    await this.core.db
-      .insert(C)
-      .values({ id: 'default', baseUrl: 'https://gitlab.com', ...set })
-      .onConflictDoUpdate({ target: C.id, set });
-    return this.view();
-  }
-
-  @Post('projects')
-  async addProject(@Req() req: object, @Body() body: unknown) {
-    this.admin(req);
-    const b = parseBody(postProject, body);
-    const [c] = await this.core.db.select().from(C).where(eq(C.id, 'default'));
-    const key = secretKey();
-    if (!c?.tokenEnc || !key) throw new HttpError(409, 'conflict', 'Сначала задайте токен');
+    const b = parseBody(postBody, body);
+    const p = await this.core.db.execute(
+      sql`select 1 from projects where id = ${uuidOr404(projectId)}`,
+    );
+    if (!p.rows.length) throw new HttpError(404, 'not_found', 'Проект не найден');
+    const url = b.baseUrl.replace(/\/+$/, '');
+    const tokenEnc = encToken(b.token);
     let found;
     try {
-      found = await fetchProject(c.baseUrl, decrypt(c.tokenEnc, key), b.project);
+      found = await fetchProject(url, b.token, b.project);
     } catch (e) {
       if (e instanceof HttpFail && e.status === 404)
         throw new HttpError(404, 'not_found', 'Проект не найден в GitLab');
@@ -118,30 +106,57 @@ export class GitlabController {
         e instanceof Deferred ? 'GitLab ограничил запросы' : 'GitLab недоступен',
       );
     }
+    const same = and(eq(P.projectId, projectId), eq(P.gitlabProjectId, found.id));
+    const [had] = await this.core.db.select().from(P).where(same);
+    if (had && had.baseUrl !== url)
+      throw new HttpError(409, 'conflict', 'Репозиторий с таким id уже подключён с другого адреса');
+    // the same repository again — refresh the path and token
     await this.core.db
       .insert(P)
-      .values({ id: uuidv7(), gitlabProjectId: found.id, path: found.path })
-      .onConflictDoUpdate({ target: P.gitlabProjectId, set: { path: found.path } });
-    const [r] = await this.core.db.select().from(P).where(eq(P.gitlabProjectId, found.id));
-    return { project: project(r!) };
+      .values({
+        id: uuidv7(),
+        projectId,
+        baseUrl: url,
+        tokenEnc,
+        gitlabProjectId: found.id,
+        path: found.path,
+      })
+      .onConflictDoUpdate({
+        target: [P.projectId, P.gitlabProjectId],
+        set: { path: found.path, tokenEnc, lastError: null, lastErrorAt: null },
+      });
+    const [r] = await this.core.db.select().from(P).where(same);
+    return { connection: view(r!) };
   }
 
-  @Delete('projects/:id')
-  @HttpCode(204)
-  async removeProject(@Req() req: object, @Param('id') id: string) {
+  @Patch('connections/:id')
+  async setToken(@Req() req: object, @Param('id') id: string, @Body() body: unknown) {
     this.admin(req);
-    const [r] = z.uuid().safeParse(id).success
-      ? await this.core.db.select().from(P).where(eq(P.id, id))
-      : [];
-    if (!r) throw new HttpError(404, 'not_found', 'Не найдено');
+    const b = parseBody(patchBody, body);
+    const c = await this.conn(id);
+    // changing the token lifts the stop after a 401
+    const [r] = await this.core.db
+      .update(P)
+      .set({ tokenEnc: encToken(b.token), lastError: null, lastErrorAt: null })
+      .where(eq(P.id, c.id))
+      .returning();
+    return { connection: view(r!) };
+  }
+
+  @Delete('connections/:id')
+  @HttpCode(204)
+  async remove(@Req() req: object, @Param('id') id: string) {
+    this.admin(req);
+    const c = await this.conn(id);
     // gitlabMrs rows go through the mutator into Tx with a write to changes (clients learn at once)
     const rows = await this.core.db
       .select()
       .from(M)
-      .where(eq(M.gitlabProjectId, r.gitlabProjectId));
+      .where(eq(M.gitlabProjectId, c.gitlabProjectId));
     const muts = [...new Map(rows.map((x) => [x.iid, x])).values()].map((x) => ({
       name: 'gitlab.mr.sync',
       args: {
+        projectId: c.projectId,
         gitlabProjectId: x.gitlabProjectId,
         iid: x.iid,
         mr: {
@@ -156,7 +171,7 @@ export class GitlabController {
       },
     }));
     if (muts.length) await this.core.execute(this.core.systemUserId(), muts, { system: true });
-    await this.core.db.delete(P).where(eq(P.id, id));
+    await this.core.db.delete(P).where(eq(P.id, c.id));
   }
 
   @Post('poll')

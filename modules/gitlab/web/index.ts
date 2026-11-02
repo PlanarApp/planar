@@ -38,14 +38,7 @@ export const web = defineWebModule({
     },
   ],
   settings: [
-    {
-      id: 'settings',
-      label: { ru: 'GitLab', en: 'GitLab' },
-      icon: Branch,
-      adminOnly: true,
-      component: () => import('./GitlabSettings.vue'),
-    },
-    // in the project — task status on MR merge (connection and repositories — in the Workspace)
+    // only in the project: its connections to GitLab repositories and the status on MR merge
     {
       id: 'project',
       level: 'project',

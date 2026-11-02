@@ -41,13 +41,17 @@ const mr = (o: Record<string, unknown>) => ({
   ...o,
 });
 
-const cfg = {
-  baseUrl: 'https://gl.example',
-  hasToken: true,
-  intervalSec: 120,
-  lastError: 'unauthorized',
-  lastErrorAt: null,
-  projects: [{ id: 'gp1', gitlabProjectId: 5, path: 'g/p', lastPolledAt: null, lastError: null }],
+const list = {
+  connections: [
+    {
+      id: 'c1',
+      baseUrl: 'https://gl.example',
+      gitlabProjectId: 5,
+      path: 'g/p',
+      lastPolledAt: null,
+      lastError: 'unauthorized',
+    },
+  ],
 };
 let calls: { method: string; path: string; body: unknown }[];
 const res = (status: number, body?: unknown) => ({
@@ -72,22 +76,23 @@ beforeEach(() => {
     vi.fn(async (path: string, o: { method: string; body?: string }) => {
       calls.push({ method: o.method, path, body: o.body && JSON.parse(o.body) });
       if (o.method === 'DELETE' || path.endsWith('/poll')) return res(204);
-      return res(200, cfg);
+      return res(200, list);
     }),
   );
 });
 afterEach(() => vi.unstubAllGlobals());
 
 const mountSettings = async () => {
-  const w = mount(Settings);
+  const w = mount(Settings, { props: { projectId: 'p1' } });
   await flushPromises();
   return w;
 };
 
 describe('pt6b:', () => {
-  it('pt6b: манифест — панель задачи и настройки только для админа', () => {
+  it('pt6b: манифест — панель задачи и настройки только в проекте и только для админа', () => {
     expect(web.taskPanels?.[0]?.id).toBe('mrs');
-    expect(web.settings?.[0]).toMatchObject({ id: 'settings', adminOnly: true });
+    expect(web.settings).toHaveLength(1);
+    expect(web.settings?.[0]).toMatchObject({ id: 'project', level: 'project', adminOnly: true });
     expect(() => registerModules([web])).not.toThrow();
   });
 
@@ -113,41 +118,45 @@ describe('pt6b:', () => {
     });
   });
 
-  it('pt6b: настройки — токен не показывается, ошибка и проекты видны', async () => {
+  it('pt6b: настройки — подключения проекта, токен не показывается, ошибка видна', async () => {
     const w = await mountSettings();
+    expect(calls[0]).toMatchObject({ method: 'GET', path: '/api/gitlab/projects/p1/connections' });
     const t = w.get('[data-testid=gl-token]');
     expect((t.element as HTMLInputElement).type).toBe('password');
     expect((t.element as HTMLInputElement).value).toBe('');
     expect(w.get('[data-testid=gl-error]').text()).toContain('unauthorized');
-    expect(w.findAll('[data-testid=gl-project]')).toHaveLength(1);
+    expect(w.findAll('[data-testid=gl-conn]')).toHaveLength(1);
   });
 
-  it('pt6b: сохранение шлёт адрес, интервал и токен только если введён', async () => {
+  it('pt6b: новое подключение шлёт адрес, токен и репозиторий; замена токена — PATCH', async () => {
     const w = await mountSettings();
-    await w.get('form').trigger('submit');
-    await flushPromises();
-    let put = calls.filter((c) => c.method === 'PUT').at(-1)!;
-    expect(put.body).toEqual({ baseUrl: 'https://gl.example', intervalSec: 120 });
+    await w.get('[data-testid=gl-url]').setValue('https://gl.example/');
     await w.get('[data-testid=gl-token]').setValue('glpat-x');
-    await w.get('form').trigger('submit');
+    await w.get('[data-testid=gl-project-input]').setValue(' g/new ');
+    await w.get('[data-testid=gl-add-form]').trigger('submit');
     await flushPromises();
-    put = calls.filter((c) => c.method === 'PUT').at(-1)!;
-    expect(put.body).toMatchObject({ token: 'glpat-x' });
-    await w.get('[data-testid=gl-token-del]').trigger('click');
+    expect(calls.find((c) => c.method === 'POST')).toMatchObject({
+      path: '/api/gitlab/projects/p1/connections',
+      body: { baseUrl: 'https://gl.example/', token: 'glpat-x', project: 'g/new' },
+    });
+    expect((w.get('[data-testid=gl-token]').element as HTMLInputElement).value).toBe('');
+    await w.get('[data-testid=gl-conn-token]').setValue('glpat-y');
+    await w.get('[data-testid=gl-conn] form').trigger('submit');
     await flushPromises();
-    expect(calls.filter((c) => c.method === 'PUT').at(-1)!.body).toMatchObject({ token: null });
+    expect(calls.find((c) => c.method === 'PATCH')).toMatchObject({
+      path: '/api/gitlab/connections/c1',
+      body: { token: 'glpat-y' },
+    });
   });
 
-  it('pt6b: добавить и убрать проект, опрос', async () => {
+  it('pt6b: убрать подключение, опрос', async () => {
     const w = await mountSettings();
-    await w.get('[data-testid=gl-project-input]').setValue('g/new');
-    await w.findAll('form')[1]!.trigger('submit');
-    await flushPromises();
-    expect(calls.find((c) => c.path.endsWith('/projects'))!.body).toEqual({ project: 'g/new' });
     await w.get('[data-testid=gl-remove]').trigger('click');
     await w.get('[data-testid=gl-poll]').trigger('click');
     await flushPromises();
-    expect(calls.some((c) => c.method === 'DELETE' && c.path.endsWith('/projects/gp1'))).toBe(true);
+    expect(calls.some((c) => c.method === 'DELETE' && c.path.endsWith('/connections/c1'))).toBe(
+      true,
+    );
     expect(calls.some((c) => c.method === 'POST' && c.path.endsWith('/poll'))).toBe(true);
   });
 

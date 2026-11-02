@@ -6,16 +6,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { decrypt } from '../../../../modules/gitlab/api/crypto.js';
 import { pollAll } from '@planar/module-gitlab/api';
-import {
-  gitlabConfig as C,
-  gitlabMrs as M,
-  gitlabProjects as P,
-} from '@planar/module-gitlab/api/schema';
+import { gitlabConnections as P, gitlabMrs as M } from '@planar/module-gitlab/api/schema';
 import { JobsService } from '../../src/jobs/jobs.js';
 import { settings, tasks } from '../../src/db/schema.js';
 import { createUser, loginCookie, ORIGIN } from '../auth.js';
 import { db, getApp, useApp } from '../auth/harness.js';
-import { taskArgs, world, type World } from '../sync/helpers.js';
+import { key as pkey, taskArgs, world, type World } from '../sync/helpers.js';
 
 useApp();
 
@@ -64,8 +60,6 @@ beforeEach(async () => {
   handler = (_, res) => json(res, [], {}, 200);
   await db.delete(M);
   await db.delete(P);
-  await db.delete(C);
-  await call('PUT', 'config', { baseUrl: base, token: TOKEN });
 });
 
 const call = (method: string, url: string, body?: unknown, headers: Record<string, string> = {}) =>
@@ -79,15 +73,31 @@ const call = (method: string, url: string, body?: unknown, headers: Record<strin
       headers: { cookie, origin: ORIGIN, ...headers },
     });
 const poll = async () => pollAll(await getApp().get(JobsService).api());
-const addProject = async (id = 42) => {
+const conns = (projectId = w.projectId) => `projects/${projectId}/connections`;
+const addProject = async (id = 42, projectId = w.projectId) => {
   handler = (_, res) => json(res, { id, path_with_namespace: `g/p${id}` });
-  const r = await call('POST', 'projects', { project: String(id) });
+  const r = await call('POST', conns(projectId), {
+    baseUrl: base,
+    token: TOKEN,
+    project: String(id),
+  });
   expect(r.statusCode).toBe(201);
-  return r.json().project as { id: string; gitlabProjectId: number };
+  return r.json().connection as { id: string; gitlabProjectId: number };
 };
-const mkTask = async () => {
+const mkProject = async () => {
   const id = uuidv7();
-  await w.admin.ok('task.create', taskArgs(w, { id }));
+  await w.admin.ok('project.create', {
+    id,
+    spaceId: w.spaceId,
+    name: 'P2',
+    key: pkey(),
+    rank: 'b0',
+  });
+  return id;
+};
+const mkTask = async (projectId = w.projectId) => {
+  const id = uuidv7();
+  await w.admin.ok('task.create', taskArgs(w, { id, projectId }));
   const [t] = await db.select().from(tasks).where(eq(tasks.id, id));
   const [p] = await db.$client
     .query('select key from projects where id = $1', [t!.projectId])
@@ -96,44 +106,44 @@ const mkTask = async () => {
 };
 const mrsOf = (iid: number) => db.select().from(M).where(eq(M.iid, iid));
 const proj = async () => (await db.select().from(P))[0]!;
-const cfg = async () => (await db.select().from(C))[0]!;
 
 describe('pt6a: токен и REST', () => {
   it('pt6a: токен шифруется AES-256-GCM, iv разный, ответы без токена', async () => {
-    const enc1 = (await cfg()).tokenEnc!;
+    const c = await addProject();
+    const enc1 = (await proj()).tokenEnc;
     expect(enc1).toMatch(/^v1:[^:]+:[^:]+:[^:]+$/);
     expect(enc1).not.toContain(TOKEN);
     expect(Buffer.from(enc1.split(':')[1]!, 'base64')).toHaveLength(12);
     expect(Buffer.from(enc1.split(':')[2]!, 'base64')).toHaveLength(16);
     expect(decrypt(enc1, Buffer.from(KEY, 'base64'))).toBe(TOKEN);
-    const put = await call('PUT', 'config', { token: TOKEN, intervalSec: 300 });
-    const enc2 = (await cfg()).tokenEnc!;
+    const patch = await call('PATCH', `connections/${c.id}`, { token: TOKEN });
+    const enc2 = (await proj()).tokenEnc;
     expect(enc2.split(':')[1]).not.toBe(enc1.split(':')[1]);
-    const get = await call('GET', 'config');
-    for (const r of [put, get]) {
+    const get = await call('GET', conns());
+    for (const r of [patch, get]) {
       expect(r.body).not.toContain(TOKEN);
       expect(r.body).not.toContain('tokenEnc');
-      expect(r.json()).toMatchObject({ baseUrl: base, hasToken: true, intervalSec: 300 });
     }
-    expect((await call('PUT', 'config', { token: null })).json().hasToken).toBe(false);
+    expect(get.json().connections).toMatchObject([{ id: c.id, baseUrl: base, path: 'g/p42' }]);
   });
 
   it('pt6a: без PLANAR_SECRET_KEY сохранение токена → 503, опрос не идёт', async () => {
-    await addProject();
+    const c = await addProject();
     delete process.env.PLANAR_SECRET_KEY;
-    const r = await call('PUT', 'config', { token: 'x' });
+    hits = [];
+    const r = await call('POST', conns(), { baseUrl: base, token: 'x', project: '7' });
     expect(r.statusCode).toBe(503);
     expect(r.body).not.toContain('"x"');
-    hits = [];
+    expect((await call('PATCH', `connections/${c.id}`, { token: 'x' })).statusCode).toBe(503);
     await poll();
     expect(hits).toHaveLength(0);
-    expect((await cfg()).lastError).toBe('secret_key_missing');
+    expect((await proj()).lastError).toBe('secret_key_missing');
   });
 
   it('pt6a: не-админ → 403, без входа → 401, Bearer → 403, неверный baseUrl → 400', async () => {
     const m = await loginCookie(db, (await createUser(db, { role: 'member' })).id);
-    expect((await call('GET', 'config', undefined, { cookie: m })).statusCode).toBe(403);
-    expect((await call('GET', 'config', undefined, { cookie: '' })).statusCode).toBe(401);
+    expect((await call('GET', conns(), undefined, { cookie: m })).statusCode).toBe(403);
+    expect((await call('GET', conns(), undefined, { cookie: '' })).statusCode).toBe(401);
     const tok = await getApp()
       .getHttpAdapter()
       .getInstance()
@@ -143,38 +153,85 @@ describe('pt6a: токен и REST', () => {
         payload: { name: 't', scope: 'write' },
         headers: { cookie, origin: ORIGIN },
       });
-    const r = await call('GET', 'config', undefined, {
+    const r = await call('GET', conns(), undefined, {
       cookie: '',
       authorization: `Bearer ${tok.json().secret}`,
     });
     expect(r.statusCode).toBe(403);
-    expect((await call('PUT', 'config', { baseUrl: 'ftp://x' })).statusCode).toBe(400);
-    expect((await call('PUT', 'config', { baseUrl: 'http://u:p@x' })).statusCode).toBe(400);
-    expect((await call('PUT', 'config', { intervalSec: 5 })).statusCode).toBe(400);
+    const add = (o: object) =>
+      call('POST', conns(), { baseUrl: base, token: 't', project: '1', ...o });
+    expect((await add({ baseUrl: 'ftp://x' })).statusCode).toBe(400);
+    expect((await add({ baseUrl: 'http://u:p@x' })).statusCode).toBe(400);
+    expect((await add({ token: '' })).statusCode).toBe(400);
+    expect(
+      (await call('POST', conns(uuidv7()), { baseUrl: base, token: 't', project: '1' })).statusCode,
+    ).toBe(404);
+    expect((await call('GET', conns('x'))).statusCode).toBe(404);
   });
 
-  it('pt6a: POST projects ищет проект в GitLab с токеном; DELETE убирает его MR', async () => {
+  it('pt6a: POST ищет репозиторий в GitLab с токеном; DELETE убирает его MR', async () => {
     const p = await addProject(42);
     expect(hits[0]).toMatchObject({ path: '/api/v4/projects/42', token: TOKEN });
     handler = (_, res) => json(res, { id: 7, path_with_namespace: 'g/n' });
-    const p2 = (await call('POST', 'projects', { project: 'g/n' })).json().project;
+    const p2 = (await call('POST', conns(), { baseUrl: base, token: TOKEN, project: 'g/n' })).json()
+      .connection;
     expect(hits.at(-1)!.path).toBe('/api/v4/projects/g%2Fn');
-    await call('DELETE', `projects/${p2.id}`);
+    // the same repository again — the same connection; the same id from another host — 409
+    const again = await call('POST', conns(), {
+      baseUrl: `${base}/`,
+      token: TOKEN,
+      project: 'g/n',
+    });
+    expect(again.json().connection.id).toBe(p2.id);
+    expect((await call('GET', conns())).json().connections).toHaveLength(2);
+    await call('DELETE', `connections/${p2.id}`);
     const t = await mkTask();
     handler = (_, res) => json(res, [mr(1, { title: t.key })]);
     await poll();
     expect(await mrsOf(1)).toHaveLength(1);
     const [row] = await mrsOf(1);
-    expect((await call('DELETE', `projects/${p.id}`)).statusCode).toBe(204);
+    expect((await call('DELETE', `connections/${p.id}`)).statusCode).toBe(204);
     const ch = await db.$client.query(
       "select op from changes where entity = 'gitlabMrs' and id = $1 order by seq desc limit 1",
       [row!.id],
     );
     expect(ch.rows[0]).toMatchObject({ op: 'del' });
     expect(await mrsOf(1)).toHaveLength(0);
-    expect((await call('GET', 'config')).json().projects).toHaveLength(0);
+    expect((await call('GET', conns())).json().connections).toHaveLength(0);
     handler = (_, res) => json(res, {}, {}, 404);
-    expect((await call('POST', 'projects', { project: '999' })).statusCode).toBe(404);
+    expect(
+      (await call('POST', conns(), { baseUrl: base, token: TOKEN, project: '999' })).statusCode,
+    ).toBe(404);
+  });
+
+  it('pt6a: репозиторий с тем же id с другого адреса в том же проекте → 409', async () => {
+    await addProject(42);
+    // the fake answers on another host name of the same server
+    const alt = base.replace('127.0.0.1', 'localhost');
+    const r = await call('POST', conns(), { baseUrl: alt, token: TOKEN, project: '42' });
+    expect(r.statusCode).toBe(409);
+  });
+
+  it('pt6a: подключение связывает только задачи своего проекта; два проекта — независимо', async () => {
+    const p2 = await mkProject();
+    const a = await mkTask();
+    const b = await mkTask(p2);
+    const c1 = await addProject(42);
+    handler = (_, res) => json(res, [mr(1, { title: `${a.key} ${b.key}` })]);
+    await poll();
+    expect((await mrsOf(1)).map((r) => r.taskId)).toEqual([a.id]);
+    // the same repository in the second project: its own task, the first one stays
+    await addProject(42, p2);
+    await db.update(P).set({ cursor: null });
+    handler = (_, res) => json(res, [mr(1, { title: `${a.key} ${b.key}` })]);
+    await poll();
+    expect((await mrsOf(1)).map((r) => r.taskId).sort()).toEqual([a.id, b.id].sort());
+    await call('DELETE', `connections/${c1.id}`);
+    expect((await mrsOf(1)).map((r) => r.taskId)).toEqual([b.id]);
+    // deleting a project deletes its connections
+    await w.admin.ok('task.delete', { id: b.id });
+    await w.admin.ok('project.delete', { id: p2 });
+    expect(await db.select().from(P)).toHaveLength(0);
   });
 });
 
@@ -261,17 +318,23 @@ describe('pt6a: опрос', () => {
     expect((await mrsOf(1)).map((r) => r.taskId)).toEqual([a.id]);
   });
 
-  it('pt6a: 401 → last_error=unauthorized и остановка до смены токена', async () => {
-    await addProject();
-    handler = (_, res) => json(res, {}, {}, 401);
+  it('pt6a: 401 → last_error=unauthorized и остановка подключения до смены токена', async () => {
+    const c = await addProject(1);
+    await addProject(2);
+    handler = (req, res) =>
+      req.url!.includes('/projects/1/') ? json(res, {}, {}, 401) : json(res, []);
     await poll();
-    expect((await cfg()).lastError).toBe('unauthorized');
-    expect((await call('GET', 'config')).json().lastError).toBe('unauthorized');
+    const errs = async () =>
+      (await call('GET', conns()))
+        .json()
+        .connections.map((x: { lastError: unknown }) => x.lastError);
+    expect(await errs()).toEqual(['unauthorized', null]);
     hits = [];
     await poll();
-    expect(hits).toHaveLength(0);
-    await call('PUT', 'config', { token: 'new-token' });
-    expect((await cfg()).lastError).toBeNull();
+    expect(hits.map((h) => h.path)).toEqual(['/api/v4/projects/2/merge_requests']);
+    hits = [];
+    await call('PATCH', `connections/${c.id}`, { token: 'new-token' });
+    expect(await errs()).toEqual([null, null]);
     handler = (_, res) => json(res, []);
     await poll();
     expect(hits[0]!.token).toBe('new-token');
@@ -291,7 +354,6 @@ describe('pt6a: опрос', () => {
     await poll();
     expect(n).toBe(2);
     expect((await proj()).lastError).toBe('rate_limited');
-    expect((await cfg()).lastError).toBeNull();
   });
 
   it('pt6a: 404 и 5xx одного проекта не мешают другим; ошибка в проекте и снимается', async () => {
@@ -312,7 +374,6 @@ describe('pt6a: опрос', () => {
     expect((await byId(p3.id)).lastPolledAt).not.toBeNull();
     expect((await byId(p2.id)).cursor).toBeNull();
     expect(await mrsOf(1)).toHaveLength(1);
-    expect((await cfg()).lastError).toBeNull();
     handler = (_, res) => json(res, []);
     await poll();
     expect((await byId(p1.id)).lastError).toBeNull();
@@ -347,6 +408,7 @@ describe('pt6a: мутаторы', () => {
   it('pt6a: клиентский gitlab.mr.sync → forbidden; setMergedStatus чужого статуса → invalid_args', async () => {
     const a = await mkTask();
     const r = await w.admin.push('gitlab.mr.sync', {
+      projectId: w.projectId,
       gitlabProjectId: 1,
       iid: 1,
       mr: {
