@@ -253,3 +253,4 @@
 {"t": "2026-10-23T19:49:20", "module": "work", "task": "WK-15", "text": "plan work WK-8 blocked из карточки не находится как раздел; дополнение карточки обрезается в task show без --full.", "src": "report", "kind": "item"}
 {"t": "2026-10-23T20:14:56", "module": "work", "task": "WK-8", "text": "Замер бюджетов шумный: нужен критерий по медиане нескольких прогонов, а не один. Журнал accept не показывает разброс.", "src": "report", "kind": "item"}
 {"t": "2026-10-23T20:42:34", "module": "work", "task": "WK-16", "text": "job wait/Monitor дают много служебных уведомлений при ожидании; пусто по существу", "src": "report", "kind": "item"}
+{"t": "2026-11-02T09:27:50", "id": "F-21", "kind": "cluster", "title": "deliver --in-place не коммитит перенесённые трения", "match": "feedback.jsonl не закоммичен", "scope": "dpcli", "why": "deliver переносит трения модуля в .dpcli-local/feedback.jsonl и оставляет файл незакоммиченным — следующий deliver падает на грязной копии"}

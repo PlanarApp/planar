@@ -4,6 +4,23 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-02
+
+### Added
+
+- `start.sh` and `compose.prod.yml`: run from ready images in the registry, data in `./data`, missing secrets generated into `.env`.
+- GitLab: connections are set in a project's settings, and a project can have several (GitLab URL, token, repository each). Merge requests link only to tasks of the connection's project.
+
+### Changed
+
+- Navigation: no breadcrumbs and task keys in the header; the favourites star is in the header and in chat; "Mine" replaces Me Mode.
+- A node remembers its last tab, "My work" is the default; the sections of "My work" are a menu on its tab.
+- The view of a node's tab is saved on the server with a button.
+
+### Removed
+
+- The workspace-wide GitLab settings. The migration moves the existing connection to every project that already has linked merge requests from its repository; repositories without linked merge requests have to be connected again. The poll interval is fixed at 120 s.
+
 ## [0.9.0] - 2026-10-30 (public beta)
 
 ### Added
@@ -22,5 +39,6 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 - Issuing ACME certificates for a public domain has not been tested; see `docs/guides/deploy.md`.
 
-[Unreleased]: https://gitlab.com/planarhq/planar/-/compare/v0.9.0...main
+[Unreleased]: https://gitlab.com/planarhq/planar/-/compare/v0.10.0...main
+[0.10.0]: https://gitlab.com/planarhq/planar/-/compare/v0.9.0...v0.10.0
 [0.9.0]: https://gitlab.com/planarhq/planar/-/tags/v0.9.0
