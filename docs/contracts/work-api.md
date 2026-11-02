@@ -1,8 +1,8 @@
 ---
 type: reference
-status: active
+status: closed
 module: work
-updated: 2026-10-23
+updated: 2026-11-02
 summary: Work contracts, part 2 — C-modules v5 and v6 (enqueue, SDK, module settings, collab fixes), REST v1 and MCP (WK-5)
 related: ["docs/contracts/work.md", "docs/contracts/core-api-v1.md", "docs/contracts/core.md"]
 ---

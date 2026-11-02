@@ -1,8 +1,8 @@
 ---
 type: plan
-status: active
+status: closed
 module: work
-updated: 2026-10-23
+updated: 2026-11-02
 summary: План модуля work: учёт времени, спринты, автоматизации, webhooks, связи в REST/MCP, импорт, хвосты фазы 1
 related: ["docs/roadmap.md", "docs/plan/core.md", "docs/plan/features.md"]
 ---

@@ -1,8 +1,8 @@
 ---
 type: reference
-status: active
+status: closed
 module: work
-updated: 2026-10-23
+updated: 2026-11-02
 summary: Work contracts — C-modules v3, C-schema v7, F-filter v2, modules time, sprints, automations, webhooks, import, REST/MCP
 related: ["docs/contracts/core.md", "docs/contracts/core-mutators.md", "docs/contracts/core-api-v1.md", "docs/contracts/web.md", "docs/contracts/features.md", "docs/plan/work.md"]
 ---
