@@ -3,7 +3,7 @@ type: contract
 status: closed
 module: projects
 updated: 2026-11-03
-summary: Contracts of projects: PJ-1 statuses/labels per project, PJ-3 modules per project, PJ-4 personal node view, PJ-14 default modules of a new project, PJ-11 project members (C-schema v17, C-mutators v14)
+summary: Статусы и метки, модули, участники проекта; личный вид узла (C-schema v17, C-mutators v14)
 related: ["docs/plan/projects.md", "docs/contracts/core.md", "docs/contracts/core-schema.md", "docs/contracts/core-mutators.md"]
 contracts: [{"id": "C-schema", "version": 17}, {"id": "C-mutators", "version": 14}]
 ---
