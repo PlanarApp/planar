@@ -1,0 +1,1 @@
+{"t": "2026-11-03T14:25:24", "by": "main", "task": null, "ev": "note", "note": "F-9: ./dev.sh stack <ID> (свободные порты, своя подсеть, чистая БД + seed), e2e-web через него; проверено: stack HT-1, e2e-web menus 4 passed, down убирает тома. Правила стендов и малого модуля — .dpcli-local/workflow.md"}

@@ -97,18 +97,42 @@ prodsmoke() {
   return $rc
 }
 
-# e2e браузера на отдельном чистом стеке planar-vis (свои порты, подсеть, БД): тесты не засоряют данные dev-стека
+freeport() { node -e "const s=require('net').createServer().listen(0,()=>{console.log(s.address().port);s.close()})"; }
+
+# stack <name>: isolated dev stack planar-<name> (task ID) with free ports, its own subnet and an always clean seeded DB.
+# Prints export lines for eval: eval "$(./dev.sh stack PJ-3)" → WEB_PORT, API_PORT, DEV_PG_PORT, E2E_BASE_URL, COMPOSE_PROJECT_NAME
+stack() {
+  [ -n "${1:-}" ] || { echo "usage: ./dev.sh stack <ID> [down]" >&2; return 2; }
+  export COMPOSE_PROJECT_NAME
+  COMPOSE_PROJECT_NAME="planar-$(printf %s "$1" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9' -)"
+  if [ "${2:-}" = down ]; then "${DEV[@]}" down -v >&2; return; fi
+  # clean DB: drop the stack and only its pgdata volume (node_modules volumes stay — install is fast)
+  "${DEV[@]}" down >&2 || return 1
+  docker volume rm -f "${COMPOSE_PROJECT_NAME}_pgdata" >/dev/null
+  # shortcut: free ports are picked before up, another process may take one in between — rerun the command then
+  export WEB_PORT API_PORT DEV_PG_PORT DEV_SUBNET
+  WEB_PORT=$(freeport) API_PORT=$(freeport) DEV_PG_PORT=$(freeport)
+  local used i n
+  used=" $(docker network inspect -f '{{range .IPAM.Config}}{{.Subnet}} {{end}}' $(docker network ls -q) 2>/dev/null | tr '\n' ' ') "
+  n=$(( $(printf %s "$COMPOSE_PROJECT_NAME" | cksum | cut -d' ' -f1) % 256 ))
+  for i in $(seq 0 255); do
+    DEV_SUBNET="10.240.$(( (n + i) % 256 )).0/24"
+    [[ "$used" == *" $DEV_SUBNET "* ]] || break
+  done
+  "${DEV[@]}" up -d >&2 || return 1
+  waitapidirect >&2 || return 1
+  "${DEV[@]}" exec -T api pnpm --filter @planar/api seed >&2 || return 1
+  waitapi >&2 || return 1
+  echo "export COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME WEB_PORT=$WEB_PORT API_PORT=$API_PORT DEV_PG_PORT=$DEV_PG_PORT E2E_BASE_URL=http://localhost:$WEB_PORT"
+}
+
+# browser e2e on a fresh isolated stack (DEV_STACK = task ID, default vis): tests start from a clean seeded DB and do not touch dev data
 e2eweb() {
-  local vis=(env COMPOSE_PROJECT_NAME=planar-vis WEB_PORT=5183 API_PORT=3310 DEV_PG_PORT=55443
-    DEV_SUBNET=10.232.0.0/24 WEBHOOKS_ALLOW_HOSTS=host.docker.internal)
-  "${vis[@]}" docker compose -f compose.dev.yml up -d || return 1
-  API_PORT=3310 waitapidirect || return 1
-  "${vis[@]}" docker compose -f compose.dev.yml exec -T api pnpm --filter @planar/api seed || return 1
-  local rc=0
-  WEB_PORT=5183 waitapi &&
-    E2E_BASE_URL=http://localhost:5183 pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts "$@" ||
-    rc=$?
-  "${vis[@]}" docker compose -f compose.dev.yml stop >/dev/null
+  local env rc=0
+  env="$(stack "${DEV_STACK:-vis}")" || return 1
+  eval "$env"
+  pnpm --filter @planar/e2e exec playwright test -c web/playwright.config.ts "$@" || rc=$?
+  "${DEV[@]}" stop >/dev/null
   return $rc
 }
 
@@ -122,11 +146,12 @@ case "$cmd" in
   reset) "${DEV[@]}" down -v && "${DEV[@]}" up -d --build ;;
   seed) waitapidirect && "${DEV[@]}" exec -T api pnpm --filter @planar/api seed "$@" ;;
   logs) "${DEV[@]}" logs -f "$@" ;;
+  stack) stack "$@" ;;
   e2e-web) e2eweb "$@" ;;
   e2e) waitapi && E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e test "$@" ;;
   measure) waitapi && E2E_BASE_URL="http://localhost:${WEB_PORT:-5173}" pnpm --filter @planar/e2e measure "$@" ;;
   prod-smoke) prodsmoke ;;
   testdb) testdb ;;
   test) testdb && pnpm test "$@" ;;
-  *) echo "usage: ./dev.sh up|down|reset|seed|logs|e2e|e2e-web|measure|prod-smoke|test|testdb|vapid" >&2; exit 2 ;;
+  *) echo "usage: ./dev.sh up|down|reset|seed|logs|stack|e2e|e2e-web|measure|prod-smoke|test|testdb|vapid" >&2; exit 2 ;;
 esac
