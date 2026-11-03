@@ -29,7 +29,7 @@ const router = useRouter();
 
 const projectId = computed(() => String(route.params.projectId));
 const project = useProject(projectId);
-const extViews = useExtensions('views');
+const extViews = useExtensions('views', projectId);
 const tabs = computed(() => buildViewTabs(viewLoaders(), extViews.value));
 // saved view (/p/:projectId/v/:viewId) — a tab on a par with List and Board
 const viewId = computed(() => (route.name === 'savedView' ? String(route.params.viewId) : ''));
@@ -38,7 +38,7 @@ const active = computed(() => {
   const key = viewId.value ? saved.value?.layout : route.params.view || 'list';
   return tabs.value.find((v) => v.key === key) ?? tabs.value[0];
 });
-// tab: my node view — a draft until "Save" (as in ClickUp)
+// tab: my node view — saved to the server at once
 const tabView = useNodeViewDraft({
   spaceId: () => project.value?.spaceId ?? '',
   node: () => `p:${projectId.value}`,
@@ -77,10 +77,10 @@ const resetSaved = () => {
 watch([projectId, () => active.value?.key, viewId, () => saved.value?.id], resetSaved, {
   immediate: true,
 });
-const reset = () => (viewId.value ? resetSaved() : tabView.reset());
+// a named saved view only: tab edits are saved at once (tabView)
+const reset = resetSaved;
 const dirty = computed(() => {
-  if (!viewId.value) return tabView.dirty.value;
-  if (!saved.value) return false;
+  if (!viewId.value || !saved.value) return false;
   const d = fromSaved();
   return (
     JSON.stringify(d.options) !== JSON.stringify(savedOptions.value) ||
@@ -98,12 +98,10 @@ const editable = computed(
       (saved.value.userId === null ? canShare.value : saved.value.userId === user.value?.id)),
 );
 const saveChanges = () =>
-  viewId.value
-    ? updateView(viewId.value, {
-        config: savedOptions.value,
-        filter: savedFilter.value ?? emptyFilter(),
-      })
-    : tabView.save();
+  updateView(viewId.value, {
+    config: savedOptions.value,
+    filter: savedFilter.value ?? emptyFilter(),
+  });
 const saveOpen = ref(false);
 // project "…" menu: save view + project actions (as in the sidebar, without inline renaming)
 const projectActions = useSidebarActions().projectItems;
@@ -235,28 +233,53 @@ onBeforeUnmount(() => ro?.disconnect());
               :space-id="spaceId"
               :project-id="projectId"
             >
-              <template v-if="dirty">
-                <Button
-                  v-if="editable"
-                  variant="primary"
-                  size="sm"
-                  :icon="Check"
-                  compact
-                  data-testid="saved-save"
-                  @click="saveChanges"
-                >
-                  {{ t('views.saved.saveChanges') }}
-                </Button>
-                <Button
-                  size="sm"
-                  :icon="RotateCcw"
-                  compact
-                  data-testid="saved-reset"
-                  @click="reset"
-                >
-                  {{ t('views.saved.reset') }}
-                </Button>
-              </template>
+              <!-- резерв места: появление Сохранить/Сбросить не сдвигает «Вид» -->
+              <div class="flex items-center justify-end gap-1 md:min-w-[17rem]">
+                <template v-if="!viewId">
+                  <Button
+                    v-if="canShare"
+                    size="sm"
+                    :icon="Check"
+                    compact
+                    data-testid="node-share"
+                    @click="tabView.saveForAll"
+                  >
+                    {{ t('views.saved.saveForAll') }}
+                  </Button>
+                  <Button
+                    v-if="tabView.hasPersonal.value"
+                    size="sm"
+                    :icon="RotateCcw"
+                    compact
+                    data-testid="node-reset"
+                    @click="tabView.reset"
+                  >
+                    {{ t('views.saved.reset') }}
+                  </Button>
+                </template>
+                <template v-else-if="dirty">
+                  <Button
+                    v-if="editable"
+                    variant="primary"
+                    size="sm"
+                    :icon="Check"
+                    compact
+                    data-testid="saved-save"
+                    @click="saveChanges"
+                  >
+                    {{ t('views.saved.saveChanges') }}
+                  </Button>
+                  <Button
+                    size="sm"
+                    :icon="RotateCcw"
+                    compact
+                    data-testid="saved-reset"
+                    @click="reset"
+                  >
+                    {{ t('views.saved.reset') }}
+                  </Button>
+                </template>
+              </div>
               <Menu align="end" :items="headerMenu">
                 <template #trigger>
                   <IconButton

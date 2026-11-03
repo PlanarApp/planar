@@ -88,11 +88,22 @@ async function seedBase(db: Db, locale: SeedLocale = 'ru') {
       })),
     ),
   );
+  const pr = generateNKeysBetween(null, null, 2) as [string, string];
+  const projects = await db
+    .insert(s.projects)
+    .values([
+      { spaceId: spaces[0]!.id, name: 'Planar', key: 'PLN', rank: pr[0] },
+      { spaceId: spaces[0]!.id, name: 'Operations', key: 'OPS', rank: pr[1] },
+      { spaceId: spaces[1]!.id, name: 'Website', key: 'WEB', rank: pr[0] },
+    ])
+    .returning();
+  // statuses and labels belong to a project (PJ-1)
   const ranks = generateNKeysBetween(null, null, STATUSES.length);
   await db.insert(s.statuses).values(
-    spaces.flatMap((sp) =>
+    projects.flatMap((p) =>
       STATUSES.map(([category, color], i) => ({
-        spaceId: sp.id,
+        spaceId: p.spaceId,
+        projectId: p.id,
         name: STATUS_NAMES[locale][i]!,
         category,
         color,
@@ -103,14 +114,10 @@ async function seedBase(db: Db, locale: SeedLocale = 'ru') {
   await db
     .insert(s.labels)
     .values(
-      spaces.flatMap((sp) => LABELS.map(([name, color]) => ({ spaceId: sp.id, name, color }))),
+      projects.flatMap((p) =>
+        LABELS.map(([name, color]) => ({ spaceId: p.spaceId, projectId: p.id, name, color })),
+      ),
     );
-  const pr = generateNKeysBetween(null, null, 2) as [string, string];
-  await db.insert(s.projects).values([
-    { spaceId: spaces[0]!.id, name: 'Planar', key: 'PLN', rank: pr[0] },
-    { spaceId: spaces[0]!.id, name: 'Operations', key: 'OPS', rank: pr[1] },
-    { spaceId: spaces[1]!.id, name: 'Website', key: 'WEB', rank: pr[0] },
-  ]);
 }
 
 /** Dates of task i (deterministic): start within ±120 days of today, duration 1–14 days; some with a single date. */
@@ -152,9 +159,9 @@ async function seedTasks(db: Db, target: number, dates = false) {
       .orderBy(desc(s.tasks.rank))
       .limit(1);
     const ranks = generateNKeysBetween(last?.rank ?? null, null, count);
-    const st = statuses.filter((x) => x.spaceId === p.spaceId);
+    const st = statuses.filter((x) => x.projectId === p.id);
     const us = members.filter((x) => x.spaceId === p.spaceId);
-    const lb = labels.filter((x) => x.spaceId === p.spaceId);
+    const lb = labels.filter((x) => x.projectId === p.id);
     if (!st.length || !us.length) continue; // a task cannot be created without statuses/members
     const ids: string[] = [];
     for (let i = 0; i < count; i++) {

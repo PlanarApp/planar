@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { MutatorError, defineMutator, type Tx, type MutatorCtx } from '../contract/index.js';
+import {
+  MutatorError,
+  defineMutator,
+  isDataModule,
+  type Tx,
+  type MutatorCtx,
+} from '../contract/index.js';
 import { changes, need, rank, record, uuid } from './util.js';
 
 /** All notifications rows with these ids; someone else's → forbidden; missing ones are skipped. */
@@ -91,9 +97,59 @@ export const miscMutators = [
     },
   }),
   defineMutator({
+    name: 'view.setNodeDefault',
+    args: z.object({
+      id: uuid,
+      spaceId: uuid,
+      node: viewNode.unwrap(),
+      layout: z.string().min(1),
+      filter: record,
+      config: record,
+    }),
+    async run(tx, a, ctx) {
+      await need(tx, 'spaces', a.spaceId);
+      const members = await tx.scan('spaceMembers', { index: 'spaceId', eq: a.spaceId });
+      const role = members.find((m) => m.userId === ctx.userId)?.role;
+      if (!role || role === 'guest') throw new MutatorError('forbidden', 'нужна роль member');
+      // the old shared default and my personal row of the same node+layout go away
+      for (const v of await tx.scan('savedViews', { index: 'spaceId', eq: a.spaceId }))
+        if (
+          v.node === a.node &&
+          v.layout === a.layout &&
+          (v.userId === null || v.userId === ctx.userId)
+        )
+          await tx.del('savedViews', v.id);
+      await tx.put('savedViews', {
+        id: a.id,
+        spaceId: a.spaceId,
+        userId: null,
+        createdBy: ctx.userId,
+        name: a.layout,
+        icon: null,
+        layout: a.layout,
+        node: a.node,
+        filter: a.filter,
+        config: a.config,
+        rank: 'a0',
+        createdAt: ctx.now,
+        updatedAt: ctx.now,
+      });
+    },
+  }),
+  defineMutator({
     name: 'settings.set',
     args: z.object({ id: z.string().min(1), value: z.json() }),
     async run(tx, a, ctx) {
+      // C-mutators v12: enabled_modules holds only shared modules
+      if (
+        a.id === 'enabled_modules' &&
+        Array.isArray(a.value) &&
+        a.value.some((x) => typeof x === 'string' && isDataModule(x))
+      )
+        throw new MutatorError(
+          'invalid_args',
+          'enabled_modules: модули данных включаются в проекте',
+        );
       await tx.put('settings', { id: a.id, value: a.value, updatedAt: ctx.now });
     },
   }),

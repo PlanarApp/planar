@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Plus, X } from 'lucide-vue-next';
 import { AssigneePicker, DueDatePicker, LabelPicker, useProject, useStatuses } from '../../tasks';
+import { normName, uniqByName } from '../../tasks/dictionaries';
 import { useFieldDefs, useSpaceFieldDefs } from '../../fields';
 import { Button, Input } from '../../ui';
 import { useExtensions } from '../../modules/registry';
@@ -95,9 +96,21 @@ const remove = (i: number) => setRules(rules.value.filter((_, j) => j !== i));
 
 const list = (r: FilterRule): string[] => (Array.isArray(r.value) ? r.value.map(String) : []);
 const hasValue = (r: FilterRule) => r.operator !== 'isEmpty' && r.operator !== 'isNotEmpty';
+// statuses of different projects with the same name are one option (PJ-2): the group of ids behind it
+const sameStatus = (v: string): string[] => {
+  const name = statuses.value?.find((s) => s.id === v)?.name;
+  return name === undefined
+    ? [v]
+    : (statuses.value ?? []).filter((s) => normName(s.name) === normName(name)).map((s) => s.id);
+};
+const isChecked = (r: FilterRule, v: string) =>
+  r.field === 'status' ? sameStatus(v).some((x) => list(r).includes(x)) : list(r).includes(v);
 function toggle(i: number, r: FilterRule, v: string) {
   const cur = list(r);
-  const next = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v];
+  const group = r.field === 'status' ? sameStatus(v) : [v];
+  const next = group.some((x) => cur.includes(x))
+    ? cur.filter((x) => !group.includes(x))
+    : [...cur, v];
   patch(i, { value: r.field === 'priority' ? next.map(Number) : next });
 }
 /** assignee/createdBy: a picker without 'me' + a separate "Me" toggle. */
@@ -165,7 +178,7 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
             v-for="o in kind(r) === 'fselect'
               ? choices(r)
               : r.field === 'status'
-                ? (statuses ?? []).map((s) => ({ v: s.id, l: s.name }))
+                ? uniqByName(statuses ?? []).map((s) => ({ v: s.id, l: s.name }))
                 : r.field === 'priority'
                   ? [0, 1, 2, 3, 4].map((p) => ({ v: String(p), l: t(`tasks.priority.${p}`) }))
                   : CATEGORIES.map((c) => ({ v: c, l: t(`views.filter.category.${c}`) }))"
@@ -174,7 +187,7 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
           >
             <input
               type="checkbox"
-              :checked="list(r).includes(o.v)"
+              :checked="isChecked(r, o.v)"
               :data-value="o.v"
               @change="toggle(i, r, o.v)"
             />

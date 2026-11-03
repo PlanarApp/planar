@@ -96,7 +96,8 @@ installed.push({
 });
 
 const { ORIGIN, loginCookie } = await import('../auth.js');
-const { dbUrl, mkSpace, mkUser, newDb, services, TestClient } = await import('../sync/helpers.js');
+const { dbUrl, mkProject, mkSpace, mkUser, newDb, services, TestClient } =
+  await import('../sync/helpers.js');
 const { createApp } = await import('../../src/app.js');
 const { PushQueue } = await import('../../src/push/push.js');
 const { api: docsApi } = await import('@planar/module-docs/api');
@@ -120,8 +121,8 @@ beforeAll(async () => {
       text text not null, created_at timestamptz not null)`);
   await db
     .insert(schema.settings)
-    .values({ id: 'enabled_modules', value: ['clt', 'docs'] })
-    .onConflictDoUpdate({ target: schema.settings.id, set: { value: ['clt', 'docs'] } });
+    .values({ id: 'enabled_modules', value: ['clt'] })
+    .onConflictDoUpdate({ target: schema.settings.id, set: { value: ['clt'] } });
   const s = services(db);
   [a, b, c] = await Promise.all(
     [0, 1, 2].map(async () => new TestClient(s, await mkUser(db, 'member'))),
@@ -411,6 +412,7 @@ describe('cl1a: уведомления без задачи', () => {
 describe('cl1a: canReadFile', () => {
   let space: string;
   let sha: string;
+  let proj: string; // project of the pages: docs is a data module (PJ-3), "off" = off in this project
   const get = (url: string, cookie: string) =>
     app.getHttpAdapter().getInstance().inject({ method: 'GET', url, headers: { cookie } });
   const upload = async (cookie: string, data: Buffer) => {
@@ -440,6 +442,7 @@ describe('cl1a: canReadFile', () => {
   const page = (files: string[]) => ({
     id: uuidv7(),
     spaceId: space,
+    projectId: proj,
     parentId: null,
     rank: 'a0',
     title: 'p',
@@ -456,6 +459,7 @@ describe('cl1a: canReadFile', () => {
 
   beforeAll(async () => {
     space = await mkSpace(db, a.userId, { [a.userId]: 'admin', [b.userId]: 'member' });
+    proj = await mkProject(db, space);
     sha = await upload(cookies.a!, Buffer.from('cl1a docs file ' + uuidv7()));
     await db.insert((await import('@planar/module-docs/api/schema')).docsPages).values(page([sha]));
   });
@@ -476,15 +480,11 @@ describe('cl1a: canReadFile', () => {
   });
 
   it('cl1a: выключенный модуль файл не открывает', async () => {
-    await db
-      .update(schema.settings)
-      .set({ value: ['clt'] })
-      .where(eq(schema.settings.id, 'enabled_modules'));
+    const set = (modules: string[]) =>
+      db.update(schema.projects).set({ modules }).where(eq(schema.projects.id, proj));
+    await set([]);
     expect((await get(`/files/${sha}`, cookies.b!)).statusCode).toBe(404);
     expect((await get(`/files/${sha}`, cookies.a!)).statusCode).toBe(200); // loaded it themselves
-    await db
-      .update(schema.settings)
-      .set({ value: ['clt', 'docs'] })
-      .where(eq(schema.settings.id, 'enabled_modules'));
+    await set(['docs']);
   });
 });

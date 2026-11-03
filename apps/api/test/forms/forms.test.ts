@@ -63,11 +63,9 @@ const fields = (extra: object[] = []) => [
   ...extra,
 ];
 const tasksOf = () => db.select().from(s.tasks).where(eq(s.tasks.projectId, w.projectId));
-const setEnabled = (ids: string[]) =>
-  db
-    .insert(s.settings)
-    .values({ id: 'enabled_modules', value: ids })
-    .onConflictDoUpdate({ target: s.settings.id, set: { value: ids } });
+// PJ-3: forms is a data module — on per project
+const setEnabled = (modules: string[]) =>
+  db.update(s.projects).set({ modules }).where(eq(s.projects.id, w.projectId));
 const mkForm = async (over: Record<string, unknown> = {}) => {
   const id = uuidv7();
   const sl = SLUG();

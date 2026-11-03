@@ -5,10 +5,10 @@ import { changes, color, delWhere, name, need, uuid } from './util.js';
 export const labelMutators = [
   defineMutator({
     name: 'label.create',
-    args: z.object({ id: uuid, spaceId: uuid, name, color }),
+    args: z.object({ id: uuid, projectId: uuid, name, color }),
     async run(tx, a, ctx) {
-      await need(tx, 'spaces', a.spaceId);
-      await tx.put('labels', { ...a, createdAt: ctx.now, updatedAt: ctx.now });
+      const p = await need(tx, 'projects', a.projectId);
+      await tx.put('labels', { ...a, spaceId: p.spaceId, createdAt: ctx.now, updatedAt: ctx.now });
     },
   }),
   defineMutator({

@@ -29,7 +29,15 @@ import { useExtensions } from '../../modules/registry';
 import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
-import { createStatus, fixPlan, useProjectNames, useStatusKey } from '../scope';
+import {
+  createStatus,
+  fixPlan,
+  labelFor,
+  useLabelKey,
+  useProjectNames,
+  useStatusKey,
+  useWidenedFilter,
+} from '../scope';
 import Row from './Row.vue';
 import { treeOrder } from './tree';
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
@@ -46,11 +54,14 @@ const sel = useSelection();
 const project = useProject(() => props.projectId);
 const blocked = useBlockedIds(() => props.projectId);
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
-const statuses = useStatuses(spaceId);
+// a project view reads its own dictionaries; a summary — those of all its projects (grouped by name)
+const dictProject = () => (props.scope ? undefined : props.projectId);
+const statuses = useStatuses(spaceId, dictProject);
 const members = useMembers(spaceId);
-const labels = useLabels(spaceId);
+const labels = useLabels(spaceId, dictProject);
 const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 const statusKey = useStatusKey(() => props.scope, statuses);
+const labelKey = useLabelKey(() => props.scope, labels);
 const projectNames = useProjectNames();
 // columns: auto-size by content, the divider in the header — manual (double click — auto again)
 const {
@@ -72,7 +83,7 @@ const {
   }),
 );
 const passes = useTaskFilter(
-  () => props.filter,
+  useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
 );
@@ -100,6 +111,7 @@ const groups = computed(() => {
     members: members.value ?? [],
     labels: labels.value ?? [],
     statusKey: statusKey.value,
+    labelKey: labelKey.value,
   };
   return groupTasks(tasks, o.groupBy, ctx).map((g) => ({
     ...g,
@@ -137,7 +149,9 @@ const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
 const items = computed<Item[]>(() => {
   // mobile: cards without a column header row
   const head: Item[] =
-    props.options.groupBy === 'none' && !isMobile.value ? [{ id: 'head', kind: 'head' }] : [];
+    !isMobile.value && (props.options.groupBy === 'none' || groups.value.length)
+      ? [{ id: 'head', kind: 'head' }]
+      : [];
   return head.concat(
     groups.value.flatMap((g): Item[] => {
       if (collapsed.value.has(g.key)) return [{ id: `g:${g.key}`, kind: 'group', group: g }];
@@ -285,10 +299,11 @@ async function onDragEnd() {
     ),
   }));
   let plan = fixPlan(
-    planMove(cols, props.options.groupBy, d.task.id, d.from, to, beforeId),
+    planMove(cols, props.options.groupBy, d.task.id, d.from, to, beforeId, labelKey.value),
     d.task,
     !!statusKey.value,
     statuses.value ?? [],
+    labels.value ?? [],
   );
   if (!plan && d.from !== to && statusKey.value) return; // the task's space has no such status
   if (!plan && reparent) {
@@ -309,6 +324,8 @@ function startDrag(it: { task: TaskView; group: string }, e: PointerEvent) {
 const taskIds = computed(() => [
   ...new Set(items.value.flatMap((i) => (i.kind === 'task' ? [i.task.id] : []))),
 ]);
+// "select all": every task of every group, including collapsed ones
+const allIds = computed(() => [...new Set(groups.value.flatMap((g) => g.tasks.map((x) => x.id)))]);
 const empty = computed(() => !!all.value && !all.value.some((x) => !x.parentId));
 
 // --- virtualization
@@ -432,6 +449,7 @@ async function submitCreate(g?: TaskGroup) {
         target.spaceId,
         by === 'status' ? k : undefined,
         !!statusKey.value,
+        target.projectId,
       )
     : (by === 'status' && k) || defaultStatus.value;
   if (!title || !statusId) return;
@@ -442,7 +460,12 @@ async function submitCreate(g?: TaskGroup) {
     title,
     ...(by === 'priority' && k && { priority: Number(k) }),
     ...(by === 'assignee' && k && { assigneeIds: [k] }),
-    ...(by === 'label' && k && { labelIds: [k] }),
+    ...(by === 'label' &&
+      k && {
+        labelIds: [labelFor(labels.value ?? [], target?.projectId ?? props.projectId, k)].filter(
+          (x): x is string => !!x,
+        ),
+      }),
   });
 }
 
@@ -522,8 +545,17 @@ watch(
               <div
                 v-if="it.kind === 'head'"
                 role="row"
-                class="flex h-full items-center border-b border-border px-3 pl-10 text-xs text-fg-muted"
+                class="flex h-full items-center border-b border-border px-3 text-xs text-fg-muted"
               >
+                <input
+                  type="checkbox"
+                  :checked="sel.state(allIds) === 'all'"
+                  :indeterminate="sel.state(allIds) === 'some'"
+                  :aria-label="t('list.selectAll')"
+                  class="mr-3 size-4"
+                  data-testid="select-all"
+                  @click="sel.toggleAll(allIds)"
+                />
                 <button
                   type="button"
                   class="flex-1 truncate text-left hover:text-fg"
@@ -584,6 +616,15 @@ watch(
                     aria-hidden="true"
                   />
                 </button>
+                <input
+                  type="checkbox"
+                  :checked="sel.state(it.group.tasks.map((x) => x.id)) === 'all'"
+                  :indeterminate="sel.state(it.group.tasks.map((x) => x.id)) === 'some'"
+                  :aria-label="t('list.selectGroup')"
+                  class="size-4"
+                  data-testid="select-group"
+                  @click="sel.toggleAll(it.group.tasks.map((x) => x.id))"
+                />
                 <!-- плашка группы цветом статуса/метки, как в ClickUp -->
                 <span
                   class="truncate rounded px-2 py-0.5 text-xs font-semibold uppercase"

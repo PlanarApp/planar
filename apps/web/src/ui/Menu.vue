@@ -79,6 +79,13 @@ const pick = (f: () => void) => {
   sheet.value = false;
   f();
 };
+/** The action opened an inline field (data-inline-edit): the focus trap of the menu took focus from it — give the focus to the field, not the trigger. */
+const keepEditing = (e: Event) => {
+  const f = document.querySelector<HTMLElement>('[data-inline-edit]');
+  if (!f) return;
+  e.preventDefault();
+  f.focus();
+};
 const confirmed = () => pending.value?.onSelect?.();
 
 // the same reka components for two kinds of menu
@@ -161,6 +168,7 @@ const subPanel = `${panel} max-h-80 overflow-y-auto`;
         :is="kind.Content"
         v-bind="context ? {} : { side, align, sideOffset: 4 }"
         :class="panel"
+        @close-auto-focus="keepEditing"
       >
         <template v-for="(it, i) in items" :key="'separator' in it ? 'sep' + i : it.id">
           <component :is="kind.Separator" v-if="'separator' in it" class="my-1 h-px bg-border" />

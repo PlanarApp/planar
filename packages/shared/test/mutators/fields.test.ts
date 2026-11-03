@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { code, id, mem, run, seedSpace, seedTask, U1 } from './helpers';
+import { addProject, code, id, mem, run, seedSpace, seedTask, U1 } from './helpers';
 
 const setup = async () => {
   const tx = mem();
@@ -67,7 +67,7 @@ it('fields: null убирает ключ, остальные остаются', 
 it('fields: поле чужого проекта отклонено', async () => {
   const { tx, s, t } = await setup();
   const p2 = id();
-  await run(tx, 'project.create', { id: p2, spaceId: s.spaceId, name: 'Q', key: 'QQ', rank: 'a1' });
+  await addProject(tx, s.spaceId, p2, 'QQ', 'a1');
   const f = await mkField(tx, p2, 'text');
   expect(await code(run(tx, 'task.setField', { taskId: t, fieldId: f, value: 'x' }))).toBe(
     'invalid_args',
@@ -149,7 +149,7 @@ it('fields: смена проекта обнуляет fields', async () => {
   const f = await mkField(tx, s.projectId, 'text');
   await run(tx, 'task.setField', { taskId: t, fieldId: f, value: 'x' });
   const p2 = id();
-  await run(tx, 'project.create', { id: p2, spaceId: s.spaceId, name: 'Q', key: 'QQ', rank: 'a1' });
+  await addProject(tx, s.spaceId, p2, 'QQ', 'a1');
   await run(tx, 'task.update', { id: t, projectId: p2 });
   expect(await fieldsOf(tx, t)).toEqual({});
 });
@@ -164,7 +164,7 @@ it('fields: ключ без определения не пишется чере�
 it('fields: project.delete удаляет fieldDefs проекта', async () => {
   const { tx, s } = await setup();
   const p2 = id();
-  await run(tx, 'project.create', { id: p2, spaceId: s.spaceId, name: 'Q', key: 'QQ', rank: 'a1' });
+  await addProject(tx, s.spaceId, p2, 'QQ', 'a1');
   const f = await mkField(tx, p2, 'text');
   await run(tx, 'project.delete', { id: p2 });
   expect(await tx.get('fieldDefs', f)).toBeUndefined();

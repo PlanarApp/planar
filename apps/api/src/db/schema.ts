@@ -105,11 +105,40 @@ export const projects = pgTable(
     leadId: userRef(),
     rank: rank().notNull(),
     archivedAt: ts(),
+    modules: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'`),
+    membersMode: text().notNull().default('inherit'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     taskCounter: integer().notNull().default(0),
   },
-  (t) => [uniqueIndex().on(t.key), index().on(t.spaceId)],
+  (t) => [
+    uniqueIndex().on(t.key),
+    index().on(t.spaceId),
+    check('projects_members_mode_check', inList(t.membersMode, ['inherit', 'custom'])),
+  ],
+);
+
+export const projectMembers = pgTable(
+  'project_members',
+  {
+    id: id(),
+    spaceId: spaceId(),
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    userId: userRef().notNull(),
+    role: text().notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex().on(t.projectId, t.userId),
+    index().on(t.userId),
+    check('project_members_role_check', inList(t.role, ['admin', 'member', 'guest'])),
+  ],
 );
 
 export const statuses = pgTable(
@@ -117,6 +146,9 @@ export const statuses = pgTable(
   {
     id: id(),
     spaceId: spaceId(),
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     name: text().notNull(),
     category: text().notNull(),
     color: text().notNull(),
@@ -126,6 +158,7 @@ export const statuses = pgTable(
   },
   (t) => [
     index().on(t.spaceId),
+    index().on(t.projectId),
     check(
       'statuses_category_check',
       inList(t.category, ['backlog', 'todo', 'in_progress', 'done', 'cancelled']),
@@ -202,12 +235,15 @@ export const labels = pgTable(
   {
     id: id(),
     spaceId: spaceId(),
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     name: text().notNull(),
     color: text().notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index().on(t.spaceId)],
+  (t) => [index().on(t.spaceId), index().on(t.projectId)],
 );
 
 export const taskLabels = pgTable(
@@ -524,6 +560,8 @@ export const changes = pgTable(
     seq: bigserial({ mode: 'number' }).primaryKey(),
     spaceId: uuid(),
     userId: uuid(),
+    /** project of the row (PJ-11): pull skips rows of projects hidden from the user */
+    projectId: uuid(),
     entity: text().notNull(),
     id: text().notNull(),
     op: text().notNull(),

@@ -4,7 +4,7 @@ import * as schema from '../../src/db/schema.js';
 import type { JobApi } from '../../src/modules/hooks.js';
 import { installed } from '../../src/modules/installed.js';
 import { PushQueue } from '../../src/push/push.js';
-import { dbUrl, key, newDb, taskArgs, world, type World } from '../sync/helpers.js';
+import { dbUrl, key, newDb, statusOf, taskArgs, world, type World } from '../sync/helpers.js';
 
 const db = newDb();
 const queue = new PushQueue(db, { boss: false, databaseUrl: dbUrl });
@@ -154,7 +154,7 @@ describe('pf1: экземпляры', () => {
     const label = uuidv7();
     await w.admin.ok('label.create', {
       id: label,
-      spaceId: w.spaceId,
+      projectId: p,
       name: title.slice(0, 20),
       color: '#fff',
     });
@@ -230,7 +230,7 @@ describe('pf1: экземпляры', () => {
       priority: 3,
       fields: { [s.f]: 'v' },
     });
-    expect(n!.status_id).toBe(w.statusIds[1]); // first todo
+    expect(n!.status_id).toBe(statusOf(w, s.p, w.statusIds[1])); // first todo of the project
     const as = await raw('select user_id from task_assignees where task_id = $1', [n!.id]);
     expect(as.map((x) => x.user_id).sort()).toEqual([w.admin.userId, w.member.userId].sort());
     expect(await raw('select label_id from task_labels where task_id = $1', [n!.id])).toEqual([

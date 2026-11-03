@@ -27,6 +27,7 @@ const PG_TYPE: Record<string, string> = {
   json: 'jsonb',
   doc: 'jsonb',
   'uuid[]': 'ARRAY',
+  'text[]': 'ARRAY', // projects.modules (C-schema v16)
 };
 const pgType = (entity: string, field: string, type: string) => {
   const t = type.replace(/\?$/, '');
@@ -71,6 +72,7 @@ describe('contract schema', () => {
         const where = `${table}.${c.column_name}`;
         expect(c.data_type, where).toBe(pgType(e.name, f.name, f.type));
         if (f.type === 'uuid[]' || f.type === 'uuid[]?') expect(c.udt_name, where).toBe('_uuid');
+        if (f.type === 'text[]') expect(c.udt_name, where).toBe('_text');
         expect(c.is_nullable === 'YES', `${where} nullable`).toBe(f.nullable);
         if (f.type === 'rank') expect(c.collation_name, `${where} COLLATE "C"`).toBe('C');
       }

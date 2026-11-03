@@ -213,7 +213,7 @@ test('pf6: email — без SMTP переключатель неактивен �
   browser,
 }) => {
   const page = await loginAs(browser, 'admin');
-  await spa(page, '/settings/modules', page.getByTestId('module-row').first());
+  await spa(page, '/admin/modules', page.getByTestId('module-row').first()); // shared modules: page of the instance admin (PJ-3)
   const row = page.getByTestId('module-row').filter({ hasText: 'email' });
   // SMTP cannot be 'misconfigured' via API: on a stack with SMTP already set, the inactivity check is skipped
   const cfg = await (await admin.ctx.get('/api/email/setup/config')).json();

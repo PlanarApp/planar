@@ -93,7 +93,7 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
         label: t('tasks.status'),
         icon: CircleDot,
         children: (statuses.value ?? [])
-          .filter((s) => s.spaceId === task.spaceId)
+          .filter((s) => s.projectId === task.projectId)
           .map((s) => ({
             id: s.id,
             label: s.name,

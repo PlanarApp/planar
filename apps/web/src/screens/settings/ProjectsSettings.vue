@@ -4,12 +4,14 @@ import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { Badge, Button, Input } from '../../ui';
 import { db, mutate, newId, rankBetween, useQuery } from '../../sync';
+import { defaultModules } from '../../api/defaultModules';
 import RowMenu from './RowMenu.vue';
 import SectionHeader from './SectionHeader.vue';
 import BulkBar, { type BulkAction } from './BulkBar.vue';
 import { useAction, useAdminSpaces } from './shared';
 
 const KEY_RE = /^[A-Z][A-Z0-9]{1,9}$/;
+const DEFAULT_STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
 const props = defineProps<{ spaceId: string }>();
 const { t } = useI18n();
 const { error, run } = useAction();
@@ -33,12 +35,19 @@ function create() {
     return;
   }
   return run(async () => {
+    const modules = await defaultModules();
     await mutate('project.create', {
+      ...(modules && { modules }),
       id: newId(),
       spaceId: props.spaceId,
       name: name.value.trim(),
       key: key.value,
       rank: rankBetween(projects.value.at(-1)?.rank ?? null, null),
+      // statuses belong to a project: the default five (copying from another project — in its settings)
+      statusIds: DEFAULT_STATUSES.map(() => newId()),
+      statusNames: Object.fromEntries(
+        DEFAULT_STATUSES.map((c) => [c, t(`settings.statusDefaults.${c}`)]),
+      ),
     });
     name.value = key.value = '';
   });

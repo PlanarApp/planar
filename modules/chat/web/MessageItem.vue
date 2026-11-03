@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { useChatLinks } from './links';
-import { computed, defineAsyncComponent, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { MessageSquare, Pencil, Plus, SmilePlus, Trash2 } from 'lucide-vue-next';
 import {
   Button,
   ConfirmDialog,
   Editor,
+  EmojiPicker,
   IconButton,
   Popover,
   Sheet,
@@ -28,8 +29,6 @@ import {
   type UserRow,
 } from './model';
 import { useTexts } from './text';
-
-const EmojiPicker = defineAsyncComponent(() => import('./EmojiPicker.vue'));
 
 const props = defineProps<{
   message: Message;

@@ -4,6 +4,8 @@ import { fixture, loginAs, uniq } from './helpers.js';
 import { addField, dayOfMonth, serverLinks, serverTask } from './features-helpers.js';
 
 const cell = (p: Page, day: string) => p.locator(`[data-day="${day}"]`);
+// the calendar opens in week mode; the 14th–21st are in the month grid
+const month = (p: Page) => p.locator('[data-test=mode-month]').click();
 
 // ---------- Calendar
 
@@ -21,6 +23,7 @@ test('календарь: диапазон start..due на каждом дне, 
   ]);
   const page = await loginAs(browser, 'alice');
   await page.goto(`/p/${f.projectId}/calendar`);
+  await month(page);
   for (const d of [14, 15, 16])
     await expect(cell(page, dayOfMonth(d)).locator(`[data-task="${f.taskIds[0]}"]`)).toBeVisible();
   await expect(cell(page, dayOfMonth(17)).locator(`[data-task="${f.taskIds[0]}"]`)).toHaveCount(0);
@@ -43,6 +46,8 @@ test('календарь: перенос сохраняет длительнос
   const bob = await loginAs(browser, 'bob');
   await bob.goto(`/p/${f.projectId}/calendar`);
   await page.goto(`/p/${f.projectId}/calendar`);
+  await month(bob);
+  await month(page);
   await cell(page, dayOfMonth(14))
     .locator(`[data-task="${f.taskIds[0]}"]`)
     .dragTo(cell(page, dayOfMonth(20)));
@@ -71,16 +76,17 @@ test('календарь: неделя/месяц, навигация и зап�
   const f = await fixture([uniq('Режим')]);
   const page = await loginAs(browser, 'alice');
   await page.goto(`/p/${f.projectId}/calendar`);
-  const title = page.locator('[data-test=title]');
-  const t0 = await title.textContent();
-  await page.getByRole('button', { name: 'Вперёд' }).click();
-  await expect(title).not.toHaveText(t0!);
-  await page.getByRole('button', { name: 'Сегодня' }).click();
-  await expect(title).toHaveText(t0!);
-
+  const period = page.locator('[data-test=period]');
   const days = page.locator('[data-day]');
-  const month = await days.count();
-  expect(month % 7).toBe(0);
+  await expect(days).toHaveCount(7);
+  const t0 = await period.inputValue();
+  await page.getByRole('button', { name: 'Вперёд' }).click();
+  await expect(period).not.toHaveValue(t0);
+  await page.getByRole('button', { name: 'Назад' }).click();
+  await expect(period).toHaveValue(t0);
+
+  await month(page);
+  expect((await days.count()) % 7).toBe(0);
   await page.locator('[data-test=mode-week]').click();
   await expect(days).toHaveCount(7);
   // week starts on Monday
@@ -95,12 +101,15 @@ test('календарь: неделя/месяц, навигация и зап�
 test('календарь: на телефоне — список по дням', async ({ browser }) => {
   const t = uniq('Мобильная');
   const f = await fixture([t]);
-  await f.admin.pushOk([f.admin.mut('task.update', { id: f.taskIds[0], dueDate: dayOfMonth(15) })]);
+  // today is always in the opening week
+  await f.admin.pushOk([
+    f.admin.mut('task.update', { id: f.taskIds[0], dueDate: dayOfMonth(new Date().getDate()) }),
+  ]);
   const page = await loginAs(browser, 'alice');
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto(`/p/${f.projectId}/calendar`);
-  await expect(page.locator('[data-test=agenda]')).toContainText(t);
-  await expect(page.locator('[data-day]')).toHaveCount(0);
+  await expect(page.locator('[data-test=grid]')).toContainText(t);
+  await expect(page.locator('[data-day]')).toHaveCount(7);
 });
 
 // ---------- Table
@@ -137,9 +146,10 @@ test('таблица: колонки — скрыть, показать, шир�
   await page.getByRole('button', { name: 'Скрыть' }).click();
   await expect(col('key')).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Колонки', exact: true }).click();
-  await page.getByLabel('Начало', { exact: true }).check();
-  await expect(col('startDate')).toBeVisible();
+  // columns are shown through the view's «Поля»
+  await page.getByTestId('view-toggle').click();
+  await page.locator('[data-field=project]').check();
+  await expect(col('project')).toBeVisible();
   await page.keyboard.press('Escape');
 
   const box = (await col('title').boundingBox())!;
@@ -150,8 +160,8 @@ test('таблица: колонки — скрыть, показать, шир�
   const w = (await col('title').boundingBox())!.width;
   expect(w).toBeGreaterThan(box.width + 50);
 
+  // view fields are a draft until saved as a view; the layout (hidden, width) is stored
   await page.reload();
-  await expect(col('startDate')).toBeVisible();
   await expect(col('key')).toHaveCount(0);
   expect(Math.abs((await col('title').boundingBox())!.width - w)).toBeLessThan(2);
 });
@@ -393,10 +403,20 @@ test('таблица: колонка числового поля — показ 
   const f = await fixture([uniq('Колонка поля')]);
   const fid = await addField(f, 'Оценка', 'number');
   const page = await loginAs(browser, 'alice');
+  // the view has no picker for field columns: the column comes from the stored layout
+  await page.addInitScript(
+    ([k, v]) => localStorage.setItem(k!, v!),
+    [
+      `planar.table.${f.projectId}`,
+      JSON.stringify({
+        columns: [
+          { id: 'title', width: 360 },
+          { id: `field:${fid}`, width: 160 },
+        ],
+      }),
+    ],
+  );
   await page.goto(`/p/${f.projectId}/table`);
-  await page.getByRole('button', { name: 'Колонки', exact: true }).click();
-  await page.getByLabel('Оценка', { exact: true }).check();
-  await page.keyboard.press('Escape');
   const cellOf = () =>
     page.locator(`[data-task="${f.taskKeys[0]}"] [role=gridcell][data-col="field:${fid}"]`);
   await cellOf().dblclick();

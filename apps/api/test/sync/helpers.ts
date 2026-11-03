@@ -1,5 +1,5 @@
 import { expect } from 'vitest';
-import { uuidv7 } from '@planar/shared';
+import { DATA_MODULE_IDS, uuidv7 } from '@planar/shared';
 import { type Db } from '../../src/db/index.js';
 import * as schema from '../../src/db/schema.js';
 import { PullService } from '../../src/sync/pull.service.js';
@@ -41,6 +41,14 @@ export const key = () =>
     .slice(-8)
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, 'Z')}`;
+/** A project row directly in the DB (statuses and labels belong to a project, PJ-1); no statuses. All data modules are on (PJ-3) unless `modules` says otherwise. */
+export async function mkProject(db: Db, spaceId: string, modules: string[] = [...DATA_MODULE_IDS]) {
+  const id = uuidv7();
+  await db
+    .insert(schema.projects)
+    .values({ id, spaceId, name: 'P', key: key(), rank: 'a0', modules });
+  return id;
+}
 export const doc = (text: string) => ({
   type: 'doc',
   content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
@@ -56,10 +64,26 @@ export class TestClient {
   ) {}
 
   async push(name: string, args: unknown) {
+    // PJ-1: a project needs its own statuses; tests that do not care get the 5 default ones
+    const a = args as Record<string, unknown>;
+    if (name === 'project.create' && !a.statusIds && !a.copyFrom)
+      args = { ...a, statusIds: Array.from({ length: 5 }, () => uuidv7()) };
+    if (name === 'project.create')
+      statusesOf.set(a.id as string, (args as never as { statusIds: string[] }).statusIds ?? []);
     const { results } = await this.svc.push.push(this.userId, {
       clientId: this.clientId,
       mutations: [{ id: ++this.n, name, args }],
     });
+    // PJ-3: data modules work per project; a project created in the tests has them all on (own client id: ids of this client are untouched)
+    if (name === 'project.create' && results[0]?.ok)
+      await this.svc.push.push(this.userId, {
+        clientId: uuidv7(),
+        mutations: DATA_MODULE_IDS.map((moduleId, i) => ({
+          id: i + 1,
+          name: 'project.setModule',
+          args: { projectId: a.id, moduleId, enabled: true },
+        })),
+      });
     return results[0];
   }
   /** push waiting for success */
@@ -106,12 +130,18 @@ export async function world(db: Db): Promise<World> {
     name: 'W',
     rank: 'a0',
     memberId: uuidv7(),
-    statusIds,
   });
   await admin.ok('member.add', { id: uuidv7(), spaceId, userId: m, role: 'member' });
   await admin.ok('member.add', { id: uuidv7(), spaceId, userId: g, role: 'guest' });
   const projectId = uuidv7();
-  await admin.ok('project.create', { id: projectId, spaceId, name: 'P', key: key(), rank: 'a0' });
+  await admin.ok('project.create', {
+    id: projectId,
+    spaceId,
+    name: 'P',
+    key: key(),
+    rank: 'a0',
+    statusIds,
+  });
   return {
     admin,
     member: new TestClient(s, m),
@@ -123,11 +153,30 @@ export async function world(db: Db): Promise<World> {
   };
 }
 
-export const taskArgs = (w: World, over: Record<string, unknown> = {}) => ({
-  id: uuidv7(),
-  projectId: w.projectId,
-  statusId: w.statusIds[1],
-  title: 'T',
-  rank: 'a0',
-  ...over,
-});
+/** project id -> ids of its 5 default statuses, for projects created through TestClient (PJ-1). */
+const statusesOf = new Map<string, string[]>();
+
+/** Makes a project created through TestClient the "main" one of the world: tests use w.projectId / w.statusIds. */
+export const useProject = (w: World, projectId: string) => {
+  w.projectId = projectId;
+  w.statusIds = statusesOf.get(projectId)!;
+};
+
+/** Default status of another project: the same position among the 5 default statuses as w.statusIds. */
+export const statusOf = (w: World, projectId: string, statusId: unknown) => {
+  const own = statusesOf.get(projectId);
+  const i = w.statusIds.indexOf(statusId as string);
+  return own && projectId !== w.projectId && i >= 0 ? own[i] : statusId;
+};
+
+export const taskArgs = (w: World, over: Record<string, unknown> = {}) => {
+  const a = {
+    id: uuidv7(),
+    projectId: w.projectId,
+    statusId: w.statusIds[1],
+    title: 'T',
+    rank: 'a0',
+    ...over,
+  };
+  return { ...a, statusId: statusOf(w, a.projectId as string, a.statusId) };
+};

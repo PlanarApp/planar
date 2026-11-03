@@ -23,7 +23,7 @@ const done = computed(
 
 async function add() {
   const s = title.value.trim();
-  const status = props.statuses[0];
+  const status = props.statuses.find((x) => x.projectId === props.task.projectId); // PJ-1
   if (!s || !status) return;
   title.value = '';
   await createTask({

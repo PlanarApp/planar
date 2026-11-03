@@ -103,7 +103,8 @@ export const docMutators: DocMutator[] = (() => {
   return [...sec[1].matchAll(/^\| `([\w.]+)` \| `([^`]*)` \|/gm)].map((r) => ({
     name: r[1],
     args: r[2]
-      .replace(/\{[^}]*\}/g, '')
+      .replace(/\{[^{}]*\}/g, '') // nested objects (`copyFrom?: {…, statuses: {id, fromId}[]}`): inside out
+      .replace(/\{[^{}]*\}/g, '')
       .split(',')
       .map((t) => t.trim())
       .filter(Boolean)

@@ -12,7 +12,9 @@ type Wire = Record<string, unknown>;
 const canSee = (channelId: SQL | string, userId: string) => sql`
   select 1 from chat_channels c where c.id = ${channelId} and (
     (c.space_id is not null and exists (
-      select 1 from space_members m where m.space_id = c.space_id and m.user_id = ${userId}))
+      select 1 from space_members m where m.space_id = c.space_id and m.user_id = ${userId})
+      -- PJ-11: a channel of a project hidden from the user (rule — SQL function project_role, migration 0034)
+      and (c.project_id is null or project_role(${userId}::uuid, c.project_id) is not null))
     or (c.space_id is null and exists (
       select 1 from chat_members m where m.channel_id = c.id and m.user_id = ${userId})))`;
 
@@ -121,7 +123,12 @@ type Msg = {
   editedAt: string | null;
   deletedAt: string | null;
 };
-type Chan = { id: string; spaceId: string | null; kind: 'channel' | 'dm' };
+type Chan = {
+  id: string;
+  spaceId: string | null;
+  projectId: string | null;
+  kind: 'channel' | 'dm';
+};
 
 /** Text of body nodes (mention — @label), paragraphs separated by a space. */
 function plain(n: unknown): string {
@@ -156,6 +163,14 @@ async function notify(
         : await sys.scan<{ userId: string }>('chatMembers', { index: 'channelId', eq: ch.id })
       ).map((r) => r.userId),
     );
+    // PJ-11: those without access to the channel's project are not notified (the text would leak)
+    if (ch.projectId)
+      for (const u of [...seeing]) {
+        const r = await api.q.execute(
+          sql`select project_role(${u}::uuid, ${ch.projectId}::uuid) as r`,
+        );
+        if (!r.rows[0]?.r) seeing.delete(u);
+      }
     const muted = new Set(
       (
         await sys.scan<{ userId: string; muted: boolean }>('chatReads', {

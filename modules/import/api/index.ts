@@ -121,7 +121,8 @@ class ImportController {
     // a space member with a role no lower than member may write to a project; someone else's project — as a nonexistent one
     const ok = await this.core.db.execute(sql`
       select 1 from projects p join space_members m on m.space_id = p.space_id
-      where p.id = ${projectId} and m.user_id = ${userId} and m.role in ('admin', 'member')`);
+      where p.id = ${projectId} and m.user_id = ${userId} and m.role in ('admin', 'member')
+        and project_role(${userId}::uuid, p.id) in ('admin', 'member')`);
     if (!ok.rows.length) throw new HttpError(404, 'not_found', 'Проект не найден');
     const p = parseOrThrow(file, format, mapping, preset);
     const [row] = await this.core.db
@@ -205,7 +206,7 @@ async function runImport(jobId: string, api: JobApi) {
     if (!project) throw new Error('Проект не найден');
     const spaceId = project.space_id;
     const statuses = await q<{ id: string; category: string }>(
-      sql`select id, category from statuses where space_id = ${spaceId} order by rank`,
+      sql`select id, category from statuses where project_id = ${job!.projectId} order by rank`,
     );
     const defaultStatus = (
       statuses.find((s) => s.category === 'todo') ?? statuses.find((s) => s.category === 'backlog')
@@ -229,7 +230,7 @@ async function runImport(jobId: string, api: JobApi) {
     // labels by name, case-insensitive; missing ones are created in one call
     const labels = new Map<string, string>();
     for (const l of await q<{ id: string; name: string }>(
-      sql`select id, name from labels where space_id = ${spaceId}`,
+      sql`select id, name from labels where project_id = ${job!.projectId}`,
     ))
       labels.set(l.name.toLowerCase(), l.id);
     const make: Mut[] = [];
@@ -239,7 +240,10 @@ async function runImport(jobId: string, api: JobApi) {
         if (labels.has(n.toLowerCase())) continue;
         const id = uuidv7();
         labels.set(n.toLowerCase(), id);
-        make.push({ name: 'label.create', args: { id, spaceId, name: n, color: LABEL_COLOR } });
+        make.push({
+          name: 'label.create',
+          args: { id, projectId: job!.projectId, name: n, color: LABEL_COLOR },
+        });
       }
     }
     for (let i = 0; i < make.length; i += BATCH)

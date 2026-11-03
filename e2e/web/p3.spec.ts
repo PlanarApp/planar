@@ -56,7 +56,7 @@ test('p3: таймлайн — перетаскивание из «Без дат
     `/p/${f.projectId}/timeline:timeline`,
     page.locator(`[data-tl-task="${f.taskKeys[1]}"]`),
   );
-  await page.getByTestId('tl-panel-toggle').click();
+  // desktop: the "No dates" panel is a permanent column (the toggle exists only on mobile)
   await page
     .getByTestId('plan-task')
     .filter({ hasText: b })

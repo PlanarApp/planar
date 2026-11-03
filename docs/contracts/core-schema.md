@@ -3,13 +3,13 @@ type: reference
 status: closed
 module: core
 updated: 2026-11-02
-summary: Entities of C-schema v14 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
+summary: Entities of C-schema v17 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
 related: ["docs/contracts/core.md"]
 ---
 
-# Entities of C-schema v14
+# Entities of C-schema v17
 
-Part of the contract `C-schema v14` from `docs/contracts/core.md`. The section is read by the contract test (`packages/shared/test/contract-doc.ts` → `docEntities`); the version is in the heading `## C-schema vN` in core.md.
+Part of the contract `C-schema v17` from `docs/contracts/core.md`. The section is read by the contract test (`packages/shared/test/contract-doc.ts` → `docEntities`); the version is in the heading `## C-schema vN` in core.md.
 
 ## Entities
 
@@ -72,18 +72,36 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId
 | `leadId` | uuid? | |
 | `rank` | rank | |
 | `archivedAt` | ts? | |
+| `modules` | text[] | v16: ids of data modules enabled for the project; default `[]`; replica rows before v16 have no such field (treated as `[]`) |
+| `membersMode` | enum(inherit,custom) | v17: `inherit` — roles from `spaceMembers`; `custom` — from `projectMembers`; default `inherit`; replica rows before v17 have no such field (treated as `inherit`) |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
 DB only: `task_counter integer not null default 0`.
 
+#### projectMembers
+scope: space · write: server · bootstrap: yes · indexes: projectId, userId
+
+| field | type | note |
+|---|---|---|
+| `id` | uuid | unique (projectId, userId) |
+| `spaceId` | uuid | denormalized, immutable |
+| `projectId` | uuid | |
+| `userId` | uuid | a member of the space |
+| `role` | enum(admin,member,guest) | a space guest — only `guest` |
+| `createdAt` | ts | |
+| `updatedAt` | ts | |
+
+v17: rows exist only while `projects.membersMode = 'custom'`; written by the mutators `project.setMembersMode`, `projectMember.*` (rights — admin of the space / instance admin, checked by the server tx); visible only to the effective members of the project and to space admins (docs/contracts/projects.md §PJ-11).
+
 #### statuses
-scope: space · write: admin · bootstrap: yes · indexes: spaceId
+scope: space · write: admin · bootstrap: yes · indexes: spaceId, projectId
 
 | field | type | note |
 |---|---|---|
 | `id` | uuid | |
-| `spaceId` | uuid | |
+| `spaceId` | uuid | denormalized from the project, immutable |
+| `projectId` | uuid | the owning project (v15), immutable |
 | `name` | text | |
 | `category` | enum(backlog,todo,in_progress,done,cancelled) | |
 | `color` | text | |
@@ -140,12 +158,13 @@ scope: space · write: guest · bootstrap: yes · indexes: taskId, userId
 | `createdAt` | ts | |
 
 #### labels
-scope: space · write: member · bootstrap: yes · indexes: spaceId
+scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId
 
 | field | type | note |
 |---|---|---|
 | `id` | uuid | |
-| `spaceId` | uuid | |
+| `spaceId` | uuid | denormalized from the project, immutable |
+| `projectId` | uuid | the owning project (v15), immutable |
 | `name` | text | |
 | `color` | text | |
 | `createdAt` | ts | |
@@ -311,7 +330,7 @@ scope: space|user · write: member|self · bootstrap: yes · indexes: spaceId
 | `name` | text | |
 | `icon` | text? | icon name from the web set (view tab); null — the default icon |
 | `layout` | text | `list`, `board` or a module view id |
-| `node` | text? | not null — the owner's saved view of the built-in tab `layout` in a node (`w`, `s:<spaceId>`, `p:<projectId>`, suffix `:me-<mode>` — "My work"); not shown among named views; null — a named view |
+| `node` | text? | not null — a saved view of the built-in tab `layout` in a node: with `userId` — the owner's personal one, with `userId` null — the shared default of the node (at most one per node+layout, PJ-4); the node (`w`, `s:<spaceId>`, `p:<projectId>`, suffix `:me-<mode>` — "My work"); not shown among named views; null — a named view |
 | `filter` | obj | |
 | `config` | obj | grouping, sorting, columns |
 | `rank` | rank | |

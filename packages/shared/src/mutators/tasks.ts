@@ -46,6 +46,39 @@ export async function deleteTask(tx: Tx, id: string) {
   await tx.del('tasks', id);
 }
 
+/** Status of the new project for a moved task: same name, else same category (lowest rank), else the first by rank. */
+async function remapStatus(tx: Tx, oldId: string, projectId: string) {
+  const old = await need(tx, 'statuses', oldId);
+  const list = (await tx.scan('statuses', { index: 'projectId', eq: projectId })).sort((x, y) =>
+    x.rank < y.rank ? -1 : x.rank > y.rank ? 1 : 0,
+  );
+  const hit =
+    list.find((s) => s.name.toLowerCase() === old.name.toLowerCase()) ??
+    list.find((s) => s.category === old.category) ??
+    list[0];
+  if (!hit) throw bad('в проекте нет статусов');
+  return hit;
+}
+
+/** Labels of a moved task: by name (case-insensitive) in the new project; no counterpart (or a duplicate) — the link is dropped. */
+async function remapLabels(tx: Tx, taskId: string, projectId: string) {
+  const byName = new Map(
+    (await tx.scan('labels', { index: 'projectId', eq: projectId })).map((l) => [
+      l.name.toLowerCase(),
+      l.id,
+    ]),
+  );
+  const used = new Set<string>();
+  for (const x of await tx.scan('taskLabels', { index: 'taskId', eq: taskId })) {
+    const old = await tx.get('labels', x.labelId);
+    const to = old && old.projectId !== projectId ? byName.get(old.name.toLowerCase()) : x.labelId;
+    if (to && !used.has(to)) {
+      used.add(to);
+      if (to !== x.labelId) await tx.patch('taskLabels', x.id, { labelId: to });
+    } else await tx.del('taskLabels', x.id);
+  }
+}
+
 const link = (tx: Tx, entity: 'taskAssignees' | 'taskWatchers', taskId: string) =>
   tx.scan(entity, { index: 'taskId', eq: taskId });
 
@@ -70,11 +103,11 @@ export const taskMutators = [
       const project = await need(tx, 'projects', a.projectId);
       const spaceId = project.spaceId;
       const status = await need(tx, 'statuses', a.statusId);
-      if (status.spaceId !== spaceId) throw bad('statusId другого пространства');
+      if (status.projectId !== a.projectId) throw bad('statusId другого проекта');
       if (a.parentId) await checkParent(tx, a.id, spaceId, a.parentId);
       for (const l of a.labels ?? []) {
-        if ((await need(tx, 'labels', l.labelId)).spaceId !== spaceId)
-          throw bad('labelId другого пространства');
+        if ((await need(tx, 'labels', l.labelId)).projectId !== a.projectId)
+          throw bad('labelId другого проекта');
       }
       await tx.put('tasks', {
         id: a.id,
@@ -120,20 +153,25 @@ export const taskMutators = [
     async run(tx, a, ctx) {
       const t = await need(tx, 'tasks', a.id);
       const patch = changes('tasks', a, ctx);
-      if (a.statusId) {
-        const st = await need(tx, 'statuses', a.statusId);
-        if (st.spaceId !== t.spaceId) throw bad('statusId другого пространства');
-        patch.completedAt = completedAt(st.category, t.completedAt, ctx);
-      }
+      const moved = !!a.projectId && a.projectId !== t.projectId;
       if (a.projectId) {
         const p = await need(tx, 'projects', a.projectId);
         if (p.spaceId !== t.spaceId) throw bad('projectId другого пространства');
-        if (a.projectId !== t.projectId) {
+        if (moved) {
           patch.number = null;
           patch.cycleId = null;
           if (!a.fields) patch.fields = {};
         }
       }
+      const projectId = a.projectId ?? t.projectId;
+      let st = a.statusId ? await need(tx, 'statuses', a.statusId) : undefined;
+      if (st && st.projectId !== projectId) throw bad('statusId другого проекта');
+      if (moved) {
+        st ??= await remapStatus(tx, t.statusId, projectId);
+        patch.statusId = st.id;
+        await remapLabels(tx, t.id, projectId);
+      }
+      if (st) patch.completedAt = completedAt(st.category, t.completedAt, ctx);
       if (a.fields) await checkFields(tx, a.projectId ?? t.projectId, a.fields);
       if (a.parentId) await checkParent(tx, t.id, t.spaceId, a.parentId);
       await tx.patch('tasks', a.id, patch);
@@ -195,7 +233,7 @@ export const taskMutators = [
     async run(tx, a, ctx) {
       const t = await need(tx, 'tasks', a.taskId);
       const l = await need(tx, 'labels', a.labelId);
-      if (l.spaceId !== t.spaceId) throw bad('labelId другого пространства');
+      if (l.projectId !== t.projectId) throw bad('labelId другого проекта');
       const have = await tx.scan('taskLabels', { index: 'taskId', eq: t.id });
       if (have.some((x) => x.labelId === l.id)) return;
       await tx.put('taskLabels', { ...a, spaceId: t.spaceId, createdAt: ctx.now });

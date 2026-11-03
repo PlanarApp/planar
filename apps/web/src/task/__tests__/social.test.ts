@@ -53,6 +53,18 @@ describe('task:comments', () => {
     expect((await comments())[0].mentions).toEqual([ids.ann]);
     expect((await comments())[0].authorId).toBe(ids.ann);
   });
+  it('PJ-13: @@ в поле комментария открывает выбор ссылки', async () => {
+    w = await open();
+    const view = composer().vm.editor!.view;
+    for (const ch of '@@') {
+      const { from, to } = view.state.selection;
+      const done = view.someProp('handleTextInput', (f) =>
+        f(view, from, to, ch, () => view.state.tr.insertText(ch, from, to)),
+      );
+      if (!done) view.dispatch(view.state.tr.insertText(ch, from, to));
+    }
+    await until(() => w.find('[data-testid="ref-picker"]').exists());
+  });
   it('правка своего комментария ставит editedAt', async () => {
     await db.table('comments').put(comment());
     w = await open();

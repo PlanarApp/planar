@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onBeforeUnmount, ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 import { Mic, Paperclip, Send, Smile, X } from 'lucide-vue-next';
 import {
   ApiError,
   Button,
   Editor,
+  EmojiPicker,
   IconButton,
   Popover,
   mutate,
@@ -15,8 +16,6 @@ import {
 } from '@planar/web/modules';
 import { plain } from './model';
 import { useTexts } from './text';
-
-const EmojiPicker = defineAsyncComponent(() => import('./EmojiPicker.vue'));
 
 const props = defineProps<{
   channelId: string;

@@ -5,7 +5,7 @@ module: core
 updated: 2026-11-02
 summary: Core contracts — C-schema, C-sync, C-mutators, C-modules, C-http; versions are in the headings, examples are checked by the contract test
 related: ["docs/plan/core.md", "docs/roadmap.md", "docs/contracts/core-schema.md"]
-contracts: [{"id": "C-schema", "version": 6}, {"id": "C-sync", "version": 1}, {"id": "C-mutators", "version": 3}, {"id": "C-modules", "version": 2}, {"id": "C-http", "version": 8}]
+contracts: [{"id": "C-schema", "version": 17}, {"id": "C-sync", "version": 2}, {"id": "C-mutators", "version": 14}, {"id": "C-modules", "version": 12}, {"id": "C-http", "version": 12}]
 ---
 
 # Contracts of the core module
@@ -21,7 +21,13 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v14
+## C-schema v17
+
+v17 (projects, PJ-11): `projects.membersMode` (`inherit|custom`, default `inherit`) and the entity `projectMembers` — core-schema.md, docs/contracts/projects.md §PJ-11.
+
+v16 (projects, PJ-3): `projects.modules` (text[], required, default `[]`: ids of data modules enabled for the project) — core-schema.md, docs/contracts/projects.md §PJ-3.
+
+v15 (projects, PJ-1): `statuses.projectId`, `labels.projectId` (uuid, required, immutable; statuses and labels belong to a project, `spaceId` stays denormalized) — core-schema.md, docs/contracts/projects.md.
 
 v14: `savedViews.node` (text?, a node's saved view of a built-in tab: `w`, `s:<spaceId>`, `p:<projectId>`, with the suffix `:me-<mode>` for "My work"; null — a named view; replica rows before v14 have no such field) — core-schema.md.
 
@@ -77,7 +83,7 @@ The suffix `?` means `.nullable()` (the key is present, the value may be `null`)
 
 ### Entities
 
-Entities — docs/contracts/core-schema.md (part of C-schema v14).
+Entities — docs/contracts/core-schema.md (part of C-schema v17).
 
 ### Non-synced tables (server only)
 | table | columns |
@@ -86,7 +92,7 @@ Entities — docs/contracts/core-schema.md (part of C-schema v14).
 | `files` | `sha256 text pk`, `size bigint`, `mime text`, `width int?`, `height int?`, `created_by uuid`, `created_at` |
 | `push_subscriptions` | `id uuid pk`, `user_id uuid`, `endpoint text unique`, `p256dh text`, `auth text`, `user_agent text?`, `created_at` |
 | `client_mutations` | `client_id uuid pk`, `user_id uuid`, `last_mutation_id bigint not null`, `updated_at` |
-| `changes` | `seq bigserial pk`, `space_id uuid?`, `user_id uuid?`, `entity text`, `id text`, `op text check (put,del)`, `data jsonb?`, `created_at`; indexes `(space_id, seq)`, `(user_id, seq)` |
+| `changes` | `seq bigserial pk`, `space_id uuid?`, `user_id uuid?`, `project_id uuid?`, `entity text`, `id text`, `op text check (put,del)`, `data jsonb?`, `created_at`; indexes `(space_id, seq)`, `(user_id, seq)` |
 | `file_uploads` | `sha256 text`, `user_id uuid`, `created_at`; primary key (sha256, user_id) — who uploaded the file (duplicate content is a single row in files) |
 | `login_attempts` | `key text pk` (ip and login joined by "\|"), `attempts int`, `window_started_at timestamptz` — a 1-minute window for the login limit |
 | `api_tokens` | `id uuid pk`, `user_id uuid`, `name text`, `token_sha256 text unique`, `prefix text`, `scope text check (read,write)`, `expires_at?`, `last_used_at?`, `revoked_at?`, `created_at` |
@@ -105,6 +111,7 @@ Transport — JSON over HTTP, authorization — session (C-http) or Bearer. Requ
 - Visibility columns by `scope`: `space` → `space_id = row.spaceId` (for `spaces` — `row.id`), `user_id = null`; `user` → `space_id = null`, `user_id = row.userId`; `global` → both null.
 - **Ordering.** A transaction that writes to `changes` takes `pg_advisory_xact_lock(7311)` with its first write; this way the order of `seq` matches the commit order and pull does not skip rows. v2: the server `Tx` of a mutation takes it before the first `get`/`scan` (mutations are serialized: read-then-write — `docs.lock`, the chat `lastSeq` — are race-free).
 - In the same transaction — `SELECT pg_notify('planar_changes', '<max seq>')`: the number only.
+- **Project rows (PJ-11).** `changes.project_id` — the project a row belongs to (its `projectId`, the project of its task, `projects.id` for the project itself; null — none). Pull skips rows whose project is hidden from the user (`projects.membersMode = 'custom'` and no `projectMembers` row; space admins and instance admins excepted). A change of `projectMembers` or of `membersMode` → `_reset` (as below) for every affected user.
 - **Reset.** Adding or removing a space member → a row `entity = '_reset'`, `op = 'put'`, `id = <userId>`, `user_id = <userId>`. A change of `settings.enabled_modules` → `_reset` with both columns null (for everyone).
 
 ### `GET /sync/bootstrap?clientId=<uuid>`
@@ -190,7 +197,15 @@ Authorization — the session cookie at upgrade (plus an Origin check, C-http); 
 ### Client (for web)
 Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from the queue the mutations with `id ≤ lastMutationId` and re-applies the rest on top of the server state (rebase). Push is retried on a network error and `5xx` with a growing pause of 1–30 s; `401` — redirect to sign-in.
 
-## C-mutators v10
+## C-mutators v14
+
+v14 (projects, PJ-11): `project.setMembersMode`, `projectMember.add|setRole|remove`; `member.remove` also deletes the user's `projectMembers` — core-mutators.md, docs/contracts/projects.md §PJ-11.
+
+v13 (projects): `project.create` += optional `modules` (PJ-14) — docs/contracts/projects.md.
+
+v12 (projects): `project.setModule` (PJ-3); `view.setNodeDefault` and the rules of node views (PJ-4) — docs/contracts/projects.md.
+
+v11 (projects, PJ-1): `status.*`, `label.*`, `project.create`, `space.create`, `task.create/update` work by project; new `project.copyDictionaries` — docs/contracts/projects.md.
 
 v10: `view.create` += `node?` (a node's saved view, always personal) — core-mutators.md.
 

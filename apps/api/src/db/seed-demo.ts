@@ -24,7 +24,7 @@ import {
 import { recurringRules } from '@planar/module-recurring/api/schema';
 import { sprintsCycles, sprintsSettings } from '@planar/module-sprints/api/schema';
 import { timeEntries, timeEstimates } from '@planar/module-time/api/schema';
-import { extractMentions, textToDoc } from '@planar/shared';
+import { DATA_MODULE_IDS, extractMentions, textToDoc } from '@planar/shared';
 import { createDb, migrate, type Db } from './index.js';
 import { filePath } from '../files/store.js';
 import * as s from './schema.js';
@@ -534,36 +534,9 @@ async function insertAll(tx: Tx, now: Date) {
     ),
   );
   const stRanks = generateNKeysBetween(null, null, STATUSES.length);
-  const statusId = (si: number, k: number) => uid(`status:${si}:${k}`);
-  await ins(
-    s.statuses,
-    spaceIds.flatMap((sid, si) =>
-      STATUSES.map(([name, category, color], k) => ({
-        id: statusId(si, k),
-        spaceId: sid,
-        name,
-        category,
-        color,
-        rank: stRanks[k],
-        createdAt: at(-90),
-        updatedAt: at(-90),
-      })),
-    ),
-  );
-  const labelId = (si: number, name: string) => uid(`label:${si}:${name}`);
-  await ins(
-    s.labels,
-    spaceIds.flatMap((sid, si) =>
-      LABELS.map(([name, color]) => ({
-        id: labelId(si, name),
-        spaceId: sid,
-        name,
-        color,
-        createdAt: at(-90),
-        updatedAt: at(-90),
-      })),
-    ),
-  );
+  // statuses and labels belong to a project (PJ-1)
+  const statusId = (key: string, k: number) => uid(`status:${key}:${k}`);
+  const labelId = (key: string, name: string) => uid(`label:${key}:${name}`);
 
   // projects and tasks
   const prRanks = generateNKeysBetween(null, null, PROJECTS.length);
@@ -578,10 +551,41 @@ async function insertAll(tx: Tx, now: Date) {
       rank: prRanks[i],
       leadId: uid_[p.space === 1 ? 'liam' : 'maya'],
       taskCounter: p.tasks.length,
+      modules: [...DATA_MODULE_IDS], // demo data of the modules is visible
       color: SPACES[p.space]![2],
       createdAt: at(-80),
       updatedAt: at(-80),
     })),
+  );
+  await ins(
+    s.statuses,
+    PROJECTS.flatMap((p) =>
+      STATUSES.map(([name, category, color], k) => ({
+        id: statusId(p.key, k),
+        spaceId: spaceIds[p.space],
+        projectId: pid(p.key),
+        name,
+        category,
+        color,
+        rank: stRanks[k],
+        createdAt: at(-80),
+        updatedAt: at(-80),
+      })),
+    ),
+  );
+  await ins(
+    s.labels,
+    PROJECTS.flatMap((p) =>
+      LABELS.map(([name, color]) => ({
+        id: labelId(p.key, name),
+        spaceId: spaceIds[p.space],
+        projectId: pid(p.key),
+        name,
+        color,
+        createdAt: at(-80),
+        updatedAt: at(-80),
+      })),
+    ),
   );
   const tid = (key: string, i: number) => uid(`task:${key}:${i}`);
   const cycleOf = (key: string, t: T) =>
@@ -609,7 +613,7 @@ async function insertAll(tx: Tx, now: Date) {
         projectId: pid(p.key),
         number: i + 1,
         parentId: parent !== undefined ? tid(p.key, parent) : null,
-        statusId: statusId(p.space, st),
+        statusId: statusId(p.key, st),
         title,
         description: {
           type: 'doc',
@@ -647,7 +651,7 @@ async function insertAll(tx: Tx, now: Date) {
         id: uid(`tlabel:${id}`),
         spaceId: spaceIds[p.space],
         taskId: id,
-        labelId: labelId(p.space, lbls),
+        labelId: labelId(p.key, lbls),
         createdAt: at(created),
       });
       activity.push({

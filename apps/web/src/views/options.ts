@@ -37,15 +37,21 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
 };
 
-/** Options from the saved `config`: known fields over the defaults. */
-export const optionsFrom = (config: Record<string, unknown> | undefined): ViewOptions => {
+/** Options from the saved `config`: known fields over the defaults. Not a project (space, folder, "My work") — "Project" is on by default. */
+export const optionsFrom = (
+  config: Record<string, unknown> | undefined,
+  notProject = false,
+): ViewOptions => {
+  const defaults: ViewOptions = notProject
+    ? { ...DEFAULT_OPTIONS, fields: [...DEFAULT_OPTIONS.fields, 'project'] }
+    : DEFAULT_OPTIONS;
   const o = {
-    ...DEFAULT_OPTIONS,
+    ...defaults,
     ...Object.fromEntries(Object.entries(config ?? {}).filter(([k]) => k in DEFAULT_OPTIONS)),
   };
   const fields = Array.isArray(o.fields)
     ? o.fields.filter((f): f is TaskField => TASK_FIELDS.includes(f as TaskField))
-    : DEFAULT_OPTIONS.fields;
+    : defaults.fields;
   const columns = parseColumns(config?.columns);
   return { ...o, fields: [...fields], ...(columns && { columns }) };
 };

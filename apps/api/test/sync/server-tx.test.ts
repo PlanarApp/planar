@@ -5,7 +5,7 @@ import pg from 'pg';
 import { MutatorError, uuidv7, type Row } from '@planar/shared';
 import * as schema from '../../src/db/schema.js';
 import { ServerTx } from '../../src/sync/server-tx.js';
-import { dbUrl, NOW, key, mkSpace, mkUser, newDb } from './helpers.js';
+import { dbUrl, NOW, key, mkProject, mkSpace, mkUser, newDb } from './helpers.js';
 
 const db = newDb();
 afterAll(() => db.$client.end());
@@ -34,9 +34,11 @@ const code = async (p: Promise<unknown>) => {
   return 'ok';
 };
 
-const label = (spaceId: string): Row<'labels'> => ({
+/** A label of a fresh project of the space (statuses and labels belong to a project, PJ-1). */
+const label = async (spaceId: string): Promise<Row<'labels'>> => ({
   id: uuidv7(),
   spaceId,
+  projectId: await mkProject(db, spaceId),
   name: 'l',
   color: '#000',
   createdAt: NOW,
@@ -96,6 +98,7 @@ describe('ServerTx: права', () => {
     const st: Row<'statuses'> = {
       id: uuidv7(),
       spaceId,
+      projectId: await mkProject(db, spaceId),
       name: 's',
       category: 'todo',
       color: '#000',
@@ -112,7 +115,7 @@ describe('ServerTx: права', () => {
     const { user, spaceId } = await setup('guest');
     await inTx(async (q) => {
       const tx = new ServerTx(q, { userId: user });
-      expect(await code(tx.put('labels', label(spaceId)))).toBe('forbidden');
+      expect(await code(tx.put('labels', await label(spaceId)))).toBe('forbidden');
     });
   });
 
@@ -123,7 +126,7 @@ describe('ServerTx: права', () => {
     const b = await mkSpace(db, owner, {});
     await inTx(async (q) => {
       const sys = ServerTx.asSystem(q, { userId: owner });
-      const l = label(b);
+      const l = await label(b);
       await sys.put('labels', l);
       const tx = new ServerTx(q, { userId: user });
       // user is a member only in a: moving a row from b to a is forbidden (the old row is in b)
@@ -136,7 +139,7 @@ describe('ServerTx: права', () => {
     const { user, spaceId } = await setup('admin');
     await inTx(async (q) => {
       const tx = new ServerTx(q, { userId: user });
-      const l = label(spaceId);
+      const l = await label(spaceId);
       await tx.put('labels', l);
       expect(await code(tx.patch('labels', l.id, { spaceId: uuidv7() }))).toBe('invalid_args');
     });
@@ -250,10 +253,21 @@ describe('ServerTx: права', () => {
         updatedAt: NOW,
       };
       expect(await code(tx.put('spaceMembers', m))).toBe('ok');
-      expect(await code(tx.put('labels', label(s.id)))).toBe('ok');
+      const p = project(s.id); // the space exists only in this transaction: its project too
+      expect(await code(tx.put('projects', p))).toBe('ok');
+      const l: Row<'labels'> = {
+        id: uuidv7(),
+        spaceId: s.id,
+        projectId: p.id,
+        name: 'l',
+        color: '#000',
+        createdAt: NOW,
+        updatedAt: NOW,
+      };
+      expect(await code(tx.put('labels', l))).toBe('ok');
       // a foreign existing space cannot be created with the same tx
       const foreign = await mkSpace(db, member, {});
-      expect(await code(tx.put('labels', label(foreign)))).toBe('forbidden');
+      expect(await code(tx.put('labels', await label(foreign)))).toBe('forbidden');
     });
   });
 
@@ -261,7 +275,7 @@ describe('ServerTx: права', () => {
     const { user, spaceId } = await setup('admin');
     await inTx(async (q) => {
       const tx = new ServerTx(q, { userId: user });
-      const l = label(spaceId);
+      const l = await label(spaceId);
       await tx.put('labels', l);
       const [m] = await tx.scan('spaceMembers', { index: 'userId', eq: user });
       await tx.del('spaceMembers', m.id);
@@ -284,9 +298,9 @@ describe('ServerTx: права', () => {
         createdAt: NOW,
         updatedAt: NOW,
       };
-      await sys.put('statuses', st);
       const p = project(spaceId);
       await sys.put('projects', p);
+      await sys.put('statuses', { ...st, projectId: p.id });
       const t: Row<'tasks'> = {
         id: uuidv7(),
         spaceId,
@@ -375,7 +389,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
     const spaceId = await mkSpace(db, owner, { [owner]: 'admin' });
     await inTx(async (q) => {
       const tx = ServerTx.asSystem(q, { userId: owner });
-      const l = label(spaceId);
+      const l = await label(spaceId);
       await tx.put('labels', l);
       await tx.del('labels', l.id);
       const rows = await chg(q, l.id);
@@ -429,9 +443,13 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
       };
       await tx.put('spaceMembers', m);
       await tx.put('spaceMembers', { ...m, role: 'guest' });
-      expect((await chg(q, other)).map((r) => [r.entity, r.userId])).toEqual([['_reset', other]]);
+      // adding and a role change (PJ-11: access to custom projects) each write a _reset
+      expect((await chg(q, other)).map((r) => [r.entity, r.userId])).toEqual([
+        ['_reset', other],
+        ['_reset', other],
+      ]);
       await tx.del('spaceMembers', m.id);
-      expect(await chg(q, other)).toHaveLength(2);
+      expect(await chg(q, other)).toHaveLength(3);
     });
   });
 
@@ -445,7 +463,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
           sql`select count(*)::int n from pg_locks where locktype='advisory' and objid=7311 and pid=pg_backend_pid()`,
         );
       expect((await locks()).rows[0].n).toBe(0);
-      await tx.put('labels', label(spaceId));
+      await tx.put('labels', await label(spaceId));
       expect((await locks()).rows[0].n).toBe(1);
     });
   });
@@ -465,10 +483,10 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         createdAt: NOW,
         updatedAt: NOW,
       };
-      await tx.put('statuses', st);
       const [p1, p2] = [project(spaceId), project(spaceId)];
       await tx.put('projects', p1);
       await tx.put('projects', p2);
+      await tx.put('statuses', { ...st, projectId: p1.id });
       const t = (projectId: string, number: number | null): Row<'tasks'> => ({
         id: uuidv7(),
         spaceId,
@@ -514,9 +532,9 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         createdAt: NOW,
         updatedAt: NOW,
       };
-      await tx.put('statuses', st);
       const p = project(spaceId);
       await tx.put('projects', p);
+      await tx.put('statuses', { ...st, projectId: p.id });
       const t: Row<'tasks'> = {
         id: uuidv7(),
         spaceId,
@@ -568,9 +586,9 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         createdAt: NOW,
         updatedAt: NOW,
       };
-      await tx.put('statuses', st);
       const p = project(spaceId);
       await tx.put('projects', p);
+      await tx.put('statuses', { ...st, projectId: p.id });
       const t: Row<'tasks'> = {
         id: uuidv7(),
         spaceId,
@@ -592,7 +610,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
         updatedAt: NOW,
       };
       await tx.put('tasks', t);
-      const l = label(spaceId);
+      const l = await label(spaceId);
       await tx.put('labels', l);
       const as: Row<'taskAssignees'> = {
         id: uuidv7(),
@@ -654,7 +672,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
     });
     await inTx(async (q) => {
       const tx = ServerTx.asSystem(q, { userId: owner });
-      const bad = { ...label(spaceId), spaceId: uuidv7() };
+      const bad = { ...(await label(spaceId)), spaceId: uuidv7() };
       expect(await code(tx.put('labels', bad))).toBe('invalid_args');
     });
   });
@@ -669,7 +687,7 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
     listener.on('notification', (m) => got.push(m.payload!));
     const seq = await db.transaction(async (tx) => {
       const stx = ServerTx.asSystem(tx, { userId: owner });
-      await stx.put('labels', label(spaceId));
+      await stx.put('labels', await label(spaceId));
       await stx.finish();
       const [r] = (await tx.execute(sql`select max(seq)::int s from changes`)).rows;
       return r.s as number;

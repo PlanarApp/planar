@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Page } from '@playwright/test';
 import { BASE, Client, ranks, uuidv7 } from '../lib.js';
-import { MODULES as COLLAB_MODULES, sendMsg, textDoc } from './collab-helpers.js';
+import { MODULES as COLLAB_MODULES, addModules, sendMsg, textDoc } from './collab-helpers.js';
+import { enableInProject } from './helpers.js';
 
 /** «Now» in the browser: fixed, so that relative and absolute dates do not drift by days. */
 export const NOW = '2026-03-10T10:10:00.000Z';
@@ -39,6 +40,15 @@ const SPACE_NAME = 'Дизайн-ревью';
 
 /** A fresh stack is needed (./dev.sh reset && ./dev.sh seed): key DSG is unique; a repeat on the same stack takes data from the cache.
  * Server timestamps (ctx.now) cannot be set — we shift them to BASE_TS in the sync responses (see shiftTime). */
+/** Own users (display names Alice/Bob): the seed alice/bob are shared with other specs and see their spaces and notifications. */
+async function visUser(admin: Client, login: string, name: string): Promise<Client> {
+  const r = await admin.ctx.post('/api/users', {
+    data: { login, name, password: login, role: 'member' },
+  });
+  if (!r.ok() && r.status() !== 409) throw new Error(`create ${login}: ${r.status()}`);
+  return Client.login(login);
+}
+
 export async function buildData(): Promise<Data> {
   const admin = await Client.login('admin');
   // Playwright restarts the worker after a test fails — we take data from the cache, if the space still exists
@@ -46,19 +56,17 @@ export async function buildData(): Promise<Data> {
   try {
     const c = JSON.parse(readFileSync(cache, 'utf8')) as Data & { spaceId: string };
     if ((await admin.bootstrap()).data.spaces?.some((s) => s.id === c.spaceId))
-      return { ...c, alice: await Client.login('alice') };
+      return { ...c, alice: await visUser(admin, 'visual-alice', 'Alice') };
   } catch {
     /* no cache — create it */
   }
 
-  const [alice, bob] = await Promise.all([Client.login('alice'), Client.login('bob')]);
+  // sequentially: parallel POST /api/users gave 500
+  const alice = await visUser(admin, 'visual-alice', 'Alice');
+  const bob = await visUser(admin, 'visual-bob', 'Bob');
   const offset = Date.now() - BASE_TS;
   const real = (iso: string) => new Date(Date.parse(iso) + offset).toISOString();
-  const b0 = (await admin.bootstrap()).data;
-  const cur = (b0.settings?.find((s) => s.id === 'enabled_modules')?.value as string[]) ?? [];
-  const mods = [...new Set([...cur, ...COLLAB_MODULES, 'time'])];
-  if (mods.length !== cur.length)
-    await admin.pushOk([admin.mut('settings.set', { id: 'enabled_modules', value: mods })]);
+  await addModules(admin, [...COLLAB_MODULES, 'time']);
 
   const spaceId = uuidv7();
   const projectId = uuidv7();
@@ -74,14 +82,6 @@ export async function buildData(): Promise<Data> {
       name: SPACE_NAME,
       rank: rs,
       memberId: uuidv7(),
-      statusIds,
-      statusNames: {
-        backlog: 'Бэклог',
-        todo: 'К работе',
-        in_progress: 'В работе',
-        done: 'Готово',
-        cancelled: 'Отменено',
-      },
     }),
     admin.mut('member.add', { id: uuidv7(), spaceId, userId: alice.userId, role: 'member' }),
     admin.mut('member.add', { id: uuidv7(), spaceId, userId: bob.userId, role: 'member' }),
@@ -91,11 +91,20 @@ export async function buildData(): Promise<Data> {
       name: 'Мобильное приложение',
       key: 'DSG',
       rank: rp,
+      statusIds,
+      statusNames: {
+        backlog: 'Бэклог',
+        todo: 'К работе',
+        in_progress: 'В работе',
+        done: 'Готово',
+        cancelled: 'Отменено',
+      },
     }),
+    ...enableInProject(admin, projectId, ['docs', 'time']),
     ...labelIds.map((id, i) =>
       admin.mut('label.create', {
         id,
-        spaceId,
+        projectId,
         name: ['Бэкенд', 'Дизайн', 'Срочно'][i],
         color: colors[i],
       }),

@@ -32,6 +32,11 @@ export const memberMutators = [
       const m = await need(tx, 'spaceMembers', a.id);
       if (a.role !== 'admin') await assertNotLastAdmin(tx, m.spaceId, m.id);
       await tx.patch('spaceMembers', a.id, { role: a.role, updatedAt: ctx.now });
+      // a space guest has no higher project role than guest (PJ-11)
+      if (a.role === 'guest')
+        for (const pm of await tx.scan('projectMembers', { index: 'userId', eq: m.userId }))
+          if (pm.spaceId === m.spaceId && pm.role !== 'guest')
+            await tx.patch('projectMembers', pm.id, { role: 'guest', updatedAt: ctx.now });
     },
   }),
   defineMutator({
@@ -40,6 +45,9 @@ export const memberMutators = [
     async run(tx, a) {
       const m = await need(tx, 'spaceMembers', a.id);
       await assertNotLastAdmin(tx, m.spaceId, m.id);
+      // a project member must be a space member (PJ-11): the project rows go in the same tx
+      for (const pm of await tx.scan('projectMembers', { index: 'userId', eq: m.userId }))
+        if (pm.spaceId === m.spaceId) await tx.del('projectMembers', pm.id);
       await tx.del('spaceMembers', a.id);
     },
   }),

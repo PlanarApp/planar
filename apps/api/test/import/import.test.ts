@@ -12,7 +12,7 @@ import type { JobApi } from '../../src/modules/hooks.js';
 import { executeMutations } from '../../src/sync/mutate.js';
 import { ORIGIN, createUser, loginCookie } from '../auth.js';
 import { testDb, testDbUrl } from '../db.js';
-import { key, taskArgs, world, type World } from '../sync/helpers.js';
+import { key, taskArgs, useProject, world, type World } from '../sync/helpers.js';
 
 const db = testDb();
 const fx = (n: string) => readFileSync(join(__dirname, '../../../../e2e/fixtures/import', n));
@@ -105,6 +105,7 @@ const preview = (file: Buffer, format: string, preset: string, cookie = adminCoo
 async function project() {
   const id = uuidv7();
   await w.admin.ok('project.create', { id, spaceId: w.spaceId, name: 'P', key: key(), rank: 'a0' });
+  useProject(w, id); // statuses belong to a project (PJ-1): w.statusIds are those of the latest project
   return id;
 }
 const smap = () => ({

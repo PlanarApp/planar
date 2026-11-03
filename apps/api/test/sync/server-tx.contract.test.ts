@@ -23,6 +23,14 @@ txContractSuite('ServerTx', async () => {
   const q = drizzle({ client, schema, casing: 'snake_case' });
   const spaceId = uuidv7();
   await q.insert(schema.spaces).values({ id: spaceId, name: 'S', rank: 'a0', createdBy: userId });
+  // labels belong to a project (PJ-1): the fixture labels use projectId = spaceId
+  await q.insert(schema.projects).values({
+    id: spaceId,
+    spaceId,
+    name: 'P',
+    key: `C${spaceId.slice(-8).toUpperCase()}`,
+    rank: 'a0',
+  });
   return {
     tx: ServerTx.asSystem(q, { userId }),
     spaceId,

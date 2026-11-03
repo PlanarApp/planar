@@ -9,6 +9,7 @@ describe('MemoryTx: дополнительно', () => {
   const lab = (spaceId: string) => ({
     id: uuidv7(),
     spaceId,
+    projectId: uuidv7(),
     name: 'a',
     color: '#000',
     createdAt: '2026-10-22T10:00:00.000Z',

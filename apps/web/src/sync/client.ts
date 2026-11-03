@@ -160,7 +160,10 @@ export function createClient(db: PlanarDB) {
   let wsStable: ReturnType<typeof setTimeout> | undefined;
 
   const setStatus = (s: SyncStatus) => (syncState.value = { ...syncState.value, status: s });
-  const meta = async (key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId') =>
+  // PJ-17: the replica was filled under another table/index set (a build update): the cursor says "current",
+  // but the new tables are empty (e.g. the old build bootstrapped after the server update) — bootstrap again
+  let rebuild = false;
+  const meta = async (key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId' | 'schema') =>
     (await db._meta.get(key))?.value;
 
   function registerMutators(defs: MutatorDef[]) {
@@ -253,8 +256,10 @@ export function createClient(db: PlanarDB) {
         }
       }
       // the cursor only when the replica is fully in place: an interrupted bootstrap will start over
-      if (p.cursor !== undefined && !rest.length)
+      if (p.cursor !== undefined && !rest.length) {
         await db._meta.put({ key: 'cursor', value: p.cursor });
+        if (p.bootstrap) await db._meta.put({ key: 'schema', value: db.schemaSig() });
+      }
       if (p.lastMutationId !== undefined)
         await db._meta.put({ key: 'lastMutationId', value: p.lastMutationId });
     });
@@ -275,6 +280,7 @@ export function createClient(db: PlanarDB) {
         }
       if (g !== gen) return;
       await db._meta.put({ key: 'cursor', value: p.cursor! });
+      await db._meta.put({ key: 'schema', value: db.schemaSig() });
       replicaState.value = 'complete';
       channel?.postMessage({ db: db.name, batch: [RESET] });
     }
@@ -349,7 +355,8 @@ export function createClient(db: PlanarDB) {
     try {
       // push first (C-sync: push does not depend on the cursor), then one pull
       const boot = cursor === undefined;
-      if (boot) await bootstrap();
+      if (boot || rebuild) await bootstrap();
+      rebuild = false;
       if (g !== gen) return;
       let sent = false;
       while (await push()) sent = true;
@@ -453,6 +460,7 @@ export function createClient(db: PlanarDB) {
     if (!id) await db._meta.put({ key: 'clientId', value: clientId });
     cursor = (await meta('cursor')) as number | undefined;
     replicaState.value = cursor === undefined ? 'empty' : 'complete';
+    rebuild = cursor !== undefined && (await meta('schema')) !== db.schemaSig();
     pushedUpTo = 0;
     failures = wsFailures = 0;
     setStatus('idle');

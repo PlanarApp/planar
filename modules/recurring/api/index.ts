@@ -22,7 +22,8 @@ type Row = Record<string, unknown>;
 const RULE_SQL = sql`select r.id, r.kind, r.every, r.unit, r.weekdays, r.timezone, r.task_id,
   r.anchor_date::text as "anchorDate", r.next_date::text as "nextDate",
   t.start_date::text as "startDate", t.due_date::text as "dueDate"
-  from recurring_rules r join tasks t on t.id = r.task_id`;
+  from recurring_rules r join tasks t on t.id = r.task_id
+  join projects p on p.id = t.project_id and 'recurring' = any(p.modules)`;
 
 interface Spawn {
   ruleId: string;
@@ -53,7 +54,7 @@ const spawn = async (data: Spawn, api: JobApi) => {
       )
     : data.period;
   const q = async (s: ReturnType<typeof sql>) => (await api.db.execute(s)).rows as Row[];
-  const [status] = await q(sql`select id from statuses where space_id = ${spaceId}
+  const [status] = await q(sql`select id from statuses where project_id = ${t.project_id as string}
     and category in ('todo', 'backlog') order by (category = 'todo') desc, rank collate "C" limit 1`);
   const [last] = await q(sql`select rank from tasks where project_id = ${t.project_id as string}
     order by rank collate "C" desc limit 1`);

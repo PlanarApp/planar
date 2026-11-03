@@ -30,7 +30,7 @@ import { treeOrder } from '../list/tree';
 import { textWidth } from '../list/widths';
 import { formatDue } from '../list/due';
 import { nextSort, sortMark } from '../sortHead';
-import { useProjectNames } from '../scope';
+import { setStatusByName, useProjectNames, useWidenedFilter } from '../scope';
 import type { SortBy } from '../../tasks';
 import {
   COLUMN_IDS,
@@ -65,7 +65,7 @@ const defs = useFieldDefs(() => (props.scope ? '' : props.projectId));
 const defOf = (id: string) => defs.value?.find((d) => `${FIELD_PREFIX}${d.id}` === id);
 const colName = (id: ColumnId) => (isFieldCol(id) ? (defOf(id)?.name ?? '') : t(`table.col.${id}`));
 const passes = useTaskFilter(
-  () => props.filter,
+  useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
 );
@@ -196,10 +196,27 @@ watch(defs, (ds) => {
     save();
   }
 });
-function hideCol(id: ColumnId) {
-  if (cols.value.length < 2) return;
-  cols.value = cols.value.filter((c) => c.id !== id);
-  save();
+const allIds = computed<ColumnId[]>(() => [
+  ...COLUMN_IDS,
+  ...(defs.value ?? []).map((d) => `${FIELD_PREFIX}${d.id}` as const),
+]);
+// the view's fields (status…) live in options.fields: the menu and «Поля» change the same list
+function toggleCol(id: ColumnId, on: boolean) {
+  if (!on && cols.value.length < 2) return;
+  cols.value = on
+    ? [...cols.value.filter((c) => c.id !== id), newColumn(id)]
+    : cols.value.filter((c) => c.id !== id);
+  const columns = cols.value.map((c) => ({ ...c }));
+  const fields = !isTaskField(id)
+    ? props.options.fields
+    : on
+      ? [...props.options.fields.filter((f) => f !== id), id]
+      : props.options.fields.filter((f) => f !== id);
+  if (props.saved) emit('update:options', { ...props.options, columns, fields });
+  else {
+    saveLayout(props.projectId, { columns: cols.value });
+    props.options.fields = fields;
+  }
 }
 function move(i: number, to: number) {
   cols.value = moveColumn(cols.value, i, to);
@@ -281,6 +298,27 @@ const date = (v: string) => v.slice(0, 10);
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
+    <div class="flex items-center justify-end border-b border-border px-3 py-1">
+      <Popover align="end">
+        <template #trigger>
+          <Button size="sm">{{ t('table.columns') }}</Button>
+        </template>
+        <ul class="flex flex-col gap-1 text-sm">
+          <li v-for="id in allIds" :key="id">
+            <label class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                :checked="cols.some((c) => c.id === id)"
+                :disabled="cols.length === 1 && cols[0]!.id === id"
+                @change="toggleCol(id, ($event.target as HTMLInputElement).checked)"
+              />
+              {{ colName(id) }}
+            </label>
+          </li>
+        </ul>
+      </Popover>
+    </div>
+
     <TaskContextMenu :space-id="spaceId" :tasks="all">
       <div
         ref="scroller"
@@ -303,7 +341,17 @@ const date = (v: string) => v.slice(0, 10);
                 move(e.oldDraggableIndex ?? 0, e.newDraggableIndex ?? 0)
             "
           >
-            <div :style="{ width: `${CHECK_W}px` }" class="no-drag shrink-0" />
+            <div :style="{ width: `${CHECK_W}px` }" class="no-drag shrink-0 px-3 py-2.5">
+              <input
+                type="checkbox"
+                :checked="sel.state(rowIds) === 'all'"
+                :indeterminate="sel.state(rowIds) === 'some'"
+                :aria-label="t('table.selectAll')"
+                class="size-4"
+                data-testid="select-all"
+                @click="sel.toggleAll(rowIds)"
+              />
+            </div>
             <div
               v-for="(c, i) in cols"
               :key="c.id"
@@ -348,14 +396,9 @@ const date = (v: string) => v.slice(0, 10);
                   <Button size="sm" :disabled="i === cols.length - 1" @click="move(i, i + 1)">{{
                     t('table.right')
                   }}</Button>
-                  <!-- поля «Вида» скрываются там же; прочие колонки — здесь -->
-                  <Button
-                    v-if="!isTaskField(c.id)"
-                    size="sm"
-                    :disabled="cols.length === 1"
-                    @click="hideCol(c.id)"
-                    >{{ t('table.hide') }}</Button
-                  >
+                  <Button size="sm" :disabled="cols.length === 1" @click="toggleCol(c.id, false)">{{
+                    t('table.hide')
+                  }}</Button>
                 </div>
               </Popover>
               <div
@@ -463,6 +506,7 @@ const date = (v: string) => v.slice(0, 10);
                     <StatusPicker
                       v-else-if="c.id === 'status'"
                       :space-id="task.spaceId"
+                      :project-id="task.projectId"
                       :model-value="task.statusId"
                       @update:model-value="updateTask(task.id, { statusId: $event })"
                     />
@@ -491,6 +535,7 @@ const date = (v: string) => v.slice(0, 10);
                     <LabelPicker
                       v-else-if="c.id === 'labels'"
                       :space-id="task.spaceId"
+                      :project-id="task.projectId"
                       :model-value="task.labelIds"
                       @update:model-value="setLabels(task.id, $event)"
                     />
@@ -537,7 +582,7 @@ const date = (v: string) => v.slice(0, 10);
       <span>{{ t('table.selected', { n: sel.selected.value.size }) }}</span>
       <StatusPicker
         :space-id="spaceId"
-        @update:model-value="each((x) => updateTask(x.id, { statusId: $event }))"
+        @update:model-value="each((x) => setStatusByName(statuses ?? [], x, $event))"
       />
       <PriorityPicker @update:model-value="each((x) => updateTask(x.id, { priority: $event }))" />
       <AssigneePicker

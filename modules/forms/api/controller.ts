@@ -49,12 +49,16 @@ export class FormsController {
         fields: unknown;
         status_id: string;
         enabled: boolean;
+        modules: string[];
       }>(
-        sql`select f.* from forms_forms f join projects p on p.id = f.project_id
+        sql`select f.*, p.modules from forms_forms f join projects p on p.id = f.project_id
       where f.slug = ${slug} and f.enabled and p.archived_at is null`,
       )
       .then((r) => r.rows);
     if (!f) throw notFound();
+    // C-schema v16: the module is off in the form's project
+    if (!f.modules.includes('forms'))
+      throw new HttpError(404, 'module_disabled', 'Модуль forms выключен в проекте');
     const fields = formFields.safeParse(f.fields);
     if (!fields.success) throw notFound();
     return { ...f, fields: fields.data };

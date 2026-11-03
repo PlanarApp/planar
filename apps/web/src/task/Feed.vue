@@ -71,7 +71,8 @@ const feed = computed<Entry[]>(() =>
     ...activity.value
       .filter((a) => a.kind !== 'commented')
       .map((a) => ({ at: a.createdAt, id: a.id, act: a })),
-  ].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)),
+    // equal time — by id (uuidv7: insertion order), otherwise the order depends on the DB read
+  ].sort((a, b) => (a.at === b.at ? (a.id < b.id ? -1 : 1) : a.at < b.at ? -1 : 1)),
 );
 
 // new entries at the bottom, by the comment field: the feed sticks to the end
@@ -91,7 +92,10 @@ const replies = computed(() => {
   const m = new Map<string, Row<'comments'>[]>();
   for (const c of comments.value ?? [])
     if (c.parentId) (m.get(c.parentId) ?? m.set(c.parentId, []).get(c.parentId)!).push(c);
-  for (const l of m.values()) l.sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  for (const l of m.values())
+    l.sort((a, b) =>
+      a.createdAt === b.createdAt ? (a.id < b.id ? -1 : 1) : a.createdAt < b.createdAt ? -1 : 1,
+    );
   return m;
 });
 const replyTo = ref<string | null>(null);
@@ -182,6 +186,7 @@ async function send() {
             >
               <Editor
                 ref="replyBox"
+                refs
                 :model-value="replyDraft"
                 :members="memberList"
                 :label="t('task.replyPlaceholder')"
@@ -211,6 +216,7 @@ async function send() {
     <div class="shrink-0 rounded-md border border-border-strong bg-bg p-2">
       <Editor
         ref="composer"
+        refs
         :model-value="draft"
         @update:model-value="setDraft"
         :members="(members ?? []).map((m) => ({ id: m.id, name: m.name }))"

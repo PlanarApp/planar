@@ -8,7 +8,6 @@ import { ensureSystemUser } from '../users/system.js';
 
 /** id of the setting with the root space — the «Workspace» level (documents and chats for everyone). */
 export const ROOT_SPACE = 'root_space';
-const CATEGORIES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'];
 
 /**
  * Root space: created on first start; all active users except guests are
@@ -39,7 +38,6 @@ export async function ensureRootSpace(db: Db): Promise<string> {
             name: 'Общее',
             rank: generateKeyBetween(null, first?.rank ?? null),
             memberId: uuidv7(),
-            statusIds: CATEGORIES.map(() => uuidv7()),
           },
         },
         { name: 'settings.set', args: { id: ROOT_SPACE, value: id } },

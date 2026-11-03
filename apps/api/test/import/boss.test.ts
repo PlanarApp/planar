@@ -8,7 +8,7 @@ import { createApp } from '../../src/app.js';
 import { JobsService } from '../../src/jobs/jobs.js';
 import * as schema from '../../src/db/schema.js';
 import { ORIGIN, loginCookie } from '../auth.js';
-import { dbUrl, key, newDb, taskArgs, world, type World } from '../sync/helpers.js';
+import { dbUrl, key, newDb, taskArgs, useProject, world, type World } from '../sync/helpers.js';
 
 // Real pg-boss: the import.run job is enqueued from the controller; the sweep (once a minute) is not needed.
 const db = newDb();
@@ -69,6 +69,7 @@ async function finished(id: string, ms = 10_000) {
 async function project() {
   const id = uuidv7();
   await w.admin.ok('project.create', { id, spaceId: w.spaceId, name: 'P', key: key(), rank: 'a0' });
+  useProject(w, id); // statuses belong to a project (PJ-1): w.statusIds are those of the latest project
   return id;
 }
 

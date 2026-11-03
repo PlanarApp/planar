@@ -20,10 +20,9 @@ let timer: ReturnType<typeof setInterval> | undefined;
 
 const projects = useProjects();
 const allStatuses = useStatuses();
-const spaceId = computed(() => projects.value?.find((p) => p.id === projectId.value)?.spaceId);
 const statuses = computed(() =>
   (allStatuses.value ?? [])
-    .filter((s) => s.spaceId === spaceId.value)
+    .filter((s) => s.projectId === projectId.value)
     .sort((a, b) => (a.rank < b.rank ? -1 : 1)),
 );
 const values = computed(() =>

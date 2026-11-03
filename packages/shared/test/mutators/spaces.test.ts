@@ -1,15 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { code, ctx, id, mem, run, seedSpace, seedTask, T0, T1, U1, U2 } from './helpers';
+import {
+  addProject,
+  code,
+  ctx,
+  id,
+  mem,
+  run,
+  seedSpace,
+  seedTask,
+  T0,
+  T1,
+  U1,
+  U2,
+} from './helpers';
 
 describe('space/member', () => {
-  it('space.create: пространство, admin и 5 статусов', async () => {
+  it('space.create: пространство и admin, без статусов; project.create — 5 статусов проекта', async () => {
     const tx = mem();
     const s = await seedSpace(tx);
     const sp = (await tx.get('spaces', s.spaceId))!;
     expect(sp).toMatchObject({ name: 'S', createdBy: U1, createdAt: ctx().now });
     const ms = await tx.scan('spaceMembers', { index: 'spaceId', eq: s.spaceId });
     expect(ms).toMatchObject([{ userId: U1, role: 'admin' }]);
-    const sts = (await tx.scan('statuses', { index: 'spaceId', eq: s.spaceId })).sort((a, b) =>
+    const empty = id();
+    await run(tx, 'space.create', { id: empty, name: 'E', rank: 'a1', memberId: id() });
+    expect(await tx.scan('statuses', { index: 'spaceId', eq: empty })).toEqual([]);
+    const sts = (await tx.scan('statuses', { index: 'projectId', eq: s.projectId })).sort((a, b) =>
       a.rank.localeCompare(b.rank),
     );
     expect(sts.map((x) => [x.name, x.category, x.rank])).toEqual([
@@ -22,18 +38,20 @@ describe('space/member', () => {
     expect(sts.map((x) => x.id)).toEqual(s.statusIds);
   });
 
-  it('space.create: statusNames переименовывает, пустое/длинное — по умолчанию', async () => {
+  it('project.create: statusNames переименовывает, пустое/длинное — по умолчанию', async () => {
     const tx = mem();
-    const s = { spaceId: id(), statusIds: [id(), id(), id(), id(), id()] };
-    await run(tx, 'space.create', {
-      id: s.spaceId,
-      name: 'S',
-      rank: 'a0',
-      memberId: id(),
-      statusIds: s.statusIds,
+    const s = await seedSpace(tx);
+    const p = id();
+    await run(tx, 'project.create', {
+      id: p,
+      spaceId: s.spaceId,
+      name: 'N',
+      key: 'NN',
+      rank: 'a2',
+      statusIds: [id(), id(), id(), id(), id()],
       statusNames: { todo: ' К работе ', done: '  ', cancelled: 'x'.repeat(65) },
     });
-    const sts = await tx.scan('statuses', { index: 'spaceId', eq: s.spaceId });
+    const sts = await tx.scan('statuses', { index: 'projectId', eq: p });
     const n = (c: string) => sts.find((x) => x.category === c)!.name;
     expect([n('todo'), n('done'), n('cancelled'), n('backlog')]).toEqual([
       'К работе',
@@ -43,9 +61,12 @@ describe('space/member', () => {
     ]);
   });
 
-  it('space.create: statusIds не 5 → invalid_args', async () => {
-    const a = { id: id(), name: 'S', rank: 'a0', memberId: id(), statusIds: [id()] };
-    await expect(run(mem(), 'space.create', a)).rejects.toThrow();
+  it('project.create: statusIds не 5 → ошибка; ни statusIds, ни copyFrom → invalid_args', async () => {
+    const tx = mem();
+    const s = await seedSpace(tx);
+    const a = { id: id(), spaceId: s.spaceId, name: 'S', key: 'SS', rank: 'a3' };
+    await expect(run(tx, 'project.create', { ...a, statusIds: [id()] })).rejects.toThrow();
+    expect(await code(run(tx, 'project.create', a))).toBe('invalid_args');
   });
 
   it('space.update: только переданные поля, null обнуляет, not_found', async () => {
@@ -72,7 +93,14 @@ describe('space/member', () => {
     const tx = mem();
     const s = await seedSpace(tx);
     await run(tx, 'project.delete', { id: s.projectId });
-    await run(tx, 'label.create', { id: id(), spaceId: s.spaceId, name: 'l', color: '#000' });
+    await run(tx, 'project.create', {
+      id: id(),
+      spaceId: s.spaceId,
+      name: 'Q',
+      key: 'QQ',
+      rank: 'a1',
+      statusIds: [id(), id(), id(), id(), id()],
+    });
     await run(tx, 'view.create', {
       id: id(),
       spaceId: s.spaceId,
@@ -83,7 +111,13 @@ describe('space/member', () => {
       config: {},
       rank: 'a0',
     });
-    await run(tx, 'space.delete', { id: s.spaceId });
+    await run(tx, 'label.create', {
+      id: id(),
+      projectId: (await tx.scan('projects', { index: 'spaceId', eq: s.spaceId }))[0]!.id,
+      name: 'l',
+      color: '#000',
+    });
+    await run(tx, 'space.delete', { id: s.spaceId, withContent: true });
     for (const e of ['spaces', 'statuses', 'labels', 'savedViews', 'spaceMembers'] as const)
       expect(await tx.scan(e)).toEqual([]);
     expect(await code(run(tx, 'space.delete', { id: s.spaceId }))).toBe('not_found');
@@ -129,7 +163,14 @@ describe('project/status/label', () => {
       archivedAt: null,
       spaceId: s.spaceId,
     });
-    const a = { id: id(), spaceId: s.spaceId, name: 'P', key: 'AB', rank: 'a1' };
+    const a = {
+      id: id(),
+      spaceId: s.spaceId,
+      name: 'P',
+      key: 'AB',
+      rank: 'a1',
+      statusIds: [id(), id(), id(), id(), id()],
+    };
     await expect(run(tx, 'project.create', { ...a, key: 'a' })).rejects.toThrow();
     await expect(run(tx, 'project.create', { ...a, key: 'ABCDEFGHIJK' })).rejects.toThrow();
     expect(await code(run(tx, 'project.create', { ...a, spaceId: id() }))).toBe('not_found');
@@ -172,15 +213,15 @@ describe('project/status/label', () => {
     const sid = id();
     const a = {
       id: sid,
-      spaceId: s.spaceId,
+      projectId: s.projectId,
       name: 'Review',
       category: 'in_progress',
       color: '#0ff',
       rank: 'a5',
     };
     await run(tx, 'status.create', a);
-    expect(await tx.get('statuses', sid)).toMatchObject(a);
-    expect(await code(run(tx, 'status.create', { ...a, id: id(), spaceId: id() }))).toBe(
+    expect(await tx.get('statuses', sid)).toMatchObject({ ...a, spaceId: s.spaceId });
+    expect(await code(run(tx, 'status.create', { ...a, id: id(), projectId: id() }))).toBe(
       'not_found',
     );
     await run(tx, 'status.update', { id: sid, name: 'R2', category: 'done' });
@@ -213,10 +254,10 @@ describe('project/status/label', () => {
     expect(await tx.get('tasks', t)).toMatchObject({ statusId: s.statusIds[1], completedAt: null });
   });
 
-  it('status.delete: другое пространство → invalid_args, не найден → not_found, последний → conflict', async () => {
+  it('status.delete: другой проект → invalid_args, не найден → not_found, последний → conflict', async () => {
     const tx = mem();
     const s = await seedSpace(tx);
-    const s2 = await seedSpace(tx);
+    const s2 = await addProject(tx, s.spaceId, id(), 'OTH', 'a1'); // same space, another project
     expect(
       await code(run(tx, 'status.delete', { id: s.statusIds[0], replaceWith: s2.statusIds[0] })),
     ).toBe('invalid_args');
@@ -241,9 +282,9 @@ describe('project/status/label', () => {
     const s = await seedSpace(tx);
     const t = await seedTask(tx, s);
     const l = id();
-    await run(tx, 'label.create', { id: l, spaceId: s.spaceId, name: 'bug', color: '#f00' });
+    await run(tx, 'label.create', { id: l, projectId: s.projectId, name: 'bug', color: '#f00' });
     expect(
-      await code(run(tx, 'label.create', { id: id(), spaceId: id(), name: 'x', color: '#f00' })),
+      await code(run(tx, 'label.create', { id: id(), projectId: id(), name: 'x', color: '#f00' })),
     ).toBe('not_found');
     await run(tx, 'label.update', { id: l, name: 'feat' });
     expect(await tx.get('labels', l)).toMatchObject({ name: 'feat', color: '#f00' });

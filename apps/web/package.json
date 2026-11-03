@@ -21,6 +21,8 @@
     "@tiptap/suggestion": "^3.32.0",
     "@tiptap/vue-3": "^3.32.0",
     "dexie": "^4.4.6",
+    "emoji-picker-element": "1.29.1",
+    "emoji-picker-element-data": "1.8.0",
     "fractional-indexing": "^4.0.0",
     "lucide-vue-next": "^1.0.0",
     "reka-ui": "^2.11.0",

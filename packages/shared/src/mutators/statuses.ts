@@ -7,10 +7,15 @@ const category = z.enum(['backlog', 'todo', 'in_progress', 'done', 'cancelled'])
 export const statusMutators = [
   defineMutator({
     name: 'status.create',
-    args: z.object({ id: uuid, spaceId: uuid, name, category, color: z.string(), rank }),
+    args: z.object({ id: uuid, projectId: uuid, name, category, color: z.string(), rank }),
     async run(tx, a, ctx) {
-      await need(tx, 'spaces', a.spaceId);
-      await tx.put('statuses', { ...a, createdAt: ctx.now, updatedAt: ctx.now });
+      const p = await need(tx, 'projects', a.projectId);
+      await tx.put('statuses', {
+        ...a,
+        spaceId: p.spaceId,
+        createdAt: ctx.now,
+        updatedAt: ctx.now,
+      });
     },
   }),
   defineMutator({
@@ -38,11 +43,11 @@ export const statusMutators = [
     args: z.object({ id: uuid, replaceWith: uuid }),
     async run(tx, a, ctx) {
       const st = await need(tx, 'statuses', a.id);
-      if ((await tx.scan('statuses', { index: 'spaceId', eq: st.spaceId })).length <= 1)
+      if ((await tx.scan('statuses', { index: 'projectId', eq: st.projectId })).length <= 1)
         throw new MutatorError('conflict', 'последний статус');
       const rep = await need(tx, 'statuses', a.replaceWith);
       if (rep.id === st.id) throw bad('replaceWith совпадает со статусом');
-      if (rep.spaceId !== st.spaceId) throw bad('replaceWith другого пространства');
+      if (rep.projectId !== st.projectId) throw bad('replaceWith другого проекта');
       for (const t of await tx.scan('tasks', { index: 'statusId', eq: st.id }))
         await tx.patch('tasks', t.id, {
           statusId: rep.id,
