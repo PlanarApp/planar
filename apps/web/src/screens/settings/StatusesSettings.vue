@@ -5,8 +5,9 @@ import { VueDraggable } from 'vue-draggable-plus';
 import type { Row } from '@planar/shared';
 import { Button, Input, Select, Dialog } from '../../ui';
 import { mutate, newId, rankBetween } from '../../sync';
-import { useStatuses } from '../../tasks';
+import { useProject, useStatuses } from '../../tasks';
 import ColorPicker from './ColorPicker.vue';
+import CopyFrom from './CopyFrom.vue';
 import { COLORS } from './colors';
 import RowMenu from './RowMenu.vue';
 import SectionHeader from './SectionHeader.vue';
@@ -14,12 +15,14 @@ import { useAction, useAdminSpaces } from './shared';
 
 const CATEGORIES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
 type Category = (typeof CATEGORIES)[number];
-const props = defineProps<{ spaceId: string }>();
+const props = defineProps<{ projectId: string }>();
 const { t } = useI18n();
 const { error, run } = useAction();
 const isAdmin = useAdminSpaces();
-const canEdit = computed(() => isAdmin(props.spaceId));
-const statuses = useStatuses(() => props.spaceId);
+const project = useProject(() => props.projectId);
+const spaceId = computed(() => project.value?.spaceId ?? '');
+const canEdit = computed(() => isAdmin(spaceId.value));
+const statuses = useStatuses(spaceId, () => props.projectId);
 // local lists for Sortable; the source of truth is the replica
 const lists = reactive<Record<Category, Row<'statuses'>[]>>({
   backlog: [],
@@ -49,7 +52,7 @@ const create = () =>
     const last = statuses.value?.at(-1)?.rank ?? null;
     await mutate('status.create', {
       id: newId(),
-      spaceId: props.spaceId,
+      projectId: props.projectId,
       name: name.value.trim(),
       category: category.value,
       color: color.value,
@@ -96,6 +99,7 @@ async function remove() {
         <Button type="submit" variant="primary" size="sm">{{ t('auth.create') }}</Button>
       </form>
     </SectionHeader>
+    <CopyFrom v-if="canEdit" :project-id="projectId" kind="statuses" />
     <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
     <div v-for="c in CATEGORIES" :key="c" :data-testid="`cat-${c}`">
       <h3 class="text-sm font-medium text-fg-muted">{{ t(`settings.cat.${c}`) }}</h3>

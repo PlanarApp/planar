@@ -210,7 +210,6 @@ describe('детерминизм', () => {
         name: 'S',
         rank: 'a0',
         memberId: ids.m,
-        statusIds: ids.st,
       });
       await run(tx, 'project.create', {
         id: ids.p,
@@ -218,6 +217,7 @@ describe('детерминизм', () => {
         name: 'P',
         key: 'PRJ',
         rank: 'a0',
+        statusIds: ids.st,
       });
       await run(tx, 'task.create', {
         id: ids.t,
@@ -236,13 +236,13 @@ describe('детерминизм', () => {
     };
     const [a, b] = [await play(), await play()];
     expect(a).toEqual(b);
-    expect(domainMutators.length).toBe(47);
+    expect(domainMutators.length).toBe(54);
   });
 });
 
 describe('реестр и аргументы', () => {
   it('createRegistry принимает domainMutators без дублей', () => {
-    expect(createRegistry(domainMutators).size).toBe(47);
+    expect(createRegistry(domainMutators).size).toBe(54);
   });
 
   it.each(domainMutators.map((d) => d.name))('%s: пустые args отклоняются', async (name) => {
@@ -261,10 +261,18 @@ describe('реестр и аргументы', () => {
     expect(await code(run(mem(), name, { ...args, taskId: id() }))).toBe('not_found');
   });
 
-  const noSpace = [
+  it.each([
     ['label.create', { name: 'l', color: '#000' }],
     ['status.create', { name: 's', category: 'todo', color: '#000', rank: 'a0' }],
-    ['project.create', { name: 'p', key: 'PP', rank: 'a0' }],
+  ] as const)('%s: нет проекта → not_found', async (name, args) => {
+    expect(await code(run(mem(), name, { ...args, id: id(), projectId: id() }))).toBe('not_found');
+  });
+
+  const noSpace = [
+    [
+      'project.create',
+      { name: 'p', key: 'PP', rank: 'a0', statusIds: [id(), id(), id(), id(), id()] },
+    ],
     ['member.add', { userId: U2, role: 'member' }],
     [
       'view.create',

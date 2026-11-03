@@ -6,14 +6,27 @@ import { FakeServer, FakeWebSocket } from './fake-server';
 
 export const NOW = '2026-10-22T10:00:00.000Z';
 export const SPACE = uuidv7();
+export const PROJECT = uuidv7(); // labels belong to a project (PJ-1)
 export const USER = uuidv7(); // one user for all runs: changing userId clears the replica
 
 export const testMutators: MutatorDef[] = [
   {
     name: 'test.label.put',
-    args: entitySchemas.labels.pick({ id: true, spaceId: true, name: true, color: true }),
+    args: entitySchemas.labels.pick({
+      id: true,
+      spaceId: true,
+      projectId: true,
+      name: true,
+      color: true,
+    }),
     run: async (tx, a, ctx) => {
-      const x = a as { id: string; spaceId: string; name: string; color: string };
+      const x = a as {
+        id: string;
+        spaceId: string;
+        projectId: string;
+        name: string;
+        color: string;
+      };
       await tx.put('labels', { ...x, createdAt: ctx.now, updatedAt: ctx.now });
     },
   },
@@ -38,6 +51,7 @@ export const testMutators: MutatorDef[] = [
 export const label = (name: string, id = uuidv7()) => ({
   id,
   spaceId: SPACE,
+  projectId: PROJECT,
   name,
   color: '#fff',
   createdAt: NOW,

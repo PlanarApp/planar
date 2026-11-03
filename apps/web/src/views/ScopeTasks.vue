@@ -14,6 +14,7 @@ import TaskModal from './TaskModal.vue';
 import { buildViewTabs, useSelection, viewLoaders } from '.';
 import type { MeMode } from './saved/useFilter';
 import { useNodeViewDraft } from './saved/nodeView';
+import { useCanShare } from './saved/queries';
 
 // Tasks of a Space and of the Workspace — the group's project summary (List and Board).
 // me — the view "My work" (assigned, created, watched) of any group, and of a project too:
@@ -103,16 +104,19 @@ const tabs = computed(() =>
 );
 const seg = computed(() => String((props.me ? route.query.v : route.params.tab) ?? ''));
 const active = computed(() => tabs.value.find((v) => v.key === seg.value) ?? tabs.value[0]);
-// node view: a draft until "Save"; "My work" has its own key — Me Mode is fixed in it
+const nodeSpaceId = () =>
+  props.spaceId ??
+  (props.projectId
+    ? (spaces.value ?? []).find((s) => s.projects.some((p) => p.id === props.projectId))?.id
+    : props.rootSpaceId) ??
+  '';
+const canShare = useCanShare(nodeSpaceId);
+// node view: saved to my row at once; "My work" has its own key — Me Mode is fixed in it
 const view = useNodeViewDraft({
-  spaceId: () =>
-    props.spaceId ??
-    (props.projectId
-      ? (spaces.value ?? []).find((s) => s.projects.some((p) => p.id === props.projectId))?.id
-      : props.rootSpaceId) ??
-    '',
+  spaceId: nodeSpaceId,
   node: key,
   layout: () => active.value?.key ?? 'list',
+  notProject: true,
   fixed: () => (props.me ? { me: props.me } : {}),
 });
 const { options, filter: draftFilter } = view;
@@ -130,7 +134,7 @@ const selectTab = (k: string) =>
   void router.replace(
     props.me
       ? { query: { ...route.query, v: k } }
-      : { params: { ...route.params, tab: k === 'list' ? '' : k }, query: route.query },
+      : { params: { ...route.params, tab: k }, query: route.query },
   );
 </script>
 
@@ -156,21 +160,29 @@ const selectTab = (k: string) =>
         v-model:filter="draftFilter"
         :space-id="scope.spaceIds.join(',')"
       >
-        <template v-if="view.dirty.value">
+        <!-- резерв места: появление Сохранить/Сбросить не сдвигает «Вид» -->
+        <div class="flex items-center justify-end gap-1 md:min-w-[17rem]">
           <Button
-            variant="primary"
+            v-if="canShare"
             size="sm"
             :icon="Check"
             compact
-            data-testid="saved-save"
-            @click="view.save"
+            data-testid="node-share"
+            @click="view.saveForAll"
           >
-            {{ t('views.saved.saveChanges') }}
+            {{ t('views.saved.saveForAll') }}
           </Button>
-          <Button size="sm" :icon="RotateCcw" compact data-testid="saved-reset" @click="view.reset">
+          <Button
+            v-if="view.hasPersonal.value"
+            size="sm"
+            :icon="RotateCcw"
+            compact
+            data-testid="node-reset"
+            @click="view.reset"
+          >
             {{ t('views.saved.reset') }}
           </Button>
-        </template>
+        </div>
       </OptionsBar>
     </ToolbarRoot>
     <div class="min-h-0 flex-1">

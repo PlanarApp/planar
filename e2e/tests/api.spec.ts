@@ -51,11 +51,17 @@ test('admin создаёт приватное пространство, прое
       name: `e2e ${spaceId}`,
       rank: r1,
       memberId: uuidv7(),
+    }),
+    admin.mut('project.create', {
+      id: projectId,
+      spaceId,
+      name: 'E2E',
+      key: key(),
+      rank: r2,
       statusIds,
     }),
     // the label is needed by the seed --tasks: it spreads tasks across all projects, including those left over from e2e
-    admin.mut('label.create', { id: uuidv7(), spaceId, name: 'e2e', color: '#3b82f6' }),
-    admin.mut('project.create', { id: projectId, spaceId, name: 'E2E', key: key(), rank: r2 }),
+    admin.mut('label.create', { id: uuidv7(), projectId, name: 'e2e', color: '#3b82f6' }),
     admin.mut('task.create', {
       id: taskId,
       projectId,
@@ -143,7 +149,14 @@ test('офлайн-очередь: 30 задач с повтором пачек 
   const pid = uuidv7();
   const rk = ranks(32);
   const queue = [
-    c.mut('project.create', { id: pid, spaceId, name: 'Queue', key: key(), rank: rk[0] }),
+    c.mut('project.create', {
+      id: pid,
+      spaceId,
+      name: 'Queue',
+      key: key(),
+      rank: rk[0],
+      statusIds,
+    }),
     ...Array.from({ length: 30 }, (_, i) =>
       c.mut('task.create', {
         id: uuidv7(),

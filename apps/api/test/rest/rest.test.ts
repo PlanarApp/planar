@@ -166,7 +166,7 @@ describe('REST /api/v1: запись', () => {
     const labelId = uuidv7();
     await w.admin.ok('label.create', {
       id: labelId,
-      spaceId: w.spaceId,
+      projectId: w.projectId,
       name: 'bug',
       color: '#f00',
     });
@@ -198,7 +198,7 @@ describe('REST /api/v1: запись', () => {
     const foreign = uuidv7();
     await other.admin.ok('label.create', {
       id: foreign,
-      spaceId: other.spaceId,
+      projectId: other.projectId,
       name: 'x',
       color: '#000',
     });
@@ -255,7 +255,7 @@ describe('REST /api/v1: запись', () => {
     for (const id of [l1, l2])
       await w.admin.ok('label.create', {
         id,
-        spaceId: w.spaceId,
+        projectId: w.projectId,
         name: id.slice(-6),
         color: '#0f0',
       });

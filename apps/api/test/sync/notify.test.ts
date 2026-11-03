@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { ServerTx } from '../../src/sync/server-tx.js';
 import { ChangeNotifier } from '../../src/sync/notify.js';
-import { NOW, mkSpace, mkUser, newDb } from './helpers.js';
+import { NOW, mkProject, mkSpace, mkUser, newDb } from './helpers.js';
 import { uuidv7 } from '@planar/shared';
 
 const dbs: ReturnType<typeof newDb>[] = [];
@@ -20,6 +20,7 @@ async function setup() {
   n.onModuleInit();
   const owner = await mkUser(db);
   const spaceId = await mkSpace(db, owner, {});
+  const projectId = await mkProject(db, spaceId);
   const write = (count: number) =>
     db.transaction(async (tx) => {
       const stx = ServerTx.asSystem(tx, { userId: owner });
@@ -27,6 +28,7 @@ async function setup() {
         await stx.put('labels', {
           id: uuidv7(),
           spaceId,
+          projectId,
           name: 'l',
           color: '#000',
           createdAt: NOW,

@@ -1,14 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
-import {
-  mkUser,
-  newDb,
-  services,
-  TestClient,
-  taskArgs,
-  world,
-  type World,
-} from '../sync/helpers.js';
+import { newDb, services, TestClient, taskArgs, world, type World } from '../sync/helpers.js';
 
 type R = Record<string, unknown> & { id: string; archivedAt: string | null };
 const db = newDb();
@@ -37,8 +29,7 @@ const mk = async (over: Record<string, unknown> = {}) => {
 
 beforeAll(async () => {
   w = await world(db);
-  const ia = new TestClient(services(db), await mkUser(db, 'admin'));
-  await ia.ok('settings.set', { id: 'enabled_modules', value: ['docs'] });
+  // PJ-3: docs is a data module — on per project (world() enables it), enabled_modules holds only shared ones
 });
 afterAll(() => db.$client.end());
 

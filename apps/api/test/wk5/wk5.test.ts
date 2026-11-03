@@ -15,11 +15,8 @@ let readToken: string;
 let taskA: { id: string; key: string };
 let taskB: { id: string; key: string };
 
-const setMods = (ids: string[]) =>
-  db
-    .insert(schema.settings)
-    .values({ id: 'enabled_modules', value: ids })
-    .onConflictDoUpdate({ target: schema.settings.id, set: { value: ids } });
+// PJ-3: time, sprints and automations are data modules — switched on the projects of the file's database
+const setMods = (modules: string[]) => db.update(schema.projects).set({ modules });
 
 type Who = keyof typeof cookies;
 const call = (method: string, url: string, who: Who | 'read' = 'admin', payload?: unknown) =>
@@ -270,16 +267,14 @@ describe('wk5: выключенный модуль → 404 module_disabled', () 
   it('wk5: все пути модулей', async () => {
     await setMods([]);
     const p = `/api/v1/projects/${w.projectId}`;
+    // addressed to a project (or a task of it): 404 module_disabled
     const reqs: [string, string, object?][] = [
-      ['GET', '/api/v1/time-entries'],
       [
         'POST',
         '/api/v1/time-entries',
         { task: taskA.id, startedAt: '2026-10-01T09:00:00Z', durationSec: 60 },
       ],
-      ['GET', '/api/v1/timer'],
       ['POST', '/api/v1/timer/start', { task: taskA.id }],
-      ['POST', '/api/v1/timer/stop'],
       ['GET', `${p}/cycles`],
       ['GET', `${p}/cycles/current`],
       ['GET', `${p}/automations`],
@@ -288,6 +283,10 @@ describe('wk5: выключенный модуль → 404 module_disabled', () 
       const r = await call(m, u, 'member', b);
       expect([m, u, r.statusCode, r.json().code]).toEqual([m, u, 404, 'module_disabled']);
     }
+    // not addressed to a project: filtered by project, nothing from the project with the module off
+    expect((await call('GET', '/api/v1/time-entries', 'member')).json().data).toEqual([]);
+    expect((await call('GET', '/api/v1/timer', 'member')).json().data).toBeNull();
+    expect((await call('POST', '/api/v1/timer/stop', 'member')).json().data).toBeNull();
     // links are the core, they work without modules
     expect((await call('GET', `/api/v1/tasks/${taskA.id}/links`)).statusCode).toBe(200);
   });

@@ -2,17 +2,12 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Client } from '../lib.js';
+import { addModules } from './collab-helpers.js';
 
 export const MODULES = ['time', 'sprints', 'automations', 'webhooks', 'import'];
 
 /** Enables work modules (adds to the already enabled ones); the change writes _reset, clients reload. */
-export async function enableModules(admin: Client): Promise<void> {
-  const { data } = await admin.bootstrap();
-  const cur = (data.settings?.find((s) => s.id === 'enabled_modules')?.value as string[]) ?? [];
-  const next = [...new Set([...cur, ...MODULES])];
-  if (next.length === cur.length) return;
-  await admin.pushOk([admin.mut('settings.set', { id: 'enabled_modules', value: next })]);
-}
+export const enableModules = (admin: Client): Promise<void> => addModules(admin, MODULES);
 
 /** YYYY-MM-DD in UTC with a shift in days. */
 export const utcDay = (shift = 0): string =>

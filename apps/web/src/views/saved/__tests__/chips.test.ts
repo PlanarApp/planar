@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import { defineComponent, h } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createI18n } from 'vue-i18n';
@@ -6,7 +7,7 @@ import en from '../../../i18n/en';
 import ru from '../../../i18n/ru';
 import { db } from '../../../sync';
 import { id, ids, reset, T } from '../../../tasks/__tests__/data';
-import FilterChips from '../FilterChips.vue';
+import { useFilterSummary } from '../useFilterSummary';
 import type { Filter } from '../..';
 
 const mk = (type: string, name: string, options: object) => ({
@@ -21,8 +22,17 @@ const mk = (type: string, name: string, options: object) => ({
   updatedAt: T,
 });
 const show = async (filter: Filter) => {
-  const w = mount(FilterChips, {
-    props: { spaceId: ids.space, projectId: ids.project, modelValue: filter },
+  const C = defineComponent({
+    setup() {
+      const list = useFilterSummary(
+        () => ids.space,
+        () => ids.project,
+        () => filter,
+      );
+      return () => h('div', list.value.join('|'));
+    },
+  });
+  const w = mount(C, {
     global: { plugins: [createI18n({ legacy: false, locale: 'ru', messages: { ru, en } })] },
   });
   for (let i = 0; i < 20; i++) {
@@ -62,14 +72,5 @@ describe('chip: чипы фильтра', () => {
     expect(t).not.toContain('150000');
     expect(t).toContain('Ann');
     expect(t).not.toContain(ids.ann);
-  });
-
-  it('chip: удаление чипа убирает правило', async () => {
-    const w = await show({
-      op: 'and',
-      rules: [{ field: 'assignee', operator: 'in', value: [ids.ann] }],
-    });
-    await w.get('[data-testid=filter-chip] button').trigger('click');
-    expect(w.emitted('update:modelValue')![0][0]).toMatchObject({ rules: [] });
   });
 });

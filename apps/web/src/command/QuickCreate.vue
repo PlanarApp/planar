@@ -34,12 +34,12 @@ const more = ref(false); // "create another": the dialog stays open
 const busy = ref(false);
 
 const spaceId = computed(() => all.value?.find((p) => p.id === projectId.value)?.spaceId ?? '');
-const statuses = useStatuses(spaceId);
+const statuses = useStatuses(spaceId, projectId);
 // default status: the first todo, otherwise the first one
 watch(
   [statuses, projectId],
   () => {
-    const st = statuses.value ?? [];
+    const st = (statuses.value ?? []).filter((s) => s.projectId === projectId.value);
     if (!st.some((s) => s.id === statusId.value))
       statusId.value = (st.find((s) => s.category === 'todo') ?? st[0])?.id;
   },
@@ -113,7 +113,7 @@ async function submit() {
       />
       <Select v-model="projectId" :label="t('quick.project')" :options="options" />
       <div v-if="spaceId" class="flex flex-wrap items-center gap-2">
-        <StatusPicker v-model="statusId" :space-id="spaceId" />
+        <StatusPicker v-model="statusId" :space-id="spaceId" :project-id="projectId" />
         <AssigneePicker v-model="assignees" :space-id="spaceId" />
         <PriorityPicker v-model="priority" />
         <DueDatePicker v-model="due" />

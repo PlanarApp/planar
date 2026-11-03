@@ -8,6 +8,7 @@ import {
   gt,
   inArray,
   isNull,
+  notInArray,
   or,
   sql,
   type SQL,
@@ -16,6 +17,7 @@ import type { EntityName, SyncBootstrap, SyncPull } from '@planar/shared';
 import type { Db } from '../db/index.js';
 import { activity, changes, clientMutations, spaceMembers, tasks } from '../db/schema.js';
 import { DB } from '../tokens.js';
+import { hiddenProjectIds, notHidden, projectAccess } from './project-access.js';
 import { visibleEntities } from './registry.js';
 import { tableOf, toWire } from './rows.js';
 
@@ -54,6 +56,7 @@ export class PullService {
         .select({ max: sql<string>`coalesce(max(${changes.seq}), 0)` })
         .from(changes);
       const data: SyncBootstrap['data'] = {};
+      const hidden = await hiddenProjectIds(tx, userId);
       for (const [name, meta] of Object.entries(await visibleEntities(tx))) {
         if (!meta.bootstrap) continue;
         const t = tableOf(name as EntityName);
@@ -73,7 +76,11 @@ export class PullService {
           );
           where = c.spaceId ? or(inArray(c.spaceId, my), and(isNull(c.spaceId), mine)) : mine;
         }
-        const q = tx.select().from(t).where(where);
+        // PJ-11: rows of projects hidden from the user are not delivered
+        const q = tx
+          .select()
+          .from(t)
+          .where(and(where, notHidden(name, hidden)));
         const rows = await (name === 'notifications'
           ? q.orderBy(desc(c.createdAt)).limit(NOTIFICATIONS_LIMIT)
           : q);
@@ -102,12 +109,16 @@ export class PullService {
       if (cursor > head.cursor || (min !== null && cursor < Number(min) - 1)) return reset;
 
       const visible = Object.keys(await visibleEntities(tx));
+      const hidden = await hiddenProjectIds(tx, userId);
       const rows = await tx
         .select()
         .from(changes)
         .where(
           and(
             gt(changes.seq, cursor),
+            hidden.length
+              ? or(isNull(changes.projectId), notInArray(changes.projectId, hidden))
+              : undefined,
             or(
               inArray(changes.spaceId, my),
               eq(changes.userId, userId),
@@ -147,6 +158,15 @@ export class PullService {
         .where(eq(tasks.id, taskId));
       const spaceId = task?.spaceId ?? rows[0]?.spaceId;
       if (!spaceId || !my.includes(spaceId)) throw new NotFoundException('задача не найдена');
+      // PJ-11: the history of a task of a hidden project is hidden too
+      if (task) {
+        const [{ projectId }] = await tx
+          .select({ projectId: tasks.projectId })
+          .from(tasks)
+          .where(eq(tasks.id, taskId));
+        if (!(await projectAccess(tx, userId, projectId)))
+          throw new NotFoundException('задача не найдена');
+      }
       return { rows: rows.map((r) => toWire('activity', r)) };
     });
   }

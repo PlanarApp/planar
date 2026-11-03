@@ -42,10 +42,18 @@ const level = computed<GroupLevel>(() =>
 const id = computed(() =>
   String(level.value === 'project' ? route.params.projectId : (route.params.spaceId ?? '')),
 );
-const tabs = useGroupTabs(level);
+const spaces = useSpaces();
+// C-schema v16: module tabs show for the projects of the node where the module is on (Workspace — any project)
+const scopeProjects = computed(() =>
+  level.value === 'project'
+    ? id.value
+    : level.value === 'space'
+      ? (spaces.value?.find((s) => s.id === id.value)?.projects.map((p) => p.id) ?? [])
+      : undefined,
+);
+const tabs = useGroupTabs(level, scopeProjects);
 const tab = computed(() => groupTab(route.params.view ?? route.params.tab));
 const project = useProject(() => (level.value === 'project' ? id.value : ''));
-const spaces = useSpaces();
 const rootId = useRootSpaceId();
 const ws = useWorkspace();
 const name = computed(() =>
@@ -70,7 +78,7 @@ const scope = computed<GroupScope | null>(() => {
   };
 });
 // module tab: several contributions (Reports) — sub-tabs, the selected one in ?r
-const exts = useExtensions('groupTabs');
+const exts = useExtensions('groupTabs', scopeProjects);
 const parts = computed(() => exts.value.filter((x) => x.tab === tab.value));
 const part = computed(() => parts.value.find((x) => x.key === route.query.r) ?? parts.value[0]);
 const text = (l: LocalizedText) =>
@@ -126,7 +134,7 @@ const icons = {
       v-if="name"
       :aria-label="t('groups.tabs')"
       data-testid="group-tabs"
-      class="flex shrink-0 gap-1 overflow-x-auto border-b border-border px-2"
+      class="relative flex shrink-0 gap-1 overflow-x-auto border-b border-border px-2"
     >
       <template v-for="k in tabs" :key="k">
         <RouterLink

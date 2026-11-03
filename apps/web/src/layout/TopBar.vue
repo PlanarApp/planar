@@ -21,6 +21,7 @@ import FavStar from '../ui/FavStar.vue';
 import { groupUrl } from './groups';
 import SyncStatus from './SyncStatus.vue';
 import { useProject, useSpaces, useWorkspace } from '../tasks/queries';
+import { setSidebarMode, sidebarMode } from './sidebarWidth';
 import { favorites, mobileNav, useUserMenu, type FavRef } from './nav';
 
 const { t } = useI18n();
@@ -103,6 +104,13 @@ const fav = computed<FavRef | null>(() =>
     class="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-bg px-3 max-md:gap-0 max-md:px-1 max-md:[&_button.h-11]:h-9 max-md:[&_button.size-11]:size-9"
   >
     <IconButton v-if="isMobile" :icon="PanelLeft" :label="t('topbar.nav')" @click="openNav" />
+    <IconButton
+      v-else-if="sidebarMode === 'hidden'"
+      :icon="PanelLeft"
+      :label="t('sidebar.expandBar')"
+      data-testid="sidebar-show"
+      @click="setSidebarMode('full')"
+    />
     <span
       class="flex min-w-0 flex-1 items-center gap-1 px-1 text-sm font-medium"
       data-testid="topbar-node"

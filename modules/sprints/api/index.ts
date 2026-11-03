@@ -19,6 +19,9 @@ const closeCycle = (api: JobApi, id: string, nextId: string) =>
     },
   });
 
+/** C-schema v16: cycles close only in projects where the module is on. */
+const on = sql`exists (select 1 from projects p where p.id = ${sprintsCycles.projectId} and 'sprints' = any(p.modules))`;
+
 const due = (endDate: string, timezone?: string) => endDate < todayIn(timezone ?? 'UTC');
 
 const jobs = [
@@ -34,7 +37,7 @@ const jobs = [
         })
         .from(sprintsCycles)
         .innerJoin(sprintsSettings, eq(sprintsSettings.id, sprintsCycles.projectId))
-        .where(and(isNull(sprintsCycles.closedAt), eq(sprintsSettings.enabled, true)));
+        .where(and(isNull(sprintsCycles.closedAt), eq(sprintsSettings.enabled, true), on));
       for (const r of rows)
         if (due(r.endDate, r.tz))
           await api.enqueue('sprints.close-cycle', { cycleId: r.id }, { singletonKey: r.id });
@@ -53,7 +56,7 @@ const jobs = [
         })
         .from(sprintsCycles)
         .innerJoin(sprintsSettings, eq(sprintsSettings.id, sprintsCycles.projectId))
-        .where(eq(sprintsCycles.id, data.cycleId));
+        .where(and(eq(sprintsCycles.id, data.cycleId), on));
       // the date could have shifted after the task was enqueued
       if (!r || r.closedAt || !due(r.endDate, r.tz)) return;
       await closeCycle(api, data.cycleId, uuidv7());

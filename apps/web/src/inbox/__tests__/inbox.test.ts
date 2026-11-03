@@ -246,7 +246,7 @@ describe('inbox:my', () => {
   it('inbox:my только мои', async () => {
     await add(1, {});
     await add(2, {}, bob);
-    const w = mount(MyScreen, { global: g });
+    const w = mount(MyScreen, { global: { plugins: [i18n, router.current] } });
     await vi.waitFor(() => expect(w.findAll('[data-testid=my-row]')).toHaveLength(1));
     expect(w.text()).toContain('T1');
   });
@@ -255,7 +255,7 @@ describe('inbox:my', () => {
     await add(2, { dueDate: day(0) });
     await add(3, { dueDate: day(30) });
     await add(4, {});
-    const w = mount(MyScreen, { global: g });
+    const w = mount(MyScreen, { global: { plugins: [i18n, router.current] } });
     await vi.waitFor(() => expect(w.findAll('[data-testid=my-row]')).toHaveLength(4));
     expect(w.findAll('section').map((s) => s.attributes('data-group'))).toEqual([
       'overdue',
@@ -267,7 +267,7 @@ describe('inbox:my', () => {
   it('inbox:my завершённые скрыты', async () => {
     await add(1, { statusId: sDone });
     await add(2, {});
-    const w = mount(MyScreen, { global: g });
+    const w = mount(MyScreen, { global: { plugins: [i18n, router.current] } });
     await vi.waitFor(() => expect(w.findAll('[data-testid=my-row]')).toHaveLength(1));
     expect(w.text()).toContain('T2');
   });

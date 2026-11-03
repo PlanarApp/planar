@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import en from '../../i18n/en';
 import ru from '../../i18n/ru';
-import { AssigneePicker, DueDatePicker, PriorityPicker, StatusPicker } from '../index';
+import { AssigneePicker, DueDatePicker, LabelPicker, PriorityPicker, StatusPicker } from '../index';
 import { ids, reset } from './data';
 
 beforeEach(reset);
@@ -82,6 +82,31 @@ describe('tasks:pickers', () => {
     await open(w);
     expect(document.body.querySelector('[role="listbox"]')).not.toBeNull();
     w.unmount();
+  });
+  it('LabelPicker PJ-5: «Создать» только для новой метки и только с projectId', async () => {
+    const type = async (v: string) => {
+      const input = document.body
+        .querySelector('[role="listbox"]')!
+        .parentElement!.querySelector('input')!;
+      input.value = v;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await flushPromises();
+    };
+    const w = mount(LabelPicker, {
+      ...opts,
+      props: { spaceId: ids.space, projectId: ids.project, modelValue: [] },
+    });
+    await open(w);
+    await type('new-one');
+    expect(document.body.textContent).toContain('Создать «new-one»');
+    await type('BUG'); // exists (case-insensitive)
+    expect(document.body.textContent).not.toContain('Создать');
+    w.unmount();
+    const s = mount(LabelPicker, { ...opts, props: { spaceId: ids.space, modelValue: [] } });
+    await open(s);
+    await type('new-one');
+    expect(document.body.textContent).not.toContain('Создать');
+    s.unmount();
   });
   it('DueDatePicker: ленивый Popover, клик открывает поле даты', async () => {
     const w = mount(DueDatePicker, { ...opts, props: { modelValue: null } });

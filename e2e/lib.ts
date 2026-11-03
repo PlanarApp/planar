@@ -62,10 +62,17 @@ export class Client {
     return { id: ++this.mid, name, args };
   }
 
+  /** The server takes <=100 mutations per push: cut into batches in order. */
   async push(mutations: Mutation[]): Promise<PushResult[]> {
-    const r = await this.ctx.post('/sync/push', { data: { clientId: this.clientId, mutations } });
-    if (!r.ok()) throw new Error(`push: ${r.status()} ${await r.text()}`);
-    return (await r.json()).results;
+    const out: PushResult[] = [];
+    for (let i = 0; i < mutations.length || i === 0; i += 100) {
+      const r = await this.ctx.post('/sync/push', {
+        data: { clientId: this.clientId, mutations: mutations.slice(i, i + 100) },
+      });
+      if (!r.ok()) throw new Error(`push: ${r.status()} ${await r.text()}`);
+      out.push(...(await r.json()).results);
+    }
+    return out;
   }
 
   /** Send and make sure all of them are accepted. */

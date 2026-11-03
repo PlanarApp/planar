@@ -6,7 +6,7 @@ import { deleteTask, setAssignees, updateTask } from '../tasks';
 import { quickCreate } from './hotkeys';
 import { setLocale } from '../i18n';
 import { useTheme } from '../ui';
-import { useExtensions } from '../modules/registry';
+import { enabledForProject, useExtensions } from '../modules/registry';
 import type { CommandCtx } from '../modules/types';
 
 export interface Cmd {
@@ -80,7 +80,7 @@ export async function buildCommands(o: {
     };
     if (first) {
       const [st, ms] = await Promise.all([
-        db.table<Row<'statuses'>>('statuses').where('spaceId').equals(first.spaceId).toArray(),
+        db.table<Row<'statuses'>>('statuses').where('projectId').equals(first.projectId).toArray(),
         db
           .table<Row<'spaceMembers'>>('spaceMembers')
           .where('spaceId')
@@ -93,7 +93,22 @@ export async function buildCommands(o: {
           id: `sel:status:${s.id}`,
           label: `${t('tasks.status')}: ${s.name}`,
           group: gSel,
-          run: each((id) => updateTask(id, { statusId: s.id })),
+          // selected tasks may belong to other projects: the same-named status of the task's own project
+          run: each(async (id) => {
+            const task = await db.table<Row<'tasks'>>('tasks').get(id);
+            if (!task) return;
+            const own =
+              task.projectId === s.projectId
+                ? s
+                : (
+                    await db
+                      .table<Row<'statuses'>>('statuses')
+                      .where('projectId')
+                      .equals(task.projectId)
+                      .toArray()
+                  ).find((x) => x.name.trim().toLowerCase() === s.name.trim().toLowerCase());
+            if (own) await updateTask(id, { statusId: own.id });
+          }),
         });
       for (const u of us)
         if (u && !u.deactivatedAt)
@@ -154,7 +169,8 @@ export async function buildCommands(o: {
   const txt = (x: string | { ru: string; en: string }) =>
     typeof x === 'string' ? t(x) : x[o.locale as 'ru' | 'en'];
   for (const c of o.ext)
-    if (!c.when || c.when(ctx))
+    // C-schema v16: in a project — only commands of the modules that are on there
+    if ((!projectId || enabledForProject(c.moduleId, projectId)) && (!c.when || c.when(ctx)))
       out.push({
         id: c.key,
         label: txt(c.label),

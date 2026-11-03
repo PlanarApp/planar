@@ -86,6 +86,7 @@ const empty = 'text-fg-subtle opacity-60';
       <LabelPicker
         v-else
         :space-id="spaceId"
+        :project-id="task.projectId"
         :model-value="task.labelIds"
         @update:model-value="setLabels(task.id, $event)"
         ><template #value>

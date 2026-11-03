@@ -27,7 +27,10 @@ test('cold import', async ({ browser }) => {
 test('cold chat', async ({ browser }) => {
   const page = await loginAs(browser, 'admin');
   await page.goto('/m/chat/');
-  await expect(page.getByTestId('chat-page')).toBeVisible();
+  // chat-page wraps the empty-selection text, so both match: take the first
+  await expect(
+    page.getByTestId('chat-page').or(page.getByText('Выберите канал или диалог')).first(),
+  ).toBeVisible();
   await expect(stub(page)).toHaveCount(0);
 });
 test('cold chat channel', async ({ browser }) => {

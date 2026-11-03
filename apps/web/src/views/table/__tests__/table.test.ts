@@ -260,7 +260,6 @@ describe('table', () => {
 
     it('table-fields: колонки полей «Вида» — по options.fields, без своего выбора колонок', async () => {
       await show({ fields: ['status', 'labels'] });
-      expect(w.findAll('button').some((b) => b.text() === 'Колонки')).toBe(false);
       const ids = w.findAll('[role=columnheader]').map((h) => h.attributes('data-col'));
       expect(ids).toContain('status');
       expect(ids).toContain('labels');
@@ -381,6 +380,26 @@ describe('wk7b: раскладка в сохранённом виде', () => {
     const ev = w.emitted('update:options')!;
     expect((ev.at(-1)![0] as ViewOptions).columns!.map((c) => c.id)).toEqual(['title', 'status']);
     expect(localStorage.getItem(lsKey)).toBeNull();
+  });
+  it('меню «Колонки»: «Дата начала» и поле «Вида» включаются и пишутся в опции вида', async () => {
+    await show({ fields: ['status'], columns: [{ id: 'title', width: 300 }] });
+    await w.setProps({ saved: true });
+    await w
+      .findAll('button')
+      .find((b) => b.text() === 'Колонки')!
+      .trigger('click');
+    await flushPromises();
+    for (const name of ['Начало', 'Метки']) {
+      const box = [...document.body.querySelectorAll('label')]
+        .find((l) => l.textContent!.trim() === name)!
+        .querySelector('input')!;
+      box.checked = true;
+      box.dispatchEvent(new Event('change'));
+      await flushPromises();
+    }
+    const o = w.emitted('update:options')!.at(-1)![0] as ViewOptions;
+    expect(o.columns!.map((c) => c.id)).toContain('startDate');
+    expect(o.fields).toEqual(['status', 'labels']);
   });
   it('wk7b: на вкладке проекта правка пишет localStorage', async () => {
     await show();

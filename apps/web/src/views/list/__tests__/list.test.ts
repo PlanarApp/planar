@@ -456,3 +456,40 @@ describe('list:newTaskMenu', () => {
     expect(trigger().exists()).toBe(false);
   });
 });
+
+describe('PJ-8', () => {
+  it('PJ-8 включённые поля видны и при пустом значении (колонки в строке)', async () => {
+    await db.table('tasks').put(task(1));
+    await show({ fields: ['status', 'project', 'assignee', 'priority', 'dueDate', 'labels'] });
+    for (const c of ['project', 'assignee', 'priority', 'dueDate', 'labels'])
+      expect(row('PLN-1').find(`[data-col=${c}]`).exists()).toBe(true);
+  });
+  it('PJ-8 поле «Проект» показывает имя проекта', async () => {
+    await db.table('tasks').put(task(1));
+    await show({ fields: ['status', 'project'] });
+    const name = (await db.table('projects').get(ids.project)).name;
+    expect(row('PLN-1').get('[data-col=project]').text()).toBe(name);
+  });
+  it('PJ-8 мобильная карточка: пустые включённые поля остаются', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener() {} }) as never;
+    resetBreakpoint();
+    await db.table('tasks').put(task(1));
+    await show({ fields: ['status', 'priority', 'dueDate', 'labels', 'assignee'] });
+    // status icon + 4 empty-field icons
+    expect(row('PLN-1').findAll('svg').length).toBeGreaterThanOrEqual(5);
+  });
+  it('PJ-8 мобильная карточка: «Проект» — имя проекта, а не иконка папки', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener() {} }) as never;
+    resetBreakpoint();
+    await db.table('tasks').put(task(1));
+    await show({ fields: ['status', 'project'] });
+    const name = (await db.table('projects').get(ids.project)).name;
+    expect(row('PLN-1').get('[data-testid=card-project]').text()).toBe(name);
+  });
+  it('PJ-8 умолчание: у не-проекта «Проект» включён, у проекта нет; явный набор не меняется', async () => {
+    const { optionsFrom } = await import('../../options');
+    expect(optionsFrom(undefined).fields).not.toContain('project');
+    expect(optionsFrom(undefined, true).fields).toContain('project');
+    expect(optionsFrom({ fields: ['status'] }, true).fields).toEqual(['status']);
+  });
+});

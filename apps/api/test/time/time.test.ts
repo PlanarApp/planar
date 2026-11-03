@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { uuidv7 } from '@planar/shared';
+import { DATA_MODULE_IDS, uuidv7 } from '@planar/shared';
 import { timeEntries, timeEstimates } from '@planar/module-time/api/schema';
 import * as schema from '../../src/db/schema.js';
 import {
@@ -28,10 +28,6 @@ const start = (c: TestClient, id = uuidv7(), t = taskId, extra = {}) =>
 
 beforeAll(async () => {
   w = await world(db);
-  await db
-    .insert(schema.settings)
-    .values({ id: 'enabled_modules', value: ['time'] })
-    .onConflictDoUpdate({ target: schema.settings.id, set: { value: ['time'] } });
   taskId = uuidv7();
   sub = uuidv7();
   await w.admin.ok('task.create', taskArgs(w, { id: taskId }));
@@ -292,22 +288,19 @@ describe('wk1: time', () => {
     expect(boot.data).toHaveProperty('timeEstimates');
   });
 
-  it('wk1: модуль выключен — мутаторы unknown_mutator', async () => {
-    await db
-      .update(schema.settings)
-      .set({ value: [] })
-      .where(eq(schema.settings.id, 'enabled_modules'));
+  it('PJ-3 wk1: модуль выключен в проекте — мутаторы conflict module_disabled, строки остаются видимыми', async () => {
+    const set = (modules: string[]) =>
+      db.update(schema.projects).set({ modules }).where(eq(schema.projects.id, w.projectId));
+    await set([]);
     try {
       expect(await w.member.push('time.start', { id: uuidv7(), taskId })).toMatchObject({
         ok: false,
-        code: 'unknown_mutator',
+        code: 'conflict',
+        message: expect.stringContaining('module_disabled'),
       });
-      expect((await w.member.bootstrap()).data).not.toHaveProperty('timeEntries');
+      expect((await w.member.bootstrap()).data).toHaveProperty('timeEntries');
     } finally {
-      await db
-        .update(schema.settings)
-        .set({ value: ['time'] })
-        .where(eq(schema.settings.id, 'enabled_modules'));
+      await set([...DATA_MODULE_IDS]);
     }
   });
 });

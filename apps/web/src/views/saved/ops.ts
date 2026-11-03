@@ -7,6 +7,8 @@ import type { ViewOptions } from '../options';
 const plain = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
 export async function saveView(a: {
+  /** stable client id (autosave of a node view retries the same row) */
+  id?: string;
   spaceId: string;
   personal: boolean;
   name: string;
@@ -17,7 +19,7 @@ export async function saveView(a: {
   filter: Filter | null;
   config: ViewOptions;
 }): Promise<string> {
-  const id = newId();
+  const id = a.id ?? newId();
   let last: string | null = null;
   await db
     .table<Row<'savedViews'>>('savedViews')
@@ -40,5 +42,20 @@ export const updateView = (
   id: string,
   p: { name?: string; icon?: string | null; filter?: Filter; config?: ViewOptions },
 ): Promise<void> => mutate('view.update', { id, ...plain(p) });
+
+/** "Save for all": the shared default of a node tab; my personal row of it goes away. */
+export const setNodeDefault = (a: {
+  spaceId: string;
+  node: string;
+  layout: string;
+  filter: Filter | null;
+  config: ViewOptions;
+}): Promise<void> =>
+  mutate('view.setNodeDefault', {
+    id: newId(),
+    ...a,
+    filter: plain(a.filter ?? { op: 'and', rules: [] }),
+    config: plain(a.config),
+  });
 
 export const deleteView = (id: string): Promise<void> => mutate('view.delete', { id });

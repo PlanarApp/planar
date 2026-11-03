@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { useQuery } from '../query';
 import { FakeServer, FakeWebSocket } from './fake-server';
-import { NOW, SPACE, USER, label, labels, setup, stopAll, testMutators } from './helpers';
+import { NOW, PROJECT, SPACE, USER, label, labels, setup, stopAll, testMutators } from './helpers';
 
 const until = async (f: () => boolean | Promise<boolean>, ms = 2000) => {
   const t = Date.now();
@@ -14,7 +14,13 @@ const until = async (f: () => boolean | Promise<boolean>, ms = 2000) => {
     await new Promise((r) => setTimeout(r, 5));
   }
 };
-const args = (name: string, id = uuidv7()) => ({ id, spaceId: SPACE, name, color: '#000' });
+const args = (name: string, id = uuidv7()) => ({
+  id,
+  spaceId: SPACE,
+  projectId: PROJECT,
+  name,
+  color: '#000',
+});
 
 afterEach(stopAll);
 

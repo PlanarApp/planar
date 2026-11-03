@@ -120,7 +120,7 @@ describe('views:project', () => {
     expect(w.get('[aria-selected=true]').text()).toBe('Доска');
   });
 
-  it('?task открывает и закрывает панель; mobile — ведёт на /t/<key>', async () => {
+  it('PJ-9: ?task открывает и закрывает панель; mobile — тот же ?task поверх вида', async () => {
     const w = mountScreen();
     await flushPromises();
     openTask('PRJ-1');
@@ -133,7 +133,11 @@ describe('views:project', () => {
     mockMq(true);
     openTask('PRJ-2');
     await flushPromises();
-    expect(r.currentRoute.value.path).toBe('/t/PRJ-2');
+    expect(r.currentRoute.value.path).toBe(`/p/${project}`);
+    expect(r.currentRoute.value.query.task).toBe('PRJ-2');
+    await vi.waitFor(() => expect(w.find('[data-testid=panel]').exists()).toBe(true));
+    closeTask();
+    await flushPromises();
   });
 
   it('режим «страница» ведёт на /t/<key> и на десктопе', async () => {

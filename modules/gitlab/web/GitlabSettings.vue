@@ -59,7 +59,7 @@ const run = (p: Promise<unknown>) => p.catch(() => {});
 
 const project = computed(() => (projects.value ?? []).find((p) => p.id === props.projectId));
 const spaceStatuses = computed(() =>
-  (statuses.value ?? []).filter((s) => s.spaceId === project.value?.spaceId),
+  (statuses.value ?? []).filter((s) => s.projectId === project.value?.id),
 );
 const setMerged = (v: string) =>
   mutate('gitlab.setMergedStatus', { projectId: props.projectId, statusId: v || null }).catch(

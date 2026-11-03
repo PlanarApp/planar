@@ -33,7 +33,7 @@ describe('мутаторы через push: права', () => {
     const w = await world(db);
     const args = () => ({
       id: uuidv7(),
-      spaceId: w.spaceId,
+      projectId: w.projectId,
       name: 'Review',
       category: 'todo',
       color: '#fff',
@@ -180,7 +180,7 @@ describe('мутаторы через push: данные', () => {
     const labelId = uuidv7();
     await w.member.ok('label.create', {
       id: labelId,
-      spaceId: w.spaceId,
+      projectId: w.projectId,
       name: 'bug',
       color: '#f00',
     });
@@ -227,7 +227,7 @@ describe('activity', () => {
     const labelId = uuidv7();
     await w.member.ok('label.create', {
       id: labelId,
-      spaceId: w.spaceId,
+      projectId: w.projectId,
       name: 'bug',
       color: '#f00',
     });

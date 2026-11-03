@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { code, ctx, id, mem, run, seedSpace, seedTask, T1, U1, U2 } from './helpers';
+import { addProject, code, ctx, id, mem, run, seedSpace, seedTask, T1, U1, U2 } from './helpers';
 
 const setup = async () => {
   const tx = mem();
@@ -84,7 +84,7 @@ describe('task.create', () => {
   it('статус done → completedAt = now; assignees и labels создаются', async () => {
     const { tx, s } = await setup();
     const l = id();
-    await run(tx, 'label.create', { id: l, spaceId: s.spaceId, name: 'b', color: '#000' });
+    await run(tx, 'label.create', { id: l, projectId: s.projectId, name: 'b', color: '#000' });
     const t = await seedTask(tx, s, {
       statusId: s.statusIds[3],
       priority: 4,
@@ -126,7 +126,7 @@ describe('task.create', () => {
     expect(await code(run(tx, 'task.create', { ...a, parentId: t2 }))).toBe('invalid_args');
     expect(await code(run(tx, 'task.create', { ...a, parentId: a.id }))).toBe('not_found');
     const l2 = id();
-    await run(tx, 'label.create', { id: l2, spaceId: s2.spaceId, name: 'b', color: '#000' });
+    await run(tx, 'label.create', { id: l2, projectId: s2.projectId, name: 'b', color: '#000' });
     expect(await code(run(tx, 'task.create', { ...a, labels: [{ id: id(), labelId: l2 }] }))).toBe(
       'invalid_args',
     );
@@ -177,13 +177,7 @@ describe('task.update', () => {
     await run(tx, 'task.update', { id: t, projectId: s.projectId });
     expect((await tx.get('tasks', t))!.number).toBe(7);
     const p2 = id();
-    await run(tx, 'project.create', {
-      id: p2,
-      spaceId: s.spaceId,
-      name: 'P2',
-      key: 'PTWO',
-      rank: 'a1',
-    });
+    await addProject(tx, s.spaceId, p2, 'PTWO', 'a1');
     await run(tx, 'task.update', { id: t, projectId: p2 });
     expect(await tx.get('tasks', t)).toMatchObject({ projectId: p2, number: null });
     const s2 = await seedSpace(tx);
@@ -218,7 +212,7 @@ describe('task.delete и связи', () => {
     const { tx, s, t } = await setup();
     const c = await seedTask(tx, s, { parentId: t });
     const l = id();
-    await run(tx, 'label.create', { id: l, spaceId: s.spaceId, name: 'b', color: '#000' });
+    await run(tx, 'label.create', { id: l, projectId: s.projectId, name: 'b', color: '#000' });
     for (const x of [t, c]) {
       await run(tx, 'task.assign', { id: id(), taskId: x, userId: U2 });
       await run(tx, 'task.watch', { id: id(), taskId: x });
@@ -281,13 +275,13 @@ describe('task.delete и связи', () => {
   it('addLabel/removeLabel: метка того же пространства, идемпотентно', async () => {
     const { tx, s, t } = await setup();
     const l = id();
-    await run(tx, 'label.create', { id: l, spaceId: s.spaceId, name: 'b', color: '#000' });
+    await run(tx, 'label.create', { id: l, projectId: s.projectId, name: 'b', color: '#000' });
     await run(tx, 'task.addLabel', { id: id(), taskId: t, labelId: l });
     await run(tx, 'task.addLabel', { id: id(), taskId: t, labelId: l });
     expect(await tx.scan('taskLabels')).toHaveLength(1);
     const s2 = await seedSpace(tx);
     const l2 = id();
-    await run(tx, 'label.create', { id: l2, spaceId: s2.spaceId, name: 'b', color: '#000' });
+    await run(tx, 'label.create', { id: l2, projectId: s2.projectId, name: 'b', color: '#000' });
     expect(await code(run(tx, 'task.addLabel', { id: id(), taskId: t, labelId: l2 }))).toBe(
       'invalid_args',
     );

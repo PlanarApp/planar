@@ -12,7 +12,7 @@ export {
   useTask,
 } from './queries';
 export type { TaskView } from './queries';
-export { groupTasks } from './group';
+export { groupTasks, labelColumns } from './group';
 export type { GroupBy, TaskGroup } from './group';
 export { sortTasks } from './sort';
 export type { SortBy } from './sort';

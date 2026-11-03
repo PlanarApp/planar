@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { useExtensions } from '../modules/registry';
+import { enabledForProject, useExtensions } from '../modules/registry';
 import type { GroupScope, LocalizedText } from '../modules/types';
 import { useAuth } from '../auth/useAuth';
 import { onMutationError } from '../sync';
@@ -17,10 +17,11 @@ const SECTIONS = {
   spaces: { c: lazy('Spaces'), level: 'workspace' },
   members: { c: lazy('Members'), space: true, level: 'space' },
   projects: { c: lazy('Projects'), space: true, level: 'space' },
-  statuses: { c: lazy('Statuses'), space: true, level: 'space' },
-  labels: { c: lazy('Labels'), space: true, level: 'space' },
+  statuses: { c: lazy('Statuses'), level: 'project' },
+  labels: { c: lazy('Labels'), level: 'project' },
   fields: { c: lazy('Fields'), level: 'project' },
-  modules: { c: lazy('Modules'), level: 'workspace' },
+  modules: { c: lazy('Modules'), level: 'project' },
+  projectMembers: { c: lazy('ProjectMembers'), level: 'project' },
   users: { c: UsersSettings, admin: true, level: 'workspace' },
 } as const satisfies Record<
   string,
@@ -48,8 +49,20 @@ const builtin = computed(() =>
 );
 // pages of enabled modules (section = <moduleId>:<id>) — after the built-in ones
 const modPages = useExtensions('settings');
+// C-schema v16: a data module's page shows if the module is on in the project / in a project of the space / anywhere (Workspace)
+const scopeProjects = (l: Level | undefined) =>
+  l === 'project'
+    ? (props.scope?.projectId ?? undefined)
+    : l === 'space'
+      ? spaces.value?.find((s) => s.id === props.scope?.spaceId)?.projects.map((p) => p.id)
+      : undefined;
 const pages = computed(() =>
-  modPages.value.filter((p) => (isAdmin.value || !p.adminOnly) && atLevel(p.level)),
+  modPages.value.filter(
+    (p) =>
+      (isAdmin.value || !p.adminOnly) &&
+      atLevel(p.level) &&
+      enabledForProject(p.moduleId, scopeProjects(p.level)),
+  ),
 );
 const label = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;

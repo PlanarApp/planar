@@ -3,19 +3,22 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button, Input } from '../../ui';
 import { mutate, newId } from '../../sync';
-import { useLabels } from '../../tasks';
+import { useLabels, useProject } from '../../tasks';
 import ColorPicker from './ColorPicker.vue';
+import CopyFrom from './CopyFrom.vue';
 import { COLORS } from './colors';
 import RowMenu from './RowMenu.vue';
 import SectionHeader from './SectionHeader.vue';
 import { useAction, useAdminSpaces } from './shared';
 
-const props = defineProps<{ spaceId: string }>();
+const props = defineProps<{ projectId: string }>();
 const { t } = useI18n();
 const { error, run } = useAction();
 const isAdmin = useAdminSpaces();
-const canEdit = computed(() => isAdmin(props.spaceId));
-const labels = useLabels(() => props.spaceId);
+const project = useProject(() => props.projectId);
+const spaceId = computed(() => project.value?.spaceId ?? '');
+const canEdit = computed(() => isAdmin(spaceId.value));
+const labels = useLabels(spaceId, () => props.projectId);
 const name = ref('');
 const color = ref(COLORS[0]);
 
@@ -24,7 +27,7 @@ const create = () =>
   run(async () => {
     await mutate('label.create', {
       id: newId(),
-      spaceId: props.spaceId,
+      projectId: props.projectId,
       name: name.value.trim(),
       color: color.value,
     });
@@ -41,6 +44,7 @@ const create = () =>
         <Button type="submit" variant="primary" size="sm">{{ t('auth.create') }}</Button>
       </form>
     </SectionHeader>
+    <CopyFrom v-if="canEdit" :project-id="projectId" kind="labels" />
     <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
     <ul class="flex flex-col divide-y divide-border">
       <li

@@ -4,6 +4,7 @@ import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { MutatorError, uuidv7, type EntityName, type Row, type Tx } from '@planar/shared';
 import * as schema from '../db/schema.js';
 import { installed } from '../modules/installed.js';
+import { hiddenProjectIds, projectAccess, projectOfWire, PROJECT_RANK } from './project-access.js';
 import { allMetas, metaOf, schemaOf, tableOf, toWire } from './rows.js';
 
 /** Drizzle transaction (or a connection inside a manual BEGIN). */
@@ -52,7 +53,13 @@ const stable = (v: unknown): string =>
 export class ServerTx implements Tx {
   private roles = new Map<string, number>();
   private created = new Set<string>();
+  /** Projects created by this transaction: their creator initializes the project's statuses (PJ-1). */
+  private createdProjects = new Set<string>();
   private instanceRole?: string;
+  /** PJ-11: project of a row (`entity:id` -> project id), the user's role in a project (0 — none), projects hidden from the user. */
+  private projectOf = new Map<string, string | null>();
+  private projectRanks = new Map<string, number>();
+  private hidden?: Set<string>;
   private locked = false;
   private lastSeq = 0;
   /** Records of this mutation (for the notification hook). */
@@ -82,7 +89,8 @@ export class ServerTx implements Tx {
     this.locked = true;
   }
 
-  async get<E extends EntityName>(entity: E, id: string): Promise<Row<E> | undefined> {
+  /** The row as is, even in a project hidden from the user (put/patch check it in authorize). */
+  private async rawGet<E extends EntityName>(entity: E, id: string): Promise<Row<E> | undefined> {
     await this.lock();
     const t = tableOf(entity);
     const [r] = await this.exec(() =>
@@ -95,6 +103,44 @@ export class ServerTx implements Tx {
     return r ? (toWire(entity, r) as Row<E>) : undefined;
   }
 
+  /** PJ-11: a row of a project hidden from the user does not exist for the mutator. */
+  async get<E extends EntityName>(entity: E, id: string): Promise<Row<E> | undefined> {
+    const r = await this.rawGet(entity, id);
+    return r && (await this.isHidden(entity, r)) ? undefined : r;
+  }
+
+  private async hiddenSet(): Promise<Set<string>> {
+    return (this.hidden ??= new Set(await hiddenProjectIds(this.q, this.ctx.userId)));
+  }
+
+  private async isHidden(entity: string, row: Wire): Promise<boolean> {
+    if (this.opts.system || !(await this.hiddenSet()).size) return false;
+    const pid = await this.projectIdOf(entity, row);
+    return !!pid && (await this.hiddenSet()).has(pid);
+  }
+
+  private async projectIdOf(entity: string, row: Wire): Promise<string | null> {
+    return projectOfWire(this.q, entity, row, this.projectOf);
+  }
+
+  /** Rank of the user's role in the project (0 — no access); cached per mutation. */
+  private async projectRank(projectId: string): Promise<number> {
+    let r = this.projectRanks.get(projectId);
+    if (r === undefined) {
+      r = PROJECT_RANK[(await projectAccess(this.q, this.ctx.userId, projectId)) ?? ''] ?? 0;
+      this.projectRanks.set(projectId, r);
+    }
+    return r;
+  }
+
+  /** Writes to projects / projectMembers / spaceMembers change who sees what: drop the caches. */
+  private accessChanged(entity: string) {
+    if (['projects', 'projectMembers', 'spaceMembers'].includes(entity)) {
+      this.projectRanks.clear();
+      this.hidden = undefined;
+    }
+  }
+
   /** extra — "DB-only" columns (users.passwordHash): written to the row, not into changes. */
   async put<E extends EntityName>(
     entity: E,
@@ -102,7 +148,7 @@ export class ServerTx implements Tx {
     extra?: Record<string, unknown>,
   ): Promise<void> {
     const next = this.parse(entity, row);
-    await this.save(entity, next, await this.get(entity, next.id as string), extra);
+    await this.save(entity, next, await this.rawGet(entity, next.id as string), extra);
   }
 
   async patch<E extends EntityName>(
@@ -125,7 +171,9 @@ export class ServerTx implements Tx {
     await this.log(entity, 'del', old);
     await this.memberChange(entity, old, 'del');
     this.writes.push({ entity, op: 'del', before: old });
-    if (entity === 'spaceMembers') await this.reset(old.userId as string);
+    this.accessChanged(entity);
+    if (entity === 'spaceMembers' || entity === 'projectMembers')
+      await this.reset(old.userId as string);
     await this.activity(entity, old, undefined);
   }
 
@@ -143,7 +191,12 @@ export class ServerTx implements Tx {
         .from(t)
         .where(opts ? eq(getTableColumns(t)[opts.index], opts.eq) : undefined),
     );
-    return rows.map((r) => toWire(entity, r) as Row<E>);
+    const out: Row<E>[] = [];
+    for (const r of rows) {
+      const w = toWire(entity, r) as Row<E>;
+      if (!(await this.isHidden(entity, w))) out.push(w);
+    }
+    return out;
   }
 
   private async exec<T>(fn: () => PromiseLike<T>): Promise<T> {
@@ -171,27 +224,73 @@ export class ServerTx implements Tx {
     await this.authorize(entity, old, next);
     if (entity === 'attachments' && !old) await this.checkFile(next);
     if (entity === 'settings' && next.id === 'enabled_modules')
-      await this.checkAvailable(old, next);
+      await this.checkAvailable(old?.value, next.value);
+    if (entity === 'projects') await this.checkProjectModules(old, next);
+    if (entity === 'projects') await this.checkMembersMode(old, next);
     if (entity === 'tasks' && next.number == null)
       next.number = await this.nextNumber(next.projectId as string);
     await this.store(entity, next, extra);
     if (!old) await this.memberChange(entity, next, 'put');
     this.writes.push({ entity, op: 'put', before: old, after: next });
-    if (entity === 'spaceMembers' && !old) await this.reset(next.userId as string);
+    this.accessChanged(entity);
+    // a role change (space role, instance role) changes access to custom projects: the replica is rebuilt
+    if (
+      (entity === 'spaceMembers' && (!old || old.role !== next.role)) ||
+      entity === 'projectMembers'
+    )
+      await this.reset(next.userId as string);
+    // a change of the project's composition: the replica of everyone in the space drops what it must (PJ-11)
+    if (entity === 'projects' && old && old.membersMode !== next.membersMode)
+      for (const m of await this.exec(() =>
+        this.q
+          .select({ u: schema.spaceMembers.userId })
+          .from(schema.spaceMembers)
+          .where(eq(schema.spaceMembers.spaceId, next.spaceId as string)),
+      ))
+        await this.reset(m.u);
     if (entity === 'settings' && next.id === 'enabled_modules')
       await this.log('_reset', 'put', null, next.id as string);
     await this.activity(entity, old, next);
   }
 
   /** C-mutators v5: a newly enabled module with unavailable ≠ null → invalid_args (reason code). */
-  private async checkAvailable(old: Wire | undefined, next: Wire): Promise<void> {
-    const was = Array.isArray(old?.value) ? old.value : [];
-    if (!Array.isArray(next.value)) return;
-    for (const id of next.value) {
+  private async checkAvailable(oldIds: unknown, nextIds: unknown): Promise<void> {
+    const was = Array.isArray(oldIds) ? oldIds : [];
+    if (!Array.isArray(nextIds)) return;
+    for (const id of nextIds) {
       if (was.includes(id)) continue;
       const code = await installed.find((m) => m.api.id === id)?.api.unavailable?.(this.q);
       if (code) throw new MutatorError('invalid_args', code);
     }
+  }
+
+  /** C-mutators v12: a change of projects.modules — admin of the space or instance admin; a newly enabled module must be available. */
+  private async checkProjectModules(old: Wire | undefined, next: Wire): Promise<void> {
+    // creation: any member may; the modules must be available
+    if (!old) return this.checkAvailable([], next.modules);
+    if (stable(old.modules ?? []) === stable(next.modules ?? [])) return;
+    if (!this.opts.system) {
+      const admin =
+        (await this.spaceRole(next.spaceId as string)) >= RANK.admin ||
+        ['owner', 'admin'].includes((await this.userRole())!);
+      if (!admin) throw new MutatorError('forbidden', 'projects: модули меняет администратор');
+    }
+    await this.checkAvailable(old.modules, next.modules);
+  }
+
+  /** C-mutators v14: a change of projects.membersMode — admin of the space or instance admin. */
+  private async checkMembersMode(old: Wire | undefined, next: Wire): Promise<void> {
+    if (this.opts.system) return;
+    if (!old ? next.membersMode === 'inherit' : old.membersMode === next.membersMode) return;
+    if (!(await this.isSpaceOrInstanceAdmin(next.spaceId as string)))
+      throw new MutatorError('forbidden', 'projects: состав меняет администратор');
+  }
+
+  private async isSpaceOrInstanceAdmin(spaceId: string): Promise<boolean> {
+    return (
+      (await this.spaceRole(spaceId)) >= RANK.admin ||
+      ['owner', 'admin'].includes((await this.userRole())!)
+    );
   }
 
   /** Write without rights check: upsert + changes. */
@@ -223,7 +322,8 @@ export class ServerTx implements Tx {
     return r.n;
   }
 
-  private reset(userId: string) {
+  /** `_reset` for one user: their replica is rebuilt from bootstrap. */
+  reset(userId: string) {
     return this.log('_reset', 'put', null, userId, userId);
   }
 
@@ -238,20 +338,22 @@ export class ServerTx implements Tx {
     await this.lock();
     let spaceId: string | null = null;
     let userId: string | null = resetUser ?? null;
+    let projectId: string | null = null;
     if (row && entity !== '_reset') {
       const meta = metaOf(entity);
       const scope = meta.scope;
+      projectId = await this.projectIdOf(entity, row);
       if (scope === 'space|members' && row.spaceId == null) {
         // one row per member of the container (C-sync v2); state — after the write
         for (const u of await this.memberIds(entity, row))
-          await this.append(null, u, entity, id, op, row);
+          await this.append(null, u, entity, id, op, row, projectId);
         return;
       }
       const byUser = scope === 'user' || (scope === 'space|user' && row.userId != null);
       if (byUser) userId = row.userId as string;
       else if (scope !== 'global') spaceId = (entity === 'spaces' ? row.id : row.spaceId) as string;
     }
-    await this.append(spaceId, userId, entity, id, op, op === 'put' ? row : null);
+    await this.append(spaceId, userId, entity, id, op, op === 'put' ? row : null, projectId);
   }
 
   private async append(
@@ -261,11 +363,20 @@ export class ServerTx implements Tx {
     id: string,
     op: 'put' | 'del',
     row: Wire | null,
+    projectId: string | null = null,
   ) {
     const [c] = await this.exec(() =>
       this.q
         .insert(schema.changes)
-        .values({ spaceId, userId, entity, id, op, data: op === 'put' ? row : null })
+        .values({
+          spaceId,
+          userId,
+          projectId,
+          entity,
+          id,
+          op,
+          data: op === 'put' ? row : null,
+        })
         .returning({ seq: schema.changes.seq }),
     );
     this.lastSeq = c.seq;
@@ -395,6 +506,16 @@ export class ServerTx implements Tx {
     if (this.opts.system) return;
     const w = metaOf(entity).write;
     const forbidden = (m: string) => new MutatorError('forbidden', `${entity}: ${m}`);
+    // PJ-11: a row of a project hidden from the user does not exist for them (not_found, not forbidden)
+    for (const r of [old, next])
+      if (r && (await this.isHidden(entity, r)))
+        throw new MutatorError('not_found', `${entity}: нет строки`);
+    if (entity === 'projectMembers') {
+      for (const r of [old, next])
+        if (r && !(await this.isSpaceOrInstanceAdmin(r.spaceId as string)))
+          throw forbidden('состав проекта меняет администратор');
+      return;
+    }
     if (w === 'server') throw forbidden('запись только сервером');
     if (w === 'instance_admin') {
       if (!['owner', 'admin'].includes((await this.userRole())!))
@@ -420,8 +541,27 @@ export class ServerTx implements Tx {
       }
       if (w === 'member|self' && r.userId != null && r.userId !== this.ctx.userId)
         throw forbidden('личный вид другого пользователя');
+      // project.create writes the new project's statuses (write: admin) on behalf of a member (projects.md §PJ-1)
+      if (entity === 'statuses' && this.createdProjects.has(r.projectId as string)) continue;
+      // project.setModule: an instance admin switches modules without being a member of the space (C-mutators v12)
+      if (
+        entity === 'projects' &&
+        old &&
+        next &&
+        (stable(old.modules ?? []) !== stable(next.modules ?? []) ||
+          old.membersMode !== next.membersMode) &&
+        ['owner', 'admin'].includes((await this.userRole())!)
+      )
+        continue;
       const need = RANK[w === 'member|self' ? 'member' : w];
-      if ((await this.spaceRole(spaceId)) < need) throw forbidden('нет прав на пространство');
+      // PJ-11: the role in the project is the SQL rule project_role (custom: projectMembers; admins: admin)
+      let have = await this.spaceRole(spaceId);
+      const pid =
+        have && !(entity === 'projects' && !old) ? await this.projectIdOf(entity, r) : null;
+      const pr = pid ? await this.projectRank(pid) : 0;
+      if (pr) have = pr;
+      if (have < need) throw forbidden('нет прав на пространство');
+      if (entity === 'projects' && r === next && !old) this.createdProjects.add(r.id as string);
     }
   }
 

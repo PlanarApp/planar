@@ -56,9 +56,15 @@ const sideSheet = computed(() => props.mode === 'panel' && taskOpenMode.value ==
 const { user } = useAuth();
 const router = inject(routerKey, null);
 const route = router ? useRoute() : null;
-const statuses = useStatuses(() => props.task.spaceId);
+const statuses = useStatuses(
+  () => props.task.spaceId,
+  () => props.task.projectId,
+);
 const members = useMembers(() => props.task.spaceId);
-useLabels(() => props.task.spaceId);
+useLabels(
+  () => props.task.spaceId,
+  () => props.task.projectId,
+);
 const users = useUsers();
 const watchers = useWatchers(props.task.id);
 // subtask's parent — a breadcrumb link
@@ -167,7 +173,7 @@ const onKeydown = (e: KeyboardEvent) => {
 };
 
 // --- module tabs
-const panels = useExtensions('taskPanels');
+const panels = useExtensions('taskPanels', () => props.task.projectId);
 const tab = ref<string | null>(null);
 const active = computed(() => panels.value.find((p) => p.key === tab.value) ?? null);
 const lt = (x: string | { ru: string; en: string }) =>
@@ -302,6 +308,7 @@ const panelComponent = computed(() => {
               <StatusPicker
                 :model-value="task.statusId"
                 :space-id="task.spaceId"
+                :project-id="task.projectId"
                 @update:model-value="(v?: string) => v && updateTask(task.id, { statusId: v })"
               />
             </dd>
@@ -355,6 +362,7 @@ const panelComponent = computed(() => {
               <LabelPicker
                 :model-value="task.labelIds"
                 :space-id="task.spaceId"
+                :project-id="task.projectId"
                 @update:model-value="(v: string[]) => setLabels(task.id, v)"
               />
             </dd>

@@ -11,16 +11,7 @@ import { toJson } from '../../src/collab/ydoc.js';
 import { fill } from '../../src/collab/ydoc.js';
 import { tasks, ydocs } from '../../src/db/schema.js';
 import { ORIGIN, loginCookie } from '../auth.js';
-import {
-  dbUrl,
-  doc,
-  mkUser,
-  newDb,
-  services,
-  TestClient,
-  taskArgs,
-  world,
-} from '../sync/helpers.js';
+import { dbUrl, doc, newDb, taskArgs, world } from '../sync/helpers.js';
 import type { World } from '../sync/helpers.js';
 
 const db = newDb();
@@ -28,14 +19,11 @@ let app: Awaited<ReturnType<typeof createApp>>;
 let w: World;
 let port: number;
 let svc: CollabService;
-let ia: TestClient;
 const cookies: Record<string, string> = {};
 const providers: HocuspocusProvider[] = [];
 
 beforeAll(async () => {
   w = await world(db);
-  ia = new TestClient(services(db), await mkUser(db, 'admin'));
-  await ia.ok('settings.set', { id: 'enabled_modules', value: ['docs'] });
   process.env.COLLAB_DEBOUNCE_MS = '100';
   app = await createApp({ databaseUrl: dbUrl, publicUrl: ORIGIN });
   await app.listen(0, '127.0.0.1');
@@ -322,15 +310,25 @@ describe('pt1a', () => {
     await w.admin.ok('docs.page.archive', { id });
     await until(() => !svc.hp.documents.get(name)?.getConnectionsCount());
 
-    const id2 = await mkPage();
+    // PJ-3: docs is switched off in the page's project
+    const id2 = uuidv7();
+    await w.member.ok('docs.page.create', {
+      id: id2,
+      spaceId: w.spaceId,
+      projectId: w.projectId,
+      rank: 'a0',
+      body: doc('start'),
+    });
     const name2 = `docs:${id2}`;
     const b = open('member', name2);
     await until(() => b.state.synced);
-    await ia.ok('settings.set', { id: 'enabled_modules', value: [] });
+    const set = (enabled: boolean) =>
+      w.admin.ok('project.setModule', { projectId: w.projectId, moduleId: 'docs', enabled });
+    await set(false);
     try {
       await until(() => !svc.hp.documents.get(name2)?.getConnectionsCount());
     } finally {
-      await ia.ok('settings.set', { id: 'enabled_modules', value: ['docs'] });
+      await set(true);
     }
   });
 });
