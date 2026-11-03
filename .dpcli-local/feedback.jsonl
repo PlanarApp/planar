@@ -311,3 +311,4 @@
 {"t": "2026-11-03T14:00:49", "id": "F-22", "kind": "cluster", "title": "write guard rejects heredoc and in-place shell edits, costing a round", "match": "bash_guard|heredoc|cat ?>|sed -i|perl -i", "scope": "dpcli", "why": "executors repeatedly lose a round rewriting the edit via Read+Edit"}
 {"t": "2026-11-03T14:00:50", "id": "F-23", "kind": "cluster", "title": "job wait is cut by the tool timeout on long runs", "match": "job wait.*(обрез|таймаут|600|timeout)|поллить job", "scope": "dpcli", "why": "runs over 10 minutes force agents to poll job status by hand"}
 {"t": "2026-11-03T14:25:22", "id": "F-9", "kind": "fix", "where": "dev.sh stack/e2e-web, .dpcli-local/workflow.md"}
+{"t": "2026-11-03T17:41:27", "id": "F-22", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/30"}
