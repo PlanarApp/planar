@@ -1,1 +1,2 @@
 {"t": "2026-11-03T14:25:24", "by": "main", "task": null, "ev": "note", "note": "F-9: ./dev.sh stack <ID> (свободные порты, своя подсеть, чистая БД + seed), e2e-web через него; проверено: stack HT-1, e2e-web menus 4 passed, down убирает тома. Правила стендов и малого модуля — .dpcli-local/workflow.md"}
+{"t": "2026-11-03T14:33:46", "by": "main", "task": null, "ev": "note", "note": "F-22: правка bash_guard в .dpcli готова, не отправлена (v37: подсказка Read→Edit сразу, git-ignored цели как /tmp; тест; 210 тестов OK); ждёт команды на contribute F-22"}
