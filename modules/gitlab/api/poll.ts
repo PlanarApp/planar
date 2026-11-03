@@ -179,7 +179,16 @@ async function pollProject(api: JobApi, token: string, p: typeof P.$inferSelect)
 export async function pollAll(api: JobApi): Promise<void> {
   if (isDemo()) return; // demo: no outgoing requests
   const key = secretKey();
-  for (const p of await api.db.select().from(P).orderBy(P.createdAt, P.id)) {
+  const conns = await api.db.select().from(P).orderBy(P.createdAt, P.id);
+  if (!conns.length) return;
+  // C-schema v16: projects where the module is off are not polled (connections stay)
+  const on = new Set(
+    (await api.db.execute(sql`select id from projects where 'gitlab' = any(modules)`)).rows.map(
+      (r) => r.id,
+    ),
+  );
+  for (const p of conns) {
+    if (!on.has(p.projectId)) continue;
     if (p.lastError === 'unauthorized') continue; // before the token change
     let err: string | null = null;
     try {

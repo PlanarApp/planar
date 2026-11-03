@@ -59,7 +59,12 @@ beforeAll(async () => {
   w2 = await world(db);
   labelId = uuidv7();
   fieldId = uuidv7();
-  await w.admin.ok('label.create', { id: labelId, spaceId: w.spaceId, name: 'Bug', color: '#f00' });
+  await w.admin.ok('label.create', {
+    id: labelId,
+    projectId: w.projectId,
+    name: 'Bug',
+    color: '#f00',
+  });
   await w.admin.ok('field.create', {
     id: fieldId,
     projectId: w.projectId,
@@ -286,17 +291,6 @@ describe('pf2: memory-tx', () => {
 
   async function seed(tx: Tx, spaceId: string, projectId: string, statusIds: string[]) {
     const u = uuidv7();
-    for (const [i, id] of statusIds.entries())
-      await tx.put('statuses', {
-        id,
-        spaceId,
-        name: `s${i}`,
-        category: 'todo',
-        color: '#000',
-        rank: `a${i}`,
-        createdAt: NOW,
-        updatedAt: NOW,
-      });
     await tx.put('spaces', {
       id: spaceId,
       name: 'S',
@@ -314,8 +308,10 @@ describe('pf2: memory-tx', () => {
       name: 'P',
       key: 'PP',
       rank: 'a0',
+      statusIds,
+      statusNames: { backlog: 's0', todo: 's1', in_progress: 's2', done: 's3', cancelled: 's4' },
     });
-    await exec(tx, u, 'label.create', { id: labelId, spaceId, name: 'Bug', color: '#f00' });
+    await exec(tx, u, 'label.create', { id: labelId, projectId, name: 'Bug', color: '#f00' });
     await exec(tx, u, 'field.create', {
       id: fieldId,
       projectId,
@@ -470,12 +466,14 @@ describe('pf2: memory-tx', () => {
       today: TODAY,
       ids: nIds,
     });
-    const sts = await tx.scan('statuses', { index: 'spaceId', eq: w.spaceId });
+    // the new project has exactly the template's statuses and labels; the source project is untouched
+    const sts = await tx.scan('statuses', { index: 'projectId', eq: pid });
     expect(sts.map((s) => s.name).sort()).toEqual(
       ['Ревью', ...w.statusIds.map((_, i) => `s${i}`)].sort(),
     );
+    expect(await tx.scan('statuses', { index: 'projectId', eq: w.projectId })).toHaveLength(5);
     expect(
-      (await tx.scan('labels', { index: 'spaceId', eq: w.spaceId })).map((l) => l.name).sort(),
+      (await tx.scan('labels', { index: 'projectId', eq: pid })).map((l) => l.name).sort(),
     ).toEqual(['Bug', 'Новая']);
     expect(
       (await tx.scan('fieldDefs', { index: 'projectId', eq: pid })).map((f) => f.name),
@@ -511,36 +509,38 @@ describe('pf2: templates.createProject на сервере', () => {
     ids: ids(templateIdPlan('project', data).count),
   });
 
-  it('pf2: admin — недостающие статусы и метки создаются, существующие (без регистра) нет', async () => {
-    const existing = (
-      await db
-        .select()
-        .from(schema.statuses)
-        .where(eq(schema.statuses.spaceId, w.spaceId))
-        .orderBy(asc(schema.statuses.rank))
-    )[0]!;
-    const data = tpl([`  ${existing.name.toUpperCase()} `, 'Ревью-1'], ['bug', 'Свежая']);
+  it('pf2: admin — у нового проекта ровно статусы и метки шаблона (имена без регистра совпадают с дефолтными)', async () => {
+    const data = tpl(['  BACKLOG ', 'Ревью-1'], ['bug', 'Свежая']);
     const { id } = await create(w.admin, data, 'project');
     const b = body(id, data);
     await w.admin.ok('templates.createProject', b);
     const sts = await db
       .select()
       .from(schema.statuses)
-      .where(eq(schema.statuses.spaceId, w.spaceId));
-    expect(sts.filter((s) => s.name === 'Ревью-1')).toHaveLength(1);
-    expect(sts).toHaveLength(6);
+      .where(eq(schema.statuses.projectId, b.projectId));
+    expect(sts.map((s) => s.name).sort()).toEqual(['Backlog', 'Ревью-1']);
     const maxRank = sts
       .filter((s) => s.name !== 'Ревью-1')
       .map((s) => s.rank)
       .sort()
       .at(-1)!;
     expect(sts.find((s) => s.name === 'Ревью-1')!.rank > maxRank).toBe(true);
-    const lbs = await db.select().from(schema.labels).where(eq(schema.labels.spaceId, w.spaceId));
-    expect(lbs.map((l) => l.name).sort()).toEqual(['Bug', 'Свежая']);
+    const lbs = await db
+      .select()
+      .from(schema.labels)
+      .where(eq(schema.labels.projectId, b.projectId));
+    expect(lbs.map((l) => l.name).sort()).toEqual(['bug', 'Свежая']);
+    // the statuses of the space's other project are not touched
+    expect(
+      await db.select().from(schema.statuses).where(eq(schema.statuses.projectId, w.projectId)),
+    ).toHaveLength(5);
     const [p] = await db.select().from(schema.projects).where(eq(schema.projects.id, b.projectId));
     expect(p).toMatchObject({ name: 'Из шаблона', color: '#123456' });
     const t = (await tasksOf(b.projectId))[0]!;
-    expect(t).toMatchObject({ title: 'Первая', statusId: existing.id });
+    expect(t).toMatchObject({
+      title: 'Первая',
+      statusId: sts.find((s) => s.name === 'Backlog')!.id,
+    });
     const [f] = await db
       .select()
       .from(schema.fieldDefs)
@@ -548,18 +548,27 @@ describe('pf2: templates.createProject на сервере', () => {
     expect(t.fields).toEqual({ [f!.id]: '2027-01-01' });
   });
 
-  it('pf2: не admin с новым статусом → forbidden, без нового — ok', async () => {
-    const data = tpl(['Только-админ'], []);
+  it('pf2: участник создаёт проект из шаблона со своими статусами (проект его, статусы — его проекта)', async () => {
+    const data = tpl(['Только-участник'], []);
     const { id } = await create(w.member, data, 'project');
-    expect(errOf(await w.member.push('templates.createProject', body(id, data)))).toContain(
-      'forbidden',
-    );
-    const st = (
-      await db.select().from(schema.statuses).where(eq(schema.statuses.spaceId, w.spaceId))
-    )[0]!;
-    const known = tpl([st.name], []);
-    const k = await create(w.member, known, 'project');
-    await w.member.ok('templates.createProject', body(k.id, known));
+    const b = body(id, data);
+    await w.member.ok('templates.createProject', b);
+    const sts = await db
+      .select()
+      .from(schema.statuses)
+      .where(eq(schema.statuses.projectId, b.projectId));
+    expect(sts.map((s) => s.name)).toEqual(['Только-участник']);
+    // …but the member cannot touch statuses of an existing project
+    expect(
+      await w.member.push('status.create', {
+        id: uuidv7(),
+        projectId: w.projectId,
+        name: 'X',
+        category: 'todo',
+        color: '#000',
+        rank: 'a9',
+      }),
+    ).toMatchObject({ ok: false, code: 'forbidden' });
   });
 });
 

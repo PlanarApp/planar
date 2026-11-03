@@ -70,6 +70,7 @@ describe('wk0: tasks.cycleId', () => {
       name: 'Q',
       key: 'QQQ',
       rank: 'a1',
+      statusIds: [id(), id(), id(), id(), id()],
     });
     await run(tx, 'task.update', { id: t, projectId: p2 });
     expect((await tx.get('tasks', t))!.cycleId).toBeNull();

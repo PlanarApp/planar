@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { StatusIcon } from '../tasks';
 import { EmptyState } from '../ui';
 import { openTask } from '../views';
+import TaskModal from '../views/TaskModal.vue';
 import { formatDue } from '../views/list/due';
 import { useAuth } from '../auth/useAuth';
 import { useMyTasks, type MyTask, type WorkKind } from '../inbox/queries';
@@ -72,5 +73,6 @@ const groups = computed(() => {
         <span class="hidden text-xs text-fg-subtle md:inline">{{ r.project }}</span>
       </button>
     </section>
+    <TaskModal />
   </div>
 </template>

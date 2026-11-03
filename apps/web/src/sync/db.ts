@@ -21,7 +21,7 @@ export interface ReplicaChange {
   row: Record<string, unknown> | null;
 }
 export interface MetaRow {
-  key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId';
+  key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId' | 'schema';
   value: string | number;
 }
 
@@ -48,7 +48,11 @@ export function buildSchema(
 export function schemaVersion(name: string, extra: Record<string, string[]>): number {
   const names = Object.keys(extra).sort();
   if (!names.length) return 3;
-  const sig = names.map((n) => `${n}:${extra[n]!.join(',')}`).join(';');
+  // the core entity set is in the signature: a new core table (projectMembers, C-schema v17) upgrades the replica too
+  const sig = [
+    Object.keys(ENTITIES).join(','),
+    ...names.map((n) => `${n}:${extra[n]!.join(',')}`),
+  ].join(';');
   const key = `planar.dexieSchema.${name}`;
   try {
     const old = JSON.parse(localStorage.getItem(key) ?? 'null') as {
@@ -84,6 +88,13 @@ export class PlanarDB extends Dexie {
       await this.delete();
       return super.open();
     }) as ReturnType<Dexie['open']>;
+  }
+  /** Table and index set of this build; stored with the cursor of a bootstrap (`schema` in _meta). */
+  schemaSig(): string {
+    return this.tables
+      .map((t) => `${t.name}:${t.schema.indexes.map((i) => i.name).join(',')}`)
+      .sort()
+      .join(';');
   }
   /** entity tables (without service ones) */
   entityTables(): Table[] {

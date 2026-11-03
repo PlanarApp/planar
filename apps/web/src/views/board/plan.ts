@@ -1,7 +1,14 @@
 import { generateNKeysBetween } from 'fractional-indexing';
 import { i18n } from '../../i18n';
 import { mutate } from '../../sync';
-import { groupTasks, moveTask, setAssignees, setLabels, updateTask } from '../../tasks';
+import {
+  groupTasks,
+  labelColumns,
+  moveTask,
+  setAssignees,
+  setLabels,
+  updateTask,
+} from '../../tasks';
 import type { GroupBy, TaskGroup } from '../../tasks';
 
 export interface MovePlan {
@@ -17,8 +24,8 @@ export interface MovePlan {
 }
 
 const NONE = 'none';
-const swap = (cur: string[], from: string, to: string) => {
-  const rest = cur.filter((v) => v !== from);
+const swap = (cur: string[], from: string, to: string, key: (id: string) => string = (v) => v) => {
+  const rest = cur.filter((v) => key(v) !== from);
   return to === NONE ? rest : [...new Set([...rest, to])];
 };
 
@@ -42,10 +49,7 @@ export function boardColumns(
             { key: NONE, label: t('tasks.noAssignee') },
           ]
         : by === 'label'
-          ? [
-              ...ctx.labels.map((l) => ({ key: l.id, label: l.name, color: l.color })),
-              { key: NONE, label: t('tasks.noLabel') },
-            ]
+          ? [...labelColumns(ctx.labels, ctx.labelKey), { key: NONE, label: t('tasks.noLabel') }]
           : [];
   const known = new Set(all.map((c) => c.key));
   return [
@@ -68,6 +72,7 @@ export function planMove(
   from: string,
   to: string,
   beforeId: string | null,
+  labelKey?: (id: string) => string, // summary: label columns are keyed by name
 ): MovePlan | null {
   const task = columns.find((c) => c.key === from)?.tasks.find((t) => t.id === id);
   const target = columns.find((c) => c.key === to)?.tasks.filter((t) => t.id !== id);
@@ -98,7 +103,7 @@ export function planMove(
     if (by === 'status') plan.statusId = to;
     else if (by === 'priority') plan.priority = Number(to);
     else if (by === 'assignee') plan.assign = swap(task.assigneeIds, from, to);
-    else plan.labels = swap(task.labelIds, from, to);
+    else plan.labels = swap(task.labelIds, from, to, labelKey);
   }
   return plan;
 }

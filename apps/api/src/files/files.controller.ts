@@ -23,6 +23,7 @@ import {
 } from '../db/schema.js';
 import { enabledModules } from '../modules/enabled.js';
 import { installed } from '../modules/installed.js';
+import { hiddenProjectIds, notHidden } from '../sync/project-access.js';
 import { DB } from '../tokens.js';
 import { commitFile, filePath, type FilesOpts } from './store.js';
 
@@ -116,6 +117,8 @@ export class FilesController {
 
   private async builtinAccess(sha: string, userId: string): Promise<boolean> {
     const icon = `file:${sha}`;
+    // PJ-11: files of a project hidden from the user are not theirs
+    const hidden = await hiddenProjectIds(this.db, userId);
     const [ok] = await this.db
       .select({ x: files.sha256 })
       .from(files)
@@ -128,7 +131,13 @@ export class FilesController {
                 .select({ x: attachments.id })
                 .from(attachments)
                 .innerJoin(spaceMembers, eq(spaceMembers.spaceId, attachments.spaceId))
-                .where(and(eq(attachments.fileSha256, sha), eq(spaceMembers.userId, userId))),
+                .where(
+                  and(
+                    eq(attachments.fileSha256, sha),
+                    eq(spaceMembers.userId, userId),
+                    notHidden('attachments', hidden),
+                  ),
+                ),
             ),
             exists(this.db.select({ x: users.id }).from(users).where(eq(users.avatarFile, sha))),
             // node icon image (icon = 'file:<sha>'): Workspace — visible to all, space and project — to members
@@ -152,7 +161,13 @@ export class FilesController {
                 .select({ x: projects.id })
                 .from(projects)
                 .innerJoin(spaceMembers, eq(spaceMembers.spaceId, projects.spaceId))
-                .where(and(eq(projects.icon, icon), eq(spaceMembers.userId, userId))),
+                .where(
+                  and(
+                    eq(projects.icon, icon),
+                    eq(spaceMembers.userId, userId),
+                    notHidden('projects', hidden),
+                  ),
+                ),
             ),
             exists(
               this.db

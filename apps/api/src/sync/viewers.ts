@@ -1,6 +1,8 @@
 import { eq, getTableColumns } from 'drizzle-orm';
+import type { EntityMeta } from '@planar/shared';
 import type { Db } from '../db/index.js';
 import { spaceMembers } from '../db/schema.js';
+import { projectAccess, projectOfWire } from './project-access.js';
 import { visibleEntities } from './registry.js';
 import { tableOf } from './rows.js';
 
@@ -18,6 +20,19 @@ export async function viewersOf(db: Db, entity: string, id: string): Promise<Set
     unknown
   >[];
   if (!row) return null;
+  const all = await viewersByScope(db, meta, entity, row);
+  // PJ-11: of those, only the ones with access to the row's project
+  const pid = all && (await projectOfWire(db, entity, row));
+  if (all && pid) for (const u of [...all]) if (!(await projectAccess(db, u, pid))) all.delete(u);
+  return all;
+}
+
+async function viewersByScope(
+  db: Db,
+  meta: EntityMeta,
+  entity: string,
+  row: Record<string, unknown>,
+): Promise<Set<string> | null> {
   const space = async (spaceId: string) =>
     new Set(
       (

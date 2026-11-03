@@ -100,7 +100,7 @@ export async function createTaskFrom(templateId: string, projectId: string): Pro
   const tpl = (await db.table('templatesTemplates').get(templateId)) as TemplateRow | undefined;
   const project = await db.table('projects').get(projectId);
   if (!tpl || !project) return;
-  const st = (await db.table('statuses').where('spaceId').equals(project.spaceId).toArray()).sort(
+  const st = (await db.table('statuses').where('projectId').equals(projectId).toArray()).sort(
     byRank,
   );
   const status = st.find((s) => s.category === 'todo') ?? st[0];

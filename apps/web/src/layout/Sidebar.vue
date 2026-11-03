@@ -5,8 +5,11 @@ import {
   FileText,
   FolderKanban,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Settings,
+  X,
 } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { prefetchIdle, prefetchProject, useRootSpaceId, useWorkspace } from '../tasks/queries';
@@ -20,10 +23,14 @@ import { useRoute } from 'vue-router';
 import { CheckSquare, FolderPlus, LayoutGrid } from 'lucide-vue-next';
 import type { MenuItem } from '../ui/Menu.vue';
 import NodeIcon from '../ui/NodeIcon.vue';
+import { useBreakpoint } from '../ui/useBreakpoint';
+import { setSidebarMode, sidebarMode } from './sidebarWidth';
 
 // reka (Avatar/Menu) — outside the initial bundle
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
+const { isMobile } = useBreakpoint();
+const rail = computed(() => !isMobile.value && sidebarMode.value === 'rail');
 const { user } = useAuth();
 const { items } = useUserMenu();
 
@@ -124,6 +131,57 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
 
 <template>
   <aside
+    v-if="rail"
+    data-testid="sidebar-rail"
+    class="sidebar-dark flex shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-border bg-sidebar-bg py-2 text-fg"
+  >
+    <button
+      type="button"
+      :aria-label="t('sidebar.expandBar')"
+      data-testid="sidebar-expand"
+      :class="[link, 'size-8 justify-center px-0']"
+      @click="setSidebarMode('full')"
+    >
+      <PanelLeftOpen :size="16" />
+    </button>
+    <button
+      type="button"
+      :aria-label="t('sidebar.hide')"
+      data-testid="sidebar-hide"
+      :class="[link, 'size-8 justify-center px-0']"
+      @click="setSidebarMode('hidden')"
+    >
+      <X :size="16" />
+    </button>
+    <template v-for="s in spaces" :key="s.id">
+      <RouterLink
+        v-for="p in s.projects"
+        :key="p.id"
+        :to="`/p/${p.id}`"
+        :title="p.name"
+        :aria-label="p.name"
+        class="flex h-8 w-10 items-center justify-center truncate rounded-md text-xs font-medium outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+        active-class="bg-accent-subtle"
+        data-testid="nav-project-rail"
+        :style="p.color ? { color: p.color } : undefined"
+        @pointerenter="prefetchProject(p.id)"
+      >
+        <span v-if="p.icon" :class="nodeIcon" aria-hidden="true"><NodeIcon :icon="p.icon" /></span>
+        <template v-else>{{ p.prefix }}</template>
+      </RouterLink>
+    </template>
+    <RouterLink
+      to="/w/settings"
+      :aria-label="t('sidebar.settings')"
+      :title="t('sidebar.settings')"
+      :class="[link, 'mt-auto size-8 justify-center px-0']"
+      active-class="bg-accent-subtle"
+    >
+      <Settings :size="16" />
+    </RouterLink>
+  </aside>
+  <aside
+    v-else
     data-testid="sidebar"
     class="sidebar-dark flex w-60 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-sidebar-bg p-2 text-fg"
   >
@@ -140,6 +198,16 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
         :style="ws.color ? { color: ws.color } : undefined"
         >{{ ws.name }}</span
       >
+      <button
+        v-if="!isMobile"
+        type="button"
+        :aria-label="t('sidebar.collapse')"
+        data-testid="sidebar-collapse"
+        class="flex size-7 shrink-0 items-center justify-center rounded-md outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+        @click="setSidebarMode('rail')"
+      >
+        <PanelLeftClose :size="16" />
+      </button>
       <Menu :items="items()" align="end">
         <template #trigger>
           <button
@@ -232,8 +300,9 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
           :class="[input, 'mb-1']"
           :placeholder="t('sidebar.spaceName')"
           :aria-label="t('sidebar.spaceName')"
+          data-inline-edit
           @keydown="onKey"
-          @blur="act.cancel"
+          @blur="act.blurNew"
         />
       </section>
       <section>
@@ -306,8 +375,9 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
                 :class="[input, 'ml-5 w-[calc(100%-1.25rem)]']"
                 :placeholder="t('sidebar.projectName')"
                 :aria-label="t('sidebar.projectName')"
+                data-inline-edit
                 @keydown="onKey"
-                @blur="act.cancel"
+                @blur="act.blurNew"
               />
             </template>
           </div>

@@ -10,15 +10,19 @@ import {
   deleteTask,
   setAssignees,
   updateTask,
+  useStatuses,
   type TaskView,
 } from '../tasks';
-import { useSelection } from './selection';
+import { applyToggle, commonIds, useSelection } from './selection';
+import { setStatusByName } from './scope';
 
 /** Bulk action bar for the selected tasks of the view (one mutation per task). */
 const props = defineProps<{ spaceId: string; tasks: readonly TaskView[] | undefined }>();
 const { t } = useI18n();
+const statuses = useStatuses(() => props.spaceId);
 const sel = useSelection();
 const chosen = computed(() => (props.tasks ?? []).filter((x) => sel.selected.value.has(x.id)));
+const assigned = computed(() => commonIds(chosen.value.map((x) => x.assigneeIds)));
 const each = (f: (x: TaskView) => Promise<unknown>) => Promise.all(chosen.value.map(f));
 const confirmDelete = ref(false);
 async function removeSelected() {
@@ -39,12 +43,13 @@ async function removeSelected() {
     <span>{{ t('list.selected', { n: chosen.length }) }}</span>
     <StatusPicker
       :space-id="spaceId"
-      @update:model-value="each((x) => updateTask(x.id, { statusId: $event }))"
+      @update:model-value="each((x) => setStatusByName(statuses ?? [], x, $event))"
     />
     <AssigneePicker
       :space-id="spaceId"
+      :model-value="assigned"
       @update:model-value="
-        each((x) => setAssignees(x.id, [...new Set([...x.assigneeIds, ...$event])]))
+        each((x) => setAssignees(x.id, applyToggle(x.assigneeIds, assigned, $event)))
       "
     />
     <PriorityPicker @update:model-value="each((x) => updateTask(x.id, { priority: $event }))" />

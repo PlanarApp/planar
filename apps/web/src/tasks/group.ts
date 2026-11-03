@@ -15,6 +15,19 @@ export interface GroupCtx {
   labels: Row<'labels'>[];
   /** summary of several spaces: the status group key (name) instead of id */
   statusKey?: (statusId: string) => string;
+  /** the same for labels */
+  labelKey?: (labelId: string) => string;
+}
+
+const CATEGORY_ORDER = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'];
+
+/** Label groups/columns: in a summary (labelKey) same-named labels of different projects are one, by name. */
+export function labelColumns(labels: Row<'labels'>[], labelKey?: (id: string) => string) {
+  const k = labelKey ?? ((id: string) => id);
+  const seen = new Map(
+    labels.map((l) => [k(l.id), { key: k(l.id), label: l.name, color: l.color }]),
+  );
+  return [...seen.values()];
 }
 
 const NONE = 'none';
@@ -42,9 +55,16 @@ function bucket(
 export function groupTasks(tasks: TaskView[], by: GroupBy, ctx: GroupCtx): TaskGroup[] {
   if (by === 'none') return [{ key: 'all', label: t('views.group.all'), tasks }];
   if (by === 'status') {
+    // a summary of projects (statusKey): by category, then by name; one project — by rank
     const st = ctx.statuses
       .slice()
-      .sort((a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0));
+      .sort(
+        ctx.statusKey
+          ? (a, b) =>
+              CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) ||
+              a.name.localeCompare(b.name)
+          : (a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0),
+      );
     const k = ctx.statusKey ?? ((id: string) => id);
     const order = new Map(
       st.map((s) => [k(s.id), { key: k(s.id), label: s.name, color: s.color }]),
@@ -60,8 +80,9 @@ export function groupTasks(tasks: TaskView[], by: GroupBy, ctx: GroupCtx): TaskG
   const assignee = by === 'assignee';
   const known = assignee
     ? ctx.members.map((u) => ({ key: u.id, label: u.name }))
-    : ctx.labels.map((l) => ({ key: l.id, label: l.name, color: l.color }));
-  const keys = (x: TaskView) => (assignee ? x.assigneeIds : x.labelIds);
+    : labelColumns(ctx.labels, ctx.labelKey);
+  const lk = ctx.labelKey ?? ((id: string) => id);
+  const keys = (x: TaskView) => (assignee ? x.assigneeIds : [...new Set(x.labelIds.map(lk))]);
   // an id not in the dictionary (deactivated user, label not read) — after the known ones
   const seen = new Set(known.map((k) => k.key));
   const extra = [...new Set(tasks.flatMap(keys))]

@@ -11,6 +11,7 @@ export interface ProjectLite {
 export interface StatusLite {
   id: string;
   spaceId: string;
+  projectId: string;
   name: string;
 }
 

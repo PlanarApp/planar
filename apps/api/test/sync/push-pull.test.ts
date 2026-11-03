@@ -1,8 +1,9 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { ForbiddenException } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
-import { contractSchemas, uuidv7 } from '@planar/shared';
+import { contractSchemas, isDataModule, uuidv7 } from '@planar/shared';
 import { changes, tasks } from '../../src/db/schema.js';
+import { installed } from '../../src/modules/installed.js';
 import { TestClient, mkUser, newDb, services, taskArgs, world } from './helpers.js';
 
 const db = newDb();
@@ -190,6 +191,7 @@ describe('push → pull', () => {
         'spaces',
         'spaceMembers',
         'projects',
+        'projectMembers',
         'statuses',
         'tasks',
         'taskAssignees',
@@ -205,6 +207,10 @@ describe('push → pull', () => {
         'notifications',
         'savedViews',
         'settings',
+        // PJ-3: data modules are always installed, their rows are visible (the UI hides them per project)
+        ...installed
+          .filter((m) => isDataModule(m.api.id))
+          .flatMap((m) => Object.keys(m.api.entities)),
       ].sort(),
     );
     expect(b.data.spaces).toEqual([]);

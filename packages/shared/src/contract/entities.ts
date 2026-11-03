@@ -50,12 +50,26 @@ export const entitySchemas = {
     leadId: uuid.nullable(),
     rank: z.string().min(1),
     archivedAt: ts.nullable(),
+    /** ids of data modules enabled for the project (C-schema v16); old replica rows have no field */
+    modules: z.array(z.string()).default([]),
+    /** members of the project: as in the space or its own (C-schema v17); old replica rows have no field */
+    membersMode: z.enum(['inherit', 'custom']).default('inherit'),
+    createdAt: ts,
+    updatedAt: ts,
+  }),
+  projectMembers: z.object({
+    id: uuid,
+    spaceId: uuid,
+    projectId: uuid,
+    userId: uuid,
+    role: z.enum(['admin', 'member', 'guest']),
     createdAt: ts,
     updatedAt: ts,
   }),
   statuses: z.object({
     id: uuid,
     spaceId: uuid,
+    projectId: uuid,
     name: z.string(),
     category: z.enum(['backlog', 'todo', 'in_progress', 'done', 'cancelled']),
     color: z.string(),
@@ -100,6 +114,7 @@ export const entitySchemas = {
   labels: z.object({
     id: uuid,
     spaceId: uuid,
+    projectId: uuid,
     name: z.string(),
     color: z.string(),
     createdAt: ts,
@@ -261,7 +276,18 @@ export const ENTITIES = {
   spaces: { scope: 'space', write: 'admin', bootstrap: true, indexes: [] },
   spaceMembers: { scope: 'space', write: 'admin', bootstrap: true, indexes: ['spaceId', 'userId'] },
   projects: { scope: 'space', write: 'member', bootstrap: true, indexes: ['spaceId'] },
-  statuses: { scope: 'space', write: 'admin', bootstrap: true, indexes: ['spaceId'] },
+  projectMembers: {
+    scope: 'space',
+    write: 'server',
+    bootstrap: true,
+    indexes: ['projectId', 'userId'],
+  },
+  statuses: {
+    scope: 'space',
+    write: 'admin',
+    bootstrap: true,
+    indexes: ['spaceId', 'projectId'],
+  },
   tasks: {
     scope: 'space',
     write: 'member',
@@ -275,7 +301,12 @@ export const ENTITIES = {
     indexes: ['taskId', 'userId'],
   },
   taskWatchers: { scope: 'space', write: 'guest', bootstrap: true, indexes: ['taskId', 'userId'] },
-  labels: { scope: 'space', write: 'member', bootstrap: true, indexes: ['spaceId'] },
+  labels: {
+    scope: 'space',
+    write: 'member',
+    bootstrap: true,
+    indexes: ['spaceId', 'projectId'],
+  },
   taskLabels: { scope: 'space', write: 'member', bootstrap: true, indexes: ['taskId', 'labelId'] },
   fieldDefs: {
     scope: 'space',

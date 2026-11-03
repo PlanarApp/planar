@@ -16,6 +16,7 @@ import { openTask } from '..';
 import type { ViewProps } from '..';
 import { useWeekStart } from '../../i18n/week';
 import { localToday } from '../filter';
+import { useWidenedFilter } from '../scope';
 import { useTaskFilter } from '../saved/useFilter';
 import { addDays, addMonths, layout, monthDays, parse, range, shift, weekDays } from './dates';
 
@@ -26,7 +27,7 @@ const { isMobile } = useBreakpoint();
 const project = useProject(() => props.projectId);
 const statuses = useStatuses(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 const passes = useTaskFilter(
-  () => props.filter,
+  useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
 );

@@ -59,9 +59,15 @@ test('задача, WS /ws и /collab, /f/*, файл по sha256', async () => 
       name: `smoke ${spaceId}`,
       rank: r1,
       memberId: uuidv7(),
+    }),
+    admin.mut('project.create', {
+      id: projectId,
+      spaceId,
+      name: 'Smoke',
+      key: 'SMK',
+      rank: r2,
       statusIds,
     }),
-    admin.mut('project.create', { id: projectId, spaceId, name: 'Smoke', key: 'SMK', rank: r2 }),
     admin.mut('task.create', {
       id: taskId,
       projectId,

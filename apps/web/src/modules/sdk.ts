@@ -9,6 +9,8 @@ import type { GroupScope } from './types';
 
 export * from './types';
 export { mutate, newId, rankBetween, useQuery } from '../sync';
+/** Is the data module on for the project (C-schema v16); in summaries — for the projects of the scope. */
+export { enabledForProject } from './registry';
 export { db };
 export {
   useTask,

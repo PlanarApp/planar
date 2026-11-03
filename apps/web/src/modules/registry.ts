@@ -1,5 +1,6 @@
-import { computed, shallowRef, watch, type ComputedRef } from 'vue';
+import { computed, shallowRef, toValue, watch, type ComputedRef, type MaybeRefOrGetter } from 'vue';
 import { liveQuery } from 'dexie';
+import { isDataModule } from '@planar/shared';
 import { router } from '../router';
 import { db, replicaState } from '../sync';
 import type { ExtensionKind, WebModuleManifest } from './types';
@@ -14,6 +15,8 @@ const registered = shallowRef<WebModuleManifest[]>([]);
 /** null — not yet known (replica hasn't bootstrapped): show all registered, ensureModule waits */
 const enabled = shallowRef<string[] | null>(null);
 const timedOut = shallowRef(false);
+/** projectId → data modules enabled there (projects.modules of the replica); null — projects not read yet (C-schema v16) */
+const projectMods = shallowRef<Map<string, string[]> | null>(null);
 /** enabled modules whose frontend was not found or did not load */
 const failed = shallowRef<string[]>([]);
 const fail = (id: string) => void (failed.value = [...failed.value, id]);
@@ -34,6 +37,18 @@ export const moduleStatus = (id: string): 'loading' | 'off' | 'ready' | 'error' 
         : failed.value.includes(id)
           ? 'error'
           : 'loading';
+
+/**
+ * Is the module on for the project (C-schema v16). A shared module — instance-wide; a data module — by
+ * `projects.modules`; without a project (summaries) — on in at least one of the projects. Before the replica is
+ * read — by the module list alone, like before.
+ */
+export function enabledForProject(moduleId: string, projectId?: string | string[]): boolean {
+  if (enabled.value && !enabled.value.includes(moduleId)) return false;
+  if (!isDataModule(moduleId) || !projectMods.value) return true;
+  const ids = projectId === undefined ? [...projectMods.value.keys()] : [projectId].flat();
+  return ids.some((id) => projectMods.value!.get(id)?.includes(moduleId));
+}
 
 /** Waits until enabled becomes known; false — not awaited within SETTINGS_WAIT_MS. */
 function settingsKnown(): Promise<boolean> {
@@ -151,27 +166,55 @@ export async function setEnabledModules(ids: string[]): Promise<void> {
   registerModules(loaded.filter((m): m is WebModuleManifest => !!m));
 }
 
-/** Watches settings.enabled_modules in the replica; call from main.ts once. */
+/**
+ * Watches settings.enabled_modules (shared modules) and projects.modules (data modules) in the replica;
+ * the frontend of a data module is loaded when it is on in at least one project. Call from main.ts once.
+ */
 export function initModules(): void {
+  let shared: string[] | null = null;
+  const refresh = () => {
+    if (!shared || !projectMods.value) return;
+    const data = new Set([...projectMods.value.values()].flat());
+    void setEnabledModules([...shared, ...data]);
+  };
   // empty replica (before bootstrap) — "unknown", not "all disabled"
   const apply = (r: { value?: unknown } | undefined) => {
-    if (r || replicaState.value !== 'empty')
-      void setEnabledModules(Array.isArray(r?.value) ? (r.value as string[]) : []);
+    if (r || replicaState.value !== 'empty') {
+      shared = Array.isArray(r?.value) ? (r.value as string[]) : [];
+      refresh();
+    }
+  };
+  const applyProjects = (rows: { id: string; modules?: string[] }[]) => {
+    if (!rows.length && replicaState.value === 'empty') return;
+    projectMods.value = new Map(rows.map((p) => [p.id, p.modules ?? []]));
+    refresh();
   };
   liveQuery(() => db.table('settings').get('enabled_modules')).subscribe({
     next: apply,
     error: () => {},
   });
+  liveQuery(() => db.table('projects').toArray()).subscribe({
+    next: applyProjects,
+    error: () => {},
+  });
   // bootstrap without a settings row: reread when the replica stops being empty
   watch(replicaState, async (st) => {
-    if (st !== 'empty') apply(await db.table('settings').get('enabled_modules'));
+    if (st === 'empty') return;
+    apply(await db.table('settings').get('enabled_modules'));
+    applyProjects(await db.table('projects').toArray());
   });
 }
 
-export function useExtensions<K extends ExtensionKind>(kind: K): ComputedRef<Extension<K>[]> {
+/** `projectId` — the project (or the projects of a summary) whose items are shown; without it — items of modules on in any project. */
+export function useExtensions<K extends ExtensionKind>(
+  kind: K,
+  projectId?: MaybeRefOrGetter<string | string[] | undefined>,
+): ComputedRef<Extension<K>[]> {
   return computed(() => {
+    const pid = toValue(projectId);
     const out = registered.value
       .filter((m) => !enabled.value || enabled.value.includes(m.id))
+      .filter((m) => enabledForProject(m.id, pid))
       .flatMap((m) =>
         ((m[kind] ?? []) as { id: string }[]).map((it) => ({
           ...it,

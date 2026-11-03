@@ -16,7 +16,9 @@ import {
   key,
   newDb,
   TestClient,
+  statusOf,
   taskArgs,
+  useProject,
   world,
   services,
   type World,
@@ -98,7 +100,21 @@ async function rule(
 ): Promise<Rule> {
   const id = uuidv7();
   const projectId = (over.projectId as string) ?? P;
-  await w.admin.ok('automations.create', { id, projectId, name: 'R', trigger, actions, ...over });
+  // statuses belong to a project (PJ-1): the statuses named by w.statusIds are taken from the project of the rule / target
+  const own = (a: Record<string, unknown>) =>
+    a.type === 'set_status'
+      ? { ...a, statusId: statusOf(w, projectId, a.statusId) }
+      : a.type === 'move_to_project' && a.statusId
+        ? { ...a, statusId: statusOf(w, a.projectId as string, a.statusId) }
+        : a;
+  await w.admin.ok('automations.create', {
+    id,
+    projectId,
+    name: 'R',
+    trigger,
+    actions: actions.map((a) => own(a as Record<string, unknown>)),
+    ...over,
+  });
   return { id, projectId };
 }
 async function task(over: Record<string, unknown> = {}) {
@@ -113,6 +129,7 @@ const statuses = (r: { status: string }[]) => r.map((x) => x.status);
 
 beforeEach(async () => {
   P = await project();
+  useProject(w, P); // statuses and labels belong to a project (PJ-1): the tests use those of P
   jobs.length = 0;
 });
 
@@ -346,7 +363,12 @@ describe('wk3: условия и действия', () => {
 
   it('wk3: set_status, assign, add_label, add_comment — от системного пользователя', async () => {
     const labelId = uuidv7();
-    await w.admin.ok('label.create', { id: labelId, spaceId: w.spaceId, name: 'L', color: '#fff' });
+    await w.admin.ok('label.create', {
+      id: labelId,
+      projectId: w.projectId,
+      name: 'L',
+      color: '#fff',
+    });
     const r = await rule({ type: 'task.created' }, [
       { type: 'set_status', statusId: w.statusIds[DONE] },
       { type: 'assign', userId: w.member.userId },
@@ -372,7 +394,7 @@ describe('wk3: условия и действия', () => {
     const labelId = uuidv7();
     await w.admin.ok('label.create', {
       id: labelId,
-      spaceId: w.spaceId,
+      projectId: w.projectId,
       name: 'L2',
       color: '#fff',
     });
@@ -440,7 +462,10 @@ describe('wk3: условия и действия', () => {
     ]);
     const t = await task();
     expect(statuses(await only(mv, t))).toEqual(['ok']);
-    expect(await row(t)).toMatchObject({ projectId: p2, statusId: w.statusIds[BACKLOG] });
+    expect(await row(t)).toMatchObject({
+      projectId: p2,
+      statusId: statusOf(w, p2, w.statusIds[BACKLOG]),
+    });
 
     const sub = await rule(
       { type: 'task.created' },
@@ -456,7 +481,7 @@ describe('wk3: условия и действия', () => {
     expect(kids[0]).toMatchObject({
       title: 'Проверить',
       projectId: p2,
-      statusId: w.statusIds[TODO],
+      statusId: statusOf(w, p2, w.statusIds[TODO]),
     });
     // the subtask itself — task.created: the rule is applied again, depth 2
     expect(queued(sub.id).concat(await runsOf(sub.id)).length).toBeGreaterThan(0);

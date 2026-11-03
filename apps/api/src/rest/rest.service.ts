@@ -18,10 +18,11 @@ import { textToDoc, uuidv7, type HttpErrorCode, type V1Task } from '@planar/shar
 import { HttpError } from '../auth/errors.js';
 import type { Db } from '../db/index.js';
 import * as s from '../db/schema.js';
-import { enabledModules } from '../modules/enabled.js';
+import { enabledModules, moduleOnInProject } from '../modules/enabled.js';
 import { moduleTables } from '../modules/installed.js';
 import { PushQueue } from '../push/push.js';
 import { executeMutations, Reject } from '../sync/mutate.js';
+import { hiddenProjectIds, notHidden, projectAccess } from '../sync/project-access.js';
 import { DB } from '../tokens.js';
 import { toWire } from '../sync/rows.js';
 import { toV1Tasks } from './v1-tasks.js';
@@ -47,6 +48,11 @@ export function parse<T extends z.ZodType>(schema: T, data: unknown): z.output<T
   if (!r.success) throw new HttpError(400, 'invalid_request', 'Неверные параметры', r.error.issues);
   return r.data;
 }
+
+/** C-schema v16: entries of projects where the time module is on. */
+const timeOn = (c: Record<string, PgColumn>) =>
+  sql`exists (select 1 from tasks tk join projects pj on pj.id = tk.project_id
+    where tk.id = ${c.taskId!} and 'time' = any(pj.modules))`;
 
 const HTTP: Record<string, [number, HttpErrorCode]> = {
   invalid_args: [400, 'invalid_request'],
@@ -80,6 +86,16 @@ export class RestService {
       .from(s.spaceMembers)
       .where(eq(s.spaceMembers.userId, userId));
     return rows.map((r) => r.id);
+  }
+
+  /** PJ-11: where-condition — the entity's rows outside projects hidden from the user. */
+  private async visible(userId: string, entity: string): Promise<SQL | undefined> {
+    return notHidden(entity, await hiddenProjectIds(this.db, userId));
+  }
+
+  /** PJ-11: no access to the project → 404 as for a nonexistent one. */
+  private async requireProject(userId: string, projectId: string, what = 'Проект') {
+    if (!(await projectAccess(this.db, userId, projectId))) throw NOT_FOUND(what);
   }
 
   /**
@@ -127,7 +143,10 @@ export class RestService {
     const q = parse(listQuery.extend({ spaceId: z.uuid().optional() }), query);
     const my = await this.mySpaces(userId);
     if (q.spaceId && !my.includes(q.spaceId)) throw NOT_FOUND('Пространство');
-    const where = [inArray(s.projects.spaceId, q.spaceId ? [q.spaceId] : my)];
+    const where = [
+      inArray(s.projects.spaceId, q.spaceId ? [q.spaceId] : my),
+      await this.visible(userId, 'projects'),
+    ];
     const p = await this.page(s.projects, where, q, 'updatedAt', 'desc');
     return { data: p.items.map((r) => toWire('projects', r)), nextCursor: p.nextCursor };
   }
@@ -140,6 +159,7 @@ export class RestService {
       .from(s.projects)
       .where(and(eq(s.projects.id, projectId), inArray(s.projects.spaceId, my)));
     if (!project) throw NOT_FOUND('Проект');
+    await this.requireProject(userId, projectId);
     const rows = (await this.db
       .select()
       .from(s.fieldDefs)
@@ -153,6 +173,7 @@ export class RestService {
     const my = await this.mySpaces(userId);
     const where: (SQL | undefined)[] = [
       inArray(s.tasks.spaceId, my),
+      await this.visible(userId, 'tasks'),
       q.projectId ? eq(s.tasks.projectId, q.projectId) : undefined,
       q.statusId ? eq(s.tasks.statusId, q.statusId) : undefined,
       q.updatedAfter ? sql`${s.tasks.updatedAt} > ${q.updatedAfter}::timestamptz` : undefined,
@@ -184,6 +205,7 @@ export class RestService {
     const who = q.assigneeId === 'me' ? userId : q.assigneeId;
     const where: (SQL | undefined)[] = [
       inArray(s.tasks.spaceId, my),
+      await this.visible(userId, 'tasks'),
       q.projectId ? eq(s.tasks.projectId, q.projectId) : undefined,
       q.statusId ? eq(s.tasks.statusId, q.statusId) : undefined,
       who
@@ -219,6 +241,7 @@ export class RestService {
       .from(s.tasks)
       .where(and(cond, inArray(s.tasks.spaceId, my)));
     if (!row) throw NOT_FOUND('Задача');
+    await this.requireProject(userId, row.projectId, 'Задача');
     return row;
   }
 
@@ -256,12 +279,13 @@ export class RestService {
       .from(s.projects)
       .where(and(eq(s.projects.id, b.projectId), inArray(s.projects.spaceId, my)));
     if (!project) throw NOT_FOUND('Проект');
+    await this.requireProject(userId, b.projectId);
     let statusId = b.statusId;
     if (!statusId) {
       const sts = await this.db
         .select({ id: s.statuses.id, category: s.statuses.category })
         .from(s.statuses)
-        .where(eq(s.statuses.spaceId, project.spaceId))
+        .where(eq(s.statuses.projectId, b.projectId))
         .orderBy(asc(s.statuses.rank));
       statusId = (
         sts.find((x) => x.category === 'todo') ?? sts.find((x) => x.category === 'backlog')
@@ -372,6 +396,7 @@ export class RestService {
           )
       : [];
     if (!p) throw NOT_FOUND('Проект');
+    await this.requireProject(userId, p.id);
     return p.id;
   }
 
@@ -407,7 +432,11 @@ export class RestService {
           .select({ id: s.taskLinks.id })
           .from(s.taskLinks)
           .where(
-            and(eq(s.taskLinks.id, id), inArray(s.taskLinks.spaceId, await this.mySpaces(userId))),
+            and(
+              eq(s.taskLinks.id, id),
+              inArray(s.taskLinks.spaceId, await this.mySpaces(userId)),
+              await this.visible(userId, 'taskLinks'),
+            ),
           )
       : [];
     if (!row) throw NOT_FOUND('Связь');
@@ -417,9 +446,14 @@ export class RestService {
   // --- time (time module) ---
 
   /** Module table and its columns (the core does not know module types). */
-  private async mod(moduleId: string, entity: string) {
+  private async mod(moduleId: string, entity: string, projectId?: string) {
     const t = moduleTables().get(entity);
-    if (!t || !(await enabledModules(this.db)).has(moduleId))
+    if (
+      !t ||
+      !(await enabledModules(this.db)).has(moduleId) ||
+      // C-schema v16: a route addressed to a project — the data module must be on there
+      (projectId && !(await moduleOnInProject(this.db, moduleId, projectId)))
+    )
       throw new HttpError(404, 'module_disabled', `Модуль ${moduleId} выключен`);
     return { t, c: getTableColumns(t) as Record<string, PgColumn> };
   }
@@ -436,7 +470,14 @@ export class RestService {
     const [row] = await this.db
       .select()
       .from(t)
-      .where(and(eq(c.userId!, userId), isNull(c.endedAt!)));
+      .where(
+        and(
+          eq(c.userId!, userId),
+          isNull(c.endedAt!),
+          timeOn(c),
+          await this.visible(userId, 'timeEntries'),
+        ),
+      );
     return row ? toWire('timeEntries', row as Wire) : null;
   }
 
@@ -445,6 +486,8 @@ export class RestService {
     const { t, c } = await this.mod('time', 'timeEntries');
     const where: (SQL | undefined)[] = [
       inArray(c.spaceId!, await this.mySpaces(userId)),
+      timeOn(c),
+      await this.visible(userId, 'timeEntries'),
       q.taskId ? eq(c.taskId!, q.taskId) : undefined,
       q.userId ? eq(c.userId!, q.userId === 'me' ? userId : q.userId) : undefined,
       q.from ? sql`${c.startedAt!} >= ${q.from}::timestamptz` : undefined,
@@ -456,8 +499,8 @@ export class RestService {
 
   async logTime(userId: string, raw: unknown, tokenId?: string) {
     const b = parse(timeLogBody, raw);
-    await this.mod('time', 'timeEntries');
     const t = await this.findTask(userId, b.task);
+    await this.mod('time', 'timeEntries', t.projectId as string);
     const id = uuidv7();
     await this.run(
       userId,
@@ -484,8 +527,8 @@ export class RestService {
 
   async startTimer(userId: string, raw: unknown, tokenId?: string) {
     const b = parse(timerStartBody, raw);
-    await this.mod('time', 'timeEntries');
     const t = await this.findTask(userId, b.task);
+    await this.mod('time', 'timeEntries', t.projectId as string);
     const id = uuidv7();
     await this.run(userId, [{ name: 'time.start', args: { id, taskId: t.id } }], tokenId);
     return { data: await this.entry(id) };
@@ -502,7 +545,7 @@ export class RestService {
 
   async cycles(userId: string, projectId: string) {
     const pid = await this.visibleProject(userId, projectId);
-    const { t, c } = await this.mod('sprints', 'sprintsCycles');
+    const { t, c } = await this.mod('sprints', 'sprintsCycles', pid);
     const rows = await this.db
       .select()
       .from(t)
@@ -514,7 +557,7 @@ export class RestService {
   /** current: not closed, startDate ≤ today ≤ endDate; "today" is in the project time zone (UTC without settings) */
   async currentCycle(userId: string, projectId: string) {
     const pid = await this.visibleProject(userId, projectId);
-    const { t, c } = await this.mod('sprints', 'sprintsCycles');
+    const { t, c } = await this.mod('sprints', 'sprintsCycles', pid);
     const st = await this.mod('sprints', 'sprintsSettings');
     const [cfg] = (await this.db.select().from(st.t).where(eq(st.c.projectId!, pid))) as Wire[];
     const today = new Date().toLocaleDateString('en-CA', {
@@ -539,7 +582,12 @@ export class RestService {
       .select()
       .from(s.tasks)
       .where(
-        and(eq(s.tasks.cycleId, cycleId), inArray(s.tasks.spaceId, await this.mySpaces(userId))),
+        and(
+          eq(s.tasks.cycleId, cycleId),
+          inArray(s.tasks.spaceId, await this.mySpaces(userId)),
+          await this.visible(userId, 'tasks'),
+          sql`exists (select 1 from projects pj where pj.id = ${s.tasks.projectId} and 'sprints' = any(pj.modules))`,
+        ),
       )
       .orderBy(asc(s.tasks.rank), asc(s.tasks.id))
       .limit(200)) as Wire[];
@@ -550,7 +598,7 @@ export class RestService {
 
   async automations(userId: string, projectId: string) {
     const pid = await this.visibleProject(userId, projectId);
-    const { t, c } = await this.mod('automations', 'automationsRules');
+    const { t, c } = await this.mod('automations', 'automationsRules', pid);
     const rows = await this.db
       .select()
       .from(t)

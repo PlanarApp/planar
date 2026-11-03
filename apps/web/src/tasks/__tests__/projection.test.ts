@@ -71,6 +71,31 @@ const mkProject = (key: string) => ({
   updatedAt: T,
 });
 
+/** A project with its own "Todo" status and "bug" label (statuses and labels belong to a project, PJ-1). */
+async function putProject(p: ReturnType<typeof mkProject>) {
+  await db.table('projects').put(p);
+  await db.table('statuses').put({
+    id: uuidv7(),
+    spaceId: p.spaceId,
+    projectId: p.id,
+    name: 'Todo',
+    category: 'todo',
+    color: '#888',
+    rank: 'a1',
+    createdAt: T,
+    updatedAt: T,
+  });
+  await db.table('labels').put({
+    id: uuidv7(),
+    spaceId: p.spaceId,
+    projectId: p.id,
+    name: 'bug',
+    color: '#f00',
+    createdAt: T,
+    updatedAt: T,
+  });
+}
+
 function open(pid: string) {
   const scope = effectScope();
   const r = scope.run(() => useProjectTasks(pid))!;
@@ -98,7 +123,7 @@ describe('tasks:projection', () => {
 
   it('perf:projection патч по onReplicaChange = полное чтение после серии мутаций', async () => {
     const other = mkProject('OTH');
-    await db.table('projects').put(other);
+    await putProject(other);
     const a = await createTask({
       ...base,
       title: 'a',
@@ -234,7 +259,7 @@ describe('tasks:projection', () => {
 
   it('perf:projection при многих проектах связи читаются точечно, а не таблицей целиком', async () => {
     const big = mkProject('BIG');
-    await db.table('projects').put(big);
+    await putProject(big);
     // the replica has more than 20 000 tasks, the project has 600 of them with 30 000 links to other projects: share < 1/20 → anyOf
     await db
       .table('tasks')

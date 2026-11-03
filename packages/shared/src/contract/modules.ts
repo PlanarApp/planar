@@ -71,3 +71,22 @@ export interface FrontendModuleManifest {
 }
 
 export const MODULE_ID_RE = /^[a-z][a-z0-9-]{1,30}$/;
+
+/** Data modules (C-schema v16): on or off per project in `projects.modules`; the other modules are shared (instance level). */
+export const DATA_MODULE_IDS = [
+  'gitlab',
+  'sprints',
+  'time',
+  'forms',
+  'recurring',
+  'automations',
+  'templates',
+  'goals',
+  'timeline',
+  'workload',
+  'dashboards',
+  'docs',
+] as const;
+
+export const isDataModule = (id: string): boolean =>
+  (DATA_MODULE_IDS as readonly string[]).includes(id);

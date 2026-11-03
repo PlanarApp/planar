@@ -98,20 +98,10 @@ watch(
 );
 
 const columns = computed(() => visibleColumns(props.fields));
-// mobile card: the filled List fields in the order of the Board card
+// mobile card: the enabled List fields (empty ones too — an empty icon) in the order of the Board card
 const cardCols = computed(() =>
-  (['project', 'priority', 'dueDate', 'labels', 'assignee'] as const).filter(
-    (c) =>
-      props.fields.includes(c) &&
-      (c === 'project'
-        ? !!props.projectName
-        : c === 'priority'
-          ? !!props.task.priority
-          : c === 'dueDate'
-            ? !!props.task.dueDate
-            : c === 'assignee'
-              ? !!props.task.assigneeIds.length
-              : !!labelsSet.value.length),
+  (['project', 'priority', 'dueDate', 'labels', 'assignee'] as const).filter((c) =>
+    props.fields.includes(c),
   ),
 );
 // value frame = the picker button's frame (OptionPicker, DueDatePicker): the change on hover is not visible
@@ -172,6 +162,7 @@ function save() {
       :parent-title="parentTitle"
       :child-count="childCount"
       :project-name="projectName"
+      project-text
     />
   </div>
   <div
@@ -230,6 +221,7 @@ function save() {
       <StatusPicker
         compact
         :space-id="spaceId"
+        :project-id="task.projectId"
         :model-value="task.statusId"
         @update:model-value="updateTask(task.id, { statusId: $event })"
       />
@@ -321,6 +313,7 @@ function save() {
           <LabelPicker
             v-else
             :space-id="spaceId"
+            :project-id="task.projectId"
             :model-value="task.labelIds"
             @update:model-value="setLabels(task.id, $event)"
             ><template #value

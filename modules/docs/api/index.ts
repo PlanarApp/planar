@@ -15,6 +15,7 @@ interface HookApi {
     scan<T>(e: string, opts: { index: string; eq: unknown }): Promise<T[]>;
   };
   enqueue(job: string, data: unknown): Promise<void>;
+  q: Q;
 }
 
 /** people mentioned on the page (mention node without kind='task'), no repeats */
@@ -50,6 +51,13 @@ async function notify(
     const author = await api.sys.get<{ name: string }>('users', ctx.userId);
     const title = String(w.after.title || '…');
     for (const userId of fresh.filter((u) => members.has(u))) {
+      // PJ-11: a page of a project hidden from the user does not notify them (rule — SQL function project_role)
+      if (w.after.projectId) {
+        const r = await api.q.execute(
+          sql`select project_role(${userId}::uuid, ${String(w.after.projectId)}::uuid) as r`,
+        );
+        if (!(r.rows[0] as { r: unknown } | undefined)?.r) continue;
+      }
       const id = uuidv7();
       await api.sys.put('notifications', {
         id,
@@ -82,6 +90,9 @@ export const api: BackendModuleManifest = {
       select 1 from docs_pages p
       join space_members me on me.space_id = p.space_id and me.user_id = ${userId}
       where p.files @> ${JSON.stringify([sha256])}::jsonb
+        and (p.project_id is null
+          or (project_role(${userId}::uuid, p.project_id) is not null
+            and exists (select 1 from projects pr where pr.id = p.project_id and 'docs' = any(pr.modules))))
         and exists (
           select 1 from file_uploads fu
           join space_members m on m.user_id = fu.user_id and m.space_id = p.space_id

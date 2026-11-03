@@ -16,17 +16,15 @@ setup();
 const rows = (t: string) => db.table(t).toArray();
 
 describe('settings:spaces', () => {
-  it('создаёт пространство с 5 статусами и участником', async () => {
+  it('создаёт пространство с участником (статусы — у проектов, C-mutators v11)', async () => {
     const w = await show(SpacesSettings, {});
     await w.find('input[data-testid=space-new]').setValue('Новое');
     await w.find('form').trigger('submit');
     await wait();
     const s = (await rows('spaces')).find((x) => x.name === 'Новое');
     expect(s).toBeTruthy();
-    expect(await db.table('statuses').where('spaceId').equals(s.id).count()).toBe(5);
+    expect(await db.table('statuses').where('spaceId').equals(s.id).count()).toBe(0);
     expect(await db.table('spaceMembers').where('spaceId').equals(s.id).count()).toBe(1);
-    const sts = await db.table('statuses').where('spaceId').equals(s.id).toArray();
-    expect(sts.find((x) => x.category === 'in_progress').name).toBe('В работе');
   });
   it('переименовывает', async () => {
     const w = await show(SpacesSettings, {});
@@ -91,14 +89,18 @@ describe('settings:projects', () => {
     expect(await db._queue.count()).toBe(0);
     expect(w.text()).toContain('A–Z');
   });
-  it('создаёт с верным ключом и архивирует', async () => {
+  it('PJ-2 создаёт с верным ключом (с пятью статусами проекта) и архивирует', async () => {
     const w = await show(ProjectsSettings);
     await w.find('input[data-testid=project-name]').setValue('Новый');
     await w.find('input[data-testid=project-key]').setValue('NEW');
     await w.find('form').trigger('submit');
     await wait();
+    // a fixed wait is flaky under load: wait for the write itself
+    await vi.waitFor(async () =>
+      expect((await rows('projects')).find((x) => x.key === 'NEW')).toBeTruthy(),
+    );
     const p = (await rows('projects')).find((x) => x.key === 'NEW');
-    expect(p).toBeTruthy();
+    expect(await db.table('statuses').where('projectId').equals(p.id).count()).toBe(5);
     const i = (await w.findAll('[data-testid=project-row]')).findIndex((r) =>
       r.text().includes('NEW'),
     );
@@ -123,17 +125,48 @@ describe('settings:projects', () => {
 });
 
 describe('settings:statuses', () => {
-  it('создаёт статус', async () => {
-    const w = await show(StatusesSettings);
+  it('PJ-2 создаёт статус в проекте', async () => {
+    const w = await show(StatusesSettings, { projectId: ids.project });
     await w.find('input[data-testid=status-new]').setValue('Review');
     await w.find('form').trigger('submit');
     await wait();
-    expect((await rows('statuses')).some((s) => s.name === 'Review')).toBe(true);
+    const s = (await rows('statuses')).find((x) => x.name === 'Review');
+    expect(s?.projectId).toBe(ids.project);
   });
-  it('перетаскивание: rank между соседями', async () => {
+  it('PJ-2 копирует статусы из другого проекта пространства, одноимённые пропускает', async () => {
+    const other = uuidv7();
+    const now = '2026-10-22T10:00:00.000Z';
+    await db.table('projects').put({
+      ...(await db.table('projects').get(ids.project)),
+      id: other,
+      key: 'OTH',
+      name: 'Other',
+    });
     const mk = (name: string, rank: string) => ({
       id: uuidv7(),
       spaceId: ids.space,
+      projectId: other,
+      name,
+      category: 'todo',
+      color: '#888',
+      rank,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.table('statuses').bulkPut([mk('Review', 'a7'), mk('todo', 'a8')]);
+    const w = await show(StatusesSettings, { projectId: ids.project });
+    await pick(w.find('[data-testid=copy-from] button[role=combobox]').element, 'Other');
+    await w.find('[data-testid=copy-go]').trigger('click');
+    await wait();
+    const own = (await rows('statuses')).filter((s) => s.projectId === ids.project);
+    expect(own.filter((s) => s.name === 'Review')).toHaveLength(1);
+    expect(own.filter((s) => s.name.toLowerCase() === 'todo')).toHaveLength(1); // same name — skipped
+  });
+  it('PJ-2 перетаскивание: rank между соседями', async () => {
+    const mk = (name: string, rank: string) => ({
+      id: uuidv7(),
+      spaceId: ids.space,
+      projectId: ids.project,
       name,
       category: 'todo',
       color: '#888',
@@ -143,7 +176,7 @@ describe('settings:statuses', () => {
     });
     const [a, b, c] = [mk('A', 'a3'), mk('B', 'a4'), mk('C', 'a5')];
     await db.table('statuses').bulkPut([a, b, c]);
-    const w = await show(StatusesSettings);
+    const w = await show(StatusesSettings, { projectId: ids.project });
     // todo: Todo(a1), A, B, C; move C to index 1 (between Todo and A)
     (w.vm as unknown as { move(id: string, c: string, i: number): Promise<boolean> }).move?.(
       c.id,
@@ -158,7 +191,7 @@ describe('settings:statuses', () => {
     const { task } = await import('../../../tasks/__tests__/data');
     const t = task(1);
     await db.table('tasks').put(t);
-    const w = await show(StatusesSettings);
+    const w = await show(StatusesSettings, { projectId: ids.project });
     const i = w
       .findAll('[data-testid=status-row]')
       .findIndex((r) => (r.find('input').element as HTMLInputElement).value === 'Todo');
@@ -175,15 +208,15 @@ describe('settings:statuses', () => {
 });
 
 describe('settings:labels', () => {
-  it('создаёт метку', async () => {
-    const w = await show(LabelsSettings);
+  it('PJ-2 создаёт метку в проекте', async () => {
+    const w = await show(LabelsSettings, { projectId: ids.project });
     await w.find('input[data-testid=label-new]').setValue('feat');
     await w.find('form').trigger('submit');
     await wait();
-    expect((await rows('labels')).some((l) => l.name === 'feat')).toBe(true);
+    expect((await rows('labels')).find((l) => l.name === 'feat')?.projectId).toBe(ids.project);
   });
   it('удаляет метку', async () => {
-    const w = await show(LabelsSettings);
+    const w = await show(LabelsSettings, { projectId: ids.project });
     await menuAct(
       w.find('[data-testid=label-row] [data-testid=row-menu]').element,
       'Удалить',

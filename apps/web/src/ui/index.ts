@@ -3,6 +3,7 @@ export { default as IconButton } from './IconButton.vue';
 export { default as Input } from './Input.vue';
 export { default as Select } from './Select.vue';
 export { default as Popover } from './Popover.vue';
+export { default as EmojiPicker } from './EmojiPicker.vue';
 export { default as Dialog } from './Dialog.vue';
 export { default as ConfirmDialog } from './ConfirmDialog.vue';
 export { default as Menu } from './Menu.vue';

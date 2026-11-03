@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { extractMentions, uuidv7 } from '@planar/shared';
 import * as schema from '../db/schema.js';
+import { projectAccess } from '../sync/project-access.js';
 import { ServerTx, type Q, type ServerTxCtx } from '../sync/server-tx.js';
 
 type Kind = 'assigned' | 'mentioned' | 'commented' | 'status_changed' | 'comment_assigned';
@@ -44,6 +45,19 @@ export async function notificationsHook(
     }
     return w;
   };
+  // PJ-11: a user without access to the task's project gets no notification and no subscription
+  const projects = new Map<string, string | undefined>();
+  const canSee = async (taskId: string, userId: string) => {
+    if (!projects.has(taskId)) {
+      const [t] = await q
+        .select({ p: schema.tasks.projectId })
+        .from(schema.tasks)
+        .where(eq(schema.tasks.id, taskId));
+      projects.set(taskId, t?.p);
+    }
+    const p = projects.get(taskId);
+    return !p || !!(await projectAccess(q, userId, p));
+  };
   const subscribe = async (spaceId: string, taskId: string, userId: string) => {
     const w = await watchersOf(taskId);
     if (w.has(userId)) return;
@@ -59,6 +73,7 @@ export async function notificationsHook(
     changes: Record<string, unknown> | null = null,
   ) => {
     if (userId === actor || !(await membersOf(spaceId)).has(userId)) return;
+    if (!(await canSee(taskId, userId))) return;
     const id = uuidv7();
     await sys.put('notifications', {
       id,
@@ -84,7 +99,11 @@ export async function notificationsHook(
     const spaceId = a.spaceId as string;
     if (w.entity === 'tasks') await subscribe(spaceId, a.id as string, actor);
     else if (w.entity === 'comments') await subscribe(spaceId, a.taskId as string, actor);
-    else if (w.entity === 'taskAssignees' && (await membersOf(spaceId)).has(a.userId as string))
+    else if (
+      w.entity === 'taskAssignees' &&
+      (await membersOf(spaceId)).has(a.userId as string) &&
+      (await canSee(a.taskId as string, a.userId as string))
+    )
       await subscribe(spaceId, a.taskId as string, a.userId as string);
   }
 

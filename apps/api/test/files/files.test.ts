@@ -223,7 +223,14 @@ describe('GET /files/:sha256', () => {
       .returning();
     const [st] = await db
       .insert(statuses)
-      .values({ spaceId: sp!.id, name: 'x', category: 'todo', color: '#000', rank: 'a' })
+      .values({
+        spaceId: sp!.id,
+        projectId: pr!.id,
+        name: 'x',
+        category: 'todo',
+        color: '#000',
+        rank: 'a',
+      })
       .returning();
     const [t] = await db
       .insert(tasks)

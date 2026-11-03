@@ -21,8 +21,10 @@ const props = defineProps<{
   compact?: boolean;
   /** button text when nothing is selected */
   empty?: string;
+  /** text of an extra last item for the search query (null — none), e.g. «Create …» */
+  extra?: (q: string) => string | null;
 }>();
-const emit = defineEmits<{ pick: [id: string] }>();
+const emit = defineEmits<{ pick: [id: string]; extra: [q: string] }>();
 const { t } = useI18n();
 
 const open = ref(false);
@@ -32,6 +34,7 @@ const shown = computed(() => {
   const s = q.value.trim().toLowerCase();
   return s ? props.options.filter((o) => o.label.toLowerCase().includes(s)) : props.options;
 });
+const extraLabel = computed(() => props.extra?.(q.value.trim()) ?? null);
 const chosen = computed(() => props.options.filter((o) => props.selected.includes(o.id)));
 watch([q, open], () => (active.value = 0));
 watch(open, (o) => o && (q.value = ''));
@@ -40,14 +43,19 @@ function pick(o: Option) {
   emit('pick', o.id);
   if (!props.multiple) open.value = false;
 }
+function pickExtra() {
+  emit('extra', q.value.trim());
+  q.value = '';
+}
 function onKey(e: KeyboardEvent) {
-  const n = shown.value.length;
+  const n = shown.value.length + (extraLabel.value ? 1 : 0);
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
     active.value = n ? (active.value + (e.key === 'ArrowDown' ? 1 : n - 1)) % n : 0;
   } else if (e.key === 'Enter') {
     e.preventDefault();
     if (shown.value[active.value]) pick(shown.value[active.value]);
+    else if (extraLabel.value) pickExtra();
   } else if (e.key === 'Escape') open.value = false;
 }
 </script>
@@ -99,7 +107,20 @@ function onKey(e: KeyboardEvent) {
           <span class="flex-1 truncate">{{ o.label }}</span>
           <span v-if="selected.includes(o.id)" aria-hidden="true">✓</span>
         </li>
-        <li v-if="!shown.length" class="px-2 py-1 text-sm text-fg-subtle">
+        <li
+          v-if="extraLabel"
+          role="option"
+          aria-selected="false"
+          :class="[
+            'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-sm',
+            active === shown.length ? 'bg-bg-muted' : '',
+          ]"
+          @click="pickExtra"
+          @mousemove="active = shown.length"
+        >
+          <span class="flex-1 truncate">{{ extraLabel }}</span>
+        </li>
+        <li v-if="!shown.length && !extraLabel" class="px-2 py-1 text-sm text-fg-subtle">
           {{ t('tasks.noResults') }}
         </li>
       </ul>

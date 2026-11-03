@@ -5,7 +5,7 @@ import WebSocket from 'ws';
 import { uuidv7 } from '@planar/shared';
 import { createApp } from '../../src/app.js';
 import { ORIGIN, createUser, loginCookie } from '../auth.js';
-import { dbUrl, mkSpace, newDb } from './helpers.js';
+import { dbUrl, mkProject, mkSpace, newDb } from './helpers.js';
 
 const db = newDb();
 let app: Awaited<ReturnType<typeof createApp>>;
@@ -64,7 +64,7 @@ async function pair() {
   const a = await createUser(db, { role: 'member' });
   const b = await createUser(db, { role: 'member' });
   const spaceId = await mkSpace(db, a.id, { [a.id]: 'admin', [b.id]: 'member' });
-  const projectId = uuidv7();
+  const projectId = await mkProject(db, spaceId);
   return {
     a,
     b,
@@ -82,7 +82,7 @@ const push = (p: Awaited<ReturnType<typeof pair>>, name: string, args: unknown) 
     clientId: p.clientId,
     mutations: [{ id: ++mid, name, args }],
   });
-const label = (spaceId: string) => ({ id: uuidv7(), spaceId, name: 'l', color: '#000' });
+const label = (projectId: string) => ({ id: uuidv7(), projectId, name: 'l', color: '#000' });
 
 describe('WS /ws', () => {
   it('без cookie → закрытие 4401', async () => {
@@ -105,7 +105,7 @@ describe('WS /ws', () => {
 
   it('hello с отстающим cursor → сразу poke; с актуальным — тишина', async () => {
     const p = await pair();
-    await push(p, 'label.create', label(p.spaceId));
+    await push(p, 'label.create', label(p.projectId));
     const c = connect({ cookie: p.cb, origin: ORIGIN });
     await c.opened;
     c.ws.send(JSON.stringify({ t: 'hello', cursor: 0 }));
@@ -133,7 +133,7 @@ describe('WS /ws', () => {
     await c.opened;
     await new Promise((r) => setTimeout(r, 100));
     c.msgs.length = 0;
-    const l = label(p.spaceId);
+    const l = label(p.projectId);
     await push(p, 'label.create', l);
     const m = (await c.next()) as Record<string, unknown>;
     expect(Object.keys(m).sort()).toEqual(['seq', 't']);
@@ -149,7 +149,7 @@ describe('WS /ws', () => {
     await new Promise((r) => setTimeout(r, 100));
     const boot = (await inject('GET', `/sync/bootstrap?clientId=${uuidv7()}`, cs)).json();
     c.msgs.length = 0;
-    const l = label(p.spaceId);
+    const l = label(p.projectId);
     await push(p, 'label.create', l);
     expect(((await c.next()) as { t: string }).t).toBe('poke');
     const pulled = (
@@ -167,14 +167,14 @@ describe('WS /ws', () => {
     const strict = process.env.PLANAR_LATENCY === '1';
     // 3 warm-up pushes are not counted (pool, JIT), then 20 measurements in one series
     for (let i = 0; i < 3; i++) {
-      await push(p, 'label.create', label(p.spaceId));
+      await push(p, 'label.create', label(p.projectId));
       await c.next();
     }
     const samples: number[] = [];
     for (let i = 0; i < (strict ? 20 : 3); i++) {
       c.msgs.length = 0;
       const t0 = performance.now();
-      await push(p, 'label.create', label(p.spaceId));
+      await push(p, 'label.create', label(p.projectId));
       await c.next(5000);
       samples.push(performance.now() - t0);
     }

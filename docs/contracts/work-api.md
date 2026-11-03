@@ -38,7 +38,7 @@ v5 — additions to v4 (docs/contracts/work.md §C-modules v4), backward compati
 - automations (server): for conditions with `cycle` — the project's cycles by an SQL query to `sprints_cycles` (the sprints module is enabled), otherwise `cycles` are not passed and rules with `'current'` are skipped (F-filter v2).
 
 ## REST and MCP (WK-5)
-An addition to `docs/contracts/core-api-v1.md` (response shape, pagination, errors, token permissions — as there). Module paths with the module disabled → `404 module_disabled`.
+An addition to `docs/contracts/core-api-v1.md` (response shape, pagination, errors, token permissions — as there). Module paths with the module disabled → `404 module_disabled`. Since PJ-3 (C-schema v16) the data modules (time, sprints, automations, …) are on per project (`projects.modules`): a path addressed to a project or to a task (`POST /time-entries`, `POST /timer/start`, `GET /projects/:id/cycles`, `…/cycles/current`, `…/automations`) answers `404 module_disabled` if the module is off in that project; module-wide listings (`GET /time-entries`, `GET /timer`, MCP `current_sprint` tasks) return only the rows of projects where the module is on. The version of the API is not bumped.
 
 | method and path | input → output |
 |---|---|

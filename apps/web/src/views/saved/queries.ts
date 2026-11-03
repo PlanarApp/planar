@@ -22,19 +22,27 @@ export function useSavedViews(spaceId: MaybeRefOrGetter<string>) {
   );
 }
 
-/** My saved view of a built-in tab in a node; undefined — loading, null — not saved. */
-export function useNodeView(node: MaybeRefOrGetter<string>, layout: MaybeRefOrGetter<string>) {
+/** My personal row and the shared default of a built-in tab in a node; undefined — loading. */
+export function useNodeViewRows(node: MaybeRefOrGetter<string>, layout: MaybeRefOrGetter<string>) {
   const { user } = useAuth();
   const all = useQuery(() => db.table<SavedView>('savedViews').toArray());
   return computed(() => {
     if (!all.value) return undefined;
     // shortcut: no unique index — after a race of two devices the freshest row wins
-    const rows = all.value.filter(
-      (v) =>
-        v.node === toValue(node) && v.layout === toValue(layout) && v.userId === user.value?.id,
-    );
-    return rows.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))[0] ?? null;
+    const rows = all.value
+      .filter((v) => v.node === toValue(node) && v.layout === toValue(layout))
+      .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+    return {
+      personal: rows.find((v) => v.userId === user.value?.id) ?? null,
+      shared: rows.find((v) => v.userId === null) ?? null,
+    };
   });
+}
+
+/** The effective view of a node tab: my personal row, else the shared default; null — none. */
+export function useNodeView(node: MaybeRefOrGetter<string>, layout: MaybeRefOrGetter<string>) {
+  const rows = useNodeViewRows(node, layout);
+  return computed(() => (rows.value ? (rows.value.personal ?? rows.value.shared) : undefined));
 }
 
 export function useSavedView(id: MaybeRefOrGetter<string>) {

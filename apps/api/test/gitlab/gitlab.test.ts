@@ -8,7 +8,7 @@ import { decrypt } from '../../../../modules/gitlab/api/crypto.js';
 import { pollAll } from '@planar/module-gitlab/api';
 import { gitlabConnections as P, gitlabMrs as M } from '@planar/module-gitlab/api/schema';
 import { JobsService } from '../../src/jobs/jobs.js';
-import { settings, tasks } from '../../src/db/schema.js';
+import { projects, settings, tasks } from '../../src/db/schema.js';
 import { createUser, loginCookie, ORIGIN } from '../auth.js';
 import { db, getApp, useApp } from '../auth/harness.js';
 import { key as pkey, taskArgs, world, type World } from '../sync/helpers.js';
@@ -433,6 +433,32 @@ describe('pt6a: мутаторы', () => {
       statusId: null,
     });
     expect(member).toMatchObject({ ok: false, code: 'forbidden' });
+  });
+
+  it('PJ-3 pt6a: модуль выключен в проекте — подключения 404 module_disabled, опрос пропускает проект, подключение остаётся', async () => {
+    const on = await addProject();
+    const t = await mkTask();
+    const set = (modules: string[]) =>
+      db.update(projects).set({ modules }).where(eq(projects.id, w.projectId));
+    await set([]);
+    for (const [m, u, b] of [
+      ['GET', conns()],
+      ['POST', conns(), { baseUrl: base, token: TOKEN, project: '1' }],
+      ['PATCH', `connections/${on.id}`, { token: TOKEN }],
+      ['DELETE', `connections/${on.id}`],
+    ] as [string, string, object?][]) {
+      const r = await call(m, u, b);
+      expect([m, u, r.statusCode, r.json().code]).toEqual([m, u, 404, 'module_disabled']);
+    }
+    handler = (_, res) => json(res, [mr(7, { title: t.key })]);
+    hits = [];
+    await poll();
+    expect(hits).toHaveLength(0);
+    expect(await mrsOf(7)).toHaveLength(0);
+    await set(['gitlab']);
+    expect((await call('GET', conns())).statusCode).toBe(200);
+    await poll();
+    expect(await mrsOf(7)).toHaveLength(1);
   });
 
   it('pt6a: удаление задачи удаляет её строки gitlabMrs', async () => {

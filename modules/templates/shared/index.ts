@@ -102,7 +102,8 @@ const taskCount = (t: TaskTemplate) =>
 
 /**
  * Consumption of `ids` in order: a task — the task's id, an id for each assignee, label, checklist item
- * (in template order), then the same for subtasks; a project — statuses, labels, fields, then tasks.
+ * (in template order), then the same for subtasks; a project — 5 ids of the default statuses (project.create),
+ * statuses, labels, fields, then tasks.
  * Skipped ids (no label, not a member) are consumed too.
  */
 export function templateIdPlan(kind: TemplateKind, data: unknown): { count: number } {
@@ -110,6 +111,7 @@ export function templateIdPlan(kind: TemplateKind, data: unknown): { count: numb
   const p = projectTemplateSchema.parse(data);
   return {
     count:
+      5 +
       p.statuses.length +
       p.labels.length +
       p.fields.length +
@@ -336,31 +338,49 @@ export const mutators = [
       const data = projectTemplateSchema.parse(tpl.data);
       const next = idSource(a.ids, templateIdPlan('project', data).count);
       const spaceId = tpl.spaceId;
+      // the new project starts with the 5 default statuses; the template's missing ones (by name) are added
       await projectCreate(
         tx,
-        { id: a.projectId, spaceId, name: a.name, key: a.key, rank: a.rank, ...data.project },
+        {
+          id: a.projectId,
+          spaceId,
+          name: a.name,
+          key: a.key,
+          rank: a.rank,
+          ...data.project,
+          statusIds: [next(), next(), next(), next(), next()],
+        },
         ctx,
       );
 
+      const projectStatuses = await tx.scan('statuses', { index: 'projectId', eq: a.projectId });
       const statusIds = new Map<string, string>();
-      for (const s of await tx.scan('statuses', { index: 'spaceId', eq: spaceId }))
-        statusIds.set(norm(s.name), s.id);
-      let last = (await tx.scan('statuses', { index: 'spaceId', eq: spaceId }))
+      for (const s of projectStatuses) statusIds.set(norm(s.name), s.id);
+      let last = projectStatuses
         .map((s) => s.rank)
         .reduce<string | null>((m, r) => (m === null || r > m ? r : m), null);
       for (const s of data.statuses) {
         const sid = next();
         if (statusIds.has(norm(s.name))) continue;
         last = generateKeyBetween(last, null);
-        await statusCreate(tx, { id: sid, spaceId, ...s, rank: last }, ctx);
+        await statusCreate(tx, { id: sid, projectId: a.projectId, ...s, rank: last }, ctx);
         statusIds.set(norm(s.name), sid);
+      }
+      // the project has no tasks yet: default statuses the template does not name are dropped
+      if (data.statuses.length) {
+        const named = new Set(data.statuses.map((s) => norm(s.name)));
+        for (const s of projectStatuses)
+          if (!named.has(norm(s.name))) {
+            await tx.del('statuses', s.id);
+            statusIds.delete(norm(s.name));
+          }
       }
 
       const env = await loadEnv(tx, spaceId, a.projectId, a.today);
       for (const l of data.labels) {
         const lid = next();
         if (env.labels.has(norm(l.name))) continue;
-        await labelCreate(tx, { id: lid, spaceId, ...l }, ctx);
+        await labelCreate(tx, { id: lid, projectId: a.projectId, ...l }, ctx);
         env.labels.set(norm(l.name), lid);
       }
 
@@ -384,7 +404,7 @@ export const mutators = [
 
 async function loadEnv(tx: Tx, spaceId: string, projectId: string, today: string): Promise<Env> {
   const labels = new Map<string, string>();
-  for (const l of await tx.scan('labels', { index: 'spaceId', eq: spaceId }))
+  for (const l of await tx.scan('labels', { index: 'projectId', eq: projectId }))
     labels.set(norm(l.name), l.id);
   const fields = new Map<string, FieldDef>();
   for (const f of await tx.scan('fieldDefs', { index: 'projectId', eq: projectId }))
@@ -450,7 +470,7 @@ export async function taskToTemplate(
   };
 }
 
-/** Project → ProjectTemplate: the space's statuses and labels, project fields, top-level tasks. */
+/** Project → ProjectTemplate: the project's statuses and labels, project fields, top-level tasks. */
 export async function projectToTemplate(
   projectId: string,
   read: Reader,
@@ -459,8 +479,8 @@ export async function projectToTemplate(
   const p = await read.get('projects', projectId);
   if (!p) throw new MutatorError('not_found', `projects ${projectId}`);
   const [sts, lbs, defs, tasks] = await Promise.all([
-    read.scan('statuses', { index: 'spaceId', eq: p.spaceId }),
-    read.scan('labels', { index: 'spaceId', eq: p.spaceId }),
+    read.scan('statuses', { index: 'projectId', eq: projectId }),
+    read.scan('labels', { index: 'projectId', eq: projectId }),
     read.scan('fieldDefs', { index: 'projectId', eq: projectId }),
     read.scan('tasks', { index: 'projectId', eq: projectId }),
   ]);

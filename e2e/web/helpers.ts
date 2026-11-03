@@ -26,6 +26,26 @@ export async function pick(trigger: Locator, name: string): Promise<void> {
   await opt.press('Enter');
 }
 
+/** Data modules (C-schema v16): on or off per project, the rest are shared (settings.enabled_modules). */
+export const DATA_MODULES = [
+  'gitlab',
+  'sprints',
+  'time',
+  'forms',
+  'recurring',
+  'automations',
+  'templates',
+  'goals',
+  'timeline',
+  'workload',
+  'dashboards',
+  'docs',
+];
+
+/** Mutations that turn the data modules on in a project (the test project works like the whole instance before PJ-3). */
+export const enableInProject = (admin: Client, projectId: string, ids = DATA_MODULES) =>
+  ids.map((moduleId) => admin.mut('project.setModule', { projectId, moduleId, enabled: true }));
+
 /** Own space with alice and bob (members), a project and tasks with unique names. */
 export async function fixture(titles: string[]): Promise<Fixture> {
   const admin = await Client.login('admin');
@@ -42,11 +62,18 @@ export async function fixture(titles: string[]): Promise<Fixture> {
       name: `e2e ${spaceId}`,
       rank: r1,
       memberId: uuidv7(),
-      statusIds,
     }),
     admin.mut('member.add', { id: uuidv7(), spaceId, userId: alice.userId, role: 'member' }),
     admin.mut('member.add', { id: uuidv7(), spaceId, userId: bob.userId, role: 'member' }),
-    admin.mut('project.create', { id: projectId, spaceId, name: `E2E ${key}`, key, rank: r2 }),
+    admin.mut('project.create', {
+      id: projectId,
+      spaceId,
+      name: `E2E ${key}`,
+      key,
+      rank: r2,
+      statusIds,
+    }),
+    ...enableInProject(admin, projectId),
     ...titles.map((title, i) =>
       admin.mut('task.create', {
         id: taskIds[i],

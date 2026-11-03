@@ -11,7 +11,7 @@ export const useStatuses = () =>
   useQuery(
     () =>
       db.table('statuses').toArray() as Promise<
-        { id: string; name: string; spaceId: string; rank: string }[]
+        { id: string; name: string; spaceId: string; projectId: string; rank: string }[]
       >,
   );
 

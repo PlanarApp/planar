@@ -21,6 +21,7 @@ import { enabledModules } from '../modules/enabled.js';
 import { PushQueue } from '../push/push.js';
 import { executeMutations } from '../sync/mutate.js';
 import { ChangeNotifier } from '../sync/notify.js';
+import { projectAccess } from '../sync/project-access.js';
 import { DB } from '../tokens.js';
 import { COLLAB_OPTS, type CollabOpts } from './options.js';
 import { fill, normalize as toNorm, same, toJson, type Json } from './ydoc.js';
@@ -149,17 +150,27 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     const [, kind, id] = m;
     let spaceId: string | undefined;
     let readOnly = false;
+    let projectId: string | null = null;
     if (kind === 'docs') {
       if (!(await enabledModules(this.db)).has('docs')) return null;
       const r = await this.db.execute(
-        sql`select space_id, archived_at from docs_pages where id = ${id}`,
+        sql`select d.space_id, d.project_id, d.archived_at, (d.project_id is null or 'docs' = any(p.modules)) as on
+          from docs_pages d left join projects p on p.id = d.project_id where d.id = ${id}`,
       );
-      const p = r.rows[0] as { space_id: string; archived_at: string | null } | undefined;
+      const p = r.rows[0] as
+        | { space_id: string; project_id: string | null; archived_at: string | null; on: boolean }
+        | undefined;
+      if (p && !p.on) return null; // C-schema v16: the module is off in the page's project
       spaceId = p?.space_id;
+      projectId = p?.project_id ?? null;
       readOnly = !!p?.archived_at;
     } else {
-      const [t] = await this.db.select({ s: tasks.spaceId }).from(tasks).where(eq(tasks.id, id!));
+      const [t] = await this.db
+        .select({ s: tasks.spaceId, p: tasks.projectId })
+        .from(tasks)
+        .where(eq(tasks.id, id!));
       spaceId = t?.s;
+      projectId = t?.p ?? null;
     }
     if (!spaceId) return null;
     const r = await this.db.execute(sql`
@@ -167,7 +178,10 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
       where m.space_id = ${spaceId} and m.user_id = ${userId} and u.deactivated_at is null`);
     const role = (r.rows[0] as { role: string } | undefined)?.role;
     if (!role) return null;
-    return { readOnly: readOnly || role === 'guest' };
+    // PJ-11: the role in the project (it can only lower the space role); no access → denied
+    const pr = projectId ? await projectAccess(this.db, userId, projectId) : role;
+    if (!pr) return null;
+    return { readOnly: readOnly || role === 'guest' || pr === 'guest' };
   }
 
   /** Entity content (body / description); undefined — entity does not exist. */
@@ -245,7 +259,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     const r = await this.db.execute(sql`
       select seq::float8 as seq, entity, id, op, data from changes
       where seq > ${this.last} and seq <= ${max}
-        and entity in ('docsPages', 'tasks', 'spaceMembers', 'users', 'settings')
+        and entity in ('docsPages', 'tasks', 'spaceMembers', 'projectMembers', 'users', 'settings', 'projects')
       order by seq`);
     this.last = max;
     let recheck = false;
@@ -256,10 +270,12 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
       op: string;
       data: Json | null;
     }[]) {
-      if (['spaceMembers', 'users', 'settings'].includes(c.entity)) {
-        // access may be gone: member, deactivation, docs module disabled
+      if (['spaceMembers', 'projectMembers', 'users', 'settings', 'projects'].includes(c.entity)) {
+        // access may be gone: member, deactivation, docs module disabled in the project (projects.modules)
         recheck ||=
           c.entity === 'spaceMembers' ||
+          c.entity === 'projectMembers' ||
+          c.entity === 'projects' ||
           (c.entity === 'settings' && c.id === 'enabled_modules') ||
           !!c.data?.deactivatedAt;
         continue;

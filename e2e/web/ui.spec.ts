@@ -24,7 +24,7 @@ test('создать задачу в списке: видна и пережив�
   const page = await loginAs(browser, 'alice');
   const title = uniq('Новая из UI');
   await page.goto(`/p/${f.projectId}/list`);
-  await page.getByRole('button', { name: 'Создать задачу' }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Создать задачу' }).click();
   await page.getByPlaceholder('Новая задача').fill(title);
   await page.keyboard.press('Enter');
   await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible();

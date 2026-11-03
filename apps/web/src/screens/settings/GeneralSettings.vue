@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
-import { Button, Input } from '../../ui';
+import { Smile } from 'lucide-vue-next';
+import { Button, EmojiPicker, Input, Popover } from '../../ui';
 import NodeIcon from '../../ui/NodeIcon.vue';
 import { uploadFile } from '../../api/files';
 import { db, mutate, useQuery } from '../../sync';
@@ -45,6 +46,11 @@ function save(patch: { name?: string; color?: string | null; icon?: string | nul
         ? mutate('space.update', { id: props.spaceId!, ...patch })
         : mutate('settings.set', { id: 'workspace', value: { ...n, ...patch } }),
   );
+}
+const emojiOpen = ref(false);
+function pickEmoji(emoji: string) {
+  emojiOpen.value = false;
+  save({ icon: firstGrapheme(emoji) || null });
 }
 const val = (e: Event) => (e.target as HTMLInputElement).value;
 const fileInput = ref<HTMLInputElement>();
@@ -98,6 +104,19 @@ function upload(e: Event) {
                 @change="save({ icon: firstGrapheme(val($event).trim()) || null })"
               />
             </div>
+            <Popover v-model:open="emojiOpen" align="start">
+              <template #trigger>
+                <Button
+                  size="sm"
+                  :icon="Smile"
+                  compact
+                  :aria-label="t('settings.general.iconPick')"
+                  data-testid="general-icon-pick"
+                  >{{ t('settings.general.iconPick') }}</Button
+                >
+              </template>
+              <EmojiPicker v-if="emojiOpen" @pick="pickEmoji" />
+            </Popover>
             <Button size="sm" @click="fileInput?.click()">{{
               t('settings.general.iconUpload')
             }}</Button>

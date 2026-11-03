@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { contractSchemas, uuidv7 } from '@planar/shared';
 import { createApp } from '../../src/app.js';
 import { ORIGIN, createUser, loginCookie } from '../auth.js';
-import { dbUrl, mkSpace, newDb } from './helpers.js';
+import { dbUrl, mkProject, mkSpace, newDb } from './helpers.js';
 
 const db = newDb();
 let app: Awaited<ReturnType<typeof createApp>>;
@@ -76,10 +76,15 @@ describe('HTTP /sync', () => {
   it('push: ответ валиден, pull видит результат, повтор идемпотентен', async () => {
     const { u, cookie, clientId } = await user();
     const spaceId = await mkSpace(db, u.id, { [u.id]: 'admin' });
+    const projectId = await mkProject(db, spaceId);
     const body = {
       clientId,
       mutations: [
-        { id: 1, name: 'label.create', args: { id: uuidv7(), spaceId, name: 'x', color: '#000' } },
+        {
+          id: 1,
+          name: 'label.create',
+          args: { id: uuidv7(), projectId, name: 'x', color: '#000' },
+        },
       ],
     };
     const { cursor } = (await req('GET', `/sync/bootstrap?clientId=${clientId}`, cookie)).json();
@@ -163,6 +168,7 @@ describe('HTTP /sync', () => {
               .toUpperCase()
               .replace(/[^A-Z0-9]/g, 'Z')}`,
             rank: 'a0',
+            statusIds: Array.from({ length: 5 }, () => uuidv7()),
           },
         },
       ],

@@ -96,7 +96,7 @@ function save() {
         </label>
       </div>
       <template v-if="editing">
-        <Editor v-model="draft" :members="members" :label="t('task.comment')" @submit="save" />
+        <Editor v-model="draft" refs :members="members" :label="t('task.comment')" @submit="save" />
         <div class="mt-1 flex gap-2">
           <Button size="sm" variant="primary" @click="save">{{ t('task.save') }}</Button>
           <Button size="sm" variant="ghost" @click="editing = false">{{ t('task.cancel') }}</Button>

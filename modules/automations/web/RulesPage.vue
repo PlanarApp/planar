@@ -156,9 +156,14 @@ const t = computed(() => draft.value!.trigger as Record<string, unknown>);
 const act = (a: Action) => a as Record<string, unknown>;
 const projectName = (id: string) => projects.value.find((p) => p.id === id)?.name ?? id;
 const pickers = computed(() => ({
-  statusId: (statuses.value ?? []).map((s) => ({ v: s.id, l: s.name })),
+  // statuses and labels belong to a project (PJ-1): the project of the rule
+  statusId: (statuses.value ?? [])
+    .filter((s) => s.projectId === projectId.value)
+    .map((s) => ({ v: s.id, l: s.name })),
   userId: (members.value ?? []).map((u: Row<'users'>) => ({ v: u.id, l: u.name })),
-  labelId: (labels.value ?? []).map((l) => ({ v: l.id, l: l.name })),
+  labelId: (labels.value ?? [])
+    .filter((l) => l.projectId === projectId.value)
+    .map((l) => ({ v: l.id, l: l.name })),
   projectId: projects.value.map((p) => ({ v: p.id, l: p.name })),
 }));
 const pickerKey = (a: Action) =>

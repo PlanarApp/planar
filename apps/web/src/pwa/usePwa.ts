@@ -19,18 +19,51 @@ let reg: ServiceWorkerRegistration | undefined;
 let sw: ReturnType<typeof useRegisterSW> | undefined;
 let deferred: InstallEvent | undefined;
 
+// downloading: the new worker is installing (precache); ready = needRefresh; applying: activation requested
+const downloading = ref(false);
+const applying = ref(false);
+
 const check = () => void reg?.update().catch(() => {});
+
+const FORCE_MS = 4000;
+
+async function apply() {
+  applying.value = true;
+  // the reload itself is done by vite-plugin-pwa when the new worker takes control
+  await sw!.updateServiceWorker(true);
+  // Chromium leaves the skipWaiting'ed worker waiting when the page was loaded while it already waited (reproduced in
+  // e2e/web/pwa-update.spec.ts): the click then did nothing. If the page is still here, drop the registration and
+  // caches and reload — the next load installs the new version from the network.
+  setTimeout(async () => {
+    try {
+      await reg?.unregister();
+      for (const k of await caches.keys()) await caches.delete(k);
+    } finally {
+      location.reload();
+    }
+  }, FORCE_MS);
+}
 
 function init(): ReturnType<typeof useRegisterSW> {
   const s = useRegisterSW({
     onRegisteredSW(_url, r) {
       reg = r;
-      if (r) setInterval(check, CHECK_MS);
+      if (!r) return;
+      setInterval(check, CHECK_MS);
+      r.addEventListener?.('updatefound', () => {
+        const w = r.installing;
+        // first install (no controller) is not an update
+        if (!w || !navigator.serviceWorker?.controller) return;
+        downloading.value = true;
+        w.addEventListener('statechange', () => {
+          if (w.state !== 'installing') downloading.value = false;
+        });
+      });
     },
   });
-  const { needRefresh, updateServiceWorker } = s;
+  const { needRefresh } = s;
   const applyIfHidden = () => {
-    if (needRefresh.value && document.visibilityState === 'hidden') void updateServiceWorker(true);
+    if (needRefresh.value && document.visibilityState === 'hidden') void apply();
   };
   watch(needRefresh, applyIfHidden);
   document.addEventListener('visibilitychange', () => {
@@ -93,7 +126,9 @@ export function usePwa() {
     needRefresh: s.needRefresh,
     updateState: readonly(updateState),
     checkForUpdates,
-    applyUpdate: () => s.updateServiceWorker(true),
+    downloading: readonly(downloading),
+    applying: readonly(applying),
+    applyUpdate: apply,
     canInstall: readonly(canInstall),
     isStandalone: readonly(isStandalone),
     isIos,

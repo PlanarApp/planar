@@ -310,14 +310,15 @@ async function sendWebhooks(
 async function run(d: RunData, api: JobApi) {
   const [r] = await rows(
     api,
-    sql`select id, enabled, conditions, actions, project_id as "projectId" from automations_rules where id = ${d.ruleId}`,
+    sql`select r.id, r.enabled, r.conditions, r.actions, r.project_id as "projectId" from automations_rules r
+        join projects p on p.id = r.project_id and 'automations' = any(p.modules) where r.id = ${d.ruleId}`,
   );
   const task = r?.enabled ? await loadTask(api, d.taskId) : undefined;
   if (!r || !task) return void (await record(api, d, 'skipped'));
   const rule = r as unknown as Rule;
   const statuses = (await rows(
     api,
-    sql`select id, space_id as "spaceId", category, rank from statuses where space_id = ${(task as unknown as Row).spaceId as string} order by rank`,
+    sql`select id, space_id as "spaceId", category, rank from statuses where project_id = ${task.projectId} order by rank`,
   )) as unknown as Status[];
   const fieldDefs = await rows(
     api,
@@ -363,8 +364,9 @@ async function due(data: { now?: string }, api: JobApi) {
   const day = await today(api, now);
   const rules = await rows(
     api,
-    sql`select id, project_id as "projectId", trigger from automations_rules
-        where enabled and trigger->>'type' = 'task.due'`,
+    sql`select r.id, r.project_id as "projectId", r.trigger from automations_rules r
+        join projects p on p.id = r.project_id and 'automations' = any(p.modules)
+        where r.enabled and r.trigger->>'type' = 'task.due'`,
   );
   for (const r of rules) {
     const days = (r.trigger as { daysBefore: number }).daysBefore;
@@ -422,10 +424,16 @@ class AutomationsController {
     if (!UUID.test(ruleId)) throw notFound;
     const q = (s: ReturnType<typeof sql>) => this.core.db.execute(s).then((r) => r.rows as Row[]);
     const visible = await q(
-      sql`select 1 from automations_rules r join space_members m on m.space_id = r.space_id
+      sql`select r.project_id as "projectId" from automations_rules r join space_members m on m.space_id = r.space_id
           where r.id = ${ruleId} and m.user_id = ${userId}`,
     );
     if (!visible.length) throw notFound;
+    // C-schema v16: the module is off in the rule's project
+    const on = await q(
+      sql`select 'automations' = any(modules) as on from projects where id = ${visible[0]!.projectId as string}::uuid`,
+    );
+    if (on[0] && !on[0].on)
+      throw new HttpError(404, 'module_disabled', 'Модуль automations выключен в проекте');
     const data = await q(
       sql`select id, rule_id as "ruleId", task_id as "taskId", depth, status, error,
           created_at as "createdAt" from automations_runs

@@ -13,7 +13,7 @@ describe('seed', () => {
       db.$client
         .query<{ names: string; cats: string }>(
           `select string_agg(name, ',' order by rank) as names, string_agg(category || color, ',' order by rank) as cats
-           from statuses group by space_id limit 1`,
+           from statuses group by project_id limit 1`,
         )
         .then((r) => r.rows[0]!);
     await seed(db, 0, 'en');

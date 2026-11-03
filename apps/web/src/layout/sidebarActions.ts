@@ -16,6 +16,7 @@ import type { Row } from '@planar/shared';
 import type { MenuItem } from '../ui/Menu.vue';
 import { toast } from '../ui/toast';
 import { db, mutate, newId, rankBetween } from '../sync';
+import { defaultModules } from '../api/defaultModules';
 import { favorites, type NavSpace } from './nav';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
@@ -56,6 +57,10 @@ export function useSidebarActions() {
     draft.value = value;
   };
   const cancel = () => (editing.value = null);
+  /** Blur of a creation field while the menu that started it is still open is the menu's focus trap, not a cancel (Menu gives the focus back). */
+  const blurNew = () => {
+    if (!document.querySelector('[role=menu]')) cancel();
+  };
 
   async function commit(): Promise<void> {
     const id = editing.value;
@@ -74,10 +79,6 @@ export function useSidebarActions() {
         name: v,
         rank: rankBetween(last, null),
         memberId: newId(),
-        statusIds: STATUSES.map(() => newId()),
-        statusNames: Object.fromEntries(
-          STATUSES.map((c) => [c, t(`settings.statusDefaults.${c}`)]),
-        ),
       });
     }
     if (id.startsWith('new:')) {
@@ -90,12 +91,19 @@ export function useSidebarActions() {
           .sort()
           .at(-1) ?? null;
       const pid = newId();
+      const modules = await defaultModules();
       await mutate('project.create', {
+        ...(modules && { modules }),
         id: pid,
         spaceId,
         name: v,
         key: projectKey(v, new Set(all.map((p) => p.key))),
         rank: rankBetween(last, null),
+        // statuses belong to a project (PJ-1): the default five, named in the current language
+        statusIds: STATUSES.map(() => newId()),
+        statusNames: Object.fromEntries(
+          STATUSES.map((c) => [c, t(`settings.statusDefaults.${c}`)]),
+        ),
       });
       void router.push(`/p/${pid}`);
       return;
@@ -211,5 +219,5 @@ export function useSidebarActions() {
     ];
   };
 
-  return { editing, draft, start, cancel, commit, spaceItems, projectItems };
+  return { editing, draft, start, cancel, blurNew, commit, spaceItems, projectItems };
 }

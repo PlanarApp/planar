@@ -21,6 +21,8 @@ defineProps<{
   parentTitle?: string;
   childCount?: number;
   projectName?: string;
+  /** "Project" field as the name even on mobile (the List card); the Board keeps the folder icon */
+  projectText?: boolean;
   /** name on one line (a List row of fixed height) */
   oneLine?: boolean;
   depth?: number;
@@ -39,6 +41,7 @@ const { isMobile } = useBreakpoint();
       <StatusPicker
         compact
         :space-id="spaceId"
+        :project-id="task.projectId"
         :model-value="task.statusId"
         @update:model-value="updateTask(task.id, { statusId: $event })"
       />
@@ -61,17 +64,25 @@ const { isMobile } = useBreakpoint();
     >
   </div>
   <div v-if="cols.length" class="-mx-1.5 flex flex-wrap items-center">
-    <CardField
-      v-for="c in cols"
-      :key="c"
-      :col="c"
-      :task="task"
-      :space-id="spaceId"
-      :members="members"
-      :labels="labels"
-      :hot="hot"
-      :project-name="projectName"
-      :icon-only="isMobile"
-    />
+    <template v-for="c in cols" :key="c">
+      <span
+        v-if="projectText && c === 'project'"
+        class="inline-flex h-7 min-w-0 max-w-full items-center px-1.5 text-sm text-fg-muted"
+        data-testid="card-project"
+        :title="projectName"
+        ><span class="truncate">{{ projectName }}</span></span
+      >
+      <CardField
+        v-else
+        :col="c"
+        :task="task"
+        :space-id="spaceId"
+        :members="members"
+        :labels="labels"
+        :hot="hot"
+        :project-name="projectName"
+        :icon-only="isMobile"
+      />
+    </template>
   </div>
 </template>

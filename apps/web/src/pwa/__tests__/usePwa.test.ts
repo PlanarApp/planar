@@ -63,6 +63,34 @@ describe('auto update', () => {
   });
 });
 
+describe('PJ-7 apply', () => {
+  it('PJ-7: applyUpdate activates the worker and sets applying', async () => {
+    const p = await load();
+    await p.applyUpdate();
+    expect(updateServiceWorker).toHaveBeenCalledWith(true);
+    expect(p.applying.value).toBe(true);
+  });
+  it('PJ-7: downloading while the new worker installs', async () => {
+    const p = await load();
+    const w = new EventTarget() as EventTarget & { state: string };
+    w.state = 'installing';
+    const r = new EventTarget() as EventTarget & { installing?: unknown };
+    r.installing = w;
+    vi.stubGlobal('navigator', {
+      serviceWorker: { controller: {} },
+      userAgent: '',
+      maxTouchPoints: 0,
+    });
+    opts.onRegisteredSW?.('/sw.js', r);
+    r.dispatchEvent(new Event('updatefound'));
+    expect(p.downloading.value).toBe(true);
+    w.state = 'installed';
+    w.dispatchEvent(new Event('statechange'));
+    expect(p.downloading.value).toBe(false);
+    vi.unstubAllGlobals();
+  });
+});
+
 describe('install', () => {
   const fire = () => {
     const e = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), {

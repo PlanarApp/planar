@@ -109,7 +109,7 @@ export const mutators = [
         if (!st?.mergedStatusId || st.mergedStatusId === task.statusId) continue;
         // same as task.update {statusId}: completedAt by status category
         const status = await tx.get('statuses', st.mergedStatusId);
-        if (!status || status.spaceId !== task.spaceId) continue;
+        if (!status || status.projectId !== task.projectId) continue;
         const done = status.category === 'done' || status.category === 'cancelled';
         await tx.patch('tasks', task.id, {
           statusId: status.id,
@@ -127,8 +127,8 @@ export const mutators = [
       if (!p) throw new MutatorError('not_found', `projects ${a.projectId}`);
       if (a.statusId) {
         const s = await tx.get('statuses', a.statusId);
-        if (!s || s.spaceId !== p.spaceId)
-          throw new MutatorError('invalid_args', 'statusId другого пространства');
+        if (!s || s.projectId !== p.id)
+          throw new MutatorError('invalid_args', 'statusId другого проекта');
       }
       await mtx(tx).put(E('gitlabProjectSettings'), {
         id: p.id,

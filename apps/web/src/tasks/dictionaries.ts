@@ -73,7 +73,9 @@ function useShared<T>(kind: string, arg: () => string, fn: (a: string) => Promis
 }
 
 // key — a space id or several comma-separated (group summary)
+// "p:<projectId>" — the project's own dictionary (statuses and labels belong to a project)
 const bySpace = <T>(table: string, s: string) => {
+  if (s.startsWith('p:')) return db.table<T>(table).where('projectId').equals(s.slice(2)).toArray();
   const w = db.table<T>(table).where('spaceId');
   return (s.includes(',') ? w.anyOf(s.split(',')) : w.equals(s)).toArray();
 };
@@ -88,12 +90,26 @@ const members = async (s: string) => {
     .sort((a, b) => a.name.localeCompare(b.name));
 };
 
-export const useStatuses = (spaceId: MaybeRefOrGetter<string>) =>
-  useShared('st', () => toValue(spaceId), statuses);
-export const useLabels = (spaceId: MaybeRefOrGetter<string>) =>
-  useShared('lb', () => toValue(spaceId), labels);
+type Maybe = MaybeRefOrGetter<string | undefined>;
+const scopeKey = (spaceId: MaybeRefOrGetter<string>, projectId?: Maybe) => () => {
+  const p = toValue(projectId);
+  return p ? `p:${p}` : toValue(spaceId);
+};
+/** with `projectId` — the project's own statuses; without — of the space(s), the same names repeat across projects */
+export const useStatuses = (spaceId: MaybeRefOrGetter<string>, projectId?: Maybe) =>
+  useShared('st', scopeKey(spaceId, projectId), statuses);
+export const useLabels = (spaceId: MaybeRefOrGetter<string>, projectId?: Maybe) =>
+  useShared('lb', scopeKey(spaceId, projectId), labels);
 export const useMembers = (spaceId: MaybeRefOrGetter<string>) =>
   useShared('mb', () => toValue(spaceId), members);
+
+export const normName = (name: string) => name.trim().toLowerCase();
+
+/** Summary of several projects: same-named rows (case-insensitive) are one item, the first one represents it. */
+export function uniqByName<T extends { name: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  return rows.filter((r) => !seen.has(normName(r.name)) && !!seen.add(normName(r.name)));
+}
 
 /** Pre-reads the dictionaries of the project's space so the project screen gets them without reading IndexedDB. */
 export function warmSpace(spaceId: string): void {

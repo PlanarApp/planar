@@ -10,7 +10,16 @@ import {
   updateTask,
   useStatuses,
 } from '../../tasks';
-import { createStatus, fixPlan, useProjectNames, useStatusKey } from '../scope';
+import {
+  createStatus,
+  defaultStatus,
+  fixPlan,
+  labelFor,
+  useLabelKey,
+  useProjectNames,
+  useStatusKey,
+  useWidenedFilter,
+} from '../scope';
 import { useBlockedIds } from '../../links';
 import { LayoutDashboard } from 'lucide-vue-next';
 import { EmptyState, useBreakpoint } from '../../ui';
@@ -31,16 +40,19 @@ const { isMobile } = useBreakpoint();
 const project = useProject(() => props.projectId);
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 const tasks = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
-const statuses = useStatuses(spaceId);
+// a project board reads its own dictionaries; a summary — those of all its projects (grouped by name)
+const dictProject = () => (props.scope ? undefined : props.projectId);
+const statuses = useStatuses(spaceId, dictProject);
 const members = useMembers(spaceId);
-const labels = useLabels(spaceId);
+const labels = useLabels(spaceId, dictProject);
 const blocked = useBlockedIds(() => props.projectId);
 const passes = useTaskFilter(
-  () => props.filter,
+  useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
 );
 const statusKey = useStatusKey(() => props.scope, statuses);
+const labelKey = useLabelKey(() => props.scope, labels);
 const projectNames = useProjectNames();
 
 const columns = computed(() =>
@@ -54,6 +66,7 @@ const columns = computed(() =>
       members: members.value ?? [],
       labels: labels.value ?? [],
       statusKey: statusKey.value,
+      labelKey: labelKey.value,
     },
   ),
 );
@@ -114,6 +127,21 @@ watch(scroller, (el) => {
 watch(columns, () => void nextTick(measure));
 onBeforeUnmount(() => ro?.disconnect());
 
+// desktop: drag the empty space with the mouse to scroll horizontally (touch scrolls natively)
+let pan: { x: number; left: number } | undefined;
+function panStart(e: PointerEvent) {
+  const el = scroller.value;
+  if (e.pointerType !== 'mouse' || e.button !== 0 || !el) return;
+  const skip = '[data-id],[data-col-handle],button,a,input,textarea,[contenteditable]';
+  if ((e.target as Element).closest(skip)) return;
+  pan = { x: e.clientX, left: el.scrollLeft };
+  el.setPointerCapture(e.pointerId);
+}
+function panMove(e: PointerEvent) {
+  if (pan && scroller.value) scroller.value.scrollLeft = pan.left - (e.clientX - pan.x);
+}
+const panEnd = () => (pan = undefined);
+
 // status order — by dragging the column headers (grouping by status)
 async function onColumnsEnd(e: { oldDraggableIndex?: number; newDraggableIndex?: number }) {
   const o = e.oldDraggableIndex;
@@ -132,10 +160,11 @@ async function onColumnsEnd(e: { oldDraggableIndex?: number; newDraggableIndex?:
 async function move(id: string, from: string, to: string, beforeId: string | null) {
   // multi-space summary: the column is the status name; we set the same-named status of the task's space
   const plan = fixPlan(
-    planMove(columns.value, props.options.groupBy, id, from, to, beforeId),
+    planMove(columns.value, props.options.groupBy, id, from, to, beforeId, labelKey.value),
     tasks.value?.find((x) => x.id === id),
     !!statusKey.value,
     statuses.value ?? [],
+    labels.value ?? [],
   );
   if (plan) await applyMove(plan);
 }
@@ -149,10 +178,11 @@ function add(key: string, title: string) {
         target.spaceId,
         by === 'status' ? key : undefined,
         !!statusKey.value,
+        target.projectId,
       )
     : by === 'status'
       ? key
-      : (statuses.value?.find((s) => s.category === 'todo') ?? statuses.value?.[0])?.id;
+      : defaultStatus(statuses.value ?? [], props.projectId);
   if (!statusId) return;
   void createTask({
     projectId: target?.projectId ?? props.projectId,
@@ -160,7 +190,12 @@ function add(key: string, title: string) {
     title,
     ...(by === 'priority' && { priority: Number(key) }),
     ...(by === 'assignee' && key !== 'none' && { assigneeIds: [key] }),
-    ...(by === 'label' && key !== 'none' && { labelIds: [key] }),
+    ...(by === 'label' &&
+      key !== 'none' && {
+        labelIds: [labelFor(labels.value ?? [], target?.projectId ?? props.projectId, key)].filter(
+          (x): x is string => !!x,
+        ),
+      }),
   });
 }
 </script>
@@ -191,6 +226,10 @@ function add(key: string, title: string) {
         :class="isMobile && 'snap-x snap-mandatory scroll-px-3'"
         :style="mask"
         @scroll.passive="measure"
+        @pointerdown="panStart"
+        @pointermove="panMove"
+        @pointerup="panEnd"
+        @pointercancel="panEnd"
         @end="onColumnsEnd"
         role="group"
         :aria-label="t('views.board')"

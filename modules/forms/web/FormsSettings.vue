@@ -84,9 +84,7 @@ const allDefs = useQuery(() => db.table<Row<'fieldDefs'>>('fieldDefs').toArray()
 const allStatuses = useQuery(() => db.table<Row<'statuses'>>('statuses').toArray());
 const forms = computed(() => allForms.value?.filter((f) => f.projectId === projectId.value));
 const defs = computed(() => allDefs.value?.filter((d) => d.projectId === projectId.value));
-const statuses = computed(() =>
-  allStatuses.value?.filter((s) => s.spaceId === project.value?.spaceId),
-);
+const statuses = computed(() => allStatuses.value?.filter((s) => s.projectId === projectId.value));
 
 // available keys of the form fields
 const catalog = computed(() => [

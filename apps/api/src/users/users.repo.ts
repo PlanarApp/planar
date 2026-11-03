@@ -50,6 +50,7 @@ export async function updateUser(
     Pick<UserRow, 'name' | 'email' | 'role' | 'avatarFile' | 'deactivatedAt' | 'passwordHash'>
   >,
 ): Promise<UserRow> {
+  const [was] = await q.select({ role: users.role }).from(users).where(eq(users.id, id));
   const row = (
     await q
       .update(users)
@@ -57,13 +58,15 @@ export async function updateUser(
       .where(eq(users.id, id))
       .returning()
   )[0]!;
-  await publish(q, actorId, row);
+  // PJ-11: an instance role change changes access to custom projects: the user's replica is rebuilt
+  await publish(q, actorId, row, !!was && was.role !== row.role);
   return row;
 }
 
 /** Writes a wire row into changes; call inside a transaction. */
-export async function publish(q: Q, actorId: string, row: UserRow) {
+export async function publish(q: Q, actorId: string, row: UserRow, reset = false) {
   const tx = ServerTx.asSystem(q, { userId: actorId });
   await tx.put('users', toWire('users', row) as never, { passwordHash: row.passwordHash });
+  if (reset) await tx.reset(row.id);
   await tx.finish();
 }

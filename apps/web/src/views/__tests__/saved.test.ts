@@ -130,7 +130,8 @@ describe('views:saved', () => {
     await until(() => body.find('[data-role=add]').exists());
     await body.get('[data-role=add]').trigger('click');
     await body.get('[data-role=operator]').setValue('notIn');
-    expect(w.findAll('[data-testid=filter-chip]')).toHaveLength(1);
+    expect(w.find('[data-testid=filter-active]').exists()).toBe(true);
+    expect(w.find('[data-testid=filter-chip]').exists()).toBe(false);
     await w.get('[data-testid=filter-toggle]').trigger('click');
     await w.get('[data-testid=view-toggle]').trigger('click');
     await until(() => body.find('[data-field=labels]').exists());
@@ -153,63 +154,108 @@ describe('views:saved', () => {
     await until(() => r.currentRoute.value.path === `/p/${ids.project}/v/${v.id}`);
   });
 
-  it('views:saved вид таба узла: правка — черновик, «Сохранить» — моя строка node, после открытия — из неё', async () => {
-    await r.push(`/p/${ids.project}/board`);
-    const w = mountScreen(ProjectScreen);
+  const hideLabels = async (w: ReturnType<typeof mountScreen>) => {
     await until(() => w.find('[data-testid=view-toggle]').exists());
-    expect(w.find('[data-testid=saved-save]').exists()).toBe(false);
     await w.get('[data-testid=view-toggle]').trigger('click');
     await until(() => body.find('[data-field=labels]').exists());
     await body.get('[data-field=labels]').setValue(false);
     await w.get('[data-testid=view-toggle]').trigger('click');
-    await until(() => w.find('[data-testid=saved-save]').exists());
-    await w.get('[data-testid=saved-save]').trigger('click');
+  };
+  const fieldsOf = (w: ReturnType<typeof mountScreen>) =>
+    JSON.parse(w.get('[data-testid=view]').attributes('data-options')!).fields as string[];
+
+  it('PJ-4 вид таба узла: правка сразу уходит в мою строку node (без черновика), после открытия — из неё', async () => {
+    await r.push(`/p/${ids.project}/board`);
+    const w = mountScreen(ProjectScreen);
+    await until(() => w.find('[data-testid=view-toggle]').exists());
+    expect(w.find('[data-testid=node-reset]').exists()).toBe(false);
+    await hideLabels(w);
     await until(async () => (await rows()).length === 1);
     const [v] = await rows();
     expect(v).toMatchObject({ node: `p:${ids.project}`, layout: 'board', userId: ids.ann });
     expect(v.config.fields).not.toContain('labels');
-    await until(() => !w.find('[data-testid=saved-save]').exists());
+    await until(() => w.find('[data-testid=node-reset]').exists());
+    expect(w.find('[data-testid=saved-save]').exists()).toBe(false);
     // the node view is not a named tab
     expect(w.find(`[data-saved-view="${v.id}"]`).exists()).toBe(false);
     w.unmount();
-    // opened again — the saved view, without a draft
+    // opened again — the saved view
     const w2 = mountScreen(ProjectScreen);
     await until(() => w2.find('[data-testid=view-toggle]').exists());
     await w2.get('[data-testid=view-toggle]').trigger('click');
     await until(() => body.find('[data-field=labels]').exists());
     expect((body.get('[data-field=labels]').element as HTMLInputElement).checked).toBe(false);
-    expect(w2.find('[data-testid=saved-save]').exists()).toBe(false);
   });
 
-  it('views:saved чип исполнителя показывает имя, не id', async () => {
-    await r.push(`/p/${ids.project}`);
-    const FilterChips = (await import('../saved/FilterChips.vue')).default;
-    const w = mountScreen(
-      defineComponent({
-        render: () =>
-          h(FilterChips, {
-            spaceId: ids.space,
-            modelValue: {
-              op: 'and',
-              rules: [{ field: 'assignee', operator: 'in', value: [ids.ann] }],
-            },
-          }),
-      }),
-    );
-    await until(() => w.find('[data-testid=filter-chip]').exists());
-    await until(() => !w.get('[data-testid=filter-chip]').text().includes(ids.ann));
+  it('PJ-4 несколько правок подряд — одна строка (id стабилен), вторая правка — view.update', async () => {
+    await r.push(`/p/${ids.project}/board`);
+    const w = mountScreen(ProjectScreen);
+    await hideLabels(w);
+    await until(async () => (await rows()).length === 1);
+    const [v] = await rows();
+    await flipSortDir(w);
+    await until(async () => (await rows())[0].config.sortDir !== v.config.sortDir);
+    expect(await rows()).toHaveLength(1);
+    expect((await rows())[0].id).toBe(v.id);
   });
 
-  it('views:saved чип условия снимает правило', async () => {
+  it('PJ-4 общий вид по умолчанию виден, «Сбросить» возвращает его после личной правки', async () => {
+    const shared = savedRow({
+      node: `p:${ids.project}`,
+      config: { fields: ['status'] },
+      filter: { op: 'and', rules: [] },
+    });
+    await db.table('savedViews').put(shared);
+    await r.push(`/p/${ids.project}/board`);
+    const w = mountScreen(ProjectScreen);
+    await until(() => w.find('[data-testid=view]').exists());
+    expect(fieldsOf(w)).toEqual(['status']);
+    expect(w.find('[data-testid=node-reset]').exists()).toBe(false);
+    await flipSortDir(w);
+    await until(async () => (await rows()).length === 2);
+    await until(() => w.find('[data-testid=node-reset]').exists());
+    await w.get('[data-testid=node-reset]').trigger('click');
+    await until(async () => (await rows()).length === 1);
+    expect((await rows())[0].id).toBe(shared.id);
+    await until(() => !w.find('[data-testid=node-reset]').exists());
+    expect(fieldsOf(w)).toEqual(['status']);
+  });
+
+  it('PJ-4 «Сохранить для всех» — общая строка (userId null) вместо моей личной', async () => {
+    await r.push(`/p/${ids.project}/board`);
+    const w = mountScreen(ProjectScreen);
+    await hideLabels(w);
+    await until(async () => (await rows()).length === 1);
+    await until(() => w.find('[data-testid=node-share]').exists());
+    await w.get('[data-testid=node-share]').trigger('click');
+    await until(async () => (await rows()).length === 1 && (await rows())[0].userId === null);
+    expect((await rows())[0]).toMatchObject({ node: `p:${ids.project}`, layout: 'board' });
+    expect((await rows())[0].config.fields).not.toContain('labels');
+    await until(() => !w.find('[data-testid=node-reset]').exists());
+  });
+
+  it('PJ-4 личный вид другого пользователя не виден', async () => {
+    await db
+      .table('savedViews')
+      .put(savedRow({ node: `p:${ids.project}`, userId: ids.bob, config: { fields: ['status'] } }));
+    await r.push(`/p/${ids.project}/board`);
+    const w = mountScreen(ProjectScreen);
+    await until(() => w.find('[data-testid=view]').exists());
+    expect(fieldsOf(w)).not.toEqual(['status']);
+    expect(w.find('[data-testid=node-reset]').exists()).toBe(false);
+  });
+
+  it('pj25: кнопка фильтра — отметка и подсказка, пустой фильтр без них', async () => {
     await r.push(`/p/${ids.project}`);
     const w = mountScreen(ProjectScreen);
     await until(() => w.find('[data-testid=filter-toggle]').exists());
+    expect(w.find('[data-testid=filter-active]').exists()).toBe(false);
+    expect(w.get('[data-testid=filter-toggle]').attributes('title')).toBeUndefined();
     await w.get('[data-testid=filter-toggle]').trigger('click');
     await until(() => body.find('[data-role=add]').exists());
     await body.get('[data-role=add]').trigger('click');
-    await until(() => w.findAll('[data-testid=filter-chip]').length === 1);
-    await w.get('[data-testid=filter-chip] button').trigger('click');
-    await until(() => w.findAll('[data-testid=filter-chip]').length === 0);
+    await until(() => w.find('[data-testid=filter-active]').exists());
+    expect(w.get('[data-testid=filter-toggle]').attributes('title')).toBeTruthy();
   });
 
   it('views:saved общий вид (personal:false) — userId null', async () => {

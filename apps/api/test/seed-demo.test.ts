@@ -69,6 +69,7 @@ describe('seed-demo', () => {
     const [{ n: migrations }] = (await q<{ n: number }>(
       `select count(*)::int as n from drizzle.__drizzle_migrations`,
     )) as [{ n: number }];
+    await resetDemo(db, NOW); // the journal `changes` holds the _reset row of migration 0032 until the first reset
     const first = await snapshot();
     await resetDemo(db, NOW);
     expect(await snapshot()).toEqual(first);

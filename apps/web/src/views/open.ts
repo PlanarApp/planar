@@ -24,16 +24,16 @@ watch(taskOpenMode, (v) => {
   }
 });
 
-const GROUP_ROUTES = ['project', 'space', 'workspace'];
+const GROUP_ROUTES = ['project', 'space', 'workspace', 'my']; // 'my' — screen /my (MyScreen draws TaskModal)
 
 export function openTask(key: string): void {
   const r = router.currentRoute.value;
   // window/side panel — on any group screen (TaskModal exists in Tasks and in other tabs)
   if (
     GROUP_ROUTES.includes(String(r.name)) &&
-    taskOpenMode.value !== 'page' &&
-    !useBreakpoint().isMobile.value
+    (useBreakpoint().isMobile.value || taskOpenMode.value !== 'page')
   ) {
+    // mobile: fullscreen dialog over the view (TaskModal), so the view keeps scroll/groups/filters
     void router.push({ query: { ...r.query, task: key } });
   } else {
     void router.push(`/t/${encodeURIComponent(key)}`);

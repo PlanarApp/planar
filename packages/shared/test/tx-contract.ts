@@ -19,6 +19,7 @@ const T1 = '2026-10-22T11:00:00.000Z';
 const label = (spaceId: string, over: Partial<Row<'labels'>> = {}): Row<'labels'> => ({
   id: uuidv7(),
   spaceId,
+  projectId: spaceId, // PJ-1: the fixture of a server Tx creates a project with the id of the space
   name: 'bug',
   color: '#f00',
   createdAt: T0,

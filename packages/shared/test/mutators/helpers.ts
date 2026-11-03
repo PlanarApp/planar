@@ -32,16 +32,28 @@ export const doc = (text = 'hi') => ({
 
 export async function seedSpace(tx: Tx, userId = U1) {
   const spaceId = id();
-  const statusIds = [id(), id(), id(), id(), id()];
   await run(
     tx,
     'space.create',
-    { id: spaceId, name: 'S', rank: 'a0', memberId: id(), statusIds },
+    { id: spaceId, name: 'S', rank: 'a0', memberId: id() },
     ctx(userId),
   );
   const projectId = id();
-  await run(tx, 'project.create', { id: projectId, spaceId, name: 'P', key: 'PRJ', rank: 'a0' });
+  const { statusIds } = await addProject(tx, spaceId, projectId, 'PRJ');
   return { spaceId, statusIds, projectId };
+}
+
+/** A project with the 5 default statuses (PJ-1: statuses belong to a project). */
+export async function addProject(
+  tx: Tx,
+  spaceId: string,
+  projectId = id(),
+  key = 'PRJ',
+  rank = 'a0',
+) {
+  const statusIds = [id(), id(), id(), id(), id()];
+  await run(tx, 'project.create', { id: projectId, spaceId, name: key, key, rank, statusIds });
+  return { projectId, statusIds };
 }
 
 export async function seedTask(

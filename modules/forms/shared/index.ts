@@ -60,10 +60,10 @@ async function need(tx: Tx, id: string) {
   return f;
 }
 
-async function checkStatus(tx: Tx, statusId: string, spaceId: string) {
+async function checkStatus(tx: Tx, statusId: string, projectId: string) {
   const st = await tx.get('statuses', statusId);
   if (!st) throw new MutatorError('not_found', `statuses ${statusId}`);
-  if (st.spaceId !== spaceId) throw bad('statusId другого пространства');
+  if (st.projectId !== projectId) throw bad('statusId другого проекта');
 }
 
 /** The schema is valid and each `field:<id>` is a field of the form's project. */
@@ -95,7 +95,7 @@ export const mutators = [
     async run(tx, a, ctx) {
       const project = await tx.get('projects', a.projectId);
       if (!project) throw new MutatorError('not_found', `projects ${a.projectId}`);
-      await checkStatus(tx, a.statusId, project.spaceId);
+      await checkStatus(tx, a.statusId, project.id);
       const fields = await checkFields(tx, a.projectId, a.fields);
       if (await mtx(tx).get(E, a.id)) throw new MutatorError('conflict', 'форма уже есть');
       await mtx(tx).put(E, {
@@ -127,7 +127,7 @@ export const mutators = [
     }),
     async run(tx, a, ctx) {
       const f = await need(tx, a.id);
-      if (a.statusId) await checkStatus(tx, a.statusId, f.spaceId);
+      if (a.statusId) await checkStatus(tx, a.statusId, f.projectId);
       const patch: Record<string, unknown> = {
         ...Object.fromEntries(Object.entries(a).filter(([, v]) => v !== undefined)),
         updatedAt: ctx.now,

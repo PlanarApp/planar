@@ -6,7 +6,17 @@ import * as schema from '../../src/db/schema.js';
 import { PullService } from '../../src/sync/pull.service.js';
 import { PushService } from '../../src/sync/push.service.js';
 import { ORIGIN } from '../auth.js';
-import { dbUrl, key, newDb, TestClient, taskArgs, world, type World } from '../sync/helpers.js';
+import {
+  dbUrl,
+  key,
+  newDb,
+  TestClient,
+  statusOf,
+  taskArgs,
+  useProject,
+  world,
+  type World,
+} from '../sync/helpers.js';
 
 // Real pg-boss: enqueue from the hook and the automations.run worker are not replaced.
 const db = newDb();
@@ -15,11 +25,8 @@ let w: World;
 let P: string;
 const [TODO, PROG, , DONE] = [1, 2, 3, 3];
 
-const setModules = (v: string[]) =>
-  db
-    .insert(schema.settings)
-    .values({ id: 'enabled_modules', value: v })
-    .onConflictDoUpdate({ target: schema.settings.id, set: { value: v } });
+// PJ-3: data modules are on per project — switch them on all projects of the file's database
+const setModules = (v: string[]) => db.update(schema.projects).set({ modules: v });
 
 beforeAll(async () => {
   await setModules(['automations']);
@@ -40,6 +47,7 @@ beforeEach(async () => {
     key: key(),
     rank: 'a0',
   });
+  useProject(w, P); // statuses belong to a project (PJ-1): the tests use those of P
 });
 afterAll(async () => {
   await app.close();
@@ -100,7 +108,7 @@ describe('wk3: pg-boss', () => {
       return id;
     };
     const a = await mk({ type: 'task.field_changed', field: 'priority' }, [
-      { type: 'set_status', statusId: w.statusIds[DONE] },
+      { type: 'set_status', statusId: statusOf(w, p, w.statusIds[DONE]) },
     ]);
     const b = await mk({ type: 'task.status_changed' }, [
       { type: 'set_field', field: 'priority', value: 1 },

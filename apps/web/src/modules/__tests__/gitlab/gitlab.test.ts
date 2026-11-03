@@ -66,9 +66,10 @@ beforeEach(() => {
   st.mrs.value = [];
   st.projects.value = [{ id: 'p1', spaceId: 's1', name: 'Proj' }];
   st.statuses.value = [
-    { id: 'st1', spaceId: 's1', name: 'Todo' },
-    { id: 'st2', spaceId: 's1', name: 'Done' },
-    { id: 'st3', spaceId: 's2', name: 'Other' },
+    { id: 'st1', spaceId: 's1', projectId: 'p1', name: 'Todo' },
+    { id: 'st2', spaceId: 's1', projectId: 'p1', name: 'Done' },
+    { id: 'st3', spaceId: 's1', projectId: 'p2', name: 'Other project' },
+    { id: 'st4', spaceId: 's2', projectId: 'p3', name: 'Other' },
   ];
   st.merged.value = {};
   vi.stubGlobal(

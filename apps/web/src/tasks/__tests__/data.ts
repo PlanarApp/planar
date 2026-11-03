@@ -95,6 +95,7 @@ export async function reset() {
     {
       id: ids.done,
       spaceId: ids.space,
+      projectId: ids.project,
       name: 'Done',
       category: 'done',
       color: '#0a0',
@@ -105,6 +106,7 @@ export async function reset() {
     {
       id: ids.todo,
       spaceId: ids.space,
+      projectId: ids.project,
       name: 'Todo',
       category: 'todo',
       color: '#888',
@@ -138,6 +140,7 @@ export async function reset() {
   await db.table('labels').put({
     id: ids.bug,
     spaceId: ids.space,
+    projectId: ids.project,
     name: 'bug',
     color: '#f00',
     createdAt: T,

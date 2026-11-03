@@ -9,7 +9,7 @@ let w: World;
 beforeAll(async () => {
   w = await world(db);
   const ia = new TestClient(services(db), await mkUser(db, 'admin'));
-  await ia.ok('settings.set', { id: 'enabled_modules', value: ['docs', 'chat'] });
+  await ia.ok('settings.set', { id: 'enabled_modules', value: ['chat'] }); // docs is a data module (PJ-3)
 });
 afterAll(() => db.$client.end());
 

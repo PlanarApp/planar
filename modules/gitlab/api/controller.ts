@@ -62,6 +62,15 @@ export class GitlabController {
     return this.core.requireInstanceAdmin(req, { sessionOnly: true });
   }
 
+  /** C-schema v16: 404 module_disabled if the module is off in the project (no such project — the route answers itself). */
+  private async moduleOn(projectId: string) {
+    const r = await this.core.db.execute(
+      sql`select ('gitlab' = any(modules)) as on from projects where id = ${projectId}::uuid`,
+    );
+    if (r.rows[0] && !r.rows[0].on)
+      throw new HttpError(404, 'module_disabled', 'Модуль gitlab выключен в проекте');
+  }
+
   private async conn(id: string) {
     const [r] = await this.core.db
       .select()
@@ -74,6 +83,7 @@ export class GitlabController {
   @Get('projects/:projectId/connections')
   async list(@Req() req: object, @Param('projectId') projectId: string) {
     this.admin(req);
+    await this.moduleOn(uuidOr404(projectId));
     const rs = await this.core.db
       .select()
       .from(P)
@@ -86,6 +96,7 @@ export class GitlabController {
   async add(@Req() req: object, @Param('projectId') projectId: string, @Body() body: unknown) {
     this.admin(req);
     const b = parseBody(postBody, body);
+    await this.moduleOn(uuidOr404(projectId));
     const p = await this.core.db.execute(
       sql`select 1 from projects where id = ${uuidOr404(projectId)}`,
     );
@@ -134,6 +145,7 @@ export class GitlabController {
     this.admin(req);
     const b = parseBody(patchBody, body);
     const c = await this.conn(id);
+    await this.moduleOn(c.projectId);
     // changing the token lifts the stop after a 401
     const [r] = await this.core.db
       .update(P)
@@ -148,6 +160,7 @@ export class GitlabController {
   async remove(@Req() req: object, @Param('id') id: string) {
     this.admin(req);
     const c = await this.conn(id);
+    await this.moduleOn(c.projectId);
     // gitlabMrs rows go through the mutator into Tx with a write to changes (clients learn at once)
     const rows = await this.core.db
       .select()
