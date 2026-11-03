@@ -125,3 +125,13 @@ The process (agents, templates, rules, permissions, dpcli) improves as you work,
 - **Review — main session, skill `harness-retro`:** on `<m> done`, once per phase or on the user's request: `.dpcli/dpcli feedback` (clusters, triage project|dpcli), `.dpcli/dpcli stats`, ≤ 3 proposals to the user.
 - **Where fixes go.** Project-specific — `.dpcli-local/` (survives updates). dpcli itself — edits in `.dpcli` leave only via `.dpcli/dpcli contribute F-n` (branch, commit, a PR to the dpcli hub or a +1 on a similar one); everyone gets it with the next update.
 - The user's remarks about the work — into memory (feedback) at once, without waiting for a review.
+
+## Project rules
+
+From `.dpcli-local/workflow.md`.
+
+## Ветки и main
+
+- В `main` напрямую не мержим и не коммитим: ни `deliver`, ни `merge --into main`, ни локальные коммиты в `main`. Всё попадает в `main` только через MR (GitLab, `glab mr create`), который вливает человек.
+- Доставка модуля — в ветку под MR: `.dpcli/dpcli deliver <m> --into mr/<m>` (ветка `mr/<m>` создаётся от `main`), затем по команде пользователя — `git push -u origin mr/<m>` и `glab mr create`; описание MR — по-английски.
+- Пуш и создание MR — только по команде пользователя.
