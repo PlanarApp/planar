@@ -1,0 +1,8 @@
+{
+  "module": "harness",
+  "plan": "docs/plan/harness.md",
+  "contracts": "docs/contracts/harness.md",
+  "branch": "feature/harness",
+  "copy": "~/planar-harness",
+  "created": "2026-11-03T14:02:49"
+}
