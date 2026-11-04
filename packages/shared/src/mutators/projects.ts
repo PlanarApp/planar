@@ -83,6 +83,7 @@ export const projectMutators = [
       color: color.nullable().optional(),
       icon: z.string().nullable().optional(),
       leadId: uuid.nullable().optional(),
+      defaultAssigneeId: uuid.nullable().optional(),
       statusIds: z.array(uuid).length(5).optional(),
       statusNames: z
         .partialRecord(z.enum(CATEGORIES.map((c) => c[0]) as [string, ...string[]]), z.string())
@@ -105,6 +106,7 @@ export const projectMutators = [
         color: a.color ?? null,
         icon: a.icon ?? null,
         leadId: a.leadId ?? null,
+        defaultAssigneeId: a.defaultAssigneeId ?? null,
         archivedAt: null,
         modules: [...new Set(modules)],
         membersMode: 'inherit',
@@ -152,6 +154,7 @@ export const projectMutators = [
       color: color.nullable().optional(),
       icon: z.string().nullable().optional(),
       leadId: uuid.nullable().optional(),
+      defaultAssigneeId: uuid.nullable().optional(),
       rank: rank.optional(),
       archivedAt: z.iso.datetime().nullable().optional(),
     }),

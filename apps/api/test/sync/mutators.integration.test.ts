@@ -1,5 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { uuidv7 } from '@planar/shared';
+import * as schema from '../../src/db/schema.js';
 import { PullService } from '../../src/sync/pull.service.js';
 import { doc, key, mkUser, newDb, TestClient, services, taskArgs, world } from './helpers.js';
 
@@ -271,5 +273,20 @@ describe('activity', () => {
     await w.member.ok('task.delete', { id: t.id });
     const { rows } = await pull.taskActivity(w.member.userId, t.id);
     expect(rows.map((r) => r.kind)).toEqual(['created', 'deleted']);
+  });
+});
+
+describe('PLANARAPP-4: исполнитель проекта по умолчанию', () => {
+  it('задача без исполнителей получает исполнителя проекта; с исполнителями — нет', async () => {
+    const w = await world(db);
+    await w.admin.ok('project.update', { id: w.projectId, defaultAssigneeId: w.member.userId });
+    const assigned = async (taskId: string) =>
+      db.select().from(schema.taskAssignees).where(eq(schema.taskAssignees.taskId, taskId));
+    const t = taskArgs(w);
+    await w.member.ok('task.create', t);
+    expect((await assigned(t.id)).map((r) => [r.id, r.userId])).toEqual([[t.id, w.member.userId]]);
+    const own = { ...taskArgs(w), assignees: [{ id: uuidv7(), userId: w.admin.userId }] };
+    await w.member.ok('task.create', own);
+    expect((await assigned(own.id)).map((r) => r.userId)).toEqual([w.admin.userId]);
   });
 });

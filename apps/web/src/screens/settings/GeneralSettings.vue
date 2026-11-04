@@ -3,11 +3,11 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { Smile } from 'lucide-vue-next';
-import { Button, EmojiPicker, Input, Popover } from '../../ui';
+import { Button, EmojiPicker, Input, Popover, Select } from '../../ui';
 import NodeIcon from '../../ui/NodeIcon.vue';
 import { uploadFile } from '../../api/files';
 import { db, mutate, useQuery } from '../../sync';
-import { useWorkspace } from '../../tasks';
+import { useMembers, useWorkspace } from '../../tasks';
 import ColorPicker from './ColorPicker.vue';
 import SectionHeader from './SectionHeader.vue';
 import { firstGrapheme, useAction } from './shared';
@@ -45,6 +45,25 @@ function save(patch: { name?: string; color?: string | null; icon?: string | nul
       : props.level === 'space'
         ? mutate('space.update', { id: props.spaceId!, ...patch })
         : mutate('settings.set', { id: 'workspace', value: { ...n, ...patch } }),
+  );
+}
+// lead (space, project) and the default assignee of new tasks (project): a space member or nobody
+const members = useMembers(() => props.spaceId ?? '');
+const NONE = '__none'; // Reka Select does not accept an empty value
+const people = computed(() => [
+  { value: NONE, label: t('settings.general.nobody') },
+  ...(members.value ?? []).map((m) => ({ value: m.id, label: m.name })),
+]);
+const lead = computed(() => (row.value as { leadId?: string | null } | undefined)?.leadId ?? NONE);
+const defaultAssignee = computed(
+  () => (row.value as { defaultAssigneeId?: string | null } | undefined)?.defaultAssigneeId ?? NONE,
+);
+function setPerson(field: 'leadId' | 'defaultAssigneeId', v: string | null) {
+  const id = !v || v === NONE ? null : v;
+  void run(() =>
+    props.level === 'project'
+      ? mutate('project.update', { id: props.projectId!, [field]: id })
+      : mutate('space.update', { id: props.spaceId!, leadId: id }),
   );
 }
 const emojiOpen = ref(false);
@@ -131,6 +150,25 @@ function upload(e: Event) {
           </template>
         </div>
       </div>
+      <template v-if="level === 'space' || level === 'project'">
+        <div data-testid="general-lead">
+          <Select
+            :model-value="lead"
+            :label="t('settings.general.lead')"
+            :options="people"
+            @update:model-value="setPerson('leadId', $event)"
+          />
+        </div>
+        <div v-if="level === 'project'" data-testid="general-default-assignee">
+          <Select
+            :model-value="defaultAssignee"
+            :label="t('settings.general.defaultAssignee')"
+            :options="people"
+            @update:model-value="setPerson('defaultAssigneeId', $event)"
+          />
+          <p class="mt-1 text-xs text-fg-muted">{{ t('settings.general.defaultAssigneeHint') }}</p>
+        </div>
+      </template>
     </template>
   </section>
 </template>

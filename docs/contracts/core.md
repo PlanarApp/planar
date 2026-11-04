@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v17
+## C-schema v18
+
+v18 (PLANARAPP-3, -4): `spaces.leadId` (the space lead) and `projects.defaultAssigneeId` (the assignee of a new task created without assignees), both nullable — core-schema.md.
 
 v17 (projects, PJ-11): `projects.membersMode` (`inherit|custom`, default `inherit`) and the entity `projectMembers` — core-schema.md, docs/contracts/projects.md §PJ-11.
 
@@ -83,7 +85,7 @@ The suffix `?` means `.nullable()` (the key is present, the value may be `null`)
 
 ### Entities
 
-Entities — docs/contracts/core-schema.md (part of C-schema v17).
+Entities — docs/contracts/core-schema.md (part of C-schema v18).
 
 ### Non-synced tables (server only)
 | table | columns |
@@ -197,7 +199,9 @@ Authorization — the session cookie at upgrade (plus an Origin check, C-http); 
 ### Client (for web)
 Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from the queue the mutations with `id ≤ lastMutationId` and re-applies the rest on top of the server state (rebase). Push is retried on a network error and `5xx` with a growing pause of 1–30 s; `401` — redirect to sign-in.
 
-## C-mutators v14
+## C-mutators v15
+
+v15 (PLANARAPP-3, -4): `space.update` += `leadId?`; `project.create` / `project.update` += `defaultAssigneeId?`; `task.create` without assignees assigns the project's `defaultAssigneeId` — core-mutators.md.
 
 v14 (projects, PJ-11): `project.setMembersMode`, `projectMember.add|setRole|remove`; `member.remove` also deletes the user's `projectMembers` — core-mutators.md, docs/contracts/projects.md §PJ-11.
 
