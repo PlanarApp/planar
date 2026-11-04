@@ -49,9 +49,12 @@ Claude Desktop and other clients with `mcp.json`:
 Read (any token):
 - `list_spaces` — the user's spaces;
 - `list_projects {spaceId?}` — projects;
-- `search_tasks {query?, projectId?, statusId?, assigneeId?, limit?}` — search by title and key (`PLN-12`), case-insensitive;
+- `search_tasks {query?, projectId?, statusId?, statusCategory?, assigneeId?, limit?}` — search by title and key (`PLN-12`), case-insensitive; `statusCategory` — `backlog | todo | in_progress | done | cancelled`, `limit` up to 200;
 - `get_task {task}` — a task (id or key) with comments;
-- `my_tasks {includeDone?}` — assigned to me; by default without done and cancelled.
+- `my_tasks {includeDone?, statusCategory?}` — assigned to me; by default without done and cancelled;
+- `project_dictionary {projectId}` — the project's statuses (name, category), labels and members: what `statusId`, `labelIds`, `assigneeIds` mean.
+
+Every task returned by the tools also carries `status: {name, category}`.
 
 Write (needs `write`):
 - `create_task` — like `POST /api/v1/tasks`;

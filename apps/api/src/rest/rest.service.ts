@@ -168,6 +168,47 @@ export class RestService {
     return { data: rows.map((r) => toWire('fieldDefs', r)) };
   }
 
+  /** MCP project_dictionary: what statusId / labelIds / assigneeIds of the project's tasks mean */
+  async dictionary(userId: string, projectId: string) {
+    await this.fields(userId, projectId); // the same 404 for a foreign or hidden project
+    const [statuses, labels, members] = await Promise.all([
+      this.db
+        .select({ id: s.statuses.id, name: s.statuses.name, category: s.statuses.category })
+        .from(s.statuses)
+        .where(eq(s.statuses.projectId, projectId))
+        .orderBy(asc(s.statuses.rank)),
+      this.db
+        .select({ id: s.labels.id, name: s.labels.name })
+        .from(s.labels)
+        .where(eq(s.labels.projectId, projectId))
+        .orderBy(asc(s.labels.name)),
+      // members with access to the project (custom projects narrow the space)
+      this.db
+        .select({ id: s.users.id, name: s.users.name, login: s.users.login })
+        .from(s.users)
+        .innerJoin(s.spaceMembers, eq(s.spaceMembers.userId, s.users.id))
+        .where(
+          and(
+            sql`${s.spaceMembers.spaceId} = (select space_id from projects where id = ${projectId})`,
+            isNull(s.users.deactivatedAt),
+            sql`project_role(${s.users.id}, ${projectId}::uuid) is not null`,
+          ),
+        )
+        .orderBy(asc(s.users.name)),
+    ]);
+    return { statuses, labels, members };
+  }
+
+  /** status name and category by id (MCP adds them to tasks: an id alone tells an agent nothing) */
+  async statusInfo(ids: string[]): Promise<Map<string, { name: string; category: string }>> {
+    if (!ids.length) return new Map();
+    const rows = await this.db
+      .select({ id: s.statuses.id, name: s.statuses.name, category: s.statuses.category })
+      .from(s.statuses)
+      .where(inArray(s.statuses.id, [...new Set(ids)]));
+    return new Map(rows.map((r) => [r.id, { name: r.name, category: r.category }]));
+  }
+
   async tasks(userId: string, query: unknown) {
     const q = parse(tasksQuery, query);
     const my = await this.mySpaces(userId);
@@ -197,6 +238,7 @@ export class RestService {
       statusId?: string;
       assigneeId?: string;
       includeDone?: boolean;
+      statusCategory?: string;
       limit?: number;
     },
   ) {
@@ -213,6 +255,9 @@ export class RestService {
         : undefined,
       q.includeDone === false
         ? sql`not exists (select 1 from ${s.statuses} st where st.id = ${s.tasks.statusId} and st.category in ('done','cancelled'))`
+        : undefined,
+      q.statusCategory
+        ? sql`exists (select 1 from ${s.statuses} st where st.id = ${s.tasks.statusId} and st.category = ${q.statusCategory})`
         : undefined,
       like
         ? sql`(${s.tasks.title} ilike ${like} or (select p.key || '-' || ${s.tasks.number} from ${s.projects} p where p.id = ${s.tasks.projectId}) ilike ${like})`

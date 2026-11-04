@@ -69,7 +69,16 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
   const filters = {
     projectId: z.uuid().optional(),
     statusId: z.uuid().optional(),
-    limit: z.number().int().min(1).max(50).optional(),
+    statusCategory: z
+      .enum(['backlog', 'todo', 'in_progress', 'done', 'cancelled'])
+      .optional()
+      .describe('категория статуса — без знания id статусов проекта'),
+    limit: z.number().int().min(1).max(200).optional(),
+  };
+  // tasks with the status name and category: statusId alone tells an agent nothing
+  const named = async <T extends { statusId?: unknown; description?: unknown }>(ts: T[]) => {
+    const st = await rest.statusInfo(ts.map((t) => String(t.statusId)));
+    return ts.map((t) => ({ ...flat(t), status: st.get(String(t.statusId)) ?? null }));
   };
   tool(
     'list_fields',
@@ -77,6 +86,13 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
     { projectId: z.uuid() },
     false,
     async (a) => (await rest.fields(uid, a.projectId)).data,
+  );
+  tool(
+    'project_dictionary',
+    'Статусы (название, категория), метки и участники проекта — расшифровка statusId, labelIds, assigneeIds',
+    { projectId: z.uuid() },
+    false,
+    async (a) => rest.dictionary(uid, a.projectId),
   );
   tool(
     'search_tasks',
@@ -87,12 +103,12 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
       ...filters,
     },
     false,
-    async (a) => (await rest.searchTasks(uid, a)).map(flat),
+    async (a) => named(await rest.searchTasks(uid, a)),
   );
   tool('get_task', 'Задача с комментариями', { task }, false, async (a) => {
     const t = (await rest.task(uid, a.task)).data;
     const comments = (await rest.comments(uid, a.task, { limit: 200 })).data;
-    return { ...flat(t), comments: comments.map(cmt) };
+    return { ...(await named([t]))[0], comments: comments.map(cmt) };
   });
   tool(
     'my_tasks',
@@ -100,19 +116,28 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
     { includeDone: z.boolean().optional(), ...filters },
     false,
     async (a) =>
-      (
-        await rest.searchTasks(uid, { ...a, assigneeId: 'me', includeDone: a.includeDone ?? false })
-      ).map(flat),
+      named(
+        await rest.searchTasks(uid, {
+          ...a,
+          assigneeId: 'me',
+          includeDone: a.includeDone ?? false,
+        }),
+      ),
   );
-  tool('create_task', 'Создать задачу', createTaskBody.shape, true, async (a) =>
-    flat((await rest.createTask(uid, a, ctx.tokenId)).data),
+  tool(
+    'create_task',
+    'Создать задачу',
+    createTaskBody.shape,
+    true,
+    async (a) => (await named([(await rest.createTask(uid, a, ctx.tokenId)).data]))[0],
   );
   tool(
     'update_task',
     'Изменить задачу',
     { task, ...patchTaskBody.shape },
     true,
-    async ({ task: ref, ...a }) => flat((await rest.patchTask(uid, ref, a, ctx.tokenId)).data),
+    async ({ task: ref, ...a }) =>
+      (await named([(await rest.patchTask(uid, ref, a, ctx.tokenId)).data]))[0],
   );
   tool(
     'add_comment',
