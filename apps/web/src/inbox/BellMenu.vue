@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Bell } from 'lucide-vue-next';
+import { ArrowRight, Bell } from 'lucide-vue-next';
 import { Button, EmptyState, IconButton, Popover } from '../ui';
 import { mutate } from '../sync';
 import { openTask } from '../views/open';
@@ -58,12 +58,25 @@ function all() {
           class="flex flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
           @click="go(n)"
         >
-          <span class="truncate font-medium">{{
-            t(`inbox.kind.${n.kind}`, { who: n.actorName, key: n.taskKey ?? '?' })
-          }}</span>
-          <span v-if="n.taskTitle || n.comment || n.body" class="truncate text-xs text-fg-muted">{{
-            n.comment || n.taskTitle || n.body
-          }}</span>
+          <span class="flex flex-wrap items-center gap-1 break-words font-medium">
+            {{ t(`inbox.kind.${n.kind}`, { who: n.actorName, key: n.taskKey ?? '?' }) }}
+            <template v-if="n.status">
+              <span v-for="(s, i) in n.status" :key="i" class="contents">
+                <ArrowRight v-if="i" :size="12" aria-hidden="true" />
+                <span
+                  class="rounded px-1.5 py-0.5 text-xs text-fg"
+                  data-testid="bell-status"
+                  :style="{ background: `color-mix(in srgb, ${s.color} 16%, transparent)` }"
+                  >{{ s.name }}</span
+                >
+              </span>
+            </template>
+          </span>
+          <span
+            v-if="n.taskTitle || n.comment || n.body"
+            class="line-clamp-3 break-words text-xs text-fg-muted"
+            >{{ n.comment || n.taskTitle || n.body }}</span
+          >
           <span class="text-2xs text-fg-subtle">{{ time(n.createdAt) }}</span>
         </button>
       </div>
