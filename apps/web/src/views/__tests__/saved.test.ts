@@ -168,14 +168,14 @@ describe('views:saved', () => {
     await r.push(`/p/${ids.project}/board`);
     const w = mountScreen(ProjectScreen);
     await until(() => w.find('[data-testid=view-toggle]').exists());
-    expect(w.find('[data-testid=node-reset]').exists()).toBe(false);
+    expect(body.find('[data-testid=node-reset]').exists()).toBe(false);
     await hideLabels(w);
     await until(async () => (await rows()).length === 1);
     const [v] = await rows();
     expect(v).toMatchObject({ node: `p:${ids.project}`, layout: 'board', userId: ids.ann });
     expect(v.config.fields).not.toContain('labels');
-    await until(() => w.find('[data-testid=node-reset]').exists());
-    expect(w.find('[data-testid=saved-save]').exists()).toBe(false);
+    await until(() => body.find('[data-testid=node-reset]').exists());
+    expect(body.find('[data-testid=saved-save]').exists()).toBe(false);
     // the node view is not a named tab
     expect(w.find(`[data-saved-view="${v.id}"]`).exists()).toBe(false);
     w.unmount();
@@ -210,14 +210,14 @@ describe('views:saved', () => {
     const w = mountScreen(ProjectScreen);
     await until(() => w.find('[data-testid=view]').exists());
     expect(fieldsOf(w)).toEqual(['status']);
-    expect(w.find('[data-testid=node-reset]').exists()).toBe(false);
+    expect(body.find('[data-testid=node-reset]').exists()).toBe(false);
     await flipSortDir(w);
     await until(async () => (await rows()).length === 2);
-    await until(() => w.find('[data-testid=node-reset]').exists());
-    await w.get('[data-testid=node-reset]').trigger('click');
+    await until(() => body.find('[data-testid=node-reset]').exists());
+    await body.get('[data-testid=node-reset]').trigger('click');
     await until(async () => (await rows()).length === 1);
     expect((await rows())[0].id).toBe(shared.id);
-    await until(() => !w.find('[data-testid=node-reset]').exists());
+    await until(() => !body.find('[data-testid=node-reset]').exists());
     expect(fieldsOf(w)).toEqual(['status']);
   });
 
@@ -226,12 +226,12 @@ describe('views:saved', () => {
     const w = mountScreen(ProjectScreen);
     await hideLabels(w);
     await until(async () => (await rows()).length === 1);
-    await until(() => w.find('[data-testid=node-share]').exists());
-    await w.get('[data-testid=node-share]').trigger('click');
+    await until(() => body.find('[data-testid=node-share]').exists());
+    await body.get('[data-testid=node-share]').trigger('click');
     await until(async () => (await rows()).length === 1 && (await rows())[0].userId === null);
     expect((await rows())[0]).toMatchObject({ node: `p:${ids.project}`, layout: 'board' });
     expect((await rows())[0].config.fields).not.toContain('labels');
-    await until(() => !w.find('[data-testid=node-reset]').exists());
+    await until(() => !body.find('[data-testid=node-reset]').exists());
   });
 
   it('PJ-4 личный вид другого пользователя не виден', async () => {
@@ -242,7 +242,7 @@ describe('views:saved', () => {
     const w = mountScreen(ProjectScreen);
     await until(() => w.find('[data-testid=view]').exists());
     expect(fieldsOf(w)).not.toEqual(['status']);
-    expect(w.find('[data-testid=node-reset]').exists()).toBe(false);
+    expect(body.find('[data-testid=node-reset]').exists()).toBe(false);
   });
 
   it('pj25: кнопка фильтра — отметка и подсказка, пустой фильтр без них', async () => {
@@ -313,18 +313,18 @@ describe('views:saved', () => {
     await r.push(`/p/${ids.project}/v/${v.id}`);
     const w = mountScreen(ProjectScreen);
     await until(() => w.find('[data-testid=view]').exists());
-    expect(w.find('[data-testid=saved-save]').exists()).toBe(false);
+    expect(body.find('[data-testid=saved-save]').exists()).toBe(false);
     const dir = () => JSON.parse(w.get('[data-testid=view]').attributes('data-options')!).sortDir;
     await flipSortDir(w);
     expect(dir()).toBe('asc');
     expect((await rows())[0].config.sortDir).toBe('desc'); // the replica still has the old value
-    await w.get('[data-testid=saved-reset]').trigger('click');
+    await body.get('[data-testid=saved-reset]').trigger('click');
     expect(dir()).toBe('desc');
     await flipSortDir(w);
-    await w.get('[data-testid=saved-save]').trigger('click');
+    await body.get('[data-testid=saved-save]').trigger('click');
     await flushPromises();
     await until(async () => (await rows())[0].config.sortDir === 'asc');
-    await until(() => !w.find('[data-testid=saved-save]').exists());
+    await until(() => !body.find('[data-testid=saved-save]').exists());
   });
 
   it('polish: views:saved чужой личный вид не правится', async () => {
@@ -334,8 +334,8 @@ describe('views:saved', () => {
     const w = mountScreen(ProjectScreen);
     await until(() => w.find('[data-testid=view]').exists());
     await flipSortDir(w);
-    await until(() => w.find('[data-testid=saved-reset]').exists());
-    expect(w.find('[data-testid=saved-save]').exists()).toBe(false);
+    await until(() => body.find('[data-testid=saved-reset]').exists());
+    expect(body.find('[data-testid=saved-save]').exists()).toBe(false);
   });
 
   it('polish: views:saved optionsFrom — fields не массив или с неизвестными значениями', async () => {

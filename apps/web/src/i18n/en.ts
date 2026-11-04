@@ -408,6 +408,7 @@ export default {
       saveChanges: 'Save',
       saveForAll: 'Save for all',
       reset: 'Reset',
+      changed: 'View changed',
       notFound: 'View not found',
       back: 'Back to project',
     },

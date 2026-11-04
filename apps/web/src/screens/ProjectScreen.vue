@@ -15,6 +15,7 @@ import { useNodeViewDraft } from '../views/saved/nodeView';
 import type { Filter } from '../views';
 import { loadLayout } from '../views/table/columns';
 import OptionsBar from '../views/saved/OptionsBar.vue';
+import ViewChangesBar from '../views/saved/ViewChangesBar.vue';
 import SaveViewDialog from '../views/saved/SaveViewDialog.vue';
 import SavedTabs from '../views/saved/SavedTabs.vue';
 import { saveView, updateView } from '../views/saved/ops';
@@ -233,53 +234,6 @@ onBeforeUnmount(() => ro?.disconnect());
               :space-id="spaceId"
               :project-id="projectId"
             >
-              <!-- резерв места: появление Сохранить/Сбросить не сдвигает «Вид» -->
-              <div class="flex items-center justify-end gap-1 md:min-w-[17rem]">
-                <template v-if="!viewId">
-                  <Button
-                    v-if="canShare"
-                    size="sm"
-                    :icon="Check"
-                    compact
-                    data-testid="node-share"
-                    @click="tabView.saveForAll"
-                  >
-                    {{ t('views.saved.saveForAll') }}
-                  </Button>
-                  <Button
-                    v-if="tabView.hasPersonal.value"
-                    size="sm"
-                    :icon="RotateCcw"
-                    compact
-                    data-testid="node-reset"
-                    @click="tabView.reset"
-                  >
-                    {{ t('views.saved.reset') }}
-                  </Button>
-                </template>
-                <template v-else-if="dirty">
-                  <Button
-                    v-if="editable"
-                    variant="primary"
-                    size="sm"
-                    :icon="Check"
-                    compact
-                    data-testid="saved-save"
-                    @click="saveChanges"
-                  >
-                    {{ t('views.saved.saveChanges') }}
-                  </Button>
-                  <Button
-                    size="sm"
-                    :icon="RotateCcw"
-                    compact
-                    data-testid="saved-reset"
-                    @click="reset"
-                  >
-                    {{ t('views.saved.reset') }}
-                  </Button>
-                </template>
-              </div>
               <Menu align="end" :items="headerMenu">
                 <template #trigger>
                   <IconButton
@@ -293,6 +247,48 @@ onBeforeUnmount(() => ro?.disconnect());
             </OptionsBar>
           </div>
         </ToolbarRoot>
+        <ViewChangesBar
+          :show="viewId ? dirty : tabView.hasPersonal.value"
+          :state="[options, draftFilter]"
+        >
+          <template v-if="!viewId">
+            <Button
+              v-if="canShare"
+              size="sm"
+              :icon="Check"
+              compact
+              data-testid="node-share"
+              @click="tabView.saveForAll"
+            >
+              {{ t('views.saved.saveForAll') }}
+            </Button>
+            <Button
+              size="sm"
+              :icon="RotateCcw"
+              compact
+              data-testid="node-reset"
+              @click="tabView.reset"
+            >
+              {{ t('views.saved.reset') }}
+            </Button>
+          </template>
+          <template v-else>
+            <Button
+              v-if="editable"
+              variant="primary"
+              size="sm"
+              :icon="Check"
+              compact
+              data-testid="saved-save"
+              @click="saveChanges"
+            >
+              {{ t('views.saved.saveChanges') }}
+            </Button>
+            <Button size="sm" :icon="RotateCcw" compact data-testid="saved-reset" @click="reset">
+              {{ t('views.saved.reset') }}
+            </Button>
+          </template>
+        </ViewChangesBar>
         <SaveViewDialog v-model:open="saveOpen" :can-share="canShare" @submit="onSave" />
         <div class="min-h-0 flex-1">
           <component
