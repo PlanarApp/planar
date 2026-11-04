@@ -316,6 +316,18 @@ const panelComponent = computed(() => {
           />
         </header>
 
+        <section :aria-label="t('task.description')" class="text-base">
+          <h3 class="mb-1 text-sm font-medium text-fg-muted">{{ t('task.description') }}</h3>
+          <Editor
+            :members="memberList"
+            :label="t('task.description')"
+            :placeholder="t('task.descriptionPlaceholder')"
+            image
+            :collab="{ name: `task:${task.id}` }"
+            @attach="(fs) => attachments?.addFiles(fs)"
+          />
+        </section>
+
         <dl class="grid gap-x-10 gap-y-1 text-sm @2xl:grid-cols-2" data-testid="task-props">
           <div class="flex min-h-9 items-center">
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
@@ -438,18 +450,6 @@ const panelComponent = computed(() => {
           <div v-if="panelComponent" class="mt-2 rounded-lg border border-border p-3">
             <component :is="panelComponent" :task-id="task.id" />
           </div>
-        </section>
-
-        <section :aria-label="t('task.description')" class="text-base">
-          <h3 class="mb-1 text-sm font-medium text-fg-muted">{{ t('task.description') }}</h3>
-          <Editor
-            :members="memberList"
-            :label="t('task.description')"
-            :placeholder="t('task.descriptionPlaceholder')"
-            image
-            :collab="{ name: `task:${task.id}` }"
-            @attach="(fs) => attachments?.addFiles(fs)"
-          />
         </section>
 
         <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
