@@ -81,7 +81,7 @@ describe('task:fields', () => {
   });
   it('заголовок: Enter сохраняет, пустой не сохраняется, Esc отменяет', async () => {
     w = await open();
-    const input = w.find('header input');
+    const input = w.find('header textarea');
     await input.setValue('Новый');
     await input.trigger('keydown', { key: 'Enter' });
     await eventually(async () => (await row<{ title: string }>('tasks', t.id)).title === 'Новый');
@@ -90,8 +90,14 @@ describe('task:fields', () => {
     expect((await row<{ title: string }>('tasks', t.id)).title).toBe('Новый');
     await input.setValue('Другой');
     await input.trigger('keydown', { key: 'Escape' });
-    expect((input.element as HTMLInputElement).value).toBe('Новый');
+    expect((input.element as HTMLTextAreaElement).value).toBe('Новый');
     expect((await queued('task.update')).length).toBe(1);
+    // a pasted line break is not kept in the title
+    await input.setValue('Две\nстроки');
+    await input.trigger('keydown', { key: 'Enter' });
+    await eventually(
+      async () => (await row<{ title: string }>('tasks', t.id)).title === 'Две строки',
+    );
   });
 });
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, inject, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, inject, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { routerKey, useRoute } from 'vue-router';
 import {
@@ -84,8 +84,21 @@ const memberList = computed(() => (members.value ?? []).map((m) => ({ id: m.id, 
 // --- header
 const title = ref(props.task.title);
 let savedTitle = props.task.title;
+// textarea height follows the text (a pasted line break becomes a space on save)
+const titleEl = ref<HTMLTextAreaElement>();
+watch(
+  [title, titleEl],
+  async () => {
+    await nextTick();
+    const el = titleEl.value;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  },
+  { immediate: true },
+);
 function commitTitle() {
-  const s = title.value.trim();
+  const s = title.value.replace(/\s*\n\s*/g, ' ').trim();
   if (!s) title.value = props.task.title;
   else if (s !== savedTitle) {
     savedTitle = s;
@@ -173,7 +186,14 @@ const onKeydown = (e: KeyboardEvent) => {
 };
 
 // --- module tabs
-const panels = useExtensions('taskPanels', () => props.task.projectId);
+const extensions = useExtensions('taskPanels', () => props.task.projectId);
+const panels = computed(() => extensions.value.filter((p) => !p.property));
+// property panels (a sprint or milestone picker) are rows of the properties list, not tabs
+const propertyPanels = computed(() =>
+  extensions.value
+    .filter((p) => p.property)
+    .map((p) => ({ ...p, view: defineAsyncComponent(() => p.component().then((m) => m.default)) })),
+);
 const tab = ref<string | null>(null);
 const active = computed(() => panels.value.find((p) => p.key === tab.value) ?? null);
 const lt = (x: string | { ru: string; en: string }) =>
@@ -283,10 +303,13 @@ const panelComponent = computed(() => {
     <div class="flex min-h-0 flex-1 flex-col overflow-y-auto @4xl:flex-row @4xl:overflow-hidden">
       <div class="flex min-w-0 flex-1 flex-col gap-6 px-4 py-5 @2xl:px-8 @4xl:overflow-y-auto">
         <header>
-          <input
+          <!-- textarea: a long title wraps by words; Enter saves, so there are no line breaks -->
+          <textarea
+            ref="titleEl"
             v-model="title"
+            rows="1"
             :aria-label="t('task.title')"
-            class="h-12 w-full min-w-0 rounded-md bg-transparent px-2 -mx-2 text-2xl font-semibold outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+            class="block w-full min-w-0 resize-none overflow-hidden rounded-md bg-transparent px-2 py-1.5 -mx-2 text-2xl font-semibold leading-snug outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
             @keydown.enter.prevent="commitTitle"
             @keydown.esc.stop.prevent="cancelTitle"
             @blur="commitTitle"
@@ -383,6 +406,14 @@ const panelComponent = computed(() => {
               >
                 {{ mine ? t('task.unwatch') : t('task.watch') }}
               </Button>
+            </dd>
+          </div>
+          <div v-for="p in propertyPanels" :key="p.key" class="flex min-h-9 items-center">
+            <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
+              <component :is="p.icon" v-if="p.icon" :size="15" />{{ lt(p.label) }}
+            </dt>
+            <dd class="min-w-0">
+              <component :is="p.view" :task-id="task.id" />
             </dd>
           </div>
         </dl>

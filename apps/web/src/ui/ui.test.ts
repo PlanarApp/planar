@@ -317,6 +317,20 @@ describe('mobile: листы', () => {
     document.body.querySelector('button')!.click();
     await vi.waitFor(() => expect($('[data-testid=sheet]')?.textContent).toContain('Тело'));
   });
+
+  // a focused search field opens the phone keyboard over the list (PLANARAPP-19)
+  it('mobile: лист не фокусирует поле ввода при открытии', async () => {
+    setMobile(true);
+    wrap(
+      Popover,
+      {},
+      { trigger: () => h('button', 'P'), default: () => h('input', { 'aria-label': 'q' }) },
+    );
+    document.body.querySelector('button')!.click();
+    await vi.waitFor(() => expect($('[data-testid=sheet]')).not.toBeNull());
+    await new Promise((r) => setTimeout(r, 0));
+    expect(document.activeElement).toBe($('[data-testid=sheet]'));
+  });
 });
 
 describe('v4', () => {

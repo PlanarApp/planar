@@ -34,8 +34,7 @@ const change = (v: string | null) =>
 </script>
 
 <template>
-  <div class="flex items-center gap-2 p-2 text-sm" data-testid="cycle-panel">
-    {{ tx.cycle }}
+  <div class="flex items-center text-sm" data-testid="cycle-panel">
     <div data-role="cycle">
       <Select
         :model-value="task?.cycleId ?? NONE"

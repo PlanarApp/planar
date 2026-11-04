@@ -309,6 +309,7 @@ export default {
     sortBy: 'Sort by',
     sortDir: 'Sort direction',
     showEmpty: 'Show empty fields',
+    wrapTitles: 'Wrap task names',
     subtasks: 'Subtasks',
     group: {
       none: 'None',
@@ -498,6 +499,10 @@ export default {
       iconUpload: 'Upload image',
       iconPick: 'Pick emoji',
       iconRemove: 'Remove image',
+      lead: 'Lead',
+      defaultAssignee: 'Default assignee',
+      defaultAssigneeHint: 'Assigned to a new task when no assignee is chosen',
+      nobody: 'Nobody',
     },
     more: 'Actions',
     spacesDesc: 'Workspaces: projects, statuses, labels and members live inside a space.',

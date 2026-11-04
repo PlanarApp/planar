@@ -15,6 +15,13 @@
 		reverse_proxy api:3000
 	}
 
+	# static: hashed /assets/* never change; everything else (html, sw.js, push-sw.js, manifest) is revalidated —
+	# without it a CDN in front (Cloudflare) caches sw.js for hours and the PWA does not see a new release
+	@hashed path /assets/*
+	@static not path /api/* /sync/* /ws /collab /mcp* /files /files/* /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	header @static Cache-Control "no-cache"
+
 	handle /f/* {
 		root * /srv
 		rewrite * /form.html

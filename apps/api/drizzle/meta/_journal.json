@@ -246,6 +246,13 @@
       "when": 1793643834125,
       "tag": "0034_project_members",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793817124449,
+      "tag": "0035_space_lead_default_assignee",
+      "breakpoints": true
     }
   ]
 }

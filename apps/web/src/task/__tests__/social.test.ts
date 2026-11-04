@@ -300,4 +300,29 @@ describe('task:extensions', () => {
     await until(() => w.find('[data-testid="ext"]').exists());
     expect(w.find('[data-testid="ext"]').text()).toBe(`ext:${t.id}`);
   });
+
+  it('панель-свойство — строка свойств, не вкладка (PLANARAPP-23)', async () => {
+    const Panel = defineComponent({
+      props: { taskId: String },
+      setup: (p) => () => h('p', { 'data-testid': 'prop' }, `prop:${p.taskId}`),
+    });
+    registerModules([
+      {
+        id: 'demo-prop', // a repeated id is not registered again
+        taskPanels: [
+          {
+            id: 'p',
+            label: { ru: 'Спринт', en: 'Sprint' },
+            property: true,
+            component: async () => ({ default: Panel }),
+          },
+        ],
+      },
+    ]);
+    w = await open();
+    await until(() => w.find('[data-testid="prop"]').exists());
+    expect(w.find('[data-testid="prop"]').text()).toBe(`prop:${t.id}`);
+    expect(w.findAll('dt').some((d) => d.text() === 'Спринт')).toBe(true);
+    expect(w.findAll('[role="tab"]').some((b) => b.text() === 'Спринт')).toBe(false);
+  });
 });

@@ -20,6 +20,7 @@ export const spaceMutators = [
         description: null,
         color: null,
         icon: null,
+        leadId: null,
         rank: a.rank,
         createdBy: ctx.userId,
         ...t,
@@ -41,6 +42,7 @@ export const spaceMutators = [
       description: z.string().nullable().optional(),
       color: color.nullable().optional(),
       icon: z.string().nullable().optional(),
+      leadId: uuid.nullable().optional(),
       rank: rank.optional(),
     }),
     async run(tx, a, ctx) {

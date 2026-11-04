@@ -50,6 +50,10 @@ const toggleField = (f: TaskField) =>
         <input v-model="options.showEmpty" type="checkbox" data-testid="show-empty" />
         {{ t('views.showEmpty') }}
       </label>
+      <label class="inline-flex items-center gap-1.5 text-sm">
+        <input v-model="options.wrapTitles" type="checkbox" data-testid="wrap-titles" />
+        {{ t('views.wrapTitles') }}
+      </label>
       <div role="group" :aria-label="t('views.fields.title')" class="flex flex-col gap-1">
         <span class="text-xs text-fg-muted">{{ t('views.fields.title') }}</span>
         <label v-for="f in TASK_FIELDS" :key="f" class="inline-flex items-center gap-1.5 text-sm">
