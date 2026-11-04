@@ -5,10 +5,11 @@ import { StatusPicker, updateTask, type TaskView } from '../../tasks';
 import { BlockedIcon } from '../../links';
 import { useBreakpoint } from '../../ui';
 import CardField, { type CardCol } from '../board/CardField.vue';
+import { useCardExtensions } from '../cardExtensions';
 
 // task card (Board; List on mobile): status button and name, the field buttons below.
 // Mobile — fields as icons only.
-defineProps<{
+const props = defineProps<{
   task: TaskView;
   spaceId: string;
   /** card fields in order (selecting the filled ones — by the caller) */
@@ -30,6 +31,7 @@ defineProps<{
   showKey?: boolean;
 }>();
 const { isMobile } = useBreakpoint();
+const ext = useCardExtensions(() => props.task.projectId);
 </script>
 
 <template>
@@ -68,7 +70,7 @@ const { isMobile } = useBreakpoint();
       ><ListTree :size="12" />{{ childCount }}</span
     >
   </div>
-  <div v-if="cols.length" class="-mx-1.5 flex flex-wrap items-center">
+  <div v-if="cols.length || ext.length" class="-mx-1.5 flex flex-wrap items-center">
     <template v-for="c in cols" :key="c">
       <span
         v-if="projectText && c === 'project'"
@@ -89,5 +91,9 @@ const { isMobile } = useBreakpoint();
         :icon-only="isMobile"
       />
     </template>
+    <!-- поля модулей (время): видны всегда, если модуль включён -->
+    <span v-for="x in ext" :key="x.key" data-no-drag class="inline-flex px-1.5">
+      <component :is="x.view" :task-id="task.id" />
+    </span>
   </div>
 </template>

@@ -17,6 +17,7 @@ import { ChevronDown, ChevronRight, GripVertical, ListTree } from 'lucide-vue-ne
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
+import { useCardExtensions } from '../cardExtensions';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 import { localToday } from '../filter';
@@ -103,6 +104,7 @@ watch(
 
 const columns = computed(() => visibleColumns(props.fields));
 // mobile card: the enabled List fields (empty ones too — an empty icon) in the order of the Board card
+const ext = useCardExtensions(() => props.task.projectId);
 const cardCols = computed(() =>
   (['project', 'priority', 'dueDate', 'labels', 'assignee'] as const).filter((c) =>
     props.fields.includes(c),
@@ -265,6 +267,10 @@ function save() {
           data-testid="row-children"
           ><ListTree :size="12" />{{ childCount }}</span
         >
+        <!-- поля модулей (время): видны всегда, если модуль включён -->
+        <span v-for="x in ext" :key="x.key" class="ml-auto shrink-0" @click.stop>
+          <component :is="x.view" :task-id="task.id" />
+        </span>
       </span>
     </div>
     <!-- колонки как в ClickUp: значение в ячейке; при наведении ячейка — сам пикер (монтируется лениво) -->

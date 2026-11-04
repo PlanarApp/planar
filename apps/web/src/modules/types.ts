@@ -43,6 +43,8 @@ export interface TaskPanelDef {
   order?: number;
   /** a property row of the task card (label + the component, e.g. a picker) instead of a tab */
   property?: boolean;
+  /** the same component also on every task card/row of the views, always visible (time tracking) */
+  card?: boolean;
   component: Lazy<{ taskId: string }>;
 }
 export interface CommandCtx {

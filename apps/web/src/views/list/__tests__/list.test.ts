@@ -524,3 +524,25 @@ describe('PJ-8', () => {
     expect(optionsFrom({ fields: ['status'] }, true).fields).toEqual(['status']);
   });
 });
+
+describe('PLANARAPP-43 поля модулей на строке', () => {
+  it('панель с card: true рендерится в каждой строке с taskId задачи', async () => {
+    const Cell = defineComponent({
+      props: { taskId: String },
+      setup: (p) => () => h('i', { 'data-testid': 'card-ext' }, p.taskId),
+    });
+    registerModules([
+      {
+        id: 'pa43card',
+        taskPanels: [
+          { id: 'c', label: 'C', card: true, component: async () => ({ default: Cell }) },
+        ],
+      },
+    ]);
+    const t1 = task(1);
+    await db.table('tasks').put(t1);
+    await show();
+    await until(() => w.find('[data-testid=card-ext]').exists());
+    expect(w.get('[data-testid=card-ext]').text()).toBe(t1.id);
+  });
+});
