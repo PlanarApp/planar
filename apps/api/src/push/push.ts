@@ -14,7 +14,7 @@ import {
   Res,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { FastifyReply } from 'fastify';
 import type { PgBoss } from 'pg-boss';
 import webpush from 'web-push';
@@ -24,7 +24,7 @@ import { isDemo } from '@planar/server-kit';
 import { BadRequestException } from '@nestjs/common';
 import { getAuth } from '../auth/auth.js';
 import type { Db } from '../db/index.js';
-import { notifications, projects, pushSubscriptions, tasks } from '../db/schema.js';
+import { notifications, projects, pushSubscriptions, statuses, tasks } from '../db/schema.js';
 import { JobsService, PUSH_OPTS } from '../jobs/jobs.js';
 import { DB } from '../tokens.js';
 
@@ -160,6 +160,16 @@ export class PushQueue implements OnApplicationShutdown {
       if (!t) return; // job deleted: nothing to open
       body = t.title;
       url = `/t/${t.key}-${t.number}`;
+      // status_changed: the change itself on the second line, "from → to"
+      const pair = (n.changes as { statusId?: [string, string] } | null)?.statusId;
+      if (pair?.length === 2) {
+        const rows = await this.db
+          .select({ id: statuses.id, name: statuses.name })
+          .from(statuses)
+          .where(inArray(statuses.id, pair));
+        const name = (id: string) => rows.find((r) => r.id === id)?.name;
+        if (name(pair[0]) && name(pair[1])) body += `\n${name(pair[0])} → ${name(pair[1])}`;
+      }
     } else {
       body = n.body ?? '';
       url = n.url ?? '';

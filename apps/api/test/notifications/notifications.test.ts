@@ -246,6 +246,29 @@ describe('push', () => {
     );
   });
 
+  it('PLANARAPP-34 доставка status_changed: смена статуса второй строкой', async () => {
+    const w = await setup();
+    const t = await task(w, { title: 'Заголовок' });
+    await w.admin.ok('task.watch', { id: uuidv7(), taskId: t.id });
+    await db.insert(schema.pushSubscriptions).values({
+      userId: w.admin.userId,
+      endpoint: 'https://push.example/a',
+      p256dh: 'k',
+      auth: 'a',
+    });
+    await w.member.ok('task.update', { id: t.id, statusId: w.statusIds[2] });
+    const [n] = await notes(w.admin.userId);
+    const names = await db
+      .select({ id: schema.statuses.id, name: schema.statuses.name })
+      .from(schema.statuses);
+    const name = (id: string) => names.find((s) => s.id === id)!.name;
+    sender.send.mockClear();
+    await queue.deliver(n.id);
+    expect(sender.send.mock.calls[0][1].body).toBe(
+      `Заголовок\n${name(t.statusId)} → ${name(w.statusIds[2])}`,
+    );
+  });
+
   it('410 от отправителя удаляет подписку, прочие ошибки — нет', async () => {
     const w = await setup();
     const t = await task(w);
