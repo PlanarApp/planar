@@ -26,6 +26,8 @@ export const entitySchemas = {
     description: z.string().nullable(),
     color: z.string().nullable(),
     icon: z.string().nullable(),
+    /** the space lead (PLANARAPP-3); old replica rows have no field */
+    leadId: uuid.nullable().default(null),
     rank: z.string().min(1),
     createdBy: uuid,
     createdAt: ts,
@@ -48,6 +50,8 @@ export const entitySchemas = {
     color: z.string().nullable(),
     icon: z.string().nullable(),
     leadId: uuid.nullable(),
+    /** assigned to a new task created without assignees (PLANARAPP-4); old replica rows have no field */
+    defaultAssigneeId: uuid.nullable().default(null),
     rank: z.string().min(1),
     archivedAt: ts.nullable(),
     /** ids of data modules enabled for the project (C-schema v16); old replica rows have no field */

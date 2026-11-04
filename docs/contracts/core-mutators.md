@@ -3,7 +3,7 @@ type: reference
 status: closed
 module: core
 updated: 2026-11-02
-summary: Domain mutators of C-mutators v14 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
+summary: Domain mutators of C-mutators v15 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---
 
@@ -15,14 +15,14 @@ All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `nul
 | name | args | rules |
 |---|---|---|
 | `space.create` | `id, name, rank, memberId` | creates the space and a member (ctx.userId, admin); no statuses (v11: statuses belong to projects, see `project.create`) |
-| `project.create` | `id, spaceId, name, key, rank, description?, color?, icon?, leadId?, statusIds?: uuid[5], statusNames?, copyFrom?: {projectId, statuses: {id, fromId}[], labels: {id, fromId}[]}, modules?: string[]` | v13: `modules` — data module ids enabled in the new project (default `[]`; a non-data id → `invalid_args`; on the server an id with `unavailable` ≠ null → `invalid_args`). `spaceId` = `settings.root_space` → `invalid_args` (v6); v11: with `copyFrom` — as `project.copyDictionaries` (the source in the same space), otherwise `statusIds` (required then) create 5 statuses by category, `statusNames` as below; neither → `invalid_args` |
+| `project.create` | `id, spaceId, name, key, rank, description?, color?, icon?, leadId?, defaultAssigneeId?, statusIds?: uuid[5], statusNames?, copyFrom?: {projectId, statuses: {id, fromId}[], labels: {id, fromId}[]}, modules?: string[]` | v13: `modules` — data module ids enabled in the new project (default `[]`; a non-data id → `invalid_args`; on the server an id with `unavailable` ≠ null → `invalid_args`). `spaceId` = `settings.root_space` → `invalid_args` (v6); v11: with `copyFrom` — as `project.copyDictionaries` (the source in the same space), otherwise `statusIds` (required then) create 5 statuses by category, `statusNames` as below; neither → `invalid_args` |
 | `project.copyDictionaries` | `projectId, fromProjectId, statuses: {id, fromId}[], labels: {id, fromId}[]` | v11: copies the listed statuses/labels of `fromProjectId` into `projectId` under the new client ids (rank, name, category, color kept); both projects in one space, else `invalid_args`; a target status/label with the same name (case-insensitive) is skipped; admin of the space for statuses |
-| `space.update` | `id, name?, description?, color?, icon?, rank?` | |
+| `space.update` | `id, name?, description?, color?, icon?, leadId?, rank?` | |
 | `space.delete` | `id, withContent?` | the root one (`settings.root_space`) → `invalid_args`; there are projects and no `withContent` → `conflict`; with `withContent` — first the project tasks (as `task.delete`), fields and projects; deletes statuses, labels, views, members; the space's journal and notifications are deleted by the DB (FK on delete cascade) |
 | `member.add` | `id, spaceId, userId, role` | |
 | `member.update` | `id, role` | the last admin → `conflict` |
 | `member.remove` | `id` | the last admin → `conflict`; v14: also deletes the user's `projectMembers` rows of this space |
-| `project.update` | `id, name?, key?, description?, color?, icon?, leadId?, rank?, archivedAt?` | |
+| `project.update` | `id, name?, key?, description?, color?, icon?, leadId?, defaultAssigneeId?, rank?, archivedAt?` | |
 | `project.delete` | `id` | there are tasks → `conflict`; deletes the project's `fieldDefs` and `projectMembers` |
 | `project.setMembersMode` | `projectId, mode, members?: {id, userId, role}[]` | v14: `custom` — `members` required and non-empty, every `userId` a space member (a space guest — role `guest` only), else `invalid_args`; the rows are created/updated/deleted to match; `inherit` — deletes the rows; idempotent; admin of the space or instance admin, else `forbidden` (docs/contracts/projects.md §PJ-11) |
 | `projectMember.add` | `id, projectId, userId, role` | v14: only while the project is `custom` (else `conflict`); the user is a space member (guest cap), not yet in the project (`conflict`) |
@@ -34,7 +34,7 @@ All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `nul
 | `label.create` | `id, projectId, name, color` | `spaceId` — from the project (v11) |
 | `label.update` | `id, name?, color?` | |
 | `label.delete` | `id` | deletes the label's `taskLabels` |
-| `task.create` | `id, projectId, statusId, title, rank, parentId?, description?, priority?, dueDate?, startDate?, assignees?: {id, userId}[], labels?: {id, labelId}[]` | `spaceId` — from the project; `number = null`; `priority` defaults to 0; `fields = {}`; `cycleId = null` |
+| `task.create` | `id, projectId, statusId, title, rank, parentId?, description?, priority?, dueDate?, startDate?, assignees?: {id, userId}[], labels?: {id, labelId}[]` | `spaceId` — from the project; `number = null`; `priority` defaults to 0; `fields = {}`; `cycleId = null`; v15: no `assignees` (or empty) and the project has `defaultAssigneeId` — that user is assigned, the `taskAssignees` row id = the task id |
 | `task.update` | `id, title?, description?, statusId?, priority?, rank?, dueDate?, startDate?, projectId?, parentId?, fields?` | `completedAt` by the status category; `projectId` of another space → `invalid_args`; `parentId` — neither the task itself nor its descendant; `fields` — full replacement, each key is a field of the task's project, the value by type (features.md §F-fields), otherwise `invalid_args`; a `projectId` change without `fields` → `fields = {}`; a `projectId` change → `cycleId = null`; does not accept `cycleId` (work.md §C-schema v7) |
 | `task.delete` | `id` | subtasks recursively; then assignees, watchers, labels, checklist, attachments, reactions, comments; `taskLinks` links with taskId or targetId = the task (for each deleted subtask too) |
 | `task.assign` | `id, taskId, userId` | already assigned — nothing |

@@ -129,7 +129,14 @@ export const taskMutators = [
         createdAt: ctx.now,
         updatedAt: ctx.now,
       });
-      for (const x of a.assignees ?? [])
+      // no assignees given — the project's default one (PLANARAPP-4); the row id is the task id:
+      // client and server must derive the same id, and it is unique in taskAssignees
+      const assignees = a.assignees?.length
+        ? a.assignees
+        : project.defaultAssigneeId
+          ? [{ id: a.id, userId: project.defaultAssigneeId }]
+          : [];
+      for (const x of assignees)
         await tx.put('taskAssignees', { ...x, spaceId, taskId: a.id, createdAt: ctx.now });
       for (const x of a.labels ?? [])
         await tx.put('taskLabels', { ...x, spaceId, taskId: a.id, createdAt: ctx.now });
