@@ -7,7 +7,7 @@ import { Button, IconButton } from '../ui';
 import { openTask } from '../views';
 import { carryOver, shift, unplan, type MyDay } from './myDay';
 
-// «My day» (PLANARAPP-10): today's plan on top of «My work»; the plan itself comes from MyScreen
+// «My day» (PLANARAPP-10): today's plan on top of «My work» (MyWork summary, MyScreen); the plan comes from the parent
 const props = defineProps<{ day: MyDay }>();
 const { t, locale } = useI18n();
 const title = computed(() =>
