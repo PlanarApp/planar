@@ -300,6 +300,7 @@ describe('views:saved', () => {
       showSubtasks: false,
       showEmpty: false,
       wrapTitles: false,
+      showKey: false,
       me: null,
       fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
     });

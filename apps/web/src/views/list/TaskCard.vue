@@ -26,6 +26,8 @@ defineProps<{
   /** name on one line (a List row of fixed height) */
   oneLine?: boolean;
   depth?: number;
+  /** the task key before the name */
+  showKey?: boolean;
 }>();
 const { isMobile } = useBreakpoint();
 </script>
@@ -54,7 +56,10 @@ const { isMobile } = useBreakpoint();
         oneLine ? 'truncate font-medium' : 'line-clamp-3',
       ]"
     >
-      {{ task.title }}
+      <span v-if="showKey" class="mr-1 text-xs font-normal text-fg-subtle" data-testid="card-key">{{
+        task.key
+      }}</span
+      >{{ task.title }}
     </p>
     <span
       v-if="childCount"

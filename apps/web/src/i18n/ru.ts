@@ -321,6 +321,7 @@ export default {
     sortDir: 'Порядок сортировки',
     showEmpty: 'Показывать пустые поля',
     wrapTitles: 'Переносить названия',
+    showKey: 'Показывать ключ задачи',
     subtasks: 'Подзадачи',
     group: {
       none: 'Нет',

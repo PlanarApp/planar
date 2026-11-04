@@ -321,6 +321,7 @@ export default {
     sortDir: 'Sort direction',
     showEmpty: 'Show empty fields',
     wrapTitles: 'Wrap task names',
+    showKey: 'Show task key',
     subtasks: 'Subtasks',
     group: {
       none: 'None',
