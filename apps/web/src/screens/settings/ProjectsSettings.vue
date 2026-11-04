@@ -8,9 +8,8 @@ import { defaultModules } from '../../api/defaultModules';
 import RowMenu from './RowMenu.vue';
 import SectionHeader from './SectionHeader.vue';
 import BulkBar, { type BulkAction } from './BulkBar.vue';
-import { useAction, useAdminSpaces } from './shared';
+import { KEY_RE, useAction, useAdminSpaces } from './shared';
 
-const KEY_RE = /^[A-Z][A-Z0-9]{1,9}$/;
 const DEFAULT_STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
 const props = defineProps<{ spaceId: string }>();
 const { t } = useI18n();

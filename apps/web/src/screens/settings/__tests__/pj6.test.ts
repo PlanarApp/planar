@@ -76,6 +76,27 @@ describe('PLANARAPP-3/4 руководитель и исполнитель по 
     w.unmount();
   });
 
+  it('PLANARAPP-33 проект: ключ виден и меняется; неверный и занятый — ошибка без записи', async () => {
+    await mountAt({ level: 'project', spaceId: ids.space, projectId: ids.project });
+    const input = () => w.get<HTMLInputElement>('input[data-testid=general-key]');
+    await vi.waitFor(() => expect(input().element.value).toBe('PLN'));
+    const set = async (v: string) => {
+      await input().setValue(v);
+      await input().trigger('change');
+      await wait();
+    };
+    const key = async () => (await db.table('projects').get(ids.project)).key;
+    await set('1x');
+    expect(w.text()).toContain('2–10 символов');
+    expect(await key()).toBe('PLN');
+    await set('OLD');
+    expect(w.text()).toContain('Такой ключ уже занят');
+    expect(await key()).toBe('PLN');
+    await set('new');
+    expect(await key()).toBe('NEW');
+    w.unmount();
+  });
+
   it('пространство: только руководитель', async () => {
     await mountAt({ level: 'space', spaceId: ids.space });
     expect(w.find('[data-testid=general-default-assignee]').exists()).toBe(false);
