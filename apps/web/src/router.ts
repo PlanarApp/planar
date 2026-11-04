@@ -25,8 +25,8 @@ export const router = createRouter({
     { path: '/p/:projectId/:view?', name: 'project', component: screen('Group') },
     { path: '/t/:key', name: 'task', component: screen('Task') },
     { path: '/settings/:section?', name: 'settings', component: screen('Settings') },
-    // shared modules of the instance (PJ-3); the screen itself checks the admin role
-    { path: '/admin/modules', name: 'adminModules', component: screen('AdminModules') },
+    // shared modules of the instance (PJ-3) — now a section of the Workspace settings (admin only)
+    { path: '/admin/modules', redirect: { path: '/w/settings', query: { s: 'instanceModules' } } },
     { path: '/m/:moduleId/:rest(.*)*', name: 'module', component: screen('Module') },
   ],
 });
