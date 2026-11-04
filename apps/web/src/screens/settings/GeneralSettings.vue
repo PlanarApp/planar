@@ -10,7 +10,7 @@ import { db, mutate, useQuery } from '../../sync';
 import { useMembers, useWorkspace } from '../../tasks';
 import ColorPicker from './ColorPicker.vue';
 import SectionHeader from './SectionHeader.vue';
-import { firstGrapheme, useAction } from './shared';
+import { firstGrapheme, KEY_RE, useAction } from './shared';
 
 // the first group settings section — the node's own parameters: name, colour, icon
 const props = defineProps<{
@@ -66,6 +66,25 @@ function setPerson(field: 'leadId' | 'defaultAssigneeId', v: string | null) {
       : mutate('space.update', { id: props.spaceId!, leadId: id }),
   );
 }
+// project key: task keys are computed from it, so a change renames every task of the project
+const projectKey = computed(() => (row.value as { key?: string } | undefined)?.key ?? '');
+const keyError = ref('');
+async function saveKey(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const key = input.value.trim().toUpperCase();
+  keyError.value = '';
+  if (key === projectKey.value) return;
+  if (!KEY_RE.test(key)) return void (keyError.value = t('settings.keyInvalid'));
+  // the server's unique index is the guard; a visible duplicate gets a clear message here
+  if (
+    await db
+      .table<Row<'projects'>>('projects')
+      .filter((p) => p.key === key)
+      .count()
+  )
+    return void (keyError.value = t('settings.general.keyTaken'));
+  void run(() => mutate('project.update', { id: props.projectId!, key }));
+}
 const emojiOpen = ref(false);
 function pickEmoji(emoji: string) {
   emojiOpen.value = false;
@@ -92,6 +111,18 @@ function upload(e: Event) {
         data-testid="general-name"
         @change="save({ name: val($event).trim() })"
       />
+      <div v-if="level === 'project'">
+        <Input
+          :model-value="projectKey"
+          :label="t('settings.key')"
+          :error="keyError"
+          maxlength="10"
+          data-testid="general-key"
+          @input="($event.target as HTMLInputElement).value = val($event).toUpperCase()"
+          @change="saveKey"
+        />
+        <p class="mt-1 text-xs text-fg-muted">{{ t('settings.general.keyHint') }}</p>
+      </div>
       <div class="flex flex-col gap-1">
         <span class="text-sm text-fg-muted">{{ t('settings.general.color') }}</span>
         <ColorPicker

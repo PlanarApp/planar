@@ -513,6 +513,8 @@ export default {
       lead: 'Lead',
       defaultAssignee: 'Default assignee',
       defaultAssigneeHint: 'Assigned to a new task when no assignee is chosen',
+      keyHint: 'All task keys of the project change (APP-5 → NEW-5); old links stop opening',
+      keyTaken: 'This key is already taken',
       nobody: 'Nobody',
     },
     more: 'Actions',

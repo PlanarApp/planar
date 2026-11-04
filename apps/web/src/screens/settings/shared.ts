@@ -4,6 +4,9 @@ import type { Row } from '@planar/shared';
 import { useAuth } from '../../auth/useAuth';
 import { db, useQuery } from '../../sync';
 
+/** Project key, as in the `project.create`/`project.update` mutators. */
+export const KEY_RE = /^[A-Z][A-Z0-9]{1,9}$/;
+
 /** Running an edit: a mutator error (conflict, etc.) → text to show, without an exception. */
 export function useAction() {
   const { t } = useI18n();
