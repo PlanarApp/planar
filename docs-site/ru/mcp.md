@@ -51,9 +51,12 @@ Claude Desktop и другие клиенты с `mcp.json`:
 
 - `list_spaces` — пространства пользователя;
 - `list_projects {spaceId?}` — проекты;
-- `search_tasks {query?, projectId?, statusId?, assigneeId?, limit?}` — поиск по заголовку и ключу (`PLN-12`), без учёта регистра;
+- `search_tasks {query?, projectId?, statusId?, statusCategory?, assigneeId?, limit?}` — поиск по заголовку и ключу (`PLN-12`), без учёта регистра; `statusCategory` — `backlog | todo | in_progress | done | cancelled`, `limit` до 200;
 - `get_task {task}` — задача (id или ключ) с комментариями;
-- `my_tasks {includeDone?}` — назначенные мне; по умолчанию без done и cancelled.
+- `my_tasks {includeDone?, statusCategory?}` — назначенные мне; по умолчанию без done и cancelled;
+- `project_dictionary {projectId}` — статусы проекта (название, категория), метки и участники: расшифровка `statusId`, `labelIds`, `assigneeIds`.
+
+Каждая задача в ответах инструментов несёт ещё `status: {name, category}`.
 
 Запись (нужен `write`):
 

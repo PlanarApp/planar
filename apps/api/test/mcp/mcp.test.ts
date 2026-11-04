@@ -94,7 +94,7 @@ const mk = async (c: Client, title: string, extra = {}) => {
 };
 
 describe('MCP /mcp', () => {
-  it('initialize и tools/list: 14 инструментов со схемами', async () => {
+  it('initialize и tools/list: 15 инструментов со схемами', async () => {
     const c = await connect(write.secret);
     const { tools } = await c.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
@@ -109,6 +109,7 @@ describe('MCP /mcp', () => {
         'link_tasks',
         'log_time',
         'my_tasks',
+        'project_dictionary',
         'search_tasks',
         'start_timer',
         'stop_timer',
@@ -233,6 +234,39 @@ describe('MCP /mcp', () => {
       (x: { id: string }) => x.id,
     );
     expect(all).toContain(done.id);
+  });
+
+  it('project_dictionary: статусы, метки, участники; чужому — not_found', async () => {
+    const c = await connect(write.secret);
+    const [err, d] = await call(c, 'project_dictionary', { projectId: w.projectId });
+    expect(err, JSON.stringify(d)).toBe(false);
+    expect(d.statuses.map((x: { id: string }) => x.id).sort()).toEqual([...w.statusIds].sort());
+    expect(d.statuses[0]).toEqual({
+      id: expect.any(String),
+      name: expect.any(String),
+      category: expect.any(String),
+    });
+    expect(d.labels).toEqual([]);
+    expect(d.members.map((m: { id: string }) => m.id)).toContain(w.member.userId);
+    expect(d.members.map((m: { id: string }) => m.id)).not.toContain(w.outsider.userId);
+    const o = await connect(outsider.secret);
+    expect((await call(o, 'project_dictionary', { projectId: w.projectId }))[1].code).toBe(
+      'not_found',
+    );
+  });
+
+  it('задачи несут название и категорию статуса; search_tasks по statusCategory', async () => {
+    const c = await connect(write.secret);
+    const t = await mk(c, 'КатегорияXyz');
+    const [, g] = await call(c, 'get_task', { task: t.key });
+    expect(g.status).toEqual({ name: expect.any(String), category: expect.any(String) });
+    const cat = g.status.category as string;
+    const [, a] = await call(c, 'search_tasks', { query: 'КатегорияXyz', statusCategory: cat });
+    expect(a.map((x: { id: string }) => x.id)).toEqual([t.id]);
+    expect(a[0].status).toEqual(g.status);
+    const other = cat === 'done' ? 'todo' : 'done';
+    const [, b] = await call(c, 'search_tasks', { query: 'КатегорияXyz', statusCategory: other });
+    expect(b).toEqual([]);
   });
 
   it('read-токен: чтение ok, запись → isError forbidden', async () => {

@@ -51,9 +51,12 @@ Read (any token):
 
 - `list_spaces`: the user's spaces;
 - `list_projects {spaceId?}`: projects;
-- `search_tasks {query?, projectId?, statusId?, assigneeId?, limit?}`: search by title and key (`PLN-12`), case-insensitive;
+- `search_tasks {query?, projectId?, statusId?, statusCategory?, assigneeId?, limit?}`: search by title and key (`PLN-12`), case-insensitive; `statusCategory` is `backlog | todo | in_progress | done | cancelled`, `limit` up to 200;
 - `get_task {task}`: a task (id or key) with comments;
-- `my_tasks {includeDone?}`: tasks assigned to me; by default without done and cancelled.
+- `my_tasks {includeDone?, statusCategory?}`: tasks assigned to me; by default without done and cancelled;
+- `project_dictionary {projectId}`: the project's statuses (name, category), labels and members, to read `statusId`, `labelIds`, `assigneeIds`.
+
+Every task returned by the tools also carries `status: {name, category}`.
 
 Write (needs `write`):
 
