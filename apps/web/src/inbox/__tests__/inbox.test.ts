@@ -235,6 +235,12 @@ describe('inbox:list', () => {
   });
 });
 
+// MyScreen has icon buttons with tooltips: the app provides TooltipProvider at the root
+const mountMy = () =>
+  mount(defineComponent({ render: () => h(TooltipProvider, null, () => h(MyScreen)) }), {
+    global: { plugins: [i18n, router.current] },
+  });
+
 describe('inbox:my', () => {
   const add = async (n: number, o: Record<string, unknown>, assignee = me) => {
     const id = uuidv7();
@@ -246,7 +252,7 @@ describe('inbox:my', () => {
   it('inbox:my только мои', async () => {
     await add(1, {});
     await add(2, {}, bob);
-    const w = mount(MyScreen, { global: { plugins: [i18n, router.current] } });
+    const w = mountMy();
     await vi.waitFor(() => expect(w.findAll('[data-testid=my-row]')).toHaveLength(1));
     expect(w.text()).toContain('T1');
   });
@@ -255,9 +261,9 @@ describe('inbox:my', () => {
     await add(2, { dueDate: day(0) });
     await add(3, { dueDate: day(30) });
     await add(4, {});
-    const w = mount(MyScreen, { global: { plugins: [i18n, router.current] } });
+    const w = mountMy();
     await vi.waitFor(() => expect(w.findAll('[data-testid=my-row]')).toHaveLength(4));
-    expect(w.findAll('section').map((s) => s.attributes('data-group'))).toEqual([
+    expect(w.findAll('section[data-group]').map((s) => s.attributes('data-group'))).toEqual([
       'overdue',
       'today',
       'later',
@@ -267,9 +273,70 @@ describe('inbox:my', () => {
   it('inbox:my завершённые скрыты', async () => {
     await add(1, { statusId: sDone });
     await add(2, {});
-    const w = mount(MyScreen, { global: { plugins: [i18n, router.current] } });
+    const w = mountMy();
     await vi.waitFor(() => expect(w.findAll('[data-testid=my-row]')).toHaveLength(1));
     expect(w.text()).toContain('T2');
+  });
+});
+
+describe('PLANARAPP-10 мой день', () => {
+  const add = async (n: number, o: Record<string, unknown> = {}) => {
+    const id = uuidv7();
+    await db.table('tasks').put(task(id, { number: n, title: `T${n}`, ...o }));
+    await db.table('taskAssignees').put({ id: uuidv7(), taskId: id, userId: me, spaceId: space });
+    return id;
+  };
+  const show = mountMy;
+  const planned = (w: ReturnType<typeof show>) =>
+    w.findAll('[data-testid=my-day-row]').map((r) => r.text().match(/T\d/)![0]);
+  const click = async (el: { trigger: (e: string) => Promise<void> }) => {
+    await el.trigger('click');
+    await flushPromises();
+  };
+
+  it('добавление из списка, порядок, удаление', async () => {
+    await add(1);
+    await add(2);
+    const w = show();
+    await vi.waitFor(() => expect(w.findAll('[data-testid=my-day-add]')).toHaveLength(2));
+    expect(w.find('[data-testid=my-day-row]').exists()).toBe(false);
+    // add T2, then T1: in the order of adding; a planned task loses its «+»
+    const plus = (n: string) =>
+      w
+        .findAll('[data-testid=my-row]')
+        .find((r) => r.text().includes(n))!
+        .element.parentElement!.querySelector<HTMLElement>('[data-testid=my-day-add]');
+    plus('T2')!.click();
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T2']));
+    plus('T1')!.click();
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T2', 'T1']));
+    expect(w.findAll('[data-testid=my-day-add]')).toHaveLength(0);
+    // T1 up
+    await click(w.findAll('[data-testid=my-day-row]')[1]!.find('button[aria-label="Выше"]'));
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T2']));
+    await click(w.findAll('[data-testid=my-day-remove]')[0]!);
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T2']));
+  });
+
+  it('незавершённое с прошлых дней переносится на сегодня; завершённое — нет', async () => {
+    const open = await add(1);
+    const done = await add(2, { statusId: sDone });
+    const plan = (taskId: string, date: string) => ({
+      id: uuidv7(),
+      userId: me,
+      taskId,
+      date,
+      rank: 'a0',
+      createdAt: ts(30),
+      updatedAt: ts(30),
+    });
+    await db.table('dayPlans').bulkPut([plan(open, day(-1)), plan(done, day(-1))]);
+    const w = show();
+    await vi.waitFor(() => expect(w.find('[data-testid=my-day-carry]').exists()).toBe(true));
+    expect(w.find('[data-testid=my-day-carry]').text()).toContain('1');
+    await click(w.find('[data-testid=my-day-carry] button'));
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T1']));
+    expect(w.find('[data-testid=my-day-carry]').exists()).toBe(false);
   });
 });
 

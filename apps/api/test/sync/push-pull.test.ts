@@ -205,6 +205,7 @@ describe('push → pull', () => {
         'commentReactions',
         'attachments',
         'notifications',
+        'dayPlans',
         'savedViews',
         'settings',
         // PJ-3: data modules are always installed, their rows are visible (the UI hides them per project)

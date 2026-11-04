@@ -253,6 +253,13 @@
       "when": 1793817124449,
       "tag": "0035_space_lead_default_assignee",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793818012423,
+      "tag": "0036_day_plans",
+      "breakpoints": true
     }
   ]
 }

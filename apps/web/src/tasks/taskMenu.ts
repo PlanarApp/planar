@@ -12,6 +12,7 @@ import {
   Maximize2,
   Star,
   StarOff,
+  Sun,
   Trash2,
   UserRound,
 } from 'lucide-vue-next';
@@ -24,6 +25,7 @@ import { localToday } from '../views/filter';
 import { addDays } from '../views/calendar/dates';
 import { openTask } from '../views/open';
 import { favorites } from '../layout/nav';
+import { planToday, unplan, useMyDay } from '../inbox/myDay';
 import { useMembers, useStatuses } from './dictionaries';
 import { createTask, deleteTask, setAssignees, updateTask } from './ops';
 import type { TaskView } from './queries';
@@ -50,6 +52,18 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
     navigator.clipboard?.writeText(text).then(() => toast(note, 2500));
 
   const due = (task: TaskView, d: string | null) => void updateTask(task.id, { dueDate: d });
+
+  // «My day» (PLANARAPP-10): add the task to today's plan or remove it
+  const day = useMyDay(() => session.value?.id);
+  const myDayItem = (task: TaskView): MenuItem => {
+    const plan = day.value?.today.find((x) => x.task.id === task.id)?.plan;
+    return {
+      id: 'myDay',
+      label: t(plan ? 'myDay.remove' : 'myDay.add'),
+      icon: Sun,
+      onSelect: () => void (plan ? unplan(plan.id) : planToday(task.id, day.value)),
+    };
+  };
 
   return (task: TaskView): MenuItem[] => {
     const me = session.value?.id;
@@ -87,6 +101,7 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
         onSelect: () =>
           favorites.toggle({ kind: 'task', id: task.id, name: task.title, to: `/t/${task.key}` }),
       },
+      myDayItem(task),
       { separator: true },
       {
         id: 'status',

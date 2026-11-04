@@ -244,6 +244,16 @@ export const entitySchemas = {
     readAt: ts.nullable(),
     createdAt: ts,
   }),
+  /** «My day» (PLANARAPP-10): a task the user plans for a date; personal, in the user's order */
+  dayPlans: z.object({
+    id: uuid,
+    userId: uuid,
+    taskId: uuid,
+    date: z.iso.date(),
+    rank: z.string().min(1),
+    createdAt: ts,
+    updatedAt: ts,
+  }),
   savedViews: z.object({
     id: uuid,
     spaceId: uuid,
@@ -330,6 +340,7 @@ export const ENTITIES = {
   },
   activity: { scope: 'space', write: 'server', bootstrap: false, indexes: ['taskId'] },
   notifications: { scope: 'user', write: 'self', bootstrap: true, indexes: ['taskId'] },
+  dayPlans: { scope: 'user', write: 'self', bootstrap: true, indexes: ['taskId'] },
   savedViews: { scope: 'space|user', write: 'member|self', bootstrap: true, indexes: ['spaceId'] },
   settings: { scope: 'global', write: 'instance_admin', bootstrap: true, indexes: [] },
 } satisfies Record<keyof typeof entitySchemas, EntityMeta>;

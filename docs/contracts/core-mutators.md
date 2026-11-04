@@ -3,7 +3,7 @@ type: reference
 status: closed
 module: core
 updated: 2026-11-02
-summary: Domain mutators of C-mutators v15 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
+summary: Domain mutators of C-mutators v16 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---
 
@@ -62,6 +62,9 @@ All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `nul
 | `attachment.delete` | `id` | |
 | `notification.read` | `ids: uuid[]` | `readAt = ctx.now`, own only |
 | `notification.delete` | `ids: uuid[]` | own only |
+| `day.plan` | `id, taskId, date, rank` | v16: `dayPlans` row of ctx.userId; the task is missing → `not_found`; the task already planned by the user for `date` — nothing |
+| `day.move` | `id, date?, rank?` | v16: own only (else `forbidden`) — another day and/or place in the day |
+| `day.remove` | `id` | v16: own only (else `forbidden`) |
 | `view.create` | `id, spaceId, personal: bool, name, icon?, layout, node?, filter, config, rank` | `personal` → `userId = ctx.userId`; `node` set → always personal (a shared node default — only `view.setNodeDefault`) |
 | `view.update` | `id, name?, icon?, layout?, filter?, config?, rank?` | |
 | `view.delete` | `id` | |
