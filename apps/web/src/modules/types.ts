@@ -41,6 +41,8 @@ export interface TaskPanelDef {
   label: LocalizedText;
   icon?: Component;
   order?: number;
+  /** a property row of the task card (label + the component, e.g. a picker) instead of a tab */
+  property?: boolean;
   component: Lazy<{ taskId: string }>;
 }
 export interface CommandCtx {

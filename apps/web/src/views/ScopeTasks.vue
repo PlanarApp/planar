@@ -65,7 +65,8 @@ const projectOptions = computed(() =>
     s.projects
       .filter((p) => !props.projectId || p.id === props.projectId)
       .filter((p) => (props.spaceId ? s.id === props.spaceId : s.id !== props.rootSpaceId))
-      .map((p) => ({ value: p.id, label: p.name })),
+      // across spaces same-named projects are told apart by the space, as in quick create
+      .map((p) => ({ value: p.id, label: props.spaceId ? p.name : `${s.name} / ${p.name}` })),
   ),
 );
 const pickKey = () => `planar.scope.${key.value}.projects`;

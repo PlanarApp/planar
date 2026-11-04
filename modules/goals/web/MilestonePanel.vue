@@ -31,8 +31,7 @@ const change = (v: string | null) =>
 </script>
 
 <template>
-  <div class="flex items-center gap-2 p-2 text-sm" data-testid="milestone-panel">
-    {{ tx.milestone }}
+  <div class="flex items-center text-sm" data-testid="milestone-panel">
     <Select
       :model-value="data?.current ?? NONE"
       :label="tx.milestone"
