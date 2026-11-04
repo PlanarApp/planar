@@ -10,7 +10,9 @@ export const web = defineWebModule({
       label: { ru: 'Время', en: 'Time' },
       icon: Clock,
       order: 50,
-      component: () => import('./TimerPanel.vue'),
+      // a properties row: start/stop + tracked time, the menu — entry form and list (PLANARAPP-42)
+      property: true,
+      component: () => import('./TimeControl.vue'),
     },
   ],
   groupTabs: [

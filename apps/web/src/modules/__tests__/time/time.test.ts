@@ -35,6 +35,7 @@ vi.mock('../../../../../../modules/time/web/data', async () => {
 import * as data from '../../../../../../modules/time/web/data';
 import { web } from '../../../../../../modules/time/web';
 import TimerPanel from '../../../../../../modules/time/web/TimerPanel.vue';
+import TimeControl from '../../../../../../modules/time/web/TimeControl.vue';
 import TopbarTimer from '../../../../../../modules/time/web/TopbarTimer.vue';
 import WeekPage from '../../../../../../modules/time/web/WeekPage.vue';
 import { dayKey, planCell, weekDays } from '../../../../../../modules/time/web/lib';
@@ -129,6 +130,34 @@ describe('wk1: панель задачи', () => {
       'time.log',
       expect.objectContaining({ taskId: 'root', durationSec: 5400 }),
     );
+  });
+});
+
+describe('PLANARAPP-42 свойство «Время»', () => {
+  it('старт/стоп слева, справа — затреканное по задаче; клик по времени — меню с формой', async () => {
+    const w = mount(TimeControl, { props: { taskId: 'root' } });
+    expect(w.get('[data-test=time-total]').text()).toBe('addManual');
+    await w.get('[data-test=time-toggle]').trigger('click');
+    expect(mutate).toHaveBeenCalledWith('time.start', { id: expect.any(String), taskId: 'root' });
+    st.entries.value = [
+      entry({ durationSec: 3600 }),
+      entry({ taskId: 'kid', durationSec: 1800 }), // a subtask — not on the property
+    ];
+    await w.vm.$nextTick();
+    expect(w.get('[data-test=time-total]').text()).toBe('1:00');
+    st.entries.value = [
+      entry({
+        id: 'run',
+        startedAt: new Date(NOW - 65_000).toISOString(),
+        endedAt: null,
+        durationSec: null,
+      }),
+    ];
+    await w.vm.$nextTick();
+    expect(w.get('[data-test=time-total]').text()).toBe('1:05'); // running: m:ss
+    await w.get('[data-test=time-toggle]').trigger('click');
+    expect(mutate).toHaveBeenLastCalledWith('time.stop', { id: 'run' });
+    expect(web.taskPanels?.[0]).toMatchObject({ id: 'timer', property: true });
   });
 });
 
