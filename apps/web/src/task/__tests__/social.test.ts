@@ -301,6 +301,33 @@ describe('task:extensions', () => {
     expect(w.find('[data-testid="ext"]').text()).toBe(`ext:${t.id}`);
   });
 
+  it('PLANARAPP-38 вкладка с записями показывает их число, без записей — без числа', async () => {
+    const Panel = defineComponent({ setup: () => () => h('p') });
+    registerModules([
+      {
+        id: 'demo-count',
+        taskPanels: [
+          {
+            id: 'n',
+            label: { ru: 'Есть', en: 'Has' },
+            count: async (id: string) => (id === t.id ? 3 : 0),
+            component: async () => ({ default: Panel }),
+          },
+          {
+            id: 'z',
+            label: { ru: 'Нет', en: 'None' },
+            count: async () => 0,
+            component: async () => ({ default: Panel }),
+          },
+        ],
+      },
+    ]);
+    w = await open();
+    await until(() => w.find('[data-testid="tab-count-demo-count:n"]').exists());
+    expect(w.find('[data-testid="tab-count-demo-count:n"]').text()).toBe('3');
+    expect(w.find('[data-testid="tab-count-demo-count:z"]').exists()).toBe(false);
+  });
+
   it('панель-свойство — строка свойств, не вкладка (PLANARAPP-23)', async () => {
     const Panel = defineComponent({
       props: { taskId: String },

@@ -1,5 +1,5 @@
 import { FileText } from 'lucide-vue-next';
-import { defineWebModule } from '@planar/web/modules';
+import { db, defineWebModule } from '@planar/web/modules';
 import { pageSearch } from './search';
 import { label } from './text';
 
@@ -11,6 +11,7 @@ export const web = defineWebModule({
       id: 'pages',
       label: label('docs'),
       icon: FileText,
+      count: (taskId) => db.table('docsTaskLinks').where('taskId').equals(taskId).count(),
       component: () => import('./TaskPanel.vue'),
     },
   ],

@@ -19,7 +19,7 @@ import {
   X,
 } from 'lucide-vue-next';
 import { useAuth } from '../auth/useAuth';
-import { mutate, newId } from '../sync';
+import { mutate, newId, useQuery } from '../sync';
 import {
   AssigneePicker,
   DueDatePicker,
@@ -193,6 +193,14 @@ const propertyPanels = computed(() =>
   extensions.value
     .filter((p) => p.property)
     .map((p) => ({ ...p, view: defineAsyncComponent(() => p.component().then((m) => m.default)) })),
+);
+// records per tab (documents, time, MRs, repeat rule): the tab shows there is something inside
+const counts = useQuery(async () =>
+  Object.fromEntries(
+    await Promise.all(
+      panels.value.map(async (p) => [p.key, p.count ? await p.count(props.task.id) : 0] as const),
+    ),
+  ),
 );
 const tab = ref<string | null>(null);
 const active = computed(() => panels.value.find((p) => p.key === tab.value) ?? null);
@@ -433,6 +441,12 @@ const panelComponent = computed(() => {
               @click="tab = tab === p.key ? null : p.key"
             >
               {{ lt(p.label) }}
+              <span
+                v-if="counts?.[p.key]"
+                class="ml-0.5 rounded-full bg-bg-muted px-1.5 text-2xs text-fg"
+                :data-testid="`tab-count-${p.key}`"
+                >{{ counts[p.key] }}</span
+              >
             </Button>
           </div>
           <div v-if="panelComponent" class="mt-2 rounded-lg border border-border p-3">
