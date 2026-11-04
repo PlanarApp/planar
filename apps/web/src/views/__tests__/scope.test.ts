@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { ref } from 'vue';
 import type { Row } from '@planar/shared';
 import { groupTasks, type TaskView } from '../../tasks';
-import { labelFor, statusFor, statusIn, useLabelKey, useStatusKey, widenByName } from '../scope';
+import {
+  dictProjectOf,
+  labelFor,
+  statusFor,
+  statusIn,
+  useLabelKey,
+  useStatusKey,
+  widenByName,
+} from '../scope';
 
 const st = (id: string, spaceId: string, name: string, rank: string) =>
   ({ id, spaceId, name, rank, category: 'todo', color: null }) as unknown as Row<'statuses'>;
@@ -74,6 +82,12 @@ describe('PJ-2: сводка проектов одного пространст�
     ]);
     const byLabel = groupTasks(tasks, 'label', ctx);
     expect(byLabel.find((g) => g.key === 'bug')?.tasks.map((x) => x.id)).toEqual(['a', 'b']);
+  });
+
+  it('PLANARAPP-46 словари вида: свой проект, единственный проект scope, сводка — все', () => {
+    expect(dictProjectOf(undefined, 'P1')).toBe('P1');
+    expect(dictProjectOf({ projectIds: ['P2'], spaceIds: ['S'] }, '')).toBe('P2');
+    expect(dictProjectOf(scope, '')).toBeUndefined();
   });
 
   it('один проект — по id', () => {
