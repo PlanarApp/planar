@@ -125,3 +125,24 @@ The process (agents, templates, rules, permissions, dpcli) improves as you work,
 - **Review — main session, skill `harness-retro`:** on `<m> done`, once per phase or on the user's request: `.dpcli/dpcli feedback` (clusters, triage project|dpcli), `.dpcli/dpcli stats`, ≤ 3 proposals to the user.
 - **Where fixes go.** Project-specific — `.dpcli-local/` (survives updates). dpcli itself — edits in `.dpcli` leave only via `.dpcli/dpcli contribute F-n` (branch, commit, a PR to the dpcli hub or a +1 on a similar one); everyone gets it with the next update.
 - The user's remarks about the work — into memory (feedback) at once, without waiting for a review.
+
+## Project rules
+
+From `.dpcli-local/workflow.md`.
+
+## Ветки и main
+
+- В `main` напрямую не мержим и не коммитим: ни `deliver`, ни `merge --into main`, ни локальные коммиты в `main`. Всё попадает в `main` только через MR (GitLab, `glab mr create`), который вливает человек.
+- Доставка модуля — в ветку под MR: `.dpcli/dpcli deliver <m> --into mr/<m>` (ветка `mr/<m>` создаётся от `main`), затем по команде пользователя — `git push -u origin mr/<m>` и `glab mr create`; описание MR — по-английски.
+- Пуш и создание MR — только по команде пользователя.
+
+## Стенды и e2e
+
+- Каждой задаче — свой стенд: `eval "$(./dev.sh stack <ID>)"` поднимает `planar-<id>` на свободных портах и в своей подсети, с чистой БД и seed, ждёт health и экспортирует `WEB_PORT`, `API_PORT`, `DEV_PG_PORT`, `E2E_BASE_URL`. Снять — `./dev.sh stack <ID> down`.
+- Браузерные e2e — только `DEV_STACK=<ID> ./dev.sh e2e-web [файлы]`: каждый прогон идёт на чистой БД.
+- Карточки ссылаются на эти строки и не задают порты, подсети и имена compose-проектов сами.
+
+## Малый модуль и контекст главной сессии
+
+- Модуль из 2–3 задач («без координатора») ведёт свежий `dp-coordinator` с `model: sonnet` и без ревьюера, а не главная сессия.
+- Главная сессия делает `/clear` после каждой волны задач и после каждой доставки; состояние берётся из журнала.

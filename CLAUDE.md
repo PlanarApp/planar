@@ -13,4 +13,5 @@ Before multi-step work read **`.claude/dpcli-workflow.md`**. Journal, tasks, bra
 - Docs — entry `docs/INDEX.md`; find with `.dpcli/dpcli docs find`, read by section `.dpcli/dpcli docs section <path> [section]`, not whole.
 - Commits — only your own files (`git commit -- <paths>`); no push without the user's command; after a merge `.dpcli/dpcli gc --remove`.
 - Agents — `.dpcli/agents/`, process — `.dpcli/templates/workflow.md`; `.claude/` is refreshed by `.dpcli/dpcli init`.
+- `main` — только через MR: никаких `deliver`/`merge --into main` и коммитов в `main`; доставка модуля — `deliver <m> --into mr/<m>`, пуш и MR — по команде пользователя.
 <!-- dpcli:end -->
