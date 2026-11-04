@@ -407,6 +407,7 @@ export default {
       saveChanges: 'Сохранить',
       saveForAll: 'Сохранить для всех',
       reset: 'Сбросить',
+      changed: 'Вид изменён',
       notFound: 'Вид не найден',
       back: 'К проекту',
     },

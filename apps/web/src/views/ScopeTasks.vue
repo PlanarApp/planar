@@ -10,6 +10,7 @@ import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { useSpaces } from '../tasks';
 import OptionsBar from './saved/OptionsBar.vue';
+import ViewChangesBar from './saved/ViewChangesBar.vue';
 import TaskModal from './TaskModal.vue';
 import { buildViewTabs, useSelection, viewLoaders } from '.';
 import type { MeMode } from './saved/useFilter';
@@ -161,31 +162,23 @@ const selectTab = (k: string) =>
         v-model:filter="draftFilter"
         :space-id="scope.spaceIds.join(',')"
       >
-        <!-- резерв места: появление Сохранить/Сбросить не сдвигает «Вид» -->
-        <div class="flex items-center justify-end gap-1 md:min-w-[17rem]">
-          <Button
-            v-if="canShare"
-            size="sm"
-            :icon="Check"
-            compact
-            data-testid="node-share"
-            @click="view.saveForAll"
-          >
-            {{ t('views.saved.saveForAll') }}
-          </Button>
-          <Button
-            v-if="view.hasPersonal.value"
-            size="sm"
-            :icon="RotateCcw"
-            compact
-            data-testid="node-reset"
-            @click="view.reset"
-          >
-            {{ t('views.saved.reset') }}
-          </Button>
-        </div>
       </OptionsBar>
     </ToolbarRoot>
+    <ViewChangesBar :show="view.hasPersonal.value" :state="[options, draftFilter]">
+      <Button
+        v-if="canShare"
+        size="sm"
+        :icon="Check"
+        compact
+        data-testid="node-share"
+        @click="view.saveForAll"
+      >
+        {{ t('views.saved.saveForAll') }}
+      </Button>
+      <Button size="sm" :icon="RotateCcw" compact data-testid="node-reset" @click="view.reset">
+        {{ t('views.saved.reset') }}
+      </Button>
+    </ViewChangesBar>
     <div class="min-h-0 flex-1">
       <component
         :is="viewComponent"
