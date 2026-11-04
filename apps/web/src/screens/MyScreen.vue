@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { ListChecks } from 'lucide-vue-next';
+import { ListChecks, Plus } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { StatusIcon } from '../tasks';
-import { EmptyState } from '../ui';
+import { EmptyState, IconButton } from '../ui';
 import { openTask } from '../views';
 import TaskModal from '../views/TaskModal.vue';
 import { formatDue } from '../views/list/due';
 import { useAuth } from '../auth/useAuth';
 import { useMyTasks, type MyTask, type WorkKind } from '../inbox/queries';
+import { planToday, useMyDay } from '../inbox/myDay';
+import MyDayPanel from '../inbox/MyDayPanel.vue';
 
 const { t, locale } = useI18n();
 // projectIds — the group's "My tasks" view (only its projects, without the screen header)
@@ -23,6 +25,9 @@ const rows = computed(() => {
   const ids = props.projectIds && new Set(props.projectIds);
   return ids ? all.value?.filter((r) => ids.has(r.projectId)) : all.value;
 });
+
+// «My day» — only on the «My work» screen, not in a group's «My tasks»
+const day = useMyDay(() => (props.projectIds ? undefined : user.value?.id));
 
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -48,6 +53,7 @@ const groups = computed(() => {
 <template>
   <div class="flex flex-col gap-3 p-4">
     <h1 v-if="!projectIds" class="text-xl font-semibold">{{ t('screens.my') }}</h1>
+    <MyDayPanel v-if="!projectIds && day" :day="day" />
     <EmptyState
       v-if="rows && !rows.length"
       :icon="ListChecks"
@@ -56,22 +62,30 @@ const groups = computed(() => {
     />
     <section v-for="g in groups" :key="g.k" :data-group="g.k">
       <h2 class="mb-1 text-xs font-medium text-fg-muted">{{ t(`inbox.my.${g.k}`) }}</h2>
-      <button
-        v-for="r in g.items"
-        :key="r.id"
-        type="button"
-        data-testid="my-row"
-        class="flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
-        @click="openTask(r.key)"
-      >
-        <StatusIcon :status="r.status" />
-        <span class="text-xs text-fg-subtle">{{ r.key }}</span>
-        <span class="flex-1 truncate">{{ r.title }}</span>
-        <span v-if="r.dueDate" class="text-xs text-fg-muted">{{
-          formatDue(r.dueDate, locale)
-        }}</span>
-        <span class="hidden text-xs text-fg-subtle md:inline">{{ r.project }}</span>
-      </button>
+      <div v-for="r in g.items" :key="r.id" class="flex items-center gap-1">
+        <button
+          type="button"
+          data-testid="my-row"
+          class="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
+          @click="openTask(r.key)"
+        >
+          <StatusIcon :status="r.status" />
+          <span class="text-xs text-fg-subtle">{{ r.key }}</span>
+          <span class="flex-1 truncate">{{ r.title }}</span>
+          <span v-if="r.dueDate" class="text-xs text-fg-muted">{{
+            formatDue(r.dueDate, locale)
+          }}</span>
+          <span class="hidden text-xs text-fg-subtle md:inline">{{ r.project }}</span>
+        </button>
+        <IconButton
+          v-if="day && !projectIds && !day.planned.has(r.id)"
+          :icon="Plus"
+          :label="t('myDay.add')"
+          size="sm"
+          data-testid="my-day-add"
+          @click="planToday(r.id, day)"
+        />
+      </div>
     </section>
     <TaskModal />
   </div>

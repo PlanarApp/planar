@@ -3,13 +3,13 @@ type: reference
 status: closed
 module: core
 updated: 2026-11-02
-summary: Entities of C-schema v18 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
+summary: Entities of C-schema v19 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
 related: ["docs/contracts/core.md"]
 ---
 
-# Entities of C-schema v18
+# Entities of C-schema v19
 
-Part of the contract `C-schema v18` from `docs/contracts/core.md`. The section is read by the contract test (`packages/shared/test/contract-doc.ts` → `docEntities`); the version is in the heading `## C-schema vN` in core.md.
+Part of the contract `C-schema v19` from `docs/contracts/core.md`. The section is read by the contract test (`packages/shared/test/contract-doc.ts` → `docEntities`); the version is in the heading `## C-schema vN` in core.md.
 
 ## Entities
 
@@ -319,6 +319,21 @@ Triggers (a server hook in the mutation transaction, after `run`; the author of 
 - `status_changed` — to watchers when `tasks.statusId` changes.
 
 Auto-subscription (the same hook, `taskWatchers` on behalf of the system): the task author, the assigned assignee, the comment author. Push — a pg-boss job per notification after commit.
+
+#### dayPlans
+scope: user · write: self · bootstrap: yes · indexes: taskId
+
+| field | type | note |
+|---|---|---|
+| `id` | uuid | |
+| `userId` | uuid | the owner |
+| `taskId` | uuid | no FK (as `notifications`): a deleted task's rows stay, the client skips them |
+| `date` | date | the day the task is planned for |
+| `rank` | rank | order inside the day |
+| `createdAt` | ts | |
+| `updatedAt` | ts | |
+
+v19 (PLANARAPP-10): «My day». Written only by `day.*` mutators of the owner.
 
 #### savedViews
 scope: space|user · write: member|self · bootstrap: yes · indexes: spaceId
