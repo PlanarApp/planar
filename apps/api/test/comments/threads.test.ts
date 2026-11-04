@@ -7,7 +7,7 @@ afterAll(() => db.$client.end());
 type R = Record<string, unknown> & { id: string };
 
 describe('комментарии: треды, назначение, завершение', () => {
-  it('ответ — только на корень; назначение и завершение — по правилам; корень уносит тред', async () => {
+  it('ответы любой вложенности; назначение и завершение — по правилам; корень уносит тред', async () => {
     const w = await world(db);
     const t = taskArgs(w);
     await w.member.ok('task.create', t);
@@ -25,9 +25,16 @@ describe('комментарии: треды, назначение, заверш
       body: doc('ответ'),
       parentId: root,
     });
-    // reply to a reply, assigning a reply, and assigning a guest — invalid_args
+    // a reply to a reply — any depth (PLANARAPP-45)
+    const deep = uuidv7();
+    await w.member.ok('comment.create', {
+      id: deep,
+      taskId: t.id,
+      body: doc('ответ на ответ'),
+      parentId: reply,
+    });
+    // assigning a reply and assigning a guest — invalid_args
     for (const a of [
-      { parentId: reply },
       { parentId: root, assigneeId: w.member.userId },
       { assigneeId: w.guest.userId },
     ])
@@ -59,5 +66,6 @@ describe('комментарии: треды, назначение, заверш
 
     await w.member.ok('comment.delete', { id: root });
     expect(await get(reply)).toBeUndefined();
+    expect(await get(deep)).toBeUndefined();
   });
 });
