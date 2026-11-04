@@ -10,6 +10,7 @@ import { db, registerMutators, startSync, stopSync } from '../../sync';
 import { useAuth } from '../../auth/useAuth';
 import { mkUser } from '../../auth/__tests__/helpers';
 import { TooltipProvider } from 'reka-ui';
+import { VueDraggable } from 'vue-draggable-plus';
 import { resetBreakpoint } from '../../ui';
 
 const { router } = vi.hoisted(() => ({ router: { current: undefined as never } }));
@@ -311,11 +312,16 @@ describe('PLANARAPP-10 мой день', () => {
     plus('T1')!.click();
     await vi.waitFor(() => expect(planned(w)).toEqual(['T2', 'T1']));
     expect(w.findAll('[data-testid=my-day-add]')).toHaveLength(0);
-    // T1 up
-    await click(w.findAll('[data-testid=my-day-row]')[1]!.find('button[aria-label="Выше"]'));
+    // T1 dragged to the top (jsdom has no real drag: the drop event of VueDraggable)
+    const dnd = w.findComponent(VueDraggable);
+    dnd.vm.$emit('update', { data: (dnd.props('modelValue') as unknown[])[1], newIndex: 0 });
     await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T2']));
     await click(w.findAll('[data-testid=my-day-remove]')[0]!);
     await vi.waitFor(() => expect(planned(w)).toEqual(['T2']));
+    // to tomorrow: leaves today, the plan row gets tomorrow's date
+    await click(w.find('[data-testid=my-day-tomorrow]'));
+    await vi.waitFor(() => expect(planned(w)).toEqual([]));
+    expect((await db.table('dayPlans').toArray()).map((p) => p.date)).toEqual([day(1)]);
   });
 
   it('незавершённое с прошлых дней переносится на сегодня; завершённое — нет', async () => {
