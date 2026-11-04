@@ -123,10 +123,9 @@ export default {
   },
   myDay: {
     title: 'My day',
-    empty: 'Nothing planned for today — add tasks with «+» in the list below or from a task menu.',
+    empty: 'Nothing planned for today — add tasks with «Add to my day» in a task menu.',
     left: '{n} of {total} left',
-    up: 'Up',
-    down: 'Down',
+    tomorrow: 'Move to tomorrow',
     remove: 'Remove from my day',
     add: 'Add to my day',
     carry: 'Unfinished from earlier days: {n}',

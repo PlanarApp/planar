@@ -84,15 +84,12 @@ export async function carryOver(day: MyDay) {
 
 export const unplan = (planId: string) => mutate('day.remove', { id: planId });
 
-/** move a plan one step up (-1) or down (+1) in today's order */
-export function shift(day: MyDay, index: number, dir: -1 | 1) {
-  const list = day.today;
-  const to = index + dir;
-  if (to < 0 || to >= list.length) return;
-  // the new place: between the neighbours on the far side of the swapped item
-  const [a, b] =
-    dir < 0
-      ? [list[to - 1]?.plan.rank ?? null, list[to]!.plan.rank]
-      : [list[to]!.plan.rank, list[to + 1]?.plan.rank ?? null];
-  return mutate('day.move', { id: list[index]!.plan.id, rank: rankBetween(a, b) });
+/** put a plan at position `index` of today's order (drag and drop): rank between the neighbours without it */
+export function moveTo(day: MyDay, planId: string, index: number) {
+  const others = day.today.filter((x) => x.plan.id !== planId);
+  const rank = rankBetween(others[index - 1]?.plan.rank ?? null, others[index]?.plan.rank ?? null);
+  return mutate('day.move', { id: planId, rank });
 }
+
+/** move a plan to tomorrow; it shows up in «My day» when tomorrow comes */
+export const tomorrow = (planId: string) => mutate('day.move', { id: planId, date: localToday(1) });
