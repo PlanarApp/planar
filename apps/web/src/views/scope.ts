@@ -10,6 +10,11 @@ const norm = (name: string) => name.trim().toLowerCase();
 const isSummary = (scope: ViewProps['scope']) =>
   !!scope && (scope.projectIds.length > 1 || scope.spaceIds.length > 1);
 
+/** The project whose dictionaries (statuses, labels) a view reads: its own, or the only project of a scope
+ * ("My work" of a project); a summary — undefined, i.e. all projects of the space. */
+export const dictProjectOf = (scope: ViewProps['scope'], projectId: string) =>
+  !scope ? projectId : isSummary(scope) ? undefined : scope.projectIds[0];
+
 /**
  * Summary of several projects (statuses belong to a project, PJ-2): statuses with the same name — one group
  * (key — the name, case-insensitive); one project — the key stays the status id (undefined).
