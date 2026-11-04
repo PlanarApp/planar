@@ -1,5 +1,5 @@
 import { Clock } from 'lucide-vue-next';
-import { defineWebModule } from '@planar/web/modules';
+import { db, defineWebModule } from '@planar/web/modules';
 
 export const web = defineWebModule({
   id: 'time',
@@ -10,6 +10,7 @@ export const web = defineWebModule({
       label: { ru: 'Время', en: 'Time' },
       icon: Clock,
       order: 50,
+      count: (taskId) => db.table('timeEntries').where('taskId').equals(taskId).count(),
       component: () => import('./TimerPanel.vue'),
     },
   ],

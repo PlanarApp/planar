@@ -1,5 +1,5 @@
 import { defineComponent, h } from 'vue';
-import { defineWebModule } from '@planar/web/modules';
+import { db, defineWebModule } from '@planar/web/modules';
 
 // icon without lucide: branching (merge request)
 const Branch = defineComponent({
@@ -34,6 +34,7 @@ export const web = defineWebModule({
       label: { ru: 'GitLab', en: 'GitLab' },
       icon: Branch,
       order: 60,
+      count: (taskId) => db.table('gitlabMrs').where('taskId').equals(taskId).count(),
       component: () => import('./MrPanel.vue'),
     },
   ],
