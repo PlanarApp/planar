@@ -141,6 +141,7 @@ export default {
     emptyHint: 'Новые уведомления появятся здесь',
     onlyUnread: 'Непрочитанные',
     readAll: 'Прочитать все',
+    read: 'Прочитано',
     delete: 'Удалить',
     snoozeLabel: 'Отложить',
     snooze: { '3h': 'Через 3 часа', tomorrow: 'Завтра в 9:00', week: 'Через неделю' },

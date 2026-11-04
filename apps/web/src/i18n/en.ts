@@ -141,6 +141,7 @@ export default {
     emptyHint: 'New notifications will appear here',
     onlyUnread: 'Unread',
     readAll: 'Mark all read',
+    read: 'Mark read',
     delete: 'Delete',
     snoozeLabel: 'Snooze',
     snooze: { '3h': 'In 3 hours', tomorrow: 'Tomorrow 9:00', week: 'In a week' },
