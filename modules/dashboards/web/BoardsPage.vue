@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Button, Dialog, EmptyState, Input, Select, useRouter } from '@planar/web/modules';
-import { mutate, newId, rankBetween, tr, useBoards, useSpaces } from './data';
+import { locale, mutate, newId, rankBetween, tr, useBoards, useSpaces } from './data';
+import { TEMPLATES } from './templates';
 
 // space — the group's "Reports" tab: only the dashboards of its space
 // open — open a dashboard (in the group's tab — in the same group); default — the module page
@@ -36,10 +37,38 @@ async function create() {
     spaceId,
     ...(personal.value ? { personal: true } : {}),
   });
+  const tpl = TEMPLATES.find((x) => x.id === template.value);
+  for (const w of tpl?.widgets ?? [])
+    await mutate('dashboards.widget.add', {
+      id: newId(),
+      dashboardId: id,
+      kind: w.kind,
+      title: w.title[lang()],
+      config: w.config,
+      x: w.x,
+      y: w.y,
+      w: w.w,
+      h: w.h,
+    });
   open.value = false;
   name.value = '';
+  template.value = BLANK;
   go(id);
 }
+// a template fills the empty name with its own
+const BLANK = 'blank'; // Reka Select does not accept an empty value
+const template = ref(BLANK);
+const lang = () => (locale() === 'en' ? 'en' : 'ru');
+const templateOpts = computed(() => [
+  { value: BLANK, label: tr('blank') },
+  ...TEMPLATES.map((x) => ({ value: x.id, label: x.name[lang()] })),
+]);
+const pickTemplate = (v: string) => {
+  const prev = TEMPLATES.find((x) => x.id === template.value)?.name[lang()];
+  template.value = v;
+  const next = TEMPLATES.find((x) => x.id === v)?.name[lang()];
+  if (next && (!name.value.trim() || name.value === prev)) name.value = next;
+};
 </script>
 
 <template>
@@ -61,6 +90,13 @@ async function create() {
     </div>
     <Dialog v-model:open="open" :title="tr('create')" size="sm">
       <div class="form">
+        <Select
+          :model-value="template"
+          :label="tr('template')"
+          :options="templateOpts"
+          data-test="template"
+          @update:model-value="pickTemplate($event as string)"
+        />
         <Input v-model="name" :label="tr('name')" />
         <Select v-if="!space" v-model="where" :label="tr('space')" :options="whereOpts" />
         <label
