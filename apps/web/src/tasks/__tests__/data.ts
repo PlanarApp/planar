@@ -56,6 +56,7 @@ export async function reset() {
     description: null,
     color: null,
     icon: null,
+    leadId: null,
     rank: 'a0',
     createdBy: ids.ann,
     createdAt: T,

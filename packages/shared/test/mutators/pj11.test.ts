@@ -134,8 +134,8 @@ describe('pj11: projectMember.*', () => {
 });
 
 describe('pj11: версии контракта', () => {
-  it('pj11 C-schema 17, C-mutators 14', () => {
-    expect(CONTRACT_VERSIONS['C-schema']).toBe(17);
-    expect(CONTRACT_VERSIONS['C-mutators']).toBe(14);
+  it('pj11 C-schema ≥ 17, C-mutators ≥ 14', () => {
+    expect(CONTRACT_VERSIONS['C-schema']).toBeGreaterThanOrEqual(17);
+    expect(CONTRACT_VERSIONS['C-mutators']).toBeGreaterThanOrEqual(14);
   });
 });

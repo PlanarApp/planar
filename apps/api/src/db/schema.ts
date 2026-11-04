@@ -61,6 +61,7 @@ export const spaces = pgTable('spaces', {
   description: text(),
   color: text(),
   icon: text(),
+  leadId: uuid().references(() => users.id),
   rank: rank().notNull(),
   createdBy: uuid()
     .notNull()
@@ -103,6 +104,7 @@ export const projects = pgTable(
     color: text(),
     icon: text(),
     leadId: userRef(),
+    defaultAssigneeId: userRef(),
     rank: rank().notNull(),
     archivedAt: ts(),
     modules: text()

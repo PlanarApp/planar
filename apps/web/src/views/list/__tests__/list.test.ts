@@ -340,7 +340,9 @@ describe('list:keys', () => {
 
 describe('list:polish', () => {
   it('polish: list пустой проект — после первой задачи поле остаётся для следующей', async () => {
-    await show({}, '[data-create], button');
+    await show({}, 'button');
+    // while the tasks load, a grid with groups is drawn: its first button is the group chevron
+    await until(() => !w.find('[role=grid]').exists());
     await w.get('button').trigger('click');
     const input = w.get('[data-create] input');
     await input.setValue('first');

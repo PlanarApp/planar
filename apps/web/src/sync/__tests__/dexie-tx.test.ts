@@ -15,6 +15,7 @@ txContractSuite('DexieTx', async () => {
     description: null,
     color: null,
     icon: null,
+    leadId: null,
     rank: 'a0',
     createdBy: uuidv7(),
     createdAt: now,

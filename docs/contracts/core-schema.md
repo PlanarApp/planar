@@ -3,13 +3,13 @@ type: reference
 status: closed
 module: core
 updated: 2026-11-02
-summary: Entities of C-schema v17 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
+summary: Entities of C-schema v18 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
 related: ["docs/contracts/core.md"]
 ---
 
-# Entities of C-schema v17
+# Entities of C-schema v18
 
-Part of the contract `C-schema v17` from `docs/contracts/core.md`. The section is read by the contract test (`packages/shared/test/contract-doc.ts` → `docEntities`); the version is in the heading `## C-schema vN` in core.md.
+Part of the contract `C-schema v18` from `docs/contracts/core.md`. The section is read by the contract test (`packages/shared/test/contract-doc.ts` → `docEntities`); the version is in the heading `## C-schema vN` in core.md.
 
 ## Entities
 
@@ -40,6 +40,7 @@ scope: space · write: admin · bootstrap: yes · indexes: —
 | `description` | text? | |
 | `color` | text? | |
 | `icon` | text? | |
+| `leadId` | uuid? | v18: the space lead (PLANARAPP-3); replica rows before v18 have no such field (treated as null) |
 | `rank` | rank | |
 | `createdBy` | uuid | |
 | `createdAt` | ts | |
@@ -70,6 +71,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId
 | `color` | text? | |
 | `icon` | text? | |
 | `leadId` | uuid? | |
+| `defaultAssigneeId` | uuid? | v18: assigned by `task.create` without assignees (PLANARAPP-4); replica rows before v18 have no such field (treated as null) |
 | `rank` | rank | |
 | `archivedAt` | ts? | |
 | `modules` | text[] | v16: ids of data modules enabled for the project; default `[]`; replica rows before v16 have no such field (treated as `[]`) |
