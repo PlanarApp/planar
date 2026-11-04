@@ -1,0 +1,1 @@
+- `main` — только через MR: никаких `deliver`/`merge --into main` и коммитов в `main`; доставка модуля — `deliver <m> --into mr/<m>`, пуш и MR — по команде пользователя.
