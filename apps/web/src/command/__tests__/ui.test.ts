@@ -143,6 +143,16 @@ describe('cmd:hotkeys', () => {
     ).toBe('/my');
     input.remove();
   });
+  it('PLANARAPP-40 не срабатывает в поле внутри shadow DOM (поиск эмодзи)', async () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    const input = document.createElement('input');
+    host.attachShadow({ mode: 'open' }).append(input);
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true, composed: true }));
+    await flushPromises();
+    expect(ui.cheat).toBe(false);
+    host.remove();
+  });
   it('последовательность g i', async () => {
     key('g');
     key('i');
