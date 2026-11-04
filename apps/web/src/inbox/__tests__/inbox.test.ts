@@ -155,6 +155,23 @@ describe('inbox:list', () => {
     );
     await vi.waitFor(() => expect(route().path).toBe('/t/PL-1'));
   });
+  it('PLANARAPP-35 галка «Прочитано» — без перехода к задаче', async () => {
+    await seed();
+    const id = uuidv7();
+    await db.table('notifications').bulkPut([note(id, t1)]);
+    const w = mount(
+      defineComponent({ render: () => h(TooltipProvider, null, () => h(InboxScreen)) }),
+      { global: g },
+    );
+    const path = route().path;
+    await vi.waitFor(() => expect(w.find('[data-testid=inbox-read]').exists()).toBe(true));
+    await w.find('[data-testid=inbox-read]').trigger('click');
+    await vi.waitFor(async () =>
+      expect((await db.table('notifications').get(id)).readAt).toBeTruthy(),
+    );
+    await vi.waitFor(() => expect(w.find('[data-testid=inbox-read]').exists()).toBe(false));
+    expect(route().path).toBe(path);
+  });
   it('inbox:list уведомления задачи — одна карточка; действия на все', async () => {
     await seed();
     const [a, b, c] = [uuidv7(), uuidv7(), uuidv7()];
