@@ -18,6 +18,7 @@ export const web = defineWebModule({
       id: 'cycle',
       label: { ru: 'Спринт', en: 'Sprint' },
       icon: Zap,
+      property: true,
       component: () => import('./CyclePanel.vue'),
     },
   ],

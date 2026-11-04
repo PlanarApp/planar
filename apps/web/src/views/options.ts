@@ -20,6 +20,8 @@ export interface ViewOptions {
   showSubtasks: boolean;
   /** Board: show empty card fields (click — set a value), as in ClickUp */
   showEmpty?: boolean;
+  /** List: wrap long task names by words instead of cutting them */
+  wrapTitles?: boolean;
   /** Me Mode: only my tasks (assigned, created, watched); null — all */
   me?: MeMode | null;
   fields: TaskField[];
@@ -33,6 +35,7 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   sortDir: 'asc',
   showSubtasks: false,
   showEmpty: false,
+  wrapTitles: false,
   me: null,
   fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
 };

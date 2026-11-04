@@ -299,6 +299,7 @@ describe('views:saved', () => {
       sortDir: 'desc',
       showSubtasks: false,
       showEmpty: false,
+      wrapTitles: false,
       me: null,
       fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
     });
