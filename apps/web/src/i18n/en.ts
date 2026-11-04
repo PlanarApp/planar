@@ -309,6 +309,7 @@ export default {
     sortBy: 'Sort by',
     sortDir: 'Sort direction',
     showEmpty: 'Show empty fields',
+    wrapTitles: 'Wrap task names',
     subtasks: 'Subtasks',
     group: {
       none: 'None',

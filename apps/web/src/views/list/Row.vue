@@ -47,6 +47,8 @@ const props = defineProps<{
   projectName?: string;
   /** column widths, px (auto-size or set manually) */
   widths?: Partial<Record<ListColumn, number>>;
+  /** wrap the name by words (the row grows) instead of cutting it */
+  wrap?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -144,6 +146,7 @@ function save() {
     :data-task="task.key"
     :class="[
       'flex h-full flex-col justify-center gap-1 border-b border-border px-3 text-sm',
+      wrap ? 'py-2' : '',
       selected ? 'bg-accent-subtle' : '',
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
@@ -155,7 +158,7 @@ function save() {
       :cols="cardCols"
       :blocked="blocked"
       hot
-      one-line
+      :one-line="!wrap"
       :members="members"
       :labels="labels"
       :depth="depth"
@@ -173,6 +176,7 @@ function save() {
     :data-task="task.key"
     :class="[
       'group relative flex h-full items-center gap-2 border-b border-border px-3 text-sm',
+      wrap ? 'py-1.5' : '',
       selected ? 'bg-accent-subtle' : 'hover:bg-bg-subtle',
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
@@ -246,7 +250,9 @@ function save() {
           data-testid="row-parent"
           >{{ parentTitle }} ›</span
         >
-        <span class="truncate">{{ task.title }}</span>
+        <span :class="wrap ? 'min-w-0 break-words' : 'truncate'" data-testid="row-title">{{
+          task.title
+        }}</span>
         <span
           v-if="childCount"
           class="inline-flex shrink-0 items-center gap-0.5 rounded border border-border px-1 text-xs text-fg-muted"

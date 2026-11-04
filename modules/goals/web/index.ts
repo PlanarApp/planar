@@ -45,6 +45,7 @@ export const web = defineWebModule({
       id: 'milestone',
       label: { ru: 'Веха', en: 'Milestone' },
       icon: Flag,
+      property: true,
       component: () => import('./MilestonePanel.vue'),
     },
   ],

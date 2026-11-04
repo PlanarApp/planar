@@ -309,6 +309,7 @@ export default {
     sortBy: 'Сортировка',
     sortDir: 'Порядок сортировки',
     showEmpty: 'Показывать пустые поля',
+    wrapTitles: 'Переносить названия',
     subtasks: 'Подзадачи',
     group: {
       none: 'Нет',

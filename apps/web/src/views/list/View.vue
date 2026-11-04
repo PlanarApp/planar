@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkBar from '../BulkBar.vue';
-import { useVirtualizer } from '@tanstack/vue-virtual';
+import { useVirtualizer, type VirtualItem } from '@tanstack/vue-virtual';
 import { ChevronDown, ChevronRight, ListChecks, Plus } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -345,6 +345,17 @@ const virt = useVirtualizer(
     };
   }),
 );
+// wrapped names: a row is as tall as its content, the virtualizer measures it
+const measure = (el: unknown) => virt.value.measureElement(el as Element | null);
+const rowStyle = (v: VirtualItem) => ({
+  transform: `translateY(${v.start}px)`,
+  ...(props.options.wrapTitles ? { minHeight: `${rowH.value}px` } : { height: `${v.size}px` }),
+});
+// sizes measured with wrapping are stale without it (and back)
+watch(
+  () => props.options.wrapTitles,
+  () => virt.value.measure(),
+);
 
 // --- focus and keyboard
 const focusedId = ref<string | null>(null);
@@ -538,8 +549,10 @@ watch(
           <div
             v-for="v in virt.getVirtualItems()"
             :key="String(v.key)"
+            :ref="options.wrapTitles ? measure : undefined"
+            :data-index="v.index"
             class="absolute left-0 top-0 w-full"
-            :style="{ height: `${v.size}px`, transform: `translateY(${v.start}px)` }"
+            :style="rowStyle(v)"
           >
             <template v-for="it in [items[v.index]]" :key="it.id">
               <div
@@ -677,7 +690,8 @@ watch(
                 :labels="labels ?? []"
                 :depth="it.depth"
                 :parent-title="it.parentTitle"
-                :draggable="manual && !isMobile"
+                :draggable="manual && !isMobile && !options.wrapTitles"
+                :wrap="options.wrapTitles"
                 :child-count="it.childCount"
                 :folded="folded.has(it.task.id)"
                 :class="[

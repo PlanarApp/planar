@@ -12,6 +12,7 @@ import { db, registerMutators, startSync, stopSync } from '../../../sync';
 import { AssigneePicker, PriorityPicker, StatusPicker } from '../../../tasks';
 import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
 import { resetBreakpoint } from '../../../ui';
+import { commitImeOnEnter } from '../../../ui/imeEnter';
 import { registerModules } from '../../../modules/registry';
 import type { ViewOptions } from '../..';
 
@@ -120,6 +121,16 @@ describe('list:groups', () => {
     await w.get('[aria-expanded]').trigger('click');
     expect(rows()).toHaveLength(0);
   });
+  it('list:wrapTitles название переносится, перетаскивание выключено (PLANARAPP-25)', async () => {
+    await db.table('tasks').put(task(1));
+    await show({ wrapTitles: true });
+    expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain('break-words');
+    expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(false);
+    w.unmount();
+    await show();
+    expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain('truncate');
+    expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(true);
+  });
   it('list:groups подзадачи скрыты, пока showSubtasks=false', async () => {
     const p = task(1);
     await db.table('tasks').bulkPut([p, task(2, { parentId: p.id })]);
@@ -200,6 +211,24 @@ describe('list:create', () => {
     expect(t.statusId).toBe(ids.done);
     expect((input.element as HTMLInputElement).value).toBe('');
     expect(w.find('[data-create] input').exists()).toBe(true);
+  });
+  // phone keyboard: the last word is still composing on Enter (PLANARAPP-21, -26)
+  it('list:create с мобильной клавиатуры — полное название, поле очищено', async () => {
+    const stop = commitImeOnEnter(document);
+    await db.table('tasks').put(task(1));
+    await show();
+    await w.findAll('[data-create] button')[0].trigger('click');
+    const el = w.get('[data-create] input').element as HTMLInputElement;
+    el.dispatchEvent(new CompositionEvent('compositionstart'));
+    el.value = 'перенос по словам';
+    el.dispatchEvent(new Event('input'));
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await poll(async () =>
+      (await db.table('tasks').toArray()).some((x) => x.title === 'перенос по словам'),
+    );
+    await flushPromises();
+    expect(el.value).toBe('');
+    stop();
   });
   it('list:create в группе исполнителя — исполнитель', async () => {
     const t0 = task(1);
