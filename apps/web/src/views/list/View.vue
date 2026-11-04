@@ -692,6 +692,7 @@ watch(
                 :parent-title="it.parentTitle"
                 :draggable="manual && !isMobile && !options.wrapTitles"
                 :wrap="options.wrapTitles"
+                :show-key="options.showKey"
                 :child-count="it.childCount"
                 :folded="folded.has(it.task.id)"
                 :class="[

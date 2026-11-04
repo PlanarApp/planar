@@ -22,6 +22,8 @@ export interface ViewOptions {
   showEmpty?: boolean;
   /** List: wrap long task names by words instead of cutting them */
   wrapTitles?: boolean;
+  /** List, Board: the task key before the name (the Table has its own "Key" column) */
+  showKey?: boolean;
   /** Me Mode: only my tasks (assigned, created, watched); null — all */
   me?: MeMode | null;
   fields: TaskField[];
@@ -36,6 +38,7 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   showSubtasks: false,
   showEmpty: false,
   wrapTitles: false,
+  showKey: false,
   me: null,
   fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
 };

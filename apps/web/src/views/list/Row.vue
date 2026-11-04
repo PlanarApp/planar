@@ -49,6 +49,8 @@ const props = defineProps<{
   widths?: Partial<Record<ListColumn, number>>;
   /** wrap the name by words (the row grows) instead of cutting it */
   wrap?: boolean;
+  /** the task key before the name */
+  showKey?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -166,6 +168,7 @@ function save() {
       :child-count="childCount"
       :project-name="projectName"
       project-text
+      :show-key="showKey"
     />
   </div>
   <div
@@ -244,6 +247,9 @@ function save() {
       />
       <span v-else class="flex items-center gap-1">
         <BlockedIcon v-if="blocked" />
+        <span v-if="showKey" class="shrink-0 text-xs text-fg-subtle" data-testid="row-key">{{
+          task.key
+        }}</span>
         <span
           v-if="parentTitle"
           class="max-w-48 shrink-0 truncate text-xs text-fg-subtle"

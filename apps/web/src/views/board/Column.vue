@@ -35,6 +35,8 @@ const props = defineProps<{
   projects?: ReadonlyMap<string, string>;
   /** without "+" and quick creation (group summary) */
   noAdd?: boolean;
+  /** the task key before the name */
+  showKey?: boolean;
 }>();
 const emit = defineEmits<{
   toggle: [];
@@ -267,6 +269,7 @@ function submit() {
             :hot="mobile || hotId === x.id"
             :parent-title="x.parentId ? titles?.get(x.parentId) : undefined"
             :project-name="projects?.get(x.projectId)"
+            :show-key="showKey"
           />
         </article>
       </VueDraggable>
