@@ -56,6 +56,15 @@ const setToken = (id: string) =>
     return load();
   });
 const run = (p: Promise<unknown>) => p.catch(() => {});
+// the poll runs as a background job: wait a moment, then reload to show the new lastPolledAt/lastError
+const polling = ref(false);
+const poll = () => {
+  polling.value = true;
+  return call('POST', 'poll')
+    .then(() => new Promise((r) => setTimeout(r, 3000)))
+    .then(load)
+    .finally(() => (polling.value = false));
+};
 
 const project = computed(() => (projects.value ?? []).find((p) => p.id === props.projectId));
 const spaceStatuses = computed(() =>
@@ -165,11 +174,13 @@ onMounted(() => run(load()));
     </form>
     <button
       v-if="conns.length"
-      class="self-start underline"
+      type="button"
+      class="self-start rounded-md border border-border px-3 py-1 disabled:opacity-50"
       data-testid="gl-poll"
-      @click="run(call('POST', 'poll'))"
+      :disabled="polling"
+      @click="run(poll())"
     >
-      {{ tr('poll') }}
+      {{ tr(polling ? 'polling' : 'poll') }}
     </button>
 
     <label class="flex items-center gap-2 text-sm"

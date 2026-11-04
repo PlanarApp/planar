@@ -53,6 +53,7 @@ const dict = {
   add: { ru: 'Подключить', en: 'Connect' },
   remove: { ru: 'Убрать', en: 'Remove' },
   poll: { ru: 'Опросить сейчас', en: 'Poll now' },
+  polling: { ru: 'Опрашиваю…', en: 'Polling…' },
   polled: { ru: 'опрошен', en: 'polled' },
   error: { ru: 'Ошибка', en: 'Error' },
   merge: { ru: 'MR смержен → статус', en: 'MR merged → status' },
