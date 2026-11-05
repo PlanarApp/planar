@@ -476,6 +476,7 @@ async function submitCreate(g?: TaskGroup) {
     statusId,
     title,
     ...(by === 'priority' && k && { priority: Number(k) }),
+    ...(props.scope?.createAssigneeId && { assigneeIds: [props.scope.createAssigneeId] }),
     ...(by === 'assignee' && k && { assigneeIds: [k] }),
     ...(by === 'label' &&
       k && {

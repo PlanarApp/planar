@@ -190,6 +190,7 @@ function add(key: string, title: string) {
     statusId,
     title,
     ...(by === 'priority' && { priority: Number(key) }),
+    ...(props.scope?.createAssigneeId && { assigneeIds: [props.scope.createAssigneeId] }),
     ...(by === 'assignee' && key !== 'none' && { assigneeIds: [key] }),
     ...(by === 'label' &&
       key !== 'none' && {

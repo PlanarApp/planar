@@ -22,6 +22,8 @@ export interface ViewProps {
     spaceIds: string[];
     /** where to create tasks from the summary (chosen in the panel); none — creation is disabled */
     createIn?: { projectId: string; spaceId: string };
+    /** "My work": a created task is assigned to me, not to the project's default assignee */
+    createAssigneeId?: string;
   };
 }
 export { useViewOptions } from './options';
