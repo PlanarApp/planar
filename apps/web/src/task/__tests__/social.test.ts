@@ -134,6 +134,40 @@ describe('PLANARAPP-45 ответы любой вложенности', () => {
   });
 });
 
+describe('PLANARAPP-44 сворачивание комментариев', () => {
+  it('свёрнутый тред — одна строка: назначение со статусом и число ответов; ответы скрыты', async () => {
+    const root = comment({
+      body: doc('КОРЕНЬ'),
+      assigneeId: ids.ann,
+      resolvedAt: at(5),
+      resolvedBy: ids.ann,
+    });
+    const r1 = comment({ parentId: root.id, body: doc('ОТВЕТ'), createdAt: at(2) });
+    const r2 = comment({ parentId: r1.id, body: doc('ГЛУБЖЕ'), createdAt: at(3) });
+    const single = comment({ body: doc('ОДИНОЧНЫЙ'), createdAt: at(4) });
+    await db.table('comments').bulkPut([root, r1, r2, single]);
+    w = await open();
+    await until(() => w.text().includes('ГЛУБЖЕ'));
+    await w.findAll('[data-testid="comment-fold"]')[0]!.trigger('click');
+    await flushPromises();
+    const row = w.get('[data-testid="comment-collapsed"]');
+    expect(row.text()).toContain('КОРЕНЬ');
+    expect(row.get('[data-testid="collapsed-assigned"]').text()).toContain('Завершено');
+    expect(row.text()).toContain('ответов: 2');
+    expect(w.text()).not.toContain('ГЛУБЖЕ');
+    // a single comment collapses too
+    const fold = w
+      .findAll('[data-testid="comment-fold"]')
+      .find((b) => b.element.parentElement!.textContent!.includes('ОДИНОЧНЫЙ'))!;
+    await fold.trigger('click');
+    await flushPromises();
+    expect(w.findAll('[data-testid="comment-collapsed"]')).toHaveLength(2);
+    // a click on the row expands it
+    await row.trigger('click');
+    await until(() => w.text().includes('ГЛУБЖЕ'));
+  });
+});
+
 describe('task:feed', () => {
   it('комментарии и активность сливаются по времени', async () => {
     await db.table('comments').put(comment({ createdAt: at(20), body: doc('СРЕДНИЙ') }));
