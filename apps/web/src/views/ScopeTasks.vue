@@ -102,10 +102,21 @@ const tabs = computed(() =>
   buildViewTabs(
     viewLoaders(),
     extViews.value.filter((e) => e.scope),
-  ).filter((v) => v.ext || ['list', 'board', 'table', 'calendar'].includes(v.key)),
+  ).filter(
+    (v) =>
+      v.ext ||
+      ['list', 'board', 'table', 'calendar'].includes(v.key) ||
+      // "My work" sections are already personal — no «My day» tab there
+      (v.key === 'day' && !props.me),
+  ),
 );
 const seg = computed(() => String((props.me ? route.query.v : route.params.tab) ?? ''));
-const active = computed(() => tabs.value.find((v) => v.key === seg.value) ?? tabs.value[0]);
+const active = computed(
+  () =>
+    tabs.value.find((v) => v.key === seg.value) ??
+    tabs.value.find((v) => v.key === 'list') ??
+    tabs.value[0],
+);
 const nodeSpaceId = () =>
   props.spaceId ??
   (props.projectId
@@ -156,7 +167,9 @@ const selectTab = (k: string) =>
         />
       </div>
       <ProjectFilter v-if="projectOptions.length > 1" v-model="picked" :options="projectOptions" />
+      <!-- «My day» is a plan, not a task view: no filter or display options -->
       <OptionsBar
+        v-if="active?.key !== 'day'"
         v-model:options="options"
         :no-me="!!me"
         v-model:filter="draftFilter"

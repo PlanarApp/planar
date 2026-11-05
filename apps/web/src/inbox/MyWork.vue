@@ -14,8 +14,6 @@ import ScopeTasks from '../views/ScopeTasks.vue';
 import InboxScreen from '../screens/InboxScreen.vue';
 import { useAssignedComments, useMyTasks, useUnreadItems, inGroup } from './queries';
 import { workSub } from './subs';
-import { useMyDay } from './myDay';
-import MyDayPanel from './MyDayPanel.vue';
 
 // group "My work", as in Plane: summary, assigned, comments for me, created, watched, activity
 const props = defineProps<{ scope: GroupScope }>();
@@ -38,8 +36,6 @@ const assigned = useMyTasks(uid, () => 'assigned');
 const created = useMyTasks(uid, () => 'created');
 const watched = useMyTasks(uid, () => 'watched');
 const comments = useAssignedComments(uid);
-// «My day» is personal, not per group: only on the workspace summary
-const day = useMyDay(() => (props.scope.level === 'workspace' ? uid() : undefined));
 const unread = useUnreadItems();
 const mine = computed(() => (comments.value ?? []).filter((c) => inScope(c.projectId)));
 // "Comments for me": open (default), resolved or all
@@ -90,7 +86,6 @@ const textOf = (body: unknown): string => {
   <div class="flex h-full min-h-0 flex-col" data-testid="my-work">
     <div class="min-h-0 flex-1 overflow-y-auto">
       <div v-if="sub === 'summary'" class="flex flex-col gap-4 p-4">
-        <MyDayPanel v-if="scope.level === 'workspace' && day" :day="day" />
         <div class="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
           <button
             v-for="x in tiles"

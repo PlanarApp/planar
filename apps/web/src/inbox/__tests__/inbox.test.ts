@@ -361,6 +361,40 @@ describe('PLANARAPP-10 мой день', () => {
     await vi.waitFor(() => expect(planned(w)).toEqual(['T1']));
     expect(w.find('[data-testid=my-day-carry]').exists()).toBe(false);
   });
+
+  it('PLANARAPP-51: вид «Мой день» узла — только задачи его проектов', async () => {
+    const other = uuidv7();
+    const t1 = await add(1);
+    const t2 = await add(2, { projectId: other });
+    await db.table('dayPlans').bulkPut(
+      [t1, t2].map((taskId, i) => ({
+        id: uuidv7(),
+        userId: me,
+        taskId,
+        date: day(0),
+        rank: `a${i}`,
+        createdAt: ts(1),
+        updatedAt: ts(1),
+      })),
+    );
+    const DayView = (await import('../../views/day/View.vue')).default;
+    const view = (props: Record<string, unknown>) =>
+      mount(
+        defineComponent({
+          // the view does not read options
+          render: () =>
+            h(TooltipProvider, null, () => h(DayView, { options: {} as never, ...props } as never)),
+        }),
+        { global: { plugins: [i18n, router.current] } },
+      );
+    const one = view({ projectId: project });
+    await vi.waitFor(() => expect(planned(one)).toEqual(['T1']));
+    const both = view({
+      projectId: 'summary',
+      scope: { projectIds: [project, other], spaceIds: [] },
+    });
+    await vi.waitFor(() => expect(planned(both)).toEqual(['T1', 'T2']));
+  });
 });
 
 describe('inbox:bell', () => {

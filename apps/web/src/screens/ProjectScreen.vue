@@ -227,7 +227,8 @@ onBeforeUnmount(() => ro?.disconnect());
               :active-id="viewId || undefined"
             />
           </div>
-          <div class="flex shrink-0 items-center gap-1 max-md:gap-0">
+          <!-- «My day» is a plan, not a task view: no filter, options or saving -->
+          <div v-if="active.key !== 'day'" class="flex shrink-0 items-center gap-1 max-md:gap-0">
             <OptionsBar
               v-model:options="options"
               v-model:filter="draftFilter"
