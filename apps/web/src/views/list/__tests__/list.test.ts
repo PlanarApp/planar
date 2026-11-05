@@ -121,11 +121,11 @@ describe('list:groups', () => {
     await w.get('[aria-expanded]').trigger('click');
     expect(rows()).toHaveLength(0);
   });
-  it('list:wrapTitles название переносится, перетаскивание выключено (PLANARAPP-25)', async () => {
+  it('list:wrapTitles название переносится, перетаскивание остаётся (PLANARAPP-25, -62)', async () => {
     await db.table('tasks').put(task(1));
     await show({ wrapTitles: true });
     expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain('break-words');
-    expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(false);
+    expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(true);
     w.unmount();
     await show();
     expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain('truncate');

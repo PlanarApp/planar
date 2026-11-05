@@ -220,8 +220,11 @@ let dragProject = '';
 function dropAt(clientY: number): Drop {
   const el = scroller.value!;
   const y = clientY - el.getBoundingClientRect().top + el.scrollTop;
-  const i = Math.floor(y / rowH.value);
-  const frac = y / rowH.value - i;
+  // by the measured rows: wrapped names make them of different heights (PLANARAPP-62)
+  const v = virt.value.getVirtualItemForOffset(y);
+  if (!v) return { mode: 'slot', slot: 0 };
+  const i = v.index;
+  const frac = (y - v.start) / v.size;
   const it = items.value[i];
   // inside — only tasks of the same project (the group summary mixes projects)
   if (
@@ -234,9 +237,11 @@ function dropAt(clientY: number): Drop {
     return { mode: 'nest', index: i };
   return {
     mode: 'slot',
-    slot: Math.max(0, Math.min(items.value.length, Math.round(y / rowH.value))),
+    slot: Math.max(0, Math.min(items.value.length, frac < 0.5 ? i : i + 1)),
   };
 }
+const slotTop = (slot: number) =>
+  virt.value.measurementsCache[slot]?.start ?? virt.value.getTotalSize();
 // the level of the indicator line — by the next row
 const dropDepth = computed(() => {
   const d = drag.value?.drop;
@@ -346,15 +351,13 @@ const virt = useVirtualizer(
     };
   }),
 );
-// wrapped names: a row grows only when the name needs more lines — its usual height is the minimum
-// (a mobile task card — 64, not the service row height), the virtualizer measures it
+// wrapped names: a task row grows only when the name needs more lines — its usual height is the minimum
+// (a mobile task card — 64), the virtualizer measures it; service rows keep their height (PLANARAPP-62)
 const measure = (el: unknown) => virt.value.measureElement(el as Element | null);
 const rowStyle = (v: VirtualItem) => ({
   transform: `translateY(${v.start}px)`,
-  ...(props.options.wrapTitles
-    ? {
-        minHeight: `${isMobile.value && items.value[v.index]?.kind === 'task' ? 64 : rowH.value}px`,
-      }
+  ...(props.options.wrapTitles && items.value[v.index]?.kind === 'task'
+    ? { minHeight: `${isMobile.value ? 64 : rowH.value}px` }
     : { height: `${v.size}px` }),
 });
 // sizes measured with wrapping are stale without it (and back)
@@ -550,7 +553,7 @@ watch(
           <div
             v-if="drag?.drop.mode === 'slot'"
             class="pointer-events-none absolute right-0 z-10 h-0.5 bg-accent"
-            :style="{ top: `${drag.drop.slot * rowH - 1}px`, left: `${40 + dropDepth * 20}px` }"
+            :style="{ top: `${slotTop(drag.drop.slot) - 1}px`, left: `${40 + dropDepth * 20}px` }"
             data-testid="drop-line"
           />
           <div
@@ -697,7 +700,7 @@ watch(
                 :labels="labels ?? []"
                 :depth="it.depth"
                 :parent-title="it.parentTitle"
-                :draggable="manual && !isMobile && !options.wrapTitles"
+                :draggable="manual && !isMobile"
                 :wrap="options.wrapTitles"
                 :show-key="options.showKey"
                 :child-count="it.childCount"
