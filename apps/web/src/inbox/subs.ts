@@ -1,6 +1,5 @@
-// "My work" sections (?w): «My day» first, default — "Assigned", "Summary" — at the end
+// "My work" sections (?w): default — "Assigned" (its «My day» tab — ?v=day, PLANARAPP-57), "Summary" — at the end
 export const WORK_SUBS = [
-  'day',
   'assigned',
   'comments',
   'mentions',

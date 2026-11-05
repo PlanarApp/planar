@@ -308,8 +308,10 @@ describe('PLANARAPP-10 мой день', () => {
     return id;
   };
   const show = mountMy;
-  const planned = (w: ReturnType<typeof show>) =>
-    w.findAll('[data-testid=my-day-row]').map((r) => r.text().match(/T\d/)![0]);
+  const planned = (w: ReturnType<typeof show>, block = 'today') =>
+    w
+      .findAll(`[data-block=${block}] [data-testid=my-day-row]`)
+      .map((r) => r.text().match(/T\d/)![0]);
   const click = async (el: { trigger: (e: string) => Promise<void> }) => {
     await el.trigger('click');
     await flushPromises();
@@ -338,10 +340,47 @@ describe('PLANARAPP-10 мой день', () => {
     await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T2']));
     await click(w.findAll('[data-testid=my-day-remove]')[0]!);
     await vi.waitFor(() => expect(planned(w)).toEqual(['T2']));
-    // to tomorrow: leaves today, the plan row gets tomorrow's date
+    // to tomorrow: leaves today for the «Tomorrow» block, the plan row gets tomorrow's date
     await click(w.find('[data-testid=my-day-tomorrow]'));
     await vi.waitFor(() => expect(planned(w)).toEqual([]));
+    expect(planned(w, 'tomorrow')).toEqual(['T2']);
     expect((await db.table('dayPlans').toArray()).map((p) => p.date)).toEqual([day(1)]);
+  });
+
+  it('PLANARAPP-58: планер — Сегодня, Завтра, Позже; переносы кнопками и перетаскиванием', async () => {
+    const ids = [await add(1), await add(2), await add(3), await add(4, { statusId: sDone })];
+    const dates = [day(0), day(1), day(5), day(0)];
+    await db.table('dayPlans').bulkPut(
+      ids.map((taskId, i) => ({
+        id: uuidv7(),
+        userId: me,
+        taskId,
+        date: dates[i],
+        rank: `a${i}`,
+        createdAt: ts(1),
+        updatedAt: ts(1),
+      })),
+    );
+    const w = show();
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T4']));
+    expect(planned(w, 'tomorrow')).toEqual(['T2']);
+    expect(planned(w, 'later')).toEqual(['T3']);
+    // planned on any day — no «+» in the list
+    expect(w.findAll('[data-testid=my-day-add]')).toHaveLength(0);
+    // later → today: to the end of today
+    await click(w.find('[data-block=later] [data-testid=my-day-today]'));
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T4', 'T3']));
+    // unfinished of today → tomorrow; the done T4 stays
+    await click(w.find('[data-testid=my-day-postpone]'));
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T4']));
+    expect(planned(w, 'tomorrow')).toEqual(['T2', 'T1', 'T3']);
+    // dropped on «Later» (jsdom: the add event of VueDraggable) — in a week
+    const later = w.findAllComponents(VueDraggable)[2]!;
+    const t2 = (w.findAllComponents(VueDraggable)[1]!.props('modelValue') as unknown[])[0];
+    later.vm.$emit('add', { data: t2, newIndex: 0 });
+    await vi.waitFor(() => expect(planned(w, 'later')).toEqual(['T2']));
+    const plan = await db.table('dayPlans').get((t2 as { plan: { id: string } }).plan.id);
+    expect(plan.date).toBe(day(7));
   });
 
   it('незавершённое с прошлых дней переносится на сегодня; завершённое — нет', async () => {

@@ -14,7 +14,7 @@ for (const [name, path, rowSel, oneSel] of [
   ],
   [
     'Мой день',
-    '/w/work?w=day',
+    '/w/work?w=assigned&v=day',
     (k: string) => `[data-testid=my-row]:has-text("${k}-")`,
     (key: string) => `[data-testid=my-row] >> text="${key}"`,
   ],

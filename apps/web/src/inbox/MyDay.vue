@@ -11,7 +11,7 @@ import { useMyTasks, type MyTask } from './queries';
 import { dayIn, planToday, useMyDay } from './myDay';
 import MyDayPanel from './MyDayPanel.vue';
 
-// «My day» section of a group's «My work» (PLANARAPP-52; formerly the /my screen): today's plan and my tasks
+// «My day» tab of «Assigned» in a group's «My work» (PLANARAPP-52, PLANARAPP-57; formerly the /my screen): the planner and my tasks
 // by due date, only of the group's projects (with nested)
 const props = defineProps<{ projectIds: string[] }>();
 const { t, locale } = useI18n();
