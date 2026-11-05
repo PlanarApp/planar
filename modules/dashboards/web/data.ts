@@ -111,6 +111,8 @@ const dict = {
   personal: { ru: 'Личные', en: 'Personal' },
   none: { ru: 'Дашбордов нет', en: 'No dashboards' },
   create: { ru: 'Новый дашборд', en: 'New dashboard' },
+  template: { ru: 'Шаблон', en: 'Template' },
+  blank: { ru: 'Пустой', en: 'Blank' },
   name: { ru: 'Название', en: 'Name' },
   space: { ru: 'Где', en: 'Where' },
   rename: { ru: 'Переименовать', en: 'Rename' },

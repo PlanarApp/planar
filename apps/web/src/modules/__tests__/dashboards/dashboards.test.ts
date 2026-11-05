@@ -15,6 +15,9 @@ vi.mock('../../../../../../modules/dashboards/web/data', async () => {
 });
 
 import { web } from '../../../../../../modules/dashboards/web';
+import { TEMPLATES } from '../../../../../../modules/dashboards/web/templates';
+import { configs } from '../../../../../../modules/dashboards/shared';
+import { FIELD_OPERATORS, type BaseField, type FilterRule } from '@planar/shared';
 import WidgetBody from '../../../../../../modules/dashboards/web/WidgetBody.vue';
 import {
   boardTasks,
@@ -198,5 +201,40 @@ describe('pt4: dashboards web', () => {
     expect(web.id).toBe('dashboards');
     expect(web.routes?.map((r) => r.path)).toEqual(['/m/dashboards/', '/m/dashboards/:id']);
     expect(web.groupTabs?.[0]).toMatchObject({ id: 'boards', tab: 'reports' });
+  });
+});
+
+describe('PLANARAPP-48 шаблоны дашбордов', () => {
+  it('конфиги проходят схему мутатора, операторы допустимы, виджеты в сетке без наложений', () => {
+    for (const tpl of TEMPLATES) {
+      const cells = new Set<string>();
+      for (const x of tpl.widgets) {
+        expect(configs[x.kind].safeParse(x.config).success, `${tpl.id}: ${x.title.en}`).toBe(true);
+        for (const r of (x.config.filter as { rules: FilterRule[] }).rules)
+          expect(FIELD_OPERATORS[r.field as BaseField]).toContain(r.operator);
+        expect(x.x + x.w).toBeLessThanOrEqual(12);
+        for (let i = x.x; i < x.x + x.w; i++)
+          for (let j = x.y; j < x.y + x.h; j++) {
+            expect(cells.has(`${i}:${j}`), `${tpl.id}: overlap at ${i}:${j}`).toBe(false);
+            cells.add(`${i}:${j}`);
+          }
+      }
+    }
+  });
+  it('«Мои открытые» считает только мои незакрытые', () => {
+    const my = TEMPLATES.find((t) => t.id === 'my')!.widgets[0]!;
+    const st = [
+      { id: 's1', category: 'todo' },
+      { id: 's2', category: 'done' },
+    ] as never;
+    const ts = [
+      task({ assigneeIds: ['me'] }),
+      task({ assigneeIds: ['me'], statusId: 's2' }),
+      task({ assigneeIds: ['u1'] }),
+    ];
+    expect(compute(my as never, ts, { ...ctx, statuses: st })).toEqual({
+      kind: 'number',
+      value: 1,
+    });
   });
 });
