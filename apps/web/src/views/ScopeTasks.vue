@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue'
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Check, RotateCcw } from 'lucide-vue-next';
+import { Check, RotateCcw, Sun } from 'lucide-vue-next';
 import { Button, Tabs } from '../ui';
 import ProjectFilter from './ProjectFilter.vue';
 import { useExtensions } from '../modules/registry';
@@ -106,6 +106,13 @@ const tabs = computed(() =>
 );
 const seg = computed(() => String((props.me ? route.query.v : route.params.tab) ?? ''));
 const active = computed(() => tabs.value.find((v) => v.key === seg.value) ?? tabs.value[0]);
+// «Assigned» has the «My day» planner tab left of the views (PLANARAPP-57); async — inbox imports views
+const MyDay = defineAsyncComponent(() => import('../inbox/MyDay.vue'));
+const day = computed(() => props.me === 'assigned' && seg.value === 'day');
+const tabItems = computed(() => [
+  ...(props.me === 'assigned' ? [{ value: 'day', label: t('myDay.title'), icon: Sun }] : []),
+  ...tabs.value.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon })),
+]);
 const nodeSpaceId = () =>
   props.spaceId ??
   (props.projectId
@@ -149,14 +156,15 @@ const selectTab = (k: string) =>
       <div data-testid="view-tabs" class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
         <Tabs
           v-if="active"
-          :model-value="active.key"
+          :model-value="day ? 'day' : active.key"
           :label="t('views.toolbar')"
-          :items="tabs.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon }))"
+          :items="tabItems"
           @update:model-value="selectTab"
         />
       </div>
       <ProjectFilter v-if="projectOptions.length > 1" v-model="picked" :options="projectOptions" />
       <OptionsBar
+        v-if="!day"
         v-model:options="options"
         :no-me="!!me"
         v-model:filter="draftFilter"
@@ -164,7 +172,7 @@ const selectTab = (k: string) =>
       >
       </OptionsBar>
     </ToolbarRoot>
-    <ViewChangesBar :show="view.hasPersonal.value" :state="[options, draftFilter]">
+    <ViewChangesBar :show="!day && view.hasPersonal.value" :state="[options, draftFilter]">
       <Button
         v-if="canShare"
         size="sm"
@@ -179,7 +187,10 @@ const selectTab = (k: string) =>
         {{ t('views.saved.reset') }}
       </Button>
     </ViewChangesBar>
-    <div class="min-h-0 flex-1">
+    <div v-if="day" class="min-h-0 flex-1 overflow-y-auto">
+      <MyDay :project-ids="scope.projectIds" />
+    </div>
+    <div v-else class="min-h-0 flex-1">
       <component
         :is="viewComponent"
         v-if="spaces && active"

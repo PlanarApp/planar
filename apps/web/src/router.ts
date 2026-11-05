@@ -17,8 +17,8 @@ export const router = createRouter({
     { path: '/profile', name: 'profile', component: screen('Profile') },
     // Inbox moved to Workspace "My work › Activity"
     { path: '/inbox', redirect: { path: '/w/work', query: { w: 'activity' } } },
-    // the former «My tasks» screen is the «My day» section of «My work» (PLANARAPP-52)
-    { path: '/my', redirect: { path: '/w/work', query: { w: 'day' } } },
+    // the former «My tasks» screen is the «My day» tab of «My work» → Assigned (PLANARAPP-52, PLANARAPP-57)
+    { path: '/my', redirect: { path: '/w/work', query: { w: 'assigned', v: 'day' } } },
     { path: '/p/:projectId/v/:viewId', name: 'savedView', component: screen('Group') },
     { path: '/w/:tab?', name: 'workspace', component: screen('Group') },
     { path: '/s/:spaceId/:tab?', name: 'space', component: screen('Group') },

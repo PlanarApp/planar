@@ -122,9 +122,15 @@ export default {
   },
   myDay: {
     title: 'My day',
-    empty: 'Nothing planned for today — add tasks with «Add to my day» in a task menu.',
+    empty:
+      'Nothing planned for today — add tasks with «+» below or «Add to my day» in a task menu.',
+    dropHere: 'Drag a task here',
+    block: { today: 'Today', tomorrow: 'Tomorrow', later: 'Later' },
     left: '{n} of {total} left',
+    postpone: 'Unfinished — to tomorrow',
+    toToday: 'Move to today',
     tomorrow: 'Move to tomorrow',
+    pick: 'Move to a date',
     remove: 'Remove from my day',
     add: 'Add to my day',
     carry: 'Unfinished from earlier days: {n}',
@@ -415,7 +421,6 @@ export default {
   work: {
     title: 'My work',
     summary: 'Summary',
-    day: 'My day',
     assigned: 'Assigned',
     comments: 'Comments for me',
     mentions: 'Mentions',
