@@ -57,6 +57,12 @@ describe('wk12:', () => {
     expect(a.find('[data-testid=nav-wk12m\\:adm]').exists()).toBe(true);
     expect(a.find('[data-testid=mod-page]').exists()).toBe(true);
   });
+  it('PLANARAPP-64: «О программе» — в самом низу, за разделителем после страниц модулей', async () => {
+    await setEnabledModules(['wk12m']);
+    const w = await open('/settings/wk12m:open', 'admin');
+    const ids = w.findAll('nav > *').map((e) => e.attributes('data-testid'));
+    expect(ids.slice(-3)).toEqual(['nav-wk12m:adm', 'nav-sep', 'nav-about']);
+  });
   it('wk12: выключенный модуль — пункта нет', async () => {
     await setEnabledModules([]);
     const w = await open('/settings/spaces', 'admin');

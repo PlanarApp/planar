@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui';
 import { useI18n } from 'vue-i18n';
+import { useAuth } from '../auth/useAuth';
+import { toast } from '../ui/toast';
 import { useBreakpoint } from '../ui/useBreakpoint';
 import Sidebar from './Sidebar.vue';
 import TopBar from './TopBar.vue';
@@ -43,6 +45,20 @@ const onKey = (e: KeyboardEvent) => {
 watch(
   () => route.fullPath,
   () => (mobileNav.value = false),
+);
+// the first sign-in after the cloud created the instance (GET /api/auth/handoff -> ?welcome=1): how to sign in next time
+const { user } = useAuth();
+const router = useRouter();
+watch(
+  () => route.query.welcome,
+  (w) => {
+    if (!w) return;
+    toast(t('auth.welcome', { login: user.value?.login ?? 'admin' }), 30_000);
+    const query = { ...route.query };
+    delete query.welcome;
+    void router.replace({ query });
+  },
+  { immediate: true },
 );
 </script>
 

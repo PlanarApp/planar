@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { Db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { cloudExpired, cloudPublic, type CloudPublic } from '../cloud/cloud.js';
-import { createHandoffSession } from './sessions.js';
+import { createHandoffSession, SETUP_HANDOFF } from './sessions.js';
 import { DB } from '../tokens.js';
 import { AUTH_OPTS, type AuthOpts } from './auth.js';
 import { SYSTEM_LOGIN } from '../users/system.js';
@@ -78,7 +78,7 @@ export class SetupController {
         throw new HttpError(409, 'conflict', 'Настройка уже выполнена');
       }
       const u = await insertUser(tx, { ...v, role: 'owner', passwordHash });
-      if (loginToken) await createHandoffSession(tx, u.id, loginToken);
+      if (loginToken) await createHandoffSession(tx, u.id, loginToken, SETUP_HANDOFF);
       return u;
     });
     await ensureRootSpace(this.db); // owner is a member of "General" (Workspace)

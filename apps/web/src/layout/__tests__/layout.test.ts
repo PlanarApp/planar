@@ -48,6 +48,15 @@ describe('раскладка', () => {
     expect(w.find('[data-testid=bottom-nav]').exists()).toBe(false);
   });
 
+  it('PLANARAPP-64: ?welcome=1 после первого входа — подсказка логина, параметр убирается', async () => {
+    const { toasts } = await import('../../ui/toast');
+    const { router, i18n } = setup(false);
+    await router.push('/w?welcome=1');
+    mount(withTips(AppShell), { global: { plugins: [router, i18n] } });
+    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/w'));
+    expect(toasts.value.at(-1)?.text).toContain('логином admin');
+  });
+
   it('375: нет нижней навигации и боковой панели', async () => {
     const { router, i18n } = setup(true);
     const w = mount(withTips(AppShell), { global: { plugins: [router, i18n] } });
