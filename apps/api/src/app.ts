@@ -26,6 +26,8 @@ export interface AppOptions {
   /** DEMO_MODE and DEMO_RESET_HOURS */
   demo?: boolean;
   demoResetHours?: number;
+  /** CLOUD_URL and CLOUD_TOKEN (docs/contracts/cloud-link.md) */
+  cloud?: { url: string; token: string };
   /** pg-boss and Web Push; in tests without settings the queue is disabled */
   push?: Partial<Omit<PushOpts, 'databaseUrl'>>;
   /** tests only: extra controllers */
@@ -49,6 +51,7 @@ export async function createApp(opts: AppOptions): Promise<NestFastifyApplicatio
         setupToken: opts.setupToken,
         demo: opts.demo ?? false,
         demoResetHours: opts.demoResetHours ?? 24,
+        cloud: opts.cloud,
       },
       { dataDir: opts.dataDir ?? './data', maxUploadMb: opts.maxUploadMb ?? 50 },
       { boss: false, ...opts.push, databaseUrl: opts.databaseUrl },

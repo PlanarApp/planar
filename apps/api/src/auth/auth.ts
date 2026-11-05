@@ -2,6 +2,7 @@ import type { IncomingHttpHeaders } from 'node:http';
 import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
 import { apiTokens, sessions, users } from '../db/schema.js';
+import { cloudExpired } from '../cloud/cloud.js';
 import { HttpError } from './errors.js';
 import {
   SESSION_COOKIE,
@@ -26,6 +27,8 @@ export type AuthOpts = {
   setupToken?: string;
   demo?: boolean;
   demoResetHours?: number;
+  /** CLOUD_URL + CLOUD_TOKEN: the instance is hosted in the cloud (docs/contracts/cloud-link.md) */
+  cloud?: { url: string; token: string };
 };
 
 const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE', 'UPGRADE']);
@@ -91,13 +94,31 @@ async function authenticateBearer(db: Db, secret: string): Promise<AuthCtx | nul
   };
 }
 
-/** Context by Bearer token or planar_sid cookie; null — not authorized. */
+export const isAdminRole = (role: string) => role === 'owner' || role === 'admin';
+
+/**
+ * Context by Bearer token or planar_sid cookie; null — not authorized.
+ * The cloud trial is over (cloud-link) — null for everyone; with expiredAdmins owners and admins
+ * pass (AuthGuard lets them only to the payment routes).
+ */
 export async function authenticateRaw(
   db: Db,
   headers: IncomingHttpHeaders,
   method: string,
-  opts: { publicUrl: string; allowToken?: boolean },
+  opts: { publicUrl: string; allowToken?: boolean; expiredAdmins?: boolean },
   /** session was extended — the caller re-sets the cookie (the token is not part of AuthCtx) */
+  onRenew?: (token: string) => void,
+): Promise<AuthCtx | null> {
+  if (cloudExpired() && !opts.expiredAdmins) return null;
+  const ctx = await authenticateAny(db, headers, method, opts, onRenew);
+  return ctx && cloudExpired() && !isAdminRole(ctx.role) ? null : ctx;
+}
+
+async function authenticateAny(
+  db: Db,
+  headers: IncomingHttpHeaders,
+  method: string,
+  opts: { publicUrl: string; allowToken?: boolean },
   onRenew?: (token: string) => void,
 ): Promise<AuthCtx | null> {
   const bearer = /^Bearer (plnr_\S+)$/i.exec(headers.authorization ?? '');

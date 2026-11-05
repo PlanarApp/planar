@@ -7,9 +7,10 @@ import { moduleMutators, onUnauthorized, registerMutators, startSync, stopSync }
 /** Connects user login with sync: called once from main.ts. */
 export function initSession(router: Router): void {
   registerMutators([...domainMutators, ...moduleMutators]);
-  const { user, expire } = useAuth();
+  const { user, expire, lastSetupInfo } = useAuth();
   watch(
-    () => user.value?.id,
+    // cloud trial is over — the server closes sync too (cloud-link)
+    () => (lastSetupInfo.value?.cloud?.expired ? undefined : user.value?.id),
     (userId) => void (userId ? startSync({ userId }) : stopSync()),
     { immediate: true },
   );

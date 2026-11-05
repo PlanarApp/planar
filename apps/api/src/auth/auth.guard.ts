@@ -4,6 +4,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Db } from '../db/index.js';
 import { DB } from '../tokens.js';
 import { AUTH_OPTS, authenticateRaw, type AuthCtx, type AuthOpts } from './auth.js';
+import { cloudExpired } from '../cloud/cloud.js';
 import { HttpError } from './errors.js';
 import { IS_PUBLIC } from './public.js';
 import { sessionCookie } from './sessions.js';
@@ -28,10 +29,21 @@ export class AuthGuard implements CanActivate {
     const req = context
       .switchToHttp()
       .getRequest<FastifyRequest & { auth?: AuthCtx; planarRenewedToken?: string }>();
-    const ctx = await authenticateRaw(this.db, req.headers, req.method, this.opts, (t) => {
-      req.planarRenewedToken = t;
-    });
+    const ctx = await authenticateRaw(
+      this.db,
+      req.headers,
+      req.method,
+      { ...this.opts, expiredAdmins: true },
+      (t) => {
+        req.planarRenewedToken = t;
+      },
+    );
     if (!ctx) throw new HttpError(401, 'unauthenticated', 'Требуется вход');
+    // cloud trial is over: admins get only the payment screen (cloud-link)
+    if (cloudExpired() && !/^\/api\/(auth|cloud)(\/|$)/.test(req.routeOptions.url ?? ''))
+      throw new HttpError(403, 'forbidden', 'Пробный период закончился', {
+        cloud: 'trial_expired',
+      });
     if (ctx.via === 'token') {
       const route = req.routeOptions.url ?? '';
       if (route === '/api/tokens' || route.startsWith('/api/tokens/'))

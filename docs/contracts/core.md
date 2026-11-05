@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v19
+## C-schema v20
+
+v20 (PLANARAPP-61): `notifications.kind` += `trial_ending` (cloud instance: to owners and admins when ≤ 30 days of the trial are left, `url` — `/settings/cloud`; docs/contracts/cloud-link.md).
 
 v19 (PLANARAPP-10): the personal entity `dayPlans` («My day»: a task planned by the user for a date) — core-schema.md.
 

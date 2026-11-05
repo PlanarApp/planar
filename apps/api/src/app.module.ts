@@ -30,6 +30,8 @@ import { DB } from './tokens.js';
 import { ensureRootSpace } from './spaces/root.js';
 import { CollabService } from './collab/collab.service.js';
 import { COLLAB_OPTS, defaultCollabOpts } from './collab/options.js';
+import { CloudController } from './cloud/cloud.controller.js';
+import { CloudService } from './cloud/cloud.service.js';
 
 @Module({})
 export class AppModule implements OnApplicationShutdown {
@@ -70,6 +72,7 @@ export class AppModule implements OnApplicationShutdown {
         ...syncControllers,
         ...restControllers,
         McpController,
+        CloudController,
         ...extraControllers,
       ],
       providers: [
@@ -81,6 +84,7 @@ export class AppModule implements OnApplicationShutdown {
         { provide: APP_GUARD, useClass: ModuleGuard },
         { provide: COLLAB_OPTS, useValue: defaultCollabOpts() },
         CollabService,
+        CloudService,
         JobsService,
         CoreService,
         { provide: CORE, useExisting: CoreService },
