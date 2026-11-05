@@ -23,6 +23,9 @@ const read = (): number => {
 /** Task side panel width in px (desktop): a personal client setting in localStorage. */
 export const taskPanelWidth = ref(read());
 
+/** Open side panels (TaskModal instances in side mode): the app shell moves its content aside by the width. */
+export const sidePanels = ref(0);
+
 export function setTaskPanelWidth(w: number) {
   taskPanelWidth.value = clampPanelWidth(w);
   try {

@@ -35,4 +35,14 @@ test('PJ-19: боковая панель задачи тянется мышью,
   await page.reload();
   await expect(panel).toBeVisible();
   await expect.poll(width).toBe(700);
+
+  // PLANARAPP-53: the panel moves the view aside — its toolbar ends left of the panel, not under it
+  const right = async () => {
+    const b = (await page.getByTestId('view-tabs').boundingBox())!;
+    return b.x + b.width;
+  };
+  await expect.poll(right).toBeLessThanOrEqual(1600 - 700);
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await expect.poll(right).toBeGreaterThan(1600 - 700);
 });
