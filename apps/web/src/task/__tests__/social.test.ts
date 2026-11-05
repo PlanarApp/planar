@@ -118,6 +118,22 @@ describe('task:comments', () => {
   });
 });
 
+describe('PLANARAPP-45 ответы любой вложенности', () => {
+  it('ответ на ответ — внутри треда ответа; «Ответить» у каждого; открывает поле под ним', async () => {
+    const root = comment({ body: doc('КОРЕНЬ') });
+    const r1 = comment({ parentId: root.id, body: doc('ОТВЕТ'), createdAt: at(2) });
+    const r2 = comment({ parentId: r1.id, body: doc('ГЛУБЖЕ'), createdAt: at(3) });
+    await db.table('comments').bulkPut([root, r1, r2]);
+    w = await open();
+    await until(() => w.text().includes('ГЛУБЖЕ'));
+    const el = (id: string) => w.get(`[data-comment="${id}"]`);
+    expect(el(r1.id).find(`[data-comment="${r2.id}"]`).exists()).toBe(true);
+    expect(el(root.id).findAll('[data-testid="comment-reply"]')).toHaveLength(3);
+    await el(r2.id).get('[data-testid="comment-reply"]').trigger('click');
+    await until(() => el(r2.id).find('[data-testid="reply-box"]').exists());
+  });
+});
+
 describe('task:feed', () => {
   it('комментарии и активность сливаются по времени', async () => {
     await db.table('comments').put(comment({ createdAt: at(20), body: doc('СРЕДНИЙ') }));

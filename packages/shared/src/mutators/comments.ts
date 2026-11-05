@@ -33,8 +33,8 @@ export const commentMutators = [
       const t = await need(tx, 'tasks', a.taskId);
       if (a.parentId) {
         const p = await need(tx, 'comments', a.parentId);
-        if (p.taskId !== t.id || p.parentId)
-          throw bad('ответ — только на корень треда этой задачи');
+        // any depth (PLANARAPP-45): a reply to any comment of this task
+        if (p.taskId !== t.id) throw bad('ответ — только на комментарий этой задачи');
         if (a.assigneeId) throw bad('ответ не назначается');
       }
       if (a.assigneeId) await checkAssignee(tx, t.spaceId, a.assigneeId);
@@ -75,13 +75,12 @@ export const commentMutators = [
     async run(tx, a, ctx) {
       const c = await need(tx, 'comments', a.id);
       if (c.authorId !== ctx.userId) throw new MutatorError('forbidden', 'не автор');
-      // deleting the root takes the thread: replies, their reactions and attachments
-      const replies = c.parentId
-        ? []
-        : (await tx.scan('comments', { index: 'taskId', eq: c.taskId })).filter(
-            (r) => r.parentId === c.id,
-          );
-      for (const x of [...replies, c]) {
+      // deleting a comment takes its whole subtree of replies, their reactions and attachments
+      const all = await tx.scan('comments', { index: 'taskId', eq: c.taskId });
+      const subtree = [c];
+      for (let i = 0; i < subtree.length; i++)
+        subtree.push(...all.filter((r) => r.parentId === subtree[i]!.id));
+      for (const x of subtree.reverse()) {
         await delWhere(tx, 'attachments', 'commentId', x.id);
         await delWhere(tx, 'commentReactions', 'commentId', x.id);
         await tx.del('comments', x.id);

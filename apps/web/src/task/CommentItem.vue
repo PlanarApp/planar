@@ -17,8 +17,10 @@ const props = defineProps<{
   reactions: Row<'commentReactions'>[];
   userId?: string;
   names: Record<string, string>;
-  /** thread root: can reply and assign; a reply — without these actions */
+  /** thread root: can be assigned and resolved */
   root?: boolean;
+  /** "Reply" — on any comment (replies at any depth) */
+  canReply?: boolean;
   /** assigned root: the assignee, author or admin can resolve */
   canResolve?: boolean;
 }>();
@@ -117,7 +119,7 @@ function save() {
         />
         <div class="mt-1 flex flex-wrap gap-1">
           <Button
-            v-if="root"
+            v-if="canReply"
             size="sm"
             variant="ghost"
             :icon="MessageSquareReply"

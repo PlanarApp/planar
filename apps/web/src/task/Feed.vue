@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, provide, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
@@ -8,7 +8,8 @@ import { useAuth } from '../auth/useAuth';
 import { mutate, newId } from '../sync';
 import { useLabels, useMembers, type TaskView } from '../tasks';
 import { Button } from '../ui';
-import CommentItem from './CommentItem.vue';
+import CommentThread from './CommentThread.vue';
+import { FEED } from './thread';
 import Editor from './editor/Editor.vue';
 import { useComments, useReactions, useUsers } from './queries';
 
@@ -101,13 +102,6 @@ const replies = computed(() => {
 const replyTo = ref<string | null>(null);
 const replyDraft = shallowRef<JSONContent | null>(null);
 const setReply = (v: JSONContent | null) => (replyDraft.value = v);
-const replyBox = ref<InstanceType<typeof Editor>[]>();
-async function startReply(id: string) {
-  replyTo.value = id;
-  replyDraft.value = null;
-  await nextTick();
-  replyBox.value?.[0]?.focus?.();
-}
 async function sendReply() {
   const body = replyDraft.value;
   const parentId = replyTo.value;
@@ -124,6 +118,20 @@ const memberList = computed(() => (members.value ?? []).map((m) => ({ id: m.id, 
 const names = computed(() => Object.fromEntries((users.value ?? []).map((u) => [u.id, u.name])));
 const react = (commentId: string, emoji: string) =>
   mutate('reaction.toggle', { id: newId(), commentId, emoji });
+provide(FEED, {
+  replies,
+  replyTo,
+  replyDraft,
+  sendReply,
+  userId: () => user.value?.id,
+  names,
+  members: memberList,
+  reactions,
+  nameOf,
+  avatarOf,
+  canResolve,
+  react,
+});
 
 async function send() {
   const body = draft.value;
@@ -140,76 +148,7 @@ async function send() {
     <!-- лента прокручивается, поле комментария — внизу колонки (в колонке активности карточки) -->
     <div ref="list" class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto" data-testid="feed">
       <template v-for="e in feed" :key="e.id">
-        <CommentItem
-          v-if="'comment' in e"
-          :comment="e.comment"
-          :author="nameOf(e.comment.authorId)"
-          :avatar="avatarOf(e.comment.authorId)"
-          :mine="e.comment.authorId === user?.id"
-          :reactions="(reactions ?? []).filter((r) => r.commentId === e.comment.id)"
-          :user-id="user?.id"
-          :names="names"
-          :members="memberList"
-          root
-          :can-resolve="canResolve(e.comment)"
-          @react="(emoji) => react(e.comment.id, emoji)"
-          @save="(body) => mutate('comment.update', { id: e.comment.id, body })"
-          @remove="mutate('comment.delete', { id: e.comment.id })"
-          @reply="startReply(e.comment.id)"
-          @assign="(u) => mutate('comment.assign', { id: e.comment.id, assigneeId: u })"
-          @resolve="(done) => mutate('comment.resolve', { id: e.comment.id, resolved: done })"
-        >
-          <div
-            v-if="replies.get(e.comment.id)?.length || replyTo === e.comment.id"
-            class="mt-2 flex flex-col gap-2 border-l-2 border-border pl-3"
-            data-testid="thread"
-          >
-            <CommentItem
-              v-for="r in replies.get(e.comment.id) ?? []"
-              :key="r.id"
-              :comment="r"
-              :author="nameOf(r.authorId)"
-              :avatar="avatarOf(r.authorId)"
-              :mine="r.authorId === user?.id"
-              :reactions="(reactions ?? []).filter((x) => x.commentId === r.id)"
-              :user-id="user?.id"
-              :names="names"
-              :members="memberList"
-              @react="(emoji) => react(r.id, emoji)"
-              @save="(body) => mutate('comment.update', { id: r.id, body })"
-              @remove="mutate('comment.delete', { id: r.id })"
-            />
-            <div
-              v-if="replyTo === e.comment.id"
-              class="rounded-md border border-border-strong bg-bg p-2"
-              data-testid="reply-box"
-            >
-              <Editor
-                ref="replyBox"
-                refs
-                :model-value="replyDraft"
-                :members="memberList"
-                :label="t('task.replyPlaceholder')"
-                :placeholder="t('task.replyPlaceholder')"
-                @update:model-value="setReply"
-                @submit="sendReply"
-              />
-              <div class="mt-2 flex justify-end gap-2">
-                <Button size="sm" variant="ghost" @click="replyTo = null">{{
-                  t('task.cancel')
-                }}</Button>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  :disabled="!replyDraft"
-                  data-testid="reply-send"
-                  @click="sendReply"
-                  >{{ t('task.send') }}</Button
-                >
-              </div>
-            </div>
-          </div>
-        </CommentItem>
+        <CommentThread v-if="'comment' in e" :comment="e.comment" />
         <p v-else class="text-xs text-fg-muted" data-testid="activity">{{ describe(e.act) }}</p>
       </template>
     </div>
