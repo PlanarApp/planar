@@ -58,7 +58,7 @@ const typeIn = async (q: string) => {
 describe('cmd:palette', () => {
   it('открывается по Cmd+K и закрывается по повторному', async () => {
     key('k', { metaKey: true });
-    await ready('Мои задачи');
+    await ready('Мой день');
     key('k', { ctrlKey: true });
     await flushPromises();
     expect(ui.palette).toBe(false);
@@ -93,7 +93,7 @@ describe('cmd:palette', () => {
   });
   it('находит задачу по названию', async () => {
     key('/');
-    await ready('Мои задачи');
+    await ready('Мой день');
     await typeIn('найди');
     await ready('PLN-7');
   });
@@ -102,7 +102,7 @@ describe('cmd:palette', () => {
 describe('cmd:live', () => {
   it('polish: cmd:live результаты «Задачи» обновляются при изменении реплики', async () => {
     key('k', { ctrlKey: true });
-    await ready('Мои задачи');
+    await ready('Мой день');
     await typeIn('найди');
     await ready('PLN-7');
     await db.table('tasks').put(task(8, { title: 'Найди ещё' }));
@@ -127,7 +127,7 @@ describe('cmd:hotkeys', () => {
       (router.current as { currentRoute: { value: { path: string } } }).currentRoute.value.path,
     ).toBe('/inbox');
     key('л', { code: 'KeyK', metaKey: true });
-    await ready('Мои задачи');
+    await ready('Мой день');
   });
   it('не срабатывает в поле ввода', async () => {
     const input = document.createElement('input');

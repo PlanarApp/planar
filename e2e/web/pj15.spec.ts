@@ -3,7 +3,7 @@ import { Client, ranks, uuidv7 } from '../lib.js';
 import { fixture, uniq } from './helpers.js';
 
 // PJ-15: on mobile a task from «Моя работа» opens over the view; back keeps scroll and the selected view
-// (the group tab «Моя работа» and the standalone screen /my)
+// (the group tab «Моя работа»: Assigned and My day — the former screen /my)
 for (const [name, path, rowSel, oneSel] of [
   [
     'вкладка группы',
@@ -13,8 +13,8 @@ for (const [name, path, rowSel, oneSel] of [
     (key: string) => `[data-task="${key}"]`,
   ],
   [
-    'экран /my',
-    '/my',
+    'Мой день',
+    '/w/work?w=day',
     (k: string) => `[data-testid=my-row]:has-text("${k}-")`,
     (key: string) => `[data-testid=my-row] >> text="${key}"`,
   ],

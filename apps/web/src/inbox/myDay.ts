@@ -62,6 +62,17 @@ export const useMyDay = (userId: () => string | undefined) =>
     return { today: todays, carry: [...carry.values()], planned };
   });
 
+/** the plan limited to tasks of these projects (a node of «My work» and its nested ones) */
+export function dayIn(day: MyDay, projectIds: string[]): MyDay {
+  const ids = new Set(projectIds);
+  const today = day.today.filter((x) => ids.has(x.task.projectId));
+  return {
+    today,
+    carry: day.carry.filter((x) => ids.has(x.task.projectId)),
+    planned: new Set(today.map((x) => x.task.id)),
+  };
+}
+
 const lastRank = (day: MyDay | undefined) => day?.today.at(-1)?.plan.rank ?? null;
 
 /** add a task to the end of today's plan */

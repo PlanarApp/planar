@@ -24,7 +24,7 @@ watch(taskOpenMode, (v) => {
   }
 });
 
-const GROUP_ROUTES = ['project', 'space', 'workspace', 'my']; // 'my' — screen /my (MyScreen draws TaskModal)
+const GROUP_ROUTES = ['project', 'space', 'workspace'];
 
 export function openTask(key: string): void {
   const r = router.currentRoute.value;

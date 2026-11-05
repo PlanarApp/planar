@@ -8,7 +8,7 @@ import { Button, IconButton } from '../ui';
 import { openTask } from '../views';
 import { carryOver, moveTo, tomorrow, unplan, type MyDay } from './myDay';
 
-// «My day» (PLANARAPP-10): today's plan (the «My day» view of a node, MyScreen); the plan comes from the parent
+// «My day» (PLANARAPP-10): today's plan on top of the «My day» section of «My work» (MyDay); the plan comes from the parent
 const props = defineProps<{ day: MyDay }>();
 const { t, locale } = useI18n();
 const title = computed(() =>

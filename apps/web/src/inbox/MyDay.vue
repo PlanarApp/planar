@@ -5,29 +5,28 @@ import { useI18n } from 'vue-i18n';
 import { StatusIcon } from '../tasks';
 import { EmptyState, IconButton } from '../ui';
 import { openTask } from '../views';
-import TaskModal from '../views/TaskModal.vue';
 import { formatDue } from '../views/list/due';
 import { useAuth } from '../auth/useAuth';
-import { useMyTasks, type MyTask, type WorkKind } from '../inbox/queries';
-import { planToday, useMyDay } from '../inbox/myDay';
-import MyDayPanel from '../inbox/MyDayPanel.vue';
+import { useMyTasks, type MyTask } from './queries';
+import { dayIn, planToday, useMyDay } from './myDay';
+import MyDayPanel from './MyDayPanel.vue';
 
+// «My day» section of a group's «My work» (PLANARAPP-52; formerly the /my screen): today's plan and my tasks
+// by due date, only of the group's projects (with nested)
+const props = defineProps<{ projectIds: string[] }>();
 const { t, locale } = useI18n();
-// projectIds — the group's "My tasks" view (only its projects, without the screen header)
-// kind — the "My work" list (assigned, created, watched); default — assigned
-const props = defineProps<{ projectIds?: string[]; kind?: WorkKind }>();
 const { user } = useAuth();
 const all = useMyTasks(
   () => user.value?.id,
-  () => props.kind ?? 'assigned',
+  () => 'assigned',
 );
 const rows = computed(() => {
-  const ids = props.projectIds && new Set(props.projectIds);
-  return ids ? all.value?.filter((r) => ids.has(r.projectId)) : all.value;
+  const ids = new Set(props.projectIds);
+  return all.value?.filter((r) => ids.has(r.projectId));
 });
 
-// «My day» — only on the «My work» screen, not in a group's «My tasks»
-const day = useMyDay(() => (props.projectIds ? undefined : user.value?.id));
+const day = useMyDay(() => user.value?.id);
+const shown = computed(() => day.value && dayIn(day.value, props.projectIds));
 
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -52,8 +51,7 @@ const groups = computed(() => {
 
 <template>
   <div class="flex flex-col gap-3 p-4">
-    <h1 v-if="!projectIds" class="text-xl font-semibold">{{ t('screens.my') }}</h1>
-    <MyDayPanel v-if="!projectIds && day" :day="day" />
+    <MyDayPanel v-if="shown" :day="shown" />
     <EmptyState
       v-if="rows && !rows.length"
       :icon="ListChecks"
@@ -78,7 +76,7 @@ const groups = computed(() => {
           <span class="hidden text-xs text-fg-subtle md:inline">{{ r.project }}</span>
         </button>
         <IconButton
-          v-if="day && !projectIds && !day.planned.has(r.id)"
+          v-if="day && !day.planned.has(r.id)"
           :icon="Plus"
           :label="t('myDay.add')"
           size="sm"
@@ -87,6 +85,5 @@ const groups = computed(() => {
         />
       </div>
     </section>
-    <TaskModal />
   </div>
 </template>
