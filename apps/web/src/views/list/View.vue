@@ -346,11 +346,16 @@ const virt = useVirtualizer(
     };
   }),
 );
-// wrapped names: a row is as tall as its content, the virtualizer measures it
+// wrapped names: a row grows only when the name needs more lines — its usual height is the minimum
+// (a mobile task card — 64, not the service row height), the virtualizer measures it
 const measure = (el: unknown) => virt.value.measureElement(el as Element | null);
 const rowStyle = (v: VirtualItem) => ({
   transform: `translateY(${v.start}px)`,
-  ...(props.options.wrapTitles ? { minHeight: `${rowH.value}px` } : { height: `${v.size}px` }),
+  ...(props.options.wrapTitles
+    ? {
+        minHeight: `${isMobile.value && items.value[v.index]?.kind === 'task' ? 64 : rowH.value}px`,
+      }
+    : { height: `${v.size}px` }),
 });
 // sizes measured with wrapping are stale without it (and back)
 watch(

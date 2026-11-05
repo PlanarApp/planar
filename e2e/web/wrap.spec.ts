@@ -30,7 +30,12 @@ for (const view of ['list', 'board', 'table'] as const)
     await page.goto(`/p/${f.projectId}/${view}`);
     const title = page.getByText(LONG, { exact: true });
     await expect(title).toBeVisible();
+    const short = page.locator('[role=row][data-task]').filter({ hasText: 'Короткая' });
+    const shortH = async () => Math.round((await short.boundingBox())!.height);
+    const before = view === 'board' ? 0 : await shortH();
     await wrapOn(page);
+    // PLANARAPP-55: a name that fits keeps its row height — only the name wraps
+    if (view !== 'board') await expect.poll(shortH).toBe(before);
     await expectWrapped(page, title);
     if (view !== 'board') {
       // rows do not overlap: the next row starts below the grown one
@@ -47,6 +52,8 @@ for (const view of ['list', 'board', 'table'] as const)
       await page.screenshot({ path: info.outputPath(`list-hover.png`) });
       await page.setViewportSize({ width: 390, height: 844 });
       await page.waitForTimeout(800);
+      // PLANARAPP-55: mobile cards keep their height (not pressed to the group header)
+      await expect.poll(shortH).toBeGreaterThanOrEqual(64);
       await page.screenshot({ path: info.outputPath(`list-mobile.png`) });
     }
   });
