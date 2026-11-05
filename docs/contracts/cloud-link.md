@@ -61,6 +61,9 @@ interface CloudState {
 `POST {CLOUD_URL}/api/link/domain` `{"host": "tasks.example.com" | null}` → `CloudState` после привязки (null — снять). Привязать — только при `status = active` (оплаченная подписка), иначе 409 `paid_only`; снять можно всегда.
 
 `POST {CLOUD_URL}/api/link/export` → `{"path": "/api/export/<token>"}`: архив выгрузки (`instance export` CLI: `db.dump`, `files.tar`, README, `.env.example`) собирается синхронно (до 10 минут), скачивание — `GET {CLOUD_URL}<path>`, ссылка живёт 10 минут.
+
+`POST {CLOUD_URL}/api/link/import` `{"confirm": "<name>"}` → `{"path": "/api/import/<token>"}`: загрузка архива выгрузки, данные инстанса полностью заменяются. Браузер (с адреса инстанса) шлёт архив `POST {CLOUD_URL}<path>`, тело — сам файл без `content-type` (простой CORS-запрос; облако отвечает `Access-Control-Allow-Origin`, если Origin — `https://<domain>` или `https://<customDomain>`); ссылка живёт 10 минут, без cookie и CSRF-проверки. Ответ — `{"ticket": "…"}`, дальше как у reset: `{CLOUD_URL}/reset/<ticket>` (статус несёт `kind: "reset" | "import"`), по готовности — одноразовый вход владельца через `POST /api/cloud/handoff` инстанса (пользователи и пароли — из архива), не вышло — адрес инстанса. Ошибки: `confirm_mismatch`, `bad_state`, `busy`, `link_expired` (404), `too_large` (413, больше 2 ГБ), `invalid_archive` (не tar).
+
 Ошибка — HTTP 4xx/5xx, `statusMessage` = код: `paid_only`, `invalid_host`, `domain_taken`, `dns_missing` (в `data` — IP), `bad_state`, `server_ip_missing`.
 
 `POST {CLOUD_URL}/api/link/reset` `{"confirm": "<name>", "password": "≥ 8"}` → `{"ticket": "…"}`: очистка данных с бэкапом идёт в фоне (она перезапускает сам инстанс). Браузер уходит на `{CLOUD_URL}/reset/<ticket>`: страница опрашивает `GET {CLOUD_URL}/api/reset/<ticket>` → `{state: running|done|failed|unknown, url?}` и при `done` переходит на `url` — одноразовый вход владельцем admin с новым паролем. Ошибки: `confirm_mismatch`, `invalid_input`, `bad_state`, `busy`.
@@ -75,19 +78,11 @@ interface CloudState {
 
 - Состояние хранится в `settings` (id `cloud_state`, value = `CloudState` + `fetchedAt`). Обновление: при старте, раз в час, по `POST /api/cloud/refresh`. Облако недоступно — остаётся последнее сохранённое.
 - `GET /api/setup` (публичный) отдаёт `cloud: {status, trialEndsAt} | null`.
-- `GET /api/cloud` (админ) — сохранённый `CloudState`; `POST /api/cloud/refresh` (админ); `POST /api/cloud/domain` (админ), `POST /api/cloud/export`, `POST /api/cloud/delete` и `POST /api/cloud/reset` (владелец; export отвечает `{url}` скачивания, reset — `{url}` страницы ожидания облака) — проксируют в облако.
+- `GET /api/cloud` (админ) — сохранённый `CloudState`; `POST /api/cloud/refresh` (админ); `POST /api/cloud/domain` (админ), `POST /api/cloud/export`, `POST /api/cloud/import`, `POST /api/cloud/delete` и `POST /api/cloud/reset` (владелец; export отвечает `{url}` скачивания, import — `{url}` загрузки архива, reset — `{url}` страницы ожидания облака) — проксируют в облако.
 - Истёк = `status === 'expired'` или (`status === 'trial'` и `trialEndsAt` ≤ сейчас). Пока истёк:
   - вход и любые запросы обычных пользователей — 401/403 `trial_expired`;
   - владелец/админ входит, но доступны только `/api/auth/*`, `/api/setup`, `/api/cloud*`; веб показывает только экран оплаты;
   - WebSocket синхронизации, MCP, collab — закрыты для всех.
 - До конца триала ≤ 30 дней: бейдж в тулбаре у всех; владельцам и админам — одно уведомление `trial_ending` (повтор — только после новой даты триала).
 
-## План: загрузка данных (не реализовано, 2026-11-05)
-
-Решение пользователя: загружаем ровно архив выгрузки (`<name>-export.tar`: `db.dump`, `files.tar`, `README.txt`, `.env.example`); данные инстанса полностью заменяются.
-
-1. CLI: `instance import <name> <archive> --yes` (`cli/src/commands/data.ts`) — проверить состав tar; `doBackup`; `compose down -v`; DROP и создание БД/роли с тем же паролем (`createDb`); `pg_restore --no-owner` через `docker exec` (как `pg_dump`); `files.tar` — в том `<name>_data` (как в `doBackup`); `up -d`; `/health`. Setup не вызывается: пользователи приходят из дампа, пароли — на момент выгрузки. Ошибка после удаления — код 1 и путь к бэкапу (как `reset`).
-2. Облако: `Orchestrator.importData(name, archive)`; `linkImport` по образцу `linkReset` (захват `reset_started_at`, фон, билет, страница `/reset/<ticket>`); по готовности вход — через `POST https://<host>/api/cloud/handoff` по `cloud_token` (как `instanceLoginUrl`).
-3. Передача: инстанс `POST /api/cloud/import` (владелец, `{confirm}`) → облако `POST /api/link/import` → `{uploadUrl}` = `{CLOUD_URL}/api/import/<подписанный токен, 10 мин>`; браузер шлёт архив прямо в облако (CORS для адреса инстанса, CSRF-исключение `/api/import/`), облако пишет поток в `$PLANAR_CLOUD_HOME/imports/`, лимит 2 ГБ константой, отвечает `{ticket}`; браузер уходит на `/reset/<ticket>`.
-4. Веб: блок «Загрузка данных» в Настройки › Облако (владелец): файл + имя инстанса, предупреждение о полной замене и паролях на момент выгрузки.
-5. Риск: при загрузке в другой инстанс `PLANAR_SECRET_KEY` другой — зашифрованные токены (GitLab) перестанут работать.
+- Загрузка данных (Настройки › Облако, владелец, не при `expired`): файл архива выгрузки + имя инстанса. Из архива другого инстанса не переносятся секреты: `PLANAR_SECRET_KEY` у инстанса свой, зашифрованные им токены (GitLab) придётся ввести заново.

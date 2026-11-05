@@ -84,6 +84,14 @@ export class CloudService implements OnModuleInit, OnModuleDestroy {
     return { url: `${this.opts.cloud!.url}${path}` };
   }
 
+  /** Import replaces all data and restarts this instance, so the browser uploads the archive straight to the cloud (link valid 10 minutes). */
+  async importData(confirm: string): Promise<{ url: string }> {
+    const { path } = z
+      .object({ path: z.string().regex(/^\/api\/import\/[\w.-]+$/) })
+      .parse(await this.call('POST', '/api/link/import', { confirm }));
+    return { url: `${this.opts.cloud!.url}${path}` };
+  }
+
   async deleteInstance(confirm: string): Promise<void> {
     await this.call('POST', '/api/link/delete', { confirm });
   }

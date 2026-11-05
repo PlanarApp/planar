@@ -31,6 +31,10 @@ const cloud = createServer((rq, rs) => {
       rs.writeHead(200, { 'content-type': 'application/json' });
       return void rs.end(JSON.stringify({ path: '/api/export/ab.cd' }));
     }
+    if (rq.url === '/api/link/import') {
+      rs.writeHead(200, { 'content-type': 'application/json' });
+      return void rs.end(JSON.stringify({ path: '/api/import/im.pt' }));
+    }
     if (rq.url === '/api/link/reset') {
       rs.writeHead(200, { 'content-type': 'application/json' });
       return void rs.end(JSON.stringify({ ticket: 'tk-1' }));
@@ -131,6 +135,16 @@ describe('cloud-link', () => {
     expect((await req('POST', '/api/cloud/export', { cookie })).statusCode).toBe(403);
     const r = await req('POST', '/api/cloud/export', { cookie: owner });
     expect(r.json()).toEqual({ url: `${cloudUrl}/api/export/ab.cd` });
+  });
+
+  it('загрузка: только владелец; url — адрес загрузки в облаке', async () => {
+    const admin = await createUser(db, { role: 'admin' });
+    const cookie = await loginCookie(db, admin.id);
+    const body = { confirm: 'acme' };
+    expect((await req('POST', '/api/cloud/import', { cookie, body })).statusCode).toBe(403);
+    const r = await req('POST', '/api/cloud/import', { cookie: owner, body });
+    expect(r.json()).toEqual({ url: `${cloudUrl}/api/import/im.pt` });
+    expect(JSON.parse(seen.at(-1)!.body!)).toEqual(body);
   });
 
   it('очистка: только владелец; url — страница ожидания облака', async () => {

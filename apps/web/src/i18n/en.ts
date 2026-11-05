@@ -298,6 +298,11 @@ export default {
     exportHint:
       "An archive with the instance's database and files, e.g. to move to your own server. Building it may take a few minutes.",
     exportGo: 'Export',
+    import: 'Data import',
+    importHint:
+      'All data will be replaced with the data from the export archive (the cloud keeps a backup of the current data). Users and passwords are as of the export; integrations with stored tokens (GitLab) from another instance must be set up again. Type the name to confirm: {name}.',
+    importFile: 'Export archive',
+    importGo: 'Import',
     reset: 'Wipe and start over',
     resetHint:
       'All data will be deleted (the cloud keeps a backup); the address and subscription stay. You will sign in as admin with the new password. Type the name to confirm: {name}.',
@@ -323,6 +328,9 @@ export default {
       busy: 'An operation is already running',
       paid_only: 'A custom domain requires a paid subscription',
       unavailable: 'The cloud is unavailable, try later',
+      invalid_archive: 'This is not a Planar export archive',
+      too_large: 'The archive is larger than 2 GB',
+      link_expired: 'The upload link has expired, start again',
     },
   },
   pwa: {

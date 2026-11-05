@@ -51,6 +51,14 @@ export class CloudController {
     return this.cloud.exportData();
   }
 
+  /** Data import from an export archive: url — a one-time upload address in the cloud, the browser sends the file there. */
+  @Post('import')
+  @HttpCode(200)
+  async importData(@Req() req: object, @Body() body: unknown) {
+    this.owner(req);
+    return this.cloud.importData(parseBody(deleteBody, body).confirm);
+  }
+
   /** Data wipe: the cloud runs it in the background; url — the cloud's waiting page, then a one-time sign-in. */
   @Post('reset')
   @HttpCode(200)

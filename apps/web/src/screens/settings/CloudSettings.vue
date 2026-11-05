@@ -82,6 +82,27 @@ const reset = () =>
     });
     window.location.assign(r.url);
   });
+// import replaces all data and restarts this instance: the archive goes straight to the cloud, then its waiting page
+const importFile = ref<File | null>(null);
+const importConfirm = ref('');
+const importData = () =>
+  run(async () => {
+    const { url } = await api<{ url: string }>('POST', '/api/cloud/import', {
+      confirm: importConfirm.value,
+    });
+    // a Blob without type sends no content-type: a simple CORS request, no preflight
+    const r = await fetch(url, { method: 'POST', body: new Blob([importFile.value!]) }).catch(
+      (e: Error) => {
+        throw new ApiError(0, 'unavailable', e.message);
+      },
+    );
+    const j = (await r.json().catch(() => ({}))) as { ticket?: string; statusMessage?: string };
+    if (!r.ok || !j.ticket) {
+      const code = j.statusMessage || 'unavailable';
+      throw new ApiError(r.status, code, code, { cloud: code });
+    }
+    window.location.assign(new URL(`/reset/${j.ticket}`, url).href);
+  });
 // the archive is built by the cloud; the download goes straight from the cloud (link valid 10 minutes)
 const exportData = () =>
   run(async () => {
@@ -200,6 +221,28 @@ async function remove() {
             t('cloud.exportGo')
           }}</Button>
         </div>
+      </section>
+
+      <section v-if="user?.role === 'owner' && s.status !== 'expired'" class="flex flex-col gap-2">
+        <h3 class="font-medium text-danger">{{ t('cloud.import') }}</h3>
+        <p class="text-sm text-fg-muted">{{ t('cloud.importHint', { name }) }}</p>
+        <form class="flex flex-wrap items-end gap-2" @submit.prevent="importData">
+          <input
+            type="file"
+            accept=".tar"
+            :aria-label="t('cloud.importFile')"
+            class="text-sm"
+            @change="importFile = ($event.target as HTMLInputElement).files?.[0] ?? null"
+          />
+          <Input v-model="importConfirm" :label="t('cloud.deleteConfirm')" :placeholder="name" />
+          <Button
+            type="submit"
+            variant="danger"
+            :loading="busy"
+            :disabled="importConfirm !== name || !importFile"
+            >{{ t('cloud.importGo') }}</Button
+          >
+        </form>
       </section>
 
       <section v-if="user?.role === 'owner' && s.status !== 'expired'" class="flex flex-col gap-2">
