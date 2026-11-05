@@ -25,9 +25,12 @@ const SECTIONS = {
   users: { c: UsersSettings, admin: true, level: 'workspace' },
   // without projectId — the shared modules of the instance
   instanceModules: { c: lazy('Modules'), admin: true, level: 'workspace' },
+  // cloud-link: only on an instance hosted in the cloud
+  cloud: { c: lazy('Cloud'), admin: true, cloud: true, level: 'workspace' },
+  about: { c: lazy('About'), level: 'workspace' },
 } as const satisfies Record<
   string,
-  { level: Level | 'any'; c: unknown; space?: true; admin?: true }
+  { level: Level | 'any'; c: unknown; space?: true; admin?: true; cloud?: true }
 >;
 type Id = keyof typeof SECTIONS;
 
@@ -39,13 +42,14 @@ const atLevel = (l: Level | 'any' | undefined) =>
 
 const { t, te, locale } = useI18n();
 const route = useRoute();
-const { isAdmin } = useAuth();
+const { isAdmin, lastSetupInfo } = useAuth();
 const { isMobile } = useBreakpoint();
 const router = useRouter();
 const builtin = computed(() =>
   (Object.keys(SECTIONS) as Id[]).filter(
     (s) =>
       (isAdmin.value || !('admin' in SECTIONS[s])) &&
+      (!!lastSetupInfo.value?.cloud || !('cloud' in SECTIONS[s])) &&
       (props.scope ? atLevel(SECTIONS[s].level) : SECTIONS[s].level !== 'project'),
   ),
 );

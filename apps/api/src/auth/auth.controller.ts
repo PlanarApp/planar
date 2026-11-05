@@ -1,12 +1,13 @@
-import { Body, Controller, Get, HttpCode, Inject, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Post, Query, Req, Res } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { cloudExpired } from '../cloud/cloud.js';
 import type { Db } from '../db/index.js';
-import { users } from '../db/schema.js';
+import { sessions, users } from '../db/schema.js';
 import { DB } from '../tokens.js';
 import { findUserByLogin } from '../users/users.repo.js';
-import { AUTH_OPTS, getAuth, readCookie, type AuthOpts } from './auth.js';
+import { AUTH_OPTS, getAuth, isAdminRole, readCookie, type AuthOpts } from './auth.js';
 import { HttpError } from './errors.js';
 import { assertNotLimited, recordFailure, resetAttempts } from './login-limit.js';
 import { verifyDummy, verifyPassword } from './password.js';
@@ -16,6 +17,7 @@ import {
   clearSessionCookie,
   createSession,
   deleteSession,
+  hashToken,
   sessionCookie,
 } from './sessions.js';
 import { parseBody } from './validate.js';
@@ -64,7 +66,34 @@ export class AuthController {
       throw new HttpError(401, 'invalid_credentials', 'Неверный логин или пароль');
     }
     await resetAttempts(this.db, key);
+    if (cloudExpired() && !isAdminRole(user.role))
+      throw new HttpError(403, 'forbidden', 'Пробный период закончился', {
+        cloud: 'trial_expired',
+      });
     return this.startSession(req, res, user);
+  }
+
+  /** cloud-link: one-time sign-in after the instance is created in the cloud — the setup loginToken session is exchanged for a normal one. */
+  @Public()
+  @Get('handoff')
+  async handoff(
+    @Req() req: FastifyRequest,
+    @Res() res: FastifyReply,
+    @Query('token') token?: string,
+  ) {
+    const [s] = token
+      ? await this.db
+          .delete(sessions)
+          .where(eq(sessions.id, hashToken(token)))
+          .returning()
+      : [];
+    let to = '/login';
+    if (s && Date.parse(s.expiresAt) > Date.now()) {
+      const fresh = await createSession(this.db, s.userId, req.headers['user-agent']);
+      void res.header('set-cookie', sessionCookie(fresh, { secure: this.opts.cookieSecure }));
+      to = '/';
+    }
+    return res.status(302).header('location', to).send();
   }
 
   private async startSession(

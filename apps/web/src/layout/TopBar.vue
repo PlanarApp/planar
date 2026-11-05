@@ -20,6 +20,7 @@ import { useExtensions } from '../modules/registry';
 import FavStar from '../ui/FavStar.vue';
 import { groupUrl } from './groups';
 import SyncStatus from './SyncStatus.vue';
+import TrialBadge from './TrialBadge.vue';
 import { useProject, useSpaces, useWorkspace } from '../tasks/queries';
 import { setSidebarMode, sidebarMode } from './sidebarWidth';
 import { favorites, mobileNav, useUserMenu, type FavRef } from './nav';
@@ -134,6 +135,7 @@ const fav = computed<FavRef | null>(() =>
       </RouterLink>
     </span>
     <span v-if="notice" role="alert" class="text-sm text-fg-muted">{{ notice }}</span>
+    <TrialBadge />
     <SyncStatus />
     <component
       :is="topbarComp(i.key, i.component)"

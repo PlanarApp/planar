@@ -7,7 +7,6 @@ import { uploadFile } from '../api/files';
 import { useAuth, type User } from '../auth/useAuth';
 import { errText } from '../auth/errText';
 import PushToggle from '../inbox/PushToggle.vue';
-import AppSection from '../pwa/AppSection.vue';
 import TokensSection from './profile/TokensSection.vue';
 import { setWeekStart } from '../i18n/week';
 import { setLocale, type Locale } from '../i18n';
@@ -176,7 +175,6 @@ const themes = () => [
       <h2 class="text-lg font-semibold">{{ t('profile.notifications') }}</h2>
       <PushToggle />
     </section>
-    <AppSection />
     <TokensSection />
     <p v-if="msg" role="status" class="text-sm text-fg-muted">{{ msg }}</p>
   </div>

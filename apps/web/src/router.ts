@@ -14,6 +14,8 @@ export const router = createRouter({
     { path: '/', redirect: '/w' },
     { path: '/setup', name: 'setup', component: screen('Setup'), meta: { layout: 'none' } },
     { path: '/login', name: 'login', component: screen('Login'), meta: { layout: 'none' } },
+    // cloud trial is over: the admin sees only payment (cloud-link)
+    { path: '/paywall', name: 'paywall', component: screen('Paywall'), meta: { layout: 'none' } },
     { path: '/profile', name: 'profile', component: screen('Profile') },
     // Inbox moved to Workspace "My work › Activity"
     { path: '/inbox', redirect: { path: '/w/work', query: { w: 'activity' } } },
@@ -41,7 +43,7 @@ if (import.meta.env.DEV)
   });
 
 router.beforeEach(async (to) => {
-  const { user, ready, refresh, setupNeeded } = useAuth();
+  const { user, ready, refresh, setupNeeded, setupInfo, lastSetupInfo } = useAuth();
   if (!ready.value) await refresh();
   const bare = to.meta.layout === 'none';
   if (!user.value) {
@@ -49,6 +51,9 @@ router.beforeEach(async (to) => {
     if (bare) return true;
     return (await setupNeeded()) ? '/setup' : { path: '/login', query: { redirect: to.fullPath } };
   }
+  if (!lastSetupInfo.value) await setupInfo().catch(() => null);
+  const expired = !!lastSetupInfo.value?.cloud?.expired;
+  if (expired !== (to.name === 'paywall')) return expired ? '/paywall' : '/';
   if (to.name === 'login' || to.name === 'setup') return '/';
   // former group tab "Inbox" — "My work › Activity"
   const seg = String((to.name === 'project' ? to.params.view : to.params.tab) ?? '');

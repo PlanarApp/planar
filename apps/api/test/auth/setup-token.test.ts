@@ -20,6 +20,7 @@ describe('setup', () => {
       tokenRequired: true,
       demo: true,
       demoResetHours: 6,
+      cloud: null,
     });
     expect((await post()).statusCode).toBe(403);
     expect((await post('wrong-token-xx')).statusCode).toBe(403);

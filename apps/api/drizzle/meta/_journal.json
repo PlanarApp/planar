@@ -260,6 +260,13 @@
       "when": 1793818012423,
       "tag": "0036_day_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793900051383,
+      "tag": "0037_notifications_trial_ending",
+      "breakpoints": true
     }
   ]
 }

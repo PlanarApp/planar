@@ -30,6 +30,14 @@ try {
   console.error((e as Error).message);
   process.exit(1);
 }
+// cloud-link: both or neither (CLOUD_URL without the token cannot reach the cloud)
+const cloudUrl = process.env.CLOUD_URL?.trim().replace(/\/+$/, '');
+const cloudToken = process.env.CLOUD_TOKEN?.trim();
+if (!!cloudUrl !== !!cloudToken) {
+  console.error('CLOUD_URL и CLOUD_TOKEN задаются вместе');
+  process.exit(1);
+}
+const cloud = cloudUrl && cloudToken ? { url: cloudUrl, token: cloudToken } : undefined;
 const migrationDb = createDb(databaseUrl);
 await migrate(migrationDb).finally(() => migrationDb.$client.end());
 const app = await createApp({
@@ -43,6 +51,7 @@ const app = await createApp({
   dbPoolMax,
   demo,
   demoResetHours,
+  cloud,
   push: {
     boss: true,
     vapid: {

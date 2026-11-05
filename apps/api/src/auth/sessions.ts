@@ -18,6 +18,21 @@ export async function createSession(db: Db, userId: string, userAgent?: string):
   return token;
 }
 
+/** cloud-link: one-time sign-in token (GET /api/auth/handoff exchanges it for a normal session). */
+export const HANDOFF_MS = 10 * 60_000;
+export async function createHandoffSession(
+  db: Pick<Db, 'insert'>,
+  userId: string,
+  token = randomBytes(32).toString('base64url'),
+): Promise<string> {
+  await db.insert(sessions).values({
+    id: hashToken(token),
+    userId,
+    expiresAt: new Date(Date.now() + HANDOFF_MS).toISOString(),
+  });
+  return token;
+}
+
 export async function deleteSession(db: Db, token: string): Promise<void> {
   await db.delete(sessions).where(eq(sessions.id, hashToken(token)));
 }

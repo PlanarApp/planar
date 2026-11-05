@@ -15,7 +15,7 @@ const status = computed(() =>
   t(`pwa.state.${pwa.needRefresh.value ? 'available' : pwa.updateState.value}`),
 );
 
-// palette commands lead here via /profile?pwa=check|install
+// palette commands lead here via /settings/about?pwa=check|install
 onMounted(() => {
   if (route.query.pwa === 'check') void pwa.checkForUpdates();
   else if (route.query.pwa === 'install') dialog.value = true;

@@ -11,8 +11,12 @@ const route = useRoute();
 const router = useRouter();
 const { login, demoLogin, setupInfo } = useAuth();
 const demo = ref(false);
+// cloud-link: the trial is over — only admins can sign in (to pay)
+const expired = ref(false);
 onMounted(async () => {
-  demo.value = (await setupInfo().catch(() => null))?.demo ?? false;
+  const info = await setupInfo().catch(() => null);
+  demo.value = info?.demo ?? false;
+  expired.value = !!info?.cloud?.expired;
 });
 const loginV = ref('');
 const password = ref('');
@@ -49,6 +53,14 @@ async function submit(demoMode = false) {
         <p class="text-xl font-semibold">{{ t('app.name') }}</p>
         <h1 class="text-sm text-fg-muted">{{ t('screens.login') }}</h1>
       </header>
+      <p
+        v-if="expired"
+        role="alert"
+        class="rounded-md bg-danger-subtle p-3 text-sm text-danger"
+        data-testid="trial-expired"
+      >
+        {{ t('cloud.loginExpired') }}
+      </p>
       <form class="flex flex-col gap-3" @submit.prevent="submit()">
         <Input v-model="loginV" :label="t('auth.login')" />
         <Input v-model="password" type="password" :label="t('auth.password')" :error="error" />

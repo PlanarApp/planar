@@ -233,6 +233,7 @@ export const entitySchemas = {
       'chat_reply',
       'comment_assigned',
       'doc_mention',
+      'trial_ending',
     ]),
     taskId: uuid.nullable(),
     url: z.string().nullable(),

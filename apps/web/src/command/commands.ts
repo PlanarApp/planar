@@ -162,7 +162,7 @@ export async function buildCommands(o: {
       id,
       label: t(`pwa.${k}`),
       group: gApp,
-      run: () => void router.push({ name: 'profile', query: { pwa: id.slice(4) } }),
+      run: () => void router.push({ path: '/settings/about', query: { pwa: id.slice(4) } }),
     });
 
   const ctx: CommandCtx = { route, selectedTaskIds: o.selected, projectId };

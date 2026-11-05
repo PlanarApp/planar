@@ -98,9 +98,15 @@ export type SetupInfo = {
   tokenRequired: boolean;
   demo: boolean;
   demoResetHours: number;
+  /** cloud-link: null — a self-hosted instance */
+  cloud?: {
+    status: 'trial' | 'active' | 'expired' | null;
+    trialEndsAt: string | null;
+    expired: boolean;
+  } | null;
 };
 
-/** last GET /api/setup answer (the router guard fetches it before the setup screen) */
+/** last GET /api/setup answer (the router guard fetches it before the setup screen and once per session) */
 const lastSetupInfo = ref<SetupInfo | null>(null);
 
 async function setupInfo(): Promise<SetupInfo> {

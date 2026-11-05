@@ -463,6 +463,7 @@ export const notifications = pgTable(
         'chat_reply',
         'comment_assigned',
         'doc_mention',
+        'trial_ending',
       ]),
     ),
   ],
