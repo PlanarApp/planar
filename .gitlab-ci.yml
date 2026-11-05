@@ -2,6 +2,15 @@ image: node:24
 
 stages: [lint, test, build]
 
+# a new commit on the branch (e.g. several MRs merged one after another into main) cancels the older
+# pipeline: only the newest commit builds and pushes `edge`; release tags are a separate ref
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+
+default:
+  interruptible: true
+
 .pnpm:
   cache:
     key:
