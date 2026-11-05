@@ -15,6 +15,7 @@ import {
   resolveDate,
   textToDoc,
   uuidv7,
+  widenByName,
   type AfterMutationCtx,
   type BackendModuleManifest,
   type Filter,
@@ -337,8 +338,18 @@ async function run(d: RunData, api: JobApi) {
     userId: api.systemUserId,
     today: await today(api),
   };
-  if (!matchFilter(task, rule.conditions as Filter, ctx))
-    return void (await record(api, d, 'skipped'));
+  // the condition may hold same-named statuses/labels of another project of the space (picker merges them)
+  const named = (table: string) =>
+    rows(
+      api,
+      sql`select id, name from ${sql.raw(table)} where space_id = ${task.spaceId}`,
+    ) as Promise<{ id: string; name: string }[]>;
+  const conditions = widenByName(
+    rule.conditions as Filter,
+    await named('statuses'),
+    await named('labels'),
+  );
+  if (!matchFilter(task, conditions, ctx)) return void (await record(api, d, 'skipped'));
   try {
     const muts = await toMutations(api, rule, task, statuses);
     const hooks = (rule.actions as Action[]).flatMap((a) =>

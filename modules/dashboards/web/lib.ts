@@ -1,4 +1,10 @@
-import { matchFilter, type Filter, type FilterCtx, type FilterTask } from '@planar/shared';
+import {
+  matchFilter,
+  widenByName,
+  type Filter,
+  type FilterCtx,
+  type FilterTask,
+} from '@planar/shared';
 
 export type Task = FilterTask;
 export interface Box {
@@ -88,11 +94,11 @@ export type Computed =
   | { kind: 'line'; points: { start: string; n: number }[] }
   | { kind: 'list'; tasks: Task[] };
 
-/** Widget value: filter (matchFilter, F-filter v2), then count by kind. */
+/** Widget value: filter (matchFilter, F-filter v2; status/label rules by name), then count by kind. */
 export function compute(
   w: WidgetLike,
   tasks: Task[],
-  ctx: FilterCtx,
+  ctx: FilterCtx & { labels?: { id: string; name: string }[] },
   now = new Date(),
   weekStart: 0 | 1 = 1,
 ): Computed {
@@ -104,7 +110,8 @@ export function compute(
     sort?: string;
     limit?: number;
   };
-  const rows = tasks.filter((t) => matchFilter(t, c.filter, ctx));
+  const filter = c.filter && widenByName(c.filter, ctx.statuses, ctx.labels ?? []);
+  const rows = tasks.filter((t) => matchFilter(t, filter, ctx));
   if (w.kind === 'number') return { kind: 'number', value: rows.length };
   if (w.kind === 'bars') return { kind: 'bars', bars: countBy(rows, c.groupBy ?? 'status') };
   if (w.kind === 'line')

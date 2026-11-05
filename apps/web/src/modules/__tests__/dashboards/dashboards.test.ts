@@ -61,6 +61,29 @@ describe('pt4: dashboards web', () => {
     expect(compute(w('number'), ts, ctx)).toEqual({ kind: 'number', value: 3 });
   });
 
+  it('PLANARAPP-50: правило статуса/метки ловит одноимённые статусы и метки других проектов', () => {
+    const named = (id: string, name: string, projectId: string) => ({ id, name, projectId });
+    const c = {
+      ...ctx,
+      statuses: [named('s2', 'Done', 'p1'), named('s9', 'done ', 'p2')] as never,
+      labels: [named('l1', 'bug', 'p1'), named('l9', 'Bug', 'p2')],
+    };
+    const ts = [task({ statusId: 's2', labelIds: ['l1'] }), task({ projectId: 'p2' })];
+    const rule = (field: string, value: string[]) => ({
+      op: 'and',
+      rules: [{ field, operator: 'in', value }],
+    });
+    // the ids picked are those of p2; the p1 task still counts
+    expect(compute(w('number', { filter: rule('status', ['s9']) }), ts, c)).toEqual({
+      kind: 'number',
+      value: 1,
+    });
+    expect(compute(w('number', { filter: rule('label', ['l9']) }), ts, c)).toEqual({
+      kind: 'number',
+      value: 1,
+    });
+  });
+
   it('pt4: bars по status', () => {
     const ts = [task({}), task({}), task({ statusId: 's2' })];
     expect(compute(w('bars', { groupBy: 'status' }), ts, ctx)).toEqual({
