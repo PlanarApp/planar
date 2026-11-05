@@ -14,6 +14,7 @@ import { verifyDummy, verifyPassword } from './password.js';
 import { Public } from './public.js';
 import {
   SESSION_COOKIE,
+  SETUP_HANDOFF,
   clearSessionCookie,
   createSession,
   deleteSession,
@@ -91,7 +92,8 @@ export class AuthController {
     if (s && Date.parse(s.expiresAt) > Date.now()) {
       const fresh = await createSession(this.db, s.userId, req.headers['user-agent']);
       void res.header('set-cookie', sessionCookie(fresh, { secure: this.opts.cookieSecure }));
-      to = '/';
+      // the first sign-in after setup: the web shows which login and password to use next time
+      to = s.userAgent === SETUP_HANDOFF ? '/w?welcome=1' : '/';
     }
     return res.status(302).header('location', to).send();
   }

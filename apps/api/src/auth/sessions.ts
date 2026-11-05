@@ -20,15 +20,19 @@ export async function createSession(db: Db, userId: string, userAgent?: string):
 
 /** cloud-link: one-time sign-in token (GET /api/auth/handoff exchanges it for a normal session). */
 export const HANDOFF_MS = 10 * 60_000;
+/** userAgent of the setup handoff session (never a browser's): after the exchange — the sign-in hint */
+export const SETUP_HANDOFF = 'planar:setup';
 export async function createHandoffSession(
   db: Pick<Db, 'insert'>,
   userId: string,
   token = randomBytes(32).toString('base64url'),
+  userAgent?: string,
 ): Promise<string> {
   await db.insert(sessions).values({
     id: hashToken(token),
     userId,
     expiresAt: new Date(Date.now() + HANDOFF_MS).toISOString(),
+    userAgent,
   });
   return token;
 }

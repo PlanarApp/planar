@@ -675,6 +675,8 @@ export default {
     copyConfig: 'Copy config',
   },
   auth: {
+    welcome:
+      'Welcome! Next time sign in with the login {login} and the password you set when creating the instance.',
     login: 'Login',
     name: 'Name',
     email: 'Email',

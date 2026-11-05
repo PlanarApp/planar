@@ -72,13 +72,18 @@ const pages = computed(() =>
 );
 const label = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
-const items = computed(() => [
-  ...builtin.value.map((s) => ({
-    key: s as string,
-    label: t(s === 'general' ? 'settings.general.title' : `settings.${s}`),
-  })),
+// about the instance, not its content — at the very bottom, after module pages, behind a divider
+const TAIL: Id[] = ['cloud', 'about'];
+const item = (s: Id) => ({
+  key: s as string,
+  label: t(s === 'general' ? 'settings.general.title' : `settings.${s}`),
+});
+const head = computed(() => [
+  ...builtin.value.filter((s) => !TAIL.includes(s)).map(item),
   ...pages.value.map((p) => ({ key: p.key, label: label(p.label) })),
 ]);
+const tail = computed(() => builtin.value.filter((s) => TAIL.includes(s)).map(item));
+const items = computed(() => [...head.value, ...tail.value]);
 const param = computed(
   () => (props.scope ? route.query.s : route.params.section) as string | undefined,
 );
@@ -133,7 +138,17 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
     <nav v-else class="flex flex-col gap-1 md:w-48">
       <h1 v-if="!scope" class="mb-2 text-xl font-semibold">{{ t('screens.settings') }}</h1>
       <RouterLink
-        v-for="s in items"
+        v-for="s in head"
+        :key="s.key"
+        :to="to(s.key)"
+        :data-testid="`nav-${s.key}`"
+        class="flex h-11 items-center rounded-md px-2 text-sm hover:bg-bg-muted md:h-7"
+        :class="{ 'bg-bg-muted font-medium': s.key === active }"
+        >{{ s.label }}</RouterLink
+      >
+      <hr v-if="tail.length" class="my-1 border-border" data-testid="nav-sep" />
+      <RouterLink
+        v-for="s in tail"
         :key="s.key"
         :to="to(s.key)"
         :data-testid="`nav-${s.key}`"

@@ -70,7 +70,7 @@ describe('cloud-link', () => {
     expect(r.statusCode).toBe(201);
     expect(r.json().user.email).toBe('a@b.co');
     const h = await req('GET', `/api/auth/handoff?token=${LOGIN_TOKEN}`);
-    expect([h.statusCode, h.headers.location]).toEqual([302, '/']);
+    expect([h.statusCode, h.headers.location]).toEqual([302, '/w?welcome=1']); // подсказка входа
     owner = String(h.headers['set-cookie']).split(';')[0]!;
     expect((await req('GET', '/api/auth/me', { cookie: owner })).json().user.login).toBe('admin');
     const again = await req('GET', `/api/auth/handoff?token=${LOGIN_TOKEN}`);
@@ -124,7 +124,7 @@ describe('cloud-link', () => {
     });
     expect(r.statusCode).toBe(200);
     const h = await req('GET', `/api/auth/handoff?token=${r.json().token}`);
-    expect(h.headers.location).toBe('/');
+    expect(h.headers.location).toBe('/'); // вход из админки облака — без подсказки
     const cookie = String(h.headers['set-cookie']).split(';')[0]!;
     expect((await req('GET', '/api/auth/me', { cookie })).json().user.login).toBe('admin');
   });
