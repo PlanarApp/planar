@@ -38,9 +38,19 @@ const create = () =>
 <template>
   <section class="flex flex-col gap-3">
     <SectionHeader :title="t('settings.labels')" :description="t('settings.labelsDesc')">
-      <form v-if="canEdit" class="flex flex-wrap items-end gap-2" @submit.prevent="create">
-        <Input v-model="name" :label="t('settings.name')" size="sm" data-testid="label-new" />
-        <ColorPicker v-model="color" />
+      <form
+        v-if="canEdit"
+        class="flex flex-wrap items-end gap-2 max-md:w-full"
+        @submit.prevent="create"
+      >
+        <Input
+          v-model="name"
+          :label="t('settings.name')"
+          size="sm"
+          data-testid="label-new"
+          class="min-w-40 flex-1"
+        />
+        <ColorPicker v-model="color" class="max-md:w-full" />
         <Button type="submit" variant="primary" size="sm">{{ t('auth.create') }}</Button>
       </form>
     </SectionHeader>
@@ -51,14 +61,14 @@ const create = () =>
         v-for="l in labels"
         :key="l.id"
         data-testid="label-row"
-        class="group flex items-center gap-2 py-1"
+        class="group flex flex-wrap items-center gap-2 py-1"
       >
         <Input
           :model-value="l.name"
           :label="t('settings.name')"
           hide-label
           :disabled="!canEdit"
-          class="flex-1"
+          class="min-w-0 flex-1"
           @change="
             (e: Event) =>
               run(() =>
@@ -66,9 +76,11 @@ const create = () =>
               )
           "
         />
+        <!-- mobile: the palette takes its own line under the name -->
         <ColorPicker
           :model-value="l.color"
           :disabled="!canEdit"
+          class="max-md:order-last max-md:w-full"
           @update:model-value="(c) => run(() => mutate('label.update', { id: l.id, color: c }))"
         />
         <RowMenu

@@ -41,7 +41,11 @@ const sheet = ref(false);
           'inline-flex h-11 items-center justify-between gap-2 rounded-md border border-border-strong bg-bg px-2 text-sm text-fg outline-none focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-50',
         ]"
       >
-        <span>{{ props.options.find((o) => o.value === model)?.label ?? placeholder }}</span>
+        <!-- nothing picked: the label stands in, otherwise the button is an empty box -->
+        <span v-if="props.options.some((o) => o.value === model)" class="truncate">{{
+          props.options.find((o) => o.value === model)!.label
+        }}</span>
+        <span v-else class="truncate text-fg-subtle">{{ placeholder ?? label }}</span>
         <ChevronDown :size="16" class="text-fg-subtle" />
       </button>
     </template>

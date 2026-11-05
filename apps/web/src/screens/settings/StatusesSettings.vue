@@ -92,10 +92,20 @@ async function remove() {
 <template>
   <section class="flex flex-col gap-3">
     <SectionHeader :title="t('settings.statuses')" :description="t('settings.statusesDesc')">
-      <form v-if="canEdit" class="flex flex-wrap items-end gap-2" @submit.prevent="create">
-        <Input v-model="name" :label="t('settings.name')" size="sm" data-testid="status-new" />
+      <form
+        v-if="canEdit"
+        class="flex flex-wrap items-end gap-2 max-md:w-full"
+        @submit.prevent="create"
+      >
+        <Input
+          v-model="name"
+          :label="t('settings.name')"
+          size="sm"
+          data-testid="status-new"
+          class="min-w-40 flex-1"
+        />
         <Select v-model="category" :label="t('settings.category')" :options="catOptions" />
-        <ColorPicker v-model="color" />
+        <ColorPicker v-model="color" class="max-md:w-full" />
         <Button type="submit" variant="primary" size="sm">{{ t('auth.create') }}</Button>
       </form>
     </SectionHeader>
@@ -116,7 +126,7 @@ async function remove() {
           v-for="s in lists[c]"
           :key="s.id"
           data-testid="status-row"
-          class="group flex items-center gap-2 py-1"
+          class="group flex flex-wrap items-center gap-2 py-1"
         >
           <span class="handle cursor-grab select-none text-fg-subtle" aria-hidden="true">⋮⋮</span>
           <Input
@@ -124,7 +134,7 @@ async function remove() {
             :label="t('settings.name')"
             hide-label
             :disabled="!canEdit"
-            class="flex-1"
+            class="min-w-0 flex-1"
             @change="
               (e: Event) =>
                 run(() =>
@@ -132,9 +142,11 @@ async function remove() {
                 )
             "
           />
+          <!-- mobile: the palette takes its own line under the name -->
           <ColorPicker
             :model-value="s.color"
             :disabled="!canEdit"
+            class="max-md:order-last max-md:w-full max-md:pl-6"
             @update:model-value="(v) => run(() => mutate('status.update', { id: s.id, color: v }))"
           />
           <RowMenu

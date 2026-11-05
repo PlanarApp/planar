@@ -55,7 +55,11 @@ const remove = (id: string) => run(() => mutate('member.remove', { id }));
 <template>
   <section class="flex flex-col gap-3">
     <SectionHeader :title="t('settings.members')" :description="t('settings.membersDesc')">
-      <form v-if="canEdit" class="flex flex-wrap items-end gap-2" @submit.prevent="add">
+      <form
+        v-if="canEdit"
+        class="flex flex-wrap items-end gap-2 max-md:w-full"
+        @submit.prevent="add"
+      >
         <Select v-model="userId" :label="t('settings.user')" :options="free" />
         <Select v-model="role" :label="t('auth.role')" :options="roles" />
         <Button type="submit" variant="primary" size="sm" data-testid="member-add">{{
