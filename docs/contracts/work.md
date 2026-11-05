@@ -182,7 +182,7 @@ scope: space · write: member · bootstrap: yes · indexes: taskId
 - The server computes durations: the server run of a mutator recomputes `startedAt`/`endedAt`/`durationSec` from the server `ctx.now`; the client's estimate is overwritten by sync.
 - Two devices: in a race of two `time.start` calls the second gets `conflict` from the index; the client shows the timer that came from the server.
 - The total on a task = own entries + entries of all subtasks (recursively); a running timer is `now − startedAt` on the client.
-- Web: `taskPanels` `time:timer` (button, total, estimate vs. actual, list of entries), `topbar` `time:timer` (the running timer ticks locally, stop), `nav` `time:week` → `/m/time/week` ("My hours": a day × task table for the current user, week with `useWeekStart()`; editing a cell sets the new total for the day: the difference is added with `time.log` or removed by editing/deleting the day's manual entries; 0 — delete the day's entries).
+- Web: `taskPanels` `time:timer` (`property: true` — a properties row since PLANARAPP-42: start/stop and my tracked time of the task; a click on the time opens a menu with the total incl. subtasks, estimate vs. actual, the manual-entry form and the list of entries), `topbar` `time:timer` (the running timer ticks locally, stop), `nav` `time:week` → `/m/time/week` ("My hours": a day × task table for the current user, week with `useWeekStart()`; editing a cell sets the new total for the day: the difference is added with `time.log` or removed by editing/deleting the day's manual entries; 0 — delete the day's entries).
 
 ## Module sprints (WK-2)
 

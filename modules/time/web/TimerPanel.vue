@@ -4,7 +4,8 @@ import { Button, Input, Menu } from '@planar/web/modules';
 import { mutate, newId, tr, useEstimate, useMyEntries, useNow, userId, useTasks } from './data';
 import { clock, dayKey, hm, parseHm, subtreeIds, sumSec } from './lib';
 
-const props = defineProps<{ taskId: string }>();
+// menu — inside TimeControl: start/stop is next to the time, not here
+const props = defineProps<{ taskId: string; menu?: boolean }>();
 const now = useNow();
 const entries = useMyEntries();
 const tasks = useTasks();
@@ -58,7 +59,7 @@ const add = async () => {
 
 <template>
   <section class="tp">
-    <div class="row">
+    <div v-if="!menu" class="row">
       <Button variant="primary" data-test="toggle" @click="toggle">
         {{ runningHere ? tr('stop') : tr('start') }}
       </Button>

@@ -9,7 +9,7 @@ Before multi-step work read **`.claude/dpcli-workflow.md`**. Journal, tasks, bra
 - Deterministic work — `.dpcli/dpcli` commands; the journal `docs/plan/<m>/` is append-only.
 - Correctness over "looks nice"; don't invent; don't polish.
 - One session — one phase/module: after a merge or a change of topic — `/clear`, state comes from the journal.
-- Process frictions — at once, one line `harness: …` (in `dp_feedback` or `event <m> note`); review and process changes — skill `harness-retro`, only with the user's approval.
+- Process frictions — at once, one line `harness: …` (in `dp_feedback` or `event <m> note`); review and process changes — skill `harness-retro`, on its own, the user is told after.
 - Docs — entry `docs/INDEX.md`; find with `.dpcli/dpcli docs find`, read by section `.dpcli/dpcli docs section <path> [section]`, not whole.
 - Commits — only your own files (`git commit -- <paths>`); no push without the user's command; after a merge `.dpcli/dpcli gc --remove`.
 - Agents — `.dpcli/agents/`, process — `.dpcli/templates/workflow.md`; `.claude/` is refreshed by `.dpcli/dpcli init`.
