@@ -37,6 +37,8 @@ const props = defineProps<{
   noAdd?: boolean;
   /** the task key before the name */
   showKey?: boolean;
+  /** whole task names on the cards (the "Wrap task names" option) */
+  wrap?: boolean;
 }>();
 const emit = defineEmits<{
   toggle: [];
@@ -270,6 +272,7 @@ function submit() {
             :parent-title="x.parentId ? titles?.get(x.parentId) : undefined"
             :project-name="projects?.get(x.projectId)"
             :show-key="showKey"
+            :wrap="wrap"
           />
         </article>
       </VueDraggable>

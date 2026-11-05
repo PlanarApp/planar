@@ -249,6 +249,12 @@ const virt = useVirtualizer(
     getItemKey: (i: number) => rows.value[i]?.id ?? i,
   })),
 );
+const measure = (el: unknown) => virt.value.measureElement(el as Element | null);
+// sizes measured with wrapping are stale without it (and back)
+watch(
+  () => props.options.wrapTitles,
+  () => virt.value.measure(),
+);
 
 // --- editing
 const editing = ref<string | null>(null);
@@ -416,11 +422,17 @@ const date = (v: string) => v.slice(0, 10);
             {{ t('table.empty') }}
           </p>
           <div class="relative" :style="{ height: `${virt.getTotalSize()}px` }">
+            <!-- wrapped names: a row is as tall as its content, the virtualizer measures it (as in the List) -->
             <div
               v-for="v in virt.getVirtualItems()"
               :key="String(v.key)"
+              :ref="options.wrapTitles ? measure : undefined"
+              :data-index="v.index"
               class="absolute left-0 top-0 w-full"
-              :style="{ height: `${v.size}px`, transform: `translateY(${v.start}px)` }"
+              :style="{
+                ...(options.wrapTitles ? { minHeight: `${ROW_H}px` } : { height: `${v.size}px` }),
+                transform: `translateY(${v.start}px)`,
+              }"
             >
               <template v-for="task in [rows[v.index]]" :key="task?.id">
                 <div
@@ -430,7 +442,7 @@ const date = (v: string) => v.slice(0, 10);
                   :aria-selected="sel.selected.value.has(task.id)"
                   :data-task="task.key"
                   :class="[
-                    'flex h-full items-center border-b border-border text-sm',
+                    'flex h-full min-h-9 items-center border-b border-border text-sm',
                     sel.selected.value.has(task.id) ? 'bg-accent-subtle' : 'hover:bg-bg-subtle',
                   ]"
                 >
@@ -449,8 +461,12 @@ const date = (v: string) => v.slice(0, 10);
                     role="gridcell"
                     :data-col="c.id"
                     :style="{ width: `${widthOf(c)}px` }"
-                    class="min-w-0 shrink-0 truncate px-2"
-                    :class="{ 'self-stretch': isFieldCol(c.id) }"
+                    class="min-w-0 shrink-0 px-2"
+                    :class="{
+                      'self-stretch': isFieldCol(c.id),
+                      truncate: !(options.wrapTitles && c.id === 'title'),
+                      'py-1.5': options.wrapTitles && c.id === 'title',
+                    }"
                   >
                     <template v-if="c.id === 'title'">
                       <input
@@ -485,7 +501,10 @@ const date = (v: string) => v.slice(0, 10);
                         <div v-else-if="options.showSubtasks" class="w-3.5 shrink-0" />
                         <span
                           tabindex="0"
-                          class="block truncate outline-none focus-visible:ring-2 ring-focus"
+                          :class="[
+                            'block outline-none focus-visible:ring-2 ring-focus',
+                            options.wrapTitles ? 'min-w-0 break-words' : 'truncate',
+                          ]"
                           @dblclick="startEdit(task)"
                           @keydown.enter.prevent="startEdit(task)"
                           >{{ task.title }}</span

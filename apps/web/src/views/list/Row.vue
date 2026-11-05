@@ -150,7 +150,8 @@ function save() {
     :data-task="task.key"
     :class="[
       'flex h-full flex-col justify-center gap-1 border-b border-border px-3 text-sm',
-      wrap ? 'py-2' : '',
+      // wrapped: the card grows past its height — keep the breathing room it had
+      wrap ? 'min-h-16 py-2' : '',
       selected ? 'bg-accent-subtle' : '',
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
@@ -163,6 +164,7 @@ function save() {
       :blocked="blocked"
       hot
       :one-line="!wrap"
+      :wrap="wrap"
       :members="members"
       :labels="labels"
       :depth="depth"
@@ -181,7 +183,8 @@ function save() {
     :data-task="task.key"
     :class="[
       'group relative flex h-full items-center gap-2 border-b border-border px-3 text-sm',
-      wrap ? 'py-1.5' : '',
+      // wrapped: the same layout, only the name wraps; the row grows by its extra lines
+      wrap ? 'min-h-8' : '',
       selected ? 'bg-accent-subtle' : 'hover:bg-bg-subtle',
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
