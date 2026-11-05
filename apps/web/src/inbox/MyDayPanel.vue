@@ -1,19 +1,26 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ArrowDown, ArrowUp, Sun, X } from 'lucide-vue-next';
+import { VueDraggable } from 'vue-draggable-plus';
+import { CalendarClock, GripVertical, Sun, X } from 'lucide-vue-next';
 import { StatusIcon } from '../tasks';
 import { Button, IconButton } from '../ui';
 import { openTask } from '../views';
-import { carryOver, shift, unplan, type MyDay } from './myDay';
+import { carryOver, moveTo, tomorrow, unplan, type MyDay } from './myDay';
 
-// «My day» (PLANARAPP-10): today's plan on top of «My work»; the plan itself comes from MyScreen
+// «My day» (PLANARAPP-10): today's plan on top of «My work» (MyWork summary, MyScreen); the plan comes from the parent
 const props = defineProps<{ day: MyDay }>();
 const { t, locale } = useI18n();
 const title = computed(() =>
   new Date().toLocaleDateString(locale.value, { weekday: 'long', day: 'numeric', month: 'long' }),
 );
 const left = computed(() => props.day.today.filter((x) => !x.done).length);
+// VueDraggable reorders this copy at once; the replica (day.move) then brings the same order back
+const rows = ref([...props.day.today]);
+watch(
+  () => props.day.today,
+  (v) => (rows.value = [...v]),
+);
 </script>
 
 <template>
@@ -27,45 +34,52 @@ const left = computed(() => props.day.today.filter((x) => !x.done).length);
       </span>
     </header>
     <p v-if="!day.today.length" class="py-1 text-sm text-fg-muted">{{ t('myDay.empty') }}</p>
-    <div
-      v-for="(x, i) in day.today"
-      :key="x.plan.id"
-      data-testid="my-day-row"
-      class="group flex min-h-10 items-center gap-1 rounded-md px-1 hover:bg-bg-muted"
+    <VueDraggable
+      v-model="rows"
+      handle=".handle"
+      class="flex flex-col"
+      @update="(e) => moveTo(day, e.data.plan.id, e.newIndex!)"
     >
-      <button
-        type="button"
-        class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 text-left text-sm outline-none focus-visible:ring-2 ring-focus"
-        @click="openTask(x.key)"
+      <div
+        v-for="x in rows"
+        :key="x.plan.id"
+        data-testid="my-day-row"
+        :data-plan="x.plan.id"
+        class="group flex min-h-10 items-center gap-1 rounded-md px-1 hover:bg-bg-muted"
       >
-        <StatusIcon :status="x.status" />
-        <span class="text-xs text-fg-subtle">{{ x.key }}</span>
-        <span :class="['flex-1 truncate', x.done && 'text-fg-muted line-through']">{{
-          x.task.title
-        }}</span>
-      </button>
-      <IconButton
-        :icon="ArrowUp"
-        :label="t('myDay.up')"
-        size="sm"
-        :disabled="i === 0"
-        @click="shift(day, i, -1)"
-      />
-      <IconButton
-        :icon="ArrowDown"
-        :label="t('myDay.down')"
-        size="sm"
-        :disabled="i === day.today.length - 1"
-        @click="shift(day, i, 1)"
-      />
-      <IconButton
-        :icon="X"
-        :label="t('myDay.remove')"
-        size="sm"
-        data-testid="my-day-remove"
-        @click="unplan(x.plan.id)"
-      />
-    </div>
+        <span
+          class="handle flex w-4 shrink-0 cursor-grab touch-none items-center justify-center text-fg-subtle"
+          :aria-label="t('list.drag')"
+          ><GripVertical :size="14"
+        /></span>
+        <button
+          type="button"
+          class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 text-left text-sm outline-none focus-visible:ring-2 ring-focus"
+          @click="openTask(x.key)"
+        >
+          <StatusIcon :status="x.status" />
+          <span class="text-xs text-fg-subtle">{{ x.key }}</span>
+          <span :class="['flex-1 truncate', x.done && 'text-fg-muted line-through']">{{
+            x.task.title
+          }}</span>
+        </button>
+        <IconButton
+          v-if="!x.done"
+          :icon="CalendarClock"
+          :label="t('myDay.tomorrow')"
+          size="sm"
+          data-testid="my-day-tomorrow"
+          @click="tomorrow(x.plan.id)"
+        />
+        <IconButton
+          :icon="X"
+          :label="t('myDay.remove')"
+          size="sm"
+          data-testid="my-day-remove"
+          @click="unplan(x.plan.id)"
+        />
+      </div>
+    </VueDraggable>
     <div
       v-if="day.carry.length"
       class="mt-1 flex flex-wrap items-center gap-2 text-sm text-fg-muted"

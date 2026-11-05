@@ -1,5 +1,5 @@
 import { Repeat } from 'lucide-vue-next';
-import { defineWebModule } from '@planar/web/modules';
+import { db, defineWebModule } from '@planar/web/modules';
 
 export const web = defineWebModule({
   id: 'recurring',
@@ -9,6 +9,7 @@ export const web = defineWebModule({
       label: { ru: 'Повтор', en: 'Repeat' },
       icon: Repeat,
       order: 70,
+      count: (taskId) => db.table('recurringRules').where('taskId').equals(taskId).count(),
       component: () => import('./RepeatPanel.vue'),
     },
   ],

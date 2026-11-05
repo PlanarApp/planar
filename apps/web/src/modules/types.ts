@@ -45,6 +45,8 @@ export interface TaskPanelDef {
   property?: boolean;
   /** the same component also on every task card/row of the views, always visible (time tracking) */
   card?: boolean;
+  /** the task's records of the module (Dexie, run in a live query); > 0 — the count is shown on the tab */
+  count?: (taskId: string) => Promise<number>;
   component: Lazy<{ taskId: string }>;
 }
 export interface CommandCtx {

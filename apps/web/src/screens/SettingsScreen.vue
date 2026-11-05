@@ -23,6 +23,8 @@ const SECTIONS = {
   modules: { c: lazy('Modules'), level: 'project' },
   projectMembers: { c: lazy('ProjectMembers'), level: 'project' },
   users: { c: UsersSettings, admin: true, level: 'workspace' },
+  // without projectId — the shared modules of the instance
+  instanceModules: { c: lazy('Modules'), admin: true, level: 'workspace' },
 } as const satisfies Record<
   string,
   { level: Level | 'any'; c: unknown; space?: true; admin?: true }
