@@ -26,6 +26,8 @@ const props = defineProps<{
   projectText?: boolean;
   /** name on one line (a List row of fixed height) */
   oneLine?: boolean;
+  /** the whole name, wrapped by words (the "Wrap task names" option); otherwise up to 3 lines */
+  wrap?: boolean;
   depth?: number;
   /** the task key before the name */
   showKey?: boolean;
@@ -55,7 +57,7 @@ const ext = useCardExtensions(() => props.task.projectId);
       role="gridcell"
       :class="[
         'min-w-0 flex-1 pt-1 text-sm leading-snug text-fg',
-        oneLine ? 'truncate font-medium' : 'line-clamp-3',
+        oneLine ? 'truncate font-medium' : wrap ? 'break-words' : 'line-clamp-3',
       ]"
     >
       <span v-if="showKey" class="mr-1 text-xs font-normal text-fg-subtle" data-testid="card-key">{{

@@ -249,6 +249,7 @@ function add(key: string, title: string) {
           :space-id="scope ? undefined : spaceId"
           :show-empty="options.showEmpty"
           :show-key="options.showKey"
+          :wrap="options.wrapTitles"
           :projects="projectNames"
           :sortable="options.groupBy === 'status' && !scope"
           :no-add="!!scope && !scope.createIn"

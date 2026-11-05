@@ -163,6 +163,7 @@ function save() {
       :blocked="blocked"
       hot
       :one-line="!wrap"
+      :wrap="wrap"
       :members="members"
       :labels="labels"
       :depth="depth"
