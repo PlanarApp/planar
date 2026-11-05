@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ArrowRight, BellOff, Inbox, Trash2 } from 'lucide-vue-next';
+import { ArrowRight, BellOff, Check, Inbox, Trash2 } from 'lucide-vue-next';
 import { Button, EmptyState, Menu, Tabs, useBreakpoint, type MenuItem } from '../ui';
 import { router } from '../router';
 import { mutate } from '../sync';
@@ -65,10 +65,11 @@ const closeSplit = () =>
   void router.replace({ query: { ...router.currentRoute.value.query, open: undefined } });
 const read = (ids: string[]) => ids.length && mutate('notification.read', { ids });
 const ids = (c: InboxItem[]) => c.map((n) => n.id);
+const unreadOf = (c: InboxItem[]) => c.filter((x) => !x.readAt).map((x) => x.id);
 // card actions — apply to all its notifications
 function open(c: InboxItem[]) {
   const n = c[0];
-  void read(c.filter((x) => !x.readAt).map((x) => x.id));
+  void read(unreadOf(c));
   if (n.taskKey && split.value)
     void router.replace({ query: { ...router.currentRoute.value.query, open: n.taskKey } });
   else if (n.taskKey) openTask(n.taskKey);
@@ -81,6 +82,9 @@ const snoozeItems = (c: InboxItem[]): MenuItem[] =>
     onSelect: () => c.forEach((n) => snooze(n.id, snoozeUntil(o))),
   }));
 const rowItems = (c: InboxItem[]): MenuItem[] => [
+  ...(unreadOf(c).length
+    ? [{ id: 'read', label: t('inbox.read'), icon: Check, onSelect: () => read(unreadOf(c)) }]
+    : []),
   ...snoozeItems(c),
   { separator: true },
   {
@@ -140,7 +144,7 @@ const rowItems = (c: InboxItem[]): MenuItem[] => [
             class="flex w-full min-w-0 flex-col gap-1 rounded-md px-3 py-2 text-left text-sm outline-none focus-visible:ring-2 ring-focus"
             @click="open(c)"
           >
-            <span v-if="c[0].taskKey" class="flex min-w-0 items-center gap-2 pr-16">
+            <span v-if="c[0].taskKey" class="flex min-w-0 items-center gap-2 pr-16 md:pr-24">
               <span
                 v-if="c.some((n) => !n.readAt)"
                 class="size-2 shrink-0 rounded-full bg-accent"
@@ -194,6 +198,17 @@ const rowItems = (c: InboxItem[]): MenuItem[] => [
             v-else
             class="absolute top-1 right-1 flex opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
           >
+            <button
+              v-if="unreadOf(c).length"
+              type="button"
+              :aria-label="t('inbox.read')"
+              :title="t('inbox.read')"
+              :class="act"
+              data-testid="inbox-read"
+              @click="read(unreadOf(c))"
+            >
+              <Check :size="16" />
+            </button>
             <Menu :items="snoozeItems(c)" align="end">
               <template #trigger>
                 <button type="button" :aria-label="t('inbox.snoozeLabel')" :class="act">

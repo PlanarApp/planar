@@ -10,6 +10,7 @@ import { db, registerMutators, startSync, stopSync } from '../../sync';
 import { useAuth } from '../../auth/useAuth';
 import { mkUser } from '../../auth/__tests__/helpers';
 import { TooltipProvider } from 'reka-ui';
+import { VueDraggable } from 'vue-draggable-plus';
 import { resetBreakpoint } from '../../ui';
 
 const { router } = vi.hoisted(() => ({ router: { current: undefined as never } }));
@@ -154,6 +155,23 @@ describe('inbox:list', () => {
       expect((await db.table('notifications').get(id)).readAt).toBeTruthy(),
     );
     await vi.waitFor(() => expect(route().path).toBe('/t/PL-1'));
+  });
+  it('PLANARAPP-35 галка «Прочитано» — без перехода к задаче', async () => {
+    await seed();
+    const id = uuidv7();
+    await db.table('notifications').bulkPut([note(id, t1)]);
+    const w = mount(
+      defineComponent({ render: () => h(TooltipProvider, null, () => h(InboxScreen)) }),
+      { global: g },
+    );
+    const path = route().path;
+    await vi.waitFor(() => expect(w.find('[data-testid=inbox-read]').exists()).toBe(true));
+    await w.find('[data-testid=inbox-read]').trigger('click');
+    await vi.waitFor(async () =>
+      expect((await db.table('notifications').get(id)).readAt).toBeTruthy(),
+    );
+    await vi.waitFor(() => expect(w.find('[data-testid=inbox-read]').exists()).toBe(false));
+    expect(route().path).toBe(path);
   });
   it('inbox:list уведомления задачи — одна карточка; действия на все', async () => {
     await seed();
@@ -311,11 +329,16 @@ describe('PLANARAPP-10 мой день', () => {
     plus('T1')!.click();
     await vi.waitFor(() => expect(planned(w)).toEqual(['T2', 'T1']));
     expect(w.findAll('[data-testid=my-day-add]')).toHaveLength(0);
-    // T1 up
-    await click(w.findAll('[data-testid=my-day-row]')[1]!.find('button[aria-label="Выше"]'));
+    // T1 dragged to the top (jsdom has no real drag: the drop event of VueDraggable)
+    const dnd = w.findComponent(VueDraggable);
+    dnd.vm.$emit('update', { data: (dnd.props('modelValue') as unknown[])[1], newIndex: 0 });
     await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T2']));
     await click(w.findAll('[data-testid=my-day-remove]')[0]!);
     await vi.waitFor(() => expect(planned(w)).toEqual(['T2']));
+    // to tomorrow: leaves today, the plan row gets tomorrow's date
+    await click(w.find('[data-testid=my-day-tomorrow]'));
+    await vi.waitFor(() => expect(planned(w)).toEqual([]));
+    expect((await db.table('dayPlans').toArray()).map((p) => p.date)).toEqual([day(1)]);
   });
 
   it('незавершённое с прошлых дней переносится на сегодня; завершённое — нет', async () => {

@@ -42,7 +42,9 @@ function onKey(e: KeyboardEvent) {
   const key = tokenOf(e);
   // Cmd/Ctrl+K also works in input fields
   const token = mod && key === 'k' ? 'mod+k' : key;
-  if (token !== 'mod+k' && (mod || e.altKey || editable(e.target))) return;
+  // composedPath: an input inside a shadow root (emoji picker search) — e.target is only its host
+  const target = e.composedPath?.()[0] ?? e.target;
+  if (token !== 'mod+k' && (mod || e.altKey || editable(target))) return;
   const now = Date.now();
   if (now - last > SEQ_MS) buf = [];
   last = now;

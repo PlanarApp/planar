@@ -13,6 +13,7 @@ import {
 import {
   createStatus,
   defaultStatus,
+  dictProjectOf,
   fixPlan,
   labelFor,
   useLabelKey,
@@ -41,7 +42,7 @@ const project = useProject(() => props.projectId);
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 const tasks = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 // a project board reads its own dictionaries; a summary — those of all its projects (grouped by name)
-const dictProject = () => (props.scope ? undefined : props.projectId);
+const dictProject = () => dictProjectOf(props.scope, props.projectId);
 const statuses = useStatuses(spaceId, dictProject);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId, dictProject);
