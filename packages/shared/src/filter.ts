@@ -178,6 +178,36 @@ function matchRule(task: FilterTask, r: FilterRule, ctx: FilterCtx): boolean {
   }
 }
 
+/**
+ * Status/label rules of a filter match by NAME (case-insensitive), so one rule covers same-named statuses of
+ * all projects: the picked ids are widened by the ids of same-named rows. The stored format is unchanged
+ * (old id rules keep working).
+ */
+export function widenByName<F extends { rules: { field: string; value?: unknown }[] }>(
+  filter: F,
+  statuses: { id: string; name: string }[],
+  labels: { id: string; name: string }[],
+): F {
+  const norm = (name: string) => name.trim().toLowerCase();
+  const widen = (value: unknown, dict: { id: string; name: string }[]) => {
+    if (!Array.isArray(value)) return value;
+    const names = new Set(dict.filter((d) => value.includes(d.id)).map((d) => norm(d.name)));
+    return [
+      ...new Set([...value, ...dict.filter((d) => names.has(norm(d.name))).map((d) => d.id)]),
+    ];
+  };
+  return {
+    ...filter,
+    rules: filter.rules.map((r) =>
+      r.field === 'status'
+        ? { ...r, value: widen(r.value, statuses) }
+        : r.field === 'label'
+          ? { ...r, value: widen(r.value, labels) }
+          : r,
+    ),
+  };
+}
+
 export function matchFilter(
   task: FilterTask,
   filter: Filter | null | undefined,

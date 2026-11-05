@@ -361,6 +361,23 @@ describe('wk3: условия и действия', () => {
     expect((await row(yes)).statusId).toBe(w.statusIds[PROG]);
   });
 
+  it('PLANARAPP-50: условие по статусу другого проекта ловит одноимённый статус задачи', async () => {
+    const q = await project();
+    const r = await rule(
+      { type: 'task.created' },
+      [{ type: 'set_status', statusId: w.statusIds[PROG] }],
+      {
+        conditions: {
+          op: 'and',
+          // the picker merges same-named statuses and may store the id of another project
+          rules: [{ field: 'status', operator: 'in', value: [statusOf(w, q, w.statusIds[TODO])] }],
+        },
+      },
+    );
+    const t = await task();
+    expect(statuses(await only(r, t))).toEqual(['ok']);
+  });
+
   it('wk3: set_status, assign, add_label, add_comment — от системного пользователя', async () => {
     const labelId = uuidv7();
     await w.admin.ok('label.create', {

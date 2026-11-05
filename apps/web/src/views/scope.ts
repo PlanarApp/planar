@@ -1,5 +1,5 @@
 import { computed, toValue, type MaybeRefOrGetter, type Ref } from 'vue';
-import type { Row } from '@planar/shared';
+import { widenByName, type Row } from '@planar/shared';
 import type { ViewProps } from '.';
 import { updateTask, useSpaces } from '../tasks';
 import { db, useQuery } from '../sync';
@@ -82,34 +82,7 @@ export const statusFor = (
       s.spaceId === spaceId && (!projectId || s.projectId === projectId) && norm(s.name) === key,
   )?.id;
 
-/**
- * Status/label rules of a filter match by NAME (case-insensitive), so one rule covers same-named statuses of
- * all projects: the picked ids are widened by the ids of same-named rows. The stored format is unchanged
- * (old id rules keep working).
- */
-export function widenByName<F extends { rules: { field: string; value?: unknown }[] }>(
-  filter: F,
-  statuses: Row<'statuses'>[],
-  labels: Row<'labels'>[],
-): F {
-  const widen = (value: unknown, dict: { id: string; name: string }[]) => {
-    if (!Array.isArray(value)) return value;
-    const names = new Set(dict.filter((d) => value.includes(d.id)).map((d) => norm(d.name)));
-    return [
-      ...new Set([...value, ...dict.filter((d) => names.has(norm(d.name))).map((d) => d.id)]),
-    ];
-  };
-  return {
-    ...filter,
-    rules: filter.rules.map((r) =>
-      r.field === 'status'
-        ? { ...r, value: widen(r.value, statuses) }
-        : r.field === 'label'
-          ? { ...r, value: widen(r.value, labels) }
-          : r,
-    ),
-  };
-}
+export { widenByName };
 
 /** the view filter with status/label rules widened by name (see widenByName) — pass it to useTaskFilter */
 export function useWidenedFilter(filter: MaybeRefOrGetter<Filter | null | undefined>) {

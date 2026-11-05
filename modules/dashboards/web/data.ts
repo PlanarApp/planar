@@ -91,13 +91,15 @@ export const useNames = () => {
 export function useFilterCtx() {
   const r = useQuery(async () => ({
     statuses: await db.table('statuses').toArray(),
+    labels: await db.table('labels').toArray(),
     fieldDefs: await db.table('fieldDefs').toArray(),
   }));
   const cycles = useCycles();
   return computed(
-    (): FilterCtx | undefined =>
+    (): (FilterCtx & { labels: { id: string; name: string }[] }) | undefined =>
       r.value && {
         statuses: r.value.statuses,
+        labels: r.value.labels,
         fieldDefs: r.value.fieldDefs,
         cycles: cycles.value,
         userId: userId(),
