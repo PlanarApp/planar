@@ -7,6 +7,7 @@ import { useBreakpoint } from '../ui/useBreakpoint';
 import Sidebar from './Sidebar.vue';
 import TopBar from './TopBar.vue';
 import { mobileNav } from './nav';
+import { sidePanels, taskPanelWidth } from '../ui/taskPanelWidth';
 import {
   RAIL_WIDTH,
   SIDEBAR_MAX,
@@ -82,7 +83,13 @@ watch(
     </DialogRoot>
     <div class="flex min-w-0 flex-1 flex-col">
       <TopBar />
-      <main class="min-h-0 flex-1 overflow-auto"><RouterView /></main>
+      <!-- an open task side panel takes its width from the screen instead of covering it -->
+      <main
+        class="min-h-0 flex-1 overflow-auto"
+        :style="sidePanels > 0 && !isMobile ? { paddingRight: `${taskPanelWidth}px` } : undefined"
+      >
+        <RouterView />
+      </main>
     </div>
   </div>
 </template>

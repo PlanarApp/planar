@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useBreakpoint } from '../ui';
 import { closeTask, taskPanelLoader } from '.';
@@ -8,6 +8,7 @@ import {
   TASK_PANEL_MAX,
   TASK_PANEL_MIN,
   setTaskPanelWidth,
+  sidePanels,
   taskPanelWidth,
 } from '../ui/taskPanelWidth';
 
@@ -18,6 +19,13 @@ const TaskPanel = taskPanelLoader && defineAsyncComponent(taskPanelLoader);
 const taskKey = computed(() => (typeof route.query.task === 'string' ? route.query.task : ''));
 const panelOpen = computed(() => !!TaskPanel && !!taskKey.value);
 const side = computed(() => taskOpenMode.value === 'side' && !isMobile.value);
+// the side panel moves the screen aside instead of covering its controls (PLANARAPP-53); a counter —
+// several screens draw a TaskModal
+const shown = computed(() => panelOpen.value && side.value);
+watch(shown, (v, old) => (sidePanels.value += Number(v) - Number(old ?? false)), {
+  immediate: true,
+});
+onBeforeUnmount(() => shown.value && sidePanels.value--);
 
 // handle on the left edge: the panel is glued to the right, so width = window width - pointer x
 const onDown = () => {
