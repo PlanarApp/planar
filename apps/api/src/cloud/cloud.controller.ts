@@ -43,6 +43,14 @@ export class CloudController {
     await this.cloud.deleteInstance(parseBody(deleteBody, body).confirm);
   }
 
+  /** Data export archive (db dump + files) — a download link in the cloud. */
+  @Post('export')
+  @HttpCode(200)
+  async exportData(@Req() req: object) {
+    this.owner(req);
+    return this.cloud.exportData();
+  }
+
   /** Data wipe: the cloud runs it in the background; url — the cloud's waiting page, then a one-time sign-in. */
   @Post('reset')
   @HttpCode(200)

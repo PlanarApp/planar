@@ -82,6 +82,11 @@ const reset = () =>
     });
     window.location.assign(r.url);
   });
+// the archive is built by the cloud; the download goes straight from the cloud (link valid 10 minutes)
+const exportData = () =>
+  run(async () => {
+    window.location.assign((await api<{ url: string }>('POST', '/api/cloud/export')).url);
+  });
 async function remove() {
   busy.value = true;
   error.value = '';
@@ -163,8 +168,12 @@ async function remove() {
             }}</Button>
           </div>
         </template>
+        <!-- свой домен — только на оплаченной подписке -->
+        <p v-else-if="s.status !== 'active'" class="text-sm text-fg-muted">
+          {{ t('cloud.domainPaidOnly') }}
+        </p>
         <form
-          v-else-if="s.status !== 'expired'"
+          v-else
           class="flex flex-wrap items-end gap-2"
           @submit.prevent="setDomain(host.trim())"
         >
@@ -181,6 +190,16 @@ async function remove() {
             {{ t('cloud.dnsHint', { ip: s.serverIp ?? '—' }) }}
           </p>
         </form>
+      </section>
+
+      <section v-if="user?.role === 'owner'" class="flex flex-col gap-2">
+        <h3 class="font-medium">{{ t('cloud.export') }}</h3>
+        <p class="text-sm text-fg-muted">{{ t('cloud.exportHint') }}</p>
+        <div>
+          <Button size="sm" :loading="busy" data-testid="cloud-export" @click="exportData">{{
+            t('cloud.exportGo')
+          }}</Button>
+        </div>
       </section>
 
       <section v-if="user?.role === 'owner' && s.status !== 'expired'" class="flex flex-col gap-2">

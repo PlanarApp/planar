@@ -27,6 +27,10 @@ const cloud = createServer((rq, rs) => {
   rq.on('end', () => {
     seen.push({ url: rq.url, auth: rq.headers.authorization, body });
     if (rq.headers.authorization !== 'Bearer tok') return void rs.writeHead(401).end();
+    if (rq.url === '/api/link/export') {
+      rs.writeHead(200, { 'content-type': 'application/json' });
+      return void rs.end(JSON.stringify({ path: '/api/export/ab.cd' }));
+    }
     if (rq.url === '/api/link/reset') {
       rs.writeHead(200, { 'content-type': 'application/json' });
       return void rs.end(JSON.stringify({ ticket: 'tk-1' }));
@@ -119,6 +123,14 @@ describe('cloud-link', () => {
     expect(h.headers.location).toBe('/');
     const cookie = String(h.headers['set-cookie']).split(';')[0]!;
     expect((await req('GET', '/api/auth/me', { cookie })).json().user.login).toBe('admin');
+  });
+
+  it('выгрузка: только владелец; url — скачивание из облака', async () => {
+    const admin = await createUser(db, { role: 'admin' });
+    const cookie = await loginCookie(db, admin.id);
+    expect((await req('POST', '/api/cloud/export', { cookie })).statusCode).toBe(403);
+    const r = await req('POST', '/api/cloud/export', { cookie: owner });
+    expect(r.json()).toEqual({ url: `${cloudUrl}/api/export/ab.cd` });
   });
 
   it('очистка: только владелец; url — страница ожидания облака', async () => {

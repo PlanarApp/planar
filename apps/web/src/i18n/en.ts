@@ -293,6 +293,11 @@ export default {
     bind: 'Connect',
     unbind: 'Disconnect',
     dnsHint: "First point the domain's A record at {ip} at your registrar, then enter the domain.",
+    domainPaidOnly: 'A custom domain is available on a paid subscription.',
+    export: 'Data export',
+    exportHint:
+      "An archive with the instance's database and files, e.g. to move to your own server. Building it may take a few minutes.",
+    exportGo: 'Export',
     reset: 'Wipe and start over',
     resetHint:
       'All data will be deleted (the cloud keeps a backup); the address and subscription stay. You will sign in as admin with the new password. Type the name to confirm: {name}.',
@@ -316,6 +321,7 @@ export default {
       bad_state: 'Not available in the current status',
       confirm_mismatch: 'The name does not match',
       busy: 'An operation is already running',
+      paid_only: 'A custom domain requires a paid subscription',
       unavailable: 'The cloud is unavailable, try later',
     },
   },

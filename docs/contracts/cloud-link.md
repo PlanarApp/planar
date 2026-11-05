@@ -58,8 +58,10 @@ interface CloudState {
 }
 ```
 
-`POST {CLOUD_URL}/api/link/domain` `{"host": "tasks.example.com" | null}` → `CloudState` после привязки (null — снять).
-Ошибка — HTTP 4xx/5xx, `statusMessage` = код: `invalid_host`, `domain_taken`, `dns_missing` (в `data` — IP), `bad_state`, `server_ip_missing`.
+`POST {CLOUD_URL}/api/link/domain` `{"host": "tasks.example.com" | null}` → `CloudState` после привязки (null — снять). Привязать — только при `status = active` (оплаченная подписка), иначе 409 `paid_only`; снять можно всегда.
+
+`POST {CLOUD_URL}/api/link/export` → `{"path": "/api/export/<token>"}`: архив выгрузки (`instance export` CLI: `db.dump`, `files.tar`, README, `.env.example`) собирается синхронно (до 10 минут), скачивание — `GET {CLOUD_URL}<path>`, ссылка живёт 10 минут.
+Ошибка — HTTP 4xx/5xx, `statusMessage` = код: `paid_only`, `invalid_host`, `domain_taken`, `dns_missing` (в `data` — IP), `bad_state`, `server_ip_missing`.
 
 `POST {CLOUD_URL}/api/link/reset` `{"confirm": "<name>", "password": "≥ 8"}` → `{"ticket": "…"}`: очистка данных с бэкапом идёт в фоне (она перезапускает сам инстанс). Браузер уходит на `{CLOUD_URL}/reset/<ticket>`: страница опрашивает `GET {CLOUD_URL}/api/reset/<ticket>` → `{state: running|done|failed|unknown, url?}` и при `done` переходит на `url` — одноразовый вход владельцем admin с новым паролем. Ошибки: `confirm_mismatch`, `invalid_input`, `bad_state`, `busy`.
 
@@ -73,7 +75,7 @@ interface CloudState {
 
 - Состояние хранится в `settings` (id `cloud_state`, value = `CloudState` + `fetchedAt`). Обновление: при старте, раз в час, по `POST /api/cloud/refresh`. Облако недоступно — остаётся последнее сохранённое.
 - `GET /api/setup` (публичный) отдаёт `cloud: {status, trialEndsAt} | null`.
-- `GET /api/cloud` (админ) — сохранённый `CloudState`; `POST /api/cloud/refresh` (админ); `POST /api/cloud/domain` (админ), `POST /api/cloud/delete` и `POST /api/cloud/reset` (владелец; reset отвечает `{url}` страницы ожидания облака) — проксируют в облако.
+- `GET /api/cloud` (админ) — сохранённый `CloudState`; `POST /api/cloud/refresh` (админ); `POST /api/cloud/domain` (админ), `POST /api/cloud/export`, `POST /api/cloud/delete` и `POST /api/cloud/reset` (владелец; export отвечает `{url}` скачивания, reset — `{url}` страницы ожидания облака) — проксируют в облако.
 - Истёк = `status === 'expired'` или (`status === 'trial'` и `trialEndsAt` ≤ сейчас). Пока истёк:
   - вход и любые запросы обычных пользователей — 401/403 `trial_expired`;
   - владелец/админ входит, но доступны только `/api/auth/*`, `/api/setup`, `/api/cloud*`; веб показывает только экран оплаты;

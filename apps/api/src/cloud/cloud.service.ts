@@ -76,6 +76,14 @@ export class CloudService implements OnModuleInit, OnModuleDestroy {
     return s;
   }
 
+  /** Data export: the cloud's CLI builds the archive, the browser downloads it from the cloud (link valid 10 minutes). */
+  async exportData(): Promise<{ url: string }> {
+    const { path } = z
+      .object({ path: z.string().regex(/^\/api\/export\/[\w.-]+$/) })
+      .parse(await this.call('POST', '/api/link/export', undefined, 10 * 60_000)); // = CLI timeout
+    return { url: `${this.opts.cloud!.url}${path}` };
+  }
+
   async deleteInstance(confirm: string): Promise<void> {
     await this.call('POST', '/api/link/delete', { confirm });
   }
@@ -104,7 +112,12 @@ export class CloudService implements OnModuleInit, OnModuleDestroy {
     return createHandoffSession(this.db, owner.id);
   }
 
-  private async call(method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown> {
+  private async call(
+    method: 'GET' | 'POST',
+    path: string,
+    body?: unknown,
+    timeoutMs = 60_000, // domain binding waits for the CLI
+  ): Promise<unknown> {
     const c = this.opts.cloud;
     if (!c) throw new HttpError(404, 'not_found', 'Инстанс не в облаке');
     let r: Response;
@@ -116,7 +129,7 @@ export class CloudService implements OnModuleInit, OnModuleDestroy {
           ...(body ? { 'content-type': 'application/json' } : {}),
         },
         body: body ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(60_000), // domain binding waits for the CLI
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (e) {
       throw new HttpError(503, 'unavailable', `Облако недоступно: ${(e as Error).message}`);
