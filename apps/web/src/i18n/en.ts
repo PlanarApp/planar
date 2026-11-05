@@ -295,6 +295,7 @@ export default {
   },
   views: {
     emptyBoard: 'Add a task in any column',
+    day: 'My day',
     list: 'List',
     board: 'Board',
     table: 'Table',

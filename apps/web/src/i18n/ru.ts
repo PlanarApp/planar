@@ -295,6 +295,7 @@ export default {
   },
   views: {
     emptyBoard: 'Добавьте задачу в любой колонке',
+    day: 'Мой день',
     list: 'Список',
     board: 'Доска',
     table: 'Таблица',
