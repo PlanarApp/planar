@@ -92,14 +92,25 @@ const bulk = computed<BulkAction[]>(() => [
 <template>
   <section class="flex flex-col gap-3">
     <SectionHeader :title="t('settings.projects')" :description="t('settings.projectsDesc')">
-      <form v-if="canEdit" class="flex flex-wrap items-start gap-2" @submit.prevent="create">
-        <Input v-model="name" :label="t('settings.name')" size="sm" data-testid="project-name" />
+      <form
+        v-if="canEdit"
+        class="flex flex-wrap items-start gap-2 max-md:w-full"
+        @submit.prevent="create"
+      >
+        <Input
+          v-model="name"
+          :label="t('settings.name')"
+          size="sm"
+          data-testid="project-name"
+          class="min-w-32 flex-1"
+        />
         <Input
           v-model="key"
           :label="t('settings.key')"
           size="sm"
           :error="keyError"
           data-testid="project-key"
+          class="w-28"
           @input="key = key.toUpperCase()"
         />
         <Button type="submit" variant="primary" size="sm" class="mt-5">{{

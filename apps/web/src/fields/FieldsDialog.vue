@@ -87,6 +87,7 @@ const val = (e: Event) => (e.target as HTMLInputElement).value;
             :model-value="d.name"
             :label="t('fields.name')"
             hide-label
+            class="min-w-0 flex-1"
             @change="rename(d, val($event))"
           />
           <span class="text-xs text-fg-subtle">{{ t(`fields.types.${d.type}`) }}</span>
@@ -158,8 +159,8 @@ const val = (e: Event) => (e.target as HTMLInputElement).value;
         </div>
       </li>
     </ul>
-    <form class="mt-3 flex items-end gap-2" @submit.prevent="create">
-      <Input v-model="name" :label="t('fields.name')" />
+    <form class="mt-3 flex flex-wrap items-end gap-2" @submit.prevent="create">
+      <Input v-model="name" :label="t('fields.name')" class="min-w-40 flex-1" />
       <Select v-model="type" :options="typeOptions" :label="t('fields.type')" />
       <Button type="submit" :icon="Plus" data-role="create">{{ t('fields.add') }}</Button>
     </form>

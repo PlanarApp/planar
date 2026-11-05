@@ -44,7 +44,7 @@ async function create() {
 </script>
 
 <template>
-  <section class="flex flex-col gap-3 p-4">
+  <section class="flex flex-col gap-3">
     <SectionHeader :title="t('auth.users')" :description="t('settings.usersDesc')">
       <Button variant="primary" size="sm" @click="open = true">{{ t('auth.addUser') }}</Button>
     </SectionHeader>
@@ -54,30 +54,33 @@ async function create() {
         v-for="u in users"
         :key="u.id"
         data-testid="user-row"
-        class="group flex items-center gap-3 py-1"
+        class="group flex flex-wrap items-center gap-x-3 gap-y-1 py-1"
       >
         <Avatar :name="u.name" />
-        <div class="min-w-0 flex-1">
+        <div class="min-w-32 flex-1">
           <div class="truncate">{{ u.name }}</div>
           <div class="truncate text-xs text-fg-muted">{{ u.login }}</div>
         </div>
-        <Badge v-if="u.deactivatedAt">{{ t('auth.blocked') }}</Badge>
-        <Select
-          v-if="u.role !== 'owner'"
-          :model-value="u.role"
-          :label="t('auth.role')"
-          :options="roles()"
-          @update:model-value="(v) => patch(u, { role: v })"
-        />
-        <Button
-          v-if="u.role !== 'owner'"
-          size="sm"
-          variant="ghost"
-          data-testid="toggle-block"
-          @click="patch(u, { deactivated: !u.deactivatedAt })"
-        >
-          {{ u.deactivatedAt ? t('auth.unblock') : t('auth.block') }}
-        </Button>
+        <!-- one group: on a narrow screen it moves under the name as a whole -->
+        <div class="ml-auto flex items-center gap-2">
+          <Badge v-if="u.deactivatedAt">{{ t('auth.blocked') }}</Badge>
+          <Select
+            v-if="u.role !== 'owner'"
+            :model-value="u.role"
+            :label="t('auth.role')"
+            :options="roles()"
+            @update:model-value="(v) => patch(u, { role: v })"
+          />
+          <Button
+            v-if="u.role !== 'owner'"
+            size="sm"
+            variant="ghost"
+            data-testid="toggle-block"
+            @click="patch(u, { deactivated: !u.deactivatedAt })"
+          >
+            {{ u.deactivatedAt ? t('auth.unblock') : t('auth.block') }}
+          </Button>
+        </div>
       </li>
     </ul>
     <Dialog v-model:open="open" :title="t('auth.addUser')">
