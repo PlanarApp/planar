@@ -1,7 +1,7 @@
 import { computed, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { LogOut, Languages, Monitor, Moon, Puzzle, Settings, Sun, User } from 'lucide-vue-next';
+import { LogOut, Languages, Monitor, Moon, Settings, Sun, User } from 'lucide-vue-next';
 import type { MenuItem } from '../ui/Menu.vue';
 import { useTheme } from '../ui/useTheme';
 import { setLocale } from '../i18n';
@@ -41,7 +41,7 @@ export function useUserMenu() {
   const { t, locale } = useI18n();
   const router = useRouter();
   const { theme } = useTheme();
-  const { logout, isAdmin } = useAuth();
+  const { logout } = useAuth();
   const items = (): MenuItem[] => [
     {
       id: 'profile',
@@ -55,17 +55,6 @@ export function useUserMenu() {
       icon: Settings,
       onSelect: () => router.push('/settings'),
     },
-    // admin part: shared modules of the instance (PJ-3)
-    ...(isAdmin.value
-      ? [
-          {
-            id: 'admin-modules',
-            label: t('topbar.adminModules'),
-            icon: Puzzle,
-            onSelect: () => router.push('/admin/modules'),
-          },
-        ]
-      : []),
     { separator: true },
     {
       id: 't-system',

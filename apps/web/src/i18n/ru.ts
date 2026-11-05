@@ -84,7 +84,6 @@ export default {
     themeDark: 'Тёмная',
     profile: 'Профиль',
     settings: 'Настройки',
-    adminModules: 'Модули экземпляра',
     language: 'Язык',
     install: 'Установить приложение',
     menu: 'Меню',

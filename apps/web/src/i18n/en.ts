@@ -84,7 +84,6 @@ export default {
     themeDark: 'Dark',
     profile: 'Profile',
     settings: 'Settings',
-    adminModules: 'Instance modules',
     language: 'Language',
     install: 'Install app',
     menu: 'Menu',
