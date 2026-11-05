@@ -81,3 +81,13 @@ interface CloudState {
   - владелец/админ входит, но доступны только `/api/auth/*`, `/api/setup`, `/api/cloud*`; веб показывает только экран оплаты;
   - WebSocket синхронизации, MCP, collab — закрыты для всех.
 - До конца триала ≤ 30 дней: бейдж в тулбаре у всех; владельцам и админам — одно уведомление `trial_ending` (повтор — только после новой даты триала).
+
+## План: загрузка данных (не реализовано, 2026-11-05)
+
+Решение пользователя: загружаем ровно архив выгрузки (`<name>-export.tar`: `db.dump`, `files.tar`, `README.txt`, `.env.example`); данные инстанса полностью заменяются.
+
+1. CLI: `instance import <name> <archive> --yes` (`cli/src/commands/data.ts`) — проверить состав tar; `doBackup`; `compose down -v`; DROP и создание БД/роли с тем же паролем (`createDb`); `pg_restore --no-owner` через `docker exec` (как `pg_dump`); `files.tar` — в том `<name>_data` (как в `doBackup`); `up -d`; `/health`. Setup не вызывается: пользователи приходят из дампа, пароли — на момент выгрузки. Ошибка после удаления — код 1 и путь к бэкапу (как `reset`).
+2. Облако: `Orchestrator.importData(name, archive)`; `linkImport` по образцу `linkReset` (захват `reset_started_at`, фон, билет, страница `/reset/<ticket>`); по готовности вход — через `POST https://<host>/api/cloud/handoff` по `cloud_token` (как `instanceLoginUrl`).
+3. Передача: инстанс `POST /api/cloud/import` (владелец, `{confirm}`) → облако `POST /api/link/import` → `{uploadUrl}` = `{CLOUD_URL}/api/import/<подписанный токен, 10 мин>`; браузер шлёт архив прямо в облако (CORS для адреса инстанса, CSRF-исключение `/api/import/`), облако пишет поток в `$PLANAR_CLOUD_HOME/imports/`, лимит 2 ГБ константой, отвечает `{ticket}`; браузер уходит на `/reset/<ticket>`.
+4. Веб: блок «Загрузка данных» в Настройки › Облако (владелец): файл + имя инстанса, предупреждение о полной замене и паролях на момент выгрузки.
+5. Риск: при загрузке в другой инстанс `PLANAR_SECRET_KEY` другой — зашифрованные токены (GitLab) перестанут работать.
