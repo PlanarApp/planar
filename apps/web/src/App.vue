@@ -15,6 +15,13 @@ const route = useRoute();
 const { t } = useI18n();
 const bare = computed(() => route.meta.layout === 'none');
 const { needRefresh, downloading, applying, applyUpdate } = usePwa();
+const { setupInfo } = useAuth();
+const demoHours = ref(0);
+onMounted(async () => {
+  // the banner is optional: a failed /api/setup must not break the app
+  const s = await setupInfo().catch(() => null);
+  if (s?.demo) demoHours.value = s.demoResetHours;
+});
 </script>
 
 <template>
