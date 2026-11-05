@@ -22,10 +22,15 @@ const side = computed(() => taskOpenMode.value === 'side' && !isMobile.value);
 // the side panel moves the screen aside instead of covering its controls (PLANARAPP-53); a counter —
 // several screens draw a TaskModal
 const shown = computed(() => panelOpen.value && side.value);
-watch(shown, (v, old) => (sidePanels.value += Number(v) - Number(old ?? false)), {
-  immediate: true,
-});
-onBeforeUnmount(() => shown.value && sidePanels.value--);
+// own contribution, not shown: the route may drop ?task in the same tick the screen unmounts this
+// TaskModal (switching a tab), then the watcher never runs and shown is already false (PLANARAPP-63)
+let counted = false;
+const count = (v: boolean) => {
+  if (v !== counted) sidePanels.value += v ? 1 : -1;
+  counted = v;
+};
+watch(shown, count, { immediate: true });
+onBeforeUnmount(() => count(false));
 
 // handle on the left edge: the panel is glued to the right, so width = window width - pointer x
 const onDown = () => {

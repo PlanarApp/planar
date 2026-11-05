@@ -140,6 +140,22 @@ describe('views:project', () => {
     await flushPromises();
   });
 
+  it('PLANARAPP-63: Esc закрывает боковую панель и возвращает место экрану', async () => {
+    const { taskOpenMode } = await import('../open');
+    const { sidePanels } = await import('../../ui/taskPanelWidth');
+    taskOpenMode.value = 'side';
+    const w = mountScreen();
+    await flushPromises();
+    openTask('PRJ-4');
+    await vi.waitFor(() => expect(w.find('[data-testid=task-side]').exists()).toBe(true));
+    expect(sidePanels.value).toBeGreaterThan(0); // wrappers of earlier tests stay mounted
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flushPromises();
+    expect(w.find('[data-testid=task-side]').exists()).toBe(false);
+    expect(sidePanels.value).toBe(0);
+    taskOpenMode.value = 'modal';
+  });
+
   it('режим «страница» ведёт на /t/<key> и на десктопе', async () => {
     const { taskOpenMode } = await import('../open');
     mountScreen();
