@@ -120,6 +120,7 @@ const setCurrent = (k: KeyResult, v: string) => {
         {{ tx.showArchive }}
       </Button>
     </header>
+    <p class="max-w-2xl text-sm text-fg-muted" data-testid="goals-intro">{{ tx.intro }}</p>
     <form class="flex items-end gap-2" @submit.prevent="addGoal">
       <Input v-model="goalName" :label="tx.addGoal" />
       <Button type="submit" size="sm" data-testid="goal-create">{{ tx.create }}</Button>
@@ -207,6 +208,9 @@ const setCurrent = (k: KeyResult, v: string) => {
         </template>
         <FilterBuilder v-else v-model="form.filter" :space-id="spaceId" />
         <Button type="submit" size="sm">{{ tx.create }}</Button>
+        <p class="w-full text-xs text-fg-muted" data-testid="kr-hint">
+          {{ form.kind === 'number' ? tx.hintNumber : tx.hintTasks }}
+        </p>
         <span v-if="formErr" role="alert" class="text-danger">{{ formErr }}</span>
       </form>
     </article>

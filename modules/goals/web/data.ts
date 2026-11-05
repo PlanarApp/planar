@@ -144,7 +144,14 @@ const TEXT = {
     archive: 'В архив',
     restore: 'Вернуть',
     showArchive: 'Архив',
-    empty: 'Пока ничего нет',
+    empty:
+      'Целей пока нет. Пример: цель «Запустить бету», ключевые результаты — «100 регистраций» (число) и «закрыть задачи с меткой beta» (задачи по фильтру).',
+    intro:
+      'Цель — то, чего хотите достичь за период. Её прогресс — среднее по ключевым результатам. Ключевой результат: «Число» — вы сами обновляете текущее значение (от старта к цели); «Задачи по фильтру» — доля выполненных задач, подходящих под фильтр, считается сама.',
+    hintNumber:
+      'Укажите старт и цель; текущее значение вводите в строке результата по мере продвижения.',
+    hintTasks:
+      'Выберите задачи фильтром (проект, метка, спринт…); прогресс — доля выполненных из них.',
     addGoal: 'Новая цель',
     addKr: 'Ключевой результат',
     kind: 'Тип',
@@ -178,7 +185,14 @@ const TEXT = {
     archive: 'Archive',
     restore: 'Restore',
     showArchive: 'Archive',
-    empty: 'Nothing yet',
+    empty:
+      'No goals yet. Example: goal "Launch the beta", key results "100 sign-ups" (number) and "close tasks labelled beta" (tasks by filter).',
+    intro:
+      'A goal is what you want to reach in a period; its progress is the average of its key results. A key result: "Number" — you update the current value yourself (from start to target); "Tasks by filter" — the share of done tasks matching the filter, computed automatically.',
+    hintNumber:
+      'Set start and target; enter the current value in the key result row as you progress.',
+    hintTasks:
+      'Pick the tasks with a filter (project, label, sprint…); progress is the share of them done.',
     addGoal: 'New goal',
     addKr: 'Key result',
     kind: 'Type',
