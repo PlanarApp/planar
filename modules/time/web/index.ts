@@ -12,6 +12,7 @@ export const web = defineWebModule({
       order: 50,
       // a properties row: start/stop + tracked time, the menu — entry form and list (PLANARAPP-42)
       property: true,
+      card: true, // also on the cards of the views (PLANARAPP-43)
       component: () => import('./TimeControl.vue'),
     },
   ],
