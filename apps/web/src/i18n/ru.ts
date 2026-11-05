@@ -35,7 +35,7 @@ export default {
     all: 'Всё',
     newTask: 'Задача',
     inbox: 'Входящие',
-    my: 'Мои задачи',
+    my: 'Мой день',
     favorites: 'Избранное',
     sections: 'Разделы',
     spaces: 'Пространства',
@@ -226,7 +226,7 @@ export default {
       cheat: 'Шпаргалка',
       create: 'Создать задачу',
       inbox: 'Входящие',
-      my: 'Мои задачи',
+      my: 'Мой день',
       settings: 'Настройки',
     },
   },
@@ -295,7 +295,6 @@ export default {
   },
   views: {
     emptyBoard: 'Добавьте задачу в любой колонке',
-    day: 'Мой день',
     list: 'Список',
     board: 'Доска',
     table: 'Таблица',
@@ -416,6 +415,7 @@ export default {
   work: {
     title: 'Моя работа',
     summary: 'Сводка',
+    day: 'Мой день',
     assigned: 'Назначенные',
     comments: 'Комментарии мне',
     mentions: 'Упоминания',

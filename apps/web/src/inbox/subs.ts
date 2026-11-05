@@ -1,5 +1,6 @@
-// "My work" sections (?w); first and default — "Assigned", "Summary" — at the end
+// "My work" sections (?w): «My day» first, default — "Assigned", "Summary" — at the end
 export const WORK_SUBS = [
+  'day',
   'assigned',
   'comments',
   'mentions',

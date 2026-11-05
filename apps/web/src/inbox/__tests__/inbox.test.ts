@@ -41,7 +41,7 @@ vi.mock('../../views/open', async (orig) => ({
 }));
 
 const InboxScreen = (await import('../../screens/InboxScreen.vue')).default;
-const MyScreen = (await import('../../screens/MyScreen.vue')).default;
+const MyDay = (await import('../MyDay.vue')).default;
 const PushToggle = (await import('../PushToggle.vue')).default;
 const { useUnread } = await import('../queries');
 const { snoozed } = await import('../snooze');
@@ -253,11 +253,14 @@ describe('inbox:list', () => {
   });
 });
 
-// MyScreen has icon buttons with tooltips: the app provides TooltipProvider at the root
+// MyDay has icon buttons with tooltips: the app provides TooltipProvider at the root
 const mountMy = () =>
-  mount(defineComponent({ render: () => h(TooltipProvider, null, () => h(MyScreen)) }), {
-    global: { plugins: [i18n, router.current] },
-  });
+  mount(
+    defineComponent({
+      render: () => h(TooltipProvider, null, () => h(MyDay, { projectIds: [project] })),
+    }),
+    { global: { plugins: [i18n, router.current] } },
+  );
 
 describe('inbox:my', () => {
   const add = async (n: number, o: Record<string, unknown>, assignee = me) => {
@@ -362,10 +365,12 @@ describe('PLANARAPP-10 мой день', () => {
     expect(w.find('[data-testid=my-day-carry]').exists()).toBe(false);
   });
 
-  it('PLANARAPP-51: вид «Мой день» узла — только задачи его проектов', async () => {
+  it('PLANARAPP-52: «Мой день» группы — план и мои задачи только её проектов', async () => {
     const other = uuidv7();
     const t1 = await add(1);
     const t2 = await add(2, { projectId: other });
+    await add(3, { dueDate: day(-2) }); // overdue: offered below the plan
+    await add(4, { dueDate: day(3), projectId: other }); // another group
     await db.table('dayPlans').bulkPut(
       [t1, t2].map((taskId, i) => ({
         id: uuidv7(),
@@ -377,23 +382,25 @@ describe('PLANARAPP-10 мой день', () => {
         updatedAt: ts(1),
       })),
     );
-    const DayView = (await import('../../views/day/View.vue')).default;
-    const view = (props: Record<string, unknown>) =>
+    const view = (projectIds: string[]) =>
       mount(
         defineComponent({
-          // the view does not read options
-          render: () =>
-            h(TooltipProvider, null, () => h(DayView, { options: {} as never, ...props } as never)),
+          render: () => h(TooltipProvider, null, () => h(MyDay, { projectIds })),
         }),
         { global: { plugins: [i18n, router.current] } },
       );
-    const one = view({ projectId: project });
+    const rowsOf = (w: ReturnType<typeof view>) =>
+      w.findAll('[data-testid=my-row]').map((r) => r.text().match(/T\d/)![0]);
+    const one = view([project]);
     await vi.waitFor(() => expect(planned(one)).toEqual(['T1']));
-    const both = view({
-      projectId: 'summary',
-      scope: { projectIds: [project, other], spaceIds: [] },
-    });
+    // overdue first, then without a due date
+    await vi.waitFor(() => expect(rowsOf(one)).toEqual(['T3', 'T1']));
+    expect(one.find('[data-group=overdue]').text()).toContain('T3');
+    // an unplanned task can be planned right there
+    expect(one.findAll('[data-testid=my-day-add]')).toHaveLength(1);
+    const both = view([project, other]);
     await vi.waitFor(() => expect(planned(both)).toEqual(['T1', 'T2']));
+    await vi.waitFor(() => expect(rowsOf(both).sort()).toEqual(['T1', 'T2', 'T3', 'T4']));
   });
 });
 

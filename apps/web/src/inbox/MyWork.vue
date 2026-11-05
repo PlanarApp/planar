@@ -12,6 +12,7 @@ import { groupLevels } from '../layout/groups';
 import type { GroupScope } from '../modules/types';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import InboxScreen from '../screens/InboxScreen.vue';
+import MyDay from './MyDay.vue';
 import { useAssignedComments, useMyTasks, useUnreadItems, inGroup } from './queries';
 import { workSub } from './subs';
 
@@ -100,6 +101,7 @@ const textOf = (body: unknown): string => {
           </button>
         </div>
       </div>
+      <MyDay v-else-if="sub === 'day'" :project-ids="projectIds" />
       <!-- вид таба Задачи (Список/Доска) с закреплённым Me Mode -->
       <ScopeTasks
         v-else-if="sub === 'assigned' || sub === 'created' || sub === 'watched'"

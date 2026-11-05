@@ -35,7 +35,7 @@ export default {
     all: 'All',
     newTask: 'Task',
     inbox: 'Inbox',
-    my: 'My tasks',
+    my: 'My day',
     favorites: 'Favorites',
     sections: 'Sections',
     spaces: 'Spaces',
@@ -226,7 +226,7 @@ export default {
       cheat: 'Cheat sheet',
       create: 'Create task',
       inbox: 'Inbox',
-      my: 'My tasks',
+      my: 'My day',
       settings: 'Settings',
     },
   },
@@ -295,7 +295,6 @@ export default {
   },
   views: {
     emptyBoard: 'Add a task in any column',
-    day: 'My day',
     list: 'List',
     board: 'Board',
     table: 'Table',
@@ -416,6 +415,7 @@ export default {
   work: {
     title: 'My work',
     summary: 'Summary',
+    day: 'My day',
     assigned: 'Assigned',
     comments: 'Comments for me',
     mentions: 'Mentions',
