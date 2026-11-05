@@ -10,7 +10,7 @@ import {
   type Ref,
 } from 'vue';
 import type { FilterCtx, FilterTask, Row } from '@planar/shared';
-import { db, i18n, localToday, useQuery, useSession } from '@planar/web/modules';
+import { db, i18n, localToday, useQuery, useSession, widenByName } from '@planar/web/modules';
 import type { Goal, KeyResult, Milestone, MilestoneTask } from '../shared/index.js';
 
 export { mutate as run, newId, rankBetween, openTask, useSpaces } from '@planar/web/modules';
@@ -54,7 +54,7 @@ export const useGoalsData = (spaceId: MaybeRefOrGetter<string>) =>
     if (!s || !hasTables()) return null;
     // goalsKeyResults has an index on goalId only
     const goalsP = bySpace<Goal>('goalsGoals', s);
-    const [goals, krs, rows, statuses, fieldDefs, members, users] = await Promise.all([
+    const [goals, krs, rows, statuses, labels, fieldDefs, members, users] = await Promise.all([
       goalsP,
       goalsP.then(
         (gs) =>
@@ -66,6 +66,7 @@ export const useGoalsData = (spaceId: MaybeRefOrGetter<string>) =>
       ),
       bySpace<Row<'tasks'>>('tasks', s),
       bySpace<Row<'statuses'>>('statuses', s),
+      bySpace<Row<'labels'>>('labels', s),
       bySpace<Row<'fieldDefs'>>('fieldDefs', s),
       bySpace<{ userId: string }>('spaceMembers', s),
       db.table('users').toArray() as Promise<{ id: string; name: string }[]>,
@@ -92,7 +93,17 @@ export const useGoalsData = (spaceId: MaybeRefOrGetter<string>) =>
     const name = new Map(users.map((u) => [u.id, u.name]));
     return {
       goals: goals.sort((a, b) => (a.rank < b.rank ? -1 : 1)),
-      krs: krs.sort((a, b) => (a.rank < b.rank ? -1 : 1)),
+      // a status/label rule covers same-named rows of all the space's projects, as in the lists
+      krs: krs
+        .map((k) =>
+          k.filter
+            ? {
+                ...k,
+                filter: { ...k.filter, filter: widenByName(k.filter.filter, statuses, labels) },
+              }
+            : k,
+        )
+        .sort((a, b) => (a.rank < b.rank ? -1 : 1)),
       tasks,
       ctx: { statuses, fieldDefs, userId: userId(), today: localToday() },
       members: members.map((m) => ({ userId: m.userId, name: name.get(m.userId) ?? m.userId })),

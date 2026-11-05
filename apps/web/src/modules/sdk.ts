@@ -40,6 +40,7 @@ export { default as GroupProjectPick } from '../views/GroupProjectPick.vue';
 export { default as PlanPanel } from '../views/PlanPanel.vue';
 export { favorites, type FavRef } from '../layout/nav';
 export { localToday, matchFilter } from '../views/filter';
+export { widenByName } from '../views/scope';
 
 /** Group levels (own and nested) for the Documents/Chats/Reports tabs. */
 export const useGroupLevels = (scope: () => GroupScope): Readonly<Ref<GroupLevelRow[]>> => {
