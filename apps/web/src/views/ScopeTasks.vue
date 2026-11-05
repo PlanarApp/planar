@@ -9,6 +9,7 @@ import ProjectFilter from './ProjectFilter.vue';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { useSpaces } from '../tasks';
+import { useAuth } from '../auth/useAuth';
 import OptionsBar from './saved/OptionsBar.vue';
 import ViewChangesBar from './saved/ViewChangesBar.vue';
 import TaskModal from './TaskModal.vue';
@@ -32,6 +33,7 @@ const text = (l: LocalizedText) =>
 const route = useRoute();
 const router = useRouter();
 const spaces = useSpaces();
+const { user } = useAuth();
 const scope = computed(() => {
   const ss = (spaces.value ?? []).filter((s) =>
     props.projectId
@@ -53,6 +55,7 @@ const scope = computed(() => {
     projectIds: shown.map((x) => x.p.id),
     spaceIds: [...new Set(shown.map((x) => x.s.id))],
     ...(target && { createIn: { projectId: target.p.id, spaceId: target.s.id } }),
+    ...(props.me && user.value && { createAssigneeId: user.value.id }),
   };
 });
 const key = computed(

@@ -249,6 +249,30 @@ describe('list:create', () => {
     const a = await db.table('taskAssignees').where('taskId').equals(t.id).toArray();
     expect(a.map((x) => x.userId)).toEqual([ids.ann]);
   });
+  it('list:create в «Моей работе» — исполнитель я (PLANARAPP-59)', async () => {
+    await db.table('tasks').put(task(1));
+    w = mount(View, {
+      props: {
+        projectId: ids.project,
+        options: opts(),
+        scope: {
+          projectIds: [ids.project],
+          spaceIds: [ids.space],
+          createIn: { projectId: ids.project, spaceId: ids.space },
+          createAssigneeId: ids.bob,
+        },
+      },
+      attachTo: document.body,
+      global: { plugins: [createI18n({ legacy: false, locale: 'ru', messages: { ru, en } })] },
+    });
+    await until(() => w.find('[role=row][data-task]').exists());
+    await create('mine');
+    const t = await poll(async () =>
+      (await db.table('tasks').toArray()).find((x) => x.title === 'mine'),
+    );
+    const a = await db.table('taskAssignees').where('taskId').equals(t.id).toArray();
+    expect(a.map((x) => x.userId)).toEqual([ids.bob]);
+  });
 });
 
 describe('list:select', () => {
