@@ -108,7 +108,10 @@ describe('task:comments', () => {
     const body = {
       type: 'doc',
       content: [
-        { type: 'paragraph', content: [{ type: 'text', text: 'жирно', marks: [{ type: 'bold' }] }] },
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'жирно', marks: [{ type: 'bold' }] }],
+        },
         { type: 'image', attrs: { src: '/files/abc', alt: 'скрин' } },
       ],
     };
