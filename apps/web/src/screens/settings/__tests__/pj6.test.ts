@@ -104,4 +104,16 @@ describe('PLANARAPP-3/4 руководитель и исполнитель по 
     expect((await db.table('spaces').get(ids.space)).leadId).toBe(ids.ann);
     w.unmount();
   });
+
+  it('PLNRAPP-76 цвет узла выбирается и очищается', async () => {
+    await mountAt({ level: 'space', spaceId: ids.space });
+    await w.find('[role=radiogroup] button:not([data-testid=color-none])').trigger('click');
+    await wait();
+    expect((await db.table('spaces').get(ids.space)).color).toBeTruthy();
+    await w.find('[data-testid=color-none]').trigger('click');
+    await wait();
+    expect((await db.table('spaces').get(ids.space)).color).toBeNull();
+    expect(w.find('[data-testid=color-none]').attributes('aria-checked')).toBe('true');
+    w.unmount();
+  });
 });

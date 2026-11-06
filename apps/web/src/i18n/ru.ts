@@ -578,6 +578,7 @@ export default {
       project: 'Проект',
       name: 'Название',
       color: 'Цвет',
+      noColor: 'Без цвета',
       icon: 'Иконка',
       iconHint: 'эмодзи',
       iconUpload: 'Загрузить картинку',
