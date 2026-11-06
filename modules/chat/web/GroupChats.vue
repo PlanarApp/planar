@@ -368,7 +368,17 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
       :icon="MessageSquare"
       :title="tx('empty')"
       class="m-auto max-md:hidden"
-    />
+    >
+      <template v-if="sections[0]?.canCreate" #actions>
+        <Button
+          variant="primary"
+          :icon="Plus"
+          data-testid="chat-empty-new"
+          @click="addIn = sections[0].l.key"
+          >{{ tx('newChannel') }}</Button
+        >
+      </template>
+    </EmptyState>
     <template v-else>
       <!-- мобильная: открытый тред — на весь экран вместо канала (иначе два поля ввода) -->
       <div :class="['flex min-h-0 min-w-0 flex-1 flex-col', q('t') && 'max-md:hidden']">

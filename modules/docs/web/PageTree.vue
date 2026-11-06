@@ -79,6 +79,8 @@ async function add(sec: TreeSectionDef, parent: PageRow | null) {
   void router.push(props.link(id));
 }
 
+defineExpose({ add });
+
 // dragging: top of a row — before, bottom — after, middle — inside
 const dragId = ref('');
 const hint = ref<{ id: string; zone: DropZone } | null>(null);
