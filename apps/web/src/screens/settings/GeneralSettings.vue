@@ -182,7 +182,8 @@ function upload(e: Event) {
         </div>
       </div>
       <template v-if="level === 'space' || level === 'project'">
-        <div data-testid="general-lead">
+        <div class="flex flex-col gap-1" data-testid="general-lead">
+          <span class="text-sm text-fg-muted">{{ t('settings.general.lead') }}</span>
           <Select
             :model-value="lead"
             :label="t('settings.general.lead')"
@@ -190,7 +191,12 @@ function upload(e: Event) {
             @update:model-value="setPerson('leadId', $event)"
           />
         </div>
-        <div v-if="level === 'project'" data-testid="general-default-assignee">
+        <div
+          v-if="level === 'project'"
+          class="flex flex-col gap-1"
+          data-testid="general-default-assignee"
+        >
+          <span class="text-sm text-fg-muted">{{ t('settings.general.defaultAssignee') }}</span>
           <Select
             :model-value="defaultAssignee"
             :label="t('settings.general.defaultAssignee')"

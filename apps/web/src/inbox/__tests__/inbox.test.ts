@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
-import { flushPromises, mount } from '@vue/test-utils';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { computed, defineComponent, h, nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
 import { domainMutators, uuidv7 } from '@planar/shared';
@@ -103,6 +103,8 @@ const note = (id: string, taskId: string, o: Record<string, unknown> = {}) => ({
 });
 
 beforeAll(() => registerMutators(domainMutators));
+// live queries of a left-mounted screen re-render after jsdom teardown → unhandled rejection
+enableAutoUnmount(afterEach);
 beforeEach(async () => {
   await stopSync();
   for (const t of db.tables) await t.clear();
@@ -223,7 +225,6 @@ describe('inbox:list', () => {
     await vi.waitFor(() => expect(route().query.open).toBe('PL-1'));
     expect(route().path).toBe('/inbox');
     await vi.waitFor(() => expect(w.find('[data-testid=panel]').text()).toBe('PL-1'));
-    w.unmount();
   });
   it('inbox:list «прочитать все»', async () => {
     await seed();
