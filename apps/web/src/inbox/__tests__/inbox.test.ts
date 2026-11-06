@@ -277,19 +277,21 @@ describe('inbox:my', () => {
     await vi.waitFor(() => expect(w.findAll('[data-testid=my-row]')).toHaveLength(1));
     expect(w.text()).toContain('T1');
   });
-  it('inbox:my группы по сроку', async () => {
+  it('PLNRAPP-81 группы: просрочено, сегодня (по сроку и по началу), без срока; поздние сроки скрыты', async () => {
     await add(1, { dueDate: day(-1) });
     await add(2, { dueDate: day(0) });
     await add(3, { dueDate: day(30) });
     await add(4, {});
+    await add(5, { dueDate: day(10), startDate: day(-2) });
     const w = mountMy();
     await vi.waitFor(() => expect(w.findAll('[data-testid=my-row]')).toHaveLength(4));
     expect(w.findAll('section[data-group]').map((s) => s.attributes('data-group'))).toEqual([
       'overdue',
       'today',
-      'later',
       'none',
     ]);
+    expect(w.find('[data-group=today]').text()).toContain('T5');
+    expect(w.text()).not.toContain('T3');
   });
   it('inbox:my завершённые скрыты', async () => {
     await add(1, { statusId: sDone });
@@ -409,7 +411,7 @@ describe('PLANARAPP-10 мой день', () => {
     const t1 = await add(1);
     const t2 = await add(2, { projectId: other });
     await add(3, { dueDate: day(-2) }); // overdue: offered below the plan
-    await add(4, { dueDate: day(3), projectId: other }); // another group
+    await add(4, { dueDate: day(0), projectId: other }); // another group
     await db.table('dayPlans').bulkPut(
       [t1, t2].map((taskId, i) => ({
         id: uuidv7(),
