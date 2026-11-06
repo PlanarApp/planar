@@ -16,7 +16,7 @@ import { useProject, useRootSpaceId, useSpaces, useWorkspace } from '../tasks';
 import { EmptyState, Tabs } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { GroupScope, LocalizedText } from '../modules/types';
-import { groupTab, groupUrl, lastTab, tabsFor, type GroupLevel } from '../layout/groups';
+import { groupTab, groupUrl, lastTab, lastView, tabsFor, type GroupLevel } from '../layout/groups';
 import { useGroupTabs } from '../layout/useGroupTabs';
 import GroupList from './GroupList.vue';
 import ProjectScreen from './ProjectScreen.vue';
@@ -100,6 +100,7 @@ watch(
       return;
     }
     lastTab.set(s === 'work' && typeof w === 'string' ? { seg: s, w } : { seg: s });
+    if (tab.value === 'tasks') lastView.set(s);
   },
   { immediate: true },
 );
