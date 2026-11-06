@@ -40,6 +40,17 @@ export function openTask(key: string): void {
   }
 }
 
+/** The side panel shows a task: moving through the list switches it at once (PLNRAPP-79). */
+export const sideTaskOpen = (): boolean =>
+  taskOpenMode.value === 'side' &&
+  !useBreakpoint().isMobile.value &&
+  typeof router.currentRoute.value.query.task === 'string';
+
+/** Another task in the open panel — replace, so j/k don't pile up history. */
+export function showTask(key: string): void {
+  void router.replace({ query: { ...router.currentRoute.value.query, task: key } });
+}
+
 export function closeTask(): void {
   const query = { ...router.currentRoute.value.query };
   delete query.task;

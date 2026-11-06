@@ -235,6 +235,7 @@ export default {
       inbox: 'Inbox',
       my: 'My day',
       settings: 'Settings',
+      filter: 'View filter',
     },
   },
   profile: {

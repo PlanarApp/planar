@@ -3,7 +3,7 @@ import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkBar from '../BulkBar.vue';
 import { useVirtualizer, type VirtualItem } from '@tanstack/vue-virtual';
 import { ChevronDown, ChevronRight, ListChecks, Plus, UserRound } from 'lucide-vue-next';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   AssigneePicker,
@@ -27,6 +27,7 @@ import { Button, Dialog, EmptyState, Input, Menu, useBreakpoint, type MenuItem }
 import { router } from '../../router';
 import { useExtensions } from '../../modules/registry';
 import { openTask, useSelection, type ViewProps } from '..';
+import { showTask, sideTaskOpen } from '../open';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
 import { useAuth } from '../../auth/useAuth';
@@ -397,7 +398,25 @@ function moveFocus(d: 1 | -1) {
   if (!list[i]) return;
   focusedId.value = list[i].id;
   virt.value.scrollToIndex(i);
+  const it = list[i];
+  if (it.kind === 'task' && sideTaskOpen()) showTask(it.task.key);
 }
+// side panel open, focus in it (or nowhere): j/k walk the list from the shown task (PLNRAPP-79)
+function onSheetKey(e: KeyboardEvent) {
+  const t = e.target as HTMLElement;
+  if (!sideTaskOpen() || e.ctrlKey || e.metaKey || e.altKey || scroller.value?.contains(t)) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return;
+  if (t !== document.body && !t.closest('[data-testid=task-side]')) return;
+  const d = e.key === 'j' ? 1 : e.key === 'k' ? -1 : 0;
+  if (!d) return;
+  const shown = router.currentRoute.value.query.task;
+  const cur = items.value.find((x) => x.kind === 'task' && x.task.key === shown);
+  if (cur) focusedId.value = cur.id;
+  e.preventDefault();
+  moveFocus(d);
+}
+onMounted(() => window.addEventListener('keydown', onSheetKey));
+onBeforeUnmount(() => window.removeEventListener('keydown', onSheetKey));
 function onKey(e: KeyboardEvent) {
   // list keys — when focus is on the list itself or on a row's button/checkbox (after a picker
   // focus returns to its button); not in input fields

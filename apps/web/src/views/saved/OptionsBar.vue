@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useHotkey } from '../../command/hotkeys';
 import { useI18n } from 'vue-i18n';
 import { Filter as FilterIcon } from 'lucide-vue-next';
 import { Button, Popover } from '../../ui';
@@ -20,12 +21,15 @@ const active = useFilterSummary(
   () => filter.value,
 );
 const tip = computed(() => active.value.join('\n') || undefined);
+// f — the view filter from the keyboard (PLNRAPP-79)
+const filterOpen = ref(false);
+useHotkey('f', () => (filterOpen.value = true), { label: 'cmd.hk.filter' });
 import MeMode from './MeMode.vue';
 </script>
 
 <template>
   <MeMode v-if="!noMe" v-model="options.me" />
-  <Popover align="end">
+  <Popover v-model:open="filterOpen" align="end">
     <template #trigger>
       <Button
         variant="ghost"
