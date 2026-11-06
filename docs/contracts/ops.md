@@ -40,6 +40,7 @@ Variables of the prod stack. The source of values is `.env` next to `compose.yml
 | `DEMO_RESET_HOURS` | api | `24` | C-launch-env: demo reset period for the banner |
 | `PLANAR_REGISTRY` | compose | `registry.gitlab.com/planarhq/planar` | registry of the api and caddy images (C-launch-release); images `<registry>/api`, `<registry>/caddy` |
 | `PLANAR_VERSION` | compose | `latest` | tag of the api and caddy images |
+| `CLOUD_URL` | caddy | empty | cloud instances only (cloud-link): added to CSP `connect-src`; self-hosted `compose.yml` does not pass it |
 | `BACKUP_DIR` | ops | `./backups` | directory of backup archives (C-ops-backup) |
 
 Constant api values in `compose.yml` (not from `.env`): `DATABASE_URL=postgres://postgres:$POSTGRES_PASSWORD@postgres:5432/planar`, `PORT=3000`, `DATA_DIR=/data`, `TRUST_PROXY=$PLANAR_SUBNET`. The api and postgres ports are not published outside (the postgres port only in `deploy/compose.smoke.yml`).
@@ -73,12 +74,12 @@ Caddy response headers on all site paths (both static files and the proxy to api
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 X-Content-Type-Options: nosniff
 Referrer-Policy: same-origin
-Content-Security-Policy: default-src 'self'; script-src 'self' {inline-hashes}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'
+Content-Security-Policy: default-src 'self'; script-src 'self' {inline-hashes}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' {$CLOUD_URL}; worker-src 'self'; manifest-src 'self'; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'
 ```
 
 - `{inline-hashes}` — `'sha256-<base64>'` of every inline `<script>` without `src` from `apps/web/index.html` and `apps/web/form.html`, space-separated, in order of appearance (currently — the theme script in `index.html`). The hash is of the text between `<script>` and `</script>` as is. The test checks it; if the script in web changes, the test breaks and ops updates the hash.
 - HSTS is always sent: over HTTP the browser ignores it.
-- `style-src 'unsafe-inline'` — Vue/TipTap/Reka style attributes. `img-src https:` — external images in descriptions. `connect-src 'self'` covers `ws:`/`wss:` of the same host.
+- `style-src 'unsafe-inline'` — Vue/TipTap/Reka style attributes. `img-src https:` — external images in descriptions. `connect-src 'self'` covers `ws:`/`wss:` of the same host; `{$CLOUD_URL}` — the browser uploads the import archive straight to the cloud (cloud-link), empty outside the cloud.
 - External iframe plugins (p4) extend `frame-src` through a `contract: …` change, not directly.
 
 ## C-ops-backup v1

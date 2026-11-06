@@ -7,7 +7,7 @@
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "same-origin"
 		# sha256 of the inline theme script from apps/web/index.html; if the script changes, update the hash (ops-contract test)
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-1qyOtcebjd/bv3V5Fdv9/5J89gBg5K0s/b5zYk1OBHc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-1qyOtcebjd/bv3V5Fdv9/5J89gBg5K0s/b5zYk1OBHc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' {$CLOUD_URL}; worker-src 'self'; manifest-src 'self'; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
 	}
 
 	@backend path /api/* /sync/* /ws /collab /mcp* /files /files/*
