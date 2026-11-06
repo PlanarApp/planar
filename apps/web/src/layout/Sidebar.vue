@@ -167,7 +167,7 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
         @pointerenter="prefetchProject(p.id)"
       >
         <span v-if="p.icon" :class="nodeIcon" aria-hidden="true"><NodeIcon :icon="p.icon" /></span>
-        <template v-else>{{ p.prefix }}</template>
+        <template v-else>{{ p.prefix.slice(0, 2) }}</template>
       </RouterLink>
     </template>
     <RouterLink
