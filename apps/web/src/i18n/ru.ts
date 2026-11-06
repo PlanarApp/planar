@@ -235,6 +235,7 @@ export default {
       inbox: 'Входящие',
       my: 'Мой день',
       settings: 'Настройки',
+      filter: 'Фильтр вида',
     },
   },
   profile: {
