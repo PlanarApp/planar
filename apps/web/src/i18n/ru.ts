@@ -811,6 +811,7 @@ export default {
     assignComment: 'Назначить',
     unassignComment: 'Снять назначение',
     assignedTo: 'Назначено: {name}',
+    assigned: 'Назначено:',
     resolved: 'Завершено',
     collapseComment: 'Свернуть',
     expandComment: 'Развернуть',
