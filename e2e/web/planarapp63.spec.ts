@@ -10,7 +10,10 @@ test('PLANARAPP-63: после закрытия боковой панели не
   const f = await fixture(['P63 task']);
   const page = await loginAs(browser, 'admin');
   await page.setViewportSize({ width: 1600, height: 900 });
-  await page.addInitScript(() => localStorage.setItem('planar.taskOpen', 'side'));
+  await page.addInitScript(() => {
+    localStorage.setItem('planar.taskOpen', 'side');
+    localStorage.setItem('planar.taskPanelPinned', '1');
+  });
   const panel = page.getByTestId('task-side');
 
   await page.goto(`/p/${f.projectId}/board?task=${f.taskKeys[0]}`);
@@ -27,4 +30,11 @@ test('PLANARAPP-63: после закрытия боковой панели не
   await expect(page).toHaveURL(/\/work/);
   await expect(panel).toBeHidden();
   await expect.poll(() => pad(page)).toBe('0px');
+
+  // PLNRAPP-65: открепили — панель поверх экрана, место не забирает (на любой ширине)
+  await page.goto(`/p/${f.projectId}/board?task=${f.taskKeys[0]}`);
+  await expect.poll(() => pad(page)).toBe('896px');
+  await page.getByTestId('side-pin').click();
+  await expect.poll(() => pad(page)).toBe('0px');
+  await expect(panel).toBeVisible();
 });

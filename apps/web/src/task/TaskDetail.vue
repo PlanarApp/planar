@@ -10,7 +10,10 @@ import {
   Eye,
   EyeOff,
   Flag,
+  Link,
   MoreHorizontal,
+  Pin,
+  PinOff,
   AppWindow,
   Maximize2,
   PanelRight,
@@ -39,6 +42,8 @@ import { useExtensions } from '../modules/registry';
 import { useSpaces, useTask } from '../tasks/queries';
 import { AvatarStack, Button, IconButton, Menu, useBreakpoint, type MenuItem } from '../ui';
 import { taskOpenMode, type TaskOpenMode } from '../views/open';
+import { setTaskPanelPinned, taskPanelPinned } from '../ui/taskPanelWidth';
+import { toast } from '../ui/toast';
 import FavStar from '../ui/FavStar.vue';
 import { favorites } from '../layout/nav';
 import Attachments from './Attachments.vue';
@@ -145,6 +150,12 @@ const OPEN_MODES = [
   { id: 'side', icon: PanelRight },
   { id: 'page', icon: Maximize2 },
 ] as const;
+// header copy buttons (PLNRAPP-65): the key in the breadcrumbs — the key, the button next to it — the link
+const copy = (text: string, note: string) =>
+  navigator.clipboard?.writeText(text).then(() => toast(note, 2500));
+const copyKey = () => void copy(props.task.key, t('taskMenu.idCopied'));
+const copyLink = () =>
+  void copy(new URL(`/t/${props.task.key}`, location.origin).href, t('sidebar.linkCopied'));
 // switching mode applies at once: panel ↔ page — navigation, window ↔ side panel — in place
 function setOpenMode(m: TaskOpenMode) {
   taskOpenMode.value = m;
@@ -274,8 +285,33 @@ const panelComponent = computed(() => {
           </button>
           <ChevronRight :size="14" class="shrink-0" />
         </template>
-        <span class="shrink-0 font-mono text-xs text-fg">{{ task.key }}</span>
+        <button
+          type="button"
+          class="shrink-0 rounded px-1 font-mono text-xs text-fg hover:bg-bg-muted"
+          :title="t('task.copyKey')"
+          data-testid="copy-key"
+          @click="copyKey"
+        >
+          {{ task.key }}
+        </button>
+        <IconButton
+          size="sm"
+          :icon="Link"
+          :label="t('taskMenu.copyLink')"
+          data-testid="copy-link"
+          @click="copyLink"
+        />
       </nav>
+      <!-- закрепить: боковая панель отодвигает экран, иначе — поверх (PLNRAPP-65) -->
+      <IconButton
+        v-if="sideSheet && !isMobile"
+        size="sm"
+        :icon="taskPanelPinned ? PinOff : Pin"
+        :label="taskPanelPinned ? t('task.unpin') : t('task.pin')"
+        :active="taskPanelPinned"
+        data-testid="side-pin"
+        @click="setTaskPanelPinned(!taskPanelPinned)"
+      />
       <!-- «Открывать как» — переключатель иконок, как в ClickUp/Plane -->
       <div
         v-if="!isMobile && router"

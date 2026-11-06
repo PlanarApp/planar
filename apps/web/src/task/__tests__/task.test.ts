@@ -76,6 +76,24 @@ describe('task:favorite', () => {
     await star().trigger('click');
     expect(favorites.has('task', t.id)).toBe(false);
   });
+  it('PLNRAPP-65: ключ копирует ключ, кнопка рядом — ссылку; закрепление — только в боковой панели', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const { taskOpenMode } = await import('../../views/open');
+    const { taskPanelPinned } = await import('../../ui/taskPanelWidth');
+    w = await open();
+    expect(w.find('[data-testid=side-pin]').exists()).toBe(false);
+    await w.get('[data-testid=copy-key]').trigger('click');
+    expect(writeText).toHaveBeenLastCalledWith('PLN-1');
+    await w.get('[data-testid=copy-link]').trigger('click');
+    expect(writeText).toHaveBeenLastCalledWith(`${location.origin}/t/PLN-1`);
+    taskOpenMode.value = 'side';
+    await flushPromises();
+    const was = taskPanelPinned.value;
+    await w.get('[data-testid=side-pin]').trigger('click');
+    expect(taskPanelPinned.value).toBe(!was);
+    taskOpenMode.value = 'modal';
+  });
 });
 
 describe('task:fields', () => {
