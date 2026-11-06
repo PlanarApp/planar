@@ -15,6 +15,14 @@ const route = useRoute();
 const { t } = useI18n();
 const bare = computed(() => route.meta.layout === 'none');
 const { needRefresh, downloading, applying, applyUpdate } = usePwa();
+// downloading or applying: the text and a running bar instead of the button
+const busy = computed(() =>
+  downloading.value && !needRefresh.value
+    ? t('pwa.downloading')
+    : applying.value
+      ? t('pwa.applying')
+      : '',
+);
 const { setupInfo } = useAuth();
 const demoHours = ref(0);
 onMounted(async () => {
@@ -42,14 +50,22 @@ onMounted(async () => {
       role="status"
       class="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow-md md:bottom-4"
     >
-      <template v-if="downloading && !needRefresh">
-        {{ t('pwa.downloading') }}
-        <progress class="h-1.5 w-24" :aria-label="t('pwa.downloading')" />
+      <template v-if="busy">
+        {{ busy }}
+        <span
+          role="progressbar"
+          :aria-label="busy"
+          class="relative h-1.5 w-24 overflow-hidden rounded-full bg-bg-muted"
+          data-testid="pwa-progress"
+        >
+          <span
+            class="absolute inset-y-0 left-0 w-2/5 animate-indeterminate rounded-full bg-accent motion-reduce:animate-pulse"
+          />
+        </span>
       </template>
       <template v-else>
-        {{ applying ? t('pwa.applying') : t('pwa.update') }}
-        <progress v-if="applying" class="h-1.5 w-24" :aria-label="t('pwa.applying')" />
-        <Button v-else size="sm" variant="primary" @click="applyUpdate()">
+        {{ t('pwa.update') }}
+        <Button size="sm" variant="primary" @click="applyUpdate()">
           {{ t('pwa.reload') }}
         </Button>
       </template>
