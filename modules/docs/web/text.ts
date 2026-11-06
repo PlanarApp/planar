@@ -23,14 +23,6 @@ const S = {
   retry: { ru: 'Повторить', en: 'Retry' },
   mention: { ru: 'Упоминание', en: 'Mention' },
   uploadFailed: { ru: 'Не удалось загрузить изображение', en: 'Image upload failed' },
-  h1: { ru: 'Заголовок 1', en: 'Heading 1' },
-  h2: { ru: 'Заголовок 2', en: 'Heading 2' },
-  h3: { ru: 'Заголовок 3', en: 'Heading 3' },
-  bullet: { ru: 'Список', en: 'Bulleted list' },
-  todo: { ru: 'Чек-лист', en: 'To-do list' },
-  code: { ru: 'Код', en: 'Code block' },
-  table: { ru: 'Таблица', en: 'Table' },
-  image: { ru: 'Изображение', en: 'Image' },
 } as const;
 export type TextKey = keyof typeof S;
 export type Texts = (k: TextKey, p?: Record<string, string>) => string;

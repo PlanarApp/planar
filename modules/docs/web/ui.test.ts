@@ -13,11 +13,10 @@ import StarterKit from '@tiptap/starter-kit';
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { uuidv7, domainMutators } from '@planar/shared';
-import { db, mutate, i18n } from '@planar/web/modules';
+import { db, mutate, i18n, slashItems } from '@planar/web/modules';
 // sync internals are needed only by the test, the SDK does not have them
 import { moduleMutators, registerMutators, startSync, stopSync } from '../../../apps/web/src/sync';
 import { web } from './index';
-import { slashItems } from './slash';
 import { moveArgs, type PageRow } from './model';
 import TaskPanel from './TaskPanel.vue';
 import PageView from './PageView.vue';

@@ -66,6 +66,16 @@ describe('task:comments', () => {
     }
     await until(() => w.find('[data-testid="ref-picker"]').exists());
   });
+  it('PLNRAPP-91: «/» в поле комментария — меню команд, как в документах', async () => {
+    w = await open();
+    const ed = composer().vm.editor!;
+    ed.commands.insertContent('/табл');
+    await until(() => document.body.textContent?.includes('Таблица'));
+    ed.view.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await flushPromises();
+    expect(ed.getJSON().content?.some((n) => n.type === 'table')).toBe(true);
+    expect(ed.getText()).not.toContain('/табл');
+  });
   it('правка своего комментария ставит editedAt', async () => {
     await db.table('comments').put(comment());
     w = await open();
@@ -93,6 +103,22 @@ describe('task:comments', () => {
     await until(() => w.find('[data-testid="comment"]').exists());
     expect(w.find('[data-testid="comment-edit"]').exists()).toBe(false);
     expect(w.find('[data-testid="comment-delete"]').exists()).toBe(false);
+  });
+  it('PLNRAPP-91: комментарий — как описание: картинка и форматирование', async () => {
+    const body = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'жирно', marks: [{ type: 'bold' }] }] },
+        { type: 'image', attrs: { src: '/files/abc', alt: 'скрин' } },
+      ],
+    };
+    await db.table('comments').put(comment({ body }));
+    w = await open();
+    await until(() => w.find('[data-testid="comment"] img').exists());
+    expect(w.get('[data-testid="comment"] img').attributes('src')).toBe('/files/abc');
+    expect(w.get('[data-testid="comment"] strong').text()).toBe('жирно');
+    const ed = composer().vm.editor!;
+    expect(ed.can().setImage({ src: '/files/x' })).toBe(true);
   });
   it('Cmd+Enter отправляет, пустой не отправляется', async () => {
     w = await open();
