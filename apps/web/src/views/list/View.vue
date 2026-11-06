@@ -49,6 +49,7 @@ import { useColumnWidths } from './widths';
 import { nextSort, sortMark } from '../sortHead';
 import type { SortBy } from '../../tasks';
 import { applyMove, planMove } from '../board/plan';
+import { tokenOf } from '../../command/hotkeys';
 
 const props = defineProps<ViewProps>();
 const { t, locale } = useI18n();
@@ -407,7 +408,8 @@ function onSheetKey(e: KeyboardEvent) {
   if (!sideTaskOpen() || e.ctrlKey || e.metaKey || e.altKey || scroller.value?.contains(t)) return;
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return;
   if (t !== document.body && !t.closest('[data-testid=task-side]')) return;
-  const d = e.key === 'j' ? 1 : e.key === 'k' ? -1 : 0;
+  const k = tokenOf(e);
+  const d = k === 'j' ? 1 : k === 'k' ? -1 : 0;
   if (!d) return;
   const shown = router.currentRoute.value.query.task;
   const cur = items.value.find((x) => x.kind === 'task' && x.task.key === shown);
@@ -425,7 +427,7 @@ function onKey(e: KeyboardEvent) {
     t !== e.currentTarget &&
     !!t.closest('[role=row]') &&
     (t.tagName === 'BUTTON' || (t as HTMLInputElement).type === 'checkbox') &&
-    ['j', 'k', 'x', 'd'].includes(e.key);
+    ['j', 'k', 'x', 'd'].includes(tokenOf(e));
   if ((t !== e.currentTarget && !onRowControl) || e.ctrlKey || e.metaKey || e.altKey) return;
   const task = focusedTask.value;
   const handlers: Record<string, () => void> = {
@@ -439,7 +441,7 @@ function onKey(e: KeyboardEvent) {
     F2: () => task && startEdit(focusedId.value!), // edit, not opening after a click
     Escape: () => sel.clear(),
   };
-  const h = handlers[e.key];
+  const h = handlers[tokenOf(e)];
   if (!h) return;
   e.preventDefault();
   h();

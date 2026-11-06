@@ -129,6 +129,10 @@ describe('cmd:hotkeys', () => {
     key('л', { code: 'KeyK', metaKey: true });
     await ready('Мой день');
   });
+  it('PLNRAPP-88: «/» на русской раскладке (клавиша Slash даёт «.») открывает поиск', async () => {
+    key('.', { code: 'Slash' });
+    await ready('Мой день');
+  });
   it('не срабатывает в поле ввода', async () => {
     const input = document.createElement('input');
     document.body.append(input);

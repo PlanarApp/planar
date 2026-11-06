@@ -30,11 +30,12 @@ let attached = false;
 const editable = (t: EventTarget | null) =>
   t instanceof HTMLElement && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
 
-/** Letters — by physical key (KeyC → 'c'), so it works on any layout; '?' — Shift+Slash. */
-const tokenOf = (e: KeyboardEvent) => {
+/** Letters — by physical key (KeyC → 'c'), so it works on any layout; Slash key — '/', with Shift '?'. */
+export const tokenOf = (e: KeyboardEvent): string => {
   const m = /^Key([A-Z])$/.exec(e.code ?? '');
   if (m) return m[1].toLowerCase();
-  return e.key === '?' || (e.shiftKey && e.code === 'Slash') ? '?' : e.key;
+  if (e.code === 'Slash') return e.shiftKey ? '?' : '/';
+  return e.key;
 };
 
 function onKey(e: KeyboardEvent) {
