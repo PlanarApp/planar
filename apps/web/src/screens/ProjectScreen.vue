@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { BookmarkPlus, Check, MoreHorizontal, RotateCcw, Users } from 'lucide-vue-next';
 import { useProject } from '../tasks';
-import { Button, IconButton, Menu, Tabs } from '../ui';
+import { Button, IconButton, Menu } from '../ui';
 import { useAuth } from '../auth/useAuth';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
@@ -16,6 +16,7 @@ import type { Filter } from '../views';
 import { loadLayout } from '../views/table/columns';
 import OptionsBar from '../views/saved/OptionsBar.vue';
 import ViewChangesBar from '../views/saved/ViewChangesBar.vue';
+import ViewLayouts from '../views/saved/ViewLayouts.vue';
 import SaveViewDialog from '../views/saved/SaveViewDialog.vue';
 import SavedTabs from '../views/saved/SavedTabs.vue';
 import { saveView, updateView } from '../views/saved/ops';
@@ -215,12 +216,6 @@ onBeforeUnmount(() => ro?.disconnect());
             :style="stripMask"
             @scroll.passive="measure"
           >
-            <Tabs
-              :model-value="viewId ? '' : active.key"
-              :label="t('views.toolbar')"
-              :items="tabs.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon }))"
-              @update:model-value="selectTab"
-            />
             <SavedTabs
               :space-id="spaceId"
               :project-id="projectId"
@@ -234,6 +229,14 @@ onBeforeUnmount(() => ro?.disconnect());
               :space-id="spaceId"
               :project-id="projectId"
             >
+              <!-- in a saved view no layout is pressed: a pick goes back to the project tab -->
+              <template #layout>
+                <ViewLayouts
+                  :model-value="viewId ? '' : active.key"
+                  :items="tabs.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon }))"
+                  @update:model-value="selectTab"
+                />
+              </template>
               <Menu align="end" :items="headerMenu">
                 <template #trigger>
                   <IconButton
