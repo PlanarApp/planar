@@ -40,7 +40,7 @@ export async function saveView(a: {
 
 export const updateView = (
   id: string,
-  p: { name?: string; icon?: string | null; filter?: Filter; config?: ViewOptions },
+  p: { name?: string; icon?: string | null; layout?: string; filter?: Filter; config?: ViewOptions },
 ): Promise<void> => mutate('view.update', { id, ...plain(p) });
 
 /** "Save for all": the shared default of a node tab; my personal row of it goes away. */

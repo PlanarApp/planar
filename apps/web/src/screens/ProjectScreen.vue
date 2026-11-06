@@ -36,8 +36,12 @@ const tabs = computed(() => buildViewTabs(viewLoaders(), extViews.value));
 // saved view (/p/:projectId/v/:viewId) — a tab on a par with List and Board
 const viewId = computed(() => (route.name === 'savedView' ? String(route.params.viewId) : ''));
 const saved = useSavedView(viewId);
+// saved view's layout draft (PLNRAPP-113): a layout pick stays in the view, '' — its own layout
+const savedLayout = ref('');
 const active = computed(() => {
-  const key = viewId.value ? saved.value?.layout : route.params.view || 'list';
+  const key = viewId.value
+    ? savedLayout.value || saved.value?.layout
+    : route.params.view || 'list';
   return tabs.value.find((v) => v.key === key) ?? tabs.value[0];
 });
 // tab: my node view — saved to the server at once
@@ -75,16 +79,21 @@ const resetSaved = () => {
   const d = viewId.value ? fromSaved() : undefined;
   if (d) savedOptions.value = d.options;
   savedFilter.value = d?.filter ?? null;
+  savedLayout.value = '';
 };
-watch([projectId, () => active.value?.key, viewId, () => saved.value?.id], resetSaved, {
-  immediate: true,
-});
+// a saved view's own layout pick is part of its draft — not a reason to reset it
+watch(
+  [projectId, () => (viewId.value ? '' : active.value?.key), viewId, () => saved.value?.id],
+  resetSaved,
+  { immediate: true },
+);
 // a named saved view only: tab edits are saved at once (tabView)
 const reset = resetSaved;
 const dirty = computed(() => {
   if (!viewId.value || !saved.value) return false;
   const d = fromSaved();
   return (
+    (!!savedLayout.value && savedLayout.value !== saved.value.layout) ||
     JSON.stringify(d.options) !== JSON.stringify(savedOptions.value) ||
     JSON.stringify(d.filter) !== JSON.stringify(savedFilter.value)
   );
@@ -101,6 +110,7 @@ const editable = computed(
 );
 const saveChanges = () =>
   updateView(viewId.value, {
+    layout: active.value?.key,
     config: savedOptions.value,
     filter: savedFilter.value ?? emptyFilter(),
   });
@@ -229,12 +239,12 @@ onBeforeUnmount(() => ro?.disconnect());
               :space-id="spaceId"
               :project-id="projectId"
             >
-              <!-- in a saved view no layout is pressed: a pick goes back to the project tab -->
+              <!-- in a saved view a pick changes its layout (draft, «Save» keeps it) — PLNRAPP-113 -->
               <template #layout>
                 <ViewLayouts
-                  :model-value="viewId ? '' : active.key"
+                  :model-value="active.key"
                   :items="tabs.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon }))"
-                  @update:model-value="selectTab"
+                  @update:model-value="(k) => (viewId ? (savedLayout = k) : selectTab(k))"
                 />
               </template>
               <Menu align="end" :items="headerMenu">
