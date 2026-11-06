@@ -145,17 +145,18 @@ describe('list:inline', () => {
     await db.table('tasks').put(t);
     await show();
     await w.get('[role=gridcell].flex-1').trigger('dblclick');
-    const input = w.get('input[aria-label="Название задачи"]');
+    const input = w.get('textarea[aria-label="Название задачи"]');
     await input.setValue('  ');
     await input.trigger('keydown', { key: 'Enter' });
     await flushPromises();
     expect((await get(t.id)).title).toBe('t1');
     expect(await db._queue.count()).toBe(0);
     await w.get('[role=gridcell].flex-1').trigger('dblclick');
-    const i2 = w.get('input[aria-label="Название задачи"]');
-    await i2.setValue('new');
+    const i2 = w.get('textarea[aria-label="Название задачи"]');
+    // multi-line editing (PLNRAPP-70): a pasted line break is saved as a space
+    await i2.setValue('new\nname');
     await i2.trigger('keydown', { key: 'Enter' });
-    await poll(async () => (await get(t.id)).title === 'new');
+    await poll(async () => (await get(t.id)).title === 'new name');
     expect(await db._queue.count()).toBe(1);
   });
   it('list:dblclick настоящая последовательность click-click-dblclick не открывает панель', async () => {
@@ -167,7 +168,7 @@ describe('list:inline', () => {
     await cell.trigger('dblclick');
     await new Promise((r) => setTimeout(r, 400));
     expect(r.currentRoute.value.query.task).toBeUndefined();
-    expect(w.find('input[aria-label="Название задачи"]').exists()).toBe(true);
+    expect(w.find('textarea[aria-label="Название задачи"]').exists()).toBe(true);
   });
   it('list:inline статус меняет реплику', async () => {
     const t = task(1);

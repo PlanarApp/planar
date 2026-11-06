@@ -364,21 +364,25 @@ const virt = useVirtualizer(
 // wrapped names: a task row grows only when the name needs more lines — its usual height is the minimum
 // (a mobile task card — 64), the virtualizer measures it; service rows keep their height (PLANARAPP-62)
 const measure = (el: unknown) => virt.value.measureElement(el as Element | null);
+// the row being edited grows too: its name is a multi-line textarea (PLNRAPP-70)
+const grows = (i: number) =>
+  items.value[i]?.kind === 'task' &&
+  (props.options.wrapTitles || editing.value === items.value[i]?.id);
 const rowStyle = (v: VirtualItem) => ({
   transform: `translateY(${v.start}px)`,
-  ...(props.options.wrapTitles && items.value[v.index]?.kind === 'task'
+  ...(grows(v.index)
     ? { minHeight: `${isMobile.value ? 64 : rowH.value}px` }
     : { height: `${v.size}px` }),
 });
-// sizes measured with wrapping are stale without it (and back)
-watch(
-  () => props.options.wrapTitles,
-  () => virt.value.measure(),
-);
 
 // --- focus and keyboard
 const focusedId = ref<string | null>(null);
 const editing = ref<string | null>(null);
+// sizes measured with wrapping (or while editing) are stale without it (and back)
+watch(
+  () => [props.options.wrapTitles, editing.value],
+  () => virt.value.measure(),
+);
 const focusedTask = computed(() => {
   const it = items.value.find((i) => i.id === focusedId.value);
   return it?.kind === 'task' ? it.task : undefined;
@@ -570,7 +574,7 @@ watch(
           <div
             v-for="v in virt.getVirtualItems()"
             :key="String(v.key)"
-            :ref="options.wrapTitles ? measure : undefined"
+            :ref="options.wrapTitles || editing === items[v.index]?.id ? measure : undefined"
             :data-index="v.index"
             class="absolute left-0 top-0 w-full"
             :style="rowStyle(v)"
