@@ -286,6 +286,8 @@ export default {
     components: 'Built with',
     license: 'Apache License 2.0',
     source: 'Source code',
+    version: 'Version {v}',
+    history: 'Version history',
   },
   cloud: {
     desc: 'Hosting in Planar Cloud: address, custom domain, subscription.',
