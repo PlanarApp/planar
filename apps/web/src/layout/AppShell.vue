@@ -8,6 +8,7 @@ import { toast } from '../ui/toast';
 import { useBreakpoint } from '../ui/useBreakpoint';
 import Sidebar from './Sidebar.vue';
 import TopBar from './TopBar.vue';
+import InstallSheet from '../pwa/InstallSheet.vue';
 import { mobileNav } from './nav';
 import { sidePanels, taskPanelWidth } from '../ui/taskPanelWidth';
 import {
@@ -107,5 +108,6 @@ watch(
         <RouterView />
       </main>
     </div>
+    <InstallSheet />
   </div>
 </template>
