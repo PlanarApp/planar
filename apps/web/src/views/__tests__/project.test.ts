@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { flushPromises, mount } from '@vue/test-utils';
+import { DOMWrapper, flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from 'reka-ui';
@@ -70,6 +70,14 @@ const mountScreen = () =>
     },
   });
 
+// view layouts are buttons in the teleported "View" popover (PLNRAPP-71)
+async function layoutButtons(w: ReturnType<typeof mountScreen>) {
+  await w.get('[data-testid=view-toggle]').trigger('click');
+  const body = new DOMWrapper(document.body);
+  await vi.waitFor(() => expect(body.find('[data-testid=view-layout]').exists()).toBe(true));
+  return body.findAll('[data-testid=view-layout] button');
+}
+
 beforeEach(async () => {
   mockMq(false);
   localStorage.clear();
@@ -103,12 +111,13 @@ describe('views:project', () => {
     await vi.waitFor(() => expect(w.find('[data-testid=view]').exists()).toBe(true));
     expect(w.get('[data-testid=view]').attributes('data-id')).toBe('list');
     expect(w.get('[data-testid=view]').text()).toBe(`${project}|status`);
-    const tabs = w.findAll('[role=tab]');
-    expect(tabs.map((x) => x.text())).toEqual(['Список', 'Доска']);
-    await tabs[1].trigger('mousedown', { button: 0 }); // reka Tabs selects on mousedown
+    const btns = await layoutButtons(w);
+    expect(btns.map((x) => x.text())).toEqual(['Список', 'Доска']);
+    await btns[1].trigger('click');
     await flushPromises();
     expect(r.currentRoute.value.path).toBe(`/p/${project}/board`);
     await vi.waitFor(() => expect(w.get('[data-testid=view]').attributes('data-id')).toBe('board'));
+    w.unmount();
   });
 
   it(':view выбирает вид', async () => {
@@ -117,7 +126,9 @@ describe('views:project', () => {
     await vi.waitFor(() =>
       expect(w.find('[data-testid=view]').attributes('data-id')).toBe('board'),
     );
-    expect(w.get('[aria-selected=true]').text()).toBe('Доска');
+    const pressed = (await layoutButtons(w)).filter((b) => b.attributes('aria-pressed') === 'true');
+    expect(pressed.map((b) => b.text())).toEqual(['Доска']);
+    w.unmount();
   });
 
   it('PJ-9: ?task открывает и закрывает панель; mobile — тот же ?task поверх вида', async () => {
