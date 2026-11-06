@@ -39,9 +39,7 @@ const saved = useSavedView(viewId);
 // saved view's layout draft (PLNRAPP-113): a layout pick stays in the view, '' — its own layout
 const savedLayout = ref('');
 const active = computed(() => {
-  const key = viewId.value
-    ? savedLayout.value || saved.value?.layout
-    : route.params.view || 'list';
+  const key = viewId.value ? savedLayout.value || saved.value?.layout : route.params.view || 'list';
   return tabs.value.find((v) => v.key === key) ?? tabs.value[0];
 });
 // tab: my node view — saved to the server at once
