@@ -45,15 +45,11 @@ defineExpose({ addFiles });
 
 <template>
   <section :aria-label="t('task.attachments')">
-    <h3 class="mb-1 flex items-center text-sm font-medium text-fg-muted">
-      <span class="flex-1">{{ t('task.attachments') }}</span>
-      <Button
-        variant="ghost"
-        size="sm"
-        :icon="Paperclip"
-        :aria-label="t('task.attach')"
-        @click="input?.click()"
-      />
+    <!-- the title is the tab (PLNRAPP-105) -->
+    <div class="mb-1 flex">
+      <Button variant="ghost" size="sm" :icon="Paperclip" @click="input?.click()">{{
+        t('task.attach')
+      }}</Button>
       <input
         ref="input"
         type="file"
@@ -62,7 +58,7 @@ defineExpose({ addFiles });
         data-testid="file-input"
         @change="onPick"
       />
-    </h3>
+    </div>
     <p v-if="error" role="alert" class="text-xs text-danger">{{ error }}</p>
     <ul class="flex flex-col gap-1">
       <li v-for="a in items" :key="a.id" class="flex items-center gap-2">

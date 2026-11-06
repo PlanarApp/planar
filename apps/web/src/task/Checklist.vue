@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { X } from 'lucide-vue-next';
 import { mutate, newId, rankBetween } from '../sync';
@@ -10,7 +10,6 @@ const props = defineProps<{ taskId: string }>();
 const { t } = useI18n();
 const items = useChecklist(props.taskId);
 const text = ref('');
-const done = computed(() => (items.value ?? []).filter((i) => i.done).length);
 
 async function add() {
   const s = text.value.trim();
@@ -28,8 +27,7 @@ async function add() {
 
 <template>
   <section :aria-label="t('task.checklist')">
-    <!-- the title is the tab (PLNRAPP-100) -->
-    <p v-if="items?.length" class="mb-1 text-sm text-fg-subtle">{{ done }}/{{ items.length }}</p>
+    <!-- the title and done/total are on the tab (PLNRAPP-100, -102) -->
     <ul>
       <li v-for="i in items" :key="i.id" class="flex min-h-11 items-center gap-2 md:min-h-8">
         <input

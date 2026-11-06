@@ -43,6 +43,8 @@ const dict = {
   closed: { ru: 'закрыт', en: 'closed' },
   locked: { ru: 'заблокирован', en: 'locked' },
   merged: { ru: 'смержен', en: 'merged' },
+  branchMerged: { ru: 'влита', en: 'merged' },
+  branchOpen: { ru: 'не влита', en: 'not merged' },
   title: { ru: 'GitLab', en: 'GitLab' },
   baseUrl: { ru: 'Адрес GitLab', en: 'GitLab URL' },
   token: { ru: 'Токен доступа', en: 'Access token' },

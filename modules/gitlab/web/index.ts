@@ -1,30 +1,5 @@
-import { defineComponent, h } from 'vue';
 import { db, defineWebModule } from '@planar/web/modules';
-
-// icon without lucide: branching (merge request)
-const Branch = defineComponent({
-  props: { size: { type: [Number, String], default: 16 } },
-  setup: (p) => () =>
-    h(
-      'svg',
-      {
-        width: p.size,
-        height: p.size,
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        stroke: 'currentColor',
-        'stroke-width': 2,
-        'stroke-linecap': 'round',
-        'stroke-linejoin': 'round',
-      },
-      [
-        h('circle', { cx: 6, cy: 5, r: 2 }),
-        h('circle', { cx: 6, cy: 19, r: 2 }),
-        h('circle', { cx: 18, cy: 12, r: 2 }),
-        h('path', { d: 'M6 7v10M8 12h8' }),
-      ],
-    ),
-});
+import { Branch } from './icons';
 
 export const web = defineWebModule({
   id: 'gitlab',
@@ -34,7 +9,11 @@ export const web = defineWebModule({
       label: { ru: 'GitLab', en: 'GitLab' },
       icon: Branch,
       order: 60,
-      count: (taskId) => db.table('gitlabMrs').where('taskId').equals(taskId).count(),
+      // merged / total (PLNRAPP-104)
+      count: async (taskId) => {
+        const mrs = await db.table('gitlabMrs').where('taskId').equals(taskId).toArray();
+        return mrs.length ? `${mrs.filter((m) => m.state === 'merged').length}/${mrs.length}` : 0;
+      },
       component: () => import('./MrPanel.vue'),
     },
   ],

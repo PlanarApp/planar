@@ -466,13 +466,17 @@ describe('task:extensions', () => {
     registerModules([
       { id: 'docs', taskPanels: [panel('pages', 'Документы')] },
       { id: 'time', taskPanels: [panel('log', 'Время')] },
+      { id: 'plugins', taskPanels: [{ ...panel('panel', 'Плагины'), order: 90 }] },
     ]);
     w = await open();
-    // modules of earlier tests stay registered — check the neighbours of Documents
-    await until(() => w.findAll('[role="tab"]').some((b) => b.text() === 'Время'));
+    // modules of earlier tests stay registered — check the neighbours of Documents and Plugins
+    await until(() => w.findAll('[role="tab"]').some((b) => b.text() === 'Плагины'));
     const names = w.findAll('[role="tab"]').map((b) => b.text());
     const at = names.indexOf('Документы');
-    expect(names.slice(at, at + 3)).toEqual(['Документы', 'Подзадачи', 'Чек-лист']);
+    // PLNRAPP-105, -106: attachments before Documents (and open), links before Plugins
+    expect(names.slice(at - 1, at + 3)).toEqual(['Вложения', 'Документы', 'Подзадачи', 'Чек-лист']);
+    expect(names.slice(-2)).toEqual(['Связи', 'Плагины']);
+    expect(w.find('[role="tab"][aria-selected="true"]').text()).toBe('Вложения');
   });
 
   it('панель-свойство — строка свойств, не вкладка (PLANARAPP-23)', async () => {
