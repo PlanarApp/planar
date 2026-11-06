@@ -341,6 +341,18 @@ describe('list:keys', () => {
     await key('k');
     expect(row('PLN-1').classes()).toContain('ring-2');
   });
+  it('PLNRAPP-80 D добавляет задачу в «Мой день» (солнце в строке) и убирает', async () => {
+    const { useAuth } = await import('../../../auth/useAuth');
+    useAuth().user.value = { id: ids.ann } as never;
+    await db.table('tasks').put(task(1));
+    await show();
+    expect(row('PLN-1').find('[data-testid=row-in-day]').exists()).toBe(false);
+    await key('j');
+    await key('d');
+    await until(() => row('PLN-1').find('[data-testid=row-in-day]').exists());
+    await key('d');
+    await until(() => !row('PLN-1').find('[data-testid=row-in-day]').exists());
+  });
   it('list:keys x выделяет, Esc снимает', async () => {
     await db.table('tasks').put(task(1));
     await show();

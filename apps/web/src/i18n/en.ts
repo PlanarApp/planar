@@ -121,6 +121,7 @@ export default {
   },
   myDay: {
     title: 'My day',
+    inDay: 'In my day',
     empty:
       'Nothing planned for today — add tasks with «+» below or «Add to my day» in a task menu.',
     dropHere: 'Drag a task here',
