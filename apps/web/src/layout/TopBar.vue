@@ -135,7 +135,6 @@ const fav = computed<FavRef | null>(() =>
       </RouterLink>
     </span>
     <span v-if="notice" role="alert" class="text-sm text-fg-muted">{{ notice }}</span>
-    <TrialBadge />
     <SyncStatus />
     <component
       :is="topbarComp(i.key, i.component)"
@@ -164,5 +163,6 @@ const fav = computed<FavRef | null>(() =>
       {{ t('topbar.install') }}
     </Button>
     <BellMenu />
+    <TrialBadge />
   </header>
 </template>
