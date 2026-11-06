@@ -50,11 +50,12 @@ const { isAdmin, lastSetupInfo, user } = useAuth();
 const modPages = useExtensions('settings');
 const { isMobile } = useBreakpoint();
 const router = useRouter();
-// «Импорт/Экспорт» — when there is something in it: the import module is on or the instance is in the cloud
+// «Импорт/Экспорт» — when there is something in it: the import module is on, or the owner (data export:
+// the cloud's own, on a self-hosted instance — how to do it on the server, PLNRAPP-86)
 const hasData = computed(
   () =>
     modPages.value.some((p) => p.key === IMPORT_PAGE && enabledForProject(p.moduleId)) ||
-    (!!lastSetupInfo.value?.cloud && user.value?.role === 'owner'),
+    user.value?.role === 'owner',
 );
 const builtin = computed(() =>
   (Object.keys(SECTIONS) as Id[]).filter(
