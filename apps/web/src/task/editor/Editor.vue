@@ -261,7 +261,7 @@ watch(
   (v) => editor.value?.setEditable(v && !readOnly()),
 );
 // long text — under "Expand"; collapsed only when noticeably taller than the clamp (PLNRAPP-93)
-const CLAMP = 320;
+const CLAMP = 160;
 const box = ref<HTMLElement>();
 const tall = ref(false);
 const expanded = ref(false);
