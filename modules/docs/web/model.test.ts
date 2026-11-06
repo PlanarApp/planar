@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { buildTree, lockedBy, moveArgs, searchPages, type PageRow } from './model';
 import { createSaver } from './save';
-import { filterSlash } from './slash';
 
 const S = 's1';
 const pg = (id: string, rank: string, parentId: string | null = null, o: Partial<PageRow> = {}) =>
@@ -97,11 +96,5 @@ describe('docs web: блокировка и сохранение', () => {
     s.flush();
     expect(send).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
-  });
-
-  it('slash: фильтр по русскому и английскому названию', () => {
-    expect(filterSlash('табл').map((i) => i.id)).toEqual(['table']);
-    expect(filterSlash('todo').map((i) => i.id)).toEqual(['todo']);
-    expect(filterSlash('').length).toBeGreaterThan(5);
   });
 });

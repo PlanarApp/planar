@@ -176,6 +176,7 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
       <Editor
         ref="composer"
         refs
+        image
         :model-value="draft"
         @update:model-value="setDraft"
         :members="(members ?? []).map((m) => ({ id: m.id, name: m.name }))"

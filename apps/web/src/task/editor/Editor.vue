@@ -10,6 +10,9 @@ import { ApiError } from '../../api/http';
 import { uploadFile } from '../../api/files';
 import { useAuth } from '../../auth/useAuth';
 import type { RefPick } from './RefPicker.vue';
+import Suggestion from '@tiptap/suggestion';
+import { PluginKey } from '@tiptap/pm/state';
+import { filterSlash, slashItems } from './slash';
 
 // link dialog (@@/@@@) — a separate chunk: the task index is built only when opened
 const RefPicker = defineAsyncComponent(() => import('./RefPicker.vue'));
@@ -36,7 +39,7 @@ const emit = defineEmits<{
   submit: [];
   attach: [files: File[]]; // non-images dropped into the editor
 }>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const error = ref('');
 
 // @ hint: the state is written by suggestion, we draw the list ourselves
@@ -46,6 +49,62 @@ const sug = ref<{
   command: (i: Item) => void;
   rect: DOMRect | null;
 } | null>(null);
+
+// suggestion render (@ — people, / — commands): the state is written to sug, the list is drawn below
+const sugRender = () => {
+  const set = (p: {
+    items: Item[];
+    command: (i: Item) => void;
+    clientRect?: (() => DOMRect | null) | null;
+  }) =>
+    (sug.value = {
+      items: p.items,
+      index: 0,
+      command: p.command,
+      rect: p.clientRect?.() ?? null,
+    });
+  return {
+    onStart: set,
+    onUpdate: set,
+    onExit: () => (sug.value = null),
+    onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+      const s = sug.value;
+      if (!s || !s.items.length) return false;
+      if (event.key === 'ArrowDown') s.index = (s.index + 1) % s.items.length;
+      else if (event.key === 'ArrowUp') s.index = (s.index + s.items.length - 1) % s.items.length;
+      else if (event.key === 'Enter') s.command(s.items[s.index]);
+      else return false;
+      return true;
+    },
+  };
+};
+
+// '/' — block menu, as in documents (PLNRAPP-91)
+const fileInput = ref<HTMLInputElement>();
+const Slash = Extension.create({
+  name: 'slashMenu',
+  addProseMirrorPlugins() {
+    return [
+      Suggestion<Item, Item>({
+        editor: this.editor,
+        pluginKey: new PluginKey('slashMenu'),
+        char: '/',
+        items: ({ query }) =>
+          filterSlash(query, props.image).map((i) => ({
+            id: i.id,
+            label: i.title[locale.value === 'en' ? 'en' : 'ru'],
+          })),
+        command: ({ editor: ed, range, props: item }) => {
+          ed.chain().focus().deleteRange(range).run();
+          slashItems
+            .find((i) => i.id === item.id)
+            ?.run(ed, { pickImage: () => fileInput.value?.click() });
+        },
+        render: sugRender,
+      }),
+    ];
+  },
+});
 
 // @@: the characters are removed, the dialog opens at the cursor; the choice inserts the link there
 const refAt = ref<{ pos: number; rect: { left: number; top: number; bottom: number } } | null>(
@@ -132,36 +191,10 @@ const options = (extra: Extensions = [], collab = false): Partial<EditorOptions>
             .filter((m) => m.name.toLowerCase().includes(query.toLowerCase()))
             .slice(0, 8)
             .map((m) => ({ id: m.id, label: m.name })),
-        render: () => {
-          const set = (p: {
-            items: Item[];
-            command: (i: Item) => void;
-            clientRect?: (() => DOMRect | null) | null;
-          }) =>
-            (sug.value = {
-              items: p.items,
-              index: 0,
-              command: p.command,
-              rect: p.clientRect?.() ?? null,
-            });
-          return {
-            onStart: set,
-            onUpdate: set,
-            onExit: () => (sug.value = null),
-            onKeyDown: ({ event }: { event: KeyboardEvent }) => {
-              const s = sug.value;
-              if (!s || !s.items.length) return false;
-              if (event.key === 'ArrowDown') s.index = (s.index + 1) % s.items.length;
-              else if (event.key === 'ArrowUp')
-                s.index = (s.index + s.items.length - 1) % s.items.length;
-              else if (event.key === 'Enter') s.command(s.items[s.index]);
-              else return false;
-              return true;
-            },
-          };
-        },
+        render: sugRender,
       },
     }),
+    Slash,
     ...(props.refs ? [refTrigger] : []),
     ...extra,
   ],
@@ -250,6 +283,19 @@ const sugStyle = (r: DOMRect | null, n: number) => {
 <template>
   <div class="task-editor relative">
     <EditorContent :editor="editor ?? undefined" />
+    <input
+      v-if="image"
+      ref="fileInput"
+      type="file"
+      accept="image/*"
+      class="hidden"
+      @change="
+        (e) => {
+          void insertFiles([...((e.target as HTMLInputElement).files ?? [])]);
+          (e.target as HTMLInputElement).value = '';
+        }
+      "
+    />
     <p v-if="error" role="alert" class="mt-1 text-xs text-danger">{{ error }}</p>
     <p
       v-if="unsynced"
@@ -300,7 +346,7 @@ const sugStyle = (r: DOMRect | null, n: number) => {
   pointer-events: none;
   color: var(--color-fg-subtle);
 }
-.task-editor .ProseMirror ul {
+.task-editor .ProseMirror ul:not([data-type='taskList']) {
   list-style: disc;
   padding-left: 1.25rem;
 }
@@ -308,12 +354,47 @@ const sugStyle = (r: DOMRect | null, n: number) => {
   list-style: decimal;
   padding-left: 1.25rem;
 }
+.task-editor .ProseMirror ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+.task-editor .ProseMirror ul[data-type='taskList'] li {
+  display: flex;
+  gap: 0.5rem;
+}
+.task-editor .ProseMirror ul[data-type='taskList'] li > div {
+  flex: 1;
+}
 .task-editor .ProseMirror h1,
 .task-editor .ProseMirror h2,
 .task-editor .ProseMirror h3 {
   font-weight: 600;
+  margin: 0.75rem 0 0.25rem;
+}
+.task-editor .ProseMirror h1 {
+  font-size: var(--text-2xl);
+}
+.task-editor .ProseMirror h2 {
+  font-size: var(--text-xl);
+}
+.task-editor .ProseMirror h3 {
   font-size: var(--text-lg);
-  margin: 0.5rem 0 0.25rem;
+}
+.task-editor .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+.task-editor .ProseMirror th,
+.task-editor .ProseMirror td {
+  border: 1px solid var(--color-border-strong);
+  padding: 0.25rem 0.5rem;
+  vertical-align: top;
+}
+.task-editor .ProseMirror th {
+  background: var(--color-bg-muted);
+  font-weight: 600;
+  text-align: left;
 }
 .task-editor .ProseMirror code {
   font-family: var(--font-mono);

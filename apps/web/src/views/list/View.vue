@@ -49,6 +49,7 @@ import { useColumnWidths } from './widths';
 import { nextSort, sortMark } from '../sortHead';
 import type { SortBy } from '../../tasks';
 import { applyMove, planMove } from '../board/plan';
+import { tokenOf } from '../../command/hotkeys';
 
 const props = defineProps<ViewProps>();
 const { t, locale } = useI18n();
@@ -406,13 +407,14 @@ function onWindowKey(e: KeyboardEvent) {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return;
   const inSheet = sideTaskOpen() && !!t.closest('[data-testid=task-side]');
   if (t !== document.body && !inSheet) return;
-  if (inSheet && e.key !== 'j' && e.key !== 'k') return;
+  const k = tokenOf(e);
+  if (inSheet && k !== 'j' && k !== 'k') return;
   if (sideTaskOpen()) {
     const shown = router.currentRoute.value.query.task;
     const cur = items.value.find((x) => x.kind === 'task' && x.task.key === shown);
     if (cur) focusedId.value = cur.id;
   }
-  if (!listKey(e.key)) return;
+  if (!listKey(k)) return;
   e.preventDefault();
   if (!inSheet) scroller.value?.focus({ preventScroll: true });
 }
@@ -426,9 +428,9 @@ function onKey(e: KeyboardEvent) {
     t !== e.currentTarget &&
     !!t.closest('[role=row]') &&
     (t.tagName === 'BUTTON' || (t as HTMLInputElement).type === 'checkbox') &&
-    ['j', 'k', 'x', 'd', 's', 'a', 'm'].includes(e.key);
+    ['j', 'k', 'x', 'd', 's', 'a', 'm'].includes(tokenOf(e));
   if ((t !== e.currentTarget && !onRowControl) || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (listKey(e.key)) e.preventDefault();
+  if (listKey(tokenOf(e))) e.preventDefault();
 }
 // the task's own keys: with the side panel open its task is the focused one — the panel handles them
 const pick = (task: TaskView, col: string, action: string) => {
