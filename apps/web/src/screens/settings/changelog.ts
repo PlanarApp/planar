@@ -19,7 +19,8 @@ export function parseChangelog(md: string): Release[] {
       if (cur) out.push(cur);
     } else if (!cur) continue;
     else if (line.startsWith('### ')) cur.sections.push({ title: line.slice(4), items: [] });
-    else if (line.startsWith('- ')) cur.sections.at(-1)?.items.push(line.slice(2).replace(/`/g, ''));
+    else if (line.startsWith('- '))
+      cur.sections.at(-1)?.items.push(line.slice(2).replace(/`/g, ''));
   }
   return out;
 }
