@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { SmilePlus } from 'lucide-vue-next';
 import { TooltipProvider } from 'reka-ui';
 import type { Row } from '@planar/shared';
-import { Button, Popover, Tooltip } from '../ui';
+import { IconButton, Popover, Tooltip } from '../ui';
 
 const props = defineProps<{
   rows: Row<'commentReactions'>[];
@@ -52,11 +52,10 @@ const pick = (e: string) => {
       </Tooltip>
       <Popover v-model:open="open">
         <template #trigger>
-          <Button
+          <IconButton
             size="sm"
-            variant="ghost"
             :icon="SmilePlus"
-            :aria-label="t('task.addReaction')"
+            :label="t('task.addReaction')"
             data-testid="reaction-add"
           />
         </template>
@@ -73,6 +72,8 @@ const pick = (e: string) => {
           </button>
         </div>
       </Popover>
+      <!-- the comment's actions — in the same row (PLNRAPP-108) -->
+      <slot />
     </div>
   </TooltipProvider>
 </template>
