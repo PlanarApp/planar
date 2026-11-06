@@ -69,6 +69,8 @@ const columns = computed(() =>
       statusKey: statusKey.value,
       labelKey: labelKey.value,
     },
+  ).filter(
+    (g) => props.options.groupBy === 'none' || !props.options.hideEmptyGroups || g.tasks.length,
   ),
 );
 

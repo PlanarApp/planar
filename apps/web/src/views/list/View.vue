@@ -122,10 +122,12 @@ const groups = computed(() => {
     statusKey: statusKey.value,
     labelKey: labelKey.value,
   };
-  return groupTasks(tasks, o.groupBy, ctx).map((g) => ({
-    ...g,
-    tasks: sortTasks(g.tasks, o.sortBy, o.sortDir),
-  }));
+  return groupTasks(tasks, o.groupBy, ctx)
+    .filter((g) => o.groupBy === 'none' || !o.hideEmptyGroups || g.tasks.length)
+    .map((g) => ({
+      ...g,
+      tasks: sortTasks(g.tasks, o.sortBy, o.sortDir),
+    }));
 });
 
 // collapsed subtasks: parent ids, per project — in localStorage

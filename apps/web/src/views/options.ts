@@ -20,6 +20,8 @@ export interface ViewOptions {
   showSubtasks: boolean;
   /** Board: show empty card fields (click — set a value), as in ClickUp */
   showEmpty?: boolean;
+  /** List, Board: hide groups (columns) without tasks */
+  hideEmptyGroups?: boolean;
   /** List: wrap long task names by words instead of cutting them */
   wrapTitles?: boolean;
   /** List, Board: the task key before the name (the Table has its own "Key" column) */
@@ -37,6 +39,7 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   sortDir: 'asc',
   showSubtasks: false,
   showEmpty: false,
+  hideEmptyGroups: false,
   wrapTitles: false,
   showKey: false,
   me: null,

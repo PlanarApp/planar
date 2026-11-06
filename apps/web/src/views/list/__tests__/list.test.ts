@@ -114,6 +114,15 @@ describe('list:groups', () => {
     await show({ groupBy: 'assignee' });
     expect(rows()).toHaveLength(2);
   });
+  it('list:groups hideEmptyGroups скрывает группу без задач (PLNRAPP-115)', async () => {
+    await db.table('tasks').put(task(1));
+    await show();
+    expect(w.text()).toContain('Done');
+    w.unmount();
+    await show({ hideEmptyGroups: true });
+    expect(w.text()).not.toContain('Done');
+    expect(rows()).toHaveLength(1);
+  });
   it('list:groups сворачивание скрывает задачи группы', async () => {
     await db.table('tasks').bulkPut([task(1), task(2)]);
     await show();
