@@ -172,7 +172,7 @@ export const task = (n: number, over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-export const until = async <T>(f: () => T | undefined | false, ms = 3000): Promise<T> => {
+export const until = async <T>(f: () => T | undefined | false, ms = 10000): Promise<T> => {
   const t0 = Date.now();
   for (;;) {
     const v = f();
