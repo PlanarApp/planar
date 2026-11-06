@@ -403,6 +403,15 @@ describe('list:polish', () => {
     await row('PLN-1').get('button').trigger('keydown', { key: 'x' });
     expect(useSelection().selected.value.size).toBe(1);
   });
+  it('PLNRAPP-88: j/x работают на русской раскладке (по e.code)', async () => {
+    await db.table('tasks').bulkPut([1, 2].map((n) => task(n, { rank: rank(n) })));
+    await show();
+    useSelection().clear();
+    const grid = w.get('[role=grid]');
+    await grid.trigger('keydown', { key: 'о', code: 'KeyJ' });
+    await grid.trigger('keydown', { key: 'ч', code: 'KeyX' });
+    expect(useSelection().selected.value.size).toBe(1);
+  });
 });
 
 describe('list:virtual', () => {
