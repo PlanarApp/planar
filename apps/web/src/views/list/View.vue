@@ -411,7 +411,21 @@ watch(items, (now, before) => {
   );
   focusedId.value = near?.kind === 'task' ? rowOf.get(near.task.id)! : null;
   const j = now.findIndex((x) => x.id === focusedId.value);
-  if (j >= 0) virt.value.scrollToIndex(j);
+  if (j < 0) return;
+  virt.value.scrollToIndex(j);
+  // the side panel showed the task that left (its status changed there): the panel shows the new
+  // focused one and keys go back to the list; focus lost with the removed row — too (PLNRAPP-107)
+  const gone = before[i];
+  const next = now[j];
+  const shown =
+    sideTaskOpen() &&
+    gone.kind === 'task' &&
+    router.currentRoute.value.query.task === gone.task.key;
+  if (shown && next.kind === 'task') showTask(next.task.key);
+  void nextTick(() => {
+    const a = document.activeElement;
+    if (shown || !a || a === document.body) scroller.value?.focus({ preventScroll: true });
+  });
 });
 // focus lost (on the page after a dialog/panel/filter closes) or in the side panel: list keys still
 // work (PLNRAPP-79); from the page — focus comes back to the list

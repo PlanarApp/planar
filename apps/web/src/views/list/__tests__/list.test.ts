@@ -367,6 +367,25 @@ describe('list:keys', () => {
     await until(() => rows().length === 1);
     expect(ringed()).toBe('PLN-1');
   });
+  it('PLNRAPP-107 выпала задача из боковой панели — панель показывает новую, фокус — в список', async () => {
+    const { taskOpenMode } = await import('../../open');
+    const ts = [1, 2, 3].map((n) => task(n, { rank: rank(n) }));
+    await db.table('tasks').bulkPut(ts);
+    await show();
+    taskOpenMode.value = 'side';
+    await key('j');
+    await key('j');
+    await r.push({ query: { task: 'PLN-2' } });
+    // focus in the panel (its status picker)
+    const sheet = document.body.appendChild(document.createElement('button'));
+    sheet.focus();
+    await db.table('tasks').delete(ts[1].id);
+    await poll(async () => r.currentRoute.value.query.task === 'PLN-3');
+    await until(() => document.activeElement === w.get('[role=grid]').element);
+    sheet.remove();
+    await r.push({ query: {} });
+    taskOpenMode.value = 'modal';
+  });
   it('PLNRAPP-80 D добавляет задачу в «Мой день» (солнце в строке) и убирает', async () => {
     const { useAuth } = await import('../../../auth/useAuth');
     useAuth().user.value = { id: ids.ann } as never;
