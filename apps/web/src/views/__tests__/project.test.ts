@@ -56,10 +56,10 @@ const space = uuidv7();
 const project = uuidv7();
 const load = async () => ({ default: { template: '<div data-testid="v" />' } });
 
-function mockMq(mobile: boolean) {
+function mockMq(mobile: boolean, wide = true) {
   resetBreakpoint();
   window.matchMedia = vi.fn().mockImplementation((q: string) => ({
-    matches: q.includes('max-width') ? mobile : false,
+    matches: q.includes('max-width') ? mobile : q.includes('min-width') ? wide : false,
     addEventListener: () => {},
   })) as unknown as typeof window.matchMedia;
 }
@@ -138,6 +138,24 @@ describe('views:project', () => {
     await vi.waitFor(() => expect(w.find('[data-testid=panel]').exists()).toBe(true));
     closeTask();
     await flushPromises();
+  });
+
+  it('PLNRAPP-65: на ноутбуке боковая панель — поверх экрана, место не забирает', async () => {
+    mockMq(false, false);
+    const { taskOpenMode } = await import('../open');
+    const { sidePanels } = await import('../../ui/taskPanelWidth');
+    taskOpenMode.value = 'side';
+    const before = sidePanels.value;
+    const w = mountScreen();
+    await flushPromises();
+    openTask('PRJ-4');
+    await vi.waitFor(() => expect(w.find('[data-testid=task-side]').exists()).toBe(true));
+    expect(sidePanels.value).toBe(before);
+    closeTask();
+    await flushPromises();
+    w.unmount();
+    taskOpenMode.value = 'modal';
+    mockMq(false);
   });
 
   it('PLANARAPP-63: Esc закрывает боковую панель и возвращает место экрану', async () => {
