@@ -13,7 +13,7 @@ import {
   type TaskView,
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
-import { ChevronDown, ChevronRight, GripVertical, ListTree } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, GripVertical, ListTree, Sun } from 'lucide-vue-next';
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
@@ -52,6 +52,8 @@ const props = defineProps<{
   wrap?: boolean;
   /** the task key before the name */
   showKey?: boolean;
+  /** in today's «My day» plan — a sun before the name */
+  inDay?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -252,6 +254,13 @@ function save() {
       />
       <span v-else class="flex items-center gap-1">
         <BlockedIcon v-if="blocked" />
+        <Sun
+          v-if="inDay"
+          :size="14"
+          class="shrink-0 text-warning"
+          :aria-label="t('myDay.inDay')"
+          data-testid="row-in-day"
+        />
         <span v-if="showKey" class="shrink-0 text-xs text-fg-subtle" data-testid="row-key">{{
           task.key
         }}</span>

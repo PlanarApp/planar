@@ -29,6 +29,8 @@ import { useExtensions } from '../../modules/registry';
 import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
+import { useAuth } from '../../auth/useAuth';
+import { planToday, unplan, useMyDay } from '../../inbox/myDay';
 import {
   createStatus,
   dictProjectOf,
@@ -54,6 +56,14 @@ const sel = useSelection();
 
 const project = useProject(() => props.projectId);
 const blocked = useBlockedIds(() => props.projectId);
+// «My day»: today's tasks are marked in the row, D adds the focused task or removes it (PLNRAPP-80)
+const me = useAuth().user;
+const day = useMyDay(() => me.value?.id);
+const inDay = computed(() => new Set((day.value?.today ?? []).map((x) => x.task.id)));
+function toggleDay(taskId: string) {
+  const plan = day.value?.today.find((x) => x.task.id === taskId)?.plan;
+  void (plan ? unplan(plan.id) : planToday(taskId, day.value));
+}
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 // a project view reads its own dictionaries; a summary — those of all its projects (grouped by name)
 const dictProject = () => dictProjectOf(props.scope, props.projectId);
@@ -392,7 +402,7 @@ function onKey(e: KeyboardEvent) {
     t !== e.currentTarget &&
     !!t.closest('[role=row]') &&
     (t.tagName === 'BUTTON' || (t as HTMLInputElement).type === 'checkbox') &&
-    ['j', 'k', 'x'].includes(e.key);
+    ['j', 'k', 'x', 'd'].includes(e.key);
   if ((t !== e.currentTarget && !onRowControl) || e.ctrlKey || e.metaKey || e.altKey) return;
   const task = focusedTask.value;
   const handlers: Record<string, () => void> = {
@@ -402,6 +412,7 @@ function onKey(e: KeyboardEvent) {
     ArrowUp: () => moveFocus(-1),
     Enter: () => task && openTask(task.key),
     x: () => task && sel.toggle(task.id),
+    d: () => task && toggleDay(task.id),
     F2: () => task && startEdit(focusedId.value!), // edit, not opening after a click
     Escape: () => sel.clear(),
   };
@@ -696,6 +707,7 @@ watch(
                 :editing="editing === it.id"
                 :fields="options.fields"
                 :blocked="blocked.has(it.task.id)"
+                :in-day="inDay.has(it.task.id)"
                 :members="members ?? []"
                 :labels="labels ?? []"
                 :depth="it.depth"
