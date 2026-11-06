@@ -2,6 +2,8 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { VueDraggable } from 'vue-draggable-plus';
+import { rankBetween } from '../../sync';
 import { CopyPlus, Link, MoreHorizontal, Pencil, Trash2 } from 'lucide-vue-next';
 import { Button, Dialog, Menu } from '../../ui';
 import { deleteView, saveView, updateView } from './ops';
@@ -79,6 +81,16 @@ const items = (v: SavedView) => [
       ]
     : []),
 ];
+// tabs are dragged to change their order (PLNRAPP-114): the moved view gets a rank between its new neighbours
+function move(e: { oldIndex?: number; newIndex?: number }) {
+  const list = [...views.value];
+  const [v] = list.splice(e.oldIndex!, 1);
+  const i = e.newIndex!;
+  list.splice(i, 0, v!);
+  void updateView(v!.id, {
+    rank: rankBetween(list[i - 1]?.rank ?? null, list[i + 1]?.rank ?? null),
+  });
+}
 const open = (v: SavedView) =>
   void router.push(`/p/${encodeURIComponent(props.projectId)}/v/${encodeURIComponent(v.id)}`);
 async function confirmDelete() {
@@ -91,38 +103,50 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <div
-    v-for="v in views"
-    :key="v.id"
-    class="inline-flex shrink-0 items-center rounded-md"
-    :class="v.id === activeId ? 'bg-bg-muted text-fg' : 'text-fg-muted hover:bg-bg-subtle'"
+  <!-- a shared view without the member right can't be moved: its rank is not ours to change -->
+  <VueDraggable
+    :model-value="views"
+    :animation="150"
+    filter="[data-locked]"
+    :prevent-on-filter="false"
+    class="flex items-center gap-1"
+    data-testid="saved-tabs"
+    @update="move"
   >
-    <Menu context :items="items(v)">
-      <button
-        role="tab"
-        type="button"
-        :aria-selected="v.id === activeId"
-        :data-saved-view="v.id"
-        class="inline-flex h-11 md:h-7 items-center gap-1.5 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2 ring-focus"
-        @click="open(v)"
-      >
-        <component :is="viewIcon(v.icon)" :size="16" aria-hidden="true" />
-        <!-- мобильная: только иконка, как у вкладок видов -->
-        <span class="max-md:sr-only">{{ v.name }}</span>
-      </button>
-    </Menu>
-    <Menu :items="items(v)">
-      <template #trigger>
+    <div
+      v-for="v in views"
+      :key="v.id"
+      class="inline-flex shrink-0 items-center rounded-md"
+      :class="v.id === activeId ? 'bg-bg-muted text-fg' : 'text-fg-muted hover:bg-bg-subtle'"
+      :data-locked="editable(v) ? undefined : ''"
+    >
+      <Menu context :items="items(v)">
         <button
+          role="tab"
           type="button"
-          :aria-label="`${t('views.saved.menu')}: ${v.name}`"
-          class="inline-flex h-11 w-8 md:h-7 items-center justify-center rounded-md outline-none focus-visible:ring-2 ring-focus"
+          :aria-selected="v.id === activeId"
+          :data-saved-view="v.id"
+          class="inline-flex h-11 md:h-7 items-center gap-1.5 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2 ring-focus"
+          @click="open(v)"
         >
-          <MoreHorizontal :size="14" aria-hidden="true" />
+          <component :is="viewIcon(v.icon)" :size="16" aria-hidden="true" />
+          <!-- мобильная: только иконка, как у вкладок видов -->
+          <span class="max-md:sr-only">{{ v.name }}</span>
         </button>
-      </template>
-    </Menu>
-  </div>
+      </Menu>
+      <Menu :items="items(v)">
+        <template #trigger>
+          <button
+            type="button"
+            :aria-label="`${t('views.saved.menu')}: ${v.name}`"
+            class="inline-flex h-11 w-8 md:h-7 items-center justify-center rounded-md outline-none focus-visible:ring-2 ring-focus"
+          >
+            <MoreHorizontal :size="14" aria-hidden="true" />
+          </button>
+        </template>
+      </Menu>
+    </div>
+  </VueDraggable>
 
   <SaveViewDialog
     v-model:open="renameOpen"
