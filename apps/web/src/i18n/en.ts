@@ -604,6 +604,7 @@ export default {
       'Data modules work only in projects where they are enabled. Disabling keeps the module data.',
     instanceModules: 'Instance modules',
     cloud: 'Cloud',
+    data: 'Import/Export',
     about: 'About',
     usersDesc: 'Accounts and roles.',
     deleteLabel: 'Delete label?',

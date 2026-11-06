@@ -9,6 +9,7 @@ import { onMutationError } from '../sync';
 import { useSpaces } from '../tasks';
 import { Select, Tabs, useBreakpoint } from '../ui';
 import UsersSettings from './settings/UsersSettings.vue';
+import { IMPORT_PAGE } from './settings/data';
 
 const lazy = (n: string) => defineAsyncComponent(() => import(`./settings/${n}Settings.vue`));
 type Level = GroupScope['level'];
@@ -25,6 +26,8 @@ const SECTIONS = {
   users: { c: UsersSettings, admin: true, level: 'workspace' },
   // without projectId — the shared modules of the instance
   instanceModules: { c: lazy('Modules'), admin: true, level: 'workspace' },
+  // the import module's page and the cloud data export/import (PLNRAPP-86)
+  data: { c: lazy('Data'), level: 'workspace' },
   // cloud-link: only on an instance hosted in the cloud
   cloud: { c: lazy('Cloud'), admin: true, cloud: true, level: 'workspace' },
   about: { c: lazy('About'), level: 'workspace' },
@@ -42,19 +45,26 @@ const atLevel = (l: Level | 'any' | undefined) =>
 
 const { t, te, locale } = useI18n();
 const route = useRoute();
-const { isAdmin, lastSetupInfo } = useAuth();
+const { isAdmin, lastSetupInfo, user } = useAuth();
+// pages of enabled modules (section = <moduleId>:<id>) — after the built-in ones
+const modPages = useExtensions('settings');
 const { isMobile } = useBreakpoint();
 const router = useRouter();
+// «Импорт/Экспорт» — when there is something in it: the import module is on or the instance is in the cloud
+const hasData = computed(
+  () =>
+    modPages.value.some((p) => p.key === IMPORT_PAGE && enabledForProject(p.moduleId)) ||
+    (!!lastSetupInfo.value?.cloud && user.value?.role === 'owner'),
+);
 const builtin = computed(() =>
   (Object.keys(SECTIONS) as Id[]).filter(
     (s) =>
+      (s !== 'data' || hasData.value) &&
       (isAdmin.value || !('admin' in SECTIONS[s])) &&
       (!!lastSetupInfo.value?.cloud || !('cloud' in SECTIONS[s])) &&
       (props.scope ? atLevel(SECTIONS[s].level) : SECTIONS[s].level !== 'project'),
   ),
 );
-// pages of enabled modules (section = <moduleId>:<id>) — after the built-in ones
-const modPages = useExtensions('settings');
 // C-schema v16: a data module's page shows if the module is on in the project / in a project of the space / anywhere (Workspace)
 const scopeProjects = (l: Level | undefined) =>
   l === 'project'
@@ -65,6 +75,7 @@ const scopeProjects = (l: Level | undefined) =>
 const pages = computed(() =>
   modPages.value.filter(
     (p) =>
+      p.key !== IMPORT_PAGE &&
       (isAdmin.value || !p.adminOnly) &&
       atLevel(p.level) &&
       enabledForProject(p.moduleId, scopeProjects(p.level)),
