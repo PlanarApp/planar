@@ -182,7 +182,7 @@ function save() {
     :aria-selected="selected"
     :data-task="task.key"
     :class="[
-      'group relative flex h-full items-center gap-2 border-b border-border px-3 text-sm',
+      'group relative flex h-full items-center gap-2 border-b border-border pl-4 pr-3 text-sm',
       // wrapped: the same layout, only the name wraps; the row grows by its extra lines
       wrap ? 'min-h-8' : '',
       selected ? 'bg-accent-subtle' : 'hover:bg-bg-subtle',
@@ -196,7 +196,7 @@ function save() {
   >
     <div
       v-if="draggable"
-      class="-ml-2 flex w-4 shrink-0 cursor-grab items-center justify-center text-fg-subtle opacity-0 group-hover:opacity-100 touch-none"
+      class="absolute inset-y-0 left-0 flex w-4 cursor-grab items-center justify-center text-fg-subtle opacity-0 group-hover:opacity-100 touch-none"
       data-testid="row-grip"
       :aria-label="t('list.drag')"
       @pointerdown.stop.prevent="emit('drag', $event)"
@@ -204,7 +204,7 @@ function save() {
     >
       <GripVertical :size="14" />
     </div>
-    <div role="gridcell" class="w-5 shrink-0" @click.stop>
+    <div role="gridcell" class="flex w-4 shrink-0" @click.stop>
       <input
         type="checkbox"
         :checked="selected"
