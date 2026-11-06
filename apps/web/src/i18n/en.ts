@@ -315,6 +315,7 @@ export default {
     deleteGo: 'Delete forever',
     deleting: 'The instance is being deleted. The page will stop opening in a few minutes.',
     badge: 'Trial: {n} d',
+    badgeShort: '{n} d',
     paywall: 'The trial is over. Subscribe to give your team access again.',
     loginExpired: 'The trial is over. Only an administrator can sign in to subscribe.',
     err: {
