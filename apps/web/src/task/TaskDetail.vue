@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, inject, nextTick, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, inject, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { routerKey, useRoute } from 'vue-router';
 import {
@@ -41,7 +41,9 @@ import {
 import { useExtensions } from '../modules/registry';
 import { useSpaces, useTask } from '../tasks/queries';
 import { AvatarStack, Button, IconButton, Menu, useBreakpoint, type MenuItem } from '../ui';
-import { taskOpenMode, type TaskOpenMode } from '../views/open';
+import { takePendingAction, taskOpenMode, type TaskOpenMode } from '../views/open';
+import { useHotkey } from '../command/hotkeys';
+import { toggleToday, useMyDay } from '../inbox/myDay';
 import { setTaskPanelPinned, taskPanelPinned } from '../ui/taskPanelWidth';
 import { toast } from '../ui/toast';
 import FavStar from '../ui/FavStar.vue';
@@ -198,6 +200,21 @@ const onKeydown = (e: KeyboardEvent) => {
     emit('close');
 };
 
+// --- keys of the open task (PLNRAPP-79): work from anywhere but input fields
+const root = ref<HTMLElement>();
+const feed = ref<InstanceType<typeof Feed>>();
+const day = useMyDay(() => user.value?.id);
+const pickerOf = (name: string) => () =>
+  root.value?.querySelector<HTMLElement>(`[data-col=${name}] button`)?.click();
+const actions: Record<string, () => void> = {
+  s: pickerOf('status'),
+  a: pickerOf('assignee'),
+  m: () => feed.value?.focusComposer(),
+  d: () => void toggleToday(props.task.id, day.value),
+};
+for (const [key, run] of Object.entries(actions)) useHotkey(key, run, { label: `cmd.hk.${key}` });
+onMounted(() => actions[takePendingAction()]?.());
+
 // --- module tabs
 const extensions = useExtensions('taskPanels', () => props.task.projectId);
 const panels = computed(() => extensions.value.filter((p) => !p.property));
@@ -227,6 +244,7 @@ const panelComponent = computed(() => {
 
 <template>
   <article
+    ref="root"
     :class="[
       '@container flex h-full w-full flex-col bg-bg',
       mode === 'page' && 'mx-auto max-w-7xl',
@@ -393,6 +411,7 @@ const panelComponent = computed(() => {
                 statusColor && { background: `color-mix(in srgb, ${statusColor} 16%, transparent)` }
               "
               data-testid="status-pill"
+              data-col="status"
             >
               <StatusPicker
                 :model-value="task.statusId"
@@ -406,7 +425,7 @@ const panelComponent = computed(() => {
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <Users :size="15" />{{ t('tasks.assignee') }}
             </dt>
-            <dd class="min-w-0">
+            <dd class="min-w-0" data-col="assignee">
               <AssigneePicker
                 :model-value="task.assigneeIds"
                 :space-id="task.spaceId"
@@ -525,7 +544,7 @@ const panelComponent = computed(() => {
         class="flex shrink-0 flex-col border-t border-border bg-bg-subtle p-4 @4xl:min-h-0 @4xl:w-96 @4xl:border-t-0 @4xl:border-l"
         :aria-label="t('task.activity')"
       >
-        <Feed :task="task" class="@4xl:min-h-0 @4xl:flex-1" />
+        <Feed ref="feed" :task="task" class="@4xl:min-h-0 @4xl:flex-1" />
       </aside>
     </div>
   </article>

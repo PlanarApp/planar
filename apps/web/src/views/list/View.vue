@@ -27,11 +27,11 @@ import { Button, Dialog, EmptyState, Input, Menu, useBreakpoint, type MenuItem }
 import { router } from '../../router';
 import { useExtensions } from '../../modules/registry';
 import { openTask, useSelection, type ViewProps } from '..';
-import { showTask, sideTaskOpen } from '../open';
+import { openTaskFor, showTask, sideTaskOpen } from '../open';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
 import { useAuth } from '../../auth/useAuth';
-import { planToday, unplan, useMyDay } from '../../inbox/myDay';
+import { toggleToday, useMyDay } from '../../inbox/myDay';
 import {
   createStatus,
   dictProjectOf,
@@ -61,10 +61,6 @@ const blocked = useBlockedIds(() => props.projectId);
 const me = useAuth().user;
 const day = useMyDay(() => me.value?.id);
 const inDay = computed(() => new Set((day.value?.today ?? []).map((x) => x.task.id)));
-function toggleDay(taskId: string) {
-  const plan = day.value?.today.find((x) => x.task.id === taskId)?.plan;
-  void (plan ? unplan(plan.id) : planToday(taskId, day.value));
-}
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 // a project view reads its own dictionaries; a summary — those of all its projects (grouped by name)
 const dictProject = () => dictProjectOf(props.scope, props.projectId);
@@ -401,22 +397,27 @@ function moveFocus(d: 1 | -1) {
   const it = list[i];
   if (it.kind === 'task' && sideTaskOpen()) showTask(it.task.key);
 }
-// side panel open, focus in it (or nowhere): j/k walk the list from the shown task (PLNRAPP-79)
-function onSheetKey(e: KeyboardEvent) {
+// focus lost (on the page after a dialog/panel/filter closes) or in the side panel: list keys still
+// work (PLNRAPP-79); from the page — focus comes back to the list
+function onWindowKey(e: KeyboardEvent) {
   const t = e.target as HTMLElement;
-  if (!sideTaskOpen() || e.ctrlKey || e.metaKey || e.altKey || scroller.value?.contains(t)) return;
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || scroller.value?.contains(t))
+    return;
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return;
-  if (t !== document.body && !t.closest('[data-testid=task-side]')) return;
-  const d = e.key === 'j' ? 1 : e.key === 'k' ? -1 : 0;
-  if (!d) return;
-  const shown = router.currentRoute.value.query.task;
-  const cur = items.value.find((x) => x.kind === 'task' && x.task.key === shown);
-  if (cur) focusedId.value = cur.id;
+  const inSheet = sideTaskOpen() && !!t.closest('[data-testid=task-side]');
+  if (t !== document.body && !inSheet) return;
+  if (inSheet && e.key !== 'j' && e.key !== 'k') return;
+  if (sideTaskOpen()) {
+    const shown = router.currentRoute.value.query.task;
+    const cur = items.value.find((x) => x.kind === 'task' && x.task.key === shown);
+    if (cur) focusedId.value = cur.id;
+  }
+  if (!listKey(e.key)) return;
   e.preventDefault();
-  moveFocus(d);
+  if (!inSheet) scroller.value?.focus({ preventScroll: true });
 }
-onMounted(() => window.addEventListener('keydown', onSheetKey));
-onBeforeUnmount(() => window.removeEventListener('keydown', onSheetKey));
+onMounted(() => window.addEventListener('keydown', onWindowKey));
+onBeforeUnmount(() => window.removeEventListener('keydown', onWindowKey));
 function onKey(e: KeyboardEvent) {
   // list keys — when focus is on the list itself or on a row's button/checkbox (after a picker
   // focus returns to its button); not in input fields
@@ -425,9 +426,25 @@ function onKey(e: KeyboardEvent) {
     t !== e.currentTarget &&
     !!t.closest('[role=row]') &&
     (t.tagName === 'BUTTON' || (t as HTMLInputElement).type === 'checkbox') &&
-    ['j', 'k', 'x', 'd'].includes(e.key);
+    ['j', 'k', 'x', 'd', 's', 'a', 'm'].includes(e.key);
   if ((t !== e.currentTarget && !onRowControl) || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (listKey(e.key)) e.preventDefault();
+}
+// the task's own keys: with the side panel open its task is the focused one — the panel handles them
+const pick = (task: TaskView, col: string, action: string) => {
+  const row = scroller.value?.querySelector<HTMLElement>(`[data-task="${task.key}"]`);
+  const btn = row?.querySelector<HTMLElement>(`[data-col=${col}] button`);
+  if (!btn) return openTaskFor(task.key, action);
+  // the closed picker returns focus to its button — back to the list, so j/k/Enter keep working
+  row!.addEventListener('focusin', () => scroller.value?.focus({ preventScroll: true }), {
+    once: true,
+  });
+  btn.click();
+};
+/** Runs a list key on the focused task; false — not a list key. */
+function listKey(key: string): boolean {
   const task = focusedTask.value;
+  const own = !sideTaskOpen();
   const handlers: Record<string, () => void> = {
     j: () => moveFocus(1),
     k: () => moveFocus(-1),
@@ -435,14 +452,19 @@ function onKey(e: KeyboardEvent) {
     ArrowUp: () => moveFocus(-1),
     Enter: () => task && openTask(task.key),
     x: () => task && sel.toggle(task.id),
-    d: () => task && toggleDay(task.id),
     F2: () => task && startEdit(focusedId.value!), // edit, not opening after a click
     Escape: () => sel.clear(),
+    ...(own && {
+      d: () => task && void toggleToday(task.id, day.value),
+      s: () => task && pick(task, 'status', 's'),
+      a: () => task && pick(task, 'assignee', 'a'),
+      m: () => task && openTaskFor(task.key, 'm'),
+    }),
   };
-  const h = handlers[e.key];
-  if (!h) return;
-  e.preventDefault();
+  const h = handlers[key];
+  if (!h) return false;
   h();
+  return true;
 }
 
 function onRowClick(it: Extract<Item, { kind: 'task' }>, e: MouseEvent) {

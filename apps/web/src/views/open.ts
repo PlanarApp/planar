@@ -51,6 +51,18 @@ export function showTask(key: string): void {
   void router.replace({ query: { ...router.currentRoute.value.query, task: key } });
 }
 
+// a task hotkey pressed in the List with no picker column (PLNRAPP-79): the opened task runs it
+let pending = '';
+export function openTaskFor(key: string, action: string): void {
+  pending = action;
+  openTask(key);
+}
+export const takePendingAction = (): string => {
+  const a = pending;
+  pending = '';
+  return a;
+};
+
 export function closeTask(): void {
   const query = { ...router.currentRoute.value.query };
   delete query.task;
