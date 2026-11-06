@@ -99,7 +99,8 @@ type Item =
       group: string;
       depth: number;
       parentTitle?: string;
-      childCount: number;
+      /** undefined — the group has no subtasks: no room reserved for the fold chevron */
+      childCount?: number;
     }
   | { id: string; kind: 'create'; group: TaskGroup };
 
@@ -172,7 +173,7 @@ const items = computed<Item[]>(() => {
           group: g.key,
           depth,
           parentTitle: !depth && task.parentId ? byId.value.get(task.parentId)?.title : undefined,
-          childCount: kids.get(task.id) ?? 0,
+          childCount: kids.size ? (kids.get(task.id) ?? 0) : undefined,
         });
       }
       return [
@@ -568,7 +569,7 @@ watch(
               <div
                 v-if="it.kind === 'head'"
                 role="row"
-                class="flex h-full items-center border-b border-border px-3 text-xs text-fg-muted"
+                class="flex h-full items-center border-b border-border pl-4 pr-3 text-xs text-fg-muted"
               >
                 <input
                   type="checkbox"
