@@ -430,6 +430,25 @@ describe('task:extensions', () => {
     expect(w.find('[data-testid="tab-count-demo-count:z"]').exists()).toBe(false);
   });
 
+  it('PLNRAPP-100 вкладки Подзадачи и Чек-лист — сразу после Документов', async () => {
+    const Panel = defineComponent({ setup: () => () => h('p') });
+    const panel = (id: string, ru: string) => ({
+      id,
+      label: { ru, en: ru },
+      component: async () => ({ default: Panel }),
+    });
+    registerModules([
+      { id: 'docs', taskPanels: [panel('pages', 'Документы')] },
+      { id: 'time', taskPanels: [panel('log', 'Время')] },
+    ]);
+    w = await open();
+    // modules of earlier tests stay registered — check the neighbours of Documents
+    await until(() => w.findAll('[role="tab"]').some((b) => b.text() === 'Время'));
+    const names = w.findAll('[role="tab"]').map((b) => b.text());
+    const at = names.indexOf('Документы');
+    expect(names.slice(at, at + 3)).toEqual(['Документы', 'Подзадачи', 'Чек-лист']);
+  });
+
   it('панель-свойство — строка свойств, не вкладка (PLANARAPP-23)', async () => {
     const Panel = defineComponent({
       props: { taskId: String },
