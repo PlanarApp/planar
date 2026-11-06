@@ -211,7 +211,7 @@ const onKeydown = (e: KeyboardEvent) => {
   const el = e.target as HTMLElement;
   if (
     e.key === 'Escape' &&
-    !overlayOpen() &&
+    !overlayOpen(e) &&
     !el.closest('input, textarea, [contenteditable="true"], [role="listbox"]')
   )
     emit('close');
