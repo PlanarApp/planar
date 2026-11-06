@@ -805,6 +805,7 @@ export default {
     assignComment: 'Assign',
     unassignComment: 'Unassign',
     assignedTo: 'Assigned to {name}',
+    assigned: 'Assigned to',
     resolved: 'Resolved',
     collapseComment: 'Collapse',
     expandComment: 'Expand',
