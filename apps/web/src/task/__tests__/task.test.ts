@@ -64,6 +64,20 @@ describe('task:delete', () => {
   });
 });
 
+describe('task:favorite', () => {
+  it('PLNRAPP-82 звезда в шапке добавляет задачу в избранное и убирает', async () => {
+    const { favorites } = await import('../../layout/nav');
+    w = await open();
+    const star = () => w.get('[data-testid=task-favorite]');
+    expect(star().attributes('aria-pressed')).toBe('false');
+    await star().trigger('click');
+    expect(favorites.has('task', t.id)).toBe(true);
+    expect(star().attributes('aria-pressed')).toBe('true');
+    await star().trigger('click');
+    expect(favorites.has('task', t.id)).toBe(false);
+  });
+});
+
 describe('task:fields', () => {
   it('смена статуса правит реплику', async () => {
     w = await open();

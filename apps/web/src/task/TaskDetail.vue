@@ -39,6 +39,8 @@ import { useExtensions } from '../modules/registry';
 import { useSpaces, useTask } from '../tasks/queries';
 import { AvatarStack, Button, IconButton, Menu, useBreakpoint, type MenuItem } from '../ui';
 import { taskOpenMode, type TaskOpenMode } from '../views/open';
+import FavStar from '../ui/FavStar.vue';
+import { favorites } from '../layout/nav';
 import Attachments from './Attachments.vue';
 import Checklist from './Checklist.vue';
 import FieldsBlock from '../fields/FieldsBlock.vue';
@@ -240,6 +242,13 @@ const panelComponent = computed(() => {
         shortcut="Esc"
         data-testid="close"
         @click="emit('close')"
+      />
+      <FavStar
+        :fav="favorites.has('task', task.id)"
+        data-testid="task-favorite"
+        @click="
+          favorites.toggle({ kind: 'task', id: task.id, name: task.title, to: `/t/${task.key}` })
+        "
       />
       <nav
         class="flex min-w-0 flex-1 items-center gap-1 text-sm text-fg-muted"
