@@ -59,6 +59,17 @@ describe('views:filter', () => {
     expect(m(task(), { field: 'title', operator: 'contains', value: 'вход' })).toBe(true);
     expect(m(task(), { field: 'title', operator: 'contains', value: 'выход' })).toBe(false);
   });
+  it('PLNRAPP-79: text — название или описание (текст документа), без регистра', () => {
+    const description = {
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Падает на Safari' }] }],
+    };
+    const r = (value: string) => ({ field: 'text', operator: 'contains', value }) as FilterRule;
+    expect(m(task(), r('вход'))).toBe(true);
+    expect(m(task({ description }), r('safari'))).toBe(true);
+    expect(m(task({ description }), r('chrome'))).toBe(false);
+    expect(m(task({ description: null }), r('safari'))).toBe(false);
+  });
   it('views:filter me — текущий пользователь в assignee и createdBy', () => {
     const a: FilterRule = { field: 'assignee', operator: 'in', value: ['me'] };
     expect(m(task({ assigneeIds: ['me1'] }), a)).toBe(true);

@@ -235,7 +235,7 @@ export default {
       inbox: 'Входящие',
       my: 'Мой день',
       settings: 'Настройки',
-      filter: 'Фильтр вида',
+      filter: 'Быстрый фильтр вида (Delete в поле — сбросить)',
     },
   },
   profile: {
@@ -415,6 +415,8 @@ export default {
     filter: {
       title: 'Фильтр',
       active: 'Фильтр задан',
+      quick: 'Быстрый фильтр',
+      quickHint: 'Название или описание…',
       add: 'Добавить правило',
       remove: 'Удалить правило',
       and: 'И',
@@ -434,6 +436,7 @@ export default {
         label: 'Метка',
         dueDate: 'Срок',
         title: 'Название',
+        text: 'Название или описание',
         createdBy: 'Автор',
         cycle: 'Спринт',
       },

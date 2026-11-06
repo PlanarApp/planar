@@ -2,8 +2,8 @@
 import { computed, ref } from 'vue';
 import { useHotkey } from '../../command/hotkeys';
 import { useI18n } from 'vue-i18n';
-import { Filter as FilterIcon } from 'lucide-vue-next';
-import { Button, Popover } from '../../ui';
+import { Filter as FilterIcon, Search } from 'lucide-vue-next';
+import { Button, IconButton, Input, Popover } from '../../ui';
 import type { Filter } from '../filter';
 import type { ViewOptions } from '../options';
 import FilterBuilder from './FilterBuilder.vue';
@@ -21,15 +21,55 @@ const active = useFilterSummary(
   () => filter.value,
 );
 const tip = computed(() => active.value.join('\n') || undefined);
-// f — the view filter from the keyboard (PLNRAPP-79)
-const filterOpen = ref(false);
-useHotkey('f', () => (filterOpen.value = true), { label: 'cmd.hk.filter' });
+// f — quick filter (PLNRAPP-79): a «title or description contains» rule of the view filter, set as you type;
+// Delete in the field clears it
+// shortcut: with «any rule» (op 'or') the text rule widens the result instead of narrowing; filters can't nest
+const quickOpen = ref(false);
+const quick = computed({
+  get: () => String(filter.value?.rules.find((r) => r.field === 'text')?.value ?? ''),
+  set: (v: string) => {
+    const rules = (filter.value?.rules ?? []).filter((r) => r.field !== 'text');
+    if (v) rules.push({ field: 'text', operator: 'contains', value: v });
+    filter.value = rules.length ? { op: filter.value?.op ?? 'and', rules } : null;
+  },
+});
+function onQuickKey(e: KeyboardEvent) {
+  if (e.key === 'Enter') quickOpen.value = false;
+  else if (e.key === 'Delete') {
+    e.preventDefault();
+    quick.value = '';
+    quickOpen.value = false;
+  }
+}
+useHotkey('f', () => (quickOpen.value = true), { label: 'cmd.hk.filter' });
 import MeMode from './MeMode.vue';
 </script>
 
 <template>
   <MeMode v-if="!noMe" v-model="options.me" />
-  <Popover v-model:open="filterOpen" align="end">
+  <Popover v-model:open="quickOpen" align="end">
+    <template #trigger>
+      <IconButton
+        size="sm"
+        :icon="Search"
+        :label="t('views.filter.quick')"
+        shortcut="F"
+        :active="!!quick"
+        data-testid="quick-filter-toggle"
+      />
+    </template>
+    <Input
+      v-model="quick"
+      class="w-72 max-w-[calc(100vw-2rem)]"
+      :label="t('views.filter.quick')"
+      :placeholder="t('views.filter.quickHint')"
+      hide-label
+      autofocus
+      data-testid="quick-filter"
+      @keydown="onQuickKey"
+    />
+  </Popover>
+  <Popover align="end">
     <template #trigger>
       <Button
         variant="ghost"

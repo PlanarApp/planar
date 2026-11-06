@@ -51,6 +51,7 @@ const filterField = z.union([
     'label',
     'dueDate',
     'title',
+    'text',
     'createdBy',
     'cycle',
   ]),
