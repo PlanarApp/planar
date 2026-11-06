@@ -6,7 +6,9 @@ import type { Row } from '@planar/shared';
 import { api } from '../api/http';
 import { useAuth } from '../auth/useAuth';
 import { mutate, newId } from '../sync';
-import { useLabels, useMembers, type TaskView } from '../tasks';
+import { useLabels, useMembers, useStatuses, type TaskView } from '../tasks';
+import { useSpaces } from '../tasks/queries';
+import { formatDue } from '../views/list/due';
 import { ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-vue-next';
 import { Button, IconButton, Select } from '../ui';
 import CommentThread from './CommentThread.vue';
@@ -15,13 +17,16 @@ import Editor from './editor/Editor.vue';
 import { useComments, useReactions, useUsers } from './queries';
 
 const props = defineProps<{ task: TaskView }>();
-const { t, te } = useI18n();
+const { t, te, locale } = useI18n();
 const { user, isAdmin } = useAuth();
 const comments = useComments(props.task.id);
 const users = useUsers();
 const reactions = useReactions(props.task.id);
 const members = useMembers(() => props.task.spaceId);
 const labels = useLabels(() => props.task.spaceId);
+// the whole space: a moved task's old status is of another project
+const statuses = useStatuses(() => props.task.spaceId);
+const spaces = useSpaces();
 const draft = shallowRef<JSONContent | null>(null); // shallow: reactive proxies can't be stored in IndexedDB
 const composer = ref<InstanceType<typeof Editor>>();
 const activity = ref<Row<'activity'>[]>([]);
@@ -45,13 +50,33 @@ watch(
 const userOf = (id: string) => users.value?.find((u) => u.id === id);
 const nameOf = (id: string) => userOf(id)?.name ?? '—';
 
+// what changed into what (PLNRAPP-109); the description, parent and custom fields — the name only
+const projectOf = (id: string) =>
+  spaces.value?.flatMap((s) => s.projects).find((p) => p.id === id)?.name;
+const date = (v: string) => formatDue(v.slice(0, 10), locale.value);
+const values: Record<string, (v: unknown) => string | undefined> = {
+  title: (v) => `«${String(v)}»`,
+  statusId: (v) => statuses.value?.find((s) => s.id === v)?.name,
+  priority: (v) => t(`tasks.priority.${Number(v)}`),
+  dueDate: (v) => date(String(v)),
+  startDate: (v) => date(String(v)),
+  completedAt: (v) => date(String(v)),
+  projectId: (v) => projectOf(String(v)),
+};
+const valueOf = (f: string, v: unknown) => (v == null || v === '' ? '—' : (values[f]!(v) ?? '—'));
+function change(f: string, pair: unknown): string {
+  const name = te(`task.fields.${f}`) ? t(`task.fields.${f}`) : f;
+  if (!values[f] || !Array.isArray(pair)) return name;
+  return `${name}: ${valueOf(f, pair[0])} → ${valueOf(f, pair[1])}`;
+}
+
 function describe(a: Row<'activity'>): string {
   const who = nameOf(a.actorId);
   const ch = a.changes as Record<string, unknown>;
   if (a.kind === 'updated') {
-    const fields = Object.keys(ch)
-      .map((f) => (te(`task.fields.${f}`) ? t(`task.fields.${f}`) : f))
-      .join(', ');
+    const fields = Object.entries(ch)
+      .map(([f, pair]) => change(f, pair))
+      .join('; ');
     return t('task.act.updated', { who, fields });
   }
   const what = a.kind.startsWith('assignee_')

@@ -260,6 +260,32 @@ describe('task:feed', () => {
     expect(order()).toHaveLength(2);
     expect(w.text()).not.toContain('СРЕДНИЙ');
   });
+  it('PLNRAPP-109 в истории — что на что поменяли', async () => {
+    stubFetch(
+      ACT([
+        {
+          id: crypto.randomUUID(),
+          spaceId: ids.space,
+          taskId: t.id,
+          actorId: ids.ann,
+          kind: 'updated',
+          changes: {
+            statusId: [ids.todo, ids.done],
+            priority: [0, 2],
+            title: ['старое', 'новое'],
+            dueDate: [null, '2026-03-05'],
+            description: [{}, {}],
+          },
+          createdAt: at(30),
+        },
+      ]),
+    );
+    w = await open();
+    await until(() => w.find('[data-testid="activity"]').text().includes('Todo → Done'));
+    expect(w.find('[data-testid="activity"]').text()).toMatch(
+      /изменил\(а\): статус: Todo → Done; приоритет: Без приоритета → Высокий; название: «старое» → «новое»; срок: — → 5 мар\.?( 2026)?; описание$/,
+    );
+  });
   it('поле комментария — над лентой', async () => {
     w = await open();
     const feed = w.find('[data-testid="feed"]').element;
