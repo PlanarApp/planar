@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { api, ApiError } from '../../api/http';
 import { useAuth } from '../../auth/useAuth';
 import { Button, Input } from '../../ui';
-import { useCloudErrors, type CloudState } from './cloud';
+import { nameTyped, useCloudErrors, type CloudState } from './cloud';
 
 // data export/import of a cloud instance (owner only) — a part of «Импорт/Экспорт»
 const { t } = useI18n();
@@ -38,7 +38,7 @@ const importConfirm = ref('');
 const importData = () =>
   run(async () => {
     const { url } = await api<{ url: string }>('POST', '/api/cloud/import', {
-      confirm: importConfirm.value,
+      confirm: name.value,
     });
     // a Blob without type sends no content-type: a simple CORS request, no preflight
     const r = await fetch(url, { method: 'POST', body: new Blob([importFile.value!]) }).catch(
@@ -89,7 +89,7 @@ const exportData = () =>
           type="submit"
           variant="danger"
           :loading="busy"
-          :disabled="importConfirm !== name || !importFile"
+          :disabled="!nameTyped(importConfirm, name) || !importFile"
           >{{ t('cloud.importGo') }}</Button
         >
       </form>
