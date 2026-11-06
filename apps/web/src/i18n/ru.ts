@@ -479,6 +479,7 @@ export default {
       icon: 'Иконка',
       saveChanges: 'Сохранить',
       saveForAll: 'Сохранить для всех',
+      saveForMe: 'Сохранить себе',
       reset: 'Сбросить',
       changed: 'Вид изменён',
       notFound: 'Вид не найден',

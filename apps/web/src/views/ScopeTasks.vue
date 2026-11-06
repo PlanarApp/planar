@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue'
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Check, RotateCcw, Sun } from 'lucide-vue-next';
+import { Check, RotateCcw, Sun, Users } from 'lucide-vue-next';
 import { Button, Tabs } from '../ui';
 import ProjectFilter from './ProjectFilter.vue';
 import { useExtensions } from '../modules/registry';
@@ -175,11 +175,19 @@ const selectTab = (k: string) =>
       >
       </OptionsBar>
     </ToolbarRoot>
-    <ViewChangesBar :show="!day && view.hasPersonal.value" :state="[options, draftFilter]">
+    <ViewChangesBar
+      v-slot="{ hide }"
+      :show="!day && view.hasPersonal.value"
+      :state="[options, draftFilter]"
+    >
+      <!-- my version is already kept (personal row): «себе» confirms it, «для всех» — admins only -->
+      <Button size="sm" :icon="Check" compact data-testid="node-keep" @click="hide">
+        {{ t('views.saved.saveForMe') }}
+      </Button>
       <Button
         v-if="canShare"
         size="sm"
-        :icon="Check"
+        :icon="Users"
         compact
         data-testid="node-share"
         @click="view.saveForAll"
