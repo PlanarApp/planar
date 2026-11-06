@@ -4,6 +4,7 @@ import { defineComponent, h } from 'vue';
 import type { VueWrapper } from '@vue/test-utils';
 import { registerModules } from '../../modules/registry';
 import Editor from '../editor/Editor.vue';
+import { Select } from '../../ui';
 import { db, eventually, flushPromises, ids, open, queued, setup, stubFetch, until } from './h';
 
 let w: VueWrapper;
@@ -148,7 +149,11 @@ describe('PLANARAPP-44 сворачивание комментариев', () =>
     await db.table('comments').bulkPut([root, r1, r2, single]);
     w = await open();
     await until(() => w.text().includes('ГЛУБЖЕ'));
-    await w.findAll('[data-testid="comment-fold"]')[0]!.trigger('click');
+    const foldOf = (text: string) =>
+      w
+        .findAll('[data-testid="comment-fold"]')
+        .find((b) => b.element.parentElement!.textContent!.includes(text))!;
+    await foldOf('КОРЕНЬ').trigger('click');
     await flushPromises();
     const row = w.get('[data-testid="comment-collapsed"]');
     expect(row.text()).toContain('КОРЕНЬ');
@@ -156,10 +161,7 @@ describe('PLANARAPP-44 сворачивание комментариев', () =>
     expect(row.text()).toContain('ответов: 2');
     expect(w.text()).not.toContain('ГЛУБЖЕ');
     // a single comment collapses too
-    const fold = w
-      .findAll('[data-testid="comment-fold"]')
-      .find((b) => b.element.parentElement!.textContent!.includes('ОДИНОЧНЫЙ'))!;
-    await fold.trigger('click');
+    await foldOf('ОДИНОЧНЫЙ').trigger('click');
     await flushPromises();
     expect(w.findAll('[data-testid="comment-collapsed"]')).toHaveLength(2);
     // a click on the row expands it
@@ -206,13 +208,34 @@ describe('task:feed', () => {
     await until(
       () => w.findAll('[data-testid="activity"]').length === 2 && w.text().includes('СРЕДНИЙ'),
     );
-    const order = [
-      ...w.element.querySelectorAll('[data-testid="activity"], [data-testid="comment"]'),
-    ].map((e) => e.textContent ?? '');
-    expect(order).toHaveLength(3);
-    expect(order[0]).toContain('создал');
-    expect(order[1]).toContain('СРЕДНИЙ');
-    expect(order[2]).toContain('изменил(а): статус');
+    const order = () =>
+      [...w.element.querySelectorAll('[data-testid="activity"], [data-testid="comment"]')].map(
+        (e) => e.textContent ?? '',
+      );
+    // PLNRAPP-69: по умолчанию новые сверху, переключатель — старые сверху
+    expect(order()).toHaveLength(3);
+    expect(order()[0]).toContain('изменил(а): статус');
+    expect(order()[1]).toContain('СРЕДНИЙ');
+    expect(order()[2]).toContain('создал');
+    await w.find('[data-testid="feed-sort"]').trigger('click');
+    expect(order()[0]).toContain('создал');
+    expect(order()[2]).toContain('изменил(а): статус');
+    // фильтр по типу
+    const show = w.findAllComponents(Select).find((s) => s.props('label') === 'Показывать')!;
+    show.vm.$emit('update:modelValue', 'comments');
+    await flushPromises();
+    expect(order()).toHaveLength(1);
+    expect(order()[0]).toContain('СРЕДНИЙ');
+    show.vm.$emit('update:modelValue', 'history');
+    await flushPromises();
+    expect(order()).toHaveLength(2);
+    expect(w.text()).not.toContain('СРЕДНИЙ');
+  });
+  it('поле комментария — над лентой', async () => {
+    w = await open();
+    const feed = w.find('[data-testid="feed"]').element;
+    const send = w.find('[data-testid="comment-send"]').element;
+    expect(send.compareDocumentPosition(feed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
   it('офлайн: только комментарии, без ошибки', async () => {
     await db.table('comments').put(comment({ body: doc('ЛОКАЛЬНЫЙ') }));
