@@ -221,6 +221,19 @@ describe('views:saved', () => {
     expect(fieldsOf(w)).toEqual(['status']);
   });
 
+  it('PLNRAPP-74 «Сохранить себе» оставляет мою строку и закрывает плашку до следующей правки', async () => {
+    await r.push(`/p/${ids.project}/board`);
+    const w = mountScreen(ProjectScreen);
+    await hideLabels(w);
+    await until(async () => (await rows()).length === 1);
+    await until(() => body.find('[data-testid=node-keep]').exists());
+    await body.get('[data-testid=node-keep]').trigger('click');
+    await until(() => !body.find('[data-testid=view-changes]').exists());
+    expect(await rows()).toHaveLength(1);
+    await flipSortDir(w);
+    await until(() => body.find('[data-testid=view-changes]').exists());
+  });
+
   it('PJ-4 «Сохранить для всех» — общая строка (userId null) вместо моей личной', async () => {
     await r.push(`/p/${ids.project}/board`);
     const w = mountScreen(ProjectScreen);

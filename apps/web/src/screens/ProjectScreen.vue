@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch, type Compo
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { BookmarkPlus, Check, MoreHorizontal, RotateCcw } from 'lucide-vue-next';
+import { BookmarkPlus, Check, MoreHorizontal, RotateCcw, Users } from 'lucide-vue-next';
 import { useProject } from '../tasks';
 import { Button, IconButton, Menu, Tabs } from '../ui';
 import { useAuth } from '../auth/useAuth';
@@ -248,14 +248,19 @@ onBeforeUnmount(() => ro?.disconnect());
           </div>
         </ToolbarRoot>
         <ViewChangesBar
+          v-slot="{ hide }"
           :show="viewId ? dirty : tabView.hasPersonal.value"
           :state="[options, draftFilter]"
         >
           <template v-if="!viewId">
+            <!-- my version is already kept (personal row): «себе» confirms it, «для всех» — admins only -->
+            <Button size="sm" :icon="Check" compact data-testid="node-keep" @click="hide">
+              {{ t('views.saved.saveForMe') }}
+            </Button>
             <Button
               v-if="canShare"
               size="sm"
-              :icon="Check"
+              :icon="Users"
               compact
               data-testid="node-share"
               @click="tabView.saveForAll"

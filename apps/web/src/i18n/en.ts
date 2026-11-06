@@ -478,6 +478,7 @@ export default {
       icon: 'Icon',
       saveChanges: 'Save',
       saveForAll: 'Save for all',
+      saveForMe: 'Save for me',
       reset: 'Reset',
       changed: 'View changed',
       notFound: 'View not found',
