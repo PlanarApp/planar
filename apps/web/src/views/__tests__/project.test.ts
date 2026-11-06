@@ -56,10 +56,10 @@ const space = uuidv7();
 const project = uuidv7();
 const load = async () => ({ default: { template: '<div data-testid="v" />' } });
 
-function mockMq(mobile: boolean, wide = true) {
+function mockMq(mobile: boolean) {
   resetBreakpoint();
   window.matchMedia = vi.fn().mockImplementation((q: string) => ({
-    matches: q.includes('max-width') ? mobile : q.includes('min-width') ? wide : false,
+    matches: q.includes('max-width') ? mobile : false,
     addEventListener: () => {},
   })) as unknown as typeof window.matchMedia;
 }
@@ -140,28 +140,33 @@ describe('views:project', () => {
     await flushPromises();
   });
 
-  it('PLNRAPP-65: на ноутбуке боковая панель — поверх экрана, место не забирает', async () => {
-    mockMq(false, false);
+  it('PLNRAPP-65: незакреплённая боковая панель — поверх экрана; кнопка закрепления отодвигает экран', async () => {
     const { taskOpenMode } = await import('../open');
-    const { sidePanels } = await import('../../ui/taskPanelWidth');
+    const { sidePanels, setTaskPanelPinned } = await import('../../ui/taskPanelWidth');
     taskOpenMode.value = 'side';
+    setTaskPanelPinned(false);
     const before = sidePanels.value;
     const w = mountScreen();
     await flushPromises();
     openTask('PRJ-4');
     await vi.waitFor(() => expect(w.find('[data-testid=task-side]').exists()).toBe(true));
     expect(sidePanels.value).toBe(before);
+    // the panel is stubbed here; the pin button itself — task.test.ts
+    setTaskPanelPinned(true);
+    await flushPromises();
+    expect(sidePanels.value).toBeGreaterThan(before); // wrappers of earlier tests stay mounted
+    expect(localStorage.getItem('planar.taskPanelPinned')).toBe('1');
     closeTask();
     await flushPromises();
     w.unmount();
     taskOpenMode.value = 'modal';
-    mockMq(false);
   });
 
   it('PLANARAPP-63: Esc закрывает боковую панель и возвращает место экрану', async () => {
     const { taskOpenMode } = await import('../open');
-    const { sidePanels } = await import('../../ui/taskPanelWidth');
+    const { sidePanels, setTaskPanelPinned } = await import('../../ui/taskPanelWidth');
     taskOpenMode.value = 'side';
+    setTaskPanelPinned(true);
     const w = mountScreen();
     await flushPromises();
     openTask('PRJ-4');

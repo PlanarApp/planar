@@ -26,6 +26,26 @@ export const taskPanelWidth = ref(read());
 /** Open side panels (TaskModal instances in side mode): the app shell moves its content aside by the width. */
 export const sidePanels = ref(0);
 
+const PIN_KEY = 'planar.taskPanelPinned';
+const readPin = (): boolean => {
+  try {
+    return localStorage.getItem(PIN_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+/** Pinned side panel moves the screen aside, unpinned — covers it (PLNRAPP-65); a device setting. */
+export const taskPanelPinned = ref(readPin());
+
+export function setTaskPanelPinned(v: boolean) {
+  taskPanelPinned.value = v;
+  try {
+    localStorage.setItem(PIN_KEY, v ? '1' : '0');
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 export function setTaskPanelWidth(w: number) {
   taskPanelWidth.value = clampPanelWidth(w);
   try {

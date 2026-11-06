@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useBreakpoint } from '../ui';
 import { closeTask, taskPanelLoader } from '.';
@@ -9,6 +9,7 @@ import {
   TASK_PANEL_MIN,
   setTaskPanelWidth,
   sidePanels,
+  taskPanelPinned,
   taskPanelWidth,
 } from '../ui/taskPanelWidth';
 
@@ -19,14 +20,9 @@ const TaskPanel = taskPanelLoader && defineAsyncComponent(taskPanelLoader);
 const taskKey = computed(() => (typeof route.query.task === 'string' ? route.query.task : ''));
 const panelOpen = computed(() => !!TaskPanel && !!taskKey.value);
 const side = computed(() => taskOpenMode.value === 'side' && !isMobile.value);
-// on a wide screen the side panel moves the screen aside instead of covering its controls (PLANARAPP-53);
-// on a laptop it covers the screen — the view keeps its width (PLNRAPP-65); a counter — several screens draw a TaskModal
-const wideMq = window.matchMedia('(min-width: 1600px)');
-const wide = ref(wideMq.matches);
-const onWide = (e: MediaQueryListEvent) => (wide.value = e.matches);
-wideMq.addEventListener?.('change', onWide);
-onBeforeUnmount(() => wideMq.removeEventListener?.('change', onWide));
-const shown = computed(() => panelOpen.value && side.value && wide.value);
+// pinned side panel moves the screen aside (PLANARAPP-53), unpinned covers it — the pin button in the
+// panel header (PLNRAPP-65); a counter — several screens draw a TaskModal
+const shown = computed(() => panelOpen.value && side.value && taskPanelPinned.value);
 // own contribution, not shown: the route may drop ?task in the same tick the screen unmounts this
 // TaskModal (switching a tab), then the watcher never runs and shown is already false (PLANARAPP-63)
 let counted = false;

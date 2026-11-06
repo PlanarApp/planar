@@ -8,7 +8,10 @@ test('PJ-19: боковая панель задачи тянется мышью,
   const f = await fixture(['PJ19 task']);
   const page = await loginAs(browser, 'admin');
   await page.setViewportSize({ width: 1600, height: 900 });
-  await page.addInitScript(() => localStorage.setItem('planar.taskOpen', 'side'));
+  await page.addInitScript(() => {
+    localStorage.setItem('planar.taskOpen', 'side');
+    localStorage.setItem('planar.taskPanelPinned', '1'); // pinned panel moves the view aside (PLNRAPP-65)
+  });
   await page.goto(`/p/${f.projectId}?task=${f.taskKeys[0]}`);
   const panel = page.getByTestId('task-side');
   const handle = page.getByTestId('task-side-resize');
