@@ -46,11 +46,13 @@ describe('pj11b: участники проекта', () => {
   it('pj11b назад «Как в пространстве» — перекрытие снято', async () => {
     const w = await mount();
     await w.find('[data-testid=mode-custom]').setValue(true);
-    await wait();
+    // the screen follows the replica asynchronously
+    await vi.waitFor(() => expect(w.find('[data-testid=pmember-add]').exists()).toBe(true));
     await w.find('[data-testid=mode-inherit]').setValue(true);
-    await wait();
-    expect((await db.table('projects').get(ids.project)).membersMode).toBe('inherit');
-    expect(await own()).toEqual([]);
+    await vi.waitFor(async () =>
+      expect((await db.table('projects').get(ids.project)).membersMode).toBe('inherit'),
+    );
+    await vi.waitFor(async () => expect(await own()).toEqual([]));
   });
 
   it('pj11b не админ пространства — переключатель заблокирован', async () => {
