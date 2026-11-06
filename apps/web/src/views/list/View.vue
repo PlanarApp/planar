@@ -604,7 +604,8 @@ watch(
         role="grid"
         tabindex="0"
         :aria-rowcount="items.length"
-        class="min-h-0 flex-1 overflow-auto outline-none focus-visible:ring-2 ring-inset ring-focus"
+        class="min-h-0 flex-1 overflow-auto outline-none"
+        :class="{ 'focus-visible:ring-2 ring-inset ring-focus': !focusedTask }"
         @keydown="onKey"
       >
         <div class="relative w-full" :style="{ height: `${virt.getTotalSize()}px` }">
