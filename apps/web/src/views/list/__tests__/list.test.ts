@@ -335,8 +335,11 @@ describe('list:keys', () => {
   it('list:keys j/k двигают фокус', async () => {
     await db.table('tasks').bulkPut([1, 2].map((n) => task(n, { rank: rank(n) })));
     await show();
+    expect(w.get('[role=grid]').classes()).toContain('focus-visible:ring-2');
     await key('j');
     expect(row('PLN-1').classes()).toContain('ring-2');
+    // the row is ringed, the whole list is not (PLNRAPP-95)
+    expect(w.get('[role=grid]').classes()).not.toContain('focus-visible:ring-2');
     await key('j');
     expect(row('PLN-2').classes()).toContain('ring-2');
     await key('k');
