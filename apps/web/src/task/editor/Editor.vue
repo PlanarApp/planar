@@ -30,6 +30,8 @@ const props = withDefaults(
     collab?: { name: string };
     /** @@ — link to a task, @@@ — to a document (chat) */
     refs?: boolean;
+    /** a long text is clamped under "Expand" */
+    collapsible?: boolean;
   }>(),
   { editable: true },
 );
@@ -258,8 +260,28 @@ watch(
   () => props.editable,
   (v) => editor.value?.setEditable(v && !readOnly()),
 );
+// long text — under "Expand"; collapsed only when noticeably taller than the clamp (PLNRAPP-93)
+const CLAMP = 320;
+const box = ref<HTMLElement>();
+const tall = ref(false);
+const expanded = ref(false);
+let ro: ResizeObserver | undefined;
+watch(box, (el) => {
+  ro?.disconnect();
+  if (!el || !props.collapsible || typeof ResizeObserver === 'undefined') return;
+  const content = el.firstElementChild!;
+  ro = new ResizeObserver(() => (tall.value = content.scrollHeight > CLAMP * 1.25));
+  ro.observe(content);
+});
+// an image (a thumbnail too) opens the original: a click when reading, a double click when editing
+function openImage(e: MouseEvent) {
+  const img = e.target as HTMLElement;
+  if (img.tagName !== 'IMG' || (editor.value?.isEditable && e.detail < 2)) return;
+  window.open((img as HTMLImageElement).src, '_blank', 'noopener');
+}
 onBeforeUnmount(() => {
   gone = true;
+  ro?.disconnect();
   editor.value?.destroy();
   session?.destroy();
 });
@@ -282,7 +304,25 @@ const sugStyle = (r: DOMRect | null, n: number) => {
 
 <template>
   <div class="task-editor relative">
-    <EditorContent :editor="editor ?? undefined" />
+    <div
+      ref="box"
+      :class="tall && !expanded && 'collapsed'"
+      :style="tall && !expanded ? { maxHeight: `${CLAMP}px` } : undefined"
+      @focusin="expanded = true"
+      @click="openImage"
+    >
+      <EditorContent :editor="editor ?? undefined" />
+    </div>
+    <button
+      v-if="tall"
+      type="button"
+      class="mt-1 text-sm text-accent outline-none hover:underline focus-visible:ring-2 ring-focus"
+      data-testid="editor-expand"
+      :aria-expanded="expanded"
+      @click="expanded = !expanded"
+    >
+      {{ t(expanded ? 'task.collapseComment' : 'task.expandComment') }}
+    </button>
     <input
       v-if="image"
       ref="fileInput"
@@ -417,6 +457,20 @@ const sugStyle = (r: DOMRect | null, n: number) => {
 .task-editor .ProseMirror img {
   max-width: 100%;
   border-radius: var(--radius-md);
+}
+/* several images in a row — thumbnails side by side (PLNRAPP-93) */
+.task-editor .ProseMirror img:has(+ img),
+.task-editor .ProseMirror img + img {
+  display: inline-block;
+  width: 8rem;
+  height: 8rem;
+  object-fit: cover;
+  margin: 0 0.25rem 0.25rem 0;
+  cursor: zoom-in;
+}
+.task-editor .collapsed {
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 75%, transparent);
 }
 .task-editor .mention {
   color: var(--color-accent);
