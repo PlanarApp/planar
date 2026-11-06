@@ -537,9 +537,8 @@ const panelComponent = computed(() => {
               <component :is="p.view" :task-id="task.id" />
             </dd>
           </div>
+          <FieldsBlock :task="task" />
         </dl>
-
-        <FieldsBlock :task="task" />
 
         <section :aria-label="t('task.extensions')">
           <div role="tablist" class="flex flex-wrap gap-1">

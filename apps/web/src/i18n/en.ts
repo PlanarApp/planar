@@ -90,7 +90,6 @@ export default {
     nav: 'Navigation',
   },
   fields: {
-    title: 'Fields',
     configure: 'Configure fields',
     empty: 'This project has no custom fields',
     name: 'Name',

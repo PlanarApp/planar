@@ -181,30 +181,29 @@ test('таблица: выбор строк показывает панель м
 
 // ---------- Custom fields
 
-test('поля: создать поле в диалоге, задать значение; переживает reload и видно bob', async ({
+test('поля: создать поле в настройках проекта, задать значение; переживает reload и видно bob', async ({
   browser,
 }) => {
   const f = await fixture([uniq('Поля')]);
   const page = await loginAs(browser, 'alice');
   const bob = await loginAs(browser, 'bob');
+  // в окне задачи — только значения полей, настройка — в проекте (PLNRAPP-99)
+  await page.goto(`/p/${f.projectId}/settings?s=fields`);
+  await page.getByLabel('Название', { exact: true }).fill('Заметка');
+  await page.getByRole('button', { name: 'Добавить поле' }).click();
+  await expect(page.getByTestId('field-def')).toHaveCount(1);
   await page.goto(`/t/${f.taskKeys[0]}`);
-  await page.getByTestId('fields-configure').click();
-  const dlg = page.getByRole('dialog');
-  await dlg.getByLabel('Название', { exact: true }).fill('Заметка');
-  await dlg.getByRole('button', { name: 'Добавить поле' }).click();
-  await expect(dlg.getByTestId('field-def')).toHaveCount(1);
-  await page.keyboard.press('Escape');
 
-  const input = page.getByTestId('fields-block').getByLabel('Заметка');
+  const input = page.getByTestId('field-row').getByLabel('Заметка');
   await input.fill('значение 1');
   await input.press('Enter');
   await expect
     .poll(async () => Object.values((await serverTask(f, f.taskIds[0]!)).fields as object))
     .toEqual(['значение 1']);
   await page.reload();
-  await expect(page.getByTestId('fields-block').getByLabel('Заметка')).toHaveValue('значение 1');
+  await expect(page.getByTestId('field-row').getByLabel('Заметка')).toHaveValue('значение 1');
   await bob.goto(`/t/${f.taskKeys[0]}`);
-  await expect(bob.getByTestId('fields-block').getByLabel('Заметка')).toHaveValue('значение 1', {
+  await expect(bob.getByTestId('field-row').getByLabel('Заметка')).toHaveValue('значение 1', {
     timeout: 10_000,
   });
 });
@@ -218,7 +217,7 @@ test('поля: число, деньги (запятая → копейки), с
   const url = await addField(f, 'Адрес', 'url');
   const page = await loginAs(browser, 'alice');
   await page.goto(`/t/${f.taskKeys[0]}`);
-  const block = page.getByTestId('fields-block');
+  const block = page.getByTestId('field-row');
   const fields = async () => (await serverTask(f, f.taskIds[0]!)).fields as Record<string, unknown>;
 
   await block.getByLabel('Число').fill('42.5');
@@ -253,7 +252,7 @@ test('поля: выбор из вариантов, пользователь, о
   const usr = await addField(f, 'Ревьюер', 'user');
   const page = await loginAs(browser, 'alice');
   await page.goto(`/t/${f.taskKeys[0]}`);
-  const block = page.getByTestId('fields-block');
+  const block = page.getByTestId('field-row');
   const fields = async () => (await serverTask(f, f.taskIds[0]!)).fields as Record<string, unknown>;
 
   await block.getByRole('combobox', { name: 'Размер' }).click();
@@ -275,9 +274,9 @@ test('поля: удаление поля чистит значения зада
   ]);
   const page = await loginAs(browser, 'alice');
   await page.goto(`/t/${f.taskKeys[0]}`);
-  await expect(page.getByTestId('fields-block').getByLabel('Временное')).toHaveValue('x');
-  await page.getByTestId('fields-configure').click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Удалить' }).first().click();
+  await expect(page.getByTestId('field-row').getByLabel('Временное')).toHaveValue('x');
+  await page.goto(`/p/${f.projectId}/settings?s=fields`);
+  await page.getByTestId('field-def').getByRole('button', { name: 'Удалить' }).first().click();
   await page.getByTestId('confirm-field-delete').click();
   await expect(page.getByTestId('field-def')).toHaveCount(0);
   await expect.poll(async () => (await serverTask(f, f.taskIds[0]!)).fields).toEqual({});
@@ -428,7 +427,7 @@ test('таблица: колонка числового поля — показ 
   await page.reload();
   await expect(cellOf()).toContainText('7');
   await page.goto(`/t/${f.taskKeys[0]}`);
-  await expect(page.getByTestId('fields-block').getByLabel('Оценка')).toHaveValue('7');
+  await expect(page.getByTestId('field-row').getByLabel('Оценка')).toHaveValue('7');
 });
 
 test('связи: пометка «заблокирована» снимается, когда блокирующая задача завершена', async ({
