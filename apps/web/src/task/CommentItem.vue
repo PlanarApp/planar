@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, shallowRef, ref } from 'vue';
-import { MessageSquareReply, UserPlus } from 'lucide-vue-next';
+import { MessageSquareReply, Pencil, Trash2, UserPlus } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
-import { Avatar, Button, Menu, type MenuItem } from '../ui';
+import { Avatar, Button, IconButton, Menu, type MenuItem } from '../ui';
 import Reactions from './Reactions.vue';
 import Editor from './editor/Editor.vue';
 
@@ -125,34 +125,42 @@ function save() {
           :user-id="userId"
           :names="names"
           @toggle="(emoji) => emit('react', emoji)"
-        />
-        <div class="mt-1 flex flex-wrap gap-1">
-          <Button
+        >
+          <IconButton
             v-if="canReply"
             size="sm"
-            variant="ghost"
             :icon="MessageSquareReply"
+            :label="t('task.reply')"
             data-testid="comment-reply"
             @click="emit('reply')"
-          >
-            {{ t('task.reply') }}
-          </Button>
+          />
           <Menu v-if="root && members.length" :items="assignItems" align="start">
             <template #trigger>
-              <Button size="sm" variant="ghost" :icon="UserPlus" data-testid="comment-assign">
-                {{ t('task.assignComment') }}
-              </Button>
+              <IconButton
+                size="sm"
+                :icon="UserPlus"
+                :label="t('task.assignComment')"
+                data-testid="comment-assign"
+              />
             </template>
           </Menu>
           <template v-if="mine">
-            <Button size="sm" variant="ghost" data-testid="comment-edit" @click="start">
-              {{ t('task.edit') }}
-            </Button>
-            <Button size="sm" variant="ghost" data-testid="comment-delete" @click="emit('remove')">
-              {{ t('task.delete') }}
-            </Button>
+            <IconButton
+              size="sm"
+              :icon="Pencil"
+              :label="t('task.edit')"
+              data-testid="comment-edit"
+              @click="start"
+            />
+            <IconButton
+              size="sm"
+              :icon="Trash2"
+              :label="t('task.delete')"
+              data-testid="comment-delete"
+              @click="emit('remove')"
+            />
           </template>
-        </div>
+        </Reactions>
       </template>
       <!-- тред: ответы и поле ответа -->
       <slot />
