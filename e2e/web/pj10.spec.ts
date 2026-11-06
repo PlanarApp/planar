@@ -4,7 +4,18 @@ import { fixture, uniq, type Fixture } from './helpers.js';
 
 // PJ-10: «Моя работа» на мобильном не выходит за экран
 const VIEWPORT = { width: 390, height: 844 };
-const SUBS = ['assigned', 'comments', 'mentions', 'created', 'watched', 'activity', 'summary'];
+const SUBS = [
+  'day',
+  'assigned',
+  'comments',
+  'mentions',
+  'created',
+  'watched',
+  'activity',
+  'summary',
+];
+// views of the task sections — in the «View» menu, not in tabs (PLNRAPP-71)
+const VIEWS = ['list', 'board', 'table', 'calendar'];
 
 async function mobile(browser: import('@playwright/test').Browser): Promise<Page> {
   const ctx = await browser.newContext({
@@ -80,11 +91,9 @@ test('PJ-10: «Моя работа» в мобильном viewport — нет �
     await page.goto(`/w/work?w=${w}`);
     await expect(page.getByTestId('my-work')).toBeVisible();
     if (w === 'assigned' || w === 'created' || w === 'watched') {
-      const tabs = page.getByTestId('view-tabs').getByRole('tab');
-      await expect(tabs.first()).toBeVisible();
-      const n = await tabs.count();
-      for (let i = 0; i < n; i++) {
-        await tabs.nth(i).click();
+      for (const i of VIEWS) {
+        await page.goto(`/w/work?w=${w}&v=${i}`);
+        await expect(page.getByTestId('work-tabs')).toBeVisible();
         await noDocScroll(page, `${w} вид ${i}`);
         if (w === 'assigned') {
           await page.getByTestId('view-toggle').click();

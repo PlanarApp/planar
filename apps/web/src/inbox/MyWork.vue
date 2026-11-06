@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { CheckCircle2, Circle } from 'lucide-vue-next';
+import { CheckCircle2, Circle, Sun } from 'lucide-vue-next';
 import { EmptyState, Tabs } from '../ui';
 import { useAuth } from '../auth/useAuth';
 import { mutate } from '../sync';
@@ -13,7 +13,7 @@ import type { GroupScope } from '../modules/types';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import InboxScreen from '../screens/InboxScreen.vue';
 import { useAssignedComments, useMyTasks, useUnreadItems, inGroup } from './queries';
-import { workSub } from './subs';
+import { WORK_SUBS, workSub } from './subs';
 
 // group "My work", as in Plane: summary, assigned, comments for me, created, watched, activity
 const props = defineProps<{ scope: GroupScope }>();
@@ -22,10 +22,22 @@ const route = useRoute();
 const router = useRouter();
 const { user } = useAuth();
 const spaces = useSpaces();
-// the section is picked in the menu of the group's "My work" tab
+// sections — tabs, «My day» first (PLNRAPP-84); the task sections' view — in their «View» menu
 const MENTIONS = ['mentioned', 'chat_mention', 'doc_mention'];
 const sub = computed(() => workSub(route.query.w));
 const pick = (w: string) => void router.replace({ query: { ...route.query, w } });
+const subTabs = computed(() =>
+  WORK_SUBS.map((w) =>
+    w === 'day'
+      ? { value: w, label: t('myDay.title'), icon: Sun }
+      : { value: w, label: t(`work.${w}`) },
+  ),
+);
+const taskSub = computed(() =>
+  sub.value === 'day'
+    ? 'assigned'
+    : (['assigned', 'created', 'watched'] as const).find((w) => w === sub.value),
+);
 
 const projectIds = computed(() =>
   groupLevels(props.scope, spaces.value ?? [], '').flatMap((l) => l.projectId ?? []),
@@ -84,7 +96,37 @@ const textOf = (body: unknown): string => {
 
 <template>
   <div class="flex h-full min-h-0 flex-col" data-testid="my-work">
-    <div class="min-h-0 flex-1 overflow-y-auto">
+    <!-- задачи (Мой день, Назначенные, Созданные, Отслеживаемые): вид с закреплённым Me Mode, табы разделов — в его панели -->
+    <ScopeTasks
+      v-if="taskSub"
+      :key="sub"
+      class="min-h-0 flex-1"
+      :me="taskSub"
+      :day="sub === 'day'"
+      :space-id="scope.level === 'space' ? scope.spaceId : undefined"
+      :project-id="scope.projectId ?? undefined"
+      :root-space-id="scope.rootSpaceId"
+    >
+      <template #tabs>
+        <Tabs
+          :model-value="sub"
+          :label="t('work.title')"
+          :items="subTabs"
+          data-testid="work-tabs"
+          @update:model-value="pick"
+        />
+      </template>
+    </ScopeTasks>
+    <div v-else class="flex h-11 shrink-0 items-center overflow-x-auto border-b border-border px-2">
+      <Tabs
+        :model-value="sub"
+        :label="t('work.title')"
+        :items="subTabs"
+        data-testid="work-tabs"
+        @update:model-value="pick"
+      />
+    </div>
+    <div v-if="!taskSub" class="min-h-0 flex-1 overflow-y-auto">
       <div v-if="sub === 'summary'" class="flex flex-col gap-4 p-4">
         <div class="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
           <button
@@ -100,15 +142,6 @@ const textOf = (body: unknown): string => {
           </button>
         </div>
       </div>
-      <!-- вид таба Задачи (Список/Доска) с закреплённым Me Mode -->
-      <ScopeTasks
-        v-else-if="sub === 'assigned' || sub === 'created' || sub === 'watched'"
-        :key="sub"
-        :me="sub"
-        :space-id="scope.level === 'space' ? scope.spaceId : undefined"
-        :project-id="scope.projectId ?? undefined"
-        :root-space-id="scope.rootSpaceId"
-      />
       <div v-else-if="sub === 'comments'" class="flex flex-col gap-1 p-4">
         <Tabs
           v-model="commentFilter"

@@ -3,8 +3,8 @@ import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue'
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Check, RotateCcw, Sun, Users } from 'lucide-vue-next';
-import { Button, Tabs } from '../ui';
+import { Check, RotateCcw, Users } from 'lucide-vue-next';
+import { Button, Select, Tabs } from '../ui';
 import ProjectFilter from './ProjectFilter.vue';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
@@ -20,12 +20,14 @@ import { useCanShare } from './saved/queries';
 
 // Tasks of a Space and of the Workspace — the group's project summary (List and Board).
 // me — the view "My work" (assigned, created, watched) of any group, and of a project too:
-// Me Mode is set, the view — in ?v, not in the tab address
+// Me Mode is set, the view — in ?v, not in the tab address, picked in the «View» menu (PLNRAPP-71);
+// the left of the toolbar — the "My work" section tabs (slot tabs); day — «My day» instead of a view
 const props = defineProps<{
   spaceId?: string;
   rootSpaceId?: string;
   projectId?: string;
   me?: MeMode;
+  day?: boolean;
 }>();
 const { t, te, locale } = useI18n();
 const text = (l: LocalizedText) =>
@@ -109,13 +111,11 @@ const tabs = computed(() =>
 );
 const seg = computed(() => String((props.me ? route.query.v : route.params.tab) ?? ''));
 const active = computed(() => tabs.value.find((v) => v.key === seg.value) ?? tabs.value[0]);
-// «Assigned» has the «My day» planner tab left of the views (PLANARAPP-57); async — inbox imports views
+// «My day» planner (PLANARAPP-57) with the project filter of the view; async — inbox imports views
 const MyDay = defineAsyncComponent(() => import('../inbox/MyDay.vue'));
-const day = computed(() => props.me === 'assigned' && seg.value === 'day');
-const tabItems = computed(() => [
-  ...(props.me === 'assigned' ? [{ value: 'day', label: t('myDay.title'), icon: Sun }] : []),
-  ...tabs.value.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon })),
-]);
+const tabItems = computed(() =>
+  tabs.value.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon })),
+);
 const nodeSpaceId = () =>
   props.spaceId ??
   (props.projectId
@@ -157,9 +157,10 @@ const selectTab = (k: string) =>
       class="flex h-11 shrink-0 items-center gap-1 border-b border-border px-2"
     >
       <div data-testid="view-tabs" class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+        <slot v-if="me" name="tabs" />
         <Tabs
-          v-if="active"
-          :model-value="day ? 'day' : active.key"
+          v-else-if="active"
+          :model-value="active.key"
           :label="t('views.toolbar')"
           :items="tabItems"
           @update:model-value="selectTab"
@@ -173,6 +174,15 @@ const selectTab = (k: string) =>
         v-model:filter="draftFilter"
         :space-id="scope.spaceIds.join(',')"
       >
+        <template v-if="me && active" #layout>
+          <Select
+            :model-value="active.key"
+            :label="t('views.view')"
+            :options="tabItems"
+            data-testid="view-layout"
+            @update:model-value="(k) => k && selectTab(k)"
+          />
+        </template>
       </OptionsBar>
     </ToolbarRoot>
     <ViewChangesBar

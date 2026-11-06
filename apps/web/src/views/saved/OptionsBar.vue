@@ -53,6 +53,6 @@ import MeMode from './MeMode.vue';
       />
     </div>
   </Popover>
-  <ViewOptionsPopover v-model:options="options" />
+  <ViewOptionsPopover v-model:options="options"><slot name="layout" /></ViewOptionsPopover>
   <slot />
 </template>
