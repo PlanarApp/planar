@@ -1,6 +1,8 @@
+import 'fake-indexeddb/auto';
 import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick } from 'vue';
 import { TooltipProvider } from 'reka-ui';
+import { VueDraggable } from 'vue-draggable-plus';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
@@ -145,5 +147,25 @@ describe('раскладка', () => {
     await w.find('button[aria-label="Поиск и команды"]').trigger('click');
     expect(ui.palette).toBe(true);
     ui.palette = false;
+  });
+
+  it('PLNRAPP-89: в свёрнутом сайдбаре избранное перетаскивается', async () => {
+    const { favorites } = await import('../nav');
+    const { setSidebarMode } = await import('../sidebarWidth');
+    for (const id of ['a', 'b']) favorites.toggle({ kind: 'task', id, name: id, to: `/t/${id}` });
+    setSidebarMode('rail');
+    const { router, i18n } = setup(false);
+    const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
+    await vi.waitFor(() => expect(w.findAll('[data-testid=nav-favorite-rail]')).toHaveLength(2));
+    // jsdom has no real drag: the update event of VueDraggable
+    w.findComponent(VueDraggable).vm.$emit('update', {
+      oldIndex: 1,
+      newIndex: 0,
+    });
+    expect(
+      JSON.parse(localStorage.getItem('planar.favorites')!).map((f: { id: string }) => f.id),
+    ).toEqual(['b', 'a']);
+    setSidebarMode('full');
+    for (const id of ['a', 'b']) favorites.toggle({ kind: 'task', id, name: '', to: '' });
   });
 });
