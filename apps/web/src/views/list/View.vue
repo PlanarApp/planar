@@ -398,6 +398,21 @@ function moveFocus(d: 1 | -1) {
   const it = list[i];
   if (it.kind === 'task' && sideTaskOpen()) showTask(it.task.key);
 }
+// the focused row is gone (filtered out, moved to another group): the same task if it is still in
+// the list, else the next task, the previous one for the last (PLNRAPP-96)
+watch(items, (now, before) => {
+  const id = focusedId.value;
+  if (!id || now.some((x) => x.id === id)) return;
+  const i = before.findIndex((x) => x.id === id);
+  if (i < 0) return;
+  const rowOf = new Map(now.flatMap((x) => (x.kind === 'task' ? [[x.task.id, x.id]] : [])));
+  const near = [before[i], ...before.slice(i + 1), ...before.slice(0, i).reverse()].find(
+    (x) => x.kind === 'task' && rowOf.has(x.task.id),
+  );
+  focusedId.value = near?.kind === 'task' ? rowOf.get(near.task.id)! : null;
+  const j = now.findIndex((x) => x.id === focusedId.value);
+  if (j >= 0) virt.value.scrollToIndex(j);
+});
 // focus lost (on the page after a dialog/panel/filter closes) or in the side panel: list keys still
 // work (PLNRAPP-79); from the page — focus comes back to the list
 function onWindowKey(e: KeyboardEvent) {

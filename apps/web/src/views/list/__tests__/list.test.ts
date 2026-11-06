@@ -342,6 +342,28 @@ describe('list:keys', () => {
     await key('k');
     expect(row('PLN-1').classes()).toContain('ring-2');
   });
+  it('PLNRAPP-96 фокус выпавшей задачи — на следующую, у последней — на предыдущую; в другой группе — за ней', async () => {
+    const ts = [1, 2, 3].map((n) => task(n, { rank: rank(n) }));
+    const [, t2, t3] = ts;
+    await db.table('tasks').bulkPut(ts);
+    await show();
+    const ringed = () =>
+      rows()
+        .find((x) => x.classes().includes('ring-2'))
+        ?.attributes('data-task');
+    await key('j');
+    await key('j');
+    expect(ringed()).toBe('PLN-2');
+    await db.table('tasks').delete(t2.id);
+    await until(() => rows().length === 2);
+    expect(ringed()).toBe('PLN-3');
+    await db.table('tasks').put({ ...t3, statusId: ids.done });
+    await until(() => w.text().includes('Done1'));
+    expect(ringed()).toBe('PLN-3');
+    await db.table('tasks').delete(t3.id);
+    await until(() => rows().length === 1);
+    expect(ringed()).toBe('PLN-1');
+  });
   it('PLNRAPP-80 D добавляет задачу в «Мой день» (солнце в строке) и убирает', async () => {
     const { useAuth } = await import('../../../auth/useAuth');
     useAuth().user.value = { id: ids.ann } as never;
