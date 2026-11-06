@@ -2,7 +2,7 @@
 import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkBar from '../BulkBar.vue';
 import { useVirtualizer, type VirtualItem } from '@tanstack/vue-virtual';
-import { ChevronDown, ChevronRight, ListChecks, Plus } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, ListChecks, Plus, UserRound } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
@@ -74,11 +74,10 @@ const {
   () => visibleColumns(props.options.fields),
   all,
   () => ({
-    users: new Map((members.value ?? []).map((u) => [u.id, u.name])),
     labels: new Map((labels.value ?? []).map((l) => [l.id, l.name])),
     projects: projectNames.value,
-    header: (c) => colName(c),
-    noAssignee: t('tasks.noAssignee'),
+    // the assignee header is an icon, like its cells
+    header: (c) => (c === 'assignee' ? '' : colName(c)),
     priority: (p) => t(`tasks.priority.${p}`),
     locale: locale.value,
   }),
@@ -603,6 +602,13 @@ watch(
                   >
                     {{ colName(c) }}
                     <span class="text-accent">{{ sortMark(options, LIST_SORT[c]) }}</span></button
+                  ><span
+                    v-else-if="c === 'assignee'"
+                    role="img"
+                    :title="colName(c)"
+                    :aria-label="colName(c)"
+                    class="inline-flex align-middle"
+                    ><UserRound :size="14" aria-hidden="true" /></span
                   ><template v-else>{{ colName(c) }}</template
                   ><span
                     role="separator"
@@ -672,6 +678,13 @@ watch(
                     >
                       {{ colName(c) }}
                       <span class="text-accent">{{ sortMark(options, LIST_SORT[c]) }}</span></button
+                    ><span
+                      v-else-if="c === 'assignee'"
+                      role="img"
+                      :title="colName(c)"
+                      :aria-label="colName(c)"
+                      class="inline-flex align-middle"
+                      ><UserRound :size="14" aria-hidden="true" /></span
                     ><template v-else>{{ colName(c) }}</template
                     ><span
                       role="separator"

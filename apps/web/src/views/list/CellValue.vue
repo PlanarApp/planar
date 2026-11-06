@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarDays, Flag, Tag } from 'lucide-vue-next';
+import { CalendarDays, Flag, Tag, UserRound } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import type { Row as DbRow } from '@planar/shared';
 import { AvatarStack, Badge } from '../../ui';
@@ -27,17 +27,9 @@ const empty = 'text-fg-subtle opacity-50';
     project
   }}</span>
   <template v-else-if="col === 'assignee'">
-    <!-- как в селекторе: аватар и имя; несколько — первое имя и «+N» -->
-    <span
-      v-if="people.length"
-      class="flex min-w-0 items-center gap-1.5 text-sm"
-      :title="people.map((p) => p.name).join(', ')"
-    >
-      <AvatarStack :people="people.slice(0, 1)" size="xs" />
-      <span class="truncate">{{ people[0]!.name }}</span>
-      <span v-if="people.length > 1" class="shrink-0 text-fg-muted">+{{ people.length - 1 }}</span>
-    </span>
-    <span v-else class="truncate text-sm text-fg-subtle">{{ t('tasks.noAssignee') }}</span>
+    <!-- только аватары (имена — в подсказке) -->
+    <AvatarStack v-if="people.length" :people="people" />
+    <UserRound v-else :size="16" :class="empty" :aria-label="t('tasks.noAssignee')" />
   </template>
   <template v-else-if="col === 'dueDate'">
     <span v-if="dueDate" :class="['text-sm', dueTone]">{{ formatDue(dueDate, locale) }}</span>
