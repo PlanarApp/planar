@@ -180,7 +180,7 @@ describe('task:subtasks', () => {
   it('список подзадач и создание с parentId', async () => {
     await db.table('tasks').put(task(2, { parentId: t.id, title: 'child' }));
     w = await open();
-    await until(() => w.find('[data-testid="tab-count-subtasks"]').text() === '1');
+    await until(() => w.find('[data-testid="tab-count-subtasks"]').text() === '0/1');
     expect(w.find('[data-testid="tab-count-checklist"]').exists()).toBe(false);
     await openTab('Подзадачи');
     await until(() => w.text().includes('child') && w.text().includes('Todo'));
@@ -232,9 +232,7 @@ describe('task:checklist', () => {
     });
     await db.table('checklistItems').bulkPut([mk(true, 'a1'), mk(false, 'a2')]);
     w = await open();
-    await until(() => w.find('[data-testid="tab-count-checklist"]').text() === '2');
-    await openTab('Чек-лист');
-    await until(() => w.text().includes('1/2'));
+    await until(() => w.find('[data-testid="tab-count-checklist"]').text() === '1/2');
   });
   it('пустой пункт не создаётся', async () => {
     w = await open();

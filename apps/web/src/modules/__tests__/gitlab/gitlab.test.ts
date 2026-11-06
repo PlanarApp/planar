@@ -35,6 +35,7 @@ const mr = (o: Record<string, unknown>) => ({
   taskId: 't',
   iid: 7,
   title: 'Fix login',
+  sourceBranch: 'mr/PLN-1',
   state: 'opened',
   webUrl: 'https://gl.example/g/p/-/merge_requests/7',
   mrUpdatedAt: '2026-10-20T10:00:00.000Z',
@@ -108,6 +109,9 @@ describe('pt6b:', () => {
     expect(rows[0]!.get('[data-testid=gl-state]').text()).toBe('merged');
     expect(rows[0]!.get('a').attributes('href')).toBe('https://gl.example/g/p/-/merge_requests/7');
     expect(rows[1]!.text()).toContain('!1 Old');
+    // PLNRAPP-104: the branch and whether it is merged
+    expect(rows[0]!.get('[data-testid=gl-branch]').text()).toBe('mr/PLN-1branchMerged');
+    expect(rows[1]!.get('[data-testid=gl-branch]').text()).toBe('mr/PLN-1branchOpen');
   });
 
   it('pt6b: панель — пусто и небезопасная ссылка не становится href', () => {

@@ -234,7 +234,7 @@ interface WebModuleManifest extends FrontendModuleManifest {
 }
 interface ViewDef { id: string; label: LocalizedText; icon: Component; component: Lazy<{ projectId: string; viewId?: string }> }
 interface TaskPanelDef { id: string; label: LocalizedText; icon?: Component; order?: number;
-  property?: boolean /* a properties row instead of a tab */; count?: (taskId: string) => Promise<number> /* Dexie, live; > 0 — shown on the tab */;
+  property?: boolean /* a properties row instead of a tab */; count?: (taskId: string) => Promise<number | string> /* Dexie, live; > 0 or a non-empty string ("1/3") — shown on the tab */;
   component: Lazy<{ taskId: string }> }
 interface CommandCtx { route: RouteLocationNormalizedLoaded; selectedTaskIds: string[]; projectId?: string }
 interface CommandDef { id: string; label: LocalizedText; icon?: Component; shortcut?: string; group?: LocalizedText;

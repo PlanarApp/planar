@@ -11,9 +11,11 @@ import {
   EyeOff,
   Flag,
   Link,
+  Link2,
   ListChecks,
   ListTree,
   MoreHorizontal,
+  Paperclip,
   Pin,
   PinOff,
   AppWindow,
@@ -55,10 +57,11 @@ import Checklist from './Checklist.vue';
 import FieldsBlock from '../fields/FieldsBlock.vue';
 import Editor from './editor/Editor.vue';
 import Feed from './Feed.vue';
-import { useChecklist, useSubtasks, useUsers, useWatchers } from './queries';
+import { useAttachments, useChecklist, useSubtasks, useUsers, useWatchers } from './queries';
 import Subtasks from './Subtasks.vue';
 import { useTaskMenu } from '../tasks/taskMenu';
 import LinksBlock from '../links/LinksBlock.vue';
+import { useTaskLinks } from '../links';
 
 const props = defineProps<{ task: TaskView; mode: 'panel' | 'page' }>();
 const emit = defineEmits<{ close: [] }>();
@@ -191,7 +194,10 @@ const attachments = ref<InstanceType<typeof Attachments>>();
 const onDrop = (e: DragEvent) => {
   if ((e.target as HTMLElement).closest?.('.ProseMirror')) return; // an image in the description — not an attachment
   const files = [...(e.dataTransfer?.files ?? [])];
-  if (files.length) void attachments.value?.addFiles(files);
+  if (files.length) {
+    tab.value = 'attachments';
+    void attachments.value?.addFiles(files);
+  }
 };
 const onKeydown = (e: KeyboardEvent) => {
   const el = e.target as HTMLElement;
@@ -210,8 +216,8 @@ const pickerOf = (name: string) => () =>
   root.value?.querySelector<HTMLElement>(`[data-col="${name}"] button`)?.click();
 const focusIn = (selector: string) =>
   root.value?.querySelector<HTMLElement>(`${selector} input`)?.focus();
-// the subtasks / checklist tab with its "add" field focused (PLNRAPP-97)
-const addIn = (key: 'subtasks' | 'checklist') => async () => {
+// the subtasks / checklist / links tab with its "add" field focused (PLNRAPP-97)
+const addIn = (key: 'subtasks' | 'checklist' | 'links') => async () => {
   tab.value = key;
   await nextTick();
   focusIn(`[data-tab=${key}]`);
@@ -227,7 +233,7 @@ const actions: Record<string, () => void> = {
   space: pickerOf('time:timer'),
   '>': addIn('subtasks'),
   '-': addIn('checklist'),
-  l: () => focusIn('[data-testid=links-block]'),
+  l: addIn('links'),
 };
 const hkLabel: Record<string, string> = { '>': 'subtask', '-': 'checklist' };
 for (const [key, run] of Object.entries(actions))
@@ -251,24 +257,49 @@ const counts = useQuery(async () =>
     ),
   ),
 );
-// subtasks and the checklist — built-in tabs right after Documents, with a count too (PLNRAPP-100)
+// built-in tabs with a count too: attachments before Documents (PLNRAPP-105), subtasks and the
+// checklist right after it (PLNRAPP-100), links before Plugins (PLNRAPP-106)
 const subtasks = useSubtasks(props.task.id);
 const checklist = useChecklist(props.task.id);
+const files = useAttachments(props.task.id);
+const links = useTaskLinks(() => props.task.id);
 const tabs = computed(() => {
-  const at = panels.value.findIndex((p) => p.key === 'docs:pages') + 1;
+  const ps = panels.value;
+  const docs = ps.findIndex((p) => p.key === 'docs:pages');
+  const plugins = ps.findIndex((p) => p.key === 'plugins:panel');
+  const linksAt = plugins < 0 ? ps.length : plugins;
+  // without Documents (docs = -1) the built-in tabs come first
+  const part = (from: number, to: number) => ps.slice(Math.max(from, 0), Math.max(to, 0));
   return [
-    ...panels.value.slice(0, at),
+    ...part(0, docs),
+    { key: 'attachments', label: 'task.attachments', icon: Paperclip },
+    ...part(docs, docs + 1),
     { key: 'subtasks', label: 'task.subtasks', icon: ListTree },
     { key: 'checklist', label: 'task.checklist', icon: ListChecks },
-    ...panels.value.slice(at),
+    ...part(docs + 1, linksAt),
+    { key: 'links', label: 'links.title', icon: Link2 },
+    ...ps.slice(linksAt),
   ];
 });
-const tabCounts = computed<Record<string, number | undefined>>(() => ({
+// closed / total (PLNRAPP-102, -103)
+const ratio = (done: number, all: number) => (all ? `${done}/${all}` : 0);
+const closed = (statusId: string) =>
+  ['done', 'cancelled'].includes(statuses.value?.find((s) => s.id === statusId)?.category ?? '');
+const tabCounts = computed<Record<string, number | string | undefined>>(() => ({
   ...counts.value,
-  subtasks: subtasks.value?.length,
-  checklist: checklist.value?.length,
+  attachments: files.value?.length,
+  subtasks: ratio(
+    (subtasks.value ?? []).filter((s) => closed(s.statusId)).length,
+    subtasks.value?.length ?? 0,
+  ),
+  checklist: ratio(
+    (checklist.value ?? []).filter((i) => i.done).length,
+    checklist.value?.length ?? 0,
+  ),
+  links: links.value?.length,
 }));
-const tab = ref<string | null>(null);
+// attachments are open by default (PLNRAPP-105)
+const tab = ref<string | null>('attachments');
 const active = computed(() => panels.value.find((p) => p.key === tab.value) ?? null);
 const lt = (x: string | { ru: string; en: string }) =>
   typeof x === 'string' ? t(x) : (x[locale.value as 'ru' | 'en'] ?? x.ru);
@@ -562,23 +593,27 @@ const panelComponent = computed(() => {
               >
             </Button>
           </div>
+          <!-- always mounted: files dropped on the panel or the editor upload through it -->
+          <div v-show="tab === 'attachments'" class="mt-2" data-tab="attachments">
+            <Attachments ref="attachments" :task-id="task.id" />
+          </div>
           <div v-if="tab === 'subtasks'" class="mt-2" data-tab="subtasks">
             <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
           </div>
           <div v-else-if="tab === 'checklist'" class="mt-2" data-tab="checklist">
             <Checklist :task-id="task.id" />
           </div>
+          <div v-else-if="tab === 'links'" class="mt-2" data-tab="links">
+            <LinksBlock
+              :task="task"
+              data-testid="links-block"
+              class="min-w-0 [&_.flex-wrap>div:last-child]:min-w-40 [&_.flex-wrap>div:last-child]:flex-1"
+            />
+          </div>
           <div v-else-if="panelComponent" class="mt-2 rounded-lg border border-border p-3">
             <component :is="panelComponent" :task-id="task.id" />
           </div>
         </section>
-
-        <Attachments ref="attachments" :task-id="task.id" />
-        <LinksBlock
-          :task="task"
-          data-testid="links-block"
-          class="min-w-0 [&_.flex-wrap>div:last-child]:min-w-40 [&_.flex-wrap>div:last-child]:flex-1"
-        />
       </div>
 
       <aside

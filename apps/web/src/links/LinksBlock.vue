@@ -93,7 +93,6 @@ const add = (otherId: string) =>
 
 <template>
   <section :aria-label="t('links.title')">
-    <h3 class="mb-1 text-sm font-medium text-fg-muted">{{ t('links.title') }}</h3>
     <div v-for="g in groups" :key="g.side" class="mb-1">
       <h4 class="px-2 text-xs text-fg-subtle">{{ t(`links.side.${g.side}`) }}</h4>
       <ul>
