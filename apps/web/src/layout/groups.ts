@@ -21,11 +21,31 @@ export const tabsFor = (level: GroupLevel): GroupTab[] =>
     (k) => (k !== 'spaces' || level === 'workspace') && (k !== 'projects' || level !== 'project'),
   );
 
-/** Group tab address; Tasks — an explicit `list`: the bare node address opens the remembered tab. */
+/** Group tab address; Tasks — the last chosen view (PLNRAPP-111), `list` by default: the bare node
+ * address opens the remembered tab. */
 export function groupUrl(level: GroupLevel, id: string, tab: GroupTab = 'tasks'): string {
   const base = level === 'project' ? `/p/${id}` : level === 'space' ? `/s/${id}` : '/w';
-  return `${base}/${tab === 'tasks' ? 'list' : tab}`;
+  return `${base}/${tab === 'tasks' ? lastView.get() : tab}`;
 }
+
+/** Last chosen Tasks view key (list, board, a module view); a view missing at the level — the first one. */
+const VIEW_KEY = 'planar.tasksView';
+export const lastView = {
+  get(): string {
+    try {
+      return localStorage.getItem(VIEW_KEY) || 'list';
+    } catch {
+      return 'list';
+    }
+  },
+  set(v: string) {
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* no storage — List after reload */
+    }
+  },
+};
 
 /** Last opened node tab: group tab or Tasks view key, and the "My work" section (?w). */
 export interface LastTab {

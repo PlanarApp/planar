@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { groupUrl, lastTab, nodeLanding } from '../groups';
+import { groupUrl, lastTab, lastView, nodeLanding } from '../groups';
 
 describe('таб узла', () => {
   beforeEach(() => localStorage.clear());
@@ -7,6 +7,11 @@ describe('таб узла', () => {
     expect(groupUrl('project', 'p1')).toBe('/p/p1/list');
     expect(groupUrl('space', 's1', 'docs')).toBe('/s/s1/docs');
     expect(groupUrl('workspace', '', 'tasks')).toBe('/w/list');
+  });
+  it('PLNRAPP-111 Задачи — последний выбранный вид', () => {
+    lastView.set('board');
+    expect(groupUrl('space', 's1')).toBe('/s/s1/board');
+    expect(groupUrl('project', 'p1', 'docs')).toBe('/p/p1/docs');
   });
   it('по умолчанию — «Моя работа», запомненный таб и раздел — после записи', () => {
     expect(lastTab.get()).toEqual({ seg: 'work' });
