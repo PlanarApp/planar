@@ -30,19 +30,18 @@ const shown = computed(() => day.value && dayIn(day.value, props.projectIds));
 
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// only what is due now: overdue and today's (by due date or by plan — start today or earlier),
+// then the tasks without a due date; later due dates are not shown (PLNRAPP-81)
 const groups = computed(() => {
-  const now = new Date();
-  const today = iso(now);
-  const sunday = new Date(now);
-  sunday.setDate(now.getDate() + ((7 - now.getDay()) % 7));
-  const week = iso(sunday);
-  const order = ['overdue', 'today', 'week', 'later', 'none'];
+  const today = iso(new Date());
+  const order = ['overdue', 'today', 'none'];
   const g: Record<string, MyTask[]> = Object.fromEntries(order.map((k) => [k, []]));
   for (const r of rows.value ?? []) {
     const d = r.dueDate;
-    g[
-      !d ? 'none' : d < today ? 'overdue' : d === today ? 'today' : d <= week ? 'week' : 'later'
-    ].push(r);
+    const started = !!r.startDate && r.startDate <= today;
+    if (d && d < today) g.overdue!.push(r);
+    else if (d === today || started) g.today!.push(r);
+    else if (!d) g.none!.push(r);
   }
   for (const k of order) g[k].sort((a, b) => ((a.dueDate ?? '') < (b.dueDate ?? '') ? -1 : 1));
   return order.filter((k) => g[k].length).map((k) => ({ k, items: g[k] }));
