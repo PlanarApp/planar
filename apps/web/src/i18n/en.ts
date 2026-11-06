@@ -240,6 +240,13 @@ export default {
       a: 'Task: change assignee',
       m: 'Task: write a comment',
       d: 'Task: add to / remove from My day',
+      t: 'Task: pick labels',
+      p: 'Task: change priority',
+      w: 'Task: watch / unwatch',
+      space: 'Task: start / stop the timer',
+      subtask: 'Task: add a subtask',
+      checklist: 'Task: add a checklist item',
+      l: 'Task: add a link',
     },
   },
   profile: {
