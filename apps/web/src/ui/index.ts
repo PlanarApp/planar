@@ -20,4 +20,5 @@ export { default as Tooltip } from './Tooltip.vue';
 export { default as FavStar } from './FavStar.vue';
 export { useBreakpoint, resetBreakpoint } from './useBreakpoint';
 export { useTheme } from './useTheme';
+export { overlayOpen } from './overlay';
 export { default as Sheet } from './Sheet.vue';

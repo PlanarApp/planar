@@ -44,7 +44,15 @@ import {
 } from '../tasks';
 import { useExtensions } from '../modules/registry';
 import { useSpaces, useTask } from '../tasks/queries';
-import { AvatarStack, Button, IconButton, Menu, useBreakpoint, type MenuItem } from '../ui';
+import {
+  AvatarStack,
+  Button,
+  IconButton,
+  Menu,
+  overlayOpen,
+  useBreakpoint,
+  type MenuItem,
+} from '../ui';
 import { takePendingAction, taskOpenMode, type TaskOpenMode } from '../views/open';
 import { useHotkey } from '../command/hotkeys';
 import { toggleToday, useMyDay } from '../inbox/myDay';
@@ -203,6 +211,7 @@ const onKeydown = (e: KeyboardEvent) => {
   const el = e.target as HTMLElement;
   if (
     e.key === 'Escape' &&
+    !overlayOpen() &&
     !el.closest('input, textarea, [contenteditable="true"], [role="listbox"]')
   )
     emit('close');

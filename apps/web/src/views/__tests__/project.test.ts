@@ -190,6 +190,26 @@ describe('views:project', () => {
     taskOpenMode.value = 'modal';
   });
 
+  it('PLNRAPP-101: Esc при открытом выборе закрывает только его, задача остаётся', async () => {
+    const w = mountScreen();
+    await flushPromises();
+    openTask('PRJ-4');
+    await vi.waitFor(() => expect(w.find('[data-testid=task-modal]').exists()).toBe(true));
+    const layer = document.body.appendChild(document.createElement('div'));
+    layer.setAttribute('data-dismissable-layer', '');
+    layer.setAttribute('data-state', 'open');
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flushPromises();
+    expect(w.find('[data-testid=task-modal]').exists()).toBe(true);
+    // a hover tooltip doesn't hold Esc
+    layer.setAttribute('data-state', 'delayed-open');
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flushPromises();
+    expect(w.find('[data-testid=task-modal]').exists()).toBe(false);
+    layer.remove();
+    w.unmount();
+  });
+
   it('режим «страница» ведёт на /t/<key> и на десктопе', async () => {
     const { taskOpenMode } = await import('../open');
     mountScreen();
