@@ -2,7 +2,7 @@
 import TaskContextMenu from '../TaskContextMenu.vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { ChevronRight, MoreHorizontal } from 'lucide-vue-next';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { VueDraggable } from 'vue-draggable-plus';
 import { useI18n } from 'vue-i18n';
 import {
@@ -27,6 +27,7 @@ import { openTask, useSelection, type ViewProps } from '..';
 import { TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
 import { useTaskFilter } from '../saved/useFilter';
 import { treeOrder } from '../list/tree';
+import { tableColumns, type TableColumnsMenu } from './menu';
 import { textWidth } from '../list/widths';
 import { formatDue } from '../list/due';
 import { nextSort, sortMark } from '../sortHead';
@@ -218,6 +219,21 @@ function toggleCol(id: ColumnId, on: boolean) {
     props.options.fields = fields;
   }
 }
+const menu: TableColumnsMenu = {
+  items: computed(() =>
+    allIds.value.map((id) => ({
+      id,
+      label: colName(id),
+      on: cols.value.some((c) => c.id === id),
+      locked: cols.value.length === 1 && cols.value[0]!.id === id,
+    })),
+  ),
+  toggle: (id, on) => toggleCol(id as ColumnId, on),
+};
+tableColumns.value = menu;
+onBeforeUnmount(() => {
+  if (tableColumns.value === menu) tableColumns.value = null;
+});
 function move(i: number, to: number) {
   cols.value = moveColumn(cols.value, i, to);
   save();
@@ -304,27 +320,6 @@ const date = (v: string) => v.slice(0, 10);
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <div class="flex items-center justify-end border-b border-border px-3 py-1">
-      <Popover align="end">
-        <template #trigger>
-          <Button size="sm">{{ t('table.columns') }}</Button>
-        </template>
-        <ul class="flex flex-col gap-1 text-sm">
-          <li v-for="id in allIds" :key="id">
-            <label class="flex items-center gap-2">
-              <input
-                type="checkbox"
-                :checked="cols.some((c) => c.id === id)"
-                :disabled="cols.length === 1 && cols[0]!.id === id"
-                @change="toggleCol(id, ($event.target as HTMLInputElement).checked)"
-              />
-              {{ colName(id) }}
-            </label>
-          </li>
-        </ul>
-      </Popover>
-    </div>
-
     <TaskContextMenu :space-id="spaceId" :tasks="all">
       <div
         ref="scroller"
