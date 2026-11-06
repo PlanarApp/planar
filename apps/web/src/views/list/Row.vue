@@ -85,9 +85,17 @@ function leave() {
   }, 150);
 }
 onBeforeUnmount(() => clearInterval(wait));
-const input = ref<HTMLInputElement>();
+const input = ref<HTMLTextAreaElement>();
 const draft = ref('');
 let live = false; // blur after Enter/Esc does not save again
+// textarea height follows the text: a long name is edited in several lines
+watch([draft, input], async () => {
+  await nextTick();
+  const el = input.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+});
 
 watch(
   () => props.editing,
@@ -134,7 +142,7 @@ const dueTone = computed(() => {
 function save() {
   if (!live) return;
   live = false;
-  const title = draft.value.trim();
+  const title = draft.value.replace(/\s*\n\s*/g, ' ').trim(); // a pasted line break — a space
   emit('done'); // first leave edit mode: blur on unmount won't save again
   if (title && title !== props.task.title) void updateTask(props.task.id, { title });
 }
@@ -183,8 +191,9 @@ function save() {
     :data-task="task.key"
     :class="[
       'group relative flex h-full items-center gap-2 border-b border-border px-3 text-sm',
-      // wrapped: the same layout, only the name wraps; the row grows by its extra lines
-      wrap ? 'min-h-8' : '',
+      // wrapped or being edited: the same layout, the row grows by the name's extra lines
+      wrap || editing ? 'min-h-8' : '',
+      editing ? 'py-0.5' : '',
       selected ? 'bg-accent-subtle' : 'hover:bg-bg-subtle',
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
@@ -239,12 +248,13 @@ function save() {
       />
     </div>
     <div role="gridcell" class="min-w-0 flex-1" @dblclick.stop="emit('edit')">
-      <input
+      <textarea
         v-if="editing"
         ref="input"
         v-model="draft"
+        rows="1"
         :aria-label="t('list.editTitle')"
-        class="h-7 w-full rounded-md border border-border-strong bg-bg px-2 text-sm outline-none focus-visible:ring-2 ring-focus"
+        class="block w-full resize-none overflow-hidden rounded-md border border-border-strong bg-bg px-2 py-1 text-sm leading-[18px] outline-none focus-visible:ring-2 ring-focus"
         @click.stop
         @keydown.enter.prevent="save"
         @keydown.esc.stop.prevent="((live = false), emit('done'))"
