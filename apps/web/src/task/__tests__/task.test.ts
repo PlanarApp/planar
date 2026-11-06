@@ -120,6 +120,8 @@ describe('task:description', () => {
     w = await open();
     expect(editorOf(0).props('collab')).toEqual({ name: `task:${t.id}` });
     expect(editorOf(1).props('collab')).toBeUndefined();
+    // PLNRAPP-85: @@ / @@@ in the description, as in comments
+    expect(editorOf(0).props('refs')).toBe(true);
     await until(() => !!editorOf(0).vm.editor);
     const n0 = (await queued('task.update')).length;
     type(0, 'привет');
