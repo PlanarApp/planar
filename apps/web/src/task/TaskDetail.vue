@@ -11,6 +11,8 @@ import {
   EyeOff,
   Flag,
   Link,
+  ListChecks,
+  ListTree,
   MoreHorizontal,
   Pin,
   PinOff,
@@ -53,7 +55,7 @@ import Checklist from './Checklist.vue';
 import FieldsBlock from '../fields/FieldsBlock.vue';
 import Editor from './editor/Editor.vue';
 import Feed from './Feed.vue';
-import { useUsers, useWatchers } from './queries';
+import { useChecklist, useSubtasks, useUsers, useWatchers } from './queries';
 import Subtasks from './Subtasks.vue';
 import { useTaskMenu } from '../tasks/taskMenu';
 import LinksBlock from '../links/LinksBlock.vue';
@@ -232,6 +234,23 @@ const counts = useQuery(async () =>
     ),
   ),
 );
+// subtasks and the checklist — built-in tabs right after Documents, with a count too (PLNRAPP-100)
+const subtasks = useSubtasks(props.task.id);
+const checklist = useChecklist(props.task.id);
+const tabs = computed(() => {
+  const at = panels.value.findIndex((p) => p.key === 'docs:pages') + 1;
+  return [
+    ...panels.value.slice(0, at),
+    { key: 'subtasks', label: 'task.subtasks', icon: ListTree },
+    { key: 'checklist', label: 'task.checklist', icon: ListChecks },
+    ...panels.value.slice(at),
+  ];
+});
+const tabCounts = computed<Record<string, number | undefined>>(() => ({
+  ...counts.value,
+  subtasks: subtasks.value?.length,
+  checklist: checklist.value?.length,
+}));
 const tab = ref<string | null>(null);
 const active = computed(() => panels.value.find((p) => p.key === tab.value) ?? null);
 const lt = (x: string | { ru: string; en: string }) =>
@@ -506,10 +525,10 @@ const panelComponent = computed(() => {
 
         <FieldsBlock :task="task" />
 
-        <section v-if="panels.length" :aria-label="t('task.extensions')">
+        <section :aria-label="t('task.extensions')">
           <div role="tablist" class="flex flex-wrap gap-1">
             <Button
-              v-for="p in panels"
+              v-for="p in tabs"
               :key="p.key"
               role="tab"
               size="sm"
@@ -520,20 +539,24 @@ const panelComponent = computed(() => {
             >
               {{ lt(p.label) }}
               <span
-                v-if="counts?.[p.key]"
+                v-if="tabCounts[p.key]"
                 class="ml-0.5 rounded-full bg-bg-muted px-1.5 text-2xs text-fg"
                 :data-testid="`tab-count-${p.key}`"
-                >{{ counts[p.key] }}</span
+                >{{ tabCounts[p.key] }}</span
               >
             </Button>
           </div>
-          <div v-if="panelComponent" class="mt-2 rounded-lg border border-border p-3">
+          <div v-if="tab === 'subtasks'" class="mt-2">
+            <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
+          </div>
+          <div v-else-if="tab === 'checklist'" class="mt-2">
+            <Checklist :task-id="task.id" />
+          </div>
+          <div v-else-if="panelComponent" class="mt-2 rounded-lg border border-border p-3">
             <component :is="panelComponent" :task-id="task.id" />
           </div>
         </section>
 
-        <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
-        <Checklist :task-id="task.id" />
         <Attachments ref="attachments" :task-id="task.id" />
         <LinksBlock
           :task="task"

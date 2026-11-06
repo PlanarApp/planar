@@ -26,6 +26,15 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// subtasks and the checklist are tabs (PLNRAPP-100)
+const openTab = async (name: string) => {
+  await w
+    .findAll('[role="tab"]')
+    .find((b) => b.text().startsWith(name))!
+    .trigger('click');
+  await flushPromises();
+};
+
 const row = <T = Record<string, unknown>>(table: string, id: string) =>
   db.table(table).get(id) as Promise<T>;
 const editorOf = (i = 0) => w.findAllComponents(Editor)[i];
@@ -171,6 +180,9 @@ describe('task:subtasks', () => {
   it('список подзадач и создание с parentId', async () => {
     await db.table('tasks').put(task(2, { parentId: t.id, title: 'child' }));
     w = await open();
+    await until(() => w.find('[data-testid="tab-count-subtasks"]').text() === '1');
+    expect(w.find('[data-testid="tab-count-checklist"]').exists()).toBe(false);
+    await openTab('Подзадачи');
     await until(() => w.text().includes('child') && w.text().includes('Todo'));
     expect(w.text()).toContain('PLN-2');
     const input = w.find('input[placeholder="Добавить подзадачу"]');
@@ -184,6 +196,7 @@ describe('task:subtasks', () => {
   it('клик по подзадаче без роутера не падает', async () => {
     await db.table('tasks').put(task(2, { parentId: t.id, title: 'child' }));
     w = await open();
+    await openTab('Подзадачи');
     await until(() => w.text().includes('child'));
     await w
       .findAll('section button')
@@ -195,6 +208,7 @@ describe('task:subtasks', () => {
 describe('task:checklist', () => {
   it('добавить, отметить, удалить', async () => {
     w = await open();
+    await openTab('Чек-лист');
     const section = () => w.find('section[aria-label="Чек-лист"]');
     await section().find('input[type=text], input:not([type])').setValue('пункт');
     await section().find('form').trigger('submit');
@@ -218,10 +232,13 @@ describe('task:checklist', () => {
     });
     await db.table('checklistItems').bulkPut([mk(true, 'a1'), mk(false, 'a2')]);
     w = await open();
+    await until(() => w.find('[data-testid="tab-count-checklist"]').text() === '2');
+    await openTab('Чек-лист');
     await until(() => w.text().includes('1/2'));
   });
   it('пустой пункт не создаётся', async () => {
     w = await open();
+    await openTab('Чек-лист');
     await w.find('section[aria-label="Чек-лист"] form').trigger('submit');
     await flushPromises();
     expect(await queued('checklist.add')).toHaveLength(0);

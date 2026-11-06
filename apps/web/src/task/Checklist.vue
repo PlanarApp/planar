@@ -28,10 +28,8 @@ async function add() {
 
 <template>
   <section :aria-label="t('task.checklist')">
-    <h3 class="mb-1 text-sm font-medium text-fg-muted">
-      {{ t('task.checklist') }}
-      <span v-if="items?.length" class="text-fg-subtle">{{ done }}/{{ items.length }}</span>
-    </h3>
+    <!-- the title is the tab (PLNRAPP-100) -->
+    <p v-if="items?.length" class="mb-1 text-sm text-fg-subtle">{{ done }}/{{ items.length }}</p>
     <ul>
       <li v-for="i in items" :key="i.id" class="flex min-h-11 items-center gap-2 md:min-h-8">
         <input

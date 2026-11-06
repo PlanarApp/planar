@@ -37,19 +37,17 @@ async function add() {
 
 <template>
   <section :aria-label="t('task.subtasks')">
-    <div class="mb-1 flex items-center gap-3">
-      <h3 class="text-sm font-medium text-fg-muted">{{ t('task.subtasks') }}</h3>
-      <template v-if="subtasks?.length">
-        <span class="text-xs text-fg-muted" data-testid="subtasks-progress">{{
-          t('task.subtasksDone', { done, n: subtasks.length })
-        }}</span>
-        <div class="h-1.5 w-24 overflow-hidden rounded-full bg-bg-muted">
-          <div
-            class="h-full rounded-full bg-success"
-            :style="{ width: `${(done / subtasks.length) * 100}%` }"
-          />
-        </div>
-      </template>
+    <!-- the title is the tab (PLNRAPP-100) -->
+    <div v-if="subtasks?.length" class="mb-1 flex items-center gap-3">
+      <span class="text-xs text-fg-muted" data-testid="subtasks-progress">{{
+        t('task.subtasksDone', { done, n: subtasks.length })
+      }}</span>
+      <div class="h-1.5 w-24 overflow-hidden rounded-full bg-bg-muted">
+        <div
+          class="h-full rounded-full bg-success"
+          :style="{ width: `${(done / subtasks.length) * 100}%` }"
+        />
+      </div>
     </div>
     <ul v-if="subtasks?.length" class="mb-1 overflow-hidden rounded-lg border border-border">
       <li v-for="s in subtasks" :key="s.id" class="border-b border-border last:border-b-0">
