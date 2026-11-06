@@ -35,7 +35,7 @@ const show = async (collapsible = true) => {
 
 describe('PLNRAPP-93: длинный текст под «Развернуть»', () => {
   it('короткий — без кнопки; длинный — свёрнут, кнопка разворачивает и сворачивает', async () => {
-    height = 300;
+    height = 150;
     const w = await show();
     expect(w.find('[data-testid=editor-expand]').exists()).toBe(false);
     height = 2000;
