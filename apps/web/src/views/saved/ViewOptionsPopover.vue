@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { ArrowDownUp, ListTree, SlidersHorizontal } from 'lucide-vue-next';
 import { Button, Popover, Select } from '../../ui';
 import { TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
+import { tableColumns } from '../table/menu';
 
 const options = defineModel<ViewOptions>('options', { required: true });
 const { t } = useI18n();
@@ -58,7 +59,30 @@ const toggleField = (f: TaskField) =>
         <input v-model="options.showKey" type="checkbox" data-testid="show-key" />
         {{ t('views.showKey') }}
       </label>
-      <div role="group" :aria-label="t('views.fields.title')" class="flex flex-col gap-1">
+      <div
+        v-if="tableColumns"
+        role="group"
+        :aria-label="t('table.columns')"
+        class="flex flex-col gap-1"
+        data-testid="table-columns"
+      >
+        <span class="text-xs text-fg-muted">{{ t('table.columns') }}</span>
+        <label
+          v-for="c in tableColumns.items.value"
+          :key="c.id"
+          class="inline-flex items-center gap-1.5 text-sm"
+        >
+          <input
+            type="checkbox"
+            :checked="c.on"
+            :disabled="c.locked"
+            :data-col="c.id"
+            @change="tableColumns.toggle(c.id, ($event.target as HTMLInputElement).checked)"
+          />
+          {{ c.label }}
+        </label>
+      </div>
+      <div v-else role="group" :aria-label="t('views.fields.title')" class="flex flex-col gap-1">
         <span class="text-xs text-fg-muted">{{ t('views.fields.title') }}</span>
         <label v-for="f in TASK_FIELDS" :key="f" class="inline-flex items-center gap-1.5 text-sm">
           <input
