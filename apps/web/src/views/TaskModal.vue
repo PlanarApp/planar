@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useBreakpoint } from '../ui';
+import { overlayOpen, useBreakpoint } from '../ui';
 import { closeTask, taskPanelLoader } from '.';
 import { taskOpenMode } from './open';
 import {
@@ -50,8 +50,9 @@ const onHandleKey = (e: KeyboardEvent) => {
   if (d) setTaskPanelWidth(taskPanelWidth.value + d);
 };
 
+// Esc closes an open picker first, the task only when nothing is open over it (PLNRAPP-101)
 const onKey = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && panelOpen.value) closeTask();
+  if (e.key === 'Escape' && panelOpen.value && !overlayOpen()) closeTask();
 };
 onMounted(() => window.addEventListener('keydown', onKey));
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
