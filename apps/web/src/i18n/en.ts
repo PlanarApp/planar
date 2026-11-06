@@ -579,6 +579,7 @@ export default {
       project: 'Project',
       name: 'Name',
       color: 'Color',
+      noColor: 'No color',
       icon: 'Icon',
       iconHint: 'emoji',
       iconUpload: 'Upload image',

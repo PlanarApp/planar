@@ -126,8 +126,9 @@ function upload(e: Event) {
       <div class="flex flex-col gap-1">
         <span class="text-sm text-fg-muted">{{ t('settings.general.color') }}</span>
         <ColorPicker
+          clearable
           :model-value="node.color ?? ''"
-          @update:model-value="save({ color: $event })"
+          @update:model-value="save({ color: $event || null })"
         />
       </div>
       <div class="flex flex-col gap-1">
