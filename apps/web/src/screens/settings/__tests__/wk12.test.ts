@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { useAuth, type User } from '../../../auth/useAuth';
 import { registerModules, setEnabledModules } from '../../../modules/registry';
 import * as sdk from '../../../modules/sdk';
@@ -72,8 +72,8 @@ describe('wk12:', () => {
     const w = await open('/settings/data', 'member');
     expect(w.find('[data-testid=nav-import\\:import]').exists()).toBe(false);
     expect(w.find('[data-testid=nav-data]').text()).toBe('Импорт/Экспорт');
-    await wait();
-    expect(w.find('[data-testid=mod-page]').exists()).toBe(true);
+    // the module page is an async component
+    await vi.waitFor(() => expect(w.find('[data-testid=mod-page]').exists()).toBe(true));
     // not in the cloud and the import module is off — the section is empty and hidden
     await setEnabledModules([]);
     const off = await open('/settings/spaces', 'admin');
