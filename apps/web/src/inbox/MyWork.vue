@@ -2,7 +2,18 @@
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { CheckCircle2, Circle, Sun } from 'lucide-vue-next';
+import {
+  AtSign,
+  CheckCircle2,
+  Circle,
+  Eye,
+  History,
+  LayoutDashboard,
+  MessageSquare,
+  SquarePen,
+  Sun,
+  UserRound,
+} from 'lucide-vue-next';
 import { EmptyState, Tabs } from '../ui';
 import { useAuth } from '../auth/useAuth';
 import { mutate } from '../sync';
@@ -26,12 +37,23 @@ const spaces = useSpaces();
 const MENTIONS = ['mentioned', 'chat_mention', 'doc_mention'];
 const sub = computed(() => workSub(route.query.w));
 const pick = (w: string) => void router.replace({ query: { ...route.query, w } });
+// on mobile the tabs show only icons (Tabs hides the label) — PLNRAPP-90
+const SUB_ICONS = {
+  day: Sun,
+  assigned: UserRound,
+  comments: MessageSquare,
+  mentions: AtSign,
+  created: SquarePen,
+  watched: Eye,
+  activity: History,
+  summary: LayoutDashboard,
+};
 const subTabs = computed(() =>
-  WORK_SUBS.map((w) =>
-    w === 'day'
-      ? { value: w, label: t('myDay.title'), icon: Sun }
-      : { value: w, label: t(`work.${w}`) },
-  ),
+  WORK_SUBS.map((w) => ({
+    value: w,
+    label: w === 'day' ? t('myDay.title') : t(`work.${w}`),
+    icon: SUB_ICONS[w],
+  })),
 );
 const taskSub = computed(() =>
   sub.value === 'day'
