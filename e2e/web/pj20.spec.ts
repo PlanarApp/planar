@@ -19,6 +19,22 @@ test('PJ-20: сайдбар сворачивается в полосу, скры
   await page.reload();
   await expect(page.getByTestId('sidebar-rail')).toBeVisible();
 
+  // PLNRAPP-87: favourites — in the rail above the projects, behind a rule
+  await expect(page.getByTestId('nav-favorite-rail')).toHaveCount(0);
+  await page.evaluate(() =>
+    localStorage.setItem(
+      'planar.favorites',
+      JSON.stringify([{ kind: 'workspace', id: 'w', name: '', to: '/w' }]),
+    ),
+  );
+  await page.reload();
+  const fav = page.getByTestId('nav-favorite-rail');
+  await expect(fav).toHaveCount(1);
+  const firstProject = page.getByTestId('nav-project-rail').first();
+  expect((await fav.boundingBox())!.y).toBeLessThan((await firstProject.boundingBox())!.y);
+  await expect(page.getByTestId('sidebar-rail').locator('hr')).toHaveCount(1);
+  await page.evaluate(() => localStorage.removeItem('planar.favorites'));
+
   await page.getByTestId('sidebar-hide').click();
   await expect(page.getByTestId('sidebar-rail')).toHaveCount(0);
   await expect(page.getByTestId('sidebar')).toHaveCount(0);

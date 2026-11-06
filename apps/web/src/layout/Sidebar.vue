@@ -161,6 +161,24 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
     >
       <X :size="16" />
     </button>
+    <!-- избранное — над проектами, через черту (PLNRAPP-87) -->
+    <template v-if="favorites.length">
+      <RouterLink
+        v-for="f in favorites"
+        :key="f.key"
+        :to="f.to"
+        :title="f.name"
+        :aria-label="f.name"
+        class="flex h-8 w-10 items-center justify-center rounded-md outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+        active-class="bg-accent-subtle"
+        data-testid="nav-favorite-rail"
+        :style="f.color ? { color: f.color } : undefined"
+      >
+        <span v-if="f.icon" :class="nodeIcon" aria-hidden="true"><NodeIcon :icon="f.icon" /></span>
+        <component :is="FAV_ICONS[f.kind]" v-else :size="16" aria-hidden="true" />
+      </RouterLink>
+      <hr class="my-1 w-6 border-border" />
+    </template>
     <template v-for="s in spaces" :key="s.id">
       <RouterLink
         v-for="p in s.projects"
