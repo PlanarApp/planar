@@ -155,6 +155,8 @@ describe('settings:statuses', () => {
     });
     await db.table('statuses').bulkPut([mk('Review', 'a7'), mk('todo', 'a8')]);
     const w = await show(StatusesSettings, { projectId: ids.project });
+    // the project list arrives from the replica asynchronously
+    await vi.waitFor(() => expect(w.find('[data-testid=copy-from]').exists()).toBe(true));
     await pick(w.find('[data-testid=copy-from] button[role=combobox]').element, 'Other');
     await w.find('[data-testid=copy-go]').trigger('click');
     await wait();
