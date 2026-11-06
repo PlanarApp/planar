@@ -15,7 +15,8 @@ import { useI18n } from 'vue-i18n';
 import { prefetchIdle, prefetchProject, useRootSpaceId, useWorkspace } from '../tasks/queries';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
-import { sidebarCollapse as sc, useNavData, useUserMenu } from './nav';
+import { VueDraggable } from 'vue-draggable-plus';
+import { favorites as favStore, sidebarCollapse as sc, useNavData, useUserMenu } from './nav';
 import { useAuth } from '../auth/useAuth';
 import { useSidebarActions } from './sidebarActions';
 import { quickCreate } from '../command/hotkeys';
@@ -47,6 +48,13 @@ const section = (key: string, load: () => Promise<{ default: Component }>) => {
 const navLabel = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 const { spaces: allSpaces, favorites } = useNavData();
+// favourites are dragged to change their order (PLNRAPP-72)
+function moveFav(e: { oldIndex?: number; newIndex?: number }) {
+  const keys = favorites.value.map((f) => f.key);
+  const [k] = keys.splice(e.oldIndex!, 1);
+  keys.splice(e.newIndex!, 0, k!);
+  favStore.reorder(keys);
+}
 const FAV_ICONS = {
   workspace: LayoutGrid,
   space: LayoutGrid,
@@ -248,7 +256,14 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
             <ChevronRight :size="12" :class="chev('favorites')" />{{ t('sidebar.favorites') }}
           </button>
         </h2>
-        <template v-if="!sc.is('favorites')">
+        <VueDraggable
+          v-if="!sc.is('favorites')"
+          :model-value="favorites"
+          :animation="150"
+          class="flex flex-col"
+          data-testid="nav-favorites"
+          @update="moveFav"
+        >
           <RouterLink
             v-for="f in favorites"
             :key="f.key"
@@ -269,7 +284,7 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
               f.name
             }}</span>
           </RouterLink>
-        </template>
+        </VueDraggable>
       </section>
       <!-- корневой узел дерева: «Всё», отделён от списка пространств чертой -->
       <section class="border-b border-border pb-2">
