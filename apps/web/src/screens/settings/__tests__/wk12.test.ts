@@ -78,6 +78,11 @@ describe('wk12:', () => {
     await setEnabledModules([]);
     const off = await open('/settings/spaces', 'admin');
     expect(off.find('[data-testid=nav-data]').exists()).toBe(false);
+    // the self-hosted owner — how to export on the server and upload to the cloud
+    const own = await open('/settings/data', 'owner');
+    expect(own.find('[data-testid=nav-data]').exists()).toBe(true);
+    await vi.waitFor(() => expect(own.find('[data-testid=self-data]').exists()).toBe(true));
+    expect(own.text()).toContain('./ops/backup.sh');
   });
   it('wk12: выключенный модуль — пункта нет', async () => {
     await setEnabledModules([]);

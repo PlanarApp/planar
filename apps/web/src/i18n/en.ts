@@ -607,6 +607,12 @@ export default {
     instanceModules: 'Instance modules',
     cloud: 'Cloud',
     data: 'Import/Export',
+    selfExportHint:
+      'The archive with the database and files is built on the server: run the command below in the install directory, the archive appears in backups/ (planar-<date>.tar).',
+    selfExportCloud:
+      'This archive can be uploaded to the cloud version: “Settings → Import/Export → Data import”.',
+    selfImportHint:
+      'Restoring an archive on this server replaces all data; api is stopped meanwhile.',
     about: 'About',
     usersDesc: 'Accounts and roles.',
     deleteLabel: 'Delete label?',
