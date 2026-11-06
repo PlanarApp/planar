@@ -52,7 +52,7 @@ const onHandleKey = (e: KeyboardEvent) => {
 
 // Esc closes an open picker first, the task only when nothing is open over it (PLNRAPP-101)
 const onKey = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && panelOpen.value && !overlayOpen()) closeTask();
+  if (e.key === 'Escape' && panelOpen.value && !overlayOpen(e)) closeTask();
 };
 onMounted(() => window.addEventListener('keydown', onKey));
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
