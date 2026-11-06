@@ -460,9 +460,9 @@ describe('list:row', () => {
     await show();
     const r = row('PLN-1');
     // columns are in place (they don't jump), but empty; the pickers are not mounted until hover
-    for (const c of ['dueDate', 'priority', 'labels'])
+    for (const c of ['assignee', 'dueDate', 'priority', 'labels'])
       expect(r.find(`[data-col=${c}]`).text()).toBe('');
-    expect(r.find('[data-col=assignee]').text()).toBe('Без исполнителя');
+    expect(r.find('[data-col=assignee] [aria-label="Без исполнителя"]').exists()).toBe(true);
     expect(r.find('[data-col=dueDate] button').exists()).toBe(false);
   });
 });

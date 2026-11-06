@@ -23,11 +23,9 @@ const MAX = 360;
 const clamp = (n: number) => Math.round(Math.min(MAX, Math.max(MIN, n)));
 
 export interface WidthCtx {
-  users: Map<string, string>;
   labels: Map<string, string>;
   projects: Map<string, string>;
   header: (c: ListColumn) => string;
-  noAssignee: string;
   priority: (p: number) => string;
   locale: string;
 }
@@ -39,11 +37,10 @@ export function autoWidth(c: ListColumn, tasks: readonly TaskView[], x: WidthCtx
   for (const t of tasks) {
     const v =
       c === 'assignee'
-        ? t.assigneeIds.length
-          ? textWidth(x.users.get(t.assigneeIds[0]!) ?? '?') +
-            28 +
-            (t.assigneeIds.length > 1 ? 24 : 0)
-          : textWidth(x.noAssignee)
+        ? // AvatarStack: up to 3 avatars of 20px with a 4px overlap, then "+N"
+          t.assigneeIds.length
+          ? 20 + 16 * (Math.min(t.assigneeIds.length, 3) - 1) + (t.assigneeIds.length > 3 ? 16 : 0)
+          : 16
         : c === 'dueDate'
           ? t.dueDate
             ? textWidth(formatDue(t.dueDate, x.locale))
