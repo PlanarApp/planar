@@ -240,7 +240,13 @@ function save() {
       <component :is="folded ? ChevronRight : ChevronDown" :size="14" />
     </button>
     <span v-else-if="childCount !== undefined" class="w-3 shrink-0" aria-hidden="true" />
-    <div v-if="fields.includes('status')" role="gridcell" class="shrink-0" @click.stop>
+    <div
+      v-if="fields.includes('status')"
+      role="gridcell"
+      data-col="status"
+      class="shrink-0"
+      @click.stop
+    >
       <StatusPicker
         compact
         :space-id="spaceId"

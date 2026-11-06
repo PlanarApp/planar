@@ -118,6 +118,12 @@ export const postpone = (day: MyDay) =>
 
 export const unplan = (planId: string) => mutate('day.remove', { id: planId });
 
+/** D in the List and in a task (PLNRAPP-80, PLNRAPP-79): add to today's plan or remove from it */
+export function toggleToday(taskId: string, day: MyDay | undefined) {
+  const plan = day?.today.find((x) => x.task.id === taskId)?.plan;
+  return plan ? unplan(plan.id) : planToday(taskId, day);
+}
+
 /** put a plan at position `index` of a day's order (drag and drop; from another day — with its `date`):
  * rank between the neighbours without it */
 export function moveTo(list: DayItem[], planId: string, index: number, date?: string) {

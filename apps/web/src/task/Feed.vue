@@ -150,6 +150,7 @@ async function send() {
   composer.value?.clear();
   await mutate('comment.create', { id: newId(), taskId: props.task.id, body });
 }
+defineExpose({ focusComposer: () => composer.value?.focus() });
 </script>
 
 <template>

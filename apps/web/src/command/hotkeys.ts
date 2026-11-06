@@ -39,6 +39,8 @@ export const tokenOf = (e: KeyboardEvent): string => {
 };
 
 function onKey(e: KeyboardEvent) {
+  // already handled by a local handler (the List's keys on its focused row)
+  if (e.defaultPrevented) return;
   const mod = e.metaKey || e.ctrlKey;
   const key = tokenOf(e);
   // Cmd/Ctrl+K also works in input fields

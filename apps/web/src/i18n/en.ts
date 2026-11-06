@@ -236,6 +236,10 @@ export default {
       my: 'My day',
       settings: 'Settings',
       filter: 'Quick view filter (Delete in the field clears it)',
+      s: 'Task: change status',
+      a: 'Task: change assignee',
+      m: 'Task: write a comment',
+      d: 'Task: add to / remove from My day',
     },
   },
   profile: {
