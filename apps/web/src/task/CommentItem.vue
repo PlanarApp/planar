@@ -118,6 +118,7 @@ function save() {
           :members="members"
           :label="t('task.comment')"
           :editable="false"
+          collapsible
         />
         <Reactions
           :rows="reactions"
