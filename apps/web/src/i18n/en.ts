@@ -235,7 +235,7 @@ export default {
       inbox: 'Inbox',
       my: 'My day',
       settings: 'Settings',
-      filter: 'View filter',
+      filter: 'Quick view filter (Delete in the field clears it)',
     },
   },
   profile: {
@@ -415,6 +415,8 @@ export default {
     filter: {
       title: 'Filter',
       active: 'Filter is set',
+      quick: 'Quick filter',
+      quickHint: 'Title or description…',
       add: 'Add rule',
       remove: 'Remove rule',
       and: 'AND',
@@ -434,6 +436,7 @@ export default {
         label: 'Label',
         dueDate: 'Due date',
         title: 'Title',
+        text: 'Title or description',
         createdBy: 'Author',
         cycle: 'Sprint',
       },

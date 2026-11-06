@@ -11,6 +11,8 @@ export type BaseField =
   | 'label'
   | 'dueDate'
   | 'title'
+  /** title or description (quick filter, PLNRAPP-79) */
+  | 'text'
   | 'createdBy'
   | 'cycle';
 export type FilterField = BaseField | `field:${string}`;
@@ -50,6 +52,7 @@ export const FIELD_OPERATORS: Record<BaseField, FilterOperator[]> = {
   label: ['in', 'notIn', 'isEmpty', 'isNotEmpty'],
   dueDate: ['before', 'after', 'isEmpty', 'isNotEmpty'],
   title: ['contains'],
+  text: ['contains'],
   createdBy: ['in', 'notIn'],
   cycle: ['in', 'notIn', 'isEmpty', 'isNotEmpty'],
 };
@@ -175,7 +178,28 @@ function matchRule(task: FilterTask, r: FilterRule, ctx: FilterCtx): boolean {
     }
     case 'title':
       return task.title.toLowerCase().includes(String(r.value).toLowerCase());
+    case 'text': {
+      const q = String(r.value).toLowerCase();
+      return task.title.toLowerCase().includes(q) || descText(task.description).includes(q);
+    }
   }
+}
+
+// description text, lowercased; cached by the doc object — the quick filter reruns on every keystroke
+const descCache = new WeakMap<object, string>();
+const docText = (n: unknown): string => {
+  if (!n || typeof n !== 'object') return '';
+  const o = n as { text?: unknown; content?: unknown[] };
+  return (
+    (typeof o.text === 'string' ? o.text + ' ' : '') +
+    (Array.isArray(o.content) ? o.content.map(docText).join('') : '')
+  );
+};
+function descText(doc: unknown): string {
+  if (!doc || typeof doc !== 'object') return '';
+  let s = descCache.get(doc);
+  if (s === undefined) descCache.set(doc, (s = docText(doc).toLowerCase()));
+  return s;
 }
 
 /**
