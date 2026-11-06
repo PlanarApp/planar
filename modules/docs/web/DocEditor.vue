@@ -6,9 +6,15 @@ import Mention from '@tiptap/extension-mention';
 import { editorExtensions } from '@planar/editor';
 import Suggestion from '@tiptap/suggestion';
 import { PluginKey } from '@tiptap/pm/state';
-import { uploadFile, useSearch, useSession } from '@planar/web/modules';
+import {
+  filterSlash,
+  i18n,
+  uploadFile,
+  useSearch,
+  useSession,
+  type SlashItem,
+} from '@planar/web/modules';
 import { suggestRender, type SugState } from './suggest';
-import { filterSlash, type SlashItem } from './slash';
 import { useTexts } from './text';
 
 const props = withDefaults(
@@ -54,7 +60,11 @@ const Slash = Extension.create({
         pluginKey: new PluginKey('slashMenu'),
         char: '/',
         items: ({ query }) =>
-          filterSlash(query).map((i) => ({ ...i, key: i.id, label: tx(i.title) })),
+          filterSlash(query).map((i) => ({
+            ...i,
+            key: i.id,
+            label: i.title[i18n.global.locale.value === 'en' ? 'en' : 'ru'],
+          })),
         command: ({ editor: ed, range, props: item }) => {
           ed.chain().focus().deleteRange(range).run();
           item.run(ed, { pickImage: () => fileInput.value?.click() });

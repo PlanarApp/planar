@@ -120,6 +120,7 @@ const snippet = computed(() => docText(props.comment.body).replace(/\s+/g, ' ').
           <Editor
             ref="box"
             refs
+            image
             :model-value="f.replyDraft.value"
             :members="f.members.value"
             :label="t('task.replyPlaceholder')"
