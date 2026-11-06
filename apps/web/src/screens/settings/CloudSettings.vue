@@ -5,7 +5,7 @@ import { api, ApiError } from '../../api/http';
 import { useAuth } from '../../auth/useAuth';
 import { Button, Input } from '../../ui';
 import SectionHeader from './SectionHeader.vue';
-import { useCloudErrors, type CloudState } from './cloud';
+import { nameTyped, useCloudErrors, type CloudState } from './cloud';
 
 const PROVIDERS: Record<string, string> = {
   paddle: 'Paddle',
@@ -61,7 +61,7 @@ const resetConfirm = ref('');
 const reset = () =>
   run(async () => {
     const r = await api<{ url: string }>('POST', '/api/cloud/reset', {
-      confirm: resetConfirm.value,
+      confirm: name.value,
       password: resetPassword.value,
     });
     window.location.assign(r.url);
@@ -70,7 +70,7 @@ async function remove() {
   busy.value = true;
   error.value = '';
   try {
-    await api('POST', '/api/cloud/delete', { confirm: confirm.value });
+    await api('POST', '/api/cloud/delete', { confirm: name.value });
     deleting.value = true;
   } catch (e) {
     // the instance may be gone before the answer comes back
@@ -186,7 +186,7 @@ async function remove() {
             type="submit"
             variant="danger"
             :loading="busy"
-            :disabled="resetConfirm !== name || resetPassword.length < 8"
+            :disabled="!nameTyped(resetConfirm, name) || resetPassword.length < 8"
             >{{ t('cloud.resetGo') }}</Button
           >
         </form>
@@ -197,9 +197,13 @@ async function remove() {
         <p class="text-sm text-fg-muted">{{ t('cloud.deleteHint', { name }) }}</p>
         <form class="flex flex-wrap items-end gap-2" @submit.prevent="remove">
           <Input v-model="confirm" :label="t('cloud.deleteConfirm')" :placeholder="name" />
-          <Button type="submit" variant="danger" :loading="busy" :disabled="confirm !== name">{{
-            t('cloud.deleteGo')
-          }}</Button>
+          <Button
+            type="submit"
+            variant="danger"
+            :loading="busy"
+            :disabled="!nameTyped(confirm, name)"
+            >{{ t('cloud.deleteGo') }}</Button
+          >
         </form>
       </section>
     </template>

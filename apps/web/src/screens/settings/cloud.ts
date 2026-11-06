@@ -13,6 +13,10 @@ export type CloudState = {
   manageUrl: string | null;
 };
 
+/** the typed confirmation matches the instance name: spaces and case don't matter (the cloud is sent the name itself) */
+export const nameTyped = (typed: string, name: string) =>
+  !!name && typed.trim().toLowerCase() === name.toLowerCase();
+
 /** cloud error codes come in details.cloud (h3 statusMessage of planar-cloud) */
 export function useCloudErrors(ip: () => string | null | undefined) {
   const { t, te } = useI18n();
