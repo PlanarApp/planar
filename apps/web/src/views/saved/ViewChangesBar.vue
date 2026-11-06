@@ -26,7 +26,7 @@ watch(
       data-testid="view-changes"
     >
       <span class="mr-1 text-fg-muted">{{ t('views.saved.changed') }}</span>
-      <slot />
+      <slot :hide="() => (hidden = true)" />
       <IconButton size="sm" :icon="X" :label="t('ui.close')" @click="hidden = true" />
     </div>
   </Teleport>

@@ -13,7 +13,7 @@ import {
   type TaskView,
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
-import { ChevronDown, ChevronRight, GripVertical, ListTree } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, GripVertical, ListTree, Sun } from 'lucide-vue-next';
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
@@ -52,6 +52,8 @@ const props = defineProps<{
   wrap?: boolean;
   /** the task key before the name */
   showKey?: boolean;
+  /** in today's «My day» plan — a sun before the name */
+  inDay?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -190,7 +192,7 @@ function save() {
     :aria-selected="selected"
     :data-task="task.key"
     :class="[
-      'group relative flex h-full items-center gap-2 border-b border-border px-3 text-sm',
+      'group relative flex h-full items-center gap-2 border-b border-border pl-4 pr-3 text-sm',
       // wrapped or being edited: the same layout, the row grows by the name's extra lines
       wrap || editing ? 'min-h-8' : '',
       editing ? 'py-0.5' : '',
@@ -205,7 +207,7 @@ function save() {
   >
     <div
       v-if="draggable"
-      class="-ml-2 flex w-4 shrink-0 cursor-grab items-center justify-center text-fg-subtle opacity-0 group-hover:opacity-100 touch-none"
+      class="absolute inset-y-0 left-0 flex w-4 cursor-grab items-center justify-center text-fg-subtle opacity-0 group-hover:opacity-100 touch-none"
       data-testid="row-grip"
       :aria-label="t('list.drag')"
       @pointerdown.stop.prevent="emit('drag', $event)"
@@ -213,7 +215,7 @@ function save() {
     >
       <GripVertical :size="14" />
     </div>
-    <div role="gridcell" class="w-5 shrink-0" @click.stop>
+    <div role="gridcell" class="flex w-4 shrink-0" @click.stop>
       <input
         type="checkbox"
         :checked="selected"
@@ -262,6 +264,13 @@ function save() {
       />
       <span v-else class="flex items-center gap-1">
         <BlockedIcon v-if="blocked" />
+        <Sun
+          v-if="inDay"
+          :size="14"
+          class="shrink-0 text-warning"
+          :aria-label="t('myDay.inDay')"
+          data-testid="row-in-day"
+        />
         <span v-if="showKey" class="shrink-0 text-xs text-fg-subtle" data-testid="row-key">{{
           task.key
         }}</span>

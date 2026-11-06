@@ -85,7 +85,6 @@ export default {
     profile: 'Profile',
     settings: 'Settings',
     language: 'Language',
-    install: 'Install app',
     menu: 'Menu',
     modules: { chat: 'Chat', docs: 'Docs' },
     nav: 'Navigation',
@@ -122,6 +121,7 @@ export default {
   },
   myDay: {
     title: 'My day',
+    inDay: 'In my day',
     empty:
       'Nothing planned for today — add tasks with «+» below or «Add to my day» in a task menu.',
     dropHere: 'Drag a task here',
@@ -315,6 +315,7 @@ export default {
     deleteGo: 'Delete forever',
     deleting: 'The instance is being deleted. The page will stop opening in a few minutes.',
     badge: 'Trial: {n} d',
+    badgeShort: '{n} d',
     paywall: 'The trial is over. Subscribe to give your team access again.',
     loginExpired: 'The trial is over. Only an administrator can sign in to subscribe.',
     err: {
@@ -478,6 +479,7 @@ export default {
       icon: 'Icon',
       saveChanges: 'Save',
       saveForAll: 'Save for all',
+      saveForMe: 'Save for me',
       reset: 'Reset',
       changed: 'View changed',
       notFound: 'View not found',
@@ -578,6 +580,7 @@ export default {
       project: 'Project',
       name: 'Name',
       color: 'Color',
+      noColor: 'No color',
       icon: 'Icon',
       iconHint: 'emoji',
       iconUpload: 'Upload image',
@@ -603,6 +606,7 @@ export default {
       'Data modules work only in projects where they are enabled. Disabling keeps the module data.',
     instanceModules: 'Instance modules',
     cloud: 'Cloud',
+    data: 'Import/Export',
     about: 'About',
     usersDesc: 'Accounts and roles.',
     deleteLabel: 'Delete label?',

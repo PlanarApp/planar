@@ -22,4 +22,13 @@ describe('избранное', () => {
       { kind: 'doc', id: 't1', name: 'Док', to: '/m/docs/t1' },
     ]);
   });
+  it('PLNRAPP-72 reorder: новый порядок показанных, скрытые — в конце, пишет в localStorage', async () => {
+    const { favorites } = await import('../nav');
+    for (const id of ['a', 'b', 'c', 'gone'])
+      favorites.toggle({ kind: 'task', id, name: id, to: `/t/${id}` });
+    favorites.reorder(['task:c', 'task:a', 'task:b']);
+    expect(
+      JSON.parse(localStorage.getItem('planar.favorites')!).map((f: { id: string }) => f.id),
+    ).toEqual(['c', 'a', 'b', 'gone']);
+  });
 });

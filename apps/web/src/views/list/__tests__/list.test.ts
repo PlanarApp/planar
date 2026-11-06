@@ -342,6 +342,18 @@ describe('list:keys', () => {
     await key('k');
     expect(row('PLN-1').classes()).toContain('ring-2');
   });
+  it('PLNRAPP-80 D добавляет задачу в «Мой день» (солнце в строке) и убирает', async () => {
+    const { useAuth } = await import('../../../auth/useAuth');
+    useAuth().user.value = { id: ids.ann } as never;
+    await db.table('tasks').put(task(1));
+    await show();
+    expect(row('PLN-1').find('[data-testid=row-in-day]').exists()).toBe(false);
+    await key('j');
+    await key('d');
+    await until(() => row('PLN-1').find('[data-testid=row-in-day]').exists());
+    await key('d');
+    await until(() => !row('PLN-1').find('[data-testid=row-in-day]').exists());
+  });
   it('list:keys x выделяет, Esc снимает', async () => {
     await db.table('tasks').put(task(1));
     await show();
@@ -449,9 +461,9 @@ describe('list:row', () => {
     await show();
     const r = row('PLN-1');
     // columns are in place (they don't jump), but empty; the pickers are not mounted until hover
-    for (const c of ['dueDate', 'priority', 'labels'])
+    for (const c of ['assignee', 'dueDate', 'priority', 'labels'])
       expect(r.find(`[data-col=${c}]`).text()).toBe('');
-    expect(r.find('[data-col=assignee]').text()).toBe('Без исполнителя');
+    expect(r.find('[data-col=assignee] [aria-label="Без исполнителя"]').exists()).toBe(true);
     expect(r.find('[data-col=dueDate] button').exists()).toBe(false);
   });
 });

@@ -144,18 +144,31 @@ const readFav = (): FavRef[] => {
   }
 };
 const favList = ref<FavRef[]>(readFav());
-/** Favourites: in the order they were added. */
+const saveFav = (list: FavRef[]) => {
+  favList.value = list;
+  try {
+    localStorage.setItem(FAV_KEY, JSON.stringify(list));
+  } catch {
+    /* without storage — until reload */
+  }
+};
+/** Favourites: in the order they were added, then as dragged in the sidebar. */
 export const favorites = {
   has: (kind: FavKind, id: string) => favList.value.some((f) => f.kind === kind && f.id === id),
   toggle(f: FavRef) {
-    favList.value = favorites.has(f.kind, f.id)
-      ? favList.value.filter((x) => !(x.kind === f.kind && x.id === f.id))
-      : [...favList.value, { kind: f.kind, id: f.id, name: f.name, to: f.to }];
-    try {
-      localStorage.setItem(FAV_KEY, JSON.stringify(favList.value));
-    } catch {
-      /* without storage — until reload */
-    }
+    saveFav(
+      favorites.has(f.kind, f.id)
+        ? favList.value.filter((x) => !(x.kind === f.kind && x.id === f.id))
+        : [...favList.value, { kind: f.kind, id: f.id, name: f.name, to: f.to }],
+    );
+  },
+  /** new order of the shown favourites (keys `kind:id`); hidden ones (deleted nodes) keep their place at the end */
+  reorder(keys: string[]) {
+    const at = (f: FavRef) => {
+      const i = keys.indexOf(`${f.kind}:${f.id}`);
+      return i < 0 ? keys.length : i;
+    };
+    saveFav([...favList.value].sort((a, b) => at(a) - at(b)));
   },
 };
 

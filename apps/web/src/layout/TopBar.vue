@@ -1,15 +1,8 @@
 <script setup lang="ts">
-import {
-  computed,
-  defineAsyncComponent,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  type Component,
-} from 'vue';
+import { computed, defineAsyncComponent, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Download, Inbox, PanelLeft, Plus, Search } from 'lucide-vue-next';
+import { Inbox, PanelLeft, Plus, Search } from 'lucide-vue-next';
 const BellMenu = defineAsyncComponent(() => import('../inbox/BellMenu.vue'));
 import Button from '../ui/Button.vue';
 import IconButton from '../ui/IconButton.vue';
@@ -31,21 +24,6 @@ const route = useRoute();
 const router = useRouter();
 const { isMobile } = useBreakpoint();
 const { notice } = useUserMenu();
-
-interface InstallEvent extends Event {
-  prompt: () => Promise<void>;
-}
-const installEvent = ref<InstallEvent | null>(null);
-const onPrompt = (e: Event) => {
-  e.preventDefault();
-  installEvent.value = e as InstallEvent;
-};
-onMounted(() => window.addEventListener('beforeinstallprompt', onPrompt));
-onBeforeUnmount(() => window.removeEventListener('beforeinstallprompt', onPrompt));
-const install = async () => {
-  await installEvent.value?.prompt();
-  installEvent.value = null;
-};
 
 const topbarItems = useExtensions('topbar');
 // defineAsyncComponent once per element
@@ -135,7 +113,6 @@ const fav = computed<FavRef | null>(() =>
       </RouterLink>
     </span>
     <span v-if="notice" role="alert" class="text-sm text-fg-muted">{{ notice }}</span>
-    <TrialBadge />
     <SyncStatus />
     <component
       :is="topbarComp(i.key, i.component)"
@@ -160,9 +137,7 @@ const fav = computed<FavRef | null>(() =>
       data-testid="topbar-work"
       @click="router.push('/w/work')"
     />
-    <Button v-if="installEvent" size="sm" :icon="Download" @click="install">
-      {{ t('topbar.install') }}
-    </Button>
     <BellMenu />
+    <TrialBadge />
   </header>
 </template>

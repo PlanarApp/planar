@@ -10,6 +10,11 @@ import { resetBreakpoint, useTheme } from '../../ui/index';
 import AppShell from '../AppShell.vue';
 import Sidebar from '../Sidebar.vue';
 import TopBar from '../TopBar.vue';
+
+// AppShell mounts the install offer (PLNRAPP-67): the service worker registration is not needed here
+vi.mock('../../pwa/register', () => ({
+  useRegisterSW: () => ({ needRefresh: { value: false }, updateServiceWorker: async () => {} }),
+}));
 import { ui } from '../../command/hotkeys';
 
 const stub = { template: '<div />' };

@@ -2,7 +2,7 @@
 import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkBar from '../BulkBar.vue';
 import { useVirtualizer, type VirtualItem } from '@tanstack/vue-virtual';
-import { ChevronDown, ChevronRight, ListChecks, Plus } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, ListChecks, Plus, UserRound } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
@@ -29,6 +29,8 @@ import { useExtensions } from '../../modules/registry';
 import { openTask, useSelection, type ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
+import { useAuth } from '../../auth/useAuth';
+import { planToday, unplan, useMyDay } from '../../inbox/myDay';
 import {
   createStatus,
   dictProjectOf,
@@ -54,6 +56,14 @@ const sel = useSelection();
 
 const project = useProject(() => props.projectId);
 const blocked = useBlockedIds(() => props.projectId);
+// «My day»: today's tasks are marked in the row, D adds the focused task or removes it (PLNRAPP-80)
+const me = useAuth().user;
+const day = useMyDay(() => me.value?.id);
+const inDay = computed(() => new Set((day.value?.today ?? []).map((x) => x.task.id)));
+function toggleDay(taskId: string) {
+  const plan = day.value?.today.find((x) => x.task.id === taskId)?.plan;
+  void (plan ? unplan(plan.id) : planToday(taskId, day.value));
+}
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 // a project view reads its own dictionaries; a summary — those of all its projects (grouped by name)
 const dictProject = () => dictProjectOf(props.scope, props.projectId);
@@ -74,11 +84,10 @@ const {
   () => visibleColumns(props.options.fields),
   all,
   () => ({
-    users: new Map((members.value ?? []).map((u) => [u.id, u.name])),
     labels: new Map((labels.value ?? []).map((l) => [l.id, l.name])),
     projects: projectNames.value,
-    header: (c) => colName(c),
-    noAssignee: t('tasks.noAssignee'),
+    // the assignee header is an icon, like its cells
+    header: (c) => (c === 'assignee' ? '' : colName(c)),
     priority: (p) => t(`tasks.priority.${p}`),
     locale: locale.value,
   }),
@@ -99,7 +108,8 @@ type Item =
       group: string;
       depth: number;
       parentTitle?: string;
-      childCount: number;
+      /** undefined — the group has no subtasks: no room reserved for the fold chevron */
+      childCount?: number;
     }
   | { id: string; kind: 'create'; group: TaskGroup };
 
@@ -172,7 +182,7 @@ const items = computed<Item[]>(() => {
           group: g.key,
           depth,
           parentTitle: !depth && task.parentId ? byId.value.get(task.parentId)?.title : undefined,
-          childCount: kids.get(task.id) ?? 0,
+          childCount: kids.size ? (kids.get(task.id) ?? 0) : undefined,
         });
       }
       return [
@@ -396,7 +406,7 @@ function onKey(e: KeyboardEvent) {
     t !== e.currentTarget &&
     !!t.closest('[role=row]') &&
     (t.tagName === 'BUTTON' || (t as HTMLInputElement).type === 'checkbox') &&
-    ['j', 'k', 'x'].includes(e.key);
+    ['j', 'k', 'x', 'd'].includes(e.key);
   if ((t !== e.currentTarget && !onRowControl) || e.ctrlKey || e.metaKey || e.altKey) return;
   const task = focusedTask.value;
   const handlers: Record<string, () => void> = {
@@ -406,6 +416,7 @@ function onKey(e: KeyboardEvent) {
     ArrowUp: () => moveFocus(-1),
     Enter: () => task && openTask(task.key),
     x: () => task && sel.toggle(task.id),
+    d: () => task && toggleDay(task.id),
     F2: () => task && startEdit(focusedId.value!), // edit, not opening after a click
     Escape: () => sel.clear(),
   };
@@ -572,7 +583,7 @@ watch(
               <div
                 v-if="it.kind === 'head'"
                 role="row"
-                class="flex h-full items-center border-b border-border px-3 text-xs text-fg-muted"
+                class="flex h-full items-center border-b border-border pl-4 pr-3 text-xs text-fg-muted"
               >
                 <input
                   type="checkbox"
@@ -607,6 +618,13 @@ watch(
                   >
                     {{ colName(c) }}
                     <span class="text-accent">{{ sortMark(options, LIST_SORT[c]) }}</span></button
+                  ><span
+                    v-else-if="c === 'assignee'"
+                    role="img"
+                    :title="colName(c)"
+                    :aria-label="colName(c)"
+                    class="inline-flex align-middle"
+                    ><UserRound :size="14" aria-hidden="true" /></span
                   ><template v-else>{{ colName(c) }}</template
                   ><span
                     role="separator"
@@ -676,6 +694,13 @@ watch(
                     >
                       {{ colName(c) }}
                       <span class="text-accent">{{ sortMark(options, LIST_SORT[c]) }}</span></button
+                    ><span
+                      v-else-if="c === 'assignee'"
+                      role="img"
+                      :title="colName(c)"
+                      :aria-label="colName(c)"
+                      class="inline-flex align-middle"
+                      ><UserRound :size="14" aria-hidden="true" /></span
                     ><template v-else>{{ colName(c) }}</template
                     ><span
                       role="separator"
@@ -700,6 +725,7 @@ watch(
                 :editing="editing === it.id"
                 :fields="options.fields"
                 :blocked="blocked.has(it.task.id)"
+                :in-day="inDay.has(it.task.id)"
                 :members="members ?? []"
                 :labels="labels ?? []"
                 :depth="it.depth"

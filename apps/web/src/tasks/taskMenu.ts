@@ -61,6 +61,7 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
       id: 'myDay',
       label: t(plan ? 'myDay.remove' : 'myDay.add'),
       icon: Sun,
+      shortcut: 'D', // in the List, on the focused task (PLNRAPP-80)
       onSelect: () => void (plan ? unplan(plan.id) : planToday(task.id, day.value)),
     };
   };
