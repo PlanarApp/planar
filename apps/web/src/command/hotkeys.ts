@@ -30,11 +30,15 @@ let attached = false;
 const editable = (t: EventTarget | null) =>
   t instanceof HTMLElement && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
 
-/** Letters — by physical key (KeyC → 'c'), so it works on any layout; Slash key — '/', with Shift '?'. */
+/** Letters — by physical key (KeyC → 'c'), so it works on any layout; Slash key — '/', with Shift '?';
+ * Shift+Period — '>', Minus — '-', Space — 'space'. */
 export const tokenOf = (e: KeyboardEvent): string => {
   const m = /^Key([A-Z])$/.exec(e.code ?? '');
   if (m) return m[1].toLowerCase();
   if (e.code === 'Slash') return e.shiftKey ? '?' : '/';
+  if (e.code === 'Period' && e.shiftKey) return '>';
+  if (e.code === 'Minus' && !e.shiftKey) return '-';
+  if (e.code === 'Space') return 'space';
   return e.key;
 };
 
@@ -48,6 +52,13 @@ function onKey(e: KeyboardEvent) {
   // composedPath: an input inside a shadow root (emoji picker search) — e.target is only its host
   const target = e.composedPath?.()[0] ?? e.target;
   if (token !== 'mod+k' && (mod || e.altKey || editable(target))) return;
+  // Space on a focused button/link presses it
+  if (
+    token === 'space' &&
+    target instanceof HTMLElement &&
+    target.closest('button, a[href], [role=button], [role=tab], [role=checkbox]')
+  )
+    return;
   const now = Date.now();
   if (now - last > SEQ_MS) buf = [];
   last = now;

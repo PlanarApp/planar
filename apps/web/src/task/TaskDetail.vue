@@ -207,14 +207,31 @@ const root = ref<HTMLElement>();
 const feed = ref<InstanceType<typeof Feed>>();
 const day = useMyDay(() => user.value?.id);
 const pickerOf = (name: string) => () =>
-  root.value?.querySelector<HTMLElement>(`[data-col=${name}] button`)?.click();
+  root.value?.querySelector<HTMLElement>(`[data-col="${name}"] button`)?.click();
+const focusIn = (selector: string) =>
+  root.value?.querySelector<HTMLElement>(`${selector} input`)?.focus();
+// the subtasks / checklist tab with its "add" field focused (PLNRAPP-97)
+const addIn = (key: 'subtasks' | 'checklist') => async () => {
+  tab.value = key;
+  await nextTick();
+  focusIn(`[data-tab=${key}]`);
+};
 const actions: Record<string, () => void> = {
   s: pickerOf('status'),
   a: pickerOf('assignee'),
   m: () => feed.value?.focusComposer(),
   d: () => void toggleToday(props.task.id, day.value),
+  t: pickerOf('labels'),
+  p: pickerOf('priority'),
+  w: () => void toggleWatch(),
+  space: pickerOf('time:timer'),
+  '>': addIn('subtasks'),
+  '-': addIn('checklist'),
+  l: () => focusIn('[data-testid=links-block]'),
 };
-for (const [key, run] of Object.entries(actions)) useHotkey(key, run, { label: `cmd.hk.${key}` });
+const hkLabel: Record<string, string> = { '>': 'subtask', '-': 'checklist' };
+for (const [key, run] of Object.entries(actions))
+  useHotkey(key, run, { label: `cmd.hk.${hkLabel[key] ?? key}` });
 onMounted(() => actions[takePendingAction()]?.());
 
 // --- module tabs
@@ -475,7 +492,7 @@ const panelComponent = computed(() => {
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <Flag :size="15" />{{ t('tasks.priorityTitle') }}
             </dt>
-            <dd class="min-w-0">
+            <dd class="min-w-0" data-col="priority">
               <PriorityPicker
                 :model-value="task.priority"
                 @update:model-value="(v: number) => updateTask(task.id, { priority: v })"
@@ -486,7 +503,7 @@ const panelComponent = computed(() => {
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <Tag :size="15" />{{ t('tasks.labels') }}
             </dt>
-            <dd class="min-w-0">
+            <dd class="min-w-0" data-col="labels">
               <LabelPicker
                 :model-value="task.labelIds"
                 :space-id="task.spaceId"
@@ -517,13 +534,12 @@ const panelComponent = computed(() => {
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <component :is="p.icon" v-if="p.icon" :size="15" />{{ lt(p.label) }}
             </dt>
-            <dd class="min-w-0">
+            <dd class="min-w-0" :data-col="p.key">
               <component :is="p.view" :task-id="task.id" />
             </dd>
           </div>
+          <FieldsBlock :task="task" />
         </dl>
-
-        <FieldsBlock :task="task" />
 
         <section :aria-label="t('task.extensions')">
           <div role="tablist" class="flex flex-wrap gap-1">
@@ -546,10 +562,10 @@ const panelComponent = computed(() => {
               >
             </Button>
           </div>
-          <div v-if="tab === 'subtasks'" class="mt-2">
+          <div v-if="tab === 'subtasks'" class="mt-2" data-tab="subtasks">
             <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
           </div>
-          <div v-else-if="tab === 'checklist'" class="mt-2">
+          <div v-else-if="tab === 'checklist'" class="mt-2" data-tab="checklist">
             <Checklist :task-id="task.id" />
           </div>
           <div v-else-if="panelComponent" class="mt-2 rounded-lg border border-border p-3">
@@ -560,6 +576,7 @@ const panelComponent = computed(() => {
         <Attachments ref="attachments" :task-id="task.id" />
         <LinksBlock
           :task="task"
+          data-testid="links-block"
           class="min-w-0 [&_.flex-wrap>div:last-child]:min-w-40 [&_.flex-wrap>div:last-child]:flex-1"
         />
       </div>
