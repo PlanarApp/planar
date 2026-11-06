@@ -22,6 +22,7 @@ import { moveArgs, type PageRow } from './model';
 import TaskPanel from './TaskPanel.vue';
 import PageView from './PageView.vue';
 import TreeSection from './TreeSection.vue';
+import GroupDocs from './GroupDocs.vue';
 
 const ME = uuidv7();
 const OTHER = uuidv7();
@@ -53,7 +54,7 @@ const router = { push: vi.fn(), replace: vi.fn() };
 vi.mock('vue-router', async (orig) => ({
   ...(await orig<object>()),
   useRouter: () => router,
-  useRoute: () => ({ params: {} }),
+  useRoute: () => ({ params: {}, query: {} }),
   RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
 }));
 
@@ -122,6 +123,26 @@ describe('docs web: манифест и провайдер поиска', () => 
     expect((await s.search('ежик', 5)).map((h) => h.to)).toEqual([`/m/docs/${a}`]);
     expect((await s.search('ёлк', 5)).map((h) => h.id)).toEqual([b]);
     expect(await s.search('нету', 5)).toEqual([]);
+  });
+});
+
+describe('docs web: вкладка «Документы»', () => {
+  it('PLNRAPP-75 без страницы — по центру кнопка «Новая страница»: создаёт страницу уровня и открывает', async () => {
+    await db.table('spaces').put({ id: SPACE, name: 'Космос', rank: 'a0' });
+    const w = mount(GroupDocs, {
+      props: { scope: { level: 'space', spaceId: SPACE, projectId: null, rootSpaceId: SPACE } },
+    });
+    const btn = await vi.waitFor(() => {
+      const b = w.find('[data-testid=docs-empty-new]');
+      expect(b.exists()).toBe(true);
+      return b;
+    });
+    router.push.mockClear();
+    await btn.trigger('click');
+    await vi.waitFor(() => expect(router.push).toHaveBeenCalled());
+    const [p] = await db.table<PageRow>('docsPages').toArray();
+    expect(p).toMatchObject({ spaceId: SPACE, parentId: null });
+    expect(router.push).toHaveBeenCalledWith({ query: { page: p!.id } });
   });
 });
 

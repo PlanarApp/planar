@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, useTemplateRef } from 'vue';
 import { useRoute } from 'vue-router';
-import { ChevronLeft, FileText } from 'lucide-vue-next';
-import { EmptyState, useGroupLevels, type GroupScope } from '@planar/web/modules';
+import { ChevronLeft, FileText, Plus } from 'lucide-vue-next';
+import { Button, EmptyState, useGroupLevels, type GroupScope } from '@planar/web/modules';
 import PageTree from './PageTree.vue';
 import PageView from './PageView.vue';
 import { useTexts } from './text';
@@ -22,6 +22,7 @@ const sections = computed(() =>
     indent: l.level === 'project' && props.scope.level !== 'project',
   })),
 );
+const tree = useTemplateRef<InstanceType<typeof PageTree>>('pageTree');
 const pageId = computed(() => (typeof route.query.page === 'string' ? route.query.page : ''));
 const link = (id: string) => ({ query: { ...route.query, page: id } });
 </script>
@@ -37,9 +38,11 @@ const link = (id: string) => ({ query: { ...route.query, page: id } });
       ]"
       data-testid="docs-nav"
     >
-      <PageTree :sections="sections" :link="link" :current="pageId" />
+      <PageTree ref="pageTree":sections="sections" :link="link" :current="pageId" />
     </nav>
-    <div :class="['min-w-0 flex-1 overflow-y-auto', !pageId && 'max-md:hidden']">
+    <div
+      :class="['flex min-w-0 flex-1 flex-col overflow-y-auto', !pageId && 'max-md:hidden']"
+    >
       <RouterLink
         v-if="pageId"
         :to="{ query: { ...route.query, page: undefined } }"
@@ -53,7 +56,17 @@ const link = (id: string) => ({ query: { ...route.query, page: id } });
         :page-id="pageId"
         :back="{ query: { ...route.query, page: undefined } }"
       />
-      <EmptyState v-else :icon="FileText" :title="tx('pickHere')" />
+      <EmptyState v-else :icon="FileText" :title="tx('pickHere')" class="m-auto">
+        <template v-if="sections[0]" #actions>
+          <Button
+            variant="primary"
+            :icon="Plus"
+            data-testid="docs-empty-new"
+            @click="tree?.add(sections[0], null)"
+            >{{ tx('newPage') }}</Button
+          >
+        </template>
+      </EmptyState>
     </div>
   </div>
 </template>
