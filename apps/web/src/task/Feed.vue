@@ -7,7 +7,8 @@ import { api } from '../api/http';
 import { useAuth } from '../auth/useAuth';
 import { mutate, newId } from '../sync';
 import { useLabels, useMembers, type TaskView } from '../tasks';
-import { Button } from '../ui';
+import { ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-vue-next';
+import { Button, IconButton, Select } from '../ui';
 import CommentThread from './CommentThread.vue';
 import { FEED } from './thread';
 import Editor from './editor/Editor.vue';
@@ -62,27 +63,36 @@ function describe(a: Row<'activity'>): string {
 type Entry =
   | { at: string; id: string; comment: Row<'comments'> }
   | { at: string; id: string; act: Row<'activity'> };
-const feed = computed<Entry[]>(() =>
-  [
+const newestFirst = ref(true);
+const show = ref<'all' | 'comments' | 'history'>('all');
+const showOptions = computed(() =>
+  (['all', 'comments', 'history'] as const).map((value) => ({
+    value,
+    label: t(`task.feedShow.${value}`),
+  })),
+);
+const feed = computed<Entry[]>(() => {
+  const dir = newestFirst.value ? -1 : 1;
+  return [
     // in the feed — thread roots; replies — under their own root
-    ...(comments.value ?? [])
+    ...(show.value === 'history' ? [] : (comments.value ?? []))
       .filter((c) => !c.parentId)
       .map((c) => ({ at: c.createdAt, id: c.id, comment: c })),
     // the comment is in the feed already
-    ...activity.value
+    ...(show.value === 'comments' ? [] : activity.value)
       .filter((a) => a.kind !== 'commented')
       .map((a) => ({ at: a.createdAt, id: a.id, act: a })),
     // equal time — by id (uuidv7: insertion order), otherwise the order depends on the DB read
-  ].sort((a, b) => (a.at === b.at ? (a.id < b.id ? -1 : 1) : a.at < b.at ? -1 : 1)),
-);
+  ].sort((a, b) => dir * (a.at === b.at ? (a.id < b.id ? -1 : 1) : a.at < b.at ? -1 : 1));
+});
 
-// new entries at the bottom, by the comment field: the feed sticks to the end
+// a new entry lands next to the composer only with the newest on top; oldest first — follow it to the end
 const list = ref<HTMLElement>();
 watch(
   () => feed.value.length,
   async () => {
     await nextTick();
-    list.value?.scrollTo({ top: list.value.scrollHeight });
+    list.value?.scrollTo({ top: newestFirst.value ? 0 : list.value.scrollHeight });
   },
 );
 
@@ -144,13 +154,22 @@ async function send() {
 
 <template>
   <section :aria-label="t('task.activity')" class="flex flex-col gap-3">
-    <h3 class="text-sm font-medium text-fg">{{ t('task.activity') }}</h3>
-    <!-- лента прокручивается, поле комментария — внизу колонки (в колонке активности карточки) -->
-    <div ref="list" class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto" data-testid="feed">
-      <template v-for="e in feed" :key="e.id">
-        <CommentThread v-if="'comment' in e" :comment="e.comment" />
-        <p v-else class="text-xs text-fg-muted" data-testid="activity">{{ describe(e.act) }}</p>
-      </template>
+    <div class="flex items-center gap-2">
+      <h3 class="flex-1 text-sm font-medium text-fg">{{ t('task.activity') }}</h3>
+      <Select
+        v-model="show as string"
+        size="sm"
+        :label="t('task.feedShow.label')"
+        :options="showOptions"
+        data-testid="feed-show"
+      />
+      <IconButton
+        size="sm"
+        :icon="newestFirst ? ArrowDownWideNarrow : ArrowUpNarrowWide"
+        :label="newestFirst ? t('task.feedNewestFirst') : t('task.feedOldestFirst')"
+        data-testid="feed-sort"
+        @click="newestFirst = !newestFirst"
+      />
     </div>
     <div class="shrink-0 rounded-md border border-border-strong bg-bg p-2">
       <Editor
@@ -174,6 +193,13 @@ async function send() {
           {{ t('task.send') }}
         </Button>
       </div>
+    </div>
+    <!-- поле комментария — над лентой, лента прокручивается под ним -->
+    <div ref="list" class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto" data-testid="feed">
+      <template v-for="e in feed" :key="e.id">
+        <CommentThread v-if="'comment' in e" :comment="e.comment" />
+        <p v-else class="text-xs text-fg-muted" data-testid="activity">{{ describe(e.act) }}</p>
+      </template>
     </div>
   </section>
 </template>
