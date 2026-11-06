@@ -85,7 +85,6 @@ export default {
     profile: 'Profile',
     settings: 'Settings',
     language: 'Language',
-    install: 'Install app',
     menu: 'Menu',
     modules: { chat: 'Chat', docs: 'Docs' },
     nav: 'Navigation',
