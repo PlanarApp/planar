@@ -13,6 +13,10 @@ setup();
 const page = defineComponent({ render: () => h('p', { 'data-testid': 'mod-page' }, 'hello') });
 registerModules([
   {
+    id: 'import',
+    settings: [{ id: 'import', label: 'Импорт', component: async () => ({ default: page }) }],
+  },
+  {
     id: 'wk12m',
     settings: [
       { id: 'open', label: 'Открытая', component: async () => ({ default: page }) },
@@ -62,6 +66,18 @@ describe('wk12:', () => {
     const w = await open('/settings/wk12m:open', 'admin');
     const ids = w.findAll('nav > *').map((e) => e.attributes('data-testid'));
     expect(ids.slice(-3)).toEqual(['nav-wk12m:adm', 'nav-sep', 'nav-about']);
+  });
+  it('PLNRAPP-86: страница модуля «Импорт» — внутри «Импорт/Экспорт», отдельного пункта нет', async () => {
+    await setEnabledModules(['import']);
+    const w = await open('/settings/data', 'member');
+    expect(w.find('[data-testid=nav-import\\:import]').exists()).toBe(false);
+    expect(w.find('[data-testid=nav-data]').text()).toBe('Импорт/Экспорт');
+    await wait();
+    expect(w.find('[data-testid=mod-page]').exists()).toBe(true);
+    // not in the cloud and the import module is off — the section is empty and hidden
+    await setEnabledModules([]);
+    const off = await open('/settings/spaces', 'admin');
+    expect(off.find('[data-testid=nav-data]').exists()).toBe(false);
   });
   it('wk12: выключенный модуль — пункта нет', async () => {
     await setEnabledModules([]);
