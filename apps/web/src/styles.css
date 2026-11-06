@@ -32,3 +32,16 @@ body {
 *::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* indeterminate progress: a bar running across the track (PLNRAPP-110) */
+@theme {
+  --animate-indeterminate: indeterminate 1.2s ease-in-out infinite;
+  @keyframes indeterminate {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+}
