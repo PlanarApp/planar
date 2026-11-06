@@ -29,7 +29,7 @@ const toggleField = (f: TaskField) =>
       </Button>
     </template>
     <div class="flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-3" data-testid="view-options">
-      <!-- выбор вида — вверху меню, где его нет в табах («Моя работа», PLNRAPP-71) -->
+      <!-- выбор вида — вверху меню, табов видов нет (PLNRAPP-71) -->
       <slot />
       <Select v-model="options.groupBy" :label="t('views.groupBy')" :options="groupOptions" />
       <div class="flex items-end gap-2">

@@ -16,9 +16,10 @@ test('PLNRAPP-71: табы разделов «Моей работы», вид �
   // табов видов нет — только разделы
   await expect(tabs.getByRole('tab', { name: 'Доска' })).toHaveCount(0);
   await page.getByTestId('view-toggle').click();
-  await page.getByTestId('view-options').getByRole('combobox', { name: 'Вид' }).click();
-  await page.getByRole('option', { name: 'Доска' }).click();
+  const board = page.getByTestId('view-layout').getByRole('button', { name: 'Доска' });
+  await board.click();
   await expect(page).toHaveURL(/v=board/);
+  await expect(board).toHaveAttribute('aria-pressed', 'true');
   // разделы без вида задач — те же табы
   await tabs.getByRole('tab', { name: 'Комментарии мне' }).click();
   await expect(page).toHaveURL(/w=comments/);

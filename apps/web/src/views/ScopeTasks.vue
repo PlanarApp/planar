@@ -4,7 +4,7 @@ import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Check, RotateCcw, Users } from 'lucide-vue-next';
-import { Button, Select, Tabs } from '../ui';
+import { Button } from '../ui';
 import ProjectFilter from './ProjectFilter.vue';
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
@@ -12,6 +12,7 @@ import { useSpaces } from '../tasks';
 import { useAuth } from '../auth/useAuth';
 import OptionsBar from './saved/OptionsBar.vue';
 import ViewChangesBar from './saved/ViewChangesBar.vue';
+import ViewLayouts from './saved/ViewLayouts.vue';
 import TaskModal from './TaskModal.vue';
 import { buildViewTabs, useSelection, viewLoaders } from '.';
 import type { MeMode } from './saved/useFilter';
@@ -20,8 +21,8 @@ import { useCanShare } from './saved/queries';
 
 // Tasks of a Space and of the Workspace — the group's project summary (List and Board).
 // me — the view "My work" (assigned, created, watched) of any group, and of a project too:
-// Me Mode is set, the view — in ?v, not in the tab address, picked in the «View» menu (PLNRAPP-71);
-// the left of the toolbar — the "My work" section tabs (slot tabs); day — «My day» instead of a view
+// Me Mode is set, the view — in ?v, not in the tab address; the left of the toolbar — the "My work"
+// section tabs (slot tabs); day — «My day» instead of a view. The view is picked in the «View» menu (PLNRAPP-71)
 const props = defineProps<{
   spaceId?: string;
   rootSpaceId?: string;
@@ -158,13 +159,6 @@ const selectTab = (k: string) =>
     >
       <div data-testid="view-tabs" class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
         <slot v-if="me" name="tabs" />
-        <Tabs
-          v-else-if="active"
-          :model-value="active.key"
-          :label="t('views.toolbar')"
-          :items="tabItems"
-          @update:model-value="selectTab"
-        />
       </div>
       <ProjectFilter v-if="projectOptions.length > 1" v-model="picked" :options="projectOptions" />
       <OptionsBar
@@ -174,13 +168,11 @@ const selectTab = (k: string) =>
         v-model:filter="draftFilter"
         :space-id="scope.spaceIds.join(',')"
       >
-        <template v-if="me && active" #layout>
-          <Select
+        <template v-if="active" #layout>
+          <ViewLayouts
             :model-value="active.key"
-            :label="t('views.view')"
-            :options="tabItems"
-            data-testid="view-layout"
-            @update:model-value="(k) => k && selectTab(k)"
+            :items="tabItems"
+            @update:model-value="selectTab"
           />
         </template>
       </OptionsBar>
