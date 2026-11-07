@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, shallowRef, ref } from 'vue';
-import { MessageSquareReply, Pencil, Trash2, UserPlus } from 'lucide-vue-next';
+import {
+  CheckCircle2,
+  Circle,
+  MessageSquareReply,
+  Pencil,
+  Trash2,
+  UserPlus,
+} from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
@@ -62,110 +69,126 @@ function save() {
 </script>
 
 <template>
-  <div class="flex gap-2" data-testid="comment" :data-comment="comment.id">
-    <Avatar :name="author" :src="avatar" size="md" />
-    <div class="min-w-0 flex-1">
-      <div class="flex items-start gap-2 text-sm">
-        <!-- узкая колонка: время уходит под имя, а не блок назначения под заголовок -->
-        <div class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+  <!-- назначенный комментарий — карточка с полосой «Назначено» сверху (PLNRAPP-118) -->
+  <div
+    :class="[
+      'flex flex-col',
+      comment.assigneeId &&
+        'overflow-hidden rounded-lg border ' +
+          (comment.resolvedAt ? 'border-border opacity-75' : 'border-accent/40'),
+    ]"
+    data-testid="comment"
+    :data-comment="comment.id"
+  >
+    <div
+      v-if="comment.assigneeId"
+      :class="[
+        'flex flex-wrap items-center gap-2 px-2 py-1 text-xs',
+        comment.resolvedAt ? 'bg-bg-muted text-fg-muted' : 'bg-accent-subtle',
+      ]"
+      data-testid="comment-assigned"
+    >
+      <span
+        class="inline-flex min-w-0 items-center gap-1"
+        :aria-label="t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' })"
+      >
+        {{ t('task.assigned') }}
+        <Avatar :name="names[comment.assigneeId] ?? '?'" :src="assigneeAvatar" size="sm" />
+        <span class="truncate font-medium">{{ names[comment.assigneeId] ?? '?' }}</span>
+      </span>
+      <Button
+        size="sm"
+        :variant="comment.resolvedAt ? 'ghost' : 'secondary'"
+        :icon="comment.resolvedAt ? CheckCircle2 : Circle"
+        :aria-pressed="!!comment.resolvedAt"
+        :disabled="!canResolve"
+        class="ml-auto"
+        data-testid="comment-resolve"
+        @click="emit('resolve', !comment.resolvedAt)"
+      >
+        {{ t(comment.resolvedAt ? 'task.resolved' : 'task.resolve') }}
+      </Button>
+    </div>
+    <div :class="['flex gap-2', comment.assigneeId && 'p-2']">
+      <Avatar :name="author" :src="avatar" size="md" />
+      <div class="min-w-0 flex-1">
+        <div class="flex min-w-0 flex-wrap items-baseline gap-x-2 text-sm">
           <span class="font-medium">{{ author }}</span>
           <time class="whitespace-nowrap text-xs text-fg-subtle" :datetime="comment.createdAt">
             {{ new Date(comment.createdAt).toLocaleString() }}
           </time>
           <span v-if="comment.editedAt" class="text-xs text-fg-subtle">{{ t('task.edited') }}</span>
         </div>
-        <!-- назначенный комментарий: «завершено» и исполнитель — справа на строке заголовка (PLNRAPP-112) -->
-        <div
-          v-if="comment.assigneeId"
-          class="flex h-5 shrink-0 items-center gap-2 whitespace-nowrap text-xs text-fg-muted"
-          data-testid="comment-assigned"
-        >
-          <label class="inline-flex items-center gap-1">
-            <input
-              type="checkbox"
-              :checked="!!comment.resolvedAt"
-              :disabled="!canResolve"
-              data-testid="comment-resolve"
-              @change="emit('resolve', ($event.target as HTMLInputElement).checked)"
-            />
-            {{ t('task.resolved') }}
-          </label>
-          <span
-            :class="['inline-flex items-center gap-1', comment.resolvedAt && 'line-through']"
-            :aria-label="t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' })"
-          >
-            {{ t('task.assigned') }}
-            <Avatar :name="names[comment.assigneeId] ?? '?'" :src="assigneeAvatar" size="sm" />
-          </span>
-        </div>
-      </div>
-      <template v-if="editing">
-        <Editor
-          v-model="draft"
-          refs
-          image
-          :members="members"
-          :label="t('task.comment')"
-          @submit="save"
-        />
-        <div class="mt-1 flex gap-2">
-          <Button size="sm" variant="primary" @click="save">{{ t('task.save') }}</Button>
-          <Button size="sm" variant="ghost" @click="editing = false">{{ t('task.cancel') }}</Button>
-        </div>
-      </template>
-      <template v-else>
-        <Editor
-          :model-value="comment.body as JSONContent"
-          image
-          :members="members"
-          :label="t('task.comment')"
-          :editable="false"
-          collapsible
-        />
-        <Reactions
-          :rows="reactions"
-          :user-id="userId"
-          :names="names"
-          @toggle="(emoji) => emit('react', emoji)"
-        >
-          <IconButton
-            v-if="canReply"
-            size="sm"
-            :icon="MessageSquareReply"
-            :label="t('task.reply')"
-            data-testid="comment-reply"
-            @click="emit('reply')"
+        <template v-if="editing">
+          <Editor
+            v-model="draft"
+            refs
+            image
+            :members="members"
+            :label="t('task.comment')"
+            @submit="save"
           />
-          <Menu v-if="root && members.length" :items="assignItems" align="start">
-            <template #trigger>
+          <div class="mt-1 flex gap-2">
+            <Button size="sm" variant="primary" @click="save">{{ t('task.save') }}</Button>
+            <Button size="sm" variant="ghost" @click="editing = false">{{
+              t('task.cancel')
+            }}</Button>
+          </div>
+        </template>
+        <template v-else>
+          <Editor
+            :model-value="comment.body as JSONContent"
+            image
+            :members="members"
+            :label="t('task.comment')"
+            :editable="false"
+            collapsible
+          />
+          <Reactions
+            :rows="reactions"
+            :user-id="userId"
+            :names="names"
+            @toggle="(emoji) => emit('react', emoji)"
+          >
+            <IconButton
+              v-if="canReply"
+              size="sm"
+              :icon="MessageSquareReply"
+              :label="t('task.reply')"
+              data-testid="comment-reply"
+              @click="emit('reply')"
+            />
+            <Menu v-if="root && members.length" :items="assignItems" align="start">
+              <template #trigger>
+                <IconButton
+                  size="sm"
+                  :icon="UserPlus"
+                  :label="t('task.assignComment')"
+                  data-testid="comment-assign"
+                />
+              </template>
+            </Menu>
+            <template v-if="mine">
               <IconButton
                 size="sm"
-                :icon="UserPlus"
-                :label="t('task.assignComment')"
-                data-testid="comment-assign"
+                :icon="Pencil"
+                :label="t('task.edit')"
+                data-testid="comment-edit"
+                @click="start"
+              />
+              <IconButton
+                size="sm"
+                :icon="Trash2"
+                :label="t('task.delete')"
+                data-testid="comment-delete"
+                @click="emit('remove')"
               />
             </template>
-          </Menu>
-          <template v-if="mine">
-            <IconButton
-              size="sm"
-              :icon="Pencil"
-              :label="t('task.edit')"
-              data-testid="comment-edit"
-              @click="start"
-            />
-            <IconButton
-              size="sm"
-              :icon="Trash2"
-              :label="t('task.delete')"
-              data-testid="comment-delete"
-              @click="emit('remove')"
-            />
-          </template>
-        </Reactions>
-      </template>
-      <!-- тред: ответы и поле ответа -->
-      <slot />
+          </Reactions>
+        </template>
+        <!-- тред: ответы и поле ответа -->
+        <slot />
+      </div>
     </div>
   </div>
 </template>

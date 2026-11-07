@@ -810,6 +810,7 @@ export default {
     assignedTo: 'Assigned to {name}',
     assigned: 'Assigned to',
     resolved: 'Resolved',
+    resolve: 'Resolve',
     collapseComment: 'Collapse',
     expandComment: 'Expand',
     repliesCount: 'replies: {n}',
