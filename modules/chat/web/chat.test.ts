@@ -823,6 +823,25 @@ describe('редактор сообщения', () => {
     vi.unstubAllGlobals();
   });
 
+  it('пустое поле — кнопка голосового, с текстом — отправка (PLNRAPP-119)', async () => {
+    vi.stubGlobal('MediaRecorder', class {});
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: async () => ({}) },
+    });
+    const w = mount(Composer, { props: { channelId: CH, members: [] } });
+    expect(w.find('[data-testid=chat-voice]').exists()).toBe(true);
+    expect(w.find('button[aria-label=Отправить]').exists()).toBe(false);
+    w.findComponent(Editor).vm.$emit('update:modelValue', {
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hi' }] }],
+    });
+    await nextTick();
+    expect(w.find('[data-testid=chat-voice]').exists()).toBe(false);
+    expect(w.find('button[aria-label=Отправить]').exists()).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
   it('отказ сервера показывается ошибкой', async () => {
     const w = mount(Composer, { props: { channelId: CH, members: [] } });
     h_.errCb!({ name: 'chat.message.send', message: 'канал в архиве' });

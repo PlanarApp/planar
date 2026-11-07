@@ -218,14 +218,8 @@ function onEnter(e: KeyboardEvent) {
           />
         </li>
       </ul>
+      <!-- as in Telegram (PLNRAPP-119): attach and emoji inside the field; empty — voice, text — send -->
       <div class="flex items-end gap-1">
-        <IconButton :icon="Paperclip" :label="tx('attach')" @click="picker?.click()" />
-        <Popover v-model:open="emojiOpen" side="top" align="start">
-          <template #trigger>
-            <IconButton :icon="Smile" :label="tx('emoji')" data-testid="chat-emoji" />
-          </template>
-          <EmojiPicker v-if="emojiOpen" @pick="insertEmoji" />
-        </Popover>
         <input
           ref="picker"
           type="file"
@@ -249,25 +243,30 @@ function onEnter(e: KeyboardEvent) {
             tx('cancel')
           }}</Button>
         </div>
-        <div v-show="!rec" class="min-w-0 flex-1 rounded-md border border-border-strong px-2 py-1">
-          <Editor
-            ref="editor"
-            :model-value="body"
-            :members="members"
-            refs
-            :label="tx('message')"
-            :placeholder="tx('placeholder')"
-            @update:model-value="onInput"
-            @submit="send"
-          />
+        <div
+          v-show="!rec"
+          class="flex min-w-0 flex-1 items-end rounded-md border border-border-strong"
+        >
+          <IconButton :icon="Paperclip" :label="tx('attach')" @click="picker?.click()" />
+          <div class="min-w-0 flex-1 py-1">
+            <Editor
+              ref="editor"
+              :model-value="body"
+              :members="members"
+              refs
+              :label="tx('message')"
+              :placeholder="tx('placeholder')"
+              @update:model-value="onInput"
+              @submit="send"
+            />
+          </div>
+          <Popover v-model:open="emojiOpen" side="top" align="end">
+            <template #trigger>
+              <IconButton :icon="Smile" :label="tx('emoji')" data-testid="chat-emoji" />
+            </template>
+            <EmojiPicker v-if="emojiOpen" @pick="insertEmoji" />
+          </Popover>
         </div>
-        <IconButton
-          v-if="canRecord && !rec"
-          :icon="Mic"
-          :label="tx('voice')"
-          data-testid="chat-voice"
-          @click="startVoice"
-        />
         <Button
           v-if="rec"
           variant="primary"
@@ -275,6 +274,13 @@ function onEnter(e: KeyboardEvent) {
           :aria-label="tx('send')"
           data-testid="chat-voice-send"
           @click="stopVoice(true)"
+        />
+        <IconButton
+          v-else-if="canRecord && !body && !atts.length"
+          :icon="Mic"
+          :label="tx('voice')"
+          data-testid="chat-voice"
+          @click="startVoice"
         />
         <Button v-else variant="primary" :icon="Send" :aria-label="tx('send')" @click="send" />
       </div>
