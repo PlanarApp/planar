@@ -10,6 +10,7 @@ import ru from '../../../i18n/ru';
 import { db, registerMutators, startSync, stopSync } from '../../../sync';
 import { ids, reset, task, until } from '../../../tasks/__tests__/data';
 import { resetBreakpoint } from '../../../ui';
+import { useWeekStart } from '../../../i18n/week';
 import { localToday } from '../../filter';
 import View from '../View.vue';
 import { addDays, layout, monthDays, shift, weekDays } from '../dates';
@@ -125,9 +126,9 @@ describe('calendar:view', () => {
   it('calendar: перенос вызывает одну мутацию с нужными датами', async () => {
     mq(false);
     const today = localToday();
-    // default week: the neighbouring day of the same week
+    // the neighbouring day of the week the view shows (its week start depends on the locale)
     const next = addDays(today, 1);
-    const target = weekDays(today).includes(next) ? next : addDays(today, -1);
+    const target = weekDays(today, useWeekStart().value).includes(next) ? next : addDays(today, -1);
     const x = task(1, { startDate: today, dueDate: today });
     const un = task(2);
     await db.table('tasks').bulkPut([x, un]);
