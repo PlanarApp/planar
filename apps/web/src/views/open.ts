@@ -24,7 +24,7 @@ watch(taskOpenMode, (v) => {
   }
 });
 
-const GROUP_ROUTES = ['project', 'space', 'workspace'];
+const GROUP_ROUTES = ['project', 'savedView', 'space', 'workspace'];
 
 export function openTask(key: string): void {
   const r = router.currentRoute.value;
