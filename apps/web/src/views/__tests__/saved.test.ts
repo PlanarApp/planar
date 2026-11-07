@@ -314,6 +314,7 @@ describe('views:saved', () => {
       showEmpty: false,
       wrapTitles: false,
       showKey: false,
+      hideEmptyGroups: false,
       me: null,
       fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
     });
