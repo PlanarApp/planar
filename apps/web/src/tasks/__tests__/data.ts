@@ -172,12 +172,21 @@ export const task = (n: number, over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-export const until = async <T>(f: () => T | undefined | false, ms = 10000): Promise<T> => {
+export const until = async <T>(
+  f: () => T | undefined | false | Promise<T | undefined | false>,
+  ms = 10000,
+): Promise<T> => {
   const t0 = Date.now();
+  let err: unknown;
   for (;;) {
-    const v = f();
-    if (v) return v;
-    if (Date.now() - t0 > ms) throw new Error('until: таймаут');
+    // an element not rendered yet throws (e.g. .text() on an empty wrapper) — keep polling
+    try {
+      const v = await f();
+      if (v) return v;
+    } catch (e) {
+      err = e;
+    }
+    if (Date.now() - t0 > ms) throw err ?? new Error('until: таймаут');
     await new Promise((r) => setTimeout(r, 5));
   }
 };
