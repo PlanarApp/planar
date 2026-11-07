@@ -95,58 +95,69 @@ const move = (x: DayItem, date: string | null) => date && reschedule(props.day, 
             :key="x.plan.id"
             data-testid="my-day-row"
             :data-plan="x.plan.id"
-            class="group flex min-h-10 items-center gap-1 rounded-md px-1 hover:bg-bg-muted"
+            class="group flex flex-col rounded-md px-1 py-1 hover:bg-bg-muted"
           >
-            <span
-              class="handle flex w-4 shrink-0 cursor-grab touch-none items-center justify-center text-fg-subtle"
-              :aria-label="t('list.drag')"
-              ><GripVertical :size="14"
-            /></span>
-            <button
-              type="button"
-              class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 text-left text-sm outline-none focus-visible:ring-2 ring-focus"
-              @click="openTask(x.key)"
-            >
-              <StatusIcon :status="x.status" />
-              <span class="text-xs text-fg-subtle">{{ x.key }}</span>
-              <span :class="['flex-1 truncate', x.done && 'text-fg-muted line-through']">{{
-                x.task.title
-              }}</span>
-              <span v-if="b === 'later'" class="shrink-0 text-xs text-fg-muted">{{
-                formatDue(x.plan.date, locale)
-              }}</span>
-            </button>
-            <IconButton
-              v-if="b !== 'today'"
-              :icon="Sun"
-              :label="t('myDay.toToday')"
-              size="sm"
-              data-testid="my-day-today"
-              @click="move(x, dateOf('today'))"
-            />
-            <IconButton
-              v-if="b !== 'tomorrow' && !x.done"
-              :icon="CalendarClock"
-              :label="t('myDay.tomorrow')"
-              size="sm"
-              data-testid="my-day-tomorrow"
-              @click="move(x, dateOf('tomorrow'))"
-            />
-            <DueDatePicker
-              v-if="!x.done"
-              compact
-              :model-value="null"
-              :label="t('myDay.pick')"
-              data-testid="my-day-pick"
-              @update:model-value="(d) => move(x, d)"
-            />
-            <IconButton
-              :icon="X"
-              :label="t('myDay.remove')"
-              size="sm"
-              data-testid="my-day-remove"
-              @click="unplan(x.plan.id)"
-            />
+            <!-- two lines (PLNRAPP-120): status, key, title; below — date and actions -->
+            <div class="flex min-h-8 items-center gap-1">
+              <span
+                class="handle flex w-4 shrink-0 cursor-grab touch-none items-center justify-center text-fg-subtle"
+                :aria-label="t('list.drag')"
+                ><GripVertical :size="14"
+              /></span>
+              <button
+                type="button"
+                class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 text-left text-sm outline-none focus-visible:ring-2 ring-focus"
+                @click="openTask(x.key)"
+              >
+                <StatusIcon :status="x.status" />
+                <span class="shrink-0 text-xs text-fg-subtle">{{ x.key }}</span>
+                <span :class="['flex-1 truncate', x.done && 'text-fg-muted line-through']">{{
+                  x.task.title
+                }}</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-1 pl-5">
+              <!-- «Later» — the plan date; otherwise the task's due date -->
+              <span
+                v-if="b === 'later' || x.task.dueDate"
+                class="px-1 text-xs text-fg-muted"
+                data-testid="my-day-date"
+                >{{ formatDue(b === 'later' ? x.plan.date : x.task.dueDate!, locale) }}</span
+              >
+              <div class="ml-auto flex items-center gap-1">
+                <IconButton
+                  v-if="b !== 'today'"
+                  :icon="Sun"
+                  :label="t('myDay.toToday')"
+                  size="sm"
+                  data-testid="my-day-today"
+                  @click="move(x, dateOf('today'))"
+                />
+                <IconButton
+                  v-if="b !== 'tomorrow' && !x.done"
+                  :icon="CalendarClock"
+                  :label="t('myDay.tomorrow')"
+                  size="sm"
+                  data-testid="my-day-tomorrow"
+                  @click="move(x, dateOf('tomorrow'))"
+                />
+                <DueDatePicker
+                  v-if="!x.done"
+                  compact
+                  :model-value="null"
+                  :label="t('myDay.pick')"
+                  data-testid="my-day-pick"
+                  @update:model-value="(d) => move(x, d)"
+                />
+                <IconButton
+                  :icon="X"
+                  :label="t('myDay.remove')"
+                  size="sm"
+                  data-testid="my-day-remove"
+                  @click="unplan(x.plan.id)"
+                />
+              </div>
+            </div>
           </div>
         </VueDraggable>
       </div>
