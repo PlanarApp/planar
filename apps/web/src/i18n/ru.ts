@@ -286,6 +286,8 @@ export default {
     components: 'Используемые компоненты',
     license: 'Apache License 2.0',
     source: 'Исходный код',
+    version: 'Версия {v}',
+    history: 'История версий',
   },
   cloud: {
     desc: 'Размещение в Planar Cloud: адрес, свой домен, подписка.',
@@ -812,6 +814,7 @@ export default {
     assignComment: 'Назначить',
     unassignComment: 'Снять назначение',
     assignedTo: 'Назначено: {name}',
+    assigned: 'Назначено:',
     resolved: 'Завершено',
     collapseComment: 'Свернуть',
     expandComment: 'Развернуть',

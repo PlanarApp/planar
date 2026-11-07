@@ -286,6 +286,8 @@ export default {
     components: 'Built with',
     license: 'Apache License 2.0',
     source: 'Source code',
+    version: 'Version {v}',
+    history: 'Version history',
   },
   cloud: {
     desc: 'Hosting in Planar Cloud: address, custom domain, subscription.',
@@ -806,6 +808,7 @@ export default {
     assignComment: 'Assign',
     unassignComment: 'Unassign',
     assignedTo: 'Assigned to {name}',
+    assigned: 'Assigned to',
     resolved: 'Resolved',
     collapseComment: 'Collapse',
     expandComment: 'Expand',

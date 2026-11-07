@@ -12,6 +12,7 @@ const props = defineProps<{
   comment: Row<'comments'>;
   author: string;
   avatar?: string | null;
+  assigneeAvatar?: string | null;
   mine: boolean;
   members: { id: string; name: string }[];
   reactions: Row<'commentReactions'>[];
@@ -64,38 +65,39 @@ function save() {
   <div class="flex gap-2" data-testid="comment" :data-comment="comment.id">
     <Avatar :name="author" :src="avatar" size="md" />
     <div class="min-w-0 flex-1">
-      <div class="flex items-baseline gap-2 text-sm">
-        <span class="font-medium">{{ author }}</span>
-        <time class="text-xs text-fg-subtle" :datetime="comment.createdAt">
-          {{ new Date(comment.createdAt).toLocaleString() }}
-        </time>
-        <span v-if="comment.editedAt" class="text-xs text-fg-subtle">{{ t('task.edited') }}</span>
-      </div>
-      <!-- назначенный комментарий: исполнитель и «завершено» -->
-      <div
-        v-if="comment.assigneeId"
-        class="mt-1 flex items-center gap-2 text-xs"
-        data-testid="comment-assigned"
-      >
-        <span
-          :class="[
-            'rounded-full px-2 py-0.5',
-            comment.resolvedAt
-              ? 'bg-bg-muted text-fg-muted line-through'
-              : 'bg-accent-subtle text-fg',
-          ]"
-          >{{ t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' }) }}</span
+      <div class="flex items-start gap-2 text-sm">
+        <!-- узкая колонка: время уходит под имя, а не блок назначения под заголовок -->
+        <div class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+          <span class="font-medium">{{ author }}</span>
+          <time class="whitespace-nowrap text-xs text-fg-subtle" :datetime="comment.createdAt">
+            {{ new Date(comment.createdAt).toLocaleString() }}
+          </time>
+          <span v-if="comment.editedAt" class="text-xs text-fg-subtle">{{ t('task.edited') }}</span>
+        </div>
+        <!-- назначенный комментарий: «завершено» и исполнитель — справа на строке заголовка (PLNRAPP-112) -->
+        <div
+          v-if="comment.assigneeId"
+          class="flex h-5 shrink-0 items-center gap-2 whitespace-nowrap text-xs text-fg-muted"
+          data-testid="comment-assigned"
         >
-        <label class="inline-flex items-center gap-1 text-fg-muted">
-          <input
-            type="checkbox"
-            :checked="!!comment.resolvedAt"
-            :disabled="!canResolve"
-            data-testid="comment-resolve"
-            @change="emit('resolve', ($event.target as HTMLInputElement).checked)"
-          />
-          {{ t('task.resolved') }}
-        </label>
+          <label class="inline-flex items-center gap-1">
+            <input
+              type="checkbox"
+              :checked="!!comment.resolvedAt"
+              :disabled="!canResolve"
+              data-testid="comment-resolve"
+              @change="emit('resolve', ($event.target as HTMLInputElement).checked)"
+            />
+            {{ t('task.resolved') }}
+          </label>
+          <span
+            :class="['inline-flex items-center gap-1', comment.resolvedAt && 'line-through']"
+            :aria-label="t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' })"
+          >
+            {{ t('task.assigned') }}
+            <Avatar :name="names[comment.assigneeId] ?? '?'" :src="assigneeAvatar" size="sm" />
+          </span>
+        </div>
       </div>
       <template v-if="editing">
         <Editor
