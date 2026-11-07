@@ -4,6 +4,49 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-07
+
+### Added
+
+- Task window tabs: subtasks, checklist, attachments and links are tabs with done/total counters; GitLab tab with icons.
+- Task history shows what changed from what to what.
+- Custom fields in the task window are property rows, no setup needed.
+- Assigned comments: a card in the task and a mobile view in "My work".
+- Comments: input above the feed, newest first, sorting and a filter by type; long comments and descriptions collapse under "Expand", consecutive photos show as thumbnails.
+- Formatting in task descriptions and comments as in Docs; `@@` and `@@@` work in descriptions as in comments.
+- "My day": tasks marked with a sun in the list, the D key adds/removes; overdue and today's tasks first, undated below; cards in two lines.
+- Views: "Hide empty groups" in the "View" menu; saved views are reordered by drag and drop; the "Tasks" tab opens the last selected view.
+- Favorites in the sidebar are reordered by drag and drop, also in the collapsed sidebar.
+- Hotkeys: j/k switch tasks in the side panel, f — quick view filter by title/description, s/a/m/d act on the selected task; hotkeys work on non-English keyboard layouts.
+- Side panel: a pin button, copy task key and link.
+- "Import/Export" settings section: module import, cloud data export/import, backup and restore for self-hosted.
+- "About" shows the release version and the version history.
+- Install the app: a bottom sheet on every visit until the app is installed.
+- A node color can be cleared ("No color").
+
+### Changed
+
+- "My work": sections are tabs with icons, "My day" first; view switching moved to the "View" menu, view tabs removed from "Tasks" too.
+- Table: column selection moved to the "View" menu.
+- Changed view: "Save for me" for everyone, "Save for everyone" for admins only.
+- A saved view opens a task in a window; switching layout stays in the view.
+- Chat input looks like a messenger composer.
+- List: smaller left indent, drag handle inside the row; inline title editing is multiline; assignee column shows avatars only.
+- Comment actions in one row of icons; "Done · Assigned: avatar" on the comment header line.
+- Collapsed sidebar: favorites above projects, a project without an icon shows the first two letters of its key.
+- Trial badge shows only the number of days, the full text in a tooltip.
+- "Cloud" and "About" at the bottom of settings; a login hint after the first sign-in.
+- Favorite star on the left of the task header; empty "Docs" and "Chat" are centered with a create button.
+- Update toast shows an animated progress bar.
+
+### Fixed
+
+- Esc closes an open picker instead of the task window.
+- List focus is kept when a task drops out of the view; the side panel switches to the next task.
+- List navigation no longer outlines the whole list.
+- Cloud archive upload: CSP allows `CLOUD_URL`.
+- The "Upload" button is enabled when the instance name is correct.
+
 ## [0.11.0] - 2026-11-05
 
 ### Added
