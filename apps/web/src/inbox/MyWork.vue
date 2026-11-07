@@ -23,6 +23,7 @@ import { groupLevels } from '../layout/groups';
 import type { GroupScope } from '../modules/types';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import InboxScreen from '../screens/InboxScreen.vue';
+import { useUsers } from '../task/queries';
 import { useAssignedComments, useMyTasks, useUnreadItems, inGroup } from './queries';
 import { WORK_SUBS, workSub } from './subs';
 
@@ -72,6 +73,8 @@ const watched = useMyTasks(uid, () => 'watched');
 const comments = useAssignedComments(uid);
 const unread = useUnreadItems();
 const mine = computed(() => (comments.value ?? []).filter((c) => inScope(c.projectId)));
+const users = useUsers();
+const userName = (id: string) => users.value?.find((u) => u.id === id)?.name ?? '?';
 // "Comments for me": open (default), resolved or all
 const commentFilter = ref<'open' | 'resolved' | 'all'>('open');
 const shownComments = computed(() =>
@@ -176,34 +179,40 @@ const textOf = (body: unknown): string => {
           ]"
         />
         <EmptyState v-if="comments && !shownComments.length" :title="t('work.noComments')" />
+        <!-- a card (PLNRAPP-118): task on top, text up to 3 lines, author and date below — readable on mobile -->
         <div
           v-for="c in shownComments"
           :key="c.id"
           data-testid="work-comment"
-          class="flex min-h-11 items-center gap-2 rounded-md px-2 hover:bg-bg-muted"
+          class="flex gap-1 rounded-lg border border-border p-2 hover:bg-bg-muted"
         >
           <button
             type="button"
             :aria-label="t('task.resolved')"
             :aria-pressed="!!c.resolvedAt"
-            class="shrink-0 text-fg-muted hover:text-fg"
+            class="flex size-9 shrink-0 items-center justify-center rounded-md text-fg-muted hover:text-fg outline-none focus-visible:ring-2 ring-focus"
             @click="mutate('comment.resolve', { id: c.id, resolved: !c.resolvedAt })"
           >
-            <CheckCircle2 v-if="c.resolvedAt" :size="16" class="text-success" />
-            <Circle v-else :size="16" />
+            <CheckCircle2 v-if="c.resolvedAt" :size="18" class="text-success" />
+            <Circle v-else :size="18" />
           </button>
           <button
             type="button"
-            class="flex min-w-0 flex-1 items-center gap-2 text-left text-sm"
+            class="flex min-w-0 flex-1 flex-col gap-1 rounded-md py-1 text-left text-sm outline-none focus-visible:ring-2 ring-focus"
             @click="openTask(c.key)"
           >
-            <span class="shrink-0 text-xs text-fg-subtle">{{ c.key }}</span>
-            <span :class="['truncate', c.resolvedAt && 'text-fg-muted line-through']">{{
-              textOf(c.body)
-            }}</span>
-            <span class="ml-auto hidden truncate text-xs text-fg-subtle md:inline">{{
-              c.title
-            }}</span>
+            <span class="flex min-w-0 items-baseline gap-2 text-xs text-fg-subtle">
+              <span class="shrink-0">{{ c.key }}</span>
+              <span class="truncate">{{ c.title }}</span>
+            </span>
+            <span
+              :class="['line-clamp-3 break-words', c.resolvedAt && 'text-fg-muted line-through']"
+              >{{ textOf(c.body) }}</span
+            >
+            <span class="text-xs text-fg-subtle">
+              {{ userName(c.authorId) }} ·
+              <time :datetime="c.createdAt">{{ new Date(c.createdAt).toLocaleString() }}</time>
+            </span>
           </button>
         </div>
       </div>

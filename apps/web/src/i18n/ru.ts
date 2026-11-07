@@ -815,6 +815,7 @@ export default {
     assignedTo: 'Назначено: {name}',
     assigned: 'Назначено:',
     resolved: 'Завершено',
+    resolve: 'Завершить',
     collapseComment: 'Свернуть',
     expandComment: 'Развернуть',
     repliesCount: 'ответов: {n}',
