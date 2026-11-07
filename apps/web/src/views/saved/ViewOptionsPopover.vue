@@ -54,6 +54,10 @@ const toggleField = (f: TaskField) =>
         {{ t('views.showEmpty') }}
       </label>
       <label class="inline-flex items-center gap-1.5 text-sm">
+        <input v-model="options.hideEmptyGroups" type="checkbox" data-testid="hide-empty-groups" />
+        {{ t('views.hideEmptyGroups') }}
+      </label>
+      <label class="inline-flex items-center gap-1.5 text-sm">
         <input v-model="options.wrapTitles" type="checkbox" data-testid="wrap-titles" />
         {{ t('views.wrapTitles') }}
       </label>

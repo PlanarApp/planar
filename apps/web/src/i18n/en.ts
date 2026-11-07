@@ -405,6 +405,7 @@ export default {
     sortBy: 'Sort by',
     sortDir: 'Sort direction',
     showEmpty: 'Show empty fields',
+    hideEmptyGroups: 'Hide empty groups',
     wrapTitles: 'Wrap task names',
     showKey: 'Show task key',
     subtasks: 'Subtasks',

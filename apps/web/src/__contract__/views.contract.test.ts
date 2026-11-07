@@ -42,6 +42,7 @@ describe('C-views: поведение', () => {
       sortDir: 'asc',
       showSubtasks: false,
       showEmpty: false,
+      hideEmptyGroups: false,
       wrapTitles: false,
       showKey: false,
       me: null,

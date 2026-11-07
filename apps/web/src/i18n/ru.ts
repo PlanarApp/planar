@@ -405,6 +405,7 @@ export default {
     sortBy: 'Сортировка',
     sortDir: 'Порядок сортировки',
     showEmpty: 'Показывать пустые поля',
+    hideEmptyGroups: 'Скрывать пустые группы',
     wrapTitles: 'Переносить названия',
     showKey: 'Показывать ключ задачи',
     subtasks: 'Подзадачи',
