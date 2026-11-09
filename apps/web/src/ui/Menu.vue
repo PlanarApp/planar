@@ -40,6 +40,7 @@ type Item = {
   id: string;
   label: string;
   icon?: Component;
+  iconProps?: Record<string, unknown>;
   shortcut?: string;
   danger?: boolean;
   disabled?: boolean;
@@ -152,7 +153,7 @@ const subPanel = `${panel} max-h-80 overflow-y-auto`;
         ]"
         @click="pick(() => select(it))"
       >
-        <component :is="it.icon" v-if="it.icon" :size="16" />
+        <component :is="it.icon" v-if="it.icon" :size="16" v-bind="it.iconProps" />
         <span class="flex-1">{{ it.label }}</span>
       </button>
     </template>
@@ -201,7 +202,7 @@ const subPanel = `${panel} max-h-80 overflow-y-auto`;
             :class="row(it.danger)"
             @select="select(it)"
           >
-            <component :is="it.icon" v-if="it.icon" :size="16" />
+            <component :is="it.icon" v-if="it.icon" :size="16" v-bind="it.iconProps" />
             <span class="flex-1">{{ it.label }}</span>
             <Kbd v-if="it.shortcut" :keys="it.shortcut" />
           </component>

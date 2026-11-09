@@ -21,15 +21,13 @@ const props = defineProps<{
   avatar?: string | null;
   assigneeAvatar?: string | null;
   mine: boolean;
-  members: { id: string; name: string }[];
+  members: { id: string; name: string; avatar?: string | null }[];
   reactions: Row<'commentReactions'>[];
   userId?: string;
   names: Record<string, string>;
-  /** thread root: can be assigned and resolved */
-  root?: boolean;
   /** "Reply" — on any comment (replies at any depth) */
   canReply?: boolean;
-  /** assigned root: the assignee, author or admin can resolve */
+  /** assigned comment of any depth (PLNRAPP-135): the assignee, author or admin can resolve */
   canResolve?: boolean;
 }>();
 const emit = defineEmits<{
@@ -44,6 +42,9 @@ const assignItems = computed<MenuItem[]>(() => [
   ...props.members.map((m) => ({
     id: m.id,
     label: m.name,
+    // the assignee's avatar (PLNRAPP-134)
+    icon: Avatar,
+    iconProps: { name: m.name, src: m.avatar, size: 'xs' },
     onSelect: () => emit('assign', m.id),
   })),
   ...(props.comment.assigneeId
@@ -100,7 +101,7 @@ function save() {
       >
         {{ t(comment.resolvedAt ? 'task.resolved' : 'task.resolve') }}
       </Button>
-      <Menu v-if="root && members.length" :items="assignItems" align="end">
+      <Menu v-if="members.length" :items="assignItems" align="end">
         <template #trigger>
           <button
             type="button"
@@ -172,11 +173,7 @@ function save() {
               @click="emit('reply')"
             />
             <!-- assigned — the assignee in the strip above opens this menu -->
-            <Menu
-              v-if="root && members.length && !comment.assigneeId"
-              :items="assignItems"
-              align="start"
-            >
+            <Menu v-if="members.length && !comment.assigneeId" :items="assignItems" align="start">
               <template #trigger>
                 <IconButton
                   size="sm"

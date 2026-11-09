@@ -149,7 +149,9 @@ const canResolve = (c: Row<'comments'>) =>
   !!user.value && (c.assigneeId === user.value.id || c.authorId === user.value.id || isAdmin.value);
 const avatarOf = (id: string) =>
   userOf(id)?.avatarFile ? `/files/${userOf(id)!.avatarFile}/preview?w=256` : null;
-const memberList = computed(() => (members.value ?? []).map((m) => ({ id: m.id, name: m.name })));
+const memberList = computed(() =>
+  (members.value ?? []).map((m) => ({ id: m.id, name: m.name, avatar: avatarOf(m.id) })),
+);
 const names = computed(() => Object.fromEntries((users.value ?? []).map((u) => [u.id, u.name])));
 const react = (commentId: string, emoji: string) =>
   mutate('reaction.toggle', { id: newId(), commentId, emoji });

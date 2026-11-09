@@ -10,7 +10,7 @@ export interface FeedCtx {
   sendReply: () => Promise<void>;
   userId: () => string | undefined;
   names: ComputedRef<Record<string, string>>;
-  members: ComputedRef<{ id: string; name: string }[]>;
+  members: ComputedRef<{ id: string; name: string; avatar: string | null }[]>;
   reactions: Readonly<Ref<Row<'commentReactions'>[] | undefined>>;
   nameOf: (id: string) => string;
   avatarOf: (id: string) => string | null;
