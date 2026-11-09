@@ -26,6 +26,7 @@ import InboxScreen from '../screens/InboxScreen.vue';
 import { useUsers } from '../task/queries';
 import { useAssignedComments, useMyTasks, useUnreadItems, inGroup } from './queries';
 import { WORK_SUBS, workSub } from './subs';
+import { useMyDay } from './myDay';
 
 // group "My work", as in Plane: summary, assigned, comments for me, created, watched, activity
 const props = defineProps<{ scope: GroupScope }>();
@@ -54,7 +55,7 @@ const subTabs = computed(() =>
     value: w,
     label: w === 'day' ? t('myDay.title') : t(`work.${w}`),
     icon: SUB_ICONS[w],
-    // counts only where a record calls for action (PLNRAPP-121); zero is hidden
+    // counts of active records (PLNRAPP-121); zero is hidden
     count: subCounts.value[w] || undefined,
   })),
 );
@@ -92,14 +93,20 @@ const unreadMentions = computed(
   () =>
     (unread.value ?? []).filter((n) => MENTIONS.includes(n.kind) && inGroup(n, props.scope)).length,
 );
+const today = new Date().toISOString().slice(0, 10);
+const count = (rows: { projectId: string }[] | undefined) =>
+  (rows ?? []).filter((r) => inScope(r.projectId)).length;
+const day = useMyDay(uid);
+// task tabs count open tasks; «My day» — today's not done
 const subCounts = computed<Partial<Record<string, number>>>(() => ({
+  day: (day.value?.today ?? []).filter((x) => !x.done && inScope(x.task.projectId)).length,
+  assigned: count(assigned.value),
+  created: count(created.value),
+  watched: count(watched.value),
   comments: openComments.value.length,
   mentions: unreadMentions.value,
   activity: unreadAll.value,
 }));
-const today = new Date().toISOString().slice(0, 10);
-const count = (rows: { projectId: string }[] | undefined) =>
-  (rows ?? []).filter((r) => inScope(r.projectId)).length;
 const tiles = computed(() => [
   { w: 'assigned', n: count(assigned.value) },
   {
