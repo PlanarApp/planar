@@ -13,6 +13,7 @@ import { allMetas, schemaOf } from '../../src/sync/rows.js';
 const NOT_A_REF = new Set([
   'parentId', // same project or space-level by construction
   'targetId', // taskLinks: the link belongs to the project of taskId
+  'linkedTaskId', // checklistItems: the item belongs to the project of taskId (PLNRAPP-142)
   'cycleId',
   'statusId',
   'labelId',

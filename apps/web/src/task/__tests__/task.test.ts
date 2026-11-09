@@ -157,6 +157,25 @@ describe('task:description', () => {
     expect((await queued('task.update')).length).toBe(n0);
     expect((await row<{ description: unknown }>('tasks', t.id)).description).toBeNull();
   });
+  it('PLNRAPP-144 выделенный текст → подзадача; выделение становится ссылкой на неё', async () => {
+    w = await open();
+    await until(() => !!editorOf(0).vm.editor);
+    const ed = type(0, 'купить хлеб');
+    ed.commands.setTextSelection({ from: 1, to: 7 });
+    await until(() => w.find('[data-testid="selection-to-task"]').exists());
+    await w
+      .findAll('[data-testid="selection-to-task"] button')
+      .find((b) => b.text() === 'Сделать подзадачей')!
+      .trigger('click');
+    let sub: { id: string; title: string } | undefined;
+    await eventually(async () => {
+      sub = (await db.table('tasks').toArray()).find((x) => x.parentId === t.id);
+      return !!sub;
+    });
+    expect(sub!.title).toBe('купить');
+    await until(() => JSON.stringify(ed.getJSON()).includes(`/t/${sub!.id}`));
+    expect(w.find('[data-testid="selection-to-task"]').exists()).toBe(false);
+  });
   it('картинка: uploadFile и узел image; 413 — сообщение', async () => {
     const f = stubFetch((m, p) =>
       m === 'POST' && p === '/files'
