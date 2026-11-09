@@ -274,6 +274,13 @@
       "when": 1794218923043,
       "tag": "0038_favorites",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794258483500,
+      "tag": "0039_checklist_assignee",
+      "breakpoints": true
     }
   ]
 }

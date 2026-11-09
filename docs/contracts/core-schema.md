@@ -222,6 +222,7 @@ scope: space · write: member · bootstrap: yes · indexes: taskId
 | `text` | text | |
 | `done` | bool | |
 | `rank` | rank | |
+| `assigneeId` | uuid? | assigned item (C-schema v22, PLNRAPP-140) |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 

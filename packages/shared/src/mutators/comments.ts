@@ -7,8 +7,8 @@ const roleIn = async (tx: Tx, spaceId: string, userId: string) =>
   (await tx.scan('spaceMembers', { index: 'spaceId', eq: spaceId })).find(
     (m) => m.userId === userId,
   )?.role;
-/** can be assigned to a space member, not a guest */
-async function checkAssignee(tx: Tx, spaceId: string, userId: string) {
+/** can be assigned to a space member, not a guest (comments, checklist items) */
+export async function checkAssignee(tx: Tx, spaceId: string, userId: string) {
   const r = await roleIn(tx, spaceId, userId);
   if (!r || r === 'guest') throw bad('исполнитель — не участник пространства');
 }

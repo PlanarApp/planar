@@ -50,7 +50,7 @@ All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `nul
 | `link.create` | `id, taskId, targetId, kind` | `taskId = targetId` → `invalid_args`; tasks of different spaces or a missing task → `invalid_args`; the pair is already linked (in any direction, with any `kind`) → `conflict`; `spaceId` — from the task, `createdBy = ctx.userId` |
 | `link.delete` | `id` | no row — nothing |
 | `checklist.add` | `id, taskId, text, rank` | |
-| `checklist.update` | `id, text?, done?, rank?` | |
+| `checklist.update` | `id, text?, done?, rank?, assigneeId?: uuid \| null` | `assigneeId` — a space member who is not a guest, otherwise `invalid_args` (v18) |
 | `checklist.delete` | `id` | |
 | `comment.create` | `id, taskId, body, parentId?, assigneeId?` | `authorId = ctx.userId`, `mentions` from `body`; `parentId` — any comment of this task (replies of any depth, PLANARAPP-45; another task → `invalid_args`); `assigneeId` — on a comment of any depth (PLNRAPP-135), a space member who is not a guest, otherwise `invalid_args` |
 | `comment.update` | `id, body` | author only; `editedAt = ctx.now` |

@@ -10,6 +10,8 @@ import {
   History,
   LayoutDashboard,
   MessageSquare,
+  Square,
+  SquareCheck,
   SquarePen,
   Sun,
   UserRound,
@@ -24,7 +26,13 @@ import type { GroupScope } from '../modules/types';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import InboxScreen from '../screens/InboxScreen.vue';
 import { useUsers } from '../task/queries';
-import { useAssignedComments, useMyTasks, useUnreadItems, inGroup } from './queries';
+import {
+  useAssignedComments,
+  useMyTasks,
+  useUnreadItems,
+  inGroup,
+  type AssignedComment,
+} from './queries';
 import { WORK_SUBS, workSub } from './subs';
 import { useMyDay } from './myDay';
 
@@ -80,10 +88,15 @@ const userName = (id: string) => users.value?.find((u) => u.id === id)?.name ?? 
 const commentFilter = ref<'open' | 'resolved' | 'all'>('open');
 const shownComments = computed(() =>
   mine.value.filter((c) =>
-    commentFilter.value === 'all' ? true : (commentFilter.value === 'open') === !c.resolvedAt,
+    commentFilter.value === 'all' ? true : (commentFilter.value === 'open') === !c.closed,
   ),
 );
-const openComments = computed(() => mine.value.filter((c) => !c.resolvedAt));
+const openComments = computed(() => mine.value.filter((c) => !c.closed));
+// a comment is resolved, a checklist item (PLNRAPP-140) is checked
+const toggle = (c: AssignedComment) =>
+  c.kind === 'comment'
+    ? mutate('comment.resolve', { id: c.id, resolved: !c.closed })
+    : mutate('checklist.update', { id: c.id, done: !c.closed });
 const unreadAll = computed(
   () => (unread.value ?? []).filter((n) => inGroup(n, props.scope)).length,
 );
@@ -194,18 +207,24 @@ const textOf = (body: unknown): string => {
         <div
           v-for="c in shownComments"
           :key="c.id"
-          data-testid="work-comment"
+          :data-testid="c.kind === 'check' ? 'work-check' : 'work-comment'"
           class="flex gap-1 rounded-lg border border-border p-2 hover:bg-bg-muted"
         >
           <button
             type="button"
             :aria-label="t('task.resolved')"
-            :aria-pressed="!!c.resolvedAt"
+            :aria-pressed="c.closed"
             class="flex size-9 shrink-0 items-center justify-center rounded-md text-fg-muted hover:text-fg outline-none focus-visible:ring-2 ring-focus"
-            @click="mutate('comment.resolve', { id: c.id, resolved: !c.resolvedAt })"
+            @click="toggle(c)"
           >
-            <CheckCircle2 v-if="c.resolvedAt" :size="18" class="text-success" />
-            <Circle v-else :size="18" />
+            <template v-if="c.kind === 'check'">
+              <SquareCheck v-if="c.closed" :size="18" class="text-success" />
+              <Square v-else :size="18" />
+            </template>
+            <template v-else>
+              <CheckCircle2 v-if="c.closed" :size="18" class="text-success" />
+              <Circle v-else :size="18" />
+            </template>
           </button>
           <button
             type="button"
@@ -216,12 +235,11 @@ const textOf = (body: unknown): string => {
               <span class="shrink-0">{{ c.key }}</span>
               <span class="truncate">{{ c.title }}</span>
             </span>
-            <span
-              :class="['line-clamp-3 break-words', c.resolvedAt && 'text-fg-muted line-through']"
-              >{{ textOf(c.body) }}</span
-            >
+            <span :class="['line-clamp-3 break-words', c.closed && 'text-fg-muted line-through']">{{
+              c.kind === 'check' ? c.text : textOf(c.body)
+            }}</span>
             <span class="text-xs text-fg-subtle">
-              {{ userName(c.authorId) }} ·
+              {{ c.kind === 'check' ? t('task.checklist') : userName(c.authorId) }} ·
               <time :datetime="c.createdAt">{{ new Date(c.createdAt).toLocaleString() }}</time>
             </span>
           </button>

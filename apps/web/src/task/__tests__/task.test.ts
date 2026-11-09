@@ -217,7 +217,7 @@ describe('task:checklist', () => {
     await until(() => section().find('input[type=checkbox]').exists());
     await section().find('input[type=checkbox]').setValue(true);
     await eventually(async () => (await db.table('checklistItems').toArray())[0].done === true);
-    await section().find('button').trigger('click');
+    await section().find('button[aria-label="Удалить"]').trigger('click');
     await eventually(async () => (await db.table('checklistItems').toArray()).length === 0);
   });
   it('прогресс done/total', async () => {

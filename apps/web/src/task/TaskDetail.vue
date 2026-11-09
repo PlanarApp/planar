@@ -613,7 +613,7 @@ const panelComponent = computed(() => {
             <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
           </div>
           <div v-else-if="tab === 'checklist'" class="mt-2" data-tab="checklist">
-            <Checklist :task-id="task.id" />
+            <Checklist :task-id="task.id" :space-id="task.spaceId" />
           </div>
           <div v-else-if="tab === 'links'" class="mt-2" data-tab="links">
             <LinksBlock
