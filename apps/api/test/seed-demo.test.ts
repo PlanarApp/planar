@@ -79,6 +79,11 @@ describe('seed-demo', () => {
         (await q<{ n: number }>(`select count(*)::int as n from ${t}`))[0]!.n,
         t,
       ).toBeGreaterThan(0);
+    // shared modules are off without settings.enabled_modules — chat data would be invisible (PLNRAPP-126)
+    const [m] = await q<{ v: string[] }>(
+      `select value as v from settings where id = 'enabled_modules'`,
+    );
+    expect(m?.v).toContain('chat');
   });
 
   it('JSON модулей проходит их схемы (иначе экраны демо пустые)', async () => {
