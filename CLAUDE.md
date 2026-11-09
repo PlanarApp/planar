@@ -14,4 +14,5 @@ Before multi-step work read **`.claude/dpcli-workflow.md`**. Journal, tasks, bra
 - Commits — only your own files (`git commit -- <paths>`); no push without the user's command; after a merge `.dpcli/dpcli gc --remove`.
 - Agents — `.dpcli/agents/`, process — `.dpcli/templates/workflow.md`; `.claude/` is refreshed by `.dpcli/dpcli init`.
 - `main` — только через MR: никаких `deliver`/`merge --into main` и коммитов в `main`; доставка модуля — `deliver <m> --into mr/<m>`, пуш и MR — по команде пользователя.
+- Демо: видимая пользователю новая функция или изменение старой — в той же задаче обновить демо-сид `apps/api/src/db/seed-demo.ts` (только сидом, без демо-кода в приложении); формат JSON модулей проверяет `apps/api/test/seed-demo.test.ts`.
 <!-- dpcli:end -->
