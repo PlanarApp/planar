@@ -1,10 +1,19 @@
 // The module's single point of contact with the web core: replica, mutations, user, language.
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { db, i18n, mutate, newId, useQuery, useSession, useWeekStart } from '@planar/web/modules';
+import {
+  db,
+  i18n,
+  mutate,
+  newId,
+  openTask,
+  useQuery,
+  useSession,
+  useWeekStart,
+} from '@planar/web/modules';
 import type { TimeEntry, TimeEstimate } from '../shared/index.js';
 import type { TaskNode } from './lib.js';
 
-export { mutate, newId, useWeekStart };
+export { mutate, newId, openTask, useWeekStart };
 export type TaskLite = TaskNode & { title: string; projectId?: string; spaceId?: string };
 
 export const userId = () => useSession().value?.id ?? '';
