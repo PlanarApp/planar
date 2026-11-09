@@ -11,6 +11,7 @@ import { spaceMutators } from './spaces.js';
 import { statusMutators } from './statuses.js';
 import { taskMutators } from './tasks.js';
 import { dayMutators } from './day.js';
+import { favoriteMutators } from './favorites.js';
 
 export { extractMentions, textToDoc } from './text.js';
 
@@ -27,4 +28,5 @@ export const domainMutators = [
   ...commentMutators,
   ...miscMutators,
   ...dayMutators,
+  ...favoriteMutators,
 ] as MutatorDef[];

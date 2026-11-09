@@ -58,6 +58,7 @@ describe('seed-demo', () => {
       'recurring_rules',
       'comments',
       'checklist_items',
+      'favorites',
     ])
       expect(
         (await q<{ n: number }>(`select count(*)::int as n from ${t}`))[0]!.n,

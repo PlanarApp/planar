@@ -1,4 +1,6 @@
-import { computed, ref, type Ref } from 'vue';
+import { computed, ref, watch, type Ref } from 'vue';
+import type { Row } from '@planar/shared';
+import { db, mutate, newId, rankBetween, replicaState, useQuery } from '../sync';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { LogOut, Languages, Monitor, Moon, Settings, Sun, User } from 'lucide-vue-next';
@@ -125,9 +127,30 @@ export interface NavFavorite extends FavRef {
   color?: string | null;
 }
 
-// shortcut: favorites are in localStorage (personal, on this device); cross-device sync needs a server entity
+// favourites (PLNRAPP-124): the user's favorites rows of the replica, synced between devices
+const favRows = useQuery(async () =>
+  (await db.table<Row<'favorites'>>('favorites').toArray()).sort((a, b) =>
+    a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0,
+  ),
+);
+const rowOf = (kind: FavKind, id: string) =>
+  favRows.value?.find((r) => r.kind === kind && r.refId === id);
+const favList = computed<FavRef[]>(() =>
+  (favRows.value ?? []).map((r) => ({ kind: r.kind, id: r.refId, name: r.name, to: r.url })),
+);
+const addFav = (f: FavRef, after: string | null) =>
+  mutate('favorite.add', {
+    id: newId(),
+    kind: f.kind,
+    refId: f.id,
+    name: f.name,
+    url: f.to,
+    rank: rankBetween(after, null),
+  });
+
+// before PLNRAPP-124 favourites lived in localStorage of the device: moved to the server once, after bootstrap
 const FAV_KEY = 'planar.favorites';
-const readFav = (): FavRef[] => {
+const readLegacyFav = (): FavRef[] => {
   try {
     const v = JSON.parse(localStorage.getItem(FAV_KEY) ?? '[]');
     if (!Array.isArray(v)) return [];
@@ -143,32 +166,59 @@ const readFav = (): FavRef[] => {
     return [];
   }
 };
-const favList = ref<FavRef[]>(readFav());
-const saveFav = (list: FavRef[]) => {
-  favList.value = list;
-  try {
-    localStorage.setItem(FAV_KEY, JSON.stringify(list));
-  } catch {
-    /* without storage — until reload */
-  }
-};
+watch(
+  () => replicaState.value === 'complete' && favRows.value !== undefined,
+  (ready) => {
+    if (!ready) return;
+    const legacy = readLegacyFav();
+    try {
+      localStorage.removeItem(FAV_KEY);
+    } catch {
+      /* without storage there is nothing to move */
+    }
+    let last = favRows.value?.at(-1)?.rank ?? null;
+    for (const f of legacy)
+      if (!rowOf(f.kind, f.id)) {
+        last = rankBetween(last, null);
+        void mutate('favorite.add', {
+          id: newId(),
+          kind: f.kind,
+          refId: f.id,
+          name: f.name,
+          url: f.to,
+          rank: last,
+        });
+      }
+  },
+  { immediate: true },
+);
+
 /** Favourites: in the order they were added, then as dragged in the sidebar. */
 export const favorites = {
-  has: (kind: FavKind, id: string) => favList.value.some((f) => f.kind === kind && f.id === id),
+  has: (kind: FavKind, id: string) => !!rowOf(kind, id),
   toggle(f: FavRef) {
-    saveFav(
-      favorites.has(f.kind, f.id)
-        ? favList.value.filter((x) => !(x.kind === f.kind && x.id === f.id))
-        : [...favList.value, { kind: f.kind, id: f.id, name: f.name, to: f.to }],
-    );
+    const row = rowOf(f.kind, f.id);
+    void (row
+      ? mutate('favorite.remove', { id: row.id })
+      : addFav(f, favRows.value?.at(-1)?.rank ?? null));
   },
-  /** new order of the shown favourites (keys `kind:id`); hidden ones (deleted nodes) keep their place at the end */
+  /** new order of the shown favourites (keys `kind:id`); hidden ones (deleted nodes) keep their ranks */
   reorder(keys: string[]) {
-    const at = (f: FavRef) => {
-      const i = keys.indexOf(`${f.kind}:${f.id}`);
-      return i < 0 ? keys.length : i;
-    };
-    saveFav([...favList.value].sort((a, b) => at(a) - at(b)));
+    const rows = keys.flatMap((k) => {
+      const i = k.indexOf(':');
+      return rowOf(k.slice(0, i) as FavKind, k.slice(i + 1)) ?? [];
+    });
+    // ranks must grow along the new order: a row out of order gets a rank between its neighbours
+    let prev: string | null = null;
+    rows.forEach((r, i) => {
+      if (prev === null || r.rank > prev) {
+        prev = r.rank;
+        return;
+      }
+      const next = rows.slice(i + 1).find((x) => x.rank > prev!)?.rank ?? null;
+      prev = rankBetween(prev, next);
+      void mutate('favorite.move', { id: r.id, rank: prev });
+    });
   },
 };
 

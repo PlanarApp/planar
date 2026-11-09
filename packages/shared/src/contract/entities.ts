@@ -255,6 +255,21 @@ export const entitySchemas = {
     createdAt: ts,
     updatedAt: ts,
   }),
+  /**
+   * Favourites (PLNRAPP-124): personal, in the user's order; refId — the entity id ('w' for the workspace),
+   * name and url — a snapshot at the time of adding (nodes show their live name)
+   */
+  favorites: z.object({
+    id: uuid,
+    userId: uuid,
+    kind: z.enum(['workspace', 'space', 'project', 'doc', 'chat', 'task']),
+    refId: z.string().min(1).max(100),
+    name: z.string().max(500),
+    url: z.string().min(1).max(2000),
+    rank: z.string().min(1),
+    createdAt: ts,
+    updatedAt: ts,
+  }),
   savedViews: z.object({
     id: uuid,
     spaceId: uuid,
@@ -342,6 +357,7 @@ export const ENTITIES = {
   activity: { scope: 'space', write: 'server', bootstrap: false, indexes: ['taskId'] },
   notifications: { scope: 'user', write: 'self', bootstrap: true, indexes: ['taskId'] },
   dayPlans: { scope: 'user', write: 'self', bootstrap: true, indexes: ['taskId'] },
+  favorites: { scope: 'user', write: 'self', bootstrap: true, indexes: ['refId'] },
   savedViews: { scope: 'space|user', write: 'member|self', bootstrap: true, indexes: ['spaceId'] },
   settings: { scope: 'global', write: 'instance_admin', bootstrap: true, indexes: [] },
 } satisfies Record<keyof typeof entitySchemas, EntityMeta>;

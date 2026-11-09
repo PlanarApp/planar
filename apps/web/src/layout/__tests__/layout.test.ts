@@ -152,7 +152,18 @@ describe('раскладка', () => {
   it('PLNRAPP-89: в свёрнутом сайдбаре избранное перетаскивается', async () => {
     const { favorites } = await import('../nav');
     const { setSidebarMode } = await import('../sidebarWidth');
-    for (const id of ['a', 'b']) favorites.toggle({ kind: 'task', id, name: id, to: `/t/${id}` });
+    // favourites are written by favorite.* mutators (PLNRAPP-124)
+    const { domainMutators, uuidv7 } = await import('@planar/shared');
+    const { db, registerMutators, startSync } = await import('../../sync');
+    registerMutators(domainMutators);
+    await startSync({
+      userId: uuidv7(),
+      fetch: (() => Promise.reject(new TypeError('offline'))) as never,
+    });
+    for (const id of ['a', 'b']) {
+      favorites.toggle({ kind: 'task', id, name: id, to: `/t/${id}` });
+      await vi.waitFor(() => expect(favorites.has('task', id)).toBe(true));
+    }
     setSidebarMode('rail');
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
@@ -162,10 +173,15 @@ describe('раскладка', () => {
       oldIndex: 1,
       newIndex: 0,
     });
-    expect(
-      JSON.parse(localStorage.getItem('planar.favorites')!).map((f: { id: string }) => f.id),
-    ).toEqual(['b', 'a']);
+    await vi.waitFor(async () =>
+      expect(
+        (await db.table<{ refId: string; rank: string }>('favorites').toArray())
+          .sort((x, y) => (x.rank < y.rank ? -1 : 1))
+          .map((f) => f.refId),
+      ).toEqual(['b', 'a']),
+    );
     setSidebarMode('full');
     for (const id of ['a', 'b']) favorites.toggle({ kind: 'task', id, name: '', to: '' });
+    await vi.waitFor(() => expect(favorites.has('task', 'a')).toBe(false));
   });
 });

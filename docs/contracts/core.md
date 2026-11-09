@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v20
+## C-schema v21
+
+v21 (PLNRAPP-124): the personal entity `favorites` (favourites synced between devices instead of localStorage) — core-schema.md.
 
 v20 (PLANARAPP-61): `notifications.kind` += `trial_ending` (cloud instance: to owners and admins when ≤ 30 days of the trial are left, `url` — `/settings/cloud`; docs/contracts/cloud-link.md).
 
@@ -89,7 +91,7 @@ The suffix `?` means `.nullable()` (the key is present, the value may be `null`)
 
 ### Entities
 
-Entities — docs/contracts/core-schema.md (part of C-schema v19).
+Entities — docs/contracts/core-schema.md (part of C-schema v21).
 
 ### Non-synced tables (server only)
 | table | columns |
@@ -203,7 +205,9 @@ Authorization — the session cookie at upgrade (plus an Origin check, C-http); 
 ### Client (for web)
 Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from the queue the mutations with `id ≤ lastMutationId` and re-applies the rest on top of the server state (rebase). Push is retried on a network error and `5xx` with a growing pause of 1–30 s; `401` — redirect to sign-in.
 
-## C-mutators v16
+## C-mutators v17
+
+v17 (PLNRAPP-124): `favorite.add`, `favorite.move`, `favorite.remove` — core-mutators.md.
 
 v16 (PLANARAPP-10): `day.plan`, `day.move`, `day.remove` — core-mutators.md.
 

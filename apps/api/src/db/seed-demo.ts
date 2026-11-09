@@ -692,6 +692,29 @@ async function insertAll(tx: Tx, now: Date) {
     },
   ]);
 
+  // favourites of demo (PLNRAPP-124): a project, a space, a task, a doc and a channel
+  const favs: [string, string, string, string][] = [
+    ['project', pid('PLT'), 'Platform', `/p/${pid('PLT')}/list`],
+    ['space', spaceIds[0]!, 'Product', `/s/${spaceIds[0]}/work`],
+    ['task', tid('RDM', 2), PROJECTS[0]!.tasks[2]![0], '/t/RDM-3'],
+    ['doc', uid('page:2'), 'Architecture overview', `/s/${spaceIds[1]}/docs?page=${uid('page:2')}`],
+    ['chat', uid('channel:1'), 'dev', `/s/${spaceIds[1]}/chats?c=${uid('channel:1')}`],
+  ];
+  await ins(
+    s.favorites,
+    favs.map(([kind, refId, name, url], k) => ({
+      id: uid(`fav:${kind}:${refId}`),
+      userId: uid_.demo,
+      kind,
+      refId,
+      name,
+      url,
+      rank: generateNKeysBetween(null, null, favs.length)[k],
+      createdAt: at(-10),
+      updatedAt: at(-10),
+    })),
+  );
+
   // comments with @mentions, reactions, checklists
   const pkIdx = (key: string) => PROJECTS.findIndex((p) => p.key === key);
   const userList = USERS.map(([login]) => ({ id: uid_[login]!, login }));

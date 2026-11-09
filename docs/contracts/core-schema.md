@@ -3,7 +3,7 @@ type: reference
 status: closed
 module: core
 updated: 2026-11-02
-summary: Entities of C-schema v19 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
+summary: Entities of C-schema v21 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test
 related: ["docs/contracts/core.md"]
 ---
 
@@ -334,6 +334,23 @@ scope: user · write: self · bootstrap: yes · indexes: taskId
 | `updatedAt` | ts | |
 
 v19 (PLANARAPP-10): «My day». Written only by `day.*` mutators of the owner.
+
+#### favorites
+scope: user · write: self · bootstrap: yes · indexes: refId
+
+| field | type | note |
+|---|---|---|
+| `id` | uuid | |
+| `userId` | uuid | the owner |
+| `kind` | text | `workspace\|space\|project\|doc\|chat\|task` |
+| `refId` | text | the entity id (`w` — the workspace); no FK; unique (refId, userId, kind) |
+| `name` | text | snapshot at the time of adding (nodes show their live name) |
+| `url` | text | the app path of the entity |
+| `rank` | rank | order in the user's list |
+| `createdAt` | ts | |
+| `updatedAt` | ts | |
+
+v21 (PLNRAPP-124): favourites; before that — the browser's localStorage (the client moves them over once). Written only by `favorite.*` mutators of the owner.
 
 #### savedViews
 scope: space|user · write: member|self · bootstrap: yes · indexes: spaceId
