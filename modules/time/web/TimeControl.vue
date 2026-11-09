@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Play, Square } from 'lucide-vue-next';
+import { Play, Plus, Square } from 'lucide-vue-next';
 import { IconButton, Popover } from '@planar/web/modules';
 import TimerPanel from './TimerPanel.vue';
 import { mutate, newId, tr, useMyEntries, useNow } from './data';
@@ -50,12 +50,16 @@ const toggle = () =>
     />
     <Popover v-model:open="open" align="start">
       <template #trigger>
+        <!-- no time yet — a «+» (PLNRAPP-128), the label stays for screen readers and the tooltip -->
         <button
           type="button"
           :class="['time', runningHere && 'live', !shown && 'muted']"
+          :aria-label="shown ? undefined : tr('addManual')"
+          :title="shown ? undefined : tr('addManual')"
           data-test="time-total"
         >
-          {{ shown || tr('addManual') }}
+          <template v-if="shown">{{ shown }}</template>
+          <Plus v-else :size="16" aria-hidden="true" />
         </button>
       </template>
       <div class="menu">
@@ -84,7 +88,8 @@ const toggle = () =>
   color: var(--color-danger);
 }
 .muted {
-  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
   color: var(--color-fg-subtle);
 }
 .menu {
