@@ -15,3 +15,7 @@ Before multi-step work read **`.claude/dpcli-workflow.md`**. Journal, tasks, bra
 - Agents — `.dpcli/agents/`, process — `.dpcli/templates/workflow.md`; `.claude/` is refreshed by `.dpcli/dpcli init`.
 - `main` — только через MR: никаких `deliver`/`merge --into main` и коммитов в `main`; доставка модуля — `deliver <m> --into mr/<m>`, пуш и MR — по команде пользователя.
 <!-- dpcli:end -->
+
+## Демо
+
+- Новая функция или изменение старой, которое видно пользователю, — в той же задаче обновить демо-сид `apps/api/src/db/seed-demo.ts`, чтобы функцию было видно в демо. Только сидом, без демо-кода в приложении. Формат JSON модулей проверяет `apps/api/test/seed-demo.test.ts`.
