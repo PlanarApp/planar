@@ -716,6 +716,8 @@ watch(
                     @pointerdown.stop.prevent="startResize(c, $event)"
                     @dblclick.stop="resetWidth(c)"
                 /></span>
+                <!-- under the rows' «…» button (gap-2 + size-7) -->
+                <span class="w-9 shrink-0" aria-hidden="true" />
               </div>
               <div
                 v-else-if="it.kind === 'group'"

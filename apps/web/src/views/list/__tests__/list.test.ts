@@ -308,6 +308,13 @@ describe('list:select', () => {
     await row('PLN-1').trigger('click');
     await poll(async () => r.currentRoute.value.query.task === 'PLN-1');
   });
+  it('PLNRAPP-139 «…» в строке открывает меню действий задачи, не открывая задачу', async () => {
+    await db.table('tasks').put(task(1));
+    await show();
+    await row('PLN-1').get('[data-testid=row-menu]').trigger('click');
+    await until(() => !!document.querySelector('[role=menu]'));
+    expect(r.currentRoute.value.query.task).toBeUndefined();
+  });
 });
 
 describe('list:bulk', () => {
