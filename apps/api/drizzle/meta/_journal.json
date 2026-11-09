@@ -288,6 +288,13 @@
       "when": 1794261450585,
       "tag": "0040_notifications_checklist_assigned",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794261988461,
+      "tag": "0041_checklist_linked_task",
+      "breakpoints": true
     }
   ]
 }
