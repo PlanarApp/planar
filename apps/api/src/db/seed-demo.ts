@@ -875,13 +875,16 @@ async function insertAll(tx: Tx, now: Date) {
   const userList = USERS.map(([login]) => ({ id: uid_[login]!, login }));
   const comments = COMMENTS.map(([key, i, author, text], k) => {
     const body = textToDoc(text, userList);
+    const mentions = extractMentions(body);
     return {
       id: uid(`comment:${k}`),
       spaceId: spaceIds[PROJECTS[pkIdx(key)]!.space],
       taskId: tid(key, i),
       authorId: uid_[author],
       body,
-      mentions: extractMentions(body),
+      mentions,
+      // a comment addressed to demo is assigned to them — «Comments for me» and its tab count
+      assigneeId: mentions.includes(uid_.demo!) ? uid_.demo : null,
       createdAt: at(-9 + k * 0.5, 10 + (k % 6)),
       updatedAt: at(-9 + k * 0.5, 10 + (k % 6)),
     };

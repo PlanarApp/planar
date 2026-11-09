@@ -54,6 +54,8 @@ const subTabs = computed(() =>
     value: w,
     label: w === 'day' ? t('myDay.title') : t(`work.${w}`),
     icon: SUB_ICONS[w],
+    // counts only where a record calls for action (PLNRAPP-121); zero is hidden
+    count: subCounts.value[w] || undefined,
   })),
 );
 const taskSub = computed(() =>
@@ -83,6 +85,18 @@ const shownComments = computed(() =>
   ),
 );
 const openComments = computed(() => mine.value.filter((c) => !c.resolvedAt));
+const unreadAll = computed(
+  () => (unread.value ?? []).filter((n) => inGroup(n, props.scope)).length,
+);
+const unreadMentions = computed(
+  () =>
+    (unread.value ?? []).filter((n) => MENTIONS.includes(n.kind) && inGroup(n, props.scope)).length,
+);
+const subCounts = computed<Partial<Record<string, number>>>(() => ({
+  comments: openComments.value.length,
+  mentions: unreadMentions.value,
+  activity: unreadAll.value,
+}));
 const today = new Date().toISOString().slice(0, 10);
 const count = (rows: { projectId: string }[] | undefined) =>
   (rows ?? []).filter((r) => inScope(r.projectId)).length;
@@ -95,18 +109,10 @@ const tiles = computed(() => [
       .length,
   },
   { w: 'comments', n: openComments.value.length },
-  {
-    w: 'mentions',
-    n: (unread.value ?? []).filter((n) => MENTIONS.includes(n.kind) && inGroup(n, props.scope))
-      .length,
-  },
+  { w: 'mentions', n: unreadMentions.value },
   { w: 'created', n: count(created.value) },
   { w: 'watched', n: count(watched.value) },
-  {
-    w: 'activity',
-    key: 'unread',
-    n: (unread.value ?? []).filter((n) => inGroup(n, props.scope)).length,
-  },
+  { w: 'activity', key: 'unread', n: unreadAll.value },
 ]);
 const textOf = (body: unknown): string => {
   const out: string[] = [];
