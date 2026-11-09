@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { defineAsyncComponent, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import type { EditorOptions, JSONContent } from '@tiptap/vue-3';
 import { Extension, InputRule, type Extensions } from '@tiptap/core';
@@ -209,6 +210,8 @@ const options = (extra: Extensions = [], collab = false): Partial<EditorOptions>
       }
       return false;
     },
+    // an app link: the Link extension would window.open it in a new tab — onClick routes it instead
+    handleClick: (_v, _pos, e) => !!appHref(e),
     handlePaste: (_v, e) => {
       const files = imagesOf(e.clipboardData?.files);
       if (files.length) void insertFiles(files);
@@ -279,6 +282,20 @@ function openImage(e: MouseEvent) {
   if (img.tagName !== 'IMG' || (editor.value?.isEditable && e.detail < 2)) return;
   window.open((img as HTMLImageElement).src, '_blank', 'noopener');
 }
+// app links (@@ task, @@@ doc) open in place, not in a new tab with a reload (PLNRAPP-132); modifiers — browser default
+const router = useRouter();
+function appHref(e: MouseEvent): string | null {
+  if (!router || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return null;
+  const href = (e.target as HTMLElement).closest?.('a')?.getAttribute('href');
+  return href?.startsWith('/') && !href.startsWith('//') ? href : null;
+}
+function onClick(e: MouseEvent) {
+  openImage(e);
+  const href = appHref(e);
+  if (!href) return;
+  e.preventDefault();
+  void router.push(href);
+}
 onBeforeUnmount(() => {
   gone = true;
   ro?.disconnect();
@@ -309,7 +326,7 @@ const sugStyle = (r: DOMRect | null, n: number) => {
       :class="tall && !expanded && 'collapsed'"
       :style="tall && !expanded ? { maxHeight: `${CLAMP}px` } : undefined"
       @focusin="expanded = true"
-      @click="openImage"
+      @click="onClick"
     >
       <EditorContent :editor="editor ?? undefined" />
     </div>
@@ -378,6 +395,13 @@ const sugStyle = (r: DOMRect | null, n: number) => {
   outline: none;
   min-height: 1.5rem;
   overflow-wrap: anywhere;
+}
+/* links (@@ task, @@@ doc, pasted URLs) look like links: the CSS reset makes them plain text */
+.task-editor .ProseMirror a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
 .task-editor .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
