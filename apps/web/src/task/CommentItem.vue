@@ -88,26 +88,39 @@ function save() {
       ]"
       data-testid="comment-assigned"
     >
-      <span
-        class="inline-flex min-w-0 items-center gap-1"
-        :aria-label="t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' })"
-      >
-        {{ t('task.assigned') }}
-        <Avatar :name="names[comment.assigneeId] ?? '?'" :src="assigneeAvatar" size="sm" />
-        <span class="truncate font-medium">{{ names[comment.assigneeId] ?? '?' }}</span>
-      </span>
+      <!-- PLNRAPP-130: «Resolve» on the left, the assignee on the right — a click opens the assignee menu -->
       <Button
         size="sm"
         :variant="comment.resolvedAt ? 'ghost' : 'secondary'"
         :icon="comment.resolvedAt ? CheckCircle2 : Circle"
         :aria-pressed="!!comment.resolvedAt"
         :disabled="!canResolve"
-        class="ml-auto"
         data-testid="comment-resolve"
         @click="emit('resolve', !comment.resolvedAt)"
       >
         {{ t(comment.resolvedAt ? 'task.resolved' : 'task.resolve') }}
       </Button>
+      <Menu v-if="root && members.length" :items="assignItems" align="end">
+        <template #trigger>
+          <button
+            type="button"
+            class="ml-auto inline-flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
+            :aria-label="t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' })"
+            data-testid="comment-assignee"
+          >
+            <Avatar :name="names[comment.assigneeId] ?? '?'" :src="assigneeAvatar" size="sm" />
+            <span class="truncate font-medium">{{ names[comment.assigneeId] ?? '?' }}</span>
+          </button>
+        </template>
+      </Menu>
+      <span
+        v-else
+        class="ml-auto inline-flex min-w-0 items-center gap-1"
+        :aria-label="t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' })"
+      >
+        <Avatar :name="names[comment.assigneeId] ?? '?'" :src="assigneeAvatar" size="sm" />
+        <span class="truncate font-medium">{{ names[comment.assigneeId] ?? '?' }}</span>
+      </span>
     </div>
     <div :class="['flex gap-2', comment.assigneeId && 'p-2']">
       <Avatar :name="author" :src="avatar" size="md" />
@@ -158,7 +171,12 @@ function save() {
               data-testid="comment-reply"
               @click="emit('reply')"
             />
-            <Menu v-if="root && members.length" :items="assignItems" align="start">
+            <!-- assigned — the assignee in the strip above opens this menu -->
+            <Menu
+              v-if="root && members.length && !comment.assigneeId"
+              :items="assignItems"
+              align="start"
+            >
               <template #trigger>
                 <IconButton
                   size="sm"
