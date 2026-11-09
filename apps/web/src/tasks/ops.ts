@@ -1,5 +1,6 @@
 import { db, mutate, newId, rankBetween } from '../sync';
 import type { Row } from '@planar/shared';
+import { confirmDone } from './closeOpen';
 
 export interface CreateTaskArgs {
   projectId: string;
@@ -62,18 +63,23 @@ export type TaskPatch = Partial<
     | 'fields'
   >
 >;
-export const updateTask = (id: string, patch: TaskPatch): Promise<void> =>
-  mutate('task.update', { id, ...patch });
+/** ask — completing with open subtasks/comments asks first (PLNRAPP-138); bulk changes pass false */
+export async function updateTask(id: string, patch: TaskPatch, ask = true): Promise<void> {
+  if (ask && patch.statusId && !(await confirmDone(id, patch.statusId))) return;
+  await mutate('task.update', { id, ...patch });
+}
 
-export const moveTask = (
+export async function moveTask(
   id: string,
   to: { statusId?: string; after: string | null; before: string | null },
-): Promise<void> =>
-  mutate('task.update', {
+): Promise<void> {
+  if (to.statusId && !(await confirmDone(id, to.statusId))) return;
+  await mutate('task.update', {
     id,
     rank: rankBetween(to.after, to.before),
     ...(to.statusId !== undefined && { statusId: to.statusId }),
   });
+}
 
 export const deleteTask = (id: string): Promise<void> => mutate('task.delete', { id });
 

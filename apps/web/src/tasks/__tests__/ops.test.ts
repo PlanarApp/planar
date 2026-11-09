@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { domainMutators } from '@planar/shared';
 import { db, registerMutators, startSync, stopSync } from '../../sync';
-import { createTask, moveTask, setAssignees, setLabels } from '../index';
+import { createTask, moveTask, setAssignees, setLabels, updateTask } from '../index';
+import { closeAll, closePrompt } from '../closeOpen';
 import { ids, reset } from './data';
 
 beforeAll(() => registerMutators(domainMutators));
@@ -70,5 +71,31 @@ describe('tasks:ops', () => {
     expect(await db.table('taskLabels').where('taskId').equals(a).count()).toBe(1);
     await setLabels(a, []);
     expect(await db.table('taskLabels').where('taskId').equals(a).count()).toBe(0);
+  });
+  it('PLNRAPP-138 завершение с открытой подзадачей спрашивает: отмена, «закрыть всё»; без открытых — сразу', async () => {
+    const status = async (id: string) => (await db.table('tasks').get(id)).statusId as string;
+    const until = async () => {
+      while (!closePrompt.value) await new Promise((r) => setTimeout(r, 5));
+      return closePrompt.value;
+    };
+    const parent = await createTask({ ...base, title: 'p' });
+    const kid = await createTask({ ...base, title: 'k', parentId: parent });
+    // cancel — nothing changes
+    let done = updateTask(parent, { statusId: ids.done });
+    expect((await until()).subtaskIds).toEqual([kid]);
+    closePrompt.value!.answer(false);
+    await done;
+    expect(await status(parent)).toBe(ids.todo);
+    // «close all» — the subtask too
+    done = updateTask(parent, { statusId: ids.done });
+    const p = await until();
+    await closeAll(p);
+    p.answer(true);
+    await done;
+    expect([await status(parent), await status(kid)]).toEqual([ids.done, ids.done]);
+    // nothing open — no question
+    const solo = await createTask({ ...base, title: 's' });
+    await updateTask(solo, { statusId: ids.done });
+    expect(await status(solo)).toBe(ids.done);
   });
 });

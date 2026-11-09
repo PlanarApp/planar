@@ -107,7 +107,7 @@ export async function buildCommands(o: {
                       .equals(task.projectId)
                       .toArray()
                   ).find((x) => x.name.trim().toLowerCase() === s.name.trim().toLowerCase());
-            if (own) await updateTask(id, { statusId: own.id });
+            if (own) await updateTask(id, { statusId: own.id }, false);
           }),
         });
       for (const u of us)
