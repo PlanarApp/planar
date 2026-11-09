@@ -17,6 +17,7 @@ vi.mock('../../../../../../modules/time/web/data', async () => {
   return {
     __state: state,
     mutate: vi.fn(async () => {}),
+    openTask: vi.fn(),
     newId: () => `id-${++n}`,
     userId: () => 'me',
     tr: (k: string) => k,
@@ -177,7 +178,12 @@ describe('wk1: верхняя панель', () => {
     await w.vm.$nextTick();
     const b = w.get('[data-test=topbar-timer]');
     expect(b.text()).toContain('1:05');
-    expect(b.text()).toContain('Подзадача');
+    // PLNRAPP-125: the title is a separate target — it opens the task and does not stop the timer
+    const name = w.get('[data-test=topbar-timer-task]');
+    expect(name.text()).toContain('Подзадача');
+    await name.trigger('click');
+    expect(data.openTask).toHaveBeenCalledWith('kid');
+    expect(mutate).not.toHaveBeenCalledWith('time.stop', { id: 'run' });
     await b.trigger('click');
     expect(mutate).toHaveBeenCalledWith('time.stop', { id: 'run' });
   });
