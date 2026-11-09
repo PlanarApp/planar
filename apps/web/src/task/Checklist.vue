@@ -1,15 +1,78 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { UserPlus, X } from 'lucide-vue-next';
+import { CornerDownRight, SquarePlus, Trash2, UserPlus } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import { mutate, newId, rankBetween } from '../sync';
-import { Avatar, Button, IconButton, Input, Menu, type MenuItem } from '../ui';
-import { useMembers } from '../tasks';
+import { db, mutate, newId, rankBetween, useQuery } from '../sync';
+import { Avatar, IconButton, Input, Menu, type MenuItem } from '../ui';
+import { createTask, useMembers } from '../tasks';
 import { useChecklist } from './queries';
 
-const props = defineProps<{ taskId: string; spaceId: string }>();
+const props = defineProps<{
+  taskId: string;
+  spaceId: string;
+  projectId: string;
+  statuses: Row<'statuses'>[];
+}>();
+const emit = defineEmits<{ open: [key: string] }>();
 const { t } = useI18n();
+// an item turned into a task (PLNRAPP-142): key of the task for the link; a deleted task — plain text
+const linked = useQuery(async () => {
+  const items = await db
+    .table<Row<'checklistItems'>>('checklistItems')
+    .where('taskId')
+    .equals(props.taskId)
+    .toArray();
+  const ids = items.flatMap((i) => (i.linkedTaskId ? [i.linkedTaskId] : []));
+  const tasks = (await db.table<Row<'tasks'>>('tasks').bulkGet(ids)).filter((x) => !!x);
+  const projects = await db
+    .table<Row<'projects'>>('projects')
+    .bulkGet([...new Set(tasks.map((x) => x.projectId))]);
+  const keys = new Map(projects.flatMap((p) => (p ? [[p.id, p.key] as const] : [])));
+  return new Map(tasks.map((x) => [x.id, `${keys.get(x.projectId) ?? '?'}-${x.number ?? '…'}`]));
+});
+const keyOf = (i: Row<'checklistItems'>) =>
+  i.linkedTaskId ? linked.value?.get(i.linkedTaskId) : undefined;
+
+/** the item → a task (or a subtask of this one); the item stays, its text links to the task */
+async function toTask(i: Row<'checklistItems'>, sub: boolean) {
+  const status = props.statuses.find((x) => x.projectId === props.projectId); // PJ-1, as Subtasks
+  if (!status) return;
+  const id = await createTask({
+    projectId: props.projectId,
+    statusId: status.id,
+    title: i.text,
+    parentId: sub ? props.taskId : null,
+    assigneeIds: i.assigneeId ? [i.assigneeId] : undefined,
+  });
+  await mutate('checklist.update', { id: i.id, linkedTaskId: id });
+}
+const itemMenu = (i: Row<'checklistItems'>): MenuItem[] => [
+  ...(i.linkedTaskId
+    ? []
+    : [
+        {
+          id: 'task',
+          label: t('task.checklistToTask'),
+          icon: SquarePlus,
+          onSelect: () => void toTask(i, false),
+        },
+        {
+          id: 'subtask',
+          label: t('task.checklistToSubtask'),
+          icon: CornerDownRight,
+          onSelect: () => void toTask(i, true),
+        },
+        { separator: true as const },
+      ]),
+  {
+    id: 'delete',
+    label: t('task.delete'),
+    icon: Trash2,
+    danger: true,
+    onSelect: () => void mutate('checklist.delete', { id: i.id }),
+  },
+];
 const items = useChecklist(props.taskId);
 const text = ref('');
 // an item is assigned as a comment (PLNRAPP-140): the menu of space members with avatars
@@ -68,7 +131,18 @@ async function add() {
           class="size-4 accent-[var(--color-accent)]"
           @change="mutate('checklist.update', { id: i.id, done: !i.done })"
         />
-        <span :class="['flex-1', i.done && 'text-fg-subtle line-through']">{{ i.text }}</span>
+        <span :class="['flex-1', i.done && 'text-fg-subtle line-through']">
+          <a
+            v-if="keyOf(i)"
+            :href="`/t/${keyOf(i)}`"
+            :title="keyOf(i)"
+            class="text-accent hover:underline"
+            data-testid="checklist-link"
+            @click.prevent="emit('open', keyOf(i)!)"
+            >{{ i.text }}</a
+          >
+          <template v-else>{{ i.text }}</template>
+        </span>
         <Menu v-if="members?.length" :items="assignItems(i)" align="end">
           <template #trigger>
             <button
@@ -95,12 +169,12 @@ async function add() {
             />
           </template>
         </Menu>
-        <Button
-          variant="ghost"
-          size="sm"
-          :icon="X"
-          :aria-label="t('task.delete')"
-          @click="mutate('checklist.delete', { id: i.id })"
+        <!-- «…» instead of the delete cross (PLNRAPP-142): to a task / subtask, delete -->
+        <Menu
+          :items="itemMenu(i)"
+          align="end"
+          :label="t('task.checklistItemMenu')"
+          data-testid="checklist-menu"
         />
       </li>
     </ul>

@@ -223,6 +223,7 @@ scope: space · write: member · bootstrap: yes · indexes: taskId
 | `done` | bool | |
 | `rank` | rank | |
 | `assigneeId` | uuid? | assigned item (C-schema v22, PLNRAPP-140) |
+| `linkedTaskId` | uuid? | the item was turned into this task; the text is a link to it (C-schema v24, PLNRAPP-142) |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 

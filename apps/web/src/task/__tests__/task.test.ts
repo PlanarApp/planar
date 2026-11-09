@@ -206,6 +206,21 @@ describe('task:subtasks', () => {
   });
 });
 
+// the item's «…» menu (PLNRAPP-142): open and choose an action
+const itemAction = async (label: string) => {
+  w.find('button[aria-label="Действия с пунктом"]').element.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+  );
+  await flushPromises();
+  const item = () =>
+    [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((e) =>
+      e.textContent?.includes(label),
+    );
+  await until(() => !!item());
+  item()!.click();
+  await flushPromises();
+};
+
 describe('task:checklist', () => {
   it('добавить, отметить, удалить', async () => {
     w = await open();
@@ -217,8 +232,25 @@ describe('task:checklist', () => {
     await until(() => section().find('input[type=checkbox]').exists());
     await section().find('input[type=checkbox]').setValue(true);
     await eventually(async () => (await db.table('checklistItems').toArray())[0].done === true);
-    await section().find('button[aria-label="Удалить"]').trigger('click');
+    await itemAction('Удалить');
     await eventually(async () => (await db.table('checklistItems').toArray()).length === 0);
+  });
+  it('PLNRAPP-142 «…» → «Сделать подзадачей»: подзадача создана, текст пункта — ссылка на неё', async () => {
+    w = await open();
+    await openTab('Чек-лист');
+    const section = () => w.find('section[aria-label="Чек-лист"]');
+    await section().find('input[type=text], input:not([type])').setValue('купить');
+    await section().find('form').trigger('submit');
+    await until(() => section().find('[data-testid="checklist-item"]').exists());
+    await itemAction('Сделать подзадачей');
+    await eventually(async () => !!(await db.table('checklistItems').toArray())[0]?.linkedTaskId);
+    const [item] = await db.table('checklistItems').toArray();
+    expect(await row('tasks', item.linkedTaskId)).toMatchObject({
+      title: 'купить',
+      parentId: t.id,
+    });
+    await until(() => section().find('[data-testid="checklist-link"]').exists());
+    expect(section().find('[data-testid="checklist-link"]').text()).toBe('купить');
   });
   it('прогресс done/total', async () => {
     const mk = (done: boolean, rank: string) => ({

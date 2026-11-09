@@ -118,6 +118,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Dark mode polish', 0, 1, 38, 'ava', 'improvement'],
       ['Draft customer survey', 1, 2, 16, 'sofia', 'research', 8],
       ['Define survey audience', 3, 1, -3, 'demo', 'research', 10],
+      ['Prepare in-app banner', 3, 2, -1, 'ava', 'feature', 2],
     ],
   },
   {
@@ -244,6 +245,9 @@ const COMMENTS: [string, number, string, string][] = [
     'Looks like exports fail when a custom field name contains a slash. Filing a fix.',
   ],
 ];
+
+// checklist item `key:task:item` turned into a subtask (PLNRAPP-142): its text links to the task
+const CHECK_LINKS: Record<string, [string, number]> = { 'RDM:2:1': ['RDM', 12] };
 
 const CHECKLISTS: [string, number, [string, boolean][]][] = [
   [
@@ -932,6 +936,9 @@ async function insertAll(tx: Tx, now: Date) {
       rank: cRanks[k],
       // the first open item is assigned to demo (PLNRAPP-140): «Comments for me», the task is «mine»
       assigneeId: k === items.findIndex(([, d]) => !d) ? uid_.demo : null,
+      linkedTaskId: CHECK_LINKS[`${key}:${i}:${k}`]
+        ? tid(...CHECK_LINKS[`${key}:${i}:${k}`]!)
+        : null,
       createdAt: at(-10),
       updatedAt: at(-3),
     })),

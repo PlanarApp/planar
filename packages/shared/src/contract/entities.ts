@@ -160,6 +160,8 @@ export const entitySchemas = {
     rank: z.string().min(1),
     /** assigned item (PLNRAPP-140): an open one makes the task «mine» */
     assigneeId: uuid.nullable().default(null),
+    /** the item was turned into this task (PLNRAPP-142): the text is a link to it */
+    linkedTaskId: uuid.nullable().default(null),
     createdAt: ts,
     updatedAt: ts,
   }),

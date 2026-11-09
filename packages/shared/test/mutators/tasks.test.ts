@@ -313,6 +313,17 @@ describe('task.delete и связи', () => {
     expect(await code(run(tx, 'checklist.update', { id: c, assigneeId: U2 }))).toBe('invalid_args');
     await run(tx, 'checklist.update', { id: c, assigneeId: null });
     expect(await tx.get('checklistItems', c)).toMatchObject({ assigneeId: null });
+    // PLNRAPP-142: linked to a task of the same space; another space — invalid_args
+    expect(await tx.get('checklistItems', c)).toMatchObject({ linkedTaskId: null });
+    await run(tx, 'checklist.update', { id: c, linkedTaskId: t });
+    expect(await tx.get('checklistItems', c)).toMatchObject({ linkedTaskId: t });
+    const other = await seedTask(tx, await seedSpace(tx));
+    expect(await code(run(tx, 'checklist.update', { id: c, linkedTaskId: other }))).toBe(
+      'invalid_args',
+    );
+    expect(await code(run(tx, 'checklist.update', { id: c, linkedTaskId: id() }))).toBe(
+      'not_found',
+    );
     await run(tx, 'checklist.delete', { id: c });
     expect(await tx.get('checklistItems', c)).toBeUndefined();
   });

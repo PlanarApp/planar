@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v23
+## C-schema v24
+
+v24 (PLNRAPP-142): `checklistItems.linkedTaskId` (the item was turned into a task or subtask; the text links to it) — core-schema.md.
 
 v23 (PLNRAPP-140): `notifications.kind` += `checklist_assigned` (to the assignee of a checklist item, new or changed; `body` — the item text).
 
@@ -209,7 +211,9 @@ Authorization — the session cookie at upgrade (plus an Origin check, C-http); 
 ### Client (for web)
 Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from the queue the mutations with `id ≤ lastMutationId` and re-applies the rest on top of the server state (rebase). Push is retried on a network error and `5xx` with a growing pause of 1–30 s; `401` — redirect to sign-in.
 
-## C-mutators v18
+## C-mutators v19
+
+v19 (PLNRAPP-142): `checklist.update` += `linkedTaskId?` — core-mutators.md.
 
 v18 (PLNRAPP-140): `checklist.update` += `assigneeId?` — core-mutators.md.
 
