@@ -330,9 +330,10 @@ const panelComponent = computed(() => {
     @dragover.prevent
     @drop.prevent="onDrop"
   >
-    <div class="flex h-11 shrink-0 items-center gap-1 border-b border-border px-3">
+    <!-- mobile: narrow back/star buttons (full touch height) and tight paddings — more room for the path (PLNRAPP-127) -->
+    <div class="flex h-11 shrink-0 items-center border-b border-border px-1 md:gap-1 md:px-3">
       <IconButton
-        class="md:hidden"
+        class="max-md:w-8 md:hidden"
         :icon="ArrowLeft"
         :label="t('task.close')"
         data-testid="back"
@@ -349,6 +350,7 @@ const panelComponent = computed(() => {
         @click="emit('close')"
       />
       <FavStar
+        class="max-md:w-8"
         :fav="favorites.has('task', task.id)"
         data-testid="task-favorite"
         @click="
