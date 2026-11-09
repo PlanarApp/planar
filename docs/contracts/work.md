@@ -154,6 +154,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, taskId, use
 | `durationSec` | int? | null while running; otherwise seconds ≥ 0 |
 | `note` | text? | ≤ 1000 |
 | `source` | enum(timer,manual) | |
+| `billable` | bool | default false (PLNRAPP-145) |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
@@ -175,15 +176,15 @@ scope: space · write: member · bootstrap: yes · indexes: taskId
 |---|---|---|
 | `time.start` | `id, taskId` | running entries of ctx.userId are stopped (`endedAt = ctx.now`, `durationSec`); the new one: `startedAt = ctx.now`, `source = timer` |
 | `time.stop` | `id` | own only; already stopped — nothing; `endedAt = ctx.now`, `durationSec = floor((endedAt − startedAt)/1000)` |
-| `time.log` | `id, taskId, startedAt, durationSec, note?` | `durationSec` 1–86400; `endedAt = startedAt + durationSec`; `source = manual` |
-| `time.update` | `id, startedAt?, endedAt?, durationSec?, note?` | own only; `durationSec` given → `endedAt = startedAt + durationSec`, otherwise recomputed from `startedAt`/`endedAt`; `endedAt < startedAt` → `invalid_args`; for a running entry — only `startedAt`, `note` |
+| `time.log` | `id, taskId, startedAt, durationSec, note?, billable?` | `durationSec` 1–86400; `endedAt = startedAt + durationSec`; `source = manual` |
+| `time.update` | `id, startedAt?, endedAt?, durationSec?, note?, billable?` | own only; `durationSec` given → `endedAt = startedAt + durationSec`, otherwise recomputed from `startedAt`/`endedAt`; `endedAt < startedAt` → `invalid_args`; for a running entry — only `startedAt`, `note` |
 | `time.delete` | `id` | own only |
 | `time.setEstimate` | `taskId, minutes: int\|null` | `null` — delete; `updatedBy = ctx.userId` |
 
 - The server computes durations: the server run of a mutator recomputes `startedAt`/`endedAt`/`durationSec` from the server `ctx.now`; the client's estimate is overwritten by sync.
 - Two devices: in a race of two `time.start` calls the second gets `conflict` from the index; the client shows the timer that came from the server.
 - The total on a task = own entries + entries of all subtasks (recursively); a running timer is `now − startedAt` on the client.
-- Web: `taskPanels` `time:timer` (`property: true` — a properties row since PLANARAPP-42: start/stop and my tracked time of the task; a click on the time opens a menu with the total incl. subtasks, estimate vs. actual, the manual-entry form and the list of entries), `topbar` `time:timer` (the running timer ticks locally, stop), `nav` `time:week` → `/m/time/week` ("My hours": a day × task table for the current user, week with `useWeekStart()`; editing a cell sets the new total for the day: the difference is added with `time.log` or removed by editing/deleting the day's manual entries; 0 — delete the day's entries).
+- Web: `taskPanels` `time:timer` (`property: true` — a properties row since PLANARAPP-42: start/stop and my tracked time of the task; a click on the time opens a menu with the total incl. subtasks, estimate vs. actual, the manual-entry form — duration as `Xm|h|d|w` with 1d = 8h, 1w = 5d, date, note ≤ 200, billable — and the task's entries of every user: user, date, duration, billable, note hint; own ones are edited in the same form and deleted), `topbar` `time:timer` (the running timer ticks locally, stop), `nav` `time:week` → `/m/time/week` ("My hours": a day × task table for the current user, week with `useWeekStart()`; editing a cell sets the new total for the day: the difference is added with `time.log` or removed by editing/deleting the day's manual entries; 0 — delete the day's entries).
 
 ## Module sprints (WK-2)
 

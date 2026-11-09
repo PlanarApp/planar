@@ -24,6 +24,23 @@ export const useEntries = (uid: () => string) =>
     () => db.table('timeEntries').where('userId').equals(uid()).toArray() as Promise<TimeEntry[]>,
   );
 export const useMyEntries = () => useEntries(userId);
+/** All entries of a task, of every user. */
+export const useTaskEntries = (taskId: () => string) =>
+  useQuery(
+    () =>
+      db.table('timeEntries').where('taskId').equals(taskId()).toArray() as Promise<TimeEntry[]>,
+  );
+/** id → name, deactivated users included (their old entries stay signed). */
+export const useUserNames = () =>
+  useQuery(
+    async () =>
+      new Map(
+        ((await db.table('users').toArray()) as { id: string; name: string }[]).map((u) => [
+          u.id,
+          u.name,
+        ]),
+      ),
+  );
 /** the owner or the instance admin: the "Time" of any user (spaces' entries are in the replica anyway) */
 export const isInstanceAdmin = () => ['owner', 'admin'].includes(useSession().value?.role ?? '');
 export const useUsers = () =>
@@ -66,8 +83,12 @@ const dict = {
   spent: { ru: 'Потрачено', en: 'Spent' },
   withSub: { ru: 'с подзадачами', en: 'incl. subtasks' },
   estimate: { ru: 'Оценка', en: 'Estimate' },
-  estimateHint: { ru: 'ч:мм', en: 'h:mm' },
-  entries: { ru: 'Мои записи', en: 'My entries' },
+  estimateHint: { ru: '1h 30m', en: '1h 30m' },
+  durHint: { ru: 'Xm, Xh, Xd (8h), Xw (5d)', en: 'Xm, Xh, Xd (8h), Xw (5d)' },
+  billable: { ru: 'Оплачиваемое', en: 'Billable' },
+  edit: { ru: 'Изменить', en: 'Edit' },
+  save: { ru: 'Сохранить', en: 'Save' },
+  cancel: { ru: 'Отмена', en: 'Cancel' },
   noEntries: { ru: 'Записей нет', en: 'No entries' },
   addManual: { ru: 'Добавить время', en: 'Add time' },
   add: { ru: 'Добавить', en: 'Add' },

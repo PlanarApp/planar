@@ -48,14 +48,22 @@ export const hm = (sec: number): string =>
     ? ''
     : `${Math.floor(sec / 3600)}:${String(Math.round((sec % 3600) / 60)).padStart(2, '0')}`;
 
-/** Cell input: «1:30» or «1.5» / «1,5» (hours). Empty → 0, junk → null. */
+// working day and week, as in Jira: 1d = 8h, 1w = 5d (PLNRAPP-145)
+const UNIT = { m: 60, h: 3600, d: 8 * 3600, w: 40 * 3600 } as const;
+
+/** Duration input: «1w 2d 3h 30m» (Xm|h|d|w), «1:30» or «1.5» / «1,5» (hours). Empty → 0, junk → null. */
 export function parseHm(s: string): number | null {
-  const v = s.trim().replace(',', '.');
+  const v = s.trim().toLowerCase().replaceAll(',', '.');
   if (!v) return 0;
   let m = /^(\d+):([0-5]?\d)$/.exec(v);
   if (m) return Number(m[1]) * 3600 + Number(m[2]) * 60;
   m = /^(\d+(?:\.\d+)?)$/.exec(v);
-  return m ? Math.round(Number(m[1]) * 3600) : null;
+  if (m) return Math.round(Number(m[1]) * 3600);
+  if (!/^(\s*\d+(?:\.\d+)?\s*[mhdw])+$/.test(v)) return null;
+  let sec = 0;
+  for (const [, n, u] of v.matchAll(/(\d+(?:\.\d+)?)\s*([mhdw])/g))
+    sec += Number(n) * UNIT[u as keyof typeof UNIT];
+  return Math.round(sec);
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');

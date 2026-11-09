@@ -8,6 +8,7 @@ vi.mock('../../../../../../modules/time/web/data', async () => {
   const { ref } = await import('vue');
   const state = {
     entries: ref<unknown[]>([]),
+    taskEntries: ref<unknown[]>([]),
     tasks: ref<unknown[]>([]),
     estimate: ref<unknown>(undefined),
     now: ref(Date.parse('2026-10-21T12:00:00Z')),
@@ -24,6 +25,14 @@ vi.mock('../../../../../../modules/time/web/data', async () => {
     locale: () => 'en',
     useMyEntries: () => state.entries,
     useEntries: () => state.entries,
+    useTaskEntries: () => state.taskEntries,
+    useUserNames: () =>
+      ref(
+        new Map([
+          ['me', 'Я'],
+          ['someone', 'Коллега'],
+        ]),
+      ),
     useUsers: () => ref([]),
     isInstanceAdmin: () => false,
     useTasks: () => state.tasks,
@@ -39,7 +48,7 @@ import TimerPanel from '../../../../../../modules/time/web/TimerPanel.vue';
 import TimeControl from '../../../../../../modules/time/web/TimeControl.vue';
 import TopbarTimer from '../../../../../../modules/time/web/TopbarTimer.vue';
 import WeekPage from '../../../../../../modules/time/web/WeekPage.vue';
-import { dayKey, planCell, weekDays } from '../../../../../../modules/time/web/lib';
+import { dayKey, parseHm, planCell, weekDays } from '../../../../../../modules/time/web/lib';
 import { registerModules } from '../../registry';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,6 +80,7 @@ const mount = (c: object, o: { props?: Record<string, unknown> } = {}) =>
 beforeEach(() => {
   mutate.mockClear();
   st.entries.value = [];
+  st.taskEntries.value = [];
   st.estimate.value = undefined;
   st.now.value = NOW;
   st.weekStart.value = 1;
@@ -131,6 +141,61 @@ describe('wk1: панель задачи', () => {
       'time.log',
       expect.objectContaining({ taskId: 'root', durationSec: 5400 }),
     );
+  });
+});
+
+describe('PLNRAPP-145 диалог времени', () => {
+  it('формат Xm|h|d|w (1d = 8h, 1w = 5d), прежние «1:30» и «1.5» тоже', () => {
+    expect(parseHm('30m')).toBe(1800);
+    expect(parseHm('2h')).toBe(7200);
+    expect(parseHm('1h 30m')).toBe(5400);
+    expect(parseHm('1,5H')).toBe(5400);
+    expect(parseHm('1d')).toBe(8 * 3600);
+    expect(parseHm('1w 1d')).toBe(48 * 3600);
+    expect(parseHm('1:30')).toBe(5400);
+    expect(parseHm('1.5')).toBe(5400);
+    expect(parseHm('')).toBe(0);
+    for (const bad of ['1x', 'h', '1h abc', '2 3h']) expect(parseHm(bad)).toBeNull();
+  });
+
+  it('фокус в поле времени, время слева от даты, заметка и «Оплачиваемое» уходят в time.log', async () => {
+    const w = vmount(TimerPanel, {
+      props: { taskId: 'root', menu: true },
+      attachTo: document.body,
+      global: { plugins: [i18n], stubs: { Menu: true } },
+    });
+    const dur = w.get('[data-test=dur]');
+    expect(document.activeElement).toBe(dur.element);
+    expect(dur.element.compareDocumentPosition(w.get('[data-test=day]').element)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(w.get('[data-test=note]').attributes('maxlength')).toBe('200');
+    expect(w.text()).not.toContain('entries');
+    await dur.setValue('45m');
+    await w.get('[data-test=note]').setValue('созвон');
+    await w.get('[data-test=billable]').setValue(true);
+    await w.get('form').trigger('submit');
+    expect(mutate).toHaveBeenCalledWith(
+      'time.log',
+      expect.objectContaining({ durationSec: 2700, note: 'созвон', billable: true }),
+    );
+    w.unmount();
+  });
+
+  it('записи всех исполнителей: имя, отметка оплаты, хинт заметки; меню только у своих', async () => {
+    st.taskEntries.value = [
+      entry({ id: 'mine', billable: true, note: 'ревью', startedAt: '2026-10-20T08:00:00.000Z' }),
+      entry({ id: 'theirs', userId: 'someone', billable: false }),
+    ];
+    const w = mount(TimerPanel, { props: { taskId: 'root', menu: true } });
+    const rows = w.findAll('[data-test=entry]');
+    expect(rows.map((r) => r.get('[data-test=entry-user]').text())).toEqual(['Коллега', 'Я']);
+    expect(rows[1].get('[data-test=entry-note]').attributes('title')).toBe('ревью');
+    expect(rows[1].find('[data-test=entry-billable]').exists()).toBe(true);
+    expect(rows[0].find('[data-test=entry-billable]').exists()).toBe(false);
+    // the menu (edit/delete) — only on own entries
+    expect(rows[0].find('button').exists()).toBe(false);
+    expect(rows[1].find('button').exists()).toBe(true);
   });
 });
 

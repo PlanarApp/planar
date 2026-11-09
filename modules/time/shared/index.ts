@@ -20,6 +20,7 @@ export const timeEntries = z.object({
   durationSec: z.number().int().min(0).nullable(),
   note: z.string().max(1000).nullable(),
   source: z.enum(['timer', 'manual']),
+  billable: z.boolean(),
   createdAt: ts,
   updatedAt: ts,
 });
@@ -85,6 +86,7 @@ async function create(tx: Tx, row: Omit<TimeEntry, 'createdAt' | 'updatedAt'>, n
 
 const id = z.uuid();
 const note = z.string().max(1000).nullable().optional();
+const billable = z.boolean().optional();
 
 export const mutators = [
   defineMutator({
@@ -105,6 +107,7 @@ export const mutators = [
           durationSec: null,
           note: null,
           source: 'timer',
+          billable: false,
         },
         ctx.now,
       );
@@ -131,6 +134,7 @@ export const mutators = [
       startedAt: ts,
       durationSec: z.number().int().min(1).max(86400),
       note,
+      billable,
     }),
     async run(tx, a, ctx) {
       const task = await taskOf(tx, a.taskId);
@@ -146,6 +150,7 @@ export const mutators = [
           durationSec: a.durationSec,
           note: a.note ?? null,
           source: 'manual',
+          billable: a.billable ?? false,
         },
         ctx.now,
       );
@@ -159,11 +164,13 @@ export const mutators = [
       endedAt: ts.optional(),
       durationSec: z.number().int().min(0).max(86400).optional(),
       note,
+      billable,
     }),
     async run(tx, a, ctx) {
       const e = await own(tx, a.id, ctx.userId);
       const patch: Partial<TimeEntry> = { updatedAt: ctx.now };
       if (a.note !== undefined) patch.note = a.note;
+      if (a.billable !== undefined) patch.billable = a.billable;
       const startedAt = a.startedAt ?? e.startedAt;
       if (a.startedAt) patch.startedAt = a.startedAt;
       if (!e.endedAt) {
