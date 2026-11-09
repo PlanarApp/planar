@@ -301,7 +301,7 @@ scope: user · write: self · bootstrap: yes · indexes: taskId
 | `id` | uuid | |
 | `userId` | uuid | recipient |
 | `spaceId` | uuid? | for grouping; does not affect visibility; null — a personal chat dialog |
-| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned,doc_mention,trial_ending) | `chat_*` is created by the chat module (collab.md §CH); `trial_ending` — by the cloud link (cloud-link.md) |
+| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned,doc_mention,trial_ending,checklist_assigned) | `chat_*` is created by the chat module (collab.md §CH); `trial_ending` — by the cloud link (cloud-link.md); `checklist_assigned` — `body` is the item text |
 | `taskId` | uuid? | no FK; null for `chat_*` |
 | `url` | text? | in-app path for notifications without a task (the `url` rules from "Web Push") |
 | `body` | text? | ≤ 140 characters, "Name: text"; for notifications without a task |

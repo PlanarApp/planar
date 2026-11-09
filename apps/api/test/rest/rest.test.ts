@@ -100,6 +100,30 @@ describe('REST /api/v1: чтение', () => {
     expect(await ids(`assigneeId=${w.member.userId}`)).toEqual([a.id]);
     expect(await ids('assigneeId=me', 'admin')).toEqual([]);
 
+    // PLNRAPP-140: an open checklist item / comment assigned to me makes the task mine
+    const item = uuidv7();
+    await w.member.ok('checklist.add', { id: item, taskId: b.id, text: 'п', rank: 'a0' });
+    await w.member.ok('checklist.update', { id: item, assigneeId: w.admin.userId });
+    await w.member.ok('comment.create', {
+      id: uuidv7(),
+      taskId: c.id,
+      body: { type: 'doc', content: [] },
+      assigneeId: w.admin.userId,
+    });
+    expect((await ids('assigneeId=me', 'admin')).sort()).toEqual([b.id, c.id].sort());
+    expect((await ids(`assigneeId=${w.admin.userId}`, 'admin')).sort()).toEqual(
+      [b.id, c.id].sort(),
+    );
+    expect(await ids(`assigneeId=${w.admin.userId}`, 'member')).toEqual([]); // not for others
+    await w.member.ok('checklist.update', { id: item, done: true });
+    expect(await ids('assigneeId=me', 'admin')).toEqual([c.id]);
+    const notes = (await w.admin.bootstrap()).data.notifications as Record<string, unknown>[];
+    expect(notes.find((n) => n.kind === 'checklist_assigned')).toMatchObject({
+      taskId: b.id,
+      body: 'п',
+      actorId: w.member.userId,
+    });
+
     const [row] = await db.select().from(schema.tasks).where(eq(schema.tasks.id, b.id));
     const after = new Date(Date.parse(row!.updatedAt) - 1).toISOString();
     expect(await ids(`updatedAfter=${after}`)).toContain(b.id);

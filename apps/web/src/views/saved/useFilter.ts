@@ -105,6 +105,7 @@ export function useTaskFilter(
       today: localToday(),
       fieldDefs: defs.value,
       cycles: cycles.value,
+      forMe: forMe.value,
     };
     return (t: TaskView) => matchFilter(t, f, ctx);
   });

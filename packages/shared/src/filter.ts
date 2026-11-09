@@ -41,6 +41,8 @@ export interface FilterCtx {
     endDate: string;
     closedAt: string | null;
   }[];
+  /** tasks with an open comment / checklist item assigned to userId: «assignee = me» counts them (PLNRAPP-140) */
+  forMe?: Set<string>;
 }
 
 /** Allowed operators of a field (constructor and matchFilter). */
@@ -149,6 +151,7 @@ function matchRule(task: FilterTask, r: FilterRule, ctx: FilterCtx): boolean {
       const ids = r.field === 'assignee' ? task.assigneeIds : task.labelIds;
       if (r.operator === 'isEmpty') return ids.length === 0;
       if (r.operator === 'isNotEmpty') return ids.length > 0;
+      if (r.field === 'assignee' && ctx.forMe?.has(task.id)) return isIn([...ids, ctx.userId]);
       return isIn(ids);
     }
     case 'cycle': {

@@ -129,6 +129,7 @@ Change to `tasks` (docs/contracts/core.md §C-schema): field `cycleId` uuid? —
 - `matchFilter`, `Filter`, `FilterRule`, `FilterCtx`, `FIELD_OPERATORS`, `resolveDate` — in `packages/shared/src/filter.ts` (exported from `@planar/shared`), without Vue and DOM; `apps/web/src/views/filter.ts` re-exports them (the signatures of C-views/F-filter v1 do not change). Task type — `FilterTask = Row<'tasks'> & { assigneeIds: string[]; labelIds: string[] }` (web `TaskView` is compatible with it).
 - `FilterRule.field` += `'cycle'`: operators `in`, `notIn` (cycle ids or `'current'`), `isEmpty`, `isNotEmpty` (`cycleId` null).
 - `FilterCtx` += `cycles?: { id: string; projectId: string; startDate: string; endDate: string; closedAt: string | null }[]`. A project's current cycle is the one with `closedAt = null` and `startDate ≤ today ≤ endDate`; `'current'` matches if the task's `cycleId` is the current cycle of its project. Without `cycles`, rules with `'current'` are skipped.
+- `FilterCtx` += `forMe?: Set<string>` (PLNRAPP-140) — ids of tasks with an open comment or checklist item assigned to `userId`; an `assignee` rule with `userId` (`'me'`) counts such a task as assigned to them. Without `forMe` — only the task's assignees. Web views and saved views pass it.
 - Web (WK-0): views and saved views pass `cycles` from the Dexie table `sprintsCycles` if it exists (the module is enabled).
 
 ## F-views v2 (WK-7)

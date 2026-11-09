@@ -112,7 +112,7 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
   });
   tool(
     'my_tasks',
-    'Задачи, назначенные мне (по умолчанию без done/cancelled)',
+    'Задачи, назначенные мне или с назначенным мне открытым комментарием / пунктом чек-листа (по умолчанию без done/cancelled)',
     { includeDone: z.boolean().optional(), ...filters },
     false,
     async (a) =>

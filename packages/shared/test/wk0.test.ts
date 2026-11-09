@@ -19,6 +19,23 @@ const f = (operator: string, value?: string[]): Filter => ({
 const m = (t: FilterTask, fl: Filter, ctx: FilterCtx = { ...base, cycles }) =>
   matchFilter(t, fl, ctx);
 
+describe('PLNRAPP-140: assignee = me учитывает назначенные мне комментарии и пункты', () => {
+  it('forMe — задача с моим открытым пунктом/комментарием «моя»', () => {
+    const t = { id: 't1', assigneeIds: [], labelIds: [] } as unknown as FilterTask;
+    const rule = (operator: 'in' | 'notIn' | 'isEmpty', value?: string[]): Filter => ({
+      op: 'and',
+      rules: [{ field: 'assignee', operator, value }],
+    });
+    const forMe = new Set(['t1']);
+    expect(m(t, rule('in', ['me']), base)).toBe(false);
+    expect(m(t, rule('in', ['me']), { ...base, forMe })).toBe(true);
+    expect(m(t, rule('in', ['u']), { ...base, forMe })).toBe(true);
+    expect(m(t, rule('in', ['other']), { ...base, forMe })).toBe(false);
+    expect(m(t, rule('notIn', ['me']), { ...base, forMe })).toBe(false);
+    expect(m(t, rule('isEmpty'), { ...base, forMe })).toBe(true); // no task assignees
+  });
+});
+
 describe('wk0: filter cycle', () => {
   it('wk0: in / notIn по id цикла', () => {
     expect(m(task(C1), f('in', [C1]))).toBe(true);

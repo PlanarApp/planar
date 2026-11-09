@@ -38,6 +38,20 @@ import {
   timerStartBody,
 } from './schemas.js';
 
+/**
+ * "Assignee = who": a task assignee; for the caller themselves also a task with an open
+ * comment or checklist item assigned to them (PLNRAPP-140, as «mine» in the web app).
+ */
+const assignedTo = (who: string, userId: string) => {
+  const task = sql`exists (select 1 from ${s.taskAssignees} a where a.task_id = ${s.tasks.id} and a.user_id = ${who})`;
+  if (who !== userId) return task;
+  return or(
+    task,
+    sql`exists (select 1 from ${s.comments} c where c.task_id = ${s.tasks.id} and c.assignee_id = ${who} and c.resolved_at is null)`,
+    sql`exists (select 1 from ${s.checklistItems} i where i.task_id = ${s.tasks.id} and i.assignee_id = ${who} and not i.done)`,
+  );
+};
+
 type Wire = Record<string, unknown>;
 type Mut = { name: string; args: unknown };
 const NOT_FOUND = (what: string) => new HttpError(404, 'not_found', `${what} не найден`);
@@ -219,12 +233,7 @@ export class RestService {
       q.statusId ? eq(s.tasks.statusId, q.statusId) : undefined,
       q.updatedAfter ? sql`${s.tasks.updatedAt} > ${q.updatedAfter}::timestamptz` : undefined,
     ];
-    if (q.assigneeId) {
-      const who = q.assigneeId === 'me' ? userId : q.assigneeId;
-      where.push(
-        sql`exists (select 1 from ${s.taskAssignees} a where a.task_id = ${s.tasks.id} and a.user_id = ${who})`,
-      );
-    }
+    if (q.assigneeId) where.push(assignedTo(q.assigneeId === 'me' ? userId : q.assigneeId, userId));
     const p = await this.page(s.tasks, where, q, 'updatedAt', 'desc');
     return { data: await this.enrich(p.items), nextCursor: p.nextCursor };
   }
@@ -250,9 +259,7 @@ export class RestService {
       await this.visible(userId, 'tasks'),
       q.projectId ? eq(s.tasks.projectId, q.projectId) : undefined,
       q.statusId ? eq(s.tasks.statusId, q.statusId) : undefined,
-      who
-        ? sql`exists (select 1 from ${s.taskAssignees} a where a.task_id = ${s.tasks.id} and a.user_id = ${who})`
-        : undefined,
+      who ? assignedTo(who, userId) : undefined,
       q.includeDone === false
         ? sql`not exists (select 1 from ${s.statuses} st where st.id = ${s.tasks.statusId} and st.category in ('done','cancelled'))`
         : undefined,

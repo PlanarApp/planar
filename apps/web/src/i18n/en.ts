@@ -161,6 +161,7 @@ export default {
       chat_dm: 'Direct message from {who}',
       chat_reply: '{who} replied in a thread',
       comment_assigned: '{who} assigned you a comment in {key}',
+      checklist_assigned: '{who} assigned you a checklist item in {key}',
       doc_mention: '{who} mentioned you in a document',
       trial_ending: 'The trial ends soon — subscribe',
     },
