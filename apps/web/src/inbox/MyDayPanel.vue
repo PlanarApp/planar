@@ -53,15 +53,16 @@ const move = (x: DayItem, date: string | null) => date && reschedule(props.day, 
       :data-block="b"
       class="flex min-w-0 flex-col gap-1 rounded-lg border border-border p-3"
     >
-      <header class="flex min-h-7 items-center gap-2">
+      <!-- wraps instead of cutting the date when the block is narrow -->
+      <header class="flex min-h-7 flex-wrap items-center gap-x-2">
         <Sun v-if="b === 'today'" :size="16" class="text-accent" aria-hidden="true" />
         <h2 class="text-sm font-semibold">{{ t(`myDay.block.${b}`) }}</h2>
-        <span v-if="b === 'today'" class="truncate text-xs text-fg-muted first-letter:uppercase">{{
+        <span v-if="b === 'today'" class="text-xs text-fg-muted first-letter:uppercase">{{
           title
         }}</span>
         <span v-else-if="day[b].length" class="text-xs text-fg-muted">{{ day[b].length }}</span>
-        <template v-if="b === 'today' && day.today.length">
-          <span class="ml-auto shrink-0 text-xs text-fg-muted" data-testid="my-day-left">
+        <span v-if="b === 'today' && day.today.length" class="ml-auto flex items-center gap-2">
+          <span class="shrink-0 text-xs text-fg-muted" data-testid="my-day-left">
             {{ t('myDay.left', { n: left, total: day.today.length }) }}
           </span>
           <IconButton
@@ -72,12 +73,13 @@ const move = (x: DayItem, date: string | null) => date && reschedule(props.day, 
             data-testid="my-day-postpone"
             @click="postpone(day)"
           />
-        </template>
+        </span>
       </header>
-      <div class="relative">
+      <!-- the hint and the drop zone share one grid cell: the block grows to a long hint (PLNRAPP-120) -->
+      <div class="grid">
         <p
           v-if="!rows[b].length"
-          class="pointer-events-none absolute inset-x-0 top-0 py-1 text-sm text-fg-muted"
+          class="pointer-events-none col-start-1 row-start-1 py-1 text-sm text-fg-muted"
         >
           {{ t(b === 'today' ? 'myDay.empty' : 'myDay.dropHere') }}
         </p>
@@ -86,7 +88,7 @@ const move = (x: DayItem, date: string | null) => date && reschedule(props.day, 
           handle=".handle"
           group="my-day"
           :sort="b !== 'later'"
-          :class="['flex flex-col', !rows[b].length && 'min-h-10']"
+          :class="['col-start-1 row-start-1 flex flex-col', !rows[b].length && 'min-h-10']"
           @update="(e: DropEvent) => onUpdate(b, e)"
           @add="(e: DropEvent) => onAdd(b, e)"
         >
@@ -116,7 +118,8 @@ const move = (x: DayItem, date: string | null) => date && reschedule(props.day, 
                 }}</span>
               </button>
             </div>
-            <div class="flex items-center gap-1 pl-5">
+            <!-- the second line is left-aligned under the title: date, then actions -->
+            <div class="flex flex-wrap items-center gap-1 pl-5">
               <!-- «Later» — the plan date; otherwise the task's due date -->
               <span
                 v-if="b === 'later' || x.task.dueDate"
@@ -124,7 +127,7 @@ const move = (x: DayItem, date: string | null) => date && reschedule(props.day, 
                 data-testid="my-day-date"
                 >{{ formatDue(b === 'later' ? x.plan.date : x.task.dueDate!, locale) }}</span
               >
-              <div class="ml-auto flex items-center gap-1">
+              <div class="flex items-center gap-1">
                 <IconButton
                   v-if="b !== 'today'"
                   :icon="Sun"
