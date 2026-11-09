@@ -847,6 +847,7 @@ export default {
     },
   },
   list: {
+    actions: 'Actions',
     resize: 'Column width (double-click — auto)',
     colName: 'Name',
     drag: 'Drag',

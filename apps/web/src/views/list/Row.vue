@@ -13,7 +13,14 @@ import {
   type TaskView,
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
-import { ChevronDown, ChevronRight, GripVertical, ListTree, Sun } from 'lucide-vue-next';
+import {
+  ChevronDown,
+  ChevronRight,
+  GripVertical,
+  ListTree,
+  MoreHorizontal,
+  Sun,
+} from 'lucide-vue-next';
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
@@ -141,6 +148,23 @@ const dueTone = computed(() => {
   return d < today ? 'text-danger' : d <= tomorrow ? 'text-warning' : 'text-fg-muted';
 });
 
+// «…» (PLNRAPP-139): the view's context menu (TaskContextMenu), opened at the button;
+// a plain button, not IconButton — no tooltip per virtualized row
+const menuBtn =
+  'flex shrink-0 items-center justify-center rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg outline-none focus-visible:ring-2 ring-focus';
+function openMenu(e: MouseEvent) {
+  const el = e.currentTarget as HTMLElement;
+  const r = el.getBoundingClientRect();
+  el.dispatchEvent(
+    new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      clientX: r.left,
+      clientY: r.bottom,
+    }),
+  );
+}
+
 function save() {
   if (!live) return;
   live = false;
@@ -159,7 +183,7 @@ function save() {
     :aria-selected="selected"
     :data-task="task.key"
     :class="[
-      'flex h-full flex-col justify-center gap-1 border-b border-border px-3 text-sm',
+      'flex h-full items-center gap-1 border-b border-border pl-3 pr-1 text-sm',
       // wrapped: the card grows past its height — keep the breathing room it had
       wrap ? 'min-h-16 py-2' : '',
       selected ? 'bg-accent-subtle' : '',
@@ -167,23 +191,34 @@ function save() {
     ]"
     @click="emit('click', $event)"
   >
-    <TaskCard
-      :task="task"
-      :space-id="spaceId"
-      :cols="cardCols"
-      :blocked="blocked"
-      hot
-      :one-line="!wrap"
-      :wrap="wrap"
-      :members="members"
-      :labels="labels"
-      :depth="depth"
-      :parent-title="parentTitle"
-      :child-count="childCount"
-      :project-name="projectName"
-      project-text
-      :show-key="showKey"
-    />
+    <div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
+      <TaskCard
+        :task="task"
+        :space-id="spaceId"
+        :cols="cardCols"
+        :blocked="blocked"
+        hot
+        :one-line="!wrap"
+        :wrap="wrap"
+        :members="members"
+        :labels="labels"
+        :depth="depth"
+        :parent-title="parentTitle"
+        :child-count="childCount"
+        :project-name="projectName"
+        project-text
+        :show-key="showKey"
+      />
+    </div>
+    <button
+      type="button"
+      :class="[menuBtn, 'size-11']"
+      :aria-label="t('list.actions')"
+      data-testid="row-menu"
+      @click.stop="openMenu"
+    >
+      <MoreHorizontal :size="16" />
+    </button>
   </div>
   <div
     v-else
@@ -386,5 +421,19 @@ function save() {
         </span>
       </div>
     </div>
+    <button
+      type="button"
+      :class="[
+        menuBtn,
+        'size-7 focus-visible:opacity-100 group-hover:opacity-100',
+        !focused && 'opacity-0',
+      ]"
+      :aria-label="t('list.actions')"
+      :title="t('list.actions')"
+      data-testid="row-menu"
+      @click.stop="openMenu"
+    >
+      <MoreHorizontal :size="16" />
+    </button>
   </div>
 </template>
