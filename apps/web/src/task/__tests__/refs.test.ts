@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import { flushPromises, mount } from '@vue/test-utils';
+import { createMemoryHistory, createRouter } from 'vue-router';
 import { i18n } from '../../i18n';
 import Editor from '../editor/Editor.vue';
 
@@ -76,6 +77,41 @@ describe('редактор: @@ и @@@', () => {
     for (const ch of ' @@') type(ch);
     await vi.waitFor(() => expect(w.find('[data-testid=ref-picker]').exists()).toBe(true));
     expect(json()).toContain('a@@ ');
+    w.unmount();
+  });
+
+  it('PLNRAPP-132: клик по ссылке на задачу открывает её в приложении; с Ctrl — по-браузерному', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/:p(.*)*', component: { render: () => null } }],
+    });
+    const doc = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'PLN-1 Вход',
+              marks: [{ type: 'link', attrs: { href: '/t/PLN-1' } }],
+            },
+          ],
+        },
+      ],
+    };
+    const w = mount(Editor, {
+      props: { members: [], label: 'x', editable: false, modelValue: doc },
+      global: { plugins: [i18n, router] },
+    });
+    await flushPromises();
+    const a = w.find('a');
+    const ctrl = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
+    a.element.dispatchEvent(ctrl);
+    expect(ctrl.defaultPrevented).toBe(false);
+    await a.trigger('click');
+    await flushPromises();
+    expect(router.currentRoute.value.path).toBe('/t/PLN-1');
     w.unmount();
   });
 
