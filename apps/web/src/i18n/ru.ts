@@ -806,6 +806,7 @@ export default {
     checklistToSubtask: 'Сделать подзадачей',
     checklistIndent: 'Вложить в пункт выше',
     checklistOutdent: 'Вынести на уровень выше',
+    selectionToTask: 'Выделенный текст — в задачу',
     attachments: 'Вложения',
     attach: 'Прикрепить файл',
     activity: 'Комментарии и активность',

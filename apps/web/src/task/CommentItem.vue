@@ -156,7 +156,9 @@ function save() {
             :members="members"
             :label="t('task.comment')"
             :editable="false"
+            :link-read-only="mine"
             collapsible
+            @update:model-value="(b) => mine && b && emit('save', b)"
           />
           <Reactions
             :rows="reactions"

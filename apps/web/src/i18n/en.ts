@@ -800,6 +800,7 @@ export default {
     checklistToSubtask: 'Convert to subtask',
     checklistIndent: 'Nest under the item above',
     checklistOutdent: 'Move one level up',
+    selectionToTask: 'Selected text to a task',
     attachments: 'Attachments',
     attach: 'Attach file',
     activity: 'Comments and activity',

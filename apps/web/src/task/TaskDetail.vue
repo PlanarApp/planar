@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, inject, nextTick, onMounted, ref, watch } from 'vue';
+import {
+  computed,
+  defineAsyncComponent,
+  inject,
+  nextTick,
+  onMounted,
+  provide,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { routerKey, useRoute } from 'vue-router';
 import {
@@ -33,6 +42,7 @@ import {
   LabelPicker,
   PriorityPicker,
   StatusPicker,
+  createTask,
   deleteTask,
   setAssignees,
   setLabels,
@@ -67,6 +77,7 @@ import Editor from './editor/Editor.vue';
 import Feed from './Feed.vue';
 import { useAttachments, useChecklist, useSubtasks, useUsers, useWatchers } from './queries';
 import Subtasks from './Subtasks.vue';
+import { TO_TASK } from './thread';
 import { useTaskMenu } from '../tasks/taskMenu';
 import LinksBlock from '../links/LinksBlock.vue';
 import { useTaskLinks } from '../links';
@@ -83,6 +94,18 @@ const statuses = useStatuses(
   () => props.task.projectId,
 );
 const members = useMembers(() => props.task.spaceId);
+// selected text in the description or a comment → a task / subtask; the link is by id: the number comes from the server
+provide(TO_TASK, async (title, sub) => {
+  const status = statuses.value?.find((x) => x.projectId === props.task.projectId); // PJ-1
+  if (!status) return null;
+  const id = await createTask({
+    projectId: props.task.projectId,
+    statusId: status.id,
+    title,
+    parentId: sub ? props.task.id : null,
+  });
+  return `/t/${id}`;
+});
 useLabels(
   () => props.task.spaceId,
   () => props.task.projectId,

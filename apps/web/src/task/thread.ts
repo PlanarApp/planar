@@ -18,3 +18,7 @@ export interface FeedCtx {
   react: (commentId: string, emoji: string) => unknown;
 }
 export const FEED: InjectionKey<FeedCtx> = Symbol('feed');
+
+/** Selected text → a task or a subtask of the open one (PLNRAPP-144): TaskDetail provides, Editor injects; → href of the task. */
+export const TO_TASK: InjectionKey<(title: string, sub: boolean) => Promise<string | null>> =
+  Symbol('toTask');

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { defineAsyncComponent, inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import type { EditorOptions, JSONContent } from '@tiptap/vue-3';
-import { Extension, InputRule, type Extensions } from '@tiptap/core';
+import { Extension, InputRule, type Editor as CoreEditor, type Extensions } from '@tiptap/core';
 import { editorExtensions } from '@planar/editor';
 import Placeholder from '@tiptap/extension-placeholder';
 import { ApiError } from '../../api/http';
@@ -14,6 +14,8 @@ import type { RefPick } from './RefPicker.vue';
 import Suggestion from '@tiptap/suggestion';
 import { PluginKey } from '@tiptap/pm/state';
 import { filterSlash, slashItems } from './slash';
+import { TO_TASK } from '../thread';
+import { Button } from '../../ui';
 
 // link dialog (@@/@@@) — a separate chunk: the task index is built only when opened
 const RefPicker = defineAsyncComponent(() => import('./RefPicker.vue'));
@@ -33,6 +35,8 @@ const props = withDefaults(
     refs?: boolean;
     /** a long text is clamped under "Expand" */
     collapsible?: boolean;
+    /** read-only, but a selection may still become a task link (own comment, PLNRAPP-144): the change goes to update:modelValue */
+    linkReadOnly?: boolean;
   }>(),
   { editable: true },
 );
@@ -44,6 +48,25 @@ const emit = defineEmits<{
 }>();
 const { t, locale } = useI18n();
 const error = ref('');
+
+// selected text → a task / subtask (PLNRAPP-144): only inside a task (TaskDetail provides TO_TASK);
+// the selection stays and becomes a link to the created task
+const toTask = inject(TO_TASK, null);
+const sel = ref<{ from: number; to: number; text: string; left: number; top: number } | null>(null);
+function trackSelection(ed: CoreEditor) {
+  const { from, to, empty } = ed.state.selection;
+  const text = empty ? '' : ed.state.doc.textBetween(from, to, ' ').trim();
+  if (!toTask || !text || !(ed.isEditable || props.linkReadOnly)) return void (sel.value = null);
+  const c = ed.view.coordsAtPos(from);
+  sel.value = { from, to, text: text.slice(0, 500), left: c.left, top: c.top };
+}
+async function selToTask(sub: boolean) {
+  const s = sel.value;
+  sel.value = null;
+  const href = s && toTask && (await toTask(s.text, sub));
+  if (href)
+    editor.value?.chain().setTextSelection({ from: s.from, to: s.to }).setLink({ href }).run();
+}
 
 // @ hint: the state is written by suggestion, we draw the list ourselves
 const sug = ref<{
@@ -227,6 +250,7 @@ const options = (extra: Extensions = [], collab = false): Partial<EditorOptions>
     },
   },
   onUpdate: ({ editor: ed }) => emit('update:modelValue', ed.isEmpty ? null : ed.getJSON()),
+  onSelectionUpdate: ({ editor: ed }) => trackSelection(ed),
   onBlur: () => emit('blur'),
 });
 
@@ -387,6 +411,22 @@ const sugStyle = (r: DOMRect | null, n: number) => {
       </li>
     </ul>
     <RefPicker v-if="refAt" :rect="refAt.rect" @pick="insertRef" @close="closeRef" />
+    <!-- above the selection; mousedown.prevent keeps the selection and the focus -->
+    <div
+      v-if="sel"
+      role="toolbar"
+      :aria-label="t('task.selectionToTask')"
+      class="fixed z-50 flex -translate-y-full gap-1 rounded-lg border border-border bg-surface p-1 shadow-md"
+      :style="{ left: sel.left + 'px', top: sel.top - 4 + 'px' }"
+      data-testid="selection-to-task"
+    >
+      <Button size="sm" variant="ghost" @mousedown.prevent @click="selToTask(false)">{{
+        t('task.checklistToTask')
+      }}</Button>
+      <Button size="sm" variant="ghost" @mousedown.prevent @click="selToTask(true)">{{
+        t('task.checklistToSubtask')
+      }}</Button>
+    </div>
   </div>
 </template>
 
