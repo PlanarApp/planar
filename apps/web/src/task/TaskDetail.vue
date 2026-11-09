@@ -525,6 +525,7 @@ const panelComponent = computed(() => {
               />
               <span class="text-fg-subtle">→</span>
               <DueDatePicker
+                :task-id="task.id"
                 :model-value="task.dueDate"
                 @update:model-value="(v: string | null) => updateTask(task.id, { dueDate: v })"
               />

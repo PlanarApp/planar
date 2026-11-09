@@ -60,9 +60,7 @@ const subTabs = computed(() =>
   })),
 );
 const taskSub = computed(() =>
-  sub.value === 'day'
-    ? 'assigned'
-    : (['assigned', 'created', 'watched'] as const).find((w) => w === sub.value),
+  (['day', 'assigned', 'created', 'watched'] as const).find((w) => w === sub.value),
 );
 
 const projectIds = computed(() =>

@@ -139,3 +139,22 @@ export function reschedule(day: MyDay, planId: string, date: string) {
     .at(-1);
   return mutate('day.move', { id: planId, date, rank: rankBetween(last?.plan.rank ?? null, null) });
 }
+
+/** the task's plan for today or later (one per task in the planner) */
+export const planOf = (day: MyDay | undefined, taskId: string) =>
+  day && [...day.today, ...day.tomorrow, ...day.later].find((x) => x.task.id === taskId)?.plan;
+
+/** «Due date» menu (PLNRAPP-137): plan the task for a date, or move its plan there — to the end of that day */
+export function planFor(taskId: string, date: string, day: MyDay) {
+  const plan = planOf(day, taskId);
+  if (plan) return reschedule(day, plan.id, date);
+  const last = [...day.today, ...day.tomorrow, ...day.later]
+    .filter((x) => x.plan.date === date)
+    .at(-1);
+  return mutate('day.plan', {
+    id: newId(),
+    taskId,
+    date,
+    rank: rankBetween(last?.plan.rank ?? null, null),
+  });
+}
