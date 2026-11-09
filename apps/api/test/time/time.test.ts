@@ -164,6 +164,23 @@ describe('wk1: time', () => {
     expect((await entry(id)).durationSec).toBe(600);
   });
 
+  it('PLNRAPP-145: billable — по умолчанию false, задаётся в log и правится в update', async () => {
+    const [a, b] = [uuidv7(), uuidv7()];
+    const at = '2026-10-20T09:00:00.000Z';
+    await w.member.ok('time.log', { id: a, taskId, startedAt: at, durationSec: 600 });
+    await w.member.ok('time.log', {
+      id: b,
+      taskId,
+      startedAt: at,
+      durationSec: 600,
+      billable: true,
+    });
+    expect(await entry(a)).toMatchObject({ billable: false });
+    expect(await entry(b)).toMatchObject({ billable: true });
+    await w.member.ok('time.update', { id: a, billable: true });
+    expect(await entry(a)).toMatchObject({ billable: true, durationSec: 600 });
+  });
+
   it('wk1: у идущей записи правятся только startedAt и note', async () => {
     const { id } = await start(w.member);
     expect(await w.member.push('time.update', { id, durationSec: 10 })).toMatchObject({

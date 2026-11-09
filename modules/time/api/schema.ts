@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 
@@ -15,6 +24,7 @@ export const timeEntries = pgTable(
     durationSec: integer(),
     note: text(),
     source: text().notNull(),
+    billable: boolean().notNull().default(false),
     createdAt: ts().notNull(),
     updatedAt: ts().notNull(),
   },

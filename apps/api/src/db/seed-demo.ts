@@ -1148,6 +1148,7 @@ async function insertAll(tx: Tx, now: Date) {
         durationSec: sec,
         note: ['Implementation', 'Code review', 'Debugging', 'Pairing session'][(d + ui) % 4],
         source: d % 3 ? 'timer' : 'manual',
+        billable: (d + ui) % 4 !== 2, // code review is not billed
         createdAt: start,
         updatedAt: start,
       });
