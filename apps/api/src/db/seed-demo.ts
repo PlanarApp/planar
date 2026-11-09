@@ -21,7 +21,11 @@ import {
   goalsMilestones,
   goalsMilestoneTasks,
 } from '@planar/module-goals/api/schema';
+import { automationsRules } from '@planar/module-automations/api/schema';
+import { formsForms } from '@planar/module-forms/api/schema';
 import { recurringRules } from '@planar/module-recurring/api/schema';
+import { templatesTemplates } from '@planar/module-templates/api/schema';
+import { workloadCapacities } from '@planar/module-workload/api/schema';
 import { sprintsCycles, sprintsSettings } from '@planar/module-sprints/api/schema';
 import { timeEntries, timeEstimates } from '@planar/module-time/api/schema';
 import { DATA_MODULE_IDS, extractMentions, textToDoc } from '@planar/shared';
@@ -75,21 +79,27 @@ const LABELS = [
   ['research', '#f59e0b'],
 ] as const;
 
+// Workspace = root space (settings root_space, workspace): without it group tabs have no scope
+const WORKSPACE = { name: 'Brightwave', color: '#6366f1', icon: '🌊' };
+/** `space` of DOCS / CHANNELS at the Workspace level */
+const ROOT = -1;
+// node icons are emoji (NodeIcon)
 const SPACES = [
-  ['Product', 'Roadmap, discovery and customer feedback', '#6366f1', 'compass'],
-  ['Engineering', 'Platform and mobile development', '#0ea5e9', 'code'],
-  ['Marketing', 'Campaigns, content and launch', '#ec4899', 'megaphone'],
-  ['Design', 'Design system and product design', '#8b5cf6', 'palette'],
-  ['Support', 'Help center and customer success', '#10b981', 'life-buoy'],
+  ['Product', 'Roadmap, discovery and customer feedback', '#6366f1', '🧭'],
+  ['Engineering', 'Platform and mobile development', '#0ea5e9', '⚙️'],
+  ['Marketing', 'Campaigns, content and launch', '#ec4899', '📣'],
+  ['Design', 'Design system and product design', '#8b5cf6', '🎨'],
+  ['Support', 'Help center and customer success', '#10b981', '🛟'],
 ] as const;
 
 // task: [title, status 0-4, priority 0-4, due offset in days | null, assignees, labels, parent index | undefined]
 type T = [string, number, number, number | null, string, string, number?];
-const PROJECTS: { space: number; name: string; key: string; tasks: T[] }[] = [
+const PROJECTS: { space: number; name: string; key: string; icon: string; tasks: T[] }[] = [
   {
     space: 0,
     name: 'Roadmap',
     key: 'RDM',
+    icon: '🗺️',
     tasks: [
       ['Define Q4 product goals', 3, 3, -12, 'maya', 'research'],
       ['Customer interview synthesis', 3, 2, -6, 'demo,sofia', 'research'],
@@ -109,6 +119,7 @@ const PROJECTS: { space: number; name: string; key: string; tasks: T[] }[] = [
     space: 1,
     name: 'Platform',
     key: 'PLT',
+    icon: '🧱',
     tasks: [
       ['Migrate sessions to Redis-free store', 3, 3, -18, 'liam', 'improvement'],
       ['Rate limiting for public API', 3, 3, -16, 'noah', 'feature'],
@@ -128,8 +139,9 @@ const PROJECTS: { space: number; name: string; key: string; tasks: T[] }[] = [
   },
   {
     space: 1,
-    name: 'Mobile App',
+    name: 'Mobile',
     key: 'MOB',
+    icon: '📱',
     tasks: [
       ['Offline mode for task list', 2, 4, 10, 'ava,jack', 'feature'],
       ['Push notification permissions flow', 1, 3, 14, 'ava', 'feature'],
@@ -143,8 +155,9 @@ const PROJECTS: { space: number; name: string; key: string; tasks: T[] }[] = [
   },
   {
     space: 2,
-    name: 'Launch Campaign',
+    name: 'Launch',
     key: 'MKT',
+    icon: '🚀',
     tasks: [
       ['Launch landing page copy', 2, 4, 3, 'emma,demo', 'docs'],
       ['Press kit and logos', 2, 3, 8, 'emma', 'docs'],
@@ -162,6 +175,7 @@ const PROJECTS: { space: number; name: string; key: string; tasks: T[] }[] = [
     space: 3,
     name: 'Design System',
     key: 'DSG',
+    icon: '🧩',
     tasks: [
       ['Audit button variants', 3, 2, -14, 'ava', 'research'],
       ['Spacing and typography tokens', 3, 3, -8, 'ava,nina', 'feature'],
@@ -177,6 +191,7 @@ const PROJECTS: { space: number; name: string; key: string; tasks: T[] }[] = [
     space: 4,
     name: 'Help Center',
     key: 'SUP',
+    icon: '💬',
     tasks: [
       ['Article: connecting GitLab', 3, 2, -10, 'jack', 'docs'],
       ['Article: setting up recurring tasks', 2, 2, 5, 'demo', 'docs'],
@@ -285,7 +300,15 @@ const CHECKLISTS: [string, number, [string, boolean][]][] = [
   ],
 ];
 
-const DOCS: { space: number; title: string; icon: string; paras: string[]; parent?: number }[] = [
+// space ROOT — Workspace; project — project key (the page lives in that project's space)
+const DOCS: {
+  space: number;
+  project?: string;
+  title: string;
+  icon: string;
+  paras: string[];
+  parent?: number;
+}[] = [
   {
     space: 0,
     title: 'Product vision',
@@ -346,16 +369,60 @@ const DOCS: { space: number; title: string; icon: string; paras: string[]; paren
       'Escalate refunds above 500 USD to the owner.',
     ],
   },
+  {
+    space: ROOT,
+    title: 'Welcome to Brightwave',
+    icon: '👋',
+    paras: [
+      'Brightwave is a 10-person product team. Everything we plan, discuss and ship lives here.',
+      'Start with My work: your tasks for today, mentions and things waiting for you.',
+      'Each space has its own projects, docs and chats. Company-wide pages and #general live at the top level.',
+    ],
+  },
+  {
+    space: ROOT,
+    title: 'Team handbook',
+    icon: '📘',
+    parent: 7,
+    paras: [
+      'We plan in two-week sprints and demo every other Thursday.',
+      'Ask in chat first, write it down in docs second, track it as a task third.',
+      'Core hours: 11:00 to 16:00 in your time zone.',
+    ],
+  },
+  {
+    space: 1,
+    project: 'PLT',
+    title: 'API v2 spec',
+    icon: '📐',
+    paras: [
+      'List endpoints return cursor tokens instead of page numbers.',
+      'Every response carries a request id for support.',
+      'v1 stays available for 12 months after the v2 release.',
+    ],
+  },
+  {
+    space: 2,
+    project: 'MKT',
+    title: 'Launch checklist',
+    icon: '✅',
+    paras: [
+      'T-14: landing page and press kit ready.',
+      'T-7: email sequence scheduled, partners briefed.',
+      'T-0: Product Hunt post at 00:01 PT, team on chat all day.',
+    ],
+  },
 ];
 
 const CHANNELS: {
   space: number;
+  project?: string;
   name: string;
   topic: string;
   msgs: [string, string, number?][];
 }[] = [
   {
-    space: 0,
+    space: ROOT,
     name: 'general',
     topic: 'Company news and quick questions',
     msgs: [
@@ -394,6 +461,37 @@ const CHANNELS: {
     msgs: [
       ['omar', 'Acme Corp asked for a refund, see SUP tasks.'],
       ['maya', 'Approved. Please follow up with finance.'],
+    ],
+  },
+  {
+    space: 0,
+    name: 'product',
+    topic: 'Discovery, feedback and roadmap',
+    msgs: [
+      ['sofia', 'Top request this week: recurring tasks with custom intervals.'],
+      ['maya', 'Good signal. Let us add it to the roadmap review.'],
+      ['demo', 'I will collect the forum threads into one task.'],
+    ],
+  },
+  {
+    space: 1,
+    project: 'PLT',
+    name: 'api-v2',
+    topic: 'API v2 rollout',
+    msgs: [
+      ['liam', 'Cursor pagination is merged behind a flag.'],
+      ['demo', 'Migration guide draft is in the project docs. @liam please review.'],
+      ['noah', 'Rate limits for v2 are the same as v1 for now.'],
+    ],
+  },
+  {
+    space: 1,
+    project: 'MOB',
+    name: 'mobile',
+    topic: 'Mobile releases',
+    msgs: [
+      ['jack', 'Android crash fix is in beta. Crash-free sessions back to 99.6%.'],
+      ['ava', 'Offline mode demo on Thursday, bring your phones!'],
     ],
   },
 ];
@@ -504,25 +602,46 @@ async function insertAll(tx: Tx, now: Date) {
   }
 
   // spaces, members, statuses, labels
-  const spRanks = generateNKeysBetween(null, null, SPACES.length);
+  const spRanks = generateNKeysBetween(null, null, SPACES.length + 1);
   const spaceIds = SPACES.map((_, i) => uid(`space:${i}`));
-  await ins(
-    s.spaces,
-    SPACES.map(([name, description, color, icon], i) => ({
+  const rootId = uid('space:root');
+  const sp = (i: number) => (i === ROOT ? rootId : spaceIds[i]!);
+  await ins(s.spaces, [
+    {
+      id: rootId,
+      name: WORKSPACE.name,
+      rank: spRanks[0],
+      createdBy: maya,
+      createdAt: at(-90),
+      updatedAt: at(-90),
+    },
+    ...SPACES.map(([name, description, color, icon], i) => ({
       id: spaceIds[i],
       name,
       description,
       color,
       icon,
-      rank: spRanks[i],
+      rank: spRanks[i + 1],
       createdBy: maya,
       createdAt: at(-90),
       updatedAt: at(-90),
     })),
-  );
-  await ins(
-    s.spaceMembers,
-    spaceIds.flatMap((sid, si) =>
+  ]);
+  await ins(s.settings, [
+    { id: 'root_space', value: rootId, updatedAt: at(-90) },
+    { id: 'workspace', value: WORKSPACE, updatedAt: at(-90) },
+  ]);
+  await ins(s.spaceMembers, [
+    // Workspace: everyone except guests (as ensureRootSpace)
+    ...USERS.filter(([, , role]) => role !== 'guest').map(([l]) => ({
+      id: uid(`member:root:${l}`),
+      spaceId: rootId,
+      userId: uid_[l],
+      role: l === 'maya' ? 'admin' : 'member',
+      createdAt: at(-90),
+      updatedAt: at(-90),
+    })),
+    ...spaceIds.flatMap((sid, si) =>
       USERS.map(([l, , role]) => ({
         id: uid(`member:${si}:${l}`),
         spaceId: sid,
@@ -532,7 +651,7 @@ async function insertAll(tx: Tx, now: Date) {
         updatedAt: at(-90),
       })),
     ),
-  );
+  ]);
   const stRanks = generateNKeysBetween(null, null, STATUSES.length);
   // statuses and labels belong to a project (PJ-1)
   const statusId = (key: string, k: number) => uid(`status:${key}:${k}`);
@@ -553,6 +672,7 @@ async function insertAll(tx: Tx, now: Date) {
       taskCounter: p.tasks.length,
       modules: [...DATA_MODULE_IDS], // demo data of the modules is visible
       color: SPACES[p.space]![2],
+      icon: p.icon,
       createdAt: at(-80),
       updatedAt: at(-80),
     })),
@@ -588,6 +708,40 @@ async function insertAll(tx: Tx, now: Date) {
     ),
   );
   const tid = (key: string, i: number) => uid(`task:${key}:${i}`);
+  // custom fields: [project, name, type, select choices]
+  const FIELDS: [string, string, string, string[]][] = [
+    ['PLT', 'Effort', 'select', ['S', 'M', 'L', 'XL']],
+    ['RDM', 'Impact', 'select', ['Low', 'Medium', 'High']],
+    ['RDM', 'Votes', 'number', []],
+    ['SUP', 'Customer', 'text', []],
+  ];
+  const fieldId = (key: string, name: string) => uid(`field:${key}:${name}`);
+  const CUSTOMERS = ['Acme Corp', 'Northwind Logistics', 'Globex', 'Initech'];
+  const fieldsOf = (key: string, i: number): Record<string, unknown> =>
+    key === 'PLT'
+      ? { [fieldId(key, 'Effort')]: ['S', 'M', 'L', 'XL'][(i * 3) % 4] }
+      : key === 'RDM'
+        ? {
+            [fieldId(key, 'Impact')]: ['Low', 'Medium', 'High'][(i + 2) % 3],
+            [fieldId(key, 'Votes')]: 5 + ((i * 17) % 60),
+          }
+        : key === 'SUP' && i % 3 !== 1
+          ? { [fieldId(key, 'Customer')]: CUSTOMERS[i % 4] }
+          : {};
+  await ins(
+    s.fieldDefs,
+    FIELDS.map(([key, name, type, choices], k) => ({
+      id: fieldId(key, name),
+      spaceId: spaceIds[PROJECTS.find((p) => p.key === key)!.space],
+      projectId: pid(key),
+      name,
+      type,
+      options: choices.length ? { choices: choices.map((c) => ({ id: c, label: c })) } : {},
+      rank: generateNKeysBetween(null, null, FIELDS.length)[k],
+      createdAt: at(-80),
+      updatedAt: at(-80),
+    })),
+  );
   const cycleOf = (key: string, t: T) =>
     key !== 'PLT'
       ? null
@@ -636,6 +790,7 @@ async function insertAll(tx: Tx, now: Date) {
         createdBy: uid_[who.split(',')[0]!],
         completedAt: done ? at(due !== null ? Math.min(due, -1) : -1) : null,
         cycleId: cycleOf(p.key, t),
+        fields: fieldsOf(p.key, i),
         createdAt: at(created),
         updatedAt: at(done ? Math.min(due ?? -1, -1) : cap(-(i % 5), -4, 0)),
       });
@@ -930,19 +1085,28 @@ async function insertAll(tx: Tx, now: Date) {
     ]),
   );
 
-  // time tracking: finished entries for the last two weeks on active Platform and Roadmap tasks
+  // time tracking: four weeks of finished entries (time reports), a running timer for demo
   const entries: Record<string, unknown>[] = [];
-  const timeUsers = ['liam', 'demo', 'noah', 'omar'] as const;
-  for (let d = 1; d <= 12; d++)
-    for (const [ui, u] of timeUsers.entries()) {
+  const timeWork: [string, string, number[]][] = [
+    ['liam', 'PLT', [3, 7, 12]],
+    ['demo', 'PLT', [3, 6, 13]],
+    ['noah', 'PLT', [4, 11]],
+    ['omar', 'PLT', [5, 9]],
+    ['ava', 'MOB', [0, 1]],
+    ['jack', 'MOB', [2, 5]],
+    ['emma', 'MKT', [0, 1, 4]],
+    ['sofia', 'RDM', [3, 7]],
+  ];
+  for (let d = 1; d <= 26; d++)
+    for (const [ui, [u, key, idx]] of timeWork.entries()) {
       if ((d + ui) % 7 === 5 || (d + ui) % 7 === 6) continue; // quiet days
-      const taskIdx = [3, 4, 5, 8, 12][(d + ui) % 5]!;
+      const taskIdx = idx[(d + ui) % idx.length]!;
       const sec = 900 * (4 + Math.floor(rnd() * 12)); // 1–4 h
-      const start = at(-d, 8 + ui);
+      const start = at(-d, 8 + (ui % 4));
       entries.push({
         id: uid(`time:${d}:${u}`),
-        spaceId: spaceIds[1],
-        taskId: tid('PLT', taskIdx),
+        spaceId: spaceIds[PROJECTS[pkIdx(key)]!.space],
+        taskId: tid(key, taskIdx),
         userId: uid_[u],
         startedAt: start,
         endedAt: new Date(Date.parse(start) + sec * 1000).toISOString(),
@@ -953,14 +1117,28 @@ async function insertAll(tx: Tx, now: Date) {
         updatedAt: start,
       });
     }
+  entries.push({
+    id: uid('time:running:demo'),
+    spaceId: spaceIds[1],
+    taskId: tid('PLT', 6),
+    userId: uid_.demo,
+    startedAt: new Date(now.getTime() - 47 * 60_000).toISOString(),
+    endedAt: null,
+    durationSec: null,
+    note: null,
+    source: 'timer',
+    createdAt: new Date(now.getTime() - 47 * 60_000).toISOString(),
+    updatedAt: new Date(now.getTime() - 47 * 60_000).toISOString(),
+  });
   await ins(timeEntries, entries);
+  const estimated = timeWork.flatMap(([, key, idx]) => idx.map((i) => [key, i] as const));
   await ins(
     timeEstimates,
-    [3, 4, 5, 8, 12].map((i, k) => ({
-      id: uid(`est:${i}`),
-      spaceId: spaceIds[1],
-      taskId: tid('PLT', i),
-      minutes: 240 + k * 120,
+    [...new Map(estimated.map((e) => [`${e[0]}:${e[1]}`, e])).values()].map(([key, i], k) => ({
+      id: uid(`est:${key}:${i}`),
+      spaceId: spaceIds[PROJECTS[pkIdx(key)]!.space],
+      taskId: tid(key, i),
+      minutes: 240 + (k % 6) * 120,
       updatedBy: uid_.liam,
       updatedAt: at(-14),
     })),
@@ -1087,8 +1265,8 @@ async function insertAll(tx: Tx, now: Date) {
       };
       return {
         id: uid(`page:${k}`),
-        spaceId: spaceIds[d.space],
-        projectId: null,
+        spaceId: sp(d.space),
+        projectId: d.project ? pid(d.project) : null,
         parentId: d.parent !== undefined ? uid(`page:${d.parent}`) : null,
         rank: dRanks[k],
         title: d.title,
@@ -1136,6 +1314,7 @@ async function insertAll(tx: Tx, now: Date) {
     topic: string | null,
     msgs: [string, string, number?][],
     who: string[],
+    project?: string,
   ) => {
     let seq = 0;
     let lastAt = at(-3);
@@ -1146,7 +1325,7 @@ async function insertAll(tx: Tx, now: Date) {
       const hasThread = k === 1;
       messages.push({
         id: uid(`msg:${cid}:${k}`),
-        spaceId: spaceIdx === null ? null : spaceIds[spaceIdx],
+        spaceId: spaceIdx === null ? null : sp(spaceIdx),
         channelId: cid,
         parentId: null,
         seq,
@@ -1167,7 +1346,7 @@ async function insertAll(tx: Tx, now: Date) {
           );
           messages.push({
             id: uid(`msg:${cid}:${k}:r${r}`),
-            spaceId: spaceIdx === null ? null : spaceIds[spaceIdx],
+            spaceId: spaceIdx === null ? null : sp(spaceIdx),
             channelId: cid,
             parentId: uid(`msg:${cid}:${k}`),
             seq: null,
@@ -1183,7 +1362,7 @@ async function insertAll(tx: Tx, now: Date) {
       if (k === 0)
         reactions.push({
           id: uid(`mreact:${cid}`),
-          spaceId: spaceIdx === null ? null : spaceIds[spaceIdx],
+          spaceId: spaceIdx === null ? null : sp(spaceIdx),
           channelId: cid,
           messageId: uid(`msg:${cid}:0`),
           userId: uid_.demo,
@@ -1193,8 +1372,8 @@ async function insertAll(tx: Tx, now: Date) {
     });
     channels.push({
       id: cid,
-      spaceId: spaceIdx === null ? null : spaceIds[spaceIdx],
-      projectId: null,
+      spaceId: spaceIdx === null ? null : sp(spaceIdx),
+      projectId: project ? pid(project) : null,
       kind,
       name,
       topic,
@@ -1233,6 +1412,7 @@ async function insertAll(tx: Tx, now: Date) {
       c.topic,
       c.msgs,
       USERS.map(([l]) => l).filter((l) => l !== 'nina'),
+      c.project,
     ),
   );
   addChannel(
@@ -1290,6 +1470,232 @@ async function insertAll(tx: Tx, now: Date) {
       timezone: 'UTC',
       createdBy: maya,
       createdAt: at(-30),
+      updatedAt: at(-30),
+    })),
+  );
+
+  // saved views for everyone (tabs in Tasks of the space's nodes)
+  const VIEWS: [number, string, string, string, Record<string, unknown>][] = [
+    [
+      1,
+      'Hot bugs',
+      'flame',
+      'list',
+      {
+        op: 'and',
+        rules: [
+          { field: 'priority', operator: 'gte', value: 3 },
+          { field: 'statusCategory', operator: 'in', value: ['todo', 'in_progress'] },
+        ],
+      },
+    ],
+    [
+      1,
+      'Current sprint',
+      'zap',
+      'board',
+      { op: 'and', rules: [{ field: 'cycle', operator: 'in', value: [uid('cycle:2')] }] },
+    ],
+    [
+      0,
+      'Due this month',
+      'calendar',
+      'calendar',
+      { op: 'and', rules: [{ field: 'dueDate', operator: 'isNotEmpty' }] },
+    ],
+  ];
+  await ins(
+    s.savedViews,
+    VIEWS.map(([si, name, icon, layout, filter], k) => ({
+      id: uid(`view:${k}`),
+      spaceId: spaceIds[si],
+      userId: null,
+      createdBy: maya,
+      name,
+      icon,
+      layout,
+      node: null,
+      filter,
+      config: {},
+      rank: generateNKeysBetween(null, null, VIEWS.length)[k],
+      createdAt: at(-20),
+      updatedAt: at(-20),
+    })),
+  );
+
+  // «My day» of demo and the tasks demo watches
+  const myDay: [string, number][] = [
+    ['RDM', 4],
+    ['PLT', 6],
+    ['MKT', 3],
+    ['SUP', 1],
+  ];
+  await ins(
+    s.dayPlans,
+    myDay.map(([key, i], k) => ({
+      id: uid(`dayplan:${key}:${i}`),
+      userId: uid_.demo,
+      taskId: tid(key, i),
+      date: day(0),
+      rank: generateNKeysBetween(null, null, myDay.length)[k],
+      createdAt: at(0, 8),
+      updatedAt: at(0, 8),
+    })),
+  );
+  const watched: [string, number][] = [
+    ['PLT', 4],
+    ['MOB', 2],
+    ['MKT', 2],
+    ['SUP', 6],
+  ];
+  await ins(
+    s.taskWatchers,
+    watched.map(([key, i]) => ({
+      id: uid(`watch:${key}:${i}`),
+      spaceId: spaceIds[PROJECTS[pkIdx(key)]!.space],
+      taskId: tid(key, i),
+      userId: uid_.demo,
+      createdAt: at(-5),
+    })),
+  );
+
+  // automations
+  const RULES: [string, string, unknown, unknown, unknown[]][] = [
+    [
+      'SUP',
+      'Bugs go to Omar with high priority',
+      { type: 'task.created' },
+      { op: 'and', rules: [{ field: 'label', operator: 'in', value: [labelId('SUP', 'bug')] }] },
+      [
+        { type: 'assign', userId: uid_.omar },
+        { type: 'set_field', field: 'priority', value: 3 },
+      ],
+    ],
+    [
+      'PLT',
+      'Say thanks when a task is done',
+      { type: 'task.status_changed', to: [statusId('PLT', 3)] },
+      { op: 'and', rules: [] },
+      [{ type: 'add_comment', text: 'Shipped, thank you! 🎉' }],
+    ],
+    [
+      'MKT',
+      'Remind two days before the due date',
+      { type: 'task.due', daysBefore: 2 },
+      { op: 'and', rules: [] },
+      [{ type: 'add_comment', text: 'Due in two days. Anything blocking?' }],
+    ],
+  ];
+  await ins(
+    automationsRules,
+    RULES.map(([key, name, trigger, conditions, actions], k) => ({
+      id: uid(`rule:${k}`),
+      spaceId: spaceIds[PROJECTS[pkIdx(key)]!.space],
+      projectId: pid(key),
+      name,
+      enabled: true,
+      trigger,
+      conditions,
+      actions,
+      createdBy: maya,
+      createdAt: at(-25),
+      updatedAt: at(-25),
+    })),
+  );
+
+  // templates: a bug report task and a launch project
+  const tTask = (title: string, priority: number, checklist: string[] = []) => ({
+    title,
+    description: null,
+    priority,
+    dueInDays: null,
+    startInDays: null,
+    fields: [],
+    labels: [],
+    assigneeIds: [],
+    checklist,
+  });
+  await ins(templatesTemplates, [
+    {
+      id: uid('template:bug'),
+      spaceId: spaceIds[1],
+      kind: 'task',
+      name: 'Bug report',
+      description: 'Steps, expected and actual result',
+      data: {
+        ...tTask('Bug: ', 3, [
+          'Steps to reproduce',
+          'Expected result',
+          'Actual result',
+          'Add a test',
+        ]),
+        labels: ['bug'],
+        subtasks: [],
+      },
+      createdBy: uid_.liam,
+      createdAt: at(-40),
+      updatedAt: at(-40),
+    },
+    {
+      id: uid('template:launch'),
+      spaceId: spaceIds[2],
+      kind: 'project',
+      name: 'Product launch',
+      description: 'Four-week launch plan',
+      data: {
+        project: { description: null, color: '#ec4899', icon: '🚀' },
+        statuses: STATUSES.map(([name, category, color]) => ({ name, category, color })),
+        labels: LABELS.map(([name, color]) => ({ name, color })),
+        fields: [],
+        tasks: [
+          { ...tTask('Landing page', 3), dueInDays: 14, status: 'Todo', subtasks: [] },
+          { ...tTask('Press kit', 2), dueInDays: 21, status: 'Todo', subtasks: [] },
+          {
+            ...tTask('Launch day', 4, ['Post on Product Hunt', 'Send newsletter', 'Team on chat']),
+            dueInDays: 28,
+            status: 'Backlog',
+            subtasks: [],
+          },
+        ],
+      },
+      createdBy: uid_.emma,
+      createdAt: at(-40),
+      updatedAt: at(-40),
+    },
+  ]);
+
+  // public form: customers report problems into Help Center
+  await ins(formsForms, [
+    {
+      id: uid('form:sup'),
+      spaceId: spaceIds[4],
+      projectId: pid('SUP'),
+      slug: 'brightwavehelp01',
+      title: 'Report a problem',
+      description: 'Tell us what went wrong, we answer within 4 working hours.',
+      fields: [
+        { key: 'title', label: 'What happened?', required: true },
+        { key: 'description', label: 'Details', required: false },
+        { key: 'email', label: 'Your email', required: true },
+        { key: `field:${fieldId('SUP', 'Customer')}`, label: 'Company', required: false },
+      ],
+      statusId: statusId('SUP', 0),
+      enabled: true,
+      createdBy: uid_.omar,
+      createdAt: at(-30),
+      updatedAt: at(-30),
+    },
+  ]);
+
+  // workload: weekly capacity in Engineering
+  await ins(
+    workloadCapacities,
+    (['liam', 'demo', 'noah', 'omar', 'ava', 'jack'] as const).map((u, k) => ({
+      id: uid(`capacity:${u}`),
+      spaceId: spaceIds[1],
+      userId: uid_[u],
+      hoursPerWeek: [40, 32, 40, 40, 24, 40][k],
+      updatedBy: uid_.liam,
       updatedAt: at(-30),
     })),
   );
