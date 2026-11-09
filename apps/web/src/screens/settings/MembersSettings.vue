@@ -48,12 +48,8 @@ const add = () =>
     });
     userId.value = null;
   });
-// «Sign in» as a node admin (PLNRAPP-129): for an instance admin, only downwards by instance role (the server checks too)
-const { user: me, impersonate } = useAuth();
-const RANK: Record<string, number> = { guest: 0, member: 1, admin: 2, owner: 3 };
-const myRank = computed(() => RANK[me.value?.role ?? ''] ?? 0);
-const canImpersonate = (u: Row<'users'>) =>
-  myRank.value >= RANK.admin! && !u.deactivatedAt && (RANK[u.role] ?? RANK.owner!) < myRank.value;
+// «Sign in» as any member (PLNRAPP-129)
+const { impersonate, canImpersonate } = useAuth();
 const asUser = ref<Row<'users'> | null>(null);
 const signIn = () => {
   const u = asUser.value;
@@ -91,7 +87,7 @@ const remove = (id: string) => run(() => mutate('member.remove', { id }));
         <span class="flex min-w-0 flex-1 flex-col items-start">
           <span class="max-w-full truncate text-sm">{{ r.u!.name }}</span>
           <Button
-            v-if="r.m.role === 'admin' && canImpersonate(r.u!)"
+            v-if="canImpersonate(r.u!)"
             size="sm"
             variant="ghost"
             data-testid="member-impersonate"
