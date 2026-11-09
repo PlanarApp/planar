@@ -161,6 +161,7 @@ export default {
       chat_dm: 'Личное сообщение от {who}',
       chat_reply: '{who} ответил(а) в треде',
       comment_assigned: '{who} назначил(а) вам комментарий в {key}',
+      checklist_assigned: '{who} назначил(а) вам пункт чек-листа в {key}',
       doc_mention: '{who} упомянул(а) вас в документе',
       trial_ending: 'Пробный период скоро закончится — оформите подписку',
     },

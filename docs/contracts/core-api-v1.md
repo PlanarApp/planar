@@ -44,7 +44,7 @@ The version is the heading `## C-http vN` in `docs/contracts/core.md`. The ` ```
 | `GET /api/v1/spaces` | → list of the user's spaces |
 | `GET /api/v1/projects?spaceId=` | → list of projects (visible ones) |
 | `GET /api/v1/projects/:id/fields` | → `{data: fieldDefs[]}` by `rank` (no pagination); project not visible → 404 |
-| `GET /api/v1/tasks?projectId=&statusId=&assigneeId=&updatedAfter=` | → list of tasks; `assigneeId=me` — the current user |
+| `GET /api/v1/tasks?projectId=&statusId=&assigneeId=&updatedAfter=` | → list of tasks; `assigneeId=me` — the current user; for the current user (`me` or their id) also tasks with an open comment or checklist item assigned to them (as `search_tasks`/`my_tasks`) |
 | `GET /api/v1/tasks/:task` | → task; not visible → 404 |
 | `POST /api/v1/tasks` | `{projectId, title, statusId?, description?: string, priority?, dueDate?, assigneeIds?, labelIds?, parentId?}` → `201` task; `statusId` and `labelIds` must belong to `projectId` (statuses and labels belong to a project since C-schema v15, otherwise `400`); `statusId` defaults to the first by `rank` status of the project of the category `todo`, otherwise `backlog`; `description` — text via `textToDoc` |
 | `PATCH /api/v1/tasks/:task` | `{title?, statusId?, priority?, dueDate?, startDate?, description?: string\|null, assigneeIds?, labelIds?, parentId?, fields?: {<fieldId>: value \| null}}` → task; `assigneeIds`/`labelIds` — full replacement of the list; `fields` — per key via `task.setField` (`null` — remove), the other task keys are unchanged |

@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v22
+## C-schema v23
+
+v23 (PLNRAPP-140): `notifications.kind` += `checklist_assigned` (to the assignee of a checklist item, new or changed; `body` — the item text).
 
 v22 (PLNRAPP-140): `checklistItems.assigneeId` (an item assigned to a space member; such an open item makes the task «mine») — core-schema.md.
 

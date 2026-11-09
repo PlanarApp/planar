@@ -4,7 +4,13 @@ import * as schema from '../db/schema.js';
 import { projectAccess } from '../sync/project-access.js';
 import { ServerTx, type Q, type ServerTxCtx } from '../sync/server-tx.js';
 
-type Kind = 'assigned' | 'mentioned' | 'commented' | 'status_changed' | 'comment_assigned';
+type Kind =
+  | 'assigned'
+  | 'mentioned'
+  | 'commented'
+  | 'status_changed'
+  | 'comment_assigned'
+  | 'checklist_assigned';
 
 /**
  * Notifications and auto-subscription from mutation records (C-schema v10 "notifications").
@@ -71,6 +77,7 @@ export async function notificationsHook(
     userId: string,
     commentId: string | null,
     changes: Record<string, unknown> | null = null,
+    body: string | null = null,
   ) => {
     if (userId === actor || !(await membersOf(spaceId)).has(userId)) return;
     if (!(await canSee(taskId, userId))) return;
@@ -82,7 +89,7 @@ export async function notificationsHook(
       kind,
       taskId,
       url: null,
-      body: null,
+      body,
       commentId,
       changes,
       actorId: actor,
@@ -136,6 +143,21 @@ export async function notificationsHook(
       // assigned comment — to the assignee (new or changed)
       if (a.assigneeId && a.assigneeId !== w.before?.assigneeId)
         await notify('comment_assigned', spaceId, taskId, a.assigneeId as string, a.id as string);
+    } else if (
+      w.entity === 'checklistItems' &&
+      a.assigneeId &&
+      a.assigneeId !== w.before?.assigneeId
+    ) {
+      // assigned checklist item — to the assignee (new or changed); body — the item text
+      await notify(
+        'checklist_assigned',
+        spaceId,
+        a.taskId as string,
+        a.assigneeId as string,
+        null,
+        null,
+        String(a.text ?? '').slice(0, 140),
+      );
     }
   }
   return { ids, tx: sys };

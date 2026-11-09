@@ -922,32 +922,29 @@ async function insertAll(tx: Tx, now: Date) {
     });
   await ins(s.activity, activity);
   const cRanks = generateNKeysBetween(null, null, 8);
-  await ins(
-    s.checklistItems,
-    CHECKLISTS.flatMap(([key, i, items]) =>
-      items.map(([text, done], k) => ({
-        id: uid(`check:${key}:${i}:${k}`),
-        spaceId: spaceIds[PROJECTS[pkIdx(key)]!.space],
-        taskId: tid(key, i),
-        text,
-        done,
-        rank: cRanks[k],
-        // the first open item is assigned to demo (PLNRAPP-140): «Comments for me», the task is «mine»
-        assigneeId: k === items.findIndex(([, d]) => !d) ? uid_.demo : null,
-        createdAt: at(-10),
-        updatedAt: at(-3),
-      })),
-    ),
+  const checks = CHECKLISTS.flatMap(([key, i, items]) =>
+    items.map(([text, done], k) => ({
+      id: uid(`check:${key}:${i}:${k}`),
+      spaceId: spaceIds[PROJECTS[pkIdx(key)]!.space],
+      taskId: tid(key, i),
+      text,
+      done,
+      rank: cRanks[k],
+      // the first open item is assigned to demo (PLNRAPP-140): «Comments for me», the task is «mine»
+      assigneeId: k === items.findIndex(([, d]) => !d) ? uid_.demo : null,
+      createdAt: at(-10),
+      updatedAt: at(-3),
+    })),
   );
-  await ins(
-    s.notifications,
-    comments
+  await ins(s.checklistItems, checks);
+  await ins(s.notifications, [
+    ...comments
       .filter((c) => c.mentions.includes(uid_.demo!))
       .map((c, k) => ({
         id: uid(`notif:${k}`),
         userId: uid_.demo,
         spaceId: c.spaceId,
-        kind: 'mentioned',
+        kind: 'mentioned' as const,
         taskId: c.taskId,
         commentId: c.id,
         actorId: c.authorId,
@@ -955,7 +952,23 @@ async function insertAll(tx: Tx, now: Date) {
         readAt: k === 0 ? null : at(-1),
         createdAt: c.createdAt,
       })),
-  );
+    // the item was assigned by maya — a checklist_assigned notification (PLNRAPP-140)
+    ...checks
+      .filter((c) => c.assigneeId)
+      .slice(0, 2)
+      .map((c, k) => ({
+        id: uid(`notif:check:${k}`),
+        userId: uid_.demo,
+        spaceId: c.spaceId,
+        kind: 'checklist_assigned' as const,
+        taskId: c.taskId,
+        commentId: null,
+        actorId: uid_.maya,
+        body: c.text.slice(0, 140),
+        readAt: k === 0 ? null : at(-1),
+        createdAt: at(-3),
+      })),
+  ]);
 
   // sprints (Platform): one closed, one active
   const plt = pid('PLT');

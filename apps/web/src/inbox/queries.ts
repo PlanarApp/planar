@@ -75,7 +75,9 @@ export const useNotifications = () =>
           status: pair(statusPair(n).map((id) => status.get(id))),
           comment: n.commentId
             ? docText(comment.get(n.commentId)).replace(/\s+/g, ' ').trim().slice(0, 200) || null
-            : null,
+            : n.kind === 'checklist_assigned'
+              ? n.body
+              : null,
         };
       });
   });

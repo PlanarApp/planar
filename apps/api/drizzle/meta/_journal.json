@@ -281,6 +281,13 @@
       "when": 1794258483500,
       "tag": "0039_checklist_assignee",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794261450585,
+      "tag": "0040_notifications_checklist_assigned",
+      "breakpoints": true
     }
   ]
 }

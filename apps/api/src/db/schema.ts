@@ -488,6 +488,7 @@ export const notifications = pgTable(
         'comment_assigned',
         'doc_mention',
         'trial_ending',
+        'checklist_assigned',
       ]),
     ),
   ],
