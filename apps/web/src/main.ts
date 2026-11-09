@@ -9,6 +9,7 @@ import { initSession } from './session';
 import { onMutationError } from './sync';
 import { toast } from './ui/toast';
 import { commitImeOnEnter } from './ui/imeEnter';
+import { fitVisualViewport } from './ui/viewport';
 import './styles.css';
 
 const LogoutDialog = defineAsyncComponent(() => import('./sync/LogoutDialog.vue'));
@@ -20,6 +21,7 @@ if (open) prefetchProject(open[1]!);
 initSession(router);
 initModules();
 commitImeOnEnter(document);
+fitVisualViewport();
 
 // show the failed click rather than swallowing it: otherwise the user clicks again
 const fail = (e: unknown) =>
