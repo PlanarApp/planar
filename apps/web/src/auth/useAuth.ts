@@ -87,6 +87,13 @@ async function impersonate(userId: string): Promise<void> {
   location.assign('/');
 }
 
+// instance admins sign in only downwards by instance role (the server checks too)
+const RANK: Record<string, number> = { guest: 0, member: 1, admin: 2, owner: 3 };
+function canImpersonate(u: Pick<User, 'role' | 'deactivatedAt'>): boolean {
+  const mine = RANK[user.value?.role ?? ''] ?? 0;
+  return mine >= RANK.admin! && !u.deactivatedAt && (RANK[u.role] ?? RANK.owner!) < mine;
+}
+
 /** session expired (401): log out locally, replica and queue remain */
 function expire(): void {
   user.value = null;
@@ -148,6 +155,7 @@ export function useAuth() {
     login,
     logout,
     impersonate,
+    canImpersonate,
     logoutPrompt,
     expire,
     setup,

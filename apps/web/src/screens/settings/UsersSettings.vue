@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Avatar, Badge, Button, Dialog, Input, Select } from '../../ui';
+import { Avatar, Badge, Button, ConfirmDialog, Dialog, Input, Select } from '../../ui';
 import { api } from '../../api/http';
-import type { User } from '../../auth/useAuth';
+import { useAuth, type User } from '../../auth/useAuth';
 import { errText } from '../../auth/errText';
 import SectionHeader from './SectionHeader.vue';
 
@@ -14,6 +14,14 @@ const error = ref('');
 const f = reactive({ login: '', name: '', password: '', role: 'member' });
 const roles = () =>
   (['admin', 'member', 'guest'] as const).map((r) => ({ value: r, label: t(`auth.roles.${r}`) }));
+
+// «Sign in» as a user (PLNRAPP-129)
+const { impersonate, canImpersonate } = useAuth();
+const asUser = ref<User | null>(null);
+const signIn = () => {
+  const u = asUser.value;
+  if (u) impersonate(u.id).catch((e) => (error.value = errText(e, t)));
+};
 
 async function load() {
   users.value = (await api<{ users: User[] }>('GET', '/api/users')).users;
@@ -80,6 +88,14 @@ async function create() {
           >
             {{ u.deactivatedAt ? t('auth.unblock') : t('auth.block') }}
           </Button>
+          <Button
+            v-if="canImpersonate(u)"
+            size="sm"
+            variant="ghost"
+            data-testid="user-impersonate"
+            @click="asUser = u"
+            >{{ t('settings.impersonate') }}</Button
+          >
         </div>
       </li>
     </ul>
@@ -96,5 +112,14 @@ async function create() {
         <Button type="submit" form="user-form" variant="primary">{{ t('auth.create') }}</Button>
       </template>
     </Dialog>
+    <ConfirmDialog
+      :open="!!asUser"
+      :title="t('settings.impersonateTitle', { name: asUser?.name ?? '' })"
+      :description="t('settings.impersonateDesc')"
+      :confirm-label="t('settings.impersonate')"
+      :danger="false"
+      @update:open="(v) => !v && (asUser = null)"
+      @confirm="signIn"
+    />
   </section>
 </template>
