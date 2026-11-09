@@ -10,7 +10,7 @@ import CommentItem from './CommentItem.vue';
 import Editor from './editor/Editor.vue';
 import { FEED } from './thread';
 
-// a comment with its replies at any depth (PLANARAPP-45); only a root is assigned and resolved
+// a comment with its replies at any depth (PLANARAPP-45); any of them is assigned and resolved (PLNRAPP-135)
 const props = defineProps<{ comment: Row<'comments'>; depth?: number }>();
 const { t } = useI18n();
 const f = inject(FEED)!;
@@ -92,9 +92,8 @@ const snippet = computed(() => docText(props.comment.body).replace(/\s+/g, ' ').
       :user-id="f.userId()"
       :names="f.names.value"
       :members="f.members.value"
-      :root="!c().parentId"
       can-reply
-      :can-resolve="!c().parentId && f.canResolve(c())"
+      :can-resolve="f.canResolve(c())"
       @react="(emoji) => f.react(c().id, emoji)"
       @save="(body) => mutate('comment.update', { id: c().id, body })"
       @remove="mutate('comment.delete', { id: c().id })"

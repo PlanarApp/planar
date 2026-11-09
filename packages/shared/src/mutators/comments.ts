@@ -12,12 +12,6 @@ async function checkAssignee(tx: Tx, spaceId: string, userId: string) {
   const r = await roleIn(tx, spaceId, userId);
   if (!r || r === 'guest') throw bad('исполнитель — не участник пространства');
 }
-/** thread root; a reply cannot be assigned or resolved */
-async function root(tx: Tx, id: string) {
-  const c = await need(tx, 'comments', id);
-  if (c.parentId) throw bad('только у корня треда');
-  return c;
-}
 
 export const commentMutators = [
   defineMutator({
@@ -35,7 +29,6 @@ export const commentMutators = [
         const p = await need(tx, 'comments', a.parentId);
         // any depth (PLANARAPP-45): a reply to any comment of this task
         if (p.taskId !== t.id) throw bad('ответ — только на комментарий этой задачи');
-        if (a.assigneeId) throw bad('ответ не назначается');
       }
       if (a.assigneeId) await checkAssignee(tx, t.spaceId, a.assigneeId);
       await tx.put('comments', {
@@ -91,7 +84,8 @@ export const commentMutators = [
     name: 'comment.assign',
     args: z.object({ id: uuid, assigneeId: uuid.nullable() }),
     async run(tx, a, ctx) {
-      const c = await root(tx, a.id);
+      // any comment of a thread, replies too (PLNRAPP-135)
+      const c = await need(tx, 'comments', a.id);
       const r = await roleIn(tx, c.spaceId, ctx.userId);
       if (!r || r === 'guest') throw new MutatorError('forbidden', 'нужна роль member');
       if (a.assigneeId) await checkAssignee(tx, c.spaceId, a.assigneeId);
@@ -108,7 +102,7 @@ export const commentMutators = [
     name: 'comment.resolve',
     args: z.object({ id: uuid, resolved: z.boolean() }),
     async run(tx, a, ctx) {
-      const c = await root(tx, a.id);
+      const c = await need(tx, 'comments', a.id);
       if (!c.assigneeId) throw bad('комментарий не назначен');
       const may =
         ctx.userId === c.assigneeId ||

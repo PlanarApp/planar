@@ -52,11 +52,11 @@ All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `nul
 | `checklist.add` | `id, taskId, text, rank` | |
 | `checklist.update` | `id, text?, done?, rank?` | |
 | `checklist.delete` | `id` | |
-| `comment.create` | `id, taskId, body, parentId?, assigneeId?` | `authorId = ctx.userId`, `mentions` from `body`; `parentId` — any comment of this task (replies of any depth, PLANARAPP-45; another task → `invalid_args`); `assigneeId` — only for a root, a space member who is not a guest, otherwise `invalid_args` |
+| `comment.create` | `id, taskId, body, parentId?, assigneeId?` | `authorId = ctx.userId`, `mentions` from `body`; `parentId` — any comment of this task (replies of any depth, PLANARAPP-45; another task → `invalid_args`); `assigneeId` — on a comment of any depth (PLNRAPP-135), a space member who is not a guest, otherwise `invalid_args` |
 | `comment.update` | `id, body` | author only; `editedAt = ctx.now` |
 | `comment.delete` | `id` | author only; deletes the comment with its whole subtree of replies, their attachments and reactions |
-| `comment.assign` | `id, assigneeId: uuid \| null` | root only (otherwise `invalid_args`); role ≥ member, otherwise `forbidden`; resets `resolvedAt/resolvedBy` |
-| `comment.resolve` | `id, resolved` | assigned root only; the assignee, the author or a space admin, otherwise `forbidden`; `resolvedAt/resolvedBy` = `ctx.now/ctx.userId` or null |
+| `comment.assign` | `id, assigneeId: uuid \| null` | any comment, replies too (PLNRAPP-135); role ≥ member, otherwise `forbidden`; resets `resolvedAt/resolvedBy` |
+| `comment.resolve` | `id, resolved` | assigned comment only; the assignee, the author or a space admin, otherwise `forbidden`; `resolvedAt/resolvedBy` = `ctx.now/ctx.userId` or null |
 | `reaction.toggle` | `id, commentId, emoji` | a reaction (commentId, ctx.userId, emoji) exists — delete it, otherwise create it with `id`; `spaceId` — from the comment |
 | `attachment.create` | `id, taskId, commentId?, fileSha256, name, mime, size, width?, height?` | `uploadedBy = ctx.userId` |
 | `attachment.delete` | `id` | |

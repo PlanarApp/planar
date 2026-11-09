@@ -237,7 +237,7 @@ scope: space · write: guest · bootstrap: yes · indexes: taskId
 | `parentId` | uuid? | thread: the root (a comment of this task without parentId); null — the root itself |
 | `body` | doc | a mention is the node `{type:'mention', attrs:{id:<userId>}}` |
 | `mentions` | uuid[] | ids from mention nodes, without repeats, in order of appearance |
-| `assigneeId` | uuid? | assigned comment (root only) |
+| `assigneeId` | uuid? | assigned comment (any depth, PLNRAPP-135) |
 | `resolvedAt` | ts? | the assigned comment is marked resolved |
 | `resolvedBy` | uuid? | who resolved it |
 | `editedAt` | ts? | |
