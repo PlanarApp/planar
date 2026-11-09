@@ -7,6 +7,8 @@ const tiptapDoc = z.looseObject({
   type: z.literal('doc'),
   content: z.array(z.unknown()).optional(),
 });
+/** deepest checklist item nesting (PLNRAPP-143) */
+export const CHECKLIST_MAX_INDENT = 4;
 
 export const entitySchemas = {
   users: z.object({
@@ -162,6 +164,8 @@ export const entitySchemas = {
     assigneeId: uuid.nullable().default(null),
     /** the item was turned into this task (PLNRAPP-142): the text is a link to it */
     linkedTaskId: uuid.nullable().default(null),
+    /** nesting level, as in a document list (PLNRAPP-143): 0 — top, ≤ CHECKLIST_MAX_INDENT */
+    indent: z.number().int().min(0).max(CHECKLIST_MAX_INDENT).default(0),
     createdAt: ts,
     updatedAt: ts,
   }),

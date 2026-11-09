@@ -207,8 +207,8 @@ describe('task:subtasks', () => {
 });
 
 // the item's «…» menu (PLNRAPP-142): open and choose an action
-const itemAction = async (label: string) => {
-  w.find('button[aria-label="Действия с пунктом"]').element.dispatchEvent(
+const itemAction = async (label: string, index = 0) => {
+  w.findAll('button[aria-label="Действия с пунктом"]')[index]!.element.dispatchEvent(
     new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
   );
   await flushPromises();
@@ -251,6 +251,38 @@ describe('task:checklist', () => {
     });
     await until(() => section().find('[data-testid="checklist-link"]').exists());
     expect(section().find('[data-testid="checklist-link"]').text()).toBe('купить');
+  });
+  it('PLNRAPP-143 вложенность: уровень не глубже предыдущего + 1; Tab в поле, «Вынести» в меню', async () => {
+    const mk = (indent: number, rank: string) => ({
+      id: crypto.randomUUID(),
+      spaceId: ids.space,
+      taskId: t.id,
+      text: rank,
+      done: false,
+      rank,
+      indent,
+      createdAt: t.createdAt,
+      updatedAt: t.createdAt,
+    });
+    const b = mk(3, 'a2');
+    await db.table('checklistItems').bulkPut([mk(0, 'a1'), b]);
+    w = await open();
+    await openTab('Чек-лист');
+    const levels = () =>
+      w.findAll('[data-testid="checklist-item"]').map((x) => x.attributes('data-level'));
+    await until(() => levels().length === 2);
+    expect(levels()).toEqual(['0', '1']); // indent 3 after a top item — shown as 1
+    const form = w.find('[data-testid="checklist-add"]');
+    await form.find('input').setValue('новый');
+    for (let k = 0; k < 3; k++) await form.trigger('keydown', { key: 'Tab' });
+    await form.trigger('submit');
+    await eventually(async () => (await db.table('checklistItems').count()) === 3);
+    const added = (await db.table('checklistItems').toArray()).find((x) => x.text === 'новый');
+    expect(added.indent).toBe(2); // at most the last item's level + 1
+    await itemAction('Вынести на уровень выше', 1);
+    await eventually(
+      async () => (await row<{ indent: number }>('checklistItems', b.id)).indent === 0,
+    );
   });
   it('прогресс done/total', async () => {
     const mk = (done: boolean, rank: string) => ({
