@@ -1,4 +1,15 @@
-import { Body, Controller, Get, HttpCode, Inject, Post, Query, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Logger,
+  Post,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -24,6 +35,10 @@ import {
 import { parseBody } from './validate.js';
 
 const loginBody = z.object({ login: z.string().max(200), password: z.string().max(256) });
+const impersonateBody = z.object({ userId: z.string().uuid() });
+/** Instance roles by power: impersonation goes only downwards */
+const RANK: Record<string, number> = { guest: 0, member: 1, admin: 2, owner: 3 };
+const log = new Logger('auth');
 
 const iso = (s: string | null) => (s ? new Date(s).toISOString() : null);
 
@@ -115,6 +130,41 @@ export class AuthController {
   async demoLogin(@Req() req: FastifyRequest, @Res({ passthrough: true }) res: FastifyReply) {
     const user = this.opts.demo ? await findUserByLogin(this.db, 'demo') : undefined;
     if (!user || user.deactivatedAt) throw new HttpError(404, 'not_found', 'Not found');
+    return this.startSession(req, res, user);
+  }
+
+  /**
+   * Sign in as another user (PLNRAPP-129): only an instance admin/owner, only from a browser session (not
+   * an API token), only as an active user of a strictly lower role — no escalation; the admin's own session
+   * is replaced (back — sign in again).
+   */
+  @Post('impersonate')
+  @HttpCode(200)
+  async impersonate(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+    @Body() body: unknown,
+  ) {
+    const me = getAuth(req);
+    const b = parseBody(impersonateBody, body);
+    if (me.via !== 'session' || !isAdminRole(me.role))
+      throw new HttpError(403, 'forbidden', 'Недостаточно прав');
+    const [user] = await this.db.select().from(users).where(eq(users.id, b.userId));
+    if (!user || user.deactivatedAt)
+      throw new HttpError(404, 'not_found', 'Пользователь не найден');
+    if ((RANK[user.role] ?? RANK.owner) >= RANK[me.role])
+      throw new HttpError(
+        403,
+        'forbidden',
+        'Можно войти только под пользователем с ролью ниже вашей',
+      );
+    if (cloudExpired())
+      throw new HttpError(403, 'forbidden', 'Пробный период закончился', {
+        cloud: 'trial_expired',
+      });
+    const own = readCookie(req.headers.cookie, SESSION_COOKIE);
+    if (own) await deleteSession(this.db, own);
+    log.warn(`impersonate: ${me.userId} → ${user.id} (${user.login})`);
     return this.startSession(req, res, user);
   }
 

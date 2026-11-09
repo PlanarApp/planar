@@ -78,6 +78,15 @@ async function logout(): Promise<boolean> {
   return true;
 }
 
+/** Sign in as a user of a lower role (PLNRAPP-129): the replica is that user's now — cleared, the app reloads. */
+async function impersonate(userId: string): Promise<void> {
+  if (syncState.value.pending > 0 && !(await confirmLoss())) return;
+  await api('POST', '/api/auth/impersonate', { userId });
+  store(null);
+  await clearLocal();
+  location.assign('/');
+}
+
 /** session expired (401): log out locally, replica and queue remain */
 function expire(): void {
   user.value = null;
@@ -138,6 +147,7 @@ export function useAuth() {
     refresh,
     login,
     logout,
+    impersonate,
     logoutPrompt,
     expire,
     setup,
