@@ -248,6 +248,8 @@ const COMMENTS: [string, number, string, string][] = [
 
 // checklist item `key:task:item` turned into a subtask (PLNRAPP-142): its text links to the task
 const CHECK_LINKS: Record<string, [string, number]> = { 'RDM:2:1': ['RDM', 12] };
+// nested checklist items `key:task:item` (PLNRAPP-143): under the item above
+const CHECK_NESTED = new Set(['RDM:2:1', 'PLT:3:3']);
 
 const CHECKLISTS: [string, number, [string, boolean][]][] = [
   [
@@ -939,6 +941,7 @@ async function insertAll(tx: Tx, now: Date) {
       linkedTaskId: CHECK_LINKS[`${key}:${i}:${k}`]
         ? tid(...CHECK_LINKS[`${key}:${i}:${k}`]!)
         : null,
+      indent: CHECK_NESTED.has(`${key}:${i}:${k}`) ? 1 : 0,
       createdAt: at(-10),
       updatedAt: at(-3),
     })),

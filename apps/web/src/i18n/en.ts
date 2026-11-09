@@ -798,6 +798,8 @@ export default {
     checklistItemMenu: 'Item actions',
     checklistToTask: 'Convert to task',
     checklistToSubtask: 'Convert to subtask',
+    checklistIndent: 'Nest under the item above',
+    checklistOutdent: 'Move one level up',
     attachments: 'Attachments',
     attach: 'Attach file',
     activity: 'Comments and activity',

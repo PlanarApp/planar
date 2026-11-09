@@ -322,6 +322,7 @@ export const checklistItems = pgTable(
     rank: rank().notNull(),
     assigneeId: uuid(),
     linkedTaskId: uuid(),
+    indent: integer().notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

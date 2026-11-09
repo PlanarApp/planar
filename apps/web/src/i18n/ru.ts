@@ -804,6 +804,8 @@ export default {
     checklistItemMenu: 'Действия с пунктом',
     checklistToTask: 'Сделать задачей',
     checklistToSubtask: 'Сделать подзадачей',
+    checklistIndent: 'Вложить в пункт выше',
+    checklistOutdent: 'Вынести на уровень выше',
     attachments: 'Вложения',
     attach: 'Прикрепить файл',
     activity: 'Комментарии и активность',

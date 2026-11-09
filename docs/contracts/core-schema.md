@@ -224,6 +224,7 @@ scope: space · write: member · bootstrap: yes · indexes: taskId
 | `rank` | rank | |
 | `assigneeId` | uuid? | assigned item (C-schema v22, PLNRAPP-140) |
 | `linkedTaskId` | uuid? | the item was turned into this task; the text is a link to it (C-schema v24, PLNRAPP-142) |
+| `indent` | int | nesting level 0–4 in the ranked list, as in a document list; the client shows at most the previous item's level + 1 (C-schema v25, PLNRAPP-143) |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 

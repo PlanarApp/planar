@@ -295,6 +295,13 @@
       "when": 1794261988461,
       "tag": "0041_checklist_linked_task",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1794262429817,
+      "tag": "0042_checklist_indent",
+      "breakpoints": true
     }
   ]
 }

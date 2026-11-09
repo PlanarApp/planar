@@ -324,6 +324,14 @@ describe('task.delete и связи', () => {
     expect(await code(run(tx, 'checklist.update', { id: c, linkedTaskId: id() }))).toBe(
       'not_found',
     );
+    // PLNRAPP-143: nesting level 0..4, default 0
+    expect(await tx.get('checklistItems', c)).toMatchObject({ indent: 0 });
+    await run(tx, 'checklist.update', { id: c, indent: 2 });
+    expect(await tx.get('checklistItems', c)).toMatchObject({ indent: 2 });
+    expect(await code(run(tx, 'checklist.update', { id: c, indent: 5 }))).toMatch(/<=4/); // args schema
+    const n = id();
+    await run(tx, 'checklist.add', { id: n, taskId: t, text: 'b', rank: 'a1', indent: 1 });
+    expect(await tx.get('checklistItems', n)).toMatchObject({ indent: 1 });
     await run(tx, 'checklist.delete', { id: c });
     expect(await tx.get('checklistItems', c)).toBeUndefined();
   });

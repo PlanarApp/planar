@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CornerDownRight, SquarePlus, Trash2, UserPlus } from 'lucide-vue-next';
-import type { Row } from '@planar/shared';
+import { VueDraggable } from 'vue-draggable-plus';
+import {
+  CornerDownRight,
+  IndentDecrease,
+  IndentIncrease,
+  SquarePlus,
+  Trash2,
+  UserPlus,
+} from 'lucide-vue-next';
+import { CHECKLIST_MAX_INDENT, type Row } from '@planar/shared';
 import { db, mutate, newId, rankBetween, useQuery } from '../sync';
 import { Avatar, IconButton, Input, Menu, type MenuItem } from '../ui';
 import { createTask, useMembers } from '../tasks';
@@ -48,6 +56,21 @@ async function toTask(i: Row<'checklistItems'>, sub: boolean) {
   await mutate('checklist.update', { id: i.id, linkedTaskId: id });
 }
 const itemMenu = (i: Row<'checklistItems'>): MenuItem[] => [
+  {
+    id: 'indent',
+    label: t('task.checklistIndent'),
+    icon: IndentIncrease,
+    disabled: levelOf(i) >= maxAfter(prevOf(i)),
+    onSelect: () => setLevel(i, levelOf(i) + 1),
+  },
+  {
+    id: 'outdent',
+    label: t('task.checklistOutdent'),
+    icon: IndentDecrease,
+    disabled: levelOf(i) === 0,
+    onSelect: () => setLevel(i, levelOf(i) - 1),
+  },
+  { separator: true as const },
   ...(i.linkedTaskId
     ? []
     : [
@@ -75,6 +98,47 @@ const itemMenu = (i: Row<'checklistItems'>): MenuItem[] => [
 ];
 const items = useChecklist(props.taskId);
 const text = ref('');
+
+// nesting (PLNRAPP-143), as in a document list: the shown level is at most the previous item's + 1
+const depth = computed(() => {
+  const m = new Map<string, number>();
+  let prev = -1;
+  for (const i of items.value ?? []) m.set(i.id, (prev = Math.min(i.indent ?? 0, prev + 1)));
+  return m;
+});
+const levelOf = (i: Row<'checklistItems'>) => depth.value.get(i.id) ?? 0;
+const prevOf = (i: Row<'checklistItems'>) => {
+  const list = items.value ?? [];
+  return list[list.findIndex((x) => x.id === i.id) - 1];
+};
+/** deepest level of an item placed after `prev` */
+const maxAfter = (prev: Row<'checklistItems'> | undefined) =>
+  prev ? Math.min(CHECKLIST_MAX_INDENT, levelOf(prev) + 1) : 0;
+const setLevel = (i: Row<'checklistItems'>, indent: number) =>
+  void mutate('checklist.update', { id: i.id, indent });
+
+// local list for Sortable; the source of truth is the replica
+const list = ref<Row<'checklistItems'>[]>([]);
+watch(items, (v) => (list.value = [...(v ?? [])]), { immediate: true });
+/** drag-and-drop: rank between the neighbours; the dropped item takes the level of the one above */
+function moved(id: string, index: number) {
+  const others = (items.value ?? []).filter((x) => x.id !== id);
+  const prev = others[index - 1];
+  void mutate('checklist.update', {
+    id,
+    rank: rankBetween(prev?.rank ?? null, others[index]?.rank ?? null),
+    indent: prev ? levelOf(prev) : 0,
+  });
+}
+
+// Tab / Shift+Tab in the new item field — its level; an empty field lets Tab move focus
+const newIndent = ref(0);
+const newMax = computed(() => maxAfter(items.value?.at(-1)));
+function onTab(e: KeyboardEvent) {
+  if (!text.value) return;
+  e.preventDefault();
+  newIndent.value = Math.max(0, Math.min(newIndent.value + (e.shiftKey ? -1 : 1), newMax.value));
+}
 // an item is assigned as a comment (PLNRAPP-140): the menu of space members with avatars
 const members = useMembers(() => props.spaceId);
 const avatarOf = (u: Row<'users'> | undefined) =>
@@ -110,6 +174,7 @@ async function add() {
     taskId: props.taskId,
     text: s,
     rank: rankBetween(last, null),
+    indent: Math.min(newIndent.value, newMax.value),
   });
 }
 </script>
@@ -117,13 +182,25 @@ async function add() {
 <template>
   <section :aria-label="t('task.checklist')">
     <!-- the title and done/total are on the tab (PLNRAPP-100, -102) -->
-    <ul>
+    <VueDraggable
+      v-model="list"
+      tag="ul"
+      handle=".handle"
+      @update="(e) => moved(e.data.id, e.newIndex!)"
+    >
       <li
-        v-for="i in items"
+        v-for="i in list"
         :key="i.id"
         class="group flex min-h-11 items-center gap-2 md:min-h-8"
+        :style="{ paddingLeft: `${levelOf(i) * 1.5}rem` }"
+        :data-level="levelOf(i)"
         data-testid="checklist-item"
       >
+        <span
+          class="handle cursor-grab select-none text-fg-subtle md:opacity-0 md:group-hover:opacity-100"
+          aria-hidden="true"
+          >⋮⋮</span
+        >
         <input
           type="checkbox"
           :checked="i.done"
@@ -177,8 +254,13 @@ async function add() {
           data-testid="checklist-menu"
         />
       </li>
-    </ul>
-    <form @submit.prevent="add">
+    </VueDraggable>
+    <form
+      :style="{ paddingLeft: `${Math.min(newIndent, newMax) * 1.5}rem` }"
+      data-testid="checklist-add"
+      @submit.prevent="add"
+      @keydown.tab="onTab"
+    >
       <Input
         v-model="text"
         :label="t('task.addChecklist')"

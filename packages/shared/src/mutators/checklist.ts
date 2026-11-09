@@ -1,14 +1,15 @@
 import { z } from 'zod';
-import { MutatorError, defineMutator } from '../contract/index.js';
+import { CHECKLIST_MAX_INDENT, MutatorError, defineMutator } from '../contract/index.js';
 import { changes, need, rank, uuid } from './util.js';
 import { checkAssignee } from './comments.js';
 
 const text = z.string().min(1).max(500);
+const indent = z.number().int().min(0).max(CHECKLIST_MAX_INDENT);
 
 export const checklistMutators = [
   defineMutator({
     name: 'checklist.add',
-    args: z.object({ id: uuid, taskId: uuid, text, rank }),
+    args: z.object({ id: uuid, taskId: uuid, text, rank, indent: indent.optional() }),
     async run(tx, a, ctx) {
       const t = await need(tx, 'tasks', a.taskId);
       await tx.put('checklistItems', {
@@ -17,6 +18,7 @@ export const checklistMutators = [
         done: false,
         assigneeId: null,
         linkedTaskId: null,
+        indent: a.indent ?? 0,
         createdAt: ctx.now,
         updatedAt: ctx.now,
       });
@@ -31,6 +33,7 @@ export const checklistMutators = [
       rank: rank.optional(),
       assigneeId: uuid.nullable().optional(),
       linkedTaskId: uuid.nullable().optional(),
+      indent: indent.optional(),
     }),
     async run(tx, a, ctx) {
       const item = await need(tx, 'checklistItems', a.id);
