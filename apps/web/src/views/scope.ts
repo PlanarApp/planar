@@ -63,7 +63,7 @@ export function setStatusByName(
     (statuses.some((s) => s.id === pickedId)
       ? statusIn(statuses, task.projectId, pickedId)
       : pickedId);
-  return id ? updateTask(task.id, { statusId: id }) : Promise.resolve();
+  return id ? updateTask(task.id, { statusId: id }, false) : Promise.resolve();
 }
 
 /** label group `key` (id, or name in a summary) → the label of project `projectId`; none — undefined */

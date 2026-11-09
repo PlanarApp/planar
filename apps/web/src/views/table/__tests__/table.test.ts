@@ -233,7 +233,8 @@ describe('table', () => {
     w.get('[role=toolbar]').findComponent(StatusPicker).vm.$emit('update:modelValue', 's2');
     await flushPromises();
     expect(h$.updateTask).toHaveBeenCalledTimes(3);
-    expect(h$.updateTask).toHaveBeenCalledWith('id2', { statusId: 's2' });
+    // bulk — without the open subtasks/comments question (PLNRAPP-138)
+    expect(h$.updateTask).toHaveBeenCalledWith('id2', { statusId: 's2' }, false);
   });
   it('table: Shift-выделение диапазона', async () => {
     await show();

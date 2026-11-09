@@ -5,6 +5,7 @@ import { i18n } from './i18n';
 import { router } from './router';
 import { initModules } from './modules/registry';
 import { prefetchProject } from './tasks/queries';
+import { closePrompt } from './tasks/closeOpen';
 import { initSession } from './session';
 import { onMutationError } from './sync';
 import { toast } from './ui/toast';
@@ -14,6 +15,7 @@ import './styles.css';
 
 const LogoutDialog = defineAsyncComponent(() => import('./sync/LogoutDialog.vue'));
 const Toasts = defineAsyncComponent(() => import('./ui/Toasts.vue'));
+const CloseOpenDialog = defineAsyncComponent(() => import('./tasks/CloseOpenDialog.vue'));
 const { logoutPrompt } = useAuth();
 
 const open = /^\/p\/([0-9a-f-]{36})/.exec(location.pathname);
@@ -30,7 +32,12 @@ onMutationError((e) => fail(new Error(e.message || e.code)));
 addEventListener('unhandledrejection', (e) => fail(e.reason));
 
 const app = createApp({
-  render: () => [h(App), logoutPrompt.open.value && h(LogoutDialog), h(Toasts)],
+  render: () => [
+    h(App),
+    logoutPrompt.open.value && h(LogoutDialog),
+    closePrompt.value && h(CloseOpenDialog, { key: closePrompt.value.task.id }),
+    h(Toasts),
+  ],
 });
 app.config.errorHandler = (e) => {
   console.error(e);
