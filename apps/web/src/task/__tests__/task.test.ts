@@ -80,10 +80,11 @@ describe('task:favorite', () => {
     const star = () => w.get('[data-testid=task-favorite]');
     expect(star().attributes('aria-pressed')).toBe('false');
     await star().trigger('click');
+    // PLNRAPP-124: the favourite is a replica row — it appears after favorite.add is applied
+    await vi.waitFor(() => expect(star().attributes('aria-pressed')).toBe('true'));
     expect(favorites.has('task', t.id)).toBe(true);
-    expect(star().attributes('aria-pressed')).toBe('true');
     await star().trigger('click');
-    expect(favorites.has('task', t.id)).toBe(false);
+    await vi.waitFor(() => expect(favorites.has('task', t.id)).toBe(false));
   });
   it('PLNRAPP-65: ключ копирует ключ, кнопка рядом — ссылку; закрепление — только в боковой панели', async () => {
     const writeText = vi.fn(() => Promise.resolve());

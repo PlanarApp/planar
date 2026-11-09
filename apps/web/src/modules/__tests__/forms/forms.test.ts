@@ -15,7 +15,14 @@ vi.mock('../../../sync', async () => {
   const { PlanarDB } = await import('../../../sync/db');
   const { useQuery } = await import('../../../sync/query');
   h.db = new PlanarDB('pt5b', { formsForms: ['spaceId', 'projectId'] });
-  return { db: h.db, mutate, registerMutators: vi.fn(), useQuery, newId: () => 'new-id' };
+  return {
+    db: h.db,
+    mutate,
+    registerMutators: vi.fn(),
+    useQuery,
+    newId: () => 'new-id',
+    replicaState: { value: 'empty' }, // layout/nav (favourites, PLNRAPP-124)
+  };
 });
 vi.mock('../../../auth/useAuth', () => ({
   useAuth: () => ({ user: ref({ id: 'u', role: 'admin' }) }),

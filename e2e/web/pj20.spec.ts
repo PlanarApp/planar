@@ -20,6 +20,7 @@ test('PJ-20: сайдбар сворачивается в полосу, скры
   await expect(page.getByTestId('sidebar-rail')).toBeVisible();
 
   // PLNRAPP-87: favourites — in the rail above the projects, behind a rule
+  // (PLNRAPP-124: the old localStorage favourite is moved to the server after reload)
   await expect(page.getByTestId('nav-favorite-rail')).toHaveCount(0);
   await page.evaluate(() =>
     localStorage.setItem(
@@ -33,7 +34,7 @@ test('PJ-20: сайдбар сворачивается в полосу, скры
   const firstProject = page.getByTestId('nav-project-rail').first();
   expect((await fav.boundingBox())!.y).toBeLessThan((await firstProject.boundingBox())!.y);
   await expect(page.getByTestId('sidebar-rail').locator('hr')).toHaveCount(1);
-  await page.evaluate(() => localStorage.removeItem('planar.favorites'));
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('planar.favorites'))).toBeNull();
 
   await page.getByTestId('sidebar-hide').click();
   await expect(page.getByTestId('sidebar-rail')).toHaveCount(0);

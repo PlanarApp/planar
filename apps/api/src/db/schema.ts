@@ -432,6 +432,29 @@ export const dayPlans = pgTable(
   (t) => [index().on(t.taskId), index().on(t.userId, t.date)],
 );
 
+// Favourites (PLNRAPP-124): personal; refId without FK — the entity can be of any kind (node, doc, chat, task)
+export const favorites = pgTable(
+  'favorites',
+  {
+    id: id(),
+    userId: userRef().notNull(),
+    kind: text().notNull(),
+    refId: text().notNull(),
+    name: text().notNull(),
+    url: text().notNull(),
+    rank: rank().notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex().on(t.refId, t.userId, t.kind), // refId first: Tx.scan({index: 'refId'})
+    check(
+      'favorites_kind_check',
+      inList(t.kind, ['workspace', 'space', 'project', 'doc', 'chat', 'task']),
+    ),
+  ],
+);
+
 export const notifications = pgTable(
   'notifications',
   {

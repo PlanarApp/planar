@@ -17,7 +17,14 @@ vi.mock('../../../sync', async () => {
   const { PlanarDB } = await import('../../../sync/db');
   const { useQuery } = await import('../../../sync/query');
   h.db = new PlanarDB('wk3', { automationsRules: ['spaceId', 'projectId'] });
-  return { db: h.db, mutate, registerMutators: vi.fn(), useQuery, newId: () => 'new-id' };
+  return {
+    db: h.db,
+    mutate,
+    registerMutators: vi.fn(),
+    useQuery,
+    newId: () => 'new-id',
+    replicaState: { value: 'empty' }, // layout/nav (favourites, PLNRAPP-124)
+  };
 });
 const SP = uuidv7();
 const P = uuidv7();

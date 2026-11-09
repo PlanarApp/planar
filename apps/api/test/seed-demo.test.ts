@@ -65,6 +65,7 @@ describe('seed-demo', () => {
       'recurring_rules',
       'comments',
       'checklist_items',
+      'favorites',
       'field_defs',
       'saved_views',
       'day_plans',

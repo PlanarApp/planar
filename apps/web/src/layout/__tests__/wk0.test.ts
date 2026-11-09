@@ -7,7 +7,8 @@ import { createI18n } from 'vue-i18n';
 import { describe, expect, it, vi } from 'vitest';
 import en from '../../i18n/en';
 import ru from '../../i18n/ru';
-import { db } from '../../sync';
+import { domainMutators, uuidv7 } from '@planar/shared';
+import { db, registerMutators, startSync } from '../../sync';
 import { i18n as appI18n } from '../../i18n';
 import { setWeekStart, useWeekStart } from '../../i18n/week';
 import { registerModules, setEnabledModules } from '../../modules/registry';
@@ -99,6 +100,12 @@ describe('wk0: модули nav/topbar', () => {
 
 describe('шапка узла: имя и звезда избранного', () => {
   it('проект: звезда добавляет в избранное и снимает', async () => {
+    // favourites are written by favorite.* mutators (PLNRAPP-124)
+    registerMutators(domainMutators);
+    await startSync({
+      userId: uuidv7(),
+      fetch: (() => Promise.reject(new TypeError('offline'))) as never,
+    });
     await db.table('spaces').put({ id: 's1', name: 'Разработка', rank: 'a0' });
     await db
       .table('projects')
@@ -116,10 +123,10 @@ describe('шапка узла: имя и звезда избранного', () 
     const star = () => w.get('[data-testid=topbar-favorite]');
     expect(star().attributes('aria-pressed')).toBe('false');
     await star().trigger('click');
+    await vi.waitFor(() => expect(star().attributes('aria-pressed')).toBe('true'));
     expect(favorites.has('project', 'p1')).toBe(true);
-    expect(star().attributes('aria-pressed')).toBe('true');
     await star().trigger('click');
-    expect(favorites.has('project', 'p1')).toBe(false);
+    await vi.waitFor(() => expect(favorites.has('project', 'p1')).toBe(false));
   });
 });
 

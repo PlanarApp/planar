@@ -19,7 +19,14 @@ vi.mock('../../../sync', async () => {
     sprintsCycles: ['spaceId', 'projectId'],
     sprintsSettings: ['projectId'],
   });
-  return { db: h.db, mutate, registerMutators: vi.fn(), useQuery, newId: () => 'new-id' };
+  return {
+    db: h.db,
+    mutate,
+    registerMutators: vi.fn(),
+    useQuery,
+    newId: () => 'new-id',
+    replicaState: { value: 'empty' }, // layout/nav (favourites, PLNRAPP-124)
+  };
 });
 const S = { todo: uuidv7(), prog: uuidv7(), done: uuidv7() };
 vi.mock('../../../tasks', () => ({
