@@ -395,6 +395,43 @@ describe('list:keys', () => {
     await r.push({ query: {} });
     taskOpenMode.value = 'modal';
   });
+  it('PLNRAPP-133 стрелки — с вкладки «Задачи» и с кнопки панели после выбора статуса', async () => {
+    const { taskOpenMode } = await import('../../open');
+    const ts = [1, 2, 3].map((n) => task(n, { rank: rank(n) }));
+    await db.table('tasks').bulkPut(ts);
+    await show();
+    const ringed = () =>
+      rows()
+        .find((x) => x.classes().includes('ring-2'))
+        ?.attributes('data-task');
+    const press = (el: HTMLElement, k: string) =>
+      el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+    // focus stayed on the clicked tab link: an arrow moves in the list and focuses it; Enter is the link's
+    const nav = document.body.appendChild(document.createElement('nav'));
+    const tab = nav.appendChild(document.createElement('a'));
+    tab.href = '#';
+    tab.focus();
+    press(tab, 'ArrowDown');
+    await until(() => ringed() === 'PLN-1');
+    expect(document.activeElement).toBe(w.get('[role=grid]').element);
+    tab.focus();
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    tab.dispatchEvent(enter);
+    expect(enter.defaultPrevented).toBe(false);
+    nav.remove();
+    // side panel: the status button keeps focus after the picker — arrows still move
+    taskOpenMode.value = 'side';
+    await r.push({ query: { task: 'PLN-1' } });
+    const side = document.body.appendChild(document.createElement('div'));
+    side.dataset.testid = 'task-side';
+    const btn = side.appendChild(document.createElement('button'));
+    btn.focus();
+    press(btn, 'ArrowDown');
+    await poll(async () => r.currentRoute.value.query.task === 'PLN-2');
+    side.remove();
+    await r.push({ query: {} });
+    taskOpenMode.value = 'modal';
+  });
   it('PLNRAPP-80 D добавляет задачу в «Мой день» (солнце в строке) и убирает', async () => {
     const { useAuth } = await import('../../../auth/useAuth');
     useAuth().user.value = { id: ids.ann } as never;

@@ -437,9 +437,15 @@ function onWindowKey(e: KeyboardEvent) {
     return;
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return;
   const inSheet = sideTaskOpen() && !!t.closest('[data-testid=task-side]');
-  if (t !== document.body && !inSheet) return;
+  // focus left on the clicked «Tasks» tab link (PLNRAPP-133): moving keys go to the list, Enter stays the link's
+  const onTab = t.tagName === 'A' && !!t.closest('nav');
+  if (t !== document.body && !inSheet && !onTab) return;
   const k = tokenOf(e);
-  if (inSheet && k !== 'j' && k !== 'k') return;
+  const move = ['j', 'k', 'ArrowDown', 'ArrowUp'].includes(k);
+  if (onTab && !move) return;
+  // in the panel: j/k anywhere; arrows from a control left focused after a picker (PLNRAPP-133), not
+  // from the panel body — there they scroll it
+  if (inSheet && k !== 'j' && k !== 'k' && !(move && t.tagName === 'BUTTON')) return;
   if (sideTaskOpen()) {
     const shown = router.currentRoute.value.query.task;
     const cur = items.value.find((x) => x.kind === 'task' && x.task.key === shown);
