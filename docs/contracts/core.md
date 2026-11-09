@@ -350,6 +350,7 @@ Any non-2xx response is JSON `{code, message, details?}`. `details` of `invalid_
 | `POST /api/setup` | `{login, name, password}` → `201 {user}`; users already exist → `409 conflict` | CR-3 |
 | `POST /api/auth/login` | `{login, password}` → `200 {user}` + cookie; `401 invalid_credentials`; > 10 attempts/min per IP+login → `429` | CR-3 |
 | `POST /api/auth/logout` | → `204`, cookie cleared | CR-3 |
+| `POST /api/auth/impersonate` | `{userId}` → `200 {user}` + cookie of that user, the caller's session is deleted; only an owner/admin from a cookie session (token → `403`), only an active user of a strictly lower role (`403` / `404`) | PLNRAPP-129 |
 | `GET /api/auth/me` | → `{user}` \| `401` | CR-3 |
 | `GET /api/users` | → `{users: user[]}` (instance_admin) | CR-3 |
 | `POST /api/users` | `{login, name, password, role, email?}` → `201 {user}` (instance_admin) | CR-3 |

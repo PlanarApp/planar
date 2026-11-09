@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
-import { Avatar, Button, Select } from '../../ui';
+import { useAuth } from '../../auth/useAuth';
+import { Avatar, Button, ConfirmDialog, Select } from '../../ui';
 import { db, mutate, newId, useQuery } from '../../sync';
 import RowMenu from './RowMenu.vue';
 import SectionHeader from './SectionHeader.vue';
@@ -47,6 +48,17 @@ const add = () =>
     });
     userId.value = null;
   });
+// «Sign in» as a node admin (PLNRAPP-129): for an instance admin, only downwards by instance role (the server checks too)
+const { user: me, impersonate } = useAuth();
+const RANK: Record<string, number> = { guest: 0, member: 1, admin: 2, owner: 3 };
+const myRank = computed(() => RANK[me.value?.role ?? ''] ?? 0);
+const canImpersonate = (u: Row<'users'>) =>
+  myRank.value >= RANK.admin! && !u.deactivatedAt && (RANK[u.role] ?? RANK.owner!) < myRank.value;
+const asUser = ref<Row<'users'> | null>(null);
+const signIn = () => {
+  const u = asUser.value;
+  if (u) void run(() => impersonate(u.id));
+};
 const setRole = (id: string, v: string | null) =>
   run(() => mutate('member.update', { id, role: v }));
 const remove = (id: string) => run(() => mutate('member.remove', { id }));
@@ -76,7 +88,17 @@ const remove = (id: string) => run(() => mutate('member.remove', { id }));
         class="group flex items-center gap-3 py-1"
       >
         <Avatar :name="r.u!.name" />
-        <span class="min-w-0 flex-1 truncate text-sm">{{ r.u!.name }}</span>
+        <span class="flex min-w-0 flex-1 flex-col items-start">
+          <span class="max-w-full truncate text-sm">{{ r.u!.name }}</span>
+          <Button
+            v-if="r.m.role === 'admin' && canImpersonate(r.u!)"
+            size="sm"
+            variant="ghost"
+            data-testid="member-impersonate"
+            @click="asUser = r.u!"
+            >{{ t('settings.impersonate') }}</Button
+          >
+        </span>
         <Select
           :model-value="r.m.role"
           :label="t('auth.role')"
@@ -102,5 +124,14 @@ const remove = (id: string) => run(() => mutate('member.remove', { id }));
         />
       </li>
     </ul>
+    <ConfirmDialog
+      :open="!!asUser"
+      :title="t('settings.impersonateTitle', { name: asUser?.name ?? '' })"
+      :description="t('settings.impersonateDesc')"
+      :confirm-label="t('settings.impersonate')"
+      :danger="false"
+      @update:open="(v) => !v && (asUser = null)"
+      @confirm="signIn"
+    />
   </section>
 </template>
