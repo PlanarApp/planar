@@ -808,7 +808,6 @@ export default {
     assignComment: 'Assign',
     unassignComment: 'Unassign',
     assignedTo: 'Assigned to {name}',
-    assigned: 'Assigned to',
     resolved: 'Resolved',
     resolve: 'Resolve',
     collapseComment: 'Collapse',
