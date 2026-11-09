@@ -306,6 +306,13 @@ describe('task.delete и связи', () => {
     await run(tx, 'checklist.update', { id: c, done: true });
     expect(await tx.get('checklistItems', c)).toMatchObject({ done: true, text: 'a' });
     expect(await code(run(tx, 'checklist.update', { id: id(), done: true }))).toBe('not_found');
+    // PLNRAPP-140: assigned to a space member; not a member — invalid_args; null — unassigned
+    expect(await tx.get('checklistItems', c)).toMatchObject({ assigneeId: null });
+    await run(tx, 'checklist.update', { id: c, assigneeId: U1 });
+    expect(await tx.get('checklistItems', c)).toMatchObject({ assigneeId: U1 });
+    expect(await code(run(tx, 'checklist.update', { id: c, assigneeId: U2 }))).toBe('invalid_args');
+    await run(tx, 'checklist.update', { id: c, assigneeId: null });
+    expect(await tx.get('checklistItems', c)).toMatchObject({ assigneeId: null });
     await run(tx, 'checklist.delete', { id: c });
     expect(await tx.get('checklistItems', c)).toBeUndefined();
   });

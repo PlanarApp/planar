@@ -3,6 +3,7 @@ import type { Row } from '@planar/shared';
 import { db, useQuery } from '../sync';
 import { docText } from '../command/search';
 import { isSnoozed, snoozed } from './snooze';
+import { forMeTaskIds } from '../views/saved/useFilter';
 
 export type InboxItem = Row<'notifications'> & {
   actorName: string;
@@ -118,7 +119,10 @@ async function workTasks(kind: WorkKind, uid: string): Promise<Row<'tasks'>[]> {
     .where('userId')
     .equals(uid)
     .toArray();
-  return (await tasks.bulkGet(links.map((a) => a.taskId))).filter((t): t is Row<'tasks'> => !!t);
+  const ids = new Set(links.map((a) => a.taskId));
+  // assigned: also a task with my open comment or checklist item (PLNRAPP-140)
+  if (kind === 'assigned') for (const id of await forMeTaskIds(uid)) ids.add(id);
+  return (await tasks.bulkGet([...ids])).filter((t): t is Row<'tasks'> => !!t);
 }
 
 export const useMyTasks = (
@@ -162,26 +166,38 @@ export function useUnreadItems() {
   );
 }
 
-export type AssignedComment = Row<'comments'> & { key: string; title: string; projectId: string };
+export type AssignedComment = (
+  (Row<'comments'> & { kind: 'comment' }) | (Row<'checklistItems'> & { kind: 'check' })
+) & { key: string; title: string; projectId: string; closed: boolean };
 
-/** "Comments for me": comments assigned to me, with their task */
+/** "Comments for me": comments and checklist items (PLNRAPP-140) assigned to me, mixed, with their task */
 export const useAssignedComments = (userId: () => string | undefined) =>
   useQuery(async (): Promise<AssignedComment[]> => {
     const uid = userId();
     if (!uid) return [];
-    const cs = await db
-      .table<Row<'comments'>>('comments')
-      .filter((c) => c.assigneeId === uid)
-      .toArray();
+    const [cs, is] = await Promise.all([
+      db
+        .table<Row<'comments'>>('comments')
+        .filter((c) => c.assigneeId === uid)
+        .toArray(),
+      db
+        .table<Row<'checklistItems'>>('checklistItems')
+        .filter((i) => i.assigneeId === uid)
+        .toArray(),
+    ]);
+    const rows = [
+      ...cs.map((c) => ({ ...c, kind: 'comment' as const, closed: !!c.resolvedAt })),
+      ...is.map((i) => ({ ...i, kind: 'check' as const, closed: i.done })),
+    ];
     const tasks = await db
       .table<Row<'tasks'>>('tasks')
-      .bulkGet([...new Set(cs.map((c) => c.taskId))]);
+      .bulkGet([...new Set(rows.map((c) => c.taskId))]);
     const task = new Map(tasks.flatMap((t) => (t ? [[t.id, t] as const] : [])));
     const projects = await db
       .table<Row<'projects'>>('projects')
       .bulkGet([...new Set(tasks.flatMap((t) => (t ? [t.projectId] : [])))]);
     const key = new Map(projects.flatMap((p) => (p ? [[p.id, p.key] as const] : [])));
-    return cs
+    return rows
       .flatMap((c) => {
         const t = task.get(c.taskId);
         return t

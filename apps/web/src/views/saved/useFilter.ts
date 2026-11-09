@@ -13,6 +13,21 @@ import { localToday, matchFilter, type Filter, type FilterCtx } from '../filter'
  */
 export type MeMode = 'mine' | 'assigned' | 'created' | 'watched' | 'day';
 
+/** Tasks with an open comment or checklist item assigned to the user (PLNRAPP-140). */
+export async function forMeTaskIds(uid: string): Promise<Set<string>> {
+  const [comments, items] = await Promise.all([
+    db
+      .table<Row<'comments'>>('comments')
+      .filter((c) => c.assigneeId === uid && !c.resolvedAt)
+      .toArray(),
+    db
+      .table<Row<'checklistItems'>>('checklistItems')
+      .filter((i) => i.assigneeId === uid && !i.done)
+      .toArray(),
+  ]);
+  return new Set([...comments, ...items].map((x) => x.taskId));
+}
+
 /** Predicate "task passes the view filter" (and Me Mode) for list/board/table/calendar. */
 export function useTaskFilter(
   filter: MaybeRefOrGetter<Filter | null | undefined>,
@@ -32,17 +47,7 @@ export function useTaskFilter(
         ).map((w) => w.taskId),
       ),
   );
-  const commented = useQuery(async () => {
-    const uid = user.value?.id ?? '';
-    return new Set(
-      (
-        await db
-          .table<Row<'comments'>>('comments')
-          .filter((c) => c.assigneeId === uid && !c.resolvedAt)
-          .toArray()
-      ).map((c) => c.taskId),
-    );
-  });
+  const forMe = useQuery(() => forMeTaskIds(user.value?.id ?? ''));
   const mine = computed((): ((t: TaskView) => boolean) => {
     const m = toValue(me);
     const uid = user.value?.id ?? '';
@@ -52,21 +57,23 @@ export function useTaskFilter(
           .filter((s) => s.category === 'done' || s.category === 'cancelled')
           .map((s) => s.id),
       );
+    // the task is mine: assigned to me, or an open comment / checklist item of it is (PLNRAPP-140)
+    const my = (t: TaskView) => t.assigneeIds.includes(uid) || !!forMe.value?.has(t.id);
     if (m === 'mine') {
       const shut = closed();
       return (t) =>
-        (t.assigneeIds.includes(uid) && !shut.has(t.statusId)) || !!commented.value?.has(t.id);
+        (t.assigneeIds.includes(uid) && !shut.has(t.statusId)) || !!forMe.value?.has(t.id);
     }
     // PLNRAPP-137, as the former «My day» list (PLNRAPP-81): later due dates are not shown
     if (m === 'day') {
       const shut = closed();
       const today = localToday();
       return (t) =>
-        t.assigneeIds.includes(uid) &&
+        my(t) &&
         !shut.has(t.statusId) &&
         (!t.dueDate || t.dueDate <= today || (!!t.startDate && t.startDate <= today));
     }
-    if (m === 'assigned') return (t) => t.assigneeIds.includes(uid);
+    if (m === 'assigned') return my;
     if (m === 'created') return (t) => t.createdBy === uid;
     if (m === 'watched') return (t) => !!watched.value?.has(t.id);
     return () => true;

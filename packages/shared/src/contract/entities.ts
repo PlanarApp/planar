@@ -158,6 +158,8 @@ export const entitySchemas = {
     text: z.string(),
     done: z.boolean(),
     rank: z.string().min(1),
+    /** assigned item (PLNRAPP-140): an open one makes the task «mine» */
+    assigneeId: uuid.nullable().default(null),
     createdAt: ts,
     updatedAt: ts,
   }),

@@ -45,7 +45,7 @@ const MyDay = (await import('../MyDay.vue')).default;
 const DayOptions = (await import('../DayOptions.vue')).default;
 const { useTaskFilter } = await import('../../views/saved/useFilter');
 const PushToggle = (await import('../PushToggle.vue')).default;
-const { useUnread } = await import('../queries');
+const { useUnread, useAssignedComments } = await import('../queries');
 const { snoozed } = await import('../snooze');
 const push = await import('../push');
 
@@ -280,6 +280,40 @@ describe('inbox:my', () => {
     expect(pred.value(v({ dueDate: day(30) }))).toBe(false);
     expect(pred.value(v({}, bob))).toBe(false);
     expect(pred.value(v({ statusId: sDone }))).toBe(false);
+    scope.stop();
+  });
+  it('PLNRAPP-140 задача с моим открытым пунктом чек-листа — моя: «Назначенные», «Мой день», список «Комментарии для меня»', async () => {
+    const tid = uuidv7();
+    await db.table('tasks').put(task(tid, { number: 7, title: 'T7' }));
+    const item = {
+      id: uuidv7(),
+      spaceId: space,
+      taskId: tid,
+      text: 'пункт',
+      done: false,
+      rank: 'a0',
+      assigneeId: me,
+      createdAt: ts(1),
+      updatedAt: ts(1),
+    };
+    await db.table('checklistItems').put(item);
+    const statuses = await db.table('statuses').toArray();
+    const scope = effectScope();
+    const [assigned, today, list] = scope.run(() => [
+      useTaskFilter(null, statuses, 'assigned'),
+      useTaskFilter(null, statuses, 'day'),
+      useAssignedComments(() => me),
+    ])!;
+    // the task itself is not assigned to me
+    const t7 = { ...task(tid, {}), assigneeIds: [bob], labelIds: [] } as never;
+    await vi.waitFor(() => expect(assigned.value(t7)).toBe(true));
+    expect(today.value(t7)).toBe(true);
+    await vi.waitFor(() =>
+      expect(list.value?.map((x) => [x.kind, x.key])).toEqual([['check', expect.any(String)]]),
+    );
+    // checked — no longer mine
+    await db.table('checklistItems').put({ ...item, done: true });
+    await vi.waitFor(() => expect(assigned.value(t7)).toBe(false));
     scope.stop();
   });
 });

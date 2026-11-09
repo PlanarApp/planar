@@ -932,6 +932,8 @@ async function insertAll(tx: Tx, now: Date) {
         text,
         done,
         rank: cRanks[k],
+        // the first open item is assigned to demo (PLNRAPP-140): «Comments for me», the task is «mine»
+        assigneeId: k === items.findIndex(([, d]) => !d) ? uid_.demo : null,
         createdAt: at(-10),
         updatedAt: at(-3),
       })),
