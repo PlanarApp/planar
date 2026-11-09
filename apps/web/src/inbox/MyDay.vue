@@ -59,29 +59,38 @@ const groups = computed(() => {
     />
     <section v-for="g in groups" :key="g.k" :data-group="g.k">
       <h2 class="mb-1 text-xs font-medium text-fg-muted">{{ t(`inbox.my.${g.k}`) }}</h2>
-      <div v-for="r in g.items" :key="r.id" class="flex items-center gap-1">
+      <!-- as the planner cards (PLNRAPP-131): key and status, on the right date, project and «+»; below — the title up to two lines -->
+      <div
+        v-for="r in g.items"
+        :key="r.id"
+        class="flex flex-col gap-0.5 rounded-md px-2 py-1 hover:bg-bg-muted"
+      >
+        <div class="flex min-h-7 items-center gap-1">
+          <StatusIcon :status="r.status" />
+          <span class="text-xs text-fg-subtle">{{ r.key }}</span>
+          <span class="ml-auto flex min-h-7 items-center gap-2">
+            <span class="hidden text-xs text-fg-subtle md:inline">{{ r.project }}</span>
+            <span v-if="r.dueDate" class="text-xs text-fg-muted">{{
+              formatDue(r.dueDate, locale)
+            }}</span>
+            <IconButton
+              v-if="day && !day.planned.has(r.id)"
+              :icon="Plus"
+              :label="t('myDay.add')"
+              size="sm"
+              data-testid="my-day-add"
+              @click="planToday(r.id, day)"
+            />
+          </span>
+        </div>
         <button
           type="button"
           data-testid="my-row"
-          class="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
+          class="line-clamp-2 rounded-md text-left text-sm break-words outline-none focus-visible:ring-2 ring-focus"
           @click="openTask(r.key)"
         >
-          <StatusIcon :status="r.status" />
-          <span class="text-xs text-fg-subtle">{{ r.key }}</span>
-          <span class="flex-1 truncate">{{ r.title }}</span>
-          <span v-if="r.dueDate" class="text-xs text-fg-muted">{{
-            formatDue(r.dueDate, locale)
-          }}</span>
-          <span class="hidden text-xs text-fg-subtle md:inline">{{ r.project }}</span>
+          {{ r.title }}
         </button>
-        <IconButton
-          v-if="day && !day.planned.has(r.id)"
-          :icon="Plus"
-          :label="t('myDay.add')"
-          size="sm"
-          data-testid="my-day-add"
-          @click="planToday(r.id, day)"
-        />
       </div>
     </section>
   </div>
