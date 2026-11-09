@@ -319,6 +319,13 @@ describe('PLANARAPP-10 мой день', () => {
     await el.trigger('click');
     await flushPromises();
   };
+  // PLNRAPP-120: today / tomorrow / remove live in the date menu of the row (the popover is teleported to body)
+  const act = async (w: ReturnType<typeof show>, scope: string, id: string) => {
+    await click(w.find(`${scope} [data-testid=my-day-row] [aria-label="${ru.myDay.pick}"]`));
+    await vi.waitFor(() => expect(document.querySelector(`[data-testid=${id}]`)).not.toBeNull());
+    document.querySelector<HTMLElement>(`[data-testid=${id}]`)!.click();
+    await flushPromises();
+  };
 
   it('добавление из списка, порядок, удаление', async () => {
     await add(1);
@@ -341,10 +348,10 @@ describe('PLANARAPP-10 мой день', () => {
     const dnd = w.findComponent(VueDraggable);
     dnd.vm.$emit('update', { data: (dnd.props('modelValue') as unknown[])[1], newIndex: 0 });
     await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T2']));
-    await click(w.findAll('[data-testid=my-day-remove]')[0]!);
+    await act(w, '[data-block=today]', 'my-day-remove');
     await vi.waitFor(() => expect(planned(w)).toEqual(['T2']));
     // to tomorrow: leaves today for the «Tomorrow» block, the plan row gets tomorrow's date
-    await click(w.find('[data-testid=my-day-tomorrow]'));
+    await act(w, '[data-block=today]', 'my-day-tomorrow');
     await vi.waitFor(() => expect(planned(w)).toEqual([]));
     expect(planned(w, 'tomorrow')).toEqual(['T2']);
     expect((await db.table('dayPlans').toArray()).map((p) => p.date)).toEqual([day(1)]);
@@ -371,7 +378,7 @@ describe('PLANARAPP-10 мой день', () => {
     // planned on any day — no «+» in the list
     expect(w.findAll('[data-testid=my-day-add]')).toHaveLength(0);
     // later → today: to the end of today
-    await click(w.find('[data-block=later] [data-testid=my-day-today]'));
+    await act(w, '[data-block=later]', 'my-day-today');
     await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T4', 'T3']));
     // unfinished of today → tomorrow; the done T4 stays
     await click(w.find('[data-testid=my-day-postpone]'));

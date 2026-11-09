@@ -97,70 +97,79 @@ const move = (x: DayItem, date: string | null) => date && reschedule(props.day, 
             :key="x.plan.id"
             data-testid="my-day-row"
             :data-plan="x.plan.id"
-            class="group flex flex-col rounded-md px-1 py-1 hover:bg-bg-muted"
+            class="group flex flex-col gap-0.5 rounded-md px-1 py-1 hover:bg-bg-muted"
           >
-            <!-- two lines (PLNRAPP-120): status, key, title; below — date and actions -->
-            <div class="flex min-h-8 items-center gap-1">
+            <!-- PLNRAPP-120: key and status, on the right the date with the move menu; below — the title up to two lines -->
+            <div class="flex min-h-7 items-center gap-1">
               <span
                 class="handle flex w-4 shrink-0 cursor-grab touch-none items-center justify-center text-fg-subtle"
                 :aria-label="t('list.drag')"
                 ><GripVertical :size="14"
               /></span>
-              <button
-                type="button"
-                class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 text-left text-sm outline-none focus-visible:ring-2 ring-focus"
-                @click="openTask(x.key)"
+              <StatusIcon :status="x.status" />
+              <span class="text-xs text-fg-subtle">{{ x.key }}</span>
+              <span class="ml-auto" />
+              <!-- today / tomorrow / remove — in the menu next to the date picker -->
+              <DueDatePicker
+                :model-value="null"
+                :label="t('myDay.pick')"
+                data-testid="my-day-pick"
+                @update:model-value="(d) => move(x, d)"
               >
-                <StatusIcon :status="x.status" />
-                <span class="shrink-0 text-xs text-fg-subtle">{{ x.key }}</span>
-                <span :class="['flex-1 truncate', x.done && 'text-fg-muted line-through']">{{
-                  x.task.title
-                }}</span>
-              </button>
+                <template #value>
+                  <!-- «Later» — the plan date; otherwise the task's due date -->
+                  <span
+                    v-if="b === 'later' || x.task.dueDate"
+                    class="text-xs text-fg-muted"
+                    data-testid="my-day-date"
+                    >{{ formatDue(b === 'later' ? x.plan.date : x.task.dueDate!, locale) }}</span
+                  >
+                  <CalendarClock v-else :size="14" class="text-fg-muted" aria-hidden="true" />
+                </template>
+                <template #options="{ close }">
+                  <div class="flex flex-col">
+                    <Button
+                      v-if="b !== 'today'"
+                      size="sm"
+                      variant="ghost"
+                      class="justify-start"
+                      data-testid="my-day-today"
+                      @click="(close(), move(x, dateOf('today')))"
+                      ><Sun :size="14" aria-hidden="true" />{{ t('myDay.toToday') }}</Button
+                    >
+                    <Button
+                      v-if="b !== 'tomorrow' && !x.done"
+                      size="sm"
+                      variant="ghost"
+                      class="justify-start"
+                      data-testid="my-day-tomorrow"
+                      @click="(close(), move(x, dateOf('tomorrow')))"
+                      ><CalendarClock :size="14" aria-hidden="true" />{{
+                        t('myDay.tomorrow')
+                      }}</Button
+                    >
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      class="justify-start"
+                      data-testid="my-day-remove"
+                      @click="(close(), unplan(x.plan.id))"
+                      ><X :size="14" aria-hidden="true" />{{ t('myDay.remove') }}</Button
+                    >
+                  </div>
+                </template>
+              </DueDatePicker>
             </div>
-            <!-- the second line is left-aligned under the title: date, then actions -->
-            <div class="flex flex-wrap items-center gap-1 pl-5">
-              <!-- «Later» — the plan date; otherwise the task's due date -->
-              <span
-                v-if="b === 'later' || x.task.dueDate"
-                class="px-1 text-xs text-fg-muted"
-                data-testid="my-day-date"
-                >{{ formatDue(b === 'later' ? x.plan.date : x.task.dueDate!, locale) }}</span
-              >
-              <div class="flex items-center gap-1">
-                <IconButton
-                  v-if="b !== 'today'"
-                  :icon="Sun"
-                  :label="t('myDay.toToday')"
-                  size="sm"
-                  data-testid="my-day-today"
-                  @click="move(x, dateOf('today'))"
-                />
-                <IconButton
-                  v-if="b !== 'tomorrow' && !x.done"
-                  :icon="CalendarClock"
-                  :label="t('myDay.tomorrow')"
-                  size="sm"
-                  data-testid="my-day-tomorrow"
-                  @click="move(x, dateOf('tomorrow'))"
-                />
-                <DueDatePicker
-                  v-if="!x.done"
-                  compact
-                  :model-value="null"
-                  :label="t('myDay.pick')"
-                  data-testid="my-day-pick"
-                  @update:model-value="(d) => move(x, d)"
-                />
-                <IconButton
-                  :icon="X"
-                  :label="t('myDay.remove')"
-                  size="sm"
-                  data-testid="my-day-remove"
-                  @click="unplan(x.plan.id)"
-                />
-              </div>
-            </div>
+            <button
+              type="button"
+              :class="[
+                'line-clamp-2 rounded-md pl-5 pr-1 text-left text-sm break-words outline-none focus-visible:ring-2 ring-focus',
+                x.done && 'text-fg-muted line-through',
+              ]"
+              @click="openTask(x.key)"
+            >
+              {{ x.task.title }}
+            </button>
           </div>
         </VueDraggable>
       </div>

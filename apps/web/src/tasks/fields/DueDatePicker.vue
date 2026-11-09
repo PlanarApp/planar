@@ -35,6 +35,8 @@ const set = (v: string) => {
       </button>
     </template>
     <div class="flex w-56 flex-col gap-2">
+      <!-- extra choices above the date (My day: today, tomorrow, remove) -->
+      <slot name="options" :close="() => (open = false)" />
       <Input
         :model-value="model ?? ''"
         type="date"
