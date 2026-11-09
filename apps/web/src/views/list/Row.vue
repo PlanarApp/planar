@@ -365,6 +365,7 @@ function save() {
           ></AssigneePicker>
           <DueDatePicker
             v-else-if="c === 'dueDate'"
+            :task-id="task.id"
             :model-value="task.dueDate"
             @update:model-value="updateTask(task.id, { dueDate: $event })"
             ><template #value

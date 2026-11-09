@@ -9,8 +9,9 @@ import { localToday, matchFilter, type Filter, type FilterCtx } from '../filter'
 /**
  * View's Me Mode: 'mine' — toggle in Tasks (work for me: open tasks assigned to me and
  * tasks with unresolved comments assigned to me); the others — "My work" lists; null — all.
+ * 'day' — the list under the «My day» planner: open assigned, due now (overdue, today or started) or without a date.
  */
-export type MeMode = 'mine' | 'assigned' | 'created' | 'watched';
+export type MeMode = 'mine' | 'assigned' | 'created' | 'watched' | 'day';
 
 /** Predicate "task passes the view filter" (and Me Mode) for list/board/table/calendar. */
 export function useTaskFilter(
@@ -45,14 +46,25 @@ export function useTaskFilter(
   const mine = computed((): ((t: TaskView) => boolean) => {
     const m = toValue(me);
     const uid = user.value?.id ?? '';
-    if (m === 'mine') {
-      const closed = new Set(
+    const closed = () =>
+      new Set(
         (toValue(statuses) ?? [])
           .filter((s) => s.category === 'done' || s.category === 'cancelled')
           .map((s) => s.id),
       );
+    if (m === 'mine') {
+      const shut = closed();
       return (t) =>
-        (t.assigneeIds.includes(uid) && !closed.has(t.statusId)) || !!commented.value?.has(t.id);
+        (t.assigneeIds.includes(uid) && !shut.has(t.statusId)) || !!commented.value?.has(t.id);
+    }
+    // PLNRAPP-137, as the former «My day» list (PLNRAPP-81): later due dates are not shown
+    if (m === 'day') {
+      const shut = closed();
+      const today = localToday();
+      return (t) =>
+        t.assigneeIds.includes(uid) &&
+        !shut.has(t.statusId) &&
+        (!t.dueDate || t.dueDate <= today || (!!t.startDate && t.startDate <= today));
     }
     if (m === 'assigned') return (t) => t.assigneeIds.includes(uid);
     if (m === 'created') return (t) => t.createdBy === uid;
