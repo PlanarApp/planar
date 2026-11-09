@@ -137,7 +137,9 @@ describe('wk1: панель задачи', () => {
 describe('PLANARAPP-42 свойство «Время»', () => {
   it('старт/стоп слева, справа — затреканное по задаче; клик по времени — меню с формой', async () => {
     const w = mount(TimeControl, { props: { taskId: 'root' } });
-    expect(w.get('[data-test=time-total]').text()).toBe('addManual');
+    // PLNRAPP-128: no time yet — «+» with the label
+    expect(w.get('[data-test=time-total]').text()).toBe('');
+    expect(w.get('[data-test=time-total]').attributes('aria-label')).toBe('addManual');
     await w.get('[data-test=time-toggle]').trigger('click');
     expect(mutate).toHaveBeenCalledWith('time.start', { id: expect.any(String), taskId: 'root' });
     st.entries.value = [
