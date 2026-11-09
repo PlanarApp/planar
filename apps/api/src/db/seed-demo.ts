@@ -28,7 +28,8 @@ import { templatesTemplates } from '@planar/module-templates/api/schema';
 import { workloadCapacities } from '@planar/module-workload/api/schema';
 import { sprintsCycles, sprintsSettings } from '@planar/module-sprints/api/schema';
 import { timeEntries, timeEstimates } from '@planar/module-time/api/schema';
-import { DATA_MODULE_IDS, extractMentions, textToDoc } from '@planar/shared';
+import { DATA_MODULE_IDS, extractMentions, isDataModule, textToDoc } from '@planar/shared';
+import { installed } from '../modules/installed.js';
 import { createDb, migrate, type Db } from './index.js';
 import { filePath } from '../files/store.js';
 import * as s from './schema.js';
@@ -81,6 +82,10 @@ const LABELS = [
 
 // Workspace = root space (settings root_space, workspace): without it group tabs have no scope
 const WORKSPACE = { name: 'Brightwave', color: '#6366f1', icon: '🌊' };
+/** Every installed shared module except the example one (hello) */
+const SHARED_MODULES = installed
+  .map((m) => m.api.id)
+  .filter((id) => !isDataModule(id) && id !== 'hello');
 /** `space` of DOCS / CHANNELS at the Workspace level */
 const ROOT = -1;
 // node icons are emoji (NodeIcon)
@@ -630,6 +635,8 @@ async function insertAll(tx: Tx, now: Date) {
   await ins(s.settings, [
     { id: 'root_space', value: rootId, updatedAt: at(-90) },
     { id: 'workspace', value: WORKSPACE, updatedAt: at(-90) },
+    // shared modules are off until enabled (data modules are always on): without this the demo has no chat
+    { id: 'enabled_modules', value: SHARED_MODULES, updatedAt: at(-90) },
   ]);
   await ins(s.spaceMembers, [
     // Workspace: everyone except guests (as ensureRootSpace)
