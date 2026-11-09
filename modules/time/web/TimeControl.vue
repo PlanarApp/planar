@@ -70,13 +70,22 @@ const toggle = () =>
 </template>
 
 <style scoped>
+/* one block (PLNRAPP-128): start/stop and the time read as one control */
 .tc {
   display: inline-flex;
-  align-items: center;
-  gap: 2px;
+  align-items: stretch;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 6px);
+}
+/* inner corners square, outer ones follow the frame (no overflow:hidden — it would clip focus rings) */
+.tc > :first-child {
+  border-radius: var(--radius-md, 6px) 0 0 var(--radius-md, 6px);
 }
 .time {
-  border-radius: var(--radius-md, 6px);
+  display: inline-flex;
+  align-items: center;
+  border-left: 1px solid var(--color-border);
+  border-radius: 0 var(--radius-md, 6px) var(--radius-md, 6px) 0;
   padding: 2px 6px;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
@@ -88,8 +97,6 @@ const toggle = () =>
   color: var(--color-danger);
 }
 .muted {
-  display: inline-flex;
-  align-items: center;
   color: var(--color-fg-subtle);
 }
 .menu {
