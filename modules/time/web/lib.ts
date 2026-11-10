@@ -133,3 +133,51 @@ export function planCell(
   }
   return ops;
 }
+
+type Named = { id: string; name: string };
+
+/**
+ * CSV export rows (PLNRAPP-149): completed entries with the local day in [from, to] whose task passes
+ * `inScope`, sorted by date — date, project, task, user, minutes, note, billable.
+ */
+export function exportRows(
+  d: {
+    entries: TimeEntry[];
+    tasks: { id: string; title: string; projectId: string }[];
+    projects: Named[];
+    users: Named[];
+  },
+  from: string,
+  to: string,
+  inScope: (taskId: string) => boolean = () => true,
+): string[][] {
+  const task = new Map(d.tasks.map((t) => [t.id, t]));
+  const name = new Map([...d.projects, ...d.users].map((x) => [x.id, x.name]));
+  return d.entries
+    .filter((e) => e.endedAt && inScope(e.taskId))
+    .map((e) => ({ e, day: dayKey(new Date(e.startedAt)) }))
+    .filter(({ day }) => day >= from && day <= to)
+    .sort((a, b) => a.e.startedAt.localeCompare(b.e.startedAt))
+    .map(({ e, day }) => {
+      const t = task.get(e.taskId);
+      return [
+        day,
+        (t && name.get(t.projectId)) ?? '',
+        t?.title ?? '',
+        name.get(e.userId) ?? '',
+        String(Math.round((e.durationSec ?? 0) / 60)),
+        e.note ?? '',
+        e.billable ? '1' : '0',
+      ];
+    });
+}
+
+const cell = (raw: string) => {
+  // a leading = + - @ makes Excel run the cell as a formula (CSV injection) — neutralise with '
+  const v = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+  return /[",\r\n]/.test(v) ? `"${v.replaceAll('"', '""')}"` : v;
+};
+
+/** RFC 4180: comma, CRLF, quotes doubled; a BOM so that Excel reads UTF-8. */
+export const toCsv = (rows: string[][]): string =>
+  '﻿' + rows.map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
