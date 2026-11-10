@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { Button, IconButton, Input, Select, type GroupScope } from '@planar/web/modules';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { dayKey, entrySec, hm, parseHm, planCell, weekDays } from './lib';
+import TimeExport from './TimeExport.vue';
 import {
   isInstanceAdmin,
   locale,
@@ -99,6 +100,7 @@ async function edit(taskId: string, k: string, text: string) {
         :options="(users ?? []).map((u) => ({ value: u.id, label: u.name }))"
         data-test="user"
       />
+      <TimeExport :from="keys[0]" :to="keys[6]" :in-scope="inScope" />
     </header>
     <p v-if="err" class="err" role="alert">{{ err }}</p>
     <p v-if="!rows.length" class="muted">{{ tr('empty') }}</p>

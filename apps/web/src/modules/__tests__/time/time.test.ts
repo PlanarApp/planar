@@ -26,6 +26,7 @@ vi.mock('../../../../../../modules/time/web/data', async () => {
     useMyEntries: () => state.entries,
     useEntries: () => state.entries,
     useTaskEntries: () => state.taskEntries,
+    loadExport: vi.fn(),
     useUserNames: () =>
       ref(
         new Map([
@@ -48,7 +49,14 @@ import TimerPanel from '../../../../../../modules/time/web/TimerPanel.vue';
 import TimeControl from '../../../../../../modules/time/web/TimeControl.vue';
 import TopbarTimer from '../../../../../../modules/time/web/TopbarTimer.vue';
 import WeekPage from '../../../../../../modules/time/web/WeekPage.vue';
-import { dayKey, parseHm, planCell, weekDays } from '../../../../../../modules/time/web/lib';
+import {
+  dayKey,
+  exportRows,
+  parseHm,
+  planCell,
+  toCsv,
+  weekDays,
+} from '../../../../../../modules/time/web/lib';
 import { registerModules } from '../../registry';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -141,6 +149,53 @@ describe('wk1: панель задачи', () => {
       'time.log',
       expect.objectContaining({ taskId: 'root', durationSec: 5400 }),
     );
+  });
+});
+
+describe('PLNRAPP-149 экспорт CSV', () => {
+  const data = {
+    tasks: [{ id: 'root', title: 'Корень', projectId: 'p' }],
+    projects: [{ id: 'p', name: 'APP' }],
+    users: [
+      { id: 'me', name: 'Я' },
+      { id: 'someone', name: 'Коллега' },
+    ],
+  };
+
+  it('строки: дата, проект, задача, исполнитель, минуты, коммент, billed; период, область, без идущих', () => {
+    const rows = exportRows(
+      {
+        ...data,
+        entries: [
+          entry({
+            startedAt: '2026-10-21T12:00:00.000Z',
+            durationSec: 5430,
+            note: 'x',
+            billable: true,
+          }),
+          entry({ userId: 'someone', startedAt: '2026-10-20T12:00:00.000Z', durationSec: 600 }),
+          entry({ startedAt: '2026-10-25T12:00:00.000Z' }), // after the period
+          entry({ taskId: 'other', startedAt: '2026-10-21T12:00:00.000Z' }), // out of scope
+          entry({ startedAt: '2026-10-21T12:00:00.000Z', endedAt: null, durationSec: null }), // running
+        ],
+      },
+      '2026-10-19',
+      '2026-10-22',
+      (id) => id === 'root',
+    );
+    expect(rows).toEqual([
+      ['2026-10-20', 'APP', 'Корень', 'Коллега', '10', '', '0'],
+      ['2026-10-21', 'APP', 'Корень', 'Я', '91', 'x', '1'],
+    ]);
+  });
+
+  it('CSV: BOM, CRLF, кавычки; формулы обезврежены', () => {
+    expect(
+      toCsv([
+        ['a', 'b,c', 'say "hi"'],
+        ['=1+1', '-x', 'ok\nline'],
+      ]),
+    ).toBe('﻿a,"b,c","say ""hi"""\r\n\'=1+1,\'-x,"ok\nline"\r\n');
   });
 });
 

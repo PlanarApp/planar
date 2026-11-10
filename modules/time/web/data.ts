@@ -41,6 +41,16 @@ export const useUserNames = () =>
         ]),
       ),
   );
+/** Raw data for the CSV export (PLNRAPP-149): entries of the users plus names of tasks, projects, users. */
+export async function loadExport(userIds: string[]) {
+  const [entries, tasks, projects, users] = await Promise.all([
+    db.table('timeEntries').where('userId').anyOf(userIds).toArray() as Promise<TimeEntry[]>,
+    db.table('tasks').toArray() as Promise<{ id: string; title: string; projectId: string }[]>,
+    db.table('projects').toArray() as Promise<{ id: string; name: string }[]>,
+    db.table('users').toArray() as Promise<{ id: string; name: string }[]>,
+  ]);
+  return { entries, tasks, projects, users };
+}
 /** the owner or the instance admin: the "Time" of any user (spaces' entries are in the replica anyway) */
 export const isInstanceAdmin = () => ['owner', 'admin'].includes(useSession().value?.role ?? '');
 export const useUsers = () =>
@@ -106,6 +116,19 @@ const dict = {
   task: { ru: 'Задача', en: 'Task' },
   total: { ru: 'Итого', en: 'Total' },
   empty: { ru: 'На этой неделе записей нет', en: 'No entries this week' },
+  export: { ru: 'Экспорт CSV', en: 'Export CSV' },
+  download: { ru: 'Скачать', en: 'Download' },
+  from: { ru: 'С', en: 'From' },
+  to: { ru: 'По', en: 'To' },
+  people: { ru: 'Сотрудники', en: 'People' },
+  colDate: { ru: 'Дата трека', en: 'Date' },
+  colProject: { ru: 'Проект', en: 'Project' },
+  colTask: { ru: 'Задача', en: 'Task' },
+  colUser: { ru: 'Исполнитель', en: 'User' },
+  colMin: { ru: 'Длительность, мин', en: 'Duration, min' },
+  colNote: { ru: 'Комментарий', en: 'Comment' },
+  colBilled: { ru: 'Billed', en: 'Billed' },
+  nothing: { ru: 'За период записей нет', en: 'No entries for the period' },
 } as const;
 export type Key = keyof typeof dict;
 export const tr = (k: Key): string => {
