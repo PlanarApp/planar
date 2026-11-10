@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { defineMutator, type Row, type Tx } from '../contract/index.js';
+import { defineMutator, type MutatorCtx, type Row, type Tx } from '../contract/index.js';
 import { checkFields } from './fields.js';
 import {
   bad,
@@ -82,6 +82,38 @@ async function remapLabels(tx: Tx, taskId: string, projectId: string) {
 const link = (tx: Tx, entity: 'taskAssignees' | 'taskWatchers', taskId: string) =>
   tx.scan(entity, { index: 'taskId', eq: taskId });
 
+/**
+ * PLNRAPP-152: the task with all its subtasks goes to project `p` of another space; ids stay, the server
+ * moves the rows tied by taskId (comments, links, time…). Subtasks first: when the root moves, a child
+ * still left behind (hidden from the caller) is cut off by the server. Status and labels — as on a move
+ * within the space; number, cycle, fields reset; assignees and watchers outside the new space are dropped.
+ */
+async function moveToSpace(
+  tx: Tx,
+  t: Row<'tasks'>,
+  p: Row<'projects'>,
+  members: Set<string>,
+  ctx: MutatorCtx,
+  root?: { patch: Partial<Row<'tasks'>>; status?: Row<'statuses'> },
+) {
+  for (const c of await tx.scan('tasks', { index: 'parentId', eq: t.id }))
+    await moveToSpace(tx, c, p, members, ctx);
+  const st = root?.status ?? (await remapStatus(tx, t.statusId, p.id));
+  await remapLabels(tx, t.id, p.id);
+  for (const e of ['taskAssignees', 'taskWatchers'] as const)
+    for (const x of await link(tx, e, t.id)) if (!members.has(x.userId)) await tx.del(e, x.id);
+  await tx.patch('tasks', t.id, {
+    ...root?.patch,
+    spaceId: p.spaceId,
+    projectId: p.id,
+    number: null,
+    cycleId: null,
+    fields: {},
+    statusId: st.id,
+    completedAt: completedAt(st.category, t.completedAt, ctx),
+  });
+}
+
 export const taskMutators = [
   defineMutator({
     name: 'task.create',
@@ -163,7 +195,20 @@ export const taskMutators = [
       const moved = !!a.projectId && a.projectId !== t.projectId;
       if (a.projectId) {
         const p = await need(tx, 'projects', a.projectId);
-        if (p.spaceId !== t.spaceId) throw bad('projectId другого пространства');
+        if (p.spaceId !== t.spaceId) {
+          const status = a.statusId ? await need(tx, 'statuses', a.statusId) : undefined;
+          if (status && status.projectId !== p.id) throw bad('statusId другого проекта');
+          if (a.fields) throw bad('fields при переносе в другое пространство');
+          if (a.parentId) await checkParent(tx, t.id, p.spaceId, a.parentId);
+          const members = new Set(
+            (await tx.scan('spaceMembers', { index: 'spaceId', eq: p.spaceId })).map(
+              (m) => m.userId,
+            ),
+          );
+          // the old parent stays in the old space
+          patch.parentId = a.parentId ?? null;
+          return moveToSpace(tx, t, p, members, ctx, { patch, status });
+        }
         if (moved) {
           patch.number = null;
           patch.cycleId = null;

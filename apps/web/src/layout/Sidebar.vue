@@ -26,6 +26,7 @@ import type { MenuItem } from '../ui/Menu.vue';
 import NodeIcon from '../ui/NodeIcon.vue';
 import { useBreakpoint } from '../ui/useBreakpoint';
 import { setSidebarMode, sidebarMode } from './sidebarWidth';
+import { dragged, endTaskDrag, overProject } from '../tasks/dropToProject';
 
 // reka (Avatar/Menu) — outside the initial bundle
 const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
@@ -54,6 +55,20 @@ function moveFav(e: { oldIndex?: number; newIndex?: number }) {
   const [k] = keys.splice(e.oldIndex!, 1);
   keys.splice(e.newIndex!, 0, k!);
   favStore.reorder(keys);
+}
+// a task card dragged from the board onto a project moves there (PLNRAPP-152); other drags are ignored
+function dragOver(projectId: string, e: DragEvent) {
+  if (!dragged.value) return;
+  e.preventDefault();
+  overProject.value = projectId;
+}
+const dragLeave = (projectId: string) => {
+  if (overProject.value === projectId) overProject.value = null;
+};
+function dropTask(projectId: string, e: DragEvent) {
+  if (!dragged.value) return;
+  e.preventDefault();
+  endTaskDrag(projectId);
 }
 const FAV_ICONS = {
   workspace: LayoutGrid,
@@ -396,11 +411,15 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
                 <Menu v-else context :items="act.projectItems(p)">
                   <RouterLink
                     :to="`/p/${p.id}`"
-                    :class="[link, 'pl-8 pr-1']"
+                    :class="[link, 'pl-8 pr-1', overProject === p.id && 'ring-2 ring-focus']"
                     active-class="bg-accent-subtle"
                     data-testid="nav-project"
+                    :data-drop-project="p.id"
                     @pointerenter="prefetchProject(p.id)"
                     @focus="prefetchProject(p.id)"
+                    @dragover="dragOver(p.id, $event)"
+                    @dragleave="dragLeave(p.id)"
+                    @drop="dropTask(p.id, $event)"
                   >
                     <span v-if="p.icon" :class="nodeIcon" aria-hidden="true"
                       ><NodeIcon :icon="p.icon"

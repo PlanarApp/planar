@@ -50,6 +50,7 @@ import { nextSort, sortMark } from '../sortHead';
 import type { SortBy } from '../../tasks';
 import { applyMove, planMove } from '../board/plan';
 import { tokenOf } from '../../command/hotkeys';
+import { endTaskDrag, overProject, projectAt, startTaskDrag } from '../../tasks/dropToProject';
 
 const props = defineProps<ViewProps>();
 const { t, locale } = useI18n();
@@ -270,6 +271,7 @@ function onDragMove(e: PointerEvent) {
     el.scrollTop -= 12; // auto-scroll near the edges
   else if (e.clientY > r.bottom - 32) el.scrollTop += 12;
   drag.value.drop = dropAt(e.clientY);
+  overProject.value = projectAt(e.clientX, e.clientY);
 }
 const groupOf = (it: Item | undefined) =>
   !it || it.kind === 'head' ? undefined : it.kind === 'task' ? it.group : it.group.key;
@@ -277,7 +279,7 @@ async function onDragEnd() {
   removeEventListener('pointermove', onDragMove);
   const d = drag.value;
   drag.value = null;
-  if (!d) return;
+  if (!d || endTaskDrag()) return;
   const list = items.value;
   let to: string | undefined;
   let parent: string | null;
@@ -334,6 +336,7 @@ function startDrag(it: { task: TaskView; group: string }, e: PointerEvent) {
   banned = descendants(it.task.id);
   dragProject = it.task.projectId;
   drag.value = { task: it.task, from: it.group, drop: dropAt(e.clientY) };
+  startTaskDrag(it.task);
   addEventListener('pointermove', onDragMove);
   addEventListener('pointerup', () => void onDragEnd(), { once: true });
 }
