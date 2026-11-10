@@ -150,10 +150,13 @@ async function edit(taskId: string, k: string, text: string) {
   flex-direction: column;
   gap: 8px;
   font-size: var(--text-base);
+  /* in a flex container of the group tab the wide table would stretch the page instead of scrolling (PLNRAPP-151) */
+  min-width: 0;
 }
 .row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 h2 {
@@ -161,7 +164,9 @@ h2 {
   margin: 0;
   flex: 1;
 }
+/* relative: the cells' sr-only labels (position: absolute) are clipped here instead of widening the page */
 .scroll {
+  position: relative;
   overflow-x: auto;
 }
 table {
