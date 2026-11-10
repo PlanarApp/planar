@@ -4,6 +4,37 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-10
+
+### Added
+
+- Time tracking: duration and estimate as `30m`, `2h`, `1d`, `1w` (1d = 8h, 1w = 5d); a "Billable" flag on entries; the task's time entries of every user, own ones are edited in the same form and deleted.
+- Time export to CSV for a period: admins pick the people, everyone else exports own entries (date, project, task, user, minutes, comment, billable).
+- Checklist: an assignee on an item (a task with my open item is mine, a notification on assignment); an item turns into a task or a subtask; nested items with Tab / Shift+Tab, the menu and drag and drop.
+- Selected text in a description or a comment turns into a task or a subtask.
+- Completing a task shows its unfinished subtasks and open assigned comments.
+- "My day": "Add to my day", "Tomorrow" and "Remove from day" in the "Due" menu; a regular task view under the planner.
+- List: a "…" button at the right of a row opens the task actions menu.
+- Counters on the "My work" tabs: open comments, unread mentions, activity, "My day", "Assigned", "Created", "Watching".
+- "Sign in as" any member of a node and from the "Users" list.
+- Favorites are stored on the server and follow you across devices.
+
+### Changed
+
+- Task time control: start/stop and "+" are small and frameless like the other properties; the top bar timer stops on the time and opens the task on the title.
+- Assigned comments: "Complete" on the left, the assignee on the right opens the assign menu with avatars; replies of any depth can be assigned and completed; a collapsed assigned comment shows only the assignee's name.
+- "Assignee = me" and the MCP `my_tasks` tool include assigned comments and checklist items.
+- `@@` / `@@@` inserts look like links and open in the app.
+- "My day" cards: key and status, the date with a reschedule menu on the right, the title in up to two lines; the task list uses the same cards.
+- Mobile task header: narrower "back" and "favorite" buttons, smaller indents.
+- Demo: shared modules (chat, import, email, webhooks, plugins) are on, every feature has demo data.
+
+### Fixed
+
+- Mobile chat: the app shrinks above the keyboard, the page no longer jumps up.
+- Arrow navigation in the list works right after opening "Tasks" and after picking a status.
+- "Reports › Time" on narrow screens: the header wraps, the table scrolls inside its block.
+
 ## [0.12.0] - 2026-11-07
 
 ### Added
@@ -117,7 +148,9 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 - Issuing ACME certificates for a public domain has not been tested; see `docs/guides/deploy.md`.
 
-[Unreleased]: https://gitlab.com/planarhq/planar/-/compare/v0.11.0...main
+[Unreleased]: https://gitlab.com/planarhq/planar/-/compare/v0.13.0...main
+[0.13.0]: https://gitlab.com/planarhq/planar/-/compare/v0.12.0...v0.13.0
+[0.12.0]: https://gitlab.com/planarhq/planar/-/compare/v0.11.0...v0.12.0
 [0.11.0]: https://gitlab.com/planarhq/planar/-/compare/v0.10.0...v0.11.0
 [0.10.0]: https://gitlab.com/planarhq/planar/-/compare/v0.9.0...v0.10.0
 [0.9.0]: https://gitlab.com/planarhq/planar/-/tags/v0.9.0
