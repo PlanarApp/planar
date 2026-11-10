@@ -31,6 +31,7 @@ async function download() {
     'colProject',
     'colTask',
     'colUser',
+    'colLogin',
     'colMin',
     'colNote',
     'colBilled',

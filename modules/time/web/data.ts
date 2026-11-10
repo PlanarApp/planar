@@ -47,7 +47,7 @@ export async function loadExport(userIds: string[]) {
     db.table('timeEntries').where('userId').anyOf(userIds).toArray() as Promise<TimeEntry[]>,
     db.table('tasks').toArray() as Promise<{ id: string; title: string; projectId: string }[]>,
     db.table('projects').toArray() as Promise<{ id: string; name: string }[]>,
-    db.table('users').toArray() as Promise<{ id: string; name: string }[]>,
+    db.table('users').toArray() as Promise<{ id: string; name: string; login: string }[]>,
   ]);
   return { entries, tasks, projects, users };
 }
@@ -125,6 +125,7 @@ const dict = {
   colProject: { ru: 'Проект', en: 'Project' },
   colTask: { ru: 'Задача', en: 'Task' },
   colUser: { ru: 'Исполнитель', en: 'User' },
+  colLogin: { ru: 'Логин', en: 'Login' },
   colMin: { ru: 'Длительность, мин', en: 'Duration, min' },
   colNote: { ru: 'Комментарий', en: 'Comment' },
   colBilled: { ru: 'Billed', en: 'Billed' },

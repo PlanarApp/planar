@@ -136,35 +136,42 @@ export function planCell(
 
 type Named = { id: string; name: string };
 
+/** Local timestamp YYYY-MM-DD HH:MM:SS. */
+const stamp = (d: Date): string =>
+  `${dayKey(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
 /**
  * CSV export rows (PLNRAPP-149): completed entries with the local day in [from, to] whose task passes
- * `inScope`, sorted by date — date, project, task, user, minutes, note, billable.
+ * `inScope`, sorted by start — start timestamp, project, task, user name, login, minutes, note, billable.
  */
 export function exportRows(
   d: {
     entries: TimeEntry[];
     tasks: { id: string; title: string; projectId: string }[];
     projects: Named[];
-    users: Named[];
+    users: (Named & { login: string })[];
   },
   from: string,
   to: string,
   inScope: (taskId: string) => boolean = () => true,
 ): string[][] {
   const task = new Map(d.tasks.map((t) => [t.id, t]));
-  const name = new Map([...d.projects, ...d.users].map((x) => [x.id, x.name]));
+  const project = new Map(d.projects.map((p) => [p.id, p.name]));
+  const user = new Map(d.users.map((u) => [u.id, u]));
   return d.entries
     .filter((e) => e.endedAt && inScope(e.taskId))
     .map((e) => ({ e, day: dayKey(new Date(e.startedAt)) }))
     .filter(({ day }) => day >= from && day <= to)
     .sort((a, b) => a.e.startedAt.localeCompare(b.e.startedAt))
-    .map(({ e, day }) => {
+    .map(({ e }) => {
       const t = task.get(e.taskId);
+      const u = user.get(e.userId);
       return [
-        day,
-        (t && name.get(t.projectId)) ?? '',
+        stamp(new Date(e.startedAt)),
+        (t && project.get(t.projectId)) ?? '',
         t?.title ?? '',
-        name.get(e.userId) ?? '',
+        u?.name ?? '',
+        u?.login ?? '',
         String(Math.round((e.durationSec ?? 0) / 60)),
         e.note ?? '',
         e.billable ? '1' : '0',
