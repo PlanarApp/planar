@@ -157,23 +157,27 @@ describe('PLNRAPP-149 экспорт CSV', () => {
     tasks: [{ id: 'root', title: 'Корень', projectId: 'p' }],
     projects: [{ id: 'p', name: 'APP' }],
     users: [
-      { id: 'me', name: 'Я' },
-      { id: 'someone', name: 'Коллега' },
+      { id: 'me', name: 'Я', login: 'me' },
+      { id: 'someone', name: 'Коллега', login: 'colleague' },
     ],
   };
 
-  it('строки: дата, проект, задача, исполнитель, минуты, коммент, billed; период, область, без идущих', () => {
+  it('строки: дата со временем, проект, задача, имя, логин, минуты, коммент, billed; период, область, без идущих', () => {
     const rows = exportRows(
       {
         ...data,
         entries: [
           entry({
-            startedAt: '2026-10-21T12:00:00.000Z',
+            startedAt: new Date(2026, 9, 21, 9, 5, 7).toISOString(),
             durationSec: 5430,
             note: 'x',
             billable: true,
           }),
-          entry({ userId: 'someone', startedAt: '2026-10-20T12:00:00.000Z', durationSec: 600 }),
+          entry({
+            userId: 'someone',
+            startedAt: new Date(2026, 9, 20, 18, 30).toISOString(),
+            durationSec: 600,
+          }),
           entry({ startedAt: '2026-10-25T12:00:00.000Z' }), // after the period
           entry({ taskId: 'other', startedAt: '2026-10-21T12:00:00.000Z' }), // out of scope
           entry({ startedAt: '2026-10-21T12:00:00.000Z', endedAt: null, durationSec: null }), // running
@@ -184,8 +188,8 @@ describe('PLNRAPP-149 экспорт CSV', () => {
       (id) => id === 'root',
     );
     expect(rows).toEqual([
-      ['2026-10-20', 'APP', 'Корень', 'Коллега', '10', '', '0'],
-      ['2026-10-21', 'APP', 'Корень', 'Я', '91', 'x', '1'],
+      ['2026-10-20 18:30:00', 'APP', 'Корень', 'Коллега', 'colleague', '10', '', '0'],
+      ['2026-10-21 09:05:07', 'APP', 'Корень', 'Я', 'me', '91', 'x', '1'],
     ]);
   });
 
