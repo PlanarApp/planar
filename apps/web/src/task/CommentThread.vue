@@ -72,8 +72,9 @@ const snippet = computed(() => docText(props.comment.body).replace(/\s+/g, ' ').
           'shrink-0 rounded-full px-2 py-0.5 text-xs',
           c().resolvedAt ? 'bg-bg-muted text-fg-muted line-through' : 'bg-accent-subtle text-fg',
         ]"
+        :title="t('task.assignedTo', { name: f.names.value[c().assigneeId!] ?? '?' })"
         data-testid="collapsed-assigned"
-        >{{ t('task.assignedTo', { name: f.names.value[c().assigneeId!] ?? '?' })
+        >{{ f.names.value[c().assigneeId!] ?? '?'
         }}<template v-if="c().resolvedAt"> · {{ t('task.resolved') }}</template></span
       >
       <span v-if="descendants" class="shrink-0 text-xs text-fg-subtle">{{

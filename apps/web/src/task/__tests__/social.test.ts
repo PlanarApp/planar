@@ -186,7 +186,10 @@ describe('PLANARAPP-44 сворачивание комментариев', () =>
     await flushPromises();
     const row = w.get('[data-testid="comment-collapsed"]');
     expect(row.text()).toContain('КОРЕНЬ');
-    expect(row.get('[data-testid="collapsed-assigned"]').text()).toContain('Завершено');
+    const chip = row.get('[data-testid="collapsed-assigned"]');
+    expect(chip.text()).toContain('Завершено');
+    expect(chip.text()).not.toContain('Назначено'); // PLNRAPP-148: only the name, the prefix is in the tooltip
+    expect(chip.attributes('title')).toMatch(/^Назначено: /);
     expect(row.text()).toContain('ответов: 2');
     expect(w.text()).not.toContain('ГЛУБЖЕ');
     // a single comment collapses too
