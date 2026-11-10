@@ -171,7 +171,7 @@ describe('task.update', () => {
     expect((await tx.get('tasks', t))!.completedAt).toBeNull();
   });
 
-  it('смена projectId: number = null; другое пространство → invalid_args', async () => {
+  it('смена projectId: number = null; статус другого пространства → invalid_args', async () => {
     const { tx, s, t } = await setup();
     await tx.patch('tasks', t, { number: 7 });
     await run(tx, 'task.update', { id: t, projectId: s.projectId });
@@ -180,10 +180,7 @@ describe('task.update', () => {
     await addProject(tx, s.spaceId, p2, 'PTWO', 'a1');
     await run(tx, 'task.update', { id: t, projectId: p2 });
     expect(await tx.get('tasks', t)).toMatchObject({ projectId: p2, number: null });
-    const s2 = await seedSpace(tx);
-    expect(await code(run(tx, 'task.update', { id: t, projectId: s2.projectId }))).toBe(
-      'invalid_args',
-    );
+    const s2 = await seedSpace(tx); // a move to another space — move-space.test.ts
     expect(await code(run(tx, 'task.update', { id: t, statusId: s2.statusIds[0] }))).toBe(
       'invalid_args',
     );

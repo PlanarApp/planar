@@ -12,6 +12,7 @@ import { Input } from '../../ui';
 import type { CardCol } from './CardField.vue';
 import TaskCard from '../list/TaskCard.vue';
 import type { TaskField } from '../options';
+import { dragged, endTaskDrag, startTaskDrag } from '../../tasks/dropToProject';
 
 const VIRTUAL_FROM = 50;
 const CARD = 84; // estimated card height with the gap, px; the real one — by content (measureElement)
@@ -114,8 +115,12 @@ const rows = computed(() => {
 const label = (id: string) => props.labels.find((l) => l.id === id);
 
 let anchor: ChildNode | null = null;
+let started = false;
 const onStart = (e: { item: HTMLElement }) => {
   anchor = e.item.nextSibling;
+  const task = props.group.tasks.find((x) => x.id === dataId(e.item));
+  started = !!task;
+  if (task) startTaskDrag(task);
 };
 const dataId = (n: Element | null) => n?.getAttribute('data-id') ?? null;
 const nextCard = (el: Element | null) => {
@@ -130,6 +135,13 @@ function onEnd(e: {
   oldDraggableIndex?: number;
   newDraggableIndex?: number;
 }) {
+  // dropped onto a sidebar project: its drop has already moved the task — only the DOM goes back
+  const onProject = started && !dragged.value;
+  endTaskDrag(null);
+  if (onProject) {
+    if (e.from !== e.to) (e.item.remove(), e.from.insertBefore(e.item, anchor));
+    return;
+  }
   const id = dataId(e.item)!;
   const from = e.from.dataset.col!;
   // inside the column vue-draggable-plus has already returned the DOM to place (waits for update:modelValue) — the position comes from the indices

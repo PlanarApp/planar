@@ -117,7 +117,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, 
 | field | type | note |
 |---|---|---|
 | `id` | uuid | |
-| `spaceId` | uuid | = `projects.spaceId` |
+| `spaceId` | uuid | = `projects.spaceId`; changes only with a move to a project of another space (PLNRAPP-152) |
 | `projectId` | uuid | only a project of the same space |
 | `number` | int? | null on the client until the server responds; task key = `${project.key}-${number}`; unique (projectId, number) |
 | `parentId` | uuid? | subtask |

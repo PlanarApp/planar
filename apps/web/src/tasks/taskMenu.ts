@@ -44,9 +44,34 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
   const statuses = useStatuses(spaceId);
   const members = useMembers(spaceId);
   const projects = useQuery(() => db.table<Row<'projects'>>('projects').toArray());
-  // group summary: spaceId — several spaces comma-separated; statuses and projects — the task's spaces
-  const spaceProjects = (task: TaskView) =>
-    (projects.value ?? []).filter((p) => p.spaceId === task.spaceId && !p.archivedAt);
+  // move targets (PLNRAPP-152): projects of the task's space, then of other spaces where I am not a guest
+  const spaces = useQuery(() => db.table<Row<'spaces'>>('spaces').toArray());
+  const writable = useQuery(async () => {
+    const me = session.value?.id ?? '';
+    const rows = await db
+      .table<Row<'spaceMembers'>>('spaceMembers')
+      .where('userId')
+      .equals(me)
+      .toArray();
+    return new Set(rows.filter((m) => m.role !== 'guest').map((m) => m.spaceId));
+  });
+  const byRank = <T extends { rank: string }>(a: T, b: T) =>
+    a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0;
+  const moveTargets = (task: TaskView) => {
+    const live = (projects.value ?? []).filter((p) => !p.archivedAt).sort(byRank);
+    const own = live
+      .filter((p) => p.spaceId === task.spaceId)
+      .map((p) => ({ ...p, label: p.name }));
+    const others = [...(spaces.value ?? [])]
+      .filter((s) => s.id !== task.spaceId && writable.value?.has(s.id))
+      .sort(byRank)
+      .flatMap((s) =>
+        live
+          .filter((p) => p.spaceId === s.id)
+          .map((p) => ({ ...p, label: `${s.name} / ${p.name}` })),
+      );
+    return [...own, ...others];
+  };
 
   const copy = (text: string, note: string) =>
     navigator.clipboard?.writeText(text).then(() => toast(note, 2500));
@@ -194,10 +219,10 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
         id: 'move',
         label: t('taskMenu.move'),
         icon: ArrowRightLeft,
-        disabled: spaceProjects(task).length < 2,
-        children: spaceProjects(task).map((p) => ({
+        disabled: moveTargets(task).length < 2,
+        children: moveTargets(task).map((p) => ({
           id: p.id,
-          label: p.name,
+          label: p.label,
           checked: p.id === task.projectId,
           onSelect: () => p.id !== task.projectId && void updateTask(task.id, { projectId: p.id }),
         })),

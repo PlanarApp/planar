@@ -68,7 +68,7 @@ v6 (FT): `fieldDefs`, `taskLinks`, format of `tasks.fields` (features.md).
 - `id` — `uuid` (uuidv7, created by the client; server rows — Postgres 18 `uuidv7()`), except `settings.id` (`text`, the setting key). PK — `id`.
 - A row on the wire contains **all** fields of the entity; a missing value is `null` (the key is not omitted).
 - `createdAt`/`updatedAt` are set by the mutator from `ctx.now`; on the server `ctx.now` is the server time.
-- `spaceId` is immutable after creation (a patch with a different `spaceId` → `invalid_args`); for tasks, comments, attachments, checklists, task labels it is denormalized.
+- `spaceId` is immutable after creation (a patch with a different `spaceId` → `invalid_args`); for tasks, comments, attachments, checklists, task labels it is denormalized. The exception — a task moved to another space (PLNRAPP-152, `task.update` with `projectId`): the write is authorized in both spaces; the server writes `del` to the old space's journal before the `put`, then moves every space-scoped row with that `taskId` (core and modules, incl. `activity`) and reactions to its comments the same way, without rights checks and hooks; a subtask left in the old space (hidden from the caller) gets `parentId = null`.
 - Enum — `text` + `CHECK`. `rank` — `text COLLATE "C"` (fractional-indexing keys are compared bytewise).
 - FK between synced tables — no cascade (`NO ACTION`): the mutator deletes child rows itself, through `Tx`, otherwise the client does not learn about the deletion. Exceptions — `activity.taskId`, `notifications.taskId/commentId` (no FK, the history outlives the task). Non-synced tables reference `users` with `ON DELETE CASCADE`.
 
