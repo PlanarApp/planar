@@ -1,8 +1,8 @@
-import { api } from '../api/http';
+import { api, ApiError } from '../api/http';
 
 // Push message format (gateway Q5): JSON {title, body, url, tag, kind} — parsed in public/push-sw.js.
 
-export type PushResult = 'ok' | 'denied' | 'unsupported';
+export type PushResult = 'ok' | 'denied' | 'unsupported' | 'unconfigured';
 
 export const pushSupported = (): boolean =>
   'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -34,7 +34,12 @@ export async function isSubscribed(): Promise<boolean> {
 export async function enablePush(): Promise<PushResult> {
   if (!pushSupported()) return 'unsupported';
   if ((await Notification.requestPermission()) !== 'granted') return 'denied';
-  const { publicKey } = await api<{ publicKey: string }>('GET', '/api/push/vapid');
+  const vapid = await api<{ publicKey: string }>('GET', '/api/push/vapid').catch((e) => {
+    if (e instanceof ApiError && e.status === 404) return null; // server has no VAPID keys
+    throw e;
+  });
+  if (!vapid) return 'unconfigured';
+  const { publicKey } = vapid;
   const sub = await (
     await registration()
   ).pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key(publicKey) });

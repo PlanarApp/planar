@@ -550,6 +550,17 @@ describe('inbox:push', () => {
     expect(w.find('[role=alert]').text()).toBe(ru.inbox.pushDenied);
     expect(calls('POST')).toHaveLength(0);
   });
+  it('inbox:push на сервере нет VAPID (404) — сообщение про сервер', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: 'VAPID не настроен' }), { status: 404 }),
+    );
+    const w = mount(PushToggle, { global: g });
+    await flushPromises();
+    await btn(w).trigger('click');
+    await flushPromises();
+    expect(w.find('[role=alert]').text()).toBe(ru.inbox.pushUnconfigured);
+    expect(pm.subscribe).not.toHaveBeenCalled();
+  });
   it('inbox:push iOS не standalone — подсказка', async () => {
     vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
       'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari',

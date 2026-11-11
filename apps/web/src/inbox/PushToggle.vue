@@ -24,7 +24,12 @@ async function toggle() {
     } else {
       const r = await enablePush();
       on.value = r === 'ok';
-      if (r !== 'ok') msg.value = t(r === 'denied' ? 'inbox.pushDenied' : 'inbox.pushUnsupported');
+      const msgs = {
+        denied: 'inbox.pushDenied',
+        unsupported: 'inbox.pushUnsupported',
+        unconfigured: 'inbox.pushUnconfigured',
+      };
+      if (r !== 'ok') msg.value = t(msgs[r]);
     }
   } catch {
     msg.value = t('inbox.pushFailed');
