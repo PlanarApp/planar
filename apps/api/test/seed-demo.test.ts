@@ -73,6 +73,7 @@ describe('seed-demo', () => {
       'automations_rules',
       'templates_templates',
       'forms_forms',
+      'forms_links',
       'workload_capacities',
     ])
       expect(

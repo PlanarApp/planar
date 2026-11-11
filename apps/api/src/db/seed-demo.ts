@@ -22,7 +22,7 @@ import {
   goalsMilestoneTasks,
 } from '@planar/module-goals/api/schema';
 import { automationsRules } from '@planar/module-automations/api/schema';
-import { formsForms } from '@planar/module-forms/api/schema';
+import { formsForms, formsLinks } from '@planar/module-forms/api/schema';
 import { recurringRules } from '@planar/module-recurring/api/schema';
 import { templatesTemplates } from '@planar/module-templates/api/schema';
 import { workloadCapacities } from '@planar/module-workload/api/schema';
@@ -1825,6 +1825,37 @@ async function insertAll(tx: Tx, now: Date) {
       createdBy: uid_.omar,
       createdAt: at(-30),
       updatedAt: at(-30),
+    },
+    {
+      id: uid('form:sup-reply'),
+      spaceId: spaceIds[4],
+      projectId: pid('SUP'),
+      slug: 'brightwavereply1',
+      title: 'Follow-up questions',
+      description: 'Answer our questions: the reply is added to your request as a comment.',
+      fields: [
+        { key: 'title', label: 'Your answer', required: true },
+        { key: 'email', label: 'Your email', required: true },
+      ],
+      statusId: statusId('SUP', 0),
+      enabled: true,
+      createdBy: uid_.omar,
+      createdAt: at(-3),
+      updatedAt: at(-3),
+    },
+  ]);
+  // personal link of that form, bound to one request: /f/brightwavereply1?t=demo-personal-link-token
+  await ins(formsLinks, [
+    {
+      id: uid('form-link:sup'),
+      formId: uid('form:sup-reply'),
+      taskId: tid('SUP', 0),
+      tokenHash: createHash('sha256').update('demo-personal-link-token').digest('hex'),
+      expiresAt: at(30),
+      singleUse: true,
+      usedAt: null,
+      createdBy: uid_.omar,
+      createdAt: at(-3),
     },
   ]);
 

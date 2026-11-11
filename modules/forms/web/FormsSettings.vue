@@ -26,6 +26,12 @@ const L = ru
       description: 'Описание задачи',
       email: 'E-mail',
       files: 'Файлы',
+      personal: 'Персональная ссылка: ответ комментарием в задачу',
+      task: 'Ключ задачи, например PRJ-12',
+      days: 'Дней',
+      once: 'Одноразовая',
+      issue: 'Создать ссылку',
+      shown: 'Ссылка показана один раз, скопируйте её сейчас:',
     }
   : {
       title: 'Forms',
@@ -46,6 +52,12 @@ const L = ru
       description: 'Task description',
       email: 'E-mail',
       files: 'Files',
+      personal: 'Personal link: the answer goes into a task as a comment',
+      task: 'Task key, e.g. PRJ-12',
+      days: 'Days',
+      once: 'Single use',
+      issue: 'Create link',
+      shown: 'The link is shown once, copy it now:',
     };
 
 const session = useSession();
@@ -129,6 +141,27 @@ const create = () =>
 
 const url = (f: FormsForm) => `${location.origin}/f/${f.slug}`;
 const copy = (f: FormsForm) => void navigator.clipboard?.writeText(url(f)).catch(() => {});
+
+// personal link: the token is made by the server and shown once (the DB keeps only its hash)
+const pl = reactive({ task: '', days: 7, once: true, error: '' });
+const issued = reactive<Record<string, string>>({});
+async function issue(f: FormsForm) {
+  pl.error = '';
+  const res = await fetch('/api/forms/links', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      formId: f.id,
+      task: pl.task.trim(),
+      ttlHours: Math.round(pl.days * 24),
+      singleUse: pl.once,
+    }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) return void (pl.error = j.message || String(res.status));
+  issued[f.id] = location.origin + j.path;
+}
 </script>
 
 <template>
@@ -196,6 +229,37 @@ const copy = (f: FormsForm) => void navigator.clipboard?.writeText(url(f)).catch
         <div class="flex flex-wrap items-center gap-2 text-sm">
           {{ L.link }}: <code class="break-all" data-testid="fm-url">{{ url(f) }}</code>
           <button data-testid="fm-copy" @click="copy(f)">{{ L.copy }}</button>
+        </div>
+        <div v-if="admin" class="flex flex-col gap-1 text-sm" data-testid="fm-personal">
+          <span class="text-fg-muted">{{ L.personal }}</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <input
+              v-model="pl.task"
+              :placeholder="L.task"
+              data-testid="fm-pl-task"
+              class="rounded-md border border-border bg-bg px-2 py-0.5"
+            />
+            <label class="flex items-center gap-1">
+              {{ L.days }}
+              <input
+                v-model.number="pl.days"
+                type="number"
+                min="1"
+                max="30"
+                class="w-16 rounded-md border border-border bg-bg px-2 py-0.5"
+              />
+            </label>
+            <label class="flex items-center gap-1">
+              <input v-model="pl.once" type="checkbox" />{{ L.once }}
+            </label>
+            <button :disabled="!pl.task.trim()" data-testid="fm-pl-issue" @click="issue(f)">
+              {{ L.issue }}
+            </button>
+          </div>
+          <p v-if="pl.error" class="text-danger" role="alert">{{ pl.error }}</p>
+          <p v-if="issued[f.id]">
+            {{ L.shown }} <code class="break-all" data-testid="fm-pl-url">{{ issued[f.id] }}</code>
+          </p>
         </div>
         <fieldset v-if="admin" class="flex flex-col gap-1">
           <legend class="text-sm text-fg-muted">{{ L.fields }}</legend>

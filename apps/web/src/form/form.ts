@@ -63,9 +63,12 @@ export async function mountForm(root: HTMLElement, slug: string): Promise<void> 
   const show = (...kids: Node[]) => root.replaceChildren(...kids);
   const msg = (t: string, cls = '') =>
     build('p', { textContent: t, className: cls, role: 'alert' }, []);
+  // personal link "reply to a task": ?t=<token> goes to the API as is
+  const t = new URLSearchParams(location.search).get('t');
+  const q = t ? `?t=${encodeURIComponent(t)}` : '';
   let schema: Schema;
   try {
-    const res = await fetch(`/api/forms/public/${encodeURIComponent(slug)}`);
+    const res = await fetch(`/api/forms/public/${encodeURIComponent(slug)}${q}`);
     if (!res.ok) return show(msg(await failText(res), 'err'));
     schema = (await res.json()) as Schema;
   } catch {
@@ -144,7 +147,7 @@ export async function mountForm(root: HTMLElement, slug: string): Promise<void> 
       };
     btn.disabled = true;
     try {
-      const res = await fetch(`/api/forms/public/${encodeURIComponent(slug)}`, init);
+      const res = await fetch(`/api/forms/public/${encodeURIComponent(slug)}${q}`, init);
       if (!res.ok) status.textContent = await failText(res);
       else
         show(

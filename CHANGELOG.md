@@ -4,6 +4,10 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- Forms: a personal one-time or expiring link bound to an existing task; the answer is added to the task as a comment. Created in the form settings.
+
 ## [0.13.0] - 2026-11-10
 
 ### Added
