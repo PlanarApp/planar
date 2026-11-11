@@ -3,7 +3,8 @@ import type { Row } from '@planar/shared';
 import { api, ApiError } from '../api/http';
 import { clearLocal, syncState } from '../sync';
 
-export type User = Row<'users'>;
+/** timezone — only in the own profile (/api/auth/me), not in the users replica */
+export type User = Row<'users'> & { timezone?: string | null };
 
 const KEY = 'planar.user';
 const store = (u: User | null) => {
@@ -25,10 +26,24 @@ const known = (): User | null => {
 const user = ref<User | null>(null);
 const ready = ref(false);
 
+/** PLNRAPP-160: the profile has no zone yet — save the browser's one (in the background, no error shown) */
+function adoptBrowserZone(u: User) {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (u.timezone !== null || !timezone) return; // undefined — the server does not know the field
+  api<{ user: User }>('PATCH', `/api/users/${u.id}`, { timezone })
+    .then((r) => {
+      if (user.value?.id !== r.user.id) return;
+      user.value = r.user;
+      store(r.user);
+    })
+    .catch(() => {});
+}
+
 async function refresh(): Promise<void> {
   try {
     user.value = (await api<{ user: User }>('GET', '/api/auth/me')).user;
     store(user.value);
+    adoptBrowserZone(user.value);
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
     // offline/5xx: stay with the last known user
@@ -42,6 +57,7 @@ async function refresh(): Promise<void> {
 async function login(login: string, password: string): Promise<void> {
   user.value = (await api<{ user: User }>('POST', '/api/auth/login', { login, password })).user;
   store(user.value);
+  adoptBrowserZone(user.value);
 }
 
 // logout confirmation when there are unsent changes (dialog — sync/LogoutDialog.vue)

@@ -37,7 +37,18 @@ const patchSchema = z.object({
     .regex(/^[0-9a-f]{64}$/)
     .nullable()
     .optional(),
+  timezone: z.string().max(64).refine(isTimeZone, 'Неизвестный часовой пояс').optional(),
 });
+
+/** IANA zone known to the server's Intl (the same one that computes the time for notifications) */
+export function isTimeZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const forbidden = (m = 'Недостаточно прав') => new HttpError(403, 'forbidden', m);
 const isAdmin = (role: string) => role === 'owner' || role === 'admin';
@@ -73,7 +84,7 @@ export class UsersController {
     if (!self && !isAdmin(actor.role)) throw forbidden();
     const p = parseBody(patchSchema, body);
     if (self && (p.role !== undefined || p.deactivated !== undefined)) {
-      throw forbidden('Себе можно менять только name, email, password, avatarFile');
+      throw forbidden('Себе можно менять только name, email, password, avatarFile, timezone');
     }
     if (!/^[0-9a-f-]{36}$/.test(id))
       throw new HttpError(404, 'not_found', 'Пользователь не найден');
@@ -98,6 +109,7 @@ export class UsersController {
         ...(p.email !== undefined && { email: p.email }),
         ...(p.role !== undefined && { role: p.role }),
         ...(p.avatarFile !== undefined && { avatarFile: p.avatarFile }),
+        ...(p.timezone !== undefined && { timezone: p.timezone }),
         ...(p.deactivated !== undefined && {
           deactivatedAt: p.deactivated ? new Date().toISOString() : null,
         }),

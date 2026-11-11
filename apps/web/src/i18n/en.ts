@@ -276,6 +276,7 @@ export default {
     weekAuto: 'Auto (by language)',
     weekMon: 'Monday',
     weekSun: 'Sunday',
+    timezone: 'Time zone',
   },
   plan: {
     title: 'Planning',

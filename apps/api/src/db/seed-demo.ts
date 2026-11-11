@@ -585,6 +585,9 @@ async function insertAll(tx: Tx, now: Date) {
       email: `${login}@brightwave.example`,
       role,
       avatarFile: avatarSha(name, color),
+      // PLNRAPP-160: demo gets the visitor's browser zone on the first open
+      timezone:
+        login === 'demo' ? null : ['Europe/London', 'America/New_York', 'Asia/Almaty'][i % 3],
       passwordHash: '!',
       createdAt: at(-90 + i),
       updatedAt: at(-90 + i),

@@ -44,6 +44,8 @@ export const users = pgTable(
     email: text(),
     role: text().notNull(),
     avatarFile: text(),
+    /** IANA zone (PLNRAPP-160): not synced — only own profile (/api/auth/me); null — not set yet */
+    timezone: text(),
     deactivatedAt: ts(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

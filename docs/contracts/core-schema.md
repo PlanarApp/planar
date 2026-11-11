@@ -29,6 +29,7 @@ scope: global · write: server · bootstrap: yes · indexes: login
 | `updatedAt` | ts | |
 
 DB only: `password_hash text` (argon2id). Never goes onto the wire.
+DB only: `timezone text?` — IANA zone of the profile (PLNRAPP-160; the client saves the browser's zone while empty); only in `/api/auth/me` and the `PATCH /api/users/:id` response.
 
 #### spaces
 scope: space · write: admin · bootstrap: yes · indexes: —

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Avatar, Button, Input, Select, Tabs, useTheme } from '../ui';
 import { api } from '../api/http';
@@ -31,7 +31,7 @@ function onWeek(v: string | null) {
 const f = reactive({ name: user.value?.name ?? '', email: user.value?.email ?? '', password: '' });
 const msg = ref('');
 const fileInput = ref<HTMLInputElement>();
-const err = reactive({ profile: '', password: '', avatar: '' });
+const err = reactive({ profile: '', password: '', avatar: '', timezone: '' });
 
 async function patch(body: Record<string, unknown>) {
   const r = await api<{ user: User }>('PATCH', `/api/users/${user.value!.id}`, body);
@@ -81,6 +81,22 @@ async function savePassword() {
     f.password = '';
   } catch (e) {
     err.password = errText(e, t);
+  }
+}
+
+// IANA zones of the browser; the saved one is kept even if this browser does not list it
+const zones = computed(() =>
+  [...new Set([...Intl.supportedValuesOf('timeZone'), user.value?.timezone ?? 'UTC'])]
+    .sort()
+    .map((z) => ({ value: z, label: z.replace(/_/g, ' ') })),
+);
+async function onZone(v: string | null) {
+  if (!v || v === user.value?.timezone) return;
+  err.timezone = '';
+  try {
+    await patch({ timezone: v });
+  } catch (e) {
+    err.timezone = errText(e, t);
   }
 }
 
@@ -181,6 +197,17 @@ const themes = () => [
             ]"
             @update:model-value="onWeek"
           />
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs text-fg-muted">{{ t('profile.timezone') }}</span>
+          <Select
+            :model-value="user.timezone ?? null"
+            :label="t('profile.timezone')"
+            :options="zones"
+            data-testid="timezone"
+            @update:model-value="onZone"
+          />
+          <p v-if="err.timezone" role="alert" class="text-sm text-danger">{{ err.timezone }}</p>
         </div>
       </section>
       <section class="flex flex-col gap-3" :aria-label="t('profile.notifications')">
