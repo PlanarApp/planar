@@ -389,6 +389,30 @@ describe('REST /api/v1: комментарии', () => {
       (await call('POST', `/api/v1/tasks/${t.id}/comments`, 'admin', { text: '' })).statusCode,
     ).toBe(400);
   });
+
+  it('PATCH /comments/:id (PLNRAPP-186): назначить, выполнить, снять; guest → 403, чужой → 404', async () => {
+    const t = await create({});
+    const c = (
+      await call('POST', `/api/v1/tasks/${t.id}/comments`, 'admin', {
+        text: 'проверь',
+        assigneeId: w.member.userId,
+      })
+    ).json().data;
+    expect(c.assigneeId).toBe(w.member.userId);
+    const r = await call('PATCH', `/api/v1/comments/${c.id}`, 'member', { resolved: true });
+    expect([r.statusCode, r.json().data.resolvedBy]).toEqual([200, w.member.userId]);
+    expect(
+      (await call('PATCH', `/api/v1/comments/${c.id}`, 'guest', { resolved: false })).statusCode,
+    ).toBe(403);
+    expect(
+      (await call('PATCH', `/api/v1/comments/${c.id}`, 'outsider', { resolved: false })).statusCode,
+    ).toBe(404);
+    expect(
+      (await call('PATCH', `/api/v1/comments/${c.id}`, 'member', { text: 'чужой' })).statusCode,
+    ).toBe(403);
+    const un = await call('PATCH', `/api/v1/comments/${c.id}`, 'admin', { assigneeId: null });
+    expect([un.json().data.assigneeId, un.json().data.resolvedAt]).toEqual([null, null]);
+  });
 });
 
 describe('REST /api/v1: OpenAPI', () => {
@@ -398,6 +422,7 @@ describe('REST /api/v1: OpenAPI', () => {
     const doc = JSON.parse(r.body);
     expect(doc.openapi).toBe('3.1.0');
     expect(Object.keys(doc.paths).sort()).toEqual([
+      '/api/v1/comments/{id}',
       '/api/v1/docs',
       '/api/v1/docs/{id}',
       '/api/v1/docs/{id}/tasks',

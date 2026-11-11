@@ -59,6 +59,10 @@ export class RestController {
   createComment(@Req() req: object, @Param('task') t: string, @Body() b: unknown) {
     return this.rest.createComment(getAuth(req).userId, t, b, getAuth(req).tokenId);
   }
+  @Patch('comments/:id')
+  patchComment(@Req() req: object, @Param('id') id: string, @Body() b: unknown) {
+    return this.rest.patchComment(getAuth(req).userId, id, b, getAuth(req).tokenId);
+  }
   @Get('tasks/:task/links')
   links(@Req() req: object, @Param('task') t: string) {
     return this.rest.links(getAuth(req).userId, t);

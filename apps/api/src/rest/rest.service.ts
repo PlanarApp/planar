@@ -37,6 +37,7 @@ import {
   docTaskBody,
   linkBody,
   listQuery,
+  patchCommentBody,
   patchDocBody,
   patchTaskBody,
   tasksQuery,
@@ -440,9 +441,48 @@ export class RestService {
     const id = uuidv7();
     await this.run(
       userId,
-      [{ name: 'comment.create', args: { id, taskId: t.id, body: await this.toDoc(b.text) } }],
+      [
+        {
+          name: 'comment.create',
+          args: {
+            id,
+            taskId: t.id,
+            body: await this.toDoc(b.text),
+            parentId: b.parentId,
+            assigneeId: b.assigneeId,
+          },
+        },
+      ],
       tokenId,
     );
+    const [row] = await this.db.select().from(s.comments).where(eq(s.comments.id, id));
+    return { data: toWire('comments', row!) };
+  }
+
+  /** text (author), assign/unassign, resolve/reopen — in that order: an assignment reopens (PLNRAPP-186) */
+  async patchComment(userId: string, id: string, raw: unknown, tokenId?: string) {
+    const b = parse(patchCommentBody, raw);
+    const found = z.uuid().safeParse(id).success
+      ? await this.db
+          .select({ id: s.comments.id })
+          .from(s.comments)
+          .where(
+            and(
+              eq(s.comments.id, id),
+              inArray(s.comments.spaceId, await this.mySpaces(userId)),
+              await this.visible(userId, 'comments'),
+            ),
+          )
+      : [];
+    if (!found.length) throw NOT_FOUND('Комментарий');
+    const muts: Mut[] = [];
+    if (b.text !== undefined)
+      muts.push({ name: 'comment.update', args: { id, body: await this.toDoc(b.text) } });
+    if (b.assigneeId !== undefined)
+      muts.push({ name: 'comment.assign', args: { id, assigneeId: b.assigneeId } });
+    if (b.resolved !== undefined)
+      muts.push({ name: 'comment.resolve', args: { id, resolved: b.resolved } });
+    if (muts.length) await this.run(userId, muts, tokenId);
     const [row] = await this.db.select().from(s.comments).where(eq(s.comments.id, id));
     return { data: toWire('comments', row!) };
   }

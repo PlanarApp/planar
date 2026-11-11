@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { apiTokenCreatedSchema, uuidv7 } from '@planar/shared';
 import { createApp } from '../../src/app.js';
+import { openapi } from '../../src/rest/openapi.js';
 import * as schema from '../../src/db/schema.js';
 import { ORIGIN, loginCookie } from '../auth.js';
 import { dbUrl, newDb, world, type World } from '../sync/helpers.js';
@@ -94,34 +95,122 @@ const mk = async (c: Client, title: string, extra = {}) => {
 };
 
 describe('MCP /mcp', () => {
-  it('initialize и tools/list: 20 инструментов со схемами', async () => {
+  // PLNRAPP-186: every REST v1 operation has an MCP tool — a new REST function without MCP fails here
+  const PARITY: Record<string, string> = {
+    'GET /api/v1/spaces': 'list_spaces',
+    'GET /api/v1/projects': 'list_projects',
+    'GET /api/v1/projects/{id}/fields': 'list_fields',
+    'GET /api/v1/tasks': 'search_tasks',
+    'POST /api/v1/tasks': 'create_task',
+    'GET /api/v1/tasks/{task}': 'get_task',
+    'PATCH /api/v1/tasks/{task}': 'update_task',
+    'GET /api/v1/tasks/{task}/comments': 'get_task',
+    'POST /api/v1/tasks/{task}/comments': 'add_comment',
+    'PATCH /api/v1/comments/{id}': 'update_comment',
+    'GET /api/v1/tasks/{task}/links': 'get_task',
+    'POST /api/v1/tasks/{task}/links': 'link_tasks',
+    'DELETE /api/v1/links/{id}': 'unlink_tasks',
+    'GET /api/v1/time-entries': 'list_time_entries',
+    'POST /api/v1/time-entries': 'log_time',
+    'GET /api/v1/timer': 'get_timer',
+    'POST /api/v1/timer/start': 'start_timer',
+    'POST /api/v1/timer/stop': 'stop_timer',
+    'GET /api/v1/projects/{id}/cycles': 'list_sprints',
+    'GET /api/v1/projects/{id}/cycles/current': 'current_sprint',
+    'GET /api/v1/projects/{id}/automations': 'list_automations',
+    'GET /api/v1/docs': 'list_docs',
+    'POST /api/v1/docs': 'create_doc',
+    'GET /api/v1/docs/{id}': 'get_doc',
+    'PATCH /api/v1/docs/{id}': 'update_doc',
+    'POST /api/v1/docs/{id}/tasks': 'link_doc_task',
+  };
+  // MCP-only helpers without a REST operation of their own
+  const MCP_ONLY = ['my_tasks', 'project_dictionary'];
+
+  it('initialize и tools/list: каждой операции REST v1 есть инструмент MCP, схемы — object', async () => {
+    const spec = openapi() as unknown as { paths: Record<string, Record<string, unknown>> };
+    const ops = Object.entries(spec.paths).flatMap(([p, m]) =>
+      Object.keys(m).map((x) => `${x.toUpperCase()} ${p}`),
+    );
+    expect(ops.sort()).toEqual(Object.keys(PARITY).sort());
     const c = await connect(write.secret);
     const { tools } = await c.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
-      [
-        'add_comment',
-        'create_doc',
-        'create_task',
-        'current_sprint',
-        'get_doc',
-        'get_task',
-        'link_doc_task',
-        'list_docs',
-        'list_fields',
-        'list_projects',
-        'list_spaces',
-        'link_tasks',
-        'log_time',
-        'my_tasks',
-        'project_dictionary',
-        'search_tasks',
-        'start_timer',
-        'stop_timer',
-        'update_doc',
-        'update_task',
-      ].sort(),
+      [...new Set([...Object.values(PARITY), ...MCP_ONLY])].sort(),
     );
     for (const t of tools) expect(t.inputSchema.type).toBe('object');
+    await c.close();
+  });
+
+  it('комментарии: ответ с назначением, update_comment — выполнен, переоткрыть, снять назначение', async () => {
+    const c = await connect(write.secret);
+    const t = await mk(c, 'С комментариями');
+    const [, root] = await call(c, 'add_comment', { task: t.key, text: 'вопрос' });
+    const [e1, reply] = await call(c, 'add_comment', {
+      task: t.key,
+      text: 'уточни',
+      parentId: root.id,
+      assigneeId: w.admin.userId,
+    });
+    expect(e1, JSON.stringify(reply)).toBe(false);
+    expect([reply.parentId, reply.assigneeId, reply.body]).toEqual([
+      root.id,
+      w.admin.userId,
+      'уточни',
+    ]);
+    const [, done] = await call(c, 'update_comment', { id: reply.id, resolved: true });
+    expect(done.resolvedBy).toBe(w.member.userId); // the author completes
+    const [, open] = await call(c, 'update_comment', { id: reply.id, resolved: false });
+    expect(open.resolvedAt).toBeNull();
+    const [, re] = await call(c, 'update_comment', {
+      id: reply.id,
+      assigneeId: w.member.userId,
+      resolved: true,
+      text: 'уточни, пожалуйста',
+    });
+    expect([re.assigneeId, !!re.resolvedAt, re.body]).toEqual([
+      w.member.userId,
+      true,
+      'уточни, пожалуйста',
+    ]);
+    const [, un] = await call(c, 'update_comment', { id: reply.id, assigneeId: null });
+    expect([un.assigneeId, un.resolvedAt]).toEqual([null, null]);
+    const [e2, x] = await call(c, 'update_comment', { id: root.id, resolved: true });
+    expect([e2, x.code]).toEqual([true, 'invalid_request']); // not assigned
+    const [e3, y] = await call(c, 'update_comment', { id: reply.id, resolved: true });
+    expect([e3, y.code]).toEqual([true, 'invalid_request']);
+    const o = await connect(outsider.secret);
+    const [e4, z4] = await call(o, 'update_comment', { id: reply.id, resolved: true });
+    expect([e4, z4.code]).toEqual([true, 'not_found']);
+    const r = await connect(read.secret);
+    expect((await call(r, 'update_comment', { id: reply.id, text: 'x' }))[1].code).toBe(
+      'forbidden',
+    );
+    await Promise.all([c.close(), o.close(), r.close()]);
+  });
+
+  it('get_task отдаёт связи, unlink_tasks удаляет; get_timer, list_time_entries, list_sprints, list_automations', async () => {
+    const c = await connect(write.secret);
+    const [a, b] = [await mk(c, 'A'), await mk(c, 'B')];
+    const [, l] = await call(c, 'link_tasks', { task: a.key, target: b.key, kind: 'relates' });
+    expect(
+      (await call(c, 'get_task', { task: b.key }))[1].links.map((x: { id: string }) => x.id),
+    ).toEqual([l.id]);
+    expect(await call(c, 'unlink_tasks', { id: l.id })).toEqual([false, { ok: true }]);
+    expect((await call(c, 'get_task', { task: a.key }))[1].links).toEqual([]);
+    expect((await call(c, 'unlink_tasks', { id: l.id }))[1].code).toBe('not_found');
+    expect(await call(c, 'get_timer')).toEqual([false, null]);
+    await call(c, 'start_timer', { task: a.key });
+    expect((await call(c, 'get_timer'))[1].taskId).toBe(a.id);
+    await call(c, 'stop_timer');
+    await call(c, 'log_time', { task: b.key, minutes: 15 });
+    const [, te] = await call(c, 'list_time_entries', { taskId: b.id, userId: 'me' });
+    expect(te.data.map((x: { durationSec: number }) => x.durationSec)).toEqual([900]);
+    for (const name of ['list_sprints', 'list_automations']) {
+      const [e, v] = await call(c, name, { projectId: w.projectId });
+      expect(e, JSON.stringify(v)).toBe(false);
+      expect(Array.isArray(v)).toBe(true);
+    }
     await c.close();
   });
 

@@ -12,8 +12,10 @@ import {
   docsQuery,
   docTaskBody,
   linkBody,
+  patchCommentBody,
   patchDocBody,
   patchTaskBody,
+  timeEntriesQuery,
 } from '../rest/schemas.js';
 
 type Node = { text?: string; attrs?: { label?: string }; type?: string; content?: Node[] };
@@ -115,10 +117,11 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
     false,
     async (a) => named(await rest.searchTasks(uid, a)),
   );
-  tool('get_task', 'Задача с комментариями', { task }, false, async (a) => {
+  tool('get_task', 'Задача с комментариями и связями', { task }, false, async (a) => {
     const t = (await rest.task(uid, a.task)).data;
     const comments = (await rest.comments(uid, a.task, { limit: 200 })).data;
-    return { ...(await named([t]))[0], comments: comments.map(cmt) };
+    const links = (await rest.links(uid, a.task)).data;
+    return { ...(await named([t]))[0], comments: comments.map(cmt), links };
   });
   tool(
     'my_tasks',
@@ -151,10 +154,17 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
   );
   tool(
     'add_comment',
-    'Добавить комментарий (@login — упоминание)',
+    'Добавить комментарий (@login — упоминание); parentId — ответ в тред, assigneeId — назначить',
     { task, ...commentBody.shape },
     true,
     async ({ task: ref, ...a }) => cmt((await rest.createComment(uid, ref, a, ctx.tokenId)).data),
+  );
+  tool(
+    'update_comment',
+    'Изменить комментарий: assigneeId — назначить (null — снять), resolved — выполнен / переоткрыть, text — новый текст (только автор)',
+    { id: z.uuid().describe('id комментария'), ...patchCommentBody.shape },
+    true,
+    async ({ id, ...a }) => cmt((await rest.patchComment(uid, id, a, ctx.tokenId)).data),
   );
   tool(
     'link_tasks',
@@ -162,6 +172,30 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
     { task, ...linkBody.shape },
     true,
     async ({ task: ref, ...a }) => (await rest.createLink(uid, ref, a, ctx.tokenId)).data,
+  );
+  tool(
+    'unlink_tasks',
+    'Удалить связь задач (id связи — из get_task links)',
+    { id: z.uuid().describe('id связи') },
+    true,
+    async (a) => {
+      await rest.deleteLink(uid, a.id, ctx.tokenId);
+      return { ok: true };
+    },
+  );
+  tool(
+    'list_time_entries',
+    'Записи времени: по задаче, пользователю (me), периоду; страницы через cursor',
+    timeEntriesQuery.shape,
+    false,
+    async (a) => rest.timeEntries(uid, a),
+  );
+  tool(
+    'get_timer',
+    'Идущий таймер (null, если его нет)',
+    {},
+    false,
+    async () => (await rest.timer(uid)).data,
   );
   tool(
     'log_time',
@@ -222,6 +256,20 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
         })),
       };
     },
+  );
+  tool(
+    'list_sprints',
+    'Циклы (спринты) проекта',
+    { projectId: z.uuid() },
+    false,
+    async (a) => (await rest.cycles(uid, a.projectId)).data,
+  );
+  tool(
+    'list_automations',
+    'Правила автоматизаций проекта',
+    { projectId: z.uuid() },
+    false,
+    async (a) => (await rest.automations(uid, a.projectId)).data,
   );
   // documents (docs module, PLNRAPP-180)
   const doc = z.uuid().describe('id документа');

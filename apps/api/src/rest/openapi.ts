@@ -10,6 +10,7 @@ import {
   docsQuery,
   fieldDefSchema,
   linkBody,
+  patchCommentBody,
   patchDocBody,
   patchTaskBody,
   projectSchema,
@@ -38,6 +39,7 @@ const models = {
   CreateTask: createTaskBody,
   PatchTask: patchTaskBody,
   CreateComment: commentBody,
+  PatchComment: patchCommentBody,
   Link: entitySchemas.taskLinks,
   CreateLink: linkBody,
   TimeEntry: ent('timeEntries'),
@@ -135,6 +137,13 @@ export function openapi() {
           parameters: [taskParam],
           requestBody: body('CreateComment'),
           responses: ok('Comment', 'one', '201'),
+        },
+      },
+      '/api/v1/comments/{id}': {
+        patch: {
+          parameters: [param('id', 'path')],
+          requestBody: body('PatchComment'),
+          responses: ok('Comment'),
         },
       },
       '/api/v1/tasks/{task}/links': {
