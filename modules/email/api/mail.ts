@@ -2,8 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import nodemailer from 'nodemailer';
-import { isDemo, type Db, type JobDef } from '@planar/server-kit';
-import { decrypt, secretKey } from './crypto.js';
+import { decrypt, isDemo, secretKey, type Db, type JobDef } from '@planar/server-kit';
 import { emailConfig as C } from './schema.js';
 
 const log = new Logger('email');

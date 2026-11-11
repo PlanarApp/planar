@@ -87,7 +87,16 @@ export const DATA_MODULE_IDS = [
   'workload',
   'dashboards',
   'docs',
+  'ai',
 ] as const;
+
+/** Data module → the modules it needs: they are turned on together, and the needed one cannot be turned off under it. */
+export const MODULE_DEPS: Record<string, readonly string[]> = { ai: ['automations'] };
+
+/** `modules` with the dependencies of each added (order kept, no duplicates). */
+export const withModuleDeps = (modules: readonly string[]): string[] => [
+  ...new Set(modules.flatMap((m) => [m, ...(MODULE_DEPS[m] ?? [])])),
+];
 
 export const isDataModule = (id: string): boolean =>
   (DATA_MODULE_IDS as readonly string[]).includes(id);

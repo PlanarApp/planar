@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { MutatorError, defineMutator, isDataModule, type Tx } from '../contract/index.js';
+import {
+  MODULE_DEPS,
+  MutatorError,
+  defineMutator,
+  isDataModule,
+  withModuleDeps,
+  type Tx,
+} from '../contract/index.js';
 import { bad, changes, color, delWhere, doc, name, need, rank, uuid } from './util.js';
 
 const key = z.string().regex(/^[A-Z][A-Z0-9]{1,9}$/);
@@ -108,7 +115,7 @@ export const projectMutators = [
         leadId: a.leadId ?? null,
         defaultAssigneeId: a.defaultAssigneeId ?? null,
         archivedAt: null,
-        modules: [...new Set(modules)],
+        modules: withModuleDeps(modules ?? []),
         membersMode: 'inherit',
         createdAt: ctx.now,
         updatedAt: ctx.now,
@@ -173,8 +180,12 @@ export const projectMutators = [
       const p = await need(tx, 'projects', a.projectId);
       const have = p.modules ?? [];
       if (have.includes(a.moduleId) === a.enabled) return;
+      // ai needs automations: they go on together, and off together from the needed one
+      const next = a.enabled
+        ? withModuleDeps([...have, a.moduleId])
+        : have.filter((x) => x !== a.moduleId && !MODULE_DEPS[x]?.includes(a.moduleId));
       await tx.patch('projects', a.projectId, {
-        modules: a.enabled ? [...have, a.moduleId] : have.filter((x) => x !== a.moduleId),
+        modules: next,
         updatedAt: ctx.now,
       });
     },

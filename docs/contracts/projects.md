@@ -41,7 +41,7 @@ Owner: the projects coordinator. Interfaces of the core live in `docs/contracts/
 
 ## PJ-3: modules per project (C-schema v16, C-mutators v12)
 
-**Classes (decision 2026-11-02, plan §2.1).** Data modules: `gitlab, sprints, time, forms, recurring, automations, templates, goals, timeline, workload, dashboards, docs`. Shared modules (instance level): every other installed module (`chat, email, plugins, import, webhooks`, demo `hello`). The list lives in one place in shared (a constant `DATA_MODULE_IDS`), used by api and web.
+**Classes (decision 2026-11-02, plan §2.1).** Data modules: `gitlab, sprints, time, forms, recurring, automations, templates, goals, timeline, workload, dashboards, docs, ai` (`ai` since PLNRAPP-167: needs `automations`, the two are turned on and off together; connections to AI providers are a server table outside the gate). Shared modules (instance level): every other installed module (`chat, email, plugins, import, webhooks`, demo `hello`). The list lives in one place in shared (a constant `DATA_MODULE_IDS`), used by api and web.
 
 **State.** Data modules: `projects.modules` (text[]; see core-schema). Shared modules: `settings.enabled_modules` as before, but it holds only shared ids (`settings.set` with a data id → `invalid_args`). A data module is installed on the instance always; whether it works in a project is `projects.modules`.
 

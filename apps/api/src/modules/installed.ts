@@ -37,6 +37,9 @@ import * as goalsTables from '@planar/module-goals/api/schema';
 import { api as pluginsApi } from '@planar/module-plugins/api';
 import * as pluginsTables from '@planar/module-plugins/api/schema';
 
+import { api as aiApi } from '@planar/module-ai/api';
+import * as aiTables from '@planar/module-ai/api/schema';
+
 export interface InstalledModule {
   api: BackendModuleManifest;
   /** api/schema.ts of the module: key = entity name */
@@ -101,6 +104,7 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: goalsApi, tables: goalsTables },
   { api: recurringApi, tables: recurringTables },
   { api: pluginsApi, tables: pluginsTables },
+  { api: aiApi, tables: aiTables },
 ]);
 
 export const moduleTables = (): Map<string, PgTable> =>

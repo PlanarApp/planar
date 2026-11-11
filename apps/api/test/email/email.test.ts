@@ -8,7 +8,7 @@ import {
   emailDigests as D,
   emailOutbox as O,
 } from '@planar/module-email/api/schema';
-import { decrypt } from '../../../../modules/email/api/crypto.js';
+import { decrypt } from '@planar/server-kit';
 import { parseUnsub, unsubToken } from '../../../../modules/email/api/mail.js';
 import { notifications, settings, tasks, users } from '../../src/db/schema.js';
 import { createUser, loginCookie, ORIGIN } from '../auth.js';

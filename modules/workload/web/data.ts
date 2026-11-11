@@ -65,7 +65,7 @@ const load = async (s: string) => {
     has('workloadCapacities') ? all<WorkloadCapacity>('workloadCapacities', s) : [],
     all<Base & { key: string }>('projects', s),
     has('timeEstimates') ? byTask<{ taskId: string; minutes: number }>('timeEstimates') : null,
-    db.table('users').toArray() as Promise<{ id: string; name: string }[]>,
+    db.table('users').toArray() as Promise<{ id: string; name: string; bot?: boolean }[]>,
   ]);
   return { tasks, assignees, statuses, members, caps, projects, estimates, users };
 };
