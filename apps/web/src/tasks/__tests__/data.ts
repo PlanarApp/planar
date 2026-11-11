@@ -167,6 +167,8 @@ export const task = (n: number, over: Record<string, unknown> = {}) => ({
   completedAt: null,
   fields: {},
   cycleId: null,
+  archivedAt: null,
+  archivedBy: null,
   createdAt: T,
   updatedAt: T,
   ...over,

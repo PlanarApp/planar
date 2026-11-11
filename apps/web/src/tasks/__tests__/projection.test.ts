@@ -4,7 +4,7 @@ import { effectScope } from 'vue';
 import { domainMutators, uuidv7, type Row } from '@planar/shared';
 import { db, registerMutators, startSync, stopSync } from '../../sync';
 import { FakeServer } from '../../sync/__tests__/fake-server';
-import { createTask, deleteTask, setAssignees, setLabels, updateTask } from '../index';
+import { archiveTask, createTask, setAssignees, setLabels, updateTask } from '../index';
 import {
   prefetchProject,
   projectionKeys,
@@ -37,7 +37,9 @@ const sameAsFull = (r: { value: TaskView[] | undefined }, pid: string) =>
 /** reference: a full read of the project from IndexedDB, as before the projection */
 async function fullRead(pid: string): Promise<TaskView[]> {
   const project = await db.table<Row<'projects'>>('projects').get(pid);
-  const tasks = await db.table<Row<'tasks'>>('tasks').where('projectId').equals(pid).toArray();
+  const tasks = (
+    await db.table<Row<'tasks'>>('tasks').where('projectId').equals(pid).toArray()
+  ).filter((t) => !t.archivedAt); // the archive is not in the views (PLNRAPP-155)
   const set = new Set(tasks.map((t) => t.id));
   const links = async <R extends { taskId: string; id: string }>(name: string) =>
     (await db.table<R>(name).toArray()).filter((r) => set.has(r.taskId));
@@ -141,7 +143,7 @@ describe('tasks:projection', () => {
     const d = await createTask({ ...base, title: 'd', assigneeIds: [ids.bob] });
     await updateTask(c, { projectId: other.id }); // moved to another project
     await updateTask(d, { title: 'd2' });
-    await deleteTask(b);
+    await archiveTask(b); // leaves the projection like a deleted one
     await sameAsFull(r, ids.project);
     const got = byId(r.value!);
     expect(got.map((t) => t.title).sort()).toEqual(['a2', 'd2']);

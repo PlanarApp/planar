@@ -79,6 +79,7 @@ const chan = (id: string, o: Partial<Channel> = {}): Channel => ({
   lastSeq: 0,
   lastMessageAt: null,
   archivedAt: null,
+  archivedBy: null,
   createdAt: NOW,
   updatedAt: NOW,
   ...o,

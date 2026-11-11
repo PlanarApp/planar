@@ -7,9 +7,11 @@ import {
   DueDatePicker,
   PriorityPicker,
   StatusPicker,
+  archiveTask,
   deleteTask,
   setAssignees,
   updateTask,
+  useProjectAdmin,
   useStatuses,
   type TaskView,
 } from '../tasks';
@@ -25,6 +27,13 @@ const chosen = computed(() => (props.tasks ?? []).filter((x) => sel.selected.val
 const assigned = computed(() => commonIds(chosen.value.map((x) => x.assigneeIds)));
 const each = (f: (x: TaskView) => Promise<unknown>) => Promise.all(chosen.value.map(f));
 const confirmDelete = ref(false);
+// PLNRAPP-155: archive — any member; delete — an admin of every selected task's project
+const admin = useProjectAdmin();
+const canDelete = computed(() => chosen.value.every((x) => admin(x.spaceId, x.projectId)));
+async function archiveSelected() {
+  await each((x) => archiveTask(x.id));
+  sel.clear();
+}
 async function removeSelected() {
   confirmDelete.value = false;
   await each((x) => deleteTask(x.id));
@@ -54,7 +63,12 @@ async function removeSelected() {
     />
     <PriorityPicker @update:model-value="each((x) => updateTask(x.id, { priority: $event }))" />
     <DueDatePicker @update:model-value="each((x) => updateTask(x.id, { dueDate: $event }))" />
-    <Button variant="danger" size="sm" @click="confirmDelete = true">{{ t('list.delete') }}</Button>
+    <Button size="sm" data-testid="bulk-archive" @click="archiveSelected">{{
+      t('archive.toArchive')
+    }}</Button>
+    <Button v-if="canDelete" variant="danger" size="sm" @click="confirmDelete = true">{{
+      t('list.delete')
+    }}</Button>
     <Button size="sm" variant="ghost" @click="sel.clear()">{{ t('table.clear') }}</Button>
   </div>
   <Dialog

@@ -14,6 +14,7 @@ import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
 import { resetBreakpoint } from '../../../ui';
 import { commitImeOnEnter } from '../../../ui/imeEnter';
 import { registerModules } from '../../../modules/registry';
+import { useAuth } from '../../../auth/useAuth';
 import type { ViewOptions } from '../..';
 
 const { router } = vi.hoisted(() => ({ router: { current: undefined as never } }));
@@ -329,7 +330,21 @@ describe('list:bulk', () => {
       async () => (await db.table('tasks').where('statusId').equals(ids.done).count()) === 2,
     );
   });
-  it('list:bulk удаление с подтверждением', async () => {
+  it('list:bulk архив — участник, без «Удалить» (PLNRAPP-155)', async () => {
+    useAuth().user.value = (await db.table('users').get(ids.ann)) as never;
+    const ts = [task(1), task(2)];
+    await db.table('tasks').bulkPut(ts);
+    await show();
+    useSelection().set([ts[0].id]);
+    await until(() => w.find('[role=toolbar]').exists());
+    expect(w.find('[role=toolbar] button.bg-danger').exists()).toBe(false);
+    await w.get('[data-testid=bulk-archive]').trigger('click');
+    await poll(async () => !!(await db.table('tasks').get(ts[0].id)).archivedAt);
+    expect(useSelection().selected.value.size).toBe(0);
+  });
+  it('list:bulk удаление (админ) с подтверждением', async () => {
+    useAuth().user.value = (await db.table('users').get(ids.ann)) as never;
+    await db.table('spaceMembers').where('userId').equals(ids.ann).modify({ role: 'admin' });
     const ts = [task(1), task(2)];
     await db.table('tasks').bulkPut(ts);
     await show();

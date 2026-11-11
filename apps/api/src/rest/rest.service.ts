@@ -229,6 +229,7 @@ export class RestService {
     const where: (SQL | undefined)[] = [
       inArray(s.tasks.spaceId, my),
       await this.visible(userId, 'tasks'),
+      isNull(s.tasks.archivedAt), // PLNRAPP-155: the archive is seen in the project's settings only
       q.projectId ? eq(s.tasks.projectId, q.projectId) : undefined,
       q.statusId ? eq(s.tasks.statusId, q.statusId) : undefined,
       q.updatedAfter ? sql`${s.tasks.updatedAt} > ${q.updatedAfter}::timestamptz` : undefined,
@@ -257,6 +258,7 @@ export class RestService {
     const where: (SQL | undefined)[] = [
       inArray(s.tasks.spaceId, my),
       await this.visible(userId, 'tasks'),
+      isNull(s.tasks.archivedAt),
       q.projectId ? eq(s.tasks.projectId, q.projectId) : undefined,
       q.statusId ? eq(s.tasks.statusId, q.statusId) : undefined,
       who ? assignedTo(who, userId) : undefined,

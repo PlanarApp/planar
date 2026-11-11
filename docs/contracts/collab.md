@@ -11,8 +11,9 @@ related: ["docs/plan/collab.md", "docs/contracts/core.md", "docs/contracts/core-
 
 Owner - the collab coordinator. The format of entities and mutators is as in `docs/contracts/core.md` (C-schema) and `core-mutators.md`; the C-schema rules "General rules", "Types", "Visibility and permissions" apply. Contract test - `apps/api/test/modules/collab.contract.test.ts`: it checks the `#### <entity>` sections and the mutator tables of this file against `shared.entities` and `shared.mutators` of the modules (field names, nullability, meta, arg names and optionality).
 
-## DC-schema v2
+## DC-schema v3
 
+v3 (PLNRAPP-154): `docsPages.archivedBy` - who archived.
 v2 (groups): `docsPages.projectId` - the page level.
 
 Module `docs` (`modules/docs`, package `@planar/module-docs`), tables `docs_<snake>`. FKs between module entities have no cascade; there is no FK to `tasks` (the core deletes tasks without knowing about the module): the UI does not show a link to a deleted task.
@@ -35,6 +36,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, parentId
 | `createdBy` | uuid | |
 | `updatedBy` | uuid | the last one who changed `title`/`icon`/`body` |
 | `archivedAt` | ts? | |
+| `archivedBy` | uuid? | who archived; default null |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
@@ -64,8 +66,9 @@ scope: space · write: member · bootstrap: yes · indexes: —
 
 A soft lock: only an "X is editing" indicator and read-only mode for the others in the UI; `docs.page.update` does not check it. An expired lock (`expiresAt ≤ ctx.now`) counts as absent. Shortcut: no collaborative editing; if needed - Yjs + Hocuspocus.
 
-## DC-mutators v2
+## DC-mutators v3
 
+v3 (PLNRAPP-154): `docs.page.archive` sets `archivedBy`; `docs.page.restore` - admin only; `docs.page.delete`.
 v2 (groups): `projectId` in `docs.page.create`/`docs.page.move`.
 
 Export - `shared.mutators` from `modules/docs/shared/index.ts`; `args` - `z.object`. All ids and `rank` are in args. Another space or a missing row - `not_found`/`forbidden` by the general rules of the server `Tx`.
@@ -75,8 +78,9 @@ Export - `shared.mutators` from `modules/docs/shared/index.ts`; `args` - `z.obje
 | `docs.page.create` | `id, spaceId, rank, projectId?, parentId?, title?, icon?, body?` | the parent is a non-archived page of the same space, otherwise `invalid_args`; with a parent `projectId` = the parent's, without - a project of this space or null, otherwise `invalid_args`; `title` defaults to `''`, `body` - `{type:'doc', content:[]}`; `text`, `files` from `body`; `createdBy = updatedBy = ctx.userId` |
 | `docs.page.update` | `id, title?, icon?, body?` | archived -> `conflict`; `body` -> recompute `text`, `files`; `updatedBy = ctx.userId` |
 | `docs.page.move` | `id, parentId, rank, projectId?` | `parentId: uuid \| null` (the key is required); `projectId` = the new parent's, at the root - `projectId` from args (no key - unchanged), a project of another space -> `invalid_args`; descendants get the same `projectId`; the page itself or its descendant -> `invalid_args`; another space -> `invalid_args`; the page or the new parent is archived -> `conflict` |
-| `docs.page.archive` | `id` | `archivedAt = ctx.now` on the page and all its non-archived descendants; already archived - nothing |
-| `docs.page.restore` | `id` | clears `archivedAt` on the page and the descendants with the same `archivedAt`; parent archived -> `parentId = null` |
+| `docs.page.archive` | `id` | `archivedAt = ctx.now`, `archivedBy = ctx.userId` on the page and all its non-archived descendants; already archived - nothing |
+| `docs.page.restore` | `id` | admin of the page's project (of the space for a space page) / space / instance, otherwise `forbidden`; clears `archivedAt`, `archivedBy` on the page and the descendants with the same `archivedAt`; parent archived -> `parentId = null` |
+| `docs.page.delete` | `id` | only an archived page (otherwise `conflict`); admin as in restore; deletes the page and its descendants with their links and locks. Used by the job `docs.archive.purge` (archived > 30 days) |
 | `docs.link.add` | `id, pageId, taskId` | the task (a `tasks` row) and the page are in one space, otherwise `invalid_args`; pair already linked - nothing |
 | `docs.link.remove` | `pageId, taskId` | no link - nothing |
 | `docs.lock` | `pageId` | no lock, expired or own -> `put {id: pageId, spaceId of the page, userId: ctx.userId, expiresAt: ctx.now + 120 s}`; another's active lock -> `conflict` |
@@ -91,7 +95,9 @@ There is no page deletion (archive only) - a shortcut until a user asks.
 - Cmd+K search - by `docsPages.title` and `text` of the local replica (the search point is X-core, after the gateway).
 - Images - `POST /files`, node `image` with `src: '/files/<sha256>'`; reading the file by other members - X-core `canReadFile`.
 
-## CH-schema v3
+## CH-schema v4
+
+v4 (PLNRAPP-154): `chatChannels.archivedBy` - who archived.
 
 v2 (groups): `chatChannels.projectId`.
 v3: attachment += `durationMs?` (voice, `mime audio/*`).
@@ -113,6 +119,7 @@ scope: space|members · write: guest · bootstrap: yes · indexes: spaceId
 | `lastSeq` | int | number of the last top-level message; 0 - none |
 | `lastMessageAt` | ts? | |
 | `archivedAt` | ts? | |
+| `archivedBy` | uuid? | who archived; default null |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
@@ -173,7 +180,9 @@ scope: user · write: self · bootstrap: yes · indexes: channelId
 | `muted` | bool | no push and no counter in the sidebar |
 | `updatedAt` | ts | |
 
-## CH-mutators v4
+## CH-mutators v5
+
+v5 (PLNRAPP-154): `chat.channel.update` records `archivedBy`, out of the archive - admin only; `chat.channel.delete` - also an admin of the project / instance.
 
 v4: `chat.dm.removeMember`.
 
@@ -185,8 +194,8 @@ Export - `shared.mutators` from `modules/chat/shared/index.ts`. All ids are in a
 | name | args | rules |
 |---|---|---|
 | `chat.channel.create` | `id, spaceId, projectId?, name, topic?` | space role >= member, otherwise `forbidden`; a project not of this space -> `invalid_args`; `name` after trim 1-80, otherwise `invalid_args`; `kind = channel`, `lastSeq = 0` |
-| `chat.channel.update` | `id, name?, topic?, archivedAt?` | only `kind = channel` (otherwise `invalid_args`); the creator or a space admin, otherwise `forbidden` |
-| `chat.channel.delete` | `id` | only `kind = channel`; the creator or a space admin, otherwise `forbidden`; deletes the channel's messages and reactions, own `chatReads` and the channel (other users' `chatReads` - self rows - remain) |
+| `chat.channel.update` | `id, name?, topic?, archivedAt?` | only `kind = channel` (otherwise `invalid_args`); the creator or a space admin, otherwise `forbidden`; `archivedAt` set on a live channel -> `archivedBy = ctx.userId`; `archivedAt: null` on an archived one - admin of the project / space / instance (otherwise `forbidden`), clears `archivedBy` |
+| `chat.channel.delete` | `id` | only `kind = channel`; the creator or an admin of the project / space / instance, otherwise `forbidden` (the job `chat.archive.purge` - archived > 30 days); deletes the channel's messages and reactions, own `chatReads` and the channel (other users' `chatReads` - self rows - remain) |
 | `chat.dm.create` | `id, members: {id, userId}[]` | 2-8 rows, `userId` without repeats, ctx.userId among them, each has a `users` row without `deactivatedAt` - otherwise `invalid_args`; `spaceId = null`, `kind = dm`, `name = null`; the container first, then the participants (`addedBy = ctx.userId`). The UI does not create a second dialog with the same set of participants (it opens the existing one) |
 | `chat.dm.addMember` | `id, channelId, userId` | dialog only; already a participant - nothing; would exceed 8 -> `conflict` |
 | `chat.dm.removeMember` | `channelId, userId` | dialog only (`invalid_args`); only the dialog creator (`forbidden`); oneself - `invalid_args` (leaving - `chat.dm.leave`); not a participant - nothing; fewer than 2 would remain -> `conflict`; deletes the `chatMembers` row |

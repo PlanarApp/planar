@@ -100,6 +100,8 @@ export const entitySchemas = {
     completedAt: ts.nullable(),
     fields: z.record(z.string(), z.unknown()),
     cycleId: uuid.nullable(),
+    archivedAt: ts.nullable().default(null),
+    archivedBy: uuid.nullable().default(null),
     createdAt: ts,
     updatedAt: ts,
   }),

@@ -132,6 +132,8 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, 
 | `completedAt` | ts? | set by the mutator on a move to the done/cancelled category, cleared on leaving it |
 | `fields` | obj | `{<fieldDefs.id>: value}` — fields of the task's project, no `null`; format — features.md §F-fields; default `{}` |
 | `cycleId` | uuid? | a sprints cycle, no FK (work.md) |
+| `archivedAt` | ts? | in the archive since (C-schema v26); default null; the purge deletes it after 30 days |
+| `archivedBy` | uuid? | → users, who archived; null when not archived |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 

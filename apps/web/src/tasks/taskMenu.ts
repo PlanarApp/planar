@@ -1,6 +1,8 @@
 import type { MaybeRefOrGetter } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
+  Archive,
+  ArchiveRestore,
   ArrowRightLeft,
   CalendarDays,
   CircleDot,
@@ -28,7 +30,8 @@ import { openTask } from '../views/open';
 import { favorites } from '../layout/nav';
 import { planToday, unplan, useMyDay } from '../inbox/myDay';
 import { useMembers, useStatuses } from './dictionaries';
-import { createTask, deleteTask, setAssignees, updateTask } from './ops';
+import { useProjectAdmin } from './admin';
+import { archiveTask, createTask, deleteTask, restoreTask, setAssignees, updateTask } from './ops';
 import { mergeFrom } from './merge';
 import type { TaskView } from './queries';
 import PriorityIcon from './fields/PriorityIcon.vue';
@@ -45,6 +48,7 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
   const session = useAuth().user;
   const statuses = useStatuses(spaceId);
   const members = useMembers(spaceId);
+  const admin = useProjectAdmin();
   const projects = useQuery(() => db.table<Row<'projects'>>('projects').toArray());
   // move targets (PLNRAPP-152): projects of the task's space, then of other spaces where I am not a guest
   const spaces = useQuery(() => db.table<Row<'spaces'>>('spaces').toArray());
@@ -254,18 +258,38 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
         icon: GitMerge,
         onSelect: () => (mergeFrom.value = task),
       },
-      {
-        id: 'delete',
-        label: t('list.delete'),
-        icon: Trash2,
-        danger: true,
-        confirm: {
-          title: t('list.deleteTitle'),
-          description: t('list.deleteText', { n: 1 }),
-          confirmLabel: t('list.delete'),
-        },
-        onSelect: () => void deleteTask(task.id),
-      },
+      // PLNRAPP-155: archive — any member; out of the archive and delete — an admin of the project
+      task.archivedAt
+        ? {
+            id: 'restore',
+            label: t('archive.restore'),
+            icon: ArchiveRestore,
+            disabled: !admin(task.spaceId, task.projectId),
+            onSelect: () => void restoreTask(task.id),
+          }
+        : {
+            id: 'archive',
+            label: t('archive.toArchive'),
+            icon: Archive,
+            onSelect: () =>
+              void archiveTask(task.id).then(() => toast(t('archive.archived'), 2500)),
+          },
+      ...(admin(task.spaceId, task.projectId)
+        ? [
+            {
+              id: 'delete',
+              label: t('list.delete'),
+              icon: Trash2,
+              danger: true,
+              confirm: {
+                title: t('list.deleteTitle'),
+                description: t('list.deleteText', { n: 1 }),
+                confirmLabel: t('list.delete'),
+              },
+              onSelect: () => void deleteTask(task.id),
+            },
+          ]
+        : []),
     ];
   };
 }

@@ -9,6 +9,7 @@ import {
   delWhere,
   doc,
   need,
+  needProjectAdmin,
   rank,
   record,
   uuid,
@@ -44,6 +45,21 @@ export async function deleteTask(tx: Tx, id: string) {
   }
   for (const i of ['taskId', 'targetId']) await delWhere(tx, 'taskLinks', i, id);
   await tx.del('tasks', id);
+}
+
+/** All subtasks at any depth; seen guards against a cycle in corrupted data. */
+async function subtree(tx: Tx, id: string): Promise<Row<'tasks'>[]> {
+  const out: Row<'tasks'>[] = [];
+  const seen = new Set([id]);
+  const queue = [id];
+  while (queue.length)
+    for (const k of await tx.scan('tasks', { index: 'parentId', eq: queue.shift() }))
+      if (!seen.has(k.id)) {
+        seen.add(k.id);
+        out.push(k);
+        queue.push(k.id);
+      }
+  return out;
 }
 
 /** Status of the new project for a moved task: same name, else same category (lowest rank), else the first by rank. */
@@ -220,6 +236,8 @@ export const taskMutators = [
         completedAt: completedAt(status.category, null, ctx),
         fields: {},
         cycleId: null,
+        archivedAt: null,
+        archivedBy: null,
         createdAt: ctx.now,
         updatedAt: ctx.now,
       });
@@ -298,9 +316,45 @@ export const taskMutators = [
   defineMutator({
     name: 'task.delete',
     args: z.object({ id: uuid }),
-    async run(tx, a) {
-      await need(tx, 'tasks', a.id);
+    async run(tx, a, ctx) {
+      const t = await need(tx, 'tasks', a.id);
+      await needProjectAdmin(tx, t.spaceId, t.projectId, ctx.userId);
       await deleteTask(tx, a.id);
+    },
+  }),
+  // PLNRAPP-155: archive — any member (tasks.write), with its subtasks; restore — admin, the rows archived together
+  defineMutator({
+    name: 'task.archive',
+    args: z.object({ id: uuid }),
+    async run(tx, a, ctx) {
+      const t = await need(tx, 'tasks', a.id);
+      if (t.archivedAt) return;
+      for (const r of [t, ...(await subtree(tx, t.id))])
+        if (!r.archivedAt)
+          await tx.patch('tasks', r.id, {
+            archivedAt: ctx.now,
+            archivedBy: ctx.userId,
+            updatedAt: ctx.now,
+          });
+    },
+  }),
+  defineMutator({
+    name: 'task.restore',
+    args: z.object({ id: uuid }),
+    async run(tx, a, ctx) {
+      const t = await need(tx, 'tasks', a.id);
+      if (!t.archivedAt) return;
+      await needProjectAdmin(tx, t.spaceId, t.projectId, ctx.userId);
+      const parent = t.parentId ? await tx.get('tasks', t.parentId) : undefined;
+      for (const r of [t, ...(await subtree(tx, t.id))])
+        if (r.archivedAt === t.archivedAt)
+          await tx.patch('tasks', r.id, {
+            archivedAt: null,
+            archivedBy: null,
+            // a parent still in the archive: the task comes back top-level
+            ...(r.id === t.id && parent?.archivedAt && { parentId: null }),
+            updatedAt: ctx.now,
+          });
     },
   }),
   defineMutator({

@@ -124,7 +124,12 @@ export const useMilestoneData = (projectId: MaybeRefOrGetter<string>) =>
     const project = (await db.table('projects').get(p)) as Row<'projects'> | undefined;
     const [milestones, tasks] = await Promise.all([
       db.table('goalsMilestones').where('projectId').equals(p).toArray() as Promise<Milestone[]>,
-      db.table('tasks').where('projectId').equals(p).toArray() as Promise<Row<'tasks'>[]>,
+      db
+        .table('tasks')
+        .where('projectId')
+        .equals(p)
+        .filter((t) => !t.archivedAt)
+        .toArray() as Promise<Row<'tasks'>[]>,
     ]);
     const links = (await db
       .table('goalsMilestoneTasks')

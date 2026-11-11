@@ -47,3 +47,37 @@ export async function delWhere(tx: Tx, entity: EntityName, index: string, eq: un
 export function completedAt(category: string, prev: string | null, ctx: MutatorCtx) {
   return category === 'done' || category === 'cancelled' ? (prev ?? ctx.now) : null;
 }
+
+/**
+ * Admin of the project (projectId null — of the space), as the SQL rule project_role: instance admin,
+ * space admin, or project admin of a `custom` project. The system user (deactivated) passes too — archive purge.
+ */
+export async function isProjectAdmin(
+  tx: Tx,
+  spaceId: string,
+  projectId: string | null,
+  userId: string,
+): Promise<boolean> {
+  const u = await tx.get('users', userId);
+  if (u && (u.deactivatedAt || u.role === 'owner' || u.role === 'admin')) return true;
+  const sm = (await tx.scan('spaceMembers', { index: 'spaceId', eq: spaceId })).find(
+    (m) => m.userId === userId,
+  );
+  if (sm?.role === 'admin') return true;
+  if (!sm || sm.role === 'guest' || !projectId) return false;
+  if ((await tx.get('projects', projectId))?.membersMode !== 'custom') return false;
+  return (await tx.scan('projectMembers', { index: 'projectId', eq: projectId })).some(
+    (m) => m.userId === userId && m.role === 'admin',
+  );
+}
+
+/** Admin-only action (restore, delete of archived rows). */
+export async function needProjectAdmin(
+  tx: Tx,
+  spaceId: string,
+  projectId: string | null,
+  userId: string,
+) {
+  if (!(await isProjectAdmin(tx, spaceId, projectId, userId)))
+    throw new MutatorError('forbidden', 'нужна роль admin проекта');
+}

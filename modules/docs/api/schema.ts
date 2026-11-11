@@ -19,6 +19,7 @@ export const docsPages = pgTable(
     createdBy: uuid().notNull(),
     updatedBy: uuid().notNull(),
     archivedAt: ts(),
+    archivedBy: uuid(),
     createdAt: ts().notNull(),
     updatedAt: ts().notNull(),
   },

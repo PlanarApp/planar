@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   defineMutator,
   MutatorError,
+  needProjectAdmin,
   type SharedModuleManifest,
   type Tx,
 } from '@planar/shared';
@@ -23,6 +24,7 @@ export const docsPages = z.object({
   createdBy: z.uuid(),
   updatedBy: z.uuid(),
   archivedAt: ts.nullable(),
+  archivedBy: z.uuid().nullable().default(null),
   createdAt: ts,
   updatedAt: ts,
 });
@@ -148,6 +150,7 @@ const create = defineMutator({
       createdBy: ctx.userId,
       updatedBy: ctx.userId,
       archivedAt: null,
+      archivedBy: null,
       createdAt: ctx.now,
       updatedAt: ctx.now,
     };
@@ -218,22 +221,47 @@ const archive = defineMutator({
     if (p.archivedAt) return;
     const rows = [p, ...(await descendants(tx, a.id)).filter((d) => !d.archivedAt)];
     for (const r of rows)
-      await dtx(tx).patch('docsPages', r.id, { archivedAt: ctx.now, updatedAt: ctx.now });
+      await dtx(tx).patch('docsPages', r.id, {
+        archivedAt: ctx.now,
+        archivedBy: ctx.userId,
+        updatedAt: ctx.now,
+      });
   },
 });
 
+// PLNRAPP-154: restore and delete — admin of the project (of the space for a space page)
 const restore = defineMutator({
   name: 'docs.page.restore',
   args: z.object({ id: z.uuid() }),
   async run(tx, a, ctx) {
     const p = await page(tx, a.id);
     if (!p.archivedAt) return;
+    await needProjectAdmin(tx, p.spaceId, p.projectId, ctx.userId);
     const rows = [p, ...(await descendants(tx, a.id)).filter((d) => d.archivedAt === p.archivedAt)];
     const parent = p.parentId ? await dtx(tx).get<Page>('docsPages', p.parentId) : undefined;
     for (const r of rows) {
-      const patch: Record<string, unknown> = { archivedAt: null, updatedAt: ctx.now };
+      const patch: Record<string, unknown> = { archivedAt: null, archivedBy: null, updatedAt: ctx.now };
       if (r.id === p.id && parent?.archivedAt) patch.parentId = null;
       await dtx(tx).patch('docsPages', r.id, patch);
+    }
+  },
+});
+
+// only an archived page (with its subtree) — the archive purge after 30 days
+const remove = defineMutator({
+  name: 'docs.page.delete',
+  args: z.object({ id: z.uuid() }),
+  async run(tx, a, ctx) {
+    const p = await page(tx, a.id);
+    if (!p.archivedAt) throw new MutatorError('conflict', 'страница не в архиве');
+    await needProjectAdmin(tx, p.spaceId, p.projectId, ctx.userId);
+    const t = dtx(tx);
+    // children before the parent
+    for (const r of [p, ...(await descendants(tx, a.id))].reverse()) {
+      for (const l of await t.scan<Link>('docsTaskLinks', { index: 'pageId', eq: r.id }))
+        await t.del('docsTaskLinks', l.id);
+      await t.del('docsLocks', r.id);
+      await t.del('docsPages', r.id);
     }
   },
 });
@@ -297,7 +325,7 @@ const unlock = defineMutator({
 
 export const shared: SharedModuleManifest = {
   id: 'docs',
-  mutators: [create, update, move, archive, restore, linkAdd, linkRemove, lock, unlock],
+  mutators: [create, update, move, archive, restore, remove, linkAdd, linkRemove, lock, unlock],
   entities: {
     docsPages: {
       schema: docsPages,

@@ -26,6 +26,7 @@ export const chatChannels = pgTable(
     lastSeq: integer().notNull(),
     lastMessageAt: ts(),
     archivedAt: ts(),
+    archivedBy: uuid(),
     createdAt: ts().notNull(),
     updatedAt: ts().notNull(),
   },

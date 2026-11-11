@@ -181,7 +181,8 @@ function reload(e: Entry): void {
     e.links = L;
     e.own = isOwn;
     e.tasks = new Map();
-    for (const t of tasks) e.tasks.set(t.id, view(e, t));
+    // PLNRAPP-155: archived tasks are seen only in the project's Archive
+    for (const t of tasks) if (!t.archivedAt) e.tasks.set(t.id, view(e, t));
     const q = e.queue;
     e.queue = [];
     if (patch(e, q) < 0) return reload(e);
@@ -208,7 +209,7 @@ function patch(e: Entry, cs: ReplicaChange[], touched?: Set<string>): -1 | 0 | 1
       for (const t of applyLinks(e.links!, [c], (t) => tasks.has(t))) dirty.add(t);
     if (c.entity !== 'tasks') continue;
     const old = tasks.get(c.id);
-    if (c.row && c.row.projectId === e.pid) {
+    if (c.row && c.row.projectId === e.pid && !c.row.archivedAt) {
       // its own index (many projects) doesn't know the links of a newly appeared task: it may come from another project — re-read
       if (!old && e.own) return -1;
       tasks.set(c.id, view(e, c.row as Row<'tasks'>));

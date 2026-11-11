@@ -191,6 +191,17 @@ describe('chat: каналы и права', () => {
     });
   });
 
+  it('PLNRAPP-154: архив пишет кто; из архива — только admin, создатель — forbidden', async () => {
+    const id = await mkChannel();
+    await w.member.ok('chat.channel.update', { id, archivedAt: new Date().toISOString() });
+    expect(await chan(w.member, id)).toMatchObject({ archivedBy: w.member.userId });
+    expect(await w.member.push('chat.channel.update', { id, archivedAt: null })).toMatchObject({
+      code: 'forbidden',
+    });
+    await w.admin.ok('chat.channel.update', { id, archivedAt: null });
+    expect(await chan(w.member, id)).toMatchObject({ archivedAt: null, archivedBy: null });
+  });
+
   it('канал не виден постороннему: bootstrap и pull', async () => {
     const id = await mkChannel();
     expect(await chan(w.outsider, id)).toBeUndefined();

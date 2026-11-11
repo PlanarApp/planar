@@ -10,6 +10,7 @@ import { executeMutations } from '../sync/mutate.js';
 import type { Q } from '../sync/server-tx.js';
 import { DB } from '../tokens.js';
 import { ensureSystemUser } from '../users/system.js';
+import { archivePurge } from './archive.js';
 
 export const PUSH_OPTS = Symbol('PUSH_OPTS');
 
@@ -46,9 +47,11 @@ export class JobsService implements OnApplicationShutdown {
       const boss = new PgBoss({ connectionString: this.opts.databaseUrl, max: 2 });
       boss.on('error', (e) => this.log.error(e));
       await boss.start();
-      if (this.opts.worker !== false)
+      if (this.opts.worker !== false) {
+        await this.register(boss, null, archivePurge);
         for (const m of installed)
           for (const j of (m.api.jobs ?? []) as JobDef[]) await this.register(boss, m.api.id, j);
+      }
       this.boss = boss;
       return boss;
     })().catch((e) => {
@@ -57,7 +60,8 @@ export class JobsService implements OnApplicationShutdown {
     }));
   }
 
-  private async register(boss: PgBoss, moduleId: string, j: JobDef) {
+  /** moduleId null — a core job. */
+  private async register(boss: PgBoss, moduleId: string | null, j: JobDef) {
     const { retryLimit, retryDelay, retryBackoff, expireInSeconds } = j;
     // pg-boss does not accept undefined keys
     const qo = Object.fromEntries(
@@ -71,7 +75,7 @@ export class JobsService implements OnApplicationShutdown {
       { pollingIntervalSeconds: 0.5, localConcurrency: j.localConcurrency ?? 1 },
       async (jobs) => {
         // disabled module: the job finishes without a handler
-        if (!(await enabledModules(this.db)).has(moduleId)) return;
+        if (moduleId && !(await enabledModules(this.db)).has(moduleId)) return;
         const api = await this.api();
         for (const job of jobs) await j.handler(job.data, api);
       },

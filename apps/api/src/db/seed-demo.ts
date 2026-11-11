@@ -321,6 +321,8 @@ const DOCS: {
   icon: string;
   paras: string[];
   parent?: number;
+  /** in the project's Archive since N days ago (PLNRAPP-154) */
+  archived?: number;
 }[] = [
   {
     space: 0,
@@ -425,6 +427,14 @@ const DOCS: {
       'T-0: Product Hunt post at 00:01 PT, team on chat all day.',
     ],
   },
+  {
+    space: 1,
+    project: 'PLT',
+    title: 'API v1 deprecation notes (old)',
+    icon: '🗄️',
+    paras: ['Superseded by the API v2 spec.', 'Kept for reference until the v1 sunset.'],
+    archived: 4,
+  },
 ];
 
 const CHANNELS: {
@@ -433,6 +443,8 @@ const CHANNELS: {
   name: string;
   topic: string;
   msgs: [string, string, number?][];
+  /** in the project's Archive since N days ago (PLNRAPP-154) */
+  archived?: number;
 }[] = [
   {
     space: ROOT,
@@ -506,6 +518,14 @@ const CHANNELS: {
       ['jack', 'Android crash fix is in beta. Crash-free sessions back to 99.6%.'],
       ['ava', 'Offline mode demo on Thursday, bring your phones!'],
     ],
+  },
+  {
+    space: 1,
+    project: 'PLT',
+    name: 'api-v1-sunset',
+    topic: 'API v1 sunset (done)',
+    msgs: [['liam', 'All v1 clients are migrated, archiving this channel.']],
+    archived: 2,
   },
 ];
 
@@ -835,6 +855,15 @@ async function insertAll(tx: Tx, now: Date) {
       });
     });
   }
+  // PLNRAPP-155: the last done top-level task of PLT without subtasks is in the project's Archive
+  const archived = tasks.findLast(
+    (t) =>
+      t.projectId === pid('PLT') &&
+      !t.parentId &&
+      t.completedAt &&
+      !tasks.some((x) => x.parentId === t.id),
+  );
+  if (archived) Object.assign(archived, { archivedAt: at(-3), archivedBy: archived.createdBy });
   await ins(
     s.tasks,
     tasks.sort((a, b) => (a.parentId ? 1 : 0) - (b.parentId ? 1 : 0)),
@@ -1323,6 +1352,8 @@ async function insertAll(tx: Tx, now: Date) {
         files: [],
         createdBy: maya,
         updatedBy: maya,
+        archivedAt: d.archived ? at(-d.archived) : null,
+        archivedBy: d.archived ? maya : null,
         createdAt: at(-40 + k),
         updatedAt: at(-10 + k),
       };
@@ -1362,6 +1393,7 @@ async function insertAll(tx: Tx, now: Date) {
     msgs: [string, string, number?][],
     who: string[],
     project?: string,
+    archived?: number,
   ) => {
     let seq = 0;
     let lastAt = at(-3);
@@ -1427,6 +1459,8 @@ async function insertAll(tx: Tx, now: Date) {
       createdBy: maya,
       lastSeq: seq,
       lastMessageAt: lastAt,
+      archivedAt: archived ? at(-archived) : null,
+      archivedBy: archived ? maya : null,
       createdAt: at(-60),
       updatedAt: lastAt,
     });
@@ -1460,6 +1494,7 @@ async function insertAll(tx: Tx, now: Date) {
       c.msgs,
       USERS.map(([l]) => l).filter((l) => l !== 'nina'),
       c.project,
+      c.archived,
     ),
   );
   addChannel(

@@ -33,6 +33,7 @@ import {
   newId,
   useGroupLevels,
   useMembers,
+  useProjectAdmin,
   type GroupScope,
 } from '@planar/web/modules';
 import ChannelView from './ChannelView.vue';
@@ -173,6 +174,8 @@ const canManage = computed(() => {
   )?.role;
   return c.createdBy === meId.value || role === 'admin';
 });
+// out of the archive — only an admin of the project / space / instance (PLNRAPP-154)
+const admin = useProjectAdmin();
 const editOpen = ref(false);
 const deleting = ref(false);
 const form = ref({ name: '', topic: '' });
@@ -192,6 +195,7 @@ const channelMenu = computed<MenuItem[]>(() => {
       id: 'archive',
       label: c.archivedAt ? tx('unarchive') : tx('archive'),
       icon: Archive,
+      disabled: !!c.archivedAt && !admin(c.spaceId!, c.projectId),
       onSelect: () =>
         void mutate('chat.channel.update', {
           id: c.id,

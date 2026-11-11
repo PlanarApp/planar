@@ -16,7 +16,17 @@ export { groupTasks, labelColumns } from './group';
 export type { GroupBy, TaskGroup } from './group';
 export { sortTasks } from './sort';
 export type { SortBy } from './sort';
-export { createTask, updateTask, moveTask, setAssignees, setLabels, deleteTask } from './ops';
+export {
+  createTask,
+  updateTask,
+  moveTask,
+  setAssignees,
+  setLabels,
+  deleteTask,
+  archiveTask,
+  restoreTask,
+} from './ops';
+export { canAdmin, useProjectAdmin } from './admin';
 export { default as StatusPicker } from './fields/StatusPicker.vue';
 export { default as AssigneePicker } from './fields/AssigneePicker.vue';
 export { default as PriorityPicker } from './fields/PriorityPicker.vue';

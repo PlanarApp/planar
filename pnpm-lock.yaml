@@ -565,6 +565,9 @@ importers:
       '@planar/editor':
         specifier: workspace:*
         version: link:../../packages/editor
+      '@planar/server-kit':
+        specifier: workspace:*
+        version: link:../../packages/server-kit
       '@planar/shared':
         specifier: workspace:*
         version: link:../../packages/shared

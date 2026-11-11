@@ -1,7 +1,17 @@
 import { Controller, Get, Inject, Module, Param, Query, Req } from '@nestjs/common';
 import { and, asc, desc, eq, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm';
 import { uuidv7, type BackendModuleManifest } from '@planar/shared';
-import { CORE, HttpError, type CoreServices, type ModuleHookApi, type Q } from '@planar/server-kit';
+import {
+  archiveCutoff,
+  CORE,
+  HttpError,
+  purgeArchived,
+  type CoreServices,
+  type JobApi,
+  type JobDef,
+  type ModuleHookApi,
+  type Q,
+} from '@planar/server-kit';
 import { z } from 'zod';
 import { shared } from '../shared/index.js';
 import { chatMessages, chatReactions } from './schema.js';
@@ -230,6 +240,19 @@ export const api: BackendModuleManifest = {
   mutators: shared.mutators,
   entities: shared.entities,
   afterMutation: notify as BackendModuleManifest['afterMutation'],
+  // PLNRAPP-154: channels archived longer than ARCHIVE_DAYS
+  jobs: [
+    {
+      queue: 'chat.archive.purge',
+      cron: '30 3 * * *',
+      handler: (_: unknown, a: JobApi) =>
+        purgeArchived(
+          a,
+          'chat.channel.delete',
+          sql`select id from chat_channels where archived_at < ${archiveCutoff}`,
+        ),
+    },
+  ] as JobDef<never>[],
   // a file in a message attachment of a visible channel, uploaded by this message's author
   async canReadFile(q, userId, sha256) {
     const r = await (q as Q).execute(sql`

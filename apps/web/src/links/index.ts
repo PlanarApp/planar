@@ -46,7 +46,13 @@ export const useBlockedIds = (projectId: MaybeRefOrGetter<string>) => {
       (await tasks.bulkGet([...new Set(rows.map((l) => l.taskId))])).map((x) => [x?.id, x]),
     );
     return new Set(
-      rows.filter((l) => blockers.get(l.taskId)?.completedAt === null).map((l) => l.targetId),
+      rows
+        .filter((l) => {
+          const b = blockers.get(l.taskId);
+          // an archived blocker no longer blocks (PLNRAPP-155)
+          return b?.completedAt === null && !b.archivedAt;
+        })
+        .map((l) => l.targetId),
     );
   });
   return computed(() => r.value ?? EMPTY);
@@ -66,7 +72,7 @@ export const useTaskSearch = (
       .equals(space)
       .until(() => out.length >= 20)
       .each((x) => {
-        if (skip.has(x.id)) return;
+        if (skip.has(x.id) || x.archivedAt) return;
         const key = `${projects.find((p) => p.id === x.projectId)?.key ?? '?'}-${x.number ?? '…'}`;
         if (x.title.toLowerCase().includes(q) || key.toLowerCase().includes(q))
           out.push({ id: x.id, key, title: x.title });

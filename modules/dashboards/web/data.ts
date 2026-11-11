@@ -42,7 +42,10 @@ export const useWidgets = (boardId: () => string) =>
 export const useTasks = () =>
   useQuery(async (): Promise<Task[]> => {
     const [tasks, as, ls] = await Promise.all([
-      db.table('tasks').toArray(),
+      db
+        .table('tasks')
+        .filter((t) => !t.archivedAt)
+        .toArray(),
       db.table('taskAssignees').toArray(),
       db.table('taskLabels').toArray(),
     ]);
