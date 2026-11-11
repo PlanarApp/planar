@@ -3,8 +3,9 @@ import { sql, type SQL } from 'drizzle-orm';
 import { uuidv7, type BackendModuleManifest } from '@planar/shared';
 import { archiveCutoff, purgeArchived, type JobApi, type JobDef } from '@planar/server-kit';
 import { shared } from '../shared/index.js';
+import { DocsController, versions } from './versions.js';
 
-@Module({})
+@Module({ controllers: [DocsController] })
 class DocsModule {}
 
 type Q = { execute(q: SQL): Promise<{ rows: unknown[] }> };
@@ -84,7 +85,10 @@ export const api: BackendModuleManifest = {
   nestModule: DocsModule,
   mutators: shared.mutators,
   entities: shared.entities,
-  afterMutation: notify as unknown as BackendModuleManifest['afterMutation'],
+  afterMutation: (async (writes, ctx, api: HookApi) => {
+    await notify(writes, ctx, api);
+    await versions(writes, ctx, api.q);
+  }) as BackendModuleManifest['afterMutation'],
   // PLNRAPP-154: archived pages older than ARCHIVE_DAYS; roots only — docs.page.delete takes the subtree
   jobs: [
     {

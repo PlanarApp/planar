@@ -191,7 +191,7 @@ export function openapi() {
         post: { requestBody: body('CreateDoc'), responses: ok('Doc', 'one', '201') },
       },
       '/api/v1/docs/{id}': {
-        get: { parameters: [param('id', 'path')], responses: ok('Doc') },
+        get: { parameters: [param('id', 'path'), param('section', 'query')], responses: ok('Doc') },
         patch: {
           parameters: [param('id', 'path')],
           requestBody: body('PatchDoc'),

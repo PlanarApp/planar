@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { sql } from 'drizzle-orm';
 import { generateNKeysBetween } from 'fractional-indexing';
 import { dashboardsBoards, dashboardsWidgets } from '@planar/module-dashboards/api/schema';
-import { docsPages, docsTaskLinks } from '@planar/module-docs/api/schema';
+import { docsPages, docsTaskLinks, docsVersions } from '@planar/module-docs/api/schema';
 import {
   chatChannels,
   chatMembers,
@@ -1364,16 +1364,17 @@ async function insertAll(tx: Tx, now: Date) {
 
   // docs
   const dRanks = generateNKeysBetween(null, null, DOCS.length);
+  const docBody = (title: string, paras: string[]) => ({
+    type: 'doc',
+    content: [
+      { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: title }] },
+      ...paras.map((t) => ({ type: 'paragraph', content: [{ type: 'text', text: t }] })),
+    ],
+  });
   await ins(
     docsPages,
     DOCS.map((d, k) => {
-      const body = {
-        type: 'doc',
-        content: [
-          { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: d.title }] },
-          ...d.paras.map((t) => ({ type: 'paragraph', content: [{ type: 'text', text: t }] })),
-        ],
-      };
+      const body = docBody(d.title, d.paras);
       return {
         id: uid(`page:${k}`),
         spaceId: sp(d.space),
@@ -1394,6 +1395,28 @@ async function insertAll(tx: Tx, now: Date) {
       };
     }),
   );
+  // PLNRAPP-185: version history of "Product vision" — Maya's first draft, Liam's addition through the API
+  const vision = DOCS[0]!;
+  await ins(docsVersions, [
+    {
+      id: uid('dver:0'),
+      pageId: uid('page:0'),
+      body: docBody(vision.title, vision.paras.slice(0, 1)),
+      source: 'editor',
+      createdBy: maya,
+      createdAt: at(-40),
+      updatedAt: at(-40),
+    },
+    {
+      id: uid('dver:1'),
+      pageId: uid('page:0'),
+      body: docBody(vision.title, vision.paras),
+      source: 'api',
+      createdBy: uid_.liam!,
+      createdAt: at(-10),
+      updatedAt: at(-10),
+    },
+  ]);
   await ins(docsTaskLinks, [
     {
       id: uid('dlink:0'),

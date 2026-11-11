@@ -74,6 +74,19 @@ export const patchDocBody = z.object({
   title: z.string().max(200).optional(),
   markdown: z.string().optional().describe('новое содержимое целиком'),
   append: z.string().optional().describe('дописать в конец (вместо markdown)'),
+  replace: z
+    .object({ find: z.string().min(1), replace: z.string() })
+    .optional()
+    .describe(
+      'заменить фрагмент markdown (вместо markdown/append); фрагмент должен встречаться ровно один раз',
+    ),
+});
+export const docQuery = z.object({
+  section: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('только раздел с этим заголовком — до следующего заголовка того же или выше уровня'),
 });
 export const docTaskBody = z.object({ task: z.string().min(1).describe('id или ключ задачи') });
 

@@ -52,14 +52,13 @@ const until = async (fn: () => unknown, ms = 3000) => {
   }
 };
 
-function open(user: keyof typeof cookies, name: string) {
+function open(user: keyof typeof cookies, name: string, document = new Y.Doc()) {
   const headers = { cookie: cookies[user]!, origin: ORIGIN };
   class WS extends WebSocket {
     constructor(url: string) {
       super(url, { headers });
     }
   }
-  const document = new Y.Doc();
   const state = { failed: false, synced: false };
   const provider = new HocuspocusProvider({
     url: `ws://127.0.0.1:${port}/collab`,
@@ -80,6 +79,11 @@ const addParagraph = (d: Y.Doc, text: string) => {
   d.getXmlFragment('default').insert(d.getXmlFragment('default').length, [p]);
 };
 const has = (d: Y.Doc, text: string) => JSON.stringify(toJson(d)).includes(text);
+const stored = (state: Uint8Array) => {
+  const y = new Y.Doc();
+  Y.applyUpdate(y, state);
+  return y;
+};
 
 const mkPage = async (body: object = doc('start')) => {
   const id = uuidv7();
@@ -225,7 +229,24 @@ describe('pt1a', () => {
     });
   });
 
-  it('pt1a: внешняя запись при открытом документе заменяет содержимое; при закрытом — удаляет ydocs', async () => {
+  it('pt1a: внешняя запись при закрытом документе — клиент со старым состоянием (IndexedDB) не удваивает текст', async () => {
+    const id = await mkPage(doc('первая версия'));
+    const name = `docs:${id}`;
+    const a = open('member', name);
+    await until(() => a.state.synced);
+    a.provider.destroy();
+    await until(() => !svc.hp.documents.has(name));
+    await w.admin.ok('docs.page.update', { id, body: doc('вторая версия') });
+    await until(async () => has(stored((await ydoc(name))!.state), 'вторая версия'));
+    // the old tab reconnects with its Y.Doc (as y-indexeddb keeps it)
+    open('member', name, a.document);
+    await until(() => has(a.document, 'вторая версия'));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(has(a.document, 'первая версия')).toBe(false);
+    expect(JSON.stringify(toJson(a.document)).split('вторая версия')).toHaveLength(2);
+  });
+
+  it('pt1a: внешняя запись при открытом документе заменяет содержимое; при закрытом — обновляет ydocs', async () => {
     const id = await mkPage(doc('старое'));
     const a = open('member', `docs:${id}`);
     await until(() => a.state.synced);
@@ -244,7 +265,10 @@ describe('pt1a', () => {
     await until(() => !svc.hp.documents.has(`docs:${id2}`));
     expect(await ydoc(`docs:${id2}`)).toBeDefined(); // our own ydocs projection does not erase it
     await w.admin.ok('docs.page.update', { id: id2, body: doc('другое') });
-    await until(async () => !(await ydoc(`docs:${id2}`)));
+    await until(async () => {
+      const y = stored((await ydoc(`docs:${id2}`))!.state);
+      return has(y, 'другое') && !has(y, 'одно');
+    });
   });
 
   it('pt1a: правка заголовка при открытом документе не откатывает несохранённый набор', async () => {

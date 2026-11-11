@@ -9,10 +9,17 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - Forms: a personal one-time or expiring link bound to an existing task; the answer is added to the task as a comment. Created in the form settings.
 - New module `ai` (turns on together with `automations`): the bot «ИИ» — an active member of the space without sign-in, visible in assignee and mention pickers, skipped by due reminders, notifications and «only people» automation triggers.
 - Settings → AI: a connection to an AI provider (OpenAI, Anthropic, OpenAI-compatible) per level — instance, space, project; the nearest level applies. The key is stored encrypted and never shown, a test call checks the connection on save.
+- Documents: version history — the page menu "Version history" lists versions (when, who, editor / API / restore), shows a version read-only and restores it. Edits of one author from one source within 10 minutes form one version; the last 100 versions of a page are kept.
+- REST `PATCH /api/v1/docs/:id` and MCP `update_doc`: `replace: {find, replace}` changes one fragment of the markdown without sending the whole document (an error if the fragment is missing or not unique).
+- REST `GET /api/v1/docs/:id?section=` and MCP `get_doc` `section`: only the section under the given heading.
 
 ### Changed
 
 - The key encryption of GitLab, email and AI connections lives in one place (`packages/server-kit`).
+
+### Fixed
+
+- Documents: a page changed through REST/MCP while closed no longer gets its text doubled when opened in a browser that had it open before.
 
 ## [0.13.0] - 2026-11-10
 

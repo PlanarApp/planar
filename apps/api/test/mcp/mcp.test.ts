@@ -509,6 +509,47 @@ describe('MCP/REST: документы (PLNRAPP-180)', () => {
     await c.close();
   });
 
+  it('update_doc replace: фрагмент ровно один раз; get_doc section — один раздел', async () => {
+    const c = await connect(write.secret);
+    const [, d] = await call(c, 'create_doc', {
+      projectId: w.projectId,
+      title: 'План',
+      markdown:
+        '# План\n\nвступление\n\n## Этап 1\n\nстатус: да\n\n### Детали\n\nx\n\n## Этап 2\n\nстатус: нет\n\n```\n## не заголовок\n```',
+    });
+    const [e1, r] = await call(c, 'update_doc', {
+      id: d.id,
+      replace: { find: 'статус: нет', replace: 'статус: да $&' },
+    });
+    expect(e1, JSON.stringify(r)).toBe(false);
+    expect(r.markdown).toContain('статус: да $&');
+    const [e2, x] = await call(c, 'update_doc', {
+      id: d.id,
+      replace: { find: 'статус: да', replace: '-' },
+    });
+    expect([e2, x.code, x.message]).toEqual([
+      true,
+      'invalid_request',
+      expect.stringContaining('2 раз'),
+    ]);
+    const [e3, y] = await call(c, 'update_doc', {
+      id: d.id,
+      replace: { find: 'нет такого', replace: '' },
+    });
+    expect([e3, y.code]).toEqual([true, 'invalid_request']);
+    const [, s] = await call(c, 'get_doc', { id: d.id, section: 'Этап 1' });
+    expect(s.markdown).toBe('## Этап 1\n\nстатус: да\n\n### Детали\n\nx');
+    const [, s2] = await call(c, 'get_doc', { id: d.id, section: 'Этап 2' });
+    expect(s2.markdown).toMatch(/^## Этап 2[\s\S]*## не заголовок\n```$/);
+    const [e4, z4] = await call(c, 'get_doc', { id: d.id, section: 'Этап 3' });
+    expect([e4, z4.code, z4.message]).toEqual([
+      true,
+      'not_found',
+      expect.stringContaining('Этап 2'),
+    ]);
+    await c.close();
+  });
+
   it('link_doc_task по ключу задачи; повтор не дублирует', async () => {
     const c = await connect(write.secret);
     const t = await mk(c, 'Связанная');

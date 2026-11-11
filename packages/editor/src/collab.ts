@@ -26,7 +26,10 @@ const RETRY_MS = 2000;
 /** Connects document `name` to /collab of the same origin + offline storage (P3-ydoc «Client»). A separate module: yjs/hocuspocus are loaded lazily. */
 export function openCollab(name: string, user: { id: string; name: string }): Collab {
   const ydoc = new Y.Doc();
-  const idb = new IndexeddbPersistence(name, ydoc);
+  // PLNRAPP-185: before the fix an external write dropped the server ydocs, and the old local copy merged with a rebuilt
+  // document — the text doubled. A new store name; the old one (a possibly stale copy) is removed.
+  if (typeof indexedDB !== 'undefined') indexedDB.deleteDatabase(name);
+  const idb = new IndexeddbPersistence(`v2:${name}`, ydoc);
   const awareness = new Awareness(ydoc);
   const color = cursorColor(user.id);
   // provider.destroy() destroys awareness: on retries it must stay alive (cursors live on it), so we turn it off manually in destroy()

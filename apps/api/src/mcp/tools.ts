@@ -8,6 +8,7 @@ import {
   commentBody,
   createDocBody,
   createTaskBody,
+  docQuery,
   docsQuery,
   docTaskBody,
   linkBody,
@@ -233,10 +234,10 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
   );
   tool(
     'get_doc',
-    'Документ: содержимое в markdown и связанные задачи',
-    { id: doc },
+    'Документ: содержимое в markdown и связанные задачи; section — только один раздел большого документа',
+    { id: doc, ...docQuery.shape },
     false,
-    async (a) => (await rest.doc(uid, a.id)).data,
+    async ({ id, ...a }) => (await rest.doc(uid, id, a)).data,
   );
   tool(
     'create_doc',
@@ -247,7 +248,7 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
   );
   tool(
     'update_doc',
-    'Изменить документ: title; markdown — заменить содержимое целиком, append — дописать в конец',
+    'Изменить документ: title; markdown — заменить содержимое целиком, append — дописать в конец, replace {find, replace} — точечная правка фрагмента (для правок предпочтительнее markdown)',
     { id: doc, ...patchDocBody.shape },
     true,
     async ({ id, ...a }) => (await rest.updateDoc(uid, id, a, ctx.tokenId)).data,
