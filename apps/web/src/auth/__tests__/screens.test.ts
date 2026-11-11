@@ -129,6 +129,27 @@ describe('auth:profile', () => {
     expect(localStorage.getItem('planar.locale')).toBe('en');
     setLocale('ru');
   });
+  it('часовой пояс: пустой в профиле — сохраняется зона браузера; заданный — не трогается', async () => {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const patches: unknown[] = [];
+    let me = mkUser({ timezone: null } as never);
+    mockFetch((m, p, b) => {
+      if (m === 'GET' && p === '/api/auth/me') return json(200, { user: me });
+      if (m === 'PATCH' && p === '/api/users/0190-u1') {
+        patches.push(b);
+        return json(200, { user: { ...me, ...(b as object) } });
+      }
+      return undefined;
+    });
+    await useAuth().refresh();
+    await flushPromises();
+    expect(patches).toEqual([{ timezone: zone }]);
+    expect(useAuth().user.value?.timezone).toBe(zone);
+    me = mkUser({ timezone: 'Asia/Almaty' } as never);
+    await useAuth().refresh();
+    await flushPromises();
+    expect(patches).toHaveLength(1);
+  });
 });
 
 describe('auth:admin-users', () => {

@@ -275,6 +275,7 @@ export default {
     weekAuto: 'Авто (по языку)',
     weekMon: 'Понедельник',
     weekSun: 'Воскресенье',
+    timezone: 'Часовой пояс',
   },
   calendar: {
     prev: 'Назад',

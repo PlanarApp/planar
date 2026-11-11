@@ -47,7 +47,10 @@ export async function updateUser(
   actorId: string,
   id: string,
   set: Partial<
-    Pick<UserRow, 'name' | 'email' | 'role' | 'avatarFile' | 'deactivatedAt' | 'passwordHash'>
+    Pick<
+      UserRow,
+      'name' | 'email' | 'role' | 'avatarFile' | 'timezone' | 'deactivatedAt' | 'passwordHash'
+    >
   >,
 ): Promise<UserRow> {
   const [was] = await q.select({ role: users.role }).from(users).where(eq(users.id, id));

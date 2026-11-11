@@ -372,7 +372,7 @@ Any non-2xx response is JSON `{code, message, details?}`. `details` of `invalid_
 | `GET /api/auth/me` | → `{user}` \| `401` | CR-3 |
 | `GET /api/users` | → `{users: user[]}` (instance_admin) | CR-3 |
 | `POST /api/users` | `{login, name, password, role, email?}` → `201 {user}` (instance_admin) | CR-3 |
-| `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool, avatarFile?: string\|null}` → `{user}`; `avatarFile` — a sha256 from `POST /files` uploaded by this user (`file_uploads`), otherwise `400 invalid_request`; for oneself — only name, email, password, avatarFile | CR-3 |
+| `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool, avatarFile?: string\|null, timezone?: string}` → `{user}`; `avatarFile` — a sha256 from `POST /files` uploaded by this user (`file_uploads`), otherwise `400 invalid_request`; `timezone` — an IANA zone, otherwise `400`; for oneself — only name, email, password, avatarFile, timezone | CR-3 |
 | `GET /api/push/vapid` | → `{publicKey}` (VAPID, base64url) | CR-7 |
 | `POST /api/push/subscribe` | `{endpoint, keys: {p256dh, auth}}` → `201`; a repeat of the same endpoint — an update, `200` | CR-7 |
 | `DELETE /api/push/subscribe` | `{endpoint}` → `204` (own only) | CR-7 |

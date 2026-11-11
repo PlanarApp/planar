@@ -1,6 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { changes, fileUploads, files, sessions } from '../../src/db/schema.js';
+import { findUser } from '../../src/users/users.repo.js';
+import { toWire } from '../../src/sync/rows.js';
 import { createUser, loginCookie } from '../auth.js';
 import { db, req, useApp } from './harness.js';
 
@@ -140,6 +142,16 @@ describe('PATCH /api/users/:id', () => {
     expect((await patch(cookie, u.id, { avatarFile: theirs })).statusCode).toBe(400);
     expect((await patch(cookie, u.id, { avatarFile: 'c'.repeat(64) })).statusCode).toBe(400);
     expect((await patch(cookie, u.id, { avatarFile: null })).json().user.avatarFile).toBeNull();
+  });
+
+  it('timezone: свой — IANA сохраняется и не уходит в синк; неизвестный — 400', async () => {
+    const { u, cookie } = await as('member');
+    expect((await patch(cookie, u.id, { timezone: 'Asia/Almaty' })).json().user.timezone).toBe(
+      'Asia/Almaty',
+    );
+    expect((await patch(cookie, u.id, { timezone: 'Mars/Olympus' })).statusCode).toBe(400);
+    expect((await findUser(db, u.id))!.timezone).toBe('Asia/Almaty');
+    expect(toWire('users', (await findUser(db, u.id))!)).not.toHaveProperty('timezone');
   });
 });
 
