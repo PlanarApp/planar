@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildTree, lockedBy, moveArgs, searchPages, type PageRow } from './model';
+import { buildTree, lockedBy, moveArgs, searchPages, toProjectArgs, type PageRow } from './model';
 import { createSaver } from './save';
 
 const S = 's1';
@@ -53,6 +53,21 @@ describe('docs web: дерево', () => {
     expect(into.rank > 'a1').toBe(true);
     expect(moveArgs(pages, 'a', 'a1', 'into')).toBeNull();
     expect(moveArgs(pages, 'a', 'a', 'before')).toBeNull();
+  });
+
+  it('PLNRAPP-5 в проект: в корень после корневых страниц проекта, архивные и чужие не считаются', () => {
+    const ps = [
+      ...pages,
+      pg('p1', 'a3', null, { projectId: 'P' }),
+      pg('p0', 'a9', 'p1', { projectId: 'P' }),
+      pg('pOld', 'b0', null, { projectId: 'P', archivedAt: '2026-01-01T00:00:00.000Z' }),
+    ];
+    const r = toProjectArgs(ps, 'a1', 'P');
+    expect(r).toMatchObject({ id: 'a1', parentId: null, projectId: 'P' });
+    expect(r.rank > 'a3' && r.rank < 'b0').toBe(true);
+    // to the space: after its roots a, b (old is archived)
+    const s = toProjectArgs(ps, 'p1', null);
+    expect(s.rank > 'a1').toBe(true);
   });
 });
 

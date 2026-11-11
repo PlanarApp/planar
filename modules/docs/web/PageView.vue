@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
-import { Archive, Star, StarOff } from 'lucide-vue-next';
+import { Archive, ArrowRightLeft, Star, StarOff } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import { db, favorites, i18n, mutate, useQuery, Menu, type MenuItem } from '@planar/web/modules';
+import {
+  db,
+  favorites,
+  i18n,
+  mutate,
+  useQuery,
+  Menu,
+  type MenuItem,
+} from '@planar/web/modules';
 import DocEditor from './DocEditor.vue';
-import type { PageFull } from './model';
+import { toProjectArgs, type PageFull } from './model';
 import { createSaver } from './save';
 import { useTexts } from './text';
 
@@ -36,6 +44,31 @@ const onTitle = () => saver.push({ title: title.value });
 onBeforeUnmount(saver.flush);
 
 const fav = computed(() => favorites.has('doc', props.pageId));
+// PLNRAPP-5: move targets — projects of the page's space and the space itself (no project)
+const projects = useQuery(() => db.table<Row<'projects'>>('projects').toArray());
+const targets = computed(() => {
+  const p = page.value;
+  if (!p) return [];
+  const own = (projects.value ?? [])
+    .filter((x) => x.spaceId === p.spaceId && !x.archivedAt)
+    .sort((a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0));
+  return [{ id: null, name: tx('noProject') }, ...own].map((x) => ({
+    id: x.id ?? 'none',
+    label: x.name,
+    checked: (p.projectId ?? null) === x.id,
+    onSelect: () => (p.projectId ?? null) !== x.id && void moveTo(x.id),
+  }));
+});
+/** to the end of the target's root pages, with the subpages (docs.page.move) */
+async function moveTo(projectId: string | null) {
+  saver.flush();
+  const pages = await db
+    .table<PageFull>('docsPages')
+    .where('spaceId')
+    .equals(page.value!.spaceId)
+    .toArray();
+  await mutate('docs.page.move', toProjectArgs(pages, props.pageId, projectId)).catch(() => {});
+}
 const actions = computed<MenuItem[]>(() => [
   {
     id: 'fav',
@@ -49,6 +82,13 @@ const actions = computed<MenuItem[]>(() => [
         name: title.value || tx('untitled'),
         to: route.fullPath,
       }),
+  },
+  {
+    id: 'move',
+    label: tx('move'),
+    icon: ArrowRightLeft,
+    disabled: targets.value.length < 2,
+    children: targets.value,
   },
   {
     id: 'archive',

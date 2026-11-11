@@ -14,6 +14,8 @@ const S = {
   archive: { ru: 'В архив', en: 'Archive' },
   archiveTitle: { ru: 'Отправить страницу в архив?', en: 'Archive this page?' },
   actions: { ru: 'Действия страницы', en: 'Page actions' },
+  move: { ru: 'Перенести в проект', en: 'Move to project' },
+  noProject: { ru: 'Без проекта', en: 'No project' },
   expand: { ru: 'Развернуть', en: 'Expand' },
   link: { ru: 'Связать со страницей…', en: 'Link a page…' },
   unlink: { ru: 'Отвязать', en: 'Unlink' },
