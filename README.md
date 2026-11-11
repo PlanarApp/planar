@@ -23,7 +23,7 @@ echo "PLANAR_DOMAIN=planar.example.com" >> .env   # without it — localhost wit
 ./start.sh
 ```
 
-`start.sh` pulls ready images from the GitLab registry (`compose.yml` + `compose.prod.yml`), keeps data in `./data` (`postgres`, `api` — files, `caddy` — certificates) and generates missing `POSTGRES_PASSWORD` and `PLANAR_SECRET_KEY` into `.env`. Running it again updates the images to `PLANAR_VERSION` (default `latest`). Other variables (VAPID keys, backups) are in [docs/guides/deploy.md](docs/guides/deploy.md). The first visit to the site shows a form that creates the owner, so open it right after the start. Building the images from source: `docker compose -f compose.yml -f compose.build.yml up -d --build`. The guides are currently written in Russian.
+`start.sh` pulls ready images from the GitLab registry (`compose.yml` + `compose.prod.yml`), keeps data in `./data` (`postgres`, `api` — files, `caddy` — certificates) and generates missing `POSTGRES_PASSWORD`, `PLANAR_SECRET_KEY` and the VAPID keys (Web Push) into `.env`. Running it again updates the images to `PLANAR_VERSION` (default `latest`). Other variables (backups) are in [docs/guides/deploy.md](docs/guides/deploy.md). The first visit to the site shows a form that creates the owner, so open it right after the start. Building the images from source: `docker compose -f compose.yml -f compose.build.yml up -d --build`. The guides are currently written in Russian.
 
 Connecting AI agents over MCP: [docs/guides/mcp.md](docs/guides/mcp.md).
 

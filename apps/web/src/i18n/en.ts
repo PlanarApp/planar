@@ -193,6 +193,8 @@ export default {
     pushDenied: 'Notification permission was not granted',
     pushUnsupported: 'Push is not supported in this browser',
     pushFailed: 'Could not change the subscription',
+    pushUnconfigured:
+      'Push is turned off on the server: the administrator needs to set the VAPID keys',
     pushInstall: 'Install the app to your Home Screen to receive push notifications',
   },
   table: {

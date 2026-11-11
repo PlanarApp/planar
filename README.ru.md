@@ -23,7 +23,7 @@ echo "PLANAR_DOMAIN=planar.example.com" >> .env   # без этого — localh
 ./start.sh
 ```
 
-`start.sh` берёт готовые образы из GitLab registry (`compose.yml` + `compose.prod.yml`), хранит данные в `./data` (`postgres`, `api` — файлы, `caddy` — сертификаты), а недостающие `POSTGRES_PASSWORD` и `PLANAR_SECRET_KEY` генерирует в `.env`. Повторный запуск обновляет образы до `PLANAR_VERSION` (по умолчанию `latest`). Остальные переменные (ключи VAPID, бэкапы) — в [docs/guides/deploy.md](docs/guides/deploy.md). Первый заход на сайт показывает форму создания владельца — откройте адрес сразу после запуска. Сборка образов из исходников: `docker compose -f compose.yml -f compose.build.yml up -d --build`.
+`start.sh` берёт готовые образы из GitLab registry (`compose.yml` + `compose.prod.yml`), хранит данные в `./data` (`postgres`, `api` — файлы, `caddy` — сертификаты), а недостающие `POSTGRES_PASSWORD`, `PLANAR_SECRET_KEY` и ключи VAPID (Web Push) генерирует в `.env`. Повторный запуск обновляет образы до `PLANAR_VERSION` (по умолчанию `latest`). Остальные переменные (бэкапы) — в [docs/guides/deploy.md](docs/guides/deploy.md). Первый заход на сайт показывает форму создания владельца — откройте адрес сразу после запуска. Сборка образов из исходников: `docker compose -f compose.yml -f compose.build.yml up -d --build`.
 
 Подключение ИИ-агентов по MCP: [docs/guides/mcp.md](docs/guides/mcp.md).
 
