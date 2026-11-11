@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v27
+## C-schema v28
+
+v28 (PLNRAPP-167): `users.bot` (bool, default `false`) — the AI bot: an active user `ai` created when the module `ai` is first enabled in a space; no sign-in (rejected by the flag), the token works — core-schema.md.
 
 v27 (PLNRAPP-161): `notifications.kind` += `due_today`, `start_today` — at 9:xx in the assignee's profile zone (`users.timezone`, empty — UTC), for open, not archived tasks whose due date / start date is today there; the actor is the system user, one per task and kind per day.
 
@@ -296,7 +298,9 @@ export function uuidv7(): string; // RFC 9562, crypto.getRandomValues
 ### Domain mutators v2
 The table of names, args and rules — `docs/contracts/core-mutators.md` (part of C-mutators, the version is that of this section).
 
-## C-modules v12
+## C-modules v13
+
+v13 (PLNRAPP-167): `ModuleHookApi.ensureBotUser(login, name): Promise<string>` — an active user with `users.bot = true` and no password, idempotent (a login taken by a person → error); `packages/server-kit` += `secretKey/encrypt/decrypt` (AES-256-GCM, key `PLANAR_SECRET_KEY`) — one copy for the modules gitlab, email, ai.
 
 v12 (groups): `FrontendModuleManifest.groupTabs?` — `GroupTabDef {id, tab: inbox|docs|chats|reports|settings, label?, icon?, order?, component}`; the component receives `scope: GroupScope {level: workspace|space|project, spaceId, projectId, rootSpaceId}` (for the Workspace `spaceId` is the root space) and shows data of the group level and of nested ones; several contributions to one tab become subtabs (`?r=<moduleId>:<id>`). SDK += `useGroupLevels(scope)` — group levels from top to bottom (`apps/web/src/layout/groups.ts`). `SettingsPageDef.level?` (workspace by default | space | project) — the group settings level; the page receives `spaceId` and `projectId`. The `nav` sections of the modules docs, chat, time, import, dashboards, workload, goals are removed — their place is in the group tree; the `nav` point is for other modules. SDK += `groupUrl`, `GroupProjectPick`.
 v11 (p4): `BackendModuleManifest.unavailable?`, `GET /api/modules` += `unavailable`; `/api/<id>/setup/*` of a disabled module — owner/admin only (ModuleGuard); `FrontendModuleManifest.setup?`; `CommandDef.newTaskMenu?` — docs/contracts/p4.md (introduction).

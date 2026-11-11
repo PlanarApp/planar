@@ -103,11 +103,10 @@ function eventsOf(writes: MutationWrite[]): Event[] {
 /** A person acted: not the system, not a rule or AI run; a personal token counts as the person. */
 async function isHuman(ctx: AfterMutationCtx, api: ModuleHookApi) {
   if (ctx.system || ctx.origin) return false;
-  // shortcut: a deactivated author stands for a bot; switch to users.bot when PLNRAPP-167 adds it
   const [u] = (
-    await api.q.execute(sql`select deactivated_at as d from users where id = ${ctx.userId}`)
-  ).rows as { d: string | null }[];
-  return !!u && !u.d;
+    await api.q.execute(sql`select deactivated_at as d, bot from users where id = ${ctx.userId}`)
+  ).rows as { d: string | null; bot: boolean }[];
+  return !!u && !u.d && !u.bot;
 }
 
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
@@ -468,9 +467,8 @@ async function scan(api: JobApi, now: Date, day: string) {
             where u.since <= ${at}::timestamptz - make_interval(hours => (r.trigger->>'hours')::int)
               and not exists (select 1 from task_assignees ta where ta.task_id = t.id))
           when 'task.waiting_human' then (
-            -- shortcut: an active assignee counts as a person; exclude users.bot after PLNRAPP-167
             select c.id::text from comments c
-            join users u on u.id = c.assignee_id and u.deactivated_at is null
+            join users u on u.id = c.assignee_id and u.deactivated_at is null and not u.bot
             where c.task_id = t.id and c.resolved_at is null
               and c.created_at <= ${at}::timestamptz - make_interval(days => (r.trigger->>'days')::int)
             order by c.created_at limit 1)

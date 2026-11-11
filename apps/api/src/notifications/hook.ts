@@ -51,6 +51,18 @@ export async function notificationsHook(
     }
     return w;
   };
+  // the AI bot gets no notifications (it is woken by its own hook, not by the inbox)
+  const bots = new Map<string, boolean>();
+  const isBot = async (userId: string) => {
+    if (!bots.has(userId)) {
+      const [u] = await q
+        .select({ b: schema.users.bot })
+        .from(schema.users)
+        .where(eq(schema.users.id, userId));
+      bots.set(userId, !!u?.b);
+    }
+    return bots.get(userId)!;
+  };
   // PJ-11: a user without access to the task's project gets no notification and no subscription
   const projects = new Map<string, string | undefined>();
   const canSee = async (taskId: string, userId: string) => {
@@ -79,7 +91,8 @@ export async function notificationsHook(
     changes: Record<string, unknown> | null = null,
     body: string | null = null,
   ) => {
-    if (userId === actor || !(await membersOf(spaceId)).has(userId)) return;
+    if (userId === actor || !(await membersOf(spaceId)).has(userId) || (await isBot(userId)))
+      return;
     if (!(await canSee(taskId, userId))) return;
     const id = uuidv7();
     await sys.put('notifications', {

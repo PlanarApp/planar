@@ -25,7 +25,7 @@ export async function remindDue(db: Db, systemUserId: string, now = new Date()):
     with l as (
       select u.id, (${at}::timestamptz at time zone coalesce(z.name, 'UTC')) as local
       from users u left join pg_timezone_names z on z.name = u.timezone
-      where u.deactivated_at is null
+      where u.deactivated_at is null and not u.bot
     )
     select l.id as "userId", t.id as "taskId", t.space_id as "spaceId",
       t.project_id as "projectId", k.kind

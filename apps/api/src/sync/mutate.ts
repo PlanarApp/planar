@@ -15,6 +15,7 @@ import type { ModuleHookApi } from '../modules/hooks.js';
 import { installed } from '../modules/installed.js';
 import { notificationsHook } from '../notifications/hook.js';
 import type { PushQueue } from '../push/push.js';
+import { ensureSystemUser } from '../users/system.js';
 import { findMutator } from './registry.js';
 import { ServerTx, type Q } from './server-tx.js';
 
@@ -133,6 +134,7 @@ async function moduleHooks(
           q: sp,
           sys,
           enqueue: async (queue, data, o) => void (await opts.jobs?.enqueue(queue, data, o, sp)),
+          ensureBotUser: (login, name) => ensureSystemUser(sp, login, name, true),
         };
         await m.api.afterMutation!(mine, ctx, api as never);
         await sys.finish();

@@ -112,6 +112,7 @@ describe('видимость', () => {
     }
     expect(Object.keys(b.data.users![0]).sort()).toEqual([
       'avatarFile',
+      'bot',
       'createdAt',
       'deactivatedAt',
       'email',

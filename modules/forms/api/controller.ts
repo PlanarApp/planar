@@ -6,9 +6,11 @@ import {
   Inject,
   Param,
   Post,
+  Query,
   Req,
   SetMetadata,
 } from '@nestjs/common';
+import { createHash, randomBytes } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import '@fastify/multipart';
 import type { FastifyRequest } from 'fastify';
@@ -17,7 +19,7 @@ import { z } from 'zod';
 import { CORE, HttpError, type CoreServices } from '@planar/server-kit';
 import { fieldValueSchema, uuidv7, type FieldType } from '@planar/shared';
 import { formFields, type FormField } from '../shared/index.js';
-import { formsRateLimits as R } from './schema.js';
+import { formsLinks, formsRateLimits as R } from './schema.js';
 
 // same as core's @Public() (apps/api/src/auth/public.ts): the module does not import apps/api
 const Public = () => SetMetadata('planar:public', true);
@@ -32,7 +34,15 @@ type Def = { id: string; projectId: string; type: FieldType; options: Record<str
 /** MB limit for the sum of file sizes (the per-file limit is set by storeFile); shortcut: from env, not from app options. */
 const maxUploadBytes = () => (Number(process.env.MAX_UPLOAD_MB) || 50) * 1024 * 1024;
 
-@Controller('api/forms/public')
+const sha256 = (t: string) => createHash('sha256').update(t).digest('hex');
+const issueBody = z.strictObject({
+  formId: z.uuid(),
+  task: z.string().min(1).max(100),
+  ttlHours: z.number().int().min(1).max(720).default(168),
+  singleUse: z.boolean().default(true),
+});
+
+@Controller('api/forms')
 export class FormsController {
   private formUser?: Promise<string>;
 
@@ -85,12 +95,76 @@ export class FormsController {
     );
   }
 
+  /**
+   * Personal link of the form: found by the sha256 of the token (a random 256-bit secret, so a plain
+   * indexed lookup leaks nothing useful); a wrong, foreign, expired or used one — the same 404.
+   */
+  private async link(formId: string, token: string) {
+    const [l] = await this.core.db
+      .execute<{ id: string; task_id: string; single_use: boolean }>(
+        sql`select l.id, l.task_id, l.single_use from forms_links l
+      join tasks t on t.id = l.task_id
+      where l.token_hash = ${sha256(token)} and l.form_id = ${formId}
+        and l.expires_at > now() and (not l.single_use or l.used_at is null)`,
+      )
+      .then((r) => r.rows);
+    if (!l) throw notFound();
+    return l;
+  }
+
+  /** The admin of the form's space issues a link; the token is returned once, the DB keeps only its hash. */
+  @Post('links')
+  @HttpCode(201)
+  async issue(@Req() req: object, @Body() raw: unknown) {
+    const auth = this.core.auth(req);
+    const b = issueBody.safeParse(raw);
+    if (!b.success) throw invalid('Некорректное тело запроса');
+    const [f] = await this.core.db
+      .execute<{ id: string; slug: string; space_id: string; project_id: string }>(
+        sql`select id, slug, space_id, project_id from forms_forms where id = ${b.data.formId}`,
+      )
+      .then((r) => r.rows);
+    if (!f) throw notFound();
+    const [m] = await this.core.db
+      .execute<{ role: string }>(
+        sql`select role from space_members where space_id = ${f.space_id} and user_id = ${auth.userId}`,
+      )
+      .then((r) => r.rows);
+    if (!['owner', 'admin'].includes(auth.role) && !['owner', 'admin'].includes(m?.role ?? ''))
+      throw new HttpError(403, 'forbidden', 'Нужны права администратора пространства');
+    const key = /^(.+)-(\d+)$/.exec(b.data.task);
+    const [t] = await this.core.db
+      .execute<{ id: string }>(
+        z.uuid().safeParse(b.data.task).success
+          ? sql`select id from tasks where id = ${b.data.task} and project_id = ${f.project_id}`
+          : sql`select t.id from tasks t join projects p on p.id = t.project_id
+            where p.id = ${f.project_id} and p.key = ${key?.[1] ?? ''} and t.number = ${Number(key?.[2] ?? 0)}`,
+      )
+      .then((r) => r.rows);
+    if (!t) throw new HttpError(404, 'not_found', 'Задача не найдена в проекте формы');
+    const token = randomBytes(32).toString('base64url');
+    const expiresAt = new Date(Date.now() + b.data.ttlHours * 3600_000).toISOString();
+    await this.core.db.insert(formsLinks).values({
+      id: uuidv7(),
+      formId: f.id,
+      taskId: t.id,
+      tokenHash: sha256(token),
+      expiresAt,
+      singleUse: b.data.singleUse,
+      createdBy: auth.userId,
+      createdAt: new Date().toISOString(),
+    });
+    return { token, path: `/f/${f.slug}?t=${token}`, expiresAt };
+  }
+
   @Public()
-  @Get(':slug')
-  async schema(@Param('slug') slug: string) {
+  @Get('public/:slug')
+  async schema(@Param('slug') slug: string, @Query('t') token?: string) {
     const f = await this.load(slug);
+    if (token) await this.link(f.id, token);
     const defs = await this.defs(f.project_id, f.fields);
     return {
+      ...(token && { reply: true }),
       title: f.title,
       description: f.description,
       fields: f.fields.flatMap((x) => {
@@ -135,9 +209,14 @@ export class FormsController {
   }
 
   @Public()
-  @Post(':slug')
+  @Post('public/:slug')
   @HttpCode(201)
-  async submit(@Param('slug') slug: string, @Req() req: FastifyRequest, @Body() jsonBody: unknown) {
+  async submit(
+    @Param('slug') slug: string,
+    @Req() req: FastifyRequest,
+    @Body() jsonBody: unknown,
+    @Query('t') token?: string,
+  ) {
     const f = await this.load(slug);
     await this.limit(req.ip);
     const files: { buf: Buffer; name: string; mime: string }[] = [];
@@ -184,6 +263,7 @@ export class FormsController {
         throw new HttpError(413, 'payload_too_large', 'Тело запроса слишком большое');
       raw = jsonBody;
     }
+    const link = token ? await this.link(f.id, token) : undefined;
     const body = z
       .strictObject({ values: z.record(z.string(), z.unknown()), website: z.string().optional() })
       .safeParse(raw);
@@ -203,13 +283,69 @@ export class FormsController {
     for (const x of files)
       stored.push({ ...x, ...(await this.core.storeFile(x.buf, user, x.mime)) });
 
+    const attach = (taskId: string) =>
+      stored.map((s) => ({
+        name: 'attachment.create',
+        args: {
+          id: uuidv7(),
+          taskId,
+          fileSha256: s.sha256,
+          name: s.name,
+          mime: s.mime,
+          size: s.size,
+          width: s.width,
+          height: s.height,
+        },
+      }));
+    const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
+
+    if (link) {
+      // single use: an atomic claim, so two parallel submissions cannot both pass; released if the write fails
+      if (link.single_use) {
+        const claimed = await this.core.db.execute(
+          sql`update forms_links set used_at = now() where id = ${link.id} and used_at is null returning id`,
+        );
+        if (!claimed.rows.length) throw notFound();
+      }
+      const shown = (k: string, v: unknown) => {
+        const choices = defs.get(k)?.options.choices as { id: string; label: string }[] | undefined;
+        return String(choices?.find((c) => c.id === v)?.label ?? v);
+      };
+      const lines = f.fields
+        .filter((x) => x.key in values)
+        .map((x) => `${x.label}: ${shown(x.key, values[x.key])}`);
+      try {
+        await this.core.execute(
+          user,
+          [
+            {
+              name: 'comment.create',
+              args: {
+                id: uuidv7(),
+                taskId: link.task_id,
+                body: { type: 'doc', content: lines.map(para) },
+              },
+            },
+            ...attach(link.task_id),
+          ],
+          { system: true },
+        );
+      } catch (e) {
+        if (link.single_use)
+          await this.core.db.execute(
+            sql`update forms_links set used_at = null where id = ${link.id}`,
+          );
+        throw e;
+      }
+      return { ok: true };
+    }
+
     const [last] = await this.core.db
       .execute<{ rank: string }>(
         sql`select rank from tasks where status_id = ${f.status_id} order by rank desc limit 1`,
       )
       .then((r) => r.rows);
     const taskId = uuidv7();
-    const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
     const paras = [
       ...String(values.description ?? '')
         .split(/\n+/)
@@ -236,19 +372,7 @@ export class FormsController {
             name: 'task.setField',
             args: { taskId, fieldId: d.id, value: values[k] },
           })),
-        ...stored.map((s) => ({
-          name: 'attachment.create',
-          args: {
-            id: uuidv7(),
-            taskId,
-            fileSha256: s.sha256,
-            name: s.name,
-            mime: s.mime,
-            size: s.size,
-            width: s.width,
-            height: s.height,
-          },
-        })),
+        ...attach(taskId),
       ],
       { system: true },
     );

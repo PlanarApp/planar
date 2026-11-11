@@ -39,3 +39,20 @@ export const formsRateLimits = pgTable('forms_rate_limits', {
   count: integer().notNull(),
   windowStartedAt: ts().notNull(),
 });
+
+/** Personal link "reply to an existing task": only the sha256 of the token is stored. Not synced. */
+export const formsLinks = pgTable(
+  'forms_links',
+  {
+    id: uuid().primaryKey(),
+    formId: uuid().notNull(),
+    taskId: uuid().notNull(),
+    tokenHash: text().notNull().unique(),
+    expiresAt: ts().notNull(),
+    singleUse: boolean().notNull(),
+    usedAt: ts(),
+    createdBy: uuid().notNull(),
+    createdAt: ts().notNull(),
+  },
+  (t) => [index('forms_links_form_id_idx').on(t.formId)],
+);

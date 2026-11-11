@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
-import { decrypt } from '../../../../modules/gitlab/api/crypto.js';
+import { decrypt } from '@planar/server-kit';
 import { pollAll } from '@planar/module-gitlab/api';
 import { gitlabConnections as P, gitlabMrs as M } from '@planar/module-gitlab/api/schema';
 import { JobsService } from '../../src/jobs/jobs.js';

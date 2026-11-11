@@ -118,6 +118,8 @@ export class AuthController {
     res: FastifyReply,
     user: typeof users.$inferSelect,
   ) {
+    // the AI bot (PLNRAPP-167) has no sign-in: login, demo and impersonation all end up here
+    if (user.bot) throw new HttpError(401, 'invalid_credentials', 'Неверный логин или пароль');
     const token = await createSession(this.db, user.id, req.headers['user-agent']);
     void res.header('set-cookie', sessionCookie(token, { secure: this.opts.cookieSecure }));
     return { user: publicUser(user) };

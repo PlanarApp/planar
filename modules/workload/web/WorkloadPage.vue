@@ -69,7 +69,12 @@ const grid = computed(() => {
   });
 });
 const name = (id: string) => data.value?.users.find((u) => u.id === id)?.name ?? id.slice(0, 8);
-const members = computed(() => (data.value?.members ?? []).map((m) => m.userId));
+// the AI bot (users.bot) has no capacity: not a row of the table
+const members = computed(() =>
+  (data.value?.members ?? [])
+    .map((m) => m.userId)
+    .filter((id) => !data.value?.users.find((u) => u.id === id)?.bot),
+);
 const isAdmin = computed(() =>
   data.value?.members.some((m) => m.userId === userId() && m.role === 'admin'),
 );
