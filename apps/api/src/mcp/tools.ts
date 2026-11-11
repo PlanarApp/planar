@@ -4,7 +4,16 @@ import type { HttpErrorCode } from '@planar/shared';
 import type { AuthCtx } from '../auth/auth.js';
 import { HttpError } from '../auth/errors.js';
 import type { RestService } from '../rest/rest.service.js';
-import { commentBody, createTaskBody, linkBody, patchTaskBody } from '../rest/schemas.js';
+import {
+  commentBody,
+  createDocBody,
+  createTaskBody,
+  docsQuery,
+  docTaskBody,
+  linkBody,
+  patchDocBody,
+  patchTaskBody,
+} from '../rest/schemas.js';
 
 type Node = { text?: string; attrs?: { label?: string }; type?: string; content?: Node[] };
 /** ProseMirror document → plain text (paragraphs via \n, mention → @login) */
@@ -212,6 +221,43 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
         })),
       };
     },
+  );
+  // documents (docs module, PLNRAPP-180)
+  const doc = z.uuid().describe('id документа');
+  tool(
+    'list_docs',
+    'Документы проекта (без содержимого): дерево по parentId',
+    docsQuery.shape,
+    false,
+    async (a) => (await rest.docs(uid, a)).data,
+  );
+  tool(
+    'get_doc',
+    'Документ: содержимое в markdown и связанные задачи',
+    { id: doc },
+    false,
+    async (a) => (await rest.doc(uid, a.id)).data,
+  );
+  tool(
+    'create_doc',
+    'Создать документ в проекте; содержимое — markdown',
+    createDocBody.shape,
+    true,
+    async (a) => (await rest.createDoc(uid, a, ctx.tokenId)).data,
+  );
+  tool(
+    'update_doc',
+    'Изменить документ: title; markdown — заменить содержимое целиком, append — дописать в конец',
+    { id: doc, ...patchDocBody.shape },
+    true,
+    async ({ id, ...a }) => (await rest.updateDoc(uid, id, a, ctx.tokenId)).data,
+  );
+  tool(
+    'link_doc_task',
+    'Связать документ с задачей',
+    { pageId: doc, ...docTaskBody.shape },
+    true,
+    async ({ pageId, ...a }) => (await rest.linkDocTask(uid, pageId, a, ctx.tokenId)).data,
   );
   return server;
 }

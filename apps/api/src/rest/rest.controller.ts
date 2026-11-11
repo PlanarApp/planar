@@ -101,6 +101,26 @@ export class RestController {
   currentCycle(@Req() req: object, @Param('id') id: string) {
     return this.rest.currentCycle(getAuth(req).userId, id);
   }
+  @Get('docs')
+  docs(@Req() req: object, @Query() q: unknown) {
+    return this.rest.docs(getAuth(req).userId, q);
+  }
+  @Get('docs/:id')
+  getDoc(@Req() req: object, @Param('id') id: string) {
+    return this.rest.doc(getAuth(req).userId, id);
+  }
+  @Post('docs')
+  createDoc(@Req() req: object, @Body() b: unknown) {
+    return this.rest.createDoc(getAuth(req).userId, b, getAuth(req).tokenId);
+  }
+  @Patch('docs/:id')
+  updateDoc(@Req() req: object, @Param('id') id: string, @Body() b: unknown) {
+    return this.rest.updateDoc(getAuth(req).userId, id, b, getAuth(req).tokenId);
+  }
+  @Post('docs/:id/tasks')
+  linkDocTask(@Req() req: object, @Param('id') id: string, @Body() b: unknown) {
+    return this.rest.linkDocTask(getAuth(req).userId, id, b, getAuth(req).tokenId);
+  }
   @Get('projects/:id/automations')
   automations(@Req() req: object, @Param('id') id: string) {
     return this.rest.automations(getAuth(req).userId, id);

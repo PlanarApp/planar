@@ -4,9 +4,13 @@ import { installed } from '../modules/installed.js';
 import {
   commentBody,
   commentSchema,
+  createDocBody,
   createTaskBody,
+  docTaskBody,
+  docsQuery,
   fieldDefSchema,
   linkBody,
+  patchDocBody,
   patchTaskBody,
   projectSchema,
   spaceSchema,
@@ -20,6 +24,10 @@ import {
 const ent = (name: string): z.ZodType =>
   installed.map((m) => m.api.entities[name]?.schema).find(Boolean) ?? z.looseObject({});
 const ref = (n: string) => ({ $ref: `#/components/schemas/${n}` });
+// a page goes out without body/text/files; get adds markdown and linked tasks
+const page = ent('docsPages');
+const docPage =
+  page instanceof z.ZodObject ? page.omit({ body: true, text: true, files: true }) : page;
 const models = {
   Space: spaceSchema,
   Project: projectSchema,
@@ -37,6 +45,17 @@ const models = {
   StartTimer: timerStartBody,
   Cycle: ent('sprintsCycles'),
   AutomationRule: ent('automationsRules'),
+  DocPage: docPage,
+  Doc: z.intersection(
+    docPage,
+    z.object({
+      markdown: z.string(),
+      tasks: z.array(z.object({ id: z.uuid(), key: z.string(), title: z.string() })),
+    }),
+  ),
+  CreateDoc: createDocBody,
+  PatchDoc: patchDocBody,
+  LinkDocTask: docTaskBody,
 };
 
 const param = (name: string, where: 'query' | 'path', schema: object = { type: 'string' }) => ({
@@ -160,6 +179,31 @@ export function openapi() {
       },
       '/api/v1/projects/{id}/automations': {
         get: { parameters: [param('id', 'path')], responses: ok('AutomationRule', 'array') },
+      },
+      '/api/v1/docs': {
+        get: {
+          parameters: Object.keys(docsQuery.shape).map((k) => ({
+            ...param(k, 'query'),
+            required: k === 'projectId',
+          })),
+          responses: ok('DocPage', 'array'),
+        },
+        post: { requestBody: body('CreateDoc'), responses: ok('Doc', 'one', '201') },
+      },
+      '/api/v1/docs/{id}': {
+        get: { parameters: [param('id', 'path')], responses: ok('Doc') },
+        patch: {
+          parameters: [param('id', 'path')],
+          requestBody: body('PatchDoc'),
+          responses: ok('Doc'),
+        },
+      },
+      '/api/v1/docs/{id}/tasks': {
+        post: {
+          parameters: [param('id', 'path')],
+          requestBody: body('LinkDocTask'),
+          responses: ok('Doc', 'one', '201'),
+        },
       },
     },
     components: {

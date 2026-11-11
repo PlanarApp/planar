@@ -59,6 +59,24 @@ export const timeLogBody = z.object({
 export const timerStartBody = z.object({ task: z.string().min(1) });
 export const commentBody = z.object({ text: z.string().min(1) });
 
+// documents (docs module, PLNRAPP-180); content — markdown
+export const docsQuery = z.object({
+  projectId: uuid,
+  parentId: uuid.optional().describe('только дочерние страницы; без него — все страницы проекта'),
+});
+export const createDocBody = z.object({
+  projectId: uuid,
+  parentId: uuid.optional(),
+  title: z.string().max(200),
+  markdown: z.string().optional(),
+});
+export const patchDocBody = z.object({
+  title: z.string().max(200).optional(),
+  markdown: z.string().optional().describe('новое содержимое целиком'),
+  append: z.string().optional().describe('дописать в конец (вместо markdown)'),
+});
+export const docTaskBody = z.object({ task: z.string().min(1).describe('id или ключ задачи') });
+
 export const {
   spaces: spaceSchema,
   projects: projectSchema,

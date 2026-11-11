@@ -55,3 +55,16 @@ An addition to `docs/contracts/core-api-v1.md` (response shape, pagination, erro
 | `GET /api/v1/projects/:id/automations` | → `{data: rule[]}` (read) |
 
 MCP — new tools: `link_tasks {task, target, kind}`, `log_time {task, minutes, date?: YYYY-MM-DD, note?}` (start — 09:00 UTC of the date, default today), `start_timer {task}`, `stop_timer {}`, `current_sprint {projectId}` → the cycle and its tasks (compact). Writes (`link_tasks`, `log_time`, `start_timer`, `stop_timer`) need `write`.
+
+## REST and MCP: documents (PLNRAPP-180)
+Project pages of the docs module (data module: off in the project → `404 module_disabled`). Content in and out is markdown, converted by `@planar/editor/markdown` with the editor schema (the one collab uses; a mention goes out as `@login`). Writes are the module's mutations (`docs.page.create`, `docs.page.update`, `docs.link.add`) under the token owner's rights. Archived pages and pages of hidden projects → `404`. A page goes out without `body`/`text`/`files`; `doc` = page + `markdown` + `tasks: [{id, key, title}]` (linked tasks visible to the user).
+
+| method and path | input → output |
+|---|---|
+| `GET /api/v1/docs?projectId=&parentId=` | → `{data: page[]}` by `rank`, no pagination; `parentId` — only its children |
+| `GET /api/v1/docs/:id` | → `{data: doc}` |
+| `POST /api/v1/docs` | `{projectId, parentId?, title, markdown?}` → `201 {data: doc}`; the parent — a page of the same project |
+| `PATCH /api/v1/docs/:id` | `{title?, markdown? \| append?}` → `{data: doc}`; `markdown` replaces the content, `append` adds to the end, both → `400` |
+| `POST /api/v1/docs/:id/tasks` | `{task (id or key)}` → `201 {data: doc}`; a repeat does not duplicate |
+
+MCP: `list_docs {projectId, parentId?}`, `get_doc {id}`, `create_doc {projectId, parentId?, title, markdown?}`, `update_doc {id, title?, markdown?, append?}`, `link_doc_task {pageId, task}` — the same outputs; writes need `write`.

@@ -398,6 +398,9 @@ describe('REST /api/v1: OpenAPI', () => {
     const doc = JSON.parse(r.body);
     expect(doc.openapi).toBe('3.1.0');
     expect(Object.keys(doc.paths).sort()).toEqual([
+      '/api/v1/docs',
+      '/api/v1/docs/{id}',
+      '/api/v1/docs/{id}/tasks',
       '/api/v1/links/{id}',
       '/api/v1/projects',
       '/api/v1/projects/{id}/automations',
@@ -417,6 +420,8 @@ describe('REST /api/v1: OpenAPI', () => {
     expect(Object.keys(doc.paths['/api/v1/tasks/{task}'])).toEqual(['get', 'patch']);
     expect(doc.components.schemas.Task.properties).toHaveProperty('assigneeIds');
     expect(doc.components.schemas.CreateTask.required).toEqual(['projectId', 'title']);
+    expect(doc.components.schemas.DocPage.properties).not.toHaveProperty('body');
+    expect(doc.components.schemas.CreateDoc.required).toEqual(['projectId', 'title']);
   });
 
   it('openapi.json без входа → 401', async () => {

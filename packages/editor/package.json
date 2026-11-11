@@ -13,6 +13,11 @@
       "source": "./src/collab.ts",
       "types": "./dist/collab.d.ts",
       "default": "./dist/collab.js"
+    },
+    "./markdown": {
+      "source": "./src/markdown.ts",
+      "types": "./dist/markdown.d.ts",
+      "default": "./dist/markdown.js"
     }
   },
   "scripts": {
@@ -27,6 +32,7 @@
     "@tiptap/extension-list": "^3.32.0",
     "@tiptap/extension-mention": "^3.32.0",
     "@tiptap/extension-table": "^3.32.0",
+    "@tiptap/markdown": "^3.32.0",
     "@tiptap/pm": "^3.32.0",
     "@tiptap/starter-kit": "^3.32.0",
     "@tiptap/suggestion": "^3.32.0",
