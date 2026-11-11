@@ -311,6 +311,7 @@ describe('views:saved', () => {
       sortBy: 'rank',
       sortDir: 'desc',
       showSubtasks: false,
+      subtasksCollapsed: false,
       showEmpty: false,
       wrapTitles: false,
       showKey: false,

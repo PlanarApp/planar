@@ -428,6 +428,9 @@ export default {
     wrapTitles: 'Переносить названия',
     showKey: 'Показывать ключ задачи',
     subtasks: 'Подзадачи',
+    subtasksFold: 'Показ подзадач',
+    subtasksCollapsed: 'Свёрнутые',
+    subtasksExpanded: 'Развёрнутые',
     group: {
       none: 'Нет',
       all: 'Все задачи',
