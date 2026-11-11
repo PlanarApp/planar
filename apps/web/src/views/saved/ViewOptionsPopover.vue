@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ArrowDownUp, ListTree, SlidersHorizontal } from 'lucide-vue-next';
+import {
+  ArrowDownUp,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  ListTree,
+  SlidersHorizontal,
+} from 'lucide-vue-next';
 import { Button, Popover, Select } from '../../ui';
 import { TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
 import { tableColumns } from '../table/menu';
@@ -50,24 +56,19 @@ const toggleField = (f: TaskField) =>
         >
           {{ t('views.subtasks') }}
         </Button>
-        <div
+        <Button
           v-if="options.showSubtasks"
-          role="group"
-          :aria-label="t('views.subtasksFold')"
-          class="flex gap-1"
+          :icon="options.subtasksCollapsed ? ChevronsDownUp : ChevronsUpDown"
+          :aria-label="
+            t(options.subtasksCollapsed ? 'views.subtasksCollapsed' : 'views.subtasksExpanded')
+          "
+          :title="
+            t(options.subtasksCollapsed ? 'views.subtasksCollapsed' : 'views.subtasksExpanded')
+          "
+          :aria-pressed="!!options.subtasksCollapsed"
           data-testid="subtasks-fold"
-        >
-          <Button
-            v-for="c in [true, false]"
-            :key="String(c)"
-            size="sm"
-            :variant="!!options.subtasksCollapsed === c ? 'primary' : 'ghost'"
-            :aria-pressed="!!options.subtasksCollapsed === c"
-            @click="options.subtasksCollapsed = c"
-          >
-            {{ t(c ? 'views.subtasksCollapsed' : 'views.subtasksExpanded') }}
-          </Button>
-        </div>
+          @click="options.subtasksCollapsed = !options.subtasksCollapsed"
+        />
       </div>
       <label class="inline-flex items-center gap-1.5 text-sm">
         <input v-model="options.showEmpty" type="checkbox" data-testid="show-empty" />
