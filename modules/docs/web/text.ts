@@ -25,6 +25,15 @@ const S = {
   retry: { ru: 'Повторить', en: 'Retry' },
   mention: { ru: 'Упоминание', en: 'Mention' },
   uploadFailed: { ru: 'Не удалось загрузить изображение', en: 'Image upload failed' },
+  history: { ru: 'История версий', en: 'Version history' },
+  noVersions: { ru: 'Версий пока нет', en: 'No versions yet' },
+  versionsFailed: { ru: 'Не удалось загрузить историю', en: 'Failed to load the history' },
+  restore: { ru: 'Восстановить эту версию', en: 'Restore this version' },
+  restoreFailed: { ru: 'Не удалось восстановить версию', en: 'Failed to restore the version' },
+  restoreForbidden: { ru: 'Нет прав на изменение страницы', en: 'No permission to edit the page' },
+  srcEditor: { ru: 'редактор', en: 'editor' },
+  srcApi: { ru: 'API', en: 'API' },
+  srcRestore: { ru: 'восстановление', en: 'restore' },
 } as const;
 export type TextKey = keyof typeof S;
 export type Texts = (k: TextKey, p?: Record<string, string>) => string;

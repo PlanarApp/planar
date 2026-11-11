@@ -50,3 +50,19 @@ export const docsLocks = pgTable('docs_locks', {
   userId: uuid().notNull(),
   expiresAt: ts().notNull(),
 });
+
+/** PLNRAPP-185: page version history — not synced; written by the afterMutation hook, read by DocsController. */
+export const docsVersions = pgTable(
+  'docs_versions',
+  {
+    id: uuid().primaryKey(),
+    pageId: uuid().notNull(),
+    body: jsonb().$type<Record<string, unknown>>().notNull(),
+    // 'editor' | 'api' | 'restore'; null — a page body from before the history
+    source: text(),
+    createdBy: uuid().notNull(),
+    createdAt: ts().notNull(),
+    updatedAt: ts().notNull(),
+  },
+  (t) => [index('docs_versions_page_id_idx').on(t.pageId, t.createdAt)],
+);

@@ -337,6 +337,13 @@
       "when": 1794427236040,
       "tag": "0047_automations_scan",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1794429502940,
+      "tag": "0048_docs_versions",
+      "breakpoints": true
     }
   ]
 }

@@ -20,6 +20,7 @@ import { web } from './index';
 import { moveArgs, type PageRow } from './model';
 import TaskPanel from './TaskPanel.vue';
 import PageView from './PageView.vue';
+import VersionsDialog from './VersionsDialog.vue';
 import TreeSection from './TreeSection.vue';
 import GroupDocs from './GroupDocs.vue';
 
@@ -342,5 +343,41 @@ describe('docs web: slash-меню и редактор', () => {
     await input.setValue('Новое имя');
     w.unmount();
     await vi.waitFor(async () => expect((await db.table('docsPages').get(id)).title).toBe('Новое имя'));
+  });
+});
+
+describe('docs web: история версий (PLNRAPP-185)', () => {
+  it('список с автором и источником, просмотр версии, восстановление выбранной', async () => {
+    const id = uuidv7();
+    const [v1, v2] = [uuidv7(), uuidv7()];
+    const calls: string[] = [];
+    const json = (data: unknown) => new Response(JSON.stringify({ data }), { status: 200 });
+    vi.stubGlobal('fetch', async (url: string, o: { method: string }) => {
+      calls.push(`${o.method} ${url}`);
+      if (url.endsWith('/versions'))
+        return json([
+          { id: v2, source: 'api', createdBy: OTHER, createdAt: NOW },
+          { id: v1, source: 'editor', createdBy: ME, createdAt: NOW },
+        ]);
+      if (url.endsWith('/restore')) return json({ ok: true });
+      const text = url.endsWith(v1) ? 'старый текст' : 'новый текст';
+      return json({ body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] } });
+    });
+    const w = mount(VersionsDialog, { props: { pageId: id, open: true }, attachTo: document.body });
+    await vi.waitFor(() => expect(document.body.textContent).toContain('новый текст'));
+    const items = [...document.querySelectorAll('[data-testid=doc-versions] button')] as HTMLElement[];
+    expect(items.map((b) => b.textContent)).toEqual([
+      expect.stringContaining('Анна · API'),
+      expect.stringContaining('Я · редактор'),
+    ]);
+    const restore = document.querySelector('[data-testid=doc-version-restore]') as HTMLButtonElement;
+    expect(restore.disabled).toBe(true); // the newest = the current content
+    items[1]!.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain('старый текст'));
+    restore.click();
+    await vi.waitFor(() => expect(calls).toContain(`POST /api/docs/versions/${v1}/restore`));
+    await vi.waitFor(() => expect(w.emitted('update:open')).toEqual([[false]]));
+    w.unmount();
+    vi.unstubAllGlobals();
   });
 });

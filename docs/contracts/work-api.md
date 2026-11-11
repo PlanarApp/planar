@@ -62,9 +62,9 @@ Project pages of the docs module (data module: off in the project → `404 modul
 | method and path | input → output |
 |---|---|
 | `GET /api/v1/docs?projectId=&parentId=` | → `{data: page[]}` by `rank`, no pagination; `parentId` — only its children |
-| `GET /api/v1/docs/:id` | → `{data: doc}` |
+| `GET /api/v1/docs/:id?section=` | → `{data: doc}`; `section` (PLNRAPP-185) — `markdown` is only the section under that heading, up to the next heading of the same or higher level; no such heading → `404` listing the headings |
 | `POST /api/v1/docs` | `{projectId, parentId?, title, markdown?}` → `201 {data: doc}`; the parent — a page of the same project |
-| `PATCH /api/v1/docs/:id` | `{title?, markdown? \| append?}` → `{data: doc}`; `markdown` replaces the content, `append` adds to the end, both → `400` |
+| `PATCH /api/v1/docs/:id` | `{title?, markdown? \| append? \| replace?: {find, replace}}` → `{data: doc}`; `markdown` replaces the content, `append` adds to the end, `replace` (PLNRAPP-185) swaps a fragment of the current markdown that occurs exactly once (0 or more than 1 → `400`); more than one of them → `400` |
 | `POST /api/v1/docs/:id/tasks` | `{task (id or key)}` → `201 {data: doc}`; a repeat does not duplicate |
 
-MCP: `list_docs {projectId, parentId?}`, `get_doc {id}`, `create_doc {projectId, parentId?, title, markdown?}`, `update_doc {id, title?, markdown?, append?}`, `link_doc_task {pageId, task}` — the same outputs; writes need `write`.
+MCP: `list_docs {projectId, parentId?}`, `get_doc {id, section?}`, `create_doc {projectId, parentId?, title, markdown?}`, `update_doc {id, title?, markdown?, append?, replace?}`, `link_doc_task {pageId, task}` — the same outputs; writes need `write`.

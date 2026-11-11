@@ -106,8 +106,8 @@ export class RestController {
     return this.rest.docs(getAuth(req).userId, q);
   }
   @Get('docs/:id')
-  getDoc(@Req() req: object, @Param('id') id: string) {
-    return this.rest.doc(getAuth(req).userId, id);
+  getDoc(@Req() req: object, @Param('id') id: string, @Query() q: unknown) {
+    return this.rest.doc(getAuth(req).userId, id, q);
   }
   @Post('docs')
   createDoc(@Req() req: object, @Body() b: unknown) {

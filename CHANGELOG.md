@@ -4,6 +4,16 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- Documents: version history — the page menu "Version history" lists versions (when, who, editor / API / restore), shows a version read-only and restores it. Edits of one author from one source within 10 minutes form one version; the last 100 versions of a page are kept.
+- REST `PATCH /api/v1/docs/:id` and MCP `update_doc`: `replace: {find, replace}` changes one fragment of the markdown without sending the whole document (an error if the fragment is missing or not unique).
+- REST `GET /api/v1/docs/:id?section=` and MCP `get_doc` `section`: only the section under the given heading.
+
+### Fixed
+
+- Documents: a page changed through REST/MCP while closed no longer gets its text doubled when opened in a browser that had it open before.
+
 ## [0.13.0] - 2026-11-10
 
 ### Added
