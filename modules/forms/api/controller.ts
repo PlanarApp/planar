@@ -279,7 +279,7 @@ export class FormsController {
       this.formUser = undefined;
       throw e;
     }));
-    const stored = [];
+    const stored: ((typeof files)[number] & Awaited<ReturnType<CoreServices['storeFile']>>)[] = [];
     for (const x of files)
       stored.push({ ...x, ...(await this.core.storeFile(x.buf, user, x.mime)) });
 

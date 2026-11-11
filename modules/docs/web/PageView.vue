@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
-import { Archive, ArrowRightLeft, Star, StarOff } from 'lucide-vue-next';
+import { Archive, ArrowRightLeft, History, Star, StarOff } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
 import {
   db,
@@ -13,6 +13,7 @@ import {
   type MenuItem,
 } from '@planar/web/modules';
 import DocEditor from './DocEditor.vue';
+import VersionsDialog from './VersionsDialog.vue';
 import { toProjectArgs, type PageFull } from './model';
 import { createSaver } from './save';
 import { useTexts } from './text';
@@ -44,6 +45,7 @@ const onTitle = () => saver.push({ title: title.value });
 onBeforeUnmount(saver.flush);
 
 const fav = computed(() => favorites.has('doc', props.pageId));
+const history = ref(false);
 // PLNRAPP-5: move targets — projects of the page's space and the space itself (no project)
 const projects = useQuery(() => db.table<Row<'projects'>>('projects').toArray());
 const targets = computed(() => {
@@ -91,6 +93,12 @@ const actions = computed<MenuItem[]>(() => [
     children: targets.value,
   },
   {
+    id: 'history',
+    label: tx('history'),
+    icon: History,
+    onSelect: () => (history.value = true),
+  },
+  {
     id: 'archive',
     label: tx('archive'),
     icon: Archive,
@@ -129,6 +137,7 @@ async function archive() {
         :members="members"
         @open-task="(k) => router.push(`/t/${k}`)"
       />
+      <VersionsDialog v-if="history" v-model:open="history" :page-id="pageId" />
     </template>
   </div>
 </template>

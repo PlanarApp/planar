@@ -32,10 +32,12 @@ import {
   commentBody,
   createDocBody,
   createTaskBody,
+  docQuery,
   docsQuery,
   docTaskBody,
   linkBody,
   listQuery,
+  patchCommentBody,
   patchDocBody,
   patchTaskBody,
   tasksQuery,
@@ -439,9 +441,48 @@ export class RestService {
     const id = uuidv7();
     await this.run(
       userId,
-      [{ name: 'comment.create', args: { id, taskId: t.id, body: await this.toDoc(b.text) } }],
+      [
+        {
+          name: 'comment.create',
+          args: {
+            id,
+            taskId: t.id,
+            body: await this.toDoc(b.text),
+            parentId: b.parentId,
+            assigneeId: b.assigneeId,
+          },
+        },
+      ],
       tokenId,
     );
+    const [row] = await this.db.select().from(s.comments).where(eq(s.comments.id, id));
+    return { data: toWire('comments', row!) };
+  }
+
+  /** text (author), assign/unassign, resolve/reopen — in that order: an assignment reopens (PLNRAPP-186) */
+  async patchComment(userId: string, id: string, raw: unknown, tokenId?: string) {
+    const b = parse(patchCommentBody, raw);
+    const found = z.uuid().safeParse(id).success
+      ? await this.db
+          .select({ id: s.comments.id })
+          .from(s.comments)
+          .where(
+            and(
+              eq(s.comments.id, id),
+              inArray(s.comments.spaceId, await this.mySpaces(userId)),
+              await this.visible(userId, 'comments'),
+            ),
+          )
+      : [];
+    if (!found.length) throw NOT_FOUND('Комментарий');
+    const muts: Mut[] = [];
+    if (b.text !== undefined)
+      muts.push({ name: 'comment.update', args: { id, body: await this.toDoc(b.text) } });
+    if (b.assigneeId !== undefined)
+      muts.push({ name: 'comment.assign', args: { id, assigneeId: b.assigneeId } });
+    if (b.resolved !== undefined)
+      muts.push({ name: 'comment.resolve', args: { id, resolved: b.resolved } });
+    if (muts.length) await this.run(userId, muts, tokenId);
     const [row] = await this.db.select().from(s.comments).where(eq(s.comments.id, id));
     return { data: toWire('comments', row!) };
   }
@@ -706,8 +747,23 @@ export class RestService {
     return { data: rows.map((r) => this.docMeta(r)) };
   }
 
-  async doc(userId: string, id: string) {
+  async doc(userId: string, id: string, query: unknown = {}) {
+    const q = parse(docQuery, query);
     const row = await this.findDoc(userId, id);
+    let markdown = docToMarkdown(row.body as JSONContent);
+    if (q.section !== undefined) {
+      const hs = headings(markdown);
+      const k = hs.findIndex((h) => h.text === q.section!.trim());
+      if (k < 0)
+        throw new HttpError(
+          404,
+          'not_found',
+          `Раздел «${q.section}» не найден; заголовки: ${hs.map((h) => h.text).join(' | ')}`,
+        );
+      const lines = markdown.split('\n');
+      const end = hs.slice(k + 1).find((h) => h.level <= hs[k]!.level)?.i ?? lines.length;
+      markdown = lines.slice(hs[k]!.i, end).join('\n').trimEnd();
+    }
     const l = await this.mod('docs', 'docsTaskLinks');
     const linked = (await this.db
       .select({ taskId: l.c.taskId! })
@@ -732,7 +788,7 @@ export class RestService {
     return {
       data: {
         ...this.docMeta(row),
-        markdown: docToMarkdown(row.body as JSONContent),
+        markdown,
         tasks: tasks.map((x) => ({ id: x.id, key: x.key, title: x.title })),
       },
     };
@@ -780,16 +836,26 @@ export class RestService {
 
   async updateDoc(userId: string, id: string, raw: unknown, tokenId?: string) {
     const b = parse(patchDocBody, raw);
-    if (b.markdown !== undefined && b.append !== undefined)
-      throw new HttpError(400, 'invalid_request', 'markdown или append, не оба');
+    if ([b.markdown, b.append, b.replace].filter((x) => x !== undefined).length > 1)
+      throw new HttpError(400, 'invalid_request', 'Одно из markdown, append, replace');
     const row = await this.findDoc(userId, id);
     const old = (row.body as JSONContent).content ?? [];
-    const body =
-      b.markdown !== undefined
-        ? markdownToDoc(b.markdown)
-        : b.append !== undefined
-          ? { type: 'doc', content: [...old, ...markdownToDoc(b.append).content] }
-          : undefined;
+    let body: JSONContent | undefined;
+    if (b.markdown !== undefined) body = markdownToDoc(b.markdown);
+    else if (b.append !== undefined)
+      body = { type: 'doc', content: [...old, ...markdownToDoc(b.append).content] };
+    else if (b.replace) {
+      const parts = docToMarkdown(row.body as JSONContent).split(b.replace.find);
+      if (parts.length !== 2)
+        throw new HttpError(
+          400,
+          'invalid_request',
+          parts.length < 2
+            ? 'Фрагмент replace.find не найден'
+            : `Фрагмент replace.find найден ${parts.length - 1} раз — уточните его`,
+        );
+      body = markdownToDoc(parts[0] + b.replace.replace + parts[1]);
+    }
     if (b.title !== undefined || body)
       await this.run(
         userId,
@@ -823,4 +889,14 @@ export class RestService {
       .orderBy(asc(c.createdAt!), asc(c.id!));
     return { data: (rows as Wire[]).map((r) => toWire('automationsRules', r)) };
   }
+}
+
+/** ATX headings of markdown outside code fences: line index, level, text. */
+export function headings(md: string) {
+  let fence = false;
+  return md.split('\n').flatMap((l, i) => {
+    if (/^ {0,3}(```|~~~)/.test(l)) fence = !fence;
+    const h = !fence && /^ {0,3}(#{1,6}) +(.+?)(?: +#+)? *$/.exec(l);
+    return h ? [{ i, level: h[1]!.length, text: h[2]! }] : [];
+  });
 }

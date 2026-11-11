@@ -65,6 +65,7 @@ describe('seed-demo', () => {
       'time_entries',
       'dashboards_widgets',
       'docs_pages',
+      'docs_versions',
       'chat_messages',
       'recurring_rules',
       'comments',

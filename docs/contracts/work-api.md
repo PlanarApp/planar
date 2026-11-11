@@ -54,7 +54,7 @@ An addition to `docs/contracts/core-api-v1.md` (response shape, pagination, erro
 | `GET /api/v1/projects/:id/cycles/current` | → `{data: cycle \| null}` |
 | `GET /api/v1/projects/:id/automations` | → `{data: rule[]}` (read) |
 
-MCP — new tools: `link_tasks {task, target, kind}`, `log_time {task, minutes, date?: YYYY-MM-DD, note?}` (start — 09:00 UTC of the date, default today), `start_timer {task}`, `stop_timer {}`, `current_sprint {projectId}` → the cycle and its tasks (compact). Writes (`link_tasks`, `log_time`, `start_timer`, `stop_timer`) need `write`.
+MCP — new tools: `link_tasks {task, target, kind}`, `log_time {task, minutes, date?: YYYY-MM-DD, note?}` (start — 09:00 UTC of the date, default today), `start_timer {task}`, `stop_timer {}`, `current_sprint {projectId}` → the cycle and its tasks (compact). PLNRAPP-186: `unlink_tasks {id}` (as `DELETE /links/:id`, → `{ok: true}`), `list_time_entries {taskId?, userId?, from?, to?, limit?, cursor?}` (as `GET /time-entries`, → `{data, nextCursor}`), `get_timer {}`, `list_sprints {projectId}`, `list_automations {projectId}`. Writes (`link_tasks`, `unlink_tasks`, `log_time`, `start_timer`, `stop_timer`) need `write`.
 
 ## REST and MCP: documents (PLNRAPP-180)
 Project pages of the docs module (data module: off in the project → `404 module_disabled`). Content in and out is markdown, converted by `@planar/editor/markdown` with the editor schema (the one collab uses; a mention goes out as `@login`). Writes are the module's mutations (`docs.page.create`, `docs.page.update`, `docs.link.add`) under the token owner's rights. Archived pages and pages of hidden projects → `404`. A page goes out without `body`/`text`/`files`; `doc` = page + `markdown` + `tasks: [{id, key, title}]` (linked tasks visible to the user).
@@ -62,9 +62,9 @@ Project pages of the docs module (data module: off in the project → `404 modul
 | method and path | input → output |
 |---|---|
 | `GET /api/v1/docs?projectId=&parentId=` | → `{data: page[]}` by `rank`, no pagination; `parentId` — only its children |
-| `GET /api/v1/docs/:id` | → `{data: doc}` |
+| `GET /api/v1/docs/:id?section=` | → `{data: doc}`; `section` (PLNRAPP-185) — `markdown` is only the section under that heading, up to the next heading of the same or higher level; no such heading → `404` listing the headings |
 | `POST /api/v1/docs` | `{projectId, parentId?, title, markdown?}` → `201 {data: doc}`; the parent — a page of the same project |
-| `PATCH /api/v1/docs/:id` | `{title?, markdown? \| append?}` → `{data: doc}`; `markdown` replaces the content, `append` adds to the end, both → `400` |
+| `PATCH /api/v1/docs/:id` | `{title?, markdown? \| append? \| replace?: {find, replace}}` → `{data: doc}`; `markdown` replaces the content, `append` adds to the end, `replace` (PLNRAPP-185) swaps a fragment of the current markdown that occurs exactly once (0 or more than 1 → `400`); more than one of them → `400` |
 | `POST /api/v1/docs/:id/tasks` | `{task (id or key)}` → `201 {data: doc}`; a repeat does not duplicate |
 
-MCP: `list_docs {projectId, parentId?}`, `get_doc {id}`, `create_doc {projectId, parentId?, title, markdown?}`, `update_doc {id, title?, markdown?, append?}`, `link_doc_task {pageId, task}` — the same outputs; writes need `write`.
+MCP: `list_docs {projectId, parentId?}`, `get_doc {id, section?}`, `create_doc {projectId, parentId?, title, markdown?}`, `update_doc {id, title?, markdown?, append?, replace?}`, `link_doc_task {pageId, task}` — the same outputs; writes need `write`.

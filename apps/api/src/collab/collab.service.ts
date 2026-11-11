@@ -298,7 +298,7 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     await this.db.delete(ydocs).where(eq(ydocs.docId, name));
   }
 
-  /** Body/description write: equal to the Y.Doc projection — nothing; otherwise replace Y.Doc or delete ydocs. */
+  /** Body/description write: equal to the Y.Doc projection — nothing; otherwise replace the content of the loaded or stored Y.Doc. */
   private async external(name: string, json: Json | null, seq: number) {
     const loaded = this.hp.documents.get(name);
     if (loaded) {
@@ -318,7 +318,21 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     if (!row) return;
     const y = new Y.Doc();
     Y.applyUpdate(y, row.state);
-    if (!same(json, toJson(y))) await this.db.delete(ydocs).where(eq(ydocs.docId, name));
+    if (same(json, toJson(y))) return;
+    // PLNRAPP-185: not delete — a tab's Y.Doc from IndexedDB would merge with a rebuilt one: old + new text.
+    // In the stored history the old items are deleted, so a reconnecting client keeps only its own unsynced edits.
+    // shortcut: a write landing during a load of this document (ms window) is missed by the loaded copy; fix with a lock if seen
+    try {
+      y.transact(() => fill(y, json));
+    } catch {
+      // body unreadable by schema: the next open builds from it and refuses (load)
+      return void (await this.db.delete(ydocs).where(eq(ydocs.docId, name)));
+    }
+    const state = Buffer.from(Y.encodeStateAsUpdate(y));
+    await this.db
+      .update(ydocs)
+      .set({ state, updatedAt: sql`now()` })
+      .where(eq(ydocs.docId, name));
   }
 
   /** Closes connections of those who lost access (removed from the workspace, deactivated). */

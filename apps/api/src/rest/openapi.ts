@@ -10,6 +10,7 @@ import {
   docsQuery,
   fieldDefSchema,
   linkBody,
+  patchCommentBody,
   patchDocBody,
   patchTaskBody,
   projectSchema,
@@ -38,6 +39,7 @@ const models = {
   CreateTask: createTaskBody,
   PatchTask: patchTaskBody,
   CreateComment: commentBody,
+  PatchComment: patchCommentBody,
   Link: entitySchemas.taskLinks,
   CreateLink: linkBody,
   TimeEntry: ent('timeEntries'),
@@ -137,6 +139,13 @@ export function openapi() {
           responses: ok('Comment', 'one', '201'),
         },
       },
+      '/api/v1/comments/{id}': {
+        patch: {
+          parameters: [param('id', 'path')],
+          requestBody: body('PatchComment'),
+          responses: ok('Comment'),
+        },
+      },
       '/api/v1/tasks/{task}/links': {
         get: { parameters: [taskParam], responses: ok('Link', 'array') },
         post: {
@@ -191,7 +200,7 @@ export function openapi() {
         post: { requestBody: body('CreateDoc'), responses: ok('Doc', 'one', '201') },
       },
       '/api/v1/docs/{id}': {
-        get: { parameters: [param('id', 'path')], responses: ok('Doc') },
+        get: { parameters: [param('id', 'path'), param('section', 'query')], responses: ok('Doc') },
         patch: {
           parameters: [param('id', 'path')],
           requestBody: body('PatchDoc'),

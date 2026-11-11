@@ -11,10 +11,19 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - Settings → AI: a connection to an AI provider (OpenAI, Anthropic, OpenAI-compatible) per level — instance, space, project; the nearest level applies. The key is stored encrypted and never shown, a test call checks the connection on save.
 - AI actions of a project and the automation action "Run AI" (admins only): when a task with the AI among its assignees fits the rule, the AI reads the instruction from a project document and the task, then comments, writes a plan into the description, sets status, labels and fields, creates subtasks, postpones, escalates to the project lead or writes documents. If it needs an answer, it asks in comments assigned to a person and moves the task to «Clarify»; answering in those threads returns the task and the work goes on.
 - Assignments to the AI without rules: a comment assigned to the AI, `@ai` in a comment, a checklist item on the AI (done in order). The AI answers in the thread. A number field «Budget» on a task caps what the AI may spend on it; when it is used up, the AI asks to extend it.
+- Documents: version history — the page menu "Version history" lists versions (when, who, editor / API / restore), shows a version read-only and restores it. Edits of one author from one source within 10 minutes form one version; the last 100 versions of a page are kept.
+- REST `PATCH /api/v1/docs/:id` and MCP `update_doc`: `replace: {find, replace}` changes one fragment of the markdown without sending the whole document (an error if the fragment is missing or not unique).
+- REST `GET /api/v1/docs/:id?section=` and MCP `get_doc` `section`: only the section under the given heading.
+- Comments through REST and MCP: a reply and an assignee on creation; REST `PATCH /api/v1/comments/:id` and MCP `update_comment` assign or unassign, complete or reopen a comment and edit its text.
+- MCP tools for every REST function: `unlink_tasks`, `list_time_entries`, `get_timer`, `list_sprints`, `list_automations`; `get_task` also returns the task links.
 
 ### Changed
 
 - The key encryption of GitLab, email and AI connections lives in one place (`packages/server-kit`).
+
+### Fixed
+
+- Documents: a page changed through REST/MCP while closed no longer gets its text doubled when opened in a browser that had it open before.
 
 ## [0.13.0] - 2026-11-10
 

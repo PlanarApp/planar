@@ -57,7 +57,20 @@ export const timeLogBody = z.object({
   note: z.string().max(1000).nullable().optional(),
 });
 export const timerStartBody = z.object({ task: z.string().min(1) });
-export const commentBody = z.object({ text: z.string().min(1) });
+export const commentBody = z.object({
+  text: z.string().min(1),
+  parentId: uuid.optional().describe('ответ на комментарий этой задачи'),
+  assigneeId: uuid.optional().describe('назначить комментарий участнику пространства'),
+});
+// PLNRAPP-186
+export const patchCommentBody = z.object({
+  text: z.string().min(1).optional().describe('новый текст — только автор'),
+  assigneeId: uuid.nullable().optional().describe('назначить; null — снять назначение'),
+  resolved: z
+    .boolean()
+    .optional()
+    .describe('true — выполнен, false — переоткрыть; комментарий должен быть назначен'),
+});
 
 // documents (docs module, PLNRAPP-180); content — markdown
 export const docsQuery = z.object({
@@ -74,6 +87,19 @@ export const patchDocBody = z.object({
   title: z.string().max(200).optional(),
   markdown: z.string().optional().describe('новое содержимое целиком'),
   append: z.string().optional().describe('дописать в конец (вместо markdown)'),
+  replace: z
+    .object({ find: z.string().min(1), replace: z.string() })
+    .optional()
+    .describe(
+      'заменить фрагмент markdown (вместо markdown/append); фрагмент должен встречаться ровно один раз',
+    ),
+});
+export const docQuery = z.object({
+  section: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('только раздел с этим заголовком — до следующего заголовка того же или выше уровня'),
 });
 export const docTaskBody = z.object({ task: z.string().min(1).describe('id или ключ задачи') });
 
