@@ -265,6 +265,20 @@ describe('wk1: time', () => {
     expect(await entry(keep)).toBeDefined();
   });
 
+  it('PLNRAPP-117: слияние задачи переносит её записи времени в целевую', async () => {
+    const [a, b, e1] = [uuidv7(), uuidv7(), uuidv7()];
+    await w.admin.ok('task.create', taskArgs(w, { id: a }));
+    await w.admin.ok('task.create', taskArgs(w, { id: b }));
+    await w.member.ok('time.log', {
+      id: e1,
+      taskId: b,
+      startedAt: '2026-10-20T09:00:00.000Z',
+      durationSec: 60,
+    });
+    await w.member.ok('task.merge', { id: b, targetId: a, linkId: uuidv7() });
+    expect(await entry(e1)).toMatchObject({ taskId: a, userId: w.member.userId });
+  });
+
   it('wk1: guest не пишет — forbidden', async () => {
     for (const [n, a] of [
       ['time.start', { id: uuidv7(), taskId }],

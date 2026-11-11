@@ -7,6 +7,7 @@ import {
   CopyPlus,
   ExternalLink,
   Flag,
+  GitMerge,
   Hash,
   Link,
   Maximize2,
@@ -28,6 +29,7 @@ import { favorites } from '../layout/nav';
 import { planToday, unplan, useMyDay } from '../inbox/myDay';
 import { useMembers, useStatuses } from './dictionaries';
 import { createTask, deleteTask, setAssignees, updateTask } from './ops';
+import { mergeFrom } from './merge';
 import type { TaskView } from './queries';
 import PriorityIcon from './fields/PriorityIcon.vue';
 import StatusIcon from './fields/StatusIcon.vue';
@@ -36,7 +38,7 @@ const PRIORITIES = [1, 2, 3, 4, 0];
 
 /**
  * Task context menu (List, Board, Table): open, link, status, priority,
- * assignees, due date, move to another project, duplicate, delete. Dictionaries are read once per view.
+ * assignees, due date, move to another project, duplicate, merge, delete. Dictionaries are read once per view.
  */
 export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
   const { t } = useI18n();
@@ -245,6 +247,12 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
             assigneeIds: task.assigneeIds,
             labelIds: task.labelIds,
           }),
+      },
+      {
+        id: 'merge',
+        label: t('taskMenu.merge'),
+        icon: GitMerge,
+        onSelect: () => (mergeFrom.value = task),
       },
       {
         id: 'delete',

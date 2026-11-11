@@ -52,6 +52,28 @@ export const useBlockedIds = (projectId: MaybeRefOrGetter<string>) => {
   return computed(() => r.value ?? EMPTY);
 };
 
+/** Up to 20 tasks of the space whose title or key contains `q` (links, merge). */
+export const useTaskSearch = (
+  arg: MaybeRefOrGetter<{ q: string; space: string; skip: ReadonlySet<string> }>,
+) =>
+  useLive(arg, async ({ q, space, skip }) => {
+    if (!q) return [];
+    const projects = await db.table<Row<'projects'>>('projects').toArray();
+    const out: { id: string; key: string; title: string }[] = [];
+    await db
+      .table<Row<'tasks'>>('tasks')
+      .where('spaceId')
+      .equals(space)
+      .until(() => out.length >= 20)
+      .each((x) => {
+        if (skip.has(x.id)) return;
+        const key = `${projects.find((p) => p.id === x.projectId)?.key ?? '?'}-${x.number ?? '…'}`;
+        if (x.title.toLowerCase().includes(q) || key.toLowerCase().includes(q))
+          out.push({ id: x.id, key, title: x.title });
+      });
+    return out;
+  });
+
 export async function linkTasks(taskId: string, otherId: string, side: LinkSide): Promise<string> {
   const id = newId();
   const swap = side === 'blockedBy' || side === 'duplicatedBy';

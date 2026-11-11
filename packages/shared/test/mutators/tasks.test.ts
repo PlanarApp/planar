@@ -244,6 +244,73 @@ describe('task.delete и связи', () => {
     expect(await code(run(tx, 'task.delete', { id: t }))).toBe('not_found');
   });
 
+  it('task.merge: строки B переходят в A, B отменена и дубликат A', async () => {
+    const { tx, s, t: a } = await setup();
+    const b = await seedTask(tx, s);
+    const [sub, other, both] = [
+      await seedTask(tx, s, { parentId: b }),
+      await seedTask(tx, s),
+      await seedTask(tx, s),
+    ];
+    await run(tx, 'task.assign', { id: id(), taskId: b, userId: U1 }); // U1 уже на A — повтор
+    await run(tx, 'task.assign', { id: id(), taskId: b, userId: U2 });
+    await run(tx, 'task.watch', { id: id(), taskId: b }, ctx(U2));
+    const cm = id();
+    await run(tx, 'comment.create', { id: cm, taskId: b, body: { type: 'doc' } });
+    const at = id();
+    await run(tx, 'attachment.create', {
+      id: at,
+      taskId: b,
+      commentId: cm,
+      fileSha256: 'h',
+      name: 'n',
+      mime: 'm',
+      size: 1,
+    });
+    const [l1, l2, l3, l4] = [id(), id(), id(), id()];
+    await run(tx, 'link.create', { id: l1, taskId: other, targetId: b, kind: 'blocks' });
+    await run(tx, 'link.create', { id: l2, taskId: b, targetId: a, kind: 'relates' });
+    await run(tx, 'link.create', { id: l3, taskId: a, targetId: both, kind: 'relates' });
+    await run(tx, 'link.create', { id: l4, taskId: b, targetId: both, kind: 'blocks' });
+    const dup = id();
+    await run(tx, 'task.merge', { id: b, targetId: a, linkId: dup }, ctx(U1, T1));
+
+    expect((await tx.get('comments', cm))!.taskId).toBe(a);
+    expect((await tx.get('attachments', at))!.taskId).toBe(a);
+    expect((await tx.get('tasks', sub))!.parentId).toBe(a);
+    const users = async (e: 'taskAssignees' | 'taskWatchers', task: string) =>
+      (await tx.scan(e, { index: 'taskId', eq: task })).map((x) => x.userId).sort();
+    expect(await users('taskAssignees', a)).toEqual([U1, U2].sort());
+    expect(await users('taskAssignees', b)).toEqual([]);
+    expect(await users('taskWatchers', a)).toContain(U2);
+    expect(await tx.get('taskLinks', l1)).toMatchObject({ taskId: other, targetId: a });
+    expect(await tx.get('taskLinks', l2)).toBeUndefined();
+    expect(await tx.get('taskLinks', l3)).toBeDefined();
+    expect(await tx.get('taskLinks', l4)).toBeUndefined();
+    expect(await tx.get('taskLinks', dup)).toMatchObject({
+      taskId: b,
+      targetId: a,
+      kind: 'duplicates',
+    });
+    const bt = (await tx.get('tasks', b))!;
+    expect((await tx.get('statuses', bt.statusId))!.category).toBe('cancelled');
+    expect(bt.completedAt).toBe(T1);
+  });
+
+  it('task.merge: не в себя, не в потомка, не в другое пространство', async () => {
+    const { tx, s, t: b } = await setup();
+    const child = await seedTask(tx, s, { parentId: b });
+    const s2 = await seedSpace(tx);
+    const far = await seedTask(tx, s2);
+    for (const targetId of [b, child, far])
+      expect(await code(run(tx, 'task.merge', { id: b, targetId, linkId: id() }))).toBe(
+        'invalid_args',
+      );
+    expect(await code(run(tx, 'task.merge', { id: b, targetId: id(), linkId: id() }))).toBe(
+      'not_found',
+    );
+  });
+
   it('assign: идемпотентно; unassign; not_found', async () => {
     const { tx, t } = await setup();
     await run(tx, 'task.assign', { id: id(), taskId: t, userId: U2 });

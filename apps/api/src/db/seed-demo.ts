@@ -141,6 +141,8 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Support SAML SSO', 0, 3, 40, 'noah', 'feature'],
       ['Cursor tokens for pagination', 2, 3, 4, 'liam', 'feature', 3],
       ['Update OpenAPI examples', 1, 1, 7, 'demo', 'docs', 3],
+      // merged into «Search index rebuild is slow» (PLNRAPP-117): cancelled + link:3 «duplicates»
+      ['Reindex takes minutes after deploy', 4, 2, null, 'noah', 'bug'],
     ],
   },
   {
@@ -857,6 +859,15 @@ async function insertAll(tx: Tx, now: Date) {
       kind: 'relates',
       createdBy: uid_.noah,
       createdAt: at(-4),
+    },
+    {
+      id: uid('link:3'),
+      spaceId: spaceIds[1],
+      taskId: tid('PLT', 14),
+      targetId: tid('PLT', 4),
+      kind: 'duplicates',
+      createdBy: uid_.noah,
+      createdAt: at(-1),
     },
   ]);
 
