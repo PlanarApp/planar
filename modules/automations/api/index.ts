@@ -32,6 +32,8 @@ let core: CoreServices | undefined;
 
 const MAX_DEPTH = 3;
 const RUN_QUEUE = 'automations.run';
+/** the queue of module ai (its job data: modules/ai/api/run.ts) */
+const AI_QUEUE = 'ai.run';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface RunData {
@@ -39,6 +41,8 @@ interface RunData {
   taskId: string;
   depth: number;
   eventAt: string;
+  /** the event is a change by this AI run: a run it starts continues its chain */
+  aiRunId?: string;
 }
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -143,7 +147,13 @@ async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api
       if ('byHuman' in r.trigger && r.trigger.byHuman && !(await (human ??= isHuman(ctx, api))))
         continue;
       queued.add(key);
-      await api.enqueue(RUN_QUEUE, { ruleId: r.id, taskId: e.taskId, depth, eventAt: ctx.now });
+      await api.enqueue(RUN_QUEUE, {
+        ruleId: r.id,
+        taskId: e.taskId,
+        depth,
+        eventAt: ctx.now,
+        ...(ctx.origin?.aiRunId && { aiRunId: ctx.origin.aiRunId }),
+      });
     }
   }
 }
@@ -279,7 +289,8 @@ async function toMutations(api: JobApi, rule: Rule, task: FilterTask, statuses: 
         upd({ projectId: a.projectId, ...(a.statusId && { statusId: a.statusId }) });
         break;
       case 'send_webhook':
-        break; // runs inside the transaction of actions (run)
+      case 'ai_run':
+        break; // run inside the transaction of actions (run)
       case 'create_subtask': {
         const first = (c: string) => statuses.find((s) => s.category === c);
         const [last] = await rows(
@@ -336,14 +347,18 @@ async function sendWebhooks(
   }
 }
 
-async function run(d: RunData, api: JobApi) {
+/**
+ * The rule is on (module too) and its conditions hold for the task now; null — no.
+ * Also for module ai: the run rechecks the rule after its debounce.
+ */
+export async function matched(api: JobApi, ruleId: string, taskId: string) {
   const [r] = await rows(
     api,
     sql`select r.id, r.enabled, r.conditions, r.actions, r.project_id as "projectId" from automations_rules r
-        join projects p on p.id = r.project_id and 'automations' = any(p.modules) where r.id = ${d.ruleId}`,
+        join projects p on p.id = r.project_id and 'automations' = any(p.modules) where r.id = ${ruleId}`,
   );
-  const task = r?.enabled ? await loadTask(api, d.taskId) : undefined;
-  if (!r || !task) return void (await record(api, d, 'skipped'));
+  const task = r?.enabled ? await loadTask(api, taskId) : undefined;
+  if (!r || !task) return null;
   const rule = r as unknown as Rule;
   const statuses = (await rows(
     api,
@@ -377,11 +392,43 @@ async function run(d: RunData, api: JobApi) {
     await named('statuses'),
     await named('labels'),
   );
-  if (!matchFilter(task, conditions, ctx)) return void (await record(api, d, 'skipped'));
+  return matchFilter(task, conditions, ctx) ? { rule, task, statuses } : null;
+}
+
+/**
+ * ai_run → a job of module ai (PLNRAPP-168): debounced per (task, action) — a new event within 60 s replaces
+ * the queued job. statusId — after this rule's own actions: the run goes only if the task is still there.
+ */
+async function enqueueAi(q: Q, enqueue: ModuleHookApi['enqueue'], ids: string[], d: RunData) {
+  const [t] = (await q.execute(sql`select status_id as s from tasks where id = ${d.taskId}`))
+    .rows as { s: string }[];
+  if (!t) return;
+  for (const actionId of ids)
+    await enqueue(
+      AI_QUEUE,
+      {
+        kind: 'action',
+        taskId: d.taskId,
+        actionId,
+        ruleId: d.ruleId,
+        statusId: t.s,
+        parentRunId: d.aiRunId ?? null,
+      },
+      { singletonKey: `${d.taskId}:${actionId}`, upsert: true, startAfter: 60 },
+    );
+}
+
+async function run(d: RunData, api: JobApi) {
+  const m = await matched(api, d.ruleId, d.taskId);
+  if (!m) return void (await record(api, d, 'skipped'));
+  const { rule, task, statuses } = m;
   try {
     const muts = await toMutations(api, rule, task, statuses);
     const hooks = (rule.actions as Action[]).flatMap((a) =>
       a.type === 'send_webhook' ? [a.subscriptionId] : [],
+    );
+    const ai = (rule.actions as Action[]).flatMap((a) =>
+      a.type === 'ai_run' ? [a.aiActionId] : [],
     );
     await api.execute(api.systemUserId, muts, {
       system: true,
@@ -389,7 +436,10 @@ async function run(d: RunData, api: JobApi) {
       // an inactive/nonexistent subscription rolls back everything up to the actions
       prepare: hooks.length ? (q) => checkWebhooks(q, hooks) : undefined,
       // delivery — in the same transaction after all actions; a failure rolls back the actions, the run = error
-      after: hooks.length ? (q, enqueue) => sendWebhooks({ enqueue }, q, hooks, d) : undefined,
+      after: async (q, enqueue) => {
+        if (hooks.length) await sendWebhooks({ enqueue }, q, hooks, d);
+        if (ai.length) await enqueueAi(q, enqueue, ai, d);
+      },
     });
   } catch (e) {
     return void (await record(api, d, 'error', e instanceof Error ? e.message : String(e)));

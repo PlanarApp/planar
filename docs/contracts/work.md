@@ -298,9 +298,12 @@ Conditions — `matchFilter(task, conditions, {statuses, fieldDefs, userId: syst
 | `move_to_project` | `projectId`, `statusId?` | `task.update` |
 | `create_subtask` | `title` 1–500 | `task.create` with `parentId`; status — the first by `rank` in category todo, otherwise backlog |
 | `send_webhook` | `subscriptionId` | `enqueueWebhookEvent` of the webhooks module, event `automation.fired` |
+| `ai_run` | `aiActionId` (an `aiActions` row of the rule's project) | none: after the other actions, in their transaction, `enqueue('ai.run', {kind: 'action', taskId, actionId, ruleId, statusId, parentRunId}, {singletonKey: 'taskId:actionId', upsert: true, startAfter: 60})` — debounce; the module ai runs it (PLNRAPP-168) |
+
+A rule with `ai_run` (in its old or new actions) is created, changed and deleted only by an admin of the project (`needProjectAdmin`); otherwise `forbidden`.
 
 ### Execution
-- Hook `afterMutation`: by `writes` — matching enabled rules → `enqueue('automations.run', {ruleId, taskId, depth, eventAt})`, `depth = (ctx.origin?.depth ?? 0) + 1`. Not enqueued if `depth > 3` or `ruleId = ctx.origin.ruleId` (a rule does not fire on its own action).
+- Hook `afterMutation`: by `writes` — matching enabled rules → `enqueue('automations.run', {ruleId, taskId, depth, eventAt, aiRunId?})`, `depth = (ctx.origin?.depth ?? 0) + 1`; `aiRunId` — `ctx.origin.aiRunId` (the change is an AI run's: a run it starts continues the chain). Not enqueued if `depth > 3` or `ruleId = ctx.origin.ruleId` (a rule does not fire on its own action).
 - Worker `automations.run`: rule disabled/deleted or task gone — `skipped`; otherwise all actions in one transaction `JobApi.execute(systemUserId, muts, {system: true, origin: {ruleId, depth}})`. Error → actions roll back, the run is `error` with the text; the original mutation is not affected. No retries (`retryLimit: 0`).
 - Server tables: `automations_runs` (`id uuid pk`, `rule_id uuid`, `task_id uuid`, `depth int`, `status text check (ok,skipped,error)`, `error text?`, `created_at`; index `(rule_id, created_at desc)`; cron deletes rows older than 30 days), `automations_due_fired` (`rule_id`, `task_id`, `due_date date`; pk of all three), `automations_fired` (PLNRAPP-166: `rule_id`, `task_id`, `slot text`, `created_at`; pk of the first three; the daily cron deletes rows of deleted rules and tasks and `schedule` rows older than 30 days).
 - REST: `GET /api/automations/rules/:id/runs?limit=` (1–200, default 50) → `{data: run[]}` newest first; rule not visible → 404. `run` = `{id, ruleId, taskId, depth, status, error, createdAt}`.

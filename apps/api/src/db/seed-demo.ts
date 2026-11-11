@@ -22,6 +22,8 @@ import {
   goalsMilestoneTasks,
 } from '@planar/module-goals/api/schema';
 import { automationsRules } from '@planar/module-automations/api/schema';
+import { aiActions, aiRuns } from '@planar/module-ai/api/schema';
+import { markdownToDoc } from '@planar/editor/markdown';
 import { formsForms, formsLinks } from '@planar/module-forms/api/schema';
 import { recurringRules } from '@planar/module-recurring/api/schema';
 import { templatesTemplates } from '@planar/module-templates/api/schema';
@@ -1785,6 +1787,171 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-25),
     })),
   );
+
+  // AI (PLNRAPP-168): in Roadmap the action «Planning» runs when a task with the AI goes to Backlog;
+  // one task waits in «Clarify» for demo's answer, the AI answered an @ai and did a checklist item
+  const ai = uid('user:ai');
+  const rdmSpace = spaceIds[PROJECTS[pkIdx('RDM')]!.space]!;
+  const clarify = statusId('RDM', STATUSES.length);
+  await ins(s.statuses, [
+    {
+      id: clarify,
+      spaceId: rdmSpace,
+      projectId: pid('RDM'),
+      name: 'Clarify',
+      category: 'todo',
+      color: '#f59e0b',
+      rank: generateNKeysBetween(stRanks[1]!, stRanks[2]!, 1)[0],
+      createdAt: at(-25),
+      updatedAt: at(-25),
+    },
+  ]);
+  const planText = [
+    'Check that the task is clear, finite and doable.',
+    'Write a short plan into the description; ask in the thread if something is missing.',
+  ];
+  await ins(docsPages, [
+    {
+      id: uid('page:ai-plan'),
+      spaceId: rdmSpace,
+      projectId: pid('RDM'),
+      parentId: null,
+      rank: generateNKeysBetween(dRanks.at(-1)!, null, 1)[0],
+      title: 'AI · Planning',
+      icon: '🤖',
+      body: markdownToDoc(planText.join('\n\n')),
+      text: ['AI · Planning', ...planText].join(' '),
+      files: [],
+      createdBy: maya,
+      updatedBy: maya,
+      archivedAt: null,
+      archivedBy: null,
+      createdAt: at(-25),
+      updatedAt: at(-25),
+    },
+  ]);
+  await ins(aiActions, [
+    {
+      id: uid('ai-action:plan'),
+      spaceId: rdmSpace,
+      projectId: pid('RDM'),
+      key: 'plan',
+      name: 'Planning',
+      description: 'A plan in the description, or questions in «Clarify»',
+      pageId: uid('page:ai-plan'),
+      runtime: 'llm',
+      model: null,
+      questionStatusId: clarify,
+      checks: ['The plan has a clear end'],
+      maxOutputTokens: null,
+      createdAt: at(-25),
+      updatedAt: at(-25),
+    },
+  ]);
+  await ins(automationsRules, [
+    {
+      id: uid('rule:ai-plan'),
+      spaceId: rdmSpace,
+      projectId: pid('RDM'),
+      name: 'AI plans tasks in Backlog',
+      description: 'Only tasks where the AI is an assignee.',
+      enabled: true,
+      trigger: { type: 'task.status_changed', to: [statusId('RDM', 0)] },
+      conditions: { op: 'and', rules: [{ field: 'assignee', operator: 'in', value: [ai] }] },
+      actions: [{ type: 'ai_run', aiActionId: uid('ai-action:plan') }],
+      createdBy: maya,
+      createdAt: at(-25),
+      updatedAt: at(-25),
+    },
+  ]);
+  const waiting = tid('RDM', 8); // «Collect feature requests from forum»
+  await tx
+    .update(s.tasks)
+    .set({ statusId: clarify })
+    .where(sql`id = ${waiting}`);
+  await ins(s.taskAssignees, [
+    {
+      id: uid('assignee:ai:RDM:8'),
+      spaceId: rdmSpace,
+      taskId: waiting,
+      userId: ai,
+      createdAt: at(-2),
+    },
+  ]);
+  const botSays = (k: string, taskId: string, text: string, o: Record<string, unknown> = {}) => ({
+    id: uid(`comment:ai:${k}`),
+    spaceId: rdmSpace,
+    taskId,
+    authorId: ai,
+    body: markdownToDoc(text),
+    mentions: [],
+    createdAt: at(-1, 11),
+    updatedAt: at(-1, 11),
+    ...o,
+  });
+  const ask = (text: string) => textToDoc(`@ai ${text}`, [{ id: ai, login: 'ai' }]);
+  await ins(s.comments, [
+    botSays('q0', waiting, 'Which forum sections should be covered: all of them or only «Ideas»?', {
+      assigneeId: uid_.demo,
+    }),
+    {
+      id: uid('comment:ai:mention'),
+      spaceId: rdmSpace,
+      taskId: tid('RDM', 1),
+      authorId: uid_.demo,
+      body: ask('what did we decide on the interview format?'),
+      mentions: [ai],
+      createdAt: at(-1, 10),
+      updatedAt: at(-1, 10),
+    },
+    botSays(
+      'reply',
+      tid('RDM', 1),
+      'Remote interviews of 30 minutes, notes go to the shared doc (comment by Sofia).',
+      {
+        parentId: uid('comment:ai:mention'),
+      },
+    ),
+    botSays(
+      'check',
+      tid('RDM', 1),
+      '**Group the notes by theme**\n\nOnboarding, pricing, integrations.',
+    ),
+  ]);
+  await ins(s.checklistItems, [
+    {
+      id: uid('check:ai:RDM:1'),
+      spaceId: rdmSpace,
+      taskId: tid('RDM', 1),
+      text: 'Group the notes by theme',
+      done: true,
+      rank: generateNKeysBetween(cRanks.at(-1)!, null, 1)[0],
+      assigneeId: ai,
+      linkedTaskId: null,
+      indent: 0,
+      createdAt: at(-2),
+      updatedAt: at(-1, 11),
+    },
+  ]);
+  await ins(aiRuns, [
+    {
+      id: uid('ai-run:waiting'),
+      taskId: waiting,
+      projectId: pid('RDM'),
+      kind: 'action',
+      actionId: uid('ai-action:plan'),
+      ruleId: uid('rule:ai-plan'),
+      state: 'waiting_human',
+      chainId: uid('ai-run:waiting'),
+      chainDepth: 0,
+      returnStatusId: statusId('RDM', 0),
+      questionCommentIds: [uid('comment:ai:q0')],
+      inputTokens: 1840,
+      outputTokens: 210,
+      createdAt: at(-1, 11),
+      updatedAt: at(-1, 11),
+    },
+  ]);
 
   // templates: a bug report task and a launch project
   const tTask = (title: string, priority: number, checklist: string[] = []) => ({
