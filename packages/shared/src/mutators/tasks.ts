@@ -83,25 +83,28 @@ const link = (tx: Tx, entity: 'taskAssignees' | 'taskWatchers', taskId: string) 
   tx.scan(entity, { index: 'taskId', eq: taskId });
 
 /**
- * PLNRAPP-152: the task with all its subtasks goes to project `p` of another space; ids stay, the server
- * moves the rows tied by taskId (comments, links, time…). Subtasks first: when the root moves, a child
- * still left behind (hidden from the caller) is cut off by the server. Status and labels — as on a move
- * within the space; number, cycle, fields reset; assignees and watchers outside the new space are dropped.
+ * PLNRAPP-152: the task with all its subtasks goes to project `p` (of another space too); ids stay, the
+ * server moves the rows tied by taskId (comments, links, time…). Subtasks first: when the root moves, a
+ * child still left behind (hidden from the caller) is cut off by the server. Status and labels — as on a
+ * move within the space; number, cycle, fields reset; assignees and watchers outside a new space
+ * (`members`, null — the same space) are dropped. A subtask already in `p` stays as is.
  */
-async function moveToSpace(
+async function moveTree(
   tx: Tx,
   t: Row<'tasks'>,
   p: Row<'projects'>,
-  members: Set<string>,
+  members: Set<string> | null,
   ctx: MutatorCtx,
   root?: { patch: Partial<Row<'tasks'>>; status?: Row<'statuses'> },
 ) {
   for (const c of await tx.scan('tasks', { index: 'parentId', eq: t.id }))
-    await moveToSpace(tx, c, p, members, ctx);
+    await moveTree(tx, c, p, members, ctx);
+  if (!root && t.projectId === p.id) return;
   const st = root?.status ?? (await remapStatus(tx, t.statusId, p.id));
   await remapLabels(tx, t.id, p.id);
   for (const e of ['taskAssignees', 'taskWatchers'] as const)
-    for (const x of await link(tx, e, t.id)) if (!members.has(x.userId)) await tx.del(e, x.id);
+    for (const x of await link(tx, e, t.id))
+      if (members && !members.has(x.userId)) await tx.del(e, x.id);
   await tx.patch('tasks', t.id, {
     ...root?.patch,
     spaceId: p.spaceId,
@@ -193,8 +196,8 @@ export const taskMutators = [
       const t = await need(tx, 'tasks', a.id);
       const patch = changes('tasks', a, ctx);
       const moved = !!a.projectId && a.projectId !== t.projectId;
-      if (a.projectId) {
-        const p = await need(tx, 'projects', a.projectId);
+      const p = a.projectId ? await need(tx, 'projects', a.projectId) : undefined;
+      if (p) {
         if (p.spaceId !== t.spaceId) {
           const status = a.statusId ? await need(tx, 'statuses', a.statusId) : undefined;
           if (status && status.projectId !== p.id) throw bad('statusId другого проекта');
@@ -207,7 +210,7 @@ export const taskMutators = [
           );
           // the old parent stays in the old space
           patch.parentId = a.parentId ?? null;
-          return moveToSpace(tx, t, p, members, ctx, { patch, status });
+          return moveTree(tx, t, p, members, ctx, { patch, status });
         }
         if (moved) {
           patch.number = null;
@@ -227,6 +230,10 @@ export const taskMutators = [
       if (a.fields) await checkFields(tx, a.projectId ?? t.projectId, a.fields);
       if (a.parentId) await checkParent(tx, t.id, t.spaceId, a.parentId);
       await tx.patch('tasks', a.id, patch);
+      // subtasks follow the task to its new project
+      if (moved)
+        for (const c of await tx.scan('tasks', { index: 'parentId', eq: t.id }))
+          await moveTree(tx, c, p!, null, ctx);
     },
   }),
   defineMutator({
