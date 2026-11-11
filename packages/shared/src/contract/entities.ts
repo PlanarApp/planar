@@ -19,6 +19,8 @@ export const entitySchemas = {
     role: z.enum(['owner', 'admin', 'member', 'guest']),
     avatarFile: z.string().nullable(),
     deactivatedAt: ts.nullable(),
+    /** the AI bot (C-schema v28): no sign-in; old replica rows have no field */
+    bot: z.boolean().default(false),
     createdAt: ts,
     updatedAt: ts,
   }),

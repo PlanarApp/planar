@@ -25,6 +25,7 @@ scope: global · write: server · bootstrap: yes · indexes: login
 | `role` | enum(owner,admin,member,guest) | instance role; owner is the first user |
 | `avatarFile` | text? | sha256 of the file |
 | `deactivatedAt` | ts? | |
+| `bot` | bool | v28: the AI bot (active user `ai`, no sign-in; skipped by reminders, notifications, byHuman, workload); default `false`; replica rows before v28 have no such field (treated as `false`) |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 

@@ -19,6 +19,8 @@ export interface ModuleHookApi {
   sys: Tx;
   /** pg-boss send in this same transaction */
   enqueue(queue: string, data: object, opts?: JobOpts): Promise<void>;
+  /** bot user (users.bot) with this login: idempotent, active, no password; created in the hook's transaction */
+  ensureBotUser(login: string, name: string): Promise<string>;
 }
 
 export interface JobApi {

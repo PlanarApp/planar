@@ -2,13 +2,14 @@ import { createHash } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
 import {
+  decrypt,
   isDemo,
+  secretKey,
   type JobApi,
   type JobDef,
   type ModuleHookApi,
   type MutationWrite,
 } from '@planar/server-kit';
-import { decrypt, secretKey } from './crypto.js';
 import { gitlabConnections as P } from './schema.js';
 
 const log = new Logger('gitlab');

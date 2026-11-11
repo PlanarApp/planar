@@ -602,6 +602,17 @@ async function insertAll(tx: Tx, now: Date) {
       createdAt: at(-90),
       updatedAt: at(-90),
     },
+    // the AI bot (module ai): an active member without sign-in, visible in assignee and mention pickers
+    {
+      id: uid('user:ai'),
+      login: 'ai',
+      name: 'ИИ',
+      role: 'member',
+      bot: true,
+      passwordHash: '!',
+      createdAt: at(-90),
+      updatedAt: at(-90),
+    },
   ]);
   const maya = uid_.maya!;
   await ins(
@@ -676,6 +687,14 @@ async function insertAll(tx: Tx, now: Date) {
       spaceId: rootId,
       userId: uid_[l],
       role: l === 'maya' ? 'admin' : 'member',
+      createdAt: at(-90),
+      updatedAt: at(-90),
+    })),
+    ...spaceIds.map((sid, si) => ({
+      id: uid(`member:${si}:ai`),
+      spaceId: sid,
+      userId: uid('user:ai'),
+      role: 'member',
       createdAt: at(-90),
       updatedAt: at(-90),
     })),

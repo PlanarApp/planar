@@ -35,7 +35,9 @@ describe('seed-demo', () => {
 
   it('состав: пользователи, пространства, задачи, спринты, модули', async () => {
     const [c] = await q<Record<string, number>>(`select
-      (select count(*)::int from users where login <> 'automation') as users,
+      (select count(*)::int from users where login not in ('automation', 'ai')) as users,
+      (select count(*)::int from users u join space_members m on m.user_id = u.id
+         where u.login = 'ai' and u.bot and u.deactivated_at is null and m.role = 'member') as bot,
       (select count(*)::int from users where login = 'demo' and password_hash = '!') as demo,
       (select count(*)::int from spaces
          where id::text <> (select value#>>'{}' from settings where id = 'root_space')) as spaces,
@@ -50,6 +52,7 @@ describe('seed-demo', () => {
     expect(c!.users).toBeGreaterThanOrEqual(8);
     expect(c!.users).toBeLessThanOrEqual(12);
     expect(c!.demo).toBe(1);
+    expect(c!.bot).toBeGreaterThanOrEqual(4); // the bot «ИИ» is a member of every space
     expect(c!.spaces).toBeGreaterThanOrEqual(4);
     expect(c!.spaces).toBeLessThanOrEqual(5);
     expect(c!.root).toBe(1); // Workspace level: without it group tabs have no scope

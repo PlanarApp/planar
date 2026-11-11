@@ -47,6 +47,8 @@ export const users = pgTable(
     /** IANA zone (PLNRAPP-160): not synced — only own profile (/api/auth/me); null — not set yet */
     timezone: text(),
     deactivatedAt: ts(),
+    /** AI bot (PLNRAPP-167): active, no sign-in; skipped by reminders, notifications, byHuman */
+    bot: boolean().notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     passwordHash: text().notNull(),

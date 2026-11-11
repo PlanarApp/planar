@@ -7,6 +7,12 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 ### Added
 
 - Forms: a personal one-time or expiring link bound to an existing task; the answer is added to the task as a comment. Created in the form settings.
+- New module `ai` (turns on together with `automations`): the bot «ИИ» — an active member of the space without sign-in, visible in assignee and mention pickers, skipped by due reminders, notifications and «only people» automation triggers.
+- Settings → AI: a connection to an AI provider (OpenAI, Anthropic, OpenAI-compatible) per level — instance, space, project; the nearest level applies. The key is stored encrypted and never shown, a test call checks the connection on save.
+
+### Changed
+
+- The key encryption of GitLab, email and AI connections lives in one place (`packages/server-kit`).
 
 ## [0.13.0] - 2026-11-10
 

@@ -43,8 +43,8 @@ describe('PJ-3: project.setModule', () => {
     expect(await code(set(['chat', 'email']))).toBe('ok');
   });
 
-  it('PJ-3 DATA_MODULE_IDS: 12 модулей данных, общие не входят', () => {
-    expect(DATA_MODULE_IDS).toHaveLength(12);
+  it('PJ-3 DATA_MODULE_IDS: 13 модулей данных, общие не входят', () => {
+    expect(DATA_MODULE_IDS).toHaveLength(13);
     expect(isDataModule('gitlab')).toBe(true);
     for (const shared of ['chat', 'email', 'plugins', 'import', 'webhooks', 'hello'])
       expect(isDataModule(shared)).toBe(false);

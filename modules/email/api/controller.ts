@@ -14,8 +14,14 @@ import {
 import { eq, sql } from 'drizzle-orm';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { CORE, HttpError, parseBody, type CoreServices } from '@planar/server-kit';
-import { encrypt, secretKey } from './crypto.js';
+import {
+  CORE,
+  encrypt,
+  HttpError,
+  parseBody,
+  secretKey,
+  type CoreServices,
+} from '@planar/server-kit';
 import { esc, loadCfg, parseUnsub, safeErr, send, type Mail } from './mail.js';
 import { emailConfig as C } from './schema.js';
 
