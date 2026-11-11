@@ -77,6 +77,23 @@ export function moveArgs(
   return { id, parentId, rank: rankBetween(a?.rank ?? null, b?.rank ?? null) };
 }
 
+/** PLNRAPP-5: docs.page.move of `id` with its subpages to the end of the root pages of project `projectId` (null — the space). */
+export function toProjectArgs(pages: PageRow[], id: string, projectId: string | null) {
+  const p = pages.find((x) => x.id === id)!;
+  const last = pages
+    .filter(
+      (x) =>
+        x.spaceId === p.spaceId &&
+        !x.parentId &&
+        !x.archivedAt &&
+        x.id !== id &&
+        (x.projectId ?? null) === projectId,
+    )
+    .sort(byRank)
+    .at(-1);
+  return { id, parentId: null, rank: rankBetween(last?.rank ?? null, null), projectId };
+}
+
 export const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е');
 
 /** All query words are substrings of the name or text; names rank higher. */
