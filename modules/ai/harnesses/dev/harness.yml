@@ -1,0 +1,25 @@
+statuses:
+  - { key: backlog, name: Бэклог, category: backlog, color: gray }
+  - { key: clarify, name: Уточнение, category: todo, color: amber }
+  - { key: todo, name: К работе, category: todo, color: blue }
+  - { key: in_progress, name: В работе, category: in_progress, color: violet }
+  - { key: done, name: Готово, category: done, color: green }
+labels:
+  - { key: has_plan, name: Есть план, color: green }
+fields:
+  - { key: budget, name: Бюджет, type: number }
+actions: [plan, decompose, triage, discussion, assign, chat]
+rules:
+  - key: plan_in_backlog
+    name: План в бэклоге
+    description: ИИ проверяет задачу, пишет план и оценивает бюджет. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, to: [backlog] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: plan }]
+  - key: triage_new
+    name: Триаж новых задач
+    description: ИИ разбирает новую задачу. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.created }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: triage }]
+settings: { questionStatus: clarify }

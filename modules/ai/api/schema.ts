@@ -1,4 +1,5 @@
 import {
+  boolean,
   doublePrecision,
   index,
   integer,
@@ -61,6 +62,37 @@ export const aiActions = pgTable(
     index('ai_actions_space_id_idx').on(t.spaceId),
     uniqueIndex('ai_actions_project_key_uq').on(t.projectId, t.key),
   ],
+);
+
+// server table: pack key → project entity (status, label, field, action, rule) created by "Apply harness"
+export const aiHarnessKeys = pgTable(
+  'ai_harness_keys',
+  {
+    id: uuid().primaryKey(),
+    projectId: uuid().notNull(),
+    /** status | label | field | action | rule */
+    kind: text().notNull(),
+    key: text().notNull(),
+    entityId: uuid().notNull(),
+  },
+  (t) => [uniqueIndex('ai_harness_keys_project_kind_key_uq').on(t.projectId, t.kind, t.key)],
+);
+
+// server table: a harness pack loaded into the project docs
+export const aiHarnessPacks = pgTable(
+  'ai_harness_packs',
+  {
+    id: uuid().primaryKey(),
+    projectId: uuid().notNull(),
+    packKey: text().notNull(),
+    active: boolean().notNull().default(false),
+    rootPageId: uuid(),
+    /** {pageId: sha256} of the pages at load time */
+    hashes: jsonb().$type<Record<string, string>>().notNull().default({}),
+    createdAt: ts().notNull().defaultNow(),
+    updatedAt: ts().notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('ai_harness_packs_project_pack_uq').on(t.projectId, t.packKey)],
 );
 
 // server table: one AI run over a task — by a rule (kind action) or an assignment (comment, mention, checklist)

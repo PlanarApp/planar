@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
 import { Archive, ArrowRightLeft, History, Star, StarOff } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
@@ -9,6 +9,7 @@ import {
   i18n,
   mutate,
   useQuery,
+  useExtensions,
   Menu,
   type MenuItem,
 } from '@planar/web/modules';
@@ -26,6 +27,14 @@ const route = useRoute();
 const page = useQuery(() => db.table<PageFull>('docsPages').get(props.pageId));
 const users = useQuery(() => db.table<Row<'users'>>('users').toArray());
 const members = computed(() => (users.value ?? []).map((u) => ({ id: u.id, name: u.name })));
+// panels of other modules under the title (docPanels); each decides itself whether the page suits it
+const panelExt = useExtensions('docPanels', () => page.value?.projectId ?? undefined);
+const panels = computed(() =>
+  panelExt.value.map((p) => ({
+    key: p.key,
+    view: defineAsyncComponent(() => p.component().then((m) => m.default)),
+  })),
+);
 const title = ref('');
 // the title is taken from the replica once; afterwards the field drives it
 const seeded = ref(false);
@@ -132,6 +141,13 @@ async function archive() {
         </h1>
         <Menu :items="actions" :label="tx('actions')" align="end" />
       </div>
+      <component
+        :is="p.view"
+        v-for="p in panels"
+        :key="p.key"
+        :page-id="pageId"
+        :project-id="page.projectId"
+      />
       <DocEditor
         :name="`docs:${pageId}`"
         :members="members"

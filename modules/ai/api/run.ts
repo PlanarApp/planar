@@ -9,6 +9,7 @@ import { uuidv7 } from '@planar/shared';
 import { matched } from '@planar/module-automations/api';
 import { AI_BOT_LOGIN, type AiAction } from '../shared/index.js';
 import { resolveConnection, secretOf } from './connections.js';
+import { parseInstructionPage } from './harness.js';
 import { generateStructured, type LlmUsage } from './llm.js';
 
 export const AI_QUEUE = 'ai.run';
@@ -362,12 +363,19 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
       const page = action.pageId
         ? await one(
             api.db,
-            sql`select text from docs_pages where id = ${action.pageId} and archived_at is null`,
+            sql`select title, body, text from docs_pages where id = ${action.pageId} and archived_at is null`,
           )
         : undefined;
       if (!page)
         return await apply(api, run, failed(`У действия «${action.name}» нет инструкции.`));
       prompt = page.text as string;
+      try {
+        // an instruction page with a parameters table: only the part after it is the prompt
+        const parsed = parseInstructionPage(page.title as string, page.body);
+        if (parsed.structured) prompt = parsed.instruction.prompt;
+      } catch {
+        // a broken table: the whole page stays the prompt
+      }
     }
     const ctx = await contextOf(api.db, task, bot);
     const ask =

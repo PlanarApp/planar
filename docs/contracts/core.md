@@ -300,6 +300,8 @@ The table of names, args and rules — `docs/contracts/core-mutators.md` (part o
 
 ## C-modules v13
 
+v14 (ai4, AIH-4): `FrontendModuleManifest.docPanels?` — `DocPanelDef {id, order?, component: Lazy<{pageId, projectId?}>}`; docs/web `PageView` renders them under the page title (the component decides itself whether the page suits it); SDK += `useExtensions`.
+
 v13 (PLNRAPP-167): `ModuleHookApi.ensureBotUser(login, name): Promise<string>` — an active user with `users.bot = true` and no password, idempotent (a login taken by a person → error); `packages/server-kit` += `secretKey/encrypt/decrypt` (AES-256-GCM, key `PLANAR_SECRET_KEY`) — one copy for the modules gitlab, email, ai.
 
 v12 (groups): `FrontendModuleManifest.groupTabs?` — `GroupTabDef {id, tab: inbox|docs|chats|reports|settings, label?, icon?, order?, component}`; the component receives `scope: GroupScope {level: workspace|space|project, spaceId, projectId, rootSpaceId}` (for the Workspace `spaceId` is the root space) and shows data of the group level and of nested ones; several contributions to one tab become subtabs (`?r=<moduleId>:<id>`). SDK += `useGroupLevels(scope)` — group levels from top to bottom (`apps/web/src/layout/groups.ts`). `SettingsPageDef.level?` (workspace by default | space | project) — the group settings level; the page receives `spaceId` and `projectId`. The `nav` sections of the modules docs, chat, time, import, dashboards, workload, goals are removed — their place is in the group tree; the `nav` point is for other modules. SDK += `groupUrl`, `GroupProjectPick`.
@@ -313,7 +315,7 @@ v3–v6 (work, owner of C-modules): hooks, server-kit, SDK, settings, collab fix
 A module is a directory `modules/<id>/` (`id` — `^[a-z][a-z0-9-]{1,30}$`):
 - `shared/index.ts` — `export const shared: SharedModuleManifest = { id, mutators: MutatorDef[], entities: Record<string, {schema: ZodObject, meta: EntityMeta}> }` (no Node API; entities follow the C-schema rules, names are the module id prefix in camelCase);
 - `api/index.ts` — `export const api: BackendModuleManifest = { id, nestModule, mutators, entities }` (`mutators`, `entities` — from `shared`); tables — `api/schema.ts`;
-- `web/index.ts` — `export const web: FrontendModuleManifest = { id, routes?, views?, taskPanels?, commands?, fieldTypes?, settings? }`; element types are defined by web (C-ui).
+- `web/index.ts` — `export const web: FrontendModuleManifest = { id, routes?, views?, taskPanels?, docPanels?, commands?, fieldTypes?, settings? }`; element types are defined by web (C-ui).
 
 `EntityMeta` = an entity line from C-schema: `{scope, write, bootstrap: boolean, indexes: string[]}`; built-in ones — `ENTITIES`.
 

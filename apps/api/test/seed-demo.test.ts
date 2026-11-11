@@ -106,6 +106,13 @@ describe('seed-demo', () => {
     const ai = await q<J>(`select checks from ai_actions`);
     expect(ai.length).toBeGreaterThan(0);
     for (const a of ai) aiActions.shape.checks.parse(a.checks);
+    // the pack «Разработка»: its documents exist, hashes point at them
+    const [pk] = await q<{ hashes: Record<string, string>; n: number }>(
+      `select hashes, (select count(*)::int from docs_pages d where d.id::text = any(select jsonb_object_keys(p.hashes))) as n
+       from ai_harness_packs p where pack_key = 'dev'`,
+    );
+    expect(Object.keys(pk!.hashes)).toHaveLength(7);
+    expect(pk!.n).toBe(7);
   });
 
   it('--reset очищает всё кроме журнала миграций; тот же now — те же данные', async () => {

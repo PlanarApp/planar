@@ -219,8 +219,8 @@ vue-i18n, locales `ru`, `en`. Keys are nested: `<screen>.<element>` (`sidebar.in
 Route names match the first segment (`inbox`, `my`, `project`, `savedView`, `task`, `settings`, `login`, `setup`, `profile`). Screens load lazily (`() => import(...)`) to stay within the bundle budget.
 
 ### Extension points (C-modules, web side)
-`EXTENSION_KINDS = ['routes', 'views', 'taskPanels', 'commands', 'fieldTypes', 'settings', 'nav', 'topbar', 'search', 'groupTabs'] as const` - exactly the fields of `FrontendModuleManifest` (core, C-modules) except `id`.
-`nav`, `topbar` - C-modules v3 (work), docs/contracts/work.md §C-modules v3; `search` - C-ui v2.
+`EXTENSION_KINDS = ['routes', 'views', 'taskPanels', 'docPanels', 'commands', 'fieldTypes', 'settings', 'nav', 'topbar', 'search', 'groupTabs'] as const` - exactly the fields of `FrontendModuleManifest` (core, C-modules) except `id`.
+`nav`, `topbar` - C-modules v3 (work), docs/contracts/work.md §C-modules v3; `search` - C-ui v2; `docPanels` - core v14 (ai4, AIH-4), compatible (new optional field, existing kinds unchanged).
 
 ```ts
 type Lazy<P> = () => Promise<{ default: Component }>; // component with props P

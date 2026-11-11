@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { AI_PROVIDERS, type AiConnectionView } from '../shared/index.js';
+import { call } from './api';
 import { tr } from './data';
+import PacksSection from './PacksSection.vue';
 
 // «Settings → AI»: the connection of one level; the key is only sent, never shown
 const props = defineProps<{
@@ -31,18 +33,6 @@ const scopeId = computed(() =>
       : props.projectId,
 );
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(`/api/ai/${path}`, {
-    method,
-    credentials: 'same-origin',
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (res.status === 204) return undefined as T;
-  const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(j.message || String(res.status));
-  return j as T;
-}
 const fill = (c: AiConnectionView | null) => {
   own.value = c;
   if (!c) return;
@@ -202,5 +192,6 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
         </button>
       </div>
     </form>
+    <PacksSection v-if="level === 'project' && projectId" :project-id="projectId" />
   </section>
 </template>

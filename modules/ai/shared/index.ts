@@ -183,3 +183,5 @@ export const shared: SharedModuleManifest = {
     },
   },
 };
+
+export * from './harness.js';
