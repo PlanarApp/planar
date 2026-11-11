@@ -12,6 +12,8 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - Documents: version history — the page menu "Version history" lists versions (when, who, editor / API / restore), shows a version read-only and restores it. Edits of one author from one source within 10 minutes form one version; the last 100 versions of a page are kept.
 - REST `PATCH /api/v1/docs/:id` and MCP `update_doc`: `replace: {find, replace}` changes one fragment of the markdown without sending the whole document (an error if the fragment is missing or not unique).
 - REST `GET /api/v1/docs/:id?section=` and MCP `get_doc` `section`: only the section under the given heading.
+- Comments through REST and MCP: a reply and an assignee on creation; REST `PATCH /api/v1/comments/:id` and MCP `update_comment` assign or unassign, complete or reopen a comment and edit its text.
+- MCP tools for every REST function: `unlink_tasks`, `list_time_entries`, `get_timer`, `list_sprints`, `list_automations`; `get_task` also returns the task links.
 
 ### Changed
 
