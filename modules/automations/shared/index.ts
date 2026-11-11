@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   MutatorError,
   defineMutator,
+  needProjectAdmin,
   type Filter,
   type SharedModuleManifest,
   type Tx,
@@ -138,8 +139,30 @@ export const actionSchema = z.union([
   z.object({ type: z.literal('move_to_project'), projectId: uuid, statusId: uuid.optional() }),
   z.object({ type: z.literal('create_subtask'), title: z.string().min(1).max(500) }),
   z.object({ type: z.literal('send_webhook'), subscriptionId: uuid }),
+  // module ai (PLNRAPP-168): a run of the project's AI action over the task, after a 60 s debounce
+  z.object({ type: z.literal('ai_run'), aiActionId: uuid }),
 ]);
 export type Action = z.infer<typeof actionSchema>;
+
+/**
+ * A rule that runs AI is created, changed and deleted only by an admin of the project;
+ * its AI actions are of the rule's project (the last list — the new actions).
+ */
+async function checkAi(
+  tx: Tx,
+  userId: string,
+  r: Pick<Rule, 'spaceId' | 'projectId'>,
+  ...lists: Action[][]
+) {
+  if (!lists.some((l) => l.some((a) => a.type === 'ai_run'))) return;
+  await needProjectAdmin(tx, r.spaceId, r.projectId, userId);
+  for (const a of lists.at(-1)!)
+    if (
+      a.type === 'ai_run' &&
+      (await m(tx).get<{ projectId: string }>('aiActions', a.aiActionId))?.projectId !== r.projectId
+    )
+      throw bad(`ИИ-действие ${a.aiActionId} не найдено в проекте`);
+}
 
 const actions = z.array(actionSchema).min(1).max(10);
 const name = z.string().min(1).max(100);
@@ -204,6 +227,7 @@ export const create = defineMutator({
   async run(tx, a, ctx) {
     const project = await tx.get('projects', a.projectId);
     if (!project) throw new MutatorError('not_found', `project ${a.projectId}`);
+    await checkAi(tx, ctx.userId, { spaceId: project.spaceId, projectId: a.projectId }, a.actions);
     const row: Rule = {
       id: a.id,
       spaceId: project.spaceId,
@@ -234,9 +258,10 @@ export const update = defineMutator({
     enabled: z.boolean().optional(),
   }),
   async run(tx, { id, ...a }, ctx) {
-    await needRule(tx, id);
+    const old = await needRule(tx, id);
     const patch = Object.fromEntries(Object.entries(a).filter(([, v]) => v !== undefined));
     if (!Object.keys(patch).length) throw bad('нечего менять');
+    await checkAi(tx, ctx.userId, old, old.actions, a.actions ?? []);
     await m(tx).patch('automationsRules', id, { ...patch, updatedAt: ctx.now });
   },
 });
@@ -244,8 +269,9 @@ export const update = defineMutator({
 export const del = defineMutator({
   name: 'automations.delete',
   args: z.object({ id: uuid }),
-  async run(tx, a) {
-    await needRule(tx, a.id);
+  async run(tx, a, ctx) {
+    const old = await needRule(tx, a.id);
+    await checkAi(tx, ctx.userId, old, old.actions);
     await m(tx).del('automationsRules', a.id);
   },
 });

@@ -74,6 +74,13 @@ const labels = useLabels(spaceId);
 
 const rules = useQuery(() => db.table<Rule>('automationsRules').toArray());
 const mine = computed(() => (rules.value ?? []).filter((r) => r.projectId === projectId.value));
+// AI actions of the project (module ai, synced): the table is empty while the module is off
+const allAi = useQuery(() =>
+  db.table<{ id: string; projectId: string; name: string }>('aiActions').toArray(),
+);
+const aiActions = computed(() =>
+  (allAi.value ?? []).filter((x) => x.projectId === projectId.value),
+);
 
 interface Draft {
   id: string;
@@ -444,6 +451,17 @@ const setValue = (i: number, raw: string) => {
             <a v-else href="/settings/webhooks:webhooks" class="text-sm underline">{{
               tx.noSubscriptions
             }}</a>
+          </template>
+          <template v-if="a.type === 'ai_run'">
+            <div v-if="aiActions.length" data-role="action-param">
+              <Select
+                :model-value="a.aiActionId || null"
+                :label="tx.aiAction"
+                :options="aiActions.map((x) => ({ value: x.id, label: x.name }))"
+                @update:model-value="(v) => (a.aiActionId = v ?? '')"
+              />
+            </div>
+            <span v-else class="text-sm text-fg-muted">{{ tx.noAiActions }}</span>
           </template>
           <IconButton :icon="X" :label="tx.delete" size="sm" @click="draft.actions.splice(i, 1)" />
         </div>

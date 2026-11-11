@@ -16,7 +16,10 @@ const h = vi.hoisted(() => ({ db: undefined as unknown as PlanarDB }));
 vi.mock('../../../sync', async () => {
   const { PlanarDB } = await import('../../../sync/db');
   const { useQuery } = await import('../../../sync/query');
-  h.db = new PlanarDB('wk3', { automationsRules: ['spaceId', 'projectId'] });
+  h.db = new PlanarDB('wk3', {
+    automationsRules: ['spaceId', 'projectId'],
+    aiActions: ['spaceId', 'projectId'],
+  });
   return {
     db: h.db,
     mutate,
@@ -300,6 +303,30 @@ describe('wk3b: конструктор', () => {
     expect(mutate).toHaveBeenCalledWith(
       'automations.create',
       expect.objectContaining({ actions: [{ type: 'send_webhook', subscriptionId: sub }] }),
+    );
+  });
+
+  it('PLNRAPP-168: действие ai_run — выбор ИИ-действия проекта', async () => {
+    const a = uuidv7();
+    await h.db.table('aiActions').bulkPut([
+      { id: a, spaceId: SP, projectId: P, name: 'Планирование' },
+      { id: uuidv7(), spaceId: SP, projectId: uuidv7(), name: 'Чужое' },
+    ]);
+    const w = mount(RulesPage, stubs);
+    await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
+    await w.get('[data-role=new]').trigger('click');
+    await w.get('[data-role=name]').setValue('ИИ');
+    await pick(w, 'action-type', 'ai_run');
+    await vi.waitFor(() =>
+      expect(w.get('[data-role=action-param]').getComponent(Select).props('options')).toEqual([
+        { value: a, label: 'Планирование' },
+      ]),
+    );
+    await pick(w, 'action-param', a);
+    await w.get('[data-testid=editor]').trigger('submit');
+    expect(mutate).toHaveBeenCalledWith(
+      'automations.create',
+      expect.objectContaining({ actions: [{ type: 'ai_run', aiActionId: a }] }),
     );
   });
 });

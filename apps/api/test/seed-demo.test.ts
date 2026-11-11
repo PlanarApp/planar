@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { actionSchema, filterSchema, triggerSchema } from '@planar/module-automations/shared';
 import { formFields } from '@planar/module-forms/shared';
+import { aiActions } from '@planar/module-ai/shared';
 import { projectTemplateSchema, taskTemplateSchema } from '@planar/module-templates/shared';
 import { resetDemo, seedDemo } from '../src/db/seed-demo.js';
 import { testDb } from './db.js';
@@ -101,6 +102,9 @@ describe('seed-demo', () => {
     for (const t of await q<J>(`select kind, data from templates_templates`))
       (t.kind === 'task' ? taskTemplateSchema : projectTemplateSchema).parse(t.data);
     for (const f of await q<J>(`select fields from forms_forms`)) formFields.parse(f.fields);
+    const ai = await q<J>(`select checks from ai_actions`);
+    expect(ai.length).toBeGreaterThan(0);
+    for (const a of ai) aiActions.shape.checks.parse(a.checks);
   });
 
   it('--reset очищает всё кроме журнала миграций; тот же now — те же данные', async () => {
