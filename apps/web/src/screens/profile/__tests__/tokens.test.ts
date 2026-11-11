@@ -43,14 +43,25 @@ async function open(h: Parameters<typeof mockFetch>[0]) {
     attachTo: document.body,
   });
   await flushPromises();
+  await mcpTab(w);
   return { w, f };
+}
+async function mcpTab(w: ReturnType<typeof mount>) {
+  await w
+    .findAll('[role="tab"]')
+    .find((b) => b.text() === 'MCP')!
+    .trigger('mousedown', { button: 0 });
+  await flushPromises();
 }
 
 describe('tokens:', () => {
-  it('tokens: профиль загружает список при открытии', async () => {
+  it('tokens: список загружается при открытии таба MCP, не раньше', async () => {
     const f = mockFetch(() => json(200, { tokens: [] }));
-    mount(ProfileScreen, { global: { plugins: [mkRouter(), mkI18n()] } });
+    const w = mount(ProfileScreen, { global: { plugins: [mkRouter(), mkI18n()] } });
     await flushPromises();
+    expect(f.mock.calls.map((c) => c[0])).not.toContain('/api/tokens');
+    expect(w.find('[data-testid=tokens]').exists()).toBe(false);
+    await mcpTab(w);
     expect(f.mock.calls.map((c) => c[0])).toContain('/api/tokens');
   });
   it('tokens: список показывает префикс и права', async () => {

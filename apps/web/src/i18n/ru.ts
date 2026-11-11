@@ -268,6 +268,7 @@ export default {
   },
   profile: {
     title: 'Профиль',
+    mcp: 'MCP',
     appearance: 'Внешний вид',
     notifications: 'Уведомления',
     weekStart: 'Начало недели',

@@ -269,6 +269,7 @@ export default {
   },
   profile: {
     title: 'Profile',
+    mcp: 'MCP',
     appearance: 'Appearance',
     notifications: 'Notifications',
     weekStart: 'Week starts on',
