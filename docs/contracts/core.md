@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v26
+## C-schema v27
+
+v27 (PLNRAPP-161): `notifications.kind` += `due_today`, `start_today` — at 9:xx in the assignee's profile zone (`users.timezone`, empty — UTC), for open, not archived tasks whose due date / start date is today there; the actor is the system user, one per task and kind per day.
 
 v26 (PLNRAPP-154, -155): `tasks.archivedAt`, `tasks.archivedBy` (nullable, default null; an archived task is seen only in the project's Archive and deleted after 30 days) — core-schema.md.
 

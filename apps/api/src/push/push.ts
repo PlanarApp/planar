@@ -72,6 +72,8 @@ const TITLES: Record<string, string> = {
   chat_mention: 'Упоминание в чате',
   chat_dm: 'Личное сообщение',
   chat_reply: 'Ответ в треде',
+  due_today: 'Сегодня срок задачи',
+  start_today: 'Сегодня начало задачи',
 };
 
 /** pg-boss queue + delivery. Provider PUSH_QUEUE for PushService. */

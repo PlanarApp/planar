@@ -185,6 +185,8 @@ export default {
       chat_reply: '{who} replied in a thread',
       comment_assigned: '{who} assigned you a comment in {key}',
       checklist_assigned: '{who} assigned you a checklist item in {key}',
+      due_today: '{key} is due today',
+      start_today: '{key} starts today',
       doc_mention: '{who} mentioned you in a document',
       trial_ending: 'The trial ends soon — subscribe',
     },

@@ -245,6 +245,8 @@ export const entitySchemas = {
       'doc_mention',
       'trial_ending',
       'checklist_assigned',
+      'due_today',
+      'start_today',
     ]),
     taskId: uuid.nullable(),
     url: z.string().nullable(),

@@ -185,6 +185,8 @@ export default {
       chat_reply: '{who} ответил(а) в треде',
       comment_assigned: '{who} назначил(а) вам комментарий в {key}',
       checklist_assigned: '{who} назначил(а) вам пункт чек-листа в {key}',
+      due_today: 'Сегодня срок {key}',
+      start_today: 'Сегодня начало {key}',
       doc_mention: '{who} упомянул(а) вас в документе',
       trial_ending: 'Пробный период скоро закончится — оформите подписку',
     },
