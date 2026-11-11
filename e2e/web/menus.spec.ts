@@ -36,6 +36,27 @@ test('«+ Создать» → задача: создаётся с одного 
   await expect(page.getByRole('row').filter({ hasText: title })).toHaveCount(1);
 });
 
+test('быстрое создание: Ctrl+Enter создаёт и оставляет окно с пустым названием в фокусе', async ({
+  browser,
+}) => {
+  const f = await fixture([]);
+  const page = await loginAs(browser, 'alice');
+  const [a, b] = [uniq('Серия'), uniq('Серия')];
+  await page.goto(`/p/${f.projectId}/list`);
+  await page.getByTestId('create-menu').click();
+  await page.getByRole('menuitem', { name: /Задача/ }).click();
+  const input = page.getByTestId('quick-title');
+  await input.fill(a);
+  await input.press('Control+Enter');
+  await expect(input).toHaveValue('');
+  await expect(input).toBeFocused();
+  await page.keyboard.type(b);
+  await page.keyboard.press('Control+Enter');
+  await expect(input).toHaveValue('');
+  await page.keyboard.press('Escape');
+  for (const t of [a, b]) await expect(page.getByRole('row').filter({ hasText: t })).toHaveCount(1);
+});
+
 test('боковая панель: новый проект через «+» и переименование через меню', async ({ browser }) => {
   await fixture([]);
   const page = await loginAs(browser, 'admin');

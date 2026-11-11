@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { Button, Dialog, Input, Select } from '../ui';
@@ -72,7 +72,10 @@ watch(
 );
 watch(options, () => open.value && !projectId.value && pickProject());
 
-async function submit() {
+const form = ref<HTMLFormElement>();
+
+/** keep — "create another" (the checkbox or Ctrl/Cmd+Enter): clear the name and focus it */
+async function submit(keep = more.value) {
   const name = title.value.trim();
   if (!name || !projectId.value || !statusId.value || busy.value) return;
   busy.value = true;
@@ -90,8 +93,11 @@ async function submit() {
     } catch {
       /* not a big deal */
     }
-    if (more.value) title.value = '';
-    else {
+    if (keep) {
+      title.value = '';
+      await nextTick();
+      form.value?.querySelector<HTMLInputElement>('[data-testid=quick-title]')?.focus();
+    } else {
       open.value = false;
       openTask(id); // the server issues the task number — we open by id
     }
@@ -103,7 +109,14 @@ async function submit() {
 
 <template>
   <Dialog v-model:open="open" :title="t('quick.title')" size="md">
-    <form id="quick-create" class="flex flex-col gap-3" @submit.prevent="submit">
+    <form
+      id="quick-create"
+      ref="form"
+      class="flex flex-col gap-3"
+      @submit.prevent="submit()"
+      @keydown.ctrl.enter.prevent="submit(true)"
+      @keydown.meta.enter.prevent="submit(true)"
+    >
       <Input
         v-model="title"
         :label="t('quick.name')"
