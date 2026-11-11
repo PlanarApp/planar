@@ -39,6 +39,23 @@ describe('PLNRAPP-152 перенос в другое пространство', 
     expect((await tx.get('tasks', parent))!.spaceId).toBe(a.spaceId);
   });
 
+  it('в проект того же пространства — с подзадачами всех уровней; подзадача уже в целевом проекте не меняется', async () => {
+    const { tx, b, b2 } = await twoSpaces();
+    const root = await seedTask(tx, b);
+    const kid = await seedTask(tx, b, { parentId: root, statusId: b.statusIds[3] });
+    const grand = await seedTask(tx, b, { parentId: kid });
+    const there = await seedTask(tx, b2, { parentId: root });
+    await tx.patch('tasks', there, { number: 5 });
+
+    await run(tx, 'task.update', { id: root, projectId: b2.projectId });
+
+    for (const t of [root, kid, grand])
+      expect(await tx.get('tasks', t)).toMatchObject({ projectId: b2.projectId, number: null });
+    expect((await tx.get('tasks', kid))!.statusId).toBe(b2.statusIds[3]);
+    expect((await tx.get('tasks', grand))!.parentId).toBe(kid);
+    expect((await tx.get('tasks', there))!.number).toBe(5);
+  });
+
   it('исполнители и наблюдатели вне нового пространства снимаются, участники остаются', async () => {
     const { tx, a, b } = await twoSpaces();
     const t = await seedTask(tx, a, {
