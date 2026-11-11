@@ -124,6 +124,21 @@ beforeEach(() => {
 });
 
 describe('table', () => {
+  it('table: клик по ключу копирует его, клик по названию открывает задачу', async () => {
+    const { router } = await import('../../../router');
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    vi.mocked(router.push).mockClear();
+    await show();
+    await w.get('[data-task="PLN-1"] [data-col=key] button').trigger('click');
+    expect(writeText).toHaveBeenCalledWith('PLN-1');
+    expect(router.push).not.toHaveBeenCalled();
+    vi.useFakeTimers();
+    await w.get('[data-task="PLN-1"] [data-col=title] span').trigger('click');
+    vi.advanceTimersByTime(250);
+    vi.useRealTimers();
+    expect(router.push).toHaveBeenCalledWith('/t/PLN-1');
+  });
   it('table: раскладка по умолчанию', () => {
     expect(loadLayout('p1').columns.map((c) => c.id)).toEqual([
       'title',
