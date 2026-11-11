@@ -108,7 +108,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
     tasks: [
       ['Define Q4 product goals', 3, 3, -12, 'maya', 'research'],
       ['Customer interview synthesis', 3, 2, -6, 'demo,sofia', 'research'],
-      ['Public beta announcement plan', 2, 4, 4, 'maya,demo', 'feature'],
+      ['Public beta announcement plan', 2, 4, 0, 'maya,demo', 'feature'], // due today: due_today (PLNRAPP-161)
       ['Pricing page experiments', 2, 3, 9, 'sofia', 'improvement'],
       ['Onboarding checklist for new workspaces', 1, 3, 12, 'demo', 'feature'],
       ['Reduce time-to-first-task', 1, 2, 18, 'demo,liam', 'improvement'],
@@ -1021,6 +1021,19 @@ async function insertAll(tx: Tx, now: Date) {
         readAt: k === 0 ? null : at(-1),
         createdAt: at(-3),
       })),
+    // the morning reminder of the core job (PLNRAPP-161): the task is due today
+    {
+      id: uid('notif:due'),
+      userId: uid_.demo,
+      spaceId: spaceIds[0],
+      kind: 'due_today' as const,
+      taskId: tid('RDM', 2),
+      commentId: null,
+      actorId: uid('user:automation'), // the system user (SYSTEM_LOGIN)
+      body: null,
+      readAt: null,
+      createdAt: at(0, 0),
+    },
   ]);
 
   // sprints (Platform): one closed, one active

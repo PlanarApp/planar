@@ -323,6 +323,13 @@
       "when": 1794398399721,
       "tag": "0045_user_timezone",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1794399336789,
+      "tag": "0046_notifications_due_today",
+      "breakpoints": true
     }
   ]
 }
