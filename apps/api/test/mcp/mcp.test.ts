@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { apiTokenCreatedSchema, uuidv7 } from '@planar/shared';
 import { createApp } from '../../src/app.js';
 import * as schema from '../../src/db/schema.js';
@@ -94,15 +94,19 @@ const mk = async (c: Client, title: string, extra = {}) => {
 };
 
 describe('MCP /mcp', () => {
-  it('initialize и tools/list: 15 инструментов со схемами', async () => {
+  it('initialize и tools/list: 20 инструментов со схемами', async () => {
     const c = await connect(write.secret);
     const { tools } = await c.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
       [
         'add_comment',
+        'create_doc',
         'create_task',
         'current_sprint',
+        'get_doc',
         'get_task',
+        'link_doc_task',
+        'list_docs',
         'list_fields',
         'list_projects',
         'list_spaces',
@@ -113,6 +117,7 @@ describe('MCP /mcp', () => {
         'search_tasks',
         'start_timer',
         'stop_timer',
+        'update_doc',
         'update_task',
       ].sort(),
     );
@@ -450,5 +455,124 @@ describe('MCP: связи, время, спринт', () => {
     const o = await connect(outsider.secret);
     expect((await call(o, 'current_sprint', { projectId: w.projectId }))[1].code).toBe('not_found');
     await Promise.all([c.close(), o.close()]);
+  });
+});
+
+describe('MCP/REST: документы (PLNRAPP-180)', () => {
+  type Doc = { id: string; title: string; markdown: string; tasks: { key: string }[] };
+
+  it('create_doc из markdown → get_doc и list_docs; дочерний документ по parentId', async () => {
+    const c = await connect(write.secret);
+    const [e, d] = await call(c, 'create_doc', {
+      projectId: w.projectId,
+      title: 'План',
+      markdown: '# Этапы\n\n- [x] один\n- [ ] два',
+    });
+    expect(e, JSON.stringify(d)).toBe(false);
+    expect(d).toMatchObject({ title: 'План', projectId: w.projectId, tasks: [] });
+    expect(d.markdown).toContain('# Этапы');
+    expect(d.markdown).toContain('- [x] один');
+    expect(d).not.toHaveProperty('body');
+    const { rows } = await db.execute<{ body: { content: { type: string }[] } }>(
+      sql`select body from docs_pages where id = ${d.id}`,
+    );
+    expect(rows[0]!.body.content.map((n) => n.type)).toEqual(['heading', 'taskList']);
+    const [, kid] = await call(c, 'create_doc', {
+      projectId: w.projectId,
+      parentId: d.id,
+      title: 'Подплан',
+    });
+    expect(kid.parentId).toBe(d.id);
+    const [, all] = await call(c, 'list_docs', { projectId: w.projectId });
+    expect(all.map((x: Doc) => x.id)).toEqual(expect.arrayContaining([d.id, kid.id]));
+    expect(all[0]).not.toHaveProperty('markdown');
+    const [, kids] = await call(c, 'list_docs', { projectId: w.projectId, parentId: d.id });
+    expect(kids.map((x: Doc) => x.id)).toEqual([kid.id]);
+    expect((await call(c, 'get_doc', { id: kid.id }))[1].markdown).toBe('');
+    await c.close();
+  });
+
+  it('update_doc: append дописывает, markdown заменяет, оба сразу → invalid_request', async () => {
+    const c = await connect(write.secret);
+    const [, d] = await call(c, 'create_doc', {
+      projectId: w.projectId,
+      title: 'Статус',
+      markdown: 'начало',
+    });
+    const [e1, a] = await call(c, 'update_doc', { id: d.id, append: '## Итог\n\nготово' });
+    expect(e1, JSON.stringify(a)).toBe(false);
+    expect(a.markdown).toMatch(/начало[\s\S]*## Итог[\s\S]*готово/);
+    const [, r] = await call(c, 'update_doc', { id: d.id, title: 'Статус 2', markdown: 'заново' });
+    expect([r.title, r.markdown.trim()]).toEqual(['Статус 2', 'заново']);
+    const [e3, x] = await call(c, 'update_doc', { id: d.id, markdown: 'a', append: 'b' });
+    expect([e3, x.code]).toEqual([true, 'invalid_request']);
+    await c.close();
+  });
+
+  it('link_doc_task по ключу задачи; повтор не дублирует', async () => {
+    const c = await connect(write.secret);
+    const t = await mk(c, 'Связанная');
+    const [, d] = await call(c, 'create_doc', { projectId: w.projectId, title: 'С задачей' });
+    const [e, l] = await call(c, 'link_doc_task', { pageId: d.id, task: t.key });
+    expect(e, JSON.stringify(l)).toBe(false);
+    expect(l.tasks).toEqual([{ id: t.id, key: t.key, title: 'Связанная' }]);
+    expect((await call(c, 'link_doc_task', { pageId: d.id, task: t.id }))[1].tasks).toHaveLength(1);
+    await c.close();
+  });
+
+  it('права: read-токен пишет → forbidden, чужой → not_found, модуль выключен → module_disabled', async () => {
+    const c = await connect(write.secret);
+    const [, d] = await call(c, 'create_doc', { projectId: w.projectId, title: 'Свой' });
+    const r = await connect(read.secret);
+    expect((await call(r, 'get_doc', { id: d.id }))[0]).toBe(false);
+    expect((await call(r, 'create_doc', { projectId: w.projectId, title: 'x' }))[1].code).toBe(
+      'forbidden',
+    );
+    expect((await call(r, 'update_doc', { id: d.id, append: 'x' }))[1].code).toBe('forbidden');
+    const o = await connect(outsider.secret);
+    expect((await call(o, 'get_doc', { id: d.id }))[1].code).toBe('not_found');
+    expect((await call(o, 'list_docs', { projectId: w.projectId }))[1].code).toBe('not_found');
+    expect((await call(o, 'update_doc', { id: d.id, append: 'взлом' }))[1].code).toBe('not_found');
+    await w.admin.ok('project.setModule', {
+      projectId: w.projectId,
+      moduleId: 'docs',
+      enabled: false,
+    });
+    try {
+      expect((await call(c, 'get_doc', { id: d.id }))[1].code).toBe('module_disabled');
+      expect((await call(c, 'list_docs', { projectId: w.projectId }))[1].code).toBe(
+        'module_disabled',
+      );
+    } finally {
+      await w.admin.ok('project.setModule', {
+        projectId: w.projectId,
+        moduleId: 'docs',
+        enabled: true,
+      });
+    }
+    await Promise.all([c.close(), r.close(), o.close()]);
+  });
+
+  it('REST: POST /docs → 201, PATCH append, POST /docs/:id/tasks, GET /docs?projectId', async () => {
+    const url = `${await app.getUrl()}/api/v1`;
+    const req = (method: string, path: string, body?: object) =>
+      fetch(`${url}${path}`, {
+        method,
+        headers: { authorization: `Bearer ${write.secret}`, 'content-type': 'application/json' },
+        body: body && JSON.stringify(body),
+      });
+    const cr = await req('POST', '/docs', { projectId: w.projectId, title: 'REST', markdown: 'a' });
+    expect(cr.status).toBe(201);
+    const d = (await cr.json()).data as Doc;
+    const up = await req('PATCH', `/docs/${d.id}`, { append: '**b**' });
+    expect((await up.json()).data.markdown).toMatch(/a[\s\S]*\*\*b\*\*/);
+    const t = await mk(await connect(write.secret), 'REST-задача');
+    const ln = await req('POST', `/docs/${d.id}/tasks`, { task: t.key });
+    expect(ln.status).toBe(201);
+    expect((await ln.json()).data.tasks[0].key).toBe(t.key);
+    const ls = await req('GET', `/docs?projectId=${w.projectId}`);
+    expect(((await ls.json()).data as Doc[]).some((x) => x.id === d.id)).toBe(true);
+    expect((await req('GET', '/docs')).status).toBe(400);
+    expect((await req('GET', `/docs/${uuidv7()}`)).status).toBe(404);
   });
 });

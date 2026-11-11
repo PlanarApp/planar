@@ -14,6 +14,8 @@ import {
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 import { generateKeyBetween } from 'fractional-indexing';
 import { z } from 'zod';
+import type { JSONContent } from '@tiptap/core';
+import { docToMarkdown, markdownToDoc } from '@planar/editor/markdown';
 import { textToDoc, uuidv7, type HttpErrorCode, type V1Task } from '@planar/shared';
 import { HttpError } from '../auth/errors.js';
 import type { Db } from '../db/index.js';
@@ -28,9 +30,13 @@ import { toWire } from '../sync/rows.js';
 import { toV1Tasks } from './v1-tasks.js';
 import {
   commentBody,
+  createDocBody,
   createTaskBody,
+  docsQuery,
+  docTaskBody,
   linkBody,
   listQuery,
+  patchDocBody,
   patchTaskBody,
   tasksQuery,
   timeEntriesQuery,
@@ -646,6 +652,163 @@ export class RestService {
       .orderBy(asc(s.tasks.rank), asc(s.tasks.id))
       .limit(200)) as Wire[];
     return this.enrich(rows);
+  }
+
+  // --- documents (docs module, PLNRAPP-180): content in and out — markdown ---
+
+  /** page without body/text/files: the list and the head of get */
+  private docMeta(row: Wire) {
+    const meta = toWire('docsPages', row);
+    delete meta.body;
+    delete meta.text;
+    delete meta.files;
+    return meta;
+  }
+
+  /** a live page of the user's space; a project page — project access and docs on in it */
+  private async findDoc(userId: string, id: string): Promise<Wire> {
+    const { t, c } = await this.mod('docs', 'docsPages');
+    const [row] = z.uuid().safeParse(id).success
+      ? ((await this.db
+          .select()
+          .from(t)
+          .where(
+            and(
+              eq(c.id!, id),
+              inArray(c.spaceId!, await this.mySpaces(userId)),
+              isNull(c.archivedAt!),
+            ),
+          )) as Wire[])
+      : [];
+    if (!row) throw NOT_FOUND('Документ');
+    if (row.projectId) {
+      await this.requireProject(userId, row.projectId as string, 'Документ');
+      await this.mod('docs', 'docsPages', row.projectId as string);
+    }
+    return row;
+  }
+
+  async docs(userId: string, query: unknown) {
+    const q = parse(docsQuery, query);
+    const pid = await this.visibleProject(userId, q.projectId);
+    const { t, c } = await this.mod('docs', 'docsPages', pid);
+    const rows = (await this.db
+      .select()
+      .from(t)
+      .where(
+        and(
+          eq(c.projectId!, pid),
+          isNull(c.archivedAt!),
+          q.parentId ? eq(c.parentId!, q.parentId) : undefined,
+        ),
+      )
+      .orderBy(asc(c.rank!), asc(c.id!))) as Wire[];
+    return { data: rows.map((r) => this.docMeta(r)) };
+  }
+
+  async doc(userId: string, id: string) {
+    const row = await this.findDoc(userId, id);
+    const l = await this.mod('docs', 'docsTaskLinks');
+    const linked = (await this.db
+      .select({ taskId: l.c.taskId! })
+      .from(l.t)
+      .where(eq(l.c.pageId!, row.id as string))) as { taskId: string }[];
+    const tasks = linked.length
+      ? await this.enrich(
+          await this.db
+            .select()
+            .from(s.tasks)
+            .where(
+              and(
+                inArray(
+                  s.tasks.id,
+                  linked.map((x) => x.taskId),
+                ),
+                await this.visible(userId, 'tasks'),
+              ),
+            ),
+        )
+      : [];
+    return {
+      data: {
+        ...this.docMeta(row),
+        markdown: docToMarkdown(row.body as JSONContent),
+        tasks: tasks.map((x) => ({ id: x.id, key: x.key, title: x.title })),
+      },
+    };
+  }
+
+  async createDoc(userId: string, raw: unknown, tokenId?: string) {
+    const b = parse(createDocBody, raw);
+    const pid = await this.visibleProject(userId, b.projectId);
+    const { t, c } = await this.mod('docs', 'docsPages', pid);
+    if (b.parentId && (await this.findDoc(userId, b.parentId)).projectId !== pid)
+      throw new HttpError(400, 'invalid_request', 'Родитель — документ другого проекта');
+    const [project] = await this.db
+      .select({ spaceId: s.projects.spaceId })
+      .from(s.projects)
+      .where(eq(s.projects.id, pid));
+    const [last] = (await this.db
+      .select({ rank: c.rank! })
+      .from(t)
+      .where(
+        and(eq(c.projectId!, pid), b.parentId ? eq(c.parentId!, b.parentId) : isNull(c.parentId!)),
+      )
+      .orderBy(desc(c.rank!))
+      .limit(1)) as { rank: string }[];
+    const id = uuidv7();
+    await this.run(
+      userId,
+      [
+        {
+          name: 'docs.page.create',
+          args: {
+            id,
+            spaceId: project!.spaceId,
+            projectId: pid,
+            parentId: b.parentId ?? null,
+            rank: generateKeyBetween(last?.rank ?? null, null),
+            title: b.title,
+            body: b.markdown === undefined ? undefined : markdownToDoc(b.markdown),
+          },
+        },
+      ],
+      tokenId,
+    );
+    return this.doc(userId, id);
+  }
+
+  async updateDoc(userId: string, id: string, raw: unknown, tokenId?: string) {
+    const b = parse(patchDocBody, raw);
+    if (b.markdown !== undefined && b.append !== undefined)
+      throw new HttpError(400, 'invalid_request', 'markdown или append, не оба');
+    const row = await this.findDoc(userId, id);
+    const old = (row.body as JSONContent).content ?? [];
+    const body =
+      b.markdown !== undefined
+        ? markdownToDoc(b.markdown)
+        : b.append !== undefined
+          ? { type: 'doc', content: [...old, ...markdownToDoc(b.append).content] }
+          : undefined;
+    if (b.title !== undefined || body)
+      await this.run(
+        userId,
+        [{ name: 'docs.page.update', args: { id: row.id, title: b.title, body } }],
+        tokenId,
+      );
+    return this.doc(userId, row.id as string);
+  }
+
+  async linkDocTask(userId: string, id: string, raw: unknown, tokenId?: string) {
+    const b = parse(docTaskBody, raw);
+    const row = await this.findDoc(userId, id);
+    const task = await this.findTask(userId, b.task);
+    await this.run(
+      userId,
+      [{ name: 'docs.link.add', args: { id: uuidv7(), pageId: row.id, taskId: task.id } }],
+      tokenId,
+    );
+    return this.doc(userId, row.id as string);
   }
 
   // --- automations (automations module, read) ---
