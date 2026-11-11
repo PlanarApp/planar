@@ -29,6 +29,7 @@ import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 import { localToday } from '../filter';
 import { useBreakpoint } from '../../ui/useBreakpoint';
+import { toast } from '../../ui/toast';
 
 const props = defineProps<{
   task: TaskView;
@@ -72,6 +73,11 @@ const emit = defineEmits<{
 }>();
 const { t, locale } = useI18n();
 const { isMobile } = useBreakpoint();
+// click on the key — copy it (PLNRAPP-181)
+const copyKey = () =>
+  void navigator.clipboard
+    ?.writeText(props.task.key)
+    .then(() => toast(t('taskMenu.idCopied'), 2500));
 // pickers on the right are visible only on hover/focus — until then they are not mounted (project switch)
 const hot = ref(false);
 // the cursor left — back to the value display; while the row picker's list is open — we wait for it to close
@@ -312,9 +318,17 @@ function save() {
           :aria-label="t('myDay.inDay')"
           data-testid="row-in-day"
         />
-        <span v-if="showKey" class="shrink-0 text-xs text-fg-subtle" data-testid="row-key">{{
-          task.key
-        }}</span>
+        <button
+          v-if="showKey"
+          type="button"
+          class="shrink-0 cursor-copy text-xs text-fg-subtle underline-offset-2 outline-none hover:underline focus-visible:ring-2 ring-focus"
+          :title="t('task.copyKey')"
+          data-testid="row-key"
+          @click.stop="copyKey"
+          @dblclick.stop
+        >
+          {{ task.key }}
+        </button>
         <span
           v-if="parentTitle"
           class="max-w-48 shrink-0 truncate text-xs text-fg-subtle"

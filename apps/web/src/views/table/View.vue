@@ -23,6 +23,7 @@ import {
 } from '../../tasks';
 import { FieldCell, FieldEditor, setTaskField, useFieldDefs } from '../../fields';
 import { Button, Popover } from '../../ui';
+import { toast } from '../../ui/toast';
 import { openTask, useSelection, type ViewProps } from '..';
 import { TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
 import { useTaskFilter } from '../saved/useFilter';
@@ -52,6 +53,9 @@ const props = defineProps<ViewProps>();
 const emit = defineEmits<{ 'update:options': [ViewOptions] }>();
 const { t, locale } = useI18n();
 const sel = useSelection();
+// click on the key — copy it (PLNRAPP-181)
+const copyKey = (key: string) =>
+  void navigator.clipboard?.writeText(key).then(() => toast(t('taskMenu.idCopied'), 2500));
 const ROW_H = 36;
 const CHECK_W = 40;
 
@@ -281,7 +285,14 @@ watch(
 const editing = ref<string | null>(null);
 const draft = ref('');
 let live = false; // blur after Enter/Esc does not save again
+// click on the name opens the task (the key copies, PLNRAPP-181); dblclick = edit cancels opening
+let openTimer: ReturnType<typeof setTimeout> | undefined;
+function openLater(task: TaskView) {
+  clearTimeout(openTimer);
+  openTimer = setTimeout(() => openTask(task.key), 250);
+}
 async function startEdit(task: TaskView) {
+  clearTimeout(openTimer);
   editing.value = task.id;
   draft.value = task.title;
   live = true;
@@ -502,9 +513,10 @@ const date = (v: string) => v.slice(0, 10);
                         <span
                           tabindex="0"
                           :class="[
-                            'block outline-none focus-visible:ring-2 ring-focus',
+                            'block cursor-pointer outline-none focus-visible:ring-2 ring-focus',
                             options.wrapTitles ? 'min-w-0 break-words' : 'truncate',
                           ]"
+                          @click="openLater(task)"
                           @dblclick="startEdit(task)"
                           @keydown.enter.prevent="startEdit(task)"
                           >{{ task.title }}</span
@@ -517,8 +529,9 @@ const date = (v: string) => v.slice(0, 10);
                     <button
                       v-else-if="c.id === 'key'"
                       type="button"
-                      class="text-xs text-fg-subtle underline-offset-2 outline-none hover:underline focus-visible:ring-2 ring-focus"
-                      @click="openTask(task.key)"
+                      class="cursor-copy text-xs text-fg-subtle underline-offset-2 outline-none hover:underline focus-visible:ring-2 ring-focus"
+                      :title="t('task.copyKey')"
+                      @click="copyKey(task.key)"
                     >
                       {{ task.key }}
                     </button>
