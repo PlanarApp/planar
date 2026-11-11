@@ -428,6 +428,9 @@ export default {
     wrapTitles: 'Wrap task names',
     showKey: 'Show task key',
     subtasks: 'Subtasks',
+    subtasksFold: 'Subtask display',
+    subtasksCollapsed: 'Collapsed',
+    subtasksExpanded: 'Expanded',
     group: {
       none: 'None',
       all: 'All tasks',

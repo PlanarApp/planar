@@ -18,6 +18,8 @@ export interface ViewOptions {
   sortBy: SortBy;
   sortDir: 'asc' | 'desc';
   showSubtasks: boolean;
+  /** List, Table: subtasks start collapsed (per-parent folding is the exception) */
+  subtasksCollapsed?: boolean;
   /** Board: show empty card fields (click — set a value), as in ClickUp */
   showEmpty?: boolean;
   /** List, Board: hide groups (columns) without tasks */
@@ -38,6 +40,7 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   sortBy: 'rank',
   sortDir: 'asc',
   showSubtasks: false,
+  subtasksCollapsed: false,
   showEmpty: false,
   hideEmptyGroups: false,
   wrapTitles: false,

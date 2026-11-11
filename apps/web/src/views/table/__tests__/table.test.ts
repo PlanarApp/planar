@@ -209,6 +209,16 @@ describe('table', () => {
     await flushPromises();
     expect(rows().map((r) => r.attributes('data-task'))).toEqual(['PLN-2']);
   });
+  it('table: подзадачи «Свёрнутые» — скрыты, шеврон раскрывает родителя, смена режима сбрасывает', async () => {
+    await show({ showSubtasks: true, subtasksCollapsed: true });
+    expect(rows().map((r) => r.attributes('data-task'))).toEqual(['PLN-1', 'PLN-2', 'PLN-3']);
+    await w.get('[data-testid=table-fold]').trigger('click');
+    expect(rows()).toHaveLength(4);
+    await w.setProps({ options: opts({ showSubtasks: true, subtasksCollapsed: false }) });
+    expect(rows()).toHaveLength(4);
+    await w.setProps({ options: opts({ showSubtasks: true, subtasksCollapsed: true }) });
+    expect(rows()).toHaveLength(3);
+  });
   it('table: правка title вызывает мутацию task.update', async () => {
     await show();
     await w.get('[data-task="PLN-1"] [data-col=title] span').trigger('dblclick');

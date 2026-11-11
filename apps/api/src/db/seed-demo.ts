@@ -1557,7 +1557,14 @@ async function insertAll(tx: Tx, now: Date) {
   );
 
   // saved views for everyone (tabs in Tasks of the space's nodes)
-  const VIEWS: [number, string, string, string, Record<string, unknown>][] = [
+  const VIEWS: [
+    number,
+    string,
+    string,
+    string,
+    Record<string, unknown>,
+    Record<string, unknown>?,
+  ][] = [
     [
       1,
       'Hot bugs',
@@ -1585,10 +1592,19 @@ async function insertAll(tx: Tx, now: Date) {
       'calendar',
       { op: 'and', rules: [{ field: 'dueDate', operator: 'isNotEmpty' }] },
     ],
+    // PLNRAPP-162: the tree of subtasks, collapsed by default
+    [
+      0,
+      'Subtasks collapsed',
+      'folder',
+      'list',
+      { op: 'and', rules: [] },
+      { showSubtasks: true, subtasksCollapsed: true },
+    ],
   ];
   await ins(
     s.savedViews,
-    VIEWS.map(([si, name, icon, layout, filter], k) => ({
+    VIEWS.map(([si, name, icon, layout, filter, config = {}], k) => ({
       id: uid(`view:${k}`),
       spaceId: spaceIds[si],
       userId: null,
@@ -1598,7 +1614,7 @@ async function insertAll(tx: Tx, now: Date) {
       layout,
       node: null,
       filter,
-      config: {},
+      config,
       rank: generateNKeysBetween(null, null, VIEWS.length)[k],
       createdAt: at(-20),
       updatedAt: at(-20),

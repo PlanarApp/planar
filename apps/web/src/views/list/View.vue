@@ -145,9 +145,9 @@ watch(
   },
   { immediate: true },
 );
-function toggleFold(id: string) {
-  const f = new Set(folded.value);
-  if (!f.delete(id)) f.add(id);
+// folded — exceptions to the view's mode "Collapsed / Expanded" (PLNRAPP-162)
+const isFolded = (id: string) => !!props.options.subtasksCollapsed !== folded.value.has(id);
+function saveFolded(f: Set<string>) {
   folded.value = f;
   try {
     localStorage.setItem(foldKey(), JSON.stringify([...f]));
@@ -155,6 +155,16 @@ function toggleFold(id: string) {
     /* without storage — until reload */
   }
 }
+function toggleFold(id: string) {
+  const f = new Set(folded.value);
+  if (!f.delete(id)) f.add(id);
+  saveFolded(f);
+}
+// a new mode applies to all parents
+watch(
+  () => !!props.options.subtasksCollapsed,
+  () => saveFolded(new Set()),
+);
 
 // subtasks — as a tree under the parent; a parent not above the row — a label in the row
 const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
@@ -175,7 +185,7 @@ const items = computed<Item[]>(() => {
       let hideBelow = Infinity; // depth of the collapsed ancestor: rows deeper than it are hidden
       for (const { task, depth } of tree) {
         if (depth > hideBelow) continue;
-        hideBelow = folded.value.has(task.id) && kids.has(task.id) ? depth : Infinity;
+        hideBelow = isFolded(task.id) && kids.has(task.id) ? depth : Infinity;
         rows.push({
           id: `t:${g.key}:${task.id}`,
           kind: 'task',
@@ -820,7 +830,7 @@ watch(
                 :wrap="options.wrapTitles"
                 :show-key="options.showKey"
                 :child-count="it.childCount"
-                :folded="folded.has(it.task.id)"
+                :folded="isFolded(it.task.id)"
                 :class="[
                   drag?.task.id === it.task.id && 'opacity-40',
                   nestId === it.id && 'ring-2 ring-inset ring-accent',

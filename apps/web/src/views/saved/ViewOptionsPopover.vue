@@ -41,14 +41,34 @@ const toggleField = (f: TaskField) =>
           @click="options.sortDir = options.sortDir === 'asc' ? 'desc' : 'asc'"
         />
       </div>
-      <Button
-        :icon="ListTree"
-        :variant="options.showSubtasks ? 'primary' : 'secondary'"
-        :aria-pressed="options.showSubtasks"
-        @click="options.showSubtasks = !options.showSubtasks"
-      >
-        {{ t('views.subtasks') }}
-      </Button>
+      <div class="flex flex-wrap items-center gap-2">
+        <Button
+          :icon="ListTree"
+          :variant="options.showSubtasks ? 'primary' : 'secondary'"
+          :aria-pressed="options.showSubtasks"
+          @click="options.showSubtasks = !options.showSubtasks"
+        >
+          {{ t('views.subtasks') }}
+        </Button>
+        <div
+          v-if="options.showSubtasks"
+          role="group"
+          :aria-label="t('views.subtasksFold')"
+          class="flex gap-1"
+          data-testid="subtasks-fold"
+        >
+          <Button
+            v-for="c in [true, false]"
+            :key="String(c)"
+            size="sm"
+            :variant="!!options.subtasksCollapsed === c ? 'primary' : 'ghost'"
+            :aria-pressed="!!options.subtasksCollapsed === c"
+            @click="options.subtasksCollapsed = c"
+          >
+            {{ t(c ? 'views.subtasksCollapsed' : 'views.subtasksExpanded') }}
+          </Button>
+        </div>
+      </div>
       <label class="inline-flex items-center gap-1.5 text-sm">
         <input v-model="options.showEmpty" type="checkbox" data-testid="show-empty" />
         {{ t('views.showEmpty') }}

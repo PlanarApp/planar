@@ -72,7 +72,12 @@ const passes = useTaskFilter(
 );
 
 // grouping in the table is not applied; with subtasks — a tree under the parent (sorted among siblings)
-const folded = ref(new Set<string>());
+const folded = ref(new Set<string>()); // exceptions to the mode "Collapsed / Expanded"
+const isFolded = (id: string) => !!props.options.subtasksCollapsed !== folded.value.has(id);
+watch(
+  () => !!props.options.subtasksCollapsed,
+  () => (folded.value = new Set()),
+);
 const tree = computed(() => {
   const o = props.options;
   const tasks = (all.value ?? []).filter((x) => (o.showSubtasks || !x.parentId) && passes.value(x));
@@ -82,7 +87,7 @@ const tree = computed(() => {
   let hideBelow = Infinity; // depth of a collapsed ancestor: rows deeper are hidden
   for (const n of treeOrder(sorted)) {
     if (n.depth > hideBelow) continue;
-    hideBelow = folded.value.has(n.task.id) ? n.depth : Infinity;
+    hideBelow = isFolded(n.task.id) ? n.depth : Infinity;
     out.push(n);
   }
   return out;
@@ -482,15 +487,15 @@ const date = (v: string) => v.slice(0, 10);
                         <button
                           v-if="options.showSubtasks && kids.get(task.id)"
                           type="button"
-                          :aria-label="t(folded.has(task.id) ? 'list.expand' : 'list.collapse')"
-                          :aria-expanded="!folded.has(task.id)"
+                          :aria-label="t(isFolded(task.id) ? 'list.expand' : 'list.collapse')"
+                          :aria-expanded="!isFolded(task.id)"
                           data-testid="table-fold"
                           class="shrink-0 rounded-sm text-fg-muted hover:text-fg"
                           @click="toggleFold(task.id)"
                         >
                           <ChevronRight
                             :size="14"
-                            :class="['transition-transform', !folded.has(task.id) && 'rotate-90']"
+                            :class="['transition-transform', !isFolded(task.id) && 'rotate-90']"
                           />
                         </button>
                         <div v-else-if="options.showSubtasks" class="w-3.5 shrink-0" />
