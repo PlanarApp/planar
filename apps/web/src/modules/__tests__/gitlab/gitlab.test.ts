@@ -1,4 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import { defineComponent, h } from 'vue';
+import { TooltipProvider } from 'reka-ui';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../../../../modules/gitlab/web/data', async () => {
@@ -78,6 +80,7 @@ beforeEach(() => {
     vi.fn(async (path: string, o: { method: string; body?: string }) => {
       calls.push({ method: o.method, path, body: o.body && JSON.parse(o.body) });
       if (o.method === 'DELETE' || path.endsWith('/poll')) return res(204);
+      if (path.endsWith('/repos')) return res(200, { repos: [] });
       return res(200, list);
     }),
   );
@@ -112,6 +115,45 @@ describe('pt6b:', () => {
     // PLNRAPP-104: the branch and whether it is merged
     expect(rows[0]!.get('[data-testid=gl-branch]').text()).toBe('mr/PLN-1branchMerged');
     expect(rows[1]!.get('[data-testid=gl-branch]').text()).toBe('mr/PLN-1branchOpen');
+  });
+
+  it('PLNRAPP-153: панель — ветка, MR и опрос по задаче; ошибка видна; без репозиториев кнопок нет', async () => {
+    // IconButton needs the app's TooltipProvider
+    const panel = () =>
+      mount(
+        defineComponent({
+          render: () => h(TooltipProvider, null, () => h(MrPanel, { taskId: 't' })),
+        }),
+      );
+    const reply = (repos: unknown[]) =>
+      vi.fn(async (path: string, o: { method: string; body?: string }) => {
+        calls.push({ method: o.method, path, body: o.body && JSON.parse(o.body) });
+        if (path.endsWith('/repos')) return res(200, { repos });
+        if (path.endsWith('/mr')) return res(409, { message: 'MR уже есть' });
+        return res(201, { webUrl: 'https://gl.example/g/p/-/tree/PLN-1' });
+      });
+    vi.stubGlobal('fetch', reply([]));
+    const w0 = panel();
+    await flushPromises();
+    expect(w0.find('[data-testid=gl-new-mr]').exists()).toBe(false);
+    vi.stubGlobal('fetch', reply([{ id: 'c1', path: 'g/p' }]));
+    const w = panel();
+    await flushPromises();
+    await w.get('[data-testid=gl-new-branch]').trigger('click');
+    await flushPromises();
+    expect(w.get('[data-testid=gl-branch-made]').attributes('href')).toBe(
+      'https://gl.example/g/p/-/tree/PLN-1',
+    );
+    await w.get('[data-testid=gl-new-mr]').trigger('click');
+    await flushPromises();
+    expect(w.get('[role=alert]').text()).toBe('MR уже есть');
+    await w.get('[data-testid=gl-poll]').trigger('click');
+    await flushPromises();
+    expect(calls.filter((c) => c.method === 'POST')).toEqual([
+      { method: 'POST', path: '/api/gitlab/tasks/t/branch', body: { connectionId: 'c1' } },
+      { method: 'POST', path: '/api/gitlab/tasks/t/mr', body: { connectionId: 'c1' } },
+      { method: 'POST', path: '/api/gitlab/tasks/t/poll', body: undefined },
+    ]);
   });
 
   it('pt6b: панель — пусто и небезопасная ссылка не становится href', () => {

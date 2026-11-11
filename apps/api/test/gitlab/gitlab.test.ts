@@ -21,7 +21,13 @@ let w: World;
 let cookie: string;
 let srv: http.Server;
 let base: string;
-let hits: { path: string; q: URLSearchParams; token: unknown }[] = [];
+let hits: {
+  path: string;
+  q: URLSearchParams;
+  token: unknown;
+  method?: string;
+  body?: Record<string, unknown>;
+}[] = [];
 let handler: (req: http.IncomingMessage, res: http.ServerResponse, q: URLSearchParams) => void;
 
 const json = (res: http.ServerResponse, body: unknown, h: Record<string, string> = {}, st = 200) =>
@@ -46,9 +52,19 @@ beforeAll(async () => {
     .onConflictDoUpdate({ target: settings.id, set: { value: ['gitlab'] } });
   cookie = await loginCookie(db, (await createUser(db, { role: 'admin' })).id);
   srv = http.createServer((req, res) => {
-    const u = new URL(req.url!, 'http://x');
-    hits.push({ path: u.pathname, q: u.searchParams, token: req.headers['private-token'] });
-    handler(req, res, u.searchParams);
+    let raw = '';
+    req.on('data', (c) => (raw += c));
+    req.on('end', () => {
+      const u = new URL(req.url!, 'http://x');
+      hits.push({
+        path: u.pathname,
+        q: u.searchParams,
+        token: req.headers['private-token'],
+        method: req.method,
+        body: raw ? JSON.parse(raw) : undefined,
+      });
+      handler(req, res, u.searchParams);
+    });
   });
   await new Promise<void>((r) => srv.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${(srv.address() as AddressInfo).port}`;
@@ -469,5 +485,74 @@ describe('pt6a: мутаторы', () => {
     expect(await mrsOf(1)).toHaveLength(1);
     await w.admin.ok('task.delete', { id: a.id });
     expect(await mrsOf(1)).toHaveLength(0);
+  });
+});
+
+describe('PLNRAPP-153: ветка, MR и опрос из задачи', () => {
+  const repo = {
+    id: 42,
+    path_with_namespace: 'g/p42',
+    default_branch: 'main',
+    web_url: 'https://gl/g',
+  };
+  // branch: GitLab's status on branch creation (400 — already exists), mrSt — on MR creation
+  const gitlab =
+    (branch = 201, mrSt = 201) =>
+    (req: http.IncomingMessage, res: http.ServerResponse) => {
+      const p = new URL(req.url!, 'http://x').pathname;
+      const last = hits.at(-1)!;
+      if (p === '/api/v4/projects/42') return json(res, repo);
+      if (p.endsWith('/repository/branches')) return json(res, {}, {}, branch);
+      if (p.endsWith('/merge_requests') && req.method === 'POST')
+        return json(res, mr(5, { ...last.body, title: last.body!.title }), {}, mrSt);
+      json(res, []);
+    };
+  const as = async (u: { userId: string }) => ({ cookie: await loginCookie(db, u.userId) });
+  const posts = () => hits.filter((h) => h.method === 'POST').map((h) => [h.path, h.body]);
+
+  it('MR: ветка по ключу от ветки по умолчанию, MR в неё, строка gitlabMrs — сразу', async () => {
+    await addProject(42);
+    const t = await mkTask();
+    handler = gitlab();
+    hits = [];
+    const r = await call('POST', `tasks/${t.id}/mr`, {}, await as(w.member));
+    expect(r.statusCode).toBe(201);
+    expect(r.json()).toEqual({ webUrl: 'https://gl/mr/5' });
+    expect(posts()).toEqual([
+      ['/api/v4/projects/42/repository/branches', { branch: t.key, ref: 'main' }],
+      [
+        '/api/v4/projects/42/merge_requests',
+        {
+          source_branch: t.key,
+          target_branch: 'main',
+          title: expect.stringMatching(`^${t.key}: `),
+        },
+      ],
+    ]);
+    expect((await mrsOf(5)).map((x) => x.taskId)).toEqual([t.id]);
+    handler = gitlab(400, 409);
+    expect((await call('POST', `tasks/${t.id}/mr`, {})).statusCode).toBe(409);
+  });
+
+  it('ветка: уже есть — не ошибка; репозитории и опрос — по проекту задачи; права', async () => {
+    const c = await addProject(42);
+    const t = await mkTask();
+    handler = gitlab(400);
+    const r = await call('POST', `tasks/${t.id}/branch`, { connectionId: c.id });
+    expect(r.statusCode).toBe(201);
+    expect(r.json()).toEqual({ webUrl: `https://gl/g/-/tree/${t.key}` });
+    expect((await call('GET', `tasks/${t.id}/repos`)).json()).toEqual({
+      repos: [{ id: c.id, path: 'g/p42' }],
+    });
+    handler = (_, res) => json(res, [mr(1, { title: t.key })]);
+    const g = await as(w.guest);
+    expect((await call('POST', `tasks/${t.id}/poll`, undefined, g)).statusCode).toBe(200);
+    expect((await mrsOf(1)).map((x) => x.taskId)).toEqual([t.id]);
+    expect((await call('POST', `tasks/${t.id}/branch`, {}, g)).statusCode).toBe(403);
+    const o = await as(w.outsider);
+    expect((await call('GET', `tasks/${t.id}/repos`, undefined, o)).statusCode).toBe(404);
+    expect((await call('POST', `tasks/${uuidv7()}/branch`, {})).statusCode).toBe(404);
+    const p2 = await mkTask(await mkProject());
+    expect((await call('POST', `tasks/${p2.id}/branch`, {})).statusCode).toBe(404);
   });
 });

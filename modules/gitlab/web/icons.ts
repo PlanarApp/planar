@@ -40,3 +40,8 @@ export const GitBranch = icon(
   () => h('circle', { cx: 6, cy: 18, r: 3 }),
   () => h('path', { d: 'M6 3v12M18 9a9 9 0 0 1-9 9' }),
 );
+/** refresh (poll now) */
+export const Refresh = icon(
+  () => h('path', { d: 'M3 12a9 9 0 0 1 15.74-6.26L21 8M21 3v5h-5' }),
+  () => h('path', { d: 'M21 12a9 9 0 0 1-15.74 6.26L3 16M8 16H3v5' }),
+);
