@@ -7,7 +7,7 @@
     ".claude/agents/dp-reviewer.md": "825ec5a02bf1c08b2bc8e1ae5b1a61aecbc4c8aef415986e5388ac78c78ac16b",
     ".claude/agents/dp-status.md": "fa6a14362e7eb97883e909a67035557fa74cb666f3f4c45e89e98ed853b4e746",
     ".claude/agents/dp-writer.md": "a82b30efd8d2bed2f990c104773993abee3503f58666e0a30c11a4eb6365516e",
-    ".claude/dpcli-workflow.md": "7216daac055799a071d590c69d8c6aace6c6f2fa07a74b57ccef985f117bbf49",
+    ".claude/dpcli-workflow.md": "c61d7cf299ae28614d69124cdfc602fa58a1cb715ae49871cf449e528d659a1c",
     ".claude/skills/harness-retro/SKILL.md": "acdb92a94b98b445202749df81520ed775fd3caf49dd00a05c111cc0526e4b43",
     ".claude/skills/harness-retro/cost.py": "e30e0d39b47cd144d67a41fb6e18774901c383a37b50a789030cee6cf8d8094a",
     ".claude/skills/start-to-do/SKILL.md": "f8d98a49be47ae4b33c3a4c078e502c889d0a5999fe60ab64bb569f80af27314"
