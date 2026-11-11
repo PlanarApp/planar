@@ -6,6 +6,7 @@ import { router } from './router';
 import { initModules } from './modules/registry';
 import { prefetchProject } from './tasks/queries';
 import { closePrompt } from './tasks/closeOpen';
+import { mergeFrom } from './tasks/merge';
 import { initSession } from './session';
 import { onMutationError } from './sync';
 import { toast } from './ui/toast';
@@ -16,6 +17,7 @@ import './styles.css';
 const LogoutDialog = defineAsyncComponent(() => import('./sync/LogoutDialog.vue'));
 const Toasts = defineAsyncComponent(() => import('./ui/Toasts.vue'));
 const CloseOpenDialog = defineAsyncComponent(() => import('./tasks/CloseOpenDialog.vue'));
+const MergeDialog = defineAsyncComponent(() => import('./tasks/MergeDialog.vue'));
 const { logoutPrompt } = useAuth();
 
 const open = /^\/p\/([0-9a-f-]{36})/.exec(location.pathname);
@@ -36,6 +38,7 @@ const app = createApp({
     h(App),
     logoutPrompt.open.value && h(LogoutDialog),
     closePrompt.value && h(CloseOpenDialog, { key: closePrompt.value.task.id }),
+    mergeFrom.value && h(MergeDialog, { key: mergeFrom.value.id }),
     h(Toasts),
   ],
 });

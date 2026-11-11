@@ -20,6 +20,15 @@ export default {
     move: 'Move to project',
     duplicate: 'Duplicate',
     copyOf: '{title} (copy)',
+    merge: 'Merge into task…',
+  },
+  merge: {
+    title: 'Merge {key} into another task',
+    text: 'Comments, attachments, time, links, subtasks, assignees and watchers move to the chosen task; this task is cancelled and marked as a duplicate.',
+    target: 'Task to merge into',
+    confirm: '{from} will be merged into {to}',
+    action: 'Merge',
+    done: '{from} merged into {to}',
   },
   quick: {
     title: 'New task',

@@ -7,7 +7,7 @@ import { db } from '../sync';
 import { StatusIcon, type TaskView } from '../tasks';
 import { Button, Input, Select } from '../ui';
 import { openTask } from '../views';
-import { SIDES, linkTasks, unlinkTasks, useTaskLinks, type LinkSide } from '.';
+import { SIDES, linkTasks, unlinkTasks, useTaskLinks, useTaskSearch, type LinkSide } from '.';
 import { useLive } from './live';
 
 const props = defineProps<{ task: Pick<TaskView, 'id' | 'spaceId'> }>();
@@ -49,31 +49,11 @@ const query = ref('');
 const error = ref('');
 const sideOptions = computed(() => SIDES.map((s) => ({ value: s, label: t(`links.side.${s}`) })));
 
-const found = useLive(
-  () => ({
-    q: query.value.trim().toLowerCase(),
-    self: props.task.id,
-    space: props.task.spaceId,
-    linked: new Set((links.value ?? []).map((l) => l.otherId)),
-  }),
-  async ({ q, self, space, linked }) => {
-    if (!q) return [];
-    const projects = await db.table<Row<'projects'>>('projects').toArray();
-    const out: { id: string; key: string; title: string }[] = [];
-    await db
-      .table<Row<'tasks'>>('tasks')
-      .where('spaceId')
-      .equals(space)
-      .until(() => out.length >= 20)
-      .each((x) => {
-        if (x.id === self || linked.has(x.id)) return;
-        const key = `${projects.find((p) => p.id === x.projectId)?.key ?? '?'}-${x.number ?? '…'}`;
-        if (x.title.toLowerCase().includes(q) || key.toLowerCase().includes(q))
-          out.push({ id: x.id, key, title: x.title });
-      });
-    return out;
-  },
-);
+const found = useTaskSearch(() => ({
+  q: query.value.trim().toLowerCase(),
+  space: props.task.spaceId,
+  skip: new Set([props.task.id, ...(links.value ?? []).map((l) => l.otherId)]),
+}));
 
 async function run(f: () => Promise<unknown>) {
   error.value = '';

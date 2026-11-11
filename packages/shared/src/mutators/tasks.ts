@@ -82,6 +82,65 @@ async function remapLabels(tx: Tx, taskId: string, projectId: string) {
 const link = (tx: Tx, entity: 'taskAssignees' | 'taskWatchers', taskId: string) =>
   tx.scan(entity, { index: 'taskId', eq: taskId });
 
+const taskLinksOf = async (tx: Tx, taskId: string) => [
+  ...(await tx.scan('taskLinks', { index: 'taskId', eq: taskId })),
+  ...(await tx.scan('taskLinks', { index: 'targetId', eq: taskId })),
+];
+
+/**
+ * PLNRAPP-117: task `b` merges into `a` (same space): comments, attachments, subtasks, assignees, watchers
+ * and links of `b` go to `a` (repeats and links to `a` itself are dropped); `b` gets the project's first
+ * cancelled status and the link «b duplicates a». Module rows (time) follow in the modules' afterMutation.
+ */
+async function mergeTask(
+  tx: Tx,
+  b: Row<'tasks'>,
+  a: Row<'tasks'>,
+  linkId: string,
+  ctx: MutatorCtx,
+) {
+  const cancelled = (await tx.scan('statuses', { index: 'projectId', eq: b.projectId }))
+    .filter((s) => s.category === 'cancelled')
+    .sort((x, y) => (x.rank < y.rank ? -1 : x.rank > y.rank ? 1 : 0))[0];
+  if (!cancelled) throw bad('в проекте нет статуса «Отменена»');
+  for (const e of ['comments', 'attachments'] as const)
+    for (const x of await tx.scan(e, { index: 'taskId', eq: b.id }))
+      await tx.patch(e, x.id, { taskId: a.id });
+  for (const c of await tx.scan('tasks', { index: 'parentId', eq: b.id }))
+    await tx.patch('tasks', c.id, { parentId: a.id, updatedAt: ctx.now });
+  for (const e of ['taskAssignees', 'taskWatchers'] as const) {
+    const have = new Set((await link(tx, e, a.id)).map((x) => x.userId));
+    for (const x of await link(tx, e, b.id))
+      if (have.has(x.userId)) await tx.del(e, x.id);
+      else await tx.patch(e, x.id, { taskId: a.id });
+  }
+  const paired = new Set(
+    (await taskLinksOf(tx, a.id)).map((l) => (l.taskId === a.id ? l.targetId : l.taskId)),
+  );
+  for (const l of await taskLinksOf(tx, b.id)) {
+    const other = l.taskId === b.id ? l.targetId : l.taskId;
+    if (other === a.id || paired.has(other)) await tx.del('taskLinks', l.id);
+    else {
+      paired.add(other);
+      await tx.patch('taskLinks', l.id, l.taskId === b.id ? { taskId: a.id } : { targetId: a.id });
+    }
+  }
+  await tx.put('taskLinks', {
+    id: linkId,
+    spaceId: b.spaceId,
+    taskId: b.id,
+    targetId: a.id,
+    kind: 'duplicates',
+    createdBy: ctx.userId,
+    createdAt: ctx.now,
+  });
+  await tx.patch('tasks', b.id, {
+    statusId: cancelled.id,
+    completedAt: completedAt(cancelled.category, b.completedAt, ctx),
+    updatedAt: ctx.now,
+  });
+}
+
 /**
  * PLNRAPP-152: the task with all its subtasks goes to project `p` of another space; ids stay, the server
  * moves the rows tied by taskId (comments, links, time…). Subtasks first: when the root moves, a child
@@ -235,6 +294,17 @@ export const taskMutators = [
     async run(tx, a) {
       await need(tx, 'tasks', a.id);
       await deleteTask(tx, a.id);
+    },
+  }),
+  defineMutator({
+    name: 'task.merge',
+    args: z.object({ id: uuid, targetId: uuid, linkId: uuid }),
+    async run(tx, a, ctx) {
+      const b = await need(tx, 'tasks', a.id);
+      const target = await need(tx, 'tasks', a.targetId);
+      // target in the same space, not the task itself and not its descendant (subtasks move under it)
+      await checkParent(tx, b.id, b.spaceId, target.id);
+      await mergeTask(tx, b, target, a.linkId, ctx);
     },
   }),
   defineMutator({
