@@ -67,10 +67,12 @@ const now = () => new Date().toISOString();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 500);
 
-async function get(url: string, token: string): Promise<Response> {
+async function get(url: string, token: string, body?: object): Promise<Response> {
   for (let retried = false; ; retried = true) {
     const res = await fetch(url, {
-      headers: { 'PRIVATE-TOKEN': token },
+      // with a body — POST (PLNRAPP-153: a branch, an MR)
+      ...(body && { method: 'POST', body: JSON.stringify(body) }),
+      headers: { 'PRIVATE-TOKEN': token, ...(body && { 'content-type': 'application/json' }) },
       redirect: 'manual',
       signal: AbortSignal.timeout(30_000),
     });
@@ -100,6 +102,37 @@ export async function fetchProject(
 export { Unauthorized, HttpFail, Deferred };
 
 const apiBase = (baseUrl: string) => `${baseUrl.replace(/\/+$/, '')}/api/v4`;
+
+/**
+ * PLNRAPP-153: branch `branch` from the repository's default branch, and with `mr` — an MR from it into
+ * the default branch, synced to the tasks at once. An existing branch is reused; the MR goes to GitLab as is.
+ */
+export async function createBranch(
+  api: JobApi,
+  token: string,
+  c: typeof P.$inferSelect,
+  branch: string,
+  mr?: { title: string },
+): Promise<{ webUrl: string }> {
+  const repo = `${apiBase(c.baseUrl)}/projects/${c.gitlabProjectId}`;
+  const p = (await (await get(repo, token)).json()) as { default_branch: string; web_url: string };
+  try {
+    await get(`${repo}/repository/branches`, token, { branch, ref: p.default_branch });
+  } catch (e) {
+    // GitLab answers 400 «Branch already exists»; any other 400 shows up on the MR or stays unnoticed
+    if (!(e instanceof HttpFail && e.status === 400)) throw e;
+  }
+  const webUrl = `${p.web_url}/-/tree/${encodeURIComponent(branch)}`;
+  if (!mr) return { webUrl };
+  const res = await get(`${repo}/merge_requests`, token, {
+    source_branch: branch,
+    target_branch: p.default_branch,
+    title: mr.title,
+  });
+  const made = (await res.json()) as GlMr;
+  await syncMr(api, c, made);
+  return { webUrl: made.web_url };
+}
 
 async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr) {
   const { projectId, gitlabProjectId } = c;
@@ -178,7 +211,6 @@ async function pollProject(api: JobApi, token: string, p: typeof P.$inferSelect)
 /** One pass over the connections. Does not throw: errors go to the connection's last_error. */
 export async function pollAll(api: JobApi): Promise<void> {
   if (isDemo()) return; // demo: no outgoing requests
-  const key = secretKey();
   const conns = await api.db.select().from(P).orderBy(P.createdAt, P.id);
   if (!conns.length) return;
   // C-schema v16: projects where the module is off are not polled (connections stay)
@@ -187,8 +219,17 @@ export async function pollAll(api: JobApi): Promise<void> {
       (r) => r.id,
     ),
   );
+  await pollConnections(
+    api,
+    conns.filter((p) => on.has(p.projectId)),
+  );
+}
+
+/** Poll of the given connections (PLNRAPP-153: of one project — from the task's GitLab tab). */
+export async function pollConnections(api: JobApi, conns: (typeof P.$inferSelect)[]) {
+  if (isDemo()) return;
+  const key = secretKey();
   for (const p of conns) {
-    if (!on.has(p.projectId)) continue;
     if (p.lastError === 'unauthorized') continue; // before the token change
     let err: string | null = null;
     try {

@@ -12,10 +12,17 @@ import {
 } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { CORE, HttpError, parseBody, type CoreServices } from '@planar/server-kit';
+import { CORE, HttpError, parseBody, type CoreServices, type JobApi } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
-import { encrypt, secretKey } from './crypto.js';
-import { Deferred, fetchProject, HttpFail, Unauthorized } from './poll.js';
+import { decrypt, encrypt, secretKey } from './crypto.js';
+import {
+  createBranch,
+  Deferred,
+  fetchProject,
+  HttpFail,
+  pollConnections,
+  Unauthorized,
+} from './poll.js';
 import { gitlabConnections as P, gitlabMrs as M } from './schema.js';
 
 const baseUrl = z
@@ -32,6 +39,7 @@ const baseUrl = z
 const token = z.string().min(1).max(500);
 const postBody = z.object({ baseUrl, token, project: z.string().min(1).max(500) });
 const patchBody = z.object({ token });
+const makeBody = z.object({ connectionId: z.uuid().optional() });
 
 const iso = (v: string | null) => (v ? new Date(v).toISOString() : null);
 const view = (r: typeof P.$inferSelect) => ({
@@ -193,5 +201,100 @@ export class GitlabController {
     this.admin(req);
     await this.core.enqueue('gitlab.poll', {}, { singletonKey: 'gitlab.poll' });
     return {};
+  }
+
+  /**
+   * PLNRAPP-153, the task's GitLab tab: the task and its project's connections. Anyone with access to
+   * the project reads and polls; a branch and an MR — not a guest and not a read-only token.
+   */
+  private async ofTask(req: object, taskId: string, write = false) {
+    const a = this.core.auth(req);
+    const r = await this.core.db.execute(
+      sql`select t.project_id as "projectId", t.title, p.key || '-' || t.number as key,
+            project_role(${a.userId}::uuid, t.project_id) as role
+          from tasks t join projects p on p.id = t.project_id where t.id = ${uuidOr404(taskId)}::uuid`,
+    );
+    const t = r.rows[0] as
+      { projectId: string; title: string; key: string | null; role: string | null } | undefined;
+    if (!t?.role) throw new HttpError(404, 'not_found', 'Задача не найдена');
+    if (write && (t.role === 'guest' || a.tokenScope === 'read'))
+      throw new HttpError(403, 'forbidden', 'Нет прав на изменение задачи');
+    await this.moduleOn(t.projectId);
+    const conns = await this.core.db
+      .select()
+      .from(P)
+      .where(eq(P.projectId, t.projectId))
+      .orderBy(P.createdAt, P.id);
+    return { t, conns };
+  }
+
+  private jobApi(): JobApi {
+    const c = this.core;
+    return {
+      db: c.db,
+      execute: (...a) => c.execute(...a),
+      enqueue: (...a) => c.enqueue(...a),
+      systemUserId: c.systemUserId(),
+    };
+  }
+
+  @Get('tasks/:taskId/repos')
+  async repos(@Req() req: object, @Param('taskId') taskId: string) {
+    const { conns } = await this.ofTask(req, taskId);
+    return { repos: conns.map((c) => ({ id: c.id, path: c.path })) };
+  }
+
+  @Post('tasks/:taskId/poll')
+  @HttpCode(200)
+  async pollTask(@Req() req: object, @Param('taskId') taskId: string) {
+    const { conns } = await this.ofTask(req, taskId);
+    await pollConnections(this.jobApi(), conns);
+    return {};
+  }
+
+  @Post('tasks/:taskId/branch')
+  branch(@Req() req: object, @Param('taskId') taskId: string, @Body() body: unknown) {
+    return this.make(req, taskId, body, false);
+  }
+
+  @Post('tasks/:taskId/mr')
+  mr(@Req() req: object, @Param('taskId') taskId: string, @Body() body: unknown) {
+    return this.make(req, taskId, body, true);
+  }
+
+  /** The branch is named by the task key: the poll links it and its MRs to the task. */
+  private async make(req: object, taskId: string, body: unknown, withMr: boolean) {
+    const b = parseBody(makeBody, body ?? {});
+    const { t, conns } = await this.ofTask(req, taskId, true);
+    const c = b.connectionId ? conns.find((x) => x.id === b.connectionId) : conns[0];
+    if (!c) throw new HttpError(404, 'not_found', 'Репозиторий не подключён к проекту');
+    if (!t.key) throw new HttpError(409, 'conflict', 'У задачи ещё нет номера');
+    const key = secretKey();
+    if (!key) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
+    let token: string;
+    try {
+      token = decrypt(c.tokenEnc, key);
+    } catch {
+      throw new HttpError(503, 'unavailable', 'Токен GitLab не расшифровывается');
+    }
+    try {
+      return await createBranch(
+        this.jobApi(),
+        token,
+        c,
+        t.key,
+        withMr ? { title: `${t.key}: ${t.title}` } : undefined,
+      );
+    } catch (e) {
+      if (e instanceof HttpFail && e.status === 409)
+        throw new HttpError(409, 'conflict', 'MR из этой ветки уже есть');
+      if (e instanceof Unauthorized)
+        throw new HttpError(502, 'unavailable', 'GitLab отклонил токен или не хватает прав');
+      throw new HttpError(
+        502,
+        'unavailable',
+        e instanceof Deferred ? 'GitLab ограничил запросы' : 'GitLab недоступен',
+      );
+    }
   }
 }
