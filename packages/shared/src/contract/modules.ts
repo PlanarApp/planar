@@ -59,6 +59,7 @@ export interface FrontendModuleManifest {
   routes?: unknown[];
   views?: unknown[];
   taskPanels?: unknown[];
+  docPanels?: unknown[];
   commands?: unknown[];
   fieldTypes?: unknown[];
   settings?: unknown[];

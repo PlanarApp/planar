@@ -5,13 +5,26 @@ import type { BackendModuleManifest } from '@planar/shared';
 import { uuidv7 } from '@planar/shared';
 import { AI_BOT_LOGIN, AI_BOT_NAME, shared } from '../shared/index.js';
 import { AiController } from './controller.js';
+import { HarnessController } from './harness.controller.js';
+import { PacksController } from './packs.controller.js';
 import { AI_QUEUE, handle, keyOf, type AiRunData } from './run.js';
 
-@Module({ controllers: [AiController] })
+@Module({ controllers: [AiController, HarnessController, PacksController] })
 class AiModule {}
 
 export { resolveConnection, secretOf } from './connections.js';
 export { generateStructured, checkConnection, costOf, type LlmConnection } from './llm.js';
+export { parseInstructionPage } from './harness.js';
+export {
+  catalogTitle,
+  packPages,
+  parsePack,
+  plainText,
+  readCatalogPack,
+  PACKS_ROOT_TITLE,
+  unzipFiles,
+  zipFiles,
+} from './packs.js';
 export { AI_QUEUE, MAX_CHAIN, PLAN_HEADING, withPlan, type AiRunData } from './run.js';
 
 const has = (r: Record<string, unknown> | null | undefined) =>

@@ -22,7 +22,15 @@ import {
   goalsMilestoneTasks,
 } from '@planar/module-goals/api/schema';
 import { automationsRules } from '@planar/module-automations/api/schema';
-import { aiActions, aiRuns } from '@planar/module-ai/api/schema';
+import { aiActions, aiHarnessPacks, aiRuns } from '@planar/module-ai/api/schema';
+import {
+  catalogTitle,
+  PACKS_ROOT_TITLE,
+  packPages,
+  parsePack,
+  plainText,
+  readCatalogPack,
+} from '@planar/module-ai/api';
 import { markdownToDoc } from '@planar/editor/markdown';
 import { formsForms, formsLinks } from '@planar/module-forms/api/schema';
 import { recurringRules } from '@planar/module-recurring/api/schema';
@@ -1844,6 +1852,64 @@ async function insertAll(tx: Tx, now: Date) {
       questionStatusId: clarify,
       checks: ['The plan has a clear end'],
       maxOutputTokens: null,
+      createdAt: at(-25),
+      updatedAt: at(-25),
+    },
+  ]);
+  // the catalog pack «Разработка» in the project docs, laid out like POST /ai/packs/upload does; not active
+  const devPack = packPages(parsePack((await readCatalogPack('dev'))!), catalogTitle('dev'));
+  const packRanks = generateNKeysBetween(null, null, devPack.length);
+  const packRoot = uid('page:harness:harness.yml');
+  const packPage = (
+    id: string,
+    parentId: string | null,
+    rank: string,
+    title: string,
+    body: Parameters<typeof plainText>[0],
+  ) => ({
+    id,
+    spaceId: rdmSpace,
+    projectId: pid('RDM'),
+    parentId,
+    rank,
+    title,
+    icon: null,
+    body,
+    text: plainText(body),
+    files: [],
+    createdBy: maya,
+    updatedBy: maya,
+    archivedAt: null,
+    archivedBy: null,
+    createdAt: at(-25),
+    updatedAt: at(-25),
+  });
+  await ins(docsPages, [
+    packPage(
+      uid('page:harness'),
+      null,
+      generateNKeysBetween(dRanks.at(-1)!, null, 2)[1]!, // after «AI · Planning»
+      PACKS_ROOT_TITLE,
+      { type: 'doc', content: [] },
+    ),
+    ...devPack.map((p, n) =>
+      packPage(
+        uid(`page:harness:${p.key}`),
+        n ? packRoot : uid('page:harness'),
+        packRanks[n]!,
+        p.title,
+        p.body,
+      ),
+    ),
+  ]);
+  await ins(aiHarnessPacks, [
+    {
+      id: uid('harness-pack:dev'),
+      projectId: pid('RDM'),
+      packKey: 'dev',
+      active: false,
+      rootPageId: packRoot,
+      hashes: Object.fromEntries(devPack.map((p) => [uid(`page:harness:${p.key}`), p.hash])),
       createdAt: at(-25),
       updatedAt: at(-25),
     },

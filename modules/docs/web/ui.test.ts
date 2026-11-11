@@ -126,6 +126,27 @@ describe('docs web: манифест и провайдер поиска', () => 
   });
 });
 
+describe('docs web: docPanels', () => {
+  it('PageView рендерит панели расширения docPanels под заголовком и передаёт pageId', async () => {
+    const { registerModules } = await import('../../../apps/web/src/modules/registry');
+    const { defineComponent, h } = await import('vue');
+    const Panel = defineComponent({
+      props: { pageId: String, projectId: String },
+      setup: (p) => () => h('div', { 'data-testid': 'test-panel' }, p.pageId),
+    });
+    registerModules([
+      { id: 'dptest', docPanels: [{ id: 'p', component: async () => ({ default: Panel }) }] },
+    ]);
+    const id = uuidv7();
+    await db.table('docsPages').put(page(id));
+    const w = mount(PageView, { props: { pageId: id } });
+    await vi.waitFor(() => expect(w.find('[data-testid=test-panel]').text()).toBe(id), {
+      timeout: 10_000,
+    });
+    w.unmount();
+  });
+});
+
 describe('docs web: вкладка «Документы»', () => {
   it('PLNRAPP-75 без страницы — по центру кнопка «Новая страница»: создаёт страницу уровня и открывает', async () => {
     await db.table('spaces').put({ id: SPACE, name: 'Космос', rank: 'a0' });

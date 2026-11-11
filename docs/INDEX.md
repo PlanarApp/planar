@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-11-03"
+updated: "2026-11-11"
 summary: "Точка входа: модули docs/ по подпроектам, прочие документы по типам."
 related: []
 generated: true
@@ -22,8 +22,8 @@ generated: true
 - **collab** — План модуля collab: чат (каналы, треды, личные сообщения, push) и документы (дерево страниц на TipTap, связь с задачами) [closed 2026-11-02] — [план](plan/collab.md) · [контракты](contracts/collab.md) · [решения](plan/collab/decisions.md) · [сводка](plan/collab/summary.md) · полный журнал: `676d0b6`
 - **core** — План модуля core: каркас, БД, синхронизация, мутаторы, авторизация, файлы, уведомления, модули, API-токены, MCP [closed 2026-11-02] — [план](plan/core.md) · [контракты](contracts/core.md) · [решения](plan/core/decisions.md) · [сводка](plan/core/summary.md) · полный журнал: `93e7309`
   - [docs/contracts/core-api-v1.md](contracts/core-api-v1.md) — API tokens, Bearer, REST /api/v1 and MCP /mcp — part of C-http v8 (docs/contracts/core.md); examples are checked by the contract test [closed]
-  - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Domain mutators of C-mutators v14 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts [closed]
-  - [docs/contracts/core-schema.md](contracts/core-schema.md) — Entities of C-schema v17 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test [closed]
+  - [docs/contracts/core-mutators.md](contracts/core-mutators.md) — Domain mutators of C-mutators v17 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts [closed]
+  - [docs/contracts/core-schema.md](contracts/core-schema.md) — Entities of C-schema v21 — tables, fields, nullability, scope/write/bootstrap/indexes; checked by the contract test [closed]
   - [docs/guides/mcp.md](guides/mcp.md) — Connecting an AI client to Planar over MCP: token, /mcp URL, configuration, tools, read/write permissions
 - **design** — План модуля design: визуал Planar в стиле Linear — C-ui v3, оболочка, Список/Доска, карточка, настройки, mobile, скриншоты [closed 2026-11-02] — [план](plan/design.md) · [контракты](contracts/design.md) · [решения](plan/design/decisions.md) · [сводка](plan/design/summary.md) · полный журнал: `c55b909`
 - **features** — План модуля features: ярус A v1 — пользовательские поля, Таблица, Календарь, связи задач [closed 2026-11-02] — [план](plan/features.md) · [контракты](contracts/features.md) · [решения](plan/features/decisions.md) · [сводка](plan/features/summary.md) · полный журнал: `f1e8baf`
@@ -39,6 +39,7 @@ generated: true
   - [docs/contracts/work-api.md](contracts/work-api.md) — Work contracts, part 2 — C-modules v5 and v6 (enqueue, SDK, module settings, collab fixes), REST v1 and MCP (WK-5) [closed]
   - [docs/research/wk16-budgets.md](research/wk16-budgets.md) — A/B 5×5 main против feature/work — бюджеты §7 не ухудшились за шумом; switch +8 % не доказано, хост у порогов [closed]
 - **projects** — Проект как единица настройки — статусы, метки и модули в проекте; личный вид узла на сервере; доводка списка, PWA-обновления и мелочи UI [closed 2026-11-03] — [план](plan/projects.md) · [контракты](contracts/projects.md) · [решения](plan/projects/decisions.md) · [сводка](plan/projects/summary.md) · полный журнал: `archive/projects`
+- **ai4** — Модуль ai4 (PLNRAPP-169): harness в документах проекта — формат, diff, «Применить harness», загрузка, пакет «Разработка» [closed 2026-11-11] — [план](plan/ai4.md) · [решения](plan/ai4/decisions.md) · [сводка](plan/ai4/summary.md) · полный журнал: `archive/ai4`
 
 ## Прочие документы
 
@@ -52,6 +53,7 @@ generated: true
 
 ### Справка (reference)
 
+- [docs/contracts/cloud-link.md](contracts/cloud-link.md) — Связь инстанса Planar с облаком planar-cloud - ENV, setup с одноразовым входом, API состояния триала/оплаты и своего домена, правила блокировки по окончании триала
 - [docs/contracts/launch.md](contracts/launch.md) — launch contracts — SETUP_TOKEN, DB_POOL_MAX, DEMO_MODE, GET /api/setup, demo seed and reset, images, CI and release compose [closed]
 
 ### Журналы (journal)

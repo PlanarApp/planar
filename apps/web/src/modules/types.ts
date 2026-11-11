@@ -6,6 +6,7 @@ export const EXTENSION_KINDS = [
   'routes',
   'views',
   'taskPanels',
+  'docPanels',
   'commands',
   'fieldTypes',
   'settings',
@@ -48,6 +49,12 @@ export interface TaskPanelDef {
   /** the task's records of the module (Dexie, run in a live query); > 0 or a non-empty string ("1/3") is shown on the tab */
   count?: (taskId: string) => Promise<number | string>;
   component: Lazy<{ taskId: string }>;
+}
+/** A panel under the title of a document page (docs PageView); the component decides itself whether the page suits it. */
+export interface DocPanelDef {
+  id: string;
+  order?: number;
+  component: Lazy<{ pageId: string; projectId?: string | null }>;
 }
 export interface CommandCtx {
   route: RouteLocationNormalizedLoaded;
@@ -129,6 +136,7 @@ export interface WebModuleManifest extends FrontendModuleManifest {
   routes?: RouteRecordRaw[];
   views?: ViewDef[];
   taskPanels?: TaskPanelDef[];
+  docPanels?: DocPanelDef[];
   commands?: CommandDef[];
   fieldTypes?: FieldTypeDef[];
   settings?: SettingsPageDef[];

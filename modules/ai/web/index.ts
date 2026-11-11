@@ -16,6 +16,7 @@ const label = { ru: 'ИИ', en: 'AI' };
 
 export const web = defineWebModule({
   id: 'ai',
+  docPanels: [{ id: 'harness', component: () => import('./HarnessPanel.vue') }],
   settings: [
     {
       id: 'instance',

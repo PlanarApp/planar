@@ -82,6 +82,7 @@ export function registerModules(all: WebModuleManifest[]): void {
     for (const kind of [
       'views',
       'taskPanels',
+      'docPanels',
       'commands',
       'fieldTypes',
       'settings',
@@ -222,7 +223,13 @@ export function useExtensions<K extends ExtensionKind>(
           key: `${m.id}:${it.id}`,
         })),
       ) as unknown as Extension<K>[];
-    if (kind === 'taskPanels' || kind === 'nav' || kind === 'topbar' || kind === 'groupTabs')
+    if (
+      kind === 'taskPanels' ||
+      kind === 'docPanels' ||
+      kind === 'nav' ||
+      kind === 'topbar' ||
+      kind === 'groupTabs'
+    )
       out.sort(
         (a, b) =>
           ((a as { order?: number }).order ?? 0) - ((b as { order?: number }).order ?? 0) ||
