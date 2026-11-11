@@ -44,19 +44,55 @@ const type = (i: number, text: string) => {
   return ed;
 };
 
-describe('task:delete', () => {
-  it('удаление — только после подтверждения', async () => {
+const byText = (s: string) =>
+  [...document.body.querySelectorAll<HTMLElement>('button, [role="menuitem"]')].find((e) =>
+    e.textContent?.includes(s),
+  );
+const openMenu = async () => {
+  w.find('[aria-label="Меню задачи"]').element.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+  );
+  await flushPromises();
+  await until(() => !!byText('В архив') || !!byText('Восстановить'));
+};
+const asSpaceAdmin = () =>
+  db.table('spaceMembers').where('userId').equals(ids.ann).modify({ role: 'admin' });
+
+describe('task:archive (PLNRAPP-155)', () => {
+  it('участник: «В архив» есть, «Удалить» нет; в архиве — плашка кто и когда, без «Восстановить»', async () => {
     w = await open();
     await until(() => w.find('[aria-label="Меню задачи"]').exists());
-    const byText = (s: string) =>
-      [...document.body.querySelectorAll<HTMLElement>('button, [role="menuitem"]')].find((e) =>
-        e.textContent?.includes(s),
-      );
+    await openMenu();
+    expect(byText('Удалить')).toBeUndefined();
+    byText('В архив')!.click();
+    await eventually(async () => !!(await row<{ archivedAt: string }>('tasks', t.id)).archivedAt);
+    expect(await row('tasks', t.id)).toMatchObject({ archivedBy: ids.ann });
+    await until(() => w.find('[data-testid=archived-banner]').exists());
+    expect(w.get('[data-testid=archived-banner]').text()).toContain('Ann');
+    expect(w.find('[data-testid=archived-restore]').exists()).toBe(false);
+  });
+
+  it('админ пространства восстанавливает из плашки', async () => {
+    await asSpaceAdmin();
+    await db
+      .table('tasks')
+      .update(t.id, { archivedAt: new Date().toISOString(), archivedBy: ids.ann });
+    w = await open();
+    await until(() => w.find('[data-testid=archived-restore]').exists());
+    await w.get('[data-testid=archived-restore]').trigger('click');
+    await eventually(
+      async () => (await row<{ archivedAt: null }>('tasks', t.id)).archivedAt === null,
+    );
+  });
+});
+
+describe('task:delete', () => {
+  it('удаление (админ) — только после подтверждения', async () => {
+    await asSpaceAdmin();
+    w = await open();
+    await until(() => w.find('[aria-label="Меню задачи"]').exists());
     const del = async () => {
-      w.find('[aria-label="Меню задачи"]').element.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
-      );
-      await flushPromises();
+      await openMenu();
       await until(() => !!byText('Удалить'));
       byText('Удалить')!.click();
       await until(() => !!document.body.querySelector('[role="dialog"]'));

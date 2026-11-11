@@ -35,7 +35,9 @@ export const useWatchers = (taskId: string) =>
 
 export const useSubtasks = (taskId: string) =>
   useQuery(async () => {
-    const rows = await db.table<Row<'tasks'>>('tasks').where('parentId').equals(taskId).toArray();
+    const rows = (
+      await db.table<Row<'tasks'>>('tasks').where('parentId').equals(taskId).toArray()
+    ).filter((r) => !r.archivedAt);
     const keys = new Map<string, string>();
     for (const p of await db
       .table<Row<'projects'>>('projects')

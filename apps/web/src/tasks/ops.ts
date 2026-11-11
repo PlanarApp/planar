@@ -82,6 +82,8 @@ export async function moveTask(
 }
 
 export const deleteTask = (id: string): Promise<void> => mutate('task.delete', { id });
+export const archiveTask = (id: string): Promise<void> => mutate('task.archive', { id });
+export const restoreTask = (id: string): Promise<void> => mutate('task.restore', { id });
 
 /** The difference between the wanted set and the links in the replica → add/remove mutations. */
 async function diff(

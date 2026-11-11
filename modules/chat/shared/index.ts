@@ -2,7 +2,9 @@ import { z } from 'zod';
 import {
   defineMutator,
   extractMentions,
+  isProjectAdmin,
   MutatorError,
+  needProjectAdmin,
   type SharedModuleManifest,
   type Tx,
 } from '@planar/shared';
@@ -32,6 +34,7 @@ export const chatChannels = z.object({
   lastSeq: int.nonnegative(),
   lastMessageAt: ts.nullable(),
   archivedAt: ts.nullable(),
+  archivedBy: z.uuid().nullable().default(null),
   createdAt: ts,
   updatedAt: ts,
 });
@@ -167,6 +170,7 @@ const createChannel = defineMutator({
       lastSeq: 0,
       lastMessageAt: null,
       archivedAt: null,
+      archivedBy: null,
       createdAt: ctx.now,
       updatedAt: ctx.now,
     };
@@ -197,23 +201,29 @@ const updateChannel = defineMutator({
       patch.name = name;
     }
     if (a.topic !== undefined) patch.topic = a.topic;
-    if (a.archivedAt !== undefined) patch.archivedAt = a.archivedAt;
+    // PLNRAPP-154: who archived is recorded; out of the archive — only an admin of the project / space / instance
+    if (a.archivedAt && !c.archivedAt)
+      Object.assign(patch, { archivedAt: a.archivedAt, archivedBy: ctx.userId });
+    if (a.archivedAt === null && c.archivedAt) {
+      await needProjectAdmin(tx, c.spaceId!, c.projectId, ctx.userId);
+      Object.assign(patch, { archivedAt: null, archivedBy: null });
+    }
     await ctx_(tx).patch('chatChannels', a.id, patch);
   },
 });
 
-// delete channel (creator or space admin): messages and reactions; others' read marks
-// remain (self rows); without the channel they affect nothing
+// delete channel (creator or admin of the project / space / instance; the system user — archive purge):
+// messages and reactions; others' read marks remain (self rows); without the channel they affect nothing
 const deleteChannel = defineMutator({
   name: 'chat.channel.delete',
   args: z.object({ id: z.uuid() }),
   async run(tx, a, ctx) {
     const c = await channel(tx, a.id);
     if (c.kind !== 'channel') throw new MutatorError('invalid_args', 'не канал');
-    const me = (await tx.scan('spaceMembers', { index: 'spaceId', eq: c.spaceId })).find(
-      (m) => m.userId === ctx.userId,
-    );
-    if (c.createdBy !== ctx.userId && me?.role !== 'admin')
+    if (
+      c.createdBy !== ctx.userId &&
+      !(await isProjectAdmin(tx, c.spaceId!, c.projectId, ctx.userId))
+    )
       throw new MutatorError('forbidden', 'только создатель или admin');
     const t = ctx_(tx);
     const msgs = await t.scan<Message>('chatMessages', { index: 'channelId', eq: c.id });
@@ -257,6 +267,7 @@ const createDm = defineMutator({
       lastSeq: 0,
       lastMessageAt: null,
       archivedAt: null,
+      archivedBy: null,
       createdAt: ctx.now,
       updatedAt: ctx.now,
     };

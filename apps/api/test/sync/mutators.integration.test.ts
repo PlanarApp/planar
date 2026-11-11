@@ -175,6 +175,33 @@ describe('мутаторы через push: данные', () => {
     expect(await w.member.push('space.delete', { id: w.spaceId })).toMatchObject(forbidden);
   });
 
+  it('PLNRAPP-155: архив — участник (с подзадачами, кто и когда), восстановление и удаление — admin', async () => {
+    const w = await world(db);
+    const parent = taskArgs(w);
+    const child = taskArgs(w, { parentId: parent.id });
+    await w.member.ok('task.create', parent);
+    await w.member.ok('task.create', child);
+    expect(await w.guest.push('task.archive', { id: parent.id })).toMatchObject(forbidden);
+    await w.member.ok('task.archive', { id: parent.id });
+    const rows = async () =>
+      (await w.admin.bootstrap()).data.tasks!.filter(
+        (r) => r.id === parent.id || r.id === child.id,
+      );
+    for (const r of await rows())
+      expect(r).toMatchObject({ archivedAt: expect.any(String), archivedBy: w.member.userId });
+    expect(await w.member.push('task.restore', { id: parent.id })).toMatchObject(forbidden);
+    expect(await w.member.push('task.delete', { id: parent.id })).toMatchObject(forbidden);
+    await w.admin.ok('task.restore', { id: parent.id });
+    for (const r of await rows()) expect(r).toMatchObject({ archivedAt: null, archivedBy: null });
+    // restoring a subtask whose parent is still archived: it comes back top-level
+    await w.member.ok('task.archive', { id: parent.id });
+    await w.admin.ok('task.restore', { id: child.id });
+    expect((await rows()).find((r) => r.id === child.id)).toMatchObject({
+      archivedAt: null,
+      parentId: null,
+    });
+  });
+
   it('удаление родителя рекурсивно: подзадачи, метки, исполнители, комментарии', async () => {
     const w = await world(db);
     const parent = taskArgs(w);
@@ -194,7 +221,7 @@ describe('мутаторы через push: данные', () => {
     });
     await w.guest.ok('comment.create', { id: uuidv7(), taskId: child.id, body: doc('x') });
     const { cursor } = await w.admin.bootstrap();
-    await w.member.ok('task.delete', { id: parent.id });
+    await w.admin.ok('task.delete', { id: parent.id });
     const b = await w.admin.bootstrap();
     for (const e of ['tasks', 'taskLabels', 'taskAssignees', 'comments'])
       expect(
@@ -270,7 +297,7 @@ describe('activity', () => {
     await expect(pull.taskActivity(w.member.userId, uuidv7())).rejects.toMatchObject({
       status: 404,
     });
-    await w.member.ok('task.delete', { id: t.id });
+    await w.admin.ok('task.delete', { id: t.id });
     const { rows } = await pull.taskActivity(w.member.userId, t.id);
     expect(rows.map((r) => r.kind)).toEqual(['created', 'deleted']);
   });

@@ -41,7 +41,7 @@ export function useSprintData(projectId: MaybeRefOrGetter<string>) {
           return {
             settings: settings ?? null,
             cycles: cycles.sort((a, b) => a.number - b.number),
-            tasks: tasks.filter((t) => t.cycleId),
+            tasks: tasks.filter((t) => t.cycleId && !t.archivedAt),
           };
         });
         watch(q, (v) => (r.value = v), { immediate: true, flush: 'sync' });

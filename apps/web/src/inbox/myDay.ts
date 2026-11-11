@@ -34,7 +34,7 @@ export const useMyDay = (userId: () => string | undefined) =>
       (p) => p.userId === uid,
     );
     const tasks = await db.table<Row<'tasks'>>('tasks').bulkGet(plans.map((p) => p.taskId));
-    const live = tasks.filter((t): t is Row<'tasks'> => !!t);
+    const live = tasks.filter((t): t is Row<'tasks'> => !!t && !t.archivedAt);
     const [statuses, projects] = await Promise.all([
       db.table<Row<'statuses'>>('statuses').bulkGet([...new Set(live.map((t) => t.statusId))]),
       db.table<Row<'projects'>>('projects').bulkGet([...new Set(live.map((t) => t.projectId))]),

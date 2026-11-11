@@ -14,6 +14,7 @@ import { dayMutators } from './day.js';
 import { favoriteMutators } from './favorites.js';
 
 export { extractMentions, textToDoc } from './text.js';
+export { isProjectAdmin, needProjectAdmin } from './util.js';
 
 export const domainMutators = [
   ...spaceMutators,

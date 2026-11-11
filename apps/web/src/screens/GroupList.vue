@@ -26,7 +26,8 @@ const stats = useQuery(async () => {
   );
   const open = new Map<string, number>();
   for (const x of tasks)
-    if (!closed.has(x.statusId)) open.set(x.projectId, (open.get(x.projectId) ?? 0) + 1);
+    if (!closed.has(x.statusId) && !x.archivedAt)
+      open.set(x.projectId, (open.get(x.projectId) ?? 0) + 1);
   const people = new Map<string, number>();
   for (const m of members) people.set(m.spaceId, (people.get(m.spaceId) ?? 0) + 1);
   return { open, people };

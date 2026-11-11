@@ -2,7 +2,8 @@ import type { Component } from 'vue';
 import type { Router, RouteLocationNormalizedLoaded } from 'vue-router';
 import type { Row } from '@planar/shared';
 import { db } from '../sync';
-import { deleteTask, setAssignees, updateTask } from '../tasks';
+import { archiveTask, canAdmin, deleteTask, setAssignees, updateTask } from '../tasks';
+import { useAuth } from '../auth/useAuth';
 import { quickCreate } from './hotkeys';
 import { setLocale } from '../i18n';
 import { useTheme } from '../ui';
@@ -127,12 +128,24 @@ export async function buildCommands(o: {
         run: each((id) => updateTask(id, { priority: p })),
       });
     out.push({
-      id: 'sel:delete',
-      label: t('cmd.delete', { n: ids.length }),
+      id: 'sel:archive',
+      label: t('cmd.archive', { n: ids.length }),
       group: gSel,
-      confirm: t('cmd.deleteConfirm', { n: ids.length }),
-      run: each(deleteTask),
+      run: each(archiveTask),
     });
+    // PLNRAPP-155: delete — an admin of every selected task's project
+    const me = useAuth().user.value?.id ?? '';
+    const sel = (await db.table<Row<'tasks'>>('tasks').bulkGet(ids)).filter((x) => !!x);
+    let admin = true;
+    for (const x of sel) admin &&= await canAdmin(me, x.spaceId, x.projectId);
+    if (admin)
+      out.push({
+        id: 'sel:delete',
+        label: t('cmd.delete', { n: ids.length }),
+        group: gSel,
+        confirm: t('cmd.deleteConfirm', { n: ids.length }),
+        run: each(deleteTask),
+      });
   }
 
   const gApp = t('cmd.groupApp');

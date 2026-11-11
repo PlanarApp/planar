@@ -84,7 +84,10 @@ export function useSearch() {
   const index = createIndex();
   const data = useQuery(async () => {
     const [tasks, projects] = await Promise.all([
-      db.table<Row<'tasks'>>('tasks').toArray(),
+      db
+        .table<Row<'tasks'>>('tasks')
+        .filter((t) => !t.archivedAt)
+        .toArray(),
       db.table<Row<'projects'>>('projects').toArray(),
     ]);
     return { tasks, keys: new Map(projects.map((p) => [p.id, p.key])) };

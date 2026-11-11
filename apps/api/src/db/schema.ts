@@ -191,6 +191,8 @@ export const tasks = pgTable(
     completedAt: ts(),
     fields: obj().notNull().default({}),
     cycleId: uuid(),
+    archivedAt: ts(),
+    archivedBy: userRef(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

@@ -115,7 +115,8 @@ export type WorkKind = 'assigned' | 'created' | 'watched';
 
 async function workTasks(kind: WorkKind, uid: string): Promise<Row<'tasks'>[]> {
   const tasks = db.table<Row<'tasks'>>('tasks');
-  if (kind === 'created') return tasks.filter((t) => t.createdBy === uid).toArray();
+  if (kind === 'created')
+    return tasks.filter((t) => t.createdBy === uid && !t.archivedAt).toArray();
   const links = await db
     .table<{ taskId: string }>(kind === 'assigned' ? 'taskAssignees' : 'taskWatchers')
     .where('userId')
@@ -124,7 +125,7 @@ async function workTasks(kind: WorkKind, uid: string): Promise<Row<'tasks'>[]> {
   const ids = new Set(links.map((a) => a.taskId));
   // assigned: also a task with my open comment or checklist item (PLNRAPP-140)
   if (kind === 'assigned') for (const id of await forMeTaskIds(uid)) ids.add(id);
-  return (await tasks.bulkGet([...ids])).filter((t): t is Row<'tasks'> => !!t);
+  return (await tasks.bulkGet([...ids])).filter((t): t is Row<'tasks'> => !!t && !t.archivedAt);
 }
 
 export const useMyTasks = (
@@ -194,7 +195,7 @@ export const useAssignedComments = (userId: () => string | undefined) =>
     const tasks = await db
       .table<Row<'tasks'>>('tasks')
       .bulkGet([...new Set(rows.map((c) => c.taskId))]);
-    const task = new Map(tasks.flatMap((t) => (t ? [[t.id, t] as const] : [])));
+    const task = new Map(tasks.flatMap((t) => (t && !t.archivedAt ? [[t.id, t] as const] : [])));
     const projects = await db
       .table<Row<'projects'>>('projects')
       .bulkGet([...new Set(tasks.flatMap((t) => (t ? [t.projectId] : [])))]);

@@ -23,6 +23,8 @@ const SECTIONS = {
   fields: { c: lazy('Fields'), level: 'project' },
   modules: { c: lazy('Modules'), level: 'project' },
   projectMembers: { c: lazy('ProjectMembers'), level: 'project' },
+  // archived tasks, documents and chats of the project (PLNRAPP-154)
+  projectArchive: { c: lazy('Archive'), level: 'project' },
   users: { c: UsersSettings, admin: true, level: 'workspace' },
   // without projectId — the shared modules of the instance
   instanceModules: { c: lazy('Modules'), admin: true, level: 'workspace' },

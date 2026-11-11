@@ -144,8 +144,13 @@ describe('docs', () => {
       },
     );
     await w.member.ok('docs.page.archive', { id: a });
-    await w.member.ok('docs.page.restore', { id: b });
-    expect(await row(b)).toMatchObject({ archivedAt: null, parentId: null });
+    expect(await row(a)).toMatchObject({ archivedBy: w.member.userId });
+    // PLNRAPP-154: restore — admin of the project / space / instance only
+    expect(await w.member.push('docs.page.restore', { id: b })).toMatchObject({
+      code: 'forbidden',
+    });
+    await w.admin.ok('docs.page.restore', { id: b });
+    expect(await row(b)).toMatchObject({ archivedAt: null, archivedBy: null, parentId: null });
     expect((await row(c)).archivedAt).toBeNull();
   });
 

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { sql, type SQL } from 'drizzle-orm';
 import { uuidv7, type BackendModuleManifest } from '@planar/shared';
+import { archiveCutoff, purgeArchived, type JobApi, type JobDef } from '@planar/server-kit';
 import { shared } from '../shared/index.js';
 
 @Module({})
@@ -84,6 +85,20 @@ export const api: BackendModuleManifest = {
   mutators: shared.mutators,
   entities: shared.entities,
   afterMutation: notify as unknown as BackendModuleManifest['afterMutation'],
+  // PLNRAPP-154: archived pages older than ARCHIVE_DAYS; roots only — docs.page.delete takes the subtree
+  jobs: [
+    {
+      queue: 'docs.archive.purge',
+      cron: '25 3 * * *',
+      handler: (_: unknown, a: JobApi) =>
+        purgeArchived(
+          a,
+          'docs.page.delete',
+          sql`select p.id from docs_pages p where p.archived_at < ${archiveCutoff} and not exists
+            (select 1 from docs_pages x where x.id = p.parent_id and x.archived_at < ${archiveCutoff})`,
+        ),
+    },
+  ] as JobDef<never>[],
   // a file on the user's space page, uploaded by a member of that space
   async canReadFile(q, userId, sha256) {
     const r = await (q as Q).execute(sql`

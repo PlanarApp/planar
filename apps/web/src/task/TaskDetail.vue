@@ -12,6 +12,7 @@ import {
 import { useI18n } from 'vue-i18n';
 import { routerKey, useRoute } from 'vue-router';
 import {
+  Archive,
   ArrowLeft,
   CalendarDays,
   ChevronRight,
@@ -44,11 +45,13 @@ import {
   StatusPicker,
   createTask,
   deleteTask,
+  restoreTask,
   setAssignees,
   setLabels,
   updateTask,
   useLabels,
   useMembers,
+  useProjectAdmin,
   useStatuses,
   type TaskView,
 } from '../tasks';
@@ -111,6 +114,18 @@ useLabels(
   () => props.task.projectId,
 );
 const users = useUsers();
+// PLNRAPP-155: an archived task (opened from the Archive or by a link) — who and when, restore for an admin
+const admin = useProjectAdmin();
+const archivedNote = computed(() => {
+  const at = props.task.archivedAt;
+  if (!at) return '';
+  const who = users.value?.find((u) => u.id === props.task.archivedBy)?.name ?? '—';
+  const when = new Date(at).toLocaleString(locale.value, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+  return t('archive.by', { who, when });
+});
 const watchers = useWatchers(props.task.id);
 // subtask's parent — a breadcrumb link
 const parent = useTask(() => props.task.parentId ?? '');
@@ -470,6 +485,22 @@ const panelComponent = computed(() => {
         data-testid="close"
         @click="emit('close')"
       />
+    </div>
+    <div
+      v-if="task.archivedAt"
+      role="status"
+      data-testid="archived-banner"
+      class="flex flex-wrap items-center gap-2 border-b border-border bg-bg-muted px-4 py-2 text-sm"
+    >
+      <Archive :size="14" class="shrink-0" />
+      <span class="min-w-0 flex-1">{{ archivedNote }}</span>
+      <Button
+        v-if="admin(task.spaceId, task.projectId)"
+        size="sm"
+        data-testid="archived-restore"
+        @click="restoreTask(task.id)"
+        >{{ t('archive.restore') }}</Button
+      >
     </div>
 
     <div class="flex min-h-0 flex-1 flex-col overflow-y-auto @4xl:flex-row @4xl:overflow-hidden">
