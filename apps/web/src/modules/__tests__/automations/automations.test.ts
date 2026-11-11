@@ -149,11 +149,63 @@ describe('wk3: страница правил', () => {
       id: 'new-id',
       projectId: P,
       name: 'Срок',
+      description: null,
       enabled: true,
       trigger: { type: 'task.due', daysBefore: 2 },
       conditions: { op: 'and', rules: [{ field: 'cycle', operator: 'in', value: ['current'] }] },
       actions: [{ type: 'create_subtask', title: 'Проверить' }],
     });
+  });
+
+  it('PLNRAPP-166: конструктор — schedule с поясом, описание', async () => {
+    const w = mount(RulesPage, stubs);
+    await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
+    await w.get('[data-role=new]').trigger('click');
+    await w.get('[data-role=name]').setValue('Сводка');
+    await w.get('[data-role=description]').setValue('По понедельникам');
+    await pick(w, 'trigger', 'schedule');
+    await w.get('[data-role=cron]').setValue('0 10 * * 1');
+    await w.get('[data-role=tz]').setValue('Europe/Moscow');
+    await w.get('[data-role=action-text]').setValue('Неделя');
+    await w.get('[data-testid=editor]').trigger('submit');
+    expect(mutate).toHaveBeenCalledWith(
+      'automations.create',
+      expect.objectContaining({
+        description: 'По понедельникам',
+        trigger: { type: 'schedule', cron: '0 10 * * 1', tz: 'Europe/Moscow' },
+      }),
+    );
+  });
+
+  it('PLNRAPP-166: конструктор — stale (дни), comment.added только от людей', async () => {
+    const w = mount(RulesPage, stubs);
+    await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
+    await w.get('[data-role=new]').trigger('click');
+    await w.get('[data-role=name]').setValue('Тишина');
+    await pick(w, 'trigger', 'task.stale');
+    await w.get('[data-role=trigger-num]').setValue('5');
+    await w.get('[data-role=action-text]').setValue('Пинг');
+    await w.get('[data-testid=editor]').trigger('submit');
+    expect(mutate).toHaveBeenLastCalledWith(
+      'automations.create',
+      expect.objectContaining({ trigger: { type: 'task.stale', days: 5 } }),
+    );
+    await w.get('[data-role=new]').trigger('click');
+    await w.get('[data-role=name]').setValue('Ответ');
+    await pick(w, 'trigger', 'comment.added');
+    await w.get('[data-role=by-human]').setValue(true);
+    await w.get('[data-role=action-text]').setValue('Спасибо');
+    await w.get('[data-testid=editor]').trigger('submit');
+    expect(mutate).toHaveBeenLastCalledWith(
+      'automations.create',
+      expect.objectContaining({ trigger: { type: 'comment.added', byHuman: true } }),
+    );
+  });
+
+  it('PLNRAPP-166: описание правила в списке', async () => {
+    await h.db.table('automationsRules').bulkPut([ruleRow({ description: 'Зачем это' })]);
+    const w = mount(RulesPage);
+    await vi.waitFor(() => expect(w.find('[data-role=desc]').text()).toBe('Зачем это'));
   });
 
   it('wk3: неверное правило не уходит на сервер', async () => {

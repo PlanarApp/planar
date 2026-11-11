@@ -20,7 +20,27 @@ export const TRIGGER_TYPES = [
   'task.field_changed',
   'task.due',
   'comment.added',
+  'task.stale',
+  'task.unassigned',
+  'task.waiting_human',
+  'task.start_reached',
+  'schedule',
 ] as const;
+
+/** Five cron fields: `*`, numbers, ranges, steps, lists; bounds are checked by the api parser. */
+const CRON_FIELD = String.raw`(\*|\d+(-\d+)?)(\/\d+)?(,(\*|\d+(-\d+)?)(\/\d+)?)*`;
+export const CRON_RE = new RegExp(`^${CRON_FIELD}( ${CRON_FIELD}){4}$`);
+
+export const isTimeZone = (v: string): boolean => {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: v });
+    return true;
+  } catch {
+    return false;
+  }
+};
+const days = z.number().int().min(1).max(365);
+const byHuman = z.boolean().optional();
 
 export const triggerSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('task.created') }),
@@ -36,9 +56,19 @@ export const triggerSchema = z.discriminatedUnion('type', [
       z.enum(['title', 'description', 'priority', 'dueDate', 'startDate', 'parentId']),
       fieldRef,
     ]),
+    byHuman,
   }),
   z.object({ type: z.literal('task.due'), daysBefore: z.number().int().min(0).max(30) }),
-  z.object({ type: z.literal('comment.added') }),
+  z.object({ type: z.literal('comment.added'), byHuman }),
+  z.object({ type: z.literal('task.stale'), days, statuses: z.array(uuid).optional() }),
+  z.object({ type: z.literal('task.unassigned'), hours: z.number().int().min(1).max(720) }),
+  z.object({ type: z.literal('task.waiting_human'), days }),
+  z.object({ type: z.literal('task.start_reached') }),
+  z.object({
+    type: z.literal('schedule'),
+    cron: z.string().regex(CRON_RE),
+    tz: z.string().refine(isTimeZone).optional(),
+  }),
 ]);
 export type Trigger = z.infer<typeof triggerSchema>;
 
@@ -113,12 +143,15 @@ export type Action = z.infer<typeof actionSchema>;
 
 const actions = z.array(actionSchema).min(1).max(10);
 const name = z.string().min(1).max(100);
+const description = z.string().max(2000).nullable();
 
 export const automationsRules = z.object({
   id: uuid,
   spaceId: uuid,
   projectId: uuid,
   name,
+  // default: replica rows cached before the column
+  description: description.default(null),
   enabled: z.boolean(),
   trigger: triggerSchema,
   conditions: filterSchema,
@@ -162,6 +195,7 @@ export const create = defineMutator({
     id: uuid,
     projectId: uuid,
     name,
+    description: description.optional(),
     trigger: triggerSchema,
     conditions: filterSchema.optional(),
     actions,
@@ -175,6 +209,7 @@ export const create = defineMutator({
       spaceId: project.spaceId,
       projectId: a.projectId,
       name: a.name,
+      description: a.description ?? null,
       enabled: a.enabled ?? true,
       trigger: a.trigger,
       conditions: a.conditions ?? EMPTY_FILTER,
@@ -192,6 +227,7 @@ export const update = defineMutator({
   args: z.object({
     id: uuid,
     name: name.optional(),
+    description: description.optional(),
     trigger: triggerSchema.optional(),
     conditions: filterSchema.optional(),
     actions: actions.optional(),

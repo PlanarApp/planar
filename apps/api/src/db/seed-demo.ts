@@ -1699,7 +1699,33 @@ async function insertAll(tx: Tx, now: Date) {
       { op: 'and', rules: [] },
       [{ type: 'add_comment', text: 'Due in two days. Anything blocking?' }],
     ],
+    [
+      'SUP',
+      'Nudge tickets quiet for a week',
+      { type: 'task.stale', days: 7 },
+      { op: 'and', rules: [] },
+      [{ type: 'add_comment', text: 'No updates for a week. Still on it?' }],
+    ],
+    [
+      'PLT',
+      'Monday check-in',
+      { type: 'schedule', cron: '0 9 * * 1' },
+      { op: 'and', rules: [{ field: 'statusCategory', operator: 'in', value: ['in_progress'] }] },
+      [{ type: 'add_comment', text: 'New week: what is left here?' }],
+    ],
+    [
+      'SUP',
+      'Reply from a person reopens the ticket',
+      { type: 'comment.added', byHuman: true },
+      { op: 'and', rules: [{ field: 'statusCategory', operator: 'in', value: ['done'] }] },
+      [{ type: 'set_status', statusId: statusId('SUP', 1) }],
+    ],
   ];
+  const RULE_NOTES: Record<number, string> = {
+    3: 'Fires once per quiet spell: a new update resets the clock.',
+    4: 'Runs every Monday at 09:00 in the instance time zone for tasks in progress.',
+    5: 'Only comments written by people count, not automations.',
+  };
   await ins(
     automationsRules,
     RULES.map(([key, name, trigger, conditions, actions], k) => ({
@@ -1707,6 +1733,7 @@ async function insertAll(tx: Tx, now: Date) {
       spaceId: spaceIds[PROJECTS[pkIdx(key)]!.space],
       projectId: pid(key),
       name,
+      description: RULE_NOTES[k] ?? null,
       enabled: true,
       trigger,
       conditions,

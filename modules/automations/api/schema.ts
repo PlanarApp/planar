@@ -22,6 +22,7 @@ export const automationsRules = pgTable(
     spaceId: uuid().notNull(),
     projectId: uuid().notNull(),
     name: text().notNull(),
+    description: text(),
     enabled: boolean().notNull(),
     trigger: jsonb().$type<unknown>().notNull(),
     conditions: jsonb().$type<unknown>().notNull(),
@@ -61,4 +62,16 @@ export const automationsDueFired = pgTable(
     dueDate: date({ mode: 'string' }).notNull(),
   },
   (t) => [primaryKey({ columns: [t.ruleId, t.taskId, t.dueDate] })],
+);
+
+/** Scanned triggers fire once per (rule, task, slot); slot — the moment the condition is counted from. */
+export const automationsFired = pgTable(
+  'automations_fired',
+  {
+    ruleId: uuid().notNull(),
+    taskId: uuid().notNull(),
+    slot: text().notNull(),
+    createdAt: ts().notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.ruleId, t.taskId, t.slot] })],
 );

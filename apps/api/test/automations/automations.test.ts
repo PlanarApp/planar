@@ -29,6 +29,7 @@ const queue = new PushQueue(db, { boss: false, databaseUrl: dbUrl });
 let w: World;
 let P: string; // test project: neighbouring tests' rules do not interfere
 let api: JobApi;
+let pushSvc: PushService;
 let app: Awaited<ReturnType<typeof createApp>>;
 const [BACKLOG, TODO, PROG, DONE] = [0, 1, 2, 3];
 type Job = { queue: string; data: Record<string, unknown>; key?: string };
@@ -51,6 +52,7 @@ beforeAll(async () => {
   w = await world(db);
   // mutations go through PushService with a queue: hook enqueue lands in jobs
   const svc = { ...services(db), push: new PushService(db, queue) };
+  pushSvc = svc.push;
   for (const c of ['admin', 'member', 'guest', 'outsider'] as const)
     w[c] = new TestClient(svc, w[c].userId);
   queue.jobs.enqueue = async (q, data, o) =>
@@ -780,6 +782,229 @@ describe('wk3b: send_webhook и циклы в условиях', () => {
     await raw(`update tasks set cycle_id = '${c}' where id = '${t}'`);
     await drain();
     expect(statuses(await runsOf(r.id))).toEqual(['skipped']);
+  });
+});
+
+describe('PLNRAPP-166: byHuman, триггеры по сканированию и расписанию, описание', () => {
+  const comment = (taskId: string, over: Record<string, unknown> = {}) => ({
+    id: uuidv7(),
+    taskId,
+    body: { type: 'doc', content: [{ type: 'paragraph' }] },
+    ...over,
+  });
+  const due = (now: string) => handler('automations.due').handler({ now }, api);
+  const sched = (now: string) => handler('automations.schedule').handler({ now }, api);
+  const taskIds = (r: Rule) => queued(r.id).map((j) => j.data.taskId as string);
+
+  it('byHuman: человек и личный токен — да; деактивированный и правило automations — нет', async () => {
+    const human = await rule({ type: 'comment.added', byHuman: true });
+    const any = await rule({ type: 'comment.added' });
+    const t = await task();
+    jobs.length = 0;
+    await w.admin.ok('comment.create', comment(t));
+    expect(queued(human.id)).toHaveLength(1);
+    jobs.length = 0;
+    const viaToken = await pushSvc.push(
+      w.admin.userId,
+      { clientId: uuidv7(), mutations: [{ id: 1, name: 'comment.create', args: comment(t) }] },
+      uuidv7(),
+    );
+    expect(viaToken.results[0]).toMatchObject({ ok: true });
+    expect(queued(human.id)).toHaveLength(1);
+    jobs.length = 0;
+    await raw(`update users set deactivated_at = now() where id = '${w.member.userId}'`);
+    try {
+      await w.member.ok('comment.create', comment(t));
+    } finally {
+      await raw(`update users set deactivated_at = null where id = '${w.member.userId}'`);
+    }
+    expect(queued(human.id)).toHaveLength(0);
+    expect(queued(any.id)).toHaveLength(1);
+    jobs.length = 0;
+    // a comment written by a rule
+    await rule({ type: 'task.created' }, [{ type: 'add_comment', text: 'auto' }]);
+    const t2 = await task();
+    await drain();
+    const on = async (r: Rule) => (await runsOf(r.id)).filter((x) => x.task_id === t2);
+    expect(await on(human)).toHaveLength(0);
+    expect(await on(any)).toHaveLength(1);
+  });
+
+  it('byHuman у task.field_changed; у других триггеров флаг отбрасывается', async () => {
+    const r = await rule({ type: 'task.field_changed', field: 'priority', byHuman: true });
+    const t = await task();
+    jobs.length = 0;
+    await w.admin.ok('task.update', { id: t, priority: 2 });
+    expect(queued(r.id)).toHaveLength(1);
+    jobs.length = 0;
+    const res = await w.admin.push('automations.create', {
+      id: uuidv7(),
+      projectId: P,
+      name: 'R',
+      trigger: { type: 'task.created', byHuman: true },
+      actions: [{ type: 'add_comment', text: 'x' }],
+    });
+    // extra keys are stripped by zod: the rule is created without the flag
+    expect(res).toMatchObject({ ok: true });
+  });
+
+  it('task.stale: давность updated_at, фильтр статусов, раз до следующего изменения', async () => {
+    const r = await rule({ type: 'task.stale', days: 3 });
+    const inProg = await rule({ type: 'task.stale', days: 3, statuses: [w.statusIds[PROG]] });
+    const old = await task();
+    const fresh = await task();
+    const done = await task({ statusId: w.statusIds[DONE] });
+    await raw(
+      `update tasks set updated_at = '2026-11-01T00:00:00Z' where id in ('${old}', '${done}')`,
+    );
+    await raw(`update tasks set updated_at = '2026-11-07T00:00:00Z' where id = '${fresh}'`);
+    jobs.length = 0;
+    await due('2026-11-08T00:00:00.000Z');
+    expect(taskIds(r)).toEqual([old]);
+    expect(queued(inProg.id)).toHaveLength(0);
+    await due('2026-11-08T01:00:00.000Z');
+    expect(taskIds(r)).toEqual([old]);
+    await raw(`update tasks set updated_at = '2026-11-09T00:00:00Z' where id = '${old}'`);
+    await due('2026-11-13T00:00:00.000Z');
+    expect(taskIds(r).filter((x) => x === old)).toHaveLength(2);
+    expect(taskIds(r)).toContain(fresh);
+    expect(taskIds(r)).not.toContain(done);
+  });
+
+  it('task.unassigned: без исполнителя N часов с создания или снятия исполнителя', async () => {
+    const r = await rule({ type: 'task.unassigned', hours: 2 });
+    const [a, b, c] = [await task(), await task(), await task()];
+    await raw(
+      `update tasks set created_at = now() - interval '5 hours' where id in ('${a}', '${b}', '${c}')`,
+    );
+    await w.admin.ok('task.assign', { id: uuidv7(), taskId: b, userId: w.member.userId });
+    await w.admin.ok('task.assign', { id: uuidv7(), taskId: c, userId: w.member.userId });
+    await w.admin.ok('task.unassign', { taskId: c, userId: w.member.userId });
+    jobs.length = 0;
+    const later = (h: number) => new Date(Date.now() + h * 3600_000).toISOString();
+    await due(later(0.1));
+    expect(taskIds(r)).toEqual([a]);
+    await due(later(3));
+    expect(taskIds(r).sort()).toEqual([a, c].sort());
+  });
+
+  it('task.waiting_human: нерешённый комментарий на человека старше N дней', async () => {
+    const r = await rule({ type: 'task.waiting_human', days: 2 });
+    const [t, u, v] = [await task(), await task(), await task()];
+    const [c1, c2, c3] = [t, u, v].map((x) => comment(x, { assigneeId: w.member.userId }));
+    for (const c of [c1, c2, c3]) await w.admin.ok('comment.create', c);
+    await raw(
+      `update comments set created_at = now() - interval '3 days' where id in ('${c1!.id}', '${c2!.id}')`,
+    );
+    await raw(`update comments set resolved_at = now() where id = '${c2!.id}'`);
+    jobs.length = 0;
+    await due(new Date().toISOString());
+    expect(taskIds(r)).toEqual([t]); // u — resolved, v — fresh
+    await due(new Date().toISOString());
+    expect(taskIds(r)).toEqual([t]);
+  });
+
+  it('task.start_reached: дата начала наступила — раз на дату', async () => {
+    const r = await rule({ type: 'task.start_reached' });
+    const t = await task({ startDate: '2026-11-10' });
+    await task({ startDate: '2026-11-12' });
+    await task({ startDate: '2026-11-01', statusId: w.statusIds[DONE] });
+    jobs.length = 0;
+    await due('2026-11-10T12:00:00.000Z');
+    expect(taskIds(r)).toEqual([t]);
+    await due('2026-11-10T13:00:00.000Z');
+    expect(taskIds(r)).toEqual([t]);
+    await w.admin.ok('task.update', { id: t, startDate: '2026-11-11' });
+    await due('2026-11-11T12:00:00.000Z');
+    expect(taskIds(r)).toEqual([t, t]);
+  });
+
+  it('schedule: cron в поясе правила, раз на срабатывание, открытые задачи', async () => {
+    expect(handler('automations.schedule').cron).toBe('* * * * *');
+    const r = await rule({ type: 'schedule', cron: '0 9 * * 1', tz: 'Europe/Moscow' });
+    const t = await task();
+    await task({ statusId: w.statusIds[DONE] });
+    jobs.length = 0;
+    await sched('2026-11-16T09:00:30.000Z'); // 12:00 MSK
+    expect(queued(r.id)).toHaveLength(0);
+    await sched('2026-11-16T06:00:30.000Z'); // Mon 09:00 MSK
+    expect(taskIds(r)).toEqual([t]);
+    await sched('2026-11-16T06:01:10.000Z'); // the same occurrence
+    expect(taskIds(r)).toEqual([t]);
+    await sched('2026-11-23T06:00:20.000Z');
+    expect(taskIds(r)).toEqual([t, t]);
+  });
+
+  it('schedule: без пояса — settings.timezone; неверные cron и пояс — invalid_args', async () => {
+    const r = await rule({ type: 'schedule', cron: '30 8 * * *' });
+    const t = await task();
+    jobs.length = 0;
+    await db.insert(schema.settings).values({ id: 'timezone', value: 'Asia/Tokyo' });
+    try {
+      await sched('2026-11-16T08:30:10.000Z'); // 17:30 in Tokyo
+      expect(queued(r.id)).toHaveLength(0);
+      await sched('2026-11-15T23:30:10.000Z'); // 08:30 in Tokyo
+      expect(taskIds(r)).toEqual([t]);
+    } finally {
+      await db.delete(schema.settings).where(eq(schema.settings.id, 'timezone'));
+    }
+    const bad = async (trigger: object) =>
+      expect(
+        await w.admin.push('automations.create', {
+          id: uuidv7(),
+          projectId: P,
+          name: 'R',
+          trigger,
+          actions: [{ type: 'add_comment', text: 'x' }],
+        }),
+      ).toMatchObject({ ok: false, code: 'invalid_args' });
+    await bad({ type: 'schedule', cron: '0 9 * *' });
+    await bad({ type: 'schedule', cron: 'every day' });
+    await bad({ type: 'schedule', cron: '0 9 * * 1', tz: 'Mars/Base' });
+    await bad({ type: 'task.stale', days: 0 });
+    await bad({ type: 'task.unassigned', hours: 721 });
+    // the shape passes, the field is out of range: the job skips the rule
+    const odd = await rule({ type: 'schedule', cron: '99 * * * *' });
+    await sched('2026-11-16T06:00:30.000Z');
+    expect(queued(odd.id)).toHaveLength(0);
+  });
+
+  it('description: создание, правка, сброс', async () => {
+    const r = await rule({ type: 'task.created' }, undefined, { description: 'Зачем правило' });
+    const desc = async () =>
+      (await raw(`select description from automations_rules where id = '${r.id}'`))[0]!.description;
+    expect(await desc()).toBe('Зачем правило');
+    await w.admin.ok('automations.update', { id: r.id, description: 'Другое' });
+    expect(await desc()).toBe('Другое');
+    await w.admin.ok('automations.update', { id: r.id, description: null });
+    expect(await desc()).toBeNull();
+    expect(
+      await w.admin.push('automations.update', { id: r.id, description: 'x'.repeat(2001) }),
+    ).toMatchObject({ ok: false, code: 'invalid_args' });
+  });
+
+  it('cleanup: метки fired удалённых правил и задач, schedule старше 30 дней', async () => {
+    const keep = await rule({ type: 'task.stale', days: 1 });
+    const gone = await rule({ type: 'task.stale', days: 1 });
+    const s = await rule({ type: 'schedule', cron: '0 9 * * *' });
+    const t = await task();
+    const ins = (ruleId: string, slot: string, at = 'now()') =>
+      raw(
+        `insert into automations_fired (rule_id, task_id, slot, created_at) values ('${ruleId}', '${t}', '${slot}', ${at})`,
+      );
+    await ins(keep.id, 'a', `now() - interval '90 days'`);
+    await ins(gone.id, 'a');
+    await ins(s.id, 'old', `now() - interval '40 days'`);
+    await ins(s.id, 'new');
+    await w.admin.ok('automations.delete', { id: gone.id });
+    await handler('automations.cleanup').handler({}, api);
+    const left = await raw(
+      `select rule_id, slot from automations_fired where task_id = '${t}' order by slot`,
+    );
+    expect(left).toEqual([
+      { rule_id: keep.id, slot: 'a' },
+      { rule_id: s.id, slot: 'new' },
+    ]);
   });
 });
 

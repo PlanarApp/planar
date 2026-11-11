@@ -27,7 +27,7 @@ export interface MutationWrite {
   before: Record<string, unknown> | null;  // row before (wire), null — there was none
   after: Record<string, unknown> | null;   // row after, null — deleted
 }
-export interface MutationOrigin { ruleId: string; depth: number } // the mutation was made by an automation rule
+export interface MutationOrigin { ruleId?: string; aiRunId?: string; depth: number } // the mutation was made by an automation rule or an AI run (PLNRAPP-166)
 export interface AfterMutationCtx {
   userId: string; now: string; tokenId: string | null;
   mutator: string;                // mutator name
@@ -42,7 +42,10 @@ export interface BackendModuleManifest {
 ```
 Types with Node API — `apps/api/src/modules/hooks.ts` (exported for modules as `@planar/api/modules`, `exports["./modules"]` in `apps/api/package.json`):
 ```ts
-export interface JobOpts { startAfter?: number /* sec */ | Date; singletonKey?: string }
+export interface JobOpts {
+  startAfter?: number /* sec */ | Date; singletonKey?: string;
+  upsert?: boolean; // PLNRAPP-166: with singletonKey — pg-boss upsert: a queued job with the key gets new data and startAfter instead of a second job (debounce)
+}
 export interface ModuleHookApi {
   q: Q;                 // mutation transaction (inside the hook savepoint)
   sys: ServerTx;        // system write: bypasses permissions, lands in changes
@@ -244,6 +247,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId
 | `spaceId` | uuid | |
 | `projectId` | uuid | the rule fires on tasks of this project |
 | `name` | text | 1–100 |
+| `description` | text? | 0–2000, `null` by default (PLNRAPP-166) |
 | `enabled` | bool | |
 | `trigger` | obj | `{type, …parameters}` — catalog below |
 | `conditions` | obj | `Filter` (F-filter v2), `{op:'and', rules:[]}` — always |
@@ -254,8 +258,8 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId
 
 | mutator | args | rules |
 |---|---|---|
-| `automations.create` | `id, projectId, name, trigger, conditions?, actions, enabled?` | schemas `triggerSchema`, `actionSchema`, `filterSchema` (exported from `modules/automations/shared`); invalid → `invalid_args`; `enabled` defaults to true |
-| `automations.update` | `id, name?, trigger?, conditions?, actions?, enabled?` | |
+| `automations.create` | `id, projectId, name, description?, trigger, conditions?, actions, enabled?` | schemas `triggerSchema`, `actionSchema`, `filterSchema` (exported from `modules/automations/shared`); invalid → `invalid_args`; `enabled` defaults to true |
+| `automations.update` | `id, name?, description?, trigger?, conditions?, actions?, enabled?` | |
 | `automations.delete` | `id` | |
 
 ### Triggers
@@ -264,11 +268,20 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId
 | `task.created` | — | `tasks` put, `before = null` |
 | `task.status_changed` | `from?: uuid[]`, `to?: uuid[]` | `statusId` changed; if `from`/`to` are given — the old/new value is in the list |
 | `task.assignee_changed` | `userId?: uuid` | `taskAssignees` put (new) or del; with `userId` — only adding this user |
-| `task.field_changed` | `field: 'title'\|'description'\|'priority'\|'dueDate'\|'startDate'\|'parentId'\|'field:<uuid>'` | the field value changed (`fields[id]` for `field:`) |
+| `task.field_changed` | `field: 'title'\|'description'\|'priority'\|'dueDate'\|'startDate'\|'parentId'\|'field:<uuid>'`, `byHuman?: bool` | the field value changed (`fields[id]` for `field:`) |
 | `task.due` | `daysBefore: int 0–30` | cron `automations.due` (hourly): the task is not done/cancelled, `dueDate − daysBefore ≤ today` in `settings.timezone` (instance key, IANA, default `UTC`); once per (rule, task, `dueDate`) |
-| `comment.added` | — | `comments` put, `before = null` |
+| `comment.added` | `byHuman?: bool` | `comments` put, `before = null` |
+| `task.stale` | `days: int 1–365`, `statuses?: uuid[]` | cron `automations.due`: `updatedAt ≤ now − days`; with non-empty `statuses` — the task's status is in the list; slot `updatedAt` |
+| `task.unassigned` | `hours: int 1–720` | cron `automations.due`: no assignees since `max(createdAt, last activity assignee_removed) ≤ now − hours`; slot — that moment |
+| `task.waiting_human` | `days: int 1–365` | cron `automations.due`: an unresolved comment assigned to an active user, created `≤ now − days`; slot — id of the oldest such comment |
+| `task.start_reached` | — | cron `automations.due`: `startDate ≤ today` in `settings.timezone`; slot `startDate` |
+| `schedule` | `cron` (5 fields: `*`, numbers, ranges, steps, lists), `tz?` (IANA; default `settings.timezone`) | cron `automations.schedule` (every minute): the latest cron occurrence in `tz` is within the last 2 minutes → runs for every open task of the project; slot — the occurrence (ISO). A field out of range passes the shape check, and the rule never fires |
 
 The rule's project is the task's `projectId` after the mutation. Deleted tasks do not trigger rules.
+
+`byHuman: true` (PLNRAPP-166) — the event counts only when a person made it: `!ctx.system && !ctx.origin` and the author is not deactivated (until `users.bot` of PLNRAPP-167, a deactivated author stands for a bot). A personal API token counts as its owner. On other triggers the key is dropped by the schema.
+
+Scanned triggers (`stale`, `unassigned`, `waiting_human`, `start_reached`, `schedule`) look at tasks that are not archived and not done/cancelled, in projects with the module on; the four hourly ones are counted by one query over all rules. Each fires once per (rule, task, slot): the slot changes when the condition resets (the task is updated, assigned and unassigned again, a new start date), and then the trigger can fire again.
 
 ### Conditions and actions
 Conditions — `matchFilter(task, conditions, {statuses, fieldDefs, userId: system, today})` on the task's current row at execution time; not met → the run is `skipped`.
@@ -289,7 +302,7 @@ Conditions — `matchFilter(task, conditions, {statuses, fieldDefs, userId: syst
 ### Execution
 - Hook `afterMutation`: by `writes` — matching enabled rules → `enqueue('automations.run', {ruleId, taskId, depth, eventAt})`, `depth = (ctx.origin?.depth ?? 0) + 1`. Not enqueued if `depth > 3` or `ruleId = ctx.origin.ruleId` (a rule does not fire on its own action).
 - Worker `automations.run`: rule disabled/deleted or task gone — `skipped`; otherwise all actions in one transaction `JobApi.execute(systemUserId, muts, {system: true, origin: {ruleId, depth}})`. Error → actions roll back, the run is `error` with the text; the original mutation is not affected. No retries (`retryLimit: 0`).
-- Server tables: `automations_runs` (`id uuid pk`, `rule_id uuid`, `task_id uuid`, `depth int`, `status text check (ok,skipped,error)`, `error text?`, `created_at`; index `(rule_id, created_at desc)`; cron deletes rows older than 30 days), `automations_due_fired` (`rule_id`, `task_id`, `due_date date`; pk of all three).
+- Server tables: `automations_runs` (`id uuid pk`, `rule_id uuid`, `task_id uuid`, `depth int`, `status text check (ok,skipped,error)`, `error text?`, `created_at`; index `(rule_id, created_at desc)`; cron deletes rows older than 30 days), `automations_due_fired` (`rule_id`, `task_id`, `due_date date`; pk of all three), `automations_fired` (PLNRAPP-166: `rule_id`, `task_id`, `slot text`, `created_at`; pk of the first three; the daily cron deletes rows of deleted rules and tasks and `schedule` rows older than 30 days).
 - REST: `GET /api/automations/rules/:id/runs?limit=` (1–200, default 50) → `{data: run[]}` newest first; rule not visible → 404. `run` = `{id, ruleId, taskId, depth, status, error, createdAt}`.
 - Web: settings page `automations:rules` (project picker, rule list, builder "trigger → conditions (filter builder) → actions", run log).
 

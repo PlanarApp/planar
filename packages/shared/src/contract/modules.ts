@@ -21,9 +21,10 @@ export interface MutationWrite {
   /** row after; null — deleted */
   after: Record<string, unknown> | null;
 }
-/** Mutation made by an automation rule. */
+/** Mutation made by an automation rule or an AI run. */
 export interface MutationOrigin {
-  ruleId: string;
+  ruleId?: string;
+  aiRunId?: string;
   depth: number;
 }
 export interface AfterMutationCtx {

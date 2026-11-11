@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { createApp } from '../../src/app.js';
 import * as schema from '../../src/db/schema.js';
+import { JobsService } from '../../src/jobs/jobs.js';
 import { PullService } from '../../src/sync/pull.service.js';
 import { PushService } from '../../src/sync/push.service.js';
 import { ORIGIN } from '../auth.js';
@@ -153,4 +154,32 @@ describe('wk3: pg-boss', () => {
     );
     expect(got).toMatchObject([{ status: 'ok', task_id: on }]);
   }, 60_000);
+
+  it('PLNRAPP-166: enqueue с upsert — один отложенный job на ключ, данные и срок обновляются', async () => {
+    const jobs = app.get(JobsService);
+    const key = `debounce:${uuidv7()}`;
+    const ruleId = uuidv7();
+    await jobs.enqueue(
+      'automations.run',
+      { ruleId, n: 1 },
+      { singletonKey: key, startAfter: 600, upsert: true },
+    );
+    await jobs.enqueue(
+      'automations.run',
+      { ruleId, n: 2 },
+      { singletonKey: key, startAfter: 900, upsert: true },
+    );
+    const q = () =>
+      db.$client
+        .query(
+          `select data, start_after from pgboss.job where name = 'automations.run' and singleton_key = $1`,
+          [key],
+        )
+        .then((r) => r.rows as { data: { n: number }; start_after: Date }[]);
+    const got = await q();
+    expect(got).toHaveLength(1);
+    expect(got[0]!.data.n).toBe(2);
+    expect(got[0]!.start_after.getTime()).toBeGreaterThan(Date.now() + 800_000);
+    await db.$client.query(`delete from pgboss.job where singleton_key = $1`, [key]);
+  });
 });

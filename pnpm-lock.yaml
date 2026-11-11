@@ -471,6 +471,9 @@ importers:
       '@planar/web':
         specifier: workspace:*
         version: link:../../apps/web
+      cron-parser:
+        specifier: 5.10.2
+        version: 5.10.2
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
