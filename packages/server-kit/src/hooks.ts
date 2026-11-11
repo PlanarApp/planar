@@ -7,6 +7,8 @@ export interface JobOpts {
   /** seconds or a moment */
   startAfter?: number | Date;
   singletonKey?: string;
+  /** with singletonKey: a queued job with the key gets new data and startAfter instead of a second job (debounce) */
+  upsert?: boolean;
 }
 
 /** Third argument `afterMutation`. */

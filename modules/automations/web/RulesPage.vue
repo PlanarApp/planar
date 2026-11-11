@@ -30,6 +30,7 @@ import {
 } from '../shared/index.js';
 import {
   ACTIONS,
+  NUM_PARAM,
   TRIGGERS,
   blankAction,
   blankTrigger,
@@ -78,6 +79,7 @@ interface Draft {
   id: string;
   isNew: boolean;
   name: string;
+  description: string;
   enabled: boolean;
   trigger: Trigger;
   conditions: Filter;
@@ -93,6 +95,7 @@ const startNew = () => {
     id: newId(),
     isNew: true,
     name: '',
+    description: '',
     enabled: true,
     trigger: blankTrigger('task.created'),
     conditions: structuredClone(EMPTY_FILTER),
@@ -105,6 +108,7 @@ const edit = (r: Rule) => {
     id: r.id,
     isNew: false,
     name: r.name,
+    description: r.description ?? '',
     enabled: r.enabled,
     trigger: structuredClone(r.trigger),
     conditions: structuredClone(r.conditions),
@@ -121,6 +125,7 @@ const save = async () => {
   if (!ok) return void (error.value = tx.value.invalid);
   const body = {
     name: d.name.trim(),
+    description: d.description.trim() || null,
     enabled: d.enabled,
     trigger: d.trigger,
     conditions: d.conditions,
@@ -213,6 +218,9 @@ const setValue = (i: number, raw: string) => {
           <span class="text-sm text-fg-muted">
             {{ tx.triggers[r.trigger.type] }} → {{ r.actions.length }}
           </span>
+          <span v-if="r.description" class="basis-full text-sm text-fg-muted" data-role="desc">{{
+            r.description
+          }}</span>
           <span class="ml-auto flex items-center gap-1">
             <Button size="sm" variant="ghost" data-role="runs" @click="showRuns(r)">{{
               tx.log
@@ -254,6 +262,15 @@ const setValue = (i: number, raw: string) => {
 
     <form v-else class="flex flex-col gap-4" data-testid="editor" @submit.prevent="save">
       <Input v-model="draft.name" :label="tx.name" maxlength="100" data-role="name" />
+      <textarea
+        v-model="draft.description"
+        rows="2"
+        maxlength="2000"
+        :aria-label="tx.description"
+        :placeholder="tx.description"
+        class="rounded border border-border bg-transparent px-2 py-1 text-sm"
+        data-role="description"
+      />
       <label class="flex items-center gap-2 text-sm">
         <input v-model="draft.enabled" type="checkbox" /> {{ tx.enabled }}
       </label>
@@ -314,6 +331,48 @@ const setValue = (i: number, raw: string) => {
                 v === '' ? undefined : Number(v))
           "
         />
+        <Input
+          v-if="NUM_PARAM[draft.trigger.type]"
+          :model-value="String(t[NUM_PARAM[draft.trigger.type]!] ?? '')"
+          type="number"
+          min="1"
+          :label="tx[NUM_PARAM[draft.trigger.type]!]"
+          data-role="trigger-num"
+          @update:model-value="
+            (v) => (t[NUM_PARAM[draft!.trigger.type]!] = v === '' ? undefined : Number(v))
+          "
+        />
+        <Input
+          v-if="draft.trigger.type === 'task.stale'"
+          :model-value="((t.statuses as string[]) ?? []).join(', ')"
+          :label="tx.statuses"
+          :placeholder="tx.statuses"
+          @update:model-value="(v) => (t.statuses = optional(csv(v)))"
+        />
+        <template v-if="draft.trigger.type === 'schedule'">
+          <Input v-model="(t as Record<string, string>).cron" :label="tx.cron" data-role="cron" />
+          <Input
+            :model-value="(t.tz as string) ?? ''"
+            :label="tx.tz"
+            placeholder="Europe/Moscow"
+            data-role="tz"
+            @update:model-value="(v) => (t.tz = v.trim() || undefined)"
+          />
+        </template>
+        <label
+          v-if="
+            draft.trigger.type === 'task.field_changed' || draft.trigger.type === 'comment.added'
+          "
+          class="flex items-center gap-2 text-sm"
+        >
+          <input
+            :checked="!!t.byHuman"
+            type="checkbox"
+            data-role="by-human"
+            @change="t.byHuman = ($event.target as HTMLInputElement).checked || undefined"
+          />
+          {{ tx.byHuman }}
+        </label>
       </fieldset>
 
       <fieldset class="flex flex-col gap-2">

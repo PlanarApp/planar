@@ -103,10 +103,13 @@ export class JobsService implements OnApplicationShutdown {
   async enqueue(queue: string, data: object, o?: JobOpts, q?: Q): Promise<void> {
     const boss = await this.start();
     if (!boss) return;
-    await boss.send(queue, data, {
-      ...o,
+    const { upsert, ...opts } = o ?? {};
+    const sendOpts = {
+      ...opts,
       ...(q && { db: { executeSql: (text: string, values?: unknown[]) => run(q, text, values) } }),
-    });
+    };
+    if (upsert) await boss.upsert(queue, data, sendOpts);
+    else await boss.send(queue, data, sendOpts);
   }
 
   private stopped?: Promise<void>;

@@ -29,6 +29,7 @@
     "@planar/server-kit": "workspace:*",
     "@planar/shared": "workspace:*",
     "@planar/web": "workspace:*",
+    "cron-parser": "5.10.2",
     "drizzle-orm": "^0.45.4",
     "fractional-indexing": "^4.0.0",
     "lucide-vue-next": "^1.0.0",

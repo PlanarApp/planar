@@ -1,4 +1,5 @@
 import { Controller, Get, Inject, Injectable, Module, Param, Query, Req } from '@nestjs/common';
+import { CronExpressionParser } from 'cron-parser';
 import { sql } from 'drizzle-orm';
 import { generateKeyBetween } from 'fractional-indexing';
 import {
@@ -99,9 +100,20 @@ function eventsOf(writes: MutationWrite[]): Event[] {
   return out;
 }
 
+/** A person acted: not the system, not a rule or AI run; a personal token counts as the person. */
+async function isHuman(ctx: AfterMutationCtx, api: ModuleHookApi) {
+  if (ctx.system || ctx.origin) return false;
+  // shortcut: a deactivated author stands for a bot; switch to users.bot when PLNRAPP-167 adds it
+  const [u] = (
+    await api.q.execute(sql`select deactivated_at as d from users where id = ${ctx.userId}`)
+  ).rows as { d: string | null }[];
+  return !!u && !u.d;
+}
+
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
   const depth = (ctx.origin?.depth ?? 0) + 1;
   if (depth > MAX_DEPTH) return;
+  let human: Promise<boolean> | undefined;
   const projects = new Map<string, string | null>();
   const rulesOf = new Map<string, Rule[]>();
   const queued = new Set<string>();
@@ -128,6 +140,8 @@ async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api
       const key = `${r.id}:${e.taskId}`;
       // the rule does not fire on its own action
       if (!r.enabled || r.id === ctx.origin?.ruleId || queued.has(key) || !e.match(r.trigger))
+        continue;
+      if ('byHuman' in r.trigger && r.trigger.byHuman && !(await (human ??= isHuman(ctx, api))))
         continue;
       queued.add(key);
       await api.enqueue(RUN_QUEUE, { ruleId: r.id, taskId: e.taskId, depth, eventAt: ctx.now });
@@ -160,9 +174,24 @@ function tzOrUtc(v: unknown): string {
 const todayIn = (timeZone: string, now: Date) =>
   new Intl.DateTimeFormat('en-CA', { timeZone }).format(now);
 
-async function today(api: JobApi, now = new Date()) {
+async function instanceTz(api: JobApi) {
   const [s] = await rows(api, sql`select value from settings where id = 'timezone'`);
-  return todayIn(tzOrUtc(s?.value), now);
+  return tzOrUtc(s?.value);
+}
+
+async function today(api: JobApi, now = new Date()) {
+  return todayIn(await instanceTz(api), now);
+}
+
+/** Once per (rule, task, slot): a record in automations_fired before enqueueing. */
+async function fire(api: JobApi, ruleId: string, taskId: string, slot: string, now: Date) {
+  const fired = await rows(
+    api,
+    sql`insert into automations_fired (rule_id, task_id, slot) values (${ruleId}, ${taskId}, ${slot})
+        on conflict do nothing returning rule_id`,
+  );
+  if (fired.length)
+    await api.enqueue(RUN_QUEUE, { ruleId, taskId, depth: 1, eventAt: now.toISOString() });
 }
 
 async function loadTask(api: JobApi, taskId: string) {
@@ -405,19 +434,107 @@ async function due(data: { now?: string }, api: JobApi) {
         });
     }
   }
+  await scan(api, now, day);
 }
 
-/** Once a day: the run log is kept for 30 days. */
+/**
+ * stale / unassigned / waiting_human / start_reached — one query over all rules and open tasks;
+ * slot — the moment the condition is counted from, so a trigger fires again only after it resets.
+ */
+async function scan(api: JobApi, now: Date, day: string) {
+  const at = now.toISOString();
+  const found = await rows(
+    api,
+    sql`with r as (
+          select r.id, r.project_id, r.trigger from automations_rules r
+          join projects p on p.id = r.project_id and 'automations' = any(p.modules)
+          where r.enabled and r.trigger->>'type' in
+            ('task.stale', 'task.unassigned', 'task.waiting_human', 'task.start_reached')
+        ), t as (
+          select t.* from tasks t join statuses s on s.id = t.status_id
+          where t.archived_at is null and s.category not in ('done', 'cancelled')
+            and t.project_id in (select project_id from r)
+        )
+        select r.id as "ruleId", t.id as "taskId", x.slot from r join t on t.project_id = r.project_id
+        cross join lateral (select case r.trigger->>'type'
+          when 'task.stale' then (
+            select t.updated_at::text
+            where t.updated_at <= ${at}::timestamptz - make_interval(days => (r.trigger->>'days')::int)
+              and (coalesce(jsonb_array_length(r.trigger->'statuses'), 0) = 0
+                or r.trigger->'statuses' ? t.status_id::text))
+          when 'task.unassigned' then (
+            select u.since::text from (select greatest(t.created_at, (select max(a.created_at)
+              from activity a where a.task_id = t.id and a.kind = 'assignee_removed')) as since) u
+            where u.since <= ${at}::timestamptz - make_interval(hours => (r.trigger->>'hours')::int)
+              and not exists (select 1 from task_assignees ta where ta.task_id = t.id))
+          when 'task.waiting_human' then (
+            -- shortcut: an active assignee counts as a person; exclude users.bot after PLNRAPP-167
+            select c.id::text from comments c
+            join users u on u.id = c.assignee_id and u.deactivated_at is null
+            where c.task_id = t.id and c.resolved_at is null
+              and c.created_at <= ${at}::timestamptz - make_interval(days => (r.trigger->>'days')::int)
+            order by c.created_at limit 1)
+          when 'task.start_reached' then (
+            select t.start_date::text where t.start_date <= ${day}::date)
+        end as slot) x
+        where x.slot is not null`,
+  );
+  for (const f of found)
+    await fire(api, f.ruleId as string, f.taskId as string, f.slot as string, now);
+}
+
+/** Every minute: rules whose cron came due in the last 2 minutes (in tz or settings.timezone) — runs over open tasks. */
+async function schedule(data: { now?: string }, api: JobApi) {
+  const now = data.now ? new Date(data.now) : new Date();
+  const rules = await rows(
+    api,
+    sql`select r.id, r.project_id as "projectId", r.trigger from automations_rules r
+        join projects p on p.id = r.project_id and 'automations' = any(p.modules)
+        where r.enabled and r.trigger->>'type' = 'schedule'`,
+  );
+  let tz: string | undefined;
+  for (const r of rules) {
+    const t = r.trigger as { cron: string; tz?: string };
+    let due: Date;
+    try {
+      due = CronExpressionParser.parse(t.cron, {
+        currentDate: now,
+        tz: t.tz ?? (tz ??= await instanceTz(api)),
+      })
+        .prev()
+        .toDate();
+    } catch {
+      continue; // out-of-range field passed the shape check — the rule never fires
+    }
+    if (now.getTime() - due.getTime() > 120_000) continue;
+    const tasks = await rows(
+      api,
+      sql`select t.id from tasks t join statuses s on s.id = t.status_id
+          where t.project_id = ${r.projectId as string} and t.archived_at is null
+            and s.category not in ('done', 'cancelled')`,
+    );
+    for (const k of tasks) await fire(api, r.id as string, k.id as string, due.toISOString(), now);
+  }
+}
+
+/** Once a day: the run log is kept for 30 days; fired marks — while the rule and task live, schedule ones 30 days. */
 async function cleanup(data: { now?: string }, api: JobApi) {
   const now = data.now ? new Date(data.now) : new Date();
+  const old = sql`${now.toISOString()}::timestamptz - interval '30 days'`;
+  await api.db.execute(sql`delete from automations_runs where created_at < ${old}`);
   await api.db.execute(
-    sql`delete from automations_runs where created_at < ${now.toISOString()}::timestamptz - interval '30 days'`,
+    sql`delete from automations_fired f where
+          not exists (select 1 from automations_rules r where r.id = f.rule_id)
+          or not exists (select 1 from tasks t where t.id = f.task_id)
+          or (f.created_at < ${old} and exists (select 1 from automations_rules r
+            where r.id = f.rule_id and r.trigger->>'type' = 'schedule'))`,
   );
 }
 
 const jobs = [
   { queue: RUN_QUEUE, retryLimit: 0, handler: run },
   { queue: 'automations.due', cron: '0 * * * *', handler: due },
+  { queue: 'automations.schedule', cron: '* * * * *', handler: schedule },
   { queue: 'automations.cleanup', cron: '0 3 * * *', handler: cleanup },
 ] as unknown as JobDef[];
 

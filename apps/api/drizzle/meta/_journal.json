@@ -330,6 +330,13 @@
       "when": 1794399336789,
       "tag": "0046_notifications_due_today",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794427236040,
+      "tag": "0047_automations_scan",
+      "breakpoints": true
     }
   ]
 }

@@ -33,7 +33,18 @@ export const TRIGGERS = [
   'task.field_changed',
   'task.due',
   'comment.added',
+  'task.stale',
+  'task.unassigned',
+  'task.waiting_human',
+  'task.start_reached',
+  'schedule',
 ] as const;
+/** Triggers with a numeric parameter: the parameter key. */
+export const NUM_PARAM: Partial<Record<Trigger['type'], 'days' | 'hours'>> = {
+  'task.stale': 'days',
+  'task.unassigned': 'hours',
+  'task.waiting_human': 'days',
+};
 export const ACTIONS = [
   'set_status',
   'assign',
@@ -52,7 +63,15 @@ export const blankTrigger = (type: Trigger['type']): Trigger =>
     ? { type, field: 'priority' }
     : type === 'task.due'
       ? { type, daysBefore: 1 }
-      : ({ type } as Trigger);
+      : type === 'task.stale'
+        ? { type, days: 7 }
+        : type === 'task.unassigned'
+          ? { type, hours: 24 }
+          : type === 'task.waiting_human'
+            ? { type, days: 3 }
+            : type === 'schedule'
+              ? { type, cron: '0 9 * * 1' }
+              : ({ type } as Trigger);
 
 export const blankAction = (type: Action['type']): Action => {
   switch (type) {
@@ -107,6 +126,13 @@ const TEXT = {
     subscription: 'Подписка вебхука',
     noSubscriptions: 'Подписок нет — создайте её в настройках вебхуков',
     daysBefore: 'За сколько дней до срока',
+    description: 'Описание',
+    byHuman: 'Только действия людей (не автоматизаций и ботов)',
+    days: 'Дней',
+    hours: 'Часов',
+    statuses: 'Только в статусах (id через запятую)',
+    cron: 'Расписание cron (минута час день месяц день недели)',
+    tz: 'Часовой пояс (IANA, пусто — пояс инстанса)',
     invalid: 'Правило заполнено неверно',
     triggers: {
       'task.created': 'Задача создана',
@@ -115,6 +141,11 @@ const TEXT = {
       'task.field_changed': 'Поле изменилось',
       'task.due': 'Приближается срок',
       'comment.added': 'Добавлен комментарий',
+      'task.stale': 'Задача без изменений',
+      'task.unassigned': 'Задача без исполнителя',
+      'task.waiting_human': 'Ждёт ответа человека',
+      'task.start_reached': 'Наступила дата начала',
+      schedule: 'По расписанию',
     },
     actionNames: {
       set_status: 'Сменить статус',
@@ -170,6 +201,13 @@ const TEXT = {
     subscription: 'Webhook subscription',
     noSubscriptions: 'No subscriptions — create one in webhook settings',
     daysBefore: 'Days before due date',
+    description: 'Description',
+    byHuman: 'Only actions by people (not automations or bots)',
+    days: 'Days',
+    hours: 'Hours',
+    statuses: 'Only in statuses (ids, comma separated)',
+    cron: 'Cron schedule (minute hour day month weekday)',
+    tz: 'Time zone (IANA, empty — instance time zone)',
     invalid: 'The rule is not valid',
     triggers: {
       'task.created': 'Task created',
@@ -178,6 +216,11 @@ const TEXT = {
       'task.field_changed': 'Field changed',
       'task.due': 'Due date approaching',
       'comment.added': 'Comment added',
+      'task.stale': 'Task not updated',
+      'task.unassigned': 'Task has no assignee',
+      'task.waiting_human': 'Waiting for a person',
+      'task.start_reached': 'Start date reached',
+      schedule: 'On schedule',
     },
     actionNames: {
       set_status: 'Set status',
