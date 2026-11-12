@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { FileText } from 'lucide-vue-next';
+import { ChevronLeft, FileText } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
 import { Button, EmptyState, db, mutate, newId, rankBetween, useQuery } from '@planar/web/modules';
 import PageView from './PageView.vue';
@@ -12,6 +12,10 @@ const route = useRoute();
 const router = useRouter();
 const tx = useTexts();
 const pageId = computed(() => (route.params.pageId as string | undefined) || '');
+// came from another screen (a task, a link) — a way back without the browser button: PWA on a phone has none (PLNRAPP-184)
+const canBack = computed(
+  () => !!pageId.value && !!(window.history.state as { back?: string | null } | null)?.back,
+);
 
 // /m/docs without a page — the last one opened, if it still exists
 watch(
@@ -43,6 +47,15 @@ async function create() {
 </script>
 
 <template>
+  <button
+    v-if="canBack"
+    type="button"
+    class="flex h-10 items-center gap-1 border-b border-border px-2 text-sm text-fg-muted"
+    data-testid="docs-page-back"
+    @click="router.back()"
+  >
+    <ChevronLeft :size="18" aria-hidden="true" />{{ tx('back') }}
+  </button>
   <PageView v-if="pageId" :key="pageId" :page-id="pageId" />
   <EmptyState v-else-if="none" :icon="FileText" :title="tx('noPages')">
     <template v-if="spaces?.length" #actions>

@@ -78,8 +78,9 @@ const savedRow = (over: Record<string, unknown> = {}) => ({
 const tabs = (w: ReturnType<typeof mountScreen>) =>
   w.findAll('[data-saved-view]').map((x) => x.text());
 const rows = () => db.table('savedViews').toArray();
+// 5 s: the first test mounts the screen cold, under a full parallel run that takes ~2 s (default 1 s flaked)
 const until = (f: () => Promise<unknown> | unknown) =>
-  vi.waitFor(async () => expect(await f()).toBeTruthy());
+  vi.waitFor(async () => expect(await f()).toBeTruthy(), { timeout: 5000 });
 
 // "Save view" is in the "…" menu of the panel; Enter opens reka DropdownMenu in jsdom
 async function openSaveMenu(w: ReturnType<typeof mountScreen>) {

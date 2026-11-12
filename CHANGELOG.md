@@ -21,11 +21,13 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 ### Changed
 
 - The key encryption of GitLab, email and AI connections lives in one place (`packages/server-kit`).
+- Settings → AI tasks: when the runner is not set up, a notice says that agent actions will not start and how to turn the runner on.
 
 ### Fixed
 
 - Documents: a page changed through REST/MCP while closed no longer gets its text doubled when opened in a browser that had it open before.
 - AI setup wizard: a project with its own AI connection is shown as connected.
+- Documents: a page opened from a task has a "Back" button, and the browser's back returns to the task again (the first jump into a module used to replace the task in history).
 
 ## [0.13.0] - 2026-11-10
 

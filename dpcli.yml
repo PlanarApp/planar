@@ -7,6 +7,8 @@
 
 # Основная ветка, куда вливаются модули.
 main_branch: main
+# main — только через MR: dpcli не вливает и не коммитит в main сам (deliver/merge, update).
+protect_main: true
 # Ветка модуля.
 module_branch: "feature/{module}"
 # Ветка задачи (от ветки модуля).

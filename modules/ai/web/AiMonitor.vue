@@ -68,6 +68,9 @@ onBeforeUnmount(() => clearInterval(timer));
         {{ tr('switchOn') }}
       </label>
       <p class="text-xs text-fg-muted">{{ tr('switchHint') }}</p>
+      <p v-if="!mon.runner" class="text-sm text-warning" data-testid="ai-no-runner">
+        {{ tr('noRunner') }}
+      </p>
       <dl class="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2" data-testid="ai-load">
         <dt class="text-fg-muted">{{ tr('load') }}</dt>
         <dd>
