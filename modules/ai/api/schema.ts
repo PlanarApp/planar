@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   doublePrecision,
   index,
   integer,
@@ -123,8 +125,28 @@ export const aiRuns = pgTable(
     /** USD; null — the connection has no prices */
     cost: doublePrecision(),
     log: text().notNull().default(''),
+    /** the run this one restarts by hand (the chain of restarts is limited) */
+    restartOf: uuid(),
     createdAt: ts().notNull().defaultNow(),
     updatedAt: ts().notNull().defaultNow(),
   },
   (t) => [index('ai_runs_task_id_idx').on(t.taskId), index('ai_runs_state_idx').on(t.state)],
 );
+
+// server table: the instance switch of the AI (one row); no row — enabled
+export const aiSettings = pgTable(
+  'ai_settings',
+  {
+    id: integer().primaryKey().default(1),
+    enabled: boolean().notNull().default(true),
+  },
+  (t) => [check('ai_settings_one_row', sql`${t.id} = 1`)],
+);
+
+// server table: daily limits of a project (UTC day); null — the env default applies
+export const aiProjectLimits = pgTable('ai_project_limits', {
+  projectId: uuid().primaryKey(),
+  dailyTokens: integer(),
+  dailyCost: doublePrecision(),
+  updatedAt: ts().notNull().defaultNow(),
+});

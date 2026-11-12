@@ -568,6 +568,64 @@ describe('прогон по правилу', () => {
   });
 });
 
+describe('выключатель и суточные лимиты', () => {
+  const start = (t: string) =>
+    handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId }, api);
+  const spend = (t: string, tokens: number, cost: number | null) =>
+    raw(
+      `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth, input_tokens, cost)
+       values ($1, $2, $3, 'action', 'done', $1, 0, $4, $5)`,
+      [uuidv7(), t, P, tokens, cost],
+    );
+
+  it('ИИ выключен → прогон failed с логом, провайдер не вызван', async () => {
+    const t = await task();
+    await raw(`insert into ai_settings (id, enabled) values (1, false)`);
+    try {
+      await start(t);
+    } finally {
+      await raw(`delete from ai_settings`);
+    }
+    expect(calls).toHaveLength(0);
+    expect((await runsOf(t)).at(-1)).toMatchObject({ state: 'failed' });
+    expect((await runsOf(t)).at(-1)!.log).toContain('выключен');
+  });
+
+  it('лимит токенов проекта за сутки → failed без вызова; под лимитом — идёт', async () => {
+    const t = await task();
+    await raw(`insert into ai_project_limits (project_id, daily_tokens) values ($1, 1000)`, [P]);
+    await spend(t, 999, null);
+    await start(t);
+    expect(calls).toHaveLength(1);
+    await spend(t, 1, null);
+    await start(t);
+    expect(calls).toHaveLength(1);
+    const last = (await runsOf(t)).at(-1)!;
+    expect(last.state).toBe('failed');
+    expect(last.log).toContain('лимит токенов');
+  });
+
+  it('лимит стоимости: свой у проекта, иначе PLANAR_AI_DAILY_COST; вчерашние прогоны не считаются', async () => {
+    const t = await task();
+    await spend(t, 0, 2);
+    await raw(`insert into ai_project_limits (project_id, daily_cost) values ($1, 2)`, [P]);
+    await start(t);
+    expect((await runsOf(t)).at(-1)!.log).toContain('лимит стоимости');
+    await raw(`update ai_runs set created_at = now() - interval '2 days' where task_id = $1`, [t]);
+    await start(t);
+    expect((await runsOf(t)).at(-1)!.state).toBe('done');
+    await raw(`delete from ai_project_limits where project_id = $1`, [P]);
+    await spend(t, 0, 3);
+    process.env.PLANAR_AI_DAILY_COST = '3';
+    try {
+      await start(t);
+    } finally {
+      delete process.env.PLANAR_AI_DAILY_COST;
+    }
+    expect((await runsOf(t)).at(-1)!.log).toContain('лимит стоимости');
+  });
+});
+
 describe('поручения ИИ', () => {
   it('комментарий на ИИ: ответ в треде и закрытие; вопрос → автору, ответ автора возвращает поручение', async () => {
     const t = await task();

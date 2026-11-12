@@ -22,7 +22,13 @@ import {
   goalsMilestoneTasks,
 } from '@planar/module-goals/api/schema';
 import { automationsRules } from '@planar/module-automations/api/schema';
-import { aiActions, aiHarnessPacks, aiRuns } from '@planar/module-ai/api/schema';
+import {
+  aiActions,
+  aiHarnessPacks,
+  aiProjectLimits,
+  aiRuns,
+  aiSettings,
+} from '@planar/module-ai/api/schema';
 import {
   catalogTitle,
   PACKS_ROOT_TITLE,
@@ -2014,9 +2020,98 @@ async function insertAll(tx: Tx, now: Date) {
       questionCommentIds: [uid('comment:ai:q0')],
       inputTokens: 1840,
       outputTokens: 210,
+      cost: 0.0112,
+      log: 'Read the task and the forum notes\nAsked a clarifying question, waiting for an answer',
       createdAt: at(-1, 11),
       updatedAt: at(-1, 11),
     },
+  ]);
+  // runs of other states on RDM tasks; failed -> restart -> done is a chain of restarts (depth 2 of 3)
+  const run = (k: string, task: number, o: Record<string, unknown>) => ({
+    id: uid(`ai-run:${k}`),
+    taskId: tid('RDM', task),
+    projectId: pid('RDM'),
+    kind: 'action',
+    actionId: uid('ai-action:plan'),
+    ruleId: uid('rule:ai-plan'),
+    chainId: uid(`ai-run:${k}`),
+    chainDepth: 0,
+    questionCommentIds: [],
+    ...o,
+  });
+  await ins(aiRuns, [
+    run('running', 3, {
+      state: 'running',
+      inputTokens: 920,
+      outputTokens: 60,
+      cost: 0.0049,
+      log: 'Reading the task and linked docs',
+      createdAt: at(0, 8),
+      updatedAt: at(0, 8),
+    }),
+    run('done', 4, {
+      state: 'done',
+      inputTokens: 2310,
+      outputTokens: 540,
+      cost: 0.0171,
+      log: 'Split the task into 4 checklist items\nPosted a summary comment',
+      createdAt: at(-2, 10),
+      updatedAt: at(-2, 10),
+    }),
+    run('failed', 5, {
+      state: 'failed',
+      inputTokens: 1500,
+      outputTokens: 0,
+      cost: 0.0045,
+      log: 'Model request failed: provider timeout',
+      createdAt: at(-3, 9),
+      updatedAt: at(-3, 9),
+    }),
+    run('failed-restart', 5, {
+      kind: 'comment',
+      actionId: null,
+      ruleId: null,
+      itemId: uid('comment:ai:mention'),
+      state: 'failed',
+      chainId: uid('ai-run:failed'),
+      chainDepth: 1,
+      restartOf: uid('ai-run:failed'),
+      inputTokens: 1620,
+      outputTokens: 35,
+      cost: 0.0054,
+      log: 'Restarted by hand\nModel request failed: rate limit',
+      createdAt: at(-3, 10),
+      updatedAt: at(-3, 10),
+    }),
+    run('restart-done', 5, {
+      kind: 'comment',
+      actionId: null,
+      ruleId: null,
+      itemId: uid('comment:ai:mention'),
+      state: 'done',
+      chainId: uid('ai-run:failed'),
+      chainDepth: 2,
+      restartOf: uid('ai-run:failed-restart'),
+      inputTokens: 1700,
+      outputTokens: 420,
+      cost: 0.0132,
+      log: 'Restarted by hand\nAnswered in the thread',
+      createdAt: at(-3, 11),
+      updatedAt: at(-3, 11),
+    }),
+    run('cancelled', 6, {
+      state: 'cancelled',
+      inputTokens: 400,
+      outputTokens: 0,
+      cost: 0.0012,
+      log: 'Cancelled by a user',
+      createdAt: at(-1, 15),
+      updatedAt: at(-1, 15),
+    }),
+  ]);
+  await ins(aiSettings, [{ id: 1, enabled: true }]);
+  await ins(aiProjectLimits, [
+    { projectId: pid('RDM'), dailyTokens: 200_000, dailyCost: 5, updatedAt: at(-5) },
   ]);
 
   // templates: a bug report task and a launch project

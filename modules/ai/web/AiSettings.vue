@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { AI_PROVIDERS, type AiConnectionView } from '../shared/index.js';
 import { call } from './api';
 import { tr } from './data';
+import LimitsSection from './LimitsSection.vue';
 import PacksSection from './PacksSection.vue';
 
 // «Settings → AI»: the connection of one level; the key is only sent, never shown
@@ -192,6 +193,7 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
         </button>
       </div>
     </form>
+    <LimitsSection v-if="level === 'project' && projectId" :project-id="projectId" />
     <PacksSection v-if="level === 'project' && projectId" :project-id="projectId" />
   </section>
 </template>

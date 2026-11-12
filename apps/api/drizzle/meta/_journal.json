@@ -372,6 +372,13 @@
       "when": 1794435471088,
       "tag": "0052_ai_harness",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1794439399569,
+      "tag": "0053_ai_monitor",
+      "breakpoints": true
     }
   ]
 }
