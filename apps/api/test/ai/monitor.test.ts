@@ -190,7 +190,14 @@ describe('монитор, выключатель, лимиты', () => {
       load: { running: 1, waiting: 1 },
       today: { tokens: 45, cost: 1.5 },
       enabled: true,
+      runner: false,
     });
+    process.env.AI_RUNNER_URL = 'http://ai-runner:8080';
+    try {
+      expect((await call('GET', 'monitor', 'root')).json().runner).toBe(true);
+    } finally {
+      delete process.env.AI_RUNNER_URL;
+    }
     const rest = (
       await call('GET', `monitor?limit=2&cursor=${encodeURIComponent(m.next)}`, 'root')
     ).json();

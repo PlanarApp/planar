@@ -20,6 +20,7 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 ### Changed
 
 - The key encryption of GitLab, email and AI connections lives in one place (`packages/server-kit`).
+- Settings → AI tasks: when the runner is not set up, a notice says that agent actions will not start and how to turn the runner on.
 
 ### Fixed
 

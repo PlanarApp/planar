@@ -211,6 +211,8 @@ export interface AiMonitor {
   today: { tokens: number; cost: number };
   enabled: boolean;
   limits: AiLimits;
+  /** AI_RUNNER_URL is set: agent actions can start (llm actions do not need it) */
+  runner: boolean;
 }
 
 // Connections and runs are server tables outside the module gate (ai_connections, ai_runs).
