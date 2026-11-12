@@ -44,6 +44,10 @@ describe('pack sales', async () => {
       'followup',
       'digest',
       'research',
+      'assign',
+      'mention',
+      'checklist',
+      'chat',
     ]);
   });
 
@@ -79,7 +83,7 @@ describe('pack sales', async () => {
     expect(n('status', 'create')).toBe(8);
     expect(n('label', 'create')).toBe(2);
     expect(n('field', 'create')).toBe(6);
-    expect(n('action', 'create')).toBe(7);
+    expect(n('action', 'create')).toBe(11);
     expect(n('rule', 'create')).toBe(8);
     expect(n('rule', 'enable')).toBe(8);
   });

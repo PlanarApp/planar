@@ -74,6 +74,11 @@ export class HarnessController {
             sql`update ai_harness_packs set active = (root_page_id = ${b.packPageId}::uuid), updated_at = now()
                 where project_id = ${b.projectId}::uuid`,
           );
+          // the events of harness.yml until the admin chooses them in the settings
+          await q.execute(
+            sql`update ai_harness_packs set events = ${JSON.stringify(d.pack.events)}::jsonb
+                where project_id = ${b.projectId}::uuid and root_page_id = ${b.packPageId}::uuid and events is null`,
+          );
         },
       });
     } catch (e) {

@@ -71,6 +71,19 @@ const dict = {
   reload: { ru: 'Загрузить заново', en: 'Load again' },
   packKey: { ru: 'Ключ пакета', en: 'Pack key' },
   packTitle: { ru: 'Название', en: 'Title' },
+  events: { ru: 'События ИИ', en: 'AI events' },
+  eventsHint: {
+    ru: 'Какая инструкция пакета отвечает на событие. Инструкции появляются в списке после применения пакета.',
+    en: 'Which pack instruction answers the event. Instructions appear in the list once the pack is applied.',
+  },
+  eventBuiltIn: { ru: 'встроенная', en: 'built-in' },
+  event_comment: { ru: 'Комментарий назначен на ИИ', en: 'Comment assigned to the AI' },
+  event_mention: {
+    ru: '@ai или ответ ИИ в комментариях',
+    en: '@ai or a reply to the AI in comments',
+  },
+  event_checklist: { ru: 'Пункт чек-листа на ИИ', en: 'Checklist item assigned to the AI' },
+  event_chat: { ru: 'Чат (личка, цитата, @ai)', en: 'Chat (DM, quote, @ai)' },
   conflicts: {
     ru: 'Вы изменили страницы, которые меняет и пакет. Выберите для каждой:',
     en: 'You changed pages the pack changes too. Choose for each:',

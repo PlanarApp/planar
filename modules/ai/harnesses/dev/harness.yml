@@ -10,7 +10,7 @@ labels:
   - { key: has_plan, name: Есть план, color: green }
 fields:
   - { key: budget, name: Бюджет, type: number }
-actions: [plan, decompose, triage, discussion, assign, chat, dev, review, test]
+actions: [plan, decompose, triage, discussion, assign, mention, checklist, chat, dev, review, test]
 rules:
   - key: dev_in_todo
     name: Разработка
@@ -43,3 +43,5 @@ rules:
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: triage }]
 settings: { questionStatus: clarify }
+# AI events without a rule → the action that answers them; an event left out — the built-in prompt
+events: { comment: assign, mention: mention, checklist: checklist, chat: chat }

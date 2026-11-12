@@ -787,4 +787,122 @@ describe('agent: поручения из комментариев на зада�
       expect(runnerHits).toHaveLength(0);
     }
   });
+
+  // PLNRAPP-198: «Настройки → ИИ → Пакеты» — the event runs the action the active pack binds to it
+  const bind = async (events: Record<string, string>, active = true) => {
+    await raw(`delete from ai_harness_packs where project_id = $1`, [P]);
+    await raw(
+      `insert into ai_harness_packs (id, project_id, pack_key, active, events) values ($1, $2, 'dev', $3, $4)`,
+      [uuidv7(), P, active, JSON.stringify(events)],
+    );
+  };
+  const agentKey = async () =>
+    (await one(`select key from ai_actions where id = $1`, [actionId])).key as string;
+  const llmAction = async (text: string) => {
+    const pageId = uuidv7();
+    await w.admin.ok('docs.page.create', {
+      id: pageId,
+      spaceId: w.spaceId,
+      projectId: P,
+      rank: 'a1',
+      title: 'Ответ',
+      body: doc(text),
+    });
+    const k = `l${pageId.slice(-6)}`;
+    await w.admin.ok('ai.action.create', {
+      id: uuidv7(),
+      projectId: P,
+      key: k,
+      name: 'Ответ',
+      pageId,
+      runtime: 'llm',
+    });
+    return k;
+  };
+  const system = () =>
+    JSON.stringify(provHits.findLast((h) => h.url === '/chat/completions')?.body.messages);
+
+  it('событие → agent-действие пакета без MR: инструкция, поручение и ветка в промпте; итог в треде', async () => {
+    const t = await codeTask(null);
+    await bind({ comment: await agentKey() });
+    const c = uuidv7();
+    await w.admin.ok('comment.create', {
+      id: c,
+      taskId: t,
+      body: say('проверь CI'),
+      assigneeId: bot,
+    });
+    const r = await runQueued(t);
+    expect(r.run).toMatchObject({ state: 'running', action_id: actionId });
+    const ctx = JSON.parse(r.post!.body.context);
+    expect(ctx.action).toMatchObject({ name: 'Агент' });
+    expect(ctx.action.prompt).toContain('Сделай работу.');
+    expect(ctx.action.prompt).toContain('проверь CI');
+    expect(ctx.checks).toEqual(['тесты зелёные']);
+    expect(r.post!.body.env).toMatchObject({ GITLAB_TOKEN: 'glpat-secret' });
+    await finish(r);
+    expect(await replyTo(t, c)).toContain('Линтер исправлен');
+  });
+
+  it('событие на задаче с MR: инструкция пакета вместо встроенной, ветка MR остаётся', async () => {
+    const t = await codeTask();
+    await bind({ mention: await agentKey() });
+    await w.admin.ok('comment.create', { id: uuidv7(), taskId: t, body: say(' что с CI?', true) });
+    const r = await runQueued(t);
+    const p = JSON.parse(r.post!.body.context).action.prompt as string;
+    expect(p).toContain('Сделай работу.');
+    expect(p).toContain('ветка `mr/PLN-1`');
+    expect(p).toContain('что с CI?');
+    expect(p).not.toContain('Выполни поручение человека по задаче.');
+  });
+
+  it('llm-инструкция события — системный промпт; без привязки и у неактивного пакета — встроенный', async () => {
+    const t = await codeTask(null);
+    await bind({ checklist: await llmAction('Отвечай как пират ПИРАТ-7.') });
+    await w.admin.ok('checklist.add', { id: uuidv7(), taskId: t, text: 'сводка', rank: 'a0' });
+    await w.admin.ok('checklist.update', {
+      id: (await one(`select id from checklist_items where task_id = $1`, [t])).id,
+      assigneeId: bot,
+    });
+    await runQueued(t);
+    expect(system()).toContain('ПИРАТ-7');
+    expect(runnerHits).toHaveLength(0);
+
+    for (const [events, active] of [
+      [{ checklist: 'x' }, true],
+      [{ comment: await agentKey() }, false],
+    ] as const) {
+      await bind(events, active);
+      await w.admin.ok('comment.create', {
+        id: uuidv7(),
+        taskId: t,
+        body: say('итог'),
+        assigneeId: bot,
+      });
+      const r = await runQueued(t);
+      expect(r.run.action_id).toBeNull();
+      expect(system()).toContain('Выполни поручение человека по контексту задачи');
+    }
+    expect(runnerHits).toHaveLength(0);
+  });
+
+  it('agent-инструкция события без runner — ответ llm с той же инструкцией', async () => {
+    const url = process.env.AI_RUNNER_URL;
+    delete process.env.AI_RUNNER_URL;
+    try {
+      const t = await codeTask(null);
+      await bind({ comment: await agentKey() });
+      await w.admin.ok('comment.create', {
+        id: uuidv7(),
+        taskId: t,
+        body: say('проверь CI'),
+        assigneeId: bot,
+      });
+      await runQueued(t);
+      expect(runnerHits).toHaveLength(0);
+      expect(system()).toContain('Сделай работу.');
+    } finally {
+      process.env.AI_RUNNER_URL = url;
+    }
+  });
 });

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { crc32, inflateRawSync } from 'node:zlib';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { generateNKeysBetween } from 'fractional-indexing';
 import { stringify as stringifyYaml } from 'yaml';
 import { docToMarkdown, markdownToDoc } from '@planar/editor/markdown';
@@ -11,6 +11,7 @@ import {
   instructionSchema,
   parseHarnessYaml,
   parseInstructionDoc,
+  type AiEvents,
   type Harness,
   type Instruction,
 } from '../shared/index.js';
@@ -434,9 +435,36 @@ export async function listProjectPacks(db: Db, core: CoreServices, projectId: st
       title: root?.title ?? null,
       active: p.active,
       rootPageId: root ? p.rootPageId : null,
+      events: p.events ?? {},
     });
   }
-  return { packs: out, warnings };
+  // what an event can run: the actions of the project (an applied pack's instructions)
+  const actions = await rows<{ key: string; name: string; runtime: string }>(
+    db,
+    sql`select key, name, runtime from ai_actions where project_id = ${projectId}::uuid order by name`,
+  );
+  return { packs: out, actions, warnings };
+}
+
+/** The admin's choice event → action key of the project; no key — the built-in prompt. */
+export async function setEvents(db: Db, projectId: string, packKey: string, events: AiEvents) {
+  const keys = new Set(
+    (
+      await rows<{ key: string }>(
+        db,
+        sql`select key from ai_actions where project_id = ${projectId}::uuid`,
+      )
+    ).map((a) => a.key),
+  );
+  const bad = Object.values(events).find((k) => !keys.has(k));
+  if (bad) throw new PackError(400, `Нет действия ${bad} в проекте`);
+  const r = await db
+    .update(P)
+    .set({ events, updatedAt: sql`now()` })
+    .where(and(eq(P.projectId, projectId), eq(P.packKey, packKey)))
+    .returning({ id: P.id });
+  if (!r.length) throw new PackError(404, 'Пакет не загружен в проект');
+  return { packKey, events };
 }
 
 export async function activate(db: Db, core: CoreServices, projectId: string, packKey: string) {

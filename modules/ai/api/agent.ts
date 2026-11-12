@@ -130,19 +130,20 @@ export async function codeTargetOf(q: Pick<Q, 'execute'>, task: Run['task']) {
   return (mr as unknown as TaskMr | undefined) ?? null;
 }
 
-/** The agent prompt of an assignment with the code: the MR branch, CI through glab, the answer in the thread. */
-export function codeAssignmentPrompt(mr: TaskMr, ask: string) {
+/**
+ * The agent prompt of an assignment with the code: the MR branch, CI through glab, the answer in the thread.
+ * `instruction` — the pack's instruction of the event: it replaces the built-in opening and result lines.
+ */
+export function codeAssignmentPrompt(mr: TaskMr, ask: string, instruction?: string) {
   const b = mr.sourceBranch;
-  return `Выполни поручение человека по задаче. Поручение и ветка обсуждения — ниже, задача и все комментарии — в файле контекста.
+  return `${instruction ? `${instruction}\n\n` : 'Выполни поручение человека по задаче. '}Поручение и ветка обсуждения — ниже, задача и все комментарии — в файле контекста.
 
 У задачи открыт MR !${mr.iid} «${mr.title}» (${mr.webUrl}), ветка \`${b}\`. Репозиторий склонирован в текущий каталог, git push и glab работают.
 - Правки кода — только в ветке MR: \`git fetch origin ${b} && git checkout ${b}\`, коммит, \`git push origin ${b}\`. Новую ветку и новый MR не создавай, в ветку по умолчанию не пушь.
 - Статус и логи CI: \`glab ci list --branch ${b}\`, \`glab ci get --branch ${b}\` (задания пайплайна), \`glab ci trace <id задания>\`. Перезапуск: \`glab ci retry <id задания>\` или \`glab ci run --branch ${b}\`; после пуша пайплайн запускается сам.
 - Следуй инструкциям репозитория (README, AGENTS.md, CLAUDE.md, CONTRIBUTING.md): тесты, линтер, формат коммитов. Перед пушем прогони тесты и линтер.
 - Если поручение не требует правок кода — просто ответь по делу.
-
-Результат — в comment: что сделано, ссылка на коммит (если был), статус пайплайна. Меняй задачу (поля, метки, статус, подзадачи, план в описании) только если поручение этого прямо требует. Если без уточнения не обойтись — verdict question.
-${ask}`;
+${!instruction ? '\nРезультат — в comment: что сделано, ссылка на коммит (если был), статус пайплайна. Меняй задачу (поля, метки, статус, подзадачи, план в описании) только если поручение этого прямо требует. Если без уточнения не обойтись — verdict question.\n' : ''}${ask}`;
 }
 
 /** Starts the container; the run stays `running` until the result, a stop or the reaper. */

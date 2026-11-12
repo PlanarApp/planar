@@ -318,6 +318,31 @@ describe('Чат: подтверждение «да»', () => {
     await send(w.admin, pc, '', { body: mention(bot) });
     await drain();
     expect(systems[0]).toContain('ПИРАТ-42');
+
+    // events chosen (PLNRAPP-198): the action of `chat` wins over the page «Чат»; no `chat` — the built-in prompt
+    const k = `c${uuidv7().slice(-6)}`;
+    await w.admin.ok('ai.action.create', {
+      id: uuidv7(),
+      projectId: w.projectId,
+      key: k,
+      name: 'Чат проекта',
+      pageId: await page('Чат проекта', { type: 'doc', content: [p('Ты робот РОБОТ-9.')] }, root),
+      runtime: 'llm',
+    });
+    for (const [events, want] of [
+      [{ chat: k }, 'РОБОТ-9'],
+      [{}, 'needsConfirmation'],
+    ] as const) {
+      await raw(`update ai_harness_packs set events = $1 where project_id = $2`, [
+        JSON.stringify(events),
+        w.projectId,
+      ]);
+      systems = [];
+      await send(w.admin, pc, '', { body: mention(bot) });
+      await drain();
+      expect(systems[0]).toContain(want);
+      expect(systems[0]).not.toContain('ПИРАТ-42');
+    }
     await raw(`delete from ai_harness_packs where project_id = $1`, [w.projectId]);
   });
 });

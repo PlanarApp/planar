@@ -89,7 +89,7 @@ const textOf = (n: unknown): string => {
 };
 
 describe('packs', () => {
-  it('пакет dev из каталога разбирается; agent — только разработка, ревью и тестирование', async () => {
+  it('пакет dev из каталога разбирается; agent — разработка, ревью, тестирование и события в задаче', async () => {
     const files = (await readCatalogPack('dev'))!;
     const h = parseHarnessYaml(files['harness.yml']!);
     expect(h.actions).toEqual([
@@ -98,11 +98,19 @@ describe('packs', () => {
       'triage',
       'discussion',
       'assign',
+      'mention',
+      'checklist',
       'chat',
       'dev',
       'review',
       'test',
     ]);
+    expect(h.events).toEqual({
+      comment: 'assign',
+      mention: 'mention',
+      checklist: 'checklist',
+      chat: 'chat',
+    });
     expect(h.fields).toEqual([{ key: 'budget', name: 'Бюджет', type: 'number' }]);
     expect(h.settings.questionStatus).toBe('clarify');
     expect(h.rules.every((r) => (r.filter as { assignee: string[] }).assignee[0] === 'ai')).toBe(
@@ -110,7 +118,9 @@ describe('packs', () => {
     );
     for (const k of h.actions) {
       const i = parseInstructionDoc(files[`actions/${k}.md`]!);
-      expect(i.runtime, k).toBe(['dev', 'review', 'test'].includes(k) ? 'agent' : 'llm');
+      expect(i.runtime, k).toBe(
+        ['dev', 'review', 'test', 'assign', 'mention', 'checklist'].includes(k) ? 'agent' : 'llm',
+      );
       expect(i.prompt, k).not.toBe('');
     }
     expect(parseInstructionDoc(files['actions/plan.md']!).prompt).toContain('«Бюджет»');
@@ -120,7 +130,7 @@ describe('packs', () => {
   it('загрузка раскладывает документы, пишет хеши; активация и права', async () => {
     const l = (await call('GET', `packs?projectId=${w.projectId}`, 'admin')).json();
     expect(l.catalog).toEqual(
-      expect.arrayContaining([{ key: 'dev', title: 'Разработка', actions: 9 }]),
+      expect.arrayContaining([{ key: 'dev', title: 'Разработка', actions: 11 }]),
     );
     expect(
       l.catalog
@@ -138,7 +148,7 @@ describe('packs', () => {
     expect(r.statusCode).toBe(200);
     const j = r.json();
     expect(j.status).toBe('ok');
-    expect(j.created).toHaveLength(10);
+    expect(j.created).toHaveLength(12);
 
     const ps = await pages(w.projectId);
     const container = ps.find((p) => p.title === 'Harness-пакеты')!;
@@ -151,6 +161,8 @@ describe('packs', () => {
         'Декомпозиция',
         'Планирование',
         'Поручение',
+        'Упоминание',
+        'Пункт чек-листа',
         'Сводка обсуждения',
         'Триаж',
         'Чат',

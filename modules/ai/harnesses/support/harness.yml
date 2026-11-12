@@ -14,7 +14,7 @@ fields:
   - { key: email, name: Email, type: text }
   - { key: category, name: Категория, type: text }
   - { key: urgency, name: Срочность, type: text }
-actions: [triage, draft_reply, escalate_dev, close, to_wiki]
+actions: [triage, draft_reply, escalate_dev, close, to_wiki, assign, mention, checklist, chat]
 rules:
   - key: triage_new
     name: Разбор нового обращения
@@ -43,3 +43,5 @@ rules:
       - { type: add_label, labelId: auto_closed }
       - { type: ai_run, action: close }
 settings: { questionStatus: clarify }
+# AI events without a rule → the action that answers them; an event left out — the built-in prompt
+events: { comment: assign, mention: mention, checklist: checklist, chat: chat }

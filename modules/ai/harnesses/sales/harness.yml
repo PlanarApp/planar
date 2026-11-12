@@ -17,7 +17,8 @@ fields:
   - { key: amount, name: Сумма, type: money }
   - { key: source, name: Источник, type: text }
   - { key: next_step, name: Следующий шаг, type: text }
-actions: [qualify, proposal, next_step, lost, followup, digest, research]
+actions:
+  [qualify, proposal, next_step, lost, followup, digest, research, assign, mention, checklist, chat]
 rules:
   - key: research_lead
     name: Разведка компании
@@ -70,3 +71,5 @@ rules:
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: digest }]
 settings: { questionStatus: clarify }
+# AI events without a rule → the action that answers them; an event left out — the built-in prompt
+events: { comment: assign, mention: mention, checklist: checklist, chat: chat }
