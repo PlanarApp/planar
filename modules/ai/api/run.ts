@@ -14,7 +14,13 @@ import { loadPack, parseInstructionPage } from './harness.js';
 import type { ChatPending } from './schema.js';
 import { batchDoc, insertBatch } from './email.js';
 import { generateReply, generateStructured, type LlmUsage } from './llm.js';
-import { agentsFull, startAgentRun, stopAgent } from './agent.js';
+import {
+  agentsFull,
+  codeAssignmentPrompt,
+  codeTargetOf,
+  startAgentRun,
+  stopAgent,
+} from './agent.js';
 
 export const AI_QUEUE = 'ai.run';
 /** A run started by another run's changes continues its chain; longer than this — stopped. */
@@ -393,8 +399,10 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
       return skip('Перезапуск невозможен: комментарий удалён, решён или ИИ в нём не назначен.');
   }
   const itemId = (item?.id as string | undefined) ?? null;
+  // an assignment on a task with an open MR: the agent with the repository, as the action «Разработка» (PLNRAPP-195)
+  const mr = d.kind === 'action' ? null : await codeTargetOf(api.db, task);
   // agent containers are limited: over the limit the job waits (agent.ts)
-  if (action?.runtime === 'agent' && (await agentsFull(api.db, task.projectId)))
+  if ((action?.runtime === 'agent' || mr) && (await agentsFull(api.db, task.projectId)))
     return api.enqueue(AI_QUEUE, d, { startAfter: 30 });
   // a newer run of the same pair wins: the older one's result is not applied
   const older = await api.db.execute(
@@ -463,6 +471,10 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
         : d.kind === 'checklist'
           ? `\n\n# Поручение: пункт чек-листа\n${item!.text as string}`
           : `\n\n# Поручение: комментарий [${itemId}]\n${md(item!.body)}`;
+    if (mr) {
+      const thread = d.kind === 'checklist' ? '' : await threadOf(api.db, itemId!);
+      return await startAgentRun(api, run, codeAssignmentPrompt(mr, ask + thread), ctx, mr);
+    }
     const checks = action?.checks.length
       ? `\n\nКритерии готовности (done — только если все выполнены):\n${action.checks.map((c) => `- ${c}`).join('\n')}`
       : '';
@@ -494,6 +506,21 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     await finish(api.db, run, 'failed', `ошибка: ${e instanceof Error ? e.message : String(e)}`);
     throw e;
   }
+}
+
+/** The thread above the comment (root first, the comment itself excluded) as text; '' — a top-level comment. */
+async function threadOf(q: Pick<Q, 'execute'>, commentId: string) {
+  const up = await rows(
+    q,
+    sql`with recursive up as (
+          select c.parent_id as id, 1 as n from comments c where c.id = ${commentId}::uuid
+          union all select c.parent_id, up.n + 1 from comments c join up on c.id = up.id where up.n < 100)
+        select c.id, c.body, u.name from up join comments c on c.id = up.id join users u on u.id = c.author_id
+        order by up.n desc`,
+  );
+  return up.length
+    ? `\n\n# Ветка обсуждения (выше поручения)\n${up.map((c) => `[${c.id as string}] ${c.name as string}:\n${md(c.body)}`).join('\n\n')}`
+    : '';
 }
 
 /** «Чат»: the fallback prompt of the chat answer; the active harness package of the project may have its own. */

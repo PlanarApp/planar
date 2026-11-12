@@ -18,7 +18,7 @@ dpcli в образ **не ставится**: источник не утвер�
 
 Необязательные: `PLANAR_LLM_PROTOCOL` (`anthropic` | `openai`, по умолчанию `anthropic`) и `PLANAR_LLM_MODEL`; `PLANAR_REPO_URL`, `GITLAB_HOST`, `GITLAB_TOKEN` — репозиторий проекта из подключения gitlab.
 
-Файл контекста: `{runId, repo, task: {id, key, title, description, status, comments[]}, action: {key, name, prompt}, checks}`.
+Файл контекста: `{runId, repo, task: {id, key, title, description, status, comments[]}, action: {key, name, prompt}, checks}`; у поручения из комментария или чек-листа на задаче с открытым MR — ещё `mr: {iid, title, sourceBranch, webUrl}` и `assignment: {kind, id, text}` (`docs/contracts/ai10.md` §2).
 
 ## Ход
 

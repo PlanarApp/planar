@@ -86,7 +86,8 @@ const one = async (api: ModuleHookApi, s: ReturnType<typeof sql>) =>
 /**
  * Assignments to the AI by a person (not the system, a rule or an AI run; the bot itself neither): a comment
  * assigned to the bot, `@ai` in a new comment (once, if it is not also assigned), a checklist item on the bot.
- * A new reply may answer a question of a waiting run.
+ * A new reply may answer a question of a waiting run; a reply to the bot's comment that answers nothing is
+ * a request to the bot, as `@ai` (PLNRAPP-195).
  */
 async function assignments(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
   if (ctx.system || ctx.origin) return;
@@ -110,11 +111,26 @@ async function assignments(writes: MutationWrite[], ctx: AfterMutationCtx, api: 
         await enqueue({ kind: 'checklist', taskId });
       continue;
     }
+    let asked = true;
     if (a.assigneeId === bot && !a.resolvedAt && b?.assigneeId !== bot)
       await enqueue({ kind: 'comment', taskId, itemId: a.id as string });
     else if (!b && ((a.mentions as string[] | undefined) ?? []).includes(bot as string))
       await enqueue({ kind: 'mention', taskId, itemId: a.id as string });
-    if (!b && a.parentId && !(await replied(a, ctx, api))) await answered(a, ctx, api);
+    else asked = false;
+    if (!b && a.parentId && !(await replied(a, ctx, api)) && !(await answered(a, ctx, api))) {
+      const parent = (await api.sys.get('comments', a.parentId as string)) as Row | undefined;
+      // not a request: the bot's question of a run (answered or not), a comment of the bot on another person
+      if (
+        !asked &&
+        parent?.authorId === bot &&
+        (!parent.assigneeId || parent.assigneeId === a.authorId) &&
+        !(await one(
+          api,
+          sql`select 1 as x from ai_runs where task_id = ${taskId} and ${parent.id as string}::uuid = any(question_comment_ids)`,
+        ))
+      )
+        await enqueue({ kind: 'mention', taskId, itemId: a.id as string });
+    }
   }
 }
 
@@ -122,8 +138,9 @@ async function assignments(writes: MutationWrite[], ctx: AfterMutationCtx, api: 
  * A reply answers a run waiting for people. Questions of a rule / checklist run: the reply of the question's
  * assignee closes it; all closed → the run is done and resumes. A thread of an assignment: the reply of the one
  * who assigned / asked resumes. waiting_human → done once: a second answer changes nothing.
+ * Returns true if the reply was taken as an answer: closed a question or resumed a run.
  */
-async function answered(c: Row, ctx: AfterMutationCtx, api: ModuleHookApi) {
+async function answered(c: Row, ctx: AfterMutationCtx, api: ModuleHookApi): Promise<boolean> {
   const runs = (
     await api.q.execute(
       sql`select id, kind, item_id as "itemId", question_comment_ids as qs from ai_runs
@@ -131,10 +148,11 @@ async function answered(c: Row, ctx: AfterMutationCtx, api: ModuleHookApi) {
             and not exists (select 1 from ai_email_batches b where b.run_id = ai_runs.id and b.state = 'pending')`,
     )
   ).rows as { id: string; kind: string; itemId: string | null; qs: string[] }[];
-  if (!runs.length) return;
+  if (!runs.length) return false;
   const get = (id: string) => api.sys.get('comments', id) as Promise<Row | undefined>;
   const parent = await get(c.parentId as string);
-  if (!parent) return;
+  if (!parent) return false;
+  let taken = false;
   for (const r of runs) {
     let done = false;
     if (r.qs.length) {
@@ -149,6 +167,7 @@ async function answered(c: Row, ctx: AfterMutationCtx, api: ModuleHookApi) {
         resolvedBy: c.authorId as string,
         updatedAt: ctx.now,
       });
+      taken = true;
       done = !(await one(
         api,
         sql`select 1 from comments where id = any(${`{${r.qs.join(',')}}`}::uuid[]) and resolved_at is null`,
@@ -165,8 +184,12 @@ async function answered(c: Row, ctx: AfterMutationCtx, api: ModuleHookApi) {
       api,
       sql`update ai_runs set state = 'done', updated_at = now() where id = ${r.id} and state = 'waiting_human' returning id`,
     );
-    if (moved) await api.enqueue(AI_QUEUE, { kind: 'resume', runId: r.id } satisfies AiRunData);
+    if (moved) {
+      await api.enqueue(AI_QUEUE, { kind: 'resume', runId: r.id } satisfies AiRunData);
+      taken = true;
+    }
   }
+  return taken;
 }
 
 /**
