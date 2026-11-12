@@ -24,6 +24,7 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 ### Fixed
 
 - Documents: a page changed through REST/MCP while closed no longer gets its text doubled when opened in a browser that had it open before.
+- Documents: a page opened from a task has a "Back" button, and the browser's back returns to the task again (the first jump into a module used to replace the task in history).
 
 ## [0.13.0] - 2026-11-10
 

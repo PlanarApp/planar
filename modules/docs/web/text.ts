@@ -2,6 +2,7 @@ import { i18n } from '@planar/web/modules';
 
 const S = {
   docs: { ru: 'Документы', en: 'Documents' },
+  back: { ru: 'Назад', en: 'Back' },
   newPage: { ru: 'Новая страница', en: 'New page' },
   untitled: { ru: 'Без названия', en: 'Untitled' },
   title: { ru: 'Название', en: 'Title' },
