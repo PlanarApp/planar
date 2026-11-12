@@ -428,6 +428,13 @@
       "when": 1794540000000,
       "tag": "0060_ai_harness_events",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1794626400000,
+      "tag": "0061_ai_run_events",
+      "breakpoints": true
     }
   ]
 }

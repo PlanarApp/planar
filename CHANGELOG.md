@@ -16,6 +16,7 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - REST `GET /api/v1/docs/:id?section=` and MCP `get_doc` `section`: only the section under the given heading.
 - Comments through REST and MCP: a reply and an assignee on creation; REST `PATCH /api/v1/comments/:id` and MCP `update_comment` assign or unassign, complete or reopen a comment and edit its text.
 - MCP tools for every REST function: `unlink_tasks`, `list_time_entries`, `get_timer`, `list_sprints`, `list_automations`; `get_task` also returns the task links.
+- AI agent runs: a live log in the task's «AI» tab and in «AI tasks» — the agent's thinking, tool calls, commands and their shortened output, as in the Claude Code chat. Secrets and tokens are masked by the server; only the last 500 events of a run are kept.
 - Settings → AI and the setup wizard: pick a ready provider (OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek, Mistral, Groq) — the API URL is filled in; «Custom API URL» keeps the manual fields. After the key is entered, the model is picked from the provider's list; typing a name still works.
 
 ### Changed

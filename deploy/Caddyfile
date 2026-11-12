@@ -13,7 +13,7 @@
 	# container-only endpoints (run secret, internal network): not reachable from outside
 	@agentOnly {
 		method POST
-		path_regexp ^/api/ai/(llm/.*|runs/[^/]+(/heartbeat)?)$
+		path_regexp ^/api/ai/(llm/.*|runs/[^/]+(/heartbeat|/events)?)$
 	}
 	handle @agentOnly {
 		respond 404

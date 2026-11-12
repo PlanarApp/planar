@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { actionSchema, filterSchema, triggerSchema } from '@planar/module-automations/shared';
 import { formFields } from '@planar/module-forms/shared';
-import { aiActions } from '@planar/module-ai/shared';
+import { aiActions, AI_RUN_EVENT_TYPES } from '@planar/module-ai/shared';
 import { projectTemplateSchema, taskTemplateSchema } from '@planar/module-templates/shared';
 import { resetDemo, seedDemo } from '../src/db/seed-demo.js';
 import { testDb } from './db.js';
@@ -120,6 +120,10 @@ describe('seed-demo', () => {
       `select count(*)::int as n from ai_runs r join ai_project_limits l using (project_id) where r.restart_of is not null`,
     );
     expect(lim!.n).toBe(2);
+    // the agent's log of the demo agent run: events of the known types only
+    const evs = await q<{ type: string }>(`select type from ai_run_events`);
+    expect(evs.length).toBeGreaterThan(0);
+    for (const e of evs) expect(AI_RUN_EVENT_TYPES).toContain(e.type);
     expect((await q<{ enabled: boolean }>(`select enabled from ai_settings`))[0]!.enabled).toBe(
       true,
     );

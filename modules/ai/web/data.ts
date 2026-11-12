@@ -118,6 +118,13 @@ const dict = {
   showLog: { ru: 'Лог', en: 'Log' },
   hideLog: { ru: 'Скрыть лог', en: 'Hide log' },
   emptyLog: { ru: 'Лог пуст', en: 'The log is empty' },
+  agentLog: { ru: 'Работа агента', en: 'Agent activity' },
+  apiLog: { ru: 'Журнал прогона', en: 'Run journal' },
+  ev_thought: { ru: 'Рассуждение', en: 'Thinking' },
+  ev_tool_call: { ru: 'Инструмент', en: 'Tool' },
+  ev_command: { ru: 'Команда', en: 'Command' },
+  ev_output: { ru: 'Вывод', en: 'Output' },
+  ev_result: { ru: 'Итог', en: 'Result' },
   monitorTitle: { ru: 'Задачи ИИ', en: 'AI tasks' },
   switchOn: { ru: 'ИИ включён', en: 'AI is on' },
   switchHint: {

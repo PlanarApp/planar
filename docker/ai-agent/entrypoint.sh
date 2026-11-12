@@ -30,6 +30,11 @@ heartbeat &
 HB_PID=$!
 trap 'kill "$HB_PID" 2>/dev/null || true' EXIT
 
+# Лог агента (PLNRAPP-199): stdout агента пачками уходит в api (PLANAR_EVENTS_URL), разбор и маскирование — там.
+# Форвардер не роняет прогон: не запустился или упал — stdout просто дочитывается.
+export PLANAR_EVENTS_URL="${PLANAR_EVENTS_URL:-$PLANAR_RESULT_URL/events}"
+log_forward() { node /usr/local/lib/planar-agent/log-forward.mjs || cat >/dev/null; }
+
 export ANTHROPIC_BASE_URL="$PLANAR_LLM_URL"
 export ANTHROPIC_API_KEY="$PLANAR_RUN_SECRET"
 [ -n "${PLANAR_LLM_MODEL:-}" ] && export ANTHROPIC_MODEL="$PLANAR_LLM_MODEL"
@@ -65,10 +70,16 @@ prompt() {
 if [ -s "$RESULT" ]; then
   : # клонирование не удалось — результат уже готов
 elif [ -n "${PLANAR_AGENT_CMD:-}" ]; then
-  # Внешний harness: читает $PLANAR_CONTEXT_FILE, пишет JSON в /work/result.json.
-  bash -c "$PLANAR_AGENT_CMD" || agent_rc=$?
+  # Внешний harness: читает $PLANAR_CONTEXT_FILE, пишет JSON в /work/result.json; его stdout — лог прогона.
+  set +e
+  bash -c "$PLANAR_AGENT_CMD" | log_forward
+  agent_rc=${PIPESTATUS[0]}
+  set -e
 elif [ "${PLANAR_LLM_PROTOCOL:-anthropic}" = anthropic ]; then
-  prompt | claude -p --dangerously-skip-permissions || agent_rc=$?
+  set +e
+  prompt | claude -p --dangerously-skip-permissions --output-format stream-json --verbose | log_forward
+  agent_rc=${PIPESTATUS[1]}
+  set -e
 else
   # OpenAI-совместимый провайдер (OpenAI, Gemini, …) — opencode через LLM-прокси api.
   export OPENCODE_CONFIG=/tmp/home/opencode.json OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_MODELS_FETCH=1
@@ -80,7 +91,10 @@ else
       options: {baseURL: $url, apiKey: "{env:PLANAR_RUN_SECRET}"}, models: {($m): {name: $m}}}},
     model: ("planar/" + $m)
   }' >"$OPENCODE_CONFIG"
-  opencode run --auto -m "planar/$PLANAR_LLM_MODEL" "$(prompt)" || agent_rc=$?
+  set +e
+  opencode run --auto --format json --thinking -m "planar/$PLANAR_LLM_MODEL" "$(prompt)" | log_forward
+  agent_rc=${PIPESTATUS[0]}
+  set -e
 fi
 
 # -s: jq -e accepts an empty file (exit 0) — it would go out as an empty body
