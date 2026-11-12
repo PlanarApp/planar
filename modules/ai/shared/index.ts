@@ -174,7 +174,7 @@ export const mutators = [
 
 export const AI_RUN_STATES = ['running', 'waiting_human', 'done', 'failed', 'cancelled'] as const;
 export type AiRunState = (typeof AI_RUN_STATES)[number];
-export const AI_RUN_KINDS = ['action', 'comment', 'mention', 'checklist'] as const;
+export const AI_RUN_KINDS = ['action', 'comment', 'mention', 'checklist', 'chat'] as const;
 export type AiRunKind = (typeof AI_RUN_KINDS)[number];
 /** A chain of manual restarts (restartOf) is at most this long; more — 409. */
 export const MAX_RESTARTS = 3;
@@ -182,8 +182,9 @@ export const MAX_RESTARTS = 3;
 /** A run as the client sees it (api/ai); the log is only in the details. */
 export interface AiRunView {
   id: string;
-  taskId: string;
-  projectId: string;
+  /** null — a chat run */
+  taskId: string | null;
+  projectId: string | null;
   kind: AiRunKind;
   actionId: string | null;
   actionName: string | null;

@@ -85,6 +85,7 @@ const dict = {
   k_comment: { ru: 'комментарий', en: 'comment' },
   k_mention: { ru: 'упоминание', en: 'mention' },
   k_checklist: { ru: 'чек-лист', en: 'checklist' },
+  k_chat: { ru: 'чат', en: 'chat' },
   tokens: { ru: 'токены', en: 'tokens' },
   cost: { ru: 'стоимость', en: 'cost' },
   restartOf: { ru: 'перезапуск', en: 'restart' },

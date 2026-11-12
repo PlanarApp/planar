@@ -9,9 +9,11 @@ import { uuidv7 } from '@planar/shared';
 import { matched } from '@planar/module-automations/api';
 import { AI_BOT_LOGIN, type AiAction } from '../shared/index.js';
 import { resolveConnection, secretOf } from './connections.js';
-import { parseInstructionPage } from './harness.js';
+import { chatTools, runPlanned, type PlannedCall } from './chat-tools.js';
+import { loadPack, parseInstructionPage } from './harness.js';
+import type { ChatPending } from './schema.js';
 import { batchDoc, insertBatch } from './email.js';
-import { generateStructured, type LlmUsage } from './llm.js';
+import { generateReply, generateStructured, type LlmUsage } from './llm.js';
 
 export const AI_QUEUE = 'ai.run';
 /** A run started by another run's changes continues its chain; longer than this — stopped. */
@@ -20,6 +22,14 @@ export const MAX_CHAIN = 10;
 export const PLAN_HEADING = 'План (ИИ)';
 
 export type AiRunKind = 'action' | 'comment' | 'mention' | 'checklist';
+
+/** A chat run: the person's message (a dialog, or a quote / @ai of the bot in a channel) the bot answers. */
+export interface ChatRunData {
+  kind: 'chat';
+  messageId: string;
+  channelId: string;
+  initiatorId: string;
+}
 
 /**
  * Job data. action — by a rule (actionId, ruleId, statusId at the event); comment / mention — itemId is the
@@ -46,13 +56,17 @@ export type AiRunData =
       runId?: string | null;
     }
   | { kind: 'checklist'; taskId: string; restartOf?: string | null; runId?: string | null }
+  | ChatRunData
+  | { kind: 'confirm'; runId: string }
   | { kind: 'resume'; runId: string };
 
 /** Debounce key: one queued job per (task, action / item). */
 export const keyOf = (d: AiRunData) =>
-  d.kind === 'resume'
-    ? `resume:${d.runId}`
-    : `${d.taskId}:${d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? 'checklist' : d.itemId}`;
+  d.kind === 'resume' || d.kind === 'confirm'
+    ? `${d.kind}:${d.runId}`
+    : d.kind === 'chat'
+      ? `chat:${d.messageId}`
+      : `${d.taskId}:${d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? 'checklist' : d.itemId}`;
 
 const nullable = <T extends z.ZodType>(s: T) => s.nullable();
 /** What the model returns; every field is present (null — not used): strict structured outputs want that. */
@@ -302,6 +316,8 @@ interface Run {
 /** One job of the queue ai.run. */
 export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   if (d.kind === 'resume') return resume(d.runId, api);
+  if (d.kind === 'chat') return handleChat(d, api);
+  if (d.kind === 'confirm') return confirmChat(d.runId, api);
   // a retried delivery of a restart: its pre-made run row already exists
   if (d.runId && (await one(api.db, sql`select 1 as x from ai_runs where id = ${d.runId}::uuid`)))
     return;
@@ -448,6 +464,196 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   }
 }
 
+/** «Чат»: the fallback prompt of the chat answer; the active harness package of the project may have its own. */
+export const CHAT_PROMPT = `Ты — ИИ-помощник «ИИ» в чате трекера задач Planar. Отвечай коротко и по делу на языке собеседника, markdown.
+Ты отвечаешь на последнее сообщение; предыдущие даны как контекст. Если не знаешь — так и скажи, ничего не выдумывай.
+У тебя есть инструменты трекера: они выполняются с правами автора последнего сообщения, не больше. Если инструмент вернул отказ — объясни это человеку, обходных путей не ищи.
+Опасные действия (удаление и т. п.) инструмент не выполняет, а возвращает needsConfirmation: перечисли, что собираешься сделать, и попроси ответить «да» — выполнит система после подтверждения.`;
+
+/** The instruction «Чат» (key `chat` or `Чат`) of the project's active harness package, else CHAT_PROMPT. */
+async function chatPrompt(q: Pick<Q, 'execute'>, projectId: string | null) {
+  if (!projectId) return CHAT_PROMPT;
+  const root = (
+    await one(
+      q,
+      sql`select root_page_id as id from ai_harness_packs where project_id = ${projectId}::uuid and active`,
+    )
+  )?.id as string | undefined;
+  if (!root) return CHAT_PROMPT;
+  try {
+    const { instructions } = await loadPack(q as never, projectId, root);
+    return (instructions.chat ?? instructions['Чат'])?.prompt.trim() || CHAT_PROMPT;
+  } catch {
+    // a broken package: the built-in prompt
+    return CHAT_PROMPT;
+  }
+}
+
+/** Last messages of the channel (and the thread of the message) as text for the model. */
+async function chatContext(
+  q: Pick<Q, 'execute'>,
+  channelId: string,
+  threadId: string,
+  bot: string,
+) {
+  const msgs = await rows(
+    q,
+    sql`select * from (select u.name, m.author_id as a, m.body, m.created_at from chat_messages m
+          join users u on u.id = m.author_id
+          where m.channel_id = ${channelId} and m.deleted_at is null
+            and (m.parent_id is null or m.parent_id = ${threadId})
+          order by m.created_at desc limit 30) x order by created_at`,
+  );
+  return msgs
+    .map((m) => `${m.name as string}${m.a === bot ? ' (ИИ)' : ''}: ${md(m.body)}`)
+    .join('\n\n');
+}
+
+/** The bot's message in the channel as the run (origin.aiRunId): a flat answer in a dialog, a thread in a channel. */
+const chatSay =
+  (api: JobApi, bot: string, runId: string, channelId: string, parentId: string | null) =>
+  (text: string) =>
+    api.execute(
+      bot,
+      [
+        {
+          name: 'chat.message.send',
+          args: { id: uuidv7(), channelId, body: asDoc(text), readId: uuidv7(), parentId },
+        },
+      ],
+      { origin: { aiRunId: runId, depth: 0 } },
+    );
+
+/**
+ * A chat run: the bot answers the message with a message of its own. The model has the tools of the registry
+ * with the rights of the initiator only; a dangerous call is not executed — it is saved with the run
+ * (waiting_human) and runs after the initiator's «да» in the same thread (job `confirm`, see index.ts).
+ */
+async function handleChat(d: ChatRunData, api: JobApi) {
+  const bot = await botOf(api);
+  const m = await one(
+    api.db,
+    sql`select parent_id as "parentId", author_id as "authorId", body, deleted_at as "deletedAt"
+        from chat_messages where id = ${d.messageId} and channel_id = ${d.channelId}`,
+  );
+  const ch = await one(
+    api.db,
+    sql`select kind, project_id as "projectId", space_id as "spaceId" from chat_channels where id = ${d.channelId}`,
+  );
+  if (!bot || !m || !ch || m.deletedAt || m.authorId === bot) return;
+  // one run per message (a repeated delivery, an edit)
+  if (
+    await one(
+      api.db,
+      sql`select 1 as x from ai_runs where kind = 'chat' and item_id = ${d.messageId}`,
+    )
+  )
+    return;
+  const id = uuidv7();
+  const projectId = (ch.projectId as string | null) ?? null;
+  await api.db.execute(
+    sql`insert into ai_runs (id, project_id, channel_id, kind, item_id, state, chain_id, chain_depth)
+        values (${id}, ${projectId}, ${d.channelId}, 'chat', ${d.messageId}, 'running', ${id}, 0)`,
+  );
+  const run = { id, log: [] as string[] };
+  const parentId = (m.parentId as string | null) ?? (ch.kind === 'dm' ? null : d.messageId);
+  const say = chatSay(api, bot, id, d.channelId, parentId);
+  try {
+    const stop = await blocked(api.db, projectId);
+    const conn = stop
+      ? null
+      : await resolveConnection(api.db, projectId, (ch.spaceId as string | null) ?? null);
+    const fail = stop ?? (conn ? null : 'Нет подключения к ИИ: задайте его в настройках.');
+    if (fail) {
+      await say(fail);
+      return await finish(api.db, run, 'failed', fail);
+    }
+    const author = (await one(api.db, sql`select name from users where id = ${d.initiatorId}`))
+      ?.name as string | undefined;
+    const ctx = await chatContext(
+      api.db,
+      d.channelId,
+      (m.parentId as string | null) ?? d.messageId,
+      bot,
+    );
+    const planned: PlannedCall[] = [];
+    let reply: Awaited<ReturnType<typeof generateReply>>;
+    try {
+      reply = await generateReply(secretOf(conn!), {
+        system: await chatPrompt(api.db, projectId),
+        prompt: `${ctx}\n\n# Ответь на последнее сообщение${author ? ` (${author})` : ''}`,
+        tools: chatTools(
+          (await api.tools?.({ aiRunId: id, depth: 0 })) ?? [],
+          d.initiatorId,
+          planned,
+        ),
+      });
+    } catch (e) {
+      // the provider's own text is dropped: it may quote the key
+      const status = APICallError.isInstance(e) ? ` ${e.statusCode ?? ''}` : '';
+      run.log.push(`провайдер: ${e instanceof Error ? e.name : 'error'}${status}`);
+      await say('ИИ не ответил: ошибка провайдера.');
+      return await finish(api.db, run, 'failed');
+    }
+    await api.db.execute(
+      sql`update ai_runs set input_tokens = ${reply.usage.inputTokens}, output_tokens = ${reply.usage.outputTokens},
+          cost = ${reply.usage.cost} where id = ${id}`,
+    );
+    const text = reply.text.trim() || '…';
+    if (!planned.length) {
+      await say(text);
+      return await finish(api.db, run, 'done');
+    }
+    // the plan goes to the DB before the message: the «да» can come at once
+    await api.db.execute(
+      sql`update ai_runs set pending = ${JSON.stringify({ calls: planned, parentId } satisfies ChatPending)}::jsonb,
+          state = 'waiting_human', updated_at = now() where id = ${id} and state = 'running'`,
+    );
+    await say(
+      `${text}\n\n**План действий — нужно подтверждение:**\n${planned
+        .map((c) => `- ${c.name} ${JSON.stringify(c.args)}`)
+        .join('\n')}\n\nОтветьте «да» — выполню от вашего имени; любой другой ответ — отмена.`,
+    );
+  } catch (e) {
+    await finish(api.db, run, 'failed', `ошибка: ${e instanceof Error ? e.message : String(e)}`);
+    throw e;
+  }
+}
+
+/** The initiator said «да» (the hook moved the run to running): the planned calls run once, as the initiator. */
+async function confirmChat(runId: string, api: JobApi) {
+  const bot = await botOf(api);
+  const r = await one(
+    api.db,
+    sql`select r.channel_id as "channelId", im.author_id as "initiatorId" from ai_runs r
+        join chat_messages im on im.id = r.item_id
+        where r.id = ${runId} and r.kind = 'chat' and r.state = 'running' and r.pending is not null`,
+  );
+  if (!bot || !r) return;
+  // the claim: a repeated delivery finds no plan
+  const plan = (
+    await one(
+      api.db,
+      sql`with old as (select pending from ai_runs where id = ${runId} and pending is not null for update)
+          update ai_runs r set pending = null from old where r.id = ${runId} returning old.pending`,
+    )
+  )?.pending as ChatPending | undefined;
+  if (!plan) return;
+  const run = { id: runId, log: [] as string[] };
+  try {
+    const lines = await runPlanned(
+      (await api.tools?.({ aiRunId: runId, depth: 0 })) ?? [],
+      r.initiatorId as string,
+      plan.calls,
+    );
+    await chatSay(api, bot, runId, r.channelId as string, plan.parentId)(lines.join('\n'));
+    await finish(api.db, run, 'done');
+  } catch (e) {
+    await finish(api.db, run, 'failed', `ошибка: ${e instanceof Error ? e.message : String(e)}`);
+    throw e;
+  }
+}
+
 const failed = (comment: string): AiResult => ({
   verdict: 'fail',
   comment,
@@ -509,8 +715,9 @@ export async function usedToday(q: Pick<Q, 'execute'>, projectId?: string) {
 }
 
 /** Why a run must not call the LLM: the switch is off, or the project spent its daily limit; null — go on. */
-async function blocked(q: Pick<Q, 'execute'>, projectId: string) {
+async function blocked(q: Pick<Q, 'execute'>, projectId: string | null) {
   if (!(await aiEnabled(q))) return 'ИИ выключен администратором.';
+  if (!projectId) return null;
   const { effective: l } = await projectLimits(q, projectId);
   if (l.dailyTokens == null && l.dailyCost == null) return null;
   const u = await usedToday(q, projectId);
@@ -541,7 +748,12 @@ async function overBudget(q: Pick<Q, 'execute'>, t: Task) {
     : `Бюджет ИИ на задачу исчерпан: потрачено $${spent.toFixed(2)} из $${budget}. Продлить? Увеличьте поле «Бюджет» и ответьте здесь.`;
 }
 
-async function finish(q: Pick<Q, 'execute'>, run: Run, state: string, ...log: string[]) {
+async function finish(
+  q: Pick<Q, 'execute'>,
+  run: Pick<Run, 'id' | 'log'>,
+  state: string,
+  ...log: string[]
+) {
   run.log.push(...log);
   await q.execute(
     sql`update ai_runs set state = ${state}, log = log || ${run.log.map((l) => `${l}\n`).join('')}, updated_at = now()

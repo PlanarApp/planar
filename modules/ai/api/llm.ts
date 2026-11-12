@@ -1,6 +1,13 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { APICallError, generateObject, generateText, type LanguageModel } from 'ai';
+import {
+  APICallError,
+  generateObject,
+  generateText,
+  stepCountIs,
+  type LanguageModel,
+  type ToolSet,
+} from 'ai';
 import type { z } from 'zod';
 import type { AiProvider } from '../shared/index.js';
 
@@ -53,6 +60,27 @@ export async function generateStructured<S extends z.ZodType>(
   const outputTokens = r.usage.outputTokens ?? 0;
   return {
     object: r.object as z.output<S>,
+    usage: { inputTokens, outputTokens, cost: costOf(c, inputTokens, outputTokens) },
+  };
+}
+
+/** Text answer (with tools: up to 5 steps of calls and results) with the tokens and the cost of the call. */
+export async function generateReply(
+  c: LlmConnection,
+  o: { prompt: string; system?: string; tools?: ToolSet },
+): Promise<{ text: string; usage: LlmUsage }> {
+  const r = await generateText({
+    model: modelOf(c),
+    prompt: o.prompt,
+    system: o.system,
+    tools: o.tools,
+    stopWhen: stepCountIs(5),
+    maxRetries: 1,
+  });
+  const inputTokens = r.totalUsage.inputTokens ?? 0;
+  const outputTokens = r.totalUsage.outputTokens ?? 0;
+  return {
+    text: r.text,
     usage: { inputTokens, outputTokens, cost: costOf(c, inputTokens, outputTokens) },
   };
 }

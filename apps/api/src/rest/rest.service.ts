@@ -16,7 +16,13 @@ import { generateKeyBetween } from 'fractional-indexing';
 import { z } from 'zod';
 import type { JSONContent } from '@tiptap/core';
 import { docToMarkdown, markdownToDoc } from '@planar/editor/markdown';
-import { textToDoc, uuidv7, type HttpErrorCode, type V1Task } from '@planar/shared';
+import {
+  textToDoc,
+  uuidv7,
+  type HttpErrorCode,
+  type MutationOrigin,
+  type V1Task,
+} from '@planar/shared';
 import { HttpError } from '../auth/errors.js';
 import type { Db } from '../db/index.js';
 import * as s from '../db/schema.js';
@@ -101,6 +107,16 @@ export class RestService {
     @Inject(DB) private db: Db,
     @Optional() @Inject(PushQueue) private queue?: PushQueue,
   ) {}
+
+  /** the origin of this instance's mutations (an AI run); set only by `withOrigin` */
+  private origin?: MutationOrigin;
+
+  /** The same service whose mutations carry `origin` (activity «Имя (через ИИ)», module hooks). */
+  withOrigin(origin: MutationOrigin): RestService {
+    const r = new RestService(this.db, this.queue);
+    r.origin = origin;
+    return r;
+  }
 
   private async mySpaces(userId: string): Promise<string[]> {
     const rows = await this.db
@@ -325,7 +341,7 @@ export class RestService {
 
   private async run(userId: string, muts: Mut[], tokenId?: string) {
     try {
-      await executeMutations(this.db, userId, muts, this.queue, tokenId);
+      await executeMutations(this.db, userId, muts, this.queue, tokenId, { origin: this.origin });
     } catch (err) {
       if (!(err instanceof Reject)) throw err;
       const [status, code] = HTTP[err.code] ?? [500, 'internal'];

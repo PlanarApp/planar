@@ -7,8 +7,10 @@ import { AI_BOT_LOGIN, AI_BOT_NAME, shared } from '../shared/index.js';
 import { AiController } from './controller.js';
 import { HarnessController } from './harness.controller.js';
 import { PacksController } from './packs.controller.js';
-import { EMAIL_QUEUE, handleEmail, replied, type EmailData } from './email.js';
+import { EMAIL_QUEUE, handleEmail, isYes, replied, textOf, type EmailData } from './email.js';
+import type { JSONContent } from '@tiptap/core';
 import { AI_QUEUE, handle, keyOf, type AiRunData } from './run.js';
+import type { ChatPending } from './schema.js';
 
 @Module({ controllers: [AiController, HarnessController, PacksController] })
 class AiModule {}
@@ -155,9 +157,82 @@ async function answered(c: Row, ctx: AfterMutationCtx, api: ModuleHookApi) {
   }
 }
 
+/**
+ * The initiator's answer in the thread of a chat run waiting for «да»: «да» → the planned calls run (job `confirm`,
+ * as the initiator), anything else → the run is cancelled. Another person's message changes nothing.
+ * Returns true if it was the «да» (the message is not a question for the bot).
+ */
+async function confirmed(m: Row, api: ModuleHookApi): Promise<boolean> {
+  const waiting = (
+    await api.q.execute(
+      sql`select r.id, r.pending, im.author_id as "initiatorId" from ai_runs r
+          join chat_messages im on im.id = r.item_id
+          where r.kind = 'chat' and r.state = 'waiting_human' and r.pending is not null
+            and r.channel_id = ${m.channelId as string}`,
+    )
+  ).rows as { id: string; pending: ChatPending; initiatorId: string }[];
+  const mine = waiting.find(
+    (r) => r.initiatorId === m.authorId && r.pending.parentId === ((m.parentId as string) ?? null),
+  );
+  if (!mine) return false;
+  const yes = isYes(textOf(m.body as JSONContent));
+  const taken = await one(
+    api,
+    sql`update ai_runs set state = ${yes ? 'running' : 'cancelled'}, updated_at = now()
+        where id = ${mine.id} and state = 'waiting_human' returning id`,
+  );
+  if (taken && yes)
+    await api.enqueue(AI_QUEUE, { kind: 'confirm', runId: mine.id } satisfies AiRunData);
+  return !!taken && yes;
+}
+
+/**
+ * A person's new chat message the bot answers (D5): in a dialog of two (the person and the bot) — always;
+ * elsewhere only a reply in the thread of a bot's message or `@ai` in the message. Messages of bots never start a run.
+ */
+async function chatMessages(writes: MutationWrite[], api: ModuleHookApi) {
+  const mine = writes.filter((w) => w.entity === 'chatMessages' && !w.before && w.after);
+  if (!mine.length) return;
+  const bot = (await one(api, sql`select id from users where login = ${AI_BOT_LOGIN} and bot`))?.id;
+  if (!bot) return;
+  for (const { after: m } of mine as { after: Row }[]) {
+    if (m.deletedAt || m.authorId === bot) continue;
+    const who = await one(api, sql`select bot from users where id = ${m.authorId as string}`);
+    if (!who || who.bot) continue;
+    if (await confirmed(m, api)) continue;
+    const members = (
+      await api.q.execute(
+        sql`select user_id as u from chat_members where channel_id = ${m.channelId as string}`,
+      )
+    ).rows.map((r) => r.u);
+    const direct =
+      (await one(
+        api,
+        sql`select 1 as x from chat_channels where id = ${m.channelId as string} and kind = 'dm'`,
+      )) &&
+      members.length === 2 &&
+      members.includes(bot);
+    let asked = direct || ((m.mentions as string[] | undefined) ?? []).includes(bot as string);
+    if (!asked && m.parentId)
+      asked = !!(await one(
+        api,
+        sql`select 1 as x from chat_messages where id = ${m.parentId as string} and author_id = ${bot as string}`,
+      ));
+    if (!asked) continue;
+    const d: AiRunData = {
+      kind: 'chat',
+      messageId: m.id as string,
+      channelId: m.channelId as string,
+      initiatorId: m.authorId as string,
+    };
+    await api.enqueue(AI_QUEUE, d, { singletonKey: keyOf(d), upsert: true, startAfter: 2 });
+  }
+}
+
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
   await ensureBot(writes, ctx, api);
   await assignments(writes, ctx, api);
+  await chatMessages(writes, api);
 }
 
 export const api: BackendModuleManifest = {

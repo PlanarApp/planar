@@ -20,7 +20,7 @@ type Row = Record<string, unknown>;
 type Exec = Pick<Q, 'execute'>;
 const one = async (q: Exec, s: ReturnType<typeof sql>) =>
   (await q.execute(s)).rows[0] as Row | undefined;
-const textOf = (n: JSONContent): string => n.text ?? (n.content ?? []).map(textOf).join('');
+export const textOf = (n: JSONContent): string => n.text ?? (n.content ?? []).map(textOf).join('');
 
 /** «ок» / «ok» / «да» / «отправить» / «отправляй»; case, spaces and a final dot / exclamation mark do not matter. */
 export const isYes = (s: string) =>
