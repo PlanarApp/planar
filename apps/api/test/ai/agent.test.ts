@@ -112,15 +112,30 @@ beforeAll(async () => {
         ev({ choices: [], usage: { prompt_tokens: 300, completion_tokens: 40 } });
         return void res.end('data: [DONE]\n\n');
       }
-      res
-        .writeHead(200, { 'content-type': 'application/json' })
-        .end(
-          JSON.stringify(
-            anthropic
-              ? { type: 'message', usage: { input_tokens: 70, output_tokens: 30 } }
-              : { choices: [], usage: { prompt_tokens: 1000, completion_tokens: 500 } },
-          ),
-        );
+      res.writeHead(200, { 'content-type': 'application/json' }).end(
+        JSON.stringify(
+          anthropic
+            ? { type: 'message', usage: { input_tokens: 70, output_tokens: 30 } }
+            : {
+                // a request with tools gets a Gemini-like tool call with a thought signature
+                choices: h.body.tools
+                  ? [
+                      {
+                        message: {
+                          tool_calls: [
+                            {
+                              id: 'call_1',
+                              extra_content: { google: { thought_signature: 'S1' } },
+                            },
+                          ],
+                        },
+                      },
+                    ]
+                  : [],
+                usage: { prompt_tokens: 1000, completion_tokens: 500 },
+              },
+        ),
+      );
     },
   );
   process.env.AI_RUNNER_TOKEN = 'runner-token';
@@ -498,6 +513,33 @@ describe('agent: LLM-прокси', () => {
     expect(provHits[1]!.body.stream_options).toEqual({ include_usage: true });
     row = await one(`select input_tokens, output_tokens from ai_runs where id = $1`, [r.run.id]);
     expect(row).toMatchObject({ input_tokens: 1300, output_tokens: 540 });
+  });
+
+  it('Gemini: extra_content вызова инструмента возвращается в следующий запрос прогона', async () => {
+    const r = await start();
+    const post = (body: object) =>
+      call('POST', `/api/ai/llm/${r.run.id}/v1/chat/completions`, { secret: r.secret, body });
+    await post({ ...chat, tools: [{ type: 'function', function: { name: 'glob' } }] });
+    const next = {
+      ...chat,
+      messages: [
+        ...chat.messages,
+        { role: 'assistant', tool_calls: [{ id: 'call_1' }, { id: 'call_2' }] },
+        { role: 'tool', tool_call_id: 'call_1', content: 'a.txt' },
+      ],
+    };
+    await post(next);
+    expect(provHits[1]!.body.messages[1].tool_calls).toEqual([
+      { id: 'call_1', extra_content: { google: { thought_signature: 'S1' } } },
+      { id: 'call_2' },
+    ]);
+    // another run does not see the signatures of this one
+    const other = await start();
+    await call('POST', `/api/ai/llm/${other.run.id}/v1/chat/completions`, {
+      secret: other.secret,
+      body: next,
+    });
+    expect(provHits[2]!.body.messages[1].tool_calls[0]).toEqual({ id: 'call_1' });
   });
 
   it('anthropic: ключ в x-api-key, usage input/output_tokens', async () => {

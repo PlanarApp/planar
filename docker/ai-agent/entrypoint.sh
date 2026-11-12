@@ -15,6 +15,8 @@ if [ ! -r "$PLANAR_CONTEXT_FILE" ]; then
 fi
 
 RESULT=/work/result.json
+# HOME lives on the empty tmpfs /tmp: git config --global, opencode and npm need it
+mkdir -p "$HOME"
 AUTH="Authorization: Bearer $PLANAR_RUN_SECRET"
 
 # Heartbeat каждые 30 с, пока жив агент; ошибки не фатальны (жнец решит сам).
@@ -70,7 +72,6 @@ elif [ "${PLANAR_LLM_PROTOCOL:-anthropic}" = anthropic ]; then
 else
   # OpenAI-совместимый провайдер (OpenAI, Gemini, …) — opencode через LLM-прокси api.
   export OPENCODE_CONFIG=/tmp/home/opencode.json OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_MODELS_FETCH=1
-  mkdir -p /tmp/home
   jq -n --arg url "$PLANAR_LLM_URL/v1" --arg m "${PLANAR_LLM_MODEL:?не задана PLANAR_LLM_MODEL}" '{
     "$schema": "https://opencode.ai/config.json",
     autoupdate: false,

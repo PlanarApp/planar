@@ -51,6 +51,38 @@ function takeUsage(o: unknown, u: { in: number; out: number }) {
   if (typeof t === 'number') u.out = t;
 }
 
+type ToolCall = { id?: string; extra_content?: unknown };
+/**
+ * Gemini 3 (OpenAI-compatible) wants the `extra_content` (thought_signature) of a tool call back in the next request,
+ * and OpenAI-compatible clients drop it: the proxy keeps it per run by tool call id and puts it back (PLNRAPP-177).
+ */
+const toolSigs = new Map<string, Map<string, unknown>>();
+// shortcut: in memory of one api process, the oldest runs dropped past 500; when api runs as several replicas — keep in the DB
+function keepSigs(runId: string, o: unknown) {
+  const choices = (
+    o as {
+      choices?: { delta?: { tool_calls?: ToolCall[] }; message?: { tool_calls?: ToolCall[] } }[];
+    } | null
+  )?.choices;
+  for (const c of choices ?? [])
+    for (const tc of c.delta?.tool_calls ?? c.message?.tool_calls ?? []) {
+      if (!tc.id || tc.extra_content == null) continue;
+      if (!toolSigs.has(runId)) {
+        if (toolSigs.size >= 500) toolSigs.delete(toolSigs.keys().next().value!);
+        toolSigs.set(runId, new Map());
+      }
+      toolSigs.get(runId)!.set(tc.id, tc.extra_content);
+    }
+}
+function putSigs(runId: string, body: Record<string, unknown>) {
+  const m = toolSigs.get(runId);
+  if (!m || !Array.isArray(body.messages)) return;
+  for (const msg of body.messages as { role?: string; tool_calls?: ToolCall[] }[])
+    if (msg.role === 'assistant')
+      for (const tc of msg.tool_calls ?? [])
+        if (tc.id && tc.extra_content == null && m.has(tc.id)) tc.extra_content = m.get(tc.id);
+}
+
 @Public()
 @Controller('api/ai')
 export class AgentController {
@@ -83,6 +115,7 @@ export class AgentController {
       ...failed(''),
       ...parseBody(resultSchema.partial().required({ verdict: true, comment: true }), body),
     };
+    toolSigs.delete(id);
     await finishAgent(this.api(), id, r as never);
     return { ok: true };
   }
@@ -126,6 +159,7 @@ export class AgentController {
     // a streamed OpenAI answer carries usage only on request
     if (body.stream && !anthropic && path === '/v1/chat/completions')
       body.stream_options = { ...(body.stream_options as object), include_usage: true };
+    if (!anthropic) putSigs(runId, body);
     const ac = new AbortController();
     reply.raw.on('close', () => ac.abort());
     const up = await fetch(url, {
@@ -165,7 +199,9 @@ export class AgentController {
         for (const l of lines)
           if (l.startsWith('data:'))
             try {
-              takeUsage(JSON.parse(l.slice(5)), u);
+              const o: unknown = JSON.parse(l.slice(5));
+              takeUsage(o, u);
+              if (!anthropic) keepSigs(runId, o);
             } catch {
               // [DONE] and the like
             }
@@ -177,7 +213,9 @@ export class AgentController {
     try {
       if (!sse)
         try {
-          takeUsage(JSON.parse(buf), u);
+          const o: unknown = JSON.parse(buf);
+          takeUsage(o, u);
+          if (!anthropic) keepSigs(runId, o);
         } catch {
           // an error body
         }
