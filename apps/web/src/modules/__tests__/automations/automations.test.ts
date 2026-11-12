@@ -255,10 +255,12 @@ describe('wk3: страница правил', () => {
   it('PLNRAPP-197: старые правила открываются в пикерах', async () => {
     const U1 = uuidv7();
     const S2 = uuidv7();
-    await h.db.table('automationsRules').bulkPut([
-      ruleRow({ trigger: { type: 'task.assignee_changed', userId: U1 } }),
-      ruleRow({ name: 'Статусы', trigger: { type: 'task.status_changed', to: [S1, S2] } }),
-    ]);
+    await h.db
+      .table('automationsRules')
+      .bulkPut([
+        ruleRow({ trigger: { type: 'task.assignee_changed', userId: U1 } }),
+        ruleRow({ name: 'Статусы', trigger: { type: 'task.status_changed', to: [S1, S2] } }),
+      ]);
     const w = mount(RulesPage, stubs);
     await vi.waitFor(() => expect(w.findAll('[data-role=edit]')).toHaveLength(2));
     await w.findAll('[data-role=edit]')[0]!.trigger('click');
