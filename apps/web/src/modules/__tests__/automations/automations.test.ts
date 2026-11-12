@@ -262,8 +262,14 @@ describe('wk3: страница правил', () => {
         ruleRow({ name: 'Статусы', trigger: { type: 'task.status_changed', to: [S1, S2] } }),
       ]);
     const w = mount(RulesPage, stubs);
+    // list order follows uuidv7 ids, random within one ms: pick a rule by its name
+    const editOf = (name: string) =>
+      w
+        .findAll('[data-role=rule]')
+        .find((r) => r.get('.font-medium').text() === name)!
+        .get('[data-role=edit]');
     await vi.waitFor(() => expect(w.findAll('[data-role=edit]')).toHaveLength(2));
-    await w.findAll('[data-role=edit]')[0]!.trigger('click');
+    await editOf('Правило').trigger('click');
     expect(w.get('[data-role=users] [data-value]').attributes('data-value')).toBe(U1);
     await w.get('[data-testid=editor]').trigger('submit');
     expect(mutate).toHaveBeenLastCalledWith(
@@ -271,7 +277,7 @@ describe('wk3: страница правил', () => {
       expect.objectContaining({ trigger: { type: 'task.assignee_changed', userId: U1 } }),
     );
     await vi.waitFor(() => expect(w.findAll('[data-role=edit]')).toHaveLength(2));
-    await w.findAll('[data-role=edit]')[1]!.trigger('click');
+    await editOf('Статусы').trigger('click');
     expect(w.get('[data-role=to] [data-value]').attributes('data-value')).toBe(`${S1},${S2}`);
   });
 
