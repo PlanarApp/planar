@@ -41,6 +41,7 @@ generated: true
 - **projects** — Проект как единица настройки — статусы, метки и модули в проекте; личный вид узла на сервере; доводка списка, PWA-обновления и мелочи UI [closed 2026-11-03] — [план](plan/projects.md) · [контракты](contracts/projects.md) · [решения](plan/projects/decisions.md) · [сводка](plan/projects/summary.md) · полный журнал: `archive/projects`
 - **ai4** — Модуль ai4 (PLNRAPP-169): harness в документах проекта — формат, diff, «Применить harness», загрузка, пакет «Разработка» [closed 2026-11-11] — [план](plan/ai4.md) · [решения](plan/ai4/decisions.md) · [сводка](plan/ai4/summary.md) · полный журнал: `archive/ai4`
 - **ai6** — ИИ-6 (PLNRAPP-171) — мониторинг ИИ: вкладка «ИИ» в задаче, «Задачи ИИ» для админов, лимиты, выключатель [closed 2026-11-12] — [план](plan/ai6.md) · [решения](plan/ai6/decisions.md) · [сводка](plan/ai6/summary.md) · полный журнал: `archive/ai6`
+- **ai7** — Модуль ai7 (PLNRAPP-172): письма от ИИ — комментарий-пачка на подтверждение, «ок» отправляет батчем через email, правки перезапускают прогон [closed 2026-11-12] — [план](plan/ai7.md) · [решения](plan/ai7/decisions.md) · [сводка](plan/ai7/summary.md) · полный журнал: `archive/ai7`
 
 ## Прочие документы
 

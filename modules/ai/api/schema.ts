@@ -133,6 +133,38 @@ export const aiRuns = pgTable(
   (t) => [index('ai_runs_task_id_idx').on(t.taskId), index('ai_runs_state_idx').on(t.state)],
 );
 
+export type AiEmail = {
+  to: string;
+  subject: string;
+  body: string;
+  state: 'queued' | 'sent' | 'failed';
+  error?: string;
+};
+
+// server table: emails of a run, sent only after the executor's «ок» in the thread of the batch comment
+export const aiEmailBatches = pgTable(
+  'ai_email_batches',
+  {
+    id: uuid().primaryKey(),
+    runId: uuid().notNull(),
+    taskId: uuid()
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    projectId: uuid().notNull(),
+    /** the batch comment: the executor answers in its thread */
+    commentId: uuid().notNull(),
+    /** pending | sending | sent | cancelled */
+    state: text().notNull(),
+    emails: jsonb().$type<AiEmail[]>().notNull(),
+    createdAt: ts().notNull().defaultNow(),
+    updatedAt: ts().notNull().defaultNow(),
+  },
+  (t) => [
+    index('ai_email_batches_comment_id_idx').on(t.commentId),
+    index('ai_email_batches_project_id_idx').on(t.projectId),
+  ],
+);
+
 // server table: the instance switch of the AI (one row); no row — enabled
 export const aiSettings = pgTable(
   'ai_settings',

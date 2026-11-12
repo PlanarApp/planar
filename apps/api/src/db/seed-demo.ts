@@ -24,6 +24,7 @@ import {
 import { automationsRules } from '@planar/module-automations/api/schema';
 import {
   aiActions,
+  aiEmailBatches,
   aiHarnessPacks,
   aiProjectLimits,
   aiRuns,
@@ -1989,6 +1990,13 @@ async function insertAll(tx: Tx, now: Date) {
       tid('RDM', 1),
       '**Group the notes by theme**\n\nOnboarding, pricing, integrations.',
     ),
+    // a batch of emails waiting for the assignee's «ок» (ai_email_batches)
+    botSays(
+      'mails',
+      tid('RDM', 1),
+      'The AI prepared emails (1). Reply «ок» to send; any other reply is an edit.\n\n**1. To:** interviewees@example.com\n\n**Subject:** Thank you for the interview\n\n> Thank you for your time. The summary of the notes is attached to the shared doc.',
+      { assigneeId: uid_.demo },
+    ),
   ]);
   await ins(s.checklistItems, [
     {
@@ -2006,6 +2014,20 @@ async function insertAll(tx: Tx, now: Date) {
     },
   ]);
   await ins(aiRuns, [
+    {
+      id: uid('ai-run:mails'),
+      taskId: tid('RDM', 1),
+      projectId: pid('RDM'),
+      kind: 'comment',
+      itemId: uid('comment:ai:mention'),
+      state: 'waiting_human',
+      chainId: uid('ai-run:mails'),
+      chainDepth: 0,
+      inputTokens: 900,
+      outputTokens: 140,
+      createdAt: at(-1, 11),
+      updatedAt: at(-1, 11),
+    },
     {
       id: uid('ai-run:waiting'),
       taskId: waiting,
@@ -2112,6 +2134,27 @@ async function insertAll(tx: Tx, now: Date) {
   await ins(aiSettings, [{ id: 1, enabled: true }]);
   await ins(aiProjectLimits, [
     { projectId: pid('RDM'), dailyTokens: 200_000, dailyCost: 5, updatedAt: at(-5) },
+  ]);
+
+  await ins(aiEmailBatches, [
+    {
+      id: uid('ai-email-batch:mails'),
+      runId: uid('ai-run:mails'),
+      taskId: tid('RDM', 1),
+      projectId: pid('RDM'),
+      commentId: uid('comment:ai:mails'),
+      state: 'pending',
+      emails: [
+        {
+          to: 'interviewees@example.com',
+          subject: 'Thank you for the interview',
+          body: 'Thank you for your time. The summary of the notes is attached to the shared doc.',
+          state: 'queued',
+        },
+      ],
+      createdAt: at(-1, 11),
+      updatedAt: at(-1, 11),
+    },
   ]);
 
   // templates: a bug report task and a launch project

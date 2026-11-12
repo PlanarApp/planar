@@ -7,6 +7,7 @@ import { AI_BOT_LOGIN, AI_BOT_NAME, shared } from '../shared/index.js';
 import { AiController } from './controller.js';
 import { HarnessController } from './harness.controller.js';
 import { PacksController } from './packs.controller.js';
+import { EMAIL_QUEUE, handleEmail, replied, type EmailData } from './email.js';
 import { AI_QUEUE, handle, keyOf, type AiRunData } from './run.js';
 
 @Module({ controllers: [AiController, HarnessController, PacksController] })
@@ -26,6 +27,7 @@ export {
   unzipFiles,
   zipFiles,
 } from './packs.js';
+export { EMAIL_QUEUE, EMAILS_PER_HOUR, handleEmail, isYes } from './email.js';
 export { AI_QUEUE, MAX_CHAIN, PLAN_HEADING, withPlan, type AiRunData } from './run.js';
 
 const has = (r: Record<string, unknown> | null | undefined) =>
@@ -99,7 +101,7 @@ async function assignments(writes: MutationWrite[], ctx: AfterMutationCtx, api: 
       await enqueue({ kind: 'comment', taskId, itemId: a.id as string });
     else if (!b && ((a.mentions as string[] | undefined) ?? []).includes(bot as string))
       await enqueue({ kind: 'mention', taskId, itemId: a.id as string });
-    if (!b && a.parentId) await answered(a, ctx, api);
+    if (!b && a.parentId && !(await replied(a, ctx, api))) await answered(a, ctx, api);
   }
 }
 
@@ -164,5 +166,12 @@ export const api: BackendModuleManifest = {
   mutators: shared.mutators,
   entities: shared.entities,
   afterMutation: afterMutation as BackendModuleManifest['afterMutation'],
-  jobs: [{ queue: AI_QUEUE, retryLimit: 0, handler: handle }] satisfies JobDef<AiRunData>[],
+  jobs: [
+    { queue: AI_QUEUE, retryLimit: 0, handler: handle } satisfies JobDef<AiRunData>,
+    {
+      queue: EMAIL_QUEUE,
+      retryLimit: 0,
+      handler: (d: EmailData, a) => handleEmail(d, a),
+    } satisfies JobDef<EmailData>,
+  ] as JobDef[],
 };
