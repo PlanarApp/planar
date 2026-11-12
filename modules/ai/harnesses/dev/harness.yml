@@ -3,13 +3,33 @@ statuses:
   - { key: clarify, name: Уточнение, category: todo, color: amber }
   - { key: todo, name: К работе, category: todo, color: blue }
   - { key: in_progress, name: В работе, category: in_progress, color: violet }
+  - { key: review, name: Ревью, category: in_progress, color: orange }
+  - { key: test_prod, name: Test prod, category: in_progress, color: cyan }
   - { key: done, name: Готово, category: done, color: green }
 labels:
   - { key: has_plan, name: Есть план, color: green }
 fields:
   - { key: budget, name: Бюджет, type: number }
-actions: [plan, decompose, triage, discussion, assign, chat]
+actions: [plan, decompose, triage, discussion, assign, chat, dev, review, test]
 rules:
+  - key: dev_in_todo
+    name: Разработка
+    description: ИИ реализует задачу в репозитории проекта и открывает MR с автомержем после CI. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, to: [todo] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: dev }]
+  - key: review_mr
+    name: Ревью MR
+    description: ИИ разбирает MR задачи и оставляет комментарии к diff в GitLab. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, to: [review] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: review }]
+  - key: test_on_prod
+    name: Тестирование на контуре
+    description: ИИ дожидается выкладки и проверяет задачу в браузере (Playwright) на контуре. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, to: [test_prod] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: test }]
   - key: plan_in_backlog
     name: План в бэклоге
     description: ИИ проверяет задачу, пишет план и оценивает бюджет. Только задачи, где ИИ — исполнитель.

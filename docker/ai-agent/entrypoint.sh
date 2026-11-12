@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Протокол агент-образа: контракт ai10-runner@1, docs/contracts/ai10.md §2.
+# Протокол агент-образа: контракт ai10-runner@3, docs/contracts/ai10.md §2.
 set -euo pipefail
 set +x
 
@@ -15,6 +15,8 @@ if [ ! -r "$PLANAR_CONTEXT_FILE" ]; then
 fi
 
 RESULT=/work/result.json
+# HOME lives on the empty tmpfs /tmp: git config --global, opencode and npm need it
+mkdir -p "$HOME"
 AUTH="Authorization: Bearer $PLANAR_RUN_SECRET"
 
 # Heartbeat каждые 30 с, пока жив агент; ошибки не фатальны (жнец решит сам).
@@ -30,20 +32,55 @@ trap 'kill "$HB_PID" 2>/dev/null || true' EXIT
 
 export ANTHROPIC_BASE_URL="$PLANAR_LLM_URL"
 export ANTHROPIC_API_KEY="$PLANAR_RUN_SECRET"
+[ -n "${PLANAR_LLM_MODEL:-}" ] && export ANTHROPIC_MODEL="$PLANAR_LLM_MODEL"
 
 rm -f "$RESULT"
 agent_rc=0
-if [ -n "${PLANAR_AGENT_CMD:-}" ]; then
+
+# Репозиторий проекта (подключение gitlab): токен — через credential helper, в .git/config не пишется.
+REPO=
+if [ -n "${PLANAR_REPO_URL:-}" ] && [ -n "${GITLAB_TOKEN:-}" ]; then
+  git config --global credential.helper '!f() { echo username=oauth2; echo "password=$GITLAB_TOKEN"; }; f'
+  git config --global user.name "ИИ"
+  git config --global user.email "ai@planar.invalid"
+  if git clone -q --filter=blob:none "$PLANAR_REPO_URL" /work/repo; then
+    REPO=/work/repo
+    cd "$REPO"
+  else
+    jq -n '{verdict:"fail", comment:"Агент не смог склонировать репозиторий проекта: проверьте токен подключения GitLab (нужен scope api) и allowlist squid."}' >"$RESULT"
+  fi
+fi
+
+prompt() {
+  jq -r '.action.prompt // ""' "$PLANAR_CONTEXT_FILE"
+  printf '\n\nЗадача: '
+  jq -r '"\(.task.key) \(.task.title)\n\n\(.task.description // "")"' "$PLANAR_CONTEXT_FILE"
+  printf '\n\nПолный контекст (JSON, с комментариями) — в файле %s.\n' "$PLANAR_CONTEXT_FILE"
+  if [ -n "$REPO" ]; then
+    printf 'Репозиторий проекта склонирован в %s (текущий каталог), git push и glab работают.\n' "$REPO"
+  fi
+  printf 'В конце запиши результат JSON в %s: {"verdict":"done|question|fail","comment":"..."} и необязательные поля: questions[], descriptionAppend, newTasks[{title,description,status}], moveTo, labels[], fields[{name,value}].\n' "$RESULT"
+}
+
+if [ -s "$RESULT" ]; then
+  : # клонирование не удалось — результат уже готов
+elif [ -n "${PLANAR_AGENT_CMD:-}" ]; then
   # Внешний harness: читает $PLANAR_CONTEXT_FILE, пишет JSON в /work/result.json.
   bash -c "$PLANAR_AGENT_CMD" || agent_rc=$?
+elif [ "${PLANAR_LLM_PROTOCOL:-anthropic}" = anthropic ]; then
+  prompt | claude -p --dangerously-skip-permissions || agent_rc=$?
 else
-  {
-    jq -r '.action.prompt // ""' "$PLANAR_CONTEXT_FILE"
-    printf '\n\nЗадача: '
-    jq -r '"\(.task.key) \(.task.title)\n\n\(.task.description // "")"' "$PLANAR_CONTEXT_FILE"
-    printf '\n\nПолный контекст (JSON) — в файле %s.\n' "$PLANAR_CONTEXT_FILE"
-    printf 'В конце запиши результат JSON в %s: {"verdict":"done|question|fail","comment":"..."} и необязательные поля.\n' "$RESULT"
-  } | claude -p --dangerously-skip-permissions || agent_rc=$?
+  # OpenAI-совместимый провайдер (OpenAI, Gemini, …) — opencode через LLM-прокси api.
+  export OPENCODE_CONFIG=/tmp/home/opencode.json OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_MODELS_FETCH=1
+  jq -n --arg url "$PLANAR_LLM_URL/v1" --arg m "${PLANAR_LLM_MODEL:?не задана PLANAR_LLM_MODEL}" '{
+    "$schema": "https://opencode.ai/config.json",
+    autoupdate: false,
+    share: "disabled",
+    provider: {planar: {npm: "@ai-sdk/openai-compatible", name: "Planar",
+      options: {baseURL: $url, apiKey: "{env:PLANAR_RUN_SECRET}"}, models: {($m): {name: $m}}}},
+    model: ("planar/" + $m)
+  }' >"$OPENCODE_CONFIG"
+  opencode run --auto -m "planar/$PLANAR_LLM_MODEL" "$(prompt)" || agent_rc=$?
 fi
 
 # -s: jq -e accepts an empty file (exit 0) — it would go out as an empty body

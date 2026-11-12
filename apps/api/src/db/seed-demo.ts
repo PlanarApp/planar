@@ -2133,6 +2133,70 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-1, 15),
     }),
   ]);
+  // agent action (PLNRAPP-177): «Development» ran in a container, pushed a branch and opened an MR with auto-merge
+  const devText = [
+    'Implement the task in the project repository, run the tests and the linter.',
+    'Push the branch mr/<task key>, open an MR with auto-merge after CI, move the task to «Test prod».',
+  ];
+  await ins(docsPages, [
+    {
+      id: uid('page:ai-dev'),
+      spaceId: rdmSpace,
+      projectId: pid('RDM'),
+      parentId: null,
+      rank: generateNKeysBetween(dRanks.at(-1)!, null, 3)[2],
+      title: 'AI · Development',
+      icon: '🤖',
+      body: markdownToDoc(devText.join('\n\n')),
+      text: ['AI · Development', ...devText].join(' '),
+      files: [],
+      createdBy: maya,
+      updatedBy: maya,
+      archivedAt: null,
+      archivedBy: null,
+      createdAt: at(-25),
+      updatedAt: at(-25),
+    },
+  ]);
+  await ins(aiActions, [
+    {
+      id: uid('ai-action:dev'),
+      spaceId: rdmSpace,
+      projectId: pid('RDM'),
+      key: 'dev',
+      name: 'Development',
+      description: 'Code, tests and an MR with auto-merge after CI',
+      pageId: uid('page:ai-dev'),
+      runtime: 'agent',
+      model: null,
+      questionStatusId: clarify,
+      checks: ['Tests and linter pass', 'The MR is open with auto-merge'],
+      maxOutputTokens: null,
+      createdAt: at(-25),
+      updatedAt: at(-25),
+    },
+  ]);
+  await ins(s.comments, [
+    botSays(
+      'dev',
+      tid('RDM', 9),
+      'Opened MR !42 «RDM-10: dark mode polish» with auto-merge after CI.\n\n- contrast of secondary text and borders fixed in both themes\n- tests and linter pass',
+    ),
+  ]);
+  await ins(aiRuns, [
+    run('dev', 9, {
+      actionId: uid('ai-action:dev'),
+      ruleId: null,
+      state: 'done',
+      containerId: 'demo',
+      inputTokens: 48200,
+      outputTokens: 6100,
+      cost: 0.236,
+      log: 'Cloned the repository\nTests and linter pass\nPushed mr/RDM-10, opened MR !42, auto-merge after CI',
+      createdAt: at(-1, 9),
+      updatedAt: at(-1, 9),
+    }),
+  ]);
   // chats with the bot: a personal dialog with a done run, a group one with a plan waiting for «да»
   const botChat = async (
     k: string,

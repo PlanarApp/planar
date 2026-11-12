@@ -43,21 +43,22 @@ describe('pack sales', async () => {
       'lost',
       'followup',
       'digest',
+      'research',
     ]);
   });
 
-  it('every action is an llm instruction with a prompt', () => {
+  it('every action is an llm instruction with a prompt; research is an agent', () => {
     for (const k of pack.actions) {
       const text = files[`actions/${k}.md`];
       expect(text, k).toBeTruthy();
       const i = parseInstructionDoc(text!);
-      expect(i.runtime, k).toBe('llm');
+      expect(i.runtime, k).toBe(k === 'research' ? 'agent' : 'llm');
       expect(i.prompt.length, k).toBeGreaterThan(50);
     }
   });
 
   it('all rules are for the AI assignee and enabled', () => {
-    expect(pack.rules).toHaveLength(7);
+    expect(pack.rules).toHaveLength(8);
     for (const r of pack.rules) {
       expect((r.filter as { assignee: string[] }).assignee[0], r.name).toBe('ai');
       expect(r.enabled, r.name).toBe(true);
@@ -78,8 +79,8 @@ describe('pack sales', async () => {
     expect(n('status', 'create')).toBe(8);
     expect(n('label', 'create')).toBe(2);
     expect(n('field', 'create')).toBe(6);
-    expect(n('action', 'create')).toBe(6);
-    expect(n('rule', 'create')).toBe(7);
-    expect(n('rule', 'enable')).toBe(7);
+    expect(n('action', 'create')).toBe(7);
+    expect(n('rule', 'create')).toBe(8);
+    expect(n('rule', 'enable')).toBe(8);
   });
 });
