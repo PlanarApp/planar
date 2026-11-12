@@ -14,6 +14,7 @@ import { loadPack, parseInstructionPage } from './harness.js';
 import type { ChatPending } from './schema.js';
 import { batchDoc, insertBatch } from './email.js';
 import { generateReply, generateStructured, type LlmUsage } from './llm.js';
+import { agentsFull, startAgentRun, stopAgent } from './agent.js';
 
 export const AI_QUEUE = 'ai.run';
 /** A run started by another run's changes continues its chain; longer than this — stopped. */
@@ -364,12 +365,16 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     if (!item || (d.kind === 'comment' && (item.assigneeId !== bot || item.resolvedAt))) return;
   }
   const itemId = (item?.id as string | undefined) ?? null;
+  // agent containers are limited: over the limit the job waits (agent.ts)
+  if (action?.runtime === 'agent' && (await agentsFull(api.db, task.projectId)))
+    return api.enqueue(AI_QUEUE, d, { startAfter: 30 });
   // a newer run of the same pair wins: the older one's result is not applied
-  await api.db.execute(
+  const older = await api.db.execute(
     sql`update ai_runs set state = 'cancelled', updated_at = now()
         where task_id = ${task.id} and kind = ${d.kind} and state in ('running', 'waiting_human')
-          and coalesce(action_id, item_id) = ${action?.id ?? itemId}::uuid`,
+          and coalesce(action_id, item_id) = ${action?.id ?? itemId}::uuid returning id`,
   );
+  for (const o of older.rows) await stopAgent(api.db, o.id as string);
   const parent =
     d.kind === 'action' && d.parentRunId
       ? await one(
@@ -392,8 +397,6 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
         run,
         failed(`Остановлено: цепочка прогонов ИИ длиннее ${MAX_CHAIN}.`),
       );
-    if (action?.runtime === 'agent')
-      return await apply(api, run, failed('Agent-действия пока не поддерживаются.'));
     const stop = await blocked(api.db, task.projectId);
     if (stop) {
       run.log.push(stop);
@@ -425,6 +428,7 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
       }
     }
     const ctx = await contextOf(api.db, task, bot);
+    if (action?.runtime === 'agent') return await startAgentRun(api, run, prompt, ctx);
     const ask =
       d.kind === 'action'
         ? ''
@@ -1165,3 +1169,5 @@ async function resume(runId: string, api: JobApi) {
     await again({ kind: 'mention', taskId, itemId: r.itemId as string });
   else await again({ kind: 'checklist', taskId });
 }
+
+export { apply, blocked, botOf, contextOf, failed, finish, loadTask, md, overBudget, type Run };

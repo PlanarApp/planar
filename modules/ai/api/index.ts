@@ -4,6 +4,8 @@ import type { AfterMutationCtx, JobDef, ModuleHookApi, MutationWrite } from '@pl
 import type { BackendModuleManifest } from '@planar/shared';
 import { uuidv7 } from '@planar/shared';
 import { AI_BOT_LOGIN, AI_BOT_NAME, shared } from '../shared/index.js';
+import { AGENT_REAP_QUEUE, reap } from './agent.js';
+import { AgentController } from './agent.controller.js';
 import { AiController } from './controller.js';
 import { HarnessController } from './harness.controller.js';
 import { PacksController } from './packs.controller.js';
@@ -12,7 +14,7 @@ import type { JSONContent } from '@tiptap/core';
 import { AI_QUEUE, handle, keyOf, type AiRunData } from './run.js';
 import type { ChatPending } from './schema.js';
 
-@Module({ controllers: [AiController, HarnessController, PacksController] })
+@Module({ controllers: [AiController, HarnessController, PacksController, AgentController] })
 class AiModule {}
 
 export { resolveConnection, secretOf } from './connections.js';
@@ -243,6 +245,7 @@ export const api: BackendModuleManifest = {
   afterMutation: afterMutation as BackendModuleManifest['afterMutation'],
   jobs: [
     { queue: AI_QUEUE, retryLimit: 0, handler: handle } satisfies JobDef<AiRunData>,
+    { queue: AGENT_REAP_QUEUE, cron: '* * * * *', retryLimit: 0, handler: reap },
     {
       queue: EMAIL_QUEUE,
       retryLimit: 0,

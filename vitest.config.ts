@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  test: { projects: ['packages/shared', 'apps/api', 'apps/web'] },
+  test: { projects: ['packages/shared', 'apps/api', 'apps/web', 'apps/ai-runner'] },
 });
