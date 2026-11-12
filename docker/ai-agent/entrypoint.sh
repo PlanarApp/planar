@@ -47,7 +47,7 @@ if [ -n "${PLANAR_REPO_URL:-}" ] && [ -n "${GITLAB_TOKEN:-}" ]; then
     REPO=/work/repo
     cd "$REPO"
   else
-    jq -n '{verdict:"fail", comment:"Агент не смог склонировать репозиторий проекта: проверьте токен подключения GitLab (нужен scope api) и allowlist squid."}' >"$RESULT"
+    jq -n '{verdict:"fail", comment:"Агент не смог склонировать репозиторий проекта: проверьте токен подключения GitLab (нужен scope api) и доступность squid."}' >"$RESULT"
   fi
 fi
 

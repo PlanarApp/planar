@@ -81,7 +81,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
-  # egress of agent containers: allowlist in deploy/squid.conf
+  # egress of agent containers: full internet access, config in deploy/squid.conf
   squid:
     profiles: [ai]
     logging: *logging

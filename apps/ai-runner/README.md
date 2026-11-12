@@ -49,7 +49,7 @@ AI_AGENT_MAX_REPLICAS=2                       # для api: сколько пр�
 
 - `runner` (internal) — api ↔ ai-runner.
 - `agents` (internal, имя `planar_agents`) — контейнеры агентов, api и squid. Прямого выхода в интернет нет.
-- Выход наружу — только через `squid` (`HTTP_PROXY=http://squid:3128`), allowlist доменов — `deploy/squid.conf` (git, npm, github, gitlab). Чтобы разрешить ещё домен — добавить его в `acl allowed_domains` и перезапустить squid.
+- Выход наружу — только через `squid` (`HTTP_PROXY=http://squid:3128`), конфиг — `deploy/squid.conf`: агентам открыт весь интернет (любые домены и порты, включая приватные сети), запросы пишутся в `access_log` squid.
 
 ## Ограничения
 

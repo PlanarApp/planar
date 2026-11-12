@@ -4,7 +4,7 @@
 
 ## Состав
 
-node 24, pnpm (corepack), git, curl, jq, ripgrep (нужен opencode), glab, Claude Code, opencode, Playwright chromium (`/opt/pw`). Пользователь `10001`, `WORKDIR /work`, ENTRYPOINT `/usr/local/bin/planar-agent-entrypoint`. Версии — `ARG` в Dockerfile (актуальны на 2026-11-12). Необязательный трафик Claude Code (телеметрия, автообновление) отключён env, иначе его режет squid. Сборка: `docker build -t planar-ai-agent:1 docker/ai-agent` (~3,2 ГБ).
+node 24, pnpm (corepack), git, curl, jq, ripgrep (нужен opencode), glab, Claude Code, opencode, Playwright chromium (`/opt/pw`). Пользователь `10001`, `WORKDIR /work`, ENTRYPOINT `/usr/local/bin/planar-agent-entrypoint`. Версии — `ARG` в Dockerfile (актуальны на 2026-11-12). Необязательный трафик Claude Code (телеметрия, автообновление) отключён env. Сборка: `docker build -t planar-ai-agent:1 docker/ai-agent` (~3,2 ГБ).
 
 CI публикует образ как `registry.gitlab.com/planarhq/planar/ai-agent`: на релизных тегах — `X.Y.Z`, `X.Y`, `latest`; на `main` — `edge`, только когда менялся этот каталог. В `.env` его указывают в `AI_AGENT_IMAGE` и `AI_RUNNER_IMAGES` (см. `apps/ai-runner/README.md`).
 
