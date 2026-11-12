@@ -1,4 +1,4 @@
-// ai10: the container's calls — result, heartbeat, LLM proxy. No cookie session: the one-time secret of the run.
+// ai10: the container's calls — result, heartbeat, the agent's log, LLM proxy. No cookie session: the one-time secret of the run.
 import {
   All,
   Body,
@@ -13,13 +13,20 @@ import {
   SetMetadata,
 } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
+import { z } from 'zod';
 import type { ServerResponse } from 'node:http';
 import { once } from 'node:events';
 import { CORE, HttpError, parseBody, type CoreServices, type JobApi } from '@planar/server-kit';
 import { resolveConnection, secretOf } from './connections.js';
 import { costOf } from './llm.js';
 import { blocked, loadTask, overBudget, resultSchema, failed } from './run.js';
-import { finishAgent, runBySecret } from './agent.js';
+import { finishAgent, runBySecret, runSecretsOf } from './agent.js';
+import {
+  AGENT_LOG_MAX_EVENTS,
+  AGENT_LOG_MAX_LINES,
+  cleanEvents,
+  parseAgentLines,
+} from './agent-log.js';
 
 // same as core's @Public() (apps/api/src/auth/public.ts): the module does not import apps/api
 const Public = () => SetMetadata('planar:public', true);
@@ -83,6 +90,22 @@ function putSigs(runId: string, body: Record<string, unknown>) {
         if (tc.id && tc.extra_content == null && m.has(tc.id)) tc.extra_content = m.get(tc.id);
 }
 
+/** tool_use id → tool name per run across the batches of the agent's log (the output names its tool) */
+const logTools = new Map<string, Map<string, string>>();
+// shortcut: in memory of one api process, as toolSigs; without it an output just has no tool name
+function toolsOf(runId: string) {
+  let m = logTools.get(runId);
+  if (!m) {
+    if (logTools.size >= 500) logTools.delete(logTools.keys().next().value!);
+    logTools.set(runId, (m = new Map()));
+  }
+  return m;
+}
+// one line of the agent's stdout; the forwarder of the image cuts long strings inside JSON events
+const eventsBody = z.object({
+  lines: z.array(z.string().max(256 * 1024)).max(AGENT_LOG_MAX_LINES),
+});
+
 @Public()
 @Controller('api/ai')
 export class AgentController {
@@ -116,6 +139,7 @@ export class AgentController {
       ...parseBody(resultSchema.partial().required({ verdict: true, comment: true }), body),
     };
     toolSigs.delete(id);
+    logTools.delete(id);
     await finishAgent(this.api(), id, r as never);
     return { ok: true };
   }
@@ -125,6 +149,31 @@ export class AgentController {
   async heartbeat(@Param('id') id: string, @Headers() h: Headers_) {
     await this.auth(id, h);
     await this.core.db.execute(sql`update ai_runs set heartbeat_at = now() where id = ${id}::uuid`);
+  }
+
+  /**
+   * PLNRAPP-199: lines of the agent's stdout → the run's log events. Secrets are masked here (the run secret of the
+   * request, the provider key, the gitlab token, token-like strings), texts shortened, only the tail is kept.
+   */
+  @Post('runs/:id/events')
+  @HttpCode(204)
+  async events(@Param('id') id: string, @Headers() h: Headers_, @Body() body: unknown) {
+    const run = await this.auth(id, h);
+    const { lines } = parseBody(eventsBody, body);
+    const db = this.core.db;
+    const known = [secretOfRequest(h), ...(await runSecretsOf(db, run.projectId))];
+    const ev = cleanEvents(parseAgentLines(lines, toolsOf(id)), known);
+    if (!ev.length) return;
+    await db.execute(
+      sql`insert into ai_run_events (run_id, type, tool, text) values ${sql.join(
+        ev.map((e) => sql`(${id}::uuid, ${e.type}, ${e.tool}, ${e.text})`),
+        sql`, `,
+      )}`,
+    );
+    await db.execute(
+      sql`delete from ai_run_events where run_id = ${id}::uuid and id <= (select id from ai_run_events
+          where run_id = ${id}::uuid order by id desc offset ${AGENT_LOG_MAX_EVENTS} limit 1)`,
+    );
   }
 
   @All('llm/:runId/*')

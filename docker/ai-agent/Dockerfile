@@ -27,6 +27,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* /tmp/* /root/.npm
 
 COPY entrypoint.sh /usr/local/bin/planar-agent-entrypoint
+COPY log-forward.mjs /usr/local/lib/planar-agent/log-forward.mjs
 RUN chmod 755 /usr/local/bin/planar-agent-entrypoint
 
 # Совместимо с read-only rootfs: /tmp и /work — tmpfs (создаёт runner).

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  bigserial,
   boolean,
   check,
   doublePrecision,
@@ -147,6 +148,24 @@ export const aiRuns = pgTable(
     index('ai_runs_project_id_created_at_idx').on(t.projectId, t.createdAt),
     index('ai_runs_created_at_idx').on(t.createdAt),
   ],
+);
+
+// server table: the agent's log of a run (PLNRAPP-199) — events from the container, masked and shortened by the api;
+// only the tail is kept (AGENT_LOG_MAX_EVENTS per run, agent-log.ts)
+export const aiRunEvents = pgTable(
+  'ai_run_events',
+  {
+    id: bigserial({ mode: 'number' }).primaryKey(),
+    runId: uuid()
+      .notNull()
+      .references(() => aiRuns.id, { onDelete: 'cascade' }),
+    /** thought | tool_call | command | output | result */
+    type: text().notNull(),
+    tool: text(),
+    text: text().notNull(),
+    createdAt: ts().notNull().defaultNow(),
+  },
+  (t) => [index('ai_run_events_run_id_id_idx').on(t.runId, t.id)],
 );
 
 export type ChatPending = {

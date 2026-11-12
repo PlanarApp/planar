@@ -33,6 +33,8 @@ import {
   type AiMonitor,
   type AiMonitorRun,
   type AiRunDetails,
+  type AiRunEvent,
+  type AiRunEvents,
   type AiRunView,
   type AiScope,
 } from '../shared/index.js';
@@ -103,6 +105,10 @@ const runCols = sql`r.id, r.task_id as "taskId", r.project_id as "projectId", r.
   ${iso('r.created_at')} as "createdAt", ${iso('r.updated_at')} as "updatedAt"`;
 const runView = (r: Row) => r as unknown as AiRunView;
 const uuidP = z.uuid();
+const eventsQuery = z.object({
+  after: z.coerce.number().int().min(0).default(0),
+  limit: z.coerce.number().int().min(1).max(500).default(200),
+});
 const runsQuery = z.object({
   state: z.enum(AI_RUN_STATES).optional(),
   projectId: z.uuid().optional(),
@@ -212,6 +218,25 @@ export class AiController {
     delete run.ruleId;
     delete run.itemId;
     return { run: run as unknown as AiRunDetails };
+  }
+
+  /** PLNRAPP-199: the agent's log of the run after the cursor (event id); the client polls while the run is running. */
+  @Get('runs/:id/events')
+  async runEvents(
+    @Req() req: object,
+    @Param('id') id: string,
+    @Query() query: unknown,
+  ): Promise<AiRunEvents> {
+    const run = await this.runOf(req, id);
+    const q = parseBody(eventsQuery, query);
+    const r = await this.core.db.execute(
+      sql`select id, type, tool, text, ${iso('created_at')} as "createdAt" from ai_run_events
+          where run_id = ${id}::uuid and id > ${q.after} order by id limit ${q.limit}`,
+    );
+    return {
+      events: r.rows.map((e) => ({ ...e, id: Number(e.id) }) as unknown as AiRunEvent),
+      state: run.state as AiRunEvents['state'],
+    };
   }
 
   @Post('runs/:id/stop')

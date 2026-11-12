@@ -27,6 +27,7 @@ import {
   aiEmailBatches,
   aiHarnessPacks,
   aiProjectLimits,
+  aiRunEvents,
   aiRuns,
   aiSettings,
 } from '@planar/module-ai/api/schema';
@@ -2205,6 +2206,44 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-1, 9),
     }),
   ]);
+  // the agent's log of that run (PLNRAPP-199): thinking, tools, commands and their output, as in Claude Code
+  const devLog: [string, string | null, string][] = [
+    ['thought', null, 'Reading the task and the repository README to find the theme tokens.'],
+    ['command', 'Bash', 'git checkout -b mr/RDM-10'],
+    ['output', 'Bash', "Switched to a new branch 'mr/RDM-10'"],
+    ['tool_call', 'Grep', '--fg-muted in apps/web/src'],
+    ['output', 'Grep', 'apps/web/src/styles/theme.css:14\napps/web/src/styles/theme.css:41'],
+    ['tool_call', 'Edit', 'apps/web/src/styles/theme.css'],
+    ['output', 'Edit', 'The file apps/web/src/styles/theme.css has been updated.'],
+    [
+      'thought',
+      null,
+      'Contrast fixed in both themes; running the tests and the linter before pushing.',
+    ],
+    ['command', 'Bash', 'pnpm test && pnpm lint'],
+    [
+      'output',
+      'Bash',
+      ' Test Files  212 passed (212)\n      Tests  2481 passed (2481)\n\n> eslint . && prettier --check .\nAll matched files use Prettier code style!',
+    ],
+    [
+      'command',
+      'Bash',
+      'git push -u origin mr/RDM-10 && glab mr create --title "RDM-10: dark mode polish" --yes',
+    ],
+    ['output', 'Bash', 'https://gitlab.example/acme/app/-/merge_requests/42'],
+    ['result', null, 'Done, 23 turns, 412 s\nOpened MR !42 with auto-merge after CI.'],
+  ];
+  await ins(
+    aiRunEvents,
+    devLog.map(([type, tool, text], i) => ({
+      runId: uid('ai-run:dev'),
+      type,
+      tool,
+      text,
+      createdAt: new Date(new Date(at(-1, 9)).getTime() + i * 30_000).toISOString(),
+    })),
+  );
   // chats with the bot: a personal dialog with a done run, a group one with a plan waiting for «да»
   const botChat = async (
     k: string,

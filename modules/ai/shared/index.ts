@@ -239,6 +239,24 @@ export interface AiRunView {
   updatedAt: string;
 }
 export type AiRunDetails = AiRunView & { log: string };
+/** Agent log events (PLNRAPP-199): what the agent does in its container, as in the Claude Code chat. */
+export const AI_RUN_EVENT_TYPES = ['thought', 'tool_call', 'command', 'output', 'result'] as const;
+export type AiRunEventType = (typeof AI_RUN_EVENT_TYPES)[number];
+export interface AiRunEvent {
+  /** the cursor: `after` of the next request */
+  id: number;
+  type: AiRunEventType;
+  /** the tool of tool_call / command / output, if known */
+  tool: string | null;
+  /** shortened, secrets masked */
+  text: string;
+  createdAt: string;
+}
+export interface AiRunEvents {
+  events: AiRunEvent[];
+  /** the run's state: the client polls while it is running */
+  state: AiRunState;
+}
 export type AiMonitorRun = AiRunView & { taskKey: string; taskTitle: string; projectName: string };
 export interface AiLimits {
   dailyTokens: number | null;
