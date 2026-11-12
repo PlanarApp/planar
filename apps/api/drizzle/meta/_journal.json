@@ -386,6 +386,20 @@
       "when": 1794442841374,
       "tag": "0054_ai_email_batches",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1794500000000,
+      "tag": "0055_ai_chat_runs",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1794500100000,
+      "tag": "0056_ai_chat_pending",
+      "breakpoints": true
     }
   ]
 }

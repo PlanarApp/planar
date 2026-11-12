@@ -96,6 +96,14 @@ export class JobsService implements OnApplicationShutdown {
       execute: (userId, muts, o) =>
         executeMutations(this.db, userId, muts, this.push, undefined, o),
       enqueue: (queue, data, o) => this.enqueue(queue, data, o),
+      // dynamic import: static ones make an import cycle and Nest DI gets undefined metadata
+      tools: async (origin) => {
+        const [{ toolDefs }, { RestService }] = await Promise.all([
+          import('../mcp/tools.js'),
+          import('../rest/rest.service.js'),
+        ]);
+        return toolDefs(new RestService(this.db, this.push).withOrigin(origin));
+      },
     };
   }
 

@@ -102,11 +102,13 @@ export const aiRuns = pgTable(
   'ai_runs',
   {
     id: uuid().primaryKey(),
-    taskId: uuid()
-      .notNull()
-      .references(() => tasks.id, { onDelete: 'cascade' }),
-    projectId: uuid().notNull(),
-    /** action | comment | mention | checklist */
+    /** null — a chat run */
+    taskId: uuid().references(() => tasks.id, { onDelete: 'cascade' }),
+    /** null — a chat run in a channel without a project */
+    projectId: uuid(),
+    /** the channel of a chat run (item_id — the message) */
+    channelId: uuid(),
+    /** action | comment | mention | checklist | chat */
     kind: text().notNull(),
     actionId: uuid(),
     ruleId: uuid(),
@@ -127,11 +129,19 @@ export const aiRuns = pgTable(
     log: text().notNull().default(''),
     /** the run this one restarts by hand (the chain of restarts is limited) */
     restartOf: uuid(),
+    /** a chat run waiting for the initiator's «да»: the dangerous calls the bot planned and the thread to answer in */
+    pending: jsonb().$type<ChatPending>(),
     createdAt: ts().notNull().defaultNow(),
     updatedAt: ts().notNull().defaultNow(),
   },
   (t) => [index('ai_runs_task_id_idx').on(t.taskId), index('ai_runs_state_idx').on(t.state)],
 );
+
+export type ChatPending = {
+  calls: { name: string; args: unknown }[];
+  /** parent_id of the bot's plan message (null — a flat dialog): «да» must come in the same thread */
+  parentId: string | null;
+};
 
 export type AiEmail = {
   to: string;

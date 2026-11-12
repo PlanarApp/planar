@@ -43,40 +43,55 @@ const flat = <T extends { description?: unknown }>(t: T) => ({
 const cmt = <T extends { body?: unknown }>(c: T) => ({ ...c, body: docToText(c.body) });
 const task = z.string().describe('id или ключ задачи, например PLN-12');
 
-/** New server per request (stateless); rights — from the token ctx. */
-export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
-  const server = new McpServer({ name: 'planar', version: '1.0.0' });
-  const uid = ctx.userId;
-  const run = (write: boolean, f: (a: never) => Promise<unknown>) => async (a: never) => {
-    if (write && ctx.tokenScope === 'read') return fail('forbidden', 'Токен только для чтения');
-    try {
-      return out(await f(a));
-    } catch (e) {
-      if (e instanceof HttpError) return fail(e.code, e.message);
-      throw e;
-    }
-  };
-  const tool = <S extends z.ZodRawShape>(
+export type ToolDanger = 'delete' | 'bulk' | 'mail';
+
+/** One tool, shared by MCP and the chat adapter (modules/ai/api/chat-tools.ts). */
+export interface ToolDef {
+  name: string;
+  description: string;
+  shape: z.ZodRawShape;
+  write: boolean;
+  /** needs the user's confirmation in chat */
+  danger?: ToolDanger;
+  run(args: never, uid: string, tokenId?: string): Promise<unknown>;
+}
+
+type C = { uid: string; tokenId?: string };
+
+/** The registry of tools; rights — of `uid` inside RestService. */
+export function toolDefs(rest: RestService): ToolDef[] {
+  const defs: ToolDef[] = [];
+  const def = <S extends z.ZodRawShape>(
     name: string,
     description: string,
-    inputSchema: S,
+    shape: S,
     write: boolean,
-    f: (a: z.infer<z.ZodObject<S>>) => Promise<unknown>,
-  ) => server.registerTool(name, { description, inputSchema }, run(write, f as never) as never);
-
-  tool(
+    ...r: [f: Fn<S>] | [danger: ToolDanger, f: Fn<S>]
+  ) => {
+    const f = r[r.length - 1] as (a: never, c: C) => Promise<unknown>;
+    const danger = r.length === 2 ? r[0] : undefined;
+    defs.push({
+      name,
+      description,
+      shape,
+      write,
+      danger,
+      run: (a, uid, tokenId) => f(a, { uid, tokenId }),
+    });
+  };
+  def(
     'list_spaces',
     'Пространства пользователя',
     {},
     false,
-    async () => (await rest.spaces(uid, { limit: 200 })).data,
+    async (_, c) => (await rest.spaces(c.uid, { limit: 200 })).data,
   );
-  tool(
+  def(
     'list_projects',
     'Проекты (можно по пространству)',
     { spaceId: z.uuid().optional() },
     false,
-    async (a) => (await rest.projects(uid, { limit: 200, ...a })).data,
+    async (a, c) => (await rest.projects(c.uid, { limit: 200, ...a })).data,
   );
   const filters = {
     projectId: z.uuid().optional(),
@@ -92,21 +107,21 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
     const st = await rest.statusInfo(ts.map((t) => String(t.statusId)));
     return ts.map((t) => ({ ...flat(t), status: st.get(String(t.statusId)) ?? null }));
   };
-  tool(
+  def(
     'list_fields',
     'Определения пользовательских полей проекта',
     { projectId: z.uuid() },
     false,
-    async (a) => (await rest.fields(uid, a.projectId)).data,
+    async (a, c) => (await rest.fields(c.uid, a.projectId)).data,
   );
-  tool(
+  def(
     'project_dictionary',
     'Статусы (название, категория), метки и участники проекта — расшифровка statusId, labelIds, assigneeIds',
     { projectId: z.uuid() },
     false,
-    async (a) => rest.dictionary(uid, a.projectId),
+    async (a, c) => rest.dictionary(c.uid, a.projectId),
   );
-  tool(
+  def(
     'search_tasks',
     'Поиск задач по части заголовка или ключа',
     {
@@ -115,89 +130,91 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
       ...filters,
     },
     false,
-    async (a) => named(await rest.searchTasks(uid, a)),
+    async (a, c) => named(await rest.searchTasks(c.uid, a)),
   );
-  tool('get_task', 'Задача с комментариями и связями', { task }, false, async (a) => {
-    const t = (await rest.task(uid, a.task)).data;
-    const comments = (await rest.comments(uid, a.task, { limit: 200 })).data;
-    const links = (await rest.links(uid, a.task)).data;
+  def('get_task', 'Задача с комментариями и связями', { task }, false, async (a, c) => {
+    const t = (await rest.task(c.uid, a.task)).data;
+    const comments = (await rest.comments(c.uid, a.task, { limit: 200 })).data;
+    const links = (await rest.links(c.uid, a.task)).data;
     return { ...(await named([t]))[0], comments: comments.map(cmt), links };
   });
-  tool(
+  def(
     'my_tasks',
     'Задачи, назначенные мне или с назначенным мне открытым комментарием / пунктом чек-листа (по умолчанию без done/cancelled)',
     { includeDone: z.boolean().optional(), ...filters },
     false,
-    async (a) =>
+    async (a, c) =>
       named(
-        await rest.searchTasks(uid, {
+        await rest.searchTasks(c.uid, {
           ...a,
           assigneeId: 'me',
           includeDone: a.includeDone ?? false,
         }),
       ),
   );
-  tool(
+  def(
     'create_task',
     'Создать задачу',
     createTaskBody.shape,
     true,
-    async (a) => (await named([(await rest.createTask(uid, a, ctx.tokenId)).data]))[0],
+    async (a, c) => (await named([(await rest.createTask(c.uid, a, c.tokenId)).data]))[0],
   );
-  tool(
+  def(
     'update_task',
     'Изменить задачу',
     { task, ...patchTaskBody.shape },
     true,
-    async ({ task: ref, ...a }) =>
-      (await named([(await rest.patchTask(uid, ref, a, ctx.tokenId)).data]))[0],
+    async ({ task: ref, ...a }, c) =>
+      (await named([(await rest.patchTask(c.uid, ref, a, c.tokenId)).data]))[0],
   );
-  tool(
+  def(
     'add_comment',
     'Добавить комментарий (@login — упоминание); parentId — ответ в тред, assigneeId — назначить',
     { task, ...commentBody.shape },
     true,
-    async ({ task: ref, ...a }) => cmt((await rest.createComment(uid, ref, a, ctx.tokenId)).data),
+    async ({ task: ref, ...a }, c) =>
+      cmt((await rest.createComment(c.uid, ref, a, c.tokenId)).data),
   );
-  tool(
+  def(
     'update_comment',
     'Изменить комментарий: assigneeId — назначить (null — снять), resolved — выполнен / переоткрыть, text — новый текст (только автор)',
     { id: z.uuid().describe('id комментария'), ...patchCommentBody.shape },
     true,
-    async ({ id, ...a }) => cmt((await rest.patchComment(uid, id, a, ctx.tokenId)).data),
+    async ({ id, ...a }, c) => cmt((await rest.patchComment(c.uid, id, a, c.tokenId)).data),
   );
-  tool(
+  def(
     'link_tasks',
     'Связать две задачи (blocks, relates, duplicates)',
     { task, ...linkBody.shape },
     true,
-    async ({ task: ref, ...a }) => (await rest.createLink(uid, ref, a, ctx.tokenId)).data,
+    async ({ task: ref, ...a }, c) => (await rest.createLink(c.uid, ref, a, c.tokenId)).data,
   );
-  tool(
+  def(
     'unlink_tasks',
     'Удалить связь задач (id связи — из get_task links)',
     { id: z.uuid().describe('id связи') },
     true,
-    async (a) => {
-      await rest.deleteLink(uid, a.id, ctx.tokenId);
+    'delete',
+    async (a, c) => {
+      await rest.deleteLink(c.uid, a.id, c.tokenId);
       return { ok: true };
     },
   );
-  tool(
+  def(
     'list_time_entries',
     'Записи времени: по задаче, пользователю (me), периоду; страницы через cursor',
     timeEntriesQuery.shape,
     false,
-    async (a) => rest.timeEntries(uid, a),
+    async (a, c) => rest.timeEntries(c.uid, a),
   );
-  tool(
+  def(
     'get_timer',
     'Идущий таймер (null, если его нет)',
     {},
     false,
-    async () => (await rest.timer(uid)).data,
+    async (_, c) => (await rest.timer(c.uid)).data,
   );
-  tool(
+  def(
     'log_time',
     'Записать время на задачу (минуты); начало — 09:00 UTC даты, по умолчанию сегодня',
     {
@@ -207,43 +224,43 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
       note: z.string().max(1000).optional(),
     },
     true,
-    async (a) =>
+    async (a, c) =>
       (
         await rest.logTime(
-          uid,
+          c.uid,
           {
             task: a.task,
             startedAt: `${a.date ?? new Date().toISOString().slice(0, 10)}T09:00:00.000Z`,
             durationSec: a.minutes * 60,
             note: a.note,
           },
-          ctx.tokenId,
+          c.tokenId,
         )
       ).data,
   );
-  tool(
+  def(
     'start_timer',
     'Запустить таймер на задаче (прежний останавливается)',
     { task },
     true,
-    async (a) => (await rest.startTimer(uid, a, ctx.tokenId)).data,
+    async (a, c) => (await rest.startTimer(c.uid, a, c.tokenId)).data,
   );
-  tool(
+  def(
     'stop_timer',
     'Остановить идущий таймер (null, если его нет)',
     {},
     true,
-    async () => (await rest.stopTimer(uid, ctx.tokenId)).data,
+    async (_, c) => (await rest.stopTimer(c.uid, c.tokenId)).data,
   );
-  tool(
+  def(
     'current_sprint',
     'Текущий цикл проекта и его задачи (null, если нет)',
     { projectId: z.uuid() },
     false,
-    async (a) => {
-      const cycle = (await rest.currentCycle(uid, a.projectId)).data;
+    async (a, c) => {
+      const cycle = (await rest.currentCycle(c.uid, a.projectId)).data;
       if (!cycle) return null;
-      const tasks = await rest.cycleTasks(uid, cycle.id as string);
+      const tasks = await rest.cycleTasks(c.uid, cycle.id as string);
       return {
         cycle,
         tasks: tasks.map((t) => ({
@@ -257,56 +274,76 @@ export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
       };
     },
   );
-  tool(
+  def(
     'list_sprints',
     'Циклы (спринты) проекта',
     { projectId: z.uuid() },
     false,
-    async (a) => (await rest.cycles(uid, a.projectId)).data,
+    async (a, c) => (await rest.cycles(c.uid, a.projectId)).data,
   );
-  tool(
+  def(
     'list_automations',
     'Правила автоматизаций проекта',
     { projectId: z.uuid() },
     false,
-    async (a) => (await rest.automations(uid, a.projectId)).data,
+    async (a, c) => (await rest.automations(c.uid, a.projectId)).data,
   );
   // documents (docs module, PLNRAPP-180)
   const doc = z.uuid().describe('id документа');
-  tool(
+  def(
     'list_docs',
     'Документы проекта (без содержимого): дерево по parentId',
     docsQuery.shape,
     false,
-    async (a) => (await rest.docs(uid, a)).data,
+    async (a, c) => (await rest.docs(c.uid, a)).data,
   );
-  tool(
+  def(
     'get_doc',
     'Документ: содержимое в markdown и связанные задачи; section — только один раздел большого документа',
     { id: doc, ...docQuery.shape },
     false,
-    async ({ id, ...a }) => (await rest.doc(uid, id, a)).data,
+    async ({ id, ...a }, c) => (await rest.doc(c.uid, id, a)).data,
   );
-  tool(
+  def(
     'create_doc',
     'Создать документ в проекте; содержимое — markdown',
     createDocBody.shape,
     true,
-    async (a) => (await rest.createDoc(uid, a, ctx.tokenId)).data,
+    async (a, c) => (await rest.createDoc(c.uid, a, c.tokenId)).data,
   );
-  tool(
+  def(
     'update_doc',
     'Изменить документ: title; markdown — заменить содержимое целиком, append — дописать в конец, replace {find, replace} — точечная правка фрагмента (для правок предпочтительнее markdown)',
     { id: doc, ...patchDocBody.shape },
     true,
-    async ({ id, ...a }) => (await rest.updateDoc(uid, id, a, ctx.tokenId)).data,
+    async ({ id, ...a }, c) => (await rest.updateDoc(c.uid, id, a, c.tokenId)).data,
   );
-  tool(
+  def(
     'link_doc_task',
     'Связать документ с задачей',
     { pageId: doc, ...docTaskBody.shape },
     true,
-    async ({ pageId, ...a }) => (await rest.linkDocTask(uid, pageId, a, ctx.tokenId)).data,
+    async ({ pageId, ...a }, c) => (await rest.linkDocTask(c.uid, pageId, a, c.tokenId)).data,
   );
+  return defs;
+}
+
+type Fn<S extends z.ZodRawShape> = (a: z.infer<z.ZodObject<S>>, c: C) => Promise<unknown>;
+
+/** New server per request (stateless); rights — from the token ctx. */
+export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
+  const server = new McpServer({ name: 'planar', version: '1.0.0' });
+  for (const d of toolDefs(rest))
+    server.registerTool(d.name, { description: d.description, inputSchema: d.shape }, (async (
+      a: never,
+    ) => {
+      if (d.write && ctx.tokenScope === 'read') return fail('forbidden', 'Токен только для чтения');
+      try {
+        return out(await d.run(a, ctx.userId, ctx.tokenId));
+      } catch (e) {
+        if (e instanceof HttpError) return fail(e.code, e.message);
+        throw e;
+      }
+    }) as never);
   return server;
 }

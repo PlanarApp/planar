@@ -2131,6 +2131,116 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-1, 15),
     }),
   ]);
+  // chats with the bot: a personal dialog with a done run, a group one with a plan waiting for «да»
+  const botChat = async (
+    k: string,
+    who: string[],
+    msgs: [string, string][],
+    plan?: { calls: { name: string; args: object }[] },
+  ) => {
+    const cid = uid(`chat:ai:${k}`);
+    const at0 = at(-1, 14);
+    const people = [...userList, { id: ai, login: 'ai' }];
+    await ins(chatChannels, [
+      {
+        id: cid,
+        spaceId: null,
+        projectId: null,
+        kind: 'dm',
+        name: null,
+        topic: null,
+        createdBy: uid_[who[0]!],
+        lastSeq: msgs.length,
+        lastMessageAt: at0,
+        archivedAt: null,
+        archivedBy: null,
+        createdAt: at0,
+        updatedAt: at0,
+      },
+    ]);
+    const ids = [...who.map((l) => uid_[l]!), ai];
+    await ins(
+      chatMembers,
+      ids.map((userId) => ({
+        id: uid(`cm:${cid}:${userId}`),
+        channelId: cid,
+        userId,
+        addedBy: uid_[who[0]!],
+        createdAt: at0,
+      })),
+    );
+    await ins(
+      chatReads,
+      ids.map((userId) => ({
+        id: uid(`cr:${cid}:${userId}`),
+        userId,
+        channelId: cid,
+        lastReadSeq: msgs.length,
+        muted: false,
+        updatedAt: at0,
+      })),
+    );
+    const msgIds = msgs.map((_, i) => uid(`msg:${cid}:${i}`));
+    await ins(
+      chatMessages,
+      msgs.map(([a, text], i) => {
+        const body = textToDoc(text, people);
+        return {
+          id: msgIds[i],
+          spaceId: null,
+          channelId: cid,
+          parentId: null,
+          seq: i + 1,
+          authorId: a === 'ai' ? ai : uid_[a],
+          body,
+          mentions: extractMentions(body),
+          attachments: [],
+          replyCount: 0,
+          createdAt: at0,
+          updatedAt: at0,
+        };
+      }),
+    );
+    await ins(aiRuns, [
+      {
+        id: uid(`ai-run:chat:${k}`),
+        kind: 'chat',
+        channelId: cid,
+        itemId: msgIds[0],
+        state: plan ? 'waiting_human' : 'done',
+        chainId: uid(`ai-run:chat:${k}`),
+        chainDepth: 0,
+        questionCommentIds: [],
+        inputTokens: 700,
+        outputTokens: 120,
+        cost: 0.004,
+        pending: plan ? { ...plan, parentId: null } : null,
+        createdAt: at0,
+        updatedAt: at0,
+      },
+    ]);
+  };
+  await botChat(
+    'personal',
+    ['demo'],
+    [
+      ['demo', 'What is still open on the beta plan?'],
+      ['ai', 'Two tasks are open: the forum import and the launch checklist.'],
+    ],
+  );
+  await botChat(
+    'group',
+    ['demo', 'maya'],
+    [
+      ['maya', '@ai remove the duplicate link between the two forum tasks'],
+      [
+        'ai',
+        'I am going to delete the link.\n\n**Plan, needs confirmation:**\n- unlink_tasks\n\nReply «да» to run it, anything else cancels.',
+      ],
+    ],
+    { calls: [{ name: 'unlink_tasks', args: { id: uid('link:forum-duplicate') } }] },
+  );
+
   await ins(aiSettings, [{ id: 1, enabled: true }]);
   await ins(aiProjectLimits, [
     { projectId: pid('RDM'), dailyTokens: 200_000, dailyCost: 5, updatedAt: at(-5) },

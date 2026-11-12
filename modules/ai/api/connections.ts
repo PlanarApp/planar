@@ -23,13 +23,18 @@ export const viewOf = (r: Row): AiConnectionView => ({
 
 /**
  * The connection in force for a project: the nearest level wins — project, then its space, then the instance.
- * null — no project, or nothing is configured on any level.
+ * A chat channel without a project passes its own `spaceId` (null for the instance level only).
+ * null — nothing is configured on any level.
  */
-export async function resolveConnection(q: Q, projectId: string): Promise<Row | null> {
+export async function resolveConnection(
+  q: Q,
+  projectId: string | null,
+  spaceId: string | null = null,
+): Promise<Row | null> {
   const r = await q.execute(sql`
     select c.id from ai_connections c
     where (c.scope = 'project' and c.scope_id = ${projectId}::uuid)
-       or (c.scope = 'space' and c.scope_id = (select space_id from projects where id = ${projectId}::uuid))
+       or (c.scope = 'space' and c.scope_id = coalesce((select space_id from projects where id = ${projectId}::uuid), ${spaceId}::uuid))
        or (c.scope = 'instance' and c.scope_id = ${INSTANCE_SCOPE_ID}::uuid)
     order by case c.scope when 'project' then 0 when 'space' then 1 else 2 end
     limit 1`);

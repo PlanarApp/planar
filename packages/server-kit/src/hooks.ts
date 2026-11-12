@@ -1,4 +1,5 @@
 import type { MutationOrigin, Tx } from '@planar/shared';
+import type { z } from 'zod';
 import type { Db, Q } from './types.js';
 
 export type { AfterMutationCtx, MutationOrigin, MutationWrite } from '@planar/shared';
@@ -23,6 +24,16 @@ export interface ModuleHookApi {
   ensureBotUser(login: string, name: string): Promise<string>;
 }
 
+/** A tool of the registry (apps/api/src/mcp/tools.ts) as a module sees it. */
+export interface JobTool {
+  name: string;
+  description: string;
+  shape: z.ZodRawShape;
+  /** needs the user's confirmation in chat */
+  danger?: 'delete' | 'bulk' | 'mail';
+  run(args: never, uid: string): Promise<unknown>;
+}
+
 export interface JobApi {
   db: Db;
   /**
@@ -42,6 +53,8 @@ export interface JobApi {
   ): Promise<void>;
   /** outside the transaction */
   enqueue(queue: string, data: object, opts?: JobOpts): Promise<void>;
+  /** The tool registry whose mutations carry `origin` (an AI run); rights are those of the `uid` of each call. Absent in an API built by hand (then — no tools). */
+  tools?(origin: MutationOrigin): Promise<JobTool[]>;
   /** id of the user «Automation» */
   systemUserId: string;
 }
