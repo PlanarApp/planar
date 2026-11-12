@@ -857,6 +857,8 @@ export default {
     feedShow: { label: 'Показывать', all: 'Все', comments: 'Комментарии', history: 'История' },
     feedNewestFirst: 'Сначала новые',
     feedOldestFirst: 'Сначала старые',
+    collapseAllComments: 'Свернуть все комментарии',
+    expandAllComments: 'Развернуть все комментарии',
     watchers: 'Наблюдатели',
     watch: 'Следить',
     unwatch: 'Не следить',

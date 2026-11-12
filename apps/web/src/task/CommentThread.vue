@@ -30,7 +30,16 @@ function startReply() {
   f.replyTo.value = props.comment.id;
 }
 // collapsed (PLANARAPP-44): one line — author, text, replies of the whole subtree, assignment and its state
-const collapsed = ref(false);
+// the state is in the feed: «collapse/expand all» next to the filter (PLNRAPP-194)
+const collapsed = computed({
+  get: () => f.folded.value.has(props.comment.id),
+  set: (on) => {
+    const s = new Set(f.folded.value);
+    if (on) s.add(props.comment.id);
+    else s.delete(props.comment.id);
+    f.folded.value = s;
+  },
+});
 const descendants = computed(() => {
   let n = 0;
   const q = [props.comment.id];

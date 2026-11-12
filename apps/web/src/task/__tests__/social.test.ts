@@ -202,6 +202,48 @@ describe('PLANARAPP-44 сворачивание комментариев', () =>
   });
 });
 
+describe('PLNRAPP-194 свернуть/развернуть все комментарии', () => {
+  it('кнопка рядом с фильтром сворачивает все, повторно — разворачивает; по одному — как раньше', async () => {
+    const root = comment({ body: doc('КОРЕНЬ') });
+    const r1 = comment({ parentId: root.id, body: doc('ОТВЕТ'), createdAt: at(2) });
+    const single = comment({ body: doc('ОДИНОЧНЫЙ'), createdAt: at(3) });
+    await db.table('comments').bulkPut([root, r1, single]);
+    w = await open();
+    await until(() => w.text().includes('ОТВЕТ'));
+    const btn = () => w.get('[data-testid="feed-fold-all"]');
+    expect(btn().attributes('aria-label')).toBe('Свернуть все комментарии');
+    await btn().trigger('click');
+    await flushPromises();
+    expect(w.findAll('[data-testid="comment-collapsed"]')).toHaveLength(2);
+    expect(w.text()).not.toContain('ОТВЕТ');
+    expect(btn().attributes('aria-label')).toBe('Развернуть все комментарии');
+    // one expanded by hand — the button collapses again
+    await w.findAll('[data-testid="comment-collapsed"]')[0]!.trigger('click');
+    await flushPromises();
+    expect(w.findAll('[data-testid="comment-collapsed"]')).toHaveLength(1);
+    expect(btn().attributes('aria-label')).toBe('Свернуть все комментарии');
+    await btn().trigger('click');
+    await flushPromises();
+    await btn().trigger('click');
+    await flushPromises();
+    expect(w.findAll('[data-testid="comment-collapsed"]')).toHaveLength(0);
+    expect(w.text()).toContain('ОТВЕТ');
+    // a new comment appears expanded
+    await btn().trigger('click');
+    await flushPromises();
+    await db.table('comments').put(comment({ body: doc('НОВЫЙ'), createdAt: at(9) }));
+    await until(() => w.text().includes('НОВЫЙ'));
+    expect(w.findAll('[data-testid="comment-collapsed"]')).toHaveLength(2);
+    expect(btn().attributes('aria-label')).toBe('Свернуть все комментарии');
+    // «History» — no comments, no button
+    w.findAllComponents(Select)
+      .find((s) => s.props('label') === 'Показывать')!
+      .vm.$emit('update:modelValue', 'history');
+    await flushPromises();
+    expect(w.find('[data-testid="feed-fold-all"]').exists()).toBe(false);
+  });
+});
+
 describe('task:feed', () => {
   it('комментарии и активность сливаются по времени', async () => {
     await db.table('comments').put(comment({ createdAt: at(20), body: doc('СРЕДНИЙ') }));

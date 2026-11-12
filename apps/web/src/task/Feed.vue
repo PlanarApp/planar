@@ -9,7 +9,12 @@ import { mutate, newId } from '../sync';
 import { useLabels, useMembers, useStatuses, type TaskView } from '../tasks';
 import { useSpaces } from '../tasks/queries';
 import { formatDue } from '../views/list/due';
-import { ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-vue-next';
+import {
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
+  ChevronsDownUp,
+  ChevronsUpDown,
+} from 'lucide-vue-next';
 import { Button, IconButton, Select } from '../ui';
 import CommentThread from './CommentThread.vue';
 import { FEED } from './thread';
@@ -155,7 +160,22 @@ const memberList = computed(() =>
 const names = computed(() => Object.fromEntries((users.value ?? []).map((u) => [u.id, u.name])));
 const react = (commentId: string, emoji: string) =>
   mutate('reaction.toggle', { id: newId(), commentId, emoji });
+// collapsed comments (PLNRAPP-194): a new one is not in the set — it appears expanded
+const folded = ref(new Set<string>());
+// the shown comments: the filter «History» hides them all, and the button with them
+const shownComments = computed(() => (show.value === 'history' ? [] : (comments.value ?? [])));
+const anyExpanded = computed(() => shownComments.value.some((c) => !folded.value.has(c.id)));
+function toggleAll() {
+  const collapse = anyExpanded.value;
+  const s = new Set(folded.value);
+  for (const c of shownComments.value) {
+    if (collapse) s.add(c.id);
+    else s.delete(c.id);
+  }
+  folded.value = s;
+}
 provide(FEED, {
+  folded,
   replies,
   replyTo,
   replyDraft,
@@ -190,6 +210,14 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
         :label="t('task.feedShow.label')"
         :options="showOptions"
         data-testid="feed-show"
+      />
+      <IconButton
+        v-if="shownComments.length"
+        size="sm"
+        :icon="anyExpanded ? ChevronsDownUp : ChevronsUpDown"
+        :label="anyExpanded ? t('task.collapseAllComments') : t('task.expandAllComments')"
+        data-testid="feed-fold-all"
+        @click="toggleAll"
       />
       <IconButton
         size="sm"
