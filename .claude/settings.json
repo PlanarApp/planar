@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(.dpcli/dpcli *)",
+      "Bash(.dpcli/dpcli contribute *)",
       "Bash(gh api -X PUT repos/zolotarev/dpcli/actions/permissions/*)"
     ]
   },
