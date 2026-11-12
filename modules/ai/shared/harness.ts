@@ -41,6 +41,13 @@ const ruleSchema = z.object({
 
 export const ruleKey = (r: { key?: string; name: string }) => r.key ?? r.name;
 
+/** AI events without a rule: an assigned comment, an @ai mention, a checklist item, a chat message. */
+export const AI_EVENTS = ['comment', 'mention', 'checklist', 'chat'] as const;
+export type AiEvent = (typeof AI_EVENTS)[number];
+/** event → action key of the pack; no key — the built-in prompt */
+export const eventsSchema = z.partialRecord(z.enum(AI_EVENTS), key);
+export type AiEvents = z.infer<typeof eventsSchema>;
+
 export const harnessSchema = z
   .object({
     statuses: z.array(statusSchema).default([]),
@@ -49,6 +56,7 @@ export const harnessSchema = z
     actions: z.array(key).default([]),
     rules: z.array(ruleSchema).default([]),
     settings: z.object({ questionStatus: key.optional() }).default({}),
+    events: eventsSchema.default({}),
   })
   .superRefine((h, ctx) => {
     const issue = (message: string) => ctx.addIssue({ code: 'custom', message });
@@ -81,6 +89,8 @@ export const harnessSchema = z
         if (a.type === 'ai_run' && !h.actions.includes(String(a.action)))
           issue(`правило «${r.name}»: нет действия ${String(a.action)}`);
     }
+    for (const [e, a] of Object.entries(h.events))
+      if (!h.actions.includes(a)) issue(`events.${e}: нет действия ${a}`);
   });
 export type Harness = z.infer<typeof harnessSchema>;
 type HarnessRule = Harness['rules'][number];

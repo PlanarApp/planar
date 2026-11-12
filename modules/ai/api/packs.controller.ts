@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { CORE, HttpError, parseBody, type CoreServices } from '@planar/server-kit';
 import { resolveConnection, secretOf } from './connections.js';
 import { generateStructured } from './llm.js';
+import { eventsSchema } from '../shared/index.js';
 import { blocked } from './run.js';
 import {
   activate,
@@ -14,6 +15,7 @@ import {
   listProjectPacks,
   PackError,
   readCatalogPack,
+  setEvents,
   unzipFiles,
   upload,
   type PackFiles,
@@ -36,6 +38,7 @@ const uploadBody = source.extend({
     .optional(),
 });
 const mergeBody = source.extend({ key: z.string().min(1).max(60) });
+const eventsBody = target.extend({ events: eventsSchema });
 
 @Controller('api/ai/packs')
 export class PacksController {
@@ -150,6 +153,19 @@ export class PacksController {
     await this.admin(req, b.projectId);
     try {
       return await activate(this.core.db, this.core, b.projectId, b.packKey);
+    } catch (e) {
+      this.fail(e);
+    }
+  }
+
+  /** Which action runs on each AI event (comment, mention, checklist, chat); an event without one — the built-in prompt. */
+  @Post('events')
+  @HttpCode(200)
+  async events(@Req() req: object, @Body() body: unknown) {
+    const b = parseBody(eventsBody, body);
+    await this.admin(req, b.projectId);
+    try {
+      return await setEvents(this.core.db, b.projectId, b.packKey, b.events);
     } catch (e) {
       this.fail(e);
     }

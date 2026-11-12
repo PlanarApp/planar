@@ -421,6 +421,13 @@
       "when": 1794530000000,
       "tag": "0059_ai_scope_workspace",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1794540000000,
+      "tag": "0060_ai_harness_events",
+      "breakpoints": true
     }
   ]
 }

@@ -18,6 +18,10 @@ const ACTIONS = [
   'rejection',
   'ping',
   'report',
+  'assign',
+  'mention',
+  'checklist',
+  'chat',
 ];
 
 describe('pack hiring', () => {

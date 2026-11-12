@@ -128,8 +128,8 @@ describe('seed-demo', () => {
       `select hashes, (select count(*)::int from docs_pages d where d.id::text = any(select jsonb_object_keys(p.hashes))) as n
        from ai_harness_packs p where pack_key = 'dev'`,
     );
-    expect(Object.keys(pk!.hashes)).toHaveLength(10);
-    expect(pk!.n).toBe(10);
+    expect(Object.keys(pk!.hashes)).toHaveLength(12);
+    expect(pk!.n).toBe(12);
     // the pack «Продажи» lives in its own project, inactive like «Разработка»
     const [sl] = await q<{
       hashes: Record<string, string>;
@@ -143,7 +143,7 @@ describe('seed-demo', () => {
     );
     expect(sl).toMatchObject({ pk: 'SLS', active: false });
     expect(sl!.n).toBe(Object.keys(sl!.hashes).length);
-    expect(sl!.n).toBe(8);
+    expect(sl!.n).toBe(12);
   });
 
   it('--reset очищает всё кроме журнала миграций; тот же now — те же данные', async () => {

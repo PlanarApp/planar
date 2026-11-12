@@ -118,6 +118,22 @@ describe.each(loaded)('catalog pack $k', ({ k, files, pack }) => {
     const rules = await raw(`select enabled from automations_rules where project_id = $1`, [P]);
     expect(rules).toHaveLength(pack.rules.length);
     expect(rules.every((r) => r.enabled)).toBe(true);
+
+    // events: harness.yml on the first apply; the admin's choice survives the next apply
+    expect(pack.events).toEqual({
+      comment: 'assign',
+      mention: 'mention',
+      checklist: 'checklist',
+      chat: 'chat',
+    });
+    const events = async () =>
+      (await raw(`select events from ai_harness_packs where project_id = $1`, [P]))[0]!.events;
+    expect(await events()).toEqual(pack.events);
+    const set = (ev: object) => post('packs/events', { projectId: P, packKey: k, events: ev });
+    expect((await set({ comment: 'nope' })).statusCode).toBe(400);
+    expect((await set({ comment: pack.actions[0] })).statusCode).toBe(200);
+    expect((await post('harness/apply', { projectId: P, packPageId })).statusCode).toBe(200);
+    expect(await events()).toEqual({ comment: pack.actions[0] });
   });
 
   it('risk stale: stale rules cannot reach terminal statuses', () => {

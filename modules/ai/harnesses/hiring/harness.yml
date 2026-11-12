@@ -16,7 +16,20 @@ fields:
   - { key: resume, name: Резюме, type: url }
   - { key: expected_salary, name: Ожидаемая зарплата, type: money }
 actions:
-  [screening, questionnaire, interview_questions, interview_summary, offer, rejection, ping, report]
+  [
+    screening,
+    questionnaire,
+    interview_questions,
+    interview_summary,
+    offer,
+    rejection,
+    ping,
+    report,
+    assign,
+    mention,
+    checklist,
+    chat,
+  ]
 rules:
   - key: screen_applied
     name: Скрининг отклика
@@ -63,3 +76,5 @@ rules:
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: report }]
 settings: { questionStatus: clarify }
+# AI events without a rule → the action that answers them; an event left out — the built-in prompt
+events: { comment: assign, mention: mention, checklist: checklist, chat: chat }

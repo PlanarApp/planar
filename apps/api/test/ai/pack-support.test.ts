@@ -26,7 +26,17 @@ describe('pack support', () => {
     expect(h.settings.questionStatus).toBe('clarify');
     expect(h.labels.map((l) => l.name)).toEqual(['срочно', 'эскалировано', 'автозакрыто']);
     expect(h.fields.map((f) => f.key)).toEqual(['customer', 'email', 'category', 'urgency']);
-    expect(h.actions).toEqual(['triage', 'draft_reply', 'escalate_dev', 'close', 'to_wiki']);
+    expect(h.actions).toEqual([
+      'triage',
+      'draft_reply',
+      'escalate_dev',
+      'close',
+      'to_wiki',
+      'assign',
+      'mention',
+      'checklist',
+      'chat',
+    ]);
     for (const a of h.actions) {
       const doc = files[`actions/${a}.md`];
       expect(doc, a).toBeTruthy();
@@ -49,7 +59,7 @@ describe('pack support', () => {
     expect(n('status', 'create')).toBe(6);
     expect(n('label', 'create')).toBe(3);
     expect(n('field', 'create')).toBe(4);
-    expect(n('action', 'create')).toBe(5);
+    expect(n('action', 'create')).toBe(9);
     expect(n('rule', 'create')).toBe(4);
     expect(n('rule', 'enable')).toBe(4);
   });

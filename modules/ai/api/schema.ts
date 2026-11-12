@@ -91,6 +91,8 @@ export const aiHarnessPacks = pgTable(
     rootPageId: uuid(),
     /** {pageId: sha256} of the pages at load time */
     hashes: jsonb().$type<Record<string, string>>().notNull().default({}),
+    /** event → action key (AI_EVENTS); null — not chosen yet: the apply takes `events` of harness.yml */
+    events: jsonb().$type<Record<string, string>>(),
     createdAt: ts().notNull().defaultNow(),
     updatedAt: ts().notNull().defaultNow(),
   },

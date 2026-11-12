@@ -1,0 +1,1 @@
+ALTER TABLE "ai_harness_packs" ADD COLUMN "events" jsonb;

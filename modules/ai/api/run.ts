@@ -7,7 +7,7 @@ import { docToMarkdown, markdownToDoc } from '@planar/editor/markdown';
 import type { JobApi, Q } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
 import { matched } from '@planar/module-automations/api';
-import { AI_BOT_LOGIN, type AiAction, type AiRunKind } from '../shared/index.js';
+import { AI_BOT_LOGIN, type AiAction, type AiEvent, type AiRunKind } from '../shared/index.js';
 import { resolveConnection, secretOf } from './connections.js';
 import { chatTools, runPlanned, type PlannedCall } from './chat-tools.js';
 import { loadPack, parseInstructionPage } from './harness.js';
@@ -188,6 +188,36 @@ export function withPlan(desc: Doc | null, plan: string): Doc {
 const botOf = async (api: JobApi) =>
   (await one(api.db, sql`select id from users where login = ${AI_BOT_LOGIN} and bot`))?.id as
     string | undefined;
+
+/** The action the active pack binds to the event («Настройки → ИИ → Пакеты»); undefined — the built-in prompt. */
+async function eventAction(q: Pick<Q, 'execute'>, projectId: string, event: AiEvent) {
+  return (await one(
+    q,
+    sql`select a.id, a.key, a.name, a.page_id as "pageId", a.runtime, a.model, a.question_status_id as "questionStatusId",
+        a.checks, a.max_output_tokens as "maxOutputTokens"
+        from ai_harness_packs p join ai_actions a on a.project_id = p.project_id and a.key = p.events ->> ${event}
+        where p.project_id = ${projectId}::uuid and p.active`,
+  )) as AiAction | undefined;
+}
+
+/** The prompt of the action's instruction page; undefined — the page is gone. */
+async function promptOf(q: Pick<Q, 'execute'>, action: AiAction) {
+  const page = action.pageId
+    ? await one(
+        q,
+        sql`select title, body, text from docs_pages where id = ${action.pageId} and archived_at is null`,
+      )
+    : undefined;
+  if (!page) return undefined;
+  try {
+    // an instruction page with a parameters table: only the part after it is the prompt
+    const parsed = parseInstructionPage(page.title as string, page.body);
+    if (parsed.structured) return parsed.instruction.prompt;
+  } catch {
+    // a broken table: the whole page stays the prompt
+  }
+  return page.text as string;
+}
 
 interface Task {
   id: string;
@@ -398,17 +428,21 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     if (!item || (d.kind === 'comment' && (item.assigneeId !== bot || item.resolvedAt)))
       return skip('Перезапуск невозможен: комментарий удалён, решён или ИИ в нём не назначен.');
   }
+  // an assignment: the action the active pack binds to the event, else the built-in prompt
+  if (d.kind !== 'action') action = await eventAction(api.db, task.projectId, d.kind);
   const itemId = (item?.id as string | undefined) ?? null;
   // an assignment on a task with an open MR: the agent with the repository, as the action «Разработка» (PLNRAPP-195)
   const mr = d.kind === 'action' ? null : await codeTargetOf(api.db, task);
+  // an assignment with an agent instruction and no runner answers as llm instead of failing
+  const agent = action?.runtime === 'agent' && (d.kind === 'action' || !!process.env.AI_RUNNER_URL);
   // agent containers are limited: over the limit the job waits (agent.ts)
-  if ((action?.runtime === 'agent' || mr) && (await agentsFull(api.db, task.projectId)))
+  if ((agent || mr) && (await agentsFull(api.db, task.projectId)))
     return api.enqueue(AI_QUEUE, d, { startAfter: 30 });
   // a newer run of the same pair wins: the older one's result is not applied
   const older = await api.db.execute(
     sql`update ai_runs set state = 'cancelled', updated_at = now()
         where task_id = ${task.id} and kind = ${d.kind} and state in ('running', 'waiting_human')
-          and coalesce(action_id, item_id) = ${action?.id ?? itemId}::uuid returning id`,
+          and coalesce(item_id, action_id) = ${itemId ?? action?.id}::uuid returning id`,
   );
   for (const o of older.rows) await stopAgent(api.db, o.id as string);
   const parent =
@@ -446,35 +480,30 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
       return await apply(api, run, failed('Нет подключения к ИИ: задайте его в настройках.'));
     let prompt = ASSIGNMENT_PROMPT;
     if (action) {
-      const page = action.pageId
-        ? await one(
-            api.db,
-            sql`select title, body, text from docs_pages where id = ${action.pageId} and archived_at is null`,
-          )
-        : undefined;
-      if (!page)
+      const p = await promptOf(api.db, action);
+      if (p === undefined)
         return await apply(api, run, failed(`У действия «${action.name}» нет инструкции.`));
-      prompt = page.text as string;
-      try {
-        // an instruction page with a parameters table: only the part after it is the prompt
-        const parsed = parseInstructionPage(page.title as string, page.body);
-        if (parsed.structured) prompt = parsed.instruction.prompt;
-      } catch {
-        // a broken table: the whole page stays the prompt
-      }
+      prompt = p;
     }
     const ctx = await contextOf(api.db, task, bot);
-    if (action?.runtime === 'agent') return await startAgentRun(api, run, prompt, ctx);
     const ask =
       d.kind === 'action'
         ? ''
         : d.kind === 'checklist'
           ? `\n\n# Поручение: пункт чек-листа\n${item!.text as string}`
           : `\n\n# Поручение: комментарий [${itemId}]\n${md(item!.body)}`;
-    if (mr) {
-      const thread = d.kind === 'checklist' ? '' : await threadOf(api.db, itemId!);
-      return await startAgentRun(api, run, codeAssignmentPrompt(mr, ask + thread), ctx, mr);
-    }
+    // the agent reads only its prompt: the assignment and its thread go into it
+    const thread =
+      (mr || agent) && itemId && d.kind !== 'checklist' ? await threadOf(api.db, itemId) : '';
+    if (mr)
+      return await startAgentRun(
+        api,
+        run,
+        codeAssignmentPrompt(mr, ask + thread, action && prompt),
+        ctx,
+        mr,
+      );
+    if (agent) return await startAgentRun(api, run, prompt + ask + thread, ctx);
     const checks = action?.checks.length
       ? `\n\nКритерии готовности (done — только если все выполнены):\n${action.checks.map((c) => `- ${c}`).join('\n')}`
       : '';
@@ -529,16 +558,22 @@ export const CHAT_PROMPT = `Ты — ИИ-помощник «ИИ» в чате 
 У тебя есть инструменты трекера: они выполняются с правами автора последнего сообщения, не больше. Если инструмент вернул отказ — объясни это человеку, обходных путей не ищи.
 Опасные действия (удаление и т. п.) инструмент не выполняет, а возвращает needsConfirmation: перечисли, что собираешься сделать, и попроси ответить «да» — выполнит система после подтверждения.`;
 
-/** The instruction «Чат» (key `chat` or `Чат`) of the project's active harness package, else CHAT_PROMPT. */
+/**
+ * The action of the event `chat` of the project's active harness package; events not chosen yet — its instruction
+ * «Чат» (key `chat` or `Чат`); else CHAT_PROMPT.
+ */
 async function chatPrompt(q: Pick<Q, 'execute'>, projectId: string | null) {
   if (!projectId) return CHAT_PROMPT;
-  const root = (
-    await one(
-      q,
-      sql`select root_page_id as id from ai_harness_packs where project_id = ${projectId}::uuid and active`,
-    )
-  )?.id as string | undefined;
+  const pack = await one(
+    q,
+    sql`select root_page_id as id, events from ai_harness_packs where project_id = ${projectId}::uuid and active`,
+  );
+  const root = pack?.id as string | undefined;
   if (!root) return CHAT_PROMPT;
+  if (pack!.events) {
+    const action = await eventAction(q, projectId, 'chat');
+    return (action && (await promptOf(q, action))?.trim()) || CHAT_PROMPT;
+  }
   try {
     const { instructions } = await loadPack(q as never, projectId, root);
     return (instructions.chat ?? instructions['Чат'])?.prompt.trim() || CHAT_PROMPT;
