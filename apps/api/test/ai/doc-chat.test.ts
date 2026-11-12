@@ -51,7 +51,7 @@ beforeAll(async () => {
   await new Promise<void>((r) => srv.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${(srv.address() as AddressInfo).port}`;
   await call('PUT', 'connections', 'root', {
-    scope: 'instance',
+    scope: 'workspace',
     provider: 'openai-compatible',
     baseUrl: base,
     apiKey: 'sk-test',

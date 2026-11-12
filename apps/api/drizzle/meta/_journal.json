@@ -414,6 +414,13 @@
       "when": 1794520000000,
       "tag": "0058_ai_email_assignee_runs_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1794482972485,
+      "tag": "0059_ai_scope_workspace",
+      "breakpoints": true
     }
   ]
 }

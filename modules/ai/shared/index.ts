@@ -54,10 +54,11 @@ export const AI_PRESETS: readonly {
     baseUrl: 'https://api.groq.com/openai/v1',
   },
 ];
-export const AI_SCOPES = ['instance', 'space', 'project'] as const;
+/** levels as in the core group settings (PLNRAPP-193: was 'instance') */
+export const AI_SCOPES = ['workspace', 'space', 'project'] as const;
 export type AiScope = (typeof AI_SCOPES)[number];
-/** scopeId of the instance level (the column is not null: one connection per level) */
-export const INSTANCE_SCOPE_ID = '00000000-0000-0000-0000-000000000000';
+/** scopeId of the workspace level (the column is not null: one connection per level) */
+export const WORKSPACE_SCOPE_ID = '00000000-0000-0000-0000-000000000000';
 
 /** Connection as the client sees it: the key is never returned, only whether it is set. */
 export interface AiConnectionView {

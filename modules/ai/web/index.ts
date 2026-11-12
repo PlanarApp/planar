@@ -3,7 +3,7 @@ import { defineComponent, h } from 'vue';
 import { defineWebModule } from '@planar/web/modules';
 
 /** The same page on every level: the group settings pass spaceId / projectId, the level is fixed here. */
-const page = (level: 'instance' | 'space' | 'project') => async () => {
+const page = (level: 'workspace' | 'space' | 'project') => async () => {
   const { default: AiSettings } = await import('./AiSettings.vue');
   return {
     default: defineComponent({
@@ -31,12 +31,12 @@ export const web = defineWebModule({
   ],
   settings: [
     {
-      id: 'instance',
+      id: 'workspace',
       level: 'workspace',
       label,
       icon: Sparkles,
       adminOnly: true,
-      component: page('instance'),
+      component: page('workspace'),
     },
     {
       id: 'tasks',
