@@ -300,6 +300,7 @@ The table of names, args and rules — `docs/contracts/core-mutators.md` (part o
 
 ## C-modules v13
 
+v15 (PLNRAPP-202): `FrontendModuleManifest.activity?` — `ActivitySourceDef {id, entity: tasks|chatChannels, load(id): Promise<WorkActivity[]>}`, `WorkActivity {id, itemId, state: running|waiting_human|failed, agent?, actorId?, startedAt, panel?}` — background work of a module (an AI run) for the indicator; SDK += `useActivity(entity, id, projectId?)` — the sources of the modules on in the project, reloaded on replica changes and polled every 3 s while something runs; the task card provides it to the comments and the checklist (`TASK_ACTIVITY`). Compatible: a new optional field.
 v14 (ai4, AIH-4): `FrontendModuleManifest.docPanels?` — `DocPanelDef {id, order?, component: Lazy<{pageId, projectId?}>}`; docs/web `PageView` renders them under the page title (the component decides itself whether the page suits it); SDK += `useExtensions`.
 
 v13 (PLNRAPP-167): `ModuleHookApi.ensureBotUser(login, name): Promise<string>` — an active user with `users.bot = true` and no password, idempotent (a login taken by a person → error); `packages/server-kit` += `secretKey/encrypt/decrypt` (AES-256-GCM, key `PLANAR_SECRET_KEY`) — one copy for the modules gitlab, email, ai.

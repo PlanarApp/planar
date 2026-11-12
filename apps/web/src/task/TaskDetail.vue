@@ -56,6 +56,7 @@ import {
   type TaskView,
 } from '../tasks';
 import { useExtensions } from '../modules/registry';
+import { TASK_ACTIVITY, activityOf, useActivity, type Activity } from '../modules/activity';
 import { useSpaces, useTask } from '../tasks/queries';
 import {
   AvatarStack,
@@ -80,6 +81,7 @@ import Editor from './editor/Editor.vue';
 import Feed from './Feed.vue';
 import { useAttachments, useChecklist, useSubtasks, useUsers, useWatchers } from './queries';
 import Subtasks from './Subtasks.vue';
+import WorkStatus from './WorkStatus.vue';
 import { TO_TASK } from './thread';
 import { useTaskMenu } from '../tasks/taskMenu';
 import LinksBlock from '../links/LinksBlock.vue';
@@ -350,6 +352,23 @@ const tab = ref<string | null>('attachments');
 const active = computed(() => panels.value.find((p) => p.key === tab.value) ?? null);
 const lt = (x: string | { ru: string; en: string }) =>
   typeof x === 'string' ? t(x) : (x[locale.value as 'ru' | 'en'] ?? x.ru);
+// PLNRAPP-202: background work of the modules (AI runs) on the task — a ring around the status while it runs,
+// the line under it; the comments and the checklist take their items from here
+const activity = useActivity(
+  'tasks',
+  () => props.task.id,
+  () => props.task.projectId,
+);
+const work = computed(() => activityOf(activity.value));
+async function openRun(a: Activity) {
+  if (!a.panel) return;
+  tab.value = `${a.moduleId}:${a.panel}`;
+  await nextTick();
+  root.value
+    ?.querySelector('[data-testid="task-panel-body"]')
+    ?.scrollIntoView({ block: 'nearest' });
+}
+provide(TASK_ACTIVITY, { items: activity, open: openRun });
 const panelComponent = computed(() => {
   const c = active.value?.component;
   return c ? defineAsyncComponent(() => c().then((m) => m.default)) : null;
@@ -539,7 +558,7 @@ const panelComponent = computed(() => {
               <CircleDot :size="15" />{{ t('tasks.status') }}
             </dt>
             <dd
-              class="min-w-0 rounded-md"
+              :class="['min-w-0 rounded-md', work?.state === 'running' && 'work-ring']"
               :style="
                 statusColor && { background: `color-mix(in srgb, ${statusColor} 16%, transparent)` }
               "
@@ -553,6 +572,7 @@ const panelComponent = computed(() => {
                 @update:model-value="(v?: string) => v && updateTask(task.id, { statusId: v })"
               />
             </dd>
+            <WorkStatus v-if="work" :activity="work" class="ml-2" @open="openRun" />
           </div>
           <div class="flex min-h-9 items-center">
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
@@ -682,7 +702,11 @@ const panelComponent = computed(() => {
               class="min-w-0 [&_.flex-wrap>div:last-child]:min-w-40 [&_.flex-wrap>div:last-child]:flex-1"
             />
           </div>
-          <div v-else-if="panelComponent" class="mt-2 rounded-lg border border-border p-3">
+          <div
+            v-else-if="panelComponent"
+            class="mt-2 rounded-lg border border-border p-3"
+            data-testid="task-panel-body"
+          >
             <component :is="panelComponent" :task-id="task.id" />
           </div>
         </section>

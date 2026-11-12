@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { EmptyState, db, mutate, newId } from '@planar/web/modules';
+import { EmptyState, db, mutate, newId, useActivity } from '@planar/web/modules';
 import Composer from './Composer.vue';
 import MessageItem from './MessageItem.vue';
 import { useFeed } from './feed';
@@ -174,8 +174,19 @@ function editDone() {
 }
 
 const typing = useTyping(props.channel.id, () => props.me);
+// PLNRAPP-202: a module works on a message of the channel (the AI answers) — «ИИ печатает…» until the answer
+const work = useActivity(
+  'chatChannels',
+  () => props.channel.id,
+  () => props.channel.projectId ?? undefined,
+);
 const typingText = computed(() => {
-  const names = typing.value.map((u) => props.users.get(u)?.name ?? tx('unknown'));
+  const bots = work.value.flatMap((a) =>
+    a.state === 'running' && a.actorId && !typing.value.includes(a.actorId) ? [a.actorId] : [],
+  );
+  const names = [...typing.value, ...new Set(bots)].map(
+    (u) => props.users.get(u)?.name ?? tx('unknown'),
+  );
   return names.length
     ? tx(names.length > 1 ? 'typingMany' : 'typing', { names: names.join(', ') })
     : '';

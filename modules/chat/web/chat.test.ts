@@ -44,6 +44,8 @@ const h_ = vi.hoisted(() => ({
   push: vi.fn(),
   upload: vi.fn(),
   route: { params: {} as Record<string, string> },
+  /** PLNRAPP-202: what useActivity of the channel returns */
+  work: undefined as unknown as import('vue').Ref<unknown[]>,
 }));
 vi.mock('@planar/web/modules', async (orig) => {
   const m = await orig<typeof import('@planar/web/modules')>();
@@ -58,6 +60,7 @@ vi.mock('@planar/web/modules', async (orig) => {
     onTyping: (cb: never) => ((h_.typingCb = cb), () => (h_.typingCb = undefined)),
     onMutationError: (cb: never) => ((h_.errCb = cb), () => (h_.errCb = undefined)),
     useSession: () => ref({ id: (globalThis as Record<string, unknown>).__ME }),
+    useActivity: () => (h_.work ??= ref([])),
   };
 });
 (globalThis as unknown as { __ME: string }).__ME = ME;
@@ -459,6 +462,30 @@ describe('лента', () => {
     await vi.waitFor(() => expect(w.findAll('article').length).toBe(3));
     expect(texts(w, 'article').map((t) => /m\d/.exec(t)![0])).toEqual(['m1', 'm2', 'm3']);
     expect(w.text()).toContain('изменено');
+  });
+
+  it('PLNRAPP-202: ИИ отвечает в канале — «ИИ печатает…», пока прогон идёт', async () => {
+    const BOT = newId();
+    stubSizes();
+    const w = mount(ChannelView, {
+      props: props({
+        users: new Map([
+          [ME, { id: ME, name: 'Я' }],
+          [BOT, { id: BOT, name: 'ИИ' }],
+        ]),
+      }),
+    });
+    const typing = () => w.find('[data-testid=chat-typing]').text();
+    expect(typing()).toBe('');
+    const run = { id: newId(), itemId: newId(), actorId: BOT, startedAt: NOW, moduleId: 'ai' };
+    h_.work.value = [{ ...run, state: 'running' }];
+    await nextTick();
+    expect(typing()).toBe('ИИ печатает…');
+    // waiting for the initiator's «да» — not typing
+    h_.work.value = [{ ...run, state: 'waiting_human' }];
+    await nextTick();
+    expect(typing()).toBe('');
+    h_.work.value = [];
   });
 
   it('10 000 сообщений: в DOM не больше ~60 строк', async () => {

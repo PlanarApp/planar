@@ -156,6 +156,7 @@ const dict = {
   chatTitle: { ru: 'ИИ-диалог', en: 'AI chat' },
   chatPlaceholder: { ru: 'Что изменить в документе?', en: 'What to change in this document?' },
   send: { ru: 'Отправить', en: 'Send' },
+  typing: { ru: 'ИИ печатает…', en: 'AI is typing…' },
   accept: { ru: 'Принять', en: 'Accept' },
   reject: { ru: 'Отклонить', en: 'Reject' },
   reRequest: { ru: 'Запросить заново', en: 'Request again' },

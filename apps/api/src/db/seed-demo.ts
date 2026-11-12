@@ -2132,6 +2132,16 @@ async function insertAll(tx: Tx, now: Date) {
       createdAt: at(-3, 11),
       updatedAt: at(-3, 11),
     }),
+    // PLNRAPP-202: a fresh failure of the task's action — the card shows «Ошибка ИИ» with a link to the run
+    run('failed-fresh', 7, {
+      state: 'failed',
+      inputTokens: 700,
+      outputTokens: 0,
+      cost: 0.0021,
+      log: 'Model request failed: provider error 503',
+      createdAt: at(0, 7),
+      updatedAt: at(0, 7),
+    }),
     run('cancelled', 6, {
       state: 'cancelled',
       inputTokens: 400,
