@@ -11,6 +11,8 @@ export * from './types';
 export { mutate, newId, rankBetween, useQuery } from '../sync';
 /** Is the data module on for the project (C-schema v16); in summaries — for the projects of the scope. */
 export { enabledForProject, useExtensions } from './registry';
+/** PLNRAPP-202: the indicator of background work (C-modules v15) */
+export { useActivity, activityOf, minutesSince, useNow, type Activity } from './activity';
 export { db };
 export {
   useTask,

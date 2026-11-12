@@ -14,6 +14,7 @@ export const EXTENSION_KINDS = [
   'topbar',
   'search',
   'groupTabs',
+  'activity',
 ] as const;
 export type ExtensionKind = (typeof EXTENSION_KINDS)[number];
 
@@ -132,6 +133,31 @@ export interface SearchProviderDef {
 }
 export type SearchDef = SearchProviderDef;
 
+/**
+ * PLNRAPP-202: background work of a module (an AI run) on a task or in a chat channel — what the indicator shows:
+ * a ring around the status / the avatar, «агент работает N мин», «ИИ печатает…», an error with a link to the run.
+ */
+export interface WorkActivity {
+  id: string;
+  /** the comment / checklist item / chat message the work answers; null — the task itself */
+  itemId: string | null;
+  /** failed — the last attempt failed and was not repeated */
+  state: 'running' | 'waiting_human' | 'failed';
+  /** a long work (an agent in a container): the minutes since startedAt are shown */
+  agent?: boolean;
+  /** the user who does the work (a bot): its avatar gets the ring, its name — «печатает…» */
+  actorId?: string | null;
+  startedAt: string;
+  /** the module's task panel (taskPanels id) with the details: the link of the error */
+  panel?: string;
+}
+/** Where the indicator takes the work from; the core reloads it on replica changes and polls while it is running. */
+export interface ActivitySourceDef {
+  id: string;
+  entity: 'tasks' | 'chatChannels';
+  load(id: string): Promise<WorkActivity[]>;
+}
+
 export interface WebModuleManifest extends FrontendModuleManifest {
   routes?: RouteRecordRaw[];
   views?: ViewDef[];
@@ -144,6 +170,7 @@ export interface WebModuleManifest extends FrontendModuleManifest {
   topbar?: TopbarItemDef[];
   search?: SearchProviderDef[];
   groupTabs?: GroupTabDef[];
+  activity?: ActivitySourceDef[];
   /** Settings component: a dialog in ModulesSettings, including for a disabled module (C-modules v11) */
   setup?: Lazy<object>;
 }

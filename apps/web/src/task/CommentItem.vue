@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, ref } from 'vue';
+import { computed, inject, shallowRef, ref } from 'vue';
 import {
   CheckCircle2,
   Circle,
@@ -14,6 +14,8 @@ import type { Row } from '@planar/shared';
 import { Avatar, Button, IconButton, Menu, type MenuItem } from '../ui';
 import Reactions from './Reactions.vue';
 import Editor from './editor/Editor.vue';
+import WorkStatus from './WorkStatus.vue';
+import { TASK_ACTIVITY, activityOf } from '../modules/activity';
 
 const props = defineProps<{
   comment: Row<'comments'>;
@@ -54,6 +56,17 @@ const assignItems = computed<MenuItem[]>(() => [
       ]
     : []),
 ]);
+// PLNRAPP-202: the AI answers this comment — a ring around its avatar while it runs, the line of its state
+const taskWork = inject(TASK_ACTIVITY, null);
+const work = computed(() =>
+  taskWork ? activityOf(taskWork.items.value, props.comment.id) : undefined,
+);
+const ring = (userId?: string | null) =>
+  work.value?.state === 'running' && !!userId && work.value.actorId === userId && 'work-ring';
+/** the AI is not the assignee (a mention, a reply to it): its avatar goes with the line */
+const actorAside = computed(
+  () => !!work.value?.actorId && work.value.actorId !== props.comment.assigneeId,
+);
 const { t } = useI18n();
 const editing = ref(false);
 const draft = shallowRef<JSONContent | null>(null); // shallow: reactive proxies can't be stored in IndexedDB
@@ -109,7 +122,12 @@ function save() {
             :aria-label="t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' })"
             data-testid="comment-assignee"
           >
-            <Avatar :name="names[comment.assigneeId] ?? '?'" :src="assigneeAvatar" size="sm" />
+            <Avatar
+              :name="names[comment.assigneeId] ?? '?'"
+              :src="assigneeAvatar"
+              size="sm"
+              :class="ring(comment.assigneeId)"
+            />
             <span class="truncate font-medium">{{ names[comment.assigneeId] ?? '?' }}</span>
           </button>
         </template>
@@ -119,7 +137,12 @@ function save() {
         class="ml-auto inline-flex min-w-0 items-center gap-1"
         :aria-label="t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' })"
       >
-        <Avatar :name="names[comment.assigneeId] ?? '?'" :src="assigneeAvatar" size="sm" />
+        <Avatar
+          :name="names[comment.assigneeId] ?? '?'"
+          :src="assigneeAvatar"
+          size="sm"
+          :class="ring(comment.assigneeId)"
+        />
         <span class="truncate font-medium">{{ names[comment.assigneeId] ?? '?' }}</span>
       </span>
     </div>
@@ -132,6 +155,15 @@ function save() {
             {{ new Date(comment.createdAt).toLocaleString() }}
           </time>
           <span v-if="comment.editedAt" class="text-xs text-fg-subtle">{{ t('task.edited') }}</span>
+        </div>
+        <div v-if="work" class="flex items-center gap-1" data-testid="comment-work">
+          <Avatar
+            v-if="actorAside"
+            :name="names[work.actorId!] ?? 'AI'"
+            size="xs"
+            :class="ring(work.actorId)"
+          />
+          <WorkStatus :activity="work" reply @open="taskWork?.open" />
         </div>
         <template v-if="editing">
           <Editor

@@ -68,6 +68,8 @@ export interface FrontendModuleManifest {
   search?: unknown[];
   /** Contents of group tabs (C-modules v12) */
   groupTabs?: unknown[];
+  /** Background work of the module for the indicator (C-modules v15, PLNRAPP-202) */
+  activity?: unknown[];
   /** Module settings component (dialog in ModulesSettings, including for a disabled module) */
   setup?: unknown;
 }

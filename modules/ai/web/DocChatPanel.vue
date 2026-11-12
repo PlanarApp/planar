@@ -24,6 +24,8 @@ const stale = ref(false);
 const done = ref(false);
 const busy = ref(false);
 const lastAsk = ref('');
+// PLNRAPP-202: «ИИ печатает…» while the answer is awaited, as in a chat; «Отмена» drops the request
+const asking = ref<AbortController | null>(null);
 
 async function ask(message: string) {
   if (!message.trim() || busy.value) return;
@@ -35,16 +37,36 @@ async function ask(message: string) {
   const history = trimHistory(msgs.value);
   msgs.value.push({ role: 'user', text: message });
   text.value = '';
+  const ctl = new AbortController();
+  asking.value = ctl;
   try {
-    const r = await call<ChatReply>('POST', 'doc-chat', { pageId: props.pageId, message, history });
+    const r = await call<ChatReply>(
+      'POST',
+      'doc-chat',
+      { pageId: props.pageId, message, history },
+      ctl.signal,
+    );
     msgs.value.push({ role: 'assistant', text: r.reply });
     proposal.value = hasChanges(r.proposal) ? r.proposal : null;
   } catch (e) {
+    if (ctl.signal.aborted) return;
     error.value =
       e instanceof AiApiError && e.status === 403 ? tr('forbidden') : (e as Error).message;
   } finally {
-    busy.value = false;
+    // a cancelled request is already let go: a newer one may be awaited
+    if (asking.value === ctl) {
+      asking.value = null;
+      busy.value = false;
+    }
   }
+}
+/** Drops the awaited answer: the question goes back to the field. */
+function cancelAsk() {
+  asking.value?.abort();
+  asking.value = null;
+  msgs.value.pop();
+  text.value = lastAsk.value;
+  busy.value = false;
 }
 async function accept() {
   const p = proposal.value;
@@ -98,6 +120,23 @@ const canSend = computed(() => !!text.value.trim() && !busy.value);
           {{ m.text }}
         </li>
       </ul>
+      <p
+        v-if="asking"
+        class="flex items-center gap-2 text-xs text-fg-muted"
+        role="status"
+        aria-live="polite"
+        data-testid="docchat-typing"
+      >
+        <span class="work-dot" aria-hidden="true" />{{ tr('typing') }}
+        <button
+          type="button"
+          class="underline outline-none hover:text-fg focus-visible:ring-2 ring-focus rounded-sm"
+          data-testid="docchat-cancel"
+          @click="cancelAsk"
+        >
+          {{ tr('cancel') }}
+        </button>
+      </p>
       <div
         v-if="proposal"
         class="max-h-80 overflow-auto rounded-md border border-border p-2 font-mono text-xs"

@@ -145,6 +145,8 @@ export const aiRuns = pgTable(
   (t) => [
     index('ai_runs_task_id_idx').on(t.taskId),
     index('ai_runs_state_idx').on(t.state),
+    // PLNRAPP-202: the indicator of the AI's work on a task and its items (comment, checklist item)
+    index('ai_runs_task_id_item_id_state_idx').on(t.taskId, t.itemId, t.state),
     index('ai_runs_project_id_created_at_idx').on(t.projectId, t.createdAt),
     index('ai_runs_created_at_idx').on(t.createdAt),
   ],

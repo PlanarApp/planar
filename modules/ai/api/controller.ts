@@ -23,11 +23,13 @@ import {
 } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
 import {
+  AI_BOT_LOGIN,
   AI_PROVIDERS,
   AI_SCOPES,
   AI_RUN_STATES,
   WORKSPACE_SCOPE_ID,
   MAX_RESTARTS,
+  type AiActivity,
   type AiConnectionView,
   type AiLimits,
   type AiMonitor,
@@ -104,6 +106,10 @@ const runCols = sql`r.id, r.task_id as "taskId", r.project_id as "projectId", r.
   r.restart_of as "restartOf", r.input_tokens as "inputTokens", r.output_tokens as "outputTokens", r.cost,
   ${iso('r.created_at')} as "createdAt", ${iso('r.updated_at')} as "updatedAt"`;
 const runView = (r: Row) => r as unknown as AiRunView;
+/** PLNRAPP-202: the run as the indicator sees it; agent — its container started (agent.ts sets the secret) */
+const activityCols = sql`r.id, r.kind, r.item_id as "itemId", r.state, r.agent_secret_hash is not null as agent,
+  (select u.id from users u where u.login = ${AI_BOT_LOGIN} and u.bot) as "actorId",
+  ${iso('coalesce(r.started_at, r.created_at)')} as "startedAt"`;
 const uuidP = z.uuid();
 const eventsQuery = z.object({
   after: z.coerce.number().int().min(0).default(0),
@@ -210,6 +216,63 @@ export class AiController {
       sql`select ${runCols} from ai_runs r where r.task_id = ${taskId}::uuid order by r.created_at desc, r.id desc limit 50`,
     );
     return { runs: r.rows.map(runView) };
+  }
+
+  /**
+   * PLNRAPP-202: the indicator of the AI's work on a task — for everyone who sees the task (the runs themselves —
+   * by seeTask). Running and waiting_human runs, and the last run of an item (the task's action, a comment, a
+   * checklist item) when it failed in the last day and was not repeated after.
+   */
+  @Get('activity/tasks/:taskId')
+  async taskActivity(
+    @Req() req: object,
+    @Param('taskId') taskId: string,
+  ): Promise<{ activity: AiActivity[] }> {
+    const a = this.core.auth(req);
+    if (a.tokenId) throw new HttpError(403, 'forbidden', 'Только из сессии');
+    if (!uuidP.safeParse(taskId).success) throw nf();
+    const ok = await this.core.db.execute(
+      sql`select 1 from tasks t join projects p on p.id = t.project_id
+          where t.id = ${taskId}::uuid and 'ai' = any(p.modules)
+            and project_role(${a.userId}::uuid, p.id) is not null`,
+    );
+    if (!ok.rows[0]) throw nf();
+    const r = await this.core.db.execute(
+      sql`select ${activityCols} from ai_runs r
+          where r.task_id = ${taskId}::uuid and (r.state in ('running', 'waiting_human')
+            or (r.state = 'failed' and r.updated_at > now() - interval '1 day' and not exists (
+              select 1 from ai_runs n where n.task_id = r.task_id and n.kind = r.kind
+                and n.item_id is not distinct from r.item_id and n.action_id is not distinct from r.action_id
+                and (n.created_at, n.id) > (r.created_at, r.id))))
+          order by r.created_at desc, r.id desc limit 50`,
+    );
+    return { activity: r.rows as unknown as AiActivity[] };
+  }
+
+  /** PLNRAPP-202: «ИИ печатает…» in a chat channel — the running chat runs, for those who see the channel. */
+  @Get('activity/channels/:channelId')
+  async channelActivity(
+    @Req() req: object,
+    @Param('channelId') channelId: string,
+  ): Promise<{ activity: AiActivity[] }> {
+    const a = this.core.auth(req);
+    if (a.tokenId) throw new HttpError(403, 'forbidden', 'Только из сессии');
+    if (!uuidP.safeParse(channelId).success) throw nf();
+    // who sees the channel: the members of its space, or of the dialog without a space; with access to its project
+    const ok = await this.core.db.execute(
+      sql`select 1 from chat_channels c where c.id = ${channelId}::uuid
+            and (c.project_id is null or project_role(${a.userId}::uuid, c.project_id) is not null)
+            and case when c.space_id is not null
+              then exists (select 1 from space_members sm where sm.space_id = c.space_id and sm.user_id = ${a.userId}::uuid)
+              else exists (select 1 from chat_members m where m.channel_id = c.id and m.user_id = ${a.userId}::uuid) end`,
+    );
+    if (!ok.rows[0]) throw nf();
+    const r = await this.core.db.execute(
+      sql`select ${activityCols} from ai_runs r
+          where r.channel_id = ${channelId}::uuid and r.state = 'running'
+          order by r.created_at desc, r.id desc limit 20`,
+    );
+    return { activity: r.rows as unknown as AiActivity[] };
   }
 
   @Get('runs/:id')
