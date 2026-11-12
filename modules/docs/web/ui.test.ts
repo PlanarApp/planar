@@ -231,6 +231,23 @@ describe('docs web: панель задачи', () => {
     await vi.waitFor(async () => expect(await db.table('docsTaskLinks').count()).toBe(1));
   });
 
+  it('показывает связанные страницы другого пространства', async () => {
+    const t = await seedTask();
+    const p1 = uuidv7();
+    const OTHER_SPACE = uuidv7();
+    await db.table('docsPages').put(page(p1, { title: 'Док из другого спейса', spaceId: OTHER_SPACE }));
+    await db.table('docsTaskLinks').put({
+      id: uuidv7(),
+      spaceId: OTHER_SPACE,
+      pageId: p1,
+      taskId: t,
+      createdBy: ME,
+      createdAt: NOW,
+    });
+    const w = panel(t);
+    await vi.waitFor(() => expect(w.text()).toContain('Док из другого спейса'));
+  });
+
   it('«Создать страницу» делает страницу с названием задачи, связь и переход', async () => {
     const t = await seedTask();
     const w = panel(t);

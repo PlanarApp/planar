@@ -18,21 +18,21 @@ const data = useQuery(async () => {
     .where('taskId')
     .equals(props.taskId)
     .toArray();
-  const all = task
-    ? await db.table<PageRow>('docsPages').where('spaceId').equals(task.spaceId).toArray()
+  const linkIds = new Set(links.map((l) => l.pageId));
+  const linkedPages = (
+    await Promise.all([...linkIds].map((id) => db.table<PageRow>('docsPages').get(id)))
+  ).filter((p): p is PageRow => !!p && !p.archivedAt);
+  const ownPages = task
+    ? (await db.table<PageRow>('docsPages').where('spaceId').equals(task.spaceId).toArray()).filter(
+        (p) => !p.archivedAt && !linkIds.has(p.id),
+      )
     : [];
-  return { all: all.filter((p) => !p.archivedAt), ids: new Set(links.map((l) => l.pageId)) };
+  return { linked: linkedPages, available: ownPages };
 });
-const linked = computed(() => (data.value?.all ?? []).filter((p) => data.value!.ids.has(p.id)));
+const linked = computed(() => data.value?.linked ?? []);
 const q = ref('');
 const found = computed(() =>
-  q.value.trim()
-    ? searchPages(
-        (data.value?.all ?? []).filter((p) => !data.value!.ids.has(p.id)),
-        q.value,
-        6,
-      )
-    : [],
+  q.value.trim() ? searchPages(data.value?.available ?? [], q.value, 6) : [],
 );
 
 async function pick(p: PageRow) {

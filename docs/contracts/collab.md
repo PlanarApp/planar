@@ -68,6 +68,7 @@ A soft lock: only an "X is editing" indicator and read-only mode for the others 
 
 ## DC-mutators v3
 
+v4 (PLNRAPP-5): move between spaces — `spaceId` in `docs.page.move`.
 v3 (PLNRAPP-154): `docs.page.archive` sets `archivedBy`; `docs.page.restore` - admin only; `docs.page.delete`.
 v2 (groups): `projectId` in `docs.page.create`/`docs.page.move`.
 
@@ -77,7 +78,7 @@ Export - `shared.mutators` from `modules/docs/shared/index.ts`; `args` - `z.obje
 |---|---|---|
 | `docs.page.create` | `id, spaceId, rank, projectId?, parentId?, title?, icon?, body?` | the parent is a non-archived page of the same space, otherwise `invalid_args`; with a parent `projectId` = the parent's, without - a project of this space or null, otherwise `invalid_args`; `title` defaults to `''`, `body` - `{type:'doc', content:[]}`; `text`, `files` from `body`; `createdBy = updatedBy = ctx.userId` |
 | `docs.page.update` | `id, title?, icon?, body?` | archived -> `conflict`; `body` -> recompute `text`, `files`; `updatedBy = ctx.userId` |
-| `docs.page.move` | `id, parentId, rank, projectId?` | `parentId: uuid \| null` (the key is required); `projectId` = the new parent's, at the root - `projectId` from args (no key - unchanged), a project of another space -> `invalid_args`; descendants get the same `projectId`; the page itself or its descendant -> `invalid_args`; another space -> `invalid_args`; the page or the new parent is archived -> `conflict` |
+| `docs.page.move` | `id, parentId, rank, projectId?, spaceId?` | `parentId: uuid \| null` (the key is required); `projectId` = the new parent's, at the root - `projectId` from args (no key - unchanged), a project of another space without explicit spaceId -> `invalid_args`; `spaceId` (PLNRAPP-5) — move to another space (root of the space or its project), descendants get the same `spaceId` and `projectId`; descendants get the same `projectId`; the page itself or its descendant -> `invalid_args`; another space without rights -> `forbidden`; the page or the new parent is archived -> `conflict` |
 | `docs.page.archive` | `id` | `archivedAt = ctx.now`, `archivedBy = ctx.userId` on the page and all its non-archived descendants; already archived - nothing |
 | `docs.page.restore` | `id` | admin of the page's project (of the space for a space page) / space / instance, otherwise `forbidden`; clears `archivedAt`, `archivedBy` on the page and the descendants with the same `archivedAt`; parent archived -> `parentId = null` |
 | `docs.page.delete` | `id` | only an archived page (otherwise `conflict`); admin as in restore; deletes the page and its descendants with their links and locks. Used by the job `docs.archive.purge` (archived > 30 days) |

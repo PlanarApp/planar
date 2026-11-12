@@ -180,6 +180,20 @@ const update = defineMutator({
   },
 });
 
+async function moveSubtree(
+  tx: Tx,
+  parentId: string,
+  spaceId: string,
+  projectId: string | null,
+  now: string,
+) {
+  const kids = await dtx(tx).scan<Page>('docsPages', { index: 'parentId', eq: parentId });
+  for (const k of kids) {
+    await moveSubtree(tx, k.id, spaceId, projectId, now);
+    await dtx(tx).patch('docsPages', k.id, { spaceId, projectId, updatedAt: now });
+  }
+}
+
 const move = defineMutator({
   name: 'docs.page.move',
   args: z.object({
@@ -187,29 +201,55 @@ const move = defineMutator({
     parentId: z.uuid().nullable(),
     rank: z.string().min(1),
     projectId: z.uuid().nullable().optional(), // for the root; without it the group does not change
+    spaceId: z.uuid().optional(),
   }),
   async run(tx, a, ctx) {
     const p = await page(tx, a.id);
+    if (p.archivedAt) throw new MutatorError('conflict', 'страница в архиве');
+    let targetSpaceId = a.spaceId ?? p.spaceId;
     let projectId = a.projectId === undefined ? p.projectId : a.projectId;
     if (a.parentId) {
       const np = await dtx(tx).get<Page>('docsPages', a.parentId);
       if (!np) throw new MutatorError('not_found', 'родитель не найден');
-      if (np.spaceId !== p.spaceId) throw new MutatorError('invalid_args', 'другое пространство');
+      if (a.spaceId && np.spaceId !== a.spaceId)
+        throw new MutatorError('invalid_args', 'другое пространство');
+      targetSpaceId = np.spaceId;
       if (a.parentId === a.id || (await descendants(tx, a.id)).some((d) => d.id === a.parentId))
         throw new MutatorError('invalid_args', 'цикл');
       if (np.archivedAt) throw new MutatorError('conflict', 'родитель в архиве');
       projectId = np.projectId;
-    } else await checkProject(tx, p.spaceId, projectId);
-    if (p.archivedAt) throw new MutatorError('conflict', 'страница в архиве');
-    if (projectId !== p.projectId)
-      for (const d of await descendants(tx, a.id))
-        await dtx(tx).patch('docsPages', d.id, { projectId, updatedAt: ctx.now });
-    await dtx(tx).patch('docsPages', a.id, {
-      projectId,
-      parentId: a.parentId,
-      rank: a.rank,
-      updatedAt: ctx.now,
-    });
+    } else {
+      if (projectId) {
+        const pr = await tx.get('projects', projectId);
+        if (!pr) throw new MutatorError('not_found', 'проект не найден');
+        if (a.spaceId && pr.spaceId !== a.spaceId)
+          throw new MutatorError('invalid_args', 'проект другого пространства');
+        targetSpaceId = pr.spaceId;
+      }
+      await checkProject(tx, targetSpaceId, projectId);
+    }
+    if (targetSpaceId !== p.spaceId) {
+      const sp = await tx.get('spaces', targetSpaceId);
+      if (!sp) throw new MutatorError('not_found', 'пространство не найдено');
+      await moveSubtree(tx, a.id, targetSpaceId, projectId, ctx.now);
+      await dtx(tx).patch('docsPages', a.id, {
+        spaceId: targetSpaceId,
+        projectId,
+        parentId: a.parentId,
+        rank: a.rank,
+        updatedAt: ctx.now,
+      });
+    } else {
+      if (projectId !== p.projectId)
+        for (const d of await descendants(tx, a.id))
+          await dtx(tx).patch('docsPages', d.id, { projectId, updatedAt: ctx.now });
+      await dtx(tx).patch('docsPages', a.id, {
+        projectId,
+        parentId: a.parentId,
+        rank: a.rank,
+        updatedAt: ctx.now,
+      });
+    }
   },
 });
 

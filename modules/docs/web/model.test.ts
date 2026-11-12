@@ -68,6 +68,18 @@ describe('docs web: дерево', () => {
     // to the space: after its roots a, b (old is archived)
     const s = toProjectArgs(ps, 'p1', null);
     expect(s.rank > 'a1').toBe(true);
+
+    // to another space: with explicit spaceId
+    const otherPs = [
+      pg('o1', 'a5', null, { spaceId: 's2', projectId: 'P2' }),
+      pg('o2', 'a8', null, { spaceId: 's2', projectId: null }),
+    ];
+    const toOtherProj = toProjectArgs(otherPs, 'a1', 'P2', 's2');
+    expect(toOtherProj).toMatchObject({ id: 'a1', parentId: null, projectId: 'P2', spaceId: 's2' });
+    expect(toOtherProj.rank > 'a5').toBe(true);
+    const toOtherSpace = toProjectArgs(otherPs, 'a1', null, 's2');
+    expect(toOtherSpace).toMatchObject({ id: 'a1', parentId: null, projectId: null, spaceId: 's2' });
+    expect(toOtherSpace.rank > 'a8').toBe(true);
   });
 });
 
