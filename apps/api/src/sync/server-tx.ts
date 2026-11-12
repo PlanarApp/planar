@@ -221,7 +221,7 @@ export class ServerTx implements Tx {
   ): Promise<void> {
     const moved = entity !== 'spaces' && !!old && old.spaceId !== next.spaceId;
     // only a task or a docs page changes its space (PLNRAPP-152, PLNRAPP-5): its rows follow it in relocate()
-    if (moved && entity !== 'tasks' && entity !== 'docsPages')
+    if (moved && entity !== 'tasks' && (entity as string) !== 'docsPages')
       throw new MutatorError('invalid_args', 'spaceId неизменяем');
     await this.authorize(entity, old, next);
     if (moved) {
@@ -373,7 +373,7 @@ export class ServerTx implements Tx {
           .where(and(eq(schema.tasks.parentId, id), ne(schema.tasks.spaceId, to))),
       );
       for (const r of left) await this.store('tasks', { ...toWire('tasks', r), parentId: null });
-    } else if (entity === 'docsPages') {
+    } else if ((entity as string) === 'docsPages') {
       for (const [e, m] of Object.entries(allMetas())) {
         if (m.scope !== 'space' || e === 'docsPages') continue;
         const t = tableOf(e);
@@ -397,7 +397,7 @@ export class ServerTx implements Tx {
           .where(and(eq(c.parentId, id), ne(c.spaceId, to))),
       );
       for (const r of left)
-        await this.store('docsPages', { ...toWire('docsPages', r), parentId: null });
+        await this.store('docsPages' as EntityName, { ...toWire('docsPages', r), parentId: null });
     }
   }
 
