@@ -78,12 +78,17 @@ export function moveArgs(
 }
 
 /** PLNRAPP-5: docs.page.move of `id` with its subpages to the end of the root pages of project `projectId` (null — the space). */
-export function toProjectArgs(pages: PageRow[], id: string, projectId: string | null) {
-  const p = pages.find((x) => x.id === id)!;
+export function toProjectArgs(
+  pages: PageRow[],
+  id: string,
+  projectId: string | null,
+  spaceId?: string,
+) {
+  const targetSpaceId = spaceId ?? pages.find((x) => x.id === id)?.spaceId;
   const last = pages
     .filter(
       (x) =>
-        x.spaceId === p.spaceId &&
+        (!targetSpaceId || x.spaceId === targetSpaceId) &&
         !x.parentId &&
         !x.archivedAt &&
         x.id !== id &&
@@ -91,7 +96,13 @@ export function toProjectArgs(pages: PageRow[], id: string, projectId: string | 
     )
     .sort(byRank)
     .at(-1);
-  return { id, parentId: null, rank: rankBetween(last?.rank ?? null, null), projectId };
+  return {
+    id,
+    parentId: null,
+    rank: rankBetween(last?.rank ?? null, null),
+    projectId,
+    ...(spaceId ? { spaceId } : {}),
+  };
 }
 
 export const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е');

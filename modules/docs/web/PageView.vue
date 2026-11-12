@@ -9,6 +9,7 @@ import {
   i18n,
   mutate,
   useQuery,
+  useSession,
   useExtensions,
   Menu,
   type MenuItem,
@@ -55,30 +56,62 @@ onBeforeUnmount(saver.flush);
 
 const fav = computed(() => favorites.has('doc', props.pageId));
 const history = ref(false);
-// PLNRAPP-5: move targets — projects of the page's space and the space itself (no project)
+// PLNRAPP-5: move targets — projects and space root of the page's space and other writable spaces
+const user = useSession();
+const spaces = useQuery(() => db.table<Row<'spaces'>>('spaces').toArray());
 const projects = useQuery(() => db.table<Row<'projects'>>('projects').toArray());
+const writable = useQuery(async () => {
+  const me = user.value?.id ?? '';
+  const rows = await db
+    .table<Row<'spaceMembers'>>('spaceMembers')
+    .where('userId')
+    .equals(me)
+    .toArray();
+  return new Set(rows.filter((m) => m.role !== 'guest').map((m) => m.spaceId));
+});
+const byRank = <T extends { rank: string }>(a: T, b: T) =>
+  a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0;
 const targets = computed(() => {
   const p = page.value;
   if (!p) return [];
-  const own = (projects.value ?? [])
-    .filter((x) => x.spaceId === p.spaceId && !x.archivedAt)
-    .sort((a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0));
-  return [{ id: null, name: tx('noProject') }, ...own].map((x) => ({
-    id: x.id ?? 'none',
-    label: x.name,
-    checked: (p.projectId ?? null) === x.id,
-    onSelect: () => (p.projectId ?? null) !== x.id && void moveTo(x.id),
+  const live = (projects.value ?? []).filter((x) => !x.archivedAt).sort(byRank);
+  const ownProjects = live
+    .filter((x) => x.spaceId === p.spaceId)
+    .map((x) => ({ spaceId: p.spaceId, projectId: x.id, label: x.name }));
+  const own = [
+    { spaceId: p.spaceId, projectId: null, label: tx('noProject') },
+    ...ownProjects,
+  ];
+  const others = [...(spaces.value ?? [])]
+    .filter((s) => s.id !== p.spaceId && (writable.value?.has(s.id) ?? false))
+    .sort(byRank)
+    .flatMap((s) => {
+      const spaceProjects = live
+        .filter((x) => x.spaceId === s.id)
+        .map((x) => ({ spaceId: s.id, projectId: x.id, label: `${s.name} / ${x.name}` }));
+      return [
+        { spaceId: s.id, projectId: null, label: `${s.name} / ${tx('noProject')}` },
+        ...spaceProjects,
+      ];
+    });
+  return [...own, ...others].map((x) => ({
+    id: `${x.spaceId}:${x.projectId ?? 'none'}`,
+    label: x.label,
+    checked: p.spaceId === x.spaceId && (p.projectId ?? null) === x.projectId,
+    onSelect: () =>
+      (p.spaceId !== x.spaceId || (p.projectId ?? null) !== x.projectId) &&
+      void moveTo(x.spaceId, x.projectId),
   }));
 });
 /** to the end of the target's root pages, with the subpages (docs.page.move) */
-async function moveTo(projectId: string | null) {
+async function moveTo(spaceId: string, projectId: string | null) {
   saver.flush();
   const pages = await db
     .table<PageFull>('docsPages')
     .where('spaceId')
-    .equals(page.value!.spaceId)
+    .equals(spaceId)
     .toArray();
-  await mutate('docs.page.move', toProjectArgs(pages, props.pageId, projectId)).catch(() => {});
+  await mutate('docs.page.move', toProjectArgs(pages, props.pageId, projectId, spaceId)).catch(() => {});
 }
 const actions = computed<MenuItem[]>(() => [
   {

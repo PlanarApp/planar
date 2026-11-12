@@ -220,14 +220,15 @@ export class ServerTx implements Tx {
     extra?: Record<string, unknown>,
   ): Promise<void> {
     const moved = entity !== 'spaces' && !!old && old.spaceId !== next.spaceId;
-    // only a task changes its space (PLNRAPP-152): its rows follow it in relocate()
-    if (moved && entity !== 'tasks') throw new MutatorError('invalid_args', 'spaceId неизменяем');
+    // only a task or a docs page changes its space (PLNRAPP-152, PLNRAPP-5): its rows follow it in relocate()
+    if (moved && entity !== 'tasks' && entity !== 'docsPages')
+      throw new MutatorError('invalid_args', 'spaceId неизменяем');
     await this.authorize(entity, old, next);
     if (moved) {
       // del before put: a replica of both spaces must end up with the row
-      const [id, from] = [next.id as string, old!.projectId as string];
+      const [id, from] = [next.id as string, (old!.projectId as string) ?? null];
       await this.append(old!.spaceId as string, null, entity, id, 'del', null, from);
-      this.projectOf.set(`tasks:${id}`, next.projectId as string);
+      this.projectOf.set(`${entity}:${id}`, (next.projectId as string) ?? null);
     }
     if (entity === 'attachments' && !old) await this.checkFile(next);
     if (entity === 'settings' && next.id === 'enabled_modules')
@@ -237,7 +238,7 @@ export class ServerTx implements Tx {
     if (entity === 'tasks' && next.number == null)
       next.number = await this.nextNumber(next.projectId as string);
     await this.store(entity, next, extra);
-    if (moved) await this.relocate(next, old!);
+    if (moved) await this.relocate(entity, next, old!);
     if (!old) await this.memberChange(entity, next, 'put');
     this.writes.push({ entity, op: 'put', before: old, after: next });
     this.accessChanged(entity);
@@ -331,44 +332,73 @@ export class ServerTx implements Tx {
   }
 
   /**
-   * PLNRAPP-152: a task moved to another space takes along the rows tied to it — every space entity
-   * (core and modules) with taskId, reactions to its comments: del in the old space, put in the new one;
-   * no rights check and no hooks (the task move itself is authorized). A subtask left behind is cut off.
+   * PLNRAPP-152, PLNRAPP-5: a task or docs page moved to another space takes along the rows tied to it — every space entity
+   * (core and modules) with taskId or pageId, reactions to its comments: del in the old space, put in the new one;
+   * no rights check and no hooks (the move itself is authorized). A child left behind is cut off.
    */
-  private async relocate(task: Wire, old: Wire): Promise<void> {
-    const id = task.id as string;
-    const to = task.spaceId as string;
-    // project of the old rows: the task's project before the move
-    const before = new Map<string, string | null>([[`tasks:${id}`, old.projectId as string]]);
-    const ofTask = this.q
-      .select({ id: schema.comments.id })
-      .from(schema.comments)
-      .where(eq(schema.comments.taskId, id));
-    for (const [e, m] of Object.entries(allMetas())) {
-      if (m.scope !== 'space' || e === 'tasks') continue;
-      const t = tableOf(e);
-      const c = getTableColumns(t);
-      const where = c.taskId
-        ? eq(c.taskId, id)
-        : c.commentId
-          ? inArray(c.commentId, ofTask)
-          : undefined;
-      if (!where || !c.spaceId) continue;
-      for (const r of await this.exec(() => this.q.select().from(t).where(where))) {
-        const w = toWire(e, r);
-        if (w.spaceId === to) continue;
-        const pid = await projectOfWire(this.q, e, w, before);
-        await this.append(w.spaceId as string, null, e, w.id as string, 'del', null, pid);
-        await this.store(e as EntityName, { ...w, spaceId: to });
+  private async relocate(entity: EntityName, row: Wire, old: Wire): Promise<void> {
+    const id = row.id as string;
+    const to = row.spaceId as string;
+    // project of the old rows: the task or page's project before the move
+    const before = new Map<string, string | null>([
+      [`${entity}:${id}`, (old.projectId as string) ?? null],
+    ]);
+    if (entity === 'tasks') {
+      const ofTask = this.q
+        .select({ id: schema.comments.id })
+        .from(schema.comments)
+        .where(eq(schema.comments.taskId, id));
+      for (const [e, m] of Object.entries(allMetas())) {
+        if (m.scope !== 'space' || e === 'tasks') continue;
+        const t = tableOf(e);
+        const c = getTableColumns(t);
+        const where = c.taskId
+          ? eq(c.taskId, id)
+          : c.commentId
+            ? inArray(c.commentId, ofTask)
+            : undefined;
+        if (!where || !c.spaceId) continue;
+        for (const r of await this.exec(() => this.q.select().from(t).where(where))) {
+          const w = toWire(e, r);
+          if (w.spaceId === to) continue;
+          const pid = await projectOfWire(this.q, e, w, before);
+          await this.append(w.spaceId as string, null, e, w.id as string, 'del', null, pid);
+          await this.store(e as EntityName, { ...w, spaceId: to });
+        }
       }
+      const left = await this.exec(() =>
+        this.q
+          .select()
+          .from(schema.tasks)
+          .where(and(eq(schema.tasks.parentId, id), ne(schema.tasks.spaceId, to))),
+      );
+      for (const r of left) await this.store('tasks', { ...toWire('tasks', r), parentId: null });
+    } else if (entity === 'docsPages') {
+      for (const [e, m] of Object.entries(allMetas())) {
+        if (m.scope !== 'space' || e === 'docsPages') continue;
+        const t = tableOf(e);
+        const c = getTableColumns(t);
+        const where = c.pageId ? eq(c.pageId, id) : e === 'docsLocks' ? eq(c.id, id) : undefined;
+        if (!where || !c.spaceId) continue;
+        for (const r of await this.exec(() => this.q.select().from(t).where(where))) {
+          const w = toWire(e, r);
+          if (w.spaceId === to) continue;
+          const pid = await projectOfWire(this.q, e, w, before);
+          await this.append(w.spaceId as string, null, e, w.id as string, 'del', null, pid);
+          await this.store(e as EntityName, { ...w, spaceId: to });
+        }
+      }
+      const t = tableOf('docsPages');
+      const c = getTableColumns(t);
+      const left = await this.exec(() =>
+        this.q
+          .select()
+          .from(t)
+          .where(and(eq(c.parentId, id), ne(c.spaceId, to))),
+      );
+      for (const r of left)
+        await this.store('docsPages', { ...toWire('docsPages', r), parentId: null });
     }
-    const left = await this.exec(() =>
-      this.q
-        .select()
-        .from(schema.tasks)
-        .where(and(eq(schema.tasks.parentId, id), ne(schema.tasks.spaceId, to))),
-    );
-    for (const r of left) await this.store('tasks', { ...toWire('tasks', r), parentId: null });
   }
 
   /** `_reset` for one user: their replica is rebuilt from bootstrap. */
