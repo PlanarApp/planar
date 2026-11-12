@@ -32,9 +32,19 @@ export type AiRunData =
       ruleId?: string | null;
       statusId?: string | null;
       parentRunId?: string | null;
+      /** set by a manual restart: the run this one repeats */
+      restartOf?: string | null;
+      /** id of the row to create: a restart sets it, so the client knows the new run */
+      runId?: string | null;
     }
-  | { kind: 'comment' | 'mention'; taskId: string; itemId: string }
-  | { kind: 'checklist'; taskId: string }
+  | {
+      kind: 'comment' | 'mention';
+      taskId: string;
+      itemId: string;
+      restartOf?: string | null;
+      runId?: string | null;
+    }
+  | { kind: 'checklist'; taskId: string; restartOf?: string | null; runId?: string | null }
   | { kind: 'resume'; runId: string };
 
 /** Debounce key: one queued job per (task, action / item). */
@@ -279,6 +289,9 @@ interface Run {
 /** One job of the queue ai.run. */
 export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   if (d.kind === 'resume') return resume(d.runId, api);
+  // a retried delivery of a restart: its pre-made run row already exists
+  if (d.runId && (await one(api.db, sql`select 1 as x from ai_runs where id = ${d.runId}::uuid`)))
+    return;
   const bot = await botOf(api);
   const task = await loadTask(api.db, d.taskId);
   if (!bot || !task || !task.modules.includes('ai')) return;
@@ -335,12 +348,12 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
           sql`select chain_id as c, chain_depth as n from ai_runs where id = ${d.parentRunId}`,
         )
       : undefined;
-  const id = uuidv7();
+  const id = d.runId ?? uuidv7();
   const depth = parent ? (parent.n as number) + 1 : 0;
   await api.db.execute(
-    sql`insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, item_id, state, chain_id, chain_depth)
+    sql`insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, item_id, state, chain_id, chain_depth, restart_of)
         values (${id}, ${task.id}, ${task.projectId}, ${d.kind}, ${action?.id ?? null}, ${d.kind === 'action' ? (d.ruleId ?? null) : null},
-          ${itemId}, 'running', ${(parent?.c as string | undefined) ?? id}, ${depth})`,
+          ${itemId}, 'running', ${(parent?.c as string | undefined) ?? id}, ${depth}, ${d.restartOf ?? null})`,
   );
   const run: Run = { id, kind: d.kind, task, bot, action, item, log: [] };
   try {
@@ -352,6 +365,11 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
       );
     if (action?.runtime === 'agent')
       return await apply(api, run, failed('Agent-действия пока не поддерживаются.'));
+    const stop = await blocked(api.db, task.projectId);
+    if (stop) {
+      run.log.push(stop);
+      return await apply(api, run, failed(stop));
+    }
     const over = await overBudget(api.db, task);
     if (over)
       return await apply(api, run, { ...failed(''), verdict: 'question', questions: [over] });
@@ -430,6 +448,64 @@ const failed = (comment: string): AiResult => ({
   escalate: null,
   docs: null,
 });
+
+export async function aiEnabled(q: Pick<Q, 'execute'>) {
+  const s = await one(q, sql`select enabled from ai_settings where id = 1`);
+  return s ? (s.enabled as boolean) : true;
+}
+
+const envLimit = (name: string) => {
+  const n = Number(process.env[name]);
+  return n > 0 ? n : null;
+};
+
+export const defaultLimits = () => ({
+  dailyTokens: envLimit('PLANAR_AI_DAILY_TOKENS'),
+  dailyCost: envLimit('PLANAR_AI_DAILY_COST'),
+});
+
+/** Daily limits of a project: its own row and the ones in force (own, else the env defaults); null — no limit. */
+export async function projectLimits(q: Pick<Q, 'execute'>, projectId: string) {
+  const o = await one(
+    q,
+    sql`select daily_tokens as "dailyTokens", daily_cost as "dailyCost" from ai_project_limits where project_id = ${projectId}`,
+  );
+  const own = {
+    dailyTokens: (o?.dailyTokens as number | null) ?? null,
+    dailyCost: (o?.dailyCost as number | null) ?? null,
+  };
+  return {
+    own,
+    effective: {
+      dailyTokens: own.dailyTokens ?? envLimit('PLANAR_AI_DAILY_TOKENS'),
+      dailyCost: own.dailyCost ?? envLimit('PLANAR_AI_DAILY_COST'),
+    },
+  };
+}
+
+/** Tokens and cost of the runs created today (UTC day); one project, or the whole instance. */
+export async function usedToday(q: Pick<Q, 'execute'>, projectId?: string) {
+  const u = await one(
+    q,
+    sql`select coalesce(sum(input_tokens + output_tokens), 0)::float as tokens, coalesce(sum(cost), 0)::float as cost
+        from ai_runs where created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC'
+        ${projectId ? sql`and project_id = ${projectId}` : sql``}`,
+  );
+  return { tokens: u!.tokens as number, cost: u!.cost as number };
+}
+
+/** Why a run must not call the LLM: the switch is off, or the project spent its daily limit; null — go on. */
+async function blocked(q: Pick<Q, 'execute'>, projectId: string) {
+  if (!(await aiEnabled(q))) return 'ИИ выключен администратором.';
+  const { effective: l } = await projectLimits(q, projectId);
+  if (l.dailyTokens == null && l.dailyCost == null) return null;
+  const u = await usedToday(q, projectId);
+  if (l.dailyTokens != null && u.tokens >= l.dailyTokens)
+    return `Суточный лимит токенов проекта исчерпан: ${u.tokens} из ${l.dailyTokens}. Прогон остановлен без вызова ИИ.`;
+  if (l.dailyCost != null && u.cost >= l.dailyCost)
+    return `Суточный лимит стоимости проекта исчерпан: $${u.cost.toFixed(2)} из $${l.dailyCost}. Прогон остановлен без вызова ИИ.`;
+  return null;
+}
 
 /** Budget of the task — the number field «Бюджет» / «Budget», USD; spent = cost of its runs. Over → the question. */
 async function overBudget(q: Pick<Q, 'execute'>, t: Task) {

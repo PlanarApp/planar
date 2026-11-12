@@ -16,6 +16,15 @@ const label = { ru: 'ИИ', en: 'AI' };
 
 export const web = defineWebModule({
   id: 'ai',
+  taskPanels: [
+    {
+      id: 'runs',
+      label: { ru: 'ИИ', en: 'AI' },
+      icon: Sparkles,
+      order: 70,
+      component: () => import('./TaskAiPanel.vue'),
+    },
+  ],
   docPanels: [{ id: 'harness', component: () => import('./HarnessPanel.vue') }],
   settings: [
     {
@@ -25,6 +34,14 @@ export const web = defineWebModule({
       icon: Sparkles,
       adminOnly: true,
       component: page('instance'),
+    },
+    {
+      id: 'tasks',
+      level: 'workspace',
+      label: { ru: 'Задачи ИИ', en: 'AI tasks' },
+      icon: Sparkles,
+      adminOnly: true,
+      component: () => import('./AiMonitor.vue'),
     },
     { id: 'space', level: 'space', label, icon: Sparkles, component: page('space') },
     { id: 'project', level: 'project', label, icon: Sparkles, component: page('project') },

@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-11-11"
+updated: "2026-11-12"
 summary: "Точка входа: модули docs/ по подпроектам, прочие документы по типам."
 related: []
 generated: true
@@ -40,6 +40,7 @@ generated: true
   - [docs/research/wk16-budgets.md](research/wk16-budgets.md) — A/B 5×5 main против feature/work — бюджеты §7 не ухудшились за шумом; switch +8 % не доказано, хост у порогов [closed]
 - **projects** — Проект как единица настройки — статусы, метки и модули в проекте; личный вид узла на сервере; доводка списка, PWA-обновления и мелочи UI [closed 2026-11-03] — [план](plan/projects.md) · [контракты](contracts/projects.md) · [решения](plan/projects/decisions.md) · [сводка](plan/projects/summary.md) · полный журнал: `archive/projects`
 - **ai4** — Модуль ai4 (PLNRAPP-169): harness в документах проекта — формат, diff, «Применить harness», загрузка, пакет «Разработка» [closed 2026-11-11] — [план](plan/ai4.md) · [решения](plan/ai4/decisions.md) · [сводка](plan/ai4/summary.md) · полный журнал: `archive/ai4`
+- **ai6** — ИИ-6 (PLNRAPP-171) — мониторинг ИИ: вкладка «ИИ» в задаче, «Задачи ИИ» для админов, лимиты, выключатель [closed 2026-11-12] — [план](plan/ai6.md) · [решения](plan/ai6/decisions.md) · [сводка](plan/ai6/summary.md) · полный журнал: `archive/ai6`
 
 ## Прочие документы
 

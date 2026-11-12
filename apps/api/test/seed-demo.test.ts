@@ -106,6 +106,23 @@ describe('seed-demo', () => {
     const ai = await q<J>(`select checks from ai_actions`);
     expect(ai.length).toBeGreaterThan(0);
     for (const a of ai) aiActions.shape.checks.parse(a.checks);
+    const runs = await q<{ state: string; n: number }>(
+      `select state, count(*)::int as n from ai_runs group by state`,
+    );
+    expect(runs.map((r) => r.state).sort()).toEqual([
+      'cancelled',
+      'done',
+      'failed',
+      'running',
+      'waiting_human',
+    ]);
+    const [lim] = await q<{ n: number }>(
+      `select count(*)::int as n from ai_runs r join ai_project_limits l using (project_id) where r.restart_of is not null`,
+    );
+    expect(lim!.n).toBe(2);
+    expect((await q<{ enabled: boolean }>(`select enabled from ai_settings`))[0]!.enabled).toBe(
+      true,
+    );
     // the pack «Разработка»: its documents exist, hashes point at them
     const [pk] = await q<{ hashes: Record<string, string>; n: number }>(
       `select hashes, (select count(*)::int from docs_pages d where d.id::text = any(select jsonb_object_keys(p.hashes))) as n
