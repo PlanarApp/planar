@@ -37,16 +37,20 @@ export function parseInstructionPage(title: string, body: unknown) {
   const nodes = ((body as Node | null)?.content ?? []) as Node[];
   const t = nodes.findIndex((n) => n.type === 'table');
   const params: Row = {};
+  const checkRows: string[] = [];
   for (const r of t < 0 ? [] : (nodes[t]!.content ?? [])) {
     const [k, ...v] = (r.content ?? []).map(text);
     const name = k?.trim().toLowerCase();
-    if (name && INSTRUCTION_PARAMS.includes(name)) params[name] = v.join(' ').trim();
+    if (!name || !INSTRUCTION_PARAMS.includes(name)) continue;
+    // one `checks` row per criterion: the rows add up
+    if (name === 'checks') checkRows.push(v.join(' ').trim());
+    else params[name] = v.join(' ').trim();
   }
   const head = t > 0 && nodes[0]!.type === 'paragraph' ? text(nodes[0]!) : undefined;
   const promptNodes = t < 0 ? nodes : nodes.slice(t + 1);
   const prompt = docToMarkdown({ type: 'doc', content: promptNodes } as never).trim();
-  const checks = String(params.checks ?? '')
-    .split('\n')
+  const checks = checkRows
+    .flatMap((c) => c.split('\n'))
     .map((c) => c.trim())
     .filter(Boolean);
   const r = instructionSchema.safeParse({
@@ -119,6 +123,30 @@ async function keysOf(q: Db | Q, projectId: string): Promise<HarnessKeys> {
   return out;
 }
 
+/**
+ * Pack keys plus the implicit bindings of an unmanaged project: an action with the same `key` and a status with
+ * the same name (case-insensitive) are the pack's entities — updated instead of duplicated (the key is stored on apply).
+ */
+export async function boundKeys(q: Db | Q, projectId: string, pack: Harness): Promise<HarnessKeys> {
+  const keys = await keysOf(q, projectId);
+  const bind = (kind: HarnessKind, k: string, id: string) => {
+    const m = (keys[kind] ??= {});
+    if (!m[k] && !Object.values(m).includes(id)) m[k] = id;
+  };
+  const p = sql`${projectId}::uuid`;
+  for (const a of await rows(q, sql`select id, key from ai_actions where project_id = ${p}`))
+    if (pack.actions.includes(a.key as string)) bind('action', a.key as string, a.id as string);
+  const st = await rows(
+    q,
+    sql`select id, name from statuses where project_id = ${p} order by rank collate "C"`,
+  );
+  for (const s of pack.statuses) {
+    const c = st.find((x) => String(x.name).toLowerCase() === s.name.toLowerCase());
+    if (c) bind('status', s.key, c.id as string);
+  }
+  return keys;
+}
+
 async function currentOf(q: Db | Q, projectId: string): Promise<CurrentState> {
   const p = sql`${projectId}::uuid`;
   const [statuses, labels, fields, actions, rules] = await Promise.all([
@@ -132,7 +160,8 @@ async function currentOf(q: Db | Q, projectId: string): Promise<CurrentState> {
     rows(q, sql`select id, name, type from field_defs where project_id = ${p}`),
     rows(
       q,
-      sql`select id, name, description, runtime, model, checks from ai_actions where project_id = ${p}`,
+      sql`select id, name, description, runtime, model, checks, question_status_id as "questionStatusId"
+          from ai_actions where project_id = ${p}`,
     ),
     rows(q, sql`select id, name, description from automations_rules where project_id = ${p}`),
   ]);
@@ -151,7 +180,7 @@ export async function diffOf(
     await currentOf(q, projectId),
     loaded.pack,
     replaceWith,
-    await keysOf(q, projectId),
+    await boundKeys(q, projectId, loaded.pack),
     loaded.instructions,
   );
   return { ...loaded, ops: d.ops, errors: [...loaded.errors, ...d.errors] };
@@ -184,7 +213,8 @@ export async function buildMutations(
     action: {},
     rule: {},
   };
-  for (const [kind, m] of Object.entries(await keysOf(q, projectId)))
+  const stored = await keysOf(q, projectId);
+  for (const [kind, m] of Object.entries(await boundKeys(q, projectId, pack)))
     Object.assign(ids[kind as HarnessKind], m);
   for (const o of ops) if (o.op === 'create') ids[o.kind][o.key] = uuidv7();
   const bot = (await rows(q, sql`select id from users where login = ${AI_BOT_LOGIN} and bot`))[0]
@@ -243,7 +273,9 @@ export async function buildMutations(
   const fallback = pack.statuses[0] && ids.status[pack.statuses[0].key];
 
   const mut = (o: HarnessOp): Mut | null => {
-    const d = (o.data ?? {}) as Row;
+    // `questionStatus` is only for the diff: the status goes as questionStatusId
+    const d = { ...(o.data ?? {}) } as Row;
+    delete d.questionStatus;
     const id = o.id ?? ids[o.kind][o.key]!;
     const base = { id, projectId };
     const enc = `${o.kind}.${o.op}`;
@@ -333,7 +365,13 @@ export async function buildMutations(
     .map(({ o }) => mut(o))
     .filter((m): m is Mut => !!m);
   const keyWrites = ops
-    .filter((o) => o.op === 'create' || o.op === 'delete')
+    // an update of an entity bound by name/key (not stored yet) stores its key too
+    .filter(
+      (o) =>
+        o.op === 'create' ||
+        o.op === 'delete' ||
+        (o.op === 'update' && stored[o.kind]?.[o.key] !== o.id),
+    )
     .map((o) => ({ op: o.op, kind: o.kind, key: o.key, id: ids[o.kind][o.key]! }));
   return { muts, keyWrites };
 }

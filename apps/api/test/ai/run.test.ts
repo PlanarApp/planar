@@ -801,6 +801,43 @@ describe('письма пачкой', () => {
     expect(jobs.filter((j) => j.queue === 'ai.email' || j.data.kind === 'resume')).toHaveLength(0);
   });
 
+  it('переназначивший комментарий на себя не подтверждает пачку: ждёт того, кому назначено при создании', async () => {
+    const { t, b } = await batch();
+    expect(b.assignee_id).toBe(w.member.userId);
+    await raw(`update comments set assignee_id = $1 where id = $2`, [w.admin.userId, b.comment_id]);
+    await reply(w.admin, t, b.comment_id, 'ок');
+    expect((await batchOf()).state).toBe('pending');
+    expect(emailJobs()).toHaveLength(0);
+    await reply(w.member, t, b.comment_id, 'ок');
+    expect((await batchOf()).state).toBe('sending');
+  });
+
+  it('«ок» после остановки прогона или при выключенном ИИ — пачка cancelled, письма не уходят', async () => {
+    const stopped = await batch();
+    await raw(`update ai_runs set state = 'cancelled' where task_id = $1`, [stopped.t]);
+    await reply(w.member, stopped.t, stopped.b.comment_id, 'ок');
+    expect((await batchOf()).state).toBe('cancelled');
+
+    const off = await batch();
+    await raw(`insert into ai_settings (id, enabled) values (1, false)`);
+    try {
+      await reply(w.member, off.t, off.b.comment_id, 'ок');
+    } finally {
+      await raw(`delete from ai_settings`);
+    }
+    expect((await batchOf()).state).toBe('cancelled');
+    expect(emailJobs()).toHaveLength(0);
+  });
+
+  it('ответ автора на исходный комментарий не завершает прогон с ожидающей пачкой', async () => {
+    const { t, b } = await batch();
+    const [first] = (await commentsOf(t)).filter((c) => c.assignee_id === bot);
+    await reply(w.member, t, first!.id, 'ок');
+    expect((await runsOf(t))[0]!.state).toBe('waiting_human');
+    expect((await batchOf()).state).toBe('pending');
+    expect(b.state).toBe('pending');
+  });
+
   it('«ок»: джобы со сдвигом 30–60 с накопительно, повтор «ок» ничего не меняет, итог — в тред', async () => {
     const { t, b } = await batch();
     await reply(w.member, t, b.comment_id, ' Ок. ');

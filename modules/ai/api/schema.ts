@@ -139,7 +139,12 @@ export const aiRuns = pgTable(
     createdAt: ts().notNull().defaultNow(),
     updatedAt: ts().notNull().defaultNow(),
   },
-  (t) => [index('ai_runs_task_id_idx').on(t.taskId), index('ai_runs_state_idx').on(t.state)],
+  (t) => [
+    index('ai_runs_task_id_idx').on(t.taskId),
+    index('ai_runs_state_idx').on(t.state),
+    index('ai_runs_project_id_created_at_idx').on(t.projectId, t.createdAt),
+    index('ai_runs_created_at_idx').on(t.createdAt),
+  ],
 );
 
 export type ChatPending = {
@@ -168,6 +173,8 @@ export const aiEmailBatches = pgTable(
     projectId: uuid().notNull(),
     /** the batch comment: the executor answers in its thread */
     commentId: uuid().notNull(),
+    /** who confirms with «ок» (fixed at insert; null — a batch from before 0058) */
+    assigneeId: uuid(),
     /** pending | sending | sent | cancelled */
     state: text().notNull(),
     emails: jsonb().$type<AiEmail[]>().notNull(),

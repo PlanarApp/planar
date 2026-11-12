@@ -67,7 +67,14 @@ export class HarnessController {
           if (JSON.stringify(again.ops) !== JSON.stringify(d.ops))
             throw new HttpError(409, 'conflict', 'Проект или пакет изменились, повторите diff');
         },
-        after: (q) => writeKeys(q, b.projectId, keyWrites),
+        after: async (q) => {
+          await writeKeys(q, b.projectId, keyWrites);
+          // the applied pack owns the keys, so it is the active one
+          await q.execute(
+            sql`update ai_harness_packs set active = (root_page_id = ${b.packPageId}::uuid), updated_at = now()
+                where project_id = ${b.projectId}::uuid`,
+          );
+        },
       });
     } catch (e) {
       throw asHttp(e);

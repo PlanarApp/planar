@@ -54,6 +54,8 @@ services:
       AI_RUNNER_TOKEN:
       AI_AGENT_IMAGE:
       AI_AGENT_MAX_REPLICAS:
+      PLANAR_AI_DAILY_TOKENS:
+      PLANAR_AI_DAILY_COST:
     networks: [app, runner, agents]
     volumes:
       - data:/data

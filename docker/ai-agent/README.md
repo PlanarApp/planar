@@ -4,9 +4,9 @@
 
 ## Состав
 
-node 24, pnpm (corepack), git, curl, jq, glab, dpcli, Claude Code, opencode, Playwright chromium (`/opt/pw`). Пользователь `10001`, `WORKDIR /work`, ENTRYPOINT `/usr/local/bin/planar-agent-entrypoint`. Версии — `ARG` в Dockerfile (значения-заглушки, перед сборкой сверить с актуальными).
+node 24, pnpm (corepack), git, curl, jq, glab, Claude Code, opencode, Playwright chromium (`/opt/pw`). Пользователь `10001`, `WORKDIR /work`, ENTRYPOINT `/usr/local/bin/planar-agent-entrypoint`. Версии — `ARG` в Dockerfile (значения-заглушки, перед сборкой сверить с актуальными).
 
-Откуда ставится dpcli — **уточнить**: каталог `.dpcli` в контекст образа не копируется, Dockerfile клонирует `DPCLI_REPO` на `DPCLI_REF`; адрес-заглушка `example.invalid`.
+dpcli в образ **не ставится**: источник не утверждён, шаг клонирования отключён (внешний репозиторий в образ не тянем). Когда источник будет определён — вернуть `ARG DPCLI_REPO/DPCLI_REF`, `git clone` в `/opt/dpcli`, симлинк `/usr/local/bin/dpcli` и `/opt/dpcli` в `chmod`.
 
 Образ рассчитан на read-only rootfs и tmpfs `/tmp`, `/work`: `HOME=/tmp/home`, кэши npm и XDG — в `/tmp`.
 
@@ -26,4 +26,4 @@ node 24, pnpm (corepack), git, curl, jq, glab, dpcli, Claude Code, opencode, Pla
 
 ## Не проверено
 
-Образ не собирался; проверены только `bash -n` и prettier.
+Образ не собирался (сборка и `squid -k parse` не запускались: запрещено классификатором прав); проверены только `bash -n` и prettier.

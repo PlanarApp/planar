@@ -83,7 +83,7 @@ const canSend = computed(() => !!text.value.trim() && !busy.value);
 </script>
 
 <template>
-  <div class="flex flex-col gap-2" data-testid="docchat-panel">
+  <div v-if="projectId" class="flex flex-col gap-2" data-testid="docchat-panel">
     <div class="flex items-center gap-3">
       <Button size="sm" data-testid="docchat-toggle" @click="open = !open">{{
         tr('chatTitle')

@@ -189,3 +189,75 @@ describe('doc-chat', () => {
     expect(sent).toContain('Правила проекта');
   });
 });
+
+describe('doc-chat: защита (AIX-3)', () => {
+  it('гость — 403, модуль ИИ выключен — 409, выключатель — 409; ничего не вызывается', async () => {
+    const id = await mkPage('Защита', 'Текст');
+    llmAnswer = { reply: 'x', body: null };
+    prompts = [];
+    expect((await chat('guest', id)).statusCode).toBe(403);
+
+    await db.execute(
+      sql`update projects set modules = array_remove(modules, 'ai') where id = ${w.projectId}::uuid`,
+    );
+    const noModule = await chat('admin', id);
+    await db.execute(
+      sql`update projects set modules = array_append(modules, 'ai') where id = ${w.projectId}::uuid`,
+    );
+    expect(noModule.statusCode).toBe(409);
+
+    await db.execute(
+      sql`insert into ai_settings (id, enabled) values (1, false) on conflict (id) do update set enabled = false`,
+    );
+    const off = await chat('admin', id);
+    await db.execute(sql`update ai_settings set enabled = true where id = 1`);
+    expect(off.statusCode).toBe(409);
+    expect(prompts).toEqual([]);
+  });
+
+  it('расход пишется строкой ai_runs kind chat и попадает в суточный лимит', async () => {
+    const id = await mkPage('Расход', 'Текст');
+    llmAnswer = { reply: 'x', body: null };
+    const n = async () =>
+      (
+        await db.execute(
+          sql`select coalesce(sum(input_tokens + output_tokens), 0)::int as t, count(*)::int as c
+              from ai_runs where project_id = ${w.projectId}::uuid and kind = 'chat' and channel_id is null`,
+        )
+      ).rows[0] as { t: number; c: number };
+    const before = await n();
+    expect((await chat('admin', id)).statusCode).toBe(200);
+    const after = await n();
+    expect(after.c).toBe(before.c + 1);
+    expect(after.t).toBe(before.t + 20);
+
+    await db.execute(
+      sql`insert into ai_project_limits (project_id, daily_tokens) values (${w.projectId}::uuid, 1)
+          on conflict (project_id) do update set daily_tokens = 1`,
+    );
+    const r = await chat('admin', id);
+    await db.execute(sql`delete from ai_project_limits where project_id = ${w.projectId}::uuid`);
+    expect(r.statusCode).toBe(409);
+  });
+
+  it('страница с упоминанием — 409 и в предложении, и в принятии', async () => {
+    const id = await mkPage('Упоминание', 'Текст');
+    await db.execute(
+      sql`update docs_pages set body = ${JSON.stringify({
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'mention', attrs: { id: w.admin.userId } }] },
+        ],
+      })}::jsonb where id = ${id}::uuid`,
+    );
+    llmAnswer = { reply: 'x', body: 'Новый' };
+    expect((await chat('admin', id)).statusCode).toBe(409);
+    const { updatedAt } = await row(id);
+    const a = await call('POST', 'doc-chat/apply', 'admin', {
+      pageId: id,
+      body: 'Новый',
+      baseUpdatedAt: updatedAt,
+    });
+    expect(a.statusCode).toBe(409);
+  });
+});

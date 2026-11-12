@@ -127,7 +127,8 @@ async function answered(c: Row, ctx: AfterMutationCtx, api: ModuleHookApi) {
   const runs = (
     await api.q.execute(
       sql`select id, kind, item_id as "itemId", question_comment_ids as qs from ai_runs
-          where task_id = ${c.taskId as string} and state = 'waiting_human'`,
+          where task_id = ${c.taskId as string} and state = 'waiting_human'
+            and not exists (select 1 from ai_email_batches b where b.run_id = ai_runs.id and b.state = 'pending')`,
     )
   ).rows as { id: string; kind: string; itemId: string | null; qs: string[] }[];
   if (!runs.length) return;

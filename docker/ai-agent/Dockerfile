@@ -5,9 +5,7 @@ ARG GLAB_VERSION=1.52.0
 ARG CLAUDE_CODE_VERSION=2.0.0
 ARG OPENCODE_VERSION=1.0.0
 ARG PLAYWRIGHT_VERSION=1.49.0
-# Источник dpcli уточнить: публичный репозиторий и ссылка (тег/коммит).
-ARG DPCLI_REPO=https://example.invalid/dpcli.git
-ARG DPCLI_REF=main
+# dpcli отключён: источник не утверждён, внешний репозиторий в образ не клонируется (см. README.md).
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw \
     HOME=/tmp/home \
@@ -21,11 +19,9 @@ RUN apt-get update \
  && arch="$(dpkg --print-architecture)" \
  && curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${arch}.deb" -o /tmp/glab.deb \
  && apt-get install -y /tmp/glab.deb \
- && git clone --depth 1 --branch "${DPCLI_REF}" "${DPCLI_REPO}" /opt/dpcli \
- && ln -s /opt/dpcli/dpcli /usr/local/bin/dpcli \
  && npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "opencode-ai@${OPENCODE_VERSION}" "playwright@${PLAYWRIGHT_VERSION}" \
  && playwright install --with-deps chromium \
- && chmod -R a+rX /opt/pw /opt/dpcli \
+ && chmod -R a+rX /opt/pw \
  && rm -rf /var/lib/apt/lists/* /tmp/* /root/.npm
 
 COPY entrypoint.sh /usr/local/bin/planar-agent-entrypoint

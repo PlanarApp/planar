@@ -9,6 +9,7 @@ export type Config = {
   maxMemoryMb: number;
   maxPids: number;
   agentNetwork: string;
+  tmpfsMb?: number;
 };
 
 const MAX_BODY = 2 * 1024 * 1024;
@@ -105,7 +106,13 @@ export function createRunner(cfg: Config, docker: Docker): Server {
           CapDrop: ['ALL'],
           SecurityOpt: ['no-new-privileges'],
           ReadonlyRootfs: true,
-          Tmpfs: { '/tmp': 'rw,nosuid,size=256m', '/work': 'rw,nosuid,size=256m' },
+          // anonymous volume: writable under ReadonlyRootfs, putArchive works; removed with the container (AutoRemove)
+          Mounts: [{ Type: 'volume', Target: '/context' }],
+          AutoRemove: true,
+          Tmpfs: {
+            '/tmp': 'rw,nosuid,size=256m',
+            '/work': `rw,nosuid,size=${cfg.tmpfsMb ?? 256}m`,
+          },
           NetworkMode: cfg.agentNetwork,
           RestartPolicy: { Name: 'no' },
           Memory: memory,
@@ -122,8 +129,8 @@ export function createRunner(cfg: Config, docker: Docker): Server {
       if (context !== undefined) {
         const a = await docker(
           'PUT',
-          `/containers/${containerId}/archive?path=/`,
-          tar([{ name: 'context/' }, { name: 'context/context.json', data: Buffer.from(context) }]),
+          `/containers/${containerId}/archive?path=/context`,
+          tar([{ name: 'context.json', data: Buffer.from(context) }]),
           'application/x-tar',
         );
         if (a.status !== 200) throw new Error(`docker archive ${a.status}`);
@@ -131,7 +138,7 @@ export function createRunner(cfg: Config, docker: Docker): Server {
       const s = await docker('POST', `/containers/${containerId}/start`);
       if (s.status !== 204) throw new Error(`docker start ${s.status}`);
     } catch (e) {
-      await docker('DELETE', `/containers/${containerId}?force=true`).catch(() => undefined);
+      await docker('DELETE', `/containers/${containerId}?force=true&v=true`).catch(() => undefined);
       throw e;
     }
     return { containerId };
@@ -149,7 +156,7 @@ export function createRunner(cfg: Config, docker: Docker): Server {
 
   const remove = async (runId: string) => {
     for (const id of await find(runId)) {
-      const r = await docker('DELETE', `/containers/${id}?force=true`);
+      const r = await docker('DELETE', `/containers/${id}?force=true&v=true`);
       if (r.status !== 204 && r.status !== 404) throw new Error(`docker delete ${r.status}`);
     }
   };

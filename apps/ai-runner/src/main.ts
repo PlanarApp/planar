@@ -20,6 +20,8 @@ createRunner(
     maxCpus: num(e.AI_RUNNER_MAX_CPUS, 2),
     maxMemoryMb: num(e.AI_RUNNER_MAX_MEMORY_MB, 4096),
     maxPids: num(e.AI_RUNNER_MAX_PIDS, 512),
+    // the /work tmpfs size, ceiling 2048 MB
+    tmpfsMb: Math.min(num(e.AI_RUNNER_TMPFS_MB, 256), 2048),
     agentNetwork: e.AI_RUNNER_AGENT_NETWORK || 'planar_agents',
   },
   dockerClient(e.DOCKER_HOST_SOCKET || '/var/run/docker.sock'),

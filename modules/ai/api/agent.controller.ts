@@ -19,7 +19,7 @@ import { CORE, HttpError, parseBody, type CoreServices, type JobApi } from '@pla
 import { resolveConnection, secretOf } from './connections.js';
 import { costOf } from './llm.js';
 import { blocked, loadTask, overBudget, resultSchema, failed } from './run.js';
-import { finishAgent, runBySecret, stopAgent } from './agent.js';
+import { finishAgent, runBySecret } from './agent.js';
 
 // same as core's @Public() (apps/api/src/auth/public.ts): the module does not import apps/api
 const Public = () => SetMetadata('planar:public', true);
@@ -84,8 +84,6 @@ export class AgentController {
       ...parseBody(resultSchema.partial().required({ verdict: true, comment: true }), body),
     };
     await finishAgent(this.api(), id, r as never);
-    // the container exits itself; best effort, not awaited
-    void stopAgent(this.core.db, id);
     return { ok: true };
   }
 

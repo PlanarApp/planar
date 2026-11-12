@@ -144,9 +144,10 @@ export interface CurrentState {
     runtime: string;
     model?: string | null;
     checks: string[];
+    questionStatusId?: string | null;
   }[];
-  /** spec — the rule in pack form (keys instead of ids), if known; otherwise a keyed rule is always updated */
-  rules: { id: string; name: string; description?: string | null; spec?: unknown }[];
+  /** a keyed rule is always updated: the stored form (ids, bot) cannot be compared with the pack form */
+  rules: { id: string; name: string; description?: string | null }[];
 }
 
 export interface HarnessOp {
@@ -247,9 +248,15 @@ export function computeDiff(
   }
   sync('label', current.labels, pack.labels, withoutKey);
   sync('field', current.fields, pack.fields, withoutKey);
+  // `questionStatus` (key) is in the data so that a changed setting alone makes an update
+  const statusKeyOf = new Map(Object.entries(keys.status ?? {}).map(([k, id]) => [id, k]));
+  const questionStatus = pack.settings.questionStatus;
   sync(
     'action',
-    current.actions,
+    current.actions.map((a) => ({
+      ...a,
+      questionStatus: a.questionStatusId ? statusKeyOf.get(a.questionStatusId) : undefined,
+    })),
     pack.actions.map((k) => ({ key: k })),
     ({ key: k }) => {
       const i = instructions[k];
@@ -260,8 +267,9 @@ export function computeDiff(
             runtime: i.runtime,
             model: i.model,
             checks: i.checks,
+            questionStatus,
           }
-        : { name: k };
+        : { name: k, questionStatus };
     },
   );
 
@@ -282,8 +290,7 @@ export function computeDiff(
     if (!c) {
       creates.push({ kind: 'rule', op: 'create', key: k, data: { ...rdata(r), enabled: false } });
       if (r.enabled) enable.push({ kind: 'rule', op: 'enable', key: k });
-    } else if (c.spec === undefined || stable(c.spec) !== stable(r))
-      updates.push({ kind: 'rule', op: 'update', key: k, id: c.id, data: rdata(r) });
+    } else updates.push({ kind: 'rule', op: 'update', key: k, id: c.id, data: rdata(r) });
   }
   const wantedRules = new Set(pack.rules.map(ruleKey));
   const deletes = Object.entries(ruleMap)

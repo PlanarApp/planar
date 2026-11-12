@@ -55,7 +55,7 @@ beforeAll(async () => {
         ctrs.push(c);
         return json(201, { Id: c.Id });
       }
-      if (req.method === 'PUT' && url.endsWith('/archive?path=/')) return json(200);
+      if (req.method === 'PUT' && url.endsWith('/archive?path=/context')) return json(200);
       if (req.method === 'POST' && url.endsWith('/start'))
         return failStart ? json(500, { message: 'boom' }) : json(204);
       if (req.method === 'GET' && url.endsWith('/json')) {
@@ -143,6 +143,8 @@ describe('ai-runner', () => {
       CapDrop: ['ALL'],
       SecurityOpt: ['no-new-privileges'],
       ReadonlyRootfs: true,
+      Mounts: [{ Type: 'volume', Target: '/context' }],
+      AutoRemove: true,
       Tmpfs: { '/tmp': 'rw,nosuid,size=256m', '/work': 'rw,nosuid,size=256m' },
       NetworkMode: 'planar_agents',
       RestartPolicy: { Name: 'no' },
@@ -151,9 +153,10 @@ describe('ai-runner', () => {
       NanoCpus: 1.5e9,
       PidsLimit: 100,
     });
-    for (const k of ['Binds', 'Mounts', 'Privileged', 'PidMode'])
+    for (const k of ['Binds', 'Privileged', 'PidMode'])
       expect(body.HostConfig).not.toHaveProperty(k);
-    expect(calls[2].body).toContain('context/context.json');
+    expect(calls[2].url).toContain('path=/context');
+    expect(calls[2].body).toContain('context.json');
     expect(calls[2].body).toContain('{"runId":"x"}');
   });
 
@@ -208,7 +211,10 @@ describe('ai-runner', () => {
   it('ошибка старта: контейнер удаляется, ответ 502', async () => {
     failStart = true;
     expect((await post({})).status).toBe(502);
-    expect(calls.at(-1)).toMatchObject({ method: 'DELETE', url: '/containers/cid-1?force=true' });
+    expect(calls.at(-1)).toMatchObject({
+      method: 'DELETE',
+      url: '/containers/cid-1?force=true&v=true',
+    });
     expect(ctrs).toEqual([]);
   });
 

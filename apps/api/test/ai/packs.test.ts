@@ -413,3 +413,14 @@ describe('packs: yml-страница ↔ Instruction (markdown round-trip)', ()
     expect(readInstructionPage(i.name, body)).toEqual({ key: 'triage', i });
   });
 });
+
+describe('unzipFiles: лживый размер (AIX-3)', () => {
+  it('сумма считается по реальным байтам распаковки', () => {
+    const big = 'a'.repeat(3 * 1024 * 1024);
+    const z = zipFiles({ 'a.txt': big, 'b.txt': big });
+    // заявленный размер в центральном каталоге подменяем на 1
+    for (let i = z.length - 22; i >= 0; i--)
+      if (z.readUInt32LE(i) === 0x02014b50) z.writeUInt32LE(1, i + 24);
+    expect(() => unzipFiles(z)).toThrow(/слишком большой/);
+  });
+});

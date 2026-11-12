@@ -46,6 +46,7 @@ generated: true
 - **ai7** — Модуль ai7 (PLNRAPP-172): письма от ИИ — комментарий-пачка на подтверждение, «ок» отправляет батчем через email, правки перезапускают прогон [closed 2026-11-12] — [план](plan/ai7.md) · [решения](plan/ai7/decisions.md) · [сводка](plan/ai7/summary.md) · полный журнал: `archive/ai7`
 - **ai9** — ИИ-9a (PLNRAPP-175) — ИИ в чате: личный и групповой, инструменты MCP с правами инициатора, подтверждение «да» [closed 2026-11-12] — [план](plan/ai9.md) · [решения](plan/ai9/decisions.md) · [сводка](plan/ai9/summary.md) · полный журнал: `archive/ai9`
 - **ai9p** — ИИ-9 (PLNRAPP-174) — harness-пакеты «Продажи», «Найм», «Поддержка» (llm-действия), тесты, демо-сид [closed 2026-11-12] — [план](plan/ai9p.md) · [решения](plan/ai9p/decisions.md) · [сводка](plan/ai9p/summary.md) · полный журнал: `archive/ai9p`
+- **aifix** — PLNRAPP-187 — исправление всех 27 находок ревью модуля ИИ, 4 параллельные задачи + ревью безопасности [closed 2026-11-12] — [план](plan/aifix.md) · [решения](plan/aifix/decisions.md) · [сводка](plan/aifix/summary.md) · полный журнал: `archive/aifix`
 
 ## Прочие документы
 

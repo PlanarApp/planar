@@ -7,7 +7,7 @@ import { docToMarkdown, markdownToDoc } from '@planar/editor/markdown';
 import type { JobApi, Q } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
 import { matched } from '@planar/module-automations/api';
-import { AI_BOT_LOGIN, type AiAction } from '../shared/index.js';
+import { AI_BOT_LOGIN, type AiAction, type AiRunKind } from '../shared/index.js';
 import { resolveConnection, secretOf } from './connections.js';
 import { chatTools, runPlanned, type PlannedCall } from './chat-tools.js';
 import { loadPack, parseInstructionPage } from './harness.js';
@@ -21,8 +21,6 @@ export const AI_QUEUE = 'ai.run';
 export const MAX_CHAIN = 10;
 /** The block of the description the AI owns: replaced on every write, the rest is the people's. */
 export const PLAN_HEADING = 'План (ИИ)';
-
-export type AiRunKind = 'action' | 'comment' | 'mention' | 'checklist';
 
 /** A chat run: the person's message (a dialog, or a quote / @ai of the bot in a channel) the bot answers. */
 export interface ChatRunData {
@@ -110,7 +108,7 @@ export const resultSchema = z.object({
     z
       .array(
         z.object({
-          to: z.string().min(3).max(320),
+          to: z.email().max(320),
           subject: z.string().min(1).max(300),
           body: z.string().min(1).max(20_000),
         }),
@@ -205,14 +203,22 @@ async function loadTask(q: Pick<Q, 'execute'>, id: string) {
 }
 
 /** Who answers a question: the last person assigned (not a guest), else the author. */
+const personOf = (
+  q: Pick<Q, 'execute'>,
+  t: Task,
+  where: ReturnType<typeof sql>,
+  order: ReturnType<typeof sql> = sql``,
+) =>
+  one(
+    q,
+    sql`select u.id, u.login from users u
+        join space_members m on m.user_id = u.id and m.space_id = ${t.spaceId} and m.role <> 'guest'
+        where not u.bot and u.deactivated_at is null and ${where} ${order} limit 1`,
+  ) as Promise<{ id: string; login: string } | undefined>;
+
 async function humanOf(q: Pick<Q, 'execute'>, t: Task) {
   const person = (where: ReturnType<typeof sql>, order: ReturnType<typeof sql>) =>
-    one(
-      q,
-      sql`select u.id, u.login from users u
-          join space_members m on m.user_id = u.id and m.space_id = ${t.spaceId} and m.role <> 'guest'
-          where not u.bot and u.deactivated_at is null and ${where} ${order} limit 1`,
-    ) as Promise<{ id: string; login: string } | undefined>;
+    personOf(q, t, where, order);
   return (
     (await person(
       sql`u.id in (select user_id from task_assignees where task_id = ${t.id})`,
@@ -324,7 +330,19 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     return;
   const bot = await botOf(api);
   const task = await loadTask(api.db, d.taskId);
-  if (!bot || !task || !task.modules.includes('ai')) return;
+  // a restart must leave a row (the panel polls for it): the failed one with the reason
+  const skip = async (why: string) => {
+    if (!d.restartOf || !d.runId || !task) return;
+    await api.db.execute(
+      sql`insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, item_id, state, chain_id, chain_depth, restart_of, log)
+          values (${d.runId}, ${task.id}, ${task.projectId}, ${d.kind}, ${d.kind === 'action' ? d.actionId : null},
+            ${d.kind === 'action' ? (d.ruleId ?? null) : null},
+            ${d.kind === 'comment' || d.kind === 'mention' ? d.itemId : null}, 'failed', ${d.runId}, 0, ${d.restartOf}, ${why + '\n'})
+          on conflict (id) do nothing`,
+    );
+  };
+  if (!bot || !task || !task.modules.includes('ai'))
+    return skip('Перезапуск невозможен: ИИ не настроен в проекте задачи.');
   let action: AiAction | undefined;
   let item: Row | undefined;
   if (d.kind === 'action') {
@@ -339,8 +357,10 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
       sql`select 1 from task_assignees where task_id = ${task.id} and user_id = ${bot}`,
     );
     // the event is stale: the task moved on, the AI was unassigned, the rule changed
-    if (!action || !assigned || (d.statusId && task.statusId !== d.statusId)) return;
-    if (d.ruleId && !(await matched(api, d.ruleId, task.id))) return;
+    if (!action || !assigned || (d.statusId && task.statusId !== d.statusId))
+      return skip('Перезапуск невозможен: действие удалено или ИИ снят с задачи.');
+    if (d.ruleId && !(await matched(api, d.ruleId, task.id)))
+      return skip('Перезапуск невозможен: задача больше не подходит под правило.');
   } else if (d.kind === 'checklist') {
     item = await one(
       api.db,
@@ -355,14 +375,15 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
         sql`select 1 from ai_runs where item_id = ${item.id as string} and state = 'waiting_human'`,
       ))
     )
-      return;
+      return skip('Перезапуск невозможен: нет пункта чек-листа для ИИ или он ждёт ответа.');
   } else {
     item = await one(
       api.db,
       sql`select id, author_id as "authorId", assignee_id as "assigneeId", resolved_at as "resolvedAt", body
           from comments where id = ${d.itemId} and task_id = ${task.id}`,
     );
-    if (!item || (d.kind === 'comment' && (item.assigneeId !== bot || item.resolvedAt))) return;
+    if (!item || (d.kind === 'comment' && (item.assigneeId !== bot || item.resolvedAt)))
+      return skip('Перезапуск невозможен: комментарий удалён, решён или ИИ в нём не назначен.');
   }
   const itemId = (item?.id as string | undefined) ?? null;
   // agent containers are limited: over the limit the job waits (agent.ts)
@@ -634,6 +655,10 @@ async function confirmChat(runId: string, api: JobApi) {
         where r.id = ${runId} and r.kind = 'chat' and r.state = 'running' and r.pending is not null`,
   );
   if (!bot || !r) return;
+  if (!(await aiEnabled(api.db))) {
+    await finish(api.db, { id: runId, log: [] }, 'cancelled', 'ИИ выключен администратором.');
+    return;
+  }
   // the claim: a repeated delivery finds no plan
   const plan = (
     await one(
@@ -708,12 +733,12 @@ export async function projectLimits(q: Pick<Q, 'execute'>, projectId: string) {
 }
 
 /** Tokens and cost of the runs created today (UTC day); one project, or the whole instance. */
-export async function usedToday(q: Pick<Q, 'execute'>, projectId?: string) {
+export async function usedToday(q: Pick<Q, 'execute'>, projectId?: string | null) {
   const u = await one(
     q,
     sql`select coalesce(sum(input_tokens + output_tokens), 0)::float as tokens, coalesce(sum(cost), 0)::float as cost
         from ai_runs where created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC'
-        ${projectId ? sql`and project_id = ${projectId}` : sql``}`,
+        ${projectId ? sql`and project_id = ${projectId}` : projectId === null ? sql`and project_id is null` : sql``}`,
   );
   return { tokens: u!.tokens as number, cost: u!.cost as number };
 }
@@ -721,8 +746,8 @@ export async function usedToday(q: Pick<Q, 'execute'>, projectId?: string) {
 /** Why a run must not call the LLM: the switch is off, or the project spent its daily limit; null — go on. */
 async function blocked(q: Pick<Q, 'execute'>, projectId: string | null) {
   if (!(await aiEnabled(q))) return 'ИИ выключен администратором.';
-  if (!projectId) return null;
-  const { effective: l } = await projectLimits(q, projectId);
+  // personal chats (no project): only the instance defaults, over the personal chats' total spend
+  const l = projectId ? (await projectLimits(q, projectId)).effective : defaultLimits();
   if (l.dailyTokens == null && l.dailyCost == null) return null;
   const u = await usedToday(q, projectId);
   if (l.dailyTokens != null && u.tokens >= l.dailyTokens)
@@ -796,7 +821,7 @@ async function apply(
   let escalateTo: string | null = null;
   let docs: NonNullable<AiResult['docs']> = [];
   const descRef: { m?: Mut } = {};
-  let batch: { commentId: string } | null = null;
+  let batch: { commentId: string; assigneeId: string } | null = null;
 
   if (r.verdict === 'question' && (r.questions?.length || r.comment)) {
     const qs = r.questions?.length ? r.questions : [r.comment];
@@ -853,13 +878,10 @@ async function apply(
     if (r.emails?.length) {
       // the letters wait for «ок» from whoever confirms: the asker in a thread, else the task's person
       const who = reply.parentId
-        ? await one(
-            api.db,
-            sql`select id, login from users where id = ${run.item!.authorId as string}`,
-          )
+        ? ((await personOf(api.db, task, sql`u.id = ${run.item!.authorId as string}`)) ?? human)
         : human;
       if (who) {
-        batch = { commentId: uuidv7() };
+        batch = { commentId: uuidv7(), assigneeId: who.id };
         muts.push({
           name: 'comment.create',
           args: {

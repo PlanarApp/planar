@@ -2100,10 +2100,6 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-3, 9),
     }),
     run('failed-restart', 5, {
-      kind: 'comment',
-      actionId: null,
-      ruleId: null,
-      itemId: uid('comment:ai:mention'),
       state: 'failed',
       chainId: uid('ai-run:failed'),
       chainDepth: 1,
@@ -2116,10 +2112,6 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-3, 10),
     }),
     run('restart-done', 5, {
-      kind: 'comment',
-      actionId: null,
-      ruleId: null,
-      itemId: uid('comment:ai:mention'),
       state: 'done',
       chainId: uid('ai-run:failed'),
       chainDepth: 2,

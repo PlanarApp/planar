@@ -2,11 +2,8 @@ import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
 import { HttpError, type JobTool } from '@planar/server-kit';
 
-/** A call that changes more tasks than this needs confirmation (no such tool in the registry yet). */
-export const CHAT_BULK_LIMIT = 5;
-
 /** The registry entry as the module gets it from `JobApi.tools` (a module does not import apps/api). */
-export type ChatToolDef = JobTool;
+export type ChatToolDef = JobTool & { dangerIf?: (args: never) => boolean };
 
 export type PlannedCall = { name: string; args: unknown };
 
@@ -33,7 +30,7 @@ export function chatTools(
         description: d.description,
         inputSchema: z.object(d.shape),
         execute: async (args: unknown): Promise<unknown> => {
-          if (d.danger) {
+          if (d.danger || d.dangerIf?.(args as never)) {
             planned.push({ name: d.name, args });
             return {
               needsConfirmation: true,
