@@ -48,12 +48,44 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       # Caddy subnet: trust X-Forwarded-For only from there
       TRUST_PROXY: ${PLANAR_SUBNET:-172.30.0.0/24}
-    networks: [app]
+      # AI agent runs (profile `ai`): pass-through from .env (not in the ops env contract), empty → off.
+      # AI_RUNNER_TOKEN is needed only when AI_RUNNER_URL is set
+      AI_RUNNER_URL:
+      AI_RUNNER_TOKEN:
+      AI_AGENT_IMAGE:
+      AI_AGENT_MAX_REPLICAS:
+    networks: [app, runner, agents]
     volumes:
       - data:/data
     depends_on:
       postgres:
         condition: service_healthy
+
+  # the only service with docker.sock; reachable only from api (network runner); HostConfig is fixed in the code
+  ai-runner:
+    profiles: [ai]
+    logging: *logging
+    image: ${PLANAR_REGISTRY:-registry.gitlab.com/planarhq/planar}/ai-runner:${PLANAR_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      AI_RUNNER_TOKEN:
+      AI_RUNNER_IMAGES:
+      AI_RUNNER_MAX_CPUS:
+      AI_RUNNER_MAX_MEMORY_MB:
+      AI_RUNNER_MAX_PIDS:
+    networks: [runner]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # egress of agent containers: allowlist in deploy/squid.conf
+  squid:
+    profiles: [ai]
+    logging: *logging
+    image: ubuntu/squid:latest
+    restart: unless-stopped
+    networks: [agents, app]
+    volumes:
+      - ./deploy/squid.conf:/etc/squid/squid.conf:ro
 
   caddy:
     logging: *logging
@@ -77,6 +109,13 @@ networks:
     ipam:
       config:
         - subnet: ${PLANAR_SUBNET:-172.30.0.0/24}
+  # api ↔ ai-runner
+  runner:
+    internal: true
+  # agent containers: no direct internet, egress only through squid
+  agents:
+    name: planar_agents
+    internal: true
 
 volumes:
   pgdata:

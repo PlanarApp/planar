@@ -45,6 +45,7 @@ import {
   usedToday,
   type AiRunData,
 } from './run.js';
+import { stopAgent } from './agent.js';
 import { resolveConnection, secretOf, viewOf } from './connections.js';
 import { checkConnection, ConnectionCheckFailed, type LlmConnection } from './llm.js';
 import { aiConnections as C } from './schema.js';
@@ -196,6 +197,7 @@ export class AiController {
       sql`update ai_runs set state = 'cancelled', updated_at = now()
           where id = ${id}::uuid and state in ('running', 'waiting_human')`,
     );
+    await stopAgent(this.core.db, id);
   }
 
   /** The run again from its own data; the new run (made by the queue) points back by restartOf. */

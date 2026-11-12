@@ -131,6 +131,11 @@ export const aiRuns = pgTable(
     restartOf: uuid(),
     /** a chat run waiting for the initiator's «да»: the dangerous calls the bot planned and the thread to answer in */
     pending: jsonb().$type<ChatPending>(),
+    /** agent run: sha256 of the container's one-time secret (the secret itself is never stored) */
+    agentSecretHash: text(),
+    containerId: text(),
+    heartbeatAt: ts(),
+    startedAt: ts(),
     createdAt: ts().notNull().defaultNow(),
     updatedAt: ts().notNull().defaultNow(),
   },
@@ -190,5 +195,7 @@ export const aiProjectLimits = pgTable('ai_project_limits', {
   projectId: uuid().primaryKey(),
   dailyTokens: integer(),
   dailyCost: doublePrecision(),
+  /** most agent containers of the project running at once; null — only the instance limit */
+  maxAgents: integer(),
   updatedAt: ts().notNull().defaultNow(),
 });
