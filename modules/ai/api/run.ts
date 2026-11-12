@@ -10,6 +10,7 @@ import { matched } from '@planar/module-automations/api';
 import { AI_BOT_LOGIN, type AiAction } from '../shared/index.js';
 import { resolveConnection, secretOf } from './connections.js';
 import { parseInstructionPage } from './harness.js';
+import { batchDoc, insertBatch } from './email.js';
 import { generateStructured, type LlmUsage } from './llm.js';
 
 export const AI_QUEUE = 'ai.run';
@@ -90,6 +91,17 @@ export const resultSchema = z.object({
       )
       .max(5),
   ),
+  emails: nullable(
+    z
+      .array(
+        z.object({
+          to: z.string().min(3).max(320),
+          subject: z.string().min(1).max(300),
+          body: z.string().min(1).max(20_000),
+        }),
+      )
+      .max(10),
+  ),
 });
 export type AiResult = z.infer<typeof resultSchema>;
 
@@ -99,6 +111,7 @@ const SYSTEM = `Ты — ИИ-исполнитель в трекере зада�
 - descriptionAppend: план или итог в описание задачи, markdown без заголовка; заменяет блок «${PLAN_HEADING}».
 - moveTo — имя статуса проекта; labels — имена меток для добавления; fields — значения полей по имени.
 - newTasks — подзадачи; snoozeUntil — отложить задачу до даты YYYY-MM-DD; escalate — причина, если нужен руководитель проекта; docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).
+- emails — письма внешним адресатам (to, subject, body — обычный текст), только при done: они уйдут после подтверждения человеком; сам ничего не отправляй.
 Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи) применяются только при done.`;
 
 /** «Поручение»: the built-in prompt until the active harness package has its own (PLNRAPP-169). */
@@ -447,6 +460,7 @@ const failed = (comment: string): AiResult => ({
   snoozeUntil: null,
   escalate: null,
   docs: null,
+  emails: null,
 });
 
 export async function aiEnabled(q: Pick<Q, 'execute'>) {
@@ -566,6 +580,7 @@ async function apply(
   let escalateTo: string | null = null;
   let docs: NonNullable<AiResult['docs']> = [];
   const descRef: { m?: Mut } = {};
+  let batch: { commentId: string } | null = null;
 
   if (r.verdict === 'question' && (r.questions?.length || r.comment)) {
     const qs = r.questions?.length ? r.questions : [r.comment];
@@ -619,6 +634,29 @@ async function apply(
   } else {
     if (r.comment) comment(prefix + r.comment, reply);
     if (ctx) docs = await changes(api.db, run, r, ctx, muts, descRef);
+    if (r.emails?.length) {
+      // the letters wait for «ок» from whoever confirms: the asker in a thread, else the task's person
+      const who = reply.parentId
+        ? await one(
+            api.db,
+            sql`select id, login from users where id = ${run.item!.authorId as string}`,
+          )
+        : human;
+      if (who) {
+        batch = { commentId: uuidv7() };
+        muts.push({
+          name: 'comment.create',
+          args: {
+            id: batch.commentId,
+            taskId: task.id,
+            ...reply,
+            assigneeId: who.id,
+            body: batchDoc(r.emails, who as { id: string; login: string }),
+          },
+        });
+        state = 'waiting_human';
+      } else run.log.push('emails: некому подтвердить письма');
+    }
     if (r.escalate) {
       const lead = task.leadId
         ? await one(
@@ -683,6 +721,13 @@ async function apply(
               },
               log = log || ${run.log.map((l) => `${l}\n`).join('')}, updated_at = now() where id = ${run.id}`,
         );
+        if (batch && state === 'waiting_human')
+          await q.execute(
+            insertBatch(
+              { runId: run.id, taskId: task.id, projectId: task.projectId, ...batch },
+              r.emails!,
+            ),
+          );
         // the next item of the checklist, in rank order
         if (run.kind === 'checklist' && state === 'done')
           await enqueue(

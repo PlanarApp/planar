@@ -474,6 +474,9 @@ importers:
       '@planar/module-automations':
         specifier: workspace:*
         version: link:../automations
+      '@planar/module-email':
+        specifier: workspace:*
+        version: link:../email
       '@planar/server-kit':
         specifier: workspace:*
         version: link:../../packages/server-kit

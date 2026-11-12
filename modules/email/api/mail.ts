@@ -23,7 +23,8 @@ export interface Mail {
   subject: string;
   text: string;
   html: string;
-  unsub: string;
+  /** without it — no List-Unsubscribe header (a one-off mail, not a subscription) */
+  unsub?: string;
 }
 export type Send = (cfg: SmtpCfg, m: Mail) => Promise<void>;
 
@@ -77,10 +78,12 @@ export const send: Send = async (cfg, m) => {
       subject: m.subject,
       text: m.text,
       html: m.html,
-      headers: {
-        'List-Unsubscribe': `<${m.unsub}>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-      },
+      headers: m.unsub
+        ? {
+            'List-Unsubscribe': `<${m.unsub}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          }
+        : undefined,
     });
   } finally {
     t.close();

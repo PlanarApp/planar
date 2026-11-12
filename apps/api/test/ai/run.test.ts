@@ -6,7 +6,14 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { encrypt, secretKey } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
-import { MAX_CHAIN, PLAN_HEADING, withPlan } from '@planar/module-ai/api';
+import {
+  EMAILS_PER_HOUR,
+  MAX_CHAIN,
+  PLAN_HEADING,
+  handleEmail,
+  isYes,
+  withPlan,
+} from '@planar/module-ai/api';
 import { markdownToDoc } from '@planar/editor/markdown';
 import type { JobApi } from '../../src/modules/hooks.js';
 import { installed } from '../../src/modules/installed.js';
@@ -57,6 +64,7 @@ const result = (o: Record<string, unknown>) => ({
   snoozeUntil: null,
   escalate: null,
   docs: null,
+  emails: null,
   ...o,
 });
 
@@ -718,6 +726,151 @@ describe('поручения ИИ', () => {
       },
     ]);
     expect(jobs).toHaveLength(0);
+  });
+});
+
+describe('письма пачкой', () => {
+  const mails = [
+    { to: 'a@example.com', subject: 'Тема 1', body: 'Текст <1>' },
+    { to: 'b@example.com', subject: 'Тема 2', body: 'Текст 2' },
+    { to: 'c@example.com', subject: 'Тема 3', body: 'Текст 3' },
+  ];
+  const sentMail: { to: string; subject: string; html: string; unsub?: string }[] = [];
+  let failTo: string | undefined;
+  const snd = async (_cfg: unknown, m: (typeof sentMail)[number]) => {
+    if (m.to === failTo) throw new Error('550 rejected');
+    sentMail.push(m);
+  };
+  const emailJobs = () => jobs.filter((j) => j.queue === 'ai.email');
+  const batchOf = () => one(`select * from ai_email_batches order by created_at desc limit 1`);
+  const reply = (who: typeof w.member, taskId: string, parentId: unknown, t: string) =>
+    who.ok('comment.create', { id: uuidv7(), taskId, parentId, body: doc(t) });
+
+  /** a task with a comment on the bot whose run produced the batch; returns the batch comment */
+  async function batch(list = mails) {
+    const t = await task();
+    answers = [result({ comment: 'Письма готовы', emails: list })];
+    await w.member.ok('comment.create', {
+      id: uuidv7(),
+      taskId: t,
+      body: doc('напиши клиентам'),
+      assigneeId: bot,
+    });
+    await drain();
+    const b = await batchOf();
+    return { t, b, root: await one(`select * from comments where id = $1`, [b.comment_id]) };
+  }
+
+  beforeEach(async () => {
+    sentMail.length = 0;
+    failTo = undefined;
+    await raw(`delete from ai_email_batches`);
+    await raw(`delete from email_config`);
+    await db.$client.query(
+      `insert into email_config (id, host, port, secure, from_address) values ('smtp', 'localhost', 25, false, 'noreply@example.com')`,
+    );
+  });
+  afterAll(() => raw(`delete from email_config`));
+
+  it('isYes: набор слов, регистр и конечная точка', () => {
+    for (const s of ['ок', ' OK ', 'Да!', 'Отправить.', 'отправляй!!']) expect(isYes(s)).toBe(true);
+    for (const s of ['окей', 'ок, но поправь', 'нет', '']) expect(isYes(s)).toBe(false);
+  });
+
+  it('пачка создаётся комментарием на человека и не уходит без «ок»', async () => {
+    const { t, b, root } = await batch();
+    expect(b).toMatchObject({ state: 'pending', task_id: t });
+    expect((b.emails as { state: string }[]).map((e) => e.state)).toEqual([
+      'queued',
+      'queued',
+      'queued',
+    ]);
+    expect(root).toMatchObject({ author_id: bot, assignee_id: w.member.userId });
+    expect(text(root.body)).toContain('b@example.com');
+    expect((await runsOf(t))[0]!.state).toBe('waiting_human');
+    expect(emailJobs()).toHaveLength(0);
+    expect(sentMail).toHaveLength(0);
+  });
+
+  it('«ок» не от исполнителя и правки не от него ничего не меняют', async () => {
+    const { t, b } = await batch();
+    await reply(w.admin, t, b.comment_id, 'ок');
+    await reply(w.admin, t, b.comment_id, 'перепиши');
+    expect((await batchOf()).state).toBe('pending');
+    expect((await runsOf(t))[0]!.state).toBe('waiting_human');
+    expect(jobs.filter((j) => j.queue === 'ai.email' || j.data.kind === 'resume')).toHaveLength(0);
+  });
+
+  it('«ок»: джобы со сдвигом 30–60 с накопительно, повтор «ок» ничего не меняет, итог — в тред', async () => {
+    const { t, b } = await batch();
+    await reply(w.member, t, b.comment_id, ' Ок. ');
+    expect((await batchOf()).state).toBe('sending');
+    expect((await runsOf(t))[0]!.state).toBe('done');
+    const at = emailJobs().map((j) => j.opts!.startAfter as number);
+    expect(at).toHaveLength(3);
+    at.forEach((x, i) => {
+      expect(x).toBeGreaterThanOrEqual(30 * (i + 1));
+      expect(x).toBeLessThanOrEqual(60 * (i + 1));
+    });
+    await reply(w.member, t, b.comment_id, 'ок');
+    expect(emailJobs()).toHaveLength(3);
+
+    failTo = 'b@example.com';
+    for (const j of emailJobs()) await handleEmail(j.data as never, api, snd as never);
+    expect(sentMail.map((m) => m.to)).toEqual(['a@example.com', 'c@example.com']);
+    // the text is escaped, no List-Unsubscribe
+    expect(sentMail[0]!.html).toContain('Текст &#60;1&#62;');
+    expect(sentMail[0]!.unsub).toBeUndefined();
+    expect((await batchOf()).state).toBe('sent');
+    const last = (await commentsOf(t)).at(-1)!;
+    expect(last).toMatchObject({ author_id: bot, parent_id: b.comment_id });
+    expect(text(last.body)).toContain('Отправлено писем: 2 из 3');
+    expect(text(last.body)).toContain('b@example.com');
+    // a repeated job sends nothing
+    await handleEmail(emailJobs()[0]!.data as never, api, snd as never);
+    expect(sentMail).toHaveLength(2);
+  });
+
+  it('лимит в час на проект: лишние письма уходят на следующий час', async () => {
+    const { t, b } = await batch();
+    const old = await batchOf();
+    await raw(
+      `insert into ai_email_batches (id, run_id, task_id, project_id, comment_id, state, emails)
+       values ($1, $2, $3, $4, $5, 'sent', $6)`,
+      [
+        uuidv7(),
+        uuidv7(),
+        t,
+        P,
+        uuidv7(),
+        JSON.stringify(
+          Array.from({ length: EMAILS_PER_HOUR - 1 }, () => ({ ...mails[0], state: 'sent' })),
+        ),
+      ],
+    );
+    expect(old.id).toBe(b.id);
+    await reply(w.member, t, b.comment_id, 'ок');
+    const at = emailJobs().map((j) => j.opts!.startAfter as number);
+    expect(at[0]).toBeLessThan(3600);
+    expect(at[1]).toBeGreaterThanOrEqual(3600);
+    expect(at[2]).toBeGreaterThanOrEqual(3600);
+  });
+
+  it('правки отменяют пачку и перезапускают прогон с текстом правок', async () => {
+    const { t, b } = await batch();
+    answers = [result({ comment: 'Переделал' })];
+    await reply(w.member, t, b.comment_id, 'Сделай короче');
+    expect((await batchOf()).state).toBe('cancelled');
+    expect((await runsOf(t))[0]!.state).toBe('done');
+    expect(emailJobs()).toHaveLength(0);
+    await drain();
+    expect(calls.at(-1)!.prompt).toContain('Сделай короче');
+    const runs = await runsOf(t);
+    expect(runs.map((r) => r.state)).toEqual(['done', 'done']);
+    expect(sentMail).toHaveLength(0);
+    // a late «ок» on the cancelled batch does nothing
+    await reply(w.member, t, b.comment_id, 'ок');
+    expect(emailJobs()).toHaveLength(0);
   });
 });
 

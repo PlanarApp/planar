@@ -31,6 +31,7 @@ class EmailModule implements OnModuleInit {
 }
 
 export { digestTick, notifyTick };
+export { esc, loadCfg, safeErr, send, type Mail, type Send, type SmtpCfg } from './mail.js';
 
 /** Without SMTP settings the module cannot be enabled (C-modules v11). */
 const unavailable = async (q: unknown): Promise<string | null> => {

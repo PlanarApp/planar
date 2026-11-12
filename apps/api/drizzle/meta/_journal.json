@@ -379,6 +379,13 @@
       "when": 1794439399569,
       "tag": "0053_ai_monitor",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1794442841374,
+      "tag": "0054_ai_email_batches",
+      "breakpoints": true
     }
   ]
 }

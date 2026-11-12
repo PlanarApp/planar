@@ -29,6 +29,7 @@
     "@nestjs/common": "^11.2.7",
     "@planar/editor": "workspace:*",
     "@planar/module-automations": "workspace:*",
+    "@planar/module-email": "workspace:*",
     "@planar/server-kit": "workspace:*",
     "@planar/shared": "workspace:*",
     "@planar/web": "workspace:*",
