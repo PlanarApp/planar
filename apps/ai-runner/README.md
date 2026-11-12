@@ -12,6 +12,15 @@ docker compose --profile ai up -d
 
 Образ `ai-runner` собирается из `apps/ai-runner/Dockerfile` (контекст — корень репозитория).
 
+### Локально (dev)
+
+```sh
+docker build -t planar-ai-agent:1 docker/ai-agent   # образ агента, один раз (~3,2 ГБ)
+./dev.sh up-ai                                       # dev-стек + ai-runner + squid (compose.dev.ai.yml)
+```
+
+`ai-runner` собирается из исходников, api получает `AI_RUNNER_URL` и токен (по умолчанию `dev-runner-token`). Ключ провайдера — в «Настройки → ИИ»: без него ни llm-действия, ни LLM-прокси агентов не работают. `./dev.sh down` гасит и ИИ-сервисы.
+
 ## Переменные окружения
 
 Пример `.env`:

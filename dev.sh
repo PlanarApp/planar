@@ -141,7 +141,9 @@ cmd="${1:-}"
 case "$cmd" in
   vapid) vapid; secretkey ;;
   up) vapid; secretkey; "${DEV[@]}" up -d --build ;;
-  down) "${DEV[@]}" down ;;
+  # up-ai: the same plus ai-runner and squid for agent actions (compose.dev.ai.yml)
+  up-ai) vapid; secretkey; "${DEV[@]}" -f compose.dev.ai.yml up -d --build ;;
+  down) "${DEV[@]}" -f compose.dev.ai.yml down ;;
   # reset: deletes volumes (DB, node_modules, pnpm store) and brings everything up again
   reset) "${DEV[@]}" down -v && "${DEV[@]}" up -d --build ;;
   seed) waitapidirect && "${DEV[@]}" exec -T api pnpm --filter @planar/api seed "$@" ;;
@@ -153,5 +155,5 @@ case "$cmd" in
   prod-smoke) prodsmoke ;;
   testdb) testdb ;;
   test) testdb && pnpm test "$@" ;;
-  *) echo "usage: ./dev.sh up|down|reset|seed|logs|stack|e2e|e2e-web|measure|prod-smoke|test|testdb|vapid" >&2; exit 2 ;;
+  *) echo "usage: ./dev.sh up|up-ai|down|reset|seed|logs|stack|e2e|e2e-web|measure|prod-smoke|test|testdb|vapid" >&2; exit 2 ;;
 esac
