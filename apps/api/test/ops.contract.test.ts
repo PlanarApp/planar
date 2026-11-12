@@ -85,6 +85,18 @@ describe('ops-contract', () => {
     expect(caddy).toMatch(/-Server\b/);
   });
 
+  it('ops-contract: эндпоинты агент-контейнера (llm, result, heartbeat) закрыты до @backend', () => {
+    const m =
+      /@agentOnly \{[^}]*path_regexp (\S+)[^}]*\}\s*handle @agentOnly \{\s*respond 404/.exec(caddy);
+    expect(m).not.toBeNull();
+    expect(caddy.indexOf('@agentOnly')).toBeLessThan(caddy.indexOf('@backend'));
+    const re = new RegExp(m![1]);
+    for (const p of ['/api/ai/llm/x/v1/messages', '/api/ai/runs/x', '/api/ai/runs/x/heartbeat'])
+      expect(re.test(p), p).toBe(true);
+    for (const p of ['/api/ai/runs/x/stop', '/api/ai/runs/x/restart', '/api/ai/runs'])
+      expect(re.test(p), p).toBe(false);
+  });
+
   it('ops-contract metrics: имена C-ops-health есть в коде api', () => {
     const src = srcFiles(new URL('apps/api/src/', root)).join('\n');
     if (!src.includes('/api/metrics') && !strict) return;

@@ -47,10 +47,11 @@ async function runner(method: string, path: string, body?: object) {
 /** Removes the container of the run (idempotent on the runner side); best effort, never throws. */
 export async function stopAgent(q: Pick<Q, 'execute'>, runId: string) {
   if (!process.env.AI_RUNNER_URL) return;
+  // container_id is written only after the start answer: a start timeout / stop during start leaves the container with a null id
   const r = await one(
     q,
-    sql`select 1 as x from ai_runs where id = ${runId}::uuid and container_id is not null`,
-  );
+    sql`select 1 as x from ai_runs where id = ${runId}::uuid and agent_secret_hash is not null`,
+  ).catch(() => undefined);
   if (r) await runner('DELETE', `/v1/runs/${runId}`).catch(() => {});
 }
 
@@ -133,8 +134,12 @@ export async function startAgentRun(
     await api.db.execute(
       sql`update ai_runs set container_id = ${containerId ?? null} where id = ${run.id}`,
     );
+    // stopped / reaped while the container was starting: nobody else removes it
+    const st = await one(api.db, sql`select state from ai_runs where id = ${run.id}::uuid`);
+    if (st?.state !== 'running') await stopAgent(api.db, run.id);
   } catch {
     run.log.push('runner: недоступен');
+    await stopAgent(api.db, run.id);
     await apply(api, run, failed('Не удалось запустить агента: runner недоступен.'));
   }
 }
@@ -159,24 +164,29 @@ export async function loadRun(api: JobApi, id: string): Promise<Run | undefined>
 
 /** The result of the container, or a failure from the reaper, through the common apply. */
 export async function finishAgent(api: JobApi, id: string, r: Parameters<typeof apply>[2]) {
-  const run = await loadRun(api, id);
-  if (!run)
-    return void (await finish(
-      api.db,
-      { id, log: [] } as unknown as Run,
-      'failed',
-      'задача удалена',
-    ));
   try {
-    await apply(
-      api,
-      run,
-      r,
-      r.verdict === 'done' ? await contextOf(api.db, run.task, run.bot) : undefined,
-    );
-  } catch (e) {
-    await finish(api.db, run, 'failed', `ошибка: ${e instanceof Error ? e.message : String(e)}`);
-    throw e;
+    const run = await loadRun(api, id);
+    if (!run)
+      return void (await finish(
+        api.db,
+        { id, log: [] } as unknown as Run,
+        'failed',
+        'задача удалена',
+      ));
+    try {
+      await apply(
+        api,
+        run,
+        r,
+        r.verdict === 'done' ? await contextOf(api.db, run.task, run.bot) : undefined,
+      );
+    } catch (e) {
+      await finish(api.db, run, 'failed', `ошибка: ${e instanceof Error ? e.message : String(e)}`);
+      throw e;
+    }
+  } finally {
+    // the container is removed whatever the outcome (stopAgent never throws)
+    await stopAgent(api.db, id);
   }
 }
 
@@ -196,7 +206,6 @@ export async function reap(_d: object, api: JobApi) {
     )
   ).rows as { id: string; timedOut: boolean }[];
   for (const l of lost) {
-    await stopAgent(api.db, l.id);
     await finishAgent(
       api,
       l.id,

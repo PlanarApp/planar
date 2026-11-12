@@ -218,6 +218,21 @@ describe('Чат: подтверждение «да»', () => {
     expect((await botTexts(dm)).join()).toContain('Выполнено: unlink_tasks');
   });
 
+  it('выключатель ИИ: «да» после выключения не выполняет план, прогон отменён', async () => {
+    const dm = await dialog(w.admin, w.admin.userId);
+    await send(w.admin, dm, 'удали связь');
+    await drain();
+    await raw(`insert into ai_settings (id, enabled) values (1, false)`);
+    try {
+      await send(w.admin, dm, 'да');
+      await drain();
+    } finally {
+      await raw(`delete from ai_settings`);
+    }
+    expect(await links(linkId)).toHaveLength(1);
+    expect(await runs()).toMatchObject([{ state: 'cancelled' }]);
+  });
+
   it('«да» второй раз ничего не делает; не «да» — отмена', async () => {
     const dm = await dialog(w.admin, w.admin.userId);
     await send(w.admin, dm, 'удали связь');

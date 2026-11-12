@@ -2,7 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { uuidv7 } from '@planar/shared';
-import { chatTools, CHAT_BULK_LIMIT } from '../../../../modules/ai/api/chat-tools.js';
+import { chatTools } from '../../../../modules/ai/api/chat-tools.js';
 import * as schema from '../../src/db/schema.js';
 import { toolDefs } from '../../src/mcp/tools.js';
 import { PushQueue } from '../../src/push/push.js';
@@ -75,6 +75,20 @@ describe('chat-tools', () => {
     expect(t!.title).toBe('Секрет');
   });
 
+  it('update_task с description и update_doc с текстом ждут «да», title — нет', async () => {
+    const id = await mk();
+    const tools = chatTools(toolDefs(rest), w.admin.userId);
+    expect(await call(tools, 'update_task', { task: id, description: 'x' })).toMatchObject({
+      needsConfirmation: true,
+    });
+    expect(await call(tools, 'update_doc', { id: uuidv7(), markdown: 'x' })).toMatchObject({
+      needsConfirmation: true,
+    });
+    expect(await call(tools, 'update_task', { task: id, title: 'Новое' })).not.toHaveProperty(
+      'needsConfirmation',
+    );
+  });
+
   it('опасный инструмент не исполняется: needsConfirmation', async () => {
     const a = await mk();
     const b = await mk();
@@ -85,7 +99,6 @@ describe('chat-tools', () => {
     expect(
       await db.select().from(schema.taskLinks).where(eq(schema.taskLinks.id, linkId)),
     ).toHaveLength(1);
-    expect(CHAT_BULK_LIMIT).toBe(5);
   });
 
   it('origin.aiRunId доходит до хуков модулей (правило автоматизации получает aiRunId)', async () => {

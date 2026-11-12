@@ -121,7 +121,7 @@ describe('harness diff', () => {
       ],
       labels: [{ id: 'l1', name: 'Есть план' }],
       fields: [{ id: 'f1', name: 'Сумма', type: 'number' }],
-      actions: [{ id: 'a1', name: 'plan', runtime: 'llm', checks: [] }],
+      actions: [{ id: 'a1', name: 'plan', runtime: 'llm', checks: [], questionStatusId: 's2' }],
       rules: [],
     };
     const k: HarnessKeys = {

@@ -43,7 +43,7 @@ const flat = <T extends { description?: unknown }>(t: T) => ({
 const cmt = <T extends { body?: unknown }>(c: T) => ({ ...c, body: docToText(c.body) });
 const task = z.string().describe('id или ключ задачи, например PLN-12');
 
-export type ToolDanger = 'delete' | 'bulk' | 'mail';
+export type ToolDanger = 'delete';
 
 /** One tool, shared by MCP and the chat adapter (modules/ai/api/chat-tools.ts). */
 export interface ToolDef {
@@ -53,6 +53,8 @@ export interface ToolDef {
   write: boolean;
   /** needs the user's confirmation in chat */
   danger?: ToolDanger;
+  /** dangerous only for some arguments (text that may come from a prompt injection) */
+  dangerIf?: (args: never) => boolean;
   run(args: never, uid: string, tokenId?: string): Promise<unknown>;
 }
 
@@ -66,16 +68,17 @@ export function toolDefs(rest: RestService): ToolDef[] {
     description: string,
     shape: S,
     write: boolean,
-    ...r: [f: Fn<S>] | [danger: ToolDanger, f: Fn<S>]
+    ...r: [f: Fn<S>] | [danger: ToolDanger | ((a: z.infer<z.ZodObject<S>>) => boolean), f: Fn<S>]
   ) => {
     const f = r[r.length - 1] as (a: never, c: C) => Promise<unknown>;
-    const danger = r.length === 2 ? r[0] : undefined;
+    const dg = r.length === 2 ? r[0] : undefined;
     defs.push({
       name,
       description,
       shape,
       write,
-      danger,
+      danger: typeof dg === 'string' ? dg : undefined,
+      dangerIf: typeof dg === 'function' ? (dg as (a: never) => boolean) : undefined,
       run: (a, uid, tokenId) => f(a, { uid, tokenId }),
     });
   };
@@ -164,6 +167,7 @@ export function toolDefs(rest: RestService): ToolDef[] {
     'Изменить задачу',
     { task, ...patchTaskBody.shape },
     true,
+    (a: { description?: unknown }) => a.description !== undefined,
     async ({ task: ref, ...a }, c) =>
       (await named([(await rest.patchTask(c.uid, ref, a, c.tokenId)).data]))[0],
   );
@@ -316,6 +320,8 @@ export function toolDefs(rest: RestService): ToolDef[] {
     'Изменить документ: title; markdown — заменить содержимое целиком, append — дописать в конец, replace {find, replace} — точечная правка фрагмента (для правок предпочтительнее markdown)',
     { id: doc, ...patchDocBody.shape },
     true,
+    (a: { markdown?: unknown; append?: unknown; replace?: unknown }) =>
+      a.markdown !== undefined || a.append !== undefined || a.replace !== undefined,
     async ({ id, ...a }, c) => (await rest.updateDoc(c.uid, id, a, c.tokenId)).data,
   );
   def(

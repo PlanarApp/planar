@@ -100,10 +100,13 @@ const runsQuery = z.object({
   state: z.enum(AI_RUN_STATES).optional(),
   projectId: z.uuid().optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
-  cursor: z.iso.datetime().optional(),
+  cursor: z
+    .string()
+    .regex(/^[^|]+\|[0-9a-f-]{36}$/)
+    .optional(),
 });
 const limitsBody = z.object({
-  dailyTokens: z.number().int().min(1).max(1e12).nullable(),
+  dailyTokens: z.number().int().min(1).max(2_147_483_647).nullable(),
   dailyCost: z.number().min(0.01).max(1e9).nullable(),
 });
 
@@ -165,7 +168,22 @@ export class AiController {
       this.core.auth(req);
       throw nf();
     }
-    await this.seeTask(req, r.taskId as string);
+    if (r.taskId) await this.seeTask(req, r.taskId as string);
+    else {
+      // chat run (no task): the admin of the instance or the author of the message that started it
+      const a = this.core.auth(req);
+      let ok = false;
+      try {
+        this.core.requireInstanceAdmin(req, { sessionOnly: true });
+        ok = true;
+      } catch {
+        const m = await this.core.db.execute(
+          sql`select 1 from chat_messages where id = ${r.itemId as string}::uuid and author_id = ${a.userId}::uuid`,
+        );
+        ok = !a.tokenId && !!m.rows[0];
+      }
+      if (!ok) throw nf();
+    }
     return r;
   }
 
@@ -193,11 +211,19 @@ export class AiController {
   @HttpCode(204)
   async stop(@Req() req: object, @Param('id') id: string) {
     await this.runOf(req, id);
+    await this.cancelBatches(id);
     await this.core.db.execute(
       sql`update ai_runs set state = 'cancelled', updated_at = now()
           where id = ${id}::uuid and state in ('running', 'waiting_human')`,
     );
     await stopAgent(this.core.db, id);
+  }
+
+  /** Unsent email batches of the run die with it (part of the run's stop / restart). */
+  private cancelBatches(runId: string) {
+    return this.core.db.execute(
+      sql`update ai_email_batches set state = 'cancelled', updated_at = now() where run_id = ${runId}::uuid and state = 'pending'`,
+    );
   }
 
   /** The run again from its own data; the new run (made by the queue) points back by restartOf. */
@@ -208,13 +234,16 @@ export class AiController {
       throw new HttpError(409, 'conflict', 'ИИ выключен администратором');
     const n = (
       await this.core.db.execute(
-        sql`with recursive c as (select id, restart_of from ai_runs where id = ${id}::uuid
-            union all select r.id, r.restart_of from ai_runs r join c on r.id = c.restart_of)
-            select count(*)::int - 1 as n from c`,
+        sql`with recursive up as (select id, restart_of from ai_runs where id = ${id}::uuid
+            union all select r.id, r.restart_of from ai_runs r join up on r.id = up.restart_of),
+          down as (select id from up where restart_of is null
+            union all select r.id from ai_runs r join down on r.restart_of = down.id)
+            select count(*)::int - 1 as n from down`,
       )
     ).rows[0]!.n as number;
     if (n >= MAX_RESTARTS)
       throw new HttpError(409, 'conflict', `Не больше ${MAX_RESTARTS} перезапусков подряд`);
+    if (!r.taskId) throw new HttpError(409, 'conflict', 'Прогон нельзя перезапустить');
     const taskId = r.taskId as string;
     const restartOf = id;
     const runId = uuidv7();
@@ -242,6 +271,7 @@ export class AiController {
               }
             : null;
     if (!d) throw new HttpError(409, 'conflict', 'Прогон нельзя перезапустить');
+    await this.cancelBatches(id);
     await this.core.enqueue(AI_QUEUE, d, { singletonKey: keyOf(d), upsert: true });
     return { runId };
   }
@@ -253,10 +283,10 @@ export class AiController {
     const rows = (
       await this.core.db.execute(
         sql`select ${runCols}, p.key || '-' || t.number as "taskKey", t.title as "taskTitle", p.name as "projectName"
-            from ai_runs r join tasks t on t.id = r.task_id join projects p on p.id = r.project_id
+            from ai_runs r left join tasks t on t.id = r.task_id left join projects p on p.id = r.project_id
             where true ${q.state ? sql`and r.state = ${q.state}` : sql``}
             ${q.projectId ? sql`and r.project_id = ${q.projectId}::uuid` : sql``}
-            ${q.cursor ? sql`and r.created_at < ${q.cursor}::timestamptz` : sql``}
+            ${q.cursor ? sql`and (r.created_at, r.id) < (${q.cursor.split('|')[0]}::timestamptz, ${q.cursor.split('|')[1]}::uuid)` : sql``}
             order by r.created_at desc, r.id desc limit ${q.limit + 1}`,
       )
     ).rows as Row[];
@@ -270,7 +300,7 @@ export class AiController {
     ).rows[0] as { running: number; waiting: number };
     return {
       runs: page as unknown as AiMonitorRun[],
-      next: rows.length > q.limit ? (page.at(-1)!.createdAt as string) : null,
+      next: rows.length > q.limit ? `${page.at(-1)!.createdAt}|${page.at(-1)!.id}` : null,
       load,
       today: await usedToday(this.core.db),
       enabled: await aiEnabled(this.core.db),

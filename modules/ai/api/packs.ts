@@ -183,15 +183,18 @@ export function unzipFiles(buf: Buffer): PackFiles {
     if (name.endsWith('/')) continue;
     if (flags & 1) throw bad('зашифрованный архив');
     if (name.startsWith('/') || name.split('/').includes('..')) throw bad(`путь ${name}`);
-    if (size > MAX_UNPACKED || (total += size) > MAX_UNPACKED) throw bad('слишком большой');
+    if (size > MAX_UNPACKED) throw bad('слишком большой');
     if (lho + 30 > buf.length || buf.readUInt32LE(lho) !== 0x04034b50) throw bad('повреждён');
     const start = lho + 30 + buf.readUInt16LE(lho + 26) + buf.readUInt16LE(lho + 28);
     const csize = buf.readUInt32LE(h + 20);
     const data = buf.subarray(start, start + csize);
-    if (method === 0) raw[name] = data.toString('utf8');
-    else if (method === 8)
-      raw[name] = inflateRawSync(data, { maxOutputLength: MAX_UNPACKED }).toString('utf8');
+    // the header's size can lie: the total counts the real bytes
+    let out: Buffer;
+    if (method === 0) out = data;
+    else if (method === 8) out = inflateRawSync(data, { maxOutputLength: MAX_UNPACKED });
     else throw bad(`метод сжатия ${method}`);
+    if ((total += out.length) > MAX_UNPACKED) throw bad('слишком большой');
+    raw[name] = out.toString('utf8');
   }
   const names = Object.keys(raw).filter((x) => !x.startsWith('__MACOSX/'));
   const tops = new Set(names.map((x) => x.split('/')[0]));

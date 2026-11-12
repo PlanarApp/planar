@@ -7,6 +7,12 @@ import { lineDiff } from '../shared/index.js';
 import { resolveConnection, secretOf } from './connections.js';
 import { generateStructured } from './llm.js';
 import { PACKS_ROOT_TITLE } from './packs.js';
+import { blocked } from './run.js';
+import { uuidv7 } from '@planar/shared';
+
+// markdown has no mention node: accepting would turn it into plain «@Name»
+const hasMention = (body: unknown) => JSON.stringify(body).includes('"type":"mention"');
+const NO_MENTIONS = 'Страница с упоминаниями не поддерживается';
 
 const chatBody = z.object({
   pageId: z.uuid(),
@@ -84,6 +90,19 @@ export class DocChatController {
     const { userId } = this.core.auth(req);
     const page = await this.page(userId, b.pageId);
     if (!page.projectId) throw new HttpError(409, 'conflict', 'ИИ работает только в проекте');
+    const projectId = page.projectId;
+    const [g] = (
+      await this.core.db.execute(
+        sql`select project_role(${userId}::uuid, p.id) as role, 'ai' = any(p.modules) as ai
+            from projects p where p.id = ${projectId}::uuid`,
+      )
+    ).rows as { role: string | null; ai: boolean }[];
+    if (!g?.ai) throw new HttpError(409, 'conflict', 'Модуль ИИ выключен в проекте');
+    if (g.role !== 'admin' && g.role !== 'member')
+      throw new HttpError(403, 'forbidden', 'Недостаточно прав');
+    const stop = await blocked(this.core.db, projectId);
+    if (stop) throw new HttpError(409, 'conflict', stop);
+    if (hasMention(page.body)) throw new HttpError(409, 'conflict', NO_MENTIONS);
     const conn = await resolveConnection(this.core.db, page.projectId);
     if (!conn) throw new HttpError(409, 'conflict', 'Не настроено подключение к ИИ');
     const current = docToMarkdown(page.body as never).trim();
@@ -93,13 +112,20 @@ export class DocChatController {
     const ctx = page.pack ? await this.packContext(page.projectId) : '';
     let out: { reply: string; body: string | null };
     try {
-      ({ object: out } = await generateStructured(secretOf(conn), {
+      let usage;
+      ({ object: out, usage } = await generateStructured(secretOf(conn), {
         schema: z.object({ reply: z.string(), body: z.string().nullable() }),
         system:
           'Ты помогаешь править документ. Ответь пользователю в "reply". Если нужна правка — в "body" верни ПОЛНЫЙ новый текст документа в markdown (сохрани всё, что не меняешь, включая блок кода и ---), иначе null.',
         prompt: `# Документ «${page.title}»\n\n${current}${ctx}${hist.length ? `\n\n# История диалога\n${hist.join('\n')}` : ''}\n\n# Сообщение\n${b.message}`,
         maxOutputTokens: 8000,
       }));
+      // the spend counts towards the daily limits (usedToday)
+      const id = uuidv7();
+      await this.core.db.execute(
+        sql`insert into ai_runs (id, project_id, kind, state, chain_id, chain_depth, input_tokens, output_tokens, cost)
+            values (${id}::uuid, ${projectId}::uuid, 'chat', 'done', ${id}::uuid, 0, ${usage.inputTokens}, ${usage.outputTokens}, ${usage.cost})`,
+      );
     } catch {
       throw new HttpError(502, 'unavailable', 'Провайдер недоступен');
     }
@@ -119,7 +145,8 @@ export class DocChatController {
   async apply(@Req() req: object, @Body() body: unknown) {
     const b = parseBody(applyBody, body);
     const { userId } = this.core.auth(req);
-    await this.page(userId, b.pageId);
+    const page = await this.page(userId, b.pageId);
+    if (hasMention(page.body)) throw new HttpError(409, 'conflict', NO_MENTIONS);
     if (Number.isNaN(Date.parse(b.baseUpdatedAt)))
       throw new HttpError(400, 'invalid_request', 'baseUpdatedAt: неверная дата');
     try {

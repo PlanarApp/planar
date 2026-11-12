@@ -62,11 +62,11 @@ export function batchDoc(
 
 /** insert of the batch row — in the same transaction as the run's changes */
 export const insertBatch = (
-  b: { runId: string; taskId: string; projectId: string; commentId: string },
+  b: { runId: string; taskId: string; projectId: string; commentId: string; assigneeId: string },
   emails: Pick<AiEmail, 'to' | 'subject' | 'body'>[],
 ) =>
-  sql`insert into ai_email_batches (id, run_id, task_id, project_id, comment_id, state, emails)
-      values (${uuidv7()}, ${b.runId}, ${b.taskId}, ${b.projectId}, ${b.commentId}, 'pending',
+  sql`insert into ai_email_batches (id, run_id, task_id, project_id, comment_id, assignee_id, state, emails)
+      values (${uuidv7()}, ${b.runId}, ${b.taskId}, ${b.projectId}, ${b.commentId}, ${b.assigneeId}, 'pending',
         ${JSON.stringify(emails.map((e) => ({ ...e, state: 'queued' })))}::jsonb)`;
 
 /**
@@ -78,14 +78,25 @@ export async function replied(c: Row, ctx: AfterMutationCtx, api: ModuleHookApi)
   const b = await one(
     api.q,
     sql`select b.id, b.run_id as "runId", b.project_id as "projectId", b.comment_id as "commentId",
-        b.state, b.emails from ai_email_batches b where b.comment_id = ${c.parentId as string}`,
+        b.state, b.emails, b.assignee_id as "assigneeId" from ai_email_batches b
+        where b.comment_id = ${c.parentId as string}`,
   );
   if (!b) return false;
   const root = (await api.sys.get('comments', b.commentId as string)) as Row | undefined;
-  if (b.state !== 'pending' || !root || root.assigneeId !== c.authorId) return true;
+  // the confirming person is fixed at insert (null — a batch from before the column: the comment's assignee)
+  if (b.state !== 'pending' || !root || (b.assigneeId ?? root.assigneeId) !== c.authorId)
+    return true;
+  // «ок» sends only while the run still waits for the person and the AI is on; otherwise the batch is cancelled
+  const yes =
+    isYes(textOf(c.body as JSONContent)) &&
+    !!(await one(
+      api.q,
+      sql`select 1 from ai_runs where id = ${b.runId as string} and state = 'waiting_human'
+          and not exists (select 1 from ai_settings where id = 1 and not enabled)`,
+    ));
   const taken = await one(
     api.q,
-    sql`update ai_email_batches set state = ${isYes(textOf(c.body as JSONContent)) ? 'sending' : 'cancelled'},
+    sql`update ai_email_batches set state = ${yes ? 'sending' : 'cancelled'},
         updated_at = now() where id = ${b.id as string} and state = 'pending' returning state`,
   );
   if (!taken) return true;

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { CORE, HttpError, parseBody, type CoreServices } from '@planar/server-kit';
 import { resolveConnection, secretOf } from './connections.js';
 import { generateStructured } from './llm.js';
+import { blocked } from './run.js';
 import {
   activate,
   conflictsOf,
@@ -22,7 +23,8 @@ const key = z.string().regex(/^[a-z][a-z0-9_-]{0,49}$/);
 const target = z.object({ projectId: z.uuid(), packKey: key });
 const source = target.extend({
   /** base64 of a zip; without it the pack comes from the catalog */
-  zip: z.string().max(1_400_000).optional(),
+  // the app's bodyLimit is 1 MiB: a bigger zip never gets here
+  zip: z.string().max(1_000_000).optional(),
   title: z.string().min(1).max(200).optional(),
 });
 const uploadBody = source.extend({
@@ -120,6 +122,8 @@ export class PacksController {
     const cur = c.current.get(b.key);
     if (!inc || !cur || !c.conflicts.some((x) => x.key === b.key))
       throw new HttpError(409, 'conflict', 'У этой страницы нет расхождений с пакетом');
+    const stop = await blocked(this.core.db, b.projectId);
+    if (stop) throw new HttpError(409, 'conflict', stop);
     const conn = await resolveConnection(this.core.db, b.projectId);
     if (!conn) throw new HttpError(409, 'conflict', 'Не настроено подключение к ИИ');
     let merged: string;
