@@ -69,3 +69,7 @@ image-api:
 image-caddy:
   extends: .image
   variables: { NAME: caddy, DOCKERFILE: deploy/caddy.Dockerfile }
+
+image-ai-runner:
+  extends: .image
+  variables: { NAME: ai-runner, DOCKERFILE: apps/ai-runner/Dockerfile }

@@ -4,7 +4,7 @@
 
 ## Состав
 
-node 24, pnpm (corepack), git, curl, jq, glab, Claude Code, opencode, Playwright chromium (`/opt/pw`). Пользователь `10001`, `WORKDIR /work`, ENTRYPOINT `/usr/local/bin/planar-agent-entrypoint`. Версии — `ARG` в Dockerfile (значения-заглушки, перед сборкой сверить с актуальными).
+node 24, pnpm (corepack), git, curl, jq, glab, Claude Code, opencode, Playwright chromium (`/opt/pw`). Пользователь `10001`, `WORKDIR /work`, ENTRYPOINT `/usr/local/bin/planar-agent-entrypoint`. Версии — `ARG` в Dockerfile (актуальны на 2026-11-12). Необязательный трафик Claude Code (телеметрия, автообновление) отключён env, иначе его режет squid. Сборка: `docker build -t planar-ai-agent:1 docker/ai-agent` (~3,2 ГБ).
 
 dpcli в образ **не ставится**: источник не утверждён, шаг клонирования отключён (внешний репозиторий в образ не тянем). Когда источник будет определён — вернуть `ARG DPCLI_REPO/DPCLI_REF`, `git clone` в `/opt/dpcli`, симлинк `/usr/local/bin/dpcli` и `/opt/dpcli` в `chmod`.
 
@@ -24,6 +24,6 @@ dpcli в образ **не ставится**: источник не утвер�
 
 Код выхода агента на отправку не влияет; ошибка самой отправки (curl) — ненулевой код выхода контейнера, дальше «жнец» помечает прогон `failed`. Секрет не печатается: `set +x`, env не выводится.
 
-## Не проверено
+## Проверено (2026-11-12, docker 29)
 
-Образ не собирался (сборка и `squid -k parse` не запускались: запрещено классификатором прав); проверены только `bash -n` и prettier.
+Образ собирается. Через `ai-runner` контейнер стартует с read-only rootfs, `CapDrop ALL`, контекстом в `/context` и tmpfs `/work` (`mode=1777`). Heartbeat и результат уходят по протоколу, пустой `result.json` превращается в `fail`, контейнер и том удаляются. `claude -p` идёт в `PLANAR_LLM_URL/v1/messages` с секретом прогона в `x-api-key`. Ответ настоящего LLM-прокси api не проверялся.

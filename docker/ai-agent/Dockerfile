@@ -1,17 +1,19 @@
 # Образ ИИ-агента planar-ai-agent. Контекст сборки — этот каталог.
 FROM node:24-bookworm-slim
 
-ARG GLAB_VERSION=1.52.0
-ARG CLAUDE_CODE_VERSION=2.0.0
-ARG OPENCODE_VERSION=1.0.0
-ARG PLAYWRIGHT_VERSION=1.49.0
+ARG GLAB_VERSION=1.130.0
+ARG CLAUDE_CODE_VERSION=2.1.322
+ARG OPENCODE_VERSION=1.19.5
+ARG PLAYWRIGHT_VERSION=1.65.0
 # dpcli отключён: источник не утверждён, внешний репозиторий в образ не клонируется (см. README.md).
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw \
     HOME=/tmp/home \
     XDG_CONFIG_HOME=/tmp/home/.config \
     XDG_CACHE_HOME=/tmp/home/.cache \
-    npm_config_cache=/tmp/home/.npm
+    npm_config_cache=/tmp/home/.npm \
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
+    DISABLE_AUTOUPDATER=1
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git curl jq ca-certificates \

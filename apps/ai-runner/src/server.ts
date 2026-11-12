@@ -111,7 +111,8 @@ export function createRunner(cfg: Config, docker: Docker): Server {
           AutoRemove: true,
           Tmpfs: {
             '/tmp': 'rw,nosuid,size=256m',
-            '/work': `rw,nosuid,size=${cfg.tmpfsMb ?? 256}m`,
+            // mode: otherwise the tmpfs takes the image dir's mode with owner root — a non-root agent can't write
+            '/work': `rw,nosuid,size=${cfg.tmpfsMb ?? 256}m,mode=1777`,
           },
           NetworkMode: cfg.agentNetwork,
           RestartPolicy: { Name: 'no' },

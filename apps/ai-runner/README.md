@@ -26,14 +26,15 @@ AI_AGENT_MAX_REPLICAS=2                       # для api: сколько пр�
 
 Только для ai-runner (значения по умолчанию в скобках):
 
-| Переменная                | Назначение                                 |
-| ------------------------- | ------------------------------------------ |
-| `AI_RUNNER_MAX_CPUS`      | потолок CPU на прогон (2)                  |
-| `AI_RUNNER_MAX_MEMORY_MB` | потолок памяти, МБ (4096)                  |
-| `AI_RUNNER_MAX_PIDS`      | потолок процессов (512)                    |
-| `AI_RUNNER_AGENT_NETWORK` | сеть контейнеров агентов (`planar_agents`) |
-| `DOCKER_HOST_SOCKET`      | сокет docker (`/var/run/docker.sock`)      |
-| `PORT`                    | порт (8080)                                |
+| Переменная                | Назначение                                     |
+| ------------------------- | ---------------------------------------------- |
+| `AI_RUNNER_MAX_CPUS`      | потолок CPU на прогон (2)                      |
+| `AI_RUNNER_MAX_MEMORY_MB` | потолок памяти, МБ (4096)                      |
+| `AI_RUNNER_MAX_PIDS`      | потолок процессов (512)                        |
+| `AI_RUNNER_TMPFS_MB`      | размер tmpfs `/work`, МБ (256, не больше 2048) |
+| `AI_RUNNER_AGENT_NETWORK` | сеть контейнеров агентов (`planar_agents`)     |
+| `DOCKER_HOST_SOCKET`      | сокет docker (`/var/run/docker.sock`)          |
+| `PORT`                    | порт (8080)                                    |
 
 ## Сети и egress
 
@@ -43,5 +44,5 @@ AI_AGENT_MAX_REPLICAS=2                       # для api: сколько пр�
 
 ## Ограничения
 
-- `/work` — tmpfs (рабочий каталог агента). Контекст лежит вне tmpfs, в `/context/context.json` (контракт ai10 v1.1): кладётся в созданный контейнер до старта через `putArchive` с `path=/` (tar: каталог `context/` и файл в нём) — иначе tmpfs скрыл бы файл. На реальном docker не проверено.
+- `/work` — tmpfs (рабочий каталог агента, размер `AI_RUNNER_TMPFS_MB`). Контекст — `/context/context.json` в анонимном томе `/context` (rootfs read-only): кладётся в созданный контейнер до старта через `putArchive` с `path=/context`; том удаляется вместе с контейнером (`AutoRemove`, DELETE с `v=true`). Проверено на docker 29 (alpine:3.20).
 - Внутри runner'а нет учёта прогонов: состояние — только метки docker; «жнец» зависших контейнеров — на стороне api.

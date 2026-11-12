@@ -145,7 +145,7 @@ describe('ai-runner', () => {
       ReadonlyRootfs: true,
       Mounts: [{ Type: 'volume', Target: '/context' }],
       AutoRemove: true,
-      Tmpfs: { '/tmp': 'rw,nosuid,size=256m', '/work': 'rw,nosuid,size=256m' },
+      Tmpfs: { '/tmp': 'rw,nosuid,size=256m', '/work': 'rw,nosuid,size=256m,mode=1777' },
       NetworkMode: 'planar_agents',
       RestartPolicy: { Name: 'no' },
       Memory: 1024 * 1024 * 1024,
