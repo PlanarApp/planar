@@ -78,13 +78,14 @@ router.beforeEach(async (to) => {
   if (to.name === 'module') {
     // module routes are added lazily — wait and repeat the navigation.
     // Settings are not known yet (cold entry) — don't hold the transition: ModuleScreen shows a skeleton and repeats the navigation itself.
+    // Without `replace`: the redirect keeps the original push/replace, otherwise the previous page drops out of history (PLNRAPP-184).
     const { ensureModule, modulesKnown } = await import('./modules/registry');
     if (
       modulesKnown() &&
       (await ensureModule(String(to.params.moduleId))) &&
       router.resolve(to.fullPath).name !== 'module'
     )
-      return { path: to.fullPath, replace: true };
+      return to.fullPath;
   }
   return true;
 });

@@ -19,6 +19,7 @@ import { moduleMutators, registerMutators, startSync, stopSync } from '../../../
 import { web } from './index';
 import { moveArgs, type PageRow } from './model';
 import TaskPanel from './TaskPanel.vue';
+import PageScreen from './PageScreen.vue';
 import PageView from './PageView.vue';
 import VersionsDialog from './VersionsDialog.vue';
 import TreeSection from './TreeSection.vue';
@@ -50,11 +51,12 @@ vi.mock('@planar/editor/collab', async (orig) => {
     },
   };
 });
-const router = { push: vi.fn(), replace: vi.fn() };
+const router = { push: vi.fn(), replace: vi.fn(), back: vi.fn() };
+const route: { params: Record<string, string>; query: object } = { params: {}, query: {} };
 vi.mock('vue-router', async (orig) => ({
   ...(await orig<object>()),
   useRouter: () => router,
-  useRoute: () => ({ params: {}, query: {} }),
+  useRoute: () => route,
   RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
 }));
 
@@ -400,5 +402,23 @@ describe('docs web: история версий (PLNRAPP-185)', () => {
     await vi.waitFor(() => expect(w.emitted('update:open')).toEqual([[false]]));
     w.unmount();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('docs web: страница документа (PLNRAPP-184)', () => {
+  it('пришли с другого экрана — «Назад» возвращает; открыта напрямую — кнопки нет', async () => {
+    route.params = { pageId: uuidv7() };
+    window.history.replaceState({ back: '/t/PLN-1' }, '');
+    const w = mount(PageScreen);
+    await flushPromises();
+    await w.get('[data-testid=docs-page-back]').trigger('click');
+    expect(router.back).toHaveBeenCalled();
+    w.unmount();
+    window.history.replaceState({ back: null }, '');
+    const direct = mount(PageScreen);
+    await flushPromises();
+    expect(direct.find('[data-testid=docs-page-back]').exists()).toBe(false);
+    direct.unmount();
+    route.params = {};
   });
 });
