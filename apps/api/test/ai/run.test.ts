@@ -477,17 +477,26 @@ describe('прогон по правилу', () => {
       result({
         moveTo: 'Нет такого',
         labels: ['горячий', 'Чужая'],
-        newTasks: [{ title: 'Подзадача', description: null }],
+        newTasks: [
+          { title: 'Подзадача', description: null, status: null },
+          { title: 'Исправление', description: null, status: 'Отложено' },
+          { title: 'Мимо', description: null, status: 'Нет статуса' },
+        ],
       }),
     ];
     await w.admin.ok('task.update', { id: t, statusId: S.backlog });
     await drain();
     expect((await taskRow(t)).status_id).toBe(S.backlog);
     expect(await raw(`select 1 from task_labels where task_id = $1`, [t])).toHaveLength(1);
-    expect(await raw(`select title from tasks where parent_id = $1`, [t])).toEqual([
-      { title: 'Подзадача' },
+    expect(
+      await raw(`select title, status_id from tasks where parent_id = $1 order by rank`, [t]),
+    ).toEqual([
+      { title: 'Подзадача', status_id: S.todo },
+      { title: 'Исправление', status_id: S.snoozed },
+      { title: 'Мимо', status_id: S.todo },
     ]);
     const log = (await runsOf(t))[0]!.log as string;
+    expect(log).toContain('Нет статуса');
     expect(log).toContain('Нет такого');
     expect(log).toContain('Чужая');
   });

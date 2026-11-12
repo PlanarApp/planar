@@ -76,7 +76,14 @@ export const resultSchema = z.object({
   descriptionAppend: nullable(z.string().max(20_000)),
   newTasks: nullable(
     z
-      .array(z.object({ title: z.string().min(1).max(500), description: nullable(z.string()) }))
+      .array(
+        z.object({
+          title: z.string().min(1).max(500),
+          description: nullable(z.string()),
+          /** status name; null — the first «todo» status */
+          status: nullable(z.string()),
+        }),
+      )
       .max(20),
   ),
   moveTo: nullable(z.string()),
@@ -123,7 +130,7 @@ const SYSTEM = `Ты — ИИ-исполнитель в трекере зада�
 - comment: итог для людей, markdown. Пиши на языке задачи.
 - descriptionAppend: план или итог в описание задачи, markdown без заголовка; заменяет блок «${PLAN_HEADING}».
 - moveTo — имя статуса проекта; labels — имена меток для добавления; fields — значения полей по имени.
-- newTasks — подзадачи; snoozeUntil — отложить задачу до даты YYYY-MM-DD; escalate — причина, если нужен руководитель проекта; docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).
+- newTasks — подзадачи (status — имя статуса или null); snoozeUntil — отложить задачу до даты YYYY-MM-DD; escalate — причина, если нужен руководитель проекта; docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).
 - emails — письма внешним адресатам (to, subject, body — обычный текст), только при done: они уйдут после подтверждения человеком; сам ничего не отправляй.
 Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи) применяются только при done.`;
 
@@ -1073,13 +1080,15 @@ async function changes(
     let rank = (last?.r as string | null) ?? null;
     for (const n of r.newTasks) {
       rank = generateKeyBetween(rank, null);
+      const status = n.status ? byName(ctx.statuses, n.status) : undefined;
+      if (n.status && !status) run.log.push(`newTasks: нет статуса «${n.status}»`);
       muts.push({
         name: 'task.create',
         args: {
           id: uuidv7(),
           projectId: task.projectId,
           parentId: task.id,
-          statusId: first!.id,
+          statusId: status ?? first!.id,
           title: n.title,
           rank,
           ...(n.description && { description: asDoc(n.description) }),

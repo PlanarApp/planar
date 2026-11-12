@@ -1,8 +1,9 @@
-// ai10: agent runs — the container is started by ai-runner (contract ai10-runner@1), the worker only starts it;
+// ai10: agent runs — the container is started by ai-runner (contract ai10-runner@3), the worker only starts it;
 // the result, the heartbeat and the LLM proxy are HTTP calls of the container (agent.controller.ts), the reaper fails the lost ones.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import type { JobApi, Q } from '@planar/server-kit';
+import { decrypt, secretKey, type JobApi, type Q } from '@planar/server-kit';
+import { resolveConnection } from './connections.js';
 import { apply, botOf, contextOf, failed, finish, loadTask, md, type Run } from './run.js';
 
 type Row = Record<string, unknown>;
@@ -72,6 +73,37 @@ export async function agentsFull(q: Pick<Q, 'execute'>, projectId: string) {
   );
 }
 
+/**
+ * The project's GitLab repository for the agent: the token of the gitlab connection (PLNRAPP-177, scope `api` — the
+ * agent pushes and opens MRs). null — the gitlab module is off, no connection, or the token cannot be decrypted.
+ */
+async function repoOf(q: Pick<Q, 'execute'>, run: Run) {
+  if (!run.task.modules.includes('gitlab')) return null;
+  // shortcut: the first connection of the project; when projects with several repositories need agents — pick in the action
+  const c = await one(
+    q,
+    sql`select base_url as "baseUrl", token_enc as "tokenEnc", path from gitlab_connections
+        where project_id = ${run.task.projectId} order by created_at, id limit 1`,
+  );
+  const key = secretKey();
+  if (!c || !key) return null;
+  try {
+    const base = (c.baseUrl as string).replace(/\/+$/, '');
+    return {
+      token: decrypt(c.tokenEnc as string, key),
+      host: new URL(base).host,
+      url: `${base}/${c.path as string}.git`,
+      path: c.path as string,
+    };
+  } catch {
+    // the agent run's log lives in the row: run.log of the worker is not kept for agent runs
+    await q.execute(
+      sql`update ai_runs set log = log || ${'gitlab: токен подключения не расшифровывается\n'} where id = ${run.id}`,
+    );
+    return null;
+  }
+}
+
 /** Starts the container; the run stays `running` until the result, a stop or the reaper. */
 export async function startAgentRun(
   api: JobApi,
@@ -92,8 +124,11 @@ export async function startAgentRun(
           order by c.created_at desc limit 100) x order by "createdAt"`,
     )
   ).rows.map((c) => ({ ...c, body: md(c.body) }));
+  const repo = await repoOf(api.db, run);
+  const conn = await resolveConnection(api.db, task.projectId);
   const context = JSON.stringify({
     runId: run.id,
+    repo: repo && { url: repo.url, path: repo.path },
     task: {
       id: task.id,
       key: task.key,
@@ -123,6 +158,16 @@ export async function startAgentRun(
         HTTP_PROXY: proxy,
         HTTPS_PROXY: proxy,
         NO_PROXY: 'api',
+        ...(conn && {
+          // what the proxy speaks to the provider: Anthropic Messages or OpenAI chat completions
+          PLANAR_LLM_PROTOCOL: conn.provider === 'anthropic' ? 'anthropic' : 'openai',
+          PLANAR_LLM_MODEL: action!.model ?? conn.model,
+        }),
+        ...(repo && {
+          PLANAR_REPO_URL: repo.url,
+          GITLAB_HOST: repo.host,
+          GITLAB_TOKEN: repo.token,
+        }),
       },
       context,
     });

@@ -269,6 +269,32 @@ describe('agent: жизненный цикл', () => {
       expect(s).not.toContain(secret);
   });
 
+  it('протокол LLM и модель; репозиторий gitlab — токен подключения в env, только при включённом модуле', async () => {
+    const plain = await start();
+    expect(plain.post!.body.env).toMatchObject({
+      PLANAR_LLM_PROTOCOL: 'openai',
+      PLANAR_LLM_MODEL: 'fake',
+    });
+    expect(plain.post!.body.env.GITLAB_TOKEN).toBeUndefined();
+    await raw(
+      `insert into gitlab_connections (id, project_id, base_url, token_enc, gitlab_project_id, path)
+       values ($1, $2, 'https://gitlab.example/', $3, 7, 'acme/app')`,
+      [uuidv7(), P, encrypt('glpat-secret', secretKey()!)],
+    );
+    const { post } = await start();
+    expect(post!.body.env).toMatchObject({
+      PLANAR_REPO_URL: 'https://gitlab.example/acme/app.git',
+      GITLAB_HOST: 'gitlab.example',
+      GITLAB_TOKEN: 'glpat-secret',
+    });
+    const ctx = JSON.parse(post!.body.context);
+    expect(ctx.repo).toEqual({ url: 'https://gitlab.example/acme/app.git', path: 'acme/app' });
+    expect(post!.body.context).not.toContain('glpat-secret');
+    // the connection alone is not enough: the module is off in the project
+    await raw(`update projects set modules = array_remove(modules, 'gitlab') where id = $1`, [P]);
+    expect((await start()).post!.body.env.GITLAB_TOKEN).toBeUndefined();
+  });
+
   it('неверный и чужой секрет — 401, прогон не меняется; без runner — fail', async () => {
     const a = await start();
     const b = await start();

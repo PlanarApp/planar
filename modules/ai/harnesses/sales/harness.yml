@@ -17,8 +17,14 @@ fields:
   - { key: amount, name: Сумма, type: money }
   - { key: source, name: Источник, type: text }
   - { key: next_step, name: Следующий шаг, type: text }
-actions: [qualify, proposal, next_step, lost, followup, digest]
+actions: [qualify, proposal, next_step, lost, followup, digest, research]
 rules:
+  - key: research_lead
+    name: Разведка компании
+    description: Агент собирает справку о компании лида из открытых источников. Только сделки, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, to: [lead] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: research }]
   - key: qualify_lead
     name: Квалификация лида
     description: Новый лид проверяется по BANT. Только сделки, где ИИ — исполнитель.

@@ -89,10 +89,20 @@ const textOf = (n: unknown): string => {
 };
 
 describe('packs', () => {
-  it('пакет dev из каталога разбирается и содержит только llm-действия', async () => {
+  it('пакет dev из каталога разбирается; agent — только разработка, ревью и тестирование', async () => {
     const files = (await readCatalogPack('dev'))!;
     const h = parseHarnessYaml(files['harness.yml']!);
-    expect(h.actions).toEqual(['plan', 'decompose', 'triage', 'discussion', 'assign', 'chat']);
+    expect(h.actions).toEqual([
+      'plan',
+      'decompose',
+      'triage',
+      'discussion',
+      'assign',
+      'chat',
+      'dev',
+      'review',
+      'test',
+    ]);
     expect(h.fields).toEqual([{ key: 'budget', name: 'Бюджет', type: 'number' }]);
     expect(h.settings.questionStatus).toBe('clarify');
     expect(h.rules.every((r) => (r.filter as { assignee: string[] }).assignee[0] === 'ai')).toBe(
@@ -100,16 +110,17 @@ describe('packs', () => {
     );
     for (const k of h.actions) {
       const i = parseInstructionDoc(files[`actions/${k}.md`]!);
-      expect(i.runtime, k).toBe('llm');
+      expect(i.runtime, k).toBe(['dev', 'review', 'test'].includes(k) ? 'agent' : 'llm');
       expect(i.prompt, k).not.toBe('');
     }
     expect(parseInstructionDoc(files['actions/plan.md']!).prompt).toContain('«Бюджет»');
+    expect(parseInstructionDoc(files['actions/dev.md']!).prompt).toContain('«Test prod»');
   });
 
   it('загрузка раскладывает документы, пишет хеши; активация и права', async () => {
     const l = (await call('GET', `packs?projectId=${w.projectId}`, 'admin')).json();
     expect(l.catalog).toEqual(
-      expect.arrayContaining([{ key: 'dev', title: 'Разработка', actions: 6 }]),
+      expect.arrayContaining([{ key: 'dev', title: 'Разработка', actions: 9 }]),
     );
     expect(
       l.catalog
@@ -127,7 +138,7 @@ describe('packs', () => {
     expect(r.statusCode).toBe(200);
     const j = r.json();
     expect(j.status).toBe('ok');
-    expect(j.created).toHaveLength(7);
+    expect(j.created).toHaveLength(10);
 
     const ps = await pages(w.projectId);
     const container = ps.find((p) => p.title === 'Harness-пакеты')!;
@@ -136,7 +147,17 @@ describe('packs', () => {
     expect(textOf(root.body)).toContain('statuses:');
     const kids = ps.filter((p) => p.parent_id === root.id);
     expect(kids.map((k) => k.title).sort()).toEqual(
-      ['Декомпозиция', 'Планирование', 'Поручение', 'Сводка обсуждения', 'Триаж', 'Чат'].sort(),
+      [
+        'Декомпозиция',
+        'Планирование',
+        'Поручение',
+        'Сводка обсуждения',
+        'Триаж',
+        'Чат',
+        'Разработка',
+        'Ревью MR',
+        'Тестирование',
+      ].sort(),
     );
     const plan = kids.find((k) => k.title === 'Планирование')!;
     expect(textOf(plan.body)).toContain('Параметр');

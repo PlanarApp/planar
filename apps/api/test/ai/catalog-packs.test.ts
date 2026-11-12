@@ -16,6 +16,8 @@ import { key, world, type World } from '../sync/helpers.js';
 useApp();
 
 const KEYS = ['sales', 'hiring', 'support'] as const;
+/** agent instructions of a pack (PLNRAPP-177); the rest are llm */
+const AGENT_ACTIONS: Partial<Record<(typeof KEYS)[number], string[]>> = { sales: ['research'] };
 const empty: CurrentState = { statuses: [], labels: [], fields: [], actions: [], rules: [] };
 const loaded = await Promise.all(
   KEYS.map(async (k) => {
@@ -51,11 +53,11 @@ describe.each(loaded)('catalog pack $k', ({ k, files, pack }) => {
       pack.actions.map((a) => [a, parseInstructionDoc(files[`actions/${a}.md`]!)]),
     );
 
-  it('parse: every action is an llm instruction, every rule is for the AI and enabled', () => {
+  it('parse: llm instructions except the agent ones, every rule is for the AI and enabled', () => {
     expect(pack.actions.length).toBeGreaterThan(0);
     for (const a of pack.actions) {
       const i = instr()[a]!;
-      expect(i.runtime, a).toBe('llm');
+      expect(i.runtime, a).toBe(AGENT_ACTIONS[k]?.includes(a) ? 'agent' : 'llm');
       expect(i.prompt, a).not.toBe('');
     }
     for (const r of pack.rules) {
