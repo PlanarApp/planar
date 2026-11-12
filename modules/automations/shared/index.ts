@@ -50,7 +50,13 @@ export const triggerSchema = z.discriminatedUnion('type', [
     from: z.array(uuid).optional(),
     to: z.array(uuid).optional(),
   }),
-  z.object({ type: z.literal('task.assignee_changed'), userId: uuid.optional() }),
+  z.object({
+    type: z.literal('task.assignee_changed'),
+    /** fires when one of these users is added; empty — any change */
+    userIds: z.array(uuid).optional(),
+    /** rules saved before PLNRAPP-197: a single user */
+    userId: uuid.optional(),
+  }),
   z.object({
     type: z.literal('task.field_changed'),
     field: z.union([

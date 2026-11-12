@@ -32,12 +32,25 @@ vi.mock('../../../sync', async () => {
 const SP = uuidv7();
 const P = uuidv7();
 const S1 = uuidv7();
-vi.mock('../../../tasks', () => ({
-  useSpaces: () => ref([{ id: SP, projects: [{ id: P, spaceId: SP, name: 'Проект' }] }]),
-  useStatuses: () => ref([{ id: S1, name: 'В работе', category: 'in_progress' }]),
-  useMembers: () => ref([]),
-  useLabels: () => ref([]),
-}));
+// pickers pull in popovers of the core: a stub shows the value in data-value, set by an event
+vi.mock('../../../tasks', async () => {
+  const { defineComponent: dc, h: hh } = await import('vue');
+  const picker = (name: string) =>
+    dc({
+      name,
+      props: ['modelValue'],
+      emits: ['update:modelValue'],
+      setup: (p) => () => hh('span', { 'data-value': (p.modelValue ?? []).join(',') }),
+    });
+  return {
+    StatusesPicker: picker('StatusesPicker'),
+    AssigneePicker: picker('AssigneePicker'),
+    useSpaces: () => ref([{ id: SP, projects: [{ id: P, spaceId: SP, name: 'Проект' }] }]),
+    useStatuses: () => ref([{ id: S1, name: 'В работе', category: 'in_progress' }]),
+    useMembers: () => ref([]),
+    useLabels: () => ref([]),
+  };
+});
 
 // the real FilterBuilder pulls in the whole core; here we only check the wiring with the builder
 const FB = defineComponent({
@@ -203,6 +216,63 @@ describe('wk3: страница правил', () => {
       'automations.create',
       expect.objectContaining({ trigger: { type: 'comment.added', byHuman: true } }),
     );
+  });
+
+  it('PLNRAPP-197: статусы и пользователи триггеров — мультивыбор', async () => {
+    const [S2, U1, U2] = [uuidv7(), uuidv7(), uuidv7()];
+    // the k-th picker of the editor emits a value
+    const set = async (w: ReturnType<typeof mount>, name: string, k: number, v: string[]) => {
+      w.findAllComponents({ name }).at(k)!.vm.$emit('update:modelValue', v);
+      await w.vm.$nextTick();
+    };
+    const w = mount(RulesPage, stubs);
+    await vi.waitFor(() => expect(w.find('[data-role=new]').exists()).toBe(true));
+    await w.get('[data-role=new]').trigger('click');
+    await w.get('[data-role=name]').setValue('Статусы');
+    await pick(w, 'trigger', 'task.status_changed');
+    await set(w, 'StatusesPicker', 0, [S1]);
+    await set(w, 'StatusesPicker', 1, [S1, S2]);
+    await w.get('[data-role=action-text]').setValue('Пинг');
+    await w.get('[data-testid=editor]').trigger('submit');
+    expect(mutate).toHaveBeenLastCalledWith(
+      'automations.create',
+      expect.objectContaining({
+        trigger: { type: 'task.status_changed', from: [S1], to: [S1, S2] },
+      }),
+    );
+    await w.get('[data-role=new]').trigger('click');
+    await w.get('[data-role=name]').setValue('Исполнители');
+    await pick(w, 'trigger', 'task.assignee_changed');
+    await set(w, 'AssigneePicker', 0, [U1, U2]);
+    await w.get('[data-role=action-text]').setValue('Пинг');
+    await w.get('[data-testid=editor]').trigger('submit');
+    expect(mutate).toHaveBeenLastCalledWith(
+      'automations.create',
+      expect.objectContaining({ trigger: { type: 'task.assignee_changed', userIds: [U1, U2] } }),
+    );
+  });
+
+  it('PLNRAPP-197: старые правила открываются в пикерах', async () => {
+    const U1 = uuidv7();
+    const S2 = uuidv7();
+    await h.db
+      .table('automationsRules')
+      .bulkPut([
+        ruleRow({ trigger: { type: 'task.assignee_changed', userId: U1 } }),
+        ruleRow({ name: 'Статусы', trigger: { type: 'task.status_changed', to: [S1, S2] } }),
+      ]);
+    const w = mount(RulesPage, stubs);
+    await vi.waitFor(() => expect(w.findAll('[data-role=edit]')).toHaveLength(2));
+    await w.findAll('[data-role=edit]')[0]!.trigger('click');
+    expect(w.get('[data-role=users] [data-value]').attributes('data-value')).toBe(U1);
+    await w.get('[data-testid=editor]').trigger('submit');
+    expect(mutate).toHaveBeenLastCalledWith(
+      'automations.update',
+      expect.objectContaining({ trigger: { type: 'task.assignee_changed', userId: U1 } }),
+    );
+    await vi.waitFor(() => expect(w.findAll('[data-role=edit]')).toHaveLength(2));
+    await w.findAll('[data-role=edit]')[1]!.trigger('click');
+    expect(w.get('[data-role=to] [data-value]').attributes('data-value')).toBe(`${S1},${S2}`);
   });
 
   it('PLNRAPP-166: описание правила в списке', async () => {

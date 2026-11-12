@@ -250,6 +250,45 @@ describe('wk3: триггеры', () => {
     jobs.length = 0;
   });
 
+  it('PLNRAPP-197: task.assignee_changed — несколько исполнителей, userIds, userId', async () => {
+    const any = await rule({ type: 'task.assignee_changed' });
+    const several = await rule({
+      type: 'task.assignee_changed',
+      userIds: [w.member.userId, w.guest.userId],
+    });
+    const old = await rule({ type: 'task.assignee_changed', userId: w.member.userId });
+    // the condition holds for a task with several assignees
+    const cond = await rule({ type: 'task.assignee_changed' }, undefined, {
+      conditions: {
+        op: 'and',
+        rules: [{ field: 'assignee', operator: 'in', value: [w.member.userId] }],
+      },
+    });
+    const t = await task({
+      assignees: [
+        { id: uuidv7(), userId: w.admin.userId },
+        { id: uuidv7(), userId: w.guest.userId },
+      ],
+    });
+    jobs.length = 0;
+    // a third assignee is added to two
+    await w.admin.ok('task.assign', { id: uuidv7(), taskId: t, userId: w.member.userId });
+    for (const r of [any, several, old, cond]) expect(queued(r.id)).toHaveLength(1);
+    await drain();
+    expect(statuses(await runsOf(cond.id))).toEqual(['ok']);
+    // one of three is removed: «any» fires, the user lists count only additions
+    await w.admin.ok('task.unassign', { taskId: t, userId: w.admin.userId });
+    expect(queued(any.id)).toHaveLength(1);
+    expect(queued(several.id)).toHaveLength(0);
+    await drain();
+    expect(statuses(await runsOf(cond.id))).toEqual(['ok', 'ok']);
+    // a user not in the list is added to two remaining
+    await w.admin.ok('task.assign', { id: uuidv7(), taskId: t, userId: w.admin.userId });
+    expect(queued(several.id)).toHaveLength(0);
+    expect(queued(old.id)).toHaveLength(0);
+    jobs.length = 0;
+  });
+
   it('wk3: task.field_changed — priority и field:<id>', async () => {
     const fieldId = uuidv7();
     await w.admin.ok('field.create', {

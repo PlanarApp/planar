@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { X } from 'lucide-vue-next';
 import type { Filter, Row } from '@planar/shared';
 import {
+  AssigneePicker,
   Button,
   EmptyState,
   FilterBuilder,
@@ -10,6 +11,7 @@ import {
   Input,
   Menu,
   Select,
+  StatusesPicker,
   db,
   newId,
   useLabels,
@@ -154,17 +156,20 @@ const setTriggerType = (type: Trigger['type']) => (draft.value!.trigger = blankT
 const setActionType = (i: number, type: Action['type']) =>
   (draft.value!.actions[i] = blankAction(type));
 const addAction = () => draft.value!.actions.push(blankAction('add_comment'));
-const csv = (s: string) =>
-  s
-    .split(',')
-    .map((x) => x.trim())
-    .filter(Boolean);
 const optional = (a: string[]) => (a.length ? a : undefined);
-const NONE = '__none';
 const opts = (list: { v: string; l: string }[]) => list.map((o) => ({ value: o.v, label: o.l }));
 const names = <T extends string>(list: readonly T[], dict: Record<string, string>) =>
   list.map((x) => ({ value: x, label: dict[x]! }));
 const t = computed(() => draft.value!.trigger as Record<string, unknown>);
+// a list of ids from the trigger (old rules may hold anything — only strings are taken)
+const ids = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+// assignee_changed: userIds; a rule saved before PLNRAPP-197 holds a single userId
+const triggerUsers = () => [...new Set([...ids(t.value.userIds), ...ids([t.value.userId])])];
+const setTriggerUsers = (v: string[]) => {
+  delete t.value.userId;
+  t.value.userIds = optional(v);
+};
 const act = (a: Action) => a as Record<string, unknown>;
 const projectName = (id: string) => projects.value.find((p) => p.id === id)?.name ?? id;
 const pickers = computed(() => ({
@@ -293,26 +298,41 @@ const setValue = (i: number, raw: string) => {
           />
         </div>
         <template v-if="draft.trigger.type === 'task.status_changed'">
-          <Input
-            :model-value="((t.from as string[]) ?? []).join(', ')"
-            :label="tx.from"
-            :placeholder="tx.from"
-            @update:model-value="(v) => (t.from = optional(csv(v)))"
-          />
-          <Input
-            :model-value="((t.to as string[]) ?? []).join(', ')"
-            :label="tx.to"
-            :placeholder="tx.to"
-            @update:model-value="(v) => (t.to = optional(csv(v)))"
-          />
+          <div class="flex items-center gap-2 text-sm" data-role="from">
+            {{ tx.from }}
+            <StatusesPicker
+              :space-id="spaceId"
+              :project-id="projectId"
+              :title="tx.from"
+              :empty="tx.any"
+              :model-value="ids(t.from)"
+              @update:model-value="(v) => (t.from = optional(v))"
+            />
+          </div>
+          <div class="flex items-center gap-2 text-sm" data-role="to">
+            {{ tx.to }}
+            <StatusesPicker
+              :space-id="spaceId"
+              :project-id="projectId"
+              :title="tx.to"
+              :empty="tx.any"
+              :model-value="ids(t.to)"
+              @update:model-value="(v) => (t.to = optional(v))"
+            />
+          </div>
         </template>
-        <Select
+        <div
           v-if="draft.trigger.type === 'task.assignee_changed'"
-          :model-value="(t.userId as string) || NONE"
-          :label="tx.user"
-          :options="[{ value: NONE, label: '—' }, ...opts(pickers.userId)]"
-          @update:model-value="(v) => (t.userId = v === NONE ? undefined : (v ?? undefined))"
-        />
+          class="flex items-center gap-2 text-sm"
+          data-role="users"
+        >
+          {{ tx.user }}
+          <AssigneePicker
+            :space-id="spaceId"
+            :model-value="triggerUsers()"
+            @update:model-value="setTriggerUsers"
+          />
+        </div>
         <Input
           v-if="draft.trigger.type === 'task.field_changed'"
           v-model="(t as Record<string, string>).field"
@@ -349,13 +369,21 @@ const setValue = (i: number, raw: string) => {
             (v) => (t[NUM_PARAM[draft!.trigger.type]!] = v === '' ? undefined : Number(v))
           "
         />
-        <Input
+        <div
           v-if="draft.trigger.type === 'task.stale'"
-          :model-value="((t.statuses as string[]) ?? []).join(', ')"
-          :label="tx.statuses"
-          :placeholder="tx.statuses"
-          @update:model-value="(v) => (t.statuses = optional(csv(v)))"
-        />
+          class="flex items-center gap-2 text-sm"
+          data-role="statuses"
+        >
+          {{ tx.statuses }}
+          <StatusesPicker
+            :space-id="spaceId"
+            :project-id="projectId"
+            :title="tx.statuses"
+            :empty="tx.any"
+            :model-value="ids(t.statuses)"
+            @update:model-value="(v) => (t.statuses = optional(v))"
+          />
+        </div>
         <template v-if="draft.trigger.type === 'schedule'">
           <Input v-model="(t as Record<string, string>).cron" :label="tx.cron" data-role="cron" />
           <Input

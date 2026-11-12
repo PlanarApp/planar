@@ -1763,7 +1763,7 @@ async function insertAll(tx: Tx, now: Date) {
     [
       'SUP',
       'Nudge tickets quiet for a week',
-      { type: 'task.stale', days: 7 },
+      { type: 'task.stale', days: 7, statuses: [statusId('SUP', 1), statusId('SUP', 2)] },
       { op: 'and', rules: [] },
       [{ type: 'add_comment', text: 'No updates for a week. Still on it?' }],
     ],
@@ -1781,11 +1781,19 @@ async function insertAll(tx: Tx, now: Date) {
       { op: 'and', rules: [{ field: 'statusCategory', operator: 'in', value: ['done'] }] },
       [{ type: 'set_status', statusId: statusId('SUP', 1) }],
     ],
+    [
+      'SUP',
+      'Ping when Omar or Emma pick up a ticket',
+      { type: 'task.assignee_changed', userIds: [uid_.omar, uid_.emma] },
+      { op: 'and', rules: [] },
+      [{ type: 'add_comment', text: 'Picked up, the team is on it.' }],
+    ],
   ];
   const RULE_NOTES: Record<number, string> = {
     3: 'Fires once per quiet spell: a new update resets the clock.',
     4: 'Runs every Monday at 09:00 in the instance time zone for tasks in progress.',
     5: 'Only comments written by people count, not automations.',
+    6: 'Fires when one of them is added, even if the ticket has other assignees.',
   };
   await ins(
     automationsRules,
