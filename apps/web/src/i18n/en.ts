@@ -852,6 +852,8 @@ export default {
     feedShow: { label: 'Show', all: 'All', comments: 'Comments', history: 'History' },
     feedNewestFirst: 'Newest first',
     feedOldestFirst: 'Oldest first',
+    collapseAllComments: 'Collapse all comments',
+    expandAllComments: 'Expand all comments',
     watchers: 'Watchers',
     watch: 'Watch',
     unwatch: 'Unwatch',

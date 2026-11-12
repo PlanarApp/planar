@@ -16,6 +16,8 @@ export interface FeedCtx {
   avatarOf: (id: string) => string | null;
   canResolve: (c: Row<'comments'>) => boolean;
   react: (commentId: string, emoji: string) => unknown;
+  /** ids of collapsed comments (PLNRAPP-194): the feed collapses and expands all at once */
+  folded: Ref<Set<string>>;
 }
 export const FEED: InjectionKey<FeedCtx> = Symbol('feed');
 
