@@ -25,7 +25,10 @@ export const web = defineWebModule({
       component: () => import('./TaskAiPanel.vue'),
     },
   ],
-  docPanels: [{ id: 'harness', component: () => import('./HarnessPanel.vue') }],
+  docPanels: [
+    { id: 'harness', component: () => import('./HarnessPanel.vue') },
+    { id: 'docChat', component: () => import('./DocChatPanel.vue') },
+  ],
   settings: [
     {
       id: 'instance',
