@@ -46,7 +46,8 @@ else
   } | claude -p --dangerously-skip-permissions || agent_rc=$?
 fi
 
-if [ -f "$RESULT" ] && jq -e . "$RESULT" >/dev/null 2>&1; then
+# -s: jq -e accepts an empty file (exit 0) — it would go out as an empty body
+if [ -s "$RESULT" ] && jq -e . "$RESULT" >/dev/null 2>&1; then
   body=$RESULT
 else
   echo "planar-agent: результата нет или он невалиден (код агента $agent_rc)" >&2
