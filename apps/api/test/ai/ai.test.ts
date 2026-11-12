@@ -46,6 +46,10 @@ beforeAll(async () => {
         body: raw ? JSON.parse(raw) : {},
       });
       if (status !== 200) return void res.writeHead(status).end('{"error":{"message":"no"}}');
+      if (req.url === '/models')
+        return void res
+          .writeHead(200, { 'content-type': 'application/json' })
+          .end('{"data":[{"id":"fake-2"},{"id":"fake-1"},{"id":"fake-1"},{"x":1}]}');
       res.writeHead(200, { 'content-type': 'application/json' }).end(
         JSON.stringify({
           id: 'c1',
@@ -125,6 +129,29 @@ describe('ai: подключения', () => {
       expect(r.body).not.toContain('"no"');
     }
     expect(await db.select().from(C)).toHaveLength(0);
+  });
+
+  it('список моделей: с ключом формы или сохранённым того же адреса; ошибки — 502; только админ', async () => {
+    const body = { scope: 'instance', provider: 'openai-compatible', baseUrl: base };
+    const r = await call('POST', 'connections/models', 'root', { ...body, apiKey: 'k-form' });
+    expect(r.statusCode).toBe(200);
+    expect(r.json()).toEqual({ models: ['fake-1', 'fake-2'] });
+    expect(hits.at(-1)).toMatchObject({ path: '/models', auth: 'Bearer k-form' });
+    // nothing saved yet — no key
+    expect((await call('POST', 'connections/models', 'root', body)).statusCode).toBe(400);
+    await put('root', 'instance');
+    expect((await call('POST', 'connections/models', 'root', body)).statusCode).toBe(200);
+    expect(hits.at(-1)!.auth).toBe(`Bearer ${SECRET}`);
+    // another host — the saved key is not sent there
+    const other = { ...body, baseUrl: `${base}/other` };
+    expect((await call('POST', 'connections/models', 'root', other)).statusCode).toBe(400);
+    status = 401;
+    const bad = await call('POST', 'connections/models', 'root', body);
+    expect(bad.statusCode).toBe(502);
+    expect(bad.body).not.toContain('"no"');
+    status = 200;
+    const m = { ...body, scope: 'space', scopeId: w.spaceId, apiKey: 'k' };
+    expect((await call('POST', 'connections/models', 'member', m)).statusCode).toBe(403);
   });
 
   it('смена модели без ключа оставляет сохранённый ключ и проверяет им', async () => {

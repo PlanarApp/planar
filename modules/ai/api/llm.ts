@@ -94,6 +94,35 @@ export class ConnectionCheckFailed extends Error {
   }
 }
 
+/** PLNRAPP-189: model ids of the provider (`GET /models`, OpenAI and Anthropic answer `{data: [{id}]}`), sorted. */
+export async function listModels(c: Pick<LlmConnection, 'provider' | 'baseUrl' | 'apiKey'>) {
+  const anthropic = c.provider === 'anthropic';
+  const base = (
+    c.baseUrl ?? (anthropic ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1')
+  ).replace(/\/+$/, '');
+  let res: Response;
+  try {
+    res = await fetch(`${base}/models${anthropic ? '?limit=1000' : ''}`, {
+      headers: anthropic
+        ? { 'x-api-key': c.apiKey, 'anthropic-version': '2023-06-01' }
+        : { authorization: `Bearer ${c.apiKey}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    throw new ConnectionCheckFailed('unavailable');
+  }
+  if (!res.ok)
+    throw new ConnectionCheckFailed(
+      res.status === 401 || res.status === 403 ? 'rejected' : 'unavailable',
+    );
+  const body = (await res.json().catch(() => null)) as { data?: { id?: unknown }[] } | null;
+  return [
+    ...new Set(
+      (body?.data ?? []).map((m) => m.id).filter((id): id is string => typeof id === 'string'),
+    ),
+  ].sort();
+}
+
 /** A test call on save: a few tokens. The provider's own error text is dropped (it may quote the key). */
 export async function checkConnection(c: LlmConnection): Promise<void> {
   try {
