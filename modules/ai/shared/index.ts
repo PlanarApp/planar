@@ -226,3 +226,4 @@ export const shared: SharedModuleManifest = {
 };
 
 export * from './harness.js';
+export * from './diff.js';

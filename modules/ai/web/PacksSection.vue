@@ -3,27 +3,18 @@ import { onMounted, reactive, ref } from 'vue';
 import { AiApiError, call } from './api';
 import { tr } from './data';
 import { toBase64 } from './harnessUi';
+import PackConflicts from './PackConflicts.vue';
+import { usePackUpload } from './usePackUpload';
 
 // «Settings → AI → Packs» (project level): catalog, loaded packs, upload with conflict resolution, export
 const props = defineProps<{ projectId: string }>();
 type Pack = { packKey: string; title: string | null; active: boolean; rootPageId: string | null };
-type Conflict = { key: string; pageId: string; title: string };
-type Choice = 'reset' | 'keep' | 'merge';
 const catalog = ref<{ key: string; title: string; actions: number }[]>([]);
 const packs = ref<Pack[]>([]);
 const warnings = ref<string[]>([]);
 const err = ref('');
 const busy = ref(false);
 const zip = reactive({ packKey: '', title: '', data: '' });
-// the upload being resolved: its source and the conflicting pages
-const pending = ref<{
-  packKey: string;
-  zip?: string;
-  title?: string;
-  conflicts: Conflict[];
-} | null>(null);
-const choice = reactive<Record<string, Choice>>({});
-const merged = reactive<Record<string, string>>({});
 
 async function load() {
   const r = await call<{ catalog: typeof catalog.value; packs: Pack[]; warnings?: string[] }>(
@@ -46,62 +37,19 @@ async function guard(fn: () => Promise<void>) {
     busy.value = false;
   }
 }
-type Src = { packKey: string; zip?: string; title?: string };
-async function upload(src: Src, resolve?: Record<string, unknown>) {
-  await guard(async () => {
-    const r = await call<{ status: 'ok' | 'conflict'; conflicts?: Conflict[] }>(
-      'POST',
-      'packs/upload',
-      {
-        projectId: props.projectId,
-        ...src,
-        resolve,
-      },
-    );
-    if (r.status === 'conflict') {
-      pending.value = { ...src, conflicts: r.conflicts ?? [] };
-      for (const c of r.conflicts ?? []) choice[c.key] ??= 'keep';
-    } else pending.value = null;
-    await load();
-  });
-}
-const fromCatalog = (key: string) => upload({ packKey: key });
+const u = usePackUpload(props.projectId, guard, load);
+const fromCatalog = (key: string) => u.upload({ packKey: key });
 async function pickZip(ev: Event) {
   const f = (ev.target as HTMLInputElement).files?.[0];
   zip.data = f ? toBase64(await f.arrayBuffer()) : '';
 }
 const fromZip = () =>
-  upload({ packKey: zip.packKey.trim(), zip: zip.data, title: zip.title.trim() || undefined });
+  u.upload({ packKey: zip.packKey.trim(), zip: zip.data, title: zip.title.trim() || undefined });
 const activate = (packKey: string) =>
   guard(async () => {
     await call('POST', 'packs/activate', { projectId: props.projectId, packKey });
     await load();
   });
-const merge = (c: Conflict) =>
-  guard(async () => {
-    const p = pending.value!;
-    const r = await call<{ merged: string }>('POST', 'packs/merge', {
-      projectId: props.projectId,
-      packKey: p.packKey,
-      zip: p.zip,
-      title: p.title,
-      key: c.key,
-    });
-    merged[c.key] = r.merged;
-    choice[c.key] = 'merge';
-  });
-const resolveAll = () => {
-  const p = pending.value!;
-  const resolve = Object.fromEntries(
-    p.conflicts.map((c) => [
-      c.key,
-      choice[c.key] === 'merge' ? { merged: merged[c.key] } : choice[c.key],
-    ]),
-  );
-  return upload(p, resolve);
-};
-const canResolve = () =>
-  pending.value?.conflicts.every((c) => choice[c.key] !== 'merge' || merged[c.key]);
 const exportUrl = (k: string) =>
   `/api/ai/packs/export?${new URLSearchParams({ projectId: props.projectId, packKey: k })}`;
 onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
@@ -184,53 +132,6 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
       </button>
     </form>
 
-    <div
-      v-if="pending"
-      class="flex flex-col gap-2 rounded-md border border-border p-3"
-      data-testid="packs-conflicts"
-    >
-      <p class="text-sm">{{ tr('conflicts') }}</p>
-      <div v-for="c in pending.conflicts" :key="c.key" class="flex flex-col gap-1 text-sm">
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="font-medium">{{ c.title }}</span>
-          <label
-            v-for="o in ['reset', 'keep', 'merge'] as const"
-            :key="o"
-            class="flex items-center gap-1"
-          >
-            <input v-model="choice[c.key]" type="radio" :name="`c-${c.key}`" :value="o" />{{
-              tr(o)
-            }}
-          </label>
-          <button
-            v-if="choice[c.key] === 'merge'"
-            type="button"
-            class="underline"
-            :disabled="busy"
-            @click="merge(c)"
-          >
-            {{ tr('mergeRun') }}
-          </button>
-        </div>
-        <textarea
-          v-if="choice[c.key] === 'merge' && merged[c.key] !== undefined"
-          v-model="merged[c.key]"
-          rows="8"
-          class="rounded-md border border-border bg-bg px-2 py-1 font-mono text-xs"
-        />
-      </div>
-      <div class="flex gap-3">
-        <button
-          type="button"
-          :disabled="busy || !canResolve()"
-          data-testid="packs-resolve"
-          class="rounded-md border border-border px-3 py-1 disabled:opacity-50"
-          @click="resolveAll"
-        >
-          {{ tr('resolve') }}
-        </button>
-        <button type="button" class="underline" @click="pending = null">{{ tr('cancel') }}</button>
-      </div>
-    </div>
+    <PackConflicts :u="u" :busy="busy" />
   </section>
 </template>

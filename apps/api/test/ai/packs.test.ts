@@ -6,6 +6,11 @@ import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { readCatalogPack, unzipFiles, zipFiles } from '@planar/module-ai/api';
+import {
+  instructionBody,
+  plainText,
+  readInstructionPage,
+} from '../../../../modules/ai/api/packs.js';
 import { aiHarnessPacks as P } from '@planar/module-ai/api/schema';
 import { parseHarnessYaml, parseInstructionDoc } from '@planar/module-ai/shared';
 import { createUser, loginCookie, ORIGIN } from '../auth.js';
@@ -364,5 +369,40 @@ describe('packs', () => {
     ).toBe(404);
     // uploading again lays the pack out anew
     expect((await up(w.projectId)).json()).toMatchObject({ status: 'ok' });
+  });
+});
+
+describe('packs: yml-страница ↔ Instruction (markdown round-trip)', () => {
+  it('многострочный промпт со списками, заголовками и блоком --- возвращается как был', () => {
+    const prompt = [
+      '# Цель',
+      '',
+      'Первая строка абзаца',
+      'и вторая строка.',
+      '',
+      '## Шаги',
+      '',
+      '- пункт один',
+      '- пункт два',
+      '',
+      '1. первый',
+      '2. второй',
+      '',
+      '---',
+      '',
+      'Текст после разделителя.',
+    ].join('\n');
+    const i = {
+      name: 'Разбор',
+      description: 'Короткое описание',
+      runtime: 'llm' as const,
+      model: 'gpt-x',
+      checks: ['проверка один', 'проверка два'],
+      prompt,
+    };
+    const body = instructionBody('triage', i);
+    // the page text feeds docs_pages.text: it must not choke on the nodes
+    expect(plainText(body)).toContain('Текст после разделителя.');
+    expect(readInstructionPage(i.name, body)).toEqual({ key: 'triage', i });
   });
 });
