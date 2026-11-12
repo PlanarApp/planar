@@ -22,6 +22,8 @@ export {
   useMembers,
   useLabels,
   useProjectAdmin,
+  AssigneePicker,
+  StatusesPicker,
 } from '../tasks';
 export type { TaskView } from '../tasks';
 export { openTask } from '../views/open';

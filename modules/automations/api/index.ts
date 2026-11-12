@@ -94,8 +94,11 @@ function eventsOf(writes: MutationWrite[]): Event[] {
       const added = w.op === 'put';
       out.push({
         taskId: r.taskId as string,
-        match: (t) =>
-          t.type === 'task.assignee_changed' && (!t.userId || (added && t.userId === r.userId)),
+        match: (t) => {
+          if (t.type !== 'task.assignee_changed') return false;
+          const users = [...(t.userIds ?? []), ...(t.userId ? [t.userId] : [])];
+          return !users.length || (added && users.includes(r.userId as string));
+        },
       });
     } else if (w.entity === 'comments' && w.op === 'put' && a && !b) {
       out.push({ taskId: a.taskId as string, match: (t) => t.type === 'comment.added' });

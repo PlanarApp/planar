@@ -267,7 +267,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId
 |---|---|---|
 | `task.created` | — | `tasks` put, `before = null` |
 | `task.status_changed` | `from?: uuid[]`, `to?: uuid[]` | `statusId` changed; if `from`/`to` are given — the old/new value is in the list |
-| `task.assignee_changed` | `userId?: uuid` | `taskAssignees` put (new) or del; with `userId` — only adding this user |
+| `task.assignee_changed` | `userIds?: uuid[]`, `userId?: uuid` (rules before PLNRAPP-197) | `taskAssignees` put (new) or del; with `userIds`/`userId` — only adding one of these users, whatever other assignees the task has |
 | `task.field_changed` | `field: 'title'\|'description'\|'priority'\|'dueDate'\|'startDate'\|'parentId'\|'field:<uuid>'`, `byHuman?: bool` | the field value changed (`fields[id]` for `field:`) |
 | `task.due` | `daysBefore: int 0–30` | cron `automations.due` (hourly): the task is not done/cancelled, `dueDate − daysBefore ≤ today` in `settings.timezone` (instance key, IANA, default `UTC`); once per (rule, task, `dueDate`) |
 | `comment.added` | `byHuman?: bool` | `comments` put, `before = null` |
