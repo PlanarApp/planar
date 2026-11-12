@@ -105,17 +105,21 @@ const list = (who: string, scope: string, scopeId?: string) =>
 
 describe('ai: подключения', () => {
   it('ключ шифруется, наружу не отдаётся, проверка связи идёт с этим ключом', async () => {
-    const r = await put('root', 'instance');
+    const r = await put('root', 'workspace');
     expect(r.statusCode).toBe(200);
     expect(r.body).not.toContain(SECRET);
-    expect(r.json().connection).toMatchObject({ scope: 'instance', model: 'fake-1', keySet: true });
+    expect(r.json().connection).toMatchObject({
+      scope: 'workspace',
+      model: 'fake-1',
+      keySet: true,
+    });
     expect(hits).toHaveLength(1);
     expect(hits[0]).toMatchObject({ path: '/chat/completions', auth: `Bearer ${SECRET}` });
     const [row] = await db.select().from(C);
     expect(row!.keyEnc).toMatch(/^v1:[^:]+:[^:]+:[^:]+$/);
     expect(row!.keyEnc).not.toContain(SECRET);
     expect(decrypt(row!.keyEnc, Buffer.from(KEY, 'base64'))).toBe(SECRET);
-    const g = await list('root', 'instance');
+    const g = await list('root', 'workspace');
     expect(g.body).not.toContain(SECRET);
     expect(g.body).not.toContain('keyEnc');
     expect(g.json().connection.id).toBe(row!.id);
@@ -124,7 +128,7 @@ describe('ai: подключения', () => {
   it('провайдер отклонил ключ или недоступен — 502, ничего не сохранено, текст провайдера не уходит', async () => {
     for (const st of [401, 500]) {
       status = st;
-      const r = await put('root', 'instance');
+      const r = await put('root', 'workspace');
       expect(r.statusCode).toBe(502);
       expect(r.body).not.toContain('"no"');
     }
@@ -132,14 +136,14 @@ describe('ai: подключения', () => {
   });
 
   it('список моделей: с ключом формы или сохранённым того же адреса; ошибки — 502; только админ', async () => {
-    const body = { scope: 'instance', provider: 'openai-compatible', baseUrl: base };
+    const body = { scope: 'workspace', provider: 'openai-compatible', baseUrl: base };
     const r = await call('POST', 'connections/models', 'root', { ...body, apiKey: 'k-form' });
     expect(r.statusCode).toBe(200);
     expect(r.json()).toEqual({ models: ['fake-1', 'fake-2'] });
     expect(hits.at(-1)).toMatchObject({ path: '/models', auth: 'Bearer k-form' });
     // nothing saved yet — no key
     expect((await call('POST', 'connections/models', 'root', body)).statusCode).toBe(400);
-    await put('root', 'instance');
+    await put('root', 'workspace');
     expect((await call('POST', 'connections/models', 'root', body)).statusCode).toBe(200);
     expect(hits.at(-1)!.auth).toBe(`Bearer ${SECRET}`);
     // another host — the saved key is not sent there
@@ -155,9 +159,9 @@ describe('ai: подключения', () => {
   });
 
   it('смена модели без ключа оставляет сохранённый ключ и проверяет им', async () => {
-    await put('root', 'instance');
+    await put('root', 'workspace');
     hits = [];
-    const r = await put('root', 'instance', undefined, { apiKey: undefined, model: 'fake-2' });
+    const r = await put('root', 'workspace', undefined, { apiKey: undefined, model: 'fake-2' });
     expect(r.statusCode).toBe(200);
     expect(hits[0]!.auth).toBe(`Bearer ${SECRET}`);
     const rows = await db.select().from(C);
@@ -166,9 +170,9 @@ describe('ai: подключения', () => {
     expect((await put('root', 'space', w.spaceId, { apiKey: undefined })).statusCode).toBe(400);
   });
 
-  it('наследование: ближайший уровень — проект, затем пространство, затем инстанс', async () => {
+  it('наследование: ближайший уровень — проект, затем пространство, затем воркспейс', async () => {
     expect(await resolveConnection(db, w.projectId)).toBeNull();
-    await put('root', 'instance', undefined, { model: 'm-instance' });
+    await put('root', 'workspace', undefined, { model: 'm-instance' });
     expect((await resolveConnection(db, w.projectId))!.model).toBe('m-instance');
     await put('spaceAdmin', 'space', w.spaceId, { model: 'm-space' });
     expect((await resolveConnection(db, w.projectId))!.model).toBe('m-space');
@@ -202,14 +206,14 @@ describe('ai: подключения', () => {
     expect((await resolveConnection(db, w.projectId))!.model).toBe('m-space');
   });
 
-  it('права: инстанс — админ инстанса, пространство и проект — их админы; проект — только с модулем', async () => {
-    expect((await put('member', 'instance')).statusCode).toBe(403);
-    expect((await put('spaceAdmin', 'instance')).statusCode).toBe(403);
+  it('права: воркспейс — админ инстанса, пространство и проект — их админы; проект — только с модулем', async () => {
+    expect((await put('member', 'workspace')).statusCode).toBe(403);
+    expect((await put('spaceAdmin', 'workspace')).statusCode).toBe(403);
     expect((await put('member', 'space', w.spaceId)).statusCode).toBe(403);
     expect((await put('member', 'project', w.projectId)).statusCode).toBe(403);
     expect((await put('outsider', 'project', w.projectId)).statusCode).toBe(403);
     expect((await put('spaceAdmin', 'space', uuidv7())).statusCode).toBe(404);
-    expect((await list('member', 'instance')).statusCode).toBe(403);
+    expect((await list('member', 'workspace')).statusCode).toBe(403);
     expect((await put('root', 'project', w.projectId)).statusCode).toBe(200);
     // module off in the project: no project connection, but the space one is still allowed
     await w.admin.ok('project.setModule', {
@@ -225,16 +229,19 @@ describe('ai: подключения', () => {
       enabled: true,
     });
     // a body that breaks the form
-    expect((await put('root', 'instance', undefined, { provider: 'nope' })).statusCode).toBe(400);
-    expect((await put('root', 'instance', undefined, { baseUrl: null })).statusCode).toBe(400);
+    expect((await put('root', 'workspace', undefined, { provider: 'nope' })).statusCode).toBe(400);
+    expect((await put('root', 'workspace', undefined, { baseUrl: null })).statusCode).toBe(400);
     expect((await put('root', 'space')).statusCode).toBe(400);
+    // PLNRAPP-193: the former level name is not accepted
+    expect((await put('root', 'instance')).statusCode).toBe(400);
+    expect((await list('root', 'instance')).statusCode).toBe(400);
     const id = (await list('root', 'project', w.projectId)).json().connection.id;
     expect((await call('DELETE', `connections/${id}`, 'member')).statusCode).toBe(403);
     expect((await call('DELETE', `connections/nope`, 'root')).statusCode).toBe(404);
   });
 
   it('generateStructured: объект по схеме, токены и стоимость', async () => {
-    await put('root', 'instance');
+    await put('root', 'workspace');
     hits = [];
     const conn = secretOf((await resolveConnection(db, w.projectId))!);
     const r = await generateStructured(conn, {

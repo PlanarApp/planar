@@ -8,7 +8,7 @@ import { tr } from './data';
 // from the provider's list. The list is asked with the typed key or, for the same provider and URL, the saved one.
 const props = defineProps<{
   f: { provider: AiProvider; baseUrl: string; apiKey: string; model: string };
-  scope: 'instance' | 'space' | 'project';
+  scope: 'workspace' | 'space' | 'project';
   scopeId?: string;
   /** the level's own saved connection: its key serves the list while no new key is typed */
   saved: { provider: AiProvider; baseUrl: string | null } | null;

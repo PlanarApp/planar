@@ -4,13 +4,13 @@ import { i18n } from '@planar/web/modules';
 const dict = {
   title: { ru: 'ИИ', en: 'AI' },
   intro: {
-    ru: 'Подключение к ИИ-провайдеру. Действует ближайший уровень: проект, затем пространство, затем инстанс.',
-    en: 'Connection to an AI provider. The nearest level applies: project, then space, then instance.',
+    ru: 'Подключение к ИИ-провайдеру. Действует ближайший уровень: проект, затем пространство, затем воркспейс.',
+    en: 'Connection to an AI provider. The nearest level applies: project, then space, then workspace.',
   },
   own: { ru: 'Подключение этого уровня', en: 'Connection of this level' },
   none: { ru: 'Не задано', en: 'Not set' },
   inherited: { ru: 'Действует подключение уровня', en: 'In force: connection of level' },
-  instance: { ru: 'инстанс', en: 'instance' },
+  workspace: { ru: 'воркспейс', en: 'workspace' },
   space: { ru: 'пространство', en: 'space' },
   project: { ru: 'проект', en: 'project' },
   provider: { ru: 'Провайдер', en: 'Provider' },

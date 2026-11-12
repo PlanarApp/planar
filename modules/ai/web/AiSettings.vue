@@ -10,7 +10,7 @@ import SetupWizard from './SetupWizard.vue';
 
 // «Settings → AI»: the connection of one level; the key is only sent, never shown
 const props = defineProps<{
-  level: 'instance' | 'space' | 'project';
+  level: 'workspace' | 'space' | 'project';
   spaceId?: string;
   projectId?: string;
 }>();
@@ -37,7 +37,7 @@ const f = reactive({
 });
 
 const scopeId = computed(() =>
-  props.level === 'instance'
+  props.level === 'workspace'
     ? undefined
     : props.level === 'space'
       ? props.spaceId

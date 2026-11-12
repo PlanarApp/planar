@@ -23,7 +23,7 @@ export const aiConnections = pgTable(
   'ai_connections',
   {
     id: uuid().primaryKey(),
-    /** instance | space | project */
+    /** workspace | space | project */
     scope: text().notNull(),
     /** space or project id; the nil uuid for the instance */
     scopeId: uuid().notNull(),

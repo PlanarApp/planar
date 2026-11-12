@@ -246,7 +246,7 @@ describe('packs', () => {
 
     // merge: the AI text is shown, nothing is written
     await call('PUT', 'connections', 'root', {
-      scope: 'instance',
+      scope: 'workspace',
       provider: 'openai-compatible',
       baseUrl: base,
       apiKey: 'sk-test',

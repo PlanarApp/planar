@@ -125,7 +125,7 @@ beforeAll(async () => {
   await raw(`delete from ai_connections`);
   await db.$client.query(
     `insert into ai_connections (id, scope, scope_id, provider, base_url, key_enc, model)
-     values ($1, 'instance', '00000000-0000-0000-0000-000000000000', 'openai-compatible', $2, $3, 'fake')`,
+     values ($1, 'workspace', '00000000-0000-0000-0000-000000000000', 'openai-compatible', $2, $3, 'fake')`,
     [uuidv7(), base, encrypt('sk-test', secretKey()!)],
   );
   // a project with the module: the bot exists and is a member of the space

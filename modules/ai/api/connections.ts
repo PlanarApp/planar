@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import { decrypt, secretKey, type Db } from '@planar/server-kit';
-import { INSTANCE_SCOPE_ID, type AiConnectionView, type AiProvider } from '../shared/index.js';
+import { WORKSPACE_SCOPE_ID, type AiConnectionView, type AiProvider } from '../shared/index.js';
 import type { LlmConnection } from './llm.js';
 import { aiConnections as C } from './schema.js';
 
@@ -22,8 +22,8 @@ export const viewOf = (r: Row): AiConnectionView => ({
 });
 
 /**
- * The connection in force for a project: the nearest level wins — project, then its space, then the instance.
- * A chat channel without a project passes its own `spaceId` (null for the instance level only).
+ * The connection in force for a project: the nearest level wins — project, then its space, then the workspace.
+ * A chat channel without a project passes its own `spaceId` (null for the workspace level only).
  * null — nothing is configured on any level.
  */
 export async function resolveConnection(
@@ -35,7 +35,7 @@ export async function resolveConnection(
     select c.id from ai_connections c
     where (c.scope = 'project' and c.scope_id = ${projectId}::uuid)
        or (c.scope = 'space' and c.scope_id = coalesce((select space_id from projects where id = ${projectId}::uuid), ${spaceId}::uuid))
-       or (c.scope = 'instance' and c.scope_id = ${INSTANCE_SCOPE_ID}::uuid)
+       or (c.scope = 'workspace' and c.scope_id = ${WORKSPACE_SCOPE_ID}::uuid)
     order by case c.scope when 'project' then 0 when 'space' then 1 else 2 end
     limit 1`);
   const id = r.rows[0]?.id as string | undefined;

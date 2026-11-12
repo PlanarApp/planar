@@ -26,7 +26,7 @@ import {
   AI_PROVIDERS,
   AI_SCOPES,
   AI_RUN_STATES,
-  INSTANCE_SCOPE_ID,
+  WORKSPACE_SCOPE_ID,
   MAX_RESTARTS,
   type AiConnectionView,
   type AiLimits,
@@ -76,8 +76,8 @@ const connRules = <T extends z.ZodType<z.output<typeof connBody>>>(s: T) =>
       message: 'для openai-compatible нужен baseUrl',
       path: ['baseUrl'],
     })
-    .refine((b) => (b.scope === 'instance') === (b.scopeId === undefined), {
-      message: 'scopeId нужен у space и project и не нужен у instance',
+    .refine((b) => (b.scope === 'workspace') === (b.scopeId === undefined), {
+      message: 'scopeId нужен у space и project и не нужен у workspace',
       path: ['scopeId'],
     });
 /** PLNRAPP-189: the models list — the connection fields without the model and prices */
@@ -121,11 +121,11 @@ const limitsBody = z.object({
 export class AiController {
   constructor(@Inject(CORE) private core: CoreServices) {}
 
-  /** Admin of the level: instance — owner/admin; space — admin of the space; project — admin of the project. Session only. */
+  /** Admin of the level: workspace — owner/admin; space — admin of the space; project — admin of the project. Session only. */
   private async admin(req: object, scope: AiScope, scopeId: string) {
     const a = this.core.auth(req);
     if (a.tokenId) throw new HttpError(403, 'forbidden', 'Только из сессии');
-    if (scope === 'instance') {
+    if (scope === 'workspace') {
       this.core.requireInstanceAdmin(req, { sessionOnly: true });
       return;
     }
@@ -362,11 +362,11 @@ export class AiController {
     return this.limitsOf(projectId);
   }
 
-  /** The level's own connection and the one in force for it (project: nearest of project, space, instance). */
+  /** The level's own connection and the one in force for it (project: nearest of project, space, workspace). */
   @Get('connections')
   async list(@Req() req: object, @Query() query: unknown) {
     const q = parseBody(listQuery, query);
-    const scopeId = q.scope === 'instance' ? INSTANCE_SCOPE_ID : q.scopeId;
+    const scopeId = q.scope === 'workspace' ? WORKSPACE_SCOPE_ID : q.scopeId;
     if (!scopeId) throw new HttpError(400, 'invalid_request', 'scopeId обязателен');
     await this.admin(req, q.scope, scopeId);
     const [own] = await this.core.db.select().from(C).where(eqScope(q.scope, scopeId));
@@ -374,7 +374,7 @@ export class AiController {
     if (!own && q.scope === 'project') effective = await resolveConnection(this.core.db, scopeId);
     else if (!own && q.scope === 'space')
       effective =
-        (await this.core.db.select().from(C).where(eqScope('instance', INSTANCE_SCOPE_ID)))[0] ??
+        (await this.core.db.select().from(C).where(eqScope('workspace', WORKSPACE_SCOPE_ID)))[0] ??
         null;
     return {
       connection: own ? viewOf(own) : null,
@@ -386,7 +386,7 @@ export class AiController {
   @Put('connections')
   async save(@Req() req: object, @Body() body: unknown): Promise<{ connection: AiConnectionView }> {
     const b = parseBody(putBody, body);
-    const scopeId = b.scope === 'instance' ? INSTANCE_SCOPE_ID : b.scopeId!;
+    const scopeId = b.scope === 'workspace' ? WORKSPACE_SCOPE_ID : b.scopeId!;
     await this.admin(req, b.scope, scopeId);
     const key = secretKey();
     if (!key) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
@@ -421,7 +421,7 @@ export class AiController {
   @HttpCode(200)
   async models(@Req() req: object, @Body() body: unknown): Promise<{ models: string[] }> {
     const b = parseBody(modelsBody, body);
-    const scopeId = b.scope === 'instance' ? INSTANCE_SCOPE_ID : b.scopeId!;
+    const scopeId = b.scope === 'workspace' ? WORKSPACE_SCOPE_ID : b.scopeId!;
     await this.admin(req, b.scope, scopeId);
     let had: typeof C.$inferSelect | undefined;
     if (!b.apiKey) {
