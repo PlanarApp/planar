@@ -1,0 +1,32 @@
+# dev: agent actions of the AI on top of compose.dev.yml — ./dev.sh up-ai
+# The agent image is built separately: docker build -t planar-ai-agent:1 docker/ai-agent
+# LLM actions need none of this: a provider key in Settings → AI is enough.
+services:
+  api:
+    environment:
+      AI_RUNNER_URL: http://ai-runner:8080
+      AI_RUNNER_TOKEN: ${AI_RUNNER_TOKEN:-dev-runner-token}
+      AI_AGENT_IMAGE: ${AI_AGENT_IMAGE:-planar-ai-agent:1}
+    networks: [default, runner, agents]
+
+  ai-runner:
+    build: { context: ., dockerfile: apps/ai-runner/Dockerfile }
+    environment:
+      AI_RUNNER_TOKEN: ${AI_RUNNER_TOKEN:-dev-runner-token}
+      AI_RUNNER_IMAGES: ${AI_AGENT_IMAGE:-planar-ai-agent:1}
+      AI_RUNNER_AGENT_NETWORK: ${COMPOSE_PROJECT_NAME:-planar-dev}_agents
+    networks: [runner]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  squid:
+    image: ubuntu/squid:6.6-24.04_edge
+    networks: [default, agents]
+    volumes:
+      - ./deploy/squid.conf:/etc/squid/squid.conf:ro
+
+networks:
+  runner:
+    internal: true
+  agents:
+    internal: true
