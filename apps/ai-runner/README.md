@@ -10,7 +10,7 @@
 docker compose --profile ai up -d
 ```
 
-Образ `ai-runner` собирается из `apps/ai-runner/Dockerfile` (контекст — корень репозитория).
+Образ `ai-runner` собирается из `apps/ai-runner/Dockerfile` (контекст — корень репозитория). Оба образа — `ai-runner` и агент `ai-agent` (`docker/ai-agent`) — CI публикует в реестр `registry.gitlab.com/planarhq/planar/`.
 
 ### Локально (dev)
 
@@ -27,9 +27,9 @@ docker build -t planar-ai-agent:1 docker/ai-agent   # образ агента, �
 
 ```sh
 AI_RUNNER_TOKEN=длинный-случайный-секрет     # обязателен у ai-runner; api берёт тот же
-AI_RUNNER_IMAGES=registry.example/agent:1     # allowlist образов, через запятую, точное совпадение
+AI_RUNNER_IMAGES=registry.gitlab.com/planarhq/planar/ai-agent:1.4   # allowlist образов, через запятую, точное совпадение
 AI_RUNNER_URL=http://ai-runner:8080           # для api: включает запуск agent-действий
-AI_AGENT_IMAGE=registry.example/agent:1       # для api: какой образ запускать
+AI_AGENT_IMAGE=registry.gitlab.com/planarhq/planar/ai-agent:1.4     # для api: какой образ запускать
 AI_AGENT_MAX_REPLICAS=2                       # для api: сколько прогонов одновременно
 ```
 

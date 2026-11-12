@@ -59,7 +59,7 @@ test:
       fi
       args=""
       for t in $tags; do args="$args -t $img:$t"; done
-      docker build $args -f "$DOCKERFILE" .
+      docker build $args -f "$DOCKERFILE" "${CONTEXT:-.}"
       for t in $tags; do docker push "$img:$t"; done
 
 image-api:
@@ -73,3 +73,12 @@ image-caddy:
 image-ai-runner:
   extends: .image
   variables: { NAME: ai-runner, DOCKERFILE: apps/ai-runner/Dockerfile }
+
+# ~3.2 GB: on main rebuild only when the image itself changes; release tags always
+image-ai-agent:
+  extends: .image
+  variables: { NAME: ai-agent, DOCKERFILE: docker/ai-agent/Dockerfile, CONTEXT: docker/ai-agent }
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes: [docker/ai-agent/**/*]
