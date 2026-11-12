@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { Button } from '@planar/web/modules';
 import { AI_PROVIDERS, type AiConnectionView, type HarnessOp } from '../shared/index.js';
 import { AiApiError, call } from './api';
+import ConnectionFields from './ConnectionFields.vue';
 import { tr } from './data';
 import { applyFailure, diffPrefix, hasChanges, type ChatReply, type Proposal } from './docChatUi';
 import { buildReplaceWith, groupOps, needReplace, replaceTargets } from './harnessUi';
@@ -52,11 +53,18 @@ async function guard(fn: () => Promise<void>) {
 }
 
 // step 1: PUT /connections checks the key against the provider before it saves (502 → the message is shown)
+// the project's own connection (its key serves the models list); `effective` comes only without it
+const saved = ref<AiConnectionView | null>(null);
 async function loadConnection() {
   const q = new URLSearchParams({ scope: 'project', scopeId: props.projectId });
-  const r = await call<{ effective: AiConnectionView | null }>('GET', `connections?${q}`);
-  connected.value = !!r.effective;
-  if (r.effective) Object.assign(f, { provider: r.effective.provider, model: r.effective.model });
+  const r = await call<{ connection: AiConnectionView | null; effective: AiConnectionView | null }>(
+    'GET',
+    `connections?${q}`,
+  );
+  saved.value = r.connection;
+  const c = r.connection ?? r.effective;
+  connected.value = !!c;
+  if (c) Object.assign(f, { provider: c.provider, baseUrl: c.baseUrl ?? '', model: c.model });
 }
 const saveKey = () =>
   guard(async () => {
@@ -69,7 +77,7 @@ const saveKey = () =>
       model: f.model.trim(),
     });
     f.apiKey = '';
-    connected.value = true;
+    await loadConnection();
   });
 
 // step 3: upload with per-page conflict choice (shared with PacksSection)
@@ -202,44 +210,21 @@ onMounted(() =>
       <p v-if="connected" class="text-fg-muted" data-testid="wizard-connected">
         {{ tr('wzConnected') }}
       </p>
-      <label class="flex flex-col gap-1"
-        >{{ tr('provider') }}
-        <select v-model="f.provider" class="rounded-md border border-border bg-bg px-2 py-1">
-          <option v-for="p in AI_PROVIDERS" :key="p" :value="p">{{ p }}</option>
-        </select>
-      </label>
-      <label class="flex flex-col gap-1"
-        >{{ tr('baseUrl') }}
-        <input
-          v-model="f.baseUrl"
-          type="url"
-          maxlength="2000"
-          :required="f.provider === 'openai-compatible'"
-          class="rounded-md border border-border bg-bg px-2 py-1"
-        />
-      </label>
-      <label class="flex flex-col gap-1"
-        >{{ tr('key') }}
-        <input
-          v-model="f.apiKey"
-          type="password"
-          autocomplete="off"
-          maxlength="500"
-          :required="!connected"
-          :placeholder="connected ? tr('newKey') : ''"
-          data-testid="wizard-key-input"
-          class="rounded-md border border-border bg-bg px-2 py-1"
-        />
-      </label>
-      <label class="flex flex-col gap-1"
-        >{{ tr('model') }}
-        <input
-          v-model="f.model"
-          required
-          maxlength="200"
-          class="rounded-md border border-border bg-bg px-2 py-1"
-        />
-      </label>
+      <ConnectionFields :f="f" scope="project" :scope-id="projectId" :saved="saved">
+        <label class="flex flex-col gap-1"
+          >{{ tr('key') }}
+          <input
+            v-model="f.apiKey"
+            type="password"
+            autocomplete="off"
+            maxlength="500"
+            :required="!saved"
+            :placeholder="saved ? tr('newKey') : ''"
+            data-testid="wizard-key-input"
+            class="rounded-md border border-border bg-bg px-2 py-1"
+          />
+        </label>
+      </ConnectionFields>
       <div>
         <Button type="submit" size="sm" :disabled="busy" data-testid="wizard-check">{{
           tr(busy ? 'saving' : 'save')

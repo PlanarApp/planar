@@ -14,6 +14,46 @@ export const AI_BOT_NAME = 'ИИ';
 
 export const AI_PROVIDERS = ['openai', 'anthropic', 'openai-compatible'] as const;
 export type AiProvider = (typeof AI_PROVIDERS)[number];
+/** PLNRAPP-189: ready providers for the settings form; a connection stores only provider + baseUrl. */
+export const AI_PRESETS: readonly {
+  id: string;
+  name: string;
+  provider: AiProvider;
+  baseUrl: string | null;
+}[] = [
+  { id: 'openai', name: 'OpenAI', provider: 'openai', baseUrl: null },
+  { id: 'anthropic', name: 'Anthropic', provider: 'anthropic', baseUrl: null },
+  {
+    id: 'gemini',
+    name: 'Google Gemini',
+    provider: 'openai-compatible',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    provider: 'openai-compatible',
+    baseUrl: 'https://openrouter.ai/api/v1',
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    provider: 'openai-compatible',
+    baseUrl: 'https://api.deepseek.com/v1',
+  },
+  {
+    id: 'mistral',
+    name: 'Mistral',
+    provider: 'openai-compatible',
+    baseUrl: 'https://api.mistral.ai/v1',
+  },
+  {
+    id: 'groq',
+    name: 'Groq',
+    provider: 'openai-compatible',
+    baseUrl: 'https://api.groq.com/openai/v1',
+  },
+];
 export const AI_SCOPES = ['instance', 'space', 'project'] as const;
 export type AiScope = (typeof AI_SCOPES)[number];
 /** scopeId of the instance level (the column is not null: one connection per level) */

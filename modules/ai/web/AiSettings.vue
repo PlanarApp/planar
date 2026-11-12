@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { AI_PROVIDERS, type AiConnectionView } from '../shared/index.js';
 import { call } from './api';
+import ConnectionFields from './ConnectionFields.vue';
 import { tr } from './data';
 import LimitsSection from './LimitsSection.vue';
 import PacksSection from './PacksSection.vue';
@@ -115,52 +116,22 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
     <h3 class="font-medium">{{ tr('own') }}</h3>
     <p v-if="!own" class="text-sm text-fg-muted">{{ tr('none') }}</p>
     <form class="flex flex-col gap-2" data-testid="ai-form" @submit.prevent="save">
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ tr('provider') }}
-        <select
-          v-model="f.provider"
-          data-testid="ai-provider"
-          class="rounded-md border border-border bg-bg px-2 py-1"
-        >
-          <option v-for="p in AI_PROVIDERS" :key="p" :value="p">{{ p }}</option>
-        </select>
-      </label>
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ tr('baseUrl') }}
-        <input
-          v-model="f.baseUrl"
-          type="url"
-          maxlength="2000"
-          :required="f.provider === 'openai-compatible'"
-          :placeholder="tr('baseUrlHint')"
-          data-testid="ai-base-url"
-          class="rounded-md border border-border bg-bg px-2 py-1"
-        />
-      </label>
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ tr('key') }}
-        <input
-          v-model="f.apiKey"
-          type="password"
-          autocomplete="off"
-          maxlength="500"
-          :required="!own"
-          :placeholder="own ? tr('newKey') : ''"
-          data-testid="ai-key"
-          class="rounded-md border border-border bg-bg px-2 py-1"
-        />
-        <span v-if="own" class="text-xs text-fg-muted">{{ tr('keySet') }}</span>
-      </label>
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ tr('model') }}
-        <input
-          v-model="f.model"
-          required
-          maxlength="200"
-          data-testid="ai-model"
-          class="rounded-md border border-border bg-bg px-2 py-1"
-        />
-      </label>
+      <ConnectionFields :f="f" :scope="level" :scope-id="scopeId" :saved="own">
+        <label class="flex flex-col gap-1 text-sm"
+          >{{ tr('key') }}
+          <input
+            v-model="f.apiKey"
+            type="password"
+            autocomplete="off"
+            maxlength="500"
+            :required="!own"
+            :placeholder="own ? tr('newKey') : ''"
+            data-testid="ai-key"
+            class="rounded-md border border-border bg-bg px-2 py-1"
+          />
+          <span v-if="own" class="text-xs text-fg-muted">{{ tr('keySet') }}</span>
+        </label>
+      </ConnectionFields>
       <div class="flex flex-wrap gap-2">
         <label class="flex flex-1 flex-col gap-1 text-sm"
           >{{ tr('priceIn') }}

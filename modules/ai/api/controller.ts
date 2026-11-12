@@ -47,7 +47,7 @@ import {
 } from './run.js';
 import { stopAgent } from './agent.js';
 import { resolveConnection, secretOf, viewOf } from './connections.js';
-import { checkConnection, ConnectionCheckFailed, type LlmConnection } from './llm.js';
+import { checkConnection, ConnectionCheckFailed, listModels, type LlmConnection } from './llm.js';
 import { aiConnections as C } from './schema.js';
 
 const baseUrl = z
@@ -62,26 +62,33 @@ const baseUrl = z
     }
   }, 'нужен http(s)-адрес без логина и пароля');
 const price = z.number().min(0).max(1_000_000);
-const putBody = z
-  .object({
-    scope: z.enum(AI_SCOPES),
-    scopeId: z.uuid().optional(),
-    provider: z.enum(AI_PROVIDERS),
-    baseUrl: baseUrl.nullish(),
-    /** omitted on an update: the saved key stays */
-    apiKey: z.string().min(1).max(500).optional(),
+const connBody = z.object({
+  scope: z.enum(AI_SCOPES),
+  scopeId: z.uuid().optional(),
+  provider: z.enum(AI_PROVIDERS),
+  baseUrl: baseUrl.nullish(),
+  /** omitted on an update: the saved key stays */
+  apiKey: z.string().min(1).max(500).optional(),
+});
+const connRules = <T extends z.ZodType<z.output<typeof connBody>>>(s: T) =>
+  s
+    .refine((b) => b.provider !== 'openai-compatible' || !!b.baseUrl, {
+      message: 'для openai-compatible нужен baseUrl',
+      path: ['baseUrl'],
+    })
+    .refine((b) => (b.scope === 'instance') === (b.scopeId === undefined), {
+      message: 'scopeId нужен у space и project и не нужен у instance',
+      path: ['scopeId'],
+    });
+/** PLNRAPP-189: the models list — the connection fields without the model and prices */
+const modelsBody = connRules(connBody);
+const putBody = connRules(
+  connBody.extend({
     model: z.string().min(1).max(200),
     priceIn: price.nullish(),
     priceOut: price.nullish(),
-  })
-  .refine((b) => b.provider !== 'openai-compatible' || !!b.baseUrl, {
-    message: 'для openai-compatible нужен baseUrl',
-    path: ['baseUrl'],
-  })
-  .refine((b) => (b.scope === 'instance') === (b.scopeId === undefined), {
-    message: 'scopeId нужен у space и project и не нужен у instance',
-    path: ['scopeId'],
-  });
+  }),
+);
 const listQuery = z.object({ scope: z.enum(AI_SCOPES), scopeId: z.uuid().optional() });
 
 const nf = () => new HttpError(404, 'not_found', 'Не найдено');
@@ -383,26 +390,15 @@ export class AiController {
     const key = secretKey();
     if (!key) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
     const [had] = await this.core.db.select().from(C).where(eqScope(b.scope, scopeId));
-    let apiKey = b.apiKey;
-    if (!apiKey) {
-      if (!had) throw new HttpError(400, 'invalid_request', 'apiKey обязателен');
-      apiKey = secretOf(had).apiKey;
-    }
     const conn: LlmConnection = {
       provider: b.provider,
       baseUrl: b.baseUrl ?? null,
-      apiKey,
+      apiKey: apiKeyOf(b.apiKey, had),
       model: b.model,
       priceIn: b.priceIn ?? null,
       priceOut: b.priceOut ?? null,
     };
-    try {
-      await checkConnection(conn);
-    } catch (e) {
-      if (e instanceof ConnectionCheckFailed && e.kind === 'rejected')
-        throw new HttpError(502, 'unavailable', 'Провайдер отклонил ключ');
-      throw new HttpError(502, 'unavailable', 'Провайдер недоступен');
-    }
+    await providerCall(() => checkConnection(conn));
     const v = {
       provider: conn.provider,
       baseUrl: conn.baseUrl,
@@ -419,6 +415,29 @@ export class AiController {
     return { connection: viewOf(r!) };
   }
 
+  /** PLNRAPP-189: the provider's models for the form; without apiKey — with the level's saved key. */
+  @Post('connections/models')
+  @HttpCode(200)
+  async models(@Req() req: object, @Body() body: unknown): Promise<{ models: string[] }> {
+    const b = parseBody(modelsBody, body);
+    const scopeId = b.scope === 'instance' ? INSTANCE_SCOPE_ID : b.scopeId!;
+    await this.admin(req, b.scope, scopeId);
+    let had: typeof C.$inferSelect | undefined;
+    if (!b.apiKey) {
+      if (!secretKey()) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
+      [had] = await this.core.db.select().from(C).where(eqScope(b.scope, scopeId));
+      // the saved key goes only to the host it was saved for
+      if (had && (had.provider !== b.provider || had.baseUrl !== (b.baseUrl ?? null)))
+        had = undefined;
+    }
+    const apiKey = apiKeyOf(b.apiKey, had);
+    return {
+      models: await providerCall(() =>
+        listModels({ provider: b.provider, baseUrl: b.baseUrl ?? null, apiKey }),
+      ),
+    };
+  }
+
   @Delete('connections/:id')
   @HttpCode(204)
   async remove(@Req() req: object, @Param('id') id: string) {
@@ -427,6 +446,24 @@ export class AiController {
     if (!c) throw nf();
     await this.admin(req, c.scope as AiScope, c.scopeId);
     await this.core.db.delete(C).where(eq(C.id, id));
+  }
+}
+
+/** The key given in the form, else the level's saved one. */
+const apiKeyOf = (given: string | undefined, had: typeof C.$inferSelect | undefined) => {
+  if (given) return given;
+  if (!had) throw new HttpError(400, 'invalid_request', 'apiKey обязателен');
+  return secretOf(had).apiKey;
+};
+
+/** A provider call; its own error text is dropped (it may quote the key). */
+async function providerCall<T>(f: () => Promise<T>): Promise<T> {
+  try {
+    return await f();
+  } catch (e) {
+    if (e instanceof ConnectionCheckFailed && e.kind === 'rejected')
+      throw new HttpError(502, 'unavailable', 'Провайдер отклонил ключ');
+    throw new HttpError(502, 'unavailable', 'Провайдер недоступен');
   }
 }
 

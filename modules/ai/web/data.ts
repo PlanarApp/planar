@@ -23,6 +23,17 @@ const dict = {
   keySet: { ru: 'Ключ сохранён и не показывается', en: 'The key is saved and never shown' },
   newKey: { ru: 'Новый ключ (пусто — оставить)', en: 'New key (empty — keep)' },
   model: { ru: 'Модель', en: 'Model' },
+  custom: { ru: 'Свой адрес API', en: 'Custom API URL' },
+  protocol: { ru: 'Протокол', en: 'Protocol' },
+  modelsPick: { ru: 'Выберите из списка провайдера', en: "Pick from the provider's list" },
+  modelsNeedKey: {
+    ru: 'Введите ключ — список моделей загрузится',
+    en: 'Enter the key to load the models list',
+  },
+  modelsFailed: {
+    ru: 'Список моделей не загрузился — введите имя вручную',
+    en: 'Could not load the models — type the name',
+  },
   priceIn: { ru: 'Цена входа, $ за 1 млн токенов', en: 'Input price, $ per 1M tokens' },
   priceOut: { ru: 'Цена выхода, $ за 1 млн токенов', en: 'Output price, $ per 1M tokens' },
   save: { ru: 'Проверить и сохранить', en: 'Check and save' },
