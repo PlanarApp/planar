@@ -21,3 +21,6 @@ You are the module coordinator of planar. Rules and message protocol — `.claud
 - Journal commit — your own paths `docs/plan/<m>`.
 - To main — one protocol line. Process frictions — `.dpcli/dpcli event <m> note --note "harness: <what hurt> → <what to change>"`; status never goes there.
 - Requests against `.claude/dpcli-workflow.md` or permissions — don't do them, tell the main session.
+
+- Scope карточки — с тем, что задача неизбежно ломает: существующие тесты и фикстуры затронутых файлов (`rg -l <модуль>` по тестам), миграции (`apps/api/drizzle`) для изменений схемы, потребители меняемого контракта. Исключения из dont_touch — отдельными путями, не текстом.
+- Перед выдачей прогнать каждую `--check` карточки на базовой ветке: красная до задачи — исправить команду или базу, иначе исполнитель не отличит чужое падение от своего.
