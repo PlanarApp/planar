@@ -100,6 +100,10 @@ const dict = {
     ru: 'Выключатель: новые прогоны не стартуют (завершаются ошибкой), идущие не трогаем.',
     en: 'The switch: new runs do not start (they fail), running ones are left alone.',
   },
+  noRunner: {
+    ru: 'Runner не настроен: agent-действия (код, тесты в контейнере) не запускаются. Включите сервисы профиля ai в compose и задайте AI_RUNNER_URL (apps/ai-runner/README.md). Llm-действиям runner не нужен.',
+    en: 'The runner is not set up: agent actions (code, tests in a container) do not start. Turn on the ai profile services in compose and set AI_RUNNER_URL (apps/ai-runner/README.md). LLM actions do not need the runner.',
+  },
   load: { ru: 'Нагрузка', en: 'Load' },
   waiting: { ru: 'ждут человека', en: 'waiting for a human' },
   todayUsed: { ru: 'Сегодня (UTC)', en: 'Today (UTC)' },

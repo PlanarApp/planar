@@ -305,6 +305,7 @@ export class AiController {
       today: await usedToday(this.core.db),
       enabled: await aiEnabled(this.core.db),
       limits: defaultLimits(),
+      runner: !!process.env.AI_RUNNER_URL,
     };
   }
 
