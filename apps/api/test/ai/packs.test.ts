@@ -108,7 +108,14 @@ describe('packs', () => {
 
   it('загрузка раскладывает документы, пишет хеши; активация и права', async () => {
     const l = (await call('GET', `packs?projectId=${w.projectId}`, 'admin')).json();
-    expect(l.catalog).toEqual([{ key: 'dev', title: 'Разработка', actions: 6 }]);
+    expect(l.catalog).toEqual(
+      expect.arrayContaining([{ key: 'dev', title: 'Разработка', actions: 6 }]),
+    );
+    expect(
+      l.catalog
+        .map((c: { key: string }) => c.key)
+        .filter((k: string) => !['dev', 'sales', 'hiring', 'support'].includes(k)),
+    ).toEqual([]);
     expect(l.packs).toEqual([]);
 
     expect((await call('GET', `packs?projectId=${w.projectId}`, 'member')).statusCode).toBe(403);

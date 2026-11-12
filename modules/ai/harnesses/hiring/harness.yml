@@ -1,0 +1,65 @@
+statuses:
+  - { key: applied, name: Отклик, category: backlog, color: gray }
+  - { key: screening, name: Скрининг, category: todo, color: blue }
+  - { key: clarify, name: Уточнение, category: todo, color: amber }
+  - { key: interview, name: Интервью, category: in_progress, color: violet }
+  - { key: test, name: Тестовое, category: in_progress, color: cyan }
+  - { key: offer, name: Оффер, category: in_progress, color: orange }
+  - { key: hired, name: Нанят, category: done, color: green }
+  - { key: rejected, name: Отказ, category: cancelled, color: red }
+labels:
+  - { key: strong, name: сильный, color: green }
+  - { key: no_reply, name: нет ответа, color: amber }
+fields:
+  - { key: email, name: Email, type: text }
+  - { key: source, name: Источник, type: text }
+  - { key: resume, name: Резюме, type: url }
+  - { key: expected_salary, name: Ожидаемая зарплата, type: money }
+actions:
+  [screening, questionnaire, interview_questions, interview_summary, offer, rejection, ping, report]
+rules:
+  - key: screen_applied
+    name: Скрининг отклика
+    description: ИИ сверяет резюме с требованиями вакансии (родительская задача). Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, to: [applied] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: screening }]
+  - key: questionnaire_screening
+    name: Вопросы по пробелам резюме
+    description: ИИ готовит письмо кандидату с вопросами по пробелам.
+    trigger: { type: task.status_changed, to: [screening] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: questionnaire }]
+  - key: questions_interview
+    name: Вопросы к интервью
+    trigger: { type: task.status_changed, to: [interview] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: interview_questions }]
+  - key: summary_interview
+    name: Итоги интервью
+    description: После комментария человека в статусе «Интервью» ИИ подводит итог по отзывам интервьюеров.
+    trigger: { type: comment.added, byHuman: true }
+    filter: { assignee: [ai], status: [interview] }
+    actions: [{ type: ai_run, action: interview_summary }]
+  - key: offer_stage
+    name: Письмо с оффером
+    trigger: { type: task.status_changed, to: [offer] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: offer }]
+  - key: rejection_stage
+    name: Письмо с отказом
+    trigger: { type: task.status_changed, to: [rejected] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: rejection }]
+  - key: stale_ping
+    name: Напоминание рекрутеру
+    description: Кандидат завис на 3 дня.
+    trigger: { type: task.stale, days: 3 }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: ping }]
+  - key: weekly_report
+    name: Еженедельный отчёт по найму
+    trigger: { type: schedule, cron: '0 17 * * 5' }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: report }]
+settings: { questionStatus: clarify }

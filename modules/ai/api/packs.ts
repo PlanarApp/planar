@@ -23,7 +23,12 @@ import { aiHarnessPacks as P } from './schema.js';
  */
 
 export const PACKS_ROOT_TITLE = 'Harness-пакеты';
-const CATALOG_TITLES: Record<string, string> = { dev: 'Разработка' };
+const CATALOG_TITLES: Record<string, string> = {
+  dev: 'Разработка',
+  sales: 'Продажи',
+  hiring: 'Найм',
+  support: 'Поддержка',
+};
 const KEY_RE = /^[a-z][a-z0-9_-]{0,49}$/;
 const YML = 'harness.yml';
 const MAX_ENTRIES = 100;

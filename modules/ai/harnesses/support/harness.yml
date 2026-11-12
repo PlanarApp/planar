@@ -1,0 +1,45 @@
+statuses:
+  - { key: new, name: Новое, category: backlog, color: gray }
+  - { key: analysis, name: Разбор, category: in_progress, color: violet }
+  - { key: clarify, name: Уточнение, category: todo, color: amber }
+  - { key: in_progress, name: В работе, category: in_progress, color: blue }
+  - { key: solved, name: Решено, category: done, color: green }
+  - { key: closed, name: Закрыто, category: done, color: gray }
+labels:
+  - { key: urgent, name: срочно, color: red }
+  - { key: escalated, name: эскалировано, color: amber }
+  - { key: auto_closed, name: автозакрыто, color: gray }
+fields:
+  - { key: customer, name: Клиент, type: text }
+  - { key: email, name: Email, type: text }
+  - { key: category, name: Категория, type: text }
+  - { key: urgency, name: Срочность, type: text }
+actions: [triage, draft_reply, escalate_dev, close, to_wiki]
+rules:
+  - key: triage_new
+    name: Разбор нового обращения
+    description: ИИ определяет категорию и срочность нового обращения. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, to: [new] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: triage }]
+  - key: wiki_solved
+    name: В вики после решения
+    description: ИИ решает, стоит ли сохранить решение в вики поддержки. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, to: [solved] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: to_wiki }]
+  - key: escalate_unassigned
+    name: Эскалация без исполнителя
+    description: Обращение 2 часа без исполнителя — подзадача для разработчиков. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.unassigned, hours: 2 }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: escalate_dev }]
+  - key: auto_close_waiting
+    name: Автозакрытие без ответа
+    description: Клиент не отвечает 3 дня — метка и закрытие с комментарием. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.waiting_human, days: 3 }
+    filter: { assignee: [ai] }
+    actions:
+      - { type: add_label, labelId: auto_closed }
+      - { type: ai_run, action: close }
+settings: { questionStatus: clarify }

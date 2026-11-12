@@ -1,0 +1,66 @@
+statuses:
+  - { key: lead, name: Лид, category: backlog, color: gray }
+  - { key: qualification, name: Квалификация, category: in_progress, color: blue }
+  - { key: clarify, name: Уточнение, category: todo, color: amber }
+  - { key: proposal, name: КП, category: in_progress, color: violet }
+  - { key: negotiation, name: Переговоры, category: in_progress, color: orange }
+  - { key: snoozed, name: Отложено, category: backlog, color: slate }
+  - { key: won, name: Выиграна, category: done, color: green }
+  - { key: lost, name: Проиграна, category: cancelled, color: red }
+labels:
+  - { key: hot, name: горячий, color: red }
+  - { key: no_reply, name: нет ответа, color: amber }
+fields:
+  - { key: company, name: Компания, type: text }
+  - { key: contact, name: Контакт, type: text }
+  - { key: email, name: Email, type: text }
+  - { key: amount, name: Сумма, type: money }
+  - { key: source, name: Источник, type: text }
+  - { key: next_step, name: Следующий шаг, type: text }
+actions: [qualify, proposal, next_step, lost, followup, digest]
+rules:
+  - key: qualify_lead
+    name: Квалификация лида
+    description: Новый лид проверяется по BANT. Только сделки, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, to: [lead] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: qualify }]
+  - key: proposal_ready
+    name: КП и письма
+    description: В статусе «КП» ИИ готовит коммерческое предложение и пачку писем на проверку.
+    trigger: { type: task.status_changed, to: [proposal] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: proposal }]
+  - key: deal_lost
+    name: Разбор проигрыша
+    description: Причина проигрыша, отложить сделку на 3 месяца.
+    trigger: { type: task.status_changed, to: [lost] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: lost }]
+  - key: next_step_on_comment
+    name: Следующий шаг после комментария
+    description: После каждого комментария менеджера ИИ обновляет сводку и следующий шаг, при рисках зовёт руководителя.
+    trigger: { type: comment.added, byHuman: true }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: next_step }]
+  - key: silence_followup
+    name: Тишина по сделке
+    description: Сделка 5 дней без движения в «КП» или «Переговорах», ставится метка «нет ответа» и готовится черновик напоминания.
+    trigger: { type: task.stale, days: 5, statuses: [proposal, negotiation] }
+    filter: { assignee: [ai] }
+    actions:
+      - { type: add_label, labelId: no_reply }
+      - { type: ai_run, action: followup }
+  - key: wake_snoozed
+    name: Возврат отложенной сделки
+    description: Срок отложенной сделки наступил, она возвращается в «Лид» и квалифицируется заново.
+    trigger: { type: task.start_reached }
+    filter: { assignee: [ai], status: [snoozed] }
+    actions: [{ type: set_status, statusId: lead }]
+  - key: weekly_digest
+    name: Недельная сводка воронки
+    description: По понедельникам в 9:00 сводка по каждой открытой сделке в «Сводки воронок».
+    trigger: { type: schedule, cron: '0 9 * * 1', tz: Europe/Moscow }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: digest }]
+settings: { questionStatus: clarify }
