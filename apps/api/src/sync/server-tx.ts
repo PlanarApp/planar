@@ -378,11 +378,7 @@ export class ServerTx implements Tx {
         if (m.scope !== 'space' || e === 'docsPages') continue;
         const t = tableOf(e);
         const c = getTableColumns(t);
-        const where = c.pageId
-          ? eq(c.pageId, id)
-          : e === 'docsLocks'
-            ? eq(c.id, id)
-            : undefined;
+        const where = c.pageId ? eq(c.pageId, id) : e === 'docsLocks' ? eq(c.id, id) : undefined;
         if (!where || !c.spaceId) continue;
         for (const r of await this.exec(() => this.q.select().from(t).where(where))) {
           const w = toWire(e, r);
@@ -400,7 +396,8 @@ export class ServerTx implements Tx {
           .from(t)
           .where(and(eq(c.parentId, id), ne(c.spaceId, to))),
       );
-      for (const r of left) await this.store('docsPages', { ...toWire('docsPages', r), parentId: null });
+      for (const r of left)
+        await this.store('docsPages', { ...toWire('docsPages', r), parentId: null });
     }
   }
 

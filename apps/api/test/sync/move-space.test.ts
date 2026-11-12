@@ -174,11 +174,7 @@ describe('PLNRAPP-152 перенос задачи в другое простра
       for (const ch of (await c.pull(cursor)).changes) last.set(`${ch.entity}:${ch.id}`, ch.op);
       return last;
     };
-    const moved = [
-      `docsPages:${rootId}`,
-      `docsPages:${kidId}`,
-      `docsTaskLinks:${linkId}`,
-    ];
+    const moved = [`docsPages:${rootId}`, `docsPages:${kidId}`, `docsTaskLinks:${linkId}`];
     const guest = await ops(w.guest, ga.cursor);
     const outsider = await ops(w.outsider, oa.cursor);
     const admin = await ops(w.admin, aa.cursor);
