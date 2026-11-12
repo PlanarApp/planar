@@ -711,6 +711,36 @@ describe('поручения ИИ', () => {
     expect(jobs.map((j) => j.data.kind)).toEqual(['comment']);
   });
 
+  it('ответ на комментарий ИИ — поручение, как @ai: ответ в треде; ответ на чужой комментарий — нет', async () => {
+    const t = await task();
+    const root = uuidv7();
+    await api.execute(bot, [
+      { name: 'comment.create', args: { id: root, taskId: t, body: doc('План готов') } },
+    ]);
+    const human = uuidv7();
+    await w.member.ok('comment.create', { id: human, taskId: t, body: doc('заметка') });
+    await w.member.ok('comment.create', {
+      id: uuidv7(),
+      taskId: t,
+      parentId: human,
+      body: doc('ок'),
+    });
+    expect(jobs).toHaveLength(0);
+    const c = uuidv7();
+    await w.member.ok('comment.create', {
+      id: c,
+      taskId: t,
+      parentId: root,
+      body: doc('а сроки?'),
+    });
+    expect(jobs.map((j) => j.data)).toEqual([{ kind: 'mention', taskId: t, itemId: c }]);
+    answers = [result({ comment: 'Неделя' })];
+    await drain();
+    expect(calls[0]!.prompt).toContain('а сроки?');
+    const replies = (await commentsOf(t)).filter((x) => x.parent_id === c);
+    expect(replies.map((x) => text(x.body))).toEqual([expect.stringContaining('Неделя')]);
+  });
+
   it('пункты чек-листа на ИИ — по порядку rank, отмечаются выполненными', async () => {
     const t = await task();
     const [a, b] = [uuidv7(), uuidv7()];

@@ -583,3 +583,208 @@ describe('agent: LLM-прокси', () => {
     expect(res.body).not.toContain(KEY_SECRET);
   });
 });
+
+// PLNRAPP-195: an assignment on a task with an open MR — the agent with the repository and the MR branch,
+// the answer in the same thread; without an MR — the llm answer as before.
+describe('agent: поручения из комментариев на задаче с MR', () => {
+  const GL_PROJECT = 7;
+  async function codeTask(mrState: string | null = 'opened') {
+    await raw(
+      `insert into gitlab_connections (id, project_id, base_url, token_enc, gitlab_project_id, path)
+       values ($1, $2, 'https://gitlab.example/', $3, $4, 'acme/app')`,
+      [uuidv7(), P, encrypt('glpat-secret', secretKey()!), GL_PROJECT],
+    );
+    const id = uuidv7();
+    await w.admin.ok('task.create', {
+      id,
+      projectId: P,
+      statusId: (
+        await one(`select id from statuses where project_id = $1 order by rank limit 1`, [P])
+      ).id,
+      title: 'Починить CI',
+      rank: 'a0',
+    });
+    if (mrState)
+      await raw(
+        `insert into gitlab_mrs (id, space_id, task_id, gitlab_project_id, iid, title, source_branch, state,
+           author_name, web_url, mr_updated_at, created_at, updated_at)
+         values ($1, $2, $3, $4, 181, 'PLN-1: фича', 'mr/PLN-1', $5, 'ИИ',
+           'https://gitlab.example/acme/app/-/merge_requests/181', now(), now(), now())`,
+        [uuidv7(), w.spaceId, id, GL_PROJECT, mrState],
+      );
+    jobs.length = 0;
+    return id;
+  }
+  /** Runs the queued ai.run jobs; returns the run and the runner's start request of the last one. */
+  async function runQueued(taskId: string) {
+    const queued = jobs.filter((j) => j.queue === 'ai.run');
+    jobs.length = 0;
+    for (const j of queued) await handler('ai', 'ai.run')(j.data, api);
+    const run = (
+      await raw(`select * from ai_runs where task_id = $1 order by created_at desc, id desc`, [
+        taskId,
+      ])
+    )[0];
+    const post = runnerHits.findLast((h) => h.method === 'POST' && h.body.runId === run?.id);
+    return {
+      kinds: queued.map((j) => j.data.kind),
+      run,
+      post,
+      secret: post?.body.env?.PLANAR_RUN_SECRET as string,
+    };
+  }
+  const say = (text: string, mention = false) => ({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          ...(mention ? [{ type: 'mention', attrs: { id: bot, label: 'ai' } }] : []),
+          { type: 'text', text },
+        ],
+      },
+    ],
+  });
+  const fixed = {
+    verdict: 'done',
+    comment:
+      'Линтер исправлен: коммит https://gitlab.example/acme/app/-/commit/abc, пайплайн запущен',
+  };
+  const expectCodeRun = (r: Awaited<ReturnType<typeof runQueued>>, ask: string) => {
+    expect(r.run.state).toBe('running');
+    expect(r.post!.body.env).toMatchObject({
+      PLANAR_REPO_URL: 'https://gitlab.example/acme/app.git',
+      GITLAB_TOKEN: 'glpat-secret',
+    });
+    const ctx = JSON.parse(r.post!.body.context);
+    expect(ctx.mr).toEqual({
+      iid: 181,
+      title: 'PLN-1: фича',
+      sourceBranch: 'mr/PLN-1',
+      webUrl: 'https://gitlab.example/acme/app/-/merge_requests/181',
+    });
+    expect(ctx.assignment).toMatchObject({ kind: r.run.kind, text: expect.stringContaining(ask) });
+    expect(ctx.action).toMatchObject({ key: 'assignment', name: 'Поручение' });
+    expect(ctx.action.prompt).toContain('ветка `mr/PLN-1`');
+    expect(ctx.action.prompt).toContain('glab ci trace');
+    expect(ctx.action.prompt).toContain('Новую ветку и новый MR не создавай');
+    expect(ctx.action.prompt).toContain(ask);
+  };
+  const finish = async (r: Awaited<ReturnType<typeof runQueued>>) => {
+    const res = await call('POST', `/api/ai/runs/${r.run.id}`, { secret: r.secret, body: fixed });
+    expect(res.statusCode).toBe(200);
+    expect((await one(`select state from ai_runs where id = $1`, [r.run.id])).state).toBe('done');
+  };
+  const replyTo = async (taskId: string, parentId: string) =>
+    (await raw(`select * from comments where task_id = $1 and parent_id = $2`, [taskId, parentId]))
+      .map((c) => JSON.stringify(c.body))
+      .join();
+
+  it('комментарий на ИИ → агент в ветке MR; итог ответом в треде, комментарий закрыт', async () => {
+    const t = await codeTask();
+    const c = uuidv7();
+    await w.admin.ok('comment.create', {
+      id: c,
+      taskId: t,
+      body: say('почини линтер'),
+      assigneeId: bot,
+    });
+    const r = await runQueued(t);
+    expect(r.kinds).toEqual(['comment']);
+    expectCodeRun(r, 'почини линтер');
+    await finish(r);
+    expect(await replyTo(t, c)).toContain('Линтер исправлен');
+    expect((await one(`select resolved_at from comments where id = $1`, [c])).resolved_at).not.toBe(
+      null,
+    );
+  });
+
+  it('@ai в комментарии → агент; итог в треде', async () => {
+    const t = await codeTask();
+    const c = uuidv7();
+    await w.admin.ok('comment.create', { id: c, taskId: t, body: say(' почини линтер', true) });
+    const r = await runQueued(t);
+    expect(r.kinds).toEqual(['mention']);
+    expectCodeRun(r, 'почини линтер');
+    await finish(r);
+    expect(await replyTo(t, c)).toContain('Линтер исправлен');
+  });
+
+  it('ответ на комментарий ИИ → агент с веткой обсуждения; ответ на чужой комментарий — нет', async () => {
+    const t = await codeTask();
+    const root = uuidv7();
+    await api.execute(bot, [
+      {
+        name: 'comment.create',
+        args: { id: root, taskId: t, body: say('MR открыт, CI упал на линтере') },
+      },
+    ]);
+    const human = uuidv7();
+    await w.admin.ok('comment.create', { id: human, taskId: t, body: say('просто заметка') });
+    await w.admin.ok('comment.create', {
+      id: uuidv7(),
+      taskId: t,
+      parentId: human,
+      body: say('согласен'),
+    });
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toHaveLength(0);
+    const c = uuidv7();
+    await w.admin.ok('comment.create', {
+      id: c,
+      taskId: t,
+      parentId: root,
+      body: say('почини линтер'),
+    });
+    const r = await runQueued(t);
+    expect(r.kinds).toEqual(['mention']);
+    expectCodeRun(r, 'почини линтер');
+    expect(JSON.parse(r.post!.body.context).action.prompt).toContain('CI упал на линтере');
+    await finish(r);
+    expect(await replyTo(t, c)).toContain('Линтер исправлен');
+  });
+
+  it('пункт чек-листа на ИИ → агент; пункт выполнен', async () => {
+    const t = await codeTask();
+    const item = uuidv7();
+    await w.admin.ok('checklist.add', { id: item, taskId: t, text: 'почини линтер', rank: 'a0' });
+    await w.admin.ok('checklist.update', { id: item, assigneeId: bot });
+    const r = await runQueued(t);
+    expect(r.kinds).toEqual(['checklist']);
+    expectCodeRun(r, 'почини линтер');
+    await finish(r);
+    expect((await one(`select done from checklist_items where id = $1`, [item])).done).toBe(true);
+  });
+
+  it('без открытого MR или без модуля gitlab — прежний llm-ответ, контейнер не запускается', async () => {
+    for (const setup of [
+      () => codeTask(null),
+      () => codeTask('merged'),
+      async () => {
+        const t = await codeTask();
+        await raw(`update projects set modules = array_remove(modules, 'gitlab') where id = $1`, [
+          P,
+        ]);
+        return t;
+      },
+    ]) {
+      await raw(`delete from gitlab_connections where project_id = $1`, [P]);
+      await raw(
+        `update projects set modules = array_append(modules, 'gitlab') where id = $1
+        and not ('gitlab' = any(modules))`,
+        [P],
+      );
+      const t = await setup();
+      runnerHits = [];
+      await w.admin.ok('comment.create', {
+        id: uuidv7(),
+        taskId: t,
+        body: say('почини линтер'),
+        assigneeId: bot,
+      });
+      const r = await runQueued(t);
+      expect(r.kinds).toEqual(['comment']);
+      expect(r.run.agent_secret_hash).toBeNull();
+      expect(runnerHits).toHaveLength(0);
+    }
+  });
+});

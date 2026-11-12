@@ -104,15 +104,64 @@ async function repoOf(q: Pick<Q, 'execute'>, run: Run) {
   }
 }
 
+/** The open MR of the task in the project's repository (the first gitlab connection, as `repoOf`). */
+export interface TaskMr {
+  iid: number;
+  title: string;
+  sourceBranch: string;
+  webUrl: string;
+}
+
+/**
+ * PLNRAPP-195: an assignment (comment, @ai, a reply to the bot, checklist item) goes to the agent with the code when
+ * the runner is configured, the gitlab module is on, the project has a connection and the task has an open MR in
+ * its repository; null — the llm answer as before.
+ */
+export async function codeTargetOf(q: Pick<Q, 'execute'>, task: Run['task']) {
+  if (!process.env.AI_RUNNER_URL || !task.modules.includes('gitlab')) return null;
+  const mr = await one(
+    q,
+    sql`select m.iid, m.title, m.source_branch as "sourceBranch", m.web_url as "webUrl" from gitlab_mrs m
+        where m.task_id = ${task.id} and m.state = 'opened'
+          and m.gitlab_project_id = (select c.gitlab_project_id from gitlab_connections c
+            where c.project_id = ${task.projectId} order by c.created_at, c.id limit 1)
+        order by m.mr_updated_at desc, m.iid desc limit 1`,
+  );
+  return (mr as unknown as TaskMr | undefined) ?? null;
+}
+
+/** The agent prompt of an assignment with the code: the MR branch, CI through glab, the answer in the thread. */
+export function codeAssignmentPrompt(mr: TaskMr, ask: string) {
+  const b = mr.sourceBranch;
+  return `Выполни поручение человека по задаче. Поручение и ветка обсуждения — ниже, задача и все комментарии — в файле контекста.
+
+У задачи открыт MR !${mr.iid} «${mr.title}» (${mr.webUrl}), ветка \`${b}\`. Репозиторий склонирован в текущий каталог, git push и glab работают.
+- Правки кода — только в ветке MR: \`git fetch origin ${b} && git checkout ${b}\`, коммит, \`git push origin ${b}\`. Новую ветку и новый MR не создавай, в ветку по умолчанию не пушь.
+- Статус и логи CI: \`glab ci list --branch ${b}\`, \`glab ci get --branch ${b}\` (задания пайплайна), \`glab ci trace <id задания>\`. Перезапуск: \`glab ci retry <id задания>\` или \`glab ci run --branch ${b}\`; после пуша пайплайн запускается сам.
+- Следуй инструкциям репозитория (README, AGENTS.md, CLAUDE.md, CONTRIBUTING.md): тесты, линтер, формат коммитов. Перед пушем прогони тесты и линтер.
+- Если поручение не требует правок кода — просто ответь по делу.
+
+Результат — в comment: что сделано, ссылка на коммит (если был), статус пайплайна. Меняй задачу (поля, метки, статус, подзадачи, план в описании) только если поручение этого прямо требует. Если без уточнения не обойтись — verdict question.
+${ask}`;
+}
+
 /** Starts the container; the run stays `running` until the result, a stop or the reaper. */
 export async function startAgentRun(
   api: JobApi,
   run: Run,
   prompt: string,
   ctx: Awaited<ReturnType<typeof contextOf>>,
+  mr?: TaskMr | null,
 ): Promise<void> {
   if (!process.env.AI_RUNNER_URL) return apply(api, run, failed('Runner не настроен.'));
-  const { task, action } = run;
+  const { task } = run;
+  // an assignment with the code has no action: the built-in «Поручение»
+  const action = run.action ?? {
+    key: 'assignment',
+    name: 'Поручение',
+    model: null,
+    checks: [] as string[],
+  };
   const secret = randomBytes(32).toString('base64url');
   await api.db.execute(
     sql`update ai_runs set agent_secret_hash = ${sha256(secret)}, started_at = now(), updated_at = now() where id = ${run.id}`,
@@ -137,8 +186,19 @@ export async function startAgentRun(
       status: ctx.statuses.find((s) => s.id === task.statusId)?.name ?? null,
       comments,
     },
-    action: { key: action!.key, name: action!.name, prompt },
-    checks: action!.checks,
+    action: { key: action.key, name: action.name, prompt },
+    checks: action.checks,
+    ...(mr && {
+      mr: { iid: mr.iid, title: mr.title, sourceBranch: mr.sourceBranch, webUrl: mr.webUrl },
+    }),
+    ...(run.kind !== 'action' &&
+      run.item && {
+        assignment: {
+          kind: run.kind,
+          id: run.item.id,
+          text: run.kind === 'checklist' ? (run.item.text as string) : md(run.item.body),
+        },
+      }),
   });
   const apiUrl = process.env.PLANAR_API_URL ?? 'http://api:3000';
   const proxy = process.env.AI_AGENT_PROXY_URL ?? 'http://squid:3128';
@@ -161,7 +221,7 @@ export async function startAgentRun(
         ...(conn && {
           // what the proxy speaks to the provider: Anthropic Messages or OpenAI chat completions
           PLANAR_LLM_PROTOCOL: conn.provider === 'anthropic' ? 'anthropic' : 'openai',
-          PLANAR_LLM_MODEL: action!.model ?? conn.model,
+          PLANAR_LLM_MODEL: action.model ?? conn.model,
         }),
         ...(repo && {
           PLANAR_REPO_URL: repo.url,
@@ -189,11 +249,14 @@ export async function startAgentRun(
   }
 }
 
-/** The run row as `Run` for apply (agent runs are actions only); undefined — the task is gone. */
+/**
+ * The run row as `Run` for apply: an action, or an assignment with the code (with its comment / checklist item);
+ * undefined — the task, the action or the item is gone.
+ */
 export async function loadRun(api: JobApi, id: string): Promise<Run | undefined> {
   const r = await one(
     api.db,
-    sql`select task_id as "taskId", action_id as "actionId" from ai_runs where id = ${id}::uuid`,
+    sql`select task_id as "taskId", action_id as "actionId", kind, item_id as "itemId" from ai_runs where id = ${id}::uuid`,
   );
   const task = r && (await loadTask(api.db, r.taskId as string));
   const bot = await botOf(api);
@@ -204,7 +267,22 @@ export async function loadRun(api: JobApi, id: string): Promise<Run | undefined>
             checks, max_output_tokens as "maxOutputTokens" from ai_actions where id = ${r.actionId as string}`,
       )) as unknown as Run['action'])
     : undefined;
-  return task && bot && action ? { id, kind: 'action', task, bot, action, log: [] } : undefined;
+  const kind = r?.kind as Run['kind'] | undefined;
+  if (!task || !bot || !kind) return undefined;
+  if (kind === 'action') return action ? { id, kind, task, bot, action, log: [] } : undefined;
+  const item = !r?.itemId
+    ? undefined
+    : kind === 'checklist'
+      ? await one(
+          api.db,
+          sql`select id, text from checklist_items where id = ${r.itemId as string}`,
+        )
+      : await one(
+          api.db,
+          sql`select id, author_id as "authorId", assignee_id as "assigneeId", resolved_at as "resolvedAt", body
+              from comments where id = ${r.itemId as string}`,
+        );
+  return item ? { id, kind, task, bot, item, log: [] } : undefined;
 }
 
 /** The result of the container, or a failure from the reaper, through the common apply. */
