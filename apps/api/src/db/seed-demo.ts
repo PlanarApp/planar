@@ -229,6 +229,8 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Update status page template', 3, 1, -5, 'omar', 'docs'],
     ],
   },
+  // no tasks: exists for the catalog pack «Продажи» (AIP-5)
+  { space: 2, name: 'Продажи', key: 'SLS', icon: '💼', tasks: [] },
 ];
 
 const COMMENTS: [string, number, string, string][] = [
@@ -1863,64 +1865,72 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-25),
     },
   ]);
-  // the catalog pack «Разработка» in the project docs, laid out like POST /ai/packs/upload does; not active
-  const devPack = packPages(parsePack((await readCatalogPack('dev'))!), catalogTitle('dev'));
-  const packRanks = generateNKeysBetween(null, null, devPack.length);
-  const packRoot = uid('page:harness:harness.yml');
-  const packPage = (
-    id: string,
-    parentId: string | null,
-    rank: string,
-    title: string,
-    body: Parameters<typeof plainText>[0],
-  ) => ({
-    id,
-    spaceId: rdmSpace,
-    projectId: pid('RDM'),
-    parentId,
-    rank,
-    title,
-    icon: null,
-    body,
-    text: plainText(body),
-    files: [],
-    createdBy: maya,
-    updatedBy: maya,
-    archivedAt: null,
-    archivedBy: null,
-    createdAt: at(-25),
-    updatedAt: at(-25),
-  });
-  await ins(docsPages, [
-    packPage(
-      uid('page:harness'),
-      null,
-      generateNKeysBetween(dRanks.at(-1)!, null, 2)[1]!, // after «AI · Planning»
-      PACKS_ROOT_TITLE,
-      { type: 'doc', content: [] },
-    ),
-    ...devPack.map((p, n) =>
-      packPage(
-        uid(`page:harness:${p.key}`),
-        n ? packRoot : uid('page:harness'),
-        packRanks[n]!,
-        p.title,
-        p.body,
-      ),
-    ),
-  ]);
-  await ins(aiHarnessPacks, [
-    {
-      id: uid('harness-pack:dev'),
-      projectId: pid('RDM'),
-      packKey: 'dev',
-      active: false,
-      rootPageId: packRoot,
-      hashes: Object.fromEntries(devPack.map((p) => [uid(`page:harness:${p.key}`), p.hash])),
+  // catalog packs in the project docs, laid out like POST /ai/packs/upload does; not active.
+  // «Разработка» — in Roadmap (after «AI · Planning»), «Продажи» — in its own project
+  for (const [k, pKey] of [
+    ['dev', 'RDM'],
+    ['sales', 'SLS'],
+  ] as const) {
+    const pack = packPages(parsePack((await readCatalogPack(k))!), catalogTitle(k));
+    const packRanks = generateNKeysBetween(null, null, pack.length);
+    const packRoot = uid(`page:harness:${k}:harness.yml`);
+    const container = uid(`page:harness:${k}`);
+    const spaceId = spaceIds[PROJECTS[pkIdx(pKey)]!.space]!;
+    const packPage = (
+      id: string,
+      parentId: string | null,
+      rank: string,
+      title: string,
+      body: Parameters<typeof plainText>[0],
+    ) => ({
+      id,
+      spaceId,
+      projectId: pid(pKey),
+      parentId,
+      rank,
+      title,
+      icon: null,
+      body,
+      text: plainText(body),
+      files: [],
+      createdBy: maya,
+      updatedBy: maya,
+      archivedAt: null,
+      archivedBy: null,
       createdAt: at(-25),
       updatedAt: at(-25),
-    },
-  ]);
+    });
+    await ins(docsPages, [
+      packPage(
+        container,
+        null,
+        k === 'dev' ? generateNKeysBetween(dRanks.at(-1)!, null, 2)[1]! : 'a0',
+        PACKS_ROOT_TITLE,
+        { type: 'doc', content: [] },
+      ),
+      ...pack.map((p, n) =>
+        packPage(
+          uid(`page:harness:${k}:${p.key}`),
+          n ? packRoot : container,
+          packRanks[n]!,
+          p.title,
+          p.body,
+        ),
+      ),
+    ]);
+    await ins(aiHarnessPacks, [
+      {
+        id: uid(`harness-pack:${k}`),
+        projectId: pid(pKey),
+        packKey: k,
+        active: false,
+        rootPageId: packRoot,
+        hashes: Object.fromEntries(pack.map((p) => [uid(`page:harness:${k}:${p.key}`), p.hash])),
+        createdAt: at(-25),
+        updatedAt: at(-25),
+      },
+    ]);
+  }
   await ins(automationsRules, [
     {
       id: uid('rule:ai-plan'),
