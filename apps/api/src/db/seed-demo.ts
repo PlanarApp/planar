@@ -1980,6 +1980,74 @@ async function insertAll(tx: Tx, now: Date) {
       createdAt: at(-2),
     },
   ]);
+  // PLNRAPP-204: the state label «Waiting for reply» — set in «Clarify», removed on leaving it,
+  // a person's answer in the question's thread closes the question (as the catalog packs do)
+  const waitingLabel = labelId('RDM', 'Waiting for reply');
+  await ins(s.labels, [
+    {
+      id: waitingLabel,
+      spaceId: rdmSpace,
+      projectId: pid('RDM'),
+      name: 'Waiting for reply',
+      color: '#f59e0b',
+      createdAt: at(-25),
+      updatedAt: at(-25),
+    },
+  ]);
+  await ins(s.taskLabels, [
+    {
+      id: uid('task-label:RDM:8:waiting'),
+      spaceId: rdmSpace,
+      taskId: waiting,
+      labelId: waitingLabel,
+      createdAt: at(-1, 11),
+    },
+  ]);
+  const stateRule = (
+    k: string,
+    name: string,
+    description: string,
+    trigger: Record<string, unknown>,
+    actions: Record<string, unknown>[],
+    conditions: Record<string, unknown> = { op: 'and', rules: [] },
+  ) => ({
+    id: uid(`rule:${k}`),
+    spaceId: rdmSpace,
+    projectId: pid('RDM'),
+    name,
+    description,
+    enabled: true,
+    trigger,
+    conditions,
+    actions,
+    createdBy: maya,
+    createdAt: at(-25),
+    updatedAt: at(-25),
+  });
+  await ins(automationsRules, [
+    stateRule(
+      'waiting-on',
+      'AI question — label «Waiting for reply»',
+      'The AI asked a person and moved the task to «Clarify».',
+      { type: 'task.status_changed', to: [clarify] },
+      [{ type: 'add_label', labelId: waitingLabel }],
+    ),
+    stateRule(
+      'waiting-off',
+      'Answered — remove «Waiting for reply»',
+      'The task left «Clarify»: the questions are answered, the AI goes on.',
+      { type: 'task.status_changed', from: [clarify] },
+      [{ type: 'remove_label', labelId: waitingLabel }],
+    ),
+    stateRule(
+      'waiting-answered',
+      'A person answers a question',
+      'The assignee of a question replied in its thread — the question is resolved.',
+      { type: 'comment.added', byHuman: true },
+      [{ type: 'resolve_comment' }],
+      { op: 'and', rules: [{ field: 'label', operator: 'in', value: [waitingLabel] }] },
+    ),
+  ]);
   const botSays = (k: string, taskId: string, text: string, o: Record<string, unknown> = {}) => ({
     id: uid(`comment:ai:${k}`),
     spaceId: rdmSpace,

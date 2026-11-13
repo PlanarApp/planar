@@ -24,7 +24,12 @@ describe('pack support', () => {
       'closed',
     ]);
     expect(h.settings.questionStatus).toBe('clarify');
-    expect(h.labels.map((l) => l.name)).toEqual(['срочно', 'эскалировано', 'автозакрыто']);
+    expect(h.labels.map((l) => l.name)).toEqual([
+      'срочно',
+      'эскалировано',
+      'автозакрыто',
+      'Ждёт ответа',
+    ]);
     expect(h.fields.map((f) => f.key)).toEqual(['customer', 'email', 'category', 'urgency']);
     expect(h.actions).toEqual([
       'triage',
@@ -57,10 +62,10 @@ describe('pack support', () => {
     const n = (kind: string, op: string) =>
       ops.filter((o) => o.kind === kind && o.op === op).length;
     expect(n('status', 'create')).toBe(6);
-    expect(n('label', 'create')).toBe(3);
+    expect(n('label', 'create')).toBe(4);
     expect(n('field', 'create')).toBe(4);
     expect(n('action', 'create')).toBe(9);
-    expect(n('rule', 'create')).toBe(4);
-    expect(n('rule', 'enable')).toBe(4);
+    expect(n('rule', 'create')).toBe(7);
+    expect(n('rule', 'enable')).toBe(7);
   });
 });

@@ -297,6 +297,7 @@ Conditions — `matchFilter(task, conditions, {statuses, fieldDefs, userId: syst
 | `add_comment` | `text` 1–5000 | `comment.create` (`textToDoc`) |
 | `move_to_project` | `projectId`, `statusId?` | `task.update` |
 | `create_subtask` | `title` 1–500 | `task.create` with `parentId`; status — the first by `rank` in category todo, otherwise backlog |
+| `resolve_comment` | — | `comment.resolve` (PLNRAPP-204): only on `comment.added` — the comment the new one replies to (`parentId`), if it is unresolved, its assignee wrote the reply and its author is someone else; otherwise nothing. Runs after the other actions, in its own transaction, as the reply's author (`comment.resolve` lets the assignee close) |
 | `send_webhook` | `subscriptionId` | `enqueueWebhookEvent` of the webhooks module, event `automation.fired` |
 | `ai_run` | `aiActionId` (an `aiActions` row of the rule's project) | none: after the other actions, in their transaction, `enqueue('ai.run', {kind: 'action', taskId, actionId, ruleId, statusId, parentRunId}, {singletonKey: 'taskId:actionId', upsert: true, startAfter: 60})` — debounce; the module ai runs it (PLNRAPP-168) |
 

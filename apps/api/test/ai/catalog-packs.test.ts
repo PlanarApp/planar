@@ -154,7 +154,8 @@ describe.each(loaded)('catalog pack $k', ({ k, files, pack }) => {
     for (const r of pack.rules) {
       const t = r.trigger as { type: string; to?: string[] };
       if (t.type !== 'task.status_changed') continue;
-      for (const act of r.actions as { action: string }[]) {
+      for (const act of r.actions as { type: string; action: string }[]) {
+        if (act.type !== 'ai_run') continue; // labels of the state rules move nothing
         const md = files[`actions/${act.action}.md`]!;
         const to = [...md.matchAll(/moveTo\s+["«]([^"»]+)["»]/g)].map((m) => nameToKey[m[1]!]);
         for (const from of t.to ?? []) {
@@ -175,8 +176,13 @@ describe.each(loaded)('catalog pack $k', ({ k, files, pack }) => {
 describe('hiring chain screening → questionnaire', () => {
   it('applied→screening→clarify: each step fires once, «Уточнение» has no AI rule', () => {
     const { pack, files } = loaded.find((l) => l.k === 'hiring')!;
+    // AI runs on entering a status; the state label rule (add_label) runs no AI
     const on = (s: string) =>
-      pack.rules.filter((r) => (r.trigger as { to?: string[] }).to?.includes(s));
+      pack.rules.filter(
+        (r) =>
+          (r.trigger as { to?: string[] }).to?.includes(s) &&
+          r.actions.some((a) => a.type === 'ai_run'),
+      );
     expect(on('applied').map((r) => r.key)).toEqual(['screen_applied']);
     expect(on('screening').map((r) => r.key)).toEqual(['questionnaire_screening']);
     expect(on('clarify')).toEqual([]);

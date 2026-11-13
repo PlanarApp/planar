@@ -43,6 +43,8 @@ interface RunData {
   eventAt: string;
   /** the event is a change by this AI run: a run it starts continues its chain */
   aiRunId?: string;
+  /** comment.added: the new comment (action resolve_comment) */
+  commentId?: string;
 }
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -52,6 +54,7 @@ type Row = Record<string, unknown>;
 interface Event {
   taskId: string;
   projectId?: string;
+  commentId?: string;
   match: (t: Trigger) => boolean;
 }
 
@@ -101,7 +104,11 @@ function eventsOf(writes: MutationWrite[]): Event[] {
         },
       });
     } else if (w.entity === 'comments' && w.op === 'put' && a && !b) {
-      out.push({ taskId: a.taskId as string, match: (t) => t.type === 'comment.added' });
+      out.push({
+        taskId: a.taskId as string,
+        commentId: a.id as string,
+        match: (t) => t.type === 'comment.added',
+      });
     }
   }
   return out;
@@ -156,6 +163,7 @@ async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api
         depth,
         eventAt: ctx.now,
         ...(ctx.origin?.aiRunId && { aiRunId: ctx.origin.aiRunId }),
+        ...(e.commentId && { commentId: e.commentId }),
       });
     }
   }
@@ -230,6 +238,22 @@ async function loadTask(api: JobApi, taskId: string) {
 
 type Status = { id: string; category: string; rank: string };
 
+/**
+ * resolve_comment (PLNRAPP-204): the comment the new one replies to, if it is open, assigned to the reply's author
+ * and written by someone else (a question to them). One's own comment is not closed: an assignment the AI handed
+ * back to its author waits for the AI to go on. `by` — the one who answered: comment.resolve lets the assignee close.
+ */
+async function answeredQuestion(api: JobApi, taskId: string, commentId: string | undefined) {
+  if (!commentId) return undefined;
+  const [c] = await rows(
+    api,
+    sql`select p.id, c.author_id as "by" from comments c join comments p on p.id = c.parent_id
+        where c.id = ${commentId} and c.task_id = ${taskId} and p.resolved_at is null
+          and p.assignee_id = c.author_id and p.author_id <> c.author_id`,
+  );
+  return c as { id: string; by: string } | undefined;
+}
+
 async function toMutations(api: JobApi, rule: Rule, task: FilterTask, statuses: Status[]) {
   const now = await today(api);
   const muts: { name: string; args: unknown }[] = [];
@@ -291,6 +315,8 @@ async function toMutations(api: JobApi, rule: Rule, task: FilterTask, statuses: 
       case 'move_to_project':
         upd({ projectId: a.projectId, ...(a.statusId && { statusId: a.statusId }) });
         break;
+      case 'resolve_comment':
+        break; // after the others, as the one who answered (answeredQuestion in run)
       case 'send_webhook':
       case 'ai_run':
         break; // run inside the transaction of actions (run)
@@ -427,6 +453,9 @@ async function run(d: RunData, api: JobApi) {
   const { rule, task, statuses } = m;
   try {
     const muts = await toMutations(api, rule, task, statuses);
+    const answered = (rule.actions as Action[]).some((a) => a.type === 'resolve_comment')
+      ? await answeredQuestion(api, task.id, d.commentId)
+      : undefined;
     const hooks = (rule.actions as Action[]).flatMap((a) =>
       a.type === 'send_webhook' ? [a.subscriptionId] : [],
     );
@@ -444,6 +473,12 @@ async function run(d: RunData, api: JobApi) {
         if (ai.length) await enqueueAi(q, enqueue, ai, d);
       },
     });
+    if (answered)
+      await api.execute(
+        answered.by,
+        [{ name: 'comment.resolve', args: { id: answered.id, resolved: true } }],
+        { system: true, origin: { ruleId: d.ruleId, depth: d.depth } },
+      );
   } catch (e) {
     return void (await record(api, d, 'error', e instanceof Error ? e.message : String(e)));
   }

@@ -10,6 +10,7 @@ statuses:
 labels:
   - { key: hot, name: горячий, color: red }
   - { key: no_reply, name: нет ответа, color: amber }
+  - { key: waiting, name: Ждёт ответа, color: amber }
 fields:
   - { key: company, name: Компания, type: text }
   - { key: contact, name: Контакт, type: text }
@@ -70,6 +71,24 @@ rules:
     trigger: { type: schedule, cron: '0 9 * * 1', tz: Europe/Moscow }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: digest }]
+  - key: waiting_on
+    name: Вопрос ИИ — метка «Ждёт ответа»
+    description: ИИ задал вопрос человеку и перевёл задачу в «Уточнение» — ставится метка «Ждёт ответа».
+    trigger: { type: task.status_changed, to: [clarify] }
+    filter: { assignee: [ai] }
+    actions: [{ type: add_label, labelId: waiting }]
+  - key: waiting_off
+    name: Ответ получен — снять «Ждёт ответа»
+    description: Задача вышла из «Уточнения» (на вопросы ответили, ИИ продолжает) — метка «Ждёт ответа» снимается.
+    trigger: { type: task.status_changed, from: [clarify] }
+    filter: { assignee: [ai] }
+    actions: [{ type: remove_label, labelId: waiting }]
+  - key: waiting_answered
+    name: Ответ человека на вопрос
+    description: Человек ответил в ветке вопроса, назначенного на него, — вопрос закрывается. Метку снимает выход из «Уточнения» или ИИ, продолжив работу.
+    trigger: { type: comment.added, byHuman: true }
+    filter: { assignee: [ai], label: [waiting] }
+    actions: [{ type: resolve_comment }]
 settings: { questionStatus: clarify }
 # AI events without a rule → the action that answers them; an event left out — the built-in prompt
 events: { comment: assign, mention: mention, checklist: checklist, chat: chat }

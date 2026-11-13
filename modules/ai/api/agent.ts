@@ -330,7 +330,7 @@ export async function finishAgent(api: JobApi, id: string, r: Parameters<typeof 
         api,
         run,
         r,
-        r.verdict === 'done' ? await contextOf(api.db, run.task, run.bot) : undefined,
+        r.verdict === 'fail' ? undefined : await contextOf(api.db, run.task, run.bot),
       );
     } catch (e) {
       await finish(api.db, run, 'failed', `ошибка: ${e instanceof Error ? e.message : String(e)}`);

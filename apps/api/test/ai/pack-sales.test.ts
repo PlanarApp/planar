@@ -27,7 +27,7 @@ describe('pack sales', async () => {
     ]);
     expect(pack.statuses.find((s) => s.key === 'clarify')!.category).toBe('todo');
     expect(pack.settings.questionStatus).toBe('clarify');
-    expect(pack.labels.map((l) => l.name)).toEqual(['горячий', 'нет ответа']);
+    expect(pack.labels.map((l) => l.name)).toEqual(['горячий', 'нет ответа', 'Ждёт ответа']);
     expect(pack.fields.map((f) => `${f.key}:${f.type}`)).toEqual([
       'company:text',
       'contact:text',
@@ -62,7 +62,7 @@ describe('pack sales', async () => {
   });
 
   it('all rules are for the AI assignee and enabled', () => {
-    expect(pack.rules).toHaveLength(8);
+    expect(pack.rules).toHaveLength(11);
     for (const r of pack.rules) {
       expect((r.filter as { assignee: string[] }).assignee[0], r.name).toBe('ai');
       expect(r.enabled, r.name).toBe(true);
@@ -81,10 +81,10 @@ describe('pack sales', async () => {
     const n = (kind: string, op: string) =>
       ops.filter((o) => o.kind === kind && o.op === op).length;
     expect(n('status', 'create')).toBe(8);
-    expect(n('label', 'create')).toBe(2);
+    expect(n('label', 'create')).toBe(3);
     expect(n('field', 'create')).toBe(6);
     expect(n('action', 'create')).toBe(11);
-    expect(n('rule', 'create')).toBe(8);
-    expect(n('rule', 'enable')).toBe(8);
+    expect(n('rule', 'create')).toBe(11);
+    expect(n('rule', 'enable')).toBe(11);
   });
 });

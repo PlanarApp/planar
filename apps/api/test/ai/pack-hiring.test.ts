@@ -42,7 +42,7 @@ describe('pack hiring', () => {
     expect(h.statuses.find((s) => s.key === 'hired')!.category).toBe('done');
     expect(h.statuses.find((s) => s.key === 'rejected')!.category).toBe('cancelled');
     expect(h.settings.questionStatus).toBe('clarify');
-    expect(h.labels.map((l) => l.key)).toEqual(['strong', 'no_reply']);
+    expect(h.labels.map((l) => l.key)).toEqual(['strong', 'no_reply', 'waiting']);
     expect(h.fields.map((f) => [f.key, f.type])).toEqual([
       ['email', 'text'],
       ['source', 'text'],

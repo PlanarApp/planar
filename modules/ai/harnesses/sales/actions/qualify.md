@@ -21,3 +21,5 @@ checks:
 - Лид явно нецелевой (нет потребности, чужая география, спам): verdict fail, в comment причина; статус не меняй.
 
 Остальные поля результата (descriptionAppend, newTasks, snoozeUntil, escalate, docs, emails) — null.
+
+Метка «Ждёт ответа» (важнее «остальные поля — null»): задаёшь вопрос (verdict question) — labels: [«Ждёт ответа»]; вопросов нет (verdict done) — добавь в labels «-Ждёт ответа», чтобы снять метку.

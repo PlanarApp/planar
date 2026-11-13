@@ -474,6 +474,34 @@ describe('wk3: условия и действия', () => {
     expect(await raw(`select 1 from task_labels where task_id = '${t}'`)).toHaveLength(0);
   });
 
+  it('PLNRAPP-204: resolve_comment — закрывает чужой вопрос, на который ответил его исполнитель', async () => {
+    const r = await rule({ type: 'comment.added' }, [{ type: 'resolve_comment' }]);
+    const t = await task();
+    const body = { type: 'doc', content: [{ type: 'paragraph' }] };
+    const comment = async (who: TestClient, o: Record<string, unknown> = {}) => {
+      const id = uuidv7();
+      await who.ok('comment.create', { id, taskId: t, body, ...o });
+      return id;
+    };
+    const resolved = async (id: string) =>
+      (await raw(`select resolved_at from comments where id = '${id}'`))[0]!.resolved_at !== null;
+    // the question of admin to member; a reply of someone else changes nothing
+    const q = await comment(w.admin, { assigneeId: w.member.userId });
+    await comment(w.admin, { parentId: q });
+    await drain();
+    expect(await resolved(q)).toBe(false);
+    // member's own assignment: their reply does not close it (an assignment given back waits for its run)
+    const own = await comment(w.member, { assigneeId: w.member.userId });
+    await comment(w.member, { parentId: own });
+    await drain();
+    expect(await resolved(own)).toBe(false);
+    // the assignee answers the question → it is closed
+    await comment(w.member, { parentId: q });
+    await drain();
+    expect(await resolved(q)).toBe(true);
+    expect(statuses(await runsOf(r.id))).toEqual(['ok', 'ok', 'ok', 'ok', 'ok']);
+  });
+
   it('wk3: set_field — priority, dueDate today+N, null, field:<id>', async () => {
     const fieldId = uuidv7();
     await w.admin.ok('field.create', {

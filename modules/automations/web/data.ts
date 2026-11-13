@@ -57,6 +57,7 @@ export const ACTIONS = [
   'create_subtask',
   'send_webhook',
   'ai_run',
+  'resolve_comment',
 ] as const;
 
 export const blankTrigger = (type: Trigger['type']): Trigger =>
@@ -96,6 +97,8 @@ export const blankAction = (type: Action['type']): Action => {
       return { type, subscriptionId: '' };
     case 'ai_run':
       return { type, aiActionId: '' };
+    case 'resolve_comment':
+      return { type };
   }
 };
 
@@ -163,6 +166,7 @@ const TEXT = {
       create_subtask: 'Создать подзадачу',
       send_webhook: 'Отправить вебхук',
       ai_run: 'Запустить ИИ',
+      resolve_comment: 'Закрыть отвеченный комментарий',
     },
     aiAction: 'ИИ-действие',
     noAiActions: 'В проекте нет ИИ-действий — они появляются из harness-пакета',
@@ -242,6 +246,7 @@ const TEXT = {
       create_subtask: 'Create subtask',
       send_webhook: 'Send webhook',
       ai_run: 'Run AI',
+      resolve_comment: 'Resolve the answered comment',
     },
     aiAction: 'AI action',
     noAiActions: 'The project has no AI actions — they come from a harness package',

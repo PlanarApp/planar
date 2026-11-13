@@ -147,6 +147,8 @@ export const actionSchema = z.union([
   z.object({ type: z.literal('send_webhook'), subscriptionId: uuid }),
   // module ai (PLNRAPP-168): a run of the project's AI action over the task, after a 60 s debounce
   z.object({ type: z.literal('ai_run'), aiActionId: uuid }),
+  // PLNRAPP-204: on comment.added — closes the comment the new one replies to, if its assignee replied
+  z.object({ type: z.literal('resolve_comment') }),
 ]);
 export type Action = z.infer<typeof actionSchema>;
 

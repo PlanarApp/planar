@@ -501,6 +501,62 @@ describe('прогон по правилу', () => {
     expect(log).toContain('Чужая');
   });
 
+  it('PLNRAPP-204: «Ждёт ответа» — правила по «Уточнению», labels ставит при вопросе и снимает «-Имя»', async () => {
+    await plan();
+    const waiting = uuidv7();
+    await w.admin.ok('label.create', {
+      id: waiting,
+      projectId: P,
+      name: 'Ждёт ответа',
+      color: '#f00',
+    });
+    // the state rules of the packs: in «Уточнение» — the label, out of it — off; an answer closes the question
+    await rule({ type: 'task.status_changed', to: [S.clarify] }, [
+      { type: 'add_label', labelId: waiting },
+    ]);
+    await rule({ type: 'task.status_changed', from: [S.clarify] }, [
+      { type: 'remove_label', labelId: waiting },
+    ]);
+    await rule({ type: 'comment.added', byHuman: true }, [{ type: 'resolve_comment' }]);
+    const labels = async (t: string) =>
+      (await raw(`select label_id from task_labels where task_id = $1`, [t])).map(
+        (x) => x.label_id,
+      );
+    const t = await task();
+    answers = [
+      result({ verdict: 'question', questions: ['Бюджет?'], labels: ['Ждёт ответа'] }),
+      result({ comment: 'План готов', moveTo: 'todo', labels: ['-ждёт ответа'] }),
+    ];
+    await w.admin.ok('task.update', { id: t, statusId: S.backlog });
+    await drain();
+    expect((await taskRow(t)).status_id).toBe(S.clarify);
+    expect(await labels(t)).toEqual([waiting]);
+    const [q] = (await commentsOf(t)).filter((c) => c.assignee_id === w.member.userId);
+    await w.member.ok('comment.create', {
+      id: uuidv7(),
+      taskId: t,
+      parentId: q!.id,
+      body: doc('1 млн'),
+    });
+    await drain();
+    expect(
+      (await one(`select resolved_at from comments where id = $1`, [q!.id])).resolved_at,
+    ).not.toBeNull();
+    expect(calls).toHaveLength(2);
+    expect((await taskRow(t)).status_id).toBe(S.todo);
+    expect(await labels(t)).toEqual([]);
+
+    // labels of the result alone: «-Имя» removes, a question sets
+    const t2 = await task({ labels: [{ id: uuidv7(), labelId: waiting }] });
+    answers = [result({ labels: ['-Ждёт ответа'] })];
+    await handler('ai', 'ai.run')({ kind: 'action', taskId: t2, actionId }, api);
+    expect(await labels(t2)).toEqual([]);
+    answers = [result({ verdict: 'question', questions: ['Сроки?'], labels: ['Ждёт ответа'] })];
+    await handler('ai', 'ai.run')({ kind: 'action', taskId: t2, actionId }, api);
+    expect(await labels(t2)).toEqual([waiting]);
+    expect(calls.at(-1)!.system).toContain('«-Имя» — снять');
+  });
+
   it('snoozeUntil → дата начала и «Отложено»; escalate → руководитель упомянут и наблюдает', async () => {
     await w.admin.ok('project.update', { id: P, leadId: w.admin.userId });
     await plan();

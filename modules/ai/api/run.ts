@@ -135,10 +135,10 @@ const SYSTEM = `Ты — ИИ-исполнитель в трекере зада�
 - verdict: done — работа выполнена; question — без ответа человека не обойтись (вопросы — в questions, по одному на пункт); fail — выполнить нельзя (причина — в comment).
 - comment: итог для людей, markdown. Пиши на языке задачи.
 - descriptionAppend: план или итог в описание задачи, markdown без заголовка; заменяет блок «${PLAN_HEADING}».
-- moveTo — имя статуса проекта; labels — имена меток для добавления; fields — значения полей по имени.
+- moveTo — имя статуса проекта; labels — имена меток: «Имя» — поставить, «-Имя» — снять; fields — значения полей по имени.
 - newTasks — подзадачи (status — имя статуса или null); snoozeUntil — отложить задачу до даты YYYY-MM-DD; escalate — причина, если нужен руководитель проекта; docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).
 - emails — письма внешним адресатам (to, subject, body — обычный текст), только при done: они уйдут после подтверждения человеком; сам ничего не отправляй.
-Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи) применяются только при done.`;
+Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи) применяются только при done; при question — только labels.`;
 
 /** «Поручение»: the built-in prompt until the active harness package has its own (PLNRAPP-169). */
 export const ASSIGNMENT_PROMPT = `Выполни поручение человека по контексту задачи. Результат — в comment.
@@ -935,6 +935,8 @@ async function apply(
         `${prefix}${r.comment}\n\nНекому задать вопрос: у задачи нет исполнителя-человека и автора.`,
       );
     }
+    // a question is asked: only the labels apply (the state label «Ждёт ответа» of a pack)
+    if (state === 'waiting_human' && ctx) labelMuts(run, r.labels, ctx.labels, muts);
   } else if (r.verdict === 'fail') {
     if (r.comment)
       comment(prefix + r.comment, {
@@ -1089,6 +1091,27 @@ async function apply(
 const note = (q: Pick<Q, 'execute'>, id: string, line: string) =>
   q.execute(sql`update ai_runs set log = log || ${`${line}\n`} where id = ${id}`);
 
+/**
+ * `labels` of the result (PLNRAPP-204): a name — add the label, «-name» — remove it; names of the project's
+ * labels, case-insensitive (a label whose own name starts with «-» is added); unknown names go to the log.
+ */
+function labelMuts(run: Run, names: string[] | null, labels: Row[], muts: Mut[]) {
+  const byName = (n: string) =>
+    labels.find((x) => norm(x.name as string) === norm(n))?.id as string | undefined;
+  for (const n of names ?? []) {
+    const add = byName(n);
+    const del = !add && n.trim().startsWith('-') ? byName(n.trim().slice(1)) : undefined;
+    if (add)
+      muts.push({
+        name: 'task.addLabel',
+        args: { id: uuidv7(), taskId: run.task.id, labelId: add },
+      });
+    else if (del)
+      muts.push({ name: 'task.removeLabel', args: { taskId: run.task.id, labelId: del } });
+    else run.log.push(`labels: нет метки «${n}»`);
+  }
+}
+
 /** done: the task changes — names resolved within the project; unknown names are dropped into the log. */
 async function changes(
   q: Pick<Q, 'execute'>,
@@ -1117,12 +1140,7 @@ async function changes(
     if (s && !upd.statusId) upd.statusId = s;
   }
   if (Object.keys(upd).length) muts.push({ name: 'task.update', args: { id: task.id, ...upd } });
-  for (const n of r.labels ?? []) {
-    const l = byName(ctx.labels, n);
-    if (l)
-      muts.push({ name: 'task.addLabel', args: { id: uuidv7(), taskId: task.id, labelId: l } });
-    else run.log.push(`labels: нет метки «${n}»`);
-  }
+  labelMuts(run, r.labels, ctx.labels, muts);
   for (const f of r.fields ?? []) {
     const id = byName(ctx.fieldDefs, f.name);
     if (id)
