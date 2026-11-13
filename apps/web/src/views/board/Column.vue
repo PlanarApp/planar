@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useSelection } from '../selection';
-import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { observeElementRect, useVirtualizer } from '@tanstack/vue-virtual';
 import type { Rect, Virtualizer } from '@tanstack/vue-virtual';
@@ -40,6 +40,8 @@ const props = defineProps<{
   showKey?: boolean;
   /** whole task names on the cards (the "Wrap task names" option) */
   wrap?: boolean;
+  /** the board's keyboard-focused card (ringed, scrolled into view) */
+  focusedId?: string | null;
 }>();
 const emit = defineEmits<{
   toggle: [];
@@ -111,6 +113,20 @@ const rows = computed(() => {
     bottom: v.length ? virt.value.getTotalSize() - v[v.length - 1].end : 0,
   };
 });
+
+// the keyboard-focused card is scrolled into view (a virtual column renders it first)
+watch(
+  () => props.focusedId,
+  async (id) => {
+    const i = props.group.tasks.findIndex((x) => x.id === id);
+    if (i < 0) return;
+    if (virtual.value) virt.value.scrollToIndex(i);
+    await nextTick();
+    scroller.value
+      ?.querySelector(`[data-id="${id}"]`)
+      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  },
+);
 
 const label = (id: string) => props.labels.find((l) => l.id === id);
 
@@ -266,11 +282,11 @@ function submit() {
           :class="[
             'mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 text-sm focus-visible:ring-2 ring-focus',
             sel.selected.value.has(x.id) ? 'border-accent bg-accent-subtle' : 'border-border',
+            focusedId === x.id && 'ring-2',
           ]"
           @click="onCard(x, $event)"
           @pointerenter="hotId = x.id"
           @pointerleave="cardLeave"
-          @keydown.enter.self="emit('open', x.key)"
         >
           <!-- карточка общая с мобильным Списком; на мобилке поля — иконки, пикеры смонтированы сразу -->
           <TaskCard
