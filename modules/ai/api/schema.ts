@@ -229,3 +229,59 @@ export const aiProjectLimits = pgTable('ai_project_limits', {
   maxAgents: integer(),
   updatedAt: ts().notNull().defaultNow(),
 });
+
+// server table: harness-retro of a project (PLNRAPP-178); no row — on, with the defaults
+export const aiRetro = pgTable('ai_retro', {
+  projectId: uuid().primaryKey(),
+  enabled: boolean().notNull().default(true),
+  /** the retro runs once this many frictions came since the last one */
+  everyFrictions: integer().notNull().default(5),
+  /** …or this many days after the last one (cron), if there are open items */
+  everyDays: integer().notNull().default(7),
+  /** the task «harness-retro»: its subtasks are the items and the proposals */
+  taskId: uuid(),
+  /** frictions since the last retro */
+  frictions: integer().notNull().default(0),
+  lastRunAt: ts(),
+  createdAt: ts().notNull().defaultNow(),
+  updatedAt: ts().notNull().defaultNow(),
+});
+
+// server table: a proposal of the retro — an edit of an instruction of the active pack, a subtask in «Уточнение»
+// assigned to the admin; the admin's answer in the thread of `commentId` decides (apply / close / redo)
+export const aiRetroProposals = pgTable(
+  'ai_retro_proposals',
+  {
+    id: uuid().primaryKey(),
+    projectId: uuid().notNull(),
+    /** the proposal subtask */
+    taskId: uuid()
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    /** the comment with the diff: the answer comes in its thread */
+    commentId: uuid().notNull(),
+    assigneeId: uuid(),
+    /** the instruction edited: the action key; a new action — the key it gets */
+    actionKey: text().notNull(),
+    /** the instruction page; null — a new action */
+    pageId: uuid(),
+    /** the prompt the diff was made against */
+    base: text().notNull(),
+    prompt: text().notNull(),
+    /** a new action: its name, description and a rule (YAML of one item of `rules`) */
+    newAction: jsonb().$type<RetroNewAction>(),
+    title: text().notNull(),
+    /** the items the proposal covers: closed with it */
+    items: uuid().array().notNull().default([]),
+    /** pending | applied | closed */
+    state: text().notNull(),
+    createdAt: ts().notNull().defaultNow(),
+    updatedAt: ts().notNull().defaultNow(),
+  },
+  (t) => [
+    index('ai_retro_proposals_project_id_idx').on(t.projectId),
+    index('ai_retro_proposals_comment_id_idx').on(t.commentId),
+  ],
+);
+
+export type RetroNewAction = { name: string; description: string | null; rule: string | null };
