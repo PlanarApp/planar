@@ -10,6 +10,10 @@ export const cloudStateSchema = z.object({
   serverIp: z.string().nullable(),
   checkout: z.record(z.string(), z.string().url()),
   manageUrl: z.string().nullable(),
+  // PLNRAPP-242: egress of the AI agents; an older cloud without the field — full access
+  egress: z
+    .object({ mode: z.enum(['open', 'allowlist']), domains: z.array(z.string()) })
+    .default({ mode: 'open', domains: [] }),
 });
 export type CloudState = z.infer<typeof cloudStateSchema>;
 

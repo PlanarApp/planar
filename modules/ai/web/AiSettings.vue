@@ -4,6 +4,7 @@ import { AI_PROVIDERS, type AiConnectionView } from '../shared/index.js';
 import { call } from './api';
 import ConnectionFields from './ConnectionFields.vue';
 import { tr } from './data';
+import EgressSection from './EgressSection.vue';
 import LimitsSection from './LimitsSection.vue';
 import RetroSection from './RetroSection.vue';
 import PacksSection from './PacksSection.vue';
@@ -174,6 +175,7 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
         </button>
       </div>
     </form>
+    <EgressSection v-if="level === 'workspace'" />
     <template v-if="level === 'project' && projectId">
       <div class="flex flex-wrap items-center gap-3" data-testid="wizard-buttons">
         <button

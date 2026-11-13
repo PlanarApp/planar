@@ -2,7 +2,7 @@
 type: reference
 status: active
 module: cloud-link
-updated: 2026-11-05
+updated: 2026-11-13
 summary: Связь инстанса Planar с облаком planar-cloud - ENV, setup с одноразовым входом, API состояния триала/оплаты и своего домена, правила блокировки по окончании триала
 related: []
 ---
@@ -55,8 +55,11 @@ interface CloudState {
   serverIp: string | null;                // куда направить A-запись своего домена
   checkout: Record<string, string>;       // провайдер → ссылка на оплату (только настроенные)
   manageUrl: string | null;               // управление подпиской у провайдера
+  egress: { mode: 'open' | 'allowlist'; domains: string[] }; // выход агентов ИИ в интернет; нет поля (старое облако) — open
 }
 ```
+
+`POST {CLOUD_URL}/api/link/egress` `{"domains": null | ["gitlab.com", ".npmjs.org"]}` → `CloudState`: `null` — полный доступ агентов (любой домен и порт), массив — только эти домены (ведущая точка — с поддоменами; порты 80/443), пустой массив — выход запрещён. Решает владелец инстанса: «Настройки → ИИ» воркспейса, `POST /api/cloud/egress` (owner/admin, PLNRAPP-242). Облако проверяет домены (не больше 100) и применяет сразу (`squid -k reconfigure`). Доступно на `trial` и `active`, иначе 409 `bad_state`; ошибки ввода — 400 `invalid_input`, `invalid_domain` (в `data` — домен), `too_many_domains`.
 
 `POST {CLOUD_URL}/api/link/domain` `{"host": "tasks.example.com" | null}` → `CloudState` после привязки (null — снять). Привязать — только при `status = active` (оплаченная подписка), иначе 409 `paid_only`; снять можно всегда.
 
