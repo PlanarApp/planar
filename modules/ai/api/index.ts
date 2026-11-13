@@ -302,6 +302,8 @@ export const api: BackendModuleManifest = {
   mutators: shared.mutators,
   entities: shared.entities,
   afterMutation: afterMutation as BackendModuleManifest['afterMutation'],
+  // PLNRAPP-241: AI is allowed by the instance env (agent containers start by it as well)
+  unavailable: async () => (process.env.PLANAR_AI === 'on' ? null : 'ai_env_off'),
   jobs: [
     { queue: AI_QUEUE, retryLimit: 0, handler: handle } satisfies JobDef<AiRunData>,
     { queue: AGENT_REAP_QUEUE, cron: '* * * * *', retryLimit: 0, handler: reap },

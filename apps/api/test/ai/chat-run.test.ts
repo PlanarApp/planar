@@ -92,7 +92,7 @@ beforeAll(async () => {
   queue.jobs.enqueue = capture;
   api = { ...(await queue.jobs.api()), enqueue: capture };
   const iadmin = new TestClient(svc, await mkUser(db, 'admin'));
-  await iadmin.ok('settings.set', { id: 'enabled_modules', value: ['chat'] });
+  await iadmin.ok('settings.set', { id: 'enabled_modules', value: ['chat', 'ai'] });
   srv = http.createServer((req, res) => {
     let body = '';
     req.on('data', (c) => (body += c));

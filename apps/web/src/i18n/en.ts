@@ -2,7 +2,11 @@ export default {
   app: { name: 'Planar' },
   modules: {
     setup: 'Set up',
-    unavailable: { smtp_not_configured: 'Configure SMTP first (the Set up button)' },
+    unavailable: {
+      smtp_not_configured: 'Configure SMTP first (the Set up button)',
+      ai_env_off: 'AI is not allowed on the server (PLANAR_AI=on)',
+      workspace_off: 'Turn the module on in the workspace settings first',
+    },
   },
   ui: { cancel: 'Cancel', sheet: 'Choose', close: 'Close' },
   archive: {
