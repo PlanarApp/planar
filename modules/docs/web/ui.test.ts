@@ -474,10 +474,13 @@ describe('docs web: комментарии к странице (PLNRAPP-209)', (
     await vi.waitFor(() => expect(w.findAll('[data-testid=doc-comment]')).toHaveLength(2), {
       timeout: 10_000,
     });
+    // the members load on their own: wait for the assignee's name
+    await vi.waitFor(() =>
+      expect(w.find('[data-testid=doc-comment-assigned]').text()).toContain('Я'),
+    );
     expect(w.findAll('[data-testid=doc-thread]')).toHaveLength(1);
     const [r, a] = w.findAll('[data-testid=doc-comment]');
     expect(r!.attributes('data-comment')).toBe(root);
-    expect(r!.find('[data-testid=doc-comment-assigned]').text()).toContain('Я');
     expect(r!.find('[data-testid=doc-comment-resolve]').attributes('disabled')).toBeUndefined();
     expect(r!.find('[data-testid=doc-comment-edit]').exists()).toBe(false);
     expect(a!.find('[data-testid=doc-comment-delete]').exists()).toBe(true);
