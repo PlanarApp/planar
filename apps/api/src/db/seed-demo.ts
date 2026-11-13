@@ -2004,6 +2004,28 @@ async function insertAll(tx: Tx, now: Date) {
         parentId: uid('comment:ai:mention'),
       },
     ),
+    // a reply to the reply — the reply's own thread, opened on the whole feed (PLNRAPP-201)
+    {
+      id: uid('comment:ai:followup'),
+      spaceId: rdmSpace,
+      taskId: tid('RDM', 1),
+      authorId: uid_.demo,
+      body: ask('and who takes the notes?'),
+      mentions: [ai],
+      parentId: uid('comment:ai:reply'),
+      createdAt: at(-1, 12),
+      updatedAt: at(-1, 12),
+    },
+    botSays(
+      'followup:reply',
+      tid('RDM', 1),
+      'The interviewer takes the notes, Sofia reviews them.',
+      {
+        parentId: uid('comment:ai:followup'),
+        createdAt: at(-1, 13),
+        updatedAt: at(-1, 13),
+      },
+    ),
     botSays(
       'check',
       tid('RDM', 1),
