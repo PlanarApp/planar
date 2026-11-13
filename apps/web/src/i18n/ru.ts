@@ -808,6 +808,7 @@ export default {
     dates: 'Даты',
     startDate: 'Дата начала',
     start: 'Начало',
+    fromDate: 'с {date}',
     title: 'Название',
     close: 'Закрыть',
     openAs: {
