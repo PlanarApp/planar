@@ -26,6 +26,12 @@ lint:
   stage: lint
   script: [pnpm lint]
 
+# types are checked only by tsc: the same build as in the API and ai-runner images, before them
+typecheck:
+  extends: .pnpm
+  stage: lint
+  script: [pnpm --filter "@planar/api..." --filter "@planar/ai-runner" build]
+
 test:
   extends: .pnpm
   stage: test

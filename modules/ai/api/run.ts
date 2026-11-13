@@ -701,9 +701,10 @@ async function handleChat(d: ChatRunData, api: JobApi) {
     if (!planned.length) {
       await say(text);
       await finish(api.db, run, 'done');
-      return await collectChat(api, projectId, m.body, text).catch((e) =>
+      await collectChat(api, projectId, m.body, text).catch((e) =>
         note(api.db, id, `harness-retro: ${e instanceof Error ? e.message : String(e)}`),
       );
+      return;
     }
     // the plan goes to the DB before the message: the «да» can come at once
     await api.db.execute(
