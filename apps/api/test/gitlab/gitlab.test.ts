@@ -570,6 +570,10 @@ describe('PLNRAPP-205: статус пайплайна MR и деплоя', () =
     json(res, listed ? [cur] : []);
   };
   const detail = () => hits.filter((h) => /\/merge_requests\/1$/.test(h.path));
+  beforeEach(() => {
+    listed = true;
+    pipelines = [];
+  });
 
   it('открытый MR — head_pipeline, незавершённый перезапрашивается; слит — пайплайн ветки с merge-коммитом', async () => {
     await addProject();
@@ -640,7 +644,14 @@ describe('PLNRAPP-205: статус пайплайна MR и деплоя', () =
       .update(settings)
       .set({ value: ['gitlab', 'automations'] })
       .where(eq(settings.id, 'enabled_modules'));
+    const setModule = (enabled: boolean) =>
+      w.admin.ok('project.setModule', {
+        projectId: w.projectId,
+        moduleId: 'automations',
+        enabled,
+      });
     try {
+      await setModule(true);
       await addProject();
       const t = await mkTask();
       const rule = async (mrState: string, pipeline: string[]) => {
@@ -682,6 +693,7 @@ describe('PLNRAPP-205: статус пайплайна MR и деплоя', () =
       await poll();
       expect(fired()).toEqual([failed, deployed]);
     } finally {
+      await setModule(false);
       jobsSvc.enqueue = enqueue;
       await db
         .update(settings)
