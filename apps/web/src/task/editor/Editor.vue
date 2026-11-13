@@ -52,16 +52,31 @@ const error = ref('');
 // selected text → a task / subtask (PLNRAPP-144): only inside a task (TaskDetail provides TO_TASK);
 // the selection stays and becomes a link to the created task
 const toTask = inject(TO_TASK, null);
-const sel = ref<{ from: number; to: number; text: string; left: number; top: number } | null>(null);
+const sel = ref<{
+  from: number;
+  to: number;
+  text: string;
+  left: number;
+  top: number;
+  bottom: number;
+} | null>(null);
 function trackSelection(ed: CoreEditor) {
   const { from, to, empty } = ed.state.selection;
   const text = empty ? '' : ed.state.doc.textBetween(from, to, ' ').trim();
   if (!toTask || !text || !(ed.isEditable || props.linkReadOnly)) return void (sel.value = null);
   // the menu goes below the selection end: on mobile the OS menu (Copy/Paste/Select all)
-  // covers the space above the selection (PLNRAPP-164)
+  // covers the space above the selection (PLNRAPP-164); no room below (comment field at the
+  // bottom edge) — above the selection, otherwise the fixed menu is off screen (PLNRAPP-215)
   const start = ed.view.coordsAtPos(from);
   const end = ed.view.coordsAtPos(to);
-  sel.value = { from, to, text: text.slice(0, 500), left: start.left, top: end.bottom };
+  sel.value = {
+    from,
+    to,
+    text: text.slice(0, 500),
+    left: start.left,
+    top: start.top,
+    bottom: end.bottom,
+  };
 }
 async function selToTask(sub: boolean) {
   const s = sel.value;
@@ -336,6 +351,12 @@ defineExpose({
   clear: () => editor.value?.commands.clearContent(true),
   focus: () => editor.value?.commands.focus('end'),
 });
+// the selection menu: 16px below the selection (past the mobile handles), ~56px high;
+// does not fit below — 16px above the selection start (PLNRAPP-215)
+const selStyle = (s: { left: number; top: number; bottom: number }) =>
+  s.bottom + 16 + 56 > window.innerHeight
+    ? { left: s.left + 'px', bottom: window.innerHeight - s.top + 16 + 'px' }
+    : { left: s.left + 'px', top: s.bottom + 16 + 'px' };
 // the @ list under the cursor; does not fit below (field near the bottom edge, as in chat) — above the cursor
 const sugStyle = (r: DOMRect | null, n: number) => {
   if (!r) return {};
@@ -414,13 +435,13 @@ const sugStyle = (r: DOMRect | null, n: number) => {
       </li>
     </ul>
     <RefPicker v-if="refAt" :rect="refAt.rect" @pick="insertRef" @close="closeRef" />
-    <!-- below the selection, past the mobile selection handles; mousedown.prevent keeps the selection and the focus -->
+    <!-- below the selection, past the mobile selection handles (no room — above); mousedown.prevent keeps the selection and the focus -->
     <div
       v-if="sel"
       role="toolbar"
       :aria-label="t('task.selectionToTask')"
       class="fixed z-50 flex gap-1 rounded-lg border border-border bg-surface p-1 shadow-md"
-      :style="{ left: sel.left + 'px', top: sel.top + 16 + 'px' }"
+      :style="selStyle(sel)"
       data-testid="selection-to-task"
     >
       <Button size="sm" variant="ghost" @mousedown.prevent @click="selToTask(false)">{{
