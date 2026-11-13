@@ -26,6 +26,7 @@ docker build -t planar-ai-agent:1 docker/ai-agent   # образ агента, �
 Пример `.env`:
 
 ```sh
+PLANAR_AI=on                                  # для api: модуль ai можно включить в настройках воркспейса
 AI_RUNNER_TOKEN=длинный-случайный-секрет     # обязателен у ai-runner; api берёт тот же
 AI_RUNNER_IMAGES=registry.gitlab.com/planarhq/planar/ai-agent:1.4   # allowlist образов, через запятую, точное совпадение
 AI_RUNNER_URL=http://ai-runner:8080           # для api: включает запуск agent-действий

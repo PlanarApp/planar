@@ -2,7 +2,11 @@ export default {
   app: { name: 'Planar' },
   modules: {
     setup: 'Настроить',
-    unavailable: { smtp_not_configured: 'Сначала настройте SMTP (кнопка «Настроить»)' },
+    unavailable: {
+      smtp_not_configured: 'Сначала настройте SMTP (кнопка «Настроить»)',
+      ai_env_off: 'ИИ не разрешён на сервере (PLANAR_AI=on)',
+      workspace_off: 'Сначала включите модуль в настройках воркспейса',
+    },
   },
   ui: { cancel: 'Отмена', sheet: 'Выбор', close: 'Закрыть' },
   archive: {

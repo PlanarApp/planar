@@ -48,8 +48,9 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       # Caddy subnet: trust X-Forwarded-For only from there
       TRUST_PROXY: ${PLANAR_SUBNET:-172.30.0.0/24}
-      # AI agent runs (profile `ai`): pass-through from .env (not in the ops env contract), empty → off.
-      # AI_RUNNER_TOKEN is needed only when AI_RUNNER_URL is set
+      # AI (profile `ai`): pass-through from .env (not in the ops env contract), empty → off.
+      # PLANAR_AI=on — the ai module can be enabled in the workspace; AI_RUNNER_TOKEN is needed only when AI_RUNNER_URL is set
+      PLANAR_AI:
       AI_RUNNER_URL:
       AI_RUNNER_TOKEN:
       AI_AGENT_IMAGE:

@@ -93,6 +93,9 @@ export const DATA_MODULE_IDS = [
   'ai',
 ] as const;
 
+/** Data modules that also need the workspace switch (settings.enabled_modules): on in a project only when on in both (PLNRAPP-241). */
+export const WORKSPACE_DATA_MODULE_IDS: readonly string[] = ['ai'];
+
 /** Data module → the modules it needs: they are turned on together, and the needed one cannot be turned off under it. */
 export const MODULE_DEPS: Record<string, readonly string[]> = { ai: ['automations'] };
 

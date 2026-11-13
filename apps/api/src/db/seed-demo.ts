@@ -55,7 +55,13 @@ import { templatesTemplates } from '@planar/module-templates/api/schema';
 import { workloadCapacities } from '@planar/module-workload/api/schema';
 import { sprintsCycles, sprintsSettings } from '@planar/module-sprints/api/schema';
 import { timeEntries, timeEstimates } from '@planar/module-time/api/schema';
-import { DATA_MODULE_IDS, extractMentions, isDataModule, textToDoc } from '@planar/shared';
+import {
+  DATA_MODULE_IDS,
+  extractMentions,
+  isDataModule,
+  textToDoc,
+  WORKSPACE_DATA_MODULE_IDS,
+} from '@planar/shared';
 import { installed } from '../modules/installed.js';
 import { createDb, migrate, type Db } from './index.js';
 import { filePath } from '../files/store.js';
@@ -109,10 +115,10 @@ const LABELS = [
 
 // Workspace = root space (settings root_space, workspace): without it group tabs have no scope
 const WORKSPACE = { name: 'Brightwave', color: '#6366f1', icon: '🌊' };
-/** Every installed shared module except the example one (hello) */
+/** Every installed shared module except the example one (hello), and the workspace switches of data modules (PLNRAPP-241) */
 const SHARED_MODULES = installed
   .map((m) => m.api.id)
-  .filter((id) => !isDataModule(id) && id !== 'hello');
+  .filter((id) => (!isDataModule(id) || WORKSPACE_DATA_MODULE_IDS.includes(id)) && id !== 'hello');
 /** `space` of DOCS / CHANNELS at the Workspace level */
 const ROOT = -1;
 // node icons are emoji (NodeIcon)

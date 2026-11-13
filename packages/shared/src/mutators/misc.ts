@@ -3,6 +3,7 @@ import {
   MutatorError,
   defineMutator,
   isDataModule,
+  WORKSPACE_DATA_MODULE_IDS,
   type Tx,
   type MutatorCtx,
 } from '../contract/index.js';
@@ -140,11 +141,13 @@ export const miscMutators = [
     name: 'settings.set',
     args: z.object({ id: z.string().min(1), value: z.json() }),
     async run(tx, a, ctx) {
-      // C-mutators v12: enabled_modules holds only shared modules
+      // C-mutators v12: enabled_modules holds only shared modules and workspace switches of data modules (PLNRAPP-241)
       if (
         a.id === 'enabled_modules' &&
         Array.isArray(a.value) &&
-        a.value.some((x) => typeof x === 'string' && isDataModule(x))
+        a.value.some(
+          (x) => typeof x === 'string' && isDataModule(x) && !WORKSPACE_DATA_MODULE_IDS.includes(x),
+        )
       )
         throw new MutatorError(
           'invalid_args',
