@@ -146,9 +146,10 @@ function save() {
         <span class="truncate font-medium">{{ names[comment.assigneeId] ?? '?' }}</span>
       </span>
     </div>
-    <div :class="['flex gap-2', comment.assigneeId && 'p-2']">
-      <Avatar :name="author" :src="avatar" size="md" />
-      <div class="min-w-0 flex-1">
+    <!-- PLNRAPP-216: аватар, автор и дата — шапка; текст и действия под ней от левого края аватара -->
+    <div :class="['min-w-0', comment.assigneeId && 'p-2']">
+      <div class="flex min-w-0 items-center gap-2" data-testid="comment-header">
+        <Avatar :name="author" :src="avatar" size="md" />
         <div class="flex min-w-0 flex-wrap items-baseline gap-x-2 text-sm">
           <span class="font-medium">{{ author }}</span>
           <time class="whitespace-nowrap text-xs text-fg-subtle" :datetime="comment.createdAt">
@@ -156,6 +157,8 @@ function save() {
           </time>
           <span v-if="comment.editedAt" class="text-xs text-fg-subtle">{{ t('task.edited') }}</span>
         </div>
+      </div>
+      <div class="mt-1 min-w-0" data-testid="comment-body">
         <div v-if="work" class="flex items-center gap-1" data-testid="comment-work">
           <Avatar
             v-if="actorAside"
