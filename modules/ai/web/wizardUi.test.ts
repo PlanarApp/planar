@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { canAdvance, nextStep, prevStep, type WizardState } from './wizardUi';
+import {
+  applyFailure,
+  canAdvance,
+  diffPrefix,
+  hasChanges,
+  nextStep,
+  prevStep,
+  type Proposal,
+  type WizardState,
+} from './wizardUi';
 
 const st = (o: Partial<WizardState> = {}): WizardState => ({
   connected: false,
@@ -25,5 +34,20 @@ describe('wizardUi', () => {
     expect(canAdvance('pack', st())).toBe(false);
     expect(canAdvance('pack', st({ uploaded: true }))).toBe(true);
     expect(canAdvance('harness', st({ uploaded: true }))).toBe(false);
+  });
+});
+
+describe('wizardUi adapt', () => {
+  it('hasChanges / applyFailure / diffPrefix', () => {
+    const same = { body: '', baseUpdatedAt: 't', diff: [{ type: 'same', text: 'x' }] } as Proposal;
+    expect(hasChanges(null) || hasChanges(same)).toBe(false);
+    expect(hasChanges({ ...same, diff: [{ type: 'add', text: 'y' }] })).toBe(true);
+    expect([409, 403, 500, undefined].map(applyFailure)).toEqual([
+      'changed',
+      'forbidden',
+      'other',
+      'other',
+    ]);
+    expect(['add', 'del', 'same'].map((t) => diffPrefix(t as 'add'))).toEqual(['+', '-', ' ']);
   });
 });

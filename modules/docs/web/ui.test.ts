@@ -79,6 +79,10 @@ const page = (id: string, o: Partial<PageRow & { body: unknown }> = {}) => ({
   ...o,
 });
 
+// the page body editor (DocEditor); the comments under it have their own editors (PLNRAPP-209)
+const docBody = (w: ReturnType<typeof mount>) =>
+  w.findComponent({ name: 'DocEditor' }).find('.ProseMirror');
+
 beforeAll(async () => {
   i18n.global.locale.value = 'ru';
   registerMutators([...domainMutators, ...moduleMutators]);
@@ -89,7 +93,7 @@ beforeAll(async () => {
 });
 afterAll(() => stopSync());
 beforeEach(async () => {
-  for (const t of ['docsPages', 'docsTaskLinks', 'docsLocks', 'tasks', 'users', 'spaces'])
+  for (const t of ['docsPages', 'docsTaskLinks', 'docsLocks', 'docsComments', 'tasks', 'users', 'spaces'])
     await db.table(t).clear();
   await db.table('spaceMembers').put({
     id: uuidv7(),
@@ -271,10 +275,10 @@ describe('docs web: совместное редактирование (DC-web v2
     await db.table('docsPages').put(page(id));
     const n0 = await queued('docs.lock');
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+    await vi.waitFor(() => expect(docBody(w).exists()).toBe(true), {
       timeout: 10_000,
     });
-    expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
+    expect(docBody(w).attributes('contenteditable')).toBe('true');
     expect(w.find('[data-testid=doc-lock]').exists()).toBe(false);
     expect((w.find('[data-testid=doc-title]').element as HTMLInputElement).disabled).toBe(false);
     w.unmount();
@@ -292,10 +296,10 @@ describe('docs web: совместное редактирование (DC-web v2
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
     });
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+    await vi.waitFor(() => expect(docBody(w).exists()).toBe(true), {
       timeout: 10_000,
     });
-    expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
+    expect(docBody(w).attributes('contenteditable')).toBe('true');
     expect(w.find('[data-testid=doc-lock]').exists()).toBe(false);
     w.unmount();
   });
@@ -309,7 +313,7 @@ describe('docs web: совместное редактирование (DC-web v2
     ((globalThis as Record<string, unknown>).__denied as () => void)();
     await flushPromises();
     expect(w.find('[data-testid=unsynced]').text()).toContain('Не синхронизируется');
-    expect(w.find('.ProseMirror').attributes('contenteditable')).toBe('true');
+    expect(docBody(w).attributes('contenteditable')).toBe('true');
     await w.find('[data-testid=unsynced] button').trigger('click');
     expect(w.find('[data-testid=unsynced]').exists()).toBe(false);
     w.unmount();
@@ -358,7 +362,7 @@ describe('docs web: slash-меню и редактор', () => {
     const id = uuidv7();
     await db.table('docsPages').put(page(id));
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+    await vi.waitFor(() => expect(docBody(w).exists()).toBe(true), {
       timeout: 10_000,
     });
     const ed = (w.findComponent({ name: 'DocEditor' }).vm as unknown as { editor: Editor }).editor;
@@ -375,7 +379,7 @@ describe('docs web: slash-меню и редактор', () => {
     const id = uuidv7();
     await db.table('docsPages').put(page(id));
     const w = mount(PageView, { props: { pageId: id } });
-    await vi.waitFor(() => expect(w.find('.ProseMirror').exists()).toBe(true), {
+    await vi.waitFor(() => expect(docBody(w).exists()).toBe(true), {
       timeout: 10_000,
     });
     await flushPromises();
@@ -437,5 +441,77 @@ describe('docs web: страница документа (PLNRAPP-184)', () => {
     expect(direct.find('[data-testid=docs-page-back]').exists()).toBe(false);
     direct.unmount();
     route.params = {};
+  });
+});
+
+describe('docs web: комментарии к странице (PLNRAPP-209)', () => {
+  const comment = (id: string, pageId: string, o: Record<string, unknown> = {}) => ({
+    id,
+    spaceId: SPACE,
+    pageId,
+    authorId: OTHER,
+    parentId: null,
+    body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: id }] }] },
+    mentions: [],
+    assigneeId: null,
+    resolvedAt: null,
+    resolvedBy: null,
+    editedAt: null,
+    createdAt: NOW,
+    updatedAt: NOW,
+    ...o,
+  });
+
+  it('ветка с ответом под корнем; свой — с правкой и удалением; назначенный — с полосой и «Завершить»', async () => {
+    const id = uuidv7();
+    const [root, reply] = [uuidv7(), uuidv7()];
+    await db.table('docsPages').put(page(id));
+    await db.table('docsComments').bulkPut([
+      comment(root, id, { assigneeId: ME }),
+      comment(reply, id, { parentId: root, authorId: ME, createdAt: '2026-10-23T11:00:00.000Z' }),
+    ]);
+    const w = mount(PageView, { props: { pageId: id } });
+    await vi.waitFor(() => expect(w.findAll('[data-testid=doc-comment]')).toHaveLength(2), {
+      timeout: 10_000,
+    });
+    expect(w.findAll('[data-testid=doc-thread]')).toHaveLength(1);
+    const [r, a] = w.findAll('[data-testid=doc-comment]');
+    expect(r!.attributes('data-comment')).toBe(root);
+    expect(r!.find('[data-testid=doc-comment-assigned]').text()).toContain('Я');
+    expect(r!.find('[data-testid=doc-comment-resolve]').attributes('disabled')).toBeUndefined();
+    expect(r!.find('[data-testid=doc-comment-edit]').exists()).toBe(false);
+    expect(a!.find('[data-testid=doc-comment-delete]').exists()).toBe(true);
+
+    await r!.find('[data-testid=doc-comment-resolve]').trigger('click');
+    await vi.waitFor(async () =>
+      expect(db._queue.filter((q) => q.name === 'docs.comment.resolve').count()).resolves.toBe(1),
+    );
+    await a!.find('[data-testid=doc-comment-delete]').trigger('click');
+    await vi.waitFor(async () =>
+      expect(db._queue.filter((q) => q.name === 'docs.comment.delete').count()).resolves.toBe(1),
+    );
+    w.unmount();
+  });
+
+  it('гость видит комментарии, но без поля ввода и кнопок', async () => {
+    const id = uuidv7();
+    await db.table('spaceMembers').clear();
+    await db.table('spaceMembers').put({
+      id: uuidv7(),
+      spaceId: SPACE,
+      userId: ME,
+      role: 'guest',
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+    await db.table('docsPages').put(page(id));
+    await db.table('docsComments').put(comment(uuidv7(), id));
+    const w = mount(PageView, { props: { pageId: id } });
+    await vi.waitFor(() => expect(w.findAll('[data-testid=doc-comment]')).toHaveLength(1), {
+      timeout: 10_000,
+    });
+    expect(w.find('[data-testid=doc-comment-send]').exists()).toBe(false);
+    expect(w.find('[data-testid=doc-comment-reply]').exists()).toBe(false);
+    w.unmount();
   });
 });

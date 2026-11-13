@@ -25,3 +25,19 @@ export function canAdvance(s: WizardStep, st: WizardState): boolean {
   if (s === 'pack') return st.uploaded;
   return false;
 }
+
+// «Adapt with AI» (step 3): POST /api/ai/wizard/adapt[/apply] — a proposal as a line diff, then the apply.
+export type DiffLine = { type: 'same' | 'add' | 'del'; text: string };
+export type Proposal = { body: string; baseUpdatedAt: string; diff: DiffLine[] };
+export type AdaptReply = { reply: string; proposal: Proposal | null };
+
+export const diffPrefix = (t: DiffLine['type']): string =>
+  t === 'add' ? '+' : t === 'del' ? '-' : ' ';
+
+/** A proposal that changes nothing (only «same» lines) is not worth showing. */
+export const hasChanges = (p: Proposal | null): p is Proposal =>
+  !!p && p.diff.some((l) => l.type !== 'same');
+
+/** What the apply error means for the UI: 409 → re-request, 403 → no rights. */
+export const applyFailure = (status: number | undefined): 'changed' | 'forbidden' | 'other' =>
+  status === 409 ? 'changed' : status === 403 ? 'forbidden' : 'other';

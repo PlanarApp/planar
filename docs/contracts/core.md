@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v28
+## C-schema v29
+
+v29 (PLNRAPP-209): `notifications.kind` += `doc_comment_assigned` (a comment on a docs module page assigned to the user, `url` — `/m/docs/<pageId>?comment=<id>`).
 
 v28 (PLNRAPP-167): `users.bot` (bool, default `false`) — the AI bot: an active user `ai` created when the module `ai` is first enabled in a space; no sign-in (rejected by the flag), the token works — core-schema.md.
 

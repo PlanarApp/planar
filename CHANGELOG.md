@@ -20,9 +20,11 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - Settings → AI and the setup wizard: pick a ready provider (OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek, Mistral, Groq) — the API URL is filled in; «Custom API URL» keeps the manual fields. After the key is entered, the model is picked from the provider's list; typing a name still works.
 - Task merge: «Merge into task…» in the task menu and «Merge…» in the bulk action bar of the list, board and table (2+ selected tasks of one space — mark the target, the others merge into it). Comments, attachments, time, links, subtasks, assignees and watchers move to the target; merged tasks get the «Cancelled» status and the link «duplicates». Mutator `task.merge` takes `ids` and `linkIds` lists.
 - AI harness-retro: the task «harness-retro» (created when the AI is set up in a project, again after a deletion) collects subtasks — what got in the way of a run (the new result field `friction`), results of assignments and chat, admins' answers to the bot («не так», a status rolled back by hand after a run). Every N frictions or every N days the AI groups them and proposes an edit of an instruction of the active pack (or a new action with a rule): a subtask in «Clarify» on an admin with the diff in a comment; the answer in its thread — «применить», «закрыть» or what to redo. Settings → AI → harness-retro: the switch and the frequency.
+- Documents: comments on a page — threads with replies, mentions, assignment to a person and «Resolve», as in tasks; visible to whoever sees the page, written by members. A mention and an assignment notify the person, the link opens the page at the comment.
 
 ### Changed
 
+- Documents: the «AI chat» panel on a page is removed — page comments replace it. The setup wizard's «Adapt with AI» stays and works only on harness pack pages.
 - The key encryption of GitLab, email and AI connections lives in one place (`packages/server-kit`).
 - Settings → AI tasks: when the runner is not set up, a notice says that agent actions will not start and how to turn the runner on.
 

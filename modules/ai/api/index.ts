@@ -9,7 +9,7 @@ import { AgentController } from './agent.controller.js';
 import { AiController } from './controller.js';
 import { HarnessController } from './harness.controller.js';
 import { PacksController } from './packs.controller.js';
-import { DocChatController } from './doc-chat.controller.js';
+import { WizardAdaptController } from './wizard-adapt.controller.js';
 import { EMAIL_QUEUE, handleEmail, isYes, replied, textOf, type EmailData } from './email.js';
 import type { JSONContent } from '@tiptap/core';
 import { AI_QUEUE, handle, keyOf, type AiRunData } from './run.js';
@@ -28,7 +28,7 @@ import {
     AiController,
     HarnessController,
     PacksController,
-    DocChatController,
+    WizardAdaptController,
     AgentController,
   ],
 })

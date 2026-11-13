@@ -14,6 +14,7 @@ import {
   Menu,
   type MenuItem,
 } from '@planar/web/modules';
+import DocComments from './DocComments.vue';
 import DocEditor from './DocEditor.vue';
 import VersionsDialog from './VersionsDialog.vue';
 import { toProjectArgs, type PageFull } from './model';
@@ -185,6 +186,12 @@ async function archive() {
         :name="`docs:${pageId}`"
         :members="members"
         @open-task="(k) => router.push(`/t/${k}`)"
+      />
+      <DocComments
+        :key="pageId"
+        :page-id="pageId"
+        :space-id="page.spaceId"
+        :project-id="page.projectId"
       />
       <VersionsDialog v-if="history" v-model:open="history" :page-id="pageId" />
     </template>

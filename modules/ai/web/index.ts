@@ -40,10 +40,7 @@ export const web = defineWebModule({
     { id: 'tasks', entity: 'tasks', load: activity('tasks') },
     { id: 'chat', entity: 'chatChannels', load: activity('channels') },
   ],
-  docPanels: [
-    { id: 'harness', component: () => import('./HarnessPanel.vue') },
-    { id: 'docChat', component: () => import('./DocChatPanel.vue') },
-  ],
+  docPanels: [{ id: 'harness', component: () => import('./HarnessPanel.vue') }],
   settings: [
     {
       id: 'workspace',
