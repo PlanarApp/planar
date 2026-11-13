@@ -196,6 +196,7 @@ export default {
       due_today: 'Сегодня срок {key}',
       start_today: 'Сегодня начало {key}',
       doc_mention: '{who} упомянул(а) вас в документе',
+      doc_comment_assigned: '{who} назначил(а) вам комментарий в документе',
       trial_ending: 'Пробный период скоро закончится — оформите подписку',
     },
     pushOn: 'Включить push-уведомления',

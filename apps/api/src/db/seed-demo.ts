@@ -7,7 +7,12 @@ import { pathToFileURL } from 'node:url';
 import { sql } from 'drizzle-orm';
 import { generateNKeysBetween } from 'fractional-indexing';
 import { dashboardsBoards, dashboardsWidgets } from '@planar/module-dashboards/api/schema';
-import { docsPages, docsTaskLinks, docsVersions } from '@planar/module-docs/api/schema';
+import {
+  docsComments,
+  docsPages,
+  docsTaskLinks,
+  docsVersions,
+} from '@planar/module-docs/api/schema';
 import {
   chatChannels,
   chatMembers,
@@ -1467,6 +1472,58 @@ async function insertAll(tx: Tx, now: Date) {
       taskId: tid('RDM', 2),
       createdBy: maya,
       createdAt: at(-8),
+    },
+  ]);
+  // PLNRAPP-209: comments on "Product vision" — a thread assigned to demo with a reply, a resolved one
+  const docUsers = USERS.map(([login]) => ({ id: uid_[login]!, login }));
+  const DOC_COMMENTS: [
+    author: string,
+    text: string,
+    parent?: number,
+    assignee?: string,
+    resolved?: boolean,
+  ][] = [
+    [
+      'liam',
+      '@demo could you add a line about the mobile apps to the focus paragraph?',
+      undefined,
+      'demo',
+    ],
+    ['maya', 'Good point, mobile is part of the onboarding work.', 0],
+    ['sofia', 'Should we name the three focus areas as a list?', undefined, 'maya', true],
+  ];
+  const docComments = DOC_COMMENTS.map(([author, text, parent, assignee, resolved], k) => {
+    const body = textToDoc(text, docUsers);
+    return {
+      id: uid(`dcomment:${k}`),
+      spaceId: sp(DOCS[0]!.space),
+      pageId: uid('page:0'),
+      authorId: uid_[author]!,
+      parentId: parent === undefined ? null : uid(`dcomment:${parent}`),
+      body,
+      mentions: extractMentions(body),
+      assigneeId: assignee ? uid_[assignee]! : null,
+      resolvedAt: resolved ? at(-2) : null,
+      resolvedBy: resolved && assignee ? uid_[assignee]! : null,
+      editedAt: null,
+      createdAt: at(-4 + k * 0.5),
+      updatedAt: at(-4 + k * 0.5),
+    };
+  });
+  await ins(docsComments, docComments);
+  await ins(s.notifications, [
+    {
+      id: uid('notif:dcomment:0'),
+      userId: uid_.demo,
+      spaceId: docComments[0]!.spaceId,
+      kind: 'doc_comment_assigned' as const,
+      taskId: null,
+      commentId: null,
+      actorId: docComments[0]!.authorId,
+      url: `/m/docs/${uid('page:0')}?comment=${docComments[0]!.id}`,
+      body: `Liam Walker: ${DOCS[0]!.title}`,
+      readAt: null,
+      createdAt: docComments[0]!.createdAt,
     },
   ]);
 

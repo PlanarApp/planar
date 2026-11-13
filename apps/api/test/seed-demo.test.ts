@@ -66,6 +66,7 @@ describe('seed-demo', () => {
       'dashboards_widgets',
       'docs_pages',
       'docs_versions',
+      'docs_comments',
       'chat_messages',
       'recurring_rules',
       'comments',

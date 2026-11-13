@@ -196,6 +196,7 @@ export default {
       due_today: '{key} is due today',
       start_today: '{key} starts today',
       doc_mention: '{who} mentioned you in a document',
+      doc_comment_assigned: '{who} assigned you a comment in a document',
       trial_ending: 'The trial ends soon — subscribe',
     },
     pushOn: 'Enable push notifications',

@@ -499,6 +499,7 @@ export const notifications = pgTable(
         'checklist_assigned',
         'due_today',
         'start_today',
+        'doc_comment_assigned',
       ]),
     ),
   ],

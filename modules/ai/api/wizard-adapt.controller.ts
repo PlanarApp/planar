@@ -14,13 +14,11 @@ import { uuidv7 } from '@planar/shared';
 const hasMention = (body: unknown) => JSON.stringify(body).includes('"type":"mention"');
 const NO_MENTIONS = 'Страница с упоминаниями не поддерживается';
 
-const chatBody = z.object({
+const NOT_PACK = 'Адаптировать можно только страницу harness-пакета';
+
+const adaptBody = z.object({
   pageId: z.uuid(),
   message: z.string().min(1).max(4000),
-  history: z
-    .array(z.object({ role: z.enum(['user', 'assistant']), text: z.string().max(20_000) }))
-    .max(20)
-    .optional(),
 });
 const applyBody = z.object({
   pageId: z.uuid(),
@@ -44,8 +42,9 @@ const HTTP: Record<string, [number, 'invalid_request' | 'forbidden' | 'not_found
   conflict: [409, 'conflict'],
 };
 
-@Controller('api/ai/doc-chat')
-export class DocChatController {
+/** Step «Adapt with AI» of the setup wizard: a pack page only (the «Talk to the document» chat is gone). */
+@Controller('api/ai/wizard/adapt')
+export class WizardAdaptController {
   constructor(@Inject(CORE) private core: CoreServices) {}
 
   /** The page as the docs controller sees it: visible to a space member with project access; else 404. */
@@ -85,11 +84,12 @@ export class DocChatController {
   /** Proposal of an edit: the reply and, when the text changes, the whole new text with a line diff. Nothing is written. */
   @Post()
   @HttpCode(200)
-  async chat(@Req() req: object, @Body() body: unknown) {
-    const b = parseBody(chatBody, body);
+  async adapt(@Req() req: object, @Body() body: unknown) {
+    const b = parseBody(adaptBody, body);
     const { userId } = this.core.auth(req);
     const page = await this.page(userId, b.pageId);
     if (!page.projectId) throw new HttpError(409, 'conflict', 'ИИ работает только в проекте');
+    if (!page.pack) throw new HttpError(409, 'conflict', NOT_PACK);
     const projectId = page.projectId;
     const [g] = (
       await this.core.db.execute(
@@ -106,10 +106,7 @@ export class DocChatController {
     const conn = await resolveConnection(this.core.db, page.projectId);
     if (!conn) throw new HttpError(409, 'conflict', 'Не настроено подключение к ИИ');
     const current = docToMarkdown(page.body as never).trim();
-    const hist = (b.history ?? []).map(
-      (h) => `${h.role === 'user' ? 'Пользователь' : 'ИИ'}: ${h.text}`,
-    );
-    const ctx = page.pack ? await this.packContext(page.projectId) : '';
+    const ctx = await this.packContext(page.projectId);
     let out: { reply: string; body: string | null };
     try {
       let usage;
@@ -117,7 +114,7 @@ export class DocChatController {
         schema: z.object({ reply: z.string(), body: z.string().nullable() }),
         system:
           'Ты помогаешь править документ. Ответь пользователю в "reply". Если нужна правка — в "body" верни ПОЛНЫЙ новый текст документа в markdown (сохрани всё, что не меняешь, включая блок кода и ---), иначе null.',
-        prompt: `# Документ «${page.title}»\n\n${current}${ctx}${hist.length ? `\n\n# История диалога\n${hist.join('\n')}` : ''}\n\n# Сообщение\n${b.message}`,
+        prompt: `# Документ «${page.title}»\n\n${current}${ctx}\n\n# Сообщение\n${b.message}`,
         maxOutputTokens: 8000,
       }));
       // the spend counts towards the daily limits (usedToday)
@@ -146,6 +143,7 @@ export class DocChatController {
     const b = parseBody(applyBody, body);
     const { userId } = this.core.auth(req);
     const page = await this.page(userId, b.pageId);
+    if (!page.pack) throw new HttpError(409, 'conflict', NOT_PACK);
     if (hasMention(page.body)) throw new HttpError(409, 'conflict', NO_MENTIONS);
     if (Number.isNaN(Date.parse(b.baseUpdatedAt)))
       throw new HttpError(400, 'invalid_request', 'baseUpdatedAt: неверная дата');
