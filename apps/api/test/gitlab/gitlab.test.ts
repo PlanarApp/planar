@@ -363,7 +363,8 @@ describe('pt6a: опрос', () => {
     handler = (_, res) =>
       n++ === 0 ? json(res, {}, { 'retry-after': '0' }, 429) : json(res, [mr(1, { title: t.key })]);
     await poll();
-    expect(n).toBe(2);
+    // 429 and its retry; then GET of the open MR for its pipeline (PLNRAPP-205)
+    expect(n).toBe(3);
     expect(await mrsOf(1)).toHaveLength(1);
     n = 0;
     handler = (_, res) => (n++, json(res, {}, { 'retry-after': '0' }, 429));
@@ -554,5 +555,138 @@ describe('PLNRAPP-153: ветка, MR и опрос из задачи', () => {
     expect((await call('POST', `tasks/${uuidv7()}/branch`, {})).statusCode).toBe(404);
     const p2 = await mkTask(await mkProject());
     expect((await call('POST', `tasks/${p2.id}/branch`, {})).statusCode).toBe(404);
+  });
+});
+
+describe('PLNRAPP-205: статус пайплайна MR и деплоя', () => {
+  // the MR as GitLab returns it now: in the list (if listed) and by GET of one MR
+  let cur: Record<string, unknown>;
+  let listed = true;
+  let pipelines: { status: string }[] = [];
+  const gitlab = (req: http.IncomingMessage, res: http.ServerResponse) => {
+    const p = new URL(req.url!, 'http://x').pathname;
+    if (/\/merge_requests\/\d+$/.test(p)) return json(res, cur);
+    if (p.endsWith('/pipelines')) return json(res, pipelines);
+    json(res, listed ? [cur] : []);
+  };
+  const detail = () => hits.filter((h) => /\/merge_requests\/1$/.test(h.path));
+
+  it('открытый MR — head_pipeline, незавершённый перезапрашивается; слит — пайплайн ветки с merge-коммитом', async () => {
+    await addProject();
+    const t = await mkTask();
+    const now = () => new Date().toISOString();
+    cur = { ...mr(1, { title: t.key, updated_at: now() }), head_pipeline: { status: 'running' } };
+    handler = gitlab;
+    await poll();
+    expect((await mrsOf(1))[0]!.pipelineStatus).toBe('running');
+    // the MR's updated_at does not change with the pipeline: the unfinished one is fetched by GET of the MR
+    listed = false;
+    cur = { ...cur, head_pipeline: { status: 'failed' } };
+    hits = [];
+    await poll();
+    expect(detail()).toHaveLength(1);
+    expect((await mrsOf(1))[0]!.pipelineStatus).toBe('failed');
+    hits = [];
+    await poll();
+    expect(detail()).toHaveLength(0);
+    // merged: the pipeline of the merge commit on the target branch; none yet — null
+    listed = true;
+    cur = {
+      ...mr(1, { title: t.key, state: 'merged', updated_at: now() }),
+      merged_at: now(),
+      target_branch: 'main',
+      merge_commit_sha: 'abc123',
+    };
+    pipelines = [];
+    hits = [];
+    await poll();
+    expect((await mrsOf(1))[0]).toMatchObject({ state: 'merged', pipelineStatus: null });
+    const q = hits.find((h) => h.path.endsWith('/pipelines'))!.q;
+    expect([q.get('ref'), q.get('sha')]).toEqual(['main', 'abc123']);
+    listed = false;
+    pipelines = [{ status: 'success' }];
+    await poll();
+    expect((await mrsOf(1))[0]!.pipelineStatus).toBe('success');
+  });
+
+  it('слит, а пайплайна нет 10 минут — skipped; закрытый MR не отслеживается', async () => {
+    await addProject();
+    const t = await mkTask();
+    const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    cur = {
+      ...mr(1, { title: t.key, state: 'merged', updated_at: ago(11) }),
+      merged_at: ago(11),
+      target_branch: 'main',
+      sha: 'def456',
+    };
+    handler = gitlab;
+    await poll();
+    expect((await mrsOf(1))[0]!.pipelineStatus).toBe('skipped');
+    cur = { ...mr(2, { title: t.key, state: 'closed', updated_at: ago(1) }) };
+    hits = [];
+    await poll();
+    expect((await mrsOf(2))[0]!.pipelineStatus).toBeNull();
+    expect(
+      hits.filter((h) => h.path.includes('/merge_requests/') || h.path.endsWith('/pipelines')),
+    ).toEqual([]);
+  });
+
+  it('смена статуса пайплайна запускает правила mr.pipeline своего состояния MR', async () => {
+    const jobsSvc = getApp().get(JobsService);
+    const enqueue = jobsSvc.enqueue.bind(jobsSvc);
+    const queued: { queue: string; data: Record<string, unknown> }[] = [];
+    jobsSvc.enqueue = async (queue, data) => void queued.push({ queue, data: data as never });
+    await db
+      .update(settings)
+      .set({ value: ['gitlab', 'automations'] })
+      .where(eq(settings.id, 'enabled_modules'));
+    try {
+      await addProject();
+      const t = await mkTask();
+      const rule = async (mrState: string, pipeline: string[]) => {
+        const id = uuidv7();
+        await w.admin.ok('automations.create', {
+          id,
+          projectId: w.projectId,
+          name: 'CI',
+          trigger: { type: 'mr.pipeline', mr: mrState, pipeline },
+          actions: [{ type: 'add_comment', text: 'CI' }],
+        });
+        return id;
+      };
+      const failed = await rule('opened', ['failed']);
+      const deployed = await rule('merged', ['success', 'skipped']);
+      const fired = () =>
+        queued.filter((j) => j.queue === 'automations.run').map((j) => j.data.ruleId);
+      cur = {
+        ...mr(1, { title: t.key, updated_at: new Date().toISOString() }),
+        head_pipeline: { status: 'running' },
+      };
+      listed = true;
+      handler = gitlab;
+      await poll();
+      expect(fired()).toEqual([]);
+      cur = { ...cur, head_pipeline: { status: 'failed' } };
+      await poll();
+      expect(fired()).toEqual([failed]);
+      // the same status again — no new event
+      await poll();
+      expect(fired()).toEqual([failed]);
+      cur = {
+        ...mr(1, { title: t.key, state: 'merged', updated_at: new Date().toISOString() }),
+        merged_at: new Date().toISOString(),
+        target_branch: 'main',
+        merge_commit_sha: 'abc',
+      };
+      pipelines = [{ status: 'success' }];
+      await poll();
+      expect(fired()).toEqual([failed, deployed]);
+    } finally {
+      jobsSvc.enqueue = enqueue;
+      await db
+        .update(settings)
+        .set({ value: ['gitlab'] })
+        .where(eq(settings.id, 'enabled_modules'));
+    }
   });
 });

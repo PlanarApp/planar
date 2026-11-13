@@ -583,6 +583,35 @@ describe('прогон по правилу', () => {
     expect(q.assignee_id).toBe(w.member.userId);
     expect(text(q.body)).toContain('Продлить');
   });
+
+  it('PLNRAPP-205: maxRuns — прогонов правила подряд не больше N, дальше вопрос человеку; прогон не по правилу сбрасывает счёт', async () => {
+    const { id: ruleId } = await rule({ type: 'task.status_changed', to: [S.backlog] }, [
+      { type: 'ai_run', aiActionId: actionId, maxRuns: 2 },
+    ]);
+    const t = await task({ statusId: S.backlog });
+    const prior = (r: string | null) =>
+      raw(
+        `insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, state, chain_id, chain_depth)
+         values ($1, $2, $3, 'action', $4, $5, 'done', $1, 0)`,
+        [uuidv7(), t, P, actionId, r],
+      );
+    await prior(ruleId);
+    await prior(null); // a run not by this rule: the count starts over
+    await prior(ruleId);
+    const start = () =>
+      handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId, ruleId }, api);
+    await start();
+    expect(calls).toHaveLength(1);
+    expect((await runsOf(t)).at(-1)!.state).toBe('done');
+    // two runs by the rule in a row — the limit: a question to the person, no provider call
+    await start();
+    expect(calls).toHaveLength(1);
+    expect((await runsOf(t)).at(-1)!.state).toBe('waiting_human');
+    expect((await taskRow(t)).status_id).toBe(S.clarify);
+    const q = (await commentsOf(t)).at(-1)!;
+    expect(q.assignee_id).toBe(w.member.userId);
+    expect(text(q.body)).toContain('раз подряд');
+  });
 });
 
 describe('выключатель и суточные лимиты', () => {

@@ -2227,6 +2227,24 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-25),
     },
   ]);
+  // PLNRAPP-205: the MR's CI failed → «Development» fixes it again, at most 3 runs in a row, then asks a person
+  await ins(automationsRules, [
+    {
+      id: uid('rule:ai-dev-ci'),
+      spaceId: rdmSpace,
+      projectId: pid('RDM'),
+      name: 'AI fixes a failed MR pipeline',
+      description:
+        'At most 3 runs in a row, then a question to a person. Only tasks where the AI is an assignee.',
+      enabled: true,
+      trigger: { type: 'mr.pipeline', mr: 'opened', pipeline: ['failed'] },
+      conditions: { op: 'and', rules: [{ field: 'assignee', operator: 'in', value: [ai] }] },
+      actions: [{ type: 'ai_run', aiActionId: uid('ai-action:dev'), maxRuns: 3 }],
+      createdBy: maya,
+      createdAt: at(-25),
+      updatedAt: at(-25),
+    },
+  ]);
   await ins(s.comments, [
     botSays(
       'dev',

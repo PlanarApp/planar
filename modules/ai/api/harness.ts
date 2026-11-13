@@ -260,7 +260,12 @@ export async function buildMutations(
     };
   };
   const action = (a: Row) => {
-    if (a.type === 'ai_run') return { type: 'ai_run', aiActionId: lookup('action', a.action) };
+    if (a.type === 'ai_run')
+      return {
+        type: 'ai_run',
+        aiActionId: lookup('action', a.action),
+        ...(a.maxRuns !== undefined && { maxRuns: a.maxRuns }),
+      };
     return {
       ...a,
       ...(a.statusId !== undefined && { statusId: lookup('status', a.statusId) }),

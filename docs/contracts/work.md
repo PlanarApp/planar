@@ -275,6 +275,7 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId
 | `task.unassigned` | `hours: int 1–720` | cron `automations.due`: no assignees since `max(createdAt, last activity assignee_removed) ≤ now − hours`; slot — that moment |
 | `task.waiting_human` | `days: int 1–365` | cron `automations.due`: an unresolved comment assigned to an active user, created `≤ now − days`; slot — id of the oldest such comment |
 | `task.start_reached` | — | cron `automations.due`: `startDate ≤ today` in `settings.timezone`; slot `startDate` |
+| `mr.pipeline` | `mr: 'opened'\|'merged'`, `pipeline: ('success'\|'failed'\|'canceled'\|'skipped'\|'manual')[]` (≥ 1) | `gitlabMrs` put (module gitlab, PLNRAPP-205) where `pipelineStatus` is not null and the pair (`state`, `pipelineStatus`) changed: `state = mr`, `pipelineStatus` in `pipeline`. `opened` — the MR's head pipeline (CI of the MR); `merged` — the target branch pipeline with the merge (deploy), `skipped` — none 10 min after the merge |
 | `schedule` | `cron` (5 fields: `*`, numbers, ranges, steps, lists), `tz?` (IANA; default `settings.timezone`) | cron `automations.schedule` (every minute): the latest cron occurrence in `tz` is within the last 2 minutes → runs for every open task of the project; slot — the occurrence (ISO). A field out of range passes the shape check, and the rule never fires |
 
 The rule's project is the task's `projectId` after the mutation. Deleted tasks do not trigger rules.
@@ -298,7 +299,7 @@ Conditions — `matchFilter(task, conditions, {statuses, fieldDefs, userId: syst
 | `move_to_project` | `projectId`, `statusId?` | `task.update` |
 | `create_subtask` | `title` 1–500 | `task.create` with `parentId`; status — the first by `rank` in category todo, otherwise backlog |
 | `send_webhook` | `subscriptionId` | `enqueueWebhookEvent` of the webhooks module, event `automation.fired` |
-| `ai_run` | `aiActionId` (an `aiActions` row of the rule's project) | none: after the other actions, in their transaction, `enqueue('ai.run', {kind: 'action', taskId, actionId, ruleId, statusId, parentRunId}, {singletonKey: 'taskId:actionId', upsert: true, startAfter: 60})` — debounce; the module ai runs it (PLNRAPP-168) |
+| `ai_run` | `aiActionId` (an `aiActions` row of the rule's project), `maxRuns?: int 1–20` (PLNRAPP-205: runs of the action by this rule on the task in a row — since the last run of the action by another rule / by hand / a restart / with questions to a person; at the limit the run asks the task's person instead, as on an exhausted budget) | none: after the other actions, in their transaction, `enqueue('ai.run', {kind: 'action', taskId, actionId, ruleId, statusId, parentRunId}, {singletonKey: 'taskId:actionId', upsert: true, startAfter: 60})` — debounce; the module ai runs it (PLNRAPP-168) |
 
 A rule with `ai_run` (in its old or new actions) is created, changed and deleted only by an admin of the project (`needProjectAdmin`); otherwise `forbidden`.
 

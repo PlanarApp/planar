@@ -25,8 +25,15 @@ export const TRIGGER_TYPES = [
   'task.unassigned',
   'task.waiting_human',
   'task.start_reached',
+  'mr.pipeline',
   'schedule',
 ] as const;
+
+/**
+ * PLNRAPP-205: pipeline statuses of a task's MR (module gitlab): of the MR's head pipeline while it is open,
+ * of the target branch pipeline (deploy) after the merge; `skipped` — no pipeline came after the merge.
+ */
+export const PIPELINE_STATUSES = ['success', 'failed', 'canceled', 'skipped', 'manual'] as const;
 
 /** Five cron fields: `*`, numbers, ranges, steps, lists; bounds are checked by the api parser. */
 const CRON_FIELD = String.raw`(\*|\d+(-\d+)?)(\/\d+)?(,(\*|\d+(-\d+)?)(\/\d+)?)*`;
@@ -71,6 +78,12 @@ export const triggerSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('task.unassigned'), hours: z.number().int().min(1).max(720) }),
   z.object({ type: z.literal('task.waiting_human'), days }),
   z.object({ type: z.literal('task.start_reached') }),
+  // PLNRAPP-205: the pipeline of the task's MR came to a status; opened — CI of the MR, merged — deploy
+  z.object({
+    type: z.literal('mr.pipeline'),
+    mr: z.enum(['opened', 'merged']),
+    pipeline: z.array(z.enum(PIPELINE_STATUSES)).min(1),
+  }),
   z.object({
     type: z.literal('schedule'),
     cron: z.string().regex(CRON_RE),
@@ -146,7 +159,12 @@ export const actionSchema = z.union([
   z.object({ type: z.literal('create_subtask'), title: z.string().min(1).max(500) }),
   z.object({ type: z.literal('send_webhook'), subscriptionId: uuid }),
   // module ai (PLNRAPP-168): a run of the project's AI action over the task, after a 60 s debounce
-  z.object({ type: z.literal('ai_run'), aiActionId: uuid }),
+  // maxRuns (PLNRAPP-205): runs by this rule in a row on a task; past it — a question to a person
+  z.object({
+    type: z.literal('ai_run'),
+    aiActionId: uuid,
+    maxRuns: z.number().int().min(1).max(20).optional(),
+  }),
 ]);
 export type Action = z.infer<typeof actionSchema>;
 

@@ -388,6 +388,8 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     return skip('Перезапуск невозможен: ИИ не настроен в проекте задачи.');
   let action: AiAction | undefined;
   let item: Row | undefined;
+  /** PLNRAPP-205: the limit of runs by the rule in a row (`ai_run.maxRuns`) */
+  let maxRuns: number | undefined;
   if (d.kind === 'action') {
     action = (await one(
       api.db,
@@ -402,8 +404,12 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     // the event is stale: the task moved on, the AI was unassigned, the rule changed
     if (!action || !assigned || (d.statusId && task.statusId !== d.statusId))
       return skip('Перезапуск невозможен: действие удалено или ИИ снят с задачи.');
-    if (d.ruleId && !(await matched(api, d.ruleId, task.id)))
+    const m = d.ruleId ? await matched(api, d.ruleId, task.id) : undefined;
+    if (d.ruleId && !m)
       return skip('Перезапуск невозможен: задача больше не подходит под правило.');
+    maxRuns = m?.rule.actions.flatMap((a) =>
+      a.type === 'ai_run' && a.aiActionId === action!.id && a.maxRuns ? [a.maxRuns] : [],
+    )[0];
   } else if (d.kind === 'checklist') {
     item = await one(
       api.db,
@@ -475,6 +481,12 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     const over = await overBudget(api.db, task);
     if (over)
       return await apply(api, run, { ...failed(''), verdict: 'question', questions: [over] });
+    const limit =
+      d.kind === 'action' && d.ruleId && maxRuns && !d.restartOf
+        ? await overRuns(api.db, id, task.id, action!, d.ruleId, maxRuns)
+        : null;
+    if (limit)
+      return await apply(api, run, { ...failed(''), verdict: 'question', questions: [limit] });
     const conn = await resolveConnection(api.db, task.projectId);
     if (!conn)
       return await apply(api, run, failed('Нет подключения к ИИ: задайте его в настройках.'));
@@ -844,6 +856,37 @@ async function overBudget(q: Pick<Q, 'execute'>, t: Task) {
   return spent < budget
     ? null
     : `Бюджет ИИ на задачу исчерпан: потрачено $${spent.toFixed(2)} из $${budget}. Продлить? Увеличьте поле «Бюджет» и ответьте здесь.`;
+}
+
+/**
+ * PLNRAPP-205: the rule has already run the action `max` times in a row on the task — a question to a person.
+ * «In a row» — since the last run of the action that is not by this rule, a manual restart, or a run that
+ * asked a person (the person answered — the count starts over).
+ */
+async function overRuns(
+  q: Pick<Q, 'execute'>,
+  runId: string,
+  taskId: string,
+  action: AiAction,
+  ruleId: string,
+  max: number,
+) {
+  const r = await one(
+    q,
+    sql`select count(*)::int as n from ai_runs r
+        where r.task_id = ${taskId} and r.action_id = ${action.id} and r.rule_id = ${ruleId}
+          and r.id <> ${runId} and r.state <> 'cancelled'
+          and r.created_at > coalesce((
+            select max(p.created_at) from ai_runs p
+            where p.task_id = ${taskId} and p.action_id = ${action.id} and p.id <> ${runId}
+              and (p.rule_id is distinct from ${ruleId}::uuid or p.restart_of is not null
+                or cardinality(p.question_comment_ids) > 0)
+          ), '-infinity'::timestamptz)`,
+  );
+  const n = (r?.n as number | undefined) ?? 0;
+  return n < max
+    ? null
+    : `«${action.name}» по правилу запускалось уже ${n} раз подряд — это лимит. Нужна помощь человека: разберитесь с причиной и ответьте здесь.`;
 }
 
 async function finish(
