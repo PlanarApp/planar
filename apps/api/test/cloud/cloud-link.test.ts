@@ -43,6 +43,14 @@ const cloud = createServer((rq, rs) => {
       rs.writeHead(422, { 'content-type': 'application/json' });
       return void rs.end(JSON.stringify({ statusMessage: 'dns_missing', data: '203.0.113.5' }));
     }
+    if (rq.url === '/api/link/egress') {
+      const { domains } = JSON.parse(body) as { domains: string[] | null };
+      if (domains?.includes('bad')) {
+        rs.writeHead(400, { 'content-type': 'application/json' });
+        return void rs.end(JSON.stringify({ statusMessage: 'invalid_domain', data: 'bad' }));
+      }
+      state.egress = domains ? { mode: 'allowlist', domains } : { mode: 'open', domains: [] };
+    }
     rs.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(state));
   });
 });
@@ -112,6 +120,31 @@ describe('cloud-link', () => {
     expect(r.statusCode).toBe(400);
     expect(r.json().details).toEqual({ cloud: 'dns_missing', data: '203.0.113.5' });
     expect(JSON.parse(seen.at(-1)!.body!)).toEqual({ host: 'x.example.com' });
+  });
+
+  it('PLNRAPP-242 egress: облако без поля — open; список и open уходят в облако; ошибка — кодом', async () => {
+    expect((await req('GET', '/api/cloud', { cookie: owner })).json().egress).toEqual({
+      mode: 'open',
+      domains: [],
+    });
+    const r = await req('POST', '/api/cloud/egress', {
+      cookie: owner,
+      body: { domains: ['gitlab.com', '.npmjs.org'] },
+    });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().egress).toEqual({ mode: 'allowlist', domains: ['gitlab.com', '.npmjs.org'] });
+    const open = await req('POST', '/api/cloud/egress', { cookie: owner, body: { domains: null } });
+    expect(open.json().egress).toEqual({ mode: 'open', domains: [] });
+    const bad = await req('POST', '/api/cloud/egress', {
+      cookie: owner,
+      body: { domains: ['bad'] },
+    });
+    expect([bad.statusCode, bad.json().details.cloud]).toEqual([400, 'invalid_domain']);
+    const big = { domains: Array.from({ length: 101 }, (_, i) => `d${i}.com`) };
+    expect((await req('POST', '/api/cloud/egress', { cookie: owner, body: big })).statusCode).toBe(
+      400,
+    );
+    delete state.egress;
   });
 
   it('handoff для админа облака: только с CLOUD_TOKEN, токен входит владельцем', async () => {

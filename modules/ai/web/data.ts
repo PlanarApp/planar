@@ -194,6 +194,18 @@ const dict = {
   wzBack: { ru: 'Назад', en: 'Back' },
   wzDone: { ru: 'Проект настроен', en: 'The project is set up' },
   wzClose: { ru: 'Закрыть', en: 'Close' },
+  egressTitle: { ru: 'Выход агентов в интернет', en: 'Agents’ internet access' },
+  egressHint: {
+    ru: 'Куда агенты ИИ могут ходить из своих контейнеров (прокси squid в облаке). Применяется сразу, без перезапуска.',
+    en: 'Where the AI agents may connect from their containers (the squid proxy in the cloud). Applied at once, no restart.',
+  },
+  egressOpen: { ru: 'Полный доступ', en: 'Full access' },
+  egressList: { ru: 'Только домены из списка', en: 'Only the listed domains' },
+  egressDomains: {
+    ru: 'Домены — по одному в строке; .example.com — вместе с поддоменами. Пусто — выход запрещён.',
+    en: 'Domains, one per line; .example.com includes subdomains. Empty — no access.',
+  },
+  egressBad: { ru: 'Неверный домен', en: 'Invalid domain' },
 } as const;
 export type Key = keyof typeof dict;
 export const tr = (k: Key): string => {

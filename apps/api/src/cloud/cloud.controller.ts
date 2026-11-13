@@ -8,6 +8,7 @@ import { passwordSchema } from '../users/users.controller.js';
 import { CloudService } from './cloud.service.js';
 
 const domainBody = z.object({ host: z.string().trim().max(253).nullable() });
+const egressBody = z.object({ domains: z.array(z.string().trim().max(253)).max(100).nullable() });
 const deleteBody = z.object({ confirm: z.string().max(100) });
 const resetBody = z.object({ confirm: z.string().max(100), password: passwordSchema });
 
@@ -34,6 +35,14 @@ export class CloudController {
     this.admin(req);
     const { host } = parseBody(domainBody, body);
     return this.cloud.setDomain(host || null);
+  }
+
+  /** Egress of the AI agents («Settings → AI»): the instance owner decides, the cloud applies (PLNRAPP-242). */
+  @Post('egress')
+  @HttpCode(200)
+  async egress(@Req() req: object, @Body() body: unknown) {
+    this.admin(req);
+    return this.cloud.setEgress(parseBody(egressBody, body).domains);
   }
 
   @Post('delete')

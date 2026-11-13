@@ -76,6 +76,13 @@ export class CloudService implements OnModuleInit, OnModuleDestroy {
     return s;
   }
 
+  /** Egress of the AI agents (PLNRAPP-242): null — full access, a list — only these domains; the cloud validates and applies. */
+  async setEgress(domains: string[] | null): Promise<CloudState> {
+    const s = cloudStateSchema.parse(await this.call('POST', '/api/link/egress', { domains }));
+    await this.save(s);
+    return s;
+  }
+
   /** Data export: the cloud's CLI builds the archive, the browser downloads it from the cloud (link valid 10 minutes). */
   async exportData(): Promise<{ url: string }> {
     const { path } = z
