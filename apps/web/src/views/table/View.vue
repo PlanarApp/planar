@@ -25,6 +25,9 @@ import { FieldCell, FieldEditor, setTaskField, useFieldDefs } from '../../fields
 import { Button, Popover } from '../../ui';
 import { toast } from '../../ui/toast';
 import { openTask, useSelection, type ViewProps } from '..';
+import { showTask, sideTaskOpen } from '../open';
+import { useLostFocusKeys } from '../keys';
+import { tokenOf } from '../../command/hotkeys';
 import { TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
 import { useTaskFilter } from '../saved/useFilter';
 import { treeOrder } from '../list/tree';
@@ -281,6 +284,66 @@ watch(
   () => virt.value.measure(),
 );
 
+// --- focus and keyboard (as in the List): j/k/arrows move, Enter opens, x selects, F2 edits the name
+const focusedId = ref<string | null>(null);
+const focusedTask = computed(() => rows.value.find((x) => x.id === focusedId.value));
+function moveFocus(d: 1 | -1) {
+  const list = rows.value;
+  if (!list.length) return;
+  const i = list.findIndex((x) => x.id === focusedId.value);
+  const j = i < 0 ? (d > 0 ? 0 : list.length - 1) : Math.min(list.length - 1, Math.max(0, i + d));
+  focusedId.value = list[j].id;
+  virt.value.scrollToIndex(j);
+  if (sideTaskOpen()) showTask(list[j].key);
+}
+// the focused row is gone (filtered out, folded): the row now at its place, the last one at the end
+watch(rows, (now, before) => {
+  const id = focusedId.value;
+  if (!id || now.some((x) => x.id === id)) return;
+  const i = before.findIndex((x) => x.id === id);
+  focusedId.value = now[Math.min(Math.max(i, 0), now.length - 1)]?.id ?? null;
+});
+function tableKey(key: string): boolean {
+  const task = focusedTask.value;
+  const handlers: Record<string, () => void> = {
+    j: () => moveFocus(1),
+    k: () => moveFocus(-1),
+    ArrowDown: () => moveFocus(1),
+    ArrowUp: () => moveFocus(-1),
+    Enter: () => task && openTask(task.key),
+    x: () => task && sel.toggle(task.id),
+    F2: () => task && void startEdit(task),
+    Escape: () => sel.clear(),
+  };
+  const h = handlers[key];
+  if (!h) return false;
+  h();
+  return true;
+}
+function onKey(e: KeyboardEvent) {
+  // on the grid itself or on a row's button/checkbox (focus returns there after a picker); not in fields
+  const t = e.target as HTMLElement;
+  const onRowControl =
+    t !== e.currentTarget &&
+    !!t.closest('[role=row][data-task]') &&
+    (t.tagName === 'BUTTON' || (t as HTMLInputElement).type === 'checkbox') &&
+    ['j', 'k', 'x'].includes(tokenOf(e));
+  if ((t !== e.currentTarget && !onRowControl) || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (tableKey(tokenOf(e))) e.preventDefault();
+}
+useLostFocusKeys(
+  () => scroller.value,
+  tableKey,
+  (key) => {
+    const cur = rows.value.find((x) => x.key === key);
+    if (cur) focusedId.value = cur.id;
+  },
+);
+watch(
+  () => props.projectId,
+  () => (focusedId.value = null),
+);
+
 // --- editing
 const editing = ref<string | null>(null);
 const draft = ref('');
@@ -342,7 +405,11 @@ const date = (v: string) => v.slice(0, 10);
         role="grid"
         tabindex="0"
         :aria-rowcount="rows.length + 1"
-        class="min-h-0 flex-1 overflow-auto outline-none focus-visible:ring-2 ring-inset ring-focus"
+        :class="[
+          'min-h-0 flex-1 overflow-auto outline-none ring-inset ring-focus',
+          !focusedTask && 'focus-visible:ring-2',
+        ]"
+        @keydown="onKey"
       >
         <div :style="{ width: `${total}px`, minWidth: '100%' }">
           <VueDraggable
@@ -455,7 +522,9 @@ const date = (v: string) => v.slice(0, 10);
                   :class="[
                     'flex h-full min-h-9 items-center border-b border-border text-sm',
                     sel.selected.value.has(task.id) ? 'bg-accent-subtle' : 'hover:bg-bg-subtle',
+                    focusedId === task.id && 'ring-2 ring-inset ring-focus',
                   ]"
+                  @click="focusedId = task.id"
                 >
                   <div role="gridcell" :style="{ width: `${CHECK_W}px` }" class="shrink-0 px-3">
                     <input
