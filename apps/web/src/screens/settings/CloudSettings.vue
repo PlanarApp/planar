@@ -66,6 +66,22 @@ const reset = () =>
     });
     window.location.assign(r.url);
   });
+// the cloud recreates this api while turning AI on/off: a dropped answer means it is still applying
+const aiApplying = ref(false);
+async function setAi(enabled: boolean) {
+  busy.value = true;
+  error.value = '';
+  aiApplying.value = false;
+  try {
+    s.value = await api<CloudState>('POST', '/api/cloud/ai', { enabled });
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 0 || e.status === 502 || e.status === 504))
+      aiApplying.value = true;
+    else error.value = errText(e);
+  } finally {
+    busy.value = false;
+  }
+}
 async function remove() {
   busy.value = true;
   error.value = '';
@@ -169,6 +185,69 @@ async function remove() {
             {{ t('cloud.dnsHint', { ip: s.serverIp ?? '—' }) }}
           </p>
         </form>
+      </section>
+
+      <section v-if="s.status !== 'expired'" class="flex flex-col gap-2" data-testid="cloud-ai">
+        <h3 class="font-medium">{{ t('cloud.ai') }}</h3>
+        <p class="text-xs text-fg-muted">{{ t('cloud.aiHint') }}</p>
+        <p class="text-sm">
+          {{ s.ai ? t('cloud.aiOn', { n: s.aiReplicas ?? 1 }) : t('cloud.aiOff') }}
+          {{ s.status === 'trial' ? t('cloud.aiTrial') : s.aiPaid ? '' : t('cloud.aiNeedAddon') }}
+        </p>
+        <p v-if="aiApplying" role="status" class="text-sm">{{ t('cloud.aiApplying') }}</p>
+        <div class="flex flex-wrap items-center gap-2">
+          <Button v-if="s.ai" size="sm" :loading="busy" @click="setAi(false)">{{
+            t('cloud.aiDisable')
+          }}</Button>
+          <Button
+            v-else-if="s.aiReplicas"
+            size="sm"
+            variant="primary"
+            :loading="busy"
+            @click="setAi(true)"
+            >{{ t('cloud.aiEnable') }}</Button
+          >
+          <template v-for="a in s.addons.ai" :key="a.replicas">
+            <a
+              v-for="(url, p) in a.checkout"
+              :key="p"
+              :href="url"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex h-8 items-center rounded-md border border-border px-3 text-sm hover:bg-bg-muted"
+              :title="PROVIDERS[p] ?? p"
+              >{{ t('cloud.aiBuy', { n: a.replicas, usd: a.usd }) }}</a
+            >
+          </template>
+        </div>
+      </section>
+
+      <section
+        v-if="s.llm && s.status !== 'expired'"
+        class="flex flex-col gap-2"
+        data-testid="cloud-llm"
+      >
+        <h3 class="font-medium">{{ t('cloud.llm') }}</h3>
+        <p class="text-xs text-fg-muted">{{ t('cloud.llmHint') }}</p>
+        <p class="text-sm" :class="s.llm.credits <= 0 ? 'text-danger' : ''">
+          {{ t('cloud.llmBalance', { credits: s.llm.credits.toFixed(2) }) }}
+        </p>
+        <Input :model-value="s.llm.baseUrl ?? ''" :label="t('cloud.llmUrl')" readonly />
+        <Input :model-value="s.llm.key" :label="t('cloud.llmKey')" readonly />
+        <div class="flex flex-wrap gap-2">
+          <template v-for="c in s.addons.credits" :key="c.usd">
+            <a
+              v-for="(url, p) in c.checkout"
+              :key="p"
+              :href="url"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex h-8 items-center rounded-md border border-border px-3 text-sm hover:bg-bg-muted"
+              :title="PROVIDERS[p] ?? p"
+              >{{ t('cloud.llmBuy', { credits: c.credits, usd: c.usd }) }}</a
+            >
+          </template>
+        </div>
       </section>
 
       <section v-if="user?.role === 'owner' && s.status !== 'expired'" class="flex flex-col gap-2">

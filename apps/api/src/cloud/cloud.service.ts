@@ -65,20 +65,27 @@ export class CloudService implements OnModuleInit, OnModuleDestroy {
 
   /** Fresh state from the cloud; saved (public part) and applied to the gate. */
   async state(): Promise<CloudState> {
-    const s = cloudStateSchema.parse(await this.call('GET', '/api/link/state'));
+    const s = this.parse(await this.call('GET', '/api/link/state'));
     await this.save(s);
     return s;
   }
 
   async setDomain(host: string | null): Promise<CloudState> {
-    const s = cloudStateSchema.parse(await this.call('POST', '/api/link/domain', { host }));
+    const s = this.parse(await this.call('POST', '/api/link/domain', { host }));
     await this.save(s);
     return s;
   }
 
   /** Egress of the AI agents (PLNRAPP-242): null — full access, a list — only these domains; the cloud validates and applies. */
   async setEgress(domains: string[] | null): Promise<CloudState> {
-    const s = cloudStateSchema.parse(await this.call('POST', '/api/link/egress', { domains }));
+    const s = this.parse(await this.call('POST', '/api/link/egress', { domains }));
+    await this.save(s);
+    return s;
+  }
+
+  /** AI agents on/off: the cloud brings ai-runner up or down next to this api and restarts it (up to 2 minutes of /health). */
+  async setAi(enabled: boolean): Promise<CloudState> {
+    const s = this.parse(await this.call('POST', '/api/link/ai', { enabled }, 3 * 60_000));
     await this.save(s);
     return s;
   }
@@ -125,6 +132,12 @@ export class CloudService implements OnModuleInit, OnModuleDestroy {
       .limit(1);
     if (!owner) throw new HttpError(404, 'not_found', 'Нет владельца');
     return createHandoffSession(this.db, owner.id);
+  }
+
+  /** CloudState from the cloud; llm.baseUrl — the AI gateway of the cloud (cloud-link v2). */
+  private parse(raw: unknown): CloudState {
+    const s = cloudStateSchema.parse(raw);
+    return s.llm ? { ...s, llm: { ...s.llm, baseUrl: `${this.opts.cloud!.url}/llm/v1` } } : s;
   }
 
   private async call(

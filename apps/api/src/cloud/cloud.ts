@@ -14,6 +14,33 @@ export const cloudStateSchema = z.object({
   egress: z
     .object({ mode: z.enum(['open', 'allowlist']), domains: z.array(z.string()) })
     .default({ mode: 'open', domains: [] }),
+  // cloud-link v2 (AI tariff); an older cloud without the fields — AI agents off, no tariff
+  ai: z.boolean().default(false),
+  aiReplicas: z.number().int().positive().nullable().default(null),
+  aiPaid: z.boolean().default(false),
+  // baseUrl is not sent by the cloud: the instance fills it from CLOUD_URL (CloudService)
+  llm: z
+    .object({ key: z.string(), credits: z.number(), baseUrl: z.string().optional() })
+    .nullable()
+    .default(null),
+  addons: z
+    .object({
+      ai: z.array(
+        z.object({
+          replicas: z.number(),
+          usd: z.number(),
+          checkout: z.record(z.string(), z.string().url()),
+        }),
+      ),
+      credits: z.array(
+        z.object({
+          credits: z.number(),
+          usd: z.number(),
+          checkout: z.record(z.string(), z.string().url()),
+        }),
+      ),
+    })
+    .default({ ai: [], credits: [] }),
 });
 export type CloudState = z.infer<typeof cloudStateSchema>;
 

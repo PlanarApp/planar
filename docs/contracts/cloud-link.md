@@ -3,11 +3,13 @@ type: reference
 status: active
 module: cloud-link
 updated: 2026-11-13
-summary: Связь инстанса Planar с облаком planar-cloud - ENV, setup с одноразовым входом, API состояния триала/оплаты и своего домена, правила блокировки по окончании триала
+summary: Связь инстанса с облаком — ENV, setup, API состояния триала/оплаты, домена и тарифа ИИ, шлюз нашего ИИ, блокировка после триала
 related: []
 ---
 
-# cloud-link v1 — инстанс ↔ облако
+# cloud-link v2 — инстанс ↔ облако
+
+v2 (2026-11-13, planar-cloud ai-tariff): тариф ИИ в `CloudState` (`ai`, `aiReplicas`, `aiPaid`, `llm`, `addons`), `POST /api/link/ai` с `paid_only`, шлюз нашего ИИ. Аддитивно: поля v1 не меняются.
 
 Копия — в planar-cloud `docs/contracts/cloud-link.md`; правится в обоих репо одним изменением (PLANARAPP-61, PLANARSAAS-7).
 Источник истины о триале/оплате — облако; инстанс сам забирает состояние (pull) и хранит последнее полученное у себя.
@@ -56,8 +58,22 @@ interface CloudState {
   checkout: Record<string, string>;       // провайдер → ссылка на оплату (только настроенные)
   manageUrl: string | null;               // управление подпиской у провайдера
   egress: { mode: 'open' | 'allowlist'; domains: string[] }; // выход агентов ИИ в интернет; нет поля (старое облако) — open
+  ai: boolean;                            // ИИ-агенты (ai-runner) включены (cloud-cli v5); нет поля — false
+  // v2 (тариф ИИ); нет полей (старое облако) — null / false / пусто
+  aiReplicas: number | null;              // реплик агентов по тарифу: trial — 1, active — оплаченная надбавка; null — нужна надбавка
+  aiPaid: boolean;                        // надбавка «ИИ-агенты» оплачена
+  llm: { key: string; credits: number } | null; // наш ИИ: ключ инстанса для шлюза {CLOUD_URL}/llm/v1, баланс в USD (может быть < 0)
+  addons: {                               // надбавки к покупке; checkout — провайдер → ссылка (только настроенные)
+    ai: { replicas: number; usd: number; checkout: Record<string, string> }[];
+    credits: { credits: number; usd: number; checkout: Record<string, string> }[]; // credits — USD на балансе, usd — цена
+  };
 }
 ```
+
+`POST {CLOUD_URL}/api/link/ai` `{"enabled": true | false}` → `CloudState` после переключения: облако поднимает или убирает `ai-runner` и `squid` рядом с api (`instance ai`) и перезапускает инстанс, ответ — до минуты. Доступно на `trial` и `active`, иначе 409 `bad_state`; v2: включить на `active` без надбавки — 409 `paid_only`. Лимит `AI_AGENT_MAX_REPLICAS` = `aiReplicas`; `max_agents` проекта в админке инстанса действует внутри него. Инстанс: `POST /api/cloud/ai` (owner/admin) проксирует; api инстанса пересоздаётся, поэтому оборванный ответ в интерфейсе — «применяется, обновите страницу».
+
+### Шлюз нашего ИИ (v2)
+Подключение ИИ инстанса (`ai_connections`, «Настройки → ИИ»): provider `anthropic` или `openai-compatible`, `base_url` = `{CLOUD_URL}/llm/v1`, ключ = `llm.key`, модель — из `GET {base_url}/models`. Инстанс отдаёт `llm.baseUrl` в `GET /api/cloud` сам (из `CLOUD_URL`). Шлюз: `POST /llm/v1/messages` (Anthropic Messages, ключ в `x-api-key`), `POST /llm/v1/chat/completions` (OpenAI chat completions, `Authorization: Bearer`), `GET /llm/v1/models` → `{data: [{id}]}` моделей протокола ключа (`x-api-key` — Anthropic, Bearer — OpenAI). Стрим поддерживается. Ошибки до провайдера — JSON `{type: "error", error: {type, message}}`: 401 `unauthorized` (ключ чужой, инстанс не trial/active), 402 `no_credits` (баланс ≤ 0), 400 `model_not_allowed` / `invalid_json`, 503 `not_configured`; ошибка провайдера — его статус и тело. Списание — по `usage` ответа и ценам модели в облаке.
 
 `POST {CLOUD_URL}/api/link/egress` `{"domains": null | ["gitlab.com", ".npmjs.org"]}` → `CloudState`: `null` — полный доступ агентов (любой домен и порт), массив — только эти домены (ведущая точка — с поддоменами; порты 80/443), пустой массив — выход запрещён. Решает владелец инстанса: «Настройки → ИИ» воркспейса, `POST /api/cloud/egress` (owner/admin, PLNRAPP-242). Облако проверяет домены (не больше 100) и применяет сразу (`squid -k reconfigure`). Доступно на `trial` и `active`, иначе 409 `bad_state`; ошибки ввода — 400 `invalid_input`, `invalid_domain` (в `data` — домен), `too_many_domains`.
 
