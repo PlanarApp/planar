@@ -197,8 +197,19 @@ describe('task:description', () => {
     w = await open();
     await until(() => !!editorOf(0).vm.editor);
     const ed = type(0, 'купить хлеб');
+    // PLNRAPP-164: the menu goes below the selection end (on mobile the OS menu covers the space above)
+    ed.view.coordsAtPos = (pos: number) => ({
+      left: pos * 10,
+      right: 0,
+      top: pos,
+      bottom: pos + 20,
+    });
     ed.commands.setTextSelection({ from: 1, to: 7 });
     await until(() => w.find('[data-testid="selection-to-task"]').exists());
+    const menu = w.find<HTMLElement>('[data-testid="selection-to-task"]').element;
+    expect(menu.style.left).toBe('10px');
+    expect(menu.style.top).toBe(`${7 + 20 + 16}px`);
+    expect(menu.className).not.toContain('-translate-y-full');
     await w
       .findAll('[data-testid="selection-to-task"] button')
       .find((b) => b.text() === 'Сделать подзадачей')!

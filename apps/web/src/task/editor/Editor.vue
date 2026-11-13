@@ -57,8 +57,11 @@ function trackSelection(ed: CoreEditor) {
   const { from, to, empty } = ed.state.selection;
   const text = empty ? '' : ed.state.doc.textBetween(from, to, ' ').trim();
   if (!toTask || !text || !(ed.isEditable || props.linkReadOnly)) return void (sel.value = null);
-  const c = ed.view.coordsAtPos(from);
-  sel.value = { from, to, text: text.slice(0, 500), left: c.left, top: c.top };
+  // the menu goes below the selection end: on mobile the OS menu (Copy/Paste/Select all)
+  // covers the space above the selection (PLNRAPP-164)
+  const start = ed.view.coordsAtPos(from);
+  const end = ed.view.coordsAtPos(to);
+  sel.value = { from, to, text: text.slice(0, 500), left: start.left, top: end.bottom };
 }
 async function selToTask(sub: boolean) {
   const s = sel.value;
@@ -411,13 +414,13 @@ const sugStyle = (r: DOMRect | null, n: number) => {
       </li>
     </ul>
     <RefPicker v-if="refAt" :rect="refAt.rect" @pick="insertRef" @close="closeRef" />
-    <!-- above the selection; mousedown.prevent keeps the selection and the focus -->
+    <!-- below the selection, past the mobile selection handles; mousedown.prevent keeps the selection and the focus -->
     <div
       v-if="sel"
       role="toolbar"
       :aria-label="t('task.selectionToTask')"
-      class="fixed z-50 flex -translate-y-full gap-1 rounded-lg border border-border bg-surface p-1 shadow-md"
-      :style="{ left: sel.left + 'px', top: sel.top - 4 + 'px' }"
+      class="fixed z-50 flex gap-1 rounded-lg border border-border bg-surface p-1 shadow-md"
+      :style="{ left: sel.left + 'px', top: sel.top + 16 + 'px' }"
       data-testid="selection-to-task"
     >
       <Button size="sm" variant="ghost" @mousedown.prevent @click="selToTask(false)">{{
