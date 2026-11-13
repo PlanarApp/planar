@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { CORE, HttpError, parseBody, type CoreServices } from '@planar/server-kit';
 import { buildMutations, diffOf, writeKeys } from './harness.js';
+import { RETRO_QUEUE, type RetroData } from './retro.js';
 
 const body = z.object({
   projectId: z.uuid(),
@@ -84,6 +85,11 @@ export class HarnessController {
     } catch (e) {
       throw asHttp(e);
     }
+    // the AI is set up in the project: the task «harness-retro» (PLNRAPP-178)
+    await this.core.enqueue(RETRO_QUEUE, {
+      kind: 'init',
+      projectId: b.projectId,
+    } satisfies RetroData);
     return { ops: d.ops };
   }
 }

@@ -14,6 +14,14 @@ import { EMAIL_QUEUE, handleEmail, isYes, replied, textOf, type EmailData } from
 import type { JSONContent } from '@tiptap/core';
 import { AI_QUEUE, handle, keyOf, type AiRunData } from './run.js';
 import type { ChatPending } from './schema.js';
+import {
+  RETRO_QUEUE,
+  RETRO_TICK_QUEUE,
+  handleRetro,
+  retroHook,
+  retroTick,
+  type RetroData,
+} from './retro.js';
 
 @Module({
   controllers: [
@@ -42,6 +50,17 @@ export {
 } from './packs.js';
 export { EMAIL_QUEUE, EMAILS_PER_HOUR, handleEmail, isYes } from './email.js';
 export { AI_QUEUE, MAX_CHAIN, PLAN_HEADING, withPlan, type AiRunData } from './run.js';
+export {
+  DISAGREE_RE,
+  RETRO_QUEUE,
+  RETRO_TICK_QUEUE,
+  RETRO_TITLE,
+  diffBlock,
+  retroDecision,
+  withAction,
+  withPrompt,
+  type RetroData,
+} from './retro.js';
 
 const has = (r: Record<string, unknown> | null | undefined) =>
   ((r?.modules as string[] | undefined) ?? []).includes('ai');
@@ -89,7 +108,12 @@ const one = async (api: ModuleHookApi, s: ReturnType<typeof sql>) =>
  * A new reply may answer a question of a waiting run; a reply to the bot's comment that answers nothing is
  * a request to the bot, as `@ai` (PLNRAPP-195).
  */
-async function assignments(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
+async function assignments(
+  writes: MutationWrite[],
+  ctx: AfterMutationCtx,
+  api: ModuleHookApi,
+  decisions: Set<string>,
+) {
   if (ctx.system || ctx.origin) return;
   const mine = writes.filter(
     (w) => (w.entity === 'comments' || w.entity === 'checklistItems') && w.op === 'put' && w.after,
@@ -111,6 +135,8 @@ async function assignments(writes: MutationWrite[], ctx: AfterMutationCtx, api: 
         await enqueue({ kind: 'checklist', taskId });
       continue;
     }
+    // an answer on a harness-retro proposal (PLNRAPP-178): its decision, not a request to the bot
+    if (decisions.has(a.id as string)) continue;
     let asked = true;
     if (a.assigneeId === bot && !a.resolvedAt && b?.assigneeId !== bot)
       await enqueue({ kind: 'comment', taskId, itemId: a.id as string });
@@ -266,7 +292,7 @@ async function chatMessages(writes: MutationWrite[], api: ModuleHookApi) {
 
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
   await ensureBot(writes, ctx, api);
-  await assignments(writes, ctx, api);
+  await assignments(writes, ctx, api, await retroHook(writes, ctx, api));
   await chatMessages(writes, api);
 }
 
@@ -279,6 +305,8 @@ export const api: BackendModuleManifest = {
   jobs: [
     { queue: AI_QUEUE, retryLimit: 0, handler: handle } satisfies JobDef<AiRunData>,
     { queue: AGENT_REAP_QUEUE, cron: '* * * * *', retryLimit: 0, handler: reap },
+    { queue: RETRO_QUEUE, retryLimit: 0, handler: handleRetro } satisfies JobDef<RetroData>,
+    { queue: RETRO_TICK_QUEUE, cron: '17 * * * *', retryLimit: 0, handler: retroTick },
     {
       queue: EMAIL_QUEUE,
       retryLimit: 0,

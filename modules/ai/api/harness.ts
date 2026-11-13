@@ -69,7 +69,7 @@ export function parseInstructionPage(title: string, body: unknown) {
   };
 }
 
-const harnessBlock = (nodes: Node[]) =>
+export const harnessBlock = (nodes: Node[]) =>
   nodes.find((n) => n.type === 'codeBlock' && /ya?ml|harness/i.test(String(n.attrs?.language)));
 
 export interface LoadedPack {

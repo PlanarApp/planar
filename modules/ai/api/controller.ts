@@ -40,6 +40,7 @@ import {
   type AiRunView,
   type AiScope,
 } from '../shared/index.js';
+import { RETRO_QUEUE, retroOf, type RetroData } from './retro.js';
 import {
   AI_QUEUE,
   aiEnabled,
@@ -123,6 +124,11 @@ const runsQuery = z.object({
     .string()
     .regex(/^[^|]+\|[0-9a-f-]{36}$/)
     .optional(),
+});
+const retroBody = z.object({
+  enabled: z.boolean(),
+  everyFrictions: z.number().int().min(1).max(1000),
+  everyDays: z.number().int().min(1).max(365),
 });
 const limitsBody = z.object({
   dailyTokens: z.number().int().min(1).max(2_147_483_647).nullable(),
@@ -451,6 +457,50 @@ export class AiController {
   }
 
   /** The level's own connection and the one in force for it (project: nearest of project, space, workspace). */
+  /** harness-retro of the project (PLNRAPP-178): the switch, the frequency and the task. */
+  private async retroView(projectId: string) {
+    const r = await retroOf(this.core.db, projectId);
+    const t = r.taskId
+      ? (
+          await this.core.db.execute(
+            sql`select p.key || '-' || coalesce(t.number::text, '?') as key from tasks t
+                join projects p on p.id = t.project_id where t.id = ${r.taskId}::uuid and t.archived_at is null`,
+          )
+        ).rows[0]
+      : undefined;
+    return {
+      enabled: r.enabled,
+      everyFrictions: r.everyFrictions,
+      everyDays: r.everyDays,
+      taskId: t ? r.taskId : null,
+      taskKey: (t?.key as string | undefined) ?? null,
+    };
+  }
+
+  @Get('retro')
+  async retro(@Req() req: object, @Query() query: unknown) {
+    const { projectId } = parseBody(z.object({ projectId: z.uuid() }), query);
+    await this.admin(req, 'project', projectId);
+    return this.retroView(projectId);
+  }
+
+  @Put('retro')
+  async setRetro(@Req() req: object, @Query() query: unknown, @Body() body: unknown) {
+    const { projectId } = parseBody(z.object({ projectId: z.uuid() }), query);
+    const b = parseBody(retroBody, body);
+    await this.admin(req, 'project', projectId);
+    await this.core.db.execute(
+      sql`insert into ai_retro (project_id, enabled, every_frictions, every_days)
+          values (${projectId}::uuid, ${b.enabled}, ${b.everyFrictions}, ${b.everyDays})
+          on conflict (project_id) do update set enabled = excluded.enabled,
+            every_frictions = excluded.every_frictions, every_days = excluded.every_days, updated_at = now()`,
+    );
+    // switched on: the task «harness-retro» is there (as after the setup)
+    if (b.enabled)
+      await this.core.enqueue(RETRO_QUEUE, { kind: 'init', projectId } satisfies RetroData);
+    return this.retroView(projectId);
+  }
+
   @Get('connections')
   async list(@Req() req: object, @Query() query: unknown) {
     const q = parseBody(listQuery, query);

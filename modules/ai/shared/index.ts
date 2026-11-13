@@ -215,7 +215,7 @@ export const mutators = [
 
 export const AI_RUN_STATES = ['running', 'waiting_human', 'done', 'failed', 'cancelled'] as const;
 export type AiRunState = (typeof AI_RUN_STATES)[number];
-export const AI_RUN_KINDS = ['action', 'comment', 'mention', 'checklist', 'chat'] as const;
+export const AI_RUN_KINDS = ['action', 'comment', 'mention', 'checklist', 'chat', 'retro'] as const;
 export type AiRunKind = (typeof AI_RUN_KINDS)[number];
 /** A chain of manual restarts (restartOf) is at most this long; more — 409. */
 export const MAX_RESTARTS = 3;
