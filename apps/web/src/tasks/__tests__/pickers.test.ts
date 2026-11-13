@@ -4,7 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import en from '../../i18n/en';
 import ru from '../../i18n/ru';
-import { AssigneePicker, DueDatePicker, LabelPicker, PriorityPicker, StatusPicker } from '../index';
+import {
+  AssigneePicker,
+  DueDatePicker,
+  LabelPicker,
+  PriorityPicker,
+  StatusPicker,
+  TaskDatesPicker,
+} from '../index';
+import { localToday } from '../../views/filter';
 import { ids, reset } from './data';
 
 beforeEach(reset);
@@ -114,5 +122,49 @@ describe('tasks:pickers', () => {
     await open(w);
     expect(document.body.querySelector('input[type="date"]')).not.toBeNull();
     w.unmount();
+  });
+
+  describe('TaskDatesPicker (PLNRAPP-208)', () => {
+    const value = (start: string | null, due: string | null) => {
+      const w = mount(TaskDatesPicker, { ...opts, props: { start, due } });
+      const v = w.find('[data-testid=task-dates-value]');
+      const res = {
+        text: v.exists() ? v.text() : '',
+        alarm: w.find('[data-testid=task-dates-due]').exists(),
+        danger: w.get('[data-testid=task-dates]').classes().includes('text-danger'),
+      };
+      w.unmount();
+      return res;
+    };
+    const y = new Date().getFullYear();
+    it('без дат — только иконка', () => {
+      expect(value(null, null)).toEqual({ text: '', alarm: false, danger: false });
+    });
+    it('период, только начало, только срок', () => {
+      expect(value(`${y}-11-12`, `${y}-11-19`).text).toBe('12–19 нояб.');
+      expect(value(`${y}-11-12`, null).text).toBe('с 12 нояб.');
+      expect(value(null, `${y + 1}-11-20`)).toMatchObject({ alarm: true, danger: false });
+    });
+    it('просроченный срок — danger', () => {
+      expect(value(null, localToday(-1))).toMatchObject({ alarm: true, danger: true });
+      expect(value(localToday(-5), localToday(-1)).danger).toBe(true);
+      expect(value(localToday(-5), localToday()).danger).toBe(false);
+    });
+    it('диалог: начало и срок, очистка обеих', async () => {
+      const w = mount(TaskDatesPicker, { ...opts, props: { start: null, due: '2026-11-20' } });
+      await open(w);
+      const inputs = document.body.querySelectorAll<HTMLInputElement>('input[type="date"]');
+      expect(inputs).toHaveLength(2);
+      inputs[0]!.value = '2026-11-12';
+      inputs[0]!.dispatchEvent(new Event('input'));
+      expect(w.emitted('update:start')?.[0]).toEqual(['2026-11-12']);
+      const clear = [...document.body.querySelectorAll('button')].find(
+        (b) => b.textContent?.trim() === 'Очистить',
+      )!;
+      clear.click();
+      await flushPromises();
+      expect(w.emitted('update:due')?.at(-1)).toEqual([null]);
+      w.unmount();
+    });
   });
 });

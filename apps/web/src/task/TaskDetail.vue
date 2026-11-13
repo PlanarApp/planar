@@ -39,10 +39,10 @@ import { useAuth } from '../auth/useAuth';
 import { mutate, newId, useQuery } from '../sync';
 import {
   AssigneePicker,
-  DueDatePicker,
   LabelPicker,
   PriorityPicker,
   StatusPicker,
+  TaskDatesPicker,
   createTask,
   deleteTask,
   restoreTask,
@@ -590,18 +590,13 @@ const panelComponent = computed(() => {
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <CalendarDays :size="15" />{{ t('task.dates') }}
             </dt>
-            <dd class="flex min-w-0 items-center gap-1">
-              <DueDatePicker
-                :model-value="task.startDate"
-                :label="t('task.startDate')"
-                :empty="t('task.start')"
-                @update:model-value="(v: string | null) => updateTask(task.id, { startDate: v })"
-              />
-              <span class="text-fg-subtle">→</span>
-              <DueDatePicker
+            <dd class="min-w-0" data-col="dates">
+              <TaskDatesPicker
                 :task-id="task.id"
-                :model-value="task.dueDate"
-                @update:model-value="(v: string | null) => updateTask(task.id, { dueDate: v })"
+                :start="task.startDate"
+                :due="task.dueDate"
+                @update:start="(v: string | null) => updateTask(task.id, { startDate: v })"
+                @update:due="(v: string | null) => updateTask(task.id, { dueDate: v })"
               />
             </dd>
           </div>

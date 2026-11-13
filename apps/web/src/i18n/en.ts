@@ -808,6 +808,7 @@ export default {
     dates: 'Dates',
     startDate: 'Start date',
     start: 'Start',
+    fromDate: 'from {date}',
     title: 'Title',
     close: 'Close',
     openAs: { label: 'Open as', modal: 'Dialog', side: 'Side panel', page: 'Full screen' },
