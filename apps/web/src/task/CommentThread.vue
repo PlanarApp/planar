@@ -10,23 +10,28 @@ import CommentItem from './CommentItem.vue';
 import Editor from './editor/Editor.vue';
 import { FEED } from './thread';
 
-// a comment with its replies at any depth (PLANARAPP-45); any of them is assigned and resolved (PLNRAPP-135)
+// a comment with its replies (PLANARAPP-45); any of them is assigned and resolved (PLNRAPP-135)
+// PLNRAPP-201: inline — the comment and its direct replies; a reply to a reply and deeper — the reply's own
+// thread (subthread) opened on the whole feed, so the indent never grows beyond one level
 const props = defineProps<{ comment: Row<'comments'>; depth?: number }>();
 const { t } = useI18n();
 const f = inject(FEED)!;
 const c = () => props.comment;
-const depth = () => props.depth ?? 0;
+const nested = () => (props.depth ?? 0) > 0;
 const box = ref<InstanceType<typeof Editor>>();
 watch(
   () => f.replyTo.value === props.comment.id,
   async (on) => {
-    if (!on) return;
+    if (!on || nested()) return;
     await nextTick();
     box.value?.focus?.();
   },
+  { immediate: true }, // the thread opened by «Reply» mounts with replyTo already set
 );
+// a reply to a nested reply is written in its thread
 function startReply() {
   f.replyDraft.value = null;
+  if (nested()) f.openThread(props.comment.id);
   f.replyTo.value = props.comment.id;
 }
 // collapsed (PLANARAPP-44): one line — author, text, replies of the whole subtree, assignment and its state
@@ -111,16 +116,25 @@ const snippet = computed(() => docText(props.comment.body).replace(/\s+/g, ' ').
       @assign="(u) => mutate('comment.assign', { id: c().id, assigneeId: u })"
       @resolve="(done) => mutate('comment.resolve', { id: c().id, resolved: done })"
     >
+      <button
+        v-if="nested() && descendants"
+        type="button"
+        class="mt-1 block text-xs text-accent hover:underline"
+        data-testid="thread-open"
+        @click="f.openThread(c().id)"
+      >
+        {{ t('task.openThread', { n: descendants }) }}
+      </button>
       <div
-        v-if="f.replies.value.get(c().id)?.length || f.replyTo.value === c().id"
-        :class="['mt-2 flex flex-col gap-2', depth() < 6 && 'border-l-2 border-border pl-3']"
+        v-else-if="!nested() && (f.replies.value.get(c().id)?.length || f.replyTo.value === c().id)"
+        class="mt-2 flex flex-col gap-2 border-l-2 border-border pl-3"
         data-testid="thread"
       >
         <CommentThread
           v-for="r in f.replies.value.get(c().id) ?? []"
           :key="r.id"
           :comment="r"
-          :depth="depth() + 1"
+          :depth="1"
         />
         <div
           v-if="f.replyTo.value === c().id"

@@ -18,6 +18,8 @@ export interface FeedCtx {
   react: (commentId: string, emoji: string) => unknown;
   /** ids of collapsed comments (PLNRAPP-194): the feed collapses and expands all at once */
   folded: Ref<Set<string>>;
+  /** opens the thread of a comment on the whole feed (PLNRAPP-201): replies deeper than one level live there */
+  openThread: (id: string) => void;
 }
 export const FEED: InjectionKey<FeedCtx> = Symbol('feed');
 

@@ -148,19 +148,63 @@ describe('task:comments', () => {
   });
 });
 
-describe('PLANARAPP-45 ответы любой вложенности', () => {
-  it('ответ на ответ — внутри треда ответа; «Ответить» у каждого; открывает поле под ним', async () => {
+describe('PLNRAPP-201 треды: в ленте комментарий и ответы, глубже — тред ответа', () => {
+  it('ответ на ответ — в треде ответа; тред открывается на всю ленту, глубже — сабтред, «Назад» по уровням', async () => {
     const root = comment({ body: doc('КОРЕНЬ') });
     const r1 = comment({ parentId: root.id, body: doc('ОТВЕТ'), createdAt: at(2) });
     const r2 = comment({ parentId: r1.id, body: doc('ГЛУБЖЕ'), createdAt: at(3) });
-    await db.table('comments').bulkPut([root, r1, r2]);
+    const r3 = comment({ parentId: r2.id, body: doc('ЕЩЁ ГЛУБЖЕ'), createdAt: at(4) });
+    await db.table('comments').bulkPut([root, r1, r2, r3]);
     w = await open();
-    await until(() => w.text().includes('ГЛУБЖЕ'));
+    await until(() => w.text().includes('ОТВЕТ'));
     const el = (id: string) => w.get(`[data-comment="${id}"]`);
-    expect(el(r1.id).find(`[data-comment="${r2.id}"]`).exists()).toBe(true);
-    expect(el(root.id).findAll('[data-testid="comment-reply"]')).toHaveLength(3);
-    await el(r2.id).get('[data-testid="comment-reply"]').trigger('click');
-    await until(() => el(r2.id).find('[data-testid="reply-box"]').exists());
+    // the feed: the root and its reply; deeper — only the count with the thread entrance
+    expect(w.text()).not.toContain('ГЛУБЖЕ');
+    expect(el(root.id).findAll('[data-testid="comment-reply"]')).toHaveLength(2);
+    expect(el(root.id).findAll('[data-testid="thread"]')).toHaveLength(1);
+    const enter = el(r1.id).get('[data-testid="thread-open"]');
+    expect(enter.text()).toContain('ответов: 2');
+    await enter.trigger('click');
+    await until(() => w.find('[data-testid="thread-view"]').exists());
+    const view = () => w.get('[data-testid="thread-view"]');
+    expect(w.find('[data-testid="comment-send"]').exists()).toBe(false);
+    expect(view().text()).toContain('ОТВЕТ');
+    expect(view().text()).toContain('ГЛУБЖЕ');
+    expect(view().text()).not.toContain('ЕЩЁ ГЛУБЖЕ');
+    expect(view().get('[data-testid="thread-back"]').text()).toBe('Назад к ленте');
+    // a subthread
+    await view().get(`[data-comment="${r2.id}"] [data-testid="thread-open"]`).trigger('click');
+    await until(() => view().text().includes('ЕЩЁ ГЛУБЖЕ'));
+    expect(view().text()).not.toContain('ОТВЕТ');
+    expect(view().get('[data-testid="thread-back"]').text()).toBe('Назад');
+    await view().get('[data-testid="thread-back"]').trigger('click');
+    await until(() => view().text().includes('ОТВЕТ'));
+    await view().get('[data-testid="thread-back"]').trigger('click');
+    await until(() => !w.find('[data-testid="thread-view"]').exists());
+    expect(w.find('[data-testid="comment-send"]').exists()).toBe(true);
+  });
+  it('«Ответить» у ответа открывает его тред с полем ответа; отправка — parentId ответа', async () => {
+    const root = comment({ body: doc('КОРЕНЬ') });
+    const r1 = comment({ parentId: root.id, body: doc('ОТВЕТ'), createdAt: at(2) });
+    await db.table('comments').bulkPut([root, r1]);
+    w = await open();
+    await until(() => w.text().includes('ОТВЕТ'));
+    // a reply to the root — inline
+    await w.get(`[data-comment="${root.id}"] [data-testid="comment-reply"]`).trigger('click');
+    await until(() => w.find('[data-testid="reply-box"]').exists());
+    expect(w.find('[data-testid="thread-view"]').exists()).toBe(false);
+    // a reply to the reply — in its thread
+    await w.get(`[data-comment="${r1.id}"] [data-testid="comment-reply"]`).trigger('click');
+    await until(() => w.find('[data-testid="thread-view"] [data-testid="reply-box"]').exists());
+    const box = w
+      .findAllComponents(Editor)
+      .find((e) => e.props('label').startsWith('Ответ в треде'))!;
+    box.vm.editor!.commands.insertContent('ГЛУБЖЕ');
+    await flushPromises();
+    await w.get('[data-testid="reply-send"]').trigger('click');
+    await eventually(async () => (await comments()).length === 3);
+    expect((await comments()).find((c) => c.parentId === r1.id)).toBeTruthy();
+    await until(() => w.get('[data-testid="thread-view"]').text().includes('ГЛУБЖЕ'));
   });
 });
 
@@ -177,7 +221,7 @@ describe('PLANARAPP-44 сворачивание комментариев', () =>
     const single = comment({ body: doc('ОДИНОЧНЫЙ'), createdAt: at(4) });
     await db.table('comments').bulkPut([root, r1, r2, single]);
     w = await open();
-    await until(() => w.text().includes('ГЛУБЖЕ'));
+    await until(() => w.text().includes('ОТВЕТ'));
     const foldOf = (text: string) =>
       w
         .findAll('[data-testid="comment-fold"]')
@@ -191,14 +235,14 @@ describe('PLANARAPP-44 сворачивание комментариев', () =>
     expect(chip.text()).not.toContain('Назначено'); // PLNRAPP-148: only the name, the prefix is in the tooltip
     expect(chip.attributes('title')).toMatch(/^Назначено: /);
     expect(row.text()).toContain('ответов: 2');
-    expect(w.text()).not.toContain('ГЛУБЖЕ');
+    expect(w.text()).not.toContain('ОТВЕТ');
     // a single comment collapses too
     await foldOf('ОДИНОЧНЫЙ').trigger('click');
     await flushPromises();
     expect(w.findAll('[data-testid="comment-collapsed"]')).toHaveLength(2);
     // a click on the row expands it
     await row.trigger('click');
-    await until(() => w.text().includes('ГЛУБЖЕ'));
+    await until(() => w.text().includes('ОТВЕТ'));
   });
 });
 
