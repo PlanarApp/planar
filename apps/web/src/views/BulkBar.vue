@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button, Dialog } from '../ui';
+import BulkMerge from './BulkMerge.vue';
 import {
   AssigneePicker,
   DueDatePicker,
@@ -66,6 +67,7 @@ async function removeSelected() {
     <Button size="sm" data-testid="bulk-archive" @click="archiveSelected">{{
       t('archive.toArchive')
     }}</Button>
+    <BulkMerge :tasks="chosen" />
     <Button v-if="canDelete" variant="danger" size="sm" @click="confirmDelete = true">{{
       t('list.delete')
     }}</Button>

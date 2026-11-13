@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import TaskContextMenu from '../TaskContextMenu.vue';
+import BulkMerge from '../BulkMerge.vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
 import { ChevronRight, MoreHorizontal } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
@@ -319,8 +320,8 @@ function onCheck(task: TaskView, e: MouseEvent) {
 }
 
 // --- bulk edit: one mutation per task
-const each = (f: (x: TaskView) => Promise<unknown>) =>
-  Promise.all((all.value ?? []).filter((x) => sel.selected.value.has(x.id)).map(f));
+const chosen = computed(() => (all.value ?? []).filter((x) => sel.selected.value.has(x.id)));
+const each = (f: (x: TaskView) => Promise<unknown>) => Promise.all(chosen.value.map(f));
 
 // --- fields: cell edit and bulk edit
 const editCell = ref<string | null>(null); // `${taskId}|${columnId}`
@@ -643,6 +644,7 @@ const date = (v: string) => v.slice(0, 10);
           @update:value="each((x) => setTaskField(x.id, bulkDef!.id, $event))"
         />
       </template>
+      <BulkMerge :tasks="chosen" />
       <Button size="sm" @click="sel.clear()">{{ t('table.clear') }}</Button>
     </div>
   </div>

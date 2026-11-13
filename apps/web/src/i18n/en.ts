@@ -43,6 +43,14 @@ export default {
     confirm: '{from} will be merged into {to}',
     action: 'Merge',
     done: '{from} merged into {to}',
+    bulk: 'Merge…',
+    bulkTitle: 'Merge selected tasks',
+    bulkText:
+      'Mark the task the others merge into. Their comments, attachments, time, links, subtasks, assignees and watchers move to it; the other tasks are cancelled and marked as duplicates.',
+    bulkSpaces: 'Only tasks of one space can be merged',
+    bulkDescendant: 'A subtask of another selected task cannot be the target',
+    bulkConfirm: '{n} tasks → {to}; they will be cancelled',
+    bulkDone: 'Tasks merged into {to}: {n}',
   },
   quick: {
     title: 'New task',

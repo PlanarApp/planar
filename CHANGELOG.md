@@ -18,6 +18,7 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - MCP tools for every REST function: `unlink_tasks`, `list_time_entries`, `get_timer`, `list_sprints`, `list_automations`; `get_task` also returns the task links.
 - AI agent runs: a live log in the task's «AI» tab and in «AI tasks» — the agent's thinking, tool calls, commands and their shortened output, as in the Claude Code chat. Secrets and tokens are masked by the server; only the last 500 events of a run are kept.
 - Settings → AI and the setup wizard: pick a ready provider (OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek, Mistral, Groq) — the API URL is filled in; «Custom API URL» keeps the manual fields. After the key is entered, the model is picked from the provider's list; typing a name still works.
+- Task merge: «Merge into task…» in the task menu and «Merge…» in the bulk action bar of the list, board and table (2+ selected tasks of one space — mark the target, the others merge into it). Comments, attachments, time, links, subtasks, assignees and watchers move to the target; merged tasks get the «Cancelled» status and the link «duplicates». Mutator `task.merge` takes `ids` and `linkIds` lists.
 
 ### Changed
 
