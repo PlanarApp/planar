@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { api, ApiError } from '../../api/http';
 import { useAuth } from '../../auth/useAuth';
-import { Button, Input } from '../../ui';
+import { Button, Input, Select } from '../../ui';
 import SectionHeader from './SectionHeader.vue';
 import { nameTyped, useCloudErrors, type CloudState } from './cloud';
 
@@ -66,6 +66,38 @@ const reset = () =>
     });
     window.location.assign(r.url);
   });
+// our AI: the instance writes the cloud gateway into its own workspace AI connection (the check call goes through the gateway)
+type Conn = { baseUrl: string | null; model: string } | null;
+const wsConn = ref<Conn>(null);
+const llmModel = ref<string | null>(null);
+const llmOptions = computed(() =>
+  (s.value?.llm?.models ?? []).map((m) => ({ value: m.id, label: m.id })),
+);
+const viaCloud = computed(() => !!s.value?.llm && wsConn.value?.baseUrl === s.value.llm.baseUrl);
+// no AI module or no rights — the status is just not shown
+const loadConn = () =>
+  api<{ connection: Conn }>('GET', '/api/ai/connections?scope=workspace').then(
+    (r) => (wsConn.value = r.connection),
+    () => (wsConn.value = null),
+  );
+onMounted(loadConn);
+async function connectLlm() {
+  const llm = s.value?.llm;
+  const m = llm?.models.find((x) => x.id === llmModel.value);
+  if (!llm || !m) return;
+  const ok = await run(async () => {
+    await api('PUT', '/api/ai/connections', {
+      scope: 'workspace',
+      provider: m.protocol === 'anthropic' ? 'anthropic' : 'openai-compatible',
+      baseUrl: llm.baseUrl,
+      apiKey: llm.key,
+      model: m.id,
+      priceIn: m.in,
+      priceOut: m.out,
+    });
+  });
+  if (ok) await loadConn();
+}
 // the cloud recreates this api while turning AI on/off: a dropped answer means it is still applying
 const aiApplying = ref(false);
 async function setAi(enabled: boolean) {
@@ -232,8 +264,24 @@ async function remove() {
         <p class="text-sm" :class="s.llm.credits <= 0 ? 'text-danger' : ''">
           {{ t('cloud.llmBalance', { credits: s.llm.credits.toFixed(2) }) }}
         </p>
-        <Input :model-value="s.llm.baseUrl ?? ''" :label="t('cloud.llmUrl')" readonly />
-        <Input :model-value="s.llm.key" :label="t('cloud.llmKey')" readonly />
+        <p v-if="wsConn" class="text-sm">
+          {{ t(viaCloud ? 'cloud.llmConnected' : 'cloud.llmOther', { model: wsConn.model }) }}
+        </p>
+        <form
+          v-if="llmOptions.length"
+          class="flex flex-wrap items-end gap-2"
+          @submit.prevent="connectLlm"
+        >
+          <Select
+            v-model="llmModel"
+            :label="t('cloud.llmModel')"
+            :options="llmOptions"
+            class="min-w-64"
+          />
+          <Button type="submit" :loading="busy" :disabled="!llmModel">{{
+            t(wsConn ? 'cloud.llmReplace' : 'cloud.llmConnect')
+          }}</Button>
+        </form>
         <div class="flex flex-wrap gap-2">
           <template v-for="c in s.addons.credits" :key="c.usd">
             <a

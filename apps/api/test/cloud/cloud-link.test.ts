@@ -165,7 +165,7 @@ describe('cloud-link', () => {
     });
     Object.assign(state, {
       aiReplicas: 1,
-      llm: { key: 'k', credits: 4.5 },
+      llm: { key: 'k', credits: 4.5, models: [{ id: 'm', protocol: 'openai', in: 1, out: 4 }] },
       addons: {
         ai: [{ replicas: 3, usd: 13, checkout: { paddle: 'https://pay.test/ai3' } }],
         credits: [{ credits: 8, usd: 10, checkout: {} }],
@@ -174,6 +174,7 @@ describe('cloud-link', () => {
     const on = await req('POST', '/api/cloud/ai', { cookie: owner, body: { enabled: true } });
     expect(on.statusCode).toBe(200);
     expect(on.json()).toMatchObject({ ai: true, aiReplicas: 1, llm: { key: 'k', credits: 4.5 } });
+    expect(on.json().llm.models).toEqual([{ id: 'm', protocol: 'openai', in: 1, out: 4 }]);
     expect(on.json().llm.baseUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/llm\/v1$/);
     expect(on.json().addons.ai[0].checkout.paddle).toBe('https://pay.test/ai3');
     expect(JSON.parse(seen.at(-1)!.body!)).toEqual({ enabled: true });

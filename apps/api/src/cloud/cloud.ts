@@ -20,7 +20,22 @@ export const cloudStateSchema = z.object({
   aiPaid: z.boolean().default(false),
   // baseUrl is not sent by the cloud: the instance fills it from CLOUD_URL (CloudService)
   llm: z
-    .object({ key: z.string(), credits: z.number(), baseUrl: z.string().optional() })
+    .object({
+      key: z.string(),
+      credits: z.number(),
+      baseUrl: z.string().optional(),
+      // the gateway's models: the instance writes one into its AI connection (prices — USD per 1M tokens)
+      models: z
+        .array(
+          z.object({
+            id: z.string(),
+            protocol: z.enum(['anthropic', 'openai']),
+            in: z.number(),
+            out: z.number(),
+          }),
+        )
+        .default([]),
+    })
     .nullable()
     .default(null),
   addons: z

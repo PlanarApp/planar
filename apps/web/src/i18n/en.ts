@@ -356,10 +356,14 @@ export default {
     aiBuy: '{n} agent(s) — ${usd}/mo',
     llm: 'Planar Cloud AI',
     llmHint:
-      'Models through the cloud without your own key, paid from the balance. In "Settings → AI" create a connection: provider anthropic or openai-compatible, the address and key below, a model from the list.',
+      'Models through the cloud without your own key, paid from the balance. Pick a model — the connection is written to the workspace "Settings → AI" (the check call takes a little from the balance).',
     llmBalance: 'Balance: ${credits}',
-    llmUrl: 'Address (baseUrl)',
-    llmKey: 'Key',
+    llmModel: 'Model',
+    llmConnect: 'Connect',
+    llmReplace: 'Replace the connection',
+    llmConnected: 'The workspace is connected to the cloud AI, model {model}.',
+    llmOther:
+      'The workspace has its own AI connection (model {model}); "Replace" switches it to the cloud AI.',
     llmBuy: '+${credits} for ${usd}',
     export: 'Data export',
     exportHint:
