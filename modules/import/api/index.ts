@@ -15,7 +15,15 @@ import {
   type Mapping,
   type Preview,
 } from '../shared/index.js';
-import { ParseError, TRELLO_MAPPING, parseSource, suggestMapping, type Item } from './parse.js';
+import {
+  ParseError,
+  TRELLO_MAPPING,
+  distinctValues,
+  parseSource,
+  suggestMapping,
+  type Item,
+} from './parse.js';
+import { resolveNew } from './resolve.js';
 import { importJobs, type RowNote, type RowWarning } from './schema.js';
 
 // a minimum from a fastify request with @fastify/multipart (fastify is not a module dependency)
@@ -77,6 +85,14 @@ function parseOrThrow(...a: Parameters<typeof parseSource>) {
   }
 }
 
+function parseMapping(s: string): Mapping {
+  try {
+    return mappingSchema.parse(JSON.parse(s));
+  } catch {
+    throw bad('mapping неверен');
+  }
+}
+
 const publicJob = (r: typeof importJobs.$inferSelect) => ({
   ...r,
   source: undefined,
@@ -93,38 +109,38 @@ class ImportController {
     this.core.auth(req);
     const { fields, file } = await readForm(req);
     const [format, preset] = formatPreset(fields);
-    const p = parseOrThrow(file, format, null, preset);
+    // with mapping — the wizard re-reads values over the whole file after a column change
+    const mapping = format === 'csv' && fields.mapping ? parseMapping(fields.mapping) : null;
+    const p = parseOrThrow(file, format, mapping, preset);
     return {
       columns: p.columns,
       rows: p.rows.slice(0, 20),
-      mapping: format === 'trello' ? TRELLO_MAPPING : suggestMapping(p.columns, preset),
+      mapping:
+        mapping ?? (format === 'trello' ? TRELLO_MAPPING : suggestMapping(p.columns, preset)),
+      values: distinctValues(p.items),
     };
   }
 
   @Post('jobs')
   @HttpCode(202)
   async create(@Req() req: FastifyRequest) {
-    const { userId } = this.core.auth(req);
+    const auth = this.core.auth(req);
+    const { userId } = auth;
     const { fields, file } = await readForm(req);
     const [format, preset] = formatPreset(fields);
-    let mapping: Mapping;
-    try {
-      mapping =
-        format === 'trello' && !fields.mapping
-          ? TRELLO_MAPPING
-          : mappingSchema.parse(JSON.parse(fields.mapping ?? ''));
-    } catch {
-      throw bad('mapping неверен');
-    }
+    let mapping =
+      format === 'trello' && !fields.mapping ? TRELLO_MAPPING : parseMapping(fields.mapping ?? '');
     if (!UUID.test(fields.projectId ?? '')) throw bad('projectId неверен');
     const projectId = fields.projectId!;
     // a space member with a role no lower than member may write to a project; someone else's project — as a nonexistent one
     const ok = await this.core.db.execute(sql`
-      select 1 from projects p join space_members m on m.space_id = p.space_id
+      select p.space_id from projects p join space_members m on m.space_id = p.space_id
       where p.id = ${projectId} and m.user_id = ${userId} and m.role in ('admin', 'member')
         and project_role(${userId}::uuid, p.id) in ('admin', 'member')`);
     if (!ok.rows.length) throw new HttpError(404, 'not_found', 'Проект не найден');
     const p = parseOrThrow(file, format, mapping, preset);
+    const spaceId = (ok.rows[0] as { space_id: string }).space_id;
+    mapping = await resolveNew(this.core, auth, spaceId, mapping, p.items);
     const [row] = await this.core.db
       .insert(importJobs)
       .values({
@@ -205,17 +221,64 @@ async function runImport(jobId: string, api: JobApi) {
     );
     if (!project) throw new Error('Проект не найден');
     const spaceId = project.space_id;
-    const statuses = await q<{ id: string; name: string; category: string }>(
-      sql`select id, name, category from statuses where project_id = ${job!.projectId} order by rank`,
+    // project of a row: by projectMap (ids in the job project's space, checked on creation), otherwise — the job's
+    const projectMap = mapping.projectMap ?? {};
+    const projOf = (it: Item) =>
+      (it.project !== undefined && projectMap[it.project]) || job!.projectId;
+    const pids = [...new Set([job!.projectId, ...items.map(projOf)])];
+    const pidList = sql.join(
+      pids.map((p) => sql`${p}::uuid`),
+      sql`, `,
     );
-    const defaultStatus = (
-      statuses.find((s) => s.category === 'todo') ?? statuses.find((s) => s.category === 'backlog')
-    )?.id;
-    if (!defaultStatus) throw new Error('Нет статуса по умолчанию');
-    // values outside the preview's 20 rows are not in statusMap: match them by status name
-    const byName = new Map(statuses.map((s) => [s.name.toLowerCase(), s.id]));
-    const statusMap = new Map(Object.entries(mapping.statusMap ?? {}));
+    const live = new Set(
+      (
+        await q<{ id: string }>(
+          sql`select id from projects where id in (${pidList}) and space_id = ${spaceId}`,
+        )
+      ).map((r) => r.id),
+    );
 
+    const statusRows = await q<{ id: string; project_id: string; name: string; category: string }>(
+      sql`select id, project_id, name, category from statuses where project_id in (${pidList}) order by rank`,
+    );
+    const statusName = new Map(statusRows.map((s) => [s.id, s.name.toLowerCase()]));
+    const perProject = new Map<string, { def?: string; byName: Map<string, string> }>();
+    for (const pid of pids) {
+      const ss = statusRows.filter((s) => s.project_id === pid);
+      perProject.set(pid, {
+        def: (ss.find((s) => s.category === 'todo') ?? ss.find((s) => s.category === 'backlog'))
+          ?.id,
+        byName: new Map(ss.map((s) => [s.name.toLowerCase(), s.id])),
+      });
+    }
+    if (!perProject.get(job!.projectId)!.def) throw new Error('Нет статуса по умолчанию');
+    const statusMap = new Map(Object.entries(mapping.statusMap ?? {}));
+    /**
+     * statusMap holds statuses of the job project; another project gets the status of the same name.
+     * Values outside the preview's 20 rows are not in statusMap: matched by status name.
+     */
+    const statusOf = (pid: string, v: string) => {
+      const p = perProject.get(pid)!;
+      const mapped = statusMap.get(v);
+      if (mapped && pid === job!.projectId) return mapped;
+      return (
+        (mapped && p.byName.get(statusName.get(mapped) ?? '')) ??
+        p.byName.get(v.toLowerCase()) ??
+        p.def
+      );
+    };
+
+    const members = new Set(
+      (
+        await q<{ user_id: string }>(
+          sql`select user_id from space_members where space_id = ${spaceId}`,
+        )
+      ).map((r) => r.user_id),
+    );
+    // names from the wizard's table first (ids — checked/created on job creation)
+    const userMap = new Map(
+      Object.entries(mapping.userMap ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
+    );
     const users = new Map<string, string>();
     for (const u of await q<{ id: string; login: string; email: string | null }>(sql`
       select u.id, u.login, u.email from users u join space_members m on m.user_id = u.id
@@ -228,35 +291,45 @@ async function runImport(jobId: string, api: JobApi) {
       where m.space_id = ${spaceId} and u.deactivated_at is null and u.email is not null`)) {
       users.set(u.email.toLowerCase(), u.id);
     }
+    const person = (name: string) =>
+      userMap.get(name.toLowerCase()) ?? users.get(name.toLowerCase());
 
-    // labels by name, case-insensitive; missing ones are created in one call
+    for (const it of items)
+      if (!it.skip && !live.has(projOf(it))) it.skip = `проект «${it.project}» не найден`;
+
+    // labels by project and name, case-insensitive; missing ones are created in one call
     const labels = new Map<string, string>();
-    for (const l of await q<{ id: string; name: string }>(
-      sql`select id, name from labels where project_id = ${job!.projectId}`,
+    const lkey = (pid: string, n: string) => `${pid}\u0000${n.slice(0, 100).toLowerCase()}`;
+    for (const l of await q<{ id: string; project_id: string; name: string }>(
+      sql`select id, project_id, name from labels where project_id in (${pidList})`,
     ))
-      labels.set(l.name.toLowerCase(), l.id);
+      labels.set(lkey(l.project_id, l.name), l.id);
     const make: Mut[] = [];
     for (const it of items) {
       if (it.skip) continue;
+      const pid = projOf(it);
       for (const n of (it.labels ?? []).map((x) => x.slice(0, 100))) {
-        if (labels.has(n.toLowerCase())) continue;
+        if (labels.has(lkey(pid, n))) continue;
         const id = uuidv7();
-        labels.set(n.toLowerCase(), id);
+        labels.set(lkey(pid, n), id);
         make.push({
           name: 'label.create',
-          args: { id, projectId: job!.projectId, name: n, color: LABEL_COLOR },
+          args: { id, projectId: pid, name: n, color: LABEL_COLOR },
         });
       }
     }
     for (let i = 0; i < make.length; i += BATCH)
       await api.execute(job!.userId, make.slice(i, i + BATCH));
 
-    // external ID → task (previously imported, still existing)
+    // external ID → task (previously imported, still existing) and its project
     const known = new Map<string, string>();
-    for (const r of await q<{ external_id: string; task_id: string }>(sql`
-      select i.external_id, i.task_id from import_items i join tasks t on t.id = i.task_id
-      where i.project_id = ${job!.projectId} and i.preset = ${job!.preset}`))
+    const projectOfTask = new Map<string, string>();
+    for (const r of await q<{ external_id: string; task_id: string; project_id: string }>(sql`
+      select i.external_id, i.task_id, t.project_id from import_items i join tasks t on t.id = i.task_id
+      where i.project_id in (${pidList}) and i.preset = ${job!.preset}`)) {
       known.set(r.external_id, r.task_id);
+      projectOfTask.set(r.task_id, r.project_id);
+    }
     const exists = new Set(known.values());
 
     // parents before children; a cycle or unknown parent — no parent
@@ -304,28 +377,40 @@ async function runImport(jobId: string, api: JobApi) {
     ): Promise<{
       muts: Mut[];
       kind: 'created' | 'updated';
-      attach?: { ext: string; taskId: string };
+      attach?: { ext: string; taskId: string; projectId: string };
       notes: string[];
+      comments: { userId: string; mut: Mut }[];
     }> => {
       const notes = [...it.notes];
-      const statusId =
-        it.status === undefined
-          ? undefined
-          : (statusMap.get(it.status) ?? byName.get(it.status.toLowerCase()) ?? defaultStatus);
+      const ext = it.externalId;
+      const existing = ext ? taskOf.get(ext) : undefined;
+      const isUpdate = !!existing && (exists.has(existing) || fresh.has(ext!));
+      // an update stays in the task's project
+      const pid = (isUpdate && projectOfTask.get(existing!)) || projOf(it);
+      const statusId = it.status === undefined ? undefined : statusOf(pid, it.status);
       const assigneeIds: string[] = [];
       for (const a of it.assignees ?? []) {
-        const id = users.get(a.toLowerCase());
-        if (id) {
-          if (!assigneeIds.includes(id)) assigneeIds.push(id);
-        } else notes.push(`исполнитель «${a}» не найден`);
+        const id = person(a);
+        if (!id) notes.push(`исполнитель «${a}» не найден`);
+        else if (!members.has(id)) notes.push(`исполнитель «${a}» — не участник пространства`);
+        else if (!assigneeIds.includes(id)) assigneeIds.push(id);
       }
       const labelIds = [
-        ...new Set((it.labels ?? []).map((n) => labels.get(n.slice(0, 100).toLowerCase())!)),
+        ...new Set(
+          (it.labels ?? []).flatMap((n) => {
+            const l = labels.get(lkey(pid, n));
+            return l ? [l] : [];
+          }),
+        ),
       ];
       let parentId: string | undefined;
       if (it.parentExt !== undefined) {
         parentId = taskOf.get(it.parentExt);
         if (!parentId) notes.push(`родитель «${it.parentExt}» не найден`);
+        else if (projectOfTask.get(parentId) !== pid) {
+          parentId = undefined;
+          notes.push(`родитель «${it.parentExt}» в другом проекте: не назначен`);
+        }
       }
       const description =
         it.description === undefined
@@ -335,9 +420,7 @@ async function runImport(jobId: string, api: JobApi) {
             : docOf(it.description);
       const title = it.title.slice(0, 500);
       if (title !== it.title) notes.push('заголовок обрезан до 500 символов');
-      const ext = it.externalId;
-      const existing = ext ? taskOf.get(ext) : undefined;
-      if (existing && (exists.has(existing) || fresh.has(ext!))) {
+      if (isUpdate && existing) {
         const [cur, curL] = await Promise.all([
           db.execute(sql`select user_id from task_assignees where task_id = ${existing}`),
           db.execute(sql`select label_id from task_labels where task_id = ${existing}`),
@@ -382,21 +465,24 @@ async function runImport(jobId: string, api: JobApi) {
                 args: { id: uuidv7(), taskId: existing, labelId: l },
               });
         }
+        // comments — only on creation: a repeated import must not duplicate them
         return {
           muts,
           kind: 'updated',
-          attach: ext ? { ext, taskId: existing } : undefined,
+          attach: ext ? { ext, taskId: existing, projectId: pid } : undefined,
           notes,
+          comments: [],
         };
       }
       const id = uuidv7();
-      const createStatus = statusId ?? defaultStatus;
+      projectOfTask.set(id, pid);
+      const createStatus = statusId ?? perProject.get(pid)!.def!;
       const muts: Mut[] = [
         {
           name: 'task.create',
           args: {
             id,
-            projectId: job!.projectId,
+            projectId: pid,
             statusId: createStatus,
             title,
             rank: await nextRank(createStatus),
@@ -420,15 +506,33 @@ async function runImport(jobId: string, api: JobApi) {
         });
         if (c.done) muts.push({ name: 'checklist.update', args: { id: cid, done: true } });
       });
-      return { muts, kind: 'created', attach: ext ? { ext, taskId: id } : undefined, notes };
+      // the comment date is set by the mutator (now): the source date goes into the first line
+      const comments = (it.comments ?? []).map((c) => {
+        const author = c.author ? person(c.author) : undefined;
+        const head = [c.at.slice(0, 16), author ? '' : c.author].filter(Boolean).join(' · ');
+        return {
+          userId: author ?? job!.userId,
+          mut: {
+            name: 'comment.create',
+            args: { id: uuidv7(), taskId: id, body: docOf(head ? `${head}\n${c.text}` : c.text) },
+          },
+        };
+      });
+      return {
+        muts,
+        kind: 'created',
+        attach: ext ? { ext, taskId: id, projectId: pid } : undefined,
+        notes,
+        comments,
+      };
     };
 
     const prepare =
-      (rows: { ext: string; taskId: string }[]) =>
+      (rows: { ext: string; taskId: string; projectId: string }[]) =>
       async (tx: { execute: (q: never) => Promise<unknown> }) => {
         if (!rows.length) return;
         const vals = sql.join(
-          rows.map((r) => sql`(${job!.projectId}, ${job!.preset}, ${r.ext}, ${r.taskId}, now())`),
+          rows.map((r) => sql`(${r.projectId}, ${job!.preset}, ${r.ext}, ${r.taskId}, now())`),
           sql`, `,
         );
         await tx.execute(
@@ -464,10 +568,12 @@ async function runImport(jobId: string, api: JobApi) {
             prepare: prepare(rs.flatMap((r) => (r.attach ? [r.attach] : []))) as never,
           },
         );
+      const pending: { row: number; userId: string; mut: Mut }[] = [];
       const ok = (r: (typeof rows)[number], it: Item) => {
         if (r.kind === 'created') created++;
         else updated++;
         for (const n of r.notes) warnings.push({ row: it.row, message: n });
+        for (const c of r.comments) pending.push({ row: it.row, ...c });
       };
       try {
         await apply(rows);
@@ -489,6 +595,27 @@ async function runImport(jobId: string, api: JobApi) {
           }
         }
       }
+      // comments after their tasks, on behalf of the author (system: the author need not have rights in the project)
+      const byAuthor = new Map<string, typeof pending>();
+      for (const c of pending) byAuthor.set(c.userId, [...(byAuthor.get(c.userId) ?? []), c]);
+      for (const [author, cs] of byAuthor)
+        for (let i = 0; i < cs.length; i += BATCH) {
+          const chunk = cs.slice(i, i + BATCH);
+          const run = (part: typeof chunk) =>
+            api.execute(
+              author,
+              part.map((c) => c.mut),
+              { system: true },
+            );
+          try {
+            await run(chunk);
+          } catch {
+            for (const c of chunk)
+              await run([c]).catch((e: unknown) =>
+                warnings.push({ row: c.row, message: `комментарий не импортирован: ${msg(e)}` }),
+              );
+          }
+        }
       processed = Math.min(order.length, b + BATCH);
       await touch({ processed, created, updated, skipped, warnings });
     }

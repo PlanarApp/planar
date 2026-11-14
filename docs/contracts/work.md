@@ -360,20 +360,21 @@ const ok = header.length === expected.length && timingSafeEqual(Buffer.from(head
 
 ## Module import (WK-6)
 Server tables:
-- `import_jobs`: `id uuid pk`, `user_id uuid`, `project_id uuid`, `format text check (csv,trello)`, `preset text` (`clickup`, `jira`, `linear`, `custom`, `trello`), `status text check (pending,running,done,failed)`, `total int`, `processed int`, `created int`, `updated int`, `skipped jsonb` (`{row, reason}[]`), `warnings jsonb` (`{row, message}[]`), `error text?`, `created_at`, `updated_at`.
+- `import_jobs`: `id uuid pk`, `user_id uuid`, `project_id uuid`, `format text check (csv,trello)`, `preset text` (`clickup`, `jira`, `linear`, `plane`, `custom`, `trello`), `status text check (pending,running,done,failed)`, `total int`, `processed int`, `created int`, `updated int`, `skipped jsonb` (`{row, reason}[]`), `warnings jsonb` (`{row, message}[]`), `error text?`, `created_at`, `updated_at`.
 - `import_items`: `project_id uuid`, `preset text`, `external_id text`, `task_id uuid`, `updated_at`; pk `(project_id, preset, external_id)`.
 
 | method and path | input → output |
 |---|---|
-| `POST /api/import/preview` | multipart: `file`, `format`, `preset` → `{columns: string[], rows: string[][] /* ≤ 20 */, mapping: Mapping /* suggestion for the preset */}` |
+| `POST /api/import/preview` | multipart: `file`, `format`, `preset`, `mapping?` (JSON, csv) → `{columns: string[], rows: string[][] /* ≤ 20 */, mapping: Mapping /* given or the preset's suggestion */, values: {status: string[], project: {name, key}[], people: string[]} /* over the whole file */}` |
 | `POST /api/import/jobs` | multipart: `file`, `projectId`, `format`, `preset`, `mapping` (JSON) → `202 {data: job}` |
 | `GET /api/import/jobs/:id` | → `{data: job}`; someone else's → 404 |
 
 - `Mapping` = `{externalId?, title, description?, status?, assignee?, labels?, dueDate?, startDate?, priority?, parent?}` — the CSV column name; `statusMap?: {<value>: statusId}` (unknown value — the default status, as in REST v1); `labels` — comma-separated, by name, missing ones are created with `label.create`; `assignee` — by email, then by login (case-insensitive), unknown — no assignee and a row in `warnings`; `parent` — the external ID of the parent in the same file; Trello JSON — fixed mapping (cards, lists → statuses, labels, members, checklists → `checklist.add`).
+- PLNRAPP-244/245: format `csv` also takes a JSON array of objects (Plane JSON export: keys → columns, arrays → JSON); lists in JSON form `["a", "b"]`; a status not in `statusMap` — by the status name of the project, then the default. `Mapping` += `project?`, `projectKey?`, `comments?` (JSON `[{comment, created_by, created_at}]`), `projectMap?: {<value>: projectId | 'new'}`, `userMap?: {<name>: userId | 'new'}`. Projects: `project_id` of the job — the main project; its space — the import space; a value in `projectMap` → that project (same space, writable) or `new` → `project.create` (key from `projectKey`, a taken one — with a suffix); others → the main project; a status of another project — by the name of the `statusMap` status; a parent in another project is not set. People: `userMap` first, then email/login; `new` → `CoreServices.createUser` (instance admin only, else 403 before anything is created) and `member.add` to the space; an assignee not in the space — a warning. Comments — only for created tasks, `comment.create` on behalf of the author (`system`), the source date (and the name, if the author is not found — then on behalf of the importer) in the first line.
 - Idempotency: a row with an `externalId` already in `import_items` updates the task (`task.update`, full replacement of assignees and labels) instead of creating a new one. Without `externalId` — always new.
 - pg-boss job `import.run {jobId}`: as `user_id` (their permissions), in batches of 100 rows per transaction; `processed` grows after each batch. Skipped rows (no title, mutator error) go to `skipped` with a reason, the import continues.
-- Limits: file ≤ 10 MB, ≤ 20 000 rows; larger → 400.
-- References — `e2e/fixtures/import/` (`clickup.csv`, `jira.csv`, `linear.csv`, `trello.json`, `README.md` with the format source for each).
+- Limits: file ≤ 50 MB (PLNRAPP-244; was 10), ≤ 20 000 rows; larger → 400.
+- References — `e2e/fixtures/import/` (`clickup.csv`, `jira.csv`, `linear.csv`, `plane.csv`, `plane.json`, `trello.json`, `README.md` with the format source for each).
 - Web: route `/m/import/` (wizard: file → format and preset → mapping and preview → progress and report), command `import:open`.
 
 ## REST and MCP (WK-5), C-modules v5

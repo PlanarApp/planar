@@ -12,14 +12,18 @@
 | `jira.csv`    | Atlassian: «Export issues» → «Export CSV (all fields)»                             | 8 строк; Summary, Issue key, Issue id, Status, Priority (Highest…Lowest), Assignee, Created / Due date в формате `d/Mon/yy h:mm AM`, **повторяющийся столбец Labels**, Parent id (подзадачи указывают Issue id)                                                            |
 | `linear.csv`  | Linear Docs: «Exporting data» (Export issues to CSV)                               | 8 строк; ID, Title, Description (markdown), Status, Priority (No priority/Urgent/High/Medium/Low), Assignee, Labels, Created At (ISO), Due Date, Parent issue                                                                                                              |
 | `trello.json` | Trello Help: «Export data from a Trello board» (Print and export → Export as JSON) | доска с 3 списками, метками (одна без имени — берётся цвет), участниками, чек-листом и 5 карточками: одна в архиве, одна без названия                                                                                                                                      |
+| `plane.csv`   | колонки реальной CSV-выгрузки Plane (PLNRAPP-244)                                  | 3 строки; Identifier, Name, State Name, Priority, Assignees/Labels JSON-массивами, Parent по Identifier, Comments JSON; статус «Test dev» неизвестен                                                                                                                       |
+| `plane.json`  | ключи реальной JSON-выгрузки Plane (PLNRAPP-245) + поле `description`              | 3 задачи в 2 проектах (`project_name`/`project_identifier`), комментарии трёх авторов, родитель из другого проекта                                                                                                                                                         |
 
 ## Ожидаемый результат импорта в пустой проект
 
-| файл          | строк | пропущено                   | задач |
-| ------------- | ----- | --------------------------- | ----- |
-| `clickup.csv` | 25    | 1 (строка 7: нет заголовка) | 24    |
-| `jira.csv`    | 8     | 0                           | 8     |
-| `linear.csv`  | 8     | 0                           | 8     |
-| `trello.json` | 5     | 2 (архив, нет названия)     | 3     |
+| файл          | строк | пропущено                   | задач                         |
+| ------------- | ----- | --------------------------- | ----------------------------- |
+| `clickup.csv` | 25    | 1 (строка 7: нет заголовка) | 24                            |
+| `jira.csv`    | 8     | 0                           | 8                             |
+| `linear.csv`  | 8     | 0                           | 8                             |
+| `trello.json` | 5     | 2 (архив, нет названия)     | 3                             |
+| `plane.csv`   | 3     | 0                           | 3                             |
+| `plane.json`  | 3     | 0                           | 3 (1 — в создаваемом проекте) |
 
 Номер строки в отчёте: CSV — номер записи как в таблице (заголовок — строка 1), Trello — номер карточки.

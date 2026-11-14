@@ -1,0 +1,53 @@
+[
+  {
+    "project_name": "Engineering",
+    "project_identifier": "TECH",
+    "parent": "",
+    "identifier": "PJ-1",
+    "sequence_id": 1,
+    "name": "Plane JSON 1",
+    "description": "Описание\nвторая строка",
+    "state_name": "Done",
+    "priority": "high",
+    "assignees": ["G L", "Alice Admin"],
+    "subscribers": [],
+    "created_by_name": "G L",
+    "start_date": null,
+    "target_date": "2025-11-11",
+    "labels": ["backend"],
+    "comments": [
+      { "comment": "первый", "created_by": "G L", "created_at": "2025-10-14 10:31:00" },
+      { "comment": "второй", "created_by": "Alice Admin", "created_at": "2025-10-15 09:00:00" },
+      { "comment": "третий", "created_by": "Nobody N.", "created_at": "2025-10-16 12:00:00" }
+    ],
+    "is_draft": false
+  },
+  {
+    "project_name": "Engineering",
+    "project_identifier": "TECH",
+    "parent": "PJ-1",
+    "identifier": "PJ-2",
+    "sequence_id": 2,
+    "name": "Plane JSON 2",
+    "state_name": "In Progress",
+    "priority": "none",
+    "assignees": [],
+    "labels": [],
+    "comments": [],
+    "is_draft": false
+  },
+  {
+    "project_name": "SEO Department",
+    "project_identifier": "PLSEO",
+    "parent": "PJ-1",
+    "identifier": "PJ-3",
+    "sequence_id": 3,
+    "name": "Plane JSON 3",
+    "state_name": "Done",
+    "priority": "low",
+    "assignees": ["G L"],
+    "labels": ["backend"],
+    "comments": [],
+    "is_draft": false
+  }
+]

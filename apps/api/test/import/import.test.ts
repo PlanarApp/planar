@@ -6,6 +6,7 @@ import { uuidv7 } from '@planar/shared';
 import { api as importApi } from '@planar/module-import/api';
 import { parseCsv } from '../../../../modules/import/api/csv.js';
 import { parseDate, parsePriority } from '../../../../modules/import/api/parse.js';
+import { loginFrom, projectKey } from '../../../../modules/import/api/resolve.js';
 import { createApp } from '../../src/app.js';
 import { settings } from '../../src/db/schema.js';
 import type { JobApi } from '../../src/modules/hooks.js';
@@ -183,6 +184,20 @@ const CU = {
 };
 
 describe('wk6: разбор', () => {
+  it('plane: логин из имени и ключ проекта — латиница, формат, занятые с суффиксом', () => {
+    const taken = new Set(['g.l']);
+    expect(loginFrom('G L', taken)).toBe('g.l2');
+    expect(loginFrom('Andrey Z.', taken)).toBe('andrey.z');
+    expect(loginFrom('Юрий Щукин', taken)).toBe('yurij.schukin');
+    expect(loginFrom('Я', taken)).toBe('ya');
+    expect(loginFrom('X', taken)).toBe('userx');
+    const keys = new Set(['TECH']);
+    expect(projectKey('TECH', 'Engineering', keys)).toBe('TECH2');
+    expect(projectKey(undefined, 'SEO Department', keys)).toBe('SEODEPARTM');
+    expect(projectKey('', '1 Отдел', keys)).toBe('OTDEL');
+    expect(projectKey(undefined, '—', keys)).toBe('PX');
+  });
+
   it('wk6: CSV RFC 4180 — BOM, ; как разделитель, "" и переводы строк в кавычках, CRLF', () => {
     const t = '﻿a;b;c\r\n1;"x;y";"he said ""hi""\nline2"\r\n\r\n4;5;6';
     expect(parseCsv(t)).toEqual([
@@ -379,7 +394,7 @@ describe('wk6: импорт', () => {
     expect((await one(p, 'Jira issue 1')).status_id).toBe(w.statusIds[DOING]);
   });
 
-  it('plane —JSON-списки, родитель по Identifier, статусы по имени без statusMap', async () => {
+  it('plane — JSON-списки, родитель по Identifier, статусы по имени без statusMap', async () => {
     const p = await project();
     const { mapping } = (await preview(fx('plane.csv'), 'csv', 'plane')).json();
     expect(mapping).toMatchObject({
@@ -405,6 +420,109 @@ describe('wk6: импорт', () => {
     expect(t2.parent_id).toBe(t1.id);
     expect(t2.status_id).toBe(w.statusIds[DOING]);
     expect((await one(p, 'Plane issue 3')).status_id).toBe(w.statusIds[TODO]); // unknown → default
+  });
+
+  it('plane JSON — проекты по колонке, создание пользователей и проекта, комментарии от автора', async () => {
+    const p = await project();
+    const pv = (await preview(fx('plane.json'), 'csv', 'plane')).json();
+    expect(pv.mapping).toMatchObject({
+      externalId: 'identifier',
+      title: 'name',
+      description: 'description',
+      status: 'state_name',
+      assignee: 'assignees',
+      dueDate: 'target_date',
+      parent: 'parent',
+      project: 'project_name',
+      projectKey: 'project_identifier',
+      comments: 'comments',
+    });
+    expect(pv.values).toEqual({
+      status: ['Done', 'In Progress'],
+      project: [
+        { name: 'Engineering', key: 'TECH' },
+        { name: 'SEO Department', key: 'PLSEO' },
+      ],
+      people: ['Alice Admin', 'G L', 'Nobody N.'],
+    });
+    const mapping = {
+      ...pv.mapping,
+      projectMap: { Engineering: p, 'SEO Department': 'new' },
+      userMap: { 'G L': 'new', 'Alice Admin': w.admin.userId },
+    };
+    // creating users — instance admin only
+    const res = await call(
+      'POST',
+      '/api/import/jobs',
+      adminCookie,
+      form(
+        { projectId: p, format: 'csv', preset: 'plane', mapping: JSON.stringify(mapping) },
+        fx('plane.json'),
+      ),
+    );
+    expect(res.statusCode).toBe(403);
+    // the refusal created nothing (the project is checked and created after the rights check)
+    expect((await db.$client.query(`select 1 from projects where key like 'PLSEO%'`)).rows).toEqual(
+      [],
+    );
+    await db.$client.query(`update users set role = 'admin' where id = $1`, [w.admin.userId]);
+    try {
+      const job = await doImport(p, fx('plane.json'), 'csv', 'plane', mapping);
+      expect(job).toMatchObject({ status: 'done', created: 3, skipped: [] });
+      const [gl] = (
+        await db.$client.query(
+          `select id, login, role, deactivated_at from users where name = 'G L'`,
+        )
+      ).rows;
+      expect(gl).toMatchObject({ login: 'g.l', role: 'member', deactivated_at: null });
+      const member = await db.$client.query(
+        'select role from space_members where space_id = $1 and user_id = $2',
+        [w.spaceId, gl.id],
+      );
+      expect(member.rows).toEqual([{ role: 'member' }]);
+
+      const t1 = await one(p, 'Plane JSON 1');
+      expect(t1.status_id).toBe(w.statusIds[DONE]);
+      expect(JSON.stringify(t1.description)).toContain('вторая строка');
+      expect((await assignees(t1.id)).sort()).toEqual([gl.id, w.admin.userId].sort());
+      expect((await one(p, 'Plane JSON 2')).parent_id).toBe(t1.id);
+
+      const [seo] = (
+        await db.$client.query('select id, space_id from projects where key = $1', ['PLSEO'])
+      ).rows;
+      expect(seo).toMatchObject({ space_id: w.spaceId });
+      const t3 = await one(seo.id, 'Plane JSON 3');
+      expect(t3.parent_id).toBeNull(); // parent in another project
+      expect(job.warnings).toContainEqual({
+        row: 4,
+        message: 'родитель «PJ-1» в другом проекте: не назначен',
+      });
+      const done = await db.$client.query(`select s.name from statuses s where s.id = $1`, [
+        t3.status_id,
+      ]);
+      expect(done.rows).toEqual([{ name: 'Done' }]);
+      expect(await labelNames(t3.id)).toEqual(['backend']);
+
+      const cs = (
+        await db.$client.query(
+          'select author_id, body from comments where task_id = $1 order by created_at, id',
+          [t1.id],
+        )
+      ).rows;
+      expect(cs.map((c) => c.author_id)).toEqual(expect.arrayContaining([gl.id, w.admin.userId]));
+      const text = (c: { body: unknown }) => JSON.stringify(c.body);
+      expect(cs).toHaveLength(3);
+      expect(text(cs.find((c) => c.author_id === gl.id)!)).toContain('2025-10-14 10:31');
+      // an author not found — on behalf of the importer, the name in the first line
+      expect(
+        cs
+          .filter((c) => c.author_id === w.admin.userId)
+          .map(text)
+          .join(),
+      ).toContain('2025-10-16 12:00 · Nobody N.');
+    } finally {
+      await db.$client.query(`update users set role = 'member' where id = $1`, [w.admin.userId]);
+    }
   });
 
   it('wk6: linear — приоритеты словами, ISO-даты, родитель по ID', async () => {

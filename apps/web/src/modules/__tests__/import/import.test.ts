@@ -23,7 +23,9 @@ vi.mock('../../../../../../modules/import/web/data', async () => {
   };
   return {
     tr: (k: string) => k,
-    useProjects: () => ref([{ id: 'p1', name: 'Proj', spaceId: 's1' }]),
+    useProjects: () => ref([{ id: 'p1', name: 'Proj', key: 'PRJ', spaceId: 's1' }]),
+    useUsers: () => ref([{ id: 'u1', name: 'Alice', login: 'alice', deactivatedAt: null }]),
+    useSession: () => ref({ id: 'u1', role: 'admin' }),
     useStatuses: () =>
       ref([
         { id: 'st1', name: 'Todo', spaceId: 's1', rank: 'a0' },
@@ -37,6 +39,7 @@ vi.mock('../../../../../../modules/import/web/data', async () => {
         ['C', 'todo'],
       ],
       mapping: { title: 'Title', status: 'Status' },
+      values: { status: ['todo', 'Done', 'Later'], project: [], people: [] },
     })),
     startJob: vi.fn(async () => ({ ...job, status: 'pending', processed: 0 })),
     getJob: vi.fn(async () => job),
@@ -48,9 +51,10 @@ import { web } from '../../../../../../modules/import/web';
 import ImportPage from '../../../../../../modules/import/web/ImportPage.vue';
 import {
   buildMapping,
+  guessProject,
   guessStatus,
+  guessUser,
   presetsFor,
-  statusValues,
 } from '../../../../../../modules/import/web/lib';
 
 describe('wk6: web импорта', () => {
@@ -66,19 +70,37 @@ describe('wk6: web импорта', () => {
     expect(push).toHaveBeenCalledWith('/m/import/');
   });
 
-  it('wk6: lib — значения статусов, mapping без пустых полей, подсказка статуса, заготовки формата', () => {
+  it('plane: lib — projectMap/userMap только с колонкой; подсказки проекта и человека', () => {
     expect(
-      statusValues(
-        ['T', 'S'],
-        [
-          ['a', 'x'],
-          ['b', 'x'],
-          ['c', ''],
-        ],
-        'S',
+      buildMapping(
+        { title: 'T', project: 'P', comments: 'C' },
+        {},
+        { projects: { A: 'new', B: '' }, people: { 'G L': 'u1', X: '' } },
       ),
-    ).toEqual(['x']);
-    expect(statusValues(['T'], [['a']], undefined)).toEqual([]);
+    ).toEqual({
+      title: 'T',
+      project: 'P',
+      comments: 'C',
+      projectMap: { A: 'new' },
+      userMap: { 'G L': 'u1' },
+    });
+    expect(
+      buildMapping({ title: 'T' }, {}, { projects: { A: 'new' }, people: { x: 'u' } }),
+    ).toEqual({ title: 'T' });
+    const ps = [
+      { id: 'p1', name: 'Engineering', key: 'ENG' },
+      { id: 'p2', name: 'Tech', key: 'OTHER' },
+    ];
+    expect(guessProject({ name: 'x', key: 'eng' }, ps)).toBe('p1');
+    expect(guessProject({ name: 'TECH', key: 'TECH' }, ps)).toBe('p2');
+    expect(guessProject({ name: 'Nope', key: null }, ps)).toBe('new');
+    const us = [{ id: 'u1', name: 'Andrey Z.', login: 'az', email: 'a@x.io' }];
+    expect(guessUser('andrey z.', us)).toBe('u1');
+    expect(guessUser('A@X.io', us)).toBe('u1');
+    expect(guessUser('G L', us)).toBe('');
+  });
+
+  it('wk6: lib — mapping без пустых полей, подсказка статуса, заготовки формата', () => {
     expect(buildMapping({ title: 'T', status: 'S', labels: '' }, { x: 'id1', y: '' })).toEqual({
       title: 'T',
       status: 'S',
@@ -101,6 +123,12 @@ describe('wk6: web импорта', () => {
     expect(w.findAll('.import-preview tbody tr')).toHaveLength(3);
     w.get('.import-project').getComponent(Select).vm.$emit('update:modelValue', 'p1');
     await w.vm.$nextTick();
+    // statuses — over the whole file (values), not only the preview rows
+    expect(w.findAll('.import-status > span').map((e) => e.text())).toEqual([
+      'todo',
+      'Done',
+      'Later',
+    ]);
     expect(w.get('.import-start').attributes('disabled')).toBeUndefined();
     await w.get('.import-start').trigger('click');
     await flushPromises();
