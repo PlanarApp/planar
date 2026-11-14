@@ -15,13 +15,22 @@ services:
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?задайте POSTGRES_PASSWORD в .env}
       POSTGRES_DB: planar
+    # all data of the stack is in PLANAR_DATA_DIR (default ./data next to compose.yml)
     volumes:
-      - pgdata:/var/lib/postgresql
+      - ${PLANAR_DATA_DIR:-./data}/postgres:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d planar -h localhost']
       interval: 5s
       timeout: 3s
       retries: 60
+
+  # api runs as node (uid 1000); a bind-mount directory created by docker belongs to root
+  api-data:
+    logging: *logging
+    image: alpine:3.20
+    command: ['chown', '1000:1000', '/data']
+    volumes:
+      - ${PLANAR_DATA_DIR:-./data}/api:/data
 
   api:
     logging: *logging
@@ -58,10 +67,12 @@ services:
       PLANAR_AI_DAILY_COST:
     networks: [app, runner, agents]
     volumes:
-      - data:/data
+      - ${PLANAR_DATA_DIR:-./data}/api:/data
     depends_on:
       postgres:
         condition: service_healthy
+      api-data:
+        condition: service_completed_successfully
 
   # the only service with docker.sock; reachable only from api (network runner); HostConfig is fixed in the code
   ai-runner:
@@ -75,11 +86,12 @@ services:
       AI_RUNNER_MAX_CPUS:
       AI_RUNNER_MAX_MEMORY_MB:
       AI_RUNNER_MAX_PIDS:
-      AI_RUNNER_TMPFS_MB:
       AI_RUNNER_AGENT_NETWORK:
     networks: [runner]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      # agents' /work dirs; the runner finds this host path in its own mounts
+      - ${PLANAR_DATA_DIR:-./data}/ai-work:/ai-work
 
   # egress of agent containers: full internet access, config in deploy/squid.conf
   squid:
@@ -99,8 +111,8 @@ services:
       - '${HTTP_PORT:-80}:80'
       - '${HTTPS_PORT:-443}:443'
     volumes:
-      - caddy_data:/data
-      - caddy_config:/config
+      - ${PLANAR_DATA_DIR:-./data}/caddy/data:/data
+      - ${PLANAR_DATA_DIR:-./data}/caddy/config:/config
     networks: [app]
     environment:
       # empty → :80 (Caddy does not take the default from the Caddyfile when the variable is empty)
@@ -120,9 +132,3 @@ networks:
   agents:
     name: planar_agents
     internal: true
-
-volumes:
-  pgdata:
-  data:
-  caddy_data:
-  caddy_config:

@@ -9,8 +9,9 @@ export PLANAR_SUBNET="${PLANAR_SUBNET:-10.230.4.0/24}" PLANAR_DOMAIN= POSTGRES_P
 export PUBLIC_URL="http://localhost:$HTTP_PORT" COOKIE_SECURE=false
 export COMPOSE_FILE=compose.yml:compose.build.yml:deploy/compose.smoke.yml
 TMP="$(mktemp -d)"
-export BACKUP_DIR="$TMP/backups"
-trap 'docker compose down -v --remove-orphans --rmi local >/dev/null 2>&1 || true; docker rmi "$COMPOSE_PROJECT_NAME-api:rollback" "$COMPOSE_PROJECT_NAME-caddy:rollback" >/dev/null 2>&1 || true; rm -rf "$TMP"' EXIT
+export BACKUP_DIR="$TMP/backups" PLANAR_DATA_DIR="$TMP/data"
+# the data belongs to the container users (postgres, node): removed from a container
+trap 'docker compose down -v --remove-orphans --rmi local >/dev/null 2>&1 || true; docker rmi "$COMPOSE_PROJECT_NAME-api:rollback" "$COMPOSE_PROJECT_NAME-caddy:rollback" >/dev/null 2>&1 || true; docker run --rm -v "$TMP:/t" alpine:3.20 rm -rf /t/data || true; rm -rf "$TMP"' EXIT
 fail() { echo "upgrade-test: FAIL: $*" >&2; exit 1; }
 URL="$PUBLIC_URL"
 

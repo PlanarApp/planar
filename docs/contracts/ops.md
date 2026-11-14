@@ -42,28 +42,32 @@ Variables of the prod stack. The source of values is `.env` next to `compose.yml
 | `PLANAR_VERSION` | compose | `latest` | tag of the api and caddy images |
 | `CLOUD_URL` | caddy | empty | cloud instances only (cloud-link): added to CSP `connect-src`; self-hosted `compose.yml` does not pass it |
 | `BACKUP_DIR` | ops | `./backups` | directory of backup archives (C-ops-backup) |
+| `PLANAR_DATA_DIR` | compose | `./data` | host directory with all data of the stack (C-ops-volumes) |
 
 Constant api values in `compose.yml` (not from `.env`): `DATABASE_URL=postgres://postgres:$POSTGRES_PASSWORD@postgres:5432/planar`, `PORT=3000`, `DATA_DIR=/data`, `TRUST_PROXY=$PLANAR_SUBNET`. The api and postgres ports are not published outside (the postgres port only in `deploy/compose.smoke.yml`).
 
 Modules that need variables of their own (e.g. SMTP in p4) send the change as a `contract: …` line; the ops coordinator applies it in the next version.
 
-## C-ops-volumes v2
+## C-ops-volumes v3
 
 v2: the web static files are built into the caddy image (`deploy/caddy.Dockerfile`, node stage → `/srv`), node and pnpm are not needed on the server; the host directory `./apps/web/dist` is not mounted.
 
+v3: no named volumes — bind mounts of subdirectories of `PLANAR_DATA_DIR` (default `./data`), so all data of the stack is in one host directory; `compose.prod.yml` is removed. The one-shot service `api-data` gives `api/` to uid 1000 (api runs as `node`) before api starts.
 
-Named compose volumes (the project name is the prefix). Block row: `<service> <volume> <path in container> <in backup: yes|no>`.
+Block row: `<service> <subdirectory of PLANAR_DATA_DIR> <path in container> <in backup: yes|no>`.
 
 ```text ops-volumes
-postgres pgdata /var/lib/postgresql yes
-api data /data yes
-caddy caddy_data /data no
-caddy caddy_config /config no
+postgres postgres /var/lib/postgresql yes
+api api /data yes
+caddy caddy/data /data no
+caddy caddy/config /config no
+ai-runner ai-work /ai-work no
 ```
 
-- `pgdata` — the Postgres 18 directory (image `pgvector/pgvector:pg18`, data in `/var/lib/postgresql/18/docker`); backed up through `pg_dump`, not by copying the directory.
-- `data` — `DATA_DIR`: `files/<ab>/<cd>/<sha256>` (C-http) is in the backup; `tmp/` is not.
-- `caddy_data` — ACME certificates and keys; not backed up, Caddy obtains them again.
+- `postgres` — the Postgres 18 directory (image `pgvector/pgvector:pg18`, data in `/var/lib/postgresql/18/docker`); backed up through `pg_dump`, not by copying the directory.
+- `api` — `DATA_DIR`: `files/<ab>/<cd>/<sha256>` (C-http) is in the backup; `tmp/` is not.
+- `caddy/data` — ACME certificates and keys; not backed up, Caddy obtains them again.
+- `ai-work` — `/work` of agent runs (profile `ai`), cleaned by ai-runner.
 - Web static files are in the caddy image (`/srv`), not a volume; `deploy/Caddyfile` is also inside the image.
 
 ## C-ops-headers v1

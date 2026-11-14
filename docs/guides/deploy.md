@@ -87,7 +87,7 @@ docker run --rm node:24-slim node -e "
 " >> .env
 ```
 
-Replace `VAPID_SUBJECT` with your own address. **Do not change `PLANAR_SECRET_KEY` and `POSTGRES_PASSWORD` after the first start**: the key encrypts stored tokens (e.g. GitLab), and the password is already written into the postgres volume. Keep `.env` separately from data backups — backup archives do not contain it.
+Replace `VAPID_SUBJECT` with your own address. **Do not change `PLANAR_SECRET_KEY` and `POSTGRES_PASSWORD` after the first start**: the key encrypts stored tokens (e.g. GitLab), and the password is already written into the postgres data directory. Keep `.env` separately from data backups — backup archives do not contain it.
 
 ## Quick start from registry images
 
@@ -96,7 +96,7 @@ echo "PLANAR_DOMAIN=planar.example.com" >> .env   # optional: without it — loc
 ./start.sh
 ```
 
-`start.sh` writes `COMPOSE_FILE=compose.yml:compose.prod.yml` into `.env` (so plain `docker compose` and the `ops/` scripts work with the same stack), generates `POSTGRES_PASSWORD`, `PLANAR_SECRET_KEY` and the VAPID pair (`VAPID_SUBJECT` — `mailto:admin@<PLANAR_DOMAIN>`) if they have no value, pulls the api and caddy images (`PLANAR_REGISTRY`, `PLANAR_VERSION`) and starts the stack. Data lives in bind mounts instead of named volumes: `./data/postgres`, `./data/api` (files, owned by `node`), `./data/caddy/{data,config}`. The script is idempotent: running it again pulls fresh images and recreates only the containers whose image changed; api applies migrations at startup. If the stack is already running, `ops/backup.sh` makes an archive before the update (on the first start there is nothing to back up). `ops/upgrade.sh` builds from source and does not pull images.
+`start.sh` generates `POSTGRES_PASSWORD`, `PLANAR_SECRET_KEY` and the VAPID pair (`VAPID_SUBJECT` — `mailto:admin@<PLANAR_DOMAIN>`) if they have no value, pulls the api and caddy images (`PLANAR_REGISTRY`, `PLANAR_VERSION`) and starts the stack. `compose.yml` has no named volumes: all data is in one host directory `PLANAR_DATA_DIR` (default `./data` next to `compose.yml`) — `postgres`, `api` (files; the one-shot service `api-data` gives it to `node` before api starts), `caddy/{data,config}`, `ai-work` (agent runs). The script is idempotent: running it again pulls fresh images and recreates only the containers whose image changed; api applies migrations at startup. If the stack is already running, `ops/backup.sh` makes an archive before the update (on the first start there is nothing to back up). `ops/upgrade.sh` builds from source and does not pull images.
 
 ## First start and creating the owner
 
@@ -114,11 +114,11 @@ curl -fsS https://planar.example.com/api/health/ready
 
 api applies migrations at startup. The owner is created by the setup wizard: while the system has no users, the first visit to the UI (`https://<domain>/`) shows the owner creation form. The same through the API: `GET /api/setup` → `{needed: true}`, then `POST /api/setup` with `{login, name, password}` → `201`; when users already exist, a repeat gives `409 conflict`. Open the address right after the start: until an owner exists, anyone who can reach the site can fill in the form.
 
-Checking the stack without a server: `./dev.sh prod-smoke` brings up the prod stack in an isolated project (`COMPOSE_PROJECT_NAME`, free ports), runs login, a task, WS, `/collab`, `/f/*`, a file upload, and tears the stack down together with its volumes. It needs a repository checkout with node and pnpm — it does not have to run on the prod server.
+Checking the stack without a server: `./dev.sh prod-smoke` brings up the prod stack in an isolated project (`COMPOSE_PROJECT_NAME`, free ports), runs login, a task, WS, `/collab`, `/f/*`, a file upload, and tears the stack down together with its data (a temp `PLANAR_DATA_DIR`). It needs a repository checkout with node and pnpm — it does not have to run on the prod server.
 
 ## Backups and restore
 
-Volumes: `pgdata` and `data` (files) are in the backup; `caddy_data` and `caddy_config` are not (Caddy obtains the certificates again).
+Data (`PLANAR_DATA_DIR`): the database (`postgres`, via `pg_dump`) and the files (`api`) are in the backup; `caddy` and `ai-work` are not (Caddy obtains the certificates again).
 
 ### Backup
 
@@ -240,7 +240,7 @@ External liveness check — poll `/api/health/ready` (response code 200).
 | `/api/health/ready` → `503`, `db: 'down'` | `docker compose ps postgres`, `docker compose logs postgres`; on a heavily loaded host postgres may take long to become healthy (healthcheck up to 60 attempts of 5 s) |
 | `ready` → `migrations: 'pending'` | fewer migrations applied than in the image: `docker compose logs api`; usually after a migration failure at startup |
 | `ready` → `queue: 'down'` | pg-boss does not respond: api logs, postgres state |
-| api does not start / keeps restarting | `docker compose logs api`; common causes — a `POSTGRES_PASSWORD` that does not match the already created volume, a configuration error |
+| api does not start / keeps restarting | `docker compose logs api`; common causes — a `POSTGRES_PASSWORD` that does not match the already created database in `PLANAR_DATA_DIR/postgres`, a configuration error |
 | certificate not issued, the browser complains | DNS `A`/`AAAA` points to the server; 80 and 443 are open (the ACME check goes through them); `docker compose logs caddy`. Reminder: ACME issuance was not verified in the repository |
 | login does not persist, Origin errors | `PUBLIC_URL` must match the address in the browser; over HTTP — `COOKIE_SECURE=false` |
 | features with secrets give `503 unavailable` | `PLANAR_SECRET_KEY` is not set |

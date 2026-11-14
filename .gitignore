@@ -1,6 +1,7 @@
 node_modules
 dist
 data
+ai-work/
 .env
 build/
 *.tsbuildinfo

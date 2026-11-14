@@ -56,4 +56,4 @@ docker run --rm node:24-slim node -e "
 " >> .env
 ```
 
-Replace `VAPID_SUBJECT` with your own address. **Do not change `PLANAR_SECRET_KEY` and `POSTGRES_PASSWORD` after the first start**: the key encrypts stored tokens (for example GitLab), and the password is already written into the postgres volume. Keep `.env` separately from data backups; backup archives do not contain it.
+Replace `VAPID_SUBJECT` with your own address. **Do not change `PLANAR_SECRET_KEY` and `POSTGRES_PASSWORD` after the first start**: the key encrypts stored tokens (for example GitLab), and the password is already written into the database in `PLANAR_DATA_DIR/postgres`. Keep `.env` separately from data backups; backup archives do not contain it.

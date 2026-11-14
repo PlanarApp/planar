@@ -1,11 +1,11 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, utimesSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { dockerClient, tar } from '../src/docker.js';
-import { createRunner } from '../src/server.js';
+import { createRunner, sweepWork, type Config } from '../src/server.js';
 
 type Call = { method: string; url: string; body: string };
 type Ctr = { Id: string; Labels: Record<string, string>; running: boolean; exitCode: number };
@@ -15,6 +15,7 @@ const TOKEN = 'secret-token';
 const IMAGE = 'registry.example/agent:1';
 
 let dir: string;
+let cfg: Config;
 let fake: Server;
 let runner: Server;
 let base: string;
@@ -70,17 +71,17 @@ beforeAll(async () => {
     });
   });
   await new Promise<void>((r) => fake.listen(sock, r));
-  runner = createRunner(
-    {
-      token: TOKEN,
-      images: [IMAGE],
-      maxCpus: 2,
-      maxMemoryMb: 4096,
-      maxPids: 512,
-      agentNetwork: 'planar_agents',
-    },
-    dockerClient(sock),
-  );
+  cfg = {
+    token: TOKEN,
+    images: [IMAGE],
+    maxCpus: 2,
+    maxMemoryMb: 4096,
+    maxPids: 512,
+    agentNetwork: 'planar_agents',
+    workDir: join(dir, 'work'),
+    workHostDir: '/host/ai-work',
+  };
+  runner = createRunner(cfg, dockerClient(sock));
   await new Promise<void>((r) => runner.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${(runner.address() as AddressInfo).port}`;
 });
@@ -95,7 +96,9 @@ beforeEach(() => {
   calls = [];
   ctrs = [];
   failStart = false;
+  rmSync(join(dir, 'work'), { recursive: true, force: true });
 });
+const workOf = (runId: string) => join(dir, 'work', runId);
 
 const api = (method: string, path: string, body?: unknown, token: string | null = TOKEN) =>
   fetch(base + path, {
@@ -143,9 +146,12 @@ describe('ai-runner', () => {
       CapDrop: ['ALL'],
       SecurityOpt: ['no-new-privileges'],
       ReadonlyRootfs: true,
-      Mounts: [{ Type: 'volume', Target: '/context' }],
+      Mounts: [
+        { Type: 'volume', Target: '/context' },
+        { Type: 'bind', Source: `/host/ai-work/${RUN}`, Target: '/work' },
+      ],
       AutoRemove: true,
-      Tmpfs: { '/tmp': 'rw,nosuid,size=256m', '/work': 'rw,nosuid,size=256m,mode=1777' },
+      Tmpfs: { '/tmp': 'rw,nosuid,size=256m' },
       NetworkMode: 'planar_agents',
       RestartPolicy: { Name: 'no' },
       Memory: 1024 * 1024 * 1024,
@@ -155,6 +161,7 @@ describe('ai-runner', () => {
     });
     for (const k of ['Binds', 'Privileged', 'PidMode'])
       expect(body.HostConfig).not.toHaveProperty(k);
+    expect(statSync(workOf(RUN)).mode & 0o777).toBe(0o777);
     expect(calls[2].url).toContain('path=/context');
     expect(calls[2].body).toContain('context.json');
     expect(calls[2].body).toContain('{"runId":"x"}');
@@ -216,6 +223,7 @@ describe('ai-runner', () => {
       url: '/containers/cid-1?force=true&v=true',
     });
     expect(ctrs).toEqual([]);
+    expect(existsSync(workOf(RUN))).toBe(false);
   });
 
   it('GET: running / exited с кодом / 404', async () => {
@@ -231,11 +239,30 @@ describe('ai-runner', () => {
     });
   });
 
-  it('DELETE: force-remove, идемпотентно', async () => {
+  it('DELETE: force-remove, каталог /work удалён, идемпотентно', async () => {
     await post({});
+    expect(existsSync(workOf(RUN))).toBe(true);
     expect((await api('DELETE', `/v1/runs/${RUN}`)).status).toBe(204);
     expect(ctrs).toEqual([]);
+    expect(existsSync(workOf(RUN))).toBe(false);
     expect((await api('DELETE', `/v1/runs/${RUN}`)).status).toBe(204);
+  });
+
+  it('очистка /work: удаляет старые каталоги без контейнера, живые и свежие не трогает', async () => {
+    const live = '22222222-2222-4222-8222-222222222222';
+    const gone = '33333333-3333-4333-8333-333333333333';
+    const fresh = '44444444-4444-4444-8444-444444444444';
+    ctrs.push({ Id: 'cid-live', Labels: { 'planar.ai.run': live }, running: true, exitCode: 0 });
+    const old = new Date(Date.now() - 3600_000);
+    for (const id of [live, gone, fresh, 'not-a-run']) mkdirSync(workOf(id), { recursive: true });
+    for (const id of [live, gone, 'not-a-run']) utimesSync(workOf(id), old, old);
+    await sweepWork(cfg, dockerClient(join(dir, 'docker.sock')));
+    expect([live, gone, fresh, 'not-a-run'].map((id) => existsSync(workOf(id)))).toEqual([
+      true,
+      false,
+      true,
+      true,
+    ]);
   });
 
   it('недоступный docker — 502', async () => {
@@ -247,6 +274,8 @@ describe('ai-runner', () => {
         maxMemoryMb: 4096,
         maxPids: 512,
         agentNetwork: 'n',
+        workDir: join(dir, 'work'),
+        workHostDir: '/host/ai-work',
       },
       dockerClient(join(dir, 'missing.sock')),
     );

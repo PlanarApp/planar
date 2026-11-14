@@ -10,7 +10,7 @@ CI публикует образ как `registry.gitlab.com/planarhq/planar/ai-
 
 dpcli в образ **не ставится**: источник не утверждён, шаг клонирования отключён (внешний репозиторий в образ не тянем). Когда источник будет определён — вернуть `ARG DPCLI_REPO/DPCLI_REF`, `git clone` в `/opt/dpcli`, симлинк `/usr/local/bin/dpcli` и `/opt/dpcli` в `chmod`.
 
-Образ рассчитан на read-only rootfs и tmpfs `/tmp`, `/work`: `HOME=/tmp/home`, кэши npm и XDG — в `/tmp`.
+Образ рассчитан на read-only rootfs, tmpfs `/tmp` и записываемый `/work` (бинд каталога хоста): `HOME=/tmp/home`, кэши npm и XDG — в `/tmp`.
 
 ## Вход
 

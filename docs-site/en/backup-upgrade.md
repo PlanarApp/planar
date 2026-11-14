@@ -5,7 +5,7 @@ description: Backup, restore and upgrade with rollback
 
 # Backups and restore
 
-Volumes: `pgdata` and `data` (files) are in the backup; `caddy_data` and `caddy_config` are not (Caddy obtains certificates again).
+Data (the `PLANAR_DATA_DIR` directory, default `./data`): the database (`postgres`, via `pg_dump`) and the files (`api`) are in the backup; `caddy` and `ai-work` are not (Caddy obtains certificates again).
 
 ## Backup
 

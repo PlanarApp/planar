@@ -76,7 +76,10 @@ prodsmoke() {
   export PUBLIC_URL="http://localhost:$HTTP_PORT" COOKIE_SECURE=false
   P=(docker compose -f compose.yml -f compose.build.yml -f deploy/compose.smoke.yml)
   local rc=0
-  trap '"${P[@]}" down -v --remove-orphans --rmi local >/dev/null 2>&1 || true' EXIT
+  # the stack's data in a temp dir; its files belong to container users — removed from a container
+  SMOKE_TMP="$(mktemp -d)"
+  export PLANAR_DATA_DIR="$SMOKE_TMP/data"
+  trap '"${P[@]}" down -v --remove-orphans --rmi local >/dev/null 2>&1 || true; docker run --rm -v "$SMOKE_TMP:/t" alpine:3.20 rm -rf /t/data >/dev/null 2>&1 || true; rm -rf "$SMOKE_TMP"' EXIT
   pnpm install --frozen-lockfile || return 1 # for seed and e2e; web is built in the caddy image
   "${P[@]}" up -d --build || return 1
   for _ in $(seq 1 90); do

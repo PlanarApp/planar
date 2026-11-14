@@ -1,5 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { chmod, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { join } from 'node:path';
 import { tar, type Docker } from './docker.js';
 
 export type Config = {
@@ -9,7 +11,10 @@ export type Config = {
   maxMemoryMb: number;
   maxPids: number;
   agentNetwork: string;
-  tmpfsMb?: number;
+  /** per-run /work dirs as the runner sees them */
+  workDir: string;
+  /** the same dir on the host: the bind source is resolved by the host docker */
+  workHostDir: string;
 };
 
 const MAX_BODY = 2 * 1024 * 1024;
@@ -48,13 +53,32 @@ function limit(v: unknown, def: number, max: number, name: string, int: boolean)
   return v;
 }
 
+async function findRun(docker: Docker, runId: string): Promise<string[]> {
+  const filters = encodeURIComponent(JSON.stringify({ label: [`${LABEL}=${runId}`] }));
+  const r = await docker('GET', `/containers/json?all=true&filters=${filters}`);
+  if (r.status !== 200) throw new Error(`docker list ${r.status}`);
+  return (JSON.parse(r.body) as { Id: string }[]).map((c) => c.Id);
+}
+
+const dropWork = (cfg: Config, runId: string) =>
+  rm(join(cfg.workDir, runId), { recursive: true, force: true });
+
+/**
+ * Removes /work dirs of runs without a container (AutoRemove after exit, a lost DELETE). Dirs younger than `minAgeMs`
+ * are kept: between mkdir and docker create the run has no container yet.
+ */
+export async function sweepWork(cfg: Config, docker: Docker, minAgeMs = 5 * 60_000) {
+  const names = await readdir(cfg.workDir).catch(() => [] as string[]);
+  for (const name of names) {
+    if (!UUID.test(name)) continue;
+    const s = await stat(join(cfg.workDir, name)).catch(() => undefined);
+    if (!s || Date.now() - s.mtimeMs < minAgeMs) continue;
+    if (!(await findRun(docker, name)).length) await dropWork(cfg, name);
+  }
+}
+
 export function createRunner(cfg: Config, docker: Docker): Server {
-  const find = async (runId: string): Promise<string[]> => {
-    const filters = encodeURIComponent(JSON.stringify({ label: [`${LABEL}=${runId}`] }));
-    const r = await docker('GET', `/containers/json?all=true&filters=${filters}`);
-    if (r.status !== 200) throw new Error(`docker list ${r.status}`);
-    return (JSON.parse(r.body) as { Id: string }[]).map((c) => c.Id);
-  };
+  const find = (runId: string) => findRun(docker, runId);
 
   const create = async (raw: string) => {
     let b: { runId?: unknown; image?: unknown; env?: unknown; limits?: unknown; context?: unknown };
@@ -93,6 +117,10 @@ export function createRunner(cfg: Config, docker: Docker): Server {
 
     if ((await find(runId)).length) throw new HttpError(409, { error: 'run_exists' });
     const memory = memoryMb * 1024 * 1024;
+    const work = join(cfg.workDir, runId);
+    await mkdir(work, { recursive: true });
+    // the agent is non-root; mkdir's mode is cut by umask
+    await chmod(work, 0o777);
     // HostConfig is fixed here: nothing from the request body reaches it except the checked limits
     const c = await docker(
       'POST',
@@ -106,14 +134,14 @@ export function createRunner(cfg: Config, docker: Docker): Server {
           CapDrop: ['ALL'],
           SecurityOpt: ['no-new-privileges'],
           ReadonlyRootfs: true,
-          // anonymous volume: writable under ReadonlyRootfs, putArchive works; removed with the container (AutoRemove)
-          Mounts: [{ Type: 'volume', Target: '/context' }],
+          Mounts: [
+            // anonymous volume: writable under ReadonlyRootfs, putArchive works; removed with the container (AutoRemove)
+            { Type: 'volume', Target: '/context' },
+            // on disk, no size limit; removed by DELETE or sweepWork
+            { Type: 'bind', Source: join(cfg.workHostDir, runId), Target: '/work' },
+          ],
           AutoRemove: true,
-          Tmpfs: {
-            '/tmp': 'rw,nosuid,size=256m',
-            // mode: otherwise the tmpfs takes the image dir's mode with owner root — a non-root agent can't write
-            '/work': `rw,nosuid,size=${cfg.tmpfsMb ?? 256}m,mode=1777`,
-          },
+          Tmpfs: { '/tmp': 'rw,nosuid,size=256m' },
           NetworkMode: cfg.agentNetwork,
           RestartPolicy: { Name: 'no' },
           Memory: memory,
@@ -123,8 +151,12 @@ export function createRunner(cfg: Config, docker: Docker): Server {
         },
       }),
     );
+    // 409: the dir belongs to the other request's run
     if (c.status === 409) throw new HttpError(409, { error: 'run_exists' });
-    if (c.status !== 201) throw new Error(`docker create ${c.status}`);
+    if (c.status !== 201) {
+      await dropWork(cfg, runId);
+      throw new Error(`docker create ${c.status}`);
+    }
     const containerId = (JSON.parse(c.body) as { Id: string }).Id;
     try {
       if (context !== undefined) {
@@ -140,6 +172,7 @@ export function createRunner(cfg: Config, docker: Docker): Server {
       if (s.status !== 204) throw new Error(`docker start ${s.status}`);
     } catch (e) {
       await docker('DELETE', `/containers/${containerId}?force=true&v=true`).catch(() => undefined);
+      await dropWork(cfg, runId);
       throw e;
     }
     return { containerId };
@@ -160,6 +193,7 @@ export function createRunner(cfg: Config, docker: Docker): Server {
       const r = await docker('DELETE', `/containers/${id}?force=true&v=true`);
       if (r.status !== 204 && r.status !== 404) throw new Error(`docker delete ${r.status}`);
     }
+    await dropWork(cfg, runId);
   };
 
   const handle = async (req: IncomingMessage, res: ServerResponse) => {
