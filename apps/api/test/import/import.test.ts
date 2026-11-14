@@ -274,7 +274,7 @@ describe('wk6: предпросмотр', () => {
     const rows = 'Title\n' + 'x\n'.repeat(20_001);
     expect((await preview(Buffer.from(rows), 'csv', 'custom')).statusCode).toBe(400);
     expect(
-      (await preview(Buffer.alloc(10 * 1024 * 1024 + 10, 97), 'csv', 'custom')).statusCode,
+      (await preview(Buffer.alloc(50 * 1024 * 1024 + 10, 97), 'csv', 'custom')).statusCode,
     ).toBe(400);
     expect((await preview(Buffer.from('a'), 'csv', 'trello')).statusCode).toBe(400);
     expect((await preview(Buffer.from('not json'), 'trello', 'trello')).statusCode).toBe(400);
@@ -377,6 +377,34 @@ describe('wk6: импорт', () => {
     expect((await one(p, 'Jira issue 4')).start).toBe('2025-11-01');
     expect((await one(p, 'Jira issue 6')).parent_id).toBe((await one(p, 'Jira issue 1')).id);
     expect((await one(p, 'Jira issue 1')).status_id).toBe(w.statusIds[DOING]);
+  });
+
+  it('plane —JSON-списки, родитель по Identifier, статусы по имени без statusMap', async () => {
+    const p = await project();
+    const { mapping } = (await preview(fx('plane.csv'), 'csv', 'plane')).json();
+    expect(mapping).toMatchObject({
+      externalId: 'Identifier',
+      title: 'Name',
+      status: 'State Name',
+      assignee: 'Assignees',
+      labels: 'Labels',
+      startDate: 'Start Date',
+      dueDate: 'Target Date',
+      priority: 'Priority',
+      parent: 'Parent',
+    });
+    const job = await doImport(p, fx('plane.csv'), 'csv', 'plane', mapping);
+    expect(job).toMatchObject({ status: 'done', created: 3, skipped: [] });
+    const t1 = await one(p, 'Plane issue 1');
+    expect(t1).toMatchObject({ priority: 1, start: '2025-11-01', due: '2025-11-11' });
+    expect(t1.status_id).toBe(w.statusIds[DONE]);
+    expect(await labelNames(t1.id)).toEqual(['backend', 'баннер']);
+    expect(await assignees(t1.id)).toEqual([w.admin.userId]);
+    expect(job.warnings).toContainEqual({ row: 2, message: 'исполнитель «Ghost G.» не найден' });
+    const t2 = await one(p, 'Plane issue 2');
+    expect(t2.parent_id).toBe(t1.id);
+    expect(t2.status_id).toBe(w.statusIds[DOING]);
+    expect((await one(p, 'Plane issue 3')).status_id).toBe(w.statusIds[TODO]); // unknown → default
   });
 
   it('wk6: linear — приоритеты словами, ISO-даты, родитель по ID', async () => {

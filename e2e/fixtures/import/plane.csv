@@ -1,0 +1,4 @@
+Project Name,Project Identifier,Parent,Identifier,Sequence Id,Name,State Name,Priority,Assignees,Subscribers,Created By Name,Start Date,Target Date,Completed At,Created At,Updated At,Archived At,Estimate,Labels,Cycles,Modules,Links,Relations,Comments,Is Draft
+Engineering,TECH,,TECH-1,1,Plane issue 1,Done,urgent,"[""alice@example.com"", ""Ghost G.""]","[]",Alice,2025-11-01,2025-11-11,,2025-10-14T10:30:00.000000Z,2025-10-15T09:00:00.000000Z,,,"[""backend"", ""баннер""]",[],[],[],[],"[{""comment"": ""c"", ""created_by"": ""Alice"", ""created_at"": ""2025-10-14 10:31:00""}]",False
+Engineering,TECH,TECH-1,TECH-2,2,Plane issue 2,In Progress,none,[],[],Alice,,,,2025-10-14T10:30:00.000000Z,2025-10-15T09:00:00.000000Z,,,[],[],[],[],[],[],False
+Engineering,TECH,,TECH-3,3,Plane issue 3,Test dev,medium,"[""bsmith""]",[],Alice,,,,2025-10-14T10:30:00.000000Z,2025-10-15T09:00:00.000000Z,,,"[""Ash2""]",[],[],[],[],[],False

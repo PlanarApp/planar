@@ -32,7 +32,7 @@ interface FastifyRequest {
 const bad = (m: string) => new HttpError(400, 'invalid_request', m);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Multipart fields and the file; file ≤ 10 MB, otherwise 400. */
+/** Multipart fields and the file; file ≤ MAX_BYTES, otherwise 400. */
 async function readForm(req: FastifyRequest) {
   if (!req.isMultipart()) throw bad('Ожидается multipart/form-data');
   const fields: Record<string, string> = {};
@@ -205,13 +205,15 @@ async function runImport(jobId: string, api: JobApi) {
     );
     if (!project) throw new Error('Проект не найден');
     const spaceId = project.space_id;
-    const statuses = await q<{ id: string; category: string }>(
-      sql`select id, category from statuses where project_id = ${job!.projectId} order by rank`,
+    const statuses = await q<{ id: string; name: string; category: string }>(
+      sql`select id, name, category from statuses where project_id = ${job!.projectId} order by rank`,
     );
     const defaultStatus = (
       statuses.find((s) => s.category === 'todo') ?? statuses.find((s) => s.category === 'backlog')
     )?.id;
     if (!defaultStatus) throw new Error('Нет статуса по умолчанию');
+    // values outside the preview's 20 rows are not in statusMap: match them by status name
+    const byName = new Map(statuses.map((s) => [s.name.toLowerCase(), s.id]));
     const statusMap = new Map(Object.entries(mapping.statusMap ?? {}));
 
     const users = new Map<string, string>();
@@ -307,7 +309,9 @@ async function runImport(jobId: string, api: JobApi) {
     }> => {
       const notes = [...it.notes];
       const statusId =
-        it.status === undefined ? undefined : (statusMap.get(it.status) ?? defaultStatus);
+        it.status === undefined
+          ? undefined
+          : (statusMap.get(it.status) ?? byName.get(it.status.toLowerCase()) ?? defaultStatus);
       const assigneeIds: string[] = [];
       for (const a of it.assignees ?? []) {
         const id = users.get(a.toLowerCase());
