@@ -343,6 +343,28 @@ export default {
     unbind: 'Disconnect',
     dnsHint: "First point the domain's A record at {ip} at your registrar, then enter the domain.",
     domainPaidOnly: 'A custom domain is available on a paid subscription.',
+    ai: 'AI agents',
+    aiHint:
+      'Agents run tasks in containers next to the instance (code, tests). Turning them on restarts the instance — the page may be unavailable for a minute.',
+    aiOn: 'On, up to {n} at a time.',
+    aiOff: 'Off.',
+    aiTrial: 'During the trial — 1 agent for free.',
+    aiNeedAddon: 'On a paid subscription agents come as an add-on.',
+    aiEnable: 'Turn on',
+    aiDisable: 'Turn off',
+    aiApplying: 'The instance is restarting. Reload the page in a minute.',
+    aiBuy: '{n} agent(s) — ${usd}/mo',
+    llm: 'Planar Cloud AI',
+    llmHint:
+      'Models through the cloud without your own key, paid from the balance. Pick a model — the connection is written to the workspace "Settings → AI" (the check call takes a little from the balance).',
+    llmBalance: 'Balance: ${credits}',
+    llmModel: 'Model',
+    llmConnect: 'Connect',
+    llmReplace: 'Replace the connection',
+    llmConnected: 'The workspace is connected to the cloud AI, model {model}.',
+    llmOther:
+      'The workspace has its own AI connection (model {model}); "Replace" switches it to the cloud AI.',
+    llmBuy: '+${credits} for ${usd}',
     export: 'Data export',
     exportHint:
       "An archive with the instance's database and files, e.g. to move to your own server. Building it may take a few minutes.",

@@ -51,6 +51,14 @@ const cloud = createServer((rq, rs) => {
       }
       state.egress = domains ? { mode: 'allowlist', domains } : { mode: 'open', domains: [] };
     }
+    if (rq.url === '/api/link/ai') {
+      const { enabled } = JSON.parse(body) as { enabled: boolean };
+      if (enabled && state.aiReplicas === null) {
+        rs.writeHead(409, { 'content-type': 'application/json' });
+        return void rs.end(JSON.stringify({ statusMessage: 'paid_only' }));
+      }
+      state.ai = enabled;
+    }
     rs.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(state));
   });
 });
@@ -145,6 +153,36 @@ describe('cloud-link', () => {
       400,
     );
     delete state.egress;
+  });
+
+  it('cloud-link v2: облако без полей тарифа — ИИ выкл, без надбавок; тариф и переключение ИИ — из облака', async () => {
+    expect((await req('GET', '/api/cloud', { cookie: owner })).json()).toMatchObject({
+      ai: false,
+      aiReplicas: null,
+      aiPaid: false,
+      llm: null,
+      addons: { ai: [], credits: [] },
+    });
+    Object.assign(state, {
+      aiReplicas: 1,
+      llm: { key: 'k', credits: 4.5, models: [{ id: 'm', protocol: 'openai', in: 1, out: 4 }] },
+      addons: {
+        ai: [{ replicas: 3, usd: 13, checkout: { paddle: 'https://pay.test/ai3' } }],
+        credits: [{ credits: 8, usd: 10, checkout: {} }],
+      },
+    });
+    const on = await req('POST', '/api/cloud/ai', { cookie: owner, body: { enabled: true } });
+    expect(on.statusCode).toBe(200);
+    expect(on.json()).toMatchObject({ ai: true, aiReplicas: 1, llm: { key: 'k', credits: 4.5 } });
+    expect(on.json().llm.models).toEqual([{ id: 'm', protocol: 'openai', in: 1, out: 4 }]);
+    expect(on.json().llm.baseUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/llm\/v1$/);
+    expect(on.json().addons.ai[0].checkout.paddle).toBe('https://pay.test/ai3');
+    expect(JSON.parse(seen.at(-1)!.body!)).toEqual({ enabled: true });
+    state.aiReplicas = null;
+    const paid = await req('POST', '/api/cloud/ai', { cookie: owner, body: { enabled: true } });
+    expect([paid.statusCode, paid.json().details.cloud]).toEqual([400, 'paid_only']);
+    expect((await req('POST', '/api/cloud/ai', { cookie: owner, body: {} })).statusCode).toBe(400);
+    for (const k of ['ai', 'aiReplicas', 'llm', 'addons']) delete state[k];
   });
 
   it('handoff для админа облака: только с CLOUD_TOKEN, токен входит владельцем', async () => {
