@@ -1,9 +1,26 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { Button, EmptyState, Select } from '@planar/web/modules';
-import type { ImportJob, Preview } from '../shared/index.js';
-import { getJob, previewFile, startJob, tr, useProjects, useStatuses } from './data';
-import { FIELDS, buildMapping, guessStatus, presetsFor, statusValues } from './lib';
+import { NEW, type ImportJob, type Preview } from '../shared/index.js';
+import {
+  getJob,
+  previewFile,
+  startJob,
+  tr,
+  useProjects,
+  useSession,
+  useStatuses,
+  useUsers,
+} from './data';
+import {
+  FIELDS,
+  VALUE_FIELDS,
+  buildMapping,
+  guessProject,
+  guessStatus,
+  guessUser,
+  presetsFor,
+} from './lib';
 
 const step = ref<1 | 2 | 3>(1);
 const file = ref<File | null>(null);
@@ -15,19 +32,42 @@ const busy = ref(false);
 const pv = ref<Preview | null>(null);
 const map = ref<Record<string, string>>({});
 const chosen = ref<Record<string, string>>({});
+const projMap = ref<Record<string, string>>({});
+const people = ref<Record<string, string>>({});
 const job = ref<ImportJob | null>(null);
 let timer: ReturnType<typeof setInterval> | undefined;
 
 const projects = useProjects();
+const users = useUsers();
+const session = useSession();
+const isAdmin = computed(() => ['owner', 'admin'].includes(session.value?.role ?? ''));
 const allStatuses = useStatuses();
 const statuses = computed(() =>
   (allStatuses.value ?? [])
     .filter((s) => s.projectId === projectId.value)
     .sort((a, b) => (a.rank < b.rank ? -1 : 1)),
 );
-const values = computed(() =>
-  pv.value ? statusValues(pv.value.columns, pv.value.rows, map.value.status) : [],
+const values = computed(() => (map.value.status ? (pv.value?.values.status ?? []) : []));
+// projects of the file go to the main project's space
+const spaceProjects = computed(() => {
+  const space = (projects.value ?? []).find((p) => p.id === projectId.value)?.spaceId;
+  return (projects.value ?? []).filter((p) => p.spaceId === space && !p.archivedAt);
+});
+const fileProjects = computed(() => (map.value.project ? (pv.value?.values.project ?? []) : []));
+const filePeople = computed(() =>
+  map.value.assignee || map.value.comments ? (pv.value?.values.people ?? []) : [],
 );
+const activeUsers = computed(() => (users.value ?? []).filter((u) => !u.deactivatedAt));
+const projectOptions = computed(() => [
+  { value: NONE, label: tr('mainProject') },
+  { value: NEW, label: tr('createNew') },
+  ...spaceProjects.value.map((p) => ({ value: p.id, label: `${p.name} (${p.key})` })),
+]);
+const personOptions = computed(() => [
+  { value: NONE, label: tr('noMatch') },
+  ...(isAdmin.value ? [{ value: NEW, label: tr('createNew') }] : []),
+  ...activeUsers.value.map((u) => ({ value: u.id, label: `${u.name} (${u.login})` })),
+]);
 const presets = computed(() => presetsFor(format.value));
 // Reka Select does not accept an empty value: «none» is a service label
 const NONE = '__none';
@@ -41,8 +81,28 @@ const statusOptions = computed(() => [
 ]);
 const setMap = (f: string, v: string | null) => {
   map.value[f] = !v || v === NONE ? '' : v;
-  if (f === 'status') onStatusColumn();
+  if (VALUE_FIELDS.includes(f)) void refreshValues();
 };
+// values over the whole file by the current columns: the server re-reads the file
+const refreshValues = () =>
+  guard(async () => {
+    if (!map.value.title) return;
+    const p = await previewFile(
+      file.value!,
+      format.value,
+      preset.value,
+      buildMapping(map.value, {}),
+    );
+    pv.value = { ...pv.value!, values: p.values };
+    guessAll();
+  });
+// hints for values without a choice yet; a choice made by hand stays
+function guessAll() {
+  for (const v of values.value) chosen.value[v] ??= guessStatus(v, statuses.value);
+  for (const v of fileProjects.value)
+    projMap.value[v.name] ??= guessProject(v, spaceProjects.value);
+  for (const n of filePeople.value) people.value[n] ??= guessUser(n, activeUsers.value);
+}
 
 function setFormat(f: 'csv' | 'trello') {
   format.value = f;
@@ -64,10 +124,17 @@ const toPreview = () =>
     pv.value = await previewFile(file.value!, format.value, preset.value);
     map.value = { ...pv.value.mapping } as unknown as Record<string, string>;
     chosen.value = {};
+    projMap.value = {};
+    people.value = {};
+    guessAll();
     step.value = 2;
   });
-function onStatusColumn() {
-  chosen.value = Object.fromEntries(values.value.map((v) => [v, guessStatus(v, statuses.value)]));
+function setProject(id: string) {
+  projectId.value = id;
+  // hints depend on the project (its statuses and space)
+  chosen.value = {};
+  projMap.value = {};
+  guessAll();
 }
 const run = () =>
   guard(async () => {
@@ -75,7 +142,10 @@ const run = () =>
       projectId: projectId.value,
       format: format.value,
       preset: preset.value,
-      mapping: buildMapping(map.value, chosen.value),
+      mapping: buildMapping(map.value, chosen.value, {
+        projects: projMap.value,
+        people: people.value,
+      }),
     });
     step.value = 3;
     timer = setInterval(async () => {
@@ -112,7 +182,7 @@ onBeforeUnmount(() => clearInterval(timer));
           :model-value="format"
           :label="tr('format')"
           :options="[
-            { value: 'csv', label: 'CSV' },
+            { value: 'csv', label: 'CSV / JSON' },
             { value: 'trello', label: 'Trello JSON' },
           ]"
           @update:model-value="(v) => v && setFormat(v as 'csv' | 'trello')"
@@ -141,10 +211,11 @@ onBeforeUnmount(() => clearInterval(timer));
       <div class="import-project flex items-center gap-2 text-sm">
         {{ tr('project') }}
         <Select
-          v-model="projectId"
+          :model-value="projectId"
           :label="tr('project')"
           placeholder="—"
           :options="(projects ?? []).map((p) => ({ value: p.id, label: p.name }))"
+          @update:model-value="(v) => v && setProject(v)"
         />
       </div>
       <h2 v-if="format === 'csv'" class="font-medium">{{ tr('mapping') }}</h2>
@@ -170,6 +241,35 @@ onBeforeUnmount(() => clearInterval(timer));
             :label="v"
             :options="statusOptions"
             @update:model-value="(x) => (chosen[v] = !x || x === NONE ? '' : x)"
+          />
+        </div>
+      </div>
+      <div v-if="fileProjects.length && projectId" class="flex flex-col gap-1">
+        <h2 class="font-medium">{{ tr('projects') }}</h2>
+        <div
+          v-for="p in fileProjects"
+          :key="p.name"
+          class="import-file-project flex items-center gap-2 text-sm"
+        >
+          <span class="w-48">{{ p.name }}{{ p.key ? ` (${p.key})` : '' }}</span>
+          <Select
+            :model-value="projMap[p.name] || NONE"
+            :label="p.name"
+            :options="projectOptions"
+            @update:model-value="(x) => (projMap[p.name] = !x || x === NONE ? '' : x)"
+          />
+        </div>
+      </div>
+      <div v-if="filePeople.length" class="flex flex-col gap-1">
+        <h2 class="font-medium">{{ tr('people') }}</h2>
+        <p v-if="isAdmin" class="text-xs text-fg-muted">{{ tr('createHint') }}</p>
+        <div v-for="n in filePeople" :key="n" class="import-person flex items-center gap-2 text-sm">
+          <span class="w-48">{{ n }}</span>
+          <Select
+            :model-value="people[n] || NONE"
+            :label="n"
+            :options="personOptions"
+            @update:model-value="(x) => (people[n] = !x || x === NONE ? '' : x)"
           />
         </div>
       </div>
