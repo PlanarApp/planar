@@ -15,7 +15,7 @@ export const FIELDS = [
 
 /** Allowed sources for the format. */
 export const presetsFor = (format: 'csv' | 'trello'): ImportPreset[] =>
-  format === 'trello' ? ['trello'] : ['clickup', 'jira', 'linear', 'custom'];
+  format === 'trello' ? ['trello'] : ['clickup', 'jira', 'linear', 'plane', 'custom'];
 
 /** Distinct values of the status column in preview rows (in order of appearance). */
 export function statusValues(columns: string[], rows: string[][], column?: string): string[] {

@@ -52,6 +52,13 @@ const PRESET_COLS: Record<string, Partial<Record<keyof typeof GENERIC, string[]>
     startDate: ['custom field (start date)'],
   },
   linear: { externalId: ['id'], title: ['title'], parent: ['parent issue'] },
+  plane: {
+    externalId: ['identifier'],
+    title: ['name'],
+    status: ['state name'],
+    dueDate: ['target date'],
+    parent: ['parent'],
+  },
 };
 
 export function suggestMapping(columns: string[], preset: ImportPreset): Mapping {
@@ -126,13 +133,22 @@ export function parsePriority(s: string): number | null {
   return PRIORITY[s] ?? null;
 }
 
-/** `[a, b]` (ClickUp), `a,b`, `a; b` → a list without empties. */
-export const splitList = (s: string): string[] =>
-  s
+/** `["a", "b"]` (Plane, JSON), `[a, b]` (ClickUp), `a,b`, `a; b` → a list without empties. */
+export function splitList(s: string): string[] {
+  if (s.startsWith('["') || s === '[]') {
+    try {
+      const a: unknown = JSON.parse(s);
+      if (Array.isArray(a)) return a.map((x) => String(x).trim()).filter(Boolean);
+    } catch {
+      // not JSON — split as text
+    }
+  }
+  return s
     .replace(/^\[|\]$/g, '')
     .split(/[,;]/)
     .map((x) => x.trim())
     .filter(Boolean);
+}
 
 function csvItems(text: string, m: Mapping): Parsed {
   const all = parseCsv(text);
