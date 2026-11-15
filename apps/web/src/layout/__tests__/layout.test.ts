@@ -109,6 +109,22 @@ describe('раскладка', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(false);
   });
 
+  it('useTheme красит theme-color PWA в фон темы, а не в фиолетовый (PLNRAPP-256)', () => {
+    setup(false);
+    const metas = ['light', 'dark'].map((s) => {
+      const m = document.createElement('meta');
+      m.name = 'theme-color';
+      m.media = `(prefers-color-scheme: ${s})`;
+      m.content = '#4f46e5';
+      return document.head.appendChild(m);
+    });
+    const { theme } = useTheme('dark');
+    expect(metas.map((m) => m.content)).toEqual(['#111113', '#111113']);
+    theme.value = 'light';
+    expect(metas.map((m) => m.content)).toEqual(['#ffffff', '#ffffff']);
+    metas.forEach((m) => m.remove());
+  });
+
   it('смена локали меняет текст панели', async () => {
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });

@@ -8,6 +8,10 @@ body,
 #app {
   height: 100%;
 }
+/* the root background also fills the PWA safe areas and overscroll (PLNRAPP-256) */
+html {
+  background: var(--color-bg);
+}
 /* the visible viewport, minus the phone keyboard (ui/viewport.ts) */
 #app {
   height: var(--app-h, 100%);
