@@ -131,9 +131,12 @@ watch(
   () => feed.value.length,
   async () => {
     await nextTick();
+    // while the jump to a comment blinks (PLNRAPP-214), the late rows of the replica keep it in view
+    if (jumpTo?.isConnected) return jumpTo.scrollIntoView({ block: 'center' });
     list.value?.scrollTo({ top: newestFirst.value ? 0 : list.value.scrollHeight });
   },
 );
+let jumpTo: HTMLElement | undefined;
 
 const setDraft = (v: JSONContent | null) => (draft.value = v);
 
@@ -219,7 +222,11 @@ watch(
     if (!el) return;
     el.scrollIntoView({ block: 'center' });
     el.classList.add('comment-flash');
-    setTimeout(() => el.classList.remove('comment-flash'), 1600);
+    jumpTo = el;
+    setTimeout(() => {
+      el.classList.remove('comment-flash');
+      if (jumpTo === el) jumpTo = undefined;
+    }, 1600);
   },
   { immediate: true },
 );
