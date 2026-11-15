@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cycle: stack → data → backup → volume wipe → restore → same data; rotation; corrupted archive.
+# Cycle: stack → data → backup → data wipe → restore → same data; rotation; corrupted archive.
 # Run: COMPOSE_PROJECT_NAME=planar-op2 HTTP_PORT=28080 HTTPS_PORT=28443 PLANAR_SUBNET=10.230.2.0/24 ./ops/test-backup.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -9,8 +9,10 @@ export PLANAR_SUBNET="${PLANAR_SUBNET:-10.230.2.0/24}" PLANAR_DOMAIN= POSTGRES_P
 export PUBLIC_URL="http://localhost:$HTTP_PORT" COOKIE_SECURE=false
 export COMPOSE_FILE=compose.yml:compose.build.yml:deploy/compose.smoke.yml
 TMP="$(mktemp -d)"
-export BACKUP_DIR="$TMP/backups"
-trap 'docker compose down -v --remove-orphans --rmi local >/dev/null 2>&1 || true; rm -rf "$TMP"' EXIT
+export BACKUP_DIR="$TMP/backups" PLANAR_DATA_DIR="$TMP/data"
+# the data belongs to the container users (postgres, node): removed from a container
+wipe() { docker run --rm -v "$TMP:/t" alpine:3.20 rm -rf /t/data; }
+trap 'docker compose down -v --remove-orphans --rmi local >/dev/null 2>&1 || true; wipe || true; rm -rf "$TMP"' EXIT
 fail() { echo "backup-test: FAIL: $*" >&2; exit 1; }
 URL="$PUBLIC_URL"
 
@@ -62,8 +64,9 @@ tar -cf "$TMP/dp.tar" -C "$TMP/dp" manifest.json db.dump files.tar
 bash -c '. ops/lib.sh; verify_archive "$1"' _ "$TMP/dp.tar" >/dev/null 2>&1 || fail "тест --deep: без deep архив должен пройти"
 if bash -c '. ops/lib.sh; verify_archive "$1" deep' _ "$TMP/dp.tar" >/dev/null 2>&1; then fail "--deep пропустил сбой tar -x"; fi
 
-# volume wipe → clean stack → restore
+# data wipe → clean stack → restore
 docker compose down -v --remove-orphans
+wipe
 docker compose up -d postgres api caddy
 wait_health
 [ "$(docker compose exec -T postgres psql -U postgres -d planar -Atc "select count(*) from users where password_hash <> '!'")" = 0 ] || fail "стек не чистый"

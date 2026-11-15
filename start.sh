@@ -8,7 +8,8 @@ cd "$(dirname "$0")"
 touch .env && chmod 600 .env
 # a key is added only if it has no value in .env; existing secrets are never replaced
 add() { grep -qE "^$1=.+" .env || { sed -i "/^$1=/d" .env; echo "$1=$2" >>.env; }; }
-add COMPOSE_FILE compose.yml:compose.prod.yml
+# compose.prod.yml is gone: compose.yml keeps the data in ./data itself
+sed -i '/^COMPOSE_FILE=compose.yml:compose.prod.yml$/d' .env
 add POSTGRES_PASSWORD "$(openssl rand -hex 24)"
 add PLANAR_SECRET_KEY "$(openssl rand -base64 32)"
 add PLANAR_DOMAIN localhost
@@ -23,13 +24,10 @@ if ! grep -qE '^VAPID_PUBLIC_KEY=.+' .env || ! grep -qE '^VAPID_PRIVATE_KEY=.+' 
 fi
 add VAPID_SUBJECT "mailto:admin@$(grep -oP '^PLANAR_DOMAIN=\K.+' .env)"
 
-mkdir -p data/postgres data/api data/caddy/data data/caddy/config
 docker compose pull
 # migrations are not rolled back: back up before the update; on the first start there is no stack yet — nothing to back up
 if [ -n "$(docker compose ps -q --status running postgres)" ] && [ -n "$(docker compose ps -q --status running api)" ]; then
   ./ops/backup.sh
 fi
-# api runs as node in the image: the bind-mounted directory must belong to it
-docker compose run --rm --no-deps -T -u root --entrypoint chown api -R node:node /data
 docker compose up -d
 docker compose ps

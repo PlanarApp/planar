@@ -30,7 +30,7 @@ COPY entrypoint.sh /usr/local/bin/planar-agent-entrypoint
 COPY log-forward.mjs /usr/local/lib/planar-agent/log-forward.mjs
 RUN chmod 755 /usr/local/bin/planar-agent-entrypoint
 
-# Совместимо с read-only rootfs: /tmp и /work — tmpfs (создаёт runner).
+# Совместимо с read-only rootfs: /tmp — tmpfs, /work — бинд каталога хоста (создаёт runner).
 RUN mkdir -p /work && chown 10001:10001 /work
 USER 10001:10001
 WORKDIR /work

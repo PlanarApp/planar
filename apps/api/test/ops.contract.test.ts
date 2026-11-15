@@ -58,13 +58,13 @@ describe('ops-contract', () => {
       expect(caddy, `Caddyfile не читает ${n}`).toContain(`{$${n}`);
   });
 
-  it('ops-contract volumes: тома compose.yml = C-ops-volumes', () => {
+  it('ops-contract volumes: бинды compose.yml = C-ops-volumes, именованных томов нет', () => {
     const vols = lines('ops-volumes').map((l) => l.split(/\s+/));
-    for (const [, vol, path] of vols)
-      expect(compose, `том ${vol}:${path}`).toContain(`${vol}:${path}`);
-    const top = compose.slice(compose.search(/^volumes:/m));
-    const topNames = [...top.matchAll(/^ {2}(\w+):/gm)].map((m) => m[1]).sort();
-    expect(topNames).toEqual(vols.map((v) => v[1]).sort());
+    for (const [, dir, path] of vols)
+      expect(compose, `бинд ${dir}:${path}`).toContain(
+        `\${PLANAR_DATA_DIR:-./data}/${dir}:${path}`,
+      );
+    expect(compose).not.toMatch(/^volumes:/m);
   });
 
   it('ops-contract headers: заголовки Caddyfile = C-ops-headers, хэши встроенных скриптов web', () => {
