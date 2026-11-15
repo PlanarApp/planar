@@ -873,6 +873,7 @@ export default {
     attachments: 'Attachments',
     attach: 'Attach file',
     activity: 'Comments and activity',
+    asideResize: 'Resize the comments panel',
     comment: 'Comment',
     reply: 'Reply',
     replyPlaceholder: "Reply in thread ('/' for commands, Ctrl+Enter to send)",
