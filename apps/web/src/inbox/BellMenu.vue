@@ -32,7 +32,7 @@ const readAll = () =>
 function go(n: InboxItem) {
   open.value = false;
   read([n.id]);
-  if (n.taskKey) openTask(n.taskKey);
+  if (n.taskKey) openTask(n.taskKey, n.commentId);
   else if (n.url?.startsWith('/') && !/^\/[/\\]/.test(n.url)) void router.push(n.url);
 }
 function all() {
