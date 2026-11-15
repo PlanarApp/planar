@@ -332,7 +332,7 @@ export const checklistItems = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index().on(t.taskId)],
+  (t) => [index().on(t.taskId), index().on(t.assigneeId)],
 );
 
 export const comments = pgTable(
@@ -355,7 +355,7 @@ export const comments = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index().on(t.taskId)],
+  (t) => [index().on(t.taskId), index().on(t.assigneeId)],
 );
 
 export const commentReactions = pgTable(

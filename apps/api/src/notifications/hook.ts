@@ -21,6 +21,8 @@ export async function notificationsHook(
   q: Q,
   source: ServerTx,
   ctx: ServerTxCtx,
+  /** false — only auto-subscription, no notifications */
+  send = true,
 ): Promise<{ ids: string[]; tx: ServerTx }> {
   const sys = ServerTx.asSystem(q, ctx);
   const actor = ctx.userId;
@@ -91,7 +93,12 @@ export async function notificationsHook(
     changes: Record<string, unknown> | null = null,
     body: string | null = null,
   ) => {
-    if (userId === actor || !(await membersOf(spaceId)).has(userId) || (await isBot(userId)))
+    if (
+      !send ||
+      userId === actor ||
+      !(await membersOf(spaceId)).has(userId) ||
+      (await isBot(userId))
+    )
       return;
     if (!(await canSee(taskId, userId))) return;
     const id = uuidv7();

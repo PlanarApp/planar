@@ -520,6 +520,12 @@ describe('wk6: импорт', () => {
           .map(text)
           .join(),
       ).toContain('2025-10-16 12:00 · Nobody N.');
+      // PLNRAPP-247: assignments and comments of an import — no notifications, but assignees watch the task
+      const q1 = (s: string) => db.$client.query(s, [t1.id]).then((r) => r.rows);
+      expect(await q1('select id from notifications where task_id = $1')).toEqual([]);
+      expect(
+        (await q1('select user_id from task_watchers where task_id = $1')).map((r) => r.user_id),
+      ).toEqual(expect.arrayContaining([gl.id, w.admin.userId]));
     } finally {
       await db.$client.query(`update users set role = 'member' where id = $1`, [w.admin.userId]);
     }

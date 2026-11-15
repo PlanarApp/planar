@@ -645,6 +645,8 @@ async function runImport(jobId: string, api: JobApi) {
           job!.userId,
           rs.flatMap((r) => r.muts),
           {
+            // thousands of rows: no assignment notifications, the importer gets the report (PLNRAPP-247)
+            quiet: true,
             prepare: prepare(rs.flatMap((r) => (r.attach ? [r.attach] : []))) as never,
           },
         );
@@ -685,7 +687,7 @@ async function runImport(jobId: string, api: JobApi) {
             api.execute(
               author,
               part.map((c) => c.mut),
-              { system: true },
+              { system: true, quiet: true },
             );
           try {
             await run(chunk);

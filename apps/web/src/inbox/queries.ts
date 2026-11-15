@@ -179,14 +179,8 @@ export const useAssignedComments = (userId: () => string | undefined) =>
     const uid = userId();
     if (!uid) return [];
     const [cs, is] = await Promise.all([
-      db
-        .table<Row<'comments'>>('comments')
-        .filter((c) => c.assigneeId === uid)
-        .toArray(),
-      db
-        .table<Row<'checklistItems'>>('checklistItems')
-        .filter((i) => i.assigneeId === uid)
-        .toArray(),
+      db.table<Row<'comments'>>('comments').where('assigneeId').equals(uid).toArray(),
+      db.table<Row<'checklistItems'>>('checklistItems').where('assigneeId').equals(uid).toArray(),
     ]);
     const rows = [
       ...cs.map((c) => ({ ...c, kind: 'comment' as const, closed: !!c.resolvedAt })),

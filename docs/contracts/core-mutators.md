@@ -2,7 +2,7 @@
 type: reference
 status: closed
 module: core
-updated: 2026-11-02
+updated: 2026-11-15
 summary: Domain mutators of C-mutators v17 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---
@@ -64,6 +64,7 @@ All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `nul
 | `attachment.create` | `id, taskId, commentId?, fileSha256, name, mime, size, width?, height?` | `uploadedBy = ctx.userId` |
 | `attachment.delete` | `id` | |
 | `notification.read` | `ids: uuid[]` | `readAt = ctx.now`, own only |
+| `notification.readAll` | `upTo: datetime, except?: uuid[]` | PLNRAPP-247: every own unread one created ≤ `upTo`, except `except` (snoozed) — `readAt = ctx.now`; one call instead of thousands of ids |
 | `notification.delete` | `ids: uuid[]` | own only |
 | `day.plan` | `id, taskId, date, rank` | v16: `dayPlans` row of ctx.userId; the task is missing → `not_found`; the task already planned by the user for `date` — nothing |
 | `day.move` | `id, date?, rank?` | v16: own only (else `forbidden`) — another day and/or place in the day |
