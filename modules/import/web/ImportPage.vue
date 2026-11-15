@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { Button, EmptyState, Select } from '@planar/web/modules';
-import { NEW, type ImportJob, type Preview } from '../shared/index.js';
+import { NEW, STATUS_CATEGORIES, type ImportJob, type Preview } from '../shared/index.js';
 import {
   getJob,
   previewFile,
@@ -9,8 +9,10 @@ import {
   tr,
   useProjects,
   useSession,
+  useSpaces,
   useStatuses,
   useUsers,
+  type Key,
 } from './data';
 import {
   FIELDS,
@@ -19,6 +21,7 @@ import {
   guessProject,
   guessStatus,
   guessUser,
+  newStatus,
   presetsFor,
 } from './lib';
 
@@ -26,6 +29,7 @@ const step = ref<1 | 2 | 3>(1);
 const file = ref<File | null>(null);
 const format = ref<'csv' | 'trello'>('csv');
 const preset = ref<string>('clickup');
+const spaceId = ref('');
 const projectId = ref('');
 const err = ref('');
 const busy = ref(false);
@@ -37,6 +41,7 @@ const people = ref<Record<string, string>>({});
 const job = ref<ImportJob | null>(null);
 let timer: ReturnType<typeof setInterval> | undefined;
 
+const spaces = useSpaces();
 const projects = useProjects();
 const users = useUsers();
 const session = useSession();
@@ -48,18 +53,25 @@ const statuses = computed(() =>
     .sort((a, b) => (a.rank < b.rank ? -1 : 1)),
 );
 const values = computed(() => (map.value.status ? (pv.value?.values.status ?? []) : []));
-// projects of the file go to the main project's space
-const spaceProjects = computed(() => {
-  const space = (projects.value ?? []).find((p) => p.id === projectId.value)?.spaceId;
-  return (projects.value ?? []).filter((p) => p.spaceId === space && !p.archivedAt);
-});
+// the import goes into the chosen space: the main project and the projects of the file are from it
+const spaceProjects = computed(() =>
+  (projects.value ?? []).filter((p) => p.spaceId === spaceId.value && !p.archivedAt),
+);
+// without a project column the main project is required; with one — optional
+const canStart = computed(
+  () => !!spaceId.value && !!map.value.title && (!!projectId.value || !!map.value.project),
+);
+const mainOptions = computed(() => [
+  ...(map.value.project ? [{ value: NONE, label: '—' }] : []),
+  ...spaceProjects.value.map((p) => ({ value: p.id, label: p.name })),
+]);
 const fileProjects = computed(() => (map.value.project ? (pv.value?.values.project ?? []) : []));
 const filePeople = computed(() =>
   map.value.assignee || map.value.comments ? (pv.value?.values.people ?? []) : [],
 );
 const activeUsers = computed(() => (users.value ?? []).filter((u) => !u.deactivatedAt));
 const projectOptions = computed(() => [
-  { value: NONE, label: tr('mainProject') },
+  { value: NONE, label: tr(projectId.value ? 'mainProject' : 'skipRows') },
   { value: NEW, label: tr('createNew') },
   ...spaceProjects.value.map((p) => ({ value: p.id, label: `${p.name} (${p.key})` })),
 ]);
@@ -75,8 +87,16 @@ const colOptions = computed(() => [
   { value: NONE, label: tr('none') },
   ...(pv.value?.columns ?? []).map((c) => ({ value: c, label: c })),
 ]);
+const CREATE_LABEL: Record<(typeof STATUS_CATEGORIES)[number], Key> = {
+  backlog: 'createBacklog',
+  todo: 'createTodo',
+  in_progress: 'createInProgress',
+  done: 'createDone',
+  cancelled: 'createCancelled',
+};
 const statusOptions = computed(() => [
   { value: NONE, label: tr('byDefault') },
+  ...STATUS_CATEGORIES.map((c) => ({ value: newStatus(c), label: tr(CREATE_LABEL[c]) })),
   ...statuses.value.map((s) => ({ value: s.id, label: s.name })),
 ]);
 const setMap = (f: string, v: string | null) => {
@@ -101,7 +121,8 @@ function guessAll() {
   for (const v of values.value) chosen.value[v] ??= guessStatus(v, statuses.value);
   for (const v of fileProjects.value)
     projMap.value[v.name] ??= guessProject(v, spaceProjects.value);
-  for (const n of filePeople.value) people.value[n] ??= guessUser(n, activeUsers.value);
+  for (const n of filePeople.value)
+    people.value[n] ??= guessUser(n, activeUsers.value, isAdmin.value);
 }
 
 function setFormat(f: 'csv' | 'trello') {
@@ -129,16 +150,23 @@ const toPreview = () =>
     guessAll();
     step.value = 2;
   });
-function setProject(id: string) {
-  projectId.value = id;
-  // hints depend on the project (its statuses and space)
+// hints depend on the space (its projects) and the main project (its statuses)
+function setSpace(id: string) {
+  spaceId.value = id;
+  projectId.value = '';
   chosen.value = {};
   projMap.value = {};
+  guessAll();
+}
+function setProject(id: string) {
+  projectId.value = id;
+  chosen.value = {};
   guessAll();
 }
 const run = () =>
   guard(async () => {
     job.value = await startJob(file.value!, {
+      spaceId: spaceId.value,
       projectId: projectId.value,
       format: format.value,
       preset: preset.value,
@@ -208,14 +236,24 @@ onBeforeUnmount(() => clearInterval(timer));
     </section>
 
     <section v-else-if="step === 2 && pv" class="flex flex-col gap-3">
-      <div class="import-project flex items-center gap-2 text-sm">
-        {{ tr('project') }}
+      <div class="import-space flex items-center gap-2 text-sm">
+        {{ tr('space') }}
         <Select
-          :model-value="projectId"
+          :model-value="spaceId"
+          :label="tr('space')"
+          placeholder="—"
+          :options="(spaces ?? []).map((s) => ({ value: s.id, label: s.name }))"
+          @update:model-value="(v) => v && setSpace(v)"
+        />
+      </div>
+      <div v-if="spaceId" class="import-project flex items-center gap-2 text-sm">
+        {{ map.project ? tr('projectOptional') : tr('project') }}
+        <Select
+          :model-value="projectId || NONE"
           :label="tr('project')"
           placeholder="—"
-          :options="(projects ?? []).map((p) => ({ value: p.id, label: p.name }))"
-          @update:model-value="(v) => v && setProject(v)"
+          :options="mainOptions"
+          @update:model-value="(v) => setProject(!v || v === NONE ? '' : v)"
         />
       </div>
       <h2 v-if="format === 'csv'" class="font-medium">{{ tr('mapping') }}</h2>
@@ -244,7 +282,7 @@ onBeforeUnmount(() => clearInterval(timer));
           />
         </div>
       </div>
-      <div v-if="fileProjects.length && projectId" class="flex flex-col gap-1">
+      <div v-if="fileProjects.length && spaceId" class="flex flex-col gap-1">
         <h2 class="font-medium">{{ tr('projects') }}</h2>
         <div
           v-for="p in fileProjects"
@@ -290,12 +328,7 @@ onBeforeUnmount(() => clearInterval(timer));
       </div>
       <div class="flex gap-2">
         <Button @click="step = 1">{{ tr('back') }}</Button>
-        <Button
-          variant="primary"
-          class="import-start"
-          :disabled="!projectId || !map.title || busy"
-          @click="run"
-        >
+        <Button variant="primary" class="import-start" :disabled="!canStart || busy" @click="run">
           {{ tr('start') }}
         </Button>
       </div>

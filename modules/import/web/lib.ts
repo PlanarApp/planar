@@ -1,4 +1,10 @@
-import { NEW, type ImportPreset, type Mapping } from '../shared/index.js';
+import {
+  NEW,
+  guessCategory,
+  type ImportPreset,
+  type Mapping,
+  type StatusCategory,
+} from '../shared/index.js';
 
 export const FIELDS = [
   'externalId',
@@ -31,9 +37,13 @@ export const presetsFor = (format: 'csv' | 'trello'): ImportPreset[] =>
 const pick = (r: Record<string, string>) =>
   Object.fromEntries(Object.entries(r).filter(([, v]) => v));
 
+/** status choice «create with the category»: `new:<category>` (otherwise — a status id or '' — default) */
+export const NEW_STATUS = 'new:';
+export const newStatus = (c: StatusCategory) => NEW_STATUS + c;
+
 /**
- * Mapping for sending: empty fields removed; statusMap, projectMap, userMap — only the chosen values
- * and only with their column mapped.
+ * Mapping for sending: empty fields removed; statusMap (ids) and statusNew (`new:<category>`),
+ * projectMap, userMap — only the chosen values and only with their column mapped.
  */
 export function buildMapping(
   m: Partial<Mapping>,
@@ -42,8 +52,16 @@ export function buildMapping(
 ): Mapping {
   const out: Record<string, unknown> = {};
   for (const f of FIELDS) if (m[f]) out[f] = m[f];
-  const statusMap = pick(chosen);
+  const st = pick(chosen);
+  const isNew = ([, v]: [string, string]) => v.startsWith(NEW_STATUS);
+  const statusMap = Object.fromEntries(Object.entries(st).filter((e) => !isNew(e)));
+  const statusNew = Object.fromEntries(
+    Object.entries(st)
+      .filter(isNew)
+      .map(([k, v]) => [k, v.slice(NEW_STATUS.length)]),
+  );
   if (m.status && Object.keys(statusMap).length) out.statusMap = statusMap;
+  if (m.status && Object.keys(statusNew).length) out.statusNew = statusNew;
   const projectMap = pick(maps.projects ?? {});
   if (m.project && Object.keys(projectMap).length) out.projectMap = projectMap;
   const userMap = pick(maps.people ?? {});
@@ -54,9 +72,9 @@ export function buildMapping(
 const eq = (a?: string | null, b?: string | null) =>
   !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 
-/** Default status for the hint: a status name equal to the value, case-insensitively. */
+/** Status hint: a status of the main project with the same name, otherwise — create with a category by the name. */
 export function guessStatus(value: string, statuses: { id: string; name: string }[]): string {
-  return statuses.find((s) => eq(s.name, value))?.id ?? '';
+  return statuses.find((s) => eq(s.name, value))?.id ?? newStatus(guessCategory(value));
 }
 
 /** Project of the file → a project of the space with the same key or name, otherwise `new`. */
@@ -71,10 +89,17 @@ export function guessProject(
   );
 }
 
-/** Person of the file → a user with the same name, login or email, otherwise not matched (''). */
+/**
+ * Person of the file → a user with the same name, login or email; otherwise `new` (canCreate — instance admin)
+ * or not matched ('').
+ */
 export function guessUser(
   name: string,
   users: { id: string; name: string; login: string; email?: string | null }[],
+  canCreate = false,
 ): string {
-  return users.find((u) => eq(u.name, name) || eq(u.login, name) || eq(u.email, name))?.id ?? '';
+  return (
+    users.find((u) => eq(u.name, name) || eq(u.login, name) || eq(u.email, name))?.id ??
+    (canCreate ? NEW : '')
+  );
 }

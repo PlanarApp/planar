@@ -3,6 +3,17 @@ import { db, i18n, useQuery, useSession } from '@planar/web/modules';
 import type { ImportJob, Mapping, Preview } from '../shared/index.js';
 
 export { useSession };
+/** spaces for the import: without the root one (Workspace) — it holds no projects */
+export const useSpaces = () =>
+  useQuery(async () => {
+    const root = (await db.table('settings').get('root_space'))?.value;
+    const all = (await db.table('spaces').toArray()) as {
+      id: string;
+      name: string;
+      rank: string;
+    }[];
+    return all.filter((s) => s.id !== root).sort((a, b) => (a.rank < b.rank ? -1 : 1));
+  });
 export const useProjects = () =>
   useQuery(
     () =>
@@ -52,7 +63,7 @@ export const previewFile = (file: File, format: string, preset: string, mapping?
   );
 export const startJob = async (
   file: File,
-  a: { projectId: string; format: string; preset: string; mapping: Mapping },
+  a: { spaceId: string; projectId: string; format: string; preset: string; mapping: Mapping },
 ) =>
   (
     await call<{ data: ImportJob }>(
@@ -78,8 +89,19 @@ const dict = {
   statuses: { ru: 'Статусы', en: 'Statuses' },
   projects: { ru: 'Проекты из файла', en: 'Projects from the file' },
   people: { ru: 'Люди из файла', en: 'People from the file' },
+  space: { ru: 'Пространство', en: 'Space' },
+  projectOptional: {
+    ru: 'Проект для строк без своего проекта (необязательно)',
+    en: 'Project for rows without one (optional)',
+  },
   mainProject: { ru: 'основной проект', en: 'main project' },
+  skipRows: { ru: 'пропустить строки', en: 'skip the rows' },
   createNew: { ru: 'создать', en: 'create' },
+  createBacklog: { ru: 'создать: бэклог', en: 'create: backlog' },
+  createTodo: { ru: 'создать: к работе', en: 'create: to do' },
+  createInProgress: { ru: 'создать: в работе', en: 'create: in progress' },
+  createDone: { ru: 'создать: готово', en: 'create: done' },
+  createCancelled: { ru: 'создать: отменено', en: 'create: cancelled' },
   noMatch: { ru: '— не сопоставлять —', en: '— do not match —' },
   createHint: {
     ru: 'Новые пользователи создаются без пароля и добавляются в пространство; войти смогут, когда администратор задаст пароль.',

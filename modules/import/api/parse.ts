@@ -35,7 +35,10 @@ export interface Parsed {
 export class ParseError extends Error {}
 
 // header candidates (case-insensitive): the template first, then common synonyms
-const GENERIC: Record<keyof Omit<Mapping, 'statusMap' | 'projectMap' | 'userMap'>, string[]> = {
+const GENERIC: Record<
+  keyof Omit<Mapping, 'statusMap' | 'statusNew' | 'projectMap' | 'userMap'>,
+  string[]
+> = {
   externalId: ['id', 'task id', 'issue id', 'key', 'issue key'],
   title: ['title', 'name', 'summary', 'task name'],
   description: ['description', 'task content', 'content', 'body'],
