@@ -19,6 +19,8 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw \
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git curl jq ripgrep ca-certificates \
+      python3 python3-pip python3-venv fd-find tree file less procps make patch unzip zip xz-utils openssh-client sqlite3 \
+ && ln -s /usr/bin/fdfind /usr/local/bin/fd \
  && corepack enable \
  && arch="$(dpkg --print-architecture)" \
  && curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${arch}.deb" -o /tmp/glab.deb \
