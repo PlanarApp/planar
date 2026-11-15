@@ -7,9 +7,12 @@ export interface Hit {
   /** PLN-12; until a number is assigned — id */
   ref: string;
   title: string;
+  /** parent tasks, outermost first, " / "-joined; empty for a root task */
+  path?: string;
 }
 interface Entry extends Hit {
   updatedAt: string;
+  parentId: string | null;
   key: string;
   t: string;
   /** name + key + description */
@@ -46,10 +49,20 @@ export function createIndex() {
       ref,
       title: t.title,
       updatedAt: t.updatedAt,
+      parentId: t.parentId ?? null,
       key,
       t: title,
       all: `${title}\n${key}\n${norm(docText(t.description))}`,
     });
+  };
+  // parent chain from the index itself (an archived parent is not there — the chain stops)
+  const pathOf = (parentId: string | null) => {
+    const names: string[] = [];
+    for (let p = parentId ? entries.get(parentId) : undefined; p && names.length < 20;) {
+      names.unshift(`${p.ref} ${p.title}`);
+      p = p.parentId ? entries.get(p.parentId) : undefined;
+    }
+    return names.join(' / ');
   };
   return {
     /** Updates only changed (id + updatedAt) tasks, removes vanished ones. */
@@ -81,7 +94,7 @@ export function createIndex() {
       return b
         .flat()
         .slice(0, LIMIT)
-        .map(({ id, ref, title }) => ({ id, ref, title }));
+        .map(({ id, ref, title, parentId }) => ({ id, ref, title, path: pathOf(parentId) }));
     },
   };
 }

@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildTree, lockedBy, moveArgs, searchPages, toProjectArgs, type PageRow } from './model';
+import {
+  buildTree,
+  lockedBy,
+  moveArgs,
+  pagePath,
+  searchPages,
+  toProjectArgs,
+  type PageRow,
+} from './model';
 import { createSaver } from './save';
 
 const S = 's1';
@@ -80,6 +88,20 @@ describe('docs web: дерево', () => {
     const toOtherSpace = toProjectArgs(otherPs, 'a1', null, 's2');
     expect(toOtherSpace).toMatchObject({ id: 'a1', parentId: null, projectId: null, spaceId: 's2' });
     expect(toOtherSpace.rank > 'a8').toBe(true);
+  });
+});
+
+describe('docs web: путь', () => {
+  it('проект и родители от внешнего к внутреннему; у корня без проекта пусто', () => {
+    const a = pg('a', 'a0', null, { title: 'Корень', projectId: 'p1' });
+    const b = pg('b', 'a0', 'a', { title: '' });
+    const c = pg('c', 'a0', 'b', { title: 'Лист' });
+    const by = new Map([a, b, c].map((p) => [p.id, p]));
+    expect(pagePath(by, c, new Map([['p1', 'Проект']]), 'Без названия')).toBe(
+      'Корень / Без названия',
+    );
+    expect(pagePath(by, a, new Map([['p1', 'Проект']]))).toBe('Проект');
+    expect(pagePath(by, pg('z', 'a0'))).toBe('');
   });
 });
 

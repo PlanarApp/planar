@@ -122,6 +122,8 @@ export interface SearchHit {
   id: string;
   title: string;
   subtitle?: string;
+  /** breadcrumbs (parents, project) for pickers, " / "-joined */
+  path?: string;
   icon?: Component;
   to: RouteLocationRaw;
 }

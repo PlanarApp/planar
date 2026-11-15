@@ -26,6 +26,16 @@ describe('cmd:search', () => {
     const s = await open();
     expect(s.search('pln-12').map((h) => h.ref)).toEqual(['PLN-12']);
   });
+  it('путь: родители задачи от внешнего к внутреннему, у корневой пусто', async () => {
+    const [a, b, c] = [task(1, { title: 'Корень' }), task(2, { title: 'Середина' }), task(3)];
+    b.parentId = a.id as never;
+    c.parentId = b.id as never;
+    c.title = 'Лист';
+    await db.table('tasks').bulkPut([a, b, c]);
+    const s = await open();
+    expect(s.search('лист')[0]?.path).toBe('PLN-1 Корень / PLN-2 Середина');
+    expect(s.search('корень')[0]?.path).toBe('');
+  });
   it('по слову из описания, ё=е', async () => {
     await db.table('tasks').bulkPut([task(1, { description: doc('Починить ёлку') }), task(2)]);
     const s = await open();
