@@ -103,7 +103,7 @@ const snippet = computed(() => docText(props.comment.body).replace(/\s+/g, ' ').
       :avatar="f.avatarOf(c().authorId)"
       :assignee-avatar="c().assigneeId ? f.avatarOf(c().assigneeId!) : null"
       :mine="c().authorId === f.userId()"
-      :reactions="(f.reactions.value ?? []).filter((r) => r.commentId === c().id)"
+      :reactions="f.reactionsOf(c().id)"
       :user-id="f.userId()"
       :names="f.names.value"
       :members="f.members.value"

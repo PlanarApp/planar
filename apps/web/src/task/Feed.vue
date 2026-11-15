@@ -28,6 +28,12 @@ const { user, isAdmin } = useAuth();
 const comments = useComments(props.task.id);
 const users = useUsers();
 const reactions = useReactions(props.task.id);
+const NO_REACTIONS: Row<'commentReactions'>[] = [];
+const reactionsBy = computed(() => {
+  const m = new Map<string, Row<'commentReactions'>[]>();
+  for (const r of reactions.value ?? []) m.set(r.commentId, [...(m.get(r.commentId) ?? []), r]);
+  return m;
+});
 const members = useMembers(() => props.task.spaceId);
 const labels = useLabels(() => props.task.spaceId);
 // the whole space: a moved task's old status is of another project
@@ -202,7 +208,7 @@ provide(FEED, {
   userId: () => user.value?.id,
   names,
   members: memberList,
-  reactions,
+  reactionsOf: (id: string) => reactionsBy.value.get(id) ?? NO_REACTIONS,
   nameOf,
   avatarOf,
   canResolve,

@@ -1,10 +1,25 @@
 <script setup lang="ts">
-import { defineAsyncComponent, inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import {
+  computed,
+  defineAsyncComponent,
+  inject,
+  onBeforeUnmount,
+  ref,
+  shallowRef,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import type { EditorOptions, JSONContent } from '@tiptap/vue-3';
-import { Extension, InputRule, type Editor as CoreEditor, type Extensions } from '@tiptap/core';
+import {
+  Extension,
+  InputRule,
+  getSchema,
+  type Editor as CoreEditor,
+  type Extensions,
+} from '@tiptap/core';
+import { DOMSerializer, Node as PMNode, type Schema } from '@tiptap/pm/model';
 import { editorExtensions } from '@planar/editor';
 import Placeholder from '@tiptap/extension-placeholder';
 import { ApiError } from '../../api/http';
@@ -19,6 +34,29 @@ import { Button } from '../../ui';
 
 // link dialog (@@/@@@) — a separate chunk: the task index is built only when opened
 const RefPicker = defineAsyncComponent(() => import('./RefPicker.vue'));
+
+// static rendering of a read-only document: one schema for all, the HTML cached by the document object
+let schema: Schema | undefined;
+let serializer: DOMSerializer | undefined;
+const htmlCache = new WeakMap<object, string>();
+/** HTML of the document by the editor schema; null — the document does not fit the schema (the editor will show it) */
+function staticHtml(doc?: JSONContent | null): string | null {
+  if (!doc) return '';
+  const hit = htmlCache.get(doc);
+  if (hit !== undefined) return hit;
+  try {
+    schema ??= getSchema(editorExtensions({ image: true }));
+    serializer ??= DOMSerializer.fromSchema(schema);
+    // into the page document: getHTMLFromFragment creates a new HTMLDocument on every call
+    const div = document.createElement('div');
+    div.appendChild(serializer.serializeFragment(PMNode.fromJSON(schema, doc).content));
+    const h = div.innerHTML;
+    htmlCache.set(doc, h);
+    return h;
+  } catch {
+    return null;
+  }
+}
 
 type Item = { id: string; label: string };
 const props = withDefaults(
@@ -37,6 +75,8 @@ const props = withDefaults(
     collapsible?: boolean;
     /** read-only, but a selection may still become a task link (own comment, PLNRAPP-144): the change goes to update:modelValue */
     linkReadOnly?: boolean;
+    /** read-only: static HTML of the same schema until the first pointer over it — no editor per feed item (PLNRAPP-249) */
+    lazy?: boolean;
   }>(),
   { editable: true },
 );
@@ -289,7 +329,14 @@ if (props.collab) {
     c.onAuthenticated(() => (unsynced.value = false));
     sync();
   });
-} else editor.value = new Editor(options());
+} else if (!(props.lazy && !props.editable)) editor.value = new Editor(options());
+
+// lazy: static HTML until the pointer comes (hover, touch) — then the real editor, same DOM shape and styles
+const html = computed(() => (editor.value ? '' : staticHtml(props.modelValue)));
+function activate() {
+  if (!editor.value && !props.collab) editor.value = new Editor(options());
+}
+watch(html, (h) => h === null && activate(), { immediate: true });
 
 // external value — only when we are not typing (otherwise it would reset the typed text)
 watch(
@@ -311,13 +358,18 @@ const box = ref<HTMLElement>();
 const tall = ref(false);
 const expanded = ref(false);
 let ro: ResizeObserver | undefined;
-watch(box, (el) => {
-  ro?.disconnect();
-  if (!el || !props.collapsible || typeof ResizeObserver === 'undefined') return;
-  const content = el.firstElementChild!;
-  ro = new ResizeObserver(() => (tall.value = content.scrollHeight > CLAMP * 1.25));
-  ro.observe(content);
-});
+// re-observed when the lazy static content gives way to the editor
+watch(
+  [box, editor],
+  ([el]) => {
+    ro?.disconnect();
+    if (!el || !props.collapsible || typeof ResizeObserver === 'undefined') return;
+    const content = el.firstElementChild!;
+    ro = new ResizeObserver(() => (tall.value = content.scrollHeight > CLAMP * 1.25));
+    ro.observe(content);
+  },
+  { flush: 'post' },
+);
 // an image (a thumbnail too) opens the original: a click when reading, a double click when editing
 function openImage(e: MouseEvent) {
   const img = e.target as HTMLElement;
@@ -375,8 +427,20 @@ const sugStyle = (r: DOMRect | null, n: number) => {
       :style="tall && !expanded ? { maxHeight: `${CLAMP}px` } : undefined"
       @focusin="expanded = true"
       @click="onClick"
+      @pointerenter="lazy && activate()"
     >
-      <EditorContent :editor="editor ?? undefined" />
+      <!-- eslint-disable-next-line vue/no-v-html -- serialized by the ProseMirror schema, as the editor itself renders it -->
+      <div v-if="lazy && !editor && html">
+        <div
+          class="tiptap ProseMirror"
+          role="textbox"
+          :aria-label="label"
+          aria-multiline="true"
+          aria-readonly="true"
+          v-html="html"
+        />
+      </div>
+      <EditorContent v-else :editor="editor ?? undefined" />
     </div>
     <button
       v-if="tall"

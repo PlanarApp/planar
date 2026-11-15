@@ -277,12 +277,16 @@ test('большие данные: первый вход, комментарий
   await editor.click();
   const text = `perf ${Date.now()}`;
   await editor.pressSequentially(text);
+  // by the count of comments: a hasText filter walks the text of the whole feed on every poll and inflates long tasks
+  const n = await page.getByTestId('comment').count();
   await action(
     page,
     'comment',
     () => page.getByTestId('comment-send').click(),
-    () => page.getByTestId('comment').filter({ hasText: text }).waitFor(),
+    () =>
+      page.waitForFunction((k) => document.querySelectorAll('[data-testid=comment]').length > k, n),
   );
+  await page.getByTestId('comment').filter({ hasText: text }).waitFor();
 
   // status change in the same card
   const pill = page.getByTestId('status-pill');
