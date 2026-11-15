@@ -23,6 +23,7 @@ import {
   type MutationOrigin,
   type V1Task,
 } from '@planar/shared';
+import { applyPagePatch } from '@planar/module-docs/api';
 import { HttpError } from '../auth/errors.js';
 import type { Db } from '../db/index.js';
 import * as s from '../db/schema.js';
@@ -37,6 +38,8 @@ import { toV1Tasks } from './v1-tasks.js';
 import {
   commentBody,
   createDocBody,
+  docCommentBody,
+  docPatchBody,
   createTaskBody,
   docQuery,
   docsQuery,
@@ -879,6 +882,87 @@ export class RestService {
         tokenId,
       );
     return this.doc(userId, row.id as string);
+  }
+
+  private docCommentWire(r: Wire) {
+    return {
+      id: r.id,
+      parentId: r.parentId,
+      authorId: r.authorId,
+      text: docToMarkdown(r.body as JSONContent),
+      assigneeId: r.assigneeId,
+      resolved: r.resolvedAt != null,
+      createdAt: r.createdAt,
+    };
+  }
+
+  private async docComment(pageId: string, id: string): Promise<Wire> {
+    const { t, c } = await this.mod('docs', 'docsComments');
+    const [row] = z.uuid().safeParse(id).success
+      ? ((await this.db
+          .select()
+          .from(t)
+          .where(and(eq(c.id!, id), eq(c.pageId!, pageId)))) as Wire[])
+      : [];
+    if (!row) throw NOT_FOUND('Комментарий');
+    return row;
+  }
+
+  async docComments(userId: string, id: string) {
+    const row = await this.findDoc(userId, id);
+    const { t, c } = await this.mod('docs', 'docsComments');
+    const rows = (await this.db
+      .select()
+      .from(t)
+      .where(eq(c.pageId!, row.id as string))
+      .orderBy(asc(c.createdAt!), asc(c.id!))) as Wire[];
+    return { data: rows.map((r) => this.docCommentWire(r)) };
+  }
+
+  async createDocComment(userId: string, id: string, raw: unknown, tokenId?: string) {
+    const b = parse(docCommentBody, raw);
+    const row = await this.findDoc(userId, id);
+    const cid = uuidv7();
+    await this.run(
+      userId,
+      [
+        {
+          name: 'docs.comment.create',
+          args: {
+            id: cid,
+            pageId: row.id,
+            body: await this.toDoc(b.text),
+            parentId: b.parentId,
+            assigneeId: b.assigneeId,
+          },
+        },
+      ],
+      tokenId,
+    );
+    return { data: this.docCommentWire(await this.docComment(row.id as string, cid)) };
+  }
+
+  async resolveDocComment(userId: string, id: string, cid: string, tokenId?: string) {
+    const row = await this.findDoc(userId, id);
+    await this.docComment(row.id as string, cid);
+    await this.run(
+      userId,
+      [{ name: 'docs.comment.resolve', args: { id: cid, resolved: true } }],
+      tokenId,
+    );
+    return { data: this.docCommentWire(await this.docComment(row.id as string, cid)) };
+  }
+
+  async patchDocPage(userId: string, id: string, raw: unknown, tokenId?: string) {
+    const b = parse(docPatchBody, raw);
+    const row = await this.findDoc(userId, id);
+    return {
+      data: await applyPagePatch(
+        { db: this.db, execute: (u, muts) => this.run(u, muts, tokenId) },
+        { pageId: row.id as string, edits: b.edits },
+        userId,
+      ),
+    };
   }
 
   async linkDocTask(userId: string, id: string, raw: unknown, tokenId?: string) {

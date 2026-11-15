@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-11-12"
+updated: "2026-11-15"
 summary: "Точка входа: модули docs/ по подпроектам, прочие документы по типам."
 related: []
 generated: true
@@ -47,6 +47,7 @@ generated: true
 - **ai9** — ИИ-9a (PLNRAPP-175) — ИИ в чате: личный и групповой, инструменты MCP с правами инициатора, подтверждение «да» [closed 2026-11-12] — [план](plan/ai9.md) · [решения](plan/ai9/decisions.md) · [сводка](plan/ai9/summary.md) · полный журнал: `archive/ai9`
 - **ai9p** — ИИ-9 (PLNRAPP-174) — harness-пакеты «Продажи», «Найм», «Поддержка» (llm-действия), тесты, демо-сид [closed 2026-11-12] — [план](plan/ai9p.md) · [решения](plan/ai9p/decisions.md) · [сводка](plan/ai9p/summary.md) · полный журнал: `archive/ai9p`
 - **aifix** — PLNRAPP-187 — исправление всех 27 находок ревью модуля ИИ, 4 параллельные задачи + ревью безопасности [closed 2026-11-12] — [план](plan/aifix.md) · [решения](plan/aifix/decisions.md) · [сводка](plan/aifix/summary.md) · полный журнал: `archive/aifix`
+- **docai** — PLNRAPP-219 — ИИ в комментариях к документам (шаг 2 разбивки PLNRAPP-209) [closed 2026-11-15] — [план](plan/docai.md) · [контракты](contracts/docai.md) · [решения](plan/docai/decisions.md) · [сводка](plan/docai/summary.md) · полный журнал: `archive/docai`
 
 ## Прочие документы
 
@@ -60,7 +61,7 @@ generated: true
 
 ### Справка (reference)
 
-- [docs/contracts/cloud-link.md](contracts/cloud-link.md) — Связь инстанса Planar с облаком planar-cloud - ENV, setup с одноразовым входом, API состояния триала/оплаты и своего домена, правила блокировки по окончании триала
+- [docs/contracts/cloud-link.md](contracts/cloud-link.md) — Связь инстанса с облаком — ENV, setup, API состояния триала/оплаты, домена и тарифа ИИ, шлюз нашего ИИ, блокировка после триала
 - [docs/contracts/launch.md](contracts/launch.md) — launch contracts — SETUP_TOKEN, DB_POOL_MAX, DEMO_MODE, GET /api/setup, demo seed and reset, images, CI and release compose [closed]
 
 ### Журналы (journal)

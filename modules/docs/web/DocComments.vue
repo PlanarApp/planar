@@ -17,15 +17,17 @@ import {
   Editor,
   IconButton,
   Menu,
+  activityOf,
   db,
   mutate,
   newId,
+  useActivity,
   useProjectAdmin,
   useQuery,
   useSession,
   type MenuItem,
 } from '@planar/web/modules';
-import { canResolve, threads, type CommentRow } from './comments';
+import { assignablePeople, canResolve, threads, type CommentRow } from './comments';
 import { useTexts } from './text';
 
 // PLNRAPP-209: comments on a page — threads, mentions, assignment to a person, resolve (as task comments)
@@ -42,7 +44,7 @@ const list = computed(() => threads(rows.value ?? []));
 const count = computed(() => rows.value?.length ?? 0);
 
 // people of the space: mentions — everyone, assignment — not guests (the mutator checks the same);
-// not the AI bot either: comments on pages have no AI yet, an assignment to it would hang
+// the project's AI bot is assignable: it answers the comment with a page patch
 const people = useQuery(async () => {
   const ms = await db
     .table<Row<'spaceMembers'>>('spaceMembers')
@@ -61,6 +63,7 @@ const people = useQuery(async () => {
               avatar: u.avatarFile ? `/files/${u.avatarFile}/preview?w=256` : null,
               role: m.role,
               bot: !!u.bot,
+              login: u.login,
             },
           ]
         : [];
@@ -68,11 +71,20 @@ const people = useQuery(async () => {
     .sort((a, b) => a.name.localeCompare(b.name));
 });
 const members = computed(() => people.value ?? []);
-const assignable = computed(() => members.value.filter((m) => m.role !== 'guest' && !m.bot));
+const assignable = computed(() => assignablePeople(members.value));
 const myRole = computed(() => members.value.find((m) => m.id === me.value?.id)?.role);
 const canWrite = computed(() => !!myRole.value && myRole.value !== 'guest');
 const admin = computed(() => isAdmin(props.spaceId, props.projectId));
-const nameOf = (id: string | null) => members.value.find((m) => m.id === id)?.name ?? '?';
+// the AI at work: a running run over the comment (api/ai/activity/pages), the ring goes to the assignee-bot
+const activity = useActivity(
+  'pages',
+  () => props.pageId,
+  () => props.projectId ?? undefined,
+);
+const working = (c: CommentRow) =>
+  !!c.assigneeId &&
+  activityOf(activity.value, c.id)?.state === 'running';
+const nameOf =(id: string | null) => members.value.find((m) => m.id === id)?.name ?? '?';
 const avatarOf = (id: string | null) => members.value.find((m) => m.id === id)?.avatar ?? null;
 
 const draft = shallowRef<JSONContent | null>(null); // shallow: reactive proxies can't be stored in IndexedDB
@@ -184,8 +196,19 @@ onMounted(async () => {
             {{ tx(c.resolvedAt ? 'resolved' : 'resolve') }}
           </Button>
           <span class="ml-auto inline-flex min-w-0 items-center gap-1">
-            <Avatar :name="nameOf(c.assigneeId)" :src="avatarOf(c.assigneeId)" size="sm" />
+            <Avatar
+              :name="nameOf(c.assigneeId)"
+              :src="avatarOf(c.assigneeId)"
+              size="sm"
+              :class="working(c) && 'work-ring'"
+            />
             <span class="truncate font-medium">{{ nameOf(c.assigneeId) }}</span>
+            <span
+              v-if="working(c)"
+              class="inline-flex items-center gap-1 text-fg-muted"
+              data-testid="doc-comment-work"
+              ><span class="work-dot" />{{ tx('aiWorking') }}</span
+            >
           </span>
         </div>
         <div :class="['flex gap-2', c.assigneeId && 'p-2']">

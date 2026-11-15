@@ -130,6 +130,40 @@ describe('остановка и перезапуск', () => {
     expect((await call('POST', `runs/${solo}/restart`, 'member')).statusCode).toBe(201);
   });
 
+  it('restart прогона страницы: автор комментария — 201, чужой — 404, прогон без комментария — 409', async () => {
+    const pageId = uuidv7();
+    const commentId = uuidv7();
+    await w.admin.ok('docs.page.create', {
+      id: pageId,
+      spaceId: w.spaceId,
+      projectId: w.projectId,
+      rank: 'a0',
+      title: 'Страница',
+      body: { type: 'doc', content: [{ type: 'paragraph' }] },
+    });
+    await w.member.ok('docs.comment.create', {
+      id: commentId,
+      pageId,
+      body: { type: 'doc', content: [{ type: 'paragraph' }] },
+    });
+    const pageRun = async (itemId: string | null) => {
+      const id = uuidv7();
+      await raw(
+        `insert into ai_runs (id, page_id, project_id, kind, item_id, state, chain_id, chain_depth)
+         values ($1, $2, $3, 'doc_comment', $4, 'failed', $1, 0)`,
+        [id, pageId, w.projectId, itemId],
+      );
+      return id;
+    };
+    const r = await pageRun(commentId);
+    expect((await call('POST', `runs/${r}/restart`, 'outsider')).statusCode).toBe(404);
+    const ok = await call('POST', `runs/${r}/restart`, 'member');
+    expect(ok.statusCode).toBe(201);
+    expect(ok.json().runId).not.toBe(r);
+    const noItem = await pageRun(null);
+    expect((await call('POST', `runs/${noItem}/restart`, 'root')).statusCode).toBe(409);
+  });
+
   it('stop и restart отменяют pending-пачки писем прогона', async () => {
     const batch = async (runId: string) => {
       const id = uuidv7();

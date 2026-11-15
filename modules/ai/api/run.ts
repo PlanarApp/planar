@@ -14,6 +14,7 @@ import { loadPack, parseInstructionPage } from './harness.js';
 import type { ChatPending } from './schema.js';
 import { batchDoc, insertBatch } from './email.js';
 import { collectChat, collectRun } from './retro.js';
+import { handleDoc } from './doc-run.js';
 import { generateReply, generateStructured, type LlmUsage } from './llm.js';
 import {
   agentsFull,
@@ -41,7 +42,18 @@ export interface ChatRunData {
  * Job data. action — by a rule (actionId, ruleId, statusId at the event); comment / mention — itemId is the
  * comment; checklist — the first open item on the bot by rank; resume — the questions of run `runId` are answered.
  */
+type DocRun<K extends string> = {
+  kind: K;
+  pageId: string;
+  /** docs_comments.id */
+  itemId: string;
+  restartOf?: string | null;
+  runId?: string | null;
+};
+export type DocRunData = DocRun<'doc_comment'> | DocRun<'doc_mention'>;
+
 export type AiRunData =
+  | DocRunData
   | {
       kind: 'action';
       taskId: string;
@@ -72,7 +84,9 @@ export const keyOf = (d: AiRunData) =>
     ? `${d.kind}:${d.runId}`
     : d.kind === 'chat'
       ? `chat:${d.messageId}`
-      : `${d.taskId}:${d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? 'checklist' : d.itemId}`;
+      : d.kind === 'doc_comment' || d.kind === 'doc_mention'
+        ? `${d.pageId}:${d.itemId}`
+        : `${d.taskId}:${d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? 'checklist' : d.itemId}`;
 
 const nullable = <T extends z.ZodType>(s: T) => s.nullable();
 /** What the model returns; every field is present (null — not used): strict structured outputs want that. */
@@ -372,6 +386,7 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   if (d.kind === 'resume') return resume(d.runId, api);
   if (d.kind === 'chat') return handleChat(d, api);
   if (d.kind === 'confirm') return confirmChat(d.runId, api);
+  if (d.kind === 'doc_comment' || d.kind === 'doc_mention') return handleDoc(d, api);
   // a retried delivery of a restart: its pre-made run row already exists
   if (d.runId && (await one(api.db, sql`select 1 as x from ai_runs where id = ${d.runId}::uuid`)))
     return;
@@ -1282,11 +1297,13 @@ export {
   blocked,
   botOf,
   contextOf,
+  eventAction,
   failed,
   finish,
   loadTask,
   md,
   overBudget,
+  promptOf,
   withMention,
   type Run,
 };

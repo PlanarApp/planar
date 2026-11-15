@@ -1951,6 +1951,40 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-25),
     },
   ]);
+  // docai: on «AI · Planning» (Roadmap, ai on) — a comment assigned to the AI and resolved, the AI's reply in its thread
+  const planDoc = (text: string) =>
+    textToDoc(text, [
+      { id: uid_.maya!, login: 'maya' },
+      { id: ai, login: 'ai' },
+    ]);
+  const planComment = (k: string, author: string, text: string, o: Record<string, unknown>) => ({
+    id: uid(`dcomment:ai:${k}`),
+    spaceId: rdmSpace,
+    pageId: uid('page:ai-plan'),
+    authorId: author,
+    parentId: null,
+    body: planDoc(text),
+    mentions: [],
+    assigneeId: null,
+    resolvedAt: null,
+    resolvedBy: null,
+    editedAt: null,
+    createdAt: at(-1, 9),
+    updatedAt: at(-1, 9),
+    ...o,
+  });
+  await ins(docsComments, [
+    planComment('ask', uid_.maya!, 'Add a line: «Ask in the thread if something is missing».', {
+      assigneeId: ai,
+      resolvedAt: at(-1, 10),
+      resolvedBy: ai,
+    }),
+    planComment('reply', ai, 'Done: the line is added to the end of the page.', {
+      parentId: uid('dcomment:ai:ask'),
+      createdAt: at(-1, 10),
+      updatedAt: at(-1, 10),
+    }),
+  ]);
   // catalog packs in the project docs, laid out like POST /ai/packs/upload does; not active.
   // «Разработка» — in Roadmap (after «AI · Planning»), «Продажи» — in its own project
   for (const [k, pKey] of [

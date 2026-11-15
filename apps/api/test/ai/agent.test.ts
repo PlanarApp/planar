@@ -1040,3 +1040,116 @@ describe('agent: поручения из комментариев на зада�
     }
   });
 });
+
+describe('agent: прогон по комментарию страницы (docai-run)', () => {
+  let pageId: string;
+  /** the pack's agent action is bound to the comment event; the run starts for the new comment */
+  const comment = async () => {
+    await raw(
+      `insert into ai_harness_packs (id, project_id, pack_key, active, events) values ($1, $2, 'dev', true, $3)`,
+      [
+        uuidv7(),
+        P,
+        JSON.stringify({
+          comment: (await one(`select key from ai_actions where id = $1`, [actionId])).key,
+        }),
+      ],
+    );
+    pageId = (await one(`select id from docs_pages where project_id = $1 limit 1`, [P])).id;
+    const id = uuidv7();
+    await w.admin.ok('docs.comment.create', {
+      id,
+      pageId,
+      body: doc('Поправь слово'),
+      assigneeId: bot,
+    });
+    await handler('ai', 'ai.run')({ kind: 'doc_comment', pageId, itemId: id }, api);
+    const run = (await raw(`select * from ai_runs where page_id = $1`, [pageId]))[0];
+    const post = runnerHits.findLast((h) => h.method === 'POST' && h.body.runId === run?.id);
+    return { id, run, post, secret: post?.body.env?.PLANAR_RUN_SECRET as string };
+  };
+  const rows = () =>
+    raw(`select * from docs_comments where page_id = $1 order by created_at, id`, [pageId]);
+  const send = (r: { run: { id: string }; secret: string }, body: unknown) =>
+    call('POST', `/api/ai/runs/${r.run.id}`, { secret: r.secret, body });
+
+  it('страничный прогон запускает контейнер: context со страницей и веткой, без task', async () => {
+    const r = await comment();
+    expect(r.run).toMatchObject({ state: 'running', task_id: null, page_id: pageId });
+    const ctx = JSON.parse(r.post!.body.context);
+    expect(ctx).toMatchObject({
+      runId: r.run.id,
+      page: { id: pageId },
+      thread: [{ text: expect.stringContaining('Поправь слово') }],
+      assignment: { kind: 'doc_comment', id: r.id },
+      action: { prompt: expect.stringContaining('Сделай работу') },
+      checks: ['тесты зелёные'],
+    });
+    expect(ctx.task).toBeUndefined();
+    expect(r.post!.body.env.GITLAB_TOKEN).toBeUndefined();
+    expect(r.run.container_id).toBe('c-1');
+  });
+
+  it('result done с pagePatch: патч применён, ответ от бота, комментарий закрыт', async () => {
+    const r = await comment();
+    const res = await send(r, {
+      ...done,
+      pagePatch: { edits: [{ find: 'Сделай', replace: 'Сделан' }] },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(
+      JSON.stringify((await one(`select body from docs_pages where id = $1`, [pageId])).body),
+    ).toContain('Сделан работу');
+    const [root, reply] = await rows();
+    expect(root!.resolved_at).not.toBeNull();
+    expect(reply!.author_id).toBe(bot);
+    expect((await one(`select state from ai_runs where id = $1`, [r.run.id])).state).toBe('done');
+  });
+
+  it('неприменимый патч: ответ с пометкой, комментарий открыт', async () => {
+    const r = await comment();
+    await send(r, { ...done, pagePatch: { edits: [{ find: 'нет такого', replace: 'x' }] } });
+    const [root, reply] = await rows();
+    expect(root!.resolved_at).toBeNull();
+    expect(JSON.stringify(reply!.body)).toContain('Изменения не применены');
+  });
+
+  it('llm-прокси без task_id; reap по heartbeat; страница удалена — failed', async () => {
+    const r = await comment();
+    const res = await call('POST', `/api/ai/llm/${r.run.id}/v1/chat/completions`, {
+      secret: r.secret,
+      body: { model: 'x', messages: [] },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(
+      (await one(`select input_tokens from ai_runs where id = $1`, [r.run.id])).input_tokens,
+    ).toBe(1000);
+    await raw(`update ai_runs set heartbeat_at = now() - interval '10 minutes' where id = $1`, [
+      r.run.id,
+    ]);
+    await handler('ai', 'ai.agent.reap')({}, api);
+    expect((await one(`select state from ai_runs where id = $1`, [r.run.id])).state).toBe('failed');
+    expect(JSON.stringify((await rows()).at(-1)!.body)).toContain('heartbeat');
+  });
+
+  it('страница удалена: failed «страница удалена»', async () => {
+    const g = await comment();
+    await raw(`update docs_pages set archived_at = now() where id = $1`, [pageId]);
+    await send(g, done);
+    const row = await one(`select state, log from ai_runs where id = $1`, [g.run.id]);
+    expect(row.state).toBe('failed');
+    expect(row.log).toContain('страница удалена');
+  });
+
+  it('без AI_RUNNER_URL — llm-путь, контейнер не запускается', async () => {
+    const url = process.env.AI_RUNNER_URL;
+    delete process.env.AI_RUNNER_URL;
+    try {
+      const r = await comment();
+      expect(r.post).toBeUndefined();
+      expect(r.run?.agent_secret_hash ?? null).toBeNull();
+    } finally {
+      process.env.AI_RUNNER_URL = url;
+    }
+  });
+});

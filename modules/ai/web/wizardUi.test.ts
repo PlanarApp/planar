@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { lineDiff } from '../shared/index.js';
 import {
-  applyFailure,
+  aiBotOf,
+  assignmentBody,
   canAdvance,
-  diffPrefix,
-  hasChanges,
   nextStep,
   prevStep,
-  type Proposal,
   type WizardState,
 } from './wizardUi';
 
@@ -37,17 +36,35 @@ describe('wizardUi', () => {
   });
 });
 
+// lineDiff (the retro uses it) lost its test together with wizard/adapt
+it('lineDiff: same/add/del построчно', () => {
+  expect(lineDiff('a\nb\nc', 'a\nx\nc')).toEqual([
+    { type: 'same', text: 'a' },
+    { type: 'add', text: 'x' },
+    { type: 'del', text: 'b' },
+    { type: 'same', text: 'c' },
+  ]);
+});
+
 describe('wizardUi adapt', () => {
-  it('hasChanges / applyFailure / diffPrefix', () => {
-    const same = { body: '', baseUpdatedAt: 't', diff: [{ type: 'same', text: 'x' }] } as Proposal;
-    expect(hasChanges(null) || hasChanges(same)).toBe(false);
-    expect(hasChanges({ ...same, diff: [{ type: 'add', text: 'y' }] })).toBe(true);
-    expect([409, 403, 500, undefined].map(applyFailure)).toEqual([
-      'changed',
-      'forbidden',
-      'other',
-      'other',
-    ]);
-    expect(['add', 'del', 'same'].map((t) => diffPrefix(t as 'add'))).toEqual(['+', '-', ' ']);
+  it('assignmentBody: абзац на строку, пустая строка — пустой абзац', () => {
+    expect(assignmentBody(' a\n\nb ')).toEqual({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'a' }] },
+        { type: 'paragraph' },
+        { type: 'paragraph', content: [{ type: 'text', text: 'b' }] },
+      ],
+    });
+  });
+
+  it('aiBotOf: automation-бот первым — выбирается ai', () => {
+    const users = [
+      undefined,
+      { id: '1', login: 'automation', bot: true },
+      { id: '2', login: 'ai', bot: true },
+    ];
+    expect(aiBotOf(users)?.id).toBe('2');
+    expect(aiBotOf([{ id: '3', login: 'ai' }])).toBeUndefined();
   });
 });

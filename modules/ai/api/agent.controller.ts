@@ -19,7 +19,8 @@ import { once } from 'node:events';
 import { CORE, HttpError, parseBody, type CoreServices, type JobApi } from '@planar/server-kit';
 import { resolveConnection, secretOf } from './connections.js';
 import { costOf } from './llm.js';
-import { blocked, loadTask, overBudget, resultSchema, failed } from './run.js';
+import { blocked, loadTask, overBudget, failed } from './run.js';
+import { docResultSchema } from './doc-run.js';
 import { finishAgent, runBySecret, runSecretsOf } from './agent.js';
 import {
   AGENT_LOG_MAX_EVENTS,
@@ -136,7 +137,7 @@ export class AgentController {
     // absent fields of the contract are null, as in the llm result
     const r = {
       ...failed(''),
-      ...parseBody(resultSchema.partial().required({ verdict: true, comment: true }), body),
+      ...parseBody(docResultSchema().partial().required({ verdict: true, comment: true }), body),
     };
     toolSigs.delete(id);
     logTools.delete(id);
@@ -192,9 +193,11 @@ export class AgentController {
       throw new HttpError(400, 'invalid_request', 'Нужно тело JSON');
     const db = this.core.db;
     const task = (await db.execute(sql`select task_id as t from ai_runs where id = ${runId}::uuid`))
-      .rows[0]!.t as string;
+      .rows[0]!.t as string | null;
+    // a page run has no task: only the project's blocks (the budget is the task's)
     const stop =
-      (await blocked(db, run.projectId)) ?? (await overBudget(db, (await loadTask(db, task))!));
+      (await blocked(db, run.projectId)) ??
+      (task ? await overBudget(db, (await loadTask(db, task))!) : null);
     if (stop) throw new HttpError(429, 'rate_limited', stop);
     const row = await resolveConnection(db, run.projectId);
     if (!row) throw new HttpError(502, 'unavailable', 'Нет подключения к ИИ');

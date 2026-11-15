@@ -47,3 +47,7 @@ export function threads(rows: CommentRow[]): { root: CommentRow; replies: Commen
 /** Resolving an assigned comment: its assignee, author or an admin (as the docs.comment.resolve mutator). */
 export const canResolve = (c: CommentRow, me: string | undefined, admin: boolean): boolean =>
   !!c.assigneeId && !!me && (me === c.assigneeId || me === c.authorId || admin);
+
+// Assignable: non-guests; of the bots only the AI one. 'ai' = AI_BOT_LOGIN (modules/ai/shared; docs doesn't import ai).
+export const assignablePeople = <P extends { role: string; bot: boolean; login: string }>(people: readonly P[]): P[] =>
+  people.filter((p) => p.role !== 'guest' && (!p.bot || p.login === 'ai'));

@@ -107,6 +107,8 @@ export const aiRuns = pgTable(
     id: uuid().primaryKey(),
     /** null — a chat run */
     taskId: uuid().references(() => tasks.id, { onDelete: 'cascade' }),
+    /** a run over a page comment (doc_comment, doc_mention; item_id — docs_comments.id); not set together with taskId */
+    pageId: uuid(),
     /** null — a chat run in a channel without a project */
     projectId: uuid(),
     /** the channel of a chat run (item_id — the message) */
@@ -147,6 +149,8 @@ export const aiRuns = pgTable(
     index('ai_runs_state_idx').on(t.state),
     // PLNRAPP-202: the indicator of the AI's work on a task and its items (comment, checklist item)
     index('ai_runs_task_id_item_id_state_idx').on(t.taskId, t.itemId, t.state),
+    index('ai_runs_page_id_item_id_state_idx').on(t.pageId, t.itemId, t.state),
+    check('ai_runs_target_check', sql`${t.taskId} is null or ${t.pageId} is null`),
     index('ai_runs_project_id_created_at_idx').on(t.projectId, t.createdAt),
     index('ai_runs_created_at_idx').on(t.createdAt),
   ],
