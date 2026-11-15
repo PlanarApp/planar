@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { Button } from '@planar/web/modules';
+import { Button, db, mutate, newId } from '@planar/web/modules';
 import { AI_PROVIDERS, type AiConnectionView, type HarnessOp } from '../shared/index.js';
 import { AiApiError, call } from './api';
 import ConnectionFields from './ConnectionFields.vue';
@@ -9,14 +9,11 @@ import { buildReplaceWith, groupOps, needReplace, replaceTargets } from './harne
 import PackConflicts from './PackConflicts.vue';
 import { usePackUpload } from './usePackUpload';
 import {
-  applyFailure,
+  aiBotOf,
+  assignmentBody,
   canAdvance,
-  diffPrefix,
-  hasChanges,
   nextStep,
   prevStep,
-  type AdaptReply,
-  type Proposal,
   type WizardStep,
 } from './wizardUi';
 
@@ -107,42 +104,33 @@ const rootPageId = computed(
   () => packs.value.find((p) => p.packKey === packKey.value)?.rootPageId ?? null,
 );
 
-const proposal = ref<Proposal | null>(null);
-const adapted = ref<'' | 'applied' | 'none'>('');
-const stale = ref(false);
+// «Adapt with AI»: a comment on the root page assigned to the AI bot of the space; the AI patches the page itself
+// and resolves the comment (docs.comment.create → the assignment run)
+const assigned = ref(false);
 const adapt = () =>
   guard(async () => {
-    adapted.value = '';
-    const r = await call<AdaptReply>('POST', 'wizard/adapt', {
-      pageId: rootPageId.value,
-      message: prompt.value,
+    assigned.value = false;
+    const page = await db.table<{ spaceId: string }>('docsPages').get(rootPageId.value!);
+    const ms = page
+      ? await db
+          .table<{ userId: string }>('spaceMembers')
+          .where('spaceId')
+          .equals(page.spaceId)
+          .toArray()
+      : [];
+    const us = await db
+      .table<{ id: string; login?: string; bot?: boolean }>('users')
+      .bulkGet(ms.map((m) => m.userId));
+    const bot = aiBotOf(us);
+    if (!bot) throw new Error(tr('wzNoBot'));
+    await mutate('docs.comment.create', {
+      id: newId(),
+      pageId: rootPageId.value!,
+      body: assignmentBody(prompt.value),
+      assigneeId: bot.id,
     });
-    proposal.value = hasChanges(r.proposal) ? r.proposal : null;
-    if (!proposal.value) adapted.value = 'none';
+    assigned.value = true;
   });
-async function accept() {
-  const p = proposal.value!;
-  await guard(async () => {
-    try {
-      await call('POST', 'wizard/adapt/apply', {
-        pageId: rootPageId.value,
-        body: p.body,
-        baseUpdatedAt: p.baseUpdatedAt,
-      });
-    } catch (e) {
-      if (applyFailure(e instanceof AiApiError ? e.status : undefined) === 'changed') {
-        stale.value = true;
-        throw new Error(tr('docChanged'));
-      }
-      throw e;
-    }
-    proposal.value = null;
-    stale.value = false;
-    adapted.value = 'applied';
-  });
-}
-const cls = (t: string) =>
-  t === 'add' ? 'bg-success/10' : t === 'del' ? 'bg-danger/10 line-through' : 'text-fg-muted';
 
 // step 4: the same diff → apply as the pack document panel (HarnessPanel)
 const diff = ref<{ ops: HarnessOp[]; errors: string[] } | null>(null);
@@ -274,7 +262,7 @@ onMounted(() =>
           >{{ tr('wzUpload') }}</Button
         >
         <Button
-          v-if="uploaded"
+          v-if="uploaded && rootPageId"
           size="sm"
           :disabled="busy"
           data-testid="wizard-adapt"
@@ -283,31 +271,12 @@ onMounted(() =>
         >
       </div>
       <PackConflicts :u="u" :busy="busy" />
-      <p v-if="adapted === 'none'" class="text-fg-muted">{{ tr('wzNoProposal') }}</p>
-      <p v-if="adapted === 'applied'" class="text-fg-muted" data-testid="wizard-adapted">
-        {{ tr('accepted') }}
+      <p v-if="assigned" class="text-fg-muted" data-testid="wizard-adapted">
+        {{ tr('wzAssigned') }}
+        <a :href="`/m/docs/${rootPageId}`" class="underline" data-testid="wizard-adapted-link">{{
+          tr('wzOpenPage')
+        }}</a>
       </p>
-      <template v-if="proposal">
-        <div
-          class="max-h-80 overflow-auto rounded-md border border-border p-2 font-mono text-xs"
-          data-testid="wizard-diff"
-        >
-          <div
-            v-for="(l, i) in proposal.diff"
-            :key="i"
-            :class="['whitespace-pre-wrap', cls(l.type)]"
-          >
-            {{ diffPrefix(l.type) }} {{ l.text }}
-          </div>
-        </div>
-        <div class="flex gap-2">
-          <Button size="sm" :disabled="busy || stale" data-testid="wizard-accept" @click="accept">{{
-            tr('accept')
-          }}</Button>
-          <Button size="sm" @click="proposal = null">{{ tr('reject') }}</Button>
-          <Button v-if="stale" size="sm" @click="adapt">{{ tr('reRequest') }}</Button>
-        </div>
-      </template>
     </div>
 
     <div v-else class="flex flex-col gap-2 text-sm">

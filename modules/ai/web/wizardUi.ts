@@ -1,4 +1,6 @@
 // Pure logic of the AI setup wizard (SetupWizard.vue): step order and when a step may be left.
+import { AI_BOT_LOGIN } from '../shared/index.js';
+
 export const WIZARD_STEPS = ['key', 'template', 'pack', 'harness'] as const;
 export type WizardStep = (typeof WIZARD_STEPS)[number];
 
@@ -26,18 +28,18 @@ export function canAdvance(s: WizardStep, st: WizardState): boolean {
   return false;
 }
 
-// «Adapt with AI» (step 3): POST /api/ai/wizard/adapt[/apply] — a proposal as a line diff, then the apply.
-export type DiffLine = { type: 'same' | 'add' | 'del'; text: string };
-export type Proposal = { body: string; baseUpdatedAt: string; diff: DiffLine[] };
-export type AdaptReply = { reply: string; proposal: Proposal | null };
+/** «Adapt with AI» (step 3) is an assignment: the prompt as a page comment (a paragraph per line) for the AI bot. */
+export const assignmentBody = (text: string) => ({
+  type: 'doc',
+  content: text
+    .trim()
+    .split(/\r?\n/)
+    .map((l) => ({ type: 'paragraph', ...(l ? { content: [{ type: 'text', text: l }] } : {}) })),
+});
 
-export const diffPrefix = (t: DiffLine['type']): string =>
-  t === 'add' ? '+' : t === 'del' ? '-' : ' ';
-
-/** A proposal that changes nothing (only «same» lines) is not worth showing. */
-export const hasChanges = (p: Proposal | null): p is Proposal =>
-  !!p && p.diff.some((l) => l.type !== 'same');
-
-/** What the apply error means for the UI: 409 → re-request, 403 → no rights. */
-export const applyFailure = (status: number | undefined): 'changed' | 'forbidden' | 'other' =>
-  status === 409 ? 'changed' : status === 403 ? 'forbidden' : 'other';
+/** The AI bot: login AI_BOT_LOGIN (the server looks it up the same way); other bots (automation) don't count. */
+export function aiBotOf<U extends { login?: string; bot?: boolean }>(
+  users: ReadonlyArray<U | undefined>,
+): U | undefined {
+  return users.find((u) => u?.bot && u.login === AI_BOT_LOGIN);
+}

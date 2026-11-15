@@ -139,3 +139,45 @@ describe('activity канала', () => {
     expect((await call(`activity/channels/${uuidv7()}`, 'member')).statusCode).toBe(404);
   });
 });
+
+describe('activity страницы', () => {
+  it('идущие прогоны страницы — участникам пространства; чужому, без ai и несуществующей — 404', async () => {
+    const page = uuidv7();
+    await raw(
+      `insert into docs_pages (id, space_id, project_id, rank, title, body, text, files, created_by, updated_by, created_at, updated_at)
+       values ($1, $2, $3, 'a0', 'P', '{"type":"doc","content":[]}'::jsonb, '', '[]'::jsonb, $4, $4, now(), now())`,
+      [page, w.spaceId, w.projectId, w.admin.userId],
+    );
+    const pageRun = async (state: string, pid = page) => {
+      const id = uuidv7();
+      await raw(
+        `insert into ai_runs (id, page_id, project_id, kind, item_id, state, chain_id, chain_depth)
+         values ($1, $2, $3, 'doc_comment', $4, $5, $1, 0)`,
+        [id, pid, w.projectId, uuidv7(), state],
+      );
+      return id;
+    };
+    const running = await pageRun('running');
+    await pageRun('failed');
+    await pageRun('waiting_human');
+    await pageRun('running', uuidv7()); // another page
+
+    const r = await call(`activity/pages/${page}`, 'member');
+    expect(r.statusCode).toBe(200);
+    expect(ids(r)).toEqual([running]);
+    expect(r.json().activity[0]).toMatchObject({ kind: 'doc_comment', state: 'running' });
+    expect((await call(`activity/pages/${page}`, 'outsider')).statusCode).toBe(404);
+    expect((await call(`activity/pages/${uuidv7()}`, 'member')).statusCode).toBe(404);
+    expect((await call('activity/pages/not-a-uuid', 'member')).statusCode).toBe(404);
+    await raw(`update projects set modules = array_remove(modules, 'ai') where id = $1`, [
+      w.projectId,
+    ]);
+    try {
+      expect((await call(`activity/pages/${page}`, 'admin')).statusCode).toBe(404);
+    } finally {
+      await raw(`update projects set modules = array_append(modules, 'ai') where id = $1`, [
+        w.projectId,
+      ]);
+    }
+  });
+});

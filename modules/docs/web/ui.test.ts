@@ -496,6 +496,48 @@ describe('docs web: комментарии к странице (PLNRAPP-209)', (
     w.unmount();
   });
 
+  it('бот ИИ — в назначении; открытый комментарий на боте — с индикатором работы', async () => {
+    const id = uuidv7();
+    const [BOT, c1, c2] = [uuidv7(), uuidv7(), uuidv7()];
+    await db.table('users').put({ id: BOT, name: 'ИИ', bot: true });
+    await db.table('spaceMembers').put({
+      id: uuidv7(), spaceId: SPACE, userId: BOT, role: 'member', createdAt: NOW, updatedAt: NOW,
+    });
+    const { registerModules } = await import('../../../apps/web/src/modules/registry');
+    // the run is only over c1; c2 stays assigned to the bot without a running run (a failed one) — no indicator
+    registerModules([
+      {
+        id: 'actpages',
+        activity: [
+          {
+            id: 'pages',
+            entity: 'pages',
+            load: async (p: string) =>
+              p === id ? [{ id: uuidv7(), itemId: c1, state: 'running', actorId: BOT, startedAt: NOW }] : [],
+          },
+        ],
+      },
+    ]);
+    await db.table('docsPages').put(page(id));
+    await db.table('docsComments').bulkPut([
+      comment(c1, id, { assigneeId: BOT }),
+      comment(c2, id, { assigneeId: BOT }),
+    ]);
+    const w = mount(PageView, { props: { pageId: id } });
+    await vi.waitFor(() => expect(w.findAll('[data-testid=doc-comment-work]')).toHaveLength(1), {
+      timeout: 10_000,
+    });
+    const open = w.get(`[data-comment="${c1}"]`);
+    const done = w.get(`[data-comment="${c2}"]`);
+    expect(open.find('.work-ring').exists()).toBe(true);
+    expect(done.find('[data-testid=doc-comment-work]').exists()).toBe(false);
+    expect(done.find('.work-ring').exists()).toBe(false);
+    await vi.waitFor(() =>
+      expect(w.get(`[data-comment="${c1}"]`).find('[data-testid=doc-comment-assign]').exists()).toBe(true),
+    );
+    w.unmount();
+  });
+
   it('гость видит комментарии, но без поля ввода и кнопок', async () => {
     const id = uuidv7();
     await db.table('spaceMembers').clear();

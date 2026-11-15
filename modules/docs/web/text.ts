@@ -47,6 +47,7 @@ const S = {
   save: { ru: 'Сохранить', en: 'Save' },
   cancel: { ru: 'Отмена', en: 'Cancel' },
   assign: { ru: 'Назначить комментарий', en: 'Assign the comment' },
+  aiWorking: { ru: 'ИИ работает', en: 'AI is working' },
   unassign: { ru: 'Снять назначение', en: 'Unassign' },
   resolve: { ru: 'Завершить', en: 'Resolve' },
   resolved: { ru: 'Завершено', en: 'Resolved' },

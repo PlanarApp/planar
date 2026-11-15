@@ -9,7 +9,6 @@ import { AgentController } from './agent.controller.js';
 import { AiController } from './controller.js';
 import { HarnessController } from './harness.controller.js';
 import { PacksController } from './packs.controller.js';
-import { WizardAdaptController } from './wizard-adapt.controller.js';
 import { EMAIL_QUEUE, handleEmail, isYes, replied, textOf, type EmailData } from './email.js';
 import type { JSONContent } from '@tiptap/core';
 import { AI_QUEUE, handle, keyOf, type AiRunData } from './run.js';
@@ -24,13 +23,7 @@ import {
 } from './retro.js';
 
 @Module({
-  controllers: [
-    AiController,
-    HarnessController,
-    PacksController,
-    WizardAdaptController,
-    AgentController,
-  ],
+  controllers: [AiController, HarnessController, PacksController, AgentController],
 })
 class AiModule {}
 
@@ -290,8 +283,40 @@ async function chatMessages(writes: MutationWrite[], api: ModuleHookApi) {
   }
 }
 
+/**
+ * Page comments (docai-run v2), by a person only: assigned to the bot → doc_comment; `@ai` newly in the text, or a
+ * reply to a comment of the bot → doc_mention. The bot's own comments start nothing.
+ */
+async function docComments(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
+  if (ctx.system || ctx.origin) return;
+  const mine = writes.filter((w) => w.entity === 'docsComments' && w.op === 'put' && w.after);
+  if (!mine.length) return;
+  const bot = (await one(api, sql`select id from users where login = ${AI_BOT_LOGIN} and bot`))?.id;
+  const me = await one(api, sql`select bot from users where id = ${ctx.userId}`);
+  if (!bot || !me || me.bot) return;
+  const mentions = (r: Row | null | undefined) => (r?.mentions as string[] | undefined) ?? [];
+  for (const { before: b, after: a } of mine as { before: Row | null; after: Row }[]) {
+    const d = { pageId: a.pageId as string, itemId: a.id as string };
+    let run: AiRunData | undefined;
+    if (a.assigneeId === bot && !a.resolvedAt && b?.assigneeId !== bot)
+      run = { kind: 'doc_comment', ...d };
+    else if (mentions(a).includes(bot as string) && !mentions(b).includes(bot as string))
+      run = { kind: 'doc_mention', ...d };
+    else if (!b && a.parentId) {
+      const parent = await one(
+        api,
+        sql`select author_id as "authorId" from docs_comments where id = ${a.parentId as string}`,
+      );
+      if (parent?.authorId === bot) run = { kind: 'doc_mention', ...d };
+    }
+    if (run)
+      await api.enqueue(AI_QUEUE, run, { singletonKey: keyOf(run), upsert: true, startAfter: 5 });
+  }
+}
+
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
   await ensureBot(writes, ctx, api);
+  await docComments(writes, ctx, api);
   await assignments(writes, ctx, api, await retroHook(writes, ctx, api));
   await chatMessages(writes, api);
 }

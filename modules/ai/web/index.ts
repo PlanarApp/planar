@@ -39,6 +39,7 @@ export const web = defineWebModule({
   activity: [
     { id: 'tasks', entity: 'tasks', load: activity('tasks') },
     { id: 'chat', entity: 'chatChannels', load: activity('channels') },
+    { id: 'pages', entity: 'pages', load: activity('pages') },
   ],
   docPanels: [{ id: 'harness', component: () => import('./HarnessPanel.vue') }],
   settings: [

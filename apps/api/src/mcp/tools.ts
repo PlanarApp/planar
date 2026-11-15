@@ -8,6 +8,8 @@ import {
   commentBody,
   createDocBody,
   createTaskBody,
+  docCommentBody,
+  docPatchBody,
   docQuery,
   docsQuery,
   docTaskBody,
@@ -330,6 +332,34 @@ export function toolDefs(rest: RestService): ToolDef[] {
     { pageId: doc, ...docTaskBody.shape },
     true,
     async ({ pageId, ...a }, c) => (await rest.linkDocTask(c.uid, pageId, a, c.tokenId)).data,
+  );
+  def(
+    'list_doc_comments',
+    'Комментарии страницы документа: {id, parentId, authorId, text, assigneeId, resolved, createdAt}',
+    { pageId: doc },
+    false,
+    async ({ pageId }, c) => (await rest.docComments(c.uid, pageId)).data,
+  );
+  def(
+    'add_doc_comment',
+    'Комментарий к странице документа (@login — упоминание); parentId — ответ в ветку, assigneeId — назначить',
+    { pageId: doc, ...docCommentBody.shape },
+    true,
+    async ({ pageId, ...a }, c) => (await rest.createDocComment(c.uid, pageId, a, c.tokenId)).data,
+  );
+  def(
+    'resolve_doc_comment',
+    'Отметить назначенный комментарий страницы выполненным',
+    { pageId: doc, id: z.uuid().describe('id комментария') },
+    true,
+    async ({ pageId, id }, c) => (await rest.resolveDocComment(c.uid, pageId, id, c.tokenId)).data,
+  );
+  def(
+    'patch_doc',
+    'Точечные правки страницы: edits [{find, replace, all?}] по markdown; find — ровно одно вхождение (или all); ошибки patch_not_found / patch_ambiguous / patch_mentions',
+    { pageId: doc, ...docPatchBody.shape },
+    true,
+    async ({ pageId, ...a }, c) => (await rest.patchDocPage(c.uid, pageId, a, c.tokenId)).data,
   );
   return defs;
 }

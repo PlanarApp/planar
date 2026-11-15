@@ -121,6 +121,24 @@ export class RestController {
   updateDoc(@Req() req: object, @Param('id') id: string, @Body() b: unknown) {
     return this.rest.updateDoc(getAuth(req).userId, id, b, getAuth(req).tokenId);
   }
+  @Get('docs/:id/comments')
+  docComments(@Req() req: object, @Param('id') id: string) {
+    return this.rest.docComments(getAuth(req).userId, id);
+  }
+  @Post('docs/:id/comments')
+  createDocComment(@Req() req: object, @Param('id') id: string, @Body() b: unknown) {
+    return this.rest.createDocComment(getAuth(req).userId, id, b, getAuth(req).tokenId);
+  }
+  @Post('docs/:id/comments/:cid/resolve')
+  @HttpCode(200)
+  resolveDocComment(@Req() req: object, @Param('id') id: string, @Param('cid') cid: string) {
+    return this.rest.resolveDocComment(getAuth(req).userId, id, cid, getAuth(req).tokenId);
+  }
+  @Post('docs/:id/patch')
+  @HttpCode(200)
+  patchDocPage(@Req() req: object, @Param('id') id: string, @Body() b: unknown) {
+    return this.rest.patchDocPage(getAuth(req).userId, id, b, getAuth(req).tokenId);
+  }
   @Post('docs/:id/tasks')
   linkDocTask(@Req() req: object, @Param('id') id: string, @Body() b: unknown) {
     return this.rest.linkDocTask(getAuth(req).userId, id, b, getAuth(req).tokenId);

@@ -5,6 +5,8 @@ import { archiveCutoff, purgeArchived, type JobApi, type JobDef } from '@planar/
 import { shared } from '../shared/index.js';
 import { DocsController, versions } from './versions.js';
 
+export { applyPagePatch, pagePatchSchema, type PagePatch, type PatchDeps } from './patch.js';
+
 @Module({ controllers: [DocsController] })
 class DocsModule {}
 

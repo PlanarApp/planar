@@ -483,6 +483,9 @@ importers:
       '@planar/module-automations':
         specifier: workspace:*
         version: link:../automations
+      '@planar/module-docs':
+        specifier: workspace:*
+        version: link:../docs
       '@planar/module-email':
         specifier: workspace:*
         version: link:../email
@@ -650,6 +653,9 @@ importers:
       '@planar/web':
         specifier: workspace:*
         version: link:../../apps/web
+      '@tiptap/core':
+        specifier: ^3.32.0
+        version: 3.32.0(@tiptap/pm@3.32.0)
       '@tiptap/extension-image':
         specifier: ^3.32.0
         version: 3.32.0(@tiptap/core@3.32.0(@tiptap/pm@3.32.0))

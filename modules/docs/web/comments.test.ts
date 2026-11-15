@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canResolve, threads, type CommentRow } from './comments';
+import { assignablePeople, canResolve, threads, type CommentRow } from './comments';
 
 const c = (
   id: string,
@@ -51,5 +51,16 @@ describe('docs comments', () => {
     expect(canResolve(assigned, 'other', false)).toBe(false);
     expect(canResolve(assigned, 'other', true)).toBe(true);
     expect(canResolve(assigned, undefined, true)).toBe(false);
+  });
+
+  it('assignablePeople: из ботов только ai, гости исключены', () => {
+    const p = (id: string, o: Record<string, unknown> = {}) => ({ id, role: 'member', bot: false, login: id, ...o });
+    const r = assignablePeople([
+      p('a'),
+      p('automation', { bot: true }),
+      p('ai', { bot: true }),
+      p('g', { role: 'guest' }),
+    ]);
+    expect(r.map((x) => x.id)).toEqual(['a', 'ai']);
   });
 });

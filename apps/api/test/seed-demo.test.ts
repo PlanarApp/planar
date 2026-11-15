@@ -93,6 +93,16 @@ describe('seed-demo', () => {
     expect(m?.v).toContain('chat');
   });
 
+  it('ИИ в комментариях страницы: решённое поручение и ответ бота в ветке', async () => {
+    const [r] = await q<{ n: number }>(`select count(*)::int as n from docs_comments a
+      join users u on u.id = a.assignee_id and u.login = 'ai' and u.bot
+      join docs_comments r on r.parent_id = a.id
+      join users ru on ru.id = r.author_id and ru.login = 'ai'
+      join docs_pages g on g.id = a.page_id and g.project_id is not null
+      where a.resolved_at is not null and a.resolved_by = u.id`);
+    expect(r!.n).toBeGreaterThan(0);
+  });
+
   it('JSON модулей проходит их схемы (иначе экраны демо пустые)', async () => {
     type J = Record<string, unknown>;
     for (const r of await q<J>(`select trigger, conditions, actions from automations_rules`)) {

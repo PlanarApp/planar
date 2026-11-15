@@ -156,7 +156,7 @@ export interface WorkActivity {
 /** Where the indicator takes the work from; the core reloads it on replica changes and polls while it is running. */
 export interface ActivitySourceDef {
   id: string;
-  entity: 'tasks' | 'chatChannels';
+  entity: 'tasks' | 'chatChannels' | 'pages';
   load(id: string): Promise<WorkActivity[]>;
 }
 

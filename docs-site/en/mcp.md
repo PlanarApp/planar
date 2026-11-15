@@ -65,4 +65,11 @@ Write (needs `write`):
 - `update_task {task, …, fields?}`: like `PATCH /api/v1/tasks/:task`, `fields` is `{<fieldId>: value | null}`;
 - `add_comment {task, text}`: `@login` becomes a mention.
 
+Document page comments and edits (see [AI in documents](/ai-in-documents)):
+
+- `list_doc_comments {pageId}` (read): the page's comments `{id, parentId, authorId, text, assigneeId, resolved, createdAt}`;
+- `add_doc_comment {pageId, text, parentId?, assigneeId?}`: a comment (`@login` is a mention); `parentId` replies in a thread, `assigneeId` assigns it;
+- `resolve_doc_comment {pageId, id}`: marks an assigned comment done;
+- `patch_doc {pageId, edits}`: precise page edits `[{find, replace, all?}]` on the page markdown; `find` must occur exactly once (or `all`). Errors: `patch_not_found`, `patch_ambiguous`, `patch_mentions`.
+
 The response is compact JSON in a text block; `description` is plain text. Errors (`forbidden`, `not_found`, `invalid_request`, `conflict`) come back as a tool result with `isError: true` and a `{code, message}` body. A `read` token attempting a write gets `forbidden`. No token, or a revoked or expired one: HTTP `401`.
