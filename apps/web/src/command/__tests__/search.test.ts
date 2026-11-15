@@ -1,7 +1,9 @@
 import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope } from 'vue';
-import { db } from '../../sync';
+import { domainMutators } from '@planar/shared';
+import { db, registerMutators, startSync, stopSync } from '../../sync';
+import { archiveTask, createTask, updateTask } from '../../tasks';
 import { ids, reset, task, until } from '../../tasks/__tests__/data';
 import { useSearch } from '../search';
 
@@ -9,6 +11,7 @@ const doc = (text: string) => ({
   type: 'doc',
   content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
 });
+beforeAll(() => registerMutators(domainMutators));
 beforeEach(reset);
 
 const open = async () => {
@@ -39,6 +42,30 @@ describe('cmd:search', () => {
       ]);
     const s = await open();
     expect(s.search('pln-5').map((h) => h.ref)).toEqual(['PLN-5', 'PLN-3', 'PLN-2', 'PLN-1']);
+  });
+  it('PLNRAPP-251: правки после открытия — по событиям реплики, без перечитывания таблицы', async () => {
+    await stopSync();
+    await startSync({
+      userId: ids.ann,
+      fetch: (() => Promise.reject(new TypeError('offline'))) as never,
+    });
+    await db.table('tasks').bulkPut([task(1, { title: 'старая' })]);
+    const s = await open();
+    const read = vi.spyOn(db.table('tasks'), 'toArray');
+    const a = await createTask({
+      projectId: ids.project,
+      statusId: ids.todo,
+      title: 'новая зебра',
+    });
+    await until(() => s.search('зебра').length === 1);
+    await updateTask(a, { title: 'жираф' });
+    await until(() => s.search('жираф').length === 1);
+    expect(s.search('зебра')).toEqual([]);
+    await archiveTask(a);
+    await until(() => s.search('жираф').length === 0);
+    expect(s.search('старая')).toHaveLength(1);
+    expect(read).not.toHaveBeenCalled();
+    await stopSync();
   });
   it('cmd:perf', async () => {
     const ts = Array.from({ length: 10_000 }, (_, i) =>
