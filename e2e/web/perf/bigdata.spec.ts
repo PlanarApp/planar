@@ -96,6 +96,9 @@ const rowsRead = (page: Page) =>
     return r;
   });
 
+/** in-page marks of action(): pointerdown and the frame where done saw the result (done sets __t1) */
+type Marks = { __t0: number; __t1: number };
+
 /**
  * ms from the start of act until done resolves, then the long tasks of the following second;
  * BIG_PROF_DIR=<dir> — CPU profile of the action into <dir>/<name>.cpuprofile (profile/analyze.mjs)
@@ -116,10 +119,25 @@ async function action(
     await cdp.send('Profiler.setSamplingInterval', { interval: 500 });
     await cdp.send('Profiler.start');
   }
+  await page.evaluate(() => {
+    const w = window as unknown as Marks;
+    w.__t0 = w.__t1 = 0;
+    addEventListener('pointerdown', () => (w.__t0 = performance.now()), {
+      capture: true,
+      once: true,
+    });
+  });
   const t0 = Date.now();
   await act();
   await done();
   out(`${name}_ms`, Date.now() - t0);
+  // without Playwright's actionability checks before the click: pointerdown → the frame with the result
+  out(
+    `${name}_input_ms`,
+    await page.evaluate(
+      () => (window as unknown as Marks).__t1 - (window as unknown as Marks).__t0,
+    ),
+  );
   await page.waitForTimeout(1000);
   const lt = await longTasks(page);
   out(`${name}_longtask_sum_ms`, lt.sum);
@@ -284,7 +302,12 @@ test('большие данные: первый вход, комментарий
     'comment',
     () => page.getByTestId('comment-send').click(),
     () =>
-      page.waitForFunction((k) => document.querySelectorAll('[data-testid=comment]').length > k, n),
+      page.waitForFunction(
+        (k) =>
+          document.querySelectorAll('[data-testid=comment]').length > k &&
+          ((window as unknown as Marks).__t1 = performance.now()),
+        n,
+      ),
   );
   await page.getByTestId('comment').filter({ hasText: text }).waitFor();
 
@@ -298,7 +321,15 @@ test('большие данные: первый вход, комментарий
     page,
     'status',
     () => option.click(),
-    () => test.expect(pill).toContainText(next, { timeout: 120_000 }),
+    // every frame, like the comment: expect() polls at 100/250/500 ms and inflates the time
+    () =>
+      page.waitForFunction(
+        (t) =>
+          document.querySelector('[data-testid=status-pill]')?.textContent?.includes(t) &&
+          ((window as unknown as Marks).__t1 = performance.now()),
+        next,
+        { timeout: 120_000 },
+      ),
   );
   await ctx.close();
 

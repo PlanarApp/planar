@@ -5,15 +5,17 @@ import { i18n } from '../../../i18n';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../../../../modules/time/web/data', async () => {
-  const { ref } = await import('vue');
+  const { computed, ref } = await import('vue');
+  type T = { id: string; parentId?: string | null; title: string };
   const state = {
     entries: ref<unknown[]>([]),
     taskEntries: ref<unknown[]>([]),
-    tasks: ref<unknown[]>([]),
+    tasks: ref<T[]>([]),
     estimate: ref<unknown>(undefined),
     now: ref(Date.parse('2026-10-21T12:00:00Z')),
     weekStart: ref<0 | 1>(1),
   };
+  const tasks = () => state.tasks.value;
   let n = 0;
   return {
     __state: state,
@@ -36,7 +38,19 @@ vi.mock('../../../../../../modules/time/web/data', async () => {
       ),
     useUsers: () => ref([]),
     isInstanceAdmin: () => false,
-    useTasks: () => state.tasks,
+    useTask: (id: () => string) => computed(() => tasks().find((t) => t.id === id()) ?? null),
+    useTaskLites: () => computed(() => new Map(tasks().map((t) => [t.id, t]))),
+    // the real one reads the parentId index (time-subtree.test.ts)
+    useSubtree: (id: () => string) =>
+      computed(() => {
+        const out = new Set([id()]);
+        for (let grew = true; grew;) {
+          grew = false;
+          for (const t of tasks())
+            if (t.parentId && out.has(t.parentId) && !out.has(t.id)) grew = !!out.add(t.id);
+        }
+        return out;
+      }),
     useEstimate: () => state.estimate,
     useNow: () => state.now,
     useWeekStart: () => state.weekStart,

@@ -5,8 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import en from '../../i18n/en';
 import ru from '../../i18n/ru';
-import { reset, task, until } from '../../tasks/__tests__/data';
-import { db } from '../../sync';
+import { domainMutators } from '@planar/shared';
+import { ids, reset, task, until } from '../../tasks/__tests__/data';
+import { db, registerMutators, startSync, stopSync } from '../../sync';
+import { updateTask } from '../../tasks';
 
 const { router } = vi.hoisted(() => ({ router: { current: undefined as never } }));
 vi.mock('../../router', async () => {
@@ -101,17 +103,27 @@ describe('cmd:palette', () => {
 
 describe('cmd:live', () => {
   it('polish: cmd:live результаты «Задачи» обновляются при изменении реплики', async () => {
+    // the index follows replica events (PLNRAPP-251) — edits go through the sync client
+    registerMutators(domainMutators);
+    await startSync({
+      userId: ids.ann,
+      fetch: (() => Promise.reject(new TypeError('offline'))) as never,
+    });
+    const hidden = task(8, { title: 'Скрыта' });
+    await db.table('tasks').put(hidden);
     key('k', { ctrlKey: true });
     await ready('Мой день');
     await typeIn('найди');
     await ready('PLN-7');
-    await db.table('tasks').put(task(8, { title: 'Найди ещё' }));
+    await updateTask(hidden.id, { title: 'Найди ещё' });
     await ready('PLN-8');
-    await db
+    const seven = (await db
       .table('tasks')
       .filter((t) => t.number === 7)
-      .delete();
+      .first())!;
+    await updateTask(seven.id, { title: 'Другое' });
     await until(() => !body().includes('PLN-7') || undefined);
+    await stopSync();
   });
 });
 

@@ -11,11 +11,11 @@ import {
   useMyEntries,
   useNow,
   userId,
+  useSubtree,
   useTaskEntries,
-  useTasks,
   useUserNames,
 } from './data';
-import { clock, dayKey, hm, parseHm, subtreeIds, sumSec } from './lib';
+import { clock, dayKey, hm, parseHm, sumSec } from './lib';
 
 // menu — inside TimeControl: start/stop is next to the time, not here
 const props = defineProps<{ taskId: string; menu?: boolean }>();
@@ -23,11 +23,11 @@ const now = useNow();
 const entries = useMyEntries();
 const taskEntries = useTaskEntries(() => props.taskId);
 const names = useUserNames();
-const tasks = useTasks();
+const subtree = useSubtree(() => props.taskId);
 const estimate = useEstimate(() => props.taskId);
 
 const mine = computed(() => entries.value ?? []);
-const ids = computed(() => subtreeIds(tasks.value ?? [], props.taskId));
+const ids = computed(() => subtree.value ?? new Set([props.taskId]));
 const total = computed(() => sumSec(mine.value, ids.value, userId(), now.value));
 const running = computed(() => mine.value.find((e) => !e.endedAt));
 const runningHere = computed(() => running.value?.taskId === props.taskId);

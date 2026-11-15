@@ -13,6 +13,8 @@ export { mutate, newId, rankBetween, useQuery } from '../sync';
 export { enabledForProject, useExtensions } from './registry';
 /** PLNRAPP-202: the indicator of background work (C-modules v15) */
 export { useActivity, activityOf, minutesSince, useNow, type Activity } from './activity';
+/** PLNRAPP-251: a replica query with a reactive argument (C-modules v16) */
+export { useLive } from '../links/live';
 export { db };
 export {
   useTask,
