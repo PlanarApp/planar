@@ -8,12 +8,14 @@ import {
   MAX_BYTES,
   MAX_ROWS,
   PRESETS,
+  STATUS_CATEGORIES,
   mappingSchema,
   shared,
   type ImportFormat,
   type ImportPreset,
   type Mapping,
   type Preview,
+  type StatusCategory,
 } from '../shared/index.js';
 import {
   ParseError,
@@ -130,14 +132,29 @@ class ImportController {
     const [format, preset] = formatPreset(fields);
     let mapping =
       format === 'trello' && !fields.mapping ? TRELLO_MAPPING : parseMapping(fields.mapping ?? '');
-    if (!UUID.test(fields.projectId ?? '')) throw bad('projectId неверен');
-    const projectId = fields.projectId!;
+    // the main project, or only the space — then the rows go to projects by the project column
+    const projectId = fields.projectId || null;
+    if (projectId !== null && !UUID.test(projectId)) throw bad('projectId неверен');
+    if (projectId === null && !UUID.test(fields.spaceId ?? ''))
+      throw bad('нужен projectId или spaceId');
+    if (projectId === null && !mapping.project) throw bad('без проекта нужна колонка проекта');
     // a space member with a role no lower than member may write to a project; someone else's project — as a nonexistent one
-    const ok = await this.core.db.execute(sql`
+    const ok = await this.core.db.execute(
+      projectId
+        ? sql`
       select p.space_id from projects p join space_members m on m.space_id = p.space_id
       where p.id = ${projectId} and m.user_id = ${userId} and m.role in ('admin', 'member')
-        and project_role(${userId}::uuid, p.id) in ('admin', 'member')`);
-    if (!ok.rows.length) throw new HttpError(404, 'not_found', 'Проект не найден');
+        and project_role(${userId}::uuid, p.id) in ('admin', 'member')`
+        : sql`
+      select m.space_id from space_members m
+      where m.space_id = ${fields.spaceId} and m.user_id = ${userId} and m.role in ('admin', 'member')`,
+    );
+    if (!ok.rows.length)
+      throw new HttpError(
+        404,
+        'not_found',
+        projectId ? 'Проект не найден' : 'Пространство не найдено',
+      );
     const p = parseOrThrow(file, format, mapping, preset);
     const spaceId = (ok.rows[0] as { space_id: string }).space_id;
     mapping = await resolveNew(this.core, auth, spaceId, mapping, p.items);
@@ -147,6 +164,7 @@ class ImportController {
         id: uuidv7(),
         userId,
         projectId,
+        spaceId,
         format,
         preset,
         total: p.items.length,
@@ -180,6 +198,14 @@ class ImportModule {}
 
 const BATCH = 100;
 const LABEL_COLOR = '#6b7280';
+// as the default statuses of a new project (packages/shared mutators/projects.ts)
+const STATUS_COLOR: Record<StatusCategory, string> = {
+  backlog: '#94a3b8',
+  todo: '#64748b',
+  in_progress: '#3b82f6',
+  done: '#22c55e',
+  cancelled: '#ef4444',
+};
 const docOf = (text: string) => ({
   type: 'doc',
   content: text
@@ -216,20 +242,27 @@ async function runImport(jobId: string, api: JobApi) {
     await touch({ total: items.length });
 
     const q = <T>(s: ReturnType<typeof sql>) => db.execute(s).then((r) => r.rows as T[]);
-    const [project] = await q<{ space_id: string }>(
-      sql`select space_id from projects where id = ${job!.projectId}`,
-    );
-    if (!project) throw new Error('Проект не найден');
-    const spaceId = project.space_id;
-    // project of a row: by projectMap (ids in the job project's space, checked on creation), otherwise — the job's
+    const main = job!.projectId;
+    let spaceId = job!.spaceId;
+    if (!spaceId) {
+      // older jobs: the main project's space
+      const [project] = await q<{ space_id: string }>(
+        sql`select space_id from projects where id = ${main}`,
+      );
+      if (!project) throw new Error('Проект не найден');
+      spaceId = project.space_id;
+    }
+    // project of a row: by projectMap (ids in the import space, checked on creation), otherwise — the main one
     const projectMap = mapping.projectMap ?? {};
-    const projOf = (it: Item) =>
-      (it.project !== undefined && projectMap[it.project]) || job!.projectId;
-    const pids = [...new Set([job!.projectId, ...items.map(projOf)])];
-    const pidList = sql.join(
-      pids.map((p) => sql`${p}::uuid`),
-      sql`, `,
-    );
+    const projOf = (it: Item): string | null =>
+      (it.project !== undefined && projectMap[it.project]) || main;
+    const pids = [...new Set([main, ...items.map(projOf)].filter((p): p is string => p !== null))];
+    const pidList = pids.length
+      ? sql.join(
+          pids.map((p) => sql`${p}::uuid`),
+          sql`, `,
+        )
+      : sql`null`;
     const live = new Set(
       (
         await q<{ id: string }>(
@@ -237,30 +270,41 @@ async function runImport(jobId: string, api: JobApi) {
         )
       ).map((r) => r.id),
     );
+    if (main && !live.has(main)) throw new Error('Проект не найден');
 
-    const statusRows = await q<{ id: string; project_id: string; name: string; category: string }>(
-      sql`select id, project_id, name, category from statuses where project_id in (${pidList}) order by rank`,
+    const statusRows = await q<{
+      id: string;
+      project_id: string;
+      name: string;
+      category: string;
+      rank: string;
+    }>(
+      sql`select id, project_id, name, category, rank from statuses where project_id in (${pidList}) order by rank collate "C"`,
     );
     const statusName = new Map(statusRows.map((s) => [s.id, s.name.toLowerCase()]));
-    const perProject = new Map<string, { def?: string; byName: Map<string, string> }>();
+    const perProject = new Map<
+      string,
+      { def?: string; byName: Map<string, string>; list: typeof statusRows }
+    >();
     for (const pid of pids) {
       const ss = statusRows.filter((s) => s.project_id === pid);
       perProject.set(pid, {
         def: (ss.find((s) => s.category === 'todo') ?? ss.find((s) => s.category === 'backlog'))
           ?.id,
         byName: new Map(ss.map((s) => [s.name.toLowerCase(), s.id])),
+        list: ss,
       });
     }
-    if (!perProject.get(job!.projectId)!.def) throw new Error('Нет статуса по умолчанию');
+    if (main && !perProject.get(main)!.def) throw new Error('Нет статуса по умолчанию');
     const statusMap = new Map(Object.entries(mapping.statusMap ?? {}));
     /**
-     * statusMap holds statuses of the job project; another project gets the status of the same name.
-     * Values outside the preview's 20 rows are not in statusMap: matched by status name.
+     * statusMap holds statuses of the main project; another project gets the status of the same name.
+     * Values outside the preview's 20 rows are not in statusMap: matched by status name (created ones included).
      */
     const statusOf = (pid: string, v: string) => {
       const p = perProject.get(pid)!;
       const mapped = statusMap.get(v);
-      if (mapped && pid === job!.projectId) return mapped;
+      if (mapped && pid === main) return mapped;
       return (
         (mapped && p.byName.get(statusName.get(mapped) ?? '')) ??
         p.byName.get(v.toLowerCase()) ??
@@ -294,8 +338,44 @@ async function runImport(jobId: string, api: JobApi) {
     const person = (name: string) =>
       userMap.get(name.toLowerCase()) ?? users.get(name.toLowerCase());
 
-    for (const it of items)
-      if (!it.skip && !live.has(projOf(it))) it.skip = `проект «${it.project}» не найден`;
+    for (const it of items) {
+      if (it.skip) continue;
+      const pid = projOf(it);
+      if (pid === null) it.skip = 'нет проекта';
+      else if (!live.has(pid)) it.skip = `проект «${it.project}» не найден`;
+    }
+    // below — rows not skipped: their project is known
+    const pidOf = (it: Item) => projOf(it)!;
+
+    // statuses from statusNew: in each project of the value's rows that has no status of that name
+    const statusNew = mapping.statusNew ?? {};
+    const makeStatus: Mut[] = [];
+    for (const it of items) {
+      if (it.skip || !it.status || !statusNew[it.status]) continue;
+      const pid = pidOf(it);
+      // the main project's statusMap goes first: the value is already placed
+      if (pid === main && statusMap.has(it.status)) continue;
+      const p = perProject.get(pid)!;
+      if (p.byName.has(it.status.toLowerCase())) continue;
+      const category = statusNew[it.status]!;
+      // after the last status of the category (order of categories — as in the project), otherwise at the end
+      const order = STATUS_CATEGORIES.indexOf(category);
+      const at = p.list.findLastIndex(
+        (s) => STATUS_CATEGORIES.indexOf(s.category as StatusCategory) <= order,
+      );
+      const rank = generateKeyBetween(p.list[at]?.rank ?? null, p.list[at + 1]?.rank ?? null);
+      const id = uuidv7();
+      const name = it.status.slice(0, 100);
+      p.list.splice(at + 1, 0, { id, project_id: pid, name, category, rank });
+      p.byName.set(it.status.toLowerCase(), id);
+      p.def ??= category === 'todo' || category === 'backlog' ? id : undefined;
+      makeStatus.push({
+        name: 'status.create',
+        args: { id, projectId: pid, name, category, color: STATUS_COLOR[category], rank },
+      });
+    }
+    for (let i = 0; i < makeStatus.length; i += BATCH)
+      await api.execute(job!.userId, makeStatus.slice(i, i + BATCH));
 
     // labels by project and name, case-insensitive; missing ones are created in one call
     const labels = new Map<string, string>();
@@ -307,7 +387,7 @@ async function runImport(jobId: string, api: JobApi) {
     const make: Mut[] = [];
     for (const it of items) {
       if (it.skip) continue;
-      const pid = projOf(it);
+      const pid = pidOf(it);
       for (const n of (it.labels ?? []).map((x) => x.slice(0, 100))) {
         if (labels.has(lkey(pid, n))) continue;
         const id = uuidv7();
@@ -386,7 +466,7 @@ async function runImport(jobId: string, api: JobApi) {
       const existing = ext ? taskOf.get(ext) : undefined;
       const isUpdate = !!existing && (exists.has(existing) || fresh.has(ext!));
       // an update stays in the task's project
-      const pid = (isUpdate && projectOfTask.get(existing!)) || projOf(it);
+      const pid = (isUpdate && projectOfTask.get(existing!)) || pidOf(it);
       const statusId = it.status === undefined ? undefined : statusOf(pid, it.status);
       const assigneeIds: string[] = [];
       for (const a of it.assignees ?? []) {

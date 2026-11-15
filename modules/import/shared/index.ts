@@ -14,6 +14,21 @@ export const MAX_ROWS = 20_000;
 /** projectMap/userMap value: create the project/user on import */
 export const NEW = 'new';
 
+export const STATUS_CATEGORIES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
+export type StatusCategory = (typeof STATUS_CATEGORIES)[number];
+
+// the first match wins: «К работе» is todo, not in progress
+const CATEGORY_HINTS: [StatusCategory, RegExp][] = [
+  ['cancelled', /cancel|отмен|reject|отклон|won'?t|duplicate|дубл/i],
+  ['done', /done|complete|closed|resolved|finish|released|deployed|готов|выполн|закрыт|сделано/i],
+  ['backlog', /backlog|бэклог|icebox|idea|идея|later|потом/i],
+  ['todo', /\bto ?do\b|\bopen\b|\bnew\b|к работе|сделать|нов/i],
+  ['in_progress', /progress|review|test|\bdev|qa|doing|block|wait|ревью|тест|работ|ожид|провер/i],
+];
+/** Category of a created status by its name; unknown — todo. */
+export const guessCategory = (name: string): StatusCategory =>
+  CATEGORY_HINTS.find(([, re]) => re.test(name))?.[0] ?? 'todo';
+
 const col = z.string().min(1);
 export const mappingSchema = z.object({
   externalId: col.optional(),
@@ -26,14 +41,16 @@ export const mappingSchema = z.object({
   startDate: col.optional(),
   priority: col.optional(),
   parent: col.optional(),
-  /** project column (Plane: Project Name): rows go to projects by projectMap, the rest — to the job's project */
+  /** project column (Plane: Project Name): rows go to projects by projectMap, the rest — to the job's project (none — skipped) */
   project: col.optional(),
   /** project key column (Plane: Project Identifier): the key of a created project */
   projectKey: col.optional(),
   /** comments column: a JSON array `[{comment, created_by, created_at}]` (Plane) */
   comments: col.optional(),
   statusMap: z.record(z.string(), z.uuid()).optional(),
-  /** project value → project id in the job project's space, or `new` — create */
+  /** status value → category: created in every project of its rows that has no status of that name */
+  statusNew: z.record(z.string(), z.enum(STATUS_CATEGORIES)).optional(),
+  /** project value → project id in the import space, or `new` — create */
   projectMap: z.record(z.string(), z.union([z.uuid(), z.literal(NEW)])).optional(),
   /** person name (assignee, comment author) → user id, or `new` — create (instance admin only) */
   userMap: z.record(z.string(), z.union([z.uuid(), z.literal(NEW)])).optional(),
@@ -43,7 +60,8 @@ export type Mapping = z.infer<typeof mappingSchema>;
 export interface ImportJob {
   id: string;
   userId: string;
-  projectId: string;
+  projectId: string | null;
+  spaceId: string | null;
   format: ImportFormat;
   preset: ImportPreset;
   status: 'pending' | 'running' | 'done' | 'failed';

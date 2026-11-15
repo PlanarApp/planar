@@ -51,7 +51,7 @@ export function projectKey(key: string | undefined, name: string, taken: Set<str
 }
 
 /**
- * `new` in projectMap/userMap → creates projects in the job project's space and users (instance admin only),
+ * `new` in projectMap/userMap → creates projects in the import space and users (instance admin only),
  * new users become members of the space; a project from projectMap must be in that space and writable.
  * Returns the mapping with ids instead of `new`.
  */

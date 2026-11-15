@@ -22,7 +22,10 @@ export const importJobs = pgTable(
   {
     id: uuid().primaryKey(),
     userId: uuid().notNull(),
-    projectId: uuid().notNull(),
+    /** main project: rows without a project of their own; null — import into the space by the project column (PLNRAPP-246) */
+    projectId: uuid(),
+    /** import space; null — older jobs (the project's space) */
+    spaceId: uuid(),
     format: text().notNull(),
     preset: text().notNull(),
     status: text().notNull().default('pending'),

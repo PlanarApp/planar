@@ -23,13 +23,18 @@ vi.mock('../../../../../../modules/import/web/data', async () => {
   };
   return {
     tr: (k: string) => k,
+    useSpaces: () =>
+      ref([
+        { id: 's1', name: 'Space', rank: 'a0' },
+        { id: 's2', name: 'Empty', rank: 'a1' },
+      ]),
     useProjects: () => ref([{ id: 'p1', name: 'Proj', key: 'PRJ', spaceId: 's1' }]),
     useUsers: () => ref([{ id: 'u1', name: 'Alice', login: 'alice', deactivatedAt: null }]),
     useSession: () => ref({ id: 'u1', role: 'admin' }),
     useStatuses: () =>
       ref([
-        { id: 'st1', name: 'Todo', spaceId: 's1', rank: 'a0' },
-        { id: 'st2', name: 'Done', spaceId: 's1', rank: 'a1' },
+        { id: 'st1', name: 'Todo', spaceId: 's1', projectId: 'p1', rank: 'a0' },
+        { id: 'st2', name: 'Done', spaceId: 's1', projectId: 'p1', rank: 'a1' },
       ]),
     previewFile: vi.fn(async () => ({
       columns: ['Title', 'Status'],
@@ -98,6 +103,20 @@ describe('wk6: web импорта', () => {
     expect(guessUser('andrey z.', us)).toBe('u1');
     expect(guessUser('A@X.io', us)).toBe('u1');
     expect(guessUser('G L', us)).toBe('');
+    expect(guessUser('G L', us, true)).toBe('new'); // an instance admin — create by default
+  });
+
+  it('статусы: подсказка «создать» с категорией по имени; statusMap и statusNew раздельно', () => {
+    expect(guessStatus('Test dev', [])).toBe('new:in_progress');
+    expect(guessStatus('К работе', [])).toBe('new:todo');
+    expect(guessStatus('Cancelled', [])).toBe('new:cancelled');
+    expect(guessStatus('Need discuss', [])).toBe('new:todo'); // unknown → todo
+    expect(buildMapping({ title: 'T', status: 'S' }, { a: 'id1', b: 'new:done', c: '' })).toEqual({
+      title: 'T',
+      status: 'S',
+      statusMap: { a: 'id1' },
+      statusNew: { b: 'done' },
+    });
   });
 
   it('wk6: lib — mapping без пустых полей, подсказка статуса, заготовки формата', () => {
@@ -121,6 +140,10 @@ describe('wk6: web импорта', () => {
     await flushPromises();
     expect(data.previewFile).toHaveBeenCalledWith(expect.any(File), 'csv', 'clickup');
     expect(w.findAll('.import-preview tbody tr')).toHaveLength(3);
+    expect(w.find('.import-project').exists()).toBe(false); // the space first
+    w.get('.import-space').getComponent(Select).vm.$emit('update:modelValue', 's1');
+    await w.vm.$nextTick();
+    expect(w.get('.import-start').attributes('disabled')).toBeDefined(); // no project column — a project is required
     w.get('.import-project').getComponent(Select).vm.$emit('update:modelValue', 'p1');
     await w.vm.$nextTick();
     // statuses — over the whole file (values), not only the preview rows
@@ -135,13 +158,52 @@ describe('wk6: web импорта', () => {
     expect(data.startJob).toHaveBeenCalledWith(
       expect.any(File),
       expect.objectContaining({
+        spaceId: 's1',
         projectId: 'p1',
         preset: 'clickup',
-        mapping: expect.objectContaining({ title: 'Title', status: 'Status' }),
+        mapping: expect.objectContaining({
+          title: 'Title',
+          status: 'Status',
+          statusMap: { todo: 'st1', Done: 'st2' },
+          statusNew: { Later: 'backlog' },
+        }),
       }),
     );
     expect(w.text()).toContain('нет заголовка');
     expect(w.text()).toContain('исполнитель');
+    w.unmount();
+  });
+
+  it('пустое пространство: без проекта по колонке проекта — проекты и люди «создать»', async () => {
+    vi.mocked(data.previewFile).mockResolvedValueOnce({
+      columns: ['Name', 'Project', 'Assignees'],
+      rows: [['A', 'Eng', '["G L"]']],
+      mapping: { title: 'Name', project: 'Project', assignee: 'Assignees' },
+      values: { status: [], project: [{ name: 'Eng', key: 'ENG' }], people: ['G L', 'Alice'] },
+    });
+    vi.mocked(data.startJob).mockClear();
+    const w = mount(ImportPage);
+    const input = w.get('input[type=file]');
+    Object.defineProperty(input.element, 'files', { value: [new File(['x'], 'a.json')] });
+    await input.trigger('change');
+    await w.get('.import-next').trigger('click');
+    await flushPromises();
+    w.get('.import-space').getComponent(Select).vm.$emit('update:modelValue', 's2');
+    await w.vm.$nextTick();
+    expect(w.get('.import-start').attributes('disabled')).toBeUndefined();
+    await w.get('.import-start').trigger('click');
+    await flushPromises();
+    expect(data.startJob).toHaveBeenCalledWith(
+      expect.any(File),
+      expect.objectContaining({
+        spaceId: 's2',
+        projectId: '',
+        mapping: expect.objectContaining({
+          projectMap: { Eng: 'new' },
+          userMap: { 'G L': 'new', Alice: 'u1' },
+        }),
+      }),
+    );
     w.unmount();
   });
 });

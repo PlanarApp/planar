@@ -525,6 +525,83 @@ describe('wk6: импорт', () => {
     }
   });
 
+  it('пустое пространство: без проекта — проекты по колонке, статусы создаются в каждом проекте', async () => {
+    const spaceId = uuidv7();
+    await w.admin.ok('space.create', {
+      id: spaceId,
+      name: 'Empty',
+      rank: 'b0',
+      memberId: uuidv7(),
+    });
+    const file = Buffer.from(
+      JSON.stringify([
+        { project: 'Alpha', key: 'PLALPHA', id: 'E-1', name: 'Empty 1', state: 'Test dev' },
+        { project: 'Alpha', key: 'PLALPHA', id: 'E-2', name: 'Empty 2', state: 'Done' },
+        { project: 'Beta', key: 'PLBETA', id: 'E-3', name: 'Empty 3', state: 'Test dev' },
+        { project: '', key: '', id: 'E-4', name: 'Empty 4', state: 'Done' },
+      ]),
+    );
+    const mapping = {
+      externalId: 'id',
+      title: 'name',
+      status: 'state',
+      project: 'project',
+      projectKey: 'key',
+      projectMap: { Alpha: 'new', Beta: 'new' },
+      statusNew: { 'Test dev': 'in_progress', Done: 'done' },
+    };
+    const post = (fields: Record<string, string>) =>
+      call('POST', '/api/import/jobs', adminCookie, form(fields, file, 'f.json'));
+    const base = { format: 'csv', preset: 'custom', mapping: JSON.stringify(mapping) };
+    expect((await post(base)).statusCode).toBe(400); // neither a project nor a space
+    const noCol = JSON.stringify({ ...mapping, project: undefined, projectMap: undefined });
+    expect((await post({ ...base, spaceId, mapping: noCol })).statusCode).toBe(400);
+    const res = await post({ ...base, spaceId });
+    expect(res.statusCode, res.body).toBe(202);
+    const { data } = res.json();
+    expect(data).toMatchObject({ projectId: null, spaceId });
+    await worker.handler({ jobId: data.id }, jobApi);
+    const job = (await call('GET', `/api/import/jobs/${data.id}`, adminCookie)).json().data;
+    expect(job).toMatchObject({
+      status: 'done',
+      created: 3,
+      skipped: [{ row: 5, reason: 'нет проекта' }],
+    });
+    const projectOf = async (k: string) =>
+      (await db.$client.query('select id, space_id from projects where key = $1', [k])).rows[0];
+    const alpha = await projectOf('PLALPHA');
+    const beta = await projectOf('PLBETA');
+    expect([alpha.space_id, beta.space_id]).toEqual([spaceId, spaceId]);
+    const statusOf = async (title: string) =>
+      (
+        await db.$client.query(
+          'select s.name, s.category, s.project_id from tasks t join statuses s on s.id = t.status_id where t.title = $1',
+          [title],
+        )
+      ).rows[0];
+    // «Test dev» is created in each project once; «Done» exists in a new project — not created
+    expect(await statusOf('Empty 1')).toEqual({
+      name: 'Test dev',
+      category: 'in_progress',
+      project_id: alpha.id,
+    });
+    expect(await statusOf('Empty 3')).toMatchObject({ name: 'Test dev', project_id: beta.id });
+    expect(await statusOf('Empty 2')).toMatchObject({ name: 'Done', category: 'done' });
+    const names = await db.$client.query(
+      `select project_id, count(*)::int as n from statuses where project_id in ($1, $2) and name = 'Test dev' group by 1`,
+      [alpha.id, beta.id],
+    );
+    expect(names.rows.map((r) => r.n)).toEqual([1, 1]);
+    // the new status goes after the last in_progress one, before done
+    const order = (
+      await db.$client.query(
+        `select name from statuses where project_id = $1 order by rank collate "C"`,
+        [alpha.id],
+      )
+    ).rows.map((r) => r.name);
+    expect(order).toEqual(['Backlog', 'Todo', 'In Progress', 'Test dev', 'Done', 'Cancelled']);
+  });
+
   it('wk6: linear — приоритеты словами, ISO-даты, родитель по ID', async () => {
     const p = await project();
     const m = {
