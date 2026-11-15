@@ -1,8 +1,8 @@
 {
   "files": {
-    ".claude/agents/dp-coordinator.md": "66057e4625e6d8b114be69a4ace35ef88d6014eb7471533f3d2f8afdef63d8b0",
-    ".claude/agents/dp-engineer.md": "a8473c35f51862b728e10e672f428d88de289354721202121d65c283830ed480",
-    ".claude/agents/dp-mechanic.md": "1a32a014a63240827438a63a4cccbbf799608050985236c418f5f4d8cb66d0f0",
+    ".claude/agents/dp-coordinator.md": "9346e1717a33ecbb8ad0c516390ed7f70f0c1d45a5ed909cfa91925ff54c4436",
+    ".claude/agents/dp-engineer.md": "cc43af826a1eb32a09fc0479ec2858dcb7e525a30d215abf5449425a3bd9108f",
+    ".claude/agents/dp-mechanic.md": "3d79384dcb774d791fb93d4d7f04ee27ff737c364cc2ee4d8e07611b4d32823e",
     ".claude/agents/dp-researcher.md": "5cb03355433e7398146a9fc872a57bb4a81a501be02731c136afa94cf0d636e2",
     ".claude/agents/dp-reviewer.md": "825ec5a02bf1c08b2bc8e1ae5b1a61aecbc4c8aef415986e5388ac78c78ac16b",
     ".claude/agents/dp-status.md": "fa6a14362e7eb97883e909a67035557fa74cb666f3f4c45e89e98ed853b4e746",

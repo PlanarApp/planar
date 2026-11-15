@@ -4,3 +4,5 @@
 {"t": "2026-11-12T08:26:39", "by": "main", "text": "coordinator: card scope includes tests/fixtures/migrations the task breaks; card checks run green on base before issue (.dpcli-local/agents/dp-coordinator.append.md)", "why": "F-8, F-6", "kind": "decision"}
 {"t": "2026-11-12T08:26:39", "by": "main", "text": "protect_main: true in dpcli.yml; dpcli update holds the bump uncommitted on protected main (hub PR pending: dpcli contribute F-27)", "why": "F-27", "kind": "decision"}
 {"t": "2026-11-12T09:25:07", "by": "main", "text": "PRs to the dpcli hub (contribute) without asking — user's standing permission; rule in .dpcli-local/claude-md.md, allow rule in .claude/settings.json", "why": "F-27", "kind": "decision"}
+{"t": "2026-11-15T23:19:10", "by": "main", "text": "Исполнители и механик: правило писать файлы проекта только через Edit/Write (append в .dpcli-local/agents)", "why": "F-22", "kind": "decision"}
+{"t": "2026-11-15T23:19:10", "by": "main", "text": "Координатор: typecheck как в CI и pnpm lint на ветке модуля после каждой волны; новые зависимости — в scope карточки с package.json и lockfile", "why": "F-29", "kind": "decision"}
