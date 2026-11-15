@@ -79,6 +79,7 @@ import Checklist from './Checklist.vue';
 import FieldsBlock from '../fields/FieldsBlock.vue';
 import Editor from './editor/Editor.vue';
 import Feed from './Feed.vue';
+import { ASIDE_DEFAULT, ASIDE_MIN, asideMax, asideWidth, setAsideWidth } from './asideWidth';
 import { useAttachments, useChecklist, useSubtasks, useUsers, useWatchers } from './queries';
 import Subtasks from './Subtasks.vue';
 import WorkStatus from './WorkStatus.vue';
@@ -260,6 +261,31 @@ const onKeydown = (e: KeyboardEvent) => {
 // --- keys of the open task (PLNRAPP-79): work from anywhere but input fields
 const root = ref<HTMLElement>();
 const feed = ref<InstanceType<typeof Feed>>();
+// drag the divider between the main part and the comments panel (desktop layout only)
+const split = ref<HTMLElement>();
+const splitW = () => split.value?.clientWidth ?? 0;
+const onAsideDown = (e: PointerEvent) => {
+  const el = e.currentTarget as HTMLElement;
+  el.setPointerCapture(e.pointerId);
+  const move = (ev: PointerEvent) => {
+    const r = split.value?.getBoundingClientRect();
+    if (r) setAsideWidth(r.right - ev.clientX, r.width);
+  };
+  const up = () => {
+    el.removeEventListener('pointermove', move);
+    el.removeEventListener('pointerup', up);
+    el.removeEventListener('pointercancel', up);
+  };
+  el.addEventListener('pointermove', move);
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+};
+const onAsideKey = (e: KeyboardEvent) => {
+  const d = e.key === 'ArrowLeft' ? 16 : e.key === 'ArrowRight' ? -16 : 0; // the panel is on the right
+  if (!d) return;
+  e.preventDefault();
+  setAsideWidth(asideWidth.value + d, splitW());
+};
 const day = useMyDay(() => user.value?.id);
 const pickerOf = (name: string) => () =>
   root.value?.querySelector<HTMLElement>(`[data-col="${name}"] button`)?.click();
@@ -522,7 +548,10 @@ const panelComponent = computed(() => {
       >
     </div>
 
-    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto @4xl:flex-row @4xl:overflow-hidden">
+    <div
+      ref="split"
+      class="flex min-h-0 flex-1 flex-col overflow-y-auto @4xl:flex-row @4xl:overflow-hidden"
+    >
       <div class="flex min-w-0 flex-1 flex-col gap-6 px-4 py-5 @2xl:px-8 @4xl:overflow-y-auto">
         <header>
           <!-- textarea: a long title wraps by words; Enter saves, so there are no line breaks -->
@@ -708,9 +737,24 @@ const panelComponent = computed(() => {
       </div>
 
       <aside
-        class="flex shrink-0 flex-col border-t border-border bg-bg-subtle p-4 @4xl:min-h-0 @4xl:w-96 @4xl:border-t-0 @4xl:border-l"
+        class="relative flex shrink-0 flex-col border-t border-border bg-bg-subtle p-4 @4xl:min-h-0 @4xl:w-(--aside-w) @4xl:border-t-0 @4xl:border-l"
+        :style="{ '--aside-w': `${asideWidth}px` }"
         :aria-label="t('task.activity')"
       >
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          tabindex="0"
+          data-testid="aside-resize"
+          :aria-label="t('task.asideResize')"
+          :aria-valuenow="asideWidth"
+          :aria-valuemin="ASIDE_MIN"
+          :aria-valuemax="Math.round(asideMax(splitW() || 1200))"
+          class="absolute inset-y-0 -left-1 z-10 hidden w-2 cursor-col-resize touch-none outline-none hover:bg-accent/40 focus-visible:bg-accent/60 @4xl:block"
+          @pointerdown.prevent="onAsideDown"
+          @keydown="onAsideKey"
+          @dblclick="setAsideWidth(ASIDE_DEFAULT)"
+        />
         <Feed ref="feed" :task="task" class="@4xl:min-h-0 @4xl:flex-1" />
       </aside>
     </div>

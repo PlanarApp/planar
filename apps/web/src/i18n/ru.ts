@@ -878,6 +878,7 @@ export default {
     attachments: 'Вложения',
     attach: 'Прикрепить файл',
     activity: 'Комментарии и активность',
+    asideResize: 'Изменить ширину панели комментариев',
     comment: 'Комментарий',
     reply: 'Ответить',
     replyPlaceholder: 'Ответ в треде («/» — команды, Ctrl+Enter — отправить)',
