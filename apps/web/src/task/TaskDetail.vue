@@ -737,7 +737,7 @@ const panelComponent = computed(() => {
       </div>
 
       <aside
-        class="relative flex shrink-0 flex-col border-t border-border bg-bg-subtle p-4 @4xl:min-h-0 @4xl:w-(--aside-w) @4xl:border-t-0 @4xl:border-l"
+        class="relative flex shrink-0 flex-col border-t border-border bg-bg-subtle p-4 @4xl:min-h-0 @4xl:w-(--aside-w) @4xl:max-w-3/5 @4xl:border-t-0 @4xl:border-l"
         :style="{ '--aside-w': `${asideWidth}px` }"
         :aria-label="t('task.activity')"
       >
