@@ -99,6 +99,7 @@ export type Q = PgDatabase<NodePgQueryResultHKT, Record<string, unknown>>;
 export type { ModuleHookApi, JobApi, JobDef, JobOpts } from './hooks';  // moved from apps/api/src/modules/hooks.ts; ModuleHookApi.sys: Tx (@planar/shared)
 // JobApi.execute opts += prepare?: (q: Q) => Promise<boolean | void> — in the same transaction before the mutations (locks, checks); false → the mutations are not executed
 // JobApi.execute opts += after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void> — in the same transaction after all mutations; enqueue — in it as well; an error rolls the transaction back and is rethrown from execute (additive, C-modules v8, PL-2)
+// JobApi.execute opts += quiet?: boolean — no notifications (auto-subscription to the task stays); bulk import (additive, PLNRAPP-247)
 export class HttpError extends HttpException { constructor(status: number, code: string, message: string) } // C-http "Errors" format; the api ErrorFilter understands it
 export function parseBody<T extends z.ZodType>(schema: T, body: unknown): z.infer<T>; // 400 invalid_request
 export interface AuthCtx { userId: string; role: 'owner' | 'admin' | 'member' | 'guest'; tokenId: string | null; tokenScope: 'read' | 'write' | null }

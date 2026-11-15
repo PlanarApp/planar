@@ -39,6 +39,18 @@ export const miscMutators = [
     },
   }),
   defineMutator({
+    // all own unread up to the click (a queued offline call does not read later ones), except snoozed ones
+    name: 'notification.readAll',
+    args: z.object({ upTo: z.iso.datetime(), except: z.array(uuid).default([]) }),
+    async run(tx, a, ctx) {
+      const skip = new Set(a.except);
+      const upTo = Date.parse(a.upTo);
+      for (const n of await tx.scan('notifications', { index: 'userId', eq: ctx.userId }))
+        if (!n.readAt && !skip.has(n.id) && Date.parse(n.createdAt) <= upTo)
+          await tx.patch('notifications', n.id, { readAt: ctx.now });
+    },
+  }),
+  defineMutator({
     name: 'notification.delete',
     args: z.object({ ids: z.array(uuid) }),
     async run(tx, a, ctx) {

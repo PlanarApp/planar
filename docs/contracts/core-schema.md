@@ -216,7 +216,7 @@ scope: space · write: member · bootstrap: yes · indexes: taskId, targetId
 | `createdAt` | ts | |
 
 #### checklistItems
-scope: space · write: member · bootstrap: yes · indexes: taskId
+scope: space · write: member · bootstrap: yes · indexes: taskId, assigneeId
 
 | field | type | note |
 |---|---|---|
@@ -233,7 +233,7 @@ scope: space · write: member · bootstrap: yes · indexes: taskId
 | `updatedAt` | ts | |
 
 #### comments
-scope: space · write: guest · bootstrap: yes · indexes: taskId
+scope: space · write: guest · bootstrap: yes · indexes: taskId, assigneeId
 
 | field | type | note |
 |---|---|---|
@@ -300,7 +300,7 @@ scope: space · write: server · bootstrap: no · indexes: taskId
 Written by the server `Tx` on writes of `tasks`, `taskAssignees`, `taskLabels`, `comments` (creation). History — `GET /api/tasks/:id/activity` (C-http).
 
 #### notifications
-scope: user · write: self · bootstrap: yes · indexes: taskId
+scope: user · write: self · bootstrap: yes · indexes: taskId, userId
 
 | field | type | note |
 |---|---|---|

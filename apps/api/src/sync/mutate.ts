@@ -44,6 +44,8 @@ export interface RunOpts {
   /** bypass of rights (ServerTx.asSystem) */
   system?: boolean;
   origin?: MutationOrigin | null;
+  /** without notifications (bulk import); auto-subscription stays */
+  quiet?: boolean;
   /** for enqueue from module hooks; without it enqueue is a no-op */
   jobs?: JobsService;
 }
@@ -167,7 +169,7 @@ export async function runMutation(
   try {
     await def.run(stx, args.data, { userId, now, server: true });
     await gateProjectModules(tx, stx, def, args.data);
-    const hook = await notificationsHook(tx, stx, { userId, now });
+    const hook = await notificationsHook(tx, stx, { userId, now }, !opts.quiet);
     notified.push(...hook.ids);
     await moduleHooks(
       tx,
@@ -199,7 +201,7 @@ export async function executeMutations(
   muts: { name: string; args: unknown }[],
   queue?: PushQueue,
   tokenId?: string,
-  opts?: Pick<RunOpts, 'system' | 'origin'> & {
+  opts?: Pick<RunOpts, 'system' | 'origin' | 'quiet'> & {
     prepare?: (q: Q) => Promise<boolean | void>;
     after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void>;
   },
