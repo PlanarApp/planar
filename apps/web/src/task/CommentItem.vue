@@ -193,6 +193,7 @@ function save() {
             :editable="false"
             :link-read-only="mine"
             collapsible
+            lazy
             @update:model-value="(b) => mine && b && emit('save', b)"
           />
           <Reactions

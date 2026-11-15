@@ -11,7 +11,8 @@ export interface FeedCtx {
   userId: () => string | undefined;
   names: ComputedRef<Record<string, string>>;
   members: ComputedRef<{ id: string; name: string; avatar: string | null }[]>;
-  reactions: Readonly<Ref<Row<'commentReactions'>[] | undefined>>;
+  /** reactions of a comment, grouped once per feed change (the same empty array when none) */
+  reactionsOf: (commentId: string) => Row<'commentReactions'>[];
   nameOf: (id: string) => string;
   avatarOf: (id: string) => string | null;
   canResolve: (c: Row<'comments'>) => boolean;
