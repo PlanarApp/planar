@@ -359,13 +359,22 @@ export const taskMutators = [
   }),
   defineMutator({
     name: 'task.merge',
-    args: z.object({ id: uuid, targetId: uuid, linkId: uuid }),
+    args: z.object({ ids: z.array(uuid).min(1).max(100), targetId: uuid, linkIds: z.array(uuid) }),
     async run(tx, a, ctx) {
-      const b = await need(tx, 'tasks', a.id);
+      if (new Set(a.ids).size !== a.ids.length) throw bad('ids с повторами');
+      if (a.linkIds.length !== a.ids.length) throw bad('linkIds — по одному на каждую задачу');
       const target = await need(tx, 'tasks', a.targetId);
-      // target in the same space, not the task itself and not its descendant (subtasks move under it)
-      await checkParent(tx, b.id, b.spaceId, target.id);
-      await mergeTask(tx, b, target, a.linkId, ctx);
+      const from: Row<'tasks'>[] = [];
+      for (const id of a.ids) from.push(await need(tx, 'tasks', id));
+      // target in the same space, not one of the merged tasks and not their descendant (subtasks move under it)
+      for (const b of from) await checkParent(tx, b.id, b.spaceId, target.id);
+      // PLNRAPP-117: links between the merged tasks would become links of the target with itself
+      const merged = new Set(a.ids);
+      for (const b of from)
+        for (const l of await taskLinksOf(tx, b.id))
+          if (merged.has(l.taskId) && merged.has(l.targetId)) await tx.del('taskLinks', l.id);
+      for (const [i, b] of from.entries())
+        await mergeTask(tx, (await tx.get('tasks', b.id)) ?? b, target, a.linkIds[i]!, ctx);
     },
   }),
   defineMutator({

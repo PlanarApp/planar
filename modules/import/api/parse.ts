@@ -1,4 +1,4 @@
-import type { ImportPreset, Mapping } from '../shared/index.js';
+import type { ImportPreset, Mapping, Preview } from '../shared/index.js';
 import { parseCsv } from './csv.js';
 
 /** Normalized import row; undefined — field not mapped (leave alone), null — mapped but empty. */
@@ -15,6 +15,10 @@ export interface Item {
   startDate?: string | null;
   priority?: number;
   parentExt?: string;
+  /** value of the project column (mapped and non-empty) */
+  project?: string;
+  projectKey?: string;
+  comments?: { text: string; author: string; at: string }[];
   checklist?: { text: string; done: boolean }[];
   notes: string[];
   /** reason the row cannot be imported */
@@ -31,7 +35,10 @@ export interface Parsed {
 export class ParseError extends Error {}
 
 // header candidates (case-insensitive): the template first, then common synonyms
-const GENERIC: Record<keyof Omit<Mapping, 'statusMap'>, string[]> = {
+const GENERIC: Record<
+  keyof Omit<Mapping, 'statusMap' | 'statusNew' | 'projectMap' | 'userMap'>,
+  string[]
+> = {
   externalId: ['id', 'task id', 'issue id', 'key', 'issue key'],
   title: ['title', 'name', 'summary', 'task name'],
   description: ['description', 'task content', 'content', 'body'],
@@ -42,6 +49,10 @@ const GENERIC: Record<keyof Omit<Mapping, 'statusMap'>, string[]> = {
   startDate: ['start date', 'start', 'started at'],
   priority: ['priority'],
   parent: ['parent id', 'parent', 'parent issue', 'parent task'],
+  // projects and comments — by the source preset only: a project column in Jira must not split the import
+  project: [],
+  projectKey: [],
+  comments: [],
 };
 const PRESET_COLS: Record<string, Partial<Record<keyof typeof GENERIC, string[]>>> = {
   clickup: { externalId: ['task id'], title: ['task name'], description: ['task content'] },
@@ -52,11 +63,24 @@ const PRESET_COLS: Record<string, Partial<Record<keyof typeof GENERIC, string[]>
     startDate: ['custom field (start date)'],
   },
   linear: { externalId: ['id'], title: ['title'], parent: ['parent issue'] },
+  plane: {
+    externalId: ['identifier'],
+    title: ['name'],
+    status: ['state name'],
+    dueDate: ['target date'],
+    parent: ['parent'],
+    project: ['project name'],
+    projectKey: ['project identifier'],
+    comments: ['comments'],
+  },
 };
+
+/** header for matching: case and `_` do not matter (Plane JSON — snake_case) */
+const norm = (c: string) => c.trim().toLowerCase().replace(/_/g, ' ');
 
 export function suggestMapping(columns: string[], preset: ImportPreset): Mapping {
   const low = new Map<string, string>();
-  for (const c of columns) if (!low.has(c.trim().toLowerCase())) low.set(c.trim().toLowerCase(), c);
+  for (const c of columns) if (!low.has(norm(c))) low.set(norm(c), c);
   const out: Record<string, string> = {};
   for (const f of Object.keys(GENERIC) as (keyof typeof GENERIC)[]) {
     for (const cand of [...(PRESET_COLS[preset]?.[f] ?? []), ...GENERIC[f]]) {
@@ -126,16 +150,65 @@ export function parsePriority(s: string): number | null {
   return PRIORITY[s] ?? null;
 }
 
-/** `[a, b]` (ClickUp), `a,b`, `a; b` → a list without empties. */
-export const splitList = (s: string): string[] =>
-  s
+/** `["a", "b"]` (Plane, JSON), `[a, b]` (ClickUp), `a,b`, `a; b` → a list without empties. */
+export function splitList(s: string): string[] {
+  if (s.startsWith('["') || s === '[]') {
+    try {
+      const a: unknown = JSON.parse(s);
+      if (Array.isArray(a)) return a.map((x) => String(x).trim()).filter(Boolean);
+    } catch {
+      // not JSON — split as text
+    }
+  }
+  return s
     .replace(/^\[|\]$/g, '')
     .split(/[,;]/)
     .map((x) => x.trim())
     .filter(Boolean);
+}
+
+/**
+ * Table from CSV or from a JSON array of objects (Plane JSON export): columns — keys in order of appearance,
+ * null → empty, arrays and objects → JSON (lists and comments parse it back).
+ */
+function table(text: string): string[][] {
+  const t = text.replace(/^﻿/, '').trimStart();
+  if (!t.startsWith('[')) return parseCsv(text);
+  let a: unknown;
+  try {
+    a = JSON.parse(t);
+  } catch {
+    throw new ParseError('Не JSON');
+  }
+  if (!Array.isArray(a) || a.some((x) => !x || typeof x !== 'object' || Array.isArray(x)))
+    throw new ParseError('JSON: ожидается массив объектов');
+  if (!a.length) return [];
+  const cols = [...new Set(a.flatMap((o) => Object.keys(o as object)))];
+  const cell = (v: unknown) =>
+    v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+  return [cols, ...a.map((o) => cols.map((c) => cell((o as Record<string, unknown>)[c])))];
+}
+
+/** Plane comments: `[{comment, created_by, created_at}]`; not such JSON → null */
+function parseComments(s: string): Item['comments'] | null {
+  try {
+    const a: unknown = JSON.parse(s);
+    if (!Array.isArray(a)) return null;
+    return a
+      .filter((c) => c && typeof c === 'object' && typeof c.comment === 'string')
+      .map((c: { comment: string; created_by?: unknown; created_at?: unknown }) => ({
+        text: c.comment.trim(),
+        author: typeof c.created_by === 'string' ? c.created_by.trim() : '',
+        at: typeof c.created_at === 'string' ? c.created_at.trim() : '',
+      }))
+      .filter((c) => c.text);
+  } catch {
+    return null;
+  }
+}
 
 function csvItems(text: string, m: Mapping): Parsed {
-  const all = parseCsv(text);
+  const all = table(text);
   if (!all.length) throw new ParseError('Пустой файл');
   const columns = all[0]!.map((c) => c.trim());
   const data = all.slice(1);
@@ -157,6 +230,9 @@ function csvItems(text: string, m: Mapping): Parsed {
     start: need(m.startDate, 'startDate'),
     prio: need(m.priority, 'priority'),
     parent: need(m.parent, 'parent'),
+    project: need(m.project, 'project'),
+    projectKey: need(m.projectKey, 'projectKey'),
+    comments: need(m.comments, 'comments'),
   };
   if (!cols.title.length) throw new ParseError('Не выбрана колонка заголовка');
   const items = data.map((r, i): Item => {
@@ -188,6 +264,14 @@ function csvItems(text: string, m: Mapping): Parsed {
       else it.priority = p;
     }
     if (cols.parent.length && get(cols.parent)) it.parentExt = get(cols.parent);
+    if (cols.project.length && get(cols.project)) it.project = get(cols.project);
+    if (cols.projectKey.length && get(cols.projectKey)) it.projectKey = get(cols.projectKey);
+    const cm = cols.comments.length ? (r[cols.comments[0]!] ?? '').trim() : '';
+    if (cm) {
+      const c = parseComments(cm);
+      if (c) it.comments = c;
+      else it.notes.push('комментарии не разобраны: ожидается JSON-массив');
+    }
     return it;
   });
   return { columns, rows: data, items };
@@ -280,6 +364,25 @@ export const TRELLO_MAPPING: Mapping = {
   dueDate: 'due',
 };
 
+/** Distinct values over all rows for the wizard tables (statuses, projects, people). */
+export function distinctValues(items: Item[]): Preview['values'] {
+  const status = new Set<string>();
+  const project = new Map<string, string | null>();
+  const people = new Set<string>();
+  for (const it of items) {
+    if (it.skip) continue;
+    if (it.status) status.add(it.status);
+    if (it.project && !project.has(it.project)) project.set(it.project, it.projectKey ?? null);
+    for (const a of it.assignees ?? []) people.add(a);
+    for (const c of it.comments ?? []) if (c.author) people.add(c.author);
+  }
+  return {
+    status: [...status],
+    project: [...project].map(([name, key]) => ({ name, key })),
+    people: [...people].sort((a, b) => a.localeCompare(b)),
+  };
+}
+
 export function parseSource(
   text: string,
   format: 'csv' | 'trello',
@@ -289,7 +392,7 @@ export function parseSource(
   if (format === 'trello') return trelloItems(text);
   // without a mapping (preview) — parsing by the template's suggestion
   if (!mapping) {
-    const first = parseCsv(text)[0];
+    const first = table(text)[0];
     if (!first) throw new ParseError('Пустой файл');
     mapping = suggestMapping(
       first.map((c) => c.trim()),

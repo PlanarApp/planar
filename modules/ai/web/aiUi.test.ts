@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import type { AiRunView } from '../shared/index.js';
+import type { AiRunEvent, AiRunView } from '../shared/index.js';
 import {
-  applyFailure,
-  diffPrefix,
-  hasChanges,
-  trimHistory,
-  type ChatMsg,
-  type Proposal,
-} from './docChatUi.js';
-import { canRestart, canStop, mergeRuns, parseLimit, usagePct } from './aiUi';
+  canRestart,
+  canStop,
+  foldOf,
+  MAX_LOG_EVENTS,
+  mergeEvents,
+  mergeRuns,
+  parseLimit,
+  usagePct,
+} from './aiUi';
 
 const run = (id: string, restartOf: string | null = null, state = 'done') =>
   ({ id, restartOf, state }) as AiRunView;
@@ -43,29 +44,20 @@ describe('aiUi', () => {
       { id: 'c' },
     ]);
   });
-});
 
-describe('aiUi docChat', () => {
-  it('trimHistory: хвост и без пустых', () => {
-    const h = [
-      { role: 'user', text: 'a' },
-      { role: 'assistant', text: ' ' },
-      { role: 'user', text: 'b' },
-      { role: 'assistant', text: 'c' },
-    ] as ChatMsg[];
-    expect(trimHistory(h, 2).map((m: ChatMsg) => m.text)).toEqual(['b', 'c']);
+  it('mergeEvents: после курсора, без дублей, только хвост', () => {
+    const ev = (id: number) =>
+      ({ id, type: 'output', tool: null, text: '', createdAt: '' }) as AiRunEvent;
+    expect(mergeEvents([ev(1), ev(2)], [ev(2), ev(3)]).map((e) => e.id)).toEqual([1, 2, 3]);
+    const many = Array.from({ length: MAX_LOG_EVENTS }, (_, i) => ev(i + 1));
+    const got = mergeEvents(many, [ev(MAX_LOG_EVENTS + 1)]);
+    expect(got).toHaveLength(MAX_LOG_EVENTS);
+    expect(got[0]!.id).toBe(2);
   });
 
-  it('hasChanges / applyFailure / diffPrefix', () => {
-    const same = { body: '', baseUpdatedAt: 't', diff: [{ type: 'same', text: 'x' }] } as Proposal;
-    expect(hasChanges(null) || hasChanges(same)).toBe(false);
-    expect(hasChanges({ ...same, diff: [{ type: 'add', text: 'y' }] })).toBe(true);
-    expect([409, 403, 500, undefined].map(applyFailure)).toEqual([
-      'changed',
-      'forbidden',
-      'other',
-      'other',
-    ]);
-    expect(['add', 'del', 'same'].map((t) => diffPrefix(t as 'add'))).toEqual(['+', '-', ' ']);
+  it('foldOf: короткий текст целиком, длинный — первые строки', () => {
+    expect(foldOf('a\nb')).toBeNull();
+    expect(foldOf('1\n2\n3\n4')).toBe('1\n2\n3…');
+    expect(foldOf('x'.repeat(400))).toBe(`${'x'.repeat(300)}…`);
   });
 });

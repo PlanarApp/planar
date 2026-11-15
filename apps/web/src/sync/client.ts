@@ -13,7 +13,7 @@ import {
   type MutatorDef,
 } from '@planar/shared';
 import { PlanarDB, type QueueItem, type ReplicaChange, type Undo } from './db';
-import { DexieTx, applyUndo } from './dexie-tx';
+import { DexieTx, applyUndo, flushOverlay, overlayKey, type Overlay } from './dexie-tx';
 
 export interface StartOpts {
   userId: string;
@@ -214,6 +214,9 @@ export function createClient(db: PlanarDB) {
       changes.length = 0;
       rest = [];
       const queue = await db._queue.orderBy('id').toArray();
+      // pull: rollback + server + replay in memory, Dexie gets only the difference (own echo writes nothing)
+      const ov: Overlay | undefined = p.bootstrap ? undefined : new Map();
+      const out = ov ? undefined : changes;
       if (p.bootstrap) {
         changes.push(RESET);
         // shortcut: with an unconfirmed queue we write everything at once — the rebase must not race with a background write
@@ -226,16 +229,10 @@ export function createClient(db: PlanarDB) {
           for (let i = 0; i < rows.length; i += 2000) await t.bulkPut(rows.slice(i, i + 2000));
         }
       } else {
-        for (const q of queue.slice().reverse()) await applyUndo(db, q.undo ?? [], changes);
+        for (const q of queue.slice().reverse()) await applyUndo(db, q.undo ?? [], undefined, ov);
         for (const c of p.changes ?? []) {
           if (!db.tables.some((t) => t.name === c.entity)) continue;
-          if (c.op === 'put') await db.table(c.entity).put(c.data);
-          else await db.table(c.entity).delete(c.id);
-          changes.push({
-            entity: c.entity,
-            id: c.id,
-            row: c.op === 'put' ? (c.data ?? null) : null,
-          });
+          ov!.set(overlayKey(c.entity, c.id), c.op === 'put' ? (c.data ?? null) : null);
         }
       }
       for (const q of queue) {
@@ -247,14 +244,16 @@ export function createClient(db: PlanarDB) {
         try {
           const def = registry.get(q.name);
           if (!def) throw new MutatorError('invalid_args', `неизвестный мутатор: ${q.name}`);
-          await def.run(new DexieTx(db, undo, changes), def.args.parse(q.args), ctx(q.createdAt));
+          const tx = new DexieTx(db, undo, out, ov);
+          await def.run(tx, def.args.parse(q.args), ctx(q.createdAt));
           await db._queue.update(q.id!, { undo });
         } catch {
           // not applicable to the replica: skip the local effect but keep it in the queue — the server decides
-          await applyUndo(db, undo, changes);
+          await applyUndo(db, undo, out, ov);
           await db._queue.update(q.id!, { undo: [] });
         }
       }
+      if (ov) await flushOverlay(db, ov, changes);
       // the cursor only when the replica is fully in place: an interrupted bootstrap will start over
       if (p.cursor !== undefined && !rest.length) {
         await db._meta.put({ key: 'cursor', value: p.cursor });
@@ -292,9 +291,12 @@ export function createClient(db: PlanarDB) {
     for (const e of list) errorCbs.forEach((cb) => cb(e));
   };
 
-  async function http(path: string, init?: RequestInit): Promise<unknown> {
+  /** timeout 0 — none: the first load of a big database takes longer than 15 s */
+  async function http(path: string, init?: RequestInit, timeout = 15_000): Promise<unknown> {
     const f = opts!.fetch ?? globalThis.fetch.bind(globalThis);
-    const signal = AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]);
+    const signal = timeout
+      ? AbortSignal.any([abort.signal, AbortSignal.timeout(timeout)])
+      : abort.signal;
     const res = await f((opts!.baseUrl ?? '') + path, { ...init, signal });
     if (!res.ok) {
       // C-http error body {code, message}: show the reason, not "HTTP 403"
@@ -306,7 +308,9 @@ export function createClient(db: PlanarDB) {
 
   async function bootstrap() {
     setStatus('bootstrapping');
-    const r = syncBootstrapSchema.parse(await http(`/sync/bootstrap?clientId=${clientId}`));
+    const r = syncBootstrapSchema.parse(
+      await http(`/sync/bootstrap?clientId=${clientId}`, undefined, 0),
+    );
     await applyServer({ bootstrap: r.data, cursor: r.cursor, lastMutationId: r.lastMutationId });
   }
 

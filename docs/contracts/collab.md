@@ -11,8 +11,9 @@ related: ["docs/plan/collab.md", "docs/contracts/core.md", "docs/contracts/core-
 
 Owner - the collab coordinator. The format of entities and mutators is as in `docs/contracts/core.md` (C-schema) and `core-mutators.md`; the C-schema rules "General rules", "Types", "Visibility and permissions" apply. Contract test - `apps/api/test/modules/collab.contract.test.ts`: it checks the `#### <entity>` sections and the mutator tables of this file against `shared.entities` and `shared.mutators` of the modules (field names, nullability, meta, arg names and optionality).
 
-## DC-schema v3
+## DC-schema v4
 
+v4 (PLNRAPP-209): `docsComments` - comments on a page.
 v3 (PLNRAPP-154): `docsPages.archivedBy` - who archived.
 v2 (groups): `docsPages.projectId` - the page level.
 
@@ -64,10 +65,32 @@ scope: space · write: member · bootstrap: yes · indexes: —
 | `userId` | uuid | who is editing |
 | `expiresAt` | ts | `ctx.now` + 120 s; the client renews it every 60 s while the editor is open |
 
+#### docsComments
+scope: space · write: member · bootstrap: yes · indexes: pageId
+
+| field | type | note |
+|---|---|---|
+| `id` | uuid | |
+| `spaceId` | uuid | = the page's |
+| `pageId` | uuid | the page; the project and the visibility - the page's (rights as for the page: whoever sees it reads, member and above writes) |
+| `authorId` | uuid | |
+| `parentId` | uuid? | a reply: a comment of the same page, any depth; null - the thread root |
+| `body` | doc | ProseMirror/TipTap JSON; <= 64 KB as JSON |
+| `mentions` | json | `uuid[]` - ids of the `mention` nodes of `body`; computed by the mutator |
+| `assigneeId` | uuid? | assigned comment: a space member, not a guest |
+| `resolvedAt` | ts? | |
+| `resolvedBy` | uuid? | |
+| `editedAt` | ts? | |
+| `createdAt` | ts | |
+| `updatedAt` | ts | |
+
+Notifications (the module's `afterMutation`): newly mentioned in a comment - `doc_mention`, a new assignee - `doc_comment_assigned`; `url` - `/m/docs/<pageId>?comment=<id>`; only to space members who see the page, not to the author of the change.
+
 A soft lock: only an "X is editing" indicator and read-only mode for the others in the UI; `docs.page.update` does not check it. An expired lock (`expiresAt ≤ ctx.now`) counts as absent. Shortcut: no collaborative editing; if needed - Yjs + Hocuspocus.
 
-## DC-mutators v3
+## DC-mutators v5
 
+v5 (PLNRAPP-209): `docs.comment.*`; `docs.page.delete` takes the page's comments.
 v4 (PLNRAPP-5): move between spaces — `spaceId` in `docs.page.move`.
 v3 (PLNRAPP-154): `docs.page.archive` sets `archivedBy`; `docs.page.restore` - admin only; `docs.page.delete`.
 v2 (groups): `projectId` in `docs.page.create`/`docs.page.move`.
@@ -81,11 +104,16 @@ Export - `shared.mutators` from `modules/docs/shared/index.ts`; `args` - `z.obje
 | `docs.page.move` | `id, parentId, rank, projectId?, spaceId?` | `parentId: uuid \| null` (the key is required); `projectId` = the new parent's, at the root - `projectId` from args (no key - unchanged), a project of another space without explicit spaceId -> `invalid_args`; `spaceId` (PLNRAPP-5) — move to another space (root of the space or its project), descendants get the same `spaceId` and `projectId`; descendants get the same `projectId`; the page itself or its descendant -> `invalid_args`; another space without rights -> `forbidden`; the page or the new parent is archived -> `conflict` |
 | `docs.page.archive` | `id` | `archivedAt = ctx.now`, `archivedBy = ctx.userId` on the page and all its non-archived descendants; already archived - nothing |
 | `docs.page.restore` | `id` | admin of the page's project (of the space for a space page) / space / instance, otherwise `forbidden`; clears `archivedAt`, `archivedBy` on the page and the descendants with the same `archivedAt`; parent archived -> `parentId = null` |
-| `docs.page.delete` | `id` | only an archived page (otherwise `conflict`); admin as in restore; deletes the page and its descendants with their links and locks. Used by the job `docs.archive.purge` (archived > 30 days) |
+| `docs.page.delete` | `id` | only an archived page (otherwise `conflict`); admin as in restore; deletes the page and its descendants with their links, comments and locks. Used by the job `docs.archive.purge` (archived > 30 days) |
 | `docs.link.add` | `id, pageId, taskId` | the task (a `tasks` row) and the page are in one space, otherwise `invalid_args`; pair already linked - nothing |
 | `docs.link.remove` | `pageId, taskId` | no link - nothing |
 | `docs.lock` | `pageId` | no lock, expired or own -> `put {id: pageId, spaceId of the page, userId: ctx.userId, expiresAt: ctx.now + 120 s}`; another's active lock -> `conflict` |
 | `docs.unlock` | `pageId` | own -> delete; otherwise nothing |
+| `docs.comment.create` | `id, pageId, body, parentId?, assigneeId?` | the page is not archived, otherwise `conflict`; `parentId` - a comment of this page, otherwise `invalid_args`; the assignee - a space member, not a guest, otherwise `invalid_args`; `mentions` from `body`; `authorId = ctx.userId` |
+| `docs.comment.update` | `id, body` | the author only, otherwise `forbidden`; `mentions` recomputed, `editedAt = ctx.now` |
+| `docs.comment.delete` | `id` | the author only, otherwise `forbidden`; deletes the comment with all of its replies |
+| `docs.comment.assign` | `id, assigneeId` | `assigneeId: uuid \| null`; the assignee as in create; clears `resolvedAt`, `resolvedBy` |
+| `docs.comment.resolve` | `id, resolved` | not assigned -> `invalid_args`; the assignee, the author or an admin of the page's project (space, instance), otherwise `forbidden` |
 
 There is no page deletion (archive only) - a shortcut until a user asks.
 
@@ -93,6 +121,7 @@ There is no page deletion (archive only) - a shortcut until a user asks.
 - Route `/m/docs/:pageId` - a page; `/m/docs` - the last opened one or empty.
 - The page tree is a sidebar point from WK-0 (C-modules v3, `docs/contracts/work.md`), per space; drag-and-drop = `docs.page.move`.
 - Task panel `taskPanels`: `{id: 'pages'}` - linked pages, link/unlink.
+- Page comments (PLNRAPP-209) - under the page body: threads, replies, mentions, assignment, resolve; `?comment=<id>` scrolls to the comment.
 - Cmd+K search - by `docsPages.title` and `text` of the local replica (the search point is X-core, after the gateway).
 - Images - `POST /files`, node `image` with `src: '/files/<sha256>'`; reading the file by other members - X-core `canReadFile`.
 

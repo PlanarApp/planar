@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { VueDraggable } from 'vue-draggable-plus';
 import {
@@ -15,6 +15,8 @@ import { db, mutate, newId, rankBetween, useQuery } from '../sync';
 import { Avatar, IconButton, Input, Menu, type MenuItem } from '../ui';
 import { createTask, useMembers } from '../tasks';
 import { useChecklist } from './queries';
+import WorkStatus from './WorkStatus.vue';
+import { TASK_ACTIVITY, activityOf } from '../modules/activity';
 
 const props = defineProps<{
   taskId: string;
@@ -24,6 +26,10 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ open: [key: string] }>();
 const { t } = useI18n();
+// PLNRAPP-202: the AI works on an item — a ring around its avatar while it runs, the line of its state
+const taskWork = inject(TASK_ACTIVITY, null);
+const workOf = (itemId: string) =>
+  taskWork ? activityOf(taskWork.items.value, itemId) : undefined;
 // an item turned into a task (PLNRAPP-142): key of the task for the link; a deleted task — plain text
 const linked = useQuery(async () => {
   const items = await db
@@ -220,6 +226,12 @@ async function add() {
           >
           <template v-else>{{ i.text }}</template>
         </span>
+        <WorkStatus
+          v-if="workOf(i.id)"
+          :activity="workOf(i.id)!"
+          class="shrink-0"
+          @open="taskWork?.open"
+        />
         <Menu v-if="members?.length" :items="assignItems(i)" align="end">
           <template #trigger>
             <button
@@ -234,6 +246,7 @@ async function add() {
                 :name="userOf(i.assigneeId)?.name ?? '?'"
                 :src="avatarOf(userOf(i.assigneeId))"
                 size="sm"
+                :class="workOf(i.id)?.state === 'running' && 'work-ring'"
               />
             </button>
             <IconButton

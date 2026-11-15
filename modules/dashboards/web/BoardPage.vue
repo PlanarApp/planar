@@ -5,7 +5,7 @@ import type { Widget, WidgetKind } from '../shared/index.js';
 import WidgetBody from './WidgetBody.vue';
 import WidgetDialog from './WidgetDialog.vue';
 import { boardTasks, moveBox, nextY, resizeBox, type Box } from './lib';
-import { mutate, newId, tr, useBoard, useTasks, useWidgets } from './data';
+import { mutate, newId, tr, useBoard, useSpaceTasks, useWidgets } from './data';
 
 const router = useRouter();
 // boardId and back — a dashboard inside the group's tab (id from ?board, back — to the list)
@@ -14,7 +14,7 @@ const id = computed(() => props.boardId ?? String(router.currentRoute.value.para
 const leave = () => (props.back ? props.back() : void router.push('/m/dashboards'));
 const board = useBoard(() => id.value);
 const widgets = useWidgets(() => id.value);
-const allTasks = useTasks();
+const allTasks = useSpaceTasks(() => board.value?.spaceId ?? '');
 const tasks = computed(() => boardTasks(board.value?.spaceId ?? '', allTasks.value ?? []));
 
 // drag preview: id -> box; written to the replica on release

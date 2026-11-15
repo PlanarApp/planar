@@ -11,13 +11,16 @@ export interface FeedCtx {
   userId: () => string | undefined;
   names: ComputedRef<Record<string, string>>;
   members: ComputedRef<{ id: string; name: string; avatar: string | null }[]>;
-  reactions: Readonly<Ref<Row<'commentReactions'>[] | undefined>>;
+  /** reactions of a comment, grouped once per feed change (the same empty array when none) */
+  reactionsOf: (commentId: string) => Row<'commentReactions'>[];
   nameOf: (id: string) => string;
   avatarOf: (id: string) => string | null;
   canResolve: (c: Row<'comments'>) => boolean;
   react: (commentId: string, emoji: string) => unknown;
   /** ids of collapsed comments (PLNRAPP-194): the feed collapses and expands all at once */
   folded: Ref<Set<string>>;
+  /** opens the thread of a comment on the whole feed (PLNRAPP-201): replies deeper than one level live there */
+  openThread: (id: string) => void;
 }
 export const FEED: InjectionKey<FeedCtx> = Symbol('feed');
 

@@ -7,7 +7,12 @@ import { pathToFileURL } from 'node:url';
 import { sql } from 'drizzle-orm';
 import { generateNKeysBetween } from 'fractional-indexing';
 import { dashboardsBoards, dashboardsWidgets } from '@planar/module-dashboards/api/schema';
-import { docsPages, docsTaskLinks, docsVersions } from '@planar/module-docs/api/schema';
+import {
+  docsComments,
+  docsPages,
+  docsTaskLinks,
+  docsVersions,
+} from '@planar/module-docs/api/schema';
 import {
   chatChannels,
   chatMembers,
@@ -27,12 +32,17 @@ import {
   aiEmailBatches,
   aiHarnessPacks,
   aiProjectLimits,
+  aiRetro,
+  aiRetroProposals,
+  aiRunEvents,
   aiRuns,
   aiSettings,
 } from '@planar/module-ai/api/schema';
 import {
   catalogTitle,
+  diffBlock,
   PACKS_ROOT_TITLE,
+  RETRO_TITLE,
   packPages,
   parsePack,
   plainText,
@@ -45,7 +55,13 @@ import { templatesTemplates } from '@planar/module-templates/api/schema';
 import { workloadCapacities } from '@planar/module-workload/api/schema';
 import { sprintsCycles, sprintsSettings } from '@planar/module-sprints/api/schema';
 import { timeEntries, timeEstimates } from '@planar/module-time/api/schema';
-import { DATA_MODULE_IDS, extractMentions, isDataModule, textToDoc } from '@planar/shared';
+import {
+  DATA_MODULE_IDS,
+  extractMentions,
+  isDataModule,
+  textToDoc,
+  WORKSPACE_DATA_MODULE_IDS,
+} from '@planar/shared';
 import { installed } from '../modules/installed.js';
 import { createDb, migrate, type Db } from './index.js';
 import { filePath } from '../files/store.js';
@@ -99,10 +115,10 @@ const LABELS = [
 
 // Workspace = root space (settings root_space, workspace): without it group tabs have no scope
 const WORKSPACE = { name: 'Brightwave', color: '#6366f1', icon: '🌊' };
-/** Every installed shared module except the example one (hello) */
+/** Every installed shared module except the example one (hello), and the workspace switches of data modules (PLNRAPP-241) */
 const SHARED_MODULES = installed
   .map((m) => m.api.id)
-  .filter((id) => !isDataModule(id) && id !== 'hello');
+  .filter((id) => (!isDataModule(id) || WORKSPACE_DATA_MODULE_IDS.includes(id)) && id !== 'hello');
 /** `space` of DOCS / CHANNELS at the Workspace level */
 const ROOT = -1;
 // node icons are emoji (NodeIcon)
@@ -158,8 +174,9 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Support SAML SSO', 0, 3, 40, 'noah', 'feature'],
       ['Cursor tokens for pagination', 2, 3, 4, 'liam', 'feature', 3],
       ['Update OpenAPI examples', 1, 1, 7, 'demo', 'docs', 3],
-      // merged into «Search index rebuild is slow» (PLNRAPP-117): cancelled + link:3 «duplicates»
+      // merged into «Search index rebuild is slow» (PLNRAPP-117, bulk): cancelled + link:3, link:4 «duplicates»
       ['Reindex takes minutes after deploy', 4, 2, null, 'noah', 'bug'],
+      ['Search results stale after reindex', 4, 2, null, 'liam', 'bug'],
     ],
   },
   {
@@ -939,6 +956,15 @@ async function insertAll(tx: Tx, now: Date) {
       createdBy: uid_.noah,
       createdAt: at(-1),
     },
+    {
+      id: uid('link:4'),
+      spaceId: spaceIds[1],
+      taskId: tid('PLT', 15),
+      targetId: tid('PLT', 4),
+      kind: 'duplicates',
+      createdBy: uid_.noah,
+      createdAt: at(-1),
+    },
   ]);
 
   // favourites of demo (PLNRAPP-124): a project, a space, a task, a doc and a channel
@@ -1452,6 +1478,58 @@ async function insertAll(tx: Tx, now: Date) {
       taskId: tid('RDM', 2),
       createdBy: maya,
       createdAt: at(-8),
+    },
+  ]);
+  // PLNRAPP-209: comments on "Product vision" — a thread assigned to demo with a reply, a resolved one
+  const docUsers = USERS.map(([login]) => ({ id: uid_[login]!, login }));
+  const DOC_COMMENTS: [
+    author: string,
+    text: string,
+    parent?: number,
+    assignee?: string,
+    resolved?: boolean,
+  ][] = [
+    [
+      'liam',
+      '@demo could you add a line about the mobile apps to the focus paragraph?',
+      undefined,
+      'demo',
+    ],
+    ['maya', 'Good point, mobile is part of the onboarding work.', 0],
+    ['sofia', 'Should we name the three focus areas as a list?', undefined, 'maya', true],
+  ];
+  const docComments = DOC_COMMENTS.map(([author, text, parent, assignee, resolved], k) => {
+    const body = textToDoc(text, docUsers);
+    return {
+      id: uid(`dcomment:${k}`),
+      spaceId: sp(DOCS[0]!.space),
+      pageId: uid('page:0'),
+      authorId: uid_[author]!,
+      parentId: parent === undefined ? null : uid(`dcomment:${parent}`),
+      body,
+      mentions: extractMentions(body),
+      assigneeId: assignee ? uid_[assignee]! : null,
+      resolvedAt: resolved ? at(-2) : null,
+      resolvedBy: resolved && assignee ? uid_[assignee]! : null,
+      editedAt: null,
+      createdAt: at(-4 + k * 0.5),
+      updatedAt: at(-4 + k * 0.5),
+    };
+  });
+  await ins(docsComments, docComments);
+  await ins(s.notifications, [
+    {
+      id: uid('notif:dcomment:0'),
+      userId: uid_.demo,
+      spaceId: docComments[0]!.spaceId,
+      kind: 'doc_comment_assigned' as const,
+      taskId: null,
+      commentId: null,
+      actorId: docComments[0]!.authorId,
+      url: `/m/docs/${uid('page:0')}?comment=${docComments[0]!.id}`,
+      body: `Liam Walker: ${DOCS[0]!.title}`,
+      readAt: null,
+      createdAt: docComments[0]!.createdAt,
     },
   ]);
 
@@ -2003,6 +2081,28 @@ async function insertAll(tx: Tx, now: Date) {
         parentId: uid('comment:ai:mention'),
       },
     ),
+    // a reply to the reply — the reply's own thread, opened on the whole feed (PLNRAPP-201)
+    {
+      id: uid('comment:ai:followup'),
+      spaceId: rdmSpace,
+      taskId: tid('RDM', 1),
+      authorId: uid_.demo,
+      body: ask('and who takes the notes?'),
+      mentions: [ai],
+      parentId: uid('comment:ai:reply'),
+      createdAt: at(-1, 12),
+      updatedAt: at(-1, 12),
+    },
+    botSays(
+      'followup:reply',
+      tid('RDM', 1),
+      'The interviewer takes the notes, Sofia reviews them.',
+      {
+        parentId: uid('comment:ai:followup'),
+        createdAt: at(-1, 13),
+        updatedAt: at(-1, 13),
+      },
+    ),
     botSays(
       'check',
       tid('RDM', 1),
@@ -2131,6 +2231,16 @@ async function insertAll(tx: Tx, now: Date) {
       createdAt: at(-3, 11),
       updatedAt: at(-3, 11),
     }),
+    // PLNRAPP-202: a fresh failure of the task's action — the card shows «Ошибка ИИ» with a link to the run
+    run('failed-fresh', 7, {
+      state: 'failed',
+      inputTokens: 700,
+      outputTokens: 0,
+      cost: 0.0021,
+      log: 'Model request failed: provider error 503',
+      createdAt: at(0, 7),
+      updatedAt: at(0, 7),
+    }),
     run('cancelled', 6, {
       state: 'cancelled',
       inputTokens: 400,
@@ -2204,6 +2314,179 @@ async function insertAll(tx: Tx, now: Date) {
       createdAt: at(-1, 9),
       updatedAt: at(-1, 9),
     }),
+  ]);
+  // the agent's log of that run (PLNRAPP-199): thinking, tools, commands and their output, as in Claude Code
+  const devLog: [string, string | null, string][] = [
+    ['thought', null, 'Reading the task and the repository README to find the theme tokens.'],
+    ['command', 'Bash', 'git checkout -b mr/RDM-10'],
+    ['output', 'Bash', "Switched to a new branch 'mr/RDM-10'"],
+    ['tool_call', 'Grep', '--fg-muted in apps/web/src'],
+    ['output', 'Grep', 'apps/web/src/styles/theme.css:14\napps/web/src/styles/theme.css:41'],
+    ['tool_call', 'Edit', 'apps/web/src/styles/theme.css'],
+    ['output', 'Edit', 'The file apps/web/src/styles/theme.css has been updated.'],
+    [
+      'thought',
+      null,
+      'Contrast fixed in both themes; running the tests and the linter before pushing.',
+    ],
+    ['command', 'Bash', 'pnpm test && pnpm lint'],
+    [
+      'output',
+      'Bash',
+      ' Test Files  212 passed (212)\n      Tests  2481 passed (2481)\n\n> eslint . && prettier --check .\nAll matched files use Prettier code style!',
+    ],
+    [
+      'command',
+      'Bash',
+      'git push -u origin mr/RDM-10 && glab mr create --title "RDM-10: dark mode polish" --yes',
+    ],
+    ['output', 'Bash', 'https://gitlab.example/acme/app/-/merge_requests/42'],
+    ['result', null, 'Done, 23 turns, 412 s\nOpened MR !42 with auto-merge after CI.'],
+  ];
+  await ins(
+    aiRunEvents,
+    devLog.map(([type, tool, text], i) => ({
+      runId: uid('ai-run:dev'),
+      type,
+      tool,
+      text,
+      createdAt: new Date(new Date(at(-1, 9)).getTime() + i * 30_000).toISOString(),
+    })),
+  );
+  // harness-retro (PLNRAPP-178): the task with its subtasks — a friction of a run, an assignment's result, an admin's
+  // «не так» — and a proposal in «Уточнение» on Maya: the edit of the instruction «Планирование» with the diff in a comment
+  const rdm = PROJECTS[pkIdx('RDM')]!;
+  const retroTask = uid('task:RDM:retro');
+  const retroItem = (k: string) => uid(`task:RDM:retro:${k}`);
+  const [topMax] = (
+    await tx.execute(
+      sql`select max(rank collate "C") as r from tasks where project_id = ${pid('RDM')} and parent_id is null`,
+    )
+  ).rows as { r: string | null }[];
+  const retroRanks = generateNKeysBetween(null, null, 4);
+  const retroRows: [string, string | null, string, string, string][] = [
+    [
+      retroTask,
+      null,
+      RETRO_TITLE,
+      'The AI collects frictions of runs, results of assignments and chat, and admins’ answers here, and proposes edits of the harness instructions.',
+      statusId('RDM', 0),
+    ],
+    [
+      retroItem('friction'),
+      retroTask,
+      'Трение: RDM-5 · Планирование · the task has no acceptance criteria',
+      '**Что мешало:**\n\n> The task has no acceptance criteria: unclear when the plan is complete.',
+      statusId('RDM', 0),
+    ],
+    [
+      retroItem('assignment'),
+      retroTask,
+      'Поручение: RDM-2 · what did we decide on the interview format?',
+      '**Поручение** (упоминание):\n\n> what did we decide on the interview format?\n\n**Ответ ИИ** (done):\n\n> Remote interviews of 30 minutes, notes go to the shared doc.',
+      statusId('RDM', 0),
+    ],
+    [
+      retroItem('feedback'),
+      retroTask,
+      'Ответ админа: RDM-9 · не так, the plan has no end',
+      '**Комментарий ИИ** in RDM-9:\n\n> Which forum sections should be covered?\n\n**Ответ администратора:**\n\n> Не так: the plan has no end — say when it is done.',
+      statusId('RDM', 0),
+    ],
+    [
+      retroItem('proposal'),
+      retroTask,
+      'Правка harness: acceptance criteria at the end of a plan',
+      'Two subtasks: plans had no end. Diff — in the comment; the decision — an answer in its thread.',
+      clarify,
+    ],
+  ];
+  await ins(
+    s.tasks,
+    retroRows.map(([id, parentId, title, text, st], i) => ({
+      id,
+      spaceId: rdmSpace,
+      projectId: pid('RDM'),
+      number: rdm.tasks.length + i + 1,
+      parentId,
+      statusId: st,
+      title,
+      description: markdownToDoc(text),
+      priority: 0,
+      rank: parentId ? retroRanks[i - 1] : generateNKeysBetween(topMax?.r ?? null, null, 1)[0],
+      createdBy: ai,
+      fields: {},
+      createdAt: at(-3 + i * 0.5),
+      updatedAt: at(-3 + i * 0.5),
+    })),
+  );
+  await tx
+    .update(s.projects)
+    .set({ taskCounter: rdm.tasks.length + retroRows.length })
+    .where(sql`id = ${pid('RDM')}`);
+  await ins(s.taskAssignees, [
+    {
+      id: uid('assignee:retro:proposal'),
+      spaceId: rdmSpace,
+      taskId: retroItem('proposal'),
+      userId: maya,
+      createdAt: at(-1),
+    },
+  ]);
+  const planBase = parsePack((await readCatalogPack('dev'))!).actions.plan!.prompt;
+  const planNew = `${planBase}\n\n## Критерии готовности\n\nЗаверши план критериями готовности: как проверить, что задача сделана.`;
+  await ins(s.comments, [
+    botSays(
+      'retro',
+      retroItem('proposal'),
+      `Правка инструкции «Планирование» (\`plan\`).\n\n${diffBlock(planBase, planNew)}\n\nОтветьте в треде этого комментария: «применить» — правка запишется в harness-пакет; «закрыть» — отклонить; любой другой ответ — что переделать.`,
+      { assigneeId: maya, createdAt: at(-1, 8), updatedAt: at(-1, 8) },
+    ),
+  ]);
+  await ins(aiRetro, [
+    {
+      projectId: pid('RDM'),
+      taskId: retroTask,
+      frictions: 0,
+      lastRunAt: at(-1, 8),
+      createdAt: at(-3),
+      updatedAt: at(-1, 8),
+    },
+  ]);
+  await ins(aiRetroProposals, [
+    {
+      id: uid('retro-proposal:plan'),
+      projectId: pid('RDM'),
+      taskId: retroItem('proposal'),
+      commentId: uid('comment:ai:retro'),
+      assigneeId: maya,
+      actionKey: 'plan',
+      pageId: uid('page:harness:dev:plan'),
+      base: planBase,
+      prompt: planNew,
+      newAction: null,
+      title: 'Acceptance criteria at the end of a plan',
+      items: [retroItem('friction'), retroItem('feedback')],
+      state: 'pending',
+      createdAt: at(-1, 8),
+      updatedAt: at(-1, 8),
+    },
+  ]);
+  await ins(aiRuns, [
+    {
+      id: uid('ai-run:retro'),
+      taskId: retroTask,
+      projectId: pid('RDM'),
+      kind: 'retro',
+      state: 'done',
+      chainId: uid('ai-run:retro'),
+      chainDepth: 0,
+      inputTokens: 2300,
+      outputTokens: 410,
+      cost: 0.0151,
+      createdAt: at(-1, 8),
+      updatedAt: at(-1, 8),
+    },
   ]);
   // chats with the bot: a personal dialog with a done run, a group one with a plan waiting for «да»
   const botChat = async (

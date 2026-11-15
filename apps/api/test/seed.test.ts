@@ -55,4 +55,19 @@ describe('seed', () => {
     const [t] = await db.select({ n: count() }).from(s.tasks);
     expect(t!.n).toBe(40);
   });
+
+  it('--comments N доводит число комментариев до N, ~300 на одной задаче; --descriptions', async () => {
+    await db.$client.query('truncate users cascade');
+    await seed(db, 60, 'ru', { comments: 400, descriptions: true });
+    await seed(db, 60, 'ru', { comments: 400 });
+    const r = await db.$client
+      .query<{ total: number; top: number; described: number; assigned: number }>(
+        `select (select count(*)::int from comments) as total,
+                (select max(n)::int from (select count(*) n from comments group by task_id) x) as top,
+                (select count(*)::int from tasks where description is not null) as described,
+                (select count(*)::int from comments where assignee_id is not null) as assigned`,
+      )
+      .then((x) => x.rows[0]!);
+    expect([r.total, r.top >= 300, r.described, r.assigned]).toEqual([400, true, 60, 16]);
+  });
 });

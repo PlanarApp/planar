@@ -313,3 +313,11 @@
 {"t": "2026-11-03T14:25:22", "id": "F-9", "kind": "fix", "where": "dev.sh stack/e2e-web, .dpcli-local/workflow.md"}
 {"t": "2026-11-03T17:41:27", "id": "F-22", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/30"}
 {"t": "2026-11-04T18:31:52", "id": "F-22", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/30)", "pr": "https://github.com/zolotarev/dpcli/pull/30"}
+{"t": "2026-11-11T10:20:17", "id": "F-24", "kind": "cluster", "title": "harness: MCP planar без resolve комментария", "match": "resolve комментар", "scope": "project", "why": "правило «ответить + отметить готовым» невыполнимо: в MCP нет resolve, прямой /sync/push с токеном блокирует классификатор"}
+{"t": "2026-11-11T18:24:55", "id": "F-25", "kind": "cluster", "title": "harness: MCP planar не умеет отмечать комментарий готовым (resolve); views:saved «личный вид» падает в полном pnpm test под нагрузкой", "match": "resolve|views:saved", "scope": "project", "why": ""}
+{"t": "2026-11-11T20:13:25", "id": "F-26", "kind": "cluster", "title": "harness: точечная правка строки в документе плана невозможна", "match": "update_doc|документ плана", "scope": "project", "why": "update_doc меняет markdown только целиком (25 КБ), REST с токеном из ~/.claude.json блокирует классификатор"}
+{"t": "2026-11-11T20:17:22", "id": "F-26", "kind": "fix", "why": "пользователь разрешил REST с токеном из ~/.claude.json для точечных правок документов (2026-11-11)"}
+{"t": "2026-11-12T07:18:42", "id": "F-27", "kind": "cluster", "title": "update --auto commits the dpcli bump straight onto protected main", "match": "dpcli v[0-9]+.*main|main.*dpcli v", "scope": "dpcli", "why": "SessionStart hook runs update --auto in the main copy; when main is checked out, render_and_commit commits there, bypassing the MR-only rule (protect_main ignored by update)"}
+{"t": "2026-11-12T08:26:39", "id": "F-8", "kind": "fix", "where": ".dpcli-local/agents/dp-coordinator.append.md"}
+{"t": "2026-11-12T09:25:02", "id": "F-27", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/50"}
+{"t": "2026-11-12T20:55:22", "id": "F-27", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/50)", "pr": "https://github.com/zolotarev/dpcli/pull/50"}

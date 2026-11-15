@@ -33,49 +33,80 @@ function people(doc: unknown): string[] {
   return [...out];
 }
 
-/** A mention on the page — doc_mention notification to newly mentioned space members (not to the author). */
+type Kind = 'doc_mention' | 'doc_comment_assigned';
+
+/** Sends to the space members who see the page (PJ-11: project_role), never to the author of the change. */
+async function send(
+  api: HookApi,
+  ctx: { userId: string; now: string },
+  page: Wire,
+  users: string[],
+  kind: Kind,
+  url: string,
+) {
+  const fresh = users.filter((u) => u !== ctx.userId);
+  if (!fresh.length) return;
+  const spaceId = page.spaceId as string;
+  const members = new Set(
+    (await api.sys.scan<{ userId: string }>('spaceMembers', { index: 'spaceId', eq: spaceId })).map(
+      (m) => m.userId,
+    ),
+  );
+  const author = await api.sys.get<{ name: string }>('users', ctx.userId);
+  const title = String(page.title || '…');
+  for (const userId of fresh.filter((u) => members.has(u))) {
+    // PJ-11: a page of a project hidden from the user does not notify them (rule — SQL function project_role)
+    if (page.projectId) {
+      const r = await api.q.execute(
+        sql`select project_role(${userId}::uuid, ${String(page.projectId)}::uuid) as r`,
+      );
+      if (!(r.rows[0] as { r: unknown } | undefined)?.r) continue;
+    }
+    const id = uuidv7();
+    await api.sys.put('notifications', {
+      id,
+      userId,
+      spaceId,
+      kind,
+      taskId: null,
+      commentId: null,
+      changes: null,
+      actorId: ctx.userId,
+      readAt: null,
+      createdAt: ctx.now,
+      url,
+      body: `${author?.name ?? ''}: ${title}`.slice(0, 140),
+    });
+    await api.enqueue('push.notification', { notificationId: id });
+  }
+}
+
+/**
+ * A mention on the page or in its comment — doc_mention to newly mentioned space members (not to the author);
+ * a comment assigned to someone new — doc_comment_assigned (PLNRAPP-209).
+ */
 async function notify(
   writes: { entity: string; op: string; before: Wire | null; after: Wire | null }[],
   ctx: { userId: string; now: string },
   api: HookApi,
 ) {
   for (const w of writes) {
-    if (w.entity !== 'docsPages' || w.op !== 'put' || !w.after || w.after.archivedAt) continue;
-    const old = new Set(w.before ? people(w.before.body) : []);
-    const fresh = people(w.after.body).filter((u) => !old.has(u) && u !== ctx.userId);
-    if (!fresh.length) continue;
-    const spaceId = w.after.spaceId as string;
-    const members = new Set(
-      (await api.sys.scan<{ userId: string }>('spaceMembers', { index: 'spaceId', eq: spaceId })).map(
-        (m) => m.userId,
-      ),
-    );
-    const author = await api.sys.get<{ name: string }>('users', ctx.userId);
-    const title = String(w.after.title || '…');
-    for (const userId of fresh.filter((u) => members.has(u))) {
-      // PJ-11: a page of a project hidden from the user does not notify them (rule — SQL function project_role)
-      if (w.after.projectId) {
-        const r = await api.q.execute(
-          sql`select project_role(${userId}::uuid, ${String(w.after.projectId)}::uuid) as r`,
-        );
-        if (!(r.rows[0] as { r: unknown } | undefined)?.r) continue;
-      }
-      const id = uuidv7();
-      await api.sys.put('notifications', {
-        id,
-        userId,
-        spaceId,
-        kind: 'doc_mention',
-        taskId: null,
-        commentId: null,
-        changes: null,
-        actorId: ctx.userId,
-        readAt: null,
-        createdAt: ctx.now,
-        url: `/m/docs/${String(w.after.id)}`,
-        body: `${author?.name ?? ''}: ${title}`.slice(0, 140),
-      });
-      await api.enqueue('push.notification', { notificationId: id });
+    if (w.op !== 'put' || !w.after) continue;
+    if (w.entity === 'docsPages') {
+      if (w.after.archivedAt) continue;
+      const old = new Set(w.before ? people(w.before.body) : []);
+      const fresh = people(w.after.body).filter((u) => !old.has(u));
+      await send(api, ctx, w.after, fresh, 'doc_mention', `/m/docs/${String(w.after.id)}`);
+    } else if (w.entity === 'docsComments') {
+      const page = await api.sys.get<Wire>('docsPages', String(w.after.pageId));
+      if (!page || page.archivedAt) continue;
+      const url = `/m/docs/${String(page.id)}?comment=${String(w.after.id)}`;
+      const old = new Set(w.before ? people(w.before.body) : []);
+      const fresh = people(w.after.body).filter((u) => !old.has(u));
+      await send(api, ctx, page, fresh, 'doc_mention', url);
+      const to = w.after.assigneeId as string | null;
+      if (to && to !== w.before?.assigneeId)
+        await send(api, ctx, page, [to], 'doc_comment_assigned', url);
     }
   }
 }

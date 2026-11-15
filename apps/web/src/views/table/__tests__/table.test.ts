@@ -449,3 +449,52 @@ describe('wk7b: раскладка в сохранённом виде', () => {
     expect(w.find('[data-col=key]').attributes('style')).toContain('width: 800px');
   });
 });
+
+describe('table:keys (PLNRAPP-163)', () => {
+  const key = (k: string) => w.get('[role=grid]').trigger('keydown', { key: k });
+  const ringed = () =>
+    rows()
+      .find((r) => r.classes().includes('ring-2'))
+      ?.attributes('data-task');
+  it('table:keys j/k и стрелки двигают фокус, x выделяет, Enter открывает, Escape снимает выбор', async () => {
+    const { router } = await import('../../../router');
+    vi.mocked(router.push).mockClear();
+    await show();
+    expect(ringed()).toBeUndefined();
+    await key('j');
+    expect(ringed()).toBe('PLN-1');
+    expect(w.get('[role=grid]').classes()).not.toContain('focus-visible:ring-2');
+    await key('ArrowDown');
+    expect(ringed()).toBe('PLN-2');
+    await key('j');
+    await key('j');
+    expect(ringed()).toBe('PLN-3'); // the last row stays focused
+    await key('k');
+    await key('ArrowUp');
+    expect(ringed()).toBe('PLN-1');
+    await key('x');
+    expect(useSelection().selected.value.has('id1')).toBe(true);
+    await key('Escape');
+    expect(useSelection().selected.value.size).toBe(0);
+    await key('Enter');
+    expect(router.push).toHaveBeenCalledWith('/t/PLN-1');
+  });
+  it('table:keys F2 — правка названия фокусной строки; клик по строке ставит фокус', async () => {
+    await show();
+    await rows()[1].trigger('click');
+    expect(ringed()).toBe('PLN-2');
+    await key('F2');
+    await flushPromises();
+    expect((w.get('[data-edit]').element as HTMLInputElement).value).toBe('Task 2');
+  });
+  it('table:keys фокус потерян на странице — клавиши работают и возвращают фокус в таблицу', async () => {
+    await show();
+    (document.activeElement as HTMLElement | null)?.blur();
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'j', bubbles: true, cancelable: true }),
+    );
+    await flushPromises();
+    expect(ringed()).toBe('PLN-1');
+    expect(document.activeElement).toBe(w.get('[role=grid]').element);
+  });
+});

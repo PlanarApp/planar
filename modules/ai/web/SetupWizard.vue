@@ -5,11 +5,20 @@ import { AI_PROVIDERS, type AiConnectionView, type HarnessOp } from '../shared/i
 import { AiApiError, call } from './api';
 import ConnectionFields from './ConnectionFields.vue';
 import { tr } from './data';
-import { applyFailure, diffPrefix, hasChanges, type ChatReply, type Proposal } from './docChatUi';
 import { buildReplaceWith, groupOps, needReplace, replaceTargets } from './harnessUi';
 import PackConflicts from './PackConflicts.vue';
 import { usePackUpload } from './usePackUpload';
-import { canAdvance, nextStep, prevStep, type WizardStep } from './wizardUi';
+import {
+  applyFailure,
+  canAdvance,
+  diffPrefix,
+  hasChanges,
+  nextStep,
+  prevStep,
+  type AdaptReply,
+  type Proposal,
+  type WizardStep,
+} from './wizardUi';
 
 // «Settings → AI → Setup wizard» (project level): key → template + prompt → pack (+ AI adaptation) → harness diff → apply.
 // Only the existing API; `reinit` starts from the template step (the connection is already there) and the upload asks per page.
@@ -104,10 +113,9 @@ const stale = ref(false);
 const adapt = () =>
   guard(async () => {
     adapted.value = '';
-    const r = await call<ChatReply>('POST', 'doc-chat', {
+    const r = await call<AdaptReply>('POST', 'wizard/adapt', {
       pageId: rootPageId.value,
       message: prompt.value,
-      history: [],
     });
     proposal.value = hasChanges(r.proposal) ? r.proposal : null;
     if (!proposal.value) adapted.value = 'none';
@@ -116,7 +124,7 @@ async function accept() {
   const p = proposal.value!;
   await guard(async () => {
     try {
-      await call('POST', 'doc-chat/apply', {
+      await call('POST', 'wizard/adapt/apply', {
         pageId: rootPageId.value,
         body: p.body,
         baseUpdatedAt: p.baseUpdatedAt,

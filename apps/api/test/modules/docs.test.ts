@@ -202,3 +202,132 @@ describe('docs', () => {
     expect((await rows(w.member, 'docsPages')).filter((r) => r.id === a.id)).toHaveLength(1);
   });
 });
+
+// PLNRAPP-209: комментарии к странице — ветки, упоминания, назначение, закрытие; права как у страницы
+describe('docs comments', () => {
+  const say = (text: string, ...mentions: string[]) => ({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text },
+          ...mentions.map((id) => ({ type: 'mention', attrs: { id } })),
+        ],
+      },
+    ],
+  });
+  const comments = async (c: TestClient, pageId: string) =>
+    (await rows(c, 'docsComments')).filter((r) => r.pageId === pageId);
+  const put = async (c: TestClient, pageId: string, over: Record<string, unknown> = {}) => {
+    const id = uuidv7();
+    await c.ok('docs.comment.create', { id, pageId, body: say('текст'), ...over });
+    return id;
+  };
+
+  it('create: ветка и ответ, mentions из body; гость видит, но не пишет; чужой не видит', async () => {
+    const p = await mk({ projectId: w.projectId });
+    const root = await put(w.member, p, { body: say('смотри ', w.admin.userId) });
+    const reply = await put(w.admin, p, { parentId: root });
+    expect(await comments(w.admin, p)).toMatchObject([
+      { id: root, parentId: null, authorId: w.member.userId, mentions: [w.admin.userId] },
+      { id: reply, parentId: root, authorId: w.admin.userId, mentions: [] },
+    ]);
+    expect(await comments(w.guest, p)).toHaveLength(2);
+    expect(
+      await w.guest.push('docs.comment.create', { id: uuidv7(), pageId: p, body: say('x') }),
+    ).toMatchObject({ code: 'forbidden' });
+    expect(await rows(w.outsider, 'docsComments')).toEqual([]);
+  });
+
+  it('create: ответ на комментарий другой страницы → invalid_args, архивная страница → conflict', async () => {
+    const a = await mk();
+    const b = await mk();
+    const c = await put(w.member, a);
+    expect(
+      await w.member.push('docs.comment.create', {
+        id: uuidv7(),
+        pageId: b,
+        body: say('x'),
+        parentId: c,
+      }),
+    ).toMatchObject({ code: 'invalid_args' });
+    await w.member.ok('docs.page.archive', { id: b });
+    expect(
+      await w.member.push('docs.comment.create', { id: uuidv7(), pageId: b, body: say('x') }),
+    ).toMatchObject({ code: 'conflict' });
+  });
+
+  it('update и delete — только автор; delete забирает ответы', async () => {
+    const p = await mk();
+    const root = await put(w.member, p);
+    const reply = await put(w.admin, p, { parentId: root });
+    await put(w.member, p, { parentId: reply });
+    expect(
+      await w.admin.push('docs.comment.update', { id: root, body: say('чужое') }),
+    ).toMatchObject({ code: 'forbidden' });
+    await w.member.ok('docs.comment.update', { id: root, body: say('новое ', w.guest.userId) });
+    expect((await comments(w.member, p)).find((r) => r.id === root)).toMatchObject({
+      mentions: [w.guest.userId],
+      editedAt: expect.any(String),
+    });
+    expect(await w.admin.push('docs.comment.delete', { id: root })).toMatchObject({
+      code: 'forbidden',
+    });
+    await w.member.ok('docs.comment.delete', { id: root });
+    expect(await comments(w.member, p)).toEqual([]);
+  });
+
+  it('assign / resolve: гость не исполнитель; завершают исполнитель, автор или admin; переназначение открывает', async () => {
+    const p = await mk({ projectId: w.projectId });
+    const c = await put(w.member, p);
+    expect(await w.member.push('docs.comment.resolve', { id: c, resolved: true })).toMatchObject({
+      code: 'invalid_args',
+    });
+    expect(
+      await w.member.push('docs.comment.assign', { id: c, assigneeId: w.guest.userId }),
+    ).toMatchObject({ code: 'invalid_args' });
+    await w.member.ok('docs.comment.assign', { id: c, assigneeId: w.admin.userId });
+    await w.admin.ok('docs.comment.resolve', { id: c, resolved: true });
+    expect((await comments(w.member, p))[0]).toMatchObject({
+      assigneeId: w.admin.userId,
+      resolvedBy: w.admin.userId,
+      resolvedAt: expect.any(String),
+    });
+    await w.member.ok('docs.comment.assign', { id: c, assigneeId: w.member.userId });
+    expect((await comments(w.member, p))[0]).toMatchObject({ resolvedAt: null, resolvedBy: null });
+
+    const other = await put(w.admin, p, { assigneeId: w.admin.userId });
+    expect(
+      await w.member.push('docs.comment.resolve', { id: other, resolved: true }),
+    ).toMatchObject({ code: 'forbidden' });
+  });
+
+  it('уведомления: упомянутым — doc_mention, исполнителю — doc_comment_assigned, не автору', async () => {
+    const p = await mk({ projectId: w.projectId, title: 'Спека' });
+    const kinds = async (c: TestClient, kind: string) =>
+      ((await c.bootstrap()).data.notifications ?? []).filter(
+        (n) => n.kind === kind && n.url?.startsWith(`/m/docs/${p}?comment=`),
+      );
+    const c = await put(w.member, p, {
+      body: say('глянь ', w.guest.userId, w.member.userId),
+      assigneeId: w.admin.userId,
+    });
+    expect(await kinds(w.guest, 'doc_mention')).toMatchObject([
+      { url: `/m/docs/${p}?comment=${c}`, taskId: null, actorId: w.member.userId },
+    ]);
+    expect(await kinds(w.member, 'doc_mention')).toEqual([]);
+    expect(await kinds(w.admin, 'doc_comment_assigned')).toHaveLength(1);
+    // the same mention again — no new notification
+    await w.member.ok('docs.comment.update', { id: c, body: say('ещё ', w.guest.userId) });
+    expect(await kinds(w.guest, 'doc_mention')).toHaveLength(1);
+  });
+
+  it('docs.page.delete удаляет комментарии страницы', async () => {
+    const p = await mk();
+    await put(w.member, p);
+    await w.member.ok('docs.page.archive', { id: p });
+    await w.admin.ok('docs.page.delete', { id: p });
+    expect(await comments(w.admin, p)).toEqual([]);
+  });
+});

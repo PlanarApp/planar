@@ -1,25 +1,25 @@
 # Working with agents — planar
 
-Journal, cards, branches, docs — only via `.dpcli/dpcli` (help: `.dpcli/dpcli <command> -h`, `.dpcli/README.md`). Agents exchange IDs and commands, never retell the journal (report, review, status); details live in the journal.
+Journal, cards, branches, docs — only via `.dpcli/dpcli` (help: `.dpcli/dpcli <command> -h`, `.dpcli/README.md`). Agents exchange IDs and commands, never retell the journal.
 
 **Language.** Everything written for people — replies to the user, reports, journal entries, plans, docs — in Russian. Commit messages in Russian.
 
 ## Roles
 - **User** — decisions, forks, acceptance of the result.
-- **Main session** — plans, questions to the user as one list; a module: `.dpcli/dpcli module new <m> --area <subproject>` + one `dp-coordinator` (area — from the `areas` config key; if the developer did not name it, ask, don't guess); a module of 2–3 tasks — no coordinator, the main session briefs executors itself. User decisions — `.dpcli/dpcli decide <m> "…" --by user --why "…" --plan` (`--why` is the reason; no reason — leave it empty, `decisions.md` will say "approved by the developer"), gate answers — `.dpcli/dpcli answer <Qn> "…"`, plan edits — `.dpcli/dpcli plan edit … --commit`. Branches: `.dpcli/dpcli sync <m>` (fresh module base into the module branch), delivery — `.dpcli/dpcli deliver <m>` (only after the user approves), other branches — `.dpcli/dpcli merge <branch> --into <target>`, `.dpcli/dpcli gc`. Push and releases — only on the user's command.
+- **Main session** — plans, questions to the user as one list; a module: `.dpcli/dpcli module new <m> --area <subproject>` + one `dp-coordinator` (area — from the `areas` config key; if the developer did not name it, ask, don't guess); a module of 2–3 tasks — no coordinator, the main session briefs executors itself. User decisions — `.dpcli/dpcli decide <m> "…" --by user --why "…" --plan` (`--why` — the reason; empty if none), gate answers — `.dpcli/dpcli answer <Qn> "…"`, plan edits — `.dpcli/dpcli plan edit … --commit`. Branches: `.dpcli/dpcli sync <m>` (fresh module base into the module branch), delivery — `.dpcli/dpcli deliver <m>` (only after the user approves), other branches — `.dpcli/dpcli merge <branch> --into <target>`, `.dpcli/dpcli gc`. Push and releases — only on the user's command.
 - **Module coordinator** (`dp-coordinator`) — contracts, task cards, launching executors, acceptance, gates. Does not write or review code.
 - **Executor** (`dpcli_role: executor`) — one task in its own copy and branch, within the card's bounds.
 - **Reviewer** (`dp-reviewer`) — fresh, empty context, one task; only reads and re-runs checks.
 
 ## Lifecycle
 1. Plan `docs/plan/<m>.md`: goal, user decisions, tasks with scope and acceptance, waves, stop conditions.
-2. Branch `feature/<module>` **from the module base** — the feature branch the main session is on (`module new` takes the current branch; another — `--from`); copy, coordinator; contracts before the first executor. Several modules of one feature — each its own branch from the same feature branch.
+2. Branch `feature/<module>` **from the module base** — the feature branch the main session is on (`module new` takes the current branch; another — `--from`); copy, coordinator; contracts before the first executor.
 3. Waves: ≤ 4 executors at once; task → card → copy and branch `<m>/<ID>` from `feature/<module>` → acceptance (see "Acceptance").
 4. Gate (stop condition or a fork outside the plan): `.dpcli/dpcli decide <m> "question" --ask` → main session asks the user → `answer`.
-5. User check → on approval `.dpcli/dpcli deliver <m>`: one squash commit into the module base (`--into` — another branch); of the journal only `decisions.md` and `summary.md` go there; the full journal stays in `feature/<module>` (and under an archive tag if `deliver.archive_tag` is set); plan and contracts get `status: closed`, `INDEX.md` is rebuilt. Don't develop the module branch after delivery. Feature branch into `main` — only by the user's decision (usually an MR merged by a human); `deliver`/`merge` into `main` — only with explicit `--into`.
+5. User check → on approval `.dpcli/dpcli deliver <m>`: one squash commit into the module base (`--into` — another branch); of the journal only `decisions.md` and `summary.md` go there; the full journal stays in `feature/<module>`. Don't develop the module branch after delivery. Feature branch into `main` — only by the user's decision (usually an MR merged by a human); `deliver`/`merge` into `main` — only with explicit `--into`.
 
 ## Message protocol
-Agents send only these formats.
+Agents send only these formats:
 
 | From → to | Message |
 |---|---|
@@ -31,9 +31,8 @@ Agents send only these formats.
 | coordinator → main | `<m>: <n> accepted, <n> in progress; gate Q<n>`, `<m>: wave <n> done` (main starts a fresh coordinator for the next wave) or `<m> done` |
 | main → user | free form, from `.dpcli/dpcli status` / `.dpcli/dpcli digest` |
 
-- User decisions are already in the inbox (via `decide`); don't retell them in messages.
 - Add nothing to `brief`: task specifics go into the card (`.dpcli/dpcli task note <ID> "…"`).
-- Missing information — ask in one line. New rules for a running agent — by message, no restart.
+- Missing information — ask in one line. New rules for a running agent — by message.
 
 ## Task card — boundaries
 The coordinator writes it so the executor has nothing to search for:
@@ -63,21 +62,21 @@ The coordinator does not read the task's code, diffs or logs. Allowed: `status`,
 5. Merge the task branch into `feature/<module>`, `.dpcli/dpcli accept <ID> --here --commit <h>`, `.dpcli/dpcli event <ID> merged`, remove the copy.
 
 ## General rules
-- Refer to decisions in plans, contracts and cards by `Q<n>` or date `YYYY-MM-DD`, not by time ("decision 12:35"): after delivery the journal with timestamps is not in the branch.
-- Deterministic work — `.dpcli/dpcli` commands (`search`, `plan`, `docs`, `log`, `status`, `task`, `sync/merge`); don't write your own grep/scripts over the journal, plans and docs. A command is missing — work around once and log feedback.
+- Refer to decisions by `Q<n>` or date `YYYY-MM-DD`, not by time: after delivery the timestamped journal is not in the branch.
+- Deterministic work — `.dpcli/dpcli` commands (`search`, `plan`, `docs`, `log`, `status`, `task`, `sync/merge`); no own grep/scripts over the journal, plans, docs. A command is missing — work around once and log feedback.
 - Correctness over "looks nice": parameters are justified (domain, measurements, sources), numbers come from measurements, results from reports; assumptions and limits go into the report.
 - Minor visual/style details — at most 2 attempts.
 - Tools: files — Read (offset/limit), Edit, Write; not `sed -n`/`sed -i`/`cat >`/`python3 -` replacements. Bash runs programs: search — `rg`, files — `fd`, JSON — `jq`, structural search/rewrite of code — `ast-grep`; Python beyond one line — a script file (`uv run` / `python3 file.py`).
+- Read plans and contracts by section: `.dpcli/dpcli plan <m> <section>`, `--contracts <name>`.
 - Tests — non-interactive. GPU — `.dpcli/dpcli lock gpu <name> -- <cmd>`, heavy CPU — `.dpcli/dpcli lock cpu …`.
 - Long runs (> 1–2 min) — `run_in_background` or `.dpcli/dpcli job start <name> <timeout> <cmd>` → `.dpcli/dpcli job wait <name>`. No `pgrep -f`/`pkill -f`; other processes — only by PID after `readlink /proc/PID/cwd`.
 - Batches of runs — one script, one background run, results as a table.
 - Don't open images unless appearance is the subject of the task; verify with numbers. Artifacts — in `artifacts_dir`, a subfolder per task.
-- Read plans and contracts by section: `.dpcli/dpcli plan <m> <section>`, `--contracts <name>`.
 - Commits — only your own files: `git add <paths> && git commit -m "…" -- <paths>`, with a `Claude-Session` line; no push. Never `git stash`: the stash is shared by all worktrees.
 - Don't change `.claude/` or CLAUDE.md unless that is the task.
 
 ## Journal
-- `docs/plan/<m>/` — cards, reports, `events.jsonl`, `decisions.jsonl`; append-only via commands, never edit by hand. It is the module branch's working journal: commit it there freely, it does not go into the target branch — `deliver` folds it into `decisions.md` (decisions, questions with answers) and `summary.md` (task results, not done, doubts). Full view for the coordinator — `.dpcli/dpcli render <m>`.
+- `docs/plan/<m>/` — cards, reports, `events.jsonl`, `decisions.jsonl`; append-only, only via commands. `deliver` folds it into `decisions.md` and `summary.md`. Full view for the coordinator — `.dpcli/dpcli render <m>`.
 - Task ID `<CODE>-<n>[letter]`; `task new <m>` without an ID takes the next number.
 - Executor: `.dpcli/dpcli task show <ID>` → work → `.dpcli/dpcli accept <ID> --dry` → `.dpcli/dpcli report <ID>` (per-task file; schema `report --template`; `uncertain` — doubts and what was checked; `dp_feedback`). `report` is the only write into the module copy.
 - Coordinator: `.dpcli/dpcli inbox <m>` at the start of every step; journal commit — `git add docs/plan/<m> && git commit -m "…" -- docs/plan/<m>`.
@@ -86,7 +85,7 @@ The coordinator does not read the task's code, diffs or logs. Allowed: `status`,
 - Entry — `docs/INDEX.md`. Find — `.dpcli/dpcli docs find <words>`, `.dpcli/dpcli docs findings <words>`, module journals — `.dpcli/dpcli search <text>` (`--sem` — by meaning, if enabled).
 - Read by section, not whole: `.dpcli/dpcli docs section <path>` — table of contents, `.dpcli/dpcli docs section <path> <number|heading start>` — a section.
 - Every md has frontmatter (`type`, `status`, `module`, `updated`, `summary`, `related`); new — `.dpcli/dpcli docs init`; `summary` — the conclusion/purpose in one line ≤ 140 chars (not TODO).
-- Document size ≤ `docs.max_kb` (40 KB): larger — split into section files or move data out; before commit — `.dpcli/dpcli docs check`, registries — `.dpcli/dpcli docs index`.
+- Document size ≤ `docs.max_kb`: larger — split into section files or move data out; before commit — `.dpcli/dpcli docs check`, registries — `.dpcli/dpcli docs index`.
 - Finished work — one line in `registry/findings.md` (module section): the conclusion with numbers and a `path#section` link.
 
 ## Agents and models
@@ -107,23 +106,19 @@ Opus only if the design cannot be moved into the plan or a contract. On failure 
 - Project changes live in the project layer `.dpcli-local/` (see its README), never in `.dpcli/` — the distribution is replaced on update: `agents/<name>.append.md` adds to a dpcli agent, `agents/<name>.md` is an own agent, `skills/<name>/`, `workflow.md` (project rules), `claude-md.md`. Then `.dpcli/dpcli init`.
 - `init` does not touch files it did not create: same-named files in `.claude/agents/` are skipped.
 - Attach your own agent to a role — `roles` in `dpcli.yml` (`name: {role: executor, review: true}`) or `dpcli_role` in its frontmatter; then it is valid in `task new --type`.
-- Role registry — `.dpcli/dpcli agents`.
 
 ## Monitoring
-- The main session does not poll: it wakes on a coordinator message or the user's request — then `.dpcli/dpcli status --since <period>` (stalls — `dp-status`); daily summary — `.dpcli/dpcli digest --since today`.
-- Stall: "⚠quiet" > 30–40 min — find out what it is doing, report.
+- The main session does not poll: it wakes on a coordinator message or the user's request — then `.dpcli/dpcli status --since <period>` (stalls — `dp-status`); daily summary — `.dpcli/dpcli digest --since today`. "⚠quiet" > 30–40 min — find out what it is doing, report.
 
 ## Sessions and context
-Every turn pays for the whole session context again.
-- One session — one phase or module. After a merge, module acceptance or a change of topic — `/clear` or a new session; state is restored from the journal (`.dpcli/dpcli status`, `inbox`), not from session memory.
+- One session — one phase or module. After a merge, module acceptance or a change of topic — `/clear` or a new session; state comes from the journal (`.dpcli/dpcli status`, `inbox`).
 - With a long context the main session does not read or edit code itself: a task for an executor or a fresh session.
-- Subagents — only when needed (protocol, waves).
 
 ## Self-improvement
 The process (agents, templates, rules, permissions, dpcli) improves as you work, on its own.
 - **Collect — everyone, as you go, one line.** Friction = an extra rework round, waiting for a permission, working around a dpcli command, a rule that hinders or contradicts, wasted tokens/time, a repeated mistake. Executor — the report's `dp_feedback`; reviewer — the review's `harness`; coordinator and main session — `.dpcli/dpcli event <m> note --note "harness: <what hurt> → <what to change>"`.
 - **Review — main session, skill `harness-retro`:** on `<m> done`, once per phase or on the user's request: `.dpcli/dpcli feedback` (clusters, triage project|dpcli), `.dpcli/dpcli stats`, ≤ 3 changes applied, then told to the user.
-- **Where fixes go.** Project-specific — `.dpcli-local/` (survives updates). dpcli itself — edits in `.dpcli` leave only via `.dpcli/dpcli contribute F-n` (branch, commit, a PR to the dpcli hub or a +1 on a similar one); everyone gets it with the next update.
+- **Where fixes go.** Project-specific — `.dpcli-local/` (survives updates). dpcli itself — edits in `.dpcli` leave only via `.dpcli/dpcli contribute F-n` (branch, commit, a PR to the dpcli hub or a +1 on a similar one; no fix = refusal, `--issue` reports on purpose).
 - The user's remarks about the work — into memory (feedback) at once, without waiting for a review.
 
 ## Project rules

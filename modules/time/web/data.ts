@@ -6,15 +6,16 @@ import {
   mutate,
   newId,
   openTask,
+  useLive,
   useQuery,
   useSession,
+  useTask,
   useWeekStart,
 } from '@planar/web/modules';
 import type { TimeEntry, TimeEstimate } from '../shared/index.js';
-import type { TaskNode } from './lib.js';
 
-export { mutate, newId, openTask, useWeekStart };
-export type TaskLite = TaskNode & { title: string; projectId?: string; spaceId?: string };
+export { mutate, newId, openTask, useTask, useWeekStart };
+export type TaskLite = { id: string; title: string; projectId: string; spaceId: string };
 
 export const userId = () => useSession().value?.id ?? '';
 
@@ -67,15 +68,39 @@ export const useUsers = () =>
   );
 export const useEstimate = (taskId: () => string) =>
   useQuery(() => db.table('timeEstimates').get(taskId()) as Promise<TimeEstimate | undefined>);
-export const useTasks = () =>
-  useQuery(async () =>
-    (await db.table('tasks').toArray()).map((t): TaskLite => ({
-      id: t.id,
-      parentId: t.parentId ?? null,
-      title: t.title,
-      projectId: t.projectId,
-      spaceId: t.spaceId,
-    })),
+// not the whole tasks table: such a query re-runs on every edit of any task
+/** A task and all its descendants: by the parentId index, level by level (without looping). */
+export const useSubtree = (taskId: () => string) =>
+  useLive(taskId, async (root): Promise<Set<string>> => {
+    const out = new Set([root]);
+    for (let level = [root]; level.length;) {
+      const kids = (await db
+        .table('tasks')
+        .where('parentId')
+        .anyOf(level)
+        .primaryKeys()) as string[];
+      level = kids.filter((id) => !out.has(id));
+      for (const id of level) out.add(id);
+    }
+    return out;
+  });
+/** Title, project and space of the given tasks, by id; absent from the replica — skipped. */
+export const useTaskLites = (ids: () => string[]) =>
+  useLive(
+    () => ids().join(','),
+    async (k): Promise<Map<string, TaskLite>> => {
+      const rows = (await db.table('tasks').bulkGet(k ? k.split(',') : [])) as (
+        TaskLite | undefined
+      )[];
+      return new Map(
+        rows
+          .filter((t) => !!t)
+          .map((t) => [
+            t.id,
+            { id: t.id, title: t.title, projectId: t.projectId, spaceId: t.spaceId },
+          ]),
+      );
+    },
   );
 
 /** The current time, ticks once a second while the component is mounted. */

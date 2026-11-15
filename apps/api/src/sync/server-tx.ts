@@ -19,6 +19,14 @@ export interface ServerTxCtx {
 }
 
 type Wire = Record<string, unknown>;
+
+/** Shared by the mutations of one transaction (push batch); dropped on writes that change it and on rollback. */
+export interface TxCache {
+  hidden?: Set<string>;
+  /** enabledModules */
+  modules?: Set<string>;
+}
+
 export interface TxWrite {
   entity: EntityName;
   op: 'put' | 'del';
@@ -59,8 +67,10 @@ export class ServerTx implements Tx {
   /** PJ-11: project of a row (`entity:id` -> project id), the user's role in a project (0 — none), projects hidden from the user. */
   private projectOf = new Map<string, string | null>();
   private projectRanks = new Map<string, number>();
-  private hidden?: Set<string>;
-  private locked = false;
+  /** Rows read by this mutation (`entity:id`); a write of the row drops it. */
+  private rows = new Map<string, Wire | undefined>();
+  private cache: TxCache;
+  private locked: boolean;
   private lastSeq = 0;
   /** Records of this mutation (for the notification hook). */
   readonly writes: TxWrite[] = [];
@@ -68,12 +78,24 @@ export class ServerTx implements Tx {
   constructor(
     private q: Q,
     private ctx: ServerTxCtx,
-    private opts: { system?: boolean } = {},
-  ) {}
+    private opts: { system?: boolean; cache?: TxCache; locked?: boolean } = {},
+  ) {
+    this.cache = opts.cache ?? {};
+    this.locked = !!opts.locked;
+  }
 
-  /** Server code: rights bypass, the write goes into changes. */
-  static asSystem(q: Q, ctx: ServerTxCtx): ServerTx {
-    return new ServerTx(q, ctx, { system: true });
+  /** Server code: rights bypass, the write goes into changes. locked — the transaction already holds the lock. */
+  static asSystem(
+    q: Q,
+    ctx: ServerTxCtx,
+    opts: { cache?: TxCache; locked?: boolean } = {},
+  ): ServerTx {
+    return new ServerTx(q, ctx, { ...opts, system: true });
+  }
+
+  /** The lock is taken: a nested ServerTx of the same transaction need not take it again. */
+  get isLocked(): boolean {
+    return this.locked;
   }
 
   /** Notification about what was written; call in the same transaction before commit. */
@@ -92,15 +114,28 @@ export class ServerTx implements Tx {
   /** The row as is, even in a project hidden from the user (put/patch check it in authorize). */
   private async rawGet<E extends EntityName>(entity: E, id: string): Promise<Row<E> | undefined> {
     await this.lock();
-    const t = tableOf(entity);
-    const [r] = await this.exec(() =>
-      this.q
-        .select()
-        .from(t)
-        .where(eq(getTableColumns(t).id, id))
-        .limit(1),
-    );
-    return r ? (toWire(entity, r) as Row<E>) : undefined;
+    const key = `${entity}:${id}`;
+    if (!this.rows.has(key)) {
+      const t = tableOf(entity);
+      const [r] = await this.exec(() =>
+        this.q
+          .select()
+          .from(t)
+          .where(eq(getTableColumns(t).id, id))
+          .limit(1),
+      );
+      const w = r ? toWire(entity, r) : undefined;
+      this.rows.set(key, w);
+      if (w) this.knowProject(entity, w);
+    }
+    // a copy: the mutator may change what it got
+    const w = this.rows.get(key);
+    return w && (structuredClone(w) as Row<E>);
+  }
+
+  /** A row with its own projectId: rows tied to it (comments, activity) find the project without a select. */
+  private knowProject(entity: string, row: Wire) {
+    if (typeof row.projectId === 'string') this.projectOf.set(`${entity}:${row.id}`, row.projectId);
   }
 
   /** PJ-11: a row of a project hidden from the user does not exist for the mutator. */
@@ -110,7 +145,7 @@ export class ServerTx implements Tx {
   }
 
   private async hiddenSet(): Promise<Set<string>> {
-    return (this.hidden ??= new Set(await hiddenProjectIds(this.q, this.ctx.userId)));
+    return (this.cache.hidden ??= new Set(await hiddenProjectIds(this.q, this.ctx.userId)));
   }
 
   private async isHidden(entity: string, row: Wire): Promise<boolean> {
@@ -137,7 +172,7 @@ export class ServerTx implements Tx {
   private accessChanged(entity: string) {
     if (['projects', 'projectMembers', 'spaceMembers'].includes(entity)) {
       this.projectRanks.clear();
-      this.hidden = undefined;
+      this.cache.hidden = undefined;
     }
   }
 
@@ -168,6 +203,7 @@ export class ServerTx implements Tx {
     await this.authorize(entity, old, undefined);
     const t = tableOf(entity);
     await this.exec(() => this.q.delete(t).where(eq(getTableColumns(t).id, id)));
+    this.rows.delete(`${entity}:${id}`);
     await this.log(entity, 'del', old);
     await this.memberChange(entity, old, 'del');
     this.writes.push({ entity, op: 'del', before: old });
@@ -257,8 +293,10 @@ export class ServerTx implements Tx {
           .where(eq(schema.spaceMembers.spaceId, next.spaceId as string)),
       ))
         await this.reset(m.u);
-    if (entity === 'settings' && next.id === 'enabled_modules')
+    if (entity === 'settings' && next.id === 'enabled_modules') {
+      this.cache.modules = undefined;
       await this.log('_reset', 'put', null, next.id as string);
+    }
     await this.activity(entity, old, next);
   }
 
@@ -310,16 +348,20 @@ export class ServerTx implements Tx {
   ): Promise<void> {
     const t = tableOf(entity);
     const full = { ...next, ...extra };
+    // the DB may normalize the row: the next read goes to it
+    this.rows.delete(`${entity}:${next.id}`);
     await this.exec(() =>
       this.q
         .insert(t)
         .values(full)
         .onConflictDoUpdate({ target: getTableColumns(t).id, set: full }),
     );
+    this.knowProject(entity, next);
     await this.log(entity, 'put', next);
   }
 
   private async nextNumber(projectId: string): Promise<number> {
+    this.rows.delete(`projects:${projectId}`);
     const [r] = await this.exec(() =>
       this.q
         .update(schema.projects)

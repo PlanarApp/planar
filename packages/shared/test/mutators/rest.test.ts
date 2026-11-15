@@ -129,6 +129,24 @@ describe('notification/view/settings', () => {
     expect(await tx.get('notifications', theirs.id)).toBeDefined();
   });
 
+  it('notification.readAll: свои непрочитанные до upTo, кроме except', async () => {
+    const tx = mem();
+    const s = await seedSpace(tx);
+    const t = await seedTask(tx, s);
+    const [a, snoozed, later, theirs] = [
+      notif(U1, s.spaceId, t),
+      notif(U1, s.spaceId, t),
+      { ...notif(U1, s.spaceId, t), createdAt: T1 },
+      notif(U2, s.spaceId, t),
+    ];
+    for (const n of [a, snoozed, later, theirs]) await tx.put('notifications', n);
+    await run(tx, 'notification.readAll', { upTo: ctx().now, except: [snoozed.id] }, ctx(U1, T1));
+    expect((await tx.get('notifications', a.id))!.readAt).toBe(T1);
+    expect((await tx.get('notifications', snoozed.id))!.readAt).toBeNull();
+    expect((await tx.get('notifications', later.id))!.readAt).toBeNull();
+    expect((await tx.get('notifications', theirs.id))!.readAt).toBeNull();
+  });
+
   it('view.create/update/delete', async () => {
     const tx = mem();
     const s = await seedSpace(tx);
@@ -236,13 +254,13 @@ describe('детерминизм', () => {
     };
     const [a, b] = [await play(), await play()];
     expect(a).toEqual(b);
-    expect(domainMutators.length).toBe(63);
+    expect(domainMutators.length).toBe(64);
   });
 });
 
 describe('реестр и аргументы', () => {
   it('createRegistry принимает domainMutators без дублей', () => {
-    expect(createRegistry(domainMutators).size).toBe(63);
+    expect(createRegistry(domainMutators).size).toBe(64);
   });
 
   it.each(domainMutators.map((d) => d.name))('%s: пустые args отклоняются', async (name) => {

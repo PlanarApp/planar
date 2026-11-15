@@ -1,0 +1,1 @@
+CREATE INDEX "ai_runs_task_id_item_id_state_idx" ON "ai_runs" USING btree ("task_id","item_id","state");

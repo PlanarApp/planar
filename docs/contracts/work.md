@@ -99,6 +99,7 @@ export type Q = PgDatabase<NodePgQueryResultHKT, Record<string, unknown>>;
 export type { ModuleHookApi, JobApi, JobDef, JobOpts } from './hooks';  // moved from apps/api/src/modules/hooks.ts; ModuleHookApi.sys: Tx (@planar/shared)
 // JobApi.execute opts += prepare?: (q: Q) => Promise<boolean | void> — in the same transaction before the mutations (locks, checks); false → the mutations are not executed
 // JobApi.execute opts += after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void> — in the same transaction after all mutations; enqueue — in it as well; an error rolls the transaction back and is rethrown from execute (additive, C-modules v8, PL-2)
+// JobApi.execute opts += quiet?: boolean — no notifications (auto-subscription to the task stays); bulk import (additive, PLNRAPP-247)
 export class HttpError extends HttpException { constructor(status: number, code: string, message: string) } // C-http "Errors" format; the api ErrorFilter understands it
 export function parseBody<T extends z.ZodType>(schema: T, body: unknown): z.infer<T>; // 400 invalid_request
 export interface AuthCtx { userId: string; role: 'owner' | 'admin' | 'member' | 'guest'; tokenId: string | null; tokenScope: 'read' | 'write' | null }
@@ -360,20 +361,22 @@ const ok = header.length === expected.length && timingSafeEqual(Buffer.from(head
 
 ## Module import (WK-6)
 Server tables:
-- `import_jobs`: `id uuid pk`, `user_id uuid`, `project_id uuid`, `format text check (csv,trello)`, `preset text` (`clickup`, `jira`, `linear`, `custom`, `trello`), `status text check (pending,running,done,failed)`, `total int`, `processed int`, `created int`, `updated int`, `skipped jsonb` (`{row, reason}[]`), `warnings jsonb` (`{row, message}[]`), `error text?`, `created_at`, `updated_at`.
+- `import_jobs`: `id uuid pk`, `user_id uuid`, `project_id uuid?` (the main project; null — by the project column, PLNRAPP-246), `space_id uuid?` (the import space; null — older jobs, the project's space), `format text check (csv,trello)`, `preset text` (`clickup`, `jira`, `linear`, `plane`, `custom`, `trello`), `status text check (pending,running,done,failed)`, `total int`, `processed int`, `created int`, `updated int`, `skipped jsonb` (`{row, reason}[]`), `warnings jsonb` (`{row, message}[]`), `error text?`, `created_at`, `updated_at`.
 - `import_items`: `project_id uuid`, `preset text`, `external_id text`, `task_id uuid`, `updated_at`; pk `(project_id, preset, external_id)`.
 
 | method and path | input → output |
 |---|---|
-| `POST /api/import/preview` | multipart: `file`, `format`, `preset` → `{columns: string[], rows: string[][] /* ≤ 20 */, mapping: Mapping /* suggestion for the preset */}` |
-| `POST /api/import/jobs` | multipart: `file`, `projectId`, `format`, `preset`, `mapping` (JSON) → `202 {data: job}` |
+| `POST /api/import/preview` | multipart: `file`, `format`, `preset`, `mapping?` (JSON, csv) → `{columns: string[], rows: string[][] /* ≤ 20 */, mapping: Mapping /* given or the preset's suggestion */, values: {status: string[], project: {name, key}[], people: string[]} /* over the whole file */}` |
+| `POST /api/import/jobs` | multipart: `file`, `projectId?`, `spaceId?` (needed without `projectId`; then `mapping.project` is required), `format`, `preset`, `mapping` (JSON) → `202 {data: job}` |
 | `GET /api/import/jobs/:id` | → `{data: job}`; someone else's → 404 |
 
 - `Mapping` = `{externalId?, title, description?, status?, assignee?, labels?, dueDate?, startDate?, priority?, parent?}` — the CSV column name; `statusMap?: {<value>: statusId}` (unknown value — the default status, as in REST v1); `labels` — comma-separated, by name, missing ones are created with `label.create`; `assignee` — by email, then by login (case-insensitive), unknown — no assignee and a row in `warnings`; `parent` — the external ID of the parent in the same file; Trello JSON — fixed mapping (cards, lists → statuses, labels, members, checklists → `checklist.add`).
+- PLNRAPP-244/245: format `csv` also takes a JSON array of objects (Plane JSON export: keys → columns, arrays → JSON); lists in JSON form `["a", "b"]`; a status not in `statusMap` — by the status name of the project, then the default. `Mapping` += `project?`, `projectKey?`, `comments?` (JSON `[{comment, created_by, created_at}]`), `projectMap?: {<value>: projectId | 'new'}`, `userMap?: {<name>: userId | 'new'}`. Projects: `project_id` of the job — the main project; its space — the import space; a value in `projectMap` → that project (same space, writable) or `new` → `project.create` (key from `projectKey`, a taken one — with a suffix); others → the main project; a status of another project — by the name of the `statusMap` status; a parent in another project is not set. People: `userMap` first, then email/login; `new` → `CoreServices.createUser` (instance admin only, else 403 before anything is created) and `member.add` to the space; an assignee not in the space — a warning. Comments — only for created tasks, `comment.create` on behalf of the author (`system`), the source date (and the name, if the author is not found — then on behalf of the importer) in the first line.
+- PLNRAPP-246: import into a space without a project — `spaceId` (a member with role admin/member), rows go to projects by `projectMap`, rows without a project → `skipped` («нет проекта»). `Mapping` += `statusNew?: {<value>: category}` — before the tasks, `status.create` in every project of the value's rows that has no status of that name (case-insensitive), placed after the last status of a category not later than the given one, color as the default statuses; the main project's `statusMap` goes first. Wizard: space (required) → main project (required without a project column); hints by default — «create» for projects, people (instance admin) and statuses (category by the name: `guessCategory`).
 - Idempotency: a row with an `externalId` already in `import_items` updates the task (`task.update`, full replacement of assignees and labels) instead of creating a new one. Without `externalId` — always new.
 - pg-boss job `import.run {jobId}`: as `user_id` (their permissions), in batches of 100 rows per transaction; `processed` grows after each batch. Skipped rows (no title, mutator error) go to `skipped` with a reason, the import continues.
-- Limits: file ≤ 10 MB, ≤ 20 000 rows; larger → 400.
-- References — `e2e/fixtures/import/` (`clickup.csv`, `jira.csv`, `linear.csv`, `trello.json`, `README.md` with the format source for each).
+- Limits: file ≤ 50 MB (PLNRAPP-244; was 10), ≤ 20 000 rows; larger → 400.
+- References — `e2e/fixtures/import/` (`clickup.csv`, `jira.csv`, `linear.csv`, `plane.csv`, `plane.json`, `trello.json`, `README.md` with the format source for each).
 - Web: route `/m/import/` (wizard: file → format and preset → mapping and preview → progress and report), command `import:open`.
 
 ## REST and MCP (WK-5), C-modules v5

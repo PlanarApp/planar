@@ -14,20 +14,18 @@ import type { GroupScope } from '../modules/types';
 const props = defineProps<{ scope: GroupScope; kind: 'spaces' | 'projects' }>();
 const { t } = useI18n();
 const spaces = useSpaces();
-// open tasks per project and members per space — in one pass over the tables
+// open tasks per project and members per space; tasks — only of open statuses (by the index):
+// closed ones are usually most of the table
 const stats = useQuery(async () => {
-  const [tasks, statuses, members] = await Promise.all([
-    db.table<Row<'tasks'>>('tasks').toArray(),
-    db.table<Row<'statuses'>>('statuses').toArray(),
+  const openIds = (await db.table<Row<'statuses'>>('statuses').toArray())
+    .filter((s) => s.category !== 'done' && s.category !== 'cancelled')
+    .map((s) => s.id);
+  const [tasks, members] = await Promise.all([
+    db.table<Row<'tasks'>>('tasks').where('statusId').anyOf(openIds).toArray(),
     db.table<Row<'spaceMembers'>>('spaceMembers').toArray(),
   ]);
-  const closed = new Set(
-    statuses.filter((s) => s.category === 'done' || s.category === 'cancelled').map((s) => s.id),
-  );
   const open = new Map<string, number>();
-  for (const x of tasks)
-    if (!closed.has(x.statusId) && !x.archivedAt)
-      open.set(x.projectId, (open.get(x.projectId) ?? 0) + 1);
+  for (const x of tasks) if (!x.archivedAt) open.set(x.projectId, (open.get(x.projectId) ?? 0) + 1);
   const people = new Map<string, number>();
   for (const m of members) people.set(m.spaceId, (people.get(m.spaceId) ?? 0) + 1);
   return { open, people };

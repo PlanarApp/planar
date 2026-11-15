@@ -215,7 +215,7 @@ export const mutators = [
 
 export const AI_RUN_STATES = ['running', 'waiting_human', 'done', 'failed', 'cancelled'] as const;
 export type AiRunState = (typeof AI_RUN_STATES)[number];
-export const AI_RUN_KINDS = ['action', 'comment', 'mention', 'checklist', 'chat'] as const;
+export const AI_RUN_KINDS = ['action', 'comment', 'mention', 'checklist', 'chat', 'retro'] as const;
 export type AiRunKind = (typeof AI_RUN_KINDS)[number];
 /** A chain of manual restarts (restartOf) is at most this long; more — 409. */
 export const MAX_RESTARTS = 3;
@@ -239,6 +239,43 @@ export interface AiRunView {
   updatedAt: string;
 }
 export type AiRunDetails = AiRunView & { log: string };
+/**
+ * PLNRAPP-202: the AI works in the background — the indicator on a task, its comment / checklist item and in a chat.
+ * Not the run's details: those are in the «AI» tab for those who may see the runs.
+ */
+export interface AiActivity {
+  /** the run */
+  id: string;
+  kind: AiRunKind;
+  /** the comment / checklist item / chat message the run answers; null — the task itself (an action by a rule) */
+  itemId: string | null;
+  /** failed — the last run of this item failed recently (it was not restarted) */
+  state: 'running' | 'waiting_human' | 'failed';
+  /** an agent in a container: «агент работает N мин» */
+  agent: boolean;
+  /** the bot user who answers */
+  actorId: string | null;
+  /** the start of the run (the agent — of its container) */
+  startedAt: string;
+}
+/** Agent log events (PLNRAPP-199): what the agent does in its container, as in the Claude Code chat. */
+export const AI_RUN_EVENT_TYPES = ['thought', 'tool_call', 'command', 'output', 'result'] as const;
+export type AiRunEventType = (typeof AI_RUN_EVENT_TYPES)[number];
+export interface AiRunEvent {
+  /** the cursor: `after` of the next request */
+  id: number;
+  type: AiRunEventType;
+  /** the tool of tool_call / command / output, if known */
+  tool: string | null;
+  /** shortened, secrets masked */
+  text: string;
+  createdAt: string;
+}
+export interface AiRunEvents {
+  events: AiRunEvent[];
+  /** the run's state: the client polls while it is running */
+  state: AiRunState;
+}
 export type AiMonitorRun = AiRunView & { taskKey: string; taskTitle: string; projectName: string };
 export interface AiLimits {
   dailyTokens: number | null;

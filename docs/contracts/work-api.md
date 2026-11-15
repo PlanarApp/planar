@@ -16,6 +16,8 @@ v7 = v6 + the full list of values of the SDK `@planar/web/modules` (checked agai
 defineWebModule mutate newId rankBetween useQuery db useTask useProjectTasks useSpaces useProject useStatuses useMembers useLabels openTask useI18n i18n useWeekStart useRouter useSearch Editor uploadFile api ApiError onMutationError FilterBuilder localToday matchFilter useSession useCycles IconButton ConfirmDialog Tabs Chip AvatarStack Kbd EmptyState Toolbar
 ```
 - C-modules v10 (design, DS-0): += `IconButton ConfirmDialog Tabs Chip AvatarStack Kbd EmptyState Toolbar` — C-ui v3 components, `docs/contracts/design.md` §Base components.
+- C-modules v15 (PLNRAPP-202): += `useActivity` (not in the required list: optional).
+- C-modules v16 (PLNRAPP-251): += `useLive(arg, fn)` — a replica query re-created when the reactive `arg` changes (`useQuery` does not track Vue dependencies); not in the required list: optional. A module reads only the rows it needs (index, `bulkGet`), not a whole table: such a query re-runs on every write to it.
 - Together with the sync client (C-sync v2, collab): if `apps/web/src/sync` exports a name, the SDK must re-export it:
 ```text sdk-exports=with-sync
 sendTyping onTyping

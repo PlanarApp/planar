@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onMounted, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { isDataModule, type Row } from '@planar/shared';
+import { isDataModule, WORKSPACE_DATA_MODULE_IDS, type Row } from '@planar/shared';
 import { api } from '../../api/http';
 import { Dialog } from '../../ui';
 import { moduleSetup } from '../../modules/registry';
@@ -44,7 +44,19 @@ onMounted(() =>
 watch(setupOf, (id, prev) => {
   if (!id && prev) void load();
 });
-const list = computed(() => server.value.filter((m) => !!props.projectId === isDataModule(m.id)));
+// PLNRAPP-241: a data module with a workspace switch is on both lists; in a project it needs the workspace switch on
+const list = computed(() =>
+  server.value
+    .filter((m) => {
+      const ws = WORKSPACE_DATA_MODULE_IDS.includes(m.id);
+      return props.projectId ? isDataModule(m.id) : !isDataModule(m.id) || ws;
+    })
+    .map((m) =>
+      props.projectId && WORKSPACE_DATA_MODULE_IDS.includes(m.id) && !m.enabled && !m.unavailable
+        ? { ...m, unavailable: 'workspace_off' }
+        : m,
+    ),
+);
 // enabled — only from the replica; no row = nothing enabled (the server response is for reference)
 const enabled = computed(
   () =>

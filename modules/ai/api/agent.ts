@@ -3,7 +3,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { decrypt, secretKey, type JobApi, type Q } from '@planar/server-kit';
-import { resolveConnection } from './connections.js';
+import { resolveConnection, secretOf } from './connections.js';
 import { apply, botOf, contextOf, failed, finish, loadTask, md, type Run } from './run.js';
 
 type Row = Record<string, unknown>;
@@ -102,6 +102,33 @@ async function repoOf(q: Pick<Q, 'execute'>, run: Run) {
     );
     return null;
   }
+}
+
+/**
+ * Secrets the agent's log must not show (PLNRAPP-199): the provider key of the project's connection and the token of
+ * its first gitlab connection (the run secret comes with the request). Undecryptable ones are skipped.
+ */
+export async function runSecretsOf(q: Q, projectId: string) {
+  const out: string[] = [];
+  const conn = await resolveConnection(q, projectId).catch(() => null);
+  if (conn)
+    try {
+      out.push(secretOf(conn).apiKey);
+    } catch {
+      // no key to mask
+    }
+  const c = await one(
+    q,
+    sql`select token_enc as "tokenEnc" from gitlab_connections where project_id = ${projectId}::uuid order by created_at, id limit 1`,
+  ).catch(() => undefined);
+  const key = secretKey();
+  if (c && key)
+    try {
+      out.push(decrypt(c.tokenEnc as string, key));
+    } catch {
+      // no token to mask
+    }
+  return out;
 }
 
 /** The open MR of the task in the project's repository (the first gitlab connection, as `repoOf`). */
@@ -215,6 +242,7 @@ export async function startAgentRun(
         PLANAR_LLM_URL: `${runUrl}/llm/${run.id}`,
         PLANAR_RESULT_URL: `${runUrl}/runs/${run.id}`,
         PLANAR_HEARTBEAT_URL: `${runUrl}/runs/${run.id}/heartbeat`,
+        PLANAR_EVENTS_URL: `${runUrl}/runs/${run.id}/events`,
         PLANAR_CONTEXT_FILE: '/context/context.json',
         HTTP_PROXY: proxy,
         HTTPS_PROXY: proxy,

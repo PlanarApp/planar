@@ -10,7 +10,9 @@ import {
   openTask,
   rankBetween,
   useCycles,
+  useLive,
   useQuery,
+  useScopeTasks,
   useSession,
   useSpaces,
   useWeekStart,
@@ -38,30 +40,18 @@ export const useWidgets = (boardId: () => string) =>
       >,
   );
 
-/** All visible tasks with assignees and labels (as FilterTask). */
-export const useTasks = () =>
-  useQuery(async (): Promise<Task[]> => {
-    const [tasks, as, ls] = await Promise.all([
-      db
-        .table('tasks')
-        .filter((t) => !t.archivedAt)
-        .toArray(),
-      db.table('taskAssignees').toArray(),
-      db.table('taskLabels').toArray(),
-    ]);
-    const group = (rows: { taskId: string }[], f: (r: never) => string) => {
-      const m = new Map<string, string[]>();
-      for (const r of rows) m.set(r.taskId, [...(m.get(r.taskId) ?? []), f(r as never)]);
-      return m;
-    };
-    const am = group(as, (r: { userId: string }) => r.userId);
-    const lm = group(ls, (r: { labelId: string }) => r.labelId);
-    return tasks.map((t) => ({
-      ...t,
-      assigneeIds: am.get(t.id) ?? [],
-      labelIds: lm.get(t.id) ?? [],
-    }));
-  });
+/**
+ * Unarchived tasks of the space with assignees and labels (as FilterTask): from the in-memory
+ * projection of its projects (archived ones too), patched by edits instead of re-reading the tables.
+ */
+export const useSpaceTasks = (spaceId: () => string) => {
+  const pids = useLive(
+    spaceId,
+    (sid) => db.table('projects').where('spaceId').equals(sid).primaryKeys() as Promise<string[]>,
+  );
+  const tasks = useScopeTasks(() => pids.value ?? []);
+  return computed(() => tasks.value?.filter((t) => !t.archivedAt) as Task[] | undefined);
+};
 
 /** Space fields for grouping (select/user). */
 export const useGroupFields = (spaceId: () => string) =>

@@ -275,8 +275,26 @@ describe('wk1: time', () => {
       startedAt: '2026-10-20T09:00:00.000Z',
       durationSec: 60,
     });
-    await w.member.ok('task.merge', { id: b, targetId: a, linkId: uuidv7() });
+    await w.member.ok('task.merge', { ids: [b], targetId: a, linkIds: [uuidv7()] });
     expect(await entry(e1)).toMatchObject({ taskId: a, userId: w.member.userId });
+  });
+
+  it('PLNRAPP-117: массовое слияние переносит записи времени всех задач в целевую', async () => {
+    const [a, b1, b2, e1, e2] = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()];
+    for (const id of [a, b1, b2]) await w.admin.ok('task.create', taskArgs(w, { id }));
+    for (const [id, taskId] of [
+      [e1, b1],
+      [e2, b2],
+    ])
+      await w.member.ok('time.log', {
+        id,
+        taskId,
+        startedAt: '2026-10-20T09:00:00.000Z',
+        durationSec: 60,
+      });
+    await w.member.ok('task.merge', { ids: [b1, b2], targetId: a, linkIds: [uuidv7(), uuidv7()] });
+    expect(await entry(e1)).toMatchObject({ taskId: a });
+    expect(await entry(e2)).toMatchObject({ taskId: a });
   });
 
   it('wk1: guest не пишет — forbidden', async () => {

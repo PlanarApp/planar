@@ -273,7 +273,7 @@ describe('task.delete и связи', () => {
     await run(tx, 'link.create', { id: l3, taskId: a, targetId: both, kind: 'relates' });
     await run(tx, 'link.create', { id: l4, taskId: b, targetId: both, kind: 'blocks' });
     const dup = id();
-    await run(tx, 'task.merge', { id: b, targetId: a, linkId: dup }, ctx(U1, T1));
+    await run(tx, 'task.merge', { ids: [b], targetId: a, linkIds: [dup] }, ctx(U1, T1));
 
     expect((await tx.get('comments', cm))!.taskId).toBe(a);
     expect((await tx.get('attachments', at))!.taskId).toBe(a);
@@ -303,12 +303,64 @@ describe('task.delete и связи', () => {
     const s2 = await seedSpace(tx);
     const far = await seedTask(tx, s2);
     for (const targetId of [b, child, far])
-      expect(await code(run(tx, 'task.merge', { id: b, targetId, linkId: id() }))).toBe(
+      expect(await code(run(tx, 'task.merge', { ids: [b], targetId, linkIds: [id()] }))).toBe(
         'invalid_args',
       );
-    expect(await code(run(tx, 'task.merge', { id: b, targetId: id(), linkId: id() }))).toBe(
+    expect(await code(run(tx, 'task.merge', { ids: [b], targetId: id(), linkIds: [id()] }))).toBe(
       'not_found',
     );
+  });
+
+  it('task.merge: массовое — родитель и потомок в выборке, повторы исполнителей и связей', async () => {
+    const { tx, s, t: a } = await setup();
+    const b1 = await seedTask(tx, s);
+    const b2 = await seedTask(tx, s, { parentId: b1 });
+    const b3 = await seedTask(tx, s);
+    const sub = await seedTask(tx, s, { parentId: b2 });
+    const x = await seedTask(tx, s);
+    for (const t of [b1, b3]) await run(tx, 'task.assign', { id: id(), taskId: t, userId: U2 });
+    const [inner, lx1, lx3] = [id(), id(), id()];
+    await run(tx, 'link.create', { id: inner, taskId: b1, targetId: b2, kind: 'relates' });
+    await run(tx, 'link.create', { id: lx1, taskId: b1, targetId: x, kind: 'blocks' });
+    await run(tx, 'link.create', { id: lx3, taskId: x, targetId: b3, kind: 'relates' });
+    const dups = [id(), id(), id()];
+    // the child goes before its parent: the order of ids does not matter
+    await run(tx, 'task.merge', { ids: [b2, b1, b3], targetId: a, linkIds: dups }, ctx(U1, T1));
+
+    for (const [i, b] of [b2, b1, b3].entries()) {
+      expect(await tx.get('taskLinks', dups[i]!)).toMatchObject({
+        taskId: b,
+        targetId: a,
+        kind: 'duplicates',
+      });
+      const bt = (await tx.get('tasks', b))!;
+      expect((await tx.get('statuses', bt.statusId))!.category).toBe('cancelled');
+    }
+    expect((await tx.get('tasks', b2))!.parentId).toBe(a);
+    expect((await tx.get('tasks', sub))!.parentId).toBe(a);
+    expect(await tx.get('taskLinks', inner)).toBeUndefined();
+    const withX = (await tx.scan('taskLinks')).filter(
+      (l) => [l.taskId, l.targetId].includes(x) && [l.taskId, l.targetId].includes(a),
+    );
+    expect(withX).toHaveLength(1);
+    expect(
+      (await tx.scan('taskAssignees', { index: 'taskId', eq: a })).filter((r) => r.userId === U2),
+    ).toHaveLength(1);
+  });
+
+  it('task.merge: массовое — цель не из выборки и не потомок; ids без повторов', async () => {
+    const { tx, s, t: b1 } = await setup();
+    const b2 = await seedTask(tx, s);
+    const deep = await seedTask(tx, s, { parentId: await seedTask(tx, s, { parentId: b2 }) });
+    const a = await seedTask(tx, s);
+    for (const args of [
+      { ids: [b1, b2], targetId: b2, linkIds: [id(), id()] },
+      { ids: [b1, b2], targetId: deep, linkIds: [id(), id()] },
+      { ids: [b1, b1], targetId: a, linkIds: [id(), id()] },
+      { ids: [b1, b2], targetId: a, linkIds: [id()] },
+    ])
+      expect(await code(run(tx, 'task.merge', args))).toBe('invalid_args');
+    expect(await tx.scan('taskLinks')).toEqual([]);
   });
 
   it('assign: идемпотентно; unassign; not_found', async () => {

@@ -24,7 +24,10 @@ import {
 import { useBlockedIds } from '../../links';
 import { LayoutDashboard } from 'lucide-vue-next';
 import { EmptyState, useBreakpoint } from '../../ui';
-import { openTask } from '..';
+import { openTask, useSelection } from '..';
+import { showTask, sideTaskOpen } from '../open';
+import { useLostFocusKeys } from '../keys';
+import { tokenOf } from '../../command/hotkeys';
 import type { ViewProps } from '..';
 import { useTaskFilter } from '../saved/useFilter';
 import Column from './Column.vue';
@@ -37,6 +40,7 @@ import { mutate, rankBetween } from '../../sync';
 const props = defineProps<ViewProps>();
 const { t } = useI18n();
 const { isMobile } = useBreakpoint();
+const sel = useSelection();
 
 const project = useProject(() => props.projectId);
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
@@ -172,6 +176,95 @@ async function move(id: string, from: string, to: string, beforeId: string | nul
   if (plan) await applyMove(plan);
 }
 
+// --- focus and keyboard (as in the List): j/k/↑/↓ — in the column, ←/→ — to the neighbouring column
+// (collapsed and empty ones are skipped), Enter opens, x selects, Escape clears the selection
+const focusedId = ref<string | null>(null);
+const open = computed(() => columns.value.filter((c) => !collapsed.value.has(c.key)));
+const where = (cols: typeof columns.value, id: string | null) => {
+  for (let c = 0; c < cols.length; c++) {
+    const r = cols[c].tasks.findIndex((x) => x.id === id);
+    if (r >= 0) return { c, r };
+  }
+  return null;
+};
+const focusedTask = computed(() => {
+  const p = where(open.value, focusedId.value);
+  return p ? open.value[p.c].tasks[p.r] : undefined;
+});
+function focusAt(c: number, r: number) {
+  const tasks = open.value[c]?.tasks;
+  if (!tasks?.length) return;
+  const task = tasks[Math.min(Math.max(r, 0), tasks.length - 1)];
+  focusedId.value = task.id;
+  if (sideTaskOpen()) showTask(task.key);
+}
+function moveFocus(dc: number, dr: number) {
+  const cols = open.value;
+  const p = where(cols, focusedId.value);
+  if (!p) {
+    const c = cols.findIndex((x) => x.tasks.length);
+    return focusAt(c, 0);
+  }
+  if (dr) return focusAt(p.c, p.r + dr);
+  for (let c = p.c + dc; c >= 0 && c < cols.length; c += dc)
+    if (cols[c].tasks.length) return focusAt(c, p.r);
+}
+// the focused card is gone (filtered out, column collapsed): the card now at its place
+watch(open, (now, before) => {
+  if (!focusedId.value || where(now, focusedId.value)) return;
+  const p = where(before, focusedId.value);
+  const c = p && now.findIndex((x) => x.key === before[p.c].key);
+  focusedId.value = null;
+  if (p && c !== null && c >= 0 && now[c].tasks.length)
+    focusedId.value = now[c].tasks[Math.min(p.r, now[c].tasks.length - 1)].id;
+});
+function boardKey(key: string): boolean {
+  const task = focusedTask.value;
+  const handlers: Record<string, () => void> = {
+    j: () => moveFocus(0, 1),
+    k: () => moveFocus(0, -1),
+    ArrowDown: () => moveFocus(0, 1),
+    ArrowUp: () => moveFocus(0, -1),
+    ArrowLeft: () => moveFocus(-1, 0),
+    ArrowRight: () => moveFocus(1, 0),
+    Enter: () => task && openTask(task.key),
+    x: () => task && sel.toggle(task.id),
+    Escape: () => sel.clear(),
+  };
+  const h = handlers[key];
+  if (!h) return false;
+  h();
+  return true;
+}
+const cardOf = (t: EventTarget | null) =>
+  t instanceof HTMLElement && t.matches('[data-id][data-task]') ? t : null;
+// a card got focus (Tab, click) — it is the focused one
+function onFocusIn(e: FocusEvent) {
+  const id = cardOf(e.target)?.dataset.id;
+  if (id) focusedId.value = id;
+}
+function onKey(e: KeyboardEvent) {
+  // on the board itself or on a card; not in fields and buttons of the cards
+  const card = cardOf(e.target);
+  if ((e.target !== e.currentTarget && !card) || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!boardKey(tokenOf(e))) return;
+  e.preventDefault();
+  // the ring moves away from the card: focus goes to the board, so the card does not stay ringed
+  if (card) scroller.value?.focus({ preventScroll: true });
+}
+useLostFocusKeys(
+  () => scroller.value,
+  boardKey,
+  (key) => {
+    const cur = open.value.flatMap((c) => c.tasks).find((x) => x.key === key);
+    if (cur) focusedId.value = cur.id;
+  },
+);
+watch(
+  () => props.projectId,
+  () => (focusedId.value = null),
+);
+
 function add(key: string, title: string) {
   const by = props.options.groupBy;
   const target = props.scope?.createIn;
@@ -226,9 +319,15 @@ function add(key: string, title: string) {
         :animation="150"
         :delay="300"
         :delay-on-touch-only="true"
-        class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3"
-        :class="isMobile && 'snap-x snap-mandatory scroll-px-3'"
+        tabindex="0"
+        class="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3 outline-none ring-inset ring-focus"
+        :class="[
+          isMobile && 'snap-x snap-mandatory scroll-px-3',
+          !focusedTask && 'focus-visible:ring-2',
+        ]"
         :style="mask"
+        @keydown="onKey"
+        @focusin="onFocusIn"
         @scroll.passive="measure"
         @pointerdown="panStart"
         @pointermove="panMove"
@@ -245,6 +344,7 @@ function add(key: string, title: string) {
           :members="members ?? []"
           :labels="labels ?? []"
           :collapsed="collapsed.has(g.key)"
+          :focused-id="focusedTask?.id ?? null"
           :mobile="isMobile"
           :fields="options.fields"
           :blocked="blocked"

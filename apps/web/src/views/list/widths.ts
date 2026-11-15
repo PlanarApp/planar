@@ -6,6 +6,9 @@ import type { ListColumn } from './columns';
 
 /** Text width in px with the page font (canvas); without canvas (tests) — by character count. */
 let ctx: CanvasRenderingContext2D | null | undefined;
+// a column measures every row: the same dates/projects/labels repeat — measured once; a loaded web font re-measures
+const measured = new Map<string, number>();
+globalThis.document?.fonts?.addEventListener('loadingdone', () => measured.clear());
 export function textWidth(s: string, px = 14): number {
   if (ctx === undefined)
     try {
@@ -14,8 +17,14 @@ export function textWidth(s: string, px = 14): number {
       ctx = null;
     }
   if (!ctx) return s.length * px * 0.55;
-  ctx.font = `${px}px ${getComputedStyle(document.body).fontFamily || 'sans-serif'}`;
-  return ctx.measureText(s).width;
+  const k = `${px}|${s}`;
+  let w = measured.get(k);
+  if (w === undefined) {
+    if (measured.size > 5000) measured.clear();
+    ctx.font = `${px}px ${getComputedStyle(document.body).fontFamily || 'sans-serif'}`;
+    measured.set(k, (w = ctx.measureText(s).width));
+  }
+  return w;
 }
 
 const MIN = 64;

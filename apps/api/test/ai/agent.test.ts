@@ -247,6 +247,7 @@ describe('agent: жизненный цикл', () => {
         PLANAR_LLM_URL: `http://api:3000/api/ai/llm/${run.id}`,
         PLANAR_RESULT_URL: `http://api:3000/api/ai/runs/${run.id}`,
         PLANAR_HEARTBEAT_URL: `http://api:3000/api/ai/runs/${run.id}/heartbeat`,
+        PLANAR_EVENTS_URL: `http://api:3000/api/ai/runs/${run.id}/events`,
         PLANAR_CONTEXT_FILE: '/context/context.json',
         NO_PROXY: 'api',
       },
@@ -481,6 +482,139 @@ describe('agent: жнец и остановка', () => {
     expect(
       (await call('POST', `/api/ai/runs/${r.run.id}`, { secret: r.secret, body: done })).statusCode,
     ).toBe(409);
+  });
+});
+
+describe('agent: лог агента (PLNRAPP-199)', () => {
+  const session = (url: string) =>
+    getApp()
+      .getHttpAdapter()
+      .getInstance()
+      .inject({ method: 'GET', url, headers: { cookie, origin: ORIGIN } });
+  const events = async (id: string, after = 0) =>
+    (await session(`/api/ai/runs/${id}/events?after=${after}`)).json() as {
+      events: { id: number; type: string; tool: string | null; text: string }[];
+      state: string;
+    };
+  const line = (o: object) => JSON.stringify(o);
+
+  it('stream-json Claude Code → события; секреты замаскированы; курсор; после результата — 409', async () => {
+    await raw(
+      `insert into gitlab_connections (id, project_id, base_url, token_enc, gitlab_project_id, path)
+       values ($1, $2, 'https://gitlab.example/', $3, 7, 'acme/app')`,
+      [uuidv7(), P, encrypt('glpat-secret-of-project', secretKey()!)],
+    );
+    const { run, secret } = await start();
+    const lines = [
+      line({ type: 'system', subtype: 'init', model: 'm' }),
+      line({
+        type: 'assistant',
+        message: {
+          content: [
+            { type: 'thinking', thinking: 'Сначала посмотрю тесты' },
+            { type: 'text', text: `Ключ ${KEY_SECRET} не печатаю` },
+            { type: 'tool_use', id: 'tu1', name: 'Bash', input: { command: 'pnpm test' } },
+            { type: 'tool_use', id: 'tu2', name: 'Read', input: { file_path: 'src/a.ts' } },
+          ],
+        },
+      }),
+      line({
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tu1',
+              content: `ok\nAuthorization: Bearer ${secret}\nGITLAB=glpat-secret-of-project ${'x'.repeat(5000)}`,
+            },
+          ],
+        },
+      }),
+      'просто строка',
+    ];
+    const r = await call('POST', `/api/ai/runs/${run.id}/events`, {
+      secret,
+      bearer: true,
+      body: { lines },
+    });
+    expect(r.statusCode).toBe(204);
+    const got = await events(run.id);
+    expect(got.state).toBe('running');
+    expect(got.events.map((e) => [e.type, e.tool])).toEqual([
+      ['thought', null],
+      ['thought', null],
+      ['command', 'Bash'],
+      ['tool_call', 'Read'],
+      ['output', 'Bash'],
+      ['output', null],
+    ]);
+    expect(got.events[2]!.text).toBe('pnpm test');
+    expect(got.events[3]!.text).toBe('src/a.ts');
+    const out = got.events[4]!.text;
+    expect(out).toContain('пропущено');
+    expect(out.length).toBeLessThan(2200);
+    const all = JSON.stringify(
+      await raw(`select * from ai_run_events where run_id = $1`, [run.id]),
+    );
+    for (const s of [secret, KEY_SECRET, 'glpat-secret-of-project']) expect(all).not.toContain(s);
+    expect(all).toContain('***');
+
+    const more = await call('POST', `/api/ai/runs/${run.id}/events`, {
+      secret,
+      body: { lines: [line({ type: 'result', subtype: 'success', num_turns: 2, result: 'Итог' })] },
+    });
+    expect(more.statusCode).toBe(204);
+    const next = await events(run.id, got.events.at(-1)!.id);
+    expect(next.events).toHaveLength(1);
+    expect(next.events[0]).toMatchObject({ type: 'result', text: expect.stringContaining('Итог') });
+
+    expect((await call('POST', `/api/ai/runs/${run.id}`, { secret, body: done })).statusCode).toBe(
+      200,
+    );
+    const late = await call('POST', `/api/ai/runs/${run.id}/events`, {
+      secret,
+      body: { lines: ['поздно'] },
+    });
+    expect(late.statusCode).toBe(409);
+    expect((await events(run.id)).state).toBe('done');
+  });
+
+  it('без секрета и с чужим — 401, ничего не записано; без сессии чтение — отказ', async () => {
+    const a = await start();
+    const b = await start();
+    for (const secret of [undefined, b.secret]) {
+      const r = await call('POST', `/api/ai/runs/${a.run.id}/events`, {
+        secret,
+        body: { lines: ['x'] },
+      });
+      expect(r.statusCode).toBe(401);
+    }
+    expect(
+      (await one(`select count(*)::int as n from ai_run_events where run_id = $1`, [a.run.id])).n,
+    ).toBe(0);
+    const anon = await call('GET', `/api/ai/runs/${a.run.id}/events`);
+    expect(anon.statusCode).toBeGreaterThanOrEqual(401);
+    expect(anon.statusCode).toBeLessThan(500);
+  });
+
+  it('хранится хвост: старые события отбрасываются сверх лимита', async () => {
+    const { run, secret } = await start();
+    for (let k = 0; k < 3; k++) {
+      const lines = Array.from({ length: 200 }, (_, i) => `строка ${k * 200 + i}`);
+      const r = await call('POST', `/api/ai/runs/${run.id}/events`, { secret, body: { lines } });
+      expect(r.statusCode).toBe(204);
+    }
+    const rows = await raw(`select text from ai_run_events where run_id = $1 order by id`, [
+      run.id,
+    ]);
+    expect(rows).toHaveLength(500);
+    expect(rows[0]!.text).toBe('строка 100');
+    expect(rows.at(-1)!.text).toBe('строка 599');
+    const big = await call('POST', `/api/ai/runs/${run.id}/events`, {
+      secret,
+      body: { lines: Array.from({ length: 201 }, () => 'x') },
+    });
+    expect(big.statusCode).toBe(400);
   });
 });
 

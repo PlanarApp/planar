@@ -35,6 +35,21 @@ const S = {
   srcEditor: { ru: 'редактор', en: 'editor' },
   srcApi: { ru: 'API', en: 'API' },
   srcRestore: { ru: 'восстановление', en: 'restore' },
+  comments: { ru: 'Комментарии', en: 'Comments' },
+  comment: { ru: 'Комментарий', en: 'Comment' },
+  commentPlaceholder: { ru: 'Написать комментарий…', en: 'Write a comment…' },
+  replyPlaceholder: { ru: 'Ответить…', en: 'Reply…' },
+  send: { ru: 'Отправить', en: 'Send' },
+  reply: { ru: 'Ответить', en: 'Reply' },
+  edit: { ru: 'Изменить', en: 'Edit' },
+  edited: { ru: 'изменён', en: 'edited' },
+  delete: { ru: 'Удалить', en: 'Delete' },
+  save: { ru: 'Сохранить', en: 'Save' },
+  cancel: { ru: 'Отмена', en: 'Cancel' },
+  assign: { ru: 'Назначить комментарий', en: 'Assign the comment' },
+  unassign: { ru: 'Снять назначение', en: 'Unassign' },
+  resolve: { ru: 'Завершить', en: 'Resolve' },
+  resolved: { ru: 'Завершено', en: 'Resolved' },
 } as const;
 export type TextKey = keyof typeof S;
 export type Texts = (k: TextKey, p?: Record<string, string>) => string;

@@ -2,7 +2,7 @@
 type: reference
 status: closed
 module: core
-updated: 2026-11-02
+updated: 2026-11-15
 summary: Domain mutators of C-mutators v17 — names, args, rules; checked against domainMutators in packages/shared/test/check-mutators.ts
 related: ["docs/contracts/core.md"]
 ---
@@ -39,7 +39,7 @@ All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `nul
 | `task.archive` | `id` | the task and its not yet archived subtasks: `archivedAt = now`, `archivedBy = user`; already archived — no-op (C-mutators v21) |
 | `task.restore` | `id` | admin of the project / space / instance (otherwise `forbidden`); the task and the subtasks archived with it (same `archivedAt`); the parent still archived → `parentId = null` |
 | `task.delete` | `id` | admin of the project / space / instance (otherwise `forbidden`, C-mutators v21); subtasks recursively; then assignees, watchers, labels, checklist, attachments, reactions, comments; `taskLinks` links with taskId or targetId = the task (for each deleted subtask too) |
-| `task.merge` | `id, targetId, linkId` | PLNRAPP-117: task `id` merges into `targetId` — the same space, not the task itself and not its descendant (`invalid_args`); comments, attachments, subtasks (`parentId`), assignees and watchers (a user already on the target — the row is deleted) move to the target; links of the task move to the target, a link with the target itself or with a task already linked to it is deleted; the task gets the first by rank `cancelled` status of its project (none → `invalid_args`) and the link `linkId`: `duplicates` the target; module rows (time entries) — in the module's `afterMutation` |
+| `task.merge` | `ids, targetId, linkIds` | PLNRAPP-117: tasks `ids` (1–100, no repeats; `linkIds` — one per task) merge into `targetId` in one transaction — the same space, the target is not one of them and not their descendant (`invalid_args`); links between the merged tasks are deleted; for each task in order: comments, attachments, subtasks (`parentId`), assignees and watchers (a user already on the target — the row is deleted) move to the target; links of the task move to the target, a link with the target itself or with a task already linked to it is deleted; the task gets the first by rank `cancelled` status of its project (none → `invalid_args`) and the link `linkIds[i]`: `duplicates` the target; module rows (time entries) — in the module's `afterMutation` |
 | `task.assign` | `id, taskId, userId` | already assigned — nothing |
 | `task.unassign` | `taskId, userId` | |
 | `task.watch` | `id, taskId` | userId = ctx.userId |
@@ -64,6 +64,7 @@ All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `nul
 | `attachment.create` | `id, taskId, commentId?, fileSha256, name, mime, size, width?, height?` | `uploadedBy = ctx.userId` |
 | `attachment.delete` | `id` | |
 | `notification.read` | `ids: uuid[]` | `readAt = ctx.now`, own only |
+| `notification.readAll` | `upTo: datetime, except?: uuid[]` | PLNRAPP-247: every own unread one created ≤ `upTo`, except `except` (snoozed) — `readAt = ctx.now`; one call instead of thousands of ids |
 | `notification.delete` | `ids: uuid[]` | own only |
 | `day.plan` | `id, taskId, date, rank` | v16: `dayPlans` row of ctx.userId; the task is missing → `not_found`; the task already planned by the user for `date` — nothing |
 | `day.move` | `id, date?, rank?` | v16: own only (else `forbidden`) — another day and/or place in the day |

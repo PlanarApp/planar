@@ -288,3 +288,54 @@ describe('board:virtual', () => {
     expect(w.findAll('article').length).toBeLessThan(100);
   }, 30000);
 });
+
+describe('board:keys (PLNRAPP-163)', () => {
+  it('board:keys ↑/↓ — в колонке, ←/→ — в соседнюю колонку, x, Enter, Escape', async () => {
+    const { openTask } = await import('../..');
+    const { useSelection } = await import('../../selection');
+    vi.mocked(openTask).mockClear();
+    useSelection().clear();
+    await db
+      .table('tasks')
+      .bulkPut([
+        task(1, { rank: 'a1' }),
+        task(2, { rank: 'a2' }),
+        task(3, { rank: 'a3', statusId: ids.done }),
+      ]);
+    const w = mountView();
+    await until(() => w.findAll('article').length === 3);
+    const board = w.get('[role=group][tabindex="0"]');
+    const key = (k: string) => board.trigger('keydown', { key: k });
+    const ringed = () =>
+      w
+        .findAll('article')
+        .find((a) => a.classes().includes('ring-2'))
+        ?.attributes('data-task');
+    expect(ringed()).toBeUndefined();
+    await key('j');
+    expect(ringed()).toBe('PLN-1');
+    await key('ArrowDown');
+    expect(ringed()).toBe('PLN-2');
+    await key('ArrowRight');
+    expect(ringed()).toBe('PLN-3');
+    await key('ArrowRight');
+    expect(ringed()).toBe('PLN-3'); // no column to the right
+    await key('ArrowLeft');
+    expect(ringed()).toBe('PLN-1');
+    await key('k');
+    expect(ringed()).toBe('PLN-1');
+    await key('x');
+    const t1 = (await db.table('tasks').toArray()).find((x) => x.number === 1)!;
+    expect(useSelection().selected.value.has(t1.id)).toBe(true);
+    await key('Escape');
+    expect(useSelection().selected.value.size).toBe(0);
+    await key('Enter');
+    expect(openTask).toHaveBeenCalledWith('PLN-1');
+    // a card focused by Tab/click is the focused one; keys from it move on
+    await w.findAll('article')[2].trigger('focusin');
+    expect(ringed()).toBe('PLN-3');
+    await w.findAll('article')[2].trigger('keydown', { key: 'ArrowLeft' });
+    expect(ringed()).toBe('PLN-1');
+    w.unmount();
+  });
+});

@@ -1,4 +1,5 @@
-// AID-1: ИИ-диалог по документу — doc-chat (предложение как diff) и doc-chat/apply (проверка версии).
+// Шаг мастера «Адаптировать с помощью ИИ»: wizard/adapt (предложение как diff) и wizard/adapt/apply (проверка версии).
+// Только страницы harness-пакета: «Разговор с документом» для любой страницы убран (PLNRAPP-209).
 import { randomBytes } from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -71,15 +72,20 @@ const call = (method: string, url: string, who: string, body?: unknown) =>
       headers: { cookie: cookies[who]!, origin: ORIGIN },
     });
 const chat = (who: string, pageId: string, message = 'поправь') =>
-  call('POST', 'doc-chat', who, { pageId, message });
+  call('POST', 'wizard/adapt', who, { pageId, message });
 
-async function mkPage(title: string, text: string, parentId?: string) {
+let packs = '';
+async function mkPage(title: string, text: string, parentId?: string | null) {
+  if (parentId === undefined) {
+    packs ||= await mkPage('Harness-пакеты', 'корень', null);
+    parentId = packs;
+  }
   const id = uuidv7();
   await w.admin.ok('docs.page.create', {
     id,
     spaceId: w.spaceId,
     projectId: w.projectId,
-    parentId,
+    parentId: parentId ?? undefined,
     rank: id,
     title,
     body: doc(text),
@@ -93,7 +99,7 @@ const row = async (id: string) =>
     )
   ).rows[0] as { updatedAt: string; text: string };
 
-describe('doc-chat', () => {
+describe('wizard/adapt', () => {
   it('lineDiff: same/add/del построчно', () => {
     expect(lineDiff('a\nb\nc', 'a\nx\nc')).toEqual([
       { type: 'same', text: 'a' },
@@ -125,9 +131,9 @@ describe('doc-chat', () => {
     llmAnswer = { reply: 'Всё верно', body: null };
     expect((await chat('admin', id)).json()).toEqual({ reply: 'Всё верно', proposal: null });
     expect((await chat('admin', uuidv7())).statusCode).toBe(404);
-    expect((await call('POST', 'doc-chat', 'admin', { pageId: id, message: '' })).statusCode).toBe(
-      400,
-    );
+    expect(
+      (await call('POST', 'wizard/adapt', 'admin', { pageId: id, message: '' })).statusCode,
+    ).toBe(400);
   });
 
   it('принятие пишет документ и версию; чужая правка → 409', async () => {
@@ -135,7 +141,7 @@ describe('doc-chat', () => {
     llmAnswer = { reply: 'ok', body: 'Два' };
     const p = (await chat('admin', id)).json().proposal;
 
-    const a = await call('POST', 'doc-chat/apply', 'admin', {
+    const a = await call('POST', 'wizard/adapt/apply', 'admin', {
       pageId: id,
       body: p.body,
       baseUpdatedAt: p.baseUpdatedAt,
@@ -150,7 +156,7 @@ describe('doc-chat', () => {
     expect((v.rows[0] as { n: number }).n).toBeGreaterThan(0);
 
     // тот же baseUpdatedAt после записи — страница уже изменена
-    const again = await call('POST', 'doc-chat/apply', 'admin', {
+    const again = await call('POST', 'wizard/adapt/apply', 'admin', {
       pageId: id,
       body: 'Три',
       baseUpdatedAt: p.baseUpdatedAt,
@@ -162,7 +168,7 @@ describe('doc-chat', () => {
   it('403 без права записи', async () => {
     const id = await mkPage('Права', 'Текст');
     const { updatedAt } = await row(id);
-    const r = await call('POST', 'doc-chat/apply', 'guest', {
+    const r = await call('POST', 'wizard/adapt/apply', 'guest', {
       pageId: id,
       body: 'Взлом',
       baseUpdatedAt: updatedAt,
@@ -172,16 +178,25 @@ describe('doc-chat', () => {
     expect((await row(id)).text).toBe('Текст');
   });
 
-  it('контекст пакета: статусы и правила только у страницы под «Harness-пакеты»', async () => {
-    const container = await mkPage('Harness-пакеты', 'корень');
-    const pack = await mkPage('Свой пакет', 'prompt', container);
-    const plain = await mkPage('Обычная', 'prompt');
-    llmAnswer = { reply: 'x', body: null };
-
+  it('обычная страница — 409 и в предложении, и в принятии; ИИ не вызывается', async () => {
+    const plain = await mkPage('Обычная', 'prompt', null);
+    llmAnswer = { reply: 'x', body: 'Новый' };
     prompts = [];
-    await chat('admin', plain);
-    expect(prompts.join('')).not.toContain('Статусы проекта');
+    expect((await chat('admin', plain)).statusCode).toBe(409);
+    expect(prompts).toEqual([]);
+    const { updatedAt } = await row(plain);
+    const a = await call('POST', 'wizard/adapt/apply', 'admin', {
+      pageId: plain,
+      body: 'Новый',
+      baseUpdatedAt: updatedAt,
+    });
+    expect(a.statusCode).toBe(409);
+    expect((await row(plain)).text).toBe('prompt');
+  });
 
+  it('контекст пакета: статусы и правила проекта', async () => {
+    const pack = await mkPage('Свой пакет', 'prompt');
+    llmAnswer = { reply: 'x', body: null };
     prompts = [];
     await chat('admin', pack);
     const sent = prompts.join('');
@@ -190,7 +205,7 @@ describe('doc-chat', () => {
   });
 });
 
-describe('doc-chat: защита (AIX-3)', () => {
+describe('wizard/adapt: защита (AIX-3)', () => {
   it('гость — 403, модуль ИИ выключен — 409, выключатель — 409; ничего не вызывается', async () => {
     const id = await mkPage('Защита', 'Текст');
     llmAnswer = { reply: 'x', body: null };
@@ -253,7 +268,7 @@ describe('doc-chat: защита (AIX-3)', () => {
     llmAnswer = { reply: 'x', body: 'Новый' };
     expect((await chat('admin', id)).statusCode).toBe(409);
     const { updatedAt } = await row(id);
-    const a = await call('POST', 'doc-chat/apply', 'admin', {
+    const a = await call('POST', 'wizard/adapt/apply', 'admin', {
       pageId: id,
       body: 'Новый',
       baseUpdatedAt: updatedAt,

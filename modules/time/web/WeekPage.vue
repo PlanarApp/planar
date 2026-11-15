@@ -12,7 +12,7 @@ import {
   tr,
   useEntries,
   useNow,
-  useTasks,
+  useTaskLites,
   useUsers,
   useWeekStart,
   userId,
@@ -27,16 +27,15 @@ const users = useUsers();
 const who = ref(userId());
 const mine = computed(() => who.value === userId());
 const all = useEntries(() => who.value);
-const tasks = useTasks();
+// only the tasks of the entries, sorted: the same set is the same query argument
+const tasks = useTaskLites(() => [...new Set((all.value ?? []).map((e) => e.taskId))].sort());
 const inScope = computed(() => {
   const s = props.scope;
   if (!s || s.level === 'workspace') return () => true;
-  const ok = new Set(
-    (tasks.value ?? [])
-      .filter((t) => (s.projectId ? t.projectId === s.projectId : t.spaceId === s.spaceId))
-      .map((t) => t.id),
-  );
-  return (id: string) => ok.has(id);
+  return (id: string) => {
+    const t = tasks.value?.get(id);
+    return s.projectId ? t?.projectId === s.projectId : t?.spaceId === s.spaceId;
+  };
 });
 const entries = computed(() => all.value?.filter((e) => inScope.value(e.taskId)));
 const offset = ref(0);
@@ -66,7 +65,7 @@ const grid = computed(() => {
 const rows = computed(() =>
   [...grid.value.keys()].map((id) => ({
     id,
-    title: tasks.value?.find((t) => t.id === id)?.title ?? id.slice(0, 8),
+    title: tasks.value?.get(id)?.title ?? id.slice(0, 8),
   })),
 );
 const cell = (taskId: string, k: string) => grid.value.get(taskId)?.get(k) ?? [];

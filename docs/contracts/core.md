@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v28
+## C-schema v29
+
+v29 (PLNRAPP-209): `notifications.kind` += `doc_comment_assigned` (a comment on a docs module page assigned to the user, `url` — `/m/docs/<pageId>?comment=<id>`).
 
 v28 (PLNRAPP-167): `users.bot` (bool, default `false`) — the AI bot: an active user `ai` created when the module `ai` is first enabled in a space; no sign-in (rejected by the flag), the token works — core-schema.md.
 
@@ -300,6 +302,8 @@ The table of names, args and rules — `docs/contracts/core-mutators.md` (part o
 
 ## C-modules v13
 
+v16 (PLNRAPP-245): `CoreServices.createUser(login, name): Promise<string>` — an active member (`role = member`) without a password: no sign-in until an admin sets one (`PATCH /api/users/:id`); becomes a Workspace member like `POST /api/users`; a taken login → `409 conflict`. Used by import (people from the file).
+v15 (PLNRAPP-202): `FrontendModuleManifest.activity?` — `ActivitySourceDef {id, entity: tasks|chatChannels, load(id): Promise<WorkActivity[]>}`, `WorkActivity {id, itemId, state: running|waiting_human|failed, agent?, actorId?, startedAt, panel?}` — background work of a module (an AI run) for the indicator; SDK += `useActivity(entity, id, projectId?)` — the sources of the modules on in the project, reloaded on replica changes and polled every 3 s while something runs; the task card provides it to the comments and the checklist (`TASK_ACTIVITY`). Compatible: a new optional field.
 v14 (ai4, AIH-4): `FrontendModuleManifest.docPanels?` — `DocPanelDef {id, order?, component: Lazy<{pageId, projectId?}>}`; docs/web `PageView` renders them under the page title (the component decides itself whether the page suits it); SDK += `useExtensions`.
 
 v13 (PLNRAPP-167): `ModuleHookApi.ensureBotUser(login, name): Promise<string>` — an active user with `users.bot = true` and no password, idempotent (a login taken by a person → error); `packages/server-kit` += `secretKey/encrypt/decrypt` (AES-256-GCM, key `PLANAR_SECRET_KEY`) — one copy for the modules gitlab, email, ai.

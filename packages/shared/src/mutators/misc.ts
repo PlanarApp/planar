@@ -3,6 +3,7 @@ import {
   MutatorError,
   defineMutator,
   isDataModule,
+  WORKSPACE_DATA_MODULE_IDS,
   type Tx,
   type MutatorCtx,
 } from '../contract/index.js';
@@ -35,6 +36,18 @@ export const miscMutators = [
     async run(tx, a, ctx) {
       for (const n of await own(tx, a.ids, ctx))
         await tx.patch('notifications', n.id, { readAt: ctx.now });
+    },
+  }),
+  defineMutator({
+    // all own unread up to the click (a queued offline call does not read later ones), except snoozed ones
+    name: 'notification.readAll',
+    args: z.object({ upTo: z.iso.datetime(), except: z.array(uuid).default([]) }),
+    async run(tx, a, ctx) {
+      const skip = new Set(a.except);
+      const upTo = Date.parse(a.upTo);
+      for (const n of await tx.scan('notifications', { index: 'userId', eq: ctx.userId }))
+        if (!n.readAt && !skip.has(n.id) && Date.parse(n.createdAt) <= upTo)
+          await tx.patch('notifications', n.id, { readAt: ctx.now });
     },
   }),
   defineMutator({
@@ -140,11 +153,13 @@ export const miscMutators = [
     name: 'settings.set',
     args: z.object({ id: z.string().min(1), value: z.json() }),
     async run(tx, a, ctx) {
-      // C-mutators v12: enabled_modules holds only shared modules
+      // C-mutators v12: enabled_modules holds only shared modules and workspace switches of data modules (PLNRAPP-241)
       if (
         a.id === 'enabled_modules' &&
         Array.isArray(a.value) &&
-        a.value.some((x) => typeof x === 'string' && isDataModule(x))
+        a.value.some(
+          (x) => typeof x === 'string' && isDataModule(x) && !WORKSPACE_DATA_MODULE_IDS.includes(x),
+        )
       )
         throw new MutatorError(
           'invalid_args',

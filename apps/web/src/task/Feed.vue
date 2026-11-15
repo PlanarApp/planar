@@ -10,6 +10,7 @@ import { useLabels, useMembers, useStatuses, type TaskView } from '../tasks';
 import { useSpaces } from '../tasks/queries';
 import { formatDue } from '../views/list/due';
 import {
+  ArrowLeft,
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
   ChevronsDownUp,
@@ -27,6 +28,12 @@ const { user, isAdmin } = useAuth();
 const comments = useComments(props.task.id);
 const users = useUsers();
 const reactions = useReactions(props.task.id);
+const NO_REACTIONS: Row<'commentReactions'>[] = [];
+const reactionsBy = computed(() => {
+  const m = new Map<string, Row<'commentReactions'>[]>();
+  for (const r of reactions.value ?? []) m.set(r.commentId, [...(m.get(r.commentId) ?? []), r]);
+  return m;
+});
 const members = useMembers(() => props.task.spaceId);
 const labels = useLabels(() => props.task.spaceId);
 // the whole space: a moved task's old status is of another project
@@ -174,7 +181,25 @@ function toggleAll() {
   }
   folded.value = s;
 }
+// the open thread and the threads above it (PLNRAPP-201): «Back» goes one level up, the last one — to the feed
+const threads = ref<string[]>([]);
+const thread = computed(() => {
+  const id = threads.value.at(-1);
+  return id ? comments.value?.find((c) => c.id === id) : undefined;
+});
+// the root is deleted (here or by another user) — back to where it is still there
+watch(thread, (c) => {
+  if (!c && threads.value.length && comments.value) threads.value = threads.value.slice(0, -1);
+});
+function openThread(id: string) {
+  if (threads.value.at(-1) !== id) threads.value = [...threads.value, id];
+}
+function closeThread() {
+  replyTo.value = null;
+  threads.value = threads.value.slice(0, -1);
+}
 provide(FEED, {
+  openThread,
   folded,
   replies,
   replyTo,
@@ -183,7 +208,7 @@ provide(FEED, {
   userId: () => user.value?.id,
   names,
   members: memberList,
-  reactions,
+  reactionsOf: (id: string) => reactionsBy.value.get(id) ?? NO_REACTIONS,
   nameOf,
   avatarOf,
   canResolve,
@@ -227,7 +252,25 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
         @click="newestFirst = !newestFirst"
       />
     </div>
-    <div class="shrink-0 rounded-md border border-border-strong bg-bg p-2">
+    <!-- тред на всю ленту (PLNRAPP-201): исходный комментарий, его ответы, глубже — сабтреды -->
+    <div
+      v-if="thread"
+      class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto"
+      data-testid="thread-view"
+    >
+      <Button
+        size="sm"
+        variant="ghost"
+        class="self-start"
+        :icon="ArrowLeft"
+        data-testid="thread-back"
+        @click="closeThread"
+      >
+        {{ threads.length > 1 ? t('task.threadUp') : t('task.threadBack') }}
+      </Button>
+      <CommentThread :key="thread.id" :comment="thread" />
+    </div>
+    <div v-else class="shrink-0 rounded-md border border-border-strong bg-bg p-2">
       <Editor
         ref="composer"
         refs
@@ -252,7 +295,12 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
       </div>
     </div>
     <!-- поле комментария — над лентой, лента прокручивается под ним -->
-    <div ref="list" class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto" data-testid="feed">
+    <div
+      v-show="!thread"
+      ref="list"
+      class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto"
+      data-testid="feed"
+    >
       <template v-for="e in feed" :key="e.id">
         <CommentThread v-if="'comment' in e" :comment="e.comment" />
         <p v-else class="text-xs text-fg-muted" data-testid="activity">{{ describe(e.act) }}</p>

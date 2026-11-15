@@ -1,26 +1,5 @@
 import type { TimeEntry } from '../shared/index.js';
 
-export interface TaskNode {
-  id: string;
-  parentId: string | null;
-}
-
-/** A task and all its descendants (recursive, without looping). */
-export function subtreeIds(tasks: TaskNode[], rootId: string): Set<string> {
-  const kids = new Map<string, string[]>();
-  for (const t of tasks)
-    if (t.parentId) kids.set(t.parentId, [...(kids.get(t.parentId) ?? []), t.id]);
-  const out = new Set<string>([rootId]);
-  const stack = [rootId];
-  while (stack.length)
-    for (const c of kids.get(stack.pop()!) ?? [])
-      if (!out.has(c)) {
-        out.add(c);
-        stack.push(c);
-      }
-  return out;
-}
-
 /** Seconds of an entry: the ready duration, or «now − start» for a running one. */
 export const entrySec = (e: TimeEntry, nowMs: number): number =>
   e.endedAt

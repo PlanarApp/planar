@@ -41,10 +41,14 @@ const day = (iso: string) => {
   if (diff === 1) return t('inbox.yesterday');
   return d.toLocaleDateString(locale.value);
 };
+const cards = computed(() => groupByTask(visible.value));
+// thousands of cards (after an import) — render in pages, not all at once
+const PAGE = 100;
+const limit = ref(PAGE);
 // day — by the newest notification of the card
 const groups = computed(() => {
   const g: { day: string; cards: InboxItem[][] }[] = [];
-  for (const c of groupByTask(visible.value)) {
+  for (const c of cards.value.slice(0, limit.value)) {
     const d = day(c[0].createdAt);
     (g.at(-1)?.day === d ? g.at(-1)! : g[g.push({ day: d, cards: [] }) - 1]).cards.push(c);
   }
@@ -227,6 +231,14 @@ const rowItems = (c: InboxItem[]): MenuItem[] => [
           </div>
         </div>
       </section>
+      <Button
+        v-if="cards.length > limit"
+        variant="ghost"
+        size="sm"
+        data-testid="inbox-more"
+        @click="limit += PAGE"
+        >{{ t('inbox.more', { n: cards.length - limit }) }}</Button
+      >
     </div>
     <div v-if="split" class="min-w-0 flex-1">
       <component

@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import type pg from 'pg';
 import {
   MutatorError,
   isDataModule,
@@ -17,7 +18,7 @@ import { notificationsHook } from '../notifications/hook.js';
 import type { PushQueue } from '../push/push.js';
 import { ensureSystemUser } from '../users/system.js';
 import { findMutator } from './registry.js';
-import { ServerTx, type Q } from './server-tx.js';
+import { ServerTx, type Q, type TxCache } from './server-tx.js';
 
 export type FailCode = Extract<SyncPushResponse['results'][number], { ok: false }>['code'];
 
@@ -44,8 +45,42 @@ export interface RunOpts {
   /** bypass of rights (ServerTx.asSystem) */
   system?: boolean;
   origin?: MutationOrigin | null;
+  /** without notifications (bulk import); auto-subscription stays */
+  quiet?: boolean;
   /** for enqueue from module hooks; without it enqueue is a no-op */
   jobs?: JobsService;
+  /** shared by the mutations of one transaction (push batch) */
+  cache?: TxCache;
+}
+
+/**
+ * fn in a savepoint that opens before its first query: a hook that reads nothing costs no round trips.
+ * An error rolls the savepoint back and is rethrown.
+ */
+async function lazySavepoint(tx: Q, fn: () => Promise<void>): Promise<void> {
+  const client = (tx as unknown as { session: { client: pg.ClientBase } }).session.client;
+  const query = client.query;
+  const own = Object.hasOwn(client, 'query');
+  // the client as it was: an own property would shadow the prototype (and pg instrumentation on it)
+  const restore = () =>
+    own ? (client.query = query) : delete (client as Partial<pg.ClientBase>).query;
+  const run = (...a: unknown[]) => query.apply(client, a as never) as unknown as Promise<unknown>;
+  let open = false;
+  client.query = function (...a: unknown[]) {
+    if (open) return run(...a);
+    open = true;
+    return run('savepoint hook').then(() => run(...a));
+  } as typeof query;
+  try {
+    await fn();
+  } catch (err) {
+    restore();
+    if (open) await client.query('rollback to savepoint hook');
+    throw err;
+  } finally {
+    restore();
+  }
+  if (open) await client.query('release savepoint hook');
 }
 
 /** Writes of projects where the data module is on, and writes not tied to a project (or to a project that no longer exists). */
@@ -108,38 +143,42 @@ async function moduleHooks(
 ): Promise<void> {
   const hooked = installed.filter((m) => m.api.afterMutation);
   if (!hooked.length) return;
-  const on = await enabledModules(tx);
+  const cache = opts.cache ?? {};
+  const on = (cache.modules ??= await enabledModules(tx));
   const writes: MutationWrite[] = stx.writes.map((w) => ({
     entity: w.entity,
     op: w.op,
     before: w.before ?? null,
     after: w.after ?? null,
   }));
-  const cache = new Map<string, string | null>();
+  const projectOf = new Map<string, string | null>();
   const modulesOf = new Map<string, Set<string> | null>();
   for (const m of hooked.filter((m) => on.has(m.api.id))) {
     try {
       // C-schema v16: a data module does not see writes of projects where it is off
       const mine = isDataModule(m.api.id)
-        ? await filterWrites(tx, m.api.id, writes, cache, modulesOf)
+        ? await filterWrites(tx, m.api.id, writes, projectOf, modulesOf)
         : writes;
       if (!mine.length) continue;
-      await tx.transaction(async (sp) => {
-        const sys = ServerTx.asSystem(sp, {
-          userId: ctx.userId,
-          tokenId: ctx.tokenId ?? undefined,
-          now: ctx.now,
-        });
+      await lazySavepoint(tx, async () => {
+        const sys = ServerTx.asSystem(
+          tx,
+          { userId: ctx.userId, tokenId: ctx.tokenId ?? undefined, now: ctx.now },
+          { cache, locked: stx.isLocked },
+        );
         const api: ModuleHookApi = {
-          q: sp,
+          q: tx,
           sys,
-          enqueue: async (queue, data, o) => void (await opts.jobs?.enqueue(queue, data, o, sp)),
-          ensureBotUser: (login, name) => ensureSystemUser(sp, login, name, true),
+          enqueue: async (queue, data, o) => void (await opts.jobs?.enqueue(queue, data, o, tx)),
+          ensureBotUser: (login, name) => ensureSystemUser(tx, login, name, true),
         };
         await m.api.afterMutation!(mine, ctx, api as never);
         await sys.finish();
       });
     } catch (err) {
+      // what the hook cached may be rolled back
+      delete cache.hidden;
+      delete cache.modules;
       if (isInfra(err)) throw err;
       log.error(
         `afterMutation ${m.api.id}: ${err instanceof Error ? (err.stack ?? err.message) : err}`,
@@ -162,12 +201,12 @@ export async function runMutation(
   const args = def.args.safeParse(m.args);
   if (!args.success) throw new Reject('invalid_args', args.error.message);
   const sctx = { userId, tokenId };
-  const stx = opts.system ? ServerTx.asSystem(tx, sctx) : new ServerTx(tx, sctx);
+  const stx = new ServerTx(tx, sctx, { system: opts.system, cache: opts.cache });
   const now = new Date().toISOString();
   try {
     await def.run(stx, args.data, { userId, now, server: true });
     await gateProjectModules(tx, stx, def, args.data);
-    const hook = await notificationsHook(tx, stx, { userId, now });
+    const hook = await notificationsHook(tx, stx, { userId, now }, !opts.quiet);
     notified.push(...hook.ids);
     await moduleHooks(
       tx,
@@ -199,7 +238,7 @@ export async function executeMutations(
   muts: { name: string; args: unknown }[],
   queue?: PushQueue,
   tokenId?: string,
-  opts?: Pick<RunOpts, 'system' | 'origin'> & {
+  opts?: Pick<RunOpts, 'system' | 'origin' | 'quiet'> & {
     prepare?: (q: Q) => Promise<boolean | void>;
     after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void>;
   },
