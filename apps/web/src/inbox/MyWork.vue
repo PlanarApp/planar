@@ -229,7 +229,7 @@ const textOf = (body: unknown): string => {
           <button
             type="button"
             class="flex min-w-0 flex-1 flex-col gap-1 rounded-md py-1 text-left text-sm outline-none focus-visible:ring-2 ring-focus"
-            @click="openTask(c.key)"
+            @click="openTask(c.key, c.kind === 'comment' ? c.id : null)"
           >
             <span class="flex min-w-0 items-baseline gap-2 text-xs text-fg-subtle">
               <span class="shrink-0">{{ c.key }}</span>

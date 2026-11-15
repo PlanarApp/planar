@@ -26,7 +26,7 @@ watch(taskOpenMode, (v) => {
 
 const GROUP_ROUTES = ['project', 'savedView', 'space', 'workspace'];
 
-export function openTask(key: string): void {
+export function openTask(key: string, commentId?: string | null): void {
   const r = router.currentRoute.value;
   // window/side panel — on any group screen (TaskModal exists in Tasks and in other tabs)
   if (
@@ -34,9 +34,10 @@ export function openTask(key: string): void {
     (useBreakpoint().isMobile.value || taskOpenMode.value !== 'page')
   ) {
     // mobile: fullscreen dialog over the view (TaskModal), so the view keeps scroll/groups/filters
-    void router.push({ query: { ...r.query, task: key } });
+    void router.push({ query: { ...r.query, task: key, comment: commentId || undefined } });
   } else {
-    void router.push(`/t/${encodeURIComponent(key)}`);
+    const path = `/t/${encodeURIComponent(key)}`;
+    void router.push(commentId ? { path, query: { comment: commentId } } : path);
   }
 }
 

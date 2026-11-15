@@ -75,8 +75,14 @@ function open(c: InboxItem[]) {
   const n = c[0];
   void read(unreadOf(c));
   if (n.taskKey && split.value)
-    void router.replace({ query: { ...router.currentRoute.value.query, open: n.taskKey } });
-  else if (n.taskKey) openTask(n.taskKey);
+    void router.replace({
+      query: {
+        ...router.currentRoute.value.query,
+        open: n.taskKey,
+        comment: n.commentId ?? undefined,
+      },
+    });
+  else if (n.taskKey) openTask(n.taskKey, n.commentId);
   else if (n.url?.startsWith('/') && !/^\/[/\\]/.test(n.url)) void router.push(n.url);
 }
 const snoozeItems = (c: InboxItem[]): MenuItem[] =>
