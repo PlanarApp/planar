@@ -18,6 +18,12 @@ rules:
     trigger: { type: task.status_changed, to: [todo] }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: dev }]
+  - key: dev_ci_failed
+    name: Починка CI
+    description: Пайплайн MR задачи упал — ИИ разбирает логи, чинит и пушит в ту же ветку. Не больше 3 запусков подряд, дальше — вопрос человеку. Только задачи, где ИИ — исполнитель.
+    trigger: { type: mr.pipeline, mr: opened, pipeline: [failed] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: dev, maxRuns: 3 }]
   - key: review_mr
     name: Ревью MR
     description: ИИ разбирает MR задачи и оставляет комментарии к diff в GitLab. Только задачи, где ИИ — исполнитель.
@@ -26,9 +32,9 @@ rules:
     actions: [{ type: ai_run, action: review }]
   - key: test_on_prod
     name: Тестирование на контуре
-    description: ИИ дожидается выкладки и проверяет задачу в браузере (Playwright) на контуре. Только задачи, где ИИ — исполнитель.
-    trigger: { type: task.status_changed, to: [test_prod] }
-    filter: { assignee: [ai] }
+    description: MR задачи слит и деплой закончился (или пропущен) — ИИ проверяет задачу в браузере (Playwright) на контуре. Только задачи в «Test prod», где ИИ — исполнитель.
+    trigger: { type: mr.pipeline, mr: merged, pipeline: [success, skipped] }
+    filter: { assignee: [ai], status: [test_prod] }
     actions: [{ type: ai_run, action: test }]
   - key: plan_in_backlog
     name: План в бэклоге

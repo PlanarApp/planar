@@ -37,6 +37,7 @@ export const gitlabMrs = pgTable(
     authorName: text().notNull(),
     webUrl: text().notNull(),
     mrUpdatedAt: ts().notNull(),
+    pipelineStatus: text(),
     createdAt: ts().notNull(),
     updatedAt: ts().notNull(),
   },

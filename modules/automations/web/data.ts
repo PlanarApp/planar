@@ -37,6 +37,7 @@ export const TRIGGERS = [
   'task.unassigned',
   'task.waiting_human',
   'task.start_reached',
+  'mr.pipeline',
   'schedule',
 ] as const;
 /** Triggers with a numeric parameter: the parameter key. */
@@ -72,7 +73,9 @@ export const blankTrigger = (type: Trigger['type']): Trigger =>
             ? { type, days: 3 }
             : type === 'schedule'
               ? { type, cron: '0 9 * * 1' }
-              : ({ type } as Trigger);
+              : type === 'mr.pipeline'
+                ? { type, mr: 'opened', pipeline: ['failed'] }
+                : ({ type } as Trigger);
 
 export const blankAction = (type: Action['type']): Action => {
   switch (type) {
@@ -149,8 +152,20 @@ const TEXT = {
       'task.unassigned': 'Задача без исполнителя',
       'task.waiting_human': 'Ждёт ответа человека',
       'task.start_reached': 'Наступила дата начала',
+      'mr.pipeline': 'Пайплайн MR задачи',
       schedule: 'По расписанию',
     },
+    mr: 'MR',
+    mrStates: { opened: 'открыт — CI MR', merged: 'слит — деплой' },
+    pipeline: 'Статусы пайплайна',
+    pipelineStatuses: {
+      success: 'успех',
+      failed: 'упал',
+      canceled: 'отменён',
+      skipped: 'пропущен',
+      manual: 'ждёт ручного запуска',
+    },
+    maxRuns: 'Запусков подряд не больше (пусто — без лимита)',
     actionNames: {
       set_status: 'Сменить статус',
       assign: 'Назначить',
@@ -228,8 +243,20 @@ const TEXT = {
       'task.unassigned': 'Task has no assignee',
       'task.waiting_human': 'Waiting for a person',
       'task.start_reached': 'Start date reached',
+      'mr.pipeline': 'Task MR pipeline',
       schedule: 'On schedule',
     },
+    mr: 'MR',
+    mrStates: { opened: 'open — MR CI', merged: 'merged — deploy' },
+    pipeline: 'Pipeline statuses',
+    pipelineStatuses: {
+      success: 'success',
+      failed: 'failed',
+      canceled: 'canceled',
+      skipped: 'skipped',
+      manual: 'waiting for a manual job',
+    },
+    maxRuns: 'At most runs in a row (empty — no limit)',
     actionNames: {
       set_status: 'Set status',
       assign: 'Assign',
