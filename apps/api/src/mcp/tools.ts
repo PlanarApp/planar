@@ -4,6 +4,7 @@ import type { HttpErrorCode } from '@planar/shared';
 import type { AuthCtx } from '../auth/auth.js';
 import { HttpError } from '../auth/errors.js';
 import { extraFilter } from '../rest/batch.js';
+import { extOps, runExt } from '../rest/ext/index.js';
 import { batchDefs } from './tools-batch.js';
 import type { RestService } from '../rest/rest.service.js';
 import { settingsDefs } from './tools-settings.js';
@@ -367,6 +368,22 @@ export function toolDefs(rest: RestService): ToolDef[] {
     async ({ pageId, ...a }, c) => (await rest.patchDocPage(c.uid, pageId, a, c.tokenId)).data,
   );
   defs.push(...settingsDefs(rest));
+  // ExtOp (rest/ext): one description → REST, OpenAPI, here and the chat
+  for (const o of extOps())
+    defs.push({
+      name: o.tool,
+      description: o.description,
+      shape: o.shape,
+      write: o.write,
+      danger: o.danger,
+      run: async (a, uid, tokenId) =>
+        (await runExt(o, rest.extDeps(), uid, a, tokenId)) ?? { ok: true },
+    });
+  const seen = new Set<string>();
+  for (const d of [...defs, ...batchDefs(rest)]) {
+    if (seen.has(d.name)) throw new Error(`duplicate tool ${d.name}`);
+    seen.add(d.name);
+  }
   def(
     'search_docs_site',
     'Документация Planar (docs-site): без section — поиск, до 10 разделов с фрагментом; с section (id из поиска) — текст раздела',

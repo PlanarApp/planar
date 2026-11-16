@@ -1,24 +1,33 @@
 // Tool names below are checked against the MCP registry by apps/api/test/ai/aikb-permissions.test.ts.
 // The "## " headings are the groups the test looks the tools up in.
-export const section = {
-  id: 'permissions',
-  title: 'Whose rights tools run with, what needs a yes',
-  body: `## Whose rights
+import type { McpToolMeta } from '../mcp-section.js';
+
+// Admin-only pack tools are described in their own group (static text below), not in the generated lists.
+const PACK = /^ai_(list|upload|diff|apply|set)_pack/;
+const names = (xs: McpToolMeta[]) => xs.map((d) => `\`${d.name}\``).join(', ') || '-';
+
+/** The tool lists of the groups come from the registry (`defs`): a new tool needs no manual edit here. */
+export const permissionsSection = (defs: McpToolMeta[]) => {
+  const ds = defs.filter((d) => !PACK.test(d.name));
+  return {
+    id: 'permissions' as const,
+    title: 'Whose rights tools run with, what needs a yes',
+    body: `## Whose rights
 - MCP needs a Bearer API token. Every tool runs as the token owner (a person): the same spaces, projects and project role as in the UI. No extra rights, no way around project access.
 - A token with the read scope cannot call write tools. Read tools only return what the owner can see.
 - An unknown project and a project without access look the same (not found / forbidden).
 
 ## Needs the user's yes (danger)
 In chat these tools are not executed until the user confirms in the chat; ask first, say exactly what will change, then call. Settings tools (statuses, labels, fields, automations, AI actions, project, modules) are all here:
-\`unlink_tasks\`, \`create_status\`, \`update_status\`, \`delete_status\`, \`create_label\`, \`update_label\`, \`delete_label\`, \`create_field\`, \`update_field\`, \`delete_field\`, \`create_automation\`, \`update_automation\`, \`delete_automation\`, \`create_ai_action\`, \`update_ai_action\`, \`delete_ai_action\`, \`update_project\`, \`set_project_module\`, \`batch_update_tasks\`.
+${names(ds.filter((d) => d.danger))}.
 - \`batch_update_tasks\` (bulk): \`dryRun: true\` only lists the tasks and needs no yes; the real run (up to 100 tasks) needs one yes for the whole batch.
 - Deleting a status moves its tasks to \`replaceWith\`; deleting a label or a field removes it from tasks (a field with its values).
 
 ## Needs a yes only for some arguments (dangerIf)
-Text that may come from a prompt injection: \`update_task\` when \`description\` is set; \`update_doc\` when \`markdown\`, \`append\` or \`replace\` is set. Other arguments of these tools (status, assignees, title) go without a yes.
+Text that may come from a prompt injection: \`update_task\` when \`description\` is set; \`update_doc\` when \`markdown\`, \`append\` or \`replace\` is set. Other arguments of these tools (status, assignees, title) go without a yes. Tools of this group: ${names(ds.filter((d) => d.dangerIf))}.
 
 ## Writes without a yes
-Allowed without a confirmation, still done as the token owner: \`create_task\`, \`add_comment\`, \`update_comment\`, \`link_tasks\`, \`log_time\`, \`start_timer\`, \`stop_timer\`, \`create_doc\`, \`link_doc_task\`, \`add_doc_comment\`, \`resolve_doc_comment\`, \`patch_doc\`.
+Allowed without a confirmation, still done as the token owner: ${names(ds.filter((d) => d.write && !d.danger && !d.dangerIf))}.
 Do not create tasks, comments or documents in bulk without a reason.
 
 ## Admin only
@@ -27,12 +36,21 @@ Do not create tasks, comments or documents in bulk without a reason.
 - Restoring an archived task is a project-admin action.
 
 ## Read-only
-\`list_spaces\`, \`list_projects\`, \`list_fields\`, \`project_dictionary\`, \`search_tasks\`, \`get_task\`, \`my_tasks\`, \`list_time_entries\`, \`get_timer\`, \`current_sprint\`, \`list_sprints\`, \`list_automations\`, \`list_docs\`, \`get_doc\`, \`list_doc_comments\`, \`list_ai_actions\`, \`search_docs_site\`.
+${names(ds.filter((d) => !d.write))}.
 
 ## Not available via MCP (do not promise it; tell the user to do it in the UI)
 - Secrets and connections: AI provider keys, SMTP/IMAP, GitLab tokens, webhook secrets, API tokens.
-- Members and roles of a space or a project, users of the instance, blocking, passwords.
+- Passwords and blocking of users (members, roles and instance users only through the tools of the mcp section, if any).
 - Instance settings and instance modules, cloud settings, data export/import.
-- Saved views (see the views section), dashboards, goals, templates, forms, chat channels.
-- Creating or deleting spaces and projects, deleting or merging tasks, deleting documents.`,
+- Anything the mcp section has no tool for (the lists above and the mcp section come from the same registry): do not promise it.`,
+  };
+};
+
+// aikb-section v1 shape; the body is built on access (the real section comes from the registry in aikb/index.ts).
+export const section = {
+  id: 'permissions' as const,
+  title: permissionsSection([]).title,
+  get body() {
+    return permissionsSection([]).body;
+  },
 };

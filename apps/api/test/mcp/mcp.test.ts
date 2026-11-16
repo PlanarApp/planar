@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { apiTokenCreatedSchema, uuidv7 } from '@planar/shared';
 import { createApp } from '../../src/app.js';
+import { EXT_AREAS } from '../../src/rest/ext/index.js';
 import { openapi } from '../../src/rest/openapi.js';
 import * as schema from '../../src/db/schema.js';
 import { ORIGIN, loginCookie } from '../auth.js';
@@ -162,16 +163,21 @@ describe('MCP /mcp', () => {
     'ai_kb',
   ];
 
-  it('initialize и tools/list: каждой операции REST v1 есть инструмент MCP, схемы — object', async () => {
+  it('initialize и tools/list (PARITY): каждой операции REST v1 есть инструмент MCP, схемы — object', async () => {
     const spec = openapi() as unknown as { paths: Record<string, Record<string, unknown>> };
     const ops = Object.entries(spec.paths).flatMap(([p, m]) =>
       Object.keys(m).map((x) => `${x.toUpperCase()} ${p}`),
     );
-    expect(ops.sort()).toEqual(Object.keys(PARITY).sort());
+    // C-ext: the operations of EXT_AREAS are added to the hand-written PARITY
+    const ext = Object.fromEntries(
+      EXT_AREAS.flatMap((a) => a.ops).map((o) => [`${o.method.toUpperCase()} ${o.path}`, o.tool]),
+    );
+    const all = { ...PARITY, ...ext };
+    expect(ops.sort()).toEqual(Object.keys(all).sort());
     const c = await connect(write.secret);
     const { tools } = await c.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
-      [...new Set([...Object.values(PARITY), ...MCP_ONLY])].sort(),
+      [...new Set([...Object.values(all), ...MCP_ONLY])].sort(),
     );
     for (const t of tools) expect(t.inputSchema.type).toBe('object');
     await c.close();

@@ -4,10 +4,10 @@ import { toolDefs } from '../../src/mcp/tools.js';
 import { SETTING_OPS } from '../../src/rest/settings.js';
 import type { RestService } from '../../src/rest/rest.service.js';
 import { taskFilter } from '../../src/rest/batch.js';
-import { section } from '../../../../modules/ai/api/aikb/sections/views-settings.js';
+import { viewsSettingsSection } from '../../../../modules/ai/api/aikb/sections/views-settings.js';
 
-const body = section.body;
 const defs = toolDefs({} as RestService);
+const body = viewsSettingsSection(defs).body;
 const has = (w: string) => expect(body).toContain(`\`${w}\``);
 
 describe('aikb views-settings section', () => {
@@ -31,7 +31,11 @@ describe('aikb views-settings section', () => {
   });
   it('view mutators and saved-view MCP status', () => {
     ['view.create', 'view.update', 'view.delete', 'view.setNodeDefault'].forEach(has);
-    expect(defs.some((d) => /view/.test(d.name))).toBe(false);
-    expect(body).toContain('not available via MCP');
+    const viewTools = defs.map((d) => d.name).filter((n) => /^[a-z]+_views?(_|$)/.test(n));
+    expect(viewTools).toEqual(
+      expect.arrayContaining(['list_views', 'create_view', 'update_view', 'delete_view']),
+    );
+    viewTools.forEach(has);
+    expect(body).not.toContain('not available via MCP');
   });
 });

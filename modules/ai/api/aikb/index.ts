@@ -1,9 +1,9 @@
 import { section as automations } from './sections/automations.js';
 import { section as entities } from './sections/entities.js';
-import { section as permissions } from './sections/permissions.js';
+import { permissionsSection } from './sections/permissions.js';
 import { section as recipes } from './sections/recipes.js';
 import { section as runs } from './sections/runs.js';
-import { section as viewsSettings } from './sections/views-settings.js';
+import { viewsSettingsSection } from './sections/views-settings.js';
 import { mcpSection, type McpToolMeta } from './mcp-section.js';
 import { core as coreBlock } from './core.js';
 
@@ -15,8 +15,8 @@ export const aikbSections = (defs: McpToolMeta[]): Section[] => [
   entities,
   runs,
   automations,
-  viewsSettings,
-  permissions,
+  viewsSettingsSection(defs),
+  permissionsSection(defs),
   recipes,
   mcpSection(defs),
 ];
