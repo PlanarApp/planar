@@ -4,6 +4,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { decrypt, secretKey, type JobApi, type Q } from '@planar/server-kit';
 import { resolveConnection, secretOf } from './connections.js';
+import { kbBlock } from './aikb/block.js';
 import { applyDocResult, docContext, docItemOf, docPageOf } from './doc-run.js';
 import {
   apply,
@@ -211,7 +212,7 @@ export async function launchAgent(
   const context = JSON.stringify({
     runId: run.id,
     ...o.context,
-    action: { key: action.key, name: action.name, prompt: o.prompt },
+    action: { key: action.key, name: action.name, prompt: o.prompt + kbBlock() },
     checks: action.checks,
   });
   const apiUrl = process.env.PLANAR_API_URL ?? 'http://api:3000';

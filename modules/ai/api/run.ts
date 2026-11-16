@@ -9,6 +9,7 @@ import { uuidv7 } from '@planar/shared';
 import { matched } from '@planar/module-automations/api';
 import { AI_BOT_LOGIN, type AiAction, type AiEvent, type AiRunKind } from '../shared/index.js';
 import { resolveConnection, secretOf } from './connections.js';
+import { kbBlock } from './aikb/block.js';
 import { chatTools, runPlanned, type ChatToolDef, type PlannedCall } from './chat-tools.js';
 import { aiPackTools } from './pack-tools.js';
 import { loadPack, parseInstructionPage } from './harness.js';
@@ -547,7 +548,7 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
         { ...c, model: action?.model ?? c.model },
         {
           schema: resultSchema,
-          system: `${SYSTEM}\n\n# Инструкция\n${prompt}${checks}`,
+          system: `${SYSTEM}\n\n# Инструкция\n${prompt}${checks}` + kbBlock(),
           prompt: `${ctx.text}${ask}`,
           maxOutputTokens: action?.maxOutputTokens ?? undefined,
         },
@@ -733,7 +734,7 @@ async function handleChat(d: ChatRunData, api: JobApi) {
     let reply: Awaited<ReturnType<typeof generateReply>>;
     try {
       reply = await generateReply(secretOf(conn!), {
-        system: await chatPrompt(api.db, projectId),
+        system: (await chatPrompt(api.db, projectId)) + kbBlock(),
         prompt: `${ctx}\n\n# Ответь на последнее сообщение${author ? ` (${author})` : ''}`,
         tools: chatTools(await chatToolDefs(api, id), d.initiatorId, planned),
         maxSteps: chatInt('AI_CHAT_MAX_STEPS', 10),

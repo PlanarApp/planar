@@ -7,6 +7,7 @@ import { applyPagePatch } from '@planar/module-docs/api';
 import { uuidv7 } from '@planar/shared';
 import { resolveConnection, secretOf } from './connections.js';
 import { agentsFull, launchAgent, stopAgent } from './agent.js';
+import { kbBlock } from './aikb/block.js';
 import { generateStructured } from './llm.js';
 import {
   AI_QUEUE,
@@ -229,7 +230,7 @@ export async function handleDoc(d: DocRunData, api: JobApi): Promise<void> {
         { ...c, model: action?.model ?? c.model },
         {
           schema: docResultSchema(),
-          system: DOC_SYSTEM + instruction,
+          system: DOC_SYSTEM + instruction + kbBlock(),
           prompt: JSON.stringify(ctx),
           maxOutputTokens: action?.maxOutputTokens ?? undefined,
         },

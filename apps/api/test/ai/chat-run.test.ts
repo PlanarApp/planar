@@ -5,7 +5,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { encrypt, secretKey } from '@planar/server-kit';
-import { uuidv7 } from '@planar/shared';
+import { appUrl, uuidv7 } from '@planar/shared';
 import type { JobApi } from '../../src/modules/hooks.js';
 import { installed } from '../../src/modules/installed.js';
 import { PushQueue } from '../../src/push/push.js';
@@ -33,6 +33,7 @@ let channel: string;
 type Job = { queue: string; data: Record<string, unknown> };
 const jobs: Job[] = [];
 let prompts: { system: string; prompt: string }[] = [];
+let answer: (system: string) => string = () => 'Ответ ИИ';
 
 const raw = (text: string, values: unknown[] = []) =>
   db.$client.query(text, values).then((r) => r.rows as Record<string, unknown>[]);
@@ -111,7 +112,7 @@ beforeAll(async () => {
           choices: [
             {
               index: 0,
-              message: { role: 'assistant', content: 'Ответ ИИ' },
+              message: { role: 'assistant', content: answer(prompts.at(-1)!.system) },
               finish_reason: 'stop',
             },
           ],
@@ -151,6 +152,7 @@ afterAll(async () => {
 beforeEach(async () => {
   jobs.length = 0;
   prompts = [];
+  answer = () => 'Ответ ИИ';
   await raw(`delete from ai_settings`);
   await raw(`delete from ai_runs where kind = 'chat'`);
   channel = uuidv7();
@@ -218,6 +220,31 @@ describe('Чат с ботом', () => {
     );
     expect(await chatRuns()).toHaveLength(1);
     expect(await botMessages(dm)).toHaveLength(1);
+  });
+
+  it('блок знаний: шаблоны ссылок в промпте; ссылка на задачу в ответе — по шаблону', async () => {
+    process.env.PUBLIC_URL = 'https://kb.example';
+    // the model takes the task template from the block and fills the key in
+    answer = (system) => {
+      const tpl = system
+        .split('\n')
+        .find((l) => l.startsWith('- task: '))!
+        .slice('- task: '.length);
+      return `Вот задача: ${tpl.replace(encodeURIComponent('<KEY>'), encodeURIComponent('ПИРАТ-1'))}`;
+    };
+    const dm = await dialog([w.member.userId, bot]);
+    await send(w.member, dm, { body: doc('Дай ссылку на ПИРАТ-1') });
+    await drain();
+    const s = prompts[0]!.system;
+    expect(s).toContain('Planar knowledge');
+    expect(s).toContain(appUrl('https://kb.example', { kind: 'task', key: '<KEY>' }));
+    expect(s).not.toContain('poprygun');
+    // the body is ProseMirror JSON: the URL is a link node, the text is separate
+    const body = JSON.stringify((await botMessages(dm))[0]!.body);
+    expect(body).toContain('Вот задача: ');
+    expect(body).toContain(
+      JSON.stringify(appUrl('https://kb.example', { kind: 'task', key: 'ПИРАТ-1' })),
+    );
   });
 
   it('выключатель: вызова ИИ нет, бот отвечает причиной', async () => {

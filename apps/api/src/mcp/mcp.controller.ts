@@ -1,7 +1,7 @@
 import { Controller, Delete, Get, Inject, Post, Req, Res } from '@nestjs/common';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { aiPackTools } from '@planar/module-ai/api';
+import { aiPackTools, type McpToolMeta } from '@planar/module-ai/api';
 import { CORE, type CoreServices } from '@planar/server-kit';
 import { AUTH_OPTS, authenticateRaw, type AuthOpts } from '../auth/auth.js';
 import { HttpError } from '../auth/errors.js';
@@ -9,7 +9,8 @@ import { Public } from '../auth/public.js';
 import type { Db } from '../db/index.js';
 import { RestService } from '../rest/rest.service.js';
 import { DB } from '../tokens.js';
-import { buildMcpServer } from './tools.js';
+import { buildMcpServer, toolDefs } from './tools.js';
+import { kbTool } from './tools-kb.js';
 
 /** Auth is its own here: Bearer only, cookie is not accepted. */
 @Public()
@@ -28,7 +29,12 @@ export class McpController {
       ? await authenticateRaw(this.db, req.headers, req.method, this.opts)
       : null;
     if (ctx?.via !== 'token') throw new HttpError(401, 'unauthenticated', 'Нужен Bearer-токен');
-    const server = buildMcpServer(this.rest, ctx, aiPackTools(this.core));
+    const packs = aiPackTools(this.core);
+    // the mcp section of ai_kb lists the whole registry, ai_kb included
+    const defs: McpToolMeta[] = [...toolDefs(this.rest), ...packs];
+    const kb = kbTool(defs);
+    defs.push(kb);
+    const server = buildMcpServer(this.rest, ctx, [...packs, kb]);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
