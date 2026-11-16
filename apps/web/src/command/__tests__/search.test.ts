@@ -1,7 +1,9 @@
 import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope } from 'vue';
-import { db } from '../../sync';
+import { domainMutators } from '@planar/shared';
+import { db, registerMutators, startSync, stopSync } from '../../sync';
+import { archiveTask, createTask, updateTask } from '../../tasks';
 import { ids, reset, task, until } from '../../tasks/__tests__/data';
 import { useSearch } from '../search';
 
@@ -9,6 +11,7 @@ const doc = (text: string) => ({
   type: 'doc',
   content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
 });
+beforeAll(() => registerMutators(domainMutators));
 beforeEach(reset);
 
 const open = async () => {
@@ -22,6 +25,16 @@ describe('cmd:search', () => {
     await db.table('tasks').bulkPut([task(12), task(13)]);
     const s = await open();
     expect(s.search('pln-12').map((h) => h.ref)).toEqual(['PLN-12']);
+  });
+  it('путь: родители задачи от внешнего к внутреннему, у корневой пусто', async () => {
+    const [a, b, c] = [task(1, { title: 'Корень' }), task(2, { title: 'Середина' }), task(3)];
+    b.parentId = a.id as never;
+    c.parentId = b.id as never;
+    c.title = 'Лист';
+    await db.table('tasks').bulkPut([a, b, c]);
+    const s = await open();
+    expect(s.search('лист')[0]?.path).toBe('PLN-1 Корень / PLN-2 Середина');
+    expect(s.search('корень')[0]?.path).toBe('');
   });
   it('по слову из описания, ё=е', async () => {
     await db.table('tasks').bulkPut([task(1, { description: doc('Починить ёлку') }), task(2)]);
@@ -39,6 +52,30 @@ describe('cmd:search', () => {
       ]);
     const s = await open();
     expect(s.search('pln-5').map((h) => h.ref)).toEqual(['PLN-5', 'PLN-3', 'PLN-2', 'PLN-1']);
+  });
+  it('PLNRAPP-251: правки после открытия — по событиям реплики, без перечитывания таблицы', async () => {
+    await stopSync();
+    await startSync({
+      userId: ids.ann,
+      fetch: (() => Promise.reject(new TypeError('offline'))) as never,
+    });
+    await db.table('tasks').bulkPut([task(1, { title: 'старая' })]);
+    const s = await open();
+    const read = vi.spyOn(db.table('tasks'), 'toArray');
+    const a = await createTask({
+      projectId: ids.project,
+      statusId: ids.todo,
+      title: 'новая зебра',
+    });
+    await until(() => s.search('зебра').length === 1);
+    await updateTask(a, { title: 'жираф' });
+    await until(() => s.search('жираф').length === 1);
+    expect(s.search('зебра')).toEqual([]);
+    await archiveTask(a);
+    await until(() => s.search('жираф').length === 0);
+    expect(s.search('старая')).toHaveLength(1);
+    expect(read).not.toHaveBeenCalled();
+    await stopSync();
   });
   it('cmd:perf', async () => {
     const ts = Array.from({ length: 10_000 }, (_, i) =>

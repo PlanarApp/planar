@@ -27,6 +27,7 @@ export type Activity = WorkActivity & { moduleId: string };
 const RELEVANT: Record<ActivitySourceDef['entity'], string[]> = {
   tasks: ['tasks', 'comments', 'checklistItems'],
   chatChannels: ['chatMessages'],
+  pages: ['docsComments'],
 };
 
 const RANK = { running: 0, waiting_human: 1, failed: 2 } as const;

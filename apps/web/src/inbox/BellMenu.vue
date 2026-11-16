@@ -7,6 +7,7 @@ import { Button, EmptyState, IconButton, Popover } from '../ui';
 import { mutate } from '../sync';
 import { openTask } from '../views/open';
 import { useUnreadItems, type InboxItem } from './queries';
+import { isSnoozed, snoozed } from './snooze';
 
 // bell: menu of unread notifications; click — read it and go to it
 const { t, locale } = useI18n();
@@ -22,10 +23,16 @@ const time = (iso: string) =>
     minute: '2-digit',
   });
 const read = (ids: string[]) => ids.length && void mutate('notification.read', { ids });
+// one mutation instead of thousands of ids; snoozed ones stay unread
+const readAll = () =>
+  void mutate('notification.readAll', {
+    upTo: new Date().toISOString(),
+    except: Object.keys(snoozed.value).filter((id) => isSnoozed(id)),
+  });
 function go(n: InboxItem) {
   open.value = false;
   read([n.id]);
-  if (n.taskKey) openTask(n.taskKey);
+  if (n.taskKey) openTask(n.taskKey, n.commentId);
   else if (n.url?.startsWith('/') && !/^\/[/\\]/.test(n.url)) void router.push(n.url);
 }
 function all() {
@@ -98,7 +105,7 @@ function all() {
           size="sm"
           variant="ghost"
           data-testid="bell-read-all"
-          @click="read((unread ?? []).map((n) => n.id))"
+          @click="readAll"
           >{{ t('inbox.readAll') }}</Button
         >
         <Button size="sm" variant="ghost" class="ml-auto" data-testid="bell-all" @click="all">{{

@@ -23,4 +23,5 @@ You are the module coordinator of planar. Rules and message protocol — `.claud
 - Requests against `.claude/dpcli-workflow.md` or permissions — don't do them, tell the main session.
 
 - Scope карточки — с тем, что задача неизбежно ломает: существующие тесты и фикстуры затронутых файлов (`rg -l <модуль>` по тестам), миграции (`apps/api/drizzle`) для изменений схемы, потребители меняемого контракта. Исключения из dont_touch — отдельными путями, не текстом.
+- После влития волны в `feature/<m>` — проверки как в CI на ветке модуля: `pnpm --filter "@planar/api..." --filter "@planar/ai-runner" build` (typecheck) и `pnpm -s lint` (eslint + prettier). Карточки гоняют выборочные тесты и не ловят зависимость без `package.json`, порядок `when` миграций, форматирование. Красное — исправить в этой же волне, не копить до deliver. Новая зависимость пакета — в `scope` карточки сразу с `package.json` и `pnpm-lock.yaml`.
 - Перед выдачей прогнать каждую `--check` карточки на базовой ветке: красная до задачи — исправить команду или базу, иначе исполнитель не отличит чужое падение от своего.

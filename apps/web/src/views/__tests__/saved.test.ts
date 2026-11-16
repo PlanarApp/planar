@@ -142,8 +142,11 @@ describe('views:saved', () => {
     await until(() => body.find('input[type=text]').exists());
     await body.get('input[type=text]').setValue('Мой вид');
     await body.get('[data-testid=save-view-submit]').trigger('click');
-    await until(async () => (await rows()).length === 1);
-    const [v] = await rows();
+    // the tab edits above also land in my node row after the 400 ms debounce (PJ-4) — under load
+    // before the check, so only named views are counted
+    const named = async () => (await rows()).filter((x) => !x.node);
+    await until(async () => (await named()).length === 1);
+    const [v] = await named();
     expect(v).toMatchObject({
       name: 'Мой вид',
       userId: ids.ann,

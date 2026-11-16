@@ -123,6 +123,10 @@ describe('MCP /mcp', () => {
     'GET /api/v1/docs/{id}': 'get_doc',
     'PATCH /api/v1/docs/{id}': 'update_doc',
     'POST /api/v1/docs/{id}/tasks': 'link_doc_task',
+    'GET /api/v1/docs/{id}/comments': 'list_doc_comments',
+    'POST /api/v1/docs/{id}/comments': 'add_doc_comment',
+    'POST /api/v1/docs/{id}/comments/{cid}/resolve': 'resolve_doc_comment',
+    'POST /api/v1/docs/{id}/patch': 'patch_doc',
   };
   // MCP-only helpers without a REST operation of their own
   const MCP_ONLY = ['my_tasks', 'project_dictionary'];

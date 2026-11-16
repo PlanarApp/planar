@@ -104,6 +104,18 @@ describe('task:comments', () => {
     expect(w.find('[data-testid="comment-edit"]').exists()).toBe(false);
     expect(w.find('[data-testid="comment-delete"]').exists()).toBe(false);
   });
+  it('PLNRAPP-216: текст и действия — под шапкой с аватаром, не в колонке справа от него', async () => {
+    await db.table('comments').put(comment({ body: doc('текст') }));
+    w = await open();
+    await until(() => w.find('[data-testid="comment-body"]').exists());
+    const header = w.get('[data-testid="comment-header"]');
+    const body = w.get('[data-testid="comment-body"]');
+    expect(header.text()).not.toContain('текст');
+    expect(body.text()).toContain('текст');
+    expect(body.find('[data-testid="comment-edit"]').exists()).toBe(true);
+    // тело — сосед шапки, а не элемент строки с аватаром
+    expect(body.element.parentElement).toBe(header.element.parentElement);
+  });
   it('PLNRAPP-91: комментарий — как описание: картинка и форматирование', async () => {
     const body = {
       type: 'doc',

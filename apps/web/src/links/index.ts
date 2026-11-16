@@ -31,26 +31,24 @@ const EMPTY: ReadonlySet<string> = new Set();
 /** ids of project tasks blocked by an unfinished task */
 export const useBlockedIds = (projectId: MaybeRefOrGetter<string>) => {
   const r = useLive(projectId, async (pid): Promise<ReadonlySet<string>> => {
-    const tasks = db.table<Row<'tasks'>>('tasks');
-    const mine = new Map(
-      (await tasks.where('projectId').equals(pid).toArray()).map((x) => [x.id, x]),
+    // from the links side: links are few, and bulkGet subscribes only to the linked tasks —
+    // an edit of any other task (status, title) does not re-run the query
+    const rows = (await db.table<Row<'taskLinks'>>('taskLinks').toArray()).filter(
+      (l) => l.kind === 'blocks',
     );
-    const rows = (
-      await db
-        .table<Row<'taskLinks'>>('taskLinks')
-        .where('targetId')
-        .anyOf([...mine.keys()])
-        .toArray()
-    ).filter((l) => l.kind === 'blocks');
-    const blockers = new Map(
-      (await tasks.bulkGet([...new Set(rows.map((l) => l.taskId))])).map((x) => [x?.id, x]),
+    if (!rows.length) return EMPTY;
+    const ids = [...new Set(rows.flatMap((l) => [l.taskId, l.targetId]))];
+    const byId = new Map(
+      (await db.table<Row<'tasks'>>('tasks').bulkGet(ids)).map((x, i) => [ids[i], x]),
     );
     return new Set(
       rows
         .filter((l) => {
-          const b = blockers.get(l.taskId);
+          const b = byId.get(l.taskId);
           // an archived blocker no longer blocks (PLNRAPP-155)
-          return b?.completedAt === null && !b.archivedAt;
+          return (
+            byId.get(l.targetId)?.projectId === pid && b?.completedAt === null && !b.archivedAt
+          );
         })
         .map((l) => l.targetId),
     );

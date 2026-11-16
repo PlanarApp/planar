@@ -16,16 +16,14 @@ export type MeMode = 'mine' | 'assigned' | 'created' | 'watched' | 'day';
 /** Tasks with an open comment or checklist item assigned to the user (PLNRAPP-140). */
 export async function forMeTaskIds(uid: string): Promise<Set<string>> {
   const [comments, items] = await Promise.all([
-    db
-      .table<Row<'comments'>>('comments')
-      .filter((c) => c.assigneeId === uid && !c.resolvedAt)
-      .toArray(),
-    db
-      .table<Row<'checklistItems'>>('checklistItems')
-      .filter((i) => i.assigneeId === uid && !i.done)
-      .toArray(),
+    db.table<Row<'comments'>>('comments').where('assigneeId').equals(uid).toArray(),
+    db.table<Row<'checklistItems'>>('checklistItems').where('assigneeId').equals(uid).toArray(),
   ]);
-  return new Set([...comments, ...items].map((x) => x.taskId));
+  return new Set(
+    [...comments.filter((c) => !c.resolvedAt), ...items.filter((i) => !i.done)].map(
+      (x) => x.taskId,
+    ),
+  );
 }
 
 /** Predicate "task passes the view filter" (and Me Mode) for list/board/table/calendar. */

@@ -23,6 +23,8 @@ export interface CoreServices {
   execute: JobApi['execute'];
   /** system user with login login: idempotent, deactivated, without password (C-modules v9) */
   ensureSystemUser(login: string, name: string): Promise<string>;
+  /** an active member without a password (sign-in after an admin sets one); login taken → 409 (C-modules v16) */
+  createUser(login: string, name: string): Promise<string>;
   /** file in storage, like POST /files: no file → create; more than MAX_UPLOAD_MB → 413 (C-modules v9) */
   storeFile(
     buf: Buffer,

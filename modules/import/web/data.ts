@@ -1,11 +1,38 @@
 // The web part's single point of contact with core: replica, user, language; the module's HTTP — fetch.
-import { db, i18n, useQuery } from '@planar/web/modules';
+import { db, i18n, useQuery, useSession } from '@planar/web/modules';
 import type { ImportJob, Mapping, Preview } from '../shared/index.js';
 
+export { useSession };
+/** spaces for the import: without the root one (Workspace) — it holds no projects */
+export const useSpaces = () =>
+  useQuery(async () => {
+    const root = (await db.table('settings').get('root_space'))?.value;
+    const all = (await db.table('spaces').toArray()) as {
+      id: string;
+      name: string;
+      rank: string;
+    }[];
+    return all.filter((s) => s.id !== root).sort((a, b) => (a.rank < b.rank ? -1 : 1));
+  });
 export const useProjects = () =>
   useQuery(
     () =>
-      db.table('projects').toArray() as Promise<{ id: string; name: string; spaceId: string }[]>,
+      db.table('projects').toArray() as Promise<
+        { id: string; name: string; key: string; spaceId: string; archivedAt: string | null }[]
+      >,
+  );
+export const useUsers = () =>
+  useQuery(
+    () =>
+      db.table('users').toArray() as Promise<
+        {
+          id: string;
+          name: string;
+          login: string;
+          email?: string | null;
+          deactivatedAt: string | null;
+        }[]
+      >,
   );
 export const useStatuses = () =>
   useQuery(
@@ -28,11 +55,15 @@ const form = (file: File, fields: Record<string, string>) => {
   return f;
 };
 
-export const previewFile = (file: File, format: string, preset: string) =>
-  call<Preview>('POST', '/api/import/preview', form(file, { format, preset }));
+export const previewFile = (file: File, format: string, preset: string, mapping?: Mapping) =>
+  call<Preview>(
+    'POST',
+    '/api/import/preview',
+    form(file, { format, preset, ...(mapping && { mapping: JSON.stringify(mapping) }) }),
+  );
 export const startJob = async (
   file: File,
-  a: { projectId: string; format: string; preset: string; mapping: Mapping },
+  a: { spaceId: string; projectId: string; format: string; preset: string; mapping: Mapping },
 ) =>
   (
     await call<{ data: ImportJob }>(
@@ -56,6 +87,26 @@ const dict = {
   start: { ru: 'Импортировать', en: 'Import' },
   mapping: { ru: 'Сопоставление колонок', en: 'Column mapping' },
   statuses: { ru: 'Статусы', en: 'Statuses' },
+  projects: { ru: 'Проекты из файла', en: 'Projects from the file' },
+  people: { ru: 'Люди из файла', en: 'People from the file' },
+  space: { ru: 'Пространство', en: 'Space' },
+  projectOptional: {
+    ru: 'Проект для строк без своего проекта (необязательно)',
+    en: 'Project for rows without one (optional)',
+  },
+  mainProject: { ru: 'основной проект', en: 'main project' },
+  skipRows: { ru: 'пропустить строки', en: 'skip the rows' },
+  createNew: { ru: 'создать', en: 'create' },
+  createBacklog: { ru: 'создать: бэклог', en: 'create: backlog' },
+  createTodo: { ru: 'создать: к работе', en: 'create: to do' },
+  createInProgress: { ru: 'создать: в работе', en: 'create: in progress' },
+  createDone: { ru: 'создать: готово', en: 'create: done' },
+  createCancelled: { ru: 'создать: отменено', en: 'create: cancelled' },
+  noMatch: { ru: '— не сопоставлять —', en: '— do not match —' },
+  createHint: {
+    ru: 'Новые пользователи создаются без пароля и добавляются в пространство; войти смогут, когда администратор задаст пароль.',
+    en: 'New users are created without a password and added to the space; they can sign in once an admin sets a password.',
+  },
   byDefault: { ru: 'по умолчанию', en: 'default' },
   none: { ru: '— нет —', en: '— none —' },
   progress: { ru: 'Обработано', en: 'Processed' },

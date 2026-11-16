@@ -94,6 +94,10 @@ export const patchDocBody = z.object({
       'заменить фрагмент markdown (вместо markdown/append); фрагмент должен встречаться ровно один раз',
     ),
 });
+export { pagePatchSchema as docPatchBody } from '@planar/module-docs/api';
+export const docCommentBody = commentBody.extend({
+  parentId: uuid.optional().describe('ответ на комментарий этой страницы'),
+});
 export const docQuery = z.object({
   section: z
     .string()

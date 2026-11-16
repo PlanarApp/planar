@@ -186,6 +186,9 @@ const stable = (v: unknown): string =>
 const withoutKey = (w: { key: string }): Record<string, unknown> =>
   Object.fromEntries(Object.entries(w).filter(([k]) => k !== 'key'));
 
+/** Fields the pack sets only on create (PLNRAPP-203): an existing status or label keeps its own color. */
+const CREATE_ONLY: Partial<Record<HarnessKind, string[]>> = { status: ['color'], label: ['color'] };
+
 /** Changed fields among the ones the pack sets explicitly (unset color etc. means "default", not a change). */
 function changes(cur: object, want: Record<string, unknown>): Record<string, unknown> | null {
   const c = cur as Record<string, unknown>;
@@ -229,7 +232,11 @@ export function computeDiff(
       const c = map[w.key] ? byId.get(map[w.key]!) : undefined;
       if (!c) creates.push({ kind, op: 'create', key: w.key, data: data(w) });
       else {
-        const ch = changes(c, data(w));
+        const only = CREATE_ONLY[kind] ?? [];
+        const ch = changes(
+          c,
+          Object.fromEntries(Object.entries(data(w)).filter(([k]) => !only.includes(k))),
+        );
         if (ch) updates.push({ kind, op: 'update', key: w.key, id: c.id, data: ch });
       }
     }

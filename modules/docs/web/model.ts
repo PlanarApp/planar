@@ -105,6 +105,22 @@ export function toProjectArgs(
   };
 }
 
+/** Breadcrumbs of a page: project name (if any) and parent titles, outermost first, " / "-joined. */
+export function pagePath(
+  byId: Map<string, PageRow>,
+  p: PageRow,
+  projectNames: Map<string, string> = new Map(),
+  untitled = '',
+): string {
+  const names: string[] = [];
+  for (let x = p.parentId ? byId.get(p.parentId) : undefined; x && names.length < 20; ) {
+    names.unshift(x.title || untitled);
+    x = x.parentId ? byId.get(x.parentId) : undefined;
+  }
+  const pr = p.projectId && projectNames.get(p.projectId);
+  return (pr ? [pr, ...names] : names).join(' / ');
+}
+
 export const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е');
 
 /** All query words are substrings of the name or text; names rank higher. */

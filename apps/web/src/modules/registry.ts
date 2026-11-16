@@ -1,6 +1,6 @@
 import { computed, shallowRef, toValue, watch, type ComputedRef, type MaybeRefOrGetter } from 'vue';
 import { liveQuery } from 'dexie';
-import { isDataModule } from '@planar/shared';
+import { isDataModule, WORKSPACE_DATA_MODULE_IDS } from '@planar/shared';
 import { router } from '../router';
 import { db, replicaState } from '../sync';
 import type { ExtensionKind, WebModuleManifest } from './types';
@@ -176,7 +176,12 @@ export function initModules(): void {
   let shared: string[] | null = null;
   const refresh = () => {
     if (!shared || !projectMods.value) return;
-    const data = new Set([...projectMods.value.values()].flat());
+    // PLNRAPP-241: a data module with a workspace switch counts only when that switch is on
+    const data = new Set(
+      [...projectMods.value.values()]
+        .flat()
+        .filter((id) => !WORKSPACE_DATA_MODULE_IDS.includes(id) || shared!.includes(id)),
+    );
     void setEnabledModules([...shared, ...data]);
   };
   // empty replica (before bootstrap) — "unknown", not "all disabled"

@@ -6,6 +6,8 @@ import {
   commentSchema,
   createDocBody,
   createTaskBody,
+  docCommentBody,
+  docPatchBody,
   docTaskBody,
   docsQuery,
   fieldDefSchema,
@@ -58,6 +60,18 @@ const models = {
   CreateDoc: createDocBody,
   PatchDoc: patchDocBody,
   LinkDocTask: docTaskBody,
+  CreateDocComment: docCommentBody,
+  PatchDocPage: docPatchBody,
+  DocComment: z.object({
+    id: z.uuid(),
+    parentId: z.uuid().nullable(),
+    authorId: z.uuid(),
+    text: z.string(),
+    assigneeId: z.uuid().nullable(),
+    resolved: z.boolean(),
+    createdAt: z.string(),
+  }),
+  PagePatchResult: z.object({ ok: z.literal(true), versionId: z.uuid().optional() }),
 };
 
 const param = (name: string, where: 'query' | 'path', schema: object = { type: 'string' }) => ({
@@ -205,6 +219,27 @@ export function openapi() {
           parameters: [param('id', 'path')],
           requestBody: body('PatchDoc'),
           responses: ok('Doc'),
+        },
+      },
+      '/api/v1/docs/{id}/comments': {
+        get: { parameters: [param('id', 'path')], responses: ok('DocComment', 'array') },
+        post: {
+          parameters: [param('id', 'path')],
+          requestBody: body('CreateDocComment'),
+          responses: ok('DocComment', 'one', '201'),
+        },
+      },
+      '/api/v1/docs/{id}/comments/{cid}/resolve': {
+        post: {
+          parameters: [param('id', 'path'), param('cid', 'path')],
+          responses: ok('DocComment'),
+        },
+      },
+      '/api/v1/docs/{id}/patch': {
+        post: {
+          parameters: [param('id', 'path')],
+          requestBody: body('PatchDocPage'),
+          responses: ok('PagePatchResult'),
         },
       },
       '/api/v1/docs/{id}/tasks': {

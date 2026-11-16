@@ -40,6 +40,7 @@ import {
   type AiRunView,
   type AiScope,
 } from '../shared/index.js';
+import { RETRO_QUEUE, retroOf, type RetroData } from './retro.js';
 import {
   AI_QUEUE,
   aiEnabled,
@@ -101,7 +102,7 @@ type Row = Record<string, unknown>;
 // ISO with microseconds: a timestamp as text keeps the precision the cursor needs
 const iso = (c: string) =>
   sql.raw(`to_char(${c} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`);
-const runCols = sql`r.id, r.task_id as "taskId", r.project_id as "projectId", r.kind, r.action_id as "actionId",
+const runCols = sql`r.id, r.task_id as "taskId", r.page_id as "pageId", r.project_id as "projectId", r.kind, r.action_id as "actionId",
   (select a.name from ai_actions a where a.id = r.action_id) as "actionName", r.state, r.chain_depth as "chainDepth",
   r.restart_of as "restartOf", r.input_tokens as "inputTokens", r.output_tokens as "outputTokens", r.cost,
   ${iso('r.created_at')} as "createdAt", ${iso('r.updated_at')} as "updatedAt"`;
@@ -123,6 +124,11 @@ const runsQuery = z.object({
     .string()
     .regex(/^[^|]+\|[0-9a-f-]{36}$/)
     .optional(),
+});
+const retroBody = z.object({
+  enabled: z.boolean(),
+  everyFrictions: z.number().int().min(1).max(1000),
+  everyDays: z.number().int().min(1).max(365),
 });
 const limitsBody = z.object({
   dailyTokens: z.number().int().min(1).max(2_147_483_647).nullable(),
@@ -197,7 +203,8 @@ export class AiController {
         ok = true;
       } catch {
         const m = await this.core.db.execute(
-          sql`select 1 from chat_messages where id = ${r.itemId as string}::uuid and author_id = ${a.userId}::uuid`,
+          sql`select 1 from chat_messages where id = ${r.itemId as string}::uuid and author_id = ${a.userId}::uuid
+              union all select 1 from docs_comments where id = ${r.itemId as string}::uuid and author_id = ${a.userId}::uuid`,
         );
         ok = !a.tokenId && !!m.rows[0];
       }
@@ -244,6 +251,30 @@ export class AiController {
               select 1 from ai_runs n where n.task_id = r.task_id and n.kind = r.kind
                 and n.item_id is not distinct from r.item_id and n.action_id is not distinct from r.action_id
                 and (n.created_at, n.id) > (r.created_at, r.id))))
+          order by r.created_at desc, r.id desc limit 50`,
+    );
+    return { activity: r.rows as unknown as AiActivity[] };
+  }
+
+  /** The AI's work on the comments of a page: its running runs, for those who read the page (space member + project). */
+  @Get('activity/pages/:pageId')
+  async pageActivity(
+    @Req() req: object,
+    @Param('pageId') pageId: string,
+  ): Promise<{ activity: AiActivity[] }> {
+    const a = this.core.auth(req);
+    if (a.tokenId) throw new HttpError(403, 'forbidden', 'Только из сессии');
+    if (!uuidP.safeParse(pageId).success) throw nf();
+    const ok = await this.core.db.execute(
+      sql`select 1 from docs_pages g join projects p on p.id = g.project_id
+          join space_members sm on sm.space_id = g.space_id and sm.user_id = ${a.userId}::uuid
+          where g.id = ${pageId}::uuid and 'ai' = any(p.modules)
+            and project_role(${a.userId}::uuid, p.id) is not null`,
+    );
+    if (!ok.rows[0]) throw nf();
+    const r = await this.core.db.execute(
+      sql`select ${activityCols} from ai_runs r
+          where r.page_id = ${pageId}::uuid and r.state = 'running'
           order by r.created_at desc, r.id desc limit 50`,
     );
     return { activity: r.rows as unknown as AiActivity[] };
@@ -338,12 +369,21 @@ export class AiController {
     ).rows[0]!.n as number;
     if (n >= MAX_RESTARTS)
       throw new HttpError(409, 'conflict', `Не больше ${MAX_RESTARTS} перезапусков подряд`);
-    if (!r.taskId) throw new HttpError(409, 'conflict', 'Прогон нельзя перезапустить');
+    if (!r.taskId && !r.pageId) throw new HttpError(409, 'conflict', 'Прогон нельзя перезапустить');
     const taskId = r.taskId as string;
     const restartOf = id;
     const runId = uuidv7();
-    const d: AiRunData | null =
-      r.kind === 'action'
+    const d: AiRunData | null = r.pageId
+      ? r.itemId
+        ? {
+            kind: r.kind as 'doc_comment' | 'doc_mention',
+            pageId: r.pageId as string,
+            itemId: r.itemId as string,
+            restartOf,
+            runId,
+          }
+        : null
+      : r.kind === 'action'
         ? r.actionId
           ? {
               kind: 'action',
@@ -451,6 +491,50 @@ export class AiController {
   }
 
   /** The level's own connection and the one in force for it (project: nearest of project, space, workspace). */
+  /** harness-retro of the project (PLNRAPP-178): the switch, the frequency and the task. */
+  private async retroView(projectId: string) {
+    const r = await retroOf(this.core.db, projectId);
+    const t = r.taskId
+      ? (
+          await this.core.db.execute(
+            sql`select p.key || '-' || coalesce(t.number::text, '?') as key from tasks t
+                join projects p on p.id = t.project_id where t.id = ${r.taskId}::uuid and t.archived_at is null`,
+          )
+        ).rows[0]
+      : undefined;
+    return {
+      enabled: r.enabled,
+      everyFrictions: r.everyFrictions,
+      everyDays: r.everyDays,
+      taskId: t ? r.taskId : null,
+      taskKey: (t?.key as string | undefined) ?? null,
+    };
+  }
+
+  @Get('retro')
+  async retro(@Req() req: object, @Query() query: unknown) {
+    const { projectId } = parseBody(z.object({ projectId: z.uuid() }), query);
+    await this.admin(req, 'project', projectId);
+    return this.retroView(projectId);
+  }
+
+  @Put('retro')
+  async setRetro(@Req() req: object, @Query() query: unknown, @Body() body: unknown) {
+    const { projectId } = parseBody(z.object({ projectId: z.uuid() }), query);
+    const b = parseBody(retroBody, body);
+    await this.admin(req, 'project', projectId);
+    await this.core.db.execute(
+      sql`insert into ai_retro (project_id, enabled, every_frictions, every_days)
+          values (${projectId}::uuid, ${b.enabled}, ${b.everyFrictions}, ${b.everyDays})
+          on conflict (project_id) do update set enabled = excluded.enabled,
+            every_frictions = excluded.every_frictions, every_days = excluded.every_days, updated_at = now()`,
+    );
+    // switched on: the task «harness-retro» is there (as after the setup)
+    if (b.enabled)
+      await this.core.enqueue(RETRO_QUEUE, { kind: 'init', projectId } satisfies RetroData);
+    return this.retroView(projectId);
+  }
+
   @Get('connections')
   async list(@Req() req: object, @Query() query: unknown) {
     const q = parseBody(listQuery, query);

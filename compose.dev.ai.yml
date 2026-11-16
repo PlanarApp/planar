@@ -18,6 +18,7 @@ services:
     networks: [runner]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./ai-work:/ai-work
 
   squid:
     image: ubuntu/squid:6.6-24.04_edge

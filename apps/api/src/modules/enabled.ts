@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { DATA_MODULE_IDS, isDataModule } from '@planar/shared';
+import { DATA_MODULE_IDS, isDataModule, WORKSPACE_DATA_MODULE_IDS } from '@planar/shared';
 import type { Db } from '../db/index.js';
 import { projects, settings, tasks } from '../db/schema.js';
 import { installed } from './installed.js';
@@ -10,15 +10,15 @@ export type Reader = Pick<Db, 'select'>;
 /**
  * Modules that work on the instance: shared ones from settings.enabled_modules (read on every request,
  * no cache, so a change takes effect at once) and data modules, which are always installed (C-schema v16):
- * whether a data module works in a project is `projects.modules` (see projectModules).
+ * whether a data module works in a project is `projects.modules` (see projectModules). A data module with a
+ * workspace switch (WORKSPACE_DATA_MODULE_IDS) works only when that switch is on too (PLNRAPP-241).
  */
 export async function enabledModules(q: Reader): Promise<Set<string>> {
   const [r] = await q.select().from(settings).where(eq(settings.id, 'enabled_modules'));
   const v = r?.value;
   const ids = Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
-  return new Set(
-    [...ids, ...DATA_MODULE_IDS].filter((id) => installed.some((m) => m.api.id === id)),
-  );
+  const data = DATA_MODULE_IDS.filter((id) => !WORKSPACE_DATA_MODULE_IDS.includes(id));
+  return new Set([...ids, ...data].filter((id) => installed.some((m) => m.api.id === id)));
 }
 
 /** Data modules enabled for the project; null — no such project. */

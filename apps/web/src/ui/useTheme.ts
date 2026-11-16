@@ -18,6 +18,9 @@ const systemDark = ref(false);
 let inited = false;
 let applied = false;
 
+/** --color-bg of the theme (ui/tokens.css): the PWA status and navigation bars match the app background (PLNRAPP-256) */
+const THEME_BG = { light: '#ffffff', dark: '#111113' } as const;
+
 const init = () => {
   if (inited) return;
   inited = true;
@@ -29,6 +32,10 @@ const init = () => {
 
 const apply = () => {
   document.documentElement.classList.toggle('dark', resolvedRef.value === 'dark');
+  // a manual theme overrides the media variants of index.html: both carry the resolved color
+  document
+    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+    .forEach((m) => (m.content = THEME_BG[resolvedRef.value]));
   try {
     localStorage.setItem(KEY, theme.value);
   } catch {

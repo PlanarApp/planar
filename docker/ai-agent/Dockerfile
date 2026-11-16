@@ -8,15 +8,19 @@ ARG PLAYWRIGHT_VERSION=1.65.0
 # dpcli отключён: источник не утверждён, внешний репозиторий в образ не клонируется (см. README.md).
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw \
-    HOME=/tmp/home \
-    XDG_CONFIG_HOME=/tmp/home/.config \
-    XDG_CACHE_HOME=/tmp/home/.cache \
-    npm_config_cache=/tmp/home/.npm \
+    HOME=/work/.home \
+    XDG_CONFIG_HOME=/work/.home/.config \
+    XDG_CACHE_HOME=/work/.home/.cache \
+    npm_config_cache=/work/.home/.npm \
+    TMPDIR=/work/.tmp \
+    CLAUDE_CODE_TMPDIR=/work/.tmp \
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
     DISABLE_AUTOUPDATER=1
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git curl jq ripgrep ca-certificates \
+      python3 python3-pip python3-venv fd-find tree file less procps make patch unzip zip xz-utils openssh-client sqlite3 \
+ && ln -s /usr/bin/fdfind /usr/local/bin/fd \
  && corepack enable \
  && arch="$(dpkg --print-architecture)" \
  && curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${arch}.deb" -o /tmp/glab.deb \
@@ -30,7 +34,8 @@ COPY entrypoint.sh /usr/local/bin/planar-agent-entrypoint
 COPY log-forward.mjs /usr/local/lib/planar-agent/log-forward.mjs
 RUN chmod 755 /usr/local/bin/planar-agent-entrypoint
 
-# Совместимо с read-only rootfs: /tmp и /work — tmpfs (создаёт runner).
+# Совместимо с read-only rootfs: /tmp — малый tmpfs, /work — бинд каталога хоста (создаёт runner).
+# HOME, кэши и TMPDIR — в /work: на диске, а не в ОЗУ, и runner удаляет их вместе с /work.
 RUN mkdir -p /work && chown 10001:10001 /work
 USER 10001:10001
 WORKDIR /work

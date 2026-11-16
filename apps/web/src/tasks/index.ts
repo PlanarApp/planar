@@ -32,6 +32,7 @@ export { default as StatusesPicker } from './fields/StatusesPicker.vue';
 export { default as AssigneePicker } from './fields/AssigneePicker.vue';
 export { default as PriorityPicker } from './fields/PriorityPicker.vue';
 export { default as DueDatePicker } from './fields/DueDatePicker.vue';
+export { default as TaskDatesPicker } from './fields/TaskDatesPicker.vue';
 export { default as LabelPicker } from './fields/LabelPicker.vue';
 export { default as StatusIcon } from './fields/StatusIcon.vue';
 export { default as PriorityIcon } from './fields/PriorityIcon.vue';

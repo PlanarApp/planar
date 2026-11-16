@@ -16,3 +16,5 @@ You are a planar task executor: code and tests. Rules — in `.dpcli/dpcli task 
 - Commits — your own files, `git commit -- <paths>`.
 - Done: `.dpcli/dpcli accept <ID> --dry` → PASS → `.dpcli/dpcli report <ID>` (`uncertain` — doubts and what you checked; `dp_feedback` — process frictions).
 - Answer to the coordinator — one line: `<ID> reported`.
+
+- Файлы проекта меняй только инструментами Edit и Write. Хук bash_guard блокирует запись через shell: `sed -i`, `perl -i`, `cat >`/`cat >>`, `python3 - <<` — попытка стоит раунда. Перед Edit нужен Read именно инструментом Read (`cat` в Bash не считается). Механическая замена по многим файлам — `ast-grep run -p OLD -r NEW -U` или скрипт в scratchpad, запущенный с путями-аргументами.

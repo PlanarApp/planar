@@ -210,6 +210,22 @@ describe('task:description', () => {
     expect(menu.style.left).toBe('10px');
     expect(menu.style.top).toBe(`${7 + 20 + 16}px`);
     expect(menu.className).not.toContain('-translate-y-full');
+    // PLNRAPP-215: the selection at the bottom edge (comment field on mobile) — the menu goes above it
+    const h = window.innerHeight;
+    ed.view.coordsAtPos = (pos: number) => ({
+      left: pos * 10,
+      right: 0,
+      top: h - 40 + pos,
+      bottom: h - 20 + pos,
+    });
+    ed.commands.setTextSelection({ from: 1, to: 6 });
+    await until(
+      () =>
+        w.find<HTMLElement>('[data-testid="selection-to-task"]').element.style.bottom ===
+        `${40 - 1 + 16}px`,
+    );
+    expect(menu.style.top).toBe('');
+    ed.commands.setTextSelection({ from: 1, to: 7 });
     await w
       .findAll('[data-testid="selection-to-task"] button')
       .find((b) => b.text() === 'Сделать подзадачей')!

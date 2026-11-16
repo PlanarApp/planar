@@ -2,13 +2,13 @@
 import { computed } from 'vue';
 import { Button } from '@planar/web/modules';
 import { clock } from './lib';
-import { mutate, openTask, tr, useMyEntries, useNow, useTasks } from './data';
+import { mutate, openTask, tr, useMyEntries, useNow, useTask } from './data';
 
 const now = useNow();
 const entries = useMyEntries();
-const tasks = useTasks();
 const running = computed(() => entries.value?.find((e) => !e.endedAt));
-const title = computed(() => tasks.value?.find((t) => t.id === running.value?.taskId)?.title ?? '');
+const task = useTask(() => running.value?.taskId ?? '');
+const title = computed(() => task.value?.title ?? '');
 </script>
 
 <template>

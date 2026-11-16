@@ -1,8 +1,8 @@
-import { liveQuery, type Subscription } from 'dexie';
-import { computed, getCurrentScope, onScopeDispose, shallowRef, toValue, watch } from 'vue';
+import { computed, toValue } from 'vue';
 import { i18n } from '../i18n';
-import type { MaybeRefOrGetter, Ref } from 'vue';
+import type { MaybeRefOrGetter } from 'vue';
 import type { Row } from '@planar/shared';
+import { useLive } from '../links/live';
 import { db, useQuery } from '../sync';
 import { byRank } from './dictionaries';
 import { readLinks } from './projection';
@@ -13,23 +13,6 @@ export { prefetchIdle, prefetchProject, useProjectTasks, useScopeTasks } from '.
 export type TaskView = Row<'tasks'> & { key: string; assigneeIds: string[]; labelIds: string[] };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
-
-/** useQuery with a reactive argument: the subscription is recreated when it changes. */
-function useLive<A, T>(arg: () => A, fn: (a: A) => T | Promise<T>): Readonly<Ref<T | undefined>> {
-  const r = shallowRef<T>();
-  let sub: Subscription | undefined;
-  watch(
-    arg,
-    (a) => {
-      sub?.unsubscribe();
-      r.value = undefined;
-      sub = liveQuery(() => fn(a)).subscribe({ next: (v) => (r.value = v), error: () => {} });
-    },
-    { immediate: true, flush: 'sync' },
-  );
-  if (getCurrentScope()) onScopeDispose(() => sub?.unsubscribe());
-  return r; // without readonly(): it wraps each element in a Proxy
-}
 
 const group = (rows: { taskId: string }[], val: (r: never) => string) => {
   const m = new Map<string, string[]>();
