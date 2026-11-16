@@ -3,7 +3,10 @@ import { z } from 'zod';
 import type { HttpErrorCode } from '@planar/shared';
 import type { AuthCtx } from '../auth/auth.js';
 import { HttpError } from '../auth/errors.js';
+import { extraFilter } from '../rest/batch.js';
+import { batchDefs } from './tools-batch.js';
 import type { RestService } from '../rest/rest.service.js';
+import { settingsDefs } from './tools-settings.js';
 import {
   commentBody,
   createDocBody,
@@ -19,6 +22,7 @@ import {
   patchTaskBody,
   timeEntriesQuery,
 } from '../rest/schemas.js';
+import { docsSiteShape, searchDocsSite } from './tools-docs-site.js';
 
 type Node = { text?: string; attrs?: { label?: string }; type?: string; content?: Node[] };
 /** ProseMirror document → plain text (paragraphs via \n, mention → @login) */
@@ -45,7 +49,7 @@ const flat = <T extends { description?: unknown }>(t: T) => ({
 const cmt = <T extends { body?: unknown }>(c: T) => ({ ...c, body: docToText(c.body) });
 const task = z.string().describe('id или ключ задачи, например PLN-12');
 
-export type ToolDanger = 'delete';
+export type ToolDanger = 'delete' | 'bulk';
 
 /** One tool, shared by MCP and the chat adapter (modules/ai/api/chat-tools.ts). */
 export interface ToolDef {
@@ -132,6 +136,7 @@ export function toolDefs(rest: RestService): ToolDef[] {
     {
       query: z.string().optional(),
       assigneeId: z.union([z.uuid(), z.literal('me')]).optional(),
+      ...extraFilter,
       ...filters,
     },
     false,
@@ -361,15 +366,27 @@ export function toolDefs(rest: RestService): ToolDef[] {
     true,
     async ({ pageId, ...a }, c) => (await rest.patchDocPage(c.uid, pageId, a, c.tokenId)).data,
   );
-  return defs;
+  defs.push(...settingsDefs(rest));
+  def(
+    'search_docs_site',
+    'Документация Planar (docs-site): без section — поиск, до 10 разделов с фрагментом; с section (id из поиска) — текст раздела',
+    docsSiteShape,
+    false,
+    async (a: Parameters<typeof searchDocsSite>[0]) => searchDocsSite(a),
+  );
+  return [...defs, ...batchDefs(rest)];
 }
 
 type Fn<S extends z.ZodRawShape> = (a: z.infer<z.ZodObject<S>>, c: C) => Promise<unknown>;
 
 /** New server per request (stateless); rights — from the token ctx. */
-export function buildMcpServer(rest: RestService, ctx: AuthCtx): McpServer {
+export function buildMcpServer(
+  rest: RestService,
+  ctx: AuthCtx,
+  extra: Pick<ToolDef, 'name' | 'description' | 'shape' | 'write' | 'run'>[] = [],
+): McpServer {
   const server = new McpServer({ name: 'planar', version: '1.0.0' });
-  for (const d of toolDefs(rest))
+  for (const d of [...toolDefs(rest), ...extra])
     server.registerTool(d.name, { description: d.description, inputSchema: d.shape }, (async (
       a: never,
     ) => {

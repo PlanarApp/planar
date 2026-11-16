@@ -6,7 +6,9 @@ COPY . .
 RUN pnpm install --frozen-lockfile \
  && pnpm --filter @planar/api... build \
  && pnpm --filter @planar/api deploy --prod /out \
- && cp -r apps/api/drizzle /out/drizzle
+ && cp -r apps/api/drizzle /out/drizzle \
+ && mkdir -p /out/docs-site \
+ && cp -r docs-site/ru docs-site/en /out/docs-site/
 
 FROM node:24-slim
 ENV NODE_ENV=production

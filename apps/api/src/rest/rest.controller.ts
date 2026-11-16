@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
 } from '@nestjs/common';
@@ -38,6 +39,11 @@ export class RestController {
   @Get('tasks')
   tasks(@Req() req: object, @Query() q: unknown) {
     return this.rest.tasks(getAuth(req).userId, q);
+  }
+  @Post('tasks/batch')
+  @HttpCode(200)
+  batchTasks(@Req() req: object, @Body() b: unknown) {
+    return this.rest.batchTasks(getAuth(req).userId, b, getAuth(req).tokenId);
   }
   @Get('tasks/:task')
   task(@Req() req: object, @Param('task') t: string) {
@@ -146,5 +152,99 @@ export class RestController {
   @Get('projects/:id/automations')
   automations(@Req() req: object, @Param('id') id: string) {
     return this.rest.automations(getAuth(req).userId, id);
+  }
+
+  // project settings (PLNRAPP-266): one mutation as the user; ids come from the path
+  private set(req: object, mutator: string, input: object) {
+    return this.rest.setting(getAuth(req).userId, mutator, input, getAuth(req).tokenId);
+  }
+  private async unset(req: object, mutator: string, input: object) {
+    await this.set(req, mutator, input);
+  }
+  @Patch('projects/:id')
+  updateProject(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'project.update', { ...b, id });
+  }
+  @Put('projects/:id/modules/:moduleId')
+  setModule(
+    @Req() req: object,
+    @Param('id') id: string,
+    @Param('moduleId') moduleId: string,
+    @Body() b: object,
+  ) {
+    return this.rest.setModule(
+      getAuth(req).userId,
+      { ...b, projectId: id, moduleId },
+      getAuth(req).tokenId,
+    );
+  }
+  @Post('projects/:id/statuses')
+  createStatus(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'status.create', { ...b, projectId: id });
+  }
+  @Patch('statuses/:id')
+  updateStatus(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'status.update', { ...b, id });
+  }
+  @Delete('statuses/:id')
+  @HttpCode(204)
+  deleteStatus(@Req() req: object, @Param('id') id: string, @Query() q: object) {
+    return this.unset(req, 'status.delete', { ...q, id });
+  }
+  @Post('projects/:id/labels')
+  createLabel(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'label.create', { ...b, projectId: id });
+  }
+  @Patch('labels/:id')
+  updateLabel(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'label.update', { ...b, id });
+  }
+  @Delete('labels/:id')
+  @HttpCode(204)
+  deleteLabel(@Req() req: object, @Param('id') id: string) {
+    return this.unset(req, 'label.delete', { id });
+  }
+  @Post('projects/:id/fields')
+  createField(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'field.create', { ...b, projectId: id });
+  }
+  @Patch('fields/:id')
+  updateField(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'field.update', { ...b, id });
+  }
+  @Delete('fields/:id')
+  @HttpCode(204)
+  deleteField(@Req() req: object, @Param('id') id: string) {
+    return this.unset(req, 'field.delete', { id });
+  }
+  @Post('projects/:id/automations')
+  createAutomation(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'automations.create', { ...b, projectId: id });
+  }
+  @Patch('automations/:id')
+  updateAutomation(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'automations.update', { ...b, id });
+  }
+  @Delete('automations/:id')
+  @HttpCode(204)
+  deleteAutomation(@Req() req: object, @Param('id') id: string) {
+    return this.unset(req, 'automations.delete', { id });
+  }
+  @Get('projects/:id/ai-actions')
+  aiActions(@Req() req: object, @Param('id') id: string) {
+    return this.rest.aiActions(getAuth(req).userId, id);
+  }
+  @Post('projects/:id/ai-actions')
+  createAiAction(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'ai.action.create', { ...b, projectId: id });
+  }
+  @Patch('ai-actions/:id')
+  updateAiAction(@Req() req: object, @Param('id') id: string, @Body() b: object) {
+    return this.set(req, 'ai.action.update', { ...b, id });
+  }
+  @Delete('ai-actions/:id')
+  @HttpCode(204)
+  deleteAiAction(@Req() req: object, @Param('id') id: string) {
+    return this.unset(req, 'ai.action.delete', { id });
   }
 }

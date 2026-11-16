@@ -218,6 +218,53 @@ describe('Чат: подтверждение «да»', () => {
     expect((await botTexts(dm)).join()).toContain('Выполнено: unlink_tasks');
   });
 
+  it('пачка: план содержит названия задач и patch; «да» выполняет', async () => {
+    const dm = await dialog(w.admin, w.admin.userId);
+    script = {
+      name: 'batch_update_tasks',
+      args: { taskIds: [a, b], patch: { statusId: w.statusIds[2] } },
+    };
+    await send(w.admin, dm, 'перенеси A и B');
+    await drain();
+    const plan = (await botTexts(dm)).join();
+    expect(plan).toContain('План действий');
+    expect(plan).toContain('2 задач');
+    expect(plan).toContain(w.statusIds[2]);
+    expect(plan).toMatch(/ A\b/);
+    expect(plan).toMatch(/ B\b/);
+    const st = async (id: string) =>
+      (await raw(`select status_id from tasks where id = $1`, [id]))[0]!.status_id;
+    expect(await st(a)).not.toBe(w.statusIds[2]);
+    await send(w.admin, dm, 'да');
+    await drain();
+    expect(await st(a)).toBe(w.statusIds[2]);
+    expect(await st(b)).toBe(w.statusIds[2]);
+  });
+
+  it('ai_*: запись пакетов ждёт «да», чтение — нет', async () => {
+    const dm = await dialog(w.admin, w.admin.userId);
+    script = { name: 'ai_list_packs', args: { projectId: w.projectId } };
+    await send(w.admin, dm, 'какие пакеты');
+    await drain();
+    expect(toolResults.join()).not.toContain('needsConfirmation');
+    expect(await runs()).toMatchObject([{ state: 'done' }]);
+    toolResults = [];
+    script = {
+      name: 'ai_set_pack_events',
+      args: { projectId: w.projectId, packKey: 'dev', events: {} },
+    };
+    await send(w.admin, dm, 'привяжи события');
+    await drain();
+    expect(toolResults.join()).toContain('needsConfirmation');
+    expect((await botTexts(dm)).join()).toContain('ai_set_pack_events');
+    await send(w.admin, dm, 'да');
+    await drain();
+    // «да» executes the call through the API: no pack in this project — its domain error comes back
+    expect((await botTexts(dm)).join()).toContain(
+      'Не выполнено: ai_set_pack_events — Пакет не загружен в проект',
+    );
+  });
+
   it('выключатель ИИ: «да» после выключения не выполняет план, прогон отменён', async () => {
     const dm = await dialog(w.admin, w.admin.userId);
     await send(w.admin, dm, 'удали связь');
@@ -259,6 +306,24 @@ describe('Чат: подтверждение «да»', () => {
     await drain();
     expect(await links(linkId)).toHaveLength(0);
     expect(await runs()).toMatchObject([{ state: 'done' }]);
+  });
+
+  it('пачка: одно «да» на всю пачку, до «да» ничего не меняется, список — в результате инструмента', async () => {
+    script = { name: 'batch_update_tasks', args: { taskIds: [a, b], patch: { archived: true } } };
+    const dm = await dialog(w.admin, w.admin.userId);
+    await send(w.admin, dm, 'заархивируй A и B');
+    await drain();
+    const archived = () =>
+      raw(`select 1 from tasks where id in ($1, $2) and archived_at is not null`, [a, b]);
+    expect(await archived()).toHaveLength(0);
+    expect(toolResults.join()).toContain('needsConfirmation');
+    expect(toolResults.join()).toMatch(/2 задач/);
+    expect(await runs()).toMatchObject([{ state: 'waiting_human' }]);
+    await send(w.admin, dm, 'да');
+    expect(aiJobs().map((j) => j.data.kind)).toEqual(['confirm']);
+    await drain();
+    expect(await archived()).toHaveLength(2);
+    expect((await botTexts(dm)).join()).toContain('Выполнено: batch_update_tasks');
   });
 
   it('права: цитирует гость проекта — отказ результатом, без эскалации; бот пояснил', async () => {

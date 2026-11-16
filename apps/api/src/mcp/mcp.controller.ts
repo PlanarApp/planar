@@ -1,6 +1,8 @@
 import { Controller, Delete, Get, Inject, Post, Req, Res } from '@nestjs/common';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { aiPackTools } from '@planar/module-ai/api';
+import { CORE, type CoreServices } from '@planar/server-kit';
 import { AUTH_OPTS, authenticateRaw, type AuthOpts } from '../auth/auth.js';
 import { HttpError } from '../auth/errors.js';
 import { Public } from '../auth/public.js';
@@ -17,6 +19,7 @@ export class McpController {
     @Inject(DB) private db: Db,
     @Inject(AUTH_OPTS) private opts: AuthOpts,
     @Inject(RestService) private rest: RestService,
+    @Inject(CORE) private core: CoreServices,
   ) {}
 
   @Post()
@@ -25,7 +28,7 @@ export class McpController {
       ? await authenticateRaw(this.db, req.headers, req.method, this.opts)
       : null;
     if (ctx?.via !== 'token') throw new HttpError(401, 'unauthenticated', 'Нужен Bearer-токен');
-    const server = buildMcpServer(this.rest, ctx);
+    const server = buildMcpServer(this.rest, ctx, aiPackTools(this.core));
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

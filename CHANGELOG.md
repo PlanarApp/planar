@@ -6,6 +6,9 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ### Added
 
+- REST `/api/v1` and MCP: project settings (statuses, labels, fields, automations, AI actions, project, modules), filters `labelId`/`priority`/`dueBefore`/`dueAfter`/`unassigned`/`archived` in `GET /tasks` and `search_tasks`, batches `POST /api/v1/tasks/batch` (`dryRun`), and the tool `search_docs_site`.
+- Harness packs and AI event bindings through a `write` token of a project admin (REST `api/ai/packs`, `api/ai/harness`; MCP `ai_*`); AI connections and limits stay session-only.
+- Personal AI chat: answers from the documentation, sets up a project (rules, AI actions, statuses, labels, fields, packs, modules) and processes tasks in bulk, always with the author's permissions and only after a «yes» to the list of changes. Limits: `AI_CHAT_MAX_STEPS` (10) and `AI_CHAT_MAX_TOKENS` (100000).
 - Forms: a personal one-time or expiring link bound to an existing task; the answer is added to the task as a comment. Created in the form settings.
 - New module `ai` (turns on together with `automations`): the bot «ИИ» — an active member of the space without sign-in, visible in assignee and mention pickers, skipped by due reminders, notifications and «only people» automation triggers.
 - Settings → AI: a connection to an AI provider (OpenAI, Anthropic, OpenAI-compatible) per level — instance, space, project; the nearest level applies. The key is stored encrypted and never shown, a test call checks the connection on save.

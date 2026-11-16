@@ -89,6 +89,19 @@ describe('chat-tools', () => {
     );
   });
 
+  it('запись настроек ждёт «да», list/search/get выполняются сразу', async () => {
+    const defs = toolDefs(rest);
+    for (const d of defs.filter((x) => /^(list|search|get)_/.test(x.name)))
+      expect(d.danger, d.name).toBeUndefined();
+    const t = chatTools(defs, w.admin.userId);
+    expect(
+      await call(t, 'set_project_module', { projectId: w.projectId, module: 'ai', enabled: true }),
+    ).toMatchObject({ needsConfirmation: true });
+    expect(await call(t, 'list_ai_actions', { projectId: w.projectId })).not.toHaveProperty(
+      'needsConfirmation',
+    );
+  });
+
   it('опасный инструмент не исполняется: needsConfirmation', async () => {
     const a = await mk();
     const b = await mk();
