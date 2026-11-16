@@ -335,3 +335,4 @@
 {"t": "2026-11-15T23:18:43", "id": "F-29", "kind": "cluster", "title": "Wave acceptance runs only card checks; CI-only failures (typecheck, formatting, migration order) surface at delivery", "match": "typecheck.*deliver|prettier.*deliver|migration.*when|CI-only", "scope": "project", "why": "per-card filtered tests miss whole-repo checks; fixing them late costs a full extra test cycle"}
 {"t": "2026-11-15T23:18:48", "id": "F-29", "kind": "fix", "where": ".dpcli-local/agents/dp-coordinator.append.md"}
 {"t": "2026-11-15T23:18:48", "id": "F-22", "kind": "fix", "where": ".dpcli-local/agents/dp-engineer.append.md"}
+{"t": "2026-11-16T14:14:20", "id": "F-30", "kind": "cluster", "title": "harness: gc --remove в другой сессии удалил базу модуля mr/<m>, созданную от main и ещё без коммитов (указывала на коммит main) — пришлось пересоздавать перед deliver", "match": "gc.*(удалил|deleted).*баз|base branch.*gc", "scope": "dpcli", "why": ""}
