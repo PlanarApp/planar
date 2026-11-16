@@ -5,7 +5,16 @@ import { HttpError, type JobTool } from '@planar/server-kit';
 /** The registry entry as the module gets it from `JobApi.tools` (a module does not import apps/api). */
 export type ChatToolDef = JobTool & { dangerIf?: (args: never) => boolean };
 
-export type PlannedCall = { name: string; args: unknown };
+/** `summary` — the text of the confirmation, when the args alone say too little (a batch: titles + changes) */
+export type PlannedCall = { name: string; args: unknown; summary?: string };
+
+/** The list for the user's «да»: the dryRun result (titles) and what changes. */
+function batchSummary(name: string, args: unknown, preview: unknown): string {
+  const p = preview as { matched?: { key: string | null; title: string }[] };
+  const patch = JSON.stringify((args as { patch?: unknown }).patch);
+  const list = (p.matched ?? []).map((t) => `  - ${t.key ?? ''} ${t.title}`).join('\n');
+  return `${name}: ${p.matched?.length ?? 0} задач, изменения ${patch}\n${list}`;
+}
 
 /** Result of a dangerous tool: not executed, the call is kept in `planned`, the chat asks the user first. */
 export interface NeedsConfirmation {
@@ -30,14 +39,24 @@ export function chatTools(
         description: d.description,
         inputSchema: z.object(d.shape),
         execute: async (args: unknown): Promise<unknown> => {
-          if (d.danger || d.dangerIf?.(args as never)) {
-            planned.push({ name: d.name, args });
-            return {
-              needsConfirmation: true,
-              summary: `${d.name} ${JSON.stringify(args)}`,
-            } satisfies NeedsConfirmation;
-          }
           try {
+            // a batch always waits for «да», once for the whole batch; dryRun changes nothing
+            if (d.danger === 'bulk' && (args as { dryRun?: boolean }).dryRun !== true) {
+              const preview = await d.run(
+                { ...(args as object), dryRun: true } as never,
+                initiatorId,
+              );
+              const summary = batchSummary(d.name, args, preview);
+              planned.push({ name: d.name, args, summary });
+              return { needsConfirmation: true, summary } satisfies NeedsConfirmation;
+            }
+            if (d.danger || d.dangerIf?.(args as never)) {
+              planned.push({ name: d.name, args });
+              return {
+                needsConfirmation: true,
+                summary: `${d.name} ${JSON.stringify(args)}`,
+              } satisfies NeedsConfirmation;
+            }
             return await d.run(args as never, initiatorId);
           } catch (e) {
             if (e instanceof HttpError) return { error: e.code, message: e.message };

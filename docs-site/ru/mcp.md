@@ -72,4 +72,14 @@ Claude Desktop и другие клиенты с `mcp.json`:
 - `resolve_doc_comment {pageId, id}` — отметить назначенный комментарий выполненным;
 - `patch_doc {pageId, edits}` — точечные правки страницы `[{find, replace, all?}]` по её markdown; `find` — ровно одно вхождение (или `all`). Ошибки: `patch_not_found`, `patch_ambiguous`, `patch_mentions`.
 
+### Настройки проекта, пачки и пакеты
+
+Нужен токен `write`; права — владельца токена.
+
+- Настройки проекта: `update_project`, `set_project_module`, `create_/update_/delete_` `status`, `label`, `field`, `automation`, `ai_action`, чтение — `list_ai_actions`. Те же операции есть в REST (`/api/v1/projects/:id/statuses` и т. д., список — в `openapi.json`).
+- Фильтры `search_tasks` (и `GET /api/v1/tasks`): `labelId`, `priority`, `dueBefore`, `dueAfter`, `unassigned`, `archived`.
+- `batch_update_tasks {taskIds | filter, patch, dryRun?}`: пачка до 100 задач (статус, метки и исполнители `{add, remove}`, поля, архив). `dryRun: true` ничего не меняет, а возвращает список задач.
+- Пакеты harness и привязки событий ИИ (только админ проекта): `ai_list_packs`, `ai_upload_pack`, `ai_diff_pack`, `ai_apply_pack`, `ai_set_pack_events`. Подключения ИИ и лимиты токеном недоступны, только из сессии.
+- `search_docs_site {query, lang?, section?}`: поиск по этой документации и чтение раздела по id.
+
 Ответ — компактный JSON в текстовом блоке; `description` — простой текст. Ошибки (`forbidden`, `not_found`, `invalid_request`, `conflict`) приходят как результат инструмента с `isError: true` и телом `{code, message}`. Токен `read` на запись даёт `forbidden`. Без токена, с отозванным или просроченным — HTTP `401`.

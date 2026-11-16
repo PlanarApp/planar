@@ -102,6 +102,7 @@ describe('MCP /mcp', () => {
     'GET /api/v1/projects/{id}/fields': 'list_fields',
     'GET /api/v1/tasks': 'search_tasks',
     'POST /api/v1/tasks': 'create_task',
+    'POST /api/v1/tasks/batch': 'batch_update_tasks',
     'GET /api/v1/tasks/{task}': 'get_task',
     'PATCH /api/v1/tasks/{task}': 'update_task',
     'GET /api/v1/tasks/{task}/comments': 'get_task',
@@ -127,9 +128,38 @@ describe('MCP /mcp', () => {
     'POST /api/v1/docs/{id}/comments': 'add_doc_comment',
     'POST /api/v1/docs/{id}/comments/{cid}/resolve': 'resolve_doc_comment',
     'POST /api/v1/docs/{id}/patch': 'patch_doc',
+    // PLNRAPP-266: project settings
+    'PATCH /api/v1/projects/{id}': 'update_project',
+    'PUT /api/v1/projects/{id}/modules/{moduleId}': 'set_project_module',
+    'POST /api/v1/projects/{id}/statuses': 'create_status',
+    'PATCH /api/v1/statuses/{id}': 'update_status',
+    'DELETE /api/v1/statuses/{id}': 'delete_status',
+    'POST /api/v1/projects/{id}/labels': 'create_label',
+    'PATCH /api/v1/labels/{id}': 'update_label',
+    'DELETE /api/v1/labels/{id}': 'delete_label',
+    'POST /api/v1/projects/{id}/fields': 'create_field',
+    'PATCH /api/v1/fields/{id}': 'update_field',
+    'DELETE /api/v1/fields/{id}': 'delete_field',
+    'POST /api/v1/projects/{id}/automations': 'create_automation',
+    'PATCH /api/v1/automations/{id}': 'update_automation',
+    'DELETE /api/v1/automations/{id}': 'delete_automation',
+    'GET /api/v1/projects/{id}/ai-actions': 'list_ai_actions',
+    'POST /api/v1/projects/{id}/ai-actions': 'create_ai_action',
+    'PATCH /api/v1/ai-actions/{id}': 'update_ai_action',
+    'DELETE /api/v1/ai-actions/{id}': 'delete_ai_action',
   };
   // MCP-only helpers without a REST operation of their own
-  const MCP_ONLY = ['my_tasks', 'project_dictionary'];
+  const MCP_ONLY = [
+    'my_tasks',
+    'project_dictionary',
+    // PLNRAPP-269: packs and event bindings of the AI module
+    'ai_list_packs',
+    'ai_upload_pack',
+    'ai_diff_pack',
+    'ai_apply_pack',
+    'search_docs_site',
+    'ai_set_pack_events',
+  ];
 
   it('initialize и tools/list: каждой операции REST v1 есть инструмент MCP, схемы — object', async () => {
     const spec = openapi() as unknown as { paths: Record<string, Record<string, unknown>> };

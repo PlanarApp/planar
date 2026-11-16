@@ -5,7 +5,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { generateNKeysBetween } from 'fractional-indexing';
 import { stringify as stringifyYaml } from 'yaml';
 import { docToMarkdown, markdownToDoc } from '@planar/editor/markdown';
-import type { CoreServices } from '@planar/server-kit';
+import { HttpError, type CoreServices } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
 import {
   instructionSchema,
@@ -681,4 +681,42 @@ export async function exportPack(db: Db, projectId: string, packKey: string): Pr
   const files: PackFiles = { [YML]: yml.file };
   for (const [k, c] of cur) if (k !== YML) files[`actions/${k}.md`] = c.file;
   return zipFiles(files);
+}
+
+// ---------- shared by REST and MCP ----------
+
+/** Admin of the project with the module on. No project and no right look alike for the outside: 404 / 403. */
+export async function assertAiAdmin(db: Db, userId: string, projectId: string) {
+  const r = await rows<{ ok: boolean }>(
+    db,
+    sql`select (project_role(${userId}::uuid, p.id) = 'admin' and 'ai' = any(p.modules)) as ok
+        from projects p where p.id = ${projectId}::uuid`,
+  );
+  if (!r[0]) throw new HttpError(404, 'not_found', 'Не найдено');
+  if (!r[0].ok) throw new HttpError(403, 'forbidden', 'Нужна роль администратора');
+}
+
+/** Pack files: a base64 zip, or the catalog pack when there is no zip. */
+export async function packFiles(b: { packKey: string; zip?: string }): Promise<PackFiles> {
+  if (b.zip === undefined) {
+    const f = await readCatalogPack(b.packKey);
+    if (!f) throw new HttpError(404, 'not_found', 'Такого пакета нет в каталоге');
+    return f;
+  }
+  try {
+    return unzipFiles(Buffer.from(b.zip, 'base64'));
+  } catch (e) {
+    throw new HttpError(400, 'invalid_request', (e as Error).message);
+  }
+}
+
+/** A PackError → HttpError; the rest goes outward as is. */
+export function failPack(e: unknown): never {
+  if (e instanceof PackError)
+    throw new HttpError(
+      e.status,
+      e.status === 404 ? 'not_found' : e.status === 409 ? 'conflict' : 'invalid_request',
+      e.message,
+    );
+  throw e;
 }

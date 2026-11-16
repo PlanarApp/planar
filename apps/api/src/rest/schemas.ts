@@ -15,6 +15,19 @@ export const tasksQuery = listQuery.extend({
   statusId: uuid.optional(),
   assigneeId: z.union([uuid, z.literal('me')]).optional(),
   updatedAfter: z.iso.datetime({ offset: true }).optional(),
+  // PLNRAPP-268 (query-string values are strings)
+  labelId: uuid.optional(),
+  priority: z.coerce.number().int().min(0).max(4).optional(),
+  dueBefore: date.optional(),
+  dueAfter: date.optional(),
+  unassigned: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
+  archived: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
 });
 
 export const createTaskBody = z.object({

@@ -66,6 +66,8 @@ services:
       AI_AGENT_MAX_REPLICAS:
       PLANAR_AI_DAILY_TOKENS:
       PLANAR_AI_DAILY_COST:
+      AI_CHAT_MAX_STEPS:
+      AI_CHAT_MAX_TOKENS:
     networks: [app, runner, agents]
     volumes:
       - ${PLANAR_DATA_DIR:-./data}/api:/data

@@ -72,4 +72,14 @@ Document page comments and edits (see [AI in documents](/ai-in-documents)):
 - `resolve_doc_comment {pageId, id}`: marks an assigned comment done;
 - `patch_doc {pageId, edits}`: precise page edits `[{find, replace, all?}]` on the page markdown; `find` must occur exactly once (or `all`). Errors: `patch_not_found`, `patch_ambiguous`, `patch_mentions`.
 
+### Project settings, batches and packs
+
+Needs a `write` token; permissions are the token owner's.
+
+- Project settings: `update_project`, `set_project_module`, `create_/update_/delete_` `status`, `label`, `field`, `automation`, `ai_action`; reading is `list_ai_actions`. The same operations exist in REST (`/api/v1/projects/:id/statuses` and so on, the list is in `openapi.json`).
+- `search_tasks` (and `GET /api/v1/tasks`) filters: `labelId`, `priority`, `dueBefore`, `dueAfter`, `unassigned`, `archived`.
+- `batch_update_tasks {taskIds | filter, patch, dryRun?}`: a batch of up to 100 tasks (status, labels and assignees `{add, remove}`, fields, archive). `dryRun: true` changes nothing and returns the task list.
+- Harness packs and AI event bindings (project admin only): `ai_list_packs`, `ai_upload_pack`, `ai_diff_pack`, `ai_apply_pack`, `ai_set_pack_events`. AI connections and limits are not available by token, session only.
+- `search_docs_site {query, lang?, section?}`: search this documentation and read a section by id.
+
 The response is compact JSON in a text block; `description` is plain text. Errors (`forbidden`, `not_found`, `invalid_request`, `conflict`) come back as a tool result with `isError: true` and a `{code, message}` body. A `read` token attempting a write gets `forbidden`. No token, or a revoked or expired one: HTTP `401`.

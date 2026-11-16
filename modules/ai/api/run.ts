@@ -4,12 +4,13 @@ import { generateKeyBetween } from 'fractional-indexing';
 import { z } from 'zod';
 import type { JSONContent } from '@tiptap/core';
 import { docToMarkdown, markdownToDoc } from '@planar/editor/markdown';
-import type { JobApi, Q } from '@planar/server-kit';
+import type { CoreServices, JobApi, Q } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
 import { matched } from '@planar/module-automations/api';
 import { AI_BOT_LOGIN, type AiAction, type AiEvent, type AiRunKind } from '../shared/index.js';
 import { resolveConnection, secretOf } from './connections.js';
-import { chatTools, runPlanned, type PlannedCall } from './chat-tools.js';
+import { chatTools, runPlanned, type ChatToolDef, type PlannedCall } from './chat-tools.js';
+import { aiPackTools } from './pack-tools.js';
 import { loadPack, parseInstructionPage } from './harness.js';
 import type { ChatPending } from './schema.js';
 import { batchDoc, insertBatch } from './email.js';
@@ -587,7 +588,34 @@ async function threadOf(q: Pick<Q, 'execute'>, commentId: string) {
 export const CHAT_PROMPT = `Ты — ИИ-помощник «ИИ» в чате трекера задач Planar. Отвечай коротко и по делу на языке собеседника, markdown.
 Ты отвечаешь на последнее сообщение; предыдущие даны как контекст. Если не знаешь — так и скажи, ничего не выдумывай.
 У тебя есть инструменты трекера: они выполняются с правами автора последнего сообщения, не больше. Если инструмент вернул отказ — объясни это человеку, обходных путей не ищи.
-Опасные действия (удаление и т. п.) инструмент не выполняет, а возвращает needsConfirmation: перечисли, что собираешься сделать, и попроси ответить «да» — выполнит система после подтверждения.`;
+Опасные действия (удаление и т. п.) инструмент не выполняет, а возвращает needsConfirmation: перечисли, что собираешься сделать, и попроси ответить «да» — выполнит система после подтверждения.
+Ты отвечаешь по документации Planar: ищи ответ инструментом search_docs_site, не пересказывай по памяти.
+Ты настраиваешь проект: правила автоматизаций, ИИ-действия, статусы, метки, поля, пакеты harness и привязки событий, поля проекта, включение и выключение модулей. Подключения ИИ, GitLab, почты, вебхуки и лимиты ты не меняешь — это только вручную в настройках. Перед настройкой прочитай текущее состояние (инструменты list_*).
+Ты обрабатываешь задачи массово: найди их search_tasks с фильтрами, затем меняй пачкой.
+Все изменения настроек и пачки — только через needsConfirmation: перечисли, что будет изменено (для пачки — список задач), и жди «да». Без «да» ничего не меняй.`;
+
+const chatInt = (name: string, def: number) => {
+  const n = Number(process.env[name]);
+  return Number.isInteger(n) && n > 0 ? n : def;
+};
+
+/** Registry tools of the run + packs and event bindings (the registry of JobApi does not have them); their writes need «да». */
+async function chatToolDefs(api: JobApi, runId: string): Promise<ChatToolDef[]> {
+  const core = {
+    db: api.db,
+    execute: api.execute,
+    systemUserId: () => api.systemUserId,
+    enqueue: api.enqueue,
+  } as unknown as CoreServices;
+  const packs = aiPackTools(core).map((t): ChatToolDef => ({
+    name: t.name,
+    description: t.description,
+    shape: t.shape,
+    run: t.run,
+    ...(t.write ? { danger: 'delete' as const } : {}),
+  }));
+  return [...((await api.tools?.({ aiRunId: runId, depth: 0 })) ?? []), ...packs];
+}
 
 /**
  * The action of the event `chat` of the project's active harness package; events not chosen yet — its instruction
@@ -707,11 +735,9 @@ async function handleChat(d: ChatRunData, api: JobApi) {
       reply = await generateReply(secretOf(conn!), {
         system: await chatPrompt(api.db, projectId),
         prompt: `${ctx}\n\n# Ответь на последнее сообщение${author ? ` (${author})` : ''}`,
-        tools: chatTools(
-          (await api.tools?.({ aiRunId: id, depth: 0 })) ?? [],
-          d.initiatorId,
-          planned,
-        ),
+        tools: chatTools(await chatToolDefs(api, id), d.initiatorId, planned),
+        maxSteps: chatInt('AI_CHAT_MAX_STEPS', 10),
+        maxTokens: chatInt('AI_CHAT_MAX_TOKENS', 100_000),
       });
     } catch (e) {
       // the provider's own text is dropped: it may quote the key
@@ -740,7 +766,7 @@ async function handleChat(d: ChatRunData, api: JobApi) {
     );
     await say(
       `${text}\n\n**План действий — нужно подтверждение:**\n${planned
-        .map((c) => `- ${c.name} ${JSON.stringify(c.args)}`)
+        .map((c) => `- ${c.summary ?? `${c.name} ${JSON.stringify(c.args)}`}`)
         .join('\n')}\n\nОтветьте «да» — выполню от вашего имени; любой другой ответ — отмена.`,
     );
   } catch (e) {
@@ -775,7 +801,7 @@ async function confirmChat(runId: string, api: JobApi) {
   const run = { id: runId, log: [] as string[] };
   try {
     const lines = await runPlanned(
-      (await api.tools?.({ aiRunId: runId, depth: 0 })) ?? [],
+      await chatToolDefs(api, runId),
       r.initiatorId as string,
       plan.calls,
     );

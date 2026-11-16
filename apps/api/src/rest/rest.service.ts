@@ -34,7 +34,9 @@ import { executeMutations, Reject } from '../sync/mutate.js';
 import { hiddenProjectIds, notHidden, projectAccess } from '../sync/project-access.js';
 import { DB } from '../tokens.js';
 import { toWire } from '../sync/rows.js';
+import { listAiActions, runSetModule, runSetting, type SettingsDeps } from './settings.js';
 import { toV1Tasks } from './v1-tasks.js';
+import { batchTasks, extraConds, type extraFilter } from './batch.js';
 import {
   commentBody,
   createDocBody,
@@ -256,7 +258,8 @@ export class RestService {
     const where: (SQL | undefined)[] = [
       inArray(s.tasks.spaceId, my),
       await this.visible(userId, 'tasks'),
-      isNull(s.tasks.archivedAt), // PLNRAPP-155: the archive is seen in the project's settings only
+      // PLNRAPP-155: the archive is seen in the project's settings only (PLNRAPP-268: or archived=true)
+      ...extraConds(q),
       q.projectId ? eq(s.tasks.projectId, q.projectId) : undefined,
       q.statusId ? eq(s.tasks.statusId, q.statusId) : undefined,
       q.updatedAfter ? sql`${s.tasks.updatedAt} > ${q.updatedAfter}::timestamptz` : undefined,
@@ -277,7 +280,7 @@ export class RestService {
       includeDone?: boolean;
       statusCategory?: string;
       limit?: number;
-    },
+    } & { [K in keyof typeof extraFilter]?: z.infer<(typeof extraFilter)[K]> },
   ) {
     const my = await this.mySpaces(userId);
     const like = q.query ? `%${q.query.replace(/[\\%_]/g, '\\$&')}%` : null;
@@ -285,7 +288,7 @@ export class RestService {
     const where: (SQL | undefined)[] = [
       inArray(s.tasks.spaceId, my),
       await this.visible(userId, 'tasks'),
-      isNull(s.tasks.archivedAt),
+      ...extraConds(q),
       q.projectId ? eq(s.tasks.projectId, q.projectId) : undefined,
       q.statusId ? eq(s.tasks.statusId, q.statusId) : undefined,
       who ? assignedTo(who, userId) : undefined,
@@ -439,6 +442,17 @@ export class RestService {
       muts.push({ name: 'task.setField', args: { taskId: id, fieldId, value: value ?? null } });
     await this.run(userId, muts, tokenId);
     return this.task(userId, id);
+  }
+
+  /** PLNRAPP-268: archive / restore (restore — project admin, by the mutator) */
+  async archiveTask(userId: string, ref: string, archived: boolean, tokenId?: string) {
+    const id = (await this.findTask(userId, ref)).id as string;
+    const name = archived ? 'task.archive' : 'task.restore';
+    await this.run(userId, [{ name, args: { id } }], tokenId);
+  }
+
+  batchTasks(userId: string, raw: unknown, tokenId?: string) {
+    return batchTasks(this, userId, raw, tokenId);
   }
 
   async comments(userId: string, ref: string, query: unknown) {
@@ -988,6 +1002,26 @@ export class RestService {
       .where(eq(c.projectId!, pid))
       .orderBy(asc(c.createdAt!), asc(c.id!));
     return { data: (rows as Wire[]).map((r) => toWire('automationsRules', r)) };
+  }
+
+  // --- project settings (PLNRAPP-266): settings.ts ---
+
+  private get settingsDeps(): SettingsDeps {
+    return {
+      db: this.db,
+      run: (u, m, tok) => this.run(u, m, tok),
+      visibleProject: (u, id) => this.visibleProject(u, id),
+    };
+  }
+  /** mutator: status.create, label.update, project.update, ai.action.delete … */
+  async setting(userId: string, mutator: string, input: unknown, tokenId?: string) {
+    return { data: await runSetting(this.settingsDeps, userId, mutator, input, tokenId) };
+  }
+  async setModule(userId: string, input: unknown, tokenId?: string) {
+    return { data: await runSetModule(this.settingsDeps, userId, input, tokenId) };
+  }
+  async aiActions(userId: string, projectId: string) {
+    return { data: await listAiActions(this.settingsDeps, userId, projectId) };
   }
 }
 

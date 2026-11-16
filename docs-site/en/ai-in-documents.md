@@ -43,3 +43,13 @@ The active pack of the project can bind an action to the `comment` event (an ass
 - MCP: `list_doc_comments`, `add_doc_comment`, `resolve_doc_comment`, `patch_doc` (see [MCP](/mcp)).
 
 Permissions are those of the token owner.
+
+## 6. What the AI can do in chat
+
+The personal AI chat works with your permissions: what you may not do, the AI will not do.
+
+- Answers from the Planar documentation (`search_docs_site`).
+- Sets up a project: automation rules, AI actions, statuses, labels, fields, harness packs and event bindings, project fields, turning modules on and off. The chat does not change AI, GitLab and mail connections, webhooks or limits.
+- Processes tasks in bulk: up to 100 tasks at a time.
+
+Any settings change and any batch run only after your «yes» to the list of changes: one «yes» covers the whole batch. The size of a run is capped by the `AI_CHAT_MAX_STEPS` and `AI_CHAT_MAX_TOKENS` [variables](/configuration).

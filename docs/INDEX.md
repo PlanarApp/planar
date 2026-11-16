@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-11-15"
+updated: "2026-11-16"
 summary: "Точка входа: модули docs/ по подпроектам, прочие документы по типам."
 related: []
 generated: true
@@ -48,6 +48,7 @@ generated: true
 - **ai9p** — ИИ-9 (PLNRAPP-174) — harness-пакеты «Продажи», «Найм», «Поддержка» (llm-действия), тесты, демо-сид [closed 2026-11-12] — [план](plan/ai9p.md) · [решения](plan/ai9p/decisions.md) · [сводка](plan/ai9p/summary.md) · полный журнал: `archive/ai9p`
 - **aifix** — PLNRAPP-187 — исправление всех 27 находок ревью модуля ИИ, 4 параллельные задачи + ревью безопасности [closed 2026-11-12] — [план](plan/aifix.md) · [решения](plan/aifix/decisions.md) · [сводка](plan/aifix/summary.md) · полный журнал: `archive/aifix`
 - **docai** — PLNRAPP-219 — ИИ в комментариях к документам (шаг 2 разбивки PLNRAPP-209) [closed 2026-11-15] — [план](plan/docai.md) · [контракты](contracts/docai.md) · [решения](plan/docai/decisions.md) · [сводка](plan/docai/summary.md) · полный журнал: `archive/docai`
+- **chatai** — PLNRAPP-210 — личный чат с ИИ с полным доступом: настройка системы, документация Planar, пачки (подзадачи PLNRAPP-266…270) [closed 2026-11-16] — [план](plan/chatai.md) · [решения](plan/chatai/decisions.md) · [сводка](plan/chatai/summary.md) · полный журнал: `archive/chatai`
 
 ## Прочие документы
 

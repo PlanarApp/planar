@@ -1,5 +1,4 @@
 import { Body, Controller, Get, HttpCode, Inject, Post, Query, Req, Res } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { CORE, HttpError, parseBody, type CoreServices } from '@planar/server-kit';
@@ -9,16 +8,15 @@ import { eventsSchema } from '../shared/index.js';
 import { blocked } from './run.js';
 import {
   activate,
+  assertAiAdmin,
   conflictsOf,
   exportPack,
+  failPack,
   listCatalog,
   listProjectPacks,
-  PackError,
-  readCatalogPack,
+  packFiles,
   setEvents,
-  unzipFiles,
   upload,
-  type PackFiles,
 } from './packs.js';
 
 const key = z.string().regex(/^[a-z][a-z0-9_-]{0,49}$/);
@@ -44,40 +42,11 @@ const eventsBody = target.extend({ events: eventsSchema });
 export class PacksController {
   constructor(@Inject(CORE) private core: CoreServices) {}
 
-  /** Admin of the project (session only), the module is on. No project and no right look alike for the outside — 404 / 403 as in connections. */
+  /** Admin of the project, the module is on. A token works with write scope (a read token is refused by the guard for non-GET). */
   private async admin(req: object, projectId: string) {
     const a = this.core.auth(req);
-    if (a.tokenId) throw new HttpError(403, 'forbidden', 'Только из сессии');
-    const r = await this.core.db.execute(
-      sql`select (project_role(${a.userId}::uuid, p.id) = 'admin' and 'ai' = any(p.modules)) as ok
-          from projects p where p.id = ${projectId}::uuid`,
-    );
-    if (!r.rows[0]) throw new HttpError(404, 'not_found', 'Не найдено');
-    if (!r.rows[0].ok) throw new HttpError(403, 'forbidden', 'Нужна роль администратора');
+    await assertAiAdmin(this.core.db, a.userId, projectId);
     return a.userId;
-  }
-
-  private async files(b: z.infer<typeof source>): Promise<PackFiles> {
-    if (b.zip === undefined) {
-      const f = await readCatalogPack(b.packKey);
-      if (!f) throw new HttpError(404, 'not_found', 'Такого пакета нет в каталоге');
-      return f;
-    }
-    try {
-      return unzipFiles(Buffer.from(b.zip, 'base64'));
-    } catch (e) {
-      throw new HttpError(400, 'invalid_request', (e as Error).message);
-    }
-  }
-
-  private fail(e: unknown): never {
-    if (e instanceof PackError)
-      throw new HttpError(
-        e.status,
-        e.status === 404 ? 'not_found' : e.status === 409 ? 'conflict' : 'invalid_request',
-        e.message,
-      );
-    throw e;
   }
 
   /** The catalog and the packs loaded into the project; a pack whose documents are gone is reset on the way. */
@@ -100,11 +69,11 @@ export class PacksController {
   async upload(@Req() req: object, @Body() body: unknown) {
     const b = parseBody(uploadBody, body);
     const userId = await this.admin(req, b.projectId);
-    const files = await this.files(b);
+    const files = await packFiles(b);
     try {
       return await upload(this.core.db, this.core, userId, { ...b, files });
     } catch (e) {
-      this.fail(e);
+      failPack(e);
     }
   }
 
@@ -114,12 +83,12 @@ export class PacksController {
   async merge(@Req() req: object, @Body() body: unknown) {
     const b = parseBody(mergeBody, body);
     await this.admin(req, b.projectId);
-    const files = await this.files(b);
+    const files = await packFiles(b);
     let c;
     try {
       c = await conflictsOf(this.core.db, { ...b, files });
     } catch (e) {
-      this.fail(e);
+      failPack(e);
     }
     const inc = c.incoming.find((p) => p.key === b.key);
     const cur = c.current.get(b.key);
@@ -154,7 +123,7 @@ export class PacksController {
     try {
       return await activate(this.core.db, this.core, b.projectId, b.packKey);
     } catch (e) {
-      this.fail(e);
+      failPack(e);
     }
   }
 
@@ -167,7 +136,7 @@ export class PacksController {
     try {
       return await setEvents(this.core.db, b.projectId, b.packKey, b.events);
     } catch (e) {
-      this.fail(e);
+      failPack(e);
     }
   }
 
@@ -179,7 +148,7 @@ export class PacksController {
     try {
       zip = await exportPack(this.core.db, b.projectId, b.packKey);
     } catch (e) {
-      this.fail(e);
+      failPack(e);
     }
     void reply
       .header('Content-Type', 'application/zip')

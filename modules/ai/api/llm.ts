@@ -64,17 +64,28 @@ export async function generateStructured<S extends z.ZodType>(
   };
 }
 
-/** Text answer (with tools: up to 5 steps of calls and results) with the tokens and the cost of the call. */
+/** Text answer (with tools: up to `maxSteps` steps of calls and results, or until `maxTokens` are spent in all steps) with the tokens and the cost of the call. */
 export async function generateReply(
   c: LlmConnection,
-  o: { prompt: string; system?: string; tools?: ToolSet },
+  o: {
+    prompt: string;
+    system?: string;
+    tools?: ToolSet;
+    maxSteps?: number;
+    maxTokens?: number;
+  },
 ): Promise<{ text: string; usage: LlmUsage }> {
   const r = await generateText({
     model: modelOf(c),
     prompt: o.prompt,
     system: o.system,
     tools: o.tools,
-    stopWhen: stepCountIs(5),
+    stopWhen: [
+      stepCountIs(o.maxSteps ?? 5),
+      ({ steps }) =>
+        steps.reduce((n, s) => n + (s.usage.inputTokens ?? 0) + (s.usage.outputTokens ?? 0), 0) >=
+        (o.maxTokens ?? Infinity),
+    ],
     maxRetries: 1,
   });
   const inputTokens = r.totalUsage.inputTokens ?? 0;
