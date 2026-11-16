@@ -6,6 +6,8 @@ export type ViewsMeta = {
   customFieldOperators: Record<string, string[]>;
   /** saved-view mutators (view.*) */
   viewMutators: string[];
+  /** MCP tools of saved views (from the registry) */
+  viewTools: string[];
   /** MCP inputs of search_tasks / filter of batch_update_tasks */
   searchInputs: string[];
   batchFilterInputs: string[];
@@ -29,7 +31,7 @@ export function viewsSection(m: ViewsMeta): { id: 'views-settings'; title: strin
       '',
       '## Saved views',
       'A saved view (table `saved_views`, in a space) holds name, icon, layout, filter (the language above), config (view options: groupBy, sortBy, sortDir, showSubtasks, fields, columns, ...), rank; personal (userId set) or shared (userId null); `node` binds it to a built-in tab (workspace `w`, space `s:<id>`, project `p:<id>`).',
-      `Mutators: ${list(m.viewMutators)}. Saved views: not available via MCP (UI and sync only); REST /api/v1 has no saved-view endpoint either.`,
+      `Mutators: ${list(m.viewMutators)}. Saved views over MCP and REST /api/v1/views (rights of the token owner: shared views and own personal ones of the user's spaces): ${list(m.viewTools)}. Reads need no confirmation; deleting a view needs the user's yes in chat. \`set_view_default\` sets the default view of a \`node\`.`,
       '',
       '## Finding tasks',
       `MCP \`search_tasks\` does not take the filter language; it takes flat inputs: ${list(m.searchInputs)}. \`my_tasks\` takes includeDone plus projectId, statusId, statusCategory, limit. The same flat names filter \`GET /api/v1/tasks\`.`,
@@ -37,7 +39,7 @@ export function viewsSection(m: ViewsMeta): { id: 'views-settings'; title: strin
       '',
       '## Settings',
       `Project settings via MCP (write, need the user's "yes" in chat; rights of the token owner): ${list(m.settingTools)}. They cover statuses, labels, custom fields, automation rules, AI actions, project fields and project modules; reads: list_fields, project_dictionary, list_ai_actions.`,
-      'Not available via MCP: saved views, space settings, members and roles, user preferences, instance settings, secrets (AI connections, GitLab, mail, webhooks, AI limits).',
+      'Not available via MCP unless the mcp section lists a tool for it: space settings, members and roles, user preferences, instance settings, secrets (AI connections, GitLab, mail, webhooks, AI limits).',
     ].join('\n'),
   };
 }

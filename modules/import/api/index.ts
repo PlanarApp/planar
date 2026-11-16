@@ -752,6 +752,15 @@ const jobs = [
   },
 ];
 
+export {
+  parseSource,
+  ParseError,
+  TRELLO_MAPPING,
+  distinctValues,
+  suggestMapping,
+} from './parse.js';
+export type { Item } from './parse.js';
+
 export const api: BackendModuleManifest = {
   id: shared.id,
   nestModule: ImportModule,

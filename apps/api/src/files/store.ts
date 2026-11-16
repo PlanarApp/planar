@@ -9,6 +9,15 @@ import { fileUploads, files } from '../db/schema.js';
 
 export type FilesOpts = { dataDir: string; maxUploadMb: number };
 
+// ext operations (RestService deps) have no access to the file settings: FilesController registers them by db
+const optsByDb = new WeakMap<Db, FilesOpts>();
+export const registerFilesOpts = (db: Db, o: FilesOpts) => void optsByDb.set(db, o);
+export const filesOptsOf = (db: Db): FilesOpts => {
+  const o = optsByDb.get(db);
+  if (!o) throw new HttpError(500, 'internal', 'Файлы не настроены');
+  return o;
+};
+
 export const filePath = (dataDir: string, sha: string) =>
   join(dataDir, 'files', sha.slice(0, 2), sha.slice(2, 4), sha);
 

@@ -11,8 +11,12 @@ import {
   Put,
   Query,
   Req,
+  Res,
 } from '@nestjs/common';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { getAuth } from '../auth/auth.js';
+import { HttpError } from '../auth/errors.js';
+import { matchExt, runExt } from './ext/index.js';
 import { openapi } from './openapi.js';
 import { RestService } from './rest.service.js';
 
@@ -246,5 +250,57 @@ export class RestController {
   @HttpCode(204)
   deleteAiAction(@Req() req: object, @Param('id') id: string) {
     return this.unset(req, 'ai.action.delete', { id });
+  }
+
+  // ExtOp (docs/contracts/mcpall.md): the fallback for every route that has no handler above
+  private async ext(req: FastifyRequest, reply: FastifyReply, body: unknown) {
+    const m = matchExt(req.method, req.url);
+    if (!m) throw new HttpError(404, 'not_found', 'Маршрут не найден');
+    const { op, params } = m;
+    const auth = getAuth(req);
+    if (op.write && auth.tokenScope === 'read')
+      throw new HttpError(403, 'forbidden', 'Токен только для чтения');
+    const bag = op.method === 'get' || op.method === 'delete' ? req.query : body;
+    const data = await runExt(
+      op,
+      this.rest.extDeps(),
+      auth.userId,
+      { ...(bag as object), ...params },
+      auth.tokenId,
+    );
+    void reply.code(op.status ?? 200);
+    return op.status === 204 ? undefined : { data: data ?? null };
+  }
+  @Get('*')
+  extGet(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    return this.ext(req, reply, undefined);
+  }
+  @Delete('*')
+  extDelete(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    return this.ext(req, reply, undefined);
+  }
+  @Post('*')
+  extPost(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+    @Body() b: unknown,
+  ) {
+    return this.ext(req, reply, b);
+  }
+  @Put('*')
+  extPut(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+    @Body() b: unknown,
+  ) {
+    return this.ext(req, reply, b);
+  }
+  @Patch('*')
+  extPatch(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+    @Body() b: unknown,
+  ) {
+    return this.ext(req, reply, b);
   }
 }

@@ -50,6 +50,7 @@ generated: true
 - **docai** — PLNRAPP-219 — ИИ в комментариях к документам (шаг 2 разбивки PLNRAPP-209) [closed 2026-11-15] — [план](plan/docai.md) · [контракты](contracts/docai.md) · [решения](plan/docai/decisions.md) · [сводка](plan/docai/summary.md) · полный журнал: `archive/docai`
 - **aikb** — PLNRAPP-233 — знания о Planar в базовых правилах всех ИИ-взаимодействий (подзадачи PLNRAPP-234…240) [closed 2026-11-16] — [план](plan/aikb.md) · [контракты](contracts/aikb.md) · [решения](plan/aikb/decisions.md) · [сводка](plan/aikb/summary.md) · полный журнал: `archive/aikb`
 - **chatai** — PLNRAPP-210 — личный чат с ИИ с полным доступом: настройка системы, документация Planar, пачки (подзадачи PLNRAPP-266…270) [closed 2026-11-16] — [план](plan/chatai.md) · [решения](plan/chatai/decisions.md) · [сводка](plan/chatai/summary.md) · полный журнал: `archive/chatai`
+- **mcpall** — PLNRAPP-271 — полное управление инстансом через MCP: ~50 функций интерфейса в REST v1 + MCP (подзадачи PLNRAPP-272…279) [closed 2026-11-16] — [план](plan/mcpall.md) · [контракты](contracts/mcpall.md) · [решения](plan/mcpall/decisions.md) · [сводка](plan/mcpall/summary.md) · полный журнал: `archive/mcpall`
 
 ## Прочие документы
 

@@ -5,7 +5,7 @@ import { batchDefs } from '../../src/mcp/tools-batch.js';
 import { settingsDefs } from '../../src/mcp/tools-settings.js';
 import type { RestService } from '../../src/rest/rest.service.js';
 import { aiPackTools } from '../../../../modules/ai/api/pack-tools.js';
-import { section } from '../../../../modules/ai/api/aikb/sections/permissions.js';
+import { permissionsSection } from '../../../../modules/ai/api/aikb/sections/permissions.js';
 
 const rest = {} as RestService;
 const all = [
@@ -15,6 +15,7 @@ const all = [
   ...aiPackTools({} as CoreServices),
 ];
 const defs = [...new Map(all.map((d) => [d.name, d])).values()];
+const section = permissionsSection(defs);
 const group = (h: RegExp) =>
   section.body.split(/\n(?=## )/).find((g) => h.test(g.split('\n')[0]!)) ?? '';
 const tools = (g: string) => [...g.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map((m) => m[1]!);
@@ -50,6 +51,10 @@ describe('aikb permissions section', () => {
       if (n === 'ai_run') continue; // an automation action type
       expect(names).toContain(n);
     }
+  });
+  it('groups built from the registry are not empty', () => {
+    for (const g of [danger, dangerIf, writes, readOnly])
+      expect(tools(g).length).toBeGreaterThan(0);
   });
   it('states the gaps', () => {
     expect(section.body).toContain('Not available via MCP');
