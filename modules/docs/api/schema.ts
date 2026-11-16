@@ -66,3 +66,27 @@ export const docsVersions = pgTable(
   },
   (t) => [index('docs_versions_page_id_idx').on(t.pageId, t.createdAt)],
 );
+
+/** PLNRAPP-209: comments on a page — threads (parentId), mentions, assignment and resolve; as task comments. */
+export const docsComments = pgTable(
+  'docs_comments',
+  {
+    id: uuid().primaryKey(),
+    spaceId: uuid().notNull(),
+    pageId: uuid().notNull(),
+    authorId: uuid().notNull(),
+    parentId: uuid(),
+    body: jsonb().$type<Record<string, unknown>>().notNull(),
+    mentions: jsonb().$type<string[]>().notNull(),
+    assigneeId: uuid(),
+    resolvedAt: ts(),
+    resolvedBy: uuid(),
+    editedAt: ts(),
+    createdAt: ts().notNull(),
+    updatedAt: ts().notNull(),
+  },
+  (t) => [
+    index('docs_comments_space_id_idx').on(t.spaceId),
+    index('docs_comments_page_id_idx').on(t.pageId),
+  ],
+);

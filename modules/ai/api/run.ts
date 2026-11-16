@@ -13,6 +13,8 @@ import { chatTools, runPlanned, type PlannedCall } from './chat-tools.js';
 import { loadPack, parseInstructionPage } from './harness.js';
 import type { ChatPending } from './schema.js';
 import { batchDoc, insertBatch } from './email.js';
+import { collectChat, collectRun } from './retro.js';
+import { handleDoc } from './doc-run.js';
 import { generateReply, generateStructured, type LlmUsage } from './llm.js';
 import {
   agentsFull,
@@ -40,7 +42,18 @@ export interface ChatRunData {
  * Job data. action — by a rule (actionId, ruleId, statusId at the event); comment / mention — itemId is the
  * comment; checklist — the first open item on the bot by rank; resume — the questions of run `runId` are answered.
  */
+type DocRun<K extends string> = {
+  kind: K;
+  pageId: string;
+  /** docs_comments.id */
+  itemId: string;
+  restartOf?: string | null;
+  runId?: string | null;
+};
+export type DocRunData = DocRun<'doc_comment'> | DocRun<'doc_mention'>;
+
 export type AiRunData =
+  | DocRunData
   | {
       kind: 'action';
       taskId: string;
@@ -71,7 +84,9 @@ export const keyOf = (d: AiRunData) =>
     ? `${d.kind}:${d.runId}`
     : d.kind === 'chat'
       ? `chat:${d.messageId}`
-      : `${d.taskId}:${d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? 'checklist' : d.itemId}`;
+      : d.kind === 'doc_comment' || d.kind === 'doc_mention'
+        ? `${d.pageId}:${d.itemId}`
+        : `${d.taskId}:${d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? 'checklist' : d.itemId}`;
 
 const nullable = <T extends z.ZodType>(s: T) => s.nullable();
 /** What the model returns; every field is present (null — not used): strict structured outputs want that. */
@@ -128,6 +143,8 @@ export const resultSchema = z.object({
       )
       .max(10),
   ),
+  /** PLNRAPP-178: what got in the way of the run (unclear instruction, missing data or access); harness-retro takes it */
+  friction: nullable(z.string().max(2000)),
 });
 export type AiResult = z.infer<typeof resultSchema>;
 
@@ -138,6 +155,7 @@ const SYSTEM = `Ты — ИИ-исполнитель в трекере зада�
 - moveTo — имя статуса проекта; labels — имена меток: «Имя» — поставить, «-Имя» — снять; fields — значения полей по имени.
 - newTasks — подзадачи (status — имя статуса или null); snoozeUntil — отложить задачу до даты YYYY-MM-DD; escalate — причина, если нужен руководитель проекта; docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).
 - emails — письма внешним адресатам (to, subject, body — обычный текст), только при done: они уйдут после подтверждения человеком; сам ничего не отправляй.
+- friction — что мешало работе (неясная или противоречивая инструкция, не хватало данных или доступа), одной-двумя фразами; не мешало ничего — null.
 Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи) применяются только при done; при question — только labels.`;
 
 /** «Поручение»: the built-in prompt until the active harness package has its own (PLNRAPP-169). */
@@ -368,6 +386,7 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   if (d.kind === 'resume') return resume(d.runId, api);
   if (d.kind === 'chat') return handleChat(d, api);
   if (d.kind === 'confirm') return confirmChat(d.runId, api);
+  if (d.kind === 'doc_comment' || d.kind === 'doc_mention') return handleDoc(d, api);
   // a retried delivery of a restart: its pre-made run row already exists
   if (d.runId && (await one(api.db, sql`select 1 as x from ai_runs where id = ${d.runId}::uuid`)))
     return;
@@ -696,7 +715,11 @@ async function handleChat(d: ChatRunData, api: JobApi) {
     const text = reply.text.trim() || '…';
     if (!planned.length) {
       await say(text);
-      return await finish(api.db, run, 'done');
+      await finish(api.db, run, 'done');
+      await collectChat(api, projectId, m.body, text).catch((e) =>
+        note(api.db, id, `harness-retro: ${e instanceof Error ? e.message : String(e)}`),
+      );
+      return;
     }
     // the plan goes to the DB before the message: the «да» can come at once
     await api.db.execute(
@@ -765,6 +788,7 @@ const failed = (comment: string): AiResult => ({
   escalate: null,
   docs: null,
   emails: null,
+  friction: null,
 });
 
 export async function aiEnabled(q: Pick<Q, 'execute'>) {
@@ -1086,6 +1110,10 @@ async function apply(
     await writeDoc(api, run, d).catch((e) =>
       note(api.db, run.id, `docs «${d.title}»: ${e instanceof Error ? e.message : String(e)}`),
     );
+  // harness-retro (PLNRAPP-178): the friction and the assignment's result — subtasks of «harness-retro»
+  await collectRun(api, run, r).catch((e) =>
+    note(api.db, run.id, `harness-retro: ${e instanceof Error ? e.message : String(e)}`),
+  );
 }
 
 const note = (q: Pick<Q, 'execute'>, id: string, line: string) =>
@@ -1281,4 +1309,19 @@ async function resume(runId: string, api: JobApi) {
   else await again({ kind: 'checklist', taskId });
 }
 
-export { apply, blocked, botOf, contextOf, failed, finish, loadTask, md, overBudget, type Run };
+export {
+  apply,
+  asDoc,
+  blocked,
+  botOf,
+  contextOf,
+  eventAction,
+  failed,
+  finish,
+  loadTask,
+  md,
+  overBudget,
+  promptOf,
+  withMention,
+  type Run,
+};

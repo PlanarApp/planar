@@ -79,6 +79,27 @@ describe.each(loaded)('catalog pack $k', ({ k, files, pack }) => {
     expect(n('rule', 'enable')).toBe(pack.rules.length);
   });
 
+  it('computeDiff: existing statuses and labels keep their color, new ones get the pack color', () => {
+    // PLNRAPP-203: a status/label bound by key (or by name) is not recolored by the pack
+    const [first, ...rest] = pack.statuses;
+    const cur: CurrentState = {
+      ...empty,
+      statuses: rest.map((s, i) => ({ ...s, id: `s${i}`, color: '#123456', taskCount: 0 })),
+      labels: pack.labels.map((l, i) => ({ id: `l${i}`, name: l.name, color: '#123456' })),
+    };
+    const keys = {
+      status: Object.fromEntries(rest.map((s, i) => [s.key, `s${i}`])),
+      label: Object.fromEntries(pack.labels.map((l, i) => [l.key, `l${i}`])),
+    };
+    const { ops, errors } = computeDiff(cur, pack, {}, keys, instr());
+    expect(errors).toEqual([]);
+    const own = ops.filter((o) => o.kind === 'status' || o.kind === 'label');
+    expect(own).toEqual([
+      { kind: 'status', op: 'create', key: first!.key, data: expect.anything() },
+    ]);
+    expect(own[0]!.data!.color).toBe(first!.color);
+  });
+
   it('apply via API on a clean project creates everything, rules are enabled', async () => {
     const P = uuidv7();
     await w.admin.ok('project.create', {

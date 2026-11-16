@@ -1,4 +1,5 @@
-// Fetch helper of the module's own HTTP API (/api/ai/*), shared by the settings and the harness panel.
+// Fetch helper of the module's own HTTP API (/api/ai/*), shared by the settings and the harness panel;
+// a path from `/` — a core endpoint as is (/api/cloud for the agents' egress).
 export class AiApiError extends Error {
   constructor(
     readonly status: number,
@@ -14,7 +15,7 @@ export async function call<T>(
   body?: unknown,
   signal?: AbortSignal,
 ): Promise<T> {
-  const res = await fetch(`/api/ai/${path}`, {
+  const res = await fetch(path.startsWith('/') ? path : `/api/ai/${path}`, {
     method,
     credentials: 'same-origin',
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },

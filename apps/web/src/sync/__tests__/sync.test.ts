@@ -158,6 +158,48 @@ describe('sync', () => {
     await c.stopSync();
   });
 
+  it('sync:echo — эхо своей мутации не пишет в таблицы сущностей', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] }); // server and client stamp the same createdAt/updatedAt
+    try {
+      const s = setup();
+      const c = s.mk();
+      await s.start(c);
+      await c.mutate('test.label.put', args('a'));
+      const batches: unknown[] = [];
+      c.onReplicaChange((b) => batches.push(b));
+      const hook = vi.spyOn(s.db.table('labels'), 'bulkPut');
+      await c.syncNow();
+      expect(await s.db._queue.count()).toBe(0);
+      expect(batches).toEqual([]);
+      expect(hook).not.toHaveBeenCalled();
+      expect((await labels(s.db)).map((l) => l.name)).toEqual(['a']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('sync:echo — pull при непустой очереди пишет только отличия сервера', async () => {
+    const s = setup();
+    const l = label('orig');
+    s.server.seed('labels', [l]);
+    const c = s.mk();
+    await s.start(c);
+    const other = label('other');
+    s.server.seed('labels', [other, { ...l, name: 'remote' }]);
+    const batches: { id: string }[][] = [];
+    // as in sync:rebase: the edit appears before the pull response, its push is blocked
+    s.server.beforePull = async () => {
+      s.server.blockPush = true;
+      await c.mutate('test.label.rename', { id: l.id, name: 'local' });
+      c.onReplicaChange((b) => batches.push(b));
+    };
+    await c.syncNow();
+    // the local rename lands on top of "remote" with the same result — the row is not rewritten
+    expect(batches.flat().map((x) => x.id)).toEqual([other.id]);
+    expect((await labels(s.db)).find((x) => x.id === l.id)!.name).toBe('local');
+    await c.stopSync();
+  });
+
   it('sync:reset — pull с reset → bootstrap, очередь поверх', async () => {
     const s = setup();
     const a = label('a');

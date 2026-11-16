@@ -15,8 +15,8 @@ if [ ! -r "$PLANAR_CONTEXT_FILE" ]; then
 fi
 
 RESULT=/work/result.json
-# HOME lives on the empty tmpfs /tmp: git config --global, opencode and npm need it
-mkdir -p "$HOME"
+# HOME and TMPDIR live in the empty /work (on disk, not the 256 MB tmpfs /tmp); the repo is /work/repo, so they stay out of git
+mkdir -p "$HOME" "$TMPDIR"
 AUTH="Authorization: Bearer $PLANAR_RUN_SECRET"
 
 # Heartbeat каждые 30 с, пока жив агент; ошибки не фатальны (жнец решит сам).
@@ -64,7 +64,7 @@ prompt() {
   if [ -n "$REPO" ]; then
     printf 'Репозиторий проекта склонирован в %s (текущий каталог), git push и glab работают.\n' "$REPO"
   fi
-  printf 'В конце запиши результат JSON в %s: {"verdict":"done|question|fail","comment":"..."} и необязательные поля: questions[], descriptionAppend, newTasks[{title,description,status}], moveTo, labels[], fields[{name,value}].\n' "$RESULT"
+  printf 'В конце запиши результат JSON в %s: {"verdict":"done|question|fail","comment":"..."} и необязательные поля: questions[], descriptionAppend, newTasks[{title,description,status}], moveTo, labels[], fields[{name,value}], friction (что мешало работе — неясная инструкция, не хватало данных или доступа; не мешало — null).\n' "$RESULT"
 }
 
 if [ -s "$RESULT" ]; then
@@ -82,7 +82,7 @@ elif [ "${PLANAR_LLM_PROTOCOL:-anthropic}" = anthropic ]; then
   set -e
 else
   # OpenAI-совместимый провайдер (OpenAI, Gemini, …) — opencode через LLM-прокси api.
-  export OPENCODE_CONFIG=/tmp/home/opencode.json OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_MODELS_FETCH=1
+  export OPENCODE_CONFIG="$HOME/opencode.json" OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_MODELS_FETCH=1
   jq -n --arg url "$PLANAR_LLM_URL/v1" --arg m "${PLANAR_LLM_MODEL:?не задана PLANAR_LLM_MODEL}" '{
     "$schema": "https://opencode.ai/config.json",
     autoupdate: false,

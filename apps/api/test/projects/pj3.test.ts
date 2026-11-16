@@ -1,7 +1,7 @@
 // PJ-3: data modules per project — project.setModule, gating of mutators / jobs, `unavailable`
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DATA_MODULE_IDS, uuidv7 } from '@planar/shared';
+import { DATA_MODULE_IDS, uuidv7, WORKSPACE_DATA_MODULE_IDS } from '@planar/shared';
 import { todayIn } from '@planar/module-sprints/shared';
 import * as schema from '../../src/db/schema.js';
 import { enabledModules } from '../../src/modules/enabled.js';
@@ -78,7 +78,23 @@ describe('PJ-3: project.setModule — права', () => {
     const on = await enabledModules(db);
     expect(on.has('chat')).toBe(true);
     expect(on.has('email')).toBe(false);
-    for (const id of DATA_MODULE_IDS) expect(on.has(id), id).toBe(true);
+    for (const id of DATA_MODULE_IDS)
+      expect(on.has(id), id).toBe(!WORKSPACE_DATA_MODULE_IDS.includes(id));
+    await instanceAdmin.ok('settings.set', { id: 'enabled_modules', value: [] });
+  });
+
+  it('PLNRAPP-241: ai — переключатель воркспейса; включить можно только при PLANAR_AI=on', async () => {
+    delete process.env.PLANAR_AI;
+    try {
+      expect(
+        await instanceAdmin.push('settings.set', { id: 'enabled_modules', value: ['ai'] }),
+      ).toMatchObject({ ok: false, code: 'invalid_args', message: 'ai_env_off' });
+    } finally {
+      process.env.PLANAR_AI = 'on';
+    }
+    expect((await enabledModules(db)).has('ai')).toBe(false);
+    await instanceAdmin.ok('settings.set', { id: 'enabled_modules', value: ['ai'] });
+    expect((await enabledModules(db)).has('ai')).toBe(true);
     await instanceAdmin.ok('settings.set', { id: 'enabled_modules', value: [] });
   });
 });

@@ -30,7 +30,7 @@ watch([q, tab, docsProvider], async () => {
   const r = q.value.trim() ? await docsProvider.value.search(q.value, 20) : [];
   if (n === seq) docs.value = r;
 });
-const rows = computed<(RefPick & { id: string; sub?: string })[]>(() =>
+const rows = computed<(RefPick & { id: string; path?: string; name: string })[]>(() =>
   tab.value === 'tasks'
     ? tasks
         .search(q.value)
@@ -39,13 +39,15 @@ const rows = computed<(RefPick & { id: string; sub?: string })[]>(() =>
           id: h.id,
           label: `${h.ref} ${h.title}`,
           href: `/t/${h.ref}`,
-          sub: h.ref,
+          path: h.path,
+          name: `${h.ref} ${h.title}`,
         }))
     : docs.value.map((h) => ({
         id: h.id,
         label: h.title,
         href: typeof h.to === 'string' ? h.to : '',
-        sub: h.subtitle,
+        path: h.path,
+        name: h.title,
       })),
 );
 watch(rows, () => (index.value = 0));
@@ -76,9 +78,11 @@ onMounted(() => nextTick(() => input.value?.focus()));
 // like the @ list: no room below — above the cursor
 const style = computed(() => {
   const r = props.rect;
+  // keep the (up to 24rem) list inside the screen
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - 392)) + 'px';
   return r.bottom + 4 + 320 > window.innerHeight
-    ? { left: r.left + 'px', bottom: window.innerHeight - r.top + 4 + 'px' }
-    : { left: r.left + 'px', top: r.bottom + 4 + 'px' };
+    ? { left, bottom: window.innerHeight - r.top + 4 + 'px' }
+    : { left, top: r.bottom + 4 + 'px' };
 });
 const tabs = computed(() => [
   { id: 'tasks' as const, label: t('task.refTasks') },
@@ -91,7 +95,7 @@ const tabs = computed(() => [
     role="dialog"
     :aria-label="t('task.refTitle')"
     data-testid="ref-picker"
-    class="fixed z-50 flex w-80 flex-col gap-1 rounded-lg border border-border bg-surface p-2 shadow-md"
+    class="fixed z-50 flex w-96 max-w-[calc(100vw-1rem)] flex-col gap-1 rounded-lg border border-border bg-surface p-2 shadow-md"
     :style="style"
     @focusout="!$el.contains($event.relatedTarget) && emit('close')"
   >
@@ -129,7 +133,7 @@ const tabs = computed(() => [
         :aria-selected="i === index"
         data-testid="ref-option"
         :class="[
-          'flex min-h-8 cursor-default items-center gap-2 rounded-sm px-2 text-sm',
+          'flex min-h-8 cursor-default items-start gap-2 rounded-sm px-2 py-1 text-sm',
           i === index && 'bg-bg-muted',
         ]"
         @mousedown.prevent="pick(r)"
@@ -137,9 +141,14 @@ const tabs = computed(() => [
         <component
           :is="tab === 'tasks' ? SquareCheck : FileText"
           :size="14"
-          class="shrink-0 text-fg-subtle"
+          class="mt-0.5 shrink-0 text-fg-subtle"
         />
-        <span class="min-w-0 flex-1 truncate">{{ r.label }}</span>
+        <span class="min-w-0 flex-1 break-words">
+          <span v-if="r.path" class="block text-xs text-fg-subtle" data-testid="ref-path">{{
+            r.path
+          }}</span>
+          {{ r.name }}
+        </span>
       </li>
       <li v-if="!rows.length" class="px-2 py-1 text-xs text-fg-subtle">
         {{ q.trim() ? t('task.refNone') : t('task.refHint') }}

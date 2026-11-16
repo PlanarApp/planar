@@ -11,6 +11,7 @@ import type { Q } from '../sync/server-tx.js';
 import { DB } from '../tokens.js';
 import { ensureSystemUser } from '../users/system.js';
 import { archivePurge } from './archive.js';
+import { changesPurge } from './changes.js';
 import { DUE_CRON, DUE_QUEUE, remindDue } from './due.js';
 
 export const PUSH_OPTS = Symbol('PUSH_OPTS');
@@ -50,6 +51,7 @@ export class JobsService implements OnApplicationShutdown {
       await boss.start();
       if (this.opts.worker !== false) {
         await this.register(boss, null, archivePurge);
+        await this.register(boss, null, changesPurge);
         await this.register(boss, null, {
           queue: DUE_QUEUE,
           cron: DUE_CRON,

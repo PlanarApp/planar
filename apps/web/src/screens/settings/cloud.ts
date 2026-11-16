@@ -11,6 +11,20 @@ export type CloudState = {
   serverIp: string | null;
   checkout: Record<string, string>;
   manageUrl: string | null;
+  // v2: AI tariff
+  ai: boolean;
+  aiReplicas: number | null;
+  aiPaid: boolean;
+  llm: {
+    key: string;
+    credits: number;
+    baseUrl?: string;
+    models: { id: string; protocol: 'anthropic' | 'openai'; in: number; out: number }[];
+  } | null;
+  addons: {
+    ai: { replicas: number; usd: number; checkout: Record<string, string> }[];
+    credits: { credits: number; usd: number; checkout: Record<string, string> }[];
+  };
 };
 
 /** the typed confirmation matches the instance name: spaces and case don't matter (the cloud is sent the name itself) */

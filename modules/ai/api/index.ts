@@ -9,20 +9,21 @@ import { AgentController } from './agent.controller.js';
 import { AiController } from './controller.js';
 import { HarnessController } from './harness.controller.js';
 import { PacksController } from './packs.controller.js';
-import { DocChatController } from './doc-chat.controller.js';
 import { EMAIL_QUEUE, handleEmail, isYes, replied, textOf, type EmailData } from './email.js';
 import type { JSONContent } from '@tiptap/core';
 import { AI_QUEUE, handle, keyOf, type AiRunData } from './run.js';
 import type { ChatPending } from './schema.js';
+import {
+  RETRO_QUEUE,
+  RETRO_TICK_QUEUE,
+  handleRetro,
+  retroHook,
+  retroTick,
+  type RetroData,
+} from './retro.js';
 
 @Module({
-  controllers: [
-    AiController,
-    HarnessController,
-    PacksController,
-    DocChatController,
-    AgentController,
-  ],
+  controllers: [AiController, HarnessController, PacksController, AgentController],
 })
 class AiModule {}
 
@@ -42,6 +43,17 @@ export {
 } from './packs.js';
 export { EMAIL_QUEUE, EMAILS_PER_HOUR, handleEmail, isYes } from './email.js';
 export { AI_QUEUE, MAX_CHAIN, PLAN_HEADING, withPlan, type AiRunData } from './run.js';
+export {
+  DISAGREE_RE,
+  RETRO_QUEUE,
+  RETRO_TICK_QUEUE,
+  RETRO_TITLE,
+  diffBlock,
+  retroDecision,
+  withAction,
+  withPrompt,
+  type RetroData,
+} from './retro.js';
 
 const has = (r: Record<string, unknown> | null | undefined) =>
   ((r?.modules as string[] | undefined) ?? []).includes('ai');
@@ -89,7 +101,12 @@ const one = async (api: ModuleHookApi, s: ReturnType<typeof sql>) =>
  * A new reply may answer a question of a waiting run; a reply to the bot's comment that answers nothing is
  * a request to the bot, as `@ai` (PLNRAPP-195).
  */
-async function assignments(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
+async function assignments(
+  writes: MutationWrite[],
+  ctx: AfterMutationCtx,
+  api: ModuleHookApi,
+  decisions: Set<string>,
+) {
   if (ctx.system || ctx.origin) return;
   const mine = writes.filter(
     (w) => (w.entity === 'comments' || w.entity === 'checklistItems') && w.op === 'put' && w.after,
@@ -111,6 +128,8 @@ async function assignments(writes: MutationWrite[], ctx: AfterMutationCtx, api: 
         await enqueue({ kind: 'checklist', taskId });
       continue;
     }
+    // an answer on a harness-retro proposal (PLNRAPP-178): its decision, not a request to the bot
+    if (decisions.has(a.id as string)) continue;
     let asked = true;
     if (a.assigneeId === bot && !a.resolvedAt && b?.assigneeId !== bot)
       await enqueue({ kind: 'comment', taskId, itemId: a.id as string });
@@ -264,9 +283,41 @@ async function chatMessages(writes: MutationWrite[], api: ModuleHookApi) {
   }
 }
 
+/**
+ * Page comments (docai-run v2), by a person only: assigned to the bot → doc_comment; `@ai` newly in the text, or a
+ * reply to a comment of the bot → doc_mention. The bot's own comments start nothing.
+ */
+async function docComments(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
+  if (ctx.system || ctx.origin) return;
+  const mine = writes.filter((w) => w.entity === 'docsComments' && w.op === 'put' && w.after);
+  if (!mine.length) return;
+  const bot = (await one(api, sql`select id from users where login = ${AI_BOT_LOGIN} and bot`))?.id;
+  const me = await one(api, sql`select bot from users where id = ${ctx.userId}`);
+  if (!bot || !me || me.bot) return;
+  const mentions = (r: Row | null | undefined) => (r?.mentions as string[] | undefined) ?? [];
+  for (const { before: b, after: a } of mine as { before: Row | null; after: Row }[]) {
+    const d = { pageId: a.pageId as string, itemId: a.id as string };
+    let run: AiRunData | undefined;
+    if (a.assigneeId === bot && !a.resolvedAt && b?.assigneeId !== bot)
+      run = { kind: 'doc_comment', ...d };
+    else if (mentions(a).includes(bot as string) && !mentions(b).includes(bot as string))
+      run = { kind: 'doc_mention', ...d };
+    else if (!b && a.parentId) {
+      const parent = await one(
+        api,
+        sql`select author_id as "authorId" from docs_comments where id = ${a.parentId as string}`,
+      );
+      if (parent?.authorId === bot) run = { kind: 'doc_mention', ...d };
+    }
+    if (run)
+      await api.enqueue(AI_QUEUE, run, { singletonKey: keyOf(run), upsert: true, startAfter: 5 });
+  }
+}
+
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
   await ensureBot(writes, ctx, api);
-  await assignments(writes, ctx, api);
+  await docComments(writes, ctx, api);
+  await assignments(writes, ctx, api, await retroHook(writes, ctx, api));
   await chatMessages(writes, api);
 }
 
@@ -276,9 +327,13 @@ export const api: BackendModuleManifest = {
   mutators: shared.mutators,
   entities: shared.entities,
   afterMutation: afterMutation as BackendModuleManifest['afterMutation'],
+  // PLNRAPP-241: AI is allowed by the instance env (agent containers start by it as well)
+  unavailable: async () => (process.env.PLANAR_AI === 'on' ? null : 'ai_env_off'),
   jobs: [
     { queue: AI_QUEUE, retryLimit: 0, handler: handle } satisfies JobDef<AiRunData>,
     { queue: AGENT_REAP_QUEUE, cron: '* * * * *', retryLimit: 0, handler: reap },
+    { queue: RETRO_QUEUE, retryLimit: 0, handler: handleRetro } satisfies JobDef<RetroData>,
+    { queue: RETRO_TICK_QUEUE, cron: '17 * * * *', retryLimit: 0, handler: retroTick },
     {
       queue: EMAIL_QUEUE,
       retryLimit: 0,

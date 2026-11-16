@@ -26,6 +26,7 @@ docker build -t planar-ai-agent:1 docker/ai-agent   # образ агента, �
 Пример `.env`:
 
 ```sh
+PLANAR_AI=on                                  # для api: модуль ai можно включить в настройках воркспейса
 AI_RUNNER_TOKEN=длинный-случайный-секрет     # обязателен у ai-runner; api берёт тот же
 AI_RUNNER_IMAGES=registry.gitlab.com/planarhq/planar/ai-agent:1.4   # allowlist образов, через запятую, точное совпадение
 AI_RUNNER_URL=http://ai-runner:8080           # для api: включает запуск agent-действий
@@ -35,15 +36,15 @@ AI_AGENT_MAX_REPLICAS=2                       # для api: сколько пр�
 
 Только для ai-runner (значения по умолчанию в скобках):
 
-| Переменная                | Назначение                                     |
-| ------------------------- | ---------------------------------------------- |
-| `AI_RUNNER_MAX_CPUS`      | потолок CPU на прогон (2)                      |
-| `AI_RUNNER_MAX_MEMORY_MB` | потолок памяти, МБ (4096)                      |
-| `AI_RUNNER_MAX_PIDS`      | потолок процессов (512)                        |
-| `AI_RUNNER_TMPFS_MB`      | размер tmpfs `/work`, МБ (256, не больше 2048) |
-| `AI_RUNNER_AGENT_NETWORK` | сеть контейнеров агентов (`planar_agents`)     |
-| `DOCKER_HOST_SOCKET`      | сокет docker (`/var/run/docker.sock`)          |
-| `PORT`                    | порт (8080)                                    |
+| Переменная                | Назначение                                         |
+| ------------------------- | -------------------------------------------------- |
+| `AI_RUNNER_MAX_CPUS`      | потолок CPU на прогон (2)                          |
+| `AI_RUNNER_MAX_MEMORY_MB` | потолок памяти, МБ (4096)                          |
+| `AI_RUNNER_MAX_PIDS`      | потолок процессов (512)                            |
+| `AI_RUNNER_WORK_DIR`      | каталог `/work` прогонов в контейнере (`/ai-work`) |
+| `AI_RUNNER_AGENT_NETWORK` | сеть контейнеров агентов (`planar_agents`)         |
+| `DOCKER_HOST_SOCKET`      | сокет docker (`/var/run/docker.sock`)              |
+| `PORT`                    | порт (8080)                                        |
 
 ## Сети и egress
 
@@ -53,5 +54,6 @@ AI_AGENT_MAX_REPLICAS=2                       # для api: сколько пр�
 
 ## Ограничения
 
-- `/work` — tmpfs (рабочий каталог агента, размер `AI_RUNNER_TMPFS_MB`). Контекст — `/context/context.json` в анонимном томе `/context` (rootfs read-only): кладётся в созданный контейнер до старта через `putArchive` с `path=/context`; том удаляется вместе с контейнером (`AutoRemove`, DELETE с `v=true`). Проверено на docker 29 (alpine:3.20).
+- `/work` — бинд каталога `<runId>` (права `0777`) из `AI_RUNNER_WORK_DIR`, на диске, объём не ограничен. `AI_RUNNER_WORK_DIR` обязан быть бинд-монтированием контейнера runner'а (в compose — `./ai-work:/ai-work`, каталог рядом с compose.yml): путь на хосте runner берёт из своего `docker inspect`, без монтирования не стартует. Каталог удаляется при DELETE и при ошибке запуска; раз в 10 минут (и при старте) runner удаляет каталоги старше 5 минут, у которых нет контейнера (после `AutoRemove`). `/tmp` — tmpfs 256 МБ.
+- Контекст — `/context/context.json` в анонимном томе `/context` (rootfs read-only): кладётся в созданный контейнер до старта через `putArchive` с `path=/context`; том удаляется вместе с контейнером (`AutoRemove`, DELETE с `v=true`). Проверено на docker 29 (alpine:3.20).
 - Внутри runner'а нет учёта прогонов: состояние — только метки docker; «жнец» зависших контейнеров — на стороне api.

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
   defineMutator,
+  extractMentions,
+  isProjectAdmin,
   MutatorError,
   needProjectAdmin,
   type SharedModuleManifest,
@@ -43,7 +45,25 @@ export const docsLocks = z.object({
   expiresAt: ts,
 });
 
+/** PLNRAPP-209: a comment on a page; a reply — parentId; assigned — assigneeId, resolvedAt (as task comments). */
+export const docsComments = z.object({
+  id: z.uuid(),
+  spaceId: z.uuid(),
+  pageId: z.uuid(),
+  authorId: z.uuid(),
+  parentId: z.uuid().nullable(),
+  body: doc,
+  mentions: z.array(z.uuid()),
+  assigneeId: z.uuid().nullable(),
+  resolvedAt: ts.nullable(),
+  resolvedBy: z.uuid().nullable(),
+  editedAt: ts.nullable(),
+  createdAt: ts,
+  updatedAt: ts,
+});
+
 type Page = z.infer<typeof docsPages>;
+type Comment = z.infer<typeof docsComments>;
 type Link = z.infer<typeof docsTaskLinks>;
 type Lock = z.infer<typeof docsLocks>;
 
@@ -300,6 +320,8 @@ const remove = defineMutator({
     for (const r of [p, ...(await descendants(tx, a.id))].reverse()) {
       for (const l of await t.scan<Link>('docsTaskLinks', { index: 'pageId', eq: r.id }))
         await t.del('docsTaskLinks', l.id);
+      for (const c of await t.scan<Comment>('docsComments', { index: 'pageId', eq: r.id }))
+        await t.del('docsComments', c.id);
       await t.del('docsLocks', r.id);
       await t.del('docsPages', r.id);
     }
@@ -363,9 +385,152 @@ const unlock = defineMutator({
   },
 });
 
+// ---- comments (PLNRAPP-209): rights as for the page — whoever sees it reads, member and above writes (meta.write)
+
+const COMMENT_BODY = 64 * 1024;
+const commentBody = (body: unknown) => {
+  if (JSON.stringify(body).length > COMMENT_BODY)
+    throw new MutatorError('invalid_args', 'комментарий > 64 КБ');
+};
+
+async function comment(tx: Tx, id: string): Promise<Comment> {
+  const c = await dtx(tx).get<Comment>('docsComments', id);
+  if (!c) throw new MutatorError('not_found', 'комментарий не найден');
+  return c;
+}
+
+const roleIn = async (tx: Tx, spaceId: string, userId: string) =>
+  (await tx.scan('spaceMembers', { index: 'spaceId', eq: spaceId })).find((m) => m.userId === userId)
+    ?.role;
+
+/** assigned — to a space member, not a guest (as task comments) */
+async function checkAssignee(tx: Tx, spaceId: string, userId: string) {
+  const r = await roleIn(tx, spaceId, userId);
+  if (!r || r === 'guest') throw new MutatorError('invalid_args', 'исполнитель — не участник пространства');
+}
+
+const commentCreate = defineMutator({
+  name: 'docs.comment.create',
+  args: z.object({
+    id: z.uuid(),
+    pageId: z.uuid(),
+    body: doc,
+    parentId: z.uuid().nullable().optional(),
+    assigneeId: z.uuid().nullable().optional(),
+  }),
+  async run(tx, a, ctx) {
+    const p = await page(tx, a.pageId);
+    if (p.archivedAt) throw new MutatorError('conflict', 'страница в архиве');
+    // any depth: a reply to any comment of this page
+    if (a.parentId && (await comment(tx, a.parentId)).pageId !== p.id)
+      throw new MutatorError('invalid_args', 'ответ — только на комментарий этой страницы');
+    if (a.assigneeId) await checkAssignee(tx, p.spaceId, a.assigneeId);
+    commentBody(a.body);
+    const row: Comment = {
+      id: a.id,
+      spaceId: p.spaceId,
+      pageId: p.id,
+      authorId: ctx.userId,
+      parentId: a.parentId ?? null,
+      body: a.body,
+      mentions: extractMentions(a.body),
+      assigneeId: a.assigneeId ?? null,
+      resolvedAt: null,
+      resolvedBy: null,
+      editedAt: null,
+      createdAt: ctx.now,
+      updatedAt: ctx.now,
+    };
+    await dtx(tx).put('docsComments', row);
+  },
+});
+
+const commentUpdate = defineMutator({
+  name: 'docs.comment.update',
+  args: z.object({ id: z.uuid(), body: doc }),
+  async run(tx, a, ctx) {
+    const c = await comment(tx, a.id);
+    if (c.authorId !== ctx.userId) throw new MutatorError('forbidden', 'не автор');
+    commentBody(a.body);
+    await dtx(tx).patch('docsComments', a.id, {
+      body: a.body,
+      mentions: extractMentions(a.body),
+      editedAt: ctx.now,
+      updatedAt: ctx.now,
+    });
+  },
+});
+
+// the comment with its whole subtree of replies
+const commentDelete = defineMutator({
+  name: 'docs.comment.delete',
+  args: z.object({ id: z.uuid() }),
+  async run(tx, a, ctx) {
+    const c = await comment(tx, a.id);
+    if (c.authorId !== ctx.userId) throw new MutatorError('forbidden', 'не автор');
+    const all = await dtx(tx).scan<Comment>('docsComments', { index: 'pageId', eq: c.pageId });
+    const subtree = [c];
+    for (let i = 0; i < subtree.length; i++)
+      subtree.push(...all.filter((r) => r.parentId === subtree[i]!.id));
+    for (const x of subtree.reverse()) await dtx(tx).del('docsComments', x.id);
+  },
+});
+
+// any comment of a thread; a new assignment reopens it
+const commentAssign = defineMutator({
+  name: 'docs.comment.assign',
+  args: z.object({ id: z.uuid(), assigneeId: z.uuid().nullable() }),
+  async run(tx, a, ctx) {
+    const c = await comment(tx, a.id);
+    if (a.assigneeId) await checkAssignee(tx, c.spaceId, a.assigneeId);
+    await dtx(tx).patch('docsComments', a.id, {
+      assigneeId: a.assigneeId,
+      resolvedAt: null,
+      resolvedBy: null,
+      updatedAt: ctx.now,
+    });
+  },
+});
+
+const commentResolve = defineMutator({
+  name: 'docs.comment.resolve',
+  args: z.object({ id: z.uuid(), resolved: z.boolean() }),
+  async run(tx, a, ctx) {
+    const c = await comment(tx, a.id);
+    if (!c.assigneeId) throw new MutatorError('invalid_args', 'комментарий не назначен');
+    const p = await page(tx, c.pageId);
+    const may =
+      ctx.userId === c.assigneeId ||
+      ctx.userId === c.authorId ||
+      (await isProjectAdmin(tx, p.spaceId, p.projectId, ctx.userId));
+    if (!may) throw new MutatorError('forbidden', 'завершает исполнитель, автор или admin');
+    await dtx(tx).patch('docsComments', a.id, {
+      resolvedAt: a.resolved ? ctx.now : null,
+      resolvedBy: a.resolved ? ctx.userId : null,
+      updatedAt: ctx.now,
+    });
+  },
+});
+
 export const shared: SharedModuleManifest = {
   id: 'docs',
-  mutators: [create, update, move, archive, restore, remove, linkAdd, linkRemove, lock, unlock],
+  mutators: [
+    create,
+    update,
+    move,
+    archive,
+    restore,
+    remove,
+    linkAdd,
+    linkRemove,
+    lock,
+    unlock,
+    commentCreate,
+    commentUpdate,
+    commentDelete,
+    commentAssign,
+    commentResolve,
+  ],
   entities: {
     docsPages: {
       schema: docsPages,
@@ -378,6 +543,10 @@ export const shared: SharedModuleManifest = {
     docsLocks: {
       schema: docsLocks,
       meta: { scope: 'space', write: 'member', bootstrap: true, indexes: [] },
+    },
+    docsComments: {
+      schema: docsComments,
+      meta: { scope: 'space', write: 'member', bootstrap: true, indexes: ['pageId'] },
     },
   },
 };

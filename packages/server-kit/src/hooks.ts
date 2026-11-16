@@ -47,6 +47,8 @@ export interface JobApi {
     opts?: {
       system?: boolean;
       origin?: MutationOrigin | null;
+      /** without notifications (bulk import) */
+      quiet?: boolean;
       prepare?: (q: Q) => Promise<boolean | void>;
       after?: (q: Q, enqueue: ModuleHookApi['enqueue']) => Promise<void>;
     },

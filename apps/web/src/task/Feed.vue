@@ -21,6 +21,8 @@ import CommentThread from './CommentThread.vue';
 import { FEED } from './thread';
 import Editor from './editor/Editor.vue';
 import { useComments, useReactions, useUsers } from './queries';
+import { commentJump } from './jump';
+import { router } from '../router';
 
 const props = defineProps<{ task: TaskView }>();
 const { t, te, locale } = useI18n();
@@ -28,6 +30,12 @@ const { user, isAdmin } = useAuth();
 const comments = useComments(props.task.id);
 const users = useUsers();
 const reactions = useReactions(props.task.id);
+const NO_REACTIONS: Row<'commentReactions'>[] = [];
+const reactionsBy = computed(() => {
+  const m = new Map<string, Row<'commentReactions'>[]>();
+  for (const r of reactions.value ?? []) m.set(r.commentId, [...(m.get(r.commentId) ?? []), r]);
+  return m;
+});
 const members = useMembers(() => props.task.spaceId);
 const labels = useLabels(() => props.task.spaceId);
 // the whole space: a moved task's old status is of another project
@@ -123,9 +131,12 @@ watch(
   () => feed.value.length,
   async () => {
     await nextTick();
+    // while the jump to a comment blinks (PLNRAPP-214), the late rows of the replica keep it in view
+    if (jumpTo?.isConnected) return jumpTo.scrollIntoView({ block: 'center' });
     list.value?.scrollTo({ top: newestFirst.value ? 0 : list.value.scrollHeight });
   },
 );
+let jumpTo: HTMLElement | undefined;
 
 const setDraft = (v: JSONContent | null) => (draft.value = v);
 
@@ -188,6 +199,37 @@ watch(thread, (c) => {
 function openThread(id: string) {
   if (threads.value.at(-1) !== id) threads.value = [...threads.value, id];
 }
+// PLNRAPP-214: ?comment=<id> — unfold the branch, open the thread if needed, scroll to the comment and blink it;
+// the comment may arrive in the replica later (bootstrap in stages) — the watch fires again with the comments
+const root = ref<HTMLElement>();
+const wanted = computed(() => {
+  const q = router.currentRoute.value.query.comment;
+  return typeof q === 'string' ? q : '';
+});
+watch(
+  [wanted, comments],
+  async () => {
+    const id = wanted.value;
+    const j = id && comments.value ? commentJump(comments.value, id) : null;
+    if (!id || !j) return;
+    void router.replace({ query: { ...router.currentRoute.value.query, comment: undefined } });
+    show.value = 'all';
+    folded.value = new Set([...folded.value].filter((x) => !j.unfold.includes(x)));
+    threads.value = j.thread ? [j.thread] : [];
+    await nextTick();
+    // the thread view comes before the (then hidden) feed in the DOM
+    const el = root.value?.querySelector<HTMLElement>(`[data-comment="${id}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: 'center' });
+    el.classList.add('comment-flash');
+    jumpTo = el;
+    setTimeout(() => {
+      el.classList.remove('comment-flash');
+      if (jumpTo === el) jumpTo = undefined;
+    }, 1600);
+  },
+  { immediate: true },
+);
 function closeThread() {
   replyTo.value = null;
   threads.value = threads.value.slice(0, -1);
@@ -202,7 +244,7 @@ provide(FEED, {
   userId: () => user.value?.id,
   names,
   members: memberList,
-  reactions,
+  reactionsOf: (id: string) => reactionsBy.value.get(id) ?? NO_REACTIONS,
   nameOf,
   avatarOf,
   canResolve,
@@ -220,7 +262,7 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
 </script>
 
 <template>
-  <section :aria-label="t('task.activity')" class="flex flex-col gap-3">
+  <section ref="root" :aria-label="t('task.activity')" class="flex flex-col gap-3">
     <div class="flex items-center gap-2">
       <h3 class="flex-1 text-sm font-medium text-fg">{{ t('task.activity') }}</h3>
       <Select

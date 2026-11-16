@@ -65,6 +65,7 @@ const result = (o: Record<string, unknown>) => ({
   escalate: null,
   docs: null,
   emails: null,
+  friction: null,
   ...o,
 });
 

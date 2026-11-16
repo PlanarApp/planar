@@ -115,8 +115,10 @@ export type WorkKind = 'assigned' | 'created' | 'watched';
 
 async function workTasks(kind: WorkKind, uid: string): Promise<Row<'tasks'>[]> {
   const tasks = db.table<Row<'tasks'>>('tasks');
+  // shortcut: no createdBy index — the whole table (getAll, several times faster than a filter() cursor);
+  // the index comes with the next replica schema change (PLNRAPP-252), a core index alone re-bootstraps every client
   if (kind === 'created')
-    return tasks.filter((t) => t.createdBy === uid && !t.archivedAt).toArray();
+    return (await tasks.toArray()).filter((t) => t.createdBy === uid && !t.archivedAt);
   const links = await db
     .table<{ taskId: string }>(kind === 'assigned' ? 'taskAssignees' : 'taskWatchers')
     .where('userId')
@@ -179,14 +181,8 @@ export const useAssignedComments = (userId: () => string | undefined) =>
     const uid = userId();
     if (!uid) return [];
     const [cs, is] = await Promise.all([
-      db
-        .table<Row<'comments'>>('comments')
-        .filter((c) => c.assigneeId === uid)
-        .toArray(),
-      db
-        .table<Row<'checklistItems'>>('checklistItems')
-        .filter((i) => i.assigneeId === uid)
-        .toArray(),
+      db.table<Row<'comments'>>('comments').where('assigneeId').equals(uid).toArray(),
+      db.table<Row<'checklistItems'>>('checklistItems').where('assigneeId').equals(uid).toArray(),
     ]);
     const rows = [
       ...cs.map((c) => ({ ...c, kind: 'comment' as const, closed: !!c.resolvedAt })),

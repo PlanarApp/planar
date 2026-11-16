@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { expect } from 'vitest';
 import { DATA_MODULE_IDS, uuidv7 } from '@planar/shared';
 import { type Db } from '../../src/db/index.js';
@@ -116,7 +117,13 @@ export interface World {
   projectId: string;
 }
 
-/** Space (space.create by admin) + project; member/guest added, outsider — not. */
+/** Adds a module to settings.enabled_modules directly in the DB (PLNRAPP-241: ai also needs the workspace switch). */
+export async function workspaceModule(db: Db, id: string) {
+  await db.execute(sql`insert into settings (id, value, updated_at) values ('enabled_modules', ${JSON.stringify([id])}::jsonb, now())
+    on conflict (id) do update set value = case when settings.value ? ${id} then settings.value else settings.value || excluded.value end`);
+}
+
+/** Space (space.create by admin) + project; member/guest added, outsider — not. Workspace ai is on, like the data modules. */
 export async function world(db: Db): Promise<World> {
   const s = services(db);
   const [a, m, g, o] = await Promise.all(
@@ -142,6 +149,7 @@ export async function world(db: Db): Promise<World> {
     rank: 'a0',
     statusIds,
   });
+  await workspaceModule(db, 'ai');
   return {
     admin,
     member: new TestClient(s, m),

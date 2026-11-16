@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-11-12"
+updated: "2026-11-15"
 summary: "Исследования: вывод, данные, где применено."
 related: []
 generated: true

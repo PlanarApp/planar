@@ -14,7 +14,9 @@ import { FILES_OPTS } from './files/files.controller.js';
 import { storeBuffer, type FilesOpts } from './files/store.js';
 import { executeMutations } from './sync/mutate.js';
 import { DB } from './tokens.js';
+import { ensureRootSpace } from './spaces/root.js';
 import { ensureSystemUser } from './users/system.js';
+import { insertUser } from './users/users.repo.js';
 
 export { CORE };
 
@@ -78,6 +80,15 @@ export class CoreService implements CoreServices, OnModuleInit, OnModuleDestroy 
 
   ensureSystemUser(login: string, name: string) {
     return ensureSystemUser(this.db, login, name);
+  }
+
+  async createUser(login: string, name: string) {
+    const row = await this.db.transaction((q) =>
+      // not an argon2 hash: no sign-in until an admin sets a password
+      insertUser(q, { login, name, role: 'member', passwordHash: '!' }),
+    );
+    await ensureRootSpace(this.db); // like POST /api/users: a member of the Workspace
+    return row.id;
   }
 
   storeFile(buf: Buffer, uploaderId: string, mime?: string) {

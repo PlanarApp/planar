@@ -19,9 +19,16 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - AI agent runs: a live log in the task's «AI» tab and in «AI tasks» — the agent's thinking, tool calls, commands and their shortened output, as in the Claude Code chat. Secrets and tokens are masked by the server; only the last 500 events of a run are kept.
 - Settings → AI and the setup wizard: pick a ready provider (OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek, Mistral, Groq) — the API URL is filled in; «Custom API URL» keeps the manual fields. After the key is entered, the model is picked from the provider's list; typing a name still works.
 - Task merge: «Merge into task…» in the task menu and «Merge…» in the bulk action bar of the list, board and table (2+ selected tasks of one space — mark the target, the others merge into it). Comments, attachments, time, links, subtasks, assignees and watchers move to the target; merged tasks get the «Cancelled» status and the link «duplicates». Mutator `task.merge` takes `ids` and `linkIds` lists.
+- AI harness-retro: the task «harness-retro» (created when the AI is set up in a project, again after a deletion) collects subtasks — what got in the way of a run (the new result field `friction`), results of assignments and chat, admins' answers to the bot («не так», a status rolled back by hand after a run). Every N frictions or every N days the AI groups them and proposes an edit of an instruction of the active pack (or a new action with a rule): a subtask in «Clarify» on an admin with the diff in a comment; the answer in its thread — «применить», «закрыть» or what to redo. Settings → AI → harness-retro: the switch and the frequency.
+- Documents: comments on a page — threads with replies, mentions, assignment to a person and «Resolve», as in tasks; visible to whoever sees the page, written by members. A mention and an assignment notify the person, the link opens the page at the comment.
+- AI in document comments: `@ai` in a comment, a comment assigned to the AI or a reply under its comment starts a run; the AI answers in the thread, edits the page with a patch (a new entry in the version history; only on an assignment, not on pages with mentions) and resolves the assignment. An indicator in the comment shows that the AI is working.
+- Harness pack instructions for the `comment` and `mention` events also apply to page comments.
+- REST `GET|POST /api/v1/docs/:pageId/comments`, `POST …/comments/:id/resolve`, `POST /api/v1/docs/:pageId/patch` and MCP `list_doc_comments`, `add_doc_comment`, `resolve_doc_comment`, `patch_doc`.
 
 ### Changed
 
+- Documents: the «AI chat» panel on a page is removed — page comments replace it.
+- Setup wizard «Adapt with AI» works through an assignment — a page comment assigned to the AI — instead of `api/ai/wizard/adapt`; the AI patches the pack page itself.
 - The key encryption of GitLab, email and AI connections lives in one place (`packages/server-kit`).
 - Settings → AI tasks: when the runner is not set up, a notice says that agent actions will not start and how to turn the runner on.
 

@@ -13,6 +13,7 @@ export default defineProject({
     hookTimeout: 90_000, // afterAll waits for drop database
     maxWorkers: 4,
     sequence: { groupOrder: 1 }, // projects with different maxWorkers need their own group order
+    env: { PLANAR_AI: 'on' }, // PLNRAPP-241: the ai module can be enabled; off-tests delete it themselves
     setupFiles: ['./test/file-db.ts'],
     globalSetup: ['./test/global-setup.ts'],
   },

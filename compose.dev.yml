@@ -49,6 +49,8 @@ services:
       EXTRA_ORIGINS: ${EXTRA_ORIGINS:-http://127.0.0.1:${WEB_PORT:-5173}}
       COOKIE_SECURE: 'false'
       DATA_DIR: /app/data
+      # dev/e2e: the ai module can be enabled (LLM actions need no runner)
+      PLANAR_AI: ${PLANAR_AI:-on}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}

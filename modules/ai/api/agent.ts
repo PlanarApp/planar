@@ -4,7 +4,18 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { decrypt, secretKey, type JobApi, type Q } from '@planar/server-kit';
 import { resolveConnection, secretOf } from './connections.js';
-import { apply, botOf, contextOf, failed, finish, loadTask, md, type Run } from './run.js';
+import { applyDocResult, docContext, docItemOf, docPageOf } from './doc-run.js';
+import {
+  apply,
+  botOf,
+  contextOf,
+  failed,
+  finish,
+  loadTask,
+  md,
+  type DocRunData,
+  type Run,
+} from './run.js';
 
 type Row = Record<string, unknown>;
 const one = async (q: Pick<Q, 'execute'>, s: ReturnType<typeof sql>) =>
@@ -173,60 +184,35 @@ export function codeAssignmentPrompt(mr: TaskMr, ask: string, instruction?: stri
 ${!instruction ? '\nРезультат — в comment: что сделано, ссылка на коммит (если был), статус пайплайна. Меняй задачу (поля, метки, статус, подзадачи, план в описании) только если поручение этого прямо требует. Если без уточнения не обойтись — verdict question.\n' : ''}${ask}`;
 }
 
-/** Starts the container; the run stays `running` until the result, a stop or the reaper. */
-export async function startAgentRun(
+type AgentAction = { key: string; name: string; model: string | null; checks: string[] };
+
+/**
+ * Starts the container of a run (task or page); the run stays `running` until the result, a stop or the reaper.
+ * `context` — what goes to context.json besides runId / action / checks; `fail` — the run's own way to end with a failure.
+ */
+export async function launchAgent(
   api: JobApi,
-  run: Run,
-  prompt: string,
-  ctx: Awaited<ReturnType<typeof contextOf>>,
-  mr?: TaskMr | null,
+  o: {
+    run: { id: string; log: string[] };
+    projectId: string;
+    action: AgentAction;
+    prompt: string;
+    context: object;
+    repo?: Awaited<ReturnType<typeof repoOf>>;
+    fail: (text: string) => Promise<void>;
+  },
 ): Promise<void> {
-  if (!process.env.AI_RUNNER_URL) return apply(api, run, failed('Runner не настроен.'));
-  const { task } = run;
-  // an assignment with the code has no action: the built-in «Поручение»
-  const action = run.action ?? {
-    key: 'assignment',
-    name: 'Поручение',
-    model: null,
-    checks: [] as string[],
-  };
+  const { run, action, repo } = o;
   const secret = randomBytes(32).toString('base64url');
   await api.db.execute(
     sql`update ai_runs set agent_secret_hash = ${sha256(secret)}, started_at = now(), updated_at = now() where id = ${run.id}`,
   );
-  const comments = (
-    await api.db.execute(
-      sql`select * from (select c.id, c.parent_id as "parentId", u.name as author, c.body, c.created_at as "createdAt"
-          from comments c join users u on u.id = c.author_id where c.task_id = ${task.id}
-          order by c.created_at desc limit 100) x order by "createdAt"`,
-    )
-  ).rows.map((c) => ({ ...c, body: md(c.body) }));
-  const repo = await repoOf(api.db, run);
-  const conn = await resolveConnection(api.db, task.projectId);
+  const conn = await resolveConnection(api.db, o.projectId);
   const context = JSON.stringify({
     runId: run.id,
-    repo: repo && { url: repo.url, path: repo.path },
-    task: {
-      id: task.id,
-      key: task.key,
-      title: task.title,
-      description: md(task.description),
-      status: ctx.statuses.find((s) => s.id === task.statusId)?.name ?? null,
-      comments,
-    },
-    action: { key: action.key, name: action.name, prompt },
+    ...o.context,
+    action: { key: action.key, name: action.name, prompt: o.prompt },
     checks: action.checks,
-    ...(mr && {
-      mr: { iid: mr.iid, title: mr.title, sourceBranch: mr.sourceBranch, webUrl: mr.webUrl },
-    }),
-    ...(run.kind !== 'action' &&
-      run.item && {
-        assignment: {
-          kind: run.kind,
-          id: run.item.id,
-          text: run.kind === 'checklist' ? (run.item.text as string) : md(run.item.body),
-        },
-      }),
   });
   const apiUrl = process.env.PLANAR_API_URL ?? 'http://api:3000';
   const proxy = process.env.AI_AGENT_PROXY_URL ?? 'http://squid:3128';
@@ -262,7 +248,7 @@ export async function startAgentRun(
     });
     if (res.status !== 201) {
       run.log.push(`runner: ${res.status}`);
-      return await apply(api, run, failed('Не удалось запустить агента: runner отказал.'));
+      return await o.fail('Не удалось запустить агента: runner отказал.');
     }
     const { containerId } = (await res.json()) as { containerId?: string };
     await api.db.execute(
@@ -274,8 +260,65 @@ export async function startAgentRun(
   } catch {
     run.log.push('runner: недоступен');
     await stopAgent(api.db, run.id);
-    await apply(api, run, failed('Не удалось запустить агента: runner недоступен.'));
+    await o.fail('Не удалось запустить агента: runner недоступен.');
   }
+}
+
+/** Starts the container of a task run. */
+export async function startAgentRun(
+  api: JobApi,
+  run: Run,
+  prompt: string,
+  ctx: Awaited<ReturnType<typeof contextOf>>,
+  mr?: TaskMr | null,
+): Promise<void> {
+  if (!process.env.AI_RUNNER_URL) return apply(api, run, failed('Runner не настроен.'));
+  const { task } = run;
+  // an assignment with the code has no action: the built-in «Поручение»
+  const action = run.action ?? {
+    key: 'assignment',
+    name: 'Поручение',
+    model: null,
+    checks: [] as string[],
+  };
+  const comments = (
+    await api.db.execute(
+      sql`select * from (select c.id, c.parent_id as "parentId", u.name as author, c.body, c.created_at as "createdAt"
+          from comments c join users u on u.id = c.author_id where c.task_id = ${task.id}
+          order by c.created_at desc limit 100) x order by "createdAt"`,
+    )
+  ).rows.map((c) => ({ ...c, body: md(c.body) }));
+  const repo = await repoOf(api.db, run);
+  await launchAgent(api, {
+    run,
+    projectId: task.projectId,
+    action,
+    prompt,
+    repo,
+    fail: (text) => apply(api, run, failed(text)),
+    context: {
+      repo: repo && { url: repo.url, path: repo.path },
+      task: {
+        id: task.id,
+        key: task.key,
+        title: task.title,
+        description: md(task.description),
+        status: ctx.statuses.find((s) => s.id === task.statusId)?.name ?? null,
+        comments,
+      },
+      ...(mr && {
+        mr: { iid: mr.iid, title: mr.title, sourceBranch: mr.sourceBranch, webUrl: mr.webUrl },
+      }),
+      ...(run.kind !== 'action' &&
+        run.item && {
+          assignment: {
+            kind: run.kind,
+            id: run.item.id,
+            text: run.kind === 'checklist' ? (run.item.text as string) : md(run.item.body),
+          },
+        }),
+    },
+  });
 }
 
 /**
@@ -317,6 +360,11 @@ export async function loadRun(api: JobApi, id: string): Promise<Run | undefined>
 /** The result of the container, or a failure from the reaper, through the common apply. */
 export async function finishAgent(api: JobApi, id: string, r: Parameters<typeof apply>[2]) {
   try {
+    const pg = await one(
+      api.db,
+      sql`select page_id as "pageId", kind, item_id as "itemId" from ai_runs where id = ${id}::uuid`,
+    );
+    if (pg?.pageId) return await finishDoc(api, id, pg, r);
     const run = await loadRun(api, id);
     if (!run)
       return void (await finish(
@@ -339,6 +387,24 @@ export async function finishAgent(api: JobApi, id: string, r: Parameters<typeof 
   } finally {
     // the container is removed whatever the outcome (stopAgent never throws)
     await stopAgent(api.db, id);
+  }
+}
+
+/** The result of a page run: the same patch + reply + resolve as in the llm path; a gone page / comment — failed. */
+async function finishDoc(api: JobApi, id: string, pg: Row, r: Parameters<typeof apply>[2]) {
+  const d = { kind: pg.kind, pageId: pg.pageId, itemId: pg.itemId } as DocRunData;
+  const run = { id, log: [] as string[] };
+  const bot = await botOf(api);
+  const page = await docPageOf(api.db, d.pageId);
+  const item = await docItemOf(api.db, d);
+  if (!bot || !page?.projectId || !item)
+    return void (await finish(api.db, run, 'failed', 'страница удалена'));
+  try {
+    const { rootId } = await docContext(api.db, d, page, item, page.projectId as string);
+    await applyDocResult(api, run, d, bot, rootId, item, r);
+  } catch (e) {
+    await finish(api.db, run, 'failed', `ошибка: ${e instanceof Error ? e.message : String(e)}`);
+    throw e;
   }
 }
 

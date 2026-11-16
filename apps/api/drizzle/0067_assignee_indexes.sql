@@ -1,0 +1,2 @@
+CREATE INDEX "checklist_items_assignee_id_index" ON "checklist_items" USING btree ("assignee_id");--> statement-breakpoint
+CREATE INDEX "comments_assignee_id_index" ON "comments" USING btree ("assignee_id");

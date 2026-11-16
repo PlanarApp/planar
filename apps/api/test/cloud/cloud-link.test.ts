@@ -43,6 +43,22 @@ const cloud = createServer((rq, rs) => {
       rs.writeHead(422, { 'content-type': 'application/json' });
       return void rs.end(JSON.stringify({ statusMessage: 'dns_missing', data: '203.0.113.5' }));
     }
+    if (rq.url === '/api/link/egress') {
+      const { domains } = JSON.parse(body) as { domains: string[] | null };
+      if (domains?.includes('bad')) {
+        rs.writeHead(400, { 'content-type': 'application/json' });
+        return void rs.end(JSON.stringify({ statusMessage: 'invalid_domain', data: 'bad' }));
+      }
+      state.egress = domains ? { mode: 'allowlist', domains } : { mode: 'open', domains: [] };
+    }
+    if (rq.url === '/api/link/ai') {
+      const { enabled } = JSON.parse(body) as { enabled: boolean };
+      if (enabled && state.aiReplicas === null) {
+        rs.writeHead(409, { 'content-type': 'application/json' });
+        return void rs.end(JSON.stringify({ statusMessage: 'paid_only' }));
+      }
+      state.ai = enabled;
+    }
     rs.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(state));
   });
 });
@@ -112,6 +128,61 @@ describe('cloud-link', () => {
     expect(r.statusCode).toBe(400);
     expect(r.json().details).toEqual({ cloud: 'dns_missing', data: '203.0.113.5' });
     expect(JSON.parse(seen.at(-1)!.body!)).toEqual({ host: 'x.example.com' });
+  });
+
+  it('PLNRAPP-242 egress: облако без поля — open; список и open уходят в облако; ошибка — кодом', async () => {
+    expect((await req('GET', '/api/cloud', { cookie: owner })).json().egress).toEqual({
+      mode: 'open',
+      domains: [],
+    });
+    const r = await req('POST', '/api/cloud/egress', {
+      cookie: owner,
+      body: { domains: ['gitlab.com', '.npmjs.org'] },
+    });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().egress).toEqual({ mode: 'allowlist', domains: ['gitlab.com', '.npmjs.org'] });
+    const open = await req('POST', '/api/cloud/egress', { cookie: owner, body: { domains: null } });
+    expect(open.json().egress).toEqual({ mode: 'open', domains: [] });
+    const bad = await req('POST', '/api/cloud/egress', {
+      cookie: owner,
+      body: { domains: ['bad'] },
+    });
+    expect([bad.statusCode, bad.json().details.cloud]).toEqual([400, 'invalid_domain']);
+    const big = { domains: Array.from({ length: 101 }, (_, i) => `d${i}.com`) };
+    expect((await req('POST', '/api/cloud/egress', { cookie: owner, body: big })).statusCode).toBe(
+      400,
+    );
+    delete state.egress;
+  });
+
+  it('cloud-link v2: облако без полей тарифа — ИИ выкл, без надбавок; тариф и переключение ИИ — из облака', async () => {
+    expect((await req('GET', '/api/cloud', { cookie: owner })).json()).toMatchObject({
+      ai: false,
+      aiReplicas: null,
+      aiPaid: false,
+      llm: null,
+      addons: { ai: [], credits: [] },
+    });
+    Object.assign(state, {
+      aiReplicas: 1,
+      llm: { key: 'k', credits: 4.5, models: [{ id: 'm', protocol: 'openai', in: 1, out: 4 }] },
+      addons: {
+        ai: [{ replicas: 3, usd: 13, checkout: { paddle: 'https://pay.test/ai3' } }],
+        credits: [{ credits: 8, usd: 10, checkout: {} }],
+      },
+    });
+    const on = await req('POST', '/api/cloud/ai', { cookie: owner, body: { enabled: true } });
+    expect(on.statusCode).toBe(200);
+    expect(on.json()).toMatchObject({ ai: true, aiReplicas: 1, llm: { key: 'k', credits: 4.5 } });
+    expect(on.json().llm.models).toEqual([{ id: 'm', protocol: 'openai', in: 1, out: 4 }]);
+    expect(on.json().llm.baseUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/llm\/v1$/);
+    expect(on.json().addons.ai[0].checkout.paddle).toBe('https://pay.test/ai3');
+    expect(JSON.parse(seen.at(-1)!.body!)).toEqual({ enabled: true });
+    state.aiReplicas = null;
+    const paid = await req('POST', '/api/cloud/ai', { cookie: owner, body: { enabled: true } });
+    expect([paid.statusCode, paid.json().details.cloud]).toEqual([400, 'paid_only']);
+    expect((await req('POST', '/api/cloud/ai', { cookie: owner, body: {} })).statusCode).toBe(400);
+    for (const k of ['ai', 'aiReplicas', 'llm', 'addons']) delete state[k];
   });
 
   it('handoff для админа облака: только с CLOUD_TOKEN, токен входит владельцем', async () => {

@@ -41,6 +41,7 @@ vi.mock('../../views/open', async (orig) => ({
 }));
 
 const InboxScreen = (await import('../../screens/InboxScreen.vue')).default;
+const BellMenu = (await import('../BellMenu.vue')).default;
 const MyDay = (await import('../MyDay.vue')).default;
 const DayOptions = (await import('../DayOptions.vue')).default;
 const { useTaskFilter } = await import('../../views/saved/useFilter');
@@ -240,6 +241,44 @@ describe('inbox:list', () => {
     await vi.waitFor(async () =>
       expect((await db.table('notifications').toArray()).every((n) => n.readAt)).toBe(true),
     );
+  });
+  it('PLNRAPP-247 тысячи карточек — по 100, «ещё N» догружает', async () => {
+    await db
+      .table('notifications')
+      .bulkPut(
+        Array.from({ length: 130 }, () =>
+          note(uuidv7(), null as never, { kind: 'chat_dm', body: 'Bob: привет' }),
+        ),
+      );
+    const w = mount(InboxScreen, { global: g });
+    await vi.waitFor(() => expect(w.findAll('[data-testid=inbox-item]')).toHaveLength(100));
+    expect(w.find('[data-testid=inbox-more]').text()).toBe(ru.inbox.more.replace('{n}', '30'));
+    await w.find('[data-testid=inbox-more]').trigger('click');
+    await vi.waitFor(() => expect(w.findAll('[data-testid=inbox-item]')).toHaveLength(130));
+    expect(w.find('[data-testid=inbox-more]').exists()).toBe(false);
+  });
+  it('PLNRAPP-247 колокольчик «прочитать все» — одной мутацией, отложенное остаётся', async () => {
+    await seed();
+    const [a, b, c] = [uuidv7(), uuidv7(), uuidv7()];
+    await db.table('notifications').bulkPut([note(a, t1), note(b, t2), note(c, t2)]);
+    snoozed.value = { [c]: new Date(Date.now() + 36e5).toISOString() };
+    const w = mount(
+      defineComponent({ render: () => h(TooltipProvider, null, () => h(BellMenu)) }),
+      { global: g, attachTo: document.body },
+    );
+    await vi.waitFor(() => expect(w.find('[data-testid=bell-count]').text()).toBe('2'));
+    await w.find('[data-testid=bell]').trigger('click');
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-testid=bell-read-all]')).toBeTruthy(),
+    );
+    (document.querySelector('[data-testid=bell-read-all]') as HTMLElement).click();
+    await vi.waitFor(async () => {
+      const [na, nb, nc] = await db.table('notifications').bulkGet([a, b, c]);
+      expect([!!na.readAt, !!nb.readAt, !!nc.readAt]).toEqual([true, true, false]);
+    });
+    expect((await db.table('_queue').toArray()).map((q) => q.name)).toEqual([
+      'notification.readAll',
+    ]);
   });
   it('inbox:list отложенное скрыто до времени', async () => {
     await seed();

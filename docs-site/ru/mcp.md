@@ -65,4 +65,11 @@ Claude Desktop и другие клиенты с `mcp.json`:
 - `update_task {task, …, fields?}` — как `PATCH /api/v1/tasks/:task`, `fields` — `{<fieldId>: значение | null}`;
 - `add_comment {task, text}` — `@login` становится упоминанием.
 
+Комментарии и правки страниц документов (см. [ИИ в документах](/ru/ai-in-documents)):
+
+- `list_doc_comments {pageId}` (чтение) — комментарии страницы `{id, parentId, authorId, text, assigneeId, resolved, createdAt}`;
+- `add_doc_comment {pageId, text, parentId?, assigneeId?}` — комментарий (`@login` — упоминание); `parentId` — ответ в ветку, `assigneeId` — назначить;
+- `resolve_doc_comment {pageId, id}` — отметить назначенный комментарий выполненным;
+- `patch_doc {pageId, edits}` — точечные правки страницы `[{find, replace, all?}]` по её markdown; `find` — ровно одно вхождение (или `all`). Ошибки: `patch_not_found`, `patch_ambiguous`, `patch_mentions`.
+
 Ответ — компактный JSON в текстовом блоке; `description` — простой текст. Ошибки (`forbidden`, `not_found`, `invalid_request`, `conflict`) приходят как результат инструмента с `isError: true` и телом `{code, message}`. Токен `read` на запись даёт `forbidden`. Без токена, с отозванным или просроченным — HTTP `401`.
