@@ -24,6 +24,7 @@ import {
 import {
   actionSchema,
   EMPTY_FILTER,
+  PIPELINE_STATUSES,
   triggerSchema,
   type Action,
   type Rule,
@@ -157,6 +158,7 @@ const setActionType = (i: number, type: Action['type']) =>
   (draft.value!.actions[i] = blankAction(type));
 const addAction = () => draft.value!.actions.push(blankAction('add_comment'));
 const optional = (a: string[]) => (a.length ? a : undefined);
+const MR_STATES = ['opened', 'merged'] as const;
 const opts = (list: { v: string; l: string }[]) => list.map((o) => ({ value: o.v, label: o.l }));
 const names = <T extends string>(list: readonly T[], dict: Record<string, string>) =>
   list.map((x) => ({ value: x, label: dict[x]! }));
@@ -394,6 +396,31 @@ const setValue = (i: number, raw: string) => {
             @update:model-value="(v) => (t.tz = v.trim() || undefined)"
           />
         </template>
+        <template v-if="draft.trigger.type === 'mr.pipeline'">
+          <div data-role="trigger-mr">
+            <Select
+              :model-value="t.mr as string"
+              :label="tx.mr"
+              :options="names(MR_STATES, tx.mrStates)"
+              @update:model-value="(v) => (t.mr = v)"
+            />
+          </div>
+          <div class="flex flex-wrap items-center gap-3 text-sm" data-role="trigger-pipeline">
+            {{ tx.pipeline }}
+            <label v-for="p in PIPELINE_STATUSES" :key="p" class="flex items-center gap-1">
+              <input
+                type="checkbox"
+                :checked="ids(t.pipeline).includes(p)"
+                @change="
+                  t.pipeline = ($event.target as HTMLInputElement).checked
+                    ? [...ids(t.pipeline), p]
+                    : ids(t.pipeline).filter((x) => x !== p)
+                "
+              />
+              {{ tx.pipelineStatuses[p] }}
+            </label>
+          </div>
+        </template>
         <label
           v-if="
             draft.trigger.type === 'task.field_changed' || draft.trigger.type === 'comment.added'
@@ -490,6 +517,16 @@ const setValue = (i: number, raw: string) => {
               />
             </div>
             <span v-else class="text-sm text-fg-muted">{{ tx.noAiActions }}</span>
+            <Input
+              v-if="aiActions.length"
+              :model-value="String(a.maxRuns ?? '')"
+              type="number"
+              min="1"
+              max="20"
+              :label="tx.maxRuns"
+              data-role="max-runs"
+              @update:model-value="(v) => (a.maxRuns = v === '' ? undefined : Number(v))"
+            />
           </template>
           <IconButton :icon="X" :label="tx.delete" size="sm" @click="draft.actions.splice(i, 1)" />
         </div>

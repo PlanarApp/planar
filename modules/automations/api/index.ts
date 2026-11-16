@@ -109,6 +109,17 @@ function eventsOf(writes: MutationWrite[]): Event[] {
         commentId: a.id as string,
         match: (t) => t.type === 'comment.added',
       });
+    } else if (w.entity === 'gitlabMrs' && w.op === 'put' && a) {
+      // PLNRAPP-205: the MR's pipeline came to a new status (or the MR to a new state with a status)
+      const st = a.pipelineStatus as string | null | undefined;
+      if (!st || (b && b.pipelineStatus === st && b.state === a.state)) continue;
+      out.push({
+        taskId: a.taskId as string,
+        match: (t) =>
+          t.type === 'mr.pipeline' &&
+          t.mr === a.state &&
+          (t.pipeline as readonly string[]).includes(st),
+      });
     }
   }
   return out;

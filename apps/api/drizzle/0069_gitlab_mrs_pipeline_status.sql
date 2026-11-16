@@ -1,0 +1,1 @@
+ALTER TABLE "gitlab_mrs" ADD COLUMN "pipeline_status" text;

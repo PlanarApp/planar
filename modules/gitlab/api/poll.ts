@@ -17,6 +17,10 @@ const KEY_SRC = '\\b([A-Z][A-Z0-9]{1,9})-(\\d+)\\b';
 const DAY = 86_400_000;
 const INTERVAL_MS = 120_000;
 const MAX_RETRY_AFTER_SEC = 300;
+/** PLNRAPP-205: no pipeline of the merge on the target branch this long after the merge — deploy skipped */
+const DEPLOY_WAIT_MS = 10 * 60_000;
+/** pipeline statuses after which it does not change by itself; others are fetched again on every poll */
+const FINAL = ['success', 'failed', 'canceled', 'skipped', 'manual'];
 
 class Unauthorized extends Error {}
 /** 429 without a successful retry: the project waits for the next tick */
@@ -36,6 +40,13 @@ interface GlMr {
   web_url: string;
   updated_at: string;
   author?: { name?: string; username?: string } | null;
+  target_branch?: string;
+  sha?: string | null;
+  merge_commit_sha?: string | null;
+  squash_commit_sha?: string | null;
+  merged_at?: string | null;
+  /** only in GET of one MR */
+  head_pipeline?: { status?: string } | null;
 }
 
 /** Deterministic uuid of a row (job, GitLab project, iid): a repeated poll does not create rows. */
@@ -135,7 +146,42 @@ export async function createBranch(
   return { webUrl: made.web_url };
 }
 
-async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr) {
+/**
+ * PLNRAPP-205: pipeline status of an MR. Open — of its head pipeline (GET of the MR); merged — of the target
+ * branch pipeline with the merge commit (deploy): cancelled by a newer commit (auto_cancel) — of the newest one
+ * on the branch; none for DEPLOY_WAIT_MS after the merge — `skipped`. undefined — not tracked (closed, old).
+ */
+async function pipelineOf(
+  token: string,
+  c: typeof P.$inferSelect,
+  mr: GlMr,
+): Promise<string | null | undefined> {
+  const repo = `${apiBase(c.baseUrl)}/projects/${c.gitlabProjectId}`;
+  if (mr.state === 'opened') {
+    const full =
+      'head_pipeline' in mr
+        ? mr
+        : ((await (await get(`${repo}/merge_requests/${mr.iid}`, token)).json()) as GlMr);
+    return full.head_pipeline?.status ?? null;
+  }
+  if (mr.state !== 'merged' || !mr.merged_at || !mr.target_branch) return undefined;
+  const age = Date.now() - new Date(mr.merged_at).getTime();
+  if (age > DAY) return undefined;
+  const sha = mr.merge_commit_sha ?? mr.squash_commit_sha ?? mr.sha;
+  const last = async (q: Record<string, string>) => {
+    const qs = new URLSearchParams({ ref: mr.target_branch!, per_page: '1', ...q });
+    const list = (await (await get(`${repo}/pipelines?${qs}`, token)).json()) as {
+      status: string;
+    }[];
+    return list[0]?.status;
+  };
+  let status = sha ? await last({ sha }) : undefined;
+  if (status === 'canceled') status = await last({ updated_after: mr.merged_at });
+  return status ?? (age > DEPLOY_WAIT_MS ? 'skipped' : null);
+}
+
+/** With `token`: the pipeline status of an MR linked to tasks is fetched too (PLNRAPP-205). */
+async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr, token?: string) {
   const { projectId, gitlabProjectId } = c;
   const found = new Map<string, string>();
   for (const [key, number] of keysOf(mr)) {
@@ -153,6 +199,8 @@ async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr) {
     );
     if (!had.rows.length) return;
   }
+  let pipelineStatus: string | null | undefined;
+  if (token && found.size) pipelineStatus = await pipelineOf(token, c, mr);
   await api.execute(
     api.systemUserId,
     [
@@ -169,6 +217,7 @@ async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr) {
             authorName: mr.author?.name ?? mr.author?.username ?? '',
             webUrl: mr.web_url,
             mrUpdatedAt: new Date(mr.updated_at).toISOString(),
+            ...(pipelineStatus !== undefined && { pipelineStatus }),
           },
           links: [...found.keys()].map((taskId) => ({
             id: mrRowId(taskId, gitlabProjectId, mr.iid),
@@ -186,6 +235,7 @@ async function pollProject(api: JobApi, token: string, p: typeof P.$inferSelect)
   const after = p.cursor
     ? new Date(p.cursor).toISOString()
     : new Date(Date.now() - 30 * DAY).toISOString();
+  const seen = new Set<number>();
   let page = '1';
   while (page) {
     const url =
@@ -199,13 +249,40 @@ async function pollProject(api: JobApi, token: string, p: typeof P.$inferSelect)
       });
     const res = await get(url, token);
     const mrs = (await res.json()) as GlMr[];
-    for (const mr of mrs) await syncMr(api, p, mr);
+    for (const mr of mrs) {
+      await syncMr(api, p, mr, token);
+      seen.add(mr.iid);
+    }
     const last = mrs.at(-1);
     if (last) {
       const cursor = new Date(last.updated_at).toISOString();
       await api.db.update(P).set({ cursor }).where(eq(P.id, p.id));
     }
     page = res.headers.get('x-next-page') ?? '';
+  }
+  // PLNRAPP-205: a pipeline does not touch the MR's updated_at — unfinished ones are fetched again
+  const pending = await api.db.execute(
+    sql`select distinct m.iid from gitlab_mrs m join tasks t on t.id = m.task_id
+        where m.gitlab_project_id = ${p.gitlabProjectId} and t.project_id = ${p.projectId}
+          and (m.pipeline_status is null or m.pipeline_status not in (${sql.join(
+            FINAL.map((x) => sql`${x}`),
+            sql`, `,
+          )}))
+          and ((m.state = 'opened' and m.mr_updated_at > now() - interval '7 days')
+            or (m.state = 'merged' and m.mr_updated_at > now() - interval '1 day'))`,
+  );
+  for (const r of pending.rows as { iid: number }[]) {
+    if (seen.has(r.iid)) continue;
+    let mr: GlMr;
+    try {
+      mr = (await (
+        await get(`${base}/projects/${p.gitlabProjectId}/merge_requests/${r.iid}`, token)
+      ).json()) as GlMr;
+    } catch (e) {
+      if (e instanceof HttpFail && e.status === 404) continue; // the MR is gone: the rows stay as they are
+      throw e;
+    }
+    await syncMr(api, p, mr, token);
   }
 }
 

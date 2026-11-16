@@ -22,6 +22,12 @@ export const gitlabMrs = z.object({
   authorName: z.string(),
   webUrl: z.string(),
   mrUpdatedAt: ts,
+  /**
+   * PLNRAPP-205: status of the MR's head pipeline while it is open; after the merge — of the target branch
+   * pipeline with the merge (deploy), `skipped` — none came. null — not known yet.
+   * default: replica rows cached before the column
+   */
+  pipelineStatus: z.string().max(40).nullable().default(null),
   createdAt: ts,
   updatedAt: ts,
 });
@@ -54,14 +60,19 @@ export const mutators = [
       projectId: id,
       gitlabProjectId: z.number().int(),
       iid: z.number().int(),
-      mr: gitlabMrs.pick({
-        title: true,
-        sourceBranch: true,
-        state: true,
-        authorName: true,
-        webUrl: true,
-        mrUpdatedAt: true,
-      }),
+      mr: gitlabMrs
+        .pick({
+          title: true,
+          sourceBranch: true,
+          state: true,
+          authorName: true,
+          webUrl: true,
+          mrUpdatedAt: true,
+        })
+        .extend({
+          // absent — not fetched in this poll: kept, but reset when the MR changes its state
+          pipelineStatus: z.string().max(40).nullable().optional(),
+        }),
       links: z.array(z.object({ id, taskId: id })).max(50),
     }),
     // writing to gitlabMrs (write: server) is available only to system; for the client — forbidden
@@ -83,7 +94,13 @@ export const mutators = [
         const task = await tx.get('tasks', l.taskId);
         if (!task || task.projectId !== a.projectId) continue;
         const prev = old.find((r) => r.taskId === l.taskId);
-        const row = { ...a.mr, title: a.mr.title.slice(0, 500) };
+        const pipelineStatus =
+          a.mr.pipelineStatus !== undefined
+            ? a.mr.pipelineStatus
+            : prev && prev.state === a.mr.state
+              ? (prev.pipelineStatus ?? null)
+              : null;
+        const row = { ...a.mr, title: a.mr.title.slice(0, 500), pipelineStatus };
         const same =
           prev &&
           prev.title === row.title &&
@@ -91,6 +108,7 @@ export const mutators = [
           prev.state === row.state &&
           prev.authorName === row.authorName &&
           prev.webUrl === row.webUrl &&
+          (prev.pipelineStatus ?? null) === row.pipelineStatus &&
           sameInstant(prev.mrUpdatedAt, row.mrUpdatedAt);
         if (!same)
           await t.put(E('gitlabMrs'), {
