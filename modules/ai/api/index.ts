@@ -33,6 +33,13 @@ export { MAX_RESTARTS } from '../shared/index.js';
 export { parseInstructionPage } from './harness.js';
 export { aiPackTools } from './pack-tools.js';
 export {
+  aikbSections,
+  core as aikbCore,
+  detail,
+  type McpToolMeta,
+  type Section,
+} from './aikb/index.js';
+export {
   catalogTitle,
   packPages,
   parsePack,

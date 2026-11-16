@@ -6,6 +6,7 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ### Added
 
+- AI knows Planar itself: every AI run (task actions, agent, chat, page comments) gets a short block with link templates built from `PUBLIC_URL` and the main entities, so it answers with ready links instead of ids; details by section — the MCP tool `ai_kb` (MCP tools, runs, automations, permissions, views, recipes), the tool list is generated from the registry.
 - REST `/api/v1` and MCP: project settings (statuses, labels, fields, automations, AI actions, project, modules), filters `labelId`/`priority`/`dueBefore`/`dueAfter`/`unassigned`/`archived` in `GET /tasks` and `search_tasks`, batches `POST /api/v1/tasks/batch` (`dryRun`), and the tool `search_docs_site`.
 - Harness packs and AI event bindings through a `write` token of a project admin (REST `api/ai/packs`, `api/ai/harness`; MCP `ai_*`); AI connections and limits stay session-only.
 - Personal AI chat: answers from the documentation, sets up a project (rules, AI actions, statuses, labels, fields, packs, modules) and processes tasks in bulk, always with the author's permissions and only after a «yes» to the list of changes. Limits: `AI_CHAT_MAX_STEPS` (10) and `AI_CHAT_MAX_TOKENS` (100000).

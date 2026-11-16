@@ -13,6 +13,7 @@ generated: true
 Файл собран `docs index` — руками не править.
 
 - ai10: ai10-runner v3 — [docs/contracts/ai10.md](../contracts/ai10.md)
+- aikb: aikb-section v1, aikb-urls v1 — [docs/contracts/aikb.md](../contracts/aikb.md)
 - core: C-schema v17, C-sync v2, C-mutators v14, C-modules v12, C-http v12 — [docs/contracts/core.md](../contracts/core.md)
 - design: C-ui v5 — [docs/contracts/design.md](../contracts/design.md)
 - docai: docai-run v2, docai-patch v1 — [docs/contracts/docai.md](../contracts/docai.md)

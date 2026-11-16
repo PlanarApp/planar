@@ -159,6 +159,7 @@ describe('MCP /mcp', () => {
     'ai_apply_pack',
     'search_docs_site',
     'ai_set_pack_events',
+    'ai_kb',
   ];
 
   it('initialize и tools/list: каждой операции REST v1 есть инструмент MCP, схемы — object', async () => {
@@ -173,6 +174,17 @@ describe('MCP /mcp', () => {
       [...new Set([...Object.values(PARITY), ...MCP_ONLY])].sort(),
     );
     for (const t of tools) expect(t.inputSchema.type).toBe('object');
+    await c.close();
+  });
+
+  it('ai_kb: список разделов, текст раздела, неизвестный раздел', async () => {
+    const c = await connect(write.secret);
+    const [e1, list] = await call(c, 'ai_kb');
+    expect([e1, list]).toEqual([false, expect.stringContaining('entities — ')]);
+    const [e2, body] = await call(c, 'ai_kb', { section: 'mcp' });
+    expect([e2, body]).toEqual([false, expect.stringContaining('- ai_kb — ')]);
+    const [e3] = await call(c, 'ai_kb', { section: 'nope' });
+    expect(e3).toBe(true);
     await c.close();
   });
 

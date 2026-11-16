@@ -5,7 +5,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { encrypt, secretKey } from '@planar/server-kit';
-import { uuidv7 } from '@planar/shared';
+import { appUrl, uuidv7 } from '@planar/shared';
 import {
   EMAILS_PER_HOUR,
   MAX_CHAIN,
@@ -339,8 +339,15 @@ describe('прогон по правилу', () => {
         moveTo: 'todo',
       }),
     ];
+    process.env.PUBLIC_URL = 'https://kb.example';
     await w.admin.ok('task.update', { id: t, statusId: S.backlog });
     await drain();
+    // the knowledge block (KB-12)
+    expect(calls[0]!.system).toContain('Planar knowledge');
+    expect(calls[0]!.system).toContain(
+      appUrl('https://kb.example', { kind: 'task', key: '<KEY>' }),
+    );
+    expect(calls[0]!.system).not.toContain('poprygun');
     // the prompt: the instruction from the docs page, the checks, the task
     expect(calls[0]!.system).toContain('Проверь задачу и составь план.');
     expect(calls[0]!.system).toContain('план конечен');

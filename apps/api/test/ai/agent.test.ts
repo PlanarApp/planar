@@ -5,7 +5,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { encrypt, secretKey } from '@planar/server-kit';
-import { uuidv7 } from '@planar/shared';
+import { appUrl, uuidv7 } from '@planar/shared';
 import type { JobApi } from '../../src/modules/hooks.js';
 import { installed } from '../../src/modules/installed.js';
 import { PushQueue } from '../../src/push/push.js';
@@ -966,10 +966,16 @@ describe('agent: поручения из комментариев на зада�
       body: say('проверь CI'),
       assigneeId: bot,
     });
+    process.env.PUBLIC_URL = 'https://kb.example';
     const r = await runQueued(t);
     expect(r.run).toMatchObject({ state: 'running', action_id: actionId });
     const ctx = JSON.parse(r.post!.body.context);
     expect(ctx.action).toMatchObject({ name: 'Агент' });
+    expect(ctx.action.prompt).toContain('Planar knowledge');
+    expect(ctx.action.prompt).toContain(
+      appUrl('https://kb.example', { kind: 'task', key: '<KEY>' }),
+    );
+    expect(ctx.action.prompt).not.toContain('poprygun');
     expect(ctx.action.prompt).toContain('Сделай работу.');
     expect(ctx.action.prompt).toContain('проверь CI');
     expect(ctx.checks).toEqual(['тесты зелёные']);
