@@ -14,7 +14,7 @@ import { onReplicaChange, type ReplicaChange } from '../sync';
 import { useExtensions } from './registry';
 import type { ActivitySourceDef, WorkActivity } from './types';
 
-/** Polling while something runs. */
+/** Polling while something runs or waits in the queue. */
 export const ACTIVITY_POLL_MS = 3000;
 /** After a change of the replica a run may start a moment later (the queue): poll this long anyway. */
 export const ACTIVITY_GRACE_MS = 10_000;
@@ -30,8 +30,11 @@ const RELEVANT: Record<ActivitySourceDef['entity'], string[]> = {
   pages: ['docsComments'],
 };
 
-const RANK = { running: 0, waiting_human: 1, failed: 2 } as const;
-/** The most telling work of an item (running first, then waiting, then the error); undefined itemId — of all. */
+const RANK = { running: 0, queued: 1, waiting_human: 2, failed: 3 } as const;
+/**
+ * The most telling work of an item (running first, then queued, then waiting, then the error); undefined itemId —
+ * of all.
+ */
 export function activityOf(
   list: readonly Activity[],
   itemId?: string | null,
@@ -91,7 +94,10 @@ export function useActivity(
     );
     if (!alive || my !== seq) return;
     items.value = got.flat();
-    if (items.value.some((a) => a.state === 'running') || Date.now() < graceUntil)
+    if (
+      items.value.some((a) => a.state === 'running' || a.state === 'queued') ||
+      Date.now() < graceUntil
+    )
       timer = setTimeout(load, ACTIVITY_POLL_MS);
   }
 

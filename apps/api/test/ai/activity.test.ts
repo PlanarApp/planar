@@ -2,6 +2,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { loginCookie, ORIGIN } from '../auth.js';
+import { ensureSystemUser } from '../../src/users/system.js';
 import { db, getApp, useApp } from '../auth/harness.js';
 import { taskArgs, world, type World } from '../sync/helpers.js';
 
@@ -178,6 +179,78 @@ describe('activity страницы', () => {
       await raw(`update projects set modules = array_append(modules, 'ai') where id = $1`, [
         w.projectId,
       ]);
+    }
+  });
+});
+
+// PLNRAPP-310: the job of the queue ai.run not started yet (a rule's debounce, all agents busy) — `queued`
+describe('activity задачи: очередь ai.run', () => {
+  it('отложенное задание задачи — queued; устаревшее задание правила и чужой задачи — нет', async () => {
+    const { PgBoss } = await import('pg-boss');
+    const boss = new PgBoss({
+      connectionString: (db.$client as unknown as { options: { connectionString: string } }).options
+        .connectionString,
+      max: 1,
+    });
+    await boss.start();
+    try {
+      await boss.createQueue('ai.run');
+      const bot = { id: await ensureSystemUser(db, 'ai', 'ИИ', true) };
+      const assign = (on: boolean) =>
+        on
+          ? raw(
+              `insert into task_assignees (id, space_id, task_id, user_id) values ($1, $2, $3, $4)`,
+              [uuidv7(), w.spaceId, task, bot.id],
+            )
+          : raw(`delete from task_assignees where task_id = $1 and user_id = $2`, [task, bot.id]);
+      await assign(true);
+      const [t] = await raw(`select status_id as s from tasks where id = $1`, [task]);
+      const later = { startAfter: 3600 };
+      const action = await boss.send(
+        'ai.run',
+        { kind: 'action', taskId: task, actionId: uuidv7(), statusId: t!.s },
+        later,
+      );
+      const item = uuidv7();
+      const comment = await boss.send(
+        'ai.run',
+        { kind: 'comment', taskId: task, itemId: item },
+        later,
+      );
+      // the task left the rule's status: the run will skip it
+      await boss.send(
+        'ai.run',
+        { kind: 'action', taskId: task, actionId: uuidv7(), statusId: uuidv7() },
+        later,
+      );
+      const other = taskArgs(w, {});
+      await w.admin.ok('task.create', other);
+      await boss.send('ai.run', { kind: 'checklist', taskId: other.id }, later);
+
+      const r = await call(`activity/tasks/${task}`, 'member');
+      expect(r.statusCode).toBe(200);
+      const queued = (r.json().activity as Record<string, unknown>[]).filter(
+        (a) => a.state === 'queued',
+      );
+      expect(queued.map((a) => a.id).sort()).toEqual([action, comment].sort());
+      expect(queued.find((a) => a.id === action)).toMatchObject({
+        kind: 'action',
+        itemId: null,
+        agent: false,
+        actorId: bot.id,
+      });
+      expect(queued.find((a) => a.id === comment)).toMatchObject({ kind: 'comment', itemId: item });
+      expect(queued[0]!.startedAt).toMatch(/^\d{4}-\d\d-\d\dT/);
+
+      // the AI unassigned: a rule's job will not run — not shown; the comment one stays
+      await assign(false);
+      const after = (await call(`activity/tasks/${task}`, 'member')).json().activity as {
+        id: string;
+        state: string;
+      }[];
+      expect(after.filter((a) => a.state === 'queued').map((a) => a.id)).toEqual([comment]);
+    } finally {
+      await boss.stop({ graceful: false });
     }
   });
 });

@@ -143,8 +143,8 @@ export interface WorkActivity {
   id: string;
   /** the comment / checklist item / chat message the work answers; null — the task itself */
   itemId: string | null;
-  /** failed — the last attempt failed and was not repeated */
-  state: 'running' | 'waiting_human' | 'failed';
+  /** failed — the last attempt failed and was not repeated; queued — the work waits its turn (PLNRAPP-310) */
+  state: 'queued' | 'running' | 'waiting_human' | 'failed';
   /** a long work (an agent in a container): the minutes since startedAt are shown */
   agent?: boolean;
   /** the user who does the work (a bot): its avatar gets the ring, its name — «печатает…» */

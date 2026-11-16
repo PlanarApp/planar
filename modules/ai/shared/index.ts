@@ -260,8 +260,11 @@ export interface AiActivity {
   kind: AiRunKind;
   /** the comment / checklist item / chat message the run answers; null — the task itself (an action by a rule) */
   itemId: string | null;
-  /** failed — the last run of this item failed recently (it was not restarted) */
-  state: 'running' | 'waiting_human' | 'failed';
+  /**
+   * failed — the last run of this item failed recently (it was not restarted); queued — the job is not started yet
+   * (the debounce, all agents busy): id is the job's, startedAt — when it was queued (PLNRAPP-310)
+   */
+  state: 'queued' | 'running' | 'waiting_human' | 'failed';
   /** an agent in a container: «агент работает N мин» */
   agent: boolean;
   /** the bot user who answers */

@@ -111,6 +111,33 @@ const runView = (r: Row) => r as unknown as AiRunView;
 const activityCols = sql`r.id, r.kind, r.item_id as "itemId", r.state, r.agent_secret_hash is not null as agent,
   (select u.id from users u where u.login = ${AI_BOT_LOGIN} and u.bot) as "actorId",
   ${iso('coalesce(r.started_at, r.created_at)')} as "startedAt"`;
+/**
+ * PLNRAPP-310: the task's jobs of the queue ai.run not started yet (the debounce of a rule, all agents busy —
+ * the job waits, agent.ts) as activity `queued`: the AI will take the task. A rule's job the run would skip
+ * (the AI unassigned, the status changed) is not shown. No pg-boss schema (jobs off) — none.
+ */
+async function queuedOf(db: CoreServices['db'], taskId: string): Promise<AiActivity[]> {
+  const has = await db.execute(sql`select to_regclass('pgboss.job') is not null as x`);
+  if (!has.rows[0]?.x) return [];
+  const r = await db.execute(
+    sql`select j.id, j.data->>'kind' as kind,
+          case when j.data->>'kind' in ('comment', 'mention') then j.data->>'itemId' end as "itemId",
+          'queued' as state, false as agent,
+          (select u.id from users u where u.login = ${AI_BOT_LOGIN} and u.bot) as "actorId",
+          ${iso('j.created_on')} as "startedAt"
+        from pgboss.job j
+        where j.name = ${AI_QUEUE} and j.state in ('created', 'retry')
+          and j.data->>'taskId' = ${taskId}
+          and j.data->>'kind' in ('action', 'comment', 'mention', 'checklist')
+          and (j.data->>'kind' <> 'action' or (
+            exists (select 1 from task_assignees a join users u on u.id = a.user_id
+              where a.task_id = ${taskId}::uuid and u.login = ${AI_BOT_LOGIN} and u.bot)
+            and (j.data->>'statusId' is null
+              or j.data->>'statusId' = (select t.status_id::text from tasks t where t.id = ${taskId}::uuid))))
+        order by j.created_on desc, j.id desc limit 20`,
+  );
+  return r.rows as unknown as AiActivity[];
+}
 const uuidP = z.uuid();
 const eventsQuery = z.object({
   after: z.coerce.number().int().min(0).default(0),
@@ -253,7 +280,7 @@ export class AiController {
                 and (n.created_at, n.id) > (r.created_at, r.id))))
           order by r.created_at desc, r.id desc limit 50`,
     );
-    return { activity: r.rows as unknown as AiActivity[] };
+    return { activity: [...(await queuedOf(this.core.db, taskId)), ...(r.rows as never[])] };
   }
 
   /** The AI's work on the comments of a page: its running runs, for those who read the page (space member + project). */

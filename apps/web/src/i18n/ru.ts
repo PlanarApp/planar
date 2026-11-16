@@ -889,6 +889,7 @@ export default {
     aiReplying: 'ИИ отвечает…',
     aiAgent: 'Агент работает {n} мин',
     aiWaiting: 'ИИ ждёт ответа',
+    aiQueued: 'В очереди к ИИ',
     aiFailed: 'Ошибка ИИ',
     aiOpenRun: 'Открыть прогон',
     resolved: 'Завершено',

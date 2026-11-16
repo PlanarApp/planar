@@ -884,6 +884,7 @@ export default {
     aiReplying: 'AI is replying…',
     aiAgent: 'The agent has been working for {n} min',
     aiWaiting: 'AI is waiting for an answer',
+    aiQueued: 'Queued for AI',
     aiFailed: 'AI error',
     aiOpenRun: 'Open the run',
     resolved: 'Resolved',

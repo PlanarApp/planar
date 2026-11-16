@@ -76,6 +76,10 @@ describe('activity: выбор состояния', () => {
     expect(activityOf([f, wt], 'c1')).toBe(wt);
     expect(activityOf([f], 'c1')).toBe(f);
     expect(activityOf([f], 'c2')).toBeUndefined();
+    // PLNRAPP-310: queued — after running, before waiting
+    const q = a('queued');
+    expect(activityOf([f, wt, q], 'c1')).toBe(q);
+    expect(activityOf([q, r], 'c1')).toBe(r);
     // without an item — of the whole task
     const other = a('running', null);
     expect(activityOf([f, other])).toBe(other);
@@ -108,6 +112,19 @@ describe('task: индикатор работы ИИ', () => {
     await until(() => status().exists());
     expect(status().text()).toContain('ИИ ждёт ответа');
     expect(w.find('[data-testid="status-pill"]').classes()).not.toContain('work-ring');
+  });
+
+  it('PLNRAPP-310: задача в очереди к ИИ — «В очереди к ИИ» без кольца; задание стартовало — «работает»', async () => {
+    answer = [run({ state: 'queued', itemId: null })];
+    w = await open();
+    await until(() => status().exists());
+    expect(status().text()).toContain('В очереди к ИИ');
+    expect(status().attributes('data-state')).toBe('queued');
+    expect(w.find('[data-testid="status-pill"]').classes()).not.toContain('work-ring');
+    // the queue is polled: the started run replaces the queued job without a replica change
+    answer = [run({ agent: true, itemId: null, startedAt: ago(0) })];
+    await until(() => status().attributes('data-state') === 'running', 6000);
+    expect(status().text()).toContain('Агент работает 0 мин');
   });
 
   it('комментарий, на который отвечает ИИ: кольцо у его аватара; ошибка — ссылка на прогон', async () => {
