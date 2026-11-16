@@ -79,6 +79,7 @@ Claude Desktop и другие клиенты с `mcp.json`:
 - Настройки проекта: `update_project`, `set_project_module`, `create_/update_/delete_` `status`, `label`, `field`, `automation`, `ai_action`, чтение — `list_ai_actions`. Те же операции есть в REST (`/api/v1/projects/:id/statuses` и т. д., список — в `openapi.json`).
 - Фильтры `search_tasks` (и `GET /api/v1/tasks`): `labelId`, `priority`, `dueBefore`, `dueAfter`, `unassigned`, `archived`.
 - `batch_update_tasks {taskIds | filter, patch, dryRun?}`: пачка до 100 задач (статус, метки и исполнители `{add, remove}`, поля, архив). `dryRun: true` ничего не меняет, а возвращает список задач.
+- `move_tasks {taskIds, statusId, before? | index?}`: перенести до 100 задач одного проекта в статус и поставить подряд перед задачей `before` (или на позицию `index`, иначе в конец) в порядке `taskIds`. Все или ни одна: при отказе — ошибка `conflict` со списком проблемных задач и причин.
 - Пакеты harness и привязки событий ИИ (только админ проекта): `ai_list_packs`, `ai_upload_pack`, `ai_diff_pack`, `ai_apply_pack`, `ai_set_pack_events`. Подключения ИИ и лимиты токеном недоступны, только из сессии.
 - `search_docs_site {query, lang?, section?}`: поиск по этой документации и чтение раздела по id.
 
