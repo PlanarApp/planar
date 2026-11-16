@@ -283,12 +283,29 @@ function submit() {
           :class="[
             'mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 text-sm focus-visible:ring-2 ring-focus',
             sel.selected.value.has(x.id) ? 'border-accent bg-accent-subtle' : 'border-border',
+            sel.active.value && 'relative pr-8',
             focusedId === x.id && 'ring-2',
           ]"
           @click="onCard(x, $event)"
           @pointerenter="hotId = x.id"
           @pointerleave="cardLeave"
         >
+          <!-- PLNRAPP-291: чекбокс выбора — только в режиме выделения -->
+          <label
+            v-if="sel.active.value"
+            class="absolute right-1 top-1 flex size-7 items-center justify-center"
+            data-no-drag
+            data-testid="card-check"
+            @click.stop
+          >
+            <input
+              type="checkbox"
+              :checked="sel.selected.value.has(x.id)"
+              :aria-label="t('list.select')"
+              class="size-4"
+              @change="sel.toggle(x.id)"
+            />
+          </label>
           <!-- карточка общая с мобильным Списком; на мобилке поля — иконки, пикеры смонтированы сразу -->
           <TaskCard
             :task="x"

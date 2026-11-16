@@ -318,6 +318,65 @@ describe('list:select', () => {
   });
 });
 
+describe('PLNRAPP-291 режим выделения в Списке', () => {
+  const checks = () => w.findAll('[role=row][data-task] input[type=checkbox]');
+  it('без вызова чекбоксов и панели нет; Cmd-клик включает режим, снятие последней — выключает', async () => {
+    await db.table('tasks').bulkPut([1, 2].map((n) => task(n, { rank: rank(n) })));
+    await show();
+    expect(checks()).toHaveLength(0);
+    expect(w.find('[data-testid=select-all]').exists()).toBe(false);
+    expect(w.find('[data-testid=bulk-bar]').exists()).toBe(false);
+    await row('PLN-1').trigger('click', { ctrlKey: true });
+    expect(checks()).toHaveLength(2);
+    expect(w.find('[data-testid=select-all]').exists()).toBe(true);
+    expect(w.get('[data-testid=bulk-bar]').text()).toContain('Выбрано: 1');
+    await row('PLN-1').trigger('click', { metaKey: true });
+    expect(checks()).toHaveLength(0);
+    expect(w.find('[data-testid=bulk-bar]').exists()).toBe(false);
+  });
+  it('Shift-клик без якоря выделяет задачу, второй — диапазон подряд идущих строк', async () => {
+    await db.table('tasks').bulkPut([1, 2, 3, 4].map((n) => task(n, { rank: rank(n) })));
+    await show();
+    await row('PLN-2').trigger('click', { shiftKey: true });
+    expect(useSelection().selected.value.size).toBe(1);
+    await row('PLN-4').trigger('click', { shiftKey: true });
+    expect(rows().map((x) => x.attributes('aria-selected'))).toEqual([
+      'false',
+      'true',
+      'true',
+      'true',
+    ]);
+    expect(r.currentRoute.value.query.task).toBeUndefined();
+  });
+  it('Esc со страницы и клик по пустому месту сбрасывают выделение', async () => {
+    await db.table('tasks').bulkPut([task(1), task(2)]);
+    await show();
+    await row('PLN-1').trigger('click', { metaKey: true });
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(useSelection().selected.value.size).toBe(0);
+    await row('PLN-1').trigger('click', { metaKey: true });
+    await row('PLN-1').get('input[type=checkbox]').trigger('click');
+    await row('PLN-2').trigger('click', { metaKey: true });
+    expect(useSelection().selected.value.size).toBe(1);
+    await w.get('[role=grid]').trigger('click');
+    expect(useSelection().selected.value.size).toBe(0);
+  });
+  it('пункт «Выбрать» в контекстном меню включает режим с этой задачей', async () => {
+    await db.table('tasks').bulkPut([task(1), task(2)]);
+    await show();
+    await row('PLN-2').trigger('contextmenu');
+    const item = await until(() =>
+      [...document.querySelectorAll<HTMLElement>('[role=menuitem]')].find(
+        (x) => x.textContent?.trim() === 'Выбрать',
+      ),
+    );
+    item!.click();
+    await until(() => useSelection().selected.value.size === 1);
+    expect(row('PLN-2').attributes('aria-selected')).toBe('true');
+    expect(r.currentRoute.value.query.task).toBeUndefined();
+  });
+});
+
 describe('list:bulk', () => {
   it('list:bulk статус всем выделенным', async () => {
     const ts = [task(1), task(2)];
@@ -507,6 +566,8 @@ describe('list:polish', () => {
     await db.table('tasks').bulkPut([1, 2].map((n) => task(n, { rank: rank(n) })));
     await show();
     const grid = w.get('[role=grid]');
+    // checkbox of a row — only in the selection mode (PLNRAPP-291)
+    await row('PLN-2').trigger('click', { metaKey: true });
     const cb = row('PLN-1').get('input[type=checkbox]');
     await cb.setValue(true);
     expect(document.activeElement).toBe(grid.element);

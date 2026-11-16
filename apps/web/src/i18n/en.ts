@@ -24,6 +24,8 @@ export default {
     untitled: 'Untitled',
   },
   taskMenu: {
+    select: 'Select',
+    unselect: 'Deselect',
     open: 'Open',
     newTab: 'Open in new tab',
     copyLink: 'Copy link',

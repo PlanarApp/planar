@@ -109,6 +109,62 @@ describe('PLNRAPP-281 мобильная доска', () => {
   });
 });
 
+describe('PLNRAPP-291 режим выделения на Доске', () => {
+  const mountIn = () =>
+    mount(View, {
+      props: { projectId: ids.project, options: options('status') },
+      attachTo: document.body,
+      global: { plugins: [i18n] },
+    });
+  it('без вызова чекбоксов нет; Cmd-клик — режим, Shift-клик — диапазон в колонке, Esc и пустое место сбрасывают', async () => {
+    const sel = useSelection();
+    sel.clear();
+    vi.mocked(openTask).mockClear();
+    await db.table('tasks').bulkPut([1, 2, 3].map((n) => task(n, { rank: `a${n}` })));
+    const w = mountIn();
+    await until(() => w.findAll('article').length === 3);
+    const card = (n: string) => w.findAll('article').find((a) => a.text().includes(n))!;
+    expect(w.find('[data-testid=card-check]').exists()).toBe(false);
+    expect(w.find('[data-testid=bulk-bar]').exists()).toBe(false);
+    await card('t1').trigger('click', { metaKey: true });
+    expect(w.findAll('[data-testid=card-check]')).toHaveLength(3);
+    expect(w.find('[data-testid=bulk-bar]').exists()).toBe(true);
+    await card('t3').trigger('click', { shiftKey: true });
+    expect(sel.selected.value.size).toBe(3);
+    expect(openTask).not.toHaveBeenCalled();
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(sel.selected.value.size).toBe(0);
+    await card('t2').trigger('click', { ctrlKey: true });
+    expect(w.findAll('[data-testid=card-check]')).toHaveLength(3);
+    await w.get('[role=group]').trigger('click');
+    expect(sel.selected.value.size).toBe(0);
+    await card('t2').trigger('click');
+    expect(openTask).toHaveBeenCalledTimes(1);
+    w.unmount();
+  });
+  it('пункт «Выбрать» в контекстном меню карточки', async () => {
+    const sel = useSelection();
+    sel.clear();
+    await db.table('tasks').bulkPut([task(1), task(2)]);
+    const w = mountIn();
+    await until(() => w.findAll('article').length === 2);
+    await w
+      .findAll('article')
+      .find((a) => a.text().includes('t2'))!
+      .trigger('contextmenu');
+    const item = await until(() =>
+      [...document.querySelectorAll<HTMLElement>('[role=menuitem]')].find(
+        (x) => x.textContent?.trim() === 'Выбрать',
+      ),
+    );
+    item!.click();
+    await until(() => sel.selected.value.size === 1);
+    expect(w.findAll('[data-testid=card-check]')).toHaveLength(2);
+    sel.clear();
+    w.unmount();
+  });
+});
+
 describe('board:columns', () => {
   it('board:columns по статусу — в порядке rank статусов, внутри по rank', async () => {
     await db.table('tasks').bulkPut([task(1, { rank: 'a2' }), task(2, { rank: 'a1' })]);
