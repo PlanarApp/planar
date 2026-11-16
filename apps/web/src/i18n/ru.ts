@@ -24,6 +24,8 @@ export default {
     untitled: 'Без названия',
   },
   taskMenu: {
+    select: 'Выбрать',
+    unselect: 'Снять выделение',
     open: 'Открыть',
     newTab: 'Открыть в новой вкладке',
     copyLink: 'Копировать ссылку',

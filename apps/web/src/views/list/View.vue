@@ -43,6 +43,7 @@ import {
   useWidenedFilter,
 } from '../scope';
 import Row from './Row.vue';
+import { useSelectionReset } from '../selection';
 import { treeOrder } from './tree';
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import { useColumnWidths } from './widths';
@@ -359,6 +360,8 @@ const empty = computed(() => !!all.value && !all.value.some((x) => !x.parentId))
 
 // --- virtualization
 const scroller = ref<HTMLElement>();
+// Escape / a click on an empty place of the list — out of the selection mode (PLNRAPP-291)
+useSelectionReset(() => scroller.value);
 const rowH = computed(() => (isMobile.value ? 44 : 32));
 // mobile: the task card is above the service rows; dragging is disabled there (dropAt counts by rowH)
 const virt = useVirtualizer(
@@ -649,7 +652,7 @@ watch(
         </template>
       </template>
     </EmptyState>
-    <TaskContextMenu v-else :space-id="spaceId" :tasks="all">
+    <TaskContextMenu v-else :space-id="spaceId" :tasks="all" selectable>
       <div
         ref="scroller"
         role="grid"
@@ -681,6 +684,7 @@ watch(
                 class="flex h-full items-center border-b border-border pl-4 pr-3 text-xs text-fg-muted"
               >
                 <input
+                  v-if="sel.active.value"
                   type="checkbox"
                   :checked="sel.state(allIds) === 'all'"
                   :indeterminate="sel.state(allIds) === 'some'"
@@ -689,6 +693,7 @@ watch(
                   data-testid="select-all"
                   @click="sel.toggleAll(allIds)"
                 />
+                <span v-else class="mr-3 w-4 shrink-0" aria-hidden="true" />
                 <button
                   type="button"
                   class="flex-1 truncate text-left hover:text-fg"
@@ -759,6 +764,7 @@ watch(
                   />
                 </button>
                 <input
+                  v-if="sel.active.value"
                   type="checkbox"
                   :checked="sel.state(it.group.tasks.map((x) => x.id)) === 'all'"
                   :indeterminate="sel.state(it.group.tasks.map((x) => x.id)) === 'some'"
@@ -818,6 +824,7 @@ watch(
                 :widths="widths"
                 :index="v.index + 1"
                 :selected="sel.selected.value.has(it.task.id)"
+                :selecting="sel.active.value"
                 :focused="focusedId === it.id"
                 :editing="editing === it.id"
                 :fields="options.fields"

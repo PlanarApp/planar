@@ -36,6 +36,8 @@ const props = defineProps<{
   spaceId: string;
   index: number;
   selected: boolean;
+  /** selection mode (PLNRAPP-291): the checkbox is shown only in it (desktop) */
+  selecting?: boolean;
   focused: boolean;
   editing: boolean;
   fields: TaskField[];
@@ -273,13 +275,12 @@ function save() {
     </div>
     <div role="gridcell" class="flex w-4 shrink-0" @click.stop>
       <input
+        v-if="selecting"
         type="checkbox"
         :checked="selected"
         :aria-label="t('list.select')"
-        :class="[
-          'size-4 focus-visible:opacity-100 group-hover:opacity-100',
-          selected ? 'opacity-100' : 'opacity-0',
-        ]"
+        class="size-4"
+        data-testid="row-check"
         @change="(emit('toggle'), emit('done'))"
       />
     </div>
