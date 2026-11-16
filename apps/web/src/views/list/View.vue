@@ -521,7 +521,8 @@ function listKey(key: string): boolean {
 
 function onRowClick(it: Extract<Item, { kind: 'task' }>, e: MouseEvent) {
   focusedId.value = it.id;
-  if (e.metaKey || e.ctrlKey) sel.toggle(it.task.id);
+  // mobile (PLNRAPP-281): while something is selected, a tap toggles the task instead of opening it
+  if (e.metaKey || e.ctrlKey || (isMobile.value && sel.selected.value.size)) sel.toggle(it.task.id);
   else if (e.shiftKey) sel.range(taskIds.value, it.task.id);
   else {
     // double-click on the name = edit: opening is deferred, dblclick cancels it

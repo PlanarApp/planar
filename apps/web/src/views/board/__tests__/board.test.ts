@@ -10,6 +10,8 @@ import { i18n as appI18n } from '../../../i18n';
 import { db, registerMutators, startSync, stopSync } from '../../../sync';
 import { type GroupBy } from '../../../tasks';
 import { ids, reset, task, until } from '../../../tasks/__tests__/data';
+import { resetBreakpoint } from '../../../ui';
+import { openTask, useSelection } from '../..';
 import View from '../View.vue';
 import { applyMove, boardColumns, planMove } from '../plan';
 
@@ -76,6 +78,34 @@ describe('board:card', () => {
     expect(
       w2.findAll('article').find((a) => a.text().includes('24 дек'))!.element.children,
     ).toHaveLength(2);
+  });
+});
+
+describe('PLNRAPP-281 мобильная доска', () => {
+  it('пока есть выбор, тап по карточке переключает выбор, без выбора — открывает', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener() {} }) as never;
+    resetBreakpoint();
+    const sel = useSelection();
+    sel.clear();
+    vi.mocked(openTask).mockClear();
+    const [t1, t2] = [task(1), task(2)];
+    await db.table('tasks').bulkPut([t1, t2]);
+    const w = mountView();
+    await until(() => w.findAll('article').length === 2);
+    const card = (n: string) => w.findAll('article').find((a) => a.text().includes(n))!;
+    await card('t1').trigger('click');
+    expect(openTask).toHaveBeenCalledTimes(1);
+    expect(sel.selected.value.size).toBe(0);
+    sel.toggle(t1.id);
+    await card('t2').trigger('click');
+    expect([...sel.selected.value].sort()).toEqual([t1.id, t2.id].sort());
+    await card('t1').trigger('click');
+    expect([...sel.selected.value]).toEqual([t2.id]);
+    expect(openTask).toHaveBeenCalledTimes(1);
+    sel.clear();
+    w.unmount();
+    window.matchMedia = vi.fn().mockReturnValue({ matches: false, addEventListener() {} }) as never;
+    resetBreakpoint();
   });
 });
 
