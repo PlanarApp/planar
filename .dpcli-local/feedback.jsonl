@@ -347,3 +347,5 @@
 {"t": "2026-11-16T13:39:17", "module": "chatai", "task": "CA-4", "text": "accept не включает packs-token.test.ts из карточки", "src": "review", "kind": "item"}
 {"t": "2026-11-16T14:24:00", "id": "F-31", "kind": "cluster", "title": "Card checks omit tests the card names, and scope omits files the card tells the executor to create", "match": "accept не включает тест|scope не знает новых файлов|не учитывает index.ts", "scope": "project", "why": "executor runs named tests by hand and widens scope via the coordinator, one extra round each"}
 {"t": "2026-11-16T14:24:02", "id": "F-32", "kind": "cluster", "title": "Agents launched from a main copy left on a stale branch run outdated agent definitions", "match": "старее main|older than main", "scope": "project", "why": "a harness fix merged to main never reached executors; the same friction kept recurring after its fix"}
+{"t": "2026-11-16T14:24:25", "id": "F-31", "kind": "fix", "where": ".dpcli-local/agents/dp-coordinator.append.md"}
+{"t": "2026-11-16T14:24:25", "id": "F-32", "kind": "fix", "where": ".dpcli-local/claude-md.md"}
