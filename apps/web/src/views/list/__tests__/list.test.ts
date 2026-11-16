@@ -683,6 +683,46 @@ describe('PJ-8', () => {
   });
 });
 
+describe('PLNRAPP-281 выбор задач на мобильной', () => {
+  const mobile = () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener() {} }) as never;
+    resetBreakpoint();
+  };
+  it('чекбокс карточки выбирает и снимает выбор, панель показывает счётчик', async () => {
+    mobile();
+    await db.table('tasks').bulkPut([task(1), task(2)]);
+    await show();
+    const box = () => row('PLN-1').get('[data-testid=row-select] input');
+    await box().setValue(true);
+    expect([...useSelection().selected.value]).toHaveLength(1);
+    expect(row('PLN-1').attributes('aria-selected')).toBe('true');
+    expect(w.get('[data-testid=bulk-bar]').text()).toContain('1');
+    await box().setValue(false);
+    expect(useSelection().selected.value.size).toBe(0);
+    expect(r.currentRoute.value.query.task).toBeUndefined();
+  });
+  it('пока есть выбор, тап по карточке переключает выбор, а не открывает задачу', async () => {
+    mobile();
+    await db.table('tasks').bulkPut([task(1), task(2)]);
+    await show();
+    await row('PLN-1').get('[data-testid=row-select] input').setValue(true);
+    await row('PLN-2').trigger('click');
+    expect(useSelection().selected.value.size).toBe(2);
+    await row('PLN-1').trigger('click');
+    expect(useSelection().selected.value.size).toBe(1);
+    await new Promise((x) => setTimeout(x, 300));
+    expect(r.currentRoute.value.query.task).toBeUndefined();
+  });
+  it('без выбора тап по карточке открывает задачу', async () => {
+    mobile();
+    await db.table('tasks').put(task(1));
+    await show();
+    await row('PLN-1').trigger('click');
+    await poll(async () => r.currentRoute.value.query.task === 'PLN-1');
+    expect(useSelection().selected.value.size).toBe(0);
+  });
+});
+
 describe('PLANARAPP-43 поля модулей на строке', () => {
   it('панель с card: true рендерится в каждой строке с taskId задачи', async () => {
     const Cell = defineComponent({

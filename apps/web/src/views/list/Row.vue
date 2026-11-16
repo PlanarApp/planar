@@ -197,6 +197,21 @@ function save() {
     ]"
     @click="emit('click', $event)"
   >
+    <!-- PLNRAPP-281: выбор задачи на мобильной — чекбокс всегда виден, зона касания 44px -->
+    <label
+      role="gridcell"
+      class="-ml-3 flex size-11 shrink-0 items-center justify-center"
+      data-testid="row-select"
+      @click.stop
+    >
+      <input
+        type="checkbox"
+        :checked="selected"
+        :aria-label="t('list.select')"
+        class="size-4"
+        @change="emit('toggle')"
+      />
+    </label>
     <div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
       <TaskCard
         :task="task"

@@ -80,7 +80,8 @@ onBeforeUnmount(() => clearInterval(wait));
 // Ctrl/Cmd — add to the selection, Shift — range in the column; a plain click opens the task
 const sel = useSelection();
 function onCard(x: TaskView, e: MouseEvent) {
-  if (e.metaKey || e.ctrlKey) sel.toggle(x.id);
+  // mobile (PLNRAPP-281): while something is selected, a tap toggles the card instead of opening it
+  if (e.metaKey || e.ctrlKey || (props.mobile && sel.selected.value.size)) sel.toggle(x.id);
   else if (e.shiftKey)
     sel.range(
       props.group.tasks.map((y) => y.id),
