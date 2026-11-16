@@ -165,6 +165,8 @@ export const actionSchema = z.union([
     aiActionId: uuid,
     maxRuns: z.number().int().min(1).max(20).optional(),
   }),
+  // PLNRAPP-204: on comment.added — closes the comment the new one replies to, if its assignee replied
+  z.object({ type: z.literal('resolve_comment') }),
 ]);
 export type Action = z.infer<typeof actionSchema>;
 
