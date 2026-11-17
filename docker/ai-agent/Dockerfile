@@ -5,10 +5,14 @@ ARG GLAB_VERSION=1.130.0
 ARG CLAUDE_CODE_VERSION=2.1.322
 ARG OPENCODE_VERSION=1.19.5
 ARG PLAYWRIGHT_VERSION=1.65.0
+# pnpm ставится в образ при сборке — та же версия, что в packageManager корневого package.json
+# (сверяет apps/ai-runner/test/agent-image.test.ts). В прогоне загрузка через corepack не нужна;
+# проект с другой версией в packageManager pnpm переключает сам, своим клиентом через HTTPS_PROXY.
+ARG PNPM_VERSION=12.15.0
 # dpcli отключён: источник не утверждён, внешний репозиторий в образ не клонируется (см. README.md).
 
-# NODE_USE_ENV_PROXY: встроенный fetch node (corepack) ходит через HTTP(S)_PROXY/NO_PROXY, как curl и npm;
-# без него corepack не скачивает pnpm из packageManager проекта (EAI_AGAIN: наружу — только через squid).
+# NODE_USE_ENV_PROXY: встроенный fetch node (в т.ч. corepack, если его вызвать) ходит через HTTP(S)_PROXY/NO_PROXY,
+# как curl, npm и pnpm; без него — EAI_AGAIN (наружу — только через squid).
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw \
     HOME=/work/.home \
     XDG_CONFIG_HOME=/work/.home/.config \
@@ -24,11 +28,10 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends git curl jq ripgrep ca-certificates \
       python3 python3-pip python3-venv fd-find tree file less procps make patch unzip zip xz-utils openssh-client sqlite3 \
  && ln -s /usr/bin/fdfind /usr/local/bin/fd \
- && corepack enable \
  && arch="$(dpkg --print-architecture)" \
  && curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${arch}.deb" -o /tmp/glab.deb \
  && apt-get install -y /tmp/glab.deb \
- && npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "opencode-ai@${OPENCODE_VERSION}" "playwright@${PLAYWRIGHT_VERSION}" \
+ && npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "opencode-ai@${OPENCODE_VERSION}" "playwright@${PLAYWRIGHT_VERSION}" "pnpm@${PNPM_VERSION}" \
  && playwright install --with-deps chromium \
  && chmod -R a+rX /opt/pw \
  && rm -rf /var/lib/apt/lists/* /tmp/* /root/.npm

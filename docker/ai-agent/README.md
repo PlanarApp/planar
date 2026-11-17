@@ -4,7 +4,7 @@
 
 ## Состав
 
-node 24, pnpm (corepack), git, curl, jq, ripgrep (нужен opencode), python3 (pip, venv), fd, tree, file, less, procps, make, patch, unzip/zip, xz, ssh-клиент, sqlite3, glab, Claude Code, opencode, Playwright chromium (`/opt/pw`). Пользователь `10001`, `WORKDIR /work`, ENTRYPOINT `/usr/local/bin/planar-agent-entrypoint`. Версии — `ARG` в Dockerfile (актуальны на 2026-11-12). Необязательный трафик Claude Code (телеметрия, автообновление) отключён env. Сборка: `docker build -t planar-ai-agent:1 docker/ai-agent` (~3,2 ГБ).
+node 24, pnpm (ставится при сборке, `ARG PNPM_VERSION` = `packageManager` корневого `package.json`; сверяет тест `apps/ai-runner/test/agent-image.test.ts`), git, curl, jq, ripgrep (нужен opencode), python3 (pip, venv), fd, tree, file, less, procps, make, patch, unzip/zip, xz, ssh-клиент, sqlite3, glab, Claude Code, opencode, Playwright chromium (`/opt/pw`). Пользователь `10001`, `WORKDIR /work`, ENTRYPOINT `/usr/local/bin/planar-agent-entrypoint`. Версии — `ARG` в Dockerfile (актуальны на 2026-11-12). Необязательный трафик Claude Code (телеметрия, автообновление) отключён env. Сборка: `docker build -t planar-ai-agent:1 docker/ai-agent` (~3,2 ГБ).
 
 CI публикует образ как `registry.gitlab.com/planarhq/planar/ai-agent`: на релизных тегах — `X.Y.Z`, `X.Y`, `latest`; на `main` — `edge`, только когда менялся этот каталог. В `.env` его указывают в `AI_AGENT_IMAGE` и `AI_RUNNER_IMAGES` (см. `apps/ai-runner/README.md`).
 
@@ -12,7 +12,7 @@ dpcli в образ **не ставится**: источник не утвер�
 
 Образ рассчитан на read-only rootfs, tmpfs `/tmp` и записываемый `/work` (бинд каталога хоста): `HOME=/work/.home` (там же кэши npm и XDG), `TMPDIR` и `CLAUDE_CODE_TMPDIR` — `/work/.tmp`. Они на диске, а не в ОЗУ: tmpfs `/tmp` (256 МБ) входит в лимит памяти контейнера. Удаляются вместе с `/work`. Репозиторий клонируется в `/work/repo`, поэтому эти каталоги в git не попадают.
 
-Наружу контейнер ходит только через прокси (`HTTPS_PROXY`, `NO_PROXY`). `NODE_USE_ENV_PROXY=1` включает его для встроенного `fetch` node: без этого corepack не скачивает pnpm версии из `packageManager` проекта (`getaddrinfo EAI_AGAIN registry.npmjs.org`) и `pnpm` в образе не запускается.
+Наружу контейнер ходит только через прокси (`HTTPS_PROXY`, `NO_PROXY`; squid пускает к любому домену, в т.ч. registry.npmjs.org). npm и pnpm читают прокси сами, поэтому `pnpm install` в прогоне идёт без обходов (PLNRAPP-328: pnpm 12.15.0, `pnpm install --frozen-lockfile` в репозитории planar — ~11 с). pnpm в образе уже есть — corepack в прогоне ничего не скачивает; если `packageManager` проекта требует другую версию, pnpm переключается на неё сам, своим клиентом через прокси. `NODE_USE_ENV_PROXY=1` включает прокси и для встроенного `fetch` node (corepack, вызванный вручную, скрипты): без него — `getaddrinfo EAI_AGAIN`.
 
 ## Вход
 
