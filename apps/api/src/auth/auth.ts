@@ -2,7 +2,7 @@ import type { IncomingHttpHeaders } from 'node:http';
 import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
 import { apiTokens, sessions, users } from '../db/schema.js';
-import { cloudExpired } from '../cloud/cloud.js';
+import { cloudExpired, cloudPublic } from '../cloud/cloud.js';
 import { HttpError } from './errors.js';
 import {
   SESSION_COOKIE,
@@ -33,12 +33,16 @@ export type AuthOpts = {
 
 const UNSAFE = new Set(['POST', 'PUT', 'PATCH', 'DELETE', 'UPGRADE']);
 
-/** Allowed Origins: PUBLIC_URL and EXTRA_ORIGINS (comma-separated; e.g. 127.0.0.1 next to localhost in dev). */
+/**
+ * Allowed Origins: PUBLIC_URL, EXTRA_ORIGINS (comma-separated; e.g. 127.0.0.1 next to localhost in dev)
+ * and the cloud domain + custom domain (PLNRAPP-416: the instance answers on both, a PWA may be on either).
+ */
 export function allowedOrigins(
   publicUrl: string,
   extra = process.env.EXTRA_ORIGINS ?? '',
 ): string[] {
-  const list = [publicUrl, ...extra.split(',')].map((u) => u.trim()).filter(Boolean);
+  const cloud = (cloudPublic()?.hosts ?? []).map((h) => `https://${h}`);
+  const list = [publicUrl, ...extra.split(','), ...cloud].map((u) => u.trim()).filter(Boolean);
   return list.flatMap((u) => {
     try {
       return [new URL(u).origin];

@@ -59,8 +59,11 @@ export const cloudStateSchema = z.object({
 });
 export type CloudState = z.infer<typeof cloudStateSchema>;
 
-/** Public part, stored in settings `cloud` (synced to everyone: the toolbar badge). notified — trialEndsAt the trial_ending notification was sent for. */
-export type CloudPublic = Pick<CloudState, 'status' | 'trialEndsAt'> & { notified?: string };
+/** Public part, stored in settings `cloud` (synced to everyone: the toolbar badge). notified — trialEndsAt the trial_ending notification was sent for; hosts — domain and customDomain (allowed Origins). */
+export type CloudPublic = Pick<CloudState, 'status' | 'trialEndsAt'> & {
+  notified?: string;
+  hosts?: string[];
+};
 export const CLOUD_SETTING = 'cloud';
 
 // one process — one instance: the gate is checked on every request without a DB query
