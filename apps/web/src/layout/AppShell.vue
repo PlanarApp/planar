@@ -90,7 +90,7 @@ watch(
         <DialogOverlay class="fixed inset-0 z-40 bg-overlay" />
         <DialogContent
           aria-describedby="undefined"
-          class="fixed inset-y-0 left-0 z-50 flex w-70 max-w-full outline-none [&>aside]:w-full"
+          class="fixed inset-y-0 left-0 z-50 flex w-70 max-w-full bg-sidebar-bg pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] outline-none [&>aside]:w-full"
           @click="closeOnLink"
         >
           <DialogTitle class="sr-only">{{ t('topbar.nav') }}</DialogTitle>
@@ -100,9 +100,10 @@ watch(
     </DialogRoot>
     <div class="flex min-w-0 flex-1 flex-col">
       <TopBar />
-      <!-- an open task side panel takes its width from the screen instead of covering it -->
+      <!-- an open task side panel takes its width from the screen instead of covering it;
+           relative: absolute content (sr-only labels) is clipped by main and does not stretch the document (PLNRAPP-382) -->
       <main
-        class="min-h-0 flex-1 overflow-auto"
+        class="relative min-h-0 flex-1 overflow-auto"
         :style="sidePanels > 0 && !isMobile ? { paddingRight: `${taskPanelWidth}px` } : undefined"
       >
         <RouterView />

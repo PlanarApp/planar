@@ -68,18 +68,20 @@ afterEach(() => {
 describe('activity: выбор состояния', () => {
   const a = (state: WorkActivity['state'], itemId: string | null = 'c1') =>
     ({ ...run({ state, itemId }), moduleId: 'm' }) as Activity;
-  it('у пункта — сначала идущий прогон, потом ожидание, потом ошибка', () => {
+  it('у пункта — сначала идущий прогон, потом ожидание, очередь, ошибка, готово', () => {
     const f = a('failed');
     const wt = a('waiting_human');
     const r = a('running');
+    const q = a('queued');
+    const d = a('done');
+    expect(activityOf([d, f, q, wt], 'c1')).toBe(wt);
+    expect(activityOf([d, f, q], 'c1')).toBe(q);
+    expect(activityOf([d, f], 'c1')).toBe(f);
+    expect(activityOf([d], 'c1')).toBe(d);
     expect(activityOf([f, wt, r], 'c1')).toBe(r);
     expect(activityOf([f, wt], 'c1')).toBe(wt);
     expect(activityOf([f], 'c1')).toBe(f);
     expect(activityOf([f], 'c2')).toBeUndefined();
-    // PLNRAPP-310: queued — after running, before waiting
-    const q = a('queued');
-    expect(activityOf([f, wt, q], 'c1')).toBe(q);
-    expect(activityOf([q, r], 'c1')).toBe(r);
     // without an item — of the whole task
     const other = a('running', null);
     expect(activityOf([f, other])).toBe(other);
@@ -92,40 +94,46 @@ describe('activity: выбор состояния', () => {
 });
 
 describe('task: индикатор работы ИИ', () => {
-  it('агент работает — кольцо у статуса и «агент работает N мин»; завершён — пропадает', async () => {
+  const aiRow = () => w!.find('[data-testid="task-ai-state"]');
+  it('строка «ИИ» под «Статусом»: работает — без кольца у статуса; запусков нет — строки нет', async () => {
     answer = [run({ agent: true, startedAt: ago(5.5) })];
     w = await open();
-    await until(() => status().exists());
+    await until(() => aiRow().exists());
     expect(load).toHaveBeenCalledWith(t.id);
-    expect(status().text()).toContain('Агент работает 5 мин');
-    expect(w.find('[data-testid="status-pill"]').classes()).toContain('work-ring');
-    // the run ended with the bot's comment: the replica change reloads the work
+    expect(aiRow().text()).toBe('Работает');
+    expect(w.find('[data-testid="status-pill"]').classes()).not.toContain('work-ring');
+    expect(w.find('[data-testid="task-props"] [data-testid="work-status"]').exists()).toBe(false);
+    // no runs left: the row is gone
     answer = [];
     await db.table('comments').put(comment({ authorId: BOT }));
-    await until(() => !status().exists());
-    expect(w.find('[data-testid="status-pill"]').classes()).not.toContain('work-ring');
+    await until(() => !aiRow().exists());
   });
 
-  it('ждёт человека — статус без анимации', async () => {
-    answer = [run({ state: 'waiting_human' })];
+  it.each([
+    ['queued', 'Ждёт'],
+    ['waiting_human', 'Ждёт ответа'],
+    ['done', 'Готово'],
+    ['failed', 'Ошибка'],
+  ] as const)('строка «ИИ»: %s — «%s»; клик открывает панель запусков', async (state, text) => {
+    answer = [run({ state })];
     w = await open();
-    await until(() => status().exists());
-    expect(status().text()).toContain('ИИ ждёт ответа');
-    expect(w.find('[data-testid="status-pill"]').classes()).not.toContain('work-ring');
+    await until(() => aiRow().exists());
+    expect(aiRow().text()).toBe(text);
+    expect(aiRow().attributes('data-state')).toBe(state);
+    await aiRow().trigger('click');
+    await until(() => w!.find('[data-testid="runs-panel"]').exists());
   });
 
-  it('PLNRAPP-310: задача в очереди к ИИ — «В очереди к ИИ» без кольца; задание стартовало — «работает»', async () => {
+  it('PLNRAPP-310: задача в очереди к ИИ — «Ждёт»; задание стартовало — «Работает» без изменения реплики', async () => {
     answer = [run({ state: 'queued', itemId: null })];
     w = await open();
-    await until(() => status().exists());
-    expect(status().text()).toContain('В очереди к ИИ');
-    expect(status().attributes('data-state')).toBe('queued');
-    expect(w.find('[data-testid="status-pill"]').classes()).not.toContain('work-ring');
+    await until(() => aiRow().exists());
+    expect(aiRow().attributes('data-state')).toBe('queued');
     // the queue is polled: the started run replaces the queued job without a replica change
     answer = [run({ agent: true, itemId: null, startedAt: ago(0) })];
-    await until(() => status().attributes('data-state') === 'running', 6000);
-    expect(status().text()).toContain('Агент работает 0 мин');
-  });
+    await until(() => aiRow().attributes('data-state') === 'running', 6000);
+    expect(aiRow().text()).toBe('Работает');
+  }, 10_000);
 
   it('комментарий, на который отвечает ИИ: кольцо у его аватара; ошибка — ссылка на прогон', async () => {
     const c = comment({ assigneeId: BOT });
@@ -143,6 +151,23 @@ describe('task: индикатор работы ИИ', () => {
     expect(w.find(`${at} .work-ring`).exists()).toBe(false);
     await w.find(`${at} [data-testid="work-open-run"]`).trigger('click');
     await until(() => w!.find('[data-testid="runs-panel"]').exists());
+  });
+
+  it('PLNRAPP-400: индикатор — под комментарием-триггером, не в начале; у триггера-ответа — в подтреде', async () => {
+    const root = comment({ createdAt: ago(3) });
+    const reply = comment({ parentId: root.id, assigneeId: BOT, createdAt: ago(2) });
+    await db.table('comments').bulkPut([root, reply]);
+    answer = [run({ itemId: reply.id })];
+    w = await open();
+    const at = `[data-comment="${reply.id}"]`;
+    await until(() => status(at).exists());
+    // the reply's own indicator is inside the root's thread, under the reply's text
+    expect(w.find(`[data-comment="${root.id}"] [data-testid="thread"] ${at}`).exists()).toBe(true);
+    const body = w.find(`${at} [data-testid="comment-body"]`).element;
+    const work = w.find(`${at} [data-testid="comment-work"]`).element;
+    expect(body.firstElementChild).not.toBe(work);
+    expect(body.lastElementChild).toBe(work);
+    expect(w.findAll('[data-testid="comment-work"]')).toHaveLength(1);
   });
 
   it('источник недоступен (нет прав, модуль выключен) — индикатора нет', async () => {

@@ -141,6 +141,8 @@ export const aiRuns = pgTable(
     containerId: text(),
     heartbeatAt: ts(),
     startedAt: ts(),
+    /** set by the ai_runs_finished_at trigger when state becomes done | failed | cancelled */
+    finishedAt: ts(),
     createdAt: ts().notNull().defaultNow(),
     updatedAt: ts().notNull().defaultNow(),
   },

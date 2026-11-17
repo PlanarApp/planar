@@ -46,7 +46,10 @@ const pagePatchSchema = z
   })
   .nullable();
 // built on first use: run.ts imports this file, so its resultSchema is not there yet at load time
-export const docResultSchema = () => resultSchema.extend({ pagePatch: pagePatchSchema });
+/** Result of a runtime agent (task or document): not sent to a model, so no UNION_LIMIT. */
+export const agentResultSchema = () => resultSchema.extend({ pagePatch: pagePatchSchema });
+// a document has no subtasks; without them the schema stays within UNION_LIMIT
+export const docResultSchema = () => agentResultSchema().omit({ subtasks: true });
 type DocResult = AiResult & { pagePatch?: unknown };
 
 const DOC_SYSTEM = `Ты — ИИ-помощник в документах Planar. Тебе пишут в комментарии к странице. Ответ — JSON по схеме:
@@ -235,7 +238,7 @@ export async function handleDoc(d: DocRunData, api: JobApi): Promise<void> {
           maxOutputTokens: action?.maxOutputTokens ?? undefined,
         },
       );
-      result = out.object;
+      result = { ...out.object, subtasks: null };
       await api.db.execute(
         sql`update ai_runs set input_tokens = ${out.usage.inputTokens}, output_tokens = ${out.usage.outputTokens},
             cost = ${out.usage.cost} where id = ${id}`,

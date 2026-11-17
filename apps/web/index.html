@@ -4,9 +4,11 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
+      content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content, viewport-fit=cover"
     />
-    <!-- system bars of the installed PWA = app background (PLNRAPP-256); a manual theme — ui/useTheme.ts -->
+    <!-- system bars of the installed PWA = app background (PLNRAPP-256); a manual theme — ui/useTheme.ts.
+         viewport-fit=cover: the page draws under the bottom system bar (Android Chrome ignores theme-color
+         there and takes the static manifest theme_color), the safe-area padding — styles.css #app -->
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/icons/icon-192.png" />

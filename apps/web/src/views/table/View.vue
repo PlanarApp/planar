@@ -29,7 +29,7 @@ import { openTask, useSelection, type ViewProps } from '..';
 import { showTask, sideTaskOpen } from '../open';
 import { useLostFocusKeys } from '../keys';
 import { tokenOf } from '../../command/hotkeys';
-import { TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
+import { isAiField, TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
 import { useTaskFilter } from '../saved/useFilter';
 import { treeOrder } from '../list/tree';
 import { tableColumns, type TableColumnsMenu } from './menu';
@@ -135,9 +135,12 @@ const rowIds = computed(() => rows.value.map((r) => r.id));
 // options.columns → localStorage → default
 // columns of the view's fields (status, assignee…) — by options.fields: not in fields — hidden, in fields — at the end
 const isTaskField = (id: string): id is TaskField => TASK_FIELDS.includes(id as TaskField);
+// the AI list columns (PLNRAPP-401) are not table columns
 const withFields = (list: ColumnState[]) => [
   ...list.filter((c) => !isTaskField(c.id) || props.options.fields.includes(c.id)),
-  ...props.options.fields.filter((f) => !list.some((c) => c.id === f)).map((f) => newColumn(f)),
+  ...props.options.fields.flatMap((f) =>
+    isAiField(f) || list.some((c) => c.id === f) ? [] : [newColumn(f)],
+  ),
 ];
 const resolve = () =>
   withFields(

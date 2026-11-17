@@ -143,20 +143,33 @@ export interface WorkActivity {
   id: string;
   /** the comment / checklist item / chat message the work answers; null — the task itself */
   itemId: string | null;
-  /** failed — the last attempt failed and was not repeated; queued — the work waits its turn (PLNRAPP-310) */
-  state: 'queued' | 'running' | 'waiting_human' | 'failed';
+  /** queued — waits for its turn; failed — the last attempt failed and was not repeated; done — the task's last run */
+  state: 'queued' | 'running' | 'waiting_human' | 'failed' | 'done';
   /** a long work (an agent in a container): the minutes since startedAt are shown */
   agent?: boolean;
   /** the user who does the work (a bot): its avatar gets the ring, its name — «печатает…» */
   actorId?: string | null;
   startedAt: string;
+  /** PLNRAPP-402: the cost of all runs of the task (seconds of the finished ones, tokens, USD; cost null — no prices) */
+  usage?: {
+    runs: number;
+    seconds: number;
+    inputTokens: number;
+    outputTokens: number;
+    cost: number | null;
+  };
+  /** failed — when it failed (PLNRAPP-322) */
+  finishedAt?: string | null;
+  /** failed — the error text, if the user may see it (PLNRAPP-322) */
+  error?: string | null;
   /** the module's task panel (taskPanels id) with the details: the link of the error */
   panel?: string;
 }
 /** Where the indicator takes the work from; the core reloads it on replica changes and polls while it is running. */
 export interface ActivitySourceDef {
   id: string;
-  entity: 'tasks' | 'chatChannels' | 'pages';
+  /** projects — the work on all tasks of the project, itemId is the task (the list and the board, PLNRAPP-322) */
+  entity: 'tasks' | 'chatChannels' | 'pages' | 'projects';
   load(id: string): Promise<WorkActivity[]>;
 }
 

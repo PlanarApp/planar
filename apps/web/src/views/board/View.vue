@@ -33,6 +33,7 @@ import { useTaskFilter } from '../saved/useFilter';
 import Column from './Column.vue';
 import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkBar from '../BulkBar.vue';
+import { useSelectionReset } from '../selection';
 import { applyMove, boardColumns, planMove } from './plan';
 import { VueDraggable } from 'vue-draggable-plus';
 import { mutate, rankBetween } from '../../sync';
@@ -51,10 +52,15 @@ const statuses = useStatuses(spaceId, dictProject);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId, dictProject);
 const blocked = useBlockedIds(() => props.projectId);
+import { useAiFilter } from '../aiFilter';
 const passes = useTaskFilter(
   useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
+);
+const aiPass = useAiFilter(
+  () => (props.scope ? undefined : props.projectId),
+  () => props.options.aiStatus,
 );
 const statusKey = useStatusKey(() => props.scope, statuses);
 const labelKey = useLabelKey(() => props.scope, labels);
@@ -63,7 +69,7 @@ const projectNames = useProjectNames();
 const columns = computed(() =>
   boardColumns(
     (tasks.value ?? []).filter(
-      (x) => (props.options.showSubtasks || !x.parentId) && passes.value(x),
+      (x) => (props.options.showSubtasks || !x.parentId) && passes.value(x) && aiPass.value(x),
     ),
     props.options.groupBy,
     {
@@ -106,6 +112,8 @@ function toggle(key: string) {
 
 // mask at the edge of the horizontal column scroll (as on the tab strip)
 const scroller = ref<HTMLElement>();
+// Escape / a click on an empty place of the board — out of the selection mode (PLNRAPP-291)
+useSelectionReset(() => scroller.value);
 const fade = ref({ l: false, r: false });
 const measure = () => {
   const el = scroller.value;
@@ -306,7 +314,7 @@ function add(key: string, title: string) {
       :title="t('list.emptyTitle')"
       :description="t('views.emptyBoard')"
     />
-    <TaskContextMenu :space-id="spaceId" :tasks="tasks">
+    <TaskContextMenu :space-id="spaceId" :tasks="tasks" selectable>
       <VueDraggable
         :ref="(c) => (scroller = (c as { $el?: HTMLElement } | null)?.$el)"
         :model-value="columns"

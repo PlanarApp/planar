@@ -25,7 +25,7 @@ import { enabledModules } from '../modules/enabled.js';
 import { installed } from '../modules/installed.js';
 import { hiddenProjectIds, notHidden } from '../sync/project-access.js';
 import { DB } from '../tokens.js';
-import { commitFile, filePath, type FilesOpts } from './store.js';
+import { commitFile, filePath, registerFilesOpts, type FilesOpts } from './store.js';
 
 export const FILES_OPTS = Symbol('FILES_OPTS');
 export type { FilesOpts };
@@ -39,7 +39,9 @@ export class FilesController {
   constructor(
     @Inject(DB) private readonly db: Db,
     @Inject(FILES_OPTS) private readonly opts: FilesOpts,
-  ) {}
+  ) {
+    registerFilesOpts(db, opts);
+  }
 
   private path(sha: string) {
     return filePath(this.opts.dataDir, sha);

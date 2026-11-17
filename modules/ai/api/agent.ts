@@ -305,6 +305,13 @@ export async function startAgentRun(
         title: task.title,
         description: md(task.description),
         status: ctx.statuses.find((s) => s.id === task.statusId)?.name ?? null,
+        subtasks: ctx.subtasks.map(({ key, title, status, people, labels }) => ({
+          key,
+          title,
+          status,
+          people,
+          labels,
+        })),
         comments,
       },
       ...(mr && {
@@ -413,6 +420,11 @@ export const AGENT_REAP_QUEUE = 'ai.agent.reap';
 
 /** Cron, every minute: no heartbeat for AI_AGENT_HEARTBEAT_TIMEOUT_SEC or running over AI_AGENT_TIMEOUT_MIN → container removed, run failed. */
 export async function reap(_d: object, api: JobApi) {
+  // AST-1: a `queued` row whose job was lost (queue purge, restart) must not hang forever
+  await api.db.execute(
+    sql`update ai_runs set state = 'cancelled', updated_at = now()
+        where state = 'queued' and created_at < now() - interval '1 hour'`,
+  );
   const hb = envInt('AI_AGENT_HEARTBEAT_TIMEOUT_SEC', 120);
   const max = envInt('AI_AGENT_TIMEOUT_MIN', 60);
   const lost = (

@@ -63,7 +63,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
   <div
     v-if="panelOpen && side"
     role="dialog"
-    class="fixed bottom-0 right-0 top-11 z-30 flex max-w-full overflow-hidden border-l border-border bg-surface shadow-dialog"
+    class="fixed bottom-0 right-0 top-[calc(2.75rem+env(safe-area-inset-top))] z-30 flex max-w-full overflow-hidden border-l border-border bg-surface pb-[env(safe-area-inset-bottom)] shadow-dialog"
     :style="{ width: taskPanelWidth + 'px' }"
     data-testid="task-side"
   >
@@ -90,7 +90,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
     <div
       role="dialog"
       aria-modal="true"
-      class="flex h-full w-full overflow-hidden bg-surface md:max-h-[56rem] md:max-w-7xl md:rounded-xl md:border md:border-border md:shadow-dialog"
+      class="flex h-full w-full overflow-hidden bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:max-h-[56rem] md:max-w-7xl md:rounded-xl md:border md:border-border md:shadow-dialog"
     >
       <component :is="TaskPanel" :task-key="taskKey" mode="panel" @close="closeTask" />
     </div>

@@ -43,10 +43,12 @@ function onQuickKey(e: KeyboardEvent) {
 }
 useHotkey('f', () => (quickOpen.value = true), { label: 'cmd.hk.filter' });
 import MeMode from './MeMode.vue';
+import AiStatusFilter from './AiStatusFilter.vue';
 </script>
 
 <template>
   <MeMode v-if="!noMe" v-model="options.me" />
+  <AiStatusFilter v-if="projectId" v-model="options.aiStatus" :project-id="projectId" />
   <Popover v-model:open="quickOpen" align="end">
     <template #trigger>
       <IconButton

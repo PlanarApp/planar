@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { entitySchemas, httpErrorSchema, v1TaskSchema } from '@planar/shared';
 import { installed } from '../modules/installed.js';
 import { batchBody, batchResult } from './batch.js';
+import { extOps, pathParams } from './ext/index.js';
 import { SETTING_OPS, setModuleSchema } from './settings.js';
 import {
   commentBody,
@@ -177,6 +178,57 @@ const settingPaths = () => {
   }
   return paths;
 };
+const KNOWN_MODELS = new Set([...Object.keys(models), 'Status', 'Label', 'AiAction']);
+/** paths of ExtOp (rest/ext): path params, query (GET/DELETE) or body from the shape, response by status */
+const extPaths = () => {
+  const paths: Record<string, Record<string, unknown>> = {};
+  for (const o of extOps()) {
+    const inPath = pathParams(o.path);
+    const rest = z.object(o.shape).omit(Object.fromEntries(inPath.map((n) => [n, true])));
+    const json = z.toJSONSchema(rest, { io: 'input' }) as {
+      properties?: Record<string, object>;
+      required?: string[];
+    };
+    const query = o.method === 'get' || o.method === 'delete';
+    const status = o.status ?? 200;
+    paths[o.path] = {
+      ...paths[o.path],
+      [o.method]: {
+        operationId: o.tool,
+        description: o.description,
+        parameters: [
+          ...inPath.map((n) => param(n, 'path')),
+          ...(query
+            ? Object.entries(json.properties ?? {}).map(([n, schema]) => ({
+                ...param(n, 'query', schema),
+                required: json.required?.includes(n) ?? false,
+              }))
+            : []),
+        ],
+        ...(query
+          ? {}
+          : { requestBody: { required: true, content: { 'application/json': { schema: json } } } }),
+        responses:
+          status === 204
+            ? { '204': { description: 'Выполнено' }, default: ok('Error').default }
+            : o.model && KNOWN_MODELS.has(o.model) // an unknown name would be a dangling $ref
+              ? ok(o.model, 'one', String(status))
+              : {
+                  [String(status)]: {
+                    description: 'OK',
+                    content: {
+                      'application/json': {
+                        schema: { type: 'object', required: ['data'], properties: { data: {} } },
+                      },
+                    },
+                  },
+                  default: ok('Error').default,
+                },
+      },
+    };
+  }
+  return paths;
+};
 /** merge of methods of the same path */
 const mergePaths = (a: Record<string, object>, b: Record<string, object>) =>
   Object.fromEntries(
@@ -323,7 +375,7 @@ export function openapi() {
           },
         },
       },
-      settingPaths(),
+      mergePaths(settingPaths(), extPaths()),
     ),
     components: {
       securitySchemes: { bearer: { type: 'http', scheme: 'bearer' } },

@@ -285,6 +285,29 @@ describe('agent: жизненный цикл', () => {
       expect(s).not.toContain(secret);
   });
 
+  it('результат агента меняет подзадачи (subtasks не теряются при разборе)', async () => {
+    const { run, secret, taskId } = await start();
+    const sub = uuidv7();
+    await w.admin.ok('task.create', {
+      id: sub,
+      projectId: P,
+      parentId: taskId,
+      statusId: (await one(`select status_id from tasks where id = $1`, [taskId])).status_id,
+      title: 'Старое',
+      rank: 'a1',
+    });
+    const { k } = await one(
+      `select p.key || '-' || t.number as k from tasks t join projects p on p.id = t.project_id where t.id = $1`,
+      [sub],
+    );
+    const body = {
+      ...done,
+      subtasks: [{ key: k, title: 'Новое', moveTo: '', labels: [], fields: [] }],
+    };
+    expect((await call('POST', `/api/ai/runs/${run.id}`, { secret, body })).statusCode).toBe(200);
+    expect((await one(`select title from tasks where id = $1`, [sub])).title).toBe('Новое');
+  });
+
   it('протокол LLM и модель; репозиторий gitlab — токен подключения в env, только при включённом модуле', async () => {
     const plain = await start();
     expect(plain.post!.body.env).toMatchObject({
@@ -448,6 +471,26 @@ describe('agent: жнец и остановка', () => {
     );
     await handler('ai', 'ai.agent.reap')({}, api);
     expect((await one(`select state from ai_runs where id = $1`, [r.run.id])).state).toBe('failed');
+  });
+
+  it('жнец: queued старше часа — cancelled, свежий queued не тронут', async () => {
+    const r = await start();
+    const mk = async (ago: string) => {
+      const id = uuidv7();
+      await raw(
+        `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth, created_at)
+         select $1, task_id, project_id, 'checklist', 'queued', $1, 0, now() - $2::interval from ai_runs where id = $3`,
+        [id, ago, r.run.id],
+      );
+      return id;
+    };
+    const oldQ = await mk('2 hours');
+    const freshQ = await mk('5 minutes');
+    await handler('ai', 'ai.agent.reap')({}, api);
+    const st = async (id: string) =>
+      (await one(`select state from ai_runs where id = $1`, [id])).state;
+    expect(await st(oldQ)).toBe('cancelled');
+    expect(await st(freshQ)).toBe('queued');
   });
 
   it('мусорный id в пути — 401, а не 500', async () => {

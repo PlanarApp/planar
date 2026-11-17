@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { uuidv7, v1TaskSchema } from '@planar/shared';
 import { createApp } from '../../src/app.js';
 import * as schema from '../../src/db/schema.js';
+import { EXT_AREAS } from '../../src/rest/ext/index.js';
 import { ORIGIN, loginCookie } from '../auth.js';
 import { dbUrl, key, newDb, world, type World } from '../sync/helpers.js';
 
@@ -421,7 +422,7 @@ describe('REST /api/v1: OpenAPI', () => {
     expect(r.statusCode).toBe(200);
     const doc = JSON.parse(r.body);
     expect(doc.openapi).toBe('3.1.0');
-    expect(Object.keys(doc.paths).sort()).toEqual([
+    const base = [
       '/api/v1/ai-actions/{id}',
       '/api/v1/automations/{id}',
       '/api/v1/comments/{id}',
@@ -455,8 +456,12 @@ describe('REST /api/v1: OpenAPI', () => {
       '/api/v1/timer',
       '/api/v1/timer/start',
       '/api/v1/timer/stop',
-    ]);
-    expect(Object.keys(doc.paths['/api/v1/tasks/{task}'])).toEqual(['get', 'patch']);
+    ];
+    const extPaths = EXT_AREAS.flatMap((a) => a.ops.map((o) => o.path));
+    expect(Object.keys(doc.paths).sort()).toEqual([...new Set([...base, ...extPaths])].sort());
+    expect(Object.keys(doc.paths['/api/v1/tasks/{task}'])).toEqual(
+      expect.arrayContaining(['get', 'patch']),
+    );
     expect(doc.components.schemas.Task.properties).toHaveProperty('assigneeIds');
     expect(doc.components.schemas.CreateTask.required).toEqual(['projectId', 'title']);
     expect(doc.components.schemas.DocPage.properties).not.toHaveProperty('body');

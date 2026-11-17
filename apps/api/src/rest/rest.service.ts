@@ -24,7 +24,9 @@ import {
   type V1Task,
 } from '@planar/shared';
 import { applyPagePatch } from '@planar/module-docs/api';
+import { AUTH_OPTS, type AuthOpts } from '../auth/auth.js';
 import { HttpError } from '../auth/errors.js';
+import type { ExtDeps } from './ext/types.js';
 import type { Db } from '../db/index.js';
 import * as s from '../db/schema.js';
 import { enabledModules, moduleOnInProject } from '../modules/enabled.js';
@@ -111,6 +113,7 @@ export class RestService {
   constructor(
     @Inject(DB) private db: Db,
     @Optional() @Inject(PushQueue) private queue?: PushQueue,
+    @Optional() @Inject(AUTH_OPTS) private authOpts?: AuthOpts,
   ) {}
 
   /** the origin of this instance's mutations (an AI run); set only by `withOrigin` */
@@ -118,7 +121,7 @@ export class RestService {
 
   /** The same service whose mutations carry `origin` (activity «Имя (через ИИ)», module hooks). */
   withOrigin(origin: MutationOrigin): RestService {
-    const r = new RestService(this.db, this.queue);
+    const r = new RestService(this.db, this.queue, this.authOpts);
     r.origin = origin;
     return r;
   }
@@ -350,6 +353,9 @@ export class RestService {
       await executeMutations(this.db, userId, muts, this.queue, tokenId, { origin: this.origin });
     } catch (err) {
       if (!(err instanceof Reject)) throw err;
+      // disabled module's mutator is absent from the registry; don't leak its name
+      if (err.code === 'unknown_mutator')
+        throw new HttpError(404, 'module_disabled', 'Модуль выключен или операция недоступна');
       const [status, code] = HTTP[err.code] ?? [500, 'internal'];
       throw new HttpError(status, code, status === 500 ? 'Внутренняя ошибка' : err.message);
     }
@@ -1022,6 +1028,20 @@ export class RestService {
   }
   async aiActions(userId: string, projectId: string) {
     return { data: await listAiActions(this.settingsDeps, userId, projectId) };
+  }
+
+  /** dependencies of ExtOp (rest/ext) */
+  extDeps(): ExtDeps {
+    return {
+      db: this.db,
+      run: (u, m, tok) => this.run(u, m, tok),
+      visibleProject: (u, id) => this.visibleProject(u, id),
+      origin: this.authOpts?.publicUrl ?? '',
+      moduleOn: async (_u, module, projectId) => {
+        if (!(await moduleOnInProject(this.db, module, projectId)))
+          throw new HttpError(404, 'module_disabled', `Модуль ${module} выключен`);
+      },
+    };
   }
 }
 

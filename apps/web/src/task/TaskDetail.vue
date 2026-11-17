@@ -28,6 +28,12 @@ import {
   Paperclip,
   Pin,
   PinOff,
+  Sparkles,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  LoaderCircle,
+  MessageCircleQuestion,
   AppWindow,
   Maximize2,
   PanelRight,
@@ -82,7 +88,6 @@ import Feed from './Feed.vue';
 import { ASIDE_DEFAULT, ASIDE_MIN, asideMax, asideWidth, setAsideWidth } from './asideWidth';
 import { useAttachments, useChecklist, useSubtasks, useUsers, useWatchers } from './queries';
 import Subtasks from './Subtasks.vue';
-import WorkStatus from './WorkStatus.vue';
 import { TO_TASK } from './thread';
 import { useTaskMenu } from '../tasks/taskMenu';
 import LinksBlock from '../links/LinksBlock.vue';
@@ -373,8 +378,10 @@ const tabCounts = computed<Record<string, number | string | undefined>>(() => ({
   ),
   links: links.value?.length,
 }));
-// attachments are open by default (PLNRAPP-105)
-const tab = ref<string | null>('attachments');
+// attachments are open by default (PLNRAPP-105); `?panel=ai:runs` — the link to the AI run from a list row (PLNRAPP-322)
+const tab = ref<string | null>(
+  typeof route?.query.panel === 'string' ? route.query.panel : 'attachments',
+);
 const active = computed(() => panels.value.find((p) => p.key === tab.value) ?? null);
 const lt = (x: string | { ru: string; en: string }) =>
   typeof x === 'string' ? t(x) : (x[locale.value as 'ru' | 'en'] ?? x.ru);
@@ -386,6 +393,27 @@ const activity = useActivity(
   () => props.task.projectId,
 );
 const work = computed(() => activityOf(activity.value));
+/** PLNRAPP-402: «5 мин · 3.1k ток. · $0.02» — the sum of the AI's runs of the task, when any run has finished */
+const aiUsage = computed(() => {
+  const u = work.value?.usage;
+  if (!u || !u.runs) return '';
+  const tok = u.inputTokens + u.outputTokens;
+  return t('tasks.aiUsage', {
+    time:
+      u.seconds < 60
+        ? `${Math.round(u.seconds)} ${t('tasks.aiSec')}`
+        : `${Math.round(u.seconds / 60)} ${t('tasks.aiMin')}`,
+    tokens: tok < 1000 ? tok : `${(tok / 1000).toFixed(1)}k`,
+    cost: u.cost == null ? '' : ` · $${u.cost.toFixed(2)}`,
+  });
+});
+const AI_ICON = {
+  queued: Clock,
+  running: LoaderCircle,
+  waiting_human: MessageCircleQuestion,
+  done: CheckCircle2,
+  failed: AlertCircle,
+};
 async function openRun(a: Activity) {
   if (!a.panel) return;
   tab.value = `${a.moduleId}:${a.panel}`;
@@ -587,7 +615,7 @@ const panelComponent = computed(() => {
               <CircleDot :size="15" />{{ t('tasks.status') }}
             </dt>
             <dd
-              :class="['min-w-0 rounded-md', work?.state === 'running' && 'work-ring']"
+              class="min-w-0 rounded-md"
               :style="
                 statusColor && { background: `color-mix(in srgb, ${statusColor} 16%, transparent)` }
               "
@@ -601,7 +629,34 @@ const panelComponent = computed(() => {
                 @update:model-value="(v?: string) => v && updateTask(task.id, { statusId: v })"
               />
             </dd>
-            <WorkStatus v-if="work" :activity="work" class="ml-2" @open="openRun" />
+          </div>
+          <div v-if="work" class="flex min-h-9 items-center" data-testid="task-ai-row">
+            <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
+              <Sparkles :size="15" />{{ t('tasks.aiRow') }}
+            </dt>
+            <dd class="min-w-0" data-col="ai">
+              <button
+                type="button"
+                :class="[
+                  'inline-flex items-center gap-1.5 rounded-sm px-1 text-sm outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus',
+                  work.state === 'failed' ? 'text-danger' : 'text-fg',
+                ]"
+                data-testid="task-ai-state"
+                :data-state="work.state"
+                @click="openRun(work)"
+              >
+                <component
+                  :is="AI_ICON[work.state]"
+                  :size="14"
+                  :class="work.state === 'running' && 'animate-spin motion-reduce:animate-none'"
+                  aria-hidden="true"
+                />
+                {{ t(`tasks.aiState.${work.state}`) }}
+              </button>
+              <span v-if="aiUsage" class="ml-2 text-xs text-fg-muted" data-testid="task-ai-usage">{{
+                aiUsage
+              }}</span>
+            </dd>
           </div>
           <div class="flex min-h-9 items-center">
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">

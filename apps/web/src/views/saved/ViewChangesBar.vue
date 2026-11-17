@@ -22,7 +22,7 @@ watch(
       v-if="show && !hidden"
       role="region"
       :aria-label="t('views.saved.changed')"
-      class="fixed bottom-16 right-4 z-50 flex items-center gap-1 rounded-lg border border-border bg-bg py-1 pl-3 pr-1 text-sm text-fg shadow-lg md:bottom-4"
+      class="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] right-4 z-50 flex items-center gap-1 rounded-lg border border-border bg-bg py-1 pl-3 pr-1 text-sm text-fg shadow-lg md:bottom-4"
       data-testid="view-changes"
     >
       <span class="mr-1 text-fg-muted">{{ t('views.saved.changed') }}</span>

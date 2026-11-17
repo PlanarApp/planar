@@ -25,7 +25,9 @@ import {
 } from '../../tasks';
 import { Button, Dialog, EmptyState, Input, Menu, useBreakpoint, type MenuItem } from '../../ui';
 import { router } from '../../router';
-import { useExtensions } from '../../modules/registry';
+import { enabledForProject, useExtensions } from '../../modules/registry';
+import { isAiField } from '../options';
+import { useAiFilter } from '../aiFilter';
 import { openTask, useSelection, type ViewProps } from '..';
 import { openTaskFor, showTask, sideTaskOpen } from '../open';
 import { useTaskFilter } from '../saved/useFilter';
@@ -43,6 +45,7 @@ import {
   useWidenedFilter,
 } from '../scope';
 import Row from './Row.vue';
+import { useSelectionReset } from '../selection';
 import { treeOrder } from './tree';
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import { useColumnWidths } from './widths';
@@ -70,6 +73,12 @@ const statuses = useStatuses(spaceId, dictProject);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId, dictProject);
 const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
+// PLNRAPP-401: the AI columns only where the ai module is on
+const listFields = computed(() =>
+  enabledForProject('ai', props.scope?.projectIds ?? [props.projectId])
+    ? props.options.fields
+    : props.options.fields.filter((f) => !isAiField(f)),
+);
 const statusKey = useStatusKey(() => props.scope, statuses);
 const labelKey = useLabelKey(() => props.scope, labels);
 const projectNames = useProjectNames();
@@ -80,7 +89,7 @@ const {
   reset: resetWidth,
 } = useColumnWidths(
   () => props.projectId,
-  () => visibleColumns(props.options.fields),
+  () => visibleColumns(listFields.value),
   all,
   () => ({
     labels: new Map((labels.value ?? []).map((l) => [l.id, l.name])),
@@ -95,6 +104,10 @@ const passes = useTaskFilter(
   useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
+);
+const aiPass = useAiFilter(
+  () => (props.scope ? undefined : props.projectId),
+  () => props.options.aiStatus,
 );
 
 type Item =
@@ -115,7 +128,9 @@ type Item =
 const collapsed = ref(new Set<string>());
 const groups = computed(() => {
   const o = props.options;
-  const tasks = (all.value ?? []).filter((x) => (o.showSubtasks || !x.parentId) && passes.value(x));
+  const tasks = (all.value ?? []).filter(
+    (x) => (o.showSubtasks || !x.parentId) && passes.value(x) && aiPass.value(x),
+  );
   const ctx = {
     statuses: statuses.value ?? [],
     members: members.value ?? [],
@@ -208,13 +223,16 @@ const items = computed<Item[]>(() => {
     }),
   );
 });
-const columns = computed(() => visibleColumns(props.options.fields));
+const columns = computed(() => visibleColumns(listFields.value));
 const COL_LABEL = {
   assignee: 'tasks.assignee',
   dueDate: 'tasks.dueDate',
   priority: 'tasks.priorityTitle',
   labels: 'tasks.labels',
   project: 'views.fields.project',
+  ai: 'views.fields.ai',
+  aiCost: 'views.fields.aiCost',
+  aiTime: 'views.fields.aiTime',
 } as const;
 const colName = (c: keyof typeof COL_LABEL) => t(COL_LABEL[c]);
 // sorting by clicking the column header: ascending → descending → manual order
@@ -359,6 +377,8 @@ const empty = computed(() => !!all.value && !all.value.some((x) => !x.parentId))
 
 // --- virtualization
 const scroller = ref<HTMLElement>();
+// Escape / a click on an empty place of the list — out of the selection mode (PLNRAPP-291)
+useSelectionReset(() => scroller.value);
 const rowH = computed(() => (isMobile.value ? 44 : 32));
 // mobile: the task card is above the service rows; dragging is disabled there (dropAt counts by rowH)
 const virt = useVirtualizer(
@@ -649,7 +669,7 @@ watch(
         </template>
       </template>
     </EmptyState>
-    <TaskContextMenu v-else :space-id="spaceId" :tasks="all">
+    <TaskContextMenu v-else :space-id="spaceId" :tasks="all" selectable>
       <div
         ref="scroller"
         role="grid"
@@ -681,6 +701,7 @@ watch(
                 class="flex h-full items-center border-b border-border pl-4 pr-3 text-xs text-fg-muted"
               >
                 <input
+                  v-if="sel.active.value"
                   type="checkbox"
                   :checked="sel.state(allIds) === 'all'"
                   :indeterminate="sel.state(allIds) === 'some'"
@@ -689,6 +710,7 @@ watch(
                   data-testid="select-all"
                   @click="sel.toggleAll(allIds)"
                 />
+                <span v-else class="mr-3 w-4 shrink-0" aria-hidden="true" />
                 <button
                   type="button"
                   class="flex-1 truncate text-left hover:text-fg"
@@ -759,6 +781,7 @@ watch(
                   />
                 </button>
                 <input
+                  v-if="sel.active.value"
                   type="checkbox"
                   :checked="sel.state(it.group.tasks.map((x) => x.id)) === 'all'"
                   :indeterminate="sel.state(it.group.tasks.map((x) => x.id)) === 'some'"
@@ -818,9 +841,10 @@ watch(
                 :widths="widths"
                 :index="v.index + 1"
                 :selected="sel.selected.value.has(it.task.id)"
+                :selecting="sel.active.value"
                 :focused="focusedId === it.id"
                 :editing="editing === it.id"
-                :fields="options.fields"
+                :fields="listFields"
                 :blocked="blocked.has(it.task.id)"
                 :in-day="inDay.has(it.task.id)"
                 :members="members ?? []"

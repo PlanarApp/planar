@@ -66,6 +66,7 @@ const result = (o: Record<string, unknown>) => ({
   docs: null,
   emails: null,
   friction: null,
+  subtasks: null,
   ...o,
 });
 
@@ -749,10 +750,23 @@ describe('поручения ИИ', () => {
     expect(jobs).toEqual([
       {
         queue: 'ai.run',
-        data: { kind: 'comment', taskId: t, itemId: c },
+        data: { kind: 'comment', taskId: t, itemId: c, runId: expect.any(String) },
         opts: expect.objectContaining({ upsert: true }),
       },
     ]);
+    // AST-1: the run waits as a `queued` row (the job carries its id); the handler turns it into `running`
+    const rid = (jobs[0]!.data as { runId: string }).runId;
+    expect((await runsOf(t)).map((r) => [r.id, r.state])).toEqual([[rid, 'queued']]);
+    // a newer assignment of the same comment replaces the queued one: one `queued` per key
+    await w.member.ok('comment.assign', { id: c, assigneeId: null });
+    await w.member.ok('comment.assign', { id: c, assigneeId: bot });
+    expect((await runsOf(t)).map((r) => r.state).sort()).toEqual(['cancelled', 'queued']);
+    jobs.splice(0, jobs.length - 1);
+    const rid2 = (jobs[0]!.data as { runId: string }).runId;
+    expect(rid2).not.toBe(rid);
+    // the cancelled run's job is skipped, the live one starts its row
+    await handler('ai', 'ai.run')({ ...(jobs[0]!.data as object), runId: rid } as never, api);
+    expect((await runsOf(t)).map((r) => r.state).sort()).toEqual(['cancelled', 'queued']);
     answers = [
       result({ verdict: 'question', comment: 'Уточни', questions: ['Какой стек?'] }),
       result({ comment: '3 дня' }),
@@ -774,6 +788,45 @@ describe('поручения ИИ', () => {
     expect(root.assignee_id).toBe(bot);
     expect(root.resolved_at).not.toBeNull();
     expect(text((await commentsOf(t)).at(-1)!.body)).toContain('3 дня');
+  });
+
+  it('PLNRAPP-361: комментарий задачи меняет её подзадачи по ключу; не подзадача — в лог', async () => {
+    const hot = uuidv7();
+    await w.admin.ok('label.create', { id: hot, projectId: P, name: 'Горячий', color: '#f00' });
+    const t = await task();
+    const sub = await task({ parentId: t, title: 'Старое', assignees: [] });
+    const other = await task({ assignees: [] });
+    const keyOf = async (id: string) =>
+      (
+        await one(
+          `select p.key || '-' || t.number as k from tasks t join projects p on p.id = t.project_id where t.id = $1`,
+          [id],
+        )
+      ).k as string;
+    const [subKey, otherKey] = [await keyOf(sub), await keyOf(other)];
+    await w.member.ok('comment.create', {
+      id: uuidv7(),
+      taskId: t,
+      body: doc('отложи подзадачу'),
+      assigneeId: bot,
+    });
+    answers = [
+      result({
+        subtasks: [
+          { key: subKey, title: 'Новое', moveTo: 'Отложено', labels: ['горячий'], fields: [] },
+          { key: otherKey, title: '', moveTo: 'Отложено', labels: [], fields: [] },
+        ],
+      }),
+    ];
+    await drain();
+    expect(calls[0]!.prompt).toContain(`${subKey}: Старое`);
+    const s = await taskRow(sub);
+    expect([s.title, s.status_id]).toEqual(['Новое', S.snoozed]);
+    expect(await raw(`select label_id from task_labels where task_id = $1`, [sub])).toEqual([
+      { label_id: hot },
+    ]);
+    expect((await taskRow(other)).status_id).toBe(S.todo);
+    expect((await runsOf(t))[0]!.log).toContain(`нет подзадачи «${otherKey}»`);
   });
 
   it('@ai: ответ в треде, без закрытия; назначенный и упомянувший — один раз', async () => {
@@ -826,7 +879,9 @@ describe('поручения ИИ', () => {
       parentId: root,
       body: doc('а сроки?'),
     });
-    expect(jobs.map((j) => j.data)).toEqual([{ kind: 'mention', taskId: t, itemId: c }]);
+    expect(jobs.map((j) => j.data)).toEqual([
+      { kind: 'mention', taskId: t, itemId: c, runId: expect.any(String) },
+    ]);
     answers = [result({ comment: 'Неделя' })];
     await drain();
     expect(calls[0]!.prompt).toContain('а сроки?');

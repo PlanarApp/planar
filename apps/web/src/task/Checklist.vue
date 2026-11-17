@@ -29,7 +29,12 @@ const { t } = useI18n();
 // PLNRAPP-202: the AI works on an item — a ring around its avatar while it runs, the line of its state
 const taskWork = inject(TASK_ACTIVITY, null);
 const workOf = (itemId: string) =>
-  taskWork ? activityOf(taskWork.items.value, itemId) : undefined;
+  taskWork
+    ? activityOf(
+        taskWork.items.value.filter((a) => a.state !== 'done'),
+        itemId,
+      )
+    : undefined;
 // an item turned into a task (PLNRAPP-142): key of the task for the link; a deleted task — plain text
 const linked = useQuery(async () => {
   const items = await db

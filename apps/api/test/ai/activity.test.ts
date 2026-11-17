@@ -73,11 +73,12 @@ beforeAll(async () => {
 });
 
 describe('activity задачи', () => {
-  it('идущие, ждущие человека и свежая неповторённая ошибка; завершённые и старые — нет', async () => {
+  it('ждущие очереди, идущие, ждущие человека, свежая неповторённая ошибка и последний done; прочие завершённые и старые — нет', async () => {
     const running = await run({ kind: 'checklist', agent: true });
     const waiting = await run({ state: 'waiting_human' });
     const failed = await run({ state: 'failed', ago: 2 });
-    await run({ state: 'done' });
+    const queued = await run({ state: 'queued' });
+    const done = await run({ state: 'done' }); // the last finished run of the task
     await run({ state: 'cancelled' });
     await run({ state: 'failed', ago: 48 }); // older than a day
     // the failure of an item repeated after: not shown
@@ -89,15 +90,20 @@ describe('activity задачи', () => {
 
     const r = await call(`activity/tasks/${task}`, 'member');
     expect(r.statusCode).toBe(200);
-    expect(ids(r)).toEqual([running, waiting, failed, action].sort());
+    expect(ids(r)).toEqual([queued, running, waiting, failed, action, done].sort());
     const byId = new Map(
       (r.json().activity as Record<string, unknown>[]).map((a) => [a.id as string, a]),
     );
     expect(byId.get(running)).toMatchObject({ kind: 'checklist', state: 'running', agent: true });
     expect(byId.get(waiting)).toMatchObject({ state: 'waiting_human', agent: false });
+    expect(byId.get(queued)).toMatchObject({ state: 'queued' });
+    expect(byId.get(done)).toMatchObject({ state: 'done' });
     expect(byId.get(action)).toMatchObject({ itemId: null, state: 'failed' });
     expect(byId.get(running)!.startedAt).toMatch(/^\d{4}-\d\d-\d\dT/);
     expect(byId.get(running)!).not.toHaveProperty('log');
+    // PLNRAPP-402: the sum over the task's runs; the runs of this test have no start, so no seconds
+    expect(r.json().usage).toMatchObject({ seconds: 0 });
+    expect(r.json().usage.runs).toBeGreaterThan(0);
     expect((await call(`activity/tasks/${task}`, 'admin')).statusCode).toBe(200);
   });
 
@@ -205,6 +211,12 @@ describe('activity задачи: очередь ai.run', () => {
           : raw(`delete from task_assignees where task_id = $1 and user_id = $2`, [task, bot.id]);
       await assign(true);
       const [t] = await raw(`select status_id as s from tasks where id = $1`, [task]);
+      // queued runs of the earlier tests on this task are not jobs
+      const runs = new Set(
+        ((await call(`activity/tasks/${task}`, 'member')).json().activity as { id: string }[]).map(
+          (a) => a.id,
+        ),
+      );
       const later = { startAfter: 3600 };
       const action = await boss.send(
         'ai.run',
@@ -230,7 +242,7 @@ describe('activity задачи: очередь ai.run', () => {
       const r = await call(`activity/tasks/${task}`, 'member');
       expect(r.statusCode).toBe(200);
       const queued = (r.json().activity as Record<string, unknown>[]).filter(
-        (a) => a.state === 'queued',
+        (a) => a.state === 'queued' && !runs.has(a.id as string),
       );
       expect(queued.map((a) => a.id).sort()).toEqual([action, comment].sort());
       expect(queued.find((a) => a.id === action)).toMatchObject({
@@ -248,7 +260,9 @@ describe('activity задачи: очередь ai.run', () => {
         id: string;
         state: string;
       }[];
-      expect(after.filter((a) => a.state === 'queued').map((a) => a.id)).toEqual([comment]);
+      expect(after.filter((a) => a.state === 'queued' && !runs.has(a.id)).map((a) => a.id)).toEqual(
+        [comment],
+      );
     } finally {
       await boss.stop({ graceful: false });
     }

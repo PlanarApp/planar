@@ -213,7 +213,14 @@ export const mutators = [
   }),
 ];
 
-export const AI_RUN_STATES = ['running', 'waiting_human', 'done', 'failed', 'cancelled'] as const;
+export const AI_RUN_STATES = [
+  'queued',
+  'running',
+  'waiting_human',
+  'done',
+  'failed',
+  'cancelled',
+] as const;
 export type AiRunState = (typeof AI_RUN_STATES)[number];
 export const AI_RUN_KINDS = [
   'action',
@@ -264,13 +271,56 @@ export interface AiActivity {
    * failed — the last run of this item failed recently (it was not restarted); queued — the job is not started yet
    * (the debounce, all agents busy): id is the job's, startedAt — when it was queued (PLNRAPP-310)
    */
-  state: 'queued' | 'running' | 'waiting_human' | 'failed';
+  state: 'queued' | 'running' | 'waiting_human' | 'failed' | 'done';
   /** an agent in a container: «агент работает N мин» */
   agent: boolean;
   /** the bot user who answers */
   actorId: string | null;
   /** the start of the run (the agent — of its container) */
   startedAt: string;
+}
+/** PLNRAPP-319: the AI status of a task in a list row / a board card. */
+export const AI_TASK_STATUSES = [
+  'queued',
+  'running',
+  'waiting_human',
+  'failed',
+  'done',
+  'none',
+] as const;
+export type AiTaskStatus = (typeof AI_TASK_STATUSES)[number];
+/**
+ * PLNRAPP-319: the state of the task's last AI flow for the list and the board — running while any run of the task
+ * runs, else failed when its last finished run (done | failed) failed: failed holds until the next successful run.
+ * Tasks with `none` are not listed.
+ */
+export interface AiTaskRunStatus {
+  taskId: string;
+  status: Exclude<AiTaskStatus, 'none'>;
+  /** the run: the running one, or the failed one */
+  runId: string;
+  startedAt: string;
+  /** failed — when it failed; running — null */
+  finishedAt: string | null;
+  /** failed — the last line of the run's log; only for those who see the runs of the task (D7), else null */
+  error: string | null;
+  usage: AiUsage;
+}
+/** PLNRAPP-402: the cost of the AI's runs of a task; seconds = Σ(finished_at − started_at) of the finished runs */
+export interface AiUsage {
+  runs: number;
+  seconds: number;
+  inputTokens: number;
+  outputTokens: number;
+  /** USD; null — no run has a price */
+  cost: number | null;
+}
+/** PLNRAPP-403: GET api/ai/reports/usage — the cost of the finished runs by task or by day (UTC) */
+export interface AiUsageReport {
+  groupBy: 'task' | 'day';
+  /** key — task id | YYYY-MM-DD; label — «KEY-1 title» | the day */
+  rows: (AiUsage & { key: string; label: string })[];
+  total: AiUsage;
 }
 /** Agent log events (PLNRAPP-199): what the agent does in its container, as in the Claude Code chat. */
 export const AI_RUN_EVENT_TYPES = ['thought', 'tool_call', 'command', 'output', 'result'] as const;

@@ -48,7 +48,7 @@ onMounted(async () => {
       v-if="needRefresh || downloading"
       data-testid="pwa-update"
       role="status"
-      class="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow-md md:bottom-4"
+      class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow-md md:bottom-4"
     >
       <template v-if="busy">
         {{ busy }}

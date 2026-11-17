@@ -5,7 +5,7 @@ import { dismiss, toasts } from './toast';
 
 <template>
   <div
-    class="pointer-events-none fixed inset-x-0 bottom-16 z-[60] flex flex-col items-center gap-2 px-4 md:bottom-4"
+    class="pointer-events-none fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[60] flex flex-col items-center gap-2 px-4 md:bottom-4"
     role="status"
     aria-live="polite"
   >

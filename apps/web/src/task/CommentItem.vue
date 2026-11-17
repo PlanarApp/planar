@@ -59,7 +59,12 @@ const assignItems = computed<MenuItem[]>(() => [
 // PLNRAPP-202: the AI answers this comment — a ring around its avatar while it runs, the line of its state
 const taskWork = inject(TASK_ACTIVITY, null);
 const work = computed(() =>
-  taskWork ? activityOf(taskWork.items.value, props.comment.id) : undefined,
+  taskWork
+    ? activityOf(
+        taskWork.items.value.filter((a) => a.state !== 'done'),
+        props.comment.id,
+      )
+    : undefined,
 );
 const ring = (userId?: string | null) =>
   work.value?.state === 'running' && !!userId && work.value.actorId === userId && 'work-ring';
@@ -159,15 +164,6 @@ function save() {
         </div>
       </div>
       <div class="mt-1 min-w-0" data-testid="comment-body">
-        <div v-if="work" class="flex items-center gap-1" data-testid="comment-work">
-          <Avatar
-            v-if="actorAside"
-            :name="names[work.actorId!] ?? 'AI'"
-            size="xs"
-            :class="ring(work.actorId)"
-          />
-          <WorkStatus :activity="work" reply @open="taskWork?.open" />
-        </div>
         <template v-if="editing">
           <Editor
             v-model="draft"
@@ -239,6 +235,16 @@ function save() {
             </template>
           </Reactions>
         </template>
+        <!-- PLNRAPP-400: состояние ИИ — псевдо-ответом под комментарием-триггером, перед ответами -->
+        <div v-if="work" class="mt-2 flex items-center gap-1" data-testid="comment-work">
+          <Avatar
+            v-if="actorAside"
+            :name="names[work.actorId!] ?? 'AI'"
+            size="xs"
+            :class="ring(work.actorId)"
+          />
+          <WorkStatus :activity="work" reply @open="taskWork?.open" />
+        </div>
         <!-- тред: ответы и поле ответа -->
         <slot />
       </div>
