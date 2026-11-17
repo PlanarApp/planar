@@ -64,7 +64,7 @@ prompt() {
   if [ -n "$REPO" ]; then
     printf 'Репозиторий проекта склонирован в %s (текущий каталог), git push и glab работают.\n' "$REPO"
   fi
-  printf 'В конце запиши результат JSON в %s: {"verdict":"done|question|fail","comment":"..."} и необязательные поля: questions[], descriptionAppend, newTasks[{title,description,status}], moveTo, labels[], fields[{name,value}], friction (что мешало работе — неясная инструкция, не хватало данных или доступа; не мешало — null), uncertain (в чём не уверен и что проверил сам; сомнений нет — "").\n' "$RESULT"
+  printf 'В конце запиши результат JSON в %s: {"verdict":"done|question|fail","comment":"..."} и необязательные поля: questions[], descriptionAppend, newTasks[{title,description,status,ai,after[],checks[]}] (ai — подзадача на ИИ, after — номера подзадач списка, которые должны быть готовы раньше, checks — её критерии приёмки), moveTo, labels[], fields[{name,value}], friction (что мешало работе — неясная инструкция, не хватало данных или доступа; не мешало — null), uncertain (в чём не уверен и что проверил сам; сомнений нет — "").\n' "$RESULT"
   printf 'Результат принимает система по критериям готовности, а не по твоей оценке: команды-проверки (строки «$ …» в checks контекста) она выполнит сама после тебя.\n'
 }
 

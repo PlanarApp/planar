@@ -14,6 +14,7 @@ import {
   isYes,
   withPlan,
 } from '@planar/module-ai/api';
+import { criteriaOf } from '../../../../modules/ai/api/engine.js';
 import { markdownToDoc } from '@planar/editor/markdown';
 import type { JobApi } from '../../src/modules/hooks.js';
 import { installed } from '../../src/modules/installed.js';
@@ -499,9 +500,11 @@ describe('прогон по правилу', () => {
         moveTo: 'Нет такого',
         labels: ['горячий', 'Чужая'],
         newTasks: [
-          { title: 'Подзадача', description: null, status: null },
-          { title: 'Исправление', description: null, status: 'Отложено' },
-          { title: 'Мимо', description: null, status: 'Нет статуса' },
+          ...[
+            { title: 'Подзадача', description: null, status: null },
+            { title: 'Исправление', description: null, status: 'Отложено' },
+            { title: 'Мимо', description: null, status: 'Нет статуса' },
+          ].map((n) => ({ ...n, ai: false, after: [], checks: [] })),
         ],
       }),
     ];
@@ -874,6 +877,139 @@ describe('движок: приёмка, доработка, надзор, све
     expect(jobs).toHaveLength(1);
     runs = await runsOf(t);
     expect(runs.at(-1)).toMatchObject({ state: 'queued', attempt: 2, restart_of: id });
+  });
+});
+
+describe('координация подзадач (PLNRAPP-405)', () => {
+  const start = (t: string) =>
+    handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId }, api);
+  const sub = (o: Record<string, unknown>) => ({
+    description: null,
+    status: null,
+    ai: true,
+    after: [],
+    checks: [],
+    ...o,
+  });
+  const subsOf = (t: string) =>
+    raw(`select * from tasks where parent_id = $1 order by rank collate "C"`, [t]);
+
+  it('criteriaOf: пункты раздела «Критерии приёмки» до следующего заголовка', () => {
+    expect(
+      criteriaOf(
+        'Текст\n\n## Критерии приёмки\n\n- $ pnpm test\n* ссылки целы\n\nабзац\n\n## Дальше\n\n- не то',
+      ),
+    ).toEqual(['$ pnpm test', 'ссылки целы']);
+    expect(criteriaOf('## Другое\n\n- x')).toEqual([]);
+  });
+
+  it('разложение → ждёт подзадачи без приёмки; блокированная ждёт; итог подзадачи будит родителя; финал принят проверкой', async () => {
+    const doneName = (await one(`select name from statuses where id = $1`, [S.done])).name;
+    const parent = await task();
+    answers = [
+      result({
+        comment: 'разложил',
+        newTasks: [
+          sub({ title: 'Схема БД', description: 'таблицы', checks: ['таблицы описаны'] }),
+          sub({ title: 'API', after: [0, 5] }),
+          sub({ title: 'Заметка', ai: false }),
+        ],
+      }),
+    ];
+    await start(parent);
+    expect(judged).toHaveLength(0);
+    const [p] = await runsOf(parent);
+    expect(p!.state).toBe('waiting_subtasks');
+    expect(p!.finished_at).not.toBe(null);
+    expect(p!.log).toContain('движок: ждёт подзадачи ИИ');
+    expect(p!.log).toContain('newTasks: API: after 5 — не раньше в списке');
+    const [a, b, n] = await subsOf(parent);
+    expect(text(a!.description)).toContain('Критерии приёмки');
+    expect(text(a!.description)).toContain('таблицы описаны');
+    const onBot = await raw(
+      `select task_id from task_assignees where user_id = $1 and task_id = any($2::uuid[])`,
+      [bot, [a!.id, b!.id, n!.id]],
+    );
+    expect(onBot.map((x) => x.task_id).sort()).toEqual([a!.id, b!.id].sort());
+    expect(await raw(`select task_id, kind from task_links where target_id = $1`, [b!.id])).toEqual(
+      [{ task_id: a!.id, kind: 'blocks' }],
+    );
+
+    // the blocked subtask does not start and leaves no run (the reconcile takes it later)
+    jobs.length = 0;
+    await start(b!.id as string);
+    expect(await runsOf(b!.id as string)).toHaveLength(0);
+    expect(calls).toHaveLength(1);
+
+    // the first subtask: its card's criteria join the action's; accepted → the parent wakes up
+    answers = [result({ comment: 'схема готова', moveTo: doneName })];
+    await start(a!.id as string);
+    expect(judged.at(-1)).toContain('таблицы описаны');
+    expect(calls.at(-1)!.system).toContain('таблицы описаны');
+    expect((await runsOf(a!.id as string))[0]!.state).toBe('done');
+    let pr = await runsOf(parent);
+    expect(pr.map((r) => r.state)).toEqual(['done', 'queued']);
+    expect(jobs.map((j) => j.queue).sort()).toEqual(['ai.engine.reconcile', 'ai.run']);
+    expect(jobs.find((j) => j.queue === 'ai.run')!.data).toMatchObject({
+      wokenBy: expect.any(String),
+    });
+
+    // the parent's next run sees the event and the subtasks; B is open on the AI — waits again, no acceptance
+    const checked = judged.length;
+    await drain();
+    const prompt = calls.at(-1)!.prompt;
+    expect(prompt).toContain('# Событие подзадачи');
+    expect(prompt).toContain('«Схема БД» — принята');
+    expect(prompt).toContain('ИИ: принято');
+    pr = await runsOf(parent);
+    expect(pr.map((r) => r.state)).toEqual(['done', 'waiting_subtasks']);
+    expect(judged).toHaveLength(checked);
+
+    // B is unblocked now; its outcome wakes the parent, which finishes through its checks
+    answers = [result({ comment: 'API готово', moveTo: doneName })];
+    await start(b!.id as string);
+    expect((await runsOf(b!.id as string))[0]!.state).toBe('done');
+    answers = [result({ comment: 'всё готово' })];
+    await drain();
+    pr = await runsOf(parent);
+    expect(pr.map((r) => r.state)).toEqual(['done', 'done', 'done']);
+    expect(pr[2]!.log).toContain('движок: результат принят проверками');
+    expect(judged).toHaveLength(checked + 2);
+  });
+
+  it('подзадачи ждущего родителя — по одной (max_agents проекта); без ждущего родителя — без очереди', async () => {
+    const parent = await task();
+    answers = [result({ newTasks: [sub({ title: 'A' }), sub({ title: 'B' })] })];
+    await start(parent);
+    const [a, b] = await subsOf(parent);
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, action_id, state, chain_id, chain_depth)
+       values ($1, $2, $3, 'action', $4, 'running', $1, 0)`,
+      [uuidv7(), a!.id, P, actionId],
+    );
+    jobs.length = 0;
+    await start(b!.id as string);
+    expect(await runsOf(b!.id as string)).toHaveLength(0);
+    expect(jobs).toEqual([expect.objectContaining({ queue: 'ai.run', opts: { startAfter: 30 } })]);
+    await raw(
+      `insert into ai_project_limits (project_id, max_agents) values ($1, 2)
+       on conflict (project_id) do update set max_agents = 2`,
+      [P],
+    );
+    await start(b!.id as string);
+    expect((await runsOf(b!.id as string))[0]!.state).toBe('done');
+  });
+
+  it('ревью свежим контекстом: отметка review у действия — даже без критериев', async () => {
+    await w.admin.ok('ai.action.update', { id: actionId, checks: [], review: true });
+    const t = await task();
+    verdicts = [{ pass: false, failures: ['не по задаче'] }];
+    await start(t);
+    expect(judged).toHaveLength(1);
+    expect(judged[0]).toContain('проверь, что результат выполняет задачу');
+    const [run] = await runsOf(t);
+    expect(run!.report).toMatchObject({ failures: ['не по задаче'] });
+    expect(run!.log).toContain('движок: ревью свежим контекстом');
   });
 });
 

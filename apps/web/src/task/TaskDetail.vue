@@ -411,6 +411,7 @@ const AI_ICON = {
   queued: Clock,
   running: LoaderCircle,
   waiting_human: MessageCircleQuestion,
+  waiting_subtasks: ListTree,
   done: CheckCircle2,
   failed: AlertCircle,
 };

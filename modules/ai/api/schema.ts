@@ -60,6 +60,8 @@ export const aiActions = pgTable(
     maxOutputTokens: integer(),
     /** PLNRAPP-404: runs of the action before the question to a person (rework, restart); null — AI_MAX_ATTEMPTS */
     maxAttempts: integer(),
+    /** PLNRAPP-405: every done result also goes through the engine's LLM review (a fresh context) */
+    review: boolean().notNull().default(false),
     createdAt: ts().notNull(),
     updatedAt: ts().notNull(),
   },
@@ -121,7 +123,7 @@ export const aiRuns = pgTable(
     ruleId: uuid(),
     /** the comment (comment, mention) or checklist item the assignment came from */
     itemId: uuid(),
-    /** running | waiting_human | done | failed | cancelled */
+    /** queued | running | waiting_human | waiting_subtasks (PLNRAPP-405) | done | failed | cancelled */
     state: text().notNull(),
     /** the first run of a chain of runs started by each other's changes */
     chainId: uuid().notNull(),

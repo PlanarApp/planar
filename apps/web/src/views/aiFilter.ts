@@ -2,7 +2,15 @@ import { computed, type Ref } from 'vue';
 import { activityOf, useProjectActivity } from '../modules/activity';
 
 /** PLNRAPP-401: the «AI status» filter values; none — the task has no runs. */
-export const AI_STATES = ['none', 'queued', 'running', 'waiting_human', 'failed', 'done'] as const;
+export const AI_STATES = [
+  'none',
+  'queued',
+  'running',
+  'waiting_human',
+  'waiting_subtasks',
+  'failed',
+  'done',
+] as const;
 export type AiState = (typeof AI_STATES)[number];
 
 /** Client-side «AI status» filter by the project's shared activity (one project; a group view has none). */

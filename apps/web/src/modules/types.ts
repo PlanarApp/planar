@@ -144,7 +144,7 @@ export interface WorkActivity {
   /** the comment / checklist item / chat message the work answers; null — the task itself */
   itemId: string | null;
   /** queued — waits for its turn; failed — the last attempt failed and was not repeated; done — the task's last run */
-  state: 'queued' | 'running' | 'waiting_human' | 'failed' | 'done';
+  state: 'queued' | 'running' | 'waiting_human' | 'waiting_subtasks' | 'failed' | 'done';
   /** a long work (an agent in a container): the minutes since startedAt are shown */
   agent?: boolean;
   /** the user who does the work (a bot): its avatar gets the ring, its name — «печатает…» */

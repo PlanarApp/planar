@@ -34,7 +34,14 @@ const RELEVANT: Record<ActivitySourceDef['entity'], string[]> = {
   projects: ['tasks', 'comments', 'checklistItems'],
 };
 
-const RANK = { running: 0, waiting_human: 1, queued: 2, failed: 3, done: 4 } as const;
+const RANK = {
+  running: 0,
+  waiting_human: 1,
+  waiting_subtasks: 2,
+  queued: 3,
+  failed: 4,
+  done: 5,
+} as const;
 /** The most telling work of an item (running first, then waiting, queued, the error, done); undefined itemId — of all. */
 export function activityOf(
   list: readonly Activity[],

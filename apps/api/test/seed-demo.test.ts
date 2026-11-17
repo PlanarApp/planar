@@ -127,6 +127,7 @@ describe('seed-demo', () => {
       'queued',
       'running',
       'waiting_human',
+      'waiting_subtasks',
     ]);
     const [lim] = await q<{ n: number }>(
       `select count(*)::int as n from ai_runs r join ai_project_limits l using (project_id) where r.restart_of is not null`,

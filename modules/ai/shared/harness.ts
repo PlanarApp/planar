@@ -103,6 +103,10 @@ export const instructionSchema = z.object({
   checks: z.array(z.string().min(1).max(500)).max(20).default([]),
   /** PLNRAPP-404: runs before the question to a person (a page table gives it as text) */
   attempts: z.coerce.number().int().min(1).max(10).optional(),
+  /** PLNRAPP-405: the engine's LLM review of every done result (a page table gives «true» / «false») */
+  review: z
+    .preprocess((v) => (v === 'true' ? true : v === 'false' ? false : v), z.boolean())
+    .optional(),
 });
 export type Instruction = z.infer<typeof instructionSchema> & { prompt: string };
 
@@ -157,6 +161,7 @@ export interface CurrentState {
     model?: string | null;
     checks: string[];
     maxAttempts?: number | null;
+    review?: boolean;
     questionStatusId?: string | null;
   }[];
   /** a keyed rule is always updated: the stored form (ids, bot) cannot be compared with the pack form */
@@ -288,6 +293,7 @@ export function computeDiff(
             model: i.model,
             checks: i.checks,
             maxAttempts: i.attempts,
+            review: i.review,
             questionStatus,
           }
         : { name: k, questionStatus };

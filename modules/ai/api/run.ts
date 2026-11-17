@@ -18,13 +18,26 @@ import { batchDoc, insertBatch } from './email.js';
 import { collectChat, collectRun } from './retro.js';
 import { handleDoc } from './doc-run.js';
 import { generateReply, generateStructured, type LlmUsage } from './llm.js';
-import { maxAttemptsOf, review, rework, reworkBlock, type CheckedResult } from './engine.js';
+import {
+  criteriaOf,
+  maxAttemptsOf,
+  openBlocker,
+  pendingSubtasks,
+  review,
+  rework,
+  reworkBlock,
+  siblingsFull,
+  wakeParent,
+  wokenBlock,
+  type CheckedResult,
+} from './engine.js';
 import {
   agentsFull,
   codeAssignmentPrompt,
   codeTargetOf,
   startAgentRun,
   stopAgent,
+  treeBranchBlock,
 } from './agent.js';
 
 export const AI_QUEUE = 'ai.run';
@@ -32,6 +45,8 @@ export const AI_QUEUE = 'ai.run';
 export const MAX_CHAIN = 10;
 /** The block of the description the AI owns: replaced on every write, the rest is the people's. */
 export const PLAN_HEADING = 'План (ИИ)';
+/** PLNRAPP-405: the section of a task's description whose items add to the checks of its action */
+export const CRITERIA_HEADING = 'Критерии приёмки';
 
 /** A chat run: the person's message (a dialog, or a quote / @ai of the bot in a channel) the bot answers. */
 export interface ChatRunData {
@@ -68,6 +83,8 @@ export type AiRunData =
       restartOf?: string | null;
       /** id of the row to create: a restart sets it, so the client knows the new run */
       runId?: string | null;
+      /** PLNRAPP-405: the subtask's run whose outcome woke this parent */
+      wokenBy?: string | null;
     }
   | {
       kind: 'comment' | 'mention';
@@ -135,24 +152,24 @@ const fieldsSchema = z
     }),
   )
   .max(30);
+export const newTaskSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: nullable(z.string()),
+  /** status name; null — the first «todo» status */
+  status: nullable(z.string()),
+  /** PLNRAPP-405: ai — the subtask is the AI's (the bot assigned); after — numbers of the earlier new tasks that
+   * block it; checks — its acceptance criteria (the section «Критерии приёмки» of its description) */
+  ai: z.boolean(),
+  after: z.array(z.number().int().min(0).max(19)).max(20),
+  checks: z.array(z.string().min(1).max(500)).max(20),
+});
 /** What the model returns; every field is present (null — not used): strict structured outputs want that. */
 export const resultSchema = z.object({
   verdict: z.enum(['done', 'question', 'fail']),
   comment: z.string().max(20_000),
   questions: nullable(z.array(z.string().min(1).max(2000)).max(10)),
   descriptionAppend: nullable(z.string().max(20_000)),
-  newTasks: nullable(
-    z
-      .array(
-        z.object({
-          title: z.string().min(1).max(500),
-          description: nullable(z.string()),
-          /** status name; null — the first «todo» status */
-          status: nullable(z.string()),
-        }),
-      )
-      .max(20),
-  ),
+  newTasks: nullable(z.array(newTaskSchema).max(20)),
   moveTo: nullable(z.string()),
   labels: nullable(z.array(z.string()).max(20)),
   fields: nullable(fieldsSchema),
@@ -208,7 +225,7 @@ const SYSTEM = `Ты — ИИ-исполнитель в трекере зада�
 - comment: итог для людей, markdown. Пиши на языке задачи.
 - descriptionAppend: план или итог в описание задачи, markdown без заголовка; заменяет блок «${PLAN_HEADING}».
 - moveTo — имя статуса проекта; labels — имена меток: «Имя» — поставить, «-Имя» — снять; fields — значения полей по имени.
-- newTasks — подзадачи (status — имя статуса или null); snoozeUntil — отложить задачу до даты YYYY-MM-DD; escalate — причина, если нужен руководитель проекта; docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).
+- newTasks — подзадачи (status — имя статуса или null; ai — поручить ИИ: подзадачу ведут её статус и действие, по её итогу тебя запустят снова, а пока подзадачи ИИ не готовы, задача ждёт их; after — номера (с 0) подзадач этого же списка, которые должны быть готовы раньше; checks — критерии приёмки подзадачи, «$ команда» — проверка командой); snoozeUntil — отложить задачу до даты YYYY-MM-DD; escalate — причина, если нужен руководитель проекта; docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).
 - subtasks — изменения существующих подзадач из раздела «Подзадачи»: key — ключ подзадачи; title, moveTo, labels, fields — как у задачи, без изменений — "" или [].
 - emails — письма внешним адресатам (to, subject, body — обычный текст), только при done: они уйдут после подтверждения человеком; сам ничего не отправляй.
 - friction — что мешало работе (неясная или противоречивая инструкция, не хватало данных или доступа), одной-двумя фразами; не мешало ничего — null.
@@ -345,6 +362,17 @@ async function humanOf(q: Pick<Q, 'execute'>, t: Task) {
   );
 }
 
+/** PLNRAPP-405: the last action run of a subtask, for the coordinating parent */
+const AI_STATE_TEXT: Record<string, string> = {
+  queued: 'ждёт запуска',
+  running: 'работает',
+  waiting_human: 'ждёт ответа человека',
+  waiting_subtasks: 'ждёт свои подзадачи',
+  done: 'принято',
+  failed: 'ошибка',
+  cancelled: 'остановлено',
+};
+
 /** The task as text for the model: card, vocabulary of the project, checklist, comments with threads. */
 async function contextOf(q: Pick<Q, 'execute'>, t: Task, bot: string) {
   const st = await rows(
@@ -385,7 +413,9 @@ async function contextOf(q: Pick<Q, 'execute'>, t: Task, bot: string) {
     q,
     sql`select s.id, p.key || '-' || coalesce(s.number::text, '?') as key, s.title, st.name as status,
         (select string_agg(u.name, ', ') from task_assignees a join users u on u.id = a.user_id where a.task_id = s.id) as people,
-        (select string_agg(l.name, ', ') from task_labels x join labels l on l.id = x.label_id where x.task_id = s.id) as labels
+        (select string_agg(l.name, ', ') from task_labels x join labels l on l.id = x.label_id where x.task_id = s.id) as labels,
+        (select r.state from ai_runs r where r.task_id = s.id and r.kind = 'action'
+          order by r.created_at desc, r.id desc limit 1) as ai, ${openBlocker(sql`s.id`)} as blocked
         from tasks s join projects p on p.id = s.project_id join statuses st on st.id = s.status_id
         where s.parent_id = ${t.id} and s.project_id = ${t.projectId} and s.archived_at is null
         order by s.rank collate "C"`,
@@ -416,7 +446,7 @@ async function contextOf(q: Pick<Q, 'execute'>, t: Task, bot: string) {
       '## Подзадачи',
       ...subs.map(
         (s) =>
-          `- ${s.key as string}: ${s.title as string} — ${s.status as string}. Исполнители: ${(s.people as string | null) ?? '—'}. Метки: ${(s.labels as string | null) ?? '—'}.`,
+          `- ${s.key as string}: ${s.title as string} — ${s.status as string}. Исполнители: ${(s.people as string | null) ?? '—'}. Метки: ${(s.labels as string | null) ?? '—'}.${s.ai ? ` ИИ: ${AI_STATE_TEXT[s.ai as string] ?? (s.ai as string)}.` : ''}${s.blocked ? ' Ждёт блокирующие задачи.' : ''}`,
       ),
     );
   if (items.length)
@@ -500,9 +530,12 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     action = (await one(
       api.db,
       sql`select id, key, name, page_id as "pageId", runtime, model, question_status_id as "questionStatusId",
-          checks, max_output_tokens as "maxOutputTokens", max_attempts as "maxAttempts" from ai_actions
+          checks, max_output_tokens as "maxOutputTokens", max_attempts as "maxAttempts", review from ai_actions
           where id = ${d.actionId} and project_id = ${task.projectId}`,
     )) as AiAction | undefined;
+    // PLNRAPP-405: the criteria of the task's own card add to the action's (prompt, container, LLM check)
+    if (action)
+      action = { ...action, checks: [...action.checks, ...criteriaOf(md(task.description))] };
     const assigned = await one(
       api.db,
       sql`select 1 from task_assignees where task_id = ${task.id} and user_id = ${bot}`,
@@ -513,6 +546,15 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     const m = d.ruleId ? await matched(api, d.ruleId, task.id) : undefined;
     if (d.ruleId && !m)
       return skip('Перезапуск невозможен: задача больше не подходит под правило.');
+    // PLNRAPP-405: an open blocker — no run row, the reconcile starts it once the blocker is done
+    if ((await one(api.db, sql`select ${openBlocker(sql`${task.id}::uuid`)} as b`))?.b) {
+      if (d.restartOf) return skip('Перезапуск невозможен: задачу блокирует незавершённая.');
+      if (d.runId)
+        await api.db.execute(
+          sql`delete from ai_runs where id = ${d.runId}::uuid and state = 'queued'`,
+        );
+      return;
+    }
     maxRuns = m?.rule.actions.flatMap((a) =>
       a.type === 'ai_run' && a.aiActionId === action!.id && a.maxRuns ? [a.maxRuns] : [],
     )[0];
@@ -547,13 +589,17 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   const mr = d.kind === 'action' ? null : await codeTargetOf(api.db, task);
   // an assignment with an agent instruction and no runner answers as llm instead of failing
   const agent = action?.runtime === 'agent' && (d.kind === 'action' || !!process.env.AI_RUNNER_URL);
+  // PLNRAPP-405: the agent of a subtask works in the branch of the MR of its tree (the nearest ancestor's)
+  const treeMr = d.kind === 'action' && agent ? await codeTargetOf(api.db, task, true) : null;
   // agent containers are limited: over the limit the job waits (agent.ts)
   if ((agent || mr) && (await agentsFull(api.db, task.projectId)))
+    return api.enqueue(AI_QUEUE, d, { startAfter: 30 });
+  if (d.kind === 'action' && (await siblingsFull(api.db, task)))
     return api.enqueue(AI_QUEUE, d, { startAfter: 30 });
   // a newer run of the same pair wins: the older one's result is not applied
   const older = await api.db.execute(
     sql`update ai_runs set state = 'cancelled', updated_at = now()
-        where task_id = ${task.id} and kind = ${d.kind} and state in ('running', 'waiting_human')
+        where task_id = ${task.id} and kind = ${d.kind} and state in ('running', 'waiting_human', 'waiting_subtasks')
           and coalesce(item_id, action_id) = ${itemId ?? action?.id}::uuid returning id`,
   );
   for (const o of older.rows) await stopAgent(api.db, o.id as string);
@@ -613,7 +659,8 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
         : d.kind === 'checklist'
           ? `\n\n# Поручение: пункт чек-листа\n${item!.text as string}`
           : `\n\n# Поручение: комментарий [${itemId}]\n${md(item!.body)}`) +
-      (await reworkBlock(api.db, id, d.restartOf, maxAttemptsOf(action)));
+      (await reworkBlock(api.db, id, d.restartOf, maxAttemptsOf(action))) +
+      (d.kind === 'action' ? await wokenBlock(api.db, d.wokenBy) : '');
     // the agent reads only its prompt: the assignment and its thread go into it
     const thread =
       (mr || agent) && itemId && d.kind !== 'checklist' ? await threadOf(api.db, itemId) : '';
@@ -625,7 +672,14 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
         ctx,
         mr,
       );
-    if (agent) return await startAgentRun(api, run, prompt + ask + thread, ctx);
+    if (agent)
+      return await startAgentRun(
+        api,
+        run,
+        prompt + (treeMr ? treeBranchBlock(treeMr) : '') + ask + thread,
+        ctx,
+        treeMr,
+      );
     const checks = action?.checks.length
       ? `\n\nКритерии готовности (done — только если все выполнены):\n${action.checks.map((c) => `- ${c}`).join('\n')}`
       : '';
@@ -1057,10 +1111,15 @@ async function apply(
   r: CheckedResult,
   ctx?: Awaited<ReturnType<typeof contextOf>>,
 ): Promise<void> {
-  // PLNRAPP-404: a done result is accepted by the engine's checks first (rework / the question otherwise)
+  // PLNRAPP-404: a done result is accepted by the engine's checks first (rework / the question otherwise);
+  // PLNRAPP-405: not while the run hands the work to the AI's subtasks — the parent's final run is accepted
+  const delegates =
+    run.kind === 'action' &&
+    (!!r.newTasks?.some((n) => n.ai) || (await pendingSubtasks(api.db, run.task.id, run.bot)) > 0);
   if (
     r.verdict === 'done' &&
     ctx &&
+    !delegates &&
     (await review(api, run, r, ctx, (x) => apply(api, run, x, ctx)))
   )
     return;
@@ -1078,7 +1137,8 @@ async function apply(
   // where the answer goes: a thread reply for comment / mention, a top-level comment otherwise
   const reply = run.kind === 'comment' || run.kind === 'mention' ? { parentId: run.item!.id } : {};
   const prefix = run.kind === 'checklist' ? `**${run.item!.text as string}**\n\n` : '';
-  let state: 'done' | 'failed' | 'waiting_human' = r.verdict === 'done' ? 'done' : 'failed';
+  let state: 'done' | 'failed' | 'waiting_human' | 'waiting_subtasks' =
+    r.verdict === 'done' ? 'done' : 'failed';
   const questions: string[] = [];
   let returnStatusId: string | null = null;
   let escalateTo: string | null = null;
@@ -1213,6 +1273,11 @@ async function apply(
         }
       },
       after: async (q, enqueue) => {
+        // PLNRAPP-405: the work is laid out into the AI's subtasks — the run waits for them, not holding a slot
+        if (state === 'done' && run.kind === 'action' && (await pendingSubtasks(q, task.id, bot))) {
+          state = 'waiting_subtasks';
+          run.log.push('движок: ждёт подзадачи ИИ');
+        }
         await q.execute(
           sql`update ai_runs set state = ${state}, return_status_id = ${returnStatusId},
               question_comment_ids = ${
@@ -1240,6 +1305,7 @@ async function apply(
             { kind: 'checklist', taskId: task.id },
             { singletonKey: `${task.id}:checklist`, upsert: true },
           );
+        if (state !== 'waiting_subtasks') await wakeParent(q, enqueue, run);
       },
     });
   try {
@@ -1383,23 +1449,37 @@ async function changes(
       sql`select max(rank collate "C") as r from tasks where parent_id = ${task.id}`,
     );
     let rank = (last?.r as string | null) ?? null;
-    for (const n of r.newTasks) {
+    const ids = r.newTasks.map(() => uuidv7());
+    r.newTasks.forEach((n, i) => {
       rank = generateKeyBetween(rank, null);
       const status = n.status ? byName(ctx.statuses, n.status) : undefined;
       if (n.status && !status) run.log.push(`newTasks: нет статуса «${n.status}»`);
+      const checks = n.checks?.length
+        ? `\n\n## ${CRITERIA_HEADING}\n\n${n.checks.map((c) => `- ${c}`).join('\n')}`
+        : '';
+      const description = `${n.description ?? ''}${checks}`.trim();
       muts.push({
         name: 'task.create',
         args: {
-          id: uuidv7(),
+          id: ids[i],
           projectId: task.projectId,
           parentId: task.id,
           statusId: status ?? first!.id,
           title: n.title,
           rank,
-          ...(n.description && { description: asDoc(n.description) }),
+          ...(description && { description: asDoc(description) }),
+          ...(n.ai && { assignees: [{ id: uuidv7(), userId: run.bot }] }),
         },
       });
-    }
+      // PLNRAPP-405: the order of the work — only earlier tasks of the list block (no cycles)
+      for (const b of new Set(n.after ?? []))
+        if (b < i)
+          muts.push({
+            name: 'link.create',
+            args: { id: uuidv7(), taskId: ids[b], targetId: ids[i], kind: 'blocks' },
+          });
+        else run.log.push(`newTasks: ${n.title}: after ${b} — не раньше в списке`);
+    });
   }
   if (r.docs?.length && !task.modules.includes('docs')) {
     run.log.push('docs: модуль docs в проекте выключен');
