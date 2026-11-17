@@ -3,13 +3,25 @@ import { generateKeyBetween } from 'fractional-indexing';
 import { z } from 'zod';
 import type { JSONContent } from '@tiptap/core';
 import { docToMarkdown, markdownToDoc } from '@planar/editor/markdown';
-import type { CoreServices, JobApi, JobOpts, Q } from '@planar/server-kit';
+import {
+  HttpError,
+  type CoreServices,
+  type JobApi,
+  type JobOpts,
+  type Q,
+} from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
 import { matched } from '@planar/module-automations/api';
 import { AI_BOT_LOGIN, type AiAction, type AiEvent, type AiRunKind } from '../shared/index.js';
 import { resolveConnection, secretOf } from './connections.js';
 import { kbBlock } from './aikb/block.js';
-import { chatTools, runPlanned, type ChatToolDef, type PlannedCall } from './chat-tools.js';
+import {
+  chatTools,
+  lazyTools,
+  runPlanned,
+  type ChatToolDef,
+  type PlannedCall,
+} from './chat-tools.js';
 import { aiPackTools } from './pack-tools.js';
 import { loadPack, parseInstructionPage } from './harness.js';
 import type { ChatPending } from './schema.js';
@@ -730,7 +742,7 @@ async function threadOf(q: Pick<Q, 'execute'>, commentId: string) {
 /** «Чат»: the fallback prompt of the chat answer; the active harness package of the project may have its own. */
 export const CHAT_PROMPT = `Ты — ИИ-помощник «ИИ» в чате трекера задач Planar. Отвечай коротко и по делу на языке собеседника, markdown.
 Ты отвечаешь на последнее сообщение; предыдущие даны как контекст. Если не знаешь — так и скажи, ничего не выдумывай.
-У тебя есть инструменты трекера: они выполняются с правами автора последнего сообщения, не больше. Если инструмент вернул отказ — объясни это человеку, обходных путей не ищи.
+У тебя есть инструменты трекера: они выполняются с правами автора последнего сообщения, не больше. Сразу подключены базовые (знания ai_kb, документация, пакеты harness, чтение задач и документов); остальные подключай find_tools по именам из его описания. Если инструмент вернул отказ — объясни это человеку, обходных путей не ищи.
 Опасные действия (удаление и т. п.) инструмент не выполняет, а возвращает needsConfirmation: перечисли, что собираешься сделать, и попроси ответить «да» — выполнит система после подтверждения.
 Ты отвечаешь по документации Planar: ищи ответ инструментом search_docs_site, не пересказывай по памяти.
 Ты настраиваешь проект: правила автоматизаций, ИИ-действия, статусы, метки, поля, пакеты harness и привязки событий, поля проекта, включение и выключение модулей. Подключения ИИ, GitLab, почты, вебхуки и лимиты ты не меняешь — это только вручную в настройках. Перед настройкой прочитай текущее состояние (инструменты list_*).
@@ -742,7 +754,10 @@ const chatInt = (name: string, def: number) => {
   return Number.isInteger(n) && n > 0 ? n : def;
 };
 
-/** Registry tools of the run + packs and event bindings (the registry of JobApi does not have them); their writes need «да». */
+/**
+ * Registry tools of the run + packs and event bindings (the registry of JobApi does not have them; their writes need
+ * «да») + ai_kb: the sections the knowledge block of the prompt points to (as MCP has it).
+ */
 async function chatToolDefs(api: JobApi, runId: string): Promise<ChatToolDef[]> {
   const core = {
     db: api.db,
@@ -757,7 +772,26 @@ async function chatToolDefs(api: JobApi, runId: string): Promise<ChatToolDef[]> 
     run: t.run,
     ...(t.write ? { danger: 'delete' as const } : {}),
   }));
-  return [...((await api.tools?.({ aiRunId: runId, depth: 0 })) ?? []), ...packs];
+  const defs: ChatToolDef[] = [
+    ...((await api.tools?.({ aiRunId: runId, depth: 0 })) ?? []),
+    ...packs,
+  ];
+  // dynamic: aikb/index imports sections/runs.ts, which imports this module
+  const { aikbSections, detail } = await import('./aikb/index.js');
+  const kb: ChatToolDef = {
+    name: 'ai_kb',
+    description:
+      'Planar knowledge base: without section — the list of sections (id — title), with section — its text',
+    shape: { section: z.string().optional() },
+    run: async (a: { section?: string }) => {
+      try {
+        return detail(aikbSections([...defs, kb]), a.section);
+      } catch (e) {
+        throw new HttpError(404, 'not_found', (e as Error).message);
+      }
+    },
+  };
+  return [...defs, kb];
 }
 
 /**
@@ -875,10 +909,12 @@ async function handleChat(d: ChatRunData, api: JobApi) {
     const planned: PlannedCall[] = [];
     let reply: Awaited<ReturnType<typeof generateReply>>;
     try {
+      const lazy = lazyTools(chatTools(await chatToolDefs(api, id), d.initiatorId, planned));
       reply = await generateReply(secretOf(conn!), {
         system: (await chatPrompt(api.db, projectId)) + kbBlock(),
         prompt: `${ctx}\n\n# Ответь на последнее сообщение${author ? ` (${author})` : ''}`,
-        tools: chatTools(await chatToolDefs(api, id), d.initiatorId, planned),
+        tools: lazy.tools,
+        active: lazy.active,
         maxSteps: chatInt('AI_CHAT_MAX_STEPS', 10),
         maxTokens: chatInt('AI_CHAT_MAX_TOKENS', 100_000),
       });

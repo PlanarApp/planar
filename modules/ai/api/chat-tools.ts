@@ -68,6 +68,47 @@ export function chatTools(
   );
 }
 
+/** Always sent: Planar's knowledge and docs, the harness packs, the basic reads. */
+export const BASE_TOOLS = [
+  'ai_kb',
+  'search_docs_site',
+  'ai_list_packs',
+  'ai_diff_pack',
+  'ai_upload_pack',
+  'ai_apply_pack',
+  'ai_set_pack_events',
+  'search_tasks',
+  'get_task',
+  'list_projects',
+  'project_dictionary',
+  'list_docs',
+  'get_doc',
+];
+export const FIND_TOOLS = 'find_tools';
+
+/**
+ * PLNRAPP-449: the model gets the base tools and only the names of the rest (in find_tools' description); a tool's
+ * schema goes to the provider once the model enables it — not all ~200 schemas (~50k tokens) on every step.
+ * `active` only grows: a tool called earlier stays in the request (Anthropic wants the tools of the history).
+ */
+export function lazyTools(tools: ToolSet): { tools: ToolSet; active: Set<string> } {
+  const active = new Set([...BASE_TOOLS.filter((n) => n in tools), FIND_TOOLS]);
+  const rest = Object.keys(tools).filter((n) => !active.has(n));
+  const find = tool({
+    description: `Подключить инструменты трекера по именам: их схемы придут на следующем шаге. Остальные инструменты: ${rest.join(', ')}`,
+    inputSchema: z.object({ names: z.array(z.string()).min(1).max(20) }),
+    execute: async ({ names }: { names: string[] }) => {
+      const known = names.filter((n) => n in tools);
+      for (const n of known) active.add(n);
+      return {
+        enabled: known.map((n) => ({ name: n, description: tools[n]!.description })),
+        unknown: names.filter((n) => !(n in tools)),
+      };
+    },
+  });
+  return { tools: { ...tools, [FIND_TOOLS]: find }, active };
+}
+
 /** The calls the initiator confirmed: again only as the initiator (rights are RestService's); one line of result per call. */
 export async function runPlanned(
   defs: ChatToolDef[],
