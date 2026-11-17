@@ -351,6 +351,12 @@ describe('v4', () => {
     expect($('.wrap-x')!.contains(i)).toBe(true);
     w.unmount();
   });
+  it('PLNRAPP-382: sr-only подпись Input позиционируется внутри обёртки, а не от документа', () => {
+    const w = wrap(Input, { label: 'Имя', hideLabel: true });
+    expect($('label')!.classList.contains('sr-only')).toBe(true);
+    expect($('label')!.parentElement!.classList.contains('relative')).toBe(true);
+    w.unmount();
+  });
   it('v4: Select на mobile — role=listbox', async () => {
     vi.stubGlobal('matchMedia', (q: string) => ({
       matches: true,

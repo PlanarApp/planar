@@ -25,7 +25,8 @@ const inputAttrs = computed(() => {
 </script>
 
 <template>
-  <div :class="['flex flex-col gap-1', $attrs.class]" :style="$attrs.style as any">
+  <!-- relative: the sr-only label is positioned inside the field, not by the document (PLNRAPP-382) -->
+  <div :class="['relative flex flex-col gap-1', $attrs.class]" :style="$attrs.style as any">
     <label :for="id" :class="hideLabel ? 'sr-only' : 'text-xs text-fg-muted'">{{ label }}</label>
     <div class="relative">
       <component
