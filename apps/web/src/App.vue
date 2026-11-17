@@ -34,15 +34,21 @@ onMounted(async () => {
 
 <template>
   <TooltipProvider>
-    <div
-      v-if="demoHours"
-      role="status"
-      class="bg-accent px-3 py-1 text-center text-xs text-accent-fg"
-    >
-      {{ t('auth.demoBanner', { n: demoHours }) }}
+    <!-- the banner takes its height from the column, the shell the rest: the document doesn't scroll
+         by the banner height (PLNRAPP-397); bare screens keep their own min-h-dvh -->
+    <div class="flex h-full flex-col">
+      <div
+        v-if="demoHours"
+        role="status"
+        class="shrink-0 bg-accent px-3 py-1 text-center text-xs text-accent-fg"
+      >
+        {{ t('auth.demoBanner', { n: demoHours }) }}
+      </div>
+      <RouterView v-if="bare" />
+      <div v-else class="min-h-0 flex-1">
+        <AppShell />
+      </div>
     </div>
-    <RouterView v-if="bare" />
-    <AppShell v-else />
     <CommandHost v-if="!bare" />
     <div
       v-if="needRefresh || downloading"
