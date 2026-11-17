@@ -12,7 +12,7 @@ const FIELD_DOC: Record<keyof AiResult, string> = {
   labels: 'label names; "Name" adds, "-Name" removes',
   fields: 'field values {name, value}',
   subtasks:
-    'changes of existing subtasks of the same project {key, title, moveTo, labels, fields}; unknown key goes to the run log',
+    'changes of existing subtasks of the same project {key, title, moveTo, labels, fields} — all required, no change is "" or [], not null; unknown key goes to the run log',
   snoozeUntil: 'YYYY-MM-DD',
   escalate: 'reason; asks the project lead',
   docs: 'project documents {parent (root section title), title, markdown}',

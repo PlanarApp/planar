@@ -285,6 +285,29 @@ describe('agent: жизненный цикл', () => {
       expect(s).not.toContain(secret);
   });
 
+  it('результат агента меняет подзадачи (subtasks не теряются при разборе)', async () => {
+    const { run, secret, taskId } = await start();
+    const sub = uuidv7();
+    await w.admin.ok('task.create', {
+      id: sub,
+      projectId: P,
+      parentId: taskId,
+      statusId: (await one(`select status_id from tasks where id = $1`, [taskId])).status_id,
+      title: 'Старое',
+      rank: 'a1',
+    });
+    const { k } = await one(
+      `select p.key || '-' || t.number as k from tasks t join projects p on p.id = t.project_id where t.id = $1`,
+      [sub],
+    );
+    const body = {
+      ...done,
+      subtasks: [{ key: k, title: 'Новое', moveTo: '', labels: [], fields: [] }],
+    };
+    expect((await call('POST', `/api/ai/runs/${run.id}`, { secret, body })).statusCode).toBe(200);
+    expect((await one(`select title from tasks where id = $1`, [sub])).title).toBe('Новое');
+  });
+
   it('протокол LLM и модель; репозиторий gitlab — токен подключения в env, только при включённом модуле', async () => {
     const plain = await start();
     expect(plain.post!.body.env).toMatchObject({
