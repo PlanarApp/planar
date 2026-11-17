@@ -90,7 +90,7 @@ watch(
         <DialogOverlay class="fixed inset-0 z-40 bg-overlay" />
         <DialogContent
           aria-describedby="undefined"
-          class="fixed inset-y-0 left-0 z-50 flex w-70 max-w-full outline-none [&>aside]:w-full"
+          class="fixed inset-y-0 left-0 z-50 flex w-70 max-w-full bg-sidebar-bg pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] outline-none [&>aside]:w-full"
           @click="closeOnLink"
         >
           <DialogTitle class="sr-only">{{ t('topbar.nav') }}</DialogTitle>

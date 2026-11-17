@@ -12,9 +12,12 @@ body,
 html {
   background: var(--color-bg);
 }
-/* the visible viewport, minus the phone keyboard (ui/viewport.ts) */
+/* the visible viewport, minus the phone keyboard (ui/viewport.ts); viewport-fit=cover in index.html
+   draws the page under the system bars, the content stays inside the safe area (PLNRAPP-256) */
 #app {
   height: var(--app-h, 100%);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
 }
 body {
   background: var(--color-bg);
