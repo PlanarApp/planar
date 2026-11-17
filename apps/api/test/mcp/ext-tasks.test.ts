@@ -242,7 +242,7 @@ describe('групповой перенос задач (PLNRAPP-292)', () => {
     expect(await column(st)).toEqual([t[3]!.id, t[0]!.id, t[1]!.id, t[2]!.id]);
     // before — одна из переносимых: перед следующей оставшейся
     await move(admin, { taskIds: [t[1]!.id, t[3]!.id], statusId: st, before: t[3]!.id });
-    expect(await column(st)).toEqual([t[0]!.id, t[1]!.id, t[3]!.id, t[2]!.id]);
+    expect(await column(st)).toEqual([t[1]!.id, t[3]!.id, t[0]!.id, t[2]!.id]);
   });
 
   it('отказ: все проблемы списком, ничего не изменилось', async () => {
