@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   createTask,
@@ -35,6 +35,10 @@ import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkBar from '../BulkBar.vue';
 import { useSelectionReset } from '../selection';
 import { applyMove, boardColumns, planMove } from './plan';
+import { dragGroup, planGroupMove, settled, withPatch, type MovePatch } from './groupMove';
+import { api, ApiError } from '../../api/http';
+import { confirmDone } from '../../tasks/closeOpen';
+import { toast } from '../../ui/toast';
 import { VueDraggable } from 'vue-draggable-plus';
 import { mutate, rankBetween } from '../../sync';
 
@@ -66,9 +70,22 @@ const statusKey = useStatusKey(() => props.scope, statuses);
 const labelKey = useLabelKey(() => props.scope, labels);
 const projectNames = useProjectNames();
 
+// PLNRAPP-293: the group move is shown at once — local changes over the replica until it has them
+const pending = shallowRef<ReadonlyMap<string, MovePatch>>(new Map());
+const dropPending = (ids: Iterable<string>) => {
+  const next = new Map(pending.value);
+  for (const id of ids) next.delete(id);
+  pending.value = next;
+};
+watch(tasks, (now) => {
+  const done = settled(now ?? [], pending.value);
+  if (done.length) dropPending(done);
+});
+const shown = computed(() => withPatch(tasks.value ?? [], pending.value));
+
 const columns = computed(() =>
   boardColumns(
-    (tasks.value ?? []).filter(
+    shown.value.filter(
       (x) => (props.options.showSubtasks || !x.parentId) && passes.value(x) && aiPass.value(x),
     ),
     props.options.groupBy,
@@ -172,7 +189,63 @@ async function onColumnsEnd(e: { oldDraggableIndex?: number; newDraggableIndex?:
   });
 }
 
+// group drag (PLNRAPP-293): a status board of one project — the API moves only the status and the order
+const groupable = computed(() => props.options.groupBy === 'status' && !props.scope);
+/** the size of the group a drag of a selected card carries (the «+N» badge); 0 — no group drag */
+const groupSize = computed(() => {
+  if (!groupable.value || !sel.active.value) return 0;
+  return columns.value.reduce(
+    (n, c) => n + c.tasks.filter((x) => sel.selected.value.has(x.id)).length,
+    0,
+  );
+});
+// a drag of an unselected card carries only it — the selection is reset
+function dragStart(id: string) {
+  if (sel.active.value && !sel.selected.value.has(id)) sel.clear();
+}
+
+/** the refusal reason: the problem tasks of the API (409 details.tasks) by key, or the message */
+function moveError(e: unknown): string {
+  if (!(e instanceof ApiError) || !e.status) return t('board.moveFailedNetwork');
+  const list = (e.details as { tasks?: { task: string; message: string }[] } | undefined)?.tasks;
+  const key = (id: string) => tasks.value?.find((x) => x.id === id)?.key ?? id;
+  return list?.length ? list.map((p) => `${key(p.task)} — ${p.message}`).join('; ') : e.message;
+}
+
+async function moveGroup(ids: string[], to: string, beforeId: string | null) {
+  const plan = planGroupMove(shown.value, ids, to, beforeId);
+  if (!plan) return;
+  for (const id of ids) if (!(await confirmDone(id, to))) return;
+  pending.value = new Map([...pending.value, ...plan.patch]);
+  try {
+    const r = await api<{ data: { id: string; statusId: string; rank: string }[] }>(
+      'POST',
+      '/api/v1/tasks/move',
+      { taskIds: plan.ids, statusId: plan.statusId, before: plan.before },
+    );
+    // the server's ranks until the replica gets them; the guessed reranks of neighbours — from the replica
+    const next = new Map(pending.value);
+    for (const id of plan.patch.keys()) next.delete(id);
+    const mine = (r.data ?? []).map((x) => [x.id, { statusId: x.statusId, rank: x.rank }] as const);
+    for (const [id, p] of mine) next.set(id, p);
+    pending.value = next;
+    const done = settled(tasks.value ?? [], next);
+    if (done.length) dropPending(done);
+    // the replica did not follow (someone moved them again) — it is the truth; a later move keeps its own
+    setTimeout(
+      () => dropPending(mine.filter(([id, p]) => pending.value.get(id) === p).map(([id]) => id)),
+      15_000,
+    );
+  } catch (e) {
+    // back to the state before the move: the replica has not changed
+    dropPending(plan.patch.keys());
+    toast(t('board.moveFailed', { n: ids.length, why: moveError(e) }));
+  }
+}
+
 async function move(id: string, from: string, to: string, beforeId: string | null) {
+  const group = groupable.value ? dragGroup(columns.value, id, sel.selected.value) : [id];
+  if (group.length > 1) return moveGroup(group, to, beforeId);
   // multi-space summary: the column is the status name; we set the same-named status of the task's space
   const plan = fixPlan(
     planMove(columns.value, props.options.groupBy, id, from, to, beforeId, labelKey.value),
@@ -367,6 +440,8 @@ function add(key: string, title: string) {
           @toggle="toggle(g.key)"
           @open="openTask"
           @add="add(g.key, $event)"
+          :group-size="groupSize"
+          @drag-start="dragStart"
           @move="move"
         />
       </VueDraggable>

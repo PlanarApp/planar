@@ -813,6 +813,8 @@ export default {
     expand: 'Expand column',
     add: 'Add task',
     newTitle: 'Task title',
+    moveFailed: 'Tasks not moved ({n}): {why}',
+    moveFailedNetwork: 'no connection to the server',
   },
   tasks: {
     priority: { 0: 'No priority', 1: 'Urgent', 2: 'High', 3: 'Medium', 4: 'Low' },

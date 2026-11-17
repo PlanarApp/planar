@@ -42,12 +42,15 @@ const props = defineProps<{
   wrap?: boolean;
   /** the board's keyboard-focused card (ringed, scrolled into view) */
   focusedId?: string | null;
+  /** PLNRAPP-293: how many tasks a drag of a selected card carries; > 1 — the «+N» badge in the drag preview */
+  groupSize?: number;
 }>();
 const emit = defineEmits<{
   toggle: [];
   open: [key: string];
   add: [title: string];
   move: [id: string, from: string, to: string, beforeId: string | null];
+  dragStart: [id: string];
 }>();
 const { t } = useI18n();
 // card fields: filled ones, and with "Show empty fields" — all enabled in the view
@@ -137,7 +140,7 @@ const onStart = (e: { item: HTMLElement }) => {
   anchor = e.item.nextSibling;
   const task = props.group.tasks.find((x) => x.id === dataId(e.item));
   started = !!task;
-  if (task) startTaskDrag(task);
+  if (task) (startTaskDrag(task), emit('dragStart', task.id));
 };
 const dataId = (n: Element | null) => n?.getAttribute('data-id') ?? null;
 const nextCard = (el: Element | null) => {
@@ -165,7 +168,8 @@ function onEnd(e: {
   if (from === e.to.dataset.col) {
     const o = e.oldDraggableIndex,
       n = e.newDraggableIndex;
-    if (o === undefined || n === undefined || o === n) return; // dropped in the same place
+    // dropped in the same place: a single card — no plan (planMove); a group gathers there
+    if (o === undefined || n === undefined) return;
     const rest = rows.value.items.filter((x) => x.id !== id);
     return emit('move', id, from, from, rest[n]?.id ?? null);
   }
@@ -281,9 +285,9 @@ function submit() {
           :data-task="x.key"
           tabindex="0"
           :class="[
-            'mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 text-sm focus-visible:ring-2 ring-focus',
+            'relative mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 text-sm focus-visible:ring-2 ring-focus',
             sel.selected.value.has(x.id) ? 'border-accent bg-accent-subtle' : 'border-border',
-            sel.active.value && 'relative pr-8',
+            sel.active.value && 'pr-8',
             focusedId === x.id && 'ring-2',
           ]"
           @click="onCard(x, $event)"
@@ -306,6 +310,14 @@ function submit() {
               @change="sel.toggle(x.id)"
             />
           </label>
+          <!-- PLNRAPP-293: «+N» — только на превью перетаскивания (класс sortable-drag на карточке и её призраке) -->
+          <span
+            v-if="(groupSize ?? 0) > 1 && sel.selected.value.has(x.id)"
+            class="absolute right-1 top-1.5 z-10 hidden h-5 min-w-6 items-center justify-center rounded-full bg-accent px-1.5 text-xs font-medium text-accent-fg in-[.sortable-drag]:flex"
+            data-testid="drag-count"
+            aria-hidden="true"
+            >+{{ (groupSize ?? 0) - 1 }}</span
+          >
           <!-- карточка общая с мобильным Списком; на мобилке поля — иконки, пикеры смонтированы сразу -->
           <TaskCard
             :task="x"
