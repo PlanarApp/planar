@@ -1,7 +1,14 @@
 import { generateKeyBetween } from 'fractional-indexing';
 import { z } from 'zod';
 import { uuidv7 } from '@planar/shared';
-import { activityOf, checklist, findOwned, findTask, lastRank } from './tasks.service.js';
+import {
+  activityOf,
+  checklist,
+  findOwned,
+  findTask,
+  lastRank,
+  moveTasks,
+} from './tasks.service.js';
 import type { ExtArea, ExtOp } from './types.js';
 
 const task = z.string().min(1).describe('uuid или ключ задачи, например ABC-123');
@@ -85,6 +92,30 @@ const ops: ExtOp[] = [
       );
       return { id: target.id };
     },
+  },
+  {
+    tool: 'move_tasks',
+    description:
+      'Перенести задачи одного проекта в статус и поставить подряд в точку сброса, в порядке taskIds; все или ни одна. Отказ — 409 conflict, в details.tasks — проблемные задачи с кодом (not_found, duplicate, forbidden, other_project, archived) и причиной',
+    method: 'post',
+    path: '/api/v1/tasks/move',
+    shape: {
+      taskIds: z.array(task).min(1).max(100).describe('задачи в нужном порядке, ≤ 100'),
+      statusId: id.describe('целевой статус'),
+      before: task
+        .nullable()
+        .optional()
+        .describe('поставить перед этой задачей целевого статуса; без before и index — в конец'),
+      index: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe('вместо before: позиция среди остальных задач статуса, 0 — в начало'),
+    },
+    write: true,
+    danger: 'bulk',
+    run: (d, u, i, tok) => moveTasks(d, u, i as Parameters<typeof moveTasks>[2], tok),
   },
   {
     tool: 'watch_task',
