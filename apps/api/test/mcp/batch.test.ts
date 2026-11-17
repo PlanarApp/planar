@@ -94,8 +94,9 @@ describe('Задачи: фильтры и пачка', () => {
   });
 
   it('dryRun ничего не меняет; пачка: статус + метки add/remove + исполнители + архив; ошибка одной не обрывает', async () => {
-    const t1 = await mk({ title: 'B1', labels: [{ id: uuidv7(), labelId: label }] });
-    const t2 = await mk({ title: 'B2' });
+    // X is never in the random hex project key: the query matches the title only
+    const t1 = await mk({ title: 'X1', labels: [{ id: uuidv7(), labelId: label }] });
+    const t2 = await mk({ title: 'X2' });
     const patch = {
       statusId: w.statusIds[2],
       assigneeIds: { add: [w.member.userId] },
@@ -103,7 +104,7 @@ describe('Задачи: фильтры и пачка', () => {
     };
     const dry = await batch({ taskIds: [t1, t2], patch, dryRun: true });
     expect(dry.status, JSON.stringify(dry.body)).toBe(200);
-    expect(dry.body.data.matched.map((m: { title: string }) => m.title)).toEqual(['B1', 'B2']);
+    expect(dry.body.data.matched.map((m: { title: string }) => m.title)).toEqual(['X1', 'X2']);
     expect(dry.body.data.changed).toBe(0);
     expect(await statusOf(t1)).toBe(w.statusIds[1]);
 
@@ -118,7 +119,7 @@ describe('Задачи: фильтры и пачка', () => {
     ]);
 
     const g = await batch({
-      filter: { projectId: w.projectId, query: 'B1' },
+      filter: { projectId: w.projectId, query: 'X1' },
       patch: { archived: true },
     });
     expect(g.body.data.changed).toBe(1);
