@@ -134,6 +134,10 @@ describe('seed-demo', () => {
     );
     // two manual restarts and the engine's rework of «Development» (PLNRAPP-404)
     expect(lim!.n).toBe(3);
+    // PLNRAPP-408: the coordination demo runs on the autopilot
+    expect(
+      (await q<{ autopilot: boolean }>(`select autopilot from ai_project_limits`))[0]!.autopilot,
+    ).toBe(true);
     // the agent's log of the demo agent run: events of the known types only
     const evs = await q<{ type: string }>(`select type from ai_run_events`);
     expect(evs.length).toBeGreaterThan(0);

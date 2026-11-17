@@ -990,23 +990,30 @@ const envLimit = (name: string) => {
 export const defaultLimits = () => ({
   dailyTokens: envLimit('PLANAR_AI_DAILY_TOKENS'),
   dailyCost: envLimit('PLANAR_AI_DAILY_COST'),
+  /** PLNRAPP-408: a guard of the autopilot — always a limit */
+  dailyTasks: envLimit('AI_DAILY_TASKS') ?? 50,
 });
 
 /** Daily limits of a project: its own row and the ones in force (own, else the env defaults); null — no limit. */
 export async function projectLimits(q: Pick<Q, 'execute'>, projectId: string) {
   const o = await one(
     q,
-    sql`select daily_tokens as "dailyTokens", daily_cost as "dailyCost" from ai_project_limits where project_id = ${projectId}`,
+    sql`select daily_tokens as "dailyTokens", daily_cost as "dailyCost", daily_tasks as "dailyTasks", autopilot
+        from ai_project_limits where project_id = ${projectId}`,
   );
   const own = {
     dailyTokens: (o?.dailyTokens as number | null) ?? null,
     dailyCost: (o?.dailyCost as number | null) ?? null,
+    dailyTasks: (o?.dailyTasks as number | null) ?? null,
   };
+  const d = defaultLimits();
   return {
     own,
+    autopilot: !!o?.autopilot,
     effective: {
-      dailyTokens: own.dailyTokens ?? envLimit('PLANAR_AI_DAILY_TOKENS'),
-      dailyCost: own.dailyCost ?? envLimit('PLANAR_AI_DAILY_COST'),
+      dailyTokens: own.dailyTokens ?? d.dailyTokens,
+      dailyCost: own.dailyCost ?? d.dailyCost,
+      dailyTasks: own.dailyTasks ?? d.dailyTasks,
     },
   };
 }
@@ -1020,6 +1027,17 @@ export async function usedToday(q: Pick<Q, 'execute'>, projectId?: string | null
         ${projectId ? sql`and project_id = ${projectId}` : projectId === null ? sql`and project_id is null` : sql``}`,
   );
   return { tokens: u!.tokens as number, cost: u!.cost as number };
+}
+
+/** PLNRAPP-408: tasks the bot created in the project today (UTC day) — the autopilot's guard */
+export async function aiTasksToday(q: Pick<Q, 'execute'>, projectId: string) {
+  const r = await one(
+    q,
+    sql`select count(*)::int as n from tasks t join users u on u.id = t.created_by and u.bot and u.login = ${AI_BOT_LOGIN}
+        where t.project_id = ${projectId}
+          and t.created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC'`,
+  );
+  return (r?.n as number | undefined) ?? 0;
 }
 
 /** Why a run must not call the LLM: the switch is off, or the project spent its daily limit; null — go on. */
@@ -1115,7 +1133,9 @@ async function apply(
   // PLNRAPP-405: not while the run hands the work to the AI's subtasks — the parent's final run is accepted
   const delegates =
     run.kind === 'action' &&
-    (!!r.newTasks?.some((n) => n.ai) || (await pendingSubtasks(api.db, run.task.id, run.bot)) > 0);
+    ((!!r.newTasks?.some((n) => n.ai) &&
+      (await projectLimits(api.db, run.task.projectId)).autopilot) ||
+      (await pendingSubtasks(api.db, run.task.id, run.bot)) > 0);
   if (
     r.verdict === 'done' &&
     ctx &&
@@ -1449,11 +1469,30 @@ async function changes(
       sql`select max(rank collate "C") as r from tasks where parent_id = ${task.id}`,
     );
     let rank = (last?.r as string | null) ?? null;
-    const ids = r.newTasks.map(() => uuidv7());
-    r.newTasks.forEach((n, i) => {
+    // PLNRAPP-408: the guard — at most dailyTasks tasks by the AI per day in the project, the rest are dropped
+    const limits = await projectLimits(q, task.projectId);
+    const room = Math.max(
+      0,
+      (limits.effective.dailyTasks ?? Infinity) - (await aiTasksToday(q, task.projectId)),
+    );
+    const list = r.newTasks.slice(0, room);
+    if (list.length < r.newTasks.length)
+      run.log.push(
+        `newTasks: суточный лимит задач ИИ (${limits.effective.dailyTasks}) — не создано ${r.newTasks.length - list.length}`,
+      );
+    // without the autopilot the AI does not hand work to itself: its subtasks go to a person in «Уточнение»
+    const human = limits.autopilot ? undefined : await humanOf(q, task);
+    const ids = list.map(() => uuidv7());
+    list.forEach((n, i) => {
       rank = generateKeyBetween(rank, null);
-      const status = n.status ? byName(ctx.statuses, n.status) : undefined;
+      let status = n.status ? byName(ctx.statuses, n.status) : undefined;
       if (n.status && !status) run.log.push(`newTasks: нет статуса «${n.status}»`);
+      const toBot = !!n.ai && limits.autopilot;
+      if (n.ai && !toBot) {
+        status = run.action?.questionStatusId ?? status;
+        run.log.push(`newTasks: ${n.title}: автопилот выключен — подзадача человеку`);
+      }
+      const assignee = toBot ? run.bot : n.ai ? human?.id : undefined;
       const checks = n.checks?.length
         ? `\n\n## ${CRITERIA_HEADING}\n\n${n.checks.map((c) => `- ${c}`).join('\n')}`
         : '';
@@ -1468,7 +1507,7 @@ async function changes(
           title: n.title,
           rank,
           ...(description && { description: asDoc(description) }),
-          ...(n.ai && { assignees: [{ id: uuidv7(), userId: run.bot }] }),
+          ...(assignee && { assignees: [{ id: uuidv7(), userId: assignee }] }),
         },
       });
       // PLNRAPP-405: the order of the work — only earlier tasks of the list block (no cycles)
