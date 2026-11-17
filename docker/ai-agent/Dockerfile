@@ -7,6 +7,8 @@ ARG OPENCODE_VERSION=1.19.5
 ARG PLAYWRIGHT_VERSION=1.65.0
 # dpcli отключён: источник не утверждён, внешний репозиторий в образ не клонируется (см. README.md).
 
+# NODE_USE_ENV_PROXY: встроенный fetch node (corepack) ходит через HTTP(S)_PROXY/NO_PROXY, как curl и npm;
+# без него corepack не скачивает pnpm из packageManager проекта (EAI_AGAIN: наружу — только через squid).
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw \
     HOME=/work/.home \
     XDG_CONFIG_HOME=/work/.home/.config \
@@ -15,7 +17,8 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw \
     TMPDIR=/work/.tmp \
     CLAUDE_CODE_TMPDIR=/work/.tmp \
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
-    DISABLE_AUTOUPDATER=1
+    DISABLE_AUTOUPDATER=1 \
+    NODE_USE_ENV_PROXY=1
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git curl jq ripgrep ca-certificates \
