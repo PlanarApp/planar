@@ -24,7 +24,13 @@ export interface MovePlan {
 }
 
 const NONE = 'none';
-const swap = (cur: string[], from: string, to: string, key: (id: string) => string = (v) => v) => {
+/** group field `from` → `to` for multi-valued fields (assignees, labels); `none` — no value */
+export const swap = (
+  cur: string[],
+  from: string,
+  to: string,
+  key: (id: string) => string = (v) => v,
+) => {
   const rest = cur.filter((v) => key(v) !== from);
   return to === NONE ? rest : [...new Set([...rest, to])];
 };
