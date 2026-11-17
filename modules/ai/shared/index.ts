@@ -98,9 +98,12 @@ export const aiActions = z.object({
   model: z.string().min(1).max(200).nullable(),
   /** «Уточнение»: where a task goes while the AI waits for an answer; null — the status is not changed */
   questionStatusId: uuid.nullable(),
-  /** readiness criteria (as in `dpcli accept`): go into the prompt */
+  /** readiness criteria (as in `dpcli accept`): the engine accepts the result by them (PLNRAPP-404);
+   * «$ command» — run in the agent's container, exit code 0 passes; the rest — checked by the LLM */
   checks: z.array(z.string().min(1).max(500)).max(20),
   maxOutputTokens: z.number().int().min(100).max(64_000).nullable(),
+  /** PLNRAPP-404: runs before the question to a person; null — AI_MAX_ATTEMPTS (3) */
+  maxAttempts: z.number().int().min(1).max(10).nullable(),
   createdAt: ts,
   updatedAt: ts,
 });
@@ -149,6 +152,7 @@ const fields = {
   questionStatusId: aiActions.shape.questionStatusId.optional(),
   checks: aiActions.shape.checks.optional(),
   maxOutputTokens: aiActions.shape.maxOutputTokens.optional(),
+  maxAttempts: aiActions.shape.maxAttempts.optional(),
 };
 
 export const mutators = [
@@ -179,6 +183,7 @@ export const mutators = [
         questionStatusId: a.questionStatusId ?? null,
         checks: a.checks ?? [],
         maxOutputTokens: a.maxOutputTokens ?? null,
+        maxAttempts: a.maxAttempts ?? null,
         createdAt: ctx.now,
         updatedAt: ctx.now,
       };

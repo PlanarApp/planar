@@ -42,6 +42,9 @@ const jobs: Job[] = [];
 /** results the fake provider returns, in order; onCall runs before the answer */
 let answers: object[] = [];
 let calls: { system: string; prompt: string }[] = [];
+/** PLNRAPP-404: answers of the engine's LLM check, in order, and the prompts it got */
+let verdicts: { pass: boolean; failures: string[] }[] = [];
+let judged: string[] = [];
 let onCall: (() => Promise<void>) | undefined;
 
 const handler = (id: string, q: string) =>
@@ -67,6 +70,7 @@ const result = (o: Record<string, unknown>) => ({
   emails: null,
   friction: null,
   subtasks: null,
+  uncertain: '',
   ...o,
 });
 
@@ -85,12 +89,18 @@ beforeAll(async () => {
     req.on('data', (c) => (raw += c));
     req.on('end', async () => {
       const body = JSON.parse(raw) as { messages: { role: string; content: string }[] };
-      calls.push({
-        system: body.messages.find((m) => m.role === 'system')?.content ?? '',
-        prompt: body.messages.find((m) => m.role === 'user')?.content ?? '',
-      });
-      await onCall?.();
-      const next = answers.shift() ?? result({});
+      const system = body.messages.find((m) => m.role === 'system')?.content ?? '';
+      const prompt = body.messages.find((m) => m.role === 'user')?.content ?? '';
+      // PLNRAPP-404: the engine's LLM check has its own queue (default — accepted)
+      const judge = system.startsWith('Ты — проверяющий');
+      if (judge) judged.push(prompt);
+      else {
+        calls.push({ system, prompt });
+        await onCall?.();
+      }
+      const next = judge
+        ? (verdicts.shift() ?? { pass: true, failures: [] })
+        : (answers.shift() ?? result({}));
       res.writeHead(200, { 'content-type': 'application/json' }).end(
         JSON.stringify({
           id: 'c1',
@@ -245,6 +255,8 @@ beforeEach(async () => {
   jobs.length = 0;
   answers = [];
   calls = [];
+  verdicts = [];
+  judged = [];
   onCall = undefined;
 });
 
@@ -676,6 +688,192 @@ describe('прогон по правилу', () => {
     const q = (await commentsOf(t)).at(-1)!;
     expect(q.assignee_id).toBe(w.member.userId);
     expect(text(q.body)).toContain('раз подряд');
+  });
+});
+
+describe('движок: приёмка, доработка, надзор, сверка (PLNRAPP-404)', () => {
+  const start = (t: string) =>
+    handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId }, api);
+  const botComments = async (t: string) =>
+    (await commentsOf(t)).filter((c) => c.author_id === bot).map((c) => text(c.body));
+
+  it('не принято проверкой → изменения не применены, доработка с замечаниями; вторая попытка принята', async () => {
+    const t = await task();
+    answers = [
+      result({ comment: 'первый итог', descriptionAppend: 'план 1' }),
+      result({ comment: 'второй итог', descriptionAppend: 'план 2' }),
+    ];
+    verdicts = [
+      { pass: false, failures: ['план не конечен'] },
+      { pass: true, failures: [] },
+    ];
+    await start(t);
+    await drain();
+    const runs = await runsOf(t);
+    expect(runs.map((r) => [r.state, r.attempt])).toEqual([
+      ['failed', 1],
+      ['done', 2],
+    ]);
+    expect(runs[0]!.report).toMatchObject({
+      failures: ['план не конечен'],
+      comment: 'первый итог',
+    });
+    expect(runs[0]!.log).toContain('движок: результат не принят проверками — попытка 2 из 3');
+    expect(runs[1]!.restart_of).toBe(runs[0]!.id);
+    expect(runs[1]!.log).toContain('движок: результат принят проверками');
+    // the check sees the criteria and the result, the rework — the remarks and the previous outcome
+    expect(judged[0]).toContain('план конечен');
+    expect(judged[0]).toContain('первый итог');
+    expect(calls[1]!.prompt).toContain('Доработка: попытка 2 из 3');
+    expect(calls[1]!.prompt).toContain('план не конечен');
+    expect(calls[1]!.prompt).toContain('первый итог');
+    const bc = await botComments(t);
+    expect(bc.join()).not.toContain('первый итог');
+    expect(bc.join()).toContain('второй итог');
+    const desc = text((await taskRow(t)).description);
+    expect(desc).toContain('план 2');
+    expect(desc).not.toContain('план 1');
+    // the LLM check's tokens add to the run's (the fake answers 1000 input tokens to each call)
+    expect(runs[1]!.input_tokens).toBe(2000);
+  });
+
+  it('попытки исчерпаны → вопрос человеку с замечаниями, задача в «Уточнении»', async () => {
+    await w.admin.ok('ai.action.update', { id: actionId, maxAttempts: 2 });
+    const t = await task();
+    answers = [result({ comment: 'раз' }), result({ comment: 'два' })];
+    verdicts = [
+      { pass: false, failures: ['нет оценки'] },
+      { pass: false, failures: ['нет сроков'] },
+    ];
+    await start(t);
+    await drain();
+    expect(calls).toHaveLength(2);
+    const runs = await runsOf(t);
+    expect(runs.map((r) => r.state)).toEqual(['failed', 'waiting_human']);
+    expect(runs[1]!.report).toMatchObject({ failures: ['нет сроков'] });
+    expect((await taskRow(t)).status_id).toBe(S.clarify);
+    const q = (await commentsOf(t)).at(-1)!;
+    expect(q.assignee_id).toBe(w.member.userId);
+    expect(text(q.body)).toContain('нет сроков');
+    expect((await botComments(t)).join()).toContain('не принят проверками после 2 попыток');
+  });
+
+  it('сомнения без критериев поднимают проверку; «$»-команды в llm пропускаются с записью в журнал', async () => {
+    await w.admin.ok('ai.action.update', { id: actionId, checks: ['$ pnpm test'] });
+    const t = await task();
+    answers = [result({ uncertain: 'не проверил ссылки' })];
+    await start(t);
+    expect(judged).toHaveLength(1);
+    expect(judged[0]).toContain('не проверил ссылки');
+    const [run] = await runsOf(t);
+    expect(run!.state).toBe('done');
+    expect(run!.log).toContain('движок: команды проверок пропущены');
+    expect((await botComments(t)).join()).toContain('Сомнения');
+
+    // no checks and no doubts — no check
+    await w.admin.ok('ai.action.update', { id: actionId, checks: [] });
+    const t2 = await task();
+    await start(t2);
+    expect(judged).toHaveLength(1);
+    expect((await runsOf(t2))[0]!.state).toBe('done');
+  });
+
+  it('ошибка провайдера → повтор с паузой 60 с × попытка, без замечаний в промпте', async () => {
+    const t = await task();
+    answers = ['не JSON по схеме'];
+    await start(t);
+    const [first] = await runsOf(t);
+    expect(first).toMatchObject({ state: 'failed', report: null });
+    expect(first!.log).toContain('движок: ошибка провайдера, повтор с паузой — попытка 2 из 3');
+    expect(jobs).toEqual([
+      expect.objectContaining({
+        queue: 'ai.run',
+        data: expect.objectContaining({ kind: 'action', restartOf: first!.id }),
+        opts: expect.objectContaining({ startAfter: 60 }),
+      }),
+    ]);
+    await drain();
+    const runs = await runsOf(t);
+    expect(runs.map((r) => [r.state, r.attempt])).toEqual([
+      ['failed', 1],
+      ['done', 2],
+    ]);
+    expect(calls[1]!.prompt).not.toContain('Доработка');
+  });
+
+  it('жнец: нет heartbeat → перезапуск в пределах попыток, последняя попытка — failed', async () => {
+    await w.admin.ok('ai.action.update', { id: actionId, runtime: 'agent' });
+    const t = await task();
+    const lost = (attempt: number) => {
+      const id = uuidv7();
+      return raw(
+        `insert into ai_runs (id, task_id, project_id, kind, action_id, state, chain_id, chain_depth, attempt,
+           agent_secret_hash, started_at, heartbeat_at)
+         values ($1, $2, $3, 'action', $4, 'running', $1, 0, $5, 'x', now() - interval '5 min', now() - interval '5 min')`,
+        [id, t, P, actionId, attempt],
+      ).then(() => id);
+    };
+    const reap = () => handler('ai', 'ai.agent.reap')({}, api);
+    const a = await lost(1);
+    await reap();
+    let runs = await runsOf(t);
+    expect(runs.map((r) => [r.state, r.attempt, r.restart_of])).toEqual([
+      ['failed', 1, null],
+      ['queued', 2, a],
+    ]);
+    expect(runs[0]!.log).toContain('heartbeat');
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toHaveLength(1);
+
+    await raw(`delete from ai_runs where task_id = $1`, [t]);
+    jobs.length = 0;
+    await lost(3);
+    await reap();
+    runs = await runsOf(t);
+    expect(runs.map((r) => r.state)).toEqual(['failed']);
+    expect(jobs).toHaveLength(0);
+    expect((await botComments(t)).join()).toContain('heartbeat');
+  });
+
+  it('сверка: задача на ИИ в статусе действия без запуска — в очередь; принятая и активная — нет; упавшая — повтор после паузы', async () => {
+    const { id: ruleId } = await rule({ type: 'task.status_changed', to: [S.backlog] }, [
+      { type: 'ai_run', aiActionId: actionId },
+    ]);
+    const t = await task({ statusId: S.backlog });
+    // another status, and a task without the AI — not picked
+    await task();
+    await task({ statusId: S.backlog, assignees: [{ id: uuidv7(), userId: w.member.userId }] });
+    jobs.length = 0;
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    await reconcile();
+    expect(jobs).toEqual([
+      expect.objectContaining({
+        queue: 'ai.run',
+        data: expect.objectContaining({ kind: 'action', taskId: t, actionId, ruleId }),
+      }),
+    ]);
+    let runs = await runsOf(t);
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({ state: 'queued', attempt: 1 });
+    expect(runs[0]!.log).toContain('движок: сверка: задача стоит в статусе действия');
+
+    // queued — active: nothing new
+    await reconcile();
+    expect(jobs).toHaveLength(1);
+    await drain();
+    expect((await runsOf(t))[0]!.state).toBe('done');
+    await reconcile();
+    expect(jobs).toHaveLength(0);
+
+    // a failed run: again only after its pause, as attempt + 1
+    const id = (await runsOf(t))[0]!.id as string;
+    await raw(`update ai_runs set state = 'failed' where id = $1`, [id]);
+    await reconcile();
+    expect(jobs).toHaveLength(0);
+    await raw(`update ai_runs set finished_at = now() - interval '2 min' where id = $1`, [id]);
+    await reconcile();
+    expect(jobs).toHaveLength(1);
+    runs = await runsOf(t);
+    expect(runs.at(-1)).toMatchObject({ state: 'queued', attempt: 2, restart_of: id });
   });
 });
 

@@ -2404,8 +2404,10 @@ async function insertAll(tx: Tx, now: Date) {
       runtime: 'agent',
       model: null,
       questionStatusId: clarify,
-      checks: ['Tests and linter pass', 'The MR is open with auto-merge'],
+      // PLNRAPP-404: «$ …» — the container runs it, the engine accepts by the exit code; the rest — the LLM check
+      checks: ['$ pnpm test && pnpm lint', 'The MR is open with auto-merge'],
       maxOutputTokens: null,
+      maxAttempts: 3,
       createdAt: at(-25),
       updatedAt: at(-25),
     },
@@ -2436,6 +2438,25 @@ async function insertAll(tx: Tx, now: Date) {
     ),
   ]);
   await ins(aiRuns, [
+    // PLNRAPP-404: the first attempt said «done», the engine's check of the tests did not accept it — the rework
+    run('dev-1', 9, {
+      actionId: uid('ai-action:dev'),
+      ruleId: null,
+      state: 'failed',
+      containerId: 'demo',
+      inputTokens: 39400,
+      outputTokens: 5200,
+      cost: 0.196,
+      report: {
+        failures: [
+          '$ pnpm test && pnpm lint — завершилась с ошибкой:\napps/web/src/styles/theme.test.ts: expected contrast ≥ 4.5, got 3.9',
+        ],
+        comment: 'Contrast of secondary text fixed; opened MR !42.',
+      },
+      log: 'Cloned the repository\nPushed mr/RDM-10, opened MR !42\nдвижок: результат не принят проверками — попытка 2 из 3',
+      createdAt: at(-1, 8),
+      updatedAt: at(-1, 8),
+    }),
     run('dev', 9, {
       actionId: uid('ai-action:dev'),
       ruleId: null,
@@ -2444,7 +2465,9 @@ async function insertAll(tx: Tx, now: Date) {
       inputTokens: 48200,
       outputTokens: 6100,
       cost: 0.236,
-      log: 'Cloned the repository\nTests and linter pass\nPushed mr/RDM-10, opened MR !42, auto-merge after CI',
+      attempt: 2,
+      restartOf: uid('ai-run:dev-1'),
+      log: 'Cloned the repository\nTests and linter pass\nPushed mr/RDM-10, opened MR !42, auto-merge after CI\nдвижок: результат принят проверками',
       createdAt: at(-1, 9),
       updatedAt: at(-1, 9),
     }),

@@ -48,8 +48,8 @@ const pagePatchSchema = z
 // built on first use: run.ts imports this file, so its resultSchema is not there yet at load time
 /** Result of a runtime agent (task or document): not sent to a model, so no UNION_LIMIT. */
 export const agentResultSchema = () => resultSchema.extend({ pagePatch: pagePatchSchema });
-// a document has no subtasks; without them the schema stays within UNION_LIMIT
-export const docResultSchema = () => agentResultSchema().omit({ subtasks: true });
+// a document has no subtasks and no acceptance (uncertain); without them the schema stays within UNION_LIMIT
+export const docResultSchema = () => agentResultSchema().omit({ subtasks: true, uncertain: true });
 type DocResult = AiResult & { pagePatch?: unknown };
 
 const DOC_SYSTEM = `Ты — ИИ-помощник в документах Planar. Тебе пишут в комментарии к странице. Ответ — JSON по схеме:

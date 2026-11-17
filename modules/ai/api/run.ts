@@ -18,6 +18,7 @@ import { batchDoc, insertBatch } from './email.js';
 import { collectChat, collectRun } from './retro.js';
 import { handleDoc } from './doc-run.js';
 import { generateReply, generateStructured, type LlmUsage } from './llm.js';
+import { maxAttemptsOf, review, rework, reworkBlock, type CheckedResult } from './engine.js';
 import {
   agentsFull,
   codeAssignmentPrompt,
@@ -90,19 +91,21 @@ export const keyOf = (d: AiRunData) =>
         ? `${d.pageId}:${d.itemId}`
         : `${d.taskId}:${d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? 'checklist' : d.itemId}`;
 
-type TaskRunData = Exclude<
+export type TaskRunData = Exclude<
   AiRunData,
   { kind: 'resume' | 'confirm' | 'chat' | 'doc_comment' | 'doc_mention' }
 >;
 /**
  * AST-1: a task run waits in the queue as a `queued` row (the panel and the status see «Ждёт»); the job carries its
  * id as runId. The older `queued` row of the same key is cancelled — one per key; the handler takes the row over.
+ * `attempt` — PLNRAPP-404: the engine's rework / restart counts the attempts of the work.
  */
 export async function enqueueRun(
   q: Pick<Q, 'execute'>,
   enqueue: (queue: string, data: object, opts?: JobOpts) => Promise<unknown>,
   d: TaskRunData,
   opts?: JobOpts,
+  attempt = 1,
 ) {
   const id = d.runId ?? uuidv7();
   const key = d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? null : d.itemId;
@@ -112,11 +115,11 @@ export async function enqueueRun(
           and coalesce(item_id, action_id) is not distinct from ${key}::uuid`,
   );
   await q.execute(
-    sql`insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, item_id, state, chain_id, chain_depth, restart_of)
+    sql`insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, item_id, state, chain_id, chain_depth, restart_of, attempt)
         select ${id}::uuid, t.id, t.project_id, ${d.kind}::text, ${d.kind === 'action' ? d.actionId : null}::uuid,
           ${d.kind === 'action' ? (d.ruleId ?? null) : null}::uuid,
           ${d.kind === 'comment' || d.kind === 'mention' ? d.itemId : null}::uuid, 'queued', ${id}::uuid, 0,
-          ${d.restartOf ?? null}::uuid from tasks t where t.id = ${d.taskId} on conflict (id) do nothing`,
+          ${d.restartOf ?? null}::uuid, ${attempt}::int from tasks t where t.id = ${d.taskId} on conflict (id) do nothing`,
   );
   await enqueue(AI_QUEUE, { ...d, runId: id }, opts);
 }
@@ -194,6 +197,9 @@ export const resultSchema = z.object({
   ),
   /** PLNRAPP-178: what got in the way of the run (unclear instruction, missing data or access); harness-retro takes it */
   friction: nullable(z.string().max(2000)),
+  /** PLNRAPP-404: doubts about the result and what was checked — the engine's LLM check takes them up;
+   * none — "", not null (UNION_LIMIT) */
+  uncertain: z.string().max(2000),
 });
 export type AiResult = z.infer<typeof resultSchema>;
 
@@ -206,6 +212,7 @@ const SYSTEM = `Ты — ИИ-исполнитель в трекере зада�
 - subtasks — изменения существующих подзадач из раздела «Подзадачи»: key — ключ подзадачи; title, moveTo, labels, fields — как у задачи, без изменений — "" или [].
 - emails — письма внешним адресатам (to, subject, body — обычный текст), только при done: они уйдут после подтверждения человеком; сам ничего не отправляй.
 - friction — что мешало работе (неясная или противоречивая инструкция, не хватало данных или доступа), одной-двумя фразами; не мешало ничего — null.
+- uncertain — в чём не уверен в результате и что проверил сам; сомнений нет — "". Результат проверяет система по критериям готовности, а не по твоей оценке.
 Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи и их изменения) применяются только при done; при question — только labels.`;
 
 /** «Поручение»: the built-in prompt until the active harness package has its own (PLNRAPP-169). */
@@ -262,7 +269,7 @@ async function eventAction(q: Pick<Q, 'execute'>, projectId: string, event: AiEv
   return (await one(
     q,
     sql`select a.id, a.key, a.name, a.page_id as "pageId", a.runtime, a.model, a.question_status_id as "questionStatusId",
-        a.checks, a.max_output_tokens as "maxOutputTokens"
+        a.checks, a.max_output_tokens as "maxOutputTokens", a.max_attempts as "maxAttempts"
         from ai_harness_packs p join ai_actions a on a.project_id = p.project_id and a.key = p.events ->> ${event}
         where p.project_id = ${projectId}::uuid and p.active`,
   )) as AiAction | undefined;
@@ -493,7 +500,7 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     action = (await one(
       api.db,
       sql`select id, key, name, page_id as "pageId", runtime, model, question_status_id as "questionStatusId",
-          checks, max_output_tokens as "maxOutputTokens" from ai_actions
+          checks, max_output_tokens as "maxOutputTokens", max_attempts as "maxAttempts" from ai_actions
           where id = ${d.actionId} and project_id = ${task.projectId}`,
     )) as AiAction | undefined;
     const assigned = await one(
@@ -601,11 +608,12 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     }
     const ctx = await contextOf(api.db, task, bot);
     const ask =
-      d.kind === 'action'
+      (d.kind === 'action'
         ? ''
         : d.kind === 'checklist'
           ? `\n\n# Поручение: пункт чек-листа\n${item!.text as string}`
-          : `\n\n# Поручение: комментарий [${itemId}]\n${md(item!.body)}`;
+          : `\n\n# Поручение: комментарий [${itemId}]\n${md(item!.body)}`) +
+      (await reworkBlock(api.db, id, d.restartOf, maxAttemptsOf(action)));
     // the agent reads only its prompt: the assignment and its thread go into it
     const thread =
       (mr || agent) && itemId && d.kind !== 'checklist' ? await threadOf(api.db, itemId) : '';
@@ -638,6 +646,8 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
       // the provider's own text is dropped: it may quote the key (as in checkConnection)
       const status = APICallError.isInstance(e) ? ` ${e.statusCode ?? ''}` : '';
       run.log.push(`провайдер: ${e instanceof Error ? e.name : 'error'}${status}`);
+      // PLNRAPP-404: a pause and another attempt; the attempts spent — the failure as before
+      if (await rework(api, run, 'ошибка провайдера, повтор с паузой', null, 60)) return;
       return await apply(api, run, failed('ИИ не ответил: ошибка провайдера.'));
     }
     await api.db.execute(
@@ -910,6 +920,7 @@ const failed = (comment: string): AiResult => ({
   emails: null,
   friction: null,
   subtasks: null,
+  uncertain: '',
 });
 
 export async function aiEnabled(q: Pick<Q, 'execute'>) {
@@ -1043,9 +1054,16 @@ async function finish(
 async function apply(
   api: JobApi,
   run: Run,
-  r: AiResult,
+  r: CheckedResult,
   ctx?: Awaited<ReturnType<typeof contextOf>>,
 ): Promise<void> {
+  // PLNRAPP-404: a done result is accepted by the engine's checks first (rework / the question otherwise)
+  if (
+    r.verdict === 'done' &&
+    ctx &&
+    (await review(api, run, r, ctx, (x) => apply(api, run, x, ctx)))
+  )
+    return;
   const { task, bot } = run;
   const human = await humanOf(api.db, task);
   const muts: Mut[] = [];
@@ -1120,7 +1138,8 @@ async function apply(
         ...(human && !reply.parentId && { assigneeId: human.id }),
       });
   } else {
-    if (r.comment) comment(prefix + r.comment, reply);
+    if (r.comment)
+      comment(prefix + r.comment + (r.uncertain ? `\n\n**Сомнения:** ${r.uncertain}` : ''), reply);
     if (ctx) docs = await changes(api.db, run, r, ctx, muts, descRef);
     if (r.emails?.length) {
       // the letters wait for «ок» from whoever confirms: the asker in a thread, else the task's person

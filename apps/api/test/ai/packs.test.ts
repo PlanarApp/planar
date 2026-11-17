@@ -437,7 +437,8 @@ describe('packs: yml-страница ↔ Instruction (markdown round-trip)', ()
       description: 'Короткое описание',
       runtime: 'llm' as const,
       model: 'gpt-x',
-      checks: ['проверка один', 'проверка два'],
+      checks: ['проверка один', '$ pnpm test'],
+      attempts: 2,
       prompt,
     };
     const body = instructionBody('triage', i);

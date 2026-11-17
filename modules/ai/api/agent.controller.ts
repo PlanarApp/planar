@@ -22,6 +22,7 @@ import { costOf } from './llm.js';
 import { blocked, loadTask, overBudget, failed } from './run.js';
 import { agentResultSchema } from './doc-run.js';
 import { finishAgent, runBySecret, runSecretsOf } from './agent.js';
+import { checkResultsSchema } from './engine.js';
 import {
   AGENT_LOG_MAX_EVENTS,
   AGENT_LOG_MAX_LINES,
@@ -137,7 +138,21 @@ export class AgentController {
     // absent fields of the contract are null, as in the llm result
     const r = {
       ...failed(''),
-      ...parseBody(agentResultSchema().partial().required({ verdict: true, comment: true }), body),
+      ...parseBody(
+        agentResultSchema()
+          .partial()
+          .required({ verdict: true, comment: true })
+          // PLNRAPP-404: the container's run of the «$» checks; an agent may write null for «no doubts»
+          .extend({
+            checkResults: checkResultsSchema.optional(),
+            uncertain: z
+              .string()
+              .max(2000)
+              .nullish()
+              .transform((v) => v ?? ''),
+          }),
+        body,
+      ),
     };
     toolSigs.delete(id);
     logTools.delete(id);

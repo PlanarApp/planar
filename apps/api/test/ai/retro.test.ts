@@ -125,6 +125,7 @@ const result = (o: Record<string, unknown>) => ({
   emails: null,
   friction: null,
   subtasks: null,
+  uncertain: '',
   ...o,
 });
 
@@ -147,11 +148,12 @@ beforeAll(async () => {
     req.on('data', (c) => (body += c));
     req.on('end', () => {
       const b = JSON.parse(body) as { messages: { role: string; content: string }[] };
-      calls.push({
-        system: b.messages.find((m) => m.role === 'system')?.content ?? '',
-        prompt: b.messages.find((m) => m.role === 'user')?.content ?? '',
-      });
-      const next = answers.shift() ?? result({});
+      const system = b.messages.find((m) => m.role === 'system')?.content ?? '';
+      // PLNRAPP-404: the engine's LLM check of the action's checks — accepts, the queue is for the runs
+      const judge = system.startsWith('Ты — проверяющий');
+      if (!judge)
+        calls.push({ system, prompt: b.messages.find((m) => m.role === 'user')?.content ?? '' });
+      const next = judge ? { pass: true, failures: [] } : (answers.shift() ?? result({}));
       res.writeHead(200, { 'content-type': 'application/json' }).end(
         JSON.stringify({
           id: 'c1',

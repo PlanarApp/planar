@@ -6,6 +6,7 @@ import { decrypt, secretKey, type JobApi, type Q } from '@planar/server-kit';
 import { resolveConnection, secretOf } from './connections.js';
 import { kbBlock } from './aikb/block.js';
 import { applyDocResult, docContext, docItemOf, docPageOf } from './doc-run.js';
+import { rework } from './engine.js';
 import {
   apply,
   botOf,
@@ -344,7 +345,8 @@ export async function loadRun(api: JobApi, id: string): Promise<Run | undefined>
     ? ((await one(
         api.db,
         sql`select id, key, name, page_id as "pageId", runtime, model, question_status_id as "questionStatusId",
-            checks, max_output_tokens as "maxOutputTokens" from ai_actions where id = ${r.actionId as string}`,
+            checks, max_output_tokens as "maxOutputTokens", max_attempts as "maxAttempts" from ai_actions
+            where id = ${r.actionId as string}`,
       )) as unknown as Run['action'])
     : undefined;
   const kind = r?.kind as Run['kind'] | undefined;
@@ -437,14 +439,15 @@ export async function reap(_d: object, api: JobApi) {
     )
   ).rows as { id: string; timedOut: boolean }[];
   for (const l of lost) {
-    await finishAgent(
-      api,
-      l.id,
-      failed(
-        l.timedOut
-          ? `Агент остановлен: прогон длился дольше ${max} мин.`
-          : 'Агент остановлен: нет сигнала heartbeat, результат не получен.',
-      ),
-    ).catch(() => {});
+    const why = l.timedOut
+      ? `Агент остановлен: прогон длился дольше ${max} мин.`
+      : 'Агент остановлен: нет сигнала heartbeat, результат не получен.';
+    // PLNRAPP-404: a task run is restarted within its attempts; the attempts spent — the failure as before
+    const run = await loadRun(api, l.id).catch(() => undefined);
+    if (run && (await rework(api, run, why, null).catch(() => false))) {
+      await stopAgent(api.db, l.id);
+      continue;
+    }
+    await finishAgent(api, l.id, failed(why)).catch(() => {});
   }
 }
