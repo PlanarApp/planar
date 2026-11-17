@@ -59,6 +59,7 @@ const result = (o: Record<string, unknown>) => ({
   docs: null,
   emails: null,
   friction: null,
+  subtasks: null,
   pagePatch: null,
   ...o,
 });
