@@ -321,6 +321,7 @@ describe('views:saved', () => {
       showKey: true,
       hideEmptyGroups: true,
       me: null,
+      aiStatus: null,
       fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
     });
     expect(JSON.parse(el.attributes('data-filter')!)).toEqual(v.filter);

@@ -25,9 +25,9 @@ import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
 import { useCardExtensions } from '../cardExtensions';
-import TaskAiStatus from '../TaskAiStatus.vue';
+import AiCell from './AiCell.vue';
 import { BlockedIcon } from '../../links';
-import type { TaskField } from '../options';
+import { isAiField, type TaskField } from '../options';
 import { localToday } from '../filter';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import { toast } from '../../ui/toast';
@@ -361,7 +361,6 @@ function save() {
           data-testid="row-children"
           ><ListTree :size="12" />{{ childCount }}</span
         >
-        <TaskAiStatus :task="task" />
         <!-- поля модулей (время): видны всегда, если модуль включён -->
         <span v-for="x in ext" :key="x.key" class="ml-auto shrink-0" @click.stop>
           <component :is="x.view" :task-id="task.id" />
@@ -379,7 +378,8 @@ function save() {
         :style="{ width: `${widths?.[c] ?? 112}px` }"
       >
         <!-- в покое — та же рамка, что у кнопки пикера; при наведении на её месте пикер с тем же содержимым -->
-        <template v-if="(hot || focused) && c !== 'project'">
+        <AiCell v-if="isAiField(c)" :task="task" :col="c as 'ai'" />
+        <template v-else-if="(hot || focused) && c !== 'project'">
           <AssigneePicker
             v-if="c === 'assignee'"
             :space-id="spaceId"

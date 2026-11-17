@@ -750,10 +750,23 @@ describe('поручения ИИ', () => {
     expect(jobs).toEqual([
       {
         queue: 'ai.run',
-        data: { kind: 'comment', taskId: t, itemId: c },
+        data: { kind: 'comment', taskId: t, itemId: c, runId: expect.any(String) },
         opts: expect.objectContaining({ upsert: true }),
       },
     ]);
+    // AST-1: the run waits as a `queued` row (the job carries its id); the handler turns it into `running`
+    const rid = (jobs[0]!.data as { runId: string }).runId;
+    expect((await runsOf(t)).map((r) => [r.id, r.state])).toEqual([[rid, 'queued']]);
+    // a newer assignment of the same comment replaces the queued one: one `queued` per key
+    await w.member.ok('comment.assign', { id: c, assigneeId: null });
+    await w.member.ok('comment.assign', { id: c, assigneeId: bot });
+    expect((await runsOf(t)).map((r) => r.state).sort()).toEqual(['cancelled', 'queued']);
+    jobs.splice(0, jobs.length - 1);
+    const rid2 = (jobs[0]!.data as { runId: string }).runId;
+    expect(rid2).not.toBe(rid);
+    // the cancelled run's job is skipped, the live one starts its row
+    await handler('ai', 'ai.run')({ ...(jobs[0]!.data as object), runId: rid } as never, api);
+    expect((await runsOf(t)).map((r) => r.state).sort()).toEqual(['cancelled', 'queued']);
     answers = [
       result({ verdict: 'question', comment: 'Уточни', questions: ['Какой стек?'] }),
       result({ comment: '3 дня' }),
@@ -866,7 +879,9 @@ describe('поручения ИИ', () => {
       parentId: root,
       body: doc('а сроки?'),
     });
-    expect(jobs.map((j) => j.data)).toEqual([{ kind: 'mention', taskId: t, itemId: c }]);
+    expect(jobs.map((j) => j.data)).toEqual([
+      { kind: 'mention', taskId: t, itemId: c, runId: expect.any(String) },
+    ]);
     answers = [result({ comment: 'Неделя' })];
     await drain();
     expect(calls[0]!.prompt).toContain('а сроки?');

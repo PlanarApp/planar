@@ -11,7 +11,7 @@ import { HarnessController } from './harness.controller.js';
 import { PacksController } from './packs.controller.js';
 import { EMAIL_QUEUE, handleEmail, isYes, replied, textOf, type EmailData } from './email.js';
 import type { JSONContent } from '@tiptap/core';
-import { AI_QUEUE, handle, keyOf, type AiRunData } from './run.js';
+import { AI_QUEUE, enqueueRun, handle, keyOf, type AiRunData } from './run.js';
 import type { ChatPending } from './schema.js';
 import {
   RETRO_QUEUE,
@@ -123,8 +123,8 @@ async function assignments(
   const bot = (await one(api, sql`select id from users where login = ${AI_BOT_LOGIN} and bot`))?.id;
   const me = await one(api, sql`select bot from users where id = ${ctx.userId}`);
   if (!bot || !me || me.bot) return;
-  const enqueue = (d: AiRunData) =>
-    api.enqueue(AI_QUEUE, d, { singletonKey: keyOf(d), upsert: true, startAfter: 5 });
+  const enqueue = (d: Parameters<typeof enqueueRun>[2]) =>
+    enqueueRun(api.q, api.enqueue, d, { singletonKey: keyOf(d), upsert: true, startAfter: 5 });
   for (const { entity, before: b, after: a } of mine as {
     entity: string;
     before: Row | null;

@@ -2,7 +2,7 @@
 type: "registry"
 status: "active"
 module: ""
-updated: "2026-11-16"
+updated: "2026-11-17"
 summary: "Точка входа: модули docs/ по подпроектам, прочие документы по типам."
 related: []
 generated: true
@@ -51,6 +51,7 @@ generated: true
 - **aikb** — PLNRAPP-233 — знания о Planar в базовых правилах всех ИИ-взаимодействий (подзадачи PLNRAPP-234…240) [closed 2026-11-16] — [план](plan/aikb.md) · [контракты](contracts/aikb.md) · [решения](plan/aikb/decisions.md) · [сводка](plan/aikb/summary.md) · полный журнал: `archive/aikb`
 - **chatai** — PLNRAPP-210 — личный чат с ИИ с полным доступом: настройка системы, документация Planar, пачки (подзадачи PLNRAPP-266…270) [closed 2026-11-16] — [план](plan/chatai.md) · [решения](plan/chatai/decisions.md) · [сводка](plan/chatai/summary.md) · полный журнал: `archive/chatai`
 - **mcpall** — PLNRAPP-271 — полное управление инстансом через MCP: ~50 функций интерфейса в REST v1 + MCP (подзадачи PLNRAPP-272…279) [closed 2026-11-16] — [план](plan/mcpall.md) · [контракты](contracts/mcpall.md) · [решения](plan/mcpall/decisions.md) · [сводка](plan/mcpall/summary.md) · полный журнал: `archive/mcpall`
+- **aistat** — Статус ИИ отдельно от статуса задачи, «Отвечает ИИ» под комментарием, затраты ИИ по задаче и отчёт (PLNRAPP-399…403) [closed 2026-11-17] — [план](plan/aistat.md) · [контракты](contracts/aistat.md) · [решения](plan/aistat/decisions.md) · [сводка](plan/aistat/summary.md) · полный журнал: `archive/aistat`
 
 ## Прочие документы
 

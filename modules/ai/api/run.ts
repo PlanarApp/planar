@@ -4,7 +4,7 @@ import { generateKeyBetween } from 'fractional-indexing';
 import { z } from 'zod';
 import type { JSONContent } from '@tiptap/core';
 import { docToMarkdown, markdownToDoc } from '@planar/editor/markdown';
-import type { CoreServices, JobApi, Q } from '@planar/server-kit';
+import type { CoreServices, JobApi, JobOpts, Q } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
 import { matched } from '@planar/module-automations/api';
 import { AI_BOT_LOGIN, type AiAction, type AiEvent, type AiRunKind } from '../shared/index.js';
@@ -89,6 +89,37 @@ export const keyOf = (d: AiRunData) =>
       : d.kind === 'doc_comment' || d.kind === 'doc_mention'
         ? `${d.pageId}:${d.itemId}`
         : `${d.taskId}:${d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? 'checklist' : d.itemId}`;
+
+type TaskRunData = Exclude<
+  AiRunData,
+  { kind: 'resume' | 'confirm' | 'chat' | 'doc_comment' | 'doc_mention' }
+>;
+/**
+ * AST-1: a task run waits in the queue as a `queued` row (the panel and the status see «Ждёт»); the job carries its
+ * id as runId. The older `queued` row of the same key is cancelled — one per key; the handler takes the row over.
+ */
+export async function enqueueRun(
+  q: Pick<Q, 'execute'>,
+  enqueue: (queue: string, data: object, opts?: JobOpts) => Promise<unknown>,
+  d: TaskRunData,
+  opts?: JobOpts,
+) {
+  const id = d.runId ?? uuidv7();
+  const key = d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? null : d.itemId;
+  await q.execute(
+    sql`update ai_runs set state = 'cancelled', updated_at = now()
+        where task_id = ${d.taskId} and kind = ${d.kind} and state = 'queued' and id <> ${id}
+          and coalesce(item_id, action_id) is not distinct from ${key}::uuid`,
+  );
+  await q.execute(
+    sql`insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, item_id, state, chain_id, chain_depth, restart_of)
+        select ${id}::uuid, t.id, t.project_id, ${d.kind}::text, ${d.kind === 'action' ? d.actionId : null}::uuid,
+          ${d.kind === 'action' ? (d.ruleId ?? null) : null}::uuid,
+          ${d.kind === 'comment' || d.kind === 'mention' ? d.itemId : null}::uuid, 'queued', ${id}::uuid, 0,
+          ${d.restartOf ?? null}::uuid from tasks t where t.id = ${d.taskId} on conflict (id) do nothing`,
+  );
+  await enqueue(AI_QUEUE, { ...d, runId: id }, opts);
+}
 
 const nullable = <T extends z.ZodType>(s: T) => s.nullable();
 /** Anthropic structured outputs: at most this many union-typed (nullable) parameters per schema, else 400 */
@@ -425,13 +456,24 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   if (d.kind === 'chat') return handleChat(d, api);
   if (d.kind === 'confirm') return confirmChat(d.runId, api);
   if (d.kind === 'doc_comment' || d.kind === 'doc_mention') return handleDoc(d, api);
-  // a retried delivery of a restart: its pre-made run row already exists
-  if (d.runId && (await one(api.db, sql`select 1 as x from ai_runs where id = ${d.runId}::uuid`)))
+  // a retried delivery, or the run cancelled by a newer one: its row is no longer `queued`
+  if (
+    d.runId &&
+    (await one(
+      api.db,
+      sql`select 1 as x from ai_runs where id = ${d.runId}::uuid and state <> 'queued'`,
+    ))
+  )
     return;
   const bot = await botOf(api);
   const task = await loadTask(api.db, d.taskId);
   // a restart must leave a row (the panel polls for it): the failed one with the reason
   const skip = async (why: string) => {
+    if (d.runId)
+      await api.db.execute(
+        sql`update ai_runs set state = ${d.restartOf ? 'failed' : 'cancelled'}, log = ${why + '\n'}, updated_at = now()
+            where id = ${d.runId}::uuid and state = 'queued'`,
+      );
     if (!d.restartOf || !d.runId || !task) return;
     await api.db.execute(
       sql`insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, item_id, state, chain_id, chain_depth, restart_of, log)
@@ -520,7 +562,10 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   await api.db.execute(
     sql`insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, item_id, state, chain_id, chain_depth, restart_of)
         values (${id}, ${task.id}, ${task.projectId}, ${d.kind}, ${action?.id ?? null}, ${d.kind === 'action' ? (d.ruleId ?? null) : null},
-          ${itemId}, 'running', ${(parent?.c as string | undefined) ?? id}, ${depth}, ${d.restartOf ?? null})`,
+          ${itemId}, 'running', ${(parent?.c as string | undefined) ?? id}, ${depth}, ${d.restartOf ?? null})
+        on conflict (id) do update set state = 'running', action_id = excluded.action_id, rule_id = excluded.rule_id,
+          item_id = excluded.item_id, chain_id = excluded.chain_id, chain_depth = excluded.chain_depth,
+          started_at = now(), updated_at = now() where ai_runs.state = 'queued'`,
   );
   const run: Run = { id, kind: d.kind, task, bot, action, item, log: [] };
   try {
@@ -963,7 +1008,7 @@ async function overRuns(
     q,
     sql`select count(*)::int as n from ai_runs r
         where r.task_id = ${taskId} and r.action_id = ${action.id} and r.rule_id = ${ruleId}
-          and r.id <> ${runId} and r.state <> 'cancelled'
+          and r.id <> ${runId} and r.state not in ('cancelled', 'queued')
           and r.created_at > coalesce((
             select max(p.created_at) from ai_runs p
             where p.task_id = ${taskId} and p.action_id = ${action.id} and p.id <> ${runId}
@@ -1170,8 +1215,9 @@ async function apply(
           );
         // the next item of the checklist, in rank order
         if (run.kind === 'checklist' && state === 'done')
-          await enqueue(
-            AI_QUEUE,
+          await enqueueRun(
+            q,
+            enqueue,
             { kind: 'checklist', taskId: task.id },
             { singletonKey: `${task.id}:checklist`, upsert: true },
           );
@@ -1413,8 +1459,8 @@ async function resume(runId: string, api: JobApi) {
   if (!r || !bot) return;
   const taskId = r.taskId as string;
   const origin = { aiRunId: runId, depth: 0 };
-  const again = (d: AiRunData) =>
-    api.enqueue(AI_QUEUE, d, { singletonKey: keyOf(d), upsert: true });
+  const again = (d: TaskRunData) =>
+    enqueueRun(api.db, api.enqueue, d, { singletonKey: keyOf(d), upsert: true });
   if (r.kind === 'action') {
     if (r.returnStatusId && r.questionStatusId) {
       if (r.statusId === r.questionStatusId)

@@ -17,7 +17,7 @@ const runUrl = computed(() => {
 
 <template>
   <AiStatusIcon
-    v-if="work && work.state !== 'waiting_human'"
+    v-if="work && (work.state === 'running' || work.state === 'failed')"
     :status="work.state"
     :run-url="runUrl"
     :started-at="work.startedAt"

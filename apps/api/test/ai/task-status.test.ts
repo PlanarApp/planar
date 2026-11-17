@@ -44,6 +44,13 @@ type Status = {
   runId: string;
   finishedAt: string | null;
   error: string | null;
+  usage: {
+    runs: number;
+    seconds: number;
+    inputTokens: number;
+    outputTokens: number;
+    cost: number | null;
+  };
 };
 const byTask = (r: { json(): { statuses: Status[] } }) =>
   new Map(r.json().statuses.map((s) => [s.taskId, s]));
@@ -59,20 +66,29 @@ describe('статус ИИ задач проекта', () => {
   it('running / failed до успешного запуска / none — одним ответом на все задачи', async () => {
     // one by one: parallel pushes of one client skip the mutations with a lower id as replays
     const tasks: string[] = [];
-    for (let i = 0; i < 7; i++) tasks.push(await newTask());
-    const [running, failed, cancelledAfter, repaired, done, none, failedThenRunning] = tasks as [
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-    ];
+    for (let i = 0; i < 10; i++) tasks.push(await newTask());
+    const [
+      running,
+      failed,
+      cancelledAfter,
+      repaired,
+      done,
+      none,
+      failedThenRunning,
+      waiting,
+      queued,
+      queuedAfterDone,
+    ] = tasks as [string, string, string, string, string, string, string, string, string, string];
     await run(running, 'failed', 30);
     const runningRun = await run(running, 'running', 5);
     const failedRun = await run(failed, 'failed', 10, 'начало\nошибка: таймаут\n');
-    await run(failed, 'waiting_human', 40);
+    // waiting for a person wins over the queue and the finished ones; the queue — over the finished ones
+    await run(waiting, 'failed', 50);
+    const waitingRun = await run(waiting, 'waiting_human', 40);
+    await run(waiting, 'queued', 2);
+    const queuedRun = await run(queued, 'queued', 3);
+    await run(queuedAfterDone, 'done', 20);
+    const queuedRun2 = await run(queuedAfterDone, 'queued', 3);
     // a cancelled run after a failure is not a success: failed holds
     const failedRun2 = await run(cancelledAfter, 'failed', 20, 'ошибка: x\n');
     await run(cancelledAfter, 'cancelled', 5);
@@ -100,12 +116,38 @@ describe('статус ИИ задач проекта', () => {
     expect(m.get(failed)!.finishedAt).toMatch(/^\d{4}-\d\d-\d\dT/);
     expect(m.get(cancelledAfter)).toMatchObject({ status: 'failed', runId: failedRun2 });
     expect(m.get(failedThenRunning)).toMatchObject({ status: 'running', runId: running2 });
-    for (const t of [repaired, done, none]) expect(m.has(t)).toBe(false);
+    expect(m.get(waiting)).toMatchObject({ status: 'waiting_human', runId: waitingRun });
+    expect(m.get(queued)).toMatchObject({ status: 'queued', runId: queuedRun });
+    expect(m.get(queuedAfterDone)).toMatchObject({ status: 'queued', runId: queuedRun2 });
+    // a successful run after the failure clears it: the last finished run is the done one
+    for (const t of [repaired, done]) expect(m.get(t)).toMatchObject({ status: 'done' });
+    expect(m.has(none)).toBe(false);
 
     // the member sees the project, but not the runs of the admin's task (D7): no error text
     const mr = await call(w.projectId, 'member');
     expect(mr.statusCode).toBe(200);
     expect(byTask(mr).get(failed)).toMatchObject({ status: 'failed', error: null });
+  });
+
+  it('PLNRAPP-402: finished_at ставится при уходе в финальное состояние, usage — сумма по задаче', async () => {
+    const t = await newTask();
+    const id = await run(t, 'running', 10);
+    const finished = async () =>
+      (await raw(`select finished_at from ai_runs where id = $1`, [id]))[0]!.finished_at;
+    expect(await finished()).toBe(null);
+    await raw(
+      `update ai_runs set started_at = now() - interval '90 seconds', input_tokens = 100, output_tokens = 50,
+         cost = 0.25 where id = $1`,
+      [id],
+    );
+    await raw(`update ai_runs set state = 'done' where id = $1`, [id]);
+    expect(await finished()).not.toBe(null);
+    // a run that is still going does not count
+    await run(t, 'running', 1);
+    const u = byTask(await call(w.projectId, 'admin')).get(t)!.usage;
+    expect(u).toMatchObject({ runs: 1, inputTokens: 100, outputTokens: 50, cost: 0.25 });
+    expect(u.seconds).toBeGreaterThan(85);
+    expect(u.seconds).toBeLessThan(100);
   });
 
   it('не видящему проект, несуществующему и без модуля ai — 404', async () => {

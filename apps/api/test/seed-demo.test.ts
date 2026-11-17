@@ -124,6 +124,7 @@ describe('seed-demo', () => {
       'cancelled',
       'done',
       'failed',
+      'queued',
       'running',
       'waiting_human',
     ]);
