@@ -101,6 +101,8 @@ export const instructionSchema = z.object({
   runtime: z.enum(['llm', 'agent']).default('llm'),
   model: z.string().min(1).max(200).optional(),
   checks: z.array(z.string().min(1).max(500)).max(20).default([]),
+  /** PLNRAPP-404: runs before the question to a person (a page table gives it as text) */
+  attempts: z.coerce.number().int().min(1).max(10).optional(),
 });
 export type Instruction = z.infer<typeof instructionSchema> & { prompt: string };
 
@@ -154,6 +156,7 @@ export interface CurrentState {
     runtime: string;
     model?: string | null;
     checks: string[];
+    maxAttempts?: number | null;
     questionStatusId?: string | null;
   }[];
   /** a keyed rule is always updated: the stored form (ids, bot) cannot be compared with the pack form */
@@ -284,6 +287,7 @@ export function computeDiff(
             runtime: i.runtime,
             model: i.model,
             checks: i.checks,
+            maxAttempts: i.attempts,
             questionStatus,
           }
         : { name: k, questionStatus };

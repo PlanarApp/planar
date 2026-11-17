@@ -18,6 +18,8 @@ const FIELD_DOC: Record<keyof AiResult, string> = {
   docs: 'project documents {parent (root section title), title, markdown}',
   emails: 'external letters {to, subject, body}; only with done; sent after a person confirms',
   friction: 'what got in the way of the run; null if nothing (harness-retro collects it)',
+  uncertain:
+    'doubts about the result and what was checked; "" if none, not null (the engine checks it with the LLM)',
 };
 
 const fields = Object.keys(z.toJSONSchema(resultSchema).properties ?? {})
@@ -93,9 +95,11 @@ Runtimes of an AI action (runtime):
 - llm: one structured model call (connection of the instance, model overridable per action) answering with the result below.
 - agent: a runner container with the repo of the project's GitLab connection (git push, glab); limits AI_AGENT_MAX_REPLICAS / project max_agents; stopped on no heartbeat (AI_AGENT_HEARTBEAT_TIMEOUT_SEC) or over AI_AGENT_TIMEOUT_MIN. Its result goes through the same apply as llm.
 
-AI action of a project: key, name, description, pageId (the prompt is the text of that docs page, read at run time), runtime, model, questionStatusId (where the task goes while the AI waits for an answer), checks (readiness criteria), maxOutputTokens.
+AI action of a project: key, name, description, pageId (the prompt is the text of that docs page, read at run time), runtime, model, questionStatusId (where the task goes while the AI waits for an answer), checks (readiness criteria), maxOutputTokens, maxAttempts (1-10; null = AI_MAX_ATTEMPTS, 3).
 
-Harness pack: harness.yml (statuses, labels, fields, actions, rules, settings.questionStatus, events) + actions/<key>.md (frontmatter name, description, runtime, model, checks; body = prompt). In a project it is documents under "Harness-пакеты". events maps comment | mention | checklist | chat to an action key; no key = the built-in prompt. Catalog packs and their actions:
+Engine (PLNRAPP-404): a done result is accepted by the action's checks, not by the AI's own word — "$ command" checks run in the agent's container (exit code 0 passes; skipped for llm), the other checks and the result's uncertain go to a separate LLM check. Not accepted: the changes are not applied, the run is failed and the next attempt starts with the remarks; the attempts spent — a question to a person. A lost agent (no heartbeat, timeout) and a provider error are restarted within the attempts (the provider — after 60 s × attempt). Every 5 minutes the engine queues the tasks on the AI standing in a status where an enabled rule (task.status_changed with to) runs an action and matching its conditions, if the last run of the action is missing or failed with attempts left; a done or cancelled run is left alone. Engine decisions are lines "движок: …" in the run log.
+
+Harness pack: harness.yml (statuses, labels, fields, actions, rules, settings.questionStatus, events) + actions/<key>.md (frontmatter name, description, runtime, model, checks, attempts; body = prompt). In a project it is documents under "Harness-пакеты". events maps comment | mention | checklist | chat to an action key; no key = the built-in prompt. Catalog packs and their actions:
 ${packs}
 
 Automation rule: action {type: ai_run, aiActionId, maxRuns?} (maxRuns: runs by this rule in a row on a task, 1-20; past it a question goes to a person). The rule's actions run first; the AI job is enqueued with a 60 s debounce and goes only if the task is still in the status it had after the rule. Creating or changing a rule with ai_run needs a project admin; the AI action must belong to the rule's project.

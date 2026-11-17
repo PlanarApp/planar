@@ -58,6 +58,8 @@ export const aiActions = pgTable(
     questionStatusId: uuid(),
     checks: jsonb().notNull(),
     maxOutputTokens: integer(),
+    /** PLNRAPP-404: runs of the action before the question to a person (rework, restart); null — AI_MAX_ATTEMPTS */
+    maxAttempts: integer(),
     createdAt: ts().notNull(),
     updatedAt: ts().notNull(),
   },
@@ -134,6 +136,10 @@ export const aiRuns = pgTable(
     log: text().notNull().default(''),
     /** the run this one restarts by hand (the chain of restarts is limited) */
     restartOf: uuid(),
+    /** PLNRAPP-404: the attempt of the work — a rework / an engine restart is the previous + 1, a manual restart is 1 */
+    attempt: integer().notNull().default(1),
+    /** PLNRAPP-404: the engine's acceptance of the result — remarks and doubts (the rework reads them) */
+    report: jsonb().$type<RunReport>(),
     /** a chat run waiting for the initiator's «да»: the dangerous calls the bot planned and the thread to answer in */
     pending: jsonb().$type<ChatPending>(),
     /** agent run: sha256 of the container's one-time secret (the secret itself is never stored) */
@@ -175,6 +181,13 @@ export const aiRunEvents = pgTable(
   },
   (t) => [index('ai_run_events_run_id_id_idx').on(t.runId, t.id)],
 );
+
+export type RunReport = {
+  failures: string[];
+  /** the result's comment that was not accepted */
+  comment?: string;
+  uncertain?: string | null;
+};
 
 export type ChatPending = {
   calls: { name: string; args: unknown }[];

@@ -64,7 +64,26 @@ prompt() {
   if [ -n "$REPO" ]; then
     printf 'Репозиторий проекта склонирован в %s (текущий каталог), git push и glab работают.\n' "$REPO"
   fi
-  printf 'В конце запиши результат JSON в %s: {"verdict":"done|question|fail","comment":"..."} и необязательные поля: questions[], descriptionAppend, newTasks[{title,description,status}], moveTo, labels[], fields[{name,value}], friction (что мешало работе — неясная инструкция, не хватало данных или доступа; не мешало — null).\n' "$RESULT"
+  printf 'В конце запиши результат JSON в %s: {"verdict":"done|question|fail","comment":"..."} и необязательные поля: questions[], descriptionAppend, newTasks[{title,description,status}], moveTo, labels[], fields[{name,value}], friction (что мешало работе — неясная инструкция, не хватало данных или доступа; не мешало — null), uncertain (в чём не уверен и что проверил сам; сомнений нет — "").\n' "$RESULT"
+  printf 'Результат принимает система по критериям готовности, а не по твоей оценке: команды-проверки (строки «$ …» в checks контекста) она выполнит сама после тебя.\n'
+}
+
+# PLNRAPP-404: проверки действия вида «$ команда» — после агента, в каталоге репозитория; код выхода и хвост
+# вывода уходят в checkResults результата, принимает их движок api.
+run_checks() {
+  local c out rc results='[]'
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    set +e
+    out=$(cd "${REPO:-/work}" && timeout "${PLANAR_CHECK_TIMEOUT_SEC:-900}" bash -lc "${c#\$ }" 2>&1)
+    rc=$?
+    set -e
+    results=$(jq -c --arg c "$c" --arg o "$(printf '%s' "$out" | tail -c 4000)" --argjson ok "$([ "$rc" -eq 0 ] && echo true || echo false)" \
+      '. + [{check: $c, ok: $ok, output: $o}]' <<<"$results")
+  done < <(jq -r '.checks[]? | select(startswith("$ "))' "$PLANAR_CONTEXT_FILE")
+  if [ "$results" != '[]' ]; then
+    jq --argjson r "$results" '.checkResults = $r' "$RESULT" >"$RESULT.tmp" && mv "$RESULT.tmp" "$RESULT"
+  fi
 }
 
 if [ -s "$RESULT" ]; then
@@ -99,6 +118,7 @@ fi
 
 # -s: jq -e accepts an empty file (exit 0) — it would go out as an empty body
 if [ -s "$RESULT" ] && jq -e . "$RESULT" >/dev/null 2>&1; then
+  if jq -e '.verdict == "done"' "$RESULT" >/dev/null 2>&1; then run_checks; fi
   body=$RESULT
 else
   echo "planar-agent: результата нет или он невалиден (код агента $agent_rc)" >&2

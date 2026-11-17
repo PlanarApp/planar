@@ -26,7 +26,7 @@ const rows = async (q: Db | Q, s: ReturnType<typeof sql>) => (await q.execute(s)
 const text = (n: Node): string => n.text ?? (n.content ?? []).map(text).join(' ').trim();
 const bad = (m: string) => new HttpError(400, 'invalid_request', m);
 
-const INSTRUCTION_PARAMS = ['key', 'name', 'runtime', 'model', 'checks'];
+const INSTRUCTION_PARAMS = ['key', 'name', 'runtime', 'model', 'checks', 'attempts'];
 
 /**
  * Instruction page: the first paragraph is the description, a table «parameter | value» (key, name, runtime,
@@ -59,6 +59,7 @@ export function parseInstructionPage(title: string, body: unknown) {
     runtime: params.runtime || undefined,
     model: params.model || undefined,
     checks,
+    attempts: params.attempts || undefined,
   });
   if (!r.success)
     throw bad(`инструкция «${title}»: ${r.error.issues.map((i) => i.message).join('; ')}`);
@@ -160,7 +161,8 @@ async function currentOf(q: Db | Q, projectId: string): Promise<CurrentState> {
     rows(q, sql`select id, name, type from field_defs where project_id = ${p}`),
     rows(
       q,
-      sql`select id, name, description, runtime, model, checks, question_status_id as "questionStatusId"
+      sql`select id, name, description, runtime, model, checks, max_attempts as "maxAttempts",
+          question_status_id as "questionStatusId"
           from ai_actions where project_id = ${p}`,
     ),
     rows(q, sql`select id, name, description from automations_rules where project_id = ${p}`),

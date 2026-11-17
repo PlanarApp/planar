@@ -131,7 +131,8 @@ describe('seed-demo', () => {
     const [lim] = await q<{ n: number }>(
       `select count(*)::int as n from ai_runs r join ai_project_limits l using (project_id) where r.restart_of is not null`,
     );
-    expect(lim!.n).toBe(2);
+    // two manual restarts and the engine's rework of «Development» (PLNRAPP-404)
+    expect(lim!.n).toBe(3);
     // the agent's log of the demo agent run: events of the known types only
     const evs = await q<{ type: string }>(`select type from ai_run_events`);
     expect(evs.length).toBeGreaterThan(0);

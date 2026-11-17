@@ -220,6 +220,7 @@ export function instructionText(i: Instruction): string {
     runtime: i.runtime,
     ...(i.model ? { model: i.model } : {}),
     ...(i.checks.length ? { checks: i.checks } : {}),
+    ...(i.attempts ? { attempts: i.attempts } : {}),
   });
   return `---\n${fm}---\n\n${i.prompt}\n`;
 }
@@ -256,6 +257,7 @@ export function instructionBody(key: string, i: Instruction): Doc {
     ['runtime', i.runtime],
     ...(i.model ? [['model', i.model]] : []),
     ...i.checks.map((c) => ['checks', flat(c)]),
+    ...(i.attempts ? [['attempts', String(i.attempts)]] : []),
   ];
   return {
     type: 'doc',
@@ -300,6 +302,7 @@ export function readInstructionPage(
     runtime: params.runtime?.[0] || undefined,
     model: params.model?.[0] || undefined,
     checks: params.checks?.filter(Boolean),
+    attempts: params.attempts?.[0] || undefined,
   });
   if (!key || !KEY_RE.test(key) || !r.success) return null;
   return {
