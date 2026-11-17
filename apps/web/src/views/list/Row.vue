@@ -25,6 +25,7 @@ import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
 import { useCardExtensions } from '../cardExtensions';
+import TaskAiStatus from '../TaskAiStatus.vue';
 import { BlockedIcon } from '../../links';
 import type { TaskField } from '../options';
 import { localToday } from '../filter';
@@ -360,6 +361,7 @@ function save() {
           data-testid="row-children"
           ><ListTree :size="12" />{{ childCount }}</span
         >
+        <TaskAiStatus :task="task" />
         <!-- поля модулей (время): видны всегда, если модуль включён -->
         <span v-for="x in ext" :key="x.key" class="ml-auto shrink-0" @click.stop>
           <component :is="x.view" :task-id="task.id" />

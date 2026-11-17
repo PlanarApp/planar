@@ -57,8 +57,18 @@ beforeAll(async () => {
 
 describe('статус ИИ задач проекта', () => {
   it('running / failed до успешного запуска / none — одним ответом на все задачи', async () => {
-    const [running, failed, cancelledAfter, repaired, done, none, failedThenRunning] =
-      await Promise.all(Array.from({ length: 7 }, newTask));
+    // one by one: parallel pushes of one client skip the mutations with a lower id as replays
+    const tasks: string[] = [];
+    for (let i = 0; i < 7; i++) tasks.push(await newTask());
+    const [running, failed, cancelledAfter, repaired, done, none, failedThenRunning] = tasks as [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
     await run(running, 'failed', 30);
     const runningRun = await run(running, 'running', 5);
     const failedRun = await run(failed, 'failed', 10, 'начало\nошибка: таймаут\n');
