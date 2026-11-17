@@ -34,8 +34,8 @@ const RELEVANT: Record<ActivitySourceDef['entity'], string[]> = {
   projects: ['tasks', 'comments', 'checklistItems'],
 };
 
-const RANK = { running: 0, waiting_human: 1, failed: 2 } as const;
-/** The most telling work of an item (running first, then waiting, then the error); undefined itemId — of all. */
+const RANK = { running: 0, waiting_human: 1, queued: 2, failed: 3, done: 4 } as const;
+/** The most telling work of an item (running first, then waiting, queued, the error, done); undefined itemId — of all. */
 export function activityOf(
   list: readonly Activity[],
   itemId?: string | null,
@@ -95,7 +95,10 @@ export function useActivity(
     );
     if (!alive || my !== seq) return;
     items.value = got.flat();
-    if (items.value.some((a) => a.state === 'running') || Date.now() < graceUntil)
+    if (
+      items.value.some((a) => a.state === 'running' || a.state === 'queued') ||
+      Date.now() < graceUntil
+    )
       timer = setTimeout(load, ACTIVITY_POLL_MS);
   }
 

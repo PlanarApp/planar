@@ -47,6 +47,7 @@ describe('C-views: поведение', () => {
       wrapTitles: true,
       showKey: true,
       me: null,
+      aiStatus: null,
       fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
     });
   });

@@ -52,10 +52,15 @@ const statuses = useStatuses(spaceId, dictProject);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId, dictProject);
 const blocked = useBlockedIds(() => props.projectId);
+import { useAiFilter } from '../aiFilter';
 const passes = useTaskFilter(
   useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
+);
+const aiPass = useAiFilter(
+  () => (props.scope ? undefined : props.projectId),
+  () => props.options.aiStatus,
 );
 const statusKey = useStatusKey(() => props.scope, statuses);
 const labelKey = useLabelKey(() => props.scope, labels);
@@ -64,7 +69,7 @@ const projectNames = useProjectNames();
 const columns = computed(() =>
   boardColumns(
     (tasks.value ?? []).filter(
-      (x) => (props.options.showSubtasks || !x.parentId) && passes.value(x),
+      (x) => (props.options.showSubtasks || !x.parentId) && passes.value(x) && aiPass.value(x),
     ),
     props.options.groupBy,
     {

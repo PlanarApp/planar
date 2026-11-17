@@ -75,6 +75,18 @@ describe('TaskAiStatus: статус ИИ в строке списка и на �
     expect(icon('A-3').exists()).toBe(false);
   });
 
+  it('в очереди / ждёт ответа / готово — в списке без значка (их показывает форма задачи)', async () => {
+    const at = new Date().toISOString();
+    answer = (['queued', 'waiting_human', 'done'] as const).map((state, i) => ({
+      id: `q${i}`,
+      itemId: `id-D-${i}`,
+      state,
+      startedAt: at,
+    }));
+    await render(['D-0', 'D-1', 'D-2']);
+    for (const k of ['D-0', 'D-1', 'D-2']) expect(icon(k).exists()).toBe(false);
+  });
+
   it('пока ИИ работает — опрос; успешное завершение — индикатор пропадает без перезагрузки', async () => {
     answer = [
       { id: 'r1', itemId: 'id-B-1', state: 'running', startedAt: new Date().toISOString() },

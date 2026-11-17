@@ -3,7 +3,9 @@ import type { AiRunEvent, AiRunView } from '../shared/index.js';
 import {
   canRestart,
   canStop,
+  fmtDuration,
   foldOf,
+  reportRange,
   MAX_LOG_EVENTS,
   mergeEvents,
   mergeRuns,
@@ -13,6 +15,21 @@ import {
 
 const run = (id: string, restartOf: string | null = null, state = 'done') =>
   ({ id, restartOf, state }) as AiRunView;
+
+describe('aiUi: отчёт', () => {
+  it('reportRange: включительный конец, обратный и пустой период — null', () => {
+    const r = reportRange('2026-11-01', '2026-11-03')!;
+    expect(+new Date(r.to) - +new Date(r.from)).toBeGreaterThanOrEqual(3 * 23 * 3600_000);
+    expect(reportRange('2026-11-03', '2026-11-03')).not.toBeNull();
+    expect(reportRange('2026-11-03', '2026-11-01')).toBeNull();
+    expect(reportRange('', '2026-11-01')).toBeNull();
+  });
+  it('fmtDuration', () => {
+    expect(fmtDuration(45)).toBe('45 s');
+    expect(fmtDuration(200)).toBe('3 min 20 s');
+    expect(fmtDuration(3900)).toBe('1 h 05 min');
+  });
+});
 
 describe('aiUi', () => {
   it('canStop / canRestart по состоянию', () => {

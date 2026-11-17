@@ -42,3 +42,24 @@ export function foldOf(text: string, lines = 3, chars = 300): string | null {
   const cut = head.length > chars ? head.slice(0, chars) : head;
   return cut.length < text.length ? `${cut}…` : null;
 }
+
+const pad = (n: number) => String(n).padStart(2, '0');
+export const dayStr = (d: Date) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+/** PLNRAPP-403: the period of the report — local days `from`..`to` inclusive → [from, to) as ISO; invalid or reversed — null. */
+export function reportRange(from: string, to: string): { from: string; to: string } | null {
+  const a = new Date(`${from}T00:00:00`);
+  const b = new Date(`${to}T00:00:00`);
+  if (!from || !to || isNaN(+a) || isNaN(+b) || b < a) return null;
+  b.setDate(b.getDate() + 1);
+  return { from: a.toISOString(), to: b.toISOString() };
+}
+
+/** Seconds as «1 h 05 min» / «3 min 20 s» / «45 s». */
+export function fmtDuration(s: number): string {
+  const t = Math.round(s);
+  if (t < 60) return `${t} s`;
+  if (t < 3600) return `${Math.floor(t / 60)} min ${pad(t % 60)} s`;
+  return `${Math.floor(t / 3600)} h ${pad(Math.floor((t % 3600) / 60))} min`;
+}

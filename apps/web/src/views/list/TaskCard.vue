@@ -6,7 +6,7 @@ import { BlockedIcon } from '../../links';
 import { useBreakpoint } from '../../ui';
 import CardField, { type CardCol } from '../board/CardField.vue';
 import { useCardExtensions } from '../cardExtensions';
-import TaskAiStatus from '../TaskAiStatus.vue';
+import AiCell from './AiCell.vue';
 
 // task card (Board; List on mobile): status button and name, the field buttons below.
 // Mobile — fields as icons only.
@@ -72,8 +72,9 @@ const ext = useCardExtensions(() => props.task.projectId);
       data-testid="row-children"
       ><ListTree :size="12" />{{ childCount }}</span
     >
-    <span data-no-drag class="mt-1 inline-flex shrink-0"><TaskAiStatus :task="task" /></span>
   </div>
+  <!-- PLNRAPP-401: the AI status — its own block, apart from the task status -->
+  <AiCell card col="ai" :task="task" data-no-drag @click.stop />
   <div v-if="cols.length || ext.length" class="-mx-1.5 flex flex-wrap items-center">
     <template v-for="c in cols" :key="c">
       <span

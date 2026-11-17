@@ -3,7 +3,18 @@ import { parseColumns } from './table/columns';
 import type { GroupBy, SortBy } from '../tasks';
 import type { MeMode } from './saved/useFilter';
 
-export type TaskField = 'status' | 'assignee' | 'priority' | 'dueDate' | 'labels' | 'project';
+/** PLNRAPP-401: the List columns of the ai module (status, cost, time of the runs) — only in projects with it */
+export const AI_FIELDS = ['ai', 'aiCost', 'aiTime'] as const;
+export type TaskField =
+  | 'status'
+  | 'assignee'
+  | 'priority'
+  | 'dueDate'
+  | 'labels'
+  | 'project'
+  | (typeof AI_FIELDS)[number];
+export const isAiField = (f: string): f is (typeof AI_FIELDS)[number] =>
+  (AI_FIELDS as readonly string[]).includes(f);
 export const TASK_FIELDS: TaskField[] = [
   'status',
   'assignee',
@@ -11,6 +22,7 @@ export const TASK_FIELDS: TaskField[] = [
   'dueDate',
   'labels',
   'project',
+  ...AI_FIELDS,
 ];
 
 export interface ViewOptions {
@@ -30,6 +42,8 @@ export interface ViewOptions {
   showKey?: boolean;
   /** Me Mode: only my tasks (assigned, created, watched); null — all */
   me?: MeMode | null;
+  /** «AI status» filter (PLNRAPP-401): an AiState value; null — all */
+  aiStatus?: string | null;
   fields: TaskField[];
   /** Table layout: order, width; no id — column hidden */
   columns?: { id: string; width: number }[];
@@ -46,6 +60,7 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   wrapTitles: true,
   showKey: true,
   me: null,
+  aiStatus: null,
   fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
 };
 

@@ -473,6 +473,26 @@ describe('agent: жнец и остановка', () => {
     expect((await one(`select state from ai_runs where id = $1`, [r.run.id])).state).toBe('failed');
   });
 
+  it('жнец: queued старше часа — cancelled, свежий queued не тронут', async () => {
+    const r = await start();
+    const mk = async (ago: string) => {
+      const id = uuidv7();
+      await raw(
+        `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth, created_at)
+         select $1, task_id, project_id, 'checklist', 'queued', $1, 0, now() - $2::interval from ai_runs where id = $3`,
+        [id, ago, r.run.id],
+      );
+      return id;
+    };
+    const oldQ = await mk('2 hours');
+    const freshQ = await mk('5 minutes');
+    await handler('ai', 'ai.agent.reap')({}, api);
+    const st = async (id: string) =>
+      (await one(`select state from ai_runs where id = $1`, [id])).state;
+    expect(await st(oldQ)).toBe('cancelled');
+    expect(await st(freshQ)).toBe('queued');
+  });
+
   it('мусорный id в пути — 401, а не 500', async () => {
     for (const id of [
       'x',

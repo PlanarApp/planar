@@ -2279,6 +2279,14 @@ async function insertAll(tx: Tx, now: Date) {
     chainId: uid(`ai-run:${k}`),
     chainDepth: 0,
     questionCommentIds: [],
+    // PLNRAPP-402: a finished run has its start and finish; the time grows with the tokens
+    ...(['done', 'failed', 'cancelled'].includes(o.state as string) && {
+      startedAt: o.createdAt,
+      finishedAt: new Date(
+        Date.parse(o.createdAt as string) +
+          (10 + ((o.inputTokens as number) + (o.outputTokens as number)) / 100) * 1000,
+      ).toISOString(),
+    }),
     ...o,
   });
   await ins(aiRuns, [
@@ -2342,6 +2350,12 @@ async function insertAll(tx: Tx, now: Date) {
       log: 'Model request failed: provider error 503',
       createdAt: at(0, 7),
       updatedAt: at(0, 7),
+    }),
+    // AST-1: waits in the queue — the task's «ИИ» row shows «Ждёт»
+    run('queued', 8, {
+      state: 'queued',
+      createdAt: at(0, 9),
+      updatedAt: at(0, 9),
     }),
     run('cancelled', 6, {
       state: 'cancelled',
@@ -2604,6 +2618,8 @@ async function insertAll(tx: Tx, now: Date) {
       inputTokens: 2300,
       outputTokens: 410,
       cost: 0.0151,
+      startedAt: at(-1, 8),
+      finishedAt: new Date(Date.parse(at(-1, 8)) + 45_000).toISOString(),
       createdAt: at(-1, 8),
       updatedAt: at(-1, 8),
     },
@@ -2691,6 +2707,8 @@ async function insertAll(tx: Tx, now: Date) {
         inputTokens: 700,
         outputTokens: 120,
         cost: 0.004,
+        startedAt: at0,
+        finishedAt: plan ? null : new Date(Date.parse(at0) + 12_000).toISOString(),
         pending: plan ? { ...plan, parentId: null } : null,
         createdAt: at0,
         updatedAt: at0,

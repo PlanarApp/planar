@@ -40,12 +40,15 @@ import {
   type AiRunView,
   type AiScope,
   type AiTaskRunStatus,
+  type AiUsage,
+  type AiUsageReport,
 } from '../shared/index.js';
 import { RETRO_QUEUE, retroOf, type RetroData } from './retro.js';
 import {
   AI_QUEUE,
   aiEnabled,
   defaultLimits,
+  enqueueRun,
   keyOf,
   projectLimits,
   usedToday,
@@ -112,7 +115,21 @@ const runView = (r: Row) => r as unknown as AiRunView;
 const activityCols = sql`r.id, r.kind, r.item_id as "itemId", r.state, r.agent_secret_hash is not null as agent,
   (select u.id from users u where u.login = ${AI_BOT_LOGIN} and u.bot) as "actorId",
   ${iso('coalesce(r.started_at, r.created_at)')} as "startedAt"`;
+/** PLNRAPP-402: Σ over the runs `u` of a task; seconds — only the finished runs */
+const usageCols = sql`count(*) filter (where u.finished_at is not null)::int as runs,
+  coalesce(sum(extract(epoch from u.finished_at - u.started_at)), 0)::float8 as seconds,
+  coalesce(sum(u.input_tokens), 0)::int as "inputTokens", coalesce(sum(u.output_tokens), 0)::int as "outputTokens",
+  sum(u.cost)::float8 as cost`;
 const uuidP = z.uuid();
+const usageReportQuery = z
+  .object({
+    projectId: z.uuid().optional(),
+    spaceId: z.uuid().optional(),
+    from: z.iso.datetime(),
+    to: z.iso.datetime(),
+    groupBy: z.enum(['task', 'day']),
+  })
+  .refine((q) => !(q.projectId && q.spaceId));
 const eventsQuery = z.object({
   after: z.coerce.number().int().min(0).default(0),
   limit: z.coerce.number().int().min(1).max(500).default(200),
@@ -235,7 +252,7 @@ export class AiController {
   async taskActivity(
     @Req() req: object,
     @Param('taskId') taskId: string,
-  ): Promise<{ activity: AiActivity[] }> {
+  ): Promise<{ activity: AiActivity[]; usage: AiUsage }> {
     const a = this.core.auth(req);
     if (a.tokenId) throw new HttpError(403, 'forbidden', 'Только из сессии');
     if (!uuidP.safeParse(taskId).success) throw nf();
@@ -247,14 +264,20 @@ export class AiController {
     if (!ok.rows[0]) throw nf();
     const r = await this.core.db.execute(
       sql`select ${activityCols} from ai_runs r
-          where r.task_id = ${taskId}::uuid and (r.state in ('running', 'waiting_human')
+          where r.task_id = ${taskId}::uuid and (r.state in ('queued', 'running', 'waiting_human')
+            or (r.state = 'done' and not exists (
+              select 1 from ai_runs n where n.task_id = r.task_id and n.state in ('done', 'failed')
+                and (n.created_at, n.id) > (r.created_at, r.id)))
             or (r.state = 'failed' and r.updated_at > now() - interval '1 day' and not exists (
               select 1 from ai_runs n where n.task_id = r.task_id and n.kind = r.kind
                 and n.item_id is not distinct from r.item_id and n.action_id is not distinct from r.action_id
                 and (n.created_at, n.id) > (r.created_at, r.id))))
           order by r.created_at desc, r.id desc limit 50`,
     );
-    return { activity: r.rows as unknown as AiActivity[] };
+    const u = await this.core.db.execute(
+      sql`select ${usageCols} from ai_runs u where u.task_id = ${taskId}::uuid`,
+    );
+    return { activity: r.rows as unknown as AiActivity[], usage: u.rows[0] as unknown as AiUsage };
   }
 
   /**
@@ -281,7 +304,8 @@ export class AiController {
     const r = await this.core.db.execute(
       sql`select l.task_id as "taskId", l.state as status, l.id as "runId",
             ${iso('coalesce(l.started_at, l.created_at)')} as "startedAt",
-            case when l.state = 'failed' then ${iso('l.updated_at')} end as "finishedAt",
+            case when l.state in ('failed', 'done') then ${iso('l.updated_at')} end as "finishedAt",
+            to_jsonb(us) as usage,
             case when l.state = 'failed' and (${admin}::boolean or l.created_by = ${a.userId}::uuid or exists (
                 select 1 from task_assignees ta where ta.task_id = l.task_id and ta.user_id = ${a.userId}::uuid))
               then nullif(substring(rtrim(l.log, chr(10)) from '[^' || chr(10) || ']*$'), '') end as error
@@ -289,12 +313,58 @@ export class AiController {
             select distinct on (r.task_id) r.task_id, r.id, r.state, r.log, r.started_at, r.created_at,
               r.updated_at, t.created_by
             from ai_runs r join tasks t on t.id = r.task_id
-            where t.project_id = ${projectId}::uuid and r.state in ('running', 'done', 'failed')
-            order by r.task_id, r.state = 'running' desc, r.created_at desc, r.id desc
-          ) l
-          where l.state in ('running', 'failed')`,
+            where t.project_id = ${projectId}::uuid
+              and r.state in ('queued', 'running', 'waiting_human', 'done', 'failed')
+            order by r.task_id, array_position(array['running', 'waiting_human', 'queued'], r.state) nulls last,
+              r.created_at desc, r.id desc
+          ) l, lateral (select ${usageCols} from ai_runs u where u.task_id = l.task_id) us`,
     );
     return { statuses: r.rows as unknown as AiTaskRunStatus[] };
+  }
+
+  /**
+   * PLNRAPP-403: the cost of the finished runs in [from, to) by task or by day (UTC). A scope — project, space, or
+   * none (all projects of the person). Only projects with the module on and the tasks whose runs the person sees (D7).
+   */
+  @Get('reports/usage')
+  async usageReport(@Req() req: object, @Query() raw: unknown): Promise<AiUsageReport> {
+    const a = this.core.auth(req);
+    if (a.tokenId) throw new HttpError(403, 'forbidden', 'Только из сессии');
+    const q = usageReportQuery.safeParse(raw);
+    if (!q.success) throw new HttpError(400, 'invalid_request', 'Неверные параметры');
+    const { projectId, spaceId, from, to, groupBy } = q.data;
+    // a named scope without the module or the access is the same 404 as a missing one
+    if (projectId || spaceId) {
+      const ok = await this.core.db.execute(
+        sql`select 1 from projects p where 'ai' = any(p.modules)
+              and project_role(${a.userId}::uuid, p.id) is not null
+              and ${projectId ? sql`p.id = ${projectId}::uuid` : sql`p.space_id = ${spaceId}::uuid`}`,
+      );
+      if (!ok.rows[0]) throw nf();
+    }
+    const byTask = groupBy === 'task';
+    const r = await this.core.db.execute(
+      sql`select ${byTask ? sql`t.id::text` : sql`to_char(u.finished_at at time zone 'UTC', 'YYYY-MM-DD')`} as key,
+            ${byTask ? sql`p.key || '-' || coalesce(t.number::text, '') || ' ' || t.title` : sql`to_char(u.finished_at at time zone 'UTC', 'YYYY-MM-DD')`} as label,
+            ${usageCols}
+          from ai_runs u join tasks t on t.id = u.task_id join projects p on p.id = t.project_id
+          where u.finished_at >= ${from}::timestamptz and u.finished_at < ${to}::timestamptz
+            and 'ai' = any(p.modules) and project_role(${a.userId}::uuid, p.id) is not null
+            and (project_role(${a.userId}::uuid, p.id) = 'admin' or t.created_by = ${a.userId}::uuid
+              or exists (select 1 from task_assignees ta where ta.task_id = t.id and ta.user_id = ${a.userId}::uuid))
+            ${projectId ? sql`and p.id = ${projectId}::uuid` : spaceId ? sql`and p.space_id = ${spaceId}::uuid` : sql``}
+          group by 1, 2 order by ${byTask ? sql`seconds desc, key` : sql`key desc`}`,
+    );
+    const rows = r.rows as unknown as AiUsageReport['rows'];
+    const priced = rows.filter((x) => x.cost != null);
+    const total: AiUsage = {
+      runs: rows.reduce((s, x) => s + x.runs, 0),
+      seconds: rows.reduce((s, x) => s + x.seconds, 0),
+      inputTokens: rows.reduce((s, x) => s + x.inputTokens, 0),
+      outputTokens: rows.reduce((s, x) => s + x.outputTokens, 0),
+      cost: priced.length ? priced.reduce((s, x) => s + x.cost!, 0) : null,
+    };
+    return { groupBy, rows, total };
   }
 
   /** The AI's work on the comments of a page: its running runs, for those who read the page (space member + project). */
@@ -381,7 +451,7 @@ export class AiController {
     await this.cancelBatches(id);
     await this.core.db.execute(
       sql`update ai_runs set state = 'cancelled', updated_at = now()
-          where id = ${id}::uuid and state in ('running', 'waiting_human')`,
+          where id = ${id}::uuid and state in ('queued', 'running', 'waiting_human')`,
     );
     await stopAgent(this.core.db, id);
   }
@@ -448,7 +518,16 @@ export class AiController {
             : null;
     if (!d) throw new HttpError(409, 'conflict', 'Прогон нельзя перезапустить');
     await this.cancelBatches(id);
-    await this.core.enqueue(AI_QUEUE, d, { singletonKey: keyOf(d), upsert: true });
+    const opts = { singletonKey: keyOf(d), upsert: true };
+    if (d.kind === 'doc_comment' || d.kind === 'doc_mention')
+      await this.core.enqueue(AI_QUEUE, d, opts);
+    else
+      await enqueueRun(
+        this.core.db,
+        (queue, data, o) => this.core.enqueue(queue, data, o),
+        d as never,
+        opts,
+      );
     return { runId };
   }
 

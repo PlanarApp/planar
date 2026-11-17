@@ -9,8 +9,9 @@ import {
   SlidersHorizontal,
 } from 'lucide-vue-next';
 import { Button, Popover, Select } from '../../ui';
-import { TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
+import { isAiField, TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
 import { tableColumns } from '../table/menu';
+import { enabledForProject } from '../../modules/registry';
 
 const options = defineModel<ViewOptions>('options', { required: true });
 const { t } = useI18n();
@@ -111,7 +112,11 @@ const toggleField = (f: TaskField) =>
       </div>
       <div v-else role="group" :aria-label="t('views.fields.title')" class="flex flex-col gap-1">
         <span class="text-xs text-fg-muted">{{ t('views.fields.title') }}</span>
-        <label v-for="f in TASK_FIELDS" :key="f" class="inline-flex items-center gap-1.5 text-sm">
+        <label
+          v-for="f in TASK_FIELDS.filter((x) => !isAiField(x) || enabledForProject('ai'))"
+          :key="f"
+          class="inline-flex items-center gap-1.5 text-sm"
+        >
           <input
             type="checkbox"
             :checked="options.fields.includes(f)"

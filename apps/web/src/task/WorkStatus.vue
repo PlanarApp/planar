@@ -13,6 +13,7 @@ const now = useNow();
 const text = computed(() => {
   const a = props.activity;
   if (a.state === 'failed') return t('task.aiFailed');
+  if (a.state === 'queued') return t('task.aiQueued');
   if (a.state === 'waiting_human') return t('task.aiWaiting');
   if (a.agent) return t('task.aiAgent', { n: minutesSince(a.startedAt, now.value) });
   return t(props.reply ? 'task.aiReplying' : 'task.aiWorking');

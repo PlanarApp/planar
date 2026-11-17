@@ -72,11 +72,12 @@ beforeAll(async () => {
 });
 
 describe('activity задачи', () => {
-  it('идущие, ждущие человека и свежая неповторённая ошибка; завершённые и старые — нет', async () => {
+  it('ждущие очереди, идущие, ждущие человека, свежая неповторённая ошибка и последний done; прочие завершённые и старые — нет', async () => {
     const running = await run({ kind: 'checklist', agent: true });
     const waiting = await run({ state: 'waiting_human' });
     const failed = await run({ state: 'failed', ago: 2 });
-    await run({ state: 'done' });
+    const queued = await run({ state: 'queued' });
+    const done = await run({ state: 'done' }); // the last finished run of the task
     await run({ state: 'cancelled' });
     await run({ state: 'failed', ago: 48 }); // older than a day
     // the failure of an item repeated after: not shown
@@ -88,15 +89,20 @@ describe('activity задачи', () => {
 
     const r = await call(`activity/tasks/${task}`, 'member');
     expect(r.statusCode).toBe(200);
-    expect(ids(r)).toEqual([running, waiting, failed, action].sort());
+    expect(ids(r)).toEqual([queued, running, waiting, failed, action, done].sort());
     const byId = new Map(
       (r.json().activity as Record<string, unknown>[]).map((a) => [a.id as string, a]),
     );
     expect(byId.get(running)).toMatchObject({ kind: 'checklist', state: 'running', agent: true });
     expect(byId.get(waiting)).toMatchObject({ state: 'waiting_human', agent: false });
+    expect(byId.get(queued)).toMatchObject({ state: 'queued' });
+    expect(byId.get(done)).toMatchObject({ state: 'done' });
     expect(byId.get(action)).toMatchObject({ itemId: null, state: 'failed' });
     expect(byId.get(running)!.startedAt).toMatch(/^\d{4}-\d\d-\d\dT/);
     expect(byId.get(running)!).not.toHaveProperty('log');
+    // PLNRAPP-402: the sum over the task's runs; the runs of this test have no start, so no seconds
+    expect(r.json().usage).toMatchObject({ seconds: 0 });
+    expect(r.json().usage.runs).toBeGreaterThan(0);
     expect((await call(`activity/tasks/${task}`, 'admin')).statusCode).toBe(200);
   });
 
