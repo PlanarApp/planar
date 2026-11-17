@@ -15,8 +15,14 @@ actions: [plan, decompose, triage, discussion, assign, mention, checklist, chat,
 rules:
   - key: dev_in_todo
     name: Разработка
-    description: ИИ реализует задачу в репозитории проекта и открывает MR с автомержем после CI. Только задачи, где ИИ — исполнитель.
+    description: Задача переходит в «В работе», ИИ реализует её в репозитории проекта и открывает MR с автомержем после CI. Только задачи, где ИИ — исполнитель.
     trigger: { type: task.status_changed, to: [todo] }
+    filter: { assignee: [ai] }
+    actions: [{ type: set_status, statusId: in_progress }, { type: ai_run, action: dev }]
+  - key: dev_resumed
+    name: Разработка после ответа
+    description: На вопросы ИИ ответили, задача вернулась из «Уточнения» в «В работе» — ИИ продолжает разработку. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, from: [clarify], to: [in_progress] }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: dev }]
   - key: dev_ci_failed
