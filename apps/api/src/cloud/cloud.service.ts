@@ -177,7 +177,8 @@ export class CloudService implements OnModuleInit, OnModuleDestroy {
   private async save(s: CloudState) {
     const [row] = await this.db.select().from(settings).where(eq(settings.id, CLOUD_SETTING));
     const prev = row?.value as CloudPublic | undefined;
-    const next: CloudPublic = { status: s.status, trialEndsAt: s.trialEndsAt };
+    const hosts = s.customDomain ? [s.domain, s.customDomain] : [s.domain];
+    const next: CloudPublic = { status: s.status, trialEndsAt: s.trialEndsAt, hosts };
     const left = trialDaysLeft(next);
     // one notification per trial end date (extended trial — notify again)
     const notify = left !== null && left <= WARN_DAYS && prev?.notified !== s.trialEndsAt;

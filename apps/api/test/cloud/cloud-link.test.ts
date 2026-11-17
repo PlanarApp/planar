@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
+import { allowedOrigins } from '../../src/auth/auth.js';
 import { notifications } from '../../src/db/schema.js';
 import { createUser, loginCookie } from '../auth.js';
 import { db, req, useApp } from '../auth/harness.js';
@@ -118,6 +119,16 @@ describe('cloud-link', () => {
       trialEndsAt: state.trialEndsAt,
       expired: false,
     });
+  });
+
+  it('домен и свой домен инстанса — разрешённые Origin (PWA на любом из адресов)', async () => {
+    setState('active', 30);
+    state.customDomain = 'tasks.acme.test';
+    await req('GET', '/api/cloud', { cookie: owner });
+    const ok = allowedOrigins('http://localhost:5173', '');
+    expect(ok).toContain('https://acme.planar.test');
+    expect(ok).toContain('https://tasks.acme.test');
+    expect(ok).not.toContain('https://evil.test');
   });
 
   it('ошибка облака приходит кодом в details.cloud', async () => {
