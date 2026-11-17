@@ -124,6 +124,7 @@ describe('packs', () => {
       expect(i.prompt, k).not.toBe('');
     }
     expect(parseInstructionDoc(files['actions/plan.md']!).prompt).toContain('«Бюджет»');
+    expect(parseInstructionDoc(files['actions/plan.md']!).prompt).toContain('шаги воспроизведения');
     expect(parseInstructionDoc(files['actions/dev.md']!).prompt).toContain('«Test prod»');
   });
 
