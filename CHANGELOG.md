@@ -6,6 +6,7 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ### Added
 
+- Board: dragging a selected card moves the whole selection — the drag preview shows the card with a «+N» badge, the tasks go in a row to the drop point in their board order (between columns and inside one), the board updates at once and rolls back with a message if the server refuses; dragging an unselected card moves only it and clears the selection. Works on a status board of one project.
 - The task's AI indicator shows «Queued for AI» while a run waits its turn: the 60 s delay after a rule fired, or all agents busy (`AI_AGENT_MAX_REPLICAS`, the project's limit). Before, such tasks showed nothing until the run started.
 - REST `POST /api/v1/tasks/move` and MCP `move_tasks`: an atomic group move — tasks of one project go to a status in a row at the drop point, keeping their order; all checks (access, project, archive) come first, a refusal lists every problem task with a reason and changes nothing.
 - Board and list: the multi-select mode turns on by Cmd/Ctrl+click, Shift+click (a range: within a column on the board, consecutive rows in the list) or «Select» in the task context menu. Checkboxes and the bulk action bar are shown only in this mode; Escape, a click on an empty place or unselecting the last task leave it. Without it the view looks and clicks as before.
