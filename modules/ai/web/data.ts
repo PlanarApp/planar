@@ -100,6 +100,7 @@ const dict = {
     ru: 'Прогоны видны администратору проекта, автору задачи и исполнителям',
     en: 'Runs are visible to the project admin, the task author and assignees',
   },
+  st_queued: { ru: 'в очереди', en: 'queued' },
   st_running: { ru: 'идёт', en: 'running' },
   st_waiting_human: { ru: 'ждёт человека', en: 'waiting for a human' },
   st_waiting_subtasks: { ru: 'ждёт подзадачи', en: 'waiting for subtasks' },
@@ -112,6 +113,8 @@ const dict = {
   k_checklist: { ru: 'чек-лист', en: 'checklist' },
   k_chat: { ru: 'чат', en: 'chat' },
   k_retro: { ru: 'harness-retro', en: 'harness-retro' },
+  k_doc_comment: { ru: 'комментарий к странице', en: 'page comment' },
+  k_doc_mention: { ru: 'упоминание на странице', en: 'page mention' },
   tokens: { ru: 'токены', en: 'tokens' },
   cost: { ru: 'стоимость', en: 'cost' },
   restartOf: { ru: 'перезапуск', en: 'restart' },
@@ -223,7 +226,9 @@ const dict = {
   egressBad: { ru: 'Неверный домен', en: 'Invalid domain' },
 } as const;
 export type Key = keyof typeof dict;
+/** PLNRAPP-433: a key built from an enum (`st_${state}` …) missing in dict broke the task's AI tab — show the key instead */
 export const tr = (k: Key): string => {
   const l = i18n.global.locale.value as 'ru' | 'en';
-  return dict[k][l] ?? dict[k].ru;
+  const e = dict[k] as { ru: string; en: string } | undefined;
+  return e?.[l] ?? e?.ru ?? k;
 };
