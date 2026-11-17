@@ -238,7 +238,7 @@ export async function handleDoc(d: DocRunData, api: JobApi): Promise<void> {
           maxOutputTokens: action?.maxOutputTokens ?? undefined,
         },
       );
-      result = { ...out.object, subtasks: null };
+      result = { ...out.object, subtasks: null, uncertain: '' };
       await api.db.execute(
         sql`update ai_runs set input_tokens = ${out.usage.inputTokens}, output_tokens = ${out.usage.outputTokens},
             cost = ${out.usage.cost} where id = ${id}`,
