@@ -15,6 +15,7 @@ const text = computed(() => {
   if (a.state === 'failed') return t('task.aiFailed');
   if (a.state === 'queued') return t('task.aiQueued');
   if (a.state === 'waiting_human') return t('task.aiWaiting');
+  if (a.state === 'waiting_subtasks') return t('task.aiWaitingSubtasks');
   if (a.agent) return t('task.aiAgent', { n: minutesSince(a.startedAt, now.value) });
   return t(props.reply ? 'task.aiReplying' : 'task.aiWorking');
 });

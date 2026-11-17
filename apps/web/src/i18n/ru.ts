@@ -825,6 +825,7 @@ export default {
     aiState: {
       queued: 'Ждёт',
       waiting_human: 'Ждёт ответа',
+      waiting_subtasks: 'Ждёт подзадачи',
       running: 'Работает',
       done: 'Готово',
       failed: 'Ошибка',
@@ -907,6 +908,7 @@ export default {
     aiReplying: 'ИИ отвечает…',
     aiAgent: 'Агент работает {n} мин',
     aiWaiting: 'ИИ ждёт ответа',
+    aiWaitingSubtasks: 'ИИ ждёт подзадачи',
     aiFailed: 'Ошибка ИИ',
     aiOpenRun: 'Открыть прогон',
     aiRunning: 'ИИ работает',

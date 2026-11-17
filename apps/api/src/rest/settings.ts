@@ -142,7 +142,7 @@ export const SETTING_OPS: Op[] = [
     'aiActions',
     'create',
     'create_ai_action',
-    'Создать ИИ-действие проекта (key, name, страница-инструкция pageId, checks — критерии приёмки, «$ команда» — проверка в контейнере агента, maxAttempts — попыток до вопроса человеку)',
+    'Создать ИИ-действие проекта (key, name, страница-инструкция pageId, checks — критерии приёмки, «$ команда» — проверка в контейнере агента, maxAttempts — попыток до вопроса человеку, review — LLM-ревью каждого результата)',
     noId(args('ai.action.create')),
     'ai',
   ),

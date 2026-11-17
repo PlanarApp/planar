@@ -11,7 +11,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   CORE,
@@ -147,6 +147,10 @@ const usageCols = sql`count(*) filter (where u.finished_at is not null)::int as 
   coalesce(sum(extract(epoch from u.finished_at - u.started_at)), 0)::float8 as seconds,
   coalesce(sum(u.input_tokens), 0)::int as "inputTokens", coalesce(sum(u.output_tokens), 0)::int as "outputTokens",
   sum(u.cost)::float8 as cost`;
+/** PLNRAPP-405: the runs of a task and of all its subtasks — a parent sums the work it coordinates */
+const ofTree = (task: SQL) =>
+  sql`u.task_id in (with recursive tree as (select id from tasks where id = ${task}
+    union all select t.id from tasks t join tree on t.parent_id = tree.id) select id from tree)`;
 const uuidP = z.uuid();
 const usageReportQuery = z
   .object({
@@ -291,7 +295,7 @@ export class AiController {
     if (!ok.rows[0]) throw nf();
     const r = await this.core.db.execute(
       sql`select ${activityCols} from ai_runs r
-          where r.task_id = ${taskId}::uuid and (r.state in ('queued', 'running', 'waiting_human')
+          where r.task_id = ${taskId}::uuid and (r.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks')
             or (r.state = 'done' and not exists (
               select 1 from ai_runs n where n.task_id = r.task_id and n.state in ('done', 'failed')
                 and (n.created_at, n.id) > (r.created_at, r.id)))
@@ -302,7 +306,7 @@ export class AiController {
           order by r.created_at desc, r.id desc limit 50`,
     );
     const u = await this.core.db.execute(
-      sql`select ${usageCols} from ai_runs u where u.task_id = ${taskId}::uuid`,
+      sql`select ${usageCols} from ai_runs u where ${ofTree(sql`${taskId}::uuid`)}`,
     );
     return {
       activity: [...(await queuedOf(this.core.db, taskId)), ...(r.rows as unknown as AiActivity[])],
@@ -344,10 +348,11 @@ export class AiController {
               r.updated_at, t.created_by
             from ai_runs r join tasks t on t.id = r.task_id
             where t.project_id = ${projectId}::uuid
-              and r.state in ('queued', 'running', 'waiting_human', 'done', 'failed')
-            order by r.task_id, array_position(array['running', 'waiting_human', 'queued'], r.state) nulls last,
+              and r.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks', 'done', 'failed')
+            order by r.task_id,
+              array_position(array['running', 'waiting_human', 'waiting_subtasks', 'queued'], r.state) nulls last,
               r.created_at desc, r.id desc
-          ) l, lateral (select ${usageCols} from ai_runs u where u.task_id = l.task_id) us`,
+          ) l, lateral (select ${usageCols} from ai_runs u where ${ofTree(sql`l.task_id`)}) us`,
     );
     return { statuses: r.rows as unknown as AiTaskRunStatus[] };
   }
@@ -481,7 +486,7 @@ export class AiController {
     await this.cancelBatches(id);
     await this.core.db.execute(
       sql`update ai_runs set state = 'cancelled', updated_at = now()
-          where id = ${id}::uuid and state in ('queued', 'running', 'waiting_human')`,
+          where id = ${id}::uuid and state in ('queued', 'running', 'waiting_human', 'waiting_subtasks')`,
     );
     await stopAgent(this.core.db, id);
   }

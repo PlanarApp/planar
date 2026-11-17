@@ -102,6 +102,7 @@ const dict = {
   },
   st_running: { ru: 'идёт', en: 'running' },
   st_waiting_human: { ru: 'ждёт человека', en: 'waiting for a human' },
+  st_waiting_subtasks: { ru: 'ждёт подзадачи', en: 'waiting for subtasks' },
   st_done: { ru: 'готово', en: 'done' },
   st_failed: { ru: 'ошибка', en: 'failed' },
   st_cancelled: { ru: 'отменён', en: 'cancelled' },

@@ -887,6 +887,27 @@ describe('agent: поручения из комментариев на зада�
     expect(await replyTo(t, c)).toContain('Линтер исправлен');
   });
 
+  it('PLNRAPP-405: подзадача без своего MR — агент в ветке MR родителя', async () => {
+    const parent = await codeTask();
+    const t = uuidv7();
+    await w.admin.ok('task.create', {
+      id: t,
+      projectId: P,
+      parentId: parent,
+      statusId: (await one(`select status_id from tasks where id = $1`, [parent])).status_id,
+      title: 'Часть фичи',
+      rank: 'a1',
+    });
+    jobs.length = 0;
+    await w.admin.ok('comment.create', {
+      id: uuidv7(),
+      taskId: t,
+      body: say(' почини линтер', true),
+    });
+    const r = await runQueued(t);
+    expectCodeRun(r, 'почини линтер');
+  });
+
   it('ответ на комментарий ИИ → агент с веткой обсуждения; ответ на чужой комментарий — нет', async () => {
     const t = await codeTask();
     const root = uuidv7();

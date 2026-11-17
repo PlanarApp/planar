@@ -825,6 +825,7 @@ export default {
     aiState: {
       queued: 'Waiting',
       waiting_human: 'Waiting for an answer',
+      waiting_subtasks: 'Waiting for subtasks',
       running: 'Working',
       done: 'Done',
       failed: 'Error',
@@ -902,6 +903,7 @@ export default {
     aiReplying: 'AI is replying…',
     aiAgent: 'The agent has been working for {n} min',
     aiWaiting: 'AI is waiting for an answer',
+    aiWaitingSubtasks: 'AI is waiting for subtasks',
     aiFailed: 'AI error',
     aiOpenRun: 'Open the run',
     aiRunning: 'AI is working',

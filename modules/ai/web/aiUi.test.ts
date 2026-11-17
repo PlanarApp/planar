@@ -3,6 +3,7 @@ import type { AiRunEvent, AiRunView } from '../shared/index.js';
 import {
   canRestart,
   canStop,
+  isLive,
   fmtDuration,
   foldOf,
   reportRange,
@@ -34,6 +35,9 @@ describe('aiUi: отчёт', () => {
 describe('aiUi', () => {
   it('canStop / canRestart по состоянию', () => {
     expect(canStop('running') && canStop('waiting_human')).toBe(true);
+    // PLNRAPP-405: the coordinator waiting for its subtasks is stopped, not polled
+    expect(canStop('waiting_subtasks') && !isLive('waiting_subtasks')).toBe(true);
+    expect(canRestart(run('a', null, 'waiting_subtasks'))).toBe(false);
     expect(canStop('done') || canStop('failed') || canStop('cancelled')).toBe(false);
     expect(canRestart(run('a', null, 'failed'))).toBe(true);
     expect(canRestart(run('a', null, 'running'))).toBe(false);

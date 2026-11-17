@@ -107,6 +107,24 @@ describe('activity задачи', () => {
     expect((await call(`activity/tasks/${task}`, 'admin')).statusCode).toBe(200);
   });
 
+  it('PLNRAPP-405: затраты задачи — с подзадачами; запуск, ждущий подзадачи, виден', async () => {
+    const parent = taskArgs(w, {});
+    await w.admin.ok('task.create', parent);
+    const sub = taskArgs(w, { parentId: parent.id });
+    await w.admin.ok('task.create', sub);
+    const waiting = await run({
+      taskId: parent.id as string,
+      kind: 'action',
+      itemId: null,
+      state: 'waiting_subtasks',
+    });
+    const done = await run({ taskId: sub.id as string, state: 'done' });
+    await raw(`update ai_runs set input_tokens = 700 where id = $1`, [done]);
+    const r = await call(`activity/tasks/${parent.id as string}`, 'member');
+    expect(ids(r)).toEqual([waiting]);
+    expect(r.json().usage).toMatchObject({ inputTokens: 700 });
+  });
+
   it('не видящему задачу и несуществующей — одинаковый 404; без модуля ai — 404', async () => {
     const r = await call(`activity/tasks/${task}`, 'outsider');
     expect(r.statusCode).toBe(404);

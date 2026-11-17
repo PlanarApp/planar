@@ -3,9 +3,10 @@ import { type AiRunEvent, type AiRunState, type AiRunView } from '../shared/inde
 
 /** A live run (the queue works on it or it waits for a human): polled and stoppable. */
 export const isLive = (s: AiRunState) => s === 'running' || s === 'waiting_human';
-export const canStop = isLive;
+/** PLNRAPP-405: a run waiting for its subtasks is not polled, but stopping it ends the coordination */
+export const canStop = (s: AiRunState) => isLive(s) || s === 'waiting_subtasks';
 /** The server also checks the switch and the chain length (409); here — only what is certain from the row. */
-export const canRestart = (r: Pick<AiRunView, 'state'>) => !isLive(r.state);
+export const canRestart = (r: Pick<AiRunView, 'state'>) => !canStop(r.state);
 
 /** Share of the limit used, 0..100; no limit (null) or a zero limit — null (nothing to show). */
 export const usagePct = (used: number, limit: number | null): number | null =>

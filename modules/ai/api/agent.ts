@@ -156,19 +156,29 @@ export interface TaskMr {
  * PLNRAPP-195: an assignment (comment, @ai, a reply to the bot, checklist item) goes to the agent with the code when
  * the runner is configured, the gitlab module is on, the project has a connection and the task has an open MR in
  * its repository; null — the llm answer as before.
+ * PLNRAPP-405: else the open MR of the nearest ancestor — one branch for the tree; `ancestors` — only theirs.
  */
-export async function codeTargetOf(q: Pick<Q, 'execute'>, task: Run['task']) {
+export async function codeTargetOf(q: Pick<Q, 'execute'>, task: Run['task'], ancestors = false) {
   if (!process.env.AI_RUNNER_URL || !task.modules.includes('gitlab')) return null;
   const mr = await one(
     q,
-    sql`select m.iid, m.title, m.source_branch as "sourceBranch", m.web_url as "webUrl" from gitlab_mrs m
-        where m.task_id = ${task.id} and m.state = 'opened'
+    sql`with recursive up as (
+          select id, parent_id, 0 as n from tasks where id = ${task.id}
+          union all select t.id, t.parent_id, up.n + 1 from tasks t join up on t.id = up.parent_id where up.n < 20)
+        select m.iid, m.title, m.source_branch as "sourceBranch", m.web_url as "webUrl" from gitlab_mrs m
+        join up on up.id = m.task_id and up.n >= ${ancestors ? 1 : 0}
+        where m.state = 'opened'
           and m.gitlab_project_id = (select c.gitlab_project_id from gitlab_connections c
             where c.project_id = ${task.projectId} order by c.created_at, c.id limit 1)
-        order by m.mr_updated_at desc, m.iid desc limit 1`,
+        order by up.n, m.mr_updated_at desc, m.iid desc limit 1`,
   );
   return (mr as unknown as TaskMr | undefined) ?? null;
 }
+
+/** PLNRAPP-405: for an action's agent of a subtask — the branch of its tree's MR instead of a branch of its own */
+export const treeBranchBlock = (mr: TaskMr) =>
+  `\n\n# Ветка дерева задач
+Это подзадача: работа всего дерева идёт в MR !${mr.iid} «${mr.title}» (${mr.webUrl}), ветка \`${mr.sourceBranch}\`. Правки кода — только в ней: \`git fetch origin ${mr.sourceBranch} && git checkout ${mr.sourceBranch}\`, коммит, \`git push origin ${mr.sourceBranch}\`; новую ветку и новый MR не создавай.`;
 
 /**
  * The agent prompt of an assignment with the code: the MR branch, CI through glab, the answer in the thread.

@@ -161,7 +161,7 @@ async function currentOf(q: Db | Q, projectId: string): Promise<CurrentState> {
     rows(q, sql`select id, name, type from field_defs where project_id = ${p}`),
     rows(
       q,
-      sql`select id, name, description, runtime, model, checks, max_attempts as "maxAttempts",
+      sql`select id, name, description, runtime, model, checks, max_attempts as "maxAttempts", review,
           question_status_id as "questionStatusId"
           from ai_actions where project_id = ${p}`,
     ),

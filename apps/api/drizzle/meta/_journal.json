@@ -505,6 +505,13 @@
       "when": 1795324800000,
       "tag": "0071_ai_engine",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1795411200000,
+      "tag": "0072_ai_coordinator",
+      "breakpoints": true
     }
   ]
 }

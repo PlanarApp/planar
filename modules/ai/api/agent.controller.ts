@@ -19,7 +19,7 @@ import { once } from 'node:events';
 import { CORE, HttpError, parseBody, type CoreServices, type JobApi } from '@planar/server-kit';
 import { resolveConnection, secretOf } from './connections.js';
 import { costOf } from './llm.js';
-import { blocked, loadTask, overBudget, failed } from './run.js';
+import { blocked, loadTask, overBudget, failed, newTaskSchema } from './run.js';
 import { agentResultSchema } from './doc-run.js';
 import { finishAgent, runBySecret, runSecretsOf } from './agent.js';
 import { checkResultsSchema } from './engine.js';
@@ -145,6 +145,11 @@ export class AgentController {
           // PLNRAPP-404: the container's run of the «$» checks; an agent may write null for «no doubts»
           .extend({
             checkResults: checkResultsSchema.optional(),
+            // PLNRAPP-405: an agent's subtask may omit ai / after / checks (a plain subtask)
+            newTasks: z
+              .array(newTaskSchema.partial({ ai: true, after: true, checks: true }))
+              .max(20)
+              .nullish(),
             uncertain: z
               .string()
               .max(2000)

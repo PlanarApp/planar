@@ -104,6 +104,8 @@ export const aiActions = z.object({
   maxOutputTokens: z.number().int().min(100).max(64_000).nullable(),
   /** PLNRAPP-404: runs before the question to a person; null — AI_MAX_ATTEMPTS (3) */
   maxAttempts: z.number().int().min(1).max(10).nullable(),
+  /** PLNRAPP-405: every done result also goes through the engine's LLM review with a fresh context */
+  review: z.boolean(),
   createdAt: ts,
   updatedAt: ts,
 });
@@ -153,6 +155,7 @@ const fields = {
   checks: aiActions.shape.checks.optional(),
   maxOutputTokens: aiActions.shape.maxOutputTokens.optional(),
   maxAttempts: aiActions.shape.maxAttempts.optional(),
+  review: aiActions.shape.review.optional(),
 };
 
 export const mutators = [
@@ -184,6 +187,7 @@ export const mutators = [
         checks: a.checks ?? [],
         maxOutputTokens: a.maxOutputTokens ?? null,
         maxAttempts: a.maxAttempts ?? null,
+        review: a.review ?? false,
         createdAt: ctx.now,
         updatedAt: ctx.now,
       };
@@ -222,6 +226,8 @@ export const AI_RUN_STATES = [
   'queued',
   'running',
   'waiting_human',
+  /** PLNRAPP-405: the run laid the work out into the AI's subtasks; a subtask's outcome runs the action again */
+  'waiting_subtasks',
   'done',
   'failed',
   'cancelled',
@@ -276,7 +282,7 @@ export interface AiActivity {
    * failed — the last run of this item failed recently (it was not restarted); queued — the job is not started yet
    * (the debounce, all agents busy): id is the job's, startedAt — when it was queued (PLNRAPP-310)
    */
-  state: 'queued' | 'running' | 'waiting_human' | 'failed' | 'done';
+  state: 'queued' | 'running' | 'waiting_human' | 'waiting_subtasks' | 'failed' | 'done';
   /** an agent in a container: «агент работает N мин» */
   agent: boolean;
   /** the bot user who answers */
@@ -289,6 +295,7 @@ export const AI_TASK_STATUSES = [
   'queued',
   'running',
   'waiting_human',
+  'waiting_subtasks',
   'failed',
   'done',
   'none',

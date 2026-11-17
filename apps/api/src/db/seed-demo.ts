@@ -2366,7 +2366,39 @@ async function insertAll(tx: Tx, now: Date) {
       createdAt: at(-1, 15),
       updatedAt: at(-1, 15),
     }),
+    // PLNRAPP-405: «Public beta announcement plan» laid the work out into a subtask on the AI and waits for it;
+    // the subtask's outcome runs the parent's action again
+    run('coord', 2, {
+      state: 'waiting_subtasks',
+      inputTokens: 2100,
+      outputTokens: 640,
+      cost: 0.0102,
+      log: 'Laid out into subtasks: RDM-13 «Prepare in-app banner»\nдвижок: ждёт подзадачи ИИ',
+      startedAt: at(0, 7),
+      finishedAt: at(0, 7),
+      createdAt: at(0, 7),
+      updatedAt: at(0, 7),
+    }),
+    run('coord-sub', 12, {
+      state: 'running',
+      inputTokens: 700,
+      outputTokens: 90,
+      cost: 0.0034,
+      log: 'Reading the parent task and the acceptance criteria',
+      createdAt: at(0, 8),
+      updatedAt: at(0, 8),
+    }),
   ]);
+  await ins(
+    s.taskAssignees,
+    [2, 12].map((i) => ({
+      id: uid(`assignee:ai:RDM:${i}`),
+      spaceId: rdmSpace,
+      taskId: tid('RDM', i),
+      userId: ai,
+      createdAt: at(0, 7),
+    })),
+  );
   // agent action (PLNRAPP-177): «Development» ran in a container, pushed a branch and opened an MR with auto-merge
   const devText = [
     'Implement the task in the project repository, run the tests and the linter.',
