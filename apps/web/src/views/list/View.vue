@@ -39,6 +39,7 @@ import {
   dictProjectOf,
   fixPlan,
   labelFor,
+  statusFor,
   useLabelKey,
   useProjectNames,
   useStatusKey,
@@ -54,6 +55,8 @@ import type { SortBy } from '../../tasks';
 import { applyMove, planMove } from '../board/plan';
 import { tokenOf } from '../../command/hotkeys';
 import { endTaskDrag, overProject, projectAt, startTaskDrag } from '../../tasks/dropToProject';
+import { dragSet, dropAnchor, groupRanks, moveGroupApi, moveGroupLocal } from '../groupMove';
+import { toast } from '../../ui/toast';
 
 const props = defineProps<ViewProps>();
 const { t, locale } = useI18n();
@@ -243,7 +246,16 @@ const sortBy = (by: SortBy) => Object.assign(props.options, nextSort(props.optio
 // middle of a row — make it a subtask of this task; edge — place at the level of the next row
 const manual = computed(() => props.options.sortBy === 'rank' && props.options.sortDir === 'asc');
 type Drop = { mode: 'slot'; slot: number } | { mode: 'nest'; index: number };
-const drag = ref<{ task: TaskView; from: string; drop: Drop } | null>(null);
+// ids — the moved tasks (PLNRAPP-294: all the selected ones when a selected task is dragged), x/y — the pointer
+const drag = ref<{
+  task: TaskView;
+  from: string;
+  drop: Drop;
+  ids: string[];
+  x: number;
+  y: number;
+} | null>(null);
+const dragIds = computed(() => new Set(drag.value?.ids));
 // descendants of the dragged task: it can't be nested into them
 const descendants = (id: string) => {
   const out = new Set<string>([id]);
@@ -268,6 +280,7 @@ function dropAt(clientY: number): Drop {
   // inside — only tasks of the same project (the group summary mixes projects)
   if (
     it?.kind === 'task' &&
+    (drag.value?.ids.length ?? 1) < 2 && // a group is not nested into a task
     !banned.has(it.task.id) &&
     it.task.projectId === dragProject &&
     frac > 0.3 &&
@@ -299,7 +312,9 @@ function onDragMove(e: PointerEvent) {
     el.scrollTop -= 12; // auto-scroll near the edges
   else if (e.clientY > r.bottom - 32) el.scrollTop += 12;
   drag.value.drop = dropAt(e.clientY);
-  overProject.value = projectAt(e.clientX, e.clientY);
+  drag.value.x = e.clientX;
+  drag.value.y = e.clientY;
+  if (drag.value.ids.length < 2) overProject.value = projectAt(e.clientX, e.clientY);
 }
 const groupOf = (it: Item | undefined) =>
   !it || it.kind === 'head' ? undefined : it.kind === 'task' ? it.group : it.group.key;
@@ -308,6 +323,7 @@ async function onDragEnd() {
   const d = drag.value;
   drag.value = null;
   if (!d || endTaskDrag()) return;
+  if (d.ids.length > 1) return dropGroup(d);
   const list = items.value;
   let to: string | undefined;
   let parent: string | null;
@@ -360,11 +376,69 @@ async function onDragEnd() {
   if (reparent) await updateTask(d.task.id, { parentId: parent });
   if (plan) await applyMove(plan);
 }
+/**
+ * PLNRAPP-294: the group goes in a row to the drop point, in the view's order. Status grouping — the
+ * atomic group move of the API (one project); other groupings — the group field and ranks locally.
+ */
+async function dropGroup(d: NonNullable<typeof drag.value>) {
+  if (d.drop.mode !== 'slot') return;
+  const list = items.value;
+  const moved = new Set(d.ids);
+  const to = groupOf(list[d.drop.slot - 1]) ?? groups.value[0]?.key;
+  if (!to) return;
+  const beforeId = dropAnchor(list.slice(d.drop.slot), to, moved);
+  const tasks = d.ids.flatMap((id) => byId.value.get(id) ?? []);
+  const by = props.options.groupBy;
+  if (by === 'status') {
+    const p = d.task.projectId;
+    if (tasks.some((x) => x.projectId !== p)) return toast(t('list.groupMoveProjects'));
+    const statusId = statusKey.value ? statusFor(statuses.value ?? [], d.task.spaceId, to, p) : to;
+    if (statusId) await moveGroupApi(d.ids, statusId, beforeId);
+    return;
+  }
+  const column = (groups.value.find((g) => g.key === to)?.tasks ?? [])
+    .filter((x) => !moved.has(x.id))
+    .sort((a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0));
+  const { ranks, rerank } = groupRanks(column, beforeId, tasks.length);
+  await moveGroupLocal({
+    tasks,
+    by,
+    from: (id) =>
+      id === d.task.id ? d.from : groups.value.find((g) => g.tasks.some((x) => x.id === id))?.key,
+    to,
+    ranks,
+    rerank,
+    labelKey: labelKey.value,
+    fixLabels: (x, ls) =>
+      fixPlan(
+        { labels: ls },
+        byId.value.get(x.id),
+        !!statusKey.value,
+        statuses.value ?? [],
+        labels.value ?? [],
+      )?.labels ?? ls,
+  });
+}
 function startDrag(it: { task: TaskView; group: string }, e: PointerEvent) {
   banned = descendants(it.task.id);
   dragProject = it.task.projectId;
-  drag.value = { task: it.task, from: it.group, drop: dropAt(e.clientY) };
-  startTaskDrag(it.task);
+  // a selected task — with all the selected; an unselected one — alone, the selection is reset
+  const order = [
+    ...items.value.flatMap((x) => (x.kind === 'task' ? [x.task.id] : [])),
+    ...groups.value.flatMap((g) => g.tasks.map((x) => x.id)),
+  ];
+  const ids = dragSet(sel.selected.value, it.task.id, order);
+  if (!sel.selected.value.has(it.task.id) && sel.active.value) sel.clear();
+  drag.value = {
+    task: it.task,
+    from: it.group,
+    drop: { mode: 'slot', slot: 0 },
+    ids,
+    x: e.clientX,
+    y: e.clientY,
+  };
+  drag.value.drop = dropAt(e.clientY);
+  if (ids.length < 2) startTaskDrag(it.task);
   addEventListener('pointermove', onDragMove);
   addEventListener('pointerup', () => void onDragEnd(), { once: true });
 }
@@ -857,7 +931,7 @@ watch(
                 :child-count="it.childCount"
                 :folded="isFolded(it.task.id)"
                 :class="[
-                  drag?.task.id === it.task.id && 'opacity-40',
+                  dragIds.has(it.task.id) && 'opacity-40',
                   nestId === it.id && 'ring-2 ring-inset ring-accent',
                 ]"
                 @fold="toggleFold(it.task.id)"
@@ -903,6 +977,20 @@ watch(
       </div>
     </TaskContextMenu>
 
+    <!-- PLNRAPP-294: превью группы у указателя — задача и бейдж «+N» -->
+    <div
+      v-if="drag && drag.ids.length > 1"
+      class="pointer-events-none fixed z-50 flex max-w-72 items-center gap-2 rounded-md border border-border bg-bg px-2 py-1 text-sm shadow-lg"
+      :style="{ left: `${drag.x + 12}px`, top: `${drag.y + 8}px` }"
+      data-testid="drag-preview"
+    >
+      <span class="truncate">{{ drag.task.title }}</span>
+      <span
+        class="shrink-0 rounded-full bg-accent px-1.5 text-xs font-medium text-accent-fg"
+        data-testid="drag-badge"
+        >+{{ drag.ids.length - 1 }}</span
+      >
+    </div>
     <BulkBar :space-id="spaceId" :tasks="all" />
   </div>
 </template>
