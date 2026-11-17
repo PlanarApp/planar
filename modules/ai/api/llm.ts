@@ -81,28 +81,44 @@ export async function generateStructured<S extends z.ZodType>(
   };
 }
 
-/** Text answer (with tools: up to `maxSteps` steps of calls and results, or until `maxTokens` are spent in all steps) with the tokens and the cost of the call. */
+const spent = (s: { usage: { inputTokens?: number; outputTokens?: number } }) =>
+  (s.usage.inputTokens ?? 0) + (s.usage.outputTokens ?? 0);
+
+/**
+ * Text answer (with tools: up to `maxSteps` steps of calls and results, within `maxTokens` over all steps) with the
+ * tokens and the cost of the call. The last step — by count, or when the next one like the previous would overrun
+ * the budget — answers without calling tools: a stop on a tool call leaves the answer empty (PLNRAPP-449; the tools
+ * stay in the request, Anthropic refuses tool calls in the history without them).
+ */
 export async function generateReply(
   c: LlmConnection,
   o: {
     prompt: string;
     system?: string;
     tools?: ToolSet;
+    /** the tools sent on each step (read before the step: it may grow, lazyTools); undefined — all */
+    active?: Set<string>;
     maxSteps?: number;
     maxTokens?: number;
   },
 ): Promise<{ text: string; usage: LlmUsage }> {
+  const max = o.maxSteps ?? 5;
+  const budget = o.maxTokens ?? Infinity;
   const r = await generateText({
     model: modelOf(c),
     prompt: o.prompt,
     system: o.system,
     tools: o.tools,
-    stopWhen: [
-      stepCountIs(o.maxSteps ?? 5),
-      ({ steps }) =>
-        steps.reduce((n, s) => n + (s.usage.inputTokens ?? 0) + (s.usage.outputTokens ?? 0), 0) >=
-        (o.maxTokens ?? Infinity),
-    ],
+    stopWhen: stepCountIs(max),
+    prepareStep: ({ stepNumber, steps }) => {
+      const last = steps.at(-1);
+      const total = steps.reduce((n, s) => n + spent(s), 0);
+      const final = stepNumber === max - 1 || (!!last && total + spent(last) > budget);
+      return {
+        ...(o.active && { activeTools: [...o.active] }),
+        ...(final && { toolChoice: 'none' as const }),
+      };
+    },
     maxRetries: 1,
   }).catch((e: unknown) => {
     throw scrub(e, c.apiKey);

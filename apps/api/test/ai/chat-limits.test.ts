@@ -32,7 +32,11 @@ let srv: http.Server;
 type Job = { queue: string; data: Record<string, unknown> };
 const jobs: Job[] = [];
 /** the tool call the fake provider makes on the first request of a run (null — just text) */
-let script: { name: string; args: object } | null = null;
+let script: { name: string; args: object } = { name: 'ai_list_packs', args: {} };
+/** the calls of the first requests, in order; then `script` */
+let scripts: { name: string; args: object }[] = [];
+/** the names of the tools sent, per request */
+let sent: string[][] = [];
 let systems: string[] = [];
 let requests = 0;
 let perStep = 15;
@@ -104,10 +108,20 @@ beforeAll(async () => {
     let body = '';
     req.on('data', (c) => (body += c));
     req.on('end', () => {
-      const m = (JSON.parse(body) as { messages: { role: string; content: string }[] }).messages;
+      const req = JSON.parse(body) as {
+        messages: { role: string; content: string }[];
+        tools?: { function: { name: string } }[];
+        tool_choice?: string;
+      };
+      const m = req.messages;
       systems.push(m.find((x) => x.role === 'system')?.content ?? '');
+      sent.push((req.tools ?? []).map((t) => t.function.name));
       requests++;
       res.writeHead(200, { 'content-type': 'application/json' });
+      // the last step: no tool calls allowed — the answer
+      if (req.tool_choice === 'none')
+        return void res.end(completion({ role: 'assistant', content: 'итог' }, 'stop'));
+      const call = scripts.shift() ?? script;
       res.end(
         completion(
           {
@@ -117,7 +131,7 @@ beforeAll(async () => {
               {
                 id: 't1',
                 type: 'function',
-                function: { name: script.name, arguments: JSON.stringify(script.args) },
+                function: { name: call.name, arguments: JSON.stringify(call.args) },
               },
             ],
           },
@@ -155,6 +169,8 @@ afterAll(async () => {
 beforeEach(async () => {
   jobs.length = 0;
   script = { name: 'ai_list_packs', args: { projectId: w.projectId } };
+  scripts = [];
+  sent = [];
   systems = [];
   requests = 0;
   perStep = 15;
@@ -193,12 +209,24 @@ describe('Чат: лимиты прогона', () => {
     return dm;
   };
 
-  it('AI_CHAT_MAX_STEPS=2: два шага, прогон завершён, ответ — «…»', async () => {
+  it('AI_CHAT_MAX_STEPS=2: два шага, последний — ответ без вызова инструментов', async () => {
     process.env.AI_CHAT_MAX_STEPS = '2';
     const dm = await ask();
     expect(requests).toBe(2);
     expect(await runs()).toMatchObject([{ state: 'done' }]);
-    expect((await botTexts(dm)).join()).toContain('…');
+    expect((await botTexts(dm)).join()).toContain('итог');
+  });
+
+  it('PLNRAPP-449: в запросе — база и find_tools, остальные инструменты — после подключения', async () => {
+    scripts = [{ name: 'find_tools', args: { names: ['list_time_entries', 'nope'] } }];
+    process.env.AI_CHAT_MAX_STEPS = '3';
+    const dm = await ask();
+    expect(sent[0]).toEqual(expect.arrayContaining(['find_tools', 'ai_kb', 'ai_list_packs']));
+    expect(sent[0]).not.toContain('list_time_entries');
+    expect(sent[0]!.length).toBeLessThan(20);
+    expect(sent[1]).toContain('list_time_entries');
+    expect(sent[2]).toContain('list_time_entries');
+    expect((await botTexts(dm)).join()).toContain('итог');
   });
 
   it('по умолчанию 10 шагов; не число — по умолчанию', async () => {

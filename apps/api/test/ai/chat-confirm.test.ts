@@ -118,15 +118,24 @@ beforeAll(async () => {
     let body = '';
     req.on('data', (c) => (body += c));
     req.on('end', () => {
-      const m = (JSON.parse(body) as { messages: { role: string; content: string }[] }).messages;
+      const r = JSON.parse(body) as {
+        messages: { role: string; content: string }[];
+        tools?: { function: { name: string } }[];
+      };
+      const m = r.messages;
       systems.push(m.find((x) => x.role === 'system')?.content ?? '');
       const tool = m.filter((x) => x.role === 'tool').at(-1);
       res.writeHead(200, { 'content-type': 'application/json' });
-      if (tool) {
+      // find_tools' result: the scripted tool is enabled — call it now
+      if (tool && !tool.content.includes('"enabled"')) {
         toolResults.push(tool.content);
         return res.end(completion({ role: 'assistant', content: 'Готовлю действие' }, 'stop'));
       }
       if (!script) return res.end(completion({ role: 'assistant', content: 'Ответ ИИ' }, 'stop'));
+      // PLNRAPP-449: a tool outside the base is enabled by find_tools first
+      const call = (r.tools ?? []).some((t) => t.function.name === script!.name)
+        ? script
+        : { name: 'find_tools', args: { names: [script.name] } };
       res.end(
         completion(
           {
@@ -136,7 +145,7 @@ beforeAll(async () => {
               {
                 id: 't1',
                 type: 'function',
-                function: { name: script.name, arguments: JSON.stringify(script.args) },
+                function: { name: call.name, arguments: JSON.stringify(call.args) },
               },
             ],
           },
