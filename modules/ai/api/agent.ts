@@ -305,6 +305,13 @@ export async function startAgentRun(
         title: task.title,
         description: md(task.description),
         status: ctx.statuses.find((s) => s.id === task.statusId)?.name ?? null,
+        subtasks: ctx.subtasks.map(({ key, title, status, people, labels }) => ({
+          key,
+          title,
+          status,
+          people,
+          labels,
+        })),
         comments,
       },
       ...(mr && {

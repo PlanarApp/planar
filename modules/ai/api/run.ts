@@ -91,6 +91,14 @@ export const keyOf = (d: AiRunData) =>
         : `${d.taskId}:${d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? 'checklist' : d.itemId}`;
 
 const nullable = <T extends z.ZodType>(s: T) => s.nullable();
+const fieldsSchema = z
+  .array(
+    z.object({
+      name: z.string(),
+      value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
+    }),
+  )
+  .max(30);
 /** What the model returns; every field is present (null — not used): strict structured outputs want that. */
 export const resultSchema = z.object({
   verdict: z.enum(['done', 'question', 'fail']),
@@ -111,15 +119,20 @@ export const resultSchema = z.object({
   ),
   moveTo: nullable(z.string()),
   labels: nullable(z.array(z.string()).max(20)),
-  fields: nullable(
+  fields: nullable(fieldsSchema),
+  /** PLNRAPP-361: changes of the task's existing subtasks, by key */
+  subtasks: nullable(
     z
       .array(
         z.object({
-          name: z.string(),
-          value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
+          key: z.string(),
+          title: nullable(z.string().min(1).max(500)),
+          moveTo: nullable(z.string()),
+          labels: nullable(z.array(z.string()).max(20)),
+          fields: nullable(fieldsSchema),
         }),
       )
-      .max(30),
+      .max(50),
   ),
   snoozeUntil: nullable(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   escalate: nullable(z.string().max(2000)),
@@ -156,9 +169,10 @@ const SYSTEM = `Ты — ИИ-исполнитель в трекере зада�
 - descriptionAppend: план или итог в описание задачи, markdown без заголовка; заменяет блок «${PLAN_HEADING}».
 - moveTo — имя статуса проекта; labels — имена меток: «Имя» — поставить, «-Имя» — снять; fields — значения полей по имени.
 - newTasks — подзадачи (status — имя статуса или null); snoozeUntil — отложить задачу до даты YYYY-MM-DD; escalate — причина, если нужен руководитель проекта; docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).
+- subtasks — изменения существующих подзадач из раздела «Подзадачи»: key — ключ подзадачи; title, moveTo, labels, fields — как у задачи, без изменений — null.
 - emails — письма внешним адресатам (to, subject, body — обычный текст), только при done: они уйдут после подтверждения человеком; сам ничего не отправляй.
 - friction — что мешало работе (неясная или противоречивая инструкция, не хватало данных или доступа), одной-двумя фразами; не мешало ничего — null.
-Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи) применяются только при done; при question — только labels.`;
+Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи и их изменения) применяются только при done; при question — только labels.`;
 
 /** «Поручение»: the built-in prompt until the active harness package has its own (PLNRAPP-169). */
 export const ASSIGNMENT_PROMPT = `Выполни поручение человека по контексту задачи. Результат — в comment.
@@ -325,6 +339,16 @@ async function contextOf(q: Pick<Q, 'execute'>, t: Task, bot: string) {
   const parent = t.parentId
     ? await one(q, sql`select title, description from tasks where id = ${t.parentId}`)
     : undefined;
+  // shortcut: subtasks in other projects are left out (their statuses and labels differ), add if asked
+  const subs = await rows(
+    q,
+    sql`select s.id, p.key || '-' || coalesce(s.number::text, '?') as key, s.title, st.name as status,
+        (select string_agg(u.name, ', ') from task_assignees a join users u on u.id = a.user_id where a.task_id = s.id) as people,
+        (select string_agg(l.name, ', ') from task_labels x join labels l on l.id = x.label_id where x.task_id = s.id) as labels
+        from tasks s join projects p on p.id = s.project_id join statuses st on st.id = s.status_id
+        where s.parent_id = ${t.id} and s.project_id = ${t.projectId} and s.archived_at is null
+        order by s.rank collate "C"`,
+  );
   const name = (list: Row[], id: unknown) =>
     list.find((x) => x.id === id)?.name as string | undefined;
   const out = [
@@ -344,6 +368,15 @@ async function contextOf(q: Pick<Q, 'execute'>, t: Task, bot: string) {
       '',
       `## Родительская задача: ${parent.title as string}`,
       md(parent.description) || '—',
+    );
+  if (subs.length)
+    out.push(
+      '',
+      '## Подзадачи',
+      ...subs.map(
+        (s) =>
+          `- ${s.key as string}: ${s.title as string} — ${s.status as string}. Исполнители: ${(s.people as string | null) ?? '—'}. Метки: ${(s.labels as string | null) ?? '—'}.`,
+      ),
     );
   if (items.length)
     out.push(
@@ -369,7 +402,7 @@ async function contextOf(q: Pick<Q, 'execute'>, t: Task, bot: string) {
     `Метки: ${lb.map((l) => l.name).join(', ') || '—'}.`,
     `Поля: ${fd.map((f) => `${f.name as string} (${f.type as string})`).join(', ') || '—'}.`,
   );
-  return { text: out.join('\n'), statuses: st, labels: lb, fieldDefs: fd };
+  return { text: out.join('\n'), statuses: st, labels: lb, fieldDefs: fd, subtasks: subs };
 }
 
 interface Run {
@@ -828,6 +861,7 @@ const failed = (comment: string): AiResult => ({
   docs: null,
   emails: null,
   friction: null,
+  subtasks: null,
 });
 
 export async function aiEnabled(q: Pick<Q, 'execute'>) {
@@ -1193,7 +1227,13 @@ const note = (q: Pick<Q, 'execute'>, id: string, line: string) =>
  * `labels` of the result (PLNRAPP-204): a name — add the label, «-name» — remove it; names of the project's
  * labels, case-insensitive (a label whose own name starts with «-» is added); unknown names go to the log.
  */
-function labelMuts(run: Run, names: string[] | null, labels: Row[], muts: Mut[]) {
+function labelMuts(
+  run: Run,
+  names: string[] | null,
+  labels: Row[],
+  muts: Mut[],
+  taskId = run.task.id,
+) {
   const byName = (n: string) =>
     labels.find((x) => norm(x.name as string) === norm(n))?.id as string | undefined;
   for (const n of names ?? []) {
@@ -1202,10 +1242,9 @@ function labelMuts(run: Run, names: string[] | null, labels: Row[], muts: Mut[])
     if (add)
       muts.push({
         name: 'task.addLabel',
-        args: { id: uuidv7(), taskId: run.task.id, labelId: add },
+        args: { id: uuidv7(), taskId, labelId: add },
       });
-    else if (del)
-      muts.push({ name: 'task.removeLabel', args: { taskId: run.task.id, labelId: del } });
+    else if (del) muts.push({ name: 'task.removeLabel', args: { taskId, labelId: del } });
     else run.log.push(`labels: нет метки «${n}»`);
   }
 }
@@ -1239,11 +1278,31 @@ async function changes(
   }
   if (Object.keys(upd).length) muts.push({ name: 'task.update', args: { id: task.id, ...upd } });
   labelMuts(run, r.labels, ctx.labels, muts);
-  for (const f of r.fields ?? []) {
-    const id = byName(ctx.fieldDefs, f.name);
-    if (id)
-      muts.push({ name: 'task.setField', args: { taskId: task.id, fieldId: id, value: f.value } });
-    else run.log.push(`fields: нет поля «${f.name}»`);
+  const fieldMuts = (taskId: string, list: AiResult['fields']) => {
+    for (const f of list ?? []) {
+      const id = byName(ctx.fieldDefs, f.name);
+      if (id) muts.push({ name: 'task.setField', args: { taskId, fieldId: id, value: f.value } });
+      else run.log.push(`fields: нет поля «${f.name}»`);
+    }
+  };
+  fieldMuts(task.id, r.fields);
+  for (const s of r.subtasks ?? []) {
+    const id = ctx.subtasks.find((x) => norm(x.key as string) === norm(s.key))?.id as
+      string | undefined;
+    if (!id) {
+      run.log.push(`subtasks: нет подзадачи «${s.key}»`);
+      continue;
+    }
+    const su: Record<string, unknown> = {};
+    if (s.title) su.title = s.title;
+    if (s.moveTo) {
+      const st = byName(ctx.statuses, s.moveTo);
+      if (st) su.statusId = st;
+      else run.log.push(`subtasks: ${s.key}: нет статуса «${s.moveTo}»`);
+    }
+    if (Object.keys(su).length) muts.push({ name: 'task.update', args: { id, ...su } });
+    labelMuts(run, s.labels, ctx.labels, muts, id);
+    fieldMuts(id, s.fields);
   }
   if (r.newTasks?.length) {
     const first = await one(
