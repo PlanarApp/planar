@@ -911,6 +911,7 @@ export default {
     aiWaitingSubtasks: 'ИИ ждёт подзадачи',
     aiFailed: 'Ошибка ИИ',
     aiOpenRun: 'Открыть прогон',
+    aiCancel: 'Отменить',
     aiRunning: 'ИИ работает',
     aiRunningSince: 'ИИ работает с {time}',
     aiFlowFailed: 'ИИ-флоу упал',

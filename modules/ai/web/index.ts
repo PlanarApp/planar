@@ -25,7 +25,13 @@ const activity =
       'GET',
       `activity/${path}/${id}`,
     );
-    return r.activity.map((a) => ({ ...a, usage: r.usage, panel: 'runs' }));
+    return r.activity.map((a) => ({
+      ...a,
+      usage: r.usage,
+      panel: 'runs',
+      cancel:
+        a.state === 'queued' && !a.trigger ? () => call('POST', `queue/${a.id}/cancel`) : undefined,
+    }));
   };
 /** PLNRAPP-322: the AI status of the project's tasks (PLNRAPP-319) for the list rows and the board cards. */
 const projectTasks = async (projectId: string): Promise<WorkActivity[]> =>

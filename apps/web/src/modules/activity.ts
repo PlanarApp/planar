@@ -64,6 +64,8 @@ export const TASK_ACTIVITY: InjectionKey<{
   items: Ref<Activity[]>;
   /** the error link: the task panel of the module with the run */
   open: (a: Activity) => void;
+  /** «Отменить» of a queued work: gone at once, the next load confirms */
+  cancel: (a: Activity) => void;
 }> = Symbol('taskActivity');
 
 /**

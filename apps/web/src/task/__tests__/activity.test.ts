@@ -135,6 +135,22 @@ describe('task: индикатор работы ИИ', () => {
     expect(aiRow().text()).toBe('Работает');
   }, 10_000);
 
+  it('«Ждёт» — «Отменить»: ожидание отменено и сразу скрыто; без cancel — кнопки нет', async () => {
+    const cancel = vi.fn(async () => {});
+    answer = [run({ state: 'queued', itemId: null, cancel })];
+    w = await open();
+    await until(() => aiRow().exists());
+    answer = [];
+    await w.find('[data-testid="task-ai-cancel"]').trigger('click');
+    expect(cancel).toHaveBeenCalledOnce();
+    await until(() => !aiRow().exists());
+    w.unmount();
+    answer = [run({ state: 'queued', itemId: null })];
+    w = await open();
+    await until(() => aiRow().exists());
+    expect(w.find('[data-testid="task-ai-cancel"]').exists()).toBe(false);
+  });
+
   it('комментарий, на который отвечает ИИ: кольцо у его аватара; ошибка — ссылка на прогон', async () => {
     const c = comment({ assigneeId: BOT });
     await db.table('comments').put(c);

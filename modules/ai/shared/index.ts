@@ -289,6 +289,8 @@ export interface AiActivity {
   actorId: string | null;
   /** the start of the run (the agent — of its container) */
   startedAt: string;
+  /** queued: the rule with an AI action fired and has not run yet (no AI job yet) — not cancellable */
+  trigger?: boolean;
 }
 /** PLNRAPP-319: the AI status of a task in a list row / a board card. */
 export const AI_TASK_STATUSES = [

@@ -447,11 +447,23 @@ export async function reap(_d: object, api: JobApi) {
             and (coalesce(started_at, created_at) < now() - make_interval(mins => ${max}::int)
               or coalesce(heartbeat_at, started_at, created_at) < now() - make_interval(secs => ${hb}::float8))`,
     )
-  ).rows as { id: string; timedOut: boolean }[];
+  ).rows as { id: string; timedOut: boolean; llm?: boolean }[];
+  // an LLM run lives in the API process: a restart (an update) leaves its row `running` forever, and the task's
+  // siblings wait for it (siblingsFull) — «ИИ ждёт очереди» with the queue empty
+  // shortcut: a fixed 30 min, no LLM run takes that long; an env variable if one ever does
+  const orphans = await api.db.execute(
+    sql`select id, true as llm from ai_runs
+        where state = 'running' and agent_secret_hash is null and kind in ('action', 'comment', 'mention', 'checklist')
+          and (action_id is null or action_id not in (select id from ai_actions where runtime = 'agent'))
+          and coalesce(started_at, created_at) < now() - interval '30 minutes'`,
+  );
+  lost.push(...(orphans.rows as { id: string; timedOut: boolean; llm: boolean }[]));
   for (const l of lost) {
-    const why = l.timedOut
-      ? `Агент остановлен: прогон длился дольше ${max} мин.`
-      : 'Агент остановлен: нет сигнала heartbeat, результат не получен.';
+    const why = l.llm
+      ? 'Прогон прерван (перезапуск сервера?): результат не получен за 30 мин.'
+      : l.timedOut
+        ? `Агент остановлен: прогон длился дольше ${max} мин.`
+        : 'Агент остановлен: нет сигнала heartbeat, результат не получен.';
     // PLNRAPP-404: a task run is restarted within its attempts; the attempts spent — the failure as before
     const run = await loadRun(api, l.id).catch(() => undefined);
     if (run && (await rework(api, run, why, null).catch(() => false))) {

@@ -43,6 +43,21 @@ export const costOf = (
   outT: number,
 ) => (c.priceIn == null || c.priceOut == null ? null : (inT * c.priceIn + outT * c.priceOut) / 1e6);
 
+/** The provider's text may quote the key (as in checkConnection): it is cut out before the error leaves here. */
+function scrub(e: unknown, key: string): unknown {
+  for (let x = e; x instanceof Error; x = x.cause)
+    if (key) x.message = x.message.split(key).join('***');
+  return e;
+}
+
+/** The run log line of a failed call: the error, the status and the provider's text — why the run failed. */
+export function providerLog(e: unknown): string {
+  if (!(e instanceof Error)) return 'провайдер: error';
+  const status = APICallError.isInstance(e) ? ` ${e.statusCode ?? ''}` : '';
+  const cause = e.cause instanceof Error ? ` (${e.cause.message})` : '';
+  return `провайдер: ${e.name}${status} — ${(e.message + cause).replace(/\s+/g, ' ').slice(0, 1000)}`;
+}
+
 /** Structured answer (`generateObject`) with the tokens and the cost of the call. */
 export async function generateStructured<S extends z.ZodType>(
   c: LlmConnection,
@@ -55,6 +70,8 @@ export async function generateStructured<S extends z.ZodType>(
     system: o.system,
     maxOutputTokens: o.maxOutputTokens,
     maxRetries: 1,
+  }).catch((e: unknown) => {
+    throw scrub(e, c.apiKey);
   });
   const inputTokens = r.usage.inputTokens ?? 0;
   const outputTokens = r.usage.outputTokens ?? 0;
@@ -87,6 +104,8 @@ export async function generateReply(
         (o.maxTokens ?? Infinity),
     ],
     maxRetries: 1,
+  }).catch((e: unknown) => {
+    throw scrub(e, c.apiKey);
   });
   const inputTokens = r.totalUsage.inputTokens ?? 0;
   const outputTokens = r.totalUsage.outputTokens ?? 0;

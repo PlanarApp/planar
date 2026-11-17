@@ -436,7 +436,7 @@ export async function matched(api: JobApi, ruleId: string, taskId: string) {
 }
 
 /**
- * ai_run → a job of module ai (PLNRAPP-168): debounced per (task, action) — a new event within 60 s replaces
+ * ai_run → a job of module ai (PLNRAPP-168): debounced per (task, action) — a new event within 10 s replaces
  * the queued job. statusId — after this rule's own actions: the run goes only if the task is still there.
  */
 async function enqueueAi(q: Q, enqueue: ModuleHookApi['enqueue'], ids: string[], d: RunData) {
@@ -454,7 +454,7 @@ async function enqueueAi(q: Q, enqueue: ModuleHookApi['enqueue'], ids: string[],
         statusId: t.s,
         parentRunId: d.aiRunId ?? null,
       },
-      { singletonKey: `${d.taskId}:${actionId}`, upsert: true, startAfter: 60 },
+      { singletonKey: `${d.taskId}:${actionId}`, upsert: true, startAfter: 10 },
     );
 }
 

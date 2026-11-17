@@ -129,17 +129,26 @@ async function queuedOf(db: CoreServices['db'], taskId: string): Promise<AiActiv
           case when j.data->>'kind' in ('comment', 'mention') then j.data->>'itemId' end as "itemId",
           'queued' as state, false as agent,
           (select u.id from users u where u.login = ${AI_BOT_LOGIN} and u.bot) as "actorId",
-          ${iso('j.created_on')} as "startedAt"
+          ${iso('j.created_on')} as "startedAt", false as trigger
         from pgboss.job j
         where j.name = ${AI_QUEUE} and j.state in ('created', 'retry')
           and j.data->>'taskId' = ${taskId}
           and j.data->>'kind' in ('action', 'comment', 'mention', 'checklist')
+          -- a job with its run: the run's \`queued\` row stands for it
+          and j.data->>'runId' is null
           and (j.data->>'kind' <> 'action' or (
             exists (select 1 from task_assignees a join users u on u.id = a.user_id
               where a.task_id = ${taskId}::uuid and u.login = ${AI_BOT_LOGIN} and u.bot)
             and (j.data->>'statusId' is null
               or j.data->>'statusId' = (select t.status_id::text from tasks t where t.id = ${taskId}::uuid))))
-        order by j.created_on desc, j.id desc limit 20`,
+        union all
+        -- the trigger fired: the rule with an AI action has not run yet — seen at once, before the AI's job
+        select j.id, 'action', null, 'queued', false,
+          (select u.id from users u where u.login = ${AI_BOT_LOGIN} and u.bot), ${iso('j.created_on')}, true
+        from pgboss.job j join automations_rules ar on ar.id::text = j.data->>'ruleId'
+        where j.name = 'automations.run' and j.state in ('created', 'retry', 'active')
+          and j.data->>'taskId' = ${taskId} and ar.actions @> '[{"type": "ai_run"}]'
+        order by 7 desc, 1 desc limit 20`,
   );
   return r.rows as unknown as AiActivity[];
 }
@@ -493,6 +502,54 @@ export class AiController {
           where id = ${id}::uuid and state in ('queued', 'running', 'waiting_human', 'waiting_subtasks')`,
     );
     await stopAgent(this.core.db, id);
+  }
+
+  /**
+   * A person cancels what waits for the AI (activity `queued`): the run's `queued` row with its job, or a job of
+   * the queue ai.run without a row (a rule's). Who may — as for the runs of the task (D7).
+   */
+  @Post('queue/:id/cancel')
+  @HttpCode(204)
+  async cancelQueued(@Req() req: object, @Param('id') id: string) {
+    if (!uuidP.safeParse(id).success) throw nf();
+    const db = this.core.db;
+    const run = (
+      await db.execute(
+        sql`select task_id as "taskId" from ai_runs where id = ${id}::uuid and state = 'queued'`,
+      )
+    ).rows[0] as { taskId: string } | undefined;
+    const boss = (await db.execute(sql`select to_regclass('pgboss.job') is not null as x`)).rows[0]
+      ?.x;
+    if (run) {
+      await this.seeTask(req, run.taskId);
+      await db.execute(
+        sql`update ai_runs set state = 'cancelled', log = 'отменён человеком\n', updated_at = now()
+            where id = ${id}::uuid and state = 'queued'`,
+      );
+      if (boss)
+        await db.execute(
+          sql`delete from pgboss.job where name = ${AI_QUEUE} and data->>'runId' = ${id}
+              and state in ('created', 'retry')`,
+        );
+      return;
+    }
+    const job = boss
+      ? ((
+          await db.execute(
+            sql`select data->>'taskId' as "taskId" from pgboss.job
+                where id = ${id}::uuid and name = ${AI_QUEUE} and state in ('created', 'retry')`,
+          )
+        ).rows[0] as { taskId: string } | undefined)
+      : undefined;
+    if (!job) {
+      // nothing waits and no right look the same, session check included
+      this.core.auth(req);
+      throw nf();
+    }
+    await this.seeTask(req, job.taskId);
+    await db.execute(
+      sql`delete from pgboss.job where id = ${id}::uuid and name = ${AI_QUEUE} and state in ('created', 'retry')`,
+    );
   }
 
   /** Unsent email batches of the run die with it (part of the run's stop / restart). */

@@ -42,6 +42,7 @@ type Job = { queue: string; data: Record<string, unknown>; opts?: Record<string,
 const jobs: Job[] = [];
 /** results the fake provider returns, in order; onCall runs before the answer */
 let answers: object[] = [];
+const PROVIDER_400 = {};
 let calls: { system: string; prompt: string }[] = [];
 /** PLNRAPP-404: answers of the engine's LLM check, in order, and the prompts it got */
 let verdicts: { pass: boolean; failures: string[] }[] = [];
@@ -102,6 +103,11 @@ beforeAll(async () => {
       const next = judge
         ? (verdicts.shift() ?? { pass: true, failures: [] })
         : (answers.shift() ?? result({}));
+      // the provider refuses, quoting the key
+      if (next === PROVIDER_400)
+        return void res
+          .writeHead(400, { 'content-type': 'application/json' })
+          .end(JSON.stringify({ error: { message: 'schema too complex; key sk-test' } }));
       res.writeHead(200, { 'content-type': 'application/json' }).end(
         JSON.stringify({
           id: 'c1',
@@ -332,7 +338,7 @@ describe('прогон по правилу', () => {
       {
         queue: 'ai.run',
         data: expect.objectContaining({ kind: 'action', taskId: t, actionId, statusId: S.backlog }),
-        opts: { singletonKey: `${t}:${actionId}`, upsert: true, startAfter: 60 },
+        opts: { singletonKey: `${t}:${actionId}`, upsert: true, startAfter: 10 },
       },
     ]);
     // the AI was unassigned while the job waited: nothing runs
@@ -804,6 +810,15 @@ describe('движок: приёмка, доработка, надзор, све
     expect(calls[1]!.prompt).not.toContain('Доработка');
   });
 
+  it('ошибка провайдера: в журнале статус и текст провайдера, ключ вырезан', async () => {
+    const t = await task();
+    answers = [PROVIDER_400];
+    await start(t);
+    const [first] = await runsOf(t);
+    expect(first!.log).toContain('провайдер: AI_APICallError 400 — schema too complex; key ***');
+    expect(first!.log).not.toContain('sk-test');
+  });
+
   it('жнец: нет heartbeat → перезапуск в пределах попыток, последняя попытка — failed', async () => {
     await w.admin.ok('ai.action.update', { id: actionId, runtime: 'agent' });
     const t = await task();
@@ -835,6 +850,32 @@ describe('движок: приёмка, доработка, надзор, све
     expect(runs.map((r) => r.state)).toEqual(['failed']);
     expect(jobs).toHaveLength(0);
     expect((await botComments(t)).join()).toContain('heartbeat');
+  });
+
+  it('жнец: LLM-прогон, прерванный перезапуском, через 30 мин — перезапуск; свежий не трогает', async () => {
+    const t = await task();
+    const running = (ago: string) => {
+      const id = uuidv7();
+      return raw(
+        `insert into ai_runs (id, task_id, project_id, kind, action_id, state, chain_id, chain_depth, attempt, started_at)
+         values ($1, $2, $3, 'action', $4, 'running', $1, 0, 1, now() - $5::interval)`,
+        [id, t, P, actionId, ago],
+      ).then(() => id);
+    };
+    const reap = () => handler('ai', 'ai.agent.reap')({}, api);
+    await running('5 min');
+    await reap();
+    expect((await runsOf(t)).map((r) => r.state)).toEqual(['running']);
+
+    await raw(`delete from ai_runs where task_id = $1`, [t]);
+    const a = await running('31 min');
+    await reap();
+    const runs = await runsOf(t);
+    expect(runs.map((r) => [r.state, r.attempt, r.restart_of])).toEqual([
+      ['failed', 1, null],
+      ['queued', 2, a],
+    ]);
+    expect(runs[0]!.log).toContain('перезапуск сервера');
   });
 
   it('сверка: задача на ИИ в статусе действия без запуска — в очередь; принятая и активная — нет; упавшая — повтор после паузы', async () => {

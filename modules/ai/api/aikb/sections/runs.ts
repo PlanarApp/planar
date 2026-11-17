@@ -106,7 +106,7 @@ Autopilot (PLNRAPP-408): a project setting next to the daily limits (AI settings
 Harness pack: harness.yml (statuses, labels, fields, actions, rules, settings.questionStatus, events) + actions/<key>.md (frontmatter name, description, runtime, model, checks, attempts, review; body = prompt). In a project it is documents under "Harness-пакеты". events maps comment | mention | checklist | chat to an action key; no key = the built-in prompt. Catalog packs and their actions:
 ${packs}
 
-Automation rule: action {type: ai_run, aiActionId, maxRuns?} (maxRuns: runs by this rule in a row on a task, 1-20; past it a question goes to a person). The rule's actions run first; the AI job is enqueued with a 60 s debounce and goes only if the task is still in the status it had after the rule. Creating or changing a rule with ai_run needs a project admin; the AI action must belong to the rule's project.
+Automation rule: action {type: ai_run, aiActionId, maxRuns?} (maxRuns: runs by this rule in a row on a task, 1-20; past it a question goes to a person). The rule's actions run first; the AI job is enqueued with a 10 s debounce and goes only if the task is still in the status it had after the rule. Creating or changing a rule with ai_run needs a project admin; the AI action must belong to the rule's project.
 
 Run result (resultSchema; every field present, null = unused). Changes apply only with verdict done; with question only labels:
 ${fields}
