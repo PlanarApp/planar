@@ -72,6 +72,15 @@ describe('раскладка', () => {
     expect(w.find('[data-testid=bottom-nav]').exists()).toBe(false);
   });
 
+  it('PLNRAPP-382: main — containing block для абсолютного контента, документ не растягивается', async () => {
+    const { router, i18n } = setup(true);
+    const w = mount(withTips(AppShell), { global: { plugins: [router, i18n] } });
+    await router.isReady();
+    const main = w.find('main');
+    expect(main.classes()).toEqual(expect.arrayContaining(['relative', 'overflow-auto']));
+    w.unmount();
+  });
+
   it('375: кнопка «меню» в TopBar открывает Sidebar в выезжающей панели', async () => {
     const { router, i18n } = setup(true);
     const w = mount(withTips(AppShell), {
