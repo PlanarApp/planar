@@ -254,9 +254,21 @@ describe('монитор, выключатель, лимиты', () => {
     expect(put.json()).toMatchObject({
       dailyTokens: 5000,
       dailyCost: null,
-      effective: { dailyTokens: 5000, dailyCost: null },
-      usedToday: { tokens: 45, cost: 1.5 },
+      autopilot: false,
+      dailyTasks: null,
+      effective: { dailyTokens: 5000, dailyCost: null, dailyTasks: 50 },
+      usedToday: { tokens: 45, cost: 1.5, tasks: 0 },
     });
+    // PLNRAPP-408: the autopilot and its guard; a PUT without them keeps them
+    const ap = await call('PUT', q, 'admin', {
+      dailyTokens: 5000,
+      dailyCost: null,
+      dailyTasks: 3,
+      autopilot: true,
+    });
+    expect(ap.json()).toMatchObject({ autopilot: true, dailyTasks: 3 });
+    const kept = await call('PUT', q, 'admin', { dailyTokens: 5000, dailyCost: null });
+    expect(kept.json()).toMatchObject({ autopilot: true, effective: { dailyTasks: 3 } });
     expect((await call('PUT', q, 'admin', { dailyTokens: -1, dailyCost: null })).statusCode).toBe(
       400,
     );
@@ -265,6 +277,7 @@ describe('монитор, выключатель, лимиты', () => {
       expect((await call('GET', q, 'admin')).json().effective).toEqual({
         dailyTokens: 5000,
         dailyCost: 7,
+        dailyTasks: 3,
       });
     } finally {
       delete process.env.PLANAR_AI_DAILY_COST;

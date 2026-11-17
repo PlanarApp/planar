@@ -356,6 +356,8 @@ export type AiMonitorRun = AiRunView & { taskKey: string; taskTitle: string; pro
 export interface AiLimits {
   dailyTokens: number | null;
   dailyCost: number | null;
+  /** PLNRAPP-408: tasks the AI creates in the project per UTC day */
+  dailyTasks: number | null;
 }
 export interface AiMonitor {
   runs: AiMonitorRun[];

@@ -161,6 +161,13 @@ const dict = {
   retroDays: { ru: 'Раз в N дней', en: 'Every N days' },
   dailyTokens: { ru: 'Токенов в сутки', en: 'Tokens per day' },
   dailyCost: { ru: 'Стоимость в сутки, $', en: 'Cost per day, $' },
+  dailyTasks: { ru: 'Задач от ИИ в сутки', en: 'Tasks by the AI per day' },
+  tasksUnit: { ru: 'задач', en: 'tasks' },
+  autopilot: { ru: 'Автопилот', en: 'Autopilot' },
+  autopilotHint: {
+    ru: 'ИИ поручает подзадачи себе и ведёт их сам; человеку — только вопросы. Выключен — подзадачи ИИ уходят человеку в «Уточнение».',
+    en: 'The AI assigns subtasks to itself and runs them; a person gets only questions. Off — the AI’s subtasks go to a person for clarification.',
+  },
   effective: { ru: 'Действует', en: 'In force' },
   invalid: { ru: 'Неверное значение', en: 'Invalid value' },
   wizard: { ru: 'Мастер настройки', en: 'Setup wizard' },

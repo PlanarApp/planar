@@ -47,6 +47,7 @@ import { RETRO_QUEUE, retroOf, type RetroData } from './retro.js';
 import {
   AI_QUEUE,
   aiEnabled,
+  aiTasksToday,
   defaultLimits,
   enqueueRun,
   keyOf,
@@ -182,6 +183,9 @@ const retroBody = z.object({
 const limitsBody = z.object({
   dailyTokens: z.number().int().min(1).max(2_147_483_647).nullable(),
   dailyCost: z.number().min(0.01).max(1e9).nullable(),
+  // PLNRAPP-408: absent — unchanged
+  dailyTasks: z.number().int().min(1).max(10_000).nullable().optional(),
+  autopilot: z.boolean().optional(),
 });
 
 @Controller('api/ai')
@@ -620,8 +624,12 @@ export class AiController {
     const l = await projectLimits(this.core.db, projectId);
     return {
       ...l.own,
+      autopilot: l.autopilot,
       effective: l.effective as AiLimits,
-      usedToday: await usedToday(this.core.db, projectId),
+      usedToday: {
+        ...(await usedToday(this.core.db, projectId)),
+        tasks: await aiTasksToday(this.core.db, projectId),
+      },
     };
   }
 
@@ -638,9 +646,13 @@ export class AiController {
     const b = parseBody(limitsBody, body);
     await this.admin(req, 'project', projectId);
     await this.core.db.execute(
-      sql`insert into ai_project_limits (project_id, daily_tokens, daily_cost) values (${projectId}::uuid, ${b.dailyTokens}, ${b.dailyCost})
+      sql`insert into ai_project_limits (project_id, daily_tokens, daily_cost, daily_tasks, autopilot)
+          values (${projectId}::uuid, ${b.dailyTokens}, ${b.dailyCost}, ${b.dailyTasks ?? null}, ${b.autopilot ?? false})
           on conflict (project_id) do update set daily_tokens = excluded.daily_tokens,
-            daily_cost = excluded.daily_cost, updated_at = now()`,
+            daily_cost = excluded.daily_cost,
+            daily_tasks = ${b.dailyTasks === undefined ? sql`ai_project_limits.daily_tasks` : sql`excluded.daily_tasks`},
+            autopilot = ${b.autopilot === undefined ? sql`ai_project_limits.autopilot` : sql`excluded.autopilot`},
+            updated_at = now()`,
     );
     return this.limitsOf(projectId);
   }

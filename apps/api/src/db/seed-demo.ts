@@ -2793,7 +2793,15 @@ async function insertAll(tx: Tx, now: Date) {
 
   await ins(aiSettings, [{ id: 1, enabled: true }]);
   await ins(aiProjectLimits, [
-    { projectId: pid('RDM'), dailyTokens: 200_000, dailyCost: 5, updatedAt: at(-5) },
+    // PLNRAPP-408: the autopilot — the AI runs its subtasks itself (RDM-3 → RDM-13), at most 20 new tasks a day
+    {
+      projectId: pid('RDM'),
+      dailyTokens: 200_000,
+      dailyCost: 5,
+      autopilot: true,
+      dailyTasks: 20,
+      updatedAt: at(-5),
+    },
   ]);
 
   await ins(aiEmailBatches, [

@@ -248,6 +248,10 @@ export const aiProjectLimits = pgTable('ai_project_limits', {
   dailyCost: doublePrecision(),
   /** most agent containers of the project running at once; null — only the instance limit */
   maxAgents: integer(),
+  /** PLNRAPP-408: the AI hands work to itself — its subtasks with `ai` go to the bot; off — to a person in «Уточнение» */
+  autopilot: boolean().notNull().default(false),
+  /** PLNRAPP-408: most tasks the AI creates in the project per UTC day; null — AI_DAILY_TASKS (50) */
+  dailyTasks: integer(),
   updatedAt: ts().notNull().defaultNow(),
 });
 

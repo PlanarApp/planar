@@ -893,6 +893,46 @@ describe('координация подзадач (PLNRAPP-405)', () => {
   });
   const subsOf = (t: string) =>
     raw(`select * from tasks where parent_id = $1 order by rank collate "C"`, [t]);
+  const limits = (autopilot: boolean, dailyTasks: number | null = null) =>
+    raw(
+      `insert into ai_project_limits (project_id, autopilot, daily_tasks) values ($1, $2, $3)
+       on conflict (project_id) do update set autopilot = $2, daily_tasks = $3`,
+      [P, autopilot, dailyTasks],
+    );
+  // PLNRAPP-408: the AI hands work to itself only with the autopilot
+  beforeEach(() => limits(true));
+
+  it('PLNRAPP-408: автопилот выключен — подзадачи ИИ человеку в «Уточнение», родитель принимается сразу', async () => {
+    await limits(false);
+    const parent = await task();
+    answers = [result({ newTasks: [sub({ title: 'A' }), sub({ title: 'B', ai: false })] })];
+    await start(parent);
+    const [a, b] = await subsOf(parent);
+    expect(a!.status_id).toBe(S.clarify);
+    expect(b!.status_id).toBe(S.todo);
+    const who = async (t: unknown) =>
+      (await raw(`select user_id from task_assignees where task_id = $1`, [t])).map(
+        (x) => x.user_id,
+      );
+    expect(await who(a!.id)).toEqual([w.member.userId]);
+    expect(await who(b!.id)).toEqual([]);
+    const [run] = await runsOf(parent);
+    expect(run!.state).toBe('done');
+    expect(run!.log).toContain('newTasks: A: автопилот выключен — подзадача человеку');
+    expect(judged).toHaveLength(1);
+  });
+
+  it('PLNRAPP-408: суточный потолок задач от ИИ — лишние не создаются, запись в журнале', async () => {
+    await limits(true, 3);
+    const parent = await task();
+    answers = [result({ newTasks: [sub({ title: 'A' }), sub({ title: 'B' })] })];
+    await start(parent);
+    answers = [result({ newTasks: [sub({ title: 'C' }), sub({ title: 'D' })] })];
+    const other = await task();
+    await start(other);
+    expect((await subsOf(parent)).length + (await subsOf(other)).length).toBe(3);
+    expect((await runsOf(other))[0]!.log).toContain('суточный лимит задач ИИ (3) — не создано 1');
+  });
 
   it('criteriaOf: пункты раздела «Критерии приёмки» до следующего заголовка', () => {
     expect(
