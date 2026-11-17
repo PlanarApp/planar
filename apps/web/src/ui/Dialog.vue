@@ -25,7 +25,7 @@ const widths = { sm: 'md:w-[400px]', md: 'md:w-[560px]', lg: 'md:w-[720px]' };
       <DialogOverlay class="fixed inset-0 z-40 bg-overlay" />
       <DialogContent
         :class="[
-          'fixed z-50 flex flex-col gap-3 bg-surface p-4 text-fg shadow-dialog outline-none inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:max-w-[calc(100vw-32px)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-lg md:border md:border-border',
+          'fixed z-50 flex flex-col gap-3 bg-surface p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-fg shadow-dialog outline-none inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:max-w-[calc(100vw-32px)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-lg md:border md:border-border',
           widths[size],
         ]"
       >
