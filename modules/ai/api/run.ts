@@ -91,6 +91,8 @@ export const keyOf = (d: AiRunData) =>
         : `${d.taskId}:${d.kind === 'action' ? d.actionId : d.kind === 'checklist' ? 'checklist' : d.itemId}`;
 
 const nullable = <T extends z.ZodType>(s: T) => s.nullable();
+/** Anthropic structured outputs: at most this many union-typed (nullable) parameters per schema, else 400 */
+export const UNION_LIMIT = 16;
 const fieldsSchema = z
   .array(
     z.object({
@@ -120,16 +122,17 @@ export const resultSchema = z.object({
   moveTo: nullable(z.string()),
   labels: nullable(z.array(z.string()).max(20)),
   fields: nullable(fieldsSchema),
-  /** PLNRAPP-361: changes of the task's existing subtasks, by key */
+  /** PLNRAPP-361: changes of the task's existing subtasks, by key; «no change» — empty, not null:
+   * Anthropic structured outputs reject more than 16 union-typed parameters (UNION_LIMIT) */
   subtasks: nullable(
     z
       .array(
         z.object({
           key: z.string(),
-          title: nullable(z.string().min(1).max(500)),
-          moveTo: nullable(z.string()),
-          labels: nullable(z.array(z.string()).max(20)),
-          fields: nullable(fieldsSchema),
+          title: z.string().max(500),
+          moveTo: z.string(),
+          labels: z.array(z.string()).max(20),
+          fields: fieldsSchema,
         }),
       )
       .max(50),
@@ -169,7 +172,7 @@ const SYSTEM = `Ты — ИИ-исполнитель в трекере зада�
 - descriptionAppend: план или итог в описание задачи, markdown без заголовка; заменяет блок «${PLAN_HEADING}».
 - moveTo — имя статуса проекта; labels — имена меток: «Имя» — поставить, «-Имя» — снять; fields — значения полей по имени.
 - newTasks — подзадачи (status — имя статуса или null); snoozeUntil — отложить задачу до даты YYYY-MM-DD; escalate — причина, если нужен руководитель проекта; docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).
-- subtasks — изменения существующих подзадач из раздела «Подзадачи»: key — ключ подзадачи; title, moveTo, labels, fields — как у задачи, без изменений — null.
+- subtasks — изменения существующих подзадач из раздела «Подзадачи»: key — ключ подзадачи; title, moveTo, labels, fields — как у задачи, без изменений — "" или [].
 - emails — письма внешним адресатам (to, subject, body — обычный текст), только при done: они уйдут после подтверждения человеком; сам ничего не отправляй.
 - friction — что мешало работе (неясная или противоречивая инструкция, не хватало данных или доступа), одной-двумя фразами; не мешало ничего — null.
 Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи и их изменения) применяются только при done; при question — только labels.`;

@@ -20,7 +20,7 @@ import { CORE, HttpError, parseBody, type CoreServices, type JobApi } from '@pla
 import { resolveConnection, secretOf } from './connections.js';
 import { costOf } from './llm.js';
 import { blocked, loadTask, overBudget, failed } from './run.js';
-import { docResultSchema } from './doc-run.js';
+import { agentResultSchema } from './doc-run.js';
 import { finishAgent, runBySecret, runSecretsOf } from './agent.js';
 import {
   AGENT_LOG_MAX_EVENTS,
@@ -137,7 +137,7 @@ export class AgentController {
     // absent fields of the contract are null, as in the llm result
     const r = {
       ...failed(''),
-      ...parseBody(docResultSchema().partial().required({ verdict: true, comment: true }), body),
+      ...parseBody(agentResultSchema().partial().required({ verdict: true, comment: true }), body),
     };
     toolSigs.delete(id);
     logTools.delete(id);

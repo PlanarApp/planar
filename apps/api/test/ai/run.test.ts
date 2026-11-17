@@ -800,8 +800,8 @@ describe('поручения ИИ', () => {
     answers = [
       result({
         subtasks: [
-          { key: subKey, title: 'Новое', moveTo: 'Отложено', labels: ['горячий'], fields: null },
-          { key: otherKey, title: null, moveTo: 'Отложено', labels: null, fields: null },
+          { key: subKey, title: 'Новое', moveTo: 'Отложено', labels: ['горячий'], fields: [] },
+          { key: otherKey, title: '', moveTo: 'Отложено', labels: [], fields: [] },
         ],
       }),
     ];
