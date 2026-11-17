@@ -373,8 +373,10 @@ const tabCounts = computed<Record<string, number | string | undefined>>(() => ({
   ),
   links: links.value?.length,
 }));
-// attachments are open by default (PLNRAPP-105)
-const tab = ref<string | null>('attachments');
+// attachments are open by default (PLNRAPP-105); `?panel=ai:runs` — the link to the AI run from a list row (PLNRAPP-322)
+const tab = ref<string | null>(
+  typeof route?.query.panel === 'string' ? route.query.panel : 'attachments',
+);
 const active = computed(() => panels.value.find((p) => p.key === tab.value) ?? null);
 const lt = (x: string | { ru: string; en: string }) =>
   typeof x === 'string' ? t(x) : (x[locale.value as 'ru' | 'en'] ?? x.ru);

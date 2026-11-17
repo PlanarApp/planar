@@ -150,13 +150,18 @@ export interface WorkActivity {
   /** the user who does the work (a bot): its avatar gets the ring, its name — «печатает…» */
   actorId?: string | null;
   startedAt: string;
+  /** failed — when it failed (PLNRAPP-322) */
+  finishedAt?: string | null;
+  /** failed — the error text, if the user may see it (PLNRAPP-322) */
+  error?: string | null;
   /** the module's task panel (taskPanels id) with the details: the link of the error */
   panel?: string;
 }
 /** Where the indicator takes the work from; the core reloads it on replica changes and polls while it is running. */
 export interface ActivitySourceDef {
   id: string;
-  entity: 'tasks' | 'chatChannels' | 'pages';
+  /** projects — the work on all tasks of the project, itemId is the task (the list and the board, PLNRAPP-322) */
+  entity: 'tasks' | 'chatChannels' | 'pages' | 'projects';
   load(id: string): Promise<WorkActivity[]>;
 }
 

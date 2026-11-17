@@ -39,6 +39,7 @@ import {
   type AiRunEvents,
   type AiRunView,
   type AiScope,
+  type AiTaskRunStatus,
 } from '../shared/index.js';
 import { RETRO_QUEUE, retroOf, type RetroData } from './retro.js';
 import {
@@ -254,6 +255,46 @@ export class AiController {
           order by r.created_at desc, r.id desc limit 50`,
     );
     return { activity: r.rows as unknown as AiActivity[] };
+  }
+
+  /**
+   * PLNRAPP-319: the AI status of the project's tasks for the list and the board — one query for all tasks, not one
+   * per task. Running — any run of the task runs; failed — its last finished run (done | failed) failed, until the
+   * next successful one (cancelled and waiting_human runs change nothing). Tasks with `none` are not listed.
+   * For everyone who sees the project; the error text — only for those who see the runs of the task (D7).
+   */
+  @Get('status/projects/:projectId')
+  async projectTaskStatus(
+    @Req() req: object,
+    @Param('projectId') projectId: string,
+  ): Promise<{ statuses: AiTaskRunStatus[] }> {
+    const a = this.core.auth(req);
+    if (a.tokenId) throw new HttpError(403, 'forbidden', 'Только из сессии');
+    if (!uuidP.safeParse(projectId).success) throw nf();
+    const p = await this.core.db.execute(
+      sql`select project_role(${a.userId}::uuid, p.id) = 'admin' as admin from projects p
+          where p.id = ${projectId}::uuid and 'ai' = any(p.modules)
+            and project_role(${a.userId}::uuid, p.id) is not null`,
+    );
+    if (!p.rows[0]) throw nf();
+    const admin = !!p.rows[0].admin;
+    const r = await this.core.db.execute(
+      sql`select l.task_id as "taskId", l.state as status, l.id as "runId",
+            ${iso('coalesce(l.started_at, l.created_at)')} as "startedAt",
+            case when l.state = 'failed' then ${iso('l.updated_at')} end as "finishedAt",
+            case when l.state = 'failed' and (${admin}::boolean or l.created_by = ${a.userId}::uuid or exists (
+                select 1 from task_assignees ta where ta.task_id = l.task_id and ta.user_id = ${a.userId}::uuid))
+              then nullif(substring(rtrim(l.log, chr(10)) from '[^' || chr(10) || ']*$'), '') end as error
+          from (
+            select distinct on (r.task_id) r.task_id, r.id, r.state, r.log, r.started_at, r.created_at,
+              r.updated_at, t.created_by
+            from ai_runs r join tasks t on t.id = r.task_id
+            where t.project_id = ${projectId}::uuid and r.state in ('running', 'done', 'failed')
+            order by r.task_id, r.state = 'running' desc, r.created_at desc, r.id desc
+          ) l
+          where l.state in ('running', 'failed')`,
+    );
+    return { statuses: r.rows as unknown as AiTaskRunStatus[] };
   }
 
   /** The AI's work on the comments of a page: its running runs, for those who read the page (space member + project). */

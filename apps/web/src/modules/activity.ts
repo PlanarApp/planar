@@ -1,9 +1,12 @@
 // PLNRAPP-202: the indicator of a module's background work (an AI run) — on a task, its comments and checklist
 // items, in a chat channel. The sources are the modules' `activity` extensions; the state lives only here.
 import {
+  computed,
+  effectScope,
   getCurrentScope,
   onScopeDispose,
   ref,
+  shallowRef,
   toValue,
   watch,
   type InjectionKey,
@@ -28,6 +31,7 @@ const RELEVANT: Record<ActivitySourceDef['entity'], string[]> = {
   tasks: ['tasks', 'comments', 'checklistItems'],
   chatChannels: ['chatMessages'],
   pages: ['docsComments'],
+  projects: ['tasks', 'comments', 'checklistItems'],
 };
 
 const RANK = { running: 0, waiting_human: 1, failed: 2 } as const;
@@ -117,6 +121,46 @@ export function useActivity(
       clearTimeout(debounce);
     });
   return items;
+}
+
+const shared = new Map<string, { items: Ref<Activity[]>; refs: number; stop: () => void }>();
+function acquire(projectId: string): Ref<Activity[]> {
+  let e = shared.get(projectId);
+  if (!e) {
+    const scope = effectScope(true);
+    const items = scope.run(() => useActivity('projects', projectId, projectId))!;
+    e = { items, refs: 0, stop: () => scope.stop() };
+    shared.set(projectId, e);
+  }
+  e.refs++;
+  return e.items;
+}
+function release(projectId: string) {
+  const e = shared.get(projectId);
+  if (e && --e.refs === 0) {
+    e.stop();
+    shared.delete(projectId);
+  }
+}
+
+/**
+ * PLNRAPP-322: the work on the tasks of a project (itemId — the task) for the list rows and the board cards: one
+ * source per project shared by all rows, not a request per row; stopped when the last row is gone.
+ */
+export function useProjectActivity(projectId: () => string): Ref<Activity[]> {
+  const cur = shallowRef<Ref<Activity[]>>();
+  let held: string | undefined;
+  watch(
+    projectId,
+    (pid) => {
+      cur.value = acquire(pid);
+      if (held) release(held);
+      held = pid;
+    },
+    { immediate: true },
+  );
+  if (getCurrentScope()) onScopeDispose(() => held && release(held));
+  return computed(() => cur.value?.value ?? []);
 }
 
 /** A clock for «N мин»: ticks every 30 s while the scope lives. */
