@@ -12,6 +12,8 @@ dpcli в образ **не ставится**: источник не утвер�
 
 Образ рассчитан на read-only rootfs, tmpfs `/tmp` и записываемый `/work` (бинд каталога хоста): `HOME=/work/.home` (там же кэши npm и XDG), `TMPDIR` и `CLAUDE_CODE_TMPDIR` — `/work/.tmp`. Они на диске, а не в ОЗУ: tmpfs `/tmp` (256 МБ) входит в лимит памяти контейнера. Удаляются вместе с `/work`. Репозиторий клонируется в `/work/repo`, поэтому эти каталоги в git не попадают.
 
+Наружу контейнер ходит только через прокси (`HTTPS_PROXY`, `NO_PROXY`). `NODE_USE_ENV_PROXY=1` включает его для встроенного `fetch` node: без этого corepack не скачивает pnpm версии из `packageManager` проекта (`getaddrinfo EAI_AGAIN registry.npmjs.org`) и `pnpm` в образе не запускается.
+
 ## Вход
 
 Переменные env (задаёт api через runner): `PLANAR_RUN_ID`, `PLANAR_RUN_SECRET`, `PLANAR_LLM_URL`, `PLANAR_RESULT_URL`, `PLANAR_HEARTBEAT_URL`, `PLANAR_CONTEXT_FILE` (`/context/context.json`). Без любой из них entrypoint завершается с кодом 64. Ключа провайдера в образе нет: Claude Code получает `ANTHROPIC_BASE_URL=$PLANAR_LLM_URL` и `ANTHROPIC_API_KEY=$PLANAR_RUN_SECRET`, а ключ подставляет LLM-прокси api.
