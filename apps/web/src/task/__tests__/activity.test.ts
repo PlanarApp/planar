@@ -124,6 +124,17 @@ describe('task: индикатор работы ИИ', () => {
     await until(() => w!.find('[data-testid="runs-panel"]').exists());
   });
 
+  it('PLNRAPP-310: задача в очереди к ИИ — «Ждёт»; задание стартовало — «Работает» без изменения реплики', async () => {
+    answer = [run({ state: 'queued', itemId: null })];
+    w = await open();
+    await until(() => aiRow().exists());
+    expect(aiRow().attributes('data-state')).toBe('queued');
+    // the queue is polled: the started run replaces the queued job without a replica change
+    answer = [run({ agent: true, itemId: null, startedAt: ago(0) })];
+    await until(() => aiRow().attributes('data-state') === 'running', 6000);
+    expect(aiRow().text()).toBe('Работает');
+  }, 10_000);
+
   it('комментарий, на который отвечает ИИ: кольцо у его аватара; ошибка — ссылка на прогон', async () => {
     const c = comment({ assigneeId: BOT });
     await db.table('comments').put(c);

@@ -115,6 +115,33 @@ const runView = (r: Row) => r as unknown as AiRunView;
 const activityCols = sql`r.id, r.kind, r.item_id as "itemId", r.state, r.agent_secret_hash is not null as agent,
   (select u.id from users u where u.login = ${AI_BOT_LOGIN} and u.bot) as "actorId",
   ${iso('coalesce(r.started_at, r.created_at)')} as "startedAt"`;
+/**
+ * PLNRAPP-310: the task's jobs of the queue ai.run not started yet (the debounce of a rule, all agents busy —
+ * the job waits, agent.ts) as activity `queued`: the AI will take the task. A rule's job the run would skip
+ * (the AI unassigned, the status changed) is not shown. No pg-boss schema (jobs off) — none.
+ */
+async function queuedOf(db: CoreServices['db'], taskId: string): Promise<AiActivity[]> {
+  const has = await db.execute(sql`select to_regclass('pgboss.job') is not null as x`);
+  if (!has.rows[0]?.x) return [];
+  const r = await db.execute(
+    sql`select j.id, j.data->>'kind' as kind,
+          case when j.data->>'kind' in ('comment', 'mention') then j.data->>'itemId' end as "itemId",
+          'queued' as state, false as agent,
+          (select u.id from users u where u.login = ${AI_BOT_LOGIN} and u.bot) as "actorId",
+          ${iso('j.created_on')} as "startedAt"
+        from pgboss.job j
+        where j.name = ${AI_QUEUE} and j.state in ('created', 'retry')
+          and j.data->>'taskId' = ${taskId}
+          and j.data->>'kind' in ('action', 'comment', 'mention', 'checklist')
+          and (j.data->>'kind' <> 'action' or (
+            exists (select 1 from task_assignees a join users u on u.id = a.user_id
+              where a.task_id = ${taskId}::uuid and u.login = ${AI_BOT_LOGIN} and u.bot)
+            and (j.data->>'statusId' is null
+              or j.data->>'statusId' = (select t.status_id::text from tasks t where t.id = ${taskId}::uuid))))
+        order by j.created_on desc, j.id desc limit 20`,
+  );
+  return r.rows as unknown as AiActivity[];
+}
 /** PLNRAPP-402: Σ over the runs `u` of a task; seconds — only the finished runs */
 const usageCols = sql`count(*) filter (where u.finished_at is not null)::int as runs,
   coalesce(sum(extract(epoch from u.finished_at - u.started_at)), 0)::float8 as seconds,
@@ -277,7 +304,10 @@ export class AiController {
     const u = await this.core.db.execute(
       sql`select ${usageCols} from ai_runs u where u.task_id = ${taskId}::uuid`,
     );
-    return { activity: r.rows as unknown as AiActivity[], usage: u.rows[0] as unknown as AiUsage };
+    return {
+      activity: [...(await queuedOf(this.core.db, taskId)), ...(r.rows as unknown as AiActivity[])],
+      usage: u.rows[0] as unknown as AiUsage,
+    };
   }
 
   /**

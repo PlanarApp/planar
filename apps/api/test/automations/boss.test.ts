@@ -182,4 +182,49 @@ describe('wk3: pg-boss', () => {
     expect(got[0]!.start_after.getTime()).toBeGreaterThan(Date.now() + 800_000);
     await db.$client.query(`delete from pgboss.job where singleton_key = $1`, [key]);
   });
+
+  // PLNRAPP-310: the bulk bar sends one mutation per task, the client pushes them in one request
+  it('PLNRAPP-310: массовые статус и исполнитель одним push — правило срабатывает по разу на задачу', async () => {
+    const N = 12; // more than PUSH_BATCH: two transactions
+    const st = await rule({ type: 'task.status_changed', to: [w.statusIds[PROG]] }, [
+      { type: 'set_field', field: 'priority', value: 1 },
+    ]);
+    const as = await rule({ type: 'task.assignee_changed', userIds: [w.member.userId] }, [
+      { type: 'set_field', field: 'priority', value: 2 },
+    ]);
+    const ids: string[] = [];
+    for (let i = 0; i < N; i++) ids.push(await task());
+    const push = (muts: { name: string; args: object }[]) =>
+      app.get(PushService).push(w.admin.userId, {
+        clientId: uuidv7(),
+        mutations: muts.map((m, i) => ({ id: i + 1, ...m })),
+      });
+    const pushed = [
+      ...(
+        await push(
+          ids.map((id) => ({ name: 'task.update', args: { id, statusId: w.statusIds[PROG] } })),
+        )
+      ).results,
+      ...(
+        await push(
+          ids.map((taskId) => ({
+            name: 'task.assign',
+            args: { id: uuidv7(), taskId, userId: w.member.userId },
+          })),
+        )
+      ).results,
+    ];
+    expect(pushed.every((r) => r.ok)).toBe(true);
+    for (const r of [st, as]) {
+      const got = await until(
+        () => runs(r),
+        (x) => x.length >= N,
+      );
+      await new Promise((ok) => setTimeout(ok, 1000)); // no extra runs come later
+      const all = await runs(r);
+      expect(all.map((x) => x.task_id).sort()).toEqual([...ids].sort());
+      expect(all.every((x) => x.status === 'ok')).toBe(true);
+      expect(got.length).toBe(N);
+    }
+  }, 60_000);
 });
