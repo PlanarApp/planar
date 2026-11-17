@@ -386,3 +386,6 @@
 {"t": "2026-11-17T06:35:59", "id": "F-34", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/56"}
 {"t": "2026-11-17T06:36:14", "id": "F-35", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/57"}
 {"t": "2026-11-17T06:36:22", "id": "F-28", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/58"}
+{"t": "2026-11-17T08:35:08", "id": "F-28", "kind": "rework", "why": "Friction evidence is missing: the body says \"Seen ×0 in 0 task(s)\". CLAUDE.md says no data means no feature. Add the real occurrence (anonymized) or link the `feedback` issue with its +1s. Safety: `a…"}
+{"t": "2026-11-17T08:35:08", "id": "F-34", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/56)", "pr": "https://github.com/zolotarev/dpcli/pull/56"}
+{"t": "2026-11-17T08:35:09", "id": "F-35", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/57)", "pr": "https://github.com/zolotarev/dpcli/pull/57"}
