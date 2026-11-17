@@ -1,5 +1,4 @@
 // docai-run v2 (docs/contracts/docai.md): an AI run over a page comment — llm path or an agent container (agent.ts).
-import { APICallError } from 'ai';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { JobApi, Q } from '@planar/server-kit';
@@ -8,7 +7,7 @@ import { uuidv7 } from '@planar/shared';
 import { resolveConnection, secretOf } from './connections.js';
 import { agentsFull, launchAgent, stopAgent } from './agent.js';
 import { kbBlock } from './aikb/block.js';
-import { generateStructured } from './llm.js';
+import { generateStructured, providerLog } from './llm.js';
 import {
   AI_QUEUE,
   asDoc,
@@ -244,9 +243,7 @@ export async function handleDoc(d: DocRunData, api: JobApi): Promise<void> {
             cost = ${out.usage.cost} where id = ${id}`,
       );
     } catch (e) {
-      // the provider's own text is dropped: it may quote the key
-      const status = APICallError.isInstance(e) ? ` ${e.statusCode ?? ''}` : '';
-      run.log.push(`провайдер: ${e instanceof Error ? e.name : 'error'}${status}`);
+      run.log.push(providerLog(e));
       return await applyDoc(
         api,
         run,

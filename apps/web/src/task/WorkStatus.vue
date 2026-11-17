@@ -7,7 +7,7 @@ import { minutesSince, useNow, type Activity } from '../modules/activity';
 // PLNRAPP-202: the line of a module's background work (an AI run): «работает», «агент работает N мин»,
 // «ждёт ответа», «в очереди» (PLNRAPP-310), an error with a link to the run
 const props = defineProps<{ activity: Activity; reply?: boolean }>();
-const emit = defineEmits<{ open: [a: Activity] }>();
+const emit = defineEmits<{ open: [a: Activity]; cancel: [a: Activity] }>();
 const { t } = useI18n();
 const now = useNow();
 const text = computed(() => {
@@ -43,6 +43,15 @@ const text = computed(() => {
       @click="emit('open', activity)"
     >
       {{ t('task.aiOpenRun') }}
+    </button>
+    <button
+      v-if="activity.state === 'queued' && activity.cancel"
+      type="button"
+      class="underline outline-none hover:text-fg focus-visible:ring-2 ring-focus rounded-sm"
+      data-testid="work-cancel"
+      @click="emit('cancel', activity)"
+    >
+      {{ t('task.aiCancel') }}
     </button>
   </span>
 </template>

@@ -908,6 +908,7 @@ export default {
     aiWaitingSubtasks: 'AI is waiting for subtasks',
     aiFailed: 'AI error',
     aiOpenRun: 'Open the run',
+    aiCancel: 'Cancel',
     aiRunning: 'AI is working',
     aiRunningSince: 'AI has been working since {time}',
     aiFlowFailed: 'The AI flow failed',

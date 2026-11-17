@@ -243,7 +243,7 @@ function save() {
             size="xs"
             :class="ring(work.actorId)"
           />
-          <WorkStatus :activity="work" reply @open="taskWork?.open" />
+          <WorkStatus :activity="work" reply @open="taskWork?.open" @cancel="taskWork?.cancel" />
         </div>
         <!-- тред: ответы и поле ответа -->
         <slot />

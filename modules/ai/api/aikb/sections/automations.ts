@@ -31,7 +31,7 @@ const ACTION_DOC: Record<string, string> = {
   create_subtask: 'create a subtask with this title',
   send_webhook: 'call a webhook subscription',
   ai_run:
-    'run a project AI action over the task (60 s debounce); maxRuns 1-20 = runs in a row, past it a question to a person; the rule can be created/changed/deleted only by a project admin',
+    'run a project AI action over the task (10 s debounce); maxRuns 1-20 = runs in a row, past it a question to a person; the rule can be created/changed/deleted only by a project admin',
   resolve_comment:
     'on comment.added: close the comment this one replies to, if its assignee replied',
 };

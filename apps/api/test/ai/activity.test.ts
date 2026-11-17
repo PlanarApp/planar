@@ -285,4 +285,94 @@ describe('activity задачи: очередь ai.run', () => {
       await boss.stop({ graceful: false });
     }
   });
+
+  it('сработавшее правило с ИИ-действием — queued сразу (trigger); отмена ожидания — задание и ждущий прогон', async () => {
+    const { PgBoss } = await import('pg-boss');
+    const boss = new PgBoss({
+      connectionString: (db.$client as unknown as { options: { connectionString: string } }).options
+        .connectionString,
+      max: 1,
+    });
+    await boss.start();
+    try {
+      await boss.createQueue('ai.run');
+      await boss.createQueue('automations.run');
+      const t = taskArgs(w, {});
+      await w.admin.ok('task.create', t);
+      const rule = async (actions: object[]) => {
+        const id = uuidv7();
+        await raw(
+          `insert into automations_rules (id, space_id, project_id, name, enabled, trigger, conditions, actions,
+             created_by, created_at, updated_at)
+           values ($1, $2, $3, 'r', true, '{"type":"task.created"}', '[]', $4, $5, now(), now())`,
+          [id, w.spaceId, w.projectId, JSON.stringify(actions), w.admin.userId],
+        );
+        return id;
+      };
+      const later = { startAfter: 3600 };
+      const fired = await boss.send(
+        'automations.run',
+        { ruleId: await rule([{ type: 'ai_run', aiActionId: uuidv7() }]), taskId: t.id, depth: 1 },
+        later,
+      );
+      // a rule without the AI — not the AI's
+      await boss.send(
+        'automations.run',
+        { ruleId: await rule([{ type: 'set_priority', priority: 1 }]), taskId: t.id, depth: 1 },
+        later,
+      );
+      const job = await boss.send(
+        'ai.run',
+        { kind: 'comment', taskId: t.id, itemId: uuidv7() },
+        later,
+      );
+      const queuedRun = await run({ taskId: t.id, state: 'queued' });
+      // the run's job: the row stands for it
+      await boss.send(
+        'ai.run',
+        { kind: 'comment', taskId: t.id, itemId: uuidv7(), runId: queuedRun },
+        later,
+      );
+
+      const list = (await call(`activity/tasks/${t.id}`, 'admin')).json().activity as Record<
+        string,
+        unknown
+      >[];
+      expect(list.map((a) => [a.id, a.state, a.trigger ?? false]).sort()).toEqual(
+        [
+          [fired, 'queued', true],
+          [job, 'queued', false],
+          [queuedRun, 'queued', false],
+        ].sort(),
+      );
+
+      const cancel = (id: string, who: string) =>
+        getApp()
+          .getHttpAdapter()
+          .getInstance()
+          .inject({
+            method: 'POST',
+            url: `/api/ai/queue/${id}/cancel`,
+            headers: { cookie: cookies[who]!, origin: ORIGIN },
+          });
+      // the member does not see the runs of the admin's task — the same 404 as a missing one
+      expect((await cancel(job, 'member')).statusCode).toBe(404);
+      expect((await cancel(uuidv7(), 'admin')).statusCode).toBe(404);
+      expect((await cancel(job, 'admin')).statusCode).toBe(204);
+      expect((await cancel(queuedRun, 'admin')).statusCode).toBe(204);
+      const [r] = await raw(`select state from ai_runs where id = $1`, [queuedRun]);
+      expect(r!.state).toBe('cancelled');
+      const left = await raw(
+        `select data->>'kind' as kind from pgboss.job where name = 'ai.run' and data->>'taskId' = $1`,
+        [t.id],
+      );
+      expect(left).toEqual([]);
+      const rest = (await call(`activity/tasks/${t.id}`, 'admin')).json().activity as {
+        id: string;
+      }[];
+      expect(rest.map((a) => a.id)).toEqual([fired]);
+    } finally {
+      await boss.stop({ graceful: false });
+    }
+  });
 });

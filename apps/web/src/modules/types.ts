@@ -164,6 +164,8 @@ export interface WorkActivity {
   error?: string | null;
   /** the module's task panel (taskPanels id) with the details: the link of the error */
   panel?: string;
+  /** queued: a person cancels the waiting work */
+  cancel?: () => Promise<unknown>;
 }
 /** Where the indicator takes the work from; the core reloads it on replica changes and polls while it is running. */
 export interface ActivitySourceDef {

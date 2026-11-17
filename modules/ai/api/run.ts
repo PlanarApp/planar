@@ -1,4 +1,3 @@
-import { APICallError } from 'ai';
 import { sql } from 'drizzle-orm';
 import { generateKeyBetween } from 'fractional-indexing';
 import { z } from 'zod';
@@ -17,7 +16,7 @@ import type { ChatPending } from './schema.js';
 import { batchDoc, insertBatch } from './email.js';
 import { collectChat, collectRun } from './retro.js';
 import { handleDoc } from './doc-run.js';
-import { generateReply, generateStructured, type LlmUsage } from './llm.js';
+import { generateReply, generateStructured, providerLog, type LlmUsage } from './llm.js';
 import {
   criteriaOf,
   maxAttemptsOf,
@@ -697,9 +696,7 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
         },
       ));
     } catch (e) {
-      // the provider's own text is dropped: it may quote the key (as in checkConnection)
-      const status = APICallError.isInstance(e) ? ` ${e.statusCode ?? ''}` : '';
-      run.log.push(`провайдер: ${e instanceof Error ? e.name : 'error'}${status}`);
+      run.log.push(providerLog(e));
       // PLNRAPP-404: a pause and another attempt; the attempts spent — the failure as before
       if (await rework(api, run, 'ошибка провайдера, повтор с паузой', null, 60)) return;
       return await apply(api, run, failed('ИИ не ответил: ошибка провайдера.'));
@@ -886,9 +883,7 @@ async function handleChat(d: ChatRunData, api: JobApi) {
         maxTokens: chatInt('AI_CHAT_MAX_TOKENS', 100_000),
       });
     } catch (e) {
-      // the provider's own text is dropped: it may quote the key
-      const status = APICallError.isInstance(e) ? ` ${e.statusCode ?? ''}` : '';
-      run.log.push(`провайдер: ${e instanceof Error ? e.name : 'error'}${status}`);
+      run.log.push(providerLog(e));
       await say('ИИ не ответил: ошибка провайдера.');
       return await finish(api.db, run, 'failed');
     }

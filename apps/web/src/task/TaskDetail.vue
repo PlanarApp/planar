@@ -423,7 +423,12 @@ async function openRun(a: Activity) {
     ?.querySelector('[data-testid="task-panel-body"]')
     ?.scrollIntoView({ block: 'nearest' });
 }
-provide(TASK_ACTIVITY, { items: activity, open: openRun });
+async function cancelWork(a: Activity) {
+  if (!a.cancel) return;
+  activity.value = activity.value.filter((x) => x !== a);
+  await a.cancel().catch(() => {});
+}
+provide(TASK_ACTIVITY, { items: activity, open: openRun, cancel: cancelWork });
 const panelComponent = computed(() => {
   const c = active.value?.component;
   return c ? defineAsyncComponent(() => c().then((m) => m.default)) : null;
@@ -653,6 +658,15 @@ const panelComponent = computed(() => {
                   aria-hidden="true"
                 />
                 {{ t(`tasks.aiState.${work.state}`) }}
+              </button>
+              <button
+                v-if="work.state === 'queued' && work.cancel"
+                type="button"
+                class="ml-2 rounded-sm px-1 text-xs text-fg-muted underline outline-none hover:text-fg focus-visible:ring-2 ring-focus"
+                data-testid="task-ai-cancel"
+                @click="cancelWork(work)"
+              >
+                {{ t('task.aiCancel') }}
               </button>
               <span v-if="aiUsage" class="ml-2 text-xs text-fg-muted" data-testid="task-ai-usage">{{
                 aiUsage

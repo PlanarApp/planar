@@ -236,6 +236,7 @@ async function add() {
           :activity="workOf(i.id)!"
           class="shrink-0"
           @open="taskWork?.open"
+          @cancel="taskWork?.cancel"
         />
         <Menu v-if="members?.length" :items="assignItems(i)" align="end">
           <template #trigger>
