@@ -122,6 +122,8 @@ const dict = {
   restart: { ru: 'Перезапустить', en: 'Restart' },
   showLog: { ru: 'Лог', en: 'Log' },
   hideLog: { ru: 'Скрыть лог', en: 'Hide log' },
+  fullLog: { ru: 'На весь экран', en: 'Full screen' },
+  exitFullLog: { ru: 'Свернуть', en: 'Exit full screen' },
   emptyLog: { ru: 'Лог пуст', en: 'The log is empty' },
   agentLog: { ru: 'Работа агента', en: 'Agent activity' },
   apiLog: { ru: 'Журнал прогона', en: 'Run journal' },
