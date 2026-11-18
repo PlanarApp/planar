@@ -115,31 +115,43 @@ export { Unauthorized, HttpFail, Deferred };
 
 const apiBase = (baseUrl: string) => `${baseUrl.replace(/\/+$/, '')}/api/v4`;
 
+const repoOf = async (token: string, c: typeof P.$inferSelect) => {
+  const repo = `${apiBase(c.baseUrl)}/projects/${c.gitlabProjectId}`;
+  const p = (await (await get(repo, token)).json()) as { default_branch: string; web_url: string };
+  return { repo, ...p };
+};
+
 /**
- * PLNRAPP-153: branch `branch` from the repository's default branch, and with `mr` — an MR from it into
- * the default branch, synced to the tasks at once. An existing branch is reused; the MR goes to GitLab as is.
+ * PLNRAPP-153: branch `branch` from the repository's default branch. An existing branch (GitLab 400
+ * «Branch already exists») is not an error: it is reused.
  */
 export async function createBranch(
+  token: string,
+  c: typeof P.$inferSelect,
+  branch: string,
+): Promise<{ webUrl: string }> {
+  const p = await repoOf(token, c);
+  try {
+    await get(`${p.repo}/repository/branches`, token, { branch, ref: p.default_branch });
+  } catch (e) {
+    if (!(e instanceof HttpFail && e.status === 400)) throw e;
+  }
+  return { webUrl: `${p.web_url}/-/tree/${branch.split('/').map(encodeURIComponent).join('/')}` };
+}
+
+/** PLNRAPP-153: an MR from `branch` into the default branch, synced to the tasks at once (by the key in the title). */
+export async function createMr(
   api: JobApi,
   token: string,
   c: typeof P.$inferSelect,
   branch: string,
-  mr?: { title: string },
+  title: string,
 ): Promise<{ webUrl: string }> {
-  const repo = `${apiBase(c.baseUrl)}/projects/${c.gitlabProjectId}`;
-  const p = (await (await get(repo, token)).json()) as { default_branch: string; web_url: string };
-  try {
-    await get(`${repo}/repository/branches`, token, { branch, ref: p.default_branch });
-  } catch (e) {
-    // GitLab answers 400 «Branch already exists»; any other 400 shows up on the MR or stays unnoticed
-    if (!(e instanceof HttpFail && e.status === 400)) throw e;
-  }
-  const webUrl = `${p.web_url}/-/tree/${encodeURIComponent(branch)}`;
-  if (!mr) return { webUrl };
-  const res = await get(`${repo}/merge_requests`, token, {
+  const p = await repoOf(token, c);
+  const res = await get(`${p.repo}/merge_requests`, token, {
     source_branch: branch,
     target_branch: p.default_branch,
-    title: mr.title,
+    title,
   });
   const made = (await res.json()) as GlMr;
   await syncMr(api, c, made);
@@ -355,7 +367,7 @@ export const jobs: JobDef<Record<string, unknown>>[] = [
   },
 ];
 
-/** Deleting a task takes its gitlabMrs rows with it, deleting a project — its connections. */
+/** Deleting a task takes its gitlabMrs and gitlabBranches rows with it, deleting a project — its connections. */
 export async function afterMutation(writes: MutationWrite[], _ctx: unknown, api: ModuleHookApi) {
   for (const w of writes) {
     if (w.op !== 'del' || !w.before) continue;
@@ -364,8 +376,11 @@ export async function afterMutation(writes: MutationWrite[], _ctx: unknown, api:
       continue;
     }
     if (w.entity !== 'tasks') continue;
-    const e = 'gitlabMrs' as never;
-    const rows = (await api.sys.scan(e, { index: 'taskId', eq: w.before.id })) as { id: string }[];
-    for (const r of rows) await api.sys.del(e, r.id);
+    for (const e of ['gitlabMrs', 'gitlabBranches'] as never[]) {
+      const rows = (await api.sys.scan(e, { index: 'taskId', eq: w.before.id })) as {
+        id: string;
+      }[];
+      for (const r of rows) await api.sys.del(e, r.id);
+    }
   }
 }

@@ -1,5 +1,5 @@
-import { flushPromises, mount } from '@vue/test-utils';
-import { defineComponent, h } from 'vue';
+import { config, flushPromises, mount } from '@vue/test-utils';
+import { defineComponent, h, type PropType } from 'vue';
 import { TooltipProvider } from 'reka-ui';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -7,6 +7,8 @@ vi.mock('../../../../../../modules/gitlab/web/data', async () => {
   const { ref } = await import('vue');
   const state = {
     mrs: ref<unknown[]>([]),
+    branches: ref<unknown[]>([]),
+    templates: ref<Record<string, string | null>>({}),
     projects: ref<unknown[]>([]),
     statuses: ref<unknown[]>([]),
     merged: ref<Record<string, string | null>>({}),
@@ -16,6 +18,8 @@ vi.mock('../../../../../../modules/gitlab/web/data', async () => {
     mutate: vi.fn(async () => {}),
     tr: (k: string) => k,
     useMrs: () => state.mrs,
+    useBranches: () => state.branches,
+    useBranchTemplates: () => state.templates,
     useProjects: () => state.projects,
     useStatusList: () => state.statuses,
     useMergedStatuses: () => state.merged,
@@ -32,9 +36,20 @@ import { registerModules } from '../../registry';
 const st = (data as unknown as { __state: Record<string, { value: any }> }).__state;
 const mutate = data.mutate as unknown as ReturnType<typeof vi.fn>;
 
+// PLNRAPP-153: the app's Dialog lives in a portal and needs i18n — a plain stand-in with its slots
+const DialogStub = defineComponent({
+  props: { open: Boolean, title: String as PropType<string> },
+  setup:
+    (p, { slots }) =>
+    () =>
+      p.open ? h('div', { 'data-testid': 'dialog' }, [slots.default?.(), slots.footer?.()]) : null,
+});
+config.global.stubs = { Dialog: DialogStub };
+
 const mr = (o: Record<string, unknown>) => ({
   id: 'm' + Math.random(),
   taskId: 't',
+  gitlabProjectId: 5,
   iid: 7,
   title: 'Fix login',
   sourceBranch: 'mr/PLN-1',
@@ -67,6 +82,8 @@ beforeEach(() => {
   calls = [];
   mutate.mockClear();
   st.mrs.value = [];
+  st.branches.value = [];
+  st.templates.value = {};
   st.projects.value = [{ id: 'p1', spaceId: 's1', name: 'Proj' }];
   st.statuses.value = [
     { id: 'st1', spaceId: 's1', projectId: 'p1', name: 'Todo' },
@@ -117,43 +134,152 @@ describe('pt6b:', () => {
     expect(rows[1]!.get('[data-testid=gl-branch]').text()).toBe('mr/PLN-1branchOpen');
   });
 
-  it('PLNRAPP-153: панель — ветка, MR и опрос по задаче; ошибка видна; без репозиториев кнопок нет', async () => {
-    // IconButton needs the app's TooltipProvider
-    const panel = () =>
-      mount(
-        defineComponent({
-          render: () => h(TooltipProvider, null, () => h(MrPanel, { taskId: 't' })),
-        }),
-      );
-    const reply = (repos: unknown[]) =>
-      vi.fn(async (path: string, o: { method: string; body?: string }) => {
-        calls.push({ method: o.method, path, body: o.body && JSON.parse(o.body) });
-        if (path.endsWith('/repos')) return res(200, { repos });
-        if (path.endsWith('/mr')) return res(409, { message: 'MR уже есть' });
-        return res(201, { webUrl: 'https://gl.example/g/p/-/tree/PLN-1' });
-      });
+  // IconButton needs the app's TooltipProvider
+  const panel = () =>
+    mount(
+      defineComponent({
+        render: () => h(TooltipProvider, null, () => h(MrPanel, { taskId: 't' })),
+      }),
+    );
+  const branch = (o: Record<string, unknown>) => ({
+    id: 'b' + Math.random(),
+    taskId: 't',
+    gitlabProjectId: 5,
+    name: 'PLN-1',
+    webUrl: 'https://gl.example/g/p/-/tree/PLN-1',
+    createdAt: '2026-10-20T09:00:00.000Z',
+    ...o,
+  });
+  const reply = (repos: unknown[], over: Record<string, ReturnType<typeof res>> = {}) =>
+    vi.fn(async (path: string, o: { method: string; body?: string }) => {
+      calls.push({ method: o.method, path, body: o.body && JSON.parse(o.body) });
+      const tail = path.split('/').at(-1)!;
+      if (over[tail]) return over[tail];
+      if (tail === 'repos') return res(200, { repos });
+      if (tail === 'branch-name') return res(200, { name: 'PLN-1-fix-login' });
+      if (tail === 'branch') return res(201, { branch: { id: 'b1', name: 'x', webUrl: '' } });
+      return res(200, {});
+    });
+  const posts = () => calls.filter((c) => c.method === 'POST');
+
+  it('PLNRAPP-153: без репозиториев кнопок нет; опрос по задаче', async () => {
     vi.stubGlobal('fetch', reply([]));
     const w0 = panel();
     await flushPromises();
-    expect(w0.find('[data-testid=gl-new-mr]').exists()).toBe(false);
+    expect(w0.find('[data-testid=gl-new-branch]').exists()).toBe(false);
+    expect(w0.find('[data-testid=gl-poll]').exists()).toBe(false);
     vi.stubGlobal('fetch', reply([{ id: 'c1', path: 'g/p' }]));
     const w = panel();
     await flushPromises();
-    await w.get('[data-testid=gl-new-branch]').trigger('click');
-    await flushPromises();
-    expect(w.get('[data-testid=gl-branch-made]').attributes('href')).toBe(
-      'https://gl.example/g/p/-/tree/PLN-1',
-    );
-    await w.get('[data-testid=gl-new-mr]').trigger('click');
-    await flushPromises();
-    expect(w.get('[role=alert]').text()).toBe('MR уже есть');
     await w.get('[data-testid=gl-poll]').trigger('click');
     await flushPromises();
-    expect(calls.filter((c) => c.method === 'POST')).toEqual([
-      { method: 'POST', path: '/api/gitlab/tasks/t/branch', body: { connectionId: 'c1' } },
-      { method: 'POST', path: '/api/gitlab/tasks/t/mr', body: { connectionId: 'c1' } },
+    expect(posts()).toEqual([
       { method: 'POST', path: '/api/gitlab/tasks/t/poll', body: undefined },
     ]);
+  });
+
+  it('PLNRAPP-153: диалог ветки — имя по шаблону, правка с проверкой git ref, выбор репозитория', async () => {
+    vi.stubGlobal(
+      'fetch',
+      reply([
+        { id: 'c1', path: 'g/p' },
+        { id: 'c2', path: 'g/q' },
+      ]),
+    );
+    const w = panel();
+    await flushPromises();
+    expect(w.find('[data-testid=dialog]').exists()).toBe(false);
+    await w.get('[data-testid=gl-new-branch]').trigger('click');
+    await flushPromises();
+    const input = w.get('[data-testid=gl-branch-input]');
+    expect((input.element as HTMLInputElement).value).toBe('PLN-1-fix-login');
+    expect(w.findAllComponents({ name: 'Select' })).toHaveLength(1);
+    await input.setValue('bad name');
+    expect(w.get('[data-testid=gl-branch-create]').attributes('disabled')).toBeDefined();
+    expect(w.text()).toContain('пробелов');
+    await input.setValue('feature/PLN-1');
+    expect(w.get('[data-testid=gl-branch-create]').attributes('disabled')).toBeUndefined();
+    await w.get('[data-testid=gl-branch-create]').trigger('click');
+    await flushPromises();
+    expect(posts()).toEqual([
+      {
+        method: 'POST',
+        path: '/api/gitlab/tasks/t/branch',
+        body: { name: 'feature/PLN-1', connectionId: 'c1' },
+      },
+    ]);
+    expect(w.find('[data-testid=dialog]').exists()).toBe(false);
+  });
+
+  it('PLNRAPP-153: ошибка создания ветки видна в диалоге', async () => {
+    vi.stubGlobal(
+      'fetch',
+      reply([{ id: 'c1', path: 'g/p' }], { branch: res(502, { message: 'GitLab недоступен' }) }),
+    );
+    const w = panel();
+    await flushPromises();
+    expect(w.findAllComponents({ name: 'Select' })).toHaveLength(0);
+    await w.get('[data-testid=gl-new-branch]').trigger('click');
+    await flushPromises();
+    await w.get('[data-testid=gl-branch-create]').trigger('click');
+    await flushPromises();
+    expect(w.get('[data-testid=gl-dialog-err]').text()).toBe('GitLab недоступен');
+    expect(w.find('[data-testid=dialog]').exists()).toBe(true);
+  });
+
+  it('PLNRAPP-153: MR сгруппированы под своей веткой, чужие — отдельно; «Создать MR» у ветки без открытого MR', async () => {
+    st.branches.value = [
+      branch({ id: 'b1', name: 'PLN-1', createdAt: '2026-10-20T09:00:00.000Z' }),
+      branch({ id: 'b2', name: 'PLN-1-docs', createdAt: '2026-10-21T09:00:00.000Z' }),
+      // the same name in another repository is another branch
+      branch({
+        id: 'b3',
+        name: 'PLN-1-docs',
+        gitlabProjectId: 6,
+        createdAt: '2026-10-19T09:00:00.000Z',
+      }),
+    ];
+    st.mrs.value = [
+      mr({ iid: 7, sourceBranch: 'PLN-1', state: 'opened' }),
+      mr({ iid: 8, sourceBranch: 'PLN-1-docs', state: 'merged' }),
+      mr({ iid: 9, sourceBranch: 'mr/PLN-1', state: 'opened' }),
+    ];
+    vi.stubGlobal(
+      'fetch',
+      reply([{ id: 'c1', path: 'g/p' }], {
+        mr: res(409, { message: 'MR из этой ветки уже есть' }),
+      }),
+    );
+    const w = panel();
+    await flushPromises();
+    const groups = w.findAll('[data-testid=gl-branch-group]');
+    // newer branches first
+    expect(groups.map((g) => g.get('[data-testid=gl-branch-name]').text())).toEqual([
+      'PLN-1-docs',
+      'PLN-1',
+      'PLN-1-docs',
+    ]);
+    expect(groups.map((g) => g.findAll('[data-testid=gl-mr]').map((m) => m.text()))).toEqual([
+      [expect.stringContaining('!8')],
+      [expect.stringContaining('!7')],
+      [],
+    ]);
+    // an open MR — no button; merged or none — there is
+    expect(groups.map((g) => g.find('[data-testid=gl-new-mr]').exists())).toEqual([
+      true,
+      false,
+      true,
+    ]);
+    expect(w.get('[data-testid=gl-other]').exists()).toBe(true);
+    const other = w.findAll('[data-testid=gl-mr]').filter((m) => m.text().includes('!9'));
+    expect(other).toHaveLength(1);
+    expect(other[0]!.get('[data-testid=gl-branch]').text()).toContain('mr/PLN-1');
+    await groups[0]!.get('[data-testid=gl-new-mr]').trigger('click');
+    await flushPromises();
+    expect(posts()).toEqual([
+      { method: 'POST', path: '/api/gitlab/tasks/t/mr', body: { branchId: 'b2' } },
+    ]);
+    expect(w.get('[role=alert]').text()).toBe('MR из этой ветки уже есть');
   });
 
   it('pt6b: панель — пусто и небезопасная ссылка не становится href', () => {
@@ -205,6 +331,32 @@ describe('pt6b:', () => {
       true,
     );
     expect(calls.some((c) => c.method === 'POST' && c.path.endsWith('/poll'))).toBe(true);
+  });
+
+  it('PLNRAPP-153: шаблон имени ветки — текущий из настроек, ошибка у поля, сохранение PUT', async () => {
+    st.templates.value = { p1: '{TASK_KEY}-{TASK_NAME}' };
+    const w = await mountSettings();
+    const input = w.get('[data-testid=gl-template]');
+    expect((input.element as HTMLInputElement).value).toBe('{TASK_KEY}-{TASK_NAME}');
+    await input.setValue('{TASK_KEY}-{FOO}');
+    expect(w.get('[data-testid=gl-template-err]').text()).toContain('{FOO}');
+    await w.get('[data-testid=gl-template-form]').trigger('submit');
+    await flushPromises();
+    expect(calls.some((c) => c.method === 'PUT')).toBe(false);
+    await input.setValue('{USER_LOGIN}/{TASK_KEY}');
+    expect(w.find('[data-testid=gl-template-err]').exists()).toBe(false);
+    await w.get('[data-testid=gl-template-form]').trigger('submit');
+    await flushPromises();
+    expect(calls.find((c) => c.method === 'PUT')).toEqual({
+      method: 'PUT',
+      path: '/api/gitlab/projects/p1/branch-template',
+      body: { template: '{USER_LOGIN}/{TASK_KEY}' },
+    });
+    // empty — back to the default
+    await input.setValue('');
+    await w.get('[data-testid=gl-template-form]').trigger('submit');
+    await flushPromises();
+    expect(calls.filter((c) => c.method === 'PUT').at(-1)!.body).toEqual({ template: null });
   });
 
   it('pt6b: «MR смержен → статус» — только статусы пространства проекта, выбор шлёт мутатор', async () => {

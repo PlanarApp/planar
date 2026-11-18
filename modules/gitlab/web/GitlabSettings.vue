@@ -1,6 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
-import { mutate, tr, useMergedStatuses, useProjects, useStatusList } from './data';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { branchTemplateError, DEFAULT_BRANCH_TEMPLATE } from '../shared/branch-name.js';
+import {
+  mutate,
+  tr,
+  useBranchTemplates,
+  useMergedStatuses,
+  useProjects,
+  useStatusList,
+} from './data';
 
 interface Conn {
   id: string;
@@ -76,6 +84,34 @@ const setMerged = (v: string) =>
       err.value = String(e?.message ?? e);
     },
   );
+
+// PLNRAPP-153: the branch name template — checked here and on the server; the error is shown at the field
+const templates = useBranchTemplates();
+const tpl = ref('');
+const tplErr = ref('');
+const tplSaved = ref(false);
+watch(
+  () => templates.value?.[props.projectId] ?? null,
+  (v) => (tpl.value = v ?? ''),
+  { immediate: true },
+);
+const tplLocalErr = computed(() =>
+  tpl.value.trim() ? branchTemplateError(tpl.value.trim()) : null,
+);
+async function saveTemplate() {
+  tplSaved.value = false;
+  tplErr.value = tplLocalErr.value ?? '';
+  if (tplErr.value) return;
+  const res = await fetch(`/api/gitlab/projects/${props.projectId}/branch-template`, {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ template: tpl.value.trim() || null }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) tplErr.value = j.message || String(res.status);
+  else tplSaved.value = true;
+}
 
 onMounted(() => run(load()));
 </script>
@@ -182,6 +218,38 @@ onMounted(() => run(load()));
     >
       {{ tr(polling ? 'polling' : 'poll') }}
     </button>
+
+    <form
+      class="flex flex-col gap-1 text-sm"
+      data-testid="gl-template-form"
+      @submit.prevent="run(saveTemplate())"
+    >
+      <label class="flex flex-col gap-1"
+        >{{ tr('branchTemplate') }}
+        <div class="flex gap-2">
+          <input
+            v-model="tpl"
+            maxlength="200"
+            :placeholder="DEFAULT_BRANCH_TEMPLATE"
+            :aria-invalid="tplErr || tplLocalErr ? true : undefined"
+            data-testid="gl-template"
+            class="flex-1 rounded-md border border-border bg-bg px-2 py-1 font-mono"
+            @input="((tplSaved = false), (tplErr = ''))"
+          />
+          <button type="submit" class="rounded-md border border-border px-3 py-1">
+            {{ tr('save') }}
+          </button>
+        </div>
+      </label>
+      <span class="text-xs text-fg-muted">{{ tr('branchTemplateHint') }}</span>
+      <span
+        v-if="tplErr || tplLocalErr"
+        class="text-xs text-danger"
+        data-testid="gl-template-err"
+        >{{ tplErr || tplLocalErr }}</span
+      >
+      <span v-else-if="tplSaved" class="text-xs text-success">{{ tr('saved') }}</span>
+    </form>
 
     <label class="flex items-center gap-2 text-sm"
       >{{ tr('merge') }}

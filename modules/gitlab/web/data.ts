@@ -1,6 +1,6 @@
 // The module's single point of contact with the web core: replica, mutations, language.
 import { db, i18n, mutate, useQuery } from '@planar/web/modules';
-import type { GitlabMr } from '../shared/index.js';
+import type { GitlabBranch, GitlabMr } from '../shared/index.js';
 
 export { mutate };
 export interface ProjectLite {
@@ -19,6 +19,23 @@ export const useMrs = (taskId: () => string) =>
   useQuery(
     () => db.table('gitlabMrs').where('taskId').equals(taskId()).toArray() as Promise<GitlabMr[]>,
   );
+/** PLNRAPP-153: branches created from the task's tab */
+export const useBranches = (taskId: () => string) =>
+  useQuery(
+    () =>
+      db.table('gitlabBranches').where('taskId').equals(taskId()).toArray() as Promise<
+        GitlabBranch[]
+      >,
+  );
+/** projectId → branch name template (null — the default) */
+export const useBranchTemplates = () =>
+  useQuery(async () => {
+    const rows = (await db.table('gitlabProjectSettings').toArray()) as {
+      id: string;
+      branchTemplate?: string | null;
+    }[];
+    return Object.fromEntries(rows.map((r) => [r.id, r.branchTemplate ?? null]));
+  });
 export const useProjects = () =>
   useQuery(
     async () =>
@@ -49,7 +66,16 @@ const dict = {
   newMr: { ru: 'Создать MR', en: 'Create MR' },
   refresh: { ru: 'Опросить GitLab', en: 'Poll GitLab' },
   repoPick: { ru: 'Репозиторий', en: 'Repository' },
-  branchMade: { ru: 'Ветка создана', en: 'Branch created' },
+  branchName: { ru: 'Имя ветки', en: 'Branch name' },
+  create: { ru: 'Создать', en: 'Create' },
+  cancel: { ru: 'Отмена', en: 'Cancel' },
+  otherMrs: { ru: 'MR других веток', en: 'MRs of other branches' },
+  branchTemplate: { ru: 'Шаблон имени ветки', en: 'Branch name template' },
+  branchTemplateHint: {
+    ru: 'Поля: {TASK_KEY} — ключ задачи, {TASK_NAME} — название латиницей, {USER_LOGIN} — логин. Пусто — {TASK_KEY}',
+    en: 'Fields: {TASK_KEY} — task key, {TASK_NAME} — title in Latin, {USER_LOGIN} — login. Empty — {TASK_KEY}',
+  },
+  saved: { ru: 'Сохранено', en: 'Saved' },
   title: { ru: 'GitLab', en: 'GitLab' },
   baseUrl: { ru: 'Адрес GitLab', en: 'GitLab URL' },
   token: { ru: 'Токен доступа', en: 'Access token' },

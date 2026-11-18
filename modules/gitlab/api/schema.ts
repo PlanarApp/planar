@@ -53,7 +53,27 @@ export const gitlabProjectSettings = pgTable(
     id: uuid().primaryKey(),
     spaceId: uuid().notNull(),
     mergedStatusId: uuid(),
+    branchTemplate: text(),
     updatedAt: ts().notNull(),
   },
   (t) => [index('gitlab_project_settings_space_id_idx').on(t.spaceId)],
+);
+
+// PLNRAPP-153: branches created from the task's GitLab tab
+export const gitlabBranches = pgTable(
+  'gitlab_branches',
+  {
+    id: uuid().primaryKey(),
+    spaceId: uuid().notNull(),
+    taskId: uuid().notNull(),
+    gitlabProjectId: integer().notNull(),
+    name: text().notNull(),
+    webUrl: text().notNull(),
+    createdAt: ts().notNull(),
+    updatedAt: ts().notNull(),
+  },
+  (t) => [
+    index('gitlab_branches_task_id_idx').on(t.taskId),
+    uniqueIndex('gitlab_branches_uq').on(t.taskId, t.gitlabProjectId, t.name),
+  ],
 );

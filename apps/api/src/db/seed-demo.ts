@@ -27,6 +27,7 @@ import {
   goalsMilestoneTasks,
 } from '@planar/module-goals/api/schema';
 import { automationsRules } from '@planar/module-automations/api/schema';
+import { gitlabBranches, gitlabMrs, gitlabProjectSettings } from '@planar/module-gitlab/api/schema';
 import {
   aiActions,
   aiEmailBatches,
@@ -2462,6 +2463,55 @@ async function insertAll(tx: Tx, now: Date) {
       createdAt: at(-25),
       updatedAt: at(-25),
     },
+  ]);
+  // PLNRAPP-153: the task's GitLab tab — a branch by the project's template with its MR, an MR of another branch
+  const glUrl = 'https://gitlab.example/acme/app';
+  await ins(gitlabProjectSettings, [
+    {
+      id: pid('RDM'),
+      spaceId: rdmSpace,
+      mergedStatusId: null,
+      branchTemplate: '{TASK_KEY}-{TASK_NAME}',
+      updatedAt: at(-6),
+    },
+  ]);
+  await ins(gitlabBranches, [
+    {
+      id: uid('gitlab:branch:RDM:7'),
+      spaceId: rdmSpace,
+      taskId: tid('RDM', 6),
+      gitlabProjectId: 101,
+      name: 'RDM-7-import-from-csv-edge-cases',
+      webUrl: `${glUrl}/-/tree/RDM-7-import-from-csv-edge-cases`,
+      createdAt: at(-3),
+      updatedAt: at(-3),
+    },
+  ]);
+  const demoMr = (iid: number, sourceBranch: string, title: string, state: string, d: number) => ({
+    id: uid(`gitlab:mr:${iid}`),
+    spaceId: rdmSpace,
+    taskId: tid('RDM', 6),
+    gitlabProjectId: 101,
+    iid,
+    title,
+    sourceBranch,
+    state,
+    authorName: 'Noah',
+    webUrl: `${glUrl}/-/merge_requests/${iid}`,
+    mrUpdatedAt: at(d),
+    pipelineStatus: state === 'opened' ? 'running' : 'success',
+    createdAt: at(d),
+    updatedAt: at(d),
+  });
+  await ins(gitlabMrs, [
+    demoMr(
+      41,
+      'RDM-7-import-from-csv-edge-cases',
+      'RDM-7: Import from CSV: edge cases',
+      'opened',
+      -1,
+    ),
+    demoMr(38, 'fix/csv-quotes', 'RDM-7: quoted commas in CSV', 'merged', -4),
   ]);
   await ins(s.comments, [
     botSays(
