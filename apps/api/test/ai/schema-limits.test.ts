@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { docResultSchema } from '../../../../modules/ai/api/doc-run.js';
-import { resultSchema, UNION_LIMIT } from '../../../../modules/ai/api/run.js';
+import { EXTRAS, UNION_LIMIT, wireSchema } from '../../../../modules/ai/api/run.js';
 
 /** Union-typed parameters (anyOf or a type list) — what Anthropic structured outputs cap; as ai-sdk converts zod. */
 function unions(schema: z.ZodType) {
@@ -19,7 +19,13 @@ function unions(schema: z.ZodType) {
 
 describe('схемы ответа ИИ в пределах structured outputs', () => {
   it('задача и документ — не больше UNION_LIMIT объединений (иначе провайдер отвечает 400)', () => {
-    expect(unions(resultSchema)).toBeLessThanOrEqual(UNION_LIMIT);
+    // the worst request: every extra field asked for
+    expect(unions(wireSchema(EXTRAS, []))).toBeLessThanOrEqual(UNION_LIMIT);
     expect(unions(docResultSchema())).toBeLessThanOrEqual(UNION_LIMIT);
+  });
+
+  it('PLNRAPP-452: запрос без дополнительных полей — база с запасом (грамматика всей схемы провайдеру велика)', () => {
+    expect(unions(wireSchema([], EXTRAS))).toBeLessThanOrEqual(5);
+    expect(unions(docResultSchema())).toBeLessThanOrEqual(3);
   });
 });

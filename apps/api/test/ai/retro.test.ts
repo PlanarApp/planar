@@ -126,6 +126,8 @@ const result = (o: Record<string, unknown>) => ({
   friction: null,
   subtasks: null,
   uncertain: '',
+  // PLNRAPP-452: no extra result fields asked for
+  need: [],
   ...o,
 });
 

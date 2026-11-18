@@ -231,17 +231,77 @@ export const resultSchema = z.object({
 });
 export type AiResult = z.infer<typeof resultSchema>;
 
-const SYSTEM = `Ты — ИИ-исполнитель в трекере задач Planar. Ответ — JSON по схеме:
+/**
+ * PLNRAPP-452: the model gets the base of the result and only the extra fields the run needs — the whole schema
+ * compiles into a grammar the provider refuses (400 «compiled grammar is too large»). An extra field goes in at
+ * once when the action's instruction names it; the rest are a table of contents (`need`): the model names what it
+ * lacks and the request is repeated once with those fields.
+ */
+const BASE = [
+  'verdict',
+  'comment',
+  'questions',
+  'descriptionAppend',
+  'moveTo',
+  'labels',
+  'friction',
+  'uncertain',
+] as const;
+/** extra field → [its line in the table of contents, its description when it is in the schema] */
+const EXTRA = {
+  fields: ['значения полей задачи', 'fields — значения полей задачи по имени.'],
+  newTasks: [
+    'создать подзадачи',
+    'newTasks — подзадачи (status — имя статуса или null; ai — поручить ИИ: подзадачу ведут её статус и действие, по её итогу тебя запустят снова, а пока подзадачи ИИ не готовы, задача ждёт их; after — номера (с 0) подзадач этого же списка, которые должны быть готовы раньше; checks — критерии приёмки подзадачи, «$ команда» — проверка командой).',
+  ],
+  subtasks: [
+    'изменить существующие подзадачи',
+    'subtasks — изменения существующих подзадач из раздела «Подзадачи»: key — ключ подзадачи; title, moveTo, labels, fields (значения полей по имени) — как у задачи, без изменений — "" или [].',
+  ],
+  snoozeUntil: ['отложить задачу до даты', 'snoozeUntil — отложить задачу до даты YYYY-MM-DD.'],
+  escalate: [
+    'позвать руководителя проекта',
+    'escalate — причина, если нужен руководитель проекта.',
+  ],
+  docs: [
+    'создать или переписать документ проекта',
+    'docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).',
+  ],
+  emails: [
+    'письма внешним адресатам',
+    'emails — письма внешним адресатам (to, subject, body — обычный текст), только при done: они уйдут после подтверждения человеком; сам ничего не отправляй.',
+  ],
+} as const;
+export type Extra = keyof typeof EXTRA;
+export const EXTRAS = Object.keys(EXTRA) as Extra[];
+
+/** The schema of one request: the base, the `extras` and, if `toc` is not empty, `need` over it. */
+export function wireSchema(extras: readonly Extra[], toc: readonly Extra[]) {
+  const s = resultSchema.pick(
+    Object.fromEntries([...BASE, ...extras].map((k) => [k, true])) as { verdict: true },
+  );
+  return (toc.length ? s.extend({ need: z.array(z.enum(toc)) }) : s) as unknown as z.ZodType<
+    Partial<AiResult> & { need?: Extra[] }
+  >;
+}
+
+/** The system text of one request: only the fields of its schema (wireSchema). */
+const systemOf = (extras: readonly Extra[], toc: readonly Extra[]) =>
+  [
+    `Ты — ИИ-исполнитель в трекере задач Planar. Ответ — JSON по схеме:
 - verdict: done — работа выполнена; question — без ответа человека не обойтись (вопросы — в questions, по одному на пункт); fail — выполнить нельзя (причина — в comment).
 - comment: итог для людей, markdown. Пиши на языке задачи.
 - descriptionAppend: план или итог в описание задачи, markdown без заголовка; заменяет блок «${PLAN_HEADING}».
-- moveTo — имя статуса проекта; labels — имена меток: «Имя» — поставить, «-Имя» — снять; fields — значения полей по имени.
-- newTasks — подзадачи (status — имя статуса или null; ai — поручить ИИ: подзадачу ведут её статус и действие, по её итогу тебя запустят снова, а пока подзадачи ИИ не готовы, задача ждёт их; after — номера (с 0) подзадач этого же списка, которые должны быть готовы раньше; checks — критерии приёмки подзадачи, «$ команда» — проверка командой); snoozeUntil — отложить задачу до даты YYYY-MM-DD; escalate — причина, если нужен руководитель проекта; docs — документы проекта (parent — название корневого раздела, title — заголовок, markdown — текст).
-- subtasks — изменения существующих подзадач из раздела «Подзадачи»: key — ключ подзадачи; title, moveTo, labels, fields — как у задачи, без изменений — "" или [].
-- emails — письма внешним адресатам (to, subject, body — обычный текст), только при done: они уйдут после подтверждения человеком; сам ничего не отправляй.
-- friction — что мешало работе (неясная или противоречивая инструкция, не хватало данных или доступа), одной-двумя фразами; не мешало ничего — null.
-- uncertain — в чём не уверен в результате и что проверил сам; сомнений нет — "". Результат проверяет система по критериям готовности, а не по твоей оценке.
-Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи и их изменения) применяются только при done; при question — только labels.`;
+- moveTo — имя статуса проекта; labels — имена меток: «Имя» — поставить, «-Имя» — снять.`,
+    ...extras.map((k) => `- ${EXTRA[k][1]}`),
+    `- friction — что мешало работе (неясная или противоречивая инструкция, не хватало данных или доступа), одной-двумя фразами; не мешало ничего — null.
+- uncertain — в чём не уверен в результате и что проверил сам; сомнений нет — "". Результат проверяет система по критериям готовности, а не по твоей оценке.`,
+    toc.length &&
+      `- need — имена полей, которых нет в схеме, но без них работу не выполнить: ${toc.map((k) => `${k} — ${EXTRA[k][0]}`).join('; ')}. Тогда запрос повторится с этими полями, а этот ответ отбросится: comment оставь пустым. Не нужны — [].`,
+    'Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи и их изменения) применяются только при done; при question — только labels.',
+  ]
+    .filter(Boolean)
+    .join('\n');
 
 /** «Поручение»: the built-in prompt until the active harness package has its own (PLNRAPP-169). */
 export const ASSIGNMENT_PROMPT = `Выполни поручение человека по контексту задачи. Результат — в comment.
@@ -694,19 +754,41 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     const checks = action?.checks.length
       ? `\n\nКритерии готовности (done — только если все выполнены):\n${action.checks.map((c) => `- ${c}`).join('\n')}`
       : '';
+    const instruction = `${prompt}${checks}`;
+    // PLNRAPP-452: the extras the instruction names are in the schema at once, the rest — on request (need)
+    const named = EXTRAS.filter((k) => new RegExp(`\\b${k}\\b`).test(instruction));
     let result: AiResult;
     let usage: LlmUsage;
     try {
       const c = secretOf(conn);
-      ({ object: result, usage } = await generateStructured(
-        { ...c, model: action?.model ?? c.model },
-        {
-          schema: resultSchema,
-          system: `${SYSTEM}\n\n# Инструкция\n${prompt}${checks}` + kbBlock(),
-          prompt: `${ctx.text}${ask}`,
-          maxOutputTokens: action?.maxOutputTokens ?? undefined,
-        },
-      ));
+      const call = (extras: Extra[], toc: Extra[]) =>
+        generateStructured(
+          { ...c, model: action?.model ?? c.model },
+          {
+            schema: wireSchema(extras, toc),
+            system: `${systemOf(extras, toc)}\n\n# Инструкция\n${instruction}` + kbBlock(),
+            prompt: `${ctx.text}${ask}`,
+            maxOutputTokens: action?.maxOutputTokens ?? undefined,
+          },
+        );
+      const first = await call(
+        named,
+        EXTRAS.filter((k) => !named.includes(k)),
+      );
+      const { need, ...base } = first.object;
+      let out: Partial<AiResult> = base;
+      usage = first.usage;
+      if (need?.length) {
+        run.log.push(`запрошены поля результата: ${need.join(', ')}`);
+        const more = await call([...new Set([...named, ...need])], []);
+        out = more.object;
+        usage = {
+          inputTokens: usage.inputTokens + more.usage.inputTokens,
+          outputTokens: usage.outputTokens + more.usage.outputTokens,
+          cost: usage.cost == null || more.usage.cost == null ? null : usage.cost + more.usage.cost,
+        };
+      }
+      result = { ...failed(''), ...out };
     } catch (e) {
       run.log.push(providerLog(e));
       // PLNRAPP-404: a pause and another attempt; the attempts spent — the failure as before
