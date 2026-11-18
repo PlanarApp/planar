@@ -40,7 +40,7 @@ export default defineConfig({
         short_name: 'Planar',
         start_url: '/',
         display: 'standalone',
-        theme_color: '#ffffff',
+        theme_color: '#4f46e5',
         background_color: '#ffffff',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
