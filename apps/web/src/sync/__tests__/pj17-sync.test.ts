@@ -34,4 +34,27 @@ describe('pj17: replica of an older build', () => {
     expect((await s.db._meta.get('schema'))?.value).toBe(s.db.schemaSig());
     await c3.stopSync();
   });
+
+  it('PLNRAPP-484: добавились только индексы (подпись старого формата) -> bootstrap не повторяется', async () => {
+    const s = setup();
+    s.server.seed('labels', [label('a')]);
+    const c = s.mk();
+    await s.start(c);
+    expect(s.server.bootstraps).toBe(1);
+    await c.stopSync();
+
+    // подпись прошлой сборки: формат `таблица:индексы`, без _held и без индекса tasks.createdBy
+    const legacy = s.db.tables
+      .filter((t) => t.name !== '_held')
+      .map(
+        (t) => `${t.name}:${t.schema.indexes.map((i) => i.name).filter((i) => i !== 'createdBy')}`,
+      )
+      .join(';');
+    await s.db._meta.put({ key: 'schema', value: legacy });
+    const c2 = s.mk();
+    await s.start(c2);
+    await c2.syncNow();
+    expect(s.server.bootstraps).toBe(1);
+    await c2.stopSync();
+  });
 });
