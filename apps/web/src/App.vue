@@ -9,6 +9,7 @@ import AppShell from './layout/AppShell.vue';
 import Button from './ui/Button.vue';
 import { useTheme } from './ui/useTheme';
 import { usePwa } from './pwa/usePwa';
+import { dbBlocked } from './sync';
 
 useTheme();
 const route = useRoute();
@@ -50,6 +51,14 @@ onMounted(async () => {
       </div>
     </div>
     <CommandHost v-if="!bare" />
+    <div
+      v-if="dbBlocked"
+      data-testid="db-blocked"
+      role="alert"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-bg/90 p-6 text-center text-sm"
+    >
+      {{ t('pwa.dbBlocked') }}
+    </div>
     <div
       v-if="needRefresh || downloading"
       data-testid="pwa-update"

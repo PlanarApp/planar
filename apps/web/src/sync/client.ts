@@ -475,9 +475,13 @@ export function createClient(db: PlanarDB) {
     const sub = liveQuery(async () => ({
       n: await db._queue.count(),
       last: (await db._queue.orderBy('id').last())?.id ?? 0,
-    })).subscribe(({ n, last }) => {
-      syncState.value = { ...syncState.value, pending: n };
-      if (leading && last > pushedUpTo) void kick();
+    })).subscribe({
+      next: ({ n, last }) => {
+        syncState.value = { ...syncState.value, pending: n };
+        if (leading && last > pushedUpTo) void kick();
+      },
+      // the subscription is over: new edits are sent only on WS pokes and retries
+      error: (e) => console.error('sync queue', e),
     });
     unsub = () => sub.unsubscribe();
     if (typeof window !== 'undefined') {

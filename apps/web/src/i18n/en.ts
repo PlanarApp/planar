@@ -431,6 +431,8 @@ export default {
     reload: 'Update',
     downloading: 'Downloading the new version…',
     applying: 'Applying…',
+    dbBlocked:
+      'The update is waiting for other Planar tabs. Close them and work resumes on its own.',
     offlineReady: 'Ready to work offline',
     offline: 'Offline',
     offlinePending: 'Offline · {n} pending',
