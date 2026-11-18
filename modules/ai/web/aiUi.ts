@@ -15,8 +15,9 @@ export const usagePct = (used: number, limit: number | null): number | null =>
 export const fmtCost = (c: number | null) => (c == null ? '—' : `$${c.toFixed(4)}`);
 
 /** Empty or number from an input → limit value; negative / NaN — undefined (invalid). */
-export function parseLimit(v: string): number | null | undefined {
-  const t = v.trim();
+export function parseLimit(v: string | number): number | null | undefined {
+  // PLNRAPP-531: v-model of <input type="number"> gives a number once the field is edited
+  const t = String(v).trim();
   if (t === '') return null;
   const n = Number(t);
   return Number.isFinite(n) && n >= 0 ? n : undefined;
