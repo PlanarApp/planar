@@ -1052,6 +1052,26 @@ describe('координация подзадач (PLNRAPP-405)', () => {
     await start(other);
     expect((await subsOf(parent)).length + (await subsOf(other)).length).toBe(3);
     expect((await runsOf(other))[0]!.log).toContain('суточный лимит задач ИИ (3) — не создано 1');
+    // PLNRAPP-528: and in the AI's comment — not only «Готово» of the model
+    expect((await commentsOf(other)).map((c) => text(c.body))).toEqual([
+      expect.stringMatching(/Готово.*не создано подзадач — 1 из 2: исчерпан суточный лимит/),
+    ]);
+  });
+
+  it('PLNRAPP-528: «подзадачи» в поручении — newTasks в схеме первого запроса, без need', async () => {
+    const t = await task();
+    await w.member.ok('comment.create', {
+      id: uuidv7(),
+      taskId: t,
+      body: doc('создавай подзадачи'),
+      assigneeId: bot,
+    });
+    schemas = [];
+    answers = [result({ newTasks: [sub({ title: 'A', ai: false })] })];
+    await drain();
+    expect(schemas.filter((s) => s.includes('comment'))).toHaveLength(1);
+    expect(schemas[0]).toContain('newTasks');
+    expect((await subsOf(t)).map((x) => x.title)).toEqual(['A']);
   });
 
   it('criteriaOf: пункты раздела «Критерии приёмки» до следующего заголовка', () => {
