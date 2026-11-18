@@ -7,6 +7,7 @@ import { resolveConnection, secretOf } from './connections.js';
 import { kbBlock } from './aikb/block.js';
 import { applyDocResult, docContext, docItemOf, docPageOf } from './doc-run.js';
 import { rework } from './engine.js';
+import { tracked, type Tracker } from './monitor.js';
 import {
   apply,
   botOf,
@@ -432,17 +433,31 @@ export const AGENT_REAP_QUEUE = 'ai.agent.reap';
 
 /** Cron, every minute: no heartbeat for AI_AGENT_HEARTBEAT_TIMEOUT_SEC or running over AI_AGENT_TIMEOUT_MIN → container removed, run failed. */
 export async function reap(_d: object, api: JobApi) {
+  // PLNRAPP-500: a pass of the engine «task control» in the monitor
+  await tracked(api.db, { engine: 'tasks', job: 'reap', trigger: 'cron' }, (t) => reapPass(api, t));
+}
+
+/** The work of reap; `projectId` — only the runs of the project (a manual pass). */
+export async function reapPass(api: JobApi, t: Tracker, projectId: string | null = null) {
+  const inProject = projectId ? sql`and project_id = ${projectId}::uuid` : sql``;
+  await t.check();
   // AST-1: a `queued` row whose job was lost (queue purge, restart) must not hang forever
-  await api.db.execute(
+  const stale = await api.db.execute(
     sql`update ai_runs set state = 'cancelled', updated_at = now()
-        where state = 'queued' and created_at < now() - interval '1 hour'`,
+        where state = 'queued' and created_at < now() - interval '1 hour' ${inProject} returning id`,
   );
+  if (stale.rows.length) {
+    t.count(stale.rows.length);
+    await t.step(`перезапуск: отменено зависших в очереди прогонов — ${stale.rows.length}`, {
+      level: 'action',
+    });
+  }
   const hb = envInt('AI_AGENT_HEARTBEAT_TIMEOUT_SEC', 120);
   const max = envInt('AI_AGENT_TIMEOUT_MIN', 60);
   const lost = (
     await api.db.execute(
       sql`select id, coalesce(started_at, created_at) < now() - make_interval(mins => ${max}::int) as "timedOut" from ai_runs
-          where state = 'running'
+          where state = 'running' ${inProject}
             and (agent_secret_hash is not null or action_id in (select id from ai_actions where runtime = 'agent'))
             and (coalesce(started_at, created_at) < now() - make_interval(mins => ${max}::int)
               or coalesce(heartbeat_at, started_at, created_at) < now() - make_interval(secs => ${hb}::float8))`,
@@ -455,21 +470,42 @@ export async function reap(_d: object, api: JobApi) {
     sql`select id, true as llm from ai_runs
         where state = 'running' and agent_secret_hash is null and kind in ('action', 'comment', 'mention', 'checklist')
           and (action_id is null or action_id not in (select id from ai_actions where runtime = 'agent'))
-          and coalesce(started_at, created_at) < now() - interval '30 minutes'`,
+          and coalesce(started_at, created_at) < now() - interval '30 minutes' ${inProject}`,
   );
   lost.push(...(orphans.rows as { id: string; timedOut: boolean; llm: boolean }[]));
   for (const l of lost) {
+    await t.check();
     const why = l.llm
       ? 'Прогон прерван (перезапуск сервера?): результат не получен за 30 мин.'
       : l.timedOut
         ? `Агент остановлен: прогон длился дольше ${max} мин.`
         : 'Агент остановлен: нет сигнала heartbeat, результат не получен.';
+    const w = await whereOf(api.db, l.id);
+    t.count();
     // PLNRAPP-404: a task run is restarted within its attempts; the attempts spent — the failure as before
     const run = await loadRun(api, l.id).catch(() => undefined);
     if (run && (await rework(api, run, why, null).catch(() => false))) {
       await stopAgent(api.db, l.id);
+      await t.step(`перезапуск: ${w.label} — ${why} Новая попытка.`, { ...w, level: 'action' });
       continue;
     }
     await finishAgent(api, l.id, failed(why)).catch(() => {});
+    await t.step(`перезапуск: ${w.label} — ${why} Попытки исчерпаны: прогон завершён ошибкой.`, {
+      ...w,
+      level: 'error',
+    });
   }
+}
+
+/** The task (key) or the page of a run for the monitor's log. */
+async function whereOf(q: Pick<Q, 'execute'>, runId: string) {
+  const r = (
+    await q.execute(
+      sql`select r.project_id as "projectId", r.task_id as "taskId",
+          coalesce(p.key || '-' || t.number, 'прогон ' || r.id::text) as label
+          from ai_runs r left join tasks t on t.id = r.task_id left join projects p on p.id = t.project_id
+          where r.id = ${runId}`,
+    )
+  ).rows[0] as { projectId: string | null; taskId: string | null; label: string } | undefined;
+  return r ?? { projectId: null, taskId: null, label: `прогон ${runId}` };
 }

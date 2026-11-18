@@ -190,8 +190,9 @@ const retroBody = z.object({
   everyDays: z.number().int().min(1).max(365),
 });
 const limitsBody = z.object({
-  dailyTokens: z.number().int().min(1).max(2_147_483_647).nullable(),
-  dailyCost: z.number().min(0.01).max(1e9).nullable(),
+  // PLNRAPP-500: absent — unchanged (the autopilot section saves only its own fields)
+  dailyTokens: z.number().int().min(1).max(2_147_483_647).nullable().optional(),
+  dailyCost: z.number().min(0.01).max(1e9).nullable().optional(),
   // PLNRAPP-408: absent — unchanged
   dailyTasks: z.number().int().min(1).max(10_000).nullable().optional(),
   autopilot: z.boolean().optional(),
@@ -704,9 +705,10 @@ export class AiController {
     await this.admin(req, 'project', projectId);
     await this.core.db.execute(
       sql`insert into ai_project_limits (project_id, daily_tokens, daily_cost, daily_tasks, autopilot)
-          values (${projectId}::uuid, ${b.dailyTokens}, ${b.dailyCost}, ${b.dailyTasks ?? null}, ${b.autopilot ?? false})
-          on conflict (project_id) do update set daily_tokens = excluded.daily_tokens,
-            daily_cost = excluded.daily_cost,
+          values (${projectId}::uuid, ${b.dailyTokens ?? null}, ${b.dailyCost ?? null}, ${b.dailyTasks ?? null}, ${b.autopilot ?? false})
+          on conflict (project_id) do update
+            set daily_tokens = ${b.dailyTokens === undefined ? sql`ai_project_limits.daily_tokens` : sql`excluded.daily_tokens`},
+            daily_cost = ${b.dailyCost === undefined ? sql`ai_project_limits.daily_cost` : sql`excluded.daily_cost`},
             daily_tasks = ${b.dailyTasks === undefined ? sql`ai_project_limits.daily_tasks` : sql`excluded.daily_tasks`},
             autopilot = ${b.autopilot === undefined ? sql`ai_project_limits.autopilot` : sql`excluded.autopilot`},
             updated_at = now()`,

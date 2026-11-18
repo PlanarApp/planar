@@ -11,6 +11,7 @@ import { textOf } from './email.js';
 import { harnessBlock, loadPack, parseInstructionPage } from './harness.js';
 import { generateStructured } from './llm.js';
 import { instructionBody } from './packs.js';
+import { tracked, type Tracker } from './monitor.js';
 import { aiEnabled, asDoc, blocked, md, withMention } from './run.js';
 import type { RetroNewAction } from './schema.js';
 
@@ -32,7 +33,13 @@ export type RetroData =
   /** the AI was set up in the project (the pack applied): the task «harness-retro» exists */
   | { kind: 'init'; projectId: string }
   /** cluster the open subtasks into proposals */
-  | { kind: 'run'; projectId: string }
+  | {
+      kind: 'run';
+      projectId: string;
+      /** PLNRAPP-500: for the monitor; absent — by frictions (event) */
+      trigger?: 'cron' | 'manual';
+      userId?: string | null;
+    }
   /** an admin's answer to the bot: a subtask */
   | { kind: 'feedback'; projectId: string; taskId: string; title: string; text: string }
   /** the admin answered in the thread of a proposal */
@@ -585,16 +592,19 @@ const endRun = (q: Exec, id: string, state: string, log: string) =>
   );
 
 /** One retro: open items → proposals (subtasks on the admin with the diff). */
-async function runRetro(projectId: string, api: JobApi) {
-  if (!(await aiEnabled(api.db))) return;
+async function runRetro(projectId: string, api: JobApi, t: Tracker) {
+  if (!(await aiEnabled(api.db))) return void (await t.step('ИИ выключен — пропуск'));
   const s = await retroOf(api.db, projectId);
-  if (!s.enabled || !s.taskId) return;
+  if (!s.enabled || !s.taskId)
+    return void (await t.step('harness-retro в проекте выключено или нет задачи — пропуск'));
   const retroTask = await one(
     api.db,
     sql`select id from tasks where id = ${s.taskId}::uuid and archived_at is null`,
   );
   const bot = await botId(api.db);
-  if (!retroTask || !bot) return;
+  if (!retroTask || !bot)
+    return void (await t.step('нет задачи harness-retro или бота ИИ — пропуск'));
+  await t.check();
   const mark = () =>
     api.db.execute(
       sql`update ai_retro set frictions = 0, last_run_at = now(), updated_at = now() where project_id = ${projectId}::uuid`,
@@ -618,7 +628,16 @@ async function runRetro(projectId: string, api: JobApi) {
   );
   const pack = await activePack(api.db, projectId);
   // nothing to cluster, or no harness to edit
-  if (!items.length || !pack) return void (await mark());
+  if (!items.length || !pack) {
+    await t.step(
+      !pack
+        ? 'нет активного harness-пакета — нечего править'
+        : 'нет новых подзадач — нечего обрабатывать',
+    );
+    return void (await mark());
+  }
+  await t.step(`подзадач к обработке: ${items.length}, запрос к ИИ`);
+  await t.check();
   const prompt = [
     '# Подзадачи harness-retro',
     ...items.map(
@@ -641,12 +660,24 @@ async function runRetro(projectId: string, api: JobApi) {
     system: RETRO_PROMPT,
     prompt,
   });
-  if (!r) return;
+  if (!r)
+    return void (await t.step(
+      'ИИ не ответил: нет подключения, исчерпан лимит или ошибка провайдера',
+      {
+        level: 'error',
+      },
+    ));
   const log: string[] = [];
   for (const p of r.object.proposals)
-    await propose(api, { projectId, retroTaskId: s.taskId, bot, pack, items }, p).catch((e) =>
-      log.push(`«${p.title}»: ${errText(e)}`),
+    await propose(api, { projectId, retroTaskId: s.taskId, bot, pack, items }, p).then(
+      () => t.step(`предложение: «${p.title}»`, { level: 'action' }),
+      (e) => log.push(`«${p.title}»: ${errText(e)}`),
     );
+  t.count(items.length);
+  await t.step(
+    `обработано подзадач: ${items.length}, предложений: ${r.object.proposals.length - log.length}${log.length ? `, ошибок: ${log.length}` : ''}`,
+    { level: log.length ? 'error' : 'info' },
+  );
   await endRun(api.db, r.runId, 'done', log.join('\n'));
   await mark();
 }
@@ -999,7 +1030,18 @@ async function decide(d: { proposalId: string; replyId: string }, api: JobApi) {
 /** The queue ai.retro. */
 export async function handleRetro(d: RetroData, api: JobApi): Promise<void> {
   if (d.kind === 'init') return void (await ensureRetroTask(api, d.projectId));
-  if (d.kind === 'run') return runRetro(d.projectId, api);
+  if (d.kind === 'run')
+    return tracked(
+      api.db,
+      {
+        engine: 'harness',
+        job: 'retro',
+        projectId: d.projectId,
+        trigger: d.trigger ?? 'event',
+        userId: d.userId ?? null,
+      },
+      (t) => runRetro(d.projectId, api, t),
+    );
   if (d.kind === 'decide') return decide(d, api);
   // feedback: not about the retro itself
   const t = await one(
@@ -1014,19 +1056,33 @@ export async function handleRetro(d: RetroData, api: JobApi): Promise<void> {
 
 /** Cron: projects whose retro is due by days and that have open items. */
 export async function retroTick(_d: object, api: JobApi): Promise<void> {
-  if (!(await aiEnabled(api.db))) return;
+  await tracked(api.db, { engine: 'harness', job: 'retro_tick', trigger: 'cron' }, (t) =>
+    retroDue(api, t),
+  );
+}
+
+async function retroDue(api: JobApi, t: Tracker) {
+  if (!(await aiEnabled(api.db))) return void (await t.step('ИИ выключен — пропуск'));
   const due = await rows(
     api.db,
-    sql`select r.project_id as "projectId" from ai_retro r join projects p on p.id = r.project_id
+    sql`select r.project_id as "projectId", p.name from ai_retro r join projects p on p.id = r.project_id
         where r.enabled and r.task_id is not null and 'ai' = any(p.modules)
           and coalesce(r.last_run_at, r.created_at) < now() - make_interval(days => r.every_days)
           and exists (select 1 from tasks t join statuses s on s.id = t.status_id
             where t.parent_id = r.task_id and t.archived_at is null and s.category not in ('done', 'cancelled')
               and not exists (select 1 from ai_retro_proposals x where x.task_id = t.id))`,
   );
-  for (const r of due)
-    await api.enqueue(RETRO_QUEUE, { kind: 'run', projectId: r.projectId } as RetroData, {
-      singletonKey: `retro:${r.projectId as string}`,
-      upsert: true,
+  for (const r of due) {
+    await api.enqueue(
+      RETRO_QUEUE,
+      { kind: 'run', projectId: r.projectId, trigger: 'cron' } as RetroData,
+      { singletonKey: `retro:${r.projectId as string}`, upsert: true },
+    );
+    t.count();
+    await t.step(`${r.name as string}: пора по расписанию — обработка поставлена в очередь`, {
+      projectId: r.projectId as string,
+      level: 'action',
     });
+  }
+  if (!due.length) await t.step('по расписанию проектов к обработке нет');
 }
