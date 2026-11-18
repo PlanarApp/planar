@@ -16,4 +16,8 @@ describe('PWA edge-to-edge', () => {
     for (const side of ['top', 'right', 'bottom', 'left'])
       expect(rules).toContain(`env(safe-area-inset-${side})`);
   });
+
+  it('theme_color манифеста — фирменный фиолетовый (нижняя панель Android)', () => {
+    expect(read('../../vite.config.ts')).toMatch(/theme_color: '#4f46e5'/);
+  });
 });
