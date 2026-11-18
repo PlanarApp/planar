@@ -96,3 +96,51 @@ describe('views:builder fields-fix', () => {
     expect(w.find('option[value="field:f-other"]').exists()).toBe(false);
   });
 });
+
+describe('views:builder PLNRAPP-508', () => {
+  const T = '2026-01-01T00:00:00Z';
+  const put = async () => {
+    await db.table('projects').bulkPut([
+      { id: 'p-near', spaceId: ids.space, name: 'Near', key: 'NR', rank: 'a2', archivedAt: null },
+      { id: 'p-arch', spaceId: ids.space, name: 'Arch', key: 'AR', rank: 'a3', archivedAt: T },
+    ]);
+    const st = (id: string, projectId: string, name: string) => ({
+      id,
+      spaceId: ids.space,
+      projectId,
+      name,
+      category: 'todo',
+      color: '#888',
+      rank: 'a5',
+      createdAt: T,
+      updatedAt: T,
+    });
+    await db
+      .table('statuses')
+      .bulkPut([st('s-near', 'p-near', 'Переговоры'), st('s-arch', 'p-arch', 'Решено')]);
+  };
+  const mountWith = (projectId?: string) =>
+    mount(FilterBuilder, {
+      props: {
+        modelValue: { op: 'and', rules: [{ field: 'status', operator: 'in' }] },
+        spaceId: ids.space,
+        projectId,
+      },
+      global: { plugins: [createI18n({ legacy: false, locale: 'ru', messages: { ru, en } })] },
+    });
+
+  it('PLNRAPP-508: в фильтре проекта только его статусы', async () => {
+    await put();
+    const w = mountWith(ids.project);
+    await vi.waitFor(() => expect(w.find(`[data-value="${ids.todo}"]`).exists()).toBe(true));
+    expect(w.find('[data-value="s-near"]').exists()).toBe(false);
+    expect(w.find('[data-value="s-arch"]').exists()).toBe(false);
+  });
+  it('PLNRAPP-508: без проекта — статусы живых проектов спейса, без архивных', async () => {
+    await put();
+    const w = mountWith();
+    await vi.waitFor(() => expect(w.find('[data-value="s-near"]').exists()).toBe(true));
+    expect(w.find(`[data-value="${ids.todo}"]`).exists()).toBe(true);
+    expect(w.find('[data-value="s-arch"]').exists()).toBe(false);
+  });
+});

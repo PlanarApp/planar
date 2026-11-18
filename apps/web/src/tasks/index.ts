@@ -10,6 +10,8 @@ export {
   useScopeTasks,
   prefetchProject,
   useTask,
+  useArchivedProjectIds,
+  notArchived,
 } from './queries';
 export type { TaskView } from './queries';
 export { groupTasks, labelColumns } from './group';

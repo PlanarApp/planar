@@ -2,7 +2,15 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Plus, X } from 'lucide-vue-next';
-import { AssigneePicker, DueDatePicker, LabelPicker, useProject, useStatuses } from '../../tasks';
+import {
+  AssigneePicker,
+  DueDatePicker,
+  LabelPicker,
+  notArchived,
+  useArchivedProjectIds,
+  useProject,
+  useStatuses,
+} from '../../tasks';
 import { normName, uniqByName } from '../../tasks/dictionaries';
 import { useFieldDefs, useSpaceFieldDefs } from '../../fields';
 import { Button, Input } from '../../ui';
@@ -22,12 +30,18 @@ const { t } = useI18n();
 // the module SDK passes only projectId: the space is taken from the project
 const project = useProject(() => props.projectId ?? '');
 const spaceId = computed(() => props.spaceId ?? project.value?.spaceId ?? '');
-const statuses = useStatuses(spaceId);
+// options of the project's own statuses and fields; without a project — of the space's live projects:
+// statuses of neighbouring and archived projects are not options (PLNRAPP-508)
+const archived = useArchivedProjectIds();
+const scopeStatuses = useStatuses(spaceId, () => props.projectId);
+const statuses = computed(() => notArchived(scopeStatuses.value, archived.value));
 
 // project fields (or of all the space's projects, if no project is set)
 const defsByProject = useFieldDefs(() => props.projectId ?? '');
 const defsBySpace = useSpaceFieldDefs(spaceId);
-const defs = computed(() => (props.projectId ? defsByProject : defsBySpace).value ?? []);
+const defs = computed(() =>
+  props.projectId ? (defsByProject.value ?? []) : notArchived(defsBySpace.value, archived.value),
+);
 // the "Sprint" rule — only when the sprints module is enabled
 const modViews = useExtensions('views');
 const hasSprints = computed(() => modViews.value.some((v) => v.moduleId === 'sprints'));
@@ -222,6 +236,8 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
         <LabelPicker
           v-else-if="kind(r) === 'label'"
           :space-id="spaceId"
+          :project-id="projectId"
+          no-create
           :model-value="list(r)"
           @update:model-value="patch(i, { value: $event })"
         />
