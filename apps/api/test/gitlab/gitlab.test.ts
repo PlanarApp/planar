@@ -303,22 +303,27 @@ describe('pt6a: опрос', () => {
     expect(new Date((await proj()).cursor!).toISOString()).toBe(all[249]!.updated_at);
   });
 
-  it('pt6a: ключи в title/branch/description; два ключа — две строки; ключ исчез — строка удалена; неизвестный пропущен', async () => {
+  it('pt6a: ключи из ветки, без них — из title; description не смотрим; ключ исчез — строка удалена; неизвестный пропущен', async () => {
     await addProject();
     const a = await mkTask();
     const b = await mkTask();
     const c = await mkTask();
+    const d = await mkTask();
     handler = (_, res) =>
       json(res, [
+        // PLNRAPP-406: the branch wins over the title, the description is ignored
         mr(1, {
-          title: `fix ${a.key} ${c.key.toLowerCase()}`,
+          title: `fix ${d.key}`,
           source_branch: `feature/${b.key.toLowerCase()}-x`,
           description: `see ${c.key} and ZZZ-999`,
         }),
-        mr(2, { title: 'нет ключей' }),
+        mr(2, { title: 'нет ключей', description: `see ${c.key}` }),
+        // a branch key of no task — the title is used
+        mr(3, { title: `fix ${a.key} ${c.key}`, source_branch: 'hotfix-2' }),
       ]);
     await poll();
-    expect((await mrsOf(1)).map((r) => r.taskId).sort()).toEqual([a.id, b.id, c.id].sort());
+    expect((await mrsOf(1)).map((r) => r.taskId)).toEqual([b.id]);
+    expect((await mrsOf(3)).map((r) => r.taskId).sort()).toEqual([a.id, c.id].sort());
     expect(await mrsOf(2)).toHaveLength(0);
     expect((await mrsOf(1))[0]).toMatchObject({
       gitlabProjectId: 42,

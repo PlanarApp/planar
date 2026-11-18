@@ -58,21 +58,21 @@ export function mrRowId(taskId: string, gitlabProjectId: number, iid: number): s
   return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}`;
 }
 
-export function keysOf(
-  mr: Pick<GlMr, 'title' | 'source_branch' | 'description'>,
-): [string, number][] {
-  const seen = new Map<string, [string, number]>();
+/**
+ * Task keys of an MR in priority order (PLNRAPP-406): the source branch first, then the title; the first
+ * group that matches a task wins. The description is not scanned: it mentions other tasks.
+ */
+export function keysOf(mr: Pick<GlMr, 'title' | 'source_branch'>): [string, number][][] {
   // case matters only in the branch name
   const scan = (text: string | null, flags: string) => {
+    const seen = new Map<string, [string, number]>();
     for (const m of (text ?? '').matchAll(new RegExp(KEY_SRC, flags))) {
       const k: [string, number] = [m[1]!.toUpperCase(), Number(m[2])];
       seen.set(`${k[0]}-${k[1]}`, k);
     }
+    return [...seen.values()];
   };
-  scan(mr.title, 'g');
-  scan(mr.source_branch, 'gi');
-  scan(mr.description, 'g');
-  return [...seen.values()];
+  return [scan(mr.source_branch, 'gi'), scan(mr.title, 'g')];
 }
 
 const now = () => new Date().toISOString();
@@ -184,12 +184,15 @@ async function pipelineOf(
 async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr, token?: string) {
   const { projectId, gitlabProjectId } = c;
   const found = new Map<string, string>();
-  for (const [key, number] of keysOf(mr)) {
-    const r = await api.db.execute(
-      sql`select t.id from tasks t join projects p on p.id = t.project_id
-          where p.id = ${projectId} and p.key = ${key} and t.number = ${number}`,
-    );
-    for (const row of r.rows as { id: string }[]) found.set(row.id, row.id);
+  for (const group of keysOf(mr)) {
+    for (const [key, number] of group) {
+      const r = await api.db.execute(
+        sql`select t.id from tasks t join projects p on p.id = t.project_id
+            where p.id = ${projectId} and p.key = ${key} and t.number = ${number}`,
+      );
+      for (const row of r.rows as { id: string }[]) found.set(row.id, row.id);
+    }
+    if (found.size) break;
   }
   if (!found.size) {
     const had = await api.db.execute(
