@@ -6,9 +6,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { decrypt } from '@planar/server-kit';
 import { pollAll } from '@planar/module-gitlab/api';
-import { gitlabConnections as P, gitlabMrs as M } from '@planar/module-gitlab/api/schema';
+import {
+  gitlabBranches as B,
+  gitlabConnections as P,
+  gitlabMrs as M,
+  gitlabProjectSettings as S,
+} from '@planar/module-gitlab/api/schema';
 import { JobsService } from '../../src/jobs/jobs.js';
-import { projects, settings, tasks } from '../../src/db/schema.js';
+import { projects, settings, tasks, users } from '../../src/db/schema.js';
 import { createUser, loginCookie, ORIGIN } from '../auth.js';
 import { db, getApp, useApp } from '../auth/harness.js';
 import { key as pkey, taskArgs, world, type World } from '../sync/helpers.js';
@@ -75,6 +80,8 @@ beforeEach(async () => {
   hits = [];
   handler = (_, res) => json(res, [], {}, 200);
   await db.delete(M);
+  await db.delete(B);
+  await db.delete(S);
   await db.delete(P);
 });
 
@@ -511,12 +518,22 @@ describe('PLNRAPP-153: ветка, MR и опрос из задачи', () => {
   const as = async (u: { userId: string }) => ({ cookie: await loginCookie(db, u.userId) });
   const posts = () => hits.filter((h) => h.method === 'POST').map((h) => [h.path, h.body]);
 
-  it('MR: ветка по ключу от ветки по умолчанию, MR в неё, строка gitlabMrs — сразу', async () => {
+  const branchesOf = (taskId: string) => db.select().from(B).where(eq(B.taskId, taskId));
+
+  it('ветка по шаблону от ветки по умолчанию привязана к задаче; MR из неё — строка gitlabMrs сразу', async () => {
     await addProject(42);
     const t = await mkTask();
     handler = gitlab();
     hits = [];
-    const r = await call('POST', `tasks/${t.id}/mr`, {}, await as(w.member));
+    const m = await as(w.member);
+    const br = await call('POST', `tasks/${t.id}/branch`, {}, m);
+    expect(br.statusCode).toBe(201);
+    const made = br.json().branch as { id: string; name: string; webUrl: string };
+    expect(made).toMatchObject({ name: t.key, webUrl: `https://gl/g/-/tree/${t.key}` });
+    expect((await branchesOf(t.id)).map((x) => [x.id, x.name, x.gitlabProjectId])).toEqual([
+      [made.id, t.key, 42],
+    ]);
+    const r = await call('POST', `tasks/${t.id}/mr`, { branchId: made.id }, m);
     expect(r.statusCode).toBe(201);
     expect(r.json()).toEqual({ webUrl: 'https://gl/mr/5' });
     expect(posts()).toEqual([
@@ -532,7 +549,79 @@ describe('PLNRAPP-153: ветка, MR и опрос из задачи', () => {
     ]);
     expect((await mrsOf(5)).map((x) => x.taskId)).toEqual([t.id]);
     handler = gitlab(400, 409);
-    expect((await call('POST', `tasks/${t.id}/mr`, {})).statusCode).toBe(409);
+    expect((await call('POST', `tasks/${t.id}/mr`, { branchId: made.id })).statusCode).toBe(409);
+    // a branch of another task or an unknown one — 404
+    const t2 = await mkTask();
+    expect((await call('POST', `tasks/${t2.id}/mr`, { branchId: made.id })).statusCode).toBe(404);
+    expect((await call('POST', `tasks/${t.id}/mr`, {})).statusCode).toBe(400);
+  });
+
+  it('имя ветки: своё, проверка git ref, повтор — та же строка; удаление задачи и подключения убирает ветки', async () => {
+    const c = await addProject(42);
+    const t = await mkTask();
+    handler = gitlab(400);
+    const bad = await call('POST', `tasks/${t.id}/branch`, { name: 'a b' });
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json().message).toContain('пробелов');
+    const one = await call('POST', `tasks/${t.id}/branch`, { name: 'feature/x-1' });
+    expect(one.statusCode).toBe(201);
+    expect(one.json().branch.webUrl).toBe('https://gl/g/-/tree/feature/x-1');
+    const two = await call('POST', `tasks/${t.id}/branch`, { name: 'feature/x-1' });
+    expect(two.json().branch.id).toBe(one.json().branch.id);
+    expect(await branchesOf(t.id)).toHaveLength(1);
+    expect((await call('DELETE', `connections/${c.id}`)).statusCode).toBe(204);
+    expect(await branchesOf(t.id)).toHaveLength(0);
+    await addProject(42);
+    handler = gitlab(400);
+    await call('POST', `tasks/${t.id}/branch`, { name: 'y' });
+    expect(await branchesOf(t.id)).toHaveLength(1);
+    await w.admin.ok('task.delete', { id: t.id });
+    expect(await branchesOf(t.id)).toHaveLength(0);
+  });
+
+  it('шаблон ветки: проверка при сохранении, права, превью по задаче и пользователю', async () => {
+    await addProject(42);
+    const t = await mkTask();
+    await db.update(tasks).set({ title: 'Кнопка опроса GitLab' }).where(eq(tasks.id, t.id));
+    const put = (template: unknown, h?: Record<string, string>) =>
+      call('PUT', `projects/${w.projectId}/branch-template`, { template }, h);
+    const m = await as(w.member);
+    const preview = async () =>
+      (await call('GET', `tasks/${t.id}/branch-name`, undefined, m)).json() as {
+        name: string;
+        template: string;
+      };
+    expect(await preview()).toMatchObject({ name: t.key, template: '{TASK_KEY}' });
+    for (const [tpl, msg] of [
+      ['{TASK_ID}', '{TASK_ID}'],
+      ['{TASK_KEY', 'Незакрытая'],
+      ['{TASK_KEY} x', 'пробелов'],
+      ['{TASK_KEY}.lock', '.lock'],
+    ]) {
+      const r = await put(tpl, m);
+      expect(r.statusCode, tpl).toBe(400);
+      expect(r.json().message).toContain(msg);
+    }
+    expect((await put('{USER_LOGIN}/{TASK_KEY}', await as(w.guest))).statusCode).toBe(403);
+    expect((await put('{TASK_KEY}', await as(w.outsider))).statusCode).toBe(404);
+    const ok = await put('{USER_LOGIN}/{TASK_KEY}-{TASK_NAME}', m);
+    expect(ok.statusCode).toBe(200);
+    const [row] = await db.select().from(S).where(eq(S.id, w.projectId));
+    expect(row!.branchTemplate).toBe('{USER_LOGIN}/{TASK_KEY}-{TASK_NAME}');
+    const [u] = await db.select().from(users).where(eq(users.id, w.member.userId));
+    expect((await preview()).name).toBe(`${u!.login}/${t.key}-knopka-oprosa-gitlab`);
+    // the merged status keeps the template and vice versa
+    await w.admin.ok('gitlab.setMergedStatus', { projectId: w.projectId, statusId: null });
+    expect((await db.select().from(S).where(eq(S.id, w.projectId)))[0]!.branchTemplate).toBe(
+      '{USER_LOGIN}/{TASK_KEY}-{TASK_NAME}',
+    );
+    // a branch without a name — by the template, of the one who creates it
+    handler = gitlab();
+    const br = await call('POST', `tasks/${t.id}/branch`, {}, m);
+    expect(br.json().branch.name).toBe(`${u!.login}/${t.key}-knopka-oprosa-gitlab`);
+    // empty — back to {TASK_KEY}
+    expect((await put('', m)).json()).toEqual({ template: null });
+    expect((await preview()).name).toBe(t.key);
   });
 
   it('ветка: уже есть — не ошибка; репозитории и опрос — по проекту задачи; права', async () => {
@@ -541,7 +630,7 @@ describe('PLNRAPP-153: ветка, MR и опрос из задачи', () => {
     handler = gitlab(400);
     const r = await call('POST', `tasks/${t.id}/branch`, { connectionId: c.id });
     expect(r.statusCode).toBe(201);
-    expect(r.json()).toEqual({ webUrl: `https://gl/g/-/tree/${t.key}` });
+    expect(r.json().branch).toMatchObject({ name: t.key, webUrl: `https://gl/g/-/tree/${t.key}` });
     expect((await call('GET', `tasks/${t.id}/repos`)).json()).toEqual({
       repos: [{ id: c.id, path: 'g/p42' }],
     });

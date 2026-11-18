@@ -6,6 +6,9 @@ import {
   type SharedModuleManifest,
   type Tx,
 } from '@planar/shared';
+import { branchTemplateError, BRANCH_NAME_MAX } from './branch-name.js';
+
+export * from './branch-name.js';
 
 const ts = z.iso.datetime();
 const id = z.uuid();
@@ -35,9 +38,24 @@ export const gitlabProjectSettings = z.object({
   id,
   spaceId: id,
   mergedStatusId: id.nullable(),
+  /** PLNRAPP-153: branch name template; null — `{TASK_KEY}`. default: replica rows cached before the column */
+  branchTemplate: z.string().max(200).nullable().default(null),
+  updatedAt: ts,
+});
+/** PLNRAPP-153: a branch created from the task's GitLab tab (MRs are grouped under it by sourceBranch). */
+export const gitlabBranches = z.object({
+  id,
+  spaceId: id,
+  taskId: id,
+  gitlabProjectId: z.number().int(),
+  name: z.string().min(1).max(BRANCH_NAME_MAX),
+  webUrl: z.string(),
+  createdAt: ts,
   updatedAt: ts,
 });
 export type GitlabMr = z.output<typeof gitlabMrs>;
+export type GitlabBranch = z.output<typeof gitlabBranches>;
+type Settings = z.output<typeof gitlabProjectSettings>;
 
 // Tx is typed with core entities; module entities are cast (C-modules)
 interface MTx {
@@ -148,12 +166,77 @@ export const mutators = [
         if (!s || s.projectId !== p.id)
           throw new MutatorError('invalid_args', 'statusId другого проекта');
       }
+      const old = (await mtx(tx).get(E('gitlabProjectSettings'), p.id)) as Settings | undefined;
       await mtx(tx).put(E('gitlabProjectSettings'), {
         id: p.id,
         spaceId: p.spaceId,
         mergedStatusId: a.statusId,
+        branchTemplate: old?.branchTemplate ?? null,
         updatedAt: ctx.now,
       });
+    },
+  }),
+  defineMutator({
+    name: 'gitlab.setBranchTemplate',
+    // null — the default {TASK_KEY}; REST PUT /api/gitlab/projects/:id/branch-template calls it as system for a non-guest
+    args: z.object({ projectId: id, template: z.string().max(200).nullable() }),
+    async run(tx, a, ctx) {
+      const p = await tx.get('projects', a.projectId);
+      if (!p) throw new MutatorError('not_found', `projects ${a.projectId}`);
+      const err = a.template === null ? null : branchTemplateError(a.template);
+      if (err) throw new MutatorError('invalid_args', err);
+      const old = (await mtx(tx).get(E('gitlabProjectSettings'), p.id)) as Settings | undefined;
+      await mtx(tx).put(E('gitlabProjectSettings'), {
+        id: p.id,
+        spaceId: p.spaceId,
+        mergedStatusId: old?.mergedStatusId ?? null,
+        branchTemplate: a.template,
+        updatedAt: ctx.now,
+      });
+    },
+  }),
+  defineMutator({
+    name: 'gitlab.branch.link',
+    // writing to gitlabBranches (write: server) — only system; the same (task, repository, name) again — kept
+    args: z.object({
+      id,
+      taskId: id,
+      gitlabProjectId: z.number().int(),
+      name: gitlabBranches.shape.name,
+      webUrl: z.string(),
+    }),
+    async run(tx, a, ctx) {
+      const task = await tx.get('tasks', a.taskId);
+      if (!task) throw new MutatorError('not_found', `tasks ${a.taskId}`);
+      const rows = (await mtx(tx).scan(E('gitlabBranches'), {
+        index: 'taskId',
+        eq: a.taskId,
+      })) as GitlabBranch[];
+      if (rows.some((r) => r.gitlabProjectId === a.gitlabProjectId && r.name === a.name)) return;
+      await mtx(tx).put(E('gitlabBranches'), {
+        id: a.id,
+        spaceId: task.spaceId,
+        taskId: a.taskId,
+        gitlabProjectId: a.gitlabProjectId,
+        name: a.name,
+        webUrl: a.webUrl,
+        createdAt: ctx.now,
+        updatedAt: ctx.now,
+      });
+    },
+  }),
+  defineMutator({
+    name: 'gitlab.branch.dropRepo',
+    // the connection is removed: branches of its repository on the tasks of its project go too (system only)
+    args: z.object({ projectId: id, gitlabProjectId: z.number().int() }),
+    async run(tx, a) {
+      const t = mtx(tx);
+      for (const r of (await t.scan(E('gitlabBranches'))) as GitlabBranch[])
+        if (
+          r.gitlabProjectId === a.gitlabProjectId &&
+          (await tx.get('tasks', r.taskId))?.projectId === a.projectId
+        )
+          await t.del(E('gitlabBranches'), r.id);
     },
   }),
 ];
@@ -164,6 +247,10 @@ export const shared: SharedModuleManifest = {
   entities: {
     gitlabMrs: {
       schema: gitlabMrs,
+      meta: { scope: 'space', write: 'server', bootstrap: true, indexes: ['taskId'] },
+    },
+    gitlabBranches: {
+      schema: gitlabBranches,
       meta: { scope: 'space', write: 'server', bootstrap: true, indexes: ['taskId'] },
     },
     gitlabProjectSettings: {
