@@ -48,8 +48,8 @@ const moduleIds = [
 describe('p3 contract: разбор документа', () => {
   it('модули и число сущностей и мутаторов', () => {
     expect([...moduleIds].sort()).toEqual(['dashboards', 'forms', 'gitlab', 'workload']);
-    expect(entities.length).toBe(6);
-    expect(mutators.length).toBe(12);
+    expect(entities.length).toBe(7);
+    expect(mutators.length).toBe(15);
   });
 });
 
