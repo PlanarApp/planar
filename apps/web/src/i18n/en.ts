@@ -968,6 +968,13 @@ export default {
     },
   },
   list: {
+    assign: {
+      mode: 'Assignees: mode',
+      add: 'Add',
+      remove: 'Remove',
+      set: 'Replace',
+      apply: 'Apply',
+    },
     actions: 'Actions',
     resize: 'Column width (double-click — auto)',
     colName: 'Name',

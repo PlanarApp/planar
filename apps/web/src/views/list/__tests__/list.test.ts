@@ -11,7 +11,7 @@ import { linkTasks } from '../../../links';
 import { db, registerMutators, startSync, stopSync } from '../../../sync';
 import { AssigneePicker, PriorityPicker, StatusPicker } from '../../../tasks';
 import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
-import { resetBreakpoint } from '../../../ui';
+import { resetBreakpoint, Select } from '../../../ui';
 import { commitImeOnEnter } from '../../../ui/imeEnter';
 import { registerModules } from '../../../modules/registry';
 import { useAuth } from '../../../auth/useAuth';
@@ -803,5 +803,59 @@ describe('PLANARAPP-43 поля модулей на строке', () => {
     await show();
     await until(() => w.find('[data-testid=card-ext]').exists());
     expect(w.get('[data-testid=card-ext]').text()).toBe(t1.id);
+  });
+});
+
+describe('PLNRAPP-498 режимы исполнителей в массовой панели', () => {
+  const assign = async (n: number, users: string[]) => {
+    const t = task(n, { rank: rank(n) });
+    await db.table('tasks').put(t);
+    await db.table('taskAssignees').bulkPut(
+      users.map((userId) => ({
+        id: id(),
+        taskId: t.id,
+        userId,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+      })),
+    );
+    return t.id;
+  };
+  const users = async (tid: string) =>
+    (await db.table('taskAssignees').where('taskId').equals(tid).toArray())
+      .map((x) => x.userId)
+      .sort();
+  const run = async (mode: string, picked: string[]) => {
+    const bar = w.get('[data-testid=bulk-bar]');
+    bar.getComponent(Select).vm.$emit('update:modelValue', mode);
+    await flushPromises();
+    bar.getComponent(AssigneePicker).vm.$emit('update:modelValue', picked);
+    await flushPromises();
+    await bar.get('[data-testid=bulk-assign-apply]').trigger('click');
+  };
+  const setup = async () => {
+    const a = await assign(1, [ids.ann, ids.bob]);
+    const b = await assign(2, [ids.bob]);
+    await show();
+    await row('PLN-1').trigger('click', { metaKey: true });
+    await row('PLN-2').trigger('click', { metaKey: true });
+    return [a, b] as const;
+  };
+  it('«Убрать» снимает выбранного у всех и не трогает остальных', async () => {
+    const [a, b] = await setup();
+    await run('remove', [ids.bob]);
+    await poll(async () => (await users(b)).length === 0);
+    expect(await users(a)).toEqual([ids.ann]);
+  });
+  it('«Заменить» ставит ровно выбранный набор', async () => {
+    const [a, b] = await setup();
+    await run('set', [ids.ann]);
+    await poll(async () => (await users(b)).join() === ids.ann);
+    expect(await users(a)).toEqual([ids.ann]);
+  });
+  it('«Заменить» с пустым набором снимает всех исполнителей', async () => {
+    const [a, b] = await setup();
+    await run('set', []);
+    await poll(async () => (await users(a)).length + (await users(b)).length === 0);
   });
 });

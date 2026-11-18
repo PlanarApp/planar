@@ -14,6 +14,21 @@ export const applyToggle = (
   ...to.filter((id) => !from.includes(id) && !current.includes(id)),
 ];
 
+/** Bulk assignee mode (PLNRAPP-498): add to the current, remove from them, or set exactly the picked. */
+export type AssignMode = 'add' | 'remove' | 'set';
+
+/** One task's assignees after applying `picked` in `mode`; `set` with nothing picked clears all. */
+export const applyAssignees = (
+  mode: AssignMode,
+  current: readonly string[],
+  picked: readonly string[],
+): string[] =>
+  mode === 'remove'
+    ? current.filter((id) => !picked.includes(id))
+    : mode === 'set'
+      ? [...picked]
+      : [...current, ...picked.filter((id) => !current.includes(id))];
+
 // one state for the app
 const selected = ref<ReadonlySet<string>>(new Set());
 const anchor = ref<string | null>(null);
