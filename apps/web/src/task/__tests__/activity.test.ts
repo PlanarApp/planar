@@ -135,6 +135,18 @@ describe('task: индикатор работы ИИ', () => {
     expect(aiRow().text()).toBe('Работает');
   }, 10_000);
 
+  it('PLNRAPP-532: задание взято, прогон ещё не записан — опрос не останавливается и видит прогон', async () => {
+    answer = [run({ state: 'queued', itemId: null })];
+    w = await open();
+    await until(() => aiRow().exists());
+    const before = load.mock.calls.length;
+    // the job is taken, its run is not in the DB yet: nothing live for a moment
+    answer = [];
+    await until(() => load.mock.calls.length > before && !aiRow().exists(), 6000);
+    answer = [run({ itemId: null, startedAt: ago(0) })];
+    await until(() => aiRow().exists() && aiRow().attributes('data-state') === 'running', 6000);
+  }, 15_000);
+
   it('«Ждёт» — «Отменить»: ожидание отменено и сразу скрыто; без cancel — кнопки нет', async () => {
     const cancel = vi.fn(async () => {});
     answer = [run({ state: 'queued', itemId: null, cancel })];
