@@ -125,6 +125,10 @@ describe('packs', () => {
     }
     expect(parseInstructionDoc(files['actions/plan.md']!).prompt).toContain('«Бюджет»');
     expect(parseInstructionDoc(files['actions/plan.md']!).prompt).toContain('шаги воспроизведения');
+    expect(parseInstructionDoc(files['actions/triage.md']!).prompt).toContain(
+      'описание задачи пустое',
+    );
+    expect(parseInstructionDoc(files['actions/triage.md']!).prompt).toContain('предварительную');
     expect(parseInstructionDoc(files['actions/dev.md']!).prompt).toContain('«Test prod»');
   });
 
