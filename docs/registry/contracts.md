@@ -15,7 +15,7 @@ generated: true
 - ai10: ai10-runner v3 — [docs/contracts/ai10.md](../contracts/ai10.md)
 - aikb: aikb-section v1, aikb-urls v1 — [docs/contracts/aikb.md](../contracts/aikb.md)
 - aistat: aistat v1 — [docs/contracts/aistat.md](../contracts/aistat.md)
-- core: C-schema v17, C-sync v2, C-mutators v14, C-modules v12, C-http v12 — [docs/contracts/core.md](../contracts/core.md)
+- core: C-schema v17, C-sync v3, C-mutators v14, C-modules v12, C-http v13 — [docs/contracts/core.md](../contracts/core.md)
 - design: C-ui v5 — [docs/contracts/design.md](../contracts/design.md)
 - docai: docai-run v2, docai-patch v1 — [docs/contracts/docai.md](../contracts/docai.md)
 - features: F-fields v1, F-links v1, F-filter v1, F-views v1 — [docs/contracts/features.md](../contracts/features.md)

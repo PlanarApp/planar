@@ -39,7 +39,7 @@ export interface DocField {
 }
 export interface DocEntity {
   name: string;
-  meta: { scope: string; write: string; bootstrap: boolean; indexes: string[] };
+  meta: { scope: string; write: string; bootstrap: boolean; indexes: string[]; detail?: string };
   fields: DocField[];
   /** columns «DB-only: `col type …`» after the table */
   dbOnly: string[];
@@ -47,7 +47,7 @@ export interface DocEntity {
 
 export const docEntities: DocEntity[] = [
   ...schemaDoc.matchAll(
-    /^#### (\w+)\nscope: (\S+) · write: (\S+) · bootstrap: (yes|no) · indexes: (.+)\n\n((?:\|.*\n)+)((?:(?!^#{2,4} )[\s\S])*)/gm,
+    /^#### (\w+)\nscope: (\S+) · write: (\S+) · bootstrap: (yes|no) · indexes: ([^·\n]+?)(?: · detail: (\w+))?\n\n((?:\|.*\n)+)((?:(?!^#{2,4} )[\s\S])*)/gm,
   ),
 ].map((m) => ({
   name: m[1],
@@ -56,14 +56,15 @@ export const docEntities: DocEntity[] = [
     write: m[3],
     bootstrap: m[4] === 'yes',
     indexes: m[5].trim() === '—' ? [] : m[5].split(',').map((s) => s.trim()),
+    ...(m[6] ? { detail: m[6] } : {}),
   },
-  fields: [...m[6].matchAll(/^\| `(\w+)` \| ([^|]+) \|([^|]*)\|/gm)].map((f) => ({
+  fields: [...m[7].matchAll(/^\| `(\w+)` \| ([^|]+) \|([^|]*)\|/gm)].map((f) => ({
     name: f[1],
     type: f[2].trim(),
     nullable: f[2].trim().endsWith('?'),
     note: f[3].trim(),
   })),
-  dbOnly: [...m[7].matchAll(/^DB only: `(\w+)/gm)].map((d) => d[1]),
+  dbOnly: [...m[8].matchAll(/^DB only: `(\w+)/gm)].map((d) => d[1]),
 }));
 
 export interface DocServerTable {

@@ -233,7 +233,7 @@ scope: space · write: member · bootstrap: yes · indexes: taskId, assigneeId
 | `updatedAt` | ts | |
 
 #### comments
-scope: space · write: guest · bootstrap: yes · indexes: taskId, assigneeId
+scope: space · write: guest · bootstrap: yes · indexes: taskId, assigneeId · detail: tasks
 
 | field | type | note |
 |---|---|---|
@@ -252,7 +252,7 @@ scope: space · write: guest · bootstrap: yes · indexes: taskId, assigneeId
 | `updatedAt` | ts | |
 
 #### commentReactions
-scope: space · write: guest · bootstrap: yes · indexes: commentId
+scope: space · write: guest · bootstrap: yes · indexes: commentId · detail: tasks
 
 | field | type | note |
 |---|---|---|
@@ -262,6 +262,8 @@ scope: space · write: guest · bootstrap: yes · indexes: commentId
 | `userId` | uuid | = ctx.userId; the mutator adds and removes only its own |
 | `emoji` | text | 1–32 characters (one emoji or a short code) |
 | `createdAt` | ts | |
+
+The task of a reaction (C-sync v3, `detail: tasks`) — `taskId` of its comment; the row has no such field, the server puts it into `changes[].taskId` of pull and groups the snapshot of `POST /sync/tasks` by task.
 
 #### attachments
 scope: space · write: member · bootstrap: yes · indexes: taskId, commentId
