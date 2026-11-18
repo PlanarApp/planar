@@ -59,7 +59,8 @@ export function useQuery<T>(fn: () => T | Promise<T>): Readonly<Ref<T | undefine
   // an equal result keeps the old object — shallowRef does not trigger
   const sub = liveQuery(fn).subscribe({
     next: (v) => (r.value = keep(r.value, v)),
-    error: () => {},
+    // after an error liveQuery stops: the screen goes stale, so at least leave a trace
+    error: (e) => console.error('useQuery', e),
   });
   if (getCurrentScope()) onScopeDispose(() => sub.unsubscribe());
   return r as Readonly<Ref<T | undefined>>; // P10: readonly() wraps each element in a proxy

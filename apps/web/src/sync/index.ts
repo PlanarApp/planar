@@ -1,4 +1,5 @@
 import { generateKeyBetween } from 'fractional-indexing';
+import { ref } from 'vue';
 import { uuidv7, type SharedModuleManifest } from '@planar/shared';
 import { createClient } from './client';
 import { registerModuleEntities } from './dexie-tx';
@@ -21,6 +22,11 @@ export const moduleIndexes = (list: SharedModuleManifest[]): Record<string, stri
 
 export const db = new PlanarDB('planar', moduleIndexes(manifests));
 const client = createClient(db);
+
+/** The replica upgrade waits for another Planar tab: a frozen background tab does not close its connection. */
+export const dbBlocked = ref(false);
+db.on('blocked', () => void (dbBlocked.value = true));
+db.on('ready', () => void (dbBlocked.value = false), true);
 
 export const {
   startSync,

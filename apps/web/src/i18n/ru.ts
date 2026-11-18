@@ -430,6 +430,7 @@ export default {
     reload: 'Обновить',
     downloading: 'Загружается новая версия…',
     applying: 'Применяется…',
+    dbBlocked: 'Обновление ждёт другие вкладки Planar. Закройте их — работа продолжится сама.',
     offlineReady: 'Готово к работе офлайн',
     offline: 'Офлайн',
     offlinePending: 'Офлайн · ждут отправки: {n}',
