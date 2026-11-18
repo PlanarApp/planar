@@ -426,6 +426,42 @@ describe('docs web: история версий (PLNRAPP-185)', () => {
   });
 });
 
+describe('docs web: дифф в истории версий (PLNRAPP-282)', () => {
+  it('«Изменения» — выбранная версия против предыдущей, другую можно выбрать', async () => {
+    const [v1, v2, v3] = [uuidv7(), uuidv7(), uuidv7()];
+    const TEXT = { [v1]: 'старый текст', [v2]: 'новый текст', [v3]: 'новый длинный текст' };
+    const json = (data: unknown) => new Response(JSON.stringify({ data }), { status: 200 });
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url.endsWith('/versions'))
+        return json([v3, v2, v1].map((id) => ({ id, source: 'editor', createdBy: ME, createdAt: NOW })));
+      const text = TEXT[url.slice(url.lastIndexOf('/') + 1)]!;
+      return json({ body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] } });
+    });
+    const w = mount(VersionsDialog, { props: { pageId: uuidv7(), open: true }, attachTo: document.body });
+    await vi.waitFor(() => expect(document.body.textContent).toContain('новый длинный текст'));
+    const items = [...document.querySelectorAll('[data-testid=doc-versions] button')] as HTMLElement[];
+    items[1]!.click();
+    await vi.waitFor(() => expect(document.body.textContent).toContain('новый текст'));
+    const box = document.querySelector('[data-testid=doc-version-diff]') as HTMLInputElement;
+    box.click();
+    const view = () => document.querySelector('[data-testid=doc-version-diff-view]');
+    const del = () => [...view()!.querySelectorAll('del')].map((e) => e.textContent);
+    const ins = () => [...view()!.querySelectorAll('ins')].map((e) => e.textContent);
+    // v2 against the previous v1
+    await vi.waitFor(() => expect(del()).toEqual(['старый']));
+    expect(ins()).toEqual(['новый']);
+    expect(document.querySelector('[data-testid=doc-version-changes]')!.textContent).toContain('1');
+    // against the newer v3: v2 is «before»
+    const sel = document.querySelector('[data-testid=doc-version-base]') as HTMLSelectElement;
+    sel.value = v3;
+    sel.dispatchEvent(new Event('change'));
+    await vi.waitFor(() => expect(ins()).toEqual(['длинный ']));
+    expect(del()).toEqual([]);
+    w.unmount();
+    vi.unstubAllGlobals();
+  });
+});
+
 describe('docs web: страница документа (PLNRAPP-184)', () => {
   it('пришли с другого экрана — «Назад» возвращает; открыта напрямую — кнопки нет', async () => {
     route.params = { pageId: uuidv7() };

@@ -1441,12 +1441,13 @@ async function insertAll(tx: Tx, now: Date) {
     }),
   );
   // PLNRAPP-185: version history of "Product vision" — Maya's first draft, Liam's addition through the API
+  // PLNRAPP-282: the draft's wording differs — «Изменения» shows a changed paragraph and an added one
   const vision = DOCS[0]!;
   await ins(docsVersions, [
     {
       id: uid('dver:0'),
       pageId: uid('page:0'),
-      body: docBody(vision.title, vision.paras.slice(0, 1)),
+      body: docBody(vision.title, ['Brightwave helps teams plan and track work.']),
       source: 'editor',
       createdBy: maya,
       createdAt: at(-40),
