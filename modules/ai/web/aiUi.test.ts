@@ -56,6 +56,8 @@ describe('aiUi', () => {
     expect(parseLimit('0')).toBe(0);
     expect(parseLimit('-1')).toBeUndefined();
     expect(parseLimit('x')).toBeUndefined();
+    // PLNRAPP-531: an edited <input type="number"> gives a number
+    expect(parseLimit(100)).toBe(100);
   });
 
   it('mergeRuns: дубли по id отбрасываются', () => {
