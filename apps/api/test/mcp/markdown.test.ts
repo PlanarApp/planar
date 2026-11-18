@@ -38,4 +38,15 @@ describe('markdown ↔ doc (PLNRAPP-180)', () => {
     const src = '## Итог\n\n- [x] готово\n- [ ] осталось';
     expect(docToMarkdown(markdownToDoc(src))).toContain('- [x] готово');
   });
+  it('одиночный перенос строки — hardBreak (PLNRAPP-334); в коде \\n остаётся', () => {
+    const d = markdownToDoc('Итог:\nстрока\n\n```\nx\ny\n```');
+    expect(d.content[0]!.content).toEqual([
+      { type: 'text', text: 'Итог:' },
+      { type: 'hardBreak' },
+      { type: 'text', text: 'строка' },
+    ]);
+    expect(d.content[1]!.content!.map((n) => [n.type, n.text])).toEqual([['text', 'x\ny']]);
+    expect(() => normalize(d)).not.toThrow();
+    expect(markdownToDoc(docToMarkdown(d))).toEqual(d);
+  });
 });
