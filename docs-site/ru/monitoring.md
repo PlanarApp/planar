@@ -12,6 +12,7 @@ description: Здоровье, метрики, логи, проблемы
 | `GET /api/health`       | живость: `200 {ok:true, db:'up'}` или `503 {ok:false, db:'down'}`                                                                                                                                    |
 | `GET /api/health/ready` | готовность: `200 {ok:true, db:'up', migrations:'ok', queue:'up'}`; иначе `503` и `db:'down'` / `migrations:'pending'` / `queue:'down'`. `queue:'off'` (очередь выключена конфигом) на `ok` не влияет |
 | `GET /api/metrics`      | Prometheus; нужен `Authorization: Bearer <METRICS_TOKEN>`; токен не задан — `404`, неверный — `401`                                                                                                  |
+| `GET /api/version`      | сборка: `{commit, ref, tag, builtAt}` — SHA коммита, ветка, тег (или `null`) и время сборки образа; локальный запуск без них — `dev`                                                                 |
 
 Caddy проксирует `/api/metrics` как любой `/api/*`, поэтому токен — единственная защита: задайте длинный случайный `METRICS_TOKEN`.
 
