@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { TASK_ACTIVITY } from '@planar/web/modules';
 import type { AiRunView } from '../shared/index.js';
 import { AiApiError, call } from './api';
 import { isLive } from './aiUi';
@@ -36,6 +37,14 @@ async function changed(openId?: string) {
 }
 onMounted(load);
 watch(() => props.taskId, load);
+// PLNRAPP-532: a run started or changed by an event (a rule on a status change, a comment) — the card's
+// indicator sees it (replica changes + polling), the list follows: reloaded when the task's work changes
+const work = inject(TASK_ACTIVITY, null);
+if (work)
+  watch(
+    () => work.items.value.map((a) => `${a.id}:${a.state}`).join(),
+    () => void load(),
+  );
 onBeforeUnmount(() => clearTimeout(timer));
 </script>
 
