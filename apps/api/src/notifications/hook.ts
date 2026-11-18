@@ -119,6 +119,16 @@ export async function notificationsHook(
     ids.push(id);
   };
 
+  /** "📎 a.png, b.pdf" — files of a comment put in this transaction; none → null */
+  const filesOf = (commentId: string) => {
+    const names = source.writes.flatMap((w) =>
+      w.entity === 'attachments' && w.op === 'put' && !w.before && w.after?.commentId === commentId
+        ? [String(w.after.name)]
+        : [],
+    );
+    return names.length ? `📎 ${names.join(', ')}`.slice(0, 280) : null;
+  };
+
   // auto-subscription before the fan-out: a new assignee/author is already a watcher
   for (const w of source.writes) {
     const a = w.after;
@@ -154,15 +164,25 @@ export async function notificationsHook(
       const taskId = a.taskId as string;
       const all = (a.mentions as string[]) ?? [];
       const old = new Set((w.before?.mentions as string[] | undefined) ?? []);
+      // PLNRAPP-372: files added to the comment in this transaction — the notification lists them
+      const files = filesOf(a.id as string);
       for (const u of all.filter((u) => !old.has(u)))
-        await notify('mentioned', spaceId, taskId, u, a.id as string);
+        await notify('mentioned', spaceId, taskId, u, a.id as string, null, files);
       if (!w.before)
         for (const u of await watchersOf(taskId))
           if (!all.includes(u) && u !== a.assigneeId)
-            await notify('commented', spaceId, taskId, u, a.id as string);
+            await notify('commented', spaceId, taskId, u, a.id as string, null, files);
       // assigned comment — to the assignee (new or changed)
       if (a.assigneeId && a.assigneeId !== w.before?.assigneeId)
-        await notify('comment_assigned', spaceId, taskId, a.assigneeId as string, a.id as string);
+        await notify(
+          'comment_assigned',
+          spaceId,
+          taskId,
+          a.assigneeId as string,
+          a.id as string,
+          null,
+          files,
+        );
     } else if (
       w.entity === 'checklistItems' &&
       a.assigneeId &&

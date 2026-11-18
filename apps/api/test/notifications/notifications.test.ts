@@ -140,6 +140,37 @@ describe('триггеры', () => {
     expect(await notes(w.guest.userId)).toHaveLength(0);
   });
 
+  it('PLNRAPP-372: комментарий с файлами — их имена в уведомлении', async () => {
+    const w = await setup();
+    const t = await task(w);
+    // the file is uploaded by the author (POST /files)
+    const sha = uuidv7().replace(/-/g, '').repeat(2);
+    await db
+      .insert(schema.files)
+      .values({ sha256: sha, size: 3, mime: 'image/png', createdBy: w.member.userId });
+    await db.insert(schema.fileUploads).values({ sha256: sha, userId: w.member.userId });
+    const f = (name: string) => ({
+      id: uuidv7(),
+      fileSha256: sha,
+      name,
+      mime: 'image/png',
+      size: 3,
+    });
+    await w.member.ok('comment.create', {
+      id: uuidv7(),
+      taskId: t.id,
+      body: doc(),
+      attachments: [f('a.png'), f('b.pdf')],
+    });
+    const [n] = await notes(w.admin.userId);
+    expect(n).toMatchObject({ kind: 'commented', body: '📎 a.png, b.pdf' });
+    await w.member.ok('comment.create', { id: uuidv7(), taskId: t.id, body: doc() });
+    expect((await notes(w.admin.userId)).map((x) => x.body).sort()).toEqual([
+      null,
+      '📎 a.png, b.pdf',
+    ]);
+  });
+
   it('status_changed: наблюдателям кроме actor; без смены статуса — ничего', async () => {
     const w = await setup();
     const t = await task(w);

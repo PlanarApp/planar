@@ -30,6 +30,17 @@ export const useAttachments = (taskId: string) =>
       .sort(byStr((x) => x.createdAt)),
   );
 
+/** files of the task's comments by comment (PLNRAPP-372) */
+export const useCommentFiles = (taskId: string) =>
+  useQuery(async () => {
+    const m = new Map<string, Row<'attachments'>[]>();
+    for (const a of (await byTask<Row<'attachments'>>('attachments', taskId)).sort(
+      byStr((x) => x.createdAt),
+    ))
+      if (a.commentId) (m.get(a.commentId) ?? m.set(a.commentId, []).get(a.commentId)!).push(a);
+    return m;
+  });
+
 export const useWatchers = (taskId: string) =>
   useQuery(() => byTask<Row<'taskWatchers'>>('taskWatchers', taskId));
 

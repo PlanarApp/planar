@@ -13,6 +13,36 @@ export async function checkAssignee(tx: Tx, spaceId: string, userId: string) {
   if (!r || r === 'guest') throw bad('исполнитель — не участник пространства');
 }
 
+/** a file already in storage (POST /files) attached to a comment (PLNRAPP-372) */
+const fileArgs = z.object({
+  id: uuid,
+  fileSha256: z.string().min(1),
+  name: z.string().min(1),
+  mime: z.string().min(1),
+  size: z.number().int().min(0),
+  width: z.number().int().nullable().optional(),
+  height: z.number().int().nullable().optional(),
+});
+type FileArgs = z.infer<typeof fileArgs>;
+const putFiles = async (
+  tx: Tx,
+  c: { id: string; spaceId: string; taskId: string },
+  files: FileArgs[] | undefined,
+  ctx: { userId: string; now: string },
+) => {
+  for (const f of files ?? [])
+    await tx.put('attachments', {
+      ...f,
+      spaceId: c.spaceId,
+      taskId: c.taskId,
+      commentId: c.id,
+      width: f.width ?? null,
+      height: f.height ?? null,
+      uploadedBy: ctx.userId,
+      createdAt: ctx.now,
+    });
+};
+
 export const commentMutators = [
   defineMutator({
     name: 'comment.create',
@@ -22,6 +52,8 @@ export const commentMutators = [
       body: doc,
       parentId: uuid.nullable().optional(),
       assigneeId: uuid.nullable().optional(),
+      /** PLNRAPP-372: files of the comment — in the same transaction (the notification lists them) */
+      attachments: z.array(fileArgs).max(100).optional(),
     }),
     async run(tx, a, ctx) {
       const t = await need(tx, 'tasks', a.taskId);
@@ -46,11 +78,18 @@ export const commentMutators = [
         createdAt: ctx.now,
         updatedAt: ctx.now,
       });
+      await putFiles(tx, { id: a.id, spaceId: t.spaceId, taskId: t.id }, a.attachments, ctx);
     },
   }),
   defineMutator({
     name: 'comment.update',
-    args: z.object({ id: uuid, body: doc }),
+    // PLNRAPP-372: editing adds files and removes the comment's own ones
+    args: z.object({
+      id: uuid,
+      body: doc,
+      attachments: z.array(fileArgs).max(100).optional(),
+      removeAttachments: z.array(uuid).max(100).optional(),
+    }),
     async run(tx, a, ctx) {
       const c = await need(tx, 'comments', a.id);
       if (c.authorId !== ctx.userId) throw new MutatorError('forbidden', 'не автор');
@@ -60,6 +99,12 @@ export const commentMutators = [
         editedAt: ctx.now,
         updatedAt: ctx.now,
       });
+      for (const id of a.removeAttachments ?? []) {
+        const x = await tx.get('attachments', id);
+        if (x && x.commentId !== c.id) throw bad('вложение другого комментария');
+        if (x) await tx.del('attachments', id);
+      }
+      await putFiles(tx, c, a.attachments, ctx);
     },
   }),
   defineMutator({
@@ -166,7 +211,12 @@ export const commentMutators = [
   defineMutator({
     name: 'attachment.delete',
     args: z.object({ id: uuid }),
-    async run(tx, a) {
+    async run(tx, a, ctx) {
+      // a comment's file — only its author or the uploader (PLNRAPP-372)
+      const x = await tx.get('attachments', a.id);
+      const c = x?.commentId ? await tx.get('comments', x.commentId) : null;
+      if (c && c.authorId !== ctx.userId && x!.uploadedBy !== ctx.userId)
+        throw new MutatorError('forbidden', 'не автор');
       await tx.del('attachments', a.id);
     },
   }),

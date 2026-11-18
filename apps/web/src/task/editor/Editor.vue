@@ -66,6 +66,8 @@ const props = withDefaults(
     label: string;
     placeholder?: string;
     image?: boolean;
+    /** PLNRAPP-372: pasted and dropped files (images too) are the comment's files — emitted as attach */
+    files?: boolean;
     editable?: boolean;
     /** Collaborative editing (P3-ydoc): document name `docs:<id>` | `task:<id>`; modelValue is not used then. */
     collab?: { name: string };
@@ -294,11 +296,20 @@ const options = (extra: Extensions = [], collab = false): Partial<EditorOptions>
     // an app link: the Link extension would window.open it in a new tab — onClick routes it instead
     handleClick: (_v, _pos, e) => !!appHref(e),
     handlePaste: (_v, e) => {
+      if (props.files && e.clipboardData?.files.length) {
+        emit('attach', [...e.clipboardData.files]);
+        return true;
+      }
       const files = imagesOf(e.clipboardData?.files);
       if (files.length) void insertFiles(files);
       return files.length > 0;
     },
     handleDrop: (_v, e) => {
+      if (props.files && e.dataTransfer?.files.length) {
+        e.preventDefault();
+        emit('attach', [...e.dataTransfer.files]);
+        return true;
+      }
       const all = props.image ? [...(e.dataTransfer?.files ?? [])] : [];
       const imgs = all.filter((f) => f.type.startsWith('image/'));
       const rest = all.filter((f) => !f.type.startsWith('image/'));

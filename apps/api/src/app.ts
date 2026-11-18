@@ -53,7 +53,7 @@ export async function createApp(opts: AppOptions): Promise<NestFastifyApplicatio
         demoResetHours: opts.demoResetHours ?? 24,
         cloud: opts.cloud,
       },
-      { dataDir: opts.dataDir ?? './data', maxUploadMb: opts.maxUploadMb ?? 50 },
+      { dataDir: opts.dataDir ?? './data', maxUploadMb: opts.maxUploadMb ?? 100 },
       { boss: false, ...opts.push, databaseUrl: opts.databaseUrl },
       opts.extraControllers,
     ),

@@ -1,6 +1,7 @@
 import type { ComputedRef, InjectionKey, Ref, ShallowRef } from 'vue';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
+import type { DraftFiles } from './commentFiles';
 
 /** What the comment threads of the task feed share (Feed provides, CommentThread injects at any depth). */
 export interface FeedCtx {
@@ -8,6 +9,10 @@ export interface FeedCtx {
   replyTo: Ref<string | null>;
   replyDraft: ShallowRef<JSONContent | null>;
   sendReply: () => Promise<void>;
+  /** files of the reply being written (PLNRAPP-372) */
+  replyFiles: DraftFiles;
+  /** files of a comment (the same empty array when none) */
+  filesOf: (commentId: string) => Row<'attachments'>[];
   userId: () => string | undefined;
   names: ComputedRef<Record<string, string>>;
   members: ComputedRef<{ id: string; name: string; avatar: string | null }[]>;

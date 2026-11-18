@@ -1,8 +1,8 @@
 import { isIP } from 'node:net';
 
-/** MAX_UPLOAD_MB: empty/unset → 50; not a number or ≤ 0 → error. */
+/** MAX_UPLOAD_MB: empty/unset → 100 (PLNRAPP-372); not a number or ≤ 0 → error. */
 export function parseMaxUploadMb(raw: string | undefined): number {
-  if (raw === undefined || raw.trim() === '') return 50;
+  if (raw === undefined || raw.trim() === '') return 100;
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0)
     throw new Error(`MAX_UPLOAD_MB: ожидается число > 0, получено "${raw}"`);

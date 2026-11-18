@@ -221,7 +221,9 @@ Authorization — the session cookie at upgrade (plus an Origin check, C-http); 
 ### Client (for web)
 Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from the queue the mutations with `id ≤ lastMutationId` and re-applies the rest on top of the server state (rebase). Push is retried on a network error and `5xx` with a growing pause of 1–30 s; `401` — redirect to sign-in.
 
-## C-mutators v21
+## C-mutators v22
+
+v22 (PLNRAPP-372): `comment.create` += `attachments?`, `comment.update` += `attachments?`, `removeAttachments?`; `attachment.delete` of a comment's file — its author or the uploader — core-mutators.md.
 
 v21 (PLNRAPP-154, -155): `task.archive`, `task.restore`; `task.delete`, `task.restore` — admin of the project / space / instance only — core-mutators.md.
 
@@ -340,7 +342,7 @@ v8 (FT): fields in REST v1 and MCP (core-api-v1.md).
 
 ### Paths and environment
 - `/api/*` — REST, `/sync/*` — sync, `/ws` — WebSocket, `/files/*` — files, `/mcp` — MCP (CR-11), `/collab` — collaborative editing WebSocket (v11), `/f/*` — public form page, a separate HTML entry of web without the app (v11). In dev Vite proxies them to api, in prod — Caddy.
-- Env api: `DATABASE_URL`, `PORT` (3000), `PUBLIC_URL` (origin for the check, e.g. `http://localhost:5173`), `COOKIE_SECURE` (`true` in prod), `DATA_DIR` (`./data`, files — `$DATA_DIR/files/<ab>/<cd>/<sha256>`, ab and cd — the first 4 hex characters), `MAX_UPLOAD_MB` (50), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `LOG_LEVEL`, `PLANAR_SECRET_KEY` (v11; 32 bytes in base64 — the AES-256-GCM key for module secrets, e.g. the GitLab token; not set — features with secrets answer `503 unavailable`). `TRUST_PROXY` (v11) — IPs/CIDRs of trusted proxies, comma-separated (Fastify `trustProxy` as a list, not `true`); empty — off: `req.ip` is the connection address. Set — `req.ip` is taken from `X-Forwarded-For` only from addresses in the list. Prod `compose.yml`: a fixed subnet of the Caddy network, the api port is not published outside. The login limit and the public-form limit are counted by `req.ip`.
+- Env api: `DATABASE_URL`, `PORT` (3000), `PUBLIC_URL` (origin for the check, e.g. `http://localhost:5173`), `COOKIE_SECURE` (`true` in prod), `DATA_DIR` (`./data`, files — `$DATA_DIR/files/<ab>/<cd>/<sha256>`, ab and cd — the first 4 hex characters), `MAX_UPLOAD_MB` (100), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `LOG_LEVEL`, `PLANAR_SECRET_KEY` (v11; 32 bytes in base64 — the AES-256-GCM key for module secrets, e.g. the GitLab token; not set — features with secrets answer `503 unavailable`). `TRUST_PROXY` (v11) — IPs/CIDRs of trusted proxies, comma-separated (Fastify `trustProxy` as a list, not `true`); empty — off: `req.ip` is the connection address. Set — `req.ip` is taken from `X-Forwarded-For` only from addresses in the list. Prod `compose.yml`: a fixed subnet of the Caddy network, the api port is not published outside. The login limit and the public-form limit are counted by `req.ip`.
 - JSON body ≤ 1 MB, except file uploads.
 
 ### Errors
