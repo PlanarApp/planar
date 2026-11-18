@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ListTree } from 'lucide-vue-next';
 import type { Row as DbRow } from '@planar/shared';
 import { StatusPicker, updateTask, type TaskView } from '../../tasks';
 import { BlockedIcon } from '../../links';
@@ -7,6 +6,7 @@ import { useBreakpoint } from '../../ui';
 import CardField, { type CardCol } from '../board/CardField.vue';
 import { useCardExtensions } from '../cardExtensions';
 import AiCell from './AiCell.vue';
+import TaskProgress from '../TaskProgress.vue';
 
 // task card (Board; List on mobile): status button and name, the field buttons below.
 // Mobile — fields as icons only.
@@ -21,7 +21,6 @@ const props = defineProps<{
   /** field pickers are mounted (card under the cursor; on mobile — always) */
   hot: boolean;
   parentTitle?: string;
-  childCount?: number;
   projectName?: string;
   /** "Project" field as the name even on mobile (the List card); the Board keeps the folder icon */
   projectText?: boolean;
@@ -66,12 +65,8 @@ const ext = useCardExtensions(() => props.task.projectId);
       }}</span
       >{{ task.title }}
     </p>
-    <span
-      v-if="childCount"
-      class="mt-1 inline-flex shrink-0 items-center gap-0.5 rounded border border-border px-1 text-xs text-fg-muted"
-      data-testid="row-children"
-      ><ListTree :size="12" />{{ childCount }}</span
-    >
+    <!-- PLNRAPP-333: subtasks / checklist «closed/total» -->
+    <span class="mt-1 flex shrink-0 gap-0.5"><TaskProgress :task-id="task.id" /></span>
   </div>
   <!-- PLNRAPP-401: the AI status — its own block, apart from the task status -->
   <AiCell card col="ai" :task="task" data-no-drag @click.stop />
