@@ -519,4 +519,17 @@ describe('harness-retro: предложения', () => {
     const page = await one(`select body::text as b from docs_pages where id = $1`, [pageId]);
     expect(page.b).not.toContain('критерии готовности');
   });
+
+  it('подзадачу правки закрыли статусом → правка закрыта, трения снова в разборе', async () => {
+    const { p } = await propose();
+    await w.admin.ok('task.update', { id: p.task_id, statusId: S.done });
+    answers.push({ proposals: [] });
+    await handler('ai.retro')({ kind: 'run', projectId: P }, api);
+    expect((await one(`select state from ai_retro_proposals where id = $1`, [p.id])).state).toBe(
+      'closed',
+    );
+    expect(calls.at(-1)!.prompt).toContain('Нет критериев готовности');
+    const page = await one(`select body::text as b from docs_pages where id = $1`, [pageId]);
+    expect(page.b).not.toContain('критерии готовности');
+  });
 });

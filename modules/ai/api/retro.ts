@@ -599,6 +599,14 @@ async function runRetro(projectId: string, api: JobApi) {
     api.db.execute(
       sql`update ai_retro set frictions = 0, last_run_at = now(), updated_at = now() where project_id = ${projectId}::uuid`,
     );
+  // a proposal closed by hand — its subtask done, cancelled or archived, not «закрыть» in the thread:
+  // closed, its items go back to the clustering instead of hanging on a pending proposal
+  await api.db.execute(
+    sql`update ai_retro_proposals x set state = 'closed', updated_at = now()
+        from tasks t join statuses st on st.id = t.status_id
+        where x.task_id = t.id and x.project_id = ${projectId}::uuid and x.state = 'pending'
+          and (t.archived_at is not null or st.category in ('done', 'cancelled'))`,
+  );
   const items = await rows(
     api.db,
     sql`select t.id, p.key || '-' || coalesce(t.number::text, '?') as key, t.title, t.description
