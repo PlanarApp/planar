@@ -71,6 +71,23 @@ export const useRootSpaceId = () =>
     return typeof v === 'string' ? v : null;
   });
 
+/** Ids of archived projects: their statuses, labels and fields are not filter options of a space summary (PLNRAPP-508). */
+export const useArchivedProjectIds = () =>
+  useQuery(
+    async () =>
+      new Set(
+        (await db.table<Row<'projects'>>('projects').toArray())
+          .filter((p) => p.archivedAt)
+          .map((p) => p.id),
+      ),
+  );
+
+/** Rows of live projects only (`archived` — from useArchivedProjectIds). */
+export const notArchived = <T extends { projectId?: string | null }>(
+  rows: T[] | undefined,
+  archived: Set<string> | undefined,
+): T[] => (rows ?? []).filter((r) => !r.projectId || !archived?.has(r.projectId));
+
 export function useSpaces() {
   return useQuery(async () => {
     const [spaces, projects] = await Promise.all([
