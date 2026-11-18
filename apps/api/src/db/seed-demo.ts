@@ -1010,6 +1010,71 @@ async function insertAll(tx: Tx, now: Date) {
     };
   });
   await ins(s.comments, comments);
+  // PLNRAPP-372: the first comment carries files — a photo (thumbnail, gallery) and a document (download)
+  const c0 = comments[0]!;
+  const commentFiles = [
+    {
+      name: 'timeline-draft.svg',
+      mime: 'image/svg+xml',
+      width: 640,
+      height: 360,
+      bytes: Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="#f4f1ea"/>' +
+          ['#6366f1', '#22c55e', '#f59e0b', '#ef4444']
+            .map(
+              (c, i) =>
+                `<rect x="${40 + i * 120}" y="${60 + i * 64}" width="220" height="40" rx="8" fill="${c}"/>`,
+            )
+            .join('') +
+          '<text x="40" y="36" font-family="sans-serif" font-size="22" fill="#333">Roadmap timeline — draft</text></svg>',
+      ),
+    },
+    {
+      name: 'launch-checklist.txt',
+      mime: 'text/plain',
+      width: null,
+      height: null,
+      bytes: Buffer.from(
+        'Launch checklist\n- timeline reviewed\n- dates agreed\n- announcement ready\n',
+      ),
+    },
+  ].map((f) => ({ ...f, sha256: createHash('sha256').update(f.bytes).digest('hex') }));
+  await ins(
+    s.files,
+    commentFiles.map((f) => ({
+      sha256: f.sha256,
+      size: f.bytes.length,
+      mime: f.mime,
+      width: f.width,
+      height: f.height,
+      createdBy: c0.authorId,
+      createdAt: c0.createdAt,
+    })),
+  );
+  await ins(
+    s.attachments,
+    commentFiles.map((f, k) => ({
+      id: uid(`cfile:${k}`),
+      spaceId: c0.spaceId,
+      taskId: c0.taskId,
+      commentId: c0.id,
+      fileSha256: f.sha256,
+      name: f.name,
+      mime: f.mime,
+      size: f.bytes.length,
+      width: f.width,
+      height: f.height,
+      uploadedBy: c0.authorId,
+      createdAt: c0.createdAt,
+    })),
+  );
+  if (process.env.DATA_DIR)
+    for (const f of commentFiles) {
+      const p = filePath(process.env.DATA_DIR, f.sha256);
+      await mkdir(dirname(p), { recursive: true })
+        .then(() => writeFile(p, f.bytes))
+        .catch(() => {});
+    }
   await ins(
     s.commentReactions,
     comments

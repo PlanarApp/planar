@@ -92,6 +92,47 @@ describe('comment/attachment', () => {
     await run(tx, 'attachment.delete', { id: a });
     expect(await tx.get('attachments', a)).toBeUndefined();
   });
+
+  it('PLNRAPP-372: файлы комментария — в comment.create и comment.update', async () => {
+    const tx = mem();
+    const s = await seedSpace(tx);
+    const t = await seedTask(tx, s);
+    const f = (name: string) => ({ id: id(), fileSha256: 'h', name, mime: 'image/png', size: 3 });
+    const [p, q, r] = [f('p.png'), f('q.png'), f('r.pdf')];
+    const c = id();
+    await run(tx, 'comment.create', { id: c, taskId: t, body: doc(), attachments: [p, q] });
+    expect(await tx.get('attachments', p.id)).toMatchObject({
+      commentId: c,
+      taskId: t,
+      spaceId: s.spaceId,
+      uploadedBy: U1,
+      width: null,
+    });
+    // another comment's file is not removed by this one
+    const c2 = id();
+    const other = f('o.png');
+    await run(tx, 'comment.create', { id: c2, taskId: t, body: doc(), attachments: [other] });
+    expect(
+      await code(run(tx, 'comment.update', { id: c, body: doc(), removeAttachments: [other.id] })),
+    ).toBe('invalid_args');
+    await run(tx, 'comment.update', {
+      id: c,
+      body: doc('x'),
+      attachments: [r],
+      removeAttachments: [p.id],
+    });
+    expect(await tx.get('attachments', p.id)).toBeUndefined();
+    expect(await tx.get('attachments', q.id)).toBeDefined();
+    expect(await tx.get('attachments', r.id)).toMatchObject({ commentId: c, name: 'r.pdf' });
+    // a comment's file is deleted by its author (or the uploader), not by others
+    expect(await code(run(tx, 'attachment.delete', { id: q.id }, ctx(U2)))).toBe('forbidden');
+    await run(tx, 'attachment.delete', { id: q.id });
+    expect(await tx.get('attachments', q.id)).toBeUndefined();
+    // the comment is deleted — its files go with it
+    await run(tx, 'comment.delete', { id: c });
+    expect(await tx.get('attachments', r.id)).toBeUndefined();
+    expect(await tx.get('attachments', other.id)).toBeDefined();
+  });
 });
 
 describe('notification/view/settings', () => {

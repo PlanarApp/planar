@@ -172,6 +172,8 @@ export class PushQueue implements OnApplicationShutdown {
         const name = (id: string) => rows.find((r) => r.id === id)?.name;
         if (name(pair[0]) && name(pair[1])) body += `\n${name(pair[0])} → ${name(pair[1])}`;
       }
+      // a comment with files (PLNRAPP-372): their names on the second line
+      if (n.commentId && n.body) body += `\n${n.body}`;
     } else {
       body = n.body ?? '';
       url = n.url ?? '';

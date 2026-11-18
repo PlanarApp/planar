@@ -55,7 +55,7 @@ The `.env` file sits next to `compose.yml`; compose reads it itself. The file co
 | `VAPID_PUBLIC_KEY` | empty | Web Push |
 | `VAPID_PRIVATE_KEY` | empty | Web Push |
 | `VAPID_SUBJECT` | empty | Web Push, `mailto:…` |
-| `MAX_UPLOAD_MB` | `50` | file upload limit |
+| `MAX_UPLOAD_MB` | `100` | file upload limit |
 | `LOG_LEVEL` | `info` | pino level |
 | `METRICS_TOKEN` | empty | token for `/api/metrics`; empty — the endpoint answers `404` |
 | `PLANAR_SUBNET` | `172.30.0.0/24` | subnet of the `app` network; api gets it as `TRUST_PROXY` (the `X-Forwarded-For` header is trusted only from there) |

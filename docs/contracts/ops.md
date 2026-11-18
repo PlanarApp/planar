@@ -28,7 +28,7 @@ Variables of the prod stack. The source of values is `.env` next to `compose.yml
 | `VAPID_PUBLIC_KEY` | api | empty | Web Push (C-http) |
 | `VAPID_PRIVATE_KEY` | api | empty | Web Push |
 | `VAPID_SUBJECT` | api | empty | Web Push, `mailto:…` |
-| `MAX_UPLOAD_MB` | api | `50` | file upload limit |
+| `MAX_UPLOAD_MB` | api | `100` | file upload limit |
 | `LOG_LEVEL` | api | `info` | pino level |
 | `METRICS_TOKEN` | api | empty | token for `/api/metrics` (C-ops-health); empty — the endpoint answers `404 not_found` |
 | `PLANAR_SUBNET` | compose,api | `172.30.0.0/24` | subnet of the `app` network (Caddy is in it); api gets it as `TRUST_PROXY`. Change it if it overlaps host networks |

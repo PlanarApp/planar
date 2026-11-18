@@ -73,8 +73,11 @@ export const useNotifications = () =>
             chProject.get((CHANNEL.exec(n.url ?? '') ?? PAGE.exec(n.url ?? ''))?.[1] ?? '') ??
             null,
           status: pair(statusPair(n).map((id) => status.get(id))),
+          // a comment's text; its files (PLNRAPP-372) — the names from the notification
           comment: n.commentId
-            ? docText(comment.get(n.commentId)).replace(/\s+/g, ' ').trim().slice(0, 200) || null
+            ? [docText(comment.get(n.commentId)).replace(/\s+/g, ' ').trim().slice(0, 200), n.body]
+                .filter(Boolean)
+                .join(' ') || null
             : n.kind === 'checklist_assigned'
               ? n.body
               : null,

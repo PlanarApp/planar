@@ -125,7 +125,7 @@ export async function notifyTick(db: Db, now: Date, snd: Send = send): Promise<n
   if (!cfg || !key) return 0;
   const cand = await rowsOf(
     db,
-    sql`select n.id, n.user_id as "userId", n.kind, n.url, n.body, u.email, a.name as actor,
+    sql`select n.id, n.user_id as "userId", n.kind, n.url, n.body, n.comment_id as "commentId", u.email, a.name as actor,
         t.title, t.number, p.key
       from notifications n
       join users u on u.id = n.user_id and u.deactivated_at is null and coalesce(u.email, '') <> ''
@@ -161,7 +161,9 @@ export async function notifyTick(db: Db, now: Date, snd: Send = send): Promise<n
       continue;
     }
     const url = link(n);
-    const what = String(n.title ?? n.body ?? '');
+    // a comment with files (PLNRAPP-372): the task title and their names
+    const what =
+      String(n.title ?? n.body ?? '') + (n.commentId && n.title && n.body ? `\n${n.body}` : '');
     const unsub = `${publicUrl()}/api/email/unsubscribe?t=${unsubToken(key, String(n.userId), 'notify')}`;
     const head = `${SUBJECT[String(n.kind)] ?? 'Уведомление'}: ${n.actor}`;
     try {

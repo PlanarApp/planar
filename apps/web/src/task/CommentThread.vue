@@ -8,6 +8,8 @@ import { mutate } from '../sync';
 import { Button } from '../ui';
 import CommentItem from './CommentItem.vue';
 import Editor from './editor/Editor.vue';
+import AttachButton from './AttachButton.vue';
+import DraftFiles from './DraftFiles.vue';
 import { FEED } from './thread';
 
 // a comment with its replies (PLANARAPP-45); any of them is assigned and resolved (PLNRAPP-135)
@@ -31,6 +33,7 @@ watch(
 // a reply to a nested reply is written in its thread
 function startReply() {
   f.replyDraft.value = null;
+  f.replyFiles.clear();
   if (nested()) f.openThread(props.comment.id);
   f.replyTo.value = props.comment.id;
 }
@@ -55,7 +58,22 @@ const descendants = computed(() => {
   }
   return n;
 });
-const snippet = computed(() => docText(props.comment.body).replace(/\s+/g, ' ').trim());
+// a comment of files only (PLNRAPP-372) — their names
+const snippet = computed(
+  () =>
+    docText(props.comment.body).replace(/\s+/g, ' ').trim() ||
+    f
+      .filesOf(props.comment.id)
+      .map((a) => a.name)
+      .join(', '),
+);
+const canSendReply = computed(
+  () => (!!f.replyDraft.value || !!f.replyFiles.ready.value.length) && !f.replyFiles.busy.value,
+);
+function cancelReply() {
+  f.replyTo.value = null;
+  f.replyFiles.clear();
+}
 </script>
 
 <template>
@@ -104,13 +122,14 @@ const snippet = computed(() => docText(props.comment.body).replace(/\s+/g, ' ').
       :assignee-avatar="c().assigneeId ? f.avatarOf(c().assigneeId!) : null"
       :mine="c().authorId === f.userId()"
       :reactions="f.reactionsOf(c().id)"
+      :files="f.filesOf(c().id)"
       :user-id="f.userId()"
       :names="f.names.value"
       :members="f.members.value"
       can-reply
       :can-resolve="f.canResolve(c())"
       @react="(emoji) => f.react(c().id, emoji)"
-      @save="(body) => mutate('comment.update', { id: c().id, body })"
+      @save="(body, files) => mutate('comment.update', { id: c().id, body, ...files })"
       @remove="mutate('comment.delete', { id: c().id })"
       @reply="startReply"
       @assign="(u) => mutate('comment.assign', { id: c().id, assigneeId: u })"
@@ -136,8 +155,9 @@ const snippet = computed(() => docText(props.comment.body).replace(/\s+/g, ' ').
           :comment="r"
           :depth="1"
         />
-        <div
+        <DraftFiles
           v-if="f.replyTo.value === c().id"
+          :draft="f.replyFiles"
           class="rounded-md border border-border-strong bg-bg p-2"
           data-testid="reply-box"
         >
@@ -145,27 +165,30 @@ const snippet = computed(() => docText(props.comment.body).replace(/\s+/g, ' ').
             ref="box"
             refs
             image
+            files
             :model-value="f.replyDraft.value"
             :members="f.members.value"
             :label="t('task.replyPlaceholder')"
             :placeholder="t('task.replyPlaceholder')"
             @update:model-value="(v) => (f.replyDraft.value = v)"
             @submit="f.sendReply"
+            @attach="f.replyFiles.add"
           />
-          <div class="mt-2 flex justify-end gap-2">
-            <Button size="sm" variant="ghost" @click="f.replyTo.value = null">{{
+          <template #actions>
+            <AttachButton :draft="f.replyFiles" />
+            <Button size="sm" variant="ghost" class="ml-auto" @click="cancelReply">{{
               t('task.cancel')
             }}</Button>
             <Button
               size="sm"
               variant="primary"
-              :disabled="!f.replyDraft.value"
+              :disabled="!canSendReply"
               data-testid="reply-send"
               @click="f.sendReply"
               >{{ t('task.send') }}</Button
             >
-          </div>
-        </div>
+          </template>
+        </DraftFiles>
       </div>
     </CommentItem>
   </div>

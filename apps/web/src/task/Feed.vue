@@ -20,7 +20,10 @@ import { Button, IconButton, Select } from '../ui';
 import CommentThread from './CommentThread.vue';
 import { FEED } from './thread';
 import Editor from './editor/Editor.vue';
-import { useComments, useReactions, useUsers } from './queries';
+import { useCommentFiles, useComments, useReactions, useUsers } from './queries';
+import AttachButton from './AttachButton.vue';
+import DraftFiles from './DraftFiles.vue';
+import { EMPTY_DOC, useDraftFiles } from './commentFiles';
 import { commentJump } from './jump';
 import { router } from '../router';
 
@@ -30,6 +33,10 @@ const { user, isAdmin } = useAuth();
 const comments = useComments(props.task.id);
 const users = useUsers();
 const reactions = useReactions(props.task.id);
+const commentFiles = useCommentFiles(props.task.id);
+const NO_FILES: Row<'attachments'>[] = [];
+const files = useDraftFiles();
+const replyFiles = useDraftFiles();
 const NO_REACTIONS: Row<'commentReactions'>[] = [];
 const reactionsBy = computed(() => {
   const m = new Map<string, Row<'commentReactions'>[]>();
@@ -157,10 +164,18 @@ const setReply = (v: JSONContent | null) => (replyDraft.value = v);
 async function sendReply() {
   const body = replyDraft.value;
   const parentId = replyTo.value;
-  if (!body || !parentId) return;
+  if ((!body && !replyFiles.ready.value.length) || replyFiles.busy.value || !parentId) return;
+  const attachments = replyFiles.args();
   replyTo.value = null;
   setReply(null);
-  await mutate('comment.create', { id: newId(), taskId: props.task.id, body, parentId });
+  replyFiles.clear();
+  await mutate('comment.create', {
+    id: newId(),
+    taskId: props.task.id,
+    body: body ?? EMPTY_DOC,
+    parentId,
+    attachments,
+  });
 }
 const canResolve = (c: Row<'comments'>) =>
   !!user.value && (c.assigneeId === user.value.id || c.authorId === user.value.id || isAdmin.value);
@@ -241,6 +256,8 @@ provide(FEED, {
   replyTo,
   replyDraft,
   sendReply,
+  replyFiles,
+  filesOf: (id: string) => commentFiles.value?.get(id) ?? NO_FILES,
   userId: () => user.value?.id,
   names,
   members: memberList,
@@ -251,12 +268,21 @@ provide(FEED, {
   react,
 });
 
+// a comment — text and/or files (PLNRAPP-372); sent when the uploads are done
+const canSend = computed(() => (!!draft.value || !!files.ready.value.length) && !files.busy.value);
 async function send() {
   const body = draft.value;
-  if (!body) return;
+  if (!canSend.value) return;
+  const attachments = files.args();
   setDraft(null);
   composer.value?.clear();
-  await mutate('comment.create', { id: newId(), taskId: props.task.id, body });
+  files.clear();
+  await mutate('comment.create', {
+    id: newId(),
+    taskId: props.task.id,
+    body: body ?? EMPTY_DOC,
+    attachments,
+  });
 }
 defineExpose({ focusComposer: () => composer.value?.focus() });
 </script>
@@ -306,30 +332,38 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
       </Button>
       <CommentThread :key="thread.id" :comment="thread" />
     </div>
-    <div v-else class="shrink-0 rounded-md border border-border-strong bg-bg p-2">
+    <DraftFiles
+      v-else
+      :draft="files"
+      class="shrink-0 rounded-md border border-border-strong bg-bg p-2"
+    >
       <Editor
         ref="composer"
         refs
         image
+        files
         :model-value="draft"
         @update:model-value="setDraft"
         :members="(members ?? []).map((m) => ({ id: m.id, name: m.name }))"
         :label="t('task.newComment')"
         :placeholder="t('task.newComment')"
         @submit="send"
+        @attach="files.add"
       />
-      <div class="mt-2 flex justify-end">
+      <template #actions>
+        <AttachButton :draft="files" />
         <Button
           size="sm"
           variant="primary"
-          :disabled="!draft"
+          class="ml-auto"
+          :disabled="!canSend"
           data-testid="comment-send"
           @click="send"
         >
           {{ t('task.send') }}
         </Button>
-      </div>
-    </div>
+      </template>
+    </DraftFiles>
     <!-- поле комментария — над лентой, лента прокручивается под ним -->
     <div
       v-show="!thread"

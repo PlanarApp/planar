@@ -15,6 +15,10 @@ import { Avatar, Button, IconButton, Menu, type MenuItem } from '../ui';
 import Reactions from './Reactions.vue';
 import Editor from './editor/Editor.vue';
 import WorkStatus from './WorkStatus.vue';
+import AttachButton from './AttachButton.vue';
+import CommentFiles from './CommentFiles.vue';
+import DraftFiles from './DraftFiles.vue';
+import { EMPTY_DOC, useDraftFiles, type FileArgs } from './commentFiles';
 import { TASK_ACTIVITY, activityOf } from '../modules/activity';
 
 const props = defineProps<{
@@ -25,6 +29,8 @@ const props = defineProps<{
   mine: boolean;
   members: { id: string; name: string; avatar?: string | null }[];
   reactions: Row<'commentReactions'>[];
+  /** files of the comment (PLNRAPP-372) */
+  files?: Row<'attachments'>[];
   userId?: string;
   names: Record<string, string>;
   /** "Reply" — on any comment (replies at any depth) */
@@ -33,7 +39,7 @@ const props = defineProps<{
   canResolve?: boolean;
 }>();
 const emit = defineEmits<{
-  save: [body: JSONContent];
+  save: [body: JSONContent, files?: { attachments: FileArgs[]; removeAttachments: string[] }];
   remove: [];
   react: [emoji: string];
   reply: [];
@@ -76,13 +82,30 @@ const { t } = useI18n();
 const editing = ref(false);
 const draft = shallowRef<JSONContent | null>(null); // shallow: reactive proxies can't be stored in IndexedDB
 
+// editing (PLNRAPP-372): new files and the removed ones are applied on save
+const added = useDraftFiles();
+const removed = ref(new Set<string>());
+const kept = computed(() => (props.files ?? []).filter((a) => !removed.value.has(a.id)));
+const canSave = computed(
+  () => (!!draft.value || !!kept.value.length || !!added.ready.value.length) && !added.busy.value,
+);
 function start() {
   draft.value = props.comment.body as JSONContent;
+  removed.value = new Set();
+  added.clear();
   editing.value = true;
 }
+function cancel() {
+  added.clear();
+  editing.value = false;
+}
 function save() {
-  if (!draft.value) return;
-  emit('save', draft.value);
+  if (!canSave.value) return;
+  emit('save', draft.value ?? (EMPTY_DOC as JSONContent), {
+    attachments: added.args(),
+    removeAttachments: [...removed.value],
+  });
+  added.clear();
   editing.value = false;
 }
 </script>
@@ -164,22 +187,35 @@ function save() {
         </div>
       </div>
       <div class="mt-1 min-w-0" data-testid="comment-body">
-        <template v-if="editing">
+        <DraftFiles v-if="editing" :draft="added">
           <Editor
             v-model="draft"
             refs
             image
+            files
             :members="members"
             :label="t('task.comment')"
             @submit="save"
+            @attach="added.add"
           />
-          <div class="mt-1 flex gap-2">
-            <Button size="sm" variant="primary" @click="save">{{ t('task.save') }}</Button>
-            <Button size="sm" variant="ghost" @click="editing = false">{{
-              t('task.cancel')
-            }}</Button>
-          </div>
-        </template>
+          <CommentFiles
+            :files="kept"
+            removable
+            @remove="(id) => (removed = new Set(removed).add(id))"
+          />
+          <template #actions>
+            <Button
+              size="sm"
+              variant="primary"
+              :disabled="!canSave"
+              data-testid="comment-save"
+              @click="save"
+              >{{ t('task.save') }}</Button
+            >
+            <Button size="sm" variant="ghost" @click="cancel">{{ t('task.cancel') }}</Button>
+            <AttachButton :draft="added" />
+          </template>
+        </DraftFiles>
         <template v-else>
           <Editor
             :model-value="comment.body as JSONContent"
@@ -192,6 +228,7 @@ function save() {
             lazy
             @update:model-value="(b) => mine && b && emit('save', b)"
           />
+          <CommentFiles :files="files ?? []" />
           <Reactions
             :rows="reactions"
             :user-id="userId"

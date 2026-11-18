@@ -29,7 +29,7 @@ export class CoreService implements CoreServices, OnModuleInit, OnModuleDestroy 
     @Inject(JobsService) private jobs: JobsService,
     @Optional()
     @Inject(FILES_OPTS)
-    private files: FilesOpts = { dataDir: './data', maxUploadMb: 50 },
+    private files: FilesOpts = { dataDir: './data', maxUploadMb: 100 },
   ) {}
 
   retryMs = 2000;
