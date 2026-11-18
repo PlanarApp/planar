@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
-import { Archive, ArrowRightLeft, History, Star, StarOff } from 'lucide-vue-next';
+import {
+  Archive,
+  ArrowRightLeft,
+  History,
+  MessageSquare,
+  Star,
+  StarOff,
+} from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
 import {
   db,
@@ -11,6 +18,8 @@ import {
   useQuery,
   useSession,
   useExtensions,
+  useBreakpoint,
+  Dialog,
   Menu,
   type MenuItem,
 } from '@planar/web/modules';
@@ -18,6 +27,7 @@ import DocComments from './DocComments.vue';
 import DocEditor from './DocEditor.vue';
 import VersionsDialog from './VersionsDialog.vue';
 import { toProjectArgs, type PageFull } from './model';
+import type { CommentRow } from './comments';
 import { createSaver } from './save';
 import { useTexts } from './text';
 
@@ -150,6 +160,27 @@ const actions = computed<MenuItem[]>(() => [
   },
 ]);
 
+// PLNRAPP-231: the document menu — desktop: tabs on the right, the active one opens its panel next
+// to the text; mobile: fixed FAB buttons in the same corner, a panel opens as a dialog.
+// So far one tab — comments; a link to a comment (?comment=<id>) opens it right away
+const { isMobile } = useBreakpoint();
+const tabs = [{ id: 'comments', label: tx('comments'), icon: MessageSquare }] as const;
+type Tab = (typeof tabs)[number]['id'];
+const linked = typeof route?.query.comment === 'string';
+const panel = ref<Tab | null>(isMobile.value && !linked ? null : 'comments');
+const toggle = (t: Tab) => (panel.value = panel.value === t ? null : t);
+const commentCount = useQuery(() =>
+  db.table<CommentRow>('docsComments').where('pageId').equals(props.pageId).count(),
+);
+const badge = (t: Tab) => (t === 'comments' ? commentCount.value || 0 : 0);
+// the mobile dialog: open — the panel is set, close — the panel is dropped
+const dialog = computed({
+  get: () => isMobile.value && panel.value !== null,
+  set: (v: boolean) => {
+    if (!v) panel.value = null;
+  },
+});
+
 async function archive() {
   saver.flush();
   await mutate('docs.page.archive', { id: props.pageId });
@@ -158,10 +189,13 @@ async function archive() {
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-8 md:px-6">
-    <p v-if="page === undefined" class="text-fg-muted" />
-    <p v-else-if="!page" class="text-fg-muted">{{ tx('notFound') }}</p>
-    <template v-else>
+  <p v-if="page === undefined" class="text-fg-muted" />
+  <p v-else-if="!page" class="mx-auto max-w-3xl px-4 py-8 text-fg-muted md:px-6">
+    {{ tx('notFound') }}
+  </p>
+  <div v-else class="flex h-full min-h-0 flex-1">
+    <div class="min-w-0 flex-1 overflow-y-auto">
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-8 pb-24 md:px-6 md:pb-8">
       <div class="flex items-center gap-2">
         <h1 class="min-w-0 flex-1 text-xl font-semibold">
           <input
@@ -187,13 +221,85 @@ async function archive() {
         :members="members"
         @open-task="(k) => router.push(`/t/${k}`)"
       />
+      </div>
+    </div>
+    <!-- desktop: the comments panel and the vertical tabs on the right -->
+    <aside
+      v-if="!isMobile && panel === 'comments'"
+      class="w-80 shrink-0 overflow-y-auto border-l border-border px-4 pb-6 lg:w-96"
+      data-testid="doc-panel"
+    >
       <DocComments
         :key="pageId"
         :page-id="pageId"
         :space-id="page.spaceId"
         :project-id="page.projectId"
       />
-      <VersionsDialog v-if="history" v-model:open="history" :page-id="pageId" />
-    </template>
+    </aside>
+    <div
+      v-if="!isMobile"
+      role="tablist"
+      aria-orientation="vertical"
+      :aria-label="tx('docMenu')"
+      class="flex shrink-0 flex-col gap-1 border-l border-border p-1"
+      data-testid="doc-menu"
+    >
+      <button
+        v-for="t in tabs"
+        :key="t.id"
+        type="button"
+        role="tab"
+        :aria-selected="panel === t.id"
+        :aria-label="t.label"
+        :title="t.label"
+        :data-tab="t.id"
+        :class="[
+          'relative inline-flex size-9 items-center justify-center rounded-md text-fg-muted outline-none hover:bg-bg-muted hover:text-fg focus-visible:outline-2 focus-visible:outline-focus',
+          panel === t.id && 'bg-bg-muted text-fg',
+        ]"
+        @click="toggle(t.id)"
+      >
+        <component :is="t.icon" :size="18" aria-hidden="true" />
+        <span
+          v-if="badge(t.id)"
+          class="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-accent px-1 text-[10px] leading-4 text-accent-fg"
+          >{{ badge(t.id) }}</span
+        >
+      </button>
+    </div>
+    <!-- mobile: fixed FAB buttons in the same corner, the panel — a dialog -->
+    <div
+      v-else
+      class="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] right-4 z-30 flex flex-col gap-2"
+      :aria-label="tx('docMenu')"
+      role="group"
+      data-testid="doc-menu"
+    >
+      <button
+        v-for="t in tabs"
+        :key="t.id"
+        type="button"
+        :aria-label="t.label"
+        :data-tab="t.id"
+        class="relative inline-flex size-12 items-center justify-center rounded-full border border-border bg-surface text-fg shadow-lg outline-none focus-visible:outline-2 focus-visible:outline-focus"
+        @click="panel = t.id"
+      >
+        <component :is="t.icon" :size="20" aria-hidden="true" />
+        <span
+          v-if="badge(t.id)"
+          class="absolute -right-1 -top-1 min-w-5 rounded-full bg-accent px-1 text-xs leading-5 text-accent-fg"
+          >{{ badge(t.id) }}</span
+        >
+      </button>
+    </div>
+    <Dialog v-if="isMobile" v-model:open="dialog" :title="tx('comments')">
+      <DocComments
+        :key="pageId"
+        :page-id="pageId"
+        :space-id="page.spaceId"
+        :project-id="page.projectId"
+      />
+    </Dialog>
+    <VersionsDialog v-if="history" v-model:open="history" :page-id="pageId" />
   </div>
 </template>

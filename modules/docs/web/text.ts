@@ -56,6 +56,21 @@ const S = {
   unassign: { ru: 'Снять назначение', en: 'Unassign' },
   resolve: { ru: 'Завершить', en: 'Resolve' },
   resolved: { ru: 'Завершено', en: 'Resolved' },
+  docMenu: { ru: 'Меню документа', en: 'Document menu' },
+  format: { ru: 'Форматирование', en: 'Formatting' },
+  fmtBold: { ru: 'Жирный', en: 'Bold' },
+  fmtItalic: { ru: 'Курсив', en: 'Italic' },
+  fmtUnderline: { ru: 'Подчёркнутый', en: 'Underline' },
+  fmtStrike: { ru: 'Зачёркнутый', en: 'Strikethrough' },
+  fmtCode: { ru: 'Код', en: 'Code' },
+  fmtH1: { ru: 'Заголовок 1', en: 'Heading 1' },
+  fmtH2: { ru: 'Заголовок 2', en: 'Heading 2' },
+  fmtH3: { ru: 'Заголовок 3', en: 'Heading 3' },
+  fmtBullet: { ru: 'Маркированный список', en: 'Bulleted list' },
+  fmtOrdered: { ru: 'Нумерованный список', en: 'Numbered list' },
+  fmtTodo: { ru: 'Чек-лист', en: 'Checklist' },
+  fmtQuote: { ru: 'Цитата', en: 'Quote' },
+  fmtCodeBlock: { ru: 'Блок кода', en: 'Code block' },
 } as const;
 export type TextKey = keyof typeof S;
 export type Texts = (k: TextKey, p?: Record<string, string>) => string;
