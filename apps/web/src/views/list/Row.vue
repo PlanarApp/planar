@@ -13,19 +13,13 @@ import {
   type TaskView,
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
-import {
-  ChevronDown,
-  ChevronRight,
-  GripVertical,
-  ListTree,
-  MoreHorizontal,
-  Sun,
-} from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Sun } from 'lucide-vue-next';
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
 import { useCardExtensions } from '../cardExtensions';
 import AiCell from './AiCell.vue';
+import TaskProgress from '../TaskProgress.vue';
 import { BlockedIcon } from '../../links';
 import { isAiField, type TaskField } from '../options';
 import { localToday } from '../filter';
@@ -51,7 +45,7 @@ const props = defineProps<{
   parentTitle?: string;
   /** drag handle ("Manual" sort) */
   draggable?: boolean;
-  /** number of subtasks in the view; > 0 — the collapse chevron and counter */
+  /** number of subtasks in the view; > 0 — the collapse chevron */
   childCount?: number;
   /** subtasks collapsed */
   folded?: boolean;
@@ -228,7 +222,6 @@ function save() {
         :labels="labels"
         :depth="depth"
         :parent-title="parentTitle"
-        :child-count="childCount"
         :project-name="projectName"
         project-text
         :show-key="showKey"
@@ -355,12 +348,8 @@ function save() {
         <span :class="wrap ? 'min-w-0 break-words' : 'truncate'" data-testid="row-title">{{
           task.title
         }}</span>
-        <span
-          v-if="childCount"
-          class="inline-flex shrink-0 items-center gap-0.5 rounded border border-border px-1 text-xs text-fg-muted"
-          data-testid="row-children"
-          ><ListTree :size="12" />{{ childCount }}</span
-        >
+        <!-- PLNRAPP-333: subtasks / checklist «closed/total» (all subtasks, not only those in the view) -->
+        <TaskProgress :task-id="task.id" />
         <!-- поля модулей (время): видны всегда, если модуль включён -->
         <span v-for="x in ext" :key="x.key" class="ml-auto shrink-0" @click.stop>
           <component :is="x.view" :task-id="task.id" />

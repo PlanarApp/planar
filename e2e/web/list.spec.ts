@@ -50,7 +50,7 @@ test('перетаскивание: в подзадачи (середина ст
   await expect(row(third)).toBeVisible();
 
   await drag(page, child, parent, 0.5); // into
-  await expect(row(parent).getByTestId('row-children')).toHaveText('1');
+  await expect(row(parent).getByTestId('row-children')).toHaveText('0/1');
 
   await row(parent).getByTestId('row-fold').click();
   await expect(row(child)).toHaveCount(0);
