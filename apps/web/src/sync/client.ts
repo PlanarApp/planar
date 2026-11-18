@@ -12,7 +12,7 @@ import {
   type MutatorCtx,
   type MutatorDef,
 } from '@planar/shared';
-import { PlanarDB, type QueueItem, type ReplicaChange, type Undo } from './db';
+import { dataSig, PlanarDB, type QueueItem, type ReplicaChange, type Undo } from './db';
 import { DexieTx, applyUndo, flushOverlay, overlayKey, type Overlay } from './dexie-tx';
 
 export interface StartOpts {
@@ -464,7 +464,9 @@ export function createClient(db: PlanarDB) {
     if (!id) await db._meta.put({ key: 'clientId', value: clientId });
     cursor = (await meta('cursor')) as number | undefined;
     replicaState.value = cursor === undefined ? 'empty' : 'complete';
-    rebuild = cursor !== undefined && (await meta('schema')) !== db.schemaSig();
+    // only a new entity table needs bootstrap: a new index is built by Dexie over the rows in place
+    const sig = await meta('schema');
+    rebuild = cursor !== undefined && (typeof sig !== 'string' || dataSig(sig) !== db.schemaSig());
     pushedUpTo = 0;
     failures = wsFailures = 0;
     setStatus('idle');

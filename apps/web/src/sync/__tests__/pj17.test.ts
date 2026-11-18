@@ -3,7 +3,7 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { uuidv7 } from '@planar/shared';
 import { afterEach, describe, expect, it } from 'vitest';
-import { buildSchema, PlanarDB } from '../db';
+import { buildSchema, dataSig, PlanarDB, schemaVersion } from '../db';
 
 const EXTRA = { sprints: ['spaceId'] };
 const store: Record<string, string> = {};
@@ -78,5 +78,75 @@ describe('pj17: реплика до обновления', () => {
     await db.open();
     expect(await realIndexes(name, 'statuses')).toContain('projectId');
     await db.delete();
+  });
+});
+
+describe('PLNRAPP-484: схема реплики v4 — _held, tasks.createdBy', () => {
+  /** реплика прошлой сборки с модулями: без _held и индекса createdBy, подпись — в старом формате */
+  async function preHeldReplica(name: string) {
+    const old = new Dexie(name);
+    old.version(7).stores(buildSchema(EXTRA, ['_held'], ['tasks.createdBy']));
+    await old.table('_meta').put({ key: 'cursor', value: 5 });
+    await old.table('tasks').put({ id: 't1', createdBy: 'u1' });
+    old.close();
+    store['planar.dexieSchema.' + name] = JSON.stringify({ sig: 'core;sprints:spaceId', v: 7 });
+  }
+
+  it('индекс ядра при установленных модулях поднимает версию Dexie, данные на месте', async () => {
+    const name = 'pln484a-' + uuidv7();
+    await preHeldReplica(name);
+    const db = new PlanarDB(name, EXTRA);
+    await db.open();
+    expect(db.verno).toBe(8);
+    expect(await realIndexes(name, 'tasks')).toContain('createdBy');
+    expect(await realIndexes(name, '_held')).toContain('accessedAt');
+    expect(await db.table('_meta').get('cursor')).toMatchObject({ value: 5 });
+    expect((await db.table('tasks').where('createdBy').equals('u1').toArray()).length).toBe(1);
+    db.close();
+    // та же сборка — версия не растёт
+    const again = new PlanarDB(name, EXTRA);
+    await again.open();
+    expect(again.verno).toBe(8);
+    await again.delete();
+  });
+
+  it('смена индекса ядра меняет версию при той же подписи модулей', () => {
+    const name = 'pln484b-' + uuidv7();
+    const v = schemaVersion(name, EXTRA);
+    expect(v).toBe(5);
+    expect(schemaVersion(name, EXTRA)).toBe(v);
+    const key = 'planar.dexieSchema.' + name;
+    const old = JSON.parse(store[key]!) as { sig: string; v: number };
+    // подпись сборки, где у задач ещё не было индекса createdBy
+    old.sig = JSON.stringify(buildSchema(EXTRA, [], ['tasks.createdBy']));
+    store[key] = JSON.stringify(old);
+    expect(schemaVersion(name, EXTRA)).toBe(v + 1);
+  });
+
+  it('без модулей реплика v3 обновляется до v4', async () => {
+    const name = 'pln484c-' + uuidv7();
+    const old = new Dexie(name);
+    old.version(3).stores(buildSchema({}, ['_held'], ['tasks.createdBy']));
+    await old.table('tasks').put({ id: 't1', createdBy: 'u1' });
+    old.close();
+    const db = new PlanarDB(name);
+    await db.open();
+    expect(db.verno).toBe(4);
+    expect(await db.table('tasks').where('createdBy').equals('u1').count()).toBe(1);
+    await db._held.put({ taskId: 't1', loadedAt: 'a', accessedAt: 'b' });
+    expect(await db._held.orderBy('accessedAt').primaryKeys()).toEqual(['t1']);
+    await db.delete();
+  });
+
+  it('подпись данных не зависит от индексов и служебных таблиц, старый формат приводится к ней', () => {
+    const db = new PlanarDB('pln484d-' + uuidv7());
+    const legacy = db.tables
+      .filter((t) => t.name !== '_held')
+      .map(
+        (t) => `${t.name}:${t.schema.indexes.map((i) => i.name).filter((i) => i !== 'createdBy')}`,
+      )
+      .join(';');
+    expect(dataSig(legacy)).toBe(db.schemaSig());
+    expect(dataSig(legacy.replace(/(^|;)labels:[^;]*/, ''))).not.toBe(db.schemaSig());
   });
 });
