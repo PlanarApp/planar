@@ -16,11 +16,13 @@ import {
   i18n,
   mutate,
   useQuery,
-  useSession,
   useExtensions,
   useBreakpoint,
+  Button,
   Dialog,
   Menu,
+  moveMenu,
+  useMoveSpaces,
   type MenuItem,
 } from '@planar/web/modules';
 import DocComments from './DocComments.vue';
@@ -67,62 +69,45 @@ onBeforeUnmount(saver.flush);
 
 const fav = computed(() => favorites.has('doc', props.pageId));
 const history = ref(false);
-// PLNRAPP-5: move targets — projects and space root of the page's space and other writable spaces
-const user = useSession();
-const spaces = useQuery(() => db.table<Row<'spaces'>>('spaces').toArray());
-const projects = useQuery(() => db.table<Row<'projects'>>('projects').toArray());
-const writable = useQuery(async () => {
-  const me = user.value?.id ?? '';
-  const rows = await db
-    .table<Row<'spaceMembers'>>('spaceMembers')
-    .where('userId')
-    .equals(me)
-    .toArray();
-  return new Set(rows.filter((m) => m.role !== 'guest').map((m) => m.spaceId));
-});
-const byRank = <T extends { rank: string }>(a: T, b: T) =>
-  a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0;
-const targets = computed(() => {
+// PLNRAPP-519: move targets — spaces → "No project" and projects I can change; a page with
+// subpages asks whether they go too
+const spaces = useMoveSpaces();
+const target = computed(() => {
   const p = page.value;
-  if (!p) return [];
-  const live = (projects.value ?? []).filter((x) => !x.archivedAt).sort(byRank);
-  const ownProjects = live
-    .filter((x) => x.spaceId === p.spaceId)
-    .map((x) => ({ spaceId: p.spaceId, projectId: x.id, label: x.name }));
-  const own = [
-    { spaceId: p.spaceId, projectId: null, label: tx('noProject') },
-    ...ownProjects,
-  ];
-  const others = [...(spaces.value ?? [])]
-    .filter((s) => s.id !== p.spaceId && (writable.value?.has(s.id) ?? false))
-    .sort(byRank)
-    .flatMap((s) => {
-      const spaceProjects = live
-        .filter((x) => x.spaceId === s.id)
-        .map((x) => ({ spaceId: s.id, projectId: x.id, label: `${s.name} / ${x.name}` }));
-      return [
-        { spaceId: s.id, projectId: null, label: `${s.name} / ${tx('noProject')}` },
-        ...spaceProjects,
-      ];
-    });
-  return [...own, ...others].map((x) => ({
-    id: `${x.spaceId}:${x.projectId ?? 'none'}`,
-    label: x.label,
-    checked: p.spaceId === x.spaceId && (p.projectId ?? null) === x.projectId,
-    onSelect: () =>
-      (p.spaceId !== x.spaceId || (p.projectId ?? null) !== x.projectId) &&
-      void moveTo(x.spaceId, x.projectId),
-  }));
+  return p
+    ? moveMenu(
+        spaces.value,
+        { spaceId: p.spaceId, projectId: p.projectId ?? null },
+        (spaceId, projectId) => void pick(spaceId, projectId),
+        tx('noProject'),
+      )
+    : { items: [], count: 0 };
 });
-/** to the end of the target's root pages, with the subpages (docs.page.move) */
-async function moveTo(spaceId: string, projectId: string | null) {
+const ask = ref<{ spaceId: string; projectId: string | null; label: string; n: number } | null>(
+  null,
+);
+const withChildren = ref(true);
+async function pick(spaceId: string, projectId: string | null) {
+  const n = await db.table<PageFull>('docsPages').where('parentId').equals(props.pageId).count();
+  if (!n) return moveTo(spaceId, projectId, true);
+  const s = spaces.value.find((x) => x.id === spaceId);
+  const name = projectId ? s?.projects.find((x) => x.id === projectId)?.name : tx('noProject');
+  withChildren.value = true;
+  ask.value = { spaceId, projectId, label: `${s?.name ?? ''} / ${name ?? ''}`, n };
+}
+/** to the end of the target's root pages, with or without the subpages (docs.page.move) */
+async function moveTo(spaceId: string, projectId: string | null, children: boolean) {
+  ask.value = null;
   saver.flush();
   const pages = await db
     .table<PageFull>('docsPages')
     .where('spaceId')
     .equals(spaceId)
     .toArray();
-  await mutate('docs.page.move', toProjectArgs(pages, props.pageId, projectId, spaceId)).catch(() => {});
+  await mutate('docs.page.move', {
+    ...toProjectArgs(pages, props.pageId, projectId, spaceId),
+    ...(!children && { withChildren: false }),
+  }).catch(() => {});
 }
 const actions = computed<MenuItem[]>(() => [
   {
@@ -142,8 +127,8 @@ const actions = computed<MenuItem[]>(() => [
     id: 'move',
     label: tx('move'),
     icon: ArrowRightLeft,
-    disabled: targets.value.length < 2,
-    children: targets.value,
+    disabled: target.value.count < 2,
+    children: target.value.items,
   },
   {
     id: 'history',
@@ -301,5 +286,27 @@ async function archive() {
       />
     </Dialog>
     <VersionsDialog v-if="history" v-model:open="history" :page-id="pageId" />
+    <Dialog
+      v-if="ask"
+      :open="true"
+      size="sm"
+      :title="tx('moveTitle')"
+      :description="tx('moveTo', { to: ask.label })"
+      @update:open="(o: boolean) => o || (ask = null)"
+    >
+      <label class="flex min-h-9 items-center gap-2 text-sm">
+        <input v-model="withChildren" type="checkbox" data-testid="doc-move-children" />
+        {{ tx('moveChildren', { n: String(ask.n) }) }}
+      </label>
+      <template #footer>
+        <Button @click="ask = null">{{ tx('cancel') }}</Button>
+        <Button
+          variant="primary"
+          data-testid="doc-move-confirm"
+          @click="moveTo(ask.spaceId, ask.projectId, withChildren)"
+          >{{ tx('moveAction') }}</Button
+        >
+      </template>
+    </Dialog>
   </div>
 </template>

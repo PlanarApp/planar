@@ -89,3 +89,30 @@ describe('PLNRAPP-152 перенос в другое пространство', 
       );
   });
 });
+
+describe('PLNRAPP-519 перенос без подзадач (withSubtasks: false)', () => {
+  it('в проект того же пространства: подзадачи остаются в своём проекте и под задачей', async () => {
+    const { tx, b, b2 } = await twoSpaces();
+    const root = await seedTask(tx, b);
+    const kid = await seedTask(tx, b, { parentId: root });
+    await run(tx, 'task.update', { id: root, projectId: b2.projectId, withSubtasks: false });
+    expect((await tx.get('tasks', root))!.projectId).toBe(b2.projectId);
+    expect(await tx.get('tasks', kid)).toMatchObject({ projectId: b.projectId, parentId: root });
+    expect('withSubtasks' in (await tx.get('tasks', root))!).toBe(false);
+  });
+
+  it('в другое пространство: подзадачи остаются в старом пространстве без родителя', async () => {
+    const { tx, a, b } = await twoSpaces();
+    const root = await seedTask(tx, a);
+    const kid = await seedTask(tx, a, { parentId: root });
+    const grand = await seedTask(tx, a, { parentId: kid });
+    await run(tx, 'task.update', { id: root, projectId: b.projectId, withSubtasks: false });
+    expect((await tx.get('tasks', root))!.spaceId).toBe(b.spaceId);
+    expect(await tx.get('tasks', kid)).toMatchObject({
+      spaceId: a.spaceId,
+      projectId: a.projectId,
+      parentId: null,
+    });
+    expect((await tx.get('tasks', grand))!.parentId).toBe(kid);
+  });
+});

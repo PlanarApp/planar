@@ -222,6 +222,8 @@ const move = defineMutator({
     rank: z.string().min(1),
     projectId: z.uuid().nullable().optional(), // for the root; without it the group does not change
     spaceId: z.uuid().optional(),
+    // PLNRAPP-519: false — the subpages stay: they take the page's place under its old parent
+    withChildren: z.boolean().optional(),
   }),
   async run(tx, a, ctx) {
     const p = await page(tx, a.id);
@@ -248,6 +250,9 @@ const move = defineMutator({
       }
       await checkProject(tx, targetSpaceId, projectId);
     }
+    if (a.withChildren === false)
+      for (const k of await dtx(tx).scan<Page>('docsPages', { index: 'parentId', eq: a.id }))
+        await dtx(tx).patch('docsPages', k.id, { parentId: p.parentId, updatedAt: ctx.now });
     if (targetSpaceId !== p.spaceId) {
       const sp = await tx.get('spaces', targetSpaceId);
       if (!sp) throw new MutatorError('not_found', 'пространство не найдено');

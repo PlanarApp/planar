@@ -268,11 +268,15 @@ export const taskMutators = [
       projectId: uuid.optional(),
       parentId: uuid.nullable().optional(),
       fields: record.optional(),
+      // PLNRAPP-519: on a move to another project, false — subtasks stay where they are
+      withSubtasks: z.boolean().optional(),
     }),
     async run(tx, a, ctx) {
       const t = await need(tx, 'tasks', a.id);
-      const patch = changes('tasks', a, ctx);
+      const { withSubtasks, ...rest } = a;
+      const patch = changes('tasks', rest, ctx);
       const moved = !!a.projectId && a.projectId !== t.projectId;
+      const keep = moved && withSubtasks === false;
       const p = a.projectId ? await need(tx, 'projects', a.projectId) : undefined;
       if (p) {
         if (p.spaceId !== t.spaceId) {
@@ -287,6 +291,10 @@ export const taskMutators = [
           );
           // the old parent stays in the old space
           patch.parentId = a.parentId ?? null;
+          // subtasks left behind lose their parent: it is in another space now
+          if (keep)
+            for (const c of await tx.scan('tasks', { index: 'parentId', eq: t.id }))
+              await tx.patch('tasks', c.id, { parentId: null, updatedAt: ctx.now });
           return moveTree(tx, t, p, members, ctx, { patch, status });
         }
         if (moved) {
@@ -307,8 +315,8 @@ export const taskMutators = [
       if (a.fields) await checkFields(tx, a.projectId ?? t.projectId, a.fields);
       if (a.parentId) await checkParent(tx, t.id, t.spaceId, a.parentId);
       await tx.patch('tasks', a.id, patch);
-      // subtasks follow the task to its new project
-      if (moved)
+      // subtasks follow the task to its new project (unless asked to stay)
+      if (moved && !keep)
         for (const c of await tx.scan('tasks', { index: 'parentId', eq: t.id }))
           await moveTree(tx, c, p!, null, ctx);
     },
