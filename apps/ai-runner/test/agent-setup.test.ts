@@ -26,4 +26,19 @@ describe('скрипт подготовки окружения агента', ()
     expect(dev).toContain(`./${SCRIPT}`);
     expect(dev).toMatch(/упал.*в comment/s);
   });
+
+  it('инструкция «Разработка» описывает окружение, проверки без БД и задачи без нового объёма', () => {
+    const dev = readFileSync(root('modules/ai/harnesses/dev/actions/dev.md'), 'utf8');
+    for (const s of [
+      'в каждый вызов Bash',
+      'NODE_USE_ENV_PROXY=1',
+      'npm i -g',
+      'TMPDIR',
+      'NODE_OPTIONS=--max-old-space-size=',
+      'нет python3',
+      'через CI MR',
+      'Пустой MR не создавай',
+    ])
+      expect(dev).toContain(s);
+  });
 });
