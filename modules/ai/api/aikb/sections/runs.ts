@@ -108,7 +108,7 @@ ${packs}
 
 Automation rule: action {type: ai_run, aiActionId, maxRuns?} (maxRuns: runs by this rule in a row on a task, 1-20; past it a question goes to a person). The rule's actions run first; the AI job is enqueued with a 10 s debounce and goes only if the task is still in the status it had after the rule. Creating or changing a rule with ai_run needs a project admin; the AI action must belong to the rule's project.
 
-Run result (resultSchema; every field present, null = unused). Changes apply only with verdict done; with question only labels:
+Run result (resultSchema; null = unused). An llm run gets the base fields (verdict, comment, questions, descriptionAppend, moveTo, labels, friction, uncertain) and the other fields its action's prompt or checks name; a field not named there the model asks for through need, which costs one more request — name the result fields an action uses in its prompt. A document run returns only verdict, comment, questions, pagePatch. An agent returns the whole result. Changes apply only with verdict done; with question only labels:
 ${fields}
 
 Chat "да": in a chat the bot does not run dangerous tools (delete, bulk changes, pack and event settings). It returns needsConfirmation, saves the planned calls, sets the run to waiting_human and posts the plan. The initiator's reply "да" runs the planned calls once, as the initiator (their rights); any other reply cancels. Emails from a result wait the same way, for a confirming comment from the asker or the task's person.`,

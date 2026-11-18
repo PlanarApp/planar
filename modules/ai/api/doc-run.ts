@@ -47,15 +47,16 @@ const pagePatchSchema = z
 // built on first use: run.ts imports this file, so its resultSchema is not there yet at load time
 /** Result of a runtime agent (task or document): not sent to a model, so no UNION_LIMIT. */
 export const agentResultSchema = () => resultSchema.extend({ pagePatch: pagePatchSchema });
-// a document has no subtasks and no acceptance (uncertain); without them the schema stays within UNION_LIMIT
-export const docResultSchema = () => agentResultSchema().omit({ subtasks: true, uncertain: true });
+// only what a document run applies (PLNRAPP-452): the whole result is a grammar the provider refuses as too large
+export const docResultSchema = () =>
+  agentResultSchema().pick({ verdict: true, comment: true, questions: true, pagePatch: true });
 type DocResult = AiResult & { pagePatch?: unknown };
 
 const DOC_SYSTEM = `Ты — ИИ-помощник в документах Planar. Тебе пишут в комментарии к странице. Ответ — JSON по схеме:
 - verdict: done — ответ дан или поручение выполнено; question — без ответа человека не обойтись (вопросы — в questions); fail — выполнить нельзя (причина — в comment).
 - comment: ответ в ветку комментариев, markdown. Пиши на языке комментария.
 - pagePatch: правки страницы {edits: [{find, replace, all}]} по markdown страницы — только когда поручение (назначенный тебе комментарий) просит изменить страницу; find — точный фрагмент, который встречается в странице ровно один раз (или all=true — заменить все вхождения). Иначе null. Если правки не применятся, поручение останется открытым.
-Остальные поля — null. Контекст — JSON: страница (markdown), ветка комментариев, поручение, проект (если страница из пакета harness).`;
+Контекст — JSON: страница (markdown), ветка комментариев, поручение, проект (если страница из пакета harness).`;
 
 /** The system part of an agent run over a page: the result goes over HTTP, the reply and resolve are made by the server. */
 const DOC_AGENT_SYSTEM = `Ты — ИИ-агент в документах Planar. Тебе пишут в комментарии к странице; страница, ветка комментариев и поручение — в файле контекста.
@@ -237,7 +238,7 @@ export async function handleDoc(d: DocRunData, api: JobApi): Promise<void> {
           maxOutputTokens: action?.maxOutputTokens ?? undefined,
         },
       );
-      result = { ...out.object, subtasks: null, uncertain: '' };
+      result = { ...failed(''), ...out.object };
       await api.db.execute(
         sql`update ai_runs set input_tokens = ${out.usage.inputTokens}, output_tokens = ${out.usage.outputTokens},
             cost = ${out.usage.cost} where id = ${id}`,

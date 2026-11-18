@@ -44,6 +44,8 @@ const jobs: Job[] = [];
 let answers: object[] = [];
 const PROVIDER_400 = {};
 let calls: { system: string; prompt: string }[] = [];
+/** PLNRAPP-452: the fields of the answer schema of every request to the provider */
+let schemas: string[][] = [];
 /** PLNRAPP-404: answers of the engine's LLM check, in order, and the prompts it got */
 let verdicts: { pass: boolean; failures: string[] }[] = [];
 let judged: string[] = [];
@@ -90,11 +92,36 @@ beforeAll(async () => {
     let raw = '';
     req.on('data', (c) => (raw += c));
     req.on('end', async () => {
-      const body = JSON.parse(raw) as { messages: { role: string; content: string }[] };
+      const body = JSON.parse(raw) as {
+        messages: { role: string; content: string }[];
+        response_format?: { json_schema?: { schema?: { properties?: object } } };
+      };
       const system = body.messages.find((m) => m.role === 'system')?.content ?? '';
       const prompt = body.messages.find((m) => m.role === 'user')?.content ?? '';
       // PLNRAPP-404: the engine's LLM check has its own queue (default — accepted)
       const judge = system.startsWith('Ты — проверяющий');
+      // PLNRAPP-452: like a model — a field the request's schema lacks is first asked for through `need`
+      // (that extra request is not in `calls` and costs no tokens, so the tests count as before)
+      const props = body.response_format?.json_schema?.schema?.properties ?? {};
+      schemas.push(Object.keys(props));
+      const queued = (judge ? undefined : answers[0]) as Record<string, unknown> | undefined;
+      const lack =
+        typeof queued === 'object' && 'need' in props
+          ? Object.keys(queued).filter((k) => queued[k] != null && !(k in props))
+          : [];
+      if (lack.length)
+        return void res.writeHead(200, { 'content-type': 'application/json' }).end(
+          JSON.stringify({
+            choices: [
+              {
+                index: 0,
+                message: { role: 'assistant', content: JSON.stringify(result({ need: lack })) },
+                finish_reason: 'stop',
+              },
+            ],
+            usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+          }),
+        );
       if (judge) judged.push(prompt);
       else {
         calls.push({ system, prompt });
@@ -117,7 +144,13 @@ beforeAll(async () => {
           choices: [
             {
               index: 0,
-              message: { role: 'assistant', content: JSON.stringify(next) },
+              message: {
+                role: 'assistant',
+                // need is required where the schema has it: nothing asked — []
+                content: JSON.stringify(
+                  'need' in props && typeof next === 'object' ? { need: [], ...next } : next,
+                ),
+              },
               finish_reason: 'stop',
             },
           ],
@@ -605,6 +638,52 @@ describe('прогон по правилу', () => {
         w.admin.userId,
       ]),
     ).toHaveLength(1);
+  });
+
+  it('PLNRAPP-452: в схеме ответа — база и поля из инструкции; остальные — оглавлением need, по запросу', async () => {
+    const base = [
+      'verdict',
+      'comment',
+      'questions',
+      'descriptionAppend',
+      'moveTo',
+      'labels',
+      'friction',
+      'uncertain',
+    ];
+    // the checks name snoozeUntil: it is in the schema at once, one request
+    actionId = await action({ checks: ['срок — в snoozeUntil'] });
+    await plan();
+    const t = await task();
+    schemas = [];
+    answers = [result({ snoozeUntil: '2027-02-01' })];
+    await w.admin.ok('task.update', { id: t, statusId: S.backlog });
+    await drain();
+    expect(schemas.filter((s) => s.includes('comment'))).toHaveLength(1);
+    expect(schemas[0]!.sort()).toEqual([...base, 'snoozeUntil', 'need'].sort());
+    expect(calls[0]!.system).toContain('snoozeUntil — отложить задачу до даты YYYY-MM-DD');
+    // the fields outside the schema — one line each in need, without their descriptions
+    expect(calls[0]!.system).toContain('docs — создать или переписать документ проекта;');
+    expect(calls[0]!.system).not.toContain('сам ничего не отправляй');
+    expect((await taskRow(t)).status_id).toBe(S.snoozed);
+
+    // the model asks for escalate through need: the request is repeated with it, the tokens add up
+    await w.admin.ok('project.update', { id: P, leadId: w.admin.userId });
+    const t2 = await task();
+    schemas = [];
+    calls = [];
+    answers = [result({ comment: '', need: ['escalate'] }), result({ escalate: 'скидка 30%' })];
+    await w.admin.ok('task.update', { id: t2, statusId: S.backlog });
+    await drain();
+    expect(calls).toHaveLength(2);
+    expect(schemas[1]!.sort()).toEqual([...base, 'snoozeUntil', 'escalate'].sort());
+    expect(calls[1]!.system).toContain('escalate — причина');
+    expect(calls[1]!.system).not.toContain('need');
+    const [run] = await runsOf(t2);
+    // both requests and the engine's LLM check, 1000 each
+    expect(run!.input_tokens).toBe(3000);
+    expect(run!.log).toContain('запрошены поля результата: escalate');
+    expect((await commentsOf(t2)).some((c) => text(c.body).includes('скидка 30%'))).toBe(true);
   });
 
   it('отменённый прогон не применяется; новый прогон отменяет прежний той же пары', async () => {
