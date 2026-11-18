@@ -19,10 +19,8 @@ import {
   Trash2,
   UserRound,
 } from 'lucide-vue-next';
-import type { Row } from '@planar/shared';
 import type { MenuItem } from '../ui/Menu.vue';
 import { toast } from '../ui/toast';
-import { db, useQuery } from '../sync';
 import { useAuth } from '../auth/useAuth';
 import { localToday } from '../views/filter';
 import { addDays } from '../views/calendar/dates';
@@ -33,6 +31,8 @@ import { useMembers, useStatuses } from './dictionaries';
 import { useProjectAdmin } from './admin';
 import { archiveTask, createTask, deleteTask, restoreTask, setAssignees, updateTask } from './ops';
 import { mergeFrom } from './merge';
+import { moveTarget } from './move';
+import { moveMenu, useMoveSpaces } from './moveTargets';
 import type { TaskView } from './queries';
 import PriorityIcon from './fields/PriorityIcon.vue';
 import StatusIcon from './fields/StatusIcon.vue';
@@ -49,34 +49,31 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
   const statuses = useStatuses(spaceId);
   const members = useMembers(spaceId);
   const admin = useProjectAdmin();
-  const projects = useQuery(() => db.table<Row<'projects'>>('projects').toArray());
-  // move targets (PLNRAPP-152): projects of the task's space, then of other spaces where I am not a guest
-  const spaces = useQuery(() => db.table<Row<'spaces'>>('spaces').toArray());
-  const writable = useQuery(async () => {
-    const me = session.value?.id ?? '';
-    const rows = await db
-      .table<Row<'spaceMembers'>>('spaceMembers')
-      .where('userId')
-      .equals(me)
-      .toArray();
-    return new Set(rows.filter((m) => m.role !== 'guest').map((m) => m.spaceId));
-  });
-  const byRank = <T extends { rank: string }>(a: T, b: T) =>
-    a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0;
-  const moveTargets = (task: TaskView) => {
-    const live = (projects.value ?? []).filter((p) => !p.archivedAt).sort(byRank);
-    const own = live
-      .filter((p) => p.spaceId === task.spaceId)
-      .map((p) => ({ ...p, label: p.name }));
-    const others = [...(spaces.value ?? [])]
-      .filter((s) => s.id !== task.spaceId && writable.value?.has(s.id))
-      .sort(byRank)
-      .flatMap((s) =>
-        live
-          .filter((p) => p.spaceId === s.id)
-          .map((p) => ({ ...p, label: `${s.name} / ${p.name}` })),
-      );
-    return [...own, ...others];
+  // move targets (PLNRAPP-519): spaces → projects I can change; the pick opens MoveTaskDialog
+  const spaces = useMoveSpaces();
+  const moveItem = (task: TaskView): MenuItem => {
+    const { items, count } = moveMenu(
+      spaces.value,
+      { spaceId: task.spaceId, projectId: task.projectId },
+      (spaceId, projectId) => {
+        const s = spaces.value.find((x) => x.id === spaceId);
+        const p = s?.projects.find((x) => x.id === projectId);
+        if (!s || !p) return;
+        moveTarget.value = {
+          task: { id: task.id, key: task.key, statusId: task.statusId },
+          spaceId,
+          projectId: p.id,
+          label: `${s.name} / ${p.name}`,
+        };
+      },
+    );
+    return {
+      id: 'move',
+      label: t('taskMenu.move'),
+      icon: ArrowRightLeft,
+      disabled: count < 2,
+      children: items,
+    };
   };
 
   const copy = (text: string, note: string) =>
@@ -221,18 +218,7 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
           },
         ],
       },
-      {
-        id: 'move',
-        label: t('taskMenu.move'),
-        icon: ArrowRightLeft,
-        disabled: moveTargets(task).length < 2,
-        children: moveTargets(task).map((p) => ({
-          id: p.id,
-          label: p.label,
-          checked: p.id === task.projectId,
-          onSelect: () => p.id !== task.projectId && void updateTask(task.id, { projectId: p.id }),
-        })),
-      },
+      moveItem(task),
       { separator: true },
       {
         id: 'dup',

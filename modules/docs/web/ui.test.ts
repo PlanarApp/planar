@@ -204,6 +204,20 @@ describe('docs web: дерево в боковой панели', () => {
     // a cycle is rejected by the client too
     expect(moveArgs(all, a, b, 'into')).toBeNull();
   });
+
+  it('PLNRAPP-519: docs.page.move без вложенных — подстраницы встают на место страницы', async () => {
+    const [top, a, b, c] = [uuidv7(), uuidv7(), uuidv7(), uuidv7()];
+    await db.table('docsPages').bulkPut([
+      page(top, { rank: 'a0' }),
+      page(a, { rank: 'a1', parentId: top }),
+      page(b, { rank: 'a0', parentId: a }),
+      page(c, { rank: 'a0', parentId: b }),
+    ]);
+    await mutate('docs.page.move', { id: a, parentId: null, rank: 'b0', withChildren: false });
+    expect(await db.table('docsPages').get(a)).toMatchObject({ parentId: null, rank: 'b0' });
+    expect(await db.table('docsPages').get(b)).toMatchObject({ parentId: top });
+    expect(await db.table('docsPages').get(c)).toMatchObject({ parentId: b });
+  });
 });
 
 describe('docs web: панель задачи', () => {

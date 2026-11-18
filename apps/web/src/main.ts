@@ -7,6 +7,7 @@ import { initModules } from './modules/registry';
 import { prefetchProject } from './tasks/queries';
 import { closePrompt } from './tasks/closeOpen';
 import { mergeFrom } from './tasks/merge';
+import { moveTarget } from './tasks/move';
 import { initSession } from './session';
 import { onMutationError } from './sync';
 import { toast } from './ui/toast';
@@ -18,6 +19,7 @@ const LogoutDialog = defineAsyncComponent(() => import('./sync/LogoutDialog.vue'
 const Toasts = defineAsyncComponent(() => import('./ui/Toasts.vue'));
 const CloseOpenDialog = defineAsyncComponent(() => import('./tasks/CloseOpenDialog.vue'));
 const MergeDialog = defineAsyncComponent(() => import('./tasks/MergeDialog.vue'));
+const MoveTaskDialog = defineAsyncComponent(() => import('./tasks/MoveTaskDialog.vue'));
 const { logoutPrompt } = useAuth();
 
 const open = /^\/p\/([0-9a-f-]{36})/.exec(location.pathname);
@@ -39,6 +41,8 @@ const app = createApp({
     logoutPrompt.open.value && h(LogoutDialog),
     closePrompt.value && h(CloseOpenDialog, { key: closePrompt.value.task.id }),
     mergeFrom.value && h(MergeDialog, { key: mergeFrom.value.id }),
+    moveTarget.value &&
+      h(MoveTaskDialog, { key: `${moveTarget.value.task.id}:${moveTarget.value.projectId}` }),
     h(Toasts),
   ],
 });

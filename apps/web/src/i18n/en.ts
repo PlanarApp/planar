@@ -42,6 +42,14 @@ export default {
     copyOf: '{title} (copy)',
     merge: 'Merge into task…',
   },
+  moveTask: {
+    title: 'Move {key} to another project',
+    to: 'To: {to}',
+    status: 'Status in the new project',
+    subtasks: 'Move subtasks too ({n})',
+    action: 'Move',
+    done: '{key} moved to {to}',
+  },
   merge: {
     title: 'Merge {key} into another task',
     text: 'Comments, attachments, time, links, subtasks, assignees and watchers move to the chosen task; this task is cancelled and marked as a duplicate.',
