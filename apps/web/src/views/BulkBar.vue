@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Button, Dialog, Select } from '../ui';
+import { Button, Dialog } from '../ui';
 import BulkMerge from './BulkMerge.vue';
 import {
-  AssigneePicker,
+  BulkAssigneePicker,
   DueDatePicker,
   PriorityPicker,
   StatusPicker,
@@ -16,7 +16,7 @@ import {
   useStatuses,
   type TaskView,
 } from '../tasks';
-import { applyAssignees, applyToggle, commonIds, useSelection, type AssignMode } from './selection';
+import { applyDiff, useSelection } from './selection';
 import { setStatusByName } from './scope';
 
 /** Bulk action bar for the selected tasks of the view (one mutation per task). */
@@ -25,25 +25,10 @@ const { t } = useI18n();
 const statuses = useStatuses(() => props.spaceId);
 const sel = useSelection();
 const chosen = computed(() => (props.tasks ?? []).filter((x) => sel.selected.value.has(x.id)));
-const assigned = computed(() => commonIds(chosen.value.map((x) => x.assigneeIds)));
 const each = (f: (x: TaskView) => Promise<unknown>) => Promise.all(chosen.value.map(f));
-// PLNRAPP-498: "add" applies each pick at once (as before); "remove" and "set" collect a draft and apply it
-// by the button — so "set" can apply an empty draft and clear all assignees
-const assignMode = ref<AssignMode>('add');
-const draft = ref<string[]>([]);
-const assignModes = computed(() =>
-  (['add', 'remove', 'set'] as const).map((value) => ({ value, label: t(`list.assign.${value}`) })),
-);
-function setAssignMode(mode: string | null) {
-  assignMode.value = (mode as AssignMode | null) ?? 'add';
-  draft.value = [];
-}
-async function applyDraft() {
-  const mode = assignMode.value;
-  const picked = draft.value;
-  await each((x) => setAssignees(x.id, applyAssignees(mode, x.assigneeIds, picked)));
-  draft.value = [];
-}
+// PLNRAPP-498: only the changed assignees; setAssignees sends no mutation to a task left as it was
+const assign = ({ add, remove }: { add: string[]; remove: string[] }) =>
+  each((x) => setAssignees(x.id, applyDiff(x.assigneeIds, add, remove)));
 const confirmDelete = ref(false);
 // PLNRAPP-155: archive — any member; delete — an admin of every selected task's project
 const admin = useProjectAdmin();
@@ -72,28 +57,11 @@ async function removeSelected() {
       :space-id="spaceId"
       @update:model-value="each((x) => setStatusByName(statuses ?? [], x, $event))"
     />
-    <Select
-      size="sm"
-      :label="t('list.assign.mode')"
-      :options="assignModes"
-      :model-value="assignMode"
-      data-testid="bulk-assign-mode"
-      @update:model-value="setAssignMode"
-    />
-    <AssigneePicker
-      v-if="assignMode === 'add'"
+    <BulkAssigneePicker
       :space-id="spaceId"
-      :model-value="assigned"
-      @update:model-value="
-        each((x) => setAssignees(x.id, applyToggle(x.assigneeIds, assigned, $event)))
-      "
+      :lists="chosen.map((x) => x.assigneeIds)"
+      @apply="assign"
     />
-    <template v-else>
-      <AssigneePicker v-model="draft" :space-id="spaceId" />
-      <Button size="sm" data-testid="bulk-assign-apply" @click="applyDraft">{{
-        t('list.assign.apply')
-      }}</Button>
-    </template>
     <PriorityPicker @update:model-value="each((x) => updateTask(x.id, { priority: $event }))" />
     <DueDatePicker @update:model-value="each((x) => updateTask(x.id, { dueDate: $event }))" />
     <Button size="sm" data-testid="bulk-archive" @click="archiveSelected">{{
