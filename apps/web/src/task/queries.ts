@@ -1,5 +1,6 @@
 import type { Row } from '@planar/shared';
 import { db, useQuery } from '../sync';
+import { views as taskViews } from '../tasks/queries';
 
 const byStr =
   <T>(f: (x: T) => string) =>
@@ -54,9 +55,8 @@ export const useSubtasks = (taskId: string) =>
       .table<Row<'projects'>>('projects')
       .bulkGet([...new Set(rows.map((r) => r.projectId))]))
       if (p) keys.set(p.id, p.key);
-    return rows
-      .sort(byStr((x) => x.rank))
-      .map((r) => ({ ...r, key: `${keys.get(r.projectId) ?? '?'}-${r.number ?? '…'}` }));
+    // TaskView (assignees, labels): the rows are the List's Row (PLNRAPP-540)
+    return taskViews(rows.sort(byStr((x) => x.rank)), keys);
   });
 
 /** reactions to all comments of the task in one query */

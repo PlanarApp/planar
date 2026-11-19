@@ -24,7 +24,11 @@ const group = (rows: { taskId: string }[], val: (r: never) => string) => {
   return m;
 };
 
-async function views(tasks: Row<'tasks'>[], projectKey: Map<string, string>): Promise<TaskView[]> {
+/** tasks → TaskView (key, assignees, labels) in one query per link table */
+export async function views(
+  tasks: Row<'tasks'>[],
+  projectKey: Map<string, string>,
+): Promise<TaskView[]> {
   const ids = tasks.map((t) => t.id);
   // one query for all tasks, not one per task in a loop
   const [as, ls] = await Promise.all([
