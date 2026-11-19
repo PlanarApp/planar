@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue';
-import { Tabs, useRouter } from '@planar/web/modules';
+import { Tabs, useProjectAdmin, useRouter } from '@planar/web/modules';
 import { AI_PROVIDERS, type AiConnectionView } from '../shared/index.js';
 import { call } from './api';
 import ConnectionFields from './ConnectionFields.vue';
 import { tr } from './data';
 import EgressSection from './EgressSection.vue';
-import AutopilotSection from './AutopilotSection.vue';
-import EngineMonitor from './EngineMonitor.vue';
 import LimitsSection from './LimitsSection.vue';
-import RetroSection from './RetroSection.vue';
 import PacksSection from './PacksSection.vue';
 import SetupWizard from './SetupWizard.vue';
 
@@ -20,12 +17,23 @@ const props = defineProps<{
   projectId?: string;
 }>();
 // PLNRAPP-538: the project page in tabs (the connection and its sections; packs and rules);
-// PLNRAPP-568: the workspace page (its admin only) — the connection, AI tasks, the engines monitor; space — no tabs
+// PLNRAPP-568: the workspace page (its admin only) — the connection, AI tasks, the engines monitor; space — no tabs;
+// PLNRAPP-569: the project page — also AI tasks and the engines monitor of this project (its admin or a workspace admin)
+const projectAdmin = useProjectAdmin();
+const canMonitor = computed(
+  () => !!props.projectId && !!props.spaceId && projectAdmin(props.spaceId, props.projectId),
+);
 const tabs = computed(() =>
   props.level === 'project'
     ? [
         { value: 'connection', label: tr('tabConnection') },
         { value: 'packs', label: tr('tabPacks') },
+        ...(canMonitor.value
+          ? [
+              { value: 'tasks', label: tr('tabTasks') },
+              { value: 'engines', label: tr('tabEngines') },
+            ]
+          : []),
       ]
     : props.level === 'workspace'
       ? [
@@ -54,6 +62,8 @@ watch(
   () => router.currentRoute.value.query.tab,
   () => (tab.value = fromQuery()),
 );
+// the admin rights come from the replica a moment later: the tab of the address opens then
+watch(canMonitor, () => (tab.value = fromQuery()));
 const own = ref<AiConnectionView | null>(null);
 const effective = ref<AiConnectionView | null>(null);
 const err = ref('');
@@ -249,14 +259,14 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
           @close="closeWizard"
         />
         <LimitsSection :project-id="projectId" />
-        <!-- PLNRAPP-568: also in the tab «Монитор движков» of the workspace; here — for the project admin -->
-        <AutopilotSection :project-id="projectId" />
-        <EngineMonitor :project-id="projectId" />
-        <RetroSection :key="wizardRuns" :project-id="projectId" />
       </template>
     </div>
     <PacksSection v-if="tab === 'packs' && projectId" :key="wizardRuns" :project-id="projectId" />
     <AiMonitor v-if="level === 'workspace' && tab === 'tasks'" />
     <EnginesTab v-if="level === 'workspace' && tab === 'engines'" />
+    <template v-if="level === 'project' && projectId && canMonitor">
+      <AiMonitor v-if="tab === 'tasks'" :project-id="projectId" />
+      <EnginesTab v-if="tab === 'engines'" :project-id="projectId" />
+    </template>
   </section>
 </template>

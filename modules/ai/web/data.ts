@@ -322,8 +322,6 @@ const dict = {
     ru: 'Только для администратора воркспейса. Если движок уже работает, текущий проход прерывается и стартует заново.',
     en: 'Workspace admins only. If the engine is running, the current pass is aborted and started again.',
   },
-  engRunThis: { ru: 'Этот проект', en: 'This project' },
-  engRunAll: { ru: 'Все проекты', en: 'All projects' },
   engRunConfirm: {
     ru: 'Запустить? Идущий проход движка будет прерван.',
     en: 'Run? The engine’s running pass will be aborted.',

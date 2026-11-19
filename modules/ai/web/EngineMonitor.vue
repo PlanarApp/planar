@@ -24,7 +24,8 @@ import {
 
 // PLNRAPP-500: the engines monitor of the project — status cards and the live log (polled every 2 s by the
 // cursor of events), the history of passes with filters, the manual run (a workspace admin);
-// PLNRAPP-568: no projectId — all projects and the general passes
+// PLNRAPP-568: no projectId — all projects and the general passes;
+// PLNRAPP-569: the manual run — over the shown scope (this project or all), no switch
 const props = defineProps<{ projectId?: string }>();
 const mon = ref<EngineMonitorView | null>(null);
 const events = ref<EngineEventView[]>([]);
@@ -82,7 +83,6 @@ watch([engine, state, period, active], () => void loadHistory());
 // the manual run
 // harnessOptimize — the harness engine's pass over the whole pack (shorten, dedupe, align)
 const runEngine = ref<EngineId | 'harnessOptimize'>('tasks');
-const runScope = ref<'project' | 'all'>(props.projectId ? 'project' : 'all');
 const confirming = ref(false);
 const runMsg = ref('');
 async function run() {
@@ -92,7 +92,7 @@ async function run() {
   try {
     const r = await call<{ aborted: number; queued: number }>('POST', 'engines/run', {
       engine: optimize ? 'harness' : runEngine.value,
-      projectId: runScope.value === 'project' ? (props.projectId ?? null) : null,
+      projectId: props.projectId ?? null,
       ...(optimize && { optimize }),
     });
     runMsg.value = `${tr('engRunDone')}${r.aborted ? `; ${tr('engRunAborted')}: ${r.aborted}` : ''}`;
@@ -164,15 +164,6 @@ onBeforeUnmount(() => clearInterval(timer));
         >
           <option v-for="e in ENGINE_IDS" :key="e" :value="e">{{ tr(`eng_${e}` as Key) }}</option>
           <option value="harnessOptimize">{{ tr('eng_harnessOptimize') }}</option>
-        </select>
-        <select
-          v-if="projectId"
-          v-model="runScope"
-          class="rounded-md border border-border bg-bg px-2 py-1"
-          data-testid="engine-run-scope"
-        >
-          <option value="project">{{ tr('engRunThis') }}</option>
-          <option value="all">{{ tr('engRunAll') }}</option>
         </select>
         <button
           v-if="!confirming"

@@ -11,11 +11,13 @@ vi.mock('./api', () => ({
   call: vi.fn(async () => ({ connection: null, effective: null })),
 }));
 // the router: only the current query and replace (vue-router is not a dependency of the modules)
-const { route, replace, stub } = await vi.hoisted(async () => {
+const { route, replace, stub, admin } = await vi.hoisted(async () => {
   const { defineComponent, h, ref } = await import('vue');
   const route = ref<{ query: Record<string, string> }>({ query: {} });
   return {
     route,
+    // PLNRAPP-569: the project admin (or a workspace admin) of the replica
+    admin: ref(true),
     replace: vi.fn(async ({ query }: { query: Record<string, string> }) => {
       route.value = { query };
     }),
@@ -29,6 +31,7 @@ const { route, replace, stub } = await vi.hoisted(async () => {
 vi.mock('@planar/web/modules', async (orig) => ({
   ...(await orig<typeof import('@planar/web/modules')>()),
   useRouter: () => ({ currentRoute: route, replace }),
+  useProjectAdmin: () => (_s: string, p: string | null) => admin.value && p === 'p1',
   enabledForProject: (_m: string, id?: string) => id !== 'p-off',
   useSpaces: () => ({
     value: [
@@ -76,15 +79,45 @@ describe('AiSettings: workspace tabs', () => {
     expect(w.find('[data-testid="ai-form"]').isVisible()).toBe(true);
   });
 
-  it('the project page keeps its tabs, autopilot, engines monitor and retro', async () => {
+  it('the project connection tab has no autopilot or retro', async () => {
     at();
-    const w = mount(AiSettings, { props: { level: 'project', projectId: 'p1' } });
+    const w = mount(AiSettings, { props: { level: 'project', spaceId: 's1', projectId: 'p1' } });
+    await flushPromises();
+    expect(w.find('[data-testid="ai-limits"]').exists()).toBe(true);
+    expect(w.find('[data-testid="ai-autopilot-section"]').exists()).toBe(false);
+    expect(w.find('[data-testid="engine-monitor"]').exists()).toBe(false);
+    expect(w.find('[data-testid="ai-retro"]').exists()).toBe(false);
+  });
+});
+
+// PLNRAPP-569: the project AI settings — four tabs for its admin; AI tasks and the monitor of this project only
+describe('AiSettings: project tabs', () => {
+  it('an admin: four tabs in order; «Задачи ИИ» and «Монитор движков» of this project, no choice', async () => {
+    admin.value = true;
+    at({ tab: 'tasks' });
+    const w = mount(AiSettings, { props: { level: 'project', spaceId: 's1', projectId: 'p1' } });
+    await flushPromises();
+    expect(tabs(w)).toEqual(['Подключение', 'Пакеты и правила', 'Задачи ИИ', 'Монитор движков']);
+    expect(w.find('[data-testid="ai-monitor"]').attributes('data-project')).toBe('p1');
+    at({ tab: 'engines' });
+    await flushPromises();
+    expect(w.find('[data-testid="ai-monitor"]').exists()).toBe(false);
+    expect(w.find('[data-testid="ai-engines-tab"]').exists()).toBe(true);
+    expect(w.find('[data-testid="ai-engines-project"]').exists()).toBe(false);
+    expect(w.find('[data-testid="ai-autopilot-section"]').attributes('data-project')).toBe('p1');
+    expect(w.find('[data-testid="ai-retro"]').attributes('data-project')).toBe('p1');
+    expect(w.find('[data-testid="engine-monitor"]').attributes('data-project')).toBe('p1');
+  });
+
+  it('not an admin: no «Задачи ИИ» and «Монитор движков», ?tab= falls back to «Подключение»', async () => {
+    admin.value = false;
+    at({ tab: 'engines' });
+    const w = mount(AiSettings, { props: { level: 'project', spaceId: 's1', projectId: 'p1' } });
     await flushPromises();
     expect(tabs(w)).toEqual(['Подключение', 'Пакеты и правила']);
-    expect(w.find('[data-testid="ai-limits"]').exists()).toBe(true);
-    expect(w.find('[data-testid="ai-autopilot-section"]').attributes('data-project')).toBe('p1');
-    expect(w.find('[data-testid="engine-monitor"]').attributes('data-project')).toBe('p1');
-    expect(w.find('[data-testid="ai-retro"]').attributes('data-project')).toBe('p1');
+    expect(w.find('[data-testid="ai-engines-tab"]').exists()).toBe(false);
+    expect(w.find('[data-testid="ai-monitor"]').exists()).toBe(false);
+    admin.value = true;
   });
 });
 
