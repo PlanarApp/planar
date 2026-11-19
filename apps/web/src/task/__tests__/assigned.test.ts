@@ -60,10 +60,11 @@ describe('таб «Назначенные» (PLNRAPP-561)', () => {
     expect(texts).toEqual(['первый открытый', 'второй открытый']);
     expect(w.get('[data-tab="assigned"]').text()).not.toContain('без назначения');
     // the second line: status, author, assignee, date
-    const meta = open_.find('[data-testid="assigned-meta"]');
-    expect(meta.text()).toContain('Не завершено');
-    expect(meta.text()).toContain('Bob → Bob');
-    expect(meta.find('time').attributes('datetime')).toBe(at(1));
+    // the users (names) come from their own query — under load later than the comments
+    const meta = () => w.get('[data-testid="assigned-open-list"] [data-testid="assigned-meta"]');
+    await until(() => meta().text().includes('Bob → Bob'));
+    expect(meta().text()).toContain('Не завершено');
+    expect(meta().find('time').attributes('datetime')).toBe(at(1));
     const acc = w.get('[data-testid="assigned-resolved"]');
     expect(acc.text()).toBe('Завершённые 1');
     expect(acc.attributes('aria-expanded')).toBe('false');
