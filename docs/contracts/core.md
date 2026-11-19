@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v29
+## C-schema v30
+
+v30 (PLNRAPP-576): `tasks.commentsAssigned`, `tasks.commentsResolved`, `tasks.commentsOpenAssignees` — counters of the task's own assigned comments (subtasks are not summed), written only by the server — core-schema.md; REST v1 task += `assignedComments: {total, resolved, assignedToMe}` — core-api-v1.md.
 
 v29 (PLNRAPP-209): `notifications.kind` += `doc_comment_assigned` (a comment on a docs module page assigned to the user, `url` — `/m/docs/<pageId>?comment=<id>`).
 

@@ -1,16 +1,22 @@
 import { computed, toValue } from 'vue';
 import { i18n } from '../i18n';
 import type { MaybeRefOrGetter } from 'vue';
-import type { Row } from '@planar/shared';
+import type { AssignedComments, Row } from '@planar/shared';
 import { useLive } from '../links/live';
 import { db, useQuery } from '../sync';
 import { byRank } from './dictionaries';
-import { readLinks } from './projection';
+import { assignedCommentsView, readLinks } from './projection';
 
 export { useLabels, useMembers, useStatuses } from './dictionaries';
 export { prefetchIdle, prefetchProject, useProjectTasks, useScopeTasks } from './projection';
 
-export type TaskView = Row<'tasks'> & { key: string; assigneeIds: string[]; labelIds: string[] };
+export type TaskView = Row<'tasks'> & {
+  key: string;
+  assigneeIds: string[];
+  labelIds: string[];
+  /** PLNRAPP-576: assigned comments of the task (not of subtasks); assignedToMe — for the signed-in user */
+  assignedComments: AssignedComments;
+};
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
 
@@ -24,7 +30,7 @@ const group = (rows: { taskId: string }[], val: (r: never) => string) => {
   return m;
 };
 
-/** tasks → TaskView (key, assignees, labels) in one query per link table */
+/** tasks → TaskView (key, assignees, labels, assigned comments) in one query per link table */
 export async function views(
   tasks: Row<'tasks'>[],
   projectKey: Map<string, string>,
@@ -42,6 +48,7 @@ export async function views(
     key: `${projectKey.get(t.projectId) ?? '?'}-${t.number ?? '…'}`,
     assigneeIds: am.get(t.id) ?? [],
     labelIds: lm.get(t.id) ?? [],
+    assignedComments: assignedCommentsView(t),
   }));
 }
 
