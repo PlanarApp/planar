@@ -48,5 +48,7 @@ describe('markdown ↔ doc (PLNRAPP-180)', () => {
     expect(d.content[1]!.content!.map((n) => [n.type, n.text])).toEqual([['text', 'x\ny']]);
     expect(() => normalize(d)).not.toThrow();
     expect(markdownToDoc(docToMarkdown(d))).toEqual(d);
+    // md → doc → md keeps the text: hardBreak back as a plain \n, not `  \n` (packs round-trip)
+    expect(docToMarkdown(d).split('\n').slice(0, 2)).toEqual(['Итог:', 'строка']);
   });
 });

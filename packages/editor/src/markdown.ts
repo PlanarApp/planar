@@ -31,12 +31,17 @@ export function markdownToDoc(text: string): { type: 'doc'; content: JSONContent
   return { type: 'doc', content: d.content ?? [] };
 }
 
-/** Mentions → @label: the extension renders its own [@ id=…] syntax, unreadable for people and agents. */
-const plainMentions = (n: JSONContent): JSONContent =>
-  n.type === 'mention'
-    ? { type: 'text', text: `@${String(n.attrs?.label ?? '')}` }
-    : n.content
-      ? { ...n, content: n.content.map(plainMentions) }
-      : n;
+/**
+ * Mentions → @label: the extension renders its own [@ id=…] syntax, unreadable for people and agents.
+ * hardBreak → a plain `\n` (not `  \n`): markdownToDoc reads it back as hardBreak, so md → doc → md keeps the text (PLNRAPP-334).
+ */
+const plainInline = (n: JSONContent): JSONContent =>
+  n.type === 'hardBreak'
+    ? { type: 'text', text: '\n' }
+    : n.type === 'mention'
+      ? { type: 'text', text: `@${String(n.attrs?.label ?? '')}` }
+      : n.content
+        ? { ...n, content: n.content.map(plainInline) }
+        : n;
 
-export const docToMarkdown = (doc: JSONContent): string => md.serialize(plainMentions(doc));
+export const docToMarkdown = (doc: JSONContent): string => md.serialize(plainInline(doc));
