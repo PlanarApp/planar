@@ -180,6 +180,8 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       // merged into «Search index rebuild is slow» (PLNRAPP-117, bulk): cancelled + link:3, link:4 «duplicates»
       ['Reindex takes minutes after deploy', 4, 2, null, 'noah', 'bug'],
       ['Search results stale after reindex', 4, 2, null, 'liam', 'bug'],
+      // a closed subtask of «Add API v2 pagination»: the «Closed N» accordion in the card (PLNRAPP-542)
+      ['Draft cursor pagination RFC', 3, 2, -4, 'liam', 'docs', 3],
     ],
   },
   {

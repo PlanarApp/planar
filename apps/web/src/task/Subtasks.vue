@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { ChevronRight } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { createTask, useMembers, type TaskView } from '../tasks';
@@ -18,13 +19,14 @@ const fields: TaskField[] = ['status', 'assignee'];
 const editing = ref<string | null>(null);
 const title = ref('');
 const status = (id: string) => props.statuses.find((x) => x.id === id);
-// done: categories done and cancelled
-const done = computed(
-  () =>
-    (subtasks.value ?? []).filter((x) =>
-      ['done', 'cancelled'].includes(status(x.statusId)?.category ?? ''),
-    ).length,
-);
+// closed: categories done and cancelled
+const isClosed = (x: TaskView) =>
+  ['done', 'cancelled'].includes(status(x.statusId)?.category ?? '');
+const open = computed(() => (subtasks.value ?? []).filter((x) => !isClosed(x)));
+const closed = computed(() => (subtasks.value ?? []).filter(isClosed));
+const done = computed(() => closed.value.length);
+// the "Closed N" accordion: collapsed on every opening of the card, not saved (PLNRAPP-542)
+const showClosed = ref(false);
 
 async function add() {
   const s = title.value.trim();
@@ -55,14 +57,14 @@ async function add() {
       </div>
     </div>
     <div
-      v-if="subtasks?.length"
+      v-if="open.length"
       role="grid"
       :aria-label="t('task.subtasks')"
       class="mb-1 overflow-hidden rounded-lg border border-border [&>*:last-child]:border-b-0"
       data-testid="subtasks-list"
     >
       <ListRow
-        v-for="(s, i) in subtasks"
+        v-for="(s, i) in open"
         :key="s.id"
         class="min-h-16 cursor-pointer md:min-h-8"
         :task="s"
@@ -81,6 +83,48 @@ async function add() {
         @edit="editing = s.id"
         @done="editing = null"
       />
+    </div>
+    <div v-if="closed.length" class="mb-1">
+      <button
+        type="button"
+        class="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-fg-muted hover:text-fg"
+        :aria-expanded="showClosed"
+        data-testid="subtasks-closed"
+        @click="showClosed = !showClosed"
+      >
+        <ChevronRight
+          :size="12"
+          :class="['shrink-0 transition-transform', showClosed && 'rotate-90']"
+        />{{ t('task.subtasksClosed', { n: closed.length }) }}
+      </button>
+      <div
+        v-if="showClosed"
+        role="grid"
+        :aria-label="t('task.subtasks')"
+        class="mb-1 overflow-hidden rounded-lg border border-border [&>*:last-child]:border-b-0"
+        data-testid="subtasks-closed-list"
+      >
+        <ListRow
+          v-for="(s, i) in closed"
+          :key="s.id"
+          class="min-h-16 cursor-pointer md:min-h-8"
+          :task="s"
+          :space-id="task.spaceId"
+          :index="open.length + i + 1"
+          :selected="false"
+          :focused="false"
+          :editing="editing === s.id"
+          :fields="fields"
+          :blocked="false"
+          :members="members ?? []"
+          :labels="[]"
+          show-key
+          compact
+          @click="emit('open', s.key)"
+          @edit="editing = s.id"
+          @done="editing = null"
+        />
+      </div>
     </div>
     <form @submit.prevent="add">
       <Input
