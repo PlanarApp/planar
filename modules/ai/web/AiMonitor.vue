@@ -6,7 +6,9 @@ import { fmtCost, mergeRuns, usagePct } from './aiUi';
 import { tr, type Key } from './data';
 import RunRow from './RunRow.vue';
 
-// «Settings → AI», the tab «AI tasks» (instance admin, PLNRAPP-568): the switch, load and today's spending against the limits, all runs
+// «Settings → AI», the tab «AI tasks» (instance admin, PLNRAPP-568): the switch, load and today's spending against the limits, all runs;
+// PLNRAPP-569: with projectId (the project AI settings, its admin) — only the runs over this project's tasks, no switch
+const props = defineProps<{ projectId?: string }>();
 const mon = ref<AiMonitor | null>(null);
 const state = ref('');
 const err = ref('');
@@ -15,6 +17,7 @@ let timer: ReturnType<typeof setInterval> | undefined;
 
 const query = (cursor?: string) => {
   const q = new URLSearchParams({ limit: '50' });
+  if (props.projectId) q.set('projectId', props.projectId);
   if (state.value) q.set('state', state.value);
   if (cursor) q.set('cursor', cursor);
   return `monitor?${q}`;
@@ -56,7 +59,7 @@ onBeforeUnmount(() => clearInterval(timer));
   <section class="flex flex-col gap-4" data-testid="ai-monitor">
     <p v-if="err" role="alert" class="text-sm text-danger">{{ err }}</p>
     <template v-if="mon">
-      <label class="flex items-center gap-2 text-sm">
+      <label v-if="!projectId" class="flex items-center gap-2 text-sm">
         <input
           type="checkbox"
           :checked="mon.enabled"
@@ -66,7 +69,7 @@ onBeforeUnmount(() => clearInterval(timer));
         />
         {{ tr('switchOn') }}
       </label>
-      <p class="text-xs text-fg-muted">{{ tr('switchHint') }}</p>
+      <p v-if="!projectId" class="text-xs text-fg-muted">{{ tr('switchHint') }}</p>
       <p v-if="!mon.runner" class="text-sm text-warning" data-testid="ai-no-runner">
         {{ tr('noRunner') }}
       </p>
@@ -92,7 +95,7 @@ onBeforeUnmount(() => clearInterval(timer));
           >
         </dd>
       </dl>
-      <p class="text-xs text-fg-muted">{{ tr('limitInst') }}</p>
+      <p v-if="!projectId" class="text-xs text-fg-muted">{{ tr('limitInst') }}</p>
       <select
         v-model="state"
         class="w-fit rounded-md border border-border bg-bg px-2 py-1 text-sm"
@@ -107,7 +110,11 @@ onBeforeUnmount(() => clearInterval(timer));
           v-for="r in mon.runs"
           :key="r.id"
           :run="r"
-          :title="`${r.projectName} · ${r.taskKey} ${r.taskTitle}`"
+          :title="
+            projectId
+              ? `${r.taskKey} ${r.taskTitle}`
+              : `${r.projectName} · ${r.taskKey} ${r.taskTitle}`
+          "
           @changed="load()"
         />
       </ul>

@@ -7,7 +7,9 @@ import RetroSection from './RetroSection.vue';
 import { tr } from './data';
 
 // PLNRAPP-568: the tab «Монитор движков» of the workspace AI settings — a project or «Все»; for a project its
-// «Автопилот» and «Harness ретро», then the engines monitor of the choice
+// «Автопилот» and «Harness ретро», then the engines monitor of the choice;
+// PLNRAPP-569: with projectId (the project AI settings) — this project only, no choice
+const props = defineProps<{ projectId?: string }>();
 const spaces = useSpaces();
 // the spaces with projects where the AI module is on (the monitor of another project answers 403)
 const groups = computed(() =>
@@ -19,15 +21,15 @@ const groups = computed(() =>
     }))
     .filter((s) => s.projects.length),
 );
-const projectId = ref('');
+const chosen = ref(props.projectId ?? '');
 </script>
 
 <template>
   <section class="flex flex-col gap-4" data-testid="ai-engines-tab">
-    <label class="flex max-w-xs flex-col gap-1 text-sm"
+    <label v-if="!projectId" class="flex max-w-xs flex-col gap-1 text-sm"
       >{{ tr('engProject') }}
       <select
-        v-model="projectId"
+        v-model="chosen"
         class="rounded-md border border-border bg-bg px-2 py-1"
         data-testid="ai-engines-project"
       >
@@ -37,13 +39,13 @@ const projectId = ref('');
         </optgroup>
       </select>
     </label>
-    <template v-if="projectId">
-      <AutopilotSection :key="`ap-${projectId}`" :project-id="projectId" />
-      <RetroSection :key="`retro-${projectId}`" :project-id="projectId" />
+    <template v-if="chosen">
+      <AutopilotSection :key="`ap-${chosen}`" :project-id="chosen" />
+      <RetroSection :key="`retro-${chosen}`" :project-id="chosen" />
     </template>
     <p v-else class="text-sm text-fg-muted" data-testid="ai-engines-pick">
       {{ tr('engPickProject') }}
     </p>
-    <EngineMonitor :key="`mon-${projectId}`" :project-id="projectId || undefined" />
+    <EngineMonitor :key="`mon-${chosen}`" :project-id="chosen || undefined" />
   </section>
 </template>
