@@ -80,17 +80,20 @@ async function loadHistory(more = false) {
 watch([engine, state, period, active], () => void loadHistory());
 
 // the manual run
-const runEngine = ref<EngineId>('tasks');
+// harnessOptimize — the harness engine's pass over the whole pack (shorten, dedupe, align)
+const runEngine = ref<EngineId | 'harnessOptimize'>('tasks');
 const runScope = ref<'project' | 'all'>(props.projectId ? 'project' : 'all');
 const confirming = ref(false);
 const runMsg = ref('');
 async function run() {
   confirming.value = false;
   runMsg.value = '';
+  const optimize = runEngine.value === 'harnessOptimize';
   try {
     const r = await call<{ aborted: number; queued: number }>('POST', 'engines/run', {
-      engine: runEngine.value,
+      engine: optimize ? 'harness' : runEngine.value,
       projectId: runScope.value === 'project' ? (props.projectId ?? null) : null,
+      ...(optimize && { optimize }),
     });
     runMsg.value = `${tr('engRunDone')}${r.aborted ? `; ${tr('engRunAborted')}: ${r.aborted}` : ''}`;
     await poll();
@@ -160,6 +163,7 @@ onBeforeUnmount(() => clearInterval(timer));
           data-testid="engine-run-engine"
         >
           <option v-for="e in ENGINE_IDS" :key="e" :value="e">{{ tr(`eng_${e}` as Key) }}</option>
+          <option value="harnessOptimize">{{ tr('eng_harnessOptimize') }}</option>
         </select>
         <select
           v-if="projectId"
