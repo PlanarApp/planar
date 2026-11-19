@@ -628,16 +628,42 @@ export class AiController {
     return { runId };
   }
 
+  /**
+   * PLNRAPP-567: who sees the AI tasks list. Without a project — a workspace admin; with one — an admin of
+   * the project (the module on) or a workspace admin. Session only; a missing project — 404.
+   */
+  private async monitorViewer(req: object, projectId: string | undefined) {
+    const a = this.core.auth(req);
+    if (a.tokenId) throw new HttpError(403, 'forbidden', 'Только из сессии');
+    const instance = a.role === 'owner' || a.role === 'admin';
+    if (!projectId) {
+      if (!instance) throw new HttpError(403, 'forbidden', 'Нужна роль администратора');
+      return;
+    }
+    const r = (
+      await this.core.db.execute(
+        sql`select ('ai' = any(p.modules) and (${instance} or project_role(${a.userId}::uuid, p.id) = 'admin')) as ok
+            from projects p where p.id = ${projectId}::uuid`,
+      )
+    ).rows[0];
+    if (!r) throw nf();
+    if (!r.ok) throw new HttpError(403, 'forbidden', 'Нужна роль администратора');
+  }
+
   @Get('monitor')
   async monitor(@Req() req: object, @Query() query: unknown): Promise<AiMonitor> {
-    this.core.requireInstanceAdmin(req, { sessionOnly: true });
     const q = parseBody(runsQuery, query);
+    await this.monitorViewer(req, q.projectId);
+    // with a project — only the runs over the tasks of that project (no chat runs, no other projects)
+    const inProject = q.projectId
+      ? sql`and task_id in (select id from tasks where project_id = ${q.projectId}::uuid)`
+      : sql``;
     const rows = (
       await this.core.db.execute(
         sql`select ${runCols}, p.key || '-' || t.number as "taskKey", t.title as "taskTitle", p.name as "projectName"
             from ai_runs r left join tasks t on t.id = r.task_id left join projects p on p.id = r.project_id
             where true ${q.state ? sql`and r.state = ${q.state}` : sql``}
-            ${q.projectId ? sql`and r.project_id = ${q.projectId}::uuid` : sql``}
+            ${q.projectId ? sql`and r.task_id in (select id from tasks where project_id = ${q.projectId}::uuid)` : sql``}
             ${q.cursor ? sql`and (r.created_at, r.id) < (${q.cursor.split('|')[0]}::timestamptz, ${q.cursor.split('|')[1]}::uuid)` : sql``}
             order by r.created_at desc, r.id desc limit ${q.limit + 1}`,
       )
@@ -647,16 +673,19 @@ export class AiController {
       await this.core.db.execute(
         sql`select count(*) filter (where state = 'running')::int as running,
             count(*) filter (where state = 'waiting_human')::int as waiting from ai_runs
-            where state in ('running', 'waiting_human')`,
+            where state in ('running', 'waiting_human') ${inProject}`,
       )
     ).rows[0] as { running: number; waiting: number };
     return {
       runs: page as unknown as AiMonitorRun[],
       next: rows.length > q.limit ? `${page.at(-1)!.createdAt}|${page.at(-1)!.id}` : null,
       load,
-      today: await usedToday(this.core.db),
+      // a project view does not show the usage and limits of the whole workspace
+      today: await usedToday(this.core.db, q.projectId),
       enabled: await aiEnabled(this.core.db),
-      limits: defaultLimits(),
+      limits: q.projectId
+        ? ((await projectLimits(this.core.db, q.projectId)).effective as AiLimits)
+        : defaultLimits(),
       runner: !!process.env.AI_RUNNER_URL,
     };
   }
