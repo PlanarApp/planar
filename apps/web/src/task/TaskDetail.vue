@@ -44,6 +44,7 @@ import {
 } from 'lucide-vue-next';
 import { useAuth } from '../auth/useAuth';
 import { mutate, newId, useQuery } from '../sync';
+import { router as appRouter } from '../router';
 import {
   AssigneePicker,
   LabelPicker,
@@ -251,9 +252,10 @@ function open(key: string) {
     ? router.push({ query: { ...route?.query, task: key } })
     : router.push(`/t/${key}`));
 }
-// PLNRAPP-561: an assigned comment → the feed's jump to it (?comment=, PLNRAPP-214)
+// PLNRAPP-561/562: an assigned comment → the feed's jump to it (?comment=, PLNRAPP-214): scroll and blink;
+// the app router — the one the feed watches (the card is also rendered without an injected router)
 function openComment(id: string) {
-  if (router && route) void router.replace({ query: { ...route.query, comment: id } });
+  void appRouter.replace({ query: { ...appRouter.currentRoute.value.query, comment: id } });
 }
 
 // --- attachments: drag onto the panel
