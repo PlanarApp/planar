@@ -243,6 +243,50 @@ describe('монитор, выключатель, лимиты', () => {
     expect((await call('PUT', 'settings', 'member', { enabled: false })).statusCode).toBe(403);
   });
 
+  it('limits: админ проекта читает и пишет; effective — свой, иначе env; участник — 403', async () => {
+    const q = `limits?projectId=${w.projectId}`;
+    expect((await call('GET', q, 'member')).statusCode).toBe(403);
+    expect((await call('PUT', q, 'member', { dailyTokens: 1, dailyCost: null })).statusCode).toBe(
+      403,
+    );
+    const put = await call('PUT', q, 'admin', { dailyTokens: 5000, dailyCost: null });
+    expect(put.statusCode).toBe(200);
+    expect(put.json()).toMatchObject({
+      dailyTokens: 5000,
+      dailyCost: null,
+      autopilot: false,
+      dailyTasks: null,
+      effective: { dailyTokens: 5000, dailyCost: null, dailyTasks: 50 },
+      usedToday: { tokens: 45, cost: 1.5, tasks: 0 },
+    });
+    // PLNRAPP-408: the autopilot and its guard; a PUT without them keeps them
+    const ap = await call('PUT', q, 'admin', {
+      dailyTokens: 5000,
+      dailyCost: null,
+      dailyTasks: 3,
+      autopilot: true,
+    });
+    expect(ap.json()).toMatchObject({ autopilot: true, dailyTasks: 3 });
+    const kept = await call('PUT', q, 'admin', { dailyTokens: 5000, dailyCost: null });
+    expect(kept.json()).toMatchObject({ autopilot: true, effective: { dailyTasks: 3 } });
+    expect((await call('PUT', q, 'admin', { dailyTokens: -1, dailyCost: null })).statusCode).toBe(
+      400,
+    );
+    process.env.PLANAR_AI_DAILY_COST = '7';
+    try {
+      expect((await call('GET', q, 'admin')).json().effective).toEqual({
+        dailyTokens: 5000,
+        dailyCost: 7,
+        dailyTasks: 3,
+      });
+    } finally {
+      delete process.env.PLANAR_AI_DAILY_COST;
+    }
+  });
+});
+
+// runs a fresh set of runs: the last, so the tests above keep theirs
+describe('монитор по проекту', () => {
   it('monitor?projectId (PLNRAPP-567): только задачи ИИ по задачам проекта; админ проекта и воркспейса — да, остальные — 403', async () => {
     await raw(`delete from ai_runs`);
     const mine = await run(task, 'running');
@@ -298,47 +342,6 @@ describe('монитор, выключатель, лимиты', () => {
       await raw(`update projects set modules = array_append(modules, 'ai') where id = $1`, [
         w.projectId,
       ]);
-    }
-  });
-
-  it('limits: админ проекта читает и пишет; effective — свой, иначе env; участник — 403', async () => {
-    const q = `limits?projectId=${w.projectId}`;
-    expect((await call('GET', q, 'member')).statusCode).toBe(403);
-    expect((await call('PUT', q, 'member', { dailyTokens: 1, dailyCost: null })).statusCode).toBe(
-      403,
-    );
-    const put = await call('PUT', q, 'admin', { dailyTokens: 5000, dailyCost: null });
-    expect(put.statusCode).toBe(200);
-    expect(put.json()).toMatchObject({
-      dailyTokens: 5000,
-      dailyCost: null,
-      autopilot: false,
-      dailyTasks: null,
-      effective: { dailyTokens: 5000, dailyCost: null, dailyTasks: 50 },
-      usedToday: { tokens: 45, cost: 1.5, tasks: 0 },
-    });
-    // PLNRAPP-408: the autopilot and its guard; a PUT without them keeps them
-    const ap = await call('PUT', q, 'admin', {
-      dailyTokens: 5000,
-      dailyCost: null,
-      dailyTasks: 3,
-      autopilot: true,
-    });
-    expect(ap.json()).toMatchObject({ autopilot: true, dailyTasks: 3 });
-    const kept = await call('PUT', q, 'admin', { dailyTokens: 5000, dailyCost: null });
-    expect(kept.json()).toMatchObject({ autopilot: true, effective: { dailyTasks: 3 } });
-    expect((await call('PUT', q, 'admin', { dailyTokens: -1, dailyCost: null })).statusCode).toBe(
-      400,
-    );
-    process.env.PLANAR_AI_DAILY_COST = '7';
-    try {
-      expect((await call('GET', q, 'admin')).json().effective).toEqual({
-        dailyTokens: 5000,
-        dailyCost: 7,
-        dailyTasks: 3,
-      });
-    } finally {
-      delete process.env.PLANAR_AI_DAILY_COST;
     }
   });
 });
