@@ -2563,6 +2563,16 @@ async function insertAll(tx: Tx, now: Date) {
   ]);
   await ins(gitlabBranches, [
     {
+      id: uid('gitlab:branch:RDM:6'),
+      spaceId: rdmSpace,
+      taskId: tid('RDM', 5),
+      gitlabProjectId: 101,
+      name: 'RDM-6-reduce-time-to-first-task',
+      webUrl: `${glUrl}/-/tree/RDM-6-reduce-time-to-first-task`,
+      createdAt: at(-2),
+      updatedAt: at(-2),
+    },
+    {
       id: uid('gitlab:branch:RDM:7'),
       spaceId: rdmSpace,
       taskId: tid('RDM', 6),
@@ -2573,10 +2583,18 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-3),
     },
   ]);
-  const demoMr = (iid: number, sourceBranch: string, title: string, state: string, d: number) => ({
+  const demoMr = (
+    iid: number,
+    sourceBranch: string,
+    title: string,
+    state: string,
+    d: number,
+    task = 6,
+    ci = state === 'opened' ? 'running' : 'success',
+  ) => ({
     id: uid(`gitlab:mr:${iid}`),
     spaceId: rdmSpace,
-    taskId: tid('RDM', 6),
+    taskId: tid('RDM', task),
     gitlabProjectId: 101,
     iid,
     title,
@@ -2585,7 +2603,7 @@ async function insertAll(tx: Tx, now: Date) {
     authorName: 'Noah',
     webUrl: `${glUrl}/-/merge_requests/${iid}`,
     mrUpdatedAt: at(d),
-    pipelineStatus: state === 'opened' ? 'running' : 'success',
+    pipelineStatus: ci,
     createdAt: at(d),
     updatedAt: at(d),
   });
@@ -2598,6 +2616,29 @@ async function insertAll(tx: Tx, now: Date) {
       -1,
     ),
     demoMr(38, 'fix/csv-quotes', 'RDM-7: quoted commas in CSV', 'merged', -4),
+    // the CI of an open MR failed: list rows show it, the poll commented and assigned a person (no autopilot)
+    demoMr(
+      44,
+      'RDM-6-reduce-time-to-first-task',
+      'RDM-6: Reduce time-to-first-task',
+      'opened',
+      -1,
+      5,
+      'failed',
+    ),
+  ]);
+  await ins(s.comments, [
+    {
+      id: uid('comment:gitlab:ci-failed:44'),
+      spaceId: rdmSpace,
+      taskId: tid('RDM', 5),
+      authorId: uid('user:automation'),
+      body: textToDoc(`CI failed in MR !44: ${glUrl}/-/merge_requests/44 — needs a fix.`, []),
+      mentions: [],
+      assigneeId: uid_.demo,
+      createdAt: at(-1, 12),
+      updatedAt: at(-1, 12),
+    },
   ]);
   await ins(s.comments, [
     botSays(
