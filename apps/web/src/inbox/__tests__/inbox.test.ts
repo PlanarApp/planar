@@ -46,7 +46,7 @@ const MyDay = (await import('../MyDay.vue')).default;
 const DayOptions = (await import('../DayOptions.vue')).default;
 const { useTaskFilter } = await import('../../views/saved/useFilter');
 const PushToggle = (await import('../PushToggle.vue')).default;
-const { useUnread, useAssignedComments } = await import('../queries');
+const { useUnread, useAssignedComments, useMyTasks } = await import('../queries');
 const { snoozed } = await import('../snooze');
 const push = await import('../push');
 
@@ -353,6 +353,32 @@ describe('inbox:my', () => {
     // checked — no longer mine
     await db.table('checklistItems').put({ ...item, done: true });
     await vi.waitFor(() => expect(assigned.value(t7)).toBe(false));
+    scope.stop();
+  });
+});
+
+describe('PLNRAPP-485 созданные мной', () => {
+  it('по индексу createdBy: мои, без архивных и чужих; запрос не читает всю таблицу', async () => {
+    const [mine, archived, foreign] = [uuidv7(), uuidv7(), uuidv7()];
+    await db
+      .table('tasks')
+      .bulkPut([
+        task(mine, { number: 1, createdBy: me }),
+        task(archived, { number: 2, createdBy: me, archivedAt: ts(1) }),
+        task(foreign, { number: 3, createdBy: bob }),
+      ]);
+    const all = vi.spyOn(db.table('tasks'), 'toArray');
+    const scope = effectScope();
+    const rows = scope.run(() =>
+      useMyTasks(
+        () => me,
+        () => 'created',
+      ),
+    )!;
+    await vi.waitFor(() => expect(rows.value?.map((t) => t.id)).toEqual([mine]));
+    expect(rows.value?.[0]).toMatchObject({ key: 'PL-1', status: { id: sTodo } });
+    expect(all).not.toHaveBeenCalled();
+    all.mockRestore();
     scope.stop();
   });
 });
