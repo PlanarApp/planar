@@ -998,6 +998,31 @@ describe('движок: приёмка, доработка, надзор, све
     runs = await runsOf(t);
     expect(runs.at(-1)).toMatchObject({ state: 'queued', attempt: 2, restart_of: id });
   });
+
+  it('сверка: у задачи активный прогон другого действия (триаж ждёт ответа) — действие статуса ждёт его (PLNRAPP-537)', async () => {
+    await rule({ type: 'task.status_changed', to: [S.backlog] }, [
+      { type: 'ai_run', aiActionId: actionId },
+    ]);
+    const t = await task({ statusId: S.backlog });
+    const other = uuidv7();
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth)
+       values ($1, $2, $3, 'action', 'waiting_human', $1, 0)`,
+      [other, t, P],
+    );
+    jobs.length = 0;
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    await reconcile();
+    expect(jobs).toHaveLength(0);
+    await raw(`update ai_runs set state = 'done' where id = $1`, [other]);
+    await reconcile();
+    expect(jobs).toEqual([
+      expect.objectContaining({
+        queue: 'ai.run',
+        data: expect.objectContaining({ taskId: t, actionId }),
+      }),
+    ]);
+  });
 });
 
 describe('координация подзадач (PLNRAPP-405)', () => {

@@ -332,7 +332,8 @@ export const RECONCILE_QUEUE = 'ai.engine.reconcile';
 /**
  * Cron: a task on the AI in a status where an enabled rule (`task.status_changed` → `to`) runs an action, matching the
  * rule's conditions, whose last run of the action is missing or failed with attempts left (after a pause) → queued.
- * A done, cancelled (stopped by a person) or active run is left alone, a task with an open blocker waits.
+ * A done, cancelled (stopped by a person) or active run is left alone, a task with an open blocker waits, and so
+ * does a task with an active run of any action (PLNRAPP-537: the plan does not start while triage waits for answers).
  * PLNRAPP-500: a pass of the engine «task control» (engines.ts); `projectId` — only the project (a manual pass).
  */
 export async function reconcilePass(api: JobApi, t: Tracker, projectId: string | null = null) {
@@ -358,6 +359,8 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
           left join lateral (select id, state, attempt, finished_at from ai_runs
             where task_id = t.id and action_id = x.action_id order by created_at desc limit 1) l on true
           where (l.id is null or l.state = 'failed') and not ${openBlocker(sql`t.id`)}
+            and not exists (select 1 from ai_runs o where o.task_id = t.id
+              and o.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks'))
           limit 200`,
     )
   ).rows as {
