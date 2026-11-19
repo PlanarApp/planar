@@ -393,7 +393,7 @@ async function dropGroup(d: NonNullable<typeof drag.value>) {
     const p = d.task.projectId;
     if (tasks.some((x) => x.projectId !== p)) return toast(t('list.groupMoveProjects'));
     const statusId = statusKey.value ? statusFor(statuses.value ?? [], d.task.spaceId, to, p) : to;
-    if (statusId) await moveGroupApi(d.ids, statusId, beforeId);
+    if (statusId) await moveGroupApi(d.ids, statusId, beforeId, (x) => byId.value.get(x)?.key ?? x);
     return;
   }
   const column = (groups.value.find((g) => g.key === to)?.tasks ?? [])

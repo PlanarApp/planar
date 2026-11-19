@@ -122,6 +122,33 @@ describe('PLNRAPP-294 групповой перенос через API', () => {
     expect(toasts).toHaveLength(1);
     expect(toasts[0]).toContain('проблемных 1');
   });
+  it('PLNRAPP-295 частичный запрет: не переносится ничего, в сообщении ключ и причина по задаче', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              code: 'conflict',
+              message: 'Задачи не перенесены: проблемных 2',
+              details: {
+                tasks: [
+                  { task: 'b', code: 'forbidden', message: 'нет прав' },
+                  { task: 'c', code: 'archived', message: 'задача в архиве' },
+                ],
+              },
+            }),
+            { status: 409 },
+          ),
+      ),
+    );
+    const keys: Record<string, string> = { a: 'PLN-1', b: 'PLN-2', c: 'PLN-3' };
+    expect(await moveGroupApi(['a', 'b', 'c'], 's2', null, (id) => keys[id]!)).toBe(false);
+    expect(calls).toEqual([]);
+    expect(toasts).toEqual([
+      'Tasks were not moved: PLN-2 — нет прав; PLN-3 — задача в архиве',
+    ]);
+  });
   it('сеть недоступна — сообщение без технических подробностей', async () => {
     vi.stubGlobal(
       'fetch',

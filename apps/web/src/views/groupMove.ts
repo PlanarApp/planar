@@ -59,18 +59,29 @@ export function groupRanks(
   };
 }
 
+/**
+ * The refusal reason (PLNRAPP-295): a 409 lists the problem tasks (details.tasks) — by key with
+ * the server's reason, as on the board; otherwise the server's message; '' — no answer (network).
+ */
+export function moveFailure(e: unknown, keyOf: (id: string) => string = (id) => id): string {
+  if (!(e instanceof ApiError) || !e.status) return '';
+  const list = (e.details as { tasks?: { task: string; message: string }[] } | undefined)?.tasks;
+  return list?.length ? list.map((p) => `${keyOf(p.task)} — ${p.message}`).join('; ') : e.message;
+}
+
 /** the server's limit of one group move */
 export const GROUP_MOVE_MAX = 100;
 
 /**
  * Status grouping: the atomic group move of the API — all tasks or none. Nothing changes locally
  * before the answer (the replica gets the result by sync), so on an error the view stays as it
- * was; the user sees the reason. true — moved.
+ * was; the user sees the reason. true — moved. `keyOf` — the task key for the reason.
  */
 export async function moveGroupApi(
   taskIds: string[],
   statusId: string,
   before: string | null,
+  keyOf?: (id: string) => string,
 ): Promise<boolean> {
   const t = i18n.global.t;
   if (taskIds.length > GROUP_MOVE_MAX) {
@@ -81,7 +92,7 @@ export async function moveGroupApi(
     await api('POST', '/api/v1/tasks/move', { taskIds, statusId, before });
     return true;
   } catch (e) {
-    const why = e instanceof ApiError && e.status ? e.message : '';
+    const why = moveFailure(e, keyOf);
     toast(why ? `${t('list.groupMoveFailed')}: ${why}` : t('list.groupMoveFailed'));
     return false;
   }
