@@ -45,7 +45,12 @@ const historyQuery = scopeQuery.extend({
     .optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
-const runBody = z.object({ engine: z.enum(ENGINE_IDS), projectId: z.uuid().nullable() });
+const runBody = z.object({
+  engine: z.enum(ENGINE_IDS),
+  projectId: z.uuid().nullable(),
+  /** harness: the optimization of the pack's instructions instead of the retro */
+  optimize: z.boolean().optional(),
+});
 
 export const statusOf = (
   c: { running: boolean; lastStartAt: string | null; lastState: string | null },
@@ -234,8 +239,13 @@ export class EngineController {
     for (const projectId of ids)
       await this.core.enqueue(
         RETRO_QUEUE,
-        { kind: 'run', projectId, trigger: 'manual', userId: a.userId } satisfies RetroData,
-        { singletonKey: `retro:${projectId}`, upsert: true },
+        {
+          kind: b.optimize ? 'optimize' : 'run',
+          projectId,
+          trigger: 'manual',
+          userId: a.userId,
+        } satisfies RetroData,
+        { singletonKey: `${b.optimize ? 'retro-optimize' : 'retro'}:${projectId}`, upsert: true },
       );
     return { aborted, queued: ids.length };
   }

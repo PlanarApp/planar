@@ -85,6 +85,7 @@ describe('AiSettings: workspace tabs', () => {
     await flushPromises();
     expect(w.find('[data-testid="ai-limits"]').exists()).toBe(true);
     expect(w.find('[data-testid="ai-autopilot-section"]').exists()).toBe(false);
+    expect(w.find('[data-testid="engine-monitor"]').exists()).toBe(false);
     expect(w.find('[data-testid="ai-retro"]').exists()).toBe(false);
   });
 });

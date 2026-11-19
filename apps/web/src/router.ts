@@ -75,6 +75,13 @@ router.beforeEach(async (to) => {
       query: { ...to.query, r: String(to.params.view) },
       replace: true,
     };
+  // the former section «AI tasks» (?s=ai:tasks) is the tab of the workspace AI settings (PLNRAPP-568)
+  if (to.name === 'workspace' && seg === 'settings' && to.query.s === 'ai:tasks')
+    return {
+      path: to.path,
+      query: { ...to.query, s: 'ai:workspace', tab: 'tasks' },
+      replace: true,
+    };
   if (to.name === 'module') {
     // module routes are added lazily — wait and repeat the navigation.
     // Settings are not known yet (cold entry) — don't hold the transition: ModuleScreen shows a skeleton and repeats the navigation itself.

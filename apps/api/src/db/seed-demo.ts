@@ -1016,6 +1016,22 @@ async function insertAll(tx: Tx, now: Date) {
     };
   });
   await ins(s.comments, comments);
+  // PLNRAPP-561: the task's «Assigned» tab — next to the open one a resolved assignment (the accordion)
+  await ins(s.comments, [
+    {
+      id: uid('comment:assigned:resolved'),
+      spaceId: spaceIds[PROJECTS[pkIdx('RDM')]!.space],
+      taskId: tid('RDM', 2),
+      authorId: uid_.maya,
+      body: textToDoc('@demo please attach the draft outline to the task.', userList),
+      mentions: [uid_.demo!],
+      assigneeId: uid_.demo,
+      resolvedAt: at(-10, 15),
+      resolvedBy: uid_.demo,
+      createdAt: at(-10, 11),
+      updatedAt: at(-10, 15),
+    },
+  ]);
   // PLNRAPP-372: the first comment carries files — a photo (thumbnail, gallery) and a document (download)
   const c0 = comments[0]!;
   const commentFiles = [
@@ -2991,6 +3007,17 @@ async function insertAll(tx: Tx, now: Date) {
       processed: 3,
       projectId: pid('RDM'),
     }),
+    // PLNRAPP-593: a manual pass over the whole pack — the instructions are in order, nothing to change
+    engineRun('optimize', {
+      engine: 'harness',
+      job: 'optimize',
+      trigger: 'manual',
+      hours: -6,
+      secs: 35,
+      processed: 0,
+      projectId: pid('RDM'),
+      userId: uid_.maya,
+    }),
     engineRun('retro-failed', {
       engine: 'harness',
       job: 'retro_tick',
@@ -3024,6 +3051,12 @@ async function insertAll(tx: Tx, now: Date) {
   await ins(aiEngineEvents, [
     engineEvent('retro-failed', 0, 'harness', -28, 'ошибка: connection terminated unexpectedly', {
       level: 'error',
+      projectId: pid('RDM'),
+    }),
+    engineEvent('optimize', 0, 'harness', -6, 'оптимизация инструкций пакета, запрос к ИИ', {
+      projectId: pid('RDM'),
+    }),
+    engineEvent('optimize', 1, 'harness', -5.99, 'оптимизация: предложений 0', {
       projectId: pid('RDM'),
     }),
     engineEvent('retro', 0, 'harness', -0.5, 'подзадач к обработке: 3, запрос к ИИ', {
