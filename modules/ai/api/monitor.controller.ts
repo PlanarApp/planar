@@ -85,11 +85,9 @@ export class EngineController {
     return { instance };
   }
 
-  /** A project view: its own rows and the general ones (no project), never another project's. */
+  /** A project view: only the rows of this project — neither general ones (no project) nor another project's. */
   private seen(col: string, projectId: string | undefined): SQL {
-    return projectId
-      ? sql`(${sql.raw(col)} is null or ${sql.raw(col)} = ${projectId}::uuid)`
-      : sql`true`;
+    return projectId ? sql`${sql.raw(col)} = ${projectId}::uuid` : sql`true`;
   }
 
   @Get('monitor')
@@ -106,7 +104,7 @@ export class EngineController {
                 from ai_engine_runs where engine = ${engine} and state = 'running'
                 order by started_at desc limit 1) x) as running,
               (select ${iso('max(started_at)')} from ai_engine_runs where engine = ${engine}) as "lastStartAt",
-              (select row_to_json(x) from (select state, error, ${iso('finished_at')} as at from ai_engine_runs
+              (select row_to_json(x) from (select state, ${this.errorOf(q.projectId)} as error, ${iso('finished_at')} as at from ai_engine_runs
                 where engine = ${engine} and finished_at is not null order by finished_at desc limit 1) x) as last,
               (select ${iso('max(finished_at)')} from ai_engine_runs
                 where engine = ${engine} and processed > 0 and ${this.seen('project_id', q.projectId)}) as "lastActionAt"`,
@@ -147,11 +145,16 @@ export class EngineController {
     return { enabled: await aiEnabled(db), canRun: instance, engines, events };
   }
 
-  /** `current` of a running pass, unless it is about another project. */
+  /** `current` of a running pass, only when it is about this project. */
   private visible(projectId: string | undefined): SQL {
     return projectId
-      ? sql`case when current_project_id is null or current_project_id = ${projectId}::uuid then current end`
+      ? sql`case when current_project_id = ${projectId}::uuid then current end`
       : sql`current`;
+  }
+
+  /** `error` of the last pass, only when the pass is about this project. */
+  private errorOf(projectId: string | undefined): SQL {
+    return projectId ? sql`case when project_id = ${projectId}::uuid then error end` : sql`error`;
   }
 
   @Get('runs')

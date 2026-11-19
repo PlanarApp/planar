@@ -149,10 +149,14 @@ describe('REST api/ai/engines', () => {
       `update ai_engine_runs set state = 'failed', error = 'упал', finished_at = now() where id = $1`,
       [id],
     );
-    expect(await card('admin')).toMatchObject({ status: 'error', lastError: 'упал' });
+    // the error of another project's pass is not shown in the project view
+    expect(await card('admin')).toMatchObject({ status: 'error', lastError: null });
+    expect((await call('GET', 'engines/monitor', 'root')).json().engines[1]).toMatchObject({
+      lastError: 'упал',
+    });
   });
 
-  it('живой лог: курсор after отдаёт только новые события своего проекта и общие', async () => {
+  it('живой лог: курсор after отдаёт только новые события своего проекта, без общих и чужих', async () => {
     let id = '';
     await tracked(db, { engine: 'tasks', job: 'reap', trigger: 'cron' }, async (t) => {
       id = t.id;
@@ -163,7 +167,17 @@ describe('REST api/ai/engines', () => {
     const all = (await call('GET', `engines/monitor?projectId=${w.projectId}`, 'admin')).json()
       .events as { id: string; text: string; runId: string }[];
     const mine = all.filter((e) => e.runId === id).map((e) => e.text);
-    expect(mine).toEqual(['общий', 'свой']);
+    expect(mine).toEqual(['свой']);
+    // the whole workspace sees all of them
+    const root = (await call('GET', 'engines/monitor', 'root')).json().events as {
+      text: string;
+      runId: string;
+    }[];
+    expect(root.filter((e) => e.runId === id).map((e) => e.text)).toEqual([
+      'общий',
+      'свой',
+      'чужой',
+    ]);
     const last = all.at(-1)!.id;
     expect(
       (await call('GET', `engines/monitor?projectId=${w.projectId}&after=${last}`, 'admin')).json()
@@ -173,22 +187,40 @@ describe('REST api/ai/engines', () => {
 
   it('история: фильтры движок, результат, проект, период, «только с действиями»', async () => {
     const mine = await pass({ engine: 'harness', projectId: w.projectId, processed: 3 });
-    const failed = await pass({ engine: 'tasks', state: 'failed', error: 'x' });
-    const empty = await pass({ engine: 'tasks', processed: 0 });
+    const failed = await pass({
+      engine: 'tasks',
+      state: 'failed',
+      error: 'x',
+      projectId: w.projectId,
+    });
+    const empty = await pass({ engine: 'tasks', processed: 0, projectId: w.projectId });
+    const general = await pass({ engine: 'tasks', state: 'failed', error: 'общий' });
+    const foreign = await pass({
+      engine: 'tasks',
+      state: 'failed',
+      error: 'чужой',
+      projectId: uuidv7(),
+    });
     const ids = async (qs: string) =>
       (await call('GET', `engines/runs?projectId=${w.projectId}&${qs}`, 'admin'))
         .json()
         .runs.map((r: { id: string }) => r.id) as string[];
     expect(await ids('only=project')).toContain(mine);
-    expect(await ids('only=project')).not.toContain(failed);
+    expect(await ids('only=project')).toContain(failed);
+    // the project view: neither general passes nor another project's
+    for (const qs of ['', 'only=project', 'engine=tasks&state=failed', 'active=1']) {
+      expect(await ids(qs)).not.toContain(general);
+      expect(await ids(qs)).not.toContain(foreign);
+    }
+    expect(await ids('only=general')).toEqual([]);
     expect(await ids('engine=tasks&state=failed')).toContain(failed);
     expect(await ids('engine=tasks&state=failed')).not.toContain(empty);
     expect(await ids('active=1')).not.toContain(empty);
     expect(await ids('active=1')).toContain(failed);
     expect(await ids(`since=${new Date(Date.now() + 60_000).toISOString()}`)).toEqual([]);
-    const r = (
-      await call('GET', `engines/runs?projectId=${w.projectId}&only=project`, 'admin')
-    ).json().runs[0];
+    const r = (await call('GET', `engines/runs?projectId=${w.projectId}&only=project`, 'admin'))
+      .json()
+      .runs.find((x: { id: string }) => x.id === mine);
     expect(r).toMatchObject({ id: mine, projectName: 'P', processed: 3, state: 'done' });
     expect(r.startedAt).toBeTruthy();
     expect(r.finishedAt).toBeTruthy();

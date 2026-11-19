@@ -56,7 +56,6 @@ async function poll() {
 
 // the history
 const engine = ref<'' | EngineId>('');
-const scope = ref<'' | 'project' | 'general'>('');
 const state = ref('');
 const period = ref<Period>('24h');
 const active = ref(true);
@@ -64,7 +63,6 @@ const hist = ref<EngineHistory | null>(null);
 async function loadHistory(more = false) {
   const q = new URLSearchParams({ projectId: props.projectId, limit: '50' });
   if (engine.value) q.set('engine', engine.value);
-  if (scope.value) q.set('only', scope.value);
   if (state.value) q.set('state', state.value);
   if (active.value) q.set('active', '1');
   q.set('since', sinceOf(period.value));
@@ -77,7 +75,7 @@ async function loadHistory(more = false) {
     err.value = (e as Error).message;
   }
 }
-watch([engine, scope, state, period, active], () => void loadHistory());
+watch([engine, state, period, active], () => void loadHistory());
 
 // the manual run
 const runEngine = ref<EngineId>('tasks');
@@ -214,11 +212,6 @@ onBeforeUnmount(() => clearInterval(timer));
       <select v-model="engine" class="rounded-md border border-border bg-bg px-2 py-1">
         <option value="">{{ tr('engAll') }}</option>
         <option v-for="e in ENGINE_IDS" :key="e" :value="e">{{ tr(`eng_${e}` as Key) }}</option>
-      </select>
-      <select v-model="scope" class="rounded-md border border-border bg-bg px-2 py-1">
-        <option value="">{{ tr('engScopeAll') }}</option>
-        <option value="project">{{ tr('engScopeProject') }}</option>
-        <option value="general">{{ tr('engScopeGeneral') }}</option>
       </select>
       <select
         v-model="state"
