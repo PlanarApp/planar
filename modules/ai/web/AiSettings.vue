@@ -5,6 +5,7 @@ import { call } from './api';
 import ConnectionFields from './ConnectionFields.vue';
 import { tr } from './data';
 import EgressSection from './EgressSection.vue';
+import AutopilotSection from './AutopilotSection.vue';
 import LimitsSection from './LimitsSection.vue';
 import RetroSection from './RetroSection.vue';
 import PacksSection from './PacksSection.vue';
@@ -203,6 +204,7 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
         @close="closeWizard"
       />
       <LimitsSection :project-id="projectId" />
+      <AutopilotSection :project-id="projectId" />
       <RetroSection :key="wizardRuns" :project-id="projectId" />
       <PacksSection :key="wizardRuns" :project-id="projectId" />
     </template>

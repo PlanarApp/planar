@@ -310,3 +310,58 @@ export const aiRetroProposals = pgTable(
 );
 
 export type RetroNewAction = { name: string; description: string | null; rule: string | null };
+
+// server table (PLNRAPP-500): a pass of an engine — task control (reap / reconcile, manual) or harness
+// processing (retro tick / retro); kept 7 days (monitor.ts sweep)
+export const aiEngineRuns = pgTable(
+  'ai_engine_runs',
+  {
+    id: uuid().primaryKey(),
+    /** tasks | harness */
+    engine: text().notNull(),
+    /** reap | reconcile | manual | retro_tick | retro */
+    job: text().notNull(),
+    /** the project of the pass; null — all projects */
+    projectId: uuid(),
+    /** cron | event | manual */
+    trigger: text().notNull(),
+    /** who started a manual pass */
+    userId: uuid(),
+    /** running | done | failed | aborted */
+    state: text().notNull(),
+    /** what the pass does now (the last step) */
+    current: text(),
+    /** the project of `current`: a project admin sees only his */
+    currentProjectId: uuid(),
+    /** tasks / projects handled */
+    processed: integer().notNull().default(0),
+    error: text(),
+    startedAt: ts().notNull().defaultNow(),
+    finishedAt: ts(),
+    updatedAt: ts().notNull().defaultNow(),
+  },
+  (t) => [
+    index('ai_engine_runs_started_at_idx').on(t.startedAt),
+    index('ai_engine_runs_engine_state_idx').on(t.engine, t.state),
+  ],
+);
+
+// server table (PLNRAPP-500): a step of an engine pass — the live log of the monitor
+export const aiEngineEvents = pgTable(
+  'ai_engine_events',
+  {
+    /** uuidv7: the order and the cursor of the live log */
+    id: uuid().primaryKey(),
+    runId: uuid()
+      .notNull()
+      .references(() => aiEngineRuns.id, { onDelete: 'cascade' }),
+    engine: text().notNull(),
+    projectId: uuid(),
+    taskId: uuid(),
+    /** info | action | error */
+    level: text().notNull(),
+    text: text().notNull(),
+    at: ts().notNull().defaultNow(),
+  },
+  (t) => [index('ai_engine_events_run_id_idx').on(t.runId)],
+);

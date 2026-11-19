@@ -5,7 +5,9 @@ import type { BackendModuleManifest } from '@planar/shared';
 import { uuidv7 } from '@planar/shared';
 import { AI_BOT_LOGIN, AI_BOT_NAME, shared } from '../shared/index.js';
 import { AGENT_REAP_QUEUE, reap } from './agent.js';
-import { RECONCILE_QUEUE, reconcile } from './engine.js';
+import { RECONCILE_QUEUE } from './engine.js';
+import { tasksEngine } from './engines.js';
+import { EngineController } from './monitor.controller.js';
 import { AgentController } from './agent.controller.js';
 import { AiController } from './controller.js';
 import { HarnessController } from './harness.controller.js';
@@ -24,13 +26,20 @@ import {
 } from './retro.js';
 
 @Module({
-  controllers: [AiController, HarnessController, PacksController, AgentController],
+  controllers: [
+    AiController,
+    HarnessController,
+    PacksController,
+    AgentController,
+    EngineController,
+  ],
 })
 class AiModule {}
 
 export { resolveConnection, secretOf } from './connections.js';
 export { generateStructured, checkConnection, costOf, type LlmConnection } from './llm.js';
 export { MAX_RESTARTS } from '../shared/index.js';
+export { EngineAborted, sweep, tracked } from './monitor.js';
 export { parseInstructionPage } from './harness.js';
 export { aiPackTools } from './pack-tools.js';
 export {
@@ -341,7 +350,7 @@ export const api: BackendModuleManifest = {
   jobs: [
     { queue: AI_QUEUE, retryLimit: 0, handler: handle } satisfies JobDef<AiRunData>,
     { queue: AGENT_REAP_QUEUE, cron: '* * * * *', retryLimit: 0, handler: reap },
-    { queue: RECONCILE_QUEUE, cron: '*/5 * * * *', retryLimit: 0, handler: reconcile },
+    { queue: RECONCILE_QUEUE, cron: '*/5 * * * *', retryLimit: 0, handler: tasksEngine },
     { queue: RETRO_QUEUE, retryLimit: 0, handler: handleRetro } satisfies JobDef<RetroData>,
     { queue: RETRO_TICK_QUEUE, cron: '17 * * * *', retryLimit: 0, handler: retroTick },
     {

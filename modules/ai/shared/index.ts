@@ -374,6 +374,69 @@ export interface AiMonitor {
 }
 
 // Connections and runs are server tables outside the module gate (ai_connections, ai_runs).
+/** PLNRAPP-500: the engines of the monitor — task control (with CI) and harness processing */
+export const ENGINE_IDS = ['tasks', 'harness'] as const;
+export type EngineId = (typeof ENGINE_IDS)[number];
+export const ENGINE_RUN_STATES = ['running', 'done', 'failed', 'aborted'] as const;
+export type EngineRunState = (typeof ENGINE_RUN_STATES)[number];
+/** running — a pass at work; idle — waits for the schedule; error — the last pass failed; stalled — no passes on schedule */
+export type EngineStatus = 'running' | 'idle' | 'error' | 'stalled';
+
+export interface EngineRunView {
+  id: string;
+  engine: EngineId;
+  job: string;
+  projectId: string | null;
+  projectName: string | null;
+  trigger: 'cron' | 'event' | 'manual';
+  userName: string | null;
+  state: EngineRunState;
+  processed: number;
+  error: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
+export interface EngineEventView {
+  id: string;
+  runId: string;
+  engine: EngineId;
+  projectId: string | null;
+  taskId: string | null;
+  level: 'info' | 'action' | 'error';
+  text: string;
+  at: string;
+}
+
+export interface EngineCard {
+  engine: EngineId;
+  status: EngineStatus;
+  /** the current action of the running pass (hidden when it is about another project) */
+  current: string | null;
+  runningSince: string | null;
+  /** the last pass of any result, and the last one that handled something */
+  lastRunAt: string | null;
+  lastActionAt: string | null;
+  lastError: string | null;
+  /** the schedule in minutes: a pass is expected at least this often */
+  everyMin: number;
+}
+
+export interface EngineMonitorView {
+  /** the AI switch of the instance: off — the engines skip their work */
+  enabled: boolean;
+  /** a workspace admin: may start a pass by hand */
+  canRun: boolean;
+  engines: EngineCard[];
+  /** the live log: new events after the cursor, oldest first */
+  events: EngineEventView[];
+}
+
+export interface EngineHistory {
+  runs: EngineRunView[];
+  next: string | null;
+}
+
 export const shared: SharedModuleManifest = {
   id: 'ai',
   mutators,

@@ -7,17 +7,14 @@ import { tr } from './data';
 
 // Daily limits of a project (admin of the project); empty — the instance limit applies
 const props = defineProps<{ projectId: string }>();
-// PLNRAPP-408: the autopilot switch and its guard (tasks by the AI per day) live here too
+// PLNRAPP-500: the autopilot switch and its guard (tasks by the AI per day) — in AutopilotSection
 type View = AiLimits & {
-  autopilot: boolean;
   effective: AiLimits;
   usedToday: { tokens: number; cost: number; tasks: number };
 };
 const v = ref<View | null>(null);
 const tokens = ref('');
 const cost = ref('');
-const tasks = ref('');
-const autopilot = ref(false);
 const err = ref('');
 const done = ref(false);
 
@@ -25,8 +22,6 @@ const fill = (r: View) => {
   v.value = r;
   tokens.value = r.dailyTokens == null ? '' : String(r.dailyTokens);
   cost.value = r.dailyCost == null ? '' : String(r.dailyCost);
-  tasks.value = r.dailyTasks == null ? '' : String(r.dailyTasks);
-  autopilot.value = r.autopilot;
 };
 const q = () => `limits?projectId=${props.projectId}`;
 async function save() {
@@ -34,18 +29,9 @@ async function save() {
   done.value = false;
   const dailyTokens = parseLimit(tokens.value);
   const dailyCost = parseLimit(cost.value);
-  const dailyTasks = parseLimit(tasks.value);
-  if (dailyTokens === undefined || dailyCost === undefined || dailyTasks === undefined)
-    return void (err.value = tr('invalid'));
+  if (dailyTokens === undefined || dailyCost === undefined) return void (err.value = tr('invalid'));
   try {
-    fill(
-      await call<View>('PUT', q(), {
-        dailyTokens,
-        dailyCost,
-        dailyTasks,
-        autopilot: autopilot.value,
-      }),
-    );
+    fill(await call<View>('PUT', q(), { dailyTokens, dailyCost }));
     done.value = true;
   } catch (e) {
     err.value = (e as Error).message;
@@ -95,26 +81,7 @@ onMounted(() =>
             class="rounded-md border border-border bg-bg px-2 py-1"
           />
         </label>
-        <label class="flex flex-1 flex-col gap-1 text-sm"
-          >{{ tr('dailyTasks') }}
-          <input
-            v-model="tasks"
-            type="number"
-            min="1"
-            step="1"
-            :placeholder="String(v.effective.dailyTasks)"
-            data-testid="ai-limit-tasks"
-            class="rounded-md border border-border bg-bg px-2 py-1"
-          />
-        </label>
       </div>
-      <label class="flex items-start gap-2 text-sm">
-        <input v-model="autopilot" type="checkbox" class="mt-1" data-testid="ai-autopilot" />
-        <span
-          >{{ tr('autopilot') }}
-          <span class="block text-fg-muted">{{ tr('autopilotHint') }}</span></span
-        >
-      </label>
       <p class="text-sm text-fg-muted" data-testid="ai-limits-used">
         {{ tr('todayUsed') }}: {{ v.usedToday.tokens }} {{ tr('tokens') }}
         <template v-if="usagePct(v.usedToday.tokens, v.effective.dailyTokens) !== null"
@@ -122,7 +89,7 @@ onMounted(() =>
         >, {{ fmtCost(v.usedToday.cost) }}
         <template v-if="usagePct(v.usedToday.cost, v.effective.dailyCost) !== null"
           >({{ usagePct(v.usedToday.cost, v.effective.dailyCost) }}%)</template
-        >, {{ v.usedToday.tasks }} / {{ v.effective.dailyTasks }} {{ tr('tasksUnit') }}
+        >
       </p>
       <div class="flex items-center gap-3">
         <button
