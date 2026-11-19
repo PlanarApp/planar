@@ -6,7 +6,7 @@ import { fmtCost, mergeRuns, usagePct } from './aiUi';
 import { tr, type Key } from './data';
 import RunRow from './RunRow.vue';
 
-// «Settings → AI tasks» (instance admin): the switch, load and today's spending against the limits, all runs
+// «Settings → AI», the tab «AI tasks» (instance admin, PLNRAPP-568): the switch, load and today's spending against the limits, all runs
 const mon = ref<AiMonitor | null>(null);
 const state = ref('');
 const err = ref('');
@@ -54,7 +54,6 @@ onBeforeUnmount(() => clearInterval(timer));
 
 <template>
   <section class="flex flex-col gap-4" data-testid="ai-monitor">
-    <h2 class="text-lg font-semibold">{{ tr('monitorTitle') }}</h2>
     <p v-if="err" role="alert" class="text-sm text-danger">{{ err }}</p>
     <template v-if="mon">
       <label class="flex items-center gap-2 text-sm">

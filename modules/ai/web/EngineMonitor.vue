@@ -23,8 +23,9 @@ import {
 } from './engineUi';
 
 // PLNRAPP-500: the engines monitor of the project — status cards and the live log (polled every 2 s by the
-// cursor of events), the history of passes with filters, the manual run (a workspace admin)
-const props = defineProps<{ projectId: string }>();
+// cursor of events), the history of passes with filters, the manual run (a workspace admin);
+// PLNRAPP-568: no projectId — all projects and the general passes
+const props = defineProps<{ projectId?: string }>();
 const mon = ref<EngineMonitorView | null>(null);
 const events = ref<EngineEventView[]>([]);
 const err = ref('');
@@ -36,7 +37,7 @@ async function poll() {
   if (busyPoll) return;
   busyPoll = true;
   try {
-    const q = new URLSearchParams({ projectId: props.projectId });
+    const q = new URLSearchParams(props.projectId ? { projectId: props.projectId } : {});
     const last = events.value.at(-1);
     if (last) q.set('after', last.id);
     const r = await call<EngineMonitorView>('GET', `engines/monitor?${q}`);
@@ -61,7 +62,8 @@ const period = ref<Period>('24h');
 const active = ref(true);
 const hist = ref<EngineHistory | null>(null);
 async function loadHistory(more = false) {
-  const q = new URLSearchParams({ projectId: props.projectId, limit: '50' });
+  const q = new URLSearchParams({ limit: '50' });
+  if (props.projectId) q.set('projectId', props.projectId);
   if (engine.value) q.set('engine', engine.value);
   if (state.value) q.set('state', state.value);
   if (active.value) q.set('active', '1');
@@ -79,7 +81,7 @@ watch([engine, state, period, active], () => void loadHistory());
 
 // the manual run
 const runEngine = ref<EngineId>('tasks');
-const runScope = ref<'project' | 'all'>('project');
+const runScope = ref<'project' | 'all'>(props.projectId ? 'project' : 'all');
 const confirming = ref(false);
 const runMsg = ref('');
 async function run() {
@@ -88,7 +90,7 @@ async function run() {
   try {
     const r = await call<{ aborted: number; queued: number }>('POST', 'engines/run', {
       engine: runEngine.value,
-      projectId: runScope.value === 'project' ? props.projectId : null,
+      projectId: runScope.value === 'project' ? (props.projectId ?? null) : null,
     });
     runMsg.value = `${tr('engRunDone')}${r.aborted ? `; ${tr('engRunAborted')}: ${r.aborted}` : ''}`;
     await poll();
@@ -160,6 +162,7 @@ onBeforeUnmount(() => clearInterval(timer));
           <option v-for="e in ENGINE_IDS" :key="e" :value="e">{{ tr(`eng_${e}` as Key) }}</option>
         </select>
         <select
+          v-if="projectId"
           v-model="runScope"
           class="rounded-md border border-border bg-bg px-2 py-1"
           data-testid="engine-run-scope"

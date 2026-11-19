@@ -43,6 +43,7 @@ describe('aikb-urls: шаблоны соответствуют роутеру', 
   it('вкладки и разделы, на которые указывают шаблоны, зарегистрированы', () => {
     expect(sprints.groupTabs?.some((g) => g.id === 'sprint' && g.tab === 'reports')).toBe(true);
     expect(docs.groupTabs?.some((g) => g.tab === 'docs')).toBe(true);
-    expect(ai.settings?.some((s) => s.id === 'tasks' && s.level === 'workspace')).toBe(true);
+    // PLNRAPP-568: «AI tasks» — the tab of the workspace page ai:workspace
+    expect(ai.settings?.some((s) => s.id === 'workspace' && s.level === 'workspace')).toBe(true);
   });
 });
