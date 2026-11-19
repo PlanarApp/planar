@@ -65,6 +65,10 @@ export class RestController {
   comments(@Req() req: object, @Param('task') t: string, @Query() q: unknown) {
     return this.rest.comments(getAuth(req).userId, t, q);
   }
+  @Get('tasks/:task/assigned-comments')
+  assignedComments(@Req() req: object, @Param('task') t: string) {
+    return this.rest.assignedComments(getAuth(req).userId, t);
+  }
   @Post('tasks/:task/comments')
   createComment(@Req() req: object, @Param('task') t: string, @Body() b: unknown) {
     return this.rest.createComment(getAuth(req).userId, t, b, getAuth(req).tokenId);
