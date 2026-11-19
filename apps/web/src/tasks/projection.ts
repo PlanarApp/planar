@@ -1,6 +1,7 @@
 import { shallowRef, toValue, watch, getCurrentScope, onScopeDispose } from 'vue';
 import type { MaybeRefOrGetter, Ref } from 'vue';
-import type { Row } from '@planar/shared';
+import { assignedCommentsOf, type AssignedComments, type Row } from '@planar/shared';
+import { useAuth } from '../auth/useAuth';
 import { db, onReplicaChange, type ReplicaChange } from '../sync';
 import { resetDictionaries, warmSpace } from './dictionaries';
 import type { TaskView } from './queries';
@@ -17,6 +18,10 @@ export async function readLinks<R extends { taskId: string }>(
   const set = new Set(ids);
   return (await t.toArray()).filter((r) => set.has(r.taskId));
 }
+
+/** PLNRAPP-576: counters of assigned comments of a tasks row for the signed-in user */
+export const assignedCommentsView = (t: Row<'tasks'>): AssignedComments =>
+  assignedCommentsOf(t, useAuth().user.value?.id);
 
 /**
  * In-memory projection of project tasks (C-tasks v3). A project is read from IndexedDB once, then patched by
@@ -135,6 +140,7 @@ const view = (e: Entry, t: Row<'tasks'>): TaskView => ({
   key: `${e.key}-${t.number ?? '…'}`,
   assigneeIds: e.links!.a.of(t.id),
   labelIds: e.links!.l.of(t.id),
+  assignedComments: assignedCommentsView(t),
 });
 const snapshot = (e: Entry) => (e.arr ??= [...e.tasks!.values()]);
 

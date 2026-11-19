@@ -36,7 +36,7 @@ The version is the heading `## C-http vN` in `docs/contracts/core.md`. The ` ```
 - Authorization — Bearer or session. Errors use the C-http format; mutator errors: `invalid_args` → 400 `invalid_request`, `forbidden` → 403, `not_found` → 404, `conflict` → 409.
 - Writes use the same domain mutators (`docs/contracts/core-mutators.md`) through the server `Tx`, one transaction per request, with the notification hook; ids and `rank` are created by the server (`rank` — after the last task of the status). `client_mutations` is not used.
 - Lists: `?limit` 1–200 (default 50), `?cursor` — an opaque string from `nextCursor`; order — `updatedAt` descending, then `id`. Response `{data: [...], nextCursor: string|null}`, a single entity — `{data: {...}}`.
-- `task` in REST is a `tasks` row (C-schema) + `key` (`PLN-12` or `null` while there is no number), `assigneeIds: uuid[]`, `labelIds: uuid[]`. `:task` in the path is an id or a key.
+- `task` in REST is a `tasks` row (C-schema) + `key` (`PLN-12` or `null` while there is no number), `assigneeIds: uuid[]`, `labelIds: uuid[]`, `assignedComments: {total, resolved, assignedToMe}` (C-schema v30: assigned comments of the task itself, subtasks are not summed; `assignedToMe` — there is an open comment assigned to the caller; webhook and automation payloads have no caller — `false`). `:task` in the path is an id or a key.
 - OpenAPI 3.1 — `GET /api/v1/openapi.json`, built from the same zod schemas (`z.toJSONSchema`).
 
 | method and path | input → output |
@@ -54,7 +54,7 @@ The version is the heading `## C-http vN` in `docs/contracts/core.md`. The ` ```
 | `PATCH /api/v1/comments/:id` | `{text?, assigneeId?: uuid \| null, resolved?: bool}` → comment (PLNRAPP-186); applied in that order via `comment.update` (author only), `comment.assign` (member; `null` — unassign; an assignment reopens), `comment.resolve` (the assignee, the author or admin; an unassigned comment → `400`); an invisible comment → `404` |
 
 ```json example=api.v1.task
-{"data": {"id": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d", "spaceId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7b", "projectId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6b02", "number": 12, "parentId": null, "statusId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6b03", "title": "Починить вход", "description": null, "priority": 2, "rank": "a0", "dueDate": null, "startDate": null, "createdBy": "0192b3c4-0000-7000-8000-000000000001", "completedAt": null, "fields": {}, "cycleId": null, "createdAt": "2026-10-23T06:00:00.000Z", "updatedAt": "2026-10-23T06:00:00.000Z", "key": "PLN-12", "assigneeIds": [], "labelIds": []}}
+{"data": {"id": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d", "spaceId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7b", "projectId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6b02", "number": 12, "parentId": null, "statusId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6b03", "title": "Починить вход", "description": null, "priority": 2, "rank": "a0", "dueDate": null, "startDate": null, "createdBy": "0192b3c4-0000-7000-8000-000000000001", "completedAt": null, "fields": {}, "cycleId": null, "createdAt": "2026-10-23T06:00:00.000Z", "updatedAt": "2026-10-23T06:00:00.000Z", "key": "PLN-12", "assigneeIds": [], "labelIds": [], "assignedComments": {"total": 2, "resolved": 1, "assignedToMe": true}}}
 ```
 
 ```json bad=api.v1.task

@@ -104,6 +104,12 @@ export const entitySchemas = {
     cycleId: uuid.nullable(),
     archivedAt: ts.nullable().default(null),
     archivedBy: uuid.nullable().default(null),
+    /** C-schema v30 (PLNRAPP-576): assigned comments of the task (any assignee), written only by the server */
+    commentsAssigned: z.number().int().min(0).default(0),
+    /** of them resolved */
+    commentsResolved: z.number().int().min(0).default(0),
+    /** assignees of the open (not resolved) assigned comments, in id order */
+    commentsOpenAssignees: z.array(uuid).default([]),
     createdAt: ts,
     updatedAt: ts,
   }),

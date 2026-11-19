@@ -66,6 +66,7 @@ import {
   WORKSPACE_DATA_MODULE_IDS,
 } from '@planar/shared';
 import { installed } from '../modules/installed.js';
+import { recountAssignedComments } from './comment-counters.js';
 import { createDb, migrate, type Db } from './index.js';
 import { filePath } from '../files/store.js';
 import * as s from './schema.js';
@@ -3239,6 +3240,9 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-30),
     })),
   );
+
+  // PLNRAPP-576: comments are inserted past ServerTx — the tasks counters of assigned comments from them
+  await tx.execute(recountAssignedComments);
 }
 
 async function main() {
