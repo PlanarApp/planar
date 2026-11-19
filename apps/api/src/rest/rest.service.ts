@@ -6,6 +6,7 @@ import {
   eq,
   getTableColumns,
   inArray,
+  isNotNull,
   isNull,
   or,
   sql,
@@ -472,6 +473,31 @@ export class RestService {
       'asc',
     );
     return { data: p.items.map((r) => toWire('comments', r)), nextCursor: p.nextCursor };
+  }
+
+  /** PLNRAPP-560: assigned comments of the task (replies too; mentions don't count) + counters for the tab */
+  async assignedComments(userId: string, ref: string) {
+    const t = await this.findTask(userId, ref);
+    const rows = await this.db
+      .select()
+      .from(s.comments)
+      .where(and(eq(s.comments.taskId, t.id as string), isNotNull(s.comments.assigneeId)))
+      .orderBy(asc(s.comments.createdAt), asc(s.comments.id));
+    const data = rows.map((row) => {
+      const r = toWire('comments', row);
+      return {
+        id: r.id as string,
+        parentId: r.parentId as string | null,
+        authorId: r.authorId as string,
+        assigneeId: r.assigneeId as string,
+        text: docToMarkdown(r.body as JSONContent),
+        resolved: r.resolvedAt != null,
+        resolvedAt: r.resolvedAt as string | null,
+        resolvedBy: r.resolvedBy as string | null,
+        createdAt: r.createdAt as string,
+      };
+    });
+    return { data, counts: { open: data.filter((c) => !c.resolved).length, total: data.length } };
   }
 
   async createComment(userId: string, ref: string, raw: unknown, tokenId?: string) {

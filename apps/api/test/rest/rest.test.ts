@@ -414,6 +414,42 @@ describe('REST /api/v1: комментарии', () => {
     const un = await call('PATCH', `/api/v1/comments/${c.id}`, 'admin', { assigneeId: null });
     expect([un.json().data.assigneeId, un.json().data.resolvedAt]).toEqual([null, null]);
   });
+
+  it('GET /tasks/:task/assigned-comments (PLNRAPP-560): только назначенные, счётчики, отметка и снятие', async () => {
+    const t = await create({});
+    const post = async (body: Record<string, unknown>) =>
+      (await call('POST', `/api/v1/tasks/${t.id}/comments`, 'admin', body)).json().data;
+    await post({ text: 'просто комментарий' });
+    await post({ text: `упоминание @member` });
+    const a = await post({ text: 'сделай раз', assigneeId: w.member.userId });
+    const b = await post({ text: 'сделай два', assigneeId: w.admin.userId });
+    const url = `/api/v1/tasks/${t.key}/assigned-comments`;
+    // guest sees others' assignments too
+    const r = await get(url, 'guest');
+    expect(r.statusCode).toBe(200);
+    expect(r.json().data.map((c: { id: string }) => c.id)).toEqual([a.id, b.id]);
+    expect(r.json().data[0]).toMatchObject({
+      id: a.id,
+      parentId: null,
+      authorId: w.admin.userId,
+      assigneeId: w.member.userId,
+      text: 'сделай раз',
+      resolved: false,
+      resolvedAt: null,
+      resolvedBy: null,
+      createdAt: a.createdAt,
+    });
+    expect(r.json().counts).toEqual({ open: 2, total: 2 });
+    // mark done and undo — the feed's rights (assignee)
+    const done = await call('PATCH', `/api/v1/comments/${a.id}`, 'member', { resolved: true });
+    expect(done.statusCode).toBe(200);
+    const after = (await get(url, 'member')).json();
+    expect(after.counts).toEqual({ open: 1, total: 2 });
+    expect(after.data[0]).toMatchObject({ resolved: true, resolvedBy: w.member.userId });
+    await call('PATCH', `/api/v1/comments/${a.id}`, 'member', { resolved: false });
+    expect((await get(url)).json().counts).toEqual({ open: 2, total: 2 });
+    expect((await get(url, 'outsider')).statusCode).toBe(404);
+  });
 });
 
 describe('REST /api/v1: OpenAPI', () => {
@@ -450,6 +486,7 @@ describe('REST /api/v1: OpenAPI', () => {
       '/api/v1/tasks',
       '/api/v1/tasks/batch',
       '/api/v1/tasks/{task}',
+      '/api/v1/tasks/{task}/assigned-comments',
       '/api/v1/tasks/{task}/comments',
       '/api/v1/tasks/{task}/links',
       '/api/v1/time-entries',

@@ -76,6 +76,17 @@ const models = {
     resolved: z.boolean(),
     createdAt: z.string(),
   }),
+  AssignedComment: z.object({
+    id: z.uuid(),
+    parentId: z.uuid().nullable(),
+    authorId: z.uuid(),
+    assigneeId: z.uuid(),
+    text: z.string(),
+    resolved: z.boolean(),
+    resolvedAt: z.string().nullable(),
+    resolvedBy: z.uuid().nullable(),
+    createdAt: z.string(),
+  }),
   PagePatchResult: z.object({ ok: z.literal(true), versionId: z.uuid().optional() }),
 };
 
@@ -117,6 +128,20 @@ const ok = (model: string, mode: Mode = 'one', status = '200') => ({
   },
   default: { description: 'Ошибка', content: { 'application/json': { schema: ref('Error') } } },
 });
+/** PLNRAPP-560: a list with counters { open, total } next to data */
+const withCounts = (r: ReturnType<typeof ok>) => {
+  const schema = r['200']!.content['application/json'].schema as {
+    required: string[];
+    properties: Record<string, unknown>;
+  };
+  schema.required.push('counts');
+  schema.properties.counts = {
+    type: 'object',
+    required: ['open', 'total'],
+    properties: { open: { type: 'integer' }, total: { type: 'integer' } },
+  };
+  return r;
+};
 const body = (model: string) => ({
   required: true,
   content: { 'application/json': { schema: ref(model) } },
@@ -273,6 +298,14 @@ export function openapi() {
             parameters: [taskParam],
             requestBody: body('CreateComment'),
             responses: ok('Comment', 'one', '201'),
+          },
+        },
+        '/api/v1/tasks/{task}/assigned-comments': {
+          get: {
+            summary:
+              'Назначенные комментарии задачи (без упоминаний) и счётчики: open — не выполнено, total — всего',
+            parameters: [taskParam],
+            responses: withCounts(ok('AssignedComment', 'array')),
           },
         },
         '/api/v1/comments/{id}': {
