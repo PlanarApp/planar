@@ -2910,7 +2910,8 @@ async function insertAll(tx: Tx, now: Date) {
     await ins(
       chatMessages,
       msgs.map(([a, text], i) => {
-        const body = textToDoc(text, people);
+        // the bot answers in markdown, as the real one (module ai, asDoc) — lists and bold, not asterisks (PLNRAPP-334)
+        const body = a === 'ai' ? markdownToDoc(text) : textToDoc(text, people);
         return {
           id: msgIds[i],
           spaceId: null,
@@ -2953,7 +2954,10 @@ async function insertAll(tx: Tx, now: Date) {
     ['demo'],
     [
       ['demo', 'What is still open on the beta plan?'],
-      ['ai', 'Two tasks are open: the forum import and the launch checklist.'],
+      [
+        'ai',
+        'Two tasks are open:\n\n1. **Forum import** — in progress\n2. **Launch checklist** — not started\n\nThe rest of the beta plan is done.',
+      ],
     ],
   );
   await botChat(

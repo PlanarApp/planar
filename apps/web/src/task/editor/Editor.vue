@@ -549,6 +549,15 @@ const sugStyle = (r: DOMRect | null, n: number) => {
   pointer-events: none;
   color: var(--color-fg-subtle);
 }
+/* blocks (paragraphs, lists, tables, code) with a small gap, not glued together — as AI answers in markdown expect (PLNRAPP-334) */
+.task-editor .ProseMirror > * + *,
+.task-editor .ProseMirror li:not([data-type='taskItem']) > * + * {
+  margin-top: 0.5rem;
+}
+.task-editor .ProseMirror hr {
+  border-color: var(--color-border-strong);
+  margin: 0.75rem 0;
+}
 .task-editor .ProseMirror ul:not([data-type='taskList']) {
   list-style: disc;
   padding-left: 1.25rem;
