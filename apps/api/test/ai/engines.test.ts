@@ -218,9 +218,9 @@ describe('REST api/ai/engines', () => {
     expect(await ids('active=1')).not.toContain(empty);
     expect(await ids('active=1')).toContain(failed);
     expect(await ids(`since=${new Date(Date.now() + 60_000).toISOString()}`)).toEqual([]);
-    const r = (
-      await call('GET', `engines/runs?projectId=${w.projectId}&only=project`, 'admin')
-    ).json().runs[0];
+    const r = (await call('GET', `engines/runs?projectId=${w.projectId}&only=project`, 'admin'))
+      .json()
+      .runs.find((x: { id: string }) => x.id === mine);
     expect(r).toMatchObject({ id: mine, projectName: 'P', processed: 3, state: 'done' });
     expect(r.startedAt).toBeTruthy();
     expect(r.finishedAt).toBeTruthy();
