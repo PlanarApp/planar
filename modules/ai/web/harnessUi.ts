@@ -53,6 +53,35 @@ export function isPackPage(
   );
 }
 
+/** PLNRAPP-538: the choice for a page that differs from the pack — «mine» for a page the user edited, else the pack. */
+export type PageChoice = 'keep' | 'reset' | 'merge';
+export const defaultChoice = (p: { edited: boolean }): PageChoice => (p.edited ? 'keep' : 'reset');
+
+/** Line diff of the current text against the pack's (LCS): ' ' both, '-' only current, '+' only the pack. */
+export function lineDiff(a: string, b: string): { op: ' ' | '-' | '+'; text: string }[] {
+  const x = a.split('\n');
+  const y = b.split('\n');
+  // shortcut: O(n·m) table, fine for pack pages (hundreds of lines); a long document needs Myers
+  const L = Array.from({ length: x.length + 1 }, () => new Array<number>(y.length + 1).fill(0));
+  for (let i = x.length - 1; i >= 0; i--)
+    for (let j = y.length - 1; j >= 0; j--)
+      L[i]![j] = x[i] === y[j] ? L[i + 1]![j + 1]! + 1 : Math.max(L[i + 1]![j]!, L[i]![j + 1]!);
+  const out: { op: ' ' | '-' | '+'; text: string }[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < x.length && j < y.length) {
+    if (x[i] === y[j]) {
+      out.push({ op: ' ', text: x[i]! });
+      i++;
+      j++;
+    } else if (L[i + 1]![j]! >= L[i]![j + 1]!) out.push({ op: '-', text: x[i++]! });
+    else out.push({ op: '+', text: y[j++]! });
+  }
+  while (i < x.length) out.push({ op: '-', text: x[i++]! });
+  while (j < y.length) out.push({ op: '+', text: y[j++]! });
+  return out;
+}
+
 export const toBase64 = (buf: ArrayBuffer): string => {
   let s = '';
   const b = new Uint8Array(buf);

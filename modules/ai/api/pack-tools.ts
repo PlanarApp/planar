@@ -71,7 +71,7 @@ export function aiPackTools(core: CoreServices): PackTool[] {
     ),
     def(
       'ai_upload_pack',
-      'Загрузить пакет harness (zip base64 или packKey каталога) в документы проекта. dryRun — только список расхождений со страницами, правленными вручную, без записи; resolve {pageKey: reset|keep|{merged}} разрешает расхождения',
+      'Загрузить пакет harness (zip base64 или packKey каталога) в документы проекта. dryRun — только список расхождений со страницами, правленными вручную, без записи; resolve {pageKey: reset|keep|{merged}} — выбор для любой страницы (свои / каталог / объединённый текст)',
       {
         ...source,
         dryRun: z.boolean().optional(),

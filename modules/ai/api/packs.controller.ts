@@ -14,7 +14,9 @@ import {
   failPack,
   listCatalog,
   listProjectPacks,
+  lostKeys,
   packFiles,
+  preview,
   setEvents,
   upload,
 } from './packs.js';
@@ -35,7 +37,12 @@ const uploadBody = source.extend({
     )
     .optional(),
 });
-const mergeBody = source.extend({ key: z.string().min(1).max(60) });
+const mergeBody = source.extend({ keys: z.array(z.string().min(1).max(60)).min(1).max(50) });
+const MERGE_SYSTEM =
+  'Ты объединяешь две версии одного документа: текущую (её правил человек) и новую из пакета. Сохрани правки человека и добавь изменения нового пакета. Сохрани формат текста, включая блок --- в начале. Ответ — JSON {"merged": "<полный текст>"}.';
+// harness.yml: what the catalog brings must survive the merge (statuses, labels, actions are created from it)
+const MERGE_YML =
+  ' Это harness.yml: все статусы, метки, поля, действия и правила новой версии остаются; правило, которое есть в обеих версиях, берётся из новой с правками человека; то, что человек добавил сам, тоже остаётся.';
 const eventsBody = target.extend({ events: eventsSchema });
 
 @Controller('api/ai/packs')
@@ -77,7 +84,24 @@ export class PacksController {
     }
   }
 
-  /** AI merge of a conflicting page: shows current, incoming and the merged text; nothing is written. */
+  /** PLNRAPP-538: the pages of the pack that differ from the project or are new (current / incoming); nothing is written. */
+  @Post('preview')
+  @HttpCode(200)
+  async preview(@Req() req: object, @Body() body: unknown) {
+    const b = parseBody(source, body);
+    await this.admin(req, b.projectId);
+    const files = await packFiles(b);
+    try {
+      return await preview(this.core.db, { ...b, files });
+    } catch (e) {
+      failPack(e);
+    }
+  }
+
+  /**
+   * AI merge of the pages that differ from the pack, all in one request (a model call per page, in parallel);
+   * nothing is written. `warnings` — what of the pack's harness.yml the merged one lost.
+   */
   @Post('merge')
   @HttpCode(200)
   async merge(@Req() req: object, @Body() body: unknown) {
@@ -90,29 +114,44 @@ export class PacksController {
     } catch (e) {
       failPack(e);
     }
-    const inc = c.incoming.find((p) => p.key === b.key);
-    const cur = c.current.get(b.key);
-    if (!inc || !cur || !c.conflicts.some((x) => x.key === b.key))
-      throw new HttpError(409, 'conflict', 'У этой страницы нет расхождений с пакетом');
+    const pairs = [...new Set(b.keys)].map((k) => {
+      const inc = c.incoming.find((p) => p.key === k);
+      const cur = c.current.get(k);
+      if (!inc || !cur || inc.hash === cur.hash)
+        throw new HttpError(409, 'conflict', `У страницы «${k}» нет расхождений с пакетом`);
+      return { key: k, inc, cur };
+    });
     const stop = await blocked(this.core.db, b.projectId);
     if (stop) throw new HttpError(409, 'conflict', stop);
     const conn = await resolveConnection(this.core.db, b.projectId);
     if (!conn) throw new HttpError(409, 'conflict', 'Не настроено подключение к ИИ');
-    let merged: string;
+    let out: { key: string; merged: string }[];
     try {
-      ({
-        object: { merged },
-      } = await generateStructured(secretOf(conn), {
-        schema: z.object({ merged: z.string() }),
-        system:
-          'Ты объединяешь две версии одного документа: текущую (её правил человек) и новую из пакета. Сохрани правки человека и добавь изменения нового пакета. Сохрани формат текста, включая блок --- в начале. Ответ — JSON {"merged": "<полный текст>"}.',
-        prompt: `# Текущая версия\n\n${cur.file}\n\n# Новая версия из пакета\n\n${inc.file}`,
-        maxOutputTokens: 8000,
-      }));
+      out = await Promise.all(
+        pairs.map(async ({ key: k, inc, cur }) => {
+          const r = await generateStructured(secretOf(conn), {
+            schema: z.object({ merged: z.string() }),
+            system: MERGE_SYSTEM + (k === 'harness.yml' ? MERGE_YML : ''),
+            prompt: `# Текущая версия\n\n${cur.file}\n\n# Новая версия из пакета\n\n${inc.file}`,
+            maxOutputTokens: 8000,
+          });
+          return { key: k, merged: r.object.merged };
+        }),
+      );
     } catch {
       throw new HttpError(502, 'unavailable', 'Провайдер недоступен');
     }
-    return { key: b.key, current: cur.file, incoming: inc.file, merged };
+    const warnings: string[] = [];
+    for (const { key: k, merged } of out) {
+      if (k !== 'harness.yml') continue;
+      try {
+        const lost = lostKeys(pairs.find((p) => p.key === k)!.inc.file, merged);
+        if (lost.length) warnings.push(`harness.yml: пропало из пакета — ${lost.join(', ')}`);
+      } catch (e) {
+        warnings.push(`harness.yml: ${(e as Error).message}`);
+      }
+    }
+    return { merged: Object.fromEntries(out.map((x) => [x.key, x.merged])), warnings };
   }
 
   @Post('activate')
