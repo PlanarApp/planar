@@ -65,7 +65,8 @@ describe('pack support', () => {
     expect(n('label', 'create')).toBe(4);
     expect(n('field', 'create')).toBe(4);
     expect(n('action', 'create')).toBe(9);
-    expect(n('rule', 'create')).toBe(7);
-    expect(n('rule', 'enable')).toBe(7);
+    // 7 + 2 twins «on assign» (PLNRAPP-539)
+    expect(n('rule', 'create')).toBe(9);
+    expect(n('rule', 'enable')).toBe(9);
   });
 });

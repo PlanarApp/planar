@@ -23,11 +23,23 @@ rules:
     trigger: { type: task.status_changed, to: [new] }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: triage }]
+  - key: triage_new_on_assign
+    name: Разбор нового обращения — при назначении ИИ
+    description: ИИ назначили на обращение, уже стоящее в «Новом», — то же, что «Разбор нового обращения».
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [new] }
+    actions: [{ type: ai_run, action: triage }]
   - key: wiki_solved
     name: В вики после решения
     description: ИИ решает, стоит ли сохранить решение в вики поддержки. Только задачи, где ИИ — исполнитель.
     trigger: { type: task.status_changed, to: [solved] }
     filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: to_wiki }]
+  - key: wiki_solved_on_assign
+    name: В вики после решения — при назначении ИИ
+    description: ИИ назначили на обращение, уже стоящее в «Решено», — то же, что «В вики после решения».
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [solved] }
     actions: [{ type: ai_run, action: to_wiki }]
   - key: escalate_unassigned
     name: Эскалация без исполнителя

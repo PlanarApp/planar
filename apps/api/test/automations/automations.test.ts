@@ -289,6 +289,23 @@ describe('wk3: триггеры', () => {
     jobs.length = 0;
   });
 
+  it('PLNRAPP-539: task.assignee_changed с onCreate: false — не при создании задачи, только при назначении потом', async () => {
+    const any = await rule({ type: 'task.assignee_changed', userIds: [w.member.userId] });
+    const later = await rule({
+      type: 'task.assignee_changed',
+      userIds: [w.member.userId],
+      onCreate: false,
+    });
+    const t = await task({ assignees: [{ id: uuidv7(), userId: w.member.userId }] });
+    expect(queued(any.id)).toHaveLength(1);
+    expect(queued(later.id)).toHaveLength(0);
+    await w.admin.ok('task.unassign', { taskId: t, userId: w.member.userId });
+    jobs.length = 0;
+    await w.admin.ok('task.assign', { id: uuidv7(), taskId: t, userId: w.member.userId });
+    expect(queued(later.id)).toHaveLength(1);
+    jobs.length = 0;
+  });
+
   it('wk3: task.field_changed — priority и field:<id>', async () => {
     const fieldId = uuidv7();
     await w.admin.ok('field.create', {

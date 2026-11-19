@@ -19,6 +19,12 @@ rules:
     trigger: { type: task.status_changed, to: [todo] }
     filter: { assignee: [ai] }
     actions: [{ type: set_status, statusId: in_progress }, { type: ai_run, action: dev }]
+  - key: dev_in_todo_on_assign
+    name: Разработка — при назначении ИИ
+    description: ИИ назначили на задачу, уже стоящую в «К работе», — то же, что «Разработка».
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [todo] }
+    actions: [{ type: set_status, statusId: in_progress }, { type: ai_run, action: dev }]
   - key: dev_resumed
     name: Разработка после ответа
     description: На вопросы ИИ ответили, задача вернулась из «Уточнения» в «В работе» — ИИ продолжает разработку. Только задачи, где ИИ — исполнитель.
@@ -37,6 +43,12 @@ rules:
     trigger: { type: task.status_changed, to: [review] }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: review }]
+  - key: review_mr_on_assign
+    name: Ревью MR — при назначении ИИ
+    description: ИИ назначили на задачу, уже стоящую в «Ревью», — то же, что «Ревью MR».
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [review] }
+    actions: [{ type: ai_run, action: review }]
   - key: test_on_prod
     name: Тестирование на контуре
     description: MR задачи слит и деплой закончился (или пропущен) — ИИ проверяет задачу в браузере (Playwright) на контуре. Только задачи в «Test prod», где ИИ — исполнитель.
@@ -48,6 +60,12 @@ rules:
     description: ИИ проверяет задачу, пишет план и оценивает бюджет. Только задачи, где ИИ — исполнитель.
     trigger: { type: task.status_changed, to: [backlog] }
     filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: plan }]
+  - key: plan_in_backlog_on_assign
+    name: План в бэклоге — при назначении ИИ
+    description: ИИ назначили на задачу, уже стоящую в «Бэклоге», — то же, что «План в бэклоге». Новую задачу с ИИ разбирает триаж.
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [backlog] }
     actions: [{ type: ai_run, action: plan }]
   - key: triage_new
     name: Триаж новых задач

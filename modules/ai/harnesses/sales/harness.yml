@@ -27,11 +27,23 @@ rules:
     trigger: { type: task.status_changed, to: [lead] }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: research }]
+  - key: research_lead_on_assign
+    name: Разведка компании — при назначении ИИ
+    description: ИИ назначили на сделку, уже стоящую в «Лиде», — то же, что «Разведка компании».
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [lead] }
+    actions: [{ type: ai_run, action: research }]
   - key: qualify_lead
     name: Квалификация лида
     description: Новый лид проверяется по BANT. Только сделки, где ИИ — исполнитель.
     trigger: { type: task.status_changed, to: [lead] }
     filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: qualify }]
+  - key: qualify_lead_on_assign
+    name: Квалификация лида — при назначении ИИ
+    description: ИИ назначили на сделку, уже стоящую в «Лиде», — то же, что «Квалификация лида».
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [lead] }
     actions: [{ type: ai_run, action: qualify }]
   - key: proposal_ready
     name: КП и письма
@@ -39,11 +51,23 @@ rules:
     trigger: { type: task.status_changed, to: [proposal] }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: proposal }]
+  - key: proposal_ready_on_assign
+    name: КП и письма — при назначении ИИ
+    description: ИИ назначили на сделку, уже стоящую в «КП», — то же, что «КП и письма».
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [proposal] }
+    actions: [{ type: ai_run, action: proposal }]
   - key: deal_lost
     name: Разбор проигрыша
     description: Причина проигрыша, отложить сделку на 3 месяца.
     trigger: { type: task.status_changed, to: [lost] }
     filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: lost }]
+  - key: deal_lost_on_assign
+    name: Разбор проигрыша — при назначении ИИ
+    description: ИИ назначили на сделку, уже стоящую в «Проиграна», — то же, что «Разбор проигрыша».
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [lost] }
     actions: [{ type: ai_run, action: lost }]
   - key: next_step_on_comment
     name: Следующий шаг после комментария
