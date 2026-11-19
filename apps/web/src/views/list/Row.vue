@@ -59,8 +59,6 @@ const props = defineProps<{
   showKey?: boolean;
   /** in today's «My day» plan — a sun before the name */
   inDay?: boolean;
-  /** a row outside the List (subtasks of the task card, PLNRAPP-540): no selection and no «…» menu */
-  compact?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -198,7 +196,6 @@ function save() {
   >
     <!-- PLNRAPP-281: выбор задачи на мобильной — чекбокс всегда виден, зона касания 44px -->
     <label
-      v-if="!compact"
       role="gridcell"
       class="-ml-3 flex size-11 shrink-0 items-center justify-center"
       data-testid="row-select"
@@ -231,7 +228,6 @@ function save() {
       />
     </div>
     <button
-      v-if="!compact"
       type="button"
       :class="[menuBtn, 'size-11']"
       :aria-label="t('list.actions')"
@@ -271,7 +267,7 @@ function save() {
     >
       <GripVertical :size="14" />
     </div>
-    <div v-if="!compact" role="gridcell" class="flex w-4 shrink-0" @click.stop>
+    <div role="gridcell" class="flex w-4 shrink-0" @click.stop>
       <input
         v-if="selecting"
         type="checkbox"
@@ -448,7 +444,6 @@ function save() {
       </div>
     </div>
     <button
-      v-if="!compact"
       type="button"
       :class="[
         menuBtn,
