@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
+import { textToDoc, uuidv7 } from '@planar/shared';
 import {
   decrypt,
   isDemo,
@@ -216,6 +217,10 @@ async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr, token?: s
   }
   let pipelineStatus: string | null | undefined;
   if (token && found.size) pipelineStatus = await pipelineOf(token, c, mr);
+  const onFail =
+    pipelineStatus === 'failed' && mr.state === 'opened'
+      ? await ciFailed(api, [...found.keys()], gitlabProjectId, mr)
+      : [];
   await api.execute(
     api.systemUserId,
     [
@@ -240,9 +245,66 @@ async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr, token?: s
           })),
         },
       },
+      ...onFail,
     ],
     { system: true },
   );
+}
+
+type Mut = { name: string; args: unknown };
+/**
+ * The MR's CI failed (it was not failed on the open MR before): a comment and an assignee in the batch of
+ * gitlab.mr.sync. Autopilot — the AI bot (the rule dev_ci_failed sees it assigned and fixes), otherwise a person:
+ * the last assigned human, else the author. A task the AI already has is left to that rule.
+ */
+async function ciFailed(api: JobApi, taskIds: string[], gitlabProjectId: number, mr: GlMr) {
+  const muts: Mut[] = [];
+  for (const taskId of taskIds) {
+    const [r] = (
+      await api.db.execute(
+        sql`select
+              (select pipeline_status = 'failed' and state = 'opened' from gitlab_mrs
+                where id = ${mrRowId(taskId, gitlabProjectId, mr.iid)}) as "was",
+              exists(select 1 from task_assignees a join users u on u.id = a.user_id
+                where a.task_id = t.id and u.login = 'ai' and u.bot) as "aiHas",
+              (select l.autopilot from ai_project_limits l
+                where l.project_id = t.project_id and 'ai' = any(p.modules)
+                  and exists(select 1 from settings where id = 'enabled_modules' and value @> '["ai"]'::jsonb)
+              ) as "autopilot",
+              (select id from users where login = 'ai' and bot and deactivated_at is null) as "bot",
+              coalesce(
+                (select u.id from task_assignees a join users u on u.id = a.user_id
+                  join space_members m on m.user_id = u.id and m.space_id = t.space_id and m.role <> 'guest'
+                  where a.task_id = t.id and not u.bot and u.deactivated_at is null
+                  order by a.created_at desc limit 1),
+                (select u.id from users u
+                  join space_members m on m.user_id = u.id and m.space_id = t.space_id and m.role <> 'guest'
+                  where u.id = t.created_by and not u.bot and u.deactivated_at is null)
+              ) as "human"
+            from tasks t join projects p on p.id = t.project_id where t.id = ${taskId}`,
+      )
+    ).rows as {
+      was: boolean | null;
+      aiHas: boolean;
+      autopilot: boolean | null;
+      bot: string | null;
+      human: string | null;
+    }[];
+    if (!r || r.was || r.aiHas) continue;
+    const to = r.autopilot && r.bot ? r.bot : r.human;
+    const text = `CI упал в MR !${mr.iid}: ${mr.web_url} — ${to && to === r.bot ? 'назначаю ИИ на починку' : 'нужно починить'}.`;
+    muts.push({
+      name: 'comment.create',
+      args: {
+        id: uuidv7(),
+        taskId,
+        body: textToDoc(text, []),
+        ...(to && to !== r.bot && { assigneeId: to }),
+      },
+    });
+    if (to) muts.push({ name: 'task.assign', args: { id: uuidv7(), taskId, userId: to } });
+  }
+  return muts;
 }
 
 async function pollProject(api: JobApi, token: string, p: typeof P.$inferSelect) {
