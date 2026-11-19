@@ -6,7 +6,7 @@ import { AiApiError, call } from './api';
 import ConnectionFields from './ConnectionFields.vue';
 import { tr } from './data';
 import { buildReplaceWith, groupOps, needReplace, replaceTargets } from './harnessUi';
-import PackConflicts from './PackConflicts.vue';
+import PackReview from './PackReview.vue';
 import { usePackUpload } from './usePackUpload';
 import {
   aiBotOf,
@@ -270,7 +270,7 @@ onMounted(() =>
           >{{ tr('wzAdapt') }}</Button
         >
       </div>
-      <PackConflicts :u="u" :busy="busy" />
+      <PackReview :u="u" :busy="busy" />
       <p v-if="assigned" class="text-fg-muted" data-testid="wizard-adapted">
         {{ tr('wzAssigned') }}
         <a :href="`/m/docs/${rootPageId}`" class="underline" data-testid="wizard-adapted-link">{{

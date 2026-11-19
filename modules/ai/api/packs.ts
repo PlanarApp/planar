@@ -11,6 +11,7 @@ import {
   instructionSchema,
   parseHarnessYaml,
   parseInstructionDoc,
+  ruleKey,
   type AiEvents,
   type Harness,
   type Instruction,
@@ -544,6 +545,65 @@ export async function conflictsOf(db: Db, o: UploadOpts) {
   return { conflicts: p.conflicts, incoming: p.pages, current: p.cur };
 }
 
+export interface PreviewPage {
+  key: string;
+  title: string;
+  kind: 'new' | 'changed';
+  /** the user changed the page since it was loaded */
+  edited: boolean;
+  current: string | null;
+  incoming: string;
+}
+
+/** PLNRAPP-538: the pages of the pack that differ from the project or are new; nothing is written. */
+export async function preview(db: Db, o: UploadOpts): Promise<{ pages: PreviewPage[] }> {
+  let p;
+  try {
+    p = await plan(db, o);
+  } catch (e) {
+    throw new PackError(400, (e as Error).message);
+  }
+  const pages: PreviewPage[] = [];
+  for (const pg of p.pages) {
+    const c = p.cur.get(pg.key);
+    if (!c)
+      pages.push({
+        key: pg.key,
+        title: pg.title,
+        kind: 'new',
+        edited: false,
+        current: null,
+        incoming: pg.file,
+      });
+    else if (c.hash !== pg.hash)
+      pages.push({
+        key: pg.key,
+        title: c.title,
+        kind: 'changed',
+        edited: c.hash !== p.live!.hashes[c.id],
+        current: c.file,
+        incoming: pg.file,
+      });
+  }
+  return { pages };
+}
+
+/** Keys of statuses, labels, fields, actions and rules of `incoming` harness.yml that `merged` lost. */
+export function lostKeys(incoming: string, merged: string): string[] {
+  const of = (h: Harness) => ({
+    statuses: h.statuses.map((s) => s.key),
+    labels: h.labels.map((l) => l.key),
+    fields: h.fields.map((f) => f.key),
+    actions: h.actions,
+    rules: h.rules.map(ruleKey),
+  });
+  const a = of(parseHarnessYaml(incoming));
+  const b = of(parseHarnessYaml(merged));
+  return (Object.keys(a) as (keyof typeof a)[]).flatMap((k) =>
+    a[k].filter((x) => !b[k].includes(x)).map((x) => `${k}: ${x}`),
+  );
+}
+
 /** Merged text of a conflicting page → a checked page body (the instruction or harness.yml). */
 function mergedPage(key: string, text: string): { body: Doc; title?: string; file: string } {
   if (key === YML) {
@@ -621,7 +681,8 @@ export async function upload(db: Db, core: CoreServices, userId: string, o: Uplo
       const c = p.cur.get(pg.key);
       if (!c) continue;
       const was = p.live!.hashes[c.id];
-      const r = p.conflicts.some((x) => x.key === pg.key) ? o.resolve![pg.key]! : undefined;
+      // PLNRAPP-538: a choice counts for any page (keep an untouched page, merge it), not only a conflict
+      const r = o.resolve?.[pg.key];
       const write = (title: string | undefined, body: Doc, hash: string, key: string) => {
         muts.push({
           name: 'docs.page.update',

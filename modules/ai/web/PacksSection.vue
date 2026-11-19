@@ -4,10 +4,12 @@ import { AI_EVENTS, type AiEvent } from '../shared/index.js';
 import { AiApiError, call } from './api';
 import { tr, type Key } from './data';
 import { toBase64 } from './harnessUi';
-import PackConflicts from './PackConflicts.vue';
+import HarnessDiff from './HarnessDiff.vue';
+import PackReview from './PackReview.vue';
 import { usePackUpload } from './usePackUpload';
 
-// «Settings → AI → Packs» (project level): catalog, loaded packs, upload with conflict resolution, export
+// «Settings → AI → Packs and rules» (project level): catalog, loaded packs, upload (the pages that differ from the
+// pack → choice → final texts → save → apply), export
 const props = defineProps<{ projectId: string }>();
 type Pack = {
   packKey: string;
@@ -50,13 +52,23 @@ async function guard(fn: () => Promise<void>) {
   }
 }
 const u = usePackUpload(props.projectId, guard, load);
-const fromCatalog = (key: string) => u.upload({ packKey: key });
+// the last saved upload was applied
+const done = ref(false);
+const start = (src: Parameters<typeof u.upload>[0]) => {
+  done.value = false;
+  return u.upload(src);
+};
+const applied = () => {
+  u.saved.value = null;
+  done.value = true;
+};
+const fromCatalog = (key: string) => start({ packKey: key });
 async function pickZip(ev: Event) {
   const f = (ev.target as HTMLInputElement).files?.[0];
   zip.data = f ? toBase64(await f.arrayBuffer()) : '';
 }
 const fromZip = () =>
-  u.upload({ packKey: zip.packKey.trim(), zip: zip.data, title: zip.title.trim() || undefined });
+  start({ packKey: zip.packKey.trim(), zip: zip.data, title: zip.title.trim() || undefined });
 const activate = (packKey: string) =>
   guard(async () => {
     await call('POST', 'packs/activate', { projectId: props.projectId, packKey });
@@ -174,6 +186,20 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
       </button>
     </form>
 
-    <PackConflicts :u="u" :busy="busy" />
+    <PackReview :u="u" :busy="busy" />
+    <div
+      v-if="u.saved.value"
+      class="flex flex-col gap-2 rounded-md border border-border p-3 text-sm"
+      data-testid="packs-apply"
+    >
+      <p>{{ tr(u.saved.value.same ? 'packSame' : 'packSaved') }}</p>
+      <HarnessDiff
+        :key="u.saved.value.rootPageId"
+        :project-id="projectId"
+        :pack-page-id="u.saved.value.rootPageId"
+        @applied="applied"
+      />
+    </div>
+    <p v-if="done" class="text-sm text-fg-muted" data-testid="packs-applied">{{ tr('applied') }}</p>
   </section>
 </template>
