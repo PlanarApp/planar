@@ -6,7 +6,10 @@ import { call } from './api';
 import ConnectionFields from './ConnectionFields.vue';
 import { tr } from './data';
 import EgressSection from './EgressSection.vue';
+import AutopilotSection from './AutopilotSection.vue';
+import EngineMonitor from './EngineMonitor.vue';
 import LimitsSection from './LimitsSection.vue';
+import RetroSection from './RetroSection.vue';
 import PacksSection from './PacksSection.vue';
 import SetupWizard from './SetupWizard.vue';
 
@@ -246,6 +249,10 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
           @close="closeWizard"
         />
         <LimitsSection :project-id="projectId" />
+        <!-- PLNRAPP-568: also in the tab «Монитор движков» of the workspace; here — for the project admin -->
+        <AutopilotSection :project-id="projectId" />
+        <EngineMonitor :project-id="projectId" />
+        <RetroSection :key="wizardRuns" :project-id="projectId" />
       </template>
     </div>
     <PacksSection v-if="tab === 'packs' && projectId" :key="wizardRuns" :project-id="projectId" />

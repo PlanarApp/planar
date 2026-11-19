@@ -76,14 +76,15 @@ describe('AiSettings: workspace tabs', () => {
     expect(w.find('[data-testid="ai-form"]').isVisible()).toBe(true);
   });
 
-  it('the project page keeps its tabs and has no autopilot or retro', async () => {
+  it('the project page keeps its tabs, autopilot, engines monitor and retro', async () => {
     at();
     const w = mount(AiSettings, { props: { level: 'project', projectId: 'p1' } });
     await flushPromises();
     expect(tabs(w)).toEqual(['Подключение', 'Пакеты и правила']);
     expect(w.find('[data-testid="ai-limits"]').exists()).toBe(true);
-    expect(w.find('[data-testid="ai-autopilot-section"]').exists()).toBe(false);
-    expect(w.find('[data-testid="ai-retro"]').exists()).toBe(false);
+    expect(w.find('[data-testid="ai-autopilot-section"]').attributes('data-project')).toBe('p1');
+    expect(w.find('[data-testid="engine-monitor"]').attributes('data-project')).toBe('p1');
+    expect(w.find('[data-testid="ai-retro"]').attributes('data-project')).toBe('p1');
   });
 });
 
