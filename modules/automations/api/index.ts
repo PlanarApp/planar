@@ -60,6 +60,12 @@ interface Event {
 
 function eventsOf(writes: MutationWrite[]): Event[] {
   const out: Event[] = [];
+  // tasks created by these writes: their first assignees come «with the task» (trigger onCreate: false)
+  const created = new Set(
+    writes
+      .filter((w) => w.entity === 'tasks' && w.op === 'put' && w.after && !w.before)
+      .map((w) => (w.after as Row).id as string),
+  );
   for (const w of writes) {
     const a = w.after as Row | null;
     const b = w.before as Row | null;
@@ -99,6 +105,7 @@ function eventsOf(writes: MutationWrite[]): Event[] {
         taskId: r.taskId as string,
         match: (t) => {
           if (t.type !== 'task.assignee_changed') return false;
+          if (t.onCreate === false && created.has(r.taskId as string)) return false;
           const users = [...(t.userIds ?? []), ...(t.userId ? [t.userId] : [])];
           return !users.length || (added && users.includes(r.userId as string));
         },

@@ -66,6 +66,31 @@ describe.each(loaded)('catalog pack $k', ({ k, files, pack }) => {
     }
   });
 
+  it('PLNRAPP-539: правило статуса с ai_run — двойник «при назначении ИИ» с теми же действиями', () => {
+    const byKey = new Map(pack.rules.map((r) => [r.key, r]));
+    const own = pack.rules.filter(
+      (r) =>
+        r.trigger.type === 'task.status_changed' &&
+        !('from' in r.trigger) &&
+        r.actions.some((a) => a.type === 'ai_run'),
+    );
+    expect(own.length).toBeGreaterThan(0);
+    for (const r of own) {
+      const twin = byKey.get(`${r.key}_on_assign`);
+      expect(twin, r.key).toBeDefined();
+      expect(twin!.trigger).toEqual({
+        type: 'task.assignee_changed',
+        userIds: ['ai'],
+        onCreate: false,
+      });
+      expect(twin!.filter).toEqual({
+        assignee: ['ai'],
+        status: (r.trigger as { to: string[] }).to,
+      });
+      expect(twin!.actions).toEqual(r.actions);
+    }
+  });
+
   it('computeDiff on an empty project: no errors, all rules enabled at the end', () => {
     const { ops, errors } = computeDiff(empty, pack, {}, {}, instr());
     expect(errors).toEqual([]);
@@ -139,6 +164,13 @@ describe.each(loaded)('catalog pack $k', ({ k, files, pack }) => {
     const rules = await raw(`select enabled from automations_rules where project_id = $1`, [P]);
     expect(rules).toHaveLength(pack.rules.length);
     expect(rules.every((r) => r.enabled)).toBe(true);
+    // the twins: «ai» of the trigger is the bot
+    const bot = (await raw(`select id from users where login = 'ai'`))[0]!.id as string;
+    const twins = await raw(
+      `select trigger from automations_rules where project_id = $1 and trigger->>'type' = 'task.assignee_changed'`,
+      [P],
+    );
+    for (const t of twins) expect(t.trigger).toMatchObject({ userIds: [bot], onCreate: false });
 
     // events: harness.yml on the first apply; the admin's choice survives the next apply
     expect(pack.events).toEqual({

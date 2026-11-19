@@ -241,6 +241,10 @@ export async function buildMutations(
     ...Object.fromEntries(
       ['from', 'to', 'statuses'].filter((f) => f in t).map((f) => [f, list('status', t[f])]),
     ),
+    // assignee_changed: «ai» — the bot, as in the assignee filter; no bot yet — dropped (the filter stops the rule)
+    ...(Array.isArray(t.userIds) && {
+      userIds: t.userIds.flatMap((x) => (x !== 'ai' ? [x] : bot ? [bot] : [])),
+    }),
   });
   const FILTER_KIND: Record<string, HarnessKind | undefined> = { status: 'status', label: 'label' };
   const filter = (f: Row | undefined) => {

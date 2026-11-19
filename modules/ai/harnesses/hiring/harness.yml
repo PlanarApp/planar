@@ -38,16 +38,33 @@ rules:
     trigger: { type: task.status_changed, to: [applied] }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: screening }]
+  - key: screen_applied_on_assign
+    name: Скрининг отклика — при назначении ИИ
+    description: ИИ назначили на отклик, уже стоящий в своём статусе, — то же, что «Скрининг отклика».
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [applied] }
+    actions: [{ type: ai_run, action: screening }]
   - key: questionnaire_screening
     name: Вопросы по пробелам резюме
     description: ИИ готовит письмо кандидату с вопросами по пробелам.
     trigger: { type: task.status_changed, to: [screening] }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: questionnaire }]
+  - key: questionnaire_screening_on_assign
+    name: Вопросы по пробелам резюме — при назначении ИИ
+    description: ИИ назначили на кандидата, уже стоящего в «Скрининге», — то же, что «Вопросы по пробелам резюме».
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [screening] }
+    actions: [{ type: ai_run, action: questionnaire }]
   - key: questions_interview
     name: Вопросы к интервью
     trigger: { type: task.status_changed, to: [interview] }
     filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: interview_questions }]
+  - key: questions_interview_on_assign
+    name: Вопросы к интервью — при назначении ИИ
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [interview] }
     actions: [{ type: ai_run, action: interview_questions }]
   - key: summary_interview
     name: Итоги интервью
@@ -60,10 +77,20 @@ rules:
     trigger: { type: task.status_changed, to: [offer] }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: offer }]
+  - key: offer_stage_on_assign
+    name: Письмо с оффером — при назначении ИИ
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [offer] }
+    actions: [{ type: ai_run, action: offer }]
   - key: rejection_stage
     name: Письмо с отказом
     trigger: { type: task.status_changed, to: [rejected] }
     filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: rejection }]
+  - key: rejection_stage_on_assign
+    name: Письмо с отказом — при назначении ИИ
+    trigger: { type: task.assignee_changed, userIds: [ai], onCreate: false }
+    filter: { assignee: [ai], status: [rejected] }
     actions: [{ type: ai_run, action: rejection }]
   - key: stale_ping
     name: Напоминание рекрутеру

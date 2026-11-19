@@ -5,7 +5,8 @@ export const NO_DESC = '(no description)';
 const TRIGGER_DOC: Record<string, string> = {
   'task.created': 'a task is created',
   'task.status_changed': 'status changes; from/to = status ids, empty = any',
-  'task.assignee_changed': 'an assignee is added; userIds empty = any change (userId is legacy)',
+  'task.assignee_changed':
+    'an assignee is added; userIds empty = any change (userId is legacy); onCreate: false — not for the assignees of a task being created',
   'task.field_changed':
     'a task field changes (built-in name or field:<fieldDefId>); byHuman = only by a person, not a rule/AI',
   'task.due': 'daysBefore days before the due date',
