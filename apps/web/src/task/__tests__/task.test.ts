@@ -293,6 +293,56 @@ describe('task:subtasks', () => {
       (await db.table('tasks').toArray()).some((x) => x.title === 'второй' && x.parentId === t.id),
     );
   });
+  // PLNRAPP-542: done and cancelled subtasks are under the «Закрыто N» accordion, collapsed on opening
+  it('аккордеон «Закрыто N»: свёрнут, клик раскрывает и сворачивает, при новом открытии свёрнут', async () => {
+    const cancelled = crypto.randomUUID();
+    await db.table('statuses').put({
+      ...(await row('statuses', ids.done)),
+      id: cancelled,
+      name: 'Cancelled',
+      category: 'cancelled',
+      rank: 'a3',
+    });
+    await db
+      .table('tasks')
+      .bulkPut([
+        task(2, { parentId: t.id, title: 'open child' }),
+        task(3, { parentId: t.id, title: 'done child', statusId: ids.done }),
+        task(4, { parentId: t.id, title: 'cancelled child', statusId: cancelled }),
+      ]);
+    w = await open();
+    await openTab('Подзадачи');
+    await until(() => w.text().includes('open child'));
+    const acc = () => w.find('[data-testid="subtasks-closed"]');
+    expect(acc().text()).toBe('Закрыто 2');
+    expect(acc().attributes('aria-expanded')).toBe('false');
+    expect(w.text()).not.toContain('done child');
+    expect(w.text()).not.toContain('cancelled child');
+    await acc().trigger('click');
+    expect(acc().attributes('aria-expanded')).toBe('true');
+    const closed = w.find('[data-testid="subtasks-closed-list"]');
+    expect(closed.text()).toContain('done child');
+    expect(closed.text()).toContain('cancelled child');
+    expect(w.find('[data-testid="subtasks-list"]').text()).not.toContain('done child');
+    await acc().trigger('click');
+    expect(w.text()).not.toContain('done child');
+    await acc().trigger('click');
+    w.unmount();
+    w = await open();
+    await openTab('Подзадачи');
+    await until(() => acc().exists());
+    expect(acc().attributes('aria-expanded')).toBe('false');
+    expect(w.text()).not.toContain('done child');
+  });
+
+  it('без закрытых подзадач аккордеона нет', async () => {
+    await db.table('tasks').put(task(2, { parentId: t.id, title: 'child' }));
+    w = await open();
+    await openTab('Подзадачи');
+    await until(() => w.text().includes('child'));
+    expect(w.find('[data-testid="subtasks-closed"]').exists()).toBe(false);
+  });
+
   it('клик по подзадаче без роутера не падает', async () => {
     await db.table('tasks').put(task(2, { parentId: t.id, title: 'child' }));
     w = await open();

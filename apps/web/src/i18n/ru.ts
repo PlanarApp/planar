@@ -860,6 +860,7 @@ export default {
     refHint: 'Начните вводить; @ — документы',
     refNone: 'Ничего не найдено',
     subtasksDone: '{done} из {n}',
+    subtasksClosed: 'Закрыто {n}',
     dates: 'Даты',
     startDate: 'Дата начала',
     start: 'Начало',

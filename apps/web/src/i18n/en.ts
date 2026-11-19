@@ -861,6 +861,7 @@ export default {
     refHint: 'Start typing; @ for docs',
     refNone: 'Nothing found',
     subtasksDone: '{done} of {n}',
+    subtasksClosed: 'Closed {n}',
     dates: 'Dates',
     startDate: 'Start date',
     start: 'Start',
