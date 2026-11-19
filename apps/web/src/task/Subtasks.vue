@@ -2,15 +2,20 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
-import { StatusIcon, createTask, type TaskView } from '../tasks';
+import { createTask, useMembers, type TaskView } from '../tasks';
 import { Input } from '../ui';
 import { useSubtasks } from './queries';
-import { formatDue } from '../views/list/due';
+import ListRow from '../views/list/Row.vue';
+import type { TaskField } from '../views/options';
 
 const props = defineProps<{ task: TaskView; statuses: Row<'statuses'>[] }>();
 const emit = defineEmits<{ open: [key: string] }>();
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const subtasks = useSubtasks(props.task.id);
+const members = useMembers(() => props.task.spaceId);
+// the List row with a compact set of fields: status icon, key, title, assignee (PLNRAPP-540)
+const fields: TaskField[] = ['status', 'assignee'];
+const editing = ref<string | null>(null);
 const title = ref('');
 const status = (id: string) => props.statuses.find((x) => x.id === id);
 // done: categories done and cancelled
@@ -49,22 +54,34 @@ async function add() {
         />
       </div>
     </div>
-    <ul v-if="subtasks?.length" class="mb-1 overflow-hidden rounded-lg border border-border">
-      <li v-for="s in subtasks" :key="s.id" class="border-b border-border last:border-b-0">
-        <button
-          type="button"
-          class="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm hover:bg-bg-muted md:min-h-9"
-          @click="emit('open', s.key)"
-        >
-          <StatusIcon v-if="status(s.statusId)" :status="status(s.statusId)!" />
-          <span class="font-mono text-xs text-fg-subtle">{{ s.key }}</span>
-          <span class="flex-1 truncate">{{ s.title }}</span>
-          <span v-if="s.dueDate" class="text-xs text-fg-muted">{{
-            formatDue(s.dueDate, locale)
-          }}</span>
-        </button>
-      </li>
-    </ul>
+    <div
+      v-if="subtasks?.length"
+      role="grid"
+      :aria-label="t('task.subtasks')"
+      class="mb-1 overflow-hidden rounded-lg border border-border [&>*:last-child]:border-b-0"
+      data-testid="subtasks-list"
+    >
+      <ListRow
+        v-for="(s, i) in subtasks"
+        :key="s.id"
+        class="min-h-16 cursor-pointer md:min-h-8"
+        :task="s"
+        :space-id="task.spaceId"
+        :index="i + 1"
+        :selected="false"
+        :focused="false"
+        :editing="editing === s.id"
+        :fields="fields"
+        :blocked="false"
+        :members="members ?? []"
+        :labels="[]"
+        show-key
+        compact
+        @click="emit('open', s.key)"
+        @edit="editing = s.id"
+        @done="editing = null"
+      />
+    </div>
     <form @submit.prevent="add">
       <Input
         v-model="title"

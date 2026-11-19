@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VueWrapper } from '@vue/test-utils';
 import { AssigneePicker, PriorityPicker, StatusPicker } from '../../tasks';
 import Editor from '../editor/Editor.vue';
+import ListRow from '../../views/list/Row.vue';
 import {
   db,
   eventually,
@@ -260,14 +261,30 @@ describe('task:description', () => {
 });
 
 describe('task:subtasks', () => {
-  it('список подзадач и создание с parentId', async () => {
-    await db.table('tasks').put(task(2, { parentId: t.id, title: 'child' }));
+  it('список подзадач строкой «Списка» и создание с parentId', async () => {
+    const child = task(2, { parentId: t.id, title: 'child' });
+    await db.table('tasks').put(child);
+    await db.table('taskAssignees').put({
+      id: crypto.randomUUID(),
+      taskId: child.id,
+      userId: ids.ann,
+      createdAt: child.createdAt,
+      updatedAt: child.updatedAt,
+    });
     w = await open();
     await until(() => w.find('[data-testid="tab-count-subtasks"]').text() === '0/1');
     expect(w.find('[data-testid="tab-count-checklist"]').exists()).toBe(false);
     await openTab('Подзадачи');
+    // PLNRAPP-540: the List row component — status icon, key, title, assignee
     await until(() => w.text().includes('child') && w.text().includes('Todo'));
-    expect(w.text()).toContain('PLN-2');
+    const row = w.findComponent(ListRow);
+    expect(row.exists()).toBe(true);
+    expect(row.find('[data-testid="row-key"]').text()).toBe('PLN-2');
+    expect(row.find('[data-testid="row-title"]').text()).toBe('child');
+    expect(row.find('[data-col="status"]').exists()).toBe(true);
+    await until(() => !!row.find('[data-col="assignee"] [title="Ann"]').exists());
+    expect(row.find('[data-col="dueDate"]').exists()).toBe(false);
+    expect(row.find('[data-testid="row-menu"]').exists()).toBe(false);
     const input = w.find('input[placeholder="Добавить подзадачу"]');
     await input.setValue('второй');
     await input.trigger('submit');
@@ -281,10 +298,7 @@ describe('task:subtasks', () => {
     w = await open();
     await openTab('Подзадачи');
     await until(() => w.text().includes('child'));
-    await w
-      .findAll('section button')
-      .find((b) => b.text().includes('child'))!
-      .trigger('click');
+    await w.find('[data-task="PLN-2"]').trigger('click');
   });
 });
 
