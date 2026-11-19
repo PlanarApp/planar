@@ -1031,6 +1031,18 @@ async function insertAll(tx: Tx, now: Date) {
       createdAt: at(-10, 11),
       updatedAt: at(-10, 15),
     },
+    // PLNRAPP-577: an open comment assigned to someone else — the list / board indicator without the accent
+    {
+      id: uid('comment:assigned:other'),
+      spaceId: spaceIds[PROJECTS[pkIdx('PLT')]!.space],
+      taskId: tid('PLT', 4),
+      authorId: uid_.noah,
+      body: textToDoc('@liam please own the batching experiment and share the timings.', userList),
+      mentions: [uid_.liam!],
+      assigneeId: uid_.liam,
+      createdAt: at(-3, 12),
+      updatedAt: at(-3, 12),
+    },
   ]);
   // PLNRAPP-372: the first comment carries files — a photo (thumbnail, gallery) and a document (download)
   const c0 = comments[0]!;
