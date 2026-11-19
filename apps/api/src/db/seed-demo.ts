@@ -2999,6 +2999,8 @@ async function insertAll(tx: Tx, now: Date) {
       processed: 0,
       state: 'failed',
       error: 'connection terminated unexpectedly',
+      // PLNRAPP-567: the project view shows only the project's passes — the failed one is RDM's
+      projectId: pid('RDM'),
     }),
   ]);
   const engineEvent = (
@@ -3021,6 +3023,7 @@ async function insertAll(tx: Tx, now: Date) {
   await ins(aiEngineEvents, [
     engineEvent('retro-failed', 0, 'harness', -28, 'ошибка: connection terminated unexpectedly', {
       level: 'error',
+      projectId: pid('RDM'),
     }),
     engineEvent('retro', 0, 'harness', -0.5, 'подзадач к обработке: 3, запрос к ИИ', {
       projectId: pid('RDM'),
