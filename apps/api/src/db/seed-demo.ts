@@ -1015,6 +1015,22 @@ async function insertAll(tx: Tx, now: Date) {
     };
   });
   await ins(s.comments, comments);
+  // PLNRAPP-561: the task's «Assigned» tab — next to the open one a resolved assignment (the accordion)
+  await ins(s.comments, [
+    {
+      id: uid('comment:assigned:resolved'),
+      spaceId: spaceIds[PROJECTS[pkIdx('RDM')]!.space],
+      taskId: tid('RDM', 2),
+      authorId: uid_.maya,
+      body: textToDoc('@demo please attach the draft outline to the task.', userList),
+      mentions: [uid_.demo!],
+      assigneeId: uid_.demo,
+      resolvedAt: at(-10, 15),
+      resolvedBy: uid_.demo,
+      createdAt: at(-10, 11),
+      updatedAt: at(-10, 15),
+    },
+  ]);
   // PLNRAPP-372: the first comment carries files — a photo (thumbnail, gallery) and a document (download)
   const c0 = comments[0]!;
   const commentFiles = [
