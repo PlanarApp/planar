@@ -4,13 +4,14 @@ import {
   HttpCode,
   Controller,
   Get,
+  Headers,
   Inject,
   Post,
   Query,
   Req,
 } from '@nestjs/common';
 import { z } from 'zod';
-import { syncPushRequestSchema } from '@planar/shared';
+import { SYNC_PROTOCOL_HEADER, syncPushRequestSchema } from '@planar/shared';
 import { getAuth } from '../auth/auth.js';
 import { PullService } from './pull.service.js';
 import { PushService } from './push.service.js';
@@ -22,6 +23,8 @@ function parse<T extends z.ZodType>(schema: T, data: unknown): z.output<T> {
 }
 
 const bootstrapQuery = z.object({ clientId: z.uuid() });
+/** C-sync v3: the client's protocol version; no header or not a number — v2. */
+const protocolOf = (v: string | undefined) => (v && /^\d+$/.test(v) ? Number(v) : 2);
 const pullQuery = z.object({
   clientId: z.uuid(),
   cursor: z.coerce.number().int().min(0),
@@ -35,8 +38,16 @@ export class SyncController {
   ) {}
 
   @Get('bootstrap')
-  bootstrap(@Req() req: object, @Query() q: unknown) {
-    return this.pull.bootstrap(getAuth(req).userId, parse(bootstrapQuery, q).clientId);
+  bootstrap(
+    @Req() req: object,
+    @Query() q: unknown,
+    @Headers(SYNC_PROTOCOL_HEADER.toLowerCase()) protocol?: string,
+  ) {
+    return this.pull.bootstrap(
+      getAuth(req).userId,
+      parse(bootstrapQuery, q).clientId,
+      protocolOf(protocol),
+    );
   }
 
   @Get('pull')

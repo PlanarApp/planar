@@ -13,9 +13,19 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import type { EntityName, SyncBootstrap, SyncPull } from '@planar/shared';
+import { SYNC_PROTOCOL, type EntityName, type SyncBootstrap, type SyncPull } from '@planar/shared';
 import type { Db } from '../db/index.js';
-import { activity, changes, clientMutations, spaceMembers, tasks } from '../db/schema.js';
+import {
+  activity,
+  changes,
+  clientMutations,
+  comments,
+  notifications,
+  spaceMembers,
+  statuses,
+  taskAssignees,
+  tasks,
+} from '../db/schema.js';
 import { DB } from '../tokens.js';
 import { hiddenProjectIds, notHidden, projectAccess } from './project-access.js';
 import { visibleEntities } from './registry.js';
@@ -49,7 +59,50 @@ export class PullService {
     return r?.n ?? 0;
   }
 
-  async bootstrap(userId: string, clientId: string): Promise<SyncBootstrap> {
+  /**
+   * C-sync v3: «my» tasks — visible to the user (space, PJ-11), assigned to them and not resolved
+   * (status category not done/cancelled), plus the tasks of their notifications.
+   */
+  async myTasks(tx: Tx, userId: string, my: string[], hidden: string[]): Promise<string[]> {
+    const visible = and(
+      inArray(tasks.spaceId, my),
+      hidden.length ? notInArray(tasks.projectId, hidden) : undefined,
+    );
+    const assigned = await tx
+      .select({ id: tasks.id })
+      .from(tasks)
+      .innerJoin(taskAssignees, eq(taskAssignees.taskId, tasks.id))
+      .innerJoin(statuses, eq(statuses.id, tasks.statusId))
+      .where(
+        and(
+          eq(taskAssignees.userId, userId),
+          notInArray(statuses.category, ['done', 'cancelled']),
+          visible,
+        ),
+      );
+    const notified = await tx
+      .select({ id: tasks.id })
+      .from(tasks)
+      .where(
+        and(
+          inArray(
+            tasks.id,
+            tx
+              .select({ id: notifications.taskId })
+              .from(notifications)
+              .where(eq(notifications.userId, userId)),
+          ),
+          visible,
+        ),
+      );
+    return [...new Set([...assigned, ...notified].map((r) => r.id))];
+  }
+
+  /**
+   * `protocol` — the client's C-sync version (header `X-Sync-Protocol`); from v3 the detail entities
+   * carry only rows of «my» tasks and `held` lists these tasks; older — details in full, no `held` (v2).
+   */
+  async bootstrap(userId: string, clientId: string, protocol = 2): Promise<SyncBootstrap> {
     return this.snapshot(async (tx) => {
       const my = await this.mySpaces(tx, userId);
       const [{ max }] = await tx
@@ -57,6 +110,8 @@ export class PullService {
         .from(changes);
       const data: SyncBootstrap['data'] = {};
       const hidden = await hiddenProjectIds(tx, userId);
+      const held =
+        protocol >= SYNC_PROTOCOL ? await this.myTasks(tx, userId, my, hidden) : undefined;
       for (const [name, meta] of Object.entries(await visibleEntities(tx))) {
         if (!meta.bootstrap) continue;
         const t = tableOf(name as EntityName);
@@ -76,6 +131,20 @@ export class PullService {
           );
           where = c.spaceId ? or(inArray(c.spaceId, my), and(isNull(c.spaceId), mine)) : mine;
         }
+        // C-sync v3: details only of «my» tasks
+        if (held && meta.detail === 'tasks')
+          where = and(
+            where,
+            c.taskId
+              ? inArray(c.taskId, held)
+              : inArray(
+                  c.commentId,
+                  tx
+                    .select({ id: comments.id })
+                    .from(comments)
+                    .where(inArray(comments.taskId, held)),
+                ),
+          );
         // PJ-11: rows of projects hidden from the user are not delivered
         const q = tx
           .select()
@@ -90,6 +159,7 @@ export class PullService {
         cursor: Number(max),
         lastMutationId: await this.lastMutationId(tx, userId, clientId),
         data,
+        ...(held ? { held } : {}),
       };
     });
   }
