@@ -261,9 +261,14 @@ const dict = {
   },
   eng_harness: { ru: 'Обработка harness', en: 'Harness processing' },
   eng_harnessHint: {
-    ru: 'harness-retro: собирает трения прогонов и предлагает правки инструкций пакета.',
-    en: 'harness-retro: collects run frictions and proposes edits of the pack instructions.',
+    ru: 'harness-retro: собирает трения прогонов, правит инструкции пакета (очевидное — сразу, остальное — предложением), раз в неделю сокращает и согласует их.',
+    en: 'harness-retro: collects run frictions, edits the pack instructions (obvious edits at once, the rest as proposals), weekly shortens and aligns them.',
   },
+  eng_harnessOptimize: {
+    ru: 'Оптимизация правил harness',
+    en: 'Harness rules optimization',
+  },
+  ej_optimize: { ru: 'оптимизация правил', en: 'rules optimization' },
   es_running: { ru: 'Работает', en: 'Running' },
   es_idle: { ru: 'Простаивает', en: 'Idle' },
   es_error: { ru: 'Ошибка', en: 'Error' },

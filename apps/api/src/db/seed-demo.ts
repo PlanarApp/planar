@@ -2991,6 +2991,17 @@ async function insertAll(tx: Tx, now: Date) {
       processed: 3,
       projectId: pid('RDM'),
     }),
+    // PLNRAPP-593: a manual pass over the whole pack — the instructions are in order, nothing to change
+    engineRun('optimize', {
+      engine: 'harness',
+      job: 'optimize',
+      trigger: 'manual',
+      hours: -6,
+      secs: 35,
+      processed: 0,
+      projectId: pid('RDM'),
+      userId: uid_.maya,
+    }),
     engineRun('retro-failed', {
       engine: 'harness',
       job: 'retro_tick',
@@ -3024,6 +3035,12 @@ async function insertAll(tx: Tx, now: Date) {
   await ins(aiEngineEvents, [
     engineEvent('retro-failed', 0, 'harness', -28, 'ошибка: connection terminated unexpectedly', {
       level: 'error',
+      projectId: pid('RDM'),
+    }),
+    engineEvent('optimize', 0, 'harness', -6, 'оптимизация инструкций пакета, запрос к ИИ', {
+      projectId: pid('RDM'),
+    }),
+    engineEvent('optimize', 1, 'harness', -5.99, 'оптимизация: предложений 0', {
       projectId: pid('RDM'),
     }),
     engineEvent('retro', 0, 'harness', -0.5, 'подзадач к обработке: 3, запрос к ИИ', {
