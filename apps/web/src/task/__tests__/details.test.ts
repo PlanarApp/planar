@@ -66,6 +66,7 @@ async function server(rows: Record<string, unknown>[] | 'offline') {
   // a bootstrapped replica: snapshots of the task details are applied over its cursor
   await db._meta.put({ key: 'cursor', value: 5 });
   await db._meta.put({ key: 'schema', value: db.schemaSig() });
+  await db._meta.put({ key: 'protocol', value: SYNC_PROTOCOL });
   await startSync({ userId: ids.ann, fetch: fetch as never });
   return release;
 }
@@ -82,8 +83,9 @@ describe('детали задачи (PLNRAPP-487)', () => {
     await until(() => w!.find('[data-testid="feed-skeleton"]').exists());
     expect(w.find('[data-testid="feed"]').text()).not.toContain('с сервера');
     release();
-    await until(() => w!.find('[data-testid="feed"]').text().includes('с сервера'));
-    expect(w.find('[data-testid="feed-skeleton"]').exists()).toBe(false);
+    // строки снимка попадают в ленту раньше, чем ensureTask вернёт ready: ждём, пока уйдёт и скелет
+    await until(() => !w!.find('[data-testid="feed-skeleton"]').exists());
+    expect(w.find('[data-testid="feed"]').text()).toContain('с сервера');
     expect(await db._held.get(t.id)).toBeTruthy();
   });
 
