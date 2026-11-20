@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { contractSchemas, uuidv7 } from '@planar/shared';
+import { SYNC_PROTOCOL, SYNC_PROTOCOL_HEADER, contractSchemas, uuidv7 } from '@planar/shared';
 import { createApp } from '../../src/app.js';
 import { ORIGIN, createUser, loginCookie } from '../auth.js';
 import { dbUrl, mkProject, mkSpace, newDb } from './helpers.js';
@@ -56,6 +56,30 @@ describe('HTTP /sync', () => {
     const r = await req('GET', `/sync/bootstrap?clientId=${clientId}`, cookie);
     expect(r.statusCode).toBe(200);
     expect(contractSchemas['sync.bootstrap'].safeParse(r.json()).success).toBe(true);
+  });
+
+  it('bootstrap с X-Sync-Protocol: 3 → held; без заголовка — без held (v2)', async () => {
+    const { cookie, clientId } = await user();
+    const get = (headers: Record<string, string>) =>
+      app
+        .getHttpAdapter()
+        .getInstance()
+        .inject({
+          method: 'GET',
+          url: `/sync/bootstrap?clientId=${clientId}`,
+          headers: { cookie, origin: ORIGIN, ...headers },
+        });
+    const v3 = await get({ [SYNC_PROTOCOL_HEADER]: String(SYNC_PROTOCOL) });
+    expect(v3.statusCode).toBe(200);
+    expect(contractSchemas['sync.bootstrap'].safeParse(v3.json()).success).toBe(true);
+    expect(v3.json().held).toEqual([]);
+    const old: Record<string, string>[] = [
+      {},
+      { [SYNC_PROTOCOL_HEADER]: '2' },
+      { [SYNC_PROTOCOL_HEADER]: 'x' },
+    ];
+    for (const headers of old)
+      expect((await get(headers)).json().held, JSON.stringify(headers)).toBeUndefined();
   });
 
   it('bootstrap/pull с неверными параметрами → 400 invalid_request', async () => {

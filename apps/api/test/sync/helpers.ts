@@ -92,8 +92,9 @@ export class TestClient {
     const r = await this.push(name, args);
     expect(r, `${name}: ${JSON.stringify(r)}`).toMatchObject({ ok: true });
   }
-  bootstrap() {
-    return this.svc.pull.bootstrap(this.userId, this.clientId);
+  /** protocol — C-sync version of the client (header X-Sync-Protocol); default — v2 */
+  bootstrap(protocol?: number) {
+    return this.svc.pull.bootstrap(this.userId, this.clientId, protocol);
   }
   pull(cursor: number) {
     return this.svc.pull.pull(this.userId, this.clientId, cursor);
