@@ -80,6 +80,12 @@ const DETAIL = new Set(
 );
 /** ensureTask: how many times a snapshot older than the local cursor is requested again */
 const SNAPSHOT_RETRIES = 3;
+/** Cooling (C-sync v3): details of a task not accessed for this long are deleted */
+export const COOL_AFTER_MS = 30 * 24 * 3600_000;
+/** Cooling runs at most this often (after a successful cycle of the leader) */
+const COOL_EVERY_MS = 3600_000;
+/** y-indexeddb database of the task description (openCollab: `v2:<name>`, the name — `task:<id>`) */
+const taskYdb = (taskId: string) => `v2:task:${taskId}`;
 
 type Rows = Record<string, unknown>[];
 
@@ -173,6 +179,7 @@ export function createClient(db: PlanarDB) {
   let again = false;
   let abort = new AbortController();
   let wsStable: ReturnType<typeof setTimeout> | undefined;
+  let cooledAt = 0;
 
   const setStatus = (s: SyncStatus) => (syncState.value = { ...syncState.value, status: s });
   // PJ-17: the replica was filled under another table/index set (a build update): the cursor says "current",
@@ -430,6 +437,63 @@ export function createClient(db: PlanarDB) {
     return false;
   }
 
+  /**
+   * C-sync v3 cooling: the leader with an empty queue deletes the details, the `_held` row and the y-indexeddb
+   * database of tasks not accessed for 30 days, except my open tasks (assigned to me, status not done/cancelled).
+   * Returns the ids of the cooled tasks.
+   */
+  async function cool(now = Date.now()): Promise<string[]> {
+    if (!leading) return [];
+    const cutoff = new Date(now - COOL_AFTER_MS).toISOString();
+    const changes: ReplicaChange[] = [];
+    let cooled: string[] = [];
+    await db.transaction('rw', db.tables, async () => {
+      changes.length = 0;
+      cooled = [];
+      if (await db._queue.count()) return;
+      const stale = (await db._held.where('accessedAt').below(cutoff).primaryKeys()) as string[];
+      if (!stale.length) return;
+      const mine = new Set<string>();
+      const assigned = await db
+        .table('taskAssignees')
+        .where('taskId')
+        .anyOf(stale)
+        .filter((r) => r.userId === opts?.userId)
+        .toArray();
+      const tasks = await db.table('tasks').bulkGet(assigned.map((r) => r.taskId as string));
+      const statuses = await db
+        .table('statuses')
+        .bulkGet(tasks.map((t) => (t?.statusId as string | undefined) ?? ''));
+      tasks.forEach((t, i) => {
+        const c = statuses[i]?.category;
+        if (t && c !== 'done' && c !== 'cancelled') mine.add(t.id as string);
+      });
+      cooled = stale.filter((id) => !mine.has(id));
+      if (!cooled.length) return;
+      const comments = (await db
+        .table('comments')
+        .where('taskId')
+        .anyOf(cooled)
+        .primaryKeys()) as string[];
+      const reactions = comments.length
+        ? ((await db
+            .table('commentReactions')
+            .where('commentId')
+            .anyOf(comments)
+            .primaryKeys()) as string[])
+        : [];
+      await db.table('comments').bulkDelete(comments);
+      await db.table('commentReactions').bulkDelete(reactions);
+      await db._held.bulkDelete(cooled);
+      for (const id of comments) changes.push({ entity: 'comments', id, row: null });
+      for (const id of reactions) changes.push({ entity: 'commentReactions', id, row: null });
+    });
+    emit(changes);
+    if (typeof indexedDB !== 'undefined')
+      for (const id of cooled) indexedDB.deleteDatabase(taskYdb(id));
+    return cooled;
+  }
+
   async function pull() {
     const r = syncPullSchema.parse(await http(`/sync/pull?cursor=${cursor}&clientId=${clientId}`));
     if (r.reset) return bootstrap();
@@ -483,6 +547,10 @@ export function createClient(db: PlanarDB) {
       if (!boot || sent) await pull();
       failures = 0;
       setStatus('online');
+      if (Date.now() - cooledAt >= COOL_EVERY_MS && g === gen) {
+        cooledAt = Date.now();
+        await cool().catch((e) => console.error('sync cool', e));
+      }
     } catch (e) {
       if (e instanceof HttpError && e.status === 401) {
         setStatus('error');
@@ -683,6 +751,8 @@ export function createClient(db: PlanarDB) {
     syncState: syncState as Readonly<Ref<{ status: SyncStatus; pending: number }>>,
     /** one pull+push cycle now (for tests) */
     syncNow: () => kick(),
+    /** cooling of task details now (for tests); `now` — the current time in ms */
+    coolNow: (now?: number) => cool(now),
     replicaState: replicaState as Readonly<Ref<ReplicaState>>,
     onReplicaChange(cb: (batch: ReplicaChange[]) => void) {
       replicaCbs.add(cb);
