@@ -145,6 +145,9 @@ onBeforeUnmount(() => clearInterval(timer));
         </p>
         <p v-if="c.status === 'stalled'" class="text-danger">{{ tr('es_stalledHint') }}</p>
         <p v-if="c.lastError" class="text-danger">{{ c.lastError }}</p>
+        <p v-if="c.stuck" class="text-danger" :data-testid="`engine-stuck-${c.engine}`">
+          {{ tr('engStuck') }}: {{ c.stuck }}
+        </p>
         <p class="text-fg-muted">
           {{ tr('engLast') }}: {{ fmtAgo(c.lastRunAt, now) }} · {{ tr('engLastAction') }}:
           {{ fmtAgo(c.lastActionAt, now) }}
