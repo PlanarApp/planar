@@ -29,6 +29,9 @@ export interface FeedCtx {
 }
 export const FEED: InjectionKey<FeedCtx> = Symbol('feed');
 
-/** Selected text → a task or a subtask of the open one (PLNRAPP-144): TaskDetail provides, Editor injects; → href of the task. */
-export const TO_TASK: InjectionKey<(title: string, sub: boolean) => Promise<string | null>> =
-  Symbol('toTask');
+/** Selected text → a task or a subtask of the open one (PLNRAPP-144): TaskDetail provides, Editor injects.
+ * Opens the creation dialog prefilled from the plain text of the selection (PLNRAPP-684); done — href of the
+ * created task (not called when the dialog is cancelled). */
+export const TO_TASK: InjectionKey<
+  (text: string, sub: boolean, done: (href: string) => void) => void
+> = Symbol('toTask');

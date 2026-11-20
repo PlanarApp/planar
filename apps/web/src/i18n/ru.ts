@@ -75,6 +75,8 @@ export default {
     more: 'Создать ещё',
     noProjects: 'Сначала создайте проект',
     description: 'Описание',
+    subtaskTitle: 'Новая подзадача',
+    parent: 'Подзадача для «{title}»',
   },
   sidebar: {
     create: 'Создать',

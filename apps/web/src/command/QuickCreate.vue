@@ -9,7 +9,7 @@ import { db, useQuery } from '../sync';
 import { AssigneePicker, DueDatePicker, PriorityPicker, StatusPicker, createTask } from '../tasks';
 import { useMembers, useStatuses } from '../tasks/dictionaries';
 import { openTask } from '../views/open';
-import { ui } from './hotkeys';
+import { ui, type CreateParent } from './hotkeys';
 
 /** Quick task creation from anywhere: "+ Create" and the C key. */
 const props = defineProps<{
@@ -17,6 +17,10 @@ const props = defineProps<{
   description?: JSONContent | null;
   /** the description field opens expanded; by default — collapsed under "+ Description" */
   descriptionOpen?: boolean;
+  /** initial title (creation from a selection) */
+  initialTitle?: string;
+  /** a subtask of this task: created in its project, the project is not picked */
+  parent?: CreateParent | null;
 }>();
 // the editor (tiptap) — only once the field is expanded
 const Editor = defineAsyncComponent(() => import('../task/editor/Editor.vue'));
@@ -61,6 +65,7 @@ watch(
 );
 
 const pickProject = () => {
+  if (props.parent) return void (projectId.value = props.parent.projectId);
   let last = '';
   try {
     last = localStorage.getItem(LAST) ?? '';
@@ -76,7 +81,7 @@ watch(
   open,
   (o) => {
     if (!o) return;
-    title.value = '';
+    title.value = props.initialTitle ?? '';
     assignees.value = [];
     priority.value = 0;
     due.value = null;
@@ -104,12 +109,18 @@ async function submit(keep = more.value) {
       dueDate: due.value,
       assigneeIds: assignees.value,
       description: description.value as Row<'tasks'>['description'],
+      parentId: props.parent?.id ?? null,
     });
-    try {
-      localStorage.setItem(LAST, projectId.value);
-    } catch {
-      /* not a big deal */
-    }
+    // creation from a selection: the selection becomes a link to the first created task, we stay where we are
+    const done = ui.createDone;
+    ui.createDone = null;
+    done?.(id);
+    if (!props.parent)
+      try {
+        localStorage.setItem(LAST, projectId.value);
+      } catch {
+        /* not a big deal */
+      }
     if (keep) {
       title.value = '';
       description.value = null;
@@ -118,7 +129,7 @@ async function submit(keep = more.value) {
       form.value?.querySelector<HTMLInputElement>('[data-testid=quick-title]')?.focus();
     } else {
       open.value = false;
-      openTask(id); // the server issues the task number — we open by id
+      if (!done) openTask(id); // the server issues the task number — we open by id
     }
   } finally {
     busy.value = false;
@@ -127,7 +138,11 @@ async function submit(keep = more.value) {
 </script>
 
 <template>
-  <Dialog v-model:open="open" :title="t('quick.title')" size="md">
+  <Dialog
+    v-model:open="open"
+    :title="parent ? t('quick.subtaskTitle') : t('quick.title')"
+    size="md"
+  >
     <form
       id="quick-create"
       ref="form"
@@ -167,14 +182,19 @@ async function submit(keep = more.value) {
           refs
         />
       </div>
-      <Select v-model="projectId" :label="t('quick.project')" :options="options" />
+      <p v-if="parent" class="text-sm text-fg-muted" data-testid="quick-parent">
+        {{ t('quick.parent', { title: parent.title }) }}
+      </p>
+      <Select v-else v-model="projectId" :label="t('quick.project')" :options="options" />
       <div v-if="spaceId" class="flex flex-wrap items-center gap-2">
         <StatusPicker v-model="statusId" :space-id="spaceId" :project-id="projectId" />
         <AssigneePicker v-model="assignees" :space-id="spaceId" />
         <PriorityPicker v-model="priority" />
         <DueDatePicker v-model="due" />
       </div>
-      <p v-if="!options.length" class="text-sm text-fg-muted">{{ t('quick.noProjects') }}</p>
+      <p v-if="!options.length && !parent" class="text-sm text-fg-muted">
+        {{ t('quick.noProjects') }}
+      </p>
     </form>
     <template #footer>
       <label class="mr-auto flex items-center gap-2 text-sm text-fg-muted">
