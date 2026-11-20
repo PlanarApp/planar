@@ -926,6 +926,8 @@ export default {
     cantShow: 'Не удаётся показать изображение',
     activity: 'Комментарии и активность',
     asideResize: 'Изменить ширину панели комментариев',
+    detailsLoading: 'Загрузка комментариев',
+    detailsOffline: 'Комментарии недоступны без сети',
     comment: 'Комментарий',
     reply: 'Ответить',
     replyPlaceholder: 'Ответ в треде («/» — команды, Ctrl+Enter — отправить)',
@@ -1019,6 +1021,7 @@ export default {
     comments: 'Назначенные комментарии',
     onlyTask: 'Только задачу',
     closeAll: 'Закрыть всё',
+    offline: 'Не удалось проверить назначенные комментарии: недоступно без сети',
   },
   logoutPending: {
     title: 'Выйти?',

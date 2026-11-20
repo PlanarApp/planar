@@ -39,6 +39,7 @@ export const {
   onUnauthorized,
   onReplicaChange,
   replicaState,
+  ensureTask,
   sendTyping,
   onTyping,
 } = client;
