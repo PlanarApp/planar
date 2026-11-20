@@ -529,6 +529,7 @@ const date = (v: string) => v.slice(0, 10);
                   :aria-rowindex="v.index + 2"
                   :aria-selected="sel.selected.value.has(task.id)"
                   :data-task="task.key"
+                  :data-task-id="task.id"
                   :class="[
                     'flex h-full min-h-9 items-center border-b border-border text-sm',
                     sel.selected.value.has(task.id) ? 'bg-accent-subtle' : 'hover:bg-bg-subtle',

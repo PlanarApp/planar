@@ -185,6 +185,7 @@ function save() {
     :aria-rowindex="index"
     :aria-selected="selected"
     :data-task="task.key"
+    :data-task-id="task.id"
     :class="[
       'flex h-full items-center gap-1 border-b border-border pl-3 pr-1 text-sm',
       // wrapped: the card grows past its height — keep the breathing room it had
@@ -243,6 +244,7 @@ function save() {
     :aria-rowindex="index"
     :aria-selected="selected"
     :data-task="task.key"
+    :data-task-id="task.id"
     :class="[
       'group relative flex h-full items-center gap-2 border-b border-border pl-4 pr-3 text-sm',
       // wrapped or being edited: the same layout, the row grows by the name's extra lines

@@ -283,6 +283,7 @@ function submit() {
           :data-index="rows.first + n"
           :data-id="x.id"
           :data-task="x.key"
+          :data-task-id="x.id"
           tabindex="0"
           :class="[
             'relative mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 text-sm focus-visible:ring-2 ring-focus',

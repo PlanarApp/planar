@@ -5,6 +5,7 @@ import {
   MutatorError,
   SYNC_PROTOCOL,
   SYNC_PROTOCOL_HEADER,
+  SYNC_TASKS_MAX,
   createRegistry,
   syncBootstrapSchema,
   syncPullSchema,
@@ -80,6 +81,8 @@ const DETAIL = new Set(
 );
 /** ensureTask: how many times a snapshot older than the local cursor is requested again */
 const SNAPSHOT_RETRIES = 3;
+/** prefetchTasks: at most one batch of `POST /sync/tasks` per this interval (ms) */
+export const PREFETCH_INTERVAL = 500;
 /** Cooling (C-sync v3): details of a task not accessed for this long are deleted */
 export const COOL_AFTER_MS = 30 * 24 * 3600_000;
 /** Cooling runs at most this often (after a successful cycle of the leader) */
@@ -412,7 +415,6 @@ export function createClient(db: PlanarDB) {
    */
   async function ensureTask(taskId: string): Promise<boolean> {
     if (!opts) throw new Error('sync не запущен: вызовите startSync');
-    const g = gen;
     const now = new Date().toISOString();
     const touched = await db.transaction('rw', db._held, async () => {
       const h = await db._held.get(taskId);
@@ -420,6 +422,12 @@ export function createClient(db: PlanarDB) {
       return !!h;
     });
     if (touched) return true;
+    return loadTasks([taskId]);
+  }
+
+  /** `POST /sync/tasks` for ≤ SYNC_TASKS_MAX ids; a snapshot older than the local cursor is requested again. */
+  async function loadTasks(ids: string[]): Promise<boolean> {
+    const g = gen;
     for (let i = 0; i < SNAPSHOT_RETRIES; i++) {
       const snapshot = syncTasksResponseSchema.parse(
         await http('/sync/tasks', {
@@ -428,13 +436,73 @@ export function createClient(db: PlanarDB) {
             'content-type': 'application/json',
             [SYNC_PROTOCOL_HEADER]: String(SYNC_PROTOCOL),
           },
-          body: JSON.stringify({ protocol: SYNC_PROTOCOL, ids: [taskId] }),
+          body: JSON.stringify({ protocol: SYNC_PROTOCOL, ids }),
         }),
       );
       if (g !== gen) return false;
-      if (await applyServer({ snapshot })) return true;
+      if (await applyServer({ snapshot })) {
+        // forbidden/not_found: not prefetched again in this run
+        for (const t of snapshot.tasks) if (t.status !== 'ok') prefetchDenied.add(t.taskId);
+        return true;
+      }
     }
     return false;
+  }
+
+  // prefetch (PLNRAPP-488): hover and idle collect ids, one batch ≤ SYNC_TASKS_MAX per PREFETCH_INTERVAL
+  const prefetchQueue = new Set<string>();
+  const prefetchDenied = new Set<string>();
+  let prefetchTimer: ReturnType<typeof setTimeout> | undefined;
+  let prefetchLast = -Infinity;
+  let prefetching = false;
+
+  /**
+   * Preload the details of tasks not in `_held` (hover, idle): best effort, without touching `accessedAt`
+   * of held tasks (prefetch is not an opening). Requests — batches of ≤ SYNC_TASKS_MAX ids, at most one
+   * per PREFETCH_INTERVAL; before startSync and before bootstrap — nothing.
+   */
+  function prefetchTasks(ids: Iterable<string>): void {
+    if (!opts) return;
+    for (const id of ids) if (!prefetchDenied.has(id)) prefetchQueue.add(id);
+    schedulePrefetch();
+  }
+
+  function schedulePrefetch() {
+    if (prefetchTimer !== undefined || prefetching || !prefetchQueue.size) return;
+    const wait = Math.max(0, prefetchLast + PREFETCH_INTERVAL - Date.now());
+    prefetchTimer = setTimeout(() => {
+      prefetchTimer = undefined;
+      void flushPrefetch();
+    }, wait);
+  }
+
+  async function flushPrefetch(): Promise<void> {
+    const g = gen;
+    prefetching = true;
+    try {
+      // before bootstrap a snapshot can't be applied: dropped, the next hover/idle asks again
+      if ((await meta('cursor')) === undefined) {
+        prefetchQueue.clear();
+        return;
+      }
+      const queued = [...prefetchQueue];
+      const held = await db._held.bulkGet(queued);
+      const batch: string[] = [];
+      queued.forEach((id, i) => {
+        if (held[i]) prefetchQueue.delete(id);
+        else if (batch.length < SYNC_TASKS_MAX) batch.push(id);
+      });
+      for (const id of batch) prefetchQueue.delete(id);
+      if (!batch.length || g !== gen) return;
+      prefetchLast = Date.now();
+      // network/server error: the batch is dropped, the next hover/idle requests it again
+      await loadTasks(batch).catch(() => false);
+    } catch (e) {
+      console.error('prefetch', e);
+    } finally {
+      prefetching = false;
+      schedulePrefetch(); // the rest — after PREFETCH_INTERVAL
+    }
   }
 
   /**
@@ -700,6 +768,10 @@ export function createClient(db: PlanarDB) {
 
   async function stopSync(): Promise<void> {
     gen++;
+    clearTimeout(prefetchTimer);
+    prefetchTimer = undefined;
+    prefetchQueue.clear();
+    prefetchDenied.clear();
     leading = false;
     clearTimeout(retryTimer);
     clearTimeout(wsTimer);
@@ -746,6 +818,7 @@ export function createClient(db: PlanarDB) {
     registerMutators,
     mutate,
     ensureTask,
+    prefetchTasks,
     startSync,
     stopSync,
     syncState: syncState as Readonly<Ref<{ status: SyncStatus; pending: number }>>,

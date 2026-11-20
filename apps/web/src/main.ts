@@ -9,7 +9,8 @@ import { closePrompt } from './tasks/closeOpen';
 import { mergeFrom } from './tasks/merge';
 import { moveTarget } from './tasks/move';
 import { initSession } from './session';
-import { onMutationError } from './sync';
+import { onMutationError, prefetchTasks } from './sync';
+import { installTaskPrefetch } from './sync/prefetch';
 import { toast } from './ui/toast';
 import { commitImeOnEnter } from './ui/imeEnter';
 import { fitVisualViewport } from './ui/viewport';
@@ -28,6 +29,7 @@ initSession(router);
 initModules();
 commitImeOnEnter(document);
 fitVisualViewport();
+installTaskPrefetch(prefetchTasks);
 
 // show the failed click rather than swallowing it: otherwise the user clicks again
 const fail = (e: unknown) =>

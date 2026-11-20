@@ -86,6 +86,7 @@ function dragStart(e: DragEvent, id: string) {
         :draggable="!isMobile"
         class="flex w-full flex-col gap-1 rounded-md border border-border bg-bg px-2 py-1.5 text-left text-sm hover:border-border-strong"
         :data-task="x.id"
+        :data-task-id="x.id"
         data-testid="plan-task"
         @dragstart="dragStart($event, x.id)"
         @click="choose(x)"

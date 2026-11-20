@@ -47,6 +47,8 @@ export class FakeServer {
   /** POST /sync/tasks answers with this cursor (a snapshot older than the client's), null — the current one */
   tasksCursor: number | null = null;
   tasksRequests = 0;
+  /** ids of every POST /sync/tasks request, in order */
+  tasksIds: string[][] = [];
   pushes = 0;
   pulls = 0;
   bootstraps = 0;
@@ -200,6 +202,7 @@ export class FakeServer {
       const hook = this.beforeTasks;
       this.beforeTasks = null;
       const req = syncTasksRequestSchema.parse(JSON.parse(String(init?.body)));
+      this.tasksIds.push(req.ids);
       const cursor = this.tasksCursor ?? this.seq;
       const tasks = req.ids.map((taskId) => {
         if (this.forbidden.has(taskId)) return { taskId, status: 'forbidden' as const };
