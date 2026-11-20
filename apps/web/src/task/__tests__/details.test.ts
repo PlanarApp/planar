@@ -82,7 +82,7 @@ describe('детали задачи (PLNRAPP-487)', () => {
     await until(() => w!.find('[data-testid="feed-skeleton"]').exists());
     expect(w.find('[data-testid="feed"]').text()).not.toContain('с сервера');
     release();
-    // comments (liveQuery) and the details state are separate updates — wait for both
+    // the comments reach the replica (and the feed) a tick before the details turn ready: wait for both
     await until(
       () =>
         w!.find('[data-testid="feed"]').text().includes('с сервера') &&

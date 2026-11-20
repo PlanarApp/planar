@@ -332,7 +332,8 @@ export const RECONCILE_QUEUE = 'ai.engine.reconcile';
 /**
  * Cron: a task on the AI in a status where an enabled rule (`task.status_changed` → `to`) runs an action, matching the
  * rule's conditions, whose last run of the action is missing or failed with attempts left (after a pause) → queued.
- * A done, cancelled (stopped by a person) or active run is left alone, a task with an open blocker waits, and so
+ * A done or cancelled run is left alone until the task enters the status again after it (PLNRAPP-656: the test sent
+ * the task back after the dev run) — then attempt 1 anew; an active run is left alone, a task with an open blocker waits, and so
  * does a task with an active run of any action (PLNRAPP-537: the plan does not start while triage waits for answers).
  * PLNRAPP-500: a pass of the engine «task control» (engines.ts); `projectId` — only the project (a manual pass).
  */
@@ -346,7 +347,8 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
       sql`select x.rule_id as "ruleId", x.action_id as "actionId", t.id as "taskId", t.status_id as "statusId",
             t.project_id as "projectId", p.key || '-' || t.number as key,
             l.id as "lastId", l.state, l.attempt, a.max_attempts as "maxAttempts",
-            l.finished_at < now() - make_interval(secs => 60 * l.attempt) as "paused"
+            l.finished_at < now() - make_interval(secs => 60 * l.attempt) as "paused",
+            coalesce(l.state in ('done', 'cancelled') and e.at > l.finished_at, false) as reentered
           from (select r.id as rule_id, r.project_id, r.trigger, (e->>'aiActionId')::uuid as action_id
                 from automations_rules r cross join lateral jsonb_array_elements(r.actions) e
                 where r.enabled and r.trigger->>'type' = 'task.status_changed' and e->>'type' = 'ai_run'
@@ -358,7 +360,11 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
           join task_assignees ta on ta.task_id = t.id and ta.user_id = ${bot}
           left join lateral (select id, state, attempt, finished_at from ai_runs
             where task_id = t.id and action_id = x.action_id order by created_at desc limit 1) l on true
-          where (l.id is null or l.state = 'failed') and not ${openBlocker(sql`t.id`)}
+          -- the last entry into the current status
+          left join lateral (select max(created_at) as at from activity
+            where task_id = t.id and kind = 'updated' and changes->'statusId'->>1 = t.status_id::text) e on true
+          where (l.id is null or l.state = 'failed' or (l.state in ('done', 'cancelled') and e.at > l.finished_at))
+            and not ${openBlocker(sql`t.id`)}
             and not exists (select 1 from ai_runs o where o.task_id = t.id
               and o.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks'))
           limit 200`,
@@ -374,38 +380,59 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
     attempt: number | null;
     maxAttempts: number | null;
     paused: boolean | null;
+    reentered: boolean;
   }[];
   for (const f of found) {
-    if (f.lastId && (!f.paused || f.attempt! >= maxAttemptsOf(f))) continue;
+    if (f.lastId && !f.reentered && (!f.paused || f.attempt! >= maxAttemptsOf(f))) continue;
     await t.check();
     if (!(await matched(api, f.ruleId, f.taskId))) continue;
     const runId = uuidv7();
+    const retry = f.lastId && !f.reentered;
     const d = {
       kind: 'action' as const,
       taskId: f.taskId,
       actionId: f.actionId,
       ruleId: f.ruleId,
       statusId: f.statusId,
-      restartOf: f.lastId,
+      restartOf: retry ? f.lastId : null,
       runId,
     };
-    await enqueueRun(
-      api.db,
-      api.enqueue,
-      d,
-      { singletonKey: keyOf(d), upsert: true },
-      (f.attempt ?? 0) + 1,
-    );
-    const why = f.lastId ? 'повтор упавшего запуска' : 'задача стоит в статусе действия';
+    const attempt = retry ? f.attempt! + 1 : 1;
+    await enqueueRun(api.db, api.enqueue, d, { singletonKey: keyOf(d), upsert: true }, attempt);
+    const why = retry
+      ? 'повтор упавшего запуска'
+      : f.reentered
+        ? 'задача снова в статусе действия'
+        : 'задача стоит в статусе действия';
     await note(api.db, runId, `сверка: ${why}`);
     t.count();
-    await t.step(`сверка: ${f.key} — ${why}, ИИ запущен (попытка ${(f.attempt ?? 0) + 1})`, {
+    await t.step(`сверка: ${f.key} — ${why}, ИИ запущен (попытка ${attempt})`, {
       projectId: f.projectId,
       taskId: f.taskId,
       level: 'action',
     });
   }
+  await waitingPass(api, t, projectId);
   await ciPass(api, t, projectId);
+}
+
+/** PLNRAPP-656: runs queued over 15 min (no free agent container or the subtask siblings are busy) — into the log. */
+async function waitingPass(api: JobApi, t: Tracker, projectId: string | null) {
+  const waiting = (
+    await api.db.execute(
+      sql`select r.project_id as "projectId", r.task_id as "taskId", p.key || '-' || tk.number as key,
+            floor(extract(epoch from now() - r.created_at) / 60)::int as min
+          from ai_runs r join tasks tk on tk.id = r.task_id join projects p on p.id = tk.project_id
+          where r.state = 'queued' and r.created_at < now() - interval '15 minutes'
+            ${projectId ? sql`and r.project_id = ${projectId}::uuid` : sql``}
+          order by r.created_at limit 20`,
+    )
+  ).rows as { projectId: string; taskId: string; key: string; min: number }[];
+  for (const w of waiting)
+    await t.step(
+      `сверка: ${w.key} — ждёт запуска ${w.min} мин (заняты контейнеры агента или подзадачи-соседи)`,
+      { projectId: w.projectId, taskId: w.taskId },
+    );
 }
 
 /**
