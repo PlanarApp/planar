@@ -57,5 +57,7 @@ useHotkey('g s', () => void router.push('/settings'), { label: 'cmd.hk.settings'
     v-if="creating"
     :description="ui.createDescription"
     :description-open="ui.createDescriptionOpen"
+    :initial-title="ui.createTitle"
+    :parent="ui.createParent"
   />
 </template>

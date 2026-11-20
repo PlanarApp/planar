@@ -227,18 +227,51 @@ describe('task:description', () => {
     );
     expect(menu.style.top).toBe('');
     ed.commands.setTextSelection({ from: 1, to: 7 });
+    // PLNRAPP-684: not created at once — the creation dialog opens prefilled, a subtask of this task
+    const { ui } = await import('../../command/hotkeys');
     await w
       .findAll('[data-testid="selection-to-task"] button')
       .find((b) => b.text() === 'Сделать подзадачей')!
       .trigger('click');
-    let sub: { id: string; title: string } | undefined;
-    await eventually(async () => {
-      sub = (await db.table('tasks').toArray()).find((x) => x.parentId === t.id);
-      return !!sub;
-    });
-    expect(sub!.title).toBe('купить');
-    await until(() => JSON.stringify(ed.getJSON()).includes(`/t/${sub!.id}`));
+    expect(ui.create).toBe(true);
+    expect(ui.createTitle).toBe('купить');
+    expect(ui.createDescription).toBeNull();
+    expect(ui.createDescriptionOpen).toBe(false);
+    expect(ui.createParent).toEqual({ id: t.id, title: t.title, projectId: t.projectId });
+    expect(ui.createProject).toBe(t.projectId);
     expect(w.find('[data-testid="selection-to-task"]').exists()).toBe(false);
+    // the dialog created the task — the selection becomes a link to it
+    ui.createDone!('sub-1');
+    ui.create = false;
+    await until(() => JSON.stringify(ed.getJSON()).includes('/t/sub-1'));
+  });
+  it('PLNRAPP-684 многострочное выделение → задача: имя — первая строка, полный текст — в развёрнутом описании', async () => {
+    w = await open();
+    await until(() => !!editorOf(0).vm.editor);
+    const ed = editorOf(0).vm.editor!;
+    ed.commands.setContent('<p><strong>купить</strong> хлеб</p><p>и молоко</p>');
+    ed.view.coordsAtPos = () => ({ left: 0, right: 0, top: 0, bottom: 0 });
+    ed.commands.setTextSelection({ from: 1, to: ed.state.doc.content.size - 1 });
+    await until(() => w.find('[data-testid="selection-to-task"]').exists());
+    const { ui } = await import('../../command/hotkeys');
+    await w
+      .findAll('[data-testid="selection-to-task"] button')
+      .find((b) => b.text() !== 'Сделать подзадачей')!
+      .trigger('click');
+    expect(ui.create).toBe(true);
+    expect(ui.createTitle).toBe('купить хлеб');
+    expect(ui.createParent).toBeNull();
+    expect(ui.createProject).toBe(t.projectId);
+    expect(ui.createDescriptionOpen).toBe(true);
+    expect(ui.createDescription).toEqual({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'купить хлеб' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'и молоко' }] },
+      ],
+    });
+    ui.create = false;
+    ui.createDone = null;
   });
   it('картинка: uploadFile и узел image; 413 — сообщение', async () => {
     const f = stubFetch((m, p) =>

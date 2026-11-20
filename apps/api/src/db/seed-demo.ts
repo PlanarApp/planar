@@ -880,6 +880,13 @@ async function insertAll(tx: Tx, now: Date) {
                 },
               ],
             },
+            // PLNRAPP-684: select several lines and pick «Make a task» / «Make a subtask» —
+            // the creation dialog opens with the first line as the name and the full text in the description
+            ...[
+              'Next steps:',
+              'Agree on the scope with the team and write down the open questions.',
+              'Check the edge cases on mobile and in the PWA before the release.',
+            ].map((text) => ({ type: 'paragraph', content: [{ type: 'text', text }] })),
           ],
         },
         priority: pr,

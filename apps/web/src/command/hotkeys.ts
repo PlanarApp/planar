@@ -11,14 +11,36 @@ export const ui = reactive({
   /** начальное описание и «поле описания развёрнуто» диалога создания (PLNRAPP-683) */
   createDescription: null as JSONContent | null,
   createDescriptionOpen: false,
+  /** начальное имя, родитель подзадачи и «задача создана» — создание из выделения (PLNRAPP-684) */
+  createTitle: '',
+  createParent: null as CreateParent | null,
+  createDone: null as ((id: string) => void) | null,
 });
 
-/** Quick task creation dialog; projectId — default project; opts — initial description and its field expanded (creation from a selection). */
+/** Родитель подзадачи: задача создаётся в его проекте, проект не выбирается. */
+export interface CreateParent {
+  id: string;
+  title: string;
+  projectId: string;
+}
+
+/** Quick task creation dialog; projectId — default project; opts — initial title, description and its
+ * field expanded, the parent of a subtask, onCreated — called once with the id of the created task
+ * (creation from a selection). */
 export const quickCreate = (
   projectId = '',
-  opts: { description?: JSONContent | null; descriptionOpen?: boolean } = {},
+  opts: {
+    title?: string;
+    description?: JSONContent | null;
+    descriptionOpen?: boolean;
+    parent?: CreateParent | null;
+    onCreated?: (id: string) => void;
+  } = {},
 ): void => {
   ui.createProject = projectId;
+  ui.createTitle = opts.title ?? '';
+  ui.createParent = opts.parent ?? null;
+  ui.createDone = opts.onCreated ?? null;
   ui.createDescription = opts.description ?? null;
   ui.createDescriptionOpen = !!opts.descriptionOpen;
   ui.create = true;

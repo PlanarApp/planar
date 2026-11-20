@@ -75,6 +75,8 @@ export default {
     more: 'Create another',
     noProjects: 'Create a project first',
     description: 'Description',
+    subtaskTitle: 'New subtask',
+    parent: 'Subtask of “{title}”',
   },
   sidebar: {
     create: 'Create',

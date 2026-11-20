@@ -51,7 +51,6 @@ import {
   PriorityPicker,
   StatusPicker,
   TaskDatesPicker,
-  createTask,
   deleteTask,
   restoreTask,
   setAssignees,
@@ -99,6 +98,8 @@ import {
 import Subtasks from './Subtasks.vue';
 import AssignedComments from './AssignedComments.vue';
 import { TO_TASK } from './thread';
+import { plainDoc, selectionDraft } from './selectionDraft';
+import { quickCreate } from '../command/hotkeys';
 import { useTaskMenu } from '../tasks/taskMenu';
 import LinksBlock from '../links/LinksBlock.vue';
 import { useTaskLinks } from '../links';
@@ -115,17 +116,19 @@ const statuses = useStatuses(
   () => props.task.projectId,
 );
 const members = useMembers(() => props.task.spaceId);
-// selected text in the description or a comment → a task / subtask; the link is by id: the number comes from the server
-provide(TO_TASK, async (title, sub) => {
-  const status = statuses.value?.find((x) => x.projectId === props.task.projectId); // PJ-1
-  if (!status) return null;
-  const id = await createTask({
-    projectId: props.task.projectId,
-    statusId: status.id,
-    title,
-    parentId: sub ? props.task.id : null,
+// selected text in the description or a comment → the creation dialog prefilled from it (PLNRAPP-684):
+// a subtask — of this task in its project, a task — this project by default; the link is by id: the number comes from the server
+provide(TO_TASK, (text, sub, done) => {
+  const d = selectionDraft(text);
+  quickCreate(props.task.projectId, {
+    title: d.title,
+    description: d.description === null ? null : plainDoc(d.description),
+    descriptionOpen: d.description !== null,
+    parent: sub
+      ? { id: props.task.id, title: props.task.title, projectId: props.task.projectId }
+      : null,
+    onCreated: (id) => done(`/t/${id}`),
   });
-  return `/t/${id}`;
 });
 useLabels(
   () => props.task.spaceId,

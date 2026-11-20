@@ -102,9 +102,16 @@ const sel = ref<{
   top: number;
   bottom: number;
 } | null>(null);
+/** plain text of a range: blocks and hard breaks — new lines (PLNRAPP-684) */
+const plainBetween = (ed: CoreEditor, from: number, to: number) =>
+  ed.state.doc
+    .textBetween(from, to, '\n', (n) =>
+      n.type.name === 'hardBreak' ? '\n' : (n.type.spec.leafText?.(n) ?? ''),
+    )
+    .trim();
 function trackSelection(ed: CoreEditor) {
   const { from, to, empty } = ed.state.selection;
-  const text = empty ? '' : ed.state.doc.textBetween(from, to, ' ').trim();
+  const text = empty ? '' : plainBetween(ed, from, to);
   if (!toTask || !text || !(ed.isEditable || props.linkReadOnly)) return void (sel.value = null);
   // the menu goes below the selection end: on mobile the OS menu (Copy/Paste/Select all)
   // covers the space above the selection (PLNRAPP-164); no room below (comment field at the
@@ -114,18 +121,23 @@ function trackSelection(ed: CoreEditor) {
   sel.value = {
     from,
     to,
-    text: text.slice(0, 500),
+    text,
     left: start.left,
     top: start.top,
     bottom: end.bottom,
   };
 }
-async function selToTask(sub: boolean) {
+function selToTask(sub: boolean) {
   const s = sel.value;
   sel.value = null;
-  const href = s && toTask && (await toTask(s.text, sub));
-  if (href)
-    editor.value?.chain().setTextSelection({ from: s.from, to: s.to }).setLink({ href }).run();
+  if (!s || !toTask) return;
+  toTask(s.text, sub, (href) => {
+    const ed = editor.value;
+    // the document may have changed while the dialog was open — the link only over the same text
+    if (!ed || ed.isDestroyed || s.to > ed.state.doc.content.size) return;
+    if (plainBetween(ed, s.from, s.to) !== s.text) return;
+    ed.chain().setTextSelection({ from: s.from, to: s.to }).setLink({ href }).run();
+  });
 }
 
 // @ hint: the state is written by suggestion, we draw the list ourselves

@@ -260,3 +260,78 @@ describe('cmd:quick-create — описание (PLNRAPP-683)', () => {
     expect((await created()).description).toEqual(desc);
   });
 });
+
+describe('cmd:quick-create — из выделения (PLNRAPP-684)', () => {
+  const q = <T extends Element = HTMLElement>(s: string) => document.body.querySelector<T>(s);
+  const submit = async () => {
+    await until(
+      () =>
+        !q<HTMLButtonElement>('[data-testid=quick-submit]')?.disabled && body().includes('Todo'),
+    );
+    q('#quick-create')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    await until(() => !ui.create);
+  };
+  const path = () =>
+    (router.current as { currentRoute: { value: { path: string } } }).currentRoute.value.path;
+  beforeEach(async () => {
+    try {
+      registerMutators(domainMutators);
+    } catch {
+      /* already registered */
+    }
+    await stopSync();
+    await startSync({
+      userId: ids.ann,
+      fetch: (() => Promise.reject(new TypeError('offline'))) as never,
+    });
+  });
+  afterEach(async () => {
+    ui.create = false;
+    await stopSync();
+  });
+
+  it('имя из выделения; задача в выбранном проекте (текущий по умолчанию); onCreated вместо перехода', async () => {
+    const done = vi.fn();
+    quickCreate(ids.project, { title: 'Из выделения', onCreated: done });
+    await until(() => q<HTMLInputElement>('[data-testid=quick-title]')?.value === 'Из выделения');
+    expect(q('[data-testid=quick-parent]')).toBeNull();
+    expect(q('[aria-label="Проект"]')).toBeTruthy();
+    await submit();
+    const t = (await db.table('tasks').toArray()).find((x) => x.title === 'Из выделения');
+    expect(t).toBeTruthy();
+    expect(t.projectId).toBe(ids.project);
+    expect(t.parentId).toBeNull();
+    expect(done).toHaveBeenCalledWith(t.id);
+    expect(path()).toBe('/my');
+  });
+  it('подзадача: под родителем в его проекте, проект не выбирается', async () => {
+    const parent = task(8, { title: 'Родитель' });
+    await db.table('tasks').put(parent);
+    const done = vi.fn();
+    quickCreate('', {
+      title: 'Подзадача',
+      parent: { id: parent.id, title: parent.title, projectId: parent.projectId },
+      onCreated: done,
+    });
+    await until(() => !!q('[data-testid=quick-parent]'));
+    expect(q('[data-testid=quick-parent]')!.textContent).toContain('Родитель');
+    expect(body()).toContain('Новая подзадача');
+    expect(q('[aria-label="Проект"]')).toBeNull();
+    await submit();
+    const sub = (await db.table('tasks').toArray()).find((x) => x.title === 'Подзадача');
+    expect(sub.parentId).toBe(parent.id);
+    expect(sub.projectId).toBe(parent.projectId);
+    expect(done).toHaveBeenCalledWith(sub.id);
+  });
+  it('обычное открытие после создания из выделения — без имени и родителя', async () => {
+    quickCreate(ids.project, {
+      title: 'X',
+      parent: { id: 'p', title: 'P', projectId: ids.project },
+    });
+    ui.create = false;
+    quickCreate(ids.project);
+    expect(ui.createTitle).toBe('');
+    expect(ui.createParent).toBeNull();
+    expect(ui.createDone).toBeNull();
+  });
+});
