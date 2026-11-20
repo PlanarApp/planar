@@ -1,6 +1,7 @@
 import { computed, onScopeDispose, ref, toValue, watch, type MaybeRefOrGetter } from 'vue';
 import { newId } from '../../sync';
 import type { Filter } from '../filter';
+import { migrateAiStatus } from '../aiFilter';
 import { optionsFrom, type ViewOptions } from '../options';
 import { deleteView, saveView, setNodeDefault, updateView } from './ops';
 import { useNodeViewRows } from './queries';
@@ -28,7 +29,10 @@ export function useNodeViewDraft(a: {
   const row = computed(() => (rows.value ? (rows.value.personal ?? rows.value.shared) : undefined));
   const base = () => ({
     options: { ...optionsFrom(row.value?.config, a.notProject), ...toValue(a.fixed) },
-    filter: norm(row.value?.filter as Filter | undefined),
+    // PLNRAPP-664: the old panel «AI status» of a project row — a rule of its filter (it applied in projects only)
+    filter: a.notProject
+      ? norm(row.value?.filter as Filter | undefined)
+      : norm(migrateAiStatus(row.value?.config, norm(row.value?.filter as Filter | undefined))),
   });
   const options = ref<ViewOptions>(base().options);
   const filter = ref<Filter | null>(null);

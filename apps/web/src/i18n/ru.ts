@@ -556,7 +556,7 @@ export default {
       aiCost: 'ИИ: $',
       aiTime: 'ИИ: время',
     },
-    aiFilter: { title: 'Статус ИИ', all: 'Все', none: 'Нет запусков' },
+    aiFilter: { none: 'Нет запусков' },
     saved: {
       save: 'Сохранить как вид',
       dialogTitle: 'Новый вид',

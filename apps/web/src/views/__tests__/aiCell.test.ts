@@ -9,9 +9,8 @@ import ru from '../../i18n/ru';
 import { registerModules } from '../../modules/registry';
 import type { WorkActivity } from '../../modules/types';
 import AiCell from '../list/AiCell.vue';
-import { useAiFilter } from '../aiFilter';
 
-// PLNRAPP-401: the AI columns of the list and the client-side «AI status» filter
+// PLNRAPP-401: the AI columns of the list
 const P = crypto.randomUUID();
 const at = new Date().toISOString();
 const usage = { runs: 2, seconds: 150, inputTokens: 10, outputTokens: 5, cost: 0.123 };
@@ -27,7 +26,7 @@ registerModules([
 ]);
 const task = (k: string) => ({ id: `id-${k}`, key: k, projectId: P });
 
-describe('AiCell и фильтр «Статус ИИ»', () => {
+describe('AiCell', () => {
   it('ячейки: статус, $ и время; без запусков — прочерк', async () => {
     const router = createRouter({
       history: createMemoryHistory(),
@@ -52,42 +51,5 @@ describe('AiCell и фильтр «Статус ИИ»', () => {
     expect(w.find('[data-testid="cell-aiTime"]').text()).toBe('3 мин');
     expect(w.findAll('[data-testid="cell-aiCost"]')[1]!.text()).toBe('—');
     w.unmount();
-  });
-
-  it('фильтр: по состоянию; без запусков — none; пустой — все', async () => {
-    let status: string | null = 'failed';
-    let pass!: ReturnType<typeof useAiFilter>;
-    const w = mount(
-      defineComponent({
-        setup() {
-          pass = useAiFilter(
-            () => P,
-            () => status,
-          );
-          return () => null;
-        },
-      }),
-    );
-    await flushPromises();
-    const ids = ['id-A', 'id-B', 'id-C'];
-    expect(ids.filter((id) => pass.value({ id }))).toEqual(['id-B']);
-    status = 'none';
-    w.unmount();
-    // a fresh instance reads the new status
-    const w2 = mount(
-      defineComponent({
-        setup() {
-          pass = useAiFilter(
-            () => P,
-            () => status,
-          );
-          return () => null;
-        },
-      }),
-    );
-    await flushPromises();
-    expect(ids.filter((id) => pass.value({ id }))).toEqual(['id-C']);
-    status = null;
-    w2.unmount();
   });
 });

@@ -42,8 +42,6 @@ export interface ViewOptions {
   showKey?: boolean;
   /** Me Mode: only my tasks (assigned, created, watched); null — all */
   me?: MeMode | null;
-  /** «AI status» filter (PLNRAPP-401): an AiState value; null — all */
-  aiStatus?: string | null;
   fields: TaskField[];
   /** Table layout: order, width; no id — column hidden */
   columns?: { id: string; width: number }[];
@@ -60,7 +58,6 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   wrapTitles: true,
   showKey: true,
   me: null,
-  aiStatus: null,
   fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
 };
 
