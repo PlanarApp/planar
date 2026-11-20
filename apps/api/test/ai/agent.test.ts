@@ -473,24 +473,30 @@ describe('agent: жнец и остановка', () => {
     expect((await one(`select state from ai_runs where id = $1`, [r.run.id])).state).toBe('failed');
   });
 
-  it('жнец: queued старше часа — cancelled, свежий queued не тронут', async () => {
+  it('жнец: queued без движения больше часа — failed с причиной; свежий и ждущий контейнер не тронуты (PLNRAPP-656)', async () => {
     const r = await start();
-    const mk = async (ago: string) => {
+    const mk = async (ago: string, touched = ago) => {
       const id = uuidv7();
       await raw(
-        `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth, created_at)
-         select $1, task_id, project_id, 'checklist', 'queued', $1, 0, now() - $2::interval from ai_runs where id = $3`,
-        [id, ago, r.run.id],
+        `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth, created_at, updated_at)
+         select $1, task_id, project_id, 'checklist', 'queued', $1, 0, now() - $2::interval, now() - $3::interval
+         from ai_runs where id = $4`,
+        [id, ago, touched, r.run.id],
       );
       return id;
     };
     const oldQ = await mk('2 hours');
     const freshQ = await mk('5 minutes');
+    // the job waits for a container: the row is old, its job touched it lately
+    const waitingQ = await mk('2 hours', '1 minute');
     await handler('ai', 'ai.agent.reap')({}, api);
-    const st = async (id: string) =>
-      (await one(`select state from ai_runs where id = $1`, [id])).state;
-    expect(await st(oldQ)).toBe('cancelled');
-    expect(await st(freshQ)).toBe('queued');
+    const row = async (id: string) => one(`select state, log from ai_runs where id = $1`, [id]);
+    expect(await row(oldQ)).toMatchObject({
+      state: 'failed',
+      log: expect.stringContaining('потеряно'),
+    });
+    expect((await row(freshQ)).state).toBe('queued');
+    expect((await row(waitingQ)).state).toBe('queued');
   });
 
   it('мусорный id в пути — 401, а не 500', async () => {
