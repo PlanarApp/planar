@@ -667,11 +667,17 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   const agent = action?.runtime === 'agent' && (d.kind === 'action' || !!process.env.AI_RUNNER_URL);
   // PLNRAPP-405: the agent of a subtask works in the branch of the MR of its tree (the nearest ancestor's)
   const treeMr = d.kind === 'action' && agent ? await codeTargetOf(api.db, task, true) : null;
-  // agent containers are limited: over the limit the job waits (agent.ts)
-  if ((agent || mr) && (await agentsFull(api.db, task.projectId)))
+  // agent containers are limited: over the limit the job waits (agent.ts); the touch tells the reap the job is alive
+  if (
+    ((agent || mr) && (await agentsFull(api.db, task.projectId))) ||
+    (d.kind === 'action' && (await siblingsFull(api.db, task)))
+  ) {
+    if (d.runId)
+      await api.db.execute(
+        sql`update ai_runs set updated_at = now() where id = ${d.runId}::uuid and state = 'queued'`,
+      );
     return api.enqueue(AI_QUEUE, d, { startAfter: 30 });
-  if (d.kind === 'action' && (await siblingsFull(api.db, task)))
-    return api.enqueue(AI_QUEUE, d, { startAfter: 30 });
+  }
   // a newer run of the same pair wins: the older one's result is not applied
   const older = await api.db.execute(
     sql`update ai_runs set state = 'cancelled', updated_at = now()

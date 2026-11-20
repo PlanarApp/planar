@@ -1023,6 +1023,45 @@ describe('движок: приёмка, доработка, надзор, све
       }),
     ]);
   });
+
+  it('сверка: задача снова вошла в статус после принятого прогона — запуск заново с попытки 1 (PLNRAPP-656)', async () => {
+    await rule({ type: 'task.status_changed', to: [S.backlog] }, [
+      { type: 'ai_run', aiActionId: actionId },
+    ]);
+    const t = await task({ statusId: S.backlog });
+    const done = uuidv7();
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, action_id, state, chain_id, chain_depth, attempt)
+       values ($1, $2, $3, 'action', $4, 'done', $1, 0, 2)`,
+      [done, t, P, actionId],
+    );
+    await raw(`update ai_runs set finished_at = now() - interval '10 min' where id = $1`, [done]);
+    const entered = (ago: string) =>
+      raw(
+        `insert into activity (id, space_id, task_id, actor_id, kind, changes, created_at)
+         select $1, space_id, id, $2, 'updated', jsonb_build_object('statusId', jsonb_build_array($3::text, status_id::text)),
+           now() - $4::interval from tasks where id = $5`,
+        [uuidv7(), w.admin.userId, S.todo, ago, t],
+      );
+    jobs.length = 0;
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    // the entry before the run's end (the run's own move, the rule that started it) — nothing new
+    await entered('20 min');
+    await reconcile();
+    expect(jobs).toHaveLength(0);
+    // back in the status after the run (the test sent it back) — the action again
+    await entered('1 min');
+    await reconcile();
+    expect(jobs).toEqual([
+      expect.objectContaining({
+        queue: 'ai.run',
+        data: expect.objectContaining({ taskId: t, actionId, restartOf: null }),
+      }),
+    ]);
+    const last = (await runsOf(t)).at(-1)!;
+    expect(last).toMatchObject({ state: 'queued', attempt: 1, restart_of: null });
+    expect(last.log).toContain('сверка: задача снова в статусе действия');
+  });
 });
 
 describe('координация подзадач (PLNRAPP-405)', () => {
