@@ -121,7 +121,7 @@ describe('PLNRAPP-708 миграция 0077: дата плана «Моего д
   });
 
   it('day_plans не удаляется; клиентам — одна строка _reset', async () => {
-    expect((await q(`select 1 from day_plans`)).length).toBe(5);
+    expect((await q(`select 1 from day_plans`)).length).toBe(6);
     expect((await resets()).map((r) => r.id)).toEqual(['plnrapp-708-day-plan-due-date']);
   });
 
