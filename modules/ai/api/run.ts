@@ -1341,9 +1341,11 @@ async function apply(
       }
       state = 'waiting_human';
     } else {
-      comment(
-        `${prefix}${r.comment}\n\nНекому задать вопрос: у задачи нет исполнителя-человека и автора.`,
-      );
+      // PLNRAPP-739: no one to ask — the questions go into the comment, not lost (before: only r.comment)
+      const nobody = 'Некому задать вопрос: у задачи нет исполнителя-человека и автора.';
+      const list = r.questions?.length ? r.questions.map((x) => `- ${x}`).join('\n') : '';
+      comment(prefix + [r.comment, list, nobody].filter(Boolean).join('\n\n'));
+      run.log.push(`вопрос: ${nobody}`);
     }
     // a question is asked: only the labels apply (the state label «Ждёт ответа» of a pack)
     if (state === 'waiting_human' && ctx) labelMuts(run, r.labels, ctx.labels, muts);
