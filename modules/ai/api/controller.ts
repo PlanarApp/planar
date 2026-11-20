@@ -119,14 +119,21 @@ const activityCols = sql`r.id, r.kind, r.item_id as "itemId", r.state, r.agent_s
 /**
  * PLNRAPP-310: the task's jobs of the queue ai.run not started yet (the debounce of a rule, all agents busy —
  * the job waits, agent.ts) as activity `queued`: the AI will take the task. A rule's job the run would skip
- * (the AI unassigned, the status changed) is not shown. No pg-boss schema (jobs off) — none.
+ * (the AI unassigned, the status changed) is not shown. A checklist job has no item: it takes the first open item
+ * of the bot (run.ts) — the queue shows on that item; none or it waits for an answer — the run skips, not shown.
+ * No pg-boss schema (jobs off) — none.
  */
 async function queuedOf(db: CoreServices['db'], taskId: string): Promise<AiActivity[]> {
   const has = await db.execute(sql`select to_regclass('pgboss.job') is not null as x`);
   if (!has.rows[0]?.x) return [];
   const r = await db.execute(
-    sql`select j.id, j.data->>'kind' as kind,
-          case when j.data->>'kind' in ('comment', 'mention') then j.data->>'itemId' end as "itemId",
+    sql`with ci as (
+          select c.id from checklist_items c join users u on u.id = c.assignee_id
+          where c.task_id = ${taskId}::uuid and u.login = ${AI_BOT_LOGIN} and u.bot and not c.done
+          order by c.rank collate "C" limit 1)
+        select j.id, j.data->>'kind' as kind,
+          case when j.data->>'kind' in ('comment', 'mention') then j.data->>'itemId'
+            when j.data->>'kind' = 'checklist' then (select ci.id::text from ci) end as "itemId",
           'queued' as state, false as agent,
           (select u.id from users u where u.login = ${AI_BOT_LOGIN} and u.bot) as "actorId",
           ${iso('j.created_on')} as "startedAt", false as trigger
@@ -141,6 +148,8 @@ async function queuedOf(db: CoreServices['db'], taskId: string): Promise<AiActiv
               where a.task_id = ${taskId}::uuid and u.login = ${AI_BOT_LOGIN} and u.bot)
             and (j.data->>'statusId' is null
               or j.data->>'statusId' = (select t.status_id::text from tasks t where t.id = ${taskId}::uuid))))
+          and (j.data->>'kind' <> 'checklist' or exists (select 1 from ci
+            where not exists (select 1 from ai_runs r where r.item_id = ci.id and r.state = 'waiting_human')))
         union all
         -- the trigger fired: the rule with an AI action has not run yet — seen at once, before the AI's job
         select j.id, 'action', null, 'queued', false,
