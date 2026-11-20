@@ -16,7 +16,7 @@ export function useCardExtensions(projectId: () => string) {
             p.key,
             defineAsyncComponent(() => (p.cardComponent ?? p.component)().then((m) => m.default)),
           );
-        return { key: p.key, view: cache.get(p.key)! };
+        return { key: p.key, view: cache.get(p.key)!, badge: !!p.badge };
       }),
   );
 }

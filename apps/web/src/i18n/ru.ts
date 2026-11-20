@@ -450,6 +450,7 @@ export default {
   views: {
     emptyBoard: 'Добавьте задачу в любой колонке',
     list: 'Список',
+    cards: 'Карточки',
     board: 'Доска',
     table: 'Таблица',
     calendar: 'Календарь',

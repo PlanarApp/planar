@@ -25,8 +25,8 @@ const props = defineProps<{
   mobile: boolean;
   fields: TaskField[];
   blocked: ReadonlySet<string>;
-  /** task id → name, for the parent label of a subtask */
-  titles?: ReadonlyMap<string, string>;
+  /** task id → task, for the parent line of a subtask */
+  parents?: ReadonlyMap<string, { key: string; title: string }>;
   spaceId?: string;
   /** show empty fields (click — set a value) */
   showEmpty?: boolean;
@@ -36,8 +36,6 @@ const props = defineProps<{
   projects?: ReadonlyMap<string, string>;
   /** without "+" and quick creation (group summary) */
   noAdd?: boolean;
-  /** the task key before the name */
-  showKey?: boolean;
   /** whole task names on the cards (the "Wrap task names" option) */
   wrap?: boolean;
   /** the board's keyboard-focused card (ringed, scrolled into view) */
@@ -328,9 +326,8 @@ function submit() {
             :members="members"
             :labels="labels"
             :hot="mobile || hotId === x.id"
-            :parent-title="x.parentId ? titles?.get(x.parentId) : undefined"
+            :parent="x.parentId ? parents?.get(x.parentId) : undefined"
             :project-name="projects?.get(x.projectId)"
-            :show-key="showKey"
             :wrap="wrap"
           />
         </article>

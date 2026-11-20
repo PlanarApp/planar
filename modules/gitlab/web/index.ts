@@ -18,6 +18,7 @@ export const web = defineWebModule({
       // branches / MRs / CI on the cards of the views
       card: true,
       cardComponent: () => import('./CardBadges.vue'),
+      badge: true,
     },
   ],
   settings: [

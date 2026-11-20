@@ -2,15 +2,12 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { activityOf, useProjectActivity } from '../../modules/activity';
-import TaskAiStatus from '../TaskAiStatus.vue';
 
-// PLNRAPP-401: the AI columns of a list row (status, cost, time of the runs) and the AI block of a card —
+// PLNRAPP-401: the AI columns of a list row (status, cost, time of the runs) —
 // from the project's shared activity source
 const props = defineProps<{
   task: { id: string; key: string; projectId: string };
   col: 'ai' | 'aiCost' | 'aiTime';
-  /** a card: no cell frame, nothing without runs */
-  card?: boolean;
 }>();
 const { t } = useI18n();
 const all = useProjectActivity(() => props.task.projectId);
@@ -29,14 +26,5 @@ const text = computed(() => {
 </script>
 
 <template>
-  <div
-    v-if="card && work"
-    class="flex items-center gap-1 text-xs text-fg-muted"
-    data-testid="card-ai"
-  >
-    <TaskAiStatus :task="task" /><span>{{ t('tasks.aiRow') }}: {{ text }}</span>
-  </div>
-  <span v-else-if="!card" class="truncate text-sm text-fg-muted" :data-testid="`cell-${col}`">{{
-    text || '—'
-  }}</span>
+  <span class="truncate text-sm text-fg-muted" :data-testid="`cell-${col}`">{{ text || '—' }}</span>
 </template>

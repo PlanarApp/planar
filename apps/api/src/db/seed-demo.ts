@@ -1856,6 +1856,8 @@ async function insertAll(tx: Tx, now: Date) {
       { op: 'and', rules: [] },
       { showSubtasks: true, subtasksCollapsed: true },
     ],
+    // the Cards view: the list as task cards (key, badges, AI icon under the status)
+    [1, 'My cards', 'inbox', 'cards', { op: 'and', rules: [] }, { groupBy: 'status' }],
   ];
   await ins(
     s.savedViews,
