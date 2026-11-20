@@ -1,26 +1,72 @@
-import { computed, onBeforeUnmount, onMounted, readonly, ref } from 'vue';
+import {
+  computed,
+  getCurrentInstance,
+  inject,
+  onBeforeUnmount,
+  onMounted,
+  provide,
+  readonly,
+  ref,
+  type InjectionKey,
+  type Ref,
+} from 'vue';
+
+/** A value's state across the selected tasks (PLNRAPP-498): on every task, on some of them, on none. */
+export type Tri = 'all' | 'some' | 'none';
 
 /** Ids present in every list (the picker's "checked for all" state). */
 export const commonIds = (lists: readonly (readonly string[])[]): string[] =>
   lists.length ? lists[0]!.filter((id) => lists.every((l) => l.includes(id))) : [];
 
-/** Applies the picker's change `from → to` to one task's ids: adds the newly checked, removes the unchecked. */
-export const applyToggle = (
+/** State of each id found in the lists; an id missing from the map is on none. */
+export const triStates = (lists: readonly (readonly string[])[]): Map<string, Tri> => {
+  const m = new Map<string, Tri>();
+  for (const id of new Set(lists.flat()))
+    m.set(id, lists.every((l) => l.includes(id)) ? 'all' : 'some');
+  return m;
+};
+
+/** Next state on a click: from "some" — some → all → none → some ("some" = leave as is); otherwise all ↔ none. */
+export const nextTri = (initial: Tri, current: Tri): Tri =>
+  initial === 'some'
+    ? current === 'some'
+      ? 'all'
+      : current === 'all'
+        ? 'none'
+        : 'some'
+    : current === 'all'
+      ? 'none'
+      : 'all';
+
+/** Only the changed rows: "all" adds to every task, "none" removes from every task, "some" changes nothing. */
+export const triDiff = (
+  initial: ReadonlyMap<string, Tri>,
+  current: ReadonlyMap<string, Tri>,
+): { add: string[]; remove: string[] } => {
+  const add: string[] = [];
+  const remove: string[] = [];
+  for (const id of new Set([...initial.keys(), ...current.keys()])) {
+    const from = initial.get(id) ?? 'none';
+    const to = current.get(id) ?? 'none';
+    if (to === from) continue;
+    if (to === 'all') add.push(id);
+    else if (to === 'none') remove.push(id);
+  }
+  return { add, remove };
+};
+
+/** One task's ids after the diff. */
+export const applyDiff = (
   current: readonly string[],
-  from: readonly string[],
-  to: readonly string[],
+  add: readonly string[],
+  remove: readonly string[],
 ): string[] => [
-  ...current.filter((id) => !from.includes(id) || to.includes(id)),
-  ...to.filter((id) => !from.includes(id) && !current.includes(id)),
+  ...current.filter((id) => !remove.includes(id)),
+  ...add.filter((id) => !current.includes(id)),
 ];
-
-// one state for the app
-const selected = ref<ReadonlySet<string>>(new Set());
-const anchor = ref<string | null>(null);
-// selection mode (PLNRAPP-291): on while something is selected — checkboxes and the bulk bar show only then
-const active = computed(() => selected.value.size > 0);
-
-export function useSelection() {
+function makeSelection(selected: Ref<ReadonlySet<string>>, anchor: Ref<string | null>) {
+  // selection mode (PLNRAPP-291): on while something is selected — checkboxes and the bulk bar show only then
+  const active = computed(() => selected.value.size > 0);
   return {
     selected: readonly(selected),
     anchor: readonly(anchor),
@@ -65,6 +111,26 @@ export function useSelection() {
   };
 }
 
+export type Selection = ReturnType<typeof makeSelection>;
+// one state for the app
+const app = makeSelection(ref<ReadonlySet<string>>(new Set()), ref<string | null>(null));
+const KEY: InjectionKey<Selection> = Symbol('selection');
+
+/** The selection: the app's one, or the one provided above (provideSelection). */
+export function useSelection(): Selection {
+  return getCurrentInstance() ? inject(KEY, app) : app;
+}
+
+/**
+ * Own selection for a block and its children (BulkBar, TaskContextMenu): the subtasks of the task
+ * card (PLNRAPP-541) do not mix with the selection of the view under the side panel.
+ */
+export function provideSelection(): Selection {
+  const s = makeSelection(ref<ReadonlySet<string>>(new Set()), ref<string | null>(null));
+  provide(KEY, s);
+  return s;
+}
+
 /** A click target that is not "empty space": a task, a control or a menu. */
 const BUSY =
   '[data-task], button, input, select, textarea, label, a, [role=toolbar], [role=menu], [contenteditable=true]';
@@ -73,8 +139,10 @@ const BUSY =
  * Leaving the selection mode (PLNRAPP-291) in a view: Escape anywhere outside fields and open
  * dialogs/menus, a click on an empty place of the view's area.
  */
-export function useSelectionReset(area: () => HTMLElement | null | undefined) {
-  const sel = useSelection();
+export function useSelectionReset(
+  area: () => HTMLElement | null | undefined,
+  sel: Selection = useSelection(),
+) {
   function onKey(e: KeyboardEvent) {
     if (e.key !== 'Escape' || e.defaultPrevented || !sel.active.value) return;
     const t = e.target as HTMLElement | null;

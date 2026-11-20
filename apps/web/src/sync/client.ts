@@ -1,18 +1,23 @@
 import { liveQuery } from 'dexie';
 import { ref, type Ref } from 'vue';
 import {
+  ENTITIES,
   MutatorError,
+  SYNC_PROTOCOL,
+  SYNC_PROTOCOL_HEADER,
   createRegistry,
   syncBootstrapSchema,
   syncPullSchema,
   syncPushResponseSchema,
+  syncTasksResponseSchema,
   uuidv7,
   wsServerSchema,
   wsTypingServerSchema,
   type MutatorCtx,
   type MutatorDef,
+  type SyncTasksResponse,
 } from '@planar/shared';
-import { PlanarDB, type QueueItem, type ReplicaChange, type Undo } from './db';
+import { dataSig, PlanarDB, type QueueItem, type ReplicaChange, type Undo } from './db';
 import { DexieTx, applyUndo, flushOverlay, overlayKey, type Overlay } from './dexie-tx';
 
 export interface StartOpts {
@@ -39,6 +44,8 @@ type Change = {
   id: string;
   op: 'put' | 'del';
   data?: Record<string, unknown>;
+  /** C-sync v3: the task of a detail entity row */
+  taskId?: string;
 };
 
 class HttpError extends Error {
@@ -65,6 +72,14 @@ const DEFERRED: Record<string, 'id' | 'taskId'> = {
   commentReactions: 'taskId', // actually commentId — see splitBootstrap
 };
 const BATCH = 1000;
+/** Detail entities (C-sync v3): their rows are kept only for tasks in `_held`. */
+const DETAIL = new Set(
+  Object.entries(ENTITIES)
+    .filter(([, m]) => (m as { detail?: string }).detail === 'tasks')
+    .map(([n]) => n),
+);
+/** ensureTask: how many times a snapshot older than the local cursor is requested again */
+const SNAPSHOT_RETRIES = 3;
 
 type Rows = Record<string, unknown>[];
 
@@ -197,6 +212,45 @@ export function createClient(db: PlanarDB) {
   };
 
   /**
+   * `POST /sync/tasks` snapshot into the overlay (inside the applyServer transaction): `ok` — the details of the task
+   * are replaced in full, `_held` loaded now; `forbidden`/`not_found` — the details and the `_held` row are deleted.
+   */
+  async function applySnapshot(s: SyncTasksResponse, ov: Overlay, now: string): Promise<void> {
+    for (const t of s.tasks) {
+      // the details of the task now: Dexie + overlay (rollback of the queue may have restored rows)
+      const comments = new Set(
+        (await db.table('comments').where('taskId').equals(t.taskId).primaryKeys()) as string[],
+      );
+      const reactions = new Set<string>();
+      for (const [k, r] of ov)
+        if (r && k.startsWith(overlayKey('comments', '')) && r.taskId === t.taskId)
+          comments.add(r.id as string);
+      if (comments.size)
+        for (const id of await db
+          .table('commentReactions')
+          .where('commentId')
+          .anyOf([...comments])
+          .primaryKeys())
+          reactions.add(id as string);
+      for (const [k, r] of ov)
+        if (
+          r &&
+          k.startsWith(overlayKey('commentReactions', '')) &&
+          comments.has(r.commentId as string)
+        )
+          reactions.add(r.id as string);
+      for (const id of comments) ov.set(overlayKey('comments', id), null);
+      for (const id of reactions) ov.set(overlayKey('commentReactions', id), null);
+      if (t.status === 'ok') {
+        for (const r of t.comments) ov.set(overlayKey('comments', r.id as string), r);
+        for (const r of t.commentReactions)
+          ov.set(overlayKey('commentReactions', r.id as string), r);
+        await db._held.put({ taskId: t.taskId, loadedAt: now, accessedAt: now });
+      } else await db._held.delete(t.taskId);
+    }
+  }
+
+  /**
    * Server state + queue rebase in one transaction: roll back optimistic writes,
    * apply server ones, drop confirmed/rejected, replay the rest.
    */
@@ -206,14 +260,26 @@ export function createClient(db: PlanarDB) {
     cursor?: number;
     lastMutationId?: number;
     drop?: Set<number>;
-  }): Promise<void> {
+    /** v3 bootstrap: tasks whose details are in `bootstrap` — `_held` rows for them */
+    held?: string[];
+    /** v3 `POST /sync/tasks`: replaces the details of its tasks; applied only if its cursor ≥ the local one */
+    snapshot?: SyncTasksResponse;
+  }): Promise<boolean> {
     const g = gen;
     const changes: ReplicaChange[] = [];
     let rest: [string, Rows][] = [];
+    let stale = false;
     await db.transaction('rw', db.tables, async () => {
       changes.length = 0;
       rest = [];
+      stale = false;
+      if (p.snapshot) {
+        // the cursor is read in the same transaction: a pull committed meanwhile is taken into account
+        const local = (await db._meta.get('cursor'))?.value as number | undefined;
+        if (local === undefined || p.snapshot.cursor < local) return void (stale = true);
+      }
       const queue = await db._queue.orderBy('id').toArray();
+      const now = new Date().toISOString();
       // pull: rollback + server + replay in memory, Dexie gets only the difference (own echo writes nothing)
       const ov: Overlay | undefined = p.bootstrap ? undefined : new Map();
       const out = ov ? undefined : changes;
@@ -228,12 +294,23 @@ export function createClient(db: PlanarDB) {
           const rows = data[t.name] ?? [];
           for (let i = 0; i < rows.length; i += 2000) await t.bulkPut(rows.slice(i, i + 2000));
         }
+        // a reset of the replica clears _held too; v3 — the tasks of the bootstrap details
+        await db._held.clear();
+        if (p.held?.length)
+          await db._held.bulkPut(
+            p.held.map((taskId) => ({ taskId, loadedAt: now, accessedAt: now })),
+          );
       } else {
         for (const q of queue.slice().reverse()) await applyUndo(db, q.undo ?? [], undefined, ov);
+        // v3: a detail change of a task not in _held is dropped (the cursor advances anyway)
+        const tagged = p.changes?.some((c) => c.taskId && DETAIL.has(c.entity));
+        const held = tagged ? new Set(await db._held.toCollection().primaryKeys()) : undefined;
         for (const c of p.changes ?? []) {
           if (!db.tables.some((t) => t.name === c.entity)) continue;
+          if (held && c.taskId && DETAIL.has(c.entity) && !held.has(c.taskId)) continue;
           ov!.set(overlayKey(c.entity, c.id), c.op === 'put' ? (c.data ?? null) : null);
         }
+        if (p.snapshot) await applySnapshot(p.snapshot, ov!, now);
       }
       for (const q of queue) {
         if (p.drop?.has(q.id!) || q.id! <= (p.lastMutationId ?? 0)) {
@@ -262,13 +339,14 @@ export function createClient(db: PlanarDB) {
       if (p.lastMutationId !== undefined)
         await db._meta.put({ key: 'lastMutationId', value: p.lastMutationId });
     });
+    if (stale) return false;
     if (p.bootstrap) replicaState.value = rest.length ? 'partial' : 'complete';
     emit(changes);
     if (rest.length) {
       // other tasks — in batches, yielding the stream to rendering; events only to this tab (in others — a single reset at the end)
       for (const [name, rows] of rest)
         for (let i = 0; i < rows.length; i += BATCH) {
-          if (g !== gen) return; // stopped: cursor not written — bootstrap will repeat
+          if (g !== gen) return true; // stopped: cursor not written — bootstrap will repeat
           const part = rows.slice(i, i + BATCH);
           await db.table(name).bulkPut(part);
           emit(
@@ -277,7 +355,7 @@ export function createClient(db: PlanarDB) {
           );
           await new Promise((r) => setTimeout(r));
         }
-      if (g !== gen) return;
+      if (g !== gen) return true;
       await db._meta.put({ key: 'cursor', value: p.cursor! });
       await db._meta.put({ key: 'schema', value: db.schemaSig() });
       replicaState.value = 'complete';
@@ -285,6 +363,7 @@ export function createClient(db: PlanarDB) {
     }
     if (p.cursor !== undefined) cursor = p.cursor;
     await refreshPending();
+    return true;
   }
 
   const emitErrors = (list: MutationErrorInfo[]) => {
@@ -311,7 +390,44 @@ export function createClient(db: PlanarDB) {
     const r = syncBootstrapSchema.parse(
       await http(`/sync/bootstrap?clientId=${clientId}`, undefined, 0),
     );
-    await applyServer({ bootstrap: r.data, cursor: r.cursor, lastMutationId: r.lastMutationId });
+    await applyServer({
+      bootstrap: r.data,
+      cursor: r.cursor,
+      lastMutationId: r.lastMutationId,
+      held: r.held,
+    });
+  }
+
+  /**
+   * C-sync v3: the details of the task are in the replica. Held — only `accessedAt` is updated; otherwise
+   * `POST /sync/tasks` and the snapshot via applyServer. A snapshot older than the local cursor (a pull got ahead)
+   * is dropped and requested again. false — not loaded (the replica is not bootstrapped yet, the snapshot stays stale).
+   */
+  async function ensureTask(taskId: string): Promise<boolean> {
+    if (!opts) throw new Error('sync не запущен: вызовите startSync');
+    const g = gen;
+    const now = new Date().toISOString();
+    const touched = await db.transaction('rw', db._held, async () => {
+      const h = await db._held.get(taskId);
+      if (h) await db._held.put({ ...h, accessedAt: now });
+      return !!h;
+    });
+    if (touched) return true;
+    for (let i = 0; i < SNAPSHOT_RETRIES; i++) {
+      const snapshot = syncTasksResponseSchema.parse(
+        await http('/sync/tasks', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            [SYNC_PROTOCOL_HEADER]: String(SYNC_PROTOCOL),
+          },
+          body: JSON.stringify({ protocol: SYNC_PROTOCOL, ids: [taskId] }),
+        }),
+      );
+      if (g !== gen) return false;
+      if (await applyServer({ snapshot })) return true;
+    }
+    return false;
   }
 
   async function pull() {
@@ -464,7 +580,9 @@ export function createClient(db: PlanarDB) {
     if (!id) await db._meta.put({ key: 'clientId', value: clientId });
     cursor = (await meta('cursor')) as number | undefined;
     replicaState.value = cursor === undefined ? 'empty' : 'complete';
-    rebuild = cursor !== undefined && (await meta('schema')) !== db.schemaSig();
+    // only a new entity table needs bootstrap: a new index is built by Dexie over the rows in place
+    const sig = await meta('schema');
+    rebuild = cursor !== undefined && (typeof sig !== 'string' || dataSig(sig) !== db.schemaSig());
     pushedUpTo = 0;
     failures = wsFailures = 0;
     setStatus('idle');
@@ -473,9 +591,13 @@ export function createClient(db: PlanarDB) {
     const sub = liveQuery(async () => ({
       n: await db._queue.count(),
       last: (await db._queue.orderBy('id').last())?.id ?? 0,
-    })).subscribe(({ n, last }) => {
-      syncState.value = { ...syncState.value, pending: n };
-      if (leading && last > pushedUpTo) void kick();
+    })).subscribe({
+      next: ({ n, last }) => {
+        syncState.value = { ...syncState.value, pending: n };
+        if (leading && last > pushedUpTo) void kick();
+      },
+      // the subscription is over: new edits are sent only on WS pokes and retries
+      error: (e) => console.error('sync queue', e),
     });
     unsub = () => sub.unsubscribe();
     if (typeof window !== 'undefined') {
@@ -555,6 +677,7 @@ export function createClient(db: PlanarDB) {
     clearLocal,
     registerMutators,
     mutate,
+    ensureTask,
     startSync,
     stopSync,
     syncState: syncState as Readonly<Ref<{ status: SyncStatus; pending: number }>>,

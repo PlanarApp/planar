@@ -103,12 +103,13 @@ export function useActivity(
       ),
     );
     if (!alive || my !== seq) return;
+    const live = (xs: Activity[]) => xs.some((a) => a.state === 'running' || a.state === 'queued');
+    // PLNRAPP-532: a queued job is taken but its run is not written yet — a moment with nothing live; without a
+    // grace the polling would stop and miss the run (a finished run stops it: nothing follows)
+    if (items.value.some((a) => a.state === 'queued') && !live(got.flat()))
+      graceUntil = Math.max(graceUntil, Date.now() + ACTIVITY_GRACE_MS);
     items.value = got.flat();
-    if (
-      items.value.some((a) => a.state === 'running' || a.state === 'queued') ||
-      Date.now() < graceUntil
-    )
-      timer = setTimeout(load, ACTIVITY_POLL_MS);
+    if (live(items.value) || Date.now() < graceUntil) timer = setTimeout(load, ACTIVITY_POLL_MS);
   }
 
   const off = onReplicaChange((batch: ReplicaChange[]) => {

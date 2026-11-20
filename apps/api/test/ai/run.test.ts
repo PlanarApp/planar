@@ -998,6 +998,31 @@ describe('движок: приёмка, доработка, надзор, све
     runs = await runsOf(t);
     expect(runs.at(-1)).toMatchObject({ state: 'queued', attempt: 2, restart_of: id });
   });
+
+  it('сверка: у задачи активный прогон другого действия (триаж ждёт ответа) — действие статуса ждёт его (PLNRAPP-537)', async () => {
+    await rule({ type: 'task.status_changed', to: [S.backlog] }, [
+      { type: 'ai_run', aiActionId: actionId },
+    ]);
+    const t = await task({ statusId: S.backlog });
+    const other = uuidv7();
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth)
+       values ($1, $2, $3, 'action', 'waiting_human', $1, 0)`,
+      [other, t, P],
+    );
+    jobs.length = 0;
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    await reconcile();
+    expect(jobs).toHaveLength(0);
+    await raw(`update ai_runs set state = 'done' where id = $1`, [other]);
+    await reconcile();
+    expect(jobs).toEqual([
+      expect.objectContaining({
+        queue: 'ai.run',
+        data: expect.objectContaining({ taskId: t, actionId }),
+      }),
+    ]);
+  });
 });
 
 describe('координация подзадач (PLNRAPP-405)', () => {
@@ -1052,6 +1077,26 @@ describe('координация подзадач (PLNRAPP-405)', () => {
     await start(other);
     expect((await subsOf(parent)).length + (await subsOf(other)).length).toBe(3);
     expect((await runsOf(other))[0]!.log).toContain('суточный лимит задач ИИ (3) — не создано 1');
+    // PLNRAPP-528: and in the AI's comment — not only «Готово» of the model
+    expect((await commentsOf(other)).map((c) => text(c.body))).toEqual([
+      expect.stringMatching(/Готово.*не создано подзадач — 1 из 2: исчерпан суточный лимит/),
+    ]);
+  });
+
+  it('PLNRAPP-528: «подзадачи» в поручении — newTasks в схеме первого запроса, без need', async () => {
+    const t = await task();
+    await w.member.ok('comment.create', {
+      id: uuidv7(),
+      taskId: t,
+      body: doc('создавай подзадачи'),
+      assigneeId: bot,
+    });
+    schemas = [];
+    answers = [result({ newTasks: [sub({ title: 'A', ai: false })] })];
+    await drain();
+    expect(schemas.filter((s) => s.includes('comment'))).toHaveLength(1);
+    expect(schemas[0]).toContain('newTasks');
+    expect((await subsOf(t)).map((x) => x.title)).toEqual(['A']);
   });
 
   it('criteriaOf: пункты раздела «Критерии приёмки» до следующего заголовка', () => {

@@ -187,5 +187,6 @@ export async function moveTasks(
   return toV1Tasks(
     d.db,
     moved.map((t) => byId.get(t.id)!),
+    userId,
   );
 }

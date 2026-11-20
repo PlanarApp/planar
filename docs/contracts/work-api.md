@@ -18,6 +18,7 @@ defineWebModule mutate newId rankBetween useQuery db useTask useProjectTasks use
 - C-modules v10 (design, DS-0): += `IconButton ConfirmDialog Tabs Chip AvatarStack Kbd EmptyState Toolbar` — C-ui v3 components, `docs/contracts/design.md` §Base components.
 - C-modules v15 (PLNRAPP-202): += `useActivity` (not in the required list: optional).
 - C-modules v16 (PLNRAPP-251): += `useLive(arg, fn)` — a replica query re-created when the reactive `arg` changes (`useQuery` does not track Vue dependencies); not in the required list: optional. A module reads only the rows it needs (index, `bulkGet`), not a whole table: such a query re-runs on every write to it.
+- PLNRAPP-532: += `TASK_ACTIVITY` (C-modules v15: the task card provides its work) — a task panel of a module (`inject(TASK_ACTIVITY, null)`) reloads when the work of the task changes; not in the required list: optional.
 - Together with the sync client (C-sync v2, collab): if `apps/web/src/sync` exports a name, the SDK must re-export it:
 ```text sdk-exports=with-sync
 sendTyping onTyping

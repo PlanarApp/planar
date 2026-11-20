@@ -298,6 +298,7 @@ const systemOf = (extras: readonly Extra[], toc: readonly Extra[]) =>
 - uncertain — в чём не уверен в результате и что проверил сам; сомнений нет — "". Результат проверяет система по критериям готовности, а не по твоей оценке.`,
     toc.length &&
       `- need — имена полей, которых нет в схеме, но без них работу не выполнить: ${toc.map((k) => `${k} — ${EXTRA[k][0]}`).join('; ')}. Тогда запрос повторится с этими полями, а этот ответ отбросится: comment оставь пустым. Не нужны — [].`,
+    'В comment не пиши, что сделал то, чего нет в полях этого ответа: подзадачи создаёт только newTasks, документы — только docs.',
     'Используй только статусы, метки и поля из списка проекта. Неиспользуемое — null. Изменения (поля, метки, статус, подзадачи и их изменения) применяются только при done; при question — только labels.',
   ]
     .filter(Boolean)
@@ -756,7 +757,12 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
       : '';
     const instruction = `${prompt}${checks}`;
     // PLNRAPP-452: the extras the instruction names are in the schema at once, the rest — on request (need)
-    const named = EXTRAS.filter((k) => new RegExp(`\\b${k}\\b`).test(instruction));
+    const named = EXTRAS.filter(
+      (k) =>
+        new RegExp(`\\b${k}\\b`).test(instruction) ||
+        // PLNRAPP-528: a person asks in words, not field names — «подзадачи» in the assignment needs newTasks at once
+        (k === 'newTasks' && d.kind !== 'action' && /подзадач/i.test(ask)),
+    );
     let result: AiResult;
     let usage: LlmUsage;
     try {
@@ -1331,9 +1337,17 @@ async function apply(
         ...(human && !reply.parentId && { assigneeId: human.id }),
       });
   } else {
-    if (r.comment)
-      comment(prefix + r.comment + (r.uncertain ? `\n\n**Сомнения:** ${r.uncertain}` : ''), reply);
-    if (ctx) docs = await changes(api.db, run, r, ctx, muts, descRef);
+    // PLNRAPP-528: the comment goes after the changes — what they could not do is added to it, not only to the log
+    const notes: string[] = [];
+    if (ctx) docs = await changes(api.db, run, r, ctx, muts, descRef, notes);
+    if (r.comment || notes.length)
+      comment(
+        prefix +
+          [r.comment, r.uncertain && `**Сомнения:** ${r.uncertain}`, ...notes]
+            .filter(Boolean)
+            .join('\n\n'),
+        reply,
+      );
     if (r.emails?.length) {
       // the letters wait for «ок» from whoever confirms: the asker in a thread, else the task's person
       const who = reply.parentId
@@ -1524,6 +1538,7 @@ async function changes(
   ctx: Awaited<ReturnType<typeof contextOf>>,
   muts: Mut[],
   descRef: { m?: Mut },
+  notes: string[] = [],
 ) {
   const { task } = run;
   const byName = (list: Row[], n: string) =>
@@ -1589,10 +1604,14 @@ async function changes(
       (limits.effective.dailyTasks ?? Infinity) - (await aiTasksToday(q, task.projectId)),
     );
     const list = r.newTasks.slice(0, room);
-    if (list.length < r.newTasks.length)
+    if (list.length < r.newTasks.length) {
       run.log.push(
         `newTasks: суточный лимит задач ИИ (${limits.effective.dailyTasks}) — не создано ${r.newTasks.length - list.length}`,
       );
+      notes.push(
+        `**Система:** не создано подзадач — ${r.newTasks.length - list.length} из ${r.newTasks.length}: исчерпан суточный лимит задач ИИ (${limits.effective.dailyTasks}).`,
+      );
+    }
     // without the autopilot the AI does not hand work to itself: its subtasks go to a person in «Уточнение»
     const human = limits.autopilot ? undefined : await humanOf(q, task);
     const ids = list.map(() => uuidv7());

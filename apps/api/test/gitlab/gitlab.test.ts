@@ -795,4 +795,74 @@ describe('PLNRAPP-205: статус пайплайна MR и деплоя', () =
         .where(eq(settings.id, 'enabled_modules'));
     }
   });
+
+  it('CI упал: комментарий и исполнитель — человек; с автопилотом ИИ; задачу ИИ не трогает', async () => {
+    await addProject();
+    const comments = (taskId: string) =>
+      db.$client
+        .query('select assignee_id as "a", author_id as "by" from comments where task_id = $1', [
+          taskId,
+        ])
+        .then((r) => r.rows as { a: string | null; by: string }[]);
+    const assignees = (taskId: string) =>
+      db.$client
+        .query('select user_id as "u" from task_assignees where task_id = $1', [taskId])
+        .then((r) => r.rows.map((x) => x.u as string));
+    const fail = async (iid: number, key: string, status = 'failed') => {
+      cur = {
+        ...mr(iid, { title: key, updated_at: new Date().toISOString() }),
+        head_pipeline: { status },
+      };
+      await poll();
+    };
+    handler = gitlab;
+    // without autopilot — the person (the author), the comment assigned to them; the same status again — nothing
+    const t1 = await mkTask();
+    await fail(1, t1.key, 'running');
+    expect(await comments(t1.id)).toEqual([]);
+    await fail(1, t1.key);
+    expect(await comments(t1.id)).toMatchObject([{ a: w.admin.userId }]);
+    expect(await assignees(t1.id)).toEqual([w.admin.userId]);
+    await fail(1, t1.key);
+    expect(await comments(t1.id)).toHaveLength(1);
+    // autopilot — the AI bot, the comment without an assignee
+    let [bot] = (await db.$client.query(`select id from users where login = 'ai'`)).rows as {
+      id: string;
+    }[];
+    bot ??= { id: (await createUser(db, { login: 'ai' })).id };
+    await db.$client.query('update users set bot = true where id = $1', [bot.id]);
+    await db.$client.query(
+      `update projects set modules = array_append(modules, 'ai') where id = $1`,
+      [w.projectId],
+    );
+    await db.$client.query(
+      `insert into ai_project_limits (project_id, autopilot) values ($1, true)
+       on conflict (project_id) do update set autopilot = true`,
+      [w.projectId],
+    );
+    await db
+      .update(settings)
+      .set({ value: ['gitlab', 'ai'] })
+      .where(eq(settings.id, 'enabled_modules'));
+    try {
+      const t2 = await mkTask();
+      await fail(2, t2.key);
+      expect(await comments(t2.id)).toMatchObject([{ a: null }]);
+      expect(await assignees(t2.id)).toEqual([bot.id]);
+      // the AI already has the task: the rule dev_ci_failed fixes it, no second comment
+      await fail(2, t2.key, 'running');
+      await fail(2, t2.key);
+      expect(await comments(t2.id)).toHaveLength(1);
+    } finally {
+      await db.$client.query(
+        `update projects set modules = array_remove(modules, 'ai') where id = $1`,
+        [w.projectId],
+      );
+      await db.$client.query('delete from ai_project_limits where project_id = $1', [w.projectId]);
+      await db
+        .update(settings)
+        .set({ value: ['gitlab'] })
+        .where(eq(settings.id, 'enabled_modules'));
+    }
+  });
 });

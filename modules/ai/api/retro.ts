@@ -11,6 +11,7 @@ import { textOf } from './email.js';
 import { harnessBlock, loadPack, parseInstructionPage } from './harness.js';
 import { generateStructured } from './llm.js';
 import { instructionBody } from './packs.js';
+import { tracked, type Tracker } from './monitor.js';
 import { aiEnabled, asDoc, blocked, md, withMention } from './run.js';
 import type { RetroNewAction } from './schema.js';
 
@@ -20,6 +21,9 @@ import type { RetroNewAction } from './schema.js';
  * the admins' answers to the bot («не так», a manual rollback of the status after a run). Every N frictions or
  * every N days the retro clusters them and proposes an edit of an instruction of the active pack: a subtask in
  * «Уточнение» on the admin with the diff in a comment; the admin's answer in its thread decides — apply, close, redo.
+ * An obvious edit goes in at once (the admin gets the diff); an edit of an instruction changed meanwhile is carried
+ * over onto the current text; weekly (or by hand) a pass over the whole pack shortens and dedupes it. The retro
+ * edits only the pack's pages in the tracker — never the repository.
  */
 
 export const RETRO_QUEUE = 'ai.retro';
@@ -32,10 +36,23 @@ export type RetroData =
   /** the AI was set up in the project (the pack applied): the task «harness-retro» exists */
   | { kind: 'init'; projectId: string }
   /** cluster the open subtasks into proposals */
-  | { kind: 'run'; projectId: string }
+  | {
+      kind: 'run';
+      projectId: string;
+      /** PLNRAPP-500: for the monitor; absent — by frictions (event) */
+      trigger?: 'cron' | 'manual';
+      userId?: string | null;
+    }
   /** an admin's answer to the bot: a subtask */
   | { kind: 'feedback'; projectId: string; taskId: string; title: string; text: string }
-  /** the admin answered in the thread of a proposal */
+  /** shorten, dedupe and make consistent the pack's instructions (weekly by the tick, or by hand) */
+  | {
+      kind: 'optimize';
+      projectId: string;
+      trigger?: 'cron' | 'manual';
+      userId?: string | null;
+    }
+  /** the admin answered in a proposal's subtask */
   | { kind: 'decide'; proposalId: string; replyId: string };
 
 export interface RetroSettings {
@@ -157,7 +174,7 @@ const lastRank = async (q: Exec, projectId: string, parentId: string | null) =>
 
 const RETRO_DESCRIPTION = `Задача harness-retro: сюда ИИ собирает подзадачи — трения прогонов («что мешало»), итоги поручений и чата, ответы администраторов («не так», ручной откат статуса после прогона).
 
-Раз в N трений или раз в N дней ИИ группирует их и предлагает правку инструкции harness-пакета — подзадачей в «Уточнении» на администратора, с diff в комментарии. Ответ в треде этого комментария: «применить», «закрыть» или что переделать.
+Раз в N трений или раз в N дней ИИ группирует их и правит инструкции harness-пакета: очевидную правку применяет сразу и присылает diff, остальные предлагает подзадачей в «Уточнении» на администратора. Ответ в подзадаче: «применить», «закрыть» или что переделать. Раз в неделю ИИ сокращает инструкции, убирает повторы и противоречия — так же.
 
 Выключатель и частота — Настройки → ИИ → harness-retro.`;
 
@@ -334,7 +351,7 @@ export const DISAGREE_RE = /(^|[^\p{L}])не\s+так([^\p{L}]|$)/iu;
 
 /**
  * afterMutation: an admin's answer to the automation → a feedback subtask (job); an answer in the thread of a
- * pending proposal → its decision (job). Returns ids of comments taken as decisions: they are not requests to the bot.
+ * proposal's subtask (a reply at any depth, @ai) → the retro answers it (job). Returns ids of comments taken as decisions: they are not requests to the bot.
  */
 export async function retroHook(
   writes: MutationWrite[],
@@ -345,7 +362,9 @@ export async function retroHook(
   if (ctx.system || ctx.origin) return taken;
   const mine = writes.filter(
     (w) =>
-      (w.entity === 'comments' && !w.before && w.after?.parentId) ||
+      (w.entity === 'comments' &&
+        !w.before &&
+        (w.after?.parentId || (w.after?.mentions as string[] | undefined)?.length)) ||
       (w.entity === 'tasks' && w.before && w.after && w.before.statusId !== w.after.statusId),
   );
   if (!mine.length) return taken;
@@ -364,12 +383,15 @@ export async function retroHook(
     if (!t?.ai) continue;
     const projectId = t.projectId as string;
     if (w.entity === 'comments') {
+      // any reply or @ai in a proposal's subtask is about the proposal: the retro answers it, not a run
+      // of the event «mention» (it does not see the pack in the tracker and may go to the repository)
       const p = await one(
         api.q,
         sql`select id, assignee_id as "assigneeId" from ai_retro_proposals
-            where comment_id = ${a.parentId as string}::uuid and state = 'pending'`,
+            where task_id = ${taskId}::uuid order by created_at desc limit 1`,
       );
-      if (p) {
+      const mentions = (a.mentions as string[] | undefined) ?? [];
+      if (p && (a.parentId || mentions.includes((await botId(api.q)) ?? ''))) {
         taken.add(a.id as string);
         if (p.assigneeId === ctx.userId || (await isAdmin(api.q, ctx.userId, projectId)))
           await api.enqueue(RETRO_QUEUE, {
@@ -380,7 +402,8 @@ export async function retroHook(
         continue;
       }
       const text = textOf(a.body as JSONContent);
-      if (!DISAGREE_RE.test(text) || !(await isAdmin(api.q, ctx.userId, projectId))) continue;
+      if (!a.parentId || !DISAGREE_RE.test(text) || !(await isAdmin(api.q, ctx.userId, projectId)))
+        continue;
       const parent = await one(
         api.q,
         sql`select c.body from comments c join users u on u.id = c.author_id
@@ -442,6 +465,8 @@ const proposalSchema = z.object({
     .nullable(),
   /** the whole new text of the instruction (after its parameters table) */
   prompt: z.string().min(1).max(30_000),
+  /** an obviously useful edit of an existing instruction: applied at once, the admin gets the diff */
+  auto: z.boolean(),
 });
 const retroSchema = z.object({ proposals: z.array(proposalSchema).max(RETRO_MAX_PROPOSALS) });
 const redoSchema = z.object({
@@ -452,14 +477,34 @@ const redoSchema = z.object({
 });
 type Proposal = z.infer<typeof proposalSchema>;
 
-export const RETRO_PROMPT = `Ты — harness-retro трекера задач Planar: улучшаешь инструкции ИИ-действий проекта (harness-пакет) по накопленным подзадачам — трениям прогонов («что мешало»), итогам поручений и чата, ответам администраторов («не так», ручной откат статуса после прогона).
+/** Where the retro works: the pack's pages in the tracker, never the repository. */
+const SCOPE_RULE =
+  'Ты правишь только инструкции harness-пакета этого проекта — страницы в трекере, их текущая версия дана ниже. Репозиторий, коммиты, ветки и MR тебя не касаются.';
+const AUTO_RULE =
+  '- auto — true, если правка существующей инструкции очевидно полезна и не меняет порядок работы по существу (уточнение, исправление противоречия или ошибки, сокращение без потери смысла, удаление дубля): она применится сразу, администратор получит diff. Новое действие, новое правило, смена порядка работы — auto: false, решает администратор.';
+
+export const RETRO_PROMPT = `Ты — harness-retro трекера задач Planar: улучшаешь инструкции ИИ-действий проекта (harness-пакет) по накопленным подзадачам — трениям прогонов («что мешало»), итогам поручений и чата, ответам администраторов («не так», ручной откат статуса после прогона). ${SCOPE_RULE}
 Сгруппируй подзадачи по причине. На каждую повторяющуюся причину (две подзадачи и больше или одно явное замечание администратора) — одно предложение, не больше ${RETRO_MAX_PROPOSALS}, полезные первыми:
 - action — ключ действия из списка; prompt — полный новый текст его инструкции (markdown). Правка минимальная: добавь или уточни раздел, остальной текст сохрани дословно.
 - Повторяющиеся поручения одного вида превращай в раздел инструкции события («Поручение» — comment, mention, checklist; «Чат» — chat) или в отдельное действие с правилом: action — новый ключ (латиница, a-z0-9_-), newAction — {name, description, rule}, rule — YAML одного правила harness.yml (name, description, trigger, filter, actions: [{type: ai_run, action: <ключ>}]) или null; prompt — инструкция нового действия; иначе newAction — null.
 - title — суть правки; why — какие подзадачи и почему, коротко; items — ключи подзадач, которые правка закрывает.
+${AUTO_RULE}
 Опирайся только на подзадачи, ничего не выдумывай. Нечего предлагать — proposals: [].`;
 
-const REDO_PROMPT = `Ты — harness-retro трекера задач Planar. Администратор вернул предложенную правку инструкции ИИ-действия с замечанием. Переделай её по замечанию: prompt — полный новый текст инструкции (markdown; правка минимальная, остальной текст сохрани дословно), title — суть правки, why — что изменено, rule — YAML правила harness.yml для нового действия (как было или исправленное) или null.`;
+/** The periodic (and manual) pass over the whole pack: shorter, no duplicates, consistent. */
+export const OPTIMIZE_PROMPT = `Ты — harness-retro трекера задач Planar: оптимизируешь инструкции ИИ-действий проекта (harness-пакет). ${SCOPE_RULE}
+Найди повторы внутри инструкции и между инструкциями, противоречия между инструкциями и с harness.yml, устаревшее и лишнее, места, которые можно сказать короче без потери смысла. На каждую находку — одно предложение, не больше ${RETRO_MAX_PROPOSALS}, полезные первыми:
+- action — ключ действия из списка; prompt — полный новый текст его инструкции (markdown), остальной текст сохрани дословно; newAction — null; items — [].
+- title — суть правки; why — что и почему, коротко.
+${AUTO_RULE}
+Новых правил не выдумывай, смысл не меняй. Инструкции в порядке — proposals: [].`;
+
+const REDO_PROMPT = `Ты — harness-retro трекера задач Planar. Администратор ответил на правку инструкции ИИ-действия. ${SCOPE_RULE}
+Переделай правку по ответу: prompt — полный новый текст инструкции от её текущей версии (markdown; правка минимальная, остальной текст сохрани дословно), title — суть правки, why — что изменено, rule — YAML правила harness.yml для нового действия (как было или исправленное) или null. Ответ — вопрос: ответь в why, prompt оставь как в правке. Просят объединить с другой правкой или вернуть как было — сделай это в prompt.`;
+
+const REBASE_PROMPT = `Ты — harness-retro трекера задач Planar. ${SCOPE_RULE}
+Правка подготовлена к прежней версии инструкции, а инструкция с тех пор изменилась. Перенеси суть правки на текущую версию: prompt — полный новый текст (markdown), всё из текущей версии сохрани дословно, кроме мест, которые меняет правка; правка в текущей версии уже есть — верни текущую без изменений.`;
+const rebaseSchema = z.object({ prompt: z.string().min(1).max(30_000) });
 
 interface ActivePack {
   rootId: string;
@@ -532,6 +577,8 @@ export function diffBlock(a: string, b: string): string {
 
 const ANSWER_HINT =
   'Ответьте в треде этого комментария: «применить» — правка запишется в harness-пакет; «закрыть» — отклонить; любой другой ответ — что переделать.';
+const AUTO_HINT =
+  'Очевидная правка — применяется сразу. Не согласны — ответьте в треде, что изменить или «верни как было».';
 
 function proposalComment(
   name: string,
@@ -539,6 +586,7 @@ function proposalComment(
   base: string,
   prompt: string,
   ymlDiff: string | null,
+  auto = false,
 ) {
   return [
     ymlDiff
@@ -546,7 +594,7 @@ function proposalComment(
       : `Правка инструкции «${name}» (\`${key}\`).`,
     diffBlock(base, prompt),
     ...(ymlDiff ? ['harness.yml:', ymlDiff] : []),
-    ANSWER_HINT,
+    auto ? AUTO_HINT : ANSWER_HINT,
   ].join('\n\n');
 }
 
@@ -584,17 +632,35 @@ const endRun = (q: Exec, id: string, state: string, log: string) =>
     sql`update ai_runs set state = ${state}, log = log || ${log ? `${log}\n` : ''}, updated_at = now() where id = ${id}`,
   );
 
+/** The pack's instructions for a prompt of the retro. */
+const packText = (pack: ActivePack) =>
+  [
+    '# Инструкции активного harness-пакета',
+    `События без правила → действие: ${
+      Object.entries(pack.events)
+        .map(([e, a]) => `${e} → ${a}`)
+        .join(', ') || '—'
+    }.`,
+    ...pack.actions.map((k) => {
+      const i = pack.instructions[k];
+      return `\n## Действие \`${k}\` — «${i?.name ?? k}»\n${i?.prompt ?? '—'}`;
+    }),
+  ].join('\n');
+
 /** One retro: open items → proposals (subtasks on the admin with the diff). */
-async function runRetro(projectId: string, api: JobApi) {
-  if (!(await aiEnabled(api.db))) return;
+async function runRetro(projectId: string, api: JobApi, t: Tracker) {
+  if (!(await aiEnabled(api.db))) return void (await t.step('ИИ выключен — пропуск'));
   const s = await retroOf(api.db, projectId);
-  if (!s.enabled || !s.taskId) return;
+  if (!s.enabled || !s.taskId)
+    return void (await t.step('harness-retro в проекте выключено или нет задачи — пропуск'));
   const retroTask = await one(
     api.db,
     sql`select id from tasks where id = ${s.taskId}::uuid and archived_at is null`,
   );
   const bot = await botId(api.db);
-  if (!retroTask || !bot) return;
+  if (!retroTask || !bot)
+    return void (await t.step('нет задачи harness-retro или бота ИИ — пропуск'));
+  await t.check();
   const mark = () =>
     api.db.execute(
       sql`update ai_retro set frictions = 0, last_run_at = now(), updated_at = now() where project_id = ${projectId}::uuid`,
@@ -618,35 +684,48 @@ async function runRetro(projectId: string, api: JobApi) {
   );
   const pack = await activePack(api.db, projectId);
   // nothing to cluster, or no harness to edit
-  if (!items.length || !pack) return void (await mark());
+  if (!items.length || !pack) {
+    await t.step(
+      !pack
+        ? 'нет активного harness-пакета — нечего править'
+        : 'нет новых подзадач — нечего обрабатывать',
+    );
+    return void (await mark());
+  }
+  await t.step(`подзадач к обработке: ${items.length}, запрос к ИИ`);
+  await t.check();
   const prompt = [
     '# Подзадачи harness-retro',
     ...items.map(
       (i) =>
         `\n## ${i.key as string}: ${i.title as string}\n${cut(md(i.description as JSONContent), 1500)}`,
     ),
-    '\n# Инструкции активного harness-пакета',
-    `События без правила → действие: ${
-      Object.entries(pack.events)
-        .map(([e, a]) => `${e} → ${a}`)
-        .join(', ') || '—'
-    }.`,
-    ...pack.actions.map((k) => {
-      const i = pack.instructions[k];
-      return `\n## Действие \`${k}\` — «${i?.name ?? k}»\n${i?.prompt ?? '—'}`;
-    }),
+    '',
+    packText(pack),
   ].join('\n');
   const r = await llmRun(api, projectId, s.taskId, {
     schema: retroSchema,
     system: RETRO_PROMPT,
     prompt,
   });
-  if (!r) return;
+  if (!r)
+    return void (await t.step(
+      'ИИ не ответил: нет подключения, исчерпан лимит или ошибка провайдера',
+      {
+        level: 'error',
+      },
+    ));
   const log: string[] = [];
   for (const p of r.object.proposals)
-    await propose(api, { projectId, retroTaskId: s.taskId, bot, pack, items }, p).catch((e) =>
-      log.push(`«${p.title}»: ${errText(e)}`),
+    await propose(api, { projectId, retroTaskId: s.taskId, bot, pack, items }, p).then(
+      () => t.step(`предложение: «${p.title}»`, { level: 'action' }),
+      (e) => log.push(`«${p.title}»: ${errText(e)}`),
     );
+  t.count(items.length);
+  await t.step(
+    `обработано подзадач: ${items.length}, предложений: ${r.object.proposals.length - log.length}${log.length ? `, ошибок: ${log.length}` : ''}`,
+    { level: log.length ? 'error' : 'info' },
+  );
   await endRun(api.db, r.runId, 'done', log.join('\n'));
   await mark();
 }
@@ -679,6 +758,8 @@ async function propose(
   const admin = await adminOf(api.db, projectId);
   if (!admin) throw new Error('в проекте нет администратора');
   const items = c.items.filter((i) => p.items.includes(i.key as string));
+  // only an edit of an existing page goes in at once: a new action needs the pack applied anyway
+  const auto = p.auto && !!pageId;
   const id = uuidv7();
   const taskId = uuidv7();
   const commentId = uuidv7();
@@ -687,7 +768,7 @@ async function propose(
     items.length
       ? `Подзадачи: ${items.map((i) => `${i.key as string} «${i.title as string}»`).join(', ')}.`
       : '',
-    'Diff — в комментарии; решение — ответом в его треде.',
+    auto ? 'Diff — в комментарии.' : 'Diff — в комментарии; решение — ответом в его треде.',
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -712,9 +793,9 @@ async function propose(
         args: {
           id: commentId,
           taskId,
-          assigneeId: admin.id,
+          ...(!auto && { assigneeId: admin.id }),
           body: withMention(
-            asDoc(proposalComment(name, p.action, base, p.prompt, ymlDiff)),
+            asDoc(proposalComment(name, p.action, base, p.prompt, ymlDiff, auto)),
             admin.id,
             admin.login,
           ),
@@ -734,7 +815,45 @@ async function propose(
       },
     },
   );
+  if (!auto) return;
+  const row: ProposalRow = {
+    id,
+    projectId,
+    taskId,
+    commentId,
+    assigneeId: admin.id,
+    actionKey: p.action,
+    pageId,
+    base,
+    prompt: p.prompt,
+    newAction,
+    title: p.title,
+    items: items.map((i) => i.id as string),
+    state: 'pending',
+  };
+  try {
+    const done = await applyProposal(api, row, c.bot, true);
+    await closeProposal(api, row, c.bot, 'applied');
+    await say(api, c.bot, taskId, commentId, `Применено автоматически. ${done}`);
+  } catch (e) {
+    // stays an ordinary proposal for the admin
+    await say(
+      api,
+      c.bot,
+      taskId,
+      commentId,
+      `Автоматически не применено: ${errText(e)}. ${ANSWER_HINT}`,
+    );
+  }
 }
+
+/** The bot's reply in a thread of a proposal's subtask. */
+const say = (api: JobApi, bot: string, taskId: string, parentId: string, text: string) =>
+  api.execute(
+    bot,
+    [{ name: 'comment.create', args: { id: uuidv7(), taskId, parentId, body: asDoc(text) } }],
+    { system: true },
+  );
 
 /** The admin's answer in the thread: «применить» / «закрыть»; anything else — what to redo. */
 export function retroDecision(text: string): 'apply' | 'close' | 'redo' {
@@ -761,6 +880,8 @@ interface ProposalRow {
   newAction: RetroNewAction | null;
   title: string;
   items: string[];
+  /** pending | applied | closed */
+  state: string;
 }
 
 /** The instruction page's body with a new prompt: the description and the parameters table stay. */
@@ -775,8 +896,12 @@ export function withPrompt(body: Doc | null, prompt: string): Doc {
 
 const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
 
-/** The edit into the pack's pages, on behalf of the admin who decided (their rights). */
-async function applyProposal(api: JobApi, p: ProposalRow, userId: string) {
+/**
+ * The edit into the pack's pages, on behalf of the admin who decided (their rights; system — the bot's auto-apply).
+ * The instruction changed since the proposal (another edit went in) — the edit is carried over onto the current
+ * text by the AI, no conflict for the admin. Returns what was done, for the reply.
+ */
+async function applyProposal(api: JobApi, p: ProposalRow, userId: string, system = false) {
   if (p.pageId) {
     const page = await one(
       api.db,
@@ -784,14 +909,43 @@ async function applyProposal(api: JobApi, p: ProposalRow, userId: string) {
     );
     if (!page) throw new Error('страница инструкции удалена');
     const cur = parseInstructionPage(page.title as string, page.body).instruction.prompt;
-    if (norm(cur) !== norm(p.base)) throw new Error('инструкция изменилась после предложения');
-    await api.execute(userId, [
+    let prompt = p.prompt;
+    let note = 'Инструкция обновлена, следующие прогоны идут по ней.';
+    if (norm(cur) !== norm(p.base)) {
+      const r = await llmRun(api, p.projectId, p.taskId, {
+        schema: rebaseSchema,
+        system: REBASE_PROMPT,
+        prompt: [
+          `## Текущая версия инструкции\n${cur}`,
+          `## Правка: ${p.title}`,
+          diffBlock(p.base, p.prompt),
+        ].join('\n\n'),
+      });
+      if (!r) throw new Error('инструкция изменилась, а ИИ недоступен, чтобы перенести правку');
+      await endRun(api.db, r.runId, 'done', '');
+      prompt = r.object.prompt;
+      if (norm(prompt) === norm(cur))
+        return 'Правка уже есть в текущей инструкции — без изменений.';
+      note = `Инструкция изменилась после предложения — правка перенесена на текущую версию:\n\n${diffBlock(cur, prompt)}`;
+    }
+    await api.execute(
+      userId,
+      [
+        {
+          name: 'docs.page.update',
+          args: { id: p.pageId, body: withPrompt(page.body as Doc, prompt) },
+        },
+      ],
       {
-        name: 'docs.page.update',
-        args: { id: p.pageId, body: withPrompt(page.body as Doc, p.prompt) },
+        system,
+        after: async (q) => {
+          await q.execute(
+            sql`update ai_retro_proposals set base = ${cur}, prompt = ${prompt}, updated_at = now() where id = ${p.id}`,
+          );
+        },
       },
-    ]);
-    return;
+    );
+    return note;
   }
   const pack = await activePack(api.db, p.projectId);
   if (!pack) throw new Error('в проекте нет активного harness-пакета');
@@ -839,7 +993,17 @@ async function applyProposal(api: JobApi, p: ProposalRow, userId: string) {
       },
     },
   ]);
+  return 'Страница действия создана, harness.yml дополнен. Чтобы действие и правило появились в проекте, примените пакет: Настройки → ИИ → Пакеты.';
 }
+
+/** Resolve the diff comment; an auto-applied one is not assigned — nothing to resolve. */
+const resolveDiff = async (q: Exec, commentId: string): Promise<Mut[]> =>
+  (await one(
+    q,
+    sql`select 1 as x from comments where id = ${commentId}::uuid and assignee_id is not null`,
+  ))
+    ? [{ name: 'comment.resolve', args: { id: commentId, resolved: true } }]
+    : [];
 
 /** The proposal is decided: its subtask and the items it covers are closed, the diff comment resolved. */
 async function closeProposal(
@@ -860,7 +1024,7 @@ async function closeProposal(
   const muts: Mut[] = [
     { name: 'task.update', args: { id: p.taskId, statusId: end } },
     ...open.map((t) => ({ name: 'task.update', args: { id: t.id, statusId: done } })),
-    { name: 'comment.resolve', args: { id: p.commentId, resolved: true } },
+    ...(await resolveDiff(api.db, p.commentId)),
   ];
   await api.execute(bot, muts, {
     system: true,
@@ -872,7 +1036,10 @@ async function closeProposal(
   });
 }
 
-/** The admin's remark: the proposal is made again, a new diff comment replaces the old one. */
+/**
+ * The admin's remark: the proposal is made again from the current instruction, a new diff comment replaces the old
+ * one. A decided proposal (applied, closed) opens again: its subtask goes back to «Уточнение».
+ */
 async function redo(api: JobApi, p: ProposalRow, remark: string, bot: string) {
   let current = '';
   let name = p.newAction?.name ?? p.actionKey;
@@ -892,7 +1059,8 @@ async function redo(api: JobApi, p: ProposalRow, remark: string, bot: string) {
     prompt: [
       `# Действие \`${p.actionKey}\` — «${name}»`,
       `## Инструкция сейчас\n${current || '— (новое действие)'}`,
-      `## Предложенная правка: ${p.title}\n${p.prompt}`,
+      `## Предложенная правка: ${p.title}${p.state === 'applied' ? ' (применена)' : ''}\n${p.prompt}`,
+      ...(p.state === 'applied' ? [`## Инструкция до правки\n${p.base}`] : []),
       ...(p.newAction?.rule ? [`## Правило harness.yml\n${p.newAction.rule}`] : []),
       `## Замечание администратора\n${remark}`,
     ].join('\n\n'),
@@ -916,7 +1084,15 @@ async function redo(api: JobApi, p: ProposalRow, remark: string, bot: string) {
   await api.execute(
     bot,
     [
-      { name: 'comment.resolve', args: { id: p.commentId, resolved: true } },
+      ...(await resolveDiff(api.db, p.commentId)),
+      ...(p.state === 'pending'
+        ? []
+        : [
+            {
+              name: 'task.update',
+              args: { id: p.taskId, statusId: await clarifyOf(api.db, p.projectId) },
+            },
+          ]),
       {
         name: 'comment.create',
         args: {
@@ -932,7 +1108,8 @@ async function redo(api: JobApi, p: ProposalRow, remark: string, bot: string) {
       after: async (q) => {
         await q.execute(
           sql`update ai_retro_proposals set comment_id = ${commentId}, base = ${current}, prompt = ${o.prompt},
-              title = ${o.title}, new_action = ${newAction ? JSON.stringify(newAction) : null}::jsonb, updated_at = now()
+              title = ${o.title}, new_action = ${newAction ? JSON.stringify(newAction) : null}::jsonb,
+              state = 'pending', updated_at = now()
               where id = ${p.id}`,
         );
       },
@@ -946,60 +1123,109 @@ async function decide(d: { proposalId: string; replyId: string }, api: JobApi) {
     api.db,
     sql`select id, project_id as "projectId", task_id as "taskId", comment_id as "commentId",
         assignee_id as "assigneeId", action_key as "actionKey", page_id as "pageId", base, prompt,
-        new_action as "newAction", title, items
-        from ai_retro_proposals where id = ${d.proposalId}::uuid and state = 'pending'`,
+        new_action as "newAction", title, items, state
+        from ai_retro_proposals where id = ${d.proposalId}::uuid`,
   )) as unknown as ProposalRow | undefined;
   const reply = await one(
     api.db,
-    sql`select body, author_id as "authorId", parent_id as "parentId" from comments where id = ${d.replyId}::uuid`,
+    sql`select body, author_id as "authorId" from comments where id = ${d.replyId}::uuid`,
   );
   const bot = await botId(api.db);
-  // decided already, or the reply is to an older diff comment
-  if (!p || !reply || !bot || reply.parentId !== p.commentId) return;
-  const say = (text: string) =>
-    api.execute(
-      bot,
-      [
-        {
-          name: 'comment.create',
-          args: { id: uuidv7(), taskId: p.taskId, parentId: d.replyId, body: asDoc(text) },
-        },
-      ],
-      { system: true },
-    );
+  if (!p || !reply || !bot) return;
+  const answer = (text: string) => say(api, bot, p.taskId, d.replyId, text);
   const text = textOf(reply.body as JSONContent);
   const verdict = retroDecision(text);
+  if (verdict !== 'redo' && p.state !== 'pending')
+    return void (await answer(
+      `Правка уже ${p.state === 'applied' ? 'применена' : 'закрыта'}. Чтобы изменить — напишите, что поменять.`,
+    ));
   if (verdict === 'close') {
     await closeProposal(api, p, bot, 'closed');
-    return void (await say('Закрыто: правка не применена.'));
+    return void (await answer('Закрыто: правка не применена.'));
   }
   if (verdict === 'apply') {
+    let done: string;
     try {
-      await applyProposal(api, p, reply.authorId as string);
+      done = await applyProposal(api, p, reply.authorId as string);
     } catch (e) {
-      return void (await say(
-        `Не применено: ${errText(e)}. Ответьте, что переделать, — предложение соберётся заново по текущей инструкции.`,
-      ));
+      return void (await answer(`Не применено: ${errText(e)}. Ответьте, что переделать.`));
     }
     await closeProposal(api, p, bot, 'applied');
-    return void (await say(
-      p.pageId
-        ? 'Применено: инструкция обновлена, следующие прогоны идут по ней.'
-        : 'Применено: страница действия создана, harness.yml дополнен. Чтобы действие и правило появились в проекте, примените пакет: Настройки → ИИ → Пакеты.',
-    ));
+    return void (await answer(`Применено. ${done}`));
   }
-  if (!(await aiEnabled(api.db))) return void (await say('ИИ выключен администратором.'));
+  if (!(await aiEnabled(api.db))) return void (await answer('ИИ выключен администратором.'));
   try {
     await redo(api, p, md(reply.body as JSONContent) || text, bot);
   } catch (e) {
-    await say(`Не удалось переделать: ${errText(e)}.`);
+    await answer(`Не удалось переделать: ${errText(e)}.`);
   }
+}
+
+/** The pass over the whole pack: proposals to shorten, dedupe, make consistent (obvious ones go in at once). */
+async function runOptimize(projectId: string, api: JobApi, t: Tracker) {
+  if (!(await aiEnabled(api.db))) return void (await t.step('ИИ выключен — пропуск'));
+  const taskId = await ensureRetroTask(api, projectId);
+  const bot = await botId(api.db);
+  const pack = await activePack(api.db, projectId);
+  if (!taskId || !bot || !pack)
+    return void (await t.step(
+      'harness-retro выключено или нет активного harness-пакета — пропуск',
+    ));
+  await t.step('оптимизация инструкций пакета, запрос к ИИ');
+  await t.check();
+  const r = await llmRun(api, projectId, taskId, {
+    schema: retroSchema,
+    system: OPTIMIZE_PROMPT,
+    prompt: `# harness.yml\n${pack.yml || '—'}\n\n${packText(pack)}`,
+  });
+  if (!r)
+    return void (await t.step(
+      'ИИ не ответил: нет подключения, исчерпан лимит или ошибка провайдера',
+      {
+        level: 'error',
+      },
+    ));
+  const log: string[] = [];
+  for (const p of r.object.proposals)
+    await propose(api, { projectId, retroTaskId: taskId, bot, pack, items: [] }, p).then(
+      () => t.step(`${p.auto ? 'применено' : 'предложение'}: «${p.title}»`, { level: 'action' }),
+      (e) => log.push(`«${p.title}»: ${errText(e)}`),
+    );
+  t.count(r.object.proposals.length);
+  await t.step(
+    `оптимизация: предложений ${r.object.proposals.length - log.length}${log.length ? `, ошибок: ${log.length}` : ''}`,
+    { level: log.length ? 'error' : 'info' },
+  );
+  await endRun(api.db, r.runId, 'done', log.join('\n'));
 }
 
 /** The queue ai.retro. */
 export async function handleRetro(d: RetroData, api: JobApi): Promise<void> {
   if (d.kind === 'init') return void (await ensureRetroTask(api, d.projectId));
-  if (d.kind === 'run') return runRetro(d.projectId, api);
+  if (d.kind === 'run')
+    return tracked(
+      api.db,
+      {
+        engine: 'harness',
+        job: 'retro',
+        projectId: d.projectId,
+        trigger: d.trigger ?? 'event',
+        userId: d.userId ?? null,
+      },
+      (t) => runRetro(d.projectId, api, t),
+    );
+  if (d.kind === 'optimize')
+    return tracked(
+      api.db,
+      {
+        engine: 'harness',
+        job: 'optimize',
+        projectId: d.projectId,
+        trigger: d.trigger ?? 'cron',
+        userId: d.userId ?? null,
+      },
+      (t) => runOptimize(d.projectId, api, t),
+    );
   if (d.kind === 'decide') return decide(d, api);
   // feedback: not about the retro itself
   const t = await one(
@@ -1014,19 +1240,54 @@ export async function handleRetro(d: RetroData, api: JobApi): Promise<void> {
 
 /** Cron: projects whose retro is due by days and that have open items. */
 export async function retroTick(_d: object, api: JobApi): Promise<void> {
-  if (!(await aiEnabled(api.db))) return;
+  await tracked(api.db, { engine: 'harness', job: 'retro_tick', trigger: 'cron' }, (t) =>
+    retroDue(api, t),
+  );
+}
+
+async function retroDue(api: JobApi, t: Tracker) {
+  if (!(await aiEnabled(api.db))) return void (await t.step('ИИ выключен — пропуск'));
   const due = await rows(
     api.db,
-    sql`select r.project_id as "projectId" from ai_retro r join projects p on p.id = r.project_id
+    sql`select r.project_id as "projectId", p.name from ai_retro r join projects p on p.id = r.project_id
         where r.enabled and r.task_id is not null and 'ai' = any(p.modules)
           and coalesce(r.last_run_at, r.created_at) < now() - make_interval(days => r.every_days)
           and exists (select 1 from tasks t join statuses s on s.id = t.status_id
             where t.parent_id = r.task_id and t.archived_at is null and s.category not in ('done', 'cancelled')
               and not exists (select 1 from ai_retro_proposals x where x.task_id = t.id))`,
   );
-  for (const r of due)
-    await api.enqueue(RETRO_QUEUE, { kind: 'run', projectId: r.projectId } as RetroData, {
-      singletonKey: `retro:${r.projectId as string}`,
-      upsert: true,
+  for (const r of due) {
+    await api.enqueue(
+      RETRO_QUEUE,
+      { kind: 'run', projectId: r.projectId, trigger: 'cron' } as RetroData,
+      { singletonKey: `retro:${r.projectId as string}`, upsert: true },
+    );
+    t.count();
+    await t.step(`${r.name as string}: пора по расписанию — обработка поставлена в очередь`, {
+      projectId: r.projectId as string,
+      level: 'action',
     });
+  }
+  if (!due.length) await t.step('по расписанию проектов к обработке нет');
+  // the optimization: once in ENGINE_KEEP_DAYS — its last pass is still in the monitor's history
+  const stale = await rows(
+    api.db,
+    sql`select r.project_id as "projectId", p.name from ai_retro r join projects p on p.id = r.project_id
+        join ai_harness_packs h on h.project_id = r.project_id and h.active and h.root_page_id is not null
+        where r.enabled and r.task_id is not null and 'ai' = any(p.modules)
+          and not exists (select 1 from ai_engine_runs e where e.engine = 'harness' and e.job = 'optimize'
+            and e.project_id = r.project_id)`,
+  );
+  for (const r of stale) {
+    await api.enqueue(
+      RETRO_QUEUE,
+      { kind: 'optimize', projectId: r.projectId, trigger: 'cron' } as RetroData,
+      { singletonKey: `retro-optimize:${r.projectId as string}`, upsert: true },
+    );
+    t.count();
+    await t.step(`${r.name as string}: оптимизация правил поставлена в очередь`, {
+      projectId: r.projectId as string,
+      level: 'action',
+    });
+  }
 }

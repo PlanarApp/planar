@@ -4,17 +4,27 @@ import { useI18n } from 'vue-i18n';
 import { Tag } from 'lucide-vue-next';
 import { mutate, newId } from '../../sync';
 import { COLORS } from '../../screens/settings/colors';
-import { useLabels } from '../queries';
+import { notArchived, useArchivedProjectIds, useLabels } from '../queries';
 import { uniqByName } from '../dictionaries';
 import OptionPicker from './OptionPicker.vue';
 
 // projectId — labels of the task's project; without it (summary, filter) same-named labels are one item
-const props = defineProps<{ spaceId: string; projectId?: string; compact?: boolean }>();
+// of the space's live projects; noCreate — no «Create» (a filter only picks existing labels)
+const props = defineProps<{
+  spaceId: string;
+  projectId?: string;
+  compact?: boolean;
+  noCreate?: boolean;
+}>();
 const model = defineModel<string[]>({ default: () => [] });
 const { t } = useI18n();
-const labels = useLabels(
+const scopeLabels = useLabels(
   () => props.spaceId,
   () => props.projectId,
+);
+const archived = useArchivedProjectIds();
+const labels = computed(() =>
+  props.projectId ? scopeLabels.value : notArchived(scopeLabels.value, archived.value),
 );
 const options = computed(() =>
   (props.projectId ? (labels.value ?? []) : uniqByName(labels.value ?? [])).map((l) => ({
@@ -30,6 +40,7 @@ const toggle = (id: string) =>
     : [...model.value, id]);
 // «Create» only for a task's project, when no label of that name exists there
 const createText = (q: string) =>
+  !props.noCreate &&
   props.projectId &&
   q &&
   !(labels.value ?? []).some((l) => l.name.toLowerCase() === q.toLowerCase())

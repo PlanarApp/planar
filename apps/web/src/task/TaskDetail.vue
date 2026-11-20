@@ -24,6 +24,7 @@ import {
   Link2,
   ListChecks,
   ListTree,
+  MessageSquare,
   MoreHorizontal,
   Paperclip,
   Pin,
@@ -43,6 +44,7 @@ import {
 } from 'lucide-vue-next';
 import { useAuth } from '../auth/useAuth';
 import { mutate, newId, useQuery } from '../sync';
+import { router as appRouter } from '../router';
 import {
   AssigneePicker,
   LabelPicker,
@@ -86,8 +88,16 @@ import FieldsBlock from '../fields/FieldsBlock.vue';
 import Editor from './editor/Editor.vue';
 import Feed from './Feed.vue';
 import { ASIDE_DEFAULT, ASIDE_MIN, asideMax, asideWidth, setAsideWidth } from './asideWidth';
-import { useAttachments, useChecklist, useSubtasks, useUsers, useWatchers } from './queries';
+import {
+  useAttachments,
+  useChecklist,
+  useComments,
+  useSubtasks,
+  useUsers,
+  useWatchers,
+} from './queries';
 import Subtasks from './Subtasks.vue';
+import AssignedComments from './AssignedComments.vue';
 import { TO_TASK } from './thread';
 import { useTaskMenu } from '../tasks/taskMenu';
 import LinksBlock from '../links/LinksBlock.vue';
@@ -242,6 +252,11 @@ function open(key: string) {
     ? router.push({ query: { ...route?.query, task: key } })
     : router.push(`/t/${key}`));
 }
+// PLNRAPP-561/562: an assigned comment → the feed's jump to it (?comment=, PLNRAPP-214): scroll and blink;
+// the app router — the one the feed watches (the card is also rendered without an injected router)
+function openComment(id: string) {
+  void appRouter.replace({ query: { ...appRouter.currentRoute.value.query, comment: id } });
+}
 
 // --- attachments: drag onto the panel
 const attachments = ref<InstanceType<typeof Attachments>>();
@@ -343,6 +358,9 @@ const subtasks = useSubtasks(props.task.id);
 const checklist = useChecklist(props.task.id);
 const files = useAttachments(props.task.id);
 const links = useTaskLinks(() => props.task.id);
+// PLNRAPP-561: assigned comments (replies too) — the tab after the subtasks, hidden while there are none
+const comments = useComments(props.task.id);
+const assigned = computed(() => (comments.value ?? []).filter((c) => c.assigneeId));
 const tabs = computed(() => {
   const ps = panels.value;
   const docs = ps.findIndex((p) => p.key === 'docs:pages');
@@ -355,6 +373,9 @@ const tabs = computed(() => {
     { key: 'attachments', label: 'task.attachments', icon: Paperclip },
     ...part(docs, docs + 1),
     { key: 'subtasks', label: 'task.subtasks', icon: ListTree },
+    ...(assigned.value.length
+      ? [{ key: 'assigned', label: 'task.assignedComments', icon: MessageSquare }]
+      : []),
     { key: 'checklist', label: 'task.checklist', icon: ListChecks },
     ...part(docs + 1, linksAt),
     { key: 'links', label: 'links.title', icon: Link2 },
@@ -372,6 +393,7 @@ const tabCounts = computed<Record<string, number | string | undefined>>(() => ({
     (subtasks.value ?? []).filter((s) => closed(s.statusId)).length,
     subtasks.value?.length ?? 0,
   ),
+  assigned: ratio(assigned.value.filter((c) => c.resolvedAt).length, assigned.value.length),
   checklist: ratio(
     (checklist.value ?? []).filter((i) => i.done).length,
     checklist.value?.length ?? 0,
@@ -779,6 +801,9 @@ const panelComponent = computed(() => {
           </div>
           <div v-if="tab === 'subtasks'" class="mt-2" data-tab="subtasks">
             <Subtasks :task="task" :statuses="statuses ?? []" @open="open" />
+          </div>
+          <div v-else-if="tab === 'assigned' && assigned.length" class="mt-2" data-tab="assigned">
+            <AssignedComments :comments="assigned" @open="openComment" />
           </div>
           <div v-else-if="tab === 'checklist'" class="mt-2" data-tab="checklist">
             <Checklist

@@ -139,16 +139,23 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 p-4 md:flex-row">
-    <h1 v-if="isMobile && !scope" class="text-xl font-semibold">{{ t('screens.settings') }}</h1>
-    <!-- mobile: разделы — горизонтальные вкладки вверху -->
-    <Tabs
+  <div class="flex flex-col md:flex-row md:gap-4 md:p-4">
+    <h1 v-if="isMobile && !scope" class="px-4 pt-4 text-xl font-semibold">
+      {{ t('screens.settings') }}
+    </h1>
+    <!-- mobile: разделы — горизонтальные вкладки полосой вплотную вверху, без боковых отступов контента -->
+    <div
       v-if="isMobile"
-      :model-value="active"
-      :label="t('screens.settings')"
-      :items="items.map((s) => ({ value: s.key, label: s.label }))"
-      @update:model-value="(k) => router.push(to(k))"
-    />
+      class="shrink-0 border-b border-border px-2 py-1"
+      data-testid="settings-tabs"
+    >
+      <Tabs
+        :model-value="active"
+        :label="t('screens.settings')"
+        :items="items.map((s) => ({ value: s.key, label: s.label }))"
+        @update:model-value="(k) => router.push(to(k))"
+      />
+    </div>
     <nav v-else class="flex flex-col gap-1 md:w-48">
       <h1 v-if="!scope" class="mb-2 text-xl font-semibold">{{ t('screens.settings') }}</h1>
       <RouterLink
@@ -171,7 +178,7 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
         >{{ s.label }}</RouterLink
       >
     </nav>
-    <div class="flex min-w-0 flex-1 flex-col gap-3">
+    <div class="flex min-w-0 flex-1 flex-col gap-3 max-md:p-4">
       <p v-if="serverError" role="alert" class="text-sm text-danger">{{ serverError }}</p>
       <Select
         v-if="sec && 'space' in sec && !scope"

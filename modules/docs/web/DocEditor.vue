@@ -14,6 +14,7 @@ import {
   useSession,
   type SlashItem,
 } from '@planar/web/modules';
+import FormatBar from './FormatBar.vue';
 import { suggestRender, type SugState } from './suggest';
 import { useTexts } from './text';
 
@@ -124,6 +125,12 @@ const retry = () => {
 };
 let gone = false;
 let readOnly = () => false;
+// the formatting menu — only while the text can be edited (read-only access hides it)
+const canEdit = ref(props.editable);
+const setEditable = (ed: Editor) => {
+  canEdit.value = props.editable && !readOnly();
+  ed.setEditable(canEdit.value);
+};
 
 // yjs/hocuspocus — separate chunk
 void import('@planar/editor/collab').then(({ openCollab }) => {
@@ -161,14 +168,14 @@ void import('@planar/editor/collab').then(({ openCollab }) => {
     },
   });
   editor.value = ed;
-  c.onAuthenticated(() => ed.setEditable(props.editable && !readOnly()));
+  c.onAuthenticated(() => setEditable(ed));
   c.onDenied(() => (unsynced.value = true));
   c.onAuthenticated(() => (unsynced.value = false));
 });
 
 watch(
   () => props.editable,
-  (v) => editor.value?.setEditable(v && !readOnly()),
+  () => editor.value && setEditable(editor.value),
 );
 onBeforeUnmount(() => {
   gone = true;
@@ -180,6 +187,7 @@ defineExpose({ editor });
 
 <template>
   <div class="doc-editor relative">
+    <FormatBar v-if="editor && canEdit" :editor="editor" />
     <EditorContent :editor="editor ?? undefined" />
     <input
       ref="fileInput"
@@ -302,6 +310,11 @@ defineExpose({ editor });
   background: var(--color-bg-muted);
   font-weight: 600;
   text-align: left;
+}
+.doc-editor .ProseMirror blockquote {
+  border-left: 3px solid var(--color-border-strong);
+  padding-left: 0.75rem;
+  color: var(--color-fg-muted);
 }
 .doc-editor .ProseMirror img {
   max-width: 100%;

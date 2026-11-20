@@ -11,6 +11,7 @@ export const HTTP_ERROR_CODES = [
   'conflict',
   'payload_too_large',
   'rate_limited',
+  'upgrade_required',
   'internal',
   'unavailable',
 ] as const;

@@ -192,6 +192,7 @@ Endpoints without a session:
 | `GET /api/health` | liveness: `200 {ok:true, db:'up'}` or `503 {ok:false, db:'down'}` |
 | `GET /api/health/ready` | readiness: `200 {ok:true, db:'up', migrations:'ok', queue:'up'}`; otherwise `503` and `db:'down'` / `migrations:'pending'` / `queue:'down'`. `queue:'off'` (queue disabled by config) does not affect `ok` |
 | `GET /api/metrics` | Prometheus; needs `Authorization: Bearer <METRICS_TOKEN>`; token not set — `404`, wrong — `401` |
+| `GET /api/version` | build: `{commit, ref, tag, builtAt}` — commit SHA, branch, tag (or `null`) and image build time; a local run without them — `dev` |
 
 Caddy proxies `/api/metrics` like any `/api/*`, so the token is the only protection: set a long random `METRICS_TOKEN`.
 

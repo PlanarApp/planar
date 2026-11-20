@@ -63,6 +63,8 @@ export const triggerSchema = z.discriminatedUnion('type', [
     userIds: z.array(uuid).optional(),
     /** rules saved before PLNRAPP-197: a single user */
     userId: uuid.optional(),
+    /** PLNRAPP-539: false — not when the assignee comes with the new task (the harness twins of status rules) */
+    onCreate: z.boolean().optional(),
   }),
   z.object({
     type: z.literal('task.field_changed'),

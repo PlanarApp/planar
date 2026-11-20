@@ -27,14 +27,18 @@ import Sheet from './Sheet.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 import Kbd from './Kbd.vue';
 
-/** submenu item: value choice (status, priority…); checked — the current one */
+/**
+ * submenu item: value choice (status, priority…); checked — the current one.
+ * children — one more submenu level (space → project, PLNRAPP-519); such an item has no action.
+ */
 export type SubItem = {
   id: string;
   label: string;
   icon?: Component;
   iconProps?: Record<string, unknown>;
   checked?: boolean;
-  onSelect: () => void;
+  children?: SubItem[];
+  onSelect?: () => void;
 };
 type Item = {
   id: string;
@@ -45,7 +49,7 @@ type Item = {
   danger?: boolean;
   disabled?: boolean;
   confirm?: { title: string; description?: string; confirmLabel: string };
-  /** submenu instead of an action (one level) */
+  /** submenu instead of an action (two levels at most) */
   children?: SubItem[];
   onSelect?: () => void;
 };
@@ -76,9 +80,9 @@ const select = (it: Item) => {
   pending.value = it;
   confirmOpen.value = true;
 };
-const pick = (f: () => void) => {
+const pick = (f?: () => void) => {
   sheet.value = false;
-  f();
+  f?.();
 };
 /** The action opened an inline field (data-inline-edit): the focus trap of the menu took focus from it — give the focus to the field, not the trigger. */
 const keepEditing = (e: Event) => {
@@ -131,17 +135,35 @@ const subPanel = `${panel} max-h-80 overflow-y-auto`;
       <div v-if="'separator' in it" class="my-1 h-px bg-border" />
       <template v-else-if="it.children">
         <div class="px-2 pt-2 text-xs font-medium text-fg-muted">{{ it.label }}</div>
-        <button
-          v-for="c in it.children"
-          :key="c.id"
-          type="button"
-          class="flex min-h-11 w-full items-center gap-2 rounded-md px-2 pl-4 text-left text-sm text-fg outline-none"
-          @click="pick(c.onSelect)"
-        >
-          <component :is="c.icon" v-if="c.icon" :size="16" v-bind="c.iconProps" />
-          <span class="flex-1">{{ c.label }}</span>
-          <Check v-if="c.checked" :size="14" />
-        </button>
+        <template v-for="c in it.children" :key="c.id">
+          <template v-if="c.children">
+            <div class="flex items-center gap-2 px-2 pl-4 pt-2 text-xs font-medium text-fg-muted">
+              <span class="flex-1">{{ c.label }}</span>
+              <Check v-if="c.checked" :size="14" />
+            </div>
+            <button
+              v-for="g in c.children"
+              :key="g.id"
+              type="button"
+              class="flex min-h-11 w-full items-center gap-2 rounded-md px-2 pl-6 text-left text-sm text-fg outline-none"
+              @click="pick(g.onSelect)"
+            >
+              <component :is="g.icon" v-if="g.icon" :size="16" v-bind="g.iconProps" />
+              <span class="flex-1">{{ g.label }}</span>
+              <Check v-if="g.checked" :size="14" />
+            </button>
+          </template>
+          <button
+            v-else
+            type="button"
+            class="flex min-h-11 w-full items-center gap-2 rounded-md px-2 pl-4 text-left text-sm text-fg outline-none"
+            @click="pick(c.onSelect)"
+          >
+            <component :is="c.icon" v-if="c.icon" :size="16" v-bind="c.iconProps" />
+            <span class="flex-1">{{ c.label }}</span>
+            <Check v-if="c.checked" :size="14" />
+          </button>
+        </template>
       </template>
       <button
         v-else
@@ -181,17 +203,36 @@ const subPanel = `${panel} max-h-80 overflow-y-auto`;
             </component>
             <component :is="kind.Portal">
               <component :is="kind.SubContent" :side-offset="4" :class="subPanel">
-                <component
-                  :is="kind.Item"
-                  v-for="c in it.children"
-                  :key="c.id"
-                  :class="row()"
-                  @select="c.onSelect()"
-                >
-                  <component :is="c.icon" v-if="c.icon" :size="16" v-bind="c.iconProps" />
-                  <span class="flex-1 truncate">{{ c.label }}</span>
-                  <Check v-if="c.checked" :size="14" class="text-accent" />
-                </component>
+                <template v-for="c in it.children" :key="c.id">
+                  <component :is="kind.Sub" v-if="c.children">
+                    <component :is="kind.SubTrigger" :class="row()">
+                      <component :is="c.icon" v-if="c.icon" :size="16" v-bind="c.iconProps" />
+                      <span class="flex-1 truncate">{{ c.label }}</span>
+                      <Check v-if="c.checked" :size="14" class="text-accent" />
+                      <ChevronRight :size="14" class="text-fg-muted" />
+                    </component>
+                    <component :is="kind.Portal">
+                      <component :is="kind.SubContent" :side-offset="4" :class="subPanel">
+                        <component
+                          :is="kind.Item"
+                          v-for="g in c.children"
+                          :key="g.id"
+                          :class="row()"
+                          @select="g.onSelect?.()"
+                        >
+                          <component :is="g.icon" v-if="g.icon" :size="16" v-bind="g.iconProps" />
+                          <span class="flex-1 truncate">{{ g.label }}</span>
+                          <Check v-if="g.checked" :size="14" class="text-accent" />
+                        </component>
+                      </component>
+                    </component>
+                  </component>
+                  <component :is="kind.Item" v-else :class="row()" @select="c.onSelect?.()">
+                    <component :is="c.icon" v-if="c.icon" :size="16" v-bind="c.iconProps" />
+                    <span class="flex-1 truncate">{{ c.label }}</span>
+                    <Check v-if="c.checked" :size="14" class="text-accent" />
+                  </component>
+                </template>
               </component>
             </component>
           </component>

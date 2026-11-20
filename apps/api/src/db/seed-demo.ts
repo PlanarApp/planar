@@ -32,6 +32,8 @@ import {
   aiActions,
   aiEmailBatches,
   aiHarnessPacks,
+  aiEngineEvents,
+  aiEngineRuns,
   aiProjectLimits,
   aiRetro,
   aiRetroProposals,
@@ -64,6 +66,7 @@ import {
   WORKSPACE_DATA_MODULE_IDS,
 } from '@planar/shared';
 import { installed } from '../modules/installed.js';
+import { recountAssignedComments } from './comment-counters.js';
 import { createDb, migrate, type Db } from './index.js';
 import { filePath } from '../files/store.js';
 import * as s from './schema.js';
@@ -178,6 +181,8 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       // merged into «Search index rebuild is slow» (PLNRAPP-117, bulk): cancelled + link:3, link:4 «duplicates»
       ['Reindex takes minutes after deploy', 4, 2, null, 'noah', 'bug'],
       ['Search results stale after reindex', 4, 2, null, 'liam', 'bug'],
+      // a closed subtask of «Add API v2 pagination»: the «Closed N» accordion in the card (PLNRAPP-542)
+      ['Draft cursor pagination RFC', 3, 2, -4, 'liam', 'docs', 3],
     ],
   },
   {
@@ -980,7 +985,7 @@ async function insertAll(tx: Tx, now: Date) {
     s.favorites,
     favs.map(([kind, refId, name, url], k) => ({
       id: uid(`fav:${kind}:${refId}`),
-      userId: uid_.demo,
+      userId: uid_.maya,
       kind,
       refId,
       name,
@@ -1011,6 +1016,22 @@ async function insertAll(tx: Tx, now: Date) {
     };
   });
   await ins(s.comments, comments);
+  // PLNRAPP-561: the task's «Assigned» tab — next to the open one a resolved assignment (the accordion)
+  await ins(s.comments, [
+    {
+      id: uid('comment:assigned:resolved'),
+      spaceId: spaceIds[PROJECTS[pkIdx('RDM')]!.space],
+      taskId: tid('RDM', 2),
+      authorId: uid_.maya,
+      body: textToDoc('@demo please attach the draft outline to the task.', userList),
+      mentions: [uid_.demo!],
+      assigneeId: uid_.demo,
+      resolvedAt: at(-10, 15),
+      resolvedBy: uid_.demo,
+      createdAt: at(-10, 11),
+      updatedAt: at(-10, 15),
+    },
+  ]);
   // PLNRAPP-372: the first comment carries files — a photo (thumbnail, gallery) and a document (download)
   const c0 = comments[0]!;
   const commentFiles = [
@@ -1125,7 +1146,7 @@ async function insertAll(tx: Tx, now: Date) {
       .filter((c) => c.mentions.includes(uid_.demo!))
       .map((c, k) => ({
         id: uid(`notif:${k}`),
-        userId: uid_.demo,
+        userId: uid_.maya,
         spaceId: c.spaceId,
         kind: 'mentioned' as const,
         taskId: c.taskId,
@@ -1141,7 +1162,7 @@ async function insertAll(tx: Tx, now: Date) {
       .slice(0, 2)
       .map((c, k) => ({
         id: uid(`notif:check:${k}`),
-        userId: uid_.demo,
+        userId: uid_.maya,
         spaceId: c.spaceId,
         kind: 'checklist_assigned' as const,
         taskId: c.taskId,
@@ -1154,7 +1175,7 @@ async function insertAll(tx: Tx, now: Date) {
     // the morning reminder of the core job (PLNRAPP-161): the task is due today
     {
       id: uid('notif:due'),
-      userId: uid_.demo,
+      userId: uid_.maya,
       spaceId: spaceIds[0],
       kind: 'due_today' as const,
       taskId: tid('RDM', 2),
@@ -1587,7 +1608,7 @@ async function insertAll(tx: Tx, now: Date) {
   await ins(s.notifications, [
     {
       id: uid('notif:dcomment:0'),
-      userId: uid_.demo,
+      userId: uid_.maya,
       spaceId: docComments[0]!.spaceId,
       kind: 'doc_comment_assigned' as const,
       taskId: null,
@@ -1666,7 +1687,7 @@ async function insertAll(tx: Tx, now: Date) {
           spaceId: spaceIdx === null ? null : sp(spaceIdx),
           channelId: cid,
           messageId: uid(`msg:${cid}:0`),
-          userId: uid_.demo,
+          userId: uid_.maya,
           emoji: '👍',
           createdAt: lastAt,
         });
@@ -1854,7 +1875,7 @@ async function insertAll(tx: Tx, now: Date) {
     s.dayPlans,
     myDay.map(([key, i], k) => ({
       id: uid(`dayplan:${key}:${i}`),
-      userId: uid_.demo,
+      userId: uid_.maya,
       taskId: tid(key, i),
       date: day(0),
       rank: generateNKeysBetween(null, null, myDay.length)[k],
@@ -1874,7 +1895,7 @@ async function insertAll(tx: Tx, now: Date) {
       id: uid(`watch:${key}:${i}`),
       spaceId: spaceIds[PROJECTS[pkIdx(key)]!.space],
       taskId: tid(key, i),
-      userId: uid_.demo,
+      userId: uid_.maya,
       createdAt: at(-5),
     })),
   );
@@ -2542,6 +2563,16 @@ async function insertAll(tx: Tx, now: Date) {
   ]);
   await ins(gitlabBranches, [
     {
+      id: uid('gitlab:branch:RDM:6'),
+      spaceId: rdmSpace,
+      taskId: tid('RDM', 5),
+      gitlabProjectId: 101,
+      name: 'RDM-6-reduce-time-to-first-task',
+      webUrl: `${glUrl}/-/tree/RDM-6-reduce-time-to-first-task`,
+      createdAt: at(-2),
+      updatedAt: at(-2),
+    },
+    {
       id: uid('gitlab:branch:RDM:7'),
       spaceId: rdmSpace,
       taskId: tid('RDM', 6),
@@ -2552,10 +2583,18 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-3),
     },
   ]);
-  const demoMr = (iid: number, sourceBranch: string, title: string, state: string, d: number) => ({
+  const demoMr = (
+    iid: number,
+    sourceBranch: string,
+    title: string,
+    state: string,
+    d: number,
+    task = 6,
+    ci = state === 'opened' ? 'running' : 'success',
+  ) => ({
     id: uid(`gitlab:mr:${iid}`),
     spaceId: rdmSpace,
-    taskId: tid('RDM', 6),
+    taskId: tid('RDM', task),
     gitlabProjectId: 101,
     iid,
     title,
@@ -2564,7 +2603,7 @@ async function insertAll(tx: Tx, now: Date) {
     authorName: 'Noah',
     webUrl: `${glUrl}/-/merge_requests/${iid}`,
     mrUpdatedAt: at(d),
-    pipelineStatus: state === 'opened' ? 'running' : 'success',
+    pipelineStatus: ci,
     createdAt: at(d),
     updatedAt: at(d),
   });
@@ -2577,6 +2616,29 @@ async function insertAll(tx: Tx, now: Date) {
       -1,
     ),
     demoMr(38, 'fix/csv-quotes', 'RDM-7: quoted commas in CSV', 'merged', -4),
+    // the CI of an open MR failed: list rows show it, the poll commented and assigned a person (no autopilot)
+    demoMr(
+      44,
+      'RDM-6-reduce-time-to-first-task',
+      'RDM-6: Reduce time-to-first-task',
+      'opened',
+      -1,
+      5,
+      'failed',
+    ),
+  ]);
+  await ins(s.comments, [
+    {
+      id: uid('comment:gitlab:ci-failed:44'),
+      spaceId: rdmSpace,
+      taskId: tid('RDM', 5),
+      authorId: uid('user:automation'),
+      body: textToDoc(`CI failed in MR !44: ${glUrl}/-/merge_requests/44 — needs a fix.`, []),
+      mentions: [],
+      assigneeId: uid_.demo,
+      createdAt: at(-1, 12),
+      updatedAt: at(-1, 12),
+    },
   ]);
   await ins(s.comments, [
     botSays(
@@ -2848,7 +2910,8 @@ async function insertAll(tx: Tx, now: Date) {
     await ins(
       chatMessages,
       msgs.map(([a, text], i) => {
-        const body = textToDoc(text, people);
+        // the bot answers in markdown, as the real one (module ai, asDoc) — lists and bold, not asterisks (PLNRAPP-334)
+        const body = a === 'ai' ? markdownToDoc(text) : textToDoc(text, people);
         return {
           id: msgIds[i],
           spaceId: null,
@@ -2891,7 +2954,10 @@ async function insertAll(tx: Tx, now: Date) {
     ['demo'],
     [
       ['demo', 'What is still open on the beta plan?'],
-      ['ai', 'Two tasks are open: the forum import and the launch checklist.'],
+      [
+        'ai',
+        'Two tasks are open:\n\n1. **Forum import** — in progress\n2. **Launch checklist** — not started\n\nThe rest of the beta plan is done.',
+      ],
     ],
   );
   await botChat(
@@ -2918,6 +2984,190 @@ async function insertAll(tx: Tx, now: Date) {
       dailyTasks: 20,
       updatedAt: at(-5),
     },
+  ]);
+
+  // PLNRAPP-500: the engines monitor of the section «Автопилот» — passes of the task control (cron, CI, a manual
+  // run of the admin) and of the harness processing, with their steps in the live log
+  const engineRun = (
+    key: string,
+    o: {
+      engine: 'tasks' | 'harness';
+      job: string;
+      trigger: 'cron' | 'event' | 'manual';
+      hours: number;
+      secs: number;
+      processed: number;
+      projectId?: string | null;
+      state?: string;
+      error?: string | null;
+      userId?: string | null;
+    },
+  ) => ({
+    id: uid(`engine-run:${key}`),
+    engine: o.engine,
+    job: o.job,
+    projectId: o.projectId ?? null,
+    trigger: o.trigger,
+    userId: o.userId ?? null,
+    state: o.state ?? 'done',
+    processed: o.processed,
+    error: o.error ?? null,
+    startedAt: at(0, o.hours),
+    finishedAt: at(0, o.hours + o.secs / 3600),
+    updatedAt: at(0, o.hours + o.secs / 3600),
+  });
+  await ins(aiEngineRuns, [
+    engineRun('restart', {
+      engine: 'tasks',
+      job: 'reap',
+      trigger: 'cron',
+      hours: -3,
+      secs: 1,
+      processed: 1,
+    }),
+    engineRun('reconcile', {
+      engine: 'tasks',
+      job: 'reconcile',
+      trigger: 'cron',
+      hours: -2,
+      secs: 2,
+      processed: 2,
+    }),
+    engineRun('manual', {
+      engine: 'tasks',
+      job: 'manual',
+      trigger: 'manual',
+      hours: -1,
+      secs: 3,
+      processed: 1,
+      projectId: pid('RDM'),
+      userId: uid_.maya,
+    }),
+    engineRun('retro', {
+      engine: 'harness',
+      job: 'retro',
+      trigger: 'cron',
+      hours: -0.5,
+      secs: 40,
+      processed: 3,
+      projectId: pid('RDM'),
+    }),
+    // PLNRAPP-593: a manual pass over the whole pack — the instructions are in order, nothing to change
+    engineRun('optimize', {
+      engine: 'harness',
+      job: 'optimize',
+      trigger: 'manual',
+      hours: -6,
+      secs: 35,
+      processed: 0,
+      projectId: pid('RDM'),
+      userId: uid_.maya,
+    }),
+    engineRun('retro-failed', {
+      engine: 'harness',
+      job: 'retro_tick',
+      trigger: 'cron',
+      hours: -28,
+      secs: 1,
+      processed: 0,
+      state: 'failed',
+      error: 'connection terminated unexpectedly',
+      // PLNRAPP-567: the project view shows only the project's passes — the failed one is RDM's
+      projectId: pid('RDM'),
+    }),
+  ]);
+  const engineEvent = (
+    run: string,
+    i: number,
+    engine: 'tasks' | 'harness',
+    hours: number,
+    text: string,
+    o: { level?: string; taskId?: string; projectId?: string } = {},
+  ) => ({
+    id: uid(`engine-event:${run}:${i}`),
+    runId: uid(`engine-run:${run}`),
+    engine,
+    projectId: o.projectId ?? (o.taskId ? pid('RDM') : null),
+    taskId: o.taskId ?? null,
+    level: o.level ?? 'info',
+    text,
+    at: at(0, hours),
+  });
+  await ins(aiEngineEvents, [
+    engineEvent('retro-failed', 0, 'harness', -28, 'ошибка: connection terminated unexpectedly', {
+      level: 'error',
+      projectId: pid('RDM'),
+    }),
+    engineEvent('optimize', 0, 'harness', -6, 'оптимизация инструкций пакета, запрос к ИИ', {
+      projectId: pid('RDM'),
+    }),
+    engineEvent('optimize', 1, 'harness', -5.99, 'оптимизация: предложений 0', {
+      projectId: pid('RDM'),
+    }),
+    engineEvent('retro', 0, 'harness', -0.5, 'подзадач к обработке: 3, запрос к ИИ', {
+      projectId: pid('RDM'),
+    }),
+    engineEvent(
+      'retro',
+      1,
+      'harness',
+      -3.99,
+      'предложение: «Проверять ссылки на макеты в описании»',
+      {
+        level: 'action',
+        projectId: pid('RDM'),
+      },
+    ),
+    engineEvent(
+      'restart',
+      0,
+      'tasks',
+      -3,
+      `перезапуск: RDM-13 — Агент остановлен: нет сигнала heartbeat, результат не получен. Новая попытка.`,
+      {
+        level: 'action',
+        taskId: tid('RDM', 13),
+      },
+    ),
+    engineEvent(
+      'reconcile',
+      0,
+      'tasks',
+      -2,
+      'сверка: RDM-3 — задача стоит в статусе действия, ИИ запущен (попытка 1)',
+      {
+        level: 'action',
+        taskId: tid('RDM', 3),
+      },
+    ),
+    engineEvent(
+      'reconcile',
+      1,
+      'tasks',
+      -1.999,
+      'CI: RDM-13 — ИИ запущен по конвейеру MR (прогон: running)',
+      {
+        level: 'action',
+        taskId: tid('RDM', 13),
+      },
+    ),
+    engineEvent('manual', 0, 'tasks', -1, 'ручной запуск: поиск упавших прогонов', {
+      projectId: pid('RDM'),
+    }),
+    engineEvent('manual', 1, 'tasks', -0.9995, 'ручной запуск: сверка задач и CI', {
+      projectId: pid('RDM'),
+    }),
+    engineEvent(
+      'manual',
+      2,
+      'tasks',
+      -0.999,
+      'сверка: RDM-3 — повтор упавшего запуска, ИИ запущен (попытка 2)',
+      {
+        level: 'action',
+        taskId: tid('RDM', 3),
+      },
+    ),
   ]);
 
   await ins(aiEmailBatches, [
@@ -3068,6 +3318,9 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-30),
     })),
   );
+
+  // PLNRAPP-576: comments are inserted past ServerTx — the tasks counters of assigned comments from them
+  await tx.execute(recountAssignedComments);
 }
 
 async function main() {

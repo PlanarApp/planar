@@ -9,7 +9,8 @@ import en from '../../../i18n/en';
 import ru from '../../../i18n/ru';
 import { linkTasks } from '../../../links';
 import { db, registerMutators, startSync, stopSync } from '../../../sync';
-import { AssigneePicker, PriorityPicker, StatusPicker } from '../../../tasks';
+import { AssigneePicker, BulkAssigneePicker, PriorityPicker, StatusPicker } from '../../../tasks';
+import OptionPicker from '../../../tasks/fields/OptionPicker.vue';
 import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
 import { resetBreakpoint } from '../../../ui';
 import { commitImeOnEnter } from '../../../ui/imeEnter';
@@ -803,5 +804,85 @@ describe('PLANARAPP-43 поля модулей на строке', () => {
     await show();
     await until(() => w.find('[data-testid=card-ext]').exists());
     expect(w.get('[data-testid=card-ext]').text()).toBe(t1.id);
+  });
+});
+
+describe('PLNRAPP-498 исполнители в массовой панели — три состояния', () => {
+  const assign = async (n: number, users: string[]) => {
+    const t = task(n, { rank: rank(n) });
+    await db.table('tasks').put(t);
+    await db.table('taskAssignees').bulkPut(
+      users.map((userId) => ({
+        id: id(),
+        taskId: t.id,
+        userId,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+      })),
+    );
+    return t.id;
+  };
+  const users = async (tid: string) =>
+    (await db.table('taskAssignees').where('taskId').equals(tid).toArray())
+      .map((x) => x.userId)
+      .sort();
+  // PLN-1: Ann, Bob; PLN-2: Bob — Bob «у всех», Ann «у части»
+  const setup = async () => {
+    const a = await assign(1, [ids.ann, ids.bob]);
+    const b = await assign(2, [ids.bob]);
+    await show();
+    useSelection().set([a, b]);
+    await until(() => w.find('[data-testid=bulk-bar]').exists());
+    return [a, b] as const;
+  };
+  const picker = () =>
+    w.get('[data-testid=bulk-bar]').getComponent(BulkAssigneePicker).getComponent(OptionPicker);
+  /** opens the picker, clicks the rows, closes it — the change is applied on close */
+  const clicks = async (...picked: string[]) => {
+    picker().vm.$emit('update:open', true);
+    await flushPromises();
+    for (const u of picked) {
+      picker().vm.$emit('pick', u);
+      await flushPromises();
+    }
+    picker().vm.$emit('update:open', false);
+    await flushPromises();
+  };
+  const both = (a: string, b: string) =>
+    Promise.all([users(a), users(b)]).then(([x, y]) => `${x.join()}|${y.join()}`);
+
+  it('начальное состояние по выделенным: ☑ у всех, ▣ у части', async () => {
+    await setup();
+    expect(picker().props('selected')).toEqual([ids.bob]);
+    expect(picker().props('partial')).toEqual([ids.ann]);
+  });
+  it('▣ → ☑ добавляет всем выделенным', async () => {
+    const [a, b] = await setup();
+    await clicks(ids.ann);
+    const all = [ids.ann, ids.bob].sort().join();
+    await poll(async () => (await both(a, b)) === `${all}|${all}`);
+  });
+  it('☑ → ☐ снимает у всех, нетронутый «у части» не меняется', async () => {
+    const [a, b] = await setup();
+    await clicks(ids.bob);
+    await poll(async () => (await both(a, b)) === `${ids.ann}|`);
+  });
+  it('возврат в ▣ — «не менять»: задачи не меняются', async () => {
+    const [a, b] = await setup();
+    const before = await both(a, b);
+    await clicks(ids.ann, ids.ann, ids.ann);
+    await flushPromises();
+    expect(await both(a, b)).toBe(before);
+    expect(picker().props('partial')).toEqual([ids.ann]);
+  });
+  it('замена набора: снять Bob, отметить Ann', async () => {
+    const [a, b] = await setup();
+    await clicks(ids.bob, ids.ann);
+    await poll(async () => (await both(a, b)) === `${ids.ann}|${ids.ann}`);
+  });
+  it('снять всех исполнителей', async () => {
+    const [a, b] = await setup();
+    await clicks(ids.bob, ids.ann, ids.ann);
+    await poll(async () => (await both(a, b)) === '|');
   });
 });

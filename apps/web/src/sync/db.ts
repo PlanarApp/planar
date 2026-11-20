@@ -20,66 +20,105 @@ export interface ReplicaChange {
   id: string;
   row: Record<string, unknown> | null;
 }
+/** A task whose details (comments, activity…) are held in the replica: loadedAt — loaded, accessedAt — last opened. */
+export interface HeldRow {
+  taskId: string;
+  loadedAt: string;
+  accessedAt: string;
+}
 export interface MetaRow {
   key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId' | 'schema';
   value: string | number;
 }
 
-/** Dexie schema: a table per entity (indexes from meta.indexes) + service ones; extra — module entities. */
+/** Replica-only indexes of core entities (no server index behind them). */
+const CLIENT_INDEXES: Record<string, string[]> = { tasks: ['createdBy'] };
+
+/** Core indexes and service tables that appeared in v4 — absent from the declarations of v1–v3. */
+const SINCE_V4 = { skip: ['_held'], omit: ['tasks.createdBy'] };
+
+/**
+ * Dexie schema: a table per entity (indexes from meta.indexes + CLIENT_INDEXES) + service ones;
+ * extra — module entities; skip — tables (incl. service ones) absent from this schema version.
+ */
 export function buildSchema(
   extra: Record<string, string[]> = {},
   skip: string[] = [],
   /** `entity.index`: an index that doesn't exist in this schema version yet */
   omit: string[] = [],
 ): Record<string, string> {
-  const stores: Record<string, string> = { _meta: 'key', _queue: '++id' };
-  const entities: Record<string, { indexes: string[] }> = { ...ENTITIES };
+  const stores: Record<string, string> = {
+    _meta: 'key',
+    _queue: '++id',
+    _held: 'taskId,accessedAt',
+  };
+  const entities: Record<string, { indexes: string[] }> = {};
+  for (const [n, m] of Object.entries(ENTITIES))
+    entities[n] = { indexes: [...m.indexes, ...(CLIENT_INDEXES[n] ?? [])] };
   for (const [n, indexes] of Object.entries(extra)) entities[n] = { indexes };
-  for (const n of skip) delete entities[n];
+  for (const n of skip) {
+    delete entities[n];
+    delete stores[n];
+  }
   for (const [n, m] of Object.entries(entities))
     stores[n] = ['id', ...m.indexes.filter((i) => !omit.includes(`${n}.${i}`))].join(',');
   return stores;
 }
 
+/** v4 — core: table _held, index tasks.createdBy (v1–v3 — older core, declared in PlanarDB). */
+const CORE_VERSION = 4;
+
 /**
- * Dexie schema version: 3 without modules; with modules it grows on every change of the table/index set
- * (signature and version — in localStorage; no storage → 4, and PlanarDB.open handles the incompatibility).
+ * Dexie schema version: ≥ 4; grows on every change of the full schema — tables and indexes of the core
+ * and of modules (signature and version — in localStorage; no storage → 4 without modules, 5 with them,
+ * and PlanarDB.open handles the incompatibility).
  */
 export function schemaVersion(name: string, extra: Record<string, string[]>): number {
   const names = Object.keys(extra).sort();
-  if (!names.length) return 3;
-  // the core entity set is in the signature: a new core table (projectMembers, C-schema v17) upgrades the replica too
-  const sig = [
-    Object.keys(ENTITIES).join(','),
-    ...names.map((n) => `${n}:${extra[n]!.join(',')}`),
-  ].join(';');
+  const sig = JSON.stringify(buildSchema(Object.fromEntries(names.map((n) => [n, extra[n]!]))));
+  const fallback = names.length ? CORE_VERSION + 1 : CORE_VERSION;
   const key = `planar.dexieSchema.${name}`;
   try {
     const old = JSON.parse(localStorage.getItem(key) ?? 'null') as {
       sig: string;
       v: number;
     } | null;
-    const v = !old ? 4 : old.sig === sig ? old.v : old.v + 1;
-    if (v !== old?.v) localStorage.setItem(key, JSON.stringify({ sig, v }));
+    const v = !old ? fallback : old.sig === sig ? old.v : Math.max(old.v + 1, fallback);
+    if (old?.sig !== sig || old.v !== v) localStorage.setItem(key, JSON.stringify({ sig, v }));
     return v;
   } catch {
-    return 4;
+    return fallback;
   }
+}
+
+/**
+ * Data signature of a replica: the set of entity tables, without indexes and service tables.
+ * A new index is built by Dexie over the rows already present — bootstrap is needed only for a new table.
+ * Also accepts the older format `table:index,…` (with service tables) — it reduces to the same signature.
+ */
+export function dataSig(sig: string): string {
+  return sig
+    .split(';')
+    .map((t) => t.split(':')[0]!)
+    .filter((t) => t && !t.startsWith('_'))
+    .sort()
+    .join(';');
 }
 
 export class PlanarDB extends Dexie {
   _meta!: Table<MetaRow, string>;
   _queue!: Table<QueueItem, number>;
+  _held!: Table<HeldRow, string>;
   constructor(name = 'planar', extra: Record<string, string[]> = {}) {
     super(name);
     // v1 — replica before fieldDefs/taskLinks; v2 adds them (Dexie migrates without data loss)
-    this.version(1).stores(buildSchema({}, ['fieldDefs', 'taskLinks']));
-    this.version(2).stores(buildSchema({}, [], ['tasks.cycleId']));
+    const { skip, omit } = SINCE_V4;
+    this.version(1).stores(buildSchema({}, ['fieldDefs', 'taskLinks', ...skip], omit));
+    this.version(2).stores(buildSchema({}, skip, ['tasks.cycleId', ...omit]));
     // v3 (C-schema v7): index tasks.cycleId
-    this.version(3).stores(buildSchema());
-    // v≥4: entities of installed modules (C-modules v4)
-    const v = schemaVersion(name, extra);
-    if (v > 3) this.version(v).stores(buildSchema(extra));
+    this.version(3).stores(buildSchema({}, skip, omit));
+    // v≥4: core v4 (_held, tasks.createdBy) + entities of installed modules (C-modules v4)
+    this.version(schemaVersion(name, extra)).stores(buildSchema(extra));
   }
   /** The version in the database is higher than declared (a module was removed, storage reset) — the replica is recreated, then bootstrap. */
   override open(): ReturnType<Dexie['open']> {
@@ -89,12 +128,9 @@ export class PlanarDB extends Dexie {
       return super.open();
     }) as ReturnType<Dexie['open']>;
   }
-  /** Table and index set of this build; stored with the cursor of a bootstrap (`schema` in _meta). */
+  /** Entity table set of this build (dataSig); stored with the cursor of a bootstrap (`schema` in _meta). */
   schemaSig(): string {
-    return this.tables
-      .map((t) => `${t.name}:${t.schema.indexes.map((i) => i.name).join(',')}`)
-      .sort()
-      .join(';');
+    return dataSig(this.tables.map((t) => t.name).join(';'));
   }
   /** entity tables (without service ones) */
   entityTables(): Table[] {

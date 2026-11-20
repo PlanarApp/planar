@@ -132,7 +132,14 @@ describe('packs', () => {
       'раньше своей зависимости',
     );
     expect(parseInstructionDoc(files['actions/plan.md']!).prompt).toContain('«Допущения»');
-    expect(parseInstructionDoc(files['actions/dev.md']!).prompt).toContain('«Test prod»');
+    expect(parseInstructionDoc(files['actions/triage.md']!).prompt).toContain(
+      'описание задачи пустое',
+    );
+    expect(parseInstructionDoc(files['actions/triage.md']!).prompt).toContain('предварительную');
+    const dev = parseInstructionDoc(files['actions/dev.md']!).prompt;
+    expect(dev).toContain('moveTo: null — статус переведёт слияние MR');
+    expect(dev).not.toContain('moveTo: «Test prod»');
+    expect(dev).toContain('glab ci list --ref');
   });
 
   it('загрузка раскладывает документы, пишет хеши; активация и права', async () => {
@@ -272,26 +279,40 @@ describe('packs', () => {
       apiKey: 'sk-test',
       model: 'fake',
     });
+    // PLNRAPP-538: preview — every page that differs from the pack, touched by the user or not
+    const pv = (
+      await call('POST', 'packs/preview', 'admin', { projectId: w.projectId, packKey: 'dev', zip })
+    ).json();
+    expect(pv.pages.map((p: { key: string }) => p.key).sort()).toEqual(['plan', 'triage']);
+    const pvPlan = pv.pages.find((p: { key: string }) => p.key === 'plan');
+    expect(pvPlan).toMatchObject({ kind: 'changed', edited: true, title: 'Планирование' });
+    expect(pvPlan.current).toContain('Моя правка.');
+    expect(pvPlan.incoming).toContain('Новая проверка задачи');
+    expect(pv.pages.find((p: { key: string }) => p.key === 'triage')).toMatchObject({
+      edited: false,
+    });
+
+    // merge: all the chosen pages in one request, nothing is written
     llmReplies = 0;
     const m = (
       await call('POST', 'packs/merge', 'admin', {
         projectId: w.projectId,
         packKey: 'dev',
         zip,
-        key: 'plan',
+        keys: ['plan', 'triage'],
       })
     ).json();
-    expect(llmReplies).toBe(1);
-    expect(m.merged).toContain('Слитый промпт');
-    expect(m.current).toContain('Моя правка.');
-    expect(m.incoming).toContain('Новая проверка задачи');
+    expect(llmReplies).toBe(2);
+    expect(m.merged.plan).toContain('Слитый промпт');
+    expect(m.merged.triage).toContain('Слитый промпт');
+    expect(m.warnings).toEqual([]);
     expect(
       (
         await call('POST', 'packs/merge', 'admin', {
           projectId: w.projectId,
           packKey: 'dev',
           zip,
-          key: 'triage',
+          keys: ['plan', 'decompose'],
         })
       ).statusCode,
     ).toBe(409);
@@ -314,7 +335,7 @@ describe('packs', () => {
     });
     expect(bad.statusCode).toBe(400);
     const mg = (
-      await up(w.projectId, { zip: zip2, resolve: { plan: { merged: m.merged } } })
+      await up(w.projectId, { zip: zip2, resolve: { plan: { merged: m.merged.plan } } })
     ).json();
     expect(mg).toMatchObject({ status: 'ok', updated: ['plan'] });
     const merged = (await pages(w.projectId)).find((p) => p.id === planPage.id)!;
@@ -334,6 +355,35 @@ describe('packs', () => {
     expect(reset.title).toBe('Планирование');
     expect(textOf(reset.body)).toContain('Третья версия');
     expect(textOf(reset.body)).not.toContain('Моя правка');
+
+    // PLNRAPP-538: «keep» of a page the user did not touch keeps it; a merged harness.yml that lost the pack's
+    // statuses, actions, rules comes with warnings
+    const zip4 = b64({
+      ...files,
+      'actions/triage.md': triage.replace('Разбери новую задачу.', 'Четвёртая версия.'),
+      'harness.yml': `${files['harness.yml']!}\n# новая версия\n`,
+    });
+    const kt = (await up(w.projectId, { zip: zip4, resolve: { triage: 'keep' } })).json();
+    expect(kt).toMatchObject({ status: 'ok', kept: ['triage'], updated: ['harness.yml'] });
+    expect(textOf((await pages(w.projectId)).find((p) => p.title === 'Триаж')!.body)).not.toContain(
+      'Четвёртая версия',
+    );
+    const zip5 = b64({ ...files, 'harness.yml': `${files['harness.yml']!}\n# пятая версия\n` });
+    const my = (
+      await call('POST', 'packs/merge', 'admin', {
+        projectId: w.projectId,
+        packKey: 'dev',
+        zip: zip5,
+        keys: ['harness.yml'],
+      })
+    ).json();
+    expect(my.warnings).toHaveLength(1);
+    expect(my.warnings[0]).toMatch(/^harness\.yml: /);
+    expect(
+      (await up(w.projectId, { zip: zip3, resolve: { 'harness.yml': 'reset' } })).json(),
+    ).toMatchObject({
+      status: 'ok',
+    });
   });
 
   it('экспорт → импорт: круг даёт те же файлы и те же хеши', async () => {

@@ -1,16 +1,22 @@
 import { computed, toValue } from 'vue';
 import { i18n } from '../i18n';
 import type { MaybeRefOrGetter } from 'vue';
-import type { Row } from '@planar/shared';
+import type { AssignedComments, Row } from '@planar/shared';
 import { useLive } from '../links/live';
 import { db, useQuery } from '../sync';
 import { byRank } from './dictionaries';
-import { readLinks } from './projection';
+import { assignedCommentsView, readLinks } from './projection';
 
 export { useLabels, useMembers, useStatuses } from './dictionaries';
 export { prefetchIdle, prefetchProject, useProjectTasks, useScopeTasks } from './projection';
 
-export type TaskView = Row<'tasks'> & { key: string; assigneeIds: string[]; labelIds: string[] };
+export type TaskView = Row<'tasks'> & {
+  key: string;
+  assigneeIds: string[];
+  labelIds: string[];
+  /** PLNRAPP-576: assigned comments of the task (not of subtasks); assignedToMe — for the signed-in user */
+  assignedComments: AssignedComments;
+};
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
 
@@ -24,7 +30,11 @@ const group = (rows: { taskId: string }[], val: (r: never) => string) => {
   return m;
 };
 
-async function views(tasks: Row<'tasks'>[], projectKey: Map<string, string>): Promise<TaskView[]> {
+/** tasks → TaskView (key, assignees, labels, assigned comments) in one query per link table */
+export async function views(
+  tasks: Row<'tasks'>[],
+  projectKey: Map<string, string>,
+): Promise<TaskView[]> {
   const ids = tasks.map((t) => t.id);
   // one query for all tasks, not one per task in a loop
   const [as, ls] = await Promise.all([
@@ -38,6 +48,7 @@ async function views(tasks: Row<'tasks'>[], projectKey: Map<string, string>): Pr
     key: `${projectKey.get(t.projectId) ?? '?'}-${t.number ?? '…'}`,
     assigneeIds: am.get(t.id) ?? [],
     labelIds: lm.get(t.id) ?? [],
+    assignedComments: assignedCommentsView(t),
   }));
 }
 
@@ -70,6 +81,23 @@ export const useRootSpaceId = () =>
     const v = (await db.table<Row<'settings'>>('settings').get('root_space'))?.value;
     return typeof v === 'string' ? v : null;
   });
+
+/** Ids of archived projects: their statuses, labels and fields are not filter options of a space summary (PLNRAPP-508). */
+export const useArchivedProjectIds = () =>
+  useQuery(
+    async () =>
+      new Set(
+        (await db.table<Row<'projects'>>('projects').toArray())
+          .filter((p) => p.archivedAt)
+          .map((p) => p.id),
+      ),
+  );
+
+/** Rows of live projects only (`archived` — from useArchivedProjectIds). */
+export const notArchived = <T extends { projectId?: string | null }>(
+  rows: T[] | undefined,
+  archived: Set<string> | undefined,
+): T[] => (rows ?? []).filter((r) => !r.projectId || !archived?.has(r.projectId));
 
 export function useSpaces() {
   return useQuery(async () => {

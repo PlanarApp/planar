@@ -104,6 +104,12 @@ export const entitySchemas = {
     cycleId: uuid.nullable(),
     archivedAt: ts.nullable().default(null),
     archivedBy: uuid.nullable().default(null),
+    /** C-schema v30 (PLNRAPP-576): assigned comments of the task (any assignee), written only by the server */
+    commentsAssigned: z.number().int().min(0).default(0),
+    /** of them resolved */
+    commentsResolved: z.number().int().min(0).default(0),
+    /** assignees of the open (not resolved) assigned comments, in id order */
+    commentsOpenAssignees: z.array(uuid).default([]),
     createdAt: ts,
     updatedAt: ts,
   }),
@@ -315,6 +321,11 @@ export interface EntityMeta {
   indexes: string[];
   /** scope 'space|members' (C-sync v2): container members, rows without spaceId */
   members?: { entity: string; key: string; container: string; via: string };
+  /**
+   * detail entity (C-sync v3): the rows belong to a task, the client keeps them only for tasks in `_held`;
+   * the task id — `changes[].taskId` of pull and the `tasks[]` item of `POST /sync/tasks`. Absent — core.
+   */
+  detail?: 'tasks';
 }
 
 export const ENTITIES = {
@@ -367,8 +378,20 @@ export const ENTITIES = {
     bootstrap: true,
     indexes: ['taskId', 'assigneeId'],
   },
-  comments: { scope: 'space', write: 'guest', bootstrap: true, indexes: ['taskId', 'assigneeId'] },
-  commentReactions: { scope: 'space', write: 'guest', bootstrap: true, indexes: ['commentId'] },
+  comments: {
+    scope: 'space',
+    write: 'guest',
+    bootstrap: true,
+    indexes: ['taskId', 'assigneeId'],
+    detail: 'tasks',
+  },
+  commentReactions: {
+    scope: 'space',
+    write: 'guest',
+    bootstrap: true,
+    indexes: ['commentId'],
+    detail: 'tasks',
+  },
   attachments: {
     scope: 'space',
     write: 'member',

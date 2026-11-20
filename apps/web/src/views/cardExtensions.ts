@@ -14,7 +14,7 @@ export function useCardExtensions(projectId: () => string) {
         if (!cache.has(p.key))
           cache.set(
             p.key,
-            defineAsyncComponent(() => p.component().then((m) => m.default)),
+            defineAsyncComponent(() => (p.cardComponent ?? p.component)().then((m) => m.default)),
           );
         return { key: p.key, view: cache.get(p.key)! };
       }),

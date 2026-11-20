@@ -2,10 +2,10 @@
 type: contract
 status: closed
 module: core
-updated: 2026-11-02
+updated: 2026-11-18
 summary: Core contracts — C-schema, C-sync, C-mutators, C-modules, C-http; versions are in the headings, examples are checked by the contract test
 related: ["docs/plan/core.md", "docs/roadmap.md", "docs/contracts/core-schema.md"]
-contracts: [{"id": "C-schema", "version": 17}, {"id": "C-sync", "version": 2}, {"id": "C-mutators", "version": 14}, {"id": "C-modules", "version": 12}, {"id": "C-http", "version": 12}]
+contracts: [{"id": "C-schema", "version": 17}, {"id": "C-sync", "version": 3}, {"id": "C-mutators", "version": 14}, {"id": "C-modules", "version": 12}, {"id": "C-http", "version": 13}]
 ---
 
 # Contracts of the core module
@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v29
+## C-schema v30
+
+v30 (PLNRAPP-576): `tasks.commentsAssigned`, `tasks.commentsResolved`, `tasks.commentsOpenAssignees` — counters of the task's own assigned comments (subtasks are not summed), written only by the server — core-schema.md; REST v1 task += `assignedComments: {total, resolved, assignedToMe}` — core-api-v1.md.
 
 v29 (PLNRAPP-209): `notifications.kind` += `doc_comment_assigned` (a comment on a docs module page assigned to the user, `url` — `/m/docs/<pageId>?comment=<id>`).
 
@@ -104,6 +106,7 @@ The suffix `?` means `.nullable()` (the key is present, the value may be `null`)
 - Creating a space (`put` of a new row into `spaces`) is allowed to anyone with `users.role` ≠ guest; in the same transaction they may create a `spaceMembers` row for themselves with the admin role.
 - `bootstrap` — whether the entity is included in `GET /sync/bootstrap` (`no` — only via pull and its own REST).
 - `indexes` — fields allowed for `Tx.scan({index, eq})` (in Dexie these are indexes; in the DB — b-tree).
+- `detail: tasks` (optional, C-sync v3) — a detail entity: its rows belong to a task and are kept by the client only for tasks in `_held` (§C-sync «Detail entities»); `ENTITIES[e].detail = 'tasks'`. Absent — a core entity.
 
 ### Entities
 
@@ -124,11 +127,32 @@ Entities — docs/contracts/core-schema.md (part of C-schema v22).
 
 Migrations — drizzle-kit, directory `apps/api/drizzle/`, schema — `apps/api/src/db/schema.ts` (+ module schemas `modules/*/api/schema.ts`, tables prefixed with `<moduleId>_`).
 
-## C-sync v2
+## C-sync v3
+
+v3 (PLNRAPP-481): detail entities (`comments`, `commentReactions`) — the client keeps them only for the tasks it holds; protocol version `3`, `held` in bootstrap, `taskId` in pull changes, `POST /sync/tasks` — a snapshot of task details with `cursor`.
 
 v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core items 1–2.
 
-Transport — JSON over HTTP, authorization — session (C-http) or Bearer. Request-level errors use the C-http format (`401 unauthenticated`, `400 invalid_request`, `413 payload_too_large`, `500 internal`).
+Transport — JSON over HTTP, authorization — session (C-http) or Bearer. Request-level errors use the C-http format (`401 unauthenticated`, `400 invalid_request`, `413 payload_too_large`, `426 upgrade_required`, `500 internal`).
+
+### Protocol version (v3)
+- `SYNC_PROTOCOL = 3` (`packages/shared`). The client sends it in the header `X-Sync-Protocol: 3` with every `/sync/*` request and in the body of `POST /sync/tasks` as `protocol: 3`.
+- No header or `protocol < 3` in `bootstrap`/`pull` — the server answers by the v2 rules: detail entities in full in bootstrap, no `held`, no `taskId` filtering on the client. This lasts until the transition ends; then such clients get `426 upgrade_required`. `POST /sync/tasks` with `protocol < 3` — `426` at once.
+- A change of the protocol version on the client resets the replica: all tables are cleared, `_held` included, then bootstrap.
+
+### Detail entities (v3)
+Entities with `detail: tasks` in the registry (`ENTITIES[e].detail`; absent — core): `comments`, `commentReactions`. Their rows belong to a task: `comments` — `taskId` of the row; `commentReactions` — `taskId` of its comment (denormalized by the server, the row has no such field).
+
+| entity | detail | the task of a row |
+|---|---|---|
+| `comments` | `tasks` | `row.taskId` |
+| `commentReactions` | `tasks` | `taskId` of the comment `row.commentId` |
+| the rest | — | — |
+
+- Every pull change of a detail entity (`put` and `del`) carries `taskId`; the snapshot of `POST /sync/tasks` groups rows by task.
+- The client keeps the details of a task only if it has a row `_held {taskId, loadedAt, accessedAt}` (a local Dexie table, not synced).
+- Incoming changes of a detail entity whose `taskId` is not in `_held` are dropped by the client; the cursor still advances.
+- The stream of changes carries details of all tasks visible to the user (the same visibility as v2); the server does not filter by `_held`.
 
 ### The `changes` journal
 - Every write of the server `Tx` adds a row: `put` — with the full row in `data` (wire format, camelCase), `del` — `data = null`. `patch` also yields a `put` with the full row.
@@ -156,6 +180,16 @@ One `REPEATABLE READ` snapshot. `cursor` = `max(seq)` of the journal (0 — empt
 {"cursor": "1042", "lastMutationId": 17, "data": {}}
 ```
 
+**v3 (`X-Sync-Protocol: 3`).** Core entities — in full, as in v2. Detail entities — only rows of «my» tasks: tasks visible to the user that are assigned to them (`taskAssignees`) and not resolved (status category not `done`/`cancelled`), plus tasks of their `notifications.taskId`. `held` — ids of all these tasks (also those without detail rows): the client creates `_held` rows for them (`loadedAt = accessedAt = now`) in the same transaction as writing `data`. Without v3 — no `held`, details in full (v2).
+
+```json example=sync.bootstrap
+{"cursor": 1042, "lastMutationId": 17, "data": {"tasks": [], "comments": [], "commentReactions": []}, "held": ["0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d"]}
+```
+
+```json bad=sync.bootstrap
+{"cursor": 1042, "lastMutationId": 17, "data": {}, "held": ["x"]}
+```
+
 ### `GET /sync/pull?cursor=<int>&clientId=<uuid>`
 One `REPEATABLE READ` snapshot. `changes` — rows visible to the user with `seq > cursor`, in ascending `seq`, of enabled modules only. The response `cursor` = `max(seq)` of the journal (not only of the visible rows). `reset: true` (and `changes: []`) if: among the visible rows there is a `_reset`; `cursor` is greater than `max(seq)` or less than the minimum stored `seq - 1`; there are more than 5000 visible rows. On `reset` the client does a bootstrap again.
 
@@ -176,6 +210,16 @@ One `REPEATABLE READ` snapshot. `changes` — rows visible to the user with `seq
 
 ```json bad=sync.pull
 {"cursor": 1050, "lastMutationId": 18, "changes": [{"seq": 1043, "entity": "tasks", "id": "x", "op": "patch", "data": {}}]}
+```
+
+**v3.** A change of a detail entity carries `taskId` — the task of the row (for `del` too: the server takes it from the journal). The client applies it only if `taskId` is in `_held`, otherwise drops it; `cursor` advances anyway. Changes of core entities have no `taskId`.
+
+```json example=sync.pull
+{"cursor": 1051, "lastMutationId": 18, "changes": [{"seq": 1051, "entity": "commentReactions", "id": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a81", "op": "del", "taskId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d"}]}
+```
+
+```json bad=sync.pull
+{"cursor": 1051, "lastMutationId": 18, "changes": [{"seq": 1051, "entity": "comments", "id": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a81", "op": "del", "taskId": "x"}]}
 ```
 
 ### `POST /sync/push`
@@ -203,6 +247,51 @@ Body ≤ 1 MB, mutations ≤ 100. `mutations[].id` — an integer > 0, growing o
 {"results": [{"id": 19, "ok": false, "code": "oops"}]}
 ```
 
+### `POST /sync/tasks` (v3)
+A snapshot of the details of the given tasks — to load a task that is not in `_held` (opened from a list, search, a link) or one that has cooled down.
+
+Request: `protocol` — the client's protocol version; `ids` — 1–100 (`SYNC_TASKS_MAX`) unique task uuids.
+
+```json example=sync.tasksRequest
+{"protocol": 3, "ids": ["0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d", "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a82"]}
+```
+
+```json bad=sync.tasksRequest
+{"protocol": 3, "ids": ["0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d", "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d"]}
+```
+
+```json bad=sync.tasksRequest
+{"protocol": 3, "ids": []}
+```
+
+Response `200` — one `REPEATABLE READ` snapshot:
+- `cursor` — `max(seq)` of the journal at the moment of the snapshot, the same format and monotonicity as the pull `cursor`; the snapshot includes all changes with `seq ≤ cursor`.
+- `tasks` — one item for every requested id, the order is not guaranteed: `ok` — the task is visible to the user, `comments` and `commentReactions` — all its rows (the key is present even when empty); `forbidden` — the task exists but is not visible; `not_found` — there is no such task (deleted ones included).
+- Permissions — as in `taskActivity()`: the task must be visible to the user (space, a hidden project — PJ-11), comments and reactions are filtered by the same rules.
+- Errors: `400 invalid_request` — `ids` is not 1–100 unique uuids (or no `protocol`); `401 unauthenticated` — no session; `426 upgrade_required` — `protocol < 3`.
+
+```json example=sync.tasksResponse
+{
+  "cursor": 1050,
+  "tasks": [
+    {"taskId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d", "status": "ok", "comments": [], "commentReactions": []},
+    {"taskId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a82", "status": "forbidden"},
+    {"taskId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a83", "status": "not_found"}
+  ]
+}
+```
+
+```json bad=sync.tasksResponse
+{"cursor": 1050, "tasks": [{"taskId": "0192b3c4-5d6e-7f80-9a1b-2c3d4e5f6a7d", "status": "ok"}]}
+```
+
+Applying the snapshot on the client:
+1. Only if `snapshot.cursor ≥ local cursor`; otherwise the request is repeated after the next pull.
+2. In one Dexie transaction together with `_held`.
+3. `ok` — the details of the task are replaced in full (detail rows of the task absent from the snapshot are deleted); `_held` gets `loadedAt = accessedAt = now`.
+4. `forbidden`, `not_found` — the details of the task and its `_held` row are deleted.
+5. Stream changes with `seq ≤ snapshot.cursor` for these tasks are already included; applying them again is idempotent.
+
 ### WebSocket `/ws`
 Authorization — the session cookie at upgrade (plus an Origin check, C-http); without a session — close with code 4401. The server listens to `LISTEN planar_changes` on one connection and sends `{t:'poke', seq}` to all connected clients (batches may be merged for up to 50 ms; seq is the last one). After connecting, the client sends `{t:'hello', cursor}`; if `max(seq) > cursor`, the server replies with `poke` immediately. On `poke` with `seq > cursor` the client does a pull. Ping — WS ping/pong every 30 s. No data is transferred over WS.
 
@@ -220,6 +309,8 @@ Authorization — the session cookie at upgrade (plus an Origin check, C-http); 
 
 ### Client (for web)
 Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from the queue the mutations with `id ≤ lastMutationId` and re-applies the rest on top of the server state (rebase). Push is retried on a network error and `5xx` with a growing pause of 1–30 s; `401` — redirect to sign-in.
+
+v3: details of a task are kept only while it is in `_held` (bootstrap `held`, `POST /sync/tasks`); opening a task updates `accessedAt`. Cooling: the leader tab, when the queue is empty, deletes the details, the `_held` row and the task's y-indexeddb database for tasks not accessed for 30 days, except «my» open tasks; the protocol does not change — a cooled task is loaded again via `POST /sync/tasks`. `reset` and a change of the protocol version clear `_held` too.
 
 ## C-mutators v22
 
@@ -329,7 +420,9 @@ HTTP routes of a module — only under `/api/<id>/` (the enable guard finds them
 
 Enabling — `settings.enabled_modules`. A disabled module: its HTTP routes answer `404 module_disabled`, its mutators — `unknown_mutator`, its entities do not reach bootstrap and pull. All modules are loaded at API start (the routes are always there, the guard does the check); a change of `enabled_modules` writes `_reset` for everyone.
 
-## C-http v12
+## C-http v13
+
+v13 (PLNRAPP-481): `426 upgrade_required` — the client's protocol is older than the server supports (C-sync v3).
 
 v12 (ops): `GET /api/health/ready`, `GET /api/metrics` (docs/contracts/ops.md).
 
@@ -356,6 +449,7 @@ Any non-2xx response is JSON `{code, message, details?}`. `details` of `invalid_
 | 404 | `not_found`, `module_disabled` |
 | 409 | `conflict` |
 | 413 | `payload_too_large` |
+| 426 | `upgrade_required` |
 | 429 | `rate_limited` |
 | 500 | `internal` |
 | 503 | `unavailable` |

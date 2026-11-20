@@ -34,6 +34,11 @@ export interface TxWrite {
   after?: Wire;
 }
 const RANK: Record<string, number> = { guest: 1, member: 2, admin: 3 };
+/** tasks counters of assigned comments (C-schema v30): only the server writes them, mutators cannot */
+const COMMENT_COUNTERS = ['commentsAssigned', 'commentsResolved', 'commentsOpenAssignees'] as const;
+/** what of a comment row the counters depend on; null — not assigned */
+const counted = (c: Wire | undefined) =>
+  c?.assigneeId ? `${c.taskId}|${c.assigneeId}|${c.resolvedAt ? 1 : 0}` : null;
 /** seq order = commit order (C-sync "changes journal"). */
 const LOCK_KEY = 7311;
 
@@ -211,6 +216,7 @@ export class ServerTx implements Tx {
     if (entity === 'spaceMembers' || entity === 'projectMembers')
       await this.reset(old.userId as string);
     await this.activity(entity, old, undefined);
+    if (entity === 'comments') await this.commentsChanged(old, undefined);
   }
 
   async scan<E extends EntityName>(
@@ -273,6 +279,9 @@ export class ServerTx implements Tx {
     if (entity === 'projects') await this.checkMembersMode(old, next);
     if (entity === 'tasks' && next.number == null)
       next.number = await this.nextNumber(next.projectId as string);
+    if (entity === 'tasks')
+      for (const k of COMMENT_COUNTERS)
+        next[k] = old ? old[k] : k === 'commentsOpenAssignees' ? [] : 0;
     await this.store(entity, next, extra);
     if (moved) await this.relocate(entity, next, old!);
     if (!old) await this.memberChange(entity, next, 'put');
@@ -298,6 +307,42 @@ export class ServerTx implements Tx {
       await this.log('_reset', 'put', null, next.id as string);
     }
     await this.activity(entity, old, next);
+    if (entity === 'comments') await this.commentsChanged(old, next);
+  }
+
+  /** PLNRAPP-576: an assigned comment was created, (re)assigned, resolved, moved or deleted — recount its tasks */
+  private async commentsChanged(old: Wire | undefined, next: Wire | undefined): Promise<void> {
+    const [a, b] = [counted(old), counted(next)];
+    if (a === b) return;
+    const ids = new Set([old?.taskId, next?.taskId].filter(Boolean) as string[]);
+    for (const id of ids) await this.recountComments(id);
+  }
+
+  /** Recomputes the tasks counters of assigned comments; written without activity, hooks and updatedAt. */
+  private async recountComments(taskId: string): Promise<void> {
+    const task = (await this.rawGet('tasks', taskId)) as Wire | undefined;
+    if (!task) return; // the task itself is being deleted
+    const c = schema.comments;
+    const [r] = await this.exec(() =>
+      this.q
+        .select({
+          total: sql<number>`count(*)::int`,
+          resolved: sql<number>`(count(*) filter (where ${c.resolvedAt} is not null))::int`,
+          // json: node-postgres does not parse uuid[] of a raw expression
+          open: sql<
+            string[]
+          >`coalesce(json_agg(distinct ${c.assigneeId} order by ${c.assigneeId}) filter (where ${c.resolvedAt} is null), '[]'::json)`,
+        })
+        .from(c)
+        .where(and(eq(c.taskId, taskId), sql`${c.assigneeId} is not null`)),
+    );
+    const counters: Wire = {
+      commentsAssigned: r?.total ?? 0,
+      commentsResolved: r?.resolved ?? 0,
+      commentsOpenAssignees: r?.open ?? [],
+    };
+    if (COMMENT_COUNTERS.every((k) => stable(task[k]) === stable(counters[k]))) return;
+    await this.store('tasks', this.parse('tasks', { ...task, ...counters }));
   }
 
   /** C-mutators v5: a newly enabled module with unavailable ≠ null → invalid_args (reason code). */

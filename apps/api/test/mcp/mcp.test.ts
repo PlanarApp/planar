@@ -108,6 +108,7 @@ describe('MCP /mcp', () => {
     'PATCH /api/v1/tasks/{task}': 'update_task',
     'GET /api/v1/tasks/{task}/comments': 'get_task',
     'POST /api/v1/tasks/{task}/comments': 'add_comment',
+    'GET /api/v1/tasks/{task}/assigned-comments': 'list_assigned_comments',
     'PATCH /api/v1/comments/{id}': 'update_comment',
     'GET /api/v1/tasks/{task}/links': 'get_task',
     'POST /api/v1/tasks/{task}/links': 'link_tasks',
@@ -210,6 +211,10 @@ describe('MCP /mcp', () => {
       w.admin.userId,
       'уточни',
     ]);
+    const [e0, list] = await call(c, 'list_assigned_comments', { task: t.key });
+    expect(e0).toBe(false);
+    expect(list.counts).toEqual({ open: 1, total: 1 });
+    expect(list.data.map((x: { id: string }) => x.id)).toEqual([reply.id]);
     const [, done] = await call(c, 'update_comment', { id: reply.id, resolved: true });
     expect(done.resolvedBy).toBe(w.member.userId); // the author completes
     const [, open] = await call(c, 'update_comment', { id: reply.id, resolved: false });

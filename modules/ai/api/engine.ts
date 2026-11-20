@@ -8,6 +8,7 @@ import { uuidv7 } from '@planar/shared';
 import { matched } from '@planar/module-automations/api';
 import { resolveConnection, secretOf } from './connections.js';
 import { generateStructured } from './llm.js';
+import type { Tracker } from './monitor.js';
 import type { RunReport } from './schema.js';
 import {
   aiEnabled,
@@ -106,7 +107,7 @@ export async function wakeParent(q: Pick<Q, 'execute'>, enqueue: Enqueue, run: R
     wokenBy: run.id,
   };
   await enqueueRun(q, enqueue, d, { singletonKey: keyOf(d), upsert: true });
-  await enqueue(RECONCILE_QUEUE, {}, { singletonKey: RECONCILE_QUEUE });
+  await enqueue(RECONCILE_QUEUE, { trigger: 'event' }, { singletonKey: RECONCILE_QUEUE });
 }
 
 /** For the prompt of a parent woken by a subtask: what happened; '' — not woken. */
@@ -331,20 +332,25 @@ export const RECONCILE_QUEUE = 'ai.engine.reconcile';
 /**
  * Cron: a task on the AI in a status where an enabled rule (`task.status_changed` → `to`) runs an action, matching the
  * rule's conditions, whose last run of the action is missing or failed with attempts left (after a pause) → queued.
- * A done, cancelled (stopped by a person) or active run is left alone, a task with an open blocker waits.
+ * A done, cancelled (stopped by a person) or active run is left alone, a task with an open blocker waits, and so
+ * does a task with an active run of any action (PLNRAPP-537: the plan does not start while triage waits for answers).
+ * PLNRAPP-500: a pass of the engine «task control» (engines.ts); `projectId` — only the project (a manual pass).
  */
-export async function reconcile(_d: object, api: JobApi) {
-  if (!(await aiEnabled(api.db))) return;
+export async function reconcilePass(api: JobApi, t: Tracker, projectId: string | null = null) {
+  if (!(await aiEnabled(api.db))) return void (await t.step('сверка: ИИ выключен — пропуск'));
   const bot = await botOf(api);
-  if (!bot) return;
+  if (!bot) return void (await t.step('сверка: нет бота ИИ — пропуск'));
+  await t.check();
   const found = (
     await api.db.execute(
       sql`select x.rule_id as "ruleId", x.action_id as "actionId", t.id as "taskId", t.status_id as "statusId",
+            t.project_id as "projectId", p.key || '-' || t.number as key,
             l.id as "lastId", l.state, l.attempt, a.max_attempts as "maxAttempts",
             l.finished_at < now() - make_interval(secs => 60 * l.attempt) as "paused"
           from (select r.id as rule_id, r.project_id, r.trigger, (e->>'aiActionId')::uuid as action_id
                 from automations_rules r cross join lateral jsonb_array_elements(r.actions) e
-                where r.enabled and r.trigger->>'type' = 'task.status_changed' and e->>'type' = 'ai_run') x
+                where r.enabled and r.trigger->>'type' = 'task.status_changed' and e->>'type' = 'ai_run'
+                  ${projectId ? sql`and r.project_id = ${projectId}::uuid` : sql``}) x
           join projects p on p.id = x.project_id and 'ai' = any(p.modules) and 'automations' = any(p.modules)
           join ai_actions a on a.id = x.action_id and a.project_id = x.project_id
           join tasks t on t.project_id = x.project_id and t.archived_at is null
@@ -353,6 +359,8 @@ export async function reconcile(_d: object, api: JobApi) {
           left join lateral (select id, state, attempt, finished_at from ai_runs
             where task_id = t.id and action_id = x.action_id order by created_at desc limit 1) l on true
           where (l.id is null or l.state = 'failed') and not ${openBlocker(sql`t.id`)}
+            and not exists (select 1 from ai_runs o where o.task_id = t.id
+              and o.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks'))
           limit 200`,
     )
   ).rows as {
@@ -360,6 +368,8 @@ export async function reconcile(_d: object, api: JobApi) {
     actionId: string;
     taskId: string;
     statusId: string;
+    projectId: string;
+    key: string;
     lastId: string | null;
     attempt: number | null;
     maxAttempts: number | null;
@@ -367,6 +377,7 @@ export async function reconcile(_d: object, api: JobApi) {
   }[];
   for (const f of found) {
     if (f.lastId && (!f.paused || f.attempt! >= maxAttemptsOf(f))) continue;
+    await t.check();
     if (!(await matched(api, f.ruleId, f.taskId))) continue;
     const runId = uuidv7();
     const d = {
@@ -385,10 +396,46 @@ export async function reconcile(_d: object, api: JobApi) {
       { singletonKey: keyOf(d), upsert: true },
       (f.attempt ?? 0) + 1,
     );
-    await note(
-      api.db,
-      runId,
-      f.lastId ? 'сверка: повтор упавшего запуска' : 'сверка: задача стоит в статусе действия',
-    );
+    const why = f.lastId ? 'повтор упавшего запуска' : 'задача стоит в статусе действия';
+    await note(api.db, runId, `сверка: ${why}`);
+    t.count();
+    await t.step(`сверка: ${f.key} — ${why}, ИИ запущен (попытка ${(f.attempt ?? 0) + 1})`, {
+      projectId: f.projectId,
+      taskId: f.taskId,
+      level: 'action',
+    });
+  }
+  await ciPass(api, t, projectId);
+}
+
+/**
+ * The CI part of the task control: the AI runs a rule `mr.pipeline` (a failed pipeline of the task's MR → the AI
+ * fixes it) started since the previous pass — into the monitor's log. The rule itself runs from the GitLab poll.
+ */
+async function ciPass(api: JobApi, t: Tracker, projectId: string | null) {
+  const runs = (
+    await api.db.execute(
+      sql`select r.id, r.task_id as "taskId", r.project_id as "projectId", r.state,
+            p.key || '-' || tk.number as key
+          from ai_runs r join automations_rules ar on ar.id = r.rule_id
+            join tasks tk on tk.id = r.task_id join projects p on p.id = tk.project_id
+          where ar.trigger->>'type' = 'mr.pipeline'
+            -- (the previous pass's start; this pass's start]: passes see each run once
+            and r.created_at <= (select started_at from ai_engine_runs where id = ${t.id})
+            and r.created_at > coalesce((select max(started_at) from ai_engine_runs
+              where engine = 'tasks' and job in ('reconcile', 'manual') and project_id is null and id <> ${t.id}
+                and started_at < (select started_at from ai_engine_runs where id = ${t.id})),
+              now() - interval '5 minutes')
+            ${projectId ? sql`and r.project_id = ${projectId}::uuid` : sql``}
+          order by r.created_at limit 100`,
+    )
+  ).rows as { taskId: string; projectId: string; key: string; state: string }[];
+  for (const r of runs) {
+    t.count();
+    await t.step(`CI: ${r.key} — ИИ запущен по конвейеру MR (прогон: ${r.state})`, {
+      projectId: r.projectId,
+      taskId: r.taskId,
+      level: 'action',
+    });
   }
 }

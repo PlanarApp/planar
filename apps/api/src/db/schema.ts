@@ -197,6 +197,13 @@ export const tasks = pgTable(
     cycleId: uuid(),
     archivedAt: ts(),
     archivedBy: userRef(),
+    // PLNRAPP-576: assigned comments of the task itself (not subtasks); maintained by ServerTx
+    commentsAssigned: integer().notNull().default(0),
+    commentsResolved: integer().notNull().default(0),
+    commentsOpenAssignees: uuid()
+      .array()
+      .notNull()
+      .default(sql`'{}'`),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

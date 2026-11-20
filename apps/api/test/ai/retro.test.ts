@@ -409,7 +409,7 @@ describe('harness-retro: сбор подзадач', () => {
 });
 
 describe('harness-retro: предложения', () => {
-  async function propose() {
+  async function propose(auto = false) {
     const t = await task();
     await runAction(t, result({ friction: 'Нет критериев готовности' }));
     const [item] = await items();
@@ -428,12 +428,14 @@ describe('harness-retro: предложения', () => {
           action: 'plan',
           newAction: null,
           prompt: `${PROMPT}\n\nВ конце плана — критерии готовности.`,
+          auto,
         },
       ],
     });
     await handler('ai.retro')({ kind: 'run', projectId: P }, api);
     expect(calls.at(-1)!.prompt).toContain('Нет критериев готовности');
     expect(calls.at(-1)!.prompt).toContain(PROMPT);
+    expect(calls.at(-1)!.system).toContain('Репозиторий, коммиты, ветки и MR тебя не касаются');
     const p = await one(`select * from ai_retro_proposals where project_id = $1`, [P]);
     return { p, item: item!.id as string };
   }
@@ -531,5 +533,162 @@ describe('harness-retro: предложения', () => {
     expect(calls.at(-1)!.prompt).toContain('Нет критериев готовности');
     const page = await one(`select body::text as b from docs_pages where id = $1`, [pageId]);
     expect(page.b).not.toContain('критерии готовности');
+  });
+
+  const pageText = async () =>
+    (await one(`select body::text as b from docs_pages where id = $1`, [pageId])).b as string;
+  const decideLast = async () => handler('ai.retro')(take('ai.retro')!.data, api);
+
+  it('ответ на ответ бота и @ai в подзадаче правки → retro, не прогон упоминания; закрытая правка открывается', async () => {
+    const { p } = await propose();
+    const a = uuidv7();
+    await w.admin.ok('comment.create', {
+      id: a,
+      taskId: p.task_id,
+      parentId: p.comment_id,
+      body: doc('закрыть'),
+    });
+    await decideLast();
+    const botReply = await one(`select id from comments where parent_id = $1`, [a]);
+    // a reply to the bot's answer, two levels down: still the proposal's, not a run of «mention»
+    await w.admin.ok('comment.create', {
+      id: uuidv7(),
+      taskId: p.task_id,
+      parentId: botReply.id,
+      body: doc('верни, но короче'),
+    });
+    expect(take('ai.run')).toBeUndefined();
+    answers.push({
+      title: 'Критерии коротко',
+      why: 'Короче.',
+      prompt: `${PROMPT}\n\nКритерии готовности — в конце.`,
+      rule: null,
+    });
+    await decideLast();
+    expect(calls.at(-1)!.prompt).toContain('верни, но короче');
+    const q = await one(`select state, comment_id from ai_retro_proposals where id = $1`, [p.id]);
+    expect(q.state).toBe('pending');
+    expect((await one(`select status_id from tasks where id = $1`, [p.task_id])).status_id).toBe(
+      S.clarify,
+    );
+    // @ai at the top level of the subtask
+    await w.admin.ok('comment.create', {
+      id: uuidv7(),
+      taskId: p.task_id,
+      body: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'mention', attrs: { id: bot, label: 'ai' } },
+              { type: 'text', text: ' применить' },
+            ],
+          },
+        ],
+      },
+    });
+    expect(take('ai.run')).toBeUndefined();
+    await decideLast();
+    expect(await pageText()).toContain('Критерии готовности — в конце.');
+  });
+
+  it('инструкция изменилась после предложения → правка перенесена на текущую версию и применена', async () => {
+    const { p } = await propose();
+    const changed = 'Проверь задачу, составь план и оцени срок.';
+    await w.admin.ok('docs.page.update', {
+      id: pageId,
+      body: {
+        type: 'doc',
+        content: [
+          { type: 'table', content: [row('Параметр', 'Значение'), row('key', 'plan')] },
+          { type: 'paragraph', content: [{ type: 'text', text: changed }] },
+        ],
+      },
+    });
+    await w.admin.ok('comment.create', {
+      id: uuidv7(),
+      taskId: p.task_id,
+      parentId: p.comment_id,
+      body: doc('применить'),
+    });
+    answers.push({ prompt: `${changed}\n\nВ конце плана — критерии готовности.` });
+    await decideLast();
+    expect(calls.at(-1)!.system).toContain('Перенеси суть правки');
+    expect(calls.at(-1)!.prompt).toContain(changed);
+    const b = await pageText();
+    expect(b).toContain('оцени срок');
+    expect(b).toContain('критерии готовности');
+    expect((await one(`select state from ai_retro_proposals where id = $1`, [p.id])).state).toBe(
+      'applied',
+    );
+    const say = await one(
+      `select body::text as b from comments where task_id = $1 order by created_at desc limit 1`,
+      [p.task_id],
+    );
+    expect(say.b).toContain('перенесена на текущую версию');
+  });
+
+  it('очевидная правка (auto) применяется сразу: подзадача готова, diff в комментарии без назначения', async () => {
+    const { p, item } = await propose(true);
+    expect(p.state).toBe('applied');
+    expect(await pageText()).toContain('критерии готовности');
+    expect((await one(`select status_id from tasks where id = $1`, [p.task_id])).status_id).toBe(
+      S.done,
+    );
+    expect((await one(`select status_id from tasks where id = $1`, [item])).status_id).toBe(S.done);
+    const c = await one(`select assignee_id, body::text as b from comments where id = $1`, [
+      p.comment_id,
+    ]);
+    expect(c.assignee_id).toBeNull();
+    expect(c.b).toContain('+ В конце плана — критерии готовности.');
+    expect(
+      (await one(`select body::text as b from comments where parent_id = $1`, [p.comment_id])).b,
+    ).toContain('Применено автоматически');
+    // «верни как было» in the thread: the applied proposal opens again with the text before it
+    await w.admin.ok('comment.create', {
+      id: uuidv7(),
+      taskId: p.task_id,
+      parentId: p.comment_id,
+      body: doc('верни как было'),
+    });
+    answers.push({ title: 'Откат', why: 'Возвращено.', prompt: PROMPT, rule: null });
+    await decideLast();
+    expect(calls.at(-1)!.prompt).toContain('## Инструкция до правки');
+    expect((await one(`select state from ai_retro_proposals where id = $1`, [p.id])).state).toBe(
+      'pending',
+    );
+  });
+
+  it('оптимизация: проход по всему пакету, очевидное применяется; тик ставит её раз в неделю', async () => {
+    await handler('ai.retro')({ kind: 'init', projectId: P }, api);
+    answers.push({
+      proposals: [
+        {
+          title: 'Короче',
+          why: 'Без потери смысла.',
+          items: [],
+          action: 'plan',
+          newAction: null,
+          prompt: 'Составь план задачи.',
+          auto: true,
+        },
+      ],
+    });
+    await handler('ai.retro')({ kind: 'optimize', projectId: P, trigger: 'manual' }, api);
+    expect(calls.at(-1)!.system).toContain('оптимизируешь инструкции');
+    expect(calls.at(-1)!.prompt).toContain('# harness.yml');
+    expect(calls.at(-1)!.prompt).toContain(PROMPT);
+    expect(await pageText()).toContain('Составь план задачи.');
+    expect(
+      await one(`select state from ai_engine_runs where job = 'optimize' and project_id = $1`, [P]),
+    ).toEqual({ state: 'done' });
+    // the pass of this week is there: the tick does not queue another one
+    jobs.length = 0;
+    await handler('ai.retro.tick')({}, api);
+    expect(jobs.some((j) => j.data.kind === 'optimize' && j.data.projectId === P)).toBe(false);
+    await raw(`delete from ai_engine_runs where job = 'optimize' and project_id = $1`, [P]);
+    await handler('ai.retro.tick')({}, api);
+    expect(jobs.some((j) => j.data.kind === 'optimize' && j.data.projectId === P)).toBe(true);
   });
 });

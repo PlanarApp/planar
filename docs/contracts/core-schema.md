@@ -136,10 +136,15 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, 
 | `cycleId` | uuid? | a sprints cycle, no FK (work.md) |
 | `archivedAt` | ts? | in the archive since (C-schema v26); default null; the purge deletes it after 30 days |
 | `archivedBy` | uuid? | → users, who archived; null when not archived |
+| `commentsAssigned` | int | C-schema v30 (PLNRAPP-576): comments of this task (not of its subtasks) with an assignee; written only by the server (ServerTx recounts on a write of an assigned comment; a mutator value is ignored); default `0`; replica rows before v30 have no such field (treated as `0`) |
+| `commentsResolved` | int | of them resolved (`resolvedAt` set); like `commentsAssigned` |
+| `commentsOpenAssignees` | uuid[] | assignees of the open (not resolved) assigned comments of the task, without repeats, in id order; like `commentsAssigned`, default `[]` |
 | `createdAt` | ts | |
 | `updatedAt` | ts | |
 
 Server: a `tasks` write with `number = null` gets `number = ++projects.task_counter` (in the same transaction). On a `projectId` change the mutator sets `number = null`.
+
+Server (C-schema v30): a write of `comments` that changes what is counted (an assigned comment created or deleted, `assigneeId`, resolved or not, `taskId`) recounts `commentsAssigned`/`commentsResolved`/`commentsOpenAssignees` of the tasks of the old and the new row in the same transaction; the task row goes to `changes` without `activity`, hooks and an `updatedAt` change. A `tasks` write by a mutator keeps the counters of the existing row (`0`/`[]` for a new one).
 
 #### taskAssignees
 scope: space · write: member · bootstrap: yes · indexes: taskId, userId
@@ -233,7 +238,7 @@ scope: space · write: member · bootstrap: yes · indexes: taskId, assigneeId
 | `updatedAt` | ts | |
 
 #### comments
-scope: space · write: guest · bootstrap: yes · indexes: taskId, assigneeId
+scope: space · write: guest · bootstrap: yes · indexes: taskId, assigneeId · detail: tasks
 
 | field | type | note |
 |---|---|---|
@@ -252,7 +257,7 @@ scope: space · write: guest · bootstrap: yes · indexes: taskId, assigneeId
 | `updatedAt` | ts | |
 
 #### commentReactions
-scope: space · write: guest · bootstrap: yes · indexes: commentId
+scope: space · write: guest · bootstrap: yes · indexes: commentId · detail: tasks
 
 | field | type | note |
 |---|---|---|
@@ -262,6 +267,8 @@ scope: space · write: guest · bootstrap: yes · indexes: commentId
 | `userId` | uuid | = ctx.userId; the mutator adds and removes only its own |
 | `emoji` | text | 1–32 characters (one emoji or a short code) |
 | `createdAt` | ts | |
+
+The task of a reaction (C-sync v3, `detail: tasks`) — `taskId` of its comment; the row has no such field, the server puts it into `changes[].taskId` of pull and groups the snapshot of `POST /sync/tasks` by task.
 
 #### attachments
 scope: space · write: member · bootstrap: yes · indexes: taskId, commentId

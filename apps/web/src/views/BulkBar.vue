@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { Button, Dialog } from '../ui';
 import BulkMerge from './BulkMerge.vue';
 import {
-  AssigneePicker,
+  BulkAssigneePicker,
   DueDatePicker,
   PriorityPicker,
   StatusPicker,
@@ -16,7 +16,7 @@ import {
   useStatuses,
   type TaskView,
 } from '../tasks';
-import { applyToggle, commonIds, useSelection } from './selection';
+import { applyDiff, useSelection } from './selection';
 import { setStatusByName } from './scope';
 
 /** Bulk action bar for the selected tasks of the view (one mutation per task). */
@@ -25,8 +25,10 @@ const { t } = useI18n();
 const statuses = useStatuses(() => props.spaceId);
 const sel = useSelection();
 const chosen = computed(() => (props.tasks ?? []).filter((x) => sel.selected.value.has(x.id)));
-const assigned = computed(() => commonIds(chosen.value.map((x) => x.assigneeIds)));
 const each = (f: (x: TaskView) => Promise<unknown>) => Promise.all(chosen.value.map(f));
+// PLNRAPP-498: only the changed assignees; setAssignees sends no mutation to a task left as it was
+const assign = ({ add, remove }: { add: string[]; remove: string[] }) =>
+  each((x) => setAssignees(x.id, applyDiff(x.assigneeIds, add, remove)));
 const confirmDelete = ref(false);
 // PLNRAPP-155: archive — any member; delete — an admin of every selected task's project
 const admin = useProjectAdmin();
@@ -55,12 +57,10 @@ async function removeSelected() {
       :space-id="spaceId"
       @update:model-value="each((x) => setStatusByName(statuses ?? [], x, $event))"
     />
-    <AssigneePicker
+    <BulkAssigneePicker
       :space-id="spaceId"
-      :model-value="assigned"
-      @update:model-value="
-        each((x) => setAssignees(x.id, applyToggle(x.assigneeIds, assigned, $event)))
-      "
+      :lists="chosen.map((x) => x.assigneeIds)"
+      @apply="assign"
     />
     <PriorityPicker @update:model-value="each((x) => updateTask(x.id, { priority: $event }))" />
     <DueDatePicker @update:model-value="each((x) => updateTask(x.id, { dueDate: $event }))" />

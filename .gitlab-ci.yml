@@ -65,6 +65,9 @@ test:
       fi
       args=""
       for t in $tags; do args="$args -t $img:$t"; done
+      # build values for GET /api/version (apps/api/Dockerfile; other images ignore them)
+      args="$args --build-arg APP_COMMIT_SHA=$CI_COMMIT_SHA --build-arg APP_REF=$CI_COMMIT_REF_NAME"
+      args="$args --build-arg APP_TAG=$CI_COMMIT_TAG --build-arg APP_BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
       docker build $args -f "$DOCKERFILE" "${CONTEXT:-.}"
       for t in $tags; do docker push "$img:$t"; done
 

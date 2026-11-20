@@ -6,6 +6,8 @@ import {
   syncPullSchema,
   syncPushRequestSchema,
   syncPushResponseSchema,
+  syncTasksRequestSchema,
+  syncTasksResponseSchema,
   wsClientSchema,
   wsServerSchema,
 } from './sync.js';
@@ -24,6 +26,8 @@ export const contractSchemas = {
   'sync.pull': syncPullSchema,
   'sync.pushRequest': syncPushRequestSchema,
   'sync.pushResponse': syncPushResponseSchema,
+  'sync.tasksRequest': syncTasksRequestSchema,
+  'sync.tasksResponse': syncTasksResponseSchema,
   'ws.server': wsServerSchema,
   'ws.client': wsClientSchema,
   'http.error': httpErrorSchema,

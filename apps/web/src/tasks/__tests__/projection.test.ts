@@ -12,6 +12,8 @@ import {
   useProjectTasks,
   useScopeTasks,
 } from '../projection';
+import { useAuth } from '../../auth/useAuth';
+import { assignedCommentsView } from '../projection';
 import type { TaskView } from '../queries';
 import { T, ids, reset, task, until } from './data';
 
@@ -53,6 +55,7 @@ async function fullRead(pid: string): Promise<TaskView[]> {
       key: `${project?.key}-${t.number ?? '…'}`,
       assigneeIds: as.filter((x) => x.taskId === t.id).map((x) => x.userId),
       labelIds: ls.filter((x) => x.taskId === t.id).map((x) => x.labelId),
+      assignedComments: assignedCommentsView(t),
     })),
   );
 }
@@ -199,6 +202,53 @@ describe('tasks:projection', () => {
       { timeout: 3000 },
     );
     await sameAsFull(r, ids.project);
+    stop();
+  });
+
+  it('tasks:projection счётчики назначенных комментариев — из строки задачи, правка сервера приходит в вид', async () => {
+    useAuth().user.value = { id: ids.ann } as never;
+    const t1 = task(1);
+    // a replica row before C-schema v30: no counters — zeros
+    const old: Partial<ReturnType<typeof task>> & { id: string } = task(2);
+    delete old.commentsAssigned;
+    delete old.commentsResolved;
+    delete old.commentsOpenAssignees;
+    await db.table('tasks').bulkPut([t1, old]);
+    const server = new FakeServer(domainMutators);
+    for (const t of db.entityTables()) server.seed(t.name, await t.toArray());
+    const fetch = server.fetch as typeof globalThis.fetch;
+    await stopSync();
+    await startSync({ userId: ids.ann, fetch });
+    const { r, stop } = open(ids.project);
+    await until(() => r.value?.length === 2);
+    const none = { total: 0, resolved: 0, assignedToMe: false };
+    expect(r.value!.find((t) => t.id === t1.id)!.assignedComments).toEqual(none);
+    expect(r.value!.find((t) => t.id === old.id)!.assignedComments).toEqual(none);
+
+    // the server recounted after comment.assign / comment.resolve: the tasks row comes with the pull
+    server.seed('tasks', [
+      { ...t1, commentsAssigned: 3, commentsResolved: 1, commentsOpenAssignees: [ids.ann] },
+      { ...old, commentsAssigned: 1, commentsResolved: 0, commentsOpenAssignees: [ids.bob] },
+    ]);
+    await stopSync();
+    await startSync({ userId: ids.ann, fetch });
+    await vi.waitFor(
+      () => {
+        expect(r.value!.find((t) => t.id === t1.id)!.assignedComments).toEqual({
+          total: 3,
+          resolved: 1,
+          assignedToMe: true,
+        });
+        expect(r.value!.find((t) => t.id === old.id)!.assignedComments).toEqual({
+          total: 1,
+          resolved: 0,
+          assignedToMe: false,
+        });
+      },
+      { timeout: 3000 },
+    );
+    await sameAsFull(r, ids.project);
+    useAuth().user.value = null;
     stop();
   });
 

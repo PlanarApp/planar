@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { HarnessOp } from '../shared/index.js';
-import { buildReplaceWith, groupOps, isPackPage, needReplace, replaceTargets } from './harnessUi';
+import {
+  buildReplaceWith,
+  defaultChoice,
+  groupOps,
+  isPackPage,
+  lineDiff,
+  needReplace,
+  replaceTargets,
+} from './harnessUi';
 
 const op = (kind: HarnessOp['kind'], o: HarnessOp['op'], key: string): HarnessOp => ({
   kind,
@@ -49,5 +57,21 @@ describe('harnessUi', () => {
     expect(isPackPage([sub, pack, root], 's')).toBe(false);
     expect(isPackPage([root], 'r')).toBe(false);
     expect(isPackPage([pack, { ...root, title: 'Другое' }], 'k')).toBe(false);
+  });
+
+  it('PLNRAPP-538: lineDiff — общие строки, удалённые из текущей, добавленные пакетом', () => {
+    expect(lineDiff('a\nb\nc', 'a\nx\nc\nd')).toEqual([
+      { op: ' ', text: 'a' },
+      { op: '-', text: 'b' },
+      { op: '+', text: 'x' },
+      { op: ' ', text: 'c' },
+      { op: '+', text: 'd' },
+    ]);
+    expect(lineDiff('same', 'same')).toEqual([{ op: ' ', text: 'same' }]);
+  });
+
+  it('PLNRAPP-538: выбор по умолчанию — своя для изменённой человеком страницы, иначе каталог', () => {
+    expect(defaultChoice({ edited: true })).toBe('keep');
+    expect(defaultChoice({ edited: false })).toBe('reset');
   });
 });

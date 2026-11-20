@@ -204,6 +204,20 @@ describe('docs web: дерево в боковой панели', () => {
     // a cycle is rejected by the client too
     expect(moveArgs(all, a, b, 'into')).toBeNull();
   });
+
+  it('PLNRAPP-519: docs.page.move без вложенных — подстраницы встают на место страницы', async () => {
+    const [top, a, b, c] = [uuidv7(), uuidv7(), uuidv7(), uuidv7()];
+    await db.table('docsPages').bulkPut([
+      page(top, { rank: 'a0' }),
+      page(a, { rank: 'a1', parentId: top }),
+      page(b, { rank: 'a0', parentId: a }),
+      page(c, { rank: 'a0', parentId: b }),
+    ]);
+    await mutate('docs.page.move', { id: a, parentId: null, rank: 'b0', withChildren: false });
+    expect(await db.table('docsPages').get(a)).toMatchObject({ parentId: null, rank: 'b0' });
+    expect(await db.table('docsPages').get(b)).toMatchObject({ parentId: top });
+    expect(await db.table('docsPages').get(c)).toMatchObject({ parentId: b });
+  });
 });
 
 describe('docs web: панель задачи', () => {
@@ -594,5 +608,89 @@ describe('docs web: комментарии к странице (PLNRAPP-209)', (
     expect(w.find('[data-testid=doc-comment-send]').exists()).toBe(false);
     expect(w.find('[data-testid=doc-comment-reply]').exists()).toBe(false);
     w.unmount();
+  });
+});
+
+describe('docs web: меню форматирования и меню документа (PLNRAPP-231)', () => {
+  const setMobile = async (mobile: boolean) => {
+    const { resetBreakpoint } = await import('@planar/web/modules');
+    window.matchMedia = vi
+      .fn()
+      .mockReturnValue({ matches: mobile, addEventListener() {} }) as never;
+    resetBreakpoint();
+  };
+  afterAll(() => setMobile(false));
+
+  it('панель форматирования над текстом: «Жирный» и «Заголовок 2» меняют текст и подсвечиваются', async () => {
+    await setMobile(false);
+    const id = uuidv7();
+    await db.table('docsPages').put(page(id));
+    const w = mount(PageView, { props: { pageId: id } });
+    await vi.waitFor(() => expect(w.find('[data-testid=doc-format]').exists()).toBe(true), {
+      timeout: 10_000,
+    });
+    const ed = (w.findComponent({ name: 'DocEditor' }).vm as unknown as { editor: Editor }).editor;
+    ed.commands.insertContent('Привет');
+    ed.commands.selectAll();
+    await w.find('[data-format=bold]').trigger('click');
+    expect(ed.isActive('bold')).toBe(true);
+    await flushPromises();
+    expect(w.find('[data-format=bold]').attributes('aria-pressed')).toBe('true');
+    await w.find('[data-format=h2]').trigger('click');
+    expect(ed.getJSON().content![0]).toMatchObject({ type: 'heading', attrs: { level: 2 } });
+    w.unmount();
+  });
+
+  it('десктоп: табы справа, «Комментарии» открыты сбоку и закрываются повторным нажатием', async () => {
+    await setMobile(false);
+    const id = uuidv7();
+    await db.table('docsPages').put(page(id));
+    const w = mount(PageView, { props: { pageId: id } });
+    await vi.waitFor(() => expect(w.find('[data-testid=doc-menu]').exists()).toBe(true), {
+      timeout: 10_000,
+    });
+    const tab = w.get('[data-tab=comments]');
+    expect(tab.attributes('role')).toBe('tab');
+    expect(tab.attributes('aria-selected')).toBe('true');
+    expect(w.find('[data-testid=doc-panel] [data-testid=doc-comments]').exists()).toBe(true);
+    await tab.trigger('click');
+    expect(w.find('[data-testid=doc-comments]').exists()).toBe(false);
+    expect(tab.attributes('aria-selected')).toBe('false');
+    await tab.trigger('click');
+    expect(w.find('[data-testid=doc-comments]').exists()).toBe(true);
+    w.unmount();
+  });
+
+  it('мобилка: комментарии скрыты, FAB с числом комментариев открывает диалог с ними', async () => {
+    await setMobile(true);
+    const id = uuidv7();
+    await db.table('docsPages').put(page(id));
+    await db.table('docsComments').put({
+      id: uuidv7(),
+      spaceId: SPACE,
+      pageId: id,
+      authorId: OTHER,
+      parentId: null,
+      body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Мысль' }] }] },
+      mentions: [],
+      assigneeId: null,
+      resolvedAt: null,
+      resolvedBy: null,
+      editedAt: null,
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+    const w = mount(PageView, { props: { pageId: id }, attachTo: document.body });
+    await vi.waitFor(() => expect(w.find('[data-tab=comments]').text()).toBe('1'), {
+      timeout: 10_000,
+    });
+    expect(w.find('[data-testid=doc-comments]').exists()).toBe(false);
+    expect(document.querySelector('[data-testid=doc-comments]')).toBeNull();
+    await w.get('[data-tab=comments]').trigger('click');
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('[data-testid=doc-comment]')).toHaveLength(1),
+    );
+    w.unmount();
+    await setMobile(false);
   });
 });

@@ -23,11 +23,13 @@ const props = defineProps<{
   empty?: string;
   /** text of an extra last item for the search query (null — none), e.g. «Create …» */
   extra?: (q: string) => string | null;
+  /** ids on some of the selected tasks — the "partially" mark (bulk edit, PLNRAPP-498) */
+  partial?: string[];
 }>();
 const emit = defineEmits<{ pick: [id: string]; extra: [q: string] }>();
 const { t } = useI18n();
 
-const open = ref(false);
+const open = defineModel<boolean>('open', { default: false });
 const q = ref('');
 const active = ref(0);
 const shown = computed(() => {
@@ -96,6 +98,11 @@ function onKey(e: KeyboardEvent) {
           :key="o.id"
           role="option"
           :aria-selected="selected.includes(o.id)"
+          :aria-checked="
+            partial
+              ? selected.includes(o.id) || (partial.includes(o.id) ? 'mixed' : false)
+              : undefined
+          "
           :class="[
             'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-sm',
             i === active ? 'bg-bg-muted' : '',
@@ -106,6 +113,7 @@ function onKey(e: KeyboardEvent) {
           <component :is="o.icon" v-if="o.icon" v-bind="o.iconProps" />
           <span class="flex-1 truncate">{{ o.label }}</span>
           <span v-if="selected.includes(o.id)" aria-hidden="true">✓</span>
+          <span v-else-if="partial?.includes(o.id)" aria-hidden="true">–</span>
         </li>
         <li
           v-if="extraLabel"
