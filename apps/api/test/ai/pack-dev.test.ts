@@ -30,6 +30,19 @@ describe('pack dev', () => {
     expect(r.actions).toEqual([{ type: 'ai_run', action: 'dev' }]);
   });
 
+  // PLNRAPP-682: the test run asked a question — the answer brings the task back to «Test prod», the test runs again
+  it('test_resumed: back from the question status to «Test prod» — the test run again', async () => {
+    const h = await pack();
+    const r = h.rules.find((x) => x.key === 'test_resumed')!;
+    expect(r.trigger).toEqual({
+      type: 'task.status_changed',
+      from: [h.settings.questionStatus],
+      to: ['test_prod'],
+    });
+    expect(r.filter).toEqual({ assignee: ['ai'] });
+    expect(r.actions).toEqual([{ type: 'ai_run', action: 'test' }]);
+  });
+
   // PLNRAPP-655: a moveTo into a status no AI rule starts from leaves the task on the AI with nobody to move it on
   it('every moveTo of the instructions leads to a final status or to an AI rule', async () => {
     const files = (await readCatalogPack('dev'))!;

@@ -55,6 +55,12 @@ rules:
     trigger: { type: mr.pipeline, mr: merged, pipeline: [success, skipped] }
     filter: { assignee: [ai], status: [test_prod] }
     actions: [{ type: ai_run, action: test }]
+  - key: test_resumed
+    name: Тестирование после ответа
+    description: На вопросы ИИ ответили, задача вернулась из «Уточнения» в «Test prod» — ИИ проверяет задачу снова. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.status_changed, from: [clarify], to: [test_prod] }
+    filter: { assignee: [ai] }
+    actions: [{ type: ai_run, action: test }]
   - key: plan_in_backlog
     name: План в бэклоге
     description: ИИ проверяет задачу, пишет план и оценивает бюджет. Только задачи, где ИИ — исполнитель.
