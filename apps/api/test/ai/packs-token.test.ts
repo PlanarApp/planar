@@ -5,7 +5,7 @@ import { aiPackTools } from '@planar/module-ai/api';
 import { CORE } from '@planar/server-kit';
 import { loginCookie, ORIGIN } from '../auth.js';
 import { db, getApp, useApp } from '../auth/harness.js';
-import { world, type World } from '../sync/helpers.js';
+import { taskArgs, world, type World } from '../sync/helpers.js';
 
 useApp();
 
@@ -87,7 +87,9 @@ describe('пакеты и привязки событий с токеном', ()
     const tools = aiPackTools(getApp().get(CORE));
     const t = (n: string) => tools.find((x) => x.name === n)!;
     expect(
-      tools.every((x) => x.name === 'ai_list_packs' || x.name === 'ai_diff_pack' || x.write),
+      tools.every(
+        (x) => ['ai_list_packs', 'ai_diff_pack', 'list_task_ai_runs'].includes(x.name) || x.write,
+      ),
     ).toBe(true);
     const dry = (await t('ai_upload_pack').run(
       { projectId: w.projectId, packKey: 'dev', dryRun: true } as never,
@@ -100,5 +102,37 @@ describe('пакеты и привязки событий с токеном', ()
     await expect(
       t('ai_list_packs').run({ projectId: uuidv7() } as never, w.admin.userId),
     ).rejects.toMatchObject({ code: 'not_found' });
+  });
+
+  it('list_task_ai_runs: прогоны по ключу и id, причина ошибки — последняя строка лога; чужому — not_found (PLNRAPP-658)', async () => {
+    const run = aiPackTools(getApp().get(CORE)).find((x) => x.name === 'list_task_ai_runs')!.run;
+    const t = taskArgs(w, {});
+    await w.admin.ok('task.create', t);
+    const r = uuidv7();
+    await db.$client.query(
+      `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth, attempt, log)
+       values ($1, $2, $3, 'action', 'failed', $1, 0, 2, $4)`,
+      [r, t.id, w.projectId, 'шаг 1\nЗадание очереди потеряно: прогон не запустился за 1 ч.\n'],
+    );
+    const key = (
+      await db.$client.query(
+        `select p.key || '-' || t.number as k from tasks t join projects p on p.id = t.project_id where t.id = $1`,
+        [t.id],
+      )
+    ).rows[0].k as string;
+    for (const task of [t.id, key.toLowerCase()]) {
+      const out = (await run({ task } as never, w.admin.userId)) as { runs: object[] };
+      expect(out.runs).toEqual([
+        expect.objectContaining({
+          id: r,
+          state: 'failed',
+          attempt: 2,
+          error: 'Задание очереди потеряно: прогон не запустился за 1 ч.',
+        }),
+      ]);
+    }
+    await expect(run({ task: t.id } as never, w.member.userId)).rejects.toMatchObject({
+      code: 'not_found',
+    });
   });
 });

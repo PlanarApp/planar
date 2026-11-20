@@ -162,6 +162,8 @@ describe('MCP /mcp', () => {
     'search_docs_site',
     'ai_set_pack_events',
     'ai_kb',
+    // PLNRAPP-658: the runs of a task (GET api/ai/tasks/:taskId/runs is a session endpoint, not REST v1)
+    'list_task_ai_runs',
   ];
 
   it('initialize и tools/list (PARITY): каждой операции REST v1 есть инструмент MCP, схемы — object', async () => {
