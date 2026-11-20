@@ -999,6 +999,7 @@ export default {
     collapse: 'Collapse group',
     expand: 'Expand group',
     selected: 'Selected: {n}',
+    statusSkipped: 'Status not changed for tasks whose project lacks it: {n}',
     delete: 'Delete',
     deleteTitle: 'Delete tasks?',
     deleteText: 'Tasks to delete: {n}',

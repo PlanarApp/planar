@@ -56,14 +56,27 @@ export function setStatusByName(
   statuses: Row<'statuses'>[],
   task: { id: string; projectId: string },
   pickedId: string | undefined,
-): Promise<unknown> {
+): Promise<boolean> {
   // a picked status missing from the dictionary (not loaded yet) is set as is
   const id =
     pickedId &&
     (statuses.some((s) => s.id === pickedId)
       ? statusIn(statuses, task.projectId, pickedId)
       : pickedId);
-  return id ? updateTask(task.id, { statusId: id }, false) : Promise.resolve();
+  return id
+    ? updateTask(task.id, { statusId: id }, false).then(() => true)
+    : Promise.resolve(false);
+}
+
+/** PLNRAPP-637: bulk status for the selected tasks; returns how many were skipped (no such status in their project) */
+export async function setStatusesByName(
+  statuses: Row<'statuses'>[],
+  tasks: readonly { id: string; projectId: string }[],
+  pickedId: string | undefined,
+): Promise<number> {
+  if (!pickedId) return 0;
+  const done = await Promise.all(tasks.map((x) => setStatusByName(statuses, x, pickedId)));
+  return done.filter((ok) => !ok).length;
 }
 
 /** label group `key` (id, or name in a summary) → the label of project `projectId`; none — undefined */

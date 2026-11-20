@@ -1003,6 +1003,7 @@ export default {
     collapse: 'Свернуть группу',
     expand: 'Развернуть группу',
     selected: 'Выбрано: {n}',
+    statusSkipped: 'Статус не изменён у задач, в проекте которых его нет: {n}',
     delete: 'Удалить',
     deleteTitle: 'Удалить задачи?',
     deleteText: 'Будет удалено задач: {n}',
