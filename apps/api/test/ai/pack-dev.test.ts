@@ -29,4 +29,27 @@ describe('pack dev', () => {
     expect(r.filter).toEqual({ assignee: ['ai'] });
     expect(r.actions).toEqual([{ type: 'ai_run', action: 'dev' }]);
   });
+
+  // PLNRAPP-655: a moveTo into a status no AI rule starts from leaves the task on the AI with nobody to move it on
+  it('every moveTo of the instructions leads to a final status or to an AI rule', async () => {
+    const files = (await readCatalogPack('dev'))!;
+    const h = await pack();
+    const targets = Object.entries(files)
+      .filter(([k]) => k.startsWith('actions/'))
+      .flatMap(([k, text]) => [...text.matchAll(/moveTo:\s*«([^»]+)»/g)].map((m) => [k, m[1]!]));
+    expect(targets.length).toBeGreaterThan(0);
+    const startsAi = (key: string) =>
+      h.rules.some(
+        (r) =>
+          r.trigger.type === 'task.status_changed' &&
+          !r.trigger.from &&
+          (r.trigger.to as string[] | undefined)?.includes(key) &&
+          r.actions.some((a) => a.type === 'ai_run'),
+      );
+    const dead = targets.filter(([, name]) => {
+      const s = h.statuses.find((x) => x.name === name);
+      return !s || (s.category !== 'done' && s.category !== 'cancelled' && !startsAi(s.key));
+    });
+    expect(dead).toEqual([]);
+  });
 });
