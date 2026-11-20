@@ -1304,6 +1304,30 @@ describe('координация подзадач (PLNRAPP-405)', () => {
     expect((await runsOf(b!.id as string))[0]!.state).toBe('done');
   });
 
+  it('PLNRAPP-744: подзадача ИИ с описанием — без триажа по «задача создана»; без описания — триаж идёт', async () => {
+    const triage = await action({ name: 'Триаж', checks: [] });
+    await rule({ type: 'task.created' }, [{ type: 'ai_run', aiActionId: triage }]);
+    const parent = await task();
+    jobs.length = 0;
+    answers = [
+      result({
+        newTasks: [
+          sub({ title: 'С описанием', description: 'что сделать', checks: ['тест проходит'] }),
+          sub({ title: 'Без описания' }),
+        ],
+      }),
+    ];
+    await start(parent);
+    const [a, b] = await subsOf(parent);
+    expect(a!.created_by).toBe(bot);
+    answers = [result({ comment: 'разобрал' })];
+    await drain();
+    expect(await runsOf(a!.id as string)).toHaveLength(0);
+    const [rb] = await runsOf(b!.id as string);
+    expect(rb).toMatchObject({ action_id: triage, state: 'done' });
+    expect((await taskRow(a!.id as string)).status_id).toBe(S.todo);
+  });
+
   it('ревью свежим контекстом: отметка review у действия — даже без критериев', async () => {
     await w.admin.ok('ai.action.update', { id: actionId, checks: [], review: true });
     const t = await task();

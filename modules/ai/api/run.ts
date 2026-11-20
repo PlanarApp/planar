@@ -630,6 +630,16 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     const m = d.ruleId ? await matched(api, d.ruleId, task.id) : undefined;
     if (d.ruleId && !m)
       return skip('Перезапуск невозможен: задача больше не подходит под правило.');
+    // PLNRAPP-744: a subtask the AI created with a description needs no triage (a rule on «task created») — its
+    // card's criteria joined the triage's checks, the judge rejected the labels three times; its status drives it
+    if (
+      m?.rule.trigger.type === 'task.created' &&
+      !d.restartOf &&
+      task.parentId &&
+      task.createdBy === bot &&
+      md(task.description)
+    )
+      return skip('Подзадача ИИ с описанием: действие на создание задачи не запускается.');
     // PLNRAPP-405: an open blocker — no run row, the reconcile starts it once the blocker is done
     if ((await one(api.db, sql`select ${openBlocker(sql`${task.id}::uuid`)} as b`))?.b) {
       if (d.restartOf) return skip('Перезапуск невозможен: задачу блокирует незавершённая.');
