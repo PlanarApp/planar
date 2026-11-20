@@ -401,7 +401,7 @@ async function sendWebhooks(
 export async function matched(api: JobApi, ruleId: string, taskId: string) {
   const [r] = await rows(
     api,
-    sql`select r.id, r.enabled, r.conditions, r.actions, r.project_id as "projectId" from automations_rules r
+    sql`select r.id, r.enabled, r.trigger, r.conditions, r.actions, r.project_id as "projectId" from automations_rules r
         join projects p on p.id = r.project_id and 'automations' = any(p.modules) where r.id = ${ruleId}`,
   );
   const task = r?.enabled ? await loadTask(api, taskId) : undefined;
