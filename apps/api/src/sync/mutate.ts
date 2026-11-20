@@ -17,6 +17,7 @@ import { installed } from '../modules/installed.js';
 import { notificationsHook } from '../notifications/hook.js';
 import type { PushQueue } from '../push/push.js';
 import { ensureSystemUser } from '../users/system.js';
+import { favoritesHook } from './favorites-hook.js';
 import { findMutator } from './registry.js';
 import { ServerTx, type Q, type TxCache } from './server-tx.js';
 
@@ -208,6 +209,7 @@ export async function runMutation(
     await gateProjectModules(tx, stx, def, args.data);
     const hook = await notificationsHook(tx, stx, { userId, now }, !opts.quiet);
     notified.push(...hook.ids);
+    const favs = await favoritesHook(tx, stx, { userId, now });
     await moduleHooks(
       tx,
       stx,
@@ -223,6 +225,7 @@ export async function runMutation(
     );
     await stx.finish();
     await hook.tx.finish();
+    await favs.finish();
   } catch (err) {
     if (isInfra(err)) throw err;
     if (err instanceof MutatorError) throw new Reject(err.code, err.message);

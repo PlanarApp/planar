@@ -233,6 +233,37 @@ describe('виды, избранное, Мой день, уведомления'
     expect(await add(admin, 'workspace', 'x')).toBe(404);
   });
 
+  // PLNRAPP-700: favourites of a deleted task (and its subtasks) are removed for every user, with sync changes
+  it('избранное: удаление задачи убирает её из избранного у всех пользователей', async () => {
+    const [, p] = await rest(admin, 'POST', '/tasks', { projectId: w.projectId, title: 'P' });
+    const [, c] = await rest(admin, 'POST', '/tasks', {
+      projectId: w.projectId,
+      title: 'C',
+      parentId: p.data.id,
+    });
+    const fav = (tok: string, id: string) =>
+      rest(tok, 'POST', '/favorites', { kind: 'task', refId: id, name: 'T', url: '/t/x' });
+    const ids = (tok: string) =>
+      rest(tok, 'GET', '/favorites').then((r) =>
+        (r[1].data as { refId: string }[]).map((f) => f.refId),
+      );
+    expect((await fav(admin, p.data.id))[0]).toBe(201);
+    expect((await fav(admin, c.data.id))[0]).toBe(201);
+    const [s, mf] = await fav(member, p.data.id);
+    expect(s).toBe(201);
+    expect((await rest(admin, 'DELETE', `/tasks/${p.data.id}`))[0]).toBe(204);
+    for (const tok of [admin, member]) {
+      expect(await ids(tok)).not.toContain(p.data.id);
+      expect(await ids(tok)).not.toContain(c.data.id);
+    }
+    // the member's sidebar updates without F5: the deletion is in the sync log for them
+    const { rows } = await db.$client.query(
+      `select user_id from changes where entity = 'favorites' and id = $1 and op = 'del'`,
+      [mf.data.id],
+    );
+    expect(rows).toEqual([{ user_id: w.member.userId }]);
+  });
+
   it('Мой день: запланировать, перенести, только свой, убрать', async () => {
     const [s0, p] = await rest(admin, 'POST', '/my-day', { taskId, date: '2030-01-02' });
     expect([s0, p.data.taskId, p.data.date]).toEqual([201, taskId, '2030-01-02']);
