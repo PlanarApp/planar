@@ -86,9 +86,11 @@ image-ai-runner:
 # ~3.2 GB: on main rebuild only when the image itself changes; release tags always.
 # `changes` compares with the previous push only: if the pipeline that changed docker/ai-agent was
 # cancelled (auto_cancel) the next ones do not build it. So on every other main pipeline the job is
-# manual — run it to rebuild `edge`
+# manual — run it to rebuild `edge`. Not interruptible: otherwise the next merge into main cancels it
+# (auto_cancel) while it waits for a runner, and the image is never built
 image-ai-agent:
   extends: .image
+  interruptible: false
   variables: { NAME: ai-agent, DOCKERFILE: docker/ai-agent/Dockerfile, CONTEXT: docker/ai-agent }
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
