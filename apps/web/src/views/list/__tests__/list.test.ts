@@ -13,6 +13,7 @@ import { AssigneePicker, BulkAssigneePicker, PriorityPicker, StatusPicker } from
 import OptionPicker from '../../../tasks/fields/OptionPicker.vue';
 import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
 import { resetBreakpoint } from '../../../ui';
+import { toasts } from '../../../ui/toast';
 import { commitImeOnEnter } from '../../../ui/imeEnter';
 import { registerModules } from '../../../modules/registry';
 import { useAuth } from '../../../auth/useAuth';
@@ -389,6 +390,36 @@ describe('list:bulk', () => {
     await until(
       async () => (await db.table('tasks').where('statusId').equals(ids.done).count()) === 2,
     );
+  });
+  it('list:bulk статус: в списке только статусы проектов выделенных, чужой — сообщение (PLNRAPP-637)', async () => {
+    const other = id();
+    await db.table('statuses').put({
+      id: other,
+      spaceId: ids.space,
+      projectId: id(),
+      name: 'К работе',
+      category: 'todo',
+      color: '#888',
+      rank: 'a0',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    const ts = [task(1), task(2)];
+    await db.table('tasks').bulkPut(ts);
+    await show();
+    useSelection().set(ts.map((x) => x.id));
+    await until(() => w.find('[data-testid=bulk-bar]').exists());
+    const sp = w.get('[data-testid=bulk-bar]').getComponent(StatusPicker);
+    const shown = () =>
+      sp
+        .getComponent(OptionPicker)
+        .props('options')
+        .map((o: { label: string }) => o.label);
+    await until(() => shown().includes('Done'));
+    expect(shown()).not.toContain('К работе');
+    sp.vm.$emit('update:modelValue', other);
+    await until(() => toasts.value.some((x) => x.text.includes('его нет: 2')));
+    expect(await db.table('tasks').where('statusId').equals(ids.todo).count()).toBe(2);
   });
   it('list:bulk архив — участник, без «Удалить» (PLNRAPP-155)', async () => {
     useAuth().user.value = (await db.table('users').get(ids.ann)) as never;

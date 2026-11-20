@@ -6,17 +6,25 @@ import { normName, uniqByName } from '../dictionaries';
 import OptionPicker from './OptionPicker.vue';
 import StatusIcon from './StatusIcon.vue';
 
-// projectId — statuses of the task's project; without it (summary) same-named statuses are one item
-const props = defineProps<{ spaceId: string; projectId?: string; compact?: boolean }>();
+// projectId — statuses of the task's project; without it (summary) same-named statuses are one item;
+// projectIds (PLNRAPP-637) — the summary only over these projects (bulk bar: the selected tasks' projects)
+const props = defineProps<{
+  spaceId: string;
+  projectId?: string;
+  projectIds?: readonly string[];
+  compact?: boolean;
+}>();
 const model = defineModel<string>();
 const { t } = useI18n();
 const statuses = useStatuses(
   () => props.spaceId,
   () => props.projectId,
 );
-const shown = computed(() =>
-  props.projectId ? (statuses.value ?? []) : uniqByName(statuses.value ?? []),
-);
+const shown = computed(() => {
+  if (props.projectId) return statuses.value ?? [];
+  const only = props.projectIds && new Set(props.projectIds);
+  return uniqByName((statuses.value ?? []).filter((s) => !only || only.has(s.projectId)));
+});
 const selected = computed(() => {
   const cur = statuses.value?.find((s) => s.id === model.value);
   return cur

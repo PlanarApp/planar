@@ -36,7 +36,7 @@ import { tableColumns, type TableColumnsMenu } from './menu';
 import { textWidth } from '../list/widths';
 import { formatDue } from '../list/due';
 import { nextSort, sortMark } from '../sortHead';
-import { setStatusByName, useProjectNames, useWidenedFilter } from '../scope';
+import { setStatusesByName, useProjectNames, useWidenedFilter } from '../scope';
 import type { SortBy } from '../../tasks';
 import {
   COLUMN_IDS,
@@ -388,6 +388,12 @@ function onCheck(task: TaskView, e: MouseEvent) {
 // --- bulk edit: one mutation per task
 const chosen = computed(() => (all.value ?? []).filter((x) => sel.selected.value.has(x.id)));
 const each = (f: (x: TaskView) => Promise<unknown>) => Promise.all(chosen.value.map(f));
+const chosenProjectIds = computed(() => [...new Set(chosen.value.map((x) => x.projectId))]);
+// PLNRAPP-637: a status missing from a task's project is not set there — say so instead of silence
+async function setStatus(id: string | undefined) {
+  const skipped = await setStatusesByName(statuses.value ?? [], chosen.value, id);
+  if (skipped) toast(t('list.statusSkipped', { n: skipped }));
+}
 
 // --- fields: cell edit and bulk edit
 const editCell = ref<string | null>(null); // `${taskId}|${columnId}`
@@ -688,7 +694,8 @@ const date = (v: string) => v.slice(0, 10);
       <span>{{ t('table.selected', { n: sel.selected.value.size }) }}</span>
       <StatusPicker
         :space-id="spaceId"
-        @update:model-value="each((x) => setStatusByName(statuses ?? [], x, $event))"
+        :project-ids="chosenProjectIds"
+        @update:model-value="setStatus"
       />
       <PriorityPicker @update:model-value="each((x) => updateTask(x.id, { priority: $event }))" />
       <AssigneePicker

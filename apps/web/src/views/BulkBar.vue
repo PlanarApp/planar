@@ -17,7 +17,8 @@ import {
   type TaskView,
 } from '../tasks';
 import { applyDiff, useSelection } from './selection';
-import { setStatusByName } from './scope';
+import { setStatusesByName } from './scope';
+import { toast } from '../ui/toast';
 
 /** Bulk action bar for the selected tasks of the view (one mutation per task). */
 const props = defineProps<{ spaceId: string; tasks: readonly TaskView[] | undefined }>();
@@ -29,6 +30,12 @@ const each = (f: (x: TaskView) => Promise<unknown>) => Promise.all(chosen.value.
 // PLNRAPP-498: only the changed assignees; setAssignees sends no mutation to a task left as it was
 const assign = ({ add, remove }: { add: string[]; remove: string[] }) =>
   each((x) => setAssignees(x.id, applyDiff(x.assigneeIds, add, remove)));
+const projectIds = computed(() => [...new Set(chosen.value.map((x) => x.projectId))]);
+// PLNRAPP-637: a status missing from a task's project is not set there — say so instead of silence
+async function setStatus(id: string | undefined) {
+  const skipped = await setStatusesByName(statuses.value ?? [], chosen.value, id);
+  if (skipped) toast(t('list.statusSkipped', { n: skipped }));
+}
 const confirmDelete = ref(false);
 // PLNRAPP-155: archive — any member; delete — an admin of every selected task's project
 const admin = useProjectAdmin();
@@ -53,10 +60,7 @@ async function removeSelected() {
     data-testid="bulk-bar"
   >
     <span>{{ t('list.selected', { n: chosen.length }) }}</span>
-    <StatusPicker
-      :space-id="spaceId"
-      @update:model-value="each((x) => setStatusByName(statuses ?? [], x, $event))"
-    />
+    <StatusPicker :space-id="spaceId" :project-ids="projectIds" @update:model-value="setStatus" />
     <BulkAssigneePicker
       :space-id="spaceId"
       :lists="chosen.map((x) => x.assigneeIds)"
