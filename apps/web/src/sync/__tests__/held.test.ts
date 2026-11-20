@@ -1,7 +1,7 @@
 // @vitest-environment node
 // PLNRAPP-486 (C-sync v3): ensureTask — снимок POST /sync/tasks через applyServer, фильтр деталей по _held, сброс _held.
 import 'fake-indexeddb/auto';
-import { uuidv7 } from '@planar/shared';
+import { SYNC_PROTOCOL, uuidv7 } from '@planar/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { NOW, SPACE, USER, label, setup, stopAll } from './helpers';
 
@@ -176,5 +176,36 @@ describe('PLNRAPP-486: _held и ensureTask', () => {
 
     await c.clearLocal();
     expect(await s.db._held.count()).toBe(0);
+  });
+});
+
+describe('PLNRAPP-487: bootstrap по v3', () => {
+  it('bootstrap шлёт X-Sync-Protocol: held удержанной задачи — в _held, детали уже в реплике', async () => {
+    const { s, c, A, cA } = await v3();
+    expect(s.server.bootstrapProtocols).toEqual([SYNC_PROTOCOL]);
+    expect((await s.db._meta.get('protocol'))?.value).toBe(SYNC_PROTOCOL);
+    expect(await s.db.table('comments').get(cA.id)).toBeTruthy();
+    // открытие удержанной задачи не ждёт сети
+    expect(await c.ensureTask(A)).toBe(true);
+    expect(s.server.tasksRequests).toBe(0);
+  });
+
+  it('реплика, загруженная без заголовка (v2, пустой _held), один раз загружается заново по v3', async () => {
+    const { s, c, A } = await v3();
+    await c.stopSync();
+    // реплика прошлой сборки: bootstrap без X-Sync-Protocol — версия не записана, _held пуст
+    await s.db._meta.delete('protocol');
+    await s.db._held.clear();
+    const c2 = s.mk();
+    await s.start(c2);
+    await c2.syncNow();
+    expect(s.server.bootstraps).toBe(2);
+    expect(ids(await s.db._held.toArray())).toEqual([A]);
+    await c2.stopSync();
+
+    const c3 = s.mk();
+    await s.start(c3);
+    await c3.syncNow();
+    expect(s.server.bootstraps).toBe(2);
   });
 });

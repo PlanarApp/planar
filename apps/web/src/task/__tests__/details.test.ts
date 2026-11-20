@@ -66,6 +66,7 @@ async function server(rows: Record<string, unknown>[] | 'offline') {
   // a bootstrapped replica: snapshots of the task details are applied over its cursor
   await db._meta.put({ key: 'cursor', value: 5 });
   await db._meta.put({ key: 'schema', value: db.schemaSig() });
+  await db._meta.put({ key: 'protocol', value: SYNC_PROTOCOL });
   await startSync({ userId: ids.ann, fetch: fetch as never });
   return release;
 }

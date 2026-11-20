@@ -18,7 +18,14 @@ import {
   type MutatorDef,
   type SyncTasksResponse,
 } from '@planar/shared';
-import { dataSig, PlanarDB, type QueueItem, type ReplicaChange, type Undo } from './db';
+import {
+  dataSig,
+  PlanarDB,
+  type MetaRow,
+  type QueueItem,
+  type ReplicaChange,
+  type Undo,
+} from './db';
 import { DexieTx, applyUndo, flushOverlay, overlayKey, type Overlay } from './dexie-tx';
 
 export interface StartOpts {
@@ -188,8 +195,7 @@ export function createClient(db: PlanarDB) {
   // PJ-17: the replica was filled under another table/index set (a build update): the cursor says "current",
   // but the new tables are empty (e.g. the old build bootstrapped after the server update) — bootstrap again
   let rebuild = false;
-  const meta = async (key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId' | 'schema') =>
-    (await db._meta.get(key))?.value;
+  const meta = async (key: MetaRow['key']) => (await db._meta.get(key))?.value;
 
   function registerMutators(defs: MutatorDef[]) {
     createRegistry([...registry.values(), ...defs]); // duplicate name → Error
@@ -306,6 +312,8 @@ export function createClient(db: PlanarDB) {
         }
         // a reset of the replica clears _held too; v3 — the tasks of the bootstrap details
         await db._held.clear();
+        // the C-sync version of this bootstrap: `held` comes only in a v3 answer
+        await db._meta.put({ key: 'protocol', value: p.held ? SYNC_PROTOCOL : 2 });
         if (p.held?.length)
           await db._held.bulkPut(
             p.held.map((taskId) => ({ taskId, loadedAt: now, accessedAt: now })),
@@ -398,7 +406,12 @@ export function createClient(db: PlanarDB) {
   async function bootstrap() {
     setStatus('bootstrapping');
     const r = syncBootstrapSchema.parse(
-      await http(`/sync/bootstrap?clientId=${clientId}`, undefined, 0),
+      // v3 (PLNRAPP-487): without the header the server answers by v2 — all details, no `held`
+      await http(
+        `/sync/bootstrap?clientId=${clientId}`,
+        { headers: { [SYNC_PROTOCOL_HEADER]: String(SYNC_PROTOCOL) } },
+        0,
+      ),
     );
     await applyServer({
       bootstrap: r.data,
@@ -718,7 +731,12 @@ export function createClient(db: PlanarDB) {
     replicaState.value = cursor === undefined ? 'empty' : 'complete';
     // only a new entity table needs bootstrap: a new index is built by Dexie over the rows in place
     const sig = await meta('schema');
-    rebuild = cursor !== undefined && (typeof sig !== 'string' || dataSig(sig) !== db.schemaSig());
+    // PLNRAPP-487: a replica bootstrapped without X-Sync-Protocol (v2, empty _held) — bootstrap again by v3
+    rebuild =
+      cursor !== undefined &&
+      (typeof sig !== 'string' ||
+        dataSig(sig) !== db.schemaSig() ||
+        (await meta('protocol')) === undefined);
     pushedUpTo = 0;
     failures = wsFailures = 0;
     setStatus('idle');
