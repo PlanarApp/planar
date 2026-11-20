@@ -9,6 +9,7 @@ import { matched } from '@planar/module-automations/api';
 import { resolveConnection, secretOf } from './connections.js';
 import { generateStructured } from './llm.js';
 import type { Tracker } from './monitor.js';
+import { retroPass } from './retro.js';
 import type { RunReport } from './schema.js';
 import { AI_BOT_LOGIN } from '../shared/index.js';
 import {
@@ -368,6 +369,8 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
             where task_id = t.id and kind = 'updated' and changes->'statusId'->>1 = t.status_id::text) e on true
           where (l.id is null or l.state = 'failed' or (l.state in ('done', 'cancelled') and e.at > l.finished_at))
             and not ${openBlocker(sql`t.id`)}
+            -- PLNRAPP-679: «harness-retro» and its items are the retro's, not actions'
+            and not exists (select 1 from ai_retro rt where rt.task_id in (t.id, t.parent_id))
             and not exists (select 1 from ai_runs o where o.task_id = t.id
               and o.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks'))
           limit 200`,
@@ -415,6 +418,7 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
       level: 'action',
     });
   }
+  await retroPass(api, t, projectId);
   await waitingPass(api, t, projectId);
   await watchPass(api, t, bot, projectId);
   await ciPass(api, t, projectId);

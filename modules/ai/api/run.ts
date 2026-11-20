@@ -619,6 +619,14 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     // the event is stale: the task moved on, the AI was unassigned, the rule changed
     if (!action || !assigned || (d.statusId && task.statusId !== d.statusId))
       return skip('Перезапуск невозможен: действие удалено или ИИ снят с задачи.');
+    // PLNRAPP-679: «harness-retro» and its items — the retro's bookkeeping, no actions
+    if (
+      await one(
+        api.db,
+        sql`select 1 from ai_retro where task_id in (${task.id}::uuid, ${task.parentId}::uuid)`,
+      )
+    )
+      return skip('Действия ИИ не запускаются на задаче harness-retro и её подзадачах.');
     const m = d.ruleId ? await matched(api, d.ruleId, task.id) : undefined;
     if (d.ruleId && !m)
       return skip('Перезапуск невозможен: задача больше не подходит под правило.');

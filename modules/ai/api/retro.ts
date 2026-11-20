@@ -206,6 +206,8 @@ export async function ensureRetroTask(api: JobApi, projectId: string): Promise<s
           title: RETRO_TITLE,
           rank: generateKeyBetween(await lastRank(api.db, projectId, null), null),
           description: asDoc(RETRO_DESCRIPTION),
+          // PLNRAPP-679: on the AI, not the project's default assignee: the bot's own bookkeeping
+          assignees: [{ id: uuidv7(), userId: bot }],
         },
       },
     ],
@@ -252,6 +254,7 @@ async function addItem(api: JobApi, projectId: string, title: string, text: stri
           title: cut(title, 200),
           rank: generateKeyBetween(await lastRank(api.db, projectId, parentId), null),
           description: asDoc(text),
+          assignees: [{ id: uuidv7(), userId: bot }],
         },
       },
     ],
@@ -264,6 +267,58 @@ async function addItem(api: JobApi, projectId: string, title: string, text: stri
 async function ownTree(q: Exec, projectId: string, task: { id: string; parentId: string | null }) {
   const { taskId } = await retroOf(q, projectId);
   return !!taskId && (task.id === taskId || task.parentId === taskId);
+}
+
+/**
+ * PLNRAPP-679: a pass of the task control — the task «harness-retro» back in the first backlog status on the AI alone,
+ * its open items (not proposals: those are the admin's) on the AI alone. AI actions never run on this tree.
+ */
+export async function retroPass(api: JobApi, t: Tracker, projectId: string | null = null) {
+  const bot = await botId(api.db);
+  if (!bot) return;
+  const found = (await rows(
+    api.db,
+    sql`select r.project_id as "projectId", r.task_id as "taskId", p.key || '-' || t.number as key
+        from ai_retro r join tasks t on t.id = r.task_id and t.archived_at is null
+          join projects p on p.id = r.project_id
+        ${projectId ? sql`where r.project_id = ${projectId}::uuid` : sql``}`,
+  )) as { projectId: string; taskId: string; key: string }[];
+  for (const f of found) {
+    if (!(await retroOn(api.db, f.projectId))) continue;
+    await t.check();
+    const backlog = await statusOf(api.db, f.projectId, ['backlog', 'todo']);
+    const tree = (await rows(
+      api.db,
+      sql`select t.id, t.status_id as "statusId", t.id = ${f.taskId}::uuid as root,
+            coalesce(array_agg(a.user_id) filter (where a.user_id is not null), '{}') as users
+          from tasks t join statuses st on st.id = t.status_id
+            left join task_assignees a on a.task_id = t.id
+          where t.id = ${f.taskId}::uuid or (t.parent_id = ${f.taskId}::uuid and t.archived_at is null
+            and st.category not in ('done', 'cancelled')
+            and not exists (select 1 from ai_retro_proposals x where x.task_id = t.id))
+          group by t.id`,
+    )) as { id: string; statusId: string; root: boolean; users: string[] }[];
+    const muts: Mut[] = [];
+    let moved = false;
+    for (const x of tree) {
+      if (x.root && backlog && x.statusId !== backlog) {
+        muts.push({ name: 'task.update', args: { id: x.id, statusId: backlog } });
+        moved = true;
+      }
+      if (!x.users.includes(bot))
+        muts.push({ name: 'task.assign', args: { id: uuidv7(), taskId: x.id, userId: bot } });
+      for (const u of x.users)
+        if (u !== bot) muts.push({ name: 'task.unassign', args: { taskId: x.id, userId: u } });
+    }
+    if (!muts.length) continue;
+    // automations do not react: the bot's own bookkeeping
+    await api.execute(bot, muts, { system: true });
+    t.count();
+    await t.step(
+      `сверка: ${f.key} — сборщик harness-retro${moved ? ' возвращён в бэклог,' : ''} задача и трения на ИИ`,
+      { projectId: f.projectId, taskId: f.taskId, level: 'action' },
+    );
+  }
 }
 
 const KIND_NAMES: Record<string, string> = {

@@ -406,6 +406,57 @@ describe('harness-retro: сбор подзадач', () => {
       task_id: null,
     });
   });
+
+  it('PLNRAPP-679: сборщик и трения — на ИИ, не на исполнителя по умолчанию; сверка чинит сборщика, действия на нём не идут', async () => {
+    await w.admin.ok('project.update', { id: P, defaultAssigneeId: w.admin.userId });
+    const t = await task();
+    await runAction(t, result({ friction: 'мешало' }));
+    const r = await retroTask();
+    const item = (await items())[0]!.id as string;
+    const users = async (id: string) =>
+      (await raw(`select user_id from task_assignees where task_id = $1`, [id])).map(
+        (x) => x.user_id,
+      );
+    expect(await users(r)).toEqual([bot]);
+    expect(await users(item)).toEqual([bot]);
+
+    // the collector moved to work and taken by a person, the item too; a proposal stays the admin's
+    await w.admin.ok('task.update', { id: r, statusId: S.todo });
+    await w.admin.ok('task.assign', { id: uuidv7(), taskId: r, userId: w.admin.userId });
+    await w.admin.ok('task.assign', { id: uuidv7(), taskId: item, userId: w.admin.userId });
+    await w.admin.ok('task.unassign', { taskId: item, userId: bot });
+    const prop = uuidv7();
+    await w.admin.ok('task.create', {
+      id: prop,
+      projectId: P,
+      parentId: r,
+      statusId: S.clarify,
+      title: 'Правка harness: x',
+      rank: 'z0',
+      assignees: [{ id: uuidv7(), userId: w.admin.userId }],
+    });
+    await raw(
+      `insert into ai_retro_proposals (id, project_id, task_id, comment_id, action_key, base, prompt, title, state)
+       values ($1, $2, $3, $1, 'plan', '', '', 'x', 'pending')`,
+      [uuidv7(), P, prop],
+    );
+
+    // an action on the collector is skipped: no run
+    await runAction(r, result({ comment: 'Работы нет' }));
+    expect(await raw(`select 1 from ai_runs where task_id = $1`, [r])).toHaveLength(0);
+
+    await handler('ai.engine.reconcile')({}, api);
+    const backlog = (
+      await one(
+        `select id from statuses where project_id = $1 and category = 'backlog' order by rank limit 1`,
+        [P],
+      )
+    ).id;
+    expect((await one(`select status_id from tasks where id = $1`, [r])).status_id).toBe(backlog);
+    expect(await users(r)).toEqual([bot]);
+    expect(await users(item)).toEqual([bot]);
+    expect(await users(prop)).toEqual([w.admin.userId]);
+  });
 });
 
 describe('harness-retro: предложения', () => {
