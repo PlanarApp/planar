@@ -24,18 +24,25 @@ export function useAiStates(
   });
 }
 
+/** PLNRAPP-664: the layouts where the old panel «AI status» selector narrowed the tasks (useAiFilter). */
+export const AI_FILTER_LAYOUTS: ReadonlySet<string> = new Set(['list', 'cards', 'board']);
+
 /**
  * PLNRAPP-664: the view filter with the old panel «AI status» selector (`config.aiStatus` of a saved view, a tab row)
  * moved into an `aiStatus in [value]` rule — the same tasks through the general filter. The panel filter was
  * applied on top of the view filter (AND): with «all rules» (or a single condition) the rule is added to «all
  * rules»; with «any rule» and several conditions the old filter becomes a nested group: «AI status AND (A OR B)».
  * No (or an unknown) old value — the filter as is; a migrated filter is not changed again.
+ * The old selector applied only in the List (and Cards, drawn by it) and the Board: in other layouts (table,
+ * timeline, calendar) its value did not narrow the tasks — the filter stays as is there.
  */
 export function migrateAiStatus(
   config: Record<string, unknown> | null | undefined,
   filter: Filter | null,
+  layout: string | null | undefined,
 ): Filter | null {
   const s = config?.aiStatus;
+  if (!AI_FILTER_LAYOUTS.has(layout ?? '')) return filter;
   if (typeof s !== 'string' || !(AI_STATES as readonly string[]).includes(s)) return filter;
   const rule: FilterRule = { field: 'aiStatus', operator: 'in', value: [s] };
   const rules = filter?.rules ?? [];

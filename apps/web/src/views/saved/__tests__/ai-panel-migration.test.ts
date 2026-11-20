@@ -42,7 +42,7 @@ const shown = (f: Filter | null) =>
 const before = (f: Filter | null, s: string) =>
   shown(f).filter((id) => (ctx.aiStates.get(id) ?? 'none') === s);
 // after: only the migrated filter
-const after = (f: Filter | null, s: string) => shown(migrateAiStatus({ aiStatus: s }, f));
+const after = (f: Filter | null, s: string) => shown(migrateAiStatus({ aiStatus: s }, f, 'list'));
 const high = { field: 'priority' as const, operator: 'in' as const, value: ['high'] };
 const low = { field: 'priority' as const, operator: 'in' as const, value: ['low'] };
 const notDone = { field: 'aiStatus' as const, operator: 'notIn' as const, value: ['done'] };
@@ -74,7 +74,7 @@ describe('PLNRAPP-664: старый фильтр панели «Статус И�
       { op: 'or', rules: [high] } as Filter,
       { op: 'and', rules: [high] } as Filter,
     ]) {
-      const m = migrateAiStatus({ aiStatus: 'failed' }, f)!;
+      const m = migrateAiStatus({ aiStatus: 'failed' }, f, 'list')!;
       expect(m.op).toBe('and');
       expect(m.rules.at(-1)).toEqual(failed);
       expect(m.groups).toBeUndefined();
@@ -82,12 +82,12 @@ describe('PLNRAPP-664: старый фильтр панели «Статус И�
   });
   it('«любое условие» с несколькими условиями: «Статус ИИ И (группа из старого фильтра)»', () => {
     const f: Filter = { op: 'or', rules: [high, low] };
-    const m = migrateAiStatus({ aiStatus: 'failed' }, f)!;
+    const m = migrateAiStatus({ aiStatus: 'failed' }, f, 'list')!;
     expect(m).toEqual({ op: 'and', rules: [failed], groups: [f] });
     expect(shown(m)).toEqual(['id-B', 'id-E']);
     expect(shown(m)).toEqual(before(f, 'failed'));
     // again — not changed (the filter is «all rules» with the rule)
-    expect(migrateAiStatus({ aiStatus: 'failed' }, m)).toBe(m);
+    expect(migrateAiStatus({ aiStatus: 'failed' }, m, 'list')).toBe(m);
   });
   it('группа без заполненных условий — не условие; группы в «любое условие»', () => {
     const empty: Filter = { op: 'or', rules: [{ field: 'priority', operator: 'in' }] };
@@ -98,12 +98,26 @@ describe('PLNRAPP-664: старый фильтр панели «Статус И�
   });
   it('без старого значения или с неизвестным — фильтр как есть; повторная миграция ничего не меняет', () => {
     const f: Filter = { op: 'and', rules: [high] };
-    expect(migrateAiStatus({}, f)).toBe(f);
-    expect(migrateAiStatus({ aiStatus: null }, null)).toBeNull();
-    expect(migrateAiStatus({ aiStatus: 'bogus' }, f)).toBe(f);
-    expect(migrateAiStatus(undefined, f)).toBe(f);
-    const m = migrateAiStatus({ aiStatus: 'running' }, f);
-    expect(migrateAiStatus({ aiStatus: 'running' }, m)).toBe(m);
+    expect(migrateAiStatus({}, f, 'list')).toBe(f);
+    expect(migrateAiStatus({ aiStatus: null }, null, 'list')).toBeNull();
+    expect(migrateAiStatus({ aiStatus: 'bogus' }, f, 'list')).toBe(f);
+    expect(migrateAiStatus(undefined, f, 'list')).toBe(f);
+    const m = migrateAiStatus({ aiStatus: 'running' }, f, 'list');
+    expect(migrateAiStatus({ aiStatus: 'running' }, m, 'list')).toBe(m);
+  });
+  it('только list, cards и board: в table, timeline и calendar старый фильтр задачи не сужал — фильтр как есть', () => {
+    const f: Filter = { op: 'and', rules: [high] };
+    for (const layout of ['list', 'cards', 'board'])
+      expect(migrateAiStatus({ aiStatus: 'failed' }, f, layout), layout).toEqual({
+        op: 'and',
+        rules: [high, failed],
+      });
+    for (const layout of ['table', 'timeline', 'calendar', '', undefined, null]) {
+      expect(migrateAiStatus({ aiStatus: 'failed' }, f, layout), String(layout)).toBe(f);
+      expect(migrateAiStatus({ aiStatus: 'failed' }, null, layout), String(layout)).toBeNull();
+      // the same tasks as before: all tasks of the view filter
+      expect(shown(migrateAiStatus({ aiStatus: 'failed' }, f, layout))).toEqual(shown(f));
+    }
   });
   it('старый ключ не попадает в настройки вида — при сохранении он уходит из config', () => {
     expect('aiStatus' in optionsFrom({ aiStatus: 'failed', groupBy: 'priority' })).toBe(false);
