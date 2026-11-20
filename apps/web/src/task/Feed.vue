@@ -25,12 +25,15 @@ import AttachButton from './AttachButton.vue';
 import DraftFiles from './DraftFiles.vue';
 import { EMPTY_DOC, useDraftFiles } from './commentFiles';
 import { commentJump } from './jump';
+import { useTaskDetails } from './details';
 import { router } from '../router';
 
 const props = defineProps<{ task: TaskView }>();
 const { t, te, locale } = useI18n();
 const { user, isAdmin } = useAuth();
 const comments = useComments(props.task.id);
+// C-sync v3 (PLNRAPP-487): comments are loaded on open when the task is not held
+const details = useTaskDetails(props.task.id);
 const users = useUsers();
 const reactions = useReactions(props.task.id);
 const commentFiles = useCommentFiles(props.task.id);
@@ -371,6 +374,22 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
       class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto"
       data-testid="feed"
     >
+      <div
+        v-if="details === 'loading' && show !== 'history'"
+        role="status"
+        :aria-label="t('task.detailsLoading')"
+        class="flex flex-col gap-3"
+        data-testid="feed-skeleton"
+      >
+        <div v-for="i in 3" :key="i" class="h-14 animate-pulse rounded-md bg-bg-muted" />
+      </div>
+      <p
+        v-else-if="details === 'offline' && show !== 'history'"
+        class="text-sm text-fg-muted"
+        data-testid="feed-offline"
+      >
+        {{ t('task.detailsOffline') }}
+      </p>
       <template v-for="e in feed" :key="e.id">
         <CommentThread v-if="'comment' in e" :comment="e.comment" />
         <p v-else class="text-xs text-fg-muted" data-testid="activity">{{ describe(e.act) }}</p>

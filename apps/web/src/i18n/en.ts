@@ -922,6 +922,8 @@ export default {
     cantShow: 'Cannot show the image',
     activity: 'Comments and activity',
     asideResize: 'Resize the comments panel',
+    detailsLoading: 'Loading comments',
+    detailsOffline: 'Comments are unavailable offline',
     comment: 'Comment',
     reply: 'Reply',
     replyPlaceholder: "Reply in thread ('/' for commands, Ctrl+Enter to send)",
@@ -1014,6 +1016,7 @@ export default {
     comments: 'Assigned comments',
     onlyTask: 'Only the task',
     closeAll: 'Close all',
+    offline: 'Cannot check the assigned comments: unavailable offline',
   },
   logoutPending: {
     title: 'Sign out?',

@@ -1,6 +1,9 @@
 import { shallowRef } from 'vue';
 import type { Row } from '@planar/shared';
 import { db, mutate } from '../sync';
+import { i18n } from '../i18n';
+import { loadDetails } from '../task/details';
+import { toast } from '../ui/toast';
 
 /** Completing a task with open subtasks or open assigned comments (PLNRAPP-138): ask what to do with them. */
 
@@ -25,6 +28,13 @@ export async function confirmDone(taskId: string, statusId: string): Promise<boo
   if (!task || next?.category !== 'done' || task.statusId === statusId) return true;
   const cur = await db.table<Row<'statuses'>>('statuses').get(task.statusId);
   if (cur?.category === 'done') return true;
+  // C-sync v3 (PLNRAPP-487): comments are task details — by the counters there are open assigned ones,
+  // but the details are not in the replica and cannot be loaded: do not decide on incomplete data
+  const unresolved = (task.commentsAssigned ?? 0) > (task.commentsResolved ?? 0);
+  if (unresolved && !(await loadDetails(taskId))) {
+    toast(i18n.global.t('closeOpen.offline'));
+    return false;
+  }
   const [kids, comments] = await Promise.all([
     db.table<Row<'tasks'>>('tasks').where('parentId').equals(taskId).toArray(),
     db.table<Row<'comments'>>('comments').where('taskId').equals(taskId).toArray(),
