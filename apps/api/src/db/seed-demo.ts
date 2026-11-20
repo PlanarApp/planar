@@ -2261,6 +2261,26 @@ async function insertAll(tx: Tx, now: Date) {
     ...o,
   });
   const ask = (text: string) => textToDoc(`@ai ${text}`, [{ id: ai, login: 'ai' }]);
+  // PLNRAPP-657: the watchdog of the AI engine — a task on the AI in «In progress» with no run, the lead is mentioned
+  const stuck = tid('RDM', 6); // «Import from CSV: edge cases»
+  await ins(s.taskAssignees, [
+    {
+      id: uid('assignee:ai:RDM:6'),
+      spaceId: rdmSpace,
+      taskId: stuck,
+      userId: ai,
+      createdAt: at(-2),
+    },
+  ]);
+  await ins(s.comments, [
+    botSays('watch', stuck, '', {
+      body: textToDoc(
+        '@demo AI engine watchdog: the task has been in «In progress» for 3 h, but the AI is not working on it — no run and no rule that would start one. Move the task to a status where the AI goes on, or remove the AI from the assignees.',
+        [{ id: uid_.demo!, login: 'demo' }],
+      ),
+      mentions: [uid_.demo],
+    }),
+  ]);
   await ins(s.comments, [
     botSays('q0', waiting, 'Which forum sections should be covered: all of them or only «Ideas»?', {
       assigneeId: uid_.demo,

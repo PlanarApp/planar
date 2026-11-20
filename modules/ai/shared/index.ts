@@ -418,6 +418,8 @@ export interface EngineCard {
   lastRunAt: string | null;
   lastActionAt: string | null;
   lastError: string | null;
+  /** PLNRAPP-657: tasks left on the AI without a run (the task control only; 0 for the others) */
+  stuck: number;
   /** the schedule in minutes: a pass is expected at least this often */
   everyMin: number;
 }

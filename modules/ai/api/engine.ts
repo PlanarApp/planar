@@ -10,13 +10,16 @@ import { resolveConnection, secretOf } from './connections.js';
 import { generateStructured } from './llm.js';
 import type { Tracker } from './monitor.js';
 import type { RunReport } from './schema.js';
+import { AI_BOT_LOGIN } from '../shared/index.js';
 import {
   aiEnabled,
+  asDoc,
   botOf,
   CRITERIA_HEADING,
   enqueueRun,
   failed,
   keyOf,
+  withMention,
   type AiResult,
   type contextOf,
   type Run,
@@ -413,7 +416,89 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
     });
   }
   await waitingPass(api, t, projectId);
+  await watchPass(api, t, bot, projectId);
   await ciPass(api, t, projectId);
+}
+
+const envInt = (name: string, def: number) => {
+  const n = Number(process.env[name]);
+  return Number.isInteger(n) && n > 0 ? n : def;
+};
+/** PLNRAPP-657: the first words of the watchdog's comment — one per entry into the status */
+const WATCH_MARK = 'Сторож движка ИИ';
+
+/**
+ * PLNRAPP-657: tasks left on the AI — the AI among the assignees, a todo / in_progress status, no active run and no
+ * activity for AI_STALL_MIN (60). Not the statuses where a wait is expected: the question status of an action (the
+ * answer) and a status an externally triggered rule waits in (e.g. «Test prod» — the merge and the deploy).
+ */
+export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null) {
+  return (
+    await q.execute(
+      sql`select t.id as "taskId", t.project_id as "projectId", p.key || '-' || t.number as key, s.name as status,
+            floor(extract(epoch from now() - coalesce(act.at, t.created_at)) / 60)::int as min,
+            exists (select 1 from comments c where c.task_id = t.id and c.author_id = b.id
+              and c.created_at > coalesce(e.at, t.created_at) and c.body::text like ${`%${WATCH_MARK}%`}) as commented
+          from tasks t
+          join users b on b.login = ${AI_BOT_LOGIN} and b.bot
+          join task_assignees ta on ta.task_id = t.id and ta.user_id = b.id
+          join projects p on p.id = t.project_id and 'ai' = any(p.modules)
+          join statuses s on s.id = t.status_id and s.category in ('todo', 'in_progress')
+          left join lateral (select max(created_at) as at from activity where task_id = t.id) act on true
+          left join lateral (select max(created_at) as at from activity
+            where task_id = t.id and kind = 'updated' and changes->'statusId'->>1 = t.status_id::text) e on true
+          where t.archived_at is null ${projectId ? sql`and t.project_id = ${projectId}::uuid` : sql``}
+            and coalesce(act.at, t.created_at) < now() - make_interval(mins => ${envInt('AI_STALL_MIN', 60)}::int)
+            and not exists (select 1 from ai_runs o where o.task_id = t.id
+              and o.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks'))
+            and not exists (select 1 from ai_actions a where a.project_id = t.project_id and a.question_status_id = s.id)
+            and not exists (select 1 from automations_rules r where r.project_id = t.project_id and r.enabled
+              and r.trigger->>'type' not in ('task.status_changed', 'task.created', 'task.assignee_changed')
+              and jsonb_path_exists(r.conditions, '$.** ? (@.field == "status").value[*] ? (@ == $s)',
+                jsonb_build_object('s', s.id::text)))
+          order by t.updated_at limit 200`,
+    )
+  ).rows as {
+    taskId: string;
+    projectId: string;
+    key: string;
+    status: string;
+    min: number;
+    commented: boolean;
+  }[];
+}
+
+const ago = (min: number) => (min < 120 ? `${min} мин` : `${Math.floor(min / 60)} ч`);
+
+/** PLNRAPP-657: a stuck task — an error in the monitor's log and, once per entry into the status, a comment. */
+async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string | null) {
+  for (const s of await stuckTasks(api.db, projectId)) {
+    await t.check();
+    await t.step(`сторож: ${s.key} стоит в «${s.status}» ${ago(s.min)} без прогона ИИ`, {
+      projectId: s.projectId,
+      taskId: s.taskId,
+      level: 'error',
+    });
+    if (s.commented) continue;
+    // the lead of the project, else its first admin
+    const admin = await one(
+      api.db,
+      sql`select u.id, u.login from projects p join users u on u.id = p.lead_id
+            and not u.bot and u.deactivated_at is null where p.id = ${s.projectId}
+          union all (select u.id, u.login from project_members m join users u on u.id = m.user_id
+            and not u.bot and u.deactivated_at is null
+            where m.project_id = ${s.projectId} and m.role = 'admin' order by m.created_at)
+          limit 1`,
+    );
+    const text = `${WATCH_MARK}: задача ${ago(s.min)} стоит в «${s.status}», а ИИ над ней не работает — нет ни прогона, ни правила, которое бы его запустило. Переведите задачу в статус, где ИИ продолжит работу, или снимите ИИ с исполнителей.`;
+    const body = admin
+      ? withMention(asDoc(text), admin.id as string, admin.login as string)
+      : asDoc(text);
+    await api.execute(bot, [
+      { name: 'comment.create', args: { id: uuidv7(), taskId: s.taskId, body } },
+    ]);
+    t.count();
+  }
 }
 
 /** PLNRAPP-656: runs queued over 15 min (no free agent container or the subtask siblings are busy) — into the log. */

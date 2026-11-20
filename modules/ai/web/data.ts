@@ -277,6 +277,10 @@ const dict = {
     ru: 'Проходов по расписанию нет — планировщик заданий не запускает движок.',
     en: 'No scheduled passes — the job scheduler does not run the engine.',
   },
+  engStuck: {
+    ru: 'Задачи на ИИ без движения (подробности — в логе)',
+    en: 'Tasks left on the AI (see the log)',
+  },
   engOff: {
     ru: 'ИИ выключен в настройках инстанса: движки срабатывают, но работу пропускают.',
     en: 'The AI is off for the instance: the engines fire but skip the work.',

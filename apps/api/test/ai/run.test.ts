@@ -1062,6 +1062,48 @@ describe('движок: приёмка, доработка, надзор, све
     expect(last).toMatchObject({ state: 'queued', attempt: 1, restart_of: null });
     expect(last.log).toContain('сверка: задача снова в статусе действия');
   });
+
+  it('сторож: задача на ИИ без прогона и движения — ошибка в логе монитора и один комментарий на вход в статус (PLNRAPP-657)', async () => {
+    await w.admin.ok('project.update', { id: P, leadId: w.admin.userId });
+    const inProgress = await status('В работе', 'in_progress');
+    const stuck = await task({ statusId: inProgress });
+    // waits for an answer (the question status of an action) and works (an active run) — not stuck
+    const asked = await task({ statusId: S.clarify });
+    const busy = await task({ statusId: inProgress });
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth)
+       values ($1, $2, $3, 'action', 'running', $1, 0)`,
+      [uuidv7(), busy, P],
+    );
+    const age = (t: string) =>
+      Promise.all([
+        raw(`update tasks set created_at = now() - interval '3 hours' where id = $1`, [t]),
+        raw(`update activity set created_at = now() - interval '3 hours' where task_id = $1`, [t]),
+      ]);
+    for (const t of [stuck, asked, busy]) await age(t);
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    const errors = async () =>
+      (
+        await raw(`select text from ai_engine_events where task_id = $1 and level = 'error'`, [
+          stuck,
+        ])
+      ).map((e) => e.text as string);
+    const watch = async (t: string) =>
+      (await commentsOf(t)).filter((c) => c.author_id === bot && text(c.body).includes('Сторож'));
+
+    await reconcile();
+    expect(await errors()).toEqual([expect.stringMatching(/^сторож: .+ стоит в «В работе» 3 ч/)]);
+    const [c] = await watch(stuck);
+    expect(text(c!.body)).toContain(`"id":"${w.admin.userId}"`);
+    expect(await watch(asked)).toEqual([]);
+    expect(await watch(busy)).toEqual([]);
+
+    // still stuck (the comment aged too) — the log again, but no second comment in the same status
+    await age(stuck);
+    await reconcile();
+    expect(await errors()).toHaveLength(2);
+    expect(await watch(stuck)).toHaveLength(1);
+  });
 });
 
 describe('координация подзадач (PLNRAPP-405)', () => {

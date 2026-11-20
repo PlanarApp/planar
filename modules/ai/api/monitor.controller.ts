@@ -14,7 +14,7 @@ import {
   type EngineMonitorView,
   type EngineRunView,
 } from '../shared/index.js';
-import { RECONCILE_QUEUE } from './engine.js';
+import { RECONCILE_QUEUE, stuckTasks } from './engine.js';
 import type { TasksEngineData } from './engines.js';
 import { abortRunning } from './monitor.js';
 import { RETRO_QUEUE, type RetroData } from './retro.js';
@@ -120,17 +120,20 @@ export class EngineController {
         last: { state: string; error: string | null; at: string } | null;
         lastActionAt: string | null;
       };
+      const stuck = engine === 'tasks' ? (await stuckTasks(db, q.projectId ?? null)).length : 0;
+      const status = statusOf(
+        { running: !!r.running, lastStartAt: r.lastStartAt, lastState: r.last?.state ?? null },
+        EVERY_MIN[engine],
+      );
       engines.push({
         engine,
-        status: statusOf(
-          { running: !!r.running, lastStartAt: r.lastStartAt, lastState: r.last?.state ?? null },
-          EVERY_MIN[engine],
-        ),
+        status: stuck && status === 'idle' ? 'error' : status,
         current: r.running?.current ?? null,
         runningSince: r.running?.since ?? null,
         lastRunAt: r.last?.at ?? null,
         lastActionAt: r.lastActionAt,
         lastError: r.last?.state === 'failed' ? r.last.error : null,
+        stuck,
         everyMin: EVERY_MIN[engine],
       });
     }
