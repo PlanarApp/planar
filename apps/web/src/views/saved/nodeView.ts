@@ -8,7 +8,8 @@ import { useNodeViewRows } from './queries';
 
 const plain = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 // a filter without rules is the same as no filter
-const norm = (f: Filter | null | undefined): Filter | null => (f?.rules?.length ? f : null);
+const norm = (f: Filter | null | undefined): Filter | null =>
+  f?.rules?.length || f?.groups?.length ? f : null;
 const DEBOUNCE_MS = 400; // the contract: ≤ 500
 
 /**

@@ -506,6 +506,8 @@ export default {
       quickHint: 'Title or description…',
       add: 'Add rule',
       remove: 'Remove rule',
+      group: 'Condition group',
+      removeGroup: 'Remove group',
       and: 'AND',
       or: 'OR',
       match: 'Match',

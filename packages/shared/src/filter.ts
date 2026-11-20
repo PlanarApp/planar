@@ -28,7 +28,16 @@ export interface FilterRule {
 export interface Filter {
   op: 'and' | 'or';
   rules: FilterRule[];
+  /**
+   * nested groups (PLNRAPP-664): each is one more condition, joined with the rules by `op` — e.g. «AI status AND
+   * (A OR B)»; a group without complete rules is not a condition
+   */
+  groups?: Filter[];
 }
+
+/** All rules of a filter, of its groups too. */
+export const allRules = (filter: Filter | null | undefined): FilterRule[] =>
+  filter ? [...filter.rules, ...(filter.groups ?? []).flatMap(allRules)] : [];
 export interface FilterCtx {
   statuses: Row<'statuses'>[];
   userId: string;
@@ -243,16 +252,19 @@ export function widenByName<F extends { rules: { field: string; value?: unknown 
       ...new Set([...value, ...dict.filter((d) => names.has(norm(d.name))).map((d) => d.id)]),
     ];
   };
-  return {
-    ...filter,
-    rules: filter.rules.map((r) =>
+  type G = { rules: { field: string; value?: unknown }[]; groups?: G[] };
+  const walk = (f: G): G => ({
+    ...f,
+    rules: f.rules.map((r) =>
       r.field === 'status'
         ? { ...r, value: widen(r.value, statuses) }
         : r.field === 'label'
           ? { ...r, value: widen(r.value, labels) }
           : r,
     ),
-  };
+    ...(f.groups && { groups: f.groups.map(walk) }),
+  });
+  return walk(filter) as F;
 }
 
 export function matchFilter(
@@ -261,7 +273,9 @@ export function matchFilter(
   ctx: FilterCtx,
 ): boolean {
   const rules = filter?.rules.filter(complete) ?? [];
-  if (!rules.length) return true;
+  const groups = (filter?.groups ?? []).filter((g) => allRules(g).some(complete));
+  if (!rules.length && !groups.length) return true;
   const f = (r: FilterRule) => matchRule(task, r, ctx);
-  return filter!.op === 'or' ? rules.some(f) : rules.every(f);
+  const g = (x: Filter) => matchFilter(task, x, ctx);
+  return filter!.op === 'or' ? rules.some(f) || groups.some(g) : rules.every(f) && groups.every(g);
 }

@@ -54,5 +54,14 @@ export function useFilterSummary(
         : valueLabel(r, r.value);
     return [f, t(`views.filter.ops.${r.operator}`), v].filter(Boolean).join(' ');
   }
-  return computed(() => (filter()?.rules ?? []).map(label));
+  // a nested group (PLNRAPP-664) — one line: «(A OR B)»
+  const group = (g: Filter): string =>
+    `(${[...g.rules.map(label), ...(g.groups ?? []).map(group)].join(` ${t(`views.filter.${g.op}`)} `)})`;
+  return computed(() => {
+    const f = filter();
+    return [
+      ...(f?.rules ?? []).map(label),
+      ...(f?.groups ?? []).filter((g) => g.rules.length || g.groups?.length).map(group),
+    ];
+  });
 }

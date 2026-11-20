@@ -6,7 +6,7 @@ import type { TaskView } from '../../tasks';
 import { db, useQuery } from '../../sync';
 import { enabledForProject } from '../../modules/registry';
 import { useAiStates } from '../aiFilter';
-import { localToday, matchFilter, type Filter, type FilterCtx } from '../filter';
+import { allRules, localToday, matchFilter, type Filter, type FilterCtx } from '../filter';
 
 /**
  * View's Me Mode: 'mine' — toggle in Tasks (work for me: open tasks assigned to me and
@@ -85,8 +85,8 @@ export function useTaskFilter(
   const defs = useFieldDefsByIds(() =>
     [
       ...new Set(
-        toValue(filter)
-          ?.rules.filter((r) => r.field.startsWith('field:'))
+        allRules(toValue(filter))
+          .filter((r) => r.field.startsWith('field:'))
           .map((r) => r.field.slice(6)),
       ),
     ].join(','),
@@ -102,7 +102,7 @@ export function useTaskFilter(
   const aiProject = () => {
     const pid = projectId?.();
     return pid &&
-      toValue(filter)?.rules.some((r) => r.field === 'aiStatus') &&
+      allRules(toValue(filter)).some((r) => r.field === 'aiStatus') &&
       enabledForProject('ai', pid)
       ? pid
       : undefined;
@@ -110,9 +110,9 @@ export function useTaskFilter(
   const aiStates = useAiStates(aiProject);
   const rules = computed(() => {
     const f = toValue(filter);
-    if (!f?.rules.length) return () => true;
+    if (!f || !allRules(f).length) return () => true;
     // defs are still loading: field: rules must not let through extra items
-    if (defs.value === undefined && f.rules.some((r) => r.field.startsWith('field:')))
+    if (defs.value === undefined && allRules(f).some((r) => r.field.startsWith('field:')))
       return () => false;
     const ctx = {
       statuses: toValue(statuses) ?? [],

@@ -30,7 +30,12 @@ const quick = computed({
   set: (v: string) => {
     const rules = (filter.value?.rules ?? []).filter((r) => r.field !== 'text');
     if (v) rules.push({ field: 'text', operator: 'contains', value: v });
-    filter.value = rules.length ? { op: filter.value?.op ?? 'and', rules } : null;
+    // nested groups (PLNRAPP-664) stay
+    const groups = filter.value?.groups ?? [];
+    filter.value =
+      rules.length || groups.length
+        ? { op: filter.value?.op ?? 'and', rules, ...(groups.length && { groups }) }
+        : null;
   },
 });
 function onQuickKey(e: KeyboardEvent) {

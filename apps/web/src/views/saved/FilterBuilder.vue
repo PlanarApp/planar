@@ -122,6 +122,15 @@ const setOperator = (i: number, operator: FilterRule['operator']) =>
 const add = () =>
   setRules([...rules.value, { field: 'status', operator: FIELD_OPERATORS.status[0] }]);
 const remove = (i: number) => setRules(rules.value.filter((_, j) => j !== i));
+// nested groups (PLNRAPP-664, e.g. a migrated old view: «AI status AND (A OR B)») — edited by a nested builder
+const groups = computed(() => model.value.groups ?? []);
+const setGroups = (g: Filter[]) => {
+  const next: Filter = { ...model.value, groups: g };
+  if (!g.length) delete next.groups;
+  model.value = next;
+};
+const setGroup = (i: number, g: Filter) => setGroups(groups.value.map((x, j) => (j === i ? g : x)));
+const removeGroup = (i: number) => setGroups(groups.value.filter((_, j) => j !== i));
 
 const list = (r: FilterRule): string[] => (Array.isArray(r.value) ? r.value.map(String) : []);
 const hasValue = (r: FilterRule) => r.operator !== 'isEmpty' && r.operator !== 'isNotEmpty';
@@ -295,6 +304,32 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
         :aria-label="t('views.filter.remove')"
         data-role="remove"
         @click="remove(i)"
+      />
+    </div>
+
+    <div
+      v-for="(g, gi) in groups"
+      :key="`g${gi}`"
+      class="flex items-start gap-2 rounded-md border border-border p-2"
+      data-testid="filter-group"
+    >
+      <div class="min-w-0 flex-1">
+        <div class="mb-1 text-xs text-fg-muted">{{ t('views.filter.group') }}</div>
+        <FilterBuilder
+          :model-value="g"
+          :space-id="spaceId"
+          :project-id="projectId"
+          :with-ai="withAi"
+          @update:model-value="setGroup(gi, $event)"
+        />
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        :icon="X"
+        :aria-label="t('views.filter.removeGroup')"
+        data-role="remove-group"
+        @click="removeGroup(gi)"
       />
     </div>
 
