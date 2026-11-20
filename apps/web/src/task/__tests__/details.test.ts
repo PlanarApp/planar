@@ -82,8 +82,12 @@ describe('детали задачи (PLNRAPP-487)', () => {
     await until(() => w!.find('[data-testid="feed-skeleton"]').exists());
     expect(w.find('[data-testid="feed"]').text()).not.toContain('с сервера');
     release();
-    await until(() => w!.find('[data-testid="feed"]').text().includes('с сервера'));
-    expect(w.find('[data-testid="feed-skeleton"]').exists()).toBe(false);
+    // the comments reach the replica (and the feed) a tick before the details turn ready: wait for both
+    await until(
+      () =>
+        w!.find('[data-testid="feed"]').text().includes('с сервера') &&
+        !w!.find('[data-testid="feed-skeleton"]').exists(),
+    );
     expect(await db._held.get(t.id)).toBeTruthy();
   });
 
