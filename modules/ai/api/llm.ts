@@ -61,7 +61,13 @@ export function providerLog(e: unknown): string {
 /** Structured answer (`generateObject`) with the tokens and the cost of the call. */
 export async function generateStructured<S extends z.ZodType>(
   c: LlmConnection,
-  o: { schema: S; prompt: string; system?: string; maxOutputTokens?: number },
+  o: {
+    schema: S;
+    prompt: string;
+    system?: string;
+    maxOutputTokens?: number;
+    abortSignal?: AbortSignal;
+  },
 ): Promise<{ object: z.output<S>; usage: LlmUsage }> {
   const r = await generateObject({
     model: modelOf(c),
@@ -70,6 +76,7 @@ export async function generateStructured<S extends z.ZodType>(
     system: o.system,
     maxOutputTokens: o.maxOutputTokens,
     maxRetries: 1,
+    abortSignal: o.abortSignal,
   }).catch((e: unknown) => {
     throw scrub(e, c.apiKey);
   });

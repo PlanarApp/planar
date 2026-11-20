@@ -653,12 +653,15 @@ function proposalComment(
   ].join('\n\n');
 }
 
-/** An LLM call of the retro as a run of the task (kind retro): its tokens and cost count in the limits. */
+/**
+ * An LLM call of the retro as a run of the task (kind retro): its tokens and cost count in the limits. `signal` —
+ * the engine pass's: a manual pass aborting it cuts the request (the run — cancelled, null).
+ */
 async function llmRun<S extends z.ZodType>(
   api: JobApi,
   projectId: string,
   taskId: string,
-  call: { schema: S; system: string; prompt: string },
+  call: { schema: S; system: string; prompt: string; signal?: AbortSignal },
 ): Promise<{ runId: string; object: z.output<S> } | null> {
   if (await blocked(api.db, projectId)) return null;
   const conn = await resolveConnection(api.db, projectId);
@@ -669,13 +672,21 @@ async function llmRun<S extends z.ZodType>(
         values (${runId}, ${taskId}, ${projectId}, 'retro', 'running', ${runId}, 0)`,
   );
   try {
-    const { object, usage } = await generateStructured(secretOf(conn), call);
+    const { signal, ...c } = call;
+    const { object, usage } = await generateStructured(secretOf(conn), {
+      ...c,
+      abortSignal: signal,
+    });
     await api.db.execute(
       sql`update ai_runs set input_tokens = ${usage.inputTokens}, output_tokens = ${usage.outputTokens},
           cost = ${usage.cost}, updated_at = now() where id = ${runId}`,
     );
     return { runId, object };
   } catch (e) {
+    if (call.signal?.aborted) {
+      await endRun(api.db, runId, 'cancelled', 'прервано ручным запуском');
+      return null;
+    }
     // the provider's own text is dropped: it may quote the key
     await endRun(api.db, runId, 'failed', `провайдер: ${e instanceof Error ? e.name : 'error'}`);
     return null;
@@ -701,6 +712,19 @@ const packText = (pack: ActivePack) =>
       return `\n## Действие \`${k}\` — «${i?.name ?? k}»\n${i?.prompt ?? '—'}`;
     }),
   ].join('\n');
+
+/**
+ * Throws EngineAborted when a manual pass replaced this one (the AI run of the answer, if any — cancelled): an
+ * aborted pass applies nothing of the AI's answer.
+ */
+async function abortedRun(api: JobApi, t: Tracker, r: { runId: string } | null) {
+  try {
+    await t.check();
+  } catch (e) {
+    if (r) await endRun(api.db, r.runId, 'cancelled', 'прервано ручным запуском');
+    throw e;
+  }
+}
 
 /** One retro: open items → proposals (subtasks on the admin with the diff). */
 async function runRetro(projectId: string, api: JobApi, t: Tracker) {
@@ -762,7 +786,10 @@ async function runRetro(projectId: string, api: JobApi, t: Tracker) {
     schema: retroSchema,
     system: RETRO_PROMPT,
     prompt,
+    signal: t.signal,
   });
+  // aborted while the AI answered: nothing of the answer goes in
+  await abortedRun(api, t, r);
   if (!r)
     return void (await t.step(
       'ИИ не ответил: нет подключения, исчерпан лимит или ошибка провайдера',
@@ -771,11 +798,13 @@ async function runRetro(projectId: string, api: JobApi, t: Tracker) {
       },
     ));
   const log: string[] = [];
-  for (const p of r.object.proposals)
+  for (const p of r.object.proposals) {
+    await abortedRun(api, t, r);
     await propose(api, { projectId, retroTaskId: s.taskId, bot, pack, items }, p).then(
       () => t.step(`предложение: «${p.title}»`, { level: 'action' }),
       (e) => log.push(`«${p.title}»: ${errText(e)}`),
     );
+  }
   t.count(items.length);
   await t.step(
     `обработано подзадач: ${items.length}, предложений: ${r.object.proposals.length - log.length}${log.length ? `, ошибок: ${log.length}` : ''}`,
@@ -1232,7 +1261,9 @@ async function runOptimize(projectId: string, api: JobApi, t: Tracker) {
     schema: retroSchema,
     system: OPTIMIZE_PROMPT,
     prompt: `# harness.yml\n${pack.yml || '—'}\n\n${packText(pack)}`,
+    signal: t.signal,
   });
+  await abortedRun(api, t, r);
   if (!r)
     return void (await t.step(
       'ИИ не ответил: нет подключения, исчерпан лимит или ошибка провайдера',
@@ -1241,11 +1272,13 @@ async function runOptimize(projectId: string, api: JobApi, t: Tracker) {
       },
     ));
   const log: string[] = [];
-  for (const p of r.object.proposals)
+  for (const p of r.object.proposals) {
+    await abortedRun(api, t, r);
     await propose(api, { projectId, retroTaskId: taskId, bot, pack, items: [] }, p).then(
       () => t.step(`${p.auto ? 'применено' : 'предложение'}: «${p.title}»`, { level: 'action' }),
       (e) => log.push(`«${p.title}»: ${errText(e)}`),
     );
+  }
   t.count(r.object.proposals.length);
   await t.step(
     `оптимизация: предложений ${r.object.proposals.length - log.length}${log.length ? `, ошибок: ${log.length}` : ''}`,

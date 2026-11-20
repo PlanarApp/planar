@@ -13,6 +13,8 @@ type Exec = Pick<Q, 'execute'>;
 export const ENGINE_KEEP_DAYS = 7;
 /** a running pass silent this long is lost (the server restarted): failed by the sweep */
 export const ENGINE_LOST_MIN = 30;
+/** how often a pass waiting on a long call (the AI) looks whether it was aborted */
+export const ENGINE_WATCH_MS = 2000;
 
 export class EngineAborted extends Error {
   constructor() {
@@ -31,6 +33,11 @@ export interface Tracker {
   count(n?: number): void;
   /** throws EngineAborted when a manual pass replaced this one */
   check(): Promise<void>;
+  /**
+   * Fires when a manual pass aborts this one — for a long call (the AI request) to stop at once, not at the next
+   * step. Watched (a poll of the row) only once read.
+   */
+  readonly signal: AbortSignal;
 }
 
 export interface TrackOpts {
@@ -54,6 +61,12 @@ export async function tracked(
 ): Promise<void> {
   const id = uuidv7();
   let processed = 0;
+  const ac = new AbortController();
+  let watch: ReturnType<typeof setInterval> | null = null;
+  const aborted = async () => {
+    const r = await db.execute(sql`select state from ai_engine_runs where id = ${id}`);
+    return r.rows[0]?.state === 'aborted';
+  };
   await db.execute(
     sql`insert into ai_engine_runs (id, engine, job, project_id, trigger, user_id, state)
         values (${id}, ${o.engine}, ${o.job}, ${o.projectId ?? null}, ${o.trigger}, ${o.userId ?? null}, 'running')`,
@@ -63,9 +76,11 @@ export async function tracked(
     async step(text, s = {}) {
       const projectId = s.projectId ?? o.projectId ?? null;
       const line = text.slice(0, 2000);
+      // an aborted pass writes no more steps: its log ends with «прервано ручным запуском»
       await db.execute(
         sql`insert into ai_engine_events (id, run_id, engine, project_id, task_id, level, text)
-            values (${uuidv7()}, ${id}, ${o.engine}, ${projectId}, ${s.taskId ?? null}, ${s.level ?? 'info'}, ${line})`,
+            select ${uuidv7()}, ${id}, ${o.engine}, ${projectId}, ${s.taskId ?? null}, ${s.level ?? 'info'}, ${line}
+            where exists (select 1 from ai_engine_runs where id = ${id} and state = 'running')`,
       );
       await db.execute(
         sql`update ai_engine_runs set current = ${line}, current_project_id = ${projectId},
@@ -76,8 +91,22 @@ export async function tracked(
       processed += n;
     },
     async check() {
-      const r = await db.execute(sql`select state from ai_engine_runs where id = ${id}`);
-      if (r.rows[0]?.state === 'aborted') throw new EngineAborted();
+      if (ac.signal.aborted || (await aborted())) {
+        ac.abort();
+        throw new EngineAborted();
+      }
+    },
+    get signal() {
+      if (!watch && !ac.signal.aborted) {
+        watch = setInterval(() => {
+          aborted().then(
+            (y) => y && ac.abort(),
+            () => {},
+          );
+        }, ENGINE_WATCH_MS);
+        watch.unref?.();
+      }
+      return ac.signal;
     },
   };
   const finish = (state: string, error: string | null) =>
@@ -89,7 +118,8 @@ export async function tracked(
   try {
     await fn(t);
   } catch (e) {
-    if (e instanceof EngineAborted) {
+    // the AI call cut by the signal fails with its own error: the abort is what happened
+    if (e instanceof EngineAborted || ac.signal.aborted || (await aborted().catch(() => false))) {
       // the row is aborted already; the count of what was done before the abort is kept
       await db.execute(sql`update ai_engine_runs set processed = ${processed} where id = ${id}`);
       return;
@@ -99,6 +129,8 @@ export async function tracked(
       .catch(() => {});
     await finish('failed', errText(e));
     throw e;
+  } finally {
+    if (watch) clearInterval(watch);
   }
   await finish('done', null);
 }

@@ -101,6 +101,30 @@ describe('проход движка (tracked)', () => {
     expect(new EngineAborted().message).toContain('ручным');
   });
 
+  it('прерывание во время долгого вызова: signal срабатывает, шаги после него не пишутся, ошибка вызова — не failed', async () => {
+    let id = '';
+    await tracked(db, { engine: 'harness', job: 'retro', trigger: 'cron' }, async (t) => {
+      id = t.id;
+      await t.step('запрос к ИИ');
+      const signal = t.signal;
+      await raw(`update ai_engine_runs set state = 'aborted' where id = $1`, [id]);
+      // the AI call waits on the signal and fails with its own error when cut
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => resolve(), 10_000);
+        signal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(new Error('This operation was aborted'));
+        });
+      }).catch(async (e: unknown) => {
+        await t.step('предложение: не должно попасть в лог', { level: 'action' });
+        throw e;
+      });
+    });
+    expect(await runOf(id)).toMatchObject({ state: 'aborted' });
+    const ev = await raw(`select text from ai_engine_events where run_id = $1 order by id`, [id]);
+    expect(ev.map((r) => r.text)).toEqual(['запрос к ИИ']);
+  });
+
   it('уборка: старше 7 дней — удаляются, молчащий running — failed', async () => {
     const old = await pass({ startedAt: new Date(Date.now() - 8 * 86_400_000).toISOString() });
     const lost = await pass({ state: 'running' });
