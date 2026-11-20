@@ -42,6 +42,7 @@ vi.mock('../open', async (orig) => ({
   viewLoaders: () => ({
     '../views/list/View.vue': async () => ({ __esModule: true, default: stubView }),
     '../views/board/View.vue': async () => ({ __esModule: true, default: stubView }),
+    '../views/table/View.vue': async () => ({ __esModule: true, default: stubView }),
   }),
   taskPanelLoader: undefined,
 }));
@@ -360,6 +361,28 @@ describe('views:saved', () => {
     const el = w.get('[data-testid=view]');
     expect(JSON.parse(el.attributes('data-filter')!)).toEqual(migrated);
     expect(JSON.parse(el.attributes('data-options')!)).not.toHaveProperty('aiStatus');
+  });
+  it('PLNRAPP-664 старые ссылки на вид table и вкладку /p/:id/table — фильтр без «Статус ИИ» (там он не действовал)', async () => {
+    const v = savedRow({ layout: 'table', filter: anyOf, config: { aiStatus: 'failed' } });
+    await db.table('savedViews').put(v);
+    await r.push(`/p/${ids.project}/v/${v.id}`);
+    let w = mountScreen(ProjectScreen);
+    await until(() => w.find('[data-testid=view]').exists());
+    expect(JSON.parse(w.get('[data-testid=view]').attributes('data-filter')!)).toEqual(anyOf);
+    w.unmount();
+    await db.table('savedViews').put(
+      savedRow({
+        node: `p:${ids.project}`,
+        layout: 'table',
+        filter: anyOf,
+        config: { aiStatus: 'failed' },
+      }),
+    );
+    await r.push(`/p/${ids.project}/table`);
+    w = mountScreen(ProjectScreen);
+    await until(() => w.find('[data-testid=view]').exists());
+    await until(() => w.get('[data-testid=view]').attributes('data-filter') !== 'null');
+    expect(JSON.parse(w.get('[data-testid=view]').attributes('data-filter')!)).toEqual(anyOf);
   });
 
   it('views:saved правки — черновик; «Сохранить» → view.update, «Сбросить» возвращает', async () => {

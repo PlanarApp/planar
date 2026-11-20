@@ -33,7 +33,13 @@ export function useNodeViewDraft(a: {
     // PLNRAPP-664: the old panel «AI status» of a project row — a rule of its filter (it applied in projects only)
     filter: a.notProject
       ? norm(row.value?.filter as Filter | undefined)
-      : norm(migrateAiStatus(row.value?.config, norm(row.value?.filter as Filter | undefined))),
+      : norm(
+          migrateAiStatus(
+            row.value?.config,
+            norm(row.value?.filter as Filter | undefined),
+            toValue(a.layout),
+          ),
+        ),
   });
   const options = ref<ViewOptions>(base().options);
   const filter = ref<Filter | null>(null);
