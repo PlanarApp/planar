@@ -547,6 +547,13 @@
       "when": 1795843200000,
       "tag": "0077_favorites_orphan_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1795929600000,
+      "tag": "0078_day_plan_due_date",
+      "breakpoints": true
     }
   ]
 }
