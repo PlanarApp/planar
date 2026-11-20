@@ -489,6 +489,24 @@ describe('прогон по правилу', () => {
     expect(calls).toHaveLength(1);
   });
 
+  it('PLNRAPP-739: вопрос без человека у задачи — вопросы в комментарии, не теряются', async () => {
+    // a subtask of the AI: created by the bot, only the bot assigned — no one to ask
+    const t = await task({ assignees: [{ id: uuidv7(), userId: bot }] });
+    await raw(`update tasks set created_by = $1 where id = $2`, [bot, t]);
+    answers = [
+      result({ verdict: 'question', comment: 'Нужны данные', questions: ['Бюджет?', 'Сроки?'] }),
+    ];
+    await handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId }, api);
+    const [run] = await runsOf(t);
+    expect(run).toMatchObject({ state: 'failed', question_comment_ids: [] });
+    expect(run!.log).toContain('Некому задать вопрос');
+    const cs = await commentsOf(t);
+    expect(cs).toHaveLength(1);
+    expect(cs[0]!.assignee_id).toBeNull();
+    for (const s of ['Нужны данные', 'Бюджет?', 'Сроки?', 'Некому задать вопрос'])
+      expect(text(cs[0]!.body)).toContain(s);
+  });
+
   it('docs[]: страница под корнем (корень создаётся), повтор переписывает её; связь с задачей', async () => {
     const t = await task();
     const page = (title: string, md: string) =>
