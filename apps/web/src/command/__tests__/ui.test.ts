@@ -23,7 +23,7 @@ vi.mock('../../router', async () => {
 });
 
 const { registerModules } = await import('../../modules/registry');
-const { ui, hotkeys } = await import('../hotkeys');
+const { ui, hotkeys, quickCreate } = await import('../hotkeys');
 const CommandHost = (await import('../CommandHost.vue')).default;
 
 const key = (k: string, init: KeyboardEventInit = {}, target: EventTarget = window) =>
@@ -180,5 +180,83 @@ describe('cmd:hotkeys', () => {
   it('? открывает шпаргалку', async () => {
     key('?');
     await ready('Горячие клавиши');
+  });
+});
+
+describe('cmd:quick-create — описание (PLNRAPP-683)', () => {
+  const desc = {
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Из выделения' }] }],
+  };
+  const q = <T extends Element = HTMLElement>(s: string) => document.body.querySelector<T>(s);
+  const submit = async () => {
+    await until(
+      () =>
+        !q<HTMLButtonElement>('[data-testid=quick-submit]')?.disabled && body().includes('Todo'),
+    );
+    q('#quick-create')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    await until(() => !ui.create);
+  };
+  const created = async () => {
+    const all = await db.table('tasks').toArray();
+    return all.find((x) => x.title === 'Новая');
+  };
+  const setTitle = async () => {
+    const input = q<HTMLInputElement>('[data-testid=quick-title]')!;
+    input.value = 'Новая';
+    input.dispatchEvent(new Event('input'));
+    await flushPromises();
+  };
+  beforeEach(async () => {
+    try {
+      registerMutators(domainMutators);
+    } catch {
+      /* already registered by cmd:live */
+    }
+    await stopSync();
+    await startSync({
+      userId: ids.ann,
+      fetch: (() => Promise.reject(new TypeError('offline'))) as never,
+    });
+  });
+  afterEach(async () => {
+    ui.create = false;
+    await stopSync();
+  });
+
+  it('по умолчанию поле свёрнуто под «+ Описание», задача создаётся без описания', async () => {
+    quickCreate(ids.project);
+    await until(() => !!q('[data-testid=quick-description-toggle]'));
+    expect(q('[data-testid=quick-description-toggle]')!.textContent).toContain('Описание');
+    expect(q('[data-testid=quick-description]')).toBeNull();
+    await setTitle();
+    await submit();
+    const t = await created();
+    expect(t).toBeTruthy();
+    expect(t.description).toBeNull();
+  });
+  it('«+ Описание» разворачивает редактор без вложений', async () => {
+    quickCreate(ids.project);
+    await until(() => !!q('[data-testid=quick-description-toggle]'));
+    q<HTMLButtonElement>('[data-testid=quick-description-toggle]')!.click();
+    await until(() => !!q('[data-testid=quick-description] .ProseMirror'));
+    expect(q('[data-testid=quick-description] input[type=file]')).toBeNull();
+  });
+  it('начальное описание и флаг «развёрнуто» — текст сохраняется в задачу', async () => {
+    quickCreate(ids.project, { description: desc, descriptionOpen: true });
+    await until(() => !!q('[data-testid=quick-description] .ProseMirror'));
+    expect(q('[data-testid=quick-description]')!.textContent).toContain('Из выделения');
+    await setTitle();
+    await submit();
+    const t = await created();
+    expect(t.description).toEqual(desc);
+  });
+  it('начальное описание без флага — поле свёрнуто, описание всё равно сохраняется', async () => {
+    quickCreate(ids.project, { description: desc });
+    await until(() => !!q('[data-testid=quick-description-toggle]'));
+    expect(q('[data-testid=quick-description]')).toBeNull();
+    await setTitle();
+    await submit();
+    expect((await created()).description).toEqual(desc);
   });
 });

@@ -6,6 +6,8 @@ export interface CreateTaskArgs {
   projectId: string;
   statusId: string;
   title: string;
+  /** ProseMirror JSON; null/undefined — без описания */
+  description?: Row<'tasks'>['description'];
   after?: string | null;
   before?: string | null;
   parentId?: string | null;
@@ -39,6 +41,7 @@ export async function createTask(a: CreateTaskArgs): Promise<string> {
     projectId: a.projectId,
     statusId: a.statusId,
     title: a.title,
+    ...(a.description && { description: a.description }),
     rank,
     parentId: a.parentId,
     priority: a.priority,

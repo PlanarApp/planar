@@ -74,6 +74,7 @@ export default {
     create: 'Создать',
     more: 'Создать ещё',
     noProjects: 'Сначала создайте проект',
+    description: 'Описание',
   },
   sidebar: {
     create: 'Создать',
