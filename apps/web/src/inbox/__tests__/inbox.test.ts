@@ -710,3 +710,141 @@ describe('cl1a: inbox без задачи', () => {
     ).toBe(before);
   });
 });
+
+describe('PLNRAPP-629 статус задачи в «Комментарии мне»', () => {
+  const sWork = uuidv7();
+  const TaskStatusCell = async () => (await import('../TaskStatusCell.vue')).default;
+  const seed = async () => {
+    const tid = uuidv7();
+    await db.table('statuses').bulkPut([
+      {
+        id: sTodo,
+        spaceId: space,
+        projectId: project,
+        name: 'Открыта',
+        category: 'todo',
+        color: '#000',
+        rank: 'a',
+      },
+      {
+        id: sDone,
+        spaceId: space,
+        projectId: project,
+        name: 'Готово',
+        category: 'done',
+        color: '#000',
+        rank: 'b',
+      },
+      {
+        id: sWork,
+        spaceId: space,
+        projectId: project,
+        name: 'В работе',
+        category: 'in_progress',
+        color: '#000',
+        rank: 'c',
+      },
+    ]);
+    await db.table('spaces').put({ id: space, name: 'S', rank: 'a' });
+    await db.table('projects').put({
+      id: project,
+      spaceId: space,
+      key: 'PL',
+      name: 'Planar',
+      rank: 'a',
+      membersMode: 'inherit',
+    });
+    // a full row: the status change goes through the task.update mutator (the row is validated)
+    await db.table('tasks').put(
+      task(tid, {
+        number: 3,
+        title: 'T3',
+        parentId: null,
+        description: null,
+        priority: 0,
+        rank: 'a',
+        startDate: null,
+        createdBy: bob,
+        completedAt: null,
+        fields: {},
+        cycleId: null,
+        archivedAt: null,
+        archivedBy: null,
+        commentsAssigned: 1,
+        commentsResolved: 0,
+        commentsOpenAssignees: [me],
+        createdAt: ts(2),
+        updatedAt: ts(2),
+      }),
+    );
+    await db.table('comments').put({
+      id: uuidv7(),
+      spaceId: space,
+      taskId: tid,
+      body: null,
+      authorId: bob,
+      assigneeId: me,
+      resolvedAt: null,
+      createdAt: ts(1),
+    });
+    return tid;
+  };
+  const cell = async () => {
+    const scope = effectScope();
+    const list = scope.run(() => useAssignedComments(() => me))!;
+    await vi.waitFor(() => expect(list.value?.length).toBe(1));
+    const c = list.value![0]!;
+    scope.stop();
+    return mount(await TaskStatusCell(), {
+      props: { task: c.task, status: c.status },
+      global: { plugins: [i18n] },
+      attachTo: document.body,
+    });
+  };
+
+  it('элемент списка несёт задачу и её статус', async () => {
+    const tid = await seed();
+    const scope = effectScope();
+    const list = scope.run(() => useAssignedComments(() => me))!;
+    await vi.waitFor(() =>
+      expect(list.value?.[0]).toMatchObject({
+        key: 'PL-3',
+        task: { id: tid, spaceId: space, projectId: project, statusId: sTodo },
+        status: { id: sTodo, name: 'Открыта' },
+      }),
+    );
+    scope.stop();
+  });
+  it('с правами: иконка с подсказкой, клик открывает меню, выбор меняет статус задачи', async () => {
+    const tid = await seed();
+    const w = await cell();
+    await vi.waitFor(() => expect(w.find('button').exists()).toBe(true));
+    expect(w.find('[data-testid=work-status]').attributes('title')).toBe('Открыта');
+    expect(w.find('button svg[data-category=todo]').exists()).toBe(true);
+    await w.find('button').trigger('click');
+    await flushPromises();
+    await vi.waitFor(() =>
+      expect(document.body.querySelectorAll('[role="option"]')).toHaveLength(3),
+    );
+    [...document.body.querySelectorAll<HTMLElement>('[role="option"]')]
+      .find((o) => o.textContent?.includes('В работе'))!
+      .click();
+    await vi.waitFor(async () => expect((await db.table('tasks').get(tid))?.statusId).toBe(sWork));
+    w.unmount();
+  });
+  it('гость: иконка неактивна, меню не открывается', async () => {
+    useAuth().user.value = mkUser({ id: me, role: 'member' });
+    await db.table('spaceMembers').put({ id: uuidv7(), spaceId: space, userId: me, role: 'guest' });
+    await seed();
+    const w = await cell();
+    await flushPromises();
+    const icon = w.find('[aria-disabled=true]');
+    expect(icon.exists()).toBe(true);
+    expect(icon.attributes('aria-label')).toBe('Открыта');
+    expect(w.find('button').exists()).toBe(false);
+    await icon.trigger('click');
+    await flushPromises();
+    expect(document.body.querySelector('[role="option"]')).toBeNull();
+    w.unmount();
+  });
+});
