@@ -82,8 +82,12 @@ describe('детали задачи (PLNRAPP-487)', () => {
     await until(() => w!.find('[data-testid="feed-skeleton"]').exists());
     expect(w.find('[data-testid="feed"]').text()).not.toContain('с сервера');
     release();
-    await until(() => w!.find('[data-testid="feed"]').text().includes('с сервера'));
-    expect(w.find('[data-testid="feed-skeleton"]').exists()).toBe(false);
+    // comments (liveQuery) and the details state are separate updates — wait for both
+    await until(
+      () =>
+        w!.find('[data-testid="feed"]').text().includes('с сервера') &&
+        !w!.find('[data-testid="feed-skeleton"]').exists(),
+    );
     expect(await db._held.get(t.id)).toBeTruthy();
   });
 
