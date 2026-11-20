@@ -441,16 +441,22 @@ export async function reap(_d: object, api: JobApi) {
 export async function reapPass(api: JobApi, t: Tracker, projectId: string | null = null) {
   const inProject = projectId ? sql`and project_id = ${projectId}::uuid` : sql``;
   await t.check();
-  // AST-1: a `queued` row whose job was lost (queue purge, restart) must not hang forever
+  // AST-1: a `queued` row whose job was lost (queue purge, restart) must not hang forever. A job waiting for a
+  // container touches its row (run.ts), so only a silent one is lost; failed, not cancelled — cancelled is a
+  // person's stop, and the reconcile retries a failed run (PLNRAPP-656)
   const stale = await api.db.execute(
-    sql`update ai_runs set state = 'cancelled', updated_at = now()
-        where state = 'queued' and created_at < now() - interval '1 hour' ${inProject} returning id`,
+    sql`update ai_runs set state = 'failed', updated_at = now(),
+          log = log || 'Задание очереди потеряно: прогон не запустился за 1 ч.\n'
+        where state = 'queued' and updated_at < now() - interval '1 hour' ${inProject} returning id`,
   );
   if (stale.rows.length) {
     t.count(stale.rows.length);
-    await t.step(`перезапуск: отменено зависших в очереди прогонов — ${stale.rows.length}`, {
-      level: 'action',
-    });
+    await t.step(
+      `перезапуск: потеряно заданий очереди — ${stale.rows.length}, прогоны завершены ошибкой`,
+      {
+        level: 'action',
+      },
+    );
   }
   const hb = envInt('AI_AGENT_HEARTBEAT_TIMEOUT_SEC', 120);
   const max = envInt('AI_AGENT_TIMEOUT_MIN', 60);
