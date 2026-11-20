@@ -129,7 +129,10 @@ describe('packs', () => {
       'описание задачи пустое',
     );
     expect(parseInstructionDoc(files['actions/triage.md']!).prompt).toContain('предварительную');
-    expect(parseInstructionDoc(files['actions/dev.md']!).prompt).toContain('«Test prod»');
+    const dev = parseInstructionDoc(files['actions/dev.md']!).prompt;
+    expect(dev).toContain('moveTo: null — статус переведёт слияние MR');
+    expect(dev).not.toContain('moveTo: «Test prod»');
+    expect(dev).toContain('glab ci list --ref');
   });
 
   it('загрузка раскладывает документы, пишет хеши; активация и права', async () => {

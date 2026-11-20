@@ -1,12 +1,19 @@
 import { asc, inArray } from 'drizzle-orm';
-import type { V1Task } from '@planar/shared';
+import { assignedCommentsOf, type V1Task } from '@planar/shared';
 import type { Db } from '../db/index.js';
 import * as s from '../db/schema.js';
 import { toWire } from '../sync/rows.js';
 import type { Q } from '../sync/server-tx.js';
 
-/** tasks rows → V1Task (key, assigneeIds, labelIds); shared by REST and CoreServices.toV1Tasks */
-export async function toV1Tasks(db: Db | Q, rows: Record<string, unknown>[]): Promise<V1Task[]> {
+/**
+ * tasks rows → V1Task (key, assigneeIds, labelIds, assignedComments); shared by REST and CoreServices.toV1Tasks.
+ * userId — for assignedComments.assignedToMe (none — false).
+ */
+export async function toV1Tasks(
+  db: Db | Q,
+  rows: Record<string, unknown>[],
+  userId?: string,
+): Promise<V1Task[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id as string);
   const projects = await db
@@ -26,11 +33,13 @@ export async function toV1Tasks(db: Db | Q, rows: Record<string, unknown>[]): Pr
   const key = new Map(projects.map((p) => [p.id, p.key]));
   return rows.map((r) => {
     const n = r.number as number | null;
+    const w = toWire('tasks', r);
     return {
-      ...toWire('tasks', r),
+      ...w,
       key: n == null ? null : `${key.get(r.projectId as string)}-${n}`,
       assigneeIds: as.filter((x) => x.t === r.id).map((x) => x.u),
       labelIds: ls.filter((x) => x.t === r.id).map((x) => x.l),
+      assignedComments: assignedCommentsOf(w as Parameters<typeof assignedCommentsOf>[0], userId),
     } as V1Task;
   });
 }

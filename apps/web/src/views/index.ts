@@ -28,7 +28,7 @@ export interface ViewProps {
 }
 export { useViewOptions } from './options';
 export { matchFilter } from './filter';
-export { useSelection } from './selection';
+export { provideSelection, useSelection, type Selection } from './selection';
 export { openTask, closeTask, taskPanelLoader, viewLoaders } from './open';
 
 export interface ViewTab {

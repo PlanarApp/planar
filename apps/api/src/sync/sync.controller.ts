@@ -11,8 +11,14 @@ import {
   Req,
 } from '@nestjs/common';
 import { z } from 'zod';
-import { SYNC_PROTOCOL_HEADER, syncPushRequestSchema } from '@planar/shared';
+import {
+  SYNC_PROTOCOL,
+  SYNC_PROTOCOL_HEADER,
+  syncPushRequestSchema,
+  syncTasksRequestSchema,
+} from '@planar/shared';
 import { getAuth } from '../auth/auth.js';
+import { HttpError } from '../auth/errors.js';
 import { PullService } from './pull.service.js';
 import { PushService } from './push.service.js';
 
@@ -61,5 +67,19 @@ export class SyncController {
   pushMutations(@Req() req: object, @Body() body: unknown) {
     const a = getAuth(req);
     return this.push.push(a.userId, parse(syncPushRequestSchema, body), a.tokenId);
+  }
+
+  /** C-sync v3: snapshot of task details with cursor; protocol < 3 → 426. */
+  @Post('tasks')
+  @HttpCode(200)
+  taskDetails(@Req() req: object, @Body() body: unknown) {
+    const { protocol, ids } = parse(syncTasksRequestSchema, body);
+    if (protocol < SYNC_PROTOCOL)
+      throw new HttpError(
+        426,
+        'upgrade_required',
+        'Обновите клиент: нужен протокол синхронизации 3',
+      );
+    return this.pull.taskDetails(getAuth(req).userId, ids);
   }
 }

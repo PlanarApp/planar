@@ -284,7 +284,8 @@ describe('task:subtasks', () => {
     expect(row.find('[data-col="status"]').exists()).toBe(true);
     await until(() => !!row.find('[data-col="assignee"] [title="Ann"]').exists());
     expect(row.find('[data-col="dueDate"]').exists()).toBe(false);
-    expect(row.find('[data-testid="row-menu"]').exists()).toBe(false);
+    // PLNRAPP-541: the List's «…» menu is in the subtask row too
+    expect(row.find('[data-testid="row-menu"]').exists()).toBe(true);
     const input = w.find('input[placeholder="Добавить подзадачу"]');
     await input.setValue('второй');
     await input.trigger('submit');
@@ -292,6 +293,96 @@ describe('task:subtasks', () => {
     await eventually(async () =>
       (await db.table('tasks').toArray()).some((x) => x.title === 'второй' && x.parentId === t.id),
     );
+  });
+  // PLNRAPP-541: the List's actions in the subtask rows
+  describe('действия «Списка» (PLNRAPP-541)', () => {
+    const kids = () => [
+      task(2, { parentId: t.id, title: 'k1', rank: 'a1' }),
+      task(3, { parentId: t.id, title: 'k2', rank: 'a2' }),
+      task(4, { parentId: t.id, title: 'k3', rank: 'a3' }),
+    ];
+    const show = async () => {
+      const ks = kids();
+      await db.table('tasks').bulkPut(ks);
+      w = await open();
+      await openTab('Подзадачи');
+      await until(() => w.findAllComponents(ListRow).length === 3);
+      return ks;
+    };
+    const rowOf = (key: string) => w.get(`[data-testid="subtasks-list"] [data-task="${key}"]`);
+    const order = async () =>
+      (await db.table('tasks').where('parentId').equals(t.id).toArray())
+        .sort((a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0))
+        .map((x) => x.title);
+
+    it('статус и исполнитель меняются из строки', async () => {
+      const [k1] = await show();
+      rowOf('PLN-2').findComponent(StatusPicker).vm.$emit('update:modelValue', ids.done);
+      await eventually(
+        async () => (await row<{ statusId: string }>('tasks', k1!.id)).statusId === ids.done,
+      );
+      await until(() => !w.find('[data-testid="subtasks-list"]').text().includes('k1'));
+      await rowOf('PLN-3').trigger('pointerenter');
+      await until(() => rowOf('PLN-3').findComponent(AssigneePicker).exists());
+      rowOf('PLN-3').findComponent(AssigneePicker).vm.$emit('update:modelValue', [ids.ann]);
+      await eventually(async () =>
+        (await db.table('taskAssignees').toArray()).some((x) => x.userId === ids.ann),
+      );
+    });
+
+    it('контекстное меню: «Выбрать» выделяет подзадачу, панель действий меняет статус', async () => {
+      const [k1] = await show();
+      await rowOf('PLN-2').trigger('contextmenu');
+      const item = await until(() =>
+        [...document.querySelectorAll<HTMLElement>('[role=menuitem]')].find(
+          (x) => x.textContent?.trim() === 'Выбрать',
+        ),
+      );
+      item!.click();
+      await until(() => rowOf('PLN-2').attributes('aria-selected') === 'true');
+      await until(() => w.find('[data-testid="bulk-bar"]').exists());
+      expect(w.get('[data-testid="bulk-bar"]').text()).toContain('Выбрано: 1');
+      w.get('[data-testid="bulk-bar"]')
+        .findComponent(StatusPicker)
+        .vm.$emit('update:modelValue', ids.done);
+      await eventually(
+        async () => (await row<{ statusId: string }>('tasks', k1!.id)).statusId === ids.done,
+      );
+    });
+
+    it('множественный выбор: Ctrl+клик, Shift+клик, чекбокс; выделение своё, не «Списка»', async () => {
+      const { useSelection } = await import('../../views');
+      useSelection().clear();
+      await show();
+      await rowOf('PLN-2').trigger('click', { ctrlKey: true });
+      await rowOf('PLN-4').trigger('click', { shiftKey: true });
+      await until(() => w.find('[data-testid="bulk-bar"]').exists());
+      expect(w.get('[data-testid="bulk-bar"]').text()).toContain('Выбрано: 3');
+      expect(useSelection().selected.value.size).toBe(0);
+      await rowOf('PLN-3').get('[data-testid="row-check"]').trigger('change');
+      await until(() => w.get('[data-testid="bulk-bar"]').text().includes('Выбрано: 2'));
+      expect(rowOf('PLN-3').attributes('aria-selected')).toBe('false');
+    });
+
+    it('перетаскивание меняет порядок и сохраняет его', async () => {
+      await show();
+      const list = w.get('[data-testid="subtasks-list"]').element as HTMLElement;
+      // rows 32px high one under another
+      list.getBoundingClientRect = () => ({ top: 0, bottom: 96, height: 96 }) as DOMRect;
+      for (const [i, r] of [...list.querySelectorAll<HTMLElement>('[data-task]')].entries())
+        r.getBoundingClientRect = () =>
+          ({ top: i * 32, bottom: i * 32 + 32, height: 32 }) as DOMRect;
+      const at = (type: string, clientY: number) =>
+        Object.assign(new MouseEvent(type, { bubbles: true, clientY }), { pointerId: 1 });
+      rowOf('PLN-4').get('[data-testid="row-grip"]').element.dispatchEvent(at('pointerdown', 80));
+      await flushPromises();
+      window.dispatchEvent(at('pointermove', 10));
+      await flushPromises();
+      expect(w.find('[data-testid="drop-line"]').exists()).toBe(true);
+      window.dispatchEvent(at('pointerup', 10));
+      await eventually(async () => (await order()).join() === 'k3,k1,k2');
+      await until(() => !w.find('[data-testid="drop-line"]').exists());
+    });
   });
   // PLNRAPP-542: done and cancelled subtasks are under the «Закрыто N» accordion, collapsed on opening
   it('аккордеон «Закрыто N»: свёрнут, клик раскрывает и сворачивает, при новом открытии свёрнут', async () => {

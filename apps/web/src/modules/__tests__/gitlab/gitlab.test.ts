@@ -29,6 +29,7 @@ vi.mock('../../../../../../modules/gitlab/web/data', async () => {
 import * as data from '../../../../../../modules/gitlab/web/data';
 import { web } from '../../../../../../modules/gitlab/web';
 import MrPanel from '../../../../../../modules/gitlab/web/MrPanel.vue';
+import CardBadges from '../../../../../../modules/gitlab/web/CardBadges.vue';
 import Settings from '../../../../../../modules/gitlab/web/GitlabSettings.vue';
 import { registerModules } from '../../registry';
 
@@ -375,5 +376,29 @@ describe('pt6b:', () => {
       projectId: 'p1',
       statusId: null,
     });
+  });
+});
+
+describe('карточка: ветки, MR, CI', () => {
+  const badges = () => mount(CardBadges, { props: { taskId: 't' } });
+  it('ничего без данных GitLab', () => {
+    expect(badges().text()).toBe('');
+  });
+  it('ветки — уникальные из веток и MR; MR «открыто/влито»; CI открытого MR', async () => {
+    st.branches.value = [{ id: 'b1', taskId: 't', name: 'PLN-1', webUrl: '', gitlabProjectId: 5 }];
+    st.mrs.value = [
+      mr({ sourceBranch: 'PLN-1', pipelineStatus: 'running' }),
+      mr({ sourceBranch: 'PLN-1-b', state: 'merged', pipelineStatus: 'failed' }),
+    ];
+    const w = badges();
+    expect(w.get('[data-testid="gl-branches"]').text()).toBe('2');
+    expect(w.get('[data-testid="gl-mrs"]').text()).toBe('1/1');
+    // failed of the merged MR's deploy does not count: only open MRs
+    expect(w.find('[data-testid="gl-ci-failed"]').exists()).toBe(false);
+    expect(w.find('[data-testid="gl-ci-running"]').exists()).toBe(true);
+    st.mrs.value = [...st.mrs.value, mr({ sourceBranch: 'PLN-1', pipelineStatus: 'failed' })];
+    await flushPromises();
+    expect(w.find('[data-testid="gl-ci-failed"]').exists()).toBe(true);
+    expect(w.find('[data-testid="gl-ci-running"]').exists()).toBe(false);
   });
 });

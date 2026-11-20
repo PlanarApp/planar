@@ -106,6 +106,15 @@ const dict = {
   merge: { ru: 'объединить', en: 'merge' },
   tabConnection: { ru: 'Подключение', en: 'Connection' },
   tabPacks: { ru: 'Пакеты и правила', en: 'Packs and rules' },
+  // PLNRAPP-568: the workspace AI settings in tabs
+  tabTasks: { ru: 'Задачи ИИ', en: 'AI tasks' },
+  tabEngines: { ru: 'Монитор движков', en: 'Engines monitor' },
+  engProject: { ru: 'Проект', en: 'Project' },
+  engAllProjects: { ru: 'Все', en: 'All' },
+  engPickProject: {
+    ru: 'Автопилот и Harness ретро настраиваются для проекта — выберите проект.',
+    en: 'Autopilot and Harness retro are set per project — pick a project.',
+  },
   cancel: { ru: 'Отмена', en: 'Cancel' },
   saveBtn: { ru: 'Сохранить', en: 'Save' },
   noRuns: { ru: 'Прогонов ИИ нет', en: 'No AI runs' },
@@ -145,7 +154,6 @@ const dict = {
   ev_command: { ru: 'Команда', en: 'Command' },
   ev_output: { ru: 'Вывод', en: 'Output' },
   ev_result: { ru: 'Итог', en: 'Result' },
-  monitorTitle: { ru: 'Задачи ИИ', en: 'AI tasks' },
   switchOn: { ru: 'ИИ включён', en: 'AI is on' },
   switchHint: {
     ru: 'Выключатель: новые прогоны не стартуют (завершаются ошибкой), идущие не трогаем.',
@@ -169,7 +177,7 @@ const dict = {
     ru: 'Пусто — действует лимит инстанса (PLANAR_AI_DAILY_TOKENS / PLANAR_AI_DAILY_COST). Исчерпан — прогоны останавливаются без вызова ИИ.',
     en: 'Empty — the instance limit applies (PLANAR_AI_DAILY_TOKENS / PLANAR_AI_DAILY_COST). When spent, runs stop without calling the AI.',
   },
-  retroTitle: { ru: 'harness-retro', en: 'harness-retro' },
+  retroTitle: { ru: 'Harness ретро', en: 'Harness retro' },
   retroHint: {
     ru: 'ИИ собирает в задачу «harness-retro» трения прогонов, итоги поручений и чата, ответы администраторов («не так», откат статуса после прогона) и предлагает правки инструкций пакета — подзадачей в «Уточнении» на администратора.',
     en: 'The AI collects run frictions, results of assignments and chat, admins’ answers («не так», a status rolled back after a run) into the task «harness-retro» and proposes edits of the pack’s instructions — a subtask in «Уточнение» assigned to an admin.',
@@ -242,8 +250,8 @@ const dict = {
   // PLNRAPP-500: the section «Автопилот» and the engines monitor
   apTitle: { ru: 'Автопилот', en: 'Autopilot' },
   apHint: {
-    ru: 'Включение автопилота, его суточный потолок и монитор движков, которые ведут задачи ИИ.',
-    en: 'The autopilot switch, its daily guard and the monitor of the engines that drive the AI tasks.',
+    ru: 'Включение автопилота проекта и его суточный потолок.',
+    en: 'The project autopilot switch and its daily guard.',
   },
   engTitle: { ru: 'Монитор движков', en: 'Engines monitor' },
   eng_tasks: { ru: 'Контроль задач и CI', en: 'Task control and CI' },
@@ -253,9 +261,14 @@ const dict = {
   },
   eng_harness: { ru: 'Обработка harness', en: 'Harness processing' },
   eng_harnessHint: {
-    ru: 'harness-retro: собирает трения прогонов и предлагает правки инструкций пакета.',
-    en: 'harness-retro: collects run frictions and proposes edits of the pack instructions.',
+    ru: 'harness-retro: собирает трения прогонов, правит инструкции пакета (очевидное — сразу, остальное — предложением), раз в неделю сокращает и согласует их.',
+    en: 'harness-retro: collects run frictions, edits the pack instructions (obvious edits at once, the rest as proposals), weekly shortens and aligns them.',
   },
+  eng_harnessOptimize: {
+    ru: 'Оптимизация правил harness',
+    en: 'Harness rules optimization',
+  },
+  ej_optimize: { ru: 'оптимизация правил', en: 'rules optimization' },
   es_running: { ru: 'Работает', en: 'Running' },
   es_idle: { ru: 'Простаивает', en: 'Idle' },
   es_error: { ru: 'Ошибка', en: 'Error' },
@@ -277,9 +290,6 @@ const dict = {
   engLogEmpty: { ru: 'Событий пока нет', en: 'No events yet' },
   engHistory: { ru: 'История проходов (7 дней)', en: 'Pass history (7 days)' },
   engAll: { ru: 'Все движки', en: 'All engines' },
-  engScopeAll: { ru: 'Проект и общие', en: 'Project and general' },
-  engScopeProject: { ru: 'Только этот проект', en: 'This project only' },
-  engScopeGeneral: { ru: 'Только общие', en: 'General only' },
   engAllResults: { ru: 'Все результаты', en: 'All results' },
   er_running: { ru: 'Идёт', en: 'Running' },
   er_done: { ru: 'Готово', en: 'Done' },
@@ -312,8 +322,6 @@ const dict = {
     ru: 'Только для администратора воркспейса. Если движок уже работает, текущий проход прерывается и стартует заново.',
     en: 'Workspace admins only. If the engine is running, the current pass is aborted and started again.',
   },
-  engRunThis: { ru: 'Этот проект', en: 'This project' },
-  engRunAll: { ru: 'Все проекты', en: 'All projects' },
   engRunConfirm: {
     ru: 'Запустить? Идущий проход движка будет прерван.',
     en: 'Run? The engine’s running pass will be aborted.',

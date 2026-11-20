@@ -15,6 +15,9 @@ export const web = defineWebModule({
         return mrs.length ? `${mrs.filter((m) => m.state === 'merged').length}/${mrs.length}` : 0;
       },
       component: () => import('./MrPanel.vue'),
+      // branches / MRs / CI on the cards of the views
+      card: true,
+      cardComponent: () => import('./CardBadges.vue'),
     },
   ],
   settings: [

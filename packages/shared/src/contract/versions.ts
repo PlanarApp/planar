@@ -1,6 +1,6 @@
 // Contract versions = the headings `## C-… vN` in docs/contracts/core.md (checked by contract.test.ts).
 export const CONTRACT_VERSIONS = {
-  'C-schema': 29,
+  'C-schema': 30,
   'C-sync': 3,
   'C-mutators': 22,
   'C-modules': 13,

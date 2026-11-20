@@ -6,6 +6,7 @@ import {
   eq,
   getTableColumns,
   inArray,
+  isNotNull,
   isNull,
   or,
   sql,
@@ -269,7 +270,7 @@ export class RestService {
     ];
     if (q.assigneeId) where.push(assignedTo(q.assigneeId === 'me' ? userId : q.assigneeId, userId));
     const p = await this.page(s.tasks, where, q, 'updatedAt', 'desc');
-    return { data: await this.enrich(p.items), nextCursor: p.nextCursor };
+    return { data: await this.enrich(p.items, userId), nextCursor: p.nextCursor };
   }
 
   /** MCP search_tasks / my_tasks: case-insensitive search by title and key */
@@ -306,12 +307,12 @@ export class RestService {
         : undefined,
     ];
     const p = await this.page(s.tasks, where, { limit: q.limit ?? 20 }, 'updatedAt', 'desc');
-    return this.enrich(p.items);
+    return this.enrich(p.items, userId);
   }
 
-  /** tasks rows → V1Task (key, assigneeIds, labelIds) */
-  private enrich(rows: Wire[]): Promise<V1Task[]> {
-    return toV1Tasks(this.db, rows);
+  /** tasks rows → V1Task (key, assigneeIds, labelIds, assignedComments for userId) */
+  private enrich(rows: Wire[], userId: string): Promise<V1Task[]> {
+    return toV1Tasks(this.db, rows, userId);
   }
 
   /** :task — uuid or key ABC-123; invisible → 404. Returns the DB row. */
@@ -333,7 +334,7 @@ export class RestService {
   }
 
   async task(userId: string, ref: string) {
-    return { data: (await this.enrich([await this.findTask(userId, ref)]))[0] };
+    return { data: (await this.enrich([await this.findTask(userId, ref)], userId))[0] };
   }
 
   /** @login in text → known users for textToDoc */
@@ -427,7 +428,7 @@ export class RestService {
     if (Object.values(upd).some((v) => v !== undefined))
       muts.push({ name: 'task.update', args: { id, ...upd } });
     if (assigneeIds) {
-      const cur = (await this.enrich([t]))[0]!;
+      const cur = (await this.enrich([t], userId))[0]!;
       const want = new Set(assigneeIds);
       for (const u of cur.assigneeIds)
         if (!want.has(u)) muts.push({ name: 'task.unassign', args: { taskId: id, userId: u } });
@@ -436,7 +437,7 @@ export class RestService {
           muts.push({ name: 'task.assign', args: { id: uuidv7(), taskId: id, userId: u } });
     }
     if (labelIds) {
-      const cur = (await this.enrich([t]))[0]!;
+      const cur = (await this.enrich([t], userId))[0]!;
       const want = new Set(labelIds);
       for (const l of cur.labelIds)
         if (!want.has(l)) muts.push({ name: 'task.removeLabel', args: { taskId: id, labelId: l } });
@@ -472,6 +473,31 @@ export class RestService {
       'asc',
     );
     return { data: p.items.map((r) => toWire('comments', r)), nextCursor: p.nextCursor };
+  }
+
+  /** PLNRAPP-560: assigned comments of the task (replies too; mentions don't count) + counters for the tab */
+  async assignedComments(userId: string, ref: string) {
+    const t = await this.findTask(userId, ref);
+    const rows = await this.db
+      .select()
+      .from(s.comments)
+      .where(and(eq(s.comments.taskId, t.id as string), isNotNull(s.comments.assigneeId)))
+      .orderBy(asc(s.comments.createdAt), asc(s.comments.id));
+    const data = rows.map((row) => {
+      const r = toWire('comments', row);
+      return {
+        id: r.id as string,
+        parentId: r.parentId as string | null,
+        authorId: r.authorId as string,
+        assigneeId: r.assigneeId as string,
+        text: docToMarkdown(r.body as JSONContent),
+        resolved: r.resolvedAt != null,
+        resolvedAt: r.resolvedAt as string | null,
+        resolvedBy: r.resolvedBy as string | null,
+        createdAt: r.createdAt as string,
+      };
+    });
+    return { data, counts: { open: data.filter((c) => !c.resolved).length, total: data.length } };
   }
 
   async createComment(userId: string, ref: string, raw: unknown, tokenId?: string) {
@@ -731,7 +757,7 @@ export class RestService {
       )
       .orderBy(asc(s.tasks.rank), asc(s.tasks.id))
       .limit(200)) as Wire[];
-    return this.enrich(rows);
+    return this.enrich(rows, userId);
   }
 
   // --- documents (docs module, PLNRAPP-180): content in and out — markdown ---
@@ -822,6 +848,7 @@ export class RestService {
                 await this.visible(userId, 'tasks'),
               ),
             ),
+          userId,
         )
       : [];
     return {

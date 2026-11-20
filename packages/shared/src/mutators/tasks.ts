@@ -238,6 +238,10 @@ export const taskMutators = [
         cycleId: null,
         archivedAt: null,
         archivedBy: null,
+        // counted by the server from comments (C-schema v30)
+        commentsAssigned: 0,
+        commentsResolved: 0,
+        commentsOpenAssignees: [],
         createdAt: ctx.now,
         updatedAt: ctx.now,
       });

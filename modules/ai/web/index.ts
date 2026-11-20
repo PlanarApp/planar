@@ -75,6 +75,7 @@ export const web = defineWebModule({
     },
   ],
   docPanels: [{ id: 'harness', component: () => import('./HarnessPanel.vue') }],
+  // PLNRAPP-568: the workspace page — tabs «Подключение», «Задачи ИИ», «Монитор движков» (AiSettings)
   settings: [
     {
       id: 'workspace',
@@ -83,14 +84,6 @@ export const web = defineWebModule({
       icon: Sparkles,
       adminOnly: true,
       component: page('workspace'),
-    },
-    {
-      id: 'tasks',
-      level: 'workspace',
-      label: { ru: 'Задачи ИИ', en: 'AI tasks' },
-      icon: Sparkles,
-      adminOnly: true,
-      component: () => import('./AiMonitor.vue'),
     },
     { id: 'space', level: 'space', label, icon: Sparkles, component: page('space') },
     { id: 'project', level: 'project', label, icon: Sparkles, component: page('project') },

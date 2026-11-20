@@ -13,12 +13,19 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import { SYNC_PROTOCOL, type EntityName, type SyncBootstrap, type SyncPull } from '@planar/shared';
+import {
+  SYNC_PROTOCOL,
+  type EntityName,
+  type SyncBootstrap,
+  type SyncPull,
+  type SyncTasksResponse,
+} from '@planar/shared';
 import type { Db } from '../db/index.js';
 import {
   activity,
   changes,
   clientMutations,
+  commentReactions,
   comments,
   notifications,
   spaceMembers,
@@ -238,6 +245,67 @@ export class PullService {
           throw new NotFoundException('задача не найдена');
       }
       return { rows: rows.map((r) => toWire('activity', r)) };
+    });
+  }
+
+  /**
+   * C-sync v3 `POST /sync/tasks`: snapshot of the details (comments, commentReactions) of the given tasks.
+   * Visibility — as in taskActivity(): the task's space is the user's and its project is not hidden (PJ-11).
+   */
+  async taskDetails(userId: string, ids: string[]): Promise<SyncTasksResponse> {
+    return this.snapshot(async (tx) => {
+      const [{ max }] = await tx
+        .select({ max: sql<string>`coalesce(max(${changes.seq}), 0)` })
+        .from(changes);
+      const my = new Set(await this.mySpaces(tx, userId));
+      const hidden = new Set(await hiddenProjectIds(tx, userId));
+      const found = await tx
+        .select({ id: tasks.id, spaceId: tasks.spaceId, projectId: tasks.projectId })
+        .from(tasks)
+        .where(inArray(tasks.id, ids));
+      const byId = new Map(found.map((t) => [t.id, t]));
+      const ok = ids.filter((id) => {
+        const t = byId.get(id);
+        return t && my.has(t.spaceId) && !hidden.has(t.projectId);
+      });
+      const cs = ok.length
+        ? await tx
+            .select()
+            .from(comments)
+            .where(inArray(comments.taskId, ok))
+            .orderBy(asc(comments.createdAt))
+        : [];
+      const rs = ok.length
+        ? await tx
+            .select({ r: commentReactions, taskId: comments.taskId })
+            .from(commentReactions)
+            .innerJoin(comments, eq(commentReactions.commentId, comments.id))
+            .where(inArray(comments.taskId, ok))
+            .orderBy(asc(commentReactions.createdAt))
+        : [];
+      const details = new Map(
+        ok.map((id) => [
+          id,
+          {
+            comments: [] as Record<string, unknown>[],
+            commentReactions: [] as Record<string, unknown>[],
+          },
+        ]),
+      );
+      for (const c of cs) details.get(c.taskId)!.comments.push(toWire('comments', c));
+      for (const { r, taskId } of rs)
+        details.get(taskId)!.commentReactions.push(toWire('commentReactions', r));
+      return {
+        cursor: Number(max),
+        tasks: ids.map((taskId) => {
+          const d = details.get(taskId);
+          if (d) return { taskId, status: 'ok' as const, ...d };
+          return {
+            taskId,
+            status: byId.has(taskId) ? ('forbidden' as const) : ('not_found' as const),
+          };
+        }),
+      };
     });
   }
 }

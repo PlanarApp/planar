@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
-import { Tabs } from '@planar/web/modules';
+import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue';
+import { Tabs, useProjectAdmin, useRouter } from '@planar/web/modules';
 import { AI_PROVIDERS, type AiConnectionView } from '../shared/index.js';
 import { call } from './api';
 import ConnectionFields from './ConnectionFields.vue';
 import { tr } from './data';
 import EgressSection from './EgressSection.vue';
-import AutopilotSection from './AutopilotSection.vue';
 import LimitsSection from './LimitsSection.vue';
-import RetroSection from './RetroSection.vue';
 import PacksSection from './PacksSection.vue';
 import SetupWizard from './SetupWizard.vue';
 
@@ -18,16 +16,54 @@ const props = defineProps<{
   spaceId?: string;
   projectId?: string;
 }>();
-// PLNRAPP-538: the project page in tabs (the connection and its sections; packs and rules); other levels — no tabs
+// PLNRAPP-538: the project page in tabs (the connection and its sections; packs and rules);
+// PLNRAPP-568: the workspace page (its admin only) — the connection, AI tasks, the engines monitor; space — no tabs;
+// PLNRAPP-569: the project page — also AI tasks and the engines monitor of this project (its admin or a workspace admin)
+const projectAdmin = useProjectAdmin();
+const canMonitor = computed(
+  () => !!props.projectId && !!props.spaceId && projectAdmin(props.spaceId, props.projectId),
+);
 const tabs = computed(() =>
   props.level === 'project'
     ? [
         { value: 'connection', label: tr('tabConnection') },
         { value: 'packs', label: tr('tabPacks') },
+        ...(canMonitor.value
+          ? [
+              { value: 'tasks', label: tr('tabTasks') },
+              { value: 'engines', label: tr('tabEngines') },
+            ]
+          : []),
       ]
-    : [],
+    : props.level === 'workspace'
+      ? [
+          { value: 'connection', label: tr('tabConnection') },
+          { value: 'tasks', label: tr('tabTasks') },
+          { value: 'engines', label: tr('tabEngines') },
+        ]
+      : [],
 );
-const tab = ref('connection');
+const AiMonitor = defineAsyncComponent(() => import('./AiMonitor.vue').then((m) => m.default));
+const EnginesTab = defineAsyncComponent(() => import('./EnginesTab.vue').then((m) => m.default));
+// the tab is in the address (?tab=…): links lead to it (aikb «AI tasks» → ?s=ai:workspace&tab=tasks)
+const router = useRouter();
+const fromQuery = () => {
+  const q = router.currentRoute.value.query.tab;
+  return tabs.value.some((t) => t.value === q) ? (q as string) : 'connection';
+};
+const tab = ref(fromQuery());
+watch(tab, (v) => {
+  const query = { ...router.currentRoute.value.query };
+  if (v === 'connection') delete query.tab;
+  else query.tab = v;
+  void router.replace({ query });
+});
+watch(
+  () => router.currentRoute.value.query.tab,
+  () => (tab.value = fromQuery()),
+);
+// the admin rights come from the replica a moment later: the tab of the address opens then
+watch(canMonitor, () => (tab.value = fromQuery()));
 const own = ref<AiConnectionView | null>(null);
 const effective = ref<AiConnectionView | null>(null);
 const err = ref('');
@@ -121,10 +157,10 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
 <template>
   <section class="flex flex-col gap-4" data-testid="ai-settings">
     <h2 class="text-lg font-semibold">{{ tr('title') }}</h2>
-    <p class="text-sm text-fg-muted">{{ tr('intro') }}</p>
     <p v-if="err" role="alert" class="text-sm text-danger" data-testid="ai-error">{{ err }}</p>
     <Tabs v-if="tabs.length" v-model="tab" :label="tr('title')" :items="tabs" />
     <div v-show="tab === 'connection'" class="flex flex-col gap-4">
+      <p class="text-sm text-fg-muted">{{ tr('intro') }}</p>
       <p v-if="!own && effective" class="text-sm" data-testid="ai-effective">
         {{ tr('inherited') }} {{ tr(effective.scope) }}: {{ effective.provider }},
         {{ effective.model }}
@@ -223,10 +259,14 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
           @close="closeWizard"
         />
         <LimitsSection :project-id="projectId" />
-        <AutopilotSection :project-id="projectId" />
-        <RetroSection :key="wizardRuns" :project-id="projectId" />
       </template>
     </div>
     <PacksSection v-if="tab === 'packs' && projectId" :key="wizardRuns" :project-id="projectId" />
+    <AiMonitor v-if="level === 'workspace' && tab === 'tasks'" />
+    <EnginesTab v-if="level === 'workspace' && tab === 'engines'" />
+    <template v-if="level === 'project' && projectId && canMonitor">
+      <AiMonitor v-if="tab === 'tasks'" :project-id="projectId" />
+      <EnginesTab v-if="tab === 'engines'" :project-id="projectId" />
+    </template>
   </section>
 </template>

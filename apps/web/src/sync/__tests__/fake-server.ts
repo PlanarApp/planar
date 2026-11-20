@@ -6,6 +6,8 @@ import {
   syncPullSchema,
   syncPushRequestSchema,
   syncPushResponseSchema,
+  syncTasksRequestSchema,
+  syncTasksResponseSchema,
   type EntityName,
   type MutatorDef,
   type Tx,
@@ -18,6 +20,7 @@ interface Change {
   id: string;
   op: 'put' | 'del';
   data?: Record<string, unknown>;
+  taskId?: string;
 }
 
 export class FakeServer {
@@ -33,6 +36,17 @@ export class FakeServer {
   blockPush = false;
   /** once, before answering a pull (cycle: push → pull) — a local edit "between push and pull" */
   beforePull: (() => Promise<void>) | null = null;
+  /** C-sync v3: pull changes of comments/commentReactions carry taskId, bootstrap — `held` */
+  v3 = false;
+  /** v3 bootstrap: `held` */
+  held: string[] = [];
+  /** POST /sync/tasks: tasks that exist but are not visible */
+  forbidden = new Set<string>();
+  /** once, before answering POST /sync/tasks — e.g. a pull that gets ahead of the snapshot */
+  beforeTasks: (() => Promise<void>) | null = null;
+  /** POST /sync/tasks answers with this cursor (a snapshot older than the client's), null — the current one */
+  tasksCursor: number | null = null;
+  tasksRequests = 0;
   pushes = 0;
   pulls = 0;
   bootstraps = 0;
@@ -46,13 +60,29 @@ export class FakeServer {
     this.rows.set(entity, m);
     for (const r of list) {
       m.set(r.id as string, r);
-      this.log.push({ seq: ++this.seq, entity, id: r.id as string, op: 'put', data: r });
+      const taskId = this.taskOf(entity, r);
+      this.log.push({ seq: ++this.seq, entity, id: r.id as string, op: 'put', data: r, taskId });
     }
   }
 
+  /** the task of a detail row (C-sync v3) */
+  taskOf(entity: string, row: Record<string, unknown> | undefined): string | undefined {
+    if (!row) return undefined;
+    if (entity === 'comments') return row.taskId as string;
+    if (entity === 'commentReactions')
+      return this.rows.get('comments')?.get(row.commentId as string)?.taskId as string | undefined;
+    return undefined;
+  }
+
   remove(entity: string, id: string) {
+    const taskId = this.taskOf(entity, this.rows.get(entity)?.get(id));
     this.rows.get(entity)?.delete(id);
-    this.log.push({ seq: ++this.seq, entity, id, op: 'del' });
+    this.log.push({ seq: ++this.seq, entity, id, op: 'del', taskId });
+  }
+
+  /** a journal row as pull sends it: taskId — only v3 */
+  private wire({ taskId, ...c }: Change): Change {
+    return this.v3 && taskId ? { ...c, taskId } : c;
   }
 
   private tx(rows: Rows, out: Change[]): Tx {
@@ -144,6 +174,7 @@ export class FakeServer {
           cursor: this.seq,
           lastMutationId: this.lastMut.get(clientId) ?? 0,
           data,
+          ...(this.v3 ? { held: this.held } : {}),
         }),
       );
     }
@@ -159,10 +190,31 @@ export class FakeServer {
         syncPullSchema.parse({
           cursor: this.seq,
           lastMutationId: this.lastMut.get(clientId) ?? 0,
-          changes: reset ? [] : this.log.filter((c) => c.seq > cursor),
+          changes: reset ? [] : this.log.filter((c) => c.seq > cursor).map((c) => this.wire(c)),
           ...(reset ? { reset: true } : {}),
         }),
       );
+    }
+    if (url.pathname === '/sync/tasks') {
+      this.tasksRequests++;
+      const hook = this.beforeTasks;
+      this.beforeTasks = null;
+      const req = syncTasksRequestSchema.parse(JSON.parse(String(init?.body)));
+      const cursor = this.tasksCursor ?? this.seq;
+      const tasks = req.ids.map((taskId) => {
+        if (this.forbidden.has(taskId)) return { taskId, status: 'forbidden' as const };
+        if (!this.rows.get('tasks')?.has(taskId)) return { taskId, status: 'not_found' as const };
+        const comments = [...(this.rows.get('comments')?.values() ?? [])].filter(
+          (c) => c.taskId === taskId,
+        );
+        const ids = new Set(comments.map((c) => c.id));
+        const commentReactions = [...(this.rows.get('commentReactions')?.values() ?? [])].filter(
+          (r) => ids.has(r.commentId),
+        );
+        return { taskId, status: 'ok' as const, comments, commentReactions };
+      });
+      await hook?.();
+      return this.json(syncTasksResponseSchema.parse({ cursor, tasks }));
     }
     if (url.pathname === '/sync/push') {
       if (this.blockPush) throw new TypeError('Failed to fetch');

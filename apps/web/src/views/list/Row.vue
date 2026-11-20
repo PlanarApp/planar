@@ -59,8 +59,6 @@ const props = defineProps<{
   showKey?: boolean;
   /** in today's «My day» plan — a sun before the name */
   inDay?: boolean;
-  /** a row outside the List (subtasks of the task card, PLNRAPP-540): no selection and no «…» menu */
-  compact?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -198,7 +196,6 @@ function save() {
   >
     <!-- PLNRAPP-281: выбор задачи на мобильной — чекбокс всегда виден, зона касания 44px -->
     <label
-      v-if="!compact"
       role="gridcell"
       class="-ml-3 flex size-11 shrink-0 items-center justify-center"
       data-testid="row-select"
@@ -231,7 +228,6 @@ function save() {
       />
     </div>
     <button
-      v-if="!compact"
       type="button"
       :class="[menuBtn, 'size-11']"
       :aria-label="t('list.actions')"
@@ -271,7 +267,7 @@ function save() {
     >
       <GripVertical :size="14" />
     </div>
-    <div v-if="!compact" role="gridcell" class="flex w-4 shrink-0" @click.stop>
+    <div role="gridcell" class="flex w-4 shrink-0" @click.stop>
       <input
         v-if="selecting"
         type="checkbox"
@@ -352,8 +348,8 @@ function save() {
         <span :class="wrap ? 'min-w-0 break-words' : 'truncate'" data-testid="row-title">{{
           task.title
         }}</span>
-        <!-- PLNRAPP-333: subtasks / checklist «closed/total» (all subtasks, not only those in the view) -->
-        <TaskProgress :task-id="task.id" />
+        <!-- PLNRAPP-333: subtasks / checklist «closed/total» (all subtasks, not only those in the view); PLNRAPP-577: assigned comments -->
+        <TaskProgress :task-id="task.id" :comments="task.assignedComments" />
         <!-- поля модулей (время): видны всегда, если модуль включён -->
         <span v-for="x in ext" :key="x.key" class="ml-auto shrink-0" @click.stop>
           <component :is="x.view" :task-id="task.id" />
@@ -448,7 +444,6 @@ function save() {
       </div>
     </div>
     <button
-      v-if="!compact"
       type="button"
       :class="[
         menuBtn,

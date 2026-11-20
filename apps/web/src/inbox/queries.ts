@@ -118,10 +118,8 @@ export type WorkKind = 'assigned' | 'created' | 'watched';
 
 async function workTasks(kind: WorkKind, uid: string): Promise<Row<'tasks'>[]> {
   const tasks = db.table<Row<'tasks'>>('tasks');
-  // shortcut: no createdBy index — the whole table (getAll, several times faster than a filter() cursor);
-  // the index comes with the next replica schema change (PLNRAPP-252), a core index alone re-bootstraps every client
   if (kind === 'created')
-    return (await tasks.toArray()).filter((t) => t.createdBy === uid && !t.archivedAt);
+    return (await tasks.where('createdBy').equals(uid).toArray()).filter((t) => !t.archivedAt);
   const links = await db
     .table<{ taskId: string }>(kind === 'assigned' ? 'taskAssignees' : 'taskWatchers')
     .where('userId')

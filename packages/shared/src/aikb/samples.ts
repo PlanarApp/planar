@@ -17,7 +17,7 @@ export const cases: [AppTarget, string][] = [
   [{ kind: 'section', section: 'cycles', projectId: 'pr' }, '/p/pr/reports?r=sprints:sprint'],
   [{ kind: 'section', section: 'settings' }, '/w/settings'],
   [{ kind: 'section', section: 'settings', projectId: 'pr' }, '/p/pr/settings'],
-  [{ kind: 'section', section: 'aiTasks' }, '/w/settings?s=ai:tasks'],
+  [{ kind: 'section', section: 'aiTasks' }, '/w/settings?s=ai:workspace&tab=tasks'],
   [{ kind: 'comment', on: 'task', id: 'PL-1', commentId: 'k' }, '/t/PL-1?comment=k'],
   [{ kind: 'comment', on: 'page', id: 'p1', commentId: 'k' }, '/m/docs/p1?comment=k'],
 ];

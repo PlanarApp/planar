@@ -4,10 +4,9 @@ import type { AiLimits } from '../shared/index.js';
 import { call } from './api';
 import { parseLimit } from './aiUi';
 import { tr } from './data';
-import EngineMonitor from './EngineMonitor.vue';
 
-// PLNRAPP-500: the section «Автопилот» of the project's AI settings — the switch and its guard (PLNRAPP-408,
-// moved here from the limits) and the engines monitor
+// PLNRAPP-500: the section «Автопилот» — the project's switch and its guard (PLNRAPP-408, moved here from
+// the limits); PLNRAPP-568: shown in the project AI settings and in the tab «Монитор движков» of the workspace AI settings
 const props = defineProps<{ projectId: string }>();
 type View = AiLimits & {
   autopilot: boolean;
@@ -89,6 +88,5 @@ onMounted(() =>
         }}</span>
       </div>
     </form>
-    <EngineMonitor :project-id="projectId" />
   </section>
 </template>

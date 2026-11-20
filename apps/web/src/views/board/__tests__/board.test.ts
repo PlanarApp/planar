@@ -276,7 +276,15 @@ describe('board:move', () => {
     await db.table('tasks').put(t);
     await db.table('taskAssignees').put({ id: 'x', taskId: t.id, userId: ids.ann });
     const cols = boardColumns(
-      [{ ...t, key: 'PLN-1', assigneeIds: [ids.ann], labelIds: [] }],
+      [
+        {
+          ...t,
+          key: 'PLN-1',
+          assigneeIds: [ids.ann],
+          labelIds: [],
+          assignedComments: { total: 0, resolved: 0, assignedToMe: false },
+        },
+      ],
       'assignee',
       {
         ...(await ctx()),
@@ -311,7 +319,13 @@ describe('board:move многозначные', () => {
     const b = by === 'assignee' ? ids.bob : 'l-b';
     const c = by === 'assignee' ? 'u-c' : 'l-c';
     const t = task(1);
-    const view = { ...t, key: 'PLN-1', assigneeIds: [] as string[], labelIds: [] as string[] };
+    const view = {
+      ...t,
+      key: 'PLN-1',
+      assigneeIds: [] as string[],
+      labelIds: [] as string[],
+      assignedComments: { total: 0, resolved: 0, assignedToMe: false },
+    };
     view[by === 'assignee' ? 'assigneeIds' : 'labelIds'] = [a, b];
     const base = await ctx();
     const cols = boardColumns([view], by, {

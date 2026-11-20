@@ -188,6 +188,13 @@ export function toolDefs(rest: RestService): ToolDef[] {
       cmt((await rest.createComment(c.uid, ref, a, c.tokenId)).data),
   );
   def(
+    'list_assigned_comments',
+    'Назначенные комментарии задачи (без упоминаний) и счётчики: open — не выполнено, total — всего',
+    { task },
+    false,
+    async (a, c) => rest.assignedComments(c.uid, a.task),
+  );
+  def(
     'update_comment',
     'Изменить комментарий: assigneeId — назначить (null — снять), resolved — выполнен / переоткрыть, text — новый текст (только автор)',
     { id: z.uuid().describe('id комментария'), ...patchCommentBody.shape },
