@@ -20,6 +20,7 @@ import TaskCard from './TaskCard.vue';
 import { useCardExtensions } from '../cardExtensions';
 import AiCell from './AiCell.vue';
 import TaskProgress from '../TaskProgress.vue';
+import TaskAiStatus from '../TaskAiStatus.vue';
 import { BlockedIcon } from '../../links';
 import { isAiField, type TaskField } from '../options';
 import { localToday } from '../filter';
@@ -334,6 +335,8 @@ function save() {
         @blur="save"
       />
       <span v-else class="flex items-center gap-1">
+        <!-- PLNRAPP-704: значок ИИ (работает / ошибка), как у карточки; при колонке «ИИ» — в ней -->
+        <TaskAiStatus v-if="!columns.includes('ai')" :task="task" @click.stop @dblclick.stop />
         <BlockedIcon v-if="blocked" />
         <Sun
           v-if="inDay"
@@ -353,11 +356,15 @@ function save() {
         >
           {{ task.key }}
         </button>
+        <!-- PLNRAPP-704: родитель, как в карточке, — ключ и название -->
         <span
           v-if="parent"
-          class="max-w-48 shrink-0 truncate text-xs text-fg-subtle"
+          class="flex max-w-48 shrink-0 items-center gap-1 text-xs text-fg-subtle"
+          :title="`${parent.key} ${parent.title}`"
           data-testid="row-parent"
-          >{{ parent.title }} ›</span
+          ><span class="shrink-0">{{ parent.key }}</span
+          ><span class="min-w-0 truncate">{{ parent.title }}</span
+          ><span class="shrink-0">›</span></span
         >
         <span :class="wrap ? 'min-w-0 break-words' : 'truncate'" data-testid="row-title">{{
           task.title
