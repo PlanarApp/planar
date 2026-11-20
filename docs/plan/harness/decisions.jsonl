@@ -21,3 +21,4 @@
 {"t": "2026-11-19T22:58:22", "by": "main", "text": "убран обходной путь gc для mr/<m>: фикс в v59", "why": "F-28", "kind": "decision"}
 {"t": "2026-11-19T23:05:23", "by": "main", "text": "dpcli v61: bash_guard снят из settings.json, правило про него убрано у dp-engineer и dp-mechanic", "why": "F-22", "kind": "decision"}
 {"t": "2026-11-19T23:05:23", "by": "main", "text": "регулярка кластера F-18 сужена до субмодуля/указателя рядом с тегом: /tag|тег/ давал ложные срабатывания после фикса", "why": "F-18", "kind": "decision"}
+{"t": "2026-11-20T00:13:27", "by": "main", "text": "accept валит проверку с выводом «ничего не запущено» (pnpm No projects matched), шаблон checks.empty_run — PR 62", "why": "F-38", "kind": "decision"}
