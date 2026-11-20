@@ -42,11 +42,6 @@ export interface ViewOptions {
   showKey?: boolean;
   /** Me Mode: only my tasks (assigned, created, watched); null — all */
   me?: MeMode | null;
-  /**
-   * PLNRAPP-664: the old panel «AI status» value (PLNRAPP-401) the view filter can not take (`legacyAiStatus`) — it
-   * still filters the view; not read by `optionsFrom`, set by the view loaders only
-   */
-  aiStatus?: string | null;
   fields: TaskField[];
   /** Table layout: order, width; no id — column hidden */
   columns?: { id: string; width: number }[];

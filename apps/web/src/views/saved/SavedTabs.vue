@@ -9,7 +9,7 @@ import { Button, Dialog, Menu } from '../../ui';
 import { deleteView, saveView, updateView } from './ops';
 import { toast } from '../../ui/toast';
 import { optionsFrom } from '../options';
-import { legacyAiStatus, migrateAiStatus } from '../aiFilter';
+import { migrateAiStatus } from '../aiFilter';
 import type { Filter } from '../filter';
 import { useCanShare, useSavedViews, type SavedView } from './queries';
 import SaveViewDialog from './SaveViewDialog.vue';
@@ -46,18 +46,17 @@ const items = (v: SavedView) => [
     label: t('taskMenu.duplicate'),
     icon: CopyPlus,
     onSelect: async () => {
-      const f = (v.filter as Partial<Filter> | null)?.rules
-        ? (v.filter as unknown as Filter)
-        : null;
-      const legacy = legacyAiStatus(v.config, f);
       const id = await saveView({
         spaceId: v.spaceId,
         personal: true,
         name: t('taskMenu.copyOf', { title: v.name }),
         icon: v.icon,
         layout: v.layout,
-        filter: migrateAiStatus(v.config, f),
-        config: { ...optionsFrom(v.config), ...(legacy && { aiStatus: legacy }) },
+        filter: migrateAiStatus(
+          v.config,
+          (v.filter as Partial<Filter> | null)?.rules ? (v.filter as unknown as Filter) : null,
+        ),
+        config: optionsFrom(v.config),
       });
       void router.push(`/p/${encodeURIComponent(props.projectId)}/v/${encodeURIComponent(id)}`);
     },

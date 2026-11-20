@@ -326,6 +326,42 @@ describe('views:saved', () => {
     expect(JSON.parse(el.attributes('data-filter')!)).toEqual(v.filter);
   });
 
+  // PLNRAPP-664: an old link to a view saved with the panel «AI status» and «any rule» of several rules
+  const anyOf = {
+    op: 'or',
+    rules: [
+      { field: 'priority', operator: 'in', value: [1] },
+      { field: 'priority', operator: 'in', value: [2] },
+    ],
+  };
+  const migrated = {
+    op: 'and',
+    rules: [{ field: 'aiStatus', operator: 'in', value: ['failed'] }],
+    groups: [anyOf],
+  };
+  it('PLNRAPP-664 старая ссылка /p/:id/v/:viewId («любое условие», 2 условия) — «Статус ИИ И (группа)»', async () => {
+    const v = savedRow({ filter: anyOf, config: { aiStatus: 'failed' } });
+    await db.table('savedViews').put(v);
+    await r.push(`/p/${ids.project}/v/${v.id}`);
+    const w = mountScreen(ProjectScreen);
+    await until(() => w.find('[data-testid=view]').exists());
+    const el = w.get('[data-testid=view]');
+    expect(JSON.parse(el.attributes('data-filter')!)).toEqual(migrated);
+    expect(JSON.parse(el.attributes('data-options')!)).not.toHaveProperty('aiStatus');
+  });
+  it('PLNRAPP-664 старая ссылка на вкладку проекта /p/:id/board («любое условие», 2 условия) — та же группа', async () => {
+    await db
+      .table('savedViews')
+      .put(savedRow({ node: `p:${ids.project}`, filter: anyOf, config: { aiStatus: 'failed' } }));
+    await r.push(`/p/${ids.project}/board`);
+    const w = mountScreen(ProjectScreen);
+    await until(() => w.find('[data-testid=view]').exists());
+    await until(() => w.get('[data-testid=view]').attributes('data-filter') !== 'null');
+    const el = w.get('[data-testid=view]');
+    expect(JSON.parse(el.attributes('data-filter')!)).toEqual(migrated);
+    expect(JSON.parse(el.attributes('data-options')!)).not.toHaveProperty('aiStatus');
+  });
+
   it('views:saved правки — черновик; «Сохранить» → view.update, «Сбросить» возвращает', async () => {
     const v = savedRow({ userId: ids.ann });
     await db.table('savedViews').put(v);

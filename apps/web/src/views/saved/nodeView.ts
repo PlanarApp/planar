@@ -1,14 +1,15 @@
 import { computed, onScopeDispose, ref, toValue, watch, type MaybeRefOrGetter } from 'vue';
 import { newId } from '../../sync';
 import type { Filter } from '../filter';
-import { legacyAiStatus, migrateAiStatus } from '../aiFilter';
+import { migrateAiStatus } from '../aiFilter';
 import { optionsFrom, type ViewOptions } from '../options';
 import { deleteView, saveView, setNodeDefault, updateView } from './ops';
 import { useNodeViewRows } from './queries';
 
 const plain = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 // a filter without rules is the same as no filter
-const norm = (f: Filter | null | undefined): Filter | null => (f?.rules?.length ? f : null);
+const norm = (f: Filter | null | undefined): Filter | null =>
+  f?.rules?.length || f?.groups?.length ? f : null;
 const DEBOUNCE_MS = 400; // the contract: ≤ 500
 
 /**
@@ -27,20 +28,13 @@ export function useNodeViewDraft(a: {
 }) {
   const rows = useNodeViewRows(a.node, a.layout);
   const row = computed(() => (rows.value ? (rows.value.personal ?? rows.value.shared) : undefined));
-  const base = () => {
-    const f = norm(row.value?.filter as Filter | undefined);
-    // PLNRAPP-664: the old panel «AI status» of a project row — a rule of its filter, or (it can not take it) as
-    // before (it applied in projects only)
-    const legacy = a.notProject ? null : legacyAiStatus(row.value?.config, f);
-    return {
-      options: {
-        ...optionsFrom(row.value?.config, a.notProject),
-        ...(legacy && { aiStatus: legacy }),
-        ...toValue(a.fixed),
-      },
-      filter: a.notProject ? f : norm(migrateAiStatus(row.value?.config, f)),
-    };
-  };
+  const base = () => ({
+    options: { ...optionsFrom(row.value?.config, a.notProject), ...toValue(a.fixed) },
+    // PLNRAPP-664: the old panel «AI status» of a project row — a rule of its filter (it applied in projects only)
+    filter: a.notProject
+      ? norm(row.value?.filter as Filter | undefined)
+      : norm(migrateAiStatus(row.value?.config, norm(row.value?.filter as Filter | undefined))),
+  });
   const options = ref<ViewOptions>(base().options);
   const filter = ref<Filter | null>(null);
   const state = () => ({ options: options.value, filter: norm(filter.value) });

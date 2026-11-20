@@ -506,6 +506,8 @@ export default {
       quickHint: 'Title or description…',
       add: 'Add rule',
       remove: 'Remove rule',
+      group: 'Condition group',
+      removeGroup: 'Remove group',
       and: 'AND',
       or: 'OR',
       match: 'Match',
@@ -559,12 +561,7 @@ export default {
       aiCost: 'AI: $',
       aiTime: 'AI: time',
     },
-    aiFilter: {
-      none: 'No runs',
-      legacy:
-        'The view is also filtered by the old panel condition «AI status — {value}»: a filter in «any rule» mode can not include it.',
-      legacyClear: 'Remove',
-    },
+    aiFilter: { none: 'No runs' },
     saved: {
       save: 'Save as view',
       dialogTitle: 'New view',

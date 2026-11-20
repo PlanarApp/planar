@@ -1,5 +1,6 @@
 export {
   FIELD_OPERATORS,
+  allRules,
   isFieldRule,
   matchFilter,
   operatorsFor,

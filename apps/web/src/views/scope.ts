@@ -103,7 +103,9 @@ export function useWidenedFilter(filter: MaybeRefOrGetter<Filter | null | undefi
   const labels = useQuery(() => db.table<Row<'labels'>>('labels').toArray());
   return computed(() => {
     const f = toValue(filter);
-    return f?.rules.length ? widenByName(f, statuses.value ?? [], labels.value ?? []) : f;
+    return f && (f.rules.length || f.groups?.length)
+      ? widenByName(f, statuses.value ?? [], labels.value ?? [])
+      : f;
   });
 }
 
