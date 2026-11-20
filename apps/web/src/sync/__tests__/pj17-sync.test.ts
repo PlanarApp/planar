@@ -8,6 +8,7 @@ afterEach(stopAll);
 describe('pj17: replica of an older build', () => {
   it('pj17: курсор актуален, но схема реплики другая (или не записана) -> перезагрузка bootstrap', async () => {
     const s = setup();
+    s.server.v3 = true; // PLNRAPP-729: a replica bootstrapped by v2 is rebuilt on every start
     s.server.seed('labels', [label('a')]);
     const c = s.mk();
     await s.start(c);
@@ -37,6 +38,7 @@ describe('pj17: replica of an older build', () => {
 
   it('PLNRAPP-484: добавились только индексы (подпись старого формата) -> bootstrap не повторяется', async () => {
     const s = setup();
+    s.server.v3 = true;
     s.server.seed('labels', [label('a')]);
     const c = s.mk();
     await s.start(c);

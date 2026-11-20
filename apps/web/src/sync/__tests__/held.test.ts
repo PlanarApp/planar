@@ -208,4 +208,28 @@ describe('PLNRAPP-487: bootstrap по v3', () => {
     await c3.syncNow();
     expect(s.server.bootstraps).toBe(2);
   });
+
+  it('PLNRAPP-729: реплика с protocol=2 и пустым _held при старте загружается заново по v3', async () => {
+    const { s, c, A, cA } = await v3();
+    await c.stopSync();
+    // реплика, загруженная по v2: версия 2 записана, _held пуст
+    await s.db._meta.put({ key: 'protocol', value: 2 });
+    await s.db._held.clear();
+    s.server.bootstrapProtocols = [];
+    const c2 = s.mk();
+    await s.start(c2);
+    await c2.syncNow();
+    expect(s.server.bootstraps).toBe(2);
+    expect(s.server.bootstrapProtocols).toEqual([SYNC_PROTOCOL]);
+    expect((await s.db._meta.get('protocol'))?.value).toBe(SYNC_PROTOCOL);
+    expect(ids(await s.db._held.toArray())).toEqual([A]);
+    expect(await s.db.table('comments').get(cA.id)).toBeTruthy();
+    await c2.stopSync();
+
+    // версия совпала — повторного bootstrap нет
+    const c3 = s.mk();
+    await s.start(c3);
+    await c3.syncNow();
+    expect(s.server.bootstraps).toBe(2);
+  });
 });
