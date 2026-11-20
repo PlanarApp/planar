@@ -731,12 +731,12 @@ export function createClient(db: PlanarDB) {
     replicaState.value = cursor === undefined ? 'empty' : 'complete';
     // only a new entity table needs bootstrap: a new index is built by Dexie over the rows in place
     const sig = await meta('schema');
-    // PLNRAPP-487: a replica bootstrapped without X-Sync-Protocol (v2, empty _held) — bootstrap again by v3
+    // PLNRAPP-487/729: a replica bootstrapped by another C-sync version (no protocol or v2, empty _held) — bootstrap again by v3
     rebuild =
       cursor !== undefined &&
       (typeof sig !== 'string' ||
         dataSig(sig) !== db.schemaSig() ||
-        (await meta('protocol')) === undefined);
+        (await meta('protocol')) !== SYNC_PROTOCOL);
     pushedUpTo = 0;
     failures = wsFailures = 0;
     setStatus('idle');

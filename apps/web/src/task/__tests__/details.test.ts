@@ -6,7 +6,7 @@ import { startSync, stopSync, syncState } from '../../sync';
 import { confirmDone, closePrompt } from '../../tasks/closeOpen';
 import { i18n } from '../../i18n';
 import { toasts } from '../../ui/toast';
-import { db, flushPromises, ids, open, setup, until } from './h';
+import { db, eventually, flushPromises, ids, open, setup, until } from './h';
 
 // PLNRAPP-487 (C-sync v3): details of a task (comments) — a skeleton while loading, «unavailable offline», closeOpen waits
 
@@ -69,6 +69,44 @@ async function server(rows: Record<string, unknown>[] | 'offline') {
   await db._meta.put({ key: 'protocol', value: SYNC_PROTOCOL });
   await startSync({ userId: ids.ann, fetch: fetch as never });
   return release;
+}
+
+/**
+ * PLNRAPP-729: v3 server whose bootstrap holds the task (its details — in `data`), `POST /sync/tasks` is cut off.
+ * `fresh` — an empty replica (cold bootstrap); `v2` — a replica bootstrapped by v2 (protocol=2, empty `_held`).
+ */
+async function heldServer(rows: Record<string, unknown>[], replica: 'fresh' | 'v2') {
+  const data: Record<string, unknown[]> = {};
+  for (const tb of db.entityTables()) data[tb.name] = await tb.toArray();
+  data.comments = rows;
+  let tasksCalls = 0;
+  let bootstraps = 0;
+  const json = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
+  const fetch = async (path: string) => {
+    if (path.startsWith('/sync/tasks')) {
+      tasksCalls++;
+      throw new TypeError('offline');
+    }
+    if (path.startsWith('/sync/bootstrap')) {
+      bootstraps++;
+      return json({ cursor: 5, lastMutationId: 0, data, held: [t.id] });
+    }
+    if (path.startsWith('/sync/pull')) return json({ changes: [], cursor: 5, lastMutationId: 0 });
+    if (path.startsWith('/sync/push')) return json({ results: [] });
+    throw new TypeError('offline');
+  };
+  await stopSync();
+  await db._held.clear();
+  if (replica === 'fresh') await db._meta.delete('cursor');
+  else {
+    await db._meta.put({ key: 'cursor', value: 5 });
+    await db._meta.put({ key: 'schema', value: db.schemaSig() });
+    await db._meta.put({ key: 'protocol', value: 2 });
+  }
+  await startSync({ userId: ids.ann, fetch: fetch as never });
+  // a warm start bootstraps in the background: wait until the task is held
+  await eventually(async () => !!(await db._held.get(t.id)));
+  return { tasksCalls: () => tasksCalls, bootstraps: () => bootstraps };
 }
 
 beforeEach(async () => {
@@ -138,4 +176,21 @@ describe('детали задачи (PLNRAPP-487)', () => {
     expect(await confirmDone(t.id, ids.done)).toBe(true);
     expect(syncState.value.status).not.toBe('online');
   });
+
+  for (const replica of ['fresh', 'v2'] as const)
+    it(`closeOpen (PLNRAPP-729, ${replica === 'fresh' ? 'свежая реплика' : 'реплика v2 → v3'}): задача из _held, /sync/tasks оборван — диалог «Назначенные комментарии», без тоста`, async () => {
+      await db.table('tasks').update(t.id, { commentsAssigned: 1, commentsResolved: 0 });
+      const c = comment({ assigneeId: ids.bob });
+      const srv = await heldServer([c], replica);
+      expect(srv.bootstraps()).toBe(1);
+      expect((await db._meta.get('protocol'))?.value).toBe(SYNC_PROTOCOL);
+      const done = confirmDone(t.id, ids.done);
+      const p = (await until(() => closePrompt.value))!;
+      expect(p.commentIds).toEqual([c.id]);
+      expect(toasts.value.some((x) => x.text === i18n.global.t('closeOpen.offline'))).toBe(false);
+      // held details are complete: no request for the snapshot
+      expect(srv.tasksCalls()).toBe(0);
+      p.answer(false);
+      expect(await done).toBe(false);
+    });
 });
