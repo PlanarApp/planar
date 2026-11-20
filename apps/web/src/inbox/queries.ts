@@ -174,7 +174,15 @@ export function useUnreadItems() {
 
 export type AssignedComment = (
   (Row<'comments'> & { kind: 'comment' }) | (Row<'checklistItems'> & { kind: 'check' })
-) & { key: string; title: string; projectId: string; closed: boolean };
+) & {
+  key: string;
+  title: string;
+  projectId: string;
+  closed: boolean;
+  /** PLNRAPP-629: the task's status — the status icon in the card header (null — not in the replica) */
+  task: Pick<Row<'tasks'>, 'id' | 'spaceId' | 'projectId' | 'statusId'>;
+  status: Row<'statuses'> | null;
+};
 
 /** "Comments for me": comments and checklist items (PLNRAPP-140) assigned to me, mixed, with their task */
 export const useAssignedComments = (userId: () => string | undefined) =>
@@ -193,10 +201,13 @@ export const useAssignedComments = (userId: () => string | undefined) =>
       .table<Row<'tasks'>>('tasks')
       .bulkGet([...new Set(rows.map((c) => c.taskId))]);
     const task = new Map(tasks.flatMap((t) => (t && !t.archivedAt ? [[t.id, t] as const] : [])));
-    const projects = await db
-      .table<Row<'projects'>>('projects')
-      .bulkGet([...new Set(tasks.flatMap((t) => (t ? [t.projectId] : [])))]);
+    const live = [...task.values()];
+    const [projects, statuses] = await Promise.all([
+      db.table<Row<'projects'>>('projects').bulkGet([...new Set(live.map((t) => t.projectId))]),
+      db.table<Row<'statuses'>>('statuses').bulkGet([...new Set(live.map((t) => t.statusId))]),
+    ]);
     const key = new Map(projects.flatMap((p) => (p ? [[p.id, p.key] as const] : [])));
+    const status = new Map(statuses.flatMap((s) => (s ? [[s.id, s] as const] : [])));
     return rows
       .flatMap((c) => {
         const t = task.get(c.taskId);
@@ -207,6 +218,13 @@ export const useAssignedComments = (userId: () => string | undefined) =>
                 title: t.title,
                 projectId: t.projectId,
                 key: `${key.get(t.projectId) ?? '?'}-${t.number ?? '…'}`,
+                task: {
+                  id: t.id,
+                  spaceId: t.spaceId,
+                  projectId: t.projectId,
+                  statusId: t.statusId,
+                },
+                status: status.get(t.statusId) ?? null,
               },
             ]
           : [];

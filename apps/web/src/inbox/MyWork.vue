@@ -35,6 +35,7 @@ import {
 } from './queries';
 import { WORK_SUBS, workSub } from './subs';
 import { useMyDay } from './myDay';
+import TaskStatusCell from './TaskStatusCell.vue';
 
 // group "My work", as in Plane: summary, assigned, comments for me, created, watched, activity
 const props = defineProps<{ scope: GroupScope }>();
@@ -97,6 +98,7 @@ const toggle = (c: AssignedComment) =>
   c.kind === 'comment'
     ? mutate('comment.resolve', { id: c.id, resolved: !c.closed })
     : mutate('checklist.update', { id: c.id, done: !c.closed });
+const openCard = (c: AssignedComment) => openTask(c.key, c.kind === 'comment' ? c.id : null);
 const unreadAll = computed(
   () => (unread.value ?? []).filter((n) => inGroup(n, props.scope)).length,
 );
@@ -226,14 +228,22 @@ const textOf = (body: unknown): string => {
               <Circle v-else :size="18" />
             </template>
           </button>
-          <button
-            type="button"
-            class="flex min-w-0 flex-1 flex-col gap-1 rounded-md py-1 text-left text-sm outline-none focus-visible:ring-2 ring-focus"
-            @click="openTask(c.key, c.kind === 'comment' ? c.id : null)"
+          <!-- the whole card opens the task; the keyboard — the key/title button (PLNRAPP-629: the status
+               picker left of the key, a button cannot hold it) -->
+          <div
+            class="flex min-w-0 flex-1 cursor-pointer flex-col gap-1 py-1 text-left text-sm"
+            @click="openCard(c)"
           >
-            <span class="flex min-w-0 items-baseline gap-2 text-xs text-fg-subtle">
-              <span class="shrink-0">{{ c.key }}</span>
-              <span class="truncate">{{ c.title }}</span>
+            <span class="-my-1 flex min-w-0 items-center gap-1 text-xs text-fg-subtle">
+              <TaskStatusCell :task="c.task" :status="c.status" />
+              <button
+                type="button"
+                class="flex min-w-0 items-baseline gap-2 rounded-md text-left outline-none focus-visible:ring-2 ring-focus"
+                @click.stop="openCard(c)"
+              >
+                <span class="shrink-0">{{ c.key }}</span>
+                <span class="truncate">{{ c.title }}</span>
+              </button>
             </span>
             <span :class="['line-clamp-3 break-words', c.closed && 'text-fg-muted line-through']">{{
               c.kind === 'check' ? c.text : textOf(c.body)
@@ -242,7 +252,7 @@ const textOf = (body: unknown): string => {
               {{ c.kind === 'check' ? t('task.checklist') : userName(c.authorId) }} ·
               <time :datetime="c.createdAt">{{ new Date(c.createdAt).toLocaleString() }}</time>
             </span>
-          </button>
+          </div>
         </div>
       </div>
       <InboxScreen v-else-if="sub === 'mentions'" :scope="scope" :kinds="MENTIONS" />
