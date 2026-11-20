@@ -15,4 +15,19 @@ describe('образ агента docker/ai-agent', () => {
     expect(/^ARG PNPM_VERSION=(\S+)$/m.exec(dockerfile)?.[1]).toBe(want);
     expect(dockerfile).toContain('"pnpm@${PNPM_VERSION}"');
   });
+
+  it('HOME и TMPDIR в /work задаются после установки пакетов: при сборке /work/.tmp нет', () => {
+    const dockerfile = readFileSync(root('docker/ai-agent/Dockerfile'), 'utf8');
+    const lastInstall = dockerfile.lastIndexOf('apt-get install');
+    for (const env of ['HOME=/work/.home', 'TMPDIR=/work/.tmp', 'npm_config_cache=']) {
+      const at = dockerfile.indexOf(env);
+      expect(at, env).toBeGreaterThan(lastInstall);
+    }
+  });
+
+  it('сборку образа агента в CI не отменяет следующий конвейер main', () => {
+    const ci = readFileSync(root('.gitlab-ci.yml'), 'utf8');
+    const job = /^image-ai-agent:\n((?: {2}.*\n)+)/m.exec(ci)?.[1];
+    expect(job).toContain('interruptible: false');
+  });
 });
