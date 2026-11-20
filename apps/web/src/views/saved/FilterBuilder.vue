@@ -14,7 +14,8 @@ import {
 import { normName, uniqByName } from '../../tasks/dictionaries';
 import { useFieldDefs, useSpaceFieldDefs } from '../../fields';
 import { Button, Input } from '../../ui';
-import { useExtensions } from '../../modules/registry';
+import { enabledForProject, useExtensions } from '../../modules/registry';
+import { AI_STATES } from '../aiFilter';
 import {
   FIELD_OPERATORS,
   isFieldRule,
@@ -24,7 +25,8 @@ import {
   type FilterRule,
 } from '../filter';
 
-const props = defineProps<{ spaceId?: string; projectId?: string }>();
+// withAi — the filter of a project view: the «AI status» field (PLNRAPP-663), when the ai module is on in the project
+const props = defineProps<{ spaceId?: string; projectId?: string; withAi?: boolean }>();
 const model = defineModel<Filter>({ required: true });
 const { t } = useI18n();
 // the module SDK passes only projectId: the space is taken from the project
@@ -45,12 +47,25 @@ const defs = computed(() =>
 // the "Sprint" rule — only when the sprints module is enabled
 const modViews = useExtensions('views');
 const hasSprints = computed(() => modViews.value.some((v) => v.moduleId === 'sprints'));
+const hasAi = computed(
+  () => !!props.withAi && !!props.projectId && enabledForProject('ai', props.projectId),
+);
 const fields = computed<FilterField[]>(() => [
   ...(Object.keys(FIELD_OPERATORS) as FilterField[]).filter(
-    (f) => f !== 'cycle' || hasSprints.value,
+    (f) => (f !== 'cycle' || hasSprints.value) && (f !== 'aiStatus' || hasAi.value),
   ),
   ...defs.value.map((d) => `field:${d.id}` as const),
 ]);
+// a saved «AI status» rule with the field not offered (the module is off) stays readable and removable
+const fieldsOf = (r: FilterRule) =>
+  r.field === 'aiStatus' && !fields.value.includes(r.field)
+    ? [...fields.value, r.field]
+    : fields.value;
+const aiChoices = () =>
+  AI_STATES.map((s) => ({
+    v: s,
+    l: s === 'none' ? t('views.aiFilter.none') : t(`tasks.aiState.${s}`),
+  }));
 const fieldLabel = (f: FilterField) =>
   isFieldRule(f)
     ? (defs.value.find((d) => d.id === f.slice(6))?.name ?? '—')
@@ -165,7 +180,7 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
         :value="r.field"
         @change="setField(i, ($event.target as HTMLSelectElement).value as FilterField)"
       >
-        <option v-for="f in fields" :key="f" :value="f">{{ fieldLabel(f) }}</option>
+        <option v-for="f in fieldsOf(r)" :key="f" :value="f">{{ fieldLabel(f) }}</option>
       </select>
       <select
         :class="selectClass"
@@ -183,7 +198,7 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
 
       <template v-if="hasValue(r)">
         <div
-          v-if="['status', 'statusCategory', 'priority', 'fselect'].includes(kind(r))"
+          v-if="['status', 'statusCategory', 'priority', 'aiStatus', 'fselect'].includes(kind(r))"
           class="flex flex-wrap gap-x-3 gap-y-1"
           role="group"
           :aria-label="t('views.filter.value')"
@@ -191,11 +206,13 @@ const setPeople = (i: number, r: FilterRule, ids: string[]) =>
           <label
             v-for="o in kind(r) === 'fselect'
               ? choices(r)
-              : r.field === 'status'
-                ? uniqByName(statuses ?? []).map((s) => ({ v: s.id, l: s.name }))
-                : r.field === 'priority'
-                  ? [0, 1, 2, 3, 4].map((p) => ({ v: String(p), l: t(`tasks.priority.${p}`) }))
-                  : CATEGORIES.map((c) => ({ v: c, l: t(`views.filter.category.${c}`) }))"
+              : r.field === 'aiStatus'
+                ? aiChoices()
+                : r.field === 'status'
+                  ? uniqByName(statuses ?? []).map((s) => ({ v: s.id, l: s.name }))
+                  : r.field === 'priority'
+                    ? [0, 1, 2, 3, 4].map((p) => ({ v: String(p), l: t(`tasks.priority.${p}`) }))
+                    : CATEGORIES.map((c) => ({ v: c, l: t(`views.filter.category.${c}`) }))"
             :key="o.v"
             class="inline-flex items-center gap-1.5 text-sm"
           >

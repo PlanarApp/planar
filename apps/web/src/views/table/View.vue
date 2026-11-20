@@ -77,6 +77,7 @@ const passes = useTaskFilter(
   useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
+  () => (props.scope ? undefined : props.projectId),
 );
 
 // grouping in the table is not applied; with subtasks — a tree under the parent (sorted among siblings)

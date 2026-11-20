@@ -524,6 +524,7 @@ export default {
         text: 'Title or description',
         createdBy: 'Author',
         cycle: 'Sprint',
+        aiStatus: 'AI status',
       },
       ops: {
         in: 'is any of',

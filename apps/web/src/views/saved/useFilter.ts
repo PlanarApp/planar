@@ -4,6 +4,8 @@ import { useFieldDefsByIds } from '../../fields';
 import { useAuth } from '../../auth/useAuth';
 import type { TaskView } from '../../tasks';
 import { db, useQuery } from '../../sync';
+import { enabledForProject } from '../../modules/registry';
+import { useAiStates } from '../aiFilter';
 import { localToday, matchFilter, type Filter, type FilterCtx } from '../filter';
 
 /**
@@ -26,11 +28,15 @@ export async function forMeTaskIds(uid: string): Promise<Set<string>> {
   );
 }
 
-/** Predicate "task passes the view filter" (and Me Mode) for list/board/table/calendar. */
+/**
+ * Predicate "task passes the view filter" (and Me Mode) for list/board/table/calendar.
+ * projectId — the project of a project view (not a group one): its tasks' AI status for `aiStatus` rules.
+ */
 export function useTaskFilter(
   filter: MaybeRefOrGetter<Filter | null | undefined>,
   statuses: MaybeRefOrGetter<Row<'statuses'>[] | undefined>,
   me?: MaybeRefOrGetter<MeMode | null | undefined>,
+  projectId?: () => string | undefined,
 ) {
   const { user } = useAuth();
   const watched = useQuery(
@@ -91,6 +97,17 @@ export function useTaskFilter(
       ? (db.table('sprintsCycles').toArray() as Promise<NonNullable<FilterCtx['cycles']>>)
       : undefined,
   );
+  // PLNRAPP-663: the AI status — only with an `aiStatus` rule and the ai module on in the project, otherwise the
+  // rule is skipped (an old view's condition after the module is off does not hide tasks)
+  const aiProject = () => {
+    const pid = projectId?.();
+    return pid &&
+      toValue(filter)?.rules.some((r) => r.field === 'aiStatus') &&
+      enabledForProject('ai', pid)
+      ? pid
+      : undefined;
+  };
+  const aiStates = useAiStates(aiProject);
   const rules = computed(() => {
     const f = toValue(filter);
     if (!f?.rules.length) return () => true;
@@ -104,6 +121,7 @@ export function useTaskFilter(
       fieldDefs: defs.value,
       cycles: cycles.value,
       forMe: forMe.value,
+      aiStates: aiStates.value,
     };
     return (t: TaskView) => matchFilter(t, f, ctx);
   });

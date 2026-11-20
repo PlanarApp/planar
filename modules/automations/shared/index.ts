@@ -3,7 +3,6 @@ import {
   MutatorError,
   defineMutator,
   needProjectAdmin,
-  type Filter,
   type SharedModuleManifest,
   type Tx,
 } from '@planar/shared';
@@ -223,7 +222,8 @@ export interface Run {
   createdAt: string;
 }
 
-export const EMPTY_FILTER: Filter = { op: 'and', rules: [] };
+// automations conditions: the filter language without the client-side `aiStatus` (PLNRAPP-663)
+export const EMPTY_FILTER: z.infer<typeof filterSchema> = { op: 'and', rules: [] };
 
 // Tx is typed with core entities; module entities are cast (C-modules)
 interface ModTx {

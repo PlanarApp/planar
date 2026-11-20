@@ -14,7 +14,9 @@ export type BaseField =
   /** title or description (quick filter, PLNRAPP-79) */
   | 'text'
   | 'createdBy'
-  | 'cycle';
+  | 'cycle'
+  /** the task's AI status (PLNRAPP-663): AiState values, `none` — no runs; needs `FilterCtx.aiStates` */
+  | 'aiStatus';
 export type FilterField = BaseField | `field:${string}`;
 export type FilterOperator =
   'in' | 'notIn' | 'isEmpty' | 'isNotEmpty' | 'before' | 'after' | 'contains' | 'gte' | 'lte';
@@ -43,7 +45,21 @@ export interface FilterCtx {
   }[];
   /** tasks with an open comment / checklist item assigned to userId: «assignee = me» counts them (PLNRAPP-140) */
   forMe?: Set<string>;
+  /** AI status of the tasks with runs (task id → state; others — `none`); without it `aiStatus` rules are skipped (ai module off) */
+  aiStates?: ReadonlyMap<string, string>;
 }
+
+/** Values of an `aiStatus` rule (PLNRAPP-401, PLNRAPP-663); none — the task has no runs. */
+export const AI_STATES = [
+  'none',
+  'queued',
+  'running',
+  'waiting_human',
+  'waiting_subtasks',
+  'failed',
+  'done',
+] as const;
+export type AiState = (typeof AI_STATES)[number];
 
 /** Allowed operators of a field (constructor and matchFilter). */
 export const FIELD_OPERATORS: Record<BaseField, FilterOperator[]> = {
@@ -57,6 +73,7 @@ export const FIELD_OPERATORS: Record<BaseField, FilterOperator[]> = {
   text: ['contains'],
   createdBy: ['in', 'notIn'],
   cycle: ['in', 'notIn', 'isEmpty', 'isNotEmpty'],
+  aiStatus: ['in', 'notIn'],
 };
 
 const EMPTY: FilterOperator[] = ['isEmpty', 'isNotEmpty'];
@@ -179,6 +196,9 @@ function matchRule(task: FilterTask, r: FilterRule, ctx: FilterCtx): boolean {
       if (!task.dueDate || !to) return false;
       return r.operator === 'before' ? task.dueDate < to : task.dueDate > to;
     }
+    case 'aiStatus':
+      // without the states (the ai module is off, a view of several projects) the rule is skipped
+      return ctx.aiStates ? isIn([ctx.aiStates.get(task.id) ?? 'none']) : true;
     case 'title':
       return task.title.toLowerCase().includes(String(r.value).toLowerCase());
     case 'text': {

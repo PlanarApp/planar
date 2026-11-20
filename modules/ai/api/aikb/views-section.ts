@@ -27,6 +27,7 @@ export function viewsSection(m: ViewsMeta): { id: 'views-settings'; title: strin
       '## Filter language (packages/shared/src/filter.ts)',
       'A filter is `{op: "and"|"or", rules: [{field, operator, value?}]}`. Values: arrays of ids (`"me"` = current user; `"current"` for cycle = open sprint), a string or a number. Dates: `YYYY-MM-DD`, `today`, `today+N`, `today-N`. `isEmpty` / `isNotEmpty` take no value; a rule with an empty value is skipped. Fields and operators:',
       ...fields,
+      '`aiStatus` values: `none` (no runs), `queued`, `running`, `waiting_human`, `waiting_subtasks`, `failed`, `done`; the rule works in a project view with the ai module on, otherwise it is skipped.',
       `- \`field:<fieldDefId>\` (custom field), operators by field type: ${custom.join('; ')}`,
       '',
       '## Saved views',
