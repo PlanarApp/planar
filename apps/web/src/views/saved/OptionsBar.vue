@@ -95,6 +95,7 @@ import AiStatusFilter from './AiStatusFilter.vue';
         :model-value="filter ?? { op: 'and', rules: [] }"
         :space-id="spaceId"
         :project-id="projectId"
+        with-ai
         @update:model-value="filter = $event"
       />
     </div>

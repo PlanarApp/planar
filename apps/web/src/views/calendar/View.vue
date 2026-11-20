@@ -30,6 +30,7 @@ const passes = useTaskFilter(
   useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
+  () => (props.scope ? undefined : props.projectId),
 );
 const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
 const tasks = computed(() =>

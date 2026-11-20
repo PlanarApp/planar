@@ -1856,6 +1856,19 @@ async function insertAll(tx: Tx, now: Date) {
       { op: 'and', rules: [] },
       { showSubtasks: true, subtasksCollapsed: true },
     ],
+    // PLNRAPP-663: the «AI status» field of the filter — several values; works in a project with the ai module
+    [
+      0,
+      'AI needs attention',
+      'sparkles',
+      'list',
+      {
+        op: 'and',
+        rules: [
+          { field: 'aiStatus', operator: 'in', value: ['waiting_human', 'running', 'failed'] },
+        ],
+      },
+    ],
   ];
   await ins(
     s.savedViews,
