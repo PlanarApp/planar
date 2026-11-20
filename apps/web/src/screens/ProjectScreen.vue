@@ -21,6 +21,7 @@ import SaveViewDialog from '../views/saved/SaveViewDialog.vue';
 import SavedTabs from '../views/saved/SavedTabs.vue';
 import { saveView, updateView } from '../views/saved/ops';
 import { optionsFrom, type ViewOptions } from '../views/options';
+import { migrateAiStatus } from '../views/aiFilter';
 import { useSidebarActions } from '../layout/sidebarActions';
 import type { MenuItem } from '../ui/Menu.vue';
 import { useCanShare, useSavedView } from '../views/saved/queries';
@@ -56,9 +57,14 @@ const fromSaved = () => {
   const v = saved.value;
   return {
     options: optionsFrom(v?.config),
-    filter: ((v?.filter as Partial<Filter> | undefined)?.rules
-      ? plain(v!.filter)
-      : emptyFilter()) as Filter,
+    // PLNRAPP-664: the old panel «AI status» of the view — a rule of its filter
+    filter:
+      migrateAiStatus(
+        v?.config,
+        (v?.filter as Partial<Filter> | undefined)?.rules
+          ? (plain(v!.filter) as unknown as Filter)
+          : null,
+      ) ?? emptyFilter(),
   };
 };
 const savedOptions = ref<ViewOptions>(optionsFrom(undefined));

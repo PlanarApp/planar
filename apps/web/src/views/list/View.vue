@@ -27,7 +27,6 @@ import { Button, Dialog, EmptyState, Input, Menu, useBreakpoint, type MenuItem }
 import { router } from '../../router';
 import { enabledForProject, useExtensions } from '../../modules/registry';
 import { isAiField } from '../options';
-import { useAiFilter } from '../aiFilter';
 import { openTask, useSelection, type ViewProps } from '..';
 import { openTaskFor, showTask, sideTaskOpen } from '../open';
 import { useTaskFilter } from '../saved/useFilter';
@@ -111,10 +110,6 @@ const passes = useTaskFilter(
   () => props.options.me,
   () => (props.scope ? undefined : props.projectId),
 );
-const aiPass = useAiFilter(
-  () => (props.scope ? undefined : props.projectId),
-  () => props.options.aiStatus,
-);
 
 type Item =
   | { id: string; kind: 'head' }
@@ -134,9 +129,7 @@ type Item =
 const collapsed = ref(new Set<string>());
 const groups = computed(() => {
   const o = props.options;
-  const tasks = (all.value ?? []).filter(
-    (x) => (o.showSubtasks || !x.parentId) && passes.value(x) && aiPass.value(x),
-  );
+  const tasks = (all.value ?? []).filter((x) => (o.showSubtasks || !x.parentId) && passes.value(x));
   const ctx = {
     statuses: statuses.value ?? [],
     members: members.value ?? [],

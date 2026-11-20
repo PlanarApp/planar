@@ -9,6 +9,7 @@ import { Button, Dialog, Menu } from '../../ui';
 import { deleteView, saveView, updateView } from './ops';
 import { toast } from '../../ui/toast';
 import { optionsFrom } from '../options';
+import { migrateAiStatus } from '../aiFilter';
 import type { Filter } from '../filter';
 import { useCanShare, useSavedViews, type SavedView } from './queries';
 import SaveViewDialog from './SaveViewDialog.vue';
@@ -51,9 +52,10 @@ const items = (v: SavedView) => [
         name: t('taskMenu.copyOf', { title: v.name }),
         icon: v.icon,
         layout: v.layout,
-        filter: (v.filter as Partial<Filter> | null)?.rules
-          ? (v.filter as unknown as Filter)
-          : null,
+        filter: migrateAiStatus(
+          v.config,
+          (v.filter as Partial<Filter> | null)?.rules ? (v.filter as unknown as Filter) : null,
+        ),
         config: optionsFrom(v.config),
       });
       void router.push(`/p/${encodeURIComponent(props.projectId)}/v/${encodeURIComponent(id)}`);

@@ -1,5 +1,7 @@
 import { computed, type Ref } from 'vue';
+import { AI_STATES } from '@planar/shared';
 import { activityOf, useProjectActivity } from '../modules/activity';
+import type { Filter } from './filter';
 
 /** PLNRAPP-401: the «AI status» filter values — shared with the `aiStatus` filter rule (PLNRAPP-663). */
 export { AI_STATES, type AiState } from '@planar/shared';
@@ -22,16 +24,31 @@ export function useAiStates(
   });
 }
 
-/** Client-side «AI status» filter by the project's shared activity (one project; a group view has none). */
-export function useAiFilter(
-  projectId: () => string | undefined,
-  status: () => string | null | undefined,
-): Ref<(t: { id: string }) => boolean> {
-  const states = useAiStates(projectId);
-  return computed(() => {
-    const s = status();
-    const by = states.value;
-    if (!s || !by) return () => true;
-    return (t: { id: string }) => (by.get(t.id) ?? 'none') === s;
-  });
+/**
+ * PLNRAPP-664: the view filter with the old panel «AI status» selector (`config.aiStatus` of a saved view, a tab row)
+ * moved into an `aiStatus in [value]` rule — the same tasks through the general filter. The panel filter was
+ * applied on top of the view filter (AND): with «all rules» (or no rules) the rule is added; with «any rule» and a
+ * single rule the filter becomes «all rules»; with «any rule» and several rules filters can not nest — the rule is
+ * added to them (the view shows not fewer tasks than before). No (or an unknown) old value — the filter as is.
+ */
+export function migrateAiStatus(
+  config: Record<string, unknown> | null | undefined,
+  filter: Filter | null,
+): Filter | null {
+  const s = config?.aiStatus;
+  if (typeof s !== 'string' || !(AI_STATES as readonly string[]).includes(s)) return filter;
+  const rules = filter?.rules ?? [];
+  const has = rules.some(
+    (r) =>
+      r.field === 'aiStatus' &&
+      r.operator === 'in' &&
+      Array.isArray(r.value) &&
+      r.value.length === 1 &&
+      r.value[0] === s,
+  );
+  if (has) return filter;
+  return {
+    op: rules.length > 1 ? (filter?.op ?? 'and') : 'and',
+    rules: [...rules, { field: 'aiStatus', operator: 'in', value: [s] }],
+  };
 }

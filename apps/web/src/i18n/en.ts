@@ -558,7 +558,7 @@ export default {
       aiCost: 'AI: $',
       aiTime: 'AI: time',
     },
-    aiFilter: { title: 'AI status', all: 'All', none: 'No runs' },
+    aiFilter: { none: 'No runs' },
     saved: {
       save: 'Save as view',
       dialogTitle: 'New view',
