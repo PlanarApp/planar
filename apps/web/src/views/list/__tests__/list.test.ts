@@ -937,3 +937,58 @@ describe('вид «Карточки»', () => {
     w.unmount();
   });
 });
+
+describe('строка Списка — данные карточки (PLNRAPP-704)', () => {
+  it('родитель в строке — ключ и название, как в карточке', async () => {
+    const p = task(1, { rank: rank(1) });
+    // подзадача в другой группе: родителя над ней нет — метка родителя в строке
+    const kid = task(2, { rank: rank(2), parentId: p.id, statusId: ids.done });
+    await db.table('tasks').bulkPut([p, kid]);
+    await show({ showSubtasks: true });
+    const label = row('PLN-2').get('[data-testid=row-parent]');
+    expect(label.text()).toContain('PLN-1');
+    expect(label.text()).toContain('t1');
+    expect(label.attributes('title')).toBe('PLN-1 t1');
+  });
+  it('значок ИИ (работает) — в строке; при колонке «ИИ» — только в колонке', async () => {
+    const t = task(1);
+    await db.table('tasks').put(t);
+    const at = new Date().toISOString();
+    registerModules([
+      {
+        id: 'ai-row-704',
+        activity: [
+          {
+            id: 'p',
+            entity: 'projects',
+            load: async () => [{ id: 'r1', itemId: t.id, state: 'running', startedAt: at }],
+          },
+        ],
+      },
+    ]);
+    const mountRow = async (fields: ViewOptions['fields']) => {
+      w = mount(
+        defineComponent({
+          render: () =>
+            h(TooltipProvider, null, () =>
+              h(View, { projectId: ids.project, options: opts({ fields }) }),
+            ),
+        }),
+        {
+          attachTo: document.body,
+          global: {
+            plugins: [createI18n({ legacy: false, locale: 'ru', messages: { ru, en } }), r],
+          },
+        },
+      );
+      await until(() => w.find('[role=row][data-task]').exists());
+    };
+    await mountRow(['status', 'assignee']);
+    await until(() => row('PLN-1').find('[data-testid=ai-status]').exists());
+    expect(row('PLN-1').get('[data-testid=ai-status]').attributes('data-state')).toBe('running');
+    w.unmount();
+    await mountRow(['status', 'ai']);
+    await until(() => row('PLN-1').get('[data-testid=cell-ai]').text() !== '—');
+    expect(row('PLN-1').find('[data-testid=ai-status]').exists()).toBe(false);
+  });
+});
