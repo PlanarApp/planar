@@ -17,6 +17,7 @@ import {
   failed,
   finish,
   md,
+  noPrompt,
   promptOf,
   resultSchema,
   withMention,
@@ -202,15 +203,7 @@ export async function handleDoc(d: DocRunData, api: JobApi): Promise<void> {
     if (action) {
       const p = await promptOf(api.db, action);
       if (p === undefined)
-        return await applyDoc(
-          api,
-          run,
-          d,
-          bot,
-          rootId,
-          item,
-          failed(`У действия «${action.name}» нет инструкции.`),
-        );
+        return await applyDoc(api, run, d, bot, rootId, item, failed(noPrompt(action)));
       const checks = action.checks.length
         ? `\n\nКритерии готовности (done — только если все выполнены):\n${action.checks.map((x) => `- ${x}`).join('\n')}`
         : '';

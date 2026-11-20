@@ -1241,6 +1241,17 @@ describe('выключатель и суточные лимиты', () => {
     expect((await runsOf(t)).at(-1)!.log).toContain('выключен');
   });
 
+  it('PLNRAPP-638: действие без страницы промпта → failed с причиной и подсказкой в комментарии, провайдер не вызван', async () => {
+    const t = await task();
+    const bare = await action({ name: 'Тест', pageId: null });
+    await handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId: bare }, api);
+    expect(calls).toHaveLength(0);
+    expect((await runsOf(t)).at(-1)).toMatchObject({ state: 'failed' });
+    const c = text((await commentsOf(t)).at(-1)!.body);
+    expect(c).toContain('У действия «Тест» нет инструкции');
+    expect(c).toContain('страницу промпта');
+  });
+
   it('лимит токенов проекта за сутки → failed без вызова; под лимитом — идёт', async () => {
     const t = await task();
     await raw(`insert into ai_project_limits (project_id, daily_tokens) values ($1, 1000)`, [P]);
