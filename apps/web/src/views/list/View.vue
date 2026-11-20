@@ -58,9 +58,11 @@ import { endTaskDrag, overProject, projectAt, startTaskDrag } from '../../tasks/
 import { dragSet, dropAnchor, groupRanks, moveGroupApi, moveGroupLocal } from '../groupMove';
 import { toast } from '../../ui/toast';
 
-const props = defineProps<ViewProps>();
+// cards: the Cards view (views/cards) — the same list drawn as cards, without the column header
+const props = defineProps<ViewProps & { cards?: boolean }>();
 const { t, locale } = useI18n();
 const { isMobile } = useBreakpoint();
+const asCards = computed(() => isMobile.value || !!props.cards);
 const sel = useSelection();
 
 const project = useProject(() => props.projectId);
@@ -123,7 +125,7 @@ type Item =
       task: TaskView;
       group: string;
       depth: number;
-      parentTitle?: string;
+      parent?: TaskView;
       /** undefined — the group has no subtasks: no room reserved for the fold chevron */
       childCount?: number;
     }
@@ -188,9 +190,9 @@ watch(
 // subtasks — as a tree under the parent; a parent not above the row — a label in the row
 const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
 const items = computed<Item[]>(() => {
-  // mobile: cards without a column header row
+  // cards (mobile, the Cards view): without a column header row
   const head: Item[] =
-    !isMobile.value && (props.options.groupBy === 'none' || groups.value.length)
+    !asCards.value && (props.options.groupBy === 'none' || groups.value.length)
       ? [{ id: 'head', kind: 'head' }]
       : [];
   return head.concat(
@@ -211,7 +213,7 @@ const items = computed<Item[]>(() => {
           task,
           group: g.key,
           depth,
-          parentTitle: !depth && task.parentId ? byId.value.get(task.parentId)?.title : undefined,
+          parent: !depth && task.parentId ? byId.value.get(task.parentId) : undefined,
           childCount: kids.size ? (kids.get(task.id) ?? 0) : undefined,
         });
       }
@@ -455,11 +457,11 @@ const scroller = ref<HTMLElement>();
 // Escape / a click on an empty place of the list — out of the selection mode (PLNRAPP-291)
 useSelectionReset(() => scroller.value);
 const rowH = computed(() => (isMobile.value ? 44 : 32));
-// mobile: the task card is above the service rows; dragging is disabled there (dropAt counts by rowH)
+// cards: the task card is above the service rows; dragging is disabled there (dropAt counts by rowH)
 const virt = useVirtualizer(
   computed(() => {
     const h = rowH.value;
-    const card = isMobile.value ? 64 : h;
+    const card = asCards.value ? 88 : h;
     return {
       count: items.value.length,
       getScrollElement: () => scroller.value ?? null,
@@ -472,10 +474,10 @@ const virt = useVirtualizer(
 // wrapped names: a task row grows only when the name needs more lines — its usual height is the minimum
 // (a mobile task card — 64), the virtualizer measures it; service rows keep their height (PLANARAPP-62)
 const measure = (el: unknown) => virt.value.measureElement(el as Element | null);
-// the row being edited grows too: its name is a multi-line textarea (PLNRAPP-70)
+// the row being edited grows too: its name is a multi-line textarea (PLNRAPP-70); a card — always
 const grows = (i: number) =>
   items.value[i]?.kind === 'task' &&
-  (props.options.wrapTitles || editing.value === items.value[i]?.id);
+  (asCards.value || props.options.wrapTitles || editing.value === items.value[i]?.id);
 const rowStyle = (v: VirtualItem) => ({
   transform: `translateY(${v.start}px)`,
   ...(grows(v.index)
@@ -488,7 +490,7 @@ const focusedId = ref<string | null>(null);
 const editing = ref<string | null>(null);
 // sizes measured with wrapping (or while editing) are stale without it (and back)
 watch(
-  () => [props.options.wrapTitles, editing.value],
+  () => [props.options.wrapTitles, editing.value, asCards.value],
   () => virt.value.measure(),
 );
 const focusedTask = computed(() => {
@@ -599,7 +601,7 @@ function listKey(key: string): boolean {
     ArrowUp: () => moveFocus(-1),
     Enter: () => task && openTask(task.key),
     x: () => task && sel.toggle(task.id),
-    F2: () => task && startEdit(focusedId.value!), // edit, not opening after a click
+    F2: () => task && !asCards.value && startEdit(focusedId.value!), // edit, not opening after a click
     Escape: () => sel.clear(),
     ...(own && {
       d: () => task && void toggleToday(task.id, day.value),
@@ -764,7 +766,7 @@ watch(
           <div
             v-for="v in virt.getVirtualItems()"
             :key="String(v.key)"
-            :ref="options.wrapTitles || editing === items[v.index]?.id ? measure : undefined"
+            :ref="grows(v.index) ? measure : undefined"
             :data-index="v.index"
             class="absolute left-0 top-0 w-full"
             :style="rowStyle(v)"
@@ -873,7 +875,10 @@ watch(
                   >{{ it.group.label }}</span
                 >
                 <span class="text-xs text-fg-subtle">{{ it.group.tasks.length }}</span>
-                <span class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden">
+                <span
+                  v-if="!cards"
+                  class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden"
+                >
                   <span
                     v-for="c in columns"
                     :key="c"
@@ -925,8 +930,9 @@ watch(
                 :members="members ?? []"
                 :labels="labels ?? []"
                 :depth="it.depth"
-                :parent-title="it.parentTitle"
-                :draggable="manual && !isMobile"
+                :parent="it.parent"
+                :cards="cards"
+                :draggable="manual && !asCards"
                 :wrap="options.wrapTitles"
                 :show-key="options.showKey"
                 :child-count="it.childCount"

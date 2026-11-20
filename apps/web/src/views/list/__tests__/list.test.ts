@@ -917,3 +917,23 @@ describe('PLNRAPP-498 исполнители в массовой панели �
     await poll(async () => (await both(a, b)) === '|');
   });
 });
+
+describe('вид «Карточки»', () => {
+  it('на десктопе — карточки без строки заголовков, ключ и родитель в карточке', async () => {
+    const p = task(1, { rank: rank(1) });
+    // подзадача в другой группе: родителя над ней нет — строка родителя в карточке
+    const kid = task(2, { rank: rank(2), parentId: p.id, statusId: ids.done });
+    await db.table('tasks').bulkPut([p, kid]);
+    w = mount(View, {
+      props: { projectId: ids.project, options: opts({ showSubtasks: true }), cards: true },
+      attachTo: document.body,
+      global: { plugins: [createI18n({ legacy: false, locale: 'ru', messages: { ru, en } })] },
+    });
+    await until(() => w.find('[role=row][data-task]').exists());
+    expect(w.find('[data-testid=col-sort]').exists()).toBe(false);
+    expect(row('PLN-1').get('[data-testid=card-key]').text()).toBe('PLN-1');
+    expect(row('PLN-2').get('[data-testid=card-parent]').text()).toContain('PLN-1');
+    expect(w.find('[data-testid=row-grip]').exists()).toBe(false);
+    w.unmount();
+  });
+});

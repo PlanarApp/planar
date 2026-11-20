@@ -42,7 +42,7 @@ const props = defineProps<{
   /** subtask nesting level (0 — top) */
   depth?: number;
   /** the parent is not shown above the row (another group, subtasks hidden) — a label in the row */
-  parentTitle?: string;
+  parent?: { key: string; title: string };
   /** drag handle ("Manual" sort) */
   draggable?: boolean;
   /** number of subtasks in the view; > 0 — the collapse chevron */
@@ -59,6 +59,8 @@ const props = defineProps<{
   showKey?: boolean;
   /** in today's «My day» plan — a sun before the name */
   inDay?: boolean;
+  /** the Cards view: a card on desktop too */
+  cards?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -178,25 +180,28 @@ function save() {
 </script>
 
 <template>
-  <!-- мобильная: карточка (общая с Доской) -->
+  <!-- мобильная и вид «Карточки»: карточка (общая с Доской) -->
   <div
-    v-if="isMobile"
+    v-if="isMobile || cards"
+    ref="rowEl"
     role="row"
     :aria-rowindex="index"
     :aria-selected="selected"
     :data-task="task.key"
     :data-task-id="task.id"
     :class="[
-      'flex h-full items-center gap-1 border-b border-border pl-3 pr-1 text-sm',
-      // wrapped: the card grows past its height — keep the breathing room it had
-      wrap ? 'min-h-16 py-2' : '',
-      selected ? 'bg-accent-subtle' : '',
+      'group flex h-full items-center gap-1 border-b border-border py-2 pl-3 pr-1 text-sm',
+      selected ? 'bg-accent-subtle' : !isMobile && 'hover:bg-bg-subtle',
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
     @click="emit('click', $event)"
+    @pointerenter="enter"
+    @pointerleave="leave"
+    @focusin="hot = true"
   >
-    <!-- PLNRAPP-281: выбор задачи на мобильной — чекбокс всегда виден, зона касания 44px -->
+    <!-- PLNRAPP-281: выбор задачи на мобильной — чекбокс всегда виден, зона касания 44px; на десктопе — в режиме выбора -->
     <label
+      v-if="isMobile || selecting"
       role="gridcell"
       class="-ml-3 flex size-11 shrink-0 items-center justify-center"
       data-testid="row-select"
@@ -216,21 +221,28 @@ function save() {
         :space-id="spaceId"
         :cols="cardCols"
         :blocked="blocked"
-        hot
+        :hot="isMobile || hot || focused"
         :one-line="!wrap"
         :wrap="wrap"
         :members="members"
         :labels="labels"
         :depth="depth"
-        :parent-title="parentTitle"
+        :parent="parent"
         :project-name="projectName"
         project-text
-        :show-key="showKey"
       />
     </div>
     <button
       type="button"
-      :class="[menuBtn, 'size-11']"
+      :class="[
+        menuBtn,
+        isMobile
+          ? 'size-11'
+          : [
+              'size-7 self-start focus-visible:opacity-100 group-hover:opacity-100',
+              !focused && 'opacity-0',
+            ],
+      ]"
       :aria-label="t('list.actions')"
       data-testid="row-menu"
       @click.stop="openMenu"
@@ -342,10 +354,10 @@ function save() {
           {{ task.key }}
         </button>
         <span
-          v-if="parentTitle"
+          v-if="parent"
           class="max-w-48 shrink-0 truncate text-xs text-fg-subtle"
           data-testid="row-parent"
-          >{{ parentTitle }} ›</span
+          >{{ parent.title }} ›</span
         >
         <span :class="wrap ? 'min-w-0 break-words' : 'truncate'" data-testid="row-title">{{
           task.title

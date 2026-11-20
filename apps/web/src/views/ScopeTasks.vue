@@ -108,7 +108,7 @@ const tabs = computed(() =>
   buildViewTabs(
     viewLoaders(),
     extViews.value.filter((e) => e.scope),
-  ).filter((v) => v.ext || ['list', 'board', 'table', 'calendar'].includes(v.key)),
+  ).filter((v) => v.ext || ['list', 'cards', 'board', 'table', 'calendar'].includes(v.key)),
 );
 const seg = computed(() => String((props.me ? route.query.v : route.params.tab) ?? ''));
 const active = computed(() => tabs.value.find((v) => v.key === seg.value) ?? tabs.value[0]);

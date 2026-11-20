@@ -49,6 +49,8 @@ export interface TaskPanelDef {
   card?: boolean;
   /** what the cards show instead of `component` (a compact badge) */
   cardComponent?: Lazy<{ taskId: string }>;
+  /** on a card — in the badges block next to the key (branches/MR/CI), not in the fields row */
+  badge?: boolean;
   /** the task's records of the module (Dexie, run in a live query); > 0 or a non-empty string ("1/3") is shown on the tab */
   count?: (taskId: string) => Promise<number | string>;
   component: Lazy<{ taskId: string }>;

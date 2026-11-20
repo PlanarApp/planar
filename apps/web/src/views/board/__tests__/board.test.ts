@@ -70,14 +70,28 @@ describe('board:card', () => {
     await db.table('tasks').put(task(1));
     const w = mountView();
     await until(() => w.find('article').exists());
-    expect(w.get('article').element.children).toHaveLength(1);
+    // строка ключа (всегда) и строка статуса с именем
+    expect(w.get('article').element.children).toHaveLength(2);
     w.unmount();
     await db.table('tasks').put(task(1, { dueDate: '2026-12-24' }));
     const w2 = mountView();
     await until(() => w2.text().includes('24 дек'));
     expect(
       w2.findAll('article').find((a) => a.text().includes('24 дек'))!.element.children,
-    ).toHaveLength(2);
+    ).toHaveLength(3);
+  });
+  it('board:card ключ виден всегда; у подзадачи — строка родителя с его ключом', async () => {
+    const p = task(1);
+    await db.table('tasks').bulkPut([p, task(2, { parentId: p.id })]);
+    const w = mount(View, {
+      props: { projectId: ids.project, options: { ...options('status'), showSubtasks: true } },
+      global: { plugins: [i18n] },
+    });
+    await until(() => w.findAll('article').length === 2);
+    const card = w.findAll('article').find((a) => a.find('[data-testid=card-parent]').exists())!;
+    expect(card.get('[data-testid=card-key]').text()).toBe('PLN-2');
+    expect(card.get('[data-testid=card-parent]').text()).toContain('PLN-1');
+    w.unmount();
   });
 });
 

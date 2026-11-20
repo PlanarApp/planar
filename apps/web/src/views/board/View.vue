@@ -102,7 +102,7 @@ const columns = computed(() =>
   ),
 );
 
-const titles = computed(() => new Map((tasks.value ?? []).map((x) => [x.id, x.title])));
+const parents = computed(() => new Map((tasks.value ?? []).map((x) => [x.id, x])));
 
 const storeKey = () => `planar.board.${props.projectId}.collapsed`;
 const collapsed = ref<Set<string>>(new Set());
@@ -430,10 +430,9 @@ function add(key: string, title: string) {
           :mobile="isMobile"
           :fields="options.fields"
           :blocked="blocked"
-          :titles="titles"
+          :parents="parents"
           :space-id="scope ? undefined : spaceId"
           :show-empty="options.showEmpty"
-          :show-key="options.showKey"
           :wrap="options.wrapTitles"
           :projects="projectNames"
           :sortable="options.groupBy === 'status' && !scope"
