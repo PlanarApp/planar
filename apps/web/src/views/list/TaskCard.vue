@@ -75,7 +75,7 @@ const copyKey = () =>
     <span
       class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5"
       data-testid="card-badges"
-      ><TaskProgress :task-id="task.id" :comments="task.assignedComments" /><span
+      ><TaskProgress :task-id="task.id" :comments="task" /><span
         v-for="x in badges"
         :key="x.key"
         data-no-drag

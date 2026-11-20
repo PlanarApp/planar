@@ -523,6 +523,7 @@ export default {
         text: 'Название или описание',
         createdBy: 'Автор',
         cycle: 'Спринт',
+        aiStatus: 'Статус ИИ',
       },
       ops: {
         in: 'любой из',

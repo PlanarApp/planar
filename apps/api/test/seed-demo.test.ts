@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { actionSchema, filterSchema, triggerSchema } from '@planar/module-automations/shared';
+import { AI_STATES, FIELD_OPERATORS, type FilterOperator } from '@planar/shared';
 import { formFields } from '@planar/module-forms/shared';
 import { aiActions, AI_RUN_EVENT_TYPES } from '@planar/module-ai/shared';
 import { projectTemplateSchema, taskTemplateSchema } from '@planar/module-templates/shared';
@@ -110,7 +111,16 @@ describe('seed-demo', () => {
       filterSchema.parse(r.conditions);
       for (const a of r.actions as unknown[]) actionSchema.parse(a);
     }
-    for (const v of await q<J>(`select filter from saved_views`)) filterSchema.parse(v.filter);
+    // a view filter is the automations' language plus `aiStatus` (PLNRAPP-663: client-side, not in automations)
+    type F = { op: string; rules: { field: string; operator: FilterOperator; value?: unknown }[] };
+    for (const v of await q<{ filter: F }>(`select filter from saved_views`)) {
+      const ai = v.filter.rules.filter((r) => r.field === 'aiStatus');
+      filterSchema.parse({ ...v.filter, rules: v.filter.rules.filter((r) => !ai.includes(r)) });
+      for (const r of ai) {
+        expect(FIELD_OPERATORS.aiStatus).toContain(r.operator);
+        for (const x of r.value as string[]) expect(AI_STATES).toContain(x);
+      }
+    }
     for (const t of await q<J>(`select kind, data from templates_templates`))
       (t.kind === 'task' ? taskTemplateSchema : projectTemplateSchema).parse(t.data);
     for (const f of await q<J>(`select fields from forms_forms`)) formFields.parse(f.fields);

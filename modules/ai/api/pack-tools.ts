@@ -1,5 +1,6 @@
+import { sql } from 'drizzle-orm';
 import { z } from 'zod';
-import type { CoreServices } from '@planar/server-kit';
+import { HttpError, type CoreServices } from '@planar/server-kit';
 import { eventsSchema } from '../shared/index.js';
 import { applyPack, diffPack } from './harness-apply.js';
 import {
@@ -13,7 +14,7 @@ import {
   upload,
 } from './packs.js';
 
-/** Tools of packs and event bindings for the MCP registry (apps/api/src/mcp/tools.ts); same logic as the REST controllers. */
+/** Tools of packs, event bindings and task runs for the MCP registry (apps/api/src/mcp/tools.ts); same logic as the REST controllers. */
 export interface PackTool {
   name: string;
   description: string;
@@ -118,5 +119,37 @@ export function aiPackTools(core: CoreServices): PackTool[] {
       true,
       async (a) => setEvents(core.db, a.projectId, a.packKey, a.events),
     ),
+    {
+      name: 'list_task_ai_runs',
+      description:
+        'Прогоны ИИ задачи (новые сверху, до 50): состояние, действие, попытка, время, причина ошибки. Видят админ проекта, автор и исполнители задачи',
+      shape: { task: z.string().min(1).describe('uuid или ключ задачи, например ABC-123') },
+      write: false,
+      run: async (a: { task: string }, uid) => taskRuns(core, uid, a.task),
+    },
   ];
+}
+
+/** PLNRAPP-658: the runs of a task — the access as GET api/ai/tasks/:taskId/runs (controller.ts seeTask). */
+async function taskRuns(core: CoreServices, uid: string, task: string) {
+  const byId = z.uuid().safeParse(task).success;
+  const t = (
+    await core.db.execute(
+      sql`select t.id from tasks t join projects p on p.id = t.project_id
+          where ${byId ? sql`t.id = ${task}::uuid` : sql`p.key || '-' || t.number = ${task.toUpperCase()}`}
+            and 'ai' = any(p.modules) and project_role(${uid}::uuid, p.id) is not null
+            and (project_role(${uid}::uuid, p.id) = 'admin' or t.created_by = ${uid}::uuid
+              or exists (select 1 from task_assignees ta where ta.task_id = t.id and ta.user_id = ${uid}::uuid))`,
+    )
+  ).rows[0];
+  if (!t) throw new HttpError(404, 'not_found', 'Не найдено');
+  const r = await core.db.execute(
+    sql`select r.id, r.kind, r.state, r.attempt, r.restart_of as "restartOf",
+          (select a.name from ai_actions a where a.id = r.action_id) as action, r.cost,
+          r.created_at as "createdAt", r.started_at as "startedAt", r.finished_at as "finishedAt",
+          -- the reason of a failure is the last line of the log
+          case when r.state = 'failed' then left(regexp_replace(rtrim(r.log, E'\n'), '^.*\n', ''), 500) end as error
+        from ai_runs r where r.task_id = ${t.id as string}::uuid order by r.created_at desc, r.id desc limit 50`,
+  );
+  return { runs: r.rows };
 }

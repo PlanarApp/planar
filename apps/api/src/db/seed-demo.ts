@@ -1858,6 +1858,19 @@ async function insertAll(tx: Tx, now: Date) {
     ],
     // the Cards view: the list as task cards (key, badges, AI icon under the status)
     [1, 'My cards', 'inbox', 'cards', { op: 'and', rules: [] }, { groupBy: 'status' }],
+    // PLNRAPP-663: the «AI status» field of the filter — several values; works in a project with the ai module
+    [
+      0,
+      'AI needs attention',
+      'sparkles',
+      'list',
+      {
+        op: 'and',
+        rules: [
+          { field: 'aiStatus', operator: 'in', value: ['waiting_human', 'running', 'failed'] },
+        ],
+      },
+    ],
   ];
   await ins(
     s.savedViews,
@@ -2263,6 +2276,26 @@ async function insertAll(tx: Tx, now: Date) {
     ...o,
   });
   const ask = (text: string) => textToDoc(`@ai ${text}`, [{ id: ai, login: 'ai' }]);
+  // PLNRAPP-657: the watchdog of the AI engine — a task on the AI in «In progress» with no run, the lead is mentioned
+  const stuck = tid('RDM', 6); // «Import from CSV: edge cases»
+  await ins(s.taskAssignees, [
+    {
+      id: uid('assignee:ai:RDM:6'),
+      spaceId: rdmSpace,
+      taskId: stuck,
+      userId: ai,
+      createdAt: at(-2),
+    },
+  ]);
+  await ins(s.comments, [
+    botSays('watch', stuck, '', {
+      body: textToDoc(
+        '@demo AI engine watchdog: the task has been in «In progress» for 3 h, but the AI is not working on it — no run and no rule that would start one. Move the task to a status where the AI goes on, or remove the AI from the assignees.',
+        [{ id: uid_.demo!, login: 'demo' }],
+      ),
+      mentions: [uid_.demo],
+    }),
+  ]);
   await ins(s.comments, [
     botSays('q0', waiting, 'Which forum sections should be covered: all of them or only «Ideas»?', {
       assigneeId: uid_.demo,

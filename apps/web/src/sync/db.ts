@@ -27,7 +27,8 @@ export interface HeldRow {
   accessedAt: string;
 }
 export interface MetaRow {
-  key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId' | 'schema';
+  /** protocol — the C-sync version of the last bootstrap (PLNRAPP-487) */
+  key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId' | 'schema' | 'protocol';
   value: string | number;
 }
 

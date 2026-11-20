@@ -14,12 +14,6 @@ ARG PNPM_VERSION=12.15.0
 # NODE_USE_ENV_PROXY: встроенный fetch node (в т.ч. corepack, если его вызвать) ходит через HTTP(S)_PROXY/NO_PROXY,
 # как curl, npm и pnpm; без него — EAI_AGAIN (наружу — только через squid).
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw \
-    HOME=/work/.home \
-    XDG_CONFIG_HOME=/work/.home/.config \
-    XDG_CACHE_HOME=/work/.home/.cache \
-    npm_config_cache=/work/.home/.npm \
-    TMPDIR=/work/.tmp \
-    CLAUDE_CODE_TMPDIR=/work/.tmp \
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
     DISABLE_AUTOUPDATER=1 \
     NODE_USE_ENV_PROXY=1
@@ -35,6 +29,15 @@ RUN apt-get update \
  && playwright install --with-deps chromium \
  && chmod -R a+rX /opt/pw \
  && rm -rf /var/lib/apt/lists/* /tmp/* /root/.npm
+
+# HOME, кэши и TMPDIR в /work — только для прогона, ENV после установки пакетов: при сборке /work/.tmp нет
+# (его создаёт entrypoint), и mktemp в postinst apt (ca-certificates) падает — образ не собирается.
+ENV HOME=/work/.home \
+    XDG_CONFIG_HOME=/work/.home/.config \
+    XDG_CACHE_HOME=/work/.home/.cache \
+    npm_config_cache=/work/.home/.npm \
+    TMPDIR=/work/.tmp \
+    CLAUDE_CODE_TMPDIR=/work/.tmp
 
 COPY entrypoint.sh /usr/local/bin/planar-agent-entrypoint
 COPY log-forward.mjs /usr/local/lib/planar-agent/log-forward.mjs

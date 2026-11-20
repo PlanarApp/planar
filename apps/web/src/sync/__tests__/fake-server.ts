@@ -1,6 +1,8 @@
 // Fake C-sync server: changes log, last_mutation_id per clientId, the same MutatorDefs; responses are checked against shared schemas.
 import {
   MutatorError,
+  SYNC_PROTOCOL,
+  SYNC_PROTOCOL_HEADER,
   entitySchemas,
   syncBootstrapSchema,
   syncPullSchema,
@@ -52,6 +54,8 @@ export class FakeServer {
   pushes = 0;
   pulls = 0;
   bootstraps = 0;
+  /** X-Sync-Protocol of every bootstrap (no header — 2) */
+  bootstrapProtocols: number[] = [];
   constructor(
     public mutators: MutatorDef[],
     public entities: string[] = Object.keys(entitySchemas),
@@ -169,6 +173,10 @@ export class FakeServer {
     const clientId = url.searchParams.get('clientId') ?? '';
     if (url.pathname === '/sync/bootstrap') {
       this.bootstraps++;
+      // like the server: `held` only to a client that sent X-Sync-Protocol ≥ 3
+      const proto = Number(new Headers(init?.headers).get(SYNC_PROTOCOL_HEADER));
+      this.bootstrapProtocols.push(proto || 2);
+      const v3 = this.v3 && proto >= SYNC_PROTOCOL;
       const data: Record<string, Record<string, unknown>[]> = {};
       for (const e of this.entities) data[e] = [...(this.rows.get(e)?.values() ?? [])];
       return this.json(
@@ -176,7 +184,7 @@ export class FakeServer {
           cursor: this.seq,
           lastMutationId: this.lastMut.get(clientId) ?? 0,
           data,
-          ...(this.v3 ? { held: this.held } : {}),
+          ...(v3 ? { held: this.held } : {}),
         }),
       );
     }

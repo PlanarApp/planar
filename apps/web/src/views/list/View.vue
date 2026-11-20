@@ -109,6 +109,7 @@ const passes = useTaskFilter(
   useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
+  () => (props.scope ? undefined : props.projectId),
 );
 const aiPass = useAiFilter(
   () => (props.scope ? undefined : props.projectId),

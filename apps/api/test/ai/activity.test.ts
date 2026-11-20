@@ -256,6 +256,8 @@ describe('activity задачи: очередь ai.run', () => {
       const other = taskArgs(w, {});
       await w.admin.ok('task.create', other);
       await boss.send('ai.run', { kind: 'checklist', taskId: other.id }, later);
+      // the task's checklist without an open item of the AI: the run will skip it
+      const checklist = await boss.send('ai.run', { kind: 'checklist', taskId: task }, later);
 
       const r = await call(`activity/tasks/${task}`, 'member');
       expect(r.statusCode).toBe(200);
@@ -281,6 +283,35 @@ describe('activity задачи: очередь ai.run', () => {
       expect(after.filter((a) => a.state === 'queued' && !runs.has(a.id)).map((a) => a.id)).toEqual(
         [comment],
       );
+
+      // the checklist job: queued on the first open item of the AI (rank) — the one the run takes
+      const items = { done: uuidv7(), first: uuidv7(), second: uuidv7(), person: uuidv7() };
+      for (const [id, rank, done, assignee] of [
+        [items.done, 'a', true, bot.id],
+        [items.person, 'b', false, w.admin.userId],
+        [items.first, 'c', false, bot.id],
+        [items.second, 'd', false, bot.id],
+      ] as const)
+        await raw(
+          `insert into checklist_items (id, space_id, task_id, text, done, rank, assignee_id)
+           values ($1, $2, $3, 'пункт', $4, $5, $6)`,
+          [id, w.spaceId, task, done, rank, assignee],
+        );
+      const ofChecklist = async () =>
+        (
+          (await call(`activity/tasks/${task}`, 'member')).json().activity as Record<
+            string,
+            unknown
+          >[]
+        ).filter((a) => a.id === checklist);
+      expect(await ofChecklist()).toEqual([
+        expect.objectContaining({ kind: 'checklist', state: 'queued', itemId: items.first }),
+      ]);
+      // the item waits for an answer to its question: the run skips the checklist — not shown
+      const waiting = await run({ kind: 'checklist', itemId: items.first, state: 'waiting_human' });
+      expect(await ofChecklist()).toEqual([]);
+      await raw(`delete from ai_runs where id = $1`, [waiting]);
+      await raw(`delete from checklist_items where task_id = $1`, [task]);
     } finally {
       await boss.stop({ graceful: false });
     }

@@ -39,6 +39,8 @@ export function useFilterSummary(
     if (r.field === 'label') return labels.value?.find((x) => x.id === s)?.name ?? s;
     if (r.field === 'priority') return t(`tasks.priority.${s}`);
     if (r.field === 'statusCategory') return t(`views.filter.category.${s}`);
+    if (r.field === 'aiStatus')
+      return s === 'none' ? t('views.aiFilter.none') : t(`tasks.aiState.${s}`);
     return s;
   }
   function label(r: FilterRule): string {

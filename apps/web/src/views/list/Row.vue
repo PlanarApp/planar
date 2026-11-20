@@ -363,7 +363,7 @@ function save() {
           task.title
         }}</span>
         <!-- PLNRAPP-333: subtasks / checklist «closed/total» (all subtasks, not only those in the view); PLNRAPP-577: assigned comments -->
-        <TaskProgress :task-id="task.id" :comments="task.assignedComments" />
+        <TaskProgress :task-id="task.id" :comments="task" />
         <!-- поля модулей (время): видны всегда, если модуль включён -->
         <span v-for="x in ext" :key="x.key" class="ml-auto shrink-0" @click.stop>
           <component :is="x.view" :task-id="task.id" />
