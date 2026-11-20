@@ -41,6 +41,7 @@ export const {
   replicaState,
   sendTyping,
   onTyping,
+  prefetchTasks,
 } = client;
 export { useQuery } from './query';
 export const newId = (): string => uuidv7();

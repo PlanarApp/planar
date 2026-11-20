@@ -242,6 +242,7 @@ onBeforeUnmount(() => removeEventListener('pointermove', touchMove));
               isMobile ? 'text-2xs' : 'text-xs',
             ]"
             :data-task="x.id"
+            :data-task-id="x.id"
             @dragstart="start($event, x, d)"
             @pointerdown="touchDown($event, x, d)"
             @click.stop="placing ? onCell(d) : openTask(x.key)"
