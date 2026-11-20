@@ -1,4 +1,4 @@
-// PLNRAPP-708: migration 0077 on data — the «My day» plan date (day_plans.date) -> tasks.due_date where it is empty
+// PLNRAPP-708: migration 0078 on data — the «My day» plan date (day_plans.date) -> tasks.due_date where it is empty
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,8 +8,8 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { createDb, migrate } from '../src/db/index.js';
 
 const drizzleDir = new URL('../drizzle', import.meta.url).pathname;
-const sqlFile = join(drizzleDir, '0077_day_plan_due_date.sql');
-const name = `planar_t_mig77_${randomBytes(5).toString('hex')}`;
+const sqlFile = join(drizzleDir, '0078_day_plan_due_date.sql');
+const name = `planar_t_mig78_${randomBytes(5).toString('hex')}`;
 const adminUrl = inject('dbAdminUrl');
 const url = new URL(adminUrl);
 url.pathname = `/${name}`;
@@ -44,12 +44,12 @@ beforeAll(async () => {
   await admin.query(`create database ${name}`);
   db = createDb(url.toString());
 
-  tmp = mkdtempSync(join(tmpdir(), 'mig77-'));
+  tmp = mkdtempSync(join(tmpdir(), 'mig78-'));
   cpSync(drizzleDir, tmp, { recursive: true });
   const jp = join(tmp, 'meta/_journal.json');
   const j = JSON.parse(readFileSync(jp, 'utf8'));
   const all = j.entries;
-  j.entries = all.filter((e: { idx: number }) => e.idx < 77);
+  j.entries = all.filter((e: { idx: number }) => e.idx < 78);
   writeFileSync(jp, JSON.stringify(j));
   await migrate(db, tmp);
 
@@ -58,7 +58,7 @@ beforeAll(async () => {
       `insert into users (login, name, role, password_hash) values ($1, $1, 'owner', 'x') returning id`,
       [login],
     );
-  const [u1, u2] = [await user('mig77a'), await user('mig77b')];
+  const [u1, u2] = [await user('mig78a'), await user('mig78b')];
   const space = await id(
     `insert into spaces (name, rank, created_by) values ('S', 'a0', $1) returning id`,
     [u1],
@@ -97,7 +97,7 @@ beforeAll(async () => {
   await q(`delete from changes`); // so that the only row after the migration is the one it writes
   j.entries = all;
   writeFileSync(jp, JSON.stringify(j));
-  await migrate(db, tmp); // 0077
+  await migrate(db, tmp); // 0078
 }, 120_000);
 
 afterAll(async () => {
@@ -107,7 +107,7 @@ afterAll(async () => {
   if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
-describe('PLNRAPP-708 миграция 0077: дата плана «Моего дня» -> dueDate', () => {
+describe('PLNRAPP-708 миграция 0078: дата плана «Моего дня» -> dueDate', () => {
   it('задача с датой плана и пустым dueDate получает dueDate = дате плана; из нескольких — самую позднюю', async () => {
     const after = await dues();
     expect(after.A).toBe('2026-11-21');

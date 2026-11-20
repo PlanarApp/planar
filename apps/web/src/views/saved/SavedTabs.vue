@@ -55,6 +55,7 @@ const items = (v: SavedView) => [
         filter: migrateAiStatus(
           v.config,
           (v.filter as Partial<Filter> | null)?.rules ? (v.filter as unknown as Filter) : null,
+          v.layout,
         ),
         config: optionsFrom(v.config),
       });

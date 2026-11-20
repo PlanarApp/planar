@@ -64,6 +64,7 @@ const fromSaved = () => {
         (v?.filter as Partial<Filter> | undefined)?.rules
           ? (plain(v!.filter) as unknown as Filter)
           : null,
+        v?.layout,
       ) ?? emptyFilter(),
   };
 };
