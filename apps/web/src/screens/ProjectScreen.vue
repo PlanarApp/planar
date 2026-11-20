@@ -21,7 +21,7 @@ import SaveViewDialog from '../views/saved/SaveViewDialog.vue';
 import SavedTabs from '../views/saved/SavedTabs.vue';
 import { saveView, updateView } from '../views/saved/ops';
 import { optionsFrom, type ViewOptions } from '../views/options';
-import { migrateAiStatus } from '../views/aiFilter';
+import { legacyAiStatus, migrateAiStatus } from '../views/aiFilter';
 import { useSidebarActions } from '../layout/sidebarActions';
 import type { MenuItem } from '../ui/Menu.vue';
 import { useCanShare, useSavedView } from '../views/saved/queries';
@@ -55,16 +55,14 @@ const plain = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 const emptyFilter = (): Filter => ({ op: 'and', rules: [] });
 const fromSaved = () => {
   const v = saved.value;
+  const f = (v?.filter as Partial<Filter> | undefined)?.rules
+    ? (plain(v!.filter) as unknown as Filter)
+    : null;
+  // PLNRAPP-664: the old panel «AI status» of the view — a rule of its filter, or (it can not take it) as before
+  const legacy = legacyAiStatus(v?.config, f);
   return {
-    options: optionsFrom(v?.config),
-    // PLNRAPP-664: the old panel «AI status» of the view — a rule of its filter
-    filter:
-      migrateAiStatus(
-        v?.config,
-        (v?.filter as Partial<Filter> | undefined)?.rules
-          ? (plain(v!.filter) as unknown as Filter)
-          : null,
-      ) ?? emptyFilter(),
+    options: { ...optionsFrom(v?.config), ...(legacy && { aiStatus: legacy }) },
+    filter: migrateAiStatus(v?.config, f) ?? emptyFilter(),
   };
 };
 const savedOptions = ref<ViewOptions>(optionsFrom(undefined));

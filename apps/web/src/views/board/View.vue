@@ -56,11 +56,17 @@ const statuses = useStatuses(spaceId, dictProject);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId, dictProject);
 const blocked = useBlockedIds(() => props.projectId);
+import { useAiFilter } from '../aiFilter';
 const passes = useTaskFilter(
   useWidenedFilter(() => props.filter),
   statuses,
   () => props.options.me,
   () => (props.scope ? undefined : props.projectId),
+);
+// PLNRAPP-664: only an old panel value the view filter can not take (legacyAiStatus)
+const aiPass = useAiFilter(
+  () => (props.scope ? undefined : props.projectId),
+  () => props.options.aiStatus,
 );
 const statusKey = useStatusKey(() => props.scope, statuses);
 const labelKey = useLabelKey(() => props.scope, labels);
@@ -81,7 +87,9 @@ const shown = computed(() => withPatch(tasks.value ?? [], pending.value));
 
 const columns = computed(() =>
   boardColumns(
-    shown.value.filter((x) => (props.options.showSubtasks || !x.parentId) && passes.value(x)),
+    shown.value.filter(
+      (x) => (props.options.showSubtasks || !x.parentId) && passes.value(x) && aiPass.value(x),
+    ),
     props.options.groupBy,
     {
       statuses: statuses.value ?? [],

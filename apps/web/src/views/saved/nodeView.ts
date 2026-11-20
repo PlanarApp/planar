@@ -1,7 +1,7 @@
 import { computed, onScopeDispose, ref, toValue, watch, type MaybeRefOrGetter } from 'vue';
 import { newId } from '../../sync';
 import type { Filter } from '../filter';
-import { migrateAiStatus } from '../aiFilter';
+import { legacyAiStatus, migrateAiStatus } from '../aiFilter';
 import { optionsFrom, type ViewOptions } from '../options';
 import { deleteView, saveView, setNodeDefault, updateView } from './ops';
 import { useNodeViewRows } from './queries';
@@ -27,13 +27,20 @@ export function useNodeViewDraft(a: {
 }) {
   const rows = useNodeViewRows(a.node, a.layout);
   const row = computed(() => (rows.value ? (rows.value.personal ?? rows.value.shared) : undefined));
-  const base = () => ({
-    options: { ...optionsFrom(row.value?.config, a.notProject), ...toValue(a.fixed) },
-    // PLNRAPP-664: the old panel «AI status» of a project row — a rule of its filter (it applied in projects only)
-    filter: a.notProject
-      ? norm(row.value?.filter as Filter | undefined)
-      : norm(migrateAiStatus(row.value?.config, norm(row.value?.filter as Filter | undefined))),
-  });
+  const base = () => {
+    const f = norm(row.value?.filter as Filter | undefined);
+    // PLNRAPP-664: the old panel «AI status» of a project row — a rule of its filter, or (it can not take it) as
+    // before (it applied in projects only)
+    const legacy = a.notProject ? null : legacyAiStatus(row.value?.config, f);
+    return {
+      options: {
+        ...optionsFrom(row.value?.config, a.notProject),
+        ...(legacy && { aiStatus: legacy }),
+        ...toValue(a.fixed),
+      },
+      filter: a.notProject ? f : norm(migrateAiStatus(row.value?.config, f)),
+    };
+  };
   const options = ref<ViewOptions>(base().options);
   const filter = ref<Filter | null>(null);
   const state = () => ({ options: options.value, filter: norm(filter.value) });

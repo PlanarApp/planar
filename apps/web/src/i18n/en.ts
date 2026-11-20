@@ -558,7 +558,12 @@ export default {
       aiCost: 'AI: $',
       aiTime: 'AI: time',
     },
-    aiFilter: { none: 'No runs' },
+    aiFilter: {
+      none: 'No runs',
+      legacy:
+        'The view is also filtered by the old panel condition «AI status — {value}»: a filter in «any rule» mode can not include it.',
+      legacyClear: 'Remove',
+    },
     saved: {
       save: 'Save as view',
       dialogTitle: 'New view',
