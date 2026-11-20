@@ -1122,6 +1122,47 @@ describe('движок: приёмка, доработка, надзор, све
     expect(await errors()).toHaveLength(2);
     expect(await watch(stuck)).toHaveLength(1);
   });
+
+  it('сторож: задача на ИИ в бэклоге со своим правилом ИИ (план) без движения — застряла; бэклог без правила и сборщик harness-retro — нет (PLNRAPP-754)', async () => {
+    await w.admin.ok('project.update', { id: P, leadId: w.admin.userId });
+    await rule({ type: 'task.status_changed', to: [S.backlog] }, [
+      { type: 'ai_run', aiActionId: actionId },
+    ]);
+    // the plan ended long ago and left the task in «Бэклог» — the reconcile does not run it again
+    const stuck = await task({ statusId: S.backlog });
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, action_id, state, chain_id, chain_depth, finished_at)
+       values ($1, $2, $3, 'action', $4, 'done', $1, 0, now() - interval '3 hours')`,
+      [uuidv7(), stuck, P, actionId],
+    );
+    // a backlog status without an AI rule — a parking place, not stuck
+    const parked = await task({ statusId: S.snoozed });
+    // «harness-retro»: the bot's bookkeeping in the backlog
+    const retro = await task({ statusId: S.backlog });
+    await raw(`insert into ai_retro (project_id, task_id) values ($1, $2)`, [P, retro]);
+    for (const t of [stuck, parked, retro]) {
+      await raw(`update tasks set created_at = now() - interval '3 hours' where id = $1`, [t]);
+      await raw(`update activity set created_at = now() - interval '3 hours' where task_id = $1`, [
+        t,
+      ]);
+    }
+    jobs.length = 0;
+    await handler('ai', 'ai.engine.reconcile')({}, api);
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([]);
+    const watch = async (t: string) =>
+      (await commentsOf(t)).filter((c) => c.author_id === bot && text(c.body).includes('Сторож'));
+    expect(await watch(stuck)).toHaveLength(1);
+    const backlog = (await one(`select name from statuses where id = $1`, [S.backlog]))
+      .name as string;
+    expect(text((await watch(stuck))[0]!.body)).toContain(`стоит в «${backlog}»`);
+    expect(await watch(parked)).toEqual([]);
+    expect(await watch(retro)).toEqual([]);
+    const errors = await raw(
+      `select task_id from ai_engine_events where level = 'error' and task_id = any($1::uuid[])`,
+      [[stuck, parked, retro]],
+    );
+    expect(errors.map((e) => e.task_id)).toEqual([stuck]);
+  });
 });
 
 describe('координация подзадач (PLNRAPP-405)', () => {

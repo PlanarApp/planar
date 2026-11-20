@@ -2303,6 +2303,30 @@ async function insertAll(tx: Tx, now: Date) {
       mentions: [uid_.demo],
     }),
   ]);
+  // PLNRAPP-754: the watchdog in a backlog status with an AI rule — the plan left the task in «Backlog»
+  const stuckPlan = tid('RDM', 4); // «Onboarding checklist for new workspaces»
+  await tx
+    .update(s.tasks)
+    .set({ statusId: statusId('RDM', 0) })
+    .where(sql`id = ${stuckPlan}`);
+  await ins(s.taskAssignees, [
+    {
+      id: uid('assignee:ai:RDM:4'),
+      spaceId: rdmSpace,
+      taskId: stuckPlan,
+      userId: ai,
+      createdAt: at(-2),
+    },
+  ]);
+  await ins(s.comments, [
+    botSays('watch-backlog', stuckPlan, '', {
+      body: textToDoc(
+        '@demo AI engine watchdog: the task has been in «Backlog» for 3 h, but the AI is not working on it — no run and no rule that would start one. Move the task to a status where the AI goes on, or remove the AI from the assignees.',
+        [{ id: uid_.demo!, login: 'demo' }],
+      ),
+      mentions: [uid_.demo],
+    }),
+  ]);
   await ins(s.comments, [
     botSays('q0', waiting, 'Which forum sections should be covered: all of them or only «Ideas»?', {
       assigneeId: uid_.demo,

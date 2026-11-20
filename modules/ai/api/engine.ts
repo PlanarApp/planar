@@ -435,6 +435,9 @@ const WATCH_MARK = 'Сторож движка ИИ';
  * PLNRAPP-657: tasks left on the AI — the AI among the assignees, a todo / in_progress status, no active run and no
  * activity for AI_STALL_MIN (60). Not the statuses where a wait is expected: the question status of an action (the
  * answer) and a status an externally triggered rule waits in (e.g. «Test prod» — the merge and the deploy).
+ * PLNRAPP-754: a backlog status too, if a rule runs the AI on entering it (the plan in «Бэклог» moves the task on to
+ * «К работе»): a task left there — the plan failed its attempts or ended without a move — is stuck as well. Not the
+ * task «harness-retro» and its items: the bot's own bookkeeping lives in the backlog.
  */
 export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null) {
   return (
@@ -447,7 +450,10 @@ export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null
           join users b on b.login = ${AI_BOT_LOGIN} and b.bot
           join task_assignees ta on ta.task_id = t.id and ta.user_id = b.id
           join projects p on p.id = t.project_id and 'ai' = any(p.modules)
-          join statuses s on s.id = t.status_id and s.category in ('todo', 'in_progress')
+          join statuses s on s.id = t.status_id and (s.category in ('todo', 'in_progress')
+            or (s.category = 'backlog' and exists (select 1 from automations_rules r
+              where r.project_id = t.project_id and r.enabled and r.trigger->>'type' = 'task.status_changed'
+                and r.trigger->'to' ? s.id::text and r.actions @> '[{"type": "ai_run"}]'::jsonb)))
           left join lateral (select max(created_at) as at from activity where task_id = t.id) act on true
           left join lateral (select max(created_at) as at from activity
             where task_id = t.id and kind = 'updated' and changes->'statusId'->>1 = t.status_id::text) e on true
@@ -456,6 +462,7 @@ export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null
             and not exists (select 1 from ai_runs o where o.task_id = t.id
               and o.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks'))
             and not exists (select 1 from ai_actions a where a.project_id = t.project_id and a.question_status_id = s.id)
+            and not exists (select 1 from ai_retro rt where rt.task_id in (t.id, t.parent_id))
             and not exists (select 1 from automations_rules r where r.project_id = t.project_id and r.enabled
               and r.trigger->>'type' not in ('task.status_changed', 'task.created', 'task.assignee_changed')
               and jsonb_path_exists(r.conditions, '$.** ? (@.field == "status").value[*] ? (@ == $s)',
