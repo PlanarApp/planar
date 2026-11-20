@@ -74,6 +74,7 @@ export default {
     create: 'Create',
     more: 'Create another',
     noProjects: 'Create a project first',
+    description: 'Description',
   },
   sidebar: {
     create: 'Create',
