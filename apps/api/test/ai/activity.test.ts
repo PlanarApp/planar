@@ -307,6 +307,19 @@ describe('activity задачи: очередь ai.run', () => {
       expect(await ofChecklist()).toEqual([
         expect.objectContaining({ kind: 'checklist', state: 'queued', itemId: items.first }),
       ]);
+      // the checklist run enqueued (enqueueRun: its queued row, no item) — on the same first open item of the AI
+      const queuedRun = await run({ kind: 'checklist', itemId: null, state: 'queued' });
+      expect(
+        (
+          (await call(`activity/tasks/${task}`, 'member')).json().activity as Record<
+            string,
+            unknown
+          >[]
+        ).filter((a) => a.id === queuedRun),
+      ).toEqual([
+        expect.objectContaining({ kind: 'checklist', state: 'queued', itemId: items.first }),
+      ]);
+      await raw(`delete from ai_runs where id = $1`, [queuedRun]);
       // the item waits for an answer to its question: the run skips the checklist — not shown
       const waiting = await run({ kind: 'checklist', itemId: items.first, state: 'waiting_human' });
       expect(await ofChecklist()).toEqual([]);

@@ -113,9 +113,21 @@ const runCols = sql`r.id, r.task_id as "taskId", r.page_id as "pageId", r.projec
   ${iso('r.created_at')} as "createdAt", ${iso('r.updated_at')} as "updatedAt"`;
 const runView = (r: Row) => r as unknown as AiRunView;
 /** PLNRAPP-202: the run as the indicator sees it; agent — its container started (agent.ts sets the secret) */
-const activityCols = sql`r.id, r.kind, r.item_id as "itemId", r.state, r.agent_secret_hash is not null as agent,
+const activityColsOf = (
+  itemId: SQL,
+) => sql`r.id, r.kind, ${itemId} as "itemId", r.state, r.agent_secret_hash is not null as agent,
   (select u.id from users u where u.login = ${AI_BOT_LOGIN} and u.bot) as "actorId",
   ${iso('coalesce(r.started_at, r.created_at)')} as "startedAt"`;
+const activityCols = activityColsOf(sql`r.item_id`);
+/**
+ * PLNRAPP-310: a queued checklist run has no item (enqueueRun) — the run takes the first open item of the bot
+ * by rank (run.ts); the indicator shows the queue on that item.
+ */
+const checklistItemOf = (taskId: string) =>
+  sql`case when r.kind = 'checklist' and r.state = 'queued' and r.item_id is null then (
+    select c.id from checklist_items c join users u on u.id = c.assignee_id
+    where c.task_id = ${taskId}::uuid and u.login = ${AI_BOT_LOGIN} and u.bot and not c.done
+    order by c.rank collate "C" limit 1) else r.item_id end`;
 /**
  * PLNRAPP-310: the task's jobs of the queue ai.run not started yet (the debounce of a rule, all agents busy —
  * the job waits, agent.ts) as activity `queued`: the AI will take the task. A rule's job the run would skip
@@ -317,7 +329,7 @@ export class AiController {
     );
     if (!ok.rows[0]) throw nf();
     const r = await this.core.db.execute(
-      sql`select ${activityCols} from ai_runs r
+      sql`select ${activityColsOf(checklistItemOf(taskId))} from ai_runs r
           where r.task_id = ${taskId}::uuid and (r.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks')
             or (r.state = 'done' and not exists (
               select 1 from ai_runs n where n.task_id = r.task_id and n.state in ('done', 'failed')
