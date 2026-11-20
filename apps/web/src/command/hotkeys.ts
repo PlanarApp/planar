@@ -1,4 +1,5 @@
 import { getCurrentScope, onScopeDispose, reactive } from 'vue';
+import type { JSONContent } from '@tiptap/core';
 
 /** Shared overlay state: palette (with initial query) and cheat sheet. */
 export const ui = reactive({
@@ -7,11 +8,19 @@ export const ui = reactive({
   cheat: false,
   create: false,
   createProject: '',
+  /** начальное описание и «поле описания развёрнуто» диалога создания (PLNRAPP-683) */
+  createDescription: null as JSONContent | null,
+  createDescriptionOpen: false,
 });
 
-/** Quick task creation dialog; projectId — default project. */
-export const quickCreate = (projectId = ''): void => {
+/** Quick task creation dialog; projectId — default project; opts — initial description and its field expanded (creation from a selection). */
+export const quickCreate = (
+  projectId = '',
+  opts: { description?: JSONContent | null; descriptionOpen?: boolean } = {},
+): void => {
   ui.createProject = projectId;
+  ui.createDescription = opts.description ?? null;
+  ui.createDescriptionOpen = !!opts.descriptionOpen;
   ui.create = true;
 };
 

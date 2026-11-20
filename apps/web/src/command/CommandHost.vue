@@ -53,5 +53,9 @@ useHotkey('g s', () => void router.push('/settings'), { label: 'cmd.hk.settings'
 <template>
   <Palette v-if="palette" />
   <CheatSheet v-if="cheat" />
-  <QuickCreate v-if="creating" />
+  <QuickCreate
+    v-if="creating"
+    :description="ui.createDescription"
+    :description-open="ui.createDescriptionOpen"
+  />
 </template>
