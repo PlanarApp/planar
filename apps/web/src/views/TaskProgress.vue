@@ -1,14 +1,25 @@
 <script setup lang="ts">
-import type { AssignedComments } from '@planar/shared';
+import { assignedCommentsOf, type AssignedComments } from '@planar/shared';
+import { computed } from 'vue';
 import { ListChecks, ListTree, MessageSquare } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+import { useAuth } from '../auth/useAuth';
 import { useTaskProgress, type Ratio } from './progress';
 
 // PLNRAPP-333: progress of the subtasks and the checklist on a list row / board card — «closed/total»,
 // all closed — in green; nothing when the task has neither.
 // PLNRAPP-577: next to the subtasks — assigned comments «resolved/total» (icon as the «Comments for me» tab
-// of My work); none — hidden; an open one assigned to me — accent; the click does nothing
-const props = defineProps<{ taskId: string; comments?: AssignedComments }>();
+// of My work); none — hidden; an open one assigned to me — accent; the click does nothing.
+// «Mine» is counted here from the tasks row counters and the signed-in user (reactively): the cached project
+// projection may be built before /api/auth/me answers, and then the accent would be missing until the task changes.
+const props = defineProps<{
+  taskId: string;
+  comments?: Parameters<typeof assignedCommentsOf>[0];
+}>();
+const auth = useAuth();
+const assigned = computed(
+  () => props.comments && assignedCommentsOf(props.comments, auth.user.value?.id),
+);
 const { t } = useI18n();
 const progress = useTaskProgress(props.taskId);
 const chip = (r: Ratio) => [
@@ -30,13 +41,13 @@ const commentsChip = (c: AssignedComments) =>
     ><ListTree :size="12" />{{ progress.subtasks.done }}/{{ progress.subtasks.total }}</span
   >
   <span
-    v-if="comments?.total"
-    :class="commentsChip(comments)"
+    v-if="assigned?.total"
+    :class="commentsChip(assigned)"
     :title="t('task.assignedComments')"
-    :data-mine="comments.assignedToMe || undefined"
+    :data-mine="assigned.assignedToMe || undefined"
     data-testid="row-comments"
     @click.stop
-    ><MessageSquare :size="12" />{{ comments.resolved }}/{{ comments.total }}</span
+    ><MessageSquare :size="12" />{{ assigned.resolved }}/{{ assigned.total }}</span
   >
   <span
     v-if="progress?.checklist.total"

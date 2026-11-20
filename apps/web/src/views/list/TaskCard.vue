@@ -67,7 +67,7 @@ const ext = useCardExtensions(() => props.task.projectId);
     </p>
     <!-- PLNRAPP-333: subtasks / checklist «closed/total»; PLNRAPP-577: assigned comments -->
     <span class="mt-1 flex shrink-0 gap-0.5"
-      ><TaskProgress :task-id="task.id" :comments="task.assignedComments"
+      ><TaskProgress :task-id="task.id" :comments="task"
     /></span>
   </div>
   <!-- PLNRAPP-401: the AI status — its own block, apart from the task status -->
