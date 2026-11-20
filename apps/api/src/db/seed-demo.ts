@@ -2837,6 +2837,16 @@ async function insertAll(tx: Tx, now: Date) {
     .set({ taskCounter: rdm.tasks.length + retroRows.length })
     .where(sql`id = ${pid('RDM')}`);
   await ins(s.taskAssignees, [
+    // PLNRAPP-679: the collector and its items are the AI's; the proposal is Maya's
+    ...[retroTask, retroItem('friction'), retroItem('assignment'), retroItem('feedback')].map(
+      (taskId) => ({
+        id: uid(`assignee:retro:${taskId}`),
+        spaceId: rdmSpace,
+        taskId,
+        userId: ai,
+        createdAt: at(-1),
+      }),
+    ),
     {
       id: uid('assignee:retro:proposal'),
       spaceId: rdmSpace,
