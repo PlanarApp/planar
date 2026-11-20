@@ -364,6 +364,10 @@ async function eventAction(q: Pick<Q, 'execute'>, projectId: string, event: AiEv
   )) as AiAction | undefined;
 }
 
+/** PLNRAPP-638: the run of an action without its instruction page fails at once — the reason and the fix. */
+const noPrompt = (a: AiAction) =>
+  `У действия «${a.name}» нет инструкции: страница промпта не задана или удалена. Задайте действию страницу промпта (pageId) — хватит пары строк.`;
+
 /** The prompt of the action's instruction page; undefined — the page is gone. */
 async function promptOf(q: Pick<Q, 'execute'>, action: AiAction) {
   const page = action.pageId
@@ -720,8 +724,7 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     let prompt = ASSIGNMENT_PROMPT;
     if (action) {
       const p = await promptOf(api.db, action);
-      if (p === undefined)
-        return await apply(api, run, failed(`У действия «${action.name}» нет инструкции.`));
+      if (p === undefined) return await apply(api, run, failed(noPrompt(action)));
       prompt = p;
     }
     const ctx = await contextOf(api.db, task, bot);
@@ -1768,6 +1771,7 @@ export {
   finish,
   loadTask,
   md,
+  noPrompt,
   overBudget,
   promptOf,
   withMention,
