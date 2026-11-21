@@ -2515,15 +2515,15 @@ async function insertAll(tx: Tx, now: Date) {
       updatedAt: at(-3, 11),
     }),
     // PLNRAPP-202: a fresh failure of the task's action — the card shows «Ошибка ИИ» with a link to the run
-    // PLNRAPP-741: the run said it asked a person, but no question is open in the task — the reconcile restarted it
-    // up to the limit of attempts and stopped it; the reason is in the run's log (the AI tab)
+    // PLNRAPP-741: the run returned the verdict «question», but the question never got into the task — the reconcile
+    // restarted it up to the limit of attempts and stopped it; the reason is in the run's log (the AI tab)
     run('lost-question', 7, {
       state: 'failed',
       attempt: 3,
       inputTokens: 1300,
       outputTokens: 180,
       cost: 0.0062,
-      log: 'Asked about the metrics of the dashboard\nдвижок: сверка: прогон сообщил о вопросе человеку, но открытого вопроса в задаче нет (не опубликован, удалён или закрыт без ответа) — ответа ждать неоткуда — попытки исчерпаны (3 из 3), прогон остановлен',
+      log: 'Asked about the metrics of the dashboard\nне применено: статус не найден\nдвижок: прогон вернул вердикт «вопрос», но вопрос в задаче не опубликован (не применено: статус не найден)\nдвижок: сверка: прогон вернул вердикт «вопрос», но вопрос в задаче не опубликован (не применено: статус не найден) — попытки исчерпаны (3 из 3), прогон остановлен',
       createdAt: at(0, -5),
       updatedAt: at(0, -2),
     }),
@@ -3263,7 +3263,7 @@ async function insertAll(tx: Tx, now: Date) {
       2,
       'tasks',
       -1.998,
-      'сверка: RDM-8 — прогон сообщил о вопросе человеку, но открытого вопроса в задаче нет (не опубликован, удалён или закрыт без ответа) — ответа ждать неоткуда — попытки исчерпаны (3 из 3), прогон остановлен',
+      'сверка: RDM-8 — прогон вернул вердикт «вопрос», но вопрос в задаче не опубликован (не применено: статус не найден) — попытки исчерпаны (3 из 3), прогон остановлен',
       {
         level: 'error',
         taskId: tid('RDM', 7),

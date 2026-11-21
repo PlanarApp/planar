@@ -352,8 +352,10 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
   const found = (
     await api.db.execute(
       sql`select x.rule_id as "ruleId", x.action_id as "actionId", t.id as "taskId", t.status_id as "statusId",
-            t.project_id as "projectId", p.key || '-' || t.number as key,
+            t.project_id as "projectId", t.space_id as "spaceId", t.created_by as "createdBy",
+            t.parent_id as "parentId", p.key || '-' || t.number as key,
             l.id as "lastId", l.state, l.attempt, a.max_attempts as "maxAttempts",
+            l.report->>'lostQuestion' as lost, coalesce((l.report->>'stopped')::boolean, false) as stopped,
             l.finished_at < now() - make_interval(secs => 60 * l.attempt) as "paused",
             coalesce(l.state in ('done', 'cancelled') and e.at > l.finished_at, false) as reentered
           from (select r.id as rule_id, r.project_id, r.trigger, (e->>'aiActionId')::uuid as action_id
@@ -365,7 +367,7 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
           join tasks t on t.project_id = x.project_id and t.archived_at is null
             and x.trigger->'to' ? t.status_id::text
           join task_assignees ta on ta.task_id = t.id and ta.user_id = ${bot}
-          left join lateral (select id, state, attempt, finished_at from ai_runs
+          left join lateral (select id, state, attempt, finished_at, report from ai_runs
             where task_id = t.id and action_id = x.action_id order by created_at desc limit 1) l on true
           -- the last entry into the current status
           left join lateral (select max(created_at) as at from activity
@@ -384,15 +386,34 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
     taskId: string;
     statusId: string;
     projectId: string;
+    spaceId: string;
+    createdBy: string;
+    parentId: string | null;
     key: string;
     lastId: string | null;
+    state: string | null;
+    lost: string | null;
+    stopped: boolean;
     attempt: number | null;
     maxAttempts: number | null;
     paused: boolean | null;
     reentered: boolean;
   }[];
   for (const f of found) {
-    if (f.lastId && !f.reentered && (!f.paused || f.attempt! >= maxAttemptsOf(f))) continue;
+    // PLNRAPP-741: a question that never got into the task, the attempts spent — stopped with the reason, once
+    if (f.lastId && !f.reentered && f.attempt! >= maxAttemptsOf(f)) {
+      if (f.state === 'failed' && f.lost && !f.stopped)
+        await stopLost(
+          api,
+          t,
+          bot,
+          { ...f, id: f.lastId, attempt: f.attempt! },
+          f.lost,
+          maxAttemptsOf(f),
+        );
+      continue;
+    }
+    if (f.lastId && !f.reentered && !f.paused) continue;
     await t.check();
     if (!(await matched(api, f.ruleId, f.taskId))) continue;
     const runId = uuidv7();
@@ -636,8 +657,13 @@ async function lostQuestionsPass(api: JobApi, t: Tracker, bot: string, projectId
     await t.check();
     const max = maxAttemptsOf(r);
     const again = r.attempt < max && (r.kind !== 'action' || !!r.actionId);
-    const line = `${LOST_QUESTION} — ${again ? `перезапуск, попытка ${r.attempt + 1} из ${max}` : `попытки исчерпаны (${r.attempt} из ${max}), прогон остановлен`}`;
-    const report: RunReport = { failures: [`Прошлый прогон: ${LOST_QUESTION}.`] };
+    const line = again
+      ? `${LOST_QUESTION} — перезапуск, попытка ${r.attempt + 1} из ${max}`
+      : LOST_QUESTION;
+    const report: RunReport = {
+      failures: [`Прошлый прогон: ${LOST_QUESTION}.`],
+      lostQuestion: LOST_QUESTION,
+    };
     const taken = await one(
       api.db,
       sql`update ai_runs set state = 'failed', report = ${JSON.stringify(report)}::jsonb,
@@ -646,8 +672,8 @@ async function lostQuestionsPass(api: JobApi, t: Tracker, bot: string, projectId
     );
     // answered or stopped meanwhile
     if (!taken) continue;
-    t.count();
     if (again) {
+      t.count();
       const base = { taskId: r.taskId, restartOf: r.id };
       const d: TaskRunData =
         r.kind === 'action'
@@ -669,27 +695,61 @@ async function lostQuestionsPass(api: JobApi, t: Tracker, bot: string, projectId
       });
       continue;
     }
-    const human = await humanOf(api.db, { ...r, id: r.taskId });
-    const text = `Прогон ИИ остановлен: ${LOST_QUESTION}. Попытки исчерпаны (${r.attempt} из ${max}). Причина — во вкладке ИИ задачи. Нужно решение человека: перезапустите прогон, переведите задачу дальше или снимите ИИ с исполнителей.`;
-    await api.execute(bot, [
-      {
-        name: 'comment.create',
-        args: human
-          ? {
-              id: uuidv7(),
-              taskId: r.taskId,
-              body: withMention(asDoc(text), human.id, human.login),
-              assigneeId: human.id,
-            }
-          : { id: uuidv7(), taskId: r.taskId, body: asDoc(text) },
-      },
-    ]);
-    await t.step(`сверка: ${r.key} — ${line}`, {
-      projectId: r.projectId,
-      taskId: r.taskId,
-      level: 'error',
-    });
+    await stopLost(api, t, bot, r, LOST_QUESTION, max);
   }
+}
+
+/**
+ * PLNRAPP-741: a failed run of a lost question (report.lostQuestion), its attempts spent: no more restarts — the reason
+ * in its log (the AI tab), an error in the monitor's log and a comment to the task's person. Once: report.stopped.
+ */
+async function stopLost(
+  api: JobApi,
+  t: Tracker,
+  bot: string,
+  r: {
+    id: string;
+    taskId: string;
+    projectId: string;
+    spaceId: string;
+    createdBy: string;
+    parentId: string | null;
+    key: string;
+    attempt: number;
+  },
+  why: string,
+  max: number,
+) {
+  const line = `${why} — попытки исчерпаны (${r.attempt} из ${max}), прогон остановлен`;
+  const taken = await one(
+    api.db,
+    sql`update ai_runs set report = coalesce(report, '{"failures":[]}'::jsonb) || '{"stopped":true}'::jsonb,
+        log = log || ${`движок: сверка: ${line}\n`}, updated_at = now()
+        where id = ${r.id} and state = 'failed' and coalesce((report->>'stopped')::boolean, false) = false
+        returning id`,
+  );
+  if (!taken) return;
+  t.count();
+  const human = await humanOf(api.db, { ...r, id: r.taskId });
+  const text = `Прогон ИИ остановлен: ${why}. Попытки исчерпаны (${r.attempt} из ${max}). Причина — во вкладке ИИ задачи. Нужно решение человека: перезапустите прогон, переведите задачу дальше или снимите ИИ с исполнителей.`;
+  await api.execute(bot, [
+    {
+      name: 'comment.create',
+      args: human
+        ? {
+            id: uuidv7(),
+            taskId: r.taskId,
+            body: withMention(asDoc(text), human.id, human.login),
+            assigneeId: human.id,
+          }
+        : { id: uuidv7(), taskId: r.taskId, body: asDoc(text) },
+    },
+  ]);
+  await t.step(`сверка: ${r.key} — ${line}`, {
+    projectId: r.projectId,
+    taskId: r.taskId,
+    level: 'error',
+  });
 }
 
 /** PLNRAPP-656: runs queued over 15 min (no free agent container or the subtask siblings are busy) — into the log. */
