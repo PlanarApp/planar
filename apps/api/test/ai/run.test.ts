@@ -1034,10 +1034,17 @@ describe('движок: приёмка, доработка, надзор, све
     ]);
     const t = await task({ statusId: S.backlog });
     const other = uuidv7();
+    // its question is open in the task (PLNRAPP-741: a waiting run without one is not waiting)
+    const q = uuidv7();
     await raw(
-      `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth)
-       values ($1, $2, $3, 'action', 'waiting_human', $1, 0)`,
-      [other, t, P],
+      `insert into comments (id, space_id, task_id, author_id, body, assignee_id)
+       select $1, space_id, id, $2, '{"type":"doc","content":[]}'::jsonb, $3 from tasks where id = $4`,
+      [q, bot, w.member.userId, t],
+    );
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth, question_comment_ids)
+       values ($1, $2, $3, 'action', 'waiting_human', $1, 0, array[$4::uuid])`,
+      [other, t, P, q],
     );
     jobs.length = 0;
     const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
@@ -1231,6 +1238,86 @@ describe('движок: приёмка, доработка, надзор, све
       expect.stringContaining('Изменения не применены'),
     ]);
     expect((await taskRow(t)).status_id).toBe(S.todo);
+  });
+
+  it('PLNRAPP-741: прогон сообщил о вопросе, а вопроса в задаче нет — сверка перезапускает ограниченно и останавливает с причиной', async () => {
+    await w.admin.ok('ai.action.update', { id: actionId, maxAttempts: 2 });
+    const t = await task();
+    // a run whose question is open — waits as it should, the reconcile leaves it alone
+    const fine = await task();
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    const ask = async (id: string) => {
+      answers = [result({ verdict: 'question', comment: '', questions: ['Бюджет?'] })];
+      await handler('ai', 'ai.run')({ kind: 'action', taskId: id, actionId }, api);
+    };
+    await ask(fine);
+    await ask(t);
+    let [run] = await runsOf(t);
+    expect(run!.state).toBe('waiting_human');
+    // the question is gone from the task: no answer can come
+    const lose = () =>
+      raw(
+        `delete from comments where id in (select unnest(question_comment_ids) from ai_runs where task_id = $1)`,
+        [t],
+      );
+    await lose();
+    jobs.length = 0;
+    await reconcile();
+    let runs = await runsOf(t);
+    expect(runs).toHaveLength(2);
+    expect(runs[0]!.state).toBe('failed');
+    expect(runs[0]!.log).toContain('открытого вопроса в задаче нет');
+    expect(runs[0]!.log).toContain('перезапуск, попытка 2 из 2');
+    expect(runs[1]).toMatchObject({ state: 'queued', attempt: 2, restart_of: runs[0]!.id });
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          kind: 'action',
+          taskId: t,
+          actionId,
+          restartOf: runs[0]!.id,
+        }),
+      }),
+    ]);
+    expect((await runsOf(fine)).map((r) => r.state)).toEqual(['waiting_human']);
+
+    // the restart reads why the previous attempt failed
+    answers = [result({ verdict: 'question', comment: '', questions: ['Срок?'] })];
+    await drain();
+    expect(calls.at(-1)!.prompt).toContain('открытого вопроса в задаче нет');
+    [, run] = await runsOf(t);
+    expect(run!.state).toBe('waiting_human');
+
+    // again no question: the attempts are spent — stopped with the reason, no new run
+    await lose();
+    jobs.length = 0;
+    await reconcile();
+    runs = await runsOf(t);
+    expect(runs).toHaveLength(2);
+    expect(runs[1]!.state).toBe('failed');
+    expect(runs[1]!.log).toContain('попытки исчерпаны (2 из 2), прогон остановлен');
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([]);
+    const stop = (await commentsOf(t)).find((c) => text(c.body).includes('Прогон ИИ остановлен'))!;
+    expect(stop.assignee_id).toBe(w.member.userId);
+    const events = await raw(
+      `select text, level from ai_engine_events where task_id = $1 order by at, id`,
+      [t],
+    );
+    expect(events).toContainEqual({
+      level: 'error',
+      text: expect.stringMatching(
+        /^сверка: .+ открытого вопроса в задаче нет .+ прогон остановлен$/,
+      ),
+    });
+
+    // no endless loop: the next passes change nothing
+    await reconcile();
+    await reconcile();
+    expect(await runsOf(t)).toHaveLength(2);
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([]);
+    expect(
+      (await commentsOf(t)).filter((c) => text(c.body).includes('Прогон ИИ остановлен')),
+    ).toHaveLength(1);
   });
 
   it('PLNRAPP-764: вопрос ИИ по поручению сторожа — человеку задачи, ответ продолжает прогон', async () => {
