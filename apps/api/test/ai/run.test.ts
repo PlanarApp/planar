@@ -1320,6 +1320,87 @@ describe('движок: приёмка, доработка, надзор, све
     ).toHaveLength(1);
   });
 
+  it('PLNRAPP-741: прогон вернул «вопрос», а вопрос не опубликован (ошибка) — сверка повторяет в пределах попыток и останавливает с причиной', async () => {
+    await w.admin.ok('ai.action.update', { id: actionId, maxAttempts: 2 });
+    await rule({ type: 'task.status_changed', to: [S.backlog] }, [
+      { type: 'ai_run', aiActionId: actionId },
+    ]);
+    // the question status of another project: the move is rejected — the question never gets into the task
+    const other = await project();
+    await raw(
+      `update ai_actions set question_status_id = (select id from statuses where project_id = $1 limit 1)
+       where id = $2`,
+      [other, actionId],
+    );
+    const t = await task({ statusId: S.backlog });
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    const ask = () => {
+      answers = [
+        result({
+          verdict: 'question',
+          comment: 'Вопрос отправлен в задачу',
+          questions: ['Бюджет?'],
+        }),
+      ];
+    };
+    const unpause = (id: string) =>
+      raw(`update ai_runs set finished_at = now() - interval '10 min' where id = $1`, [id]);
+    jobs.length = 0;
+    await reconcile();
+    ask();
+    await drain();
+    let runs = await runsOf(t);
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({ state: 'failed', attempt: 1, question_comment_ids: [] });
+    expect(runs[0]!.log).toContain('вопрос в задаче не опубликован');
+    expect(runs[0]!.report).toMatchObject({
+      lostQuestion: expect.stringContaining('вопрос в задаче не опубликован'),
+    });
+
+    // the restart is attempt 2 and its prompt reads why the previous one failed
+    await unpause(runs[0]!.id as string);
+    await reconcile();
+    ask();
+    await drain();
+    expect(calls.at(-1)!.prompt).toContain('вопрос в задаче не опубликован');
+    runs = await runsOf(t);
+    expect(runs.map((r) => [r.state, r.attempt])).toEqual([
+      ['failed', 1],
+      ['failed', 2],
+    ]);
+    expect(runs[1]!.restart_of).toBe(runs[0]!.id);
+
+    // the attempts spent: no new run, the reason in the run's log (the AI tab), the person is told, the monitor errs
+    await unpause(runs[1]!.id as string);
+    jobs.length = 0;
+    await reconcile();
+    runs = await runsOf(t);
+    expect(runs).toHaveLength(2);
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([]);
+    expect(runs[1]!.log).toMatch(
+      /вопрос в задаче не опубликован .+ попытки исчерпаны \(2 из 2\), прогон остановлен/,
+    );
+    const stop = (await commentsOf(t)).filter((c) => text(c.body).includes('Прогон ИИ остановлен'));
+    expect(stop).toHaveLength(1);
+    expect(stop[0]!.assignee_id).toBe(w.member.userId);
+    const events = await raw(`select text, level from ai_engine_events where task_id = $1`, [t]);
+    expect(events).toContainEqual({
+      level: 'error',
+      text: expect.stringMatching(
+        /^сверка: .+ вопрос в задаче не опубликован .+ прогон остановлен$/,
+      ),
+    });
+
+    // no endless loop: the next passes change nothing
+    await reconcile();
+    await reconcile();
+    expect(await runsOf(t)).toHaveLength(2);
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([]);
+    expect(
+      (await commentsOf(t)).filter((c) => text(c.body).includes('Прогон ИИ остановлен')),
+    ).toHaveLength(1);
+  });
+
   it('PLNRAPP-764: вопрос ИИ по поручению сторожа — человеку задачи, ответ продолжает прогон', async () => {
     const t = await task();
     const id = uuidv7();

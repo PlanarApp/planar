@@ -189,6 +189,10 @@ export type RunReport = {
   /** the result's comment that was not accepted */
   comment?: string;
   uncertain?: string | null;
+  /** PLNRAPP-741: the run said it asked a person, but no question is in the task — why (the reconcile stops it) */
+  lostQuestion?: string;
+  /** PLNRAPP-741: the reconcile stopped the lost question's run, its attempts spent — once */
+  stopped?: boolean;
 };
 
 export type ChatPending = {

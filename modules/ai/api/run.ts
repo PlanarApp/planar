@@ -24,7 +24,7 @@ import {
 } from './chat-tools.js';
 import { aiPackTools } from './pack-tools.js';
 import { loadPack, parseInstructionPage } from './harness.js';
-import type { ChatPending } from './schema.js';
+import type { ChatPending, RunReport } from './schema.js';
 import { batchDoc, insertBatch } from './email.js';
 import { collectChat, collectRun } from './retro.js';
 import { handleDoc } from './doc-run.js';
@@ -1290,6 +1290,9 @@ async function finish(
   );
 }
 
+/** PLNRAPP-741: a run that ended with the verdict «question» while no question got into the task */
+export const UNPUBLISHED = 'прогон вернул вердикт «вопрос», но вопрос в задаче не опубликован';
+
 /**
  * The result as the bot's mutations, one transaction; the run row is locked first — a cancelled run applies
  * nothing. The description is read and rewritten under the same lock (read-modify-write of «План (ИИ)»).
@@ -1337,6 +1340,8 @@ async function apply(
   let docs: NonNullable<AiResult['docs']> = [];
   const descRef: { m?: Mut } = {};
   let batch: { commentId: string; assigneeId: string } | null = null;
+  // PLNRAPP-741: the verdict «question», but no question got into the task — why (the run fails with it)
+  let lost: string | null = null;
 
   if (r.verdict === 'question' && (r.questions?.length || r.comment)) {
     const qs = r.questions?.length ? r.questions : [r.comment];
@@ -1383,6 +1388,7 @@ async function apply(
       const list = r.questions?.length ? r.questions.map((x) => `- ${x}`).join('\n') : '';
       comment(prefix + [r.comment, list, nobody].filter(Boolean).join('\n\n'));
       run.log.push(`вопрос: ${nobody}`);
+      lost = 'некому задать вопрос';
     }
     // a question is asked: only the labels apply (the state label «Ждёт ответа» of a pack)
     if (state === 'waiting_human' && ctx) labelMuts(run, r.labels, ctx.labels, muts);
@@ -1391,6 +1397,7 @@ async function apply(
     const why = 'ИИ вернул вердикт «вопрос» без вопросов и комментария — изменения не применены.';
     run.log.push(`вопрос: ${why}`);
     comment(`${prefix}Прогон завершился ошибкой: ${why}`, reply);
+    lost = 'ИИ не написал ни вопросов, ни комментария';
   } else if (r.verdict === 'fail') {
     if (r.comment)
       comment(prefix + r.comment, {
@@ -1486,8 +1493,20 @@ async function apply(
           state = 'waiting_subtasks';
           run.log.push('движок: ждёт подзадачи ИИ');
         }
+        // PLNRAPP-741: the reason goes to the restart's prompt and lets the reconcile stop the run with it
+        const lostReport: RunReport | null =
+          lost && state === 'failed'
+            ? {
+                failures: [
+                  `Прошлый прогон: ${UNPUBLISHED} (${lost}). Задай вопросы полем questions или выполни работу.`,
+                ],
+                lostQuestion: `${UNPUBLISHED} (${lost})`,
+              }
+            : null;
+        if (lostReport) run.log.push(`движок: ${lostReport.lostQuestion}`);
         await q.execute(
           sql`update ai_runs set state = ${state}, return_status_id = ${returnStatusId},
+              ${lostReport ? sql`report = ${JSON.stringify(lostReport)}::jsonb,` : sql``}
               question_comment_ids = ${
                 questions.length
                   ? sql`array[${sql.join(
@@ -1522,6 +1541,7 @@ async function apply(
     const why = e instanceof Error ? e.message : String(e);
     run.log.push(`не применено: ${why}`);
     state = 'failed';
+    if (r.verdict === 'question') lost = `не применено: ${why}`;
     returnStatusId = null;
     questions.length = 0;
     escalateTo = null;
