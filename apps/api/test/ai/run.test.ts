@@ -1135,14 +1135,102 @@ describe('движок: приёмка, доработка, надзор, све
     ]);
     expect((await runsOf(stuck)).map((r) => r.state)).toEqual(['queued']);
 
-    // the AI's run ended and the task is still stuck — the log again, but no second comment nor run in the status
+    // the AI's run ended and the task is still stuck — a question to the task's person, no second run (PLNRAPP-740)
     await raw(`update ai_runs set state = 'done' where task_id = $1`, [stuck]);
     await age(stuck);
     jobs.length = 0;
     await reconcile();
     expect(await errors()).toHaveLength(2);
-    expect(await watch(stuck)).toHaveLength(1);
+    const [, asks] = await watch(stuck);
+    expect(asks!.assignee_id).toBe(w.member.userId);
+    expect(text(asks!.body)).toContain('Нужно решение человека');
+    expect((await taskRow(stuck)).status_id).toBe(S.clarify);
     expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([]);
+
+    // waits for the answer in the question status — no third comment
+    await age(stuck);
+    await reconcile();
+    expect(await watch(stuck)).toHaveLength(2);
+  });
+
+  it('сторож: задача, которая ждёт чужую работу (блокер, подзадача, конвейер MR), не застряла (PLNRAPP-740)', async () => {
+    const inProgress = await status('В работе', 'in_progress');
+    const blocker = await task({ assignees: [] });
+    const blocked = await task({ statusId: inProgress });
+    await raw(
+      `insert into task_links (id, space_id, task_id, target_id, kind, created_by)
+       select $1, space_id, $2, $3, 'blocks', $4 from tasks where id = $2`,
+      [uuidv7(), blocker, blocked, w.admin.userId],
+    );
+    const parent = await task({ statusId: inProgress });
+    await task({ parentId: parent, assignees: [] });
+    const merging = await task({ statusId: inProgress });
+    await raw(
+      `insert into gitlab_mrs (id, space_id, task_id, gitlab_project_id, iid, title, source_branch, state,
+         author_name, web_url, mr_updated_at, pipeline_status, created_at, updated_at)
+       select $1, space_id, id, 1, 1, 'MR', 'mr/x', 'opened', 'dev', 'https://gl/x', now(), 'running', now(), now()
+       from tasks where id = $2`,
+      [uuidv7(), merging],
+    );
+    const all = [blocker, blocked, parent, merging];
+    await raw(
+      `update tasks set created_at = now() - interval '3 hours' where id = any($1::uuid[])`,
+      [all],
+    );
+    await raw(
+      `update activity set created_at = now() - interval '3 hours' where task_id = any($1::uuid[])`,
+      [all],
+    );
+    await handler('ai', 'ai.engine.reconcile')({}, api);
+    const errors = await raw(
+      `select task_id from ai_engine_events where level = 'error' and task_id = any($1::uuid[])`,
+      [[blocked, parent, merging]],
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it('PLNRAPP-740: вопрос без вопросов и комментария — явная ошибка, изменения не применены', async () => {
+    const t = await task();
+    answers = [
+      result({
+        verdict: 'question',
+        comment: '',
+        questions: [],
+        descriptionAppend: 'Не применять',
+      }),
+    ];
+    await handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId }, api);
+    const [run] = await runsOf(t);
+    expect(run!.state).toBe('failed');
+    expect(run!.log).toContain('без вопросов и комментария');
+    expect(run!.question_comment_ids).toEqual([]);
+    expect((await commentsOf(t)).map((c) => text(c.body))).toEqual([
+      expect.stringContaining('Прогон завершился ошибкой'),
+    ]);
+    const row = await taskRow(t);
+    expect(text(row.description)).not.toContain('Не применять');
+    expect(row.status_id).toBe(S.todo);
+  });
+
+  it('PLNRAPP-740: вопрос, который не удалось опубликовать, — ошибка с причиной, вопросов нет', async () => {
+    const t = await task();
+    // the question status of another project: the move is rejected, the batch rolls back
+    const other = await project();
+    await raw(
+      `update ai_actions set question_status_id = (select id from statuses where project_id = $1 limit 1)
+       where id = $2`,
+      [other, actionId],
+    );
+    answers = [result({ verdict: 'question', comment: 'Нужны детали', questions: ['Бюджет?'] })];
+    await handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId }, api);
+    const [run] = await runsOf(t);
+    expect(run!.state).toBe('failed');
+    expect(run!.question_comment_ids).toEqual([]);
+    expect(run!.log).toContain('не применено');
+    expect((await commentsOf(t)).map((c) => text(c.body))).toEqual([
+      expect.stringContaining('Изменения не применены'),
+    ]);
+    expect((await taskRow(t)).status_id).toBe(S.todo);
   });
 
   it('PLNRAPP-764: вопрос ИИ по поручению сторожа — человеку задачи, ответ продолжает прогон', async () => {

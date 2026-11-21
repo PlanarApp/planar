@@ -432,7 +432,10 @@ type Node = Pick<Task, 'id' | 'createdBy' | 'parentId'>;
  * PLNRAPP-763: a task without people (a subtask of the decomposition) — the person of the nearest ancestor; nobody in
  * the tree — the project's default assignee, else its first admin.
  */
-async function humanOf(q: Pick<Q, 'execute'>, t: Node & Pick<Task, 'spaceId' | 'projectId'>) {
+export async function humanOf(
+  q: Pick<Q, 'execute'>,
+  t: Node & Pick<Task, 'spaceId' | 'projectId'>,
+) {
   const person = (where: ReturnType<typeof sql>, order: ReturnType<typeof sql> = sql``) =>
     personOf(q, t, where, order);
   let x: Node | undefined = t;
@@ -1383,6 +1386,11 @@ async function apply(
     }
     // a question is asked: only the labels apply (the state label «Ждёт ответа» of a pack)
     if (state === 'waiting_human' && ctx) labelMuts(run, r.labels, ctx.labels, muts);
+  } else if (r.verdict === 'question') {
+    // PLNRAPP-740: a question with no text — an explicit error, the result's changes are not applied
+    const why = 'ИИ вернул вердикт «вопрос» без вопросов и комментария — изменения не применены.';
+    run.log.push(`вопрос: ${why}`);
+    comment(`${prefix}Прогон завершился ошибкой: ${why}`, reply);
   } else if (r.verdict === 'fail') {
     if (r.comment)
       comment(prefix + r.comment, {

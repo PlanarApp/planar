@@ -19,6 +19,7 @@ import {
   CRITERIA_HEADING,
   enqueueRun,
   failed,
+  humanOf,
   keyOf,
   withMention,
   type AiResult,
@@ -428,7 +429,7 @@ const envInt = (name: string, def: number) => {
   const n = Number(process.env[name]);
   return Number.isInteger(n) && n > 0 ? n : def;
 };
-/** PLNRAPP-657: the first words of the watchdog's comment — one per entry into the status */
+/** PLNRAPP-657: the first words of the watchdog's comments — at most two per entry into the status (PLNRAPP-740) */
 const WATCH_MARK = 'Сторож движка ИИ';
 
 /**
@@ -438,14 +439,20 @@ const WATCH_MARK = 'Сторож движка ИИ';
  * PLNRAPP-754: a backlog status too, if a rule runs the AI on entering it (the plan in «Бэклог» moves the task on to
  * «К работе»): a task left there — the plan failed its attempts or ended without a move — is stuck as well. Not the
  * task «harness-retro» and its items: the bot's own bookkeeping lives in the backlog.
+ * PLNRAPP-740: not a task that waits for other work — an open blocker, an open subtask, its MR's pipeline at work.
  */
 export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null) {
   return (
     await q.execute(
-      sql`select t.id as "taskId", t.project_id as "projectId", p.key || '-' || t.number as key, s.name as status,
+      sql`select t.id as "taskId", t.project_id as "projectId", t.space_id as "spaceId", t.created_by as "createdBy",
+            t.parent_id as "parentId", p.key || '-' || t.number as key, s.name as status,
             floor(extract(epoch from now() - coalesce(act.at, t.created_at)) / 60)::int as min,
-            exists (select 1 from comments c where c.task_id = t.id and c.author_id = b.id
-              and c.created_at > coalesce(e.at, t.created_at) and c.body::text like ${`%${WATCH_MARK}%`}) as commented
+            (select count(*)::int from comments c where c.task_id = t.id and c.author_id = b.id
+              and c.created_at > coalesce(e.at, t.created_at) and c.body::text like ${`%${WATCH_MARK}%`}) as watched,
+            coalesce((select a.question_status_id from ai_runs r join ai_actions a on a.id = r.action_id
+                where r.task_id = t.id and a.question_status_id is not null order by r.created_at desc limit 1),
+              (select a.question_status_id from ai_actions a where a.project_id = t.project_id
+                and a.question_status_id is not null order by a.created_at limit 1)) as "questionStatusId"
           from tasks t
           join users b on b.login = ${AI_BOT_LOGIN} and b.bot
           join task_assignees ta on ta.task_id = t.id and ta.user_id = b.id
@@ -463,6 +470,11 @@ export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null
               and o.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks'))
             and not exists (select 1 from ai_actions a where a.project_id = t.project_id and a.question_status_id = s.id)
             and not exists (select 1 from ai_retro rt where rt.task_id in (t.id, t.parent_id))
+            and not ${openBlocker(sql`t.id`)}
+            and not exists (select 1 from tasks c join statuses cs on cs.id = c.status_id
+              where c.parent_id = t.id and c.archived_at is null and cs.category not in ('done', 'cancelled'))
+            and not exists (select 1 from gitlab_mrs m where m.task_id = t.id and m.state = 'opened'
+              and m.pipeline_status in ('created', 'waiting_for_resource', 'preparing', 'pending', 'running', 'scheduled'))
             and not exists (select 1 from automations_rules r where r.project_id = t.project_id and r.enabled
               and r.trigger->>'type' not in ('task.status_changed', 'task.created', 'task.assignee_changed')
               and jsonb_path_exists(r.conditions, '$.** ? (@.field == "status").value[*] ? (@ == $s)',
@@ -472,16 +484,23 @@ export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null
   ).rows as {
     taskId: string;
     projectId: string;
+    spaceId: string;
+    createdBy: string;
+    parentId: string | null;
     key: string;
     status: string;
     min: number;
-    commented: boolean;
+    watched: number;
+    questionStatusId: string | null;
   }[];
 }
 
 const ago = (min: number) => (min < 120 ? `${min} мин` : `${Math.floor(min / 60)} ч`);
 
-/** PLNRAPP-657: a stuck task — an error in the monitor's log and, once per entry into the status, a comment. */
+/**
+ * PLNRAPP-657: a stuck task — an error in the monitor's log; per entry into the status the stall goes to the AI
+ * (PLNRAPP-764), and if the task is stuck again after that — a question to a person (PLNRAPP-740).
+ */
 async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string | null) {
   for (const s of await stuckTasks(api.db, projectId)) {
     await t.check();
@@ -490,7 +509,11 @@ async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string
       taskId: s.taskId,
       level: 'error',
     });
-    if (s.commented) continue;
+    if (s.watched >= 2) continue;
+    if (s.watched === 1) {
+      await askPerson(api, t, bot, s);
+      continue;
+    }
     // the lead of the project, else its first admin
     const admin = await one(
       api.db,
@@ -517,6 +540,45 @@ async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string
     });
     t.count();
   }
+}
+
+/**
+ * PLNRAPP-740: the AI's own analysis of the stall did not move the task — the task's person gets the question
+ * (assigned to them, the task in the question status: the state label of a pack comes from its rule).
+ */
+async function askPerson(
+  api: JobApi,
+  t: Tracker,
+  bot: string,
+  s: Awaited<ReturnType<typeof stuckTasks>>[number],
+) {
+  const human = await humanOf(api.db, { ...s, id: s.taskId });
+  const text = `${WATCH_MARK}: задача снова ${ago(s.min)} стоит в «${s.status}» — разбор ИИ её не сдвинул. Нужно решение человека: ответьте здесь и верните задачу в «${s.status}» (или в статус, где работа пойдёт дальше), закройте её или снимите ИИ с исполнителей.`;
+  const id = uuidv7();
+  await api.execute(bot, [
+    {
+      name: 'comment.create',
+      args: human
+        ? {
+            id,
+            taskId: s.taskId,
+            body: withMention(asDoc(text), human.id, human.login),
+            assigneeId: human.id,
+          }
+        : { id, taskId: s.taskId, body: asDoc(text) },
+    },
+    ...(human
+      ? [{ name: 'task.assign', args: { id: uuidv7(), taskId: s.taskId, userId: human.id } }]
+      : []),
+    ...(human && s.questionStatusId
+      ? [{ name: 'task.update', args: { id: s.taskId, statusId: s.questionStatusId } }]
+      : []),
+  ]);
+  await t.step(
+    `сторож: ${s.key} — ${human ? `вопрос человеку (${human.login})` : 'некому задать вопрос'}`,
+    { projectId: s.projectId, taskId: s.taskId, level: human ? 'action' : 'error' },
+  );
+  t.count();
 }
 
 /** PLNRAPP-656: runs queued over 15 min (no free agent container or the subtask siblings are busy) — into the log. */
