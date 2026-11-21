@@ -1123,18 +1123,53 @@ describe('движок: приёмка, доработка, надзор, све
     const watch = async (t: string) =>
       (await commentsOf(t)).filter((c) => c.author_id === bot && text(c.body).includes('Сторож'));
 
+    jobs.length = 0;
     await reconcile();
     expect(await errors()).toEqual([expect.stringMatching(/^сторож: .+ стоит в «В работе» 3 ч/)]);
     const [c] = await watch(stuck);
     expect(text(c!.body)).toContain(`"id":"${w.admin.userId}"`);
     expect(await watch(asked)).toEqual([]);
     expect(await watch(busy)).toEqual([]);
+    // PLNRAPP-764: the stall goes to the AI — a run on the watchdog's comment as the assignment
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([
+      expect.objectContaining({
+        data: expect.objectContaining({ kind: 'mention', taskId: stuck, itemId: c!.id }),
+      }),
+    ]);
+    expect((await runsOf(stuck)).map((r) => r.state)).toEqual(['queued']);
 
-    // still stuck (the comment aged too) — the log again, but no second comment in the same status
+    // the AI's run ended and the task is still stuck — the log again, but no second comment nor run in the status
+    await raw(`update ai_runs set state = 'done' where task_id = $1`, [stuck]);
     await age(stuck);
+    jobs.length = 0;
     await reconcile();
     expect(await errors()).toHaveLength(2);
     expect(await watch(stuck)).toHaveLength(1);
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([]);
+  });
+
+  it('PLNRAPP-764: вопрос ИИ по поручению сторожа — человеку задачи, ответ продолжает прогон', async () => {
+    const t = await task();
+    const id = uuidv7();
+    await raw(
+      `insert into comments (id, space_id, task_id, author_id, body)
+       select $1, space_id, id, $2, '{"type":"doc","content":[]}'::jsonb from tasks where id = $3`,
+      [id, bot, t],
+    );
+    answers = [result({ verdict: 'question', questions: ['Куда перевести?'] })];
+    await handler('ai', 'ai.run')({ kind: 'mention', taskId: t, itemId: id }, api);
+    const [run] = await runsOf(t);
+    expect(run!.state).toBe('waiting_human');
+    const q = (await commentsOf(t)).find((c) => text(c.body).includes('Куда перевести?'))!;
+    expect(q.assignee_id).toBe(w.member.userId);
+    expect(run!.question_comment_ids).toEqual([q.id]);
+    await w.member.ok('comment.create', {
+      id: uuidv7(),
+      taskId: t,
+      parentId: q.id,
+      body: doc('В «К работе»'),
+    });
+    expect((await runsOf(t))[0]!.state).toBe('done');
   });
 
   it('сторож: задача на ИИ в бэклоге со своим правилом ИИ (план) без движения — застряла; бэклог без правила и сборщик harness-retro — нет (PLNRAPP-754)', async () => {
@@ -1162,7 +1197,10 @@ describe('движок: приёмка, доработка, надзор, све
     }
     jobs.length = 0;
     await handler('ai', 'ai.engine.reconcile')({}, api);
-    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([]);
+    // the plan is not run again; the stall goes to the AI only as the watchdog's assignment (PLNRAPP-764)
+    expect(jobs.filter((j) => j.queue === 'ai.run').map((j) => j.data)).toEqual([
+      expect.objectContaining({ kind: 'mention', taskId: stuck }),
+    ]);
     const watch = async (t: string) =>
       (await commentsOf(t)).filter((c) => c.author_id === bot && text(c.body).includes('Сторож'));
     expect(await watch(stuck)).toHaveLength(1);
