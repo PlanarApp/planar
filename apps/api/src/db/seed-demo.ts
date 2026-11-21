@@ -2297,11 +2297,18 @@ async function insertAll(tx: Tx, now: Date) {
   await ins(s.comments, [
     botSays('watch', stuck, '', {
       body: textToDoc(
-        '@demo AI engine watchdog: the task has been in «In progress» for 3 h, but the AI is not working on it — no run and no rule that would start one. Move the task to a status where the AI goes on, or remove the AI from the assignees.',
+        '@demo AI engine watchdog: the task has been in «In progress» for 3 h, but the AI is not working on it — no run and no rule that would start one. AI, find out from the task and its comments why the work stopped and carry it on yourself: move the task to a status where the work goes on — or ask a question if only a person can decide.',
         [{ id: uid_.demo!, login: 'demo' }],
       ),
       mentions: [uid_.demo],
     }),
+    // PLNRAPP-764: the watchdog hands the stall to the AI; what it cannot decide goes to a person as a question
+    botSays(
+      'watch-q',
+      stuck,
+      'The task waits for a decision on the CSV delimiter: comma or semicolon by default? After the answer I will move it to «To do».',
+      { assigneeId: uid_.demo, createdAt: at(-1, 12), updatedAt: at(-1, 12) },
+    ),
   ]);
   // PLNRAPP-754: the watchdog in a backlog status with an AI rule — the plan left the task in «Backlog»
   const stuckPlan = tid('RDM', 4); // «Onboarding checklist for new workspaces»
@@ -2321,7 +2328,7 @@ async function insertAll(tx: Tx, now: Date) {
   await ins(s.comments, [
     botSays('watch-backlog', stuckPlan, '', {
       body: textToDoc(
-        '@demo AI engine watchdog: the task has been in «Backlog» for 3 h, but the AI is not working on it — no run and no rule that would start one. Move the task to a status where the AI goes on, or remove the AI from the assignees.',
+        '@demo AI engine watchdog: the task has been in «Backlog» for 3 h, but the AI is not working on it — no run and no rule that would start one. AI, find out from the task and its comments why the work stopped and carry it on yourself: move the task to a status where the work goes on — or ask a question if only a person can decide.',
         [{ id: uid_.demo!, login: 'demo' }],
       ),
       mentions: [uid_.demo],
@@ -3256,6 +3263,21 @@ async function insertAll(tx: Tx, now: Date) {
         taskId: tid('RDM', 3),
       },
     ),
+    engineEvent(
+      'manual',
+      3,
+      'tasks',
+      -0.9985,
+      'сторож: RDM-6 стоит в «В работе» 3 ч без прогона ИИ',
+      {
+        level: 'error',
+        taskId: tid('RDM', 6),
+      },
+    ),
+    engineEvent('manual', 4, 'tasks', -0.998, 'сторож: RDM-6 — затык передан ИИ', {
+      level: 'action',
+      taskId: tid('RDM', 6),
+    }),
   ]);
 
   await ins(aiEmailBatches, [

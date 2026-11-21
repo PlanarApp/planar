@@ -501,13 +501,20 @@ async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string
             where m.project_id = ${s.projectId} and m.role = 'admin' order by m.created_at)
           limit 1`,
     );
-    const text = `${WATCH_MARK}: задача ${ago(s.min)} стоит в «${s.status}», а ИИ над ней не работает — нет ни прогона, ни правила, которое бы его запустило. Переведите задачу в статус, где ИИ продолжит работу, или снимите ИИ с исполнителей.`;
+    const text = `${WATCH_MARK}: задача ${ago(s.min)} стоит в «${s.status}», а ИИ над ней не работает — нет ни прогона, ни правила, которое бы его запустило. ИИ, разберись по задаче и её комментариям, почему работа встала, и продолжи её сам: переведи задачу в статус, где работа пойдёт дальше, — или задай вопрос, если решить может только человек.`;
     const body = admin
       ? withMention(asDoc(text), admin.id as string, admin.login as string)
       : asDoc(text);
-    await api.execute(bot, [
-      { name: 'comment.create', args: { id: uuidv7(), taskId: s.taskId, body } },
-    ]);
+    const id = uuidv7();
+    await api.execute(bot, [{ name: 'comment.create', args: { id, taskId: s.taskId, body } }]);
+    // the stall the algorithm could not resolve — to the AI as an assignment (a bot's comment starts no run by itself)
+    const d = { kind: 'mention' as const, taskId: s.taskId, itemId: id };
+    await enqueueRun(api.db, api.enqueue, d, { singletonKey: keyOf(d), upsert: true });
+    await t.step(`сторож: ${s.key} — затык передан ИИ`, {
+      projectId: s.projectId,
+      taskId: s.taskId,
+      level: 'action',
+    });
     t.count();
   }
 }

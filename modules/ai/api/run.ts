@@ -1337,7 +1337,8 @@ async function apply(
 
   if (r.verdict === 'question' && (r.questions?.length || r.comment)) {
     const qs = r.questions?.length ? r.questions : [r.comment];
-    if (run.kind === 'comment' || run.kind === 'mention') {
+    // an assignment by the bot itself (the watchdog) — no one in the thread: to the task's person below
+    if ((run.kind === 'comment' || run.kind === 'mention') && run.item!.authorId !== run.bot) {
       // in the thread: the assigner / the one who asked answers there
       const author = (await one(
         api.db,
