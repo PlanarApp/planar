@@ -427,26 +427,38 @@ const personOf = (
         where not u.bot and u.deactivated_at is null and ${where} ${order} limit 1`,
   ) as Promise<{ id: string; login: string } | undefined>;
 
-/** PLNRAPP-763: a task without people (a subtask of the decomposition) — the person of the nearest ancestor. */
-async function humanOf(
-  q: Pick<Q, 'execute'>,
-  t: Pick<Task, 'id' | 'spaceId' | 'createdBy' | 'parentId'>,
-  depth = 0,
-): Promise<{ id: string; login: string } | undefined> {
-  const person = (where: ReturnType<typeof sql>, order: ReturnType<typeof sql>) =>
+type Node = Pick<Task, 'id' | 'createdBy' | 'parentId'>;
+/**
+ * PLNRAPP-763: a task without people (a subtask of the decomposition) — the person of the nearest ancestor; nobody in
+ * the tree — the project's default assignee, else its first admin.
+ */
+async function humanOf(q: Pick<Q, 'execute'>, t: Node & Pick<Task, 'spaceId' | 'projectId'>) {
+  const person = (where: ReturnType<typeof sql>, order: ReturnType<typeof sql> = sql``) =>
     personOf(q, t, where, order);
-  const own =
+  let x: Node | undefined = t;
+  for (let n = 0; x && n <= 20; n++) {
+    const h =
+      (await person(
+        sql`u.id in (select user_id from task_assignees where task_id = ${x.id})`,
+        sql`order by (select max(created_at) from task_assignees where task_id = ${x.id} and user_id = u.id) desc`,
+      )) ?? (await person(sql`u.id = ${x.createdBy}`));
+    if (h) return h;
+    x = x.parentId
+      ? ((await one(
+          q,
+          sql`select id, created_by as "createdBy", parent_id as "parentId" from tasks where id = ${x.parentId}`,
+        )) as Node | undefined)
+      : undefined;
+  }
+  return (
     (await person(
-      sql`u.id in (select user_id from task_assignees where task_id = ${t.id})`,
-      sql`order by (select max(created_at) from task_assignees where task_id = ${t.id} and user_id = u.id) desc`,
-    )) ?? (await person(sql`u.id = ${t.createdBy}`, sql``));
-  if (own || !t.parentId || depth >= 20) return own;
-  const parent = (await one(
-    q,
-    sql`select id, space_id as "spaceId", created_by as "createdBy", parent_id as "parentId" from tasks
-        where id = ${t.parentId}`,
-  )) as Pick<Task, 'id' | 'spaceId' | 'createdBy' | 'parentId'> | undefined;
-  return parent && humanOf(q, parent, depth + 1);
+      sql`u.id = (select default_assignee_id from projects where id = ${t.projectId})`,
+    )) ??
+    (await person(
+      sql`project_role(u.id, ${t.projectId}::uuid) = 'admin'`,
+      sql`order by u.created_at`,
+    ))
+  );
 }
 
 /** PLNRAPP-405: the last action run of a subtask, for the coordinating parent */
