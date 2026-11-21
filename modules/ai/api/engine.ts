@@ -347,6 +347,8 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
   const bot = await botOf(api);
   if (!bot) return void (await t.step('сверка: нет бота ИИ — пропуск'));
   await t.check();
+  // first: a restart it queues is an active run the search below leaves alone
+  await lostQuestionsPass(api, t, bot, projectId);
   const found = (
     await api.db.execute(
       sql`select x.rule_id as "ruleId", x.action_id as "actionId", t.id as "taskId", t.status_id as "statusId",
@@ -579,6 +581,115 @@ async function askPerson(
     { projectId: s.projectId, taskId: s.taskId, level: human ? 'action' : 'error' },
   );
   t.count();
+}
+
+/** PLNRAPP-741: why the reconcile ends a run waiting for an answer — in its log (the AI tab) and the restart's prompt */
+export const LOST_QUESTION =
+  'прогон сообщил о вопросе человеку, но открытого вопроса в задаче нет (не опубликован, удалён или закрыт без ответа) — ответа ждать неоткуда';
+
+/**
+ * PLNRAPP-741: a task run waits for a person (waiting_human), but nothing in the task waits for them: its question
+ * comments are gone or closed without an answer, an assignment's comment is deleted, no letters wait for «ок».
+ * No answer can come, and the run holds the task: the reconcile and the watchdog skip a task with a waiting run.
+ * The run is failed with the reason and done again as attempt + 1 (its prompt reads the reason); the attempts spent —
+ * it stays failed, the reason in its log, and the task's person gets a comment. No endless loop: every pass either
+ * raises the attempt or leaves no waiting run.
+ */
+async function lostQuestionsPass(api: JobApi, t: Tracker, bot: string, projectId: string | null) {
+  const lost = (
+    await api.db.execute(
+      sql`select r.id, r.kind, r.task_id as "taskId", r.project_id as "projectId", r.action_id as "actionId",
+            r.rule_id as "ruleId", r.item_id as "itemId", r.attempt, a.max_attempts as "maxAttempts",
+            tk.space_id as "spaceId", tk.created_by as "createdBy", tk.parent_id as "parentId",
+            p.key || '-' || tk.number as key
+          from ai_runs r join tasks tk on tk.id = r.task_id and tk.archived_at is null
+            join projects p on p.id = tk.project_id
+            left join ai_actions a on a.id = r.action_id
+          where r.state = 'waiting_human' and r.kind in ('action', 'comment', 'mention', 'checklist')
+            ${projectId ? sql`and r.project_id = ${projectId}::uuid` : sql``}
+            and not exists (select 1 from ai_email_batches b where b.run_id = r.id and b.state = 'pending')
+            and case
+              when cardinality(r.question_comment_ids) > 0 then not exists (select 1 from comments c
+                where c.id = any(r.question_comment_ids) and c.task_id = r.task_id and c.resolved_at is null)
+              -- a question in the thread of an assignment: the answer comes in the thread of its comment
+              when r.kind in ('comment', 'mention') then not exists (select 1 from comments c
+                where c.id = r.item_id and c.task_id = r.task_id)
+              else true end
+          order by r.created_at limit 100`,
+    )
+  ).rows as {
+    id: string;
+    kind: 'action' | 'comment' | 'mention' | 'checklist';
+    taskId: string;
+    projectId: string;
+    actionId: string | null;
+    ruleId: string | null;
+    itemId: string | null;
+    attempt: number;
+    maxAttempts: number | null;
+    spaceId: string;
+    createdBy: string;
+    parentId: string | null;
+    key: string;
+  }[];
+  for (const r of lost) {
+    await t.check();
+    const max = maxAttemptsOf(r);
+    const again = r.attempt < max && (r.kind !== 'action' || !!r.actionId);
+    const line = `${LOST_QUESTION} — ${again ? `перезапуск, попытка ${r.attempt + 1} из ${max}` : `попытки исчерпаны (${r.attempt} из ${max}), прогон остановлен`}`;
+    const report: RunReport = { failures: [`Прошлый прогон: ${LOST_QUESTION}.`] };
+    const taken = await one(
+      api.db,
+      sql`update ai_runs set state = 'failed', report = ${JSON.stringify(report)}::jsonb,
+          log = log || ${`движок: сверка: ${line}\n`}, updated_at = now()
+          where id = ${r.id} and state = 'waiting_human' returning id`,
+    );
+    // answered or stopped meanwhile
+    if (!taken) continue;
+    t.count();
+    if (again) {
+      const base = { taskId: r.taskId, restartOf: r.id };
+      const d: TaskRunData =
+        r.kind === 'action'
+          ? { kind: 'action', ...base, actionId: r.actionId!, ruleId: r.ruleId }
+          : r.kind === 'checklist'
+            ? { kind: 'checklist', ...base }
+            : { kind: r.kind, ...base, itemId: r.itemId! };
+      await enqueueRun(
+        api.db,
+        api.enqueue,
+        d,
+        { singletonKey: keyOf(d), upsert: true },
+        r.attempt + 1,
+      );
+      await t.step(`сверка: ${r.key} — ${line}`, {
+        projectId: r.projectId,
+        taskId: r.taskId,
+        level: 'action',
+      });
+      continue;
+    }
+    const human = await humanOf(api.db, { ...r, id: r.taskId });
+    const text = `Прогон ИИ остановлен: ${LOST_QUESTION}. Попытки исчерпаны (${r.attempt} из ${max}). Причина — во вкладке ИИ задачи. Нужно решение человека: перезапустите прогон, переведите задачу дальше или снимите ИИ с исполнителей.`;
+    await api.execute(bot, [
+      {
+        name: 'comment.create',
+        args: human
+          ? {
+              id: uuidv7(),
+              taskId: r.taskId,
+              body: withMention(asDoc(text), human.id, human.login),
+              assigneeId: human.id,
+            }
+          : { id: uuidv7(), taskId: r.taskId, body: asDoc(text) },
+      },
+    ]);
+    await t.step(`сверка: ${r.key} — ${line}`, {
+      projectId: r.projectId,
+      taskId: r.taskId,
+      level: 'error',
+    });
+  }
 }
 
 /** PLNRAPP-656: runs queued over 15 min (no free agent container or the subtask siblings are busy) — into the log. */
