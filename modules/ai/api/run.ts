@@ -416,7 +416,7 @@ async function loadTask(q: Pick<Q, 'execute'>, id: string) {
 /** Who answers a question: the last person assigned (not a guest), else the author. */
 const personOf = (
   q: Pick<Q, 'execute'>,
-  t: Task,
+  t: Pick<Task, 'spaceId'>,
   where: ReturnType<typeof sql>,
   order: ReturnType<typeof sql> = sql``,
 ) =>
@@ -427,15 +427,26 @@ const personOf = (
         where not u.bot and u.deactivated_at is null and ${where} ${order} limit 1`,
   ) as Promise<{ id: string; login: string } | undefined>;
 
-async function humanOf(q: Pick<Q, 'execute'>, t: Task) {
+/** PLNRAPP-763: a task without people (a subtask of the decomposition) — the person of the nearest ancestor. */
+async function humanOf(
+  q: Pick<Q, 'execute'>,
+  t: Pick<Task, 'id' | 'spaceId' | 'createdBy' | 'parentId'>,
+  depth = 0,
+): Promise<{ id: string; login: string } | undefined> {
   const person = (where: ReturnType<typeof sql>, order: ReturnType<typeof sql>) =>
     personOf(q, t, where, order);
-  return (
+  const own =
     (await person(
       sql`u.id in (select user_id from task_assignees where task_id = ${t.id})`,
       sql`order by (select max(created_at) from task_assignees where task_id = ${t.id} and user_id = u.id) desc`,
-    )) ?? (await person(sql`u.id = ${t.createdBy}`, sql``))
-  );
+    )) ?? (await person(sql`u.id = ${t.createdBy}`, sql``));
+  if (own || !t.parentId || depth >= 20) return own;
+  const parent = (await one(
+    q,
+    sql`select id, space_id as "spaceId", created_by as "createdBy", parent_id as "parentId" from tasks
+        where id = ${t.parentId}`,
+  )) as Pick<Task, 'id' | 'spaceId' | 'createdBy' | 'parentId'> | undefined;
+  return parent && humanOf(q, parent, depth + 1);
 }
 
 /** PLNRAPP-405: the last action run of a subtask, for the coordinating parent */

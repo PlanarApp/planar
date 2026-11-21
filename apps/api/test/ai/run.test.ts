@@ -507,6 +507,20 @@ describe('прогон по правилу', () => {
       expect(text(cs[0]!.body)).toContain(s);
   });
 
+  it('PLNRAPP-763: вопрос подзадачи без людей — человеку родителя, прогон ждёт ответа', async () => {
+    // the parent: created by admin, no assignees; the subtask of the AI — no people of its own
+    const parent = await task({ assignees: [] });
+    const t = await task({ parentId: parent, assignees: [{ id: uuidv7(), userId: bot }] });
+    await raw(`update tasks set created_by = $1 where id = $2`, [bot, t]);
+    answers = [result({ verdict: 'question', questions: ['Бюджет?'] })];
+    await handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId }, api);
+    const [run] = await runsOf(t);
+    expect(run!.state).toBe('waiting_human');
+    expect(run!.log).not.toContain('Некому задать вопрос');
+    const q = (await commentsOf(t)).find((c) => text(c.body).includes('Бюджет?'));
+    expect(q!.assignee_id).toBe(w.admin.userId);
+  });
+
   it('docs[]: страница под корнем (корень создаётся), повтор переписывает её; связь с задачей', async () => {
     const t = await task();
     const page = (title: string, md: string) =>
