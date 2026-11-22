@@ -140,8 +140,53 @@ describe('list:groups', () => {
     expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(true);
     w.unmount();
     await show();
-    expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain('truncate');
+    // PLNRAPP-705: обрезается только в широкой области списка
+    expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain(
+      '@min-[720px]/list:truncate',
+    );
     expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(true);
+  });
+  it('PLNRAPP-705 узкая область списка: те же поля, название без обрезки, строка растёт', async () => {
+    const p = task(1, { title: 'Родитель' });
+    await db
+      .table('tasks')
+      .bulkPut([p, task(2, { title: 'Длинное название задачи в узком списке', parentId: p.id })]);
+    const o = { groupBy: 'none' as const, showSubtasks: true, fields: [...opts().fields] };
+    const shape = () => {
+      const x = row('PLN-2');
+      return {
+        cols: x.findAll('[data-col]').map((c) => c.attributes('data-col')),
+        ids: x.findAll('[data-testid]').map((c) => c.attributes('data-testid')),
+      };
+    };
+    await show(o);
+    const wide = shape();
+    // широкая область: высота строки фиксирована, виртуализатор её не измеряет
+    expect((row('PLN-2').element.parentElement as HTMLElement).style.height).toBe('32px');
+    w.unmount();
+    const cw = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth')!;
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 500 });
+    try {
+      await show(o);
+      // раскладка — container query по области списка
+      expect(w.get('[role=grid]').classes()).toContain('@container/list');
+      expect(shape()).toEqual(wide);
+      const title = row('PLN-2').get('[data-testid=row-title]');
+      expect(title.text()).toBe('Длинное название задачи в узком списке');
+      expect(title.classes()).not.toContain('truncate');
+      expect(title.classes()).toContain('break-words');
+      expect(title.classes()).toContain('@max-[720px]/list:flex-1');
+      // вторая строка: колонки переносятся под название
+      expect(row('PLN-2').get('[data-testid=row-cols]').classes()).toContain(
+        '@max-[720px]/list:order-4',
+      );
+      // строка в две строки выше rowH — виртуализатор её измеряет (minHeight вместо height)
+      const box = row('PLN-2').element.parentElement as HTMLElement;
+      expect(box.style.minHeight).toBe('32px');
+      expect(box.style.height).toBe('');
+    } finally {
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', cw);
+    }
   });
   it('list:groups подзадачи скрыты, пока showSubtasks=false', async () => {
     const p = task(1);
