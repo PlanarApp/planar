@@ -4,6 +4,8 @@ import { buildViewTabs, viewLoaders } from '..';
 describe('views:real-glob', () => {
   it('views:real-glob вкладки из настоящих ключей import.meta.glob', () => {
     const keys = buildViewTabs(viewLoaders(), []).map((t) => t.key);
-    expect(keys.slice(0, 3)).toEqual(['list', 'cards', 'board']);
+    expect(keys.slice(0, 2)).toEqual(['list', 'board']);
+    // PLNRAPP-707: the Cards view is removed
+    expect(keys).not.toContain('cards');
   });
 });

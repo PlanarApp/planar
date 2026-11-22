@@ -56,11 +56,11 @@ import { endTaskDrag, overProject, projectAt, startTaskDrag } from '../../tasks/
 import { dragSet, dropAnchor, groupRanks, moveGroupApi, moveGroupLocal } from '../groupMove';
 import { toast } from '../../ui/toast';
 
-// cards: the Cards view (views/cards) — the same list drawn as cards, without the column header
-const props = defineProps<ViewProps & { cards?: boolean }>();
+const props = defineProps<ViewProps>();
 const { t, locale } = useI18n();
 const { isMobile } = useBreakpoint();
-const asCards = computed(() => isMobile.value || !!props.cards);
+// mobile: the list is drawn as task cards, without the column header
+const asCards = computed(() => isMobile.value);
 const sel = useSelection();
 
 const project = useProject(() => props.projectId);
@@ -178,7 +178,7 @@ watch(
 // subtasks — as a tree under the parent; a parent not above the row — a label in the row
 const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
 const items = computed<Item[]>(() => {
-  // cards (mobile, the Cards view): without a column header row
+  // cards (mobile): without a column header row
   const head: Item[] =
     !asCards.value && (props.options.groupBy === 'none' || groups.value.length)
       ? [{ id: 'head', kind: 'head' }]
@@ -906,7 +906,6 @@ watch(
                 >
                 <span class="text-xs text-fg-subtle">{{ it.group.tasks.length }}</span>
                 <span
-                  v-if="!cards"
                   class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden list-narrow:hidden"
                 >
                   <span
@@ -960,7 +959,6 @@ watch(
                 :labels="labels ?? []"
                 :depth="it.depth"
                 :parent="it.parent"
-                :cards="cards"
                 :draggable="manual && !asCards"
                 :wrap="options.wrapTitles"
                 :show-key="options.showKey"

@@ -69,3 +69,20 @@ describe('router: the former «AI tasks» section', () => {
     expect(router.currentRoute.value.query).toEqual({ s: 'ai:workspace', tab: 'tasks' });
   });
 });
+
+describe('router: the former view «Cards» (PLNRAPP-707)', () => {
+  it('/p/:id/cards, /s/:id/cards, /w/cards и «Моя работа» ?v=cards -> Список', async () => {
+    mockFetch((m, p) => (p === '/api/auth/me' ? json(200, { user: mkUser() }) : undefined));
+    useAuth().user.value = mkUser();
+    await router.push('/p/p1/cards?x=1');
+    expect(router.currentRoute.value.path).toBe('/p/p1/list');
+    expect(router.currentRoute.value.query).toEqual({ x: '1' });
+    await router.push('/s/s1/cards');
+    expect(router.currentRoute.value.path).toBe('/s/s1/list');
+    await router.push('/w/cards');
+    expect(router.currentRoute.value.path).toBe('/w/list');
+    await router.push('/w/work?w=tasks&v=cards');
+    expect(router.currentRoute.value.path).toBe('/w/work');
+    expect(router.currentRoute.value.query).toEqual({ w: 'tasks', v: 'list' });
+  });
+});

@@ -25,7 +25,7 @@ export function useAiStates(
 }
 
 /** PLNRAPP-664: the layouts where the old panel «AI status» selector narrowed the tasks (useAiFilter). */
-export const AI_FILTER_LAYOUTS: ReadonlySet<string> = new Set(['list', 'cards', 'board']);
+export const AI_FILTER_LAYOUTS: ReadonlySet<string> = new Set(['list', 'board']);
 
 /**
  * PLNRAPP-664: the view filter with the old panel «AI status» selector (`config.aiStatus` of a saved view, a tab row)

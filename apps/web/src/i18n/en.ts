@@ -455,7 +455,6 @@ export default {
   views: {
     emptyBoard: 'Add a task in any column',
     list: 'List',
-    cards: 'Cards',
     board: 'Board',
     table: 'Table',
     calendar: 'Calendar',

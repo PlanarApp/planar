@@ -105,9 +105,9 @@ describe('PLNRAPP-664: старый фильтр панели «Статус И�
     const m = migrateAiStatus({ aiStatus: 'running' }, f, 'list');
     expect(migrateAiStatus({ aiStatus: 'running' }, m, 'list')).toBe(m);
   });
-  it('только list, cards и board: в table, timeline и calendar старый фильтр задачи не сужал — фильтр как есть', () => {
+  it('только list и board: в table, timeline и calendar старый фильтр задачи не сужал — фильтр как есть', () => {
     const f: Filter = { op: 'and', rules: [high] };
-    for (const layout of ['list', 'cards', 'board'])
+    for (const layout of ['list', 'board'])
       expect(migrateAiStatus({ aiStatus: 'failed' }, f, layout), layout).toEqual({
         op: 'and',
         rules: [high, failed],
