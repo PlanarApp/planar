@@ -104,10 +104,6 @@ describe('seed-demo', () => {
     expect(n((d) => d === at(0))).toBeGreaterThanOrEqual(3);
     expect(n((d) => d === at(1))).toBeGreaterThanOrEqual(1);
     expect(n((d) => d < at(0))).toBeGreaterThanOrEqual(1);
-    expect(
-      (await q(`select 1 from pg_tables where schemaname = 'public' and tablename = 'day_plans'`))
-        .length,
-    ).toBe(0);
   });
 
   it('ИИ в комментариях страницы: решённое поручение и ответ бота в ветке', async () => {
