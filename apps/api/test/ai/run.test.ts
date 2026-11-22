@@ -1705,6 +1705,26 @@ describe('координация подзадач (PLNRAPP-405)', () => {
     expect(judged).toHaveLength(1);
   });
 
+  it('PLNRAPP-793: подзадача ИИ себе в статусе вопроса — создаётся в первом «к работе»', async () => {
+    const clarify = (await one(`select name from statuses where id = $1`, [S.clarify])).name;
+    const parent = await task();
+    answers = [
+      result({
+        newTasks: [
+          sub({ title: 'A', status: clarify }),
+          sub({ title: 'B', status: clarify, ai: false }),
+        ],
+      }),
+    ];
+    await start(parent);
+    const [a, b] = await subsOf(parent);
+    expect(a!.status_id).toBe(S.todo);
+    expect(b!.status_id).toBe(S.clarify);
+    expect((await runsOf(parent))[0]!.log).toContain(
+      `newTasks: A: подзадача ИИ без вопроса — не в «${clarify}»`,
+    );
+  });
+
   it('PLNRAPP-408: суточный потолок задач от ИИ — лишние не создаются, запись в журнале', async () => {
     await limits(true, 3);
     const parent = await task();
