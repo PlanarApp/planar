@@ -68,9 +68,11 @@ const subTabs = computed(() =>
     count: subCounts.value[w] || undefined,
   })),
 );
+// «My day» — only the planner, without a view and Me Mode (PLNRAPP-709); the task sections — a view with Me Mode
 const taskSub = computed(() =>
   (['day', 'assigned', 'created', 'watched'] as const).find((w) => w === sub.value),
 );
+const meMode = computed(() => (taskSub.value === 'day' ? undefined : taskSub.value));
 
 const projectIds = computed(() =>
   groupLevels(props.scope, spaces.value ?? [], '').flatMap((l) => l.projectId ?? []),
@@ -152,7 +154,7 @@ const textOf = (body: unknown): string => {
       v-if="taskSub"
       :key="sub"
       class="min-h-0 flex-1"
-      :me="taskSub"
+      :me="meMode"
       :day="sub === 'day'"
       :space-id="scope.level === 'space' ? scope.spaceId : undefined"
       :project-id="scope.projectId ?? undefined"

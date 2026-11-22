@@ -22,7 +22,8 @@ import { useCanShare } from './saved/queries';
 // Tasks of a Space and of the Workspace — the group's project summary (List and Board).
 // me — the view "My work" (assigned, created, watched) of any group, and of a project too:
 // Me Mode is set, the view — in ?v, not in the tab address; the left of the toolbar — the "My work"
-// section tabs (slot tabs); day — the «My day» planner above the view. The view is picked in the «View» menu (PLNRAPP-71)
+// section tabs (slot tabs); day — the «My day» tab of «My work»: only the planner by dueDate, without a view under it,
+// view switcher and view options (PLNRAPP-709); the project filter stays — the planner uses it. The view is picked in the «View» menu (PLNRAPP-71)
 const props = defineProps<{
   spaceId?: string;
   rootSpaceId?: string;
@@ -64,7 +65,7 @@ const scope = computed(() => {
 const key = computed(
   () =>
     (props.projectId ? `p:${props.projectId}` : props.spaceId ? `s:${props.spaceId}` : 'w') +
-    (props.me ? `:me-${props.me}` : ''),
+    (props.me ? `:me-${props.me}` : props.day ? ':me-day' : ''),
 );
 // selected summary projects (remembered per summary)
 const projectOptions = computed(() =>
@@ -158,10 +159,11 @@ const selectTab = (k: string) =>
       class="flex h-11 shrink-0 items-center gap-1 border-b border-border px-2"
     >
       <div data-testid="view-tabs" class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-        <slot v-if="me" name="tabs" />
+        <slot v-if="me || day" name="tabs" />
       </div>
       <ProjectFilter v-if="projectOptions.length > 1" v-model="picked" :options="projectOptions" />
       <OptionsBar
+        v-if="!day"
         v-model:options="options"
         :no-me="!!me"
         v-model:filter="draftFilter"
@@ -178,7 +180,7 @@ const selectTab = (k: string) =>
     </ToolbarRoot>
     <ViewChangesBar
       v-slot="{ hide }"
-      :show="view.hasPersonal.value"
+      :show="!day && view.hasPersonal.value"
       :state="[options, draftFilter]"
     >
       <!-- my version is already kept (personal row): «себе» confirms it, «для всех» — admins only -->
@@ -199,23 +201,23 @@ const selectTab = (k: string) =>
         {{ t('views.saved.reset') }}
       </Button>
     </ViewChangesBar>
-    <!-- «My day»: the planner on top, the view below (PLNRAPP-137); together they scroll, the view keeps a usable height -->
-    <div :class="['min-h-0 flex-1', day && 'flex flex-col overflow-y-auto']">
-      <MyDay v-if="day" class="shrink-0" :project-ids="scope.projectIds" />
-      <div :class="day ? 'min-h-96 flex-1' : 'h-full'">
-        <component
-          :is="viewComponent"
-          v-if="spaces && active"
-          :key="`${key}:${active.key}`"
-          :project-id="key"
-          :scope="scope"
-          :options="options"
-          :filter="draftFilter"
-          v-bind="active.ext ? { viewId: active.key } : {}"
-        />
-      </div>
+    <!-- «My day»: only the planner, no task list under it (PLNRAPP-709) -->
+    <div v-if="day" class="min-h-0 flex-1 overflow-y-auto">
+      <MyDay :project-ids="scope.projectIds" />
+    </div>
+    <div v-else class="h-full min-h-0 flex-1">
+      <component
+        :is="viewComponent"
+        v-if="spaces && active"
+        :key="`${key}:${active.key}`"
+        :project-id="key"
+        :scope="scope"
+        :options="options"
+        :filter="draftFilter"
+        v-bind="active.ext ? { viewId: active.key } : {}"
+      />
     </div>
     <!-- в «Моей работе» окно задачи рисует экран группы -->
-    <TaskModal v-if="!me" />
+    <TaskModal v-if="!me && !day" />
   </div>
 </template>

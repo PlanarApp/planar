@@ -303,24 +303,20 @@ const mountMy = () =>
     { global: { plugins: [i18n, router.current] } },
   );
 
-// the list under the planer is the regular view with Me Mode 'day' (PLNRAPP-137; the selection — PLNRAPP-81)
+// PLNRAPP-709: there is no list under the «My day» planner, Me Mode 'day' is gone
 describe('inbox:my', () => {
-  it('Me Mode day: мои открытые — просрочено, сегодня (по сроку и по началу), без срока; поздние, чужие и завершённые скрыты', async () => {
+  it('сохранённый вид с бывшим Me Mode day — как без Me Mode', async () => {
     const statuses = await db.table('statuses').toArray();
     const scope = effectScope();
-    const pred = scope.run(() => useTaskFilter(null, statuses, 'day'))!;
+    const pred = scope.run(() => useTaskFilter(null, statuses, 'day' as never))!;
     const v = (o: Record<string, unknown>, assignee = me) =>
       ({ ...task(uuidv7(), o), assigneeIds: [assignee], labelIds: [] }) as never;
-    expect(pred.value(v({ dueDate: day(-1) }))).toBe(true);
-    expect(pred.value(v({ dueDate: day(0) }))).toBe(true);
-    expect(pred.value(v({}))).toBe(true);
-    expect(pred.value(v({ dueDate: day(10), startDate: day(-2) }))).toBe(true);
-    expect(pred.value(v({ dueDate: day(30) }))).toBe(false);
-    expect(pred.value(v({}, bob))).toBe(false);
-    expect(pred.value(v({ statusId: sDone }))).toBe(false);
+    expect(pred.value(v({ dueDate: day(30) }))).toBe(true);
+    expect(pred.value(v({}, bob))).toBe(true);
+    expect(pred.value(v({ statusId: sDone }))).toBe(true);
     scope.stop();
   });
-  it('PLNRAPP-140 задача с моим открытым пунктом чек-листа — моя: «Назначенные», «Мой день», список «Комментарии для меня»', async () => {
+  it('PLNRAPP-140 задача с моим открытым пунктом чек-листа — моя: «Назначенные», список «Комментарии для меня»', async () => {
     const tid = uuidv7();
     await db.table('tasks').put(task(tid, { number: 7, title: 'T7' }));
     const item = {
@@ -337,15 +333,13 @@ describe('inbox:my', () => {
     await db.table('checklistItems').put(item);
     const statuses = await db.table('statuses').toArray();
     const scope = effectScope();
-    const [assigned, today, list] = scope.run(() => [
+    const [assigned, list] = scope.run(() => [
       useTaskFilter(null, statuses, 'assigned'),
-      useTaskFilter(null, statuses, 'day'),
       useAssignedComments(() => me),
     ])!;
     // the task itself is not assigned to me
     const t7 = { ...task(tid, {}), assigneeIds: [bob], labelIds: [] } as never;
     await vi.waitFor(() => expect(assigned.value(t7)).toBe(true));
-    expect(today.value(t7)).toBe(true);
     await vi.waitFor(() =>
       expect(list.value?.map((x) => [x.kind, x.key])).toEqual([['check', expect.any(String)]]),
     );
