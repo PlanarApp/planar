@@ -1139,6 +1139,16 @@ async function insertAll(tx: Tx, now: Date) {
       changes: {},
       createdAt: c.createdAt,
     });
+  // PLNRAPP-710: sofia moved the due date of RDM-4 by two days — the history row and maya's due_changed
+  activity.push({
+    id: uid('activity:due:RDM-4'),
+    spaceId: spaceIds[0],
+    taskId: tid('RDM', 3),
+    actorId: uid_.sofia,
+    kind: 'updated',
+    changes: { dueDate: [day(7), day(9)] },
+    createdAt: at(-1),
+  });
   await ins(s.activity, activity);
   const cRanks = generateNKeysBetween(null, null, 8);
   const checks = CHECKLISTS.flatMap(([key, i, items]) =>
@@ -1203,6 +1213,20 @@ async function insertAll(tx: Tx, now: Date) {
       body: null,
       readAt: null,
       createdAt: at(0, 0),
+    },
+    // PLNRAPP-710: the due date of RDM-4 was moved — due_changed with the old and new date
+    {
+      id: uid('notif:due-changed'),
+      userId: uid_.maya,
+      spaceId: spaceIds[0],
+      kind: 'due_changed' as const,
+      taskId: tid('RDM', 3),
+      commentId: null,
+      actorId: uid_.sofia,
+      body: null,
+      changes: { dueDate: [day(7), day(9)] },
+      readAt: null,
+      createdAt: at(-1),
     },
   ]);
 

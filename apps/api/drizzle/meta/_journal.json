@@ -566,7 +566,14 @@
       "idx": 80,
       "version": "7",
       "when": 1796102400000,
-      "tag": "0080_cards_view_to_list",
+      "tag": "0080_due_changed_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1796188800000,
+      "tag": "0081_cards_view_to_list",
       "breakpoints": true
     }
   ]

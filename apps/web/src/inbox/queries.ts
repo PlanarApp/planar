@@ -13,6 +13,8 @@ export type InboxItem = Row<'notifications'> & {
   projectId: string | null;
   /** what changed: status "from → to" (status_changed), comment text (commented, mentioned) */
   status: [Status, Status] | null;
+  /** due_changed (PLNRAPP-710): due date "from → to", 'YYYY-MM-DD'; null — no date */
+  due: [string | null, string | null] | null;
   comment: string | null;
 };
 type Status = { name: string; color: string };
@@ -73,6 +75,7 @@ export const useNotifications = () =>
             chProject.get((CHANNEL.exec(n.url ?? '') ?? PAGE.exec(n.url ?? ''))?.[1] ?? '') ??
             null,
           status: pair(statusPair(n).map((id) => status.get(id))),
+          due: duePair(n),
           // a comment's text; its files (PLNRAPP-372) — the names from the notification
           comment: n.commentId
             ? [docText(comment.get(n.commentId)).replace(/\s+/g, ' ').trim().slice(0, 200), n.body]
@@ -88,6 +91,13 @@ export const useNotifications = () =>
 // both statuses still exist locally — otherwise show only the notification phrase
 const pair = (s: (Row<'statuses'> | undefined)[]): [Status, Status] | null =>
   s.length === 2 && s[0] && s[1] ? [s[0], s[1]] : null;
+
+const duePair = (n: Row<'notifications'>): [string | null, string | null] | null => {
+  const d = n.changes?.dueDate;
+  return Array.isArray(d) && d.length === 2
+    ? [(d[0] as string | null) ?? null, (d[1] as string | null) ?? null]
+    : null;
+};
 
 /** Inbox cards, as in ClickUp: notifications of one task together; order — newest first. */
 export function groupByTask(items: InboxItem[]): InboxItem[][] {

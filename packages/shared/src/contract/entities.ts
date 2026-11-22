@@ -256,12 +256,16 @@ export const entitySchemas = {
       'due_today',
       'start_today',
       'doc_comment_assigned',
+      'due_changed',
     ]),
     taskId: uuid.nullable(),
     url: z.string().nullable(),
     body: z.string().max(140).nullable(),
     commentId: uuid.nullable(),
-    /** status_changed: {statusId: [old, new]}, as in activity.changes; otherwise null */
+    /**
+     * status_changed: {statusId: [old, new]}, due_changed: {dueDate: [old, new]} (PLNRAPP-710),
+     * as in activity.changes; otherwise null
+     */
     changes: z.record(z.string(), z.unknown()).nullable().default(null), // old rows and client cache — without the field
     actorId: uuid,
     readAt: ts.nullable(),

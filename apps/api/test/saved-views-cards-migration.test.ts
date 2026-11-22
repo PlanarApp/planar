@@ -1,4 +1,4 @@
-// PLNRAPP-707: migration 0080 on data — saved views of the removed layout «cards» -> «list»
+// PLNRAPP-707: migration 0081 on data — saved views of the removed layout «cards» -> «list»
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { createDb, migrate } from '../src/db/index.js';
 
 const drizzleDir = new URL('../drizzle', import.meta.url).pathname;
-const sqlFile = join(drizzleDir, '0080_cards_view_to_list.sql');
+const sqlFile = join(drizzleDir, '0081_cards_view_to_list.sql');
 const name = `planar_t_mig80_${randomBytes(5).toString('hex')}`;
 const adminUrl = inject('dbAdminUrl');
 const url = new URL(adminUrl);
@@ -52,7 +52,7 @@ beforeAll(async () => {
   const jp = join(tmp, 'meta/_journal.json');
   const j = JSON.parse(readFileSync(jp, 'utf8'));
   const all = j.entries;
-  j.entries = all.filter((e: { idx: number }) => e.idx < 80);
+  j.entries = all.filter((e: { idx: number }) => e.idx < 81);
   writeFileSync(jp, JSON.stringify(j));
   await migrate(db, tmp);
 
@@ -84,7 +84,7 @@ beforeAll(async () => {
   await view('p2shared', 'cards', 'cards', 'p:2', null);
 
   await q(`delete from changes`); // so that the only row after the migration is the one it writes
-  await migrate(db, drizzleDir); // 0080 and later
+  await migrate(db, drizzleDir); // 0081 and later
 }, 120_000);
 
 afterAll(async () => {
@@ -94,7 +94,7 @@ afterAll(async () => {
   if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
-describe('PLNRAPP-707 миграция 0080: сохранённые виды «Карточки» -> «Список»', () => {
+describe('PLNRAPP-707 миграция 0081: сохранённые виды «Карточки» -> «Список»', () => {
   it('вида с раскладкой cards не остаётся', async () => {
     expect((await views()).filter((v) => v.layout === 'cards')).toEqual([]);
   });

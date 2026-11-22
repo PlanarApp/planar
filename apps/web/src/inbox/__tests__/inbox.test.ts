@@ -48,6 +48,7 @@ const PushToggle = (await import('../PushToggle.vue')).default;
 const { useUnread, useAssignedComments, useMyTasks } = await import('../queries');
 const { snoozed } = await import('../snooze');
 const push = await import('../push');
+const { formatDue } = await import('../../views/list/due');
 
 const i18n = createI18n({
   legacy: false,
@@ -216,6 +217,31 @@ describe('inbox:list', () => {
     await db.table('notifications').put(note(uuidv7(), t1, { kind: 'commented', commentId: cm }));
     const w = mount(InboxScreen, { global: g });
     await vi.waitFor(() => expect(w.text()).toContain('Посмотри макет'));
+  });
+  it('PLNRAPP-710 due_changed: «изменил(а) срок» и даты «было → стало»; без срока — «Без срока»', async () => {
+    await seed();
+    await db
+      .table('notifications')
+      .bulkPut([
+        note(uuidv7(), t1, { kind: 'due_changed', changes: { dueDate: [day(0), day(1)] } }),
+        note(uuidv7(), t2, { kind: 'due_changed', changes: { dueDate: [null, day(2)] } }),
+      ]);
+    const w = mount(InboxScreen, { global: g });
+    await vi.waitFor(() => expect(w.findAll('[data-testid="inbox-due"]')).toHaveLength(4));
+    expect(w.text()).toContain('Bob изменил(а) срок PL-1');
+    const fmt = (d: string) => formatDue(d, 'ru');
+    const dates = w.findAll('[data-testid="inbox-due"]').map((x) => x.text());
+    expect(dates).toEqual(
+      expect.arrayContaining([fmt(day(0)), fmt(day(1)), 'Без срока', fmt(day(2))]),
+    );
+    const b = mount(
+      defineComponent({ render: () => h(TooltipProvider, null, () => h(BellMenu)) }),
+      { global: g, attachTo: document.body },
+    );
+    await b.find('[data-testid=bell]').trigger('click');
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('[data-testid=bell-due]')).toHaveLength(4),
+    );
   });
   it('inbox:list десктоп — задача открывается справа (?task)', async () => {
     await (router.current as { push: (p: string) => Promise<unknown> }).push('/inbox');

@@ -1,5 +1,5 @@
 {
-  "id": "9b244eb3-e856-410c-b984-427665cab247",
+  "id": "129c86bf-11b2-46e4-be48-ec05a77a09b5",
   "prevId": "3a878f73-395c-4cdc-9dbe-4051a54ea1a9",
   "version": "7",
   "dialect": "postgresql",
@@ -1583,7 +1583,7 @@
       "checkConstraints": {
         "notifications_kind_check": {
           "name": "notifications_kind_check",
-          "value": "\"notifications\".\"kind\" in ('assigned', 'mentioned', 'commented', 'status_changed', 'chat_mention', 'chat_dm', 'chat_reply', 'comment_assigned', 'doc_mention', 'trial_ending', 'checklist_assigned', 'due_today', 'start_today', 'doc_comment_assigned')"
+          "value": "\"notifications\".\"kind\" in ('assigned', 'mentioned', 'commented', 'status_changed', 'chat_mention', 'chat_dm', 'chat_reply', 'comment_assigned', 'doc_mention', 'trial_ending', 'checklist_assigned', 'due_today', 'start_today', 'doc_comment_assigned', 'due_changed')"
         }
       },
       "isRLSEnabled": false
