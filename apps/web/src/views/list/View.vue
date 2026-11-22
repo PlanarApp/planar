@@ -450,16 +450,32 @@ const scroller = ref<HTMLElement>();
 // Escape / a click on an empty place of the list — out of the selection mode (PLNRAPP-291)
 useSelectionReset(() => scroller.value);
 const rowH = computed(() => (isMobile.value ? 44 : 32));
-// PLNRAPP-705: the list area is narrower than NARROW_W (the task sidebar is open, a small window) —
-// the row is laid out in two lines by a container query (@container/list in the template, Row.vue);
-// here the same width only tells the virtualizer to measure task rows: they are taller than rowH
+// PLNRAPP-705: the list area is narrow (the task sidebar is open, a small window) — the row is laid out
+// in two lines (class list-narrow on the scroller, variant list-narrow: in Row.vue); the virtualizer
+// then measures task rows: they are taller than rowH. The threshold is not fixed: the columns have
+// user widths, so the area is narrow when the one-line row cannot fit its fixed part (checkbox, status,
+// key, menu, paddings — NARROW_FIXED), the visible columns and NARROW_TITLE for the parent (up to 192 px)
+// and the name — otherwise at 720–950 px the parent or the name was squeezed to zero
 const NARROW_W = 720;
-const narrow = ref(false);
+const NARROW_FIXED = 280;
+const NARROW_TITLE = 400;
+const colsWidth = () => {
+  // hidden on small screens in the one-line row: COLUMN_CLASS (labels — max-lg, the rest — max-md)
+  const vw = window.innerWidth;
+  if (vw < 768) return 0;
+  return columns.value.reduce(
+    (s, c) => s + (c === 'labels' && vw < 1024 ? 0 : (widths.value[c] ?? 0)),
+    0,
+  );
+};
+const narrowAt = computed(() => Math.max(NARROW_W, NARROW_FIXED + colsWidth() + NARROW_TITLE));
+const areaW = ref(0);
 let ro: ResizeObserver | undefined;
 const fit = () => {
   const el = scroller.value;
-  if (el) narrow.value = el.clientWidth > 0 && el.clientWidth < NARROW_W;
+  if (el) areaW.value = el.clientWidth;
 };
+const narrow = computed(() => areaW.value > 0 && areaW.value < narrowAt.value);
 watch(scroller, (el) => {
   ro?.disconnect();
   if (el && typeof ResizeObserver !== 'undefined') {
@@ -767,8 +783,11 @@ watch(
         role="grid"
         tabindex="0"
         :aria-rowcount="items.length"
-        class="@container/list min-h-0 flex-1 overflow-auto outline-none"
-        :class="{ 'focus-visible:ring-2 ring-inset ring-focus': !focusedTask }"
+        class="min-h-0 flex-1 overflow-auto outline-none"
+        :class="[
+          narrow ? 'list-narrow' : 'list-wide',
+          { 'focus-visible:ring-2 ring-inset ring-focus': !focusedTask },
+        ]"
         @keydown="onKey"
       >
         <div class="relative w-full" :style="{ height: `${virt.getTotalSize()}px` }">
@@ -816,10 +835,7 @@ watch(
                 <span
                   v-for="c in columns"
                   :key="c"
-                  :class="[
-                    'relative shrink-0 truncate px-1 @max-[720px]/list:hidden',
-                    COLUMN_CLASS[c],
-                  ]"
+                  :class="['relative shrink-0 truncate px-1 list-narrow:hidden', COLUMN_CLASS[c]]"
                   :style="{ width: `${widths[c]}px` }"
                   ><button
                     v-if="LIST_SORT[c]"
@@ -849,7 +865,7 @@ watch(
                     @dblclick.stop="resetWidth(c)"
                 /></span>
                 <!-- under the rows' «…» button (gap-2 + size-7) -->
-                <span class="w-9 shrink-0 @max-[720px]/list:hidden" aria-hidden="true" />
+                <span class="w-9 shrink-0 list-narrow:hidden" aria-hidden="true" />
               </div>
               <div
                 v-else-if="it.kind === 'group'"
@@ -896,7 +912,7 @@ watch(
                 <span class="text-xs text-fg-subtle">{{ it.group.tasks.length }}</span>
                 <span
                   v-if="!cards"
-                  class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden @max-[720px]/list:hidden"
+                  class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden list-narrow:hidden"
                 >
                   <span
                     v-for="c in columns"

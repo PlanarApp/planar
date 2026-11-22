@@ -31,12 +31,12 @@ export const visibleColumns = (fields: readonly TaskField[]): ListColumn[] =>
  * dates, the remaining columns, icons (progress, module fields — order-8) last.
  */
 export const NARROW_ORDER: Record<ListColumn, string> = {
-  labels: '@max-[720px]/list:order-4',
-  assignee: '@max-[720px]/list:order-5',
-  dueDate: '@max-[720px]/list:order-6',
-  project: '@max-[720px]/list:order-7',
-  priority: '@max-[720px]/list:order-7',
-  ai: '@max-[720px]/list:order-7',
-  aiCost: '@max-[720px]/list:order-7',
-  aiTime: '@max-[720px]/list:order-7',
+  labels: 'list-narrow:order-4',
+  assignee: 'list-narrow:order-5',
+  dueDate: 'list-narrow:order-6',
+  project: 'list-narrow:order-7',
+  priority: 'list-narrow:order-7',
+  ai: 'list-narrow:order-7',
+  aiCost: 'list-narrow:order-7',
+  aiTime: 'list-narrow:order-7',
 };

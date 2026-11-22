@@ -265,7 +265,7 @@ function save() {
       'group relative flex h-full items-center gap-2 border-b border-border pl-4 pr-3 text-sm',
       // PLNRAPP-705: the list area is narrow (the task sidebar, a small window) — two lines:
       // the name over the full width, below it the parent, labels, assignees, dates, other columns, icons
-      '@max-[720px]/list:min-h-8 @max-[720px]/list:flex-wrap @max-[720px]/list:gap-y-0.5 @max-[720px]/list:py-1',
+      'list-narrow:min-h-8 list-narrow:flex-wrap list-narrow:gap-y-0.5 list-narrow:py-1',
       // wrapped or being edited: the same layout, the row grows by the name's extra lines
       wrap || editing ? 'min-h-8' : '',
       editing ? 'py-0.5' : '',
@@ -328,24 +328,20 @@ function save() {
       />
     </div>
     <!-- узкий режим: ячейка и её строка — contents, их элементы раскладывает строка (order) -->
-    <div
-      role="gridcell"
-      class="min-w-0 flex-1 @max-[720px]/list:contents"
-      @dblclick.stop="emit('edit')"
-    >
+    <div role="gridcell" class="min-w-0 flex-1 list-narrow:contents" @dblclick.stop="emit('edit')">
       <textarea
         v-if="editing"
         ref="input"
         v-model="draft"
         rows="1"
         :aria-label="t('list.editTitle')"
-        class="block w-full resize-none overflow-hidden rounded-md border border-border-strong bg-bg px-2 py-1 text-sm leading-[18px] outline-none focus-visible:ring-2 ring-focus @max-[720px]/list:w-auto @max-[720px]/list:min-w-0 @max-[720px]/list:flex-1"
+        class="block w-full resize-none overflow-hidden rounded-md border border-border-strong bg-bg px-2 py-1 text-sm leading-[18px] outline-none focus-visible:ring-2 ring-focus list-narrow:w-auto list-narrow:min-w-0 list-narrow:flex-1"
         @click.stop
         @keydown.enter.prevent="save"
         @keydown.esc.stop.prevent="((live = false), emit('done'))"
         @blur="save"
       />
-      <span v-else class="flex items-center gap-1 @max-[720px]/list:contents">
+      <span v-else class="flex items-center gap-1 list-narrow:contents">
         <!-- PLNRAPP-704: значок ИИ (работает / ошибка), как у карточки; при колонке «ИИ» — в ней -->
         <TaskAiStatus v-if="!columns.includes('ai')" :task="task" @click.stop @dblclick.stop />
         <BlockedIcon v-if="blocked" />
@@ -368,11 +364,11 @@ function save() {
           {{ task.key }}
         </button>
         <!-- PLNRAPP-704: родитель, как в карточке, — ключ и название;
-             PLNRAPP-705: в тесной широкой строке (область 720–880 px) родитель ужимается раньше названия,
-             иначе название сжимается до нуля и переносится по букве -->
+             PLNRAPP-705: место под родителя и название в одной строке держит порог узкого режима (View.vue);
+             глубокое дерево ужимает обоих, но родитель не уже ключа (min-w-20), а название не уходит в ноль -->
         <span
           v-if="parent"
-          class="flex min-w-0 max-w-48 shrink-[1000] items-center gap-1 overflow-hidden text-xs text-fg-subtle @max-[720px]/list:order-3"
+          class="flex min-w-20 max-w-48 items-center gap-1 overflow-hidden text-xs text-fg-subtle list-narrow:order-3"
           :title="`${parent.key} ${parent.title}`"
           data-testid="row-parent"
           ><span class="shrink-0">{{ parent.key }}</span
@@ -381,23 +377,20 @@ function save() {
         >
         <!-- узкий режим: название на всю первую строку и переносится по словам, не обрезается -->
         <span
-          :class="[
-            'min-w-0 break-words @max-[720px]/list:flex-1',
-            !wrap && '@min-[720px]/list:truncate',
-          ]"
+          :class="['min-w-0 break-words list-narrow:flex-1', !wrap && 'list-wide:truncate']"
           data-testid="row-title"
           >{{ task.title }}</span
         >
         <!-- PLNRAPP-333: subtasks / checklist «closed/total» (all subtasks, not only those in the view); PLNRAPP-577: assigned comments -->
         <span
-          class="contents @max-[720px]/list:order-8 @max-[720px]/list:flex @max-[720px]/list:items-center @max-[720px]/list:gap-1"
+          class="contents list-narrow:order-8 list-narrow:flex list-narrow:items-center list-narrow:gap-1"
           ><TaskProgress :task-id="task.id" :comments="task"
         /></span>
         <!-- поля модулей (время): видны всегда, если модуль включён -->
         <span
           v-for="x in ext"
           :key="x.key"
-          class="ml-auto shrink-0 @max-[720px]/list:order-8 @max-[720px]/list:ml-0"
+          class="ml-auto shrink-0 list-narrow:order-8 list-narrow:ml-0"
           @click.stop
         >
           <component :is="x.view" :task-id="task.id" />
@@ -407,17 +400,14 @@ function save() {
     <!-- колонки как в ClickUp: значение в ячейке; при наведении ячейка — сам пикер (монтируется лениво) -->
     <!-- узкий режим: перенос на вторую строку с отступом под глубину дерева;
          обёртка колонок — contents, ячейки встают в порядок второй строки (NARROW_ORDER) -->
+    <span class="hidden h-0 basis-full list-narrow:order-2 list-narrow:block" aria-hidden="true" />
     <span
-      class="hidden h-0 basis-full @max-[720px]/list:order-2 @max-[720px]/list:block"
-      aria-hidden="true"
-    />
-    <span
-      class="hidden shrink-0 @max-[720px]/list:order-2 @max-[720px]/list:block"
+      class="hidden shrink-0 list-narrow:order-2 list-narrow:block"
       :style="{ width: `${16 + (depth ?? 0) * 20}px` }"
       aria-hidden="true"
     />
     <div
-      class="ml-auto flex shrink-0 items-center @max-[720px]/list:contents"
+      class="ml-auto flex shrink-0 items-center list-narrow:contents"
       data-testid="row-cols"
       @click.stop
     >
@@ -428,7 +418,7 @@ function save() {
         :data-col="c"
         :class="[
           'flex h-full shrink-0 items-center overflow-hidden px-1',
-          '@max-[720px]/list:flex! @max-[720px]/list:h-auto @max-[720px]/list:max-w-full @max-[720px]/list:w-auto!',
+          'list-narrow:flex! list-narrow:h-auto list-narrow:max-w-full list-narrow:w-auto!',
           COLUMN_CLASS[c],
           NARROW_ORDER[c],
         ]"
@@ -515,7 +505,7 @@ function save() {
       type="button"
       :class="[
         menuBtn,
-        'size-7 focus-visible:opacity-100 group-hover:opacity-100 @max-[720px]/list:order-1',
+        'size-7 focus-visible:opacity-100 group-hover:opacity-100 list-narrow:order-1',
         !focused && 'opacity-0',
       ]"
       :aria-label="t('list.actions')"
