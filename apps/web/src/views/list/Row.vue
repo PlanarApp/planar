@@ -62,8 +62,6 @@ const props = defineProps<{
   labelNames?: boolean;
   /** in today's «My day» plan — a sun before the name */
   inDay?: boolean;
-  /** the Cards view: a card on desktop too */
-  cards?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -183,9 +181,9 @@ function save() {
 </script>
 
 <template>
-  <!-- мобильная и вид «Карточки»: карточка (общая с Доской) -->
+  <!-- мобильная: карточка (общая с Доской) -->
   <div
-    v-if="isMobile || cards"
+    v-if="isMobile"
     ref="rowEl"
     role="row"
     :aria-rowindex="index"

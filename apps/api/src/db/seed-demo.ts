@@ -1863,8 +1863,6 @@ async function insertAll(tx: Tx, now: Date) {
       { op: 'and', rules: [] },
       { showSubtasks: true, subtasksCollapsed: true },
     ],
-    // the Cards view: the list as task cards (key, badges, AI icon under the status)
-    [1, 'My cards', 'inbox', 'cards', { op: 'and', rules: [] }, { groupBy: 'status' }],
     // PLNRAPP-663: the «AI status» field of the filter — several values; works in a project with the ai module
     [
       0,

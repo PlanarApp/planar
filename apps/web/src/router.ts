@@ -7,6 +7,7 @@ const screens = import.meta.glob(['./screens/*Screen.vue', '!./screens/DevUiScre
 const screen = (name: string) => screens[`./screens/${name}Screen.vue`];
 
 const MOVED_VIEWS = ['sprints:sprint', 'goals:milestones'];
+const CARDS = 'cards';
 
 export const router = createRouter({
   history: typeof window === 'undefined' ? createMemoryHistory() : createWebHistory(),
@@ -75,6 +76,17 @@ router.beforeEach(async (to) => {
       query: { ...to.query, r: String(to.params.view) },
       replace: true,
     };
+  // PLNRAPP-707: the former view «Cards» is removed — its addresses open the List
+  const node = ['project', 'space', 'workspace'].includes(String(to.name));
+  if (node && seg === CARDS)
+    return {
+      path: to.path.replace(/\/cards$/, '/list'),
+      query: to.query,
+      hash: to.hash,
+      replace: true,
+    };
+  if (node && seg === 'work' && to.query.v === CARDS)
+    return { path: to.path, query: { ...to.query, v: 'list' }, hash: to.hash, replace: true };
   // the former section «AI tasks» (?s=ai:tasks) is the tab of the workspace AI settings (PLNRAPP-568)
   if (to.name === 'workspace' && seg === 'settings' && to.query.s === 'ai:tasks')
     return {
