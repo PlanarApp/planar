@@ -104,6 +104,7 @@ describe('packs', () => {
       'dev',
       'review',
       'test',
+      'unstick',
     ]);
     expect(h.events).toEqual({
       comment: 'assign',
@@ -145,7 +146,7 @@ describe('packs', () => {
   it('загрузка раскладывает документы, пишет хеши; активация и права', async () => {
     const l = (await call('GET', `packs?projectId=${w.projectId}`, 'admin')).json();
     expect(l.catalog).toEqual(
-      expect.arrayContaining([{ key: 'dev', title: 'Разработка', actions: 11 }]),
+      expect.arrayContaining([{ key: 'dev', title: 'Разработка', actions: 12 }]),
     );
     expect(
       l.catalog
@@ -163,7 +164,7 @@ describe('packs', () => {
     expect(r.statusCode).toBe(200);
     const j = r.json();
     expect(j.status).toBe('ok');
-    expect(j.created).toHaveLength(12);
+    expect(j.created).toHaveLength(13);
 
     const ps = await pages(w.projectId);
     const container = ps.find((p) => p.title === 'Harness-пакеты')!;
@@ -184,6 +185,7 @@ describe('packs', () => {
         'Разработка',
         'Ревью MR',
         'Тестирование',
+        'Разбор затыка',
       ].sort(),
     );
     const plan = kids.find((k) => k.title === 'Планирование')!;

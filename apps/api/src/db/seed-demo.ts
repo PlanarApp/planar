@@ -3311,10 +3311,19 @@ async function insertAll(tx: Tx, now: Date) {
         taskId: tid('RDM', 6),
       },
     ),
-    engineEvent('manual', 4, 'tasks', -0.998, 'сторож: RDM-6 — затык передан ИИ', {
+    engineEvent('manual', 4, 'tasks', -0.998, 'сторож: RDM-6 — затык передан ИИ на разбор', {
       level: 'action',
       taskId: tid('RDM', 6),
     }),
+    // PLNRAPP-774: the decision of «Разбор затыка» — at the next pass
+    engineEvent(
+      'manual',
+      5,
+      'tasks',
+      -0.997,
+      'сторож: RDM-6 — решение разбора затыка: вопрос человеку',
+      { level: 'action', taskId: tid('RDM', 6) },
+    ),
   ]);
 
   await ins(aiEmailBatches, [
