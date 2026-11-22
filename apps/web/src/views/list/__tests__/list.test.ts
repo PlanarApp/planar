@@ -882,6 +882,8 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     await until(() => line.find('svg[data-category]').exists());
     expect(line.text()).toBe(`PLN-1${p.title}`);
     expect(line.find('.truncate').text()).toBe(p.title);
+    // PLNRAPP-783: self-start даёт ширину по содержимому — без max-w-full длинное имя выходит за карточку
+    expect(line.classes()).toContain('max-w-full');
   });
   it('без выбора тап по карточке открывает задачу', async () => {
     mobile();
