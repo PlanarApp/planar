@@ -1046,6 +1046,12 @@ describe('строка Списка — данные карточки (PLNRAPP-7
     expect(label.text()).toContain('PLN-1');
     expect(label.text()).toContain('t1');
     expect(label.attributes('title')).toBe('PLN-1 t1');
+    // PLNRAPP-705: в тесной широкой строке (область 720–880 px) родитель ужимается раньше названия —
+    // название не сжимается до нуля и не переносится по букве
+    expect(label.classes()).toEqual(
+      expect.arrayContaining(['min-w-0', 'shrink-[1000]', 'overflow-hidden']),
+    );
+    expect(label.classes()).not.toContain('shrink-0');
   });
   it('значок ИИ (работает) — в строке; при колонке «ИИ» — только в колонке', async () => {
     const t = task(1);

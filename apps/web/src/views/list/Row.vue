@@ -367,10 +367,12 @@ function save() {
         >
           {{ task.key }}
         </button>
-        <!-- PLNRAPP-704: родитель, как в карточке, — ключ и название -->
+        <!-- PLNRAPP-704: родитель, как в карточке, — ключ и название;
+             PLNRAPP-705: в тесной широкой строке (область 720–880 px) родитель ужимается раньше названия,
+             иначе название сжимается до нуля и переносится по букве -->
         <span
           v-if="parent"
-          class="flex max-w-48 shrink-0 items-center gap-1 text-xs text-fg-subtle @max-[720px]/list:order-3"
+          class="flex min-w-0 max-w-48 shrink-[1000] items-center gap-1 overflow-hidden text-xs text-fg-subtle @max-[720px]/list:order-3"
           :title="`${parent.key} ${parent.title}`"
           data-testid="row-parent"
           ><span class="shrink-0">{{ parent.key }}</span
