@@ -43,7 +43,7 @@ const props = defineProps<{
   /** subtask nesting level (0 — top) */
   depth?: number;
   /** the parent is not shown above the row (another group, subtasks hidden) — a label in the row */
-  parent?: { key: string; title: string };
+  parent?: { key: string; title: string; statusId?: string; projectId?: string };
   /** drag handle ("Manual" sort) */
   draggable?: boolean;
   /** number of subtasks in the view; > 0 — the collapse chevron */
@@ -58,6 +58,8 @@ const props = defineProps<{
   wrap?: boolean;
   /** the task key before the name */
   showKey?: boolean;
+  /** mobile card: tag names instead of tag icons */
+  labelNames?: boolean;
   /** in today's «My day» plan — a sun before the name */
   inDay?: boolean;
   /** the Cards view: a card on desktop too */
@@ -191,7 +193,8 @@ function save() {
     :data-task="task.key"
     :data-task-id="task.id"
     :class="[
-      'group flex h-full items-center gap-1 border-b border-border py-2 pl-3 pr-1 text-sm',
+      'group flex h-full items-center gap-1 border-b border-border py-2 pl-3 text-sm',
+      isMobile ? 'pr-3' : 'pr-1',
       selected ? 'bg-accent-subtle' : !isMobile && 'hover:bg-bg-subtle',
       focused ? 'ring-2 ring-inset ring-focus' : '',
     ]"
@@ -200,9 +203,9 @@ function save() {
     @pointerleave="leave"
     @focusin="hot = true"
   >
-    <!-- PLNRAPP-281: выбор задачи на мобильной — чекбокс всегда виден, зона касания 44px; на десктопе — в режиме выбора -->
+    <!-- PLNRAPP-281: чекбокс в режиме выбора (первую задачу выбирают пунктом «Выбрать» меню), зона касания 44px -->
     <label
-      v-if="isMobile || selecting"
+      v-if="selecting"
       role="gridcell"
       class="-ml-3 flex size-11 shrink-0 items-center justify-center"
       data-testid="row-select"
@@ -231,18 +234,18 @@ function save() {
         :parent="parent"
         :project-name="projectName"
         project-text
+        :head="isMobile"
+        :label-names="labelNames"
       />
     </div>
+    <!-- mobile: no «…» — the menu by a long press on the card -->
     <button
+      v-if="!isMobile"
       type="button"
       :class="[
         menuBtn,
-        isMobile
-          ? 'size-11'
-          : [
-              'size-7 self-start focus-visible:opacity-100 group-hover:opacity-100',
-              !focused && 'opacity-0',
-            ],
+        'size-7 self-start focus-visible:opacity-100 group-hover:opacity-100',
+        !focused && 'opacity-0',
       ]"
       :aria-label="t('list.actions')"
       data-testid="row-menu"

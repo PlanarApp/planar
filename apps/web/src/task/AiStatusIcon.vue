@@ -2,10 +2,10 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RouterLink } from 'vue-router';
-import { AlertCircle, LoaderCircle } from 'lucide-vue-next';
+import { AlertCircle } from 'lucide-vue-next';
 import Tooltip from '../ui/Tooltip.vue';
 
-// PLNRAPP-321: a compact AI status icon for a list row and a board card — a spinner while the AI works,
+// PLNRAPP-321: a compact AI status icon for a list row and a board card — a ring «ai» while the AI works,
 // an error icon when the flow failed; the tooltip tells the state, the click opens the run (not the task)
 export type AiStatus = 'running' | 'failed' | 'none';
 
@@ -58,12 +58,24 @@ const internal = computed(() => props.runUrl.startsWith('/') && !props.runUrl.st
       @click.stop
       @keydown.enter.stop
     >
-      <LoaderCircle
+      <!-- a spinning ring with a still «ai» inside; the error — the icon alone -->
+      <span
         v-if="status === 'running'"
-        :size="14"
-        class="animate-spin motion-reduce:animate-none"
+        class="relative grid size-4 place-items-center"
         aria-hidden="true"
-      />
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          class="absolute inset-0 animate-spin motion-reduce:animate-none"
+        >
+          <path d="M21 12a9 9 0 1 1-6.22-8.56" />
+        </svg>
+        <span class="text-[7px] font-semibold leading-none">ai</span>
+      </span>
       <AlertCircle v-else :size="14" aria-hidden="true" />
     </component>
   </Tooltip>

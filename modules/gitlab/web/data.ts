@@ -91,8 +91,7 @@ const dict = {
   error: { ru: 'Ошибка', en: 'Error' },
   merge: { ru: 'MR смержен → статус', en: 'MR merged → status' },
   off: { ru: 'не менять', en: 'do not change' },
-  cardBranches: { ru: 'Ветки', en: 'Branches' },
-  cardMrs: { ru: 'MR: открыто / влито', en: 'MRs: open / merged' },
+  cardMrs: { ru: 'MR открыто', en: 'Open MRs' },
   ciRunning: { ru: 'CI выполняется', en: 'CI is running' },
   ciFailed: { ru: 'CI упал', en: 'CI failed' },
 } as const;

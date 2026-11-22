@@ -46,6 +46,7 @@ describe('C-views: поведение', () => {
       hideEmptyGroups: true,
       wrapTitles: true,
       showKey: true,
+      showLabelNames: false,
       me: null,
       fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
     });

@@ -46,10 +46,11 @@ afterEach(() => {
 });
 
 describe('AiStatusIcon', () => {
-  it('running — спиннер и подсказка «ИИ работает с HH:MM»', async () => {
+  it('running — кольцо «ai» и подсказка «ИИ работает с HH:MM»', async () => {
     await render({ status: 'running', startedAt: at(9, 5) });
     expect(icon().attributes('data-state')).toBe('running');
     expect(icon().find('svg.animate-spin').exists()).toBe(true);
+    expect(icon().text()).toBe('ai');
     expect(icon().attributes('aria-label')).toBe('ИИ работает с 09:05');
     expect(icon().classes()).not.toContain('text-danger');
   });
@@ -68,6 +69,7 @@ describe('AiStatusIcon', () => {
     expect(icon().attributes('data-state')).toBe('failed');
     expect(icon().find('svg.animate-spin').exists()).toBe(false);
     expect(icon().find('svg').exists()).toBe(true);
+    expect(icon().text()).toBe('');
     expect(icon().classes()).toContain('text-danger');
     expect(icon().attributes('aria-label')).toBe('ИИ-флоу упал в 14:30: timeout of run');
   });

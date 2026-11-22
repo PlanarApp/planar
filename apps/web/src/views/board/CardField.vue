@@ -31,6 +31,8 @@ const props = defineProps<{
   projectName?: string;
   /** mobile: icons only (the text — in the hint) */
   iconOnly?: boolean;
+  /** tag names even with iconOnly (the "Show tag names" option) */
+  labelNames?: boolean;
 }>();
 const { t, locale } = useI18n();
 const people = computed(() =>
@@ -48,6 +50,8 @@ const dueTone = computed(() =>
   props.task.dueDate && props.task.dueDate < localToday() ? 'text-danger' : 'text-fg-muted',
 );
 const empty = 'text-fg-subtle opacity-60';
+// mobile: a tag icon in the tag's color per tag, unless the names are asked for
+const tagIcons = computed(() => props.iconOnly && !props.labelNames);
 </script>
 
 <template>
@@ -91,13 +95,14 @@ const empty = 'text-fg-subtle opacity-60';
         :model-value="task.labelIds"
         @update:model-value="setLabels(task.id, $event)"
         ><template #value>
-          <span
-            v-for="l in iconOnly ? chosen : []"
+          <Tag
+            v-for="l in tagIcons ? chosen : []"
             :key="l.id"
-            class="size-2 shrink-0 rounded-full bg-fg-subtle"
-            :style="l.color ? { background: l.color } : undefined" />
+            :size="14"
+            class="shrink-0 text-fg-subtle"
+            :style="l.color ? { color: l.color } : undefined" />
           <Badge
-            v-for="l in iconOnly ? [] : chosen"
+            v-for="l in tagIcons ? [] : chosen"
             :key="l.id"
             dot
             :color="l.color ?? undefined"
@@ -133,13 +138,14 @@ const empty = 'text-fg-subtle opacity-60';
         <UserRound v-else :size="14" :class="empty" />
       </template>
       <template v-else>
-        <span
-          v-for="l in iconOnly ? chosen : []"
+        <Tag
+          v-for="l in tagIcons ? chosen : []"
           :key="l.id"
-          class="size-2 shrink-0 rounded-full bg-fg-subtle"
-          :style="l.color ? { background: l.color } : undefined"
+          :size="14"
+          class="shrink-0 text-fg-subtle"
+          :style="l.color ? { color: l.color } : undefined"
         />
-        <Badge v-for="l in iconOnly ? [] : chosen" :key="l.id" dot :color="l.color ?? undefined">{{
+        <Badge v-for="l in tagIcons ? [] : chosen" :key="l.id" dot :color="l.color ?? undefined">{{
           l.name
         }}</Badge>
         <Tag v-if="!chosen.length" :size="14" :class="empty" />

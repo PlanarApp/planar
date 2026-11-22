@@ -928,6 +928,7 @@ watch(
                 :draggable="manual && !asCards"
                 :wrap="options.wrapTitles"
                 :show-key="options.showKey"
+                :label-names="options.showLabelNames"
                 :child-count="it.childCount"
                 :folded="isFolded(it.task.id)"
                 :class="[

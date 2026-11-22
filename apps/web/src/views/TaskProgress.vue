@@ -7,9 +7,9 @@ import { useAuth } from '../auth/useAuth';
 import { useTaskProgress, type Ratio } from './progress';
 
 // PLNRAPP-333: progress of the subtasks and the checklist on a list row / board card — «closed/total»,
-// all closed — in green; nothing when the task has neither.
-// PLNRAPP-577: next to the subtasks — assigned comments «resolved/total» (icon as the «Comments for me» tab
-// of My work); none — hidden; an open one assigned to me — accent; the click does nothing.
+// all closed — in green (the subtasks — a highlighted chip); nothing when the task has neither.
+// PLNRAPP-577: next to the subtasks — assigned comments, the number of open ones (icon as the «Comments for me»
+// tab of My work); none open — hidden; an open one assigned to me — accent; the click does nothing.
 // «Mine» is counted here from the tasks row counters and the signed-in user (reactively): the cached project
 // projection may be built before /api/auth/me answers, and then the accent would be missing until the task changes.
 const props = defineProps<{
@@ -26,28 +26,32 @@ const chip = (r: Ratio) => [
   'inline-flex shrink-0 items-center gap-0.5 rounded border border-border px-1 text-xs',
   r.done === r.total ? 'text-success' : 'text-fg-muted',
 ];
+const subtasksChip = (r: Ratio) =>
+  r.done === r.total
+    ? 'inline-flex shrink-0 items-center gap-0.5 rounded border border-success bg-success/10 px-1 text-xs text-success'
+    : chip(r);
 const commentsChip = (c: AssignedComments) =>
   c.assignedToMe
     ? 'inline-flex shrink-0 items-center gap-0.5 rounded border border-accent bg-accent-subtle px-1 text-xs text-accent'
-    : chip({ done: c.resolved, total: c.total });
+    : chip({ done: 0, total: 1 });
 </script>
 
 <template>
   <span
     v-if="progress?.subtasks.total"
-    :class="chip(progress.subtasks)"
+    :class="subtasksChip(progress.subtasks)"
     :title="t('task.subtasks')"
     data-testid="row-children"
     ><ListTree :size="12" />{{ progress.subtasks.done }}/{{ progress.subtasks.total }}</span
   >
   <span
-    v-if="assigned?.total"
+    v-if="assigned && assigned.total > assigned.resolved"
     :class="commentsChip(assigned)"
     :title="t('task.assignedComments')"
     :data-mine="assigned.assignedToMe || undefined"
     data-testid="row-comments"
     @click.stop
-    ><MessageSquare :size="12" />{{ assigned.resolved }}/{{ assigned.total }}</span
+    ><MessageSquare :size="12" />{{ assigned.total - assigned.resolved }}</span
   >
   <span
     v-if="progress?.checklist.total"

@@ -379,26 +379,27 @@ describe('pt6b:', () => {
   });
 });
 
-describe('карточка: ветки, MR, CI', () => {
+describe('карточка: MR, CI', () => {
   const badges = () => mount(CardBadges, { props: { taskId: 't' } });
   it('ничего без данных GitLab', () => {
     expect(badges().text()).toBe('');
   });
-  it('ветки — уникальные из веток и MR; MR «открыто/влито»; CI открытого MR', async () => {
+  it('без веток; MR — число открытых; CI открытого MR — кольцо «ci», упал — без текста', async () => {
     st.branches.value = [{ id: 'b1', taskId: 't', name: 'PLN-1', webUrl: '', gitlabProjectId: 5 }];
     st.mrs.value = [
       mr({ sourceBranch: 'PLN-1', pipelineStatus: 'running' }),
       mr({ sourceBranch: 'PLN-1-b', state: 'merged', pipelineStatus: 'failed' }),
     ];
     const w = badges();
-    expect(w.get('[data-testid="gl-branches"]').text()).toBe('2');
-    expect(w.get('[data-testid="gl-mrs"]').text()).toBe('1/1');
+    expect(w.find('[data-testid="gl-branches"]').exists()).toBe(false);
+    expect(w.get('[data-testid="gl-mrs"]').text()).toBe('1');
     // failed of the merged MR's deploy does not count: only open MRs
     expect(w.find('[data-testid="gl-ci-failed"]').exists()).toBe(false);
-    expect(w.find('[data-testid="gl-ci-running"]').exists()).toBe(true);
+    expect(w.get('[data-testid="gl-ci-running"]').text()).toBe('ci');
     st.mrs.value = [...st.mrs.value, mr({ sourceBranch: 'PLN-1', pipelineStatus: 'failed' })];
     await flushPromises();
-    expect(w.find('[data-testid="gl-ci-failed"]').exists()).toBe(true);
+    expect(w.get('[data-testid="gl-ci-failed"]').text()).toBe('');
     expect(w.find('[data-testid="gl-ci-running"]').exists()).toBe(false);
+    expect(w.get('[data-testid="gl-mrs"]').text()).toBe('2');
   });
 });

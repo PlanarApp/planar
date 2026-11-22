@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref } from 'vue';
 import { ChevronRight } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
-import { createTask, useMembers, type TaskView } from '../tasks';
+import { createTask, useLabels, useMembers, type TaskView } from '../tasks';
 import { Input, useBreakpoint } from '../ui';
 import { useSubtasks } from './queries';
 import ListRow from '../views/list/Row.vue';
@@ -11,15 +11,23 @@ import TaskContextMenu from '../views/TaskContextMenu.vue';
 import BulkBar from '../views/BulkBar.vue';
 import { provideSelection, useSelectionReset } from '../views/selection';
 import { dragSet, groupRanks, moveGroupLocal } from '../views/groupMove';
-import type { TaskField } from '../views/options';
+import { DEFAULT_OPTIONS, type TaskField } from '../views/options';
 
 const props = defineProps<{ task: TaskView; statuses: Row<'statuses'>[] }>();
 const emit = defineEmits<{ open: [key: string] }>();
 const { t } = useI18n();
 const subtasks = useSubtasks(props.task.id);
 const members = useMembers(() => props.task.spaceId);
-// the List row with a compact set of fields: status icon, key, title, assignee (PLNRAPP-540)
-const fields: TaskField[] = ['status', 'assignee'];
+const { isMobile } = useBreakpoint();
+const labels = useLabels(
+  () => props.task.spaceId,
+  () => props.task.projectId,
+);
+// the List row with a compact set of fields: status icon, key, title, assignee (PLNRAPP-540);
+// mobile — the List card with the List's default fields
+const fields = computed<TaskField[]>(() =>
+  isMobile.value ? DEFAULT_OPTIONS.fields : ['status', 'assignee'],
+);
 const editing = ref<string | null>(null);
 const title = ref('');
 const status = (id: string) => props.statuses.find((x) => x.id === id);
@@ -35,7 +43,6 @@ const showClosed = ref(false);
 // the List's actions (PLNRAPP-541): own selection (not the view's under the side panel), the context
 // menu and the bulk bar for it, the manual order by dragging
 const sel = provideSelection();
-const { isMobile } = useBreakpoint();
 const root = ref<HTMLElement>();
 useSelectionReset(() => root.value, sel);
 const shown = computed(() => [...open.value, ...(showClosed.value ? closed.value : [])]);
@@ -184,7 +191,7 @@ async function add() {
             :fields="fields"
             :blocked="false"
             :members="members ?? []"
-            :labels="[]"
+            :labels="labels ?? []"
             :draggable="!isMobile"
             show-key
             @click="onClick(s, $event)"
@@ -235,7 +242,7 @@ async function add() {
               :fields="fields"
               :blocked="false"
               :members="members ?? []"
-              :labels="[]"
+              :labels="labels ?? []"
               :draggable="!isMobile"
               show-key
               @click="onClick(s, $event)"
