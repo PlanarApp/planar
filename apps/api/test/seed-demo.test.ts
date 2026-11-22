@@ -176,8 +176,8 @@ describe('seed-demo', () => {
       `select hashes, (select count(*)::int from docs_pages d where d.id::text = any(select jsonb_object_keys(p.hashes))) as n
        from ai_harness_packs p where pack_key = 'dev'`,
     );
-    expect(Object.keys(pk!.hashes)).toHaveLength(12);
-    expect(pk!.n).toBe(12);
+    expect(Object.keys(pk!.hashes)).toHaveLength(13);
+    expect(pk!.n).toBe(13);
     // the pack «Продажи» lives in its own project, inactive like «Разработка»
     const [sl] = await q<{
       hashes: Record<string, string>;

@@ -59,6 +59,14 @@ export const openBlocker = (task: SQL) =>
       where k.target_id = ${task} and k.kind = 'blocks' and b.archived_at is null
         and bs.category not in ('done', 'cancelled'))`;
 
+/**
+ * PLNRAPP-776: `task` has an open subtask — it coordinates them: rules and the reconcile start no action on it
+ * (its run waiting for the subtasks is woken by their outcomes), the watchdog leaves it alone (PLNRAPP-740)
+ */
+export const openSubtasks = (task: SQL) =>
+  sql`exists (select 1 from tasks c join statuses cs on cs.id = c.status_id
+      where c.parent_id = ${task} and c.archived_at is null and cs.category not in ('done', 'cancelled'))`;
+
 /** Subtasks of the AI not finished: open, and no action run yet or the last one queued / at work / waiting */
 export async function pendingSubtasks(q: Pick<Q, 'execute'>, taskId: string, bot: string) {
   const r = await one(
@@ -341,6 +349,7 @@ export const RECONCILE_QUEUE = 'ai.engine.reconcile';
  * A done or cancelled run is left alone until the task enters the status again after it (PLNRAPP-656: the test sent
  * the task back after the dev run) — then attempt 1 anew; an active run is left alone, a task with an open blocker waits, and so
  * does a task with an active run of any action (PLNRAPP-537: the plan does not start while triage waits for answers).
+ * PLNRAPP-776: a task with open subtasks coordinates them — no action starts on it.
  * PLNRAPP-500: a pass of the engine «task control» (engines.ts); `projectId` — only the project (a manual pass).
  */
 export async function reconcilePass(api: JobApi, t: Tracker, projectId: string | null = null) {
@@ -376,6 +385,7 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
             where task_id = t.id and kind = 'updated' and changes->'statusId'->>1 = t.status_id::text) e on true
           where (l.id is null or l.state = 'failed' or (l.state in ('done', 'cancelled') and e.at > l.finished_at))
             and not ${openBlocker(sql`t.id`)}
+            and not ${openSubtasks(sql`t.id`)}
             -- PLNRAPP-679: «harness-retro» and its items are the retro's, not actions'
             and not exists (select 1 from ai_retro rt where rt.task_id in (t.id, t.parent_id))
             and not exists (select 1 from ai_runs o where o.task_id = t.id
@@ -446,6 +456,7 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
   }
   await retroPass(api, t, projectId);
   await waitingPass(api, t, projectId);
+  await unstickPass(api, t, projectId);
   await watchPass(api, t, bot, projectId);
   await ciPass(api, t, projectId);
 }
@@ -509,8 +520,7 @@ export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null
                 where c.task_id = t.id and c.resolved_at is null))
             and not exists (select 1 from ai_retro rt where rt.task_id in (t.id, t.parent_id))
             and not ${openBlocker(sql`t.id`)}
-            and not exists (select 1 from tasks c join statuses cs on cs.id = c.status_id
-              where c.parent_id = t.id and c.archived_at is null and cs.category not in ('done', 'cancelled'))
+            and not ${openSubtasks(sql`t.id`)}
             and not exists (select 1 from gitlab_mrs m where m.task_id = t.id and m.state = 'opened'
               and m.pipeline_status in ('created', 'waiting_for_resource', 'preparing', 'pending', 'running', 'scheduled'))
             and not exists (select 1 from automations_rules r where r.project_id = t.project_id and r.enabled
@@ -562,10 +572,17 @@ async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string
     await api.execute(bot, [
       { name: 'comment.create', args: { id, taskId: s.taskId, body: asDoc(text) } },
     ]);
-    // the stall the algorithm could not resolve — to the AI as an assignment (a bot's comment starts no run by itself)
-    const d = { kind: 'mention' as const, taskId: s.taskId, itemId: id };
+    // the stall the algorithm could not resolve — to the action «Разбор затыка» of the project (PLNRAPP-774), else
+    // to the AI as an assignment (a bot's comment starts no run by itself)
+    const a = await one(
+      api.db,
+      sql`select id from ai_actions where project_id = ${s.projectId} and key = ${UNSTICK}`,
+    );
+    const d: TaskRunData = a
+      ? { kind: 'action', taskId: s.taskId, actionId: a.id as string, ruleId: null }
+      : { kind: 'mention', taskId: s.taskId, itemId: id };
     await enqueueRun(api.db, api.enqueue, d, { singletonKey: keyOf(d), upsert: true });
-    await t.step(`сторож: ${s.key} — затык передан ИИ`, {
+    await t.step(`сторож: ${s.key} — затык передан ИИ${a ? ' на разбор' : ''}`, {
       projectId: s.projectId,
       taskId: s.taskId,
       level: 'action',
@@ -573,6 +590,55 @@ async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string
     t.count();
   }
 }
+
+/** PLNRAPP-774: the key of the action the watchdog hands a stall to */
+export const UNSTICK = 'unstick';
+
+/**
+ * PLNRAPP-774: the decision of a finished «Разбор затыка» — a line in the monitor's log, once (an event of the task
+ * of the run; a question has no finished_at — its last update). A move — the status rule goes on; no move — the watchdog asks a person at its next look.
+ */
+async function unstickPass(api: JobApi, t: Tracker, projectId: string | null) {
+  const found = (
+    await api.db.execute(
+      sql`select r.task_id as "taskId", r.project_id as "projectId", p.key || '-' || tk.number as key, r.state,
+            (select st.name from activity v join statuses st on st.id = (v.changes->'statusId'->>1)::uuid
+              where v.task_id = r.task_id and v.kind = 'updated' and v.changes ? 'statusId'
+                and v.created_at > r.created_at
+              order by v.created_at desc limit 1) as moved
+          from ai_runs r join ai_actions a on a.id = r.action_id and a.key = ${UNSTICK}
+          join tasks tk on tk.id = r.task_id join projects p on p.id = tk.project_id
+          where r.state in ('done', 'failed', 'waiting_human', 'cancelled')
+            and coalesce(r.finished_at, r.updated_at) > now() - interval '1 day'
+            ${projectId ? sql`and r.project_id = ${projectId}::uuid` : sql``}
+            and not exists (select 1 from ai_engine_events ev where ev.task_id = r.task_id
+              and ev.at > r.created_at and ev.text like ${`%${UNSTICK_MARK}%`})
+          limit 200`,
+    )
+  ).rows as {
+    taskId: string;
+    projectId: string;
+    key: string;
+    state: string;
+    moved: string | null;
+  }[];
+  for (const r of found) {
+    const what =
+      r.state === 'waiting_human'
+        ? 'вопрос человеку'
+        : r.moved
+          ? `задача переведена в «${r.moved}», работу продолжит правило статуса`
+          : r.state === 'done'
+            ? 'без изменений — сторож спросит человека'
+            : 'прогон не выполнен — сторож спросит человека';
+    await t.step(`сторож: ${r.key} — ${UNSTICK_MARK}: ${what}`, {
+      projectId: r.projectId,
+      taskId: r.taskId,
+      level: 'action',
+    });
+  }
+}
+const UNSTICK_MARK = 'решение разбора затыка';
 
 /**
  * PLNRAPP-740: the AI's own analysis of the stall did not move the task — the task's person gets the question

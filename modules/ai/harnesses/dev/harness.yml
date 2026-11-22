@@ -11,7 +11,21 @@ labels:
   - { key: waiting, name: Ждёт ответа, color: amber }
 fields:
   - { key: budget, name: Бюджет, type: number }
-actions: [plan, decompose, triage, discussion, assign, mention, checklist, chat, dev, review, test]
+actions:
+  [
+    plan,
+    decompose,
+    triage,
+    discussion,
+    assign,
+    mention,
+    checklist,
+    chat,
+    dev,
+    review,
+    test,
+    unstick,
+  ]
 rules:
   - key: dev_in_todo
     name: Разработка

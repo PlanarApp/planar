@@ -1060,6 +1060,34 @@ describe('движок: приёмка, доработка, надзор, све
     ]);
   });
 
+  it('сверка и правила: задача с открытыми подзадачами их координирует — действие статуса на ней не запускается (PLNRAPP-776)', async () => {
+    const { id: ruleId } = await rule({ type: 'task.status_changed', to: [S.backlog] }, [
+      { type: 'ai_run', aiActionId: actionId },
+    ]);
+    const t = await task({ statusId: S.backlog });
+    const sub = await task({ parentId: t });
+    jobs.length = 0;
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    await reconcile();
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toHaveLength(0);
+    // the rule's event: no run either
+    await handler('ai', 'ai.run')(
+      { kind: 'action', taskId: t, actionId, ruleId, statusId: S.backlog },
+      api,
+    );
+    expect(await runsOf(t)).toHaveLength(0);
+    // the subtasks are closed — the action of the status goes
+    await w.admin.ok('task.update', { id: sub, statusId: S.done });
+    jobs.length = 0;
+    await reconcile();
+    expect(jobs).toEqual([
+      expect.objectContaining({
+        queue: 'ai.run',
+        data: expect.objectContaining({ taskId: t, actionId }),
+      }),
+    ]);
+  });
+
   it('сверка: задача снова вошла в статус после принятого прогона — запуск заново с попытки 1 (PLNRAPP-656)', async () => {
     await rule({ type: 'task.status_changed', to: [S.backlog] }, [
       { type: 'ai_run', aiActionId: actionId },
@@ -1180,6 +1208,47 @@ describe('движок: приёмка, доработка, надзор, све
     expect((await runsOf(stuck)).at(-1)!.state).toBe('done');
     await drain();
     expect((await taskRow(stuck)).status_id).toBe(inProgress);
+  });
+
+  it('сторож: затык — действию «Разбор затыка», его прогон видит прогоны ИИ задачи; решение — в логе монитора (PLNRAPP-774)', async () => {
+    const unstick = await action({ key: 'unstick', name: 'Разбор затыка', checks: [] });
+    const inProgress = await status('В работе', 'in_progress');
+    const t = await task({ statusId: inProgress });
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, action_id, state, attempt, chain_id, chain_depth, report, log)
+       values ($1, $2, $3, 'action', $4, 'failed', 3, $1, 0, '{"failures":["MR не открыт"]}'::jsonb, 'agent: glab: 401 Unauthorized\n')`,
+      [uuidv7(), t, P, actionId],
+    );
+    await raw(`update tasks set created_at = now() - interval '3 hours' where id = $1`, [t]);
+    await raw(`update activity set created_at = now() - interval '3 hours' where task_id = $1`, [
+      t,
+    ]);
+    jobs.length = 0;
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    await reconcile();
+    expect(jobs.filter((j) => j.queue === 'ai.run').map((j) => j.data)).toEqual([
+      expect.objectContaining({ kind: 'action', taskId: t, actionId: unstick }),
+    ]);
+    answers = [result({ comment: 'Токен GitLab обновлён — повтор разработки', moveTo: 'todo' })];
+    await drain();
+    const prompt = calls.at(-1)!.prompt;
+    expect(prompt).toContain('## Прогоны ИИ');
+    expect(prompt).toMatch(
+      /Планирование — ошибка, попытка 3\. Замечания: MR не открыт\. Журнал: …agent: glab: 401/,
+    );
+    expect((await taskRow(t)).status_id).toBe(S.todo);
+    await reconcile();
+    await reconcile();
+    const lines = (
+      await raw(`select text from ai_engine_events where task_id = $1 and text like '%разбора%'`, [
+        t,
+      ])
+    ).map((e) => e.text as string);
+    expect(lines, JSON.stringify(lines)).toEqual([
+      expect.stringMatching(
+        /решение разбора затыка: задача переведена в «.+», работу продолжит правило статуса$/,
+      ),
+    ]);
   });
 
   it('сторож: старая жалоба без прогона ИИ — сначала разбор ИИ, а не вопрос человеку (PLNRAPP-773)', async () => {
