@@ -2,6 +2,9 @@
 @import './ui/tokens.css';
 @source '../../../modules/*/web/**/*.{vue,ts}';
 @custom-variant dark (&:where(.dark, .dark *));
+/* PLNRAPP-705: the list area is narrow / wide — the class is set by views/list/View.vue by the real row width */
+@custom-variant list-narrow (&:where(.list-narrow *));
+@custom-variant list-wide (&:where(.list-wide *));
 
 html,
 body,

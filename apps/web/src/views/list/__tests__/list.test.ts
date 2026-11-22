@@ -37,7 +37,8 @@ const r = router.current as import('vue-router').Router;
 
 // happy-dom doesn't compute the layout: give the list the window height
 Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, value: 600 });
-Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 800 });
+// PLNRAPP-705: wide enough for the one-line row with the columns (the narrow threshold depends on them)
+Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 1600 });
 
 const opts = (o: Partial<ViewOptions> = {}): ViewOptions => ({
   groupBy: 'status',
@@ -142,9 +143,7 @@ describe('list:groups', () => {
     w.unmount();
     await show();
     // PLNRAPP-705: обрезается только в широкой области списка
-    expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain(
-      '@min-[720px]/list:truncate',
-    );
+    expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain('list-wide:truncate');
     expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(true);
   });
   it('PLNRAPP-705 узкая область списка: те же поля, название без обрезки, строка растёт', async () => {
@@ -169,23 +168,23 @@ describe('list:groups', () => {
     Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 500 });
     try {
       await show(o);
-      // раскладка — container query по области списка
-      expect(w.get('[role=grid]').classes()).toContain('@container/list');
+      // раскладка — класс области списка (вариант list-narrow:)
+      expect(w.get('[role=grid]').classes()).toContain('list-narrow');
       expect(shape()).toEqual(wide);
       const title = row('PLN-2').get('[data-testid=row-title]');
       expect(title.text()).toBe('Длинное название задачи в узком списке');
       expect(title.classes()).not.toContain('truncate');
       expect(title.classes()).toContain('break-words');
-      expect(title.classes()).toContain('@max-[720px]/list:flex-1');
+      expect(title.classes()).toContain('list-narrow:flex-1');
       // вторая строка: родитель, метки, исполнители, сроки, остальные колонки, иконки
       expect(row('PLN-2').get('[data-testid=row-cols]').classes()).toContain(
-        '@max-[720px]/list:contents',
+        'list-narrow:contents',
       );
       const order = (el: { classes: () => string[] }) =>
         Number(
           el
             .classes()
-            .find((c) => c.startsWith('@max-[720px]/list:order-'))
+            .find((c) => c.startsWith('list-narrow:order-'))
             ?.split('-')
             .pop(),
         );
@@ -204,6 +203,38 @@ describe('list:groups', () => {
       expect(box.style.height).toBe('');
     } finally {
       Object.defineProperty(HTMLElement.prototype, 'clientWidth', cw);
+    }
+  });
+  it('PLNRAPP-705 порог узкого режима — по ширине колонок, а не фиксированные 720 px', async () => {
+    await db.table('tasks').put(task(1));
+    const cw = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth')!;
+    const at = async (width: number, fields: ViewOptions['fields']) => {
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+        configurable: true,
+        value: width,
+      });
+      await show({ groupBy: 'none', fields });
+      const c = w.get('[role=grid]').classes();
+      w.unmount();
+      return c.includes('list-narrow') ? 'narrow' : c.includes('list-wide') ? 'wide' : '?';
+    };
+    try {
+      // без колонок — прежний порог 720 px
+      expect(await at(719, ['status'])).toBe('narrow');
+      expect(await at(800, ['status'])).toBe('wide');
+      // с колонками 800 px мало: родителю и названию не хватило бы места — две строки
+      const cols = [
+        'status',
+        'assignee',
+        'dueDate',
+        'priority',
+        'project',
+      ] as ViewOptions['fields'];
+      expect(await at(800, cols)).toBe('narrow');
+      expect(await at(1600, cols)).toBe('wide');
+    } finally {
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', cw);
+      await show();
     }
   });
   it('list:groups подзадачи скрыты, пока showSubtasks=false', async () => {
@@ -1046,12 +1077,9 @@ describe('строка Списка — данные карточки (PLNRAPP-7
     expect(label.text()).toContain('PLN-1');
     expect(label.text()).toContain('t1');
     expect(label.attributes('title')).toBe('PLN-1 t1');
-    // PLNRAPP-705: в тесной широкой строке (область 720–880 px) родитель ужимается раньше названия —
-    // название не сжимается до нуля и не переносится по букве
-    expect(label.classes()).toEqual(
-      expect.arrayContaining(['min-w-0', 'shrink-[1000]', 'overflow-hidden']),
-    );
-    expect(label.classes()).not.toContain('shrink-0');
+    // PLNRAPP-705: родитель не ужимается в ноль — не уже ключа
+    expect(label.classes()).toContain('min-w-20');
+    expect(label.classes()).not.toContain('min-w-0');
   });
   it('значок ИИ (работает) — в строке; при колонке «ИИ» — только в колонке', async () => {
     const t = task(1);
