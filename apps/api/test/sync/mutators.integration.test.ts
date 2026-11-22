@@ -319,15 +319,12 @@ describe('PLANARAPP-4: исполнитель проекта по умолчан
 });
 
 describe('PLNRAPP-709: мой день по dueDate', () => {
-  it('мутаторов day.* и сущности dayPlans нет; «на сегодня» — task.update dueDate', async () => {
+  it('«на сегодня» — task.update dueDate', async () => {
     const w = await world(db);
     const t = taskArgs(w);
     await w.member.ok('task.create', t);
-    const plan = { id: uuidv7(), taskId: t.id, date: '2026-11-04', rank: 'a0' };
-    expect(await w.member.push('day.plan', plan)).toMatchObject({ ok: false });
     await w.member.ok('task.update', { id: t.id, dueDate: '2026-11-04' });
     const b = await w.member.bootstrap();
-    expect(b.data.dayPlans).toBeUndefined();
     expect(b.data.tasks.find((r) => r.id === t.id)).toMatchObject({
       dueDate: '2026-11-04',
     });

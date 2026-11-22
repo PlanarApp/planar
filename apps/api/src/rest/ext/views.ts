@@ -220,7 +220,7 @@ const favorites: ExtOp[] = [
   },
 ];
 
-// «My day» (PLNRAPP-709): the user's tasks (assignee) by dueDate; read only — the plan date is gone (PLNRAPP-711),
+// «My day» (PLNRAPP-709, PLNRAPP-711): the user's tasks (assignee) by dueDate; read only,
 // a task is planned by its dueDate (update_task)
 const day: ExtOp[] = [
   {
