@@ -13,7 +13,7 @@ import {
   type TaskView,
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
-import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Sun } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal } from 'lucide-vue-next';
 import { COLUMN_CLASS, NARROW_ORDER, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
@@ -60,8 +60,6 @@ const props = defineProps<{
   showKey?: boolean;
   /** mobile card: tag names instead of tag icons */
   labelNames?: boolean;
-  /** in today's «My day» plan — a sun before the name */
-  inDay?: boolean;
   /** the Cards view: a card on desktop too */
   cards?: boolean;
 }>();
@@ -345,13 +343,6 @@ function save() {
         <!-- PLNRAPP-704: значок ИИ (работает / ошибка), как у карточки; при колонке «ИИ» — в ней -->
         <TaskAiStatus v-if="!columns.includes('ai')" :task="task" @click.stop @dblclick.stop />
         <BlockedIcon v-if="blocked" />
-        <Sun
-          v-if="inDay"
-          :size="14"
-          class="shrink-0 text-warning"
-          :aria-label="t('myDay.inDay')"
-          data-testid="row-in-day"
-        />
         <button
           v-if="showKey"
           type="button"

@@ -57,7 +57,6 @@ test('PLNRAPP-79: s/a/m/d на задаче, в Списке и в боково�
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.press('j');
   await page.keyboard.press('d');
-  await expect(first.getByTestId('row-in-day')).toBeVisible();
   await page.keyboard.press('s');
   await expect(page.getByRole('listbox')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -67,12 +66,15 @@ test('PLNRAPP-79: s/a/m/d на задаче, в Списке и в боково�
   await page.keyboard.press('Enter');
   const side = page.getByTestId('task-side');
   await expect(side).toContainText(f.taskKeys[0]);
+  // PLNRAPP-712: «Мой день» — это срок задачи; d в Списке поставил срок, отдельной отметки дня нет
+  await expect(side.getByTestId('task-dates-value')).toBeVisible();
+  await expect(first.getByTestId('row-in-day')).toHaveCount(0);
   await page.keyboard.press('a');
   await expect(page.getByRole('listbox')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('listbox')).toBeHidden();
   await page.keyboard.press('d');
-  await expect(first.getByTestId('row-in-day')).toBeHidden();
+  await expect(side.getByTestId('task-dates-value')).toBeHidden();
   await page.keyboard.press('m');
   await expect(side.locator('[contenteditable=true]:focus')).toBeVisible();
 });
