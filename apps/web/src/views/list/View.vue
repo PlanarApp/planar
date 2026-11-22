@@ -597,7 +597,7 @@ function listKey(key: string): boolean {
     F2: () => task && !asCards.value && startEdit(focusedId.value!), // edit, not opening after a click
     Escape: () => sel.clear(),
     ...(own && {
-      d: () => task && void toggleToday(task.id, day.value),
+      d: () => task && void toggleToday(task),
       s: () => task && pick(task, 'status', 's'),
       a: () => task && pick(task, 'assignee', 'a'),
       m: () => task && openTaskFor(task.key, 'm'),

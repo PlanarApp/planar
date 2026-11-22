@@ -264,26 +264,57 @@ describe('виды, избранное, Мой день, уведомления'
     expect(rows).toEqual([{ user_id: w.member.userId }]);
   });
 
-  it('Мой день: запланировать, перенести, только свой, убрать', async () => {
-    const [s0, p] = await rest(admin, 'POST', '/my-day', { taskId, date: '2030-01-02' });
-    expect([s0, p.data.taskId, p.data.date]).toEqual([201, taskId, '2030-01-02']);
-    expect((await rest(admin, 'POST', '/my-day', { taskId, date: '2030-01-02' }))[1].data.id).toBe(
-      p.data.id,
-    );
-    expect((await rest(admin, 'GET', '/my-day?date=2030-01-02'))[1].data).toHaveLength(1);
+  // PLNRAPP-709: «My day» — my tasks (assignee) by dueDate; plan / move / remove change the task's dueDate
+  it('Мой день по dueDate: запланировать, перенести, убрать; только задачи, где я исполнитель', async () => {
+    const [, t] = await rest(admin, 'POST', '/tasks', {
+      projectId: w.projectId,
+      title: 'D',
+      priority: 2,
+      assigneeIds: [w.admin.userId],
+    });
+    const tid = t.data.id as string;
+    const [s0, p] = await rest(admin, 'POST', '/my-day', { taskId: tid, date: '2030-01-02' });
+    expect([s0, p.data.id, p.data.dueDate]).toEqual([201, tid, '2030-01-02']);
+    expect(
+      (await rest(admin, 'GET', '/my-day?date=2030-01-02'))[1].data.map(
+        (x: { id: string }) => x.id,
+      ),
+    ).toEqual([tid]);
     expect((await rest(admin, 'GET', '/my-day?date=2030-01-03'))[1].data).toHaveLength(0);
+    // not an assignee: the task is not in the member's day
     expect((await rest(member, 'GET', '/my-day'))[1].data).toEqual([]);
-    expect((await rest(outsider, 'POST', '/my-day', { taskId, date: '2030-01-02' }))[0]).toBe(404);
-    expect((await rest(read, 'POST', '/my-day', { taskId, date: '2030-01-05' }))[0]).toBe(403);
-    expect((await rest(member, 'PATCH', `/my-day/${p.data.id}`, { date: '2030-01-04' }))[0]).toBe(
+    expect((await rest(outsider, 'POST', '/my-day', { taskId: tid, date: '2030-01-02' }))[0]).toBe(
       404,
     );
-    expect(
-      (await rest(admin, 'PATCH', `/my-day/${p.data.id}`, { date: '2030-01-04' }))[1].data.date,
-    ).toBe('2030-01-04');
-    expect((await rest(member, 'DELETE', `/my-day/${p.data.id}`))[0]).toBe(404);
-    expect((await rest(read, 'DELETE', `/my-day/${p.data.id}`))[0]).toBe(403);
-    expect((await rest(admin, 'DELETE', `/my-day/${p.data.id}`))[0]).toBe(204);
+    expect((await rest(read, 'POST', '/my-day', { taskId: tid, date: '2030-01-05' }))[0]).toBe(403);
+    expect((await rest(member, 'PATCH', `/my-day/${tid}`, { date: '2030-01-04' }))[0]).toBe(404);
+    // sorting: by dueDate, then priority (0 «none» last), then key
+    const [, u] = await rest(admin, 'POST', '/tasks', {
+      projectId: w.projectId,
+      title: 'E',
+      priority: 1,
+      dueDate: '2030-01-04',
+      assigneeIds: [w.admin.userId],
+    });
+    const [, v] = await rest(admin, 'POST', '/tasks', {
+      projectId: w.projectId,
+      title: 'F',
+      dueDate: '2030-01-01',
+      assigneeIds: [w.admin.userId],
+    });
+    const [s1, m] = await rest(admin, 'PATCH', `/my-day/${tid}`, { date: '2030-01-04' });
+    expect([s1, m.data.dueDate]).toEqual([200, '2030-01-04']);
+    const day = (await rest(admin, 'GET', '/my-day'))[1].data.map((x: { id: string }) => x.id);
+    expect(day.filter((x: string) => [tid, u.data.id, v.data.id].includes(x))).toEqual([
+      v.data.id,
+      u.data.id,
+      tid,
+    ]);
+    expect((await rest(member, 'DELETE', `/my-day/${tid}`))[0]).toBe(404);
+    expect((await rest(read, 'DELETE', `/my-day/${tid}`))[0]).toBe(403);
+    expect((await rest(admin, 'DELETE', `/my-day/${tid}`))[0]).toBe(204);
+    const [, after] = await rest(admin, 'GET', `/tasks/${tid}`);
+    expect(after.data.dueDate).toBeNull();
   });
 
   it('уведомления: список, прочитано, всё прочитано, удалить; чужие недоступны', async () => {

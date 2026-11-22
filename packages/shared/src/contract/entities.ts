@@ -267,16 +267,6 @@ export const entitySchemas = {
     readAt: ts.nullable(),
     createdAt: ts,
   }),
-  /** «My day» (PLANARAPP-10): a task the user plans for a date; personal, in the user's order */
-  dayPlans: z.object({
-    id: uuid,
-    userId: uuid,
-    taskId: uuid,
-    date: z.iso.date(),
-    rank: z.string().min(1),
-    createdAt: ts,
-    updatedAt: ts,
-  }),
   /**
    * Favourites (PLNRAPP-124): personal, in the user's order; refId — the entity id ('w' for the workspace),
    * name and url — a snapshot at the time of adding (nodes show their live name)
@@ -400,7 +390,6 @@ export const ENTITIES = {
   },
   activity: { scope: 'space', write: 'server', bootstrap: false, indexes: ['taskId'] },
   notifications: { scope: 'user', write: 'self', bootstrap: true, indexes: ['taskId', 'userId'] },
-  dayPlans: { scope: 'user', write: 'self', bootstrap: true, indexes: ['taskId'] },
   favorites: { scope: 'user', write: 'self', bootstrap: true, indexes: ['refId'] },
   savedViews: { scope: 'space|user', write: 'member|self', bootstrap: true, indexes: ['spaceId'] },
   settings: { scope: 'global', write: 'instance_admin', bootstrap: true, indexes: [] },

@@ -95,7 +95,8 @@ beforeAll(async () => {
 
   before = await dues();
   await q(`delete from changes`); // so that the only row after the migration is the one it writes
-  j.entries = all;
+  // only 0078: 0079 drops day_plans (PLNRAPP-709)
+  j.entries = all.filter((e: { idx: number }) => e.idx <= 78);
   writeFileSync(jp, JSON.stringify(j));
   await migrate(db, tmp); // 0078
 }, 120_000);

@@ -147,7 +147,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Customer interview synthesis', 3, 2, -6, 'demo,sofia', 'research'],
       ['Public beta announcement plan', 2, 4, 0, 'maya,demo', 'feature'], // due today: due_today (PLNRAPP-161)
       ['Pricing page experiments', 2, 3, 9, 'sofia', 'improvement'],
-      ['Onboarding checklist for new workspaces', 1, 3, 12, 'demo', 'feature'],
+      ['Onboarding checklist for new workspaces', 1, 3, 0, 'demo,maya', 'feature'], // My day: today
       ['Reduce time-to-first-task', 1, 2, 18, 'demo,liam', 'improvement'],
       ['Import from CSV: edge cases', 2, 3, -2, 'noah', 'bug'],
       ['Usage analytics dashboard spec', 1, 2, 25, 'sofia', 'docs'],
@@ -170,7 +170,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Add API v2 pagination', 2, 4, 3, 'liam,demo', 'feature'],
       ['Search index rebuild is slow', 2, 4, -1, 'noah', 'bug'],
       ['Audit log export', 2, 3, 6, 'omar', 'feature'],
-      ['Write API v2 migration guide', 1, 2, 8, 'demo', 'docs'],
+      ['Write API v2 migration guide', 1, 2, 0, 'demo,maya', 'docs'], // My day: today
       ['Upgrade Postgres to 17', 1, 3, 20, 'liam', 'improvement'],
       ['Flaky e2e test on Safari', 1, 2, 5, 'jack', 'bug'],
       ['Background job dashboard', 1, 2, 11, 'omar', 'feature'],
@@ -210,7 +210,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Launch landing page copy', 2, 4, 3, 'emma,demo', 'docs'],
       ['Press kit and logos', 2, 3, 8, 'emma', 'docs'],
       ['Product Hunt launch plan', 1, 4, 20, 'sofia,emma', 'feature'],
-      ['Launch webinar outline', 1, 3, 26, 'demo', 'research'],
+      ['Launch webinar outline', 1, 3, 1, 'demo,maya', 'research'], // My day: tomorrow
       ['Email sequence for beta users', 2, 3, -3, 'emma', 'feature'],
       ['Partner outreach list', 3, 2, -11, 'sofia', 'research'],
       ['Case study: Northwind Logistics', 1, 2, 30, 'emma', 'docs'],
@@ -242,7 +242,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
     icon: '💬',
     tasks: [
       ['Article: connecting GitLab', 3, 2, -10, 'jack', 'docs'],
-      ['Article: setting up recurring tasks', 2, 2, 5, 'demo', 'docs'],
+      ['Article: setting up recurring tasks', 2, 2, -1, 'demo,maya', 'docs'], // My day: carry over
       ['Refund request from Acme Corp', 2, 4, -1, 'omar', 'bug'],
       ['Triage backlog of old tickets', 1, 3, 4, 'jack,omar', 'improvement'],
       ['Chatbot answers review', 1, 2, 19, 'demo', 'research'],
@@ -1898,25 +1898,9 @@ async function insertAll(tx: Tx, now: Date) {
     })),
   );
 
-  // «My day» of demo and the tasks demo watches
-  const myDay: [string, number][] = [
-    ['RDM', 4],
-    ['PLT', 6],
-    ['MKT', 3],
-    ['SUP', 1],
-  ];
-  await ins(
-    s.dayPlans,
-    myDay.map(([key, i], k) => ({
-      id: uid(`dayplan:${key}:${i}`),
-      userId: uid_.maya,
-      taskId: tid(key, i),
-      date: day(0),
-      rank: generateNKeysBetween(null, null, myDay.length)[k],
-      createdAt: at(0, 8),
-      updatedAt: at(0, 8),
-    })),
-  );
+  // «My day» (PLNRAPP-709) is built from tasks by dueDate: maya is an assignee of RDM-3, RDM-5, PLT-7 (today),
+  // MKT-4 (tomorrow) and SUP-2 (overdue — «Carry over to today») in PROJECTS
+  // the tasks demo watches
   const watched: [string, number][] = [
     ['PLT', 4],
     ['MOB', 2],

@@ -554,6 +554,13 @@
       "when": 1795929600000,
       "tag": "0078_day_plan_due_date",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1796016000000,
+      "tag": "0079_drop_day_plans",
+      "breakpoints": true
     }
   ]
 }

@@ -548,7 +548,16 @@ describe('list:keys', () => {
   it('PLNRAPP-80 D добавляет задачу в «Мой день» (солнце в строке) и убирает', async () => {
     const { useAuth } = await import('../../../auth/useAuth');
     useAuth().user.value = { id: ids.ann } as never;
-    await db.table('tasks').put(task(1));
+    // PLNRAPP-709: «My day» — my tasks (assignee) due today; D sets / clears dueDate
+    const t1 = task(1);
+    await db.table('tasks').put(t1);
+    await db.table('taskAssignees').put({
+      id: id(),
+      taskId: t1.id,
+      userId: ids.ann,
+      createdAt: t1.createdAt,
+      updatedAt: t1.updatedAt,
+    });
     await show();
     expect(row('PLN-1').find('[data-testid=row-in-day]').exists()).toBe(false);
     await key('j');
@@ -556,6 +565,7 @@ describe('list:keys', () => {
     await until(() => row('PLN-1').find('[data-testid=row-in-day]').exists());
     await key('d');
     await until(() => !row('PLN-1').find('[data-testid=row-in-day]').exists());
+    expect((await db.table('tasks').get(t1.id))?.dueDate).toBeNull();
   });
   it('list:keys x выделяет, Esc снимает', async () => {
     await db.table('tasks').put(task(1));

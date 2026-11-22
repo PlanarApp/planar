@@ -1,16 +1,16 @@
 import { z } from 'zod';
 import { uuidv7 } from '@planar/shared';
 import { toWire } from '../../sync/rows.js';
-import type { ExtArea, ExtOp } from './types.js';
+import type { ExtArea, ExtDeps, ExtOp } from './types.js';
 import {
+  dayTask,
   listDay,
   listFavorites,
   listNotifications,
   listViews,
-  nextRank,
+  nextFavoriteRank,
   nextViewRank,
   ownFavorite,
-  ownPlan,
   requireFavoriteRef,
   requireNode,
   requireOwnNotifications,
@@ -180,7 +180,7 @@ const favorites: ExtOp[] = [
         [
           {
             name: 'favorite.add',
-            args: { ...a, id: uuidv7(), rank: a.rank ?? (await nextRank(d, u, 'fav')) },
+            args: { ...a, id: uuidv7(), rank: a.rank ?? (await nextFavoriteRank(d, u)) },
           },
         ],
         tok,
@@ -222,11 +222,20 @@ const favorites: ExtOp[] = [
   },
 ];
 
+// «My day» (PLNRAPP-709): the user's tasks (assignee) by dueDate; planning and moving change the task's dueDate
+const setDue = (
+  d: ExtDeps,
+  u: string,
+  tok: string | undefined,
+  taskId: string,
+  dueDate: string | null,
+) => d.run(u, [{ name: 'task.update', args: { id: taskId, dueDate } }], tok);
+
 const day: ExtOp[] = [
   {
     tool: 'list_my_day',
     description:
-      'Мой день: задачи, запланированные текущим пользователем (date — один день, иначе все)',
+      'Мой день: задачи, где текущий пользователь исполнитель, со сроком (date — срок в этот день, иначе все со сроком); по сроку, приоритету и ключу',
     method: 'get',
     path: '/api/v1/my-day',
     shape: { date: date.optional() },
@@ -236,45 +245,37 @@ const day: ExtOp[] = [
   {
     tool: 'plan_my_day',
     description:
-      'Запланировать задачу на дату в «Моём дне»; повтор на ту же дату возвращает существующую запись',
+      'Запланировать задачу на дату в «Моём дне»: ставит задаче срок (dueDate); в «Мой день» попадают задачи, где пользователь исполнитель',
     method: 'post',
     path: '/api/v1/my-day',
-    shape: { taskId: id, date, rank: rank.optional() },
+    shape: { taskId: id, date },
     write: true,
     status: 201,
     run: async (d, u, i, tok) => {
-      const a = i as { taskId: string; date: string; rank?: string };
+      const a = i as { taskId: string; date: string };
       await requireTask(d, u, a.taskId);
-      await d.run(
-        u,
-        [
-          {
-            name: 'day.plan',
-            args: { ...a, id: uuidv7(), rank: a.rank ?? (await nextRank(d, u, 'day', a.date)) },
-          },
-        ],
-        tok,
-      );
-      return (await listDay(d, u, a.date)).find((p) => p.taskId === a.taskId);
+      await setDue(d, u, tok, a.taskId, a.date);
+      return (await listDay(d, u, a.date, a.taskId))[0] ?? null;
     },
   },
   {
     tool: 'move_my_day',
-    description: 'Перенести запись «Моего дня» на другую дату и/или место (date, rank)',
+    description:
+      'Перенести задачу «Моего дня» на другую дату: меняет срок (dueDate); id — id задачи',
     method: 'patch',
     path: '/api/v1/my-day/{id}',
-    shape: { id, date: date.optional(), rank: rank.optional() },
+    shape: { id, date },
     write: true,
     run: async (d, u, i, tok) => {
-      const a = i as { id: string };
-      await ownPlan(d, u, a.id);
-      await d.run(u, [{ name: 'day.move', args: a }], tok);
-      return toWire('dayPlans', await ownPlan(d, u, a.id));
+      const a = i as { id: string; date: string };
+      await dayTask(d, u, a.id);
+      await setDue(d, u, tok, a.id, a.date);
+      return dayTask(d, u, a.id);
     },
   },
   {
     tool: 'remove_my_day',
-    description: 'Убрать запись из «Моего дня»',
+    description: 'Убрать задачу из «Моего дня»: очищает срок (dueDate); id — id задачи',
     method: 'delete',
     path: '/api/v1/my-day/{id}',
     shape: { id },
@@ -283,8 +284,8 @@ const day: ExtOp[] = [
     status: 204,
     run: async (d, u, i, tok) => {
       const a = i as { id: string };
-      await ownPlan(d, u, a.id);
-      await d.run(u, [{ name: 'day.remove', args: a }], tok);
+      await dayTask(d, u, a.id);
+      await setDue(d, u, tok, a.id, null);
     },
   },
 ];

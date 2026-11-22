@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v30
+## C-schema v31
+
+v31 (PLNRAPP-709): the personal entity `dayPlans` is removed — «My day» is built from the user's tasks (assignee) by `tasks.dueDate`; the DB table `day_plans` is dropped (its dates were moved to `tasks.due_date` by migration 0078).
 
 v30 (PLNRAPP-576): `tasks.commentsAssigned`, `tasks.commentsResolved`, `tasks.commentsOpenAssignees` — counters of the task's own assigned comments (subtasks are not summed), written only by the server — core-schema.md; REST v1 task += `assignedComments: {total, resolved, assignedToMe}` — core-api-v1.md.
 
@@ -45,7 +47,7 @@ v21 (PLNRAPP-124): the personal entity `favorites` (favourites synced between de
 
 v20 (PLANARAPP-61): `notifications.kind` += `trial_ending` (cloud instance: to owners and admins when ≤ 30 days of the trial are left, `url` — `/settings/cloud`; docs/contracts/cloud-link.md).
 
-v19 (PLANARAPP-10): the personal entity `dayPlans` («My day»: a task planned by the user for a date) — core-schema.md.
+v19 (PLANARAPP-10): the personal entity `dayPlans` («My day»: a task planned by the user for a date); removed in v31.
 
 v18 (PLANARAPP-3, -4): `spaces.leadId` (the space lead) and `projects.defaultAssigneeId` (the assignee of a new task created without assignees), both nullable — core-schema.md.
 
@@ -312,7 +314,9 @@ Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from th
 
 v3: details of a task are kept only while it is in `_held` (bootstrap `held`, `POST /sync/tasks`); opening a task updates `accessedAt`. Cooling: the leader tab, when the queue is empty, deletes the details, the `_held` row and the task's y-indexeddb database for tasks not accessed for 30 days, except «my» open tasks; the protocol does not change — a cooled task is loaded again via `POST /sync/tasks`. `reset` and a change of the protocol version clear `_held` too. Prefetch (PLNRAPP-488): hovering a task (`[data-task-id]`) and, in idle time, the tasks rendered on the page are loaded via `POST /sync/tasks` — only those not in `_held`, batches of ≤ `SYNC_TASKS_MAX` ids, at most one request per 500 ms; prefetch does not update `accessedAt`; `forbidden`/`not_found` are not prefetched again until `stopSync`.
 
-## C-mutators v22
+## C-mutators v23
+
+v23 (PLNRAPP-709): `day.plan`, `day.move`, `day.remove` are removed — «My day» changes `tasks.dueDate` with `task.update`.
 
 v22 (PLNRAPP-372): `comment.create` += `attachments?`, `comment.update` += `attachments?`, `removeAttachments?`; `attachment.delete` of a comment's file — its author or the uploader — core-mutators.md.
 

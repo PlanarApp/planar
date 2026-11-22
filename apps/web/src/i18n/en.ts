@@ -170,8 +170,8 @@ export default {
     title: 'My day',
     inDay: 'In my day',
     empty:
-      'Nothing planned for today — add tasks from the «Due date» menu or «Add to my day» in a task menu.',
-    dropHere: 'Drag a task here',
+      'Nothing due today — set today as the due date of your task in the «Due date» menu or with «Add to my day» in a task menu.',
+    none: 'No tasks',
     block: { today: 'Today', tomorrow: 'Tomorrow', later: 'Later' },
     left: '{n} of {total} left',
     postpone: 'Unfinished — to tomorrow',

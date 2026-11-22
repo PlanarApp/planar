@@ -1,51 +1,27 @@
-// PLANARAPP-10: «My day» — day.plan / day.move / day.remove (C-schema v19, C-mutators v16)
+// PLNRAPP-709: «My day» works on tasks.dueDate — day.* mutators and dayPlans are gone (C-schema v31, C-mutators v23)
 import { describe, expect, it } from 'vitest';
-import { U1, U2, code, ctx, id, mem, run, seedSpace, seedTask } from './helpers';
+import { ENTITIES, createRegistry, domainMutators } from '../../src/index';
+import { mem, run, seedSpace, seedTask } from './helpers';
 
-describe('PLANARAPP-10: мой день', () => {
-  it('day.plan: строка владельца; повтор той же задачи на ту же дату — ничего', async () => {
-    const tx = mem();
-    const s = await seedSpace(tx);
-    const t = await seedTask(tx, s);
-    const a = id();
-    await run(tx, 'day.plan', { id: a, taskId: t, date: '2026-11-04', rank: 'a0' });
-    await run(tx, 'day.plan', { id: id(), taskId: t, date: '2026-11-04', rank: 'a1' });
-    const rows = await tx.scan('dayPlans', { index: 'taskId', eq: t });
-    expect(rows).toMatchObject([{ id: a, userId: U1, taskId: t, date: '2026-11-04', rank: 'a0' }]);
-    // another day is another plan
-    await run(tx, 'day.plan', { id: id(), taskId: t, date: '2026-11-05', rank: 'a0' });
-    expect(await tx.scan('dayPlans', { index: 'taskId', eq: t })).toHaveLength(2);
+describe('PLNRAPP-709: мой день по dueDate', () => {
+  it('нет мутаторов day.* и сущности dayPlans', () => {
+    const reg = createRegistry(domainMutators);
+    for (const n of ['day.plan', 'day.move', 'day.remove']) expect(reg.get(n)).toBeUndefined();
+    expect(Object.keys(ENTITIES)).not.toContain('dayPlans');
   });
 
-  it('day.plan несуществующей задачи → not_found', async () => {
-    const tx = mem();
-    await seedSpace(tx);
-    expect(
-      await code(run(tx, 'day.plan', { id: id(), taskId: id(), date: '2026-11-04', rank: 'a0' })),
-    ).toBe('not_found');
-  });
-
-  it('day.move переносит на другой день и меняет порядок; day.remove удаляет', async () => {
+  it('«на сегодня», «на завтра», «перенести» ставят dueDate, «убрать из дня» очищает', async () => {
     const tx = mem();
     const s = await seedSpace(tx);
-    const t = await seedTask(tx, s);
-    const a = id();
-    await run(tx, 'day.plan', { id: a, taskId: t, date: '2026-11-03', rank: 'a0' });
-    await run(tx, 'day.move', { id: a, date: '2026-11-04' });
-    expect(await tx.get('dayPlans', a)).toMatchObject({ date: '2026-11-04', rank: 'a0' });
-    await run(tx, 'day.move', { id: a, rank: 'b0' });
-    expect(await tx.get('dayPlans', a)).toMatchObject({ date: '2026-11-04', rank: 'b0' });
-    await run(tx, 'day.remove', { id: a });
-    expect(await tx.get('dayPlans', a)).toBeUndefined();
-  });
-
-  it('чужой план нельзя двигать и удалять', async () => {
-    const tx = mem();
-    const s = await seedSpace(tx);
-    const t = await seedTask(tx, s);
-    const a = id();
-    await run(tx, 'day.plan', { id: a, taskId: t, date: '2026-11-04', rank: 'a0' });
-    expect(await code(run(tx, 'day.move', { id: a, rank: 'b0' }, ctx(U2)))).toBe('forbidden');
-    expect(await code(run(tx, 'day.remove', { id: a }, ctx(U2)))).toBe('forbidden');
+    const t = await seedTask(tx, s, { dueDate: '2026-11-20' });
+    // carry over: an overdue task → today
+    await run(tx, 'task.update', { id: t, dueDate: '2026-11-22' });
+    expect(await tx.get('tasks', t)).toMatchObject({ dueDate: '2026-11-22' });
+    // to tomorrow
+    await run(tx, 'task.update', { id: t, dueDate: '2026-11-23' });
+    expect(await tx.get('tasks', t)).toMatchObject({ dueDate: '2026-11-23' });
+    // remove from the day
+    await run(tx, 'task.update', { id: t, dueDate: null });
+    expect(await tx.get('tasks', t)).toMatchObject({ dueDate: null });
   });
 });

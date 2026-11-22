@@ -75,7 +75,6 @@ describe('seed-demo', () => {
       'favorites',
       'field_defs',
       'saved_views',
-      'day_plans',
       'task_watchers',
       'automations_rules',
       'templates_templates',
@@ -92,6 +91,23 @@ describe('seed-demo', () => {
       `select value as v from settings where id = 'enabled_modules'`,
     );
     expect(m?.v).toContain('chat');
+  });
+
+  it('PLNRAPP-709: «Мой день» maya по dueDate — сегодня, завтра и просроченное к переносу', async () => {
+    const rows = await q<{ due: string }>(`select t.due_date::text as due from tasks t
+      join task_assignees a on a.task_id = t.id
+      join users u on u.id = a.user_id and u.login = 'maya'
+      join statuses s on s.id = t.status_id and s.category in ('todo', 'in_progress')
+      where t.due_date is not null and t.archived_at is null`);
+    const at = (d: number) => new Date(NOW.getTime() + d * 864e5).toISOString().slice(0, 10);
+    const n = (p: (due: string) => boolean) => rows.filter((r) => p(r.due)).length;
+    expect(n((d) => d === at(0))).toBeGreaterThanOrEqual(3);
+    expect(n((d) => d === at(1))).toBeGreaterThanOrEqual(1);
+    expect(n((d) => d < at(0))).toBeGreaterThanOrEqual(1);
+    expect(
+      (await q(`select 1 from pg_tables where schemaname = 'public' and tablename = 'day_plans'`))
+        .length,
+    ).toBe(0);
   });
 
   it('ИИ в комментариях страницы: решённое поручение и ответ бота в ветке', async () => {

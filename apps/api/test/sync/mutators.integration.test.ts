@@ -318,19 +318,18 @@ describe('PLANARAPP-4: исполнитель проекта по умолчан
   });
 });
 
-describe('PLANARAPP-10: мой день', () => {
-  it('план дня видит только владелец; чужой удалить нельзя', async () => {
+describe('PLNRAPP-709: мой день по dueDate', () => {
+  it('мутаторов day.* и сущности dayPlans нет; «на сегодня» — task.update dueDate', async () => {
     const w = await world(db);
     const t = taskArgs(w);
     await w.member.ok('task.create', t);
     const plan = { id: uuidv7(), taskId: t.id, date: '2026-11-04', rank: 'a0' };
-    await w.member.ok('day.plan', plan);
-    const ids = async (c: typeof w.member) =>
-      ((await c.bootstrap()).data.dayPlans ?? []).map((r: { id: string }) => r.id);
-    expect(await ids(w.member)).toEqual([plan.id]);
-    expect(await ids(w.admin)).toEqual([]);
-    expect(await w.admin.push('day.remove', { id: plan.id })).toMatchObject({ ok: false });
-    await w.member.ok('day.remove', { id: plan.id });
-    expect(await ids(w.member)).toEqual([]);
+    expect(await w.member.push('day.plan', plan)).toMatchObject({ ok: false });
+    await w.member.ok('task.update', { id: t.id, dueDate: '2026-11-04' });
+    const b = await w.member.bootstrap();
+    expect(b.data.dayPlans).toBeUndefined();
+    expect(b.data.tasks.find((r) => r.id === t.id)).toMatchObject({
+      dueDate: '2026-11-04',
+    });
   });
 });

@@ -76,7 +76,7 @@ import {
 } from '../ui';
 import { takePendingAction, taskOpenMode, type TaskOpenMode } from '../views/open';
 import { useHotkey } from '../command/hotkeys';
-import { toggleToday, useMyDay } from '../inbox/myDay';
+import { toggleToday } from '../inbox/myDay';
 import { setTaskPanelPinned, taskPanelPinned } from '../ui/taskPanelWidth';
 import { toast } from '../ui/toast';
 import FavStar from '../ui/FavStar.vue';
@@ -309,7 +309,6 @@ const onAsideKey = (e: KeyboardEvent) => {
   e.preventDefault();
   setAsideWidth(asideWidth.value + d, splitW());
 };
-const day = useMyDay(() => user.value?.id);
 const pickerOf = (name: string) => () =>
   root.value?.querySelector<HTMLElement>(`[data-col="${name}"] button`)?.click();
 const focusIn = (selector: string) =>
@@ -324,7 +323,7 @@ const actions: Record<string, () => void> = {
   s: pickerOf('status'),
   a: pickerOf('assignee'),
   m: () => feed.value?.focusComposer(),
-  d: () => void toggleToday(props.task.id, day.value),
+  d: () => void toggleToday(props.task),
   t: pickerOf('labels'),
   p: pickerOf('priority'),
   w: () => void toggleWatch(),
