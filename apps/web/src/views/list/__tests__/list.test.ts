@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
 import { TooltipProvider } from 'reka-ui';
 import { domainMutators } from '@planar/shared';
 import en from '../../../i18n/en';
@@ -140,8 +140,53 @@ describe('list:groups', () => {
     expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(true);
     w.unmount();
     await show();
-    expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain('truncate');
+    // PLNRAPP-705: обрезается только в широкой области списка
+    expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain(
+      '@min-[720px]/list:truncate',
+    );
     expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(true);
+  });
+  it('PLNRAPP-705 узкая область списка: те же поля, название без обрезки, строка растёт', async () => {
+    const p = task(1, { title: 'Родитель' });
+    await db
+      .table('tasks')
+      .bulkPut([p, task(2, { title: 'Длинное название задачи в узком списке', parentId: p.id })]);
+    const o = { groupBy: 'none' as const, showSubtasks: true, fields: [...opts().fields] };
+    const shape = () => {
+      const x = row('PLN-2');
+      return {
+        cols: x.findAll('[data-col]').map((c) => c.attributes('data-col')),
+        ids: x.findAll('[data-testid]').map((c) => c.attributes('data-testid')),
+      };
+    };
+    await show(o);
+    const wide = shape();
+    // широкая область: высота строки фиксирована, виртуализатор её не измеряет
+    expect((row('PLN-2').element.parentElement as HTMLElement).style.height).toBe('32px');
+    w.unmount();
+    const cw = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth')!;
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 500 });
+    try {
+      await show(o);
+      // раскладка — container query по области списка
+      expect(w.get('[role=grid]').classes()).toContain('@container/list');
+      expect(shape()).toEqual(wide);
+      const title = row('PLN-2').get('[data-testid=row-title]');
+      expect(title.text()).toBe('Длинное название задачи в узком списке');
+      expect(title.classes()).not.toContain('truncate');
+      expect(title.classes()).toContain('break-words');
+      expect(title.classes()).toContain('@max-[720px]/list:flex-1');
+      // вторая строка: колонки переносятся под название
+      expect(row('PLN-2').get('[data-testid=row-cols]').classes()).toContain(
+        '@max-[720px]/list:order-4',
+      );
+      // строка в две строки выше rowH — виртуализатор её измеряет (minHeight вместо height)
+      const box = row('PLN-2').element.parentElement as HTMLElement;
+      expect(box.style.minHeight).toBe('32px');
+      expect(box.style.height).toBe('');
+    } finally {
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', cw);
+    }
   });
   it('list:groups подзадачи скрыты, пока showSubtasks=false', async () => {
     const p = task(1);
@@ -791,12 +836,21 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener() {} }) as never;
     resetBreakpoint();
   };
-  it('чекбокс карточки выбирает и снимает выбор, панель показывает счётчик', async () => {
+  it('чекбокса нет до выбора; в режиме выбора он снимает выбор, панель показывает счётчик', async () => {
     mobile();
     await db.table('tasks').bulkPut([task(1), task(2)]);
     await show();
+    expect(row('PLN-1').find('[data-testid=row-select]').exists()).toBe(false);
+    // the first line: status · key · badges
+    const line = row('PLN-1').get('[data-testid=card-key]').element.parentElement!;
+    expect(line.contains(row('PLN-1').findComponent(StatusPicker).element)).toBe(true);
+    expect(line.contains(row('PLN-1').get('[data-testid=card-badges]').element)).toBe(true);
+    // the first one — the «Выбрать» item of the menu
+    useSelection().toggle(row('PLN-1').attributes('data-task-id')!);
+    await nextTick();
     const box = () => row('PLN-1').get('[data-testid=row-select] input');
-    await box().setValue(true);
+    expect((box().element as HTMLInputElement).checked).toBe(true);
+    expect(row('PLN-2').find('[data-testid=row-select]').exists()).toBe(true);
     expect([...useSelection().selected.value]).toHaveLength(1);
     expect(row('PLN-1').attributes('aria-selected')).toBe('true');
     expect(w.get('[data-testid=bulk-bar]').text()).toContain('1');
@@ -808,13 +862,26 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     mobile();
     await db.table('tasks').bulkPut([task(1), task(2)]);
     await show();
-    await row('PLN-1').get('[data-testid=row-select] input').setValue(true);
+    useSelection().toggle(row('PLN-1').attributes('data-task-id')!);
+    await nextTick();
     await row('PLN-2').trigger('click');
     expect(useSelection().selected.value.size).toBe(2);
     await row('PLN-1').trigger('click');
     expect(useSelection().selected.value.size).toBe(1);
     await new Promise((x) => setTimeout(x, 300));
     expect(r.currentRoute.value.query.task).toBeUndefined();
+  });
+  it('без «…» (меню — долгим нажатием); строка родителя — иконка, статус, ключ, имя', async () => {
+    mobile();
+    const p = task(1, { rank: rank(1) });
+    const kid = task(2, { rank: rank(2), parentId: p.id, statusId: ids.done });
+    await db.table('tasks').bulkPut([p, kid]);
+    await show({ showSubtasks: true });
+    expect(row('PLN-1').find('[data-testid=row-menu]').exists()).toBe(false);
+    const line = row('PLN-2').get('[data-testid=card-parent]');
+    await until(() => line.find('svg[data-category]').exists());
+    expect(line.text()).toBe(`PLN-1${p.title}`);
+    expect(line.find('.truncate').text()).toBe(p.title);
   });
   it('без выбора тап по карточке открывает задачу', async () => {
     mobile();

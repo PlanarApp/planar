@@ -1,5 +1,6 @@
 import { defineComponent, h } from 'vue';
-import { defineWebModule } from '@planar/web/modules';
+import { db, defineWebModule } from '@planar/web/modules';
+import type { Plugin } from '../shared/index.js';
 
 // icon without lucide: puzzle block
 const Puzzle = defineComponent({
@@ -31,6 +32,11 @@ export const web = defineWebModule({
       label: { ru: 'Плагины', en: 'Plugins' },
       icon: Puzzle,
       order: 90,
+      // enabled plugins with a task panel; 0 — the tab is hidden
+      count: async () =>
+        ((await db.table('pluginsPlugins').toArray()) as Plugin[]).filter(
+          (p) => p.enabled && p.points.taskPanel,
+        ).length,
       component: () => import('./Panel.vue'),
     },
   ],

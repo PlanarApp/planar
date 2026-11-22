@@ -480,6 +480,7 @@ export default {
     hideEmptyGroups: 'Скрывать пустые группы',
     wrapTitles: 'Переносить названия',
     showKey: 'Показывать ключ задачи',
+    showLabelNames: 'Показать имена тегов',
     subtasks: 'Подзадачи',
     subtasksCollapsed: 'Свёрнутые',
     subtasksExpanded: 'Развёрнутые',

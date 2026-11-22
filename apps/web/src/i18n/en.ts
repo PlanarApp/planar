@@ -482,6 +482,7 @@ export default {
     hideEmptyGroups: 'Hide empty groups',
     wrapTitles: 'Wrap task names',
     showKey: 'Show task key',
+    showLabelNames: 'Show tag names',
     subtasks: 'Subtasks',
     subtasksCollapsed: 'Collapsed',
     subtasksExpanded: 'Expanded',
