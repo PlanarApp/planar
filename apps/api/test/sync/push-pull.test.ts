@@ -205,7 +205,6 @@ describe('push → pull', () => {
         'commentReactions',
         'attachments',
         'notifications',
-        'dayPlans',
         'favorites',
         'savedViews',
         'settings',

@@ -26,7 +26,7 @@ import { localToday } from '../views/filter';
 import { addDays } from '../views/calendar/dates';
 import { openTask } from '../views/open';
 import { favorites } from '../layout/nav';
-import { planToday, unplan, useMyDay } from '../inbox/myDay';
+import { toggleToday } from '../inbox/myDay';
 import { useMembers, useStatuses } from './dictionaries';
 import { useProjectAdmin } from './admin';
 import { archiveTask, createTask, deleteTask, restoreTask, setAssignees, updateTask } from './ops';
@@ -81,18 +81,14 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
 
   const due = (task: TaskView, d: string | null) => void updateTask(task.id, { dueDate: d });
 
-  // «My day» (PLANARAPP-10): add the task to today's plan or remove it
-  const day = useMyDay(() => session.value?.id);
-  const myDayItem = (task: TaskView): MenuItem => {
-    const plan = day.value?.today.find((x) => x.task.id === task.id)?.plan;
-    return {
-      id: 'myDay',
-      label: t(plan ? 'myDay.remove' : 'myDay.add'),
-      icon: Sun,
-      shortcut: 'D', // in the List, on the focused task (PLNRAPP-80)
-      onSelect: () => void (plan ? unplan(plan.id) : planToday(task.id, day.value)),
-    };
-  };
+  // «My day» (PLANARAPP-10, PLNRAPP-709): due today, or clear the due date if it is today
+  const myDayItem = (task: TaskView): MenuItem => ({
+    id: 'myDay',
+    label: t(task.dueDate === localToday() ? 'myDay.remove' : 'myDay.add'),
+    icon: Sun,
+    shortcut: 'D', // in the List, on the focused task (PLNRAPP-80)
+    onSelect: () => void toggleToday(task),
+  });
 
   return (task: TaskView): MenuItem[] => {
     const me = session.value?.id;

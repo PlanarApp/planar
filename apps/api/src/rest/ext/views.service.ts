@@ -1,9 +1,10 @@
-import { and, asc, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm';
 import { generateKeyBetween } from 'fractional-indexing';
 import { HttpError } from '../../auth/errors.js';
 import * as s from '../../db/schema.js';
 import { hiddenProjectIds } from '../../sync/project-access.js';
 import { toWire } from '../../sync/rows.js';
+import { toV1Tasks } from '../v1-tasks.js';
 import type { ExtDeps } from './types.js';
 
 export const notFound = (what: string) => new HttpError(404, 'not_found', `${what} не найден`);
@@ -81,21 +82,13 @@ export const wireView = async (d: ExtDeps, id: string) => {
   return toWire('savedViews', v!);
 };
 
-export async function nextRank(d: ExtDeps, userId: string, kind: 'fav' | 'day', date?: string) {
-  const [last] =
-    kind === 'fav'
-      ? await d.db
-          .select({ rank: s.favorites.rank })
-          .from(s.favorites)
-          .where(eq(s.favorites.userId, userId))
-          .orderBy(desc(s.favorites.rank))
-          .limit(1)
-      : await d.db
-          .select({ rank: s.dayPlans.rank })
-          .from(s.dayPlans)
-          .where(and(eq(s.dayPlans.userId, userId), eq(s.dayPlans.date, date!)))
-          .orderBy(desc(s.dayPlans.rank))
-          .limit(1);
+export async function nextFavoriteRank(d: ExtDeps, userId: string) {
+  const [last] = await d.db
+    .select({ rank: s.favorites.rank })
+    .from(s.favorites)
+    .where(eq(s.favorites.userId, userId))
+    .orderBy(desc(s.favorites.rank))
+    .limit(1);
   return generateKeyBetween(last?.rank ?? null, null);
 }
 
@@ -147,22 +140,48 @@ export async function requireFavoriteRef(d: ExtDeps, userId: string, kind: strin
   }
 }
 
-export async function listDay(d: ExtDeps, userId: string, date?: string) {
+/**
+ * «My day» (PLNRAPP-709): not archived tasks of visible projects where the user is an assignee, with a due date —
+ * on `date` or any; by dueDate, then priority (0 «none» last), then key
+ */
+export async function listDay(d: ExtDeps, userId: string, date?: string, taskId?: string) {
+  const hidden = await hiddenProjectIds(d.db, userId);
   const rows = await d.db
-    .select()
-    .from(s.dayPlans)
-    .where(and(eq(s.dayPlans.userId, userId), date ? eq(s.dayPlans.date, date) : undefined))
-    .orderBy(asc(s.dayPlans.date), asc(s.dayPlans.rank), asc(s.dayPlans.id));
-  return rows.map((r) => toWire('dayPlans', r));
+    .select({ t: s.tasks })
+    .from(s.tasks)
+    .innerJoin(
+      s.taskAssignees,
+      and(eq(s.taskAssignees.taskId, s.tasks.id), eq(s.taskAssignees.userId, userId)),
+    )
+    .innerJoin(s.projects, eq(s.projects.id, s.tasks.projectId))
+    .where(
+      and(
+        inArray(s.tasks.spaceId, await mySpaces(d, userId)),
+        isNull(s.tasks.archivedAt),
+        date ? eq(s.tasks.dueDate, date) : isNotNull(s.tasks.dueDate),
+        taskId ? eq(s.tasks.id, taskId) : undefined,
+        hidden.length ? notInArray(s.tasks.projectId, hidden) : undefined,
+      ),
+    )
+    .orderBy(
+      asc(s.tasks.dueDate),
+      sql`case when ${s.tasks.priority} = 0 then 5 else ${s.tasks.priority} end`,
+      asc(s.projects.key),
+      asc(s.tasks.number),
+      asc(s.tasks.id),
+    );
+  return toV1Tasks(
+    d.db,
+    rows.map((r) => r.t),
+    userId,
+  );
 }
 
-export async function ownPlan(d: ExtDeps, userId: string, id: string) {
-  const [p] = await d.db
-    .select()
-    .from(s.dayPlans)
-    .where(and(eq(s.dayPlans.id, id), eq(s.dayPlans.userId, userId)));
-  if (!p) throw notFound('План дня');
-  return p;
+/** a task of the user's «My day» (assignee, has a due date), else 404 */
+export async function dayTask(d: ExtDeps, userId: string, taskId: string) {
+  const [t] = await listDay(d, userId, undefined, taskId);
+  if (!t) throw notFound('Задача «Моего дня»');
+  return t;
 }
 
 /** a task of the user's spaces outside hidden projects, else 404 */

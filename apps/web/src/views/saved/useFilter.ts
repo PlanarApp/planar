@@ -11,9 +11,9 @@ import { allRules, localToday, matchFilter, type Filter, type FilterCtx } from '
 /**
  * View's Me Mode: 'mine' — toggle in Tasks (work for me: open tasks assigned to me and
  * tasks with unresolved comments assigned to me); the others — "My work" lists; null — all.
- * 'day' — the list under the «My day» planner: open assigned, due now (overdue, today or started) or without a date.
+ * A saved value outside the type (the former 'day', PLNRAPP-709) works as null.
  */
-export type MeMode = 'mine' | 'assigned' | 'created' | 'watched' | 'day';
+export type MeMode = 'mine' | 'assigned' | 'created' | 'watched';
 
 /** Tasks with an open comment or checklist item assigned to the user (PLNRAPP-140). */
 export async function forMeTaskIds(uid: string): Promise<Set<string>> {
@@ -67,15 +67,6 @@ export function useTaskFilter(
       const shut = closed();
       return (t) =>
         (t.assigneeIds.includes(uid) && !shut.has(t.statusId)) || !!forMe.value?.has(t.id);
-    }
-    // PLNRAPP-137, as the former «My day» list (PLNRAPP-81): later due dates are not shown
-    if (m === 'day') {
-      const shut = closed();
-      const today = localToday();
-      return (t) =>
-        my(t) &&
-        !shut.has(t.statusId) &&
-        (!t.dueDate || t.dueDate <= today || (!!t.startDate && t.startDate <= today));
     }
     if (m === 'assigned') return my;
     if (m === 'created') return (t) => t.createdBy === uid;

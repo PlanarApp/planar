@@ -295,13 +295,13 @@ describe('детерминизм', () => {
     };
     const [a, b] = [await play(), await play()];
     expect(a).toEqual(b);
-    expect(domainMutators.length).toBe(64);
+    expect(domainMutators.length).toBe(61); // PLNRAPP-709: day.* removed
   });
 });
 
 describe('реестр и аргументы', () => {
   it('createRegistry принимает domainMutators без дублей', () => {
-    expect(createRegistry(domainMutators).size).toBe(64);
+    expect(createRegistry(domainMutators).size).toBe(61);
   });
 
   it.each(domainMutators.map((d) => d.name))('%s: пустые args отклоняются', async (name) => {

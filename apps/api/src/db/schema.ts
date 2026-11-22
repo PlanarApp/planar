@@ -432,22 +432,6 @@ export const activity = pgTable(
   ],
 );
 
-// «My day» (PLANARAPP-10): personal plan; taskId without FK as in notifications — a cascade would drop rows
-// without sync changes, and task.delete may not delete other users' rows (write: self)
-export const dayPlans = pgTable(
-  'day_plans',
-  {
-    id: id(),
-    userId: userRef().notNull(),
-    taskId: uuid().notNull(),
-    date: date({ mode: 'string' }).notNull(),
-    rank: rank().notNull(),
-    createdAt: createdAt(),
-    updatedAt: updatedAt(),
-  },
-  (t) => [index().on(t.taskId), index().on(t.userId, t.date)],
-);
-
 // Favourites (PLNRAPP-124): personal; refId without FK — the entity can be of any kind (node, doc, chat, task)
 export const favorites = pgTable(
   'favorites',

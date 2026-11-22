@@ -66,9 +66,6 @@ All ids and `rank` are in args. `?` is an optional argument (`.optional()`; `nul
 | `notification.read` | `ids: uuid[]` | `readAt = ctx.now`, own only |
 | `notification.readAll` | `upTo: datetime, except?: uuid[]` | PLNRAPP-247: every own unread one created ≤ `upTo`, except `except` (snoozed) — `readAt = ctx.now`; one call instead of thousands of ids |
 | `notification.delete` | `ids: uuid[]` | own only |
-| `day.plan` | `id, taskId, date, rank` | v16: `dayPlans` row of ctx.userId; the task is missing → `not_found`; the task already planned by the user for `date` — nothing |
-| `day.move` | `id, date?, rank?` | v16: own only (else `forbidden`) — another day and/or place in the day |
-| `day.remove` | `id` | v16: own only (else `forbidden`) |
 | `favorite.add` | `id, kind, refId, name, url, rank` | v17: `favorites` row of ctx.userId; (`kind`, `refId`) already in the user's favourites — nothing |
 | `favorite.move` | `id, rank` | v17: own only (else `forbidden`) |
 | `favorite.remove` | `id` | v17: own only (else `forbidden`) |
