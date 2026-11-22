@@ -147,7 +147,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Customer interview synthesis', 3, 2, -6, 'demo,sofia', 'research'],
       ['Public beta announcement plan', 2, 4, 0, 'maya,demo', 'feature'], // due today: due_today (PLNRAPP-161)
       ['Pricing page experiments', 2, 3, 9, 'sofia', 'improvement'],
-      ['Onboarding checklist for new workspaces', 1, 3, 0, 'demo,maya', 'feature'], // My day: today
+      ['Onboarding checklist for new workspaces', 1, 3, 12, 'demo', 'feature'],
       ['Reduce time-to-first-task', 1, 2, 18, 'demo,liam', 'improvement'],
       ['Import from CSV: edge cases', 2, 3, -2, 'noah', 'bug'],
       ['Usage analytics dashboard spec', 1, 2, 25, 'sofia', 'docs'],
@@ -173,7 +173,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Write API v2 migration guide', 1, 2, 0, 'demo,maya', 'docs'], // My day: today
       ['Upgrade Postgres to 17', 1, 3, 20, 'liam', 'improvement'],
       ['Flaky e2e test on Safari', 1, 2, 5, 'jack', 'bug'],
-      ['Background job dashboard', 1, 2, 11, 'omar', 'feature'],
+      ['Background job dashboard', 1, 2, 0, 'omar,maya', 'feature'], // My day: today
       ['Reduce Docker image size', 0, 1, null, 'jack', 'improvement'],
       ['Support SAML SSO', 0, 3, 40, 'noah', 'feature'],
       ['Cursor tokens for pagination', 2, 3, 4, 'liam', 'feature', 3],
@@ -1898,7 +1898,7 @@ async function insertAll(tx: Tx, now: Date) {
     })),
   );
 
-  // «My day» (PLNRAPP-709) is built from tasks by dueDate: maya is an assignee of RDM-3, RDM-5, PLT-7 (today),
+  // «My day» (PLNRAPP-709) is built from tasks by dueDate: maya is an assignee of RDM-3, PLT-7, PLT-10 (today),
   // MKT-4 (tomorrow) and SUP-2 (overdue — «Carry over to today») in PROJECTS
   // the tasks demo watches
   const watched: [string, number][] = [
