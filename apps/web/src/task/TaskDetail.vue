@@ -722,7 +722,6 @@ const panelComponent = computed(() => {
             </dt>
             <dd class="min-w-0" data-col="dates">
               <TaskDatesPicker
-                :task-id="task.id"
                 :start="task.startDate"
                 :due="task.dueDate"
                 @update:start="(v: string | null) => updateTask(task.id, { startDate: v })"

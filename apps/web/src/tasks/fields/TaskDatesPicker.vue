@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AlarmClock, Calendar } from 'lucide-vue-next';
-import { computed, defineAsyncComponent, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button, Input } from '../../ui';
 import { formatDue, formatPeriod } from '../../views/list/due';
@@ -9,10 +9,7 @@ import LazyPopover from './LazyPopover.vue';
 
 // Task dates in one compact field (PLNRAPP-208): start and due date (the due date is the end of the period).
 // Nothing — the icon only; a period — "12–19 Nov"; only a due date — "⏰ 20 Nov"; overdue — danger.
-// taskId — «My day» choices on top, as in DueDatePicker (PLNRAPP-137).
-const props = defineProps<{ taskId?: string }>();
-// async: inbox imports tasks
-const DayOptions = defineAsyncComponent(() => import('../../inbox/DayOptions.vue'));
+// No separate «My day» choices: «My day» and the calendar go by the due date (PLNRAPP-712).
 const start = defineModel<string | null>('start', { default: null });
 const due = defineModel<string | null>('due', { default: null });
 const { t, locale } = useI18n();
@@ -58,7 +55,6 @@ const clear = () => {
       </button>
     </template>
     <div class="flex w-56 flex-col gap-2">
-      <DayOptions v-if="props.taskId" :task-id="props.taskId" @done="open = false" />
       <Input
         :model-value="start ?? ''"
         type="date"

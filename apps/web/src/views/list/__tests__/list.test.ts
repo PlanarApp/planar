@@ -19,6 +19,7 @@ import { registerModules } from '../../../modules/registry';
 import { useAuth } from '../../../auth/useAuth';
 import type { ViewOptions } from '../..';
 import { NARROW_ORDER } from '../columns';
+import { localToday } from '../../filter';
 
 const { router } = vi.hoisted(() => ({ router: { current: undefined as never } }));
 vi.mock('../../../router', async () => {
@@ -639,7 +640,7 @@ describe('list:keys', () => {
     await r.push({ query: {} });
     taskOpenMode.value = 'modal';
   });
-  it('PLNRAPP-80 D добавляет задачу в «Мой день» (солнце в строке) и убирает', async () => {
+  it('PLNRAPP-80 D ставит задаче срок «сегодня» (попадает в «Мой день») и снимает; отдельной отметки дня в строке нет', async () => {
     const { useAuth } = await import('../../../auth/useAuth');
     useAuth().user.value = { id: ids.ann } as never;
     // PLNRAPP-709: «My day» — my tasks (assignee) due today; D sets / clears dueDate
@@ -653,12 +654,14 @@ describe('list:keys', () => {
       updatedAt: t1.updatedAt,
     });
     await show();
-    expect(row('PLN-1').find('[data-testid=row-in-day]').exists()).toBe(false);
+    const due = async () => (await db.table('tasks').get(t1.id))?.dueDate;
     await key('j');
     await key('d');
-    await until(() => row('PLN-1').find('[data-testid=row-in-day]').exists());
+    await until(async () => (await due()) === localToday());
+    // PLNRAPP-712: the due date is the only date — no «in my day» mark duplicating it
+    expect(row('PLN-1').find('[data-testid=row-in-day]').exists()).toBe(false);
     await key('d');
-    await until(() => !row('PLN-1').find('[data-testid=row-in-day]').exists());
+    await until(async () => (await due()) == null);
     expect((await db.table('tasks').get(t1.id))?.dueDate).toBeNull();
   });
   it('list:keys x выделяет, Esc снимает', async () => {

@@ -121,4 +121,3 @@ export const toggleToday = (task: Pick<Row<'tasks'>, 'id' | 'dueDate'>) =>
   task.dueDate === localToday() ? unplan(task.id) : planToday(task.id);
 
 /** «Due date» menu (PLNRAPP-137): due on that date */
-export const planFor = (taskId: string, date: string) => setDue(taskId, date);

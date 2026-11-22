@@ -637,7 +637,6 @@ const date = (v: string) => v.slice(0, 10);
                     />
                     <DueDatePicker
                       v-else-if="c.id === 'dueDate'"
-                      :task-id="task.id"
                       :model-value="task.dueDate"
                       @update:model-value="updateTask(task.id, { dueDate: $event })"
                     />

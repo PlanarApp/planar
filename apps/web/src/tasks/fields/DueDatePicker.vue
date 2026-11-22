@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { Calendar } from 'lucide-vue-next';
-import { defineAsyncComponent, ref } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button, Input } from '../../ui';
 import { formatDue } from '../../views/list/due';
 import LazyPopover from './LazyPopover.vue';
 
-// label/empty — for the start date (default: due date); taskId — a task's due date: «My day» choices on top (PLNRAPP-137)
-const props = defineProps<{ compact?: boolean; label?: string; empty?: string; taskId?: string }>();
-// async: inbox imports tasks
-const DayOptions = defineAsyncComponent(() => import('../../inbox/DayOptions.vue'));
+// label/empty — for the start date (default: due date); no separate «My day» choices — only the due date (PLNRAPP-712)
+const props = defineProps<{ compact?: boolean; label?: string; empty?: string }>();
 const model = defineModel<string | null>({ default: null });
 const { t, locale } = useI18n();
 const open = ref(false);
@@ -37,10 +35,8 @@ const set = (v: string) => {
       </button>
     </template>
     <div class="flex w-56 flex-col gap-2">
-      <!-- extra choices above the date (My day: today, tomorrow, remove) -->
-      <slot name="options" :close="() => (open = false)">
-        <DayOptions v-if="taskId" :task-id="taskId" @done="open = false" />
-      </slot>
+      <!-- extra choices above the date (the «My day» planner: today, tomorrow, remove) -->
+      <slot name="options" :close="() => (open = false)" />
       <Input
         :model-value="model ?? ''"
         type="date"

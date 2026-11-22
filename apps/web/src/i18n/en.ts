@@ -168,7 +168,6 @@ export default {
   },
   myDay: {
     title: 'My day',
-    inDay: 'In my day',
     empty:
       'Nothing due today — set today as the due date of your task in the «Due date» menu or with «Add to my day» in a task menu.',
     none: 'No tasks',
@@ -177,7 +176,6 @@ export default {
     postpone: 'Unfinished — to tomorrow',
     toToday: 'Move to today',
     tomorrow: 'Move to tomorrow',
-    toTomorrow: 'For tomorrow',
     pick: 'Move to a date',
     remove: 'Remove from my day',
     add: 'Add to my day',
