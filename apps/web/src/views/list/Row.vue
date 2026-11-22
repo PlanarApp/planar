@@ -13,7 +13,7 @@ import {
   type TaskView,
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
-import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Sun } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal } from 'lucide-vue-next';
 import { COLUMN_CLASS, NARROW_ORDER, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
@@ -60,8 +60,6 @@ const props = defineProps<{
   showKey?: boolean;
   /** mobile card: tag names instead of tag icons */
   labelNames?: boolean;
-  /** in today's «My day» plan — a sun before the name */
-  inDay?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -217,6 +215,7 @@ function save() {
         @change="emit('toggle')"
       />
     </label>
+    <!-- PLNRAPP-706: на мобильной название целиком (переносится по словам), строку меряет виртуализатор -->
     <div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
       <TaskCard
         :task="task"
@@ -224,8 +223,8 @@ function save() {
         :cols="cardCols"
         :blocked="blocked"
         :hot="isMobile || hot || focused"
-        :one-line="!wrap"
-        :wrap="wrap"
+        :one-line="!wrap && !isMobile"
+        :wrap="wrap || isMobile"
         :members="members"
         :labels="labels"
         :depth="depth"
@@ -343,13 +342,6 @@ function save() {
         <!-- PLNRAPP-704: значок ИИ (работает / ошибка), как у карточки; при колонке «ИИ» — в ней -->
         <TaskAiStatus v-if="!columns.includes('ai')" :task="task" @click.stop @dblclick.stop />
         <BlockedIcon v-if="blocked" />
-        <Sun
-          v-if="inDay"
-          :size="14"
-          class="shrink-0 text-warning"
-          :aria-label="t('myDay.inDay')"
-          data-testid="row-in-day"
-        />
         <button
           v-if="showKey"
           type="button"

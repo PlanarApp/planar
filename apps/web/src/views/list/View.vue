@@ -31,8 +31,7 @@ import { openTask, useSelection, type ViewProps } from '..';
 import { openTaskFor, showTask, sideTaskOpen } from '../open';
 import { useTaskFilter } from '../saved/useFilter';
 import { useBlockedIds } from '../../links';
-import { useAuth } from '../../auth/useAuth';
-import { toggleToday, useMyDay } from '../../inbox/myDay';
+import { toggleToday } from '../../inbox/myDay';
 import {
   createStatus,
   dictProjectOf,
@@ -66,10 +65,6 @@ const sel = useSelection();
 
 const project = useProject(() => props.projectId);
 const blocked = useBlockedIds(() => props.projectId);
-// «My day»: today's tasks are marked in the row, D adds the focused task or removes it (PLNRAPP-80)
-const me = useAuth().user;
-const day = useMyDay(() => me.value?.id);
-const inDay = computed(() => new Set((day.value?.today ?? []).map((x) => x.task.id)));
 const spaceId = computed(() => props.scope?.spaceIds.join(',') ?? project.value?.spaceId ?? '');
 // a project view reads its own dictionaries; a summary — those of all its projects (grouped by name)
 const dictProject = () => dictProjectOf(props.scope, props.projectId);
@@ -960,7 +955,6 @@ watch(
                 :editing="editing === it.id"
                 :fields="listFields"
                 :blocked="blocked.has(it.task.id)"
-                :in-day="inDay.has(it.task.id)"
                 :members="members ?? []"
                 :labels="labels ?? []"
                 :depth="it.depth"

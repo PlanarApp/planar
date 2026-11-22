@@ -73,7 +73,7 @@ beforeAll(async () => {
     id(
       `insert into saved_views (space_id, user_id, created_by, name, layout, node, filter, config, rank)
        values ($1, $2, $3, $4, $5, $6, '{}', '{"groupBy":"status"}', 'a0') returning id`,
-      [space, userId, u1, n, layout, node, userId],
+      [space, userId, u1, n, layout, node],
     ).then((v) => (ids[key] = v));
   await view('mine', 'Mine', 'cards', null, u1);
   await view('shared', 'Shared', 'cards', null, null);

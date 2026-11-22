@@ -54,6 +54,8 @@ const parentStatuses = useStatuses(
 const parentStatus = computed(() =>
   props.head ? parentStatuses.value?.find((x) => x.id === props.parent?.statusId) : undefined,
 );
+// PLNRAPP-706: the mobile List — the buttons of the key line and the fields are touch targets of at least 36 px
+const TAP = '[&_button]:min-h-9 [&_button]:min-w-9 [&_button]:justify-center';
 // click on the key — copy it (PLNRAPP-181)
 const copyKey = () =>
   void navigator.clipboard
@@ -66,7 +68,10 @@ const copyKey = () =>
     v-if="parent"
     type="button"
     data-no-drag
-    class="flex min-w-0 max-w-full items-center gap-1 self-start text-left text-xs text-fg-subtle outline-none hover:underline focus-visible:ring-2 ring-focus"
+    :class="[
+      'flex min-w-0 max-w-full gap-1 self-start text-left text-xs text-fg-subtle outline-none hover:underline focus-visible:ring-2 ring-focus',
+      head ? 'min-h-8 items-start py-1' : 'items-center',
+    ]"
     data-testid="card-parent"
     @click.stop="openTask(parent.key)"
   >
@@ -77,9 +82,9 @@ const copyKey = () =>
         class="shrink-0"
       /><span class="shrink-0">{{ parent.key }}</span></template
     ><span v-else class="shrink-0">↳ {{ parent.key }}</span
-    ><span class="truncate">{{ parent.title }}</span>
+    ><span :class="head ? 'min-w-0 break-words' : 'truncate'">{{ parent.title }}</span>
   </button>
-  <div class="flex min-w-0 items-center gap-1">
+  <div :class="['flex min-w-0 items-center gap-1', head && TAP]">
     <span v-if="depth" class="shrink-0" :style="{ width: `${depth * 12}px` }" aria-hidden="true" />
     <div v-if="head" data-no-drag role="gridcell" class="-ml-1.5 shrink-0" @click.stop>
       <StatusPicker
@@ -93,6 +98,7 @@ const copyKey = () =>
     <button
       type="button"
       data-no-drag
+      :class="head && 'min-h-9 px-1'"
       class="shrink-0 cursor-copy text-xs text-fg-subtle underline-offset-2 outline-none hover:underline focus-visible:ring-2 ring-focus"
       :title="t('task.copyKey')"
       data-testid="card-key"
@@ -147,14 +153,21 @@ const copyKey = () =>
       {{ task.title }}
     </p>
   </div>
-  <div v-if="cols.length || fields.length" class="-mx-1.5 flex flex-wrap items-center">
+  <div
+    v-if="cols.length || fields.length"
+    :class="['-mx-1.5 flex flex-wrap items-center', head && ['gap-y-1', TAP]]"
+    data-testid="card-fields"
+  >
     <template v-for="c in cols" :key="c">
       <span
         v-if="projectText && c === 'project'"
-        class="inline-flex h-7 min-w-0 max-w-full items-center px-1.5 text-sm text-fg-muted"
+        :class="[
+          'inline-flex min-w-0 max-w-full items-center px-1.5 text-sm text-fg-muted',
+          head ? 'min-h-9 py-1' : 'h-7',
+        ]"
         data-testid="card-project"
         :title="projectName"
-        ><span class="truncate">{{ projectName }}</span></span
+        ><span :class="head ? 'min-w-0 break-words' : 'truncate'">{{ projectName }}</span></span
       >
       <CardField
         v-else
