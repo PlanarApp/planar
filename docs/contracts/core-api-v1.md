@@ -2,7 +2,7 @@
 type: reference
 status: closed
 module: core
-updated: 2026-11-16
+updated: 2026-11-22
 summary: API tokens, Bearer, REST /api/v1 and MCP /mcp — part of C-http v8 (docs/contracts/core.md); examples are checked by the contract test
 related: ["docs/contracts/core.md", "docs/contracts/core-mutators.md"]
 ---
@@ -79,6 +79,7 @@ The version is the heading `## C-http vN` in `docs/contracts/core.md`. The ` ```
 
   Defaults of the server: the color of a status or label — `#6b7280`, `rank` of a status or field — after the last one. All paths are in `openapi.json`.
 - Harness packs and event bindings by a `write` token of a project admin (PLNRAPP-269): `GET /api/ai/packs`, `POST /api/ai/packs/{upload,merge,activate,events}`, `GET /api/ai/packs/export`, `POST /api/ai/harness/{diff,apply}`; a `read` token or a non-admin → `403`. MCP: `ai_list_packs`, `ai_upload_pack` (`dryRun` — only conflicts with manually edited pages), `ai_diff_pack`, `ai_apply_pack`, `ai_set_pack_events`. Secret AI settings (connections, limits) stay session-only: a token gets `403`.
+- «My day» (PLNRAPP-709, PLNRAPP-711): there is no plan date in the API, MCP, export, import or webhooks — «My day» is the user's tasks (assignee) with a `dueDate`. Read only: `GET /api/v1/my-day?dueDate=` and MCP `list_my_day {dueDate?}` → tasks (as `GET /api/v1/tasks/:task`), by `dueDate`, then priority (0 «none» last), then key. A task is planned, moved or removed from the day by its `dueDate` (`PATCH /api/v1/tasks/:task`, `update_task`); `POST /api/v1/my-day`, `PATCH|DELETE /api/v1/my-day/:id` (`plan_my_day`, `move_my_day`, `remove_my_day`) are removed → `404`.
 - Docs for the AI chat: MCP `search_docs_site {query, lang?: ru|en, section?}` — search over the h1–h3 sections of `docs-site/ru|en` (≤ 10 matches, snippet ≤ 300 characters); `section` (id `file#heading` from the result) returns the text of that section.
 
 ## MCP `/mcp` (CR-11)

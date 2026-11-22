@@ -144,7 +144,7 @@ export async function requireFavoriteRef(d: ExtDeps, userId: string, kind: strin
  * «My day» (PLNRAPP-709): not archived tasks of visible projects where the user is an assignee, with a due date —
  * on `date` or any; by dueDate, then priority (0 «none» last), then key
  */
-export async function listDay(d: ExtDeps, userId: string, date?: string, taskId?: string) {
+export async function listDay(d: ExtDeps, userId: string, date?: string) {
   const hidden = await hiddenProjectIds(d.db, userId);
   const rows = await d.db
     .select({ t: s.tasks })
@@ -159,7 +159,6 @@ export async function listDay(d: ExtDeps, userId: string, date?: string, taskId?
         inArray(s.tasks.spaceId, await mySpaces(d, userId)),
         isNull(s.tasks.archivedAt),
         date ? eq(s.tasks.dueDate, date) : isNotNull(s.tasks.dueDate),
-        taskId ? eq(s.tasks.id, taskId) : undefined,
         hidden.length ? notInArray(s.tasks.projectId, hidden) : undefined,
       ),
     )
@@ -175,13 +174,6 @@ export async function listDay(d: ExtDeps, userId: string, date?: string, taskId?
     rows.map((r) => r.t),
     userId,
   );
-}
-
-/** a task of the user's «My day» (assignee, has a due date), else 404 */
-export async function dayTask(d: ExtDeps, userId: string, taskId: string) {
-  const [t] = await listDay(d, userId, undefined, taskId);
-  if (!t) throw notFound('Задача «Моего дня»');
-  return t;
 }
 
 /** a task of the user's spaces outside hidden projects, else 404 */
