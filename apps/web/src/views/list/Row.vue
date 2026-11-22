@@ -14,7 +14,7 @@ import {
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
 import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal, Sun } from 'lucide-vue-next';
-import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
+import { COLUMN_CLASS, NARROW_ORDER, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
 import { useCardExtensions } from '../cardExtensions';
@@ -264,7 +264,7 @@ function save() {
     :class="[
       'group relative flex h-full items-center gap-2 border-b border-border pl-4 pr-3 text-sm',
       // PLNRAPP-705: the list area is narrow (the task sidebar, a small window) — two lines:
-      // the name over the full width, below it the parent, module fields and the columns
+      // the name over the full width, below it the parent, labels, assignees, dates, other columns, icons
       '@max-[720px]/list:min-h-8 @max-[720px]/list:flex-wrap @max-[720px]/list:gap-y-0.5 @max-[720px]/list:py-1',
       // wrapped or being edited: the same layout, the row grows by the name's extra lines
       wrap || editing ? 'min-h-8' : '',
@@ -388,14 +388,14 @@ function save() {
         >
         <!-- PLNRAPP-333: subtasks / checklist «closed/total» (all subtasks, not only those in the view); PLNRAPP-577: assigned comments -->
         <span
-          class="contents @max-[720px]/list:order-3 @max-[720px]/list:flex @max-[720px]/list:items-center @max-[720px]/list:gap-1"
+          class="contents @max-[720px]/list:order-8 @max-[720px]/list:flex @max-[720px]/list:items-center @max-[720px]/list:gap-1"
           ><TaskProgress :task-id="task.id" :comments="task"
         /></span>
         <!-- поля модулей (время): видны всегда, если модуль включён -->
         <span
           v-for="x in ext"
           :key="x.key"
-          class="ml-auto shrink-0 @max-[720px]/list:order-3 @max-[720px]/list:ml-0"
+          class="ml-auto shrink-0 @max-[720px]/list:order-8 @max-[720px]/list:ml-0"
           @click.stop
         >
           <component :is="x.view" :task-id="task.id" />
@@ -403,7 +403,8 @@ function save() {
       </span>
     </div>
     <!-- колонки как в ClickUp: значение в ячейке; при наведении ячейка — сам пикер (монтируется лениво) -->
-    <!-- узкий режим: перенос на вторую строку с отступом под глубину дерева -->
+    <!-- узкий режим: перенос на вторую строку с отступом под глубину дерева;
+         обёртка колонок — contents, ячейки встают в порядок второй строки (NARROW_ORDER) -->
     <span
       class="hidden h-0 basis-full @max-[720px]/list:order-2 @max-[720px]/list:block"
       aria-hidden="true"
@@ -414,7 +415,7 @@ function save() {
       aria-hidden="true"
     />
     <div
-      class="ml-auto flex shrink-0 items-center @max-[720px]/list:order-4 @max-[720px]/list:ml-0 @max-[720px]/list:min-w-0 @max-[720px]/list:shrink @max-[720px]/list:flex-wrap"
+      class="ml-auto flex shrink-0 items-center @max-[720px]/list:contents"
       data-testid="row-cols"
       @click.stop
     >
@@ -427,6 +428,7 @@ function save() {
           'flex h-full shrink-0 items-center overflow-hidden px-1',
           '@max-[720px]/list:flex! @max-[720px]/list:h-auto @max-[720px]/list:max-w-full @max-[720px]/list:w-auto!',
           COLUMN_CLASS[c],
+          NARROW_ORDER[c],
         ]"
         :style="{ width: `${widths?.[c] ?? 112}px` }"
       >
