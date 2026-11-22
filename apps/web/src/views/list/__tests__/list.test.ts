@@ -9,7 +9,13 @@ import en from '../../../i18n/en';
 import ru from '../../../i18n/ru';
 import { linkTasks } from '../../../links';
 import { db, registerMutators, startSync, stopSync } from '../../../sync';
-import { AssigneePicker, BulkAssigneePicker, PriorityPicker, StatusPicker } from '../../../tasks';
+import {
+  AssigneePicker,
+  BulkAssigneePicker,
+  PriorityPicker,
+  setLabels,
+  StatusPicker,
+} from '../../../tasks';
 import OptionPicker from '../../../tasks/fields/OptionPicker.vue';
 import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
 import { resetBreakpoint } from '../../../ui';
@@ -957,6 +963,18 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
       expect(line.className).toContain('[&_button]:min-h-9');
     expect(card.get('[data-testid=card-fields]').element.className).toContain('[&_button]:min-w-9');
     expect(key.classes()).toContain('min-h-9');
+    // `!`: scoped module styles (TimeControl .time) must not shrink the touch target
+    expect(key.element.parentElement!.className).toContain('[&_button]:min-h-9!');
+  });
+  it('PLNRAPP-706: на мобильном значения полей видны, как на десктопе, а не одни иконки', async () => {
+    mobile();
+    const t = task(1, { dueDate: '2030-01-15' });
+    await db.table('tasks').put(t);
+    await setLabels(t.id, [ids.bug]);
+    await show({ fields: ['status', 'dueDate', 'labels'] });
+    const fields = () => row('PLN-1').get('[data-testid=card-fields]').text();
+    await poll(async () => fields().includes('bug'));
+    expect(fields()).toMatch(/15/);
   });
   it('без выбора тап по карточке открывает задачу', async () => {
     mobile();
