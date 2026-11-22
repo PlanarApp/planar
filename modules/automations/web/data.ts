@@ -37,6 +37,7 @@ export const TRIGGERS = [
   'task.unassigned',
   'task.waiting_human',
   'task.start_reached',
+  'task.subtasks_closed',
   'mr.pipeline',
   'schedule',
 ] as const;
@@ -155,6 +156,7 @@ const TEXT = {
       'task.unassigned': 'Задача без исполнителя',
       'task.waiting_human': 'Ждёт ответа человека',
       'task.start_reached': 'Наступила дата начала',
+      'task.subtasks_closed': 'Все подзадачи закрыты',
       'mr.pipeline': 'Пайплайн MR задачи',
       schedule: 'По расписанию',
     },
@@ -247,6 +249,7 @@ const TEXT = {
       'task.unassigned': 'Task has no assignee',
       'task.waiting_human': 'Waiting for a person',
       'task.start_reached': 'Start date reached',
+      'task.subtasks_closed': 'All subtasks closed',
       'mr.pipeline': 'Task MR pipeline',
       schedule: 'On schedule',
     },

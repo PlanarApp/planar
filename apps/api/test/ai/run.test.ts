@@ -1103,8 +1103,13 @@ describe('движок: приёмка, доработка, надзор, све
     await w.admin.ok('project.update', { id: P, leadId: w.admin.userId });
     const inProgress = await status('В работе', 'in_progress');
     const stuck = await task({ statusId: inProgress });
-    // waits for an answer (the question status of an action) and works (an active run) — not stuck
+    // waits for an answer (an open question in the question status) and works (an active run) — not stuck
     const asked = await task({ statusId: S.clarify });
+    await raw(
+      `insert into comments (id, space_id, task_id, author_id, assignee_id, body)
+       select $1, space_id, id, $2, $3, '{"type":"doc","content":[]}'::jsonb from tasks where id = $4`,
+      [uuidv7(), bot, w.member.userId, asked],
+    );
     const busy = await task({ statusId: inProgress });
     await raw(
       `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth)
@@ -1131,7 +1136,8 @@ describe('движок: приёмка, доработка, надзор, све
     await reconcile();
     expect(await errors()).toEqual([expect.stringMatching(/^сторож: .+ стоит в «В работе» 3 ч/)]);
     const [c] = await watch(stuck);
-    expect(text(c!.body)).toContain(`"id":"${w.admin.userId}"`);
+    // PLNRAPP-773: the handoff to the AI calls no one
+    expect(text(c!.body)).not.toContain('"mention"');
     expect(await watch(asked)).toEqual([]);
     expect(await watch(busy)).toEqual([]);
     // PLNRAPP-764: the stall goes to the AI — a run on the watchdog's comment as the assignment
@@ -1158,6 +1164,124 @@ describe('движок: приёмка, доработка, надзор, све
     await age(stuck);
     await reconcile();
     expect(await watch(stuck)).toHaveLength(2);
+
+    // PLNRAPP-773: the answer returns the task to its status, its rule goes on
+    expect((await runsOf(stuck)).at(-1)).toMatchObject({
+      state: 'waiting_human',
+      return_status_id: inProgress,
+      question_comment_ids: [asks!.id],
+    });
+    await w.member.ok('comment.create', {
+      id: uuidv7(),
+      taskId: stuck,
+      parentId: asks!.id,
+      body: doc('Продолжай по плану'),
+    });
+    expect((await runsOf(stuck)).at(-1)!.state).toBe('done');
+    await drain();
+    expect((await taskRow(stuck)).status_id).toBe(inProgress);
+  });
+
+  it('сторож: старая жалоба без прогона ИИ — сначала разбор ИИ, а не вопрос человеку (PLNRAPP-773)', async () => {
+    const inProgress = await status('В работе', 'in_progress');
+    const t = await task({ statusId: inProgress });
+    await raw(
+      `insert into comments (id, space_id, task_id, author_id, body)
+       select $1, space_id, id, $2, '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Сторож движка ИИ: жалоба"}]}]}'::jsonb
+       from tasks where id = $3`,
+      [uuidv7(), bot, t],
+    );
+    await raw(`update tasks set created_at = now() - interval '3 hours' where id = $1`, [t]);
+    await raw(`update activity set created_at = now() - interval '3 hours' where task_id = $1`, [
+      t,
+    ]);
+    await raw(`update comments set created_at = now() - interval '2 hours' where task_id = $1`, [
+      t,
+    ]);
+    jobs.length = 0;
+    await handler('ai', 'ai.engine.reconcile')({}, api);
+    expect(jobs.filter((j) => j.queue === 'ai.run').map((j) => j.data)).toEqual([
+      expect.objectContaining({ kind: 'mention', taskId: t }),
+    ]);
+    expect((await taskRow(t)).status_id).toBe(inProgress);
+  });
+
+  it('сверка: вопрос закрыт человеком без ответа — решение продолжать, задача возвращается в работу (PLNRAPP-773)', async () => {
+    const inProgress = await status('В работе', 'in_progress');
+    const t = await task({ statusId: S.clarify });
+    const q = uuidv7();
+    await raw(
+      `insert into comments (id, space_id, task_id, author_id, assignee_id, body, resolved_at, resolved_by)
+       select $1, space_id, id, $2, $3, '{"type":"doc","content":[]}'::jsonb, now(), $3 from tasks where id = $4`,
+      [q, bot, w.member.userId, t],
+    );
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, action_id, state, chain_id, chain_depth,
+         return_status_id, question_comment_ids)
+       values ($1, $2, $3, 'action', $4, 'waiting_human', $1, 0, $5, array[$6::uuid])`,
+      [uuidv7(), t, P, actionId, inProgress, q],
+    );
+    jobs.length = 0;
+    await handler('ai', 'ai.engine.reconcile')({}, api);
+    expect((await runsOf(t)).map((r) => r.state)).toEqual(['done']);
+    await drain();
+    expect((await taskRow(t)).status_id).toBe(inProgress);
+  });
+
+  it('сторож: задача в «Уточнении» без открытого вопроса (подзадача ИИ) — затык, передаётся ИИ (PLNRAPP-773)', async () => {
+    const parent = await task();
+    const t = await task({ statusId: S.clarify, parentId: parent });
+    for (const x of [parent, t]) {
+      await raw(`update tasks set created_at = now() - interval '3 hours' where id = $1`, [x]);
+      await raw(`update activity set created_at = now() - interval '3 hours' where task_id = $1`, [
+        x,
+      ]);
+    }
+    jobs.length = 0;
+    await handler('ai', 'ai.engine.reconcile')({}, api);
+    expect(jobs.filter((j) => j.queue === 'ai.run').map((j) => j.data)).toEqual([
+      expect.objectContaining({ kind: 'mention', taskId: t }),
+    ]);
+  });
+
+  it('сверка: на вопросы ответили, а задача не вернулась (хук или возврат потерян) — возврат без человека (PLNRAPP-773)', async () => {
+    const inProgress = await status('В работе', 'in_progress');
+    const question = async (t: string) => {
+      const id = uuidv7();
+      await raw(
+        `insert into comments (id, space_id, task_id, author_id, assignee_id, body, resolved_at)
+         select $1, space_id, id, $2, $3, '{"type":"doc","content":[]}'::jsonb, now() from tasks where id = $4`,
+        [id, bot, w.member.userId, t],
+      );
+      await raw(
+        `insert into comments (id, space_id, task_id, author_id, parent_id, body)
+         select $1, space_id, id, $2, $3, '{"type":"doc","content":[]}'::jsonb from tasks where id = $4`,
+        [uuidv7(), w.member.userId, id, t],
+      );
+      return id;
+    };
+    // the hook missed the answer: the run still waits
+    const missed = await task({ statusId: S.clarify });
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, action_id, state, chain_id, chain_depth,
+         return_status_id, question_comment_ids)
+       values ($1, $2, $3, 'action', $4, 'waiting_human', $1, 0, $5, array[$6::uuid])`,
+      [uuidv7(), missed, P, actionId, inProgress, await question(missed)],
+    );
+    // the resume was lost: the run is done, the task is still in the question status
+    const lost = await task({ statusId: S.clarify });
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, action_id, state, chain_id, chain_depth,
+         return_status_id, question_comment_ids, updated_at)
+       values ($1, $2, $3, 'action', $4, 'done', $1, 0, $5, array[$6::uuid], now() - interval '10 minutes')`,
+      [uuidv7(), lost, P, actionId, inProgress, await question(lost)],
+    );
+    jobs.length = 0;
+    await handler('ai', 'ai.engine.reconcile')({}, api);
+    expect((await runsOf(missed))[0]!.state).toBe('done');
+    await drain();
+    expect((await taskRow(missed)).status_id).toBe(inProgress);
+    expect((await taskRow(lost)).status_id).toBe(inProgress);
   });
 
   it('сторож: задача, которая ждёт чужую работу (блокер, подзадача, конвейер MR), не застряла (PLNRAPP-740)', async () => {

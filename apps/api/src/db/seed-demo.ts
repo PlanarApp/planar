@@ -2270,6 +2270,20 @@ async function insertAll(tx: Tx, now: Date) {
       [{ type: 'resolve_comment' }],
       { op: 'and', rules: [{ field: 'label', operator: 'in', value: [waitingLabel] }] },
     ),
+    // PLNRAPP-773: the parent goes on by itself once its last subtask is closed
+    stateRule(
+      'subtasks-closed',
+      'Subtasks closed — to review',
+      'Every subtask is done or cancelled — the parent gets a note and the AI checks it by the subtasks.',
+      { type: 'task.subtasks_closed' },
+      [
+        {
+          type: 'add_comment',
+          text: 'All subtasks are closed — the task goes to review by their results.',
+        },
+      ],
+      { op: 'and', rules: [{ field: 'assignee', operator: 'in', value: [ai] }] },
+    ),
   ]);
   const botSays = (k: string, taskId: string, text: string, o: Record<string, unknown> = {}) => ({
     id: uid(`comment:ai:${k}`),

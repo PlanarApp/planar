@@ -61,6 +61,18 @@ rules:
     trigger: { type: task.status_changed, from: [clarify], to: [test_prod] }
     filter: { assignee: [ai] }
     actions: [{ type: ai_run, action: test }]
+  - key: parent_subtasks_closed
+    name: Подзадачи закрыты — на проверку
+    description: Все подзадачи задачи в «Готово» или «Отменено» — задача уходит в «Test prod», ИИ проверяет её на контуре по итогам подзадач. Только задачи, где ИИ — исполнитель.
+    trigger: { type: task.subtasks_closed }
+    filter: { assignee: [ai], status: [backlog, clarify, todo, in_progress, review] }
+    actions:
+      - {
+          type: add_comment,
+          text: Все подзадачи закрыты — задача переходит в «Test prod» на проверку по итогам подзадач.,
+        }
+      - { type: set_status, statusId: test_prod }
+      - { type: ai_run, action: test }
   - key: plan_in_backlog
     name: План в бэклоге
     description: ИИ проверяет задачу, пишет план и оценивает бюджет. Только задачи, где ИИ — исполнитель.
