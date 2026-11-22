@@ -66,7 +66,7 @@ const copyKey = () =>
     v-if="parent"
     type="button"
     data-no-drag
-    class="flex min-w-0 items-center gap-1 self-start text-left text-xs text-fg-subtle outline-none hover:underline focus-visible:ring-2 ring-focus"
+    class="flex min-w-0 max-w-full items-center gap-1 self-start text-left text-xs text-fg-subtle outline-none hover:underline focus-visible:ring-2 ring-focus"
     data-testid="card-parent"
     @click.stop="openTask(parent.key)"
   >
