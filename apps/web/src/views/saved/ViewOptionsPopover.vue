@@ -87,6 +87,10 @@ const toggleField = (f: TaskField) =>
         <input v-model="options.showKey" type="checkbox" data-testid="show-key" />
         {{ t('views.showKey') }}
       </label>
+      <label class="inline-flex items-center gap-1.5 text-sm">
+        <input v-model="options.showLabelNames" type="checkbox" data-testid="show-label-names" />
+        {{ t('views.showLabelNames') }}
+      </label>
       <div
         v-if="tableColumns"
         role="group"

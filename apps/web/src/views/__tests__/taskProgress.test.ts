@@ -16,7 +16,7 @@ beforeEach(() => {
   useAuth().user.value = { id: ME } as never;
 });
 
-// PLNRAPP-577: assigned comments «resolved/total» next to the subtasks on a list row / board card
+// PLNRAPP-577: assigned comments — the number of open ones — next to the subtasks on a list row / board card
 type C = { total: number; resolved: number; assignedToMe: boolean };
 /** the tasks row counters as the projection gives them (open assignees — me or someone else) */
 const row = (c?: C) =>
@@ -45,19 +45,19 @@ describe('TaskProgress: assigned comments', () => {
     expect(w.find('[data-testid=row-comments]').exists()).toBe(false);
     expect(w.find('[data-testid=row-children]').exists()).toBe(true);
   });
-  it('resolved/total right after the subtasks; not mine — no accent', () => {
+  it('open ones right after the subtasks; not mine — no accent; all resolved — hidden', () => {
     const w = show({ total: 3, resolved: 1, assignedToMe: false });
     const chips = w.findAll('span[data-testid]').map((s) => s.attributes('data-testid'));
     expect(chips).toEqual(['row-children', 'row-comments']);
     const c = w.get('[data-testid=row-comments]');
-    expect(c.text()).toBe('1/3');
+    expect(c.text()).toBe('2');
     expect(c.classes()).toContain('text-fg-muted');
     expect(c.attributes('data-mine')).toBeUndefined();
     expect(
       show({ total: 2, resolved: 2, assignedToMe: false })
-        .get('[data-testid=row-comments]')
-        .classes(),
-    ).toContain('text-success');
+        .find('[data-testid=row-comments]')
+        .exists(),
+    ).toBe(false);
   });
   it('an open comment assigned to me — accent', () => {
     const c = show({ total: 2, resolved: 1, assignedToMe: true }).get('[data-testid=row-comments]');
@@ -76,7 +76,7 @@ describe('TaskProgress: assigned comments', () => {
     const w = show({ total: 1, resolved: 0, assignedToMe: true });
     const c = () => w.get('[data-testid=row-comments]');
     expect(c().attributes('data-mine')).toBeUndefined();
-    expect(c().text()).toBe('0/1');
+    expect(c().text()).toBe('1');
     useAuth().user.value = { id: ME } as never;
     await nextTick();
     expect(c().attributes('data-mine')).toBe('true');

@@ -190,7 +190,14 @@ const subPanel = `${panel} max-h-80 overflow-y-auto`;
       <component
         :is="kind.Content"
         v-bind="context ? {} : { side, align, sideOffset: 4 }"
-        :class="panel"
+        :class="[
+          panel,
+          // a long menu on a phone: not past the screen, scrolls
+          'overflow-y-auto',
+          context
+            ? 'max-h-(--reka-context-menu-content-available-height)'
+            : 'max-h-(--reka-dropdown-menu-content-available-height)',
+        ]"
         @close-auto-focus="keepEditing"
       >
         <template v-for="(it, i) in items" :key="'separator' in it ? 'sep' + i : it.id">

@@ -45,8 +45,6 @@ export const Refresh = icon(
   () => h('path', { d: 'M3 12a9 9 0 0 1 15.74-6.26L21 8M21 3v5h-5' }),
   () => h('path', { d: 'M21 12a9 9 0 0 1-15.74 6.26L3 16M8 16H3v5' }),
 );
-/** CI is running */
-export const CiRunning = icon(() => h('path', { d: 'M21 12a9 9 0 1 1-6.22-8.56' }));
 /** CI failed */
 export const CiFailed = icon(
   () => h('circle', { cx: 12, cy: 12, r: 10 }),

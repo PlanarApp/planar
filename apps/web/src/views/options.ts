@@ -40,6 +40,8 @@ export interface ViewOptions {
   wrapTitles?: boolean;
   /** List, Board: the task key before the name (the Table has its own "Key" column) */
   showKey?: boolean;
+  /** List on mobile: tag names instead of tag icons */
+  showLabelNames?: boolean;
   /** Me Mode: only my tasks (assigned, created, watched); null — all */
   me?: MeMode | null;
   fields: TaskField[];
@@ -57,6 +59,7 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   hideEmptyGroups: true,
   wrapTitles: true,
   showKey: true,
+  showLabelNames: false,
   me: null,
   fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
 };

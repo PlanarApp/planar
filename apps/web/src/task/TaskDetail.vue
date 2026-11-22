@@ -382,7 +382,10 @@ const tabs = computed(() => {
     { key: 'checklist', label: 'task.checklist', icon: ListChecks },
     ...part(docs + 1, linksAt),
     { key: 'links', label: 'links.title', icon: Link2 },
-    ...ps.slice(linksAt),
+    // no plugins with a task panel — no Plugins tab
+    ...ps
+      .slice(linksAt)
+      .filter((p) => !(p.key === 'plugins:panel' && p.count && counts.value?.[p.key] === 0)),
   ];
 });
 // closed / total (PLNRAPP-102, -103)
@@ -665,7 +668,7 @@ const panelComponent = computed(() => {
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <Sparkles :size="15" />{{ t('tasks.aiRow') }}
             </dt>
-            <dd class="min-w-0" data-col="ai">
+            <dd class="flex min-w-0 flex-wrap items-center" data-col="ai">
               <button
                 type="button"
                 :class="[
@@ -693,9 +696,13 @@ const panelComponent = computed(() => {
               >
                 {{ t('task.aiCancel') }}
               </button>
-              <span v-if="aiUsage" class="ml-2 text-xs text-fg-muted" data-testid="task-ai-usage">{{
-                aiUsage
-              }}</span>
+              <!-- small, under the status -->
+              <span
+                v-if="aiUsage"
+                class="basis-full px-1 text-xs text-fg-muted"
+                data-testid="task-ai-usage"
+                >{{ aiUsage }}</span
+              >
             </dd>
           </div>
           <div class="flex min-h-9 items-center">
@@ -789,7 +796,8 @@ const panelComponent = computed(() => {
               :aria-selected="tab === p.key"
               @click="tab = tab === p.key ? null : p.key"
             >
-              {{ lt(p.label) }}
+              <!-- mobile: the icon and the count only -->
+              <span class="max-md:sr-only">{{ lt(p.label) }}</span>
               <span
                 v-if="tabCounts[p.key]"
                 class="ml-0.5 rounded-full bg-bg-muted px-1.5 text-2xs text-fg"
