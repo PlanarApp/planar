@@ -55,7 +55,8 @@ const parentStatus = computed(() =>
   props.head ? parentStatuses.value?.find((x) => x.id === props.parent?.statusId) : undefined,
 );
 // PLNRAPP-706: the mobile List — the buttons of the key line and the fields are touch targets of at least 36 px
-const TAP = '[&_button]:min-h-9 [&_button]:min-w-9 [&_button]:justify-center';
+// `!`: scoped module styles (TimeControl .time: min-height 1.75rem) outweigh the arbitrary variant
+const TAP = '[&_button]:min-h-9! [&_button]:min-w-9! [&_button]:justify-center';
 // click on the key — copy it (PLNRAPP-181)
 const copyKey = () =>
   void navigator.clipboard
@@ -178,7 +179,7 @@ const copyKey = () =>
         :labels="labels"
         :hot="hot"
         :project-name="projectName"
-        :icon-only="isMobile"
+        :icon-only="isMobile && !head"
         :label-names="labelNames"
       />
     </template>
