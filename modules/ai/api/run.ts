@@ -522,6 +522,29 @@ async function contextOf(q: Pick<Q, 'execute'>, t: Task, bot: string) {
         where s.parent_id = ${t.id} and s.project_id = ${t.projectId} and s.archived_at is null
         order by s.rank collate "C"`,
   );
+  // PLNRAPP-774: what worked on the task before — the stall analysis decides by it, not by the status alone;
+  // the running run is this one
+  const runs = await rows(
+    q,
+    sql`select * from (select r.created_at as at, to_char(r.created_at, 'YYYY-MM-DD HH24:MI') as at_text,
+          coalesce(a.name, r.kind) as what, r.state, r.attempt, r.report->'failures' as failures, right(r.log, 400) as log
+        from ai_runs r left join ai_actions a on a.id = r.action_id
+        where r.task_id = ${t.id} and r.state <> 'running' order by r.created_at desc limit 8) x order by at`,
+  );
+  const mrs = await rows(
+    q,
+    sql`select iid, title, state, pipeline_status as ci, web_url as url from gitlab_mrs
+        where task_id = ${t.id} order by created_at desc limit 5`,
+  );
+  // the rules that run in the task's status: on entering it, or with the status in their conditions
+  const rules = await rows(
+    q,
+    sql`select name, description from automations_rules where project_id = ${t.projectId} and enabled
+          and ((trigger->>'type' = 'task.status_changed' and trigger->'to' ? ${t.statusId}::text)
+            or jsonb_path_exists(conditions, '$.** ? (@.field == "status").value[*] ? (@ == $s)',
+              jsonb_build_object('s', ${t.statusId}::text)))
+        order by created_at`,
+  );
   const name = (list: Row[], id: unknown) =>
     list.find((x) => x.id === id)?.name as string | undefined;
   const out = [
@@ -568,6 +591,33 @@ async function contextOf(q: Pick<Q, 'execute'>, t: Task, bot: string) {
         md(c.body),
       );
   }
+  if (rules.length)
+    out.push(
+      '',
+      '## Правила статуса',
+      ...rules.map(
+        (r) => `- ${r.name as string}${r.description ? `: ${r.description as string}` : ''}`,
+      ),
+    );
+  if (mrs.length)
+    out.push(
+      '',
+      '## MR',
+      ...mrs.map(
+        (m) =>
+          `- !${m.iid as number} ${m.title as string} — ${m.state as string}${m.ci ? `, CI: ${m.ci as string}` : ''}. ${m.url as string}`,
+      ),
+    );
+  if (runs.length)
+    out.push(
+      '',
+      '## Прогоны ИИ',
+      ...runs.map((r) => {
+        const failures = (r.failures as string[] | null) ?? [];
+        const tail = ((r.log as string | null) ?? '').trim().split('\n').slice(-3).join(' / ');
+        return `- ${r.at_text as string} ${r.what as string} — ${AI_STATE_TEXT[r.state as string] ?? (r.state as string)}, попытка ${r.attempt as number}.${failures.length ? ` Замечания: ${failures.join('; ')}.` : ''}${tail ? ` Журнал: …${tail}` : ''}`;
+      }),
+    );
   out.push(
     '',
     '## Проект',

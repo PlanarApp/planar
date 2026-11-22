@@ -446,6 +446,7 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
   }
   await retroPass(api, t, projectId);
   await waitingPass(api, t, projectId);
+  await unstickPass(api, t, projectId);
   await watchPass(api, t, bot, projectId);
   await ciPass(api, t, projectId);
 }
@@ -562,10 +563,17 @@ async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string
     await api.execute(bot, [
       { name: 'comment.create', args: { id, taskId: s.taskId, body: asDoc(text) } },
     ]);
-    // the stall the algorithm could not resolve — to the AI as an assignment (a bot's comment starts no run by itself)
-    const d = { kind: 'mention' as const, taskId: s.taskId, itemId: id };
+    // the stall the algorithm could not resolve — to the action «Разбор затыка» of the project (PLNRAPP-774), else
+    // to the AI as an assignment (a bot's comment starts no run by itself)
+    const a = await one(
+      api.db,
+      sql`select id from ai_actions where project_id = ${s.projectId} and key = ${UNSTICK}`,
+    );
+    const d: TaskRunData = a
+      ? { kind: 'action', taskId: s.taskId, actionId: a.id as string, ruleId: null }
+      : { kind: 'mention', taskId: s.taskId, itemId: id };
     await enqueueRun(api.db, api.enqueue, d, { singletonKey: keyOf(d), upsert: true });
-    await t.step(`сторож: ${s.key} — затык передан ИИ`, {
+    await t.step(`сторож: ${s.key} — затык передан ИИ${a ? ' на разбор' : ''}`, {
       projectId: s.projectId,
       taskId: s.taskId,
       level: 'action',
@@ -573,6 +581,55 @@ async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string
     t.count();
   }
 }
+
+/** PLNRAPP-774: the key of the action the watchdog hands a stall to */
+export const UNSTICK = 'unstick';
+
+/**
+ * PLNRAPP-774: the decision of a finished «Разбор затыка» — a line in the monitor's log, once (an event of the task
+ * of the run; a question has no finished_at — its last update). A move — the status rule goes on; no move — the watchdog asks a person at its next look.
+ */
+async function unstickPass(api: JobApi, t: Tracker, projectId: string | null) {
+  const found = (
+    await api.db.execute(
+      sql`select r.task_id as "taskId", r.project_id as "projectId", p.key || '-' || tk.number as key, r.state,
+            (select st.name from activity v join statuses st on st.id = (v.changes->'statusId'->>1)::uuid
+              where v.task_id = r.task_id and v.kind = 'updated' and v.changes ? 'statusId'
+                and v.created_at > r.created_at
+              order by v.created_at desc limit 1) as moved
+          from ai_runs r join ai_actions a on a.id = r.action_id and a.key = ${UNSTICK}
+          join tasks tk on tk.id = r.task_id join projects p on p.id = tk.project_id
+          where r.state in ('done', 'failed', 'waiting_human', 'cancelled')
+            and coalesce(r.finished_at, r.updated_at) > now() - interval '1 day'
+            ${projectId ? sql`and r.project_id = ${projectId}::uuid` : sql``}
+            and not exists (select 1 from ai_engine_events ev where ev.task_id = r.task_id
+              and ev.at > r.created_at and ev.text like ${`%${UNSTICK_MARK}%`})
+          limit 200`,
+    )
+  ).rows as {
+    taskId: string;
+    projectId: string;
+    key: string;
+    state: string;
+    moved: string | null;
+  }[];
+  for (const r of found) {
+    const what =
+      r.state === 'waiting_human'
+        ? 'вопрос человеку'
+        : r.moved
+          ? `задача переведена в «${r.moved}», работу продолжит правило статуса`
+          : r.state === 'done'
+            ? 'без изменений — сторож спросит человека'
+            : 'прогон не выполнен — сторож спросит человека';
+    await t.step(`сторож: ${r.key} — ${UNSTICK_MARK}: ${what}`, {
+      projectId: r.projectId,
+      taskId: r.taskId,
+      level: 'action',
+    });
+  }
+}
+const UNSTICK_MARK = 'решение разбора затыка';
 
 /**
  * PLNRAPP-740: the AI's own analysis of the stall did not move the task — the task's person gets the question

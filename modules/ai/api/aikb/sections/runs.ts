@@ -40,6 +40,7 @@ export const PACK_ACTIONS: Record<string, string[]> = {
     'dev',
     'review',
     'test',
+    'unstick',
   ],
   hiring: [
     'assign',

@@ -1182,6 +1182,47 @@ describe('движок: приёмка, доработка, надзор, све
     expect((await taskRow(stuck)).status_id).toBe(inProgress);
   });
 
+  it('сторож: затык — действию «Разбор затыка», его прогон видит прогоны ИИ задачи; решение — в логе монитора (PLNRAPP-774)', async () => {
+    const unstick = await action({ key: 'unstick', name: 'Разбор затыка', checks: [] });
+    const inProgress = await status('В работе', 'in_progress');
+    const t = await task({ statusId: inProgress });
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, action_id, state, attempt, chain_id, chain_depth, report, log)
+       values ($1, $2, $3, 'action', $4, 'failed', 3, $1, 0, '{"failures":["MR не открыт"]}'::jsonb, 'agent: glab: 401 Unauthorized\n')`,
+      [uuidv7(), t, P, actionId],
+    );
+    await raw(`update tasks set created_at = now() - interval '3 hours' where id = $1`, [t]);
+    await raw(`update activity set created_at = now() - interval '3 hours' where task_id = $1`, [
+      t,
+    ]);
+    jobs.length = 0;
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    await reconcile();
+    expect(jobs.filter((j) => j.queue === 'ai.run').map((j) => j.data)).toEqual([
+      expect.objectContaining({ kind: 'action', taskId: t, actionId: unstick }),
+    ]);
+    answers = [result({ comment: 'Токен GitLab обновлён — повтор разработки', moveTo: 'todo' })];
+    await drain();
+    const prompt = calls.at(-1)!.prompt;
+    expect(prompt).toContain('## Прогоны ИИ');
+    expect(prompt).toMatch(
+      /Планирование — ошибка, попытка 3\. Замечания: MR не открыт\. Журнал: …agent: glab: 401/,
+    );
+    expect((await taskRow(t)).status_id).toBe(S.todo);
+    await reconcile();
+    await reconcile();
+    const lines = (
+      await raw(`select text from ai_engine_events where task_id = $1 and text like '%разбора%'`, [
+        t,
+      ])
+    ).map((e) => e.text as string);
+    expect(lines, JSON.stringify(lines)).toEqual([
+      expect.stringMatching(
+        /решение разбора затыка: задача переведена в «.+», работу продолжит правило статуса$/,
+      ),
+    ]);
+  });
+
   it('сторож: старая жалоба без прогона ИИ — сначала разбор ИИ, а не вопрос человеку (PLNRAPP-773)', async () => {
     const inProgress = await status('В работе', 'in_progress');
     const t = await task({ statusId: inProgress });
