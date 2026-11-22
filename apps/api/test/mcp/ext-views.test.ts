@@ -23,9 +23,6 @@ export const PARITY_VIEWS: Record<string, string> = {
   'PATCH /api/v1/favorites/{id}': 'move_favorite',
   'DELETE /api/v1/favorites/{id}': 'remove_favorite',
   'GET /api/v1/my-day': 'list_my_day',
-  'POST /api/v1/my-day': 'plan_my_day',
-  'PATCH /api/v1/my-day/{id}': 'move_my_day',
-  'DELETE /api/v1/my-day/{id}': 'remove_my_day',
   'GET /api/v1/notifications': 'list_notifications',
   'POST /api/v1/notifications/read': 'mark_notifications_read',
   'POST /api/v1/notifications/read-all': 'mark_all_notifications_read',
@@ -264,30 +261,31 @@ describe('виды, избранное, Мой день, уведомления'
     expect(rows).toEqual([{ user_id: w.member.userId }]);
   });
 
-  // PLNRAPP-709: «My day» — my tasks (assignee) by dueDate; plan / move / remove change the task's dueDate
-  it('Мой день по dueDate: запланировать, перенести, убрать; только задачи, где я исполнитель', async () => {
+  // PLNRAPP-709, PLNRAPP-711: «My day» — my tasks (assignee) by dueDate; read only, no plan date in the API
+  it('Мой день по dueDate: только чтение, задачи, где я исполнитель; даты плана в API нет', async () => {
     const [, t] = await rest(admin, 'POST', '/tasks', {
       projectId: w.projectId,
       title: 'D',
       priority: 2,
+      dueDate: '2030-01-04',
       assigneeIds: [w.admin.userId],
     });
     const tid = t.data.id as string;
-    const [s0, p] = await rest(admin, 'POST', '/my-day', { taskId: tid, date: '2030-01-02' });
-    expect([s0, p.data.id, p.data.dueDate]).toEqual([201, tid, '2030-01-02']);
-    expect(
-      (await rest(admin, 'GET', '/my-day?date=2030-01-02'))[1].data.map(
-        (x: { id: string }) => x.id,
-      ),
-    ).toEqual([tid]);
-    expect((await rest(admin, 'GET', '/my-day?date=2030-01-03'))[1].data).toHaveLength(0);
+    const ids = async (q: string) =>
+      (await rest(admin, 'GET', `/my-day${q}`))[1].data.map((x: { id: string }) => x.id);
+    expect(await ids('?dueDate=2030-01-04')).toContain(tid);
+    expect(await ids('?dueDate=2030-01-03')).not.toContain(tid);
     // not an assignee: the task is not in the member's day
     expect((await rest(member, 'GET', '/my-day'))[1].data).toEqual([]);
-    expect((await rest(outsider, 'POST', '/my-day', { taskId: tid, date: '2030-01-02' }))[0]).toBe(
+    // planning by a plan date is gone: no write operations, no plan date in the task
+    expect((await rest(admin, 'POST', '/my-day', { taskId: tid, date: '2030-01-02' }))[0]).toBe(
       404,
     );
-    expect((await rest(read, 'POST', '/my-day', { taskId: tid, date: '2030-01-05' }))[0]).toBe(403);
-    expect((await rest(member, 'PATCH', `/my-day/${tid}`, { date: '2030-01-04' }))[0]).toBe(404);
+    expect((await rest(admin, 'PATCH', `/my-day/${tid}`, { date: '2030-01-02' }))[0]).toBe(404);
+    expect((await rest(admin, 'DELETE', `/my-day/${tid}`))[0]).toBe(404);
+    const [, got] = await rest(admin, 'GET', `/tasks/${tid}`);
+    expect(Object.keys(got.data).filter((k) => /plan/i.test(k))).toEqual([]);
+    expect(got.data.dueDate).toBe('2030-01-04');
     // sorting: by dueDate, then priority (0 «none» last), then key
     const [, u] = await rest(admin, 'POST', '/tasks', {
       projectId: w.projectId,
@@ -302,19 +300,12 @@ describe('виды, избранное, Мой день, уведомления'
       dueDate: '2030-01-01',
       assigneeIds: [w.admin.userId],
     });
-    const [s1, m] = await rest(admin, 'PATCH', `/my-day/${tid}`, { date: '2030-01-04' });
-    expect([s1, m.data.dueDate]).toEqual([200, '2030-01-04']);
-    const day = (await rest(admin, 'GET', '/my-day'))[1].data.map((x: { id: string }) => x.id);
+    const day = await ids('');
     expect(day.filter((x: string) => [tid, u.data.id, v.data.id].includes(x))).toEqual([
       v.data.id,
       u.data.id,
       tid,
     ]);
-    expect((await rest(member, 'DELETE', `/my-day/${tid}`))[0]).toBe(404);
-    expect((await rest(read, 'DELETE', `/my-day/${tid}`))[0]).toBe(403);
-    expect((await rest(admin, 'DELETE', `/my-day/${tid}`))[0]).toBe(204);
-    const [, after] = await rest(admin, 'GET', `/tasks/${tid}`);
-    expect(after.data.dueDate).toBeNull();
   });
 
   it('уведомления: список, прочитано, всё прочитано, удалить; чужие недоступны', async () => {
