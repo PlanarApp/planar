@@ -59,6 +59,14 @@ export const openBlocker = (task: SQL) =>
       where k.target_id = ${task} and k.kind = 'blocks' and b.archived_at is null
         and bs.category not in ('done', 'cancelled'))`;
 
+/**
+ * PLNRAPP-776: `task` has an open subtask — it coordinates them: rules and the reconcile start no action on it
+ * (its run waiting for the subtasks is woken by their outcomes), the watchdog leaves it alone (PLNRAPP-740)
+ */
+export const openSubtasks = (task: SQL) =>
+  sql`exists (select 1 from tasks c join statuses cs on cs.id = c.status_id
+      where c.parent_id = ${task} and c.archived_at is null and cs.category not in ('done', 'cancelled'))`;
+
 /** Subtasks of the AI not finished: open, and no action run yet or the last one queued / at work / waiting */
 export async function pendingSubtasks(q: Pick<Q, 'execute'>, taskId: string, bot: string) {
   const r = await one(
@@ -341,6 +349,7 @@ export const RECONCILE_QUEUE = 'ai.engine.reconcile';
  * A done or cancelled run is left alone until the task enters the status again after it (PLNRAPP-656: the test sent
  * the task back after the dev run) — then attempt 1 anew; an active run is left alone, a task with an open blocker waits, and so
  * does a task with an active run of any action (PLNRAPP-537: the plan does not start while triage waits for answers).
+ * PLNRAPP-776: a task with open subtasks coordinates them — no action starts on it.
  * PLNRAPP-500: a pass of the engine «task control» (engines.ts); `projectId` — only the project (a manual pass).
  */
 export async function reconcilePass(api: JobApi, t: Tracker, projectId: string | null = null) {
@@ -376,6 +385,7 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
             where task_id = t.id and kind = 'updated' and changes->'statusId'->>1 = t.status_id::text) e on true
           where (l.id is null or l.state = 'failed' or (l.state in ('done', 'cancelled') and e.at > l.finished_at))
             and not ${openBlocker(sql`t.id`)}
+            and not ${openSubtasks(sql`t.id`)}
             -- PLNRAPP-679: «harness-retro» and its items are the retro's, not actions'
             and not exists (select 1 from ai_retro rt where rt.task_id in (t.id, t.parent_id))
             and not exists (select 1 from ai_runs o where o.task_id = t.id
@@ -509,8 +519,7 @@ export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null
                 where c.task_id = t.id and c.resolved_at is null))
             and not exists (select 1 from ai_retro rt where rt.task_id in (t.id, t.parent_id))
             and not ${openBlocker(sql`t.id`)}
-            and not exists (select 1 from tasks c join statuses cs on cs.id = c.status_id
-              where c.parent_id = t.id and c.archived_at is null and cs.category not in ('done', 'cancelled'))
+            and not ${openSubtasks(sql`t.id`)}
             and not exists (select 1 from gitlab_mrs m where m.task_id = t.id and m.state = 'opened'
               and m.pipeline_status in ('created', 'waiting_for_resource', 'preparing', 'pending', 'running', 'scheduled'))
             and not exists (select 1 from automations_rules r where r.project_id = t.project_id and r.enabled

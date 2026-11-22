@@ -33,6 +33,7 @@ import {
   criteriaOf,
   maxAttemptsOf,
   openBlocker,
+  openSubtasks,
   pendingSubtasks,
   review,
   rework,
@@ -666,6 +667,12 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
       md(task.description)
     )
       return skip('Подзадача ИИ с описанием: действие на создание задачи не запускается.');
+    // PLNRAPP-776: a rule's run (an event or the reconcile) on a task coordinating its open subtasks
+    if (
+      d.statusId &&
+      (await one(api.db, sql`select ${openSubtasks(sql`${task.id}::uuid`)} as b`))?.b
+    )
+      return skip('Задача ждёт свои подзадачи: действия по правилам на ней не запускаются.');
     // PLNRAPP-405: an open blocker — no run row, the reconcile starts it once the blocker is done
     if ((await one(api.db, sql`select ${openBlocker(sql`${task.id}::uuid`)} as b`))?.b) {
       if (d.restartOf) return skip('Перезапуск невозможен: задачу блокирует незавершённая.');

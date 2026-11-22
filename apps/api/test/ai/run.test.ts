@@ -1060,6 +1060,34 @@ describe('движок: приёмка, доработка, надзор, све
     ]);
   });
 
+  it('сверка и правила: задача с открытыми подзадачами их координирует — действие статуса на ней не запускается (PLNRAPP-776)', async () => {
+    const { id: ruleId } = await rule({ type: 'task.status_changed', to: [S.backlog] }, [
+      { type: 'ai_run', aiActionId: actionId },
+    ]);
+    const t = await task({ statusId: S.backlog });
+    const sub = await task({ parentId: t });
+    jobs.length = 0;
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    await reconcile();
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toHaveLength(0);
+    // the rule's event: no run either
+    await handler('ai', 'ai.run')(
+      { kind: 'action', taskId: t, actionId, ruleId, statusId: S.backlog },
+      api,
+    );
+    expect(await runsOf(t)).toHaveLength(0);
+    // the subtasks are closed — the action of the status goes
+    await w.admin.ok('task.update', { id: sub, statusId: S.done });
+    jobs.length = 0;
+    await reconcile();
+    expect(jobs).toEqual([
+      expect.objectContaining({
+        queue: 'ai.run',
+        data: expect.objectContaining({ taskId: t, actionId }),
+      }),
+    ]);
+  });
+
   it('сверка: задача снова вошла в статус после принятого прогона — запуск заново с попытки 1 (PLNRAPP-656)', async () => {
     await rule({ type: 'task.status_changed', to: [S.backlog] }, [
       { type: 'ai_run', aiActionId: actionId },

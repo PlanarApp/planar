@@ -59,9 +59,22 @@ describe('pack dev', () => {
           (r.trigger.to as string[] | undefined)?.includes(key) &&
           r.actions.some((a) => a.type === 'ai_run'),
       );
-    const dead = targets.filter(([, name]) => {
+    // PLNRAPP-776: a decomposed task waits for its subtasks — the rule on their closing moves it on
+    const subtasksMove = (key: string) =>
+      h.rules.some(
+        (r) =>
+          r.trigger.type === 'task.subtasks_closed' &&
+          (r.filter?.status as string[] | undefined)?.includes(key),
+      );
+    const dead = targets.filter(([k, name]) => {
       const s = h.statuses.find((x) => x.name === name);
-      return !s || (s.category !== 'done' && s.category !== 'cancelled' && !startsAi(s.key));
+      return (
+        !s ||
+        (s.category !== 'done' &&
+          s.category !== 'cancelled' &&
+          !startsAi(s.key) &&
+          !(k === 'actions/decompose.md' && subtasksMove(s.key)))
+      );
     });
     expect(dead).toEqual([]);
   });
