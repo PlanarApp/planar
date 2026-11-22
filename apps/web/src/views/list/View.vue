@@ -450,6 +450,25 @@ const scroller = ref<HTMLElement>();
 // Escape / a click on an empty place of the list — out of the selection mode (PLNRAPP-291)
 useSelectionReset(() => scroller.value);
 const rowH = computed(() => (isMobile.value ? 44 : 32));
+// PLNRAPP-705: the list area is narrower than NARROW_W (the task sidebar is open, a small window) —
+// the row is laid out in two lines by a container query (@container/list in the template, Row.vue);
+// here the same width only tells the virtualizer to measure task rows: they are taller than rowH
+const NARROW_W = 720;
+const narrow = ref(false);
+let ro: ResizeObserver | undefined;
+const fit = () => {
+  const el = scroller.value;
+  if (el) narrow.value = el.clientWidth > 0 && el.clientWidth < NARROW_W;
+};
+watch(scroller, (el) => {
+  ro?.disconnect();
+  if (el && typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(fit);
+    ro.observe(el);
+  }
+  fit();
+});
+onBeforeUnmount(() => ro?.disconnect());
 // cards: the task card is above the service rows; dragging is disabled there (dropAt counts by rowH)
 const virt = useVirtualizer(
   computed(() => {
@@ -470,7 +489,10 @@ const measure = (el: unknown) => virt.value.measureElement(el as Element | null)
 // the row being edited grows too: its name is a multi-line textarea (PLNRAPP-70); a card — always
 const grows = (i: number) =>
   items.value[i]?.kind === 'task' &&
-  (asCards.value || props.options.wrapTitles || editing.value === items.value[i]?.id);
+  (asCards.value ||
+    narrow.value ||
+    props.options.wrapTitles ||
+    editing.value === items.value[i]?.id);
 const rowStyle = (v: VirtualItem) => ({
   transform: `translateY(${v.start}px)`,
   ...(grows(v.index)
@@ -483,7 +505,7 @@ const focusedId = ref<string | null>(null);
 const editing = ref<string | null>(null);
 // sizes measured with wrapping (or while editing) are stale without it (and back)
 watch(
-  () => [props.options.wrapTitles, editing.value, asCards.value],
+  () => [props.options.wrapTitles, editing.value, asCards.value, narrow.value],
   () => virt.value.measure(),
 );
 const focusedTask = computed(() => {
@@ -745,7 +767,7 @@ watch(
         role="grid"
         tabindex="0"
         :aria-rowcount="items.length"
-        class="min-h-0 flex-1 overflow-auto outline-none"
+        class="@container/list min-h-0 flex-1 overflow-auto outline-none"
         :class="{ 'focus-visible:ring-2 ring-inset ring-focus': !focusedTask }"
         @keydown="onKey"
       >
@@ -790,10 +812,14 @@ watch(
                   {{ t('list.colName') }}
                   <span class="text-accent">{{ sortMark(options, 'title') }}</span>
                 </button>
+                <!-- PLNRAPP-705: narrow list — the columns are the row's second line, without headers -->
                 <span
                   v-for="c in columns"
                   :key="c"
-                  :class="['relative shrink-0 truncate px-1', COLUMN_CLASS[c]]"
+                  :class="[
+                    'relative shrink-0 truncate px-1 @max-[720px]/list:hidden',
+                    COLUMN_CLASS[c],
+                  ]"
                   :style="{ width: `${widths[c]}px` }"
                   ><button
                     v-if="LIST_SORT[c]"
@@ -823,7 +849,7 @@ watch(
                     @dblclick.stop="resetWidth(c)"
                 /></span>
                 <!-- under the rows' «…» button (gap-2 + size-7) -->
-                <span class="w-9 shrink-0" aria-hidden="true" />
+                <span class="w-9 shrink-0 @max-[720px]/list:hidden" aria-hidden="true" />
               </div>
               <div
                 v-else-if="it.kind === 'group'"
@@ -870,7 +896,7 @@ watch(
                 <span class="text-xs text-fg-subtle">{{ it.group.tasks.length }}</span>
                 <span
                   v-if="!cards"
-                  class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden"
+                  class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden @max-[720px]/list:hidden"
                 >
                   <span
                     v-for="c in columns"
