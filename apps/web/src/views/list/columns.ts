@@ -26,3 +26,17 @@ export const COLUMN_CLASS: Record<ListColumn, string> = {
 };
 export const visibleColumns = (fields: readonly TaskField[]): ListColumn[] =>
   LIST_COLUMNS.filter((c) => fields.includes(c));
+/**
+ * PLNRAPP-705: narrow list area — order of the second row: parent (order-3), labels, assignees,
+ * dates, the remaining columns, icons (progress, module fields — order-8) last.
+ */
+export const NARROW_ORDER: Record<ListColumn, string> = {
+  labels: '@max-[720px]/list:order-4',
+  assignee: '@max-[720px]/list:order-5',
+  dueDate: '@max-[720px]/list:order-6',
+  project: '@max-[720px]/list:order-7',
+  priority: '@max-[720px]/list:order-7',
+  ai: '@max-[720px]/list:order-7',
+  aiCost: '@max-[720px]/list:order-7',
+  aiTime: '@max-[720px]/list:order-7',
+};

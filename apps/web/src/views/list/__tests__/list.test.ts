@@ -18,6 +18,7 @@ import { commitImeOnEnter } from '../../../ui/imeEnter';
 import { registerModules } from '../../../modules/registry';
 import { useAuth } from '../../../auth/useAuth';
 import type { ViewOptions } from '../..';
+import { NARROW_ORDER } from '../columns';
 
 const { router } = vi.hoisted(() => ({ router: { current: undefined as never } }));
 vi.mock('../../../router', async () => {
@@ -176,10 +177,27 @@ describe('list:groups', () => {
       expect(title.classes()).not.toContain('truncate');
       expect(title.classes()).toContain('break-words');
       expect(title.classes()).toContain('@max-[720px]/list:flex-1');
-      // вторая строка: колонки переносятся под название
+      // вторая строка: родитель, метки, исполнители, сроки, остальные колонки, иконки
       expect(row('PLN-2').get('[data-testid=row-cols]').classes()).toContain(
-        '@max-[720px]/list:order-4',
+        '@max-[720px]/list:contents',
       );
+      const order = (el: { classes: () => string[] }) =>
+        Number(
+          el
+            .classes()
+            .find((c) => c.startsWith('@max-[720px]/list:order-'))
+            ?.split('-')
+            .pop(),
+        );
+      const seq = ['assignee', 'dueDate', 'priority'].map((c) =>
+        order(row('PLN-2').get(`[data-col=${c}]`)),
+      );
+      expect(seq).toEqual([...seq].sort((x, y) => x - y));
+      // родитель (order-3) → метки → исполнители → сроки → остальные колонки → иконки (order-8)
+      const n = (c: keyof typeof NARROW_ORDER) => Number(NARROW_ORDER[c].split('-').pop());
+      expect([3, n('labels'), n('assignee'), n('dueDate'), n('priority'), 8]).toEqual([
+        3, 4, 5, 6, 7, 8,
+      ]);
       // строка в две строки выше rowH — виртуализатор её измеряет (minHeight вместо height)
       const box = row('PLN-2').element.parentElement as HTMLElement;
       expect(box.style.minHeight).toBe('32px');
