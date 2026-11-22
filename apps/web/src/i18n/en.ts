@@ -176,6 +176,7 @@ export default {
     postpone: 'Unfinished — to tomorrow',
     toToday: 'Move to today',
     tomorrow: 'Move to tomorrow',
+    toTomorrow: 'For tomorrow',
     pick: 'Move to a date',
     remove: 'Remove from my day',
     add: 'Add to my day',

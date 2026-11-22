@@ -71,6 +71,7 @@ const tagIcons = computed(() => props.iconOnly && !props.labelNames);
       ></PriorityPicker>
       <DueDatePicker
         v-else-if="col === 'dueDate'"
+        :task-id="task.id"
         :model-value="task.dueDate"
         @update:model-value="updateTask(task.id, { dueDate: $event })"
         ><template #value>

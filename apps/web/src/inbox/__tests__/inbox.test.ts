@@ -42,7 +42,7 @@ vi.mock('../../views/open', async (orig) => ({
 const InboxScreen = (await import('../../screens/InboxScreen.vue')).default;
 const BellMenu = (await import('../BellMenu.vue')).default;
 const MyDay = (await import('../MyDay.vue')).default;
-const { setDue } = await import('../myDay');
+const DayOptions = (await import('../DayOptions.vue')).default;
 const { useTaskFilter } = await import('../../views/saved/useFilter');
 const PushToggle = (await import('../PushToggle.vue')).default;
 const { useUnread, useAssignedComments, useMyTasks } = await import('../queries');
@@ -423,24 +423,35 @@ describe('PLANARAPP-10 мой день', () => {
     await flushPromises();
   };
 
-  it('PLNRAPP-712: «Мой день» следует за dueDate задачи; в строке — «на завтра» и «убрать»', async () => {
+  it('меню «Срок»: «на сегодня» и «на завтра» ставят dueDate, «убрать» очищает', async () => {
     const t1 = await add(1);
     const t2 = await add(2);
     const w = show();
     await vi.waitFor(() => expect(w.find('[data-testid=my-day]').exists()).toBe(true));
     expect(w.find('[data-testid=my-day-row]').exists()).toBe(false);
-    // no separate plan date (PLNRAPP-712): the task's due date alone puts it into the day
-    await setDue(t2, day(0));
-    await flushPromises();
+    // PLNRAPP-137: «My day» choices of a task's «Due date» menu
+    const options = (taskId: string) =>
+      mount(DayOptions, { props: { taskId }, global: { plugins: [i18n] } });
+    const pick = async (taskId: string, id: string) => {
+      const o = options(taskId);
+      await vi.waitFor(() => expect(o.find(`[data-testid=${id}]`).exists()).toBe(true));
+      await o.get(`[data-testid=${id}]`).trigger('click');
+      await flushPromises();
+      return o;
+    };
+    await pick(t2, 'day-options-today');
     await vi.waitFor(() => expect(planned(w)).toEqual(['T2']));
     expect(await dueOf(t2)).toBe(day(0));
-    await setDue(t1, day(0));
+    const o1 = await pick(t1, 'day-options-today');
     // no manual order: by priority, then key
     await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T2']));
-    await setDue(t1, day(1));
+    // due today: «Add» is gone, «Remove» is offered
+    await vi.waitFor(() => expect(o1.find('[data-testid=day-options-remove]').exists()).toBe(true));
+    expect(o1.find('[data-testid=day-options-today]').exists()).toBe(false);
+    await pick(t1, 'day-options-tomorrow');
     await vi.waitFor(() => expect(planned(w, 'tomorrow')).toEqual(['T1']));
     expect(await dueOf(t1)).toBe(day(1));
-    await setDue(t1, null);
+    await pick(t1, 'day-options-remove');
     await vi.waitFor(() => expect(planned(w, 'tomorrow')).toEqual([]));
     expect(await dueOf(t1)).toBeNull();
     // the row's menu: remove clears dueDate, to tomorrow sets it
