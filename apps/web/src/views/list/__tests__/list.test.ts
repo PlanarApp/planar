@@ -930,9 +930,30 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     const line = row('PLN-2').get('[data-testid=card-parent]');
     await until(() => line.find('svg[data-category]').exists());
     expect(line.text()).toBe(`PLN-1${p.title}`);
-    expect(line.find('.truncate').text()).toBe(p.title);
+    // PLNRAPP-706: имя родителя переносится, а не обрезается
+    expect(line.find('.break-words').text()).toBe(p.title);
+    expect(line.find('.truncate').exists()).toBe(false);
     // PLNRAPP-783: self-start даёт ширину по содержимому — без max-w-full длинное имя выходит за карточку
     expect(line.classes()).toContain('max-w-full');
+  });
+  it('PLNRAPP-706: название целиком, мета-данные не обрезаются, кнопки — тач-зоны от 36 px', async () => {
+    mobile();
+    const long = 'Очень длинное название задачи, которое на ширине 375 px занимает несколько строк';
+    await db.table('tasks').put(task(1, { title: long }));
+    await show({ fields: ['status', 'project', 'priority', 'dueDate', 'labels', 'assignee'] });
+    const card = row('PLN-1');
+    const title = card.findAll('p[role=gridcell]').find((x) => x.text() === long)!;
+    expect(title.classes()).toContain('break-words');
+    expect(title.classes()).not.toContain('truncate');
+    expect(title.classes()).not.toContain('line-clamp-3');
+    // project name wraps instead of an ellipsis
+    expect(card.get('[data-testid=card-project]').find('.truncate').exists()).toBe(false);
+    // the key line and the fields line: every button is at least 36 px (min-h-9 min-w-9)
+    const key = card.get('[data-testid=card-key]');
+    for (const line of [key.element.parentElement!, card.get('[data-testid=card-fields]').element])
+      expect(line.className).toContain('[&_button]:min-h-9');
+    expect(card.get('[data-testid=card-fields]').element.className).toContain('[&_button]:min-w-9');
+    expect(key.classes()).toContain('min-h-9');
   });
   it('без выбора тап по карточке открывает задачу', async () => {
     mobile();

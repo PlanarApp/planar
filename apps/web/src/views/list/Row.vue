@@ -219,6 +219,7 @@ function save() {
         @change="emit('toggle')"
       />
     </label>
+    <!-- PLNRAPP-706: на мобильной название целиком (переносится по словам), строку меряет виртуализатор -->
     <div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
       <TaskCard
         :task="task"
@@ -226,8 +227,8 @@ function save() {
         :cols="cardCols"
         :blocked="blocked"
         :hot="isMobile || hot || focused"
-        :one-line="!wrap"
-        :wrap="wrap"
+        :one-line="!wrap && !isMobile"
+        :wrap="wrap || isMobile"
         :members="members"
         :labels="labels"
         :depth="depth"
