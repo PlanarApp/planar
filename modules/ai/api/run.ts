@@ -1762,6 +1762,11 @@ async function changes(
         status = run.action?.questionStatusId ?? status;
         run.log.push(`newTasks: ${n.title}: автопилот выключен — подзадача человеку`);
       }
+      // PLNRAPP-793: the AI's own subtask in the question status has no question and no person — nothing starts it
+      if (toBot && status && status === run.action?.questionStatusId) {
+        status = undefined;
+        run.log.push(`newTasks: ${n.title}: подзадача ИИ без вопроса — не в «${n.status}»`);
+      }
       const assignee = toBot ? run.bot : n.ai ? human?.id : undefined;
       const checks = n.checks?.length
         ? `\n\n## ${CRITERIA_HEADING}\n\n${n.checks.map((c) => `- ${c}`).join('\n')}`
