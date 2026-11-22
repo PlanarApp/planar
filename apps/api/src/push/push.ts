@@ -69,12 +69,17 @@ const TITLES: Record<string, string> = {
   mentioned: 'Вас упомянули',
   commented: 'Новый комментарий',
   status_changed: 'Статус задачи изменён',
+  due_changed: 'Срок задачи изменён',
   chat_mention: 'Упоминание в чате',
   chat_dm: 'Личное сообщение',
   chat_reply: 'Ответ в треде',
   due_today: 'Сегодня срок задачи',
   start_today: 'Сегодня начало задачи',
 };
+
+/** 'YYYY-MM-DD' → 'DD.MM.YYYY'; null — "без срока" */
+const dueText = (d: string | null) =>
+  d ? d.slice(0, 10).split('-').reverse().join('.') : 'без срока';
 
 /** pg-boss queue + delivery. Provider PUSH_QUEUE for PushService. */
 @Injectable()
@@ -172,6 +177,9 @@ export class PushQueue implements OnApplicationShutdown {
         const name = (id: string) => rows.find((r) => r.id === id)?.name;
         if (name(pair[0]) && name(pair[1])) body += `\n${name(pair[0])} → ${name(pair[1])}`;
       }
+      // due_changed (PLNRAPP-710): the dates on the second line, "from → to"; no date — "без срока"
+      const due = (n.changes as { dueDate?: [string | null, string | null] } | null)?.dueDate;
+      if (due?.length === 2) body += `\n${dueText(due[0])} → ${dueText(due[1])}`;
       // a comment with files (PLNRAPP-372): their names on the second line
       if (n.commentId && n.body) body += `\n${n.body}`;
     } else {

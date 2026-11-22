@@ -9,6 +9,7 @@ type Kind =
   | 'mentioned'
   | 'commented'
   | 'status_changed'
+  | 'due_changed'
   | 'comment_assigned'
   | 'checklist_assigned';
 
@@ -78,6 +79,14 @@ export async function notificationsHook(
     const p = projects.get(taskId);
     return !p || !!(await projectAccess(q, userId, p));
   };
+  // PLNRAPP-710: due_changed goes to assignees as well, even if they unsubscribed
+  const assigneesOf = async (taskId: string) =>
+    (
+      await q
+        .select({ u: schema.taskAssignees.userId })
+        .from(schema.taskAssignees)
+        .where(eq(schema.taskAssignees.taskId, taskId))
+    ).map((r) => r.u);
   const subscribe = async (spaceId: string, taskId: string, userId: string) => {
     const w = await watchersOf(taskId);
     if (w.has(userId)) return;
@@ -160,6 +169,16 @@ export async function notificationsHook(
           await notify('status_changed', spaceId, a.id as string, u, null, {
             statusId: [w.before.statusId, a.statusId],
           });
+      // PLNRAPP-710: the due date moved (card, list, bulk, «My day») — one notification per task
+      // to its assignees and watchers, as status_changed; the history is the activity row of ServerTx
+      if (w.before && (w.before.dueDate ?? null) !== (a.dueDate ?? null)) {
+        const id = a.id as string;
+        const to = new Set([...(await assigneesOf(id)), ...(await watchersOf(id))]);
+        for (const u of to)
+          await notify('due_changed', spaceId, id, u, null, {
+            dueDate: [w.before.dueDate ?? null, a.dueDate ?? null],
+          });
+      }
     } else if (w.entity === 'comments') {
       const taskId = a.taskId as string;
       const all = (a.mentions as string[]) ?? [];

@@ -183,6 +183,72 @@ describe('триггеры', () => {
     expect(n.changes).toEqual({ statusId: [t.statusId, w.statusIds[2]] });
     expect(await notes(w.member.userId)).toHaveLength(0);
   });
+
+  it('PLNRAPP-710 перенос срока: запись в истории со старым и новым сроком', async () => {
+    const w = await setup();
+    const t = await task(w, { dueDate: '2026-11-22' });
+    await w.admin.ok('task.update', { id: t.id, dueDate: '2026-11-23' });
+    const rows = await db.select().from(schema.activity).where(eq(schema.activity.taskId, t.id));
+    expect(rows.find((r) => r.kind === 'updated')?.changes).toEqual({
+      dueDate: ['2026-11-22', '2026-11-23'],
+    });
+  });
+
+  it('PLNRAPP-710 due_changed: исполнителям (даже отписанным) и наблюдателям кроме actor', async () => {
+    const w = await setup();
+    const t = await task(w, { dueDate: '2026-11-22' });
+    await w.admin.ok('task.assign', { id: uuidv7(), taskId: t.id, userId: w.member.userId });
+    await w.member.ok('task.unwatch', { taskId: t.id });
+    const due = async (u: string) =>
+      (await notes(u)).filter((n) => n.kind === 'due_changed').map((n) => n.changes);
+    // admin (author, watcher) moves: the unsubscribed assignee gets it, the actor does not
+    await w.admin.ok('task.update', { id: t.id, dueDate: '2026-11-23' });
+    expect(await due(w.member.userId)).toEqual([{ dueDate: ['2026-11-22', '2026-11-23'] }]);
+    expect(await due(w.admin.userId)).toEqual([]);
+    // the assignee moves (clears) — to the watcher
+    await w.member.ok('task.update', { id: t.id, dueDate: null });
+    expect(await due(w.admin.userId)).toEqual([{ dueDate: ['2026-11-23', null] }]);
+    expect(await due(w.member.userId)).toHaveLength(1);
+    // without a due change — nothing
+    await w.member.ok('task.update', { id: t.id, title: 'другое' });
+    expect(await due(w.admin.userId)).toHaveLength(1);
+  });
+
+  it('PLNRAPP-710 перенос многих задач: по одному due_changed на задачу, без дублей', async () => {
+    const w = await setup();
+    const ts = [];
+    for (let i = 0; i < 3; i++) {
+      const t = await task(w, { dueDate: '2026-11-21' });
+      // member is the assignee and a watcher at once — still one notification per task
+      await w.admin.ok('task.assign', { id: uuidv7(), taskId: t.id, userId: w.member.userId });
+      ts.push(t);
+    }
+    for (const t of ts) await w.admin.ok('task.update', { id: t.id, dueDate: '2026-11-22' });
+    const due = (await notes(w.member.userId)).filter((n) => n.kind === 'due_changed');
+    expect(due.map((n) => n.taskId).sort()).toEqual(ts.map((t) => t.id).sort());
+  });
+
+  it('PLNRAPP-710 доставка due_changed: даты второй строкой', async () => {
+    const w = await setup();
+    const t = await task(w, { title: 'Заголовок', dueDate: '2026-11-22' });
+    await db.insert(schema.pushSubscriptions).values({
+      userId: w.admin.userId,
+      endpoint: 'https://push.example/d',
+      p256dh: 'k',
+      auth: 'a',
+    });
+    await w.member.ok('task.update', { id: t.id, dueDate: '2026-11-25' });
+    const [n] = (await notes(w.admin.userId)).filter((x) => x.kind === 'due_changed');
+    sender.send.mockClear();
+    await queue.deliver(n!.id);
+    const p = (sender.send.mock.calls[0] as unknown[])[1];
+    expect(pushPayloadSchema.safeParse(p).success).toBe(true);
+    expect(p).toMatchObject({
+      title: 'Срок задачи изменён',
+      body: 'Заголовок\n22.11.2026 → 25.11.2026',
+      kind: 'due_changed',
+    });
+  });
 });
 
 describe('автоподписка', () => {
