@@ -314,12 +314,12 @@ scope: user · write: self · bootstrap: yes · indexes: taskId, userId
 | `id` | uuid | |
 | `userId` | uuid | recipient |
 | `spaceId` | uuid? | for grouping; does not affect visibility; null — a personal chat dialog |
-| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned,doc_mention,trial_ending,checklist_assigned,due_today,start_today,doc_comment_assigned) | `chat_*` is created by the chat module (collab.md §CH); `doc_mention`, `doc_comment_assigned` — by the docs module (collab.md §DC-schema); `trial_ending` — by the cloud link (cloud-link.md); `checklist_assigned` — `body` is the item text; `due_today` / `start_today` — by the core job `core.due.remind` (core.md v27) |
+| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned,doc_mention,trial_ending,checklist_assigned,due_today,start_today,doc_comment_assigned,due_changed) | `chat_*` is created by the chat module (collab.md §CH); `doc_mention`, `doc_comment_assigned` — by the docs module (collab.md §DC-schema); `trial_ending` — by the cloud link (cloud-link.md); `checklist_assigned` — `body` is the item text; `due_today` / `start_today` — by the core job `core.due.remind` (core.md v27) |
 | `taskId` | uuid? | no FK; null for `chat_*` |
 | `url` | text? | in-app path for notifications without a task (the `url` rules from "Web Push") |
 | `body` | text? | ≤ 140 characters, "Name: text"; for notifications without a task |
 | `commentId` | uuid? | no FK |
-| `changes` | obj? | `status_changed`: `{statusId: [old, new]}` (the `activity.changes` format); otherwise null (C-schema v10) |
+| `changes` | obj? | `status_changed`: `{statusId: [old, new]}`, `due_changed`: `{dueDate: [old, new]}` (the `activity.changes` format); otherwise null (C-schema v10) |
 | `actorId` | uuid | |
 | `readAt` | ts? | |
 | `createdAt` | ts | |
@@ -331,6 +331,7 @@ Triggers (a server hook in the mutation transaction, after `run`; the author of 
 - `mentioned` — to each of `comments.mentions` (on creation and edit — only to the newly mentioned);
 - `commented` — to task watchers on a new comment, except those mentioned in it;
 - `status_changed` — to watchers when `tasks.statusId` changes.
+- `due_changed` — to the task assignees and watchers (except the actor) when `tasks.dueDate` changes, one per task (PLNRAPP-710).
 
 Auto-subscription (the same hook, `taskWatchers` on behalf of the system): the task author, the assigned assignee, the comment author. Push — a pg-boss job per notification after commit.
 

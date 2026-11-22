@@ -7,6 +7,7 @@ import { router } from '../router';
 import { mutate } from '../sync';
 import { openTask, taskPanelLoader } from '../views';
 import PushToggle from '../inbox/PushToggle.vue';
+import { formatDue } from '../views/list/due';
 import { groupByTask, inGroup, useNotifications, type InboxItem } from '../inbox/queries';
 import type { GroupScope } from '../modules/types';
 import { isSnoozed, snooze, snoozeUntil, snoozed, type SnoozeOption } from '../inbox/snooze';
@@ -15,6 +16,9 @@ import { isSnoozed, snooze, snoozeUntil, snoozed, type SnoozeOption } from '../i
 // kinds — only these notification kinds ("My work › Mentions")
 const props = defineProps<{ scope?: GroupScope; kinds?: string[] }>();
 const { t, locale } = useI18n();
+// due_changed (PLNRAPP-710): a date of the pair; null — "no due date"
+const dueText = (d: string | null) =>
+  d ? formatDue(d.slice(0, 10), locale.value) : t('taskMenu.noDue');
 const all = useNotifications();
 const rows = computed(() =>
   all.value?.filter(
@@ -179,6 +183,16 @@ const rowItems = (c: InboxItem[]): MenuItem[] => [
                       class="rounded px-1.5 py-0.5 font-medium text-fg"
                       :style="{ background: `color-mix(in srgb, ${s.color} 16%, transparent)` }"
                       >{{ s.name }}</span
+                    >
+                  </span>
+                </template>
+                <template v-if="n.due">
+                  <span v-for="(d, i) in n.due" :key="i" class="contents">
+                    <ArrowRight v-if="i" :size="12" aria-hidden="true" />
+                    <span
+                      data-testid="inbox-due"
+                      class="rounded bg-bg-muted px-1.5 py-0.5 font-medium text-fg"
+                      >{{ dueText(d) }}</span
                     >
                   </span>
                 </template>

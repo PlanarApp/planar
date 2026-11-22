@@ -491,6 +491,7 @@ export const notifications = pgTable(
         'due_today',
         'start_today',
         'doc_comment_assigned',
+        'due_changed',
       ]),
     ),
   ],

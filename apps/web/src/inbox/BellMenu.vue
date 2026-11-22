@@ -6,11 +6,15 @@ import { ArrowRight, Bell, Check } from 'lucide-vue-next';
 import { Button, EmptyState, IconButton, Popover } from '../ui';
 import { mutate } from '../sync';
 import { openTask } from '../views/open';
+import { formatDue } from '../views/list/due';
 import { useUnreadItems, type InboxItem } from './queries';
 import { isSnoozed, snoozed } from './snooze';
 
 // bell: menu of unread notifications; click — read it and go to it
 const { t, locale } = useI18n();
+// due_changed (PLNRAPP-710): a date of the pair; null — "no due date"
+const dueText = (d: string | null) =>
+  d ? formatDue(d.slice(0, 10), locale.value) : t('taskMenu.noDue');
 const router = useRouter();
 const unread = useUnreadItems();
 const open = ref(false);
@@ -78,6 +82,16 @@ function all() {
                     data-testid="bell-status"
                     :style="{ background: `color-mix(in srgb, ${s.color} 16%, transparent)` }"
                     >{{ s.name }}</span
+                  >
+                </span>
+              </template>
+              <template v-if="n.due">
+                <span v-for="(d, i) in n.due" :key="i" class="contents">
+                  <ArrowRight v-if="i" :size="12" aria-hidden="true" />
+                  <span
+                    data-testid="bell-due"
+                    class="rounded bg-bg-muted px-1.5 py-0.5 text-xs text-fg"
+                    >{{ dueText(d) }}</span
                   >
                 </span>
               </template>
