@@ -1003,6 +1003,33 @@ describe('PLNRAPP-166: byHuman, триггеры по сканированию �
     expect(taskIds(r)).toEqual([t, t]);
   });
 
+  it('task.subtasks_closed: последняя открытая подзадача закрыта — раз на закрытие (PLNRAPP-773)', async () => {
+    const r = await rule({ type: 'task.subtasks_closed' });
+    const parent = await task();
+    const a = await task({ parentId: parent, statusId: w.statusIds[DONE] });
+    const b = await task({ parentId: parent });
+    // without subtasks and with a closed parent — never
+    await task();
+    const closed = await task({ statusId: w.statusIds[DONE] });
+    await task({ parentId: closed, statusId: w.statusIds[DONE] });
+    jobs.length = 0;
+    await sched('2026-11-16T06:00:30.000Z');
+    expect(taskIds(r)).toEqual([]);
+    await w.admin.ok('task.update', { id: b, statusId: w.statusIds[DONE] });
+    await sched('2026-11-16T06:01:30.000Z');
+    expect(taskIds(r)).toEqual([parent]);
+    await sched('2026-11-16T06:02:30.000Z');
+    expect(taskIds(r)).toEqual([parent]);
+    // reopened and closed again — fires again
+    await w.admin.ok('task.update', { id: a, statusId: w.statusIds[TODO] });
+    await sched('2026-11-16T06:03:30.000Z');
+    expect(taskIds(r)).toEqual([parent]);
+    await new Promise((ok) => setTimeout(ok, 5));
+    await w.admin.ok('task.update', { id: a, statusId: w.statusIds[DONE] });
+    await sched('2026-11-16T06:04:30.000Z');
+    expect(taskIds(r)).toEqual([parent, parent]);
+  });
+
   it('schedule: cron в поясе правила, раз на срабатывание, открытые задачи', async () => {
     expect(handler('automations.schedule').cron).toBe('* * * * *');
     const r = await rule({ type: 'schedule', cron: '0 9 * * 1', tz: 'Europe/Moscow' });

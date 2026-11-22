@@ -13,6 +13,7 @@ import { retroPass } from './retro.js';
 import type { RunReport } from './schema.js';
 import { AI_BOT_LOGIN } from '../shared/index.js';
 import {
+  AI_QUEUE,
   aiEnabled,
   asDoc,
   botOf,
@@ -347,7 +348,8 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
   const bot = await botOf(api);
   if (!bot) return void (await t.step('сверка: нет бота ИИ — пропуск'));
   await t.check();
-  // first: a restart it queues is an active run the search below leaves alone
+  // first: a restart it queues is an active run the search below leaves alone; answered before lost (PLNRAPP-773)
+  await answeredPass(api, t, projectId);
   await lostQuestionsPass(api, t, bot, projectId);
   const found = (
     await api.db.execute(
@@ -454,6 +456,8 @@ const envInt = (name: string, def: number) => {
 };
 /** PLNRAPP-657: the first words of the watchdog's comments — at most two per entry into the status (PLNRAPP-740) */
 const WATCH_MARK = 'Сторож движка ИИ';
+/** PLNRAPP-773: the words of the watchdog's question to a person — the second and last comment in the status */
+const ASK_MARK = 'Нужно решение человека';
 
 /**
  * PLNRAPP-657: tasks left on the AI — the AI among the assignees, a todo / in_progress status, no active run and no
@@ -463,6 +467,8 @@ const WATCH_MARK = 'Сторож движка ИИ';
  * «К работе»): a task left there — the plan failed its attempts or ended without a move — is stuck as well. Not the
  * task «harness-retro» and its items: the bot's own bookkeeping lives in the backlog.
  * PLNRAPP-740: not a task that waits for other work — an open blocker, an open subtask, its MR's pipeline at work.
+ * PLNRAPP-773: the question status counts only while a person has an open question there; `handed` — the stall went
+ * to the AI (a watchdog comment, then a run), `asked` — a person got the question.
  */
 export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null) {
   return (
@@ -470,12 +476,13 @@ export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null
       sql`select t.id as "taskId", t.project_id as "projectId", t.space_id as "spaceId", t.created_by as "createdBy",
             t.parent_id as "parentId", p.key || '-' || t.number as key, s.name as status,
             floor(extract(epoch from now() - coalesce(act.at, t.created_at)) / 60)::int as min,
-            (select count(*)::int from comments c where c.task_id = t.id and c.author_id = b.id
-              and c.created_at > coalesce(e.at, t.created_at) and c.body::text like ${`%${WATCH_MARK}%`}) as watched,
-            coalesce((select a.question_status_id from ai_runs r join ai_actions a on a.id = r.action_id
-                where r.task_id = t.id and a.question_status_id is not null order by r.created_at desc limit 1),
-              (select a.question_status_id from ai_actions a where a.project_id = t.project_id
-                and a.question_status_id is not null order by a.created_at limit 1)) as "questionStatusId"
+            t.status_id as "statusId", e.prev as "prevStatusId",
+            exists (select 1 from comments c where c.task_id = t.id and c.author_id = b.id
+              and c.created_at > coalesce(e.at, t.created_at) and c.body::text like ${`%${WATCH_MARK}%`}
+              and exists (select 1 from ai_runs o where o.task_id = t.id and o.created_at > c.created_at)) as handed,
+            exists (select 1 from comments c where c.task_id = t.id and c.author_id = b.id
+              and c.created_at > coalesce(e.at, t.created_at) and c.body::text like ${`%${ASK_MARK}%`}) as asked,
+            qa.id as "questionActionId", qa.question_status_id as "questionStatusId"
           from tasks t
           join users b on b.login = ${AI_BOT_LOGIN} and b.bot
           join task_assignees ta on ta.task_id = t.id and ta.user_id = b.id
@@ -485,13 +492,21 @@ export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null
               where r.project_id = t.project_id and r.enabled and r.trigger->>'type' = 'task.status_changed'
                 and r.trigger->'to' ? s.id::text and r.actions @> '[{"type": "ai_run"}]'::jsonb)))
           left join lateral (select max(created_at) as at from activity where task_id = t.id) act on true
-          left join lateral (select max(created_at) as at from activity
-            where task_id = t.id and kind = 'updated' and changes->'statusId'->>1 = t.status_id::text) e on true
+          left join lateral (select created_at as at, (changes->'statusId'->>0)::uuid as prev from activity
+            where task_id = t.id and kind = 'updated' and changes->'statusId'->>1 = t.status_id::text
+            order by created_at desc limit 1) e on true
+          -- the action whose question status a question goes to: of the last run, else any of the project
+          left join lateral (select a.id, a.question_status_id from ai_actions a
+            left join ai_runs r on r.action_id = a.id and r.task_id = t.id
+            where a.project_id = t.project_id and a.question_status_id is not null
+            order by r.created_at desc nulls last, a.created_at limit 1) qa on true
           where t.archived_at is null ${projectId ? sql`and t.project_id = ${projectId}::uuid` : sql``}
             and coalesce(act.at, t.created_at) < now() - make_interval(mins => ${envInt('AI_STALL_MIN', 60)}::int)
             and not exists (select 1 from ai_runs o where o.task_id = t.id
               and o.state in ('queued', 'running', 'waiting_human', 'waiting_subtasks'))
-            and not exists (select 1 from ai_actions a where a.project_id = t.project_id and a.question_status_id = s.id)
+            and not (exists (select 1 from ai_actions a where a.project_id = t.project_id and a.question_status_id = s.id)
+              and exists (select 1 from comments c join users u on u.id = c.assignee_id and not u.bot
+                where c.task_id = t.id and c.resolved_at is null))
             and not exists (select 1 from ai_retro rt where rt.task_id in (t.id, t.parent_id))
             and not ${openBlocker(sql`t.id`)}
             and not exists (select 1 from tasks c join statuses cs on cs.id = c.status_id
@@ -513,7 +528,11 @@ export async function stuckTasks(q: Pick<Q, 'execute'>, projectId: string | null
     key: string;
     status: string;
     min: number;
-    watched: number;
+    statusId: string;
+    prevStatusId: string | null;
+    handed: boolean;
+    asked: boolean;
+    questionActionId: string | null;
     questionStatusId: string | null;
   }[];
 }
@@ -532,27 +551,17 @@ async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string
       taskId: s.taskId,
       level: 'error',
     });
-    if (s.watched >= 2) continue;
-    if (s.watched === 1) {
+    if (s.asked) continue;
+    if (s.handed) {
       await askPerson(api, t, bot, s);
       continue;
     }
-    // the lead of the project, else its first admin
-    const admin = await one(
-      api.db,
-      sql`select u.id, u.login from projects p join users u on u.id = p.lead_id
-            and not u.bot and u.deactivated_at is null where p.id = ${s.projectId}
-          union all (select u.id, u.login from project_members m join users u on u.id = m.user_id
-            and not u.bot and u.deactivated_at is null
-            where m.project_id = ${s.projectId} and m.role = 'admin' order by m.created_at)
-          limit 1`,
-    );
+    // PLNRAPP-773: no mention — a person is called only if the AI's analysis does not move the task
     const text = `${WATCH_MARK}: задача ${ago(s.min)} стоит в «${s.status}», а ИИ над ней не работает — нет ни прогона, ни правила, которое бы его запустило. ИИ, разберись по задаче и её комментариям, почему работа встала, и продолжи её сам: переведи задачу в статус, где работа пойдёт дальше, — или задай вопрос, если решить может только человек.`;
-    const body = admin
-      ? withMention(asDoc(text), admin.id as string, admin.login as string)
-      : asDoc(text);
     const id = uuidv7();
-    await api.execute(bot, [{ name: 'comment.create', args: { id, taskId: s.taskId, body } }]);
+    await api.execute(bot, [
+      { name: 'comment.create', args: { id, taskId: s.taskId, body: asDoc(text) } },
+    ]);
     // the stall the algorithm could not resolve — to the AI as an assignment (a bot's comment starts no run by itself)
     const d = { kind: 'mention' as const, taskId: s.taskId, itemId: id };
     await enqueueRun(api.db, api.enqueue, d, { singletonKey: keyOf(d), upsert: true });
@@ -568,6 +577,7 @@ async function watchPass(api: JobApi, t: Tracker, bot: string, projectId: string
 /**
  * PLNRAPP-740: the AI's own analysis of the stall did not move the task — the task's person gets the question
  * (assigned to them, the task in the question status: the state label of a pack comes from its rule).
+ * PLNRAPP-773: as a run waiting for the answer — the answer returns the task to its status and its rule goes on.
  */
 async function askPerson(
   api: JobApi,
@@ -576,7 +586,14 @@ async function askPerson(
   s: Awaited<ReturnType<typeof stuckTasks>>[number],
 ) {
   const human = await humanOf(api.db, { ...s, id: s.taskId });
-  const text = `${WATCH_MARK}: задача снова ${ago(s.min)} стоит в «${s.status}» — разбор ИИ её не сдвинул. Нужно решение человека: ответьте здесь и верните задачу в «${s.status}» (или в статус, где работа пойдёт дальше), закройте её или снимите ИИ с исполнителей.`;
+  const inQuestion = s.statusId === s.questionStatusId;
+  const back = inQuestion ? s.prevStatusId : s.statusId;
+  const waits = !!(human && s.questionActionId && s.questionStatusId && back);
+  const text = `${WATCH_MARK}: задача снова ${ago(s.min)} стоит в «${s.status}» — разбор ИИ её не сдвинул. ${ASK_MARK}: ${
+    waits
+      ? 'ответьте в ветке этого комментария — задача вернётся в работу и ИИ продолжит с учётом ответа. Или закройте её, или снимите ИИ с исполнителей.'
+      : `ответьте здесь и верните задачу в «${s.status}» (или в статус, где работа пойдёт дальше), закройте её или снимите ИИ с исполнителей.`
+  }`;
   const id = uuidv7();
   await api.execute(bot, [
     {
@@ -593,15 +610,72 @@ async function askPerson(
     ...(human
       ? [{ name: 'task.assign', args: { id: uuidv7(), taskId: s.taskId, userId: human.id } }]
       : []),
-    ...(human && s.questionStatusId
+    ...(human && s.questionStatusId && !inQuestion
       ? [{ name: 'task.update', args: { id: s.taskId, statusId: s.questionStatusId } }]
       : []),
   ]);
+  if (waits) {
+    const runId = uuidv7();
+    await api.db.execute(
+      sql`insert into ai_runs (id, task_id, project_id, kind, action_id, state, chain_id, chain_depth,
+            return_status_id, question_comment_ids, log)
+          values (${runId}, ${s.taskId}, ${s.projectId}, 'action', ${s.questionActionId}, 'waiting_human', ${runId}, 0,
+            ${back}, array[${id}::uuid], ${'движок: сторож: вопрос человеку — ответ вернёт задачу в работу\n'})`,
+    );
+  }
   await t.step(
     `сторож: ${s.key} — ${human ? `вопрос человеку (${human.login})` : 'некому задать вопрос'}`,
     { projectId: s.projectId, taskId: s.taskId, level: human ? 'action' : 'error' },
   );
   t.count();
+}
+
+/**
+ * PLNRAPP-773: the answer that did not resume the run — the hook missed it, the resume job was lost (a restart
+ * mid-way), or a person closed the question without a reply (their decision — the work goes on). A waiting run whose every question is closed with a person's reply in its thread → done and resumed;
+ * an answered action run left with the task in the question status (the return did not happen) → resumed again.
+ */
+async function answeredPass(api: JobApi, t: Tracker, projectId: string | null) {
+  const runs = (
+    await api.db.execute(
+      sql`select r.id, r.state, r.task_id as "taskId", r.project_id as "projectId", p.key || '-' || tk.number as key
+          from ai_runs r join tasks tk on tk.id = r.task_id and tk.archived_at is null
+            join projects p on p.id = tk.project_id
+            left join ai_actions a on a.id = r.action_id
+          where cardinality(r.question_comment_ids) > 0
+            and (select count(*) from comments q where q.id = any(r.question_comment_ids))
+              = cardinality(r.question_comment_ids)
+            ${projectId ? sql`and r.project_id = ${projectId}::uuid` : sql``}
+            and not exists (select 1 from comments q where q.id = any(r.question_comment_ids)
+              -- a question closed by a person without a reply is their decision: go on without the answer
+              and (q.resolved_at is null or not (exists (select 1 from comments x join users u on u.id = x.author_id
+                  where x.parent_id = q.id and not u.bot)
+                or exists (select 1 from users u where u.id = q.resolved_by and not u.bot))))
+            and (r.state = 'waiting_human'
+              or (r.state = 'done' and r.kind = 'action' and r.return_status_id is not null
+                and tk.status_id = a.question_status_id and r.updated_at < now() - interval '5 minutes'
+                and not exists (select 1 from ai_runs o where o.task_id = r.task_id and o.created_at > r.created_at)))
+          order by r.created_at limit 50`,
+    )
+  ).rows as { id: string; state: string; taskId: string; projectId: string; key: string }[];
+  for (const r of runs) {
+    await t.check();
+    if (r.state === 'waiting_human') {
+      const moved = await one(
+        api.db,
+        sql`update ai_runs set state = 'done', log = log || ${'движок: сверка: на вопросы ответили — продолжение\n'},
+            updated_at = now() where id = ${r.id} and state = 'waiting_human' returning id`,
+      );
+      if (!moved) continue;
+    } else await note(api.db, r.id, 'сверка: на вопросы ответили, а задача не вернулась — возврат');
+    await api.enqueue(AI_QUEUE, { kind: 'resume', runId: r.id });
+    t.count();
+    await t.step(`сверка: ${r.key} — на вопросы ответили, задача возвращается в работу`, {
+      projectId: r.projectId,
+      taskId: r.taskId,
+      level: 'action',
+    });
+  }
 }
 
 /** PLNRAPP-741: why the reconcile ends a run waiting for an answer — in its log (the AI tab) and the restart's prompt */

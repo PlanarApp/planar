@@ -587,9 +587,32 @@ async function scan(api: JobApi, now: Date, day: string) {
     await fire(api, f.ruleId as string, f.taskId as string, f.slot as string, now);
 }
 
+/**
+ * PLNRAPP-773: an open task whose subtasks are all done or cancelled; slot — the last status change of a subtask
+ * (or its creation), so the trigger fires again only after a subtask is reopened and closed again.
+ */
+async function subtasksClosed(api: JobApi, now: Date) {
+  const found = await rows(
+    api,
+    sql`select r.id as "ruleId", t.id as "taskId", x.slot from automations_rules r
+        join projects p on p.id = r.project_id and 'automations' = any(p.modules)
+        join tasks t on t.project_id = r.project_id and t.archived_at is null
+        join statuses s on s.id = t.status_id and s.category not in ('done', 'cancelled')
+        cross join lateral (select max(greatest(c.created_at, (select max(a.created_at) from activity a
+            where a.task_id = c.id and a.kind = 'updated' and a.changes ? 'statusId')))::text as slot,
+            bool_and(cs.category in ('done', 'cancelled')) as closed
+          from tasks c join statuses cs on cs.id = c.status_id
+          where c.parent_id = t.id and c.archived_at is null) x
+        where r.enabled and r.trigger->>'type' = 'task.subtasks_closed' and x.closed`,
+  );
+  for (const f of found)
+    await fire(api, f.ruleId as string, f.taskId as string, f.slot as string, now);
+}
+
 /** Every minute: rules whose cron came due in the last 2 minutes (in tz or settings.timezone) — runs over open tasks. */
 async function schedule(data: { now?: string }, api: JobApi) {
   const now = data.now ? new Date(data.now) : new Date();
+  await subtasksClosed(api, now);
   const rules = await rows(
     api,
     sql`select r.id, r.project_id as "projectId", r.trigger from automations_rules r

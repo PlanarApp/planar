@@ -24,6 +24,7 @@ export const TRIGGER_TYPES = [
   'task.unassigned',
   'task.waiting_human',
   'task.start_reached',
+  'task.subtasks_closed',
   'mr.pipeline',
   'schedule',
 ] as const;
@@ -79,6 +80,8 @@ export const triggerSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('task.unassigned'), hours: z.number().int().min(1).max(720) }),
   z.object({ type: z.literal('task.waiting_human'), days }),
   z.object({ type: z.literal('task.start_reached') }),
+  // PLNRAPP-773: the last open subtask is done or cancelled — once per closing
+  z.object({ type: z.literal('task.subtasks_closed') }),
   // PLNRAPP-205: the pipeline of the task's MR came to a status; opened — CI of the MR, merged — deploy
   z.object({
     type: z.literal('mr.pipeline'),

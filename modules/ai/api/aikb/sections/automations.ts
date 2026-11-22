@@ -15,6 +15,8 @@ const TRIGGER_DOC: Record<string, string> = {
   'task.unassigned': 'task has had no assignee for `hours` hours',
   'task.waiting_human': 'an AI run waits for a person for `days` days',
   'task.start_reached': 'the task start date is reached',
+  'task.subtasks_closed':
+    'the last open subtask of the task became done or cancelled; fires once per closing (checked every minute)',
   'mr.pipeline':
     'pipeline of the task MR reached a status: mr=opened is the MR CI, mr=merged is the deploy (module gitlab)',
   schedule: 'cron (5 fields, UTC unless tz = IANA zone); fires for matching tasks of the project',
