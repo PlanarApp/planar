@@ -447,32 +447,18 @@ const scroller = ref<HTMLElement>();
 // Escape / a click on an empty place of the list — out of the selection mode (PLNRAPP-291)
 useSelectionReset(() => scroller.value);
 const rowH = computed(() => (isMobile.value ? 44 : 32));
-// PLNRAPP-705: the list area is narrow (the task sidebar is open, a small window) — the row is laid out
-// in two lines (class list-narrow on the scroller, variant list-narrow: in Row.vue); the virtualizer
-// then measures task rows: they are taller than rowH. The threshold is not fixed: the columns have
-// user widths, so the area is narrow when the one-line row cannot fit its fixed part (checkbox, status,
-// key, menu, paddings — NARROW_FIXED), the visible columns and NARROW_TITLE for the parent (up to 192 px)
-// and the name — otherwise at 720–950 px the parent or the name was squeezed to zero
-const NARROW_W = 720;
-const NARROW_FIXED = 280;
-const NARROW_TITLE = 400;
-const colsWidth = () => {
-  // hidden on small screens in the one-line row: COLUMN_CLASS (labels — max-lg, the rest — max-md)
-  const vw = window.innerWidth;
-  if (vw < 768) return 0;
-  return columns.value.reduce(
-    (s, c) => s + (c === 'labels' && vw < 1024 ? 0 : (widths.value[c] ?? 0)),
-    0,
-  );
-};
-const narrowAt = computed(() => Math.max(NARROW_W, NARROW_FIXED + colsWidth() + NARROW_TITLE));
+// PLNRAPP-817: two layouts — the wide row with the columns and the card (mobile, or the list area under
+// half of the window: the task sidebar is open, a small window); the card is measured by the virtualizer
 const areaW = ref(0);
+const half = ref(0);
 let ro: ResizeObserver | undefined;
 const fit = () => {
   const el = scroller.value;
-  if (el) areaW.value = el.clientWidth;
+  if (!el) return;
+  areaW.value = el.clientWidth;
+  half.value = window.innerWidth / 2;
 };
-const narrow = computed(() => areaW.value > 0 && areaW.value < narrowAt.value);
+const narrow = computed(() => areaW.value > 0 && areaW.value < half.value);
 watch(scroller, (el) => {
   ro?.disconnect();
   if (el && typeof ResizeObserver !== 'undefined') {
@@ -957,6 +943,7 @@ watch(
                 :editing="editing === it.id"
                 :fields="listFields"
                 :narrow="narrow"
+                :show-empty="options.showEmpty"
                 :blocked="blocked.has(it.task.id)"
                 :members="members ?? []"
                 :labels="labels ?? []"

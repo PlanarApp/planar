@@ -61,6 +61,8 @@ const props = defineProps<{
   labelNames?: boolean;
   /** the list area is narrow (the task sidebar, a small window) — the row is a card, as on mobile */
   narrow?: boolean;
+  /** the card: empty fields too (the "Show empty fields" option) */
+  showEmpty?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -132,8 +134,8 @@ const badges = computed(() => ext.value.filter((x) => x.badge));
 const extFields = computed(() => ext.value.filter((x) => !x.badge));
 // mobile card: the enabled List fields (empty ones too — an empty icon) in the order of the Board card
 const cardCols = computed(() =>
-  (['project', 'priority', 'dueDate', 'labels', 'assignee'] as const).filter((c) =>
-    props.fields.includes(c),
+  (['project', 'priority', 'dueDate', 'labels', 'assignee'] as const).filter(
+    (c) => props.fields.includes(c) && (props.showEmpty || filled(c)),
   ),
 );
 // value frame = the picker button's frame (OptionPicker, DueDatePicker): the change on hover is not visible
@@ -141,6 +143,15 @@ const box = 'inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 t
 const labelsSet = computed(() =>
   props.task.labelIds.flatMap((id) => props.labels.find((l) => l.id === id) ?? []),
 );
+const filled = (c: 'project' | 'priority' | 'dueDate' | 'labels' | 'assignee') =>
+  c === 'project' ||
+  (c === 'priority'
+    ? !!props.task.priority
+    : c === 'dueDate'
+      ? !!props.task.dueDate
+      : c === 'assignee'
+        ? props.task.assigneeIds.length > 0
+        : labelsSet.value.length > 0);
 const people = computed(() =>
   props.task.assigneeIds.map((id) => ({
     name: props.members.find((u) => u.id === id)?.name ?? '?',
@@ -253,7 +264,8 @@ function save() {
         :cols="cardCols"
         :blocked="blocked"
         :hot="isMobile || hot || focused"
-        wrap
+        :wrap="wrap"
+        :show-key="showKey"
         :members="members"
         :labels="labels"
         :parent="parent"
