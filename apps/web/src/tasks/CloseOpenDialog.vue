@@ -9,7 +9,8 @@ import { docText } from '../command/search';
 import StatusPicker from './fields/StatusPicker.vue';
 import { closeAll, closePrompt } from './closeOpen';
 
-// completing a task with open subtasks / assigned comments (PLNRAPP-138): close them here, all at once, or leave
+// closing a task (done/cancelled, PLNRAPP-138, -805) with open subtasks / checklist items / assigned comments:
+// close them here, all at once, or leave
 const { t } = useI18n();
 const p = computed(() => closePrompt.value!);
 // live rows of the captured ids: what is closed here shows as closed
@@ -21,6 +22,11 @@ const subtasks = useQuery(async () =>
 const comments = useQuery(async () =>
   (await db.table<Row<'comments'>>('comments').bulkGet(p.value.commentIds)).filter(
     (x): x is Row<'comments'> => !!x,
+  ),
+);
+const checklist = useQuery(async () =>
+  (await db.table<Row<'checklistItems'>>('checklistItems').bulkGet(p.value.checklistIds)).filter(
+    (x): x is Row<'checklistItems'> => !!x,
   ),
 );
 const users = useQuery(() => db.table<Row<'users'>>('users').toArray());
@@ -35,7 +41,7 @@ const all = async () => {
   <Dialog
     :open="true"
     size="md"
-    :title="t('closeOpen.title', { title: p.task.title })"
+    :title="t('closeOpen.title', { title: p.task.title, status: p.status.name })"
     :description="t('closeOpen.text')"
     @update:open="(o: boolean) => o || p.answer(false)"
   >
@@ -59,6 +65,26 @@ const all = async () => {
           />
           <span class="min-w-0 flex-1 truncate text-sm">{{ s.title }}</span>
         </div>
+      </section>
+      <section v-if="checklist?.length">
+        <h3 class="mb-1 text-xs font-medium text-fg-muted">{{ t('closeOpen.checklist') }}</h3>
+        <label
+          v-for="i in checklist"
+          :key="i.id"
+          class="flex min-h-9 items-center gap-2"
+          data-testid="close-open-checklist"
+        >
+          <input
+            type="checkbox"
+            class="size-4 shrink-0 accent-[var(--color-accent)]"
+            :checked="i.done"
+            @change="mutate('checklist.update', { id: i.id, done: !i.done })"
+          />
+          <span
+            :class="['min-w-0 flex-1 truncate text-sm', i.done && 'text-fg-muted line-through']"
+            >{{ i.text }}</span
+          >
+        </label>
       </section>
       <section v-if="comments?.length">
         <h3 class="mb-1 text-xs font-medium text-fg-muted">{{ t('closeOpen.comments') }}</h3>
