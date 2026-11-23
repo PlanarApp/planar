@@ -7,6 +7,7 @@ export const LIST_COLUMNS = [
   'dueDate',
   'priority',
   'labels',
+  'git',
   'ai',
   'aiCost',
   'aiTime',
@@ -20,23 +21,10 @@ export const COLUMN_CLASS: Record<ListColumn, string> = {
   dueDate: 'max-md:hidden',
   priority: 'max-md:hidden',
   labels: 'max-lg:hidden',
+  git: 'max-md:hidden',
   ai: 'max-md:hidden',
   aiCost: 'max-md:hidden',
   aiTime: 'max-md:hidden',
 };
 export const visibleColumns = (fields: readonly TaskField[]): ListColumn[] =>
   LIST_COLUMNS.filter((c) => fields.includes(c));
-/**
- * PLNRAPP-705: narrow list area — order of the second row: parent (order-3), labels, assignees,
- * dates, the remaining columns, icons (progress, module fields — order-8) last.
- */
-export const NARROW_ORDER: Record<ListColumn, string> = {
-  labels: 'list-narrow:order-4',
-  assignee: 'list-narrow:order-5',
-  dueDate: 'list-narrow:order-6',
-  project: 'list-narrow:order-7',
-  priority: 'list-narrow:order-7',
-  ai: 'list-narrow:order-7',
-  aiCost: 'list-narrow:order-7',
-  aiTime: 'list-narrow:order-7',
-};

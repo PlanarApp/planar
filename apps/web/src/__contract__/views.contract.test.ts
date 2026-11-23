@@ -48,7 +48,7 @@ describe('C-views: поведение', () => {
       showKey: true,
       showLabelNames: false,
       me: null,
-      fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
+      fields: ['status', 'assignee', 'priority', 'dueDate', 'labels', 'git', 'ai'],
     });
   });
   it('useSelection — одно состояние, toggle и range от anchor', () => {

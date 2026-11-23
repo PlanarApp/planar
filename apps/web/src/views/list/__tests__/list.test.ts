@@ -24,7 +24,6 @@ import { commitImeOnEnter } from '../../../ui/imeEnter';
 import { registerModules } from '../../../modules/registry';
 import { useAuth } from '../../../auth/useAuth';
 import type { ViewOptions } from '../..';
-import { NARROW_ORDER } from '../columns';
 import { localToday } from '../../filter';
 
 const { router } = vi.hoisted(() => ({ router: { current: undefined as never } }));
@@ -149,25 +148,17 @@ describe('list:groups', () => {
     expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(true);
     w.unmount();
     await show();
-    // PLNRAPP-705: обрезается только в широкой области списка
-    expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain('list-wide:truncate');
+    // в узкой области — карточка, обрезается только широкая строка
+    expect(rows()[0]!.get('[data-testid=row-title]').classes()).toContain('truncate');
     expect(rows()[0]!.find('[data-testid=row-grip]').exists()).toBe(true);
   });
-  it('PLNRAPP-705 узкая область списка: те же поля, название без обрезки, строка растёт', async () => {
+  it('PLNRAPP-705 узкая область списка — компактная карточка, название без обрезки, строка растёт', async () => {
     const p = task(1, { title: 'Родитель' });
     await db
       .table('tasks')
       .bulkPut([p, task(2, { title: 'Длинное название задачи в узком списке', parentId: p.id })]);
     const o = { groupBy: 'none' as const, showSubtasks: true, fields: [...opts().fields] };
-    const shape = () => {
-      const x = row('PLN-2');
-      return {
-        cols: x.findAll('[data-col]').map((c) => c.attributes('data-col')),
-        ids: x.findAll('[data-testid]').map((c) => c.attributes('data-testid')),
-      };
-    };
     await show(o);
-    const wide = shape();
     // широкая область: высота строки фиксирована, виртуализатор её не измеряет
     expect((row('PLN-2').element.parentElement as HTMLElement).style.height).toBe('32px');
     w.unmount();
@@ -175,37 +166,27 @@ describe('list:groups', () => {
     Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 500 });
     try {
       await show(o);
-      // раскладка — класс области списка (вариант list-narrow:)
       expect(w.get('[role=grid]').classes()).toContain('list-narrow');
-      expect(shape()).toEqual(wide);
-      const title = row('PLN-2').get('[data-testid=row-title]');
-      expect(title.text()).toBe('Длинное название задачи в узком списке');
-      expect(title.classes()).not.toContain('truncate');
+      // узкая область — компактная карточка: статус · ключ · название одной строкой
+      const card = row('PLN-2');
+      expect(card.find('[data-testid=row-cols]').exists()).toBe(false);
+      const key = card.get('[data-testid=card-key]');
+      const title = card
+        .findAll('p[role=gridcell]')
+        .find((x) => x.text() === 'Длинное название задачи в узком списке')!;
       expect(title.classes()).toContain('break-words');
-      expect(title.classes()).toContain('list-narrow:flex-1');
-      // вторая строка: родитель, метки, исполнители, сроки, остальные колонки, иконки
-      expect(row('PLN-2').get('[data-testid=row-cols]').classes()).toContain(
-        'list-narrow:contents',
+      expect(key.element.parentElement).toBe(title.element.parentElement);
+      expect(key.element.parentElement!.contains(card.findComponent(StatusPicker).element)).toBe(
+        true,
       );
-      const order = (el: { classes: () => string[] }) =>
-        Number(
-          el
-            .classes()
-            .find((c) => c.startsWith('list-narrow:order-'))
-            ?.split('-')
-            .pop(),
-        );
-      const seq = ['assignee', 'dueDate', 'priority'].map((c) =>
-        order(row('PLN-2').get(`[data-col=${c}]`)),
-      );
-      expect(seq).toEqual([...seq].sort((x, y) => x - y));
-      // родитель (order-3) → метки → исполнители → сроки → остальные колонки → иконки (order-8)
-      const n = (c: keyof typeof NARROW_ORDER) => Number(NARROW_ORDER[c].split('-').pop());
-      expect([3, n('labels'), n('assignee'), n('dueDate'), n('priority'), 8]).toEqual([
-        3, 4, 5, 6, 7, 8,
-      ]);
-      // строка в две строки выше rowH — виртуализатор её измеряет (minHeight вместо height)
-      const box = row('PLN-2').element.parentElement as HTMLElement;
+      // поля строкой ниже, иконки — по правому краю той же строки
+      const fields = card.get('[data-testid=card-fields]');
+      expect(fields.get('[data-testid=card-badges]').classes()).toContain('ml-auto');
+      // десктоп — кнопки полей 24 px, меню «…» на месте
+      expect(fields.classes()).toContain('[&_button]:h-6!');
+      expect(card.find('[data-testid=row-menu]').exists()).toBe(true);
+      // карточка выше rowH — виртуализатор её измеряет (minHeight вместо height)
+      const box = card.element.parentElement as HTMLElement;
       expect(box.style.minHeight).toBe('32px');
       expect(box.style.height).toBe('');
     } finally {
@@ -899,10 +880,13 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     await db.table('tasks').bulkPut([task(1), task(2)]);
     await show();
     expect(row('PLN-1').find('[data-testid=row-select]').exists()).toBe(false);
-    // the first line: status · key · badges
+    // the first line: status · key · name; the badges — at the right of the fields line
     const line = row('PLN-1').get('[data-testid=card-key]').element.parentElement!;
     expect(line.contains(row('PLN-1').findComponent(StatusPicker).element)).toBe(true);
-    expect(line.contains(row('PLN-1').get('[data-testid=card-badges]').element)).toBe(true);
+    expect(line.querySelector('p[role=gridcell]')).not.toBeNull();
+    expect(
+      row('PLN-1').get('[data-testid=card-fields]').find('[data-testid=card-badges]').exists(),
+    ).toBe(true);
     // the first one — the «Выбрать» item of the menu
     useSelection().toggle(row('PLN-1').attributes('data-task-id')!);
     await nextTick();
@@ -929,7 +913,7 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     await new Promise((x) => setTimeout(x, 300));
     expect(r.currentRoute.value.query.task).toBeUndefined();
   });
-  it('без «…» (меню — долгим нажатием); строка родителя — иконка, статус, ключ, имя', async () => {
+  it('без «…» (меню — долгим нажатием); родитель — мелко над названием, ключ и имя', async () => {
     mobile();
     const p = task(1, { rank: rank(1) });
     const kid = task(2, { rank: rank(2), parentId: p.id, statusId: ids.done });
@@ -937,15 +921,14 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     await show({ showSubtasks: true });
     expect(row('PLN-1').find('[data-testid=row-menu]').exists()).toBe(false);
     const line = row('PLN-2').get('[data-testid=card-parent]');
-    await until(() => line.find('svg[data-category]').exists());
-    expect(line.text()).toBe(`PLN-1${p.title}`);
-    // PLNRAPP-706: имя родителя переносится, а не обрезается
-    expect(line.find('.break-words').text()).toBe(p.title);
-    expect(line.find('.truncate').exists()).toBe(false);
+    expect(line.text()).toBe(`↳ PLN-1${p.title}`);
+    // одна мелкая строка, длинное имя — многоточием
+    expect(line.classes()).toContain('text-[11px]');
+    expect(line.find('.truncate').text()).toBe(p.title);
     // PLNRAPP-783: self-start даёт ширину по содержимому — без max-w-full длинное имя выходит за карточку
     expect(line.classes()).toContain('max-w-full');
   });
-  it('PLNRAPP-706: название целиком, мета-данные не обрезаются, кнопки — тач-зоны от 36 px', async () => {
+  it('PLNRAPP-706: название целиком, кнопки — тач-зоны от 32 px', async () => {
     mobile();
     const long = 'Очень длинное название задачи, которое на ширине 375 px занимает несколько строк';
     await db.table('tasks').put(task(1, { title: long }));
@@ -955,17 +938,14 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     expect(title.classes()).toContain('break-words');
     expect(title.classes()).not.toContain('truncate');
     expect(title.classes()).not.toContain('line-clamp-3');
-    // project name wraps instead of an ellipsis
-    expect(card.get('[data-testid=card-project]').find('.truncate').exists()).toBe(false);
-    // the key line: every button is at least 36 px (min-h-9 min-w-9); the fields line — from 32 px (PLNRAPP-802)
+    // the key line and the fields line: every button is at least 32 px
+    // (`!`: scoped module styles (TimeControl .time) must not shrink the touch target)
     const key = card.get('[data-testid=card-key]');
-    expect(key.element.parentElement!.className).toContain('[&_button]:min-h-9');
+    expect(key.element.parentElement!.className).toContain('[&_button]:min-h-8!');
     const fieldsLine = card.get('[data-testid=card-fields]').element.className;
     expect(fieldsLine).toContain('[&_button]:min-h-8!');
     expect(fieldsLine).toContain('[&_button]:min-w-8!');
-    expect(key.classes()).toContain('min-h-9');
-    // `!`: scoped module styles (TimeControl .time) must not shrink the touch target
-    expect(key.element.parentElement!.className).toContain('[&_button]:min-h-9!');
+    expect(key.classes()).toContain('min-h-8');
   });
   it('PLNRAPP-706: на мобильном значения полей видны, как на десктопе, а не одни иконки', async () => {
     mobile();
@@ -998,7 +978,6 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     const fields = row('PLN-1').get('[data-testid=card-fields]');
     expect(fields.classes()).toContain('[&_button]:px-0.5!');
     expect(fields.classes()).toContain('-mx-0.5');
-    expect(fields.classes()).toContain('gap-y-1');
     // the card: 4 px top and bottom, 8 px on the left
     expect(card.classes()).toContain('py-1');
     expect(card.classes()).toContain('pl-2');
@@ -1131,7 +1110,7 @@ describe('строка Списка — данные карточки (PLNRAPP-7
     expect(label.classes()).toContain('min-w-20');
     expect(label.classes()).not.toContain('min-w-0');
   });
-  it('значок ИИ (работает) — в строке; при колонке «ИИ» — только в колонке', async () => {
+  it('значок ИИ (работает) — только при поле «ИИ», в его колонке рядом с текстом', async () => {
     const t = task(1);
     await db.table('tasks').put(t);
     const at = new Date().toISOString();
@@ -1164,12 +1143,13 @@ describe('строка Списка — данные карточки (PLNRAPP-7
       );
       await until(() => w.find('[role=row][data-task]').exists());
     };
-    await mountRow(['status', 'assignee']);
-    await until(() => row('PLN-1').find('[data-testid=ai-status]').exists());
-    expect(row('PLN-1').get('[data-testid=ai-status]').attributes('data-state')).toBe('running');
-    w.unmount();
     await mountRow(['status', 'ai']);
     await until(() => row('PLN-1').get('[data-testid=cell-ai]').text() !== '—');
+    const icon = row('PLN-1').get('[data-testid=cell-ai] [data-testid=ai-status]');
+    expect(icon.attributes('data-state')).toBe('running');
+    w.unmount();
+    await mountRow(['status', 'assignee']);
+    await new Promise((x) => setTimeout(x, 50));
     expect(row('PLN-1').find('[data-testid=ai-status]').exists()).toBe(false);
   });
 });

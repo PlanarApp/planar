@@ -33,7 +33,8 @@ const opts = (fields: ViewOptions['fields']): ViewOptions => ({
 });
 const ALL: ViewOptions['fields'] = ['status', 'assignee', 'priority', 'dueDate', 'labels'];
 Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, value: 600 });
-Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 800 });
+// PLNRAPP-705: wide enough for the one-line row with the columns (narrower — the card)
+Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 1600 });
 
 const mounted: { unmount(): void }[] = [];
 const show = (c: object, o: ViewOptions, filter?: Filter) => {

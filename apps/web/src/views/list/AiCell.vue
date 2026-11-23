@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { activityOf, useProjectActivity } from '../../modules/activity';
+import TaskAiStatus from '../TaskAiStatus.vue';
 
 // PLNRAPP-401: the AI columns of a list row (status, cost, time of the runs) —
 // from the project's shared activity source
@@ -26,5 +27,10 @@ const text = computed(() => {
 </script>
 
 <template>
-  <span class="truncate text-sm text-fg-muted" :data-testid="`cell-${col}`">{{ text || '—' }}</span>
+  <!-- the status column: the animated run / error icon before the text -->
+  <span class="flex min-w-0 items-center gap-1 text-sm text-fg-muted" :data-testid="`cell-${col}`"
+    ><TaskAiStatus v-if="col === 'ai'" :task="task" @click.stop /><span class="truncate">{{
+      text || '—'
+    }}</span></span
+  >
 </template>

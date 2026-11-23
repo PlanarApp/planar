@@ -559,10 +559,12 @@ export default {
       dueDate: 'Due date',
       labels: 'Labels',
       project: 'Project',
-      ai: 'AI',
+      git: 'Git: branches, MR, CI',
+      ai: 'AI: status',
       aiCost: 'AI: $',
       aiTime: 'AI: time',
     },
+    gitColumn: 'Git',
     aiFilter: { none: 'No runs' },
     saved: {
       save: 'Save as view',
