@@ -59,7 +59,9 @@ describe('pack dev', () => {
           (r.trigger.to as string[] | undefined)?.includes(key) &&
           r.actions.some((a) => a.type === 'ai_run'),
       );
-    // PLNRAPP-776: a decomposed task waits for its subtasks — the rule on their closing moves it on
+    // PLNRAPP-776: a decomposed task waits for its subtasks — the rule on their closing moves it on;
+    // PLNRAPP-807: «Планирование» decomposes a big task in the same run
+    const decomposes = ['actions/decompose.md', 'actions/plan.md'];
     const subtasksMove = (key: string) =>
       h.rules.some(
         (r) =>
@@ -73,7 +75,7 @@ describe('pack dev', () => {
         (s.category !== 'done' &&
           s.category !== 'cancelled' &&
           !startsAi(s.key) &&
-          !(k === 'actions/decompose.md' && subtasksMove(s.key)))
+          !(decomposes.includes(k) && subtasksMove(s.key)))
       );
     });
     expect(dead).toEqual([]);

@@ -6,6 +6,7 @@ statuses:
   - { key: review, name: Ревью, category: in_progress, color: orange }
   - { key: test_prod, name: Test prod, category: in_progress, color: cyan }
   - { key: done, name: Готово, category: done, color: green }
+  - { key: cancelled, name: Отменено, category: cancelled, color: red }
 labels:
   - { key: has_plan, name: Есть план, color: green }
   - { key: waiting, name: Ждёт ответа, color: amber }
