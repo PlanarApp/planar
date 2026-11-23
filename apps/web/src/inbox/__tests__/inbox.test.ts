@@ -6,7 +6,7 @@ import { createI18n } from 'vue-i18n';
 import { domainMutators, uuidv7 } from '@planar/shared';
 import en from '../../i18n/en';
 import ru from '../../i18n/ru';
-import { db, registerMutators, startSync, stopSync } from '../../sync';
+import { db, onReplicaChange, registerMutators, startSync, stopSync } from '../../sync';
 import { useAuth } from '../../auth/useAuth';
 import { mkUser } from '../../auth/__tests__/helpers';
 import { TooltipProvider } from 'reka-ui';
@@ -536,6 +536,24 @@ describe('PLANARAPP-10 мой день', () => {
     expect(await dueOf(open)).toBe(day(0));
     expect(await dueOf(done)).toBe(day(-1));
     expect(w.find('[data-testid=my-day-carry]').exists()).toBe(false);
+  });
+
+  it('PLNRAPP-813: перенос на сегодня — все задачи одной транзакцией, повторное нажатие не дублирует', async () => {
+    const ids: string[] = [];
+    for (let n = 1; n <= 10; n++) ids.push(await add(n, { dueDate: day(-1) }));
+    const w = show();
+    await vi.waitFor(() => expect(w.find('[data-testid=my-day-carry]').exists()).toBe(true));
+    const before = await db._queue.count();
+    const events: number[] = [];
+    const off = onReplicaChange((b) => events.push(b.length));
+    const btn = w.find('[data-testid=my-day-carry] button');
+    await btn.trigger('click');
+    await btn.trigger('click');
+    await vi.waitFor(() => expect(planned(w)).toHaveLength(10));
+    off();
+    expect(events).toEqual([10]);
+    expect((await db._queue.count()) - before).toBe(10);
+    for (const id of ids) expect(await dueOf(id)).toBe(day(0));
   });
 
   it('PLANARAPP-52: «Мой день» группы — только её проекты', async () => {
