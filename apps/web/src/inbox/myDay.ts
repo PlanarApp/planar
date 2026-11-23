@@ -1,5 +1,5 @@
 import type { Row } from '@planar/shared';
-import { db, mutate, useQuery } from '../sync';
+import { db, mutate, mutateMany, useQuery } from '../sync';
 import { localToday } from '../views/filter';
 
 /**
@@ -96,9 +96,12 @@ export function dayIn(day: MyDay, projectIds: string[]): MyDay {
 export const setDue = (taskId: string, dueDate: string | null) =>
   mutate('task.update', { id: taskId, dueDate });
 
-async function setAll(items: DayItem[], date: string) {
-  for (const x of items) await setDue(x.task.id, date);
-}
+/**
+ * Bulk due date (PLNRAPP-813): one replica transaction for all tasks — not a commit, a replica event and
+ * a push/pull rebase per task, which on a phone took ~1 s per task
+ */
+const setAll = (items: DayItem[], date: string) =>
+  mutateMany(items.map((x) => ({ name: 'task.update', input: { id: x.task.id, dueDate: date } })));
 
 /** «On today»: due today */
 export const planToday = (taskId: string) => setDue(taskId, localToday());

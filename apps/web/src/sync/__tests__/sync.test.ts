@@ -53,6 +53,41 @@ describe('sync', () => {
     await c.stopSync();
   });
 
+  it('PLNRAPP-813: mutateMany — одна транзакция реплики, одно событие, все в очереди, один push', async () => {
+    const s = setup();
+    const c = s.mk();
+    await s.start(c);
+    s.server.mode = 'offline';
+    const events: number[] = [];
+    c.onReplicaChange((b) => events.push(b.length));
+    await c.mutateMany(['a', 'b', 'c'].map((n) => ({ name: 'test.label.put', input: args(n) })));
+    expect((await labels(s.db)).map((l) => l.name).sort()).toEqual(['a', 'b', 'c']);
+    expect(await s.db._queue.count()).toBe(3);
+    expect(events).toEqual([3]);
+    s.server.mode = 'ok';
+    await c.syncNow();
+    expect(s.server.pushes).toBe(1);
+    expect(s.server.rows.get('labels')!.size).toBe(3);
+    expect(await s.db._queue.count()).toBe(0);
+    await c.stopSync();
+  });
+
+  it('PLNRAPP-813: mutateMany — ошибка аргументов любого элемента не применяет ничего', async () => {
+    const s = setup();
+    const c = s.mk();
+    await s.start(c);
+    s.server.mode = 'offline';
+    await expect(
+      c.mutateMany([
+        { name: 'test.label.put', input: args('a') },
+        { name: 'test.label.put', input: { id: 'x' } },
+      ]),
+    ).rejects.toMatchObject({ code: 'invalid_args' });
+    expect(await labels(s.db)).toEqual([]);
+    expect(await s.db._queue.count()).toBe(0);
+    await c.stopSync();
+  });
+
   it('sync:server-refuses — отказ сервера (403) виден через onMutationError, правка остаётся в очереди', async () => {
     const s = setup();
     const c = s.mk();

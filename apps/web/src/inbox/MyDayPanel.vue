@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CalendarClock, ChevronsRight, Sun, X } from 'lucide-vue-next';
 import { StatusIcon } from '../tasks';
 import DueDatePicker from '../tasks/fields/DueDatePicker.vue';
 import { Button, IconButton } from '../ui';
+import { toast } from '../ui/toast';
 import { openTask } from '../views';
 import { localToday } from '../views/filter';
 import { formatDue } from '../views/list/due';
@@ -21,6 +22,22 @@ const left = computed(() => props.day.today.filter((x) => !x.done).length);
 
 const BLOCKS = ['today', 'tomorrow', 'later'] as const;
 const move = (x: DayItem, date: string | null) => date && setDue(x.task.id, date);
+
+// PLNRAPP-813: the bulk move is one transaction; while it runs the buttons are disabled (no second batch
+// on a repeated tap), a local error is shown — the replica is rolled back by the transaction
+const busy = ref(false);
+async function bulk(f: (day: MyDay) => Promise<void>) {
+  if (busy.value) return;
+  busy.value = true;
+  try {
+    await f(props.day);
+  } catch (e) {
+    console.error(e);
+    toast(t('myDay.moveFailed'));
+  } finally {
+    busy.value = false;
+  }
+}
 </script>
 
 <template>
@@ -49,7 +66,8 @@ const move = (x: DayItem, date: string | null) => date && setDue(x.task.id, date
             :label="t('myDay.postpone')"
             size="sm"
             data-testid="my-day-postpone"
-            @click="postpone(day)"
+            :disabled="busy"
+            @click="bulk(postpone)"
           />
         </span>
       </header>
@@ -133,7 +151,9 @@ const move = (x: DayItem, date: string | null) => date && setDue(x.task.id, date
         data-testid="my-day-carry"
       >
         {{ t('myDay.carry', { n: day.carry.length }) }}
-        <Button size="sm" @click="carryOver(day)">{{ t('myDay.carryOver') }}</Button>
+        <Button size="sm" :disabled="busy" @click="bulk(carryOver)">{{
+          t('myDay.carryOver')
+        }}</Button>
       </div>
     </section>
   </div>

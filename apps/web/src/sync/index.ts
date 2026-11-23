@@ -33,6 +33,7 @@ export const {
   stopSync,
   clearLocal,
   mutate,
+  mutateMany,
   registerMutators,
   syncState,
   onMutationError,

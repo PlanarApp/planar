@@ -203,20 +203,35 @@ export function createClient(db: PlanarDB) {
   }
 
   async function mutate(name: string, input: unknown): Promise<void> {
-    const def = registry.get(name);
-    if (!def) throw new MutatorError('invalid_args', `неизвестный мутатор: ${name}`);
-    // arguments are JSON per C-sync; Vue reactive Proxies can't be cloned by IndexedDB (DataCloneError)
-    const args: unknown = input === undefined ? undefined : JSON.parse(JSON.stringify(input));
-    const parsed = def.args.safeParse(args);
-    if (!parsed.success) throw new MutatorError('invalid_args', parsed.error.message);
+    return mutateMany([{ name, input }]);
+  }
+
+  /**
+   * Several mutations in one replica transaction (PLNRAPP-813): one commit and one replica event instead of
+   * a transaction per item — a bulk action does not wait N times for IndexedDB and for push/pull rebases
+   * between items. All or nothing: an error of any item rolls back the whole batch.
+   */
+  async function mutateMany(list: { name: string; input: unknown }[]): Promise<void> {
+    const items = list.map(({ name, input }) => {
+      const def = registry.get(name);
+      if (!def) throw new MutatorError('invalid_args', `неизвестный мутатор: ${name}`);
+      // arguments are JSON per C-sync; Vue reactive Proxies can't be cloned by IndexedDB (DataCloneError)
+      const args: unknown = input === undefined ? undefined : JSON.parse(JSON.stringify(input));
+      const parsed = def.args.safeParse(args);
+      if (!parsed.success) throw new MutatorError('invalid_args', parsed.error.message);
+      return { name, def, args, data: parsed.data };
+    });
     if (!opts) throw new Error('sync не запущен: вызовите startSync');
+    if (!items.length) return;
     const createdAt = new Date().toISOString();
-    const undo: Undo[] = [];
     const changes: ReplicaChange[] = [];
     await db.transaction('rw', db.tables, async () => {
       changes.length = 0;
-      await def.run(new DexieTx(db, undo, changes), parsed.data, ctx(createdAt));
-      await db._queue.add({ name, args, createdAt, undo });
+      for (const x of items) {
+        const undo: Undo[] = [];
+        await x.def.run(new DexieTx(db, undo, changes), x.data, ctx(createdAt));
+        await db._queue.add({ name: x.name, args: x.args, createdAt, undo });
+      }
     });
     emit(changes);
     // pending and sending are picked up by the _queue subscription from startSync (including from other tabs)
@@ -835,6 +850,7 @@ export function createClient(db: PlanarDB) {
     clearLocal,
     registerMutators,
     mutate,
+    mutateMany,
     ensureTask,
     prefetchTasks,
     startSync,

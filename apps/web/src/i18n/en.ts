@@ -182,6 +182,7 @@ export default {
     add: 'Add to my day',
     carry: 'Unfinished from earlier days: {n}',
     carryOver: 'Move to today',
+    moveFailed: 'Could not move the tasks',
   },
   inbox: {
     all: 'All',
