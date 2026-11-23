@@ -6,6 +6,7 @@ import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { readCatalogPack, unzipFiles, zipFiles } from '@planar/module-ai/api';
+import { loadPack } from '../../../../modules/ai/api/harness.js';
 import {
   instructionBody,
   plainText,
@@ -237,6 +238,40 @@ describe('packs', () => {
     // return it to the pack so that the next steps see only their own edits
     expect((await up(w.projectId, { resolve: {} })).json().status).toBe('ok');
     await w.admin.ok('docs.page.update', { id: chat.id, body: chat.body });
+  });
+
+  // PLNRAPP-810: a heading above the parameters table hid the page from the upload — it made a duplicate
+  it('страница с заголовком над таблицей узнаётся: повторная загрузка не создаёт дубль', async () => {
+    const chat = (await pages(w.projectId)).find((p) => p.title === 'Чат')!;
+    const body = JSON.parse(JSON.stringify(chat.body)) as { content: unknown[] };
+    body.content.unshift({
+      type: 'heading',
+      attrs: { level: 1 },
+      content: [{ type: 'text', text: 'Документ «Чат»' }],
+    });
+    expect(readInstructionPage('Чат', body as never)?.key).toBe('chat');
+    await w.admin.ok('docs.page.update', { id: chat.id, body });
+    const r = (await up(w.projectId)).json();
+    expect(r).toMatchObject({ status: 'ok', created: [], kept: ['chat'] });
+    const live = (await pages(w.projectId)).filter((p) => p.title === 'Чат' && !p.archived_at);
+    expect(live).toHaveLength(1);
+    await w.admin.ok('docs.page.update', { id: chat.id, body: chat.body });
+    expect((await up(w.projectId, { resolve: {} })).json().status).toBe('ok');
+  });
+
+  it('дубль ключа: загрузка и apply берут первую по rank страницу', async () => {
+    const chat = (await pages(w.projectId)).find((p) => p.title === 'Чат')!;
+    const copy = uuidv7();
+    await w.admin.ok('docs.page.create', {
+      id: copy,
+      spaceId: w.spaceId,
+      parentId: chat.parent_id,
+      rank: 'zz',
+      title: 'Чат',
+      body: chat.body,
+    });
+    expect((await loadPack(db, w.projectId, chat.parent_id!)).pageIds.chat).toBe(chat.id);
+    await w.admin.ok('docs.page.archive', { id: copy });
   });
 
   it('изменённый пакет: чужие страницы обновляются, тронутые человеком — конфликт; reset / keep / merge', async () => {
