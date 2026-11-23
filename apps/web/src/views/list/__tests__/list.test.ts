@@ -957,11 +957,12 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     expect(title.classes()).not.toContain('line-clamp-3');
     // project name wraps instead of an ellipsis
     expect(card.get('[data-testid=card-project]').find('.truncate').exists()).toBe(false);
-    // the key line and the fields line: every button is at least 36 px (min-h-9 min-w-9)
+    // the key line: every button is at least 36 px (min-h-9 min-w-9); the fields line — from 32 px (PLNRAPP-802)
     const key = card.get('[data-testid=card-key]');
-    for (const line of [key.element.parentElement!, card.get('[data-testid=card-fields]').element])
-      expect(line.className).toContain('[&_button]:min-h-9');
-    expect(card.get('[data-testid=card-fields]').element.className).toContain('[&_button]:min-w-9');
+    expect(key.element.parentElement!.className).toContain('[&_button]:min-h-9');
+    const fieldsLine = card.get('[data-testid=card-fields]').element.className;
+    expect(fieldsLine).toContain('[&_button]:min-h-8!');
+    expect(fieldsLine).toContain('[&_button]:min-w-8!');
     expect(key.classes()).toContain('min-h-9');
     // `!`: scoped module styles (TimeControl .time) must not shrink the touch target
     expect(key.element.parentElement!.className).toContain('[&_button]:min-h-9!');
@@ -975,6 +976,33 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     const fields = () => row('PLN-1').get('[data-testid=card-fields]').text();
     await poll(async () => fields().includes('bug'));
     expect(fields()).toMatch(/15/);
+  });
+  it('PLNRAPP-802: теги — с иконкой тега вместо кружка, поля и карточка плотнее', async () => {
+    mobile();
+    const t = task(1);
+    await db.table('tasks').put(t);
+    await setLabels(t.id, [ids.bug]);
+    await show({ fields: ['status', 'priority', 'labels'] });
+    const card = row('PLN-1');
+    await poll(async () => row('PLN-1').find('[data-testid=card-tag]').exists());
+    const tag = row('PLN-1').get('[data-testid=card-tag]');
+    expect(tag.text()).toBe('bug');
+    expect(tag.classes()).toContain('gap-0.5');
+    const icon = tag.get('svg');
+    expect(icon.attributes('width')).toBe('12');
+    // no dot (Badge dot — a rounded span)
+    expect(row('PLN-1').get('[data-testid=card-fields]').find('.rounded-full').exists()).toBe(
+      false,
+    );
+    // 2 px side padding of each field button — 4 px between the fields
+    const fields = row('PLN-1').get('[data-testid=card-fields]');
+    expect(fields.classes()).toContain('[&_button]:px-0.5!');
+    expect(fields.classes()).toContain('-mx-0.5');
+    expect(fields.classes()).toContain('gap-y-1');
+    // the card: 4 px top and bottom, 8 px on the left
+    expect(card.classes()).toContain('py-1');
+    expect(card.classes()).toContain('pl-2');
+    expect(card.classes()).not.toContain('py-2');
   });
   it('без выбора тап по карточке открывает задачу', async () => {
     mobile();
