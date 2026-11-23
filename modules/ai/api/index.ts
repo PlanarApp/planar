@@ -332,7 +332,25 @@ async function docComments(writes: MutationWrite[], ctx: AfterMutationCtx, api: 
   }
 }
 
+/** PLNRAPP-808: a deleted docs page is no longer the prompt of an action (archive keeps the link: it is undone) */
+async function unlinkPages(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
+  const gone = writes
+    .filter((w) => w.entity === 'docsPages' && w.op === 'del' && w.before)
+    .map((w) => String(w.before!.id));
+  if (!gone.length) return;
+  const { rows } = await api.q.execute(
+    sql`select id from ai_actions where page_id = any(${`{${gone.join(',')}}`}::uuid[])`,
+  );
+  for (const a of rows as Row[])
+    await api.sys.patch(
+      'aiActions' as never,
+      a.id as string,
+      { pageId: null, updatedAt: ctx.now } as never,
+    );
+}
+
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
+  await unlinkPages(writes, ctx, api);
   await ensureBot(writes, ctx, api);
   await docComments(writes, ctx, api);
   await assignments(writes, ctx, api, await retroHook(writes, ctx, api));
