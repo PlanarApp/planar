@@ -342,7 +342,11 @@ async function unlinkPages(writes: MutationWrite[], ctx: AfterMutationCtx, api: 
     sql`select id from ai_actions where page_id = any(${`{${gone.join(',')}}`}::uuid[])`,
   );
   for (const a of rows as Row[])
-    await api.sys.patch('aiActions', a.id as string, { pageId: null, updatedAt: ctx.now });
+    await api.sys.patch(
+      'aiActions' as never,
+      a.id as string,
+      { pageId: null, updatedAt: ctx.now } as never,
+    );
 }
 
 async function afterMutation(writes: MutationWrite[], ctx: AfterMutationCtx, api: ModuleHookApi) {
