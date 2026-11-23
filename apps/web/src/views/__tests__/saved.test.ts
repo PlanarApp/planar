@@ -155,7 +155,7 @@ describe('views:saved', () => {
       layout: 'board',
       filter: { op: 'and', rules: [{ field: 'status', operator: 'notIn' }] },
     });
-    expect(v.config.fields).toEqual(['status', 'assignee', 'priority', 'dueDate']);
+    expect(v.config.fields).toEqual(['status', 'assignee', 'priority', 'dueDate', 'git', 'ai']);
     await until(() => r.currentRoute.value.path === `/p/${ids.project}/v/${v.id}`);
   });
 
@@ -323,7 +323,7 @@ describe('views:saved', () => {
       showLabelNames: false,
       hideEmptyGroups: true,
       me: null,
-      fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
+      fields: ['status', 'assignee', 'priority', 'dueDate', 'labels', 'git', 'ai'],
     });
     expect(JSON.parse(el.attributes('data-filter')!)).toEqual(v.filter);
   });

@@ -26,7 +26,7 @@ import {
 import { Button, Dialog, EmptyState, Input, Menu, useBreakpoint, type MenuItem } from '../../ui';
 import { router } from '../../router';
 import { enabledForProject, useExtensions } from '../../modules/registry';
-import { isAiField } from '../options';
+import { fieldModule } from '../options';
 import { openTask, useSelection, type ViewProps } from '..';
 import { openTaskFor, showTask, sideTaskOpen } from '../open';
 import { useTaskFilter } from '../saved/useFilter';
@@ -72,11 +72,12 @@ const statuses = useStatuses(spaceId, dictProject);
 const members = useMembers(spaceId);
 const labels = useLabels(spaceId, dictProject);
 const all = useScopeTasks(() => props.scope?.projectIds ?? [props.projectId]);
-// PLNRAPP-401: the AI columns only where the ai module is on
+// PLNRAPP-401: the AI columns (and Git) only where their module is on
 const listFields = computed(() =>
-  enabledForProject('ai', props.scope?.projectIds ?? [props.projectId])
-    ? props.options.fields
-    : props.options.fields.filter((f) => !isAiField(f)),
+  props.options.fields.filter((f) => {
+    const m = fieldModule(f);
+    return !m || enabledForProject(m, props.scope?.projectIds ?? [props.projectId]);
+  }),
 );
 const statusKey = useStatusKey(() => props.scope, statuses);
 const labelKey = useLabelKey(() => props.scope, labels);
@@ -224,6 +225,7 @@ const COL_LABEL = {
   priority: 'tasks.priorityTitle',
   labels: 'tasks.labels',
   project: 'views.fields.project',
+  git: 'views.gitColumn',
   ai: 'views.fields.ai',
   aiCost: 'views.fields.aiCost',
   aiTime: 'views.fields.aiTime',
@@ -954,6 +956,7 @@ watch(
                 :focused="focusedId === it.id"
                 :editing="editing === it.id"
                 :fields="listFields"
+                :narrow="narrow"
                 :blocked="blocked.has(it.task.id)"
                 :members="members ?? []"
                 :labels="labels ?? []"

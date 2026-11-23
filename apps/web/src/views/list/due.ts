@@ -21,7 +21,7 @@ export function formatDue(d: string, locale: string, now: Date = new Date()): st
   if (!y || !m || !day) return d;
   return dueFormat(locale, y !== now.getFullYear())
     .format(new Date(y, m - 1, day))
-    .replace(/\s?г\.$/, '');
+    .replace(/\s+г\.$/, ''); // the year suffix only: "авг." keeps its "г."
 }
 
 /**

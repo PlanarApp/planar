@@ -5,6 +5,9 @@ const now = new Date(2026, 9, 24);
 describe('formatDue', () => {
   it('без года в текущем', () => {
     expect(formatDue('2026-03-08', 'ru', now)).toBe('8 мар.');
+    // "авг." keeps its "г." — only the year suffix is cut
+    expect(formatDue('2026-08-21', 'ru', now)).toBe('21 авг.');
+    expect(formatDue('2025-08-21', 'ru', now)).toBe('21 авг. 2025');
     expect(formatDue('2026-03-08', 'en', now)).toBe('Mar 8');
   });
   it('с годом в другом', () => {

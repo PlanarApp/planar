@@ -140,7 +140,7 @@ const isTaskField = (id: string): id is TaskField => TASK_FIELDS.includes(id as 
 const withFields = (list: ColumnState[]) => [
   ...list.filter((c) => !isTaskField(c.id) || props.options.fields.includes(c.id)),
   ...props.options.fields.flatMap((f) =>
-    isAiField(f) || list.some((c) => c.id === f) ? [] : [newColumn(f)],
+    isAiField(f) || f === 'git' || list.some((c) => c.id === f) ? [] : [newColumn(f)],
   ),
 ];
 const resolve = () =>

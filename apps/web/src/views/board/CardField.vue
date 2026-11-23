@@ -35,6 +35,8 @@ const props = defineProps<{
   labelNames?: boolean;
   /** PLNRAPP-802: the mobile List — a tag icon (12 px, the tag's color) before the name instead of the dot */
   tagIcon?: boolean;
+  /** the List card on desktop: the value frame of the dense picker buttons (24 px, 2 px sides) */
+  dense?: boolean;
 }>();
 const { t, locale } = useI18n();
 const people = computed(() =>
@@ -45,7 +47,12 @@ const people = computed(() =>
 const chosen = computed(() =>
   props.task.labelIds.flatMap((id) => props.labels.find((l) => l.id === id) ?? []),
 );
-const box = 'inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg';
+const box = computed(() =>
+  [
+    'inline-flex max-w-full items-center gap-1.5 rounded-md text-sm text-fg',
+    props.dense ? 'h-6 px-0.5' : 'h-7 px-1.5',
+  ].join(' '),
+);
 const due = computed(() => (props.task.dueDate ? formatDue(props.task.dueDate, locale.value) : ''));
 // overdue — danger (an icon without text must show this)
 const dueTone = computed(() =>

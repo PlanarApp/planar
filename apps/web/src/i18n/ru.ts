@@ -557,10 +557,12 @@ export default {
       dueDate: 'Срок',
       labels: 'Метки',
       project: 'Проект',
-      ai: 'ИИ',
+      git: 'Git: ветки, MR, CI',
+      ai: 'ИИ: статус',
       aiCost: 'ИИ: $',
       aiTime: 'ИИ: время',
     },
+    gitColumn: 'Git',
     aiFilter: { none: 'Нет запусков' },
     saved: {
       save: 'Сохранить как вид',

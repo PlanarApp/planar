@@ -14,13 +14,12 @@ import {
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
 import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal } from 'lucide-vue-next';
-import { COLUMN_CLASS, NARROW_ORDER, visibleColumns, type ListColumn } from './columns';
+import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
 import { useCardExtensions } from '../cardExtensions';
 import AiCell from './AiCell.vue';
 import TaskProgress from '../TaskProgress.vue';
-import TaskAiStatus from '../TaskAiStatus.vue';
 import { BlockedIcon } from '../../links';
 import { isAiField, type TaskField } from '../options';
 import { localToday } from '../filter';
@@ -60,6 +59,8 @@ const props = defineProps<{
   showKey?: boolean;
   /** mobile card: tag names instead of tag icons */
   labelNames?: boolean;
+  /** the list area is narrow (the task sidebar, a small window) — the row is a card, as on mobile */
+  narrow?: boolean;
 }>();
 const emit = defineEmits<{
   click: [e: MouseEvent];
@@ -123,9 +124,13 @@ watch(
   { immediate: true },
 );
 
-const columns = computed(() => visibleColumns(props.fields));
-// mobile card: the enabled List fields (empty ones too — an empty icon) in the order of the Board card
 const ext = useCardExtensions(() => props.task.projectId);
+const columns = computed(() => visibleColumns(props.fields));
+const asCard = computed(() => isMobile.value || props.narrow);
+// branches / MR / CI (module badges) — the Git column; the rest (time) — after the name
+const badges = computed(() => ext.value.filter((x) => x.badge));
+const extFields = computed(() => ext.value.filter((x) => !x.badge));
+// mobile card: the enabled List fields (empty ones too — an empty icon) in the order of the Board card
 const cardCols = computed(() =>
   (['project', 'priority', 'dueDate', 'labels', 'assignee'] as const).filter((c) =>
     props.fields.includes(c),
@@ -179,9 +184,9 @@ function save() {
 </script>
 
 <template>
-  <!-- мобильная: карточка (общая с Доской); PLNRAPP-802: отступ 4 px сверху и снизу, 8 px слева -->
+  <!-- мобильная и узкая область: компактная карточка (общая с Доской); PLNRAPP-802: отступ 4 px сверху и снизу, 8 px слева -->
   <div
-    v-if="isMobile"
+    v-if="asCard"
     ref="rowEl"
     role="row"
     :aria-rowindex="index"
@@ -189,7 +194,7 @@ function save() {
     :data-task="task.key"
     :data-task-id="task.id"
     :class="[
-      'group flex h-full items-center gap-1 border-b border-border py-1 pl-2 text-sm',
+      'group relative flex h-full items-start gap-1 border-b border-border py-1 pl-2 text-sm',
       isMobile ? 'pr-3' : 'pr-1',
       selected ? 'bg-accent-subtle' : !isMobile && 'hover:bg-bg-subtle',
       focused ? 'ring-2 ring-inset ring-focus' : '',
@@ -200,10 +205,23 @@ function save() {
     @focusin="hot = true"
   >
     <!-- PLNRAPP-281: чекбокс в режиме выбора (первую задачу выбирают пунктом «Выбрать» меню), зона касания 44px -->
+    <div
+      v-if="draggable && !isMobile"
+      class="absolute inset-y-0 left-0 flex w-2 cursor-grab items-center justify-center text-fg-subtle opacity-0 group-hover:opacity-100 touch-none"
+      data-testid="row-grip"
+      :aria-label="t('list.drag')"
+      @pointerdown.stop.prevent="emit('drag', $event)"
+      @click.stop
+    >
+      <GripVertical :size="12" />
+    </div>
     <label
       v-if="selecting"
       role="gridcell"
-      class="-ml-2 flex size-11 shrink-0 items-center justify-center"
+      :class="[
+        'flex shrink-0 items-center justify-center',
+        isMobile ? '-ml-2 size-11 self-center' : 'h-7 w-5',
+      ]"
       data-testid="row-select"
       @click.stop
     >
@@ -215,23 +233,35 @@ function save() {
         @change="emit('toggle')"
       />
     </label>
-    <!-- PLNRAPP-706: на мобильной название целиком (переносится по словам), строку меряет виртуализатор -->
-    <div class="flex min-w-0 flex-1 flex-col justify-center gap-1">
+    <span v-if="depth" class="shrink-0" :style="{ width: `${depth * 12}px` }" aria-hidden="true" />
+    <button
+      v-if="childCount"
+      type="button"
+      class="flex h-7 w-4 shrink-0 items-center justify-center rounded text-fg-muted hover:bg-bg-muted"
+      :aria-expanded="!folded"
+      :aria-label="t(folded ? 'list.expand' : 'list.collapse')"
+      data-testid="row-fold"
+      @click.stop="emit('fold')"
+    >
+      <component :is="folded ? ChevronRight : ChevronDown" :size="14" />
+    </button>
+    <!-- PLNRAPP-706: название целиком (переносится по словам), строку меряет виртуализатор -->
+    <div class="flex min-w-0 flex-1 flex-col justify-center">
       <TaskCard
         :task="task"
         :space-id="spaceId"
         :cols="cardCols"
         :blocked="blocked"
         :hot="isMobile || hot || focused"
-        :one-line="!wrap && !isMobile"
-        :wrap="wrap || isMobile"
+        wrap
         :members="members"
         :labels="labels"
-        :depth="depth"
         :parent="parent"
         :project-name="projectName"
         project-text
-        :head="isMobile"
+        head
+        :ai="fields.includes('ai')"
+        :git="fields.includes('git')"
         :label-names="labelNames"
       />
     </div>
@@ -260,9 +290,6 @@ function save() {
     :data-task-id="task.id"
     :class="[
       'group relative flex h-full items-center gap-2 border-b border-border pl-4 pr-3 text-sm',
-      // PLNRAPP-705: the list area is narrow (the task sidebar, a small window) — two lines:
-      // the name over the full width, below it the parent, labels, assignees, dates, other columns, icons
-      'list-narrow:min-h-8 list-narrow:flex-wrap list-narrow:gap-y-0.5 list-narrow:py-1',
       // wrapped or being edited: the same layout, the row grows by the name's extra lines
       wrap || editing ? 'min-h-8' : '',
       editing ? 'py-0.5' : '',
@@ -324,23 +351,20 @@ function save() {
         @update:model-value="updateTask(task.id, { statusId: $event })"
       />
     </div>
-    <!-- узкий режим: ячейка и её строка — contents, их элементы раскладывает строка (order) -->
-    <div role="gridcell" class="min-w-0 flex-1 list-narrow:contents" @dblclick.stop="emit('edit')">
+    <div role="gridcell" class="min-w-0 flex-1" @dblclick.stop="emit('edit')">
       <textarea
         v-if="editing"
         ref="input"
         v-model="draft"
         rows="1"
         :aria-label="t('list.editTitle')"
-        class="block w-full resize-none overflow-hidden rounded-md border border-border-strong bg-bg px-2 py-1 text-sm leading-[18px] outline-none focus-visible:ring-2 ring-focus list-narrow:w-auto list-narrow:min-w-0 list-narrow:flex-1"
+        class="block w-full resize-none overflow-hidden rounded-md border border-border-strong bg-bg px-2 py-1 text-sm leading-[18px] outline-none focus-visible:ring-2 ring-focus"
         @click.stop
         @keydown.enter.prevent="save"
         @keydown.esc.stop.prevent="((live = false), emit('done'))"
         @blur="save"
       />
-      <span v-else class="flex items-center gap-1 list-narrow:contents">
-        <!-- PLNRAPP-704: значок ИИ (работает / ошибка), как у карточки; при колонке «ИИ» — в ней -->
-        <TaskAiStatus v-if="!columns.includes('ai')" :task="task" @click.stop @dblclick.stop />
+      <span v-else class="flex items-center gap-1">
         <BlockedIcon v-if="blocked" />
         <button
           v-if="showKey"
@@ -355,67 +379,43 @@ function save() {
         </button>
         <!-- PLNRAPP-704: родитель, как в карточке, — ключ и название;
              PLNRAPP-705: место под родителя и название в одной строке держит порог узкого режима (View.vue);
-             глубокое дерево ужимает обоих, но родитель не уже ключа (min-w-20), а название не уходит в ноль -->
+             глубокое дерево ужимает обоих, но родитель не уже ключа (min-w-20), а название не уходит в ноль;
+             значок ИИ — в колонке «ИИ», ветки/MR/CI — в колонке «Git» -->
         <span
           v-if="parent"
-          class="flex min-w-20 max-w-48 items-center gap-1 overflow-hidden text-xs text-fg-subtle list-narrow:order-3"
+          class="flex min-w-20 max-w-48 items-center gap-1 overflow-hidden text-xs text-fg-subtle"
           :title="`${parent.key} ${parent.title}`"
           data-testid="row-parent"
           ><span class="shrink-0">{{ parent.key }}</span
           ><span class="min-w-0 truncate">{{ parent.title }}</span
           ><span class="shrink-0">›</span></span
         >
-        <!-- узкий режим: название на всю первую строку и переносится по словам, не обрезается -->
-        <span
-          :class="['min-w-0 break-words list-narrow:flex-1', !wrap && 'list-wide:truncate']"
-          data-testid="row-title"
-          >{{ task.title }}</span
-        >
+        <span :class="['min-w-0 break-words', !wrap && 'truncate']" data-testid="row-title">{{
+          task.title
+        }}</span>
         <!-- PLNRAPP-333: subtasks / checklist «closed/total» (all subtasks, not only those in the view); PLNRAPP-577: assigned comments -->
-        <span
-          class="contents list-narrow:order-8 list-narrow:flex list-narrow:items-center list-narrow:gap-1"
-          ><TaskProgress :task-id="task.id" :comments="task"
-        /></span>
+        <TaskProgress :task-id="task.id" :comments="task" />
         <!-- поля модулей (время): видны всегда, если модуль включён -->
-        <span
-          v-for="x in ext"
-          :key="x.key"
-          class="ml-auto shrink-0 list-narrow:order-8 list-narrow:ml-0"
-          @click.stop
-        >
+        <span v-for="x in extFields" :key="x.key" class="ml-auto shrink-0" @click.stop>
           <component :is="x.view" :task-id="task.id" />
         </span>
       </span>
     </div>
     <!-- колонки как в ClickUp: значение в ячейке; при наведении ячейка — сам пикер (монтируется лениво) -->
-    <!-- узкий режим: перенос на вторую строку с отступом под глубину дерева;
-         обёртка колонок — contents, ячейки встают в порядок второй строки (NARROW_ORDER) -->
-    <span class="hidden h-0 basis-full list-narrow:order-2 list-narrow:block" aria-hidden="true" />
-    <span
-      class="hidden shrink-0 list-narrow:order-2 list-narrow:block"
-      :style="{ width: `${16 + (depth ?? 0) * 20}px` }"
-      aria-hidden="true"
-    />
-    <div
-      class="ml-auto flex shrink-0 items-center list-narrow:contents"
-      data-testid="row-cols"
-      @click.stop
-    >
+    <div class="ml-auto flex shrink-0 items-center" data-testid="row-cols" @click.stop>
       <div
         v-for="c in columns"
         :key="c"
         role="gridcell"
         :data-col="c"
-        :class="[
-          'flex h-full shrink-0 items-center overflow-hidden px-1',
-          'list-narrow:flex! list-narrow:h-auto list-narrow:max-w-full list-narrow:w-auto!',
-          COLUMN_CLASS[c],
-          NARROW_ORDER[c],
-        ]"
+        :class="['flex h-full shrink-0 items-center overflow-hidden px-1', COLUMN_CLASS[c]]"
         :style="{ width: `${widths?.[c] ?? 112}px` }"
       >
         <!-- в покое — та же рамка, что у кнопки пикера; при наведении на её месте пикер с тем же содержимым -->
         <AiCell v-if="isAiField(c)" :task="task" :col="c as 'ai'" />
+        <span v-else-if="c === 'git'" class="flex items-center gap-1"
+          ><component :is="x.view" v-for="x in badges" :key="x.key" :task-id="task.id"
+        /></span>
         <template v-else-if="(hot || focused) && c !== 'project'">
           <AssigneePicker
             v-if="c === 'assignee'"
@@ -495,7 +495,7 @@ function save() {
       type="button"
       :class="[
         menuBtn,
-        'size-7 focus-visible:opacity-100 group-hover:opacity-100 list-narrow:order-1',
+        'size-7 focus-visible:opacity-100 group-hover:opacity-100',
         !focused && 'opacity-0',
       ]"
       :aria-label="t('list.actions')"

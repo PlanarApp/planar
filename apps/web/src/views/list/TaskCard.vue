@@ -2,8 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row as DbRow } from '@planar/shared';
-import { CornerDownRight } from 'lucide-vue-next';
-import { StatusIcon, StatusPicker, updateTask, useStatuses, type TaskView } from '../../tasks';
+import { StatusPicker, updateTask, type TaskView } from '../../tasks';
 import { BlockedIcon } from '../../links';
 import { useBreakpoint } from '../../ui';
 import { toast } from '../../ui/toast';
@@ -16,7 +15,8 @@ import TaskProgress from '../TaskProgress.vue';
 // task card (Board, Cards, List on mobile): the parent line, the key with the badges block on the right,
 // status (AI icon under it) and the name, the field buttons below. Mobile — fields as icons only.
 // PLNRAPP-802: the mobile List — tags with a tag icon, 4 px between the fields.
-// `head` (the mobile List): status · key · AI and badges in one line, the name under it.
+// `head` (the List on mobile and in a narrow area): a small parent line, status · key · name in one line,
+// the fields below, the icons (AI, progress, branches/MR/CI) at the right end of the fields line.
 const props = defineProps<{
   task: TaskView;
   spaceId: string;
@@ -37,8 +37,12 @@ const props = defineProps<{
   /** the whole name, wrapped by words (the "Wrap task names" option); otherwise up to 3 lines */
   wrap?: boolean;
   depth?: number;
-  /** the mobile List: status and the AI icon in the key line, the badges pressed to the key */
+  /** the List card (mobile, narrow area): the compact layout, see above */
   head?: boolean;
+  /** `head`: the AI status icon (the "AI" view field) */
+  ai?: boolean;
+  /** `head`: branches / MR / CI (the "Git" view field) */
+  git?: boolean;
   /** tag names instead of tag icons (the "Show tag names" option) */
   labelNames?: boolean;
 }>();
@@ -47,20 +51,11 @@ const { isMobile } = useBreakpoint();
 const ext = useCardExtensions(() => props.task.projectId);
 const badges = computed(() => ext.value.filter((x) => x.badge));
 const fields = computed(() => ext.value.filter((x) => !x.badge));
-// the parent's status in the mobile parent line
-const parentStatuses = useStatuses(
-  () => props.spaceId,
-  () => props.parent?.projectId,
-);
-const parentStatus = computed(() =>
-  props.head ? parentStatuses.value?.find((x) => x.id === props.parent?.statusId) : undefined,
-);
-// PLNRAPP-706: the mobile List — the buttons of the key line and the fields are touch targets of at least 36 px
+// PLNRAPP-706/802: on mobile the buttons are touch targets of at least 32 px, 2 px side padding each
 // `!`: scoped module styles (TimeControl .time: min-height 1.75rem) outweigh the arbitrary variant
-const TAP = '[&_button]:min-h-9! [&_button]:min-w-9! [&_button]:justify-center';
-// PLNRAPP-802: the fields line is denser — buttons from 32 px, 2 px side padding each (4 px between the fields)
-const FIELDS_TAP =
-  '[&_button]:min-h-8! [&_button]:min-w-8! [&_button]:justify-center [&_button]:px-0.5!';
+const TAP = '[&_button]:min-h-8! [&_button]:min-w-8! [&_button]:justify-center [&_button]:px-0.5!';
+// the field buttons of the List card are 24 px high on desktop: the card is dense
+const DENSE = '[&_button]:h-6! [&_button]:px-0.5!';
 // click on the key — copy it (PLNRAPP-181)
 const copyKey = () =>
   void navigator.clipboard
@@ -69,74 +64,22 @@ const copyKey = () =>
 </script>
 
 <template>
-  <button
-    v-if="parent"
-    type="button"
-    data-no-drag
-    :class="[
-      'flex min-w-0 max-w-full gap-1 self-start text-left text-xs text-fg-subtle outline-none hover:underline focus-visible:ring-2 ring-focus',
-      head ? 'min-h-8 items-start py-1' : 'items-center',
-    ]"
-    data-testid="card-parent"
-    @click.stop="openTask(parent.key)"
-  >
-    <template v-if="head"
-      ><CornerDownRight :size="12" class="shrink-0" aria-hidden="true" /><StatusIcon
-        v-if="parentStatus"
-        :status="parentStatus"
-        class="shrink-0"
-      /><span class="shrink-0">{{ parent.key }}</span></template
-    ><span v-else class="shrink-0">↳ {{ parent.key }}</span
-    ><span :class="head ? 'min-w-0 break-words' : 'truncate'">{{ parent.title }}</span>
-  </button>
-  <div :class="['flex min-w-0 items-center gap-1', head && TAP]">
-    <span v-if="depth" class="shrink-0" :style="{ width: `${depth * 12}px` }" aria-hidden="true" />
-    <div v-if="head" data-no-drag role="gridcell" class="-ml-1.5 shrink-0" @click.stop>
-      <StatusPicker
-        compact
-        :space-id="spaceId"
-        :project-id="task.projectId"
-        :model-value="task.statusId"
-        @update:model-value="updateTask(task.id, { statusId: $event })"
-      />
-    </div>
+  <template v-if="head">
     <button
+      v-if="parent"
       type="button"
       data-no-drag
-      :class="head && 'min-h-9 px-1'"
-      class="shrink-0 cursor-copy text-xs text-fg-subtle underline-offset-2 outline-none hover:underline focus-visible:ring-2 ring-focus"
-      :title="t('task.copyKey')"
-      data-testid="card-key"
-      @click.stop="copyKey"
+      class="flex min-w-0 max-w-full items-center gap-1 self-start text-left text-[11px] leading-4 text-fg-subtle outline-none hover:underline focus-visible:ring-2 ring-focus"
+      :title="`${parent.key} ${parent.title}`"
+      data-testid="card-parent"
+      @click.stop="openTask(parent.key)"
     >
-      {{ task.key }}
+      <span class="shrink-0">↳ {{ parent.key }}</span
+      ><span class="truncate">{{ parent.title }}</span>
     </button>
-    <!-- PLNRAPP-333/577: subtasks, assigned comments, checklist; module badges (branches/MR/CI) -->
-    <span
-      :class="[
-        'flex min-w-0 flex-wrap items-center',
-        head ? 'ml-2 gap-1' : 'ml-auto justify-end gap-0.5',
-      ]"
-      data-testid="card-badges"
-      ><TaskAiStatus
-        v-if="head"
-        :task="task"
-        data-no-drag
-        data-testid="card-ai"
-        @click.stop /><TaskProgress :task-id="task.id" :comments="task" /><span
-        v-for="x in badges"
-        :key="x.key"
-        data-no-drag
-        class="inline-flex"
-        @click.stop
-        ><component :is="x.view" :task-id="task.id" /></span
-    ></span>
-  </div>
-  <div class="flex min-w-0 items-start gap-0.5">
-    <span v-if="depth" class="shrink-0" :style="{ width: `${depth * 12}px` }" aria-hidden="true" />
-    <!-- -ml-1.5: иконка статуса вровень с полями ниже (у кнопок пикеров свой отступ); под ней — ИИ (PLNRAPP-401) -->
-    <div v-if="!head" class="-ml-1.5 flex shrink-0 flex-col items-center">
-      <div data-no-drag role="gridcell" @click.stop>
+    <!-- статус · ключ · название в одну строку, название переносится под себя -->
+    <div :class="['flex min-w-0 items-start gap-1', isMobile && TAP]">
+      <div data-no-drag role="gridcell" class="-ml-1 shrink-0" @click.stop>
         <StatusPicker
           compact
           :space-id="spaceId"
@@ -145,57 +88,176 @@ const copyKey = () =>
           @update:model-value="updateTask(task.id, { statusId: $event })"
         />
       </div>
-      <TaskAiStatus :task="task" data-no-drag data-testid="card-ai" @click.stop />
-    </div>
-    <BlockedIcon v-if="blocked" class="mt-1.5" />
-    <p
-      role="gridcell"
-      :class="[
-        'min-w-0 flex-1 pt-1 text-sm leading-snug text-fg',
-        oneLine ? 'truncate font-medium' : wrap ? 'break-words' : 'line-clamp-3',
-      ]"
-    >
-      {{ task.title }}
-    </p>
-  </div>
-  <div
-    v-if="cols.length || fields.length"
-    :class="['flex flex-wrap items-center', head ? ['-mx-0.5 gap-y-1', FIELDS_TAP] : '-mx-1.5']"
-    data-testid="card-fields"
-  >
-    <template v-for="c in cols" :key="c">
-      <span
-        v-if="projectText && c === 'project'"
-        :class="[
-          'inline-flex min-w-0 max-w-full items-center text-sm text-fg-muted',
-          head ? 'min-h-8 px-0.5 py-1' : 'h-7 px-1.5',
-        ]"
-        data-testid="card-project"
-        :title="projectName"
-        ><span :class="head ? 'min-w-0 break-words' : 'truncate'">{{ projectName }}</span></span
+      <button
+        type="button"
+        data-no-drag
+        :class="isMobile ? 'min-h-8' : 'h-7'"
+        class="shrink-0 cursor-copy text-xs text-fg-subtle underline-offset-2 outline-none hover:underline focus-visible:ring-2 ring-focus"
+        :title="t('task.copyKey')"
+        data-testid="card-key"
+        @click.stop="copyKey"
       >
-      <CardField
-        v-else
-        :col="c"
-        :task="task"
-        :space-id="spaceId"
-        :members="members"
-        :labels="labels"
-        :hot="hot"
-        :project-name="projectName"
-        :icon-only="isMobile && !head"
-        :label-names="labelNames"
-        :tag-icon="head"
-      />
-    </template>
-    <!-- поля модулей (время): видны всегда, если модуль включён -->
-    <span
-      v-for="x in fields"
-      :key="x.key"
-      data-no-drag
-      :class="['inline-flex', head ? 'px-0.5' : 'px-1.5']"
+        {{ task.key }}
+      </button>
+      <BlockedIcon v-if="blocked" :class="isMobile ? 'mt-2' : 'mt-1.5'" />
+      <p
+        role="gridcell"
+        :class="[
+          'min-w-0 flex-1 break-words text-sm leading-5 text-fg',
+          isMobile ? 'py-1.5' : 'py-1',
+        ]"
+      >
+        {{ task.title }}
+      </p>
+    </div>
+    <!-- поля плотно; иконки (ИИ, прогресс, ветки/MR/CI) — по правому краю той же строки -->
+    <div
+      :class="['-mx-0.5 flex flex-wrap items-center', isMobile ? TAP : DENSE]"
+      data-testid="card-fields"
     >
-      <component :is="x.view" :task-id="task.id" />
-    </span>
-  </div>
+      <template v-for="c in cols" :key="c">
+        <span
+          v-if="c === 'project'"
+          :class="[
+            'inline-flex min-w-0 max-w-full items-center px-0.5 text-sm text-fg-muted',
+            isMobile ? 'min-h-8' : 'h-6',
+          ]"
+          data-testid="card-project"
+          :title="projectName"
+          ><span class="truncate">{{ projectName }}</span></span
+        >
+        <CardField
+          v-else
+          :col="c"
+          :task="task"
+          :space-id="spaceId"
+          :members="members"
+          :labels="labels"
+          :hot="hot"
+          :project-name="projectName"
+          :label-names="labelNames"
+          tag-icon
+          :dense="!isMobile"
+        />
+      </template>
+      <span v-for="x in fields" :key="x.key" data-no-drag class="inline-flex px-0.5">
+        <component :is="x.view" :task-id="task.id" />
+      </span>
+      <span class="ml-auto flex items-center gap-1 pl-1" data-testid="card-badges"
+        ><TaskAiStatus
+          v-if="ai"
+          :task="task"
+          data-no-drag
+          data-testid="card-ai"
+          @click.stop /><TaskProgress :task-id="task.id" :comments="task" /><template v-if="git"
+          ><span v-for="x in badges" :key="x.key" data-no-drag class="inline-flex" @click.stop
+            ><component :is="x.view" :task-id="task.id" /></span></template
+      ></span>
+    </div>
+  </template>
+  <template v-else>
+    <button
+      v-if="parent"
+      type="button"
+      data-no-drag
+      class="flex min-w-0 max-w-full items-center gap-1 self-start text-left text-xs text-fg-subtle outline-none hover:underline focus-visible:ring-2 ring-focus"
+      data-testid="card-parent"
+      @click.stop="openTask(parent.key)"
+    >
+      <span class="shrink-0">↳ {{ parent.key }}</span
+      ><span class="truncate">{{ parent.title }}</span>
+    </button>
+    <div class="flex min-w-0 items-center gap-1">
+      <span
+        v-if="depth"
+        class="shrink-0"
+        :style="{ width: `${depth * 12}px` }"
+        aria-hidden="true"
+      />
+      <button
+        type="button"
+        data-no-drag
+        class="shrink-0 cursor-copy text-xs text-fg-subtle underline-offset-2 outline-none hover:underline focus-visible:ring-2 ring-focus"
+        :title="t('task.copyKey')"
+        data-testid="card-key"
+        @click.stop="copyKey"
+      >
+        {{ task.key }}
+      </button>
+      <!-- PLNRAPP-333/577: subtasks, assigned comments, checklist; module badges (branches/MR/CI) -->
+      <span
+        class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5"
+        data-testid="card-badges"
+        ><TaskProgress :task-id="task.id" :comments="task" /><span
+          v-for="x in badges"
+          :key="x.key"
+          data-no-drag
+          class="inline-flex"
+          @click.stop
+          ><component :is="x.view" :task-id="task.id" /></span
+      ></span>
+    </div>
+    <div class="flex min-w-0 items-start gap-0.5">
+      <span
+        v-if="depth"
+        class="shrink-0"
+        :style="{ width: `${depth * 12}px` }"
+        aria-hidden="true"
+      />
+      <!-- -ml-1.5: иконка статуса вровень с полями ниже (у кнопок пикеров свой отступ); под ней — ИИ (PLNRAPP-401) -->
+      <div class="-ml-1.5 flex shrink-0 flex-col items-center">
+        <div data-no-drag role="gridcell" @click.stop>
+          <StatusPicker
+            compact
+            :space-id="spaceId"
+            :project-id="task.projectId"
+            :model-value="task.statusId"
+            @update:model-value="updateTask(task.id, { statusId: $event })"
+          />
+        </div>
+        <TaskAiStatus :task="task" data-no-drag data-testid="card-ai" @click.stop />
+      </div>
+      <BlockedIcon v-if="blocked" class="mt-1.5" />
+      <p
+        role="gridcell"
+        :class="[
+          'min-w-0 flex-1 pt-1 text-sm leading-snug text-fg',
+          oneLine ? 'truncate font-medium' : wrap ? 'break-words' : 'line-clamp-3',
+        ]"
+      >
+        {{ task.title }}
+      </p>
+    </div>
+    <div
+      v-if="cols.length || fields.length"
+      class="-mx-1.5 flex flex-wrap items-center"
+      data-testid="card-fields"
+    >
+      <template v-for="c in cols" :key="c">
+        <span
+          v-if="projectText && c === 'project'"
+          class="inline-flex h-7 min-w-0 max-w-full items-center px-1.5 text-sm text-fg-muted"
+          data-testid="card-project"
+          :title="projectName"
+          ><span class="truncate">{{ projectName }}</span></span
+        >
+        <CardField
+          v-else
+          :col="c"
+          :task="task"
+          :space-id="spaceId"
+          :members="members"
+          :labels="labels"
+          :hot="hot"
+          :project-name="projectName"
+          :icon-only="isMobile"
+          :label-names="labelNames"
+        />
+      </template>
+      <!-- поля модулей (время): видны всегда, если модуль включён -->
+      <span v-for="x in fields" :key="x.key" data-no-drag class="inline-flex px-1.5">
+        <component :is="x.view" :task-id="task.id" />
+      </span>
+    </div>
+  </template>
 </template>

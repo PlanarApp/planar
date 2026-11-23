@@ -12,6 +12,8 @@ export type TaskField =
   | 'dueDate'
   | 'labels'
   | 'project'
+  /** branches / MR / CI of the gitlab module — only in projects with it */
+  | 'git'
   | (typeof AI_FIELDS)[number];
 export const isAiField = (f: string): f is (typeof AI_FIELDS)[number] =>
   (AI_FIELDS as readonly string[]).includes(f);
@@ -22,8 +24,11 @@ export const TASK_FIELDS: TaskField[] = [
   'dueDate',
   'labels',
   'project',
+  'git',
   ...AI_FIELDS,
 ];
+/** module fields: offered and shown only where the module is on; not Table columns */
+export const fieldModule = (f: string) => (isAiField(f) ? 'ai' : f === 'git' ? 'gitlab' : null);
 
 export interface ViewOptions {
   groupBy: GroupBy;
@@ -61,7 +66,7 @@ export const DEFAULT_OPTIONS: ViewOptions = {
   showKey: true,
   showLabelNames: false,
   me: null,
-  fields: ['status', 'assignee', 'priority', 'dueDate', 'labels'],
+  fields: ['status', 'assignee', 'priority', 'dueDate', 'labels', 'git', 'ai'],
 };
 
 /** Options from the saved `config`: known fields over the defaults. Not a project (space, folder, "My work") — "Project" is on by default. */

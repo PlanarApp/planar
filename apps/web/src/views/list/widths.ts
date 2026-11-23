@@ -42,6 +42,7 @@ export interface WidthCtx {
 /** Column auto-size by row content (as in ClickUp): widest value + cell padding. */
 export function autoWidth(c: ListColumn, tasks: readonly TaskView[], x: WidthCtx): number {
   const head = textWidth(x.header(c), 12) + 16;
+  if (c === 'git') return clamp(Math.max(head, 72));
   if (c === 'ai' || c === 'aiCost' || c === 'aiTime') return clamp(Math.max(head, 96));
   let w = 0;
   for (const t of tasks) {
