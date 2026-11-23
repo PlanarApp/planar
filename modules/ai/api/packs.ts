@@ -290,9 +290,12 @@ export function readInstructionPage(
   body: Doc,
 ): { key: string; i: Instruction } | null {
   const nodes = body.content ?? [];
-  const d = nodes[0]?.type === 'paragraph' ? textOf(nodes[0]).trim() : undefined;
-  const table = nodes[d === undefined ? 0 : 1];
-  if (table?.type !== 'table') return null;
+  // PLNRAPP-810: the first table wherever it is, as harness apply reads it — else an edited page
+  // (a heading above the table) is not found and the upload creates a duplicate
+  const t = nodes.findIndex((n) => n.type === 'table');
+  if (t < 0) return null;
+  const table = nodes[t]!;
+  const d = t > 0 && nodes[0]!.type === 'paragraph' ? textOf(nodes[0]!).trim() : undefined;
   const params: Record<string, string[]> = {};
   for (const r of (table.content ?? []).slice(1)) {
     const [k, v] = (r.content ?? []).map((c) => textOf(c).trim());
@@ -311,7 +314,7 @@ export function readInstructionPage(
   if (!key || !KEY_RE.test(key) || !r.success) return null;
   return {
     key,
-    i: { ...r.data, prompt: mdOf(nodes.slice(d === undefined ? 1 : 2)) },
+    i: { ...r.data, prompt: mdOf(nodes.slice(t + 1)) },
   };
 }
 export const readYmlPage = (body: Doc): string | null => {
@@ -375,7 +378,8 @@ const rows = async <T>(db: Db, s: ReturnType<typeof sql>) => (await db.execute(s
 const pageRows = (db: Db, parentId: string) =>
   rows<PageRow>(
     db,
-    sql`select id, title, body from docs_pages where parent_id = ${parentId}::uuid and archived_at is null`,
+    sql`select id, title, body from docs_pages where parent_id = ${parentId}::uuid and archived_at is null
+        order by rank collate "C"`,
   );
 const alive = async (db: Db, id: string | null) =>
   !!id &&

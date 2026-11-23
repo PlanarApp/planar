@@ -105,6 +105,8 @@ export async function loadPack(q: Db | Q, projectId: string, packPageId: string)
   const pageIds: Record<string, string> = {};
   for (const k of kids) {
     const p = parseInstructionPage(k.title as string, k.body);
+    // PLNRAPP-810: a duplicate key — the first page by rank, as the pack upload takes it
+    if (pageIds[p.key]) continue;
     instructions[p.key] = p.instruction;
     pageIds[p.key] = k.id as string;
   }
