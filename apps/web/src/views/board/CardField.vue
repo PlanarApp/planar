@@ -33,6 +33,8 @@ const props = defineProps<{
   iconOnly?: boolean;
   /** tag names even with iconOnly (the "Show tag names" option) */
   labelNames?: boolean;
+  /** PLNRAPP-802: the mobile List — a tag icon (12 px, the tag's color) before the name instead of the dot */
+  tagIcon?: boolean;
 }>();
 const { t, locale } = useI18n();
 const people = computed(() =>
@@ -52,6 +54,8 @@ const dueTone = computed(() =>
 const empty = 'text-fg-subtle opacity-60';
 // mobile: a tag icon in the tag's color per tag, unless the names are asked for
 const tagIcons = computed(() => props.iconOnly && !props.labelNames);
+// PLNRAPP-802: a tag with the icon — as Badge dot (h-5 text-xs), the gap to the name 2 px
+const tagChip = 'inline-flex h-5 items-center gap-0.5 text-xs font-medium text-fg-muted';
 </script>
 
 <template>
@@ -101,8 +105,18 @@ const tagIcons = computed(() => props.iconOnly && !props.labelNames);
             :size="14"
             class="shrink-0 text-fg-subtle"
             :style="l.color ? { color: l.color } : undefined" />
+          <template v-if="!tagIcons && tagIcon"
+            ><span v-for="l in chosen" :key="l.id" :class="tagChip" data-testid="card-tag"
+              ><Tag
+                :size="12"
+                class="shrink-0 text-fg-muted"
+                aria-hidden="true"
+                :style="l.color ? { color: l.color } : undefined"
+              />{{ l.name }}</span
+            ></template
+          >
           <Badge
-            v-for="l in tagIcons ? [] : chosen"
+            v-for="l in tagIcons || tagIcon ? [] : chosen"
             :key="l.id"
             dot
             :color="l.color ?? undefined"
@@ -145,9 +159,23 @@ const tagIcons = computed(() => props.iconOnly && !props.labelNames);
           class="shrink-0 text-fg-subtle"
           :style="l.color ? { color: l.color } : undefined"
         />
-        <Badge v-for="l in tagIcons ? [] : chosen" :key="l.id" dot :color="l.color ?? undefined">{{
-          l.name
-        }}</Badge>
+        <template v-if="!tagIcons && tagIcon"
+          ><span v-for="l in chosen" :key="l.id" :class="tagChip" data-testid="card-tag"
+            ><Tag
+              :size="12"
+              class="shrink-0 text-fg-muted"
+              aria-hidden="true"
+              :style="l.color ? { color: l.color } : undefined"
+            />{{ l.name }}</span
+          ></template
+        >
+        <Badge
+          v-for="l in tagIcons || tagIcon ? [] : chosen"
+          :key="l.id"
+          dot
+          :color="l.color ?? undefined"
+          >{{ l.name }}</Badge
+        >
         <Tag v-if="!chosen.length" :size="14" :class="empty" />
       </template>
     </span>

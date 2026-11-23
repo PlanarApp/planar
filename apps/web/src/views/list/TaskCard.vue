@@ -15,6 +15,7 @@ import TaskProgress from '../TaskProgress.vue';
 
 // task card (Board, Cards, List on mobile): the parent line, the key with the badges block on the right,
 // status (AI icon under it) and the name, the field buttons below. Mobile — fields as icons only.
+// PLNRAPP-802: the mobile List — tags with a tag icon, 4 px between the fields.
 // `head` (the mobile List): status · key · AI and badges in one line, the name under it.
 const props = defineProps<{
   task: TaskView;
@@ -57,6 +58,9 @@ const parentStatus = computed(() =>
 // PLNRAPP-706: the mobile List — the buttons of the key line and the fields are touch targets of at least 36 px
 // `!`: scoped module styles (TimeControl .time: min-height 1.75rem) outweigh the arbitrary variant
 const TAP = '[&_button]:min-h-9! [&_button]:min-w-9! [&_button]:justify-center';
+// PLNRAPP-802: the fields line is denser — buttons from 32 px, 2 px side padding each (4 px between the fields)
+const FIELDS_TAP =
+  '[&_button]:min-h-8! [&_button]:min-w-8! [&_button]:justify-center [&_button]:px-0.5!';
 // click on the key — copy it (PLNRAPP-181)
 const copyKey = () =>
   void navigator.clipboard
@@ -156,15 +160,15 @@ const copyKey = () =>
   </div>
   <div
     v-if="cols.length || fields.length"
-    :class="['-mx-1.5 flex flex-wrap items-center', head && ['gap-y-1', TAP]]"
+    :class="['flex flex-wrap items-center', head ? ['-mx-0.5 gap-y-1', FIELDS_TAP] : '-mx-1.5']"
     data-testid="card-fields"
   >
     <template v-for="c in cols" :key="c">
       <span
         v-if="projectText && c === 'project'"
         :class="[
-          'inline-flex min-w-0 max-w-full items-center px-1.5 text-sm text-fg-muted',
-          head ? 'min-h-9 py-1' : 'h-7',
+          'inline-flex min-w-0 max-w-full items-center text-sm text-fg-muted',
+          head ? 'min-h-8 px-0.5 py-1' : 'h-7 px-1.5',
         ]"
         data-testid="card-project"
         :title="projectName"
@@ -181,10 +185,16 @@ const copyKey = () =>
         :project-name="projectName"
         :icon-only="isMobile && !head"
         :label-names="labelNames"
+        :tag-icon="head"
       />
     </template>
     <!-- поля модулей (время): видны всегда, если модуль включён -->
-    <span v-for="x in fields" :key="x.key" data-no-drag class="inline-flex px-1.5">
+    <span
+      v-for="x in fields"
+      :key="x.key"
+      data-no-drag
+      :class="['inline-flex', head ? 'px-0.5' : 'px-1.5']"
+    >
       <component :is="x.view" :task-id="task.id" />
     </span>
   </div>

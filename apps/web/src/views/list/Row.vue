@@ -179,7 +179,7 @@ function save() {
 </script>
 
 <template>
-  <!-- мобильная: карточка (общая с Доской) -->
+  <!-- мобильная: карточка (общая с Доской); PLNRAPP-802: отступ 4 px сверху и снизу, 8 px слева -->
   <div
     v-if="isMobile"
     ref="rowEl"
@@ -189,7 +189,7 @@ function save() {
     :data-task="task.key"
     :data-task-id="task.id"
     :class="[
-      'group flex h-full items-center gap-1 border-b border-border py-2 pl-3 text-sm',
+      'group flex h-full items-center gap-1 border-b border-border py-1 pl-2 text-sm',
       isMobile ? 'pr-3' : 'pr-1',
       selected ? 'bg-accent-subtle' : !isMobile && 'hover:bg-bg-subtle',
       focused ? 'ring-2 ring-inset ring-focus' : '',
@@ -203,7 +203,7 @@ function save() {
     <label
       v-if="selecting"
       role="gridcell"
-      class="-ml-3 flex size-11 shrink-0 items-center justify-center"
+      class="-ml-2 flex size-11 shrink-0 items-center justify-center"
       data-testid="row-select"
       @click.stop
     >
