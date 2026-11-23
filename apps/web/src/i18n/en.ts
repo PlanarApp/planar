@@ -1018,9 +1018,10 @@ export default {
     create: 'Create task',
   },
   closeOpen: {
-    title: 'Complete “{title}”?',
-    text: 'Some subtasks and assigned comments are still open — close them here or leave them as they are.',
+    title: 'Move “{title}” to “{status}”?',
+    text: 'Some subtasks, checklist items or assigned comments are still open — close them here or leave them as they are.',
     subtasks: 'Subtasks',
+    checklist: 'Checklist',
     comments: 'Assigned comments',
     onlyTask: 'Only the task',
     closeAll: 'Close all',
