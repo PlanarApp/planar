@@ -94,6 +94,19 @@ const dict = {
   cardMrs: { ru: 'MR открыто', en: 'Open MRs' },
   ciRunning: { ru: 'CI выполняется', en: 'CI is running' },
   ciFailed: { ru: 'CI упал', en: 'CI failed' },
+  // PLNRAPP-822: the status of a branch's last pipeline in the tab
+  ciStatus: { ru: 'CI', en: 'CI' },
+  ci_created: { ru: 'создан', en: 'created' },
+  ci_waiting_for_resource: { ru: 'ждёт ресурс', en: 'waiting for resource' },
+  ci_preparing: { ru: 'подготовка', en: 'preparing' },
+  ci_pending: { ru: 'в очереди', en: 'pending' },
+  ci_running: { ru: 'выполняется', en: 'running' },
+  ci_success: { ru: 'успешно', en: 'passed' },
+  ci_failed: { ru: 'ошибка', en: 'failed' },
+  ci_canceled: { ru: 'отменён', en: 'canceled' },
+  ci_skipped: { ru: 'пропущен', en: 'skipped' },
+  ci_manual: { ru: 'ждёт ручного запуска', en: 'manual' },
+  ci_scheduled: { ru: 'запланирован', en: 'scheduled' },
 } as const;
 export type Key = keyof typeof dict;
 export const tr = (k: Key): string => {

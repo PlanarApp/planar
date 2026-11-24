@@ -2738,6 +2738,10 @@ async function insertAll(tx: Tx, now: Date) {
       gitlabProjectId: 101,
       name: 'RDM-6-reduce-time-to-first-task',
       webUrl: `${glUrl}/-/tree/RDM-6-reduce-time-to-first-task`,
+      // PLNRAPP-822: the branch's last pipeline and its job — the status in the tab opens it
+      pipelineId: 9120,
+      pipelineStatus: 'failed',
+      pipelineUrl: `${glUrl}/-/jobs/51207`,
       createdAt: at(-2),
       updatedAt: at(-2),
     },
@@ -2748,6 +2752,9 @@ async function insertAll(tx: Tx, now: Date) {
       gitlabProjectId: 101,
       name: 'RDM-7-import-from-csv-edge-cases',
       webUrl: `${glUrl}/-/tree/RDM-7-import-from-csv-edge-cases`,
+      pipelineId: 9124,
+      pipelineStatus: 'running',
+      pipelineUrl: `${glUrl}/-/jobs/51233`,
       createdAt: at(-3),
       updatedAt: at(-3),
     },
@@ -2773,6 +2780,7 @@ async function insertAll(tx: Tx, now: Date) {
     webUrl: `${glUrl}/-/merge_requests/${iid}`,
     mrUpdatedAt: at(d),
     pipelineStatus: ci,
+    pipelineUrl: `${glUrl}/-/jobs/${51000 + iid}`,
     createdAt: at(d),
     updatedAt: at(d),
   });

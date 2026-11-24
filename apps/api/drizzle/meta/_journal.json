@@ -575,6 +575,13 @@
       "when": 1796188800000,
       "tag": "0081_cards_view_to_list",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1796275200000,
+      "tag": "0082_gitlab_ci_job_url",
+      "breakpoints": true
     }
   ]
 }
