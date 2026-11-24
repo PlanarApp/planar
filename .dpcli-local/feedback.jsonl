@@ -417,3 +417,7 @@
 {"t": "2026-11-24T14:40:27", "id": "F-41", "kind": "cluster", "title": "One large multi-item task in a single session bloats the main context", "match": "из 20 исправлений в одной сессии", "scope": "project", "why": "main session averaged over 200k tokens, every turn re-reads it"}
 {"t": "2026-11-24T14:40:33", "id": "F-40", "kind": "fix", "where": ".dpcli-local/workflow.md"}
 {"t": "2026-11-24T14:40:34", "id": "F-41", "kind": "fix", "where": ".dpcli-local/workflow.md"}
+{"t": "2026-11-24T16:47:36", "id": "F-42", "kind": "cluster", "title": "UI tests assert right after mount, flaky under CI load", "match": "нестабил|под нагрузкой CI", "scope": "project", "why": "Async replica rendering lags on a loaded CI runner; MRs without code changes fail on unrelated tests"}
+{"t": "2026-11-24T16:47:36", "id": "F-43", "kind": "cluster", "title": "MR branch from a stale main misses CI fixes", "match": "от старого main", "scope": "project", "why": "The branch lacked the CI log fix, the test log was cut at 4 MB and the failure was invisible"}
+{"t": "2026-11-24T16:48:25", "id": "F-42", "kind": "fix", "where": ".dpcli-local/workflow.md"}
+{"t": "2026-11-24T16:48:25", "id": "F-43", "kind": "fix", "where": ".dpcli-local/workflow.md"}

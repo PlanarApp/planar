@@ -14,7 +14,7 @@
 - Ветка `mr/PLNRAPP-N` от `main`, ключ в заголовке MR. Модуль gitlab берёт ключи из ветки, заголовка и описания MR — чужие ключи в описании закроют чужие задачи. Заголовок MR — `PLNRAPP-N: <суть>`, описание — разделы «что сделано» и «проверка»; язык — по `language.commits` в `dpcli.yml`.
 - Доступ к Planar — MCP `planar` (адрес и токен в `~/.claude.json`, в репозиторий не класть). Проверка руками — curl (POST `initialize`, `Accept: application/json, text/event-stream`); urllib из Python получает 403 — это не плохой токен. Названия и ID статусов — MCP `project_dictionary`.
 - REST и MCP синхронны: новая или изменённая функция REST v1 (`apps/api/src/rest`) — в той же задаче инструмент MCP (`apps/api/src/mcp/tools.ts`), строка в `PARITY` (`apps/api/test/mcp/mcp.test.ts`) и тест. Новый мутатор или видимая пользователю функция — проверить, нужна ли она в REST/MCP (агенты работают только через MCP).
-- Задача полностью готова → полный `pnpm test` и `pnpm lint` из корня (как в CI) → commit → `git push -u origin mr/PLNRAPP-N` → `glab mr create`.
+- Задача полностью готова → полный `pnpm test` и `pnpm lint` из корня (как в CI) → commit → `git merge origin/main` (ветка от старого main не получает правок CI и тестов) → `git push -u origin mr/PLNRAPP-N` → `glab mr create`.
 - Автомерж — только флагом «слить после успешного CI»: дождаться у MR `head_pipeline`, затем `glab api -X PUT projects/planarhq%2Fplanar/merge_requests/N/merge -f merge_when_pipeline_succeeds=true` и проверить, что MR остался open. Не `glab mr merge --auto-merge` — сливает сразу. Новый пуш сбрасывает флаг.
 - После слияния — убрать хвосты: локальная ветка `mr/PLNRAPP-N`, копии и ветки dpcli (`.dpcli/dpcli gc --remove`), стенд (`./dev.sh stack <ID> down`), временные файлы.
 - Одна задача PLNRAPP — одна сессия: автомерж поставлен → коротко отчитаться и предложить пользователю `/clear`; следующую задачу не брать в том же контексте (сессии с несколькими задачами держат контекст 200k+ на Opus).
@@ -25,6 +25,7 @@
 
 - В той же копии работают другие сессии: переключают ветки и держат незакоммиченные правки. Никогда `git add -A` / `commit -a` — только `git commit -- <свои пути>`; перед коммитом проверить `git branch --show-current` и `git status`. Для своей задачи лучше отдельный `git worktree`.
 - CI-стадия lint — `pnpm lint` = `eslint . && prettier --check .`; vitest и vue-tsc форматирование не ловят. Перед коммитом — `npx prettier --write <свои файлы>`, перед пушем — `pnpm -s lint` в корне.
+- Тесты web: экран догоняет реплику асинхронно — проверки после `mount`/действия через `vi.waitFor`, не сразу и не фиксированной паузой: под нагрузкой CI они падают через раз и валят чужие MR. Нестабильный тест — локально `CI=true pnpm exec vitest run --silent=passed-only`.
 
 ## Хост
 
@@ -48,7 +49,6 @@
 
 - `.dpcli/dpcli merge <ветка>` без `--into` вливает в `main` — координатор всегда указывает `--into feature/<m>`.
 - Общий контракт (например, C-modules) — один владелец; параллельные модули его не версионируют каждый сам.
-- Уведомления исполнителей приходят главной сессии, не координатору — пересылать «<ID> reported»; координатор, завершивший ход до исполнителей, — будить.
 - Отчёт исполнителя — только `build/dpcli/<ID>.report.json` в своей копии, не общий `/tmp`.
 - Действия, запрещённые исполнителю классификатором (pkill, job start), главная сессия за него не делает.
 
