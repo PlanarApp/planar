@@ -3,8 +3,8 @@ import { computed, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { FilePlus, FileText, X } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
-import { Button, IconButton, Input, db, useQuery } from '@planar/web/modules';
-import { searchPages, type PageRow, type TaskLinkRow } from './model';
+import { Button, DocPicker, IconButton, db, useQuery, type SearchHit } from '@planar/web/modules';
+import { pagePath, searchPages, type PageRow, type TaskLinkRow } from './model';
 import { createForTask, link, unlink } from './links';
 import { useTexts } from './text';
 
@@ -23,29 +23,37 @@ const data = useQuery(async () => {
   const linkedPages = (
     await Promise.all([...linkIds].map((id) => db.table<PageRow>('docsPages').get(id)))
   ).filter((p): p is PageRow => !!p);
-  const ownPages = task
-    ? (await db.table<PageRow>('docsPages').where('spaceId').equals(task.spaceId).toArray()).filter(
-        (p) => !p.archivedAt && !linkIds.has(p.id),
-      )
+  const spacePages = task
+    ? await db.table<PageRow>('docsPages').where('spaceId').equals(task.spaceId).toArray()
     : [];
-  // search results show where the page lives: «Space / Project»
+  const ownPages = spacePages.filter((p) => !p.archivedAt && !linkIds.has(p.id));
+  // search results show where the page lives: «Space / Project / parents»
   const space = task ? await db.table<{ id: string; name: string }>('spaces').get(task.spaceId) : undefined;
   const projectIds = [...new Set(ownPages.map((p) => p.projectId).filter((x): x is string => !!x))];
   const projects = await db.table<{ id: string; name: string }>('projects').bulkGet(projectIds);
   const projectNames = new Map(projects.filter((x) => !!x).map((x) => [x!.id, x!.name]));
-  return { linked: linkedPages, available: ownPages, spaceName: space?.name ?? '', projectNames };
+  const byId = new Map(spacePages.map((p) => [p.id, p]));
+  return { linked: linkedPages, available: ownPages, spaceName: space?.name ?? '', projectNames, byId };
 });
 const linked = computed(() => data.value?.linked ?? []);
-const where = (p: PageRow) => {
-  const pr = p.projectId ? data.value?.projectNames.get(p.projectId) : undefined;
-  return [data.value?.spaceName, pr].filter(Boolean).join(' / ');
-};
 const q = ref('');
-const found = computed(() =>
-  q.value.trim() ? searchPages(data.value?.available ?? [], q.value, 6) : [],
-);
+// PLNRAPP-827: the common DocPicker, narrowed to the task's space without the already linked pages;
+// a new function on new data — the picker searches again
+const search = computed(() => {
+  const d = data.value;
+  const untitled = tx('untitled');
+  return async (query: string, limit: number): Promise<SearchHit[]> =>
+    searchPages(d?.available ?? [], query, Math.min(limit, 6)).map((p) => ({
+      id: p.id,
+      title: p.title || untitled,
+      path:
+        [d?.spaceName, pagePath(d!.byId, p, d!.projectNames, untitled)].filter(Boolean).join(' / ') ||
+        undefined,
+      to: `/m/docs/${p.id}`,
+    }));
+});
 
-async function pick(p: PageRow) {
+async function pick(p: SearchHit) {
   q.value = '';
   await link(p.id, props.taskId);
 }
@@ -73,27 +81,16 @@ async function create() {
       </li>
     </ul>
     <p v-else class="px-2 text-sm text-fg-subtle">{{ tx('noLinks') }}</p>
-    <div class="relative flex items-center gap-2">
-      <Input v-model="q" :label="tx('link')" hide-label :placeholder="tx('link')" class="min-w-0 flex-1" />
+    <div class="flex items-start gap-2">
+      <DocPicker
+        v-model:query="q"
+        :search="search"
+        :label="tx('link')"
+        input-testid="docs-panel-search"
+        class="min-w-0 flex-1"
+        @pick="pick"
+      />
       <Button size="sm" :icon="FilePlus" @click="create">{{ tx('createFromTask') }}</Button>
-      <ul
-        v-if="found.length"
-        role="listbox"
-        class="absolute left-0 top-full z-20 mt-1 w-full rounded-lg border border-border bg-surface p-1 shadow-md"
-      >
-        <li
-          v-for="p in found"
-          :key="p.id"
-          role="option"
-          class="flex min-h-8 cursor-default flex-col justify-center rounded-sm px-2 py-1 hover:bg-bg-muted"
-          @mousedown.prevent="pick(p)"
-        >
-          <span class="truncate text-base">{{ p.title || tx('untitled') }}</span>
-          <span v-if="where(p)" class="truncate text-sm text-fg-subtle" data-testid="docs-panel-path">{{
-            where(p)
-          }}</span>
-        </li>
-      </ul>
     </div>
   </div>
 </template>

@@ -19,6 +19,7 @@ import { moduleMutators, registerMutators, startSync, stopSync } from '../../../
 import { web } from './index';
 import { moveArgs, type PageRow } from './model';
 import TaskPanel from './TaskPanel.vue';
+import DocPicker from '../../../apps/web/src/pickers/DocPicker.vue';
 import PageScreen from './PageScreen.vue';
 import PageView from './PageView.vue';
 import VersionsDialog from './VersionsDialog.vue';
@@ -241,8 +242,9 @@ describe('docs web: панель задачи', () => {
 
     await w.find('input').setValue('специф');
     await vi.waitFor(() => expect(w.find('[role=option]').exists()).toBe(true));
-    await w.find('[role=option]').trigger('mousedown');
+    await w.find('[role=option]').trigger('click');
     await vi.waitFor(() => expect(w.text()).toContain('Спецификация'));
+    expect((w.find('[data-testid=docs-panel-search]').element as HTMLInputElement).value).toBe('');
     expect(await db.table('docsTaskLinks').count()).toBe(2);
 
     await w.find('button[aria-label="Отвязать"]').trigger('click');
@@ -263,21 +265,27 @@ describe('docs web: панель задачи', () => {
     expect(title.classes()).toContain('line-through');
   });
 
-  it('PLNRAPP-826: в поиске страницы для связи виден путь «Спейс / Проект»', async () => {
+  it('PLNRAPP-826, PLNRAPP-827: поиск страницы для связи — общий DocPicker с путём «Спейс / Проект / родители»', async () => {
     const t = await seedTask();
     const PROJECT = uuidv7();
     await db.table('spaces').put({ id: SPACE, name: 'Офис' });
     await db.table('projects').put({ id: PROJECT, spaceId: SPACE, name: 'Сайт' });
+    const PARENT = uuidv7();
     await db.table('docsPages').bulkPut([
       page(uuidv7(), { title: 'Глоссарий проекта', projectId: PROJECT }),
       page(uuidv7(), { title: 'Глоссарий спейса' }),
+      page(PARENT, { title: 'Справочники' }),
+      page(uuidv7(), { title: 'Глоссарий вложенный', parentId: PARENT }),
+      page(uuidv7(), { title: 'Глоссарий чужой', spaceId: uuidv7() }),
     ]);
     const w = panel(t);
     await flushPromises();
+    expect(w.findComponent(DocPicker).exists()).toBe(true);
     await w.find('input').setValue('глоссарий');
-    await vi.waitFor(() => expect(w.findAll('[role=option]')).toHaveLength(2));
-    const paths = w.findAll('[data-testid=docs-panel-path]').map((x) => x.text());
-    expect(paths.sort()).toEqual(['Офис', 'Офис / Сайт']);
+    await vi.waitFor(() => expect(w.findAll('[role=option]')).toHaveLength(3));
+    const paths = w.findAll('[data-testid=pick-path]').map((x) => x.text());
+    expect(paths.sort()).toEqual(['Офис', 'Офис / Сайт', 'Офис / Справочники']);
+    expect(w.text()).not.toContain('Глоссарий чужой');
   });
 
   it('показывает связанные страницы другого пространства', async () => {

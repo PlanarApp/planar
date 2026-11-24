@@ -9,6 +9,7 @@ import PickList from './PickList.vue';
 /**
  * The one document picker (PLNRAPP-827): search through the docs module's provider (no module import into
  * the core), every page with its path. Without the module the list stays empty — see `useDocsPickable`.
+ * `search` replaces the provider when a place narrows the pages (the task's «Документы» tab: its space, not linked).
  */
 const props = withDefaults(
   defineProps<{
@@ -18,6 +19,7 @@ const props = withDefaults(
     autofocus?: boolean;
     inputTestid?: string;
     optionTestid?: string;
+    search?: (q: string, limit: number) => Promise<SearchHit[]>;
   }>(),
   { limit: 20 },
 );
@@ -25,15 +27,16 @@ const emit = defineEmits<{ pick: [doc: SearchHit]; key: [e: KeyboardEvent] }>();
 const q = defineModel<string>('query', { default: '' });
 const { t } = useI18n();
 const providers = useExtensions('search');
-const provider = computed(() => providers.value.find((p) => p.moduleId === 'docs'));
+const provider = computed(
+  () => props.search ?? providers.value.find((p) => p.moduleId === 'docs')?.search,
+);
 const hits = ref<SearchHit[]>([]);
 let seq = 0;
 watch(
   [q, provider],
   async () => {
     const n = ++seq;
-    const r =
-      q.value.trim() && provider.value ? await provider.value.search(q.value, props.limit) : [];
+    const r = q.value.trim() && provider.value ? await provider.value(q.value, props.limit) : [];
     if (n === seq) hits.value = r;
   },
   { immediate: true },
