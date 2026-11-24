@@ -465,21 +465,25 @@ async function enqueueAi(q: Q, enqueue: ModuleHookApi['enqueue'], ids: string[],
     );
 }
 
-async function run(d: RunData, api: JobApi) {
-  const m = await matched(api, d.ruleId, d.taskId);
-  if (!m) return void (await record(api, d, 'skipped'));
+type Matched = NonNullable<Awaited<ReturnType<typeof matched>>>;
+
+/**
+ * The rule's actions in one transaction; `ai` — ai_run too (false: the caller starts the AI run itself).
+ */
+async function apply(api: JobApi, m: Matched, d: RunData, ai = true) {
   const { rule, task, statuses } = m;
-  try {
-    const muts = await toMutations(api, rule, task, statuses);
-    const answered = (rule.actions as Action[]).some((a) => a.type === 'resolve_comment')
-      ? await answeredQuestion(api, task.id, d.commentId)
-      : undefined;
-    const hooks = (rule.actions as Action[]).flatMap((a) =>
-      a.type === 'send_webhook' ? [a.subscriptionId] : [],
-    );
-    const ai = (rule.actions as Action[]).flatMap((a) =>
-      a.type === 'ai_run' ? [a.aiActionId] : [],
-    );
+  const muts = await toMutations(api, rule, task, statuses);
+  const answered = (rule.actions as Action[]).some((a) => a.type === 'resolve_comment')
+    ? await answeredQuestion(api, task.id, d.commentId)
+    : undefined;
+  const hooks = (rule.actions as Action[]).flatMap((a) =>
+    a.type === 'send_webhook' ? [a.subscriptionId] : [],
+  );
+  const runs = ai
+    ? (rule.actions as Action[]).flatMap((a) => (a.type === 'ai_run' ? [a.aiActionId] : []))
+    : [];
+  // the reconcile (ai = false): nothing to write — no transaction
+  if (ai || muts.length || hooks.length)
     await api.execute(api.systemUserId, muts, {
       system: true,
       origin: { ruleId: d.ruleId, depth: d.depth },
@@ -488,17 +492,50 @@ async function run(d: RunData, api: JobApi) {
       // delivery — in the same transaction after all actions; a failure rolls back the actions, the run = error
       after: async (q, enqueue) => {
         if (hooks.length) await sendWebhooks({ enqueue }, q, hooks, d);
-        if (ai.length) await enqueueAi(q, enqueue, ai, d);
+        if (runs.length) await enqueueAi(q, enqueue, runs, d);
       },
     });
-    if (answered)
-      await api.execute(
-        answered.by,
-        [{ name: 'comment.resolve', args: { id: answered.id, resolved: true } }],
-        { system: true, origin: { ruleId: d.ruleId, depth: d.depth } },
-      );
+  if (answered)
+    await api.execute(
+      answered.by,
+      [{ name: 'comment.resolve', args: { id: answered.id, resolved: true } }],
+      { system: true, origin: { ruleId: d.ruleId, depth: d.depth } },
+    );
+}
+
+async function run(d: RunData, api: JobApi) {
+  const m = await matched(api, d.ruleId, d.taskId);
+  if (!m) return void (await record(api, d, 'skipped'));
+  try {
+    await apply(api, m, d);
   } catch (e) {
     return void (await record(api, d, 'error', e instanceof Error ? e.message : String(e)));
+  }
+  await record(api, d, 'ok');
+}
+
+/**
+ * PLNRAPP-837: the AI engine's reconcile starts a run of a task standing in the rule's status (no transition — e.g.
+ * created right there) — the rule's other actions (set_status, labels, comments, …) go first, the same way as on its
+ * trigger, so the reconcile acts as a real entry into the status. A set_status to the current status is dropped (no
+ * write, no history); assign / label actions are idempotent themselves. Logged in the rule's runs; an error throws.
+ */
+export async function applyRule(api: JobApi, m: Matched) {
+  const d: RunData = {
+    ruleId: m.rule.id,
+    taskId: m.task.id,
+    depth: 1,
+    eventAt: new Date().toISOString(),
+  };
+  const actions = (m.rule.actions as Action[]).filter(
+    (a) => a.type !== 'ai_run' && !(a.type === 'set_status' && a.statusId === m.task.statusId),
+  );
+  if (!actions.length) return;
+  try {
+    await apply(api, { ...m, rule: { ...m.rule, actions } }, d, false);
+  } catch (e) {
+    await record(api, d, 'error', e instanceof Error ? e.message : String(e));
+    throw e;
   }
   await record(api, d, 'ok');
 }
