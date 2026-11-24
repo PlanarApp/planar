@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { flushPromises, mount } from '@vue/test-utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import en from '../../i18n/en';
 import ru from '../../i18n/ru';
@@ -13,6 +13,7 @@ import {
   TaskDatesPicker,
 } from '../index';
 import { localToday } from '../../views/filter';
+import { resetBreakpoint } from '../../ui/useBreakpoint';
 import { ids, reset } from './data';
 
 beforeEach(reset);
@@ -166,5 +167,32 @@ describe('tasks:pickers', () => {
       expect(w.emitted('update:due')?.at(-1)).toEqual([null]);
       w.unmount();
     });
+  });
+});
+
+describe('tasks:pickers mobile', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetBreakpoint();
+  });
+  it('PLNRAPP-824: StatusPicker в мобильной раскладке — лист на всю ширину, список по высоте содержимого', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: true,
+      media: q,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    resetBreakpoint();
+    const w = mount(StatusPicker, { ...opts, props: { spaceId: ids.space, modelValue: ids.todo } });
+    await flushPromises();
+    await open(w);
+    const list = document.body.querySelector('[data-testid=sheet] [role="listbox"]')!;
+    expect(list).not.toBeNull();
+    const box = list.parentElement!.classList;
+    expect(box.contains('w-full')).toBe(true); // not a fixed 14rem — half of a phone screen
+    expect(box.contains('w-56')).toBe(false);
+    expect(list.classList.contains('max-h-[60vh]')).toBe(true);
+    expect(list.classList.contains('max-h-60')).toBe(false);
+    w.unmount();
   });
 });
