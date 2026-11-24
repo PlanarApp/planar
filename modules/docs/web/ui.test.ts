@@ -507,14 +507,17 @@ describe('docs web: история версий (PLNRAPP-185)', () => {
     });
     const w = mount(VersionsDialog, { props: { pageId: id, open: true }, attachTo: document.body });
     await vi.waitFor(() => expect(document.body.textContent).toContain('новый текст'));
-    const items = [...document.querySelectorAll('[data-testid=doc-versions] button')] as HTMLElement[];
-    expect(items.map((b) => b.textContent)).toEqual([
-      expect.stringContaining('Анна · API'),
-      expect.stringContaining('Я · редактор'),
-    ]);
+    const items = () => [...document.querySelectorAll('[data-testid=doc-versions] button')] as HTMLElement[];
+    // authors' names come from IndexedDB (useQuery) — under load they arrive after the version bodies
+    await vi.waitFor(() =>
+      expect(items().map((b) => b.textContent)).toEqual([
+        expect.stringContaining('Анна · API'),
+        expect.stringContaining('Я · редактор'),
+      ]),
+    );
     const restore = document.querySelector('[data-testid=doc-version-restore]') as HTMLButtonElement;
     expect(restore.disabled).toBe(true); // the newest = the current content
-    items[1]!.click();
+    items()[1]!.click();
     await vi.waitFor(() => expect(document.body.textContent).toContain('старый текст'));
     restore.click();
     await vi.waitFor(() => expect(calls).toContain(`POST /api/docs/versions/${v1}/restore`));
