@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { decrypt } from '@planar/server-kit';
-import { pollAll } from '@planar/module-gitlab/api';
+import { api as gitlabApi, pollAll } from '@planar/module-gitlab/api';
 import {
   gitlabBranches as B,
   gitlabConnections as P,
@@ -1014,5 +1014,28 @@ describe('PLNRAPP-822: статус CI веток и ссылка на джоб�
     });
     expect(r).toMatchObject({ ok: false, code: 'forbidden' });
     expect(await row(b)).toMatchObject({ pipelineStatus: null, pipelineUrl: null });
+  });
+});
+
+describe('gitlab.tick', () => {
+  it('ручной опрос одного подключения не откладывает фоновый опрос остальных', async () => {
+    await db.delete(P);
+    const a = await addProject(42);
+    const b = await addProject(43, await mkProject());
+    const queued: string[] = [];
+    const tick = (
+      gitlabApi.jobs as { queue: string; handler(d: unknown, a: unknown): Promise<void> }[]
+    ).find((j) => j.queue === 'gitlab.tick')!;
+    const api = { db, enqueue: async (q: string) => void queued.push(q) };
+    await db.update(P).set({ lastPolledAt: new Date().toISOString() }).where(eq(P.id, a.id));
+    await db
+      .update(P)
+      .set({ lastPolledAt: new Date(Date.now() - 10 * 60_000).toISOString() })
+      .where(eq(P.id, b.id));
+    await tick.handler({}, api);
+    expect(queued).toEqual(['gitlab.poll']);
+    await db.update(P).set({ lastPolledAt: new Date().toISOString() });
+    await tick.handler({}, api);
+    expect(queued).toEqual(['gitlab.poll']);
   });
 });

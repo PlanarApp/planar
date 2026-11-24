@@ -516,8 +516,12 @@ export const jobs: JobDef<Record<string, unknown>>[] = [
     queue: 'gitlab.tick',
     cron: '* * * * *',
     async handler(_, api) {
+      // the oldest poll: a manual poll of one task freshens only its connection (max kept the others waiting)
       const [r] = await api.db
-        .select({ n: sql<number>`count(*)::int`, at: sql<string | null>`max(${P.lastPolledAt})` })
+        .select({
+          n: sql<number>`count(*)::int`,
+          at: sql<string | null>`min(coalesce(${P.lastPolledAt}, 'epoch'))`,
+        })
         .from(P);
       if (!r?.n) return;
       if (r.at && Date.now() - new Date(r.at).getTime() < INTERVAL_MS) return;
