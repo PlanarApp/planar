@@ -448,8 +448,7 @@ describe('PLNRAPP-291 режим выделения в Списке', () => {
   const checks = () => w.findAll('[role=row][data-task] input[type=checkbox]');
   it('без вызова чекбоксов и панели нет; Cmd-клик включает режим, снятие последней — выключает', async () => {
     await db.table('tasks').bulkPut([1, 2].map((n) => task(n, { rank: rank(n) })));
-    // «выбрать все» — в общем заголовке, он есть только без группировки (PLNRAPP-823)
-    await show({ groupBy: 'none' });
+    await show();
     expect(checks()).toHaveLength(0);
     expect(w.find('[data-testid=select-all]').exists()).toBe(false);
     expect(w.find('[data-testid=bulk-bar]').exists()).toBe(false);
@@ -460,6 +459,22 @@ describe('PLNRAPP-291 режим выделения в Списке', () => {
     await row('PLN-1').trigger('click', { metaKey: true });
     expect(checks()).toHaveLength(0);
     expect(w.find('[data-testid=bulk-bar]').exists()).toBe(false);
+  });
+  it('PLNRAPP-823: «Выбрать все» — в общем заголовке без группировки и в панели при группировке', async () => {
+    await db.table('tasks').bulkPut([1, 2, 3].map((n) => task(n, { rank: rank(n) })));
+    await show();
+    await row('PLN-1').trigger('click', { metaKey: true });
+    const all = w.get('[data-testid=bulk-bar] [data-testid=select-all]');
+    expect(w.findAll('[data-testid=select-all]')).toHaveLength(1);
+    await all.trigger('click');
+    expect(useSelection().selected.value.size).toBe(3);
+    expect(w.get('[data-testid=bulk-bar]').text()).toContain('Выбрано: 3');
+    w.unmount();
+    useSelection().clear();
+    await show({ groupBy: 'none' });
+    await row('PLN-1').trigger('click', { metaKey: true });
+    expect(w.find('[data-testid=list-head] [data-testid=select-all]').exists()).toBe(true);
+    expect(w.find('[data-testid=bulk-bar] [data-testid=select-all]').exists()).toBe(false);
   });
   it('Shift-клик без якоря выделяет задачу, второй — диапазон подряд идущих строк', async () => {
     await db.table('tasks').bulkPut([1, 2, 3, 4].map((n) => task(n, { rank: rank(n) })));

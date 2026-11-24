@@ -1015,6 +1015,11 @@ watch(
         >+{{ drag.ids.length - 1 }}</span
       >
     </div>
-    <BulkBar :space-id="spaceId" :tasks="all" />
+    <!-- PLNRAPP-823: grouped — no header row, «select all» is in the bar -->
+    <BulkBar
+      :space-id="spaceId"
+      :tasks="all"
+      :select-all="!asCards && options.groupBy !== 'none' ? allIds : undefined"
+    />
   </div>
 </template>
