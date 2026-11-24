@@ -41,7 +41,7 @@ test:
   variables:
     POSTGRES_PASSWORD: postgres
     TESTDB_URL: postgres://postgres:postgres@postgres:5432/postgres
-  script: [pnpm vitest run --silent --project api]
+  script: [pnpm vitest run --project api test/ai/run.test.ts -t PLNRAPP-837]
 
 .image:
   stage: build
