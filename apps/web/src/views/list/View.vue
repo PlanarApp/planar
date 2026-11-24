@@ -179,11 +179,9 @@ watch(
 // subtasks — as a tree under the parent; a parent not above the row — a label in the row
 const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
 const items = computed<Item[]>(() => {
-  // cards (mobile): without a column header row
+  // cards (mobile): without a column header row; PLNRAPP-823: grouped — neither, the groups have headers
   const head: Item[] =
-    !asCards.value && (props.options.groupBy === 'none' || groups.value.length)
-      ? [{ id: 'head', kind: 'head' }]
-      : [];
+    !asCards.value && props.options.groupBy === 'none' ? [{ id: 'head', kind: 'head' }] : [];
   return head.concat(
     groups.value.flatMap((g): Item[] => {
       if (collapsed.value.has(g.key)) return [{ id: `g:${g.key}`, kind: 'group', group: g }];
@@ -792,6 +790,7 @@ watch(
               <div
                 v-if="it.kind === 'head'"
                 role="row"
+                data-testid="list-head"
                 class="flex h-full items-center border-b border-border pl-4 pr-3 text-xs text-fg-muted"
               >
                 <input

@@ -1,5 +1,6 @@
 import type { Row } from '@planar/shared';
 import { db, mutate, mutateMany, useQuery } from '../sync';
+import { views, type TaskView } from '../tasks/queries';
 import { localToday } from '../views/filter';
 
 /**
@@ -8,7 +9,8 @@ import { localToday } from '../views/filter';
  */
 
 export type DayItem = {
-  task: Row<'tasks'>;
+  /** PLNRAPP-823: with assignees and labels — the List card */
+  task: TaskView;
   key: string;
   project: string;
   status: Row<'statuses'>;
@@ -59,14 +61,14 @@ export const useMyDay = (userId: () => string | undefined) =>
     const pr = new Map(projects.flatMap((p) => (p ? [[p.id, p] as const] : [])));
     const today = localToday();
     const next = localToday(1);
-    const items = tasks
+    const keys = new Map([...pr].map(([id, p]) => [id, p.key] as const));
+    const items = (await views(tasks, keys))
       .flatMap((task) => {
         const status = st.get(task.statusId);
         if (!status) return [];
         const p = pr.get(task.projectId);
         const done = status.category === 'done' || status.category === 'cancelled';
-        const key = `${p?.key ?? '?'}-${task.number ?? '…'}`;
-        return [{ task, key, project: p?.name ?? '', status, done }];
+        return [{ task, key: task.key, project: p?.name ?? '', status, done }];
       })
       .sort(byDue);
     const due = (x: DayItem) => x.task.dueDate!;

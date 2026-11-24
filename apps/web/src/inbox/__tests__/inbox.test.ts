@@ -556,6 +556,20 @@ describe('PLANARAPP-10 мой день', () => {
     for (const id of ids) expect(await dueOf(id)).toBe(day(0));
   });
 
+  it('PLNRAPP-823: строка — карточка Списка, название без переноса', async () => {
+    await add(1, { dueDate: day(0), priority: 2, title: 'T1 очень длинное название задачи' });
+    const w = show();
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T1']));
+    const row = w.get('[data-testid=my-day-row]');
+    const title = row.get('p[role=gridcell]');
+    expect(title.text()).toBe('PL-1T1 очень длинное название задачи');
+    expect(title.classes()).toContain('truncate');
+    expect(title.classes()).not.toContain('break-words');
+    expect(row.find('[data-testid=card-key]').exists()).toBe(true);
+    expect(row.get('[data-testid=card-fields]').classes()).toContain('gap-x-1');
+    expect(row.find('[data-testid=my-day-date]').exists()).toBe(true);
+  });
+
   it('PLANARAPP-52: «Мой день» группы — только её проекты', async () => {
     const other = uuidv7();
     await db.table('projects').put({ id: other, key: 'QA', name: 'QA' });
