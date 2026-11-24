@@ -1,5 +1,5 @@
 // Module SDK (C-modules v4): the single point from which a module's web part takes the core.
-import { computed, type Ref } from 'vue';
+import { computed, defineAsyncComponent, type Ref } from 'vue';
 import { db, useQuery as liveQuery } from '../sync';
 import type { FilterCtx } from '../views/filter';
 import { useAuth, type User } from '../auth/useAuth';
@@ -51,6 +51,10 @@ export { useRouter } from 'vue-router';
 export { useSearch } from '../command/search';
 export { default as Editor } from '../task/editor/Editor.vue';
 export { slashItems, filterSlash, type SlashItem } from '../task/editor/slash';
+/** PLNRAPP-833: @@ — link to a task, @@@ — to a document; the dialog is a separate chunk, as in Editor */
+export { refTrigger, insertRefAt, type RefAt } from '../task/editor/refTrigger';
+export type { RefPick } from '../task/editor/RefPicker.vue';
+export const RefPicker = defineAsyncComponent(() => import('../task/editor/RefPicker.vue'));
 export { uploadFile, type Uploaded } from '../api/files';
 export { api, ApiError } from '../api/http';
 export { sendTyping, onTyping, onReplicaChange } from '../sync';

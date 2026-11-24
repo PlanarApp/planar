@@ -10,11 +10,17 @@ import {
   ApiError,
   filterSlash,
   i18n,
+  insertRefAt,
+  RefPicker,
+  refTrigger,
   SuggestList,
   uploadFile,
+  useRouter,
   useSearch,
   useSession,
   type PickUser,
+  type RefAt,
+  type RefPick,
   type SlashItem,
 } from '@planar/web/modules';
 import FormatBar from './FormatBar.vue';
@@ -44,6 +50,26 @@ const sugItems = computed(() => {
   return (sug.value?.items ?? []).map((i) => ({ key: i.key, label: i.label, user: byId.get(i.key) }));
 });
 const tasks = useSearch();
+const router = useRouter();
+
+// PLNRAPP-833: @@ — link to a task, @@@ — to a document; the common dialog of the task editor
+const refAt = ref<RefAt | null>(null);
+const RefTrigger = refTrigger((at) => (refAt.value = at));
+function insertRef(r: RefPick) {
+  const at = refAt.value;
+  refAt.value = null;
+  if (at) insertRefAt(editor.value, at.pos, r);
+}
+function closeRef() {
+  refAt.value = null;
+  editor.value?.commands.focus();
+}
+/** an app link (@@ task, @@@ doc) under a plain left click; modifiers — browser default */
+function appHref(e: MouseEvent): string | null {
+  if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return null;
+  const href = (e.target as HTMLElement).closest?.('a')?.getAttribute('href');
+  return href?.startsWith('/') && !href.startsWith('//') ? href : null;
+}
 
 // PLNRAPP-832: pasted or dropped files — an image as a picture, others as a link to the file
 async function insertFiles(files: File[], pos?: number) {
@@ -151,15 +177,23 @@ void import('@planar/editor/collab').then(({ openCollab }) => {
       Placeholder.configure({ placeholder: tx('placeholder') }),
       ...editorExtensions({ collab: true, image: true, mention: TaskMention }),
       Slash,
+      RefTrigger,
       ...c.extensions,
     ],
     editorProps: {
       attributes: { 'aria-label': tx('body'), role: 'textbox', 'aria-multiline': 'true' },
       handleClick: (_v, _p, e) => {
         const a = (e.target as HTMLElement).closest?.('a[data-kind="task"]');
-        if (!a) return false;
+        if (a) {
+          e.preventDefault();
+          emit('open-task', a.textContent!.slice(1));
+          return true;
+        }
+        // @@/@@@ links open in place, not in a new tab with a reload
+        const href = appHref(e);
+        if (!href) return false;
         e.preventDefault();
-        emit('open-task', a.textContent!.slice(1));
+        void router.push(href);
         return true;
       },
       handlePaste: (_v, e) => {
@@ -228,6 +262,7 @@ defineExpose({ editor });
       :position="sug.rect ? { left: sug.rect.left + 'px', top: sug.rect.bottom + 4 + 'px' } : {}"
       @pick="(i) => sug?.select(i)"
     />
+    <RefPicker v-if="refAt" :rect="refAt.rect" @pick="insertRef" @close="closeRef" />
   </div>
 </template>
 
@@ -315,6 +350,11 @@ defineExpose({ editor });
 .doc-editor .ProseMirror img {
   max-width: 100%;
   border-radius: var(--radius-md);
+}
+/* @@/@@@ links look like links */
+.doc-editor .ProseMirror a:not(.mention) {
+  color: var(--color-accent);
+  text-decoration: underline;
 }
 .doc-editor .mention {
   color: var(--color-accent);

@@ -12,13 +12,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import type { EditorOptions, JSONContent } from '@tiptap/vue-3';
-import {
-  Extension,
-  InputRule,
-  getSchema,
-  type Editor as CoreEditor,
-  type Extensions,
-} from '@tiptap/core';
+import { Extension, getSchema, type Editor as CoreEditor, type Extensions } from '@tiptap/core';
 import { DOMSerializer, Node as PMNode, type Schema } from '@tiptap/pm/model';
 import { editorExtensions } from '@planar/editor';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -29,6 +23,7 @@ import type { RefPick } from './RefPicker.vue';
 import Suggestion from '@tiptap/suggestion';
 import { PluginKey } from '@tiptap/pm/state';
 import { filterSlash, slashItems } from './slash';
+import { insertRefAt, refTrigger, type RefAt } from './refTrigger';
 import { TO_TASK } from '../thread';
 import { Button } from '../../ui';
 import SuggestList from '../../pickers/SuggestList.vue';
@@ -207,38 +202,12 @@ const Slash = Extension.create({
 });
 
 // @@: the characters are removed, the dialog opens at the cursor; the choice inserts the link there
-const refAt = ref<{ pos: number; rect: { left: number; top: number; bottom: number } } | null>(
-  null,
-);
-const refTrigger = Extension.create({
-  name: 'refTrigger',
-  addInputRules() {
-    return [
-      new InputRule({
-        // only a standalone @@ (start of line or after a space), not inside a word or an address
-        find: /(^|\s)@@$/,
-        handler: ({ range, match, chain }) => {
-          const from = range.from + match[1]!.length;
-          chain().deleteRange({ from, to: range.to }).run();
-          const c = this.editor.view.coordsAtPos(from);
-          refAt.value = { pos: from, rect: { left: c.left, top: c.top, bottom: c.bottom } };
-        },
-      }),
-    ];
-  },
-});
+const refAt = ref<RefAt | null>(null);
+const refExt = refTrigger((at) => (refAt.value = at));
 function insertRef(r: RefPick) {
   const at = refAt.value;
   refAt.value = null;
-  if (!at) return;
-  editor.value
-    ?.chain()
-    .focus()
-    .insertContentAt(at.pos, [
-      { type: 'text', text: r.label, marks: [{ type: 'link', attrs: { href: r.href } }] },
-      { type: 'text', text: ' ' },
-    ])
-    .run();
+  if (at) insertRefAt(editor.value, at.pos, r);
 }
 function closeRef() {
   refAt.value = null;
@@ -295,7 +264,7 @@ const options = (extra: Extensions = [], collab = false): Partial<EditorOptions>
       },
     }),
     Slash,
-    ...(props.refs ? [refTrigger] : []),
+    ...(props.refs ? [refExt] : []),
     ...extra,
   ],
   editorProps: {
