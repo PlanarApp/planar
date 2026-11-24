@@ -48,7 +48,7 @@ const section = (key: string, load: () => Promise<{ default: Component }>) => {
 };
 const navLabel = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
-const { spaces: allSpaces, favorites } = useNavData();
+const { spaces: allSpaces, favorites, loading } = useNavData();
 // favourites are dragged to change their order (PLNRAPP-72)
 function moveFav(e: { oldIndex?: number; newIndex?: number }) {
   const keys = favorites.value.map((f) => f.key);
@@ -204,6 +204,15 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
       </VueDraggable>
       <hr class="my-1 w-6 border-border" />
     </template>
+    <div
+      v-if="loading"
+      role="status"
+      :aria-label="t('sidebar.loading')"
+      class="flex flex-col items-center gap-1"
+      data-testid="sidebar-skeleton"
+    >
+      <div v-for="i in 4" :key="i" class="h-8 w-10 animate-pulse rounded-md bg-bg-muted" />
+    </div>
     <template v-for="s in spaces" :key="s.id">
       <RouterLink
         v-for="p in s.projects"
@@ -443,7 +452,22 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
               />
             </template>
           </div>
-          <p v-if="!spaces.length" class="px-2 text-sm text-fg-muted">{{ t('sidebar.empty') }}</p>
+          <div
+            v-if="loading"
+            role="status"
+            :aria-label="t('sidebar.loading')"
+            class="flex flex-col gap-1 px-2 py-1"
+            data-testid="sidebar-skeleton"
+          >
+            <div
+              v-for="(w, i) in ['w-3/4', 'w-1/2', 'w-2/3', 'w-1/2']"
+              :key="i"
+              :class="['h-5 animate-pulse rounded-md bg-bg-muted', w]"
+            />
+          </div>
+          <p v-else-if="!spaces.length" class="px-2 text-sm text-fg-muted">
+            {{ t('sidebar.empty') }}
+          </p>
         </template>
       </section>
       <!-- пункты модулей (страницы плагинов) — без своего заголовка -->

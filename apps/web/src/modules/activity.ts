@@ -26,12 +26,15 @@ const DEBOUNCE_MS = 400;
 /** The work with its module: the error link opens the task panel `<moduleId>:<panel>`. */
 export type Activity = WorkActivity & { moduleId: string };
 
-/** The replica changes that may start or finish a run of the entity. */
+/**
+ * The replica changes that may start or finish a run of the entity. PLNRAPP-838: an assignee (the AI assigned in
+ * the backlog starts a rule) is a row of taskAssignees, not of tasks.
+ */
 const RELEVANT: Record<ActivitySourceDef['entity'], string[]> = {
-  tasks: ['tasks', 'comments', 'checklistItems'],
+  tasks: ['tasks', 'taskAssignees', 'comments', 'checklistItems'],
   chatChannels: ['chatMessages'],
   pages: ['docsComments'],
-  projects: ['tasks', 'comments', 'checklistItems'],
+  projects: ['tasks', 'taskAssignees', 'comments', 'checklistItems'],
 };
 
 const RANK = {

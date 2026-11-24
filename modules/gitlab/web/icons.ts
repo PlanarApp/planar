@@ -50,3 +50,15 @@ export const CiFailed = icon(
   () => h('circle', { cx: 12, cy: 12, r: 10 }),
   () => h('path', { d: 'm15 9-6 6M9 9l6 6' }),
 );
+/** CI passed (PLNRAPP-822) */
+export const CiPassed = icon(
+  () => h('circle', { cx: 12, cy: 12, r: 10 }),
+  () => h('path', { d: 'm8 12 3 3 5-6' }),
+);
+/** CI running / other status — an open ring (spins while running) */
+export const CiPending = icon(() => h('path', { d: 'M21 12a9 9 0 1 1-6.22-8.56' }));
+/** CI canceled, skipped, manual — a crossed-out circle */
+export const CiOther = icon(
+  () => h('circle', { cx: 12, cy: 12, r: 10 }),
+  () => h('path', { d: 'M8 12h8' }),
+);

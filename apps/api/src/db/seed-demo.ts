@@ -1109,6 +1109,11 @@ async function insertAll(tx: Tx, now: Date) {
       createdAt: c0.createdAt,
     })),
   );
+  // the uploader of record: a docs page may show them (PLNRAPP-832, docs canReadFile)
+  await ins(
+    s.fileUploads,
+    commentFiles.map((f) => ({ sha256: f.sha256, userId: c0.authorId, createdAt: c0.createdAt })),
+  );
   if (process.env.DATA_DIR)
     for (const f of commentFiles) {
       const p = filePath(process.env.DATA_DIR, f.sha256);
@@ -1561,6 +1566,29 @@ async function insertAll(tx: Tx, now: Date) {
     docsPages,
     DOCS.map((d, k) => {
       const body = docBody(d.title, d.paras);
+      // PLNRAPP-832: a page with a dropped picture and a file link (paste / drag-and-drop into the editor)
+      const [pic, doc] = commentFiles;
+      const attached = k === 0 && !!pic && !!doc;
+      if (attached)
+        body.content.push(
+          { type: 'image', attrs: { src: `/files/${pic.sha256}`, alt: pic.name } } as never,
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Checklist: ' },
+              {
+                type: 'text',
+                text: doc.name,
+                marks: [
+                  {
+                    type: 'link',
+                    attrs: { href: `/files/${doc.sha256}?name=${encodeURIComponent(doc.name)}` },
+                  },
+                ],
+              },
+            ],
+          } as never,
+        );
       return {
         id: uid(`page:${k}`),
         spaceId: sp(d.space),
@@ -1570,8 +1598,12 @@ async function insertAll(tx: Tx, now: Date) {
         title: d.title,
         icon: d.icon,
         body,
-        text: [d.title, ...d.paras].join(' '),
-        files: [],
+        text: [
+          d.title,
+          ...d.paras,
+          ...(attached ? ['Checklist: ' + commentFiles[1]!.name] : []),
+        ].join(' '),
+        files: attached ? commentFiles.map((f) => f.sha256) : [],
         createdBy: maya,
         updatedBy: maya,
         archivedAt: d.archived ? at(-d.archived) : null,
@@ -2706,6 +2738,10 @@ async function insertAll(tx: Tx, now: Date) {
       gitlabProjectId: 101,
       name: 'RDM-6-reduce-time-to-first-task',
       webUrl: `${glUrl}/-/tree/RDM-6-reduce-time-to-first-task`,
+      // PLNRAPP-822: the branch's last pipeline and its job — the status in the tab opens it
+      pipelineId: 9120,
+      pipelineStatus: 'failed',
+      pipelineUrl: `${glUrl}/-/jobs/51207`,
       createdAt: at(-2),
       updatedAt: at(-2),
     },
@@ -2716,6 +2752,9 @@ async function insertAll(tx: Tx, now: Date) {
       gitlabProjectId: 101,
       name: 'RDM-7-import-from-csv-edge-cases',
       webUrl: `${glUrl}/-/tree/RDM-7-import-from-csv-edge-cases`,
+      pipelineId: 9124,
+      pipelineStatus: 'running',
+      pipelineUrl: `${glUrl}/-/jobs/51233`,
       createdAt: at(-3),
       updatedAt: at(-3),
     },
@@ -2741,6 +2780,7 @@ async function insertAll(tx: Tx, now: Date) {
     webUrl: `${glUrl}/-/merge_requests/${iid}`,
     mrUpdatedAt: at(d),
     pipelineStatus: ci,
+    pipelineUrl: `${glUrl}/-/jobs/${51000 + iid}`,
     createdAt: at(d),
     updatedAt: at(d),
   });

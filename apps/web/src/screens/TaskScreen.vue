@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue';
+import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { taskPanelLoader } from '../views';
+import { asyncTaskPanel } from '../views/taskPanelAsync';
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
-const TaskPanel = taskPanelLoader && defineAsyncComponent(taskPanelLoader);
+const TaskPanel = asyncTaskPanel(taskPanelLoader);
 const taskKey = computed(() => String(route.params.key));
 </script>
 

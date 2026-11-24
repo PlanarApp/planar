@@ -46,6 +46,31 @@ describe('docs', () => {
     });
   });
 
+  it('PLNRAPP-832: ссылка на файл в тексте попадает в files страницы', async () => {
+    const sha = 'b'.repeat(64);
+    const link = (href: string) => ({
+      type: 'text',
+      text: 'f.pdf',
+      marks: [{ type: 'link', attrs: { href } }],
+    });
+    const id = await mk({
+      title: 'F',
+      body: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              link(`/files/${sha}?name=f.pdf`),
+              link('https://x.test/files/' + 'c'.repeat(64)),
+            ],
+          },
+        ],
+      },
+    });
+    expect((await row(id)).files).toEqual([sha]);
+  });
+
   it('права: guest не пишет, чужой не пишет и не видит', async () => {
     expect(await w.guest.push('docs.page.create', pg())).toMatchObject({ code: 'forbidden' });
     expect(await w.outsider.push('docs.page.create', pg())).toMatchObject({ code: 'forbidden' });

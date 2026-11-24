@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { overlayOpen, useBreakpoint } from '../ui';
 import { closeTask, taskPanelLoader } from '.';
+import { asyncTaskPanel } from './taskPanelAsync';
 import { taskOpenMode } from './open';
 import {
   TASK_PANEL_MAX,
@@ -16,7 +17,7 @@ import {
 // task from ?task — a window over the view or a side panel, as in ClickUp; no focus trap: pickers open in portals
 const route = useRoute();
 const { isMobile } = useBreakpoint();
-const TaskPanel = taskPanelLoader && defineAsyncComponent(taskPanelLoader);
+const TaskPanel = asyncTaskPanel(taskPanelLoader);
 const taskKey = computed(() => (typeof route.query.task === 'string' ? route.query.task : ''));
 const panelOpen = computed(() => !!TaskPanel && !!taskKey.value);
 const side = computed(() => taskOpenMode.value === 'side' && !isMobile.value);

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { api, Button, Dialog, IconButton, Input, Select } from '@planar/web/modules';
 import { gitRefError } from '../shared/branch-name.js';
 import type { GitlabMr } from '../shared/index.js';
+import CiStatus from './CiStatus.vue';
 import { tr, useBranches, useMrs } from './data';
 import { GitBranch, MergeRequest, Refresh } from './icons';
 
@@ -134,6 +135,7 @@ const tone = (state: string) =>
             data-testid="gl-branch-name"
             >{{ g.b.name }}</a
           >
+          <CiStatus v-if="g.b.pipelineStatus" :status="g.b.pipelineStatus" :url="g.b.pipelineUrl" />
           <Button
             v-if="repos.length && g.canMr"
             class="ml-auto"
@@ -203,6 +205,12 @@ const tone = (state: string) =>
             <span :class="tone(m.state)">{{
               tr(m.state === 'merged' ? 'branchMerged' : 'branchOpen')
             }}</span>
+            <!-- PLNRAPP-822: the branch of an open MR — its head pipeline -->
+            <CiStatus
+              v-if="m.state === 'opened' && m.pipelineStatus"
+              :status="m.pipelineStatus"
+              :url="m.pipelineUrl"
+            />
           </div>
         </li>
       </ul>

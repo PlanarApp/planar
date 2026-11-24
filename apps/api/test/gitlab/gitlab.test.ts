@@ -866,3 +866,131 @@ describe('PLNRAPP-205: статус пайплайна MR и деплоя', () =
     }
   });
 });
+
+describe('PLNRAPP-822: статус CI веток и ссылка на джобу', () => {
+  let pipelines: Record<string, { id?: number; status: string; web_url?: string }[]> = {};
+  let jobs: Record<string, unknown> = {};
+  let mrs: unknown[] = [];
+  const gitlab = (req: http.IncomingMessage, res: http.ServerResponse, q: URLSearchParams) => {
+    const p = new URL(req.url!, 'http://x').pathname;
+    const job = /\/pipelines\/(\d+)\/jobs$/.exec(p);
+    if (job) {
+      const j = jobs[job[1]!];
+      return j === 500 ? json(res, {}, {}, 500) : json(res, j ?? []);
+    }
+    if (p.endsWith('/pipelines')) return json(res, pipelines[q.get('ref')!] ?? []);
+    if (/\/merge_requests\/\d+$/.test(p)) return json(res, mrs[0]);
+    json(res, mrs);
+  };
+  const jobHits = () => hits.filter((h) => h.path.endsWith('/jobs'));
+  const pl = (id: number, status: string) => ({
+    id,
+    status,
+    web_url: `https://gl/g/-/pipelines/${id}`,
+  });
+  const addBranch = async (taskId: string, name: string) => {
+    const id = uuidv7();
+    const t = new Date().toISOString();
+    await db.insert(B).values({
+      id,
+      spaceId: w.spaceId,
+      taskId,
+      gitlabProjectId: 42,
+      name,
+      webUrl: `https://gl/g/-/tree/${name}`,
+      createdAt: t,
+      updatedAt: t,
+    });
+    return id;
+  };
+  const row = async (id: string) => (await db.select().from(B).where(eq(B.id, id)))[0]!;
+  beforeEach(() => {
+    pipelines = {};
+    jobs = {};
+    mrs = [];
+  });
+
+  it('последний пайплайн ветки и его джоба; завершённый не перезапрашивается; новый — да; без джоб — страница пайплайна', async () => {
+    await addProject(42);
+    const t = await mkTask();
+    const b = await addBranch(t.id, 'feature/a');
+    const none = await addBranch(t.id, 'feature/none');
+    handler = gitlab;
+    pipelines['feature/a'] = [pl(7, 'failed')];
+    jobs['7'] = [
+      { status: 'success', web_url: 'https://gl/g/-/jobs/73' },
+      { status: 'failed', allow_failure: true, web_url: 'https://gl/g/-/jobs/72' },
+      { status: 'failed', allow_failure: false, web_url: 'https://gl/g/-/jobs/71' },
+    ];
+    hits = [];
+    await poll();
+    expect(hits.find((h) => h.path.endsWith('/pipelines'))!.q.get('per_page')).toBe('1');
+    expect(await row(b)).toMatchObject({
+      pipelineId: 7,
+      pipelineStatus: 'failed',
+      pipelineUrl: 'https://gl/g/-/jobs/71',
+    });
+    expect(await row(none)).toMatchObject({ pipelineStatus: null, pipelineUrl: null });
+    // finished and the same — jobs are not fetched again
+    hits = [];
+    await poll();
+    expect(jobHits()).toHaveLength(0);
+    // a new push: a running pipeline — its running job, fetched again while it runs
+    pipelines['feature/a'] = [pl(8, 'running')];
+    jobs['8'] = [
+      { status: 'created', web_url: 'https://gl/g/-/jobs/82' },
+      { status: 'running', web_url: 'https://gl/g/-/jobs/81' },
+    ];
+    hits = [];
+    await poll();
+    expect(jobHits()).toHaveLength(1);
+    expect(await row(b)).toMatchObject({
+      pipelineId: 8,
+      pipelineStatus: 'running',
+      pipelineUrl: 'https://gl/g/-/jobs/81',
+    });
+    hits = [];
+    await poll();
+    expect(jobHits()).toHaveLength(1);
+    // jobs did not load — the pipeline page, the poll goes on
+    pipelines['feature/a'] = [pl(9, 'success')];
+    jobs['9'] = 500;
+    await poll();
+    expect(await row(b)).toMatchObject({
+      pipelineId: 9,
+      pipelineStatus: 'success',
+      pipelineUrl: 'https://gl/g/-/pipelines/9',
+    });
+    expect((await proj()).lastError).toBeNull();
+  });
+
+  it('MR: ссылка на джобу head-пайплайна рядом со статусом; клиентский gitlab.branch.ci → forbidden', async () => {
+    await addProject(42);
+    const t = await mkTask();
+    mrs = [
+      {
+        ...mr(1, { title: t.key, updated_at: new Date().toISOString() }),
+        head_pipeline: pl(5, 'success'),
+      },
+    ];
+    jobs['5'] = [
+      { status: 'success', web_url: 'https://gl/g/-/jobs/52' },
+      { status: 'success', web_url: 'https://gl/g/-/jobs/51' },
+    ];
+    handler = gitlab;
+    await poll();
+    expect((await mrsOf(1))[0]).toMatchObject({
+      pipelineStatus: 'success',
+      pipelineUrl: 'https://gl/g/-/jobs/52',
+    });
+    const b = await addBranch(t.id, 'x');
+    const r = await w.admin.push('gitlab.branch.ci', {
+      id: b,
+      pipelineId: 1,
+      pipelineStatus: 'success',
+      pipelineUrl: 'https://evil',
+    });
+    expect(r).toMatchObject({ ok: false, code: 'forbidden' });
+    expect(await row(b)).toMatchObject({ pipelineStatus: null, pipelineUrl: null });
+  });
+});

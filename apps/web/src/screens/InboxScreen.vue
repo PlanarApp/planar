@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ArrowRight, BellOff, Check, Inbox, Trash2 } from 'lucide-vue-next';
 import { Button, EmptyState, Menu, Tabs, useBreakpoint, type MenuItem } from '../ui';
 import { router } from '../router';
 import { mutate } from '../sync';
 import { openTask, taskPanelLoader } from '../views';
+import { asyncTaskPanel } from '../views/taskPanelAsync';
 import PushToggle from '../inbox/PushToggle.vue';
 import { formatDue } from '../views/list/due';
 import { groupByTask, inGroup, useNotifications, type InboxItem } from '../inbox/queries';
@@ -61,7 +62,7 @@ const groups = computed(() => {
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' });
 // desktop: the task form from ?open on the right, as in ClickUp (not ?task — that one opens the task window over the view)
-const TaskPanel = taskPanelLoader && defineAsyncComponent(taskPanelLoader);
+const TaskPanel = asyncTaskPanel(taskPanelLoader);
 const selected = computed(() => {
   const q = router.currentRoute.value.query.open;
   return typeof q === 'string' ? q : '';

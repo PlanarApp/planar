@@ -38,6 +38,8 @@ export const gitlabMrs = pgTable(
     webUrl: text().notNull(),
     mrUpdatedAt: ts().notNull(),
     pipelineStatus: text(),
+    // PLNRAPP-822: the job of that pipeline in GitLab (the pipeline page if no jobs)
+    pipelineUrl: text(),
     createdAt: ts().notNull(),
     updatedAt: ts().notNull(),
   },
@@ -69,6 +71,10 @@ export const gitlabBranches = pgTable(
     gitlabProjectId: integer().notNull(),
     name: text().notNull(),
     webUrl: text().notNull(),
+    // PLNRAPP-822: the branch's last pipeline (id, status) and its job in GitLab
+    pipelineId: integer(),
+    pipelineStatus: text(),
+    pipelineUrl: text(),
     createdAt: ts().notNull(),
     updatedAt: ts().notNull(),
   },

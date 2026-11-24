@@ -45,6 +45,7 @@ const toggle = () =>
       :icon="runningHere ? Square : Play"
       :label="runningHere ? tr('stop') : tr('start')"
       :active="runningHere"
+      class="toggle"
       data-test="time-toggle"
       @click="toggle"
     />
@@ -70,18 +71,32 @@ const toggle = () =>
 </template>
 
 <style scoped>
-/* small and frameless, like the other property controls (PLNRAPP-150) */
+/* small and frameless, like the other property controls (PLNRAPP-150);
+   PLNRAPP-839: «play» and «+» 2px apart, the block never wraps or shrinks in the list rows and cards —
+   the title gives way (truncate) */
 .tc {
   display: inline-flex;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
   align-items: center;
   gap: 2px;
+  white-space: nowrap;
+}
+/* desktop: the «play» button hugs its 16px icon (2px each side) instead of the 28px square;
+   on touch screens the 44px target stays */
+@media (min-width: 768px) {
+  .tc :deep(.toggle) {
+    width: 20px;
+  }
 }
 .time {
   display: inline-flex;
   align-items: center;
   min-height: 1.75rem;
   border-radius: var(--radius-md, 6px);
-  padding: 2px 4px;
+  flex-shrink: 0;
+  padding: 2px;
+  white-space: nowrap;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
 }
