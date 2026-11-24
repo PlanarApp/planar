@@ -1003,7 +1003,8 @@ describe('PLNRAPP-281 выбор задач на мобильной', () => {
     // (`!`: scoped module styles (TimeControl .time) must not shrink the touch target)
     const fieldsLine = card.get('[data-testid=card-fields]').element.className;
     expect(fieldsLine).toContain('[&_button]:h-7!');
-    expect(fieldsLine).toContain('[&_button]:min-w-7!');
+    // PLNRAPP-839: except the time block buttons — «play» 20px wide on touch screens too
+    expect(fieldsLine).toContain('[&_button:not([data-test^=time-])]:min-w-7!');
   });
   it('PLNRAPP-706: на мобильном значения полей видны, как на десктопе, а не одни иконки', async () => {
     mobile();
