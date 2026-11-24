@@ -978,6 +978,8 @@ export default {
     watchers: 'Watchers',
     watch: 'Watch',
     unwatch: 'Unwatch',
+    emptyFields: 'Empty fields: {n}',
+    hideEmptyFields: 'Hide empty fields',
     extensions: 'Extensions',
     fields: {
       title: 'title',

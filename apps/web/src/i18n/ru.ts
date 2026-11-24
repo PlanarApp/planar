@@ -982,6 +982,8 @@ export default {
     watchers: 'Наблюдатели',
     watch: 'Следить',
     unwatch: 'Не следить',
+    emptyFields: 'Пустые поля: {n}',
+    hideEmptyFields: 'Скрыть пустые поля',
     extensions: 'Дополнения',
     fields: {
       title: 'название',
