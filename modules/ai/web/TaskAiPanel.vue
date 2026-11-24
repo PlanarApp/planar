@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { TASK_ACTIVITY } from '@planar/web/modules';
-import type { AiRunView } from '../shared/index.js';
+import type { AiRunView, AiTaskRule } from '../shared/index.js';
 import { AiApiError, call } from './api';
 import { isLive } from './aiUi';
 import { tr } from './data';
@@ -35,8 +35,42 @@ async function changed(openId?: string) {
   if (openId && !runs.value?.some((r) => r.id === openId))
     timer = setTimeout(changed, 1500, openId);
 }
-onMounted(load);
-watch(() => props.taskId, load);
+// PLNRAPP-829: a manual start — a rule of the project with AI actions; its runs show in the list at once (queued)
+const rules = ref<AiTaskRule[]>([]);
+const ruleId = ref('');
+const starting = ref(false);
+const startErr = ref('');
+async function loadRules() {
+  try {
+    rules.value =
+      (await call<{ rules?: AiTaskRule[] }>('GET', `tasks/${props.taskId}/rules`)).rules ?? [];
+  } catch {
+    rules.value = [];
+  }
+  if (!rules.value.some((r) => r.id === ruleId.value)) ruleId.value = rules.value[0]?.id ?? '';
+}
+async function start() {
+  if (!ruleId.value) return;
+  startErr.value = '';
+  starting.value = true;
+  try {
+    const r = await call<{ runIds: string[] }>('POST', `tasks/${props.taskId}/runs`, {
+      ruleId: ruleId.value,
+    });
+    await changed(r.runIds[0]);
+  } catch (e) {
+    startErr.value = (e as Error).message;
+  } finally {
+    starting.value = false;
+  }
+}
+const ruleLabel = (r: AiTaskRule) => `${r.name} — ${r.actions.join(', ')}`;
+async function init() {
+  await load();
+  if (!denied.value) await loadRules();
+}
+onMounted(init);
+watch(() => props.taskId, init);
 // PLNRAPP-532: a run started or changed by an event (a rule on a status change, a comment) — the card's
 // indicator sees it (replica changes + polling), the list follows: reloaded when the task's work changes
 const work = inject(TASK_ACTIVITY, null);
@@ -50,6 +84,30 @@ onBeforeUnmount(() => clearTimeout(timer));
 
 <template>
   <section class="flex flex-col gap-2" data-testid="ai-task-panel">
+    <form
+      v-if="!denied && rules.length"
+      class="flex flex-wrap items-center gap-2 text-sm"
+      data-testid="ai-start"
+      @submit.prevent="start"
+    >
+      <select
+        v-model="ruleId"
+        class="min-w-0 max-w-full rounded-md border border-border bg-bg px-2 py-1"
+        :aria-label="tr('startRule')"
+        data-testid="ai-start-rule"
+      >
+        <option v-for="r in rules" :key="r.id" :value="r.id">{{ ruleLabel(r) }}</option>
+      </select>
+      <button
+        type="submit"
+        class="rounded-md border border-border px-2 py-0.5 disabled:opacity-50"
+        :disabled="starting || !ruleId"
+        data-testid="ai-start-run"
+      >
+        {{ tr('startRun') }}
+      </button>
+      <p v-if="startErr" role="alert" class="w-full text-danger">{{ startErr }}</p>
+    </form>
     <p v-if="err" role="alert" class="text-sm text-danger">{{ err }}</p>
     <p v-else-if="denied" class="text-sm text-fg-muted" data-testid="ai-denied">
       {{ tr('noAccess') }}

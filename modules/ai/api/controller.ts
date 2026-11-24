@@ -39,6 +39,7 @@ import {
   type AiRunEvents,
   type AiRunView,
   type AiScope,
+  type AiTaskRule,
   type AiTaskRunStatus,
   type AiUsage,
   type AiUsageReport,
@@ -205,6 +206,7 @@ const runsQuery = z.object({
     .regex(/^[^|]+\|[0-9a-f-]{36}$/)
     .optional(),
 });
+const startBody = z.object({ ruleId: z.uuid() });
 const retroBody = z.object({
   enabled: z.boolean(),
   everyFrictions: z.number().int().min(1).max(1000),
@@ -307,6 +309,84 @@ export class AiController {
       sql`select ${runCols} from ai_runs r where r.task_id = ${taskId}::uuid order by r.created_at desc, r.id desc limit 50`,
     );
     return { runs: r.rows.map(runView) };
+  }
+
+  /**
+   * PLNRAPP-829: the rules of the task's project with AI actions (enabled, the actions of the project) — for a
+   * manual start in the «AI» tab. Who sees — as the runs of the task (D7).
+   */
+  @Get('tasks/:taskId/rules')
+  async taskRules(
+    @Req() req: object,
+    @Param('taskId') taskId: string,
+  ): Promise<{ rules: AiTaskRule[] }> {
+    await this.seeTask(req, taskId);
+    const rules = await this.aiRules(taskId);
+    const byId = new Map<string, AiTaskRule>();
+    for (const r of rules) {
+      const x = byId.get(r.id) ?? { id: r.id, name: r.name, actions: [] };
+      x.actions.push(r.actionName);
+      byId.set(r.id, x);
+    }
+    return { rules: [...byId.values()] };
+  }
+
+  /** The AI actions of the enabled rules of the task's project, a row per (rule, action), in the rule's order. */
+  private async aiRules(taskId: string, ruleId?: string) {
+    return (
+      await this.core.db.execute(
+        sql`select r.id, r.name, a.id as "actionId", a.name as "actionName"
+            from tasks t join automations_rules r on r.project_id = t.project_id and r.enabled
+            cross join lateral jsonb_array_elements(r.actions) with ordinality e(v, n)
+            join ai_actions a on a.id::text = e.v->>'aiActionId' and a.project_id = t.project_id
+            where t.id = ${taskId}::uuid and e.v->>'type' = 'ai_run'
+              ${ruleId ? sql`and r.id = ${ruleId}::uuid` : sql``}
+            order by r.name, r.id, e.n`,
+      )
+    ).rows as { id: string; name: string; actionId: string; actionName: string }[];
+  }
+
+  /**
+   * PLNRAPP-829: a person starts the AI actions of a rule on the task by hand (the «AI» tab): a queued run per
+   * action, recorded with the rule; the rule's conditions are not checked. Who may — as for the runs of the task
+   * (D7); the AI must be an assignee of the task.
+   */
+  @Post('tasks/:taskId/runs')
+  async startRun(
+    @Req() req: object,
+    @Param('taskId') taskId: string,
+    @Body() body: unknown,
+  ): Promise<{ runIds: string[] }> {
+    await this.seeTask(req, taskId);
+    const { ruleId } = parseBody(startBody, body);
+    if (!(await aiEnabled(this.core.db)))
+      throw new HttpError(409, 'conflict', 'ИИ выключен администратором');
+    const actions = await this.aiRules(taskId, ruleId);
+    if (!actions.length) throw new HttpError(404, 'not_found', 'Правило с ИИ-действием не найдено');
+    const assigned = (
+      await this.core.db.execute(
+        sql`select 1 from task_assignees ta join users u on u.id = ta.user_id and u.bot and u.login = ${AI_BOT_LOGIN}
+            where ta.task_id = ${taskId}::uuid`,
+      )
+    ).rows[0];
+    if (!assigned) throw new HttpError(409, 'conflict', 'Назначьте ИИ исполнителем задачи');
+    const runIds: string[] = [];
+    for (const a of new Map(actions.map((x) => [x.actionId, x])).values()) {
+      const d = {
+        kind: 'action' as const,
+        taskId,
+        actionId: a.actionId,
+        ruleId,
+        manual: true,
+        runId: uuidv7(),
+      };
+      await enqueueRun(this.core.db, (queue, data, o) => this.core.enqueue(queue, data, o), d, {
+        singletonKey: keyOf(d),
+        upsert: true,
+      });
+      runIds.push(d.runId);
+    }
+    return { runIds };
   }
 
   /**

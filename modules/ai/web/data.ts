@@ -118,6 +118,8 @@ const dict = {
   cancel: { ru: 'Отмена', en: 'Cancel' },
   saveBtn: { ru: 'Сохранить', en: 'Save' },
   noRuns: { ru: 'Прогонов ИИ нет', en: 'No AI runs' },
+  startRule: { ru: 'Правило для запуска ИИ', en: 'Rule to run the AI by' },
+  startRun: { ru: 'Запустить прогон', en: 'Start a run' },
   noAccess: {
     ru: 'Прогоны видны администратору проекта, автору задачи и исполнителям',
     en: 'Runs are visible to the project admin, the task author and assignees',

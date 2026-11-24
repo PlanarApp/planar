@@ -130,6 +130,85 @@ describe('остановка и перезапуск', () => {
     expect((await call('POST', `runs/${solo}/restart`, 'member')).statusCode).toBe(201);
   });
 
+  it('PLNRAPP-829: ручной запуск по правилу с ИИ-действием — прогон в очереди и в списке задачи', async () => {
+    // the world's project got the module before the workspace switch: re-enabling makes the bot (ensureBot)
+    for (const enabled of [false, true])
+      await w.admin.ok('project.setModule', { projectId: w.projectId, moduleId: 'ai', enabled });
+    const bot = (await raw(`select id from users where login = 'ai' and bot`))[0]!.id as string;
+    const actionId = uuidv7();
+    await w.admin.ok('ai.action.create', {
+      id: actionId,
+      projectId: w.projectId,
+      key: `m${actionId.slice(-6)}`,
+      name: 'Ручное действие',
+    });
+    const statusId = (
+      await raw(`select id from statuses where project_id = $1 limit 1`, [w.projectId])
+    )[0]!.id as string;
+    const rule = (name: string, actions: object[], enabled = true) => {
+      const id = uuidv7();
+      return w.admin
+        .ok('automations.create', {
+          id,
+          projectId: w.projectId,
+          name,
+          trigger: { type: 'task.status_changed', to: [statusId] },
+          conditions: { op: 'and', rules: [] },
+          actions,
+        })
+        .then(async () => {
+          if (!enabled) await w.admin.ok('automations.update', { id, enabled: false });
+          return id;
+        });
+    };
+    const aiRule = await rule('Ручной ИИ', [{ type: 'ai_run', aiActionId: actionId }]);
+    const plain = await rule('Без ИИ', [{ type: 'add_comment', text: 'x' }]);
+    const off = await rule('Выключено', [{ type: 'ai_run', aiActionId: actionId }], false);
+    const a = taskArgs(w, {
+      assignees: [
+        { id: uuidv7(), userId: w.member.userId },
+        { id: uuidv7(), userId: bot },
+      ],
+    });
+    await w.admin.ok('task.create', a);
+    const t = a.id as string;
+
+    const rules = await call('GET', `tasks/${t}/rules`, 'member');
+    expect(rules.statusCode).toBe(200);
+    expect(rules.json().rules).toEqual([
+      { id: aiRule, name: 'Ручной ИИ', actions: ['Ручное действие'] },
+    ]);
+    expect((await call('GET', `tasks/${t}/rules`, 'outsider')).statusCode).toBe(404);
+
+    expect((await call('POST', `tasks/${t}/runs`, 'outsider', { ruleId: aiRule })).statusCode).toBe(
+      404,
+    );
+    for (const r of [plain, off, uuidv7()])
+      expect((await call('POST', `tasks/${t}/runs`, 'member', { ruleId: r })).statusCode).toBe(404);
+    // the AI is not an assignee of the task
+    expect(
+      (await call('POST', `tasks/${task}/runs`, 'member', { ruleId: aiRule })).statusCode,
+    ).toBe(409);
+
+    const ok = await call('POST', `tasks/${t}/runs`, 'member', { ruleId: aiRule });
+    expect(ok.statusCode).toBe(201);
+    const [runId] = ok.json().runIds as string[];
+    const list = (await call('GET', `tasks/${t}/runs`, 'member')).json().runs;
+    expect(list[0]).toMatchObject({ id: runId, state: 'queued', kind: 'action', actionId });
+    expect((await raw(`select rule_id from ai_runs where id = $1`, [runId]))[0]!.rule_id).toBe(
+      aiRule,
+    );
+
+    await call('PUT', 'settings', 'root', { enabled: false });
+    try {
+      expect((await call('POST', `tasks/${t}/runs`, 'member', { ruleId: aiRule })).statusCode).toBe(
+        409,
+      );
+    } finally {
+      await call('PUT', 'settings', 'root', { enabled: true });
+    }
+  });
+
   it('restart прогона страницы: автор комментария — 201, чужой — 404, прогон без комментария — 409', async () => {
     const pageId = uuidv7();
     const commentId = uuidv7();

@@ -97,6 +97,11 @@ export type AiRunData =
       runId?: string | null;
       /** PLNRAPP-405: the subtask's run whose outcome woke this parent */
       wokenBy?: string | null;
+      /**
+       * PLNRAPP-829: started by a person in the task's «AI» tab with the rule picked — the rule's conditions and
+       * its maxRuns are not checked (the person's choice), the run is recorded with the rule
+       */
+      manual?: boolean;
     }
   | {
       kind: 'comment' | 'mention';
@@ -657,11 +662,12 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
     return;
   const bot = await botOf(api);
   const task = await loadTask(api.db, d.taskId);
-  // a restart must leave a row (the panel polls for it): the failed one with the reason
+  // a restart must leave a row (the panel polls for it): the failed one with the reason; a manual start too
+  const manual = d.kind === 'action' && !!d.manual;
   const skip = async (why: string) => {
     if (d.runId)
       await api.db.execute(
-        sql`update ai_runs set state = ${d.restartOf ? 'failed' : 'cancelled'}, log = ${why + '\n'}, updated_at = now()
+        sql`update ai_runs set state = ${d.restartOf || manual ? 'failed' : 'cancelled'}, log = ${why + '\n'}, updated_at = now()
             where id = ${d.runId}::uuid and state = 'queued'`,
       );
     if (!d.restartOf || !d.runId || !task) return;
@@ -704,8 +710,8 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
       )
     )
       return skip('Действия ИИ не запускаются на задаче harness-retro и её подзадачах.');
-    const m = d.ruleId ? await matched(api, d.ruleId, task.id) : undefined;
-    if (d.ruleId && !m)
+    const m = d.ruleId && !manual ? await matched(api, d.ruleId, task.id) : undefined;
+    if (d.ruleId && !manual && !m)
       return skip('Перезапуск невозможен: задача больше не подходит под правило.');
     // PLNRAPP-744: a subtask the AI created with a description needs no triage (a rule on «task created») — its
     // card's criteria joined the triage's checks, the judge rejected the labels three times; its status drives it

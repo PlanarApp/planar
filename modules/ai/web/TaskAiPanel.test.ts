@@ -69,3 +69,61 @@ describe('TaskAiPanel: the work of the task changed', () => {
     w.unmount();
   });
 });
+
+// PLNRAPP-829: a manual start by a rule of the project with AI actions
+describe('TaskAiPanel: manual start', () => {
+  it('lists the rules, starts the picked one and shows its run', async () => {
+    const answer = vi.mocked(call);
+    let runs: AiRunView[] = [];
+    const posted: unknown[] = [];
+    answer.mockImplementation(async (method: string, path: string, body?: unknown) => {
+      if (path === 'tasks/t1/rules')
+        return {
+          rules: [
+            { id: 'rA', name: 'Разработка', actions: ['Разработка'] },
+            { id: 'rB', name: 'Триаж', actions: ['Триаж', 'Оценка'] },
+          ],
+        };
+      if (method === 'POST') {
+        posted.push([path, body]);
+        runs = [{ ...run('queued'), id: 'new' }];
+        return { runIds: ['new'] };
+      }
+      return { runs };
+    });
+    const w = mount(TaskAiPanel, { props: { taskId: 't1' } });
+    await flushPromises();
+    const opts = w.findAll('[data-testid="ai-start-rule"] option');
+    expect(opts.map((o) => o.text())).toEqual(['Разработка — Разработка', 'Триаж — Триаж, Оценка']);
+    expect(w.findAll('[data-testid="run"]')).toHaveLength(0);
+    await w.find('[data-testid="ai-start-rule"]').setValue('rB');
+    await w.find('[data-testid="ai-start"]').trigger('submit');
+    await flushPromises();
+    expect(posted).toEqual([['tasks/t1/runs', { ruleId: 'rB' }]]);
+    expect(w.find('[data-testid="run"]').text()).toBe('queued');
+    w.unmount();
+  });
+
+  it('no rules with AI actions — no start form; a refusal is shown', async () => {
+    const answer = vi.mocked(call);
+    answer.mockImplementation(async (method: string, path: string) => {
+      if (path === 'tasks/t1/rules') return { rules: [] };
+      return { runs: [] };
+    });
+    const w = mount(TaskAiPanel, { props: { taskId: 't1' } });
+    await flushPromises();
+    expect(w.find('[data-testid="ai-start"]').exists()).toBe(false);
+    answer.mockImplementation(async (method: string, path: string) => {
+      if (path === 'tasks/t1/rules') return { rules: [{ id: 'rA', name: 'Р', actions: ['Р'] }] };
+      if (method === 'POST') throw new Error('Назначьте ИИ исполнителем задачи');
+      return { runs: [] };
+    });
+    await w.setProps({ taskId: 't1x' });
+    await w.setProps({ taskId: 't1' });
+    await flushPromises();
+    await w.find('[data-testid="ai-start"]').trigger('submit');
+    await flushPromises();
+    expect(w.find('[role="alert"]').text()).toBe('Назначьте ИИ исполнителем задачи');
+    w.unmount();
+  });
+});
