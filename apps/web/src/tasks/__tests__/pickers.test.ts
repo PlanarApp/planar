@@ -175,7 +175,7 @@ describe('tasks:pickers mobile', () => {
     vi.unstubAllGlobals();
     resetBreakpoint();
   });
-  it('PLNRAPP-824: StatusPicker в мобильной раскладке — лист на всю ширину, список по высоте содержимого', async () => {
+  it('PLNRAPP-824: StatusPicker в мобильной раскладке — лист на всю ширину, высота списка прежняя (max-h-60)', async () => {
     vi.stubGlobal('matchMedia', (q: string) => ({
       matches: true,
       media: q,
@@ -191,8 +191,8 @@ describe('tasks:pickers mobile', () => {
     const box = list.parentElement!.classList;
     expect(box.contains('w-full')).toBe(true); // not a fixed 14rem — half of a phone screen
     expect(box.contains('w-56')).toBe(false);
-    expect(list.classList.contains('max-h-[60vh]')).toBe(true);
-    expect(list.classList.contains('max-h-60')).toBe(false);
+    expect(list.classList.contains('max-h-60')).toBe(true);
+    expect(list.classList.contains('max-h-[60vh]')).toBe(false);
     w.unmount();
   });
 });
