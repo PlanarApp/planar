@@ -598,6 +598,11 @@ export const clientMutations = pgTable('client_mutations', {
   clientId: uuid().primaryKey(),
   userId: cascadeUser(),
   lastMutationId: bigint({ mode: 'number' }).notNull(),
+  /** recent rejections: a retry whose answer was lost gets the refusal again, not ok */
+  rejected: jsonb()
+    .$type<{ id: number; code: string; message: string }[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   updatedAt: updatedAt(),
 });
 

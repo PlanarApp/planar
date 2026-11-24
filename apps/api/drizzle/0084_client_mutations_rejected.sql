@@ -1,0 +1,1 @@
+ALTER TABLE "client_mutations" ADD COLUMN "rejected" jsonb DEFAULT '[]'::jsonb NOT NULL;

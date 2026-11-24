@@ -13,6 +13,10 @@ type Mutation = SyncPushRequest['mutations'][number];
 
 /** Mutations per transaction: the global lock 7311 is held until its commit. */
 export const PUSH_BATCH = 10;
+/** shortcut: only the last 100 rejections per client are replayed to a retry; enough while a retry resends one push */
+const KEEP_REJECTED = 100;
+type Rejected = (typeof clientMutations.$inferSelect)['rejected'][number];
+const keep = (old: Rejected[], add: Rejected[]) => [...old, ...add].slice(-KEEP_REJECTED);
 
 const failed = (m: Mutation, err: Reject): Result => ({
   id: m.id,
@@ -56,6 +60,7 @@ export class PushService {
   ): Promise<Mutation[]> {
     const notified: string[] = [];
     const done: Result[] = [];
+    const rejected: Rejected[] = [];
     const cache: TxCache = {};
     let n = 0;
     try {
@@ -76,7 +81,9 @@ export class PushService {
         for (; n < muts.length && n < PUSH_BATCH; n++) {
           const m = muts[n];
           if (m.id <= last) {
-            done.push({ id: m.id, ok: true });
+            // a repeat: the answer it got the first time (the client may have lost it)
+            const r = cm.rejected.find((x) => x.id === m.id);
+            done.push(r ? ({ ...r, ok: false } as Result) : { id: m.id, ok: true });
             continue;
           }
           const mine: string[] = [];
@@ -92,6 +99,7 @@ export class PushService {
               delete cache.hidden;
               delete cache.modules;
               done.push(failed(m, err));
+              rejected.push({ id: m.id, code: err.code, message: err.message });
               last = m.id;
               continue;
             }
@@ -103,20 +111,33 @@ export class PushService {
         if (last !== cm.lastMutationId)
           await tx
             .update(clientMutations)
-            .set({ lastMutationId: last, updatedAt: sql`now()` })
+            .set({
+              lastMutationId: last,
+              ...(rejected.length && { rejected: keep(cm.rejected, rejected) }),
+              updatedAt: sql`now()`,
+            })
             .where(eq(clientMutations.clientId, clientId));
       });
     } catch (err) {
       if (!(err instanceof Reject)) throw err;
       // muts[n] is the first executed one: before it there were only repeats
       const m = muts[n];
-      await this.db
-        .insert(clientMutations)
-        .values({ clientId, userId, lastMutationId: m.id })
-        .onConflictDoUpdate({
-          target: clientMutations.clientId,
-          set: { lastMutationId: m.id, updatedAt: sql`now()` },
-        });
+      const r = { id: m.id, code: err.code, message: err.message };
+      await this.db.transaction(async (tx) => {
+        await tx
+          .insert(clientMutations)
+          .values({ clientId, userId, lastMutationId: 0 })
+          .onConflictDoNothing();
+        const [cm] = await tx
+          .select()
+          .from(clientMutations)
+          .where(eq(clientMutations.clientId, clientId))
+          .for('update');
+        await tx
+          .update(clientMutations)
+          .set({ lastMutationId: m.id, rejected: keep(cm.rejected, [r]), updatedAt: sql`now()` })
+          .where(eq(clientMutations.clientId, clientId));
+      });
       results.push(...done, failed(m, err));
       return muts.slice(n + 1);
     }

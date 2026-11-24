@@ -89,7 +89,7 @@ describe('push → pull', () => {
     expect(await db.select().from(tasks).where(eq(tasks.id, b.id))).toHaveLength(0);
   });
 
-  it('отклонённая засчитана: lastMutationId растёт, повтор не выполняется', async () => {
+  it('отклонённая засчитана: lastMutationId растёт, повтор не выполняется и снова получает отказ', async () => {
     const w = await world(db);
     const c = w.admin;
     const r = await c.push('task.create', { nonsense: true });
@@ -101,7 +101,10 @@ describe('push → pull', () => {
       clientId: c.clientId,
       mutations: [{ id, name: 'task.create', args }],
     });
-    expect(again.results).toEqual([{ id, ok: true }]);
+    // the client lost the first answer: the retry must not turn the refusal into ok
+    expect(again.results).toEqual([
+      { id, ok: false, code: 'invalid_args', message: (r as { message: string }).message },
+    ]);
     expect(await db.select().from(tasks).where(eq(tasks.id, args.id))).toHaveLength(0);
   });
 
