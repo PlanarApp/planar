@@ -18,6 +18,7 @@ import {
   encrypt,
   HttpError,
   parseBody,
+  safeAddress,
   secretKey,
   type CoreServices,
 } from '@planar/server-kit';
@@ -246,6 +247,19 @@ export class AiController {
     // no such space / project and no right look the same
     if (!r.rows[0]) throw nf();
     if (!r.rows[0].ok) throw new HttpError(403, 'forbidden', 'Нужна роль администратора');
+  }
+
+  /** A space/project admin may point the server only at public hosts (SSRF); internal ones (Ollama in the LAN) — the instance admin. */
+  private async publicBaseUrl(req: object, scope: AiScope, url: string | null | undefined) {
+    if (!url || scope === 'workspace') return;
+    const role = this.core.auth(req).role;
+    if (role === 'owner' || role === 'admin') return;
+    const blocked = await safeAddress(new URL(url).hostname).then(
+      () => false,
+      () => true,
+    );
+    if (blocked)
+      throw new HttpError(400, 'invalid_request', 'Внутренний адрес задаёт администратор инстанса');
   }
 
   /**
@@ -916,6 +930,7 @@ export class AiController {
     const b = parseBody(putBody, body);
     const scopeId = b.scope === 'workspace' ? WORKSPACE_SCOPE_ID : b.scopeId!;
     await this.admin(req, b.scope, scopeId);
+    await this.publicBaseUrl(req, b.scope, b.baseUrl);
     const key = secretKey();
     if (!key) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
     const [had] = await this.core.db.select().from(C).where(eqScope(b.scope, scopeId));
@@ -951,6 +966,7 @@ export class AiController {
     const b = parseBody(modelsBody, body);
     const scopeId = b.scope === 'workspace' ? WORKSPACE_SCOPE_ID : b.scopeId!;
     await this.admin(req, b.scope, scopeId);
+    await this.publicBaseUrl(req, b.scope, b.baseUrl);
     let had: typeof C.$inferSelect | undefined;
     if (!b.apiKey) {
       if (!secretKey()) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');

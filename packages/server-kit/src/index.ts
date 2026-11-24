@@ -5,3 +5,4 @@ export * from './core.js';
 export * from './demo.js';
 export * from './archive.js';
 export * from './crypto.js';
+export * from './ssrf.js';

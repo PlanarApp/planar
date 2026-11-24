@@ -1,9 +1,15 @@
 import { and, eq, lte, sql } from 'drizzle-orm';
-import type { Db, JobApi, JobDef, ModuleHookApi, Q } from '@planar/server-kit';
+import {
+  BlockedAddress,
+  type Db,
+  type JobApi,
+  type JobDef,
+  type ModuleHookApi,
+  type Q,
+} from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
 import { webhooksDeliveries as D, webhooksSubscriptions as S } from './schema.js';
 import { post, sign } from './send.js';
-import { BlockedAddress } from './ssrf.js';
 
 export const QUEUE = 'webhooks.deliver';
 const MAX_ATTEMPTS = 11;

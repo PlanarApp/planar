@@ -160,6 +160,7 @@ export async function listModels(c: Pick<LlmConnection, 'provider' | 'baseUrl' |
         ? { 'x-api-key': c.apiKey, 'anthropic-version': '2023-06-01' }
         : { authorization: `Bearer ${c.apiKey}` },
       signal: AbortSignal.timeout(15_000),
+      redirect: 'error', // a public host must not bounce the request into the internal network
     });
   } catch {
     throw new ConnectionCheckFailed('unavailable');

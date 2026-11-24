@@ -13,7 +13,7 @@ import { doc, world, type World } from '../sync/helpers.js';
 // module internals: signature, address checks, delivery attempt
 import { attempt, retryDelaySec } from '../../../../modules/webhooks/api/deliver.js';
 import { sign } from '../../../../modules/webhooks/api/send.js';
-import { BlockedAddress, isBlocked, safeAddress } from '../../../../modules/webhooks/api/ssrf.js';
+import { BlockedAddress, isBlocked, safeAddress } from '@planar/server-kit';
 
 useApp();
 

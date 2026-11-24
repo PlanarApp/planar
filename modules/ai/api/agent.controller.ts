@@ -236,6 +236,7 @@ export class AgentController {
     reply.raw.on('close', () => ac.abort());
     const up = await fetch(url, {
       method: 'POST',
+      redirect: 'error', // the proxy goes only to the checked baseUrl, not where it redirects
       headers: {
         'content-type': 'application/json',
         ...(anthropic
