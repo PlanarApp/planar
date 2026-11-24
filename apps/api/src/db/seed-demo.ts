@@ -1149,6 +1149,17 @@ async function insertAll(tx: Tx, now: Date) {
     changes: { dueDate: [day(7), day(9)] },
     createdAt: at(-1),
   });
+  // PLNRAPP-825: three description edits of sofia in a row — one history entry with the time range
+  for (const k of [0, 1, 2])
+    activity.push({
+      id: uid(`activity:desc:RDM-4:${k}`),
+      spaceId: spaceIds[0],
+      taskId: tid('RDM', 3),
+      actorId: uid_.sofia,
+      kind: 'updated',
+      changes: { description: [{}, {}] },
+      createdAt: at(-2, 14 + k * 0.25),
+    });
   await ins(s.activity, activity);
   const cRanks = generateNKeysBetween(null, null, 8);
   const checks = CHECKLISTS.flatMap(([key, i, items]) =>
