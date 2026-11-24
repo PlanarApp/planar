@@ -41,6 +41,8 @@ export { openTask } from '../views/open';
 /** PLNRAPP-519: the "Move to project" submenu — spaces → projects I can change */
 export { moveMenu, useMoveSpaces, type MoveSpace } from '../tasks/moveTargets';
 export * from '../ui';
+/** PLNRAPP-831: a short notice («Link copied») */
+export { toast } from '../ui/toast';
 export * from '../pickers';
 export { useI18n } from 'vue-i18n';
 export { i18n } from '../i18n';

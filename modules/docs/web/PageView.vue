@@ -4,7 +4,10 @@ import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
 import {
   Archive,
   ArrowRightLeft,
+  ExternalLink,
+  FilePlus,
   History,
+  Link,
   MessageSquare,
   Star,
   StarOff,
@@ -15,6 +18,9 @@ import {
   favorites,
   i18n,
   mutate,
+  newId,
+  rankBetween,
+  toast,
   useQuery,
   useExtensions,
   useBreakpoint,
@@ -28,7 +34,7 @@ import {
 import DocComments from './DocComments.vue';
 import DocEditor from './DocEditor.vue';
 import VersionsDialog from './VersionsDialog.vue';
-import { toProjectArgs, type PageFull } from './model';
+import { toProjectArgs, type PageFull, type PageRow } from './model';
 import type { CommentRow } from './comments';
 import { createSaver } from './save';
 import { useTexts } from './text';
@@ -111,7 +117,55 @@ async function moveTo(spaceId: string, projectId: string | null, children: boole
     ...(!children && { withChildren: false }),
   }).catch(() => {});
 }
+/** the page address in the docs module (a link outside the group's tab) */
+const pageUrl = () => new URL(`/m/docs/${props.pageId}`, location.origin).href;
+/** a new page: under this one (at the end of its subpages) or right below it (same parent) */
+async function create(child: boolean) {
+  const p = page.value;
+  if (!p) return;
+  saver.flush();
+  const parentId = child ? p.id : p.parentId;
+  const sib = (await db.table<PageRow>('docsPages').where('spaceId').equals(p.spaceId).toArray())
+    .filter(
+      (x) =>
+        x.parentId === parentId &&
+        !x.archivedAt &&
+        (parentId || (x.projectId ?? null) === (p.projectId ?? null)),
+    )
+    .map((x) => x.rank)
+    .sort();
+  const before = child ? null : (sib.find((r) => r > p.rank) ?? null);
+  const after = child ? (sib.at(-1) ?? null) : p.rank;
+  const id = newId();
+  await mutate('docs.page.create', {
+    id,
+    spaceId: p.spaceId,
+    projectId: p.projectId ?? null,
+    parentId,
+    rank: rankBetween(after, before),
+  });
+  // in the group's tab the page lives in ?page, otherwise — the module address
+  void router.push(
+    typeof route.query.page === 'string'
+      ? { query: { ...route.query, page: id } }
+      : `/m/docs/${id}`,
+  );
+}
+// PLNRAPP-831: like the task menu — open / link / favorite, then the submenus, then the actions
 const actions = computed<MenuItem[]>(() => [
+  {
+    id: 'tab',
+    label: tx('newTab'),
+    icon: ExternalLink,
+    onSelect: () => void window.open(`/m/docs/${props.pageId}`, '_blank'),
+  },
+  {
+    id: 'link',
+    label: tx('copyLink'),
+    icon: Link,
+    onSelect: () =>
+      void navigator.clipboard?.writeText(pageUrl()).then(() => toast(tx('linkCopied'), 2500)),
+  },
   {
     id: 'fav',
     label: i18n.global.t(fav.value ? 'sidebar.unfavorite' : 'sidebar.favorite'),
@@ -125,6 +179,16 @@ const actions = computed<MenuItem[]>(() => [
         to: route.fullPath,
       }),
   },
+  { separator: true },
+  {
+    id: 'create',
+    label: tx('create'),
+    icon: FilePlus,
+    children: [
+      { id: 'child', label: tx('createChild'), onSelect: () => void create(true) },
+      { id: 'below', label: tx('createBelow'), onSelect: () => void create(false) },
+    ],
+  },
   {
     id: 'move',
     label: tx('move'),
@@ -132,6 +196,7 @@ const actions = computed<MenuItem[]>(() => [
     disabled: target.value.count < 2,
     children: target.value.items,
   },
+  { separator: true },
   {
     id: 'history',
     label: tx('history'),
