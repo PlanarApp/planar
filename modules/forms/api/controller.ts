@@ -31,8 +31,11 @@ const invalid = (m: string) => new HttpError(400, 'invalid_request', m);
 
 type Def = { id: string; projectId: string; type: FieldType; options: Record<string, unknown> };
 
-/** MB limit for the sum of file sizes (the per-file limit is set by storeFile); shortcut: from env, not from app options. */
-const maxUploadBytes = () => (Number(process.env.MAX_UPLOAD_MB) || 100) * 1024 * 1024;
+/**
+ * Limit for the sum of file sizes of one anonymous submit: files are buffered in memory, so at most 10 MB
+ * (less if MAX_UPLOAD_MB is lower); shortcut: MAX_UPLOAD_MB from env, not from app options.
+ */
+const maxUploadBytes = () => Math.min(Number(process.env.MAX_UPLOAD_MB) || 100, 10) * 1024 * 1024;
 
 const sha256 = (t: string) => createHash('sha256').update(t).digest('hex');
 const issueBody = z.strictObject({
