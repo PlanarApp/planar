@@ -54,8 +54,10 @@ const ext = useCardExtensions(() => props.task.projectId);
 const badges = computed(() => ext.value.filter((x) => x.badge));
 const fields = computed(() => ext.value.filter((x) => !x.badge));
 // on mobile the field buttons are 28 px touch targets, 2 px side padding each (PLNRAPP-817: denser)
-// `!`: scoped module styles (TimeControl .time: min-height 1.75rem) outweigh the arbitrary variant
-const TAP = '[&_button]:h-7! [&_button]:min-w-7! [&_button]:justify-center [&_button]:px-0.5!';
+// `!`: scoped module styles (TimeControl .time: min-height 1.75rem) outweigh the arbitrary variant;
+// PLNRAPP-839: the time block buttons (data-test time-*) skip min-w — «play» stays 20px, 3px from «+»
+const TAP =
+  '[&_button]:h-7! [&_button:not([data-test^=time-])]:min-w-7! [&_button]:justify-center [&_button]:px-0.5!';
 // the field buttons of the List card are 24 px high on desktop: the card is dense
 const DENSE = '[&_button]:h-6! [&_button]:px-0.5!';
 // click on the key — copy it (PLNRAPP-181)
