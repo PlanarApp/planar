@@ -402,10 +402,11 @@ describe('wk4: события из хука', () => {
     });
   });
 
-  it('wk4: манифест: задачи deliver и sweep, afterMutation', () => {
+  it('wk4: манифест: задачи deliver, sweep и cleanup, afterMutation', () => {
     expect((webhooks.jobs as { queue: string }[]).map((j) => j.queue)).toEqual([
       'webhooks.deliver',
       'webhooks.sweep',
+      'webhooks.cleanup',
     ]);
     expect(webhooks.afterMutation).toBeTypeOf('function');
   });

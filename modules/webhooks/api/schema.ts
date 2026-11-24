@@ -46,6 +46,10 @@ export const webhooksDeliveries = pgTable(
   },
   (t) => [
     index('webhooks_deliveries_sub_created_idx').on(t.subscriptionId, t.createdAt.desc()),
+    // the sweep every minute: pending ones only, not the whole history
+    index('webhooks_deliveries_pending_idx')
+      .on(t.nextAttemptAt)
+      .where(sql`${t.status} = 'pending'`),
     check('webhooks_deliveries_status_chk', sql`${t.status} in ('pending', 'ok', 'failed')`),
   ],
 );

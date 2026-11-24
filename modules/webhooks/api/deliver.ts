@@ -146,4 +146,14 @@ export const jobs: JobDef<Record<string, unknown>>[] = [
       for (const r of due) await api.enqueue(QUEUE, { deliveryId: r.id });
     },
   },
+  {
+    // the delivery history only grew: finished ones are kept 30 days
+    queue: 'webhooks.cleanup',
+    cron: '10 3 * * *',
+    async handler(_, api) {
+      await api.db.execute(
+        sql`delete from webhooks_deliveries where status <> 'pending' and created_at < now() - interval '30 days'`,
+      );
+    },
+  },
 ];
