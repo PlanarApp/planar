@@ -4,6 +4,8 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-24
+
 ### Added
 
 - harness-retro: an obviously useful edit of an existing instruction goes in at once and the admin gets the diff (new actions and rules still wait for the admin's decision); an edit of an instruction changed meanwhile is carried over onto the current text by the AI instead of failing; weekly (and by hand — the engine monitor, «Harness rules optimization») a pass over the whole pack shortens it and removes duplicates and contradictions. Any reply or @ai in a proposal's subtask goes to the retro, a decided proposal opens again. The retro edits only the pack's pages in the tracker, never the repository.
@@ -194,7 +196,8 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 - Issuing ACME certificates for a public domain has not been tested; see `docs/guides/deploy.md`.
 
-[Unreleased]: https://gitlab.com/planarhq/planar/-/compare/v0.13.0...main
+[Unreleased]: https://gitlab.com/planarhq/planar/-/compare/v0.14.0...main
+[0.14.0]: https://gitlab.com/planarhq/planar/-/compare/v0.13.0...v0.14.0
 [0.13.0]: https://gitlab.com/planarhq/planar/-/compare/v0.12.0...v0.13.0
 [0.12.0]: https://gitlab.com/planarhq/planar/-/compare/v0.11.0...v0.12.0
 [0.11.0]: https://gitlab.com/planarhq/planar/-/compare/v0.10.0...v0.11.0
