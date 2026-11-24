@@ -21,9 +21,9 @@ test('PLNRAPP-97: t/p/w/пробел/>/-/l в окне задачи', async ({ b
 
   await blur();
   await page.keyboard.press('w');
-  await expect(page.getByTestId('watch')).toHaveText('Не следить');
+  await expect(page.getByTestId('watch')).toHaveAttribute('aria-label', 'Не следить');
   await page.keyboard.press('w');
-  await expect(page.getByTestId('watch')).toHaveText('Следить');
+  await expect(page.getByTestId('watch')).toHaveAttribute('aria-label', 'Следить');
 
   await blur();
   await page.keyboard.press('Space');

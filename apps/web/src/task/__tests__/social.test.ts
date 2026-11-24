@@ -488,7 +488,7 @@ describe('task:watch', () => {
       userId: ids.ann,
       taskId: t.id,
     });
-    await until(() => w.find('[data-testid="watch"]').text() === 'Не следить');
+    await until(() => w.find('[data-testid="watch"]').attributes('aria-label') === 'Не следить');
   });
   it('не следить удаляет строку', async () => {
     await db.table('taskWatchers').put({
@@ -499,9 +499,26 @@ describe('task:watch', () => {
       createdAt: t.createdAt,
     });
     w = await open();
-    await until(() => w.find('[data-testid="watch"]').text() === 'Не следить');
+    await until(() => w.find('[data-testid="watch"]').attributes('aria-label') === 'Не следить');
     await w.find('[data-testid="watch"]').trigger('click');
     await eventually(async () => (await db.table('taskWatchers').count()) === 0);
+  });
+  it('список наблюдателей раскрывается только для чтения, кнопка без подписи', async () => {
+    await db.table('taskWatchers').put({
+      id: crypto.randomUUID(),
+      spaceId: ids.space,
+      taskId: t.id,
+      userId: ids.ann,
+      createdAt: t.createdAt,
+    });
+    w = await open();
+    await until(() => w.find('[data-testid="watchers"]').exists());
+    expect(w.find('[data-testid="watch"]').text()).toBe('');
+    await w.find('[data-testid="watchers"]').trigger('click');
+    await until(() => !!document.querySelector('[data-testid="watchers-list"]'));
+    const list = document.querySelector('[data-testid="watchers-list"]')!;
+    expect(list.querySelectorAll('li')).toHaveLength(1);
+    expect(list.querySelector('input, button, [role="option"]')).toBeNull();
   });
 });
 

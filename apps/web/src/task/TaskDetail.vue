@@ -66,10 +66,12 @@ import { useExtensions } from '../modules/registry';
 import { TASK_ACTIVITY, activityOf, useActivity, type Activity } from '../modules/activity';
 import { useSpaces, useTask } from '../tasks/queries';
 import {
+  Avatar,
   AvatarStack,
   Button,
   IconButton,
   Menu,
+  Popover,
   overlayOpen,
   useBreakpoint,
   type MenuItem,
@@ -760,17 +762,39 @@ const panelComponent = computed(() => {
               <Eye :size="15" />{{ t('task.watchers') }}
             </dt>
             <dd class="flex min-w-0 items-center gap-1">
-              <AvatarStack :people="watcherPeople" />
-              <Button
+              <!-- read-only: the list only opens, watching is changed by the button next to it (PLNRAPP-821) -->
+              <Popover v-if="watcherPeople.length" align="start">
+                <template #trigger>
+                  <button
+                    type="button"
+                    class="inline-flex items-center rounded-md px-1 py-1 outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+                    :aria-label="t('task.watchers')"
+                    data-testid="watchers"
+                  >
+                    <AvatarStack :people="watcherPeople" />
+                  </button>
+                </template>
+                <ul
+                  class="flex max-h-64 min-w-40 flex-col gap-1 overflow-y-auto"
+                  data-testid="watchers-list"
+                >
+                  <li
+                    v-for="(p, i) in watcherPeople"
+                    :key="i"
+                    class="flex items-center gap-2 text-sm"
+                  >
+                    <Avatar :name="p.name" size="xs" />{{ p.name }}
+                  </li>
+                </ul>
+              </Popover>
+              <IconButton
                 size="sm"
-                variant="ghost"
                 :icon="mine ? EyeOff : Eye"
-                :class="mine ? '' : 'text-fg-subtle'"
+                :label="mine ? t('task.unwatch') : t('task.watch')"
+                shortcut="W"
                 data-testid="watch"
                 @click="toggleWatch"
-              >
-                {{ mine ? t('task.unwatch') : t('task.watch') }}
-              </Button>
+              />
             </dd>
           </div>
           <div v-for="p in propertyPanels" :key="p.key" class="flex min-h-9 items-center">
