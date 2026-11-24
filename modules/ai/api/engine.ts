@@ -5,7 +5,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import type { JobApi, Q } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
-import { matched } from '@planar/module-automations/api';
+import { applyRule, matched } from '@planar/module-automations/api';
 import { resolveConnection, secretOf } from './connections.js';
 import { generateStructured } from './llm.js';
 import type { Tracker } from './monitor.js';
@@ -427,15 +427,35 @@ export async function reconcilePass(api: JobApi, t: Tracker, projectId: string |
     }
     if (f.lastId && !f.reentered && !f.paused) continue;
     await t.check();
-    if (!(await matched(api, f.ruleId, f.taskId))) continue;
+    const m = await matched(api, f.ruleId, f.taskId);
+    // the task moved on since the search (another rule of the status already took it) — the next pass sees it anew
+    if (!m || m.task.statusId !== f.statusId) continue;
     const runId = uuidv7();
     const retry = f.lastId && !f.reentered;
+    // PLNRAPP-837: an entry into the status — the rule's other actions first (set_status → «В работе», labels, …), as on
+    // its trigger; a retry of a failed run does not repeat them. The run goes only while the task stays in the status
+    // after them.
+    let statusId: string = f.statusId;
+    if (!retry) {
+      try {
+        await applyRule(api, m);
+      } catch (e) {
+        await t.step(
+          `сверка: ${f.key} — действия правила не выполнены: ${e instanceof Error ? e.message : String(e)}`,
+          { projectId: f.projectId, taskId: f.taskId, level: 'error' },
+        );
+        continue;
+      }
+      const now = await one(api.db, sql`select status_id as s from tasks where id = ${f.taskId}`);
+      if (!now) continue;
+      statusId = now.s as string;
+    }
     const d = {
       kind: 'action' as const,
       taskId: f.taskId,
       actionId: f.actionId,
       ruleId: f.ruleId,
-      statusId: f.statusId,
+      statusId,
       restartOf: retry ? f.lastId : null,
       runId,
     };

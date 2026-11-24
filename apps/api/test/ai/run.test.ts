@@ -1127,6 +1127,108 @@ describe('движок: приёмка, доработка, надзор, све
     expect(last.log).toContain('сверка: задача снова в статусе действия');
   });
 
+  it('сверка: задача создана сразу в статусе правила — сначала действия правила (set_status, метка), прогон — в статусе после них; «после ответа» не срабатывает (PLNRAPP-837)', async () => {
+    const inProgress = await status('В работе', 'in_progress');
+    const label = uuidv7();
+    await w.admin.ok('label.create', { id: label, projectId: P, name: 'ИИ', color: '#0f0' });
+    const { id: ruleId } = await rule({ type: 'task.status_changed', to: [S.todo] }, [
+      { type: 'set_status', statusId: inProgress },
+      { type: 'add_label', labelId: label },
+      { type: 'ai_run', aiActionId: actionId },
+    ]);
+    // «Разработка после ответа»: only out of «Уточнение»
+    const { id: afterAnswer } = await rule(
+      { type: 'task.status_changed', from: [S.clarify], to: [inProgress] },
+      [{ type: 'ai_run', aiActionId: actionId }],
+    );
+    const t = await task();
+    const moves = () =>
+      raw(
+        `select changes->'statusId' as s from activity where task_id = $1 and kind = 'updated' and changes ? 'statusId'`,
+        [t],
+      ).then((r) => r.map((x) => x.s));
+    jobs.length = 0;
+    const reconcile = () => handler('ai', 'ai.engine.reconcile')({}, api);
+    await reconcile();
+    expect((await taskRow(t)).status_id).toBe(inProgress);
+    expect(await moves()).toEqual([[S.todo, inProgress]]);
+    expect(
+      (await raw(`select label_id from task_labels where task_id = $1`, [t])).map(
+        (r) => r.label_id,
+      ),
+    ).toEqual([label]);
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([
+      expect.objectContaining({
+        data: expect.objectContaining({ taskId: t, actionId, ruleId, statusId: inProgress }),
+      }),
+    ]);
+    expect(
+      jobs.filter((j) => j.queue === 'automations.run' && j.data.ruleId === afterAnswer),
+    ).toHaveLength(0);
+    expect(
+      await raw(`select status from automations_runs where rule_id = $1 and task_id = $2`, [
+        ruleId,
+        t,
+      ]),
+    ).toEqual([{ status: 'ok' }]);
+    await drain();
+    let runs = await runsOf(t);
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({ state: 'done', rule_id: ruleId });
+    // the rule's move is no new entry: nothing more
+    jobs.length = 0;
+    await reconcile();
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toHaveLength(0);
+
+    // a retry of the failed run (in «В работе»): no new status change, one run queued
+    const id = runs[0]!.id as string;
+    await raw(
+      `update ai_runs set state = 'failed', finished_at = now() - interval '2 min' where id = $1`,
+      [id],
+    );
+    jobs.length = 0;
+    await reconcile();
+    expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([
+      expect.objectContaining({
+        data: expect.objectContaining({ taskId: t, actionId, restartOf: id, statusId: inProgress }),
+      }),
+    ]);
+    expect(await moves()).toHaveLength(1);
+    runs = await runsOf(t);
+    expect(runs).toHaveLength(2);
+    expect(runs[1]).toMatchObject({ state: 'queued', attempt: 2, restart_of: id });
+  });
+
+  it('сверка: повтор упавшего прогона не повторяет действия правила — статус не меняется (PLNRAPP-837)', async () => {
+    const inProgress = await status('В работе', 'in_progress');
+    const { id: ruleId } = await rule({ type: 'task.status_changed', to: [S.todo] }, [
+      { type: 'set_status', statusId: inProgress },
+      { type: 'ai_run', aiActionId: actionId },
+    ]);
+    const t = await task();
+    const failed = uuidv7();
+    await raw(
+      `insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, state, chain_id, chain_depth, attempt, finished_at)
+       values ($1, $2, $3, 'action', $4, $5, 'failed', $1, 0, 1, now() - interval '2 min')`,
+      [failed, t, P, actionId, ruleId],
+    );
+    jobs.length = 0;
+    await handler('ai', 'ai.engine.reconcile')({}, api);
+    expect((await taskRow(t)).status_id).toBe(S.todo);
+    expect(
+      await raw(
+        `select 1 from activity where task_id = $1 and kind = 'updated' and changes ? 'statusId'`,
+        [t],
+      ),
+    ).toHaveLength(0);
+    expect(jobs).toEqual([
+      expect.objectContaining({
+        queue: 'ai.run',
+        data: expect.objectContaining({ taskId: t, restartOf: failed, statusId: S.todo }),
+      }),
+    ]);
+  });
+
   it('сторож: задача на ИИ без прогона и движения — ошибка в логе монитора и один комментарий на вход в статус (PLNRAPP-657)', async () => {
     await w.admin.ok('project.update', { id: P, leadId: w.admin.userId });
     const inProgress = await status('В работе', 'in_progress');
