@@ -411,3 +411,5 @@
 {"t": "2026-11-19T23:05:14", "id": "F-18", "kind": "cluster", "title": "update pins the submodule to an improve commit, not the tag", "match": "(submodule|субмодул|pointer|указател).{0,80}(tag|тег)|(tag|тег).{0,80}(submodule|субмодул|pointer|указател)", "scope": "dpcli", "why": "match narrowed: /tag|тег/ caught unrelated gc and status reports as failures after the fix"}
 {"t": "2026-11-19T23:05:14", "id": "F-18", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/19)", "pr": "https://github.com/zolotarev/dpcli/pull/19"}
 {"t": "2026-11-20T00:13:21", "id": "F-38", "kind": "pr", "url": "https://github.com/zolotarev/dpcli/pull/62"}
+{"t": "2026-11-20T10:58:40", "id": "F-39", "kind": "cluster", "title": "harness: details.test.ts (PLNRAPP-487) нестабилен на main — падает в полном pnpm test примерно через раз", "match": "details\\.test", "scope": "project", "why": "полный прогон перед MR красный не по вине задачи"}
+{"t": "2026-11-20T12:14:06", "id": "F-38", "kind": "fix", "where": "dpcli (merged https://github.com/zolotarev/dpcli/pull/62)", "pr": "https://github.com/zolotarev/dpcli/pull/62"}

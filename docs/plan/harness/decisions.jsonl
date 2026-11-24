@@ -22,3 +22,4 @@
 {"t": "2026-11-19T23:05:23", "by": "main", "text": "dpcli v61: bash_guard снят из settings.json, правило про него убрано у dp-engineer и dp-mechanic", "why": "F-22", "kind": "decision"}
 {"t": "2026-11-19T23:05:23", "by": "main", "text": "регулярка кластера F-18 сужена до субмодуля/указателя рядом с тегом: /tag|тег/ давал ложные срабатывания после фикса", "why": "F-18", "kind": "decision"}
 {"t": "2026-11-20T00:13:27", "by": "main", "text": "accept валит проверку с выводом «ничего не запущено» (pnpm No projects matched), шаблон checks.empty_run — PR 62", "why": "F-38", "kind": "decision"}
+{"t": "2026-11-24T11:22:24", "by": "main", "text": "PLNRAPP: одна задача — одна сессия, после автомержа /clear", "why": "cost: у основной сессии Opus средний контекст 200k+ в 20 сессиях с 10.11, 79% токенов", "kind": "decision"}

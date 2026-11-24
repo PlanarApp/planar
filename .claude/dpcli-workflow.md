@@ -130,6 +130,7 @@ From `.dpcli-local/workflow.md`.
 - Задача полностью готова → полный `pnpm test` и `pnpm lint` из корня (как в CI) → commit → `git push -u origin mr/PLNRAPP-N` → `glab mr create`.
 - Автомерж — только флагом «слить после успешного CI»: дождаться у MR `head_pipeline`, затем `glab api -X PUT projects/planarhq%2Fplanar/merge_requests/N/merge -f merge_when_pipeline_succeeds=true` и проверить, что MR остался open. Не `glab mr merge --auto-merge` — сливает сразу. Новый пуш сбрасывает флаг.
 - После слияния — убрать хвосты: локальная ветка `mr/PLNRAPP-N`, копии и ветки dpcli (`.dpcli/dpcli gc --remove`), стенд (`./dev.sh stack <ID> down`), временные файлы.
+- Одна задача PLNRAPP — одна сессия: автомерж поставлен → коротко отчитаться и предложить пользователю `/clear`; следующую задачу не брать в том же контексте (сессии с несколькими задачами держат контекст 200k+ на Opus).
 
 ## Общая рабочая копия и коммиты
 
