@@ -68,6 +68,31 @@ describe('редактор: @@ и @@@', () => {
     w.unmount();
   });
 
+  it('PLNRAPP-827: смена вкладки не закрывает окно (focusout без relatedTarget), уход фокуса — закрывает', async () => {
+    const { w, type } = await setup();
+    type('@');
+    type('@');
+    await vi.waitFor(() => expect(w.find('[data-testid=ref-search]').exists()).toBe(true));
+    const old = w.find('[data-testid=ref-search]').element as HTMLInputElement;
+    old.focus();
+    // Tab: the task field is replaced by the document one; the browser sends focusout with relatedTarget=null
+    await w.find('[data-testid=ref-search]').trigger('keydown', { key: 'Tab' });
+    old.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+    await new Promise((r) => setTimeout(r, 10));
+    expect(w.find('[data-testid=ref-picker]').exists()).toBe(true);
+    expect(w.find('[data-testid=ref-tab-docs]').attributes('aria-pressed')).toBe('true');
+    expect(document.activeElement).toBe(w.find('[data-testid=ref-search]').element);
+    await w.find('[data-testid=ref-search]').setValue('регл');
+    await vi.waitFor(() => expect(w.findAll('[data-testid=ref-option]').length).toBe(1));
+    // the focus really leaves the dialog — it closes
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    outside.focus();
+    await vi.waitFor(() => expect(w.find('[data-testid=ref-picker]').exists()).toBe(false));
+    outside.remove();
+    w.unmount();
+  });
+
   it('@@ внутри слова — текст; после пробела — диалог, пробел остаётся', async () => {
     const { w, type, json } = await setup();
     for (const ch of 'a@@') type(ch);

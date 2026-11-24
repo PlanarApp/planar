@@ -38,6 +38,16 @@ function onKey(e: KeyboardEvent) {
   e.stopPropagation();
 }
 const pick = (r: RefPick) => r.href && emit('pick', r);
+// Switching the tab replaces the focused search field: focusout comes with relatedTarget=null and the new
+// picker takes the focus only after mount. So the focus leaving is checked a tick later — the dialog closes
+// only when the focus is really outside it.
+const root = ref<HTMLElement | null>(null);
+function onFocusOut(e: FocusEvent) {
+  if (root.value?.contains(e.relatedTarget as Node | null)) return;
+  setTimeout(() => {
+    if (root.value && !root.value.contains(document.activeElement)) emit('close');
+  });
+}
 // like the @ list: no room below — above the cursor
 const style = computed(() => {
   const r = props.rect;
@@ -55,12 +65,13 @@ const tabs = computed(() => [
 
 <template>
   <div
+    ref="root"
     role="dialog"
     :aria-label="t('task.refTitle')"
     data-testid="ref-picker"
     class="fixed z-50 flex w-96 max-w-[calc(100vw-1rem)] flex-col gap-1 rounded-lg border border-border bg-surface p-2 shadow-md"
     :style="style"
-    @focusout="!$el.contains($event.relatedTarget) && emit('close')"
+    @focusout="onFocusOut"
   >
     <div class="flex gap-1">
       <button
