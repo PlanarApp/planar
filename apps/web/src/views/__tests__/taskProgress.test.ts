@@ -59,10 +59,13 @@ describe('TaskProgress: assigned comments', () => {
         .exists(),
     ).toBe(false);
   });
-  it('an open comment assigned to me — accent', () => {
+  it('an open comment assigned to me — orange, without the border (PLNRAPP-819)', () => {
     const c = show({ total: 2, resolved: 1, assignedToMe: true }).get('[data-testid=row-comments]');
     expect(c.attributes('data-mine')).toBe('true');
-    expect(c.classes()).toEqual(expect.arrayContaining(['text-accent', 'border-accent']));
+    expect(c.classes()).toEqual(
+      expect.arrayContaining(['text-warning', 'bg-warning/10', 'border-transparent']),
+    );
+    expect(c.classes()).not.toContain('border-border');
   });
   it('the click does nothing (does not reach the row / card)', async () => {
     const w = show({ total: 1, resolved: 0, assignedToMe: true });
@@ -80,7 +83,7 @@ describe('TaskProgress: assigned comments', () => {
     useAuth().user.value = { id: ME } as never;
     await nextTick();
     expect(c().attributes('data-mine')).toBe('true');
-    expect(c().classes()).toContain('text-accent');
+    expect(c().classes()).toContain('text-warning');
     useAuth().user.value = { id: OTHER } as never; // another user — the comment is not mine
     await nextTick();
     expect(c().attributes('data-mine')).toBeUndefined();
