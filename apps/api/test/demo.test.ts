@@ -23,7 +23,12 @@ describe('demo: исходящие no-op', () => {
 
   it('demo: push — без запроса, не-demo — вызван', async () => {
     const s = new WebPushSender({ publicKey: 'a', privateKey: 'b', subject: 'mailto:x@y.z' });
-    const sub = { endpoint: 'https://push.invalid/1', p256dh: 'p', auth: 'a' };
+    const sub = {
+      endpoint:
+        'https://93.184.216.34/1' /* a public address literal: no DNS, the address check passes */,
+      p256dh: 'p',
+      auth: 'a',
+    };
     setDemo(true);
     await s.send(sub, { title: 't' } as never);
     expect(sendNotification).not.toHaveBeenCalled();

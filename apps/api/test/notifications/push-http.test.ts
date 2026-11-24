@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createApp } from '../../src/app.js';
 import { pushSubscriptions } from '../../src/db/schema.js';
+import { WebPushSender } from '../../src/push/push.js';
 import { ORIGIN, createUser, loginCookie } from '../auth.js';
 import { dbUrl, newDb } from '../sync/helpers.js';
 
@@ -80,6 +81,10 @@ describe('/api/push', () => {
     expect((await req(app, 'POST', '/api/push/subscribe', c, { endpoint: 'x' })).statusCode).toBe(
       400,
     );
+    // SSRF: only https endpoints
+    expect(
+      (await req(app, 'POST', '/api/push/subscribe', c, sub('http://10.0.0.1/admin'))).statusCode,
+    ).toBe(400);
   });
 
   it('unsubscribe: чужую не удалить, свою — 204', async () => {
@@ -96,5 +101,15 @@ describe('/api/push', () => {
       204,
     );
     expect(await owner(url)).toBeUndefined();
+  });
+});
+
+describe('WebPushSender', () => {
+  it('внутренний адрес — ошибка 410 без запроса (подписка удаляется)', async () => {
+    const sender = new WebPushSender({ publicKey: 'p', privateKey: 'k', subject: 'mailto:a@b.c' });
+    for (const endpoint of ['https://127.0.0.1/x', 'https://[::1]/x', 'https://169.254.169.254/x'])
+      await expect(
+        sender.send({ endpoint, p256dh: 'p', auth: 'a' } as never, { title: 't' } as never),
+      ).rejects.toMatchObject({ statusCode: 410 });
   });
 });
