@@ -578,7 +578,6 @@ export default {
       rename: 'Rename',
       delete: 'Delete',
       deleteTitle: 'Delete view?',
-      menu: 'View menu',
       icon: 'Icon',
       saveChanges: 'Save',
       saveForAll: 'Save for all',

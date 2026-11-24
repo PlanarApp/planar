@@ -304,6 +304,37 @@ describe('views:saved', () => {
     await until(() => tabs(w).join() === 'Общий,Чужой');
   });
 
+  it('PLNRAPP-820: у таба вида нет «…»; меню — долгим нажатием мыши, клик после него вид не открывает', async () => {
+    const v = savedRow({ name: 'Мой', userId: ids.ann });
+    await db.table('savedViews').put(v);
+    await r.push(`/p/${ids.project}`);
+    const w = mountScreen(ProjectScreen);
+    await until(() => tabs(w).length === 1);
+    const strip = w.get('[data-testid=saved-tabs]');
+    expect(strip.findAll('button')).toHaveLength(1);
+    expect(strip.find('[aria-label^="Меню"]').exists()).toBe(false);
+    const tab = w.get('[data-saved-view]').element as HTMLElement;
+    const pointer = (type: string) =>
+      tab.dispatchEvent(
+        Object.assign(new MouseEvent(type, { bubbles: true, cancelable: true, button: 0 }), {
+          pointerType: 'mouse',
+        }),
+      );
+    // короткое нажатие меню не открывает
+    pointer('pointerdown');
+    pointer('pointerup');
+    await new Promise((res) => setTimeout(res, 600));
+    expect(body.find('[role=menuitem]').exists()).toBe(false);
+    // долгое — открывает
+    pointer('pointerdown');
+    await until(() => body.find('[role=menuitem]').exists());
+    expect(body.findAll('[role=menuitem]').map((x) => x.text())).toContain('Переименовать');
+    pointer('pointerup');
+    tab.click();
+    await flushPromises();
+    expect(r.currentRoute.value.path).toBe(`/p/${ids.project}`);
+  });
+
   it('views:saved /p/:id/v/:viewId — вид получает config (с умолчаниями) и filter', async () => {
     const v = savedRow();
     await db.table('savedViews').put(v);

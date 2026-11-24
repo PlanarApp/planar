@@ -3,7 +3,8 @@ import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '../../ui';
 
-// task view picker — buttons at the top of the «View» menu (PLNRAPP-71)
+// task view picker — buttons at the top of the «View» menu (PLNRAPP-71);
+// the text label only at the picked one, the rest — an icon with a name for the reader and a hint (PLNRAPP-820)
 defineProps<{ items: { value: string; label: string; icon?: Component }[] }>();
 const model = defineModel<string>({ default: '' });
 const { t } = useI18n();
@@ -23,9 +24,12 @@ const { t } = useI18n();
       :icon="i.icon"
       :variant="model === i.value ? 'primary' : 'secondary'"
       :aria-pressed="model === i.value"
+      :aria-label="model === i.value || !i.icon ? undefined : i.label"
+      :title="model === i.value || !i.icon ? undefined : i.label"
+      :data-layout="i.value"
       @click="model = i.value"
     >
-      {{ i.label }}
+      <template v-if="model === i.value || !i.icon">{{ i.label }}</template>
     </Button>
   </div>
 </template>
