@@ -177,6 +177,18 @@ describe('GET /files/:sha256', () => {
     expect(res.headers['content-disposition']).toBeUndefined();
   });
 
+  it('html/svg/js — скачивание как octet-stream, не inline (XSS)', async () => {
+    for (const type of ['text/html', 'image/svg+xml', 'text/javascript']) {
+      const data = Buffer.from(`<script>1</script> ${type} ${Math.random()}`);
+      await upload(alice, data, type);
+      const res = await get(`/files/${sha(data)}`, alice);
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toBe('application/octet-stream');
+      expect(res.headers['content-disposition']).toBe('attachment');
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
+    }
+  });
+
   it('Range: 206 с Content-Range, хвост, за границей — 416', async () => {
     const data = Buffer.from('0123456789-' + Math.random());
     await upload(alice, data, 'audio/webm');
