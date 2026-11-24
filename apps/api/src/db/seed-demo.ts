@@ -1592,6 +1592,23 @@ async function insertAll(tx: Tx, now: Date) {
             ],
           } as never,
         );
+      // PLNRAPP-833: links inserted with @@ (a task) and @@@ (a document) in the document editor
+      const refs = k === 1;
+      const refTask = `RDM-3 ${PROJECTS[0]!.tasks[2]![0]}`;
+      if (refs)
+        body.content.push({
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Tracked in ' },
+            { type: 'text', text: refTask, marks: [{ type: 'link', attrs: { href: '/t/RDM-3' } }] },
+            { type: 'text', text: ', context: ' },
+            {
+              type: 'text',
+              text: DOCS[0]!.title,
+              marks: [{ type: 'link', attrs: { href: `/m/docs/${uid('page:0')}` } }],
+            },
+          ],
+        } as never);
       return {
         id: uid(`page:${k}`),
         spaceId: sp(d.space),
@@ -1605,6 +1622,7 @@ async function insertAll(tx: Tx, now: Date) {
           d.title,
           ...d.paras,
           ...(attached ? ['Checklist: ' + commentFiles[1]!.name] : []),
+          ...(refs ? [`Tracked in ${refTask}, context: ${DOCS[0]!.title}`] : []),
         ].join(' '),
         files: attached ? commentFiles.map((f) => f.sha256) : [],
         createdBy: maya,

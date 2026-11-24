@@ -19,6 +19,7 @@ defineWebModule mutate newId rankBetween useQuery db useTask useProjectTasks use
 - C-modules v15 (PLNRAPP-202): += `useActivity` (not in the required list: optional).
 - C-modules v16 (PLNRAPP-251): += `useLive(arg, fn)` — a replica query re-created when the reactive `arg` changes (`useQuery` does not track Vue dependencies); not in the required list: optional. A module reads only the rows it needs (index, `bulkGet`), not a whole table: such a query re-runs on every write to it.
 - PLNRAPP-532: += `TASK_ACTIVITY` (C-modules v15: the task card provides its work) — a task panel of a module (`inject(TASK_ACTIVITY, null)`) reloads when the work of the task changes; not in the required list: optional.
+- PLNRAPP-833: += `refTrigger(open)` (tiptap extension: a standalone `@@` is removed, `open({ pos, rect })` is called), `insertRefAt(editor, pos, { label, href })` (a link and a space at `pos`), `RefPicker` (the @@/@@@ dialog of the task editor: tasks, a third `@` — documents; props `rect`, events `pick`/`close`; async component), types `RefAt`, `RefPick` — the document editor gets the same @@/@@@ links as the task editor; not in the required list: optional.
 - Together with the sync client (C-sync v2, collab): if `apps/web/src/sync` exports a name, the SDK must re-export it:
 ```text sdk-exports=with-sync
 sendTyping onTyping
