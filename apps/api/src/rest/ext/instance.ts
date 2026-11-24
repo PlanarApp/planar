@@ -47,6 +47,7 @@ const ops: ExtOp[] = [
       email: z.string().email().optional(),
     },
     write: true,
+    danger: 'delete', // admin power: the AI chat asks the user's «yes» (prompt injection)
     status: 201,
     run: async (d, u, i) => {
       await requireAdmin(d, u);
@@ -77,6 +78,7 @@ const ops: ExtOp[] = [
       deactivated: z.boolean().optional(),
     },
     write: true,
+    danger: 'delete', // admin power: the AI chat asks the user's «yes» (prompt injection)
     run: async (d, u, i) => {
       const actor = await requireAdmin(d, u);
       const { id: tid, ...p } = i as {
@@ -127,6 +129,7 @@ const ops: ExtOp[] = [
     path: '/api/v1/instance/workspace',
     shape: { name: z.string().trim().min(1).max(100) },
     write: true,
+    danger: 'delete', // admin power: the AI chat asks the user's «yes» (prompt injection)
     run: async (d, u, i, t) => {
       await requireAdmin(d, u);
       const value = { ...(await workspace(d)), name: (i as { name: string }).name };
@@ -142,6 +145,7 @@ const ops: ExtOp[] = [
     path: '/api/v1/instance/modules/{id}',
     shape: { id: z.string().min(1), enabled: z.boolean() },
     write: true,
+    danger: 'delete', // admin power: the AI chat asks the user's «yes» (prompt injection)
     run: async (d, u, i, t) => {
       await requireAdmin(d, u);
       const a = i as { id: string; enabled: boolean };

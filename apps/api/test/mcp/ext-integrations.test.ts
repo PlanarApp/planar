@@ -126,7 +126,8 @@ describe('интеграции (ext/integrations)', () => {
       Object.fromEntries(area.ops.map((o) => [`${o.method.toUpperCase()} ${o.path}`, o.tool])),
     ).toEqual(PARITY_INTEGRATIONS);
     const defs = toolDefs(app.get(RestService));
-    expect(defs.find((d) => d.name === 'delete_webhook')?.danger).toBe('delete');
+    for (const t of ['delete_webhook', 'create_webhook', 'update_webhook'])
+      expect(defs.find((d) => d.name === t)?.danger, t).toBe('delete');
     for (const t of [
       'list_automation_runs',
       'list_webhooks',
