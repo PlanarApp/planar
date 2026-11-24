@@ -576,7 +576,6 @@ export default {
       rename: 'Переименовать',
       delete: 'Удалить',
       deleteTitle: 'Удалить вид?',
-      menu: 'Меню вида',
       icon: 'Иконка',
       saveChanges: 'Сохранить',
       saveForAll: 'Сохранить для всех',

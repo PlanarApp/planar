@@ -112,7 +112,11 @@ describe('views:project', () => {
     expect(w.get('[data-testid=view]').attributes('data-id')).toBe('list');
     expect(w.get('[data-testid=view]').text()).toBe(`${project}|status`);
     const btns = await layoutButtons(w);
-    expect(btns.map((x) => x.text())).toEqual(['Список', 'Доска']);
+    // PLNRAPP-820: подпись — только у выбранного вида, у остальных иконка с именем для чтеца и подсказкой
+    expect(btns.map((x) => x.text())).toEqual(['Список', '']);
+    expect(btns[1].attributes('aria-label')).toBe('Доска');
+    expect(btns[1].attributes('title')).toBe('Доска');
+    expect(btns[0].attributes('aria-label')).toBeUndefined();
     await btns[1].trigger('click');
     await flushPromises();
     expect(r.currentRoute.value.path).toBe(`/p/${project}/board`);
@@ -128,6 +132,29 @@ describe('views:project', () => {
     );
     const pressed = (await layoutButtons(w)).filter((b) => b.attributes('aria-pressed') === 'true');
     expect(pressed.map((b) => b.text())).toEqual(['Доска']);
+    w.unmount();
+  });
+
+  it('PLNRAPP-820: нажатие в пределах формы «Вид» (открытый селектор гасит её pointer-events) её не закрывает, снаружи — закрывает', async () => {
+    const w = mountScreen();
+    await vi.waitFor(() => expect(w.find('[data-testid=view]').exists()).toBe(true));
+    await layoutButtons(w);
+    const form = document.querySelector<HTMLElement>('[data-testid=view-options]')!;
+    const content = form.closest<HTMLElement>('[role=dialog]')!;
+    await new Promise((res) => setTimeout(res, 10)); // reka вешает слушатель нажатий в setTimeout
+    content.getBoundingClientRect = () =>
+      ({ left: 100, top: 100, right: 400, bottom: 500, width: 300, height: 400 }) as DOMRect;
+    // под открытым Select контент формы без pointer-events: нажатие уходит в страницу под ней
+    const press = (x: number, y: number) =>
+      document.body.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true, clientX: x, clientY: y, button: 0 }),
+      );
+    press(200, 150);
+    await flushPromises();
+    await nextTick();
+    expect(document.querySelector('[data-testid=view-options]')).not.toBeNull();
+    press(600, 150);
+    await vi.waitFor(() => expect(document.querySelector('[data-testid=view-options]')).toBeNull());
     w.unmount();
   });
 

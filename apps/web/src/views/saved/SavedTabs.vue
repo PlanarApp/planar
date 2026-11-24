@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { VueDraggable } from 'vue-draggable-plus';
 import { rankBetween } from '../../sync';
-import { CopyPlus, Link, MoreHorizontal, Pencil, Trash2 } from 'lucide-vue-next';
+import { CopyPlus, Link, Pencil, Trash2 } from 'lucide-vue-next';
 import { Button, Dialog, Menu } from '../../ui';
 import { deleteView, saveView, updateView } from './ops';
 import { toast } from '../../ui/toast';
@@ -94,8 +94,43 @@ function move(e: { oldIndex?: number; newIndex?: number }) {
     rank: rankBetween(list[i - 1]?.rank ?? null, list[i + 1]?.rank ?? null),
   });
 }
-const open = (v: SavedView) =>
+// PLNRAPP-820: no «…» at a tab — the menu opens by a long press (touch — reka ContextMenu itself,
+// the mouse — here: a hold without moving opens the same context menu) and by right-click
+const LONG_PRESS_MS = 500;
+let pressTimer: ReturnType<typeof setTimeout> | undefined;
+let pressAt: { x: number; y: number } | null = null;
+let pressed = false; // the menu opened by a hold: the click after it does not open the view
+function holdStart(e: PointerEvent) {
+  pressed = false;
+  if (e.pointerType !== 'mouse' || e.button !== 0) return;
+  const el = e.currentTarget as HTMLElement;
+  pressAt = { x: e.clientX, y: e.clientY };
+  clearTimeout(pressTimer);
+  pressTimer = setTimeout(() => {
+    pressed = true;
+    pressAt = null;
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(
+      new MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        clientX: r.left,
+        clientY: r.bottom,
+      }),
+    );
+  }, LONG_PRESS_MS);
+}
+function holdMove(e: PointerEvent) {
+  if (pressAt && Math.hypot(e.clientX - pressAt.x, e.clientY - pressAt.y) > 5) holdEnd();
+}
+function holdEnd() {
+  clearTimeout(pressTimer);
+  pressAt = null;
+}
+const open = (v: SavedView) => {
+  if (pressed) return void (pressed = false);
   void router.push(`/p/${encodeURIComponent(props.projectId)}/v/${encodeURIComponent(v.id)}`);
+};
 async function confirmDelete() {
   deleteOpen.value = false;
   const v = deleting.value;
@@ -131,22 +166,17 @@ async function confirmDelete() {
           :data-saved-view="v.id"
           class="inline-flex h-11 md:h-7 items-center gap-1.5 rounded-md px-2 text-sm font-medium outline-none focus-visible:ring-2 ring-focus"
           @click="open(v)"
+          @pointerdown="holdStart"
+          @pointermove="holdMove"
+          @pointerup="holdEnd"
+          @pointercancel="holdEnd"
+          @pointerleave="holdEnd"
+          @dragstart="holdEnd"
         >
           <component :is="viewIcon(v.icon)" :size="16" aria-hidden="true" />
           <!-- мобильная: только иконка, как у вкладок видов -->
           <span class="max-md:sr-only">{{ v.name }}</span>
         </button>
-      </Menu>
-      <Menu :items="items(v)">
-        <template #trigger>
-          <button
-            type="button"
-            :aria-label="`${t('views.saved.menu')}: ${v.name}`"
-            class="inline-flex h-11 w-8 md:h-7 items-center justify-center rounded-md outline-none focus-visible:ring-2 ring-focus"
-          >
-            <MoreHorizontal :size="14" aria-hidden="true" />
-          </button>
-        </template>
       </Menu>
     </div>
   </VueDraggable>
