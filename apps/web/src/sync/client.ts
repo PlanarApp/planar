@@ -94,8 +94,6 @@ export const PREFETCH_INTERVAL = 500;
 export const COOL_AFTER_MS = 30 * 24 * 3600_000;
 /** Cooling runs at most this often (after a successful cycle of the leader) */
 const COOL_EVERY_MS = 3600_000;
-/** y-indexeddb database of the task description (openCollab: `v2:<name>`, the name — `task:<id>`) */
-const taskYdb = (taskId: string) => `v2:task:${taskId}`;
 
 type Rows = Record<string, unknown>[];
 
@@ -585,8 +583,8 @@ export function createClient(db: PlanarDB) {
       for (const id of reactions) changes.push({ entity: 'commentReactions', id, row: null });
     });
     emit(changes);
-    if (typeof indexedDB !== 'undefined')
-      for (const id of cooled) indexedDB.deleteDatabase(taskYdb(id));
+    // shortcut: the task's y-indexeddb (description) is kept — it may hold offline edits not yet sent (they go out
+    // only when the task is opened); one small database per ever opened task, clean up with a «synced» marker if it grows
     return cooled;
   }
 
