@@ -755,6 +755,30 @@ describe('wk6: импорт', () => {
     });
   });
 
+  it('sweep: running без движения 2 часа (процесс упал) → failed, исходник очищен', async () => {
+    const p = await project();
+    const res = await call(
+      'POST',
+      '/api/import/jobs',
+      adminCookie,
+      form(
+        { projectId: p, format: 'csv', preset: 'custom', mapping: '{"title":"Title"}' },
+        Buffer.from('Title\nA\n'),
+      ),
+    );
+    const id = res.json().data.id;
+    await db.$client.query(
+      `update import_jobs set status = 'running', updated_at = now() - interval '3 hours' where id = $1`,
+      [id],
+    );
+    await sweep.handler({}, jobApi);
+    const [j] = (
+      await db.$client.query('select status, source, error from import_jobs where id = $1', [id])
+    ).rows;
+    expect(j).toMatchObject({ status: 'failed', source: null });
+    expect(j.error).toBeTruthy();
+  });
+
   it('wk6: права пользователя — участник без записи в проект получает failed только через 404 на создании', async () => {
     // a job from a user who lost rights after enqueue creates no tasks and does not break the worker
     const p = await project();

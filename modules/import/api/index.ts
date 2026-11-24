@@ -742,6 +742,11 @@ const jobs = [
     queue: 'import.sweep',
     cron: '* * * * *',
     async handler(_: unknown, api: JobApi) {
+      // a process died mid-import (deploy, OOM): every batch touches updated_at, so 2 h of silence is a dead run
+      await api.db.execute(
+        sql`update import_jobs set status = 'failed', error = 'Импорт прерван: процесс остановился', source = null,
+          updated_at = now() where status = 'running' and updated_at < now() - interval '2 hours'`,
+      );
       const rows = await api.db
         .select({ id: importJobs.id })
         .from(importJobs)
