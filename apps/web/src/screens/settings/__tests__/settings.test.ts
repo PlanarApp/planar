@@ -11,6 +11,7 @@ import StatusesSettings from '../StatusesSettings.vue';
 import LabelsSettings from '../LabelsSettings.vue';
 import ModulesSettings from '../ModulesSettings.vue';
 import * as registry from '../../../modules/registry';
+import { UserPicker } from '../../../pickers';
 
 setup();
 const rows = (t: string) => db.table(t).toArray();
@@ -52,7 +53,13 @@ describe('settings:members', () => {
     await db.table('users').update(ids.bob, { deactivatedAt: null });
     const w = await show(MembersSettings);
     expect(w.findAll('[data-testid=member-row]')).toHaveLength(1);
-    await pick(w.findAll('button[role=combobox]')[0].element);
+    // the common user picker offers only those not in the space yet
+    const picker = w.getComponent(UserPicker);
+    expect((picker.props('users') as readonly { id: string }[]).map((u) => u.id)).toEqual([
+      ids.bob,
+    ]);
+    picker.vm.$emit('pick', ids.bob);
+    await wait();
     await w.find('form').trigger('submit');
     await wait();
     expect(await db.table('spaceMembers').where('userId').equals(ids.bob).count()).toBe(1);

@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { fieldValueSchema, type Row } from '@planar/shared';
 import { DueDatePicker, useMembers } from '../tasks';
+import { UserPicker } from '../pickers';
 import { Button, Input, Select } from '../ui';
 
 const props = defineProps<{ def: Row<'fieldDefs'>; value?: unknown; spaceId: string }>();
@@ -63,7 +64,6 @@ const choices = computed(() =>
     (c) => ({ value: c.id, label: c.label, color: c.color }),
   ),
 );
-const users = computed(() => (members.value ?? []).map((u) => ({ value: u.id, label: u.name })));
 </script>
 
 <template>
@@ -74,9 +74,19 @@ const users = computed(() => (members.value ?? []).map((u) => ({ value: u.id, la
       @update:model-value="commit"
     />
     <template v-else-if="def.type === 'select' || def.type === 'user'">
+      <UserPicker
+        v-if="def.type === 'user'"
+        :users="members ?? []"
+        :selected="typeof value === 'string' ? [value] : []"
+        :title="def.name"
+        empty="—"
+        field
+        @pick="(v) => v && commit(v)"
+      />
       <Select
+        v-else
         :model-value="typeof value === 'string' ? value : null"
-        :options="def.type === 'select' ? choices : users"
+        :options="choices"
         :label="def.name"
         :placeholder="'—'"
         @update:model-value="(v) => v && commit(v)"

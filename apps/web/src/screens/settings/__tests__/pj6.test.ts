@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { h } from 'vue';
 import { db, i18n, ids, setup, wait } from './setup';
 import GeneralSettings from '../GeneralSettings.vue';
-import { Select } from '../../../ui';
+import { UserPicker } from '../../../pickers';
 
 vi.mock('../../../ui/EmojiPicker.vue', () => ({
   default: {
@@ -44,10 +44,10 @@ describe('PJ-6 выбор эмодзи в настройках узла', () => 
 
 describe('PLANARAPP-3/4 руководитель и исполнитель по умолчанию', () => {
   let w: VueWrapper;
-  // the Select of a testid block: offered people, then pick one
-  const select = (testid: string) => w.get(`[data-testid=${testid}]`).getComponent(Select);
-  const pick = async (testid: string, userId: string) => {
-    select(testid).vm.$emit('update:modelValue', userId);
+  // the user picker of a testid block: offered people, then pick one (null — «nobody»)
+  const select = (testid: string) => w.get(`[data-testid=${testid}]`).getComponent(UserPicker);
+  const pick = async (testid: string, userId: string | null) => {
+    select(testid).vm.$emit('pick', userId);
     await wait();
   };
   const mountAt = async (props: Record<string, unknown>) => {
@@ -63,15 +63,16 @@ describe('PLANARAPP-3/4 руководитель и исполнитель по 
     await mountAt({ level: 'project', spaceId: ids.space, projectId: ids.project });
     // members of the space only (Bob of the fixture is deactivated) and «nobody»
     const offered = () =>
-      (select('general-default-assignee').props('options') as { value: string }[]).map(
-        (o) => o.value,
+      (select('general-default-assignee').props('users') as readonly { id: string }[]).map(
+        (u) => u.id,
       );
-    await vi.waitFor(() => expect(offered()).toEqual(['__none', ids.ann]));
+    await vi.waitFor(() => expect(offered()).toEqual([ids.ann]));
+    expect(select('general-default-assignee').props('none')).toBe('Не назначен');
     await pick('general-default-assignee', ids.ann);
     expect((await db.table('projects').get(ids.project)).defaultAssigneeId).toBe(ids.ann);
     await pick('general-lead', ids.ann);
     expect((await db.table('projects').get(ids.project)).leadId).toBe(ids.ann);
-    await pick('general-lead', '__none');
+    await pick('general-lead', null);
     expect((await db.table('projects').get(ids.project)).leadId).toBeNull();
     w.unmount();
   });

@@ -17,6 +17,7 @@ import {
   ChevronsUpDown,
 } from 'lucide-vue-next';
 import { Button, IconButton, Select } from '../ui';
+import { avatarSrc } from '../pickers';
 import CommentThread from './CommentThread.vue';
 import { FEED } from './thread';
 import Editor from './editor/Editor.vue';
@@ -182,8 +183,7 @@ async function sendReply() {
 }
 const canResolve = (c: Row<'comments'>) =>
   !!user.value && (c.assigneeId === user.value.id || c.authorId === user.value.id || isAdmin.value);
-const avatarOf = (id: string) =>
-  userOf(id)?.avatarFile ? `/files/${userOf(id)!.avatarFile}/preview?w=256` : null;
+const avatarOf = (id: string) => avatarSrc(userOf(id));
 const memberList = computed(() =>
   (members.value ?? []).map((m) => ({ id: m.id, name: m.name, avatar: avatarOf(m.id) })),
 );

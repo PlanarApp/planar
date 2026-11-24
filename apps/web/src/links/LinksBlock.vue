@@ -5,7 +5,8 @@ import { X } from 'lucide-vue-next';
 import type { Row } from '@planar/shared';
 import { db } from '../sync';
 import { StatusIcon, type TaskView } from '../tasks';
-import { Button, Input, Select } from '../ui';
+import { Button, Select } from '../ui';
+import { TaskPicker } from '../pickers';
 import { openTask } from '../views';
 import { SIDES, linkTasks, unlinkTasks, useTaskLinks, useTaskSearch, type LinkSide } from '.';
 import { useLive } from './live';
@@ -99,26 +100,14 @@ const add = (otherId: string) =>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <Select v-model="side as string" :options="sideOptions" :label="t('links.add')" />
-      <Input
-        v-model="query"
-        :label="t('links.search')"
-        hide-label
-        :placeholder="t('links.search')"
-      />
     </div>
+    <TaskPicker
+      v-model:query="query"
+      :tasks="found ?? []"
+      :label="t('links.search')"
+      option-testid="candidate"
+      @pick="add($event.id)"
+    />
     <p v-if="error" role="alert" class="px-2 text-sm text-danger">{{ error }}</p>
-    <ul v-if="found?.length">
-      <li v-for="f in found" :key="f.id">
-        <button
-          type="button"
-          class="flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left hover:bg-bg-muted md:min-h-8"
-          data-testid="candidate"
-          @click="add(f.id)"
-        >
-          <span class="text-xs text-fg-subtle">{{ f.key }}</span>
-          <span class="flex-1 truncate">{{ f.title }}</span>
-        </button>
-      </li>
-    </ul>
   </section>
 </template>

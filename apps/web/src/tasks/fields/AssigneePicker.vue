@@ -1,31 +1,23 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Avatar } from '../../ui';
+import { UserPicker } from '../../pickers';
 import { useMembers } from '../queries';
-import OptionPicker from './OptionPicker.vue';
 
+// task assignees: the common user picker over the space members (PLNRAPP-827)
 const props = defineProps<{ spaceId: string; compact?: boolean }>();
 const model = defineModel<string[]>({ default: () => [] });
 const { t } = useI18n();
 const members = useMembers(() => props.spaceId);
-const options = computed(() =>
-  (members.value ?? []).map((u) => ({
-    id: u.id,
-    label: u.name,
-    icon: Avatar,
-    iconProps: { name: u.name, size: 'xs' },
-  })),
-);
-const toggle = (id: string) =>
+const toggle = (id: string | null) =>
+  id &&
   (model.value = model.value.includes(id)
     ? model.value.filter((x) => x !== id)
     : [...model.value, id]);
 </script>
 
 <template>
-  <OptionPicker
-    :options="options"
+  <UserPicker
+    :users="members ?? []"
     :selected="model"
     multiple
     :title="t('tasks.assignee')"
@@ -34,5 +26,5 @@ const toggle = (id: string) =>
     @pick="toggle"
   >
     <template v-if="$slots.value" #value><slot name="value" /></template>
-  </OptionPicker>
+  </UserPicker>
 </template>

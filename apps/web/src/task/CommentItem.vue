@@ -11,7 +11,8 @@ import {
 import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
-import { Avatar, Button, IconButton, Menu, type MenuItem } from '../ui';
+import { Avatar, Button, IconButton } from '../ui';
+import { UserPicker } from '../pickers';
 import Reactions from './Reactions.vue';
 import Editor from './editor/Editor.vue';
 import WorkStatus from './WorkStatus.vue';
@@ -46,22 +47,6 @@ const emit = defineEmits<{
   assign: [userId: string | null];
   resolve: [done: boolean];
 }>();
-const assignItems = computed<MenuItem[]>(() => [
-  ...props.members.map((m) => ({
-    id: m.id,
-    label: m.name,
-    // the assignee's avatar (PLNRAPP-134)
-    icon: Avatar,
-    iconProps: { name: m.name, src: m.avatar, size: 'xs' },
-    onSelect: () => emit('assign', m.id),
-  })),
-  ...(props.comment.assigneeId
-    ? [
-        { separator: true as const },
-        { id: 'none', label: t('task.unassignComment'), onSelect: () => emit('assign', null) },
-      ]
-    : []),
-]);
 // PLNRAPP-202: the AI answers this comment — a ring around its avatar while it runs, the line of its state
 const taskWork = inject(TASK_ACTIVITY, null);
 const work = computed(() =>
@@ -142,24 +127,26 @@ function save() {
       >
         {{ t(comment.resolvedAt ? 'task.resolved' : 'task.resolve') }}
       </Button>
-      <Menu v-if="members.length" :items="assignItems" align="end">
-        <template #trigger>
-          <button
-            type="button"
-            class="ml-auto inline-flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
-            :aria-label="t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' })"
-            data-testid="comment-assignee"
-          >
+      <span v-if="members.length" class="ml-auto inline-flex min-w-0">
+        <UserPicker
+          :users="members"
+          :selected="comment.assigneeId ? [comment.assigneeId] : []"
+          :title="t('task.assignedTo', { name: names[comment.assigneeId] ?? '?' })"
+          :none="t('task.unassignComment')"
+          @pick="emit('assign', $event)"
+        >
+          <template #value>
             <Avatar
               :name="names[comment.assigneeId] ?? '?'"
               :src="assigneeAvatar"
               size="sm"
               :class="ring(comment.assigneeId)"
+              data-testid="comment-assignee"
             />
             <span class="truncate font-medium">{{ names[comment.assigneeId] ?? '?' }}</span>
-          </button>
-        </template>
-      </Menu>
+          </template>
+        </UserPicker>
+      </span>
       <span
         v-else
         class="ml-auto inline-flex min-w-0 items-center gap-1"
@@ -244,16 +231,17 @@ function save() {
               @click="emit('reply')"
             />
             <!-- assigned — the assignee in the strip above opens this menu -->
-            <Menu v-if="members.length && !comment.assigneeId" :items="assignItems" align="start">
-              <template #trigger>
-                <IconButton
-                  size="sm"
-                  :icon="UserPlus"
-                  :label="t('task.assignComment')"
-                  data-testid="comment-assign"
-                />
+            <UserPicker
+              v-if="members.length && !comment.assigneeId"
+              :users="members"
+              :selected="[]"
+              :title="t('task.assignComment')"
+              @pick="(id) => id && emit('assign', id)"
+            >
+              <template #value>
+                <UserPlus :size="16" class="text-fg-muted" data-testid="comment-assign" />
               </template>
-            </Menu>
+            </UserPicker>
             <template v-if="mine">
               <IconButton
                 size="sm"

@@ -16,7 +16,6 @@ import {
   Button,
   Editor,
   IconButton,
-  Menu,
   activityOf,
   db,
   mutate,
@@ -25,7 +24,7 @@ import {
   useProjectAdmin,
   useQuery,
   useSession,
-  type MenuItem,
+  UserPicker,
 } from '@planar/web/modules';
 import { assignablePeople, canResolve, threads, type CommentRow } from './comments';
 import { useTexts } from './text';
@@ -130,21 +129,6 @@ const assign = (c: CommentRow, assigneeId: string | null) =>
   mutate('docs.comment.assign', { id: c.id, assigneeId }).catch(() => {});
 const resolve = (c: CommentRow) =>
   mutate('docs.comment.resolve', { id: c.id, resolved: !c.resolvedAt }).catch(() => {});
-const assignItems = (c: CommentRow): MenuItem[] => [
-  ...assignable.value.map((m) => ({
-    id: m.id,
-    label: m.name,
-    icon: Avatar,
-    iconProps: { name: m.name, src: m.avatar, size: 'xs' },
-    onSelect: () => void assign(c, m.id),
-  })),
-  ...(c.assigneeId
-    ? [
-        { separator: true as const },
-        { id: 'none', label: tx('unassign'), onSelect: () => void assign(c, null) },
-      ]
-    : []),
-];
 
 // a link from a notification (?comment=<id>) scrolls to the comment
 const root = ref<HTMLElement>();
@@ -252,16 +236,18 @@ onMounted(async () => {
                   data-testid="doc-comment-reply"
                   @click="startReply(c)"
                 />
-                <Menu v-if="assignable.length" :items="assignItems(c)" align="start">
-                  <template #trigger>
-                    <IconButton
-                      size="sm"
-                      :icon="UserPlus"
-                      :label="tx('assign')"
-                      data-testid="doc-comment-assign"
-                    />
+                <UserPicker
+                  v-if="assignable.length"
+                  :users="assignable"
+                  :selected="c.assigneeId ? [c.assigneeId] : []"
+                  :title="tx('assign')"
+                  :none="c.assigneeId ? tx('unassign') : undefined"
+                  @pick="assign(c, $event)"
+                >
+                  <template #value>
+                    <UserPlus :size="16" class="text-fg-muted" data-testid="doc-comment-assign" />
                   </template>
-                </Menu>
+                </UserPicker>
                 <template v-if="c.authorId === me?.id">
                   <IconButton
                     size="sm"

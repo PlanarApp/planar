@@ -34,6 +34,7 @@ import {
   useGroupLevels,
   useMembers,
   useProjectAdmin,
+  UserPicker,
   type GroupScope,
 } from '@planar/web/modules';
 import ChannelView from './ChannelView.vue';
@@ -324,15 +325,15 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
           data-testid="chat-dm-picker"
           @submit.prevent="openDm"
         >
-          <label v-for="u in people" :key="u.id" class="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              :checked="picked.includes(u.id)"
-              :data-testid="`chat-pick-${u.id}`"
-              @change="togglePick(u.id)"
-            />
-            {{ u.name }}
-          </label>
+          <UserPicker
+            :users="people"
+            :selected="picked"
+            multiple
+            field
+            :title="tx('people')"
+            :empty="tx('people')"
+            @pick="(id) => id && togglePick(id)"
+          />
           <Button type="submit" size="sm" variant="primary" :disabled="!picked.length">{{
             tx('create')
           }}</Button>
@@ -429,18 +430,16 @@ const hoverPlus = 'ml-auto md:opacity-0 md:group-hover:opacity-100 md:focus-visi
               </div>
               <template v-if="addable.length">
                 <p class="mt-2 text-xs font-medium text-fg-muted">{{ tx('addMember') }}</p>
-                <div class="flex max-h-48 flex-col overflow-y-auto">
-                  <button
-                    v-for="u in addable"
-                    :key="u.id"
-                    type="button"
-                    class="flex min-h-8 items-center gap-2 rounded px-1 text-left text-sm hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
-                    :data-testid="`chat-dm-add-${u.id}`"
-                    @click="addToDm(u.id)"
-                  >
-                    <UserPlus :size="14" class="shrink-0 text-fg-subtle" />{{ u.name }}
-                  </button>
-                </div>
+                <UserPicker
+                  :users="addable"
+                  :selected="[]"
+                  :title="tx('addMember')"
+                  @pick="(id) => id && addToDm(id)"
+                >
+                  <template #value>
+                    <UserPlus :size="14" class="shrink-0 text-fg-subtle" />{{ tx('addMember') }}
+                  </template>
+                </UserPicker>
               </template>
             </div>
           </Popover>

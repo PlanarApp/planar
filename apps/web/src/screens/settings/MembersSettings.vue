@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { useAuth } from '../../auth/useAuth';
+import { UserPicker, avatarSrc } from '../../pickers';
 import { Avatar, Button, ConfirmDialog, Select } from '../../ui';
 import { db, mutate, newId, useQuery } from '../../sync';
 import RowMenu from './RowMenu.vue';
@@ -27,9 +28,7 @@ const rows = computed(() => {
 });
 const free = computed(() => {
   const inSpace = new Set(rows.value.map((r) => r.m.userId));
-  return (data.value?.users ?? [])
-    .filter((u) => !inSpace.has(u.id) && !u.deactivatedAt)
-    .map((u) => ({ value: u.id, label: u.name }));
+  return (data.value?.users ?? []).filter((u) => !inSpace.has(u.id) && !u.deactivatedAt);
 });
 const roles = computed(() =>
   (['admin', 'member', 'guest'] as const).map((r) => ({ value: r, label: t(`auth.roles.${r}`) })),
@@ -68,7 +67,14 @@ const remove = (id: string) => run(() => mutate('member.remove', { id }));
         class="flex flex-wrap items-end gap-2 max-md:w-full"
         @submit.prevent="add"
       >
-        <Select v-model="userId" :label="t('settings.user')" :options="free" />
+        <UserPicker
+          :users="free"
+          :selected="userId ? [userId] : []"
+          :title="t('settings.user')"
+          :empty="t('settings.user')"
+          field
+          @pick="userId = $event"
+        />
         <Select v-model="role" :label="t('auth.role')" :options="roles" />
         <Button type="submit" variant="primary" size="sm" data-testid="member-add">{{
           t('settings.add')
@@ -83,7 +89,7 @@ const remove = (id: string) => run(() => mutate('member.remove', { id }));
         data-testid="member-row"
         class="group flex items-center gap-3 py-1"
       >
-        <Avatar :name="r.u!.name" />
+        <Avatar :name="r.u!.name" :src="avatarSrc(r.u)" />
         <span class="flex min-w-0 flex-1 flex-col items-start">
           <span class="max-w-full truncate text-sm">{{ r.u!.name }}</span>
           <Button

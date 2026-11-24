@@ -3,7 +3,8 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { Smile } from 'lucide-vue-next';
-import { Button, EmojiPicker, Input, Popover, Select } from '../../ui';
+import { UserPicker } from '../../pickers';
+import { Button, EmojiPicker, Input, Popover } from '../../ui';
 import NodeIcon from '../../ui/NodeIcon.vue';
 import { uploadFile } from '../../api/files';
 import { db, mutate, useQuery } from '../../sync';
@@ -49,17 +50,12 @@ function save(patch: { name?: string; color?: string | null; icon?: string | nul
 }
 // lead (space, project) and the default assignee of new tasks (project): a space member or nobody
 const members = useMembers(() => props.spaceId ?? '');
-const NONE = '__none'; // Reka Select does not accept an empty value
-const people = computed(() => [
-  { value: NONE, label: t('settings.general.nobody') },
-  ...(members.value ?? []).map((m) => ({ value: m.id, label: m.name })),
-]);
-const lead = computed(() => (row.value as { leadId?: string | null } | undefined)?.leadId ?? NONE);
+const lead = computed(() => (row.value as { leadId?: string | null } | undefined)?.leadId ?? null);
 const defaultAssignee = computed(
-  () => (row.value as { defaultAssigneeId?: string | null } | undefined)?.defaultAssigneeId ?? NONE,
+  () => (row.value as { defaultAssigneeId?: string | null } | undefined)?.defaultAssigneeId ?? null,
 );
 function setPerson(field: 'leadId' | 'defaultAssigneeId', v: string | null) {
-  const id = !v || v === NONE ? null : v;
+  const id = v || null;
   void run(() =>
     props.level === 'project'
       ? mutate('project.update', { id: props.projectId!, [field]: id })
@@ -185,11 +181,13 @@ function upload(e: Event) {
       <template v-if="level === 'space' || level === 'project'">
         <div class="flex flex-col gap-1" data-testid="general-lead">
           <span class="text-sm text-fg-muted">{{ t('settings.general.lead') }}</span>
-          <Select
-            :model-value="lead"
-            :label="t('settings.general.lead')"
-            :options="people"
-            @update:model-value="setPerson('leadId', $event)"
+          <UserPicker
+            :users="members ?? []"
+            :selected="lead ? [lead] : []"
+            :title="t('settings.general.lead')"
+            :none="t('settings.general.nobody')"
+            field
+            @pick="setPerson('leadId', $event)"
           />
         </div>
         <div
@@ -198,11 +196,13 @@ function upload(e: Event) {
           data-testid="general-default-assignee"
         >
           <span class="text-sm text-fg-muted">{{ t('settings.general.defaultAssignee') }}</span>
-          <Select
-            :model-value="defaultAssignee"
-            :label="t('settings.general.defaultAssignee')"
-            :options="people"
-            @update:model-value="setPerson('defaultAssigneeId', $event)"
+          <UserPicker
+            :users="members ?? []"
+            :selected="defaultAssignee ? [defaultAssignee] : []"
+            :title="t('settings.general.defaultAssignee')"
+            :none="t('settings.general.nobody')"
+            field
+            @pick="setPerson('defaultAssigneeId', $event)"
           />
           <p class="mt-1 text-xs text-fg-muted">{{ t('settings.general.defaultAssigneeHint') }}</p>
         </div>
