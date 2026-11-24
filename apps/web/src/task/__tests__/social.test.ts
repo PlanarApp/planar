@@ -383,8 +383,51 @@ describe('task:feed', () => {
     );
     w = await open();
     await until(() => w.find('[data-testid="activity"]').text().includes('Todo → Done'));
-    expect(w.find('[data-testid="activity"]').text()).toMatch(
-      /изменил\(а\): статус: Todo → Done; приоритет: Без приоритета → Высокий; название: «старое» → «новое»; срок: — → 5 мар\.?( 2026)?; описание$/,
+    expect(w.find('[data-testid="activity-text"]').text()).toMatch(
+      /^изменил\(а\): статус: Todo → Done; приоритет: Без приоритета → Высокий; название: «старое» → «новое»; срок: — → 5 мар\.?( 2026)?; описание$/,
+    );
+  });
+  it('PLNRAPP-825 последовательные одинаковые правки — одна запись, автор аватаром, дата и время', async () => {
+    const act = (actorId: string, changes: Record<string, unknown>, s: number) => ({
+      id: crypto.randomUUID(),
+      spaceId: ids.space,
+      taskId: t.id,
+      actorId,
+      kind: 'updated',
+      changes,
+      createdAt: at(s * 60), // минуты: в пределах минуты время одно
+    });
+    stubFetch(
+      ACT([
+        act(ids.ann, { description: [{}, {}] }, 10),
+        act(ids.ann, { description: [{}, {}] }, 20),
+        act(ids.ann, { description: [{}, {}] }, 30),
+        act(ids.bob, { description: [{}, {}] }, 40),
+        act(ids.bob, { priority: [0, 1] }, 50),
+        act(ids.bob, { priority: [1, 2] }, 60),
+      ]),
+    );
+    w = await open();
+    await until(() => w.findAll('[data-testid="activity"]').length === 3);
+    const rows = w.findAll('[data-testid="activity"]');
+    // новые сверху: приоритет Bob (2 правки), описание Bob, описание Ann (3 правки)
+    expect(rows[0].find('[data-testid="activity-text"]').text()).toBe(
+      'изменил(а): приоритет: Без приоритета → Высокий',
+    );
+    expect(rows[2].find('[data-testid="activity-text"]').text()).toBe('изменил(а): описание');
+    expect(rows[2].find('[data-testid="activity-author"]').attributes('aria-label')).toBe('Ann');
+    expect(rows[1].find('[data-testid="activity-author"]').attributes('aria-label')).toBe('Bob');
+    expect(rows[2].text()).not.toContain('Ann');
+    // у записи — дата и время; у группы — от первой правки до последней
+    const time = rows[2].find('[data-testid="activity-time"]');
+    expect(time.attributes('datetime')).toBe(at(30 * 60));
+    expect(time.text()).toMatch(/\d{1,2}:\d{2}.*–.*\d{1,2}:\d{2}/);
+    expect(rows[1].find('[data-testid="activity-time"]').text()).toMatch(/\d{2}.*\d{1,2}:\d{2}$/);
+    // хинт с именем — по клику
+    await rows[2].find('[data-testid="activity-author"]').trigger('click');
+    await until(() => !!document.querySelector('[data-testid="activity-author-hint"]'));
+    expect(document.querySelector('[data-testid="activity-author-hint"]')!.textContent).toContain(
+      'Ann',
     );
   });
   it('поле комментария — над лентой', async () => {

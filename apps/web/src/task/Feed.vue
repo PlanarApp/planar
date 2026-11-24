@@ -19,6 +19,8 @@ import {
 import { Button, IconButton, Select } from '../ui';
 import { avatarSrc } from '../pickers';
 import CommentThread from './CommentThread.vue';
+import ActorAvatar from './ActorAvatar.vue';
+import { actKey, groupRuns, mergeChanges } from './activityGroups';
 import { FEED } from './thread';
 import Editor from './editor/Editor.vue';
 import { useCommentFiles, useComments, useReactions, useUsers } from './queries';
@@ -95,24 +97,41 @@ function change(f: string, pair: unknown): string {
   return `${name}: ${valueOf(f, pair[0])} → ${valueOf(f, pair[1])}`;
 }
 
-function describe(a: Row<'activity'>): string {
-  const who = nameOf(a.actorId);
-  const ch = a.changes as Record<string, unknown>;
+// PLNRAPP-825: a run of equal actions (oldest first) — one entry; the author — an avatar next to it
+function describe(acts: Row<'activity'>[]): string {
+  const a = acts[0]!;
   if (a.kind === 'updated') {
-    const fields = Object.entries(ch)
+    const fields = Object.entries(mergeChanges(acts))
       .map(([f, pair]) => change(f, pair))
       .join('; ');
-    return t('task.act.updated', { who, fields });
+    return t('task.act.updated', { fields });
   }
-  const what = a.kind.startsWith('assignee_')
-    ? nameOf(String(ch.userId))
-    : (labels.value?.find((l) => l.id === ch.labelId)?.name ?? '—');
-  return t(`task.act.${a.kind}`, { who, what });
+  const whats = acts.map((x) => {
+    const ch = x.changes as Record<string, unknown>;
+    return x.kind.startsWith('assignee_')
+      ? nameOf(String(ch.userId))
+      : (labels.value?.find((l) => l.id === ch.labelId)?.name ?? '—');
+  });
+  return t(`task.act.${a.kind}`, { what: [...new Set(whats)].join(', ') });
+}
+// the date and time of the entry; a run — from the first to the last, the time only within a day
+const stamp = (v: string, time = false) =>
+  new Date(v).toLocaleString(
+    locale.value,
+    time ? { timeStyle: 'short' } : { dateStyle: 'short', timeStyle: 'short' },
+  );
+function when(acts: Row<'activity'>[]): string {
+  const first = acts[0]!.createdAt;
+  const last = acts.at(-1)!.createdAt;
+  if (stamp(first) === stamp(last)) return stamp(last);
+  const sameDay = new Date(first).toDateString() === new Date(last).toDateString();
+  return `${stamp(first)} – ${stamp(last, sameDay)}`;
 }
 
 type Entry =
   | { at: string; id: string; comment: Row<'comments'> }
-  | { at: string; id: string; act: Row<'activity'> };
+  | { at: string; id: string; act: Row<'activity'> }
+  | { at: string; id: string; acts: Row<'activity'>[] };
 const newestFirst = ref(true);
 const show = ref<'all' | 'comments' | 'history'>('all');
 const showOptions = computed(() =>
@@ -122,8 +141,7 @@ const showOptions = computed(() =>
   })),
 );
 const feed = computed<Entry[]>(() => {
-  const dir = newestFirst.value ? -1 : 1;
-  return [
+  const asc: Entry[] = [
     // in the feed — thread roots; replies — under their own root
     ...(show.value === 'history' ? [] : (comments.value ?? []))
       .filter((c) => !c.parentId)
@@ -133,7 +151,15 @@ const feed = computed<Entry[]>(() => {
       .filter((a) => a.kind !== 'commented')
       .map((a) => ({ at: a.createdAt, id: a.id, act: a })),
     // equal time — by id (uuidv7: insertion order), otherwise the order depends on the DB read
-  ].sort((a, b) => dir * (a.at === b.at ? (a.id < b.id ? -1 : 1) : a.at < b.at ? -1 : 1));
+  ].sort((a, b) => (a.at === b.at ? (a.id < b.id ? -1 : 1) : a.at < b.at ? -1 : 1));
+  // PLNRAPP-825: consecutive equal actions of one author — one entry, whatever the sort direction
+  const grouped = groupRuns(asc, (e) => ('act' in e ? actKey(e.act) : null)).map((run): Entry => {
+    const head = run[0]!;
+    if (!('act' in head)) return head;
+    const acts = run.map((e) => (e as { act: Row<'activity'> }).act);
+    return { at: acts.at(-1)!.createdAt, id: head.id, acts };
+  });
+  return newestFirst.value ? grouped.reverse() : grouped;
 });
 
 // a new entry lands next to the composer only with the newest on top; oldest first — follow it to the end
@@ -392,7 +418,21 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
       </p>
       <template v-for="e in feed" :key="e.id">
         <CommentThread v-if="'comment' in e" :comment="e.comment" />
-        <p v-else class="text-xs text-fg-muted" data-testid="activity">{{ describe(e.act) }}</p>
+        <div
+          v-else-if="'acts' in e"
+          class="flex items-start gap-2 text-xs text-fg-muted"
+          data-testid="activity"
+        >
+          <ActorAvatar :name="nameOf(e.acts[0]!.actorId)" :src="avatarOf(e.acts[0]!.actorId)" />
+          <span class="min-w-0 flex-1" data-testid="activity-text">{{ describe(e.acts) }}</span>
+          <time
+            class="shrink-0 whitespace-nowrap text-fg-subtle"
+            :datetime="e.at"
+            data-testid="activity-time"
+          >
+            {{ when(e.acts) }}
+          </time>
+        </div>
       </template>
     </div>
   </section>
