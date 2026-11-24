@@ -268,6 +268,13 @@ export interface AiRunView {
   updatedAt: string;
 }
 export type AiRunDetails = AiRunView & { log: string };
+/** PLNRAPP-829: a rule of the task's project with AI actions — a person starts a run by it in the «AI» tab. */
+export interface AiTaskRule {
+  id: string;
+  name: string;
+  /** names of the rule's AI actions, in the rule's order */
+  actions: string[];
+}
 /**
  * PLNRAPP-202: the AI works in the background — the indicator on a task, its comment / checklist item and in a chat.
  * Not the run's details: those are in the «AI» tab for those who may see the runs.

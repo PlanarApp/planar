@@ -806,6 +806,34 @@ describe('прогон по правилу', () => {
     expect(q.assignee_id).toBe(w.member.userId);
     expect(text(q.body)).toContain('раз подряд');
   });
+
+  it('PLNRAPP-829: ручной запуск по правилу — условия правила не проверяются, прогон записан с правилом', async () => {
+    const ruleId = uuidv7();
+    await w.admin.ok('automations.create', {
+      id: ruleId,
+      projectId: P,
+      name: 'Только задачи участника',
+      trigger: { type: 'task.status_changed', to: [S.backlog] },
+      conditions: {
+        op: 'and',
+        rules: [{ field: 'assignee', operator: 'in', value: [w.member.userId] }],
+      },
+      actions: [{ type: 'ai_run', aiActionId: actionId }],
+    });
+    const t = await task({ assignees: [{ id: uuidv7(), userId: bot }] });
+    // by the rule (an event): the task does not match its conditions — no run
+    await handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId, ruleId }, api);
+    expect(calls).toHaveLength(0);
+    // started by a person: runs
+    await handler('ai', 'ai.run')(
+      { kind: 'action', taskId: t, actionId, ruleId, manual: true },
+      api,
+    );
+    expect(calls).toHaveLength(1);
+    expect(await runsOf(t)).toEqual([
+      expect.objectContaining({ state: 'done', rule_id: ruleId, action_id: actionId }),
+    ]);
+  });
 });
 
 describe('движок: приёмка, доработка, надзор, сверка (PLNRAPP-404)', () => {
