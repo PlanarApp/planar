@@ -1,6 +1,6 @@
 import { computed, ref, watch, type Ref } from 'vue';
 import type { Row } from '@planar/shared';
-import { db, mutate, newId, rankBetween, replicaState, useQuery } from '../sync';
+import { db, mutate, newId, rankBetween, replicaState, syncState, useQuery } from '../sync';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { LogOut, Languages, Monitor, Moon, Settings, Sun, User } from 'lucide-vue-next';
@@ -225,6 +225,7 @@ export const favorites = {
 export function useNavData(): {
   spaces: Readonly<Ref<NavSpace[]>>;
   favorites: Readonly<Ref<NavFavorite[]>>;
+  loading: Readonly<Ref<boolean>>;
 } {
   const src = useSpaces();
   const ws = useWorkspace();
@@ -258,5 +259,10 @@ export function useNavData(): {
       return n ? [{ ...f, key, name: n.name, icon: n.icon, color: n.color }] : [];
     });
   });
-  return { spaces, favorites: favs };
+  // PLNRAPP-834: the tree is not known yet — the local query has not answered or the replica is still bootstrapping empty
+  const loading = computed(
+    () =>
+      src.value === undefined || (!src.value.length && syncState.value.status === 'bootstrapping'),
+  );
+  return { spaces, favorites: favs, loading };
 }
