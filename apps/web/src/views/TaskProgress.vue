@@ -9,7 +9,8 @@ import { useTaskProgress, type Ratio } from './progress';
 // PLNRAPP-333: progress of the subtasks and the checklist on a list row / board card — «closed/total»,
 // all closed — in green (the subtasks — a highlighted chip); nothing when the task has neither.
 // PLNRAPP-577: next to the subtasks — assigned comments, the number of open ones (icon as the «Comments for me»
-// tab of My work); none open — hidden; an open one assigned to me — accent; the click does nothing.
+// tab of My work); none open — hidden; an open one assigned to me — in orange, without the border (PLNRAPP-819,
+// as the green chip of closed subtasks); the click does nothing.
 // «Mine» is counted here from the tasks row counters and the signed-in user (reactively): the cached project
 // projection may be built before /api/auth/me answers, and then the accent would be missing until the task changes.
 const props = defineProps<{
@@ -32,7 +33,7 @@ const subtasksChip = (r: Ratio) =>
     : chip(r);
 const commentsChip = (c: AssignedComments) =>
   c.assignedToMe
-    ? 'inline-flex shrink-0 items-center gap-0.5 rounded border border-accent bg-accent-subtle px-1 text-xs text-accent'
+    ? 'inline-flex shrink-0 items-center gap-0.5 rounded border border-transparent bg-warning/10 px-1 text-xs text-warning'
     : chip({ done: 0, total: 1 });
 </script>
 
