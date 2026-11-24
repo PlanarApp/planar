@@ -1621,6 +1621,15 @@ async function insertAll(tx: Tx, now: Date) {
       createdBy: maya,
       createdAt: at(-8),
     },
+    // PLNRAPP-826: an archived page stays in the task's Documents tab, struck through
+    {
+      id: uid('dlink:2'),
+      spaceId: spaceIds[1],
+      pageId: uid('page:11'),
+      taskId: tid('PLT', 3),
+      createdBy: maya,
+      createdAt: at(-6),
+    },
   ]);
   // PLNRAPP-209: comments on "Product vision" — a thread assigned to demo with a reply, a resolved one
   const docUsers = USERS.map(([login]) => ({ id: uid_[login]!, login }));

@@ -330,4 +330,19 @@ describe('docs comments', () => {
     await w.admin.ok('docs.page.delete', { id: p });
     expect(await comments(w.admin, p)).toEqual([]);
   });
+
+  it('PLNRAPP-826: архив сохраняет связь с задачей, docs.page.delete удаляет связи страницы и вложенных', async () => {
+    const p = await mk();
+    const c = await mk({ parentId: p });
+    const task = taskArgs(w);
+    await w.member.ok('task.create', task);
+    await w.member.ok('docs.link.add', { id: uuidv7(), pageId: p, taskId: task.id });
+    await w.member.ok('docs.link.add', { id: uuidv7(), pageId: c, taskId: task.id });
+    const mine = async () =>
+      (await rows(w.member, 'docsTaskLinks')).filter((l) => l.taskId === task.id);
+    await w.member.ok('docs.page.archive', { id: p });
+    expect(await mine()).toHaveLength(2);
+    await w.admin.ok('docs.page.delete', { id: p });
+    expect(await mine()).toEqual([]);
+  });
 });

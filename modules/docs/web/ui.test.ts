@@ -249,6 +249,37 @@ describe('docs web: панель задачи', () => {
     await vi.waitFor(async () => expect(await db.table('docsTaskLinks').count()).toBe(1));
   });
 
+  it('PLNRAPP-826: архивная связанная страница зачёркнута и не пропадает', async () => {
+    const t = await seedTask();
+    const p1 = uuidv7();
+    await db.table('docsPages').put(page(p1, { title: 'Старый регламент', archivedAt: NOW }));
+    await db.table('docsTaskLinks').put({
+      id: uuidv7(), spaceId: SPACE, pageId: p1, taskId: t, createdBy: ME, createdAt: NOW,
+    });
+    const w = panel(t);
+    await vi.waitFor(() => expect(w.text()).toContain('Старый регламент'));
+    const title = w.find('[data-archived]');
+    expect(title.text()).toBe('Старый регламент');
+    expect(title.classes()).toContain('line-through');
+  });
+
+  it('PLNRAPP-826: в поиске страницы для связи виден путь «Спейс / Проект»', async () => {
+    const t = await seedTask();
+    const PROJECT = uuidv7();
+    await db.table('spaces').put({ id: SPACE, name: 'Офис' });
+    await db.table('projects').put({ id: PROJECT, spaceId: SPACE, name: 'Сайт' });
+    await db.table('docsPages').bulkPut([
+      page(uuidv7(), { title: 'Глоссарий проекта', projectId: PROJECT }),
+      page(uuidv7(), { title: 'Глоссарий спейса' }),
+    ]);
+    const w = panel(t);
+    await flushPromises();
+    await w.find('input').setValue('глоссарий');
+    await vi.waitFor(() => expect(w.findAll('[role=option]')).toHaveLength(2));
+    const paths = w.findAll('[data-testid=docs-panel-path]').map((x) => x.text());
+    expect(paths.sort()).toEqual(['Офис', 'Офис / Сайт']);
+  });
+
   it('показывает связанные страницы другого пространства', async () => {
     const t = await seedTask();
     const p1 = uuidv7();
