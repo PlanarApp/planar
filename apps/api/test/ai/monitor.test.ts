@@ -131,6 +131,9 @@ describe('остановка и перезапуск', () => {
   });
 
   it('PLNRAPP-829: ручной запуск по правилу с ИИ-действием — прогон в очереди и в списке задачи', async () => {
+    // the world's project got the module before the workspace switch: re-enabling makes the bot (ensureBot)
+    for (const enabled of [false, true])
+      await w.admin.ok('project.setModule', { projectId: w.projectId, moduleId: 'ai', enabled });
     const bot = (await raw(`select id from users where login = 'ai' and bot`))[0]!.id as string;
     const actionId = uuidv7();
     await w.admin.ok('ai.action.create', {
