@@ -19,17 +19,27 @@ const data = useQuery(async () => {
     .equals(props.taskId)
     .toArray();
   const linkIds = new Set(links.map((l) => l.pageId));
+  // PLNRAPP-826: an archived page stays in the tab (struck through); a deleted one takes its links with it
   const linkedPages = (
     await Promise.all([...linkIds].map((id) => db.table<PageRow>('docsPages').get(id)))
-  ).filter((p): p is PageRow => !!p && !p.archivedAt);
+  ).filter((p): p is PageRow => !!p);
   const ownPages = task
     ? (await db.table<PageRow>('docsPages').where('spaceId').equals(task.spaceId).toArray()).filter(
         (p) => !p.archivedAt && !linkIds.has(p.id),
       )
     : [];
-  return { linked: linkedPages, available: ownPages };
+  // search results show where the page lives: «Space / Project»
+  const space = task ? await db.table<{ id: string; name: string }>('spaces').get(task.spaceId) : undefined;
+  const projectIds = [...new Set(ownPages.map((p) => p.projectId).filter((x): x is string => !!x))];
+  const projects = await db.table<{ id: string; name: string }>('projects').bulkGet(projectIds);
+  const projectNames = new Map(projects.filter((x) => !!x).map((x) => [x!.id, x!.name]));
+  return { linked: linkedPages, available: ownPages, spaceName: space?.name ?? '', projectNames };
 });
 const linked = computed(() => data.value?.linked ?? []);
+const where = (p: PageRow) => {
+  const pr = p.projectId ? data.value?.projectNames.get(p.projectId) : undefined;
+  return [data.value?.spaceName, pr].filter(Boolean).join(' / ');
+};
 const q = ref('');
 const found = computed(() =>
   q.value.trim() ? searchPages(data.value?.available ?? [], q.value, 6) : [],
@@ -51,7 +61,13 @@ async function create() {
       <li v-for="p in linked" :key="p.id" class="flex items-center gap-1 rounded-md hover:bg-bg-muted">
         <RouterLink :to="`/m/docs/${p.id}`" class="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1.5 text-base">
           <FileText :size="14" class="shrink-0 text-fg-subtle" />
-          <span class="truncate">{{ p.title || tx('untitled') }}</span>
+          <span
+            class="truncate"
+            :class="p.archivedAt && 'text-fg-subtle line-through'"
+            :title="p.archivedAt ? tx('archived') : undefined"
+            :data-archived="p.archivedAt ? '' : undefined"
+            >{{ p.title || tx('untitled') }}</span
+          >
         </RouterLink>
         <IconButton :icon="X" :label="tx('unlink')" size="sm" @click="unlink(p.id, taskId)" />
       </li>
@@ -69,10 +85,13 @@ async function create() {
           v-for="p in found"
           :key="p.id"
           role="option"
-          class="flex h-8 cursor-default items-center rounded-sm px-2 text-base hover:bg-bg-muted"
+          class="flex min-h-8 cursor-default flex-col justify-center rounded-sm px-2 py-1 hover:bg-bg-muted"
           @mousedown.prevent="pick(p)"
         >
-          {{ p.title || tx('untitled') }}
+          <span class="truncate text-base">{{ p.title || tx('untitled') }}</span>
+          <span v-if="where(p)" class="truncate text-sm text-fg-subtle" data-testid="docs-panel-path">{{
+            where(p)
+          }}</span>
         </li>
       </ul>
     </div>

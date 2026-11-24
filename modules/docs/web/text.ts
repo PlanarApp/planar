@@ -26,6 +26,7 @@ const S = {
   unlink: { ru: 'Отвязать', en: 'Unlink' },
   createFromTask: { ru: 'Создать страницу', en: 'Create page' },
   noLinks: { ru: 'Нет связанных страниц', en: 'No linked pages' },
+  archived: { ru: 'В архиве', en: 'Archived' },
   unsynced: { ru: 'Не синхронизируется', en: 'Not syncing' },
   retry: { ru: 'Повторить', en: 'Retry' },
   mention: { ru: 'Упоминание', en: 'Mention' },
