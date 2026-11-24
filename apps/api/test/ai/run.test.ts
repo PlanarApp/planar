@@ -1188,6 +1188,16 @@ describe('движок: приёмка, доработка, надзор, све
     );
     jobs.length = 0;
     await reconcile();
+    const diag = {
+      inProgress, todo: S.todo, ruleId, afterAnswer, bot,
+      task: await raw(`select status_id from tasks where id = $1`, [t]),
+      asg: await raw(`select user_id from task_assignees where task_id = $1`, [t]),
+      runs: await raw(`select id, state, attempt, rule_id, action_id, finished_at, kind from ai_runs where task_id = $1`, [t]),
+      rules: await raw(`select id, enabled, trigger from automations_rules where project_id = $1`, [P]),
+      ev: await raw(`select text from ai_engine_events order by created_at desc limit 15`),
+      jobs,
+    };
+    expect(diag).toEqual({});
     expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([
       expect.objectContaining({
         data: expect.objectContaining({ taskId: t, actionId, restartOf: id, statusId: inProgress }),
