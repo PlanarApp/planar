@@ -1,21 +1,33 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue';
-import { ChevronRight } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { ChevronRight, UserPlus } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
-import { createTask, useLabels, useMembers, type TaskView } from '../tasks';
-import { Input, useBreakpoint } from '../ui';
+import {
+  AssigneePicker,
+  StatusPicker,
+  createTask,
+  useLabels,
+  useMembers,
+  type TaskView,
+} from '../tasks';
+import { AvatarStack, Input, useBreakpoint } from '../ui';
+import { avatarSrc } from '../pickers';
+import { useBlockedIds } from '../links';
+import { enabledForProject } from '../modules/registry';
+import { useColumnWidths } from '../views/list/widths';
+import { visibleColumns } from '../views/list/columns';
 import { useSubtasks } from './queries';
 import ListRow from '../views/list/Row.vue';
 import TaskContextMenu from '../views/TaskContextMenu.vue';
 import BulkBar from '../views/BulkBar.vue';
 import { provideSelection, useSelectionReset } from '../views/selection';
 import { dragSet, groupRanks, moveGroupLocal } from '../views/groupMove';
-import { DEFAULT_OPTIONS, type TaskField } from '../views/options';
+import { DEFAULT_OPTIONS, fieldModule } from '../views/options';
 
 const props = defineProps<{ task: TaskView; statuses: Row<'statuses'>[] }>();
 const emit = defineEmits<{ open: [key: string] }>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const subtasks = useSubtasks(props.task.id);
 const members = useMembers(() => props.task.spaceId);
 const { isMobile } = useBreakpoint();
@@ -23,10 +35,26 @@ const labels = useLabels(
   () => props.task.spaceId,
   () => props.task.projectId,
 );
-// the List row with a compact set of fields: status icon, key, title, assignee (PLNRAPP-540);
-// mobile — the List card with the List's default fields
-const fields = computed<TaskField[]>(() =>
-  isMobile.value ? DEFAULT_OPTIONS.fields : ['status', 'assignee'],
+// PLNRAPP-828: the rows as in the List view — its default fields (module ones only where the module is
+// on), column auto-size by the subtasks, the "blocked" mark; a narrow area or mobile — the List card
+const fields = computed(() =>
+  DEFAULT_OPTIONS.fields.filter((f) => {
+    const m = fieldModule(f);
+    return !m || enabledForProject(m, [props.task.projectId]);
+  }),
+);
+const blocked = useBlockedIds(() => props.task.projectId);
+const { widths } = useColumnWidths(
+  () => `subtasks:${props.task.projectId}`,
+  () => visibleColumns(fields.value),
+  subtasks,
+  () => ({
+    labels: new Map((labels.value ?? []).map((l) => [l.id, l.name])),
+    projects: new Map(),
+    header: () => '',
+    priority: (p) => t(`tasks.priority.${p}`),
+    locale: locale.value,
+  }),
 );
 const editing = ref<string | null>(null);
 const title = ref('');
@@ -45,6 +73,25 @@ const showClosed = ref(false);
 const sel = provideSelection();
 const root = ref<HTMLElement>();
 useSelectionReset(() => root.value, sel);
+// as in the List (PLNRAPP-817): the area under half of the window (the task sidebar, a small window) —
+// the rows are the List cards
+const areaW = ref(0);
+const half = ref(0);
+let ro: ResizeObserver | undefined;
+const fit = () => {
+  areaW.value = root.value?.clientWidth ?? 0;
+  half.value = window.innerWidth / 2;
+};
+const narrow = computed(() => areaW.value > 0 && areaW.value < half.value);
+watch(root, (el) => {
+  ro?.disconnect();
+  if (el && typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(fit);
+    ro.observe(el);
+  }
+  fit();
+});
+onBeforeUnmount(() => ro?.disconnect());
 const shown = computed(() => [...open.value, ...(showClosed.value ? closed.value : [])]);
 function onClick(s: TaskView, e: MouseEvent) {
   // as in the List: Ctrl/⌘ — toggle, Shift — a range; mobile with a selection — a tap toggles
@@ -132,16 +179,37 @@ async function onUp() {
   });
 }
 
+// PLNRAPP-828: the new subtask's status and assignees — chosen by the buttons right of the input;
+// the status by default — the first one of the project (PJ-1); the choice stays for the next subtasks
+const projectStatuses = computed(() =>
+  props.statuses.filter((x) => x.projectId === props.task.projectId),
+);
+const newStatus = ref<string>();
+watch(
+  projectStatuses,
+  (all) => {
+    if (!all.some((x) => x.id === newStatus.value)) newStatus.value = all[0]?.id;
+  },
+  { immediate: true },
+);
+const newAssignees = ref<string[]>([]);
+const newPeople = computed(() =>
+  newAssignees.value
+    .map((id) => members.value?.find((m) => m.id === id))
+    .filter((m) => !!m)
+    .map((m) => ({ name: m.name, src: avatarSrc(m) })),
+);
 async function add() {
   const s = title.value.trim();
-  const status = props.statuses.find((x) => x.projectId === props.task.projectId); // PJ-1
-  if (!s || !status) return;
+  const statusId = newStatus.value;
+  if (!s || !statusId) return;
   title.value = '';
   await createTask({
     projectId: props.task.projectId,
-    statusId: status.id,
+    statusId,
     title: s,
     parentId: props.task.id,
+    ...(newAssignees.value.length && { assigneeIds: [...newAssignees.value] }),
   });
 }
 </script>
@@ -189,7 +257,9 @@ async function add() {
             :focused="false"
             :editing="editing === s.id"
             :fields="fields"
-            :blocked="false"
+            :widths="widths"
+            :narrow="narrow"
+            :blocked="blocked.has(s.id)"
             :members="members ?? []"
             :labels="labels ?? []"
             :draggable="!isMobile"
@@ -240,7 +310,9 @@ async function add() {
               :focused="false"
               :editing="editing === s.id"
               :fields="fields"
-              :blocked="false"
+              :widths="widths"
+              :narrow="narrow"
+              :blocked="blocked.has(s.id)"
               :members="members ?? []"
               :labels="labels ?? []"
               :draggable="!isMobile"
@@ -256,13 +328,31 @@ async function add() {
       </div>
     </TaskContextMenu>
     <BulkBar :space-id="task.spaceId" :tasks="subtasks" />
-    <form @submit.prevent="add">
+    <form class="flex items-center gap-1" data-testid="subtask-add" @submit.prevent="add">
       <Input
         v-model="title"
+        class="min-w-0 flex-1"
         :label="t('task.addSubtask')"
         hide-label
         :placeholder="t('task.addSubtask')"
       />
+      <!-- PLNRAPP-828: the new subtask's status and assignees (the common user picker) -->
+      <StatusPicker
+        v-model="newStatus"
+        :space-id="task.spaceId"
+        :project-id="task.projectId"
+        data-testid="subtask-new-status"
+      />
+      <AssigneePicker
+        v-model="newAssignees"
+        :space-id="task.spaceId"
+        data-testid="subtask-new-assignees"
+      >
+        <template #value>
+          <AvatarStack v-if="newPeople.length" :people="newPeople" />
+          <UserPlus v-else :size="16" class="text-fg-muted" />
+        </template>
+      </AssigneePicker>
     </form>
   </section>
 </template>
