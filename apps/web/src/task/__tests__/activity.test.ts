@@ -147,6 +147,23 @@ describe('task: индикатор работы ИИ', () => {
     await until(() => aiRow().exists() && aiRow().attributes('data-state') === 'running', 6000);
   }, 15_000);
 
+  it('PLNRAPP-838: ИИ назначен исполнителем — индикатор появляется без перезагрузки', async () => {
+    w = await open();
+    await until(() => load.mock.calls.length > 0);
+    expect(aiRow().exists()).toBe(false);
+    // the assignment is a row of taskAssignees only; the rule starts a run on the server
+    answer = [run({ state: 'queued', itemId: null })];
+    await db.table('taskAssignees').put({
+      id: crypto.randomUUID(),
+      spaceId: ids.space,
+      taskId: t.id,
+      userId: BOT,
+      createdAt: ago(0),
+    });
+    await until(() => aiRow().exists());
+    expect(aiRow().attributes('data-state')).toBe('queued');
+  });
+
   it('«Ждёт» — «Отменить»: ожидание отменено и сразу скрыто; без cancel — кнопки нет', async () => {
     const cancel = vi.fn(async () => {});
     answer = [run({ state: 'queued', itemId: null, cancel })];
