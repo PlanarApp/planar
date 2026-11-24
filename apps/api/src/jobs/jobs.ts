@@ -13,6 +13,7 @@ import { ensureSystemUser } from '../users/system.js';
 import { archivePurge } from './archive.js';
 import { changesPurge } from './changes.js';
 import { authPurge } from './auth.js';
+import { filesPurge } from './files.js';
 import { DUE_CRON, DUE_QUEUE, remindDue } from './due.js';
 
 export const PUSH_OPTS = Symbol('PUSH_OPTS');
@@ -54,6 +55,7 @@ export class JobsService implements OnApplicationShutdown {
         await this.register(boss, null, archivePurge);
         await this.register(boss, null, changesPurge);
         await this.register(boss, null, authPurge);
+        await this.register(boss, null, filesPurge);
         await this.register(boss, null, {
           queue: DUE_QUEUE,
           cron: DUE_CRON,

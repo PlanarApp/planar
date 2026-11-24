@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import sharp from 'sharp';
 import { HttpError } from '../auth/errors.js';
 import type { Db } from '../db/index.js';
@@ -55,7 +55,14 @@ export async function commitFile(
       .insert(files)
       .values({ sha256: f.sha, size: f.size, mime: f.mime, width, height, createdBy: f.userId })
       .onConflictDoNothing();
-    await db.insert(fileUploads).values({ sha256: f.sha, userId: f.userId }).onConflictDoNothing();
+    // created_at = the last upload: the night purge (jobs/files.ts) does not take a just uploaded file
+    await db
+      .insert(fileUploads)
+      .values({ sha256: f.sha, userId: f.userId })
+      .onConflictDoUpdate({
+        target: [fileUploads.sha256, fileUploads.userId],
+        set: { createdAt: sql`now()` },
+      });
   } catch (e) {
     await rm(f.tmp, { force: true });
     throw e;

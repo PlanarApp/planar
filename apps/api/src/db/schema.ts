@@ -574,6 +574,12 @@ export const fileUploads = pgTable(
   (t) => [primaryKey({ columns: [t.sha256, t.userId] })],
 );
 
+/** sha256 of attachments deleted in the app (trigger on attachments delete) — the night purge queue, jobs/files.ts. */
+export const filesDeleted = pgTable('files_deleted', {
+  sha256: text().primaryKey(),
+  deletedAt: ts().notNull().defaultNow(),
+});
+
 export const loginAttempts = pgTable('login_attempts', {
   key: text().primaryKey(),
   attempts: integer().notNull(),
