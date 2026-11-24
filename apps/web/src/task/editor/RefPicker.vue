@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { FileText, SquareCheck } from 'lucide-vue-next';
 import { useSearch } from '../../command/search';
-import { useExtensions } from '../../modules/registry';
-import type { SearchHit } from '../../modules/types';
+import { DocPicker, TaskPicker, useDocsPickable } from '../../pickers';
 
-// @@ — link to a task, @@@ (third @ in the search field) — to a document; search over the replica, like the palette
+// @@ — link to a task, @@@ (third @ in the search field) — to a document; the common task and document
+// pickers (PLNRAPP-827), tasks are searched over the replica like the palette
 export interface RefPick {
   label: string;
   href: string;
@@ -16,65 +15,29 @@ const emit = defineEmits<{ pick: [RefPick]; close: [] }>();
 const { t } = useI18n();
 const tab = ref<'tasks' | 'docs'>('tasks');
 const q = ref('');
-const index = ref(0);
-const input = ref<HTMLInputElement | null>(null);
-const tasks = useSearch();
-// documents — the docs module's provider (if the module is enabled); no module import into the core
-const providers = useExtensions('search');
-const docsProvider = computed(() => providers.value.find((p) => p.moduleId === 'docs'));
-const docs = ref<SearchHit[]>([]);
-let seq = 0;
-watch([q, tab, docsProvider], async () => {
-  if (tab.value !== 'docs' || !docsProvider.value) return;
-  const n = ++seq;
-  const r = q.value.trim() ? await docsProvider.value.search(q.value, 20) : [];
-  if (n === seq) docs.value = r;
-});
-const rows = computed<(RefPick & { id: string; path?: string; name: string })[]>(() =>
-  tab.value === 'tasks'
-    ? tasks
-        .search(q.value)
-        .slice(0, 20)
-        .map((h) => ({
-          id: h.id,
-          label: `${h.ref} ${h.title}`,
-          href: `/t/${h.ref}`,
-          path: h.path,
-          name: `${h.ref} ${h.title}`,
-        }))
-    : docs.value.map((h) => ({
-        id: h.id,
-        label: h.title,
-        href: typeof h.to === 'string' ? h.to : '',
-        path: h.path,
-        name: h.title,
-      })),
+const index = useSearch();
+const docsOn = useDocsPickable();
+const tasks = computed(() =>
+  index
+    .search(q.value)
+    .slice(0, 20)
+    .map((h) => ({ id: h.id, key: h.ref, title: h.title, path: h.path })),
 );
-watch(rows, () => (index.value = 0));
-function onInput(e: Event) {
-  const v = (e.target as HTMLInputElement).value;
-  // @@@: a third @ typed at once — switch to documents
-  if (v === '@') {
+// @@@: a third @ typed at once — switch to documents
+watch(q, (v) => {
+  if (v === '@' && tab.value === 'tasks' && docsOn.value) {
     tab.value = 'docs';
     q.value = '';
-    (e.target as HTMLInputElement).value = '';
-    return;
   }
-  q.value = v;
-}
+});
 function onKey(e: KeyboardEvent) {
-  const n = rows.value.length;
   if (e.key === 'Escape') emit('close');
-  else if (e.key === 'ArrowDown' && n) index.value = (index.value + 1) % n;
-  else if (e.key === 'ArrowUp' && n) index.value = (index.value + n - 1) % n;
-  else if (e.key === 'Enter' && rows.value[index.value]) pick(rows.value[index.value]!);
-  else if (e.key === 'Tab') tab.value = tab.value === 'tasks' ? 'docs' : 'tasks';
+  else if (e.key === 'Tab' && docsOn.value) tab.value = tab.value === 'tasks' ? 'docs' : 'tasks';
   else return;
   e.preventDefault();
   e.stopPropagation();
 }
-const pick = (r: RefPick) => r.href && emit('pick', { label: r.label, href: r.href });
-onMounted(() => nextTick(() => input.value?.focus()));
+const pick = (r: RefPick) => r.href && emit('pick', r);
 // like the @ list: no room below — above the cursor
 const style = computed(() => {
   const r = props.rect;
@@ -86,7 +49,7 @@ const style = computed(() => {
 });
 const tabs = computed(() => [
   { id: 'tasks' as const, label: t('task.refTasks') },
-  ...(docsProvider.value ? [{ id: 'docs' as const, label: t('task.refDocs') }] : []),
+  ...(docsOn.value ? [{ id: 'docs' as const, label: t('task.refDocs') }] : []),
 ]);
 </script>
 
@@ -115,44 +78,28 @@ const tabs = computed(() => [
         {{ x.label }}
       </button>
     </div>
-    <input
-      ref="input"
-      :value="q"
-      :placeholder="t('task.refSearch')"
-      :aria-label="t('task.refSearch')"
-      data-testid="ref-search"
-      class="h-8 rounded-md border border-border-strong bg-bg px-2 text-sm outline-none focus-visible:ring-2 ring-focus"
-      @input="onInput"
-      @keydown="onKey"
+    <TaskPicker
+      v-if="tab === 'tasks'"
+      v-model:query="q"
+      :tasks="tasks"
+      :label="t('task.refSearch')"
+      :hint="t('task.refHint')"
+      autofocus
+      input-testid="ref-search"
+      option-testid="ref-option"
+      @pick="(x) => pick({ label: `${x.key} ${x.title}`, href: `/t/${x.key}` })"
+      @key="onKey"
     />
-    <ul role="listbox" class="max-h-64 overflow-y-auto">
-      <li
-        v-for="(r, i) in rows"
-        :key="r.id"
-        role="option"
-        :aria-selected="i === index"
-        data-testid="ref-option"
-        :class="[
-          'flex min-h-8 cursor-default items-start gap-2 rounded-sm px-2 py-1 text-sm',
-          i === index && 'bg-bg-muted',
-        ]"
-        @mousedown.prevent="pick(r)"
-      >
-        <component
-          :is="tab === 'tasks' ? SquareCheck : FileText"
-          :size="14"
-          class="mt-0.5 shrink-0 text-fg-subtle"
-        />
-        <span class="min-w-0 flex-1 break-words">
-          <span v-if="r.path" class="block text-xs text-fg-subtle" data-testid="ref-path">{{
-            r.path
-          }}</span>
-          {{ r.name }}
-        </span>
-      </li>
-      <li v-if="!rows.length" class="px-2 py-1 text-xs text-fg-subtle">
-        {{ q.trim() ? t('task.refNone') : t('task.refHint') }}
-      </li>
-    </ul>
+    <DocPicker
+      v-else
+      v-model:query="q"
+      :label="t('task.refSearch')"
+      :hint="t('task.refHint')"
+      autofocus
+      input-testid="ref-search"
+      option-testid="ref-option"
+      @pick="(h) => pick({ label: h.title, href: typeof h.to === 'string' ? h.to : '' })"
+      @key="onKey"
+    />
   </div>
 </template>

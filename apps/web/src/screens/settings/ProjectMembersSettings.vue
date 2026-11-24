@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
+import { UserPicker, avatarSrc } from '../../pickers';
 import { Avatar, Button, Select } from '../../ui';
 import { useAuth } from '../../auth/useAuth';
 import { db, mutate, newId, useQuery } from '../../sync';
@@ -48,8 +49,8 @@ const free = computed(() => {
     .filter(
       (m) => !have.has(m.userId) && users.get(m.userId) && !users.get(m.userId)!.deactivatedAt,
     )
-    .map((m) => ({ value: m.userId, label: users.get(m.userId)!.name }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .map((m) => users.get(m.userId)!)
+    .sort((a, b) => a.name.localeCompare(b.name));
 });
 const roles = computed(() =>
   (['admin', 'member', 'guest'] as const).map((r) => ({ value: r, label: t(`auth.roles.${r}`) })),
@@ -96,7 +97,14 @@ const remove = (id: string) => run(() => mutate('projectMember.remove', { id }))
       :description="t('settings.projectMembersDesc')"
     >
       <form v-if="canEdit && custom" class="flex flex-wrap items-end gap-2" @submit.prevent="add">
-        <Select v-model="userId" :label="t('settings.user')" :options="free" />
+        <UserPicker
+          :users="free"
+          :selected="userId ? [userId] : []"
+          :title="t('settings.user')"
+          :empty="t('settings.user')"
+          field
+          @pick="userId = $event"
+        />
         <Select v-model="role" :label="t('auth.role')" :options="roles" />
         <Button type="submit" variant="primary" size="sm" data-testid="pmember-add">{{
           t('settings.add')
@@ -126,7 +134,7 @@ const remove = (id: string) => run(() => mutate('projectMember.remove', { id }))
         data-testid="pmember-row"
         class="group flex items-center gap-3 py-1"
       >
-        <Avatar :name="r.u!.name" />
+        <Avatar :name="r.u!.name" :src="avatarSrc(r.u)" />
         <span class="min-w-0 flex-1 truncate text-sm">{{ r.u!.name }}</span>
         <Select
           :model-value="r.m.role"

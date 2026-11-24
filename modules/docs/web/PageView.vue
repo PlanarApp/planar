@@ -40,7 +40,9 @@ const router = useRouter();
 const route = useRoute();
 const page = useQuery(() => db.table<PageFull>('docsPages').get(props.pageId));
 const users = useQuery(() => db.table<Row<'users'>>('users').toArray());
-const members = computed(() => (users.value ?? []).map((u) => ({ id: u.id, name: u.name })));
+const members = computed(() =>
+  (users.value ?? []).map((u) => ({ id: u.id, name: u.name, avatarFile: u.avatarFile })),
+);
 // panels of other modules under the title (docPanels); each decides itself whether the page suits it
 const panelExt = useExtensions('docPanels', () => page.value?.projectId ?? undefined);
 const panels = computed(() =>

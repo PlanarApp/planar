@@ -46,7 +46,7 @@ describe('редактор: @@ и @@@', () => {
     await flushPromises();
     await vi.waitFor(() => expect(w.find('[data-testid=ref-picker]').exists()).toBe(true));
     await w.find('[data-testid=ref-search]').setValue('вход');
-    await w.find('[data-testid=ref-option]').trigger('mousedown');
+    await w.find('[data-testid=ref-option]').trigger('click');
     expect(w.find('[data-testid=ref-picker]').exists()).toBe(false);
     expect(json()).toContain('"href":"/t/PLN-1"');
     expect(json()).toContain('PLN-1 Вход');
@@ -63,7 +63,7 @@ describe('редактор: @@ и @@@', () => {
     expect(w.find('[data-testid=ref-tab-docs]').attributes('aria-pressed')).toBe('true');
     await w.find('[data-testid=ref-search]').setValue('регл');
     await vi.waitFor(() => expect(w.findAll('[data-testid=ref-option]').length).toBe(1));
-    await w.find('[data-testid=ref-option]').trigger('mousedown');
+    await w.find('[data-testid=ref-option]').trigger('click');
     expect(json()).toContain('"href":"/m/docs/d1"');
     w.unmount();
   });

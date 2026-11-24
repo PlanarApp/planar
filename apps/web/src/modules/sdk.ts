@@ -41,6 +41,7 @@ export { openTask } from '../views/open';
 /** PLNRAPP-519: the "Move to project" submenu — spaces → projects I can change */
 export { moveMenu, useMoveSpaces, type MoveSpace } from '../tasks/moveTargets';
 export * from '../ui';
+export * from '../pickers';
 export { useI18n } from 'vue-i18n';
 export { i18n } from '../i18n';
 export { useWeekStart } from '../i18n/week';

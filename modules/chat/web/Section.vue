@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ChevronRight, Hash, Plus, User } from 'lucide-vue-next';
-import { Badge, Button, IconButton, Input, mutate, newId } from '@planar/web/modules';
+import { Badge, Button, IconButton, Input, mutate, newId, UserPicker } from '@planar/web/modules';
 import { useChatData } from './data';
 import { byName, dmTitle, findDm, type Channel } from './model';
 import { useTexts } from './text';
@@ -233,15 +233,15 @@ const link = (id: string) => `/m/chat/c/${id}`;
           />
         </div>
         <form v-if="picking" class="py-1 pl-7 pr-2" @submit.prevent="openDm">
-          <label v-for="u in people" :key="u.id" class="flex items-center gap-2 py-0.5 text-sm">
-            <input
-              type="checkbox"
-              :checked="picked.includes(u.id)"
-              :data-testid="`chat-pick-${u.id}`"
-              @change="toggle(u.id)"
-            />
-            {{ u.name }}
-          </label>
+          <UserPicker
+            :users="people"
+            :selected="picked"
+            multiple
+            field
+            :title="tx('people')"
+            :empty="tx('people')"
+            @pick="(id) => id && toggle(id)"
+          />
           <Button type="submit" size="sm" variant="primary" :disabled="!picked.length">{{
             tx('create')
           }}</Button>

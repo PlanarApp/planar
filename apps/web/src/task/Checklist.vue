@@ -12,8 +12,9 @@ import {
 } from 'lucide-vue-next';
 import { CHECKLIST_MAX_INDENT, type Row } from '@planar/shared';
 import { db, mutate, newId, rankBetween, useQuery } from '../sync';
-import { Avatar, IconButton, Input, Menu, type MenuItem } from '../ui';
+import { Avatar, Input, Menu, type MenuItem } from '../ui';
 import { createTask, useMembers } from '../tasks';
+import { UserPicker, avatarSrc } from '../pickers';
 import { useChecklist } from './queries';
 import WorkStatus from './WorkStatus.vue';
 import { TASK_ACTIVITY, activityOf } from '../modules/activity';
@@ -150,30 +151,9 @@ function onTab(e: KeyboardEvent) {
   e.preventDefault();
   newIndent.value = Math.max(0, Math.min(newIndent.value + (e.shiftKey ? -1 : 1), newMax.value));
 }
-// an item is assigned as a comment (PLNRAPP-140): the menu of space members with avatars
+// an item is assigned as a comment (PLNRAPP-140): the common user picker over the space members
 const members = useMembers(() => props.spaceId);
-const avatarOf = (u: Row<'users'> | undefined) =>
-  u?.avatarFile ? `/files/${u.avatarFile}/preview?w=256` : null;
 const userOf = (id: string | null | undefined) => members.value?.find((u) => u.id === id);
-const assignItems = (i: Row<'checklistItems'>): MenuItem[] => [
-  ...(members.value ?? []).map((u) => ({
-    id: u.id,
-    label: u.name,
-    icon: Avatar,
-    iconProps: { name: u.name, src: avatarOf(u), size: 'xs' },
-    onSelect: () => void mutate('checklist.update', { id: i.id, assigneeId: u.id }),
-  })),
-  ...(i.assigneeId
-    ? [
-        { separator: true as const },
-        {
-          id: 'none',
-          label: t('task.unassignComment'),
-          onSelect: () => void mutate('checklist.update', { id: i.id, assigneeId: null }),
-        },
-      ]
-    : []),
-];
 
 async function add() {
   const s = text.value.trim();
@@ -238,33 +218,35 @@ async function add() {
           @open="taskWork?.open"
           @cancel="taskWork?.cancel"
         />
-        <Menu v-if="members?.length" :items="assignItems(i)" align="end">
-          <template #trigger>
-            <button
+        <UserPicker
+          v-if="members?.length"
+          :users="members"
+          :selected="i.assigneeId ? [i.assigneeId] : []"
+          :title="
+            i.assigneeId
+              ? t('task.assignedTo', { name: userOf(i.assigneeId)?.name ?? '?' })
+              : t('task.assignComment')
+          "
+          :none="i.assigneeId ? t('task.unassignComment') : undefined"
+          @pick="(id) => void mutate('checklist.update', { id: i.id, assigneeId: id })"
+        >
+          <template #value>
+            <Avatar
               v-if="i.assigneeId"
-              type="button"
-              class="inline-flex items-center rounded-md p-1 hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
-              :aria-label="t('task.assignedTo', { name: userOf(i.assigneeId)?.name ?? '?' })"
-              :title="userOf(i.assigneeId)?.name"
-              data-testid="checklist-assignee"
-            >
-              <Avatar
-                :name="userOf(i.assigneeId)?.name ?? '?'"
-                :src="avatarOf(userOf(i.assigneeId))"
-                size="sm"
-                :class="workOf(i.id)?.state === 'running' && 'work-ring'"
-              />
-            </button>
-            <IconButton
-              v-else
+              :name="userOf(i.assigneeId)?.name ?? '?'"
+              :src="avatarSrc(userOf(i.assigneeId))"
               size="sm"
-              :icon="UserPlus"
-              :label="t('task.assignComment')"
-              class="md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+              :class="workOf(i.id)?.state === 'running' && 'work-ring'"
+              data-testid="checklist-assignee"
+            />
+            <UserPlus
+              v-else
+              :size="16"
+              class="text-fg-muted md:opacity-0 md:group-hover:opacity-100"
               data-testid="checklist-assign"
             />
           </template>
-        </Menu>
+        </UserPicker>
         <!-- «…» instead of the delete cross (PLNRAPP-142): to a task / subtask, delete -->
         <Menu
           :items="itemMenu(i)"

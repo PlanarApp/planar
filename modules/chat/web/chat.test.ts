@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
 import { flushPromises, mount as vmount } from '@vue/test-utils';
-import { db, Editor, i18n, newId, resetBreakpoint } from '@planar/web/modules';
+import { db, Editor, i18n, newId, resetBreakpoint, UserPicker } from '@planar/web/modules';
 import { web } from './index';
 import { shared } from '../shared';
 import { mergeFeed, taskRefs, type Channel, type Message } from './model';
@@ -337,14 +337,16 @@ describe('секция боковой панели', () => {
     const w = mount(Section);
     await vi.waitFor(() => expect(w.find('[data-testid=chat-dm]').exists()).toBe(true));
     await w.find('[data-testid=chat-add-dm]').trigger('click');
-    await w.find(`[data-testid=chat-pick-${ANNA}]`).setValue(true);
+    w.findComponent(UserPicker).vm.$emit('pick', ANNA);
+    await flushPromises();
     await w.find('form button[type=submit]').trigger('submit');
     await flushPromises();
     expect(h_.mutate).not.toHaveBeenCalled();
     expect(h_.push).toHaveBeenCalledWith('/m/chat/c/d1');
 
     await w.find('[data-testid=chat-add-dm]').trigger('click'); // the selection panel closed after navigation
-    await w.find(`[data-testid=chat-pick-${BOB}]`).setValue(true);
+    w.findComponent(UserPicker).vm.$emit('pick', BOB);
+    await flushPromises();
     await w.find('form').trigger('submit');
     await flushPromises();
     const [name, args] = h_.mutate.mock.calls[0]!;

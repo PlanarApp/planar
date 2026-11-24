@@ -25,6 +25,10 @@ const props = defineProps<{
   extra?: (q: string) => string | null;
   /** ids on some of the selected tasks — the "partially" mark (bulk edit, PLNRAPP-498) */
   partial?: string[];
+  /** bordered button like a form field (settings forms), otherwise a flat one */
+  field?: boolean;
+  /** data-testid of the button */
+  testid?: string;
 }>();
 const emit = defineEmits<{ pick: [id: string]; extra: [q: string] }>();
 const { t } = useI18n();
@@ -69,7 +73,11 @@ function onKey(e: KeyboardEvent) {
         v-bind="attrs"
         type="button"
         :aria-label="title"
-        class="inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus"
+        :data-testid="testid"
+        :class="[
+          'inline-flex max-w-full items-center gap-1.5 rounded-md text-sm text-fg outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus',
+          field ? 'h-11 border border-border-strong bg-bg px-2 md:h-8' : 'h-7 px-1.5',
+        ]"
       >
         <!-- value: своё содержимое кнопки (ячейка Списка рисует значение так же, как без пикера) -->
         <slot name="value">

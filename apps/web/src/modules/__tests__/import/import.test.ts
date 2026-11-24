@@ -1,4 +1,6 @@
 import Select from '../../../ui/Select.vue';
+import { i18n } from '../../../i18n';
+import UserPicker from '../../../pickers/UserPicker.vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -132,7 +134,7 @@ describe('wk6: web импорта', () => {
   });
 
   it('wk6: мастер — файл → предпросмотр и сопоставление → прогресс и отчёт о пропусках', async () => {
-    const w = mount(ImportPage);
+    const w = mount(ImportPage, { global: { plugins: [i18n] } });
     const input = w.get('input[type=file]');
     Object.defineProperty(input.element, 'files', { value: [new File(['x'], 'a.csv')] });
     await input.trigger('change');
@@ -182,7 +184,7 @@ describe('wk6: web импорта', () => {
       values: { status: [], project: [{ name: 'Eng', key: 'ENG' }], people: ['G L', 'Alice'] },
     });
     vi.mocked(data.startJob).mockClear();
-    const w = mount(ImportPage);
+    const w = mount(ImportPage, { global: { plugins: [i18n] } });
     const input = w.get('input[type=file]');
     Object.defineProperty(input.element, 'files', { value: [new File(['x'], 'a.json')] });
     await input.trigger('change');
@@ -202,6 +204,48 @@ describe('wk6: web импорта', () => {
           projectMap: { Eng: 'new' },
           userMap: { 'G L': 'new', Alice: 'u1' },
         }),
+      }),
+    );
+    w.unmount();
+  });
+
+  it('PLNRAPP-827: люди файла сопоставляются общим UserPicker — «Создать нового», «нет», человек', async () => {
+    vi.mocked(data.previewFile).mockResolvedValueOnce({
+      columns: ['Name', 'Assignees'],
+      rows: [['A', '["G L"]']],
+      mapping: { title: 'Name', assignee: 'Assignees' },
+      values: { status: [], project: [], people: ['G L', 'Alice', 'Bob'] },
+    });
+    vi.mocked(data.startJob).mockClear();
+    const w = mount(ImportPage, { global: { plugins: [i18n] } });
+    const input = w.get('input[type=file]');
+    Object.defineProperty(input.element, 'files', { value: [new File(['x'], 'a.json')] });
+    await input.trigger('change');
+    await w.get('.import-next').trigger('click');
+    await flushPromises();
+    w.get('.import-space').getComponent(Select).vm.$emit('update:modelValue', 's1');
+    await w.vm.$nextTick();
+    w.get('.import-project').getComponent(Select).vm.$emit('update:modelValue', 'p1');
+    await w.vm.$nextTick();
+    const pickers = w.findAll('.import-person').map((r) => r.getComponent(UserPicker));
+    expect(pickers).toHaveLength(3);
+    // admin: the «create new» item; the guess for an unknown name is «create», for Alice — her
+    expect(pickers[0]!.props()).toMatchObject({
+      create: 'createNew',
+      creating: true,
+      none: 'noMatch',
+    });
+    expect(pickers[1]!.props('selected')).toEqual(['u1']);
+    pickers[0]!.vm.$emit('pick', 'u1');
+    pickers[1]!.vm.$emit('pick', null);
+    pickers[2]!.vm.$emit('create');
+    await w.vm.$nextTick();
+    await w.get('.import-start').trigger('click');
+    await flushPromises();
+    expect(data.startJob).toHaveBeenCalledWith(
+      expect.any(File),
+      expect.objectContaining({
+        mapping: expect.objectContaining({ userMap: { 'G L': 'u1', Bob: 'new' } }),
       }),
     );
     w.unmount();

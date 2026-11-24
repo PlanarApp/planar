@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { Editor, EditorContent, Extension } from '@tiptap/vue-3';
 import Placeholder from '@tiptap/extension-placeholder';
 import Mention from '@tiptap/extension-mention';
@@ -9,9 +9,11 @@ import { PluginKey } from '@tiptap/pm/state';
 import {
   filterSlash,
   i18n,
+  SuggestList,
   uploadFile,
   useSearch,
   useSession,
+  type PickUser,
   type SlashItem,
 } from '@planar/web/modules';
 import FormatBar from './FormatBar.vue';
@@ -22,7 +24,7 @@ const props = withDefaults(
   defineProps<{
     /** Yjs document name: `docs:<pageId>` (P3-ydoc). */
     name: string;
-    members: { id: string; name: string }[];
+    members: PickUser[];
     editable?: boolean;
   }>(),
   { editable: true },
@@ -34,6 +36,11 @@ const error = ref('');
 const sug = ref<SugState | null>(null);
 const fileInput = ref<HTMLInputElement>();
 const render = suggestRender(sug);
+// rows of the hint: a person (@) gets the avatar of the user picker, «/» and «#» are plain
+const sugItems = computed(() => {
+  const byId = new Map(props.members.map((m) => [m.id, m]));
+  return (sug.value?.items ?? []).map((i) => ({ key: i.key, label: i.label, user: byId.get(i.key) }));
+});
 const tasks = useSearch();
 
 async function insertImages(files: File[]) {
@@ -211,27 +218,14 @@ defineExpose({ editor });
       {{ tx('unsynced') }}
       <button type="button" class="underline" @click="retry">{{ tx('retry') }}</button>
     </p>
-    <ul
+    <SuggestList
       v-if="sug && sug.items.length"
-      role="listbox"
-      :aria-label="tx('mention')"
-      class="fixed z-50 min-w-44 rounded-lg border border-border bg-surface p-1 shadow-md"
-      :style="sug.rect ? { left: sug.rect.left + 'px', top: sug.rect.bottom + 4 + 'px' } : {}"
-    >
-      <li
-        v-for="(it, i) in sug.items"
-        :key="it.key"
-        role="option"
-        :aria-selected="i === sug.index"
-        :class="[
-          'flex h-8 cursor-default items-center rounded-sm px-2 text-base text-fg',
-          i === sug.index && 'bg-bg-muted',
-        ]"
-        @mousedown.prevent="sug.select(i)"
-      >
-        {{ it.label }}
-      </li>
-    </ul>
+      :items="sugItems"
+      :index="sug.index"
+      :label="tx('mention')"
+      :position="sug.rect ? { left: sug.rect.left + 'px', top: sug.rect.bottom + 4 + 'px' } : {}"
+      @pick="(i) => sug?.select(i)"
+    />
   </div>
 </template>
 

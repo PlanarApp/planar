@@ -17,6 +17,7 @@ import {
   ChevronsUpDown,
 } from 'lucide-vue-next';
 import { Button, IconButton, Select } from '../ui';
+import { avatarSrc } from '../pickers';
 import CommentThread from './CommentThread.vue';
 import ActorAvatar from './ActorAvatar.vue';
 import { actKey, groupRuns, mergeChanges } from './activityGroups';
@@ -208,8 +209,7 @@ async function sendReply() {
 }
 const canResolve = (c: Row<'comments'>) =>
   !!user.value && (c.assigneeId === user.value.id || c.authorId === user.value.id || isAdmin.value);
-const avatarOf = (id: string) =>
-  userOf(id)?.avatarFile ? `/files/${userOf(id)!.avatarFile}/preview?w=256` : null;
+const avatarOf = (id: string) => avatarSrc(userOf(id));
 const memberList = computed(() =>
   (members.value ?? []).map((m) => ({ id: m.id, name: m.name, avatar: avatarOf(m.id) })),
 );
@@ -373,7 +373,9 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
         files
         :model-value="draft"
         @update:model-value="setDraft"
-        :members="(members ?? []).map((m) => ({ id: m.id, name: m.name }))"
+        :members="
+          (members ?? []).map((m) => ({ id: m.id, name: m.name, avatarFile: m.avatarFile }))
+        "
         :label="t('task.newComment')"
         :placeholder="t('task.newComment')"
         @submit="send"

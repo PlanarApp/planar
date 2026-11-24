@@ -652,6 +652,12 @@ export default {
     moduleOffAction: 'Module settings',
     notFound: 'Page not found',
   },
+  pickers: {
+    taskSearch: 'Find a task',
+    docSearch: 'Find a document',
+    noTasks: 'No tasks found',
+    noDocs: 'No documents found',
+  },
   links: {
     title: 'Links',
     blocked: 'Blocked',

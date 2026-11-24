@@ -31,6 +31,8 @@ import { PluginKey } from '@tiptap/pm/state';
 import { filterSlash, slashItems } from './slash';
 import { TO_TASK } from '../thread';
 import { Button } from '../../ui';
+import SuggestList from '../../pickers/SuggestList.vue';
+import type { PickUser } from '../../pickers/UserPicker.vue';
 
 // link dialog (@@/@@@) — a separate chunk: the task index is built only when opened
 const RefPicker = defineAsyncComponent(() => import('./RefPicker.vue'));
@@ -62,7 +64,7 @@ type Item = { id: string; label: string };
 const props = withDefaults(
   defineProps<{
     modelValue?: JSONContent | null;
-    members: { id: string; name: string }[];
+    members: PickUser[];
     label: string;
     placeholder?: string;
     image?: boolean;
@@ -432,6 +434,15 @@ const selStyle = (s: { left: number; top: number; bottom: number }) =>
   s.bottom + 16 + 56 > window.innerHeight
     ? { left: s.left + 'px', bottom: window.innerHeight - s.top + 16 + 'px' }
     : { left: s.left + 'px', top: s.bottom + 16 + 'px' };
+// rows of the hint: a person (@) gets the avatar of the user picker, «/» commands are plain
+const sugItems = computed(() => {
+  const byId = new Map(props.members.map((m) => [m.id, m]));
+  return (sug.value?.items ?? []).map((i) => ({ key: i.id, label: i.label, user: byId.get(i.id) }));
+});
+const pickSug = (i: number) => {
+  const s = sug.value;
+  if (s?.items[i]) s.command(s.items[i]);
+};
 // the @ list under the cursor; does not fit below (field near the bottom edge, as in chat) — above the cursor
 const sugStyle = (r: DOMRect | null, n: number) => {
   if (!r) return {};
@@ -500,27 +511,14 @@ const sugStyle = (r: DOMRect | null, n: number) => {
         {{ t('task.retry') }}
       </button>
     </p>
-    <ul
+    <SuggestList
       v-if="sug && sug.items.length"
-      role="listbox"
-      :aria-label="t('task.mention')"
-      class="fixed z-50 max-h-64 min-w-44 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-md"
-      :style="sugStyle(sug.rect, sug.items.length)"
-    >
-      <li
-        v-for="(it, i) in sug.items"
-        :key="it.id"
-        role="option"
-        :aria-selected="i === sug.index"
-        :class="[
-          'flex h-8 cursor-default items-center rounded-sm px-2 text-base text-fg',
-          i === sug.index && 'bg-bg-muted',
-        ]"
-        @mousedown.prevent="sug.command(it)"
-      >
-        {{ it.label }}
-      </li>
-    </ul>
+      :items="sugItems"
+      :index="sug.index"
+      :label="t('task.mention')"
+      :position="sugStyle(sug.rect, sug.items.length)"
+      @pick="pickSug"
+    />
     <RefPicker v-if="refAt" :rect="refAt.rect" @pick="insertRef" @close="closeRef" />
     <!-- below the selection, past the mobile selection handles (no room — above); mousedown.prevent keeps the selection and the focus -->
     <div

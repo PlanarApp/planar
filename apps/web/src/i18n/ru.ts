@@ -650,6 +650,12 @@ export default {
     moduleOffAction: 'Настройки модулей',
     notFound: 'Страница не найдена',
   },
+  pickers: {
+    taskSearch: 'Найти задачу',
+    docSearch: 'Найти документ',
+    noTasks: 'Задачи не найдены',
+    noDocs: 'Документы не найдены',
+  },
   links: {
     title: 'Связи',
     blocked: 'Заблокирована',
