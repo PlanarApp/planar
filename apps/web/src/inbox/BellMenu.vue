@@ -58,7 +58,7 @@ function all() {
         >
       </span>
     </template>
-    <div class="flex w-80 flex-col gap-2" data-testid="bell-menu">
+    <div class="flex w-full flex-col gap-2 md:w-80" data-testid="bell-menu">
       <EmptyState v-if="!items.length" :title="t('inbox.empty')" />
       <div class="-mx-1 flex max-h-96 flex-col overflow-y-auto">
         <div

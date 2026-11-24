@@ -582,6 +582,13 @@
       "when": 1796275200000,
       "tag": "0082_gitlab_ci_job_url",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1796361600000,
+      "tag": "0083_gitlab_branch_pipeline_bigint",
+      "breakpoints": true
     }
   ]
 }

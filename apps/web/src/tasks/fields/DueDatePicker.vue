@@ -36,7 +36,7 @@ const set = (v: string) => {
         </slot>
       </button>
     </template>
-    <div class="flex w-56 flex-col gap-2">
+    <div class="flex w-full flex-col gap-2 md:w-56">
       <!-- extra choices above the date (My day: today, tomorrow, remove) -->
       <slot name="options" :close="() => (open = false)">
         <DayOptions v-if="taskId" :task-id="taskId" @done="open = false" />

@@ -433,17 +433,18 @@ async function pollBranches(api: JobApi, token: string, p: typeof P.$inferSelect
   ).rows as {
     id: string;
     name: string;
-    pipelineId: number | null;
+    pipelineId: string | number | null; // bigint: the raw query returns it as a string (PLNRAPP-809)
     pipelineStatus: string | null;
     pipelineUrl: string | null;
   }[];
   for (const b of rows) {
+    const prevId = b.pipelineId === null ? null : Number(b.pipelineId);
     const qs = new URLSearchParams({ ref: b.name, per_page: '1' });
     const list = (await (await get(`${repo}/pipelines?${qs}`, token)).json()) as GlPipeline[];
     const last = Array.isArray(list) ? list[0] : undefined;
     const pipelineId = last?.id ?? null;
     const same =
-      pipelineId === b.pipelineId &&
+      pipelineId === prevId &&
       (last?.status ?? null) === b.pipelineStatus &&
       (!last?.status || (FINAL.includes(last.status) && !!b.pipelineUrl));
     if (same) continue;

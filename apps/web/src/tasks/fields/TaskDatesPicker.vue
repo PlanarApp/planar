@@ -57,7 +57,7 @@ const clear = () => {
         <span v-if="text" data-testid="task-dates-value">{{ text }}</span>
       </button>
     </template>
-    <div class="flex w-56 flex-col gap-2">
+    <div class="flex w-full flex-col gap-2 md:w-56">
       <DayOptions v-if="props.taskId" :task-id="props.taskId" @done="open = false" />
       <Input
         :model-value="start ?? ''"

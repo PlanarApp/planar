@@ -38,7 +38,7 @@ const toggle = (id: string) =>
       </Button>
     </template>
     <div
-      class="flex max-h-80 w-64 flex-col gap-1 overflow-y-auto"
+      class="flex max-h-80 w-full flex-col gap-1 overflow-y-auto md:w-64"
       role="group"
       :aria-label="t('views.projects.title')"
     >
