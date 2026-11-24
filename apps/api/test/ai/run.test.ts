@@ -1197,14 +1197,22 @@ describe('движок: приёмка, доработка, надзор, све
       task: await raw(`select status_id from tasks where id = $1`, [t]),
       asg: await raw(`select user_id from task_assignees where task_id = $1`, [t]),
       runs: await raw(
-        `select id, state, attempt, rule_id, action_id, finished_at, kind from ai_runs where task_id = $1`,
+        `select id, state, attempt, rule_id, action_id, finished_at, created_at, kind, report from ai_runs where task_id = $1`,
         [t],
       ),
       rules: await raw(`select id, enabled, trigger from automations_rules where project_id = $1`, [
         P,
       ]),
-      ev: await raw(`select text from ai_engine_events order by created_at desc limit 15`),
+      act: await raw(
+        `select changes, created_at from activity where task_id = $1 order by created_at`,
+        [t],
+      ),
+      lb: await raw(
+        `select x.id, (select max(created_at) from activity where task_id = $1) as at from automations_rules x where x.project_id = $2`,
+        [t, P],
+      ),
       jobs,
+      ev: await raw(`select * from ai_engine_events where task_id = $1`, [t]),
     };
     console.log('DIAG ' + JSON.stringify(diag));
     expect(diag).toEqual({});
