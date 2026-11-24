@@ -35,7 +35,10 @@ const toggleField = (f: TaskField) =>
         {{ t('views.view') }}
       </Button>
     </template>
-    <div class="flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-3" data-testid="view-options">
+    <div
+      class="flex w-full flex-col gap-3 md:w-72 md:max-w-[calc(100vw-2rem)]"
+      data-testid="view-options"
+    >
       <!-- выбор вида — вверху меню, табов видов нет (PLNRAPP-71) -->
       <slot />
       <Select v-model="options.groupBy" :label="t('views.groupBy')" :options="groupOptions" />

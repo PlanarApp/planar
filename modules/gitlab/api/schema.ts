@@ -1,4 +1,13 @@
-import { index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 
@@ -72,7 +81,8 @@ export const gitlabBranches = pgTable(
     name: text().notNull(),
     webUrl: text().notNull(),
     // PLNRAPP-822: the branch's last pipeline (id, status) and its job in GitLab
-    pipelineId: integer(),
+    // PLNRAPP-809: bigint — pipeline ids on gitlab.com exceed 2^31
+    pipelineId: bigint({ mode: 'number' }),
     pipelineStatus: text(),
     pipelineUrl: text(),
     createdAt: ts().notNull(),

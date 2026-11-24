@@ -31,7 +31,7 @@ watch(
         size="sm"
         :label="t('groups.project')"
         :options="projects.map((p) => ({ value: p.projectId!, label: p.title }))"
-        class="w-64"
+        class="w-full md:w-64"
       />
     </div>
     <EmptyState v-if="spaces && !pick" :title="t('groups.noProjects')" />

@@ -964,6 +964,28 @@ describe('PLNRAPP-822: статус CI веток и ссылка на джоб�
     expect((await proj()).lastError).toBeNull();
   });
 
+  it('PLNRAPP-809: id пайплайна больше 2^31 (gitlab.com) — статус ветки записан, повторный опрос не перезапрашивает', async () => {
+    await addProject(42);
+    const t = await mkTask();
+    const b = await addBranch(t.id, 'feature/big');
+    handler = gitlab;
+    const big = 3108288467;
+    pipelines['feature/big'] = [pl(big, 'failed')];
+    jobs[String(big)] = [
+      { status: 'failed', allow_failure: false, web_url: 'https://gl/g/-/jobs/18318560694' },
+    ];
+    await poll();
+    expect((await proj()).lastError).toBeNull();
+    expect(await row(b)).toMatchObject({
+      pipelineId: big,
+      pipelineStatus: 'failed',
+      pipelineUrl: 'https://gl/g/-/jobs/18318560694',
+    });
+    hits = [];
+    await poll();
+    expect(jobHits()).toHaveLength(0);
+  });
+
   it('MR: ссылка на джобу head-пайплайна рядом со статусом; клиентский gitlab.branch.ci → forbidden', async () => {
     await addProject(42);
     const t = await mkTask();

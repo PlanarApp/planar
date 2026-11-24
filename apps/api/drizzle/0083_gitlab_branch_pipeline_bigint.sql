@@ -1,0 +1,1 @@
+ALTER TABLE "gitlab_branches" ALTER COLUMN "pipeline_id" SET DATA TYPE bigint;

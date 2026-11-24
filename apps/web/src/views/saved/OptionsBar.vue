@@ -65,7 +65,7 @@ import MeMode from './MeMode.vue';
     </template>
     <Input
       v-model="quick"
-      class="w-72 max-w-[calc(100vw-2rem)]"
+      class="w-full md:w-72 md:max-w-[calc(100vw-2rem)]"
       :label="t('views.filter.quick')"
       :placeholder="t('views.filter.quickHint')"
       hide-label

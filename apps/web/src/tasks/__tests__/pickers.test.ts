@@ -195,4 +195,27 @@ describe('tasks:pickers mobile', () => {
     expect(list.classList.contains('max-h-[60vh]')).toBe(false);
     w.unmount();
   });
+  it('PLNRAPP-809: селекторы дат в мобильной раскладке — лист на всю ширину, на десктопе прежние 14rem', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: true,
+      media: q,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    resetBreakpoint();
+    for (const w of [
+      mount(DueDatePicker, { ...opts, props: { modelValue: null } }),
+      mount(TaskDatesPicker, { ...opts, props: { start: null, due: null } }),
+    ]) {
+      await open(w);
+      // the picker body: the first child of the sheet content wrapper (Popover.vue, mobile)
+      const body = document.body.querySelector('[data-testid=sheet] .p-3 > div')!;
+      expect(body.querySelector('input[type="date"]')).not.toBeNull();
+      const box = body.classList;
+      expect(box.contains('w-full')).toBe(true);
+      expect(box.contains('md:w-56')).toBe(true);
+      expect(box.contains('w-56')).toBe(false);
+      w.unmount();
+    }
+  });
 });
