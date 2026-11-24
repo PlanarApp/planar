@@ -42,7 +42,19 @@ describe('таб «Назначенные» (PLNRAPP-561)', () => {
     expect(tab()).toBeUndefined();
   });
 
-  it('счётчик «завершено/всего», незавершённые по хронологии, завершённые — в свёрнутом аккордеоне', async () => {
+  it('все назначенные завершены — таб без числа (PLNRAPP-819)', async () => {
+    await db
+      .table('comments')
+      .put(
+        comment('сделанный', 1, { assigneeId: ids.ann, resolvedAt: at(2), resolvedBy: ids.ann }),
+      );
+    w = await open();
+    await until(() => !!tab());
+    await flushPromises();
+    expect(w.find('[data-testid="tab-count-assigned"]').exists()).toBe(false);
+  });
+
+  it('счётчик — незавершённые (PLNRAPP-819), незавершённые по хронологии, завершённые — в свёрнутом аккордеоне', async () => {
     await db
       .table('comments')
       .bulkPut([
@@ -53,8 +65,8 @@ describe('таб «Назначенные» (PLNRAPP-561)', () => {
       ]);
     w = await open();
     await until(() => w.find('[data-testid="tab-count-assigned"]').exists());
-    // open 2, total 3 → resolved 1 of 3
-    expect(w.find('[data-testid="tab-count-assigned"]').text()).toBe('1/3');
+    // open 2 of 3 → the count is 2
+    expect(w.find('[data-testid="tab-count-assigned"]').text()).toBe('2');
     await tab()!.trigger('click');
     await flushPromises();
     const open_ = w.get('[data-testid="assigned-open-list"]');
@@ -118,7 +130,7 @@ describe('таб «Назначенные»: переход и отметка «
     await db.table('comments').bulkPut([c, comment('ещё одно', 2, { assigneeId: ids.bob })]);
     w = await open();
     await until(() => w.find('[data-testid="tab-count-assigned"]').exists());
-    expect(w.get('[data-testid="tab-count-assigned"]').text()).toBe('0/2');
+    expect(w.get('[data-testid="tab-count-assigned"]').text()).toBe('2');
     await tab()!.trigger('click');
     await flushPromises();
     const btn = () =>
@@ -128,7 +140,7 @@ describe('таб «Назначенные»: переход и отметка «
         .get('[data-testid="assigned-resolve"]');
     expect(btn().attributes('aria-pressed')).toBe('false');
     await btn().trigger('click');
-    await until(() => w.get('[data-testid="tab-count-assigned"]').text() === '1/2');
+    await until(() => w.get('[data-testid="tab-count-assigned"]').text() === '1');
     expect((await queued('comment.resolve')).map((q) => q.args)).toEqual([
       { id: c.id, resolved: true },
     ]);
@@ -140,7 +152,7 @@ describe('таб «Назначенные»: переход и отметка «
     // and back from the accordion
     await w.get('[data-testid="assigned-resolved"]').trigger('click');
     await btn().trigger('click');
-    await until(() => w.get('[data-testid="tab-count-assigned"]').text() === '0/2');
+    await until(() => w.get('[data-testid="tab-count-assigned"]').text() === '2');
     expect(
       w.get(`[data-comment="${c.id}"] [data-testid="comment-resolve"]`).attributes('aria-pressed'),
     ).toBe('false');

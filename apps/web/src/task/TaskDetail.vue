@@ -360,7 +360,8 @@ const subtasks = useSubtasks(props.task.id);
 const checklist = useChecklist(props.task.id);
 const files = useAttachments(props.task.id);
 const links = useTaskLinks(() => props.task.id);
-// PLNRAPP-561: assigned comments (replies too) — the tab after the subtasks, hidden while there are none
+// PLNRAPP-561: assigned comments (replies too) — the tab after the subtasks, hidden while there are none;
+// PLNRAPP-819: the count — open ones only, all resolved — no count
 const comments = useComments(props.task.id);
 const assigned = computed(() => (comments.value ?? []).filter((c) => c.assigneeId));
 const tabs = computed(() => {
@@ -398,7 +399,7 @@ const tabCounts = computed<Record<string, number | string | undefined>>(() => ({
     (subtasks.value ?? []).filter((s) => closed(s.statusId)).length,
     subtasks.value?.length ?? 0,
   ),
-  assigned: ratio(assigned.value.filter((c) => c.resolvedAt).length, assigned.value.length),
+  assigned: assigned.value.filter((c) => !c.resolvedAt).length,
   checklist: ratio(
     (checklist.value ?? []).filter((i) => i.done).length,
     checklist.value?.length ?? 0,
