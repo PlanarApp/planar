@@ -596,21 +596,32 @@ export function createClient(db: PlanarDB) {
     await applyServer({ changes: r.changes, cursor: r.cursor, lastMutationId: r.lastMutationId });
   }
 
-  /** true — something was sent */
-  async function push(): Promise<boolean> {
-    const items = await db._queue.where('id').above(pushedUpTo).limit(100).toArray();
+  /** true — something was sent; limit — mutations per request (halved while the server answers 413) */
+  async function push(limit = 100): Promise<boolean> {
+    const items = await db._queue.where('id').above(pushedUpTo).limit(limit).toArray();
     if (!items.length) return false;
     const body = {
       clientId,
       mutations: items.map((q) => ({ id: q.id!, name: q.name, args: q.args })),
     };
-    const r = syncPushResponseSchema.parse(
-      await http('/sync/push', {
+    let res: unknown;
+    try {
+      res = await http('/sync/push', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
-      }),
-    );
+      });
+    } catch (e) {
+      if (!(e instanceof HttpError) || e.status !== 413) throw e;
+      if (items.length > 1) return push(items.length >> 1);
+      // one mutation over the server's body limit would block the queue forever: refused like a server rejection
+      res = {
+        results: [
+          { id: items[0].id!, ok: false, code: 'invalid_args', message: 'Слишком большая правка' },
+        ],
+      };
+    }
+    const r = syncPushResponseSchema.parse(res);
     pushedUpTo = items[items.length - 1].id!;
     const rejected = new Map<number, { code: string; message: string }>();
     for (const x of r.results) if (!x.ok) rejected.set(x.id, x);

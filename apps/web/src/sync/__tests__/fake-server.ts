@@ -36,6 +36,8 @@ export class FakeServer {
   resetNext = false;
   /** push fails with a network error, pull/bootstrap work */
   blockPush = false;
+  /** push body over this many bytes → 413 (the API's bodyLimit) */
+  maxBody = Infinity;
   /** once, before answering a pull (cycle: push → pull) — a local edit "between push and pull" */
   beforePull: (() => Promise<void>) | null = null;
   /** C-sync v3: pull changes of comments/commentReactions carry taskId, bootstrap — `held` */
@@ -229,6 +231,8 @@ export class FakeServer {
     }
     if (url.pathname === '/sync/push') {
       if (this.blockPush) throw new TypeError('Failed to fetch');
+      if (String(init?.body).length > this.maxBody)
+        return this.json({ code: 'payload_too_large', message: 'too large' }, 413);
       this.pushes++;
       const req = syncPushRequestSchema.parse(JSON.parse(String(init?.body)));
       const results = [];
