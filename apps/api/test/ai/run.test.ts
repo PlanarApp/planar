@@ -1182,40 +1182,11 @@ describe('движок: приёмка, доработка, надзор, све
 
     // a retry of the failed run (in «В работе»): no new status change, one run queued
     const id = runs[0]!.id as string;
-    await raw(
-      `update ai_runs set state = 'failed', finished_at = now() - interval '2 min' where id = $1`,
-      [id],
-    );
+    // state and finished_at apart: the ai_runs_finished_at trigger sets finished_at = now() on a terminal state
+    await raw(`update ai_runs set state = 'failed' where id = $1`, [id]);
+    await raw(`update ai_runs set finished_at = now() - interval '2 min' where id = $1`, [id]);
     jobs.length = 0;
     await reconcile();
-    const diag = {
-      inProgress,
-      todo: S.todo,
-      ruleId,
-      afterAnswer,
-      bot,
-      task: await raw(`select status_id from tasks where id = $1`, [t]),
-      asg: await raw(`select user_id from task_assignees where task_id = $1`, [t]),
-      runs: await raw(
-        `select id, state, attempt, rule_id, action_id, finished_at, created_at, kind, report from ai_runs where task_id = $1`,
-        [t],
-      ),
-      rules: await raw(`select id, enabled, trigger from automations_rules where project_id = $1`, [
-        P,
-      ]),
-      act: await raw(
-        `select changes, created_at from activity where task_id = $1 order by created_at`,
-        [t],
-      ),
-      lb: await raw(
-        `select x.id, (select max(created_at) from activity where task_id = $1) as at from automations_rules x where x.project_id = $2`,
-        [t, P],
-      ),
-      jobs,
-      ev: await raw(`select * from ai_engine_events where task_id = $1`, [t]),
-    };
-    console.log('DIAG ' + JSON.stringify(diag));
-    expect(diag).toEqual({});
     expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([
       expect.objectContaining({
         data: expect.objectContaining({ taskId: t, actionId, restartOf: id, statusId: inProgress }),
