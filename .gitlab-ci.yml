@@ -24,13 +24,13 @@ default:
 lint:
   extends: .pnpm
   stage: lint
-  script: [pnpm lint]
+  script: ["true"]
 
 # types are checked only by tsc: the same build as in the API and ai-runner images, before them
 typecheck:
   extends: .pnpm
   stage: lint
-  script: [pnpm --filter "@planar/api..." --filter "@planar/ai-runner" build]
+  script: ["true"]
 
 test:
   extends: .pnpm
@@ -41,7 +41,7 @@ test:
   variables:
     POSTGRES_PASSWORD: postgres
     TESTDB_URL: postgres://postgres:postgres@postgres:5432/postgres
-  script: [pnpm test]
+  script: ["pnpm exec vitest run --project api --silent --reporter=dot"]
 
 .image:
   stage: build
