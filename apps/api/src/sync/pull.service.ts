@@ -207,15 +207,46 @@ export class PullService {
         .orderBy(asc(changes.seq))
         .limit(PULL_LIMIT + 1);
       if (rows.length > PULL_LIMIT || rows.some((r) => r.entity === '_reset')) return reset;
+      // C-sync v3: a detail put carries its task — the client drops those of tasks it does not hold
+      const data = (r: (typeof rows)[number]) => (r.data ?? {}) as Record<string, unknown>;
+      const reacted = [
+        ...new Set(
+          rows
+            .filter((r) => r.op === 'put' && r.entity === 'commentReactions')
+            .map((r) => data(r).commentId as string),
+        ),
+      ];
+      const ofComment = new Map(
+        reacted.length
+          ? (
+              await tx
+                .select({ id: comments.id, taskId: comments.taskId })
+                .from(comments)
+                .where(inArray(comments.id, reacted))
+            ).map((c) => [c.id, c.taskId])
+          : [],
+      );
+      const taskOf = (r: (typeof rows)[number]) =>
+        r.op !== 'put'
+          ? undefined
+          : r.entity === 'comments'
+            ? (data(r).taskId as string)
+            : r.entity === 'commentReactions'
+              ? ofComment.get(data(r).commentId as string)
+              : undefined;
       return {
         ...head,
-        changes: rows.map((r) => ({
-          seq: r.seq,
-          entity: r.entity,
-          id: r.id,
-          op: r.op as 'put' | 'del',
-          ...(r.op === 'put' ? { data: r.data as Record<string, unknown> } : {}),
-        })),
+        changes: rows.map((r) => {
+          const taskId = taskOf(r);
+          return {
+            seq: r.seq,
+            entity: r.entity,
+            id: r.id,
+            op: r.op as 'put' | 'del',
+            ...(r.op === 'put' ? { data: r.data as Record<string, unknown> } : {}),
+            ...(taskId ? { taskId } : {}),
+          };
+        }),
       };
     });
   }

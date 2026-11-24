@@ -26,6 +26,29 @@ describe('push → pull', () => {
     expect(contractSchemas['sync.pull'].safeParse(r).success).toBe(true);
   });
 
+  it('C-sync v3: put комментария и реакции несёт taskId (клиент отбрасывает детали чужих задач)', async () => {
+    const w = await world(db);
+    const t = taskArgs(w);
+    await w.admin.ok('task.create', t);
+    const { cursor } = await w.member.bootstrap();
+    const cid = uuidv7();
+    const body = {
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'x' }] }],
+    };
+    await w.admin.ok('comment.create', { id: cid, taskId: t.id, body });
+    const rid = uuidv7();
+    await w.admin.ok('reaction.toggle', { id: rid, commentId: cid, emoji: '👍' });
+    const r = await w.member.pull(cursor);
+    expect(r.changes.find((c) => c.id === cid)).toMatchObject({ entity: 'comments', taskId: t.id });
+    expect(r.changes.find((c) => c.id === rid)).toMatchObject({
+      entity: 'commentReactions',
+      taskId: t.id,
+    });
+    expect(r.changes.find((c) => c.entity === 'tasks')?.taskId).toBeUndefined();
+    expect(contractSchemas['sync.pull'].safeParse(r).success).toBe(true);
+  });
+
   it('del попадает в журнал без data', async () => {
     const w = await world(db);
     const args = taskArgs(w);
