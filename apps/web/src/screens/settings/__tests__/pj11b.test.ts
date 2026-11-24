@@ -15,7 +15,8 @@ const own = () => db.table('projectMembers').toArray();
 describe('pj11b: участники проекта', () => {
   it('pj11b без перекрытия — состав пространства, только чтение', async () => {
     const w = await mount();
-    expect(names(w)).toHaveLength(2);
+    // the screen follows the replica asynchronously
+    await vi.waitFor(() => expect(names(w)).toHaveLength(2));
     expect(names(w).join()).toContain('Ann');
     expect(names(w).join()).toContain('Bob');
     expect(w.find('[data-testid=pmember-add]').exists()).toBe(false);

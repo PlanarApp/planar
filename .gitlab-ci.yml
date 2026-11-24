@@ -41,7 +41,8 @@ test:
   variables:
     POSTGRES_PASSWORD: postgres
     TESTDB_URL: postgres://postgres:postgres@postgres:5432/postgres
-  script: [pnpm test]
+  # console of passed tests is muted: the job log stops at 4 MB and loses the failures and the summary
+  script: [pnpm exec vitest run --silent=passed-only]
 
 .image:
   stage: build
