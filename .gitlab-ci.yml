@@ -41,7 +41,7 @@ test:
   variables:
     POSTGRES_PASSWORD: postgres
     TESTDB_URL: postgres://postgres:postgres@postgres:5432/postgres
-  script: [pnpm test]
+  script: [pnpm vitest run --silent --project api]
 
 .image:
   stage: build
