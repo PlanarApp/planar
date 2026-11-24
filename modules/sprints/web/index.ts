@@ -1,5 +1,6 @@
 import { Zap } from 'lucide-vue-next';
-import { defineWebModule } from '@planar/web/modules';
+import type { Row } from '@planar/shared';
+import { db, defineWebModule } from '@planar/web/modules';
 
 export const web = defineWebModule({
   id: 'sprints',
@@ -19,6 +20,9 @@ export const web = defineWebModule({
       label: { ru: 'Спринт', en: 'Sprint' },
       icon: Zap,
       property: true,
+      // filled — the task is in a cycle (PLNRAPP-830: an empty row goes under the task form's cut)
+      count: async (taskId) =>
+        (await db.table<Row<'tasks'>>('tasks').get(taskId))?.cycleId ? 1 : 0,
       component: () => import('./CyclePanel.vue'),
     },
   ],

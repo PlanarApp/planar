@@ -1,5 +1,5 @@
 import { defineComponent, h } from 'vue';
-import { defineWebModule } from '@planar/web/modules';
+import { db, defineWebModule } from '@planar/web/modules';
 
 // Icon without a lucide dependency: flag
 const Flag = defineComponent({
@@ -46,6 +46,11 @@ export const web = defineWebModule({
       label: { ru: 'Веха', en: 'Milestone' },
       icon: Flag,
       property: true,
+      // filled — the task is linked to a milestone (PLNRAPP-830: an empty row goes under the task form's cut)
+      count: (taskId) =>
+        db.tables.some((t) => t.name === 'goalsMilestoneTasks')
+          ? db.table('goalsMilestoneTasks').where('taskId').equals(taskId).count()
+          : Promise.resolve(0),
       component: () => import('./MilestonePanel.vue'),
     },
   ],
