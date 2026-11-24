@@ -283,6 +283,63 @@ describe('pt6b:', () => {
     expect(w.get('[role=alert]').text()).toBe('MR из этой ветки уже есть');
   });
 
+  it('PLNRAPP-822: статус CI у ветки и у ветки открытого MR; клик открывает джобу в новой вкладке', async () => {
+    st.branches.value = [
+      branch({
+        id: 'b1',
+        name: 'PLN-1',
+        pipelineStatus: 'failed',
+        pipelineUrl: 'https://gl.example/g/p/-/jobs/31',
+      }),
+      branch({ id: 'b2', name: 'PLN-1-docs', createdAt: '2026-10-21T09:00:00.000Z' }),
+      branch({
+        id: 'b3',
+        name: 'PLN-1-x',
+        createdAt: '2026-10-18T09:00:00.000Z',
+        pipelineStatus: 'running',
+        pipelineUrl: 'javascript:alert(1)',
+      }),
+    ];
+    st.mrs.value = [
+      mr({
+        iid: 9,
+        sourceBranch: 'mr/PLN-1',
+        pipelineStatus: 'success',
+        pipelineUrl: 'https://gl.example/g/p/-/jobs/40',
+      }),
+      mr({ iid: 10, sourceBranch: 'old', state: 'merged', pipelineStatus: 'success' }),
+    ];
+    vi.stubGlobal('fetch', reply([]));
+    const w = panel();
+    await flushPromises();
+    const groups = w.findAll('[data-testid=gl-branch-group]');
+    const ci = (el: (typeof groups)[number]) => el.find('[data-testid=gl-ci]');
+    // no pipeline yet — no status
+    expect(ci(groups[0]!).exists()).toBe(false);
+    const failed = ci(groups[1]!);
+    expect(failed.attributes()).toMatchObject({
+      'data-status': 'failed',
+      href: 'https://gl.example/g/p/-/jobs/31',
+      target: '_blank',
+      rel: 'noopener noreferrer',
+    });
+    expect(failed.element.tagName).toBe('A');
+    expect(failed.text()).toBe('ci_failed');
+    expect(failed.classes()).toContain('text-danger');
+    // an unsafe link is not a link, the status is still shown
+    const running = ci(groups[2]!);
+    expect(running.element.tagName).toBe('SPAN');
+    expect(running.attributes('href')).toBeUndefined();
+    expect(running.text()).toBe('ci_running');
+    // the branch of an open MR of another branch — its head pipeline; of a merged one — none
+    const other = w.findAll('[data-testid=gl-branch]');
+    expect(other.map((b) => b.find('[data-testid=gl-ci]').exists())).toEqual([true, false]);
+    expect(other[0]!.get('[data-testid=gl-ci]').attributes('href')).toBe(
+      'https://gl.example/g/p/-/jobs/40',
+    );
+    expect(other[0]!.get('[data-testid=gl-ci]').text()).toBe('ci_success');
+  });
+
   it('pt6b: панель — пусто и небезопасная ссылка не становится href', () => {
     const w = mount(MrPanel, { props: { taskId: 't' } });
     expect(w.text()).toContain('noMrs');

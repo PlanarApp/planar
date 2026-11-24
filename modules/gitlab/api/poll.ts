@@ -47,7 +47,22 @@ interface GlMr {
   squash_commit_sha?: string | null;
   merged_at?: string | null;
   /** only in GET of one MR */
-  head_pipeline?: { status?: string } | null;
+  head_pipeline?: GlPipeline | null;
+}
+interface GlPipeline {
+  id?: number;
+  status?: string;
+  web_url?: string;
+}
+interface GlJob {
+  status?: string;
+  web_url?: string;
+  allow_failure?: boolean;
+}
+/** A pipeline's status and the link to its job (PLNRAPP-822). */
+interface Ci {
+  status: string | null;
+  url: string | null;
 }
 
 /** Deterministic uuid of a row (job, GitLab project, iid): a repeated poll does not create rows. */
@@ -160,6 +175,35 @@ export async function createMr(
 }
 
 /**
+ * PLNRAPP-822: the job of a pipeline to open from its status: the newest job with the pipeline's status
+ * (failed — not allow_failure first), else the newest job; no jobs or they did not load — the pipeline page.
+ */
+export function pickJob(p: GlPipeline, jobs: GlJob[]): string | null {
+  const http = (u?: string) => (u && /^https?:\/\//i.test(u) ? u : undefined);
+  const own = jobs.filter((j) => j.status === p.status && http(j.web_url));
+  const job =
+    own.find((j) => !(p.status === 'failed' && j.allow_failure)) ??
+    own[0] ??
+    jobs.find((j) => http(j.web_url));
+  return http(job?.web_url) ?? http(p.web_url) ?? null;
+}
+
+async function ciOf(token: string, repo: string, p: GlPipeline | null | undefined): Promise<Ci> {
+  if (!p?.status) return { status: null, url: null };
+  let jobs: GlJob[] = [];
+  if (p.id) {
+    try {
+      const r = await (await get(`${repo}/pipelines/${p.id}/jobs?per_page=100`, token)).json();
+      if (Array.isArray(r)) jobs = r as GlJob[];
+    } catch (e) {
+      // the link falls back to the pipeline page; a revoked token or 429 still stop the poll
+      if (e instanceof Unauthorized || e instanceof Deferred) throw e;
+    }
+  }
+  return { status: p.status, url: pickJob(p, jobs) };
+}
+
+/**
  * PLNRAPP-205: pipeline status of an MR. Open — of its head pipeline (GET of the MR); merged — of the target
  * branch pipeline with the merge commit (deploy): cancelled by a newer commit (auto_cancel) — of the newest one
  * on the branch; none for DEPLOY_WAIT_MS after the merge — `skipped`. undefined — not tracked (closed, old).
@@ -168,14 +212,14 @@ async function pipelineOf(
   token: string,
   c: typeof P.$inferSelect,
   mr: GlMr,
-): Promise<string | null | undefined> {
+): Promise<Ci | undefined> {
   const repo = `${apiBase(c.baseUrl)}/projects/${c.gitlabProjectId}`;
   if (mr.state === 'opened') {
     const full =
       'head_pipeline' in mr
         ? mr
         : ((await (await get(`${repo}/merge_requests/${mr.iid}`, token)).json()) as GlMr);
-    return full.head_pipeline?.status ?? null;
+    return ciOf(token, repo, full.head_pipeline);
   }
   if (mr.state !== 'merged' || !mr.merged_at || !mr.target_branch) return undefined;
   const age = Date.now() - new Date(mr.merged_at).getTime();
@@ -183,14 +227,13 @@ async function pipelineOf(
   const sha = mr.merge_commit_sha ?? mr.squash_commit_sha ?? mr.sha;
   const last = async (q: Record<string, string>) => {
     const qs = new URLSearchParams({ ref: mr.target_branch!, per_page: '1', ...q });
-    const list = (await (await get(`${repo}/pipelines?${qs}`, token)).json()) as {
-      status: string;
-    }[];
-    return list[0]?.status;
+    const list = (await (await get(`${repo}/pipelines?${qs}`, token)).json()) as GlPipeline[];
+    return list[0];
   };
-  let status = sha ? await last({ sha }) : undefined;
-  if (status === 'canceled') status = await last({ updated_after: mr.merged_at });
-  return status ?? (age > DEPLOY_WAIT_MS ? 'skipped' : null);
+  let p = sha ? await last({ sha }) : undefined;
+  if (p?.status === 'canceled') p = await last({ updated_after: mr.merged_at });
+  if (p?.status) return ciOf(token, repo, p);
+  return { status: age > DEPLOY_WAIT_MS ? 'skipped' : null, url: null };
 }
 
 /** With `token`: the pipeline status of an MR linked to tasks is fetched too (PLNRAPP-205). */
@@ -215,8 +258,8 @@ async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr, token?: s
     );
     if (!had.rows.length) return;
   }
-  let pipelineStatus: string | null | undefined;
-  if (token && found.size) pipelineStatus = await pipelineOf(token, c, mr);
+  const ci = token && found.size ? await pipelineOf(token, c, mr) : undefined;
+  const pipelineStatus = ci?.status;
   const onFail =
     pipelineStatus === 'failed' && mr.state === 'opened'
       ? await ciFailed(api, [...found.keys()], gitlabProjectId, mr)
@@ -237,7 +280,7 @@ async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr, token?: s
             authorName: mr.author?.name ?? mr.author?.username ?? '',
             webUrl: mr.web_url,
             mrUpdatedAt: new Date(mr.updated_at).toISOString(),
-            ...(pipelineStatus !== undefined && { pipelineStatus }),
+            ...(ci && { pipelineStatus: ci.status, pipelineUrl: ci.url }),
           },
           links: [...found.keys()].map((taskId) => ({
             id: mrRowId(taskId, gitlabProjectId, mr.iid),
@@ -360,6 +403,61 @@ async function pollProject(api: JobApi, token: string, p: typeof P.$inferSelect)
       throw e;
     }
     await syncMr(api, p, mr, token);
+  }
+  await pollBranches(api, token, p);
+}
+
+/**
+ * PLNRAPP-822: the last pipeline of the branches created from the tab (`GET …/pipelines?ref=<branch>&per_page=1`).
+ * Its jobs are fetched again only when the pipeline or its status changed, or it is not finished. A branch merged
+ * more than a day ago with a finished pipeline is not polled.
+ */
+async function pollBranches(api: JobApi, token: string, p: typeof P.$inferSelect) {
+  const repo = `${apiBase(p.baseUrl)}/projects/${p.gitlabProjectId}`;
+  const final = sql.join(
+    FINAL.map((x) => sql`${x}`),
+    sql`, `,
+  );
+  const rows = (
+    await api.db.execute(
+      sql`select b.id, b.name, b.pipeline_id as "pipelineId", b.pipeline_status as "pipelineStatus",
+            b.pipeline_url as "pipelineUrl"
+          from gitlab_branches b join tasks t on t.id = b.task_id
+          where b.gitlab_project_id = ${p.gitlabProjectId} and t.project_id = ${p.projectId}
+            and not (coalesce(b.pipeline_status, '') in (${final}) and exists(
+              select 1 from gitlab_mrs m where m.task_id = b.task_id
+                and m.gitlab_project_id = b.gitlab_project_id and m.source_branch = b.name
+                and m.state = 'merged' and m.mr_updated_at < now() - interval '1 day'))
+          order by b.created_at`,
+    )
+  ).rows as {
+    id: string;
+    name: string;
+    pipelineId: number | null;
+    pipelineStatus: string | null;
+    pipelineUrl: string | null;
+  }[];
+  for (const b of rows) {
+    const qs = new URLSearchParams({ ref: b.name, per_page: '1' });
+    const list = (await (await get(`${repo}/pipelines?${qs}`, token)).json()) as GlPipeline[];
+    const last = Array.isArray(list) ? list[0] : undefined;
+    const pipelineId = last?.id ?? null;
+    const same =
+      pipelineId === b.pipelineId &&
+      (last?.status ?? null) === b.pipelineStatus &&
+      (!last?.status || (FINAL.includes(last.status) && !!b.pipelineUrl));
+    if (same) continue;
+    const ci = await ciOf(token, repo, last);
+    await api.execute(
+      api.systemUserId,
+      [
+        {
+          name: 'gitlab.branch.ci',
+          args: { id: b.id, pipelineId, pipelineStatus: ci.status, pipelineUrl: ci.url },
+        },
+      ],
+      { system: true },
+    );
   }
 }
 

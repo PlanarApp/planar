@@ -31,6 +31,8 @@ export const gitlabMrs = z.object({
    * default: replica rows cached before the column
    */
   pipelineStatus: z.string().max(40).nullable().default(null),
+  /** PLNRAPP-822: the job of that pipeline in GitLab (the pipeline page if it has no jobs); null — unknown */
+  pipelineUrl: z.string().max(2000).nullable().default(null),
   createdAt: ts,
   updatedAt: ts,
 });
@@ -50,6 +52,12 @@ export const gitlabBranches = z.object({
   gitlabProjectId: z.number().int(),
   name: z.string().min(1).max(BRANCH_NAME_MAX),
   webUrl: z.string(),
+  /** PLNRAPP-822: id of the branch's last pipeline. default: replica rows cached before the column */
+  pipelineId: z.number().int().nullable().default(null),
+  /** PLNRAPP-822: status of the branch's last pipeline; null — none yet. default: replica rows cached before the column */
+  pipelineStatus: z.string().max(40).nullable().default(null),
+  /** PLNRAPP-822: its job in GitLab (the pipeline page if it has no jobs) */
+  pipelineUrl: z.string().max(2000).nullable().default(null),
   createdAt: ts,
   updatedAt: ts,
 });
@@ -90,6 +98,8 @@ export const mutators = [
         .extend({
           // absent — not fetched in this poll: kept, but reset when the MR changes its state
           pipelineStatus: z.string().max(40).nullable().optional(),
+          // PLNRAPP-822: the job of that pipeline; follows pipelineStatus (absent — kept with it)
+          pipelineUrl: z.string().max(2000).nullable().optional(),
         }),
       links: z.array(z.object({ id, taskId: id })).max(50),
     }),
@@ -118,7 +128,13 @@ export const mutators = [
             : prev && prev.state === a.mr.state
               ? (prev.pipelineStatus ?? null)
               : null;
-        const row = { ...a.mr, title: a.mr.title.slice(0, 500), pipelineStatus };
+        const pipelineUrl =
+          a.mr.pipelineStatus !== undefined
+            ? (a.mr.pipelineUrl ?? null)
+            : prev && prev.state === a.mr.state
+              ? (prev.pipelineUrl ?? null)
+              : null;
+        const row = { ...a.mr, title: a.mr.title.slice(0, 500), pipelineStatus, pipelineUrl };
         const same =
           prev &&
           prev.title === row.title &&
@@ -127,6 +143,7 @@ export const mutators = [
           prev.authorName === row.authorName &&
           prev.webUrl === row.webUrl &&
           (prev.pipelineStatus ?? null) === row.pipelineStatus &&
+          (prev.pipelineUrl ?? null) === row.pipelineUrl &&
           sameInstant(prev.mrUpdatedAt, row.mrUpdatedAt);
         if (!same)
           await t.put(E('gitlabMrs'), {
@@ -220,7 +237,36 @@ export const mutators = [
         gitlabProjectId: a.gitlabProjectId,
         name: a.name,
         webUrl: a.webUrl,
+        pipelineId: null,
+        pipelineStatus: null,
+        pipelineUrl: null,
         createdAt: ctx.now,
+        updatedAt: ctx.now,
+      });
+    },
+  }),
+  defineMutator({
+    name: 'gitlab.branch.ci',
+    // PLNRAPP-822: the branch's last pipeline from the poll (system only); unchanged — nothing
+    args: z.object({
+      id,
+      pipelineId: z.number().int().nullable(),
+      pipelineStatus: z.string().max(40).nullable(),
+      pipelineUrl: z.string().max(2000).nullable(),
+    }),
+    async run(tx, a, ctx) {
+      const b = (await mtx(tx).get(E('gitlabBranches'), a.id)) as GitlabBranch | undefined;
+      if (!b) return;
+      if (
+        (b.pipelineId ?? null) === a.pipelineId &&
+        (b.pipelineStatus ?? null) === a.pipelineStatus &&
+        (b.pipelineUrl ?? null) === a.pipelineUrl
+      )
+        return;
+      await mtx(tx).patch(E('gitlabBranches'), a.id, {
+        pipelineId: a.pipelineId,
+        pipelineStatus: a.pipelineStatus,
+        pipelineUrl: a.pipelineUrl,
         updatedAt: ctx.now,
       });
     },
