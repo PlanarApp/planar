@@ -21,6 +21,7 @@ let app: Awaited<ReturnType<typeof createApp>>;
 let w: World;
 let adminCookie: string;
 let outsiderCookie: string;
+let outsiderId: string;
 let guestCookie: string;
 const [, TODO, DOING, DONE] = [0, 1, 2, 3];
 
@@ -60,6 +61,7 @@ beforeAll(async () => {
   adminCookie = await loginCookie(db, w.admin.userId);
   guestCookie = await loginCookie(db, w.guest.userId);
   const o = await createUser(db);
+  outsiderId = o.id;
   outsiderCookie = await loginCookie(db, o.id);
 });
 afterAll(async () => {
@@ -529,6 +531,27 @@ describe('wk6: импорт', () => {
     } finally {
       await db.$client.query(`update users set role = 'member' where id = $1`, [w.admin.userId]);
     }
+  });
+
+  it('userMap: автор вне пространства импорта — 400, ничего не создано', async () => {
+    const p = await project();
+    const pv = (await preview(fx('plane.json'), 'csv', 'plane')).json();
+    const mapping = {
+      ...pv.mapping,
+      projectMap: { Engineering: p, 'SEO Department': p },
+      userMap: { 'Alice Admin': outsiderId },
+    };
+    const res = await call(
+      'POST',
+      '/api/import/jobs',
+      adminCookie,
+      form(
+        { projectId: p, format: 'csv', preset: 'plane', mapping: JSON.stringify(mapping) },
+        fx('plane.json'),
+      ),
+    );
+    expect(res.statusCode).toBe(400);
+    expect(await tasks(p)).toEqual([]);
   });
 
   it('пустое пространство: без проекта — проекты по колонке, статусы создаются в каждом проекте', async () => {

@@ -52,7 +52,8 @@ export function projectKey(key: string | undefined, name: string, taken: Set<str
 
 /**
  * `new` in projectMap/userMap → creates projects in the import space and users (instance admin only),
- * new users become members of the space; a project from projectMap must be in that space and writable.
+ * new users become members of the space; a project from projectMap must be in that space and writable,
+ * a user from userMap — a member of that space.
  * Returns the mapping with ids instead of `new`.
  */
 export async function resolveNew(
@@ -70,6 +71,12 @@ export async function resolveNew(
   if (newUsers.length && auth.role !== 'owner' && auth.role !== 'admin')
     throw new HttpError(403, 'forbidden', 'Создавать пользователей может только администратор');
 
+  // comments are written on behalf of the mapped author (system): only members of the import space
+  for (const id of new Set(Object.values(userMap).filter((v) => v !== NEW))) {
+    const ok = await q(sql`
+      select 1 from space_members where space_id = ${spaceId} and user_id::text = ${id}`);
+    if (!ok.length) throw new HttpError(400, 'invalid_request', 'userMap: пользователь не найден');
+  }
   for (const id of new Set(Object.values(projectMap).filter((v) => v !== NEW))) {
     const ok = await q(sql`
       select 1 from projects p where p.id = ${id} and p.space_id = ${spaceId} and p.archived_at is null
