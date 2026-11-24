@@ -219,6 +219,51 @@ describe('docs web: дерево в боковой панели', () => {
     expect(await db.table('docsPages').get(b)).toMatchObject({ parentId: top });
     expect(await db.table('docsPages').get(c)).toMatchObject({ parentId: b });
   });
+
+  it('PLNRAPP-831: меню «…» документа — как меню задачи: ссылки, подменю «Создать» и «Перенести», действия', async () => {
+    const [top, a, b] = [uuidv7(), uuidv7(), uuidv7()];
+    await db.table('docsPages').bulkPut([
+      page(top, { rank: 'a0' }),
+      page(a, { rank: 'a0', parentId: top }),
+      page(b, { rank: 'a2', parentId: top }),
+    ]);
+    router.push.mockClear();
+    const w = mount(PageView, { props: { pageId: a } });
+    await vi.waitFor(() => expect(w.find('[data-testid=doc-title]').exists()).toBe(true));
+    type It = { id?: string; separator?: true; children?: { id: string; onSelect?: () => void }[] };
+    const items = () => w.findComponent({ name: 'Menu' }).props('items') as It[];
+    expect(items().map((i) => i.id ?? '|')).toEqual([
+      'tab',
+      'link',
+      'fav',
+      '|',
+      'create',
+      'move',
+      '|',
+      'history',
+      'archive',
+    ]);
+    const create = items().find((i) => i.id === 'create')!;
+    expect(create.children!.map((c) => c.id)).toEqual(['child', 'below']);
+    expect(items().find((i) => i.id === 'move')!.children).toBeDefined();
+
+    // «Подстраницу» — под текущей страницей, переход на неё
+    create.children![0]!.onSelect!();
+    await vi.waitFor(() => expect(router.push).toHaveBeenCalledTimes(1));
+    const kids = await db.table('docsPages').where('parentId').equals(a).toArray();
+    expect(kids).toHaveLength(1);
+    expect(router.push).toHaveBeenCalledWith(`/m/docs/${kids[0].id}`);
+
+    // «Страницу ниже» — тот же родитель, rank между текущей и следующей
+    create.children![1]!.onSelect!();
+    await vi.waitFor(() => expect(router.push).toHaveBeenCalledTimes(2));
+    const sib = (await db.table('docsPages').where('parentId').equals(top).toArray()).filter(
+      (p) => p.id !== a && p.id !== b,
+    );
+    expect(sib).toHaveLength(1);
+    expect(sib[0].rank > 'a0' && sib[0].rank < 'a2').toBe(true);
+    w.unmount();
+  });
 });
 
 describe('docs web: панель задачи', () => {
