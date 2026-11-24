@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
-import { Button, EmptyState, Select } from '@planar/web/modules';
+import { Button, EmptyState, Select, UserPicker } from '@planar/web/modules';
 import { NEW, STATUS_CATEGORIES, type ImportJob, type Preview } from '../shared/index.js';
 import {
   getJob,
@@ -74,11 +74,6 @@ const projectOptions = computed(() => [
   { value: NONE, label: tr(projectId.value ? 'mainProject' : 'skipRows') },
   { value: NEW, label: tr('createNew') },
   ...spaceProjects.value.map((p) => ({ value: p.id, label: `${p.name} (${p.key})` })),
-]);
-const personOptions = computed(() => [
-  { value: NONE, label: tr('noMatch') },
-  ...(isAdmin.value ? [{ value: NEW, label: tr('createNew') }] : []),
-  ...activeUsers.value.map((u) => ({ value: u.id, label: `${u.name} (${u.login})` })),
 ]);
 const presets = computed(() => presetsFor(format.value));
 // Reka Select does not accept an empty value: «none» is a service label
@@ -303,11 +298,16 @@ onBeforeUnmount(() => clearInterval(timer));
         <p v-if="isAdmin" class="text-xs text-fg-muted">{{ tr('createHint') }}</p>
         <div v-for="n in filePeople" :key="n" class="import-person flex items-center gap-2 text-sm">
           <span class="w-48">{{ n }}</span>
-          <Select
-            :model-value="people[n] || NONE"
-            :label="n"
-            :options="personOptions"
-            @update:model-value="(x) => (people[n] = !x || x === NONE ? '' : x)"
+          <UserPicker
+            :users="activeUsers"
+            :selected="people[n] && people[n] !== NEW ? [people[n]] : []"
+            :title="n"
+            :none="tr('noMatch')"
+            :create="isAdmin ? tr('createNew') : undefined"
+            :creating="people[n] === NEW"
+            field
+            @pick="(id) => (people[n] = id ?? '')"
+            @create="people[n] = NEW"
           />
         </div>
       </div>

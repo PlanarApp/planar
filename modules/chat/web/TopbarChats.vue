@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { MessageSquare, User } from 'lucide-vue-next';
+import { MessageSquare } from 'lucide-vue-next';
 import {
   Badge,
   EmptyState,
@@ -10,6 +10,7 @@ import {
   Tabs,
   useRouter,
   useSpaces,
+  userIcon,
 } from '@planar/web/modules';
 import { ensureDm, useChatData } from './data';
 import { byName, dmTitle } from './model';
@@ -144,7 +145,10 @@ const go = (c: string) => {
             class="flex min-h-9 items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus"
             @click="write(u.id)"
           >
-            <User :size="14" class="shrink-0 text-fg-subtle" />{{ u.name }}
+            <!-- the avatar of the user picker (PLNRAPP-827) -->
+            <component :is="userIcon(u).icon" v-bind="userIcon(u).iconProps" class="shrink-0" />{{
+              u.name
+            }}
           </button>
         </template>
       </div>

@@ -373,7 +373,9 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
         files
         :model-value="draft"
         @update:model-value="setDraft"
-        :members="(members ?? []).map((m) => ({ id: m.id, name: m.name }))"
+        :members="
+          (members ?? []).map((m) => ({ id: m.id, name: m.name, avatarFile: m.avatarFile }))
+        "
         :label="t('task.newComment')"
         :placeholder="t('task.newComment')"
         @submit="send"

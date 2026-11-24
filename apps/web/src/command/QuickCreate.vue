@@ -52,7 +52,9 @@ const busy = ref(false);
 const spaceId = computed(() => all.value?.find((p) => p.id === projectId.value)?.spaceId ?? '');
 const statuses = useStatuses(spaceId, projectId);
 const members = useMembers(spaceId);
-const memberList = computed(() => (members.value ?? []).map((m) => ({ id: m.id, name: m.name })));
+const memberList = computed(() =>
+  (members.value ?? []).map((m) => ({ id: m.id, name: m.name, avatarFile: m.avatarFile })),
+);
 // default status: the first todo, otherwise the first one
 watch(
   [statuses, projectId],

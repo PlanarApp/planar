@@ -12,7 +12,7 @@ const docSearch = vi.fn(async (q: string) =>
 vi.mock('../../modules/registry', () => ({
   useExtensions: () => ref([{ moduleId: 'docs', id: 'pages', search: docSearch }]),
 }));
-const { DocPicker, TaskPicker, UserPicker, avatarSrc } = await import('../index');
+const { DocPicker, SuggestList, TaskPicker, UserPicker, avatarSrc } = await import('../index');
 
 const i18n = createI18n({
   legacy: false,
@@ -52,6 +52,55 @@ describe('PLNRAPP-827 общие компоненты выбора', () => {
     items[2]!.click();
     items[0]!.click();
     expect(w.emitted('pick')).toEqual([['u2'], [null]]);
+    w.unmount();
+  });
+
+  it('UserPicker: пункт «Создать нового» (импорт) — событие create и подпись на кнопке', async () => {
+    const w = mount(UserPicker, {
+      ...opts,
+      props: { users, selected: [], title: 'G L', none: 'Нет', create: 'Создать нового' },
+    });
+    expect(w.find('button').text()).toContain('Нет');
+    await w.find('button').trigger('click');
+    await flushPromises();
+    const items = [...document.body.querySelectorAll<HTMLElement>('[role=option]')];
+    expect(items.map((i) => i.querySelector('.flex-1')?.textContent)).toEqual([
+      'Нет',
+      'Создать нового',
+      'Анна Иванова',
+      'Борис',
+    ]);
+    items[1]!.click();
+    expect(w.emitted('create')).toHaveLength(1);
+    expect(w.emitted('pick')).toBeUndefined();
+    await w.setProps({ creating: true });
+    expect(w.find('button').text()).toContain('Создать нового');
+    w.unmount();
+  });
+
+  it('SuggestList: у людей (@) аватар, как в UserPicker; у команд — нет', async () => {
+    const w = mount(SuggestList, {
+      ...opts,
+      props: {
+        label: 'Упоминание',
+        index: 1,
+        items: [
+          { key: 'u1', label: 'Анна Иванова', user: users[0] },
+          { key: 'u2', label: 'Борис', user: users[1] },
+          { key: 'h1', label: 'Заголовок' },
+        ],
+      },
+    });
+    const rows = w.findAll('[role=option]');
+    expect(rows.map((r) => r.attributes('aria-selected'))).toEqual(['false', 'true', 'false']);
+    expect(rows[0]!.findComponent(Avatar).props()).toMatchObject({
+      name: 'Анна Иванова',
+      src: '/files/f1/preview?w=256',
+    });
+    expect(rows[1]!.findComponent(Avatar).props('src')).toBeNull();
+    expect(rows[2]!.findComponent(Avatar).exists()).toBe(false);
+    await rows[2]!.trigger('mousedown');
+    expect(w.emitted('pick')).toEqual([[2]]);
     w.unmount();
   });
 

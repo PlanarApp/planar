@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Avatar } from '../ui';
 import OptionPicker from '../tasks/fields/OptionPicker.vue';
-import { avatarSrc } from './avatar';
+import { userIcon } from './avatar';
 
 /**
  * The one user picker (PLNRAPP-827): search over the given people, an avatar (picture or initials) in the
- * list and on the button. `none` — an extra first item «nobody», its pick emits null.
+ * list and on the button. `none` — an extra first item «nobody», its pick emits null; `create` — an item
+ * «create new» after it, its pick emits `create` (import), `creating` shows it as the chosen one.
  */
 export interface PickUser {
   id: string;
@@ -17,6 +17,7 @@ export interface PickUser {
   avatar?: string | null;
 }
 const NONE = '__none';
+const CREATE = '__create';
 const props = defineProps<{
   users: readonly PickUser[];
   selected: readonly string[];
@@ -27,31 +28,35 @@ const props = defineProps<{
   empty?: string;
   /** label of the «nobody» item; without it there is no such item */
   none?: string;
+  /** label of the «create new» item; without it there is no such item */
+  create?: string;
+  /** «create new» is the current choice */
+  creating?: boolean;
   compact?: boolean;
   /** bordered button like a form field (settings), otherwise a flat one (task fields) */
   field?: boolean;
   /** ids on some of the selected tasks — the "partially" mark (bulk edit) */
   partial?: readonly string[];
 }>();
-const emit = defineEmits<{ pick: [id: string | null] }>();
+const emit = defineEmits<{ pick: [id: string | null]; create: [] }>();
 const open = defineModel<boolean>('open', { default: false });
 const { t } = useI18n();
 const options = computed(() => [
   ...(props.none ? [{ id: NONE, label: props.none }] : []),
-  ...props.users.map((u) => ({
-    id: u.id,
-    label: u.name,
-    icon: Avatar,
-    iconProps: { name: u.name, src: u.avatar ?? avatarSrc(u), size: 'xs' },
-  })),
+  ...(props.create ? [{ id: CREATE, label: props.create }] : []),
+  ...props.users.map((u) => ({ id: u.id, label: u.name, ...userIcon(u) })),
 ]);
+function onPick(id: string) {
+  if (id === CREATE) emit('create');
+  else emit('pick', id === NONE ? null : id);
+}
 </script>
 
 <template>
   <OptionPicker
     v-model:open="open"
     :options="options"
-    :selected="[...selected]"
+    :selected="creating && create ? [CREATE] : [...selected]"
     :partial="partial ? [...partial] : undefined"
     :multiple="multiple"
     :title="title ?? t('tasks.assignee')"
@@ -59,7 +64,7 @@ const options = computed(() => [
     :compact="compact"
     :field="field"
     testid="user-picker"
-    @pick="emit('pick', $event === NONE ? null : $event)"
+    @pick="onPick"
   >
     <template v-if="$slots.value" #value><slot name="value" /></template>
   </OptionPicker>

@@ -160,7 +160,9 @@ const crumbs = computed(() => {
 const statusColor = computed(
   () => statuses.value?.find((s) => s.id === props.task.statusId)?.color ?? null,
 );
-const memberList = computed(() => (members.value ?? []).map((m) => ({ id: m.id, name: m.name })));
+const memberList = computed(() =>
+  (members.value ?? []).map((m) => ({ id: m.id, name: m.name, avatarFile: m.avatarFile })),
+);
 
 // --- header
 const title = ref(props.task.title);
