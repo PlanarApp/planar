@@ -7,6 +7,7 @@ import { editorExtensions } from '@planar/editor';
 import Suggestion from '@tiptap/suggestion';
 import { PluginKey } from '@tiptap/pm/state';
 import {
+  ApiError,
   filterSlash,
   i18n,
   SuggestList,
@@ -19,6 +20,7 @@ import {
 import FormatBar from './FormatBar.vue';
 import { suggestRender, type SugState } from './suggest';
 import { useTexts } from './text';
+import { insertUploads } from './upload';
 
 const props = withDefaults(
   defineProps<{
@@ -43,20 +45,18 @@ const sugItems = computed(() => {
 });
 const tasks = useSearch();
 
-async function insertImages(files: File[]) {
+// PLNRAPP-832: pasted or dropped files — an image as a picture, others as a link to the file
+async function insertFiles(files: File[], pos?: number) {
+  const ed = editor.value;
+  if (!ed || !files.length) return;
   error.value = '';
-  for (const f of files) {
-    if (!f.type.startsWith('image/')) continue;
-    try {
-      const r = await uploadFile(f);
-      editor.value?.chain().focus().setImage({ src: `/files/${r.sha256}`, alt: f.name }).run();
-    } catch {
-      error.value = tx('uploadFailed');
-    }
-  }
+  const errors = await insertUploads(ed, files, uploadFile, pos);
+  if (errors.length)
+    error.value = errors.some((e) => e instanceof ApiError && e.status === 413)
+      ? tx('tooLarge')
+      : tx('uploadFailed');
 }
-const images = (list?: FileList | null) =>
-  [...(list ?? [])].filter((f) => f.type.startsWith('image/'));
+const filesOf = (list?: FileList | null) => [...(list ?? [])];
 
 // '/' — block menu
 const Slash = Extension.create({
@@ -163,14 +163,16 @@ void import('@planar/editor/collab').then(({ openCollab }) => {
         return true;
       },
       handlePaste: (_v, e) => {
-        const f = images(e.clipboardData?.files);
-        if (f.length) void insertImages(f);
+        const f = filesOf(e.clipboardData?.files);
+        if (f.length) void insertFiles(f);
         return f.length > 0;
       },
-      handleDrop: (_v, e) => {
-        const f = images(e.dataTransfer?.files);
-        if (f.length) void insertImages(f);
-        return f.length > 0;
+      handleDrop: (v, e) => {
+        const f = filesOf(e.dataTransfer?.files);
+        if (!f.length) return false;
+        e.preventDefault();
+        void insertFiles(f, v.posAtCoords({ left: e.clientX, top: e.clientY })?.pos);
+        return true;
       },
     },
   });
@@ -203,7 +205,7 @@ defineExpose({ editor });
       class="hidden"
       @change="
         (e) => {
-          void insertImages([...((e.target as HTMLInputElement).files ?? [])]);
+          void insertFiles(filesOf((e.target as HTMLInputElement).files));
           (e.target as HTMLInputElement).value = '';
         }
       "

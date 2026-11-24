@@ -81,18 +81,30 @@ const MAX_BODY = 512 * 1024;
 const MAX_TEXT = 100_000;
 const SHA_SRC = /^\/files\/([0-9a-f]{64})/;
 
-/** text nodes of body separated by a space, and sha256 of image nodes; one pass. */
+/** text nodes of body separated by a space, and sha256 of image nodes and file links (PLNRAPP-832); one pass. */
 function derive(body: unknown): { text: string; files: string[] } {
   const texts: string[] = [];
   const files = new Set<string>();
   const walk = (n: unknown): void => {
     if (!n || typeof n !== 'object') return;
-    const o = n as { type?: unknown; text?: unknown; attrs?: { src?: unknown }; content?: unknown };
+    const o = n as {
+      type?: unknown;
+      text?: unknown;
+      attrs?: { src?: unknown };
+      marks?: unknown;
+      content?: unknown;
+    };
     if (o.type === 'text' && typeof o.text === 'string') texts.push(o.text);
     if (o.type === 'image' && typeof o.attrs?.src === 'string') {
       const m = SHA_SRC.exec(o.attrs.src);
       if (m) files.add(m[1]!);
     }
+    // a file link: the link mark of a text with href /files/<sha>
+    if (Array.isArray(o.marks))
+      for (const k of o.marks as { type?: unknown; attrs?: { href?: unknown } }[]) {
+        const m = k?.type === 'link' && typeof k.attrs?.href === 'string' ? SHA_SRC.exec(k.attrs.href) : null;
+        if (m) files.add(m[1]!);
+      }
     if (Array.isArray(o.content)) o.content.forEach(walk);
   };
   walk(body);
