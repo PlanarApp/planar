@@ -9,11 +9,11 @@ import type { JobApi, JobDef } from '../modules/hooks.js';
 
 type JobDb = JobApi['db'];
 
-/** A file younger than this (by files.created_at and the last file_uploads) is not touched: an upload not yet referenced. */
+/** A deleted attachment's file stays this long (offline edits, undo); a file uploaded again within it stays too. */
 export const FILES_GRACE = sql`interval '7 days'`;
 
 /** Tables of the file store itself: a sha there is not a reference. */
-const OWN = new Set(['files', 'file_uploads']);
+const OWN = new Set(['files', 'file_uploads', 'files_deleted']);
 
 /**
  * Columns that may hold a file reference. There is no contract on references: attachments.file_sha256,
@@ -60,49 +60,62 @@ const exists = (p: string) =>
   );
 
 /**
- * PLNRAPP-858 item 10: files no row of the database references any more (deleted attachments, comments,
- * chat messages, docs) and older than FILES_GRACE — out of `files` and DATA_DIR. Returns deleted sha.
+ * PLNRAPP-858 item 10: files deleted in the app — only them. A candidate is a sha from `files_deleted` (an attachment
+ * with it was deleted: trigger on attachments) older than FILES_GRACE. It is purged only if no row of the database
+ * references it any more and nobody uploaded it again within FILES_GRACE: then out of `files` and DATA_DIR.
+ * The queue row goes away in any outcome but the grace. Files never attached (inline images, avatars, icons) are not
+ * touched. Returns deleted sha.
  */
 export async function purgeFiles(db: JobDb, dataDir: string): Promise<string[]> {
   const cand = await db.execute<{ sha256: string }>(sql`
-    select f.sha256 from files f
-    where f.created_at < now() - ${FILES_GRACE}
-      and not exists (select 1 from file_uploads u
-        where u.sha256 = f.sha256 and u.created_at >= now() - ${FILES_GRACE})`);
-  const left = new Set(cand.rows.map((r) => r.sha256));
-  if (!left.size) return [];
+    select sha256 from files_deleted where deleted_at < now() - ${FILES_GRACE} order by sha256 limit 1000`);
+  const queued = cand.rows.map((r) => r.sha256);
+  if (!queued.length) return [];
+  const left = new Set(queued.filter((s) => /^[0-9a-f]{64}$/.test(s))); // not a sha — only out of the queue
+  const fresh = await db.execute<{ sha256: string }>(sql`
+    select distinct sha256 from file_uploads
+    where sha256 = any(${`{${[...left].join(',')}}`}::text[]) and created_at >= now() - ${FILES_GRACE}`);
+  for (const r of fresh.rows) left.delete(r.sha256);
   for (const col of await refColumns(db)) {
     if (!left.size) break;
     for (const s of await referenced(db, col, [...left])) left.delete(s);
   }
-  if (!left.size) return [];
-  const trashDir = join(dataDir, 'tmp');
-  await mkdir(trashDir, { recursive: true });
   const gone: string[] = [];
-  for (const sha of left) {
-    // Out of place first: an upload of the same content at this moment puts its own copy (commitFile sees no file),
-    // and the row survives by its fresh file_uploads.
-    const dest = filePath(dataDir, sha);
-    const trash = join(trashDir, `gc-${randomUUID()}`);
-    const moved = await rename(dest, trash).then(
-      () => true,
-      () => false,
-    );
-    const del = await db.execute<{ sha256: string }>(sql`
-      delete from files f where f.sha256 = ${sha}
-        and not exists (select 1 from file_uploads u
-          where u.sha256 = f.sha256 and u.created_at >= now() - ${FILES_GRACE})
-      returning f.sha256`);
-    if (!moved) {
-      if (del.rows.length) gone.push(sha);
-      continue;
-    }
-    if (del.rows.length || (await exists(dest))) {
-      await rm(trash, { force: true });
-      if (del.rows.length) gone.push(sha);
-    } else await rename(trash, dest); // uploaded again meanwhile — the file stays
+  if (left.size) {
+    const trashDir = join(dataDir, 'tmp');
+    await mkdir(trashDir, { recursive: true });
+    for (const sha of left) if (await purgeOne(db, dataDir, trashDir, sha)) gone.push(sha);
   }
+  // a delete of an attachment while the job ran moves deleted_at forward — that row stays for the next night
+  await db.execute(sql`
+    delete from files_deleted
+    where sha256 in (${sql.join(
+      queued.map((s) => sql`${s}`),
+      sql`, `,
+    )}) and deleted_at < now() - ${FILES_GRACE}`);
   return gone;
+}
+
+/** One file out of `files` and DATA_DIR; false — it stays (uploaded again meanwhile). */
+async function purgeOne(db: JobDb, dataDir: string, trashDir: string, sha: string) {
+  // Out of place first: an upload of the same content at this moment puts its own copy (commitFile sees no file),
+  // and the row survives by its fresh file_uploads.
+  const dest = filePath(dataDir, sha);
+  const trash = join(trashDir, `gc-${randomUUID()}`);
+  const moved = await rename(dest, trash).then(
+    () => true,
+    () => false,
+  );
+  const del = await db.execute<{ sha256: string }>(sql`
+    delete from files f where f.sha256 = ${sha}
+      and not exists (select 1 from file_uploads u
+        where u.sha256 = f.sha256 and u.created_at >= now() - ${FILES_GRACE})
+    returning f.sha256`);
+  const ok = del.rows.length > 0;
+  if (!moved) return ok;
+  if (ok || (await exists(dest))) await rm(trash, { force: true });
+  else await rename(trash, dest); // uploaded again meanwhile — the file stays
+  return ok;
 }
 
 export const filesPurge: JobDef = {
