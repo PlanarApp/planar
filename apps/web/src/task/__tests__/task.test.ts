@@ -59,6 +59,79 @@ const openMenu = async () => {
 const asSpaceAdmin = () =>
   db.table('spaceMembers').where('userId').equals(ids.ann).modify({ role: 'admin' });
 
+describe('PLNRAPP-830: пустые поля под катом, меню «…» — контекстное меню задачи', () => {
+  const col = (c: string) => w.find(`[data-testid=task-props] [data-col="${c}"]`).exists();
+  it('пустые поля скрыты, кат раскрывает и сворачивает; заполненное поле видно', async () => {
+    w = await open();
+    expect(col('status')).toBe(true);
+    for (const c of ['assignee', 'dates', 'priority', 'labels']) expect(col(c)).toBe(false);
+    expect(w.find('[data-testid=watch]').exists()).toBe(true); // «Следить» — действие, строка всегда видна
+    const toggle = () => w.get('[data-testid=empty-fields-toggle]');
+    expect(toggle().text()).toBe('Пустые поля: 4');
+    expect(toggle().attributes('aria-expanded')).toBe('false');
+    await toggle().trigger('click');
+    for (const c of ['assignee', 'dates', 'priority', 'labels']) expect(col(c)).toBe(true);
+    expect(toggle().text()).toBe('Скрыть пустые поля');
+    // the field filled at the open cut stays when the cut is closed
+    w.findComponent(PriorityPicker).vm.$emit('update:modelValue', 2);
+    await eventually(async () => (await row<{ priority: number }>('tasks', t.id)).priority === 2);
+    await toggle().trigger('click');
+    await until(() => col('priority'));
+    expect(col('assignee')).toBe(false);
+    expect(toggle().text()).toBe('Пустые поля: 3');
+  });
+  it('заполненные поля видны сразу, все заполнены — ката нет', async () => {
+    await db.table('tasks').update(t.id, { priority: 1, dueDate: '2026-01-01' });
+    const link = { spaceId: ids.space, taskId: t.id, createdAt: t.createdAt };
+    await db.table('taskAssignees').put({ ...link, id: crypto.randomUUID(), userId: ids.ann });
+    await db.table('taskLabels').put({ ...link, id: crypto.randomUUID(), labelId: ids.bug });
+    w = await open();
+    await until(() => col('assignee'));
+    for (const c of ['dates', 'priority', 'labels']) expect(col(c)).toBe(true);
+    expect(w.find('[data-testid=empty-fields-toggle]').exists()).toBe(false);
+  });
+  it('горячая клавиша на пустом поле открывает его из-под ката', async () => {
+    w = await open();
+    expect(col('priority')).toBe(false);
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', bubbles: true }));
+    await until(() => col('priority'));
+  });
+  it('меню «…» — те же пункты, что в контекстном меню задачи', async () => {
+    const { useTaskMenu } = await import('../../tasks/taskMenu');
+    const { mount } = await import('@vue/test-utils');
+    const { defineComponent } = await import('vue');
+    const { i18n } = await import('./h');
+    const task = (await import('../../tasks/queries')).useTask;
+    let labels: string[] = [];
+    const probe = mount(
+      defineComponent({
+        setup() {
+          const menuFor = useTaskMenu(ids.space);
+          const tv = task(() => 'PLN-1');
+          return () => {
+            if (tv.value)
+              labels = menuFor(tv.value).flatMap((it) => ('label' in it ? [it.label] : []));
+            return null;
+          };
+        },
+      }),
+      { global: { plugins: [i18n] } },
+    );
+    await until(() => labels.length > 0);
+    probe.unmount();
+    w = await open();
+    await until(() => w.find('[aria-label="Меню задачи"]').exists());
+    await openMenu();
+    const items = [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    expect(labels).toContain('Открыть');
+    expect(
+      items.map((e) =>
+        [...labels].sort((x, y) => y.length - x.length).find((l) => e.textContent?.startsWith(l)),
+      ),
+    ).toEqual(labels);
+  });
+});
+
 describe('task:archive (PLNRAPP-155)', () => {
   it('участник: «В архив» есть, «Удалить» нет; в архиве — плашка кто и когда, без «Восстановить»', async () => {
     w = await open();
@@ -153,6 +226,7 @@ describe('task:fields', () => {
   });
   it('смена исполнителя и приоритета', async () => {
     w = await open();
+    await w.get('[data-testid=empty-fields-toggle]').trigger('click');
     w.findComponent(AssigneePicker).vm.$emit('update:modelValue', [ids.ann]);
     w.findComponent(PriorityPicker).vm.$emit('update:modelValue', 2);
     await eventually(async () => (await row<{ priority: number }>('tasks', t.id)).priority === 2);

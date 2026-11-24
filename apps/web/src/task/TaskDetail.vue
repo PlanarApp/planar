@@ -15,7 +15,9 @@ import {
   Archive,
   ArrowLeft,
   CalendarDays,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   CircleDot,
   Eye,
   EyeOff,
@@ -86,6 +88,8 @@ import { favorites } from '../layout/nav';
 import Attachments from './Attachments.vue';
 import Checklist from './Checklist.vue';
 import FieldsBlock from '../fields/FieldsBlock.vue';
+import { useFieldDefs } from '../fields';
+import { isEmptyValue } from './emptyFields';
 import Editor from './editor/Editor.vue';
 import Feed from './Feed.vue';
 import { ASIDE_DEFAULT, ASIDE_MIN, asideMax, asideWidth, setAsideWidth } from './asideWidth';
@@ -215,14 +219,20 @@ const toggleWatch = () =>
     ? mutate('task.unwatch', { taskId: props.task.id })
     : mutate('task.watch', { id: newId(), taskId: props.task.id });
 
-// --- menu (like the context menu in views, without "Open"); deletion closes the panel
+// --- menu: the same items as the task context menu in views (PLNRAPP-830); «Open» — the page of the task
+// (on the page itself — disabled), deletion closes the panel
 const menuFor = useTaskMenu(() => props.task.spaceId);
 const { isMobile } = useBreakpoint();
-const menu = computed<MenuItem[]>(() => [
-  ...menuFor(props.task)
-    .filter((it) => !('id' in it) || it.id !== 'open')
-    .map((it) => ('id' in it && it.id === 'delete' ? { ...it, onSelect: remove } : it)),
-]);
+const menu = computed<MenuItem[]>(() =>
+  menuFor(props.task).map((it) => {
+    if (!('id' in it)) return it;
+    if (it.id === 'open')
+      return props.mode === 'page' || !router
+        ? { ...it, disabled: true }
+        : { ...it, onSelect: () => void router.push(`/t/${encodeURIComponent(props.task.key)}`) };
+    return it.id === 'delete' ? { ...it, onSelect: remove } : it;
+  }),
+);
 const OPEN_MODES = [
   { id: 'modal', icon: AppWindow },
   { id: 'side', icon: PanelRight },
@@ -313,8 +323,12 @@ const onAsideKey = (e: KeyboardEvent) => {
   e.preventDefault();
   setAsideWidth(asideWidth.value + d, splitW());
 };
-const pickerOf = (name: string) => () =>
+// a hotkey on an empty field opens it from under the cut
+const pickerOf = (name: string) => async () => {
+  kept.value.add(name);
+  await nextTick();
   root.value?.querySelector<HTMLElement>(`[data-col="${name}"] button`)?.click();
+};
 const focusIn = (selector: string) =>
   root.value?.querySelector<HTMLElement>(`${selector} input`)?.focus();
 // the subtasks / checklist / links tab with its "add" field focused (PLNRAPP-97)
@@ -350,11 +364,14 @@ const propertyPanels = computed(() =>
     .filter((p) => p.property)
     .map((p) => ({ ...p, view: defineAsyncComponent(() => p.component().then((m) => m.default)) })),
 );
-// records per tab (documents, time, MRs, repeat rule): the tab shows there is something inside
+// records per tab (documents, time, MRs, repeat rule): the tab shows there is something inside;
+// for property rows — whether the row is filled (PLNRAPP-830)
 const counts = useQuery(async () =>
   Object.fromEntries(
     await Promise.all(
-      panels.value.map(async (p) => [p.key, p.count ? await p.count(props.task.id) : 0] as const),
+      extensions.value.map(
+        async (p) => [p.key, p.count ? await p.count(props.task.id) : 0] as const,
+      ),
     ),
   ),
 );
@@ -392,6 +409,42 @@ const tabs = computed(() => {
       .filter((p) => !(p.key === 'plugins:panel' && p.count && counts.value?.[p.key] === 0)),
   ];
 });
+// --- empty fields under the cut (PLNRAPP-830): the row key — its data-col; status and the AI row are always shown.
+// A field that has been filled while the form is open stays (a picker does not vanish when its value is cleared).
+const fieldDefs = useFieldDefs(() => props.task.projectId);
+const filled = computed<Record<string, boolean>>(() => ({
+  assignee: props.task.assigneeIds.length > 0,
+  dates: !!(props.task.startDate || props.task.dueDate),
+  priority: props.task.priority !== 0,
+  labels: props.task.labelIds.length > 0,
+  // a module row without a count (the timer) — an action, always shown, like the watchers row with «Watch»
+  ...Object.fromEntries(
+    propertyPanels.value.map((p) => [p.key, !p.count || !!counts.value?.[p.key]]),
+  ),
+  ...Object.fromEntries(
+    (fieldDefs.value ?? []).map((d) => [`field:${d.id}`, !isEmptyValue(props.task.fields[d.id])]),
+  ),
+}));
+const showEmpty = ref(false);
+const kept = ref(new Set<string>());
+watch(
+  () => props.task.id,
+  () => {
+    showEmpty.value = false;
+    kept.value = new Set();
+  },
+);
+watch(
+  filled,
+  (f) => {
+    for (const [k, v] of Object.entries(f)) if (v && !kept.value.has(k)) kept.value.add(k);
+  },
+  { immediate: true },
+);
+const emptyCount = computed(
+  () => Object.keys(filled.value).filter((k) => !filled.value[k] && !kept.value.has(k)).length,
+);
+const shown = (key: string) => showEmpty.value || !!filled.value[key] || kept.value.has(key);
 // closed / total (PLNRAPP-102, -103)
 const ratio = (done: number, all: number) => (all ? `${done}/${all}` : 0);
 const closed = (statusId: string) =>
@@ -709,7 +762,7 @@ const panelComponent = computed(() => {
               >
             </dd>
           </div>
-          <div class="flex min-h-9 items-center">
+          <div v-if="shown('assignee')" class="flex min-h-9 items-center">
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <Users :size="15" />{{ t('tasks.assignee') }}
             </dt>
@@ -721,7 +774,7 @@ const panelComponent = computed(() => {
               />
             </dd>
           </div>
-          <div class="flex min-h-9 items-center">
+          <div v-if="shown('dates')" class="flex min-h-9 items-center">
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <CalendarDays :size="15" />{{ t('task.dates') }}
             </dt>
@@ -735,7 +788,7 @@ const panelComponent = computed(() => {
               />
             </dd>
           </div>
-          <div class="flex min-h-9 items-center">
+          <div v-if="shown('priority')" class="flex min-h-9 items-center">
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <Flag :size="15" />{{ t('tasks.priorityTitle') }}
             </dt>
@@ -746,7 +799,7 @@ const panelComponent = computed(() => {
               />
             </dd>
           </div>
-          <div class="flex min-h-9 items-center">
+          <div v-if="shown('labels')" class="flex min-h-9 items-center">
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <Tag :size="15" />{{ t('tasks.labels') }}
             </dt>
@@ -799,15 +852,29 @@ const panelComponent = computed(() => {
               />
             </dd>
           </div>
-          <div v-for="p in propertyPanels" :key="p.key" class="flex min-h-9 items-center">
-            <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
-              <component :is="p.icon" v-if="p.icon" :size="15" />{{ lt(p.label) }}
-            </dt>
-            <dd class="min-w-0" :data-col="p.key">
-              <component :is="p.view" :task-id="task.id" />
-            </dd>
+          <template v-for="p in propertyPanels" :key="p.key">
+            <div v-if="shown(p.key)" class="flex min-h-9 items-center">
+              <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
+                <component :is="p.icon" v-if="p.icon" :size="15" />{{ lt(p.label) }}
+              </dt>
+              <dd class="min-w-0" :data-col="p.key">
+                <component :is="p.view" :task-id="task.id" />
+              </dd>
+            </div>
+          </template>
+          <FieldsBlock :task="task" :visible="(id: string) => shown(`field:${id}`)" />
+          <div v-if="emptyCount" class="flex min-h-9 items-center @2xl:col-span-2">
+            <button
+              type="button"
+              class="-mx-1 inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-fg-muted outline-none hover:bg-bg-muted hover:text-fg focus-visible:ring-2 ring-focus"
+              :aria-expanded="showEmpty"
+              data-testid="empty-fields-toggle"
+              @click="showEmpty = !showEmpty"
+            >
+              <component :is="showEmpty ? ChevronUp : ChevronDown" :size="15" aria-hidden="true" />
+              {{ showEmpty ? t('task.hideEmptyFields') : t('task.emptyFields', { n: emptyCount }) }}
+            </button>
           </div>
-          <FieldsBlock :task="task" />
         </dl>
 
         <section :aria-label="t('task.extensions')">

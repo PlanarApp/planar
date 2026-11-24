@@ -1,11 +1,17 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { TaskView } from '../tasks';
 import FieldEditor from './FieldEditor.vue';
 import { setTaskField, useFieldDefs } from './index';
 
 // the project's custom fields — rows of the task properties list (PLNRAPP-99); set up in project settings
-const props = defineProps<{ task: TaskView }>();
-const defs = useFieldDefs(() => props.task.projectId);
+const props = defineProps<{
+  task: TaskView;
+  /** which rows to show (PLNRAPP-830: empty ones — under the form's cut); all by default */
+  visible?: (fieldId: string) => boolean;
+}>();
+const all = useFieldDefs(() => props.task.projectId);
+const defs = computed(() => (all.value ?? []).filter((d) => props.visible?.(d.id) ?? true));
 </script>
 
 <template>
