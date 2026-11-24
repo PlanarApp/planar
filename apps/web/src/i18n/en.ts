@@ -184,6 +184,7 @@ export default {
     carry: 'Unfinished from earlier days: {n}',
     carryOver: 'Move to today',
     moveFailed: 'Could not move the tasks',
+    completed: 'Completed ({n})',
   },
   inbox: {
     all: 'All',

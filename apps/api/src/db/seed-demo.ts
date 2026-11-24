@@ -183,6 +183,9 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Search results stale after reindex', 4, 2, null, 'liam', 'bug'],
       // a closed subtask of «Add API v2 pagination»: the «Closed N» accordion in the card (PLNRAPP-542)
       ['Draft cursor pagination RFC', 3, 2, -4, 'liam', 'docs', 3],
+      // My day: today, closed — under the collapsed «Completed (2)» cut of the Today block (PLNRAPP-850)
+      ['Review API v2 changelog', 3, 2, 0, 'demo,maya', 'docs'],
+      ['Benchmark legacy pagination', 4, 1, 0, 'demo,maya', 'improvement'],
     ],
   },
   {
@@ -1973,7 +1976,8 @@ async function insertAll(tx: Tx, now: Date) {
   );
 
   // «My day» (PLNRAPP-709) is built from tasks by dueDate: maya is an assignee of RDM-3, PLT-7, PLT-10 (today),
-  // MKT-4 (tomorrow) and SUP-2 (overdue — «Carry over to today») in PROJECTS
+  // MKT-4 (tomorrow) and SUP-2 (overdue — «Carry over to today») in PROJECTS; PLT-18, PLT-19 — closed today,
+  // under the «Completed» cut (PLNRAPP-850)
   // the tasks demo watches
   const watched: [string, number][] = [
     ['PLT', 4],

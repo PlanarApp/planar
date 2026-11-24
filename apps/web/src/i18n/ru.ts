@@ -184,6 +184,7 @@ export default {
     carry: 'Не завершено с прошлых дней: {n}',
     carryOver: 'Перенести на сегодня',
     moveFailed: 'Не удалось перенести задачи',
+    completed: 'Завершённые ({n})',
   },
   inbox: {
     all: 'Все',

@@ -498,18 +498,77 @@ describe('PLANARAPP-10 мой день', () => {
     await add(5);
     await add(6, { dueDate: day(0) }, false);
     const w = show();
-    await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T4']));
+    // PLNRAPP-850: the done T4 is under the collapsed cut
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T1']));
+    expect(w.get('[data-block=today] [data-testid=my-day-cut]').text()).toBe('Завершённые (1)');
     expect(planned(w, 'tomorrow')).toEqual(['T2']);
     expect(planned(w, 'later')).toEqual(['T3']);
     // later → today
     await act(w, '[data-block=later]', 'my-day-today');
-    await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T3', 'T4']));
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T3']));
     expect(await dueOf(t3)).toBe(day(0));
-    // unfinished of today → tomorrow; the done T4 stays
+    // unfinished of today → tomorrow; the done T4 stays under the cut
     await click(w.find('[data-testid=my-day-postpone]'));
-    await vi.waitFor(() => expect(planned(w)).toEqual(['T4']));
+    await vi.waitFor(() => expect(planned(w)).toEqual([]));
+    expect(w.find('[data-block=today] [data-testid=my-day-cut]').exists()).toBe(true);
     expect(planned(w, 'tomorrow')).toEqual(['T1', 'T2', 'T3']);
     expect([await dueOf(t1), await dueOf(t2), await dueOf(t3)]).toEqual([day(1), day(1), day(1)]);
+  });
+
+  it('PLNRAPP-850: завершённые и отменённые — под свёрнутым катом в конце блока, задача переезжает при смене статуса', async () => {
+    const sCancel = uuidv7();
+    await db
+      .table('statuses')
+      .put({ id: sCancel, name: 'Отменена', category: 'cancelled', color: '#000' });
+    await add(1, { dueDate: day(0) });
+    await add(2, { dueDate: day(0), statusId: sDone });
+    const t3 = await add(3, { dueDate: day(0) });
+    await add(4, { dueDate: day(0), statusId: sCancel });
+    await add(5, { dueDate: day(0) });
+    await add(6, { dueDate: day(1) });
+    const w = show();
+    const cut = () => w.find('[data-block=today] [data-testid=my-day-cut]');
+    await vi.waitFor(() => expect(planned(w)).toEqual(['T1', 'T3', 'T5']));
+    // one cut for done and cancelled, collapsed, at the end of the block; no cut without closed tasks
+    expect(cut().text()).toBe('Завершённые (2)');
+    expect(cut().attributes('aria-expanded')).toBe('false');
+    expect(w.find('[data-block=tomorrow] [data-testid=my-day-cut]').exists()).toBe(false);
+    const order = () =>
+      w
+        .findAll(
+          '[data-block=today] [data-testid=my-day-row], [data-block=today] [data-testid=my-day-cut]',
+        )
+        .map((e) =>
+          e.attributes('data-testid') === 'my-day-cut' ? 'cut' : e.text().match(/T\d/)![0],
+        );
+    expect(order()).toEqual(['T1', 'T3', 'T5', 'cut']);
+    // expand: the same rows after the cut; collapse again
+    await click(cut());
+    expect(cut().attributes('aria-expanded')).toBe('true');
+    expect(order()).toEqual(['T1', 'T3', 'T5', 'cut', 'T2', 'T4']);
+    expect(
+      w
+        .findAll('[data-block=today] [data-testid=my-day-row]')
+        .at(-1)!
+        .find('[data-testid=my-day-date]')
+        .exists(),
+    ).toBe(true);
+    await click(cut());
+    expect(planned(w)).toEqual(['T1', 'T3', 'T5']);
+    // closing a task moves it under the cut, reopening — back
+    await db.table('tasks').update(t3, { statusId: sDone });
+    await vi.waitFor(() => expect(cut().text()).toBe('Завершённые (3)'));
+    expect(planned(w)).toEqual(['T1', 'T5']);
+    await db.table('tasks').update(t3, { statusId: sTodo });
+    await vi.waitFor(() => expect(cut().text()).toBe('Завершённые (2)'));
+    expect(planned(w)).toEqual(['T1', 'T3', 'T5']);
+    // a new mount — collapsed again (the state is not stored)
+    await click(cut());
+    const again = show();
+    await vi.waitFor(() => expect(planned(again)).toEqual(['T1', 'T3', 'T5']));
+    expect(
+      again.get('[data-block=today] [data-testid=my-day-cut]').attributes('aria-expanded'),
+    ).toBe('false');
   });
 
   it('сортировка: по dueDate, затем приоритет (без приоритета — в конце), затем ключ', async () => {
