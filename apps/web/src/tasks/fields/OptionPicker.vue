@@ -93,14 +93,14 @@ function onKey(e: KeyboardEvent) {
         </slot>
       </button>
     </template>
-    <!-- мобильный лист: на всю ширину, список по высоте содержимого до 60vh (PLNRAPP-824); md+ — поповер 14rem -->
+    <!-- мобильный лист: на всю ширину, высота списка как прежде — до 15rem (PLNRAPP-824); md+ — поповер 14rem -->
     <div class="flex w-full flex-col gap-2 md:w-56" @keydown="onKey">
       <Input v-model="q" :label="title" hide-label :placeholder="t('tasks.search')" />
       <ul
         role="listbox"
         :aria-label="title"
         :aria-multiselectable="multiple || undefined"
-        class="max-h-[60vh] overflow-auto md:max-h-60"
+        class="max-h-60 overflow-auto"
       >
         <li
           v-for="(o, i) in shown"
