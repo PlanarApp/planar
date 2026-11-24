@@ -12,8 +12,11 @@ type JobDb = JobApi['db'];
 /** A deleted attachment's file stays this long (offline edits, undo); a file uploaded again within it stays too. */
 export const FILES_GRACE = sql`interval '7 days'`;
 
-/** Tables of the file store itself: a sha there is not a reference. */
-const OWN = new Set(['files', 'file_uploads', 'files_deleted']);
+/**
+ * Not references: tables of the file store itself and the sync journal `changes` — its `data` keeps every put of a row
+ * (an attachment's fileSha256 too) after the row is gone; the live tables are scanned instead.
+ */
+const OWN = new Set(['files', 'file_uploads', 'files_deleted', 'changes']);
 
 /**
  * Columns that may hold a file reference. There is no contract on references: attachments.file_sha256,
