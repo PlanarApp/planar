@@ -1182,10 +1182,9 @@ describe('движок: приёмка, доработка, надзор, све
 
     // a retry of the failed run (in «В работе»): no new status change, one run queued
     const id = runs[0]!.id as string;
-    await raw(
-      `update ai_runs set state = 'failed', finished_at = now() - interval '2 min' where id = $1`,
-      [id],
-    );
+    // state and finished_at apart: the ai_runs_finished_at trigger sets finished_at = now() on a terminal state
+    await raw(`update ai_runs set state = 'failed' where id = $1`, [id]);
+    await raw(`update ai_runs set finished_at = now() - interval '2 min' where id = $1`, [id]);
     jobs.length = 0;
     await reconcile();
     expect(jobs.filter((j) => j.queue === 'ai.run')).toEqual([
