@@ -390,7 +390,9 @@ describe('task:subtasks', () => {
     expect(row.find('[data-testid="row-title"]').text()).toBe('child');
     expect(row.find('[data-col="status"]').exists()).toBe(true);
     await until(() => !!row.find('[data-col="assignee"] [title="Ann"]').exists());
-    expect(row.find('[data-col="dueDate"]').exists()).toBe(false);
+    // PLNRAPP-828: the fields of the List view — priority and due date too
+    expect(row.find('[data-col="dueDate"]').exists()).toBe(true);
+    expect(row.find('[data-col="priority"]').exists()).toBe(true);
     // PLNRAPP-541: the List's «…» menu is in the subtask row too
     expect(row.find('[data-testid="row-menu"]').exists()).toBe(true);
     const input = w.find('input[placeholder="Добавить подзадачу"]');
@@ -399,6 +401,29 @@ describe('task:subtasks', () => {
     await w.find('form').trigger('submit');
     await eventually(async () =>
       (await db.table('tasks').toArray()).some((x) => x.title === 'второй' && x.parentId === t.id),
+    );
+  });
+  // PLNRAPP-828: the status and assignee buttons right of the new subtask input
+  it('новая подзадача создаётся с выбранными статусом и исполнителями', async () => {
+    w = await open();
+    await openTab('Подзадачи');
+    await until(() => w.find('[data-testid="subtask-add"]').exists());
+    const form = w.get('[data-testid="subtask-add"]');
+    form.findComponent(StatusPicker).vm.$emit('update:modelValue', ids.done);
+    form.findComponent(AssigneePicker).vm.$emit('update:modelValue', [ids.ann]);
+    await flushPromises();
+    await until(() => form.find('[title="Ann"]').exists());
+    await form.get('input').setValue('с полями');
+    await form.trigger('submit');
+    const made = await until(async () =>
+      (await db.table('tasks').toArray()).find((y) => y.title === 'с полями'),
+    );
+    expect(made.parentId).toBe(t.id);
+    expect(made.statusId).toBe(ids.done);
+    await eventually(async () =>
+      (await db.table('taskAssignees').toArray()).some(
+        (x) => x.taskId === made.id && x.userId === ids.ann,
+      ),
     );
   });
   // PLNRAPP-541: the List's actions in the subtask rows
