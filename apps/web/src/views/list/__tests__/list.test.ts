@@ -99,6 +99,15 @@ beforeEach(async () => {
 });
 
 describe('list:groups', () => {
+  it('PLNRAPP-823: при группировке общего заголовка списка нет — заголовки у групп', async () => {
+    await db.table('tasks').put(task(1));
+    await show();
+    expect(w.find('[data-testid=group-row]').exists()).toBe(true);
+    expect(w.find('[data-testid=list-head]').exists()).toBe(false);
+    w.unmount();
+    await show({ groupBy: 'none' });
+    expect(w.find('[data-testid=list-head]').exists()).toBe(true);
+  });
   it('list:groups по статусу в порядке rank', async () => {
     await db
       .table('tasks')
@@ -190,6 +199,8 @@ describe('list:groups', () => {
       expect(fields.get('[data-testid=card-badges]').classes()).toContain('ml-auto');
       // десктоп — кнопки полей 24 px, меню «…» на месте
       expect(fields.classes()).toContain('[&_button]:h-6!');
+      // PLNRAPP-823: между полями — отступ
+      expect(fields.classes()).toContain('gap-x-1');
       expect(card.find('[data-testid=row-menu]').exists()).toBe(true);
       // карточка выше rowH — виртуализатор её измеряет (minHeight вместо height)
       const box = card.element.parentElement as HTMLElement;
@@ -448,6 +459,22 @@ describe('PLNRAPP-291 режим выделения в Списке', () => {
     await row('PLN-1').trigger('click', { metaKey: true });
     expect(checks()).toHaveLength(0);
     expect(w.find('[data-testid=bulk-bar]').exists()).toBe(false);
+  });
+  it('PLNRAPP-823: «Выбрать все» — в общем заголовке без группировки и в панели при группировке', async () => {
+    await db.table('tasks').bulkPut([1, 2, 3].map((n) => task(n, { rank: rank(n) })));
+    await show();
+    await row('PLN-1').trigger('click', { metaKey: true });
+    const all = w.get('[data-testid=bulk-bar] [data-testid=select-all]');
+    expect(w.findAll('[data-testid=select-all]')).toHaveLength(1);
+    await all.trigger('click');
+    expect(useSelection().selected.value.size).toBe(3);
+    expect(w.get('[data-testid=bulk-bar]').text()).toContain('Выбрано: 3');
+    w.unmount();
+    useSelection().clear();
+    await show({ groupBy: 'none' });
+    await row('PLN-1').trigger('click', { metaKey: true });
+    expect(w.find('[data-testid=list-head] [data-testid=select-all]').exists()).toBe(true);
+    expect(w.find('[data-testid=bulk-bar] [data-testid=select-all]').exists()).toBe(false);
   });
   it('Shift-клик без якоря выделяет задачу, второй — диапазон подряд идущих строк', async () => {
     await db.table('tasks').bulkPut([1, 2, 3, 4].map((n) => task(n, { rank: rank(n) })));

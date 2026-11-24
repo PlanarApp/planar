@@ -2,13 +2,14 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CalendarClock, ChevronsRight, Sun, X } from 'lucide-vue-next';
-import { StatusIcon } from '../tasks';
+import { useLabels, useMembers } from '../tasks';
 import DueDatePicker from '../tasks/fields/DueDatePicker.vue';
-import { Button, IconButton } from '../ui';
+import { Button, IconButton, useBreakpoint } from '../ui';
 import { toast } from '../ui/toast';
 import { openTask } from '../views';
 import { localToday } from '../views/filter';
 import { formatDue } from '../views/list/due';
+import TaskCard from '../views/list/TaskCard.vue';
 import { carryOver, postpone, setDue, unplan, type DayItem, type MyDay } from './myDay';
 
 // «My day» planner (PLANARAPP-10, PLANARAPP-58, PLNRAPP-709): Today, Tomorrow, Later by the tasks' due date
@@ -21,6 +22,26 @@ const title = computed(() =>
 const left = computed(() => props.day.today.filter((x) => !x.done).length);
 
 const BLOCKS = ['today', 'tomorrow', 'later'] as const;
+// PLNRAPP-823: the rows are the List cards (the name on one line); dictionaries — of the tasks' spaces
+const { isMobile } = useBreakpoint();
+const spaceIds = computed(() =>
+  [...new Set(BLOCKS.flatMap((b) => props.day[b].map((x) => x.task.spaceId)))].sort().join(','),
+);
+const members = useMembers(spaceIds);
+const labels = useLabels(spaceIds);
+// the filled fields in the order of the List card; the due date — the move menu on the right
+const cols = (x: DayItem) =>
+  (['project', 'priority', 'labels', 'assignee'] as const).filter(
+    (c) =>
+      c === 'project' ||
+      (c === 'priority'
+        ? !!x.task.priority
+        : c === 'labels'
+          ? x.task.labelIds.length > 0
+          : x.task.assigneeIds.length > 0),
+  );
+// field pickers are mounted for the card under the cursor (always on mobile), as in the List
+const hover = ref<string>();
 const move = (x: DayItem, date: string | null) => date && setDue(x.task.id, date);
 
 // PLNRAPP-813: the bulk move is one transaction; while it runs the buttons are disabled (no second batch
@@ -80,14 +101,34 @@ async function bulk(f: (day: MyDay) => Promise<void>) {
           :key="x.task.id"
           data-testid="my-day-row"
           :data-task="x.task.id"
-          class="group flex flex-col gap-0.5 rounded-md px-1 py-1 hover:bg-bg-muted"
+          tabindex="0"
+          :class="[
+            'group flex min-w-0 cursor-pointer items-start gap-1 rounded-md px-1 py-1 outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus',
+            x.done && '[&_p]:text-fg-muted [&_p]:line-through',
+          ]"
+          @mouseenter="hover = x.task.id"
+          @mouseleave="hover = undefined"
+          @click="openTask(x.key)"
+          @keydown.enter.self="openTask(x.key)"
         >
-          <!-- PLNRAPP-120: key and status, on the right the date with the move menu; below — the title up to two lines -->
-          <div class="flex min-h-7 items-center gap-1">
-            <StatusIcon :status="x.status" />
-            <span class="text-xs text-fg-subtle">{{ x.key }}</span>
-            <span class="ml-auto" />
-            <!-- today / tomorrow / remove — in the menu next to the date picker -->
+          <!-- PLNRAPP-823: the List card without wrapping; on the right the date with the move menu -->
+          <div class="min-w-0 flex-1">
+            <TaskCard
+              head
+              show-key
+              project-text
+              :task="x.task"
+              :space-id="x.task.spaceId"
+              :cols="cols(x)"
+              :blocked="false"
+              :hot="isMobile || hover === x.task.id"
+              :members="members ?? []"
+              :labels="labels ?? []"
+              :project-name="x.project"
+            />
+          </div>
+          <!-- today / tomorrow / remove — in the menu next to the date picker -->
+          <div class="flex h-7 shrink-0 items-center" @click.stop>
             <DueDatePicker
               :model-value="null"
               :label="t('myDay.pick')"
@@ -133,16 +174,6 @@ async function bulk(f: (day: MyDay) => Promise<void>) {
               </template>
             </DueDatePicker>
           </div>
-          <button
-            type="button"
-            :class="[
-              'line-clamp-2 rounded-md pl-5 pr-1 text-left text-sm break-words outline-none focus-visible:ring-2 ring-focus',
-              x.done && 'text-fg-muted line-through',
-            ]"
-            @click="openTask(x.key)"
-          >
-            {{ x.task.title }}
-          </button>
         </div>
       </div>
       <div

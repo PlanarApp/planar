@@ -21,7 +21,12 @@ import { setStatusesByName } from './scope';
 import { toast } from '../ui/toast';
 
 /** Bulk action bar for the selected tasks of the view (one mutation per task). */
-const props = defineProps<{ spaceId: string; tasks: readonly TaskView[] | undefined }>();
+const props = defineProps<{
+  spaceId: string;
+  tasks: readonly TaskView[] | undefined;
+  /** PLNRAPP-823: ids for the «select all» checkbox when the view has no header row with it */
+  selectAll?: readonly string[];
+}>();
 const { t } = useI18n();
 const statuses = useStatuses(() => props.spaceId);
 const sel = useSelection();
@@ -59,6 +64,16 @@ async function removeSelected() {
     class="flex flex-wrap items-center gap-3 border-t border-border bg-surface px-3 py-2 text-sm"
     data-testid="bulk-bar"
   >
+    <input
+      v-if="selectAll"
+      type="checkbox"
+      :checked="sel.state(selectAll) === 'all'"
+      :indeterminate="sel.state(selectAll) === 'some'"
+      :aria-label="t('list.selectAll')"
+      class="size-4"
+      data-testid="select-all"
+      @click="sel.toggleAll(selectAll)"
+    />
     <span>{{ t('list.selected', { n: chosen.length }) }}</span>
     <StatusPicker :space-id="spaceId" :project-ids="projectIds" @update:model-value="setStatus" />
     <BulkAssigneePicker

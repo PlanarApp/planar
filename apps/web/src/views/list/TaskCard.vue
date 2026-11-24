@@ -107,9 +107,9 @@ const copyKey = () =>
           {{ task.key }}</button
         >{{ task.title }}
       </p>
-      <!-- поля плотно; иконки (ИИ, прогресс, ветки/MR/CI) — по правому краю той же строки -->
+      <!-- поля через 4 px (PLNRAPP-823); иконки (ИИ, прогресс, ветки/MR/CI) — по правому краю той же строки -->
       <div
-        :class="['-mx-0.5 flex flex-wrap items-center', isMobile ? TAP : DENSE]"
+        :class="['-mx-0.5 flex flex-wrap items-center gap-x-1', isMobile ? TAP : DENSE]"
         data-testid="card-fields"
       >
         <template v-for="c in cols" :key="c">
