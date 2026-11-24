@@ -278,6 +278,8 @@ describe('PLANARAPP-42 свойство «Время»', () => {
     // PLNRAPP-128: no time yet — «+» with the label
     expect(w.get('[data-test=time-total]').text()).toBe('');
     expect(w.get('[data-test=time-total]').attributes('aria-label')).toBe('addManual');
+    // PLNRAPP-839: «play» gets the compact class (narrow on desktop, 2px gap to «+»)
+    expect(w.get('[data-test=time-toggle]').classes()).toContain('toggle');
     await w.get('[data-test=time-toggle]').trigger('click');
     expect(mutate).toHaveBeenCalledWith('time.start', { id: expect.any(String), taskId: 'root' });
     st.entries.value = [
