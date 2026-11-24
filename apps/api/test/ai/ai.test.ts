@@ -70,8 +70,13 @@ beforeAll(async () => {
   });
   await new Promise<void>((r) => srv.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${(srv.address() as AddressInfo).port}`;
+  // the fake provider is internal: space admins reach it only through the allow list
+  process.env.WEBHOOKS_ALLOW_HOSTS = '127.0.0.1';
 });
-afterAll(() => void srv.close());
+afterAll(() => {
+  delete process.env.WEBHOOKS_ALLOW_HOSTS;
+  srv.close();
+});
 beforeEach(async () => {
   hits = [];
   status = 200;
@@ -204,6 +209,23 @@ describe('ai: подключения', () => {
     const id = (await list('spaceAdmin', 'project', w.projectId)).json().connection.id;
     expect((await call('DELETE', `connections/${id}`, 'spaceAdmin')).statusCode).toBe(204);
     expect((await resolveConnection(db, w.projectId))!.model).toBe('m-space');
+  });
+
+  it('SSRF: внутренний baseUrl у пространства — только админ инстанса', async () => {
+    delete process.env.WEBHOOKS_ALLOW_HOSTS;
+    try {
+      const r = await put('spaceAdmin', 'space', w.spaceId);
+      expect(r.statusCode).toBe(400);
+      const m = { scope: 'space', scopeId: w.spaceId, provider: 'openai-compatible', apiKey: 'k' };
+      for (const baseUrl of [base, 'http://169.254.169.254/latest'])
+        expect(
+          (await call('POST', 'connections/models', 'spaceAdmin', { ...m, baseUrl })).statusCode,
+        ).toBe(400);
+      expect(hits).toHaveLength(0);
+      expect((await put('root', 'space', w.spaceId)).statusCode).toBe(200);
+    } finally {
+      process.env.WEBHOOKS_ALLOW_HOSTS = '127.0.0.1';
+    }
   });
 
   it('права: воркспейс — админ инстанса, пространство и проект — их админы; проект — только с модулем', async () => {

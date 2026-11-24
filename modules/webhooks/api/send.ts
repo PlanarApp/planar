@@ -1,8 +1,7 @@
 import { createHmac } from 'node:crypto';
 import http from 'node:http';
 import https from 'node:https';
-import { isDemo } from '@planar/server-kit';
-import { safeAddress } from './ssrf.js';
+import { isDemo, safeAddress } from '@planar/server-kit';
 
 /** X-Planar-Signature per the contract: HMAC-SHA256(secret, exactly the bytes sent). */
 export const sign = (secret: string, body: string): string =>

@@ -94,8 +94,6 @@ export const PREFETCH_INTERVAL = 500;
 export const COOL_AFTER_MS = 30 * 24 * 3600_000;
 /** Cooling runs at most this often (after a successful cycle of the leader) */
 const COOL_EVERY_MS = 3600_000;
-/** y-indexeddb database of the task description (openCollab: `v2:<name>`, the name — `task:<id>`) */
-const taskYdb = (taskId: string) => `v2:task:${taskId}`;
 
 type Rows = Record<string, unknown>[];
 
@@ -585,8 +583,8 @@ export function createClient(db: PlanarDB) {
       for (const id of reactions) changes.push({ entity: 'commentReactions', id, row: null });
     });
     emit(changes);
-    if (typeof indexedDB !== 'undefined')
-      for (const id of cooled) indexedDB.deleteDatabase(taskYdb(id));
+    // shortcut: the task's y-indexeddb (description) is kept — it may hold offline edits not yet sent (they go out
+    // only when the task is opened); one small database per ever opened task, clean up with a «synced» marker if it grows
     return cooled;
   }
 
@@ -596,21 +594,32 @@ export function createClient(db: PlanarDB) {
     await applyServer({ changes: r.changes, cursor: r.cursor, lastMutationId: r.lastMutationId });
   }
 
-  /** true — something was sent */
-  async function push(): Promise<boolean> {
-    const items = await db._queue.where('id').above(pushedUpTo).limit(100).toArray();
+  /** true — something was sent; limit — mutations per request (halved while the server answers 413) */
+  async function push(limit = 100): Promise<boolean> {
+    const items = await db._queue.where('id').above(pushedUpTo).limit(limit).toArray();
     if (!items.length) return false;
     const body = {
       clientId,
       mutations: items.map((q) => ({ id: q.id!, name: q.name, args: q.args })),
     };
-    const r = syncPushResponseSchema.parse(
-      await http('/sync/push', {
+    let res: unknown;
+    try {
+      res = await http('/sync/push', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
-      }),
-    );
+      });
+    } catch (e) {
+      if (!(e instanceof HttpError) || e.status !== 413) throw e;
+      if (items.length > 1) return push(items.length >> 1);
+      // one mutation over the server's body limit would block the queue forever: refused like a server rejection
+      res = {
+        results: [
+          { id: items[0].id!, ok: false, code: 'invalid_args', message: 'Слишком большая правка' },
+        ],
+      };
+    }
+    const r = syncPushResponseSchema.parse(res);
     pushedUpTo = items[items.length - 1].id!;
     const rejected = new Map<number, { code: string; message: string }>();
     for (const x of r.results) if (!x.ok) rejected.set(x.id, x);
@@ -721,7 +730,23 @@ export function createClient(db: PlanarDB) {
     };
   }
 
+  /** cursor and replica state from _meta: at start and when a tab becomes the leader (another leader moved them meanwhile) */
+  async function readState() {
+    cursor = (await meta('cursor')) as number | undefined;
+    replicaState.value = cursor === undefined ? 'empty' : 'complete';
+    // only a new entity table needs bootstrap: a new index is built by Dexie over the rows in place
+    const sig = await meta('schema');
+    // PLNRAPP-487/729: a replica bootstrapped by another C-sync version (no protocol or v2, empty _held) — bootstrap again by v3
+    rebuild =
+      cursor !== undefined &&
+      (typeof sig !== 'string' ||
+        dataSig(sig) !== db.schemaSig() ||
+        (await meta('protocol')) !== SYNC_PROTOCOL);
+  }
+
   async function lead(g: number) {
+    if (g !== gen) return;
+    await readState();
     if (g !== gen) return;
     leading = true;
     // a warm start doesn't wait for the network; a cold one waits for bootstrap
@@ -742,16 +767,7 @@ export function createClient(db: PlanarDB) {
     const id = (await meta('clientId')) as string | undefined;
     clientId = id ?? uuidv7();
     if (!id) await db._meta.put({ key: 'clientId', value: clientId });
-    cursor = (await meta('cursor')) as number | undefined;
-    replicaState.value = cursor === undefined ? 'empty' : 'complete';
-    // only a new entity table needs bootstrap: a new index is built by Dexie over the rows in place
-    const sig = await meta('schema');
-    // PLNRAPP-487/729: a replica bootstrapped by another C-sync version (no protocol or v2, empty _held) — bootstrap again by v3
-    rebuild =
-      cursor !== undefined &&
-      (typeof sig !== 'string' ||
-        dataSig(sig) !== db.schemaSig() ||
-        (await meta('protocol')) !== SYNC_PROTOCOL);
+    await readState();
     pushedUpTo = 0;
     failures = wsFailures = 0;
     setStatus('idle');
@@ -760,10 +776,13 @@ export function createClient(db: PlanarDB) {
     const sub = liveQuery(async () => ({
       n: await db._queue.count(),
       last: (await db._queue.orderBy('id').last())?.id ?? 0,
+      // a follower tab learns that the leader has filled the replica
+      filled: (await meta('cursor')) !== undefined,
     })).subscribe({
-      next: ({ n, last }) => {
+      next: ({ n, last, filled }) => {
         syncState.value = { ...syncState.value, pending: n };
         if (leading && last > pushedUpTo) void kick();
+        if (!leading && filled && replicaState.value === 'empty') replicaState.value = 'complete';
       },
       // the subscription is over: new edits are sent only on WS pokes and retries
       error: (e) => console.error('sync queue', e),

@@ -118,6 +118,14 @@ const wrap = (body: string, unsub: string, what: string) =>
   `<p style="color:#888;font-size:12px;margin-top:24px">Вы получили это письмо, потому что включили ${what} в Planar. ` +
   `<a href="${esc(unsub)}">Отписаться</a></p></div>`;
 
+/**
+ * A message row that is not retried: sent or skipped, or an attempt younger than 10 minutes. A failed attempt
+ * (SMTP down) or a 'sending' left by a crashed process is taken again — notifications within their 24 h window,
+ * a digest within its day.
+ */
+const done = (t: string, now: Date) =>
+  sql`(${sql.raw(t)}.status in ('sent', 'skipped') or ${sql.raw(t)}.created_at > ${new Date(+now - 10 * MIN).toISOString()}::timestamptz)`;
+
 /** Cron email.notify: now — 'now' (substituted in tests). Returns the number of messages sent. */
 export async function notifyTick(db: Db, now: Date, snd: Send = send): Promise<number> {
   const cfg = await loadCfg(db);
@@ -140,15 +148,18 @@ export async function notifyTick(db: Db, now: Date, snd: Send = send): Promise<n
         and n.created_at >= ${new Date(+now - 24 * HOUR).toISOString()}
         and n.created_at <= ${new Date(+now - 10 * MIN).toISOString()}
         and coalesce(e.notify, true)
-        and not exists (select 1 from email_outbox o where o.notification_id = n.id)
+        and not exists (select 1 from email_outbox o where o.notification_id = n.id and ${done('o', now)})
       order by n.created_at limit 200`,
   );
   let sent = 0;
   for (const n of cand) {
     const [ins] = await rowsOf(
       db,
-      sql`insert into email_outbox (notification_id, user_id, status) values (${n.id}, ${n.userId}, 'sending')
-        on conflict do nothing returning notification_id`,
+      sql`insert into email_outbox (notification_id, user_id, status, created_at)
+        values (${n.id}, ${n.userId}, 'sending', ${now.toISOString()})
+        on conflict (notification_id) do update set status = 'sending', error = null, created_at = excluded.created_at
+          where not ${done('email_outbox', now)}
+        returning notification_id`,
     );
     if (!ins) continue;
     const [cur] = await rowsOf(db, sql`select read_at from notifications where id = ${n.id}`);
@@ -221,14 +232,17 @@ export async function digestTick(db: Db, now: Date, snd: Send = send): Promise<n
     db,
     sql`select u.id, u.email from email_prefs e
       join users u on u.id = e.user_id and u.deactivated_at is null and coalesce(u.email, '') <> ''
-      where e.digest and not exists (select 1 from email_digests d where d.user_id = u.id and d.date = ${date})`,
+      where e.digest and not exists (select 1 from email_digests d where d.user_id = u.id and d.date = ${date} and ${done('d', now)})`,
   );
   let sent = 0;
   for (const u of users) {
     const [ins] = await rowsOf(
       db,
-      sql`insert into email_digests (user_id, date, status) values (${u.id}, ${date}, 'sending')
-        on conflict do nothing returning user_id`,
+      sql`insert into email_digests (user_id, date, status, created_at)
+        values (${u.id}, ${date}, 'sending', ${now.toISOString()})
+        on conflict (user_id, date) do update set status = 'sending', error = null, created_at = excluded.created_at
+          where not ${done('email_digests', now)}
+        returning user_id`,
     );
     if (!ins) continue;
     const set = async (status: string, error: string | null = null) =>

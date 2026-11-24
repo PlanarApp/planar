@@ -1,0 +1,1 @@
+CREATE INDEX "webhooks_deliveries_pending_idx" ON "webhooks_deliveries" USING btree ("next_attempt_at") WHERE "webhooks_deliveries"."status" = 'pending';

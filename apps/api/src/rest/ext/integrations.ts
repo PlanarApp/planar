@@ -101,6 +101,7 @@ const ops: ExtOp[] = [
     path: '/api/v1/webhooks/subscriptions',
     shape: { url, events, description },
     write: true,
+    danger: 'delete', // admin power: the AI chat asks the user's «yes» (prompt injection)
     status: 201,
     run: async (d, u, i) => {
       await requireAdmin(d, u);
@@ -134,6 +135,7 @@ const ops: ExtOp[] = [
       description,
     },
     write: true,
+    danger: 'delete', // admin power: the AI chat asks the user's «yes» (prompt injection)
     run: async (d, u, i) => {
       await requireAdmin(d, u);
       const { id: sid, ...b } = i as { id: string };

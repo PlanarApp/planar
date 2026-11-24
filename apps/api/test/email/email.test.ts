@@ -220,7 +220,7 @@ describe('pf4: письма по уведомлениям', () => {
     expect(raw).not.toContain(PASSWORD);
   });
 
-  it('pf4: ошибка SMTP → failed с текстом, повтора нет', async () => {
+  it('pf4: ошибка SMTP → failed с текстом; повтор не раньше чем через 10 минут', async () => {
     const id = await notif();
     stub.failRcpt = true;
     expect(await notifyTick(db, T0)).toBe(0);
@@ -231,6 +231,21 @@ describe('pf4: письма по уведомлениям', () => {
     stub.failRcpt = false;
     expect(await notifyTick(db, min(5))).toBe(0);
     expect(stub.mails).toHaveLength(0);
+    // SMTP is back: the failed one goes out, once
+    expect(await notifyTick(db, min(11))).toBe(1);
+    expect((await outbox())[0]).toMatchObject({ notificationId: id, status: 'sent' });
+    expect(await notifyTick(db, min(30))).toBe(0);
+    expect(stub.mails).toHaveLength(1);
+  });
+
+  it('pf4: зависшая sending (процесс упал) захватывается снова через 10 минут', async () => {
+    const id = await notif();
+    await db.$client.query(
+      `insert into email_outbox (notification_id, user_id, status, created_at) values ($1, $2, 'sending', $3)`,
+      [id, rcpt.id, T0.toISOString()],
+    );
+    expect(await notifyTick(db, min(5))).toBe(0);
+    expect(await notifyTick(db, min(11))).toBe(1);
   });
 });
 

@@ -13,7 +13,7 @@ import { doc, world, type World } from '../sync/helpers.js';
 // module internals: signature, address checks, delivery attempt
 import { attempt, retryDelaySec } from '../../../../modules/webhooks/api/deliver.js';
 import { sign } from '../../../../modules/webhooks/api/send.js';
-import { BlockedAddress, isBlocked, safeAddress } from '../../../../modules/webhooks/api/ssrf.js';
+import { BlockedAddress, isBlocked, safeAddress } from '@planar/server-kit';
 
 useApp();
 
@@ -402,10 +402,11 @@ describe('wk4: события из хука', () => {
     });
   });
 
-  it('wk4: манифест: задачи deliver и sweep, afterMutation', () => {
+  it('wk4: манифест: задачи deliver, sweep и cleanup, afterMutation', () => {
     expect((webhooks.jobs as { queue: string }[]).map((j) => j.queue)).toEqual([
       'webhooks.deliver',
       'webhooks.sweep',
+      'webhooks.cleanup',
     ]);
     expect(webhooks.afterMutation).toBeTypeOf('function');
   });

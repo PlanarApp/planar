@@ -1,6 +1,6 @@
 // @vitest-environment node
 // PLNRAPP-489 (C-sync v3): остывание — лидер при пустой очереди удаляет детали задач без обращения 30 дней
-// вместе с _held и y-indexeddb базой задачи, кроме моих открытых задач.
+// вместе с _held (y-indexeddb база описания остаётся), кроме моих открытых задач.
 import 'fake-indexeddb/auto';
 import { uuidv7 } from '@planar/shared';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -98,7 +98,7 @@ async function v3() {
 }
 
 describe('PLNRAPP-489: остывание деталей задач', () => {
-  it('детали старше 30 дней удаляются вместе с _held и y-indexeddb базой, мои открытые — нет', async () => {
+  it('детали старше 30 дней удаляются вместе с _held, мои открытые — нет; y-indexeddb база остаётся (офлайн-правки описания)', async () => {
     const { s, c, t, comments, reactions, now } = await v3();
     const batches: string[] = [];
     c.onReplicaChange((b) => batches.push(...b.map((x) => x.id)));
@@ -119,9 +119,9 @@ describe('PLNRAPP-489: остывание деталей задач', () => {
     }
     // задачи (ядро) остаются
     expect(await s.db.table('tasks').get(t.stale.id)).toBeTruthy();
+    // the description's y-indexeddb may hold unsent offline edits: cooling keeps it
     const names = await ydbs();
-    for (const id of gone) expect(names).not.toContain(ydb(id));
-    for (const id of kept) expect(names).toContain(ydb(id));
+    for (const id of [...gone, ...kept]) expect(names).toContain(ydb(id));
   });
 
   it('остывшая задача загружается снова через POST /sync/tasks', async () => {

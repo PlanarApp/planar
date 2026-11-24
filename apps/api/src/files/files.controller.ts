@@ -31,6 +31,9 @@ export const FILES_OPTS = Symbol('FILES_OPTS');
 export type { FilesOpts };
 
 const SHA = /^[0-9a-f]{64}$/;
+/** the type comes from the uploader: only these are shown inline, the rest (html, svg, js…) is a download — else stored XSS on our origin */
+const INLINE =
+  /^(image\/(png|jpeg|gif|webp|avif|bmp)|audio\/[\w.+-]+|video\/[\w.+-]+|application\/pdf|text\/plain)(;|$)/i;
 const notFound = () => new HttpError(404, 'not_found', 'Файл не найден');
 const badRequest = (m: string) => new HttpError(400, 'invalid_request', m);
 
@@ -197,13 +200,17 @@ export class FilesController {
     if (req.headers['if-none-match']?.split(',').some((t) => t.trim() === `"${sha}"`)) {
       return reply.status(304).send();
     }
-    if (name) {
+    const inline = INLINE.test(row.mime);
+    if (name || !inline) {
       reply.header(
         'Content-Disposition',
-        `attachment; filename*=UTF-8''${encodeURIComponent(name)}`,
+        name ? `attachment; filename*=UTF-8''${encodeURIComponent(name)}` : 'attachment',
       );
     }
-    reply.header('Content-Type', row.mime).header('Accept-Ranges', 'bytes');
+    reply
+      .header('Content-Type', inline ? row.mime : 'application/octet-stream')
+      .header('X-Content-Type-Options', 'nosniff')
+      .header('Accept-Ranges', 'bytes');
     // a single range (audio/video: seeking; Safari won't play without it); several ranges — serve the whole file
     const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
     if (m && (m[1] || m[2])) {

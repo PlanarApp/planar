@@ -107,8 +107,10 @@ describe('инстанс (ext/instance)', () => {
     const defs = toolDefs(app.get(RestService));
     expect(defs.find((d) => d.name === 'list_users')?.write).toBe(false);
     expect(defs.find((d) => d.name === 'create_user')?.write).toBe(true);
-    // no deletes in the area, so no danger is required
     expect(area.ops.filter((o) => o.method === 'delete')).toEqual([]);
+    // admin powers: the AI chat asks for confirmation (danger)
+    for (const t of ['create_user', 'update_user', 'update_workspace', 'set_instance_module'])
+      expect(defs.find((d) => d.name === t)?.danger, t).toBe('delete');
   });
 
   it('пользователи: список без секретов → создать → роль → блокировка', async () => {

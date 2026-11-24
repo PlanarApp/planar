@@ -20,7 +20,7 @@ import type { PgBoss } from 'pg-boss';
 import webpush from 'web-push';
 import { z } from 'zod';
 import { pushPayloadSchema, type PushPayload } from '@planar/shared';
-import { isDemo } from '@planar/server-kit';
+import { BlockedAddress, isDemo, safeAddress } from '@planar/server-kit';
 import { BadRequestException } from '@nestjs/common';
 import { getAuth } from '../auth/auth.js';
 import type { Db } from '../db/index.js';
@@ -56,10 +56,17 @@ export class WebPushSender implements PushSender {
   constructor(private v: { publicKey: string; privateKey: string; subject: string }) {}
   async send(s: PushSub, p: PushPayload) {
     if (isDemo()) return; // demo: no outgoing requests
+    // the endpoint comes from the client: an internal address is gone for good (410 deletes the subscription)
+    await safeAddress(new URL(s.endpoint).hostname).catch((e: unknown) => {
+      throw Object.assign(e instanceof Error ? e : new Error(String(e)), {
+        statusCode: e instanceof BlockedAddress ? 410 : undefined,
+      });
+    });
     await webpush.sendNotification(
       { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
       JSON.stringify(p),
-      { vapidDetails: this.v as never },
+      // a silent host must not hold the single push worker
+      { vapidDetails: this.v as never, timeout: 10_000 },
     );
   }
 }
@@ -218,7 +225,7 @@ export class PushQueue implements OnApplicationShutdown {
 }
 
 const sub = z.object({
-  endpoint: z.url(),
+  endpoint: z.url({ protocol: /^https$/ }),
   keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
 });
 const unsub = z.object({ endpoint: z.string().min(1) });

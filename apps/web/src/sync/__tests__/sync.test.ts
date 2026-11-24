@@ -134,6 +134,26 @@ describe('sync', () => {
     await c.stopSync();
   });
 
+  it('sync:too-large — 413: пачка делится, слишком большая правка отклонена, очередь не встаёт', async () => {
+    const s = setup();
+    const c = s.mk();
+    const errs: unknown[] = [];
+    c.onMutationError((e) => errs.push(e));
+    await s.start(c);
+    s.server.maxBody = 2000;
+    await c.mutate('test.label.put', args('a'));
+    await c.mutate('test.label.put', args('x'.repeat(5000)));
+    await c.mutate('test.label.put', args('b'));
+    await c.syncNow();
+    expect(await s.db._queue.count()).toBe(0);
+    expect([...s.server.rows.get('labels')!.values()].map((l) => l.name).sort()).toEqual([
+      'a',
+      'b',
+    ]);
+    expect(errs).toMatchObject([{ name: 'test.label.put', code: 'invalid_args' }]);
+    await c.stopSync();
+  });
+
   it('sync:offline-queue — очередь переживает перезапуск и уходит на сервер', async () => {
     const s = setup();
     const c1 = s.mk();

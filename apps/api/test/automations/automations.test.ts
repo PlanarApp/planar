@@ -558,6 +558,25 @@ describe('wk3: условия и действия', () => {
     expect((await row(t)).dueDate).toBeNull();
   });
 
+  it('move_to_project: проект чужого пространства → invalid_args при создании и правке', async () => {
+    const foreign = (await world(db)).projectId;
+    const r = await w.admin.push('automations.create', {
+      id: uuidv7(),
+      projectId: P,
+      name: 'R',
+      trigger: { type: 'task.created' },
+      actions: [{ type: 'move_to_project', projectId: foreign }],
+    });
+    expect(r).toMatchObject({ ok: false, code: 'invalid_args' });
+    const { id } = await rule({ type: 'task.created' }, [{ type: 'add_comment', text: 'x' }]);
+    expect(
+      await w.admin.push('automations.update', {
+        id,
+        actions: [{ type: 'move_to_project', projectId: foreign }],
+      }),
+    ).toMatchObject({ ok: false, code: 'invalid_args' });
+  });
+
   it('wk3: move_to_project и create_subtask (статус — первый todo)', async () => {
     const p2 = await project();
     const mv = await rule({ type: 'task.created' }, [

@@ -1,9 +1,15 @@
 import { and, eq, lte, sql } from 'drizzle-orm';
-import type { Db, JobApi, JobDef, ModuleHookApi, Q } from '@planar/server-kit';
+import {
+  BlockedAddress,
+  type Db,
+  type JobApi,
+  type JobDef,
+  type ModuleHookApi,
+  type Q,
+} from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
 import { webhooksDeliveries as D, webhooksSubscriptions as S } from './schema.js';
 import { post, sign } from './send.js';
-import { BlockedAddress } from './ssrf.js';
 
 export const QUEUE = 'webhooks.deliver';
 const MAX_ATTEMPTS = 11;
@@ -138,6 +144,16 @@ export const jobs: JobDef<Record<string, unknown>>[] = [
         .where(and(eq(D.status, 'pending'), lte(D.nextAttemptAt, new Date().toISOString())))
         .limit(200);
       for (const r of due) await api.enqueue(QUEUE, { deliveryId: r.id });
+    },
+  },
+  {
+    // the delivery history only grew: finished ones are kept 30 days
+    queue: 'webhooks.cleanup',
+    cron: '10 3 * * *',
+    async handler(_, api) {
+      await api.db.execute(
+        sql`delete from webhooks_deliveries where status <> 'pending' and created_at < now() - interval '30 days'`,
+      );
     },
   },
 ];

@@ -194,6 +194,16 @@ async function checkAi(
       throw bad(`ИИ-действие ${a.aiActionId} не найдено в проекте`);
 }
 
+/** move_to_project runs as the system: the target must be a visible project of the rule's own space, or a rule moves tasks where its author has no rights */
+async function checkMoves(tx: Tx, r: Pick<Rule, 'spaceId'>, list: Action[]) {
+  for (const a of list)
+    if (
+      a.type === 'move_to_project' &&
+      (await tx.get('projects', a.projectId))?.spaceId !== r.spaceId
+    )
+      throw bad(`Проект ${a.projectId} не найден в пространстве правила`);
+}
+
 const actions = z.array(actionSchema).min(1).max(10);
 const name = z.string().min(1).max(100);
 const description = z.string().max(2000).nullable();
@@ -259,6 +269,7 @@ export const create = defineMutator({
     const project = await tx.get('projects', a.projectId);
     if (!project) throw new MutatorError('not_found', `project ${a.projectId}`);
     await checkAi(tx, ctx.userId, { spaceId: project.spaceId, projectId: a.projectId }, a.actions);
+    await checkMoves(tx, project, a.actions);
     const row: Rule = {
       id: a.id,
       spaceId: project.spaceId,
@@ -293,6 +304,7 @@ export const update = defineMutator({
     const patch = Object.fromEntries(Object.entries(a).filter(([, v]) => v !== undefined));
     if (!Object.keys(patch).length) throw bad('нечего менять');
     await checkAi(tx, ctx.userId, old, old.actions, a.actions ?? []);
+    await checkMoves(tx, old, a.actions ?? []);
     await m(tx).patch('automationsRules', id, { ...patch, updatedAt: ctx.now });
   },
 });

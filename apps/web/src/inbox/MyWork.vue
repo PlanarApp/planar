@@ -21,6 +21,7 @@ import { useAuth } from '../auth/useAuth';
 import { mutate } from '../sync';
 import { useSpaces } from '../tasks';
 import { openTask } from '../views';
+import { localToday } from '../views/filter';
 import { groupLevels } from '../layout/groups';
 import type { GroupScope } from '../modules/types';
 import ScopeTasks from '../views/ScopeTasks.vue';
@@ -108,7 +109,6 @@ const unreadMentions = computed(
   () =>
     (unread.value ?? []).filter((n) => MENTIONS.includes(n.kind) && inGroup(n, props.scope)).length,
 );
-const today = new Date().toISOString().slice(0, 10);
 const count = (rows: { projectId: string }[] | undefined) =>
   (rows ?? []).filter((r) => inScope(r.projectId)).length;
 const day = useMyDay(uid);
@@ -127,8 +127,9 @@ const tiles = computed(() => [
   {
     w: 'assigned',
     key: 'overdue',
-    n: (assigned.value ?? []).filter((r) => inScope(r.projectId) && r.dueDate && r.dueDate < today)
-      .length,
+    n: (assigned.value ?? []).filter(
+      (r) => inScope(r.projectId) && r.dueDate && r.dueDate < localToday(),
+    ).length,
   },
   { w: 'comments', n: openComments.value.length },
   { w: 'mentions', n: unreadMentions.value },

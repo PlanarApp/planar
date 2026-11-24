@@ -21,6 +21,7 @@ let app: Awaited<ReturnType<typeof createApp>>;
 let w: World;
 let adminCookie: string;
 let outsiderCookie: string;
+let outsiderId: string;
 let guestCookie: string;
 const [, TODO, DOING, DONE] = [0, 1, 2, 3];
 
@@ -60,6 +61,7 @@ beforeAll(async () => {
   adminCookie = await loginCookie(db, w.admin.userId);
   guestCookie = await loginCookie(db, w.guest.userId);
   const o = await createUser(db);
+  outsiderId = o.id;
   outsiderCookie = await loginCookie(db, o.id);
 });
 afterAll(async () => {
@@ -531,6 +533,27 @@ describe('wk6: импорт', () => {
     }
   });
 
+  it('userMap: автор вне пространства импорта — 400, ничего не создано', async () => {
+    const p = await project();
+    const pv = (await preview(fx('plane.json'), 'csv', 'plane')).json();
+    const mapping = {
+      ...pv.mapping,
+      projectMap: { Engineering: p, 'SEO Department': p },
+      userMap: { 'Alice Admin': outsiderId },
+    };
+    const res = await call(
+      'POST',
+      '/api/import/jobs',
+      adminCookie,
+      form(
+        { projectId: p, format: 'csv', preset: 'plane', mapping: JSON.stringify(mapping) },
+        fx('plane.json'),
+      ),
+    );
+    expect(res.statusCode).toBe(400);
+    expect(await tasks(p)).toEqual([]);
+  });
+
   it('пустое пространство: без проекта — проекты по колонке, статусы создаются в каждом проекте', async () => {
     const spaceId = uuidv7();
     await w.admin.ok('space.create', {
@@ -730,6 +753,30 @@ describe('wk6: импорт', () => {
       status: 'done',
       created: 1,
     });
+  });
+
+  it('sweep: running без движения 2 часа (процесс упал) → failed, исходник очищен', async () => {
+    const p = await project();
+    const res = await call(
+      'POST',
+      '/api/import/jobs',
+      adminCookie,
+      form(
+        { projectId: p, format: 'csv', preset: 'custom', mapping: '{"title":"Title"}' },
+        Buffer.from('Title\nA\n'),
+      ),
+    );
+    const id = res.json().data.id;
+    await db.$client.query(
+      `update import_jobs set status = 'running', updated_at = now() - interval '3 hours' where id = $1`,
+      [id],
+    );
+    await sweep.handler({}, jobApi);
+    const [j] = (
+      await db.$client.query('select status, source, error from import_jobs where id = $1', [id])
+    ).rows;
+    expect(j).toMatchObject({ status: 'failed', source: null });
+    expect(j.error).toBeTruthy();
   });
 
   it('wk6: права пользователя — участник без записи в проект получает failed только через 404 на создании', async () => {

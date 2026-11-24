@@ -56,8 +56,8 @@ describe('push пачками', () => {
       .from(clientMutations)
       .where(eq(clientMutations.clientId, clientId));
     expect(cm.lastMutationId).toBe(mutations.length);
-    // a repeat: everything is counted, nothing new is written
-    expect((await push()).results.every((r) => r.ok)).toBe(true);
+    // a repeat (the answer was lost): the same answers — the refusal stays a refusal, nothing new is written
+    expect((await push()).results).toEqual(results);
     expect(await db.select().from(tasks).where(inArray(tasks.id, ids))).toHaveLength(
       ids.length - 1,
     );

@@ -120,7 +120,7 @@ Entities — docs/contracts/core-schema.md (part of C-schema v22).
 | `sessions` | `id text pk` (sha256 hex of the cookie token), `user_id uuid`, `created_at`, `expires_at`, `last_seen_at timestamptz`, `user_agent text?` |
 | `files` | `sha256 text pk`, `size bigint`, `mime text`, `width int?`, `height int?`, `created_by uuid`, `created_at` |
 | `push_subscriptions` | `id uuid pk`, `user_id uuid`, `endpoint text unique`, `p256dh text`, `auth text`, `user_agent text?`, `created_at` |
-| `client_mutations` | `client_id uuid pk`, `user_id uuid`, `last_mutation_id bigint not null`, `updated_at` |
+| `client_mutations` | `client_id uuid pk`, `user_id uuid`, `last_mutation_id bigint not null`, `rejected jsonb not null default '[]'` (the last 100 refusals: id, code, message), `updated_at` |
 | `changes` | `seq bigserial pk`, `space_id uuid?`, `user_id uuid?`, `project_id uuid?`, `entity text`, `id text`, `op text check (put,del)`, `data jsonb?`, `created_at`; indexes `(space_id, seq)`, `(user_id, seq)` |
 | `file_uploads` | `sha256 text`, `user_id uuid`, `created_at`; primary key (sha256, user_id) — who uploaded the file (duplicate content is a single row in files) |
 | `login_attempts` | `key text pk` (ip and login joined by "\|"), `attempts int`, `window_started_at timestamptz` — a 1-minute window for the login limit |
@@ -225,10 +225,10 @@ One `REPEATABLE READ` snapshot. `changes` — rows visible to the user with `seq
 ```
 
 ### `POST /sync/push`
-Body ≤ 1 MB, mutations ≤ 100. `mutations[].id` — an integer > 0, growing on the client (`clientId` — uuidv7, created together with the local database).
+Body ≤ 1 MB (`413` — the client halves the batch; a single mutation over the limit is dropped locally as `invalid_args`), mutations ≤ 100. `mutations[].id` — an integer > 0, growing on the client (`clientId` — uuidv7, created together with the local database).
 - Mutations run in order, each in its own transaction: check `args` against the mutator's zod → `run(serverTx, args, ctx)` → `client_mutations.last_mutation_id = id` → commit.
-- `id ≤ last_mutation_id` — already processed: not executed, the result is `{id, ok: true}`.
-- A rejected mutation (`MutatorError`, zod error, unknown name, any exception inside `run`): the transaction is rolled back, then in a separate transaction `last_mutation_id = id`; the result is `{id, ok: false, code, message}`. The client removes it from the queue.
+- `id ≤ last_mutation_id` — already processed: not executed; the result is the one it got the first time — `{id, ok: false, code, message}` if it is among `client_mutations.rejected`, otherwise `{id, ok: true}` (a retry whose answer was lost must not turn a refusal into ok).
+- A rejected mutation (`MutatorError`, zod error, unknown name, any exception inside `run`): the transaction is rolled back, then in a separate transaction `last_mutation_id = id` and the refusal is appended to `rejected`; the result is `{id, ok: false, code, message}`. The client removes it from the queue.
 - An infrastructure failure (DB unavailable, commit error) — the whole response is `500`; already committed mutations are idempotent on retry.
 - `clientId` belongs to the first user who sent it; another user's → `403 forbidden`.
 - Result codes: `invalid_args`, `forbidden`, `not_found`, `conflict`, `unknown_mutator`, `internal`.
@@ -312,7 +312,7 @@ Authorization — the session cookie at upgrade (plus an Origin check, C-http); 
 ### Client (for web)
 Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from the queue the mutations with `id ≤ lastMutationId` and re-applies the rest on top of the server state (rebase). Push is retried on a network error and `5xx` with a growing pause of 1–30 s; `401` — redirect to sign-in.
 
-v3: details of a task are kept only while it is in `_held` (bootstrap `held`, `POST /sync/tasks`); opening a task updates `accessedAt`. Cooling: the leader tab, when the queue is empty, deletes the details, the `_held` row and the task's y-indexeddb database for tasks not accessed for 30 days, except «my» open tasks; the protocol does not change — a cooled task is loaded again via `POST /sync/tasks`. `reset` and a change of the protocol version clear `_held` too. Prefetch (PLNRAPP-488): hovering a task (`[data-task-id]`) and, in idle time, the tasks rendered on the page are loaded via `POST /sync/tasks` — only those not in `_held`, batches of ≤ `SYNC_TASKS_MAX` ids, at most one request per 500 ms; prefetch does not update `accessedAt`; `forbidden`/`not_found` are not prefetched again until `stopSync`.
+v3: details of a task are kept only while it is in `_held` (bootstrap `held`, `POST /sync/tasks`); opening a task updates `accessedAt`. Cooling: the leader tab, when the queue is empty, deletes the details and the `_held` row for tasks not accessed for 30 days (the task's y-indexeddb database is kept: it may hold unsent offline edits of the description), except «my» open tasks; the protocol does not change — a cooled task is loaded again via `POST /sync/tasks`. `reset` and a change of the protocol version clear `_held` too. Prefetch (PLNRAPP-488): hovering a task (`[data-task-id]`) and, in idle time, the tasks rendered on the page are loaded via `POST /sync/tasks` — only those not in `_held`, batches of ≤ `SYNC_TASKS_MAX` ids, at most one request per 500 ms; prefetch does not update `accessedAt`; `forbidden`/`not_found` are not prefetched again until `stopSync`.
 
 ## C-mutators v23
 
