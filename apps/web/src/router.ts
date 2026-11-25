@@ -30,7 +30,7 @@ export const router = createRouter({
     { path: '/t/:key', name: 'task', component: screen('Task') },
     { path: '/settings/:section?', name: 'settings', component: screen('Settings') },
     // shared modules of the instance (PJ-3) — now a section of the Workspace settings (admin only)
-    { path: '/admin/modules', redirect: { path: '/w/settings', query: { s: 'instanceModules' } } },
+    { path: '/admin/modules', redirect: '/settings/instanceModules' },
     { path: '/m/:moduleId/:rest(.*)*', name: 'module', component: screen('Module') },
   ],
 });
@@ -90,13 +90,22 @@ router.beforeEach(async (to) => {
     };
   if (node && seg === 'work' && to.query.v === CARDS)
     return { path: to.path, query: { ...to.query, v: 'list' }, hash: to.hash, replace: true };
-  // the former section «AI tasks» (?s=ai:tasks) is the tab of the workspace AI settings (PLNRAPP-568)
-  if (to.name === 'workspace' && seg === 'settings' && to.query.s === 'ai:tasks')
+  // the former workspace settings tab (/w/settings?s=…) is the global /settings; the AI pages of the levels (ai:space,
+  // ai:project, ai:tasks, …) are the global AI page — the connection is inherited by spaces and projects (PLNRAPP-568)
+  if (to.name === 'workspace' && seg === 'settings') {
+    const { s, ...query } = to.query;
+    const ai = String(s ?? '').startsWith('ai');
     return {
-      path: to.path,
-      query: { ...to.query, s: 'ai:workspace', tab: 'tasks' },
+      path: `/settings/${ai ? 'ai:workspace' : (s ?? '')}`,
+      query: s === 'ai:tasks' ? { ...query, tab: 'tasks' } : query,
       replace: true,
     };
+  }
+  if (
+    to.name === 'settings' &&
+    ['ai', 'ai:space', 'ai:project'].includes(String(to.params.section))
+  )
+    return { path: '/settings/ai:workspace', query: to.query, replace: true };
   if (to.name === 'module') {
     // module routes are added lazily — wait and repeat the navigation.
     // Settings are not known yet (cold entry) — don't hold the transition: ModuleScreen shows a skeleton and repeats the navigation itself.

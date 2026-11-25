@@ -231,7 +231,7 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
       </RouterLink>
     </template>
     <RouterLink
-      to="/w/settings"
+      to="/settings"
       :aria-label="t('sidebar.settings')"
       :title="t('sidebar.settings')"
       :class="[link, 'mt-auto size-8 justify-center px-0']"
@@ -484,7 +484,7 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
         </template>
       </div>
     </nav>
-    <RouterLink to="/w/settings" :class="[link, 'mt-auto']" active-class="bg-accent-subtle">
+    <RouterLink to="/settings" :class="[link, 'mt-auto']" active-class="bg-accent-subtle">
       <Settings :size="16" />{{ t('sidebar.settings') }}
     </RouterLink>
   </aside>

@@ -6,7 +6,6 @@ export const GROUP_TABS = [
   'docs',
   'chats',
   'reports',
-  'spaces',
   'projects',
   'settings',
 ] as const;
@@ -15,10 +14,10 @@ export type GroupTab = (typeof GROUP_TABS)[number];
 export const groupTab = (seg: unknown): GroupTab =>
   GROUP_TABS.includes(seg as GroupTab) ? (seg as GroupTab) : 'tasks';
 
-/** level tabs: lists of nested groups — Workspace has spaces and projects, Space has projects */
+/** level tabs: Workspace has neither the list of projects nor settings (global settings are /settings), Space has projects */
 export const tabsFor = (level: GroupLevel): GroupTab[] =>
   GROUP_TABS.filter(
-    (k) => (k !== 'spaces' || level === 'workspace') && (k !== 'projects' || level !== 'project'),
+    (k) => (k !== 'projects' || level === 'space') && (k !== 'settings' || level !== 'workspace'),
   );
 
 /** Group tab address; Tasks — the last chosen view (PLNRAPP-111), `list` by default: the bare node

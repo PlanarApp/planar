@@ -33,7 +33,7 @@ describe('aikb-urls: шаблоны соответствуют роутеру', 
       expect(name).toBe(''); // маршрут, добавленный модулем
       expect(rec.path.startsWith(`/m/${path.split('/')[2]}/`)).toBe(true);
     } else {
-      expect(name).toBe(NAMED[path.slice(0, 2)]);
+      expect(name).toBe(path.startsWith('/settings') ? 'settings' : NAMED[path.slice(0, 2)]);
     }
     // параметры подставились, а не ушли в хвост
     if (name === 'task') expect(r.params.key).toBeTruthy();
@@ -43,7 +43,7 @@ describe('aikb-urls: шаблоны соответствуют роутеру', 
   it('вкладки и разделы, на которые указывают шаблоны, зарегистрированы', () => {
     expect(sprints.groupTabs?.some((g) => g.id === 'sprint' && g.tab === 'reports')).toBe(true);
     expect(docs.groupTabs?.some((g) => g.tab === 'docs')).toBe(true);
-    // PLNRAPP-568: «AI tasks» — the tab of the workspace page ai:workspace
+    // PLNRAPP-568: «AI tasks» — the tab of the global page ai:workspace
     expect(ai.settings?.some((s) => s.id === 'workspace' && s.level === 'workspace')).toBe(true);
   });
 });
