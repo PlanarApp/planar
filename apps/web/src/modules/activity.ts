@@ -115,8 +115,17 @@ export function useActivity(
     if (live(items.value) || Date.now() < graceUntil) timer = setTimeout(load, ACTIVITY_POLL_MS);
   }
 
+  // a change of another task/project doesn't matter; a deletion carries no row (only the id) — counts for everyone
+  const isMine = (c: ReplicaChange) => {
+    const cur = toValue(id);
+    const r = c.row;
+    if (!r || !cur) return true;
+    if (entity === 'tasks') return (c.entity === 'tasks' ? c.id : r.taskId) === cur;
+    // a project's child rows carry only taskId: can't tell the project without a lookup — shortcut: any counts
+    return c.entity === 'tasks' && entity === 'projects' ? r.projectId === cur : true;
+  };
   const off = onReplicaChange((batch: ReplicaChange[]) => {
-    if (!batch.some((c) => RELEVANT[entity].includes(c.entity))) return;
+    if (!batch.some((c) => RELEVANT[entity].includes(c.entity) && isMine(c))) return;
     graceUntil = Date.now() + ACTIVITY_GRACE_MS;
     clearTimeout(debounce);
     debounce = setTimeout(load, DEBOUNCE_MS);

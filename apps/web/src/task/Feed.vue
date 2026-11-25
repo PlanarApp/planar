@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, provide, ref, shallowRef, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  provide,
+  ref,
+  shallowRef,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
@@ -69,10 +78,20 @@ async function load() {
   }
 }
 onMounted(load);
+// the description is saved by collab every few seconds while typing: it (and updatedAt) doesn't reload the
+// history, the other fields do — debounced
+let loadTimer: ReturnType<typeof setTimeout> | undefined;
 watch(
-  () => [props.task.updatedAt, props.task.assigneeIds.join(), props.task.labelIds.join()],
-  load,
+  () =>
+    JSON.stringify(props.task, (k, v) =>
+      k === 'description' || k === 'updatedAt' ? undefined : v,
+    ),
+  () => {
+    clearTimeout(loadTimer);
+    loadTimer = setTimeout(load, 1500);
+  },
 );
+onBeforeUnmount(() => clearTimeout(loadTimer));
 
 const userOf = (id: string) => users.value?.find((u) => u.id === id);
 const nameOf = (id: string) => userOf(id)?.name ?? '—';

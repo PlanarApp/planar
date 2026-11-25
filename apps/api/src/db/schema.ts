@@ -419,7 +419,7 @@ export const activity = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    index().on(t.taskId),
+    index().on(t.taskId, t.createdAt),
     check(
       'activity_kind_check',
       inList(t.kind, [
