@@ -934,10 +934,11 @@ const panelComponent = computed(() => {
               :variant="tab === p.key ? 'primary' : 'secondary'"
               :icon="p.icon"
               :aria-selected="tab === p.key"
+              :title="tab === p.key ? undefined : lt(p.label)"
               @click="tab = tab === p.key ? null : p.key"
             >
-              <!-- mobile: the icon and the count only -->
-              <span class="max-md:sr-only">{{ lt(p.label) }}</span>
+              <!-- the label — only on the selected tab, the others: the icon and the count -->
+              <span :class="tab !== p.key && 'sr-only'">{{ lt(p.label) }}</span>
               <span
                 v-if="tabCounts[p.key]"
                 class="ml-0.5 rounded-full bg-bg-muted px-1.5 text-2xs text-fg"

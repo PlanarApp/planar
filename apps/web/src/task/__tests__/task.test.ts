@@ -139,6 +139,20 @@ describe('PLNRAPP-830: пустые поля под катом, меню «…»
     ).toEqual(labels);
     expect(labels).toContain('Приоритет');
   });
+  it('табы формы: подпись видна только у выбранного, у остальных — иконка (подпись — для скринридера)', async () => {
+    w = await open();
+    await until(() => w.findAll('[role="tab"]').length > 1);
+    const hidden = () =>
+      w
+        .findAll('[role="tab"]')
+        .filter((b) => b.find('span.sr-only').exists())
+        .map((b) => b.attributes('aria-selected'));
+    expect(hidden().every((x) => x === 'false')).toBe(true);
+    await openTab('Подзадачи');
+    const sel = w.findAll('[role="tab"]').find((b) => b.attributes('aria-selected') === 'true')!;
+    expect(sel.find('span.sr-only').exists()).toBe(false);
+    expect(hidden()).toHaveLength(w.findAll('[role="tab"]').length - 1);
+  });
   it('меню «…» › «Приоритет» открывает селектор приоритета формы', async () => {
     w = await open();
     await until(() => w.find('[aria-label="Меню задачи"]').exists());
