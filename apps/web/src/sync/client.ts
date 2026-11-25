@@ -8,6 +8,7 @@ import {
   SYNC_TASKS_MAX,
   createRegistry,
   syncBootstrapSchema,
+  syncHeavySchema,
   syncPullSchema,
   syncPushResponseSchema,
   syncTasksResponseSchema,
@@ -291,6 +292,8 @@ export function createClient(db: PlanarDB) {
     drop?: Set<number>;
     /** v3 bootstrap: tasks whose details are in `bootstrap` — `_held` rows for them */
     held?: string[];
+    /** lean bootstrap: task descriptions are still to come (`heavy` phase, resumed after a reload) */
+    lean?: boolean;
     /** v3 `POST /sync/tasks`: replaces the details of its tasks; applied only if its cursor ≥ the local one */
     snapshot?: SyncTasksResponse;
   }): Promise<boolean> {
@@ -327,6 +330,9 @@ export function createClient(db: PlanarDB) {
         await db._held.clear();
         // the C-sync version of this bootstrap: `held` comes only in a v3 answer
         await db._meta.put({ key: 'protocol', value: p.held ? SYNC_PROTOCOL : 2 });
+        // in the same transaction as the data: a reload cannot lose the pending phase
+        await db._meta.put({ key: 'heavy', value: p.lean ? 'pending' : 'done' });
+        await db._meta.put({ key: 'heavyAfter', value: '' });
         if (p.held?.length)
           await db._held.bulkPut(
             p.held.map((taskId) => ({ taskId, loadedAt: now, accessedAt: now })),
@@ -421,7 +427,7 @@ export function createClient(db: PlanarDB) {
     const r = syncBootstrapSchema.parse(
       // v3 (PLNRAPP-487): without the header the server answers by v2 — all details, no `held`
       await http(
-        `/sync/bootstrap?clientId=${clientId}`,
+        `/sync/bootstrap?clientId=${clientId}&lean=1`,
         { headers: { [SYNC_PROTOCOL_HEADER]: String(SYNC_PROTOCOL) } },
         0,
       ),
@@ -431,7 +437,66 @@ export function createClient(db: PlanarDB) {
       cursor: r.cursor,
       lastMutationId: r.lastMutationId,
       held: r.held,
+      lean: r.lean,
     });
+  }
+
+  let heavyRunning = false;
+  /**
+   * Phase 2 of a lean bootstrap: task descriptions page by page. Guarantee against the race with pull: a description
+   * is written only into an existing row whose `updatedAt` is not newer than the page's (pull/own edits bump it).
+   * Resumes after a reload (`heavy` = pending, `heavyAfter` — the last page), not started when `done`.
+   */
+  async function heavy() {
+    if (heavyRunning) return;
+    heavyRunning = true;
+    const g = gen;
+    try {
+      let restarted = true;
+      while (restarted && g === gen) {
+        restarted = false;
+        if ((await db._meta.get('heavy'))?.value !== 'pending') return;
+        let after = ((await db._meta.get('heavyAfter'))?.value as string) || '';
+        for (;;) {
+          const r = syncHeavySchema.parse(
+            await http(`/sync/bootstrap-heavy${after ? `?after=${after}` : ''}`),
+          );
+          const changes: ReplicaChange[] = [];
+          let ok = true;
+          await db.transaction('rw', db._meta, db.table('tasks'), async () => {
+            // a new bootstrap started meanwhile (heavyAfter reset): our position is stale
+            if (((await db._meta.get('heavyAfter'))?.value ?? '') !== after)
+              return void (ok = false);
+            for (const it of r.items) {
+              const row = (await db.table('tasks').get(it.id)) as
+                Record<string, unknown> | undefined;
+              if (!row || (row.updatedAt as string) > it.updatedAt) continue;
+              const next = { ...row, description: it.description };
+              await db.table('tasks').put(next);
+              changes.push({ entity: 'tasks', id: it.id, row: next });
+            }
+            if (r.next) await db._meta.put({ key: 'heavyAfter', value: r.next });
+            else await db._meta.put({ key: 'heavy', value: 'done' });
+          });
+          if (g !== gen) return;
+          if (!ok) {
+            restarted = true;
+            break;
+          }
+          emit(changes, true);
+          if (!r.next) {
+            channel?.postMessage({ db: db.name, batch: [RESET] });
+            return;
+          }
+          after = r.next;
+        }
+      }
+    } catch (e) {
+      // offline or an error: the next cycle resumes from heavyAfter
+      console.error('sync heavy', e);
+    } finally {
+      heavyRunning = false;
+    }
   }
 
   /**
@@ -658,6 +723,7 @@ export function createClient(db: PlanarDB) {
       if (!boot || sent) await pull();
       failures = 0;
       setStatus('online');
+      if (g === gen) void heavy();
       if (Date.now() - cooledAt >= COOL_EVERY_MS && g === gen) {
         cooledAt = Date.now();
         await cool().catch((e) => console.error('sync cool', e));

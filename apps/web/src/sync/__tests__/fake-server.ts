@@ -5,6 +5,7 @@ import {
   SYNC_PROTOCOL_HEADER,
   entitySchemas,
   syncBootstrapSchema,
+  syncHeavySchema,
   syncPullSchema,
   syncPushRequestSchema,
   syncPushResponseSchema,
@@ -36,6 +37,12 @@ export class FakeServer {
   resetNext = false;
   /** pull with `?page=1`: no more than this many changes per answer (with `more`) */
   pageSize = 0;
+  /** `/sync/bootstrap?lean=1` strips task descriptions (like the server) and `/sync/bootstrap-heavy` serves them, `heavyPage` per answer */
+  heavyPage = 2;
+  heavyFail = false;
+  heavyRequests = 0;
+  /** once, before answering bootstrap-heavy */
+  beforeHeavy: (() => Promise<void>) | null = null;
   /** push fails with a network error, pull/bootstrap work */
   blockPush = false;
   /** push body over this many bytes → 413 (the API's bodyLimit) */
@@ -183,12 +190,38 @@ export class FakeServer {
       const v3 = this.v3 && proto >= SYNC_PROTOCOL;
       const data: Record<string, Record<string, unknown>[]> = {};
       for (const e of this.entities) data[e] = [...(this.rows.get(e)?.values() ?? [])];
+      const lean = url.searchParams.get('lean') === '1';
+      if (lean) data.tasks = data.tasks.map((t) => ({ ...t, description: null }));
       return this.json(
         syncBootstrapSchema.parse({
+          ...(lean ? { lean } : {}),
           cursor: this.seq,
           lastMutationId: this.lastMut.get(clientId) ?? 0,
           data,
           ...(v3 ? { held: this.held } : {}),
+        }),
+      );
+    }
+    if (url.pathname === '/sync/bootstrap-heavy') {
+      this.heavyRequests++;
+      if (this.heavyFail) return this.json({ error: 'internal' }, 500);
+      const hook = this.beforeHeavy;
+      this.beforeHeavy = null;
+      await hook?.();
+      const after = url.searchParams.get('after') ?? '';
+      const all = [...(this.rows.get('tasks')?.values() ?? [])]
+        .filter((t) => t.description && (t.id as string) > after)
+        .sort((a, b) => ((a.id as string) < (b.id as string) ? -1 : 1));
+      const page = all.slice(0, this.heavyPage);
+      return this.json(
+        syncHeavySchema.parse({
+          cursor: this.seq,
+          items: page.map((t) => ({
+            id: t.id,
+            updatedAt: t.updatedAt,
+            description: t.description,
+          })),
+          ...(all.length > page.length ? { next: page[page.length - 1].id } : {}),
         }),
       );
     }

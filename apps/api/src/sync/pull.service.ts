@@ -7,6 +7,7 @@ import {
   getTableColumns,
   gt,
   inArray,
+  isNotNull,
   isNull,
   notInArray,
   or,
@@ -17,6 +18,7 @@ import {
   SYNC_PROTOCOL,
   type EntityName,
   type SyncBootstrap,
+  type SyncHeavy,
   type SyncPull,
   type SyncTasksResponse,
 } from '@planar/shared';
@@ -36,11 +38,12 @@ import {
 import { DB } from '../tokens.js';
 import { hiddenProjectIds, notHidden, projectAccess } from './project-access.js';
 import { visibleEntities } from './registry.js';
-import { tableOf, toWire } from './rows.js';
+import { tableOf, toIso, toWire } from './rows.js';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 const PULL_LIMIT = 5000;
 const NOTIFICATIONS_LIMIT = 200;
+const HEAVY_LIMIT = 200;
 
 @Injectable()
 export class PullService {
@@ -109,7 +112,12 @@ export class PullService {
    * `protocol` — the client's C-sync version (header `X-Sync-Protocol`); from v3 the detail entities
    * carry only rows of «my» tasks and `held` lists these tasks; older — details in full, no `held` (v2).
    */
-  async bootstrap(userId: string, clientId: string, protocol = 2): Promise<SyncBootstrap> {
+  async bootstrap(
+    userId: string,
+    clientId: string,
+    protocol = 2,
+    lean = false,
+  ): Promise<SyncBootstrap> {
     return this.snapshot(async (tx) => {
       const my = await this.mySpaces(tx, userId);
       const [{ max }] = await tx
@@ -160,13 +168,52 @@ export class PullService {
         const rows = await (name === 'notifications'
           ? q.orderBy(desc(c.createdAt)).limit(NOTIFICATIONS_LIMIT)
           : q);
-        data[name] = rows.map((r) => toWire(name as EntityName, r));
+        data[name] = rows.map((r) => {
+          const w = toWire(name as EntityName, r);
+          // lean: the description is the heaviest part of a task; it comes in bootstrapHeavy()
+          return lean && name === 'tasks' ? { ...w, description: null } : w;
+        });
       }
       return {
         cursor: Number(max),
         lastMutationId: await this.lastMutationId(tx, userId, clientId),
         data,
         ...(held ? { held } : {}),
+        ...(lean ? { lean } : {}),
+      };
+    });
+  }
+
+  /** Descriptions of the tasks visible to the user (as in bootstrap) after the id `after`, with the snapshot cursor. */
+  async bootstrapHeavy(userId: string, after?: string): Promise<SyncHeavy> {
+    return this.snapshot(async (tx) => {
+      const my = await this.mySpaces(tx, userId);
+      const hidden = await hiddenProjectIds(tx, userId);
+      const [{ max }] = await tx
+        .select({ max: sql<string>`coalesce(max(${changes.seq}), 0)` })
+        .from(changes);
+      const rows = await tx
+        .select({ id: tasks.id, updatedAt: tasks.updatedAt, description: tasks.description })
+        .from(tasks)
+        .where(
+          and(
+            inArray(tasks.spaceId, my),
+            after ? gt(tasks.id, after) : undefined,
+            isNotNull(tasks.description),
+            notHidden('tasks', hidden),
+          ),
+        )
+        .orderBy(asc(tasks.id))
+        .limit(HEAVY_LIMIT + 1);
+      const page = rows.slice(0, HEAVY_LIMIT);
+      return {
+        cursor: Number(max),
+        items: page.map((r) => ({
+          id: r.id,
+          updatedAt: toIso(r.updatedAt),
+          description: r.description,
+        })),
+        ...(rows.length > HEAVY_LIMIT ? { next: page[page.length - 1].id } : {}),
       };
     });
   }

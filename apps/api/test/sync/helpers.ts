@@ -93,8 +93,11 @@ export class TestClient {
     expect(r, `${name}: ${JSON.stringify(r)}`).toMatchObject({ ok: true });
   }
   /** protocol — C-sync version of the client (header X-Sync-Protocol); default — v2 */
-  bootstrap(protocol?: number) {
-    return this.svc.pull.bootstrap(this.userId, this.clientId, protocol);
+  bootstrap(protocol?: number, lean = false) {
+    return this.svc.pull.bootstrap(this.userId, this.clientId, protocol, lean);
+  }
+  heavy(after?: string) {
+    return this.svc.pull.bootstrapHeavy(this.userId, after);
   }
   pull(cursor: number, page = false) {
     return this.svc.pull.pull(this.userId, this.clientId, cursor, page);
