@@ -17,6 +17,7 @@ import type { MenuItem } from '../ui/Menu.vue';
 import { toast } from '../ui/toast';
 import { db, mutate, newId, rankBetween } from '../sync';
 import { defaultModules } from '../api/defaultModules';
+import { useAdminSpaces } from '../screens/settings/shared';
 import { favorites, type NavSpace } from './nav';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
@@ -62,6 +63,7 @@ export function projectKey(name: string, taken: Set<string>): string {
 export function useSidebarActions() {
   const { t } = useI18n();
   const router = useRouter();
+  const isSpaceAdmin = useAdminSpaces();
   /** id of the entity being renamed now, or "new:<spaceId>" / "new-space" for creation */
   const editing = ref<string | null>(null);
   const draft = ref('');
@@ -131,6 +133,7 @@ export function useSidebarActions() {
       ?.writeText(new URL(path, location.origin).href)
       .then(() => toast(t('sidebar.linkCopied'), 2500));
 
+  // renaming and deleting a space — its admin only (spaces.write: admin): the server refuses the rest
   const spaceItems = (s: NavSpace): MenuItem[] => [
     {
       id: 'new',
@@ -144,31 +147,39 @@ export function useSidebarActions() {
       icon: favorites.has('space', s.id) ? StarOff : Star,
       onSelect: () => favorites.toggle({ kind: 'space', id: s.id, name: s.name, to: `/s/${s.id}` }),
     },
-    {
-      id: 'rename',
-      label: t('sidebar.rename'),
-      icon: Pencil,
-      onSelect: () => start(`space:${s.id}`, s.name),
-    },
+    ...(isSpaceAdmin(s.id)
+      ? [
+          {
+            id: 'rename',
+            label: t('sidebar.rename'),
+            icon: Pencil,
+            onSelect: () => start(`space:${s.id}`, s.name),
+          },
+        ]
+      : []),
     {
       id: 'settings',
       label: t('sidebar.spaceSettings'),
       icon: Settings,
       onSelect: () => void router.push(`/s/${s.id}/settings`),
     },
-    { separator: true },
-    {
-      id: 'delete',
-      label: t('sidebar.delete'),
-      icon: Trash2,
-      danger: true,
-      confirm: {
-        title: t('sidebar.deleteSpace', { name: s.name }),
-        description: t('sidebar.deleteSpaceHint'),
-        confirmLabel: t('sidebar.delete'),
-      },
-      onSelect: () => void mutate('space.delete', { id: s.id }),
-    },
+    ...(isSpaceAdmin(s.id)
+      ? [
+          { separator: true as const },
+          {
+            id: 'delete',
+            label: t('sidebar.delete'),
+            icon: Trash2,
+            danger: true,
+            confirm: {
+              title: t('sidebar.deleteSpace', { name: s.name }),
+              description: t('sidebar.deleteSpaceHint'),
+              confirmLabel: t('sidebar.delete'),
+            },
+            onSelect: () => void mutate('space.delete', { id: s.id }),
+          },
+        ]
+      : []),
   ];
 
   const projectItems = (p: NavSpace['projects'][number]): MenuItem[] => {

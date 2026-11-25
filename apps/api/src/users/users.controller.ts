@@ -116,7 +116,8 @@ export class UsersController {
         ...(passwordHash && { passwordHash }),
       }),
     );
-    if (p.role !== undefined || p.deactivated === false) await ensureRootSpace(this.db);
+    if (p.role !== undefined || p.deactivated === false)
+      await ensureRootSpace(this.db, p.role !== undefined ? id : undefined);
     if (p.deactivated) await deleteUserSessions(this.db, id);
     else if (p.password !== undefined) {
       // own — all sessions except the current one; someone else's — all

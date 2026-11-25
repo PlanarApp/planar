@@ -5,6 +5,7 @@ import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
 import { api } from '../api/http';
 import { useAuth } from '../auth/useAuth';
+import { useAdminSpaces } from '../screens/settings/shared';
 import { mutate, newId } from '../sync';
 import { useLabels, useMembers, useStatuses, type TaskView } from '../tasks';
 import { useSpaces } from '../tasks/queries';
@@ -33,7 +34,9 @@ import { router } from '../router';
 
 const props = defineProps<{ task: TaskView }>();
 const { t, te, locale } = useI18n();
-const { user, isAdmin } = useAuth();
+const { user } = useAuth();
+// comment.resolve: the assignee, the author or an admin of the comment's space (the mutator's rule)
+const isSpaceAdmin = useAdminSpaces();
 const comments = useComments(props.task.id);
 // C-sync v3 (PLNRAPP-487): comments are loaded on open when the task is not held
 const details = useTaskDetails(props.task.id);
@@ -209,7 +212,8 @@ async function sendReply() {
   });
 }
 const canResolve = (c: Row<'comments'>) =>
-  !!user.value && (c.assigneeId === user.value.id || c.authorId === user.value.id || isAdmin.value);
+  !!user.value &&
+  (c.assigneeId === user.value.id || c.authorId === user.value.id || isSpaceAdmin(c.spaceId));
 const avatarOf = (id: string) => avatarSrc(userOf(id));
 const memberList = computed(() =>
   (members.value ?? []).map((m) => ({ id: m.id, name: m.name, avatar: avatarOf(m.id) })),

@@ -75,6 +75,29 @@ export async function isProjectAdmin(
   );
 }
 
+/**
+ * Role of the user in the project (projectId null — in the space), as the SQL rule project_role but for
+ * space members only (no instance-admin shortcut): space admin → admin, `inherit` → the space role,
+ * `custom` → the project role (a space guest is at most a guest); null — no access.
+ */
+export async function roleInProject(
+  tx: Tx,
+  spaceId: string,
+  projectId: string | null,
+  userId: string,
+): Promise<'admin' | 'member' | 'guest' | null> {
+  const sm = (await tx.scan('spaceMembers', { index: 'spaceId', eq: spaceId })).find(
+    (m) => m.userId === userId,
+  );
+  if (!sm) return null;
+  if (sm.role === 'admin' || !projectId) return sm.role;
+  if ((await tx.get('projects', projectId))?.membersMode !== 'custom') return sm.role;
+  const pm = (await tx.scan('projectMembers', { index: 'projectId', eq: projectId })).find(
+    (m) => m.userId === userId,
+  );
+  return !pm ? null : sm.role === 'guest' ? 'guest' : pm.role;
+}
+
 /** Admin-only action (restore, delete of archived rows). */
 export async function needProjectAdmin(
   tx: Tx,
