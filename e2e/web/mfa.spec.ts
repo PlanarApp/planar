@@ -85,6 +85,7 @@ test('passkey, блокировка при открытии, вход без п�
   await expect(page.getByTestId('lock-wipe')).toBeVisible();
   await page.reload();
   await expect(page.getByTestId('lock-screen')).toBeVisible();
+  await expect(page.getByTestId('sidebar')).toHaveCount(0); // no layout under the lock screen
   await expect.poll(async () => (await page.request.get('/api/v1/spaces')).status()).toBe(423);
   await page.getByTestId('factor-passkey').click();
   await expect(page.getByTestId('lock-screen')).toBeHidden();

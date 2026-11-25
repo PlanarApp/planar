@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
+import { ref } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import en from '../i18n/en';
@@ -7,7 +8,10 @@ import ru from '../i18n/ru';
 
 // PLNRAPP-479: banner over the app in DEMO_MODE; the flag comes from /api/setup
 const setupInfo = vi.fn();
-vi.mock('../auth/useAuth', () => ({ useAuth: () => ({ setupInfo }) }));
+const locked = ref(false);
+vi.mock('../auth/useAuth', () => ({
+  useAuth: () => ({ setupInfo, user: ref({ id: 'u' }), locked }),
+}));
 vi.mock('../pwa/usePwa', async () => {
   const { ref } = await import('vue');
   return {
@@ -19,7 +23,7 @@ vi.mock('../pwa/usePwa', async () => {
     }),
   };
 });
-vi.mock('../layout/AppShell.vue', () => ({ default: { template: '<div />' } }));
+vi.mock('../layout/AppShell.vue', () => ({ default: { template: '<div data-testid="shell" />' } }));
 vi.mock('../command/CommandHost.vue', () => ({ default: { template: '<div />' } }));
 import App from '../App.vue';
 
@@ -42,7 +46,17 @@ async function render() {
 }
 
 describe('PLNRAPP-479: баннер демо-режима', () => {
-  beforeEach(() => setupInfo.mockReset());
+  beforeEach(() => {
+    setupInfo.mockReset();
+    locked.value = false;
+  });
+
+  it('заблокированная сессия — оболочку не рисуем, только экран блокировки', async () => {
+    setupInfo.mockResolvedValue({ demo: false });
+    expect((await render()).find('[data-testid=shell]').exists()).toBe(true);
+    locked.value = true;
+    expect((await render()).find('[data-testid=shell]').exists()).toBe(false);
+  });
 
   it('DEMO_MODE включён — над приложением полоса-баннер', async () => {
     setupInfo.mockResolvedValue({ demo: true, demoResetHours: 24 });
