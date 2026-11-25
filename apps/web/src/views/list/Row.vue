@@ -444,10 +444,12 @@ function save() {
             :due="task.dueDate"
             :start-time="task.startTime"
             :due-time="task.dueTime"
+            :due-remind-min="task.dueRemindMin"
             @update:start="(v: string | null) => updateTask(task.id, { startDate: v })"
             @update:due="(v: string | null) => updateTask(task.id, { dueDate: v })"
             @update:start-time="(v: string | null) => updateTask(task.id, { startTime: v })"
             @update:due-time="(v: string | null) => updateTask(task.id, { dueTime: v })"
+            @update:due-remind-min="(v: number | null) => updateTask(task.id, { dueRemindMin: v })"
             ><template #value
               ><CellValue
                 :col="c"

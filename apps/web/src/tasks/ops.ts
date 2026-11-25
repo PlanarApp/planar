@@ -63,6 +63,7 @@ export type TaskPatch = Partial<
     | 'startDate'
     | 'dueTime'
     | 'startTime'
+    | 'dueRemindMin'
     | 'projectId'
     | 'parentId'
     | 'fields'

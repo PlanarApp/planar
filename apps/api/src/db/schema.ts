@@ -193,6 +193,8 @@ export const tasks = pgTable(
     startDate: date({ mode: 'string' }),
     dueTime: text(),
     startTime: text(),
+    // remind this many minutes before dueDate+dueTime; null with a dueTime — 10, 0 — only at the due time
+    dueRemindMin: integer(),
     createdBy: userRef().notNull(),
     completedAt: ts(),
     fields: obj().notNull().default({}),
@@ -496,6 +498,8 @@ export const notifications = pgTable(
         'start_today',
         'doc_comment_assigned',
         'due_changed',
+        'due_soon',
+        'due_now',
       ]),
     ),
   ],

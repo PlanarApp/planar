@@ -714,6 +714,9 @@ const date = (v: string) => v.slice(0, 10);
         @update:due="(v: string | null) => each((x) => updateTask(x.id, { dueDate: v }))"
         @update:start-time="(v: string | null) => each((x) => updateTask(x.id, { startTime: v }))"
         @update:due-time="(v: string | null) => each((x) => updateTask(x.id, { dueTime: v }))"
+        @update:due-remind-min="
+          (v: number | null) => each((x) => updateTask(x.id, { dueRemindMin: v }))
+        "
       >
         <template #value>
           <CalendarDays :size="14" aria-hidden="true" />

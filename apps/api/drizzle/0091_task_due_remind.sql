@@ -1,0 +1,3 @@
+ALTER TABLE "notifications" DROP CONSTRAINT "notifications_kind_check";--> statement-breakpoint
+ALTER TABLE "tasks" ADD COLUMN "due_remind_min" integer;--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_kind_check" CHECK ("notifications"."kind" in ('assigned', 'mentioned', 'commented', 'status_changed', 'chat_mention', 'chat_dm', 'chat_reply', 'comment_assigned', 'doc_mention', 'trial_ending', 'checklist_assigned', 'due_today', 'start_today', 'doc_comment_assigned', 'due_changed', 'due_soon', 'due_now'));

@@ -109,6 +109,7 @@ export const entitySchemas = {
       .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
       .nullable()
       .default(null),
+    dueRemindMin: z.number().int().min(0).max(10080).nullable().default(null),
     createdBy: uuid,
     completedAt: ts.nullable(),
     fields: z.record(z.string(), z.unknown()),
@@ -270,6 +271,8 @@ export const entitySchemas = {
       'start_today',
       'doc_comment_assigned',
       'due_changed',
+      'due_soon',
+      'due_now',
     ]),
     taskId: uuid.nullable(),
     url: z.string().nullable(),

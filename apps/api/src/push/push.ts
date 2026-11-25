@@ -82,6 +82,8 @@ const TITLES: Record<string, string> = {
   chat_reply: 'Ответ в треде',
   due_today: 'Сегодня срок задачи',
   start_today: 'Сегодня начало задачи',
+  due_soon: 'Скоро срок задачи',
+  due_now: 'Срок задачи наступил',
 };
 
 /** 'YYYY-MM-DD' → 'DD.MM.YYYY'; null — "без срока" */

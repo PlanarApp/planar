@@ -44,6 +44,8 @@ export const pushPayloadSchema = z.object({
     'chat_dm',
     'chat_reply',
     'due_changed',
+    'due_soon',
+    'due_now',
   ]),
 });
 

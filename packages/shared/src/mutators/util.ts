@@ -16,6 +16,8 @@ export const doc = entitySchemas.comments.shape.body;
 export const date = z.iso.date();
 /** Time of day 'HH:MM' (an optional addition to a task's start/due date). */
 export const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+/** Minutes before the due time to remind (0 — only at the due time). */
+export const remindMin = z.number().int().min(0).max(10080);
 export const record = z.record(z.string(), z.unknown());
 
 export const bad = (msg: string) => new MutatorError('invalid_args', msg);

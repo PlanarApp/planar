@@ -48,6 +48,7 @@ const dates = ref({
   due: null as string | null,
   startTime: null as string | null,
   dueTime: null as string | null,
+  dueRemindMin: null as number | null,
 });
 const setDates = (patch: Parameters<typeof updateTask>[1], local: Partial<typeof dates.value>) => {
   Object.assign(dates.value, local);
@@ -55,7 +56,8 @@ const setDates = (patch: Parameters<typeof updateTask>[1], local: Partial<typeof
 };
 watch(
   () => sel.selected.value,
-  () => (dates.value = { start: null, due: null, startTime: null, dueTime: null }),
+  () =>
+    (dates.value = { start: null, due: null, startTime: null, dueTime: null, dueRemindMin: null }),
 );
 const confirmDelete = ref(false);
 // PLNRAPP-155: archive — any member; delete — an admin of every selected task's project
@@ -106,10 +108,14 @@ async function removeSelected() {
       :due="dates.due"
       :start-time="dates.startTime"
       :due-time="dates.dueTime"
+      :due-remind-min="dates.dueRemindMin"
       @update:start="(v: string | null) => setDates({ startDate: v }, { start: v })"
       @update:due="(v: string | null) => setDates({ dueDate: v }, { due: v })"
       @update:start-time="(v: string | null) => setDates({ startTime: v }, { startTime: v })"
       @update:due-time="(v: string | null) => setDates({ dueTime: v }, { dueTime: v })"
+      @update:due-remind-min="
+        (v: number | null) => setDates({ dueRemindMin: v }, { dueRemindMin: v })
+      "
     >
       <template #value>
         <CalendarDays :size="14" aria-hidden="true" />
