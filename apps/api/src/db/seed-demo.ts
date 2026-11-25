@@ -183,7 +183,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Search results stale after reindex', 4, 2, null, 'liam', 'bug'],
       // a closed subtask of «Add API v2 pagination»: the «Closed N» accordion in the card (PLNRAPP-542)
       ['Draft cursor pagination RFC', 3, 2, -4, 'liam', 'docs', 3],
-      // My day: today, closed — the day List shows them too, as a list with this filter (PLNRAPP-864)
+      // today, closed: not in My day — it shows only unfinished tasks (PLNRAPP-868)
       ['Review API v2 changelog', 3, 2, 0, 'demo,maya', 'docs'],
       ['Benchmark legacy pagination', 4, 1, 0, 'demo,maya', 'improvement'],
     ],
@@ -211,9 +211,9 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
     icon: '🚀',
     tasks: [
       ['Launch landing page copy', 2, 4, 3, 'emma,demo', 'docs'],
-      ['Press kit and logos', 2, 3, 8, 'emma', 'docs'],
+      ['Press kit and logos', 2, 3, 8, 'emma,maya', 'docs'], // My day: later
       ['Product Hunt launch plan', 1, 4, 20, 'sofia,emma', 'feature'],
-      ['Launch webinar outline', 1, 3, 1, 'demo,maya', 'research'], // tomorrow: not in My day
+      ['Launch webinar outline', 1, 3, 1, 'demo,maya', 'research'], // My day: tomorrow
       ['Email sequence for beta users', 2, 3, -3, 'emma', 'feature'],
       ['Partner outreach list', 3, 2, -11, 'sofia', 'research'],
       ['Case study: Northwind Logistics', 1, 2, 30, 'emma', 'docs'],
@@ -1993,9 +1993,9 @@ async function insertAll(tx: Tx, now: Date) {
     })),
   );
 
-  // «My day» (PLNRAPP-864) is the List with the filter «assignee — me, due today or overdue and not closed»:
-  // maya is an assignee of RDM-3, PLT-7, PLT-10 (today), SUP-2 (overdue) and PLT-18, PLT-19 (closed today) in
-  // PROJECTS — they are in the day; MKT-4 (tomorrow) is not, «Due date → Today» brings it in
+  // «My day» (PLNRAPP-864, PLNRAPP-868) is the List of my unfinished tasks with a due date in the blocks «Today /
+  // Tomorrow / Later»: maya is an assignee of RDM-3, PLT-7, PLT-10 (today), SUP-2 (overdue) — «Today», MKT-4 —
+  // «Tomorrow», MKT-2 — «Later» in PROJECTS; PLT-18, PLT-19 (closed today) are not in the day
   // the tasks demo watches
   const watched: [string, number][] = [
     ['PLT', 4],

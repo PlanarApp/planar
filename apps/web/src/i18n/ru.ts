@@ -172,6 +172,9 @@ export default {
     toTomorrow: 'На завтра',
     today: 'Сегодня',
     add: 'В мой день',
+    today: 'Сегодня',
+    tomorrow: 'Завтра',
+    later: 'Потом',
   },
   inbox: {
     all: 'Все',

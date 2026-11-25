@@ -207,7 +207,7 @@ const selectTab = (k: string) =>
         {{ t('views.saved.reset') }}
       </Button>
     </ViewChangesBar>
-    <!-- «My day»: the List with the day filter and the level's List settings (PLNRAPP-864) -->
+    <!-- «My day»: the List with the day filter in blocks, the level's List settings (PLNRAPP-864, 868) -->
     <div v-if="day" class="h-full min-h-0 flex-1">
       <MyDay v-if="spaces" :key="key" :project-id="key" :scope="scope" :options="options" />
     </div>
