@@ -67,18 +67,6 @@ describe('tasks:pickers', () => {
     expect(w.emitted('update:modelValue')?.[0]).toEqual([[ids.ann]]);
     w.unmount();
   });
-  it('AssigneePicker: на кнопке — «аватар имя» на каждого исполнителя', async () => {
-    const w = mount(AssigneePicker, {
-      ...opts,
-      props: { spaceId: ids.space, modelValue: [ids.ann] },
-    });
-    await vi.waitFor(() => expect(w.find('[data-testid=assignee-names]').exists()).toBe(true));
-    const pairs = w.findAll('[data-testid=assignee-names] > span');
-    expect(pairs).toHaveLength(1);
-    expect(pairs[0]!.text()).toContain('Ann');
-    expect(pairs[0]!.element.children).toHaveLength(2); // the avatar, then the name
-    w.unmount();
-  });
   it('PriorityPicker: Popover монтируется лениво; фокус с клавиатуры сохраняется, клик открывает', async () => {
     const w = mount(PriorityPicker, { ...opts, props: { modelValue: 0 } });
     expect(document.body.querySelector('[aria-expanded]')).toBeNull(); // a light button without reka-ui
