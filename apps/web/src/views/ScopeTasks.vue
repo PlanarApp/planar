@@ -13,6 +13,7 @@ import { useAuth } from '../auth/useAuth';
 import OptionsBar from './saved/OptionsBar.vue';
 import ViewChangesBar from './saved/ViewChangesBar.vue';
 import ViewLayouts from './saved/ViewLayouts.vue';
+import ViewOptionsPopover from './saved/ViewOptionsPopover.vue';
 import TaskModal from './TaskModal.vue';
 import { buildViewTabs, useSelection, viewLoaders } from '.';
 import type { MeMode } from './saved/useFilter';
@@ -22,8 +23,9 @@ import { useCanShare } from './saved/queries';
 // Tasks of a Space and of the Workspace — the group's project summary (List and Board).
 // me — the view "My work" (assigned, created, watched) of any group, and of a project too:
 // Me Mode is set, the view — in ?v, not in the tab address; the left of the toolbar — the "My work"
-// section tabs (slot tabs); day — the «My day» tab of «My work»: only the planner by dueDate, without a view under it,
-// view switcher and view options (PLNRAPP-709); the project filter stays — the planner uses it. The view is picked in the «View» menu (PLNRAPP-71)
+// section tabs (slot tabs); day — the «My day» tab of «My work» (PLNRAPP-864): the List with the «My day» filter, without
+// the view switcher and the filter; its «View» menu changes the settings of the level's List; the project filter stays.
+// The view is picked in the «View» menu (PLNRAPP-71)
 const props = defineProps<{
   spaceId?: string;
   rootSpaceId?: string;
@@ -62,10 +64,12 @@ const scope = computed(() => {
     ...(props.me && user.value && { createAssigneeId: user.value.id }),
   };
 });
+// the level's node: its List settings are also those of «My day»
+const level = computed(() =>
+  props.projectId ? `p:${props.projectId}` : props.spaceId ? `s:${props.spaceId}` : 'w',
+);
 const key = computed(
-  () =>
-    (props.projectId ? `p:${props.projectId}` : props.spaceId ? `s:${props.spaceId}` : 'w') +
-    (props.me ? `:me-${props.me}` : props.day ? ':me-day' : ''),
+  () => level.value + (props.me ? `:me-${props.me}` : props.day ? ':me-day' : ''),
 );
 // selected summary projects (remembered per summary)
 const projectOptions = computed(() =>
@@ -113,7 +117,7 @@ const tabs = computed(() =>
 );
 const seg = computed(() => String((props.me ? route.query.v : route.params.tab) ?? ''));
 const active = computed(() => tabs.value.find((v) => v.key === seg.value) ?? tabs.value[0]);
-// «My day» planner (PLANARAPP-57) with the project filter of the view; async — inbox imports views
+// «My day» (PLANARAPP-57, PLNRAPP-864) with the project filter of the view; async — inbox imports views
 const MyDay = defineAsyncComponent(() => import('../inbox/MyDay.vue'));
 const tabItems = computed(() =>
   tabs.value.map((v) => ({ value: v.key, label: text(v.label), icon: v.icon })),
@@ -125,12 +129,13 @@ const nodeSpaceId = () =>
     : props.rootSpaceId) ??
   '';
 const canShare = useCanShare(nodeSpaceId);
-// node view: saved to my row at once; "My work" has its own key — Me Mode is fixed in it
+// node view: saved to my row at once; "My work" has its own key — Me Mode is fixed in it;
+// «My day» — the List of the level (a project's List is a project node)
 const view = useNodeViewDraft({
   spaceId: nodeSpaceId,
-  node: key,
-  layout: () => active.value?.key ?? 'list',
-  notProject: true,
+  node: () => (props.day ? level.value : key.value),
+  layout: () => (props.day ? 'list' : (active.value?.key ?? 'list')),
+  notProject: !(props.day && props.projectId),
   fixed: () => (props.me ? { me: props.me } : {}),
 });
 const { options, filter: draftFilter } = view;
@@ -177,6 +182,7 @@ const selectTab = (k: string) =>
           />
         </template>
       </OptionsBar>
+      <ViewOptionsPopover v-else v-model:options="options" />
     </ToolbarRoot>
     <ViewChangesBar
       v-slot="{ hide }"
@@ -201,9 +207,9 @@ const selectTab = (k: string) =>
         {{ t('views.saved.reset') }}
       </Button>
     </ViewChangesBar>
-    <!-- «My day»: only the planner, no task list under it (PLNRAPP-709) -->
-    <div v-if="day" class="min-h-0 flex-1 overflow-y-auto">
-      <MyDay :project-ids="scope.projectIds" />
+    <!-- «My day»: the List with the day filter and the level's List settings (PLNRAPP-864) -->
+    <div v-if="day" class="h-full min-h-0 flex-1">
+      <MyDay v-if="spaces" :key="key" :project-id="key" :scope="scope" :options="options" />
     </div>
     <div v-else class="h-full min-h-0 flex-1">
       <component
