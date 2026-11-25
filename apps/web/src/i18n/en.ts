@@ -1053,6 +1053,8 @@ export default {
       assignee_removed: 'unassigned: {what}',
       label_added: 'added label: {what}',
       label_removed: 'removed label: {what}',
+      merged_into: 'merged the task into {what}',
+      merged_from: 'merged into this task: {what}',
     },
   },
   list: {

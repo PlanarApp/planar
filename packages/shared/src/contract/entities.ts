@@ -232,6 +232,8 @@ export const entitySchemas = {
       'label_added',
       'label_removed',
       'commented',
+      'merged_into',
+      'merged_from',
     ]),
     changes: z.record(z.string(), z.unknown()),
     viaTokenId: uuid.nullable(),

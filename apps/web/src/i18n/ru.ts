@@ -1057,6 +1057,8 @@ export default {
       assignee_removed: 'снял(а) исполнителя: {what}',
       label_added: 'добавил(а) метку: {what}',
       label_removed: 'убрал(а) метку: {what}',
+      merged_into: 'слил(а) задачу в {what}',
+      merged_from: 'слил(а) в эту задачу: {what}',
     },
   },
   list: {

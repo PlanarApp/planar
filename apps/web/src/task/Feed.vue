@@ -108,6 +108,7 @@ function describe(acts: Row<'activity'>[]): string {
   }
   const whats = acts.map((x) => {
     const ch = x.changes as Record<string, unknown>;
+    if (x.kind.startsWith('merged_')) return `«${String(ch.title)}»`;
     return x.kind.startsWith('assignee_')
       ? nameOf(String(ch.userId))
       : (labels.value?.find((l) => l.id === ch.labelId)?.name ?? '—');

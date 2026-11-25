@@ -427,6 +427,8 @@ export const activity = pgTable(
         'label_added',
         'label_removed',
         'commented',
+        'merged_into',
+        'merged_from',
       ]),
     ),
   ],
