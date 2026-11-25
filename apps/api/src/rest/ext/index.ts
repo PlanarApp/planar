@@ -58,14 +58,20 @@ export function registerExtArea(a: ExtArea) {
 }
 export const extOps = () => (cache ??= buildExtOps([...EXT_AREAS, ...hooked]));
 
-/** One call: input is already merged from path and body/query; parsed here (400 invalid_request). */
+/**
+ * One call: input is already merged from path and body/query; parsed here (400 invalid_request).
+ * preparsed — input is already the output of z.object(op.shape) (MCP SDK, AI chat): a second parse
+ * would fail on transforms such as z.stringbool(), which takes "true" but not the boolean it produced.
+ */
 export async function runExt(
   op: ExtOp,
   d: ExtDeps,
   userId: string,
   input: unknown,
   tokenId?: string,
+  opts?: { preparsed?: boolean },
 ) {
+  if (opts?.preparsed) return op.run(d, userId, (input ?? {}) as never, tokenId);
   const r = z.object(op.shape).safeParse(input ?? {});
   if (!r.success) throw new HttpError(400, 'invalid_request', 'Неверные параметры', r.error.issues);
   return op.run(d, userId, r.data, tokenId);
