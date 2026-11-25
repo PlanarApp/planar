@@ -25,3 +25,15 @@ test('pj19: ширина сохраняется и читается заново
   m = await import('./taskPanelWidth');
   expect(m.taskPanelWidth.value).toBe(m.TASK_PANEL_MAX);
 });
+
+test('табы — мобильным видом, когда боковая панель закрывает больше половины области', async () => {
+  const m = await import('./taskPanelWidth');
+  m.setTaskPanelWidth(600);
+  m.contentWidth.value = 1400;
+  expect(m.tabLabelHidden()).toBe('max-md:sr-only'); // panel closed
+  m.sidePanels.value = 1;
+  expect(m.panelCompact.value).toBe(false); // 600 of 1400
+  m.contentWidth.value = 1100;
+  expect(m.panelCompact.value).toBe(true); // 600 of 1100
+  expect(m.tabLabelHidden()).toBe('sr-only');
+});

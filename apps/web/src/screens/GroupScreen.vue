@@ -13,6 +13,7 @@ import {
   Settings,
 } from 'lucide-vue-next';
 import { useProject, useRootSpaceId, useSpaces, useWorkspace } from '../tasks';
+import { tabLabelHidden } from '../ui/taskPanelWidth';
 import { EmptyState, Tabs } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { GroupScope, LocalizedText } from '../modules/types';
@@ -134,8 +135,8 @@ const icons = {
           ]"
         >
           <component :is="icons[k]" :size="16" aria-hidden="true" />
-          <!-- мобильная: подпись только у текущей вкладки -->
-          <span :class="tab !== k && 'max-md:sr-only'">{{ t(`groups.tab.${k}`) }}</span>
+          <!-- мобильная и под широкой панелью задачи: подпись только у текущей вкладки -->
+          <span :class="tab !== k && tabLabelHidden()">{{ t(`groups.tab.${k}`) }}</span>
         </RouterLink>
       </template>
     </nav>
