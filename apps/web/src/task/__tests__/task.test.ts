@@ -341,8 +341,7 @@ describe('task:description', () => {
     // PLNRAPP-684: not created at once — the creation dialog opens prefilled, a subtask of this task
     const { ui } = await import('../../command/hotkeys');
     await w
-      .findAll('[data-testid="selection-to-task"] button')
-      .find((b) => b.text() === 'Сделать подзадачей')!
+      .find('[data-testid="selection-to-task"] button[aria-label="Сделать подзадачей"]')
       .trigger('click');
     expect(ui.create).toBe(true);
     expect(ui.createTitle).toBe('купить');
@@ -366,8 +365,7 @@ describe('task:description', () => {
     await until(() => w.find('[data-testid="selection-to-task"]').exists());
     const { ui } = await import('../../command/hotkeys');
     await w
-      .findAll('[data-testid="selection-to-task"] button')
-      .find((b) => b.text() !== 'Сделать подзадачей')!
+      .find('[data-testid="selection-to-task"] button[aria-label="Сделать задачей"]')
       .trigger('click');
     expect(ui.create).toBe(true);
     expect(ui.createTitle).toBe('купить хлеб');
