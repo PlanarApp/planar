@@ -421,7 +421,7 @@ describe('PLNRAPP-137 меню «Срок»: мой день', () => {
   };
   const dueOf = async (id: string) => (await db.table('tasks').get(id))?.dueDate;
   const pick = async (taskId: string, id: string) => {
-    const o = mount(DayOptions, { props: { taskId }, global: { plugins: [i18n] } });
+    const o = mount(DayOptions, { props: { taskIds: [taskId] }, global: { plugins: [i18n] } });
     await vi.waitFor(() => expect(o.find(`[data-testid=${id}]`).exists()).toBe(true));
     await o.get(`[data-testid=${id}]`).trigger('click');
     await flushPromises();

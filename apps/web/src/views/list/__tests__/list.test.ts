@@ -15,6 +15,7 @@ import {
   PriorityPicker,
   setLabels,
   StatusPicker,
+  TaskDatesPicker,
 } from '../../../tasks';
 import OptionPicker from '../../../tasks/fields/OptionPicker.vue';
 import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
@@ -624,6 +625,19 @@ describe('list:bulk', () => {
     sp.vm.$emit('update:modelValue', other);
     await until(() => toasts.value.some((x) => x.text.includes('его нет: 2')));
     expect(await db.table('tasks').where('statusId').equals(ids.todo).count()).toBe(2);
+  });
+  it('list:bulk срок — тот же пикер, что в форме: «Сегодня/Завтра» и время после даты', async () => {
+    const ts = [task(1), task(2)];
+    await db.table('tasks').bulkPut(ts);
+    await show();
+    useSelection().set(ts.map((x) => x.id));
+    await until(() => w.find('[data-testid=bulk-bar]').exists());
+    const dp = w.get('[data-testid=bulk-bar]').getComponent(TaskDatesPicker);
+    expect([...dp.props('taskIds')!].sort()).toEqual(ts.map((x) => x.id).sort());
+    dp.vm.$emit('update:due', '2026-12-01');
+    await nextTick();
+    expect(dp.props('due')).toBe('2026-12-01');
+    await poll(async () => (await db.table('tasks').get(ts[1].id)).dueDate === '2026-12-01');
   });
   it('list:bulk архив — участник, без «Удалить» (PLNRAPP-155)', async () => {
     useAuth().user.value = (await db.table('users').get(ids.ann)) as never;

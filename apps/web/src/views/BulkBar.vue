@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { CalendarDays } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { Button, Dialog } from '../ui';
@@ -42,6 +42,21 @@ async function setStatus(id: string | undefined) {
   const skipped = await setStatusesByName(statuses.value ?? [], chosen.value, id);
   if (skipped) toast(t('list.statusSkipped', { n: skipped }));
 }
+// the picker's own values: the time fields open once a date is chosen, as in the task form
+const dates = ref({
+  start: null as string | null,
+  due: null as string | null,
+  startTime: null as string | null,
+  dueTime: null as string | null,
+});
+const setDates = (patch: Parameters<typeof updateTask>[1], local: Partial<typeof dates.value>) => {
+  Object.assign(dates.value, local);
+  return each((x) => updateTask(x.id, patch));
+};
+watch(
+  () => sel.selected.value,
+  () => (dates.value = { start: null, due: null, startTime: null, dueTime: null }),
+);
 const confirmDelete = ref(false);
 // PLNRAPP-155: archive — any member; delete — an admin of every selected task's project
 const admin = useProjectAdmin();
@@ -86,10 +101,15 @@ async function removeSelected() {
     <!-- the same dates picker as in the task form; the key resets it when the selection changes -->
     <TaskDatesPicker
       :key="chosen.map((x) => x.id).join()"
-      @update:start="(v: string | null) => each((x) => updateTask(x.id, { startDate: v }))"
-      @update:due="(v: string | null) => each((x) => updateTask(x.id, { dueDate: v }))"
-      @update:start-time="(v: string | null) => each((x) => updateTask(x.id, { startTime: v }))"
-      @update:due-time="(v: string | null) => each((x) => updateTask(x.id, { dueTime: v }))"
+      :task-ids="chosen.map((x) => x.id)"
+      :start="dates.start"
+      :due="dates.due"
+      :start-time="dates.startTime"
+      :due-time="dates.dueTime"
+      @update:start="(v: string | null) => setDates({ startDate: v }, { start: v })"
+      @update:due="(v: string | null) => setDates({ dueDate: v }, { due: v })"
+      @update:start-time="(v: string | null) => setDates({ startTime: v }, { startTime: v })"
+      @update:due-time="(v: string | null) => setDates({ dueTime: v }, { dueTime: v })"
     >
       <template #value>
         <CalendarDays :size="14" aria-hidden="true" />

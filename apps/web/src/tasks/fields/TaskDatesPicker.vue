@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AlarmClock, Calendar } from 'lucide-vue-next';
-import { defineAsyncComponent } from 'vue';
+import { computed, defineAsyncComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button, Input } from '../../ui';
 import DatesValue from './DatesValue.vue';
@@ -8,8 +8,9 @@ import LazyPopover from './LazyPopover.vue';
 
 // Task dates in one compact field (PLNRAPP-208): start and due date (the due date is the end of the period).
 // Nothing — the icon only; a period — "12 Nov – 19 Nov", each date in its color; only a due date — "⏰ 20 Nov".
-// taskId — «My day» choices on top, as in DueDatePicker (PLNRAPP-137); #value — the List cell's own value.
-const props = defineProps<{ taskId?: string }>();
+// taskId / taskIds (bulk) — «My day» choices on top, as in DueDatePicker (PLNRAPP-137); #value — the List cell's own value.
+const props = defineProps<{ taskId?: string; taskIds?: readonly string[] }>();
+const dayIds = computed(() => props.taskIds ?? (props.taskId ? [props.taskId] : []));
 // async: inbox imports tasks
 const DayOptions = defineAsyncComponent(() => import('../../inbox/DayOptions.vue'));
 const start = defineModel<string | null>('start', { default: null });
@@ -49,7 +50,7 @@ const clear = () => {
       </button>
     </template>
     <div class="flex w-full flex-col gap-2 md:w-56">
-      <DayOptions v-if="props.taskId" :task-id="props.taskId" @done="open = false" />
+      <DayOptions v-if="dayIds.length" :task-ids="dayIds" @done="open = false" />
       <Input
         :model-value="start ?? ''"
         type="date"
