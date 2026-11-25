@@ -17,6 +17,7 @@ const PARITY_SPACES: Record<string, string> = {
   'PATCH /api/v1/spaces/{id}': 'update_space',
   'DELETE /api/v1/spaces/{id}': 'delete_space',
   'GET /api/v1/spaces/{id}/members': 'list_space_members',
+  'PUT /api/v1/spaces/{id}/members': 'set_space_members_mode',
   'POST /api/v1/spaces/{id}/members': 'add_space_member',
   'PATCH /api/v1/spaces/{id}/members/{userId}': 'update_space_member',
   'DELETE /api/v1/spaces/{id}/members/{userId}': 'remove_space_member',
@@ -152,6 +153,16 @@ describe('пространства и проекты (ext/spaces)', () => {
     expect((await call('remove_space_member', { id: sp.id, userId: w.member.userId }))[0]).toBe(
       false,
     );
+    // режим состава: custom со своим списком, обратно пустой custom — ошибка
+    const [em, cm] = await call('set_space_members_mode', {
+      id: sp.id,
+      mode: 'custom',
+      members: [{ userId: w.admin.userId, role: 'admin' }],
+    });
+    expect([em, cm.membersMode, cm.members.length]).toEqual([false, 'custom', 1]);
+    expect((await call('set_space_members_mode', { id: sp.id, mode: 'custom' }))[1].code).toBe(
+      'invalid_request',
+    );
     // REST: the same operation, 204
     const [s1, b1] = await rest(admin, 'POST', '/spaces', { name: 'Через REST' });
     expect(s1).toBe(201);
@@ -271,6 +282,7 @@ describe('пространства и проекты (ext/spaces)', () => {
       ['create_project', { spaceId: w.spaceId, name: 'x', key: 'XX' }],
       ['delete_project', { id: w.projectId }],
       ['list_project_members', { id: w.projectId }],
+      ['set_space_members_mode', { id: w.spaceId, mode: 'inherit' }],
       ['set_project_members_mode', { id: w.projectId, mode: 'inherit' }],
       ['copy_project_dictionaries', { id: w.projectId, fromProjectId: w.projectId }],
     ] as const) {
@@ -282,6 +294,7 @@ describe('пространства и проекты (ext/spaces)', () => {
       ['update_space', { id: w.spaceId, name: 'x' }],
       ['add_space_member', { id: w.spaceId, userId: w.outsider.userId, role: 'member' }],
       ['delete_project', { id: w.projectId }],
+      ['set_space_members_mode', { id: w.spaceId, mode: 'inherit' }],
       [
         'set_project_members_mode',
         { id: w.projectId, mode: 'custom', members: [{ userId: w.member.userId, role: 'admin' }] },

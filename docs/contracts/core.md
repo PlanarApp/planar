@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v31
+## C-schema v32
+
+v32: `spaces.membersMode` (`inherit` | `custom`, default `custom`; migration 0092) — the members of a space mirror the root space (Workspace) or are its own list — core-schema.md.
 
 v31 (PLNRAPP-709): the personal entity `dayPlans` is removed — «My day» is built from the user's tasks (assignee) by `tasks.dueDate`; the DB table `day_plans` is dropped (its dates were moved to `tasks.due_date` by migration 0078).
 
@@ -109,6 +111,32 @@ The suffix `?` means `.nullable()` (the key is present, the value may be `null`)
 - `bootstrap` — whether the entity is included in `GET /sync/bootstrap` (`no` — only via pull and its own REST).
 - `indexes` — fields allowed for `Tx.scan({index, eq})` (in Dexie these are indexes; in the DB — b-tree).
 - `detail: tasks` (optional, C-sync v3) — a detail entity: its rows belong to a task and are kept by the client only for tasks in `_held` (§C-sync «Detail entities»); `ENTITIES[e].detail = 'tasks'`. Absent — a core entity.
+
+### Roles and access (audit 2026-11-25)
+
+Three levels; each rule is enforced on the server (the mutator and `ServerTx.authorize`), the web only hides what the server would refuse.
+
+| level | role | what it can |
+|---|---|---|
+| instance (`users.role`) | `owner` | everything of `admin`; cannot be changed, deactivated or impersonated; the only one who changes `admin` users |
+| | `admin` | users (create, edit, deactivate — `member`/`guest` only), instance settings (modules, workspace, integrations, `settings.*`), impersonation of strictly lower roles (session only, not a token), switching modules and members mode of projects; space rights only through space membership |
+| | `member` | creates spaces (becomes their admin), everything else through space roles |
+| | `guest` | does not create spaces, is not added to the root space (Workspace) automatically; everything else through space roles |
+| space (`spaceMembers.role`) | `admin` | `space.update/delete`, members and `membersMode` of the space, statuses, modules and members of every project of the space (always admin of them), delete/restore tasks, resolve any assigned comment |
+| | `member` | projects (create, update, archive, delete), tasks, labels, fields, links, attachments, comments, own views |
+| | `guest` | comments, reactions, watching; reads the rest |
+| project (`projects.membersMode`) | `inherit` | the space role |
+| | `custom` | the role in `projectMembers`, no row — no access; space admins and instance admins keep admin; a space guest is at most a guest |
+
+Inheritance: instance → space is not automatic (a role in a space exists only with a `spaceMembers` row; the root space gets everyone except guests, instance owners and admins as admins). Space → project: `inherit` / `custom` (PJ-11). Space → root space: `spaces.membersMode` — `inherit` mirrors the root space's members and roles (rows are materialized, so every access rule keeps reading `spaceMembers`), `custom` is its own list; the root space is the source and always `custom`.
+
+Invariants kept by the code:
+- the role in the root space follows the instance role: a demoted admin is demoted in the Workspace too (`ensureRootSpace(db, changed)`), an instance admin is always admin there;
+- a role inside a project is the project role (PJ-11), not the space role: `comment.assign` of a guest of a `custom` project is refused;
+- comment resolve — the assignee, the author or an admin of the comment's space (the web checks the same, not the instance role);
+- the sidebar offers rename/delete of a space only to its admin.
+
+Open proposals (not applied — they change what users can do today): cap the space role by the instance role (an instance `guest` is at most a space `guest`, as a space guest is at most a project guest); `project.update/archive/delete` for a project admin only (create stays for members; the sidebar and settings already treat them as admin actions in settings); instance admins see every space (today an instance admin who is not in a space does not see it); hide `users.email` from instance guests; creating or promoting an `admin` user — owner only; the remaining mutators that read the space role instead of the project role (`checkAssignee`, `view.setNodeDefault`, docs and chat guards).
 
 ### Entities
 
@@ -318,7 +346,9 @@ Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from th
 
 v3: details of a task are kept only while it is in `_held` (bootstrap `held`, `POST /sync/tasks`); opening a task updates `accessedAt`. Cooling: the leader tab, when the queue is empty, deletes the details and the `_held` row for tasks not accessed for 30 days (the task's y-indexeddb database is kept: it may hold unsent offline edits of the description), except «my» open tasks; the protocol does not change — a cooled task is loaded again via `POST /sync/tasks`. `reset` and a change of the protocol version clear `_held` too. Prefetch (PLNRAPP-488): hovering a task (`[data-task-id]`) and, in idle time, the tasks rendered on the page are loaded via `POST /sync/tasks` — only those not in `_held`, batches of ≤ `SYNC_TASKS_MAX` ids, at most one request per 500 ms; prefetch does not update `accessedAt`; `forbidden`/`not_found` are not prefetched again until `stopSync`.
 
-## C-mutators v23
+## C-mutators v24
+
+v24: `space.setMembersMode`; `member.add/update/remove` only in a `custom` space, a change of the root space's members is mirrored into `inherit` spaces — core-mutators.md.
 
 v23 (PLNRAPP-709): `day.plan`, `day.move`, `day.remove` are removed — «My day» changes `tasks.dueDate` with `task.update`.
 

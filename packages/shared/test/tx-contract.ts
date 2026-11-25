@@ -74,6 +74,7 @@ export function txContractSuite(name: string, setup: () => Promise<TxFixture>) {
         color: null,
         icon: null,
         leadId: null,
+        membersMode: 'custom',
         rank: 'a0',
         createdBy: uuidv7(),
         createdAt: T0,

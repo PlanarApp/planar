@@ -54,6 +54,22 @@ describe('settings:members', () => {
   });
 });
 
+describe('settings:members mode', () => {
+  it('режим inherit: нет добавления и «Убрать», роли заблокированы; переключатель шлёт space.setMembersMode', async () => {
+    await db.table('spaces').update(ids.space, { membersMode: 'inherit' });
+    const w = await show(MembersSettings);
+    await vi.waitFor(() => expect(w.findAll('[data-testid=member-row]').length).toBeGreaterThan(0));
+    expect(w.find('form').exists()).toBe(false);
+    expect((w.find('[data-testid=space-mode-inherit]').element as HTMLInputElement).checked).toBe(
+      true,
+    );
+    expect(w.find('button[role=combobox]').attributes('disabled')).toBeDefined();
+    await w.find('[data-testid=space-mode-custom]').setValue(true);
+    await vi.waitFor(async () => expect(await db._queue.count()).toBe(1));
+    expect((await db._queue.toArray())[0].name).toBe('space.setMembersMode');
+  });
+});
+
 describe('settings:projects', () => {
   it('неверный ключ не отправляется', async () => {
     const w = await show(ProjectsSettings);

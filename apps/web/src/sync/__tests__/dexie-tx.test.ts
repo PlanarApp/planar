@@ -19,6 +19,7 @@ async function fixture(overlay = false) {
     description: null,
     color: null,
     icon: null,
+    membersMode: 'custom',
     leadId: null,
     rank: 'a0',
     createdBy: uuidv7(),

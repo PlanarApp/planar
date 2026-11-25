@@ -32,6 +32,8 @@ export const entitySchemas = {
     icon: z.string().nullable(),
     /** the space lead (PLANARAPP-3); old replica rows have no field */
     leadId: uuid.nullable().default(null),
+    /** members of the space: mirror of the root space's or its own; old replica rows have no field */
+    membersMode: z.enum(['inherit', 'custom']).default('custom'),
     rank: z.string().min(1),
     createdBy: uuid,
     createdAt: ts,

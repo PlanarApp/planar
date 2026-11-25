@@ -21,6 +21,7 @@ export const spaceMutators = [
         color: null,
         icon: null,
         leadId: null,
+        membersMode: 'custom',
         rank: a.rank,
         createdBy: ctx.userId,
         ...t,
