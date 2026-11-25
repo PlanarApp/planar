@@ -34,6 +34,8 @@ export class FakeServer {
   /** the next push mutation will be rejected with this code */
   rejectNext: string | null = null;
   resetNext = false;
+  /** pull with `?page=1`: no more than this many changes per answer (with `more`) */
+  pageSize = 0;
   /** push fails with a network error, pull/bootstrap work */
   blockPush = false;
   /** push body over this many bytes → 413 (the API's bodyLimit) */
@@ -198,12 +200,17 @@ export class FakeServer {
       const cursor = Number(url.searchParams.get('cursor'));
       const reset = this.resetNext || cursor > this.seq;
       this.resetNext = false;
+      const all = reset ? [] : this.log.filter((c) => c.seq > cursor);
+      const more =
+        !!this.pageSize && url.searchParams.get('page') === '1' && all.length > this.pageSize;
+      const part = more ? all.slice(0, this.pageSize) : all;
       return this.json(
         syncPullSchema.parse({
-          cursor: this.seq,
+          cursor: more ? part[part.length - 1].seq : this.seq,
           lastMutationId: this.lastMut.get(clientId) ?? 0,
-          changes: reset ? [] : this.log.filter((c) => c.seq > cursor).map((c) => this.wire(c)),
+          changes: part.map((c) => this.wire(c)),
           ...(reset ? { reset: true } : {}),
+          ...(more ? { more } : {}),
         }),
       );
     }

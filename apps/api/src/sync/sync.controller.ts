@@ -34,6 +34,7 @@ const protocolOf = (v: string | undefined) => (v && /^\d+$/.test(v) ? Number(v) 
 const pullQuery = z.object({
   clientId: z.uuid(),
   cursor: z.coerce.number().int().min(0),
+  page: z.enum(['1']).optional(),
 });
 
 @Controller('sync')
@@ -58,8 +59,8 @@ export class SyncController {
 
   @Get('pull')
   pullChanges(@Req() req: object, @Query() q: unknown) {
-    const { clientId, cursor } = parse(pullQuery, q);
-    return this.pull.pull(getAuth(req).userId, clientId, cursor);
+    const { clientId, cursor, page } = parse(pullQuery, q);
+    return this.pull.pull(getAuth(req).userId, clientId, cursor, !!page);
   }
 
   @Post('push')

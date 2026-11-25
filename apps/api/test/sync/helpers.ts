@@ -96,8 +96,8 @@ export class TestClient {
   bootstrap(protocol?: number) {
     return this.svc.pull.bootstrap(this.userId, this.clientId, protocol);
   }
-  pull(cursor: number) {
-    return this.svc.pull.pull(this.userId, this.clientId, cursor);
+  pull(cursor: number, page = false) {
+    return this.svc.pull.pull(this.userId, this.clientId, cursor, page);
   }
   get lastId() {
     return this.n;

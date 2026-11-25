@@ -589,9 +589,15 @@ export function createClient(db: PlanarDB) {
   }
 
   async function pull() {
-    const r = syncPullSchema.parse(await http(`/sync/pull?cursor=${cursor}&clientId=${clientId}`));
-    if (r.reset) return bootstrap();
-    await applyServer({ changes: r.changes, cursor: r.cursor, lastMutationId: r.lastMutationId });
+    const g = gen;
+    for (;;) {
+      const r = syncPullSchema.parse(
+        await http(`/sync/pull?cursor=${cursor}&clientId=${clientId}&page=1`),
+      );
+      if (r.reset) return bootstrap();
+      await applyServer({ changes: r.changes, cursor: r.cursor, lastMutationId: r.lastMutationId });
+      if (!r.more || g !== gen) return;
+    }
   }
 
   /** true — something was sent; limit — mutations per request (halved while the server answers 413) */

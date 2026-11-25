@@ -32,6 +32,8 @@ export const syncPullSchema = z.object({
     }),
   ),
   reset: z.boolean().optional(),
+  /** `?page=1` only: a page of the journal — `cursor` is the last returned seq, the client pulls again at once */
+  more: z.boolean().optional(),
 });
 
 export const syncPushRequestSchema = z.object({

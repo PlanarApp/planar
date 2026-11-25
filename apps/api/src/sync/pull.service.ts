@@ -171,7 +171,8 @@ export class PullService {
     });
   }
 
-  async pull(userId: string, clientId: string, cursor: number): Promise<SyncPull> {
+  /** page — the client understands `more` (`?page=1`): a long tail goes in pages, not as a reset. */
+  async pull(userId: string, clientId: string, cursor: number, page = false): Promise<SyncPull> {
     return this.snapshot(async (tx) => {
       const my = await this.mySpaces(tx, userId);
       const [{ max, min }] = await tx
@@ -206,7 +207,10 @@ export class PullService {
         )
         .orderBy(asc(changes.seq))
         .limit(PULL_LIMIT + 1);
-      if (rows.length > PULL_LIMIT || rows.some((r) => r.entity === '_reset')) return reset;
+      const more = page && rows.length > PULL_LIMIT;
+      if (more) rows.length = PULL_LIMIT;
+      if ((!page && rows.length > PULL_LIMIT) || rows.some((r) => r.entity === '_reset'))
+        return reset;
       // C-sync v3: a detail put carries its task — the client drops those of tasks it does not hold
       const data = (r: (typeof rows)[number]) => (r.data ?? {}) as Record<string, unknown>;
       const reacted = [
@@ -236,6 +240,7 @@ export class PullService {
               : undefined;
       return {
         ...head,
+        ...(more ? { cursor: rows[rows.length - 1].seq, more } : {}),
         changes: rows.map((r) => {
           const taskId = taskOf(r);
           return {
