@@ -261,18 +261,14 @@ export class PullService {
         .where(eq(activity.taskId, taskId))
         .orderBy(asc(activity.createdAt));
       const [task] = await tx
-        .select({ spaceId: tasks.spaceId })
+        .select({ spaceId: tasks.spaceId, projectId: tasks.projectId })
         .from(tasks)
         .where(eq(tasks.id, taskId));
       const spaceId = task?.spaceId ?? rows[0]?.spaceId;
       if (!spaceId || !my.includes(spaceId)) throw new NotFoundException('задача не найдена');
       // PJ-11: the history of a task of a hidden project is hidden too
       if (task) {
-        const [{ projectId }] = await tx
-          .select({ projectId: tasks.projectId })
-          .from(tasks)
-          .where(eq(tasks.id, taskId));
-        if (!(await projectAccess(tx, userId, projectId)))
+        if (!(await projectAccess(tx, userId, task.projectId)))
           throw new NotFoundException('задача не найдена');
       }
       return { rows: rows.map((r) => toWire('activity', r)) };

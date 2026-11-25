@@ -708,7 +708,11 @@ export function createClient(db: PlanarDB) {
     s.onopen = () => {
       // stable connection — open ≥ 5 s or a poke received; otherwise the pause grows
       wsStable = setTimeout(() => (wsFailures = 0), 5000);
-      s.send(JSON.stringify({ t: 'hello', cursor: cursor ?? 0 }));
+      // the warm start's first pull is in flight: a hello with the old cursor makes the server poke → a second pull
+      const hello = () =>
+        g === gen && ws === s && s.send(JSON.stringify({ t: 'hello', cursor: cursor ?? 0 }));
+      if (running) void running.then(hello, hello);
+      else hello();
     };
     s.onmessage = (ev) => {
       let m;

@@ -164,6 +164,15 @@ describe('task: индикатор работы ИИ', () => {
     expect(aiRow().attributes('data-state')).toBe('queued');
   });
 
+  it('изменение чужой задачи не перезапрашивает работу', async () => {
+    w = await open();
+    await until(() => load.mock.calls.length > 0);
+    await new Promise((r) => setTimeout(r, 600));
+    load.mockClear();
+    await db.table('comments').put(comment({ taskId: crypto.randomUUID() }));
+    await new Promise((r) => setTimeout(r, 700));
+    expect(load).not.toHaveBeenCalled();
+  });
   it('«Ждёт» — «Отменить»: ожидание отменено и сразу скрыто; без cancel — кнопки нет', async () => {
     const cancel = vi.fn(async () => {});
     answer = [run({ state: 'queued', itemId: null, cancel })];
