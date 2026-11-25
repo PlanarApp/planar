@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { Row } from '@planar/shared';
 import { api, ApiError } from '../api/http';
 import { passkeyProof, type Proof } from '../api/security';
@@ -11,7 +11,10 @@ const KEY = 'planar.user';
 const store = (u: User | null) => {
   try {
     if (u) localStorage.setItem(KEY, JSON.stringify(u));
-    else localStorage.removeItem(KEY);
+    else {
+      localStorage.removeItem(KEY);
+      localStorage.removeItem('planar.warm');
+    }
   } catch {
     /* storage unavailable */
   }
@@ -23,9 +26,21 @@ const known = (): User | null => {
     return null;
   }
 };
+/** the last /me allowed a warm start: no app lock and no required 2FA — they must not show the replica before /me */
+const WARM_KEY = 'planar.warm'; // also cleared by store(null)
+const warmAllowed = () => {
+  try {
+    return localStorage.getItem(WARM_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
 
-const user = ref<User | null>(null);
-const ready = ref(false);
+// a known user opens the app at once (warm start): /me is revalidated in the background (router.ts)
+const user = ref<User | null>(warmAllowed() ? known() : null);
+const ready = ref(!!user.value);
+/** startup requests must not hang the screen on a dead network */
+const BOOT_TIMEOUT = 8000;
 /** the password is accepted, the second factor is pending: which factors the user has */
 const mfaPending = ref<{ totp: boolean; passkey: boolean } | null>(null);
 /** 2FA is required by the instance policy and not set up: only the security settings */
@@ -39,6 +54,19 @@ const lockPrefs = ref<{ onOpen: boolean; minutes: number | null; wipe: boolean }
 const locked = ref(false);
 /** a factor is set up: «Lock» in the user menu */
 const canLock = ref(false);
+
+function saveWarm() {
+  const p = lockPrefs.value;
+  const ok = !!user.value && !mfaSetup.value && !locked.value && !p.onOpen && p.minutes === null;
+  try {
+    if (ok) localStorage.setItem(WARM_KEY, '1');
+    else localStorage.removeItem(WARM_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+// the lock settings are also changed in the profile (SecuritySection)
+watch(lockPrefs, saveWarm);
 
 type Me = {
   user: User;
@@ -58,6 +86,7 @@ function signedIn(r: Me) {
     lockPrefs.value = { onOpen: !!r.lockOnOpen, minutes: r.lockMinutes, wipe: !!r.lockWipe };
   locked.value = !!r.locked;
   if (r.canLock !== undefined) canLock.value = r.canLock;
+  saveWarm();
   adoptBrowserZone(r.user);
 }
 
@@ -76,7 +105,7 @@ function adoptBrowserZone(u: User) {
 
 async function refresh(): Promise<void> {
   try {
-    signedIn(await api<Me>('GET', '/api/auth/me'));
+    signedIn(await api<Me>('GET', '/api/auth/me', undefined, undefined, BOOT_TIMEOUT));
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
     // offline/5xx: stay with the last known user
@@ -189,11 +218,38 @@ export type SetupInfo = {
 };
 
 /** last GET /api/setup answer (the router guard fetches it before the setup screen and once per session) */
-const lastSetupInfo = ref<SetupInfo | null>(null);
+const SETUP_KEY = 'planar.setup';
+const lastSetupInfo = ref<SetupInfo | null>(
+  (() => {
+    try {
+      return JSON.parse(localStorage.getItem(SETUP_KEY) ?? 'null');
+    } catch {
+      return null;
+    }
+  })(),
+);
+let setupFlight: Promise<SetupInfo> | null = null;
 
-async function setupInfo(): Promise<SetupInfo> {
+/** concurrent callers (router guard, App.vue) share one request */
+function setupInfo(): Promise<SetupInfo> {
+  return (setupFlight ??= fetchSetup().finally(() => (setupFlight = null)));
+}
+
+async function fetchSetup(): Promise<SetupInfo> {
   try {
-    return (lastSetupInfo.value = await api<SetupInfo>('GET', '/api/setup'));
+    const s = (lastSetupInfo.value = await api<SetupInfo>(
+      'GET',
+      '/api/setup',
+      undefined,
+      undefined,
+      BOOT_TIMEOUT,
+    ));
+    try {
+      localStorage.setItem(SETUP_KEY, JSON.stringify(s));
+    } catch {
+      /* storage unavailable */
+    }
+    return s;
   } catch (e) {
     if (e instanceof ApiError && e.status === 0)
       return { needed: false, tokenRequired: false, demo: false, demoResetHours: 24 };
