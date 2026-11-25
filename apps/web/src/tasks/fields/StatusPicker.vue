@@ -15,6 +15,7 @@ const props = defineProps<{
   compact?: boolean;
 }>();
 const model = defineModel<string>();
+const open = defineModel<boolean>('open', { default: false });
 const { t } = useI18n();
 const statuses = useStatuses(
   () => props.spaceId,
@@ -45,6 +46,7 @@ const options = computed(() =>
 
 <template>
   <OptionPicker
+    v-model:open="open"
     :options="options"
     :selected="selected"
     :title="t('tasks.status')"

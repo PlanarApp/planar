@@ -123,12 +123,18 @@ describe('PLNRAPP-830: пустые поля под катом, меню «…»
     w = await open();
     await until(() => w.find('[aria-label="Меню задачи"]').exists());
     await openMenu();
-    const items = [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    // a row of icon buttons («Open», «Copy») is a group named by its label
+    const items = [
+      ...document.body.querySelectorAll<HTMLElement>('[role="menuitem"], [role="group"]'),
+    ].filter((e) => !e.parentElement?.closest('[role="group"]'));
     expect(labels).toContain('Открыть');
+    expect(labels).toContain('Копировать');
     expect(
-      items.map((e) =>
-        [...labels].sort((x, y) => y.length - x.length).find((l) => e.textContent?.startsWith(l)),
-      ),
+      items.map((e) => {
+        const text =
+          e.getAttribute('role') === 'group' ? e.getAttribute('aria-label') : e.textContent;
+        return [...labels].sort((x, y) => y.length - x.length).find((l) => text?.startsWith(l));
+      }),
     ).toEqual(labels);
   });
 });

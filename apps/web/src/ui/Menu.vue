@@ -51,6 +51,14 @@ type Item = {
   confirm?: { title: string; description?: string; confirmLabel: string };
   /** submenu instead of an action (two levels at most) */
   children?: SubItem[];
+  /** a row of icon buttons instead of an action: the label names the group, each button — its own action */
+  actions?: {
+    id: string;
+    label: string;
+    icon: Component;
+    disabled?: boolean;
+    onSelect: () => void;
+  }[];
   onSelect?: () => void;
 };
 export type MenuItem = Item | { separator: true };
@@ -165,6 +173,27 @@ const subPanel = `${panel} max-h-80 overflow-y-auto`;
           </button>
         </template>
       </template>
+      <div
+        v-else-if="it.actions"
+        role="group"
+        :aria-label="it.label"
+        class="flex min-h-11 w-full items-center gap-2 px-2 text-sm text-fg"
+      >
+        <component :is="it.icon" v-if="it.icon" :size="16" v-bind="it.iconProps" />
+        <span class="flex-1">{{ it.label }}</span>
+        <button
+          v-for="a in it.actions"
+          :key="a.id"
+          type="button"
+          :disabled="a.disabled"
+          :aria-label="a.label"
+          :data-action="a.id"
+          class="flex size-11 items-center justify-center rounded-md text-fg-muted outline-none disabled:opacity-50"
+          @click="pick(a.onSelect)"
+        >
+          <component :is="a.icon" :size="18" />
+        </button>
+      </div>
       <button
         v-else
         type="button"
@@ -243,6 +272,28 @@ const subPanel = `${panel} max-h-80 overflow-y-auto`;
               </component>
             </component>
           </component>
+          <div
+            v-else-if="it.actions"
+            role="group"
+            :aria-label="it.label"
+            class="flex h-11 items-center gap-2 px-2 pr-1 text-sm text-fg md:h-8"
+          >
+            <component :is="it.icon" v-if="it.icon" :size="16" v-bind="it.iconProps" />
+            <span class="flex-1">{{ it.label }}</span>
+            <component
+              :is="kind.Item"
+              v-for="a in it.actions"
+              :key="a.id"
+              :disabled="a.disabled"
+              :aria-label="a.label"
+              :title="a.label"
+              :data-action="a.id"
+              class="flex size-7 cursor-default items-center justify-center rounded-md text-fg-muted outline-none data-[disabled]:opacity-50 data-[highlighted]:bg-bg-muted data-[highlighted]:text-fg"
+              @select="a.onSelect()"
+            >
+              <component :is="a.icon" :size="16" />
+            </component>
+          </div>
           <component
             :is="kind.Item"
             v-else

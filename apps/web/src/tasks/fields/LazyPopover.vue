@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, useId } from 'vue';
+import { nextTick, ref, useId, watch } from 'vue';
 import { Popover } from '../../ui';
 
 defineProps<{ align?: 'start' | 'center' | 'end' }>();
@@ -10,6 +10,8 @@ const open = defineModel<boolean>('open', { default: false });
  * A touch and focus from a click do not mount it in advance: swapping the element between press and release would eat the click.
  */
 const armed = ref(false);
+// opened from outside (the task context menu opens a field's picker): mount the Popover at once
+watch(open, (o) => o && (armed.value = true), { immediate: true });
 const uid = useId();
 const attrs = { 'data-lazy-trigger': uid };
 

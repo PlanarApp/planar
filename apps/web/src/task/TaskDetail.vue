@@ -227,9 +227,19 @@ const menu = computed<MenuItem[]>(() =>
   menuFor(props.task).map((it) => {
     if (!('id' in it)) return it;
     if (it.id === 'open')
-      return props.mode === 'page' || !router
-        ? { ...it, disabled: true }
-        : { ...it, onSelect: () => void router.push(`/t/${encodeURIComponent(props.task.key)}`) };
+      return {
+        ...it,
+        actions: it.actions?.map((a) =>
+          a.id !== 'open'
+            ? a
+            : props.mode === 'page' || !router
+              ? { ...a, disabled: true }
+              : {
+                  ...a,
+                  onSelect: () => void router.push(`/t/${encodeURIComponent(props.task.key)}`),
+                },
+        ),
+      };
     return it.id === 'delete' ? { ...it, onSelect: remove } : it;
   }),
 );

@@ -10,6 +10,7 @@ import { useMembers } from '../queries';
 // on the button — «avatar name» per person, not all the avatars and then all the names
 const props = defineProps<{ spaceId: string; compact?: boolean }>();
 const model = defineModel<string[]>({ default: () => [] });
+const open = defineModel<boolean>('open', { default: false });
 const { t } = useI18n();
 const members = useMembers(() => props.spaceId);
 const chosen = computed(() =>
@@ -24,6 +25,7 @@ const toggle = (id: string | null) =>
 
 <template>
   <UserPicker
+    v-model:open="open"
     :users="members ?? []"
     :selected="model"
     multiple

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AlarmClock, Calendar } from 'lucide-vue-next';
-import { defineAsyncComponent, ref } from 'vue';
+import { defineAsyncComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button, Input } from '../../ui';
 import DatesValue from './DatesValue.vue';
@@ -15,7 +15,7 @@ const DayOptions = defineAsyncComponent(() => import('../../inbox/DayOptions.vue
 const start = defineModel<string | null>('start', { default: null });
 const due = defineModel<string | null>('due', { default: null });
 const { t } = useI18n();
-const open = ref(false);
+const open = defineModel<boolean>('open', { default: false });
 const clear = () => {
   if (start.value) start.value = null;
   if (due.value) due.value = null;

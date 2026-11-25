@@ -533,6 +533,54 @@ describe('PLNRAPP-291 режим выделения в Списке', () => {
     expect(row('PLN-2').attributes('aria-selected')).toBe('true');
     expect(r.currentRoute.value.query.task).toBeUndefined();
   });
+  const menuItem = (text: string) =>
+    until(() =>
+      [...document.querySelectorAll<HTMLElement>('[role=menuitem]')].find(
+        (x) => x.textContent?.trim() === text,
+      ),
+    );
+  it('контекстное меню: без «В мой день»; «Открыть» и «Копировать» — строки с двумя кнопками', async () => {
+    await db.table('tasks').put(task(1));
+    await show();
+    await row('PLN-1').trigger('contextmenu');
+    await menuItem('Выбрать');
+    const text = document.body.textContent ?? '';
+    expect(text).not.toContain('В мой день');
+    for (const g of ['Открыть', 'Копировать']) {
+      const group = document.querySelector(`[role=group][aria-label="${g}"]`)!;
+      expect(group.querySelectorAll('[role=menuitem]'), g).toHaveLength(2);
+    }
+  });
+  it('контекстное меню: «Статус» открывает селектор статуса, выбор меняет статус', async () => {
+    const t = task(1);
+    await db.table('tasks').put(t);
+    await show();
+    await row('PLN-1').trigger('contextmenu');
+    (await menuItem('Статус'))!.click();
+    const done = await until(() =>
+      [...document.querySelectorAll<HTMLElement>('[role=option]')].find(
+        (x) => x.textContent?.trim() === 'Done',
+      ),
+    );
+    done!.click();
+    await until(async () => (await db.table('tasks').get(t.id))?.statusId === ids.done);
+  });
+  it('контекстное меню: «В архив» — тост с «Отменить» (админу), отмена возвращает задачу', async () => {
+    const t = task(1);
+    await db.table('tasks').put(t);
+    // restoring is an admin's right: ann is the space admin here
+    await db.table('spaceMembers').toCollection().modify({ role: 'admin' });
+    useAuth().user.value = (await db.table('users').get(ids.ann)) as never;
+    await show();
+    await row('PLN-1').trigger('contextmenu');
+    (await menuItem('В архив'))!.click();
+    await until(async () => !!(await db.table('tasks').get(t.id))?.archivedAt);
+    const { toasts } = await import('../../../ui/toast');
+    const last = await until(() => toasts.value.find((x) => x.text === 'Задача в архиве'));
+    expect(last!.action?.label).toBe('Отменить');
+    last!.action!.run();
+    await until(async () => !(await db.table('tasks').get(t.id))?.archivedAt);
+  });
 });
 
 describe('list:bulk', () => {

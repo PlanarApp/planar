@@ -17,6 +17,15 @@ import { dismiss, toasts } from './toast';
     >
       <span class="min-w-0 flex-1 break-words">{{ x.text }}</span>
       <button
+        v-if="x.action"
+        type="button"
+        class="shrink-0 font-medium text-accent hover:underline"
+        data-testid="toast-action"
+        @click="(x.action.run(), dismiss(x.id))"
+      >
+        {{ x.action.label }}
+      </button>
+      <button
         type="button"
         class="text-fg-muted hover:text-fg"
         aria-label="×"

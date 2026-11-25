@@ -6,6 +6,7 @@ import PriorityIcon from './PriorityIcon.vue';
 const props = defineProps<{ compact?: boolean }>();
 const Blank = () => null;
 const model = defineModel<number>({ default: 0 });
+const open = defineModel<boolean>('open', { default: false });
 const { t } = useI18n();
 const options = [0, 1, 2, 3, 4].map((p) => ({
   id: String(p),
@@ -18,6 +19,7 @@ const options = [0, 1, 2, 3, 4].map((p) => ({
 
 <template>
   <OptionPicker
+    v-model:open="open"
     :options="options"
     :selected="[String(model)]"
     :title="t('tasks.priorityTitle')"
