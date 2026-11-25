@@ -131,7 +131,6 @@ export default {
     themeLight: 'Светлая',
     themeDark: 'Тёмная',
     profile: 'Профиль',
-    settings: 'Настройки',
     language: 'Язык',
     menu: 'Меню',
     modules: { chat: 'Чат', docs: 'Документы' },

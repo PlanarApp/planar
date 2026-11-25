@@ -15,9 +15,6 @@ const lazy = (n: string) => defineAsyncComponent(() => import(`./settings/${n}Se
 type Level = GroupScope['level'];
 const SECTIONS = {
   general: { c: lazy('General'), level: 'any' },
-  // the list of spaces: create, rename, delete with content — only in the global settings
-  spaces: { c: lazy('Spaces'), level: 'workspace' },
-  // global (no scope): the members of the root space
   members: { c: lazy('Members'), level: 'space' },
   projects: { c: lazy('Projects'), level: 'space' },
   statuses: { c: lazy('Statuses'), level: 'project' },
@@ -48,11 +45,13 @@ const level = computed<Level | undefined>(() => props.scope?.level);
 const atLevel = (l: Level | 'any' | undefined) =>
   !level.value || l === 'any' || (l ?? 'workspace') === level.value;
 const GLOBAL_HIDDEN = [
+  'members',
   'projects',
   'ai:space',
   'ai:project',
   'automations:rules',
   'templates:templates',
+  'forms:forms',
 ];
 const shown = (key: string) => !!props.scope || !GLOBAL_HIDDEN.includes(key);
 
@@ -91,6 +90,7 @@ const pages = computed(() =>
   modPages.value.filter(
     (p) =>
       p.key !== IMPORT_PAGE &&
+      !p.personal &&
       shown(p.key) &&
       (isAdmin.value || !p.adminOnly) &&
       atLevel(p.level) &&

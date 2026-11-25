@@ -251,7 +251,7 @@ test('pf6: email — без SMTP переключатель неактивен �
   const al = await Client.login('alice');
   await al.pushOk([al.mut('email.setPrefs', { id: al.userId, notify: true, digest: false })]);
   const alice = await loginAs(browser, 'alice');
-  await spa(alice, '/settings/email:prefs', alice.getByTestId('email-prefs'));
+  await spa(alice, '/profile', alice.getByTestId('email-prefs'));
   const prefs = async () =>
     ((await al.bootstrap()).data.emailPrefs ?? []).find((p) => p.userId === al.userId);
   await alice.getByTestId('email-notify').uncheck();

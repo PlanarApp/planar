@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, defineAsyncComponent, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Avatar, Button, Input, Select, Tabs, useTheme } from '../ui';
@@ -13,10 +13,21 @@ import TokensSection from './profile/TokensSection.vue';
 import SecuritySection from './profile/SecuritySection.vue';
 import { setWeekStart } from '../i18n/week';
 import { setLocale, type Locale } from '../i18n';
+import { useExtensions } from '../modules/registry';
 
 const { t, locale } = useI18n();
 const { user, mfaSetup } = useAuth();
 const { theme } = useTheme();
+// the user's own module pages (email notifications, …) — under «Notifications»
+const modPages = useExtensions('settings');
+const personal = computed(() =>
+  modPages.value
+    .filter((p) => p.personal)
+    .map((p) => ({
+      key: p.key,
+      c: defineAsyncComponent(() => p.component().then((m) => m.default)),
+    })),
+);
 // ?tab=security — 2FA required by the policy (router.ts) or a link
 const tab = ref(mfaSetup.value ? 'security' : String(useRoute().query.tab ?? 'profile'));
 const weekPref = ref(readPref());
@@ -231,6 +242,7 @@ const themes = () => [
       <section class="flex flex-col gap-3" :aria-label="t('profile.notifications')">
         <h2 class="text-lg font-semibold">{{ t('profile.notifications') }}</h2>
         <PushToggle />
+        <component :is="p.c" v-for="p in personal" :key="p.key" />
       </section>
     </template>
     <p v-if="msg" role="status" class="text-sm text-fg-muted">{{ msg }}</p>

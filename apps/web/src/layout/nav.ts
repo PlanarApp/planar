@@ -3,7 +3,7 @@ import type { Row } from '@planar/shared';
 import { db, mutate, newId, rankBetween, replicaState, syncState, useQuery } from '../sync';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Languages, Lock, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-vue-next';
+import { Languages, Lock, LogOut, Monitor, Moon, Sun, User } from 'lucide-vue-next';
 import type { MenuItem } from '../ui/Menu.vue';
 import { useTheme } from '../ui/useTheme';
 import { setLocale } from '../i18n';
@@ -39,7 +39,7 @@ export const mobileNav = ref(false);
 
 const notice = ref(''); // common: shown in TopBar on any menu entry
 
-/** User menu (profile, settings, theme, language, logout) — in the panel header and in TopBar on mobile. */
+/** User menu (profile, theme, language, logout) — in the panel header and in TopBar on mobile. */
 export function useUserMenu() {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -51,12 +51,6 @@ export function useUserMenu() {
       label: t('topbar.profile'),
       icon: User,
       onSelect: () => router.push('/profile'),
-    },
-    {
-      id: 'settings',
-      label: t('topbar.settings'),
-      icon: Settings,
-      onSelect: () => router.push('/settings'),
     },
     { separator: true },
     {

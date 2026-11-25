@@ -18,6 +18,7 @@ vi.mock('../../pwa/register', () => ({
   useRegisterSW: () => ({ needRefresh: { value: false }, updateServiceWorker: async () => {} }),
 }));
 import { ui } from '../../command/hotkeys';
+import { useAuth, type User } from '../../auth/useAuth';
 
 const stub = { template: '<div />' };
 // Tooltip (IconButton) requires a provider, which the app mounts in App.vue
@@ -137,10 +138,20 @@ describe('раскладка', () => {
   it('смена локали меняет текст панели', async () => {
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
-    expect(w.text()).toContain('Настройки');
+    expect(w.text()).toContain('Всё');
     i18n.global.locale.value = 'en';
     await nextTick();
-    expect(w.text()).toContain('Settings');
+    expect(w.text()).toContain('All');
+  });
+
+  it('«Настройки» внизу панели — только админу воркспейса', async () => {
+    const { router, i18n } = setup(false);
+    const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
+    expect(w.find('a[href="/settings"]').exists()).toBe(false);
+    useAuth().user.value = { id: 'u', role: 'admin' } as User;
+    await nextTick();
+    expect(w.find('a[href="/settings"]').exists()).toBe(true);
+    useAuth().user.value = null;
   });
 
   it('боковая панель: группы сворачиваются, состояние пишется в localStorage', async () => {

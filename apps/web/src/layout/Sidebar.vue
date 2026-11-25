@@ -33,7 +33,7 @@ const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
 const { isMobile } = useBreakpoint();
 const rail = computed(() => !isMobile.value && sidebarMode.value === 'rail');
-const { user } = useAuth();
+const { user, isAdmin } = useAuth();
 const { items } = useUserMenu();
 
 const { t, te, locale } = useI18n();
@@ -230,12 +230,17 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
         <template v-else>{{ p.prefix.slice(0, 2) }}</template>
       </RouterLink>
     </template>
+    <!-- workspace settings: admins only; flush with the bottom, the full width of the panel -->
     <RouterLink
+      v-if="isAdmin"
       to="/settings"
       :aria-label="t('sidebar.settings')"
       :title="t('sidebar.settings')"
-      :class="[link, 'mt-auto size-8 justify-center px-0']"
-      active-class="bg-accent-subtle"
+      :class="[
+        link,
+        'sticky bottom-0 -mb-2 mt-auto h-9 w-full shrink-0 justify-center rounded-none bg-sidebar-bg px-0',
+      ]"
+      active-class="!bg-accent-subtle"
     >
       <Settings :size="16" />
     </RouterLink>
@@ -484,7 +489,15 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
         </template>
       </div>
     </nav>
-    <RouterLink to="/settings" :class="[link, 'mt-auto']" active-class="bg-accent-subtle">
+    <RouterLink
+      v-if="isAdmin"
+      to="/settings"
+      :class="[
+        link,
+        'sticky bottom-0 -mx-2 -mb-2 mt-auto h-9 shrink-0 rounded-none bg-sidebar-bg px-4',
+      ]"
+      active-class="!bg-accent-subtle"
+    >
       <Settings :size="16" />{{ t('sidebar.settings') }}
     </RouterLink>
   </aside>

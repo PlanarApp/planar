@@ -92,6 +92,8 @@ export interface SettingsPageDef {
   adminOnly?: boolean;
   /** group settings level (C-modules v12): default Workspace; the page receives spaceId and projectId */
   level?: 'workspace' | 'space' | 'project';
+  /** the user's own page (e.g. email notifications): in the profile, not in the settings */
+  personal?: boolean;
 }
 
 export type NavItemDef = { id: string; order?: number } & (
