@@ -5,6 +5,8 @@ import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router'
 // without the showcase: DevUiScreen is connected separately and only in dev
 const screens = import.meta.glob(['./screens/*Screen.vue', '!./screens/DevUiScreen.vue']);
 const screen = (name: string) => screens[`./screens/${name}Screen.vue`];
+/** warm the chunk of a screen before the first navigation asks for it */
+export const preloadScreen = (name: string) => void screen(name)?.();
 
 const MOVED_VIEWS = ['sprints:sprint', 'goals:milestones'];
 const CARDS = 'cards';
@@ -43,9 +45,22 @@ if (import.meta.env.DEV)
     meta: { layout: 'none' },
   });
 
+// a warm start (known user, cached /setup) doesn't wait for the network: both are revalidated once in the background
+let revalidated = false;
+
 router.beforeEach(async (to) => {
   const { user, ready, refresh, setupNeeded, setupInfo, lastSetupInfo } = useAuth();
+  const warm = ready.value && !revalidated;
   if (!ready.value) await refresh();
+  else if (warm)
+    void refresh().then(() => {
+      if (!user.value)
+        void router.push({
+          path: '/login',
+          query: { redirect: router.currentRoute.value.fullPath },
+        });
+    });
+  revalidated = true;
   const bare = to.meta.layout === 'none';
   if (!user.value) {
     if (to.name === 'setup') return (await setupNeeded()) ? true : '/login';
@@ -53,6 +68,14 @@ router.beforeEach(async (to) => {
     return (await setupNeeded()) ? '/setup' : { path: '/login', query: { redirect: to.fullPath } };
   }
   if (!lastSetupInfo.value) await setupInfo().catch(() => null);
+  else if (warm)
+    void setupInfo()
+      .then((s) => {
+        const now = !!s.cloud?.expired;
+        if (user.value && now !== (router.currentRoute.value.name === 'paywall'))
+          void router.push(now ? '/paywall' : '/');
+      })
+      .catch(() => {});
   const expired = !!lastSetupInfo.value?.cloud?.expired;
   if (expired !== (to.name === 'paywall')) return expired ? '/paywall' : '/';
   if (to.name === 'login' || to.name === 'setup') return '/';

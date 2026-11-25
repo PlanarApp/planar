@@ -21,9 +21,49 @@
           document.documentElement.classList.add('dark');
       } catch (e) {}
     </script>
+    <style>
+      /* boot skeleton of the shell, replaced by Vue on mount */
+      .boot {
+        display: flex;
+        height: 100vh;
+        background: #fff;
+      }
+      .boot nav {
+        width: 240px;
+        background: #f7f7f8;
+        border-right: 1px solid #e6e6e9;
+      }
+      .boot main {
+        flex: 1;
+      }
+      .boot main i {
+        display: block;
+        height: 48px;
+        border-bottom: 1px solid #e6e6e9;
+        background: #fff;
+      }
+      .dark .boot {
+        background: #111113;
+      }
+      .dark .boot nav,
+      .dark .boot main i {
+        border-color: #26262a;
+        background: #17171a;
+      }
+      @media (max-width: 767px) {
+        .boot nav {
+          display: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="boot">
+        <nav></nav>
+        <main><i></i></main>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

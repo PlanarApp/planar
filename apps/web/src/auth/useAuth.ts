@@ -24,8 +24,11 @@ const known = (): User | null => {
   }
 };
 
-const user = ref<User | null>(null);
-const ready = ref(false);
+// a known user opens the app at once (warm start): /me is revalidated in the background (router.ts)
+const user = ref<User | null>(known());
+const ready = ref(!!user.value);
+/** startup requests must not hang the screen on a dead network */
+const BOOT_TIMEOUT = 8000;
 /** the password is accepted, the second factor is pending: which factors the user has */
 const mfaPending = ref<{ totp: boolean; passkey: boolean } | null>(null);
 /** 2FA is required by the instance policy and not set up: only the security settings */
@@ -76,7 +79,7 @@ function adoptBrowserZone(u: User) {
 
 async function refresh(): Promise<void> {
   try {
-    signedIn(await api<Me>('GET', '/api/auth/me'));
+    signedIn(await api<Me>('GET', '/api/auth/me', undefined, undefined, BOOT_TIMEOUT));
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
     // offline/5xx: stay with the last known user
@@ -189,11 +192,38 @@ export type SetupInfo = {
 };
 
 /** last GET /api/setup answer (the router guard fetches it before the setup screen and once per session) */
-const lastSetupInfo = ref<SetupInfo | null>(null);
+const SETUP_KEY = 'planar.setup';
+const lastSetupInfo = ref<SetupInfo | null>(
+  (() => {
+    try {
+      return JSON.parse(localStorage.getItem(SETUP_KEY) ?? 'null');
+    } catch {
+      return null;
+    }
+  })(),
+);
+let setupFlight: Promise<SetupInfo> | null = null;
 
-async function setupInfo(): Promise<SetupInfo> {
+/** concurrent callers (router guard, App.vue) share one request */
+function setupInfo(): Promise<SetupInfo> {
+  return (setupFlight ??= fetchSetup().finally(() => (setupFlight = null)));
+}
+
+async function fetchSetup(): Promise<SetupInfo> {
   try {
-    return (lastSetupInfo.value = await api<SetupInfo>('GET', '/api/setup'));
+    const s = (lastSetupInfo.value = await api<SetupInfo>(
+      'GET',
+      '/api/setup',
+      undefined,
+      undefined,
+      BOOT_TIMEOUT,
+    ));
+    try {
+      localStorage.setItem(SETUP_KEY, JSON.stringify(s));
+    } catch {
+      /* storage unavailable */
+    }
+    return s;
   } catch (e) {
     if (e instanceof ApiError && e.status === 0)
       return { needed: false, tokenRequired: false, demo: false, demoResetHours: 24 };

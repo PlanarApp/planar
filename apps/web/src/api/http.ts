@@ -14,12 +14,15 @@ export async function api<T = unknown>(
   path: string,
   body?: unknown,
   extraHeaders?: Record<string, string>,
+  timeoutMs?: number,
 ): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, {
       method,
       credentials: 'same-origin',
+      // a timeout is a network error (status 0): treated like offline
+      signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
       headers:
         body === undefined || body instanceof FormData
           ? extraHeaders

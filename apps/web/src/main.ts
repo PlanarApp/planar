@@ -2,7 +2,7 @@ import { createApp, defineAsyncComponent, h } from 'vue';
 import { useAuth } from './auth/useAuth';
 import App from './App.vue';
 import { i18n } from './i18n';
-import { router } from './router';
+import { preloadScreen, router } from './router';
 import { initModules } from './modules/registry';
 import { prefetchProject } from './tasks/queries';
 import { closePrompt } from './tasks/closeOpen';
@@ -28,6 +28,7 @@ const { logoutPrompt, locked, user } = useAuth();
 
 const open = /^\/p\/([0-9a-f-]{36})/.exec(location.pathname);
 if (open) prefetchProject(open[1]!);
+preloadScreen('Group');
 initSession(router);
 initLock();
 initModules();
