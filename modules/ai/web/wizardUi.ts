@@ -28,6 +28,19 @@ export function canAdvance(s: WizardStep, st: WizardState): boolean {
   return false;
 }
 
+/**
+ * The part of the adaptation assignment about models: the AI fills `models` of every rule in harness.yml
+ * (`provider:model`) for the provider of the project's connection, by what the rule does.
+ */
+export const modelsHint = (c: { provider: string; model: string }) =>
+  `Для каждого правила в harness.yml заполни поле models — список моделей через provider:model, ` +
+  `подходящих по функционалу правила, лучшая первой (сначала дешёвая и быстрая для простых правил — триаж, метки, ` +
+  `короткие ответы, сильная — для сложных: разработка, ревью, планирование). Провайдер подключения проекта — ` +
+  `${c.provider} (модель по умолчанию ${c.model}); используй только его: например anthropic:claude-haiku-4-5 или ` +
+  `anthropic:claude-sonnet-4-5 для Anthropic, openai:gpt-5-mini для OpenAI, openai-compatible:<модель> для остальных ` +
+  `(Gemini — gemini-*, Pro для сложных, Flash/Flash-Lite для простых). Если не уверен в имени модели — оставь только модель по умолчанию. ` +
+  `Не указывай модели вне провайдера подключения.`;
+
 /** «Adapt with AI» (step 3) is an assignment: the prompt as a page comment (a paragraph per line) for the AI bot. */
 export const assignmentBody = (text: string) => ({
   type: 'doc',

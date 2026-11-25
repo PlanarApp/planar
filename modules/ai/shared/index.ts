@@ -264,6 +264,8 @@ export interface AiRunView {
   inputTokens: number;
   outputTokens: number;
   cost: number | null;
+  /** the model of the run (action, rule or connection); null — unknown (older runs) */
+  model: string | null;
   createdAt: string;
   updatedAt: string;
 }

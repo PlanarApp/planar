@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { HttpError, type CoreServices } from '@planar/server-kit';
+import { ruleKey } from '../shared/harness.js';
 import { buildMutations, diffOf, writeKeys } from './harness.js';
 import { RETRO_QUEUE, type RetroData } from './retro.js';
 
@@ -44,6 +45,12 @@ export async function applyPack(core: CoreServices, userId: string, b: ApplyOpts
       },
       after: async (q) => {
         await writeKeys(q, b.projectId, keyWrites);
+        // the rule's models live beside its key (the automation itself has no such field)
+        for (const r of d.pack.rules)
+          await q.execute(
+            sql`update ai_harness_keys set models = ${r.models ? JSON.stringify(r.models) : null}::jsonb
+                where project_id = ${b.projectId}::uuid and kind = 'rule' and key = ${ruleKey(r)}`,
+          );
         // the applied pack owns the keys, so it is the active one
         await q.execute(
           sql`update ai_harness_packs set active = (root_page_id = ${b.packPageId}::uuid), updated_at = now()

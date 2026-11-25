@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { pickModel } from '@planar/module-ai/api';
 import {
   computeDiff,
   parseHarnessYaml,
@@ -137,5 +138,24 @@ describe('harness diff', () => {
       'rule:create:План в бэклоге',
       'rule:enable:План в бэклоге',
     ]);
+  });
+});
+
+describe('harness: models правила', () => {
+  const rule = (models: string) => `rules:
+  - { key: r, name: R, trigger: { type: task.created }, actions: [{ type: ai_run, action: a }], models: ${models} }
+actions: [a]
+`;
+  it('provider:model принимается, остальное — ошибка разбора', () => {
+    expect(
+      parseHarnessYaml(rule('[anthropic:claude-haiku-4-5, openai-compatible:gemini-2.5-flash]'))
+        .rules[0]!.models,
+    ).toEqual(['anthropic:claude-haiku-4-5', 'openai-compatible:gemini-2.5-flash']);
+    expect(() => parseHarnessYaml(rule('[haiku]'))).toThrow(/provider:model/);
+    expect(() => parseHarnessYaml(rule('[gemini:pro]'))).toThrow(/provider:model/);
+    expect(parseHarnessYaml(rule('[]')).rules[0]!.models).toEqual([]);
+    expect(pickModel(['anthropic:a', 'openai:b', 'openai:c'], 'openai')).toBe('b');
+    expect(pickModel(['anthropic:a'], 'openai')).toBeNull();
+    expect(pickModel(undefined, 'openai')).toBeNull();
   });
 });

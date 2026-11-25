@@ -67,6 +67,12 @@ onMounted(load);
           <li v-for="o in g.ops" :key="o.op + o.key">
             <span class="mr-2 rounded bg-bg-muted px-1.5 text-xs">{{ tr(o.op) }}</span
             >{{ o.key }}
+            <span
+              v-if="o.kind === 'rule' && Array.isArray(o.data?.models) && o.data.models.length"
+              class="ml-2 text-xs text-fg-muted"
+              data-testid="harness-models"
+              >{{ tr('ruleModels') }}: {{ (o.data.models as string[]).join(', ') }}</span
+            >
           </li>
         </ul>
       </section>

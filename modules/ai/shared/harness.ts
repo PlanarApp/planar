@@ -24,6 +24,16 @@ const fieldSchema = z.object({
   name: z.string().min(1).max(100),
   type: z.enum(FIELD_TYPES),
 });
+/**
+ * A model a rule's AI runs may use: `provider:model` — the provider of the connection (openai | anthropic |
+ * openai-compatible, as AI_PROVIDERS) and the model id of that provider (`anthropic:claude-haiku-4-5`).
+ * At a run the first entry of the effective connection's provider wins, none fits — the connection's default model.
+ */
+export const RULE_MODEL_RE = /^(openai|anthropic|openai-compatible):\S{1,200}$/;
+export const ruleModels = z
+  .array(z.string().regex(RULE_MODEL_RE, 'нужен формат provider:model'))
+  .max(10);
+
 const ruleSchema = z.object({
   /** identity of the rule in the pack; the name if omitted */
   key: key.optional(),
@@ -37,6 +47,8 @@ const ruleSchema = z.object({
     .min(1)
     .max(10),
   enabled: z.boolean().default(true),
+  /** models allowed for the rule's AI runs, `provider:model`, most preferred first; the AI fills it when the pack is adapted */
+  models: ruleModels.optional(),
 });
 
 export const ruleKey = (r: { key?: string; name: string }) => r.key ?? r.name;
@@ -308,6 +320,8 @@ export function computeDiff(
     trigger: r.trigger,
     filter: r.filter,
     actions: r.actions,
+    // not an automation field: stored beside the rule's key on apply (harness-apply.ts), shown in the diff
+    models: r.models,
   });
   const creates: HarnessOp[] = [];
   const updates: HarnessOp[] = [];

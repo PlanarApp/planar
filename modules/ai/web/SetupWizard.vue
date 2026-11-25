@@ -12,6 +12,7 @@ import {
   aiBotOf,
   assignmentBody,
   canAdvance,
+  modelsHint,
   nextStep,
   prevStep,
   type WizardStep,
@@ -126,7 +127,11 @@ const adapt = () =>
     await mutate('docs.comment.create', {
       id: newId(),
       pageId: rootPageId.value!,
-      body: assignmentBody(prompt.value),
+      body: assignmentBody(
+        f.provider
+          ? `${prompt.value}\n${modelsHint({ provider: f.provider, model: f.model })}`
+          : prompt.value,
+      ),
       assigneeId: bot.id,
     });
     assigned.value = true;
