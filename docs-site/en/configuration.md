@@ -33,6 +33,12 @@ The `.env` file sits next to `compose.yml`; compose reads it by itself. It holds
 | `AI_CHAT_MAX_STEPS`  | `10`                                  | model steps per run of the personal AI chat, integer > 0; empty — default                                                                                                                                                |
 | `AI_CHAT_MAX_TOKENS` | `100000`                              | tokens summed over the steps of a run of the personal AI chat, integer > 0; empty — default                                                                                                                              |
 
+## Two-factor authentication
+
+Users turn 2FA on themselves in the profile → "Security": passkeys (Face ID, Touch ID, fingerprint, Windows Hello, device PIN) and an authenticator app with recovery codes. The app lock (on open or after inactivity) is set there too. An admin makes 2FA required (for admins or everyone) in the workspace settings and resets it for a user who lost their phone (Settings → Users → "Reset 2FA").
+
+A passkey is bound to the domain: a key added on `PLANAR_DOMAIN` does not work on another address of the instance. After a domain change users add passkeys again; password and code sign-in keep working. No `.env` settings are needed.
+
 ## Generating secrets
 
 On a server with openssl:

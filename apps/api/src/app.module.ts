@@ -10,6 +10,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { CORE, CoreService } from './core.service.js';
 import { AUTH_OPTS, type AuthOpts } from './auth/auth.js';
 import { AuthController } from './auth/auth.controller.js';
+import { MfaController } from './auth/mfa.controller.js';
 import { SetupController } from './auth/setup.controller.js';
 import { TokensController } from './tokens/tokens.controller.js';
 import { UsersController } from './users/users.controller.js';
@@ -66,6 +67,7 @@ export class AppModule implements OnApplicationShutdown {
         VersionController,
         MetricsController,
         AuthController,
+        MfaController,
         SetupController,
         UsersController,
         TokensController,

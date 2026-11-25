@@ -117,7 +117,7 @@ Entities — docs/contracts/core-schema.md (part of C-schema v22).
 ### Non-synced tables (server only)
 | table | columns |
 |---|---|
-| `sessions` | `id text pk` (sha256 hex of the cookie token), `user_id uuid`, `created_at`, `expires_at`, `last_seen_at timestamptz`, `user_agent text?` |
+| `sessions` | `id text pk` (sha256 hex of the cookie token), `user_id uuid`, `created_at`, `expires_at`, `last_seen_at timestamptz`, `user_agent text?`, `state text?` (null, mfa, setup — § Two-factor authentication), `locked_at timestamptz?` (app lock) |
 | `files` | `sha256 text pk`, `size bigint`, `mime text`, `width int?`, `height int?`, `created_by uuid`, `created_at` |
 | `push_subscriptions` | `id uuid pk`, `user_id uuid`, `endpoint text unique`, `p256dh text`, `auth text`, `user_agent text?`, `created_at` |
 | `client_mutations` | `client_id uuid pk`, `user_id uuid`, `last_mutation_id bigint not null`, `rejected jsonb not null default '[]'` (the last 100 refusals: id, code, message), `updated_at` |
@@ -126,6 +126,9 @@ Entities — docs/contracts/core-schema.md (part of C-schema v22).
 | `files_deleted` | `sha256 text pk`, `deleted_at timestamptz` — files of attachments deleted in the app (trigger attachments_files_deleted on attachments delete, any path: attachment.delete, comment.delete, cascades). Night job core.files.purge (04:10 UTC) takes rows older than 7 days: deletes the files row and the file in DATA_DIR if the sha256 occurs in no text/json/bytea/array column of the schema (except the sync journal changes: it keeps puts of deleted rows) and was not uploaded again within 7 days; the queue row goes in any outcome. Files never attached (inline images, avatars, icons) are not purged (PLNRAPP-858) |
 | `login_attempts` | `key text pk` (ip and login joined by "\|"), `attempts int`, `window_started_at timestamptz` — a 1-minute window for the login limit |
 | `api_tokens` | `id uuid pk`, `user_id uuid`, `name text`, `token_sha256 text unique`, `prefix text`, `scope text check (read,write)`, `expires_at?`, `last_used_at?`, `revoked_at?`, `created_at` |
+| `user_security` | `user_id uuid pk`, `totp_secret text?`, `totp_enabled bool`, `totp_step bigint?` (the last accepted step), `recovery_codes text[]` (sha256), `lock_minutes int?`, `lock_wipe bool`, `updated_at` |
+| `passkeys` | `id text pk` (credential id, base64url), `user_id uuid`, `name text`, `public_key text`, `counter bigint`, `transports text[]?`, `created_at`, `last_used_at?` |
+| `auth_challenges` | `id text pk`, `challenge text`, `user_id uuid?` (null — passwordless sign-in), `expires_at` — WebAuthn challenges, 5 minutes, one use |
 | `ydocs` | `doc_id text pk` (document name docs:uuid or task:uuid), `state bytea not null` (Y.encodeStateAsUpdate), `updated_at timestamptz` — p3.md §P3-ydoc |
 
 Migrations — drizzle-kit, directory `apps/api/drizzle/`, schema — `apps/api/src/db/schema.ts` (+ module schemas `modules/*/api/schema.ts`, tables prefixed with `<moduleId>_`).
@@ -450,10 +453,11 @@ Any non-2xx response is JSON `{code, message, details?}`. `details` of `invalid_
 |---|---|
 | 400 | `invalid_request` |
 | 401 | `unauthenticated`, `invalid_credentials` |
-| 403 | `forbidden`, `origin_mismatch` |
+| 403 | `forbidden`, `origin_mismatch`, `mfa_setup_required` |
 | 404 | `not_found`, `module_disabled` |
 | 409 | `conflict` |
 | 413 | `payload_too_large` |
+| 423 | `locked` |
 | 426 | `upgrade_required` |
 | 429 | `rate_limited` |
 | 500 | `internal` |
@@ -473,16 +477,24 @@ Any non-2xx response is JSON `{code, message, details?}`. `details` of `invalid_
 - `Authorization: Bearer plnr_<…>` (CR-10) gives the same `ctx.userId`; Origin is not checked. A `read` token — only GET and `/sync/bootstrap`, `/sync/pull`; otherwise `403 forbidden`. Tokens, REST `/api/v1` and MCP `/mcp` — `docs/contracts/core-api-v1.md` (part of C-http).
 - A deactivated user — `401 unauthenticated` (sessions are deleted).
 
+### Two-factor authentication and app lock
+- Factors: TOTP (RFC 6238, SHA-1, 6 digits, 30 s, ±1 step, a step is not accepted twice), 10 one-time recovery codes (only sha256 in the DB), passkeys (WebAuthn, discoverable, user verification required — biometrics or the device PIN). Secrets — server tables `user_security`, `passkeys`, `auth_challenges` (not synced).
+- Login with a factor set up: `POST /api/auth/login` → `200 {mfa: {totp, passkey}}` + cookie of a session with `state='mfa'` (10 minutes, only `POST /api/auth/mfa/verify` and logout; others `401`). `mfa/verify` `{code}` (TOTP or recovery) or `{challengeId, response}` (passkey) → `200 {user}` + cookie of a new full session.
+- Passwordless sign-in: `POST /api/auth/passkey/options` → `{challengeId, options}`; `POST /api/auth/passkey/login` `{challengeId, response}` → `200 {user}` + cookie. For a signed-in session (`mfa`, locked) options list only its keys. RP ID — the host of the request `Origin` (one of the instance origins).
+- Policy — `settings.workspace.mfa`: `off` | `admins` | `all` (REST `PATCH /api/v1/instance/workspace`). Applies and no factor: login → `{user, mfaSetup: true}`, session `state='setup'`: only `/api/auth/*` (no impersonation), others `403 mfa_setup_required`; the first factor makes these sessions full. Under the policy the last factor cannot be removed (`409`). Instance admin resets a user's 2FA — `PATCH /api/v1/instance/users/{id}` `{reset2fa: true}`.
+- App lock — `user_security.lockMinutes`: null — off, 0 — on every open, N — after N minutes of inactivity; needs a factor. The client locks with `POST /api/auth/lock`; the server locks by itself when a session had no requests for `max(N, 3)` minutes. A locked session: only `unlock`, `logout`, `security`, `me`; the rest of HTTP — `423 locked`, `/ws` and `/collab` — refused with `423`. `POST /api/auth/unlock` `{code}` or `{challengeId, response}` → `204`. `lockWipe` — the client clears its replica on lock (when nothing is pending).
+- `GET /api/auth/security` → `{totp, recoveryLeft, passkeys: [{id, name, createdAt, lastUsedAt}], lockMinutes, lockWipe, required, setup}`; `POST /api/auth/totp/setup` → `{secret, uri, qr}`; `POST /api/auth/totp/enable` `{code}` → `{recoveryCodes}`; `POST /api/auth/totp/disable` `{code}` → `204`; `POST /api/auth/recovery-codes` `{code}` or passkey → `{recoveryCodes}`; `POST /api/auth/passkeys/options` → `{challengeId, options}`; `POST /api/auth/passkeys` `{challengeId, response, name}` → `201`; `DELETE /api/auth/passkeys/:id` → `204`; `PATCH /api/auth/lock` `{lockMinutes, lockWipe}`. Wrong code — `401 invalid_credentials`, > 10 failures/min — `429`. Session only (token → `403`).
+
 ### Core endpoints
 | method and path | input → output | task |
 |---|---|---|
 | `GET /api/health` | → `200 {ok: true, db: 'up'}` \| `503 {ok: false, db: 'down'}` | CR-1 |
 | `GET /api/setup` | → `200 {needed: boolean}` — `true` while there are no users; no authorization | CR-3 |
 | `POST /api/setup` | `{login, name, password}` → `201 {user}`; users already exist → `409 conflict` | CR-3 |
-| `POST /api/auth/login` | `{login, password}` → `200 {user}` + cookie; `401 invalid_credentials`; > 10 attempts/min per IP+login → `429` | CR-3 |
+| `POST /api/auth/login` | `{login, password}` → `200 {user, mfaSetup}` + cookie, with 2FA — `200 {mfa: {totp, passkey}}` (§ Two-factor authentication); `401 invalid_credentials`; > 10 attempts/min per IP+login → `429` | CR-3 |
 | `POST /api/auth/logout` | → `204`, cookie cleared | CR-3 |
 | `POST /api/auth/impersonate` | `{userId}` → `200 {user}` + cookie of that user, the caller's session is deleted; only an owner/admin from a cookie session (token → `403`), only an active user of a strictly lower role (`403` / `404`) | PLNRAPP-129 |
-| `GET /api/auth/me` | → `{user}` \| `401` | CR-3 |
+| `GET /api/auth/me` | → `{user, mfaSetup, locked, lockMinutes, lockWipe}` \| `401` | CR-3 |
 | `GET /api/users` | → `{users: user[]}` (instance_admin) | CR-3 |
 | `POST /api/users` | `{login, name, password, role, email?}` → `201 {user}` (instance_admin) | CR-3 |
 | `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool, avatarFile?: string\|null, timezone?: string}` → `{user}`; `avatarFile` — a sha256 from `POST /files` uploaded by this user (`file_uploads`), otherwise `400 invalid_request`; `timezone` — an IANA zone, otherwise `400`; for oneself — only name, email, password, avatarFile, timezone | CR-3 |

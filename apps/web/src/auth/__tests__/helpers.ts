@@ -50,4 +50,7 @@ export function resetAuth() {
   const a = useAuth();
   a.user.value = null;
   a.ready.value = false;
+  a.mfaPending.value = null;
+  a.mfaSetup.value = false;
+  a.locked.value = false;
 }

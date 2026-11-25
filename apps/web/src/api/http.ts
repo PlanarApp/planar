@@ -38,6 +38,9 @@ export async function api<T = unknown>(
     throw new ApiError(res.status, 'internal', res.statusText || 'internal');
   }
   if (!res.ok) {
+    // app lock (auth/lock.ts): any request of a locked session shows the lock screen
+    if (res.status === 423 && typeof window !== 'undefined')
+      window.dispatchEvent(new Event('planar:locked'));
     const e = (data ?? {}) as { code?: string; message?: string; details?: unknown };
     throw new ApiError(res.status, e.code ?? 'internal', e.message ?? '', e.details);
   }

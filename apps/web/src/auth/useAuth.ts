@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import type { Row } from '@planar/shared';
 import { api, ApiError } from '../api/http';
+import { passkeyProof, type Proof } from '../api/security';
 import { clearLocal, syncState } from '../sync';
 
 /** timezone — only in the own profile (/api/auth/me), not in the users replica */
@@ -25,6 +26,30 @@ const known = (): User | null => {
 
 const user = ref<User | null>(null);
 const ready = ref(false);
+/** the password is accepted, the second factor is pending: which factors the user has */
+const mfaPending = ref<{ totp: boolean; passkey: boolean } | null>(null);
+/** 2FA is required by the instance policy and not set up: only the security settings */
+const mfaSetup = ref(false);
+/** app lock (auth/lock.ts): settings and the current state */
+const lockPrefs = ref<{ minutes: number | null; wipe: boolean }>({ minutes: null, wipe: false });
+const locked = ref(false);
+
+type Me = {
+  user: User;
+  mfaSetup?: boolean;
+  locked?: boolean;
+  lockMinutes?: number | null;
+  lockWipe?: boolean;
+};
+function signedIn(r: Me) {
+  mfaPending.value = null;
+  user.value = r.user;
+  store(r.user);
+  mfaSetup.value = !!r.mfaSetup;
+  if (r.lockMinutes !== undefined) lockPrefs.value = { minutes: r.lockMinutes, wipe: !!r.lockWipe };
+  locked.value = !!r.locked;
+  adoptBrowserZone(r.user);
+}
 
 /** PLNRAPP-160: the profile has no zone yet — save the browser's one (in the background, no error shown) */
 function adoptBrowserZone(u: User) {
@@ -41,9 +66,7 @@ function adoptBrowserZone(u: User) {
 
 async function refresh(): Promise<void> {
   try {
-    user.value = (await api<{ user: User }>('GET', '/api/auth/me')).user;
-    store(user.value);
-    adoptBrowserZone(user.value);
+    signedIn(await api<Me>('GET', '/api/auth/me'));
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
     // offline/5xx: stay with the last known user
@@ -54,10 +77,25 @@ async function refresh(): Promise<void> {
   }
 }
 
+/** With 2FA set up — fills mfaPending, then verifyMfa finishes the sign-in. */
 async function login(login: string, password: string): Promise<void> {
-  user.value = (await api<{ user: User }>('POST', '/api/auth/login', { login, password })).user;
-  store(user.value);
-  adoptBrowserZone(user.value);
+  const r = await api<Me & { mfa?: { totp: boolean; passkey: boolean } }>(
+    'POST',
+    '/api/auth/login',
+    { login, password },
+  );
+  if (r.mfa) mfaPending.value = r.mfa;
+  else signedIn(r);
+}
+
+async function verifyMfa(p: Proof): Promise<void> {
+  signedIn(await api<Me>('POST', '/api/auth/mfa/verify', p));
+  await refresh(); // lock settings
+}
+
+async function passkeyLogin(): Promise<void> {
+  signedIn(await api<Me>('POST', '/api/auth/passkey/login', await passkeyProof()));
+  await refresh();
 }
 
 // logout confirmation when there are unsent changes (dialog — sync/LogoutDialog.vue)
@@ -90,6 +128,8 @@ async function logout(): Promise<boolean> {
   }
   user.value = null;
   store(null);
+  locked.value = false;
+  mfaSetup.value = false;
   await clearLocal();
   return true;
 }
@@ -156,8 +196,7 @@ async function setupNeeded(): Promise<boolean> {
 }
 
 async function demoLogin(): Promise<void> {
-  user.value = (await api<{ user: User }>('POST', '/api/auth/demo-login')).user;
-  store(user.value);
+  signedIn(await api<Me>('POST', '/api/auth/demo-login'));
 }
 
 const isAdmin = computed(() => user.value?.role === 'owner' || user.value?.role === 'admin');
@@ -169,6 +208,12 @@ export function useAuth() {
     isAdmin,
     refresh,
     login,
+    verifyMfa,
+    passkeyLogin,
+    mfaPending,
+    mfaSetup,
+    lockPrefs,
+    locked,
     logout,
     impersonate,
     canImpersonate,

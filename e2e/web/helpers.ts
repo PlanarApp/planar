@@ -120,7 +120,7 @@ export async function loginAs(browser: Browser, login: string): Promise<Page> {
   if (!shown && netChanged) await page.reload();
   await field.fill(login);
   await page.getByLabel('Пароль').fill(login);
-  await page.getByRole('button', { name: 'Войти' }).click();
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(page.getByTestId('sidebar')).toBeVisible();
   return page;
 }

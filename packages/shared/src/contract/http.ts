@@ -12,6 +12,8 @@ export const HTTP_ERROR_CODES = [
   'payload_too_large',
   'rate_limited',
   'upgrade_required',
+  'mfa_setup_required',
+  'locked',
   'internal',
   'unavailable',
 ] as const;

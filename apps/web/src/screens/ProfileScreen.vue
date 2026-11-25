@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Avatar, Button, Input, Select, Tabs, useTheme } from '../ui';
 import { api } from '../api/http';
@@ -8,13 +9,15 @@ import { useAuth, type User } from '../auth/useAuth';
 import { errText } from '../auth/errText';
 import PushToggle from '../inbox/PushToggle.vue';
 import TokensSection from './profile/TokensSection.vue';
+import SecuritySection from './profile/SecuritySection.vue';
 import { setWeekStart } from '../i18n/week';
 import { setLocale, type Locale } from '../i18n';
 
 const { t, locale } = useI18n();
-const { user } = useAuth();
+const { user, mfaSetup } = useAuth();
 const { theme } = useTheme();
-const tab = ref('profile');
+// ?tab=security — 2FA required by the policy (router.ts) or a link
+const tab = ref(mfaSetup.value ? 'security' : String(useRoute().query.tab ?? 'profile'));
 const weekPref = ref(readPref());
 function readPref(): string {
   try {
@@ -115,10 +118,12 @@ const themes = () => [
       size="md"
       :items="[
         { value: 'profile', label: t('profile.title') },
+        { value: 'security', label: t('security.title') },
         { value: 'mcp', label: t('profile.mcp') },
       ]"
     />
     <TokensSection v-if="tab === 'mcp'" />
+    <SecuritySection v-else-if="tab === 'security'" />
     <template v-else>
       <section class="flex flex-col gap-3" :aria-label="t('profile.title')">
         <h2 class="text-lg font-semibold">{{ t('profile.title') }}</h2>

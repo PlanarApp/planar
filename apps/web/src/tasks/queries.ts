@@ -66,11 +66,14 @@ export function useWorkspace() {
       name?: string;
       color?: string | null;
       icon?: string | null;
+      mfa?: 'off' | 'admins' | 'all';
     };
     return {
       name: v.name || i18n.global.t('app.name'),
       color: v.color ?? null,
       icon: v.icon ?? null,
+      /** 2FA policy (admin, settings): off — optional */
+      mfa: v.mfa ?? 'off',
     };
   });
 }

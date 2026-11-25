@@ -9,6 +9,7 @@ import { closePrompt } from './tasks/closeOpen';
 import { mergeFrom } from './tasks/merge';
 import { moveTarget } from './tasks/move';
 import { initSession } from './session';
+import { initLock } from './auth/lock';
 import { onMutationError, prefetchTasks } from './sync';
 import { installTaskPrefetch } from './sync/prefetch';
 import { toast } from './ui/toast';
@@ -17,15 +18,17 @@ import { fitVisualViewport } from './ui/viewport';
 import './styles.css';
 
 const LogoutDialog = defineAsyncComponent(() => import('./sync/LogoutDialog.vue'));
+const LockScreen = defineAsyncComponent(() => import('./auth/LockScreen.vue'));
 const Toasts = defineAsyncComponent(() => import('./ui/Toasts.vue'));
 const CloseOpenDialog = defineAsyncComponent(() => import('./tasks/CloseOpenDialog.vue'));
 const MergeDialog = defineAsyncComponent(() => import('./tasks/MergeDialog.vue'));
 const MoveTaskDialog = defineAsyncComponent(() => import('./tasks/MoveTaskDialog.vue'));
-const { logoutPrompt } = useAuth();
+const { logoutPrompt, locked, user } = useAuth();
 
 const open = /^\/p\/([0-9a-f-]{36})/.exec(location.pathname);
 if (open) prefetchProject(open[1]!);
 initSession(router);
+initLock();
 initModules();
 commitImeOnEnter(document);
 fitVisualViewport();
@@ -40,6 +43,7 @@ addEventListener('unhandledrejection', (e) => fail(e.reason));
 const app = createApp({
   render: () => [
     h(App),
+    locked.value && user.value && h(LockScreen),
     logoutPrompt.open.value && h(LogoutDialog),
     closePrompt.value && h(CloseOpenDialog, { key: closePrompt.value.task.id }),
     mergeFrom.value && h(MergeDialog, { key: mergeFrom.value.id }),

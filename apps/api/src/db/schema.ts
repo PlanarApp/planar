@@ -538,9 +538,62 @@ export const sessions = pgTable(
     expiresAt: ts().notNull(),
     lastSeenAt: ts().notNull().defaultNow(),
     userAgent: text(),
+    /** null — full session; 'mfa' — password accepted, waiting for the second factor; 'setup' — 2FA is required by policy, not set up yet */
+    state: text(),
+    /** app lock: set — the session is locked until unlock (passkey/TOTP) */
+    lockedAt: ts(),
+  },
+  (t) => [
+    index().on(t.userId),
+    check('sessions_state_check', sql`${t.state} is null or ${t.state} in ('mfa', 'setup')`),
+  ],
+);
+
+/** 2FA and app lock settings of a user (secrets — not in users: users is synced to clients). */
+export const userSecurity = pgTable('user_security', {
+  userId: uuid()
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** base32 TOTP secret; totpEnabled false — set up, not confirmed with a code yet */
+  totpSecret: text(),
+  totpEnabled: boolean().notNull().default(false),
+  /** last accepted TOTP time step: a code is not accepted twice */
+  totpStep: bigint({ mode: 'number' }),
+  /** sha256 of unused recovery codes */
+  recoveryCodes: text()
+    .array()
+    .notNull()
+    .default(sql`'{}'::text[]`),
+  /** app lock: null — off; 0 — on every open; N — after N minutes of inactivity */
+  lockMinutes: integer(),
+  /** on lock the client clears its local replica */
+  lockWipe: boolean().notNull().default(false),
+  updatedAt: updatedAt(),
+});
+
+export const passkeys = pgTable(
+  'passkeys',
+  {
+    /** credential id, base64url */
+    id: text().primaryKey(),
+    userId: cascadeUser(),
+    name: text().notNull(),
+    publicKey: text().notNull(),
+    counter: bigint({ mode: 'number' }).notNull().default(0),
+    transports: text().array(),
+    createdAt: createdAt(),
+    lastUsedAt: ts(),
   },
   (t) => [index().on(t.userId)],
 );
+
+/** WebAuthn challenges (5 minutes, one use); userId null — passwordless sign-in. */
+export const authChallenges = pgTable('auth_challenges', {
+  id: text().primaryKey(),
+  challenge: text().notNull(),
+  userId: uuid().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: ts().notNull(),
+});
 
 /** Y.Doc state of collaborative editing (P3-ydoc): doc_id = `docs:<uuid>` | `task:<uuid>`. */
 const bytea = customType<{ data: Buffer }>({ dataType: () => 'bytea' });

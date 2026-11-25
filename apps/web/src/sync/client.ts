@@ -662,6 +662,12 @@ export function createClient(db: PlanarDB) {
         authCbs.forEach((cb) => cb());
         return;
       }
+      // the session is locked (auth/lock.ts): sync is stopped until unlock
+      if (e instanceof HttpError && e.status === 423) {
+        setStatus('error');
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('planar:locked'));
+        return;
+      }
       // fetch timeout/abort (AbortError, TimeoutError) — treated as a network error
       const net =
         e instanceof TypeError ||

@@ -21,6 +21,7 @@ import { findUserByLogin } from '../users/users.repo.js';
 import { AUTH_OPTS, getAuth, isAdminRole, readCookie, type AuthOpts } from './auth.js';
 import { HttpError } from './errors.js';
 import { assertNotLimited, recordFailure, resetAttempts } from './login-limit.js';
+import { factors, securityOf, stateAfterPassword } from './mfa.js';
 import { verifyDummy, verifyPassword } from './password.js';
 import { Public } from './public.js';
 import {
@@ -86,7 +87,13 @@ export class AuthController {
       throw new HttpError(403, 'forbidden', 'Пробный период закончился', {
         cloud: 'trial_expired',
       });
-    return this.startSession(req, res, user);
+    // 2FA: a short 'mfa' session waits for the second factor (POST /api/auth/mfa/verify), no user yet
+    const state = await stateAfterPassword(this.db, user);
+    if (state === 'mfa') {
+      await this.startSession(req, res, user, state);
+      return { mfa: await factors(this.db, user.id) };
+    }
+    return { ...(await this.startSession(req, res, user, state)), mfaSetup: state === 'setup' };
   }
 
   /** cloud-link: one-time sign-in after the instance is created in the cloud — the setup loginToken session is exchanged for a normal one. */
@@ -117,10 +124,11 @@ export class AuthController {
     req: FastifyRequest,
     res: FastifyReply,
     user: typeof users.$inferSelect,
+    state: 'mfa' | 'setup' | null = null,
   ) {
     // the AI bot (PLNRAPP-167) has no sign-in: login, demo and impersonation all end up here
     if (user.bot) throw new HttpError(401, 'invalid_credentials', 'Неверный логин или пароль');
-    const token = await createSession(this.db, user.id, req.headers['user-agent']);
+    const token = await createSession(this.db, user.id, req.headers['user-agent'], state);
     void res.header('set-cookie', sessionCookie(token, { secure: this.opts.cookieSecure }));
     return { user: publicUser(user) };
   }
@@ -178,12 +186,18 @@ export class AuthController {
     void res.header('set-cookie', clearSessionCookie({ secure: this.opts.cookieSecure }));
   }
 
+  /** + session state (2FA setup required, locked) and the app lock settings for the client */
   @Get('me')
   async me(@Req() req: object) {
-    const [user] = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.id, getAuth(req).userId));
-    return { user: publicUser(user!) };
+    const me = getAuth(req);
+    const [user] = await this.db.select().from(users).where(eq(users.id, me.userId));
+    const s = await securityOf(this.db, me.userId);
+    return {
+      user: publicUser(user!),
+      mfaSetup: me.state === 'setup',
+      locked: me.state === 'locked',
+      lockMinutes: s?.lockMinutes ?? null,
+      lockWipe: s?.lockWipe ?? false,
+    };
   }
 }

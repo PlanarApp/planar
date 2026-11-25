@@ -47,5 +47,5 @@ export async function modulesWith(d: ExtDeps, id: string, enabled: boolean) {
 
 export async function workspace(d: ExtDeps) {
   const [r] = await d.db.select().from(s.settings).where(eq(s.settings.id, 'workspace'));
-  return (r?.value ?? {}) as { name?: string; color?: string; icon?: string };
+  return (r?.value ?? {}) as { name?: string; color?: string; icon?: string; mfa?: string };
 }

@@ -11,6 +11,7 @@
   "dependencies": {
     "@planar/editor": "workspace:*",
     "@planar/shared": "workspace:*",
+    "@simplewebauthn/browser": "14.0.0",
     "@tanstack/vue-virtual": "^3.13.47",
     "@tiptap/core": "^3.32.0",
     "@tiptap/extension-image": "^3.32.0",

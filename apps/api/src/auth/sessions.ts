@@ -10,11 +10,17 @@ const MAX_AGE = SESSION_DAYS * 86400;
 export const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 export const sessionExpiry = () => new Date(Date.now() + MAX_AGE * 1000).toISOString();
 
-export async function createSession(db: Db, userId: string, userAgent?: string): Promise<string> {
+/** state 'mfa' — the password is accepted, the second factor is pending: lives 10 minutes. */
+export async function createSession(
+  db: Db,
+  userId: string,
+  userAgent?: string,
+  state: 'mfa' | 'setup' | null = null,
+): Promise<string> {
   const token = randomBytes(32).toString('base64url');
-  await db
-    .insert(sessions)
-    .values({ id: hashToken(token), userId, expiresAt: sessionExpiry(), userAgent });
+  const expiresAt =
+    state === 'mfa' ? new Date(Date.now() + HANDOFF_MS).toISOString() : sessionExpiry();
+  await db.insert(sessions).values({ id: hashToken(token), userId, expiresAt, userAgent, state });
   return token;
 }
 

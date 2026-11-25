@@ -56,6 +56,9 @@ router.beforeEach(async (to) => {
   const expired = !!lastSetupInfo.value?.cloud?.expired;
   if (expired !== (to.name === 'paywall')) return expired ? '/paywall' : '/';
   if (to.name === 'login' || to.name === 'setup') return '/';
+  // 2FA is required by the instance policy: only the security settings until it is set up
+  if (useAuth().mfaSetup.value && to.name !== 'profile')
+    return { path: '/profile', query: { tab: 'security' } };
   // former group tab "Inbox" — "My work › Activity"
   const seg = String((to.name === 'project' ? to.params.view : to.params.tab) ?? '');
   // bare node address — the last opened tab (by default "My work")
