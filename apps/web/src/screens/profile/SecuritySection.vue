@@ -253,21 +253,23 @@ const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString() : '');
         />
         {{ t('security.lockOpen') }}
       </label>
-      <label class="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          :checked="s.lockMinutes !== null"
-          :disabled="!hasFactor"
-          data-testid="lock-idle"
-          @change="saveLock({ lockMinutes: checked($event) ? 5 : null })"
-        />
-        {{ t('security.lockIdle') }}
-      </label>
-      <div v-if="s.lockMinutes !== null" class="pl-6">
+      <div class="flex min-h-8 items-center gap-3">
+        <label class="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            :checked="s.lockMinutes !== null"
+            :disabled="!hasFactor"
+            data-testid="lock-idle"
+            @change="saveLock({ lockMinutes: checked($event) ? 5 : null })"
+          />
+          {{ t('security.lockIdle') }}
+        </label>
         <Select
+          v-if="s.lockMinutes !== null"
           :model-value="String(s.lockMinutes)"
           :label="t('security.lockIdleTime')"
           :options="idleOptions()"
+          size="sm"
           @update:model-value="(v) => v && saveLock({ lockMinutes: +v })"
         />
       </div>
