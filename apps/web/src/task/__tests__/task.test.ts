@@ -367,7 +367,43 @@ describe('task:description', () => {
   });
 });
 
+// PLNRAPP-865: the "View" settings of the project's List tab (the row the List writes, node p:<project>)
+const listView = (config: Record<string, unknown>, id: string = crypto.randomUUID()) => ({
+  id,
+  spaceId: ids.space,
+  userId: ids.ann,
+  createdBy: ids.ann,
+  name: 'list',
+  layout: 'list',
+  node: `p:${ids.project}`,
+  filter: { op: 'and', rules: [] },
+  config,
+  rank: 'a1',
+  createdAt: '2026-10-22T10:00:00.000Z',
+  updatedAt: '2026-10-22T10:00:00.000Z',
+});
+
 describe('task:subtasks', () => {
+  // the tab's rows are the virtualized List (PLNRAPP-865): a viewport for the virtualizer, a wide area
+  const sizes = ['clientHeight', 'clientWidth'] as const;
+  const saved = sizes.map((k) => Object.getOwnPropertyDescriptor(HTMLElement.prototype, k));
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    });
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      value: 1600,
+    });
+  });
+  afterEach(() => {
+    sizes.forEach((k, i) =>
+      saved[i]
+        ? Object.defineProperty(HTMLElement.prototype, k, saved[i]!)
+        : delete (HTMLElement.prototype as unknown as Record<string, unknown>)[k],
+    );
+  });
   it('список подзадач строкой «Списка» и создание с parentId', async () => {
     const child = task(2, { parentId: t.id, title: 'child' });
     await db.table('tasks').put(child);
@@ -497,24 +533,62 @@ describe('task:subtasks', () => {
     });
 
     it('перетаскивание меняет порядок и сохраняет его', async () => {
+      // the manual order without grouping: rows 32px one under another — the header, k1, k2, k3
+      await db.table('savedViews').put(listView({ groupBy: 'none', wrapTitles: false }));
       await show();
-      const list = w.get('[data-testid="subtasks-list"]').element as HTMLElement;
-      // rows 32px high one under another
-      list.getBoundingClientRect = () => ({ top: 0, bottom: 96, height: 96 }) as DOMRect;
-      for (const [i, r] of [...list.querySelectorAll<HTMLElement>('[data-task]')].entries())
-        r.getBoundingClientRect = () =>
-          ({ top: i * 32, bottom: i * 32 + 32, height: 32 }) as DOMRect;
+      document.elementFromPoint ??= () => null; // jsdom: no layout — nothing under the pointer
+      // the list area at the top of the window, not near its edges (no auto-scroll)
+      const grid = w.get('[data-testid="subtasks-list"] [role="grid"]').element as HTMLElement;
+      grid.getBoundingClientRect = () => ({ top: 0, bottom: 600, height: 600 }) as DOMRect;
       const at = (type: string, clientY: number) =>
         Object.assign(new MouseEvent(type, { bubbles: true, clientY }), { pointerId: 1 });
-      rowOf('PLN-4').get('[data-testid="row-grip"]').element.dispatchEvent(at('pointerdown', 80));
+      rowOf('PLN-4').get('[data-testid="row-grip"]').element.dispatchEvent(at('pointerdown', 112));
       await flushPromises();
-      window.dispatchEvent(at('pointermove', 10));
+      window.dispatchEvent(at('pointermove', 40)); // the upper half of k1 — before it
       await flushPromises();
       expect(w.find('[data-testid="drop-line"]').exists()).toBe(true);
-      window.dispatchEvent(at('pointerup', 10));
+      window.dispatchEvent(at('pointerup', 40));
       await eventually(async () => (await order()).join() === 'k3,k1,k2');
       await until(() => !w.find('[data-testid="drop-line"]').exists());
     });
+  });
+  // PLNRAPP-865: the "View" settings of the parent's project List apply to the tab, live
+  it('настройки «Вид» списка проекта: скрытое свойство пропадает, группировка и плотность — как в «Списке»', async () => {
+    await db
+      .table('tasks')
+      .bulkPut([
+        task(2, { parentId: t.id, title: 'k1', rank: 'a1' }),
+        task(3, { parentId: t.id, title: 'k2', rank: 'a2' }),
+      ]);
+    const view = listView({
+      groupBy: 'none',
+      showKey: false,
+      fields: ['priority', 'assignee', 'status'],
+    });
+    await db.table('savedViews').put(view);
+    w = await open();
+    await openTab('Подзадачи');
+    await until(() => w.findAllComponents(ListRow).length === 2);
+    const row = () => w.get('[data-testid="subtasks-list"] [data-task="PLN-2"]');
+    const cols = () =>
+      row()
+        .findAll('[data-col]')
+        .map((c) => c.attributes('data-col'));
+    // the List's column order (fixed, shared by the List's rows and header)
+    expect(cols()).toEqual(['status', 'assignee', 'priority']);
+    expect(row().find('[data-testid="row-key"]').exists()).toBe(false);
+    expect(w.find('[data-testid="group-row"]').exists()).toBe(false);
+    expect(w.find('[data-testid="list-head"]').exists()).toBe(true);
+    // the List hides «Assignees» and groups by status: the tab follows without reopening
+    await db.table('savedViews').put({
+      ...view,
+      config: { ...view.config, groupBy: 'status', fields: ['priority', 'status'] },
+      updatedAt: '2026-10-22T11:00:00.000Z',
+    });
+    await until(() => !cols().includes('assignee'));
+    expect(cols()).toEqual(['status', 'priority']);
+    await until(() => w.find('[data-testid="group-row"]').exists());
+    expect(w.get('[data-testid="group-row"]').text()).toContain('Todo');
   });
   // PLNRAPP-542: done and cancelled subtasks are under the «Закрыто N» accordion, collapsed on opening
   it('аккордеон «Закрыто N»: свёрнут, клик раскрывает и сворачивает, при новом открытии свёрнут', async () => {
@@ -543,10 +617,9 @@ describe('task:subtasks', () => {
     expect(w.text()).not.toContain('cancelled child');
     await acc().trigger('click');
     expect(acc().attributes('aria-expanded')).toBe('true');
-    const closed = w.find('[data-testid="subtasks-closed-list"]');
-    expect(closed.text()).toContain('done child');
-    expect(closed.text()).toContain('cancelled child');
-    expect(w.find('[data-testid="subtasks-list"]').text()).not.toContain('done child');
+    // the closed ones join the list's rows (PLNRAPP-865: in the groups of the List's settings)
+    await until(() => w.find('[data-testid="subtasks-list"]').text().includes('done child'));
+    expect(w.find('[data-testid="subtasks-list"]').text()).toContain('cancelled child');
     await acc().trigger('click');
     expect(w.text()).not.toContain('done child');
     await acc().trigger('click');

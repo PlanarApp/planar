@@ -71,9 +71,21 @@ const props = withDefaults(
     dnd?: boolean;
     /** the selection context; none — the injected one (provideSelection) */
     selection?: Selection;
+    /**
+     * PLNRAPP-865: the list shows the subtasks of this task (the "Subtasks" tab of the card) — they are
+     * the top-level rows, a task is not nested into another by dragging (it would leave the list)
+     */
+    rootId?: string;
+    /** opening a task (click, Enter); none — openTask */
+    open?: (key: string) => void;
+    /** the "New task" rows of the groups and the empty state's button; false — the screen has its own */
+    quickCreate?: boolean;
+    /** list keys (j/k, arrows) when the focus is outside the list (on the page); false — only in the list */
+    windowKeys?: boolean;
   }>(),
-  { dnd: true },
+  { dnd: true, quickCreate: true, windowKeys: true },
 );
+const openKey = (key: string) => (props.open ?? openTask)(key);
 const { t, locale } = useI18n();
 const { isMobile } = useBreakpoint();
 // mobile: the list is drawn as task cards, without the column header
@@ -222,7 +234,7 @@ const items = computed<Item[]>(() => {
           ? []
           : [{ id: `g:${g.key}`, kind: 'group' as const, group: g }]),
         ...rows,
-        ...(props.scope && !props.scope.createIn
+        ...((props.scope && !props.scope.createIn) || !props.quickCreate
           ? []
           : [{ id: `c:${g.key}`, kind: 'create' as const, group: g }]),
       ];
@@ -283,6 +295,7 @@ function dropAt(clientY: number): Drop {
   if (
     it?.kind === 'task' &&
     (drag.value?.ids.length ?? 1) < 2 && // a group is not nested into a task
+    !props.rootId &&
     !banned.has(it.task.id) &&
     it.task.projectId === dragProject &&
     frac > 0.3 &&
@@ -449,7 +462,11 @@ const taskIds = computed(() => [
 ]);
 // "select all": every task of every group, including collapsed ones
 const allIds = computed(() => [...new Set(groups.value.flatMap((g) => g.tasks.map((x) => x.id)))]);
-const empty = computed(() => !!all.value && !all.value.some((x) => !x.parentId));
+const empty = computed(
+  () =>
+    !!all.value &&
+    !all.value.some((x) => !x.parentId || (!!props.rootId && x.parentId === props.rootId)),
+);
 
 // --- virtualization
 const scroller = ref<HTMLElement>();
@@ -531,7 +548,8 @@ function moveFocus(d: 1 | -1) {
   focusedId.value = list[i].id;
   virt.value.scrollToIndex(i);
   const it = list[i];
-  if (it.kind === 'task' && sideTaskOpen()) showTask(it.task.key);
+  // the subtasks tab (rootId) is inside the panel: moving in it does not switch the panel's task
+  if (it.kind === 'task' && sideTaskOpen() && !props.rootId) showTask(it.task.key);
 }
 // the focused row is gone (filtered out, moved to another group): the same task if it is still in
 // the list, else the next task, the previous one for the last (PLNRAPP-96)
@@ -588,7 +606,7 @@ function onWindowKey(e: KeyboardEvent) {
   e.preventDefault();
   if (!inSheet) scroller.value?.focus({ preventScroll: true });
 }
-onMounted(() => window.addEventListener('keydown', onWindowKey));
+onMounted(() => props.windowKeys && window.addEventListener('keydown', onWindowKey));
 onBeforeUnmount(() => window.removeEventListener('keydown', onWindowKey));
 function onKey(e: KeyboardEvent) {
   // list keys — when focus is on the list itself or on a row's button/checkbox (after a picker
@@ -622,7 +640,7 @@ function listKey(key: string): boolean {
     k: () => moveFocus(-1),
     ArrowDown: () => moveFocus(1),
     ArrowUp: () => moveFocus(-1),
-    Enter: () => task && openTask(task.key),
+    Enter: () => task && openKey(task.key),
     x: () => task && sel.toggle(task.id),
     F2: () => task && !asCards.value && startEdit(focusedId.value!), // edit, not opening after a click
     Escape: () => sel.clear(),
@@ -647,7 +665,7 @@ function onRowClick(it: Extract<Item, { kind: 'task' }>, e: MouseEvent) {
   else {
     // double-click on the name = edit: opening is deferred, dblclick cancels it
     clearTimeout(openTimer);
-    openTimer = setTimeout(() => openTask(it.task.key), 250);
+    openTimer = setTimeout(() => openKey(it.task.key), 250);
   }
 }
 function startEdit(id: string) {
@@ -759,13 +777,17 @@ watch(
         </div>
         <template v-else>
           <Button
-            v-if="!scope || scope.createIn"
+            v-if="quickCreate && (!scope || scope.createIn)"
             variant="primary"
             :icon="Plus"
             @click="startCreate('')"
             >{{ t('list.create') }}</Button
           >
-          <Menu v-if="newMenu.length && !scope" :items="newMenu" :label="t('list.newMenu')" />
+          <Menu
+            v-if="quickCreate && newMenu.length && !scope"
+            :items="newMenu"
+            :label="t('list.newMenu')"
+          />
         </template>
       </template>
     </EmptyState>
