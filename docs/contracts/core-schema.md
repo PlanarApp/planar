@@ -130,6 +130,8 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, 
 | `rank` | rank | manual order |
 | `dueDate` | date? | |
 | `startDate` | date? | |
+| `dueTime` | text? | time of day `HH:MM`, optional, only with `dueDate` |
+| `startTime` | text? | time of day `HH:MM`, optional, only with `startDate` |
 | `createdBy` | uuid | |
 | `completedAt` | ts? | set by the mutator on a move to the done/cancelled category, cleared on leaving it |
 | `fields` | obj | `{<fieldDefs.id>: value}` — fields of the task's project, no `null`; format — features.md §F-fields; default `{}` |

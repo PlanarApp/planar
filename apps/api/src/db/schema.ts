@@ -191,6 +191,8 @@ export const tasks = pgTable(
     rank: rank().notNull(),
     dueDate: date({ mode: 'string' }),
     startDate: date({ mode: 'string' }),
+    dueTime: text(),
+    startTime: text(),
     createdBy: userRef().notNull(),
     completedAt: ts(),
     fields: obj().notNull().default({}),

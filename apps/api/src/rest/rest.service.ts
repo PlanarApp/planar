@@ -405,6 +405,7 @@ export class RestService {
             description: b.description === undefined ? undefined : await this.toDoc(b.description),
             priority: b.priority,
             dueDate: b.dueDate,
+            dueTime: b.dueTime,
             assignees: b.assigneeIds?.map((u) => ({ id: uuidv7(), userId: u })),
             labels: b.labelIds?.map((l) => ({ id: uuidv7(), labelId: l })),
           },

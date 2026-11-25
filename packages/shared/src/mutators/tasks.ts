@@ -12,6 +12,7 @@ import {
   needProjectAdmin,
   rank,
   record,
+  time,
   uuid,
 } from './util.js';
 
@@ -206,6 +207,8 @@ export const taskMutators = [
       priority: priority.optional(),
       dueDate: date.nullable().optional(),
       startDate: date.nullable().optional(),
+      dueTime: time.nullable().optional(),
+      startTime: time.nullable().optional(),
       assignees: z.array(z.object({ id: uuid, userId: uuid })).optional(),
       labels: z.array(z.object({ id: uuid, labelId: uuid })).optional(),
     }),
@@ -215,6 +218,7 @@ export const taskMutators = [
       const status = await need(tx, 'statuses', a.statusId);
       if (status.projectId !== a.projectId) throw bad('statusId другого проекта');
       if (a.parentId) await checkParent(tx, a.id, spaceId, a.parentId);
+      if ((a.dueTime && !a.dueDate) || (a.startTime && !a.startDate)) throw bad('время без даты');
       for (const l of a.labels ?? []) {
         if ((await need(tx, 'labels', l.labelId)).projectId !== a.projectId)
           throw bad('labelId другого проекта');
@@ -232,6 +236,8 @@ export const taskMutators = [
         rank: a.rank,
         dueDate: a.dueDate ?? null,
         startDate: a.startDate ?? null,
+        dueTime: a.dueTime ?? null,
+        startTime: a.startTime ?? null,
         createdBy: ctx.userId,
         completedAt: completedAt(status.category, null, ctx),
         fields: {},
@@ -269,6 +275,8 @@ export const taskMutators = [
       rank: rank.optional(),
       dueDate: date.nullable().optional(),
       startDate: date.nullable().optional(),
+      dueTime: time.nullable().optional(),
+      startTime: time.nullable().optional(),
       projectId: uuid.optional(),
       parentId: uuid.nullable().optional(),
       fields: record.optional(),
@@ -279,6 +287,14 @@ export const taskMutators = [
       const t = await need(tx, 'tasks', a.id);
       const { withSubtasks, ...rest } = a;
       const patch = changes('tasks', rest, ctx);
+      // a time belongs to its date: clearing the date clears the time, a time needs a date
+      for (const [d, tm] of [
+        ['dueDate', 'dueTime'],
+        ['startDate', 'startTime'],
+      ] as const) {
+        if (a[d] === null) patch[tm] = null;
+        else if (a[tm] && !(a[d] ?? t[d])) throw bad('время без даты');
+      }
       const moved = !!a.projectId && a.projectId !== t.projectId;
       const keep = moved && withSubtasks === false;
       const p = a.projectId ? await need(tx, 'projects', a.projectId) : undefined;

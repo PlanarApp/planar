@@ -14,6 +14,8 @@ defineProps<{
   people: { name: string }[];
   startDate: string | null;
   dueDate: string | null;
+  startTime?: string | null;
+  dueTime?: string | null;
   priority: number;
   labels: DbRow<'labels'>[];
   /** the task's project name (the "Project" field) */
@@ -35,7 +37,14 @@ const empty = 'text-fg-subtle opacity-50';
     <UserRound v-else :size="16" :class="empty" :aria-label="t('tasks.noAssignee')" />
   </template>
   <template v-else-if="col === 'dueDate'">
-    <DatesValue v-if="startDate || dueDate" class="text-sm" :start="startDate" :due="dueDate" />
+    <DatesValue
+      v-if="startDate || dueDate"
+      class="text-sm"
+      :start="startDate"
+      :due="dueDate"
+      :start-time="startTime"
+      :due-time="dueTime"
+    />
     <CalendarDays v-else :size="16" :class="empty" aria-hidden="true" />
   </template>
   <template v-else-if="col === 'priority'">
