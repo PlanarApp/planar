@@ -144,6 +144,24 @@ const TEXT = {
     cron: 'Расписание cron (минута час день месяц день недели)',
     tz: 'Часовой пояс (IANA, пусто — пояс инстанса)',
     invalid: 'Правило заполнено неверно',
+    exportAll: 'Экспорт',
+    exportOne: 'Экспорт в JSON',
+    importFile: 'Импорт',
+    unbound: 'Не привязано',
+    unboundHint: 'Поля не найдены в проекте: правило выключено, настройте и включите его',
+    unboundEdit:
+      'В правиле есть незаполненные поля — выключенным его можно сохранить, включить — только заполнив их',
+    importTitle: 'Импорт правил',
+    importSummary: (n: number, u: number) =>
+      `Правил: ${n}, из них с непривязанными полями: ${u} (будут выключены)`,
+    importApply: 'Импортировать',
+    importErrors: {
+      json: 'Файл не является JSON',
+      format: 'Это не экспорт автоматизаций Planar',
+      version: 'Неизвестная версия формата',
+      empty: 'В файле нет правил',
+      broken: 'Правило повреждено',
+    },
     triggers: {
       'task.created': 'Задача создана',
       'task.status_changed': 'Статус изменился',
@@ -236,6 +254,24 @@ const TEXT = {
     cron: 'Cron schedule (minute hour day month weekday)',
     tz: 'Time zone (IANA, empty — instance time zone)',
     invalid: 'The rule is not valid',
+    exportAll: 'Export',
+    exportOne: 'Export to JSON',
+    importFile: 'Import',
+    unbound: 'Not bound',
+    unboundHint:
+      'Some fields were not found in the project: the rule is disabled, set it up and enable it',
+    unboundEdit: 'The rule has empty fields — it can be saved disabled, to enable it fill them in',
+    importTitle: 'Import rules',
+    importSummary: (n: number, u: number) =>
+      `Rules: ${n}, with unbound fields: ${u} (will be disabled)`,
+    importApply: 'Import',
+    importErrors: {
+      json: 'The file is not JSON',
+      format: 'Not a Planar automations export',
+      version: 'Unknown format version',
+      empty: 'The file has no rules',
+      broken: 'The rule is broken',
+    },
     triggers: {
       'task.created': 'Task created',
       'task.status_changed': 'Status changed',
