@@ -359,7 +359,6 @@ export default {
     weekMon: 'Monday',
     weekSun: 'Sunday',
     timezone: 'Time zone',
-    timezoneFilter: 'Filter time zones',
     timezoneSystem: 'System',
   },
   plan: {

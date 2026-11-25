@@ -359,7 +359,6 @@ export default {
     weekMon: 'Понедельник',
     weekSun: 'Воскресенье',
     timezone: 'Часовой пояс',
-    timezoneFilter: 'Фильтр часовых поясов',
     timezoneSystem: 'Системный',
   },
   calendar: {
