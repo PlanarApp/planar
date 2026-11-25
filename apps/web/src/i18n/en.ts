@@ -170,6 +170,7 @@ export default {
   myDay: {
     title: 'My day',
     toTomorrow: 'For tomorrow',
+    allToTomorrow: 'All for tomorrow',
     toToday: 'For today',
     add: 'Add to my day',
     today: 'Today',

@@ -97,7 +97,7 @@ const blocks = () => {
   let cur = '';
   for (const r of w.findAll('[role=row]')) {
     if (r.attributes('data-testid') === 'group-row') {
-      cur = r.findAll('span')[0]!.text();
+      cur = r.get('h3').text();
       out[cur] = [];
     } else if (r.attributes('data-task') !== undefined)
       out[cur]!.push(r.get('[data-testid=row-title]').text());
@@ -160,5 +160,26 @@ describe('PLNRAPP-868 «Мой день» — блоки «Сегодня / За
     await until(() => !row().find('[data-testid=row-key]').exists());
     expect(w.find('[data-testid=my-day-remove]').exists()).toBe(false);
     expect(w.text()).not.toMatch(/убрать из/i);
+  });
+
+  it('блоки — секции, а не аккордеон: без кнопки сворачивания', async () => {
+    await mineTask(1, { dueDate: localToday() });
+    await show();
+    await until(() => titles().length === 1);
+    expect(w.findAll('[data-testid=group-row]')).toHaveLength(3);
+    expect(w.find('[data-testid=group-row] button[aria-expanded]').exists()).toBe(false);
+  });
+
+  it('«Все на завтра» переносит весь блок «Сегодня» с просроченными; кнопка только у непустого «Сегодня»', async () => {
+    await mineTask(1, { dueDate: localToday(-2) });
+    await mineTask(2, { dueDate: localToday() });
+    await mineTask(3, { dueDate: localToday(3) });
+    await show();
+    await until(() => titles().length === 3);
+    expect(w.findAll('[data-testid=my-day-all-tomorrow]')).toHaveLength(1);
+    await w.get('[data-testid=my-day-all-tomorrow]').trigger('click');
+    await until(() => blocks()['Завтра']?.join() === 'T1,T2');
+    expect(blocks()).toEqual({ Сегодня: [], Завтра: ['T1', 'T2'], Позже: ['T3'] });
+    expect(w.find('[data-testid=my-day-all-tomorrow]').exists()).toBe(false);
   });
 });

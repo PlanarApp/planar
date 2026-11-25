@@ -498,6 +498,9 @@ watch(scroller, (el) => {
   fit();
 });
 onBeforeUnmount(() => ro?.disconnect());
+// the screen's own groups (blocks of «My day») are sections, not an accordion: a gap above each but the first
+const SECTION_GAP = 16;
+const sectionGap = (i: number) => !!props.groups && i > 0 && items.value[i]?.kind === 'group';
 // cards: the task card is above the service rows; dragging is disabled there (dropAt counts by rowH)
 const virt = useVirtualizer(
   computed(() => {
@@ -506,7 +509,8 @@ const virt = useVirtualizer(
     return {
       count: items.value.length,
       getScrollElement: () => scroller.value ?? null,
-      estimateSize: (i: number) => (items.value[i]?.kind === 'task' ? card : h),
+      estimateSize: (i: number) =>
+        items.value[i]?.kind === 'task' ? card : sectionGap(i) ? h + SECTION_GAP : h,
       overscan: 8,
       getItemKey: (i: number) => items.value[i]?.id ?? i,
     };
@@ -891,9 +895,11 @@ watch(
                 role="row"
                 :aria-rowindex="v.index + 1"
                 class="flex h-full items-center gap-2 border-b border-border px-3 text-sm"
+                :style="sectionGap(v.index) ? { paddingTop: `${SECTION_GAP}px` } : undefined"
                 data-testid="group-row"
               >
                 <button
+                  v-if="!props.groups"
                   type="button"
                   :aria-expanded="!collapsed.has(it.group.key)"
                   :aria-label="t(collapsed.has(it.group.key) ? 'list.expand' : 'list.collapse')"
@@ -921,14 +927,19 @@ watch(
                   data-testid="select-group"
                   @click="sel.toggleAll(it.group.tasks.map((x) => x.id))"
                 />
+                <h3 v-if="props.groups" class="truncate text-sm font-semibold text-fg">
+                  {{ it.group.label }}
+                </h3>
                 <!-- плашка группы цветом статуса/метки, как в ClickUp -->
                 <span
+                  v-else
                   class="truncate rounded px-2 py-0.5 text-xs font-semibold uppercase"
                   :class="it.group.color ? 'text-white' : 'bg-bg-muted text-fg'"
                   :style="it.group.color && { background: it.group.color }"
                   >{{ it.group.label }}</span
                 >
                 <span class="text-xs text-fg-subtle">{{ it.group.tasks.length }}</span>
+                <slot name="group-actions" :group="it.group" />
                 <span
                   class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden list-narrow:hidden"
                 >

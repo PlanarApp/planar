@@ -170,6 +170,7 @@ export default {
   myDay: {
     title: 'Мой день',
     toTomorrow: 'На завтра',
+    allToTomorrow: 'Все на завтра',
     toToday: 'На сегодня',
     add: 'В мой день',
     today: 'Сегодня',
