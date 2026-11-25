@@ -65,7 +65,8 @@ const remove = () => mutate('recurring.remove', { taskId: props.taskId });
     />
     <div class="flex items-end gap-2">
       <Input
-        v-model.number="every"
+        :model-value="String(every)"
+        @update:model-value="(v: string) => (every = Number(v))"
         type="number"
         min="1"
         max="365"
