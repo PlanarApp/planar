@@ -276,6 +276,20 @@ describe('sync', () => {
     await c.stopSync();
   });
 
+  it('sync:pull-more — длинный хвост тянется страницами за один цикл, без bootstrap', async () => {
+    const s = setup();
+    const c = s.mk();
+    await s.start(c);
+    s.server.pageSize = 2;
+    s.server.seed('labels', [label('a'), label('b'), label('c'), label('d'), label('e')]);
+    const pulls = s.server.pulls;
+    await c.syncNow();
+    expect((await labels(s.db)).map((l) => l.name).sort()).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(s.server.pulls).toBe(pulls + 3);
+    expect(s.server.bootstraps).toBe(1);
+    await c.stopSync();
+  });
+
   it('sync:ws-reconnect — переподключение с растущей задержкой, poke → pull', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
     try {

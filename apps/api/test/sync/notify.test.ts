@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { ServerTx } from '../../src/sync/server-tx.js';
-import { ChangeNotifier } from '../../src/sync/notify.js';
+import { ChangeNotifier, Notify, parsePayload } from '../../src/sync/notify.js';
 import { NOW, mkProject, mkSpace, mkUser, newDb } from './helpers.js';
 import { uuidv7 } from '@planar/shared';
 
@@ -88,5 +88,40 @@ describe('ChangeNotifier', () => {
     expect(mine.at(-1)).toBe(big + 3);
     expect(mine.length).toBeLessThanOrEqual(2);
     expect(mine).not.toContain(big + 2);
+  });
+});
+
+describe('адресаты poke', () => {
+  const pay = (f: (n: Notify) => void) => {
+    const n = new Notify();
+    f(n);
+    return parsePayload(n.payload(7));
+  };
+
+  it('пространство и пользователь попадают в адресатов', () => {
+    const { seq, target } = pay((n) => {
+      n.add('s1', null, 'tasks');
+      n.add(null, 'u1', 'notifications');
+    });
+    expect(seq).toBe(7);
+    expect(target.all).toBe(false);
+    expect([...target.spaces]).toEqual(['s1']);
+    expect([...target.users]).toEqual(['u1']);
+  });
+
+  it('глобальная строка, смена членства и избыток адресатов — всем', () => {
+    expect(pay((n) => n.add(null, null, 'users')).target.all).toBe(true);
+    const m = pay((n) => n.add('s1', null, 'spaceMembers')).target;
+    expect(m.all && m.membership).toBe(true);
+    expect(
+      pay((n) => {
+        for (let i = 0; i < 40; i++) n.add(`s${i}`, null, 'tasks');
+      }).target.all,
+    ).toBe(true);
+  });
+
+  it('старый payload (число) и мусор — всем', () => {
+    expect(parsePayload('42')).toMatchObject({ seq: 42, target: { all: true } });
+    expect(parsePayload('x').target.all).toBe(true);
   });
 });

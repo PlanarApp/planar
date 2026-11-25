@@ -76,6 +76,23 @@ describe('reset', () => {
     expect((await w.outsider.pull(cursor)).reset).toBeUndefined();
   });
 
+  it('page=1: длинный хвост — страницами с more, курсор — последний отданный seq, без reset', async () => {
+    const w = await world(db);
+    const { cursor } = await w.member.bootstrap();
+    await db.execute(sql`
+      insert into changes (space_id, entity, id, op, data)
+      select ${w.spaceId}::uuid, 'labels', g::text, 'del', null from generate_series(1, 5001) g`);
+    const p1 = await w.member.pull(cursor, true);
+    expect(p1.reset).toBeUndefined();
+    expect(p1).toMatchObject({ more: true });
+    expect(p1.changes).toHaveLength(5000);
+    expect(p1.cursor).toBe(p1.changes[4999].seq);
+    const p2 = await w.member.pull(p1.cursor, true);
+    expect(p2.more).toBeUndefined();
+    expect(p2.changes.length).toBeGreaterThanOrEqual(1);
+    expect(p2.changes[0].seq).toBe(p1.cursor + 1);
+  });
+
   it('создание пространства даёт reset создателю', async () => {
     const u = await mkUser(db);
     const c = new TestClient(services(db), u);

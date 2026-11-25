@@ -28,7 +28,15 @@ export interface HeldRow {
 }
 export interface MetaRow {
   /** protocol — the C-sync version of the last bootstrap (PLNRAPP-487) */
-  key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId' | 'schema' | 'protocol';
+  key:
+    | 'clientId'
+    | 'userId'
+    | 'cursor'
+    | 'lastMutationId'
+    | 'schema'
+    | 'protocol'
+    | 'heavy'
+    | 'heavyAfter';
   value: string | number;
 }
 

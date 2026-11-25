@@ -140,22 +140,33 @@ describe('WS /ws', () => {
     expect(JSON.stringify(m)).not.toContain(l.id);
   });
 
-  it('участник чужого пространства тоже получает poke, но pull у него без этих данных', async () => {
+  it('участник чужого пространства poke не получает; после добавления в пространство — получает', async () => {
     const p = await pair();
     const stranger = await createUser(db);
     const cs = await loginCookie(db, stranger.id);
     const c = connect({ cookie: cs, origin: ORIGIN });
     await c.opened;
     await new Promise((r) => setTimeout(r, 100));
-    const boot = (await inject('GET', `/sync/bootstrap?clientId=${uuidv7()}`, cs)).json();
+    // the first notification loads the socket's spaces: it may go out unaddressed
+    await push(p, 'label.create', label(p.projectId));
+    await new Promise((r) => setTimeout(r, 300));
     c.msgs.length = 0;
-    const l = label(p.projectId);
-    await push(p, 'label.create', l);
+    await push(p, 'label.create', label(p.projectId));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(c.msgs).toEqual([]);
+    // membership changes: the poke goes to all, the cached spaces are dropped
+    const r = await push(p, 'member.add', {
+      id: uuidv7(),
+      spaceId: p.spaceId,
+      userId: stranger.id,
+      role: 'member',
+    });
+    expect(r.statusCode).toBe(200);
     expect(((await c.next()) as { t: string }).t).toBe('poke');
-    const pulled = (
-      await inject('GET', `/sync/pull?cursor=${boot.cursor}&clientId=${uuidv7()}`, cs)
-    ).json();
-    expect(JSON.stringify(pulled)).not.toContain(l.id);
+    await new Promise((r) => setTimeout(r, 300));
+    c.msgs.length = 0;
+    await push(p, 'label.create', label(p.projectId));
+    expect(((await c.next()) as { t: string }).t).toBe('poke');
   });
 
   it('poke после push другого клиента ≤ 500 мс', async () => {

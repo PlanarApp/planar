@@ -5,6 +5,7 @@ import { MutatorError, uuidv7, type EntityName, type Row, type Tx } from '@plana
 import * as schema from '../db/schema.js';
 import { installed } from '../modules/installed.js';
 import { hiddenProjectIds, projectAccess, projectOfWire, PROJECT_RANK } from './project-access.js';
+import { Notify } from './notify.js';
 import { allMetas, metaOf, schemaOf, tableOf, toWire } from './rows.js';
 
 /** Drizzle transaction (or a connection inside a manual BEGIN). */
@@ -77,6 +78,8 @@ export class ServerTx implements Tx {
   private cache: TxCache;
   private locked: boolean;
   private lastSeq = 0;
+  /** Whom the writes concern (notification payload); `all` — a global row or a membership change. */
+  private notified = new Notify();
   /** Records of this mutation (for the notification hook). */
   readonly writes: TxWrite[] = [];
 
@@ -106,7 +109,9 @@ export class ServerTx implements Tx {
   /** Notification about what was written; call in the same transaction before commit. */
   async finish(): Promise<void> {
     if (this.lastSeq)
-      await this.q.execute(sql`select pg_notify('planar_changes', ${String(this.lastSeq)})`);
+      await this.q.execute(
+        sql`select pg_notify('planar_changes', ${this.notified.payload(this.lastSeq)})`,
+      );
   }
 
   /** Lock until the first read: read-then-write mutations are serialized (C-sync v2). */
@@ -546,6 +551,7 @@ export class ServerTx implements Tx {
         .returning({ seq: schema.changes.seq }),
     );
     this.lastSeq = c.seq;
+    this.notified.add(spaceId, userId, entity);
   }
 
   /** userIds of members of the container of an entity row of scope space|members. */
