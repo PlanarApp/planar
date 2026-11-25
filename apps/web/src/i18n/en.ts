@@ -171,6 +171,9 @@ export default {
     title: 'My day',
     toTomorrow: 'For tomorrow',
     add: 'Add to my day',
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    later: 'Later',
   },
   inbox: {
     all: 'All',

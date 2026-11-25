@@ -82,6 +82,11 @@ const props = withDefaults(
     quickCreate?: boolean;
     /** list keys (j/k, arrows) when the focus is outside the list (on the page); false — only in the list */
     windowKeys?: boolean;
+    /**
+     * PLNRAPP-868: the screen's own groups instead of the "View" grouping and sorting (the blocks of «My day»);
+     * dragging between them is off
+     */
+    groups?: (tasks: TaskView[]) => TaskGroup[];
   }>(),
   { dnd: true, quickCreate: true, windowKeys: true },
 );
@@ -109,12 +114,14 @@ const {
   fields: listFields,
   columns,
   groups,
+  grouped,
   density,
   manual: manualSort,
   sortBy,
 } = useViewSettings(() => props.settings, all, {
   projectIds: () => props.scope?.projectIds ?? [props.projectId],
   passes: () => passes.value,
+  groups: () => props.groups,
   group: () => ({
     statuses: statuses.value ?? [],
     members: members.value ?? [],
@@ -205,8 +212,7 @@ watch(
 const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
 const items = computed<Item[]>(() => {
   // cards (mobile): without a column header row; PLNRAPP-823: grouped — neither, the groups have headers
-  const head: Item[] =
-    !asCards.value && options.value.groupBy === 'none' ? [{ id: 'head', kind: 'head' }] : [];
+  const head: Item[] = !asCards.value && !grouped.value ? [{ id: 'head', kind: 'head' }] : [];
   return head.concat(
     groups.value.flatMap((g): Item[] => {
       if (collapsed.value.has(g.key)) return [{ id: `g:${g.key}`, kind: 'group', group: g }];
@@ -230,9 +236,7 @@ const items = computed<Item[]>(() => {
         });
       }
       return [
-        ...(options.value.groupBy === 'none'
-          ? []
-          : [{ id: `g:${g.key}`, kind: 'group' as const, group: g }]),
+        ...(!grouped.value ? [] : [{ id: `g:${g.key}`, kind: 'group' as const, group: g }]),
         ...rows,
         ...((props.scope && !props.scope.createIn) || !props.quickCreate
           ? []
@@ -934,7 +938,7 @@ watch(
                     :class="['relative shrink-0 truncate px-1', COLUMN_CLASS[c]]"
                     :style="{ width: `${widths[c]}px` }"
                     ><button
-                      v-if="LIST_SORT[c]"
+                      v-if="LIST_SORT[c] && !groups"
                       type="button"
                       class="truncate rounded-sm hover:text-fg"
                       :title="t('table.sortBy')"
@@ -1052,7 +1056,7 @@ watch(
     <BulkBar
       :space-id="spaceId"
       :tasks="all"
-      :select-all="!asCards && options.groupBy !== 'none' ? allIds : undefined"
+      :select-all="!asCards && grouped ? allIds : undefined"
     />
   </div>
 </template>

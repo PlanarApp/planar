@@ -93,7 +93,7 @@ describe('seed-demo', () => {
     expect(m?.v).toContain('chat');
   });
 
-  it('PLNRAPP-709: «Мой день» maya по dueDate — сегодня, завтра и просроченное к переносу', async () => {
+  it('PLNRAPP-709, PLNRAPP-868: «Мой день» maya по dueDate — сегодня, просроченное, завтра и потом', async () => {
     const rows = await q<{ due: string }>(`select t.due_date::text as due from tasks t
       join task_assignees a on a.task_id = t.id
       join users u on u.id = a.user_id and u.login = 'maya'
@@ -104,6 +104,7 @@ describe('seed-demo', () => {
     expect(n((d) => d === at(0))).toBeGreaterThanOrEqual(3);
     expect(n((d) => d === at(1))).toBeGreaterThanOrEqual(1);
     expect(n((d) => d < at(0))).toBeGreaterThanOrEqual(1);
+    expect(n((d) => d > at(1))).toBeGreaterThanOrEqual(1);
   });
 
   it('ИИ в комментариях страницы: решённое поручение и ответ бота в ветке', async () => {
