@@ -131,15 +131,29 @@ const readTask = async (k: string): Promise<TaskView | null> => {
   if (UUID.test(k)) task = await db.table<Row<'tasks'>>('tasks').get(k);
   else {
     const m = /^(.+)-(\d+)$/.exec(k);
-    const p = m && (await db.table<Row<'projects'>>('projects').where('key').equals(m[1]!).first());
-    task =
+    const projects = db.table<Row<'projects'>>('projects');
+    const tasks = db.table<Row<'tasks'>>('tasks');
+    const byNumber = (p: Row<'projects'> | undefined) =>
       p && m
-        ? await db
-            .table<Row<'tasks'>>('tasks')
+        ? tasks
             .where('[projectId+number]')
             .equals([p.id, Number(m[2])])
             .first()
         : undefined;
+    try {
+      task = await byNumber(m ? await projects.where('key').equals(m[1]!).first() : undefined);
+    } catch {
+      // the replica's schema lacks the client indexes (its version record in localStorage is lost): scan as before
+      const p = m ? await projects.filter((x) => x.key === m[1]).first() : undefined;
+      task =
+        p && m
+          ? await tasks
+              .where('projectId')
+              .equals(p.id)
+              .filter((t) => t.number === Number(m[2]))
+              .first()
+          : undefined;
+    }
   }
   if (!task) return null;
   const p = await db.table<Row<'projects'>>('projects').get(task.projectId);
