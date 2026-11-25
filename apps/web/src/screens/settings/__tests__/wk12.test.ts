@@ -12,10 +12,22 @@ import { i18n, setup, wait } from './setup';
 
 setup();
 const page = defineComponent({ render: () => h('p', { 'data-testid': 'mod-page' }, 'hello') });
+// shows the attrs it got: the global settings must not pass `level` (it would override the page's own one)
+const attrsPage = defineComponent({
+  inheritAttrs: false,
+  setup:
+    (_, { attrs }) =>
+    () =>
+      h('p', { 'data-testid': 'attrs-page' }, 'level' in attrs ? 'has-level' : 'no-level'),
+});
 registerModules([
   {
     id: 'import',
     settings: [{ id: 'import', label: 'Импорт', component: async () => ({ default: page }) }],
+  },
+  {
+    id: 'lvl',
+    settings: [{ id: 'ws', label: 'Уровень', component: async () => ({ default: attrsPage }) }],
   },
   {
     id: 'templates',
@@ -118,6 +130,11 @@ describe('wk12:', () => {
     expect(w.find('[data-testid=nav-projects]').exists()).toBe(false);
     const sp = await open('/settings?s=general', 'admin', space);
     expect(sp.find('[data-testid=nav-templates\\:templates]').exists()).toBe(true);
+  });
+  it('глобальные: странице модуля не передаётся пустой level', async () => {
+    await setEnabledModules(['lvl']);
+    const w = await open('/settings/lvl:ws', 'admin');
+    await vi.waitFor(() => expect(w.find('[data-testid=attrs-page]').text()).toBe('no-level'));
   });
   it('wk12: выключенный модуль — пункта нет', async () => {
     await setEnabledModules([]);

@@ -188,8 +188,11 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
         :is="comp"
         v-if="comp"
         :space-id="spaceId"
-        :level="scope?.level"
-        v-bind="scope?.projectId ? { projectId: scope.projectId } : {}"
+        v-bind="{
+          // global: no level at all — an undefined attr would fall through and override a module page's own level
+          ...(scope && { level: scope.level }),
+          ...(scope?.projectId && { projectId: scope.projectId }),
+        }"
       />
     </div>
   </div>
